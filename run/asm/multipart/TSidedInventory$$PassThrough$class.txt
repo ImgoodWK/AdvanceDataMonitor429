@@ -1,0 +1,244 @@
+// class version 50.0 (50)
+// access flags 0x401
+public abstract class TSidedInventory$$PassThrough$class {
+
+
+  // access flags 0x9
+  public static $init$(LTSidedInventory$$PassThrough;)V
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static bindPart(LTSidedInventory$$PassThrough;Lcodechicken/multipart/TMultiPart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$super$bindPart (Lcodechicken/multipart/TMultiPart;)V (itf)
+    ALOAD 1
+    INSTANCEOF net/minecraft/inventory/ISidedInventory
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    CHECKCAST net/minecraft/inventory/ISidedInventory
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl_$eq (Lnet/minecraft/inventory/ISidedInventory;)V (itf)
+   L0
+   FRAME FULL [TSidedInventory$$PassThrough codechicken/multipart/TMultiPart] []
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static partRemoved(LTSidedInventory$$PassThrough;Lcodechicken/multipart/TMultiPart;I)V
+    ALOAD 0
+    ALOAD 1
+    ILOAD 2
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$super$partRemoved (Lcodechicken/multipart/TMultiPart;I)V (itf)
+    ALOAD 1
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    IF_ACMPNE L0
+    ALOAD 0
+    ACONST_NULL
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl_$eq (Lnet/minecraft/inventory/ISidedInventory;)V (itf)
+   L0
+   FRAME FULL [TSidedInventory$$PassThrough codechicken/multipart/TMultiPart I] []
+    RETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static canAddPart(LTSidedInventory$$PassThrough;Lcodechicken/multipart/TMultiPart;)Z
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    IFNULL L0
+    ALOAD 1
+    INSTANCEOF net/minecraft/inventory/ISidedInventory
+    IFEQ L0
+    ICONST_0
+    IRETURN
+   L0
+   FRAME FULL [TSidedInventory$$PassThrough codechicken/multipart/TMultiPart] []
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$super$canAddPart (Lcodechicken/multipart/TMultiPart;)Z (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static getInventoryStackLimit(LTSidedInventory$$PassThrough;)I
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.getInventoryStackLimit ()I (itf)
+    IRETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static setInventorySlotContents(LTSidedInventory$$PassThrough;ILnet/minecraft/item/ItemStack;)V
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    ALOAD 2
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.setInventorySlotContents (ILnet/minecraft/item/ItemStack;)V (itf)
+    RETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static getInventoryName(LTSidedInventory$$PassThrough;)Ljava/lang/String;
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.getInventoryName ()Ljava/lang/String; (itf)
+    ARETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static markDirty(LTSidedInventory$$PassThrough;)V
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.markDirty ()V (itf)
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static openInventory(LTSidedInventory$$PassThrough;)V
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.openInventory ()V (itf)
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static getStackInSlotOnClosing(LTSidedInventory$$PassThrough;I)Lnet/minecraft/item/ItemStack;
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.getStackInSlotOnClosing (I)Lnet/minecraft/item/ItemStack; (itf)
+    ARETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static getStackInSlot(LTSidedInventory$$PassThrough;I)Lnet/minecraft/item/ItemStack;
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.getStackInSlot (I)Lnet/minecraft/item/ItemStack; (itf)
+    ARETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static isUseableByPlayer(LTSidedInventory$$PassThrough;Lnet/minecraft/entity/player/EntityPlayer;)Z
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ALOAD 1
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.isUseableByPlayer (Lnet/minecraft/entity/player/EntityPlayer;)Z (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static canInsertItem(LTSidedInventory$$PassThrough;ILnet/minecraft/item/ItemStack;I)Z
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    ALOAD 2
+    ILOAD 3
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.canInsertItem (ILnet/minecraft/item/ItemStack;I)Z (itf)
+    IRETURN
+    MAXSTACK = 4
+    MAXLOCALS = 4
+
+  // access flags 0x9
+  public static getAccessibleSlotsFromSide(LTSidedInventory$$PassThrough;I)[I
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.getAccessibleSlotsFromSide (I)[I (itf)
+    ARETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static canExtractItem(LTSidedInventory$$PassThrough;ILnet/minecraft/item/ItemStack;I)Z
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    ALOAD 2
+    ILOAD 3
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.canExtractItem (ILnet/minecraft/item/ItemStack;I)Z (itf)
+    IRETURN
+    MAXSTACK = 4
+    MAXLOCALS = 4
+
+  // access flags 0x9
+  public static decrStackSize(LTSidedInventory$$PassThrough;II)Lnet/minecraft/item/ItemStack;
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    ILOAD 2
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.decrStackSize (II)Lnet/minecraft/item/ItemStack; (itf)
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static isItemValidForSlot(LTSidedInventory$$PassThrough;ILnet/minecraft/item/ItemStack;)Z
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    ILOAD 1
+    ALOAD 2
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.isItemValidForSlot (ILnet/minecraft/item/ItemStack;)Z (itf)
+    IRETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static closeInventory(LTSidedInventory$$PassThrough;)V
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.closeInventory ()V (itf)
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static getSizeInventory(LTSidedInventory$$PassThrough;)I
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.getSizeInventory ()I (itf)
+    IRETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static hasCustomInventoryName(LTSidedInventory$$PassThrough;)Z
+    ALOAD 0
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE net/minecraft/inventory/ISidedInventory.hasCustomInventoryName ()Z (itf)
+    IRETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static copyFrom(LTSidedInventory$$PassThrough;Lcodechicken/multipart/TileMultipart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$super$copyFrom (Lcodechicken/multipart/TileMultipart;)V (itf)
+    ALOAD 1
+    INSTANCEOF TSidedInventory$$PassThrough
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl ()Lnet/minecraft/inventory/ISidedInventory; (itf)
+    INVOKEINTERFACE TSidedInventory$$PassThrough.TSidedInventory$$PassThrough$$impl_$eq (Lnet/minecraft/inventory/ISidedInventory;)V (itf)
+   L0
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+}

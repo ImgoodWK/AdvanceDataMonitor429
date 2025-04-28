@@ -1,0 +1,59 @@
+// class version 50.0 (50)
+// access flags 0x601
+public abstract interface TEnergyConnected$$PassThrough implements gregtech/api/interfaces/tileentity/IEnergyConnected {
+
+
+  // access flags 0x401
+  public abstract TEnergyConnected$$PassThrough$$impl()Lgregtech/api/interfaces/tileentity/IEnergyConnected;
+
+  // access flags 0x401
+  public abstract TEnergyConnected$$PassThrough$$impl_$eq(Lgregtech/api/interfaces/tileentity/IEnergyConnected;)V
+
+  // access flags 0x401
+  public abstract bindPart(Lcodechicken/multipart/TMultiPart;)V
+
+  // access flags 0x401
+  public abstract TEnergyConnected$$PassThrough$$super$bindPart(Lcodechicken/multipart/TMultiPart;)V
+
+  // access flags 0x401
+  public abstract partRemoved(Lcodechicken/multipart/TMultiPart;I)V
+
+  // access flags 0x401
+  public abstract TEnergyConnected$$PassThrough$$super$partRemoved(Lcodechicken/multipart/TMultiPart;I)V
+
+  // access flags 0x401
+  public abstract canAddPart(Lcodechicken/multipart/TMultiPart;)Z
+
+  // access flags 0x401
+  public abstract TEnergyConnected$$PassThrough$$super$canAddPart(Lcodechicken/multipart/TMultiPart;)Z
+
+  // access flags 0x401
+  public abstract inputEnergyFrom(Lnet/minecraftforge/common/util/ForgeDirection;Z)Z
+
+  // access flags 0x401
+  public abstract getColorization()B
+
+  // access flags 0x401
+  public abstract injectEnergyUnits(Lnet/minecraftforge/common/util/ForgeDirection;JJ)J
+
+  // access flags 0x401
+  public abstract inputEnergyFrom(Lnet/minecraftforge/common/util/ForgeDirection;)Z
+
+  // access flags 0x401
+  public abstract outputsEnergyTo(Lnet/minecraftforge/common/util/ForgeDirection;Z)Z
+
+  // access flags 0x401
+  public abstract outputsEnergyTo(Lnet/minecraftforge/common/util/ForgeDirection;)Z
+
+  // access flags 0x401
+  public abstract getGUIColorization()I
+
+  // access flags 0x401
+  public abstract setColorization(B)B
+
+  // access flags 0x401
+  public abstract copyFrom(Lcodechicken/multipart/TileMultipart;)V
+
+  // access flags 0x401
+  public abstract TEnergyConnected$$PassThrough$$super$copyFrom(Lcodechicken/multipart/TileMultipart;)V
+}

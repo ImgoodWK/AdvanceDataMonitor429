@@ -1,0 +1,366 @@
+[01:12:29] [main/INFO]: Setting user: Developer
+[01:12:30] [Client thread/INFO]: LWJGL Version: 3.3.3+5
+[01:12:39] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit
+[01:12:48] [Client thread/INFO]: Created: 32x32 textures/blocks-atlas
+[01:12:49] [Client thread/INFO]: Created: 32x32 textures/items-atlas
+[01:12:49] [Sound Library Loader/INFO]: Sound engine started
+[01:13:07] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit, Avaritia_Delegate_Pack, Avaritia_Delegate_Pack
+[01:13:07] [Client thread/INFO]: Created: 4096x4096 textures/blocks-atlas
+[01:13:08] [Client thread/INFO]: Created: 2048x2048 textures/items-atlas
+[01:13:09] [Sound Library Loader/INFO]: Sound engine started
+[01:13:43] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit, Avaritia_Delegate_Pack, Avaritia_Delegate_Pack
+[01:13:44] [Client thread/INFO]: Created: 4096x4096 textures/blocks-atlas
+[01:13:46] [Client thread/INFO]: Created: 4096x4096 textures/items-atlas
+[01:13:47] [Sound Library Loader/INFO]: Sound engine started
+[01:13:58] [Server thread/INFO]: Starting integrated minecraft server version 1.7.10
+[01:13:58] [Server thread/INFO]: Generating keypair
+[01:13:58] [Server thread/INFO]: Preparing start region for level 0
+[01:13:59] [Server thread/INFO]: Preparing spawn area: 65%
+[01:14:00] [Server thread/INFO]: Changing view distance to 12, from 10
+[01:14:01] [Server thread/INFO]: Developer[local:E:98f4fd25] logged in with entity id 1111613 at (-934.3327549689482, 4.0, -311.3042037358088)
+[01:14:01] [Server thread/INFO]: Developer joined the game
+[01:14:01] [Client thread/INFO]: [CHAT] §6§m-----------------------------------------------------
+[01:14:01] [Client thread/INFO]: [CHAT] §lWelcome to Gregtech: New Horizons §a2.6.1
+[01:14:01] [Client thread/INFO]: [CHAT] §9The Quest Book has a shortcut key, check your keybindings
+[01:14:01] [Client thread/INFO]: [CHAT] §9to remove conflicts.
+[01:14:01] [Client thread/INFO]: [CHAT] §2GTNH WIKI link https://gtnh.miraheze.org/wiki/
+[01:14:01] [Client thread/INFO]: [CHAT] §aPlease report bugs here:
+[01:14:01] [Client thread/INFO]: [CHAT] §6https://github.com/GTNewHorizons/GT-New-Horizons-Modpack/
+[01:14:01] [Client thread/INFO]: [CHAT] §9Visit our discord at https://discord.gg/gtnh
+[01:14:01] [Client thread/INFO]: [CHAT] §6§m-----------------------------------------------------
+[01:14:01] [Client thread/INFO]: [CHAT] §d[Warn]: Installed NEI version is to old to support RenderTooltipEvents! This may cause problems. Installed NEI version: 2.7.4-GTNH (2.7.8-GTNH and newer support RenderTooltipEvents)
+[01:15:07] [Server thread/INFO]: [Developer: Given [Mega Blast Furnace] * 1 to Developer]
+[01:15:07] [Client thread/INFO]: [CHAT] Given [Mega Blast Furnace] * 1 to Developer
+[01:16:52] [Client thread/INFO]: [CHAT] 数据保存成功！
+[01:17:42] [Server thread/INFO]: Saving and pausing game...
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:17:42] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
+[01:21:31] [Client thread/INFO]: [CHAT] 数据保存成功！§7 (2)
+[01:21:55] [Server thread/INFO]: Saving and pausing game...
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:21:55] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
+[01:22:08] [Server thread/INFO]: Saving and pausing game...
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:22:09] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
+[01:22:11] [Server thread/INFO]: Saving and pausing game...
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:22:11] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
+[01:22:41] [Server thread/INFO]: Saving and pausing game...
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:22:41] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
+[01:23:29] [Server thread/INFO]: Saving and pausing game...
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:23:29] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
+[01:24:09] [Server thread/INFO]: Saving and pausing game...
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:24:09] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
+[01:24:43] [Client thread/INFO]: Stopping!
+[01:24:43] [Server thread/INFO]: Stopping server
+[01:24:43] [Server thread/INFO]: Saving players
+[01:24:43] [Server thread/INFO]: Saving worlds
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[01:24:43] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
