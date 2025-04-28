@@ -1,0 +1,126 @@
+// class version 50.0 (50)
+// access flags 0x401
+public abstract class TEnergyReceiver$$PassThrough$class {
+
+
+  // access flags 0x9
+  public static $init$(LTEnergyReceiver$$PassThrough;)V
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static bindPart(LTEnergyReceiver$$PassThrough;Lcodechicken/multipart/TMultiPart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$super$bindPart (Lcodechicken/multipart/TMultiPart;)V (itf)
+    ALOAD 1
+    INSTANCEOF cofh/api/energy/IEnergyReceiver
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    CHECKCAST cofh/api/energy/IEnergyReceiver
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl_$eq (Lcofh/api/energy/IEnergyReceiver;)V (itf)
+   L0
+   FRAME FULL [TEnergyReceiver$$PassThrough codechicken/multipart/TMultiPart] []
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static partRemoved(LTEnergyReceiver$$PassThrough;Lcodechicken/multipart/TMultiPart;I)V
+    ALOAD 0
+    ALOAD 1
+    ILOAD 2
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$super$partRemoved (Lcodechicken/multipart/TMultiPart;I)V (itf)
+    ALOAD 1
+    ALOAD 0
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl ()Lcofh/api/energy/IEnergyReceiver; (itf)
+    IF_ACMPNE L0
+    ALOAD 0
+    ACONST_NULL
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl_$eq (Lcofh/api/energy/IEnergyReceiver;)V (itf)
+   L0
+   FRAME FULL [TEnergyReceiver$$PassThrough codechicken/multipart/TMultiPart I] []
+    RETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static canAddPart(LTEnergyReceiver$$PassThrough;Lcodechicken/multipart/TMultiPart;)Z
+    ALOAD 0
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl ()Lcofh/api/energy/IEnergyReceiver; (itf)
+    IFNULL L0
+    ALOAD 1
+    INSTANCEOF cofh/api/energy/IEnergyReceiver
+    IFEQ L0
+    ICONST_0
+    IRETURN
+   L0
+   FRAME FULL [TEnergyReceiver$$PassThrough codechicken/multipart/TMultiPart] []
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$super$canAddPart (Lcodechicken/multipart/TMultiPart;)Z (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static receiveEnergy(LTEnergyReceiver$$PassThrough;Lnet/minecraftforge/common/util/ForgeDirection;IZ)I
+    ALOAD 0
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl ()Lcofh/api/energy/IEnergyReceiver; (itf)
+    ALOAD 1
+    ILOAD 2
+    ILOAD 3
+    INVOKEINTERFACE cofh/api/energy/IEnergyReceiver.receiveEnergy (Lnet/minecraftforge/common/util/ForgeDirection;IZ)I (itf)
+    IRETURN
+    MAXSTACK = 4
+    MAXLOCALS = 4
+
+  // access flags 0x9
+  public static getEnergyStored(LTEnergyReceiver$$PassThrough;Lnet/minecraftforge/common/util/ForgeDirection;)I
+    ALOAD 0
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl ()Lcofh/api/energy/IEnergyReceiver; (itf)
+    ALOAD 1
+    INVOKEINTERFACE cofh/api/energy/IEnergyReceiver.getEnergyStored (Lnet/minecraftforge/common/util/ForgeDirection;)I (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static getMaxEnergyStored(LTEnergyReceiver$$PassThrough;Lnet/minecraftforge/common/util/ForgeDirection;)I
+    ALOAD 0
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl ()Lcofh/api/energy/IEnergyReceiver; (itf)
+    ALOAD 1
+    INVOKEINTERFACE cofh/api/energy/IEnergyReceiver.getMaxEnergyStored (Lnet/minecraftforge/common/util/ForgeDirection;)I (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static canConnectEnergy(LTEnergyReceiver$$PassThrough;Lnet/minecraftforge/common/util/ForgeDirection;)Z
+    ALOAD 0
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl ()Lcofh/api/energy/IEnergyReceiver; (itf)
+    ALOAD 1
+    INVOKEINTERFACE cofh/api/energy/IEnergyReceiver.canConnectEnergy (Lnet/minecraftforge/common/util/ForgeDirection;)Z (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static copyFrom(LTEnergyReceiver$$PassThrough;Lcodechicken/multipart/TileMultipart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$super$copyFrom (Lcodechicken/multipart/TileMultipart;)V (itf)
+    ALOAD 1
+    INSTANCEOF TEnergyReceiver$$PassThrough
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl ()Lcofh/api/energy/IEnergyReceiver; (itf)
+    INVOKEINTERFACE TEnergyReceiver$$PassThrough.TEnergyReceiver$$PassThrough$$impl_$eq (Lcofh/api/energy/IEnergyReceiver;)V (itf)
+   L0
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+}

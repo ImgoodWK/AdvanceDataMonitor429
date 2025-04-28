@@ -1,0 +1,150 @@
+---- Minecraft Crash Report ----
+// You should try our sister game, Minceraft!
+
+Time: 2025/4/28 下午11:50
+Description: Unexpected error
+
+java.lang.NullPointerException: Cannot invoke "net.minecraft.tileentity.TileEntity.writeToNBT(net.minecraft.nbt.NBTTagCompound)" because "tileEntity" is null
+	at Launch//com.imgood.advancedatamonitor.items.DataWeave.openNbtGui(DataWeave.java:100)
+	at Launch//com.imgood.advancedatamonitor.items.DataWeave.onItemRightClick(DataWeave.java:44)
+	at Launch//net.minecraft.item.ItemStack.useItemRightClick(ItemStack.java:164)
+	at Launch//net.minecraft.client.multiplayer.PlayerControllerMP.sendUseItem(PlayerControllerMP.java:430)
+	at Launch//net.minecraft.client.Minecraft.func_147121_ag(Minecraft.java:1557)
+	at Launch//net.minecraft.client.Minecraft.runTick(Minecraft.java:2044)
+	at Launch//net.minecraft.client.Minecraft.runGameLoop(Minecraft.java:1039)
+	at Launch//net.minecraft.client.Minecraft.run(Minecraft.java:962)
+	at Launch//net.minecraft.client.main.Main.main(Main.java:164)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at System//net.minecraft.launchwrapper.Launch.rfb$realLaunch(Launch.java:250)
+	at System//net.minecraft.launchwrapper.Launch.launch(Launch.java:35)
+	at System//net.minecraft.launchwrapper.Launch.main(Launch.java:60)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at com.gtnewhorizons.retrofuturabootstrap.Main.main(Main.java:207)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at System//net.minecraftforge.gradle.GradleStartCommon.launch(GradleStartCommon.java:99)
+	at System//GradleStart.main(GradleStart.java:40)
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- Head --
+Stacktrace:
+	at Launch//com.imgood.advancedatamonitor.items.DataWeave.openNbtGui(DataWeave.java:100)
+	at Launch//com.imgood.advancedatamonitor.items.DataWeave.onItemRightClick(DataWeave.java:44)
+	at Launch//net.minecraft.item.ItemStack.useItemRightClick(ItemStack.java:164)
+	at Launch//net.minecraft.client.multiplayer.PlayerControllerMP.sendUseItem(PlayerControllerMP.java:430)
+	at Launch//net.minecraft.client.Minecraft.func_147121_ag(Minecraft.java:1557)
+
+-- Affected level --
+Details:
+	Level name: MpServer
+	All players: 1 total; [EntityClientPlayerMP['Developer'/233, l='MpServer', x=-941.58, y=5.62, z=-311.04]]
+	Chunk stats: MultiplayerChunkCache: 40, 40
+	Level seed: 0
+	Level generator: ID 01 - flat, ver 0. Features enabled: false
+	Level generator options: 
+	Level spawn location: World: (-940,4,-333), Chunk: (at 4,0,3 in -59,-21; contains blocks -944,0,-336 to -929,255,-321), Region: (-2,-1; contains chunks -64,-32 to -33,-1, blocks -1024,0,-512 to -513,255,-1)
+	Level time: 20675 game time, 33253 day time
+	Level dimension: 0
+	Level storage version: 0x00000 - Unknown?
+	Level weather: Rain time: 0 (now: false), thunder time: 0 (now: false)
+	Level game mode: Game mode: creative (ID 1). Hardcore: false. Cheats: false
+	Forced entities: 42 total; [EntitySlime['Slime'/128, l='MpServer', x=-925.84, y=4.00, z=-284.75], EntityChicken['Chicken'/129, l='MpServer', x=-922.94, y=4.00, z=-269.09], EntitySheep['Sheep'/130, l='MpServer', x=-926.31, y=4.00, z=-258.88], EntityPig['Pig'/131, l='MpServer', x=-925.19, y=4.00, z=-262.31], EntitySlime['Slime'/71, l='MpServer', x=-963.89, y=4.00, z=-339.43], EntitySheep['Sheep'/72, l='MpServer', x=-963.50, y=4.00, z=-323.31], EntityItem['item.item.rottenFlesh'/73, l='MpServer', x=-961.13, y=4.13, z=-313.28], EntitySlime['Slime'/74, l='MpServer', x=-972.06, y=4.00, z=-289.41], EntitySlime['Slime'/79, l='MpServer', x=-959.19, y=4.00, z=-294.22], EntityItem['item.item.arrow'/80, l='MpServer', x=-959.81, y=4.13, z=-279.81], EntityItem['item.item.bone'/81, l='MpServer', x=-959.50, y=4.13, z=-279.28], EntityPig['Pig'/82, l='MpServer', x=-951.19, y=4.00, z=-258.81], EntitySheep['Sheep'/83, l='MpServer', x=-944.19, y=4.00, z=-262.59], EntitySlime['Slime'/84, l='MpServer', x=-945.16, y=4.00, z=-264.25], EntitySlime['Slime'/85, l='MpServer', x=-957.41, y=4.00, z=-268.63], EntitySheep['Sheep'/150, l='MpServer', x=-909.66, y=4.00, z=-348.03], EntityPig['Pig'/151, l='MpServer', x=-896.81, y=4.00, z=-326.41], EntityPig['Pig'/152, l='MpServer', x=-903.06, y=4.00, z=-304.66], EntitySlime['Slime'/153, l='MpServer', x=-898.89, y=4.00, z=-283.95], EntitySlime['Slime'/95, l='MpServer', x=-929.66, y=4.47, z=-306.60], EntitySheep['Sheep'/96, l='MpServer', x=-934.78, y=4.00, z=-281.41], EntityPig['Pig'/97, l='MpServer', x=-935.78, y=4.00, z=-260.94], EntityPig['Pig'/98, l='MpServer', x=-941.59, y=4.00, z=-264.34], EntitySheep['Sheep'/163, l='MpServer', x=-887.50, y=4.00, z=-346.75], EntityChicken['Chicken'/99, l='MpServer', x=-941.09, y=4.00, z=-260.91], EntitySheep['Sheep'/164, l='MpServer', x=-888.25, y=4.00, z=-351.63], EntitySheep['Sheep'/100, l='MpServer', x=-940.06, y=4.00, z=-260.16], EntityPig['Pig'/165, l='MpServer', x=-895.34, y=4.00, z=-336.84], EntitySheep['Sheep'/166, l='MpServer', x=-884.25, y=4.00, z=-323.31], EntitySlime['Slime'/167, l='MpServer', x=-881.38, y=4.00, z=-293.75], EntityItem['item.item.arrow'/168, l='MpServer', x=-883.88, y=4.13, z=-258.22], EntityItem['item.item.bone'/169, l='MpServer', x=-883.59, y=4.13, z=-257.66], EntityClientPlayerMP['Developer'/233, l='MpServer', x=-941.58, y=5.62, z=-311.04], EntityCreeper['Creeper'/54, l='MpServer', x=-976.25, y=4.00, z=-319.97], EntitySlime['Slime'/55, l='MpServer', x=-976.28, y=4.00, z=-283.16], EntitySlime['Slime'/56, l='MpServer', x=-980.75, y=4.00, z=-281.69], EntityPig['Pig'/122, l='MpServer', x=-926.03, y=4.00, z=-347.50], EntityItem['item.item.bone'/123, l='MpServer', x=-914.31, y=4.13, z=-338.94], EntitySlime['Slime'/124, l='MpServer', x=-917.78, y=4.00, z=-325.78], EntitySlime['Slime'/125, l='MpServer', x=-914.91, y=4.69, z=-322.09], EntitySlime['Slime'/126, l='MpServer', x=-916.38, y=4.81, z=-314.89], EntitySlime['Slime'/127, l='MpServer', x=-913.45, y=5.01, z=-316.07]]
+	Retry entities: 0 total; []
+	Server brand: fml,forge
+	Server type: Integrated singleplayer server
+Stacktrace:
+	at Launch//net.minecraft.client.multiplayer.WorldClient.addWorldInfoToCrashReport(WorldClient.java:415)
+	at Launch//net.minecraft.client.Minecraft.addGraphicsAndWorldToCrashReport(Minecraft.java:2565)
+	at Launch//net.minecraft.client.Minecraft.run(Minecraft.java:991)
+	at Launch//net.minecraft.client.main.Main.main(Main.java:164)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at System//net.minecraft.launchwrapper.Launch.rfb$realLaunch(Launch.java:250)
+	at System//net.minecraft.launchwrapper.Launch.launch(Launch.java:35)
+	at System//net.minecraft.launchwrapper.Launch.main(Launch.java:60)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at com.gtnewhorizons.retrofuturabootstrap.Main.main(Main.java:207)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at System//net.minecraftforge.gradle.GradleStartCommon.launch(GradleStartCommon.java:99)
+	at System//GradleStart.main(GradleStart.java:40)
+
+-- System Details --
+Details:
+	Minecraft Version: 1.7.10
+	Operating System: Windows 11 (amd64) version 10.0
+	Java Version: 17.0.14, JetBrains s.r.o.
+	Java VM Version: OpenJDK 64-Bit Server VM (mixed mode, sharing), JetBrains s.r.o.
+	Memory: 397814264 bytes (379 MB) / 1073741824 bytes (1024 MB) up to 6442450944 bytes (6144 MB)
+	JVM Flags: 4 total; -XX:+AllowEnhancedClassRedefinition -XX:HotswapAgent=fatjar -Xms1G -Xmx6G
+	AABB Pool Size: 0 (0 bytes; 0 MB) allocated, 0 (0 bytes; 0 MB) used
+	IntCache: cache: 0, tcache: 0, allocated: 0, tallocated: 0
+	FML: MCP v9.05 FML v7.10.99.99 Minecraft Forge 10.13.4.1614 20 mods loaded, 20 mods active
+	States: 'U' = Unloaded 'L' = Loaded 'C' = Constructed 'H' = Pre-initialized 'I' = Initialized 'J' = Post-initialized 'A' = Available 'D' = Disabled 'E' = Errored
+	UCHIJAAAA	mcp{9.05} [Minecraft Coder Pack] (minecraft.jar) 
+	UCHIJAAAA	GTNHLib Core{0.6.11} [GTNHLib Core] (minecraft.jar) 
+	UCHIJAAAA	FML{7.10.99.99} [Forge Mod Loader] (recompiled_minecraft-1.7.10.jar) 
+	UCHIJAAAA	Forge{10.13.4.1614} [Minecraft Forge] (recompiled_minecraft-1.7.10.jar) 
+	UCHIJAAAA	NotEnoughItems{2.7.4-GTNH} [NotEnoughItems] (NotEnoughItems-2.7.4-GTNH-dev.jar) 
+	UCHIJAAAA	CodeChickenCore{1.4.0} [CodeChicken Core] (minecraft.jar) 
+	UCHIJAAAA	advancedatamonitor{NO-GIT-TAG-SET} [AdvanceDataMonitor] (advancedatamonitor.-NO-GIT-TAG-SET-dev.jar) 
+	UCHIJAAAA	gtnhlib{0.6.11} [GTNH Lib] (GTNHLib-0.6.11-dev.jar) 
+	UCHIJAAAA	unimixins{0.1.19} [UniMixins] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	gtnhmixins{2.2.0} [UniMixins: GTNHMixins] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	hodgepodge{2.6.26} [Hodgepodge] (Hodgepodge-2.6.26-dev.jar) 
+	UCHIJAAAA	lwjgl3ify{2.1.8} [lwjgl3ify] (lwjgl3ify-2.1.8-dev.jar) 
+	UCHIJAAAA	unimixins-mixin{0.1.19} [UniMixins: Mixin (UniMix)] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	unimixins-compat{0.1.19} [UniMixins: Compatibility] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	mixingasm{0.3} [UniMixins: Mixingasm] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	spongemixins{2.0.1} [UniMixins: SpongeMixins] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	mixinbooterlegacy{1.2.1} [UniMixins: MixinBooterLegacy] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	gasstation{0.5.1} [UniMixins: GasStation] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	mixinextras{0.1.19} [UniMixins: MixinExtras] (unimixins-0.1.19-dev.jar) 
+	UCHIJAAAA	NBTEdit{1.7.10} [In-game NBTEdit] (ForgeNBTEdit-universal-1.0.0.test.jar) 
+	GL info: ' Vendor: 'ATI Technologies Inc.' Version: '4.6.0 Compatibility Profile Context 25.3.1.250220' Renderer: 'AMD Radeon RX 9070 XT'
+	CPU Threads: 24
+	Mixins in Stacktrace: 
+		net.minecraft.client.Minecraft:
+			mixins.hodgepodge.early.json:minecraft.MixinMinecraft_UnfocusedFullscreen from mod hodgepodge
+			mixins.hodgepodge.early.json:minecraft.MixinMinecraft_ToggleDebugMessage from mod hodgepodge
+			mixins.hodgepodge.early.json:minecraft.MixinMinecraft_FixDuplicateSounds from mod hodgepodge
+			mixins.hodgepodge.early.json:minecraft.MixinMinecraft_UpdateKeys from mod hodgepodge
+			mixins.lwjgl3ify.early.json:game.MixinBorderlessWindow from mod lwjgl3ify
+			mixins.lwjgl3ify.early.json:game.MixinMinecraftKeyBinding from mod lwjgl3ify
+			mixins.hodgepodge.early.json:minecraft.profiler.MinecraftMixin from mod hodgepodge
+			mixins.hodgepodge.early.json:minecraft.MixinMinecraft_ClearRenderersWorldLeak from mod hodgepodge
+			mixins.hodgepodge.early.json:minecraft.MixinMinecraft_ResizableFullscreen from mod hodgepodge
+			mixins.hodgepodge.early.json:minecraft.MixinMinecraft_FastBlockPlacing from mod hodgepodge
+	Launched Version: 1.7.10
+	LWJGL: 3.3.3+5
+	OpenGL: AMD Radeon RX 9070 XT GL version 4.6.0 Compatibility Profile Context 25.3.1.250220, ATI Technologies Inc.
+	GL Caps: Using GL 1.3 multitexturing.
+Using framebuffer objects because OpenGL 3.0 is supported and separate blending is supported.
+Anisotropic filtering is supported and maximum anisotropy is 16.
+Shaders are available because OpenGL 2.1 is supported.
+
+	Is Modded: Definitely; Client brand changed to 'fml,forge'
+	Type: Client (map_client.txt)
+	Resource Packs: []
+	Current Language: English (US)
+	Profiler Position: N/A (disabled)
+	Vec3 Pool Size: 0 (0 bytes; 0 MB) allocated, 0 (0 bytes; 0 MB) used
+	Anisotropic Filtering: Off (1)

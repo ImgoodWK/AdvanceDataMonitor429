@@ -1,0 +1,119 @@
+// class version 50.0 (50)
+// access flags 0x401
+public abstract class codechicken/multipart/scalatraits/TPartialOcclusionTile$class {
+
+  // compiled from: TPartialOcclusionTile.scala
+
+  // access flags 0x9
+  public static occlusionTest(Lcodechicken/multipart/scalatraits/TPartialOcclusionTile;Lscala/collection/Seq;Lcodechicken/multipart/TMultiPart;)Z
+   L0
+    LINENUMBER 16 L0
+    ALOAD 2
+    INSTANCEOF codechicken/multipart/JPartialOcclusion
+    IFEQ L1
+    ALOAD 0
+   L2
+    LINENUMBER 17 L2
+    ALOAD 1
+    ALOAD 2
+    GETSTATIC scala/collection/Seq$.MODULE$ : Lscala/collection/Seq$;
+    INVOKEVIRTUAL scala/collection/Seq$.canBuildFrom ()Lscala/collection/generic/CanBuildFrom;
+    INVOKEINTERFACE scala/collection/Seq.$colon$plus (Ljava/lang/Object;Lscala/collection/generic/CanBuildFrom;)Ljava/lang/Object; (itf)
+    CHECKCAST scala/collection/Seq
+   L3
+    LINENUMBER 16 L3
+    INVOKEINTERFACE codechicken/multipart/scalatraits/TPartialOcclusionTile.partialOcclusionTest (Lscala/collection/Seq;)Z (itf)
+    IFNE L1
+   L4
+    LINENUMBER 20 L4
+    ICONST_0
+    IRETURN
+   L1
+    LINENUMBER 22 L1
+   FRAME FULL [codechicken/multipart/scalatraits/TPartialOcclusionTile scala/collection/Seq codechicken/multipart/TMultiPart] []
+    ALOAD 0
+    ALOAD 1
+    ALOAD 2
+    INVOKEINTERFACE codechicken/multipart/scalatraits/TPartialOcclusionTile.codechicken$multipart$scalatraits$TPartialOcclusionTile$$super$occlusionTest (Lscala/collection/Seq;Lcodechicken/multipart/TMultiPart;)Z (itf)
+    IRETURN
+   L5
+    LOCALVARIABLE this Lcodechicken/multipart/scalatraits/TPartialOcclusionTile; L0 L5 0
+    LOCALVARIABLE parts Lscala/collection/Seq; L0 L5 1
+    LOCALVARIABLE npart Lcodechicken/multipart/TMultiPart; L0 L5 2
+    MAXSTACK = 4
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static partialOcclusionTest(Lcodechicken/multipart/scalatraits/TPartialOcclusionTile;Lscala/collection/Seq;)Z
+   L0
+    LINENUMBER 26 L0
+    NEW codechicken/multipart/PartialOcclusionTest
+    DUP
+    ALOAD 1
+    INVOKEINTERFACE scala/collection/Seq.length ()I (itf)
+    INVOKESPECIAL codechicken/multipart/PartialOcclusionTest.<init> (I)V
+    ASTORE 2
+   L1
+    LINENUMBER 27 L1
+    ICONST_0
+    ISTORE 3
+   L2
+    LINENUMBER 28 L2
+   FRAME FULL [codechicken/multipart/scalatraits/TPartialOcclusionTile scala/collection/Seq codechicken/multipart/PartialOcclusionTest I] []
+    ILOAD 3
+    ALOAD 1
+    INVOKEINTERFACE scala/collection/Seq.length ()I (itf)
+    IF_ICMPGE L3
+   L4
+    LINENUMBER 29 L4
+    ALOAD 1
+    ILOAD 3
+    INVOKEINTERFACE scala/collection/Seq.apply (I)Ljava/lang/Object; (itf)
+    CHECKCAST codechicken/multipart/TMultiPart
+    ASTORE 4
+   L5
+    LINENUMBER 30 L5
+    ALOAD 4
+    INSTANCEOF codechicken/multipart/JPartialOcclusion
+    IFEQ L6
+   L7
+    LINENUMBER 31 L7
+    ALOAD 2
+    ILOAD 3
+    ALOAD 4
+    CHECKCAST codechicken/multipart/JPartialOcclusion
+    INVOKEVIRTUAL codechicken/multipart/PartialOcclusionTest.fill (ILcodechicken/multipart/JPartialOcclusion;)V
+   L6
+    LINENUMBER 32 L6
+   FRAME FULL [codechicken/multipart/scalatraits/TPartialOcclusionTile scala/collection/Seq codechicken/multipart/PartialOcclusionTest I codechicken/multipart/TMultiPart] []
+    ILOAD 3
+    ICONST_1
+    IADD
+    ISTORE 3
+   L8
+    GOTO L2
+   L3
+    LINENUMBER 34 L3
+   FRAME FULL [codechicken/multipart/scalatraits/TPartialOcclusionTile scala/collection/Seq codechicken/multipart/PartialOcclusionTest I] []
+    ALOAD 2
+    INVOKEVIRTUAL codechicken/multipart/PartialOcclusionTest.apply ()Z
+    IRETURN
+   L9
+    LOCALVARIABLE this Lcodechicken/multipart/scalatraits/TPartialOcclusionTile; L0 L9 0
+    LOCALVARIABLE parts Lscala/collection/Seq; L0 L9 1
+    LOCALVARIABLE test Lcodechicken/multipart/PartialOcclusionTest; L1 L9 2
+    LOCALVARIABLE i I L2 L9 3
+    LOCALVARIABLE part Lcodechicken/multipart/TMultiPart; L5 L8 4
+    MAXSTACK = 3
+    MAXLOCALS = 5
+
+  // access flags 0x9
+  public static $init$(Lcodechicken/multipart/scalatraits/TPartialOcclusionTile;)V
+   L0
+    LINENUMBER 10 L0
+    RETURN
+   L1
+    LOCALVARIABLE this Lcodechicken/multipart/scalatraits/TPartialOcclusionTile; L0 L1 0
+    MAXSTACK = 1
+    MAXLOCALS = 1
+}

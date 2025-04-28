@@ -1,0 +1,123 @@
+// class version 50.0 (50)
+// access flags 0x401
+public abstract class TEnergySource$$PassThrough$class {
+
+
+  // access flags 0x9
+  public static $init$(LTEnergySource$$PassThrough;)V
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static bindPart(LTEnergySource$$PassThrough;Lcodechicken/multipart/TMultiPart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$super$bindPart (Lcodechicken/multipart/TMultiPart;)V (itf)
+    ALOAD 1
+    INSTANCEOF ic2/api/energy/tile/IEnergySource
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    CHECKCAST ic2/api/energy/tile/IEnergySource
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl_$eq (Lic2/api/energy/tile/IEnergySource;)V (itf)
+   L0
+   FRAME FULL [TEnergySource$$PassThrough codechicken/multipart/TMultiPart] []
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static partRemoved(LTEnergySource$$PassThrough;Lcodechicken/multipart/TMultiPart;I)V
+    ALOAD 0
+    ALOAD 1
+    ILOAD 2
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$super$partRemoved (Lcodechicken/multipart/TMultiPart;I)V (itf)
+    ALOAD 1
+    ALOAD 0
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl ()Lic2/api/energy/tile/IEnergySource; (itf)
+    IF_ACMPNE L0
+    ALOAD 0
+    ACONST_NULL
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl_$eq (Lic2/api/energy/tile/IEnergySource;)V (itf)
+   L0
+   FRAME FULL [TEnergySource$$PassThrough codechicken/multipart/TMultiPart I] []
+    RETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static canAddPart(LTEnergySource$$PassThrough;Lcodechicken/multipart/TMultiPart;)Z
+    ALOAD 0
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl ()Lic2/api/energy/tile/IEnergySource; (itf)
+    IFNULL L0
+    ALOAD 1
+    INSTANCEOF ic2/api/energy/tile/IEnergySource
+    IFEQ L0
+    ICONST_0
+    IRETURN
+   L0
+   FRAME FULL [TEnergySource$$PassThrough codechicken/multipart/TMultiPart] []
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$super$canAddPart (Lcodechicken/multipart/TMultiPart;)Z (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static getOfferedEnergy(LTEnergySource$$PassThrough;)D
+    ALOAD 0
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl ()Lic2/api/energy/tile/IEnergySource; (itf)
+    INVOKEINTERFACE ic2/api/energy/tile/IEnergySource.getOfferedEnergy ()D (itf)
+    DRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static drawEnergy(LTEnergySource$$PassThrough;D)V
+    ALOAD 0
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl ()Lic2/api/energy/tile/IEnergySource; (itf)
+    DLOAD 1
+    INVOKEINTERFACE ic2/api/energy/tile/IEnergySource.drawEnergy (D)V (itf)
+    RETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static getSourceTier(LTEnergySource$$PassThrough;)I
+    ALOAD 0
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl ()Lic2/api/energy/tile/IEnergySource; (itf)
+    INVOKEINTERFACE ic2/api/energy/tile/IEnergySource.getSourceTier ()I (itf)
+    IRETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static emitsEnergyTo(LTEnergySource$$PassThrough;Lnet/minecraft/tileentity/TileEntity;Lnet/minecraftforge/common/util/ForgeDirection;)Z
+    ALOAD 0
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl ()Lic2/api/energy/tile/IEnergySource; (itf)
+    ALOAD 1
+    ALOAD 2
+    INVOKEINTERFACE ic2/api/energy/tile/IEnergySource.emitsEnergyTo (Lnet/minecraft/tileentity/TileEntity;Lnet/minecraftforge/common/util/ForgeDirection;)Z (itf)
+    IRETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static copyFrom(LTEnergySource$$PassThrough;Lcodechicken/multipart/TileMultipart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$super$copyFrom (Lcodechicken/multipart/TileMultipart;)V (itf)
+    ALOAD 1
+    INSTANCEOF TEnergySource$$PassThrough
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl ()Lic2/api/energy/tile/IEnergySource; (itf)
+    INVOKEINTERFACE TEnergySource$$PassThrough.TEnergySource$$PassThrough$$impl_$eq (Lic2/api/energy/tile/IEnergySource;)V (itf)
+   L0
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+}

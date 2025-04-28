@@ -1,0 +1,47 @@
+// class version 50.0 (50)
+// access flags 0x601
+public abstract interface TEnergySink$$PassThrough implements ic2/api/energy/tile/IEnergySink {
+
+
+  // access flags 0x401
+  public abstract TEnergySink$$PassThrough$$impl()Lic2/api/energy/tile/IEnergySink;
+
+  // access flags 0x401
+  public abstract TEnergySink$$PassThrough$$impl_$eq(Lic2/api/energy/tile/IEnergySink;)V
+
+  // access flags 0x401
+  public abstract bindPart(Lcodechicken/multipart/TMultiPart;)V
+
+  // access flags 0x401
+  public abstract TEnergySink$$PassThrough$$super$bindPart(Lcodechicken/multipart/TMultiPart;)V
+
+  // access flags 0x401
+  public abstract partRemoved(Lcodechicken/multipart/TMultiPart;I)V
+
+  // access flags 0x401
+  public abstract TEnergySink$$PassThrough$$super$partRemoved(Lcodechicken/multipart/TMultiPart;I)V
+
+  // access flags 0x401
+  public abstract canAddPart(Lcodechicken/multipart/TMultiPart;)Z
+
+  // access flags 0x401
+  public abstract TEnergySink$$PassThrough$$super$canAddPart(Lcodechicken/multipart/TMultiPart;)Z
+
+  // access flags 0x401
+  public abstract getDemandedEnergy()D
+
+  // access flags 0x401
+  public abstract getSinkTier()I
+
+  // access flags 0x401
+  public abstract injectEnergy(Lnet/minecraftforge/common/util/ForgeDirection;DD)D
+
+  // access flags 0x401
+  public abstract acceptsEnergyFrom(Lnet/minecraft/tileentity/TileEntity;Lnet/minecraftforge/common/util/ForgeDirection;)Z
+
+  // access flags 0x401
+  public abstract copyFrom(Lcodechicken/multipart/TileMultipart;)V
+
+  // access flags 0x401
+  public abstract TEnergySink$$PassThrough$$super$copyFrom(Lcodechicken/multipart/TileMultipart;)V
+}

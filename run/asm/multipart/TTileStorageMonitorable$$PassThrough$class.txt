@@ -1,0 +1,95 @@
+// class version 50.0 (50)
+// access flags 0x401
+public abstract class TTileStorageMonitorable$$PassThrough$class {
+
+
+  // access flags 0x9
+  public static $init$(LTTileStorageMonitorable$$PassThrough;)V
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 1
+
+  // access flags 0x9
+  public static bindPart(LTTileStorageMonitorable$$PassThrough;Lcodechicken/multipart/TMultiPart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$super$bindPart (Lcodechicken/multipart/TMultiPart;)V (itf)
+    ALOAD 1
+    INSTANCEOF appeng/api/implementations/tiles/ITileStorageMonitorable
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    CHECKCAST appeng/api/implementations/tiles/ITileStorageMonitorable
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$impl_$eq (Lappeng/api/implementations/tiles/ITileStorageMonitorable;)V (itf)
+   L0
+   FRAME FULL [TTileStorageMonitorable$$PassThrough codechicken/multipart/TMultiPart] []
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static partRemoved(LTTileStorageMonitorable$$PassThrough;Lcodechicken/multipart/TMultiPart;I)V
+    ALOAD 0
+    ALOAD 1
+    ILOAD 2
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$super$partRemoved (Lcodechicken/multipart/TMultiPart;I)V (itf)
+    ALOAD 1
+    ALOAD 0
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$impl ()Lappeng/api/implementations/tiles/ITileStorageMonitorable; (itf)
+    IF_ACMPNE L0
+    ALOAD 0
+    ACONST_NULL
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$impl_$eq (Lappeng/api/implementations/tiles/ITileStorageMonitorable;)V (itf)
+   L0
+   FRAME FULL [TTileStorageMonitorable$$PassThrough codechicken/multipart/TMultiPart I] []
+    RETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static canAddPart(LTTileStorageMonitorable$$PassThrough;Lcodechicken/multipart/TMultiPart;)Z
+    ALOAD 0
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$impl ()Lappeng/api/implementations/tiles/ITileStorageMonitorable; (itf)
+    IFNULL L0
+    ALOAD 1
+    INSTANCEOF appeng/api/implementations/tiles/ITileStorageMonitorable
+    IFEQ L0
+    ICONST_0
+    IRETURN
+   L0
+   FRAME FULL [TTileStorageMonitorable$$PassThrough codechicken/multipart/TMultiPart] []
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$super$canAddPart (Lcodechicken/multipart/TMultiPart;)Z (itf)
+    IRETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+
+  // access flags 0x9
+  public static getMonitorable(LTTileStorageMonitorable$$PassThrough;Lnet/minecraftforge/common/util/ForgeDirection;Lappeng/api/networking/security/BaseActionSource;)Lappeng/api/storage/IStorageMonitorable;
+    ALOAD 0
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$impl ()Lappeng/api/implementations/tiles/ITileStorageMonitorable; (itf)
+    ALOAD 1
+    ALOAD 2
+    INVOKEINTERFACE appeng/api/implementations/tiles/ITileStorageMonitorable.getMonitorable (Lnet/minecraftforge/common/util/ForgeDirection;Lappeng/api/networking/security/BaseActionSource;)Lappeng/api/storage/IStorageMonitorable; (itf)
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 3
+
+  // access flags 0x9
+  public static copyFrom(LTTileStorageMonitorable$$PassThrough;Lcodechicken/multipart/TileMultipart;)V
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$super$copyFrom (Lcodechicken/multipart/TileMultipart;)V (itf)
+    ALOAD 1
+    INSTANCEOF TTileStorageMonitorable$$PassThrough
+    IFEQ L0
+    ALOAD 0
+    ALOAD 1
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$impl ()Lappeng/api/implementations/tiles/ITileStorageMonitorable; (itf)
+    INVOKEINTERFACE TTileStorageMonitorable$$PassThrough.TTileStorageMonitorable$$PassThrough$$impl_$eq (Lappeng/api/implementations/tiles/ITileStorageMonitorable;)V (itf)
+   L0
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2
+}
