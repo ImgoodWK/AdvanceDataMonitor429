@@ -6,9 +6,12 @@ import java.util.Random;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
 import java.util.ArrayList;
@@ -46,15 +49,26 @@ public class BlockAdvDataMonitor extends BlockContainer {
     }
 
     @Override
+    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack itemIn) {
+        //int direction = MathHelper.floor_double((double) (placer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
+        int direction = MathHelper.floor_double((double) ((placer.rotationYaw + 180) * 4.0F / 360.0F) + 0.5D) & 3;
+        TileEntity tileEntity = world.getTileEntity(x, y, z);
+        if (tileEntity instanceof TileEntityAdvanceDataMonotor) {
+            ((TileEntityAdvanceDataMonotor) tileEntity).facing = direction;
+        }
+    }
+
+    @Override
     public boolean onBlockActivated(World world, int x, int y, int z,
                                     EntityPlayer player,
                                     int side,
                                     float hitX,
                                     float hitY,
                                     float hitZ) {
-        if (world.isRemote) {
+
             TileEntityAdvanceDataMonotor te = (TileEntityAdvanceDataMonotor) world.getTileEntity(x, y, z);
-            if (te != null) {
+            player.openGui(AdvanceDataMonitor.instance, 1, world, x, y, z);
+            /*if (te != null) {
                 // 清空旧数据
                 //te.getDataValues().clear();
                 // 添加测试数据
@@ -64,8 +78,8 @@ public class BlockAdvDataMonitor extends BlockContainer {
                 double randomValue = te.getYMin() + Math.random() * (te.getYMax() - te.getYMin());
                 te.addData(randomValue);
                 player.addChatMessage(new ChatComponentText("已生成测试数据！"+randomValue));
-            }
-        }
+            }*/
+
         return true;
     }
 }

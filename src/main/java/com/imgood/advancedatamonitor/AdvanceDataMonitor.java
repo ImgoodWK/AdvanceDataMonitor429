@@ -1,12 +1,12 @@
 package com.imgood.advancedatamonitor;
 
-import com.imgood.advancedatamonitor.loader.BlockLoader;
-import com.imgood.advancedatamonitor.loader.GuiLoaer;
-import com.imgood.advancedatamonitor.loader.HandlerLoader;
-import com.imgood.advancedatamonitor.loader.ItemLoader;
-import com.imgood.advancedatamonitor.loader.NetWorkLoader;
-import com.imgood.advancedatamonitor.loader.RenderLoader;
-import com.imgood.advancedatamonitor.loader.TileEntityLoader;
+import com.imgood.advancedatamonitor.loader.LoaderBlock;
+import com.imgood.advancedatamonitor.loader.LoaerGui;
+import com.imgood.advancedatamonitor.loader.LoaderHandler;
+import com.imgood.advancedatamonitor.loader.LoaderItem;
+import com.imgood.advancedatamonitor.loader.LoaderNetWork;
+import com.imgood.advancedatamonitor.loader.LoaderRender;
+import com.imgood.advancedatamonitor.loader.LoaderTileEntity;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import org.apache.logging.log4j.LogManager;
@@ -23,7 +23,7 @@ import cpw.mods.fml.common.event.FMLServerStartingEvent;
 public class AdvanceDataMonitor {
     public static final String MODID = "advancedatamonitor";
     public static final Logger LOG = LogManager.getLogger(MODID);
-    public static SimpleNetworkWrapper ADMCHANEL = ADMCHANEL = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);;
+    public static SimpleNetworkWrapper ADMCHANEL = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);;
     @Mod.Instance(MODID)
     public static AdvanceDataMonitor instance;
 
@@ -35,25 +35,25 @@ public class AdvanceDataMonitor {
     // GameRegistry." (Remove if not needed)
     public void preInit(FMLPreInitializationEvent event) {
         proxy.preInit(event);
-        BlockLoader.registerBlocks();
-        ItemLoader.registerItems();
-        HandlerLoader.registerHandlers();
-        TileEntityLoader.registerTileEntities();
-        RenderLoader.registerRenderers();
+        LoaderBlock.registerBlocks();
+        LoaderItem.registerItems();
+        LoaderHandler.registerHandlers();
+        LoaderTileEntity.registerTileEntities();
+        LoaderRender.registerRenderers();
     }
 
     @Mod.EventHandler
     // load "Do your mod setup. Build whatever data structures you care about. Register recipes." (Remove if not needed)
     public void init(FMLInitializationEvent event) {
         proxy.init(event);
-        GuiLoaer.registerGui();
+        LoaerGui.registerGui();
     }
 
     @Mod.EventHandler
     // postInit "Handle interaction with other mods, complete your setup based on this." (Remove if not needed)
     public void postInit(FMLPostInitializationEvent event) {
         proxy.postInit(event);
-        NetWorkLoader.registerNetWorks();
+        LoaderNetWork.registerNetWorks();
     }
 
     @Mod.EventHandler

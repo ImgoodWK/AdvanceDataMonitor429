@@ -7,9 +7,9 @@ package com.imgood.advancedatamonitor.utils;
  * @create: 2025-04-23 14:58
  **/
 public class BlockPos {
-    private final int x;
-    private final int y;
-    private final int z;
+    private int x;
+    private int y;
+    private int z;
 
     public BlockPos(int x, int y, int z) {
         this.x = x;
@@ -53,5 +53,20 @@ public class BlockPos {
             ", y=" + y +
             ", z=" + z +
             '}';
+    }
+
+    public String getXYZ(){
+        return x+","+y+","+z;
+    }
+
+    public void setXYZ(String XYZ) {
+        String[] xyz = XYZ.split(",");
+        try {
+            x = Integer.parseInt(xyz[0]);
+            y = Integer.parseInt(xyz[1]);
+            z = Integer.parseInt(xyz[2]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
