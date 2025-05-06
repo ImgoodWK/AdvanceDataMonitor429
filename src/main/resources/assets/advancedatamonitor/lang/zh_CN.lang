@@ -1,0 +1,13 @@
+·adm.error.xyz=XYZ坐标格式无效,如: 123,64,-123...
+adm.error.ymin=Y最小值必须是有效数字
+adm.error.ymax=Y最大值必须是有效数字
+adm.error.datalimit=数据限制必须是2到50之间的整数
+adm.error.linecolor=线条颜色格式无效,请使用十六进制色值,如:FF00FF...
+adm.error.linewidth=线条宽度必须是大于0的数字,如:1.05或3...
+adm.error.scale=缩放比例必须是大于0的有效数字,如:1.05或3或0.5...
+adm.error.interval=间隔必须是大于等于20的整数,单位是tick
+adm.error.xoffset=X偏移量必须是正负数字(可以带小数点)
+adm.error.yoffset=Y偏移量必须是正负数字(可以带小数点)
+adm.error.rotationx=X旋转角度必须是正负数字(可以带小数点)
+adm.error.rotationy=Y旋转角度必须是正负数字(可以带小数点)
+adm.error.rotationz=Z旋转角度必须是正负数字(可以带小数点)

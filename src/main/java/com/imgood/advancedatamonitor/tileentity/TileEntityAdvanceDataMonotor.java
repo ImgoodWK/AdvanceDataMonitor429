@@ -5,7 +5,6 @@ import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.utils.DataBound;
 import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagDouble;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
@@ -16,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class TileEntityAdvanceDataMonotor extends TileEntity {
     private final Map<Integer, NBTTagCompound> dataBoundList = new HashMap<>();
@@ -23,6 +23,9 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
     private boolean visableBody = true;
     private boolean visableBack = true;
     public int facing = 0;
+    public boolean TEST_MODE = true;
+    private int testRandomData = 0;
+    private Random random = new Random();
 
     private final Map<Integer, Integer> tickCounters = new HashMap<>();
     public TileEntityAdvanceDataMonotor() {
@@ -37,6 +40,9 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
     //========================= 核心方法 =========================//
     @Override
     public void updateEntity() {
+        if (TEST_MODE) {
+            refreshRamdomData();
+        }
         if (worldObj == null || worldObj.isRemote) return;
 
         for (Map.Entry<Integer, NBTTagCompound> entry : dataBoundList.entrySet()) {
@@ -78,6 +84,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         compound.setBoolean("visableBody", visableBody);
         compound.setBoolean("visableBack", visableBack);
         compound.setInteger("facing", facing);
+        compound.setInteger("testRandomData", testRandomData);
 
         NBTTagCompound displayDataNBT = new NBTTagCompound();
         for (Map.Entry<Integer, NBTTagCompound> entry : dataBoundList.entrySet()) {
@@ -97,6 +104,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         visableBody = compound.getBoolean("visableBody");
         visableBack = compound.getBoolean("visableBack");
         facing = compound.getInteger("facing");
+        testRandomData = compound.getInteger("testRandomData");
 
         if (compound.hasKey("DisplayDataMap")) {
             NBTTagCompound displayDataNBT = compound.getCompoundTag("DisplayDataMap");
@@ -112,10 +120,40 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
 
     //========================= 数据绑定操作 =========================//
     public void setDisplayData(int index, NBTTagCompound displayData) {
+        // 获取旧的interval值
+        NBTTagCompound oldData = dataBoundList.get(index);
+        int oldInterval = oldData != null ? getSafeInt(oldData, "interval", 20) : 20;
+
+        // 合并新数据
         NBTTagCompound mergedData = mergeWithDefault(displayData);
+        int newInterval = getSafeInt(mergedData, "interval", 20);
+
+        // 更新数据绑定列表
         dataBoundList.put(index, mergedData);
         markDirty();
         syncData();
+
+        // 仅在服务端处理立即采集
+        if (worldObj != null && !worldObj.isRemote) {
+            // 检查interval是否变化
+            if (oldInterval != newInterval) {
+                // 立即处理一次数据采集
+                processDataImmediately(index, mergedData);
+                // 重置计数器以确保新interval生效
+                tickCounters.put(index, 0);
+            }
+        }
+    }
+
+    private void processDataImmediately(int index, NBTTagCompound nbt) {
+        String[] xyz = parseXYZ(nbt);
+        if (xyz != null) {
+            try {
+                processTileEntityData(index, nbt, xyz);
+            } catch (Exception e) {
+                handleProcessingError(index, e);
+            }
+        }
     }
 
     public NBTTagCompound getDataBound(int index) {
@@ -300,6 +338,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         defaultData.setString("displayName", "New Display");
         defaultData.setTag("dataValues", new NBTTagList());
         defaultData.setInteger("interval", 20);
+        defaultData.setDouble("xRange", 3.0);
         return defaultData;
     }
 
@@ -381,7 +420,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
     public void setInterval(int index, Integer interval) {
         NBTTagCompound nbt = getDataBound(index);
         nbt.setInteger("interval", interval);
-        setDisplayData(index, nbt);
+        setDisplayData(index, nbt); // 这会触发setDisplayData中的逻辑
     }
 
     public float getYOffset(int index) {
@@ -514,6 +553,12 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         NBTTagCompound nbt = getDataBound(index);
         nbt.setString("displayName", name);
         setDisplayData(index, nbt);
+    }
+
+    public void refreshRamdomData() {
+        this.testRandomData = random.nextInt(101);
+        markDirty();
+        syncData();
     }
 
     //========================= 其他方法 =========================//

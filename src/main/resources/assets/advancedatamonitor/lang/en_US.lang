@@ -1,0 +1,13 @@
+adm.error.xyz=The XYZ coordinate format is invalid. Example: 123,64,-123…
+adm.error.ymin=The Y minimum value must be a valid number.
+adm.error.ymax=The Y maximum value must be a valid number.
+adm.error.datalimit=The data limit must be an integer between 2 and 50.
+adm.error.linecolor=The line color format is invalid. Please use a hexadecimal color value, such as FF00FF…
+adm.error.linewidth=The line width must be a number greater than 0, such as 1.05 or 3…
+adm.error.scale=The scale must be a valid number greater than 0, such as 1.05, 3, or 0.5…
+adm.error.interval=The interval must be an integer greater than or equal to 20, measured in ticks.
+adm.error.xoffset=The X offset must be a positive or negative number (can include decimals).
+adm.error.yoffset=The Y offset must be a positive or negative number (can include decimals).
+adm.error.rotationx=The X rotation angle must be a positive or negative number (can include decimals).
+adm.error.rotationy=The Y rotation angle must be a positive or negative number (can include decimals).
+adm.error.rotationz=The Z rotation angle must be a positive or negative number (can include decimals).

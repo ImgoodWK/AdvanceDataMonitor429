@@ -9,6 +9,7 @@ import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonotor;
 import com.imgood.advancedatamonitor.utils.ContentsHelper;
 import com.imgood.advancedatamonitor.utils.DataBound;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
@@ -68,15 +69,16 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private int textHoverColor = 0x0055FF;
 
     private int buttonRowYOffset1 = 300;
-    private int buttonRowYOffset2 = 270;
+    private int buttonRowYOffset2 = 240;
     private boolean buttonRow1RGB = false;
     private boolean buttonRow2RGB = false;
     private int buttonRow1Width = 60;
     private int buttonRow2Width = 60;
 
-    private String errorTips = "Test Tips";
+    private String errorTips = "";
 
     private boolean isInitialized = false;
+    private boolean isFormValid = false;
 
     public GuiSubAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonotor tileEntity, int index) {
         this.player = player;
@@ -489,22 +491,29 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 nbt = new NBTTagCompound();
                 String XYZ = this.textFieldTileEntityXYZ.getText().replace("，",",").replace(" ", "");
                 if (!ContentsHelper.isValidPosFormat(XYZ)) {
-                    this.textFieldTileEntityXYZ.setText(this.tileEntityAdvanceDataMonotor.getXYZ(this.index));
+                    this.errorTips = I18n.format("adm.error.xyz");
+                    return;
                 } else {
                     nbt.setString("XYZ", XYZ);
                 }
+
                 if (!isValidDouble(this.textFieldYmin.getText())) {
-                    this.textFieldYmin.setText(this.tileEntityAdvanceDataMonotor.getYMin(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.ymin");
+                    return;
                 } else {
                     nbt.setDouble("yMin", Double.parseDouble(this.textFieldYmin.getText()));
                 }
+
                 if (!isValidDouble(this.textFieldYmax.getText())) {
-                    this.textFieldYmax.setText(this.tileEntityAdvanceDataMonotor.getYMax(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.ymax");
+                    return;
                 } else {
                     nbt.setDouble("yMax", Double.parseDouble(this.textFieldYmax.getText()));
                 }
+
                 if (!isValidInteger(this.textFieldDataLimit.getText())) {
-                    this.textFieldDataLimit.setText(this.tileEntityAdvanceDataMonotor.getDataLimit(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.datalimit");
+                    return;
                 } else {
                     int dataLimit = Integer.parseInt(this.textFieldDataLimit.getText());
                     if (dataLimit < 0) {
@@ -515,22 +524,29 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     nbt.setInteger("dataLimit", Integer.parseInt(this.textFieldDataLimit.getText()));
                 }
                 if (!isValidHexColor(this.textFieldLineColor.getText())) {
-                    this.textFieldLineColor.setText(this.tileEntityAdvanceDataMonotor.getLineColor(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.linecolor");
+                    return;
                 } else {
                     nbt.setString("lineColor", this.textFieldLineColor.getText());
                 }
+
                 if (!isValidDouble(this.textFieldLineWidth.getText())) {
-                    this.textFieldLineWidth.setText(this.tileEntityAdvanceDataMonotor.getLineWidth(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.linewidth");
+                    return;
                 } else {
                     nbt.setDouble("lineWidth", Double.parseDouble(this.textFieldLineWidth.getText()));
                 }
+
                 if (!isValidDouble(this.textFieldScaled.getText())) {
-                    this.textFieldScaled.setText(this.tileEntityAdvanceDataMonotor.getScale(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.scale");
+                    return;
                 } else {
                     nbt.setDouble("scale", Double.parseDouble(this.textFieldScaled.getText()));
                 }
+
                 if (!isValidInteger(this.textFieldInterval.getText())) {
-                    this.textFieldInterval.setText(this.tileEntityAdvanceDataMonotor.getInterval(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.interval");
+                    return;
                 } else {
                     int interval = Integer.parseInt(this.textFieldInterval.getText());
                     if (interval <=20) {
@@ -540,27 +556,36 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     }
                 }
                 if (!isValidDouble(this.textFieldyOffset.getText())) {
-                    this.textFieldyOffset.setText(this.tileEntityAdvanceDataMonotor.getYOffset(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.yoffset");
+                    return;
                 } else {
                     nbt.setDouble("yOffset", Double.parseDouble(this.textFieldyOffset.getText()));
                 }
+
                 if (!isValidDouble(this.textFieldxOffset.getText())) {
-                    this.textFieldxOffset.setText(this.tileEntityAdvanceDataMonotor.getXOffset(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.xoffset");
+                    return;
                 } else {
                     nbt.setDouble("xOffset", Double.parseDouble(this.textFieldxOffset.getText()));
                 }
+
                 if (!isValidDouble(this.textFieldRotationX.getText())) {
-                    this.textFieldRotationX.setText(this.tileEntityAdvanceDataMonotor.getRotationX(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.rotationx");
+                    return;
                 } else {
                     nbt.setDouble("rotationX", Double.parseDouble(this.textFieldRotationX.getText()));
                 }
+
                 if (!isValidDouble(this.textFieldRotationY.getText())) {
-                    this.textFieldRotationY.setText(this.tileEntityAdvanceDataMonotor.getRotationY(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.rotationy");
+                    return;
                 } else {
                     nbt.setDouble("rotationY", Double.parseDouble(this.textFieldRotationY.getText()));
                 }
+
                 if (!isValidDouble(this.textFieldRotationZ.getText())) {
-                    this.textFieldRotationZ.setText(this.tileEntityAdvanceDataMonotor.getRotationZ(this.index)+"");
+                    this.errorTips = I18n.format("adm.error.rotationz");
+                    return;
                 } else {
                     nbt.setDouble("rotationZ", Double.parseDouble(this.textFieldRotationZ.getText()));
                 }
@@ -577,6 +602,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                                 nbt
                         ));
                 isInitialized = false;
+                errorTips = "";
                 //this.mc.displayGuiScreen(null);
                 this.mc.displayGuiScreen(new GuiMainAdvanceDataMonitor(this.player, this.world, this.tileEntityAdvanceDataMonotor)
                         .setPosition(0, 0)
@@ -657,7 +683,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         String[] text2 = {"§lXOffset", "§lYOffset", "§lXRotation", "§lYRotation", "§lZRotation", "§lNBT Name",  "§lDisplay Name"};
         autoText(text2, 0, 25, this.offsetX+150-4, this.offsetY, this.textColor);
         this.drawCenteredString(this.fontRendererObj, "§lData Config Of §n"+(this.index+1), this.offsetX+212, this.offsetY-35, this.textColor);
-        this.fontRendererObj.drawString(errorTips, this.offsetX+212, this.offsetY-35, this.textColor);
+        this.fontRendererObj.drawString(errorTips, this.offsetX+10, this.offsetY+220, 0xff0000);
         drawTextFieldBackground(textFieldsLeft);
         drawTextFieldBackground(textFieldsRight);
         if (isValidHexColor(this.textFieldLineColor.getText())) {

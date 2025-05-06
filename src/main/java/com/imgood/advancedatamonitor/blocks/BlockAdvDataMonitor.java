@@ -26,6 +26,8 @@ public class BlockAdvDataMonitor extends BlockContainer {
         this.setHardness(2.0F);
         this.setResistance(5.0F);
         this.setCreativeTab(CreativeTabs.tabRedstone);
+        this.lightOpacity = 15;
+        this.lightValue = 15;
     }
 
     @Override
