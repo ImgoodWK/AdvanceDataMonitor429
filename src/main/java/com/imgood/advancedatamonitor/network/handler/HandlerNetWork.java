@@ -27,8 +27,8 @@ public class HandlerNetWork implements IMessageHandler<PacketItemNBT, IMessage> 
             posTag.setInteger("z", message.position.getZ());
             nbt.setTag("Position", posTag);
 
-            // 修改点：存储单个字符串（不再需要列表）
-            nbt.setString("Data", message.textData); // 直接存储字符串
+            //存储单个字符串
+            nbt.setString("Data", message.textData);
 
             stack.setTagCompound(nbt);
 

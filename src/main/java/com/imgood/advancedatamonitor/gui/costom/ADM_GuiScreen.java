@@ -10,11 +10,16 @@ import org.lwjgl.opengl.GL11;
 public class ADM_GuiScreen extends GuiScreen {
 
     private ResourceLocation backgroundTexture;
-    private int x = 0; // 默认X起点
-    private int y = 0; // 默认Y起点
-    public int bg_width = 0; // 默认宽度，0表示使用整个屏幕宽度
-    public int bg_height = 0; // 默认高度，0表示使用整个屏幕高度
-    private boolean stretch = true; // 默认拉伸背景
+    // 默认X起点
+    private int x = 0;
+    // 默认Y起点
+    private int y = 0;
+    // 默认宽度，0表示使用整个屏幕宽度
+    public int bg_width = 0;
+    // 默认高度，0表示使用整个屏幕高度
+    public int bg_height = 0;
+    // 默认拉伸背景
+    private boolean stretch = true;
 
     public ADM_GuiScreen() {
     }

@@ -64,7 +64,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
 
     private int offsetX = 100;
     private int offsetY = 100;
-    //private int interval = 30;
     private int textColor = 0x00FFFF;
     private int textHoverColor = 0x0055FF;
 
@@ -74,6 +73,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private boolean buttonRow2RGB = false;
     private int buttonRow1Width = 60;
     private int buttonRow2Width = 60;
+
+    private String errorTips = "Test Tips";
 
     private boolean isInitialized = false;
 
@@ -206,7 +207,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         this.textFieldDisplayName.setText(this.tileEntityAdvanceDataMonotor.getDisplayName(this.index));
 
 
-        //region 保存/取消按钮
+        //保存/取消按钮
         this.buttonList.add(new ADM_GuiButton(0,
                 this.offsetX + 0,
                 this.offsetY + buttonRowYOffset1,
@@ -296,35 +297,46 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor));
 
-        //endregion
         setTileEntityDatatype(this.tileEntityAdvanceDataMonotor.getDataType(this.index));
 
     }
 
     private void setTileEntityDatatype(DataBound.DataType dataType) {
-        getButtonByid(2).enabled = true;
+        /*getButtonByid(2).enabled = true;
         getButtonByid(3).enabled = true;
         getButtonByid(4).enabled = true;
         getButtonByid(5).enabled = true;
-        getButtonByid(6).enabled = true;
+        getButtonByid(6).enabled = true;*/
+        ((ADM_GuiButton)getButtonByid(2)).setUseRGBEffect(false);
+        ((ADM_GuiButton)getButtonByid(3)).setUseRGBEffect(false);
+        ((ADM_GuiButton)getButtonByid(4)).setUseRGBEffect(false);
+        ((ADM_GuiButton)getButtonByid(5)).setUseRGBEffect(false);
+        ((ADM_GuiButton)getButtonByid(6)).setUseRGBEffect(false);
         switch (dataType) {
             case Line:
-                getButtonByid(2).enabled = false;
+                //getButtonByid(2).enabled = false;
+                ((ADM_GuiButton)getButtonByid(2)).setUseRGBEffect(true);
                 break;
             case Bar:
-                getButtonByid(3).enabled = false;
+                //getButtonByid(3).enabled = false;
+                ((ADM_GuiButton)getButtonByid(3)).setUseRGBEffect(true);
                 break;
             case Bar_3D:
-                getButtonByid(4).enabled = false;
+                //getButtonByid(4).enabled = false;
+                ((ADM_GuiButton)getButtonByid(4)).setUseRGBEffect(true);
                 break;
             case Waterfall:
-                getButtonByid(5).enabled = false;
+                //getButtonByid(5).enabled = false;
+                ((ADM_GuiButton)getButtonByid(5)).setUseRGBEffect(true);
                 break;
             case Difference:
-                getButtonByid(6).enabled = false;
+                //getButtonByid(6).enabled = false;
+                ((ADM_GuiButton)getButtonByid(6)).setUseRGBEffect(true);
         }
         this.tileEntityAdvanceDataMonotor.setDataType(this.index, dataType);
     }
+
+
 
     private boolean textContains(GuiButton guiButton, String contains) {
         return guiButton.displayString.contains(contains);
@@ -423,7 +435,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                         break;
                 }
             }
-            // 根据 i 的值更新对应的成员变量
 
         }
     }
@@ -582,19 +593,19 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                         .setBackgroundTexture(guiScreenHolographicDisplay_Main_Background));
             }
             case 2 -> {
-
+                setTileEntityDatatype(DataBound.DataType.Line);
             }
             case 3 -> {
-
+                setTileEntityDatatype(DataBound.DataType.Bar);
             }
             case 4 -> {
-
+                setTileEntityDatatype(DataBound.DataType.Bar_3D);
             }
             case 5 -> {
-
+                setTileEntityDatatype(DataBound.DataType.Waterfall);
                 }
             case 6 -> {
-
+                setTileEntityDatatype(DataBound.DataType.Difference);
             }
             default -> {
                 // 处理其他按钮的行为
@@ -641,12 +652,12 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
-
         String[] text = {"§lX,Y,Z", "§lYMin", "§lYMax", "§lData Limit", "§lLine Color","§lLine Width","§lScaled","§lInterval"};
         autoText(text, 0, 25, this.offsetX-4, this.offsetY, this.textColor);
         String[] text2 = {"§lXOffset", "§lYOffset", "§lXRotation", "§lYRotation", "§lZRotation", "§lNBT Name",  "§lDisplay Name"};
         autoText(text2, 0, 25, this.offsetX+150-4, this.offsetY, this.textColor);
         this.drawCenteredString(this.fontRendererObj, "§lData Config Of §n"+(this.index+1), this.offsetX+212, this.offsetY-35, this.textColor);
+        this.fontRendererObj.drawString(errorTips, this.offsetX+212, this.offsetY-35, this.textColor);
         drawTextFieldBackground(textFieldsLeft);
         drawTextFieldBackground(textFieldsRight);
         if (isValidHexColor(this.textFieldLineColor.getText())) {
@@ -683,16 +694,12 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         //弃用了所以给了个0
         int borderSize = 0;
 
-        // 绘制背景（使用 OpenGL 绘制一个纯色或半透明矩形）
+        // 绘制背景纯色或半透明矩形
         drawRect(x, y, x + width, y + height, 0xaf00aaaa);
 
-        // 左上角
         drawTexturedModalRect(x - borderSize, y - borderSize, 0, 0, borderSize, borderSize);
-        // 右上角
         drawTexturedModalRect(x + width, y - borderSize, 16 - borderSize, 0, borderSize, borderSize);
-        // 左下角
         drawTexturedModalRect(x - borderSize, y + height, 0, 16 - borderSize, borderSize, borderSize);
-        // 右下角
         drawTexturedModalRect(x + width, y + height, 16 - borderSize, 16 - borderSize, borderSize, borderSize);
 
         /*
@@ -735,11 +742,9 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
             tooltipX += 10;
             tooltipY += 10;
 
-            //region 绘制背景
             // 绘制背景和边框
             this.zLevel = 0F;
             drawTooltipBackground(tooltipX, tooltipY, tooltipTextWidth, tooltipHeight);
-            //end region
 
 
             for (int lineNumber = 0; lineNumber < textLines.size(); ++lineNumber) {

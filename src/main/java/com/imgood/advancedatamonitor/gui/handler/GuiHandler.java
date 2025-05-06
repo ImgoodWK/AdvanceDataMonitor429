@@ -29,7 +29,7 @@ public class GuiHandler implements IGuiHandler {
 
     @Override
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-        return null; // 服务器端不需要GUI容器
+        return null;
     }
 
     @Override

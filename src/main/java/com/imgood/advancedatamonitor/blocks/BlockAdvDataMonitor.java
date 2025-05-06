@@ -22,10 +22,10 @@ public class BlockAdvDataMonitor extends BlockContainer {
     public BlockAdvDataMonitor() {
         super(Material.iron);
         this.setBlockName("advDataMonitor");
-        this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_data_monitor"); // 需要准备对应材质
+        this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_data_monitor");
         this.setHardness(2.0F);
         this.setResistance(5.0F);
-        this.setCreativeTab(CreativeTabs.tabRedstone); // 放在创造模式物品栏
+        this.setCreativeTab(CreativeTabs.tabRedstone);
     }
 
     @Override
@@ -35,7 +35,7 @@ public class BlockAdvDataMonitor extends BlockContainer {
 
     @Override
     public int getRenderType() {
-        return -1; // 需要自定义渲染时需要修改这个值
+        return -1;
     }
 
     @Override
@@ -50,7 +50,6 @@ public class BlockAdvDataMonitor extends BlockContainer {
 
     @Override
     public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack itemIn) {
-        //int direction = MathHelper.floor_double((double) (placer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
         int direction = MathHelper.floor_double((double) ((placer.rotationYaw + 180) * 4.0F / 360.0F) + 0.5D) & 3;
         TileEntity tileEntity = world.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityAdvanceDataMonotor) {
@@ -68,17 +67,6 @@ public class BlockAdvDataMonitor extends BlockContainer {
 
             TileEntityAdvanceDataMonotor te = (TileEntityAdvanceDataMonotor) world.getTileEntity(x, y, z);
             player.openGui(AdvanceDataMonitor.instance, 1, world, x, y, z);
-            /*if (te != null) {
-                // 清空旧数据
-                //te.getDataValues().clear();
-                // 添加测试数据
-                te.setScale(5f);
-                te.setRotationY(45f);
-                te.setHeightOffset(2f);
-                double randomValue = te.getYMin() + Math.random() * (te.getYMax() - te.getYMin());
-                te.addData(randomValue);
-                player.addChatMessage(new ChatComponentText("已生成测试数据！"+randomValue));
-            }*/
 
         return true;
     }

@@ -173,6 +173,6 @@ public class GUINBTViewer extends GuiScreen {
     }
     @Override
     public boolean doesGuiPauseGame() {
-        return false; // 返回 false 以使游戏不暂停
+        return false;
     }
 }

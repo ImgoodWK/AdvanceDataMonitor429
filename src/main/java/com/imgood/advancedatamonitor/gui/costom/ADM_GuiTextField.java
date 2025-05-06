@@ -15,20 +15,14 @@ public class ADM_GuiTextField extends GuiTextField {
     private FontRenderer fontRendererObj = Minecraft.getMinecraft().fontRenderer;
     public int xPosition;
     public int yPosition;
-    /** The width of this text field. */
     public int width;
     public int height;
-    /** Has the current text being edited on the textbox. */
     private String text = "";
     private int cursorCounter;
-    /** If this value is true along with isEnabled, keyTyped will process the keys. */
     private boolean isFocused;
-    /** If this value is true along with isFocused, keyTyped will process the keys. */
     private boolean isEnabled = true;
-    /** The current character index that should be used as start of the rendered text. */
     private int lineScrollOffset;
     private int cursorPosition;
-    /** other selection position, maybe the same as the cursor */
     private int selectionEnd;
     private int enabledColor = 14737632;
     private int disabledColor = 7368816;
@@ -48,14 +42,15 @@ public class ADM_GuiTextField extends GuiTextField {
                     drawTexturedRect(this.xPosition - 1, this.yPosition - 1, this.width + 2, this.height + 2, textureToDraw);
                 } else {
                     drawTexturedRect(this.xPosition - 1, this.yPosition - 1, this.width + 2, this.height + 2, textureToDraw);
-                    super.drawTextBox();  // 使用原版逻辑绘制背景
+                    // 使用原版逻辑绘制背景
+                    super.drawTextBox();
                 }
 
             if (this.getText().isEmpty() && !this.isFocused() && !hintText.isEmpty()) {
                 this.fontRendererObj.drawStringWithShadow(this.hintText, this.xPosition + 4, this.yPosition + (this.height - 8) / 2, this.hintColor);
             } else {
-                super.drawTextBox();  // 使用原版逻辑绘制文本
-                //this.fontRendererObj.drawStringWithShadow(this.hintText, this.xPosition + 4, this.yPosition + (this.height - 8) / 2, this.hintColor);
+                // 使用原版逻辑绘制文本
+                super.drawTextBox();
 
             }
         }
@@ -68,19 +63,16 @@ public class ADM_GuiTextField extends GuiTextField {
         Minecraft minecraft = Minecraft.getMinecraft();
         minecraft.getTextureManager().bindTexture(texture);
 
-        // 开始绘制
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
 
-        float zLevel = 10000000000F;  // 一般将 zLevel 设置为 0.0F
+        float zLevel = 10000000000F;
 
-        // 确保使用正确的纹理坐标和顶点顺序
-        tessellator.addVertexWithUV(x, y + height, zLevel, 0, 1);         // 左下角
-        tessellator.addVertexWithUV(x + width, y + height, zLevel, 1, 1);  // 右下角
-        tessellator.addVertexWithUV(x + width, y, zLevel, 1, 0);          // 右上角
-        tessellator.addVertexWithUV(x, y, zLevel, 0, 0);                   // 左上角
+        tessellator.addVertexWithUV(x, y + height, zLevel, 0, 1);
+        tessellator.addVertexWithUV(x + width, y + height, zLevel, 1, 1);
+        tessellator.addVertexWithUV(x + width, y, zLevel, 1, 0);
+        tessellator.addVertexWithUV(x, y, zLevel, 0, 0);
 
-        // 完成绘制
         tessellator.draw();
     }
 

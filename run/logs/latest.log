@@ -1,156 +1,71 @@
-[16:16:14] [main/INFO]: Setting user: Developer
-[16:16:16] [Client thread/INFO]: LWJGL Version: 3.3.3+5
-[16:16:36] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit
-[16:16:58] [Sound Library Loader/INFO]: Sound engine started
-[16:16:59] [Client thread/INFO]: Created: 32x32 textures/blocks-atlas
-[16:16:59] [Client thread/INFO]: Created: 32x32 textures/items-atlas
-[16:17:36] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit, Avaritia_Delegate_Pack, Avaritia_Delegate_Pack
-[16:17:38] [Client thread/INFO]: Created: 4096x4096 textures/blocks-atlas
-[16:17:42] [Client thread/INFO]: Created: 2048x2048 textures/items-atlas
-[16:17:42] [Sound Library Loader/INFO]: Sound engine started
-[16:18:22] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit, Avaritia_Delegate_Pack, Avaritia_Delegate_Pack
-[16:18:24] [Client thread/INFO]: Created: 4096x4096 textures/blocks-atlas
-[16:18:26] [Client thread/INFO]: Created: 4096x4096 textures/items-atlas
-[16:18:27] [Sound Library Loader/INFO]: Sound engine started
-[16:18:35] [Server thread/INFO]: Starting integrated minecraft server version 1.7.10
-[16:18:35] [Server thread/INFO]: Generating keypair
-[16:18:36] [Server thread/INFO]: Preparing start region for level 0
-[16:18:38] [Server thread/INFO]: Changing view distance to 12, from 10
-[16:18:38] [Server thread/INFO]: Developer[local:E:d5290c70] logged in with entity id 446 at (-929.4783303292683, 4.0, -302.28718547894573)
-[16:18:38] [Server thread/INFO]: Developer joined the game
-[16:18:39] [Client thread/INFO]: [CHAT] §6§m-----------------------------------------------------
-[16:18:39] [Client thread/INFO]: [CHAT] §lWelcome to Gregtech: New Horizons §a2.6.1
-[16:18:39] [Client thread/INFO]: [CHAT] §9The Quest Book has a shortcut key, check your keybindings
-[16:18:39] [Client thread/INFO]: [CHAT] §9to remove conflicts.
-[16:18:39] [Client thread/INFO]: [CHAT] §2GTNH WIKI link https://gtnh.miraheze.org/wiki/
-[16:18:39] [Client thread/INFO]: [CHAT] §aPlease report bugs here:
-[16:18:39] [Client thread/INFO]: [CHAT] §6https://github.com/GTNewHorizons/GT-New-Horizons-Modpack/
-[16:18:39] [Client thread/INFO]: [CHAT] §9Visit our discord at https://discord.gg/gtnh
-[16:18:39] [Client thread/INFO]: [CHAT] §6§m-----------------------------------------------------
-[16:18:40] [Client thread/INFO]: [CHAT] §d[Warn]: Installed NEI version is to old to support RenderTooltipEvents! This may cause problems. Installed NEI version: 2.7.4-GTNH (2.7.8-GTNH and newer support RenderTooltipEvents)
-[16:18:42] [Server thread/INFO]: Saving and pausing game...
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/The End
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Io
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
-[16:18:42] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus
-[16:19:08] [Client thread/INFO]: [CHAT] 已生成测试数据！13.38655418420651
-[16:19:08] [Client thread/INFO]: [CHAT] 已生成测试数据！12.033211743972998
-[16:19:09] [Client thread/INFO]: [CHAT] 已生成测试数据！16.76547824606339
-[16:19:09] [Client thread/INFO]: [CHAT] 已生成测试数据！10.943555722258829
-[16:19:09] [Client thread/INFO]: [CHAT] 已生成测试数据！11.78778635390654
-[16:19:10] [Client thread/INFO]: [CHAT] 已生成测试数据！12.418758986981366
-[16:19:11] [Client thread/INFO]: [CHAT] 已生成测试数据！18.984289771725116
-[16:19:11] [Client thread/INFO]: [CHAT] 已生成测试数据！2.152599618069264
-[16:19:11] [Client thread/INFO]: [CHAT] 已生成测试数据！4.637886285684494
-[16:19:11] [Client thread/INFO]: [CHAT] 已生成测试数据！19.09919663578583
-[16:19:11] [Client thread/INFO]: [CHAT] 已生成测试数据！10.469622548482604
-[16:19:13] [Client thread/INFO]: [CHAT] 已生成测试数据！18.164099080497827
-[16:19:13] [Client thread/INFO]: [CHAT] 已生成测试数据！19.70178113755239
-[16:19:13] [Client thread/INFO]: [CHAT] 已生成测试数据！14.190264895807179
-[16:19:14] [Client thread/INFO]: [CHAT] 已生成测试数据！15.431176117093985
-[16:19:14] [Client thread/INFO]: [CHAT] 已生成测试数据！16.768674104908786
-[16:19:14] [Client thread/INFO]: [CHAT] 已生成测试数据！17.302376570077303
-[16:19:14] [Client thread/INFO]: [CHAT] 已生成测试数据！9.005219259052314
-[16:19:14] [Client thread/INFO]: [CHAT] 已生成测试数据！10.393358923249068
-[16:19:15] [Client thread/INFO]: [CHAT] 已生成测试数据！13.262627546018086
-[16:19:15] [Client thread/INFO]: [CHAT] 已生成测试数据！0.9828082797799542
-[16:19:15] [Client thread/INFO]: [CHAT] 已生成测试数据！16.362832023693173
-[16:19:15] [Client thread/INFO]: [CHAT] 已生成测试数据！12.20354052093213
-[16:19:15] [Client thread/INFO]: [CHAT] 已生成测试数据！9.600668066909515
-[16:19:16] [Client thread/INFO]: [CHAT] 已生成测试数据！9.208455225485547
-[16:19:16] [Client thread/INFO]: [CHAT] 已生成测试数据！1.8883830243731548
-[16:19:16] [Client thread/INFO]: [CHAT] 已生成测试数据！7.284992593002794
-[16:19:16] [Client thread/INFO]: [CHAT] 已生成测试数据！11.854928726227584
-[16:19:16] [Client thread/INFO]: [CHAT] 已生成测试数据！4.458902082647549
-[16:19:17] [Client thread/INFO]: [CHAT] 已生成测试数据！2.794012562061756
-[16:19:17] [Client thread/INFO]: [CHAT] 已生成测试数据！3.026168046239246
-[16:19:17] [Client thread/INFO]: [CHAT] 已生成测试数据！2.860706730503364
-[16:19:17] [Client thread/INFO]: [CHAT] 已生成测试数据！3.6221789006786342
-[16:19:17] [Client thread/INFO]: [CHAT] 已生成测试数据！10.512364545810007
-[16:19:18] [Client thread/INFO]: [CHAT] 已生成测试数据！4.116479039340508
-[16:19:18] [Client thread/INFO]: [CHAT] 已生成测试数据！3.4755483086993766
-[16:19:18] [Client thread/INFO]: [CHAT] 已生成测试数据！9.870600410961616
-[16:19:18] [Client thread/INFO]: [CHAT] 已生成测试数据！9.187513049450015
-[16:19:19] [Client thread/INFO]: [CHAT] 已生成测试数据！14.83469024990594
-[16:19:19] [Client thread/INFO]: [CHAT] 已生成测试数据！6.913728425243484
-[16:19:19] [Client thread/INFO]: [CHAT] 已生成测试数据！17.20898126644076
-[16:19:20] [Client thread/INFO]: [CHAT] 已生成测试数据！19.595304862996002
-[16:19:50] [Client thread/INFO]: [CHAT] 已生成测试数据！19.257260694433977
-[16:19:50] [Client thread/INFO]: [CHAT] 已生成测试数据！12.597153712759093
-[16:19:51] [Client thread/INFO]: [CHAT] 已生成测试数据！4.412438190767761
-[16:19:51] [Client thread/INFO]: [CHAT] 已生成测试数据！1.4481725387726097
-[16:19:53] [Client thread/INFO]: [CHAT] Day 5. 6:00
-[16:19:54] [Client thread/INFO]: [CHAT] 已生成测试数据！6.438989678788456
-[16:19:54] [Client thread/INFO]: [CHAT] 已生成测试数据！15.018314220557908
-[16:19:55] [Client thread/INFO]: [CHAT] 已生成测试数据！7.079854708502465
-[16:19:55] [Client thread/INFO]: [CHAT] 已生成测试数据！13.25408299484388
-[16:19:55] [Client thread/INFO]: [CHAT] 已生成测试数据！2.924363096188274
-[16:19:55] [Client thread/INFO]: [CHAT] 已生成测试数据！0.0518780535154062
-[16:19:55] [Client thread/INFO]: [CHAT] 已生成测试数据！0.20850084069321317
-[16:19:58] [Client thread/INFO]: [CHAT] 已生成测试数据！6.310003720440922
-[16:19:58] [Client thread/INFO]: [CHAT] 已生成测试数据！9.91046895277033
-[16:19:59] [Client thread/INFO]: [CHAT] 已生成测试数据！9.66787517514313
-[16:19:59] [Client thread/INFO]: [CHAT] 已生成测试数据！3.888718375443383
-[16:20:00] [Client thread/INFO]: [CHAT] 已生成测试数据！4.606993098407159
-[16:20:00] [Client thread/INFO]: [CHAT] 已生成测试数据！1.06247671723104
-[16:20:00] [Client thread/INFO]: [CHAT] 已生成测试数据！7.352277890036392
-[16:20:00] [Client thread/INFO]: [CHAT] 已生成测试数据！1.4418616063981138
-[16:20:03] [Client thread/INFO]: [CHAT] 已生成测试数据！7.219616461665737
-[16:20:03] [Client thread/INFO]: [CHAT] 已生成测试数据！1.5929767358747982
-[16:20:03] [Client thread/INFO]: [CHAT] 已生成测试数据！18.02511648668112
-[16:20:03] [Client thread/INFO]: [CHAT] 已生成测试数据！11.826626776728295
-[16:20:04] [Client thread/INFO]: [CHAT] 已生成测试数据！1.8182464211949223
-[16:20:04] [Client thread/INFO]: [CHAT] 已生成测试数据！19.90902232038475
-[16:20:04] [Client thread/INFO]: [CHAT] 已生成测试数据！11.010364819308593
-[16:20:04] [Client thread/INFO]: [CHAT] 已生成测试数据！2.503954920065483
-[16:20:07] [Client thread/INFO]: [CHAT] 已生成测试数据！7.092668537419913
-[16:20:07] [Client thread/INFO]: [CHAT] 已生成测试数据！6.582599042738282
-[16:20:07] [Client thread/INFO]: [CHAT] 已生成测试数据！17.303315366549697
-[16:20:07] [Client thread/INFO]: [CHAT] 已生成测试数据！17.61404992781157
-[16:20:07] [Client thread/INFO]: [CHAT] 已生成测试数据！14.013727722279405
-[16:20:08] [Client thread/INFO]: [CHAT] 已生成测试数据！17.450368938618194
-[16:20:08] [Client thread/INFO]: [CHAT] 已生成测试数据！2.947310525963489
-[16:20:08] [Client thread/INFO]: [CHAT] 已生成测试数据！4.606270899279236
-[16:20:08] [Client thread/INFO]: [CHAT] 已生成测试数据！17.71772907556218
-[16:20:08] [Client thread/INFO]: [CHAT] 已生成测试数据！6.930693949196787
-[16:20:09] [Client thread/INFO]: [CHAT] 已生成测试数据！13.839398003335116
-[16:20:09] [Client thread/INFO]: [CHAT] 已生成测试数据！2.231117889021339
-[16:20:09] [Client thread/INFO]: [CHAT] 已生成测试数据！15.73000669667402
-[16:20:09] [Client thread/INFO]: [CHAT] 已生成测试数据！17.96997735939661
-[16:20:09] [Client thread/INFO]: [CHAT] 已生成测试数据！9.188539464973838
+[16:24:39] [main/INFO]: Setting user: Developer
+[16:24:41] [Client thread/INFO]: LWJGL Version: 3.3.3+5
+[16:25:02] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit
+[16:25:31] [Sound Library Loader/INFO]: Sound engine started
+[16:25:31] [Client thread/INFO]: Created: 32x32 textures/blocks-atlas
+[16:25:32] [Client thread/INFO]: Created: 32x32 textures/items-atlas
+[16:26:11] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit, Avaritia_Delegate_Pack, Avaritia_Delegate_Pack, resources
+[16:26:13] [Client thread/INFO]: Created: 4096x4096 textures/blocks-atlas
+[16:26:15] [Client thread/INFO]: Created: 2048x2048 textures/items-atlas
+[16:26:16] [Sound Library Loader/INFO]: Sound engine started
+[16:26:54] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:NotEnoughItems, FMLFileResourcePack:AdvanceDataMonitor, FMLFileResourcePack:BlockRenderer6343, FMLFileResourcePack:GTNH-Intergalactic, FMLFileResourcePack:GT: New Horizons, FMLFileResourcePack:GalaxySpace, FMLFileResourcePack:Galacticraft Core, FMLFileResourcePack:Galacticraft Planets, FMLFileResourcePack:GregTech, FMLFileResourcePack:KubaTech, FMLFileResourcePack:GigaGramFab, FMLFileResourcePack:GTNH: Lanthanides, FMLFileResourcePack:TecTech - Tec Technology!, FMLFileResourcePack:BartWorks Mod Additions - TGregworks Container, FMLFileResourcePack:BartWorks Mod Additions, FMLFileResourcePack:BartWorks, FMLFileResourcePack:Galactic Greg, FMLFileResourcePack:Good Generator, FMLFileResourcePack:KekzTech, FMLFileResourcePack:GT++, FMLFileResourcePack:GregTech ToxicEverglades, FMLFileResourcePack:Avaritiaddons, FMLFileResourcePack:Eternal Singularity, FMLFileResourcePack:UniversalSingularities, FMLFileResourcePack:Avaritia, FMLFileResourcePack:Angelica, FMLFileResourcePack:Embeddium, FMLFileResourcePack:NotFine, FMLFileResourcePack:MCPatcherForge, FMLFileResourcePack:lwjgl3ify, FMLFileResourcePack:Hodgepodge, FMLFileResourcePack:StructureLib, FMLFileResourcePack:AE2 Fluid Crafting, FMLFileResourcePack:Thaumic Tinkerer, FMLFileResourcePack:AE2 Wireless Crafting Terminal, FMLFileResourcePack:Applied Energistics 2, FMLFileResourcePack:Waila, FMLFileResourcePack:Tinkers' Construct, FMLFileResourcePack:ModularUI, FMLFileResourcePack:MobsInfo, FMLFileResourcePack:Iron Chests, FMLFileResourcePack:Baubles, FMLFileResourcePack:YAMCore, FMLFileResourcePack:WanionLib, FMLFileResourcePack:Forestry, FMLFileResourcePack:Draconic Evolution, FMLFileResourcePack:Mantle, FMLFileResourcePack:Forge Multipart, FMLFileResourcePack:Minecraft Multipart Plugin, FMLFileResourcePack:Forge Microblocks, FMLFileResourcePack:Brandon's Core, FMLFileResourcePack:GTNH Lib, FMLFileResourcePack:UniMixins, FMLFileResourcePack:UniMixins: Mixin (UniMix), FMLFileResourcePack:UniMixins: Compatibility, FMLFileResourcePack:UniMixins: Mixingasm, FMLFileResourcePack:UniMixins: SpongeMixins, FMLFileResourcePack:UniMixins: MixinBooterLegacy, FMLFileResourcePack:UniMixins: GasStation, FMLFileResourcePack:UniMixins: GTNHMixins, FMLFileResourcePack:UniMixins: MixinExtras, FMLFileResourcePack:GT NEI Ore Plugin GT:NH Mod, FMLFileResourcePack:Advanced Solar Panels, IC2 resource pack injected by Hodgepodge, FMLFileResourcePack:CoFH Core, FMLFileResourcePack:Thaumcraft, FMLFileResourcePack:In-game NBTEdit, Avaritia_Delegate_Pack, Avaritia_Delegate_Pack, resources
+[16:26:56] [Client thread/INFO]: Created: 4096x4096 textures/blocks-atlas
+[16:26:59] [Client thread/INFO]: Created: 4096x4096 textures/items-atlas
+[16:27:00] [Sound Library Loader/INFO]: Sound engine started
+[16:27:26] [Server thread/INFO]: Starting integrated minecraft server version 1.7.10
+[16:27:26] [Server thread/INFO]: Generating keypair
+[16:27:27] [Server thread/INFO]: Preparing start region for level 0
+[16:27:29] [Server thread/INFO]: Changing view distance to 12, from 10
+[16:27:30] [Server thread/INFO]: Developer[local:E:f97d9e3c] logged in with entity id 433 at (-930.5346502943058, 4.0, -309.35005660976844)
+[16:27:30] [Server thread/INFO]: Developer joined the game
+[16:27:30] [Client thread/INFO]: [CHAT] §6§m-----------------------------------------------------
+[16:27:30] [Client thread/INFO]: [CHAT] §lWelcome to Gregtech: New Horizons §a2.6.1
+[16:27:30] [Client thread/INFO]: [CHAT] §9The Quest Book has a shortcut key, check your keybindings
+[16:27:30] [Client thread/INFO]: [CHAT] §9to remove conflicts.
+[16:27:30] [Client thread/INFO]: [CHAT] §2GTNH WIKI link https://gtnh.miraheze.org/wiki/
+[16:27:30] [Client thread/INFO]: [CHAT] §aPlease report bugs here:
+[16:27:30] [Client thread/INFO]: [CHAT] §6https://github.com/GTNewHorizons/GT-New-Horizons-Modpack/
+[16:27:30] [Client thread/INFO]: [CHAT] §9Visit our discord at https://discord.gg/gtnh
+[16:27:30] [Client thread/INFO]: [CHAT] §6§m-----------------------------------------------------
+[16:27:32] [Client thread/INFO]: [CHAT] §d[Warn]: Installed NEI version is to old to support RenderTooltipEvents! This may cause problems. Installed NEI version: 2.7.4-GTNH (2.7.8-GTNH and newer support RenderTooltipEvents)
+[16:27:33] [Server thread/INFO]: Saving and pausing game...
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Overworld
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Nether
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/The End
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Bedrock
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Moon
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Mars
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Asteroids
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/The Outer Lands
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Mercury
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Venus
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Ceres
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Pluto
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Kuiper Belt
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Makemake
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Phobos
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/dimensionDarkWorld
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Deimos
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128ba
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Io
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Ross128b
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Europa
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Ganymede
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Enceladus
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Titan
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Oberon
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Proteus
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Triton
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/α Centauri Bb
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda C
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda E
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Callisto
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Haumea
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Barnarda F
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Vega B
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/T Ceti E
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Miranda
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Jupiter
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Neptune
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Saturn
+[16:27:33] [Server thread/INFO]: Saving chunks for level 'New World'/Uranus

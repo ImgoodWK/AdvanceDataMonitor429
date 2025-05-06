@@ -79,7 +79,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.setPosition(this.offsetX - 20, this.offsetY - 50);
         this.setSize(420, 260);
         this.setStretch(false);
-        //region 方向选择按钮
+        //方向选择按钮
         this.buttonList.add(new ADM_GuiButton(100,
                 this.offsetX + 0,
                 this.offsetY + buttonRowYOffset1,
@@ -140,8 +140,6 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 .setDecorationWidth(20)
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor));
-        //endregion
-        // Add "New" button
         this.buttonList.add(new ADM_GuiButton(105,
                 this.offsetX + 0,
                 this.offsetY + buttonRowYOffset2,
@@ -198,7 +196,6 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor));
 
-        // Add buttons for existing data
         addButtonsForExistingData(this.displayDataSize,
                 20, 20, 12,
                 this.offsetX + 5, this.offsetY - 10,
@@ -208,7 +205,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        NBTTagCompound nbt = new NBTTagCompound(); // 创建新的NBT标签
+        NBTTagCompound nbt = new NBTTagCompound();
 
         switch (button.id) {
             case 100 -> {
@@ -348,15 +345,10 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         mc.displayGuiScreen(new GuiSubAdvanceDataMonitor(this.player, this.world, this.tileEntityAdvanceDataMonotor, index));
     }
 
-    private void openSubMenu(NBTTagCompound data) {
-        // Open your sub-menu GUI for editing existing data
-        // Example: mc.displayGuiScreen(new GuiSubMenu(this, tileEntity, data));
-    }
-
     public void onNewDataSaved(NBTTagCompound newData) {
         this.dataList.add(newData);
         saveDataToTileEntity();
-        initGui(); // Refresh the GUI to show the new button
+        initGui();
     }
 
     public void onDataEdited(int index, NBTTagCompound editedData) {
@@ -413,19 +405,15 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     private void drawTooltipBackground(int x, int y, int width, int height) {
         int borderSize = 0;
 
-        // 绑定背景材质（可选）
+        // 绑定背景材质
         //this.mc.getTextureManager().bindTexture(new ResourceLocation("modid", "textures/gui/tooltipsBackground.png"));
-        // 绘制背景（使用 OpenGL 绘制一个纯色或半透明矩形）
+        // 绘制背景，绘制一个纯色或半透明矩形
         drawRect(x, y, x + width, y + height, 0xaf00aaaa); // 半透明黑色背景
 
 
-        // 左上角
         drawTexturedModalRect(x - borderSize, y - borderSize, 0, 0, borderSize, borderSize);
-        // 右上角
         drawTexturedModalRect(x + width, y - borderSize, 16 - borderSize, 0, borderSize, borderSize);
-        // 左下角
         drawTexturedModalRect(x - borderSize, y + height, 0, 16 - borderSize, borderSize, borderSize);
-        // 右下角
         drawTexturedModalRect(x + width, y + height, 16 - borderSize, 16 - borderSize, borderSize, borderSize);
 
     }
@@ -440,21 +428,28 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.drawCenteredString(this.fontRendererObj, "Body", this.offsetX + 85, this.offsetY + 130, this.textColor);
         this.drawCenteredString(this.fontRendererObj, "Screen", this.offsetX + 135, this.offsetY + 130, this.textColor);
         this.drawCenteredString(this.fontRendererObj, "Back", this.offsetX + 200, this.offsetY + 130, this.textColor);
+
+        // 新增的悬停提示部分
         for (Object buttonObj : this.buttonList) {
             GuiButton button = (GuiButton) buttonObj;
             if (button.id < this.displayDataSize && isMouseOverButton(button, mouseX, mouseY)) {
-                //List<String> tooltipData = this.tileEntityAdvanceDataMonotor.getDisplayDataToShow(button.id);
-                //drawColoredHoveringText(tooltipData, mouseX, mouseY, button.id);
-
-                //这地方可以绘制数值之类的tooltips
+                List<String> tooltipData = new ArrayList<>();
+                // 添加显示名称
+                tooltipData.add("DisplayName: " + tileEntityAdvanceDataMonotor.getDisplayName(button.id));
+                // 添加坐标信息
+                tooltipData.add("Position: " + tileEntityAdvanceDataMonotor.getXYZ(button.id));
+                // 添加数据类型
+                tooltipData.add("DataType: " + tileEntityAdvanceDataMonotor.getDataType(button.id));
+                tooltipData.add("DataName: " + tileEntityAdvanceDataMonotor.getName(button.id));
+                drawColoredHoveringText(tooltipData, mouseX, mouseY, button.id);
                 break;
             }
         }
 
-        // 获取鼠标位置并显示在左下角
+        // 调试用的鼠标坐标显示（可保留）
         String mousePos = String.format("Mouse Position: %d, %d", mouseX, mouseY);
-        int x = 10; // X坐标，距离屏幕左边的距离
-        int y = this.height - 20; // Y坐标，距离屏幕底部的距离
+        int x = 10;
+        int y = this.height - 20;
         this.fontRendererObj.drawString(mousePos, x, y, 0x00ffff);
     }
 
@@ -463,135 +458,79 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         if (textLines == null || textLines.isEmpty()) return;
 
         int tooltipTextWidth = 0;
-        int tooltipHeight = 8; // 初始高度
-        int tooltipX = x + 12;
-        int tooltipY = y - 12;
-        int maxLineWidth = 200; // 设置最大行宽
+        int tooltipHeight = 8;
+        int maxLineWidth = 200;
 
-        // 计算提示框的尺寸
-        for (int lineNumber = 0; lineNumber < textLines.size(); ++lineNumber) {
-            String line = textLines.get(lineNumber);
-            int colonIndex = line.indexOf(':');
-            String[] buff;
-            if (colonIndex != -1) {
-                buff = new String[]{
-                        line.substring(0, colonIndex),
-                        colonIndex < line.length() - 1 ? line.substring(colonIndex + 1).trim() : ""
-                };
-            } else {
-                buff = new String[]{line, ""};
-            }
-
-            int prefixWidth = this.fontRendererObj.getStringWidth(buff[0] + ": ");
-
-            if (line.contains("Color:") || line.contains("Text1:") || line.contains("Text2:") || line.contains("Text3:") || line.contains("Text4:") || line.contains("ImgURL:")) {
-                if (!buff[1].isEmpty()) {
-                    List<String> wrappedText = wrapText(buff[1], 12);
-                    for (int i = 0; i < wrappedText.size(); i++) {
-                        int wrappedLineWidth = prefixWidth + this.fontRendererObj.getStringWidth(wrappedText.get(i));
-                        tooltipTextWidth = Math.max(tooltipTextWidth, Math.min(wrappedLineWidth, maxLineWidth));
-                        if (i < wrappedText.size() - 1) {
-                            tooltipHeight += 10;
-                        }
-                    }
-                } else {
-                    tooltipTextWidth = Math.max(tooltipTextWidth, Math.min(prefixWidth, maxLineWidth));
-                }
-            } else {
-                int lineWidth = this.fontRendererObj.getStringWidth(line);
-                tooltipTextWidth = Math.max(tooltipTextWidth, Math.min(lineWidth, maxLineWidth));
-            }
+        // 计算提示框尺寸
+        for (String line : textLines) {
+            int lineWidth = this.fontRendererObj.getStringWidth(line);
+            tooltipTextWidth = Math.max(tooltipTextWidth, Math.min(lineWidth, maxLineWidth));
             tooltipHeight += 10;
         }
 
-        // 添加一些额外的填充
+        // 位置调整
+        int tooltipX = x + 12;
+        int tooltipY = y - 12;
         tooltipTextWidth += 8;
         tooltipHeight += 2;
 
         if (tooltipX + tooltipTextWidth > this.width) {
             tooltipX -= 28 + tooltipTextWidth;
         }
-
         if (tooltipY + tooltipHeight + 6 > this.height) {
             tooltipY = this.height - tooltipHeight - 6;
         }
 
-        tooltipX -= 10;
-        tooltipY += 10;
-
-        // 先绘制背景
+        // 绘制蓝色背景
         this.zLevel = 300.0F;
-        drawTooltipBackground(tooltipX, tooltipY - 5, tooltipTextWidth, tooltipHeight);
+        drawRect(tooltipX - 3, tooltipY - 3,
+                tooltipX + tooltipTextWidth + 3,
+                tooltipY + tooltipHeight + 3,
+                // 半透明蓝背景
+                0xaf00aaaa);
+        drawRect(tooltipX - 2, tooltipY - 2,
+                tooltipX + tooltipTextWidth + 2,
+                tooltipY + tooltipHeight + 2,
+                // 黑色边框
+                0x80000000);
 
-        // 然后绘制文字
+        // 绘制文字
         this.zLevel = 301.0F;
         int currentY = tooltipY;
-        for (int lineNumber = 0; lineNumber < textLines.size(); ++lineNumber) {
-            String line = textLines.get(lineNumber);
+        for (String line : textLines) {
             int colonIndex = line.indexOf(':');
-            String[] buff;
             if (colonIndex != -1) {
-                buff = new String[]{
-                        line.substring(0, colonIndex),
-                        colonIndex < line.length() - 1 ? line.substring(colonIndex + 1).trim() : ""
-                };
+                // 分割标签和内容
+                String prefix = line.substring(0, colonIndex + 1);
+                String content = line.substring(colonIndex + 1).trim();
+
+                // 绘制蓝色标签
+                this.fontRendererObj.drawStringWithShadow(
+                        prefix,
+                        tooltipX,
+                        currentY,
+                        0x00FFFF
+                );
+
+                // 绘制白色带下划线内容
+                this.fontRendererObj.drawStringWithShadow(
+                        "§n" + content,
+                        tooltipX + this.fontRendererObj.getStringWidth(prefix) + 2,
+                        currentY,
+                        0xFFFFFF
+                );
             } else {
-                buff = new String[]{line, ""};
+                // 无冒号的普通文本
+                this.fontRendererObj.drawStringWithShadow(
+                        line,
+                        tooltipX,
+                        currentY,
+                        0x00FFFF
+                );
             }
-            for (String text : buff) {
-                text.replace("§l", "");
-                text.replace("§o", "");
-                text.replace("§n", "");
-                text.replace("§m", "");
-            }
-            if (line.contains("Color:") || line.contains("Text1:") || line.contains("Text2:") || line.contains("Text3:") || line.contains("Text4:")) {
-                this.fontRendererObj.drawStringWithShadow(buff[0] + ": ", tooltipX, currentY, Integer.parseInt("00ffff", 16));
-                if (!buff[1].isEmpty()) {
-                    List<String> wrappedText = wrapText(buff[1], 12);
-                    for (int i = 0; i < wrappedText.size(); i++) {
-                        String text = wrappedText.get(i);
-                        if (line.contains("Color:")) {
-                            //this.fontRendererObj.drawStringWithShadow("§n" + text, tooltipX + this.fontRendererObj.getStringWidth(buff[0] + ": "), currentY, Integer.parseInt(this.tileEntityAdvanceDataMonotor.getRGBColor(buttonId), 16));
-                        } else {
-                            //this.fontRendererObj.drawStringWithShadow(text, tooltipX + this.fontRendererObj.getStringWidth(buff[0] + ": "), currentY, Integer.parseInt(this.tileEntityAdvanceDataMonotor.getRGBColor(buttonId), 16));
-                        }
-                        // 只有当不是最后一次迭代时才增加 currentY
-                        if (i < wrappedText.size() - 1) {
-                            currentY += 10;
-                        }
-                    }
-                }
-            } else if (line.contains("ImgURL:")) {
-                this.fontRendererObj.drawStringWithShadow(buff[0] + ": ", tooltipX, currentY, Integer.parseInt("00ffff", 16));
-                if (!buff[1].isEmpty()) {
-                    List<String> wrappedText = wrapText(buff[1], 12);
-                    for (int i = 0; i < wrappedText.size(); i++) {
-                        String text = wrappedText.get(i);
-                        this.fontRendererObj.drawStringWithShadow("§n" + text, tooltipX + this.fontRendererObj.getStringWidth(buff[0] + ": "), currentY, Integer.parseInt("00ffff", 16));
-
-                        // 只有当不是最后一次迭代时才增加 currentY
-                        if (i < wrappedText.size() - 1) {
-                            currentY += 10;
-                        }
-                    }
-                }
-            } else if (line.contains("Style")) {
-                this.fontRendererObj.drawStringWithShadow(buff[0], tooltipX + 32, currentY, Integer.parseInt("00ffff", 16));
-            } else {
-                this.fontRendererObj.drawStringWithShadow(buff[0] + ": ", tooltipX, currentY, Integer.parseInt("00ffff", 16));
-                if (!buff[1].isEmpty()) {
-                    this.fontRendererObj.drawStringWithShadow("§n" + buff[1], tooltipX + this.fontRendererObj.getStringWidth(buff[0] + ": "), currentY, Integer.parseInt("00ffff", 16));
-                }
-            }
-
-            if (lineNumber == 0) {
-                currentY += 2;
-            }
-
             currentY += 10;
         }
 
-        // 恢复 zLevel
         this.zLevel = 0.0F;
     }
 

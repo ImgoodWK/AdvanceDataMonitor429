@@ -16,7 +16,7 @@ public class ADM_GuiButton extends GuiButton {
     private int textColor;
     private int textColorHover;
     private int disabledTextColor;
-    private int decorationWidth = 16; //
+    private int decorationWidth = 16;
 
     private boolean useHoverEffect;
     private boolean useRGBEffect;
@@ -25,13 +25,13 @@ public class ADM_GuiButton extends GuiButton {
 
     public ADM_GuiButton(int id, int x, int y, int width, int height, String text) {
         super(id, x, y, width, height, text);
-        this.textColor = 0xFFFFFF; // 默认白色
+        this.textColor = 0xFFFFFF;
         this.textColorHover = 0xFFFFFF;
-        disabledTextColor = 0xA0A0A0; // 不可用状态
+        disabledTextColor = 0xA0A0A0;
         this.useHoverEffect = false;
         this.useRGBEffect = false;
         this.startTime = System.currentTimeMillis();
-        this.texture = DEFAULT_TEXTURE; // 设置默认纹理
+        this.texture = DEFAULT_TEXTURE;
     }
 
     public ADM_GuiButton setTextHoverColor(int textColor) {
@@ -97,19 +97,17 @@ public class ADM_GuiButton extends GuiButton {
     @Override
     public void drawButton(Minecraft mc, int mouseX, int mouseY) {
         if (this.visible) {
-            // 判断鼠标是否在按钮上
+
             boolean isHovered = mouseX >= this.xPosition && mouseY >= this.yPosition && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
 
-            // 绑定当前适用的纹理
+
             ResourceLocation currentTexture = isHovered && this.useHoverEffect && this.hoverTexture != null ? this.hoverTexture : this.texture;
             mc.getTextureManager().bindTexture(currentTexture);
 
-            // 设置颜色和混合模式
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA); // 设置alpha混合模式
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-            // 禁用深度测试，确保透明部分正确渲染
             GL11.glDisable(GL11.GL_DEPTH_TEST);
 
             // 根据按钮尺寸缩放纹理坐标
@@ -124,7 +122,6 @@ public class ADM_GuiButton extends GuiButton {
             GL11.glTexCoord2f(u1, v); GL11.glVertex3f(this.xPosition + this.width, this.yPosition, this.zLevel);
             GL11.glEnd();
 
-            // 恢复深度测试
             GL11.glEnable(GL11.GL_DEPTH_TEST);
 
             // 绘制左侧装饰 失效
@@ -143,11 +140,14 @@ public class ADM_GuiButton extends GuiButton {
             int textColor = this.textColor;
             if (!this.enabled) {
                 this.setUseHoverEffect(false);
-                textColor = disabledTextColor; // 不可用状态
+                // 不可用状态
+                textColor = disabledTextColor;
             } else if (isHovered) {
-                textColor = textColorHover; // 鼠标悬停状态
+                // 鼠标悬停状态
+                textColor = textColorHover;
             } else if (this.useRGBEffect) {
-                textColor = getRGBColor(); // RGB 效果
+                // RGB 效果
+                textColor = getRGBColor();
             }
 
             this.drawCenteredString(mc.fontRenderer, this.displayString,
@@ -155,7 +155,6 @@ public class ADM_GuiButton extends GuiButton {
                 this.yPosition + (this.height - 8) / 2,
                 textColor);
 
-            // 禁用混合模式以避免影响其他绘制
             GL11.glDisable(GL11.GL_BLEND);
         }
     }

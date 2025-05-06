@@ -115,16 +115,16 @@ public class ItemDataWeave extends Item {
 
         JsonObject rootValue = new JsonObject();
 
-        // 添加基础类型示例
+        // 基础类型示例
         addSimpleTag(rootValue, "name", "TAG_String", "Test Item");
         addSimpleTag(rootValue, "count", "TAG_Int", 5);
 
-        // 添加嵌套的复合标签
+        // 嵌套的复合标签
         JsonObject enchants = new JsonObject();
         enchants.addProperty("type", "TAG_Compound");
         JsonObject enchantsValue = new JsonObject();
 
-        // 添加附魔列表
+        // 附魔列表
         JsonObject enchant1 = new JsonObject();
         enchant1.addProperty("type", "TAG_Compound");
         JsonObject enchant1Value = new JsonObject();
@@ -139,7 +139,7 @@ public class ItemDataWeave extends Item {
         addSimpleTag(enchant2Value, "lvl", "TAG_Short", 2);
         enchant2.add("value", enchant2Value);
 
-        // 将附魔加入列表
+        // 加入列表
         JsonObject enchantList = new JsonObject();
         enchantList.addProperty("type", "TAG_List");
         JsonArray listContents = new JsonArray();
@@ -151,7 +151,7 @@ public class ItemDataWeave extends Item {
         enchants.add("value", enchantsValue);
         rootValue.add("enchants", enchants);
 
-        // 添加深度嵌套的复合标签
+        // 深度嵌套的复合标签
         JsonObject deepNested = createDeepNested(3);  // 创建3层嵌套
         rootValue.add("deepNested", deepNested);
 
@@ -159,7 +159,7 @@ public class ItemDataWeave extends Item {
         return root;
     }
 
-    // 辅助方法：创建深度嵌套的结构
+    // 创建深度嵌套的结构
     private static JsonObject createDeepNested(int depth) {
         JsonObject current = new JsonObject();
         current.addProperty("type", "TAG_Compound");
@@ -175,7 +175,7 @@ public class ItemDataWeave extends Item {
         return current;
     }
 
-    // 辅助方法：添加简单类型的标签
+    // 添加简单类型的标签
     private static void addSimpleTag(JsonObject parent, String key, String type, Object value) {
         JsonObject tag = new JsonObject();
         tag.addProperty("type", type);
