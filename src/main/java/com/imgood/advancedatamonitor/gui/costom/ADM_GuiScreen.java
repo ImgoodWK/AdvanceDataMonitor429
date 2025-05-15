@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.ITextureObject;
 import net.minecraft.util.ResourceLocation;
+
 import org.lwjgl.opengl.GL11;
 
 public class ADM_GuiScreen extends GuiScreen {
@@ -21,8 +22,7 @@ public class ADM_GuiScreen extends GuiScreen {
     // 默认拉伸背景
     private boolean stretch = true;
 
-    public ADM_GuiScreen() {
-    }
+    public ADM_GuiScreen() {}
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
@@ -45,7 +45,8 @@ public class ADM_GuiScreen extends GuiScreen {
         }
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        this.mc.getTextureManager().bindTexture(texture);
+        this.mc.getTextureManager()
+            .bindTexture(texture);
 
         // 计算缩放比例
         float scaleX = (float) maxWidth / originalWidth;
@@ -72,7 +73,8 @@ public class ADM_GuiScreen extends GuiScreen {
     // 获取纹理尺寸的辅助方法
     private int[] getTextureDimensions(ResourceLocation texture) {
         try {
-            ITextureObject textureObject = mc.getTextureManager().getTexture(texture);
+            ITextureObject textureObject = mc.getTextureManager()
+                .getTexture(texture);
             if (textureObject instanceof AbstractTexture) {
                 AbstractTexture abstractTexture = (AbstractTexture) textureObject;
                 int glTextureId = abstractTexture.getGlTextureId();
@@ -84,14 +86,14 @@ public class ADM_GuiScreen extends GuiScreen {
                 int width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
                 int height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
 
-                return new int[]{width, height};
+                return new int[] { width, height };
             }
         } catch (Exception e) {
             // 处理可能的异常
             e.printStackTrace();
         }
         // 如果无法获取尺寸，返回0
-        return new int[]{0, 0};
+        return new int[] { 0, 0 };
     }
 
     private void drawBackground() {
@@ -105,7 +107,8 @@ public class ADM_GuiScreen extends GuiScreen {
         if (this.backgroundTexture == null) {
             return;
         }
-        this.mc.getTextureManager().bindTexture(this.backgroundTexture);
+        this.mc.getTextureManager()
+            .bindTexture(this.backgroundTexture);
 
         if (this.stretch) {
             this.drawTexturedModalRect(this.x, this.y, 0, 0, drawWidth, drawHeight);

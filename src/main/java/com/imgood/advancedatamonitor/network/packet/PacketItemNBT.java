@@ -1,11 +1,13 @@
 package com.imgood.advancedatamonitor.network.packet;
 
 import com.imgood.advancedatamonitor.utils.BlockPos;
+
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 
 public class PacketItemNBT implements IMessage {
+
     public int slot;
     public BlockPos position;
     public String textData; // 修改为String类型

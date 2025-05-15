@@ -1,9 +1,11 @@
 package com.imgood.advancedatamonitor.tileentity;
 
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
-import com.imgood.advancedatamonitor.utils.DataBound;
-import cpw.mods.fml.common.FMLCommonHandler;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.NetworkManager;
@@ -11,13 +13,15 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
+import com.imgood.advancedatamonitor.utils.DataBound;
+
+import cpw.mods.fml.common.FMLCommonHandler;
+import net.minecraft.util.AxisAlignedBB;
 
 public class TileEntityAdvanceDataMonotor extends TileEntity {
+
     private final Map<Integer, NBTTagCompound> dataBoundList = new HashMap<>();
     private boolean visableScreen = true;
     private boolean visableBody = true;
@@ -28,16 +32,21 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
     private Random random = new Random();
 
     private final Map<Integer, Integer> tickCounters = new HashMap<>();
+
+
+
     public TileEntityAdvanceDataMonotor() {
-        FMLCommonHandler.instance().bus().register(this);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(this);
         initializeDefaultData();
     }
-
 
     public int getDisplayDataSize() {
         return dataBoundList.size();
     }
-    //========================= 核心方法 =========================//
+
+    // ========================= 核心方法 =========================//
     @Override
     public void updateEntity() {
         if (TEST_MODE) {
@@ -118,7 +127,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         initializeDefaultData();
     }
 
-    //========================= 数据绑定操作 =========================//
+    // ========================= 数据绑定操作 =========================//
     public void setDisplayData(int index, NBTTagCompound displayData) {
         // 获取旧的interval值
         NBTTagCompound oldData = dataBoundList.get(index);
@@ -173,7 +182,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         }
     }
 
-    //========================= 网络同步 =========================//
+    // ========================= 网络同步 =========================//
     public void syncData() {
         if (worldObj != null && !worldObj.isRemote) {
             NBTTagCompound tag = new NBTTagCompound();
@@ -198,7 +207,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         }
     }
 
-    //========================= 辅助方法 =========================//
+    // ========================= 辅助方法 =========================//
     private void initializeDefaultData() {
         if (dataBoundList.isEmpty()) {
             setDisplayData(0, null);
@@ -254,7 +263,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         syncData();
     }
 
-    //========================= 安全访问方法 =========================//
+    // ========================= 安全访问方法 =========================//
     private String getSafeString(NBTTagCompound nbt, String key, String defaultValue) {
         return (nbt != null && nbt.hasKey(key)) ? nbt.getString(key) : defaultValue;
     }
@@ -280,7 +289,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         }
     }
 
-    //========================= 异常处理 =========================//
+    // ========================= 异常处理 =========================//
     private void handleNullDataBound(int index) {
         AdvanceDataMonitor.LOG.warn("Null data bound at index {}, removing", index);
         dataBoundList.remove(index);
@@ -307,7 +316,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         }
     }
 
-    //========================= NBT 合并方法 =========================//
+    // ========================= NBT 合并方法 =========================//
     private NBTTagCompound mergeWithDefault(NBTTagCompound input) {
         NBTTagCompound defaultNBT = createDefaultNBT();
         if (input == null) return defaultNBT;
@@ -315,7 +324,10 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         NBTTagCompound merged = (NBTTagCompound) defaultNBT.copy();
         for (Object key : input.func_150296_c()) {
             String keyStr = (String) key;
-            merged.setTag(keyStr, input.getTag(keyStr).copy());
+            merged.setTag(
+                keyStr,
+                input.getTag(keyStr)
+                    .copy());
         }
         return merged;
     }
@@ -328,6 +340,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         defaultData.setFloat("scale", 1.0f);
         defaultData.setFloat("yOffset", 0.0f);
         defaultData.setFloat("xOffset", 0.0f);
+        defaultData.setFloat("zOffset", 0.0f);
         defaultData.setFloat("rotationX", 0.0f);
         defaultData.setFloat("rotationY", 0.0f);
         defaultData.setFloat("rotationZ", 0.0f);
@@ -338,33 +351,51 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         defaultData.setString("displayName", "New Display");
         defaultData.setTag("dataValues", new NBTTagList());
         defaultData.setInteger("interval", 20);
-        defaultData.setDouble("xRange", 3.0);
+        defaultData.setDouble("xRange", 1.0);
+        defaultData.setDouble("yRange", 1.0);
+        defaultData.setString("axisLineColor", "FFFFFF");
+        defaultData.setString("axisFontColor", "FFFFFF");
+        defaultData.setDouble("displayNameScale", 1.0);
+        defaultData.setString("displayNameColor", "FFFFFF");
+        defaultData.setDouble("axisFontScale", 1.0);
+        defaultData.setString("dataType", "line");
         return defaultData;
     }
 
-    //========================= 属性访问器 =========================//
-    public boolean isVisableScreen() { return visableScreen; }
+    // ========================= 属性访问器 =========================//
+    public boolean isVisableScreen() {
+        return visableScreen;
+    }
+
     public void setVisableScreen(boolean visable) {
         this.visableScreen = visable;
         markDirty();
         syncData();
     }
 
-    public boolean isVisableBody() { return visableBody; }
+    public boolean isVisableBody() {
+        return visableBody;
+    }
+
     public void setVisableBody(boolean visable) {
         this.visableBody = visable;
         markDirty();
         syncData();
     }
 
-    public boolean isVisableBack() { return visableBack; }
+    public boolean isVisableBack() {
+        return visableBack;
+    }
+
     public void setVisableBack(boolean visable) {
         this.visableBack = visable;
         markDirty();
         syncData();
     }
 
-    public int getFacing() { return facing; }
+    public int getFacing() {
+        return facing;
+    }
 
     public void setFacing(int facing) {
         this.facing = facing;
@@ -372,7 +403,7 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         syncData();
     }
 
-    //========================= 数据绑定属性访问器 =========================//
+    // ========================= 数据绑定属性访问器 =========================//
     public String getXYZ(int index) {
         return getSafeString(getDataBound(index), "XYZ", "0,0,0");
     }
@@ -433,6 +464,16 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         setDisplayData(index, nbt);
     }
 
+    public float getZOffset(int index) {
+        return getSafeFloat(getDataBound(index), "zOffset", 0.0f);
+    }
+
+    public void setZOffset(int index, float offset) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setFloat("zOffset", offset);
+        setDisplayData(index, nbt);
+    }
+
     public float getRotationX(int index) {
         return getSafeFloat(getDataBound(index), "rotationX", 0.0f);
     }
@@ -473,23 +514,46 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         setDisplayData(index, nbt);
     }
 
-    //========================= 新增数据类型支持 =========================//
+    public String getDisplayNameColor(int index) {
+        return getSafeString(getDataBound(index), "displayNameColor", "FFFFFF");
+    }
+
+    public void setDisplayNameColor(int index, String color) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setString("displayNameColor", color);
+        setDisplayData(index, nbt);
+    }
+
+    public double getDisplayNameScale(int index) {
+        return getSafeDouble(getDataBound(index), "displayNameScale", 1.0);
+    }
+
+    public void setDisplayNameScale(int index, double scale) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setDouble("displayNameScale", scale);
+        setDisplayData(index, nbt);
+    }
+
+    // ========================= 新增数据类型支持 =========================//
     public DataBound.DataType getDataType(int index) {
         try {
-            String type = getSafeString(getDataBound(index), "dataType", "Line");
+            String type = getSafeString(getDataBound(index), "dataType", "line");
+            System.out.println("getDataType:"+type);
             return DataBound.DataType.valueOf(type);
         } catch (IllegalArgumentException e) {
-            return DataBound.DataType.Line;
+            System.out.println("getDataType:"+e.getMessage());
+            return DataBound.DataType.line;
         }
     }
 
     public void setDataType(int index, DataBound.DataType type) {
         NBTTagCompound nbt = getDataBound(index);
         nbt.setString("dataType", type.name());
+        System.out.println("setDataType:"+type.name());
         setDisplayData(index, nbt);
     }
 
-    //========================= 数据值访问方法 =========================//
+    // ========================= 数据值访问方法 =========================//
     public NBTTagList getDataValues(int index) {
         NBTTagCompound nbt = getDataBound(index);
         NBTTagList list = nbt.getTagList("dataValues", 6);
@@ -515,8 +579,58 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
         setDisplayData(index, nbt);
     }
 
+    public void setXRange(int index, double value) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setDouble("xRange", value);
+        setDisplayData(index, nbt);
+    }
+
+    public double getAxisFontScale(int index) {
+        return getSafeDouble(getDataBound(index), "axisFontScale", 1);
+    }
+
+    public void setAxisFontScale(int index, double value) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setDouble("axisFontScale", value);
+        setDisplayData(index, nbt);
+    }
+
+    public double getXRange(int index) {
+        return getSafeDouble(getDataBound(index), "xRange", 1);
+    }
+
+    public void setYRange(int index, double value) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setDouble("yRange", value);
+        setDisplayData(index, nbt);
+    }
+
+    public double getYRange(int index) {
+        return getSafeDouble(getDataBound(index), "yRange", 1);
+    }
+
     public double getYMin(int index) {
         return getSafeDouble(getDataBound(index), "yMin", 0.0);
+    }
+
+    public void setAxisLineColor(int index, String value) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setString("axisLineColor", value);
+        setDisplayData(index, nbt);
+    }
+
+    public String getAxisLineColor(int index) {
+        return getSafeString(getDataBound(index), "axisLineColor", "FFFFFF");
+    }
+
+    public void setAxisFontColor(int index, String value) {
+        NBTTagCompound nbt = getDataBound(index);
+        nbt.setString("axisFontColor", value);
+        setDisplayData(index, nbt);
+    }
+
+    public String getAxisFontColor(int index) {
+        return getSafeString(getDataBound(index), "axisFontColor", "FFFFFF");
     }
 
     public void setYMin(int index, double value) {
@@ -556,12 +670,12 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
     }
 
     public void refreshRamdomData() {
-        this.testRandomData = random.nextInt(101);
+        this.testRandomData = random.nextInt(1000);
         markDirty();
         syncData();
     }
 
-    //========================= 其他方法 =========================//
+    // ========================= 其他方法 =========================//
     public int getDataBoundCount() {
         return dataBoundList.size();
     }
@@ -592,4 +706,19 @@ public class TileEntityAdvanceDataMonotor extends TileEntity {
             return false;
         }
     }
+
+    @Override
+    public AxisAlignedBB getRenderBoundingBox() {
+        // 8个区块 = 8 * 16 = 128 格（水平方向）
+        double range = 128.0; // 从中心向四周延伸 128 格
+        return AxisAlignedBB.getBoundingBox(
+                xCoord - range,  // 最小X
+                yCoord - 64.0,    // 最小Y（假设垂直方向延伸64格）
+                zCoord - range,  // 最小Z
+                xCoord + range,  // 最大X
+                yCoord + 64.0,    // 最大Y
+                zCoord + range   // 最大Z
+        );
+    }
+
 }

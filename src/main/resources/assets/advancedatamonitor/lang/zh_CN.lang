@@ -1,13 +1,107 @@
-·adm.error.xyz=XYZ坐标格式无效,如: 123,64,-123...
+adm.error.xyz=XYZ坐标格式无效,如: 123,64,-123...
 adm.error.ymin=Y最小值必须是有效数字
 adm.error.ymax=Y最大值必须是有效数字
-adm.error.datalimit=数据限制必须是2到50之间的整数
+adm.error.axislinecolor=线条颜色格式无效,请使用十六进制色值,如:FF00FF...
+adm.error.axisfontcolor=线条颜色格式无效,请使用十六进制色值,如:FF00FF...
+adm.error.datalimit=数据限制必须是2到500之间的整数
 adm.error.linecolor=线条颜色格式无效,请使用十六进制色值,如:FF00FF...
 adm.error.linewidth=线条宽度必须是大于0的数字,如:1.05或3...
 adm.error.scale=缩放比例必须是大于0的有效数字,如:1.05或3或0.5...
 adm.error.interval=间隔必须是大于等于20的整数,单位是tick
 adm.error.xoffset=X偏移量必须是正负数字(可以带小数点)
 adm.error.yoffset=Y偏移量必须是正负数字(可以带小数点)
+adm.error.zoffset=Z偏移量必须是正负数字(可以带小数点)
 adm.error.rotationx=X旋转角度必须是正负数字(可以带小数点)
 adm.error.rotationy=Y旋转角度必须是正负数字(可以带小数点)
 adm.error.rotationz=Z旋转角度必须是正负数字(可以带小数点)
+adm.error.displaycolor=标题颜色格式无效,请使用十六进制色值,如:FF00FF
+adm.error.displayscale=标题缩放必须是大于0的数字,如:1.05或3...
+adm.error.axisfontscale=轴字体缩放必须是大于0的数字,如:1.05或3...
+adm.error.axislinecolor=显示名称颜色格式无效,请使用十六进制色值,如:FF00FF
+adm.error.axisfontcolor=轴文字颜色格式无效,请使用十六进制色值,如:FF00FF
+
+adm.label.xyz=§lX,Y,Z
+adm.label.xoffset=§lX偏移
+adm.label.yoffset=§lY偏移
+adm.label.zoffset=§lZ偏移
+adm.label.xrotation=§lX旋转
+adm.label.yrotation=§lY旋转
+adm.label.zrotation=§lZ旋转
+adm.label.xrange=§lX范围
+adm.label.yrange=§lY范围
+adm.label.datalimit=§l数据限制
+adm.label.interval=§l间隔
+
+adm.label.nbtname=§lNBT名称
+adm.label.displayname=§l显示名称
+adm.label.displaynamescale=§l显示名称缩放
+adm.label.axislinecolor=§l轴线颜色
+adm.label.axisfontcolor=§l轴字体颜色
+adm.label.linecolor=§l线条颜色
+adm.label.displaynamecolor=§l显示名称颜色
+adm.label.linewidth=§l线宽
+adm.label.scaled=§l缩放比例
+adm.label.axisfontscaled=§l轴字体缩放
+
+# 按钮
+adm.button.save=§l保存
+adm.button.cancel=§l取消
+
+# 图表类型
+adm.datatype.line=§l折线图
+adm.datatype.bar=§l柱状图
+adm.datatype.bar3d=§l3D柱状图
+adm.datatype.waterfall=§l数据瀑布流
+adm.datatype.difference=§l势差图
+
+# 标题
+adm.title.data_config=§l数据配置 §n%s
+
+# 主界面
+adm.direction.north=北
+adm.direction.east=东
+adm.direction.west=西
+adm.direction.south=南
+adm.button.add=添加
+adm.button.hide=隐藏
+adm.button.show=显示
+adm.button.single=单面
+adm.button.both=双面
+adm.title.main=§l高级数据监视器
+adm.label.facing=方向
+adm.label.data=数据
+adm.label.body=本体
+adm.label.screen=屏幕
+adm.label.back=背面
+adm.tooltip.displayname=显示名称
+adm.tooltip.position=位置
+adm.tooltip.datatype=数据类型
+adm.tooltip.dataname=数据名称
+adm.error.max_data=已达到最大数据量
+adm.debug.mouse_position=鼠标坐标
+
+#子界面
+#子界面属性说明
+adm.hint.xyz=输入目标方块坐标 (格式: x,y,z。使用本模组的绑定器可以快速查看)
+adm.hint.xoffset=设置X轴偏移量 (单位: 方块)
+adm.hint.yoffset=设置Y轴偏移量 (单位: 方块)
+adm.hint.zoffset=设置Z轴偏移量 (单位: 方块)
+adm.hint.rotationx=设置X轴旋转角度 (0-360度,支持负数)
+adm.hint.rotationy=设置Y轴旋转角度 (0-360度,支持负数)
+adm.hint.rotationz=设置Z轴旋转角度 (0-360度,支持负数)
+adm.hint.xrange=设置X轴显示长度,比例、刻度以及数字标识都自动计算分配位置 (大于0的正整数或小数)
+adm.hint.yrange=设置Y轴显示范围,比例、刻度以及数字标识都自动计算分配位置,最大值会根据数值内容自动计算 (大于0的正整数或小数)
+adm.hint.datalimit=最大显示的数据数量,也就是x轴的最大值 (2-9999范围的整数)
+adm.hint.interval=数据更新间隔,单位tick (≥1 ticks,需要输入整数,和数据限制组合能 记录非常长时间的变化趋势)
+adm.hint.name=输入数据标识符 (NBT,使用本模组的绑定器或nbtedit功能查看)
+adm.hint.displayname=设置表标题名称 (支持§符号格式)
+adm.hint.displayscale=设置表标题显示比例 (大于0的正整数或小数)
+adm.hint.displaycolor=设置表标题颜色 (十六进制 如FF00FF)
+adm.hint.axislinecolor=坐标轴线条颜色 (十六进制 如FF00FF)
+adm.hint.axisfontcolor=坐标标识文字颜色 (十六进制 如FF00FF)
+adm.hint.linecolor=图表线条颜色 (十六进制 如FF00FF)
+adm.hint.linewidth=表内数据线条粗细 (大于0的正整数或小数)
+adm.hint.scale=整体缩放比例 (大于0的正整数或小数)
+adm.hint.axisfontscale=x与y轴标识文字缩放 (大于0的正整数或小数)
+
+adm.property.tips=§l属性说明:

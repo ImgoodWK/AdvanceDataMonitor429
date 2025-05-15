@@ -1,16 +1,19 @@
 package com.imgood.advancedatamonitor.network.handler;
 
-import com.imgood.advancedatamonitor.network.packet.PacketItemNBT;
-import com.imgood.advancedatamonitor.utils.BlockPos;
-import cpw.mods.fml.common.network.simpleimpl.IMessage;
-import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChatComponentText;
 
+import com.imgood.advancedatamonitor.network.packet.PacketItemNBT;
+import com.imgood.advancedatamonitor.utils.BlockPos;
+
+import cpw.mods.fml.common.network.simpleimpl.IMessage;
+import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
+import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+
 public class HandlerNetWork implements IMessageHandler<PacketItemNBT, IMessage> {
+
     @Override
     public IMessage onMessage(PacketItemNBT message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
@@ -27,7 +30,7 @@ public class HandlerNetWork implements IMessageHandler<PacketItemNBT, IMessage> 
             posTag.setInteger("z", message.position.getZ());
             nbt.setTag("Position", posTag);
 
-            //存储单个字符串
+            // 存储单个字符串
             nbt.setString("Data", message.textData);
 
             stack.setTagCompound(nbt);

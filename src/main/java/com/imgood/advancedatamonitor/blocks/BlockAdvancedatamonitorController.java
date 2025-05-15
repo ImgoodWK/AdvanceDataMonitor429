@@ -10,6 +10,7 @@ import net.minecraft.block.material.Material;
  * @create: 2025-04-07 15:38
  **/
 public class BlockAdvancedatamonitorController extends Block {
+
     protected BlockAdvancedatamonitorController(Material materialIn) {
         super(materialIn);
     }

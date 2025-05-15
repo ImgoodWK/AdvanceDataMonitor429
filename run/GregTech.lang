@@ -10968,7 +10968,7 @@ languagefile {
     S:TileEntity_DESCRIPTION_13535_Index_00=Cheap Crafting Tool for you!
     S:TileEntity_DESCRIPTION_13536_Index_00=Cheap Crafting Tool for you!
     S:TileEntity_DESCRIPTION_14001_Index_00=Machine Type: §eDyson Swarm§r
-    S:TileEntity_DESCRIPTION_14001_Index_01=§oNot the game.
+    S:TileEntity_DESCRIPTION_14001_Index_01=§oNumber 9? Not quite.
     S:TileEntity_DESCRIPTION_14001_Index_02=Controller Block for the Dyson Swarm Command Center
     S:TileEntity_DESCRIPTION_14001_Index_03=Put Dyson Swarm Modules in the Input Bus(ses) to send them to the next star.
     S:TileEntity_DESCRIPTION_14001_Index_04=Outputs 10,000,000*f EU/t, where f is a dimension-dependent factor.
@@ -11006,7 +11006,7 @@ languagefile {
     S:TileEntity_DESCRIPTION_14001_Secondary_Index_23=   HSS-S Frame Box: 23
     S:TileEntity_DESCRIPTION_14001_Secondary_Index_24=   Superconductor Base UHV Frame Box: 64
     S:TileEntity_DESCRIPTION_14002_Index_00=Machine Type: §ePump§r
-    S:TileEntity_DESCRIPTION_14002_Index_01=§oTaking Space-Mining to another Level!
+    S:TileEntity_DESCRIPTION_14002_Index_01=§oIt's time to SUCC!
     S:TileEntity_DESCRIPTION_14002_Index_02=Build on an Space Station orbiting a Gas Planet
     S:TileEntity_DESCRIPTION_14002_Index_03=Requires a Programmed Circuit set to the depth you want to pump from (1 - 4)
     S:TileEntity_DESCRIPTION_14002_Index_04=Requires 64x depth Mining Pipes
@@ -11027,7 +11027,7 @@ languagefile {
     S:TileEntity_DESCRIPTION_14002_Secondary_Index_09=§f   Output Hatch: §7Any Advanced Machine Frame
     S:TileEntity_DESCRIPTION_14003_Index_00=Machine Type: §eSpace Elevator§r
     S:TileEntity_DESCRIPTION_14003_Index_01=Controller block for the Space Elevator
-    S:TileEntity_DESCRIPTION_14003_Index_02=§oWhat's your favorite thing about space? Mine is space.
+    S:TileEntity_DESCRIPTION_14003_Index_02=§oPutting all those VMs out of jobs
     S:TileEntity_DESCRIPTION_14003_Index_03=Can be equipped with up to 12 Space Elevator Modules
     S:TileEntity_DESCRIPTION_14003_Index_04=Motor tier limits module tier and amount of possible modules
     S:TileEntity_DESCRIPTION_14003_Index_05=Each module has their own space for IO, except energy

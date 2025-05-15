@@ -7,6 +7,7 @@ package com.imgood.advancedatamonitor.utils;
  * @create: 2025-04-23 14:58
  **/
 public class BlockPos {
+
     private int x;
     private int y;
     private int z;
@@ -48,15 +49,11 @@ public class BlockPos {
 
     @Override
     public String toString() {
-        return "BlockPos{" +
-            "x=" + x +
-            ", y=" + y +
-            ", z=" + z +
-            '}';
+        return "BlockPos{" + "x=" + x + ", y=" + y + ", z=" + z + '}';
     }
 
-    public String getXYZ(){
-        return x+","+y+","+z;
+    public String getXYZ() {
+        return x + "," + y + "," + z;
     }
 
     public void setXYZ(String XYZ) {

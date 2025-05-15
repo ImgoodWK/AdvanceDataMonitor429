@@ -1,21 +1,29 @@
 package com.imgood.advancedatamonitor.utils;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-import net.minecraft.nbt.*;
-
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagByte;
+import net.minecraft.nbt.NBTTagByteArray;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagDouble;
+import net.minecraft.nbt.NBTTagFloat;
+import net.minecraft.nbt.NBTTagInt;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagLong;
+import net.minecraft.nbt.NBTTagShort;
+import net.minecraft.nbt.NBTTagString;
+
 public class NBTJsonParser {
-    private static final String[] NBT_TYPES = {
-            "TAG_End", "TAG_Byte", "TAG_Short", "TAG_Int",
-            "TAG_Long", "TAG_Float", "TAG_Double", "TAG_Byte_Array",
-            "TAG_String", "TAG_List", "TAG_Compound", "TAG_Int_Array"
-    };
+
+    private static final String[] NBT_TYPES = { "TAG_End", "TAG_Byte", "TAG_Short", "TAG_Int", "TAG_Long", "TAG_Float",
+        "TAG_Double", "TAG_Byte_Array", "TAG_String", "TAG_List", "TAG_Compound", "TAG_Int_Array" };
 
     // 通过反射获取 NBTTagList 的 tagList 字段
     private static final Field TAG_LIST_FIELD;
@@ -46,7 +54,9 @@ public class NBTJsonParser {
     }
 
     private static void parseCompound(NBTTagCompound compound, JsonObject json) {
-        debug("进入复合标签解析，当前键数量: " + compound.func_150296_c().size());
+        debug(
+            "进入复合标签解析，当前键数量: " + compound.func_150296_c()
+                .size());
         for (Object keyObj : compound.func_150296_c()) {
             String key = (String) keyObj;
             NBTBase tag = compound.getTag(key);
@@ -128,9 +138,8 @@ public class NBTJsonParser {
         try {
             int listTypeId = list.func_150303_d(); // 获取列表元素类型ID
             debug("\n--- 开始解析列表 ---");
-            debug("ListTag" +list);
-            debug("列表元类型: " + getTypeNameById(listTypeId)
-                    + " 元素数量: " + list.tagCount());
+            debug("ListTag" + list);
+            debug("列表元类型: " + getTypeNameById(listTypeId) + " 元素数量: " + list.tagCount());
 
             List<NBTBase> tagList = (List<NBTBase>) TAG_LIST_FIELD.get(list);
             JsonArray array = new JsonArray();
@@ -138,9 +147,7 @@ public class NBTJsonParser {
             debug("实际存储的列表元素数量: " + tagList.size());
             for (int i = 0; i < tagList.size(); i++) {
                 NBTBase element = tagList.get(i);
-                debug("处理元素 #" + i
-                        + " 类型: " + getTypeName(element)
-                        + " 内容: " + element.toString());
+                debug("处理元素 #" + i + " 类型: " + getTypeName(element) + " 内容: " + element.toString());
                 array.add(parseTag(element));
             }
             debug("--- 结束列表解析 ---\n");

@@ -1,8 +1,5 @@
 package com.imgood.advancedatamonitor.blocks;
 
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonotor;
-import java.util.Random;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
@@ -10,12 +7,11 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonotor;
 
 public class BlockAdvDataMonitor extends BlockContainer {
 
@@ -60,15 +56,11 @@ public class BlockAdvDataMonitor extends BlockContainer {
     }
 
     @Override
-    public boolean onBlockActivated(World world, int x, int y, int z,
-                                    EntityPlayer player,
-                                    int side,
-                                    float hitX,
-                                    float hitY,
-                                    float hitZ) {
+    public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
+        float hitY, float hitZ) {
 
-            TileEntityAdvanceDataMonotor te = (TileEntityAdvanceDataMonotor) world.getTileEntity(x, y, z);
-            player.openGui(AdvanceDataMonitor.instance, 1, world, x, y, z);
+        TileEntityAdvanceDataMonotor te = (TileEntityAdvanceDataMonotor) world.getTileEntity(x, y, z);
+        player.openGui(AdvanceDataMonitor.instance, 1, world, x, y, z);
 
         return true;
     }

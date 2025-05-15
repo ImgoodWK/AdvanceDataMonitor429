@@ -1,22 +1,25 @@
 package com.imgood.advancedatamonitor.gui.guiscreen;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonArray;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiButton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiScreen;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 public class NBTViewerGUI extends GuiScreen {
+
     private JsonObject nbtData;
     private List<TreeEntry> entries = new ArrayList<>();
     private int scrollY;
 
     public NBTViewerGUI(JsonObject data) {
         this.nbtData = data;
-        System.out.println("TestGUI"+data);
+        System.out.println("TestGUI" + data);
         buildTree(null, nbtData, 0);
     }
 
@@ -33,10 +36,14 @@ public class NBTViewerGUI extends GuiScreen {
 
             if (value.isJsonObject()) {
                 JsonObject valueObj = value.getAsJsonObject();
-                if (valueObj.has("type") && valueObj.get("type").getAsString().equals("LIST")) {
+                if (valueObj.has("type") && valueObj.get("type")
+                    .getAsString()
+                    .equals("LIST")) {
                     // 如果是LIST类型，处理其数组内容
-                    if (valueObj.has("value") && valueObj.get("value").isJsonArray()) {
-                        JsonArray listItems = valueObj.get("value").getAsJsonArray();
+                    if (valueObj.has("value") && valueObj.get("value")
+                        .isJsonArray()) {
+                        JsonArray listItems = valueObj.get("value")
+                            .getAsJsonArray();
                         int index = 0;
                         for (JsonElement item : listItems) {
                             JsonObject itemObj = new JsonObject();
@@ -107,6 +114,7 @@ public class NBTViewerGUI extends GuiScreen {
     }
 
     private class TreeEntry {
+
         String key;
         JsonElement data;
         int depth;
@@ -125,7 +133,8 @@ public class NBTViewerGUI extends GuiScreen {
             if (data.isJsonObject()) {
                 JsonObject obj = data.getAsJsonObject();
                 if (obj.has("type")) {
-                    String type = obj.get("type").getAsString();
+                    String type = obj.get("type")
+                        .getAsString();
                     if (type.equals("LIST")) {
                         return key + ": LIST";
                     } else if (type.equals("LIST_ITEM")) {
@@ -171,6 +180,7 @@ public class NBTViewerGUI extends GuiScreen {
             return parent;
         }
     }
+
     @Override
     public boolean doesGuiPauseGame() {
         return false;
