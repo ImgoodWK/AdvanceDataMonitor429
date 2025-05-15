@@ -1,14 +1,7 @@
 package com.imgood.advancedatamonitor.items;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.guiscreen.GUINBTViewer;
-import com.imgood.advancedatamonitor.network.packet.PacketItemNBT;
-import com.imgood.advancedatamonitor.utils.BlockPos;
-import com.imgood.advancedatamonitor.utils.NBTJsonParserHelper;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
@@ -18,8 +11,15 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.imgood.advancedatamonitor.gui.guiscreen.GUINBTViewer;
+import com.imgood.advancedatamonitor.utils.NBTJsonParserHelper;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 public class ItemDataWeave extends Item {
+
     public ItemDataWeave() {
         setMaxStackSize(1);
         setCreativeTab(CreativeTabs.tabTools);
@@ -29,11 +29,7 @@ public class ItemDataWeave extends Item {
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (player.isSneaking()) {
             if (!world.isRemote) {
-                if (stack.getTagCompound() == null) {
-                    stack.setTagCompound(new NBTTagCompound());
-                }
-                stack.getTagCompound().removeTag("boundPos");
-                stack.getTagCompound().removeTag("tileNBT");
+                clearNBTData(stack);
                 player.addChatMessage(new ChatComponentText("§a已清除所有绑定数据!"));
             }
         } else {
@@ -45,69 +41,83 @@ public class ItemDataWeave extends Item {
     }
 
     @Override
-    public boolean onItemUse(ItemStack stack, EntityPlayer player, World world,
-                             int x, int y, int z, int side,
+    public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
                              float hitX, float hitY, float hitZ) {
         if (player.isSneaking()) {
             if (!world.isRemote) {
-                NBTTagCompound nbt = stack.getTagCompound();
-                if (nbt == null) nbt = new NBTTagCompound();
-
-                // 保存坐标
-                NBTTagCompound posTag = new NBTTagCompound();
-                posTag.setInteger("x", x);
-                posTag.setInteger("y", y);
-                posTag.setInteger("z", z);
-                nbt.setTag("boundPos", posTag);
-                stack.setTagCompound(nbt);
-            }
-
-            if (world.isRemote) {
-                TileEntity te = world.getTileEntity(x, y, z);
-                if (te != null) {
-                    NBTTagCompound teNbt = new NBTTagCompound();
-                    te.writeToNBT(teNbt);
-                    String jsonData = NBTJsonParserHelper.parseNBTToJson(teNbt).toString();
-                    AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                        new PacketItemNBT(
-                            player.inventory.currentItem,
-                            new BlockPos(x, y, z),
-                            jsonData
-                        )
-                    );
-                }
+                saveBlockData(stack, world, x, y, z);
             }
             return true;
         }
         return false;
     }
 
-    @SideOnly(Side.CLIENT)
-    private void openNbtGui(ItemStack stack, EntityPlayer player) {
-        if (stack.hasTagCompound()) {
-            NBTTagCompound nbt = stack.getTagCompound();
-            // 检查是否存在绑定的Tile Entity NBT数据
-            if (nbt.hasKey("boundPos")) {
-                NBTTagCompound posTag = nbt.getCompoundTag("boundPos");
-                int x = posTag.getInteger("x");
-                int y = posTag.getInteger("y");
-                int z = posTag.getInteger("z");
-                TileEntity tileEntity = player.worldObj.getTileEntity(x, y, z);
-                NBTTagCompound tileNBT = new NBTTagCompound();
-                tileEntity.writeToNBT(tileNBT);;
-                System.out.println("tileNbt"+tileNBT);
-                // 解析并显示Tile Entity的NBT
-                JsonObject json = NBTJsonParserHelper.parseNBTToJson(tileNBT);
-                System.out.println("json"+json);
-                Minecraft.getMinecraft().displayGuiScreen(new GUINBTViewer(json));
-            } else {
-                // 提示未绑定数据
-                player.addChatMessage(new ChatComponentText("§c未绑定方块的NBT数据!"));
-            }
+    private void saveBlockData(ItemStack stack, World world, int x, int y, int z) {
+        Block block = world.getBlock(x, y, z);
+        int meta = world.getBlockMetadata(x, y, z);
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileEntityAdvanceDataMonitor) return;
+        NBTTagCompound nbt = stack.getTagCompound();
+        if (nbt == null) {
+            nbt = new NBTTagCompound();
+            stack.setTagCompound(nbt);
+        }
+
+        // 保存坐标
+        NBTTagCompound posTag = new NBTTagCompound();
+        posTag.setInteger("x", x);
+        posTag.setInteger("y", y);
+        posTag.setInteger("z", z);
+        nbt.setTag("boundPos", posTag);
+
+        // 保存方块信息
+        nbt.setString("boundBlock", Block.blockRegistry.getNameForObject(block));
+        nbt.setInteger("boundMeta", meta);
+
+        // 保存TileEntity数据
+        if (te != null) {
+            NBTTagCompound teNbt = new NBTTagCompound();
+            te.writeToNBT(teNbt);
+            nbt.setTag("boundTE", teNbt);
+        } else if (te instanceof TileEntityAdvanceDataMonitor) {
+            nbt.removeTag("boundTE");
         } else {
-            player.addChatMessage(new ChatComponentText("§c物品未存储任何数据!"));
+            nbt.removeTag("boundTE");
         }
     }
+
+    private void clearNBTData(ItemStack stack) {
+        if (stack.getTagCompound() != null) {
+            stack.getTagCompound().removeTag("boundPos");
+            stack.getTagCompound().removeTag("boundBlock");
+            stack.getTagCompound().removeTag("boundMeta");
+            stack.getTagCompound().removeTag("boundTE");
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void openNbtGui(ItemStack stack, EntityPlayer player) {
+        if (!stack.hasTagCompound()) {
+            player.addChatMessage(new ChatComponentText("§c物品未存储任何数据!"));
+            return;
+        }
+
+        NBTTagCompound nbt = stack.getTagCompound();
+        if (!nbt.hasKey("boundPos")) {
+            player.addChatMessage(new ChatComponentText("§c未绑定方块的NBT数据!"));
+            return;
+        }
+
+        // 从物品NBT中直接读取保存的数据
+        if (nbt.hasKey("boundTE")) {
+            NBTTagCompound tileNBT = nbt.getCompoundTag("boundTE");
+            JsonObject json = NBTJsonParserHelper.parseNBTToJson(tileNBT);
+            Minecraft.getMinecraft().displayGuiScreen(new GUINBTViewer(json));
+        } else {
+            player.addChatMessage(new ChatComponentText("§c绑定的方块没有NBT数据!"));
+        }
+    }
+
     public static JsonObject createTestNBT() {
         // 创建根复合标签
         JsonObject root = new JsonObject();
@@ -128,14 +138,14 @@ public class ItemDataWeave extends Item {
         JsonObject enchant1 = new JsonObject();
         enchant1.addProperty("type", "TAG_Compound");
         JsonObject enchant1Value = new JsonObject();
-        addSimpleTag(enchant1Value, "id", "TAG_Short", 16);  // 锋利
+        addSimpleTag(enchant1Value, "id", "TAG_Short", 16); // 锋利
         addSimpleTag(enchant1Value, "lvl", "TAG_Short", 3);
         enchant1.add("value", enchant1Value);
 
         JsonObject enchant2 = new JsonObject();
         enchant2.addProperty("type", "TAG_Compound");
         JsonObject enchant2Value = new JsonObject();
-        addSimpleTag(enchant2Value, "id", "TAG_Short", 17);  // 亡灵杀手
+        addSimpleTag(enchant2Value, "id", "TAG_Short", 17); // 亡灵杀手
         addSimpleTag(enchant2Value, "lvl", "TAG_Short", 2);
         enchant2.add("value", enchant2Value);
 
@@ -152,7 +162,7 @@ public class ItemDataWeave extends Item {
         rootValue.add("enchants", enchants);
 
         // 深度嵌套的复合标签
-        JsonObject deepNested = createDeepNested(3);  // 创建3层嵌套
+        JsonObject deepNested = createDeepNested(3); // 创建3层嵌套
         rootValue.add("deepNested", deepNested);
 
         root.add("value", rootValue);

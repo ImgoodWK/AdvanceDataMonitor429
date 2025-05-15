@@ -8,6 +8,107 @@ adm.error.scale=The scale must be a valid number greater than 0, such as 1.05, 3
 adm.error.interval=The interval must be an integer greater than or equal to 20, measured in ticks.
 adm.error.xoffset=The X offset must be a positive or negative number (can include decimals).
 adm.error.yoffset=The Y offset must be a positive or negative number (can include decimals).
+adm.error.zoffset=The Z offset must be a positive or negative number (can include decimals).
 adm.error.rotationx=The X rotation angle must be a positive or negative number (can include decimals).
 adm.error.rotationy=The Y rotation angle must be a positive or negative number (can include decimals).
 adm.error.rotationz=The Z rotation angle must be a positive or negative number (can include decimals).
+adm.error.displaycolor=Title color format invalid. Use hexadecimal (e.g. FF00FF)
+adm.error.displayscale=Title scale must be a valid number between 0.1-5.0
+adm.error.axisfontscale=Axis font scale must be a valid number between 0.1-2.0
+adm.error.axislinecolor=Axis line color format invalid. Use hexadecimal (e.g. FF00FF)
+adm.error.axisfontcolor=Axis font color format invalid. Use hexadecimal (e.g. FF00FF)
+
+adm.label.xyz=§lX,Y,Z
+adm.label.xoffset=§lX Offset
+adm.label.yoffset=§lY Offset
+adm.label.zoffset=§lZ Offset
+adm.label.xrotation=§lX Rotation
+adm.label.yrotation=§lY Rotation
+adm.label.zrotation=§lZ Rotation
+adm.label.xrange=§lX Range
+adm.label.yrange=§lY Range
+adm.label.datalimit=§lData Limit
+adm.label.interval=§lInterval
+
+adm.label.nbtname=§lNBT Name
+adm.label.displayname=§lTitle
+adm.label.displaynamescale=§lTitle Scale
+adm.label.axislinecolor=§lAxis Line Color
+adm.label.axisfontcolor=§lAxis Font Color
+adm.label.linecolor=§lLine Color
+adm.label.displaynamecolor=§lTitle Color
+adm.label.linewidth=§lLine Width
+adm.label.scaled=§lScaled
+adm.label.axisfontscaled=§lAxis Font Scale
+
+# Buttons
+adm.button.save=Save
+adm.button.cancel=Cancel
+adm.button.enable=§lEnable
+adm.button.disable=§lDisable
+adm.button.enableAxis=§lAxis
+adm.button.disableAxis=§l§mAxis
+adm.button.enableData=§lData
+adm.button.disableData=§l§mData
+
+# Chart types
+adm.datatype.line=Line
+adm.datatype.bar=Bar
+adm.datatype.bar3d=3D Bar
+adm.datatype.waterfall=Waterfall
+adm.datatype.difference=Difference
+
+# Title
+adm.title.data_config=§lData Config Of §n%s
+
+# Main GUI
+adm.direction.north=North
+adm.direction.east=East
+adm.direction.west=West
+adm.direction.south=South
+adm.button.add=Add
+adm.button.hide=Hide
+adm.button.show=Show
+adm.button.single=Single
+adm.button.both=Both
+adm.title.main=§lAdvance Data Monitor
+adm.label.facing=Facing
+adm.label.data=Data
+adm.label.body=Body
+adm.label.screen=Screen
+adm.label.back=Back
+adm.tooltip.displayname=Title
+adm.tooltip.position=Position
+adm.tooltip.datatype=DataType
+adm.tooltip.dataname=DataName
+adm.tooltip.enableAxis=Axis
+adm.tooltip.enableData=Data
+adm.tooltip.enableAxisFont=AxisFont
+adm.error.max_data=Maximum data reached
+adm.debug.mouse_position=Mouse Position
+
+#Sub Gui
+#Sub Gui Config Tips
+adm.hint.xyz=Input target block coordinates (format: x,y,z. Use the binder tool to quickly locate)
+adm.hint.xoffset=Set X-axis offset (in blocks)
+adm.hint.yoffset=Set Y-axis offset (in blocks)
+adm.hint.zoffset=Set Z-axis offset (in blocks)
+adm.hint.rotationx=Set X-axis rotation angle (0-360 degrees, supports negative values)
+adm.hint.rotationy=Set Y-axis rotation angle (0-360 degrees, supports negative values)
+adm.hint.rotationz=Set Z-axis rotation angle (0-360 degrees, supports negative values)
+adm.hint.xrange=Set X-axis display length. Scale, ticks and labels are automatically calculated (positive number greater than 0)
+adm.hint.yrange=Set Y-axis display range. Scale and max value are auto-calculated based on data (positive number greater than 0)
+adm.hint.datalimit=Maximum data points to display (x-axis capacity) (integer between 2-9999)
+adm.hint.interval=Data update interval in ticks (≥1 ticks, combines with data limit for long-term trends)
+adm.hint.name=Data identifier (NBT path, use binder tool or nbtedit to verify)
+adm.hint.displayname=Set chart title (supports formatting codes§)
+adm.hint.displayscale=Set title scaling ratio (positive number greater than 0)
+adm.hint.displaycolor=Set title color (hexadecimal format e.g. FF00FF)
+adm.hint.axislinecolor=Axis line color (hexadecimal format e.g. FF00FF)
+adm.hint.axisfontcolor=Axis label text color (hexadecimal format e.g. FF00FF)
+adm.hint.linecolor=Chart line color (hexadecimal format e.g. FF00FF)
+adm.hint.linewidth=Chart line thickness (positive number greater than 0)
+adm.hint.scale=Global scaling ratio (positive number greater than 0)
+adm.hint.axisfontscale=Axis label text scaling (positive number greater than 0)
+
+adm.property.tips=§lProperty Explanation:

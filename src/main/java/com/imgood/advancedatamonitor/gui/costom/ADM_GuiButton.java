@@ -3,9 +3,11 @@ package com.imgood.advancedatamonitor.gui.costom;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.util.ResourceLocation;
+
 import org.lwjgl.opengl.GL11;
 
 public class ADM_GuiButton extends GuiButton {
+
     private static final ResourceLocation DEFAULT_TEXTURE = new ResourceLocation("textures/gui/widgets.png");
 
     private ResourceLocation texture;
@@ -88,6 +90,7 @@ public class ADM_GuiButton extends GuiButton {
     public boolean getUseRGBEffect() {
         return this.useRGBEffect;
     }
+
     private int getRGBColor() {
         long elapsed = System.currentTimeMillis() - startTime;
         float hue = (elapsed % 3000) / 3000f;
@@ -98,11 +101,15 @@ public class ADM_GuiButton extends GuiButton {
     public void drawButton(Minecraft mc, int mouseX, int mouseY) {
         if (this.visible) {
 
-            boolean isHovered = mouseX >= this.xPosition && mouseY >= this.yPosition && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
+            boolean isHovered = mouseX >= this.xPosition && mouseY >= this.yPosition
+                && mouseX < this.xPosition + this.width
+                && mouseY < this.yPosition + this.height;
 
-
-            ResourceLocation currentTexture = isHovered && this.useHoverEffect && this.hoverTexture != null ? this.hoverTexture : this.texture;
-            mc.getTextureManager().bindTexture(currentTexture);
+            ResourceLocation currentTexture = isHovered && this.useHoverEffect && this.hoverTexture != null
+                ? this.hoverTexture
+                : this.texture;
+            mc.getTextureManager()
+                .bindTexture(currentTexture);
 
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             GL11.glEnable(GL11.GL_BLEND);
@@ -116,24 +123,36 @@ public class ADM_GuiButton extends GuiButton {
             // 绘制拉伸后的材质
             this.zLevel = 0.0F;
             GL11.glBegin(GL11.GL_QUADS);
-            GL11.glTexCoord2f(u, v); GL11.glVertex3f(this.xPosition, this.yPosition, this.zLevel);
-            GL11.glTexCoord2f(u, v1); GL11.glVertex3f(this.xPosition, this.yPosition + this.height, this.zLevel);
-            GL11.glTexCoord2f(u1, v1); GL11.glVertex3f(this.xPosition + this.width, this.yPosition + this.height, this.zLevel);
-            GL11.glTexCoord2f(u1, v); GL11.glVertex3f(this.xPosition + this.width, this.yPosition, this.zLevel);
+            GL11.glTexCoord2f(u, v);
+            GL11.glVertex3f(this.xPosition, this.yPosition, this.zLevel);
+            GL11.glTexCoord2f(u, v1);
+            GL11.glVertex3f(this.xPosition, this.yPosition + this.height, this.zLevel);
+            GL11.glTexCoord2f(u1, v1);
+            GL11.glVertex3f(this.xPosition + this.width, this.yPosition + this.height, this.zLevel);
+            GL11.glTexCoord2f(u1, v);
+            GL11.glVertex3f(this.xPosition + this.width, this.yPosition, this.zLevel);
             GL11.glEnd();
 
             GL11.glEnable(GL11.GL_DEPTH_TEST);
 
             // 绘制左侧装饰 失效
             if (this.leftDecoration != null) {
-                mc.getTextureManager().bindTexture(this.leftDecoration);
+                mc.getTextureManager()
+                    .bindTexture(this.leftDecoration);
                 this.drawTexturedModalRect(this.xPosition, this.yPosition, 0, 10, decorationWidth, this.height);
             }
 
             // 绘制右侧装饰 失效
             if (this.rightDecoration != null) {
-                mc.getTextureManager().bindTexture(this.rightDecoration);
-                this.drawTexturedModalRect(this.xPosition + this.width - decorationWidth, this.yPosition, 0, 10, decorationWidth, this.height);
+                mc.getTextureManager()
+                    .bindTexture(this.rightDecoration);
+                this.drawTexturedModalRect(
+                    this.xPosition + this.width - decorationWidth,
+                    this.yPosition,
+                    0,
+                    10,
+                    decorationWidth,
+                    this.height);
             }
 
             // 绘制按钮文本
@@ -150,7 +169,9 @@ public class ADM_GuiButton extends GuiButton {
                 textColor = getRGBColor();
             }
 
-            this.drawCenteredString(mc.fontRenderer, this.displayString,
+            this.drawCenteredString(
+                mc.fontRenderer,
+                this.displayString,
                 this.xPosition + this.width / 2,
                 this.yPosition + (this.height - 8) / 2,
                 textColor);
@@ -158,4 +179,4 @@ public class ADM_GuiButton extends GuiButton {
             GL11.glDisable(GL11.GL_BLEND);
         }
     }
-    }
+}

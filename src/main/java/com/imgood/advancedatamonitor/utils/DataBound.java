@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DataBound {
+
     private int x;
     private int y;
     private int z;
@@ -39,12 +40,12 @@ public class DataBound {
         }
     }
 
-    public  enum DataType {
-        Line,
-        Bar,
-        Bar_3D,
-        Waterfall,
-        Difference
+    public enum DataType {
+        line,
+        bar,
+        bar3d,
+        waterfall,
+        diffrence
     }
 
     public DataBound(int x, int y, int z, DataType dataType) {

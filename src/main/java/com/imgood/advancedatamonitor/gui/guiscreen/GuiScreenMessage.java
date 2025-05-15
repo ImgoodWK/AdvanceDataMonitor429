@@ -8,14 +8,17 @@ import net.minecraft.world.World;
 public class GuiScreenMessage extends GuiScreen {
 
     public enum MessageType {
-        INFO, WARNING, CUSTOM
+        INFO,
+        WARNING,
+        CUSTOM
     }
 
     private final MessageType messageType;
     private final String message;
     private final GuiScreen previousScreen;
 
-    public GuiScreenMessage(EntityPlayer player, World world, MessageType messageType, String message, GuiScreen previousScreen) {
+    public GuiScreenMessage(EntityPlayer player, World world, MessageType messageType, String message,
+        GuiScreen previousScreen) {
         this.messageType = messageType;
         this.message = message;
         this.previousScreen = previousScreen;

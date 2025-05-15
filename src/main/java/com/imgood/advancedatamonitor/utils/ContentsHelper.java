@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ContentsHelper {
+
     /**
      * 检查字符串是否是有效的 6 位十六进制颜色代码
      *
@@ -54,7 +55,9 @@ public class ContentsHelper {
             }
 
             // 添加当前行到结果列表
-            lines.add(text.substring(startIndex, endIndex).trim());
+            lines.add(
+                text.substring(startIndex, endIndex)
+                    .trim());
             startIndex = endIndex;
         }
 
@@ -106,13 +109,13 @@ public class ContentsHelper {
     private static final String IMAGE_EXTENSIONS_REGEX = "\\.(jpg|jpeg|png|gif|bmp|webp)$";
 
     // URL 的正则表达式
-    private static final String URL_REGEX =
-            "^(https?|ftp)://[^\s/$.?#].[^\s]*" + IMAGE_EXTENSIONS_REGEX + "$";
+    private static final String URL_REGEX = "^(https?|ftp)://[^\s/$.?#].[^\s]*" + IMAGE_EXTENSIONS_REGEX + "$";
 
     private static final Pattern URL_PATTERN = Pattern.compile(URL_REGEX, Pattern.CASE_INSENSITIVE);
 
     /**
      * 判断一个字符串是否是下载图片的链接
+     * 
      * @param url 要判断的字符串
      * @return 如果是下载图片的链接返回true，否则返回false
      */

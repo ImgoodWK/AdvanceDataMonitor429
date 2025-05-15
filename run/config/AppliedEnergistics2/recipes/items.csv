@@ -7718,43 +7718,43 @@ kubatech:defc.casing:11, Awakened Draconium Fusion Casing
 kubatech:defc.casing:12, Chaotic Fusion Casing
 kubatech:kubablocks:0, §4§lTea Acceptor
 kubatech:kubablocks:1, §4§lTea Storage Extender
-ThaumicTinkerer:fireEarth, Terra Imbued Fire
-ThaumicTinkerer:infusedGrainBlock, tile.infusedGrainBlock.name
-ThaumicTinkerer:bedrockPortal, Bedrock Portal
+ThaumicTinkerer:fireOrder, Ordo Imbued Fire
 ThaumicTinkerer:gaseousLight, tile.gaseousLight.name
-ThaumicTinkerer:fireAir, Aer Imbued Fire
-ThaumicTinkerer:Levitational Locomotive Relay, Levitational Locomotive Relay
-ThaumicTinkerer:animationTablet, Dynamism Tablet
-ThaumicTinkerer:nitorGas, tile.nitorGas.name
-ThaumicTinkerer:funnel, Essentia Funnel
+ThaumicTinkerer:gaseousShadow, tile.gaseousShadow.name
+ThaumicTinkerer:dislocator, Transvector Dislocator
 ThaumicTinkerer:darkQuartzSlab:0, Smokey Quartz Slab
 ThaumicTinkerer:darkQuartzSlabFull:0, Smokey Quartz Slab
-ThaumicTinkerer:enchanter, Osmotic Enchanter
-ThaumicTinkerer:magnet:0, Kinetic Attractor
-ThaumicTinkerer:magnet:1, Corporeal Attractor
-ThaumicTinkerer:repairer, Thaumic Restorer
 ThaumicTinkerer:darkQuartz:0, Block of Smokey Quartz
 ThaumicTinkerer:darkQuartz:1, Chiseled Smokey Quartz Block
 ThaumicTinkerer:darkQuartz:2, Pillar Smokey Quartz Block
-ThaumicTinkerer:interface, Transvector Interface
+ThaumicTinkerer:darkQuartzStairs, Smokey Quartz Stairs
+ThaumicTinkerer:platform, Ethereal Platform
+ThaumicTinkerer:magnet:0, Kinetic Attractor
+ThaumicTinkerer:magnet:1, Corporeal Attractor
+ThaumicTinkerer:fireEarth, Terra Imbued Fire
+ThaumicTinkerer:spawner, Tablet of Necromancy
+ThaumicTinkerer:nitorGas, tile.nitorGas.name
+ThaumicTinkerer:warpGate, Celestial Gateway
+ThaumicTinkerer:fireWater, Aqua Imbued Fire
+ThaumicTinkerer:fireAir, Aer Imbued Fire
+ThaumicTinkerer:animationTablet, Dynamism Tablet
+ThaumicTinkerer:Levitational Locomotive Relay, Levitational Locomotive Relay
+ThaumicTinkerer:fireFire, Ignis Imbued Fire
+ThaumicTinkerer:repairer, Thaumic Restorer
 ThaumicTinkerer:wardSlab:0, Paving Slab of Warding
 ThaumicTinkerer:wardSlabFull:0, Paving Slab of Warding
-ThaumicTinkerer:warpGate, Celestial Gateway
-ThaumicTinkerer:gaseousShadow, tile.gaseousShadow.name
-ThaumicTinkerer:dislocator, Transvector Dislocator
-ThaumicTinkerer:platform, Ethereal Platform
+ThaumicTinkerer:enchanter, Osmotic Enchanter
 ThaumicTinkerer:forcefield, Forcefield
-ThaumicTinkerer:infusedFarmland, Infused Farmland
-ThaumicTinkerer:fireOrder, Ordo Imbued Fire
-ThaumicTinkerer:darkQuartzStairs, Smokey Quartz Stairs
-ThaumicTinkerer:Levitational Locomotive, Levitational Locomotive
-ThaumicTinkerer:fireChaos, Perditio Imbued Fire
+ThaumicTinkerer:infusedGrainBlock, tile.infusedGrainBlock.name
+ThaumicTinkerer:funnel, Essentia Funnel
 ThaumicTinkerer:travelStairs, Paving Stair of Travel
-ThaumicTinkerer:spawner, Tablet of Necromancy
-ThaumicTinkerer:fireWater, Aqua Imbued Fire
+ThaumicTinkerer:interface, Transvector Interface
+ThaumicTinkerer:infusedFarmland, Infused Farmland
+ThaumicTinkerer:fireChaos, Perditio Imbued Fire
+ThaumicTinkerer:Levitational Locomotive, Levitational Locomotive
+ThaumicTinkerer:bedrockPortal, Bedrock Portal
 ThaumicTinkerer:travelSlab:0, Paving Slab of Travel
 ThaumicTinkerer:travelSlabFull:0, Paving Slab of Travel
-ThaumicTinkerer:fireFire, Ignis Imbued Fire
 kekztech:kekztech_yszceramicelectrolyteunit_block, YSZ Ceramic Electrolyte Unit
 kekztech:kekztech_gdcceramicelectrolyteunit_block, GDC Ceramic Electrolyte Unit
 kekztech:kekztech_tfftstoragefield_block:0, T.F.F.T Casing
