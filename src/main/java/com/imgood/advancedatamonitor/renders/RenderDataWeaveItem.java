@@ -2,6 +2,7 @@ package com.imgood.advancedatamonitor.renders;
 
 import com.gtnewhorizons.modularui.api.GlStateManager;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import forestry.api.recipes.IFabricatorManager;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -31,8 +32,8 @@ public class RenderDataWeaveItem implements IItemRenderer {
             new ResourceLocation(AdvanceDataMonitor.MODID + ":model/DataWeave.obj")
     );
     private static final int SCROLL_SPEED = 30; // 像素/秒
-    private static final int LINE_HEIGHT = 10;   // 行高
-    private static final int MAX_LINES = 10;      // 最大显示行数
+    private static final int LINE_HEIGHT = 9;   // 行高
+    private static final int MAX_LINES = 9;      // 最大显示行数
 
 
     @Override
@@ -215,8 +216,19 @@ public class RenderDataWeaveItem implements IItemRenderer {
     private String getBoundBlockName(NBTTagCompound nbt) {
         if (nbt.hasKey("boundBlock")) {
             Block block = Block.getBlockFromName(nbt.getString("boundBlock"));
+            if (nbt.hasKey("mName")) {
+                String[] blockName = nbt.getString("boundBlock").split(":");
+                return I18n.format(blockName[1] + "." + nbt.getString("mName")+".name");
+            }
+            int mId  = nbt.getInteger("mId");
+            int blockMeta;
+            if (mId >0) {
+                blockMeta  = mId;
+            } else {
+                blockMeta = nbt.getInteger("boundMeta");
+            }
             if (block != null) {
-                ItemStack stack = new ItemStack(block, 1, nbt.getInteger("boundMeta"));
+                ItemStack stack = new ItemStack(block, 1, blockMeta);
                 try {
                     return stack.getDisplayName();
                 } catch (Exception e) {
@@ -279,7 +291,7 @@ public class RenderDataWeaveItem implements IItemRenderer {
     }
 
     private void applyBlockModelTransforms() {
-        GL11.glTranslatef(0f, 1.2f, 0f);
+        GL11.glTranslatef(-0.2f, 1.2f, 0f);
         GL11.glScalef(0.025f, 0.025f, 0.025f);
         //GL11.glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
         GL11.glRotatef(-60f, 1.7f, 4f, 2f);
@@ -384,11 +396,9 @@ public class RenderDataWeaveItem implements IItemRenderer {
             String value = teNbt.getTag(key).toString();
             String line = key + ": " + value;
 
-            // 新增字符数限制逻辑
             if (line.length() > MAX_CHARS) {
-                line = line.substring(0, MAX_CHARS-3) + "..."; // 保留17字符+3个点=20字符
+                line = line.substring(0, MAX_CHARS-3) + "...";
             }
-
             nbtLines.add(line);
         }
 
@@ -398,7 +408,6 @@ public class RenderDataWeaveItem implements IItemRenderer {
         final int contentHeight = totalLines * LINE_HEIGHT;
         final int viewportHeight = MAX_LINES * LINE_HEIGHT;
 
-        // 计算循环滚动参数（添加内容高度取模实现循环）
         final long scrollOffset = (System.currentTimeMillis() * SCROLL_SPEED / 1000) % contentHeight;
         final int startLine = (int) (scrollOffset / LINE_HEIGHT);
         final int offsetInLine = (int) (scrollOffset % LINE_HEIGHT);
@@ -410,32 +419,52 @@ public class RenderDataWeaveItem implements IItemRenderer {
             GlStateManager.enableBlend();
             GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-            // 基础Y轴偏移（实现平滑滚动）
             int yBase = -offsetInLine;
 
-            // 渲染可视区域内的行（多渲染1行保证过渡平滑）
+            // 定义渐变区域（视口顶部和底部20%的区域）
+            final float FADE_HEIGHT = viewportHeight * 0.3f;
+
             for (int i = 0; i < MAX_LINES + 1; i++) {
-                // 计算循环索引
                 int lineIndex = (startLine + i) % totalLines;
-                // 计算当前行Y位置
                 int lineY = yBase + i * LINE_HEIGHT;
 
-                // 判断是否在可视区域内（上下扩展1行高度）
                 if (lineY > -LINE_HEIGHT && lineY < viewportHeight) {
                     String originalText = nbtLines.get(lineIndex);
                     String wrappedText = wrapText(font, originalText, 200);
 
-                    // 根据类型调整渲染位置
-                    int renderY = lineY + 50;
+                    int renderY = lineY + 65;
                     if (type == ItemRenderType.INVENTORY) {
-                        renderY += 8; // 库存视图特殊偏移
+                        renderY += 8;
                     }
+
+                    // 计算透明度（基于在视口中的位置）
+                    float alpha = 1.0f;
+
+                    // 计算距离视口顶部和底部的距离
+                    float distTop = Math.max(0, renderY - 50);
+                    float distBottom = Math.max(0, 150 - renderY); // 150 = 50 + viewportHeight
+
+                    // 顶部渐变：从0%到20%高度
+                    if (distTop < FADE_HEIGHT) {
+                        alpha = distTop / FADE_HEIGHT;
+                    }
+                    // 底部渐变：从80%到100%高度
+                    else if (distBottom < FADE_HEIGHT) {
+                        alpha = distBottom / FADE_HEIGHT;
+                    }
+
+                    // 确保透明度在有效范围
+                    alpha = Math.max(0.0f, Math.min(1.0f, alpha));
+
+                    // 将透明度转换为颜色值
+                    int alphaInt = (int)(alpha * 255);
+                    int colorWithAlpha = (alphaInt << 24) | 0x00FFFF;
 
                     font.drawString(
                             wrappedText,
-                            20,       // 保持右侧位置
-                            renderY,  // 动态计算的Y位置
-                            0x00FFFF   // 绿色文字
+                            20,
+                            renderY,
+                            colorWithAlpha
                     );
                 }
             }

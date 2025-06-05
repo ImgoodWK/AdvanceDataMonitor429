@@ -1,16 +1,13 @@
 package com.imgood.advancedatamonitor.gui.guiscreen;
 
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidDouble;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidHexColor;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidInteger;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.wrapText;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.advancedatamonitor.utils.ContentsHelper;
+import com.imgood.advancedatamonitor.utils.DataBound;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -18,18 +15,19 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-
 import org.lwjgl.input.Keyboard;
 
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
-import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
-import com.imgood.advancedatamonitor.utils.ContentsHelper;
-import com.imgood.advancedatamonitor.utils.DataBound;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidDouble;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidHexColor;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidInteger;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.wrapText;
+
+public class GuiSubAEAdvanceDataMonitor extends ADM_GuiScreen {
 
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
     @SuppressWarnings("unused")
@@ -95,6 +93,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         AdvanceDataMonitor.MODID,
         "textures/gui/background_ADM_Sub.png");
 
+
     private int offsetX = 100;
     private int offsetY = 100;
     private int startOffsetX = -270;
@@ -123,8 +122,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private boolean isEnabledData;
     private boolean isEnabledAxisFont;
 
-    public GuiSubAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
-        int index) {
+    public GuiSubAEAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
+                                      int index) {
         this.player = player;
         this.world = world;
         this.tileEntityAdvanceDataMonotor = tileEntity;
@@ -1060,7 +1059,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         autoText(label2, 0, 25, this.offsetX + 170, this.offsetY + 10, this.textColor);
         this.drawCenteredString(
             this.fontRendererObj,
-            I18n.format("adm.title.data_config", this.index + 1), // 本地化标题
+            I18n.format("adm.title.data_config_ae", this.index + 1), // 本地化标题
             this.offsetX + 322,
             this.offsetY - 35,
             this.textColor);

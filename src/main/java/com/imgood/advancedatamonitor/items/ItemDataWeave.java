@@ -1,6 +1,7 @@
 package com.imgood.advancedatamonitor.items;
 
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
@@ -45,19 +46,30 @@ public class ItemDataWeave extends Item {
                              float hitX, float hitY, float hitZ) {
         if (player.isSneaking()) {
             if (!world.isRemote) {
-                saveBlockData(stack, world, x, y, z);
+                saveBlockData(stack, world, x, y, z, player);
             }
             return true;
         }
         return false;
     }
 
-    private void saveBlockData(ItemStack stack, World world, int x, int y, int z) {
+    private void saveBlockData(ItemStack stack, World world, int x, int y, int z, EntityPlayer player) {
         Block block = world.getBlock(x, y, z);
+        NBTTagCompound nbt = stack.getTagCompound();
         int meta = world.getBlockMetadata(x, y, z);
         TileEntity te = world.getTileEntity(x, y, z);
-        if (te instanceof TileEntityAdvanceDataMonitor) return;
-        NBTTagCompound nbt = stack.getTagCompound();
+        if (te instanceof TileEntityAdvanceDataMonitor) {
+            player.addChatMessage(new ChatComponentText("§c请勿绑定该方块!"));
+            return;
+        }
+        if (nbt != null  && nbt.hasKey("mName")) {
+            nbt.removeTag("mName");
+        }
+
+        if (nbt != null  && te instanceof IGregTechTileEntity) {
+            nbt.setString("mName",  ((IGregTechTileEntity) te).getInventoryName());
+        }
+
         if (nbt == null) {
             nbt = new NBTTagCompound();
             stack.setTagCompound(nbt);
@@ -79,6 +91,7 @@ public class ItemDataWeave extends Item {
             NBTTagCompound teNbt = new NBTTagCompound();
             te.writeToNBT(teNbt);
             nbt.setTag("boundTE", teNbt);
+            player.addChatMessage(new ChatComponentText("§a已成功绑定方块!"));
         } else if (te instanceof TileEntityAdvanceDataMonitor) {
             nbt.removeTag("boundTE");
         } else {

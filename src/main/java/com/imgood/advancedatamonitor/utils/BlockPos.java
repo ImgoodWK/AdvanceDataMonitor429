@@ -1,5 +1,7 @@
 package com.imgood.advancedatamonitor.utils;
 
+import net.minecraft.world.World;
+
 /**
  * @program: AdvanceDataMonitor
  * @description:
@@ -7,15 +9,46 @@ package com.imgood.advancedatamonitor.utils;
  * @create: 2025-04-23 14:58
  **/
 public class BlockPos {
-
+    private World world;
     private int x;
     private int y;
     private int z;
+    private String XYZ;
 
     public BlockPos(int x, int y, int z) {
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    public BlockPos(String XYZ, World world) {
+        String[] xyz = XYZ.split(",");
+        try {
+            x = Integer.parseInt(xyz[0]);
+            y = Integer.parseInt(xyz[1]);
+            z = Integer.parseInt(xyz[2]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        this.world = world;
+    }
+
+     public BlockPos(String XYZ) {
+        String[] xyz = XYZ.split(",");
+        try {
+            x = Integer.parseInt(xyz[0]);
+            y = Integer.parseInt(xyz[1]);
+            z = Integer.parseInt(xyz[2]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public BlockPos(int x, int y, int z, World world) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.world = world;
     }
 
     public int getX() {
@@ -65,5 +98,12 @@ public class BlockPos {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+     public World getWorld() {
+        return world;
+    }
+
+     public void setWorld(World World) {
+        this.world = World;
     }
 }
