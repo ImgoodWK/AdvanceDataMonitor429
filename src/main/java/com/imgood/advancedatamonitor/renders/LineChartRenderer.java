@@ -154,7 +154,7 @@ public class LineChartRenderer implements IADMRender{
 
     private void renderAxis(NBTTagCompound nbt, int facing, double dataMin, double dataMax, double yRange,
                             double yAxisBase) {
-        // 参数初始化（无论是否渲染都计算）
+        // 参数初始化
         int axisLineColor = Integer.parseInt(nbt.getString("axisLineColor"), 16);
         int axisFontColor = Integer.parseInt(nbt.getString("axisFontColor"), 16);
         int displayNameColor = Integer.parseInt(nbt.getString("displayNameColor"), 16);
@@ -167,7 +167,11 @@ public class LineChartRenderer implements IADMRender{
         double yAxisTop = yAxisBase + yRange;
         int dataLimit = nbt.getInteger("dataLimit");
         List<Integer> majorIndices = new ArrayList<>();
-        // ========================== 计算部分（始终执行） ========================== //
+
+        // 提升sortedMajorIndices作用域
+        List<Integer> sortedMajorIndices = new ArrayList<>();
+
+        // ========================== 计算部分 ========================== //
         // 计算坐标轴线顶点
         List<Float> axisLines = new ArrayList<>();
         axisLines.add((float)xStart); axisLines.add((float)yAxisBase); axisLines.add((float)zOffset);
@@ -175,33 +179,105 @@ public class LineChartRenderer implements IADMRender{
         axisLines.add((float)xStart); axisLines.add((float)yAxisBase); axisLines.add((float)zOffset);
         axisLines.add((float)xStart); axisLines.add((float)yAxisTop); axisLines.add((float)zOffset);
 
-        // 计算Y轴刻度
+        // 计算Y轴刻度 - 确保8-10个标签
         double yDataBorder = dataMax - dataMin;
-        double yInterval = computeOptimalInterval(yDataBorder);
         List<Float> yTicks = new ArrayList<>();
-        List<Double> yLabelValues = new ArrayList<>(); // 存储需要渲染的Y轴标签值
-        for (double value = dataMin; value <= dataMax; value += yInterval) {
-            double yPos = yAxisBase + ((value - dataMin) / yDataBorder) * yRange;
-            yPos = Math.max(yAxisBase, Math.min(yAxisTop, yPos));
-            yTicks.add((float)xStart); yTicks.add((float)yPos); yTicks.add((float)zOffset);
-            yTicks.add((float)(xStart - 0.05)); yTicks.add((float)yPos); yTicks.add((float)zOffset);
-            yLabelValues.add(yPos); // 记录标签位置
+        List<Double> yLabelValues = new ArrayList<>();
+        List<Double> yTickPositions = new ArrayList<>(); // 新增：存储刻度位置
+
+        // 目标刻度数量（8-10个）
+        int targetTicks = 8;
+        if (yDataBorder > 0) {
+            // 计算初始步长
+            double tempStep = yDataBorder / targetTicks;
+            // 将步长转换为10的幂次形式
+            double exponent = Math.floor(Math.log10(tempStep));
+            double factor = Math.pow(10, exponent);
+            double normalizedStep = tempStep / factor;
+
+            // 将步长规范化为1, 2或5的倍数
+            double chosenStep;
+            if (normalizedStep <= 1.0) {
+                chosenStep = 1.0;
+            } else if (normalizedStep <= 2.0) {
+                chosenStep = 2.0;
+            } else if (normalizedStep <= 5.0) {
+                chosenStep = 5.0;
+            } else {
+                chosenStep = 10.0;
+            }
+
+            double yInterval = chosenStep * factor;
+
+            // 计算刻度位置
+            double firstTick = Math.floor(dataMin / yInterval) * yInterval;
+            double lastTick = Math.ceil(dataMax / yInterval) * yInterval;
+
+            // 生成刻度
+            for (double value = firstTick; value <= lastTick; value += yInterval) {
+                // 确保不会超出数据范围
+                if (value < dataMin - 1e-6 || value > dataMax + 1e-6) continue;
+
+                double yPos = yAxisBase + ((value - dataMin) / yDataBorder) * yRange;
+                yPos = Math.max(yAxisBase, Math.min(yAxisTop, yPos));
+                yTicks.add((float)xStart);
+                yTicks.add((float)yPos);
+                yTicks.add((float)zOffset);
+                yTicks.add((float)(xStart - 0.05));
+                yTicks.add((float)yPos);
+                yTicks.add((float)zOffset);
+                yLabelValues.add(value);
+                yTickPositions.add(yPos); // 存储刻度位置
+            }
         }
 
-        // 计算X轴刻度
+        // 如果数据范围太小，至少显示最小值和最大值
+        if (yLabelValues.isEmpty() && yDataBorder > 0) {
+            // 最小值位置
+            double minYPos = yAxisBase;
+            yTicks.add((float)xStart);
+            yTicks.add((float)minYPos);
+            yTicks.add((float)zOffset);
+            yTicks.add((float)(xStart - 0.05));
+            yTicks.add((float)minYPos);
+            yTicks.add((float)zOffset);
+            yLabelValues.add(dataMin);
+            yTickPositions.add(minYPos);
+
+            // 最大值位置
+            double maxYPos = yAxisTop;
+            yTicks.add((float)xStart);
+            yTicks.add((float)maxYPos);
+            yTicks.add((float)zOffset);
+            yTicks.add((float)(xStart - 0.05));
+            yTicks.add((float)maxYPos);
+            yTicks.add((float)zOffset);
+            yLabelValues.add(dataMax);
+            yTickPositions.add(maxYPos);
+        }
+
+        // 计算X轴刻度 - 修复刻度位置计算逻辑
         List<Float> majorTicks = new ArrayList<>();
         List<Float> minorTicks = new ArrayList<>();
-        List<String> xLabels = new ArrayList<>(); // 存储需要渲染的X轴标签
         if (dataLimit > 1) {
             double xStep = xRange / (dataLimit - 1);
             int labelInterval = computeOptimalXInterval(dataLimit);
 
-            majorIndices.add(0);
-            majorIndices.add(dataLimit - 1);
-            for (int i = labelInterval; i < dataLimit; i += labelInterval) {
-                majorIndices.add(i);
+            // 修复：使用更精确的刻度位置计算方法
+            int numIntervals = Math.max(1, (dataLimit - 1) / labelInterval);
+            for (int i = 0; i <= numIntervals; i++) {
+                int index = i * labelInterval;
+                if (index < dataLimit) {
+                    majorIndices.add(index);
+                }
             }
-            List<Integer> sortedMajorIndices = new ArrayList<>(majorIndices);
+
+            // 确保包含最后一个数据点
+            if (dataLimit - 1 > (majorIndices.isEmpty() ? -1 : majorIndices.get(majorIndices.size() - 1))) {
+                majorIndices.add(dataLimit - 1);
+            }
+
+            sortedMajorIndices = new ArrayList<>(majorIndices);
             Collections.sort(sortedMajorIndices);
 
             // 主刻度
@@ -209,22 +285,100 @@ public class LineChartRenderer implements IADMRender{
                 double xPos = xStart + i * xStep;
                 majorTicks.add((float)xPos); majorTicks.add((float)yAxisBase); majorTicks.add((float)zOffset);
                 majorTicks.add((float)xPos); majorTicks.add((float)(yAxisBase - 0.08)); majorTicks.add((float)zOffset);
-                xLabels.add(String.valueOf(i)); // 记录标签文本
             }
 
-            // 次刻度（示例）
+            // 次刻度 - 仅在两个主刻度之间有足够空间时添加
             for (int i = 0; i < sortedMajorIndices.size() - 1; i++) {
                 int prev = sortedMajorIndices.get(i);
                 int next = sortedMajorIndices.get(i + 1);
-                for (int k = 1; k < 5; k++) { // 每个主刻度间4个次刻度
-                    double xPos = xStart + (prev + (next - prev) * k / 5.0) * xStep;
-                    minorTicks.add((float)xPos); minorTicks.add((float)yAxisBase); minorTicks.add((float)zOffset);
-                    minorTicks.add((float)xPos); minorTicks.add((float)(yAxisBase - 0.04)); minorTicks.add((float)zOffset);
+                int space = next - prev;
+
+                if (space > 1) {
+                    int minorSteps = Math.min(4, space - 1); // 最多4个次刻度
+                    for (int k = 1; k <= minorSteps; k++) {
+                        double xPos = xStart + (prev + (next - prev) * k / (minorSteps + 1.0)) * xStep;
+                        minorTicks.add((float)xPos); minorTicks.add((float)yAxisBase); minorTicks.add((float)zOffset);
+                        minorTicks.add((float)xPos); minorTicks.add((float)(yAxisBase - 0.04)); minorTicks.add((float)zOffset);
+                    }
                 }
             }
         }
 
-        // ========================== 渲染部分（仅在enableAxis时执行） ========================== //
+        // ========================== 渲染部分 ========================== //
+        // ====================== 网格线渲染 ====================== //
+        // 默认启用网格线，使用坐标轴颜色，透明度固定为15%
+        boolean enableGrid = !nbt.hasKey("enableGrid") || nbt.getBoolean("enableGrid");
+        if (enableGrid && !yTickPositions.isEmpty() && !sortedMajorIndices.isEmpty()) {
+            // 准备网格线顶点数据
+            List<Float> gridLines = new ArrayList<>();
+
+            // 横向网格线 (Y轴刻度位置)
+            for (Double yPos : yTickPositions) {
+                gridLines.add((float)xStart);
+                gridLines.add(yPos.floatValue());
+                gridLines.add(0.0f); // 与折线在同一平面
+
+                gridLines.add((float)xEnd);
+                gridLines.add(yPos.floatValue());
+                gridLines.add(0.0f);
+            }
+
+            // 纵向网格线 (X轴主刻度位置)
+            for (int index : sortedMajorIndices) {
+                double xPos = xStart + index * (xRange / (dataLimit - 1));
+                gridLines.add((float)xPos);
+                gridLines.add((float)yAxisBase);
+                gridLines.add(0.0f);
+
+                gridLines.add((float)xPos);
+                gridLines.add((float)(yAxisBase + yRange));
+                gridLines.add(0.0f);
+            }
+
+            if (!gridLines.isEmpty()) {
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                GL11.glLineWidth(0.8f); // 比坐标轴细的线宽
+
+                // 使用坐标轴颜色，透明度15%
+                GL11.glColor4f(
+                        ((axisLineColor >> 16) & 0xFF) / 255.0f,
+                        ((axisLineColor >> 8) & 0xFF) / 255.0f,
+                        (axisLineColor & 0xFF) / 255.0f,
+                        0.3f
+                );
+
+                // 检查网格线样式设置（新增属性）
+                boolean useDashedLine = nbt.hasKey("gridLineStyle") ? nbt.getBoolean("gridLineStyle") : true;
+
+                if (useDashedLine) {
+                    // 虚线模式
+                    GL11.glEnable(GL11.GL_LINE_STIPPLE);
+                    GL11.glLineStipple(1, (short) 0x00FF); // 虚线模式: 1像素实线 + 1像素空白
+                }
+
+                // 创建并渲染网格线VBO
+                int gridVbo = GL15.glGenBuffers();
+                GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, gridVbo);
+                GL15.glBufferData(GL15.GL_ARRAY_BUFFER, asFloatBuffer(gridLines), GL15.GL_STREAM_DRAW);
+
+                GL11.glEnableClientState(GL11.GL_VERTEX_ARRAY);
+                GL11.glVertexPointer(3, GL11.GL_FLOAT, 0, 0L);
+                GL11.glDrawArrays(GL11.GL_LINES, 0, gridLines.size() / 3);
+                GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
+
+                if (useDashedLine) {
+                    // 禁用虚线模式
+                    GL11.glDisable(GL11.GL_LINE_STIPPLE);
+                }
+
+                GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+                GL15.glDeleteBuffers(gridVbo);
+
+                GL11.glDisable(GL11.GL_BLEND);
+            }
+        }
+
         if (nbt.getBoolean("enableAxis")) {
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -244,8 +398,6 @@ public class LineChartRenderer implements IADMRender{
                 GL15.glBufferData(GL15.GL_ARRAY_BUFFER, asFloatBuffer(yTicks), GL15.GL_STREAM_DRAW);
                 drawVboLines(yTicks.size() / 3);
                 GL15.glDeleteBuffers(yTickVbo);
-
-
             }
 
             // 渲染X轴主刻度
@@ -255,9 +407,6 @@ public class LineChartRenderer implements IADMRender{
                 GL15.glBufferData(GL15.GL_ARRAY_BUFFER, asFloatBuffer(majorTicks), GL15.GL_STREAM_DRAW);
                 drawVboLines(majorTicks.size() / 3);
                 GL15.glDeleteBuffers(majorVbo);
-
-                // 渲染X轴标签（独立判断enableAxisFont）
-
             }
 
             // 渲染X轴次刻度
@@ -269,18 +418,49 @@ public class LineChartRenderer implements IADMRender{
                 GL15.glDeleteBuffers(minorVbo);
             }
 
-
-
             GL11.glDisable(GL11.GL_BLEND);
         }
-        if (nbt.getBoolean("enableAxisFont")) {
+
+        // 修复点：使用排序后的索引列表渲染X轴标签
+        if (nbt.getBoolean("enableAxisFont") && !sortedMajorIndices.isEmpty()) {
             double xStep = xRange / (dataLimit - 1);
-            for (int i = 0; i < xLabels.size(); i++) {
-                double xPos = xStart + (majorIndices.get(i) * xStep);
-                String label = xLabels.get(i);
+
+            // 计算标准刻度间隔（仅当有多个主刻度时）
+            int standardGap = -1;
+            if (sortedMajorIndices.size() > 2) {
+                standardGap = sortedMajorIndices.get(1) - sortedMajorIndices.get(0);
+            }
+
+            for (int i = 0; i < sortedMajorIndices.size(); i++) {
+                int index = sortedMajorIndices.get(i);
+                double xPos = xStart + (index * xStep);
+                String label = String.valueOf(index);
+
+                // 检查是否是最后两个刻度
+                if (i == sortedMajorIndices.size() - 2) {
+                    // 计算最后两个刻度的实际间隔
+                    int lastGap = sortedMajorIndices.get(sortedMajorIndices.size()-1) - index;
+
+                    // 如果最后两个刻度间隔与标准间隔不同，跳过倒数第二个标签
+                    if (standardGap > 0 && lastGap != standardGap) {
+                        continue;
+                    }
+                }
+
+                // 总是渲染最后一个标签
+                if (i == sortedMajorIndices.size() - 1) {
+                    label = String.valueOf(dataLimit - 1); // 显示实际最后一个索引
+                }
+
+                // 添加边界检查防止溢出
+                double labelWidth = label.length() * 0.015;
+                double adjustedX = Math.min(xEnd - labelWidth, xPos - labelWidth);
+                if (i == sortedMajorIndices.size()-1) {
+                    label = String.valueOf(dataLimit);
+                }
                 renderText(
                         label,
-                        xPos - label.length() * 0.015,
+                        adjustedX,
                         yAxisBase - 0.07,
                         zOffset,
                         axisFontColor,
@@ -290,24 +470,25 @@ public class LineChartRenderer implements IADMRender{
                 );
             }
 
-            // 渲染Y轴标签（独立判断enableAxisFont）
-            if (nbt.getBoolean("enableAxisFont")) {
-                for (int i = 0; i < yLabelValues.size(); i++) {
-                    double yPos = yLabelValues.get(i);
-                    renderText(
-                            String.format("%.1f", dataMin + i * yInterval),
-                            xStart - 0.08,
-                            yPos - 0.02,
-                            zOffset,
-                            axisFontColor,
-                            axisFontScale,
-                            true,
-                            facing
-                    );
-                }
+            // 渲染Y轴标签
+            for (int i = 0; i < yLabelValues.size(); i++) {
+                double yPos = yAxisBase + ((yLabelValues.get(i) - dataMin) / (dataMax - dataMin)) * yRange;
+                yPos = Math.max(yAxisBase, Math.min(yAxisBase + yRange, yPos));
+
+                renderText(
+                        String.format("%.1f", yLabelValues.get(i)),
+                        xStart - 0.08,
+                        yPos - 0.02,
+                        zOffset,
+                        axisFontColor,
+                        axisFontScale,
+                        true,
+                        facing
+                );
             }
         }
-        // 标题渲染（保持独立）
+
+        // 标题渲染
         String displayName = nbt.getString("displayName");
         if (!displayName.isEmpty()) {
             renderTitle(displayName, displayNameColor, displayNameScale, facing, yAxisTop);

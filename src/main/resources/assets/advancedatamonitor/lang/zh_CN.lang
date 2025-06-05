@@ -54,6 +54,14 @@ adm.button.enableData=§l数据
 adm.button.disableData=§l§m数据
 adm.button.enableAxisFont=§l轴字体
 adm.button.disableAxisFont=§l§m轴字体
+adm.button.dataType.Item=§l物品
+adm.button.dataType.Fluid=§l流体
+adm.button.dataType.Used=§l占用
+adm.button.dataType.Total=§l容量
+adm.button.dataType.Value=§l数值
+adm.button.dataType.Percent=§l百分比
+adm.button.dataType.Bytes=§l字节
+adm.button.dataType.Type=§l种类
 
 # 图表类型
 adm.datatype.line=§l折线图
@@ -64,6 +72,9 @@ adm.datatype.difference=§l势差图
 
 # 标题
 adm.title.data_config=§l数据配置 §n%s
+adm.title.data_config_ae=§lAE数据配置 §n%s
+adm.title.data_config_ae_network=§lAE网络数据配置 §n%s
+adm.title.data_config_color=§l颜色数据配置 §n%s
 
 # 主界面
 adm.direction.north=北
@@ -80,6 +91,7 @@ adm.label.facing=方向
 adm.label.data=数据
 adm.label.body=本体
 adm.label.screen=屏幕
+adm.label.aedata=AE数据
 adm.label.back=背面
 adm.tooltip.displayname=显示名称
 adm.tooltip.position=位置
@@ -88,6 +100,12 @@ adm.tooltip.dataname=数据名称
 adm.tooltip.enableAxis=轴线
 adm.tooltip.enableData=数据
 adm.tooltip.enableAxisFont=轴字体
+adm.message.data_cleared=数据已清除
+adm.message.data_collected=数据已采集
+adm.tooltip.clearData=已清除采集数据
+adm.tooltip.collect=采集
+adm.tooltip.clearData.shift=请按下Shift键,避免误触操作
+adm.tooltip.clear=清除采集数据
 adm.error.max_data=已达到最大数据量
 adm.debug.mouse_position=鼠标坐标
 

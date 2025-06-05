@@ -2,9 +2,7 @@ package com.imgood.advancedatamonitor.renders;
 
 import com.gtnewhorizons.modularui.api.GlStateManager;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonotor;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ItemRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;

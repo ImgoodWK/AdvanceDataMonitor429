@@ -1,3 +1,0 @@
-shapeless=
-    ae2:ItemPart.AnnihilationPlane ae2:ItemMaterial.FluixPearl
-    -> ae2:ItemPart.IdentityAnnihilationPlane

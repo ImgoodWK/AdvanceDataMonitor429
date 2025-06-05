@@ -50,6 +50,15 @@ adm.button.enableAxis=§lAxis
 adm.button.disableAxis=§l§mAxis
 adm.button.enableData=§lData
 adm.button.disableData=§l§mData
+adm.button.enableAxisFont=§lAxisFont
+adm.button.dataType.Item=§lItem
+adm.button.dataType.Fluid=§lFluid
+adm.button.dataType.Used=§lUsed
+adm.button.dataType.Total=§lTotal
+adm.button.dataType.Value=§lValue
+adm.button.dataType.Percent=§lPercent
+adm.button.dataType.Bytes=§lBytes
+adm.button.dataType.Type=§lType
 
 # Chart types
 adm.datatype.line=Line
@@ -60,6 +69,9 @@ adm.datatype.difference=Difference
 
 # Title
 adm.title.data_config=§lData Config Of §n%s
+adm.title.data_config_ae=§lAEData Config Of §n%s
+adm.title.data_config_ae_network=§lAENetwork Config Of §n%s
+adm.title.data_config_color=§lColor Config Of §n%s
 
 # Main GUI
 adm.direction.north=North
@@ -76,6 +88,7 @@ adm.label.facing=Facing
 adm.label.data=Data
 adm.label.body=Body
 adm.label.screen=Screen
+adm.label.aedata=AE Data
 adm.label.back=Back
 adm.tooltip.displayname=Title
 adm.tooltip.position=Position
@@ -84,6 +97,11 @@ adm.tooltip.dataname=DataName
 adm.tooltip.enableAxis=Axis
 adm.tooltip.enableData=Data
 adm.tooltip.enableAxisFont=AxisFont
+adm.message.data_cleared=DataCleared
+adm.message.data_collected=DataCollected
+adm.tooltip.clearData=Clear Saved Data
+adm.tooltip.clearData.shift=Please press the Shift key to avoid accidental operations
+adm.tooltip.clear=Clear Saved Data
 adm.error.max_data=Maximum data reached
 adm.debug.mouse_position=Mouse Position
 

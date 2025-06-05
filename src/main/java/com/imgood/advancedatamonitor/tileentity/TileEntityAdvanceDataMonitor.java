@@ -6,6 +6,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import appeng.api.AEApi;
+import appeng.api.networking.IGrid;
+import appeng.api.networking.IGridHost;
+import appeng.api.networking.IGridNode;
+import appeng.api.storage.ICellInventory;
+import appeng.api.storage.ICellInventoryHandler;
+import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.StorageChannel;
+import appeng.tile.storage.TileChest;
+import appeng.tile.storage.TileDrive;
+import com.imgood.advancedatamonitor.utils.TileEntityTypeHelper;
+import cpw.mods.fml.common.Optional;
+import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.NetworkManager;
@@ -19,6 +33,10 @@ import com.imgood.advancedatamonitor.utils.DataBound;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraftforge.common.util.ForgeDirection;
+import shedar.mods.ic2.nuclearcontrol.crossmod.appeng.TileEntityNetworkLink;
+
+import static com.imgood.advancedatamonitor.utils.TileEntityTypeHelper.getTileEntityType;
 
 public class TileEntityAdvanceDataMonitor extends TileEntity {
 
@@ -71,7 +89,6 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
                 int interval = Math.max(getSafeInt(nbt, "interval", 20), 1);
                 int currentTick = tickCounters.getOrDefault(index, 0);
                 currentTick++;
-
                 if (currentTick >= interval) {
                     // 处理数据项
                     String[] xyz = parseXYZ(nbt);
@@ -89,6 +106,37 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
             }
         }
 
+    }
+
+    public void processTileEntityData(int index, NBTTagCompound nbt, String[] xyz) {
+        int targetX = parseIntSafe(xyz[0]);
+        int targetY = parseIntSafe(xyz[1]);
+        int targetZ = parseIntSafe(xyz[2]);
+
+        if (worldObj == null || !worldObj.blockExists(targetX, targetY, targetZ)) return;
+
+        TileEntity target = worldObj.getTileEntity(targetX, targetY, targetZ);
+        if (target == null) return;
+
+        String dataName = getSafeString(nbt, "name", "null");
+        double value = 0;
+
+        // 处理 AE2 网络数据
+        if (getTileEntityType(target) ==
+                TileEntityTypeHelper.TileEntityType.ADV_NETWORKLINK ||
+                getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.NETWORKLINK) {
+            value = processAE2NetworkData(target, dataName);
+        }
+        // 处理普通方块数据
+        else {
+            NBTTagCompound targetNbt = new NBTTagCompound();
+            target.writeToNBT(targetNbt);
+            if (targetNbt.hasKey(dataName)) {
+                value = targetNbt.getDouble(dataName);
+            }
+        }
+
+        addData(index, value, nbt);
     }
 
     @Override
@@ -159,7 +207,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
         }
     }
 
-    private void processDataImmediately(int index, NBTTagCompound nbt) {
+    public void processDataImmediately(int index, NBTTagCompound nbt) {
         String[] xyz = parseXYZ(nbt);
         if (xyz != null) {
             try {
@@ -231,25 +279,6 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
         return xyz;
     }
 
-    private void processTileEntityData(int index, NBTTagCompound nbt, String[] xyz) {
-        int targetX = parseIntSafe(xyz[0]);
-        int targetY = parseIntSafe(xyz[1]);
-        int targetZ = parseIntSafe(xyz[2]);
-
-        if (worldObj == null || !worldObj.blockExists(targetX, targetY, targetZ)) return;
-
-        TileEntity target = worldObj.getTileEntity(targetX, targetY, targetZ);
-        if (target == null) return;
-
-        NBTTagCompound targetNbt = new NBTTagCompound();
-        target.writeToNBT(targetNbt);
-
-        String dataName = getSafeString(nbt, "name", "null");
-        if (targetNbt.hasKey(dataName)) {
-            double value = targetNbt.getDouble(dataName);
-            addData(index, value, nbt);
-        }
-    }
 
     private void addData(int index, double value, NBTTagCompound nbt) {
         NBTTagList dataValues = nbt.getTagList("dataValues", 10);
@@ -787,5 +816,157 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
         }
         return 1;
     }
+
+    // ========================= AE2 网络支持 =========================//
+    // ========================= AE2 网络支持 =========================//
+    @Optional.Method(modid = "appliedenergistics2")
+    private Map<String, Long> getAE2NetworkStats(IGrid grid) {
+        Map<String, Long> stats = new HashMap<>();
+        long totalBytes = 0L;
+        long usedBytes = 0L;
+        long totalItemTypes = 0L;
+        long usedItemTypes = 0L;
+        long totalFluidBytes = 0L;
+        long usedFluidBytes = 0L;
+        long totalFluidTypes = 0L;
+        long usedFluidTypes = 0L;
+
+        for (IGridNode node : grid.getMachines(TileDrive.class)) {
+            TileDrive drive = (TileDrive) node.getMachine();
+            long[] driveStats = processDriveInventory(drive);
+            totalBytes += driveStats[0];
+            usedBytes += driveStats[1];
+            totalItemTypes += driveStats[2];
+            usedItemTypes += driveStats[3];
+            totalFluidBytes += driveStats[4];  // 添加流体数据
+            usedFluidBytes += driveStats[5];
+            totalFluidTypes += driveStats[6];
+            usedFluidTypes += driveStats[7];
+        }
+
+        for (IGridNode node : grid.getMachines(TileChest.class)) {
+            TileChest chest = (TileChest) node.getMachine();
+            long[] chestStats = processChestInventory(chest);
+            totalBytes += chestStats[0];
+            usedBytes += chestStats[1];
+            totalItemTypes += chestStats[2];
+            usedItemTypes += chestStats[3];
+            totalFluidBytes += chestStats[4];  // 添加流体数据
+            usedFluidBytes += chestStats[5];
+            totalFluidTypes += chestStats[6];
+            usedFluidTypes += chestStats[7];
+        }
+
+        // 物品存储数据
+        stats.put("TotalBytes", totalBytes);
+        stats.put("UsedBytes", usedBytes);
+        stats.put("TotalItemTypes", totalItemTypes);
+        stats.put("UsedItemTypes", usedItemTypes);
+
+        // 流体存储数据
+        stats.put("TotalFluidBytes", totalFluidBytes);
+        stats.put("UsedFluidBytes", usedFluidBytes);
+        stats.put("TotalFluidTypes", totalFluidTypes);
+        stats.put("UsedFluidTypes", usedFluidTypes);
+
+        return stats;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private long[] processDriveInventory(TileDrive drive) {
+        long[] stats = new long[8]; // 扩展为8个元素
+        for (int i = 0; i < drive.getInternalInventory().getSizeInventory(); i++) {
+            ItemStack stack = drive.getInternalInventory().getStackInSlot(i);
+            if (stack != null) {
+                long[] cellStats = processCellStack(stack);
+                for (int j = 0; j < cellStats.length; j++) {
+                    stats[j] += cellStats[j];
+                }
+            }
+        }
+        return stats;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private long[] processChestInventory(TileChest chest) {
+        long[] stats = new long[8]; // 扩展为8个元素
+        ItemStack stack = chest.getInternalInventory().getStackInSlot(0);
+        if (stack != null) {
+            long[] cellStats = processCellStack(stack);
+            for (int j = 0; j < cellStats.length; j++) {
+                stats[j] += cellStats[j];
+            }
+        }
+        return stats;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private long[] processCellStack(ItemStack stack) {
+        // 初始化数组：[物品总字节, 物品已用字节, 物品类型数, 已用物品类型, 流体总字节, 流体已用字节, 流体类型数, 已用流体类型]
+        long[] stats = new long[8];
+
+        // 处理物品存储
+        IMEInventoryHandler itemInventory = AEApi.instance().registries().cell().getCellInventory(
+                stack, null, StorageChannel.ITEMS);
+        if (itemInventory instanceof ICellInventoryHandler) {
+            ICellInventoryHandler itemHandler = (ICellInventoryHandler) itemInventory;
+            ICellInventory itemCell = itemHandler.getCellInv();
+            if (itemCell != null) {
+                stats[0] = itemCell.getTotalBytes();
+                stats[1] = itemCell.getUsedBytes();
+                stats[2] = itemCell.getTotalItemTypes();
+                stats[3] = itemCell.getStoredItemTypes();
+            }
+        }
+
+        // 处理流体存储
+        IMEInventoryHandler fluidInventory = AEApi.instance().registries().cell().getCellInventory(
+                stack, null, StorageChannel.FLUIDS);
+        if (fluidInventory instanceof ICellInventoryHandler) {
+            ICellInventoryHandler fluidHandler = (ICellInventoryHandler) fluidInventory;
+            ICellInventory fluidCell = fluidHandler.getCellInv();
+            if (fluidCell != null) {
+                stats[4] = fluidCell.getTotalBytes();
+                stats[5] = fluidCell.getUsedBytes();
+                stats[6] = fluidCell.getTotalItemTypes(); // 流体类型数
+                stats[7] = fluidCell.getStoredItemTypes(); // 已用流体类型
+            }
+        }
+
+        return stats;
+    }
+
+    // ========================= 修改数据处理方法 =========================//
+    @Optional.Method(modid = "appliedenergistics2")
+    private double processAE2NetworkData(TileEntity target, String dataName) {
+        if (!(target instanceof TileEntityAdvanceNetworkLink)) {
+            System.out.println("target not instance of teanl");
+            return 0;
+        }
+
+        TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) target;
+        switch (dataName) {
+            case "TotalBytes":
+                return link.getItemTotalBytes();
+            case "UsedBytes":
+                return link.getItemUsedBytes();
+            case "TotalItemTypes":
+                return link.getItemTotalTypes();
+            case "UsedItemTypes":
+                return link.getItemUsedTypes();
+            case "TotalFluidBytes":
+                return link.getFluidTotalBytes();
+            case "UsedFluidBytes":
+                return link.getFluidUsedBytes();
+            case "TotalFluidTypes":
+                return link.getFluidTotalTypes();
+            case "UsedFluidTypes":
+                return link.getFluidUsedTypes();
+            default:
+                return 0;
+        }
+    }
+
+
 
 }

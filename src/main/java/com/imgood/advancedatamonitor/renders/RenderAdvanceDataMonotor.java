@@ -64,8 +64,9 @@ public class RenderAdvanceDataMonotor extends TileEntitySpecialRenderer {
         // 渲染Roll部件并应用旋转
         float rollAngle = monitor.getRollRotation(); // 从TileEntity获取旋转角度
         GL11.glPushMatrix();
-        GL11.glTranslated(-0.1, 0, 0.05);
+        GL11.glTranslated(-0.1, 0.1, 0.05);
         GL11.glRotatef(rollAngle, 0, 1, 0); // 绕Y轴旋转
+        GL11.glScaled(0.8f, 0.8f, 0.8f);
         advanceDtaDisplayModel.renderOnly("Roll");
         GL11.glPopMatrix();
 
@@ -82,8 +83,9 @@ public class RenderAdvanceDataMonotor extends TileEntitySpecialRenderer {
 
         // 渲染RollLighting并应用旋转
         GL11.glPushMatrix();
-        GL11.glTranslated(-0.1, 0, 0.05);
+        GL11.glTranslated(-0.1, 0.1, 0.05);
         GL11.glRotatef(rollAngle, 0, 1, 0); // 同样的旋转角度
+        GL11.glScaled(0.8f, 0.8f, 0.8f);
         advanceDtaDisplayModel.renderOnly("RollLighting");
         GL11.glPopMatrix();
 

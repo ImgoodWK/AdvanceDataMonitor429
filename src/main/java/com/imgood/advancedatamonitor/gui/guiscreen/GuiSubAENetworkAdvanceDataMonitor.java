@@ -1,16 +1,13 @@
 package com.imgood.advancedatamonitor.gui.guiscreen;
 
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidDouble;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidHexColor;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidInteger;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.wrapText;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.advancedatamonitor.utils.ContentsHelper;
+import com.imgood.advancedatamonitor.utils.DataBound;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -18,18 +15,19 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-
 import org.lwjgl.input.Keyboard;
 
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
-import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
-import com.imgood.advancedatamonitor.utils.ContentsHelper;
-import com.imgood.advancedatamonitor.utils.DataBound;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidDouble;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidHexColor;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidInteger;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.wrapText;
+
+public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
 
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
     @SuppressWarnings("unused")
@@ -57,7 +55,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private ADM_GuiTextField textFieldDataLimit;
     private ADM_GuiTextField textFieldInterval;
 
-    private ADM_GuiTextField textFieldName;
+
     private ADM_GuiTextField textFieldDisplayName;
     private ADM_GuiTextField textFieldDisplayNameScale;
     private ADM_GuiTextField textFieldDisplayNameColor;
@@ -94,6 +92,9 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private static final ResourceLocation getGuiScreenHolographicDisplay_Sub_Background = new ResourceLocation(
         AdvanceDataMonitor.MODID,
         "textures/gui/background_ADM_Sub.png");
+     private static final ResourceLocation guiScreenTypeBox = new ResourceLocation(
+        AdvanceDataMonitor.MODID,
+        "textures/gui/ADMSubGuiTypeBox.png");
 
     private int offsetX = 100;
     private int offsetY = 100;
@@ -122,9 +123,13 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private boolean isEnabledAxis;
     private boolean isEnabledData;
     private boolean isEnabledAxisFont;
+    private boolean isTypeItem;
+    private boolean isUsed;
+    private boolean isValue;
+    private boolean isBytes;
 
-    public GuiSubAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
-        int index) {
+    public GuiSubAENetworkAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
+                                             int index) {
         this.player = player;
         this.world = world;
         this.tileEntityAdvanceDataMonotor = tileEntity;
@@ -148,7 +153,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         this.contents.add(textFieldDataLimit.getText());
         this.contents.add(textFieldInterval.getText());
 
-        this.contents.add(textFieldName.getText());
         this.contents.add(textFieldDisplayName.getText());
         this.contents.add(textFieldDisplayNameScale.getText());
         this.contents.add(textFieldDisplayNameColor.getText());
@@ -160,10 +164,11 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         this.contents.add(textFieldAxisFontScaled.getText());
     }
 
+
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
-        // this.currentHashCode = this.tileHolographicDisplay.getImgPath(this.index);
+        initDataType();
         focusedField = textFieldTileEntityXYZ;
         isEnabled = tileEntityAdvanceDataMonotor.getEnable(index);
         isEnabledAxis = tileEntityAdvanceDataMonotor.getEnableAxis(index);
@@ -225,7 +230,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         }
 
         this.textFieldsRight.clear();
-        textFieldsRight.add(this.textFieldName);
         textFieldsRight.add(this.textFieldDisplayName);
         textFieldsRight.add(this.textFieldDisplayNameScale);
         textFieldsRight.add(this.textFieldDisplayNameColor);
@@ -278,8 +282,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         this.textFieldInterval.setText(this.tileEntityAdvanceDataMonotor.getInterval(this.index) + "");
 
         // -------------------------------------------------
-        this.textFieldName.setMaxStringLength(100);
-        this.textFieldName.setText(this.tileEntityAdvanceDataMonotor.getName(this.index));
 
         this.textFieldDisplayName.setMaxStringLength(100);
         this.textFieldDisplayName.setText(this.tileEntityAdvanceDataMonotor.getDisplayName(this.index));
@@ -476,6 +478,76 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                         .setTextColor(textColor)
                         .setTextHoverColor(textHoverColor));
 
+         this.buttonList.add(
+                new ADM_GuiButton(
+                        11,
+                        this.offsetX + 215,
+                        this.offsetY + 240,
+                        40,
+                        20,
+                        I18n.format("adm.button.dataType.Item"))
+                        .setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(false)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+
+        this.buttonList.add(
+                new ADM_GuiButton(
+                        12,
+                        this.offsetX + 275,
+                        this.offsetY + 240,
+                        40,
+                        20,
+                        I18n.format("adm.button.dataType.Used"))
+                        .setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(false)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+
+        this.buttonList.add(
+                new ADM_GuiButton(
+                        13,
+                        this.offsetX + 402,
+                        this.offsetY + 240,
+                        50,
+                        20,
+                        I18n.format("adm.button.dataType.Value"))
+                        .setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(false)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+
+         this.buttonList.add(
+                new ADM_GuiButton(
+                        14,
+                        this.offsetX + 335,
+                        this.offsetY + 240,
+                        40,
+                        20,
+                        I18n.format("adm.button.dataType.Bytes"))
+                        .setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(false)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+
+        this.buttonList.add(
+                new ADM_GuiButton(
+                        15,
+                        this.offsetX + 535,
+                        this.offsetY + 350,
+                        10,
+                        10,
+                        I18n.format("×"))
+                        .setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(false)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+
         setTileEntityDatatype(this.tileEntityAdvanceDataMonotor.getDataType(this.index));
 
         fieldHints.clear();
@@ -490,7 +562,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         fieldHints.put(textFieldYRange, "adm.hint.yrange");
         fieldHints.put(textFieldDataLimit, "adm.hint.datalimit");
         fieldHints.put(textFieldInterval, "adm.hint.interval");
-        fieldHints.put(textFieldName, "adm.hint.name");
         fieldHints.put(textFieldDisplayName, "adm.hint.displayname");
         fieldHints.put(textFieldDisplayNameScale, "adm.hint.displayscale");
         fieldHints.put(textFieldDisplayNameColor, "adm.hint.displaycolor");
@@ -500,15 +571,21 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         fieldHints.put(textFieldLineWidth, "adm.hint.linewidth");
         fieldHints.put(textFieldScaled, "adm.hint.scale");
         fieldHints.put(textFieldAxisFontScaled, "adm.hint.axisfontscale");
+
         getButtonByid(7).displayString = I18n.format(!this.isEnabled ? "adm.button.disable" : "adm.button.enable");
         getButtonByid(8).displayString = I18n.format(!this.isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
         getButtonByid(9).displayString = I18n.format(!this.isEnabledData ? "adm.button.disableData" : "adm.button.enableData");
         getButtonByid(10).displayString = I18n.format(!this.isEnabledAxisFont ? "adm.button.disableAxisFont" : "adm.button.enableAxisFont");
+        getButtonByid(11).displayString = I18n.format(this.isTypeItem ? "adm.button.dataType.Item" : "adm.button.dataType.Fluid");
+        getButtonByid(12).displayString = I18n.format(this.isUsed ? "adm.button.dataType.Used" : "adm.button.dataType.Total");
+        getButtonByid(13).displayString = I18n.format(this.isValue ? "adm.button.dataType.Value" : "adm.button.dataType.Percent");
+        getButtonByid(14).displayString = I18n.format(this.isBytes ? "adm.button.dataType.Bytes" : "adm.button.dataType.Type");
 
         ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF :  0xFF0000);
         ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF :  0xFF0000);
         ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF :  0xFF0000);
         ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF :  0xFF0000);
+
 
     }
 
@@ -627,33 +704,30 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
             } else if (row.equals("Right")) {
                 switch (i) {
                     case 0:
-                        this.textFieldName = textField;
-                        break;
-                    case 1:
                         this.textFieldDisplayName = textField;
                         break;
-                    case 2:
+                    case 1:
                         this.textFieldDisplayNameScale = textField;
                         break;
-                    case 3:
+                    case 2:
                         this.textFieldDisplayNameColor = textField;
                         break;
-                    case 4:
+                    case 3:
                         this.textFieldAxisLineColor = textField;
                         break;
-                    case 5:
+                    case 4:
                         this.textFieldAxisFontColor = textField;
                         break;
-                    case 6:
+                    case 5:
                         this.textFieldLineColor = textField;
                         break;
-                    case 7:
+                    case 6:
                         this.textFieldLineWidth = textField;
                         break;
-                    case 8:
+                    case 7:
                         this.textFieldScaled = textField;
                         break;
-                    case 9:
+                    case 8:
                         this.textFieldAxisFontScaled = textField;
                         break;
                 }
@@ -717,7 +791,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
 
 
                 // 保留原有的dataValues数据
-
+                nbt.setString("displayName", this.textFieldDisplayName.getText());
                 nbt.setTag("dataValues", existingDataValues.copy());
                 if (this.dataType == null) {
                     nbt.setString("dataType", "line");
@@ -814,9 +888,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     nbt.setInteger("interval", interval);
                 }
 
-                // Right 组字段（textFieldName 及之后的字段）
-                nbt.setString("name", this.textFieldName.getText());
-                nbt.setString("displayName", this.textFieldDisplayName.getText());
 
                 // 补充缺失的 DisplayNameScale
                 if (!isValidDouble(this.textFieldDisplayNameScale.getText())) {
@@ -876,6 +947,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     nbt.setDouble("axisFontScale", Double.parseDouble(this.textFieldAxisFontScaled.getText()));
                 }
                 // 后续操作
+                updateDataType(nbt);
                 this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
                 this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(
@@ -999,6 +1071,35 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                                 tileEntityAdvanceDataMonotor.zCoord,
                                 nbt));
             }
+            case 11 -> {
+                // 切换物品/流体类型
+                isTypeItem = !isTypeItem;
+                getButtonByid(11).displayString = I18n.format(isTypeItem ? "adm.button.dataType.Item" : "adm.button.dataType.Fluid");
+            }
+            case 12 -> {
+                // 切换已使用/总量模式
+                isUsed = !isUsed;
+                getButtonByid(12).displayString = I18n.format(isUsed ? "adm.button.dataType.Used" : "adm.button.dataType.Total");
+            }
+            case 13 -> {
+                // 切换数值/百分比显示
+                isValue = !isValue;
+                getButtonByid(13).displayString = I18n.format(isValue ? "adm.button.dataType.Value" : "adm.button.dataType.Percent");
+            }
+            case 14 -> {
+                // 切换字节/类型单位
+                isBytes = !isBytes;
+                getButtonByid(14).displayString = I18n.format(isBytes ? "adm.button.dataType.Bytes" : "adm.button.dataType.Type");
+            }
+            case 15 -> { // 清除数据按钮
+                if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)){
+                    clearDataValues();
+                    errorTips = I18n.format("adm.tooltip.clearData");
+                } else {
+                    errorTips = I18n.format("adm.tooltip.clearData.shift");
+                }
+
+            }
             default -> {
                 // 处理其他按钮的行为
             }
@@ -1047,12 +1148,37 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
+        this.drawImage(guiScreenTypeBox, this.offsetX+165, this.offsetY+225,335, 110);
+        // 绘制Shift键提示
+        if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
+            GuiButton btnClear = getButtonByid(15);
+
+            if (btnClear != null) {
+// 获取需要渲染的文本
+                String text = I18n.format("adm.tooltip.clear");
+
+// 计算文本像素宽度
+                int textWidth = this.fontRendererObj.getStringWidth(text);
+
+// 右对齐计算：按钮左侧位置 - 固定间距 - 文本宽度
+                int xPos = btnClear.xPosition -3 - textWidth;
+
+// 渲染文本（保持垂直位置不变）
+                this.fontRendererObj.drawStringWithShadow(
+                        text,
+                        xPos,                        // 动态计算的X位置
+                        btnClear.yPosition + 0,       // 保持原始Y位置
+                        0XFF0000
+                );
+            }
+
+        }
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
             I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"),I18n.format("adm.label.xrotation"), I18n.format("adm.label.yrotation"),
             I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"), I18n.format("adm.label.yrange"),
             I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval") };
         autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor);
-        String[] label2 = { I18n.format("adm.label.nbtname"), I18n.format("adm.label.displayname"),
+        String[] label2 = { I18n.format("adm.label.displayname"),
             I18n.format("adm.label.displaynamescale"), I18n.format("adm.label.displaynamecolor"),
             I18n.format("adm.label.axislinecolor"), I18n.format("adm.label.axisfontcolor"),
             I18n.format("adm.label.linecolor"), I18n.format("adm.label.linewidth"), I18n.format("adm.label.scaled"),
@@ -1060,12 +1186,12 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         autoText(label2, 0, 25, this.offsetX + 170, this.offsetY + 10, this.textColor);
         this.drawCenteredString(
             this.fontRendererObj,
-            I18n.format("adm.title.data_config", this.index + 1), // 本地化标题
+            I18n.format("adm.title.data_config_ae_network", this.index + 1), // 本地化标题
             this.offsetX + 322,
             this.offsetY - 35,
             this.textColor);
 
-        this.fontRendererObj.drawString(errorTips, this.offsetX + 150, this.offsetY + 380, 0xff0000);
+        this.fontRendererObj.drawString(errorTips, this.offsetX + 230, this.offsetY + 380, 0xff0000);
         drawTextFieldBackground(textFieldsLeft);
         drawTextFieldBackground(textFieldsRight);
         if (isValidHexColor(this.textFieldDisplayNameColor.getText())) {
@@ -1073,7 +1199,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 this.fontRendererObj,
                 "§l■",
                 this.offsetX + 320,
-                this.offsetY + 85,
+                this.offsetY + 60,
                 Integer.parseInt(this.textFieldDisplayNameColor.getText(), 16));
         }
         if (isValidHexColor(this.textFieldAxisLineColor.getText())) {
@@ -1081,7 +1207,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 this.fontRendererObj,
                 "§l■",
                 this.offsetX + 320,
-                this.offsetY + 110,
+                this.offsetY + 85,
                 Integer.parseInt(this.textFieldAxisLineColor.getText(), 16));
         }
         if (isValidHexColor(this.textFieldAxisFontColor.getText())) {
@@ -1089,7 +1215,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 this.fontRendererObj,
                 "§l■",
                 this.offsetX + 320,
-                this.offsetY + 136,
+                this.offsetY + 110,
                 Integer.parseInt(this.textFieldAxisFontColor.getText(), 16));
         }
         if (isValidHexColor(this.textFieldLineColor.getText())) {
@@ -1097,7 +1223,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 this.fontRendererObj,
                 "§l■",
                 this.offsetX + 320,
-                this.offsetY + 160,
+                this.offsetY + 135,
                 Integer.parseInt(this.textFieldLineColor.getText(), 16));
         }
 
@@ -1215,4 +1341,108 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     public boolean doesGuiPauseGame() {
         return false;
     }
+
+    private void updateDataType(NBTTagCompound nbt) {
+        // 根据状态组合构建数据类型名称
+        String dataTypeName;
+
+        if (isTypeItem) {
+            // 物品类型
+            if (isUsed) {
+                // 已使用
+                dataTypeName = isBytes ? "UsedBytes" : "UsedItemTypes";
+            } else {
+                // 总量
+                dataTypeName = isBytes ? "TotalBytes" : "TotalItemTypes";
+            }
+        } else {
+            // 流体类型
+            if (isUsed) {
+                // 已使用
+                dataTypeName = isBytes ? "UsedFluidBytes" : "UsedFluidTypes";
+            } else {
+                // 总量
+                dataTypeName = isBytes ? "TotalFluidBytes" : "TotalFluidTypes";
+            }
+        }
+
+        // 更新TileEntity和NBT
+        nbt.setString("name", dataTypeName);
+
+        // 设置显示方式标记（数值/百分比）
+        nbt.setBoolean("isValue", isValue);
+
+        // 同步到服务器
+    }
+
+    private void initDataType() {
+        String dataType = tileEntityAdvanceDataMonotor.getName(index);
+
+        switch (dataType) {
+             case "TotalBytes":
+                 isTypeItem = true;
+                 isUsed = false;
+                 isBytes = true;
+                 break;
+             case "UsedBytes":
+                 isTypeItem = true;
+                 isUsed = true;
+                 isBytes = true;
+                 break;
+             case "TotalItemTypes":
+                 isTypeItem = true;
+                 isUsed = false;
+                 isBytes = false;
+                 break;
+             case "UsedItemTypes":
+                 isTypeItem = true;
+                 isUsed = true;
+                 isBytes = false;
+                 break;
+             case "TotalFluidBytes":
+                 isTypeItem = false;
+                 isUsed = false;
+                 isBytes = true;
+                 break;
+             case "UsedFluidBytes":
+                 isTypeItem = false;
+                 isUsed = true;
+                 isBytes = true;
+                 break;
+             case "TotalFluidTypes":
+                 isTypeItem = false;
+                 isUsed = false;
+                 isBytes = false;
+                 break;
+             case "UsedFluidTypes":
+                 isTypeItem = false;
+                 isUsed = true;
+                 isBytes = false;
+                 break;
+             default:
+                 isTypeItem = true;
+                 isUsed = true;
+                 isBytes = true;
+                 break;
+
+        }
+
+    }
+    // 添加清除数据的方法
+    private void clearDataValues() {
+        NBTTagCompound nbt = this.tileEntityAdvanceDataMonotor.getDataBound(this.index);
+        nbt.setTag("dataValues", new NBTTagList()); // 清空数据列表
+
+        // 更新TileEntity
+        this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
+        this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
+        AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                new PacketSynTileEntity(
+                        tileEntityAdvanceDataMonotor.xCoord,
+                        tileEntityAdvanceDataMonotor.yCoord,
+                        tileEntityAdvanceDataMonotor.zCoord,
+                        nbt));
+
+    }
+
 }

@@ -1,16 +1,13 @@
 package com.imgood.advancedatamonitor.gui.guiscreen;
 
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidDouble;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidHexColor;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidInteger;
-import static com.imgood.advancedatamonitor.utils.ContentsHelper.wrapText;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.advancedatamonitor.utils.ContentsHelper;
+import com.imgood.advancedatamonitor.utils.DataBound;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -18,18 +15,19 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-
 import org.lwjgl.input.Keyboard;
 
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
-import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
-import com.imgood.advancedatamonitor.utils.ContentsHelper;
-import com.imgood.advancedatamonitor.utils.DataBound;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidDouble;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidHexColor;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.isValidInteger;
+import static com.imgood.advancedatamonitor.utils.ContentsHelper.wrapText;
+
+public class GuiSubColorConfigAdvanceDataMonitor extends ADM_GuiScreen {
 
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
     @SuppressWarnings("unused")
@@ -37,7 +35,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private World world;
 
     private int index;
-    private List<ADM_GuiTextField> textFieldsLeft = new ArrayList<>();
     private List<ADM_GuiTextField> textFieldsRight = new ArrayList<>();
     // 文本框与本地化键的映射
     private final Map<ADM_GuiTextField, String> fieldHints = new HashMap<>();
@@ -45,28 +42,11 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private ADM_GuiTextField hoveredTextField;
     private ADM_GuiTextField focusedField = null;
 
-    private ADM_GuiTextField textFieldTileEntityXYZ;
-    private ADM_GuiTextField textFieldxOffset;
-    private ADM_GuiTextField textFieldyOffset;
-    private ADM_GuiTextField textFieldzOffset;
-    private ADM_GuiTextField textFieldRotationX;
-    private ADM_GuiTextField textFieldRotationY;
-    private ADM_GuiTextField textFieldRotationZ;
-    private ADM_GuiTextField textFieldXRange;
-    private ADM_GuiTextField textFieldYRange;
-    private ADM_GuiTextField textFieldDataLimit;
-    private ADM_GuiTextField textFieldInterval;
-
-    private ADM_GuiTextField textFieldName;
-    private ADM_GuiTextField textFieldDisplayName;
-    private ADM_GuiTextField textFieldDisplayNameScale;
     private ADM_GuiTextField textFieldDisplayNameColor;
     private ADM_GuiTextField textFieldAxisLineColor;
     private ADM_GuiTextField textFieldAxisFontColor;
     private ADM_GuiTextField textFieldLineColor;
-    private ADM_GuiTextField textFieldLineWidth;
-    private ADM_GuiTextField textFieldScaled;
-    private ADM_GuiTextField textFieldAxisFontScaled;
+
 
     private List<String> contents = new ArrayList<>();
 
@@ -95,14 +75,15 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         AdvanceDataMonitor.MODID,
         "textures/gui/background_ADM_Sub.png");
 
-    private int offsetX = 100;
+    //这里修改偏移其实没用，初始化计算了
+    private int offsetX = -200;
     private int offsetY = 100;
-    private int startOffsetX = -270;
-    private int startOffsetY = -200;
+    private int startOffsetX = -150;
+    private int startOffsetY = -100;
     private int textColor = 0x00FFFF;
     private int textHoverColor = 0x0055FF;
 
-    private int buttonRowYOffset1 = 370;
+    private int buttonRowYOffset1 = 180;
     private int buttonRowYOffset2 = 340;
     private int buttonRowConfigYoffset1 = 20;
     private int buttonRowConfigYinterval1 = 30;
@@ -111,7 +92,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private int buttonRowConfigXoffset2 = 100;
     private boolean buttonRow1RGB = false;
     private boolean buttonRow2RGB = false;
-    private int buttonRow1Width = 60;
+    private int buttonRow1Width = 45;
     private int buttonRow2Width = 60;
 
     private String errorTips = "";
@@ -123,48 +104,34 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private boolean isEnabledData;
     private boolean isEnabledAxisFont;
 
-    public GuiSubAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
-        int index) {
+    public GuiSubColorConfigAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
+                                               int index) {
         this.player = player;
         this.world = world;
         this.tileEntityAdvanceDataMonotor = tileEntity;
         this.index = index;
         this.setBackgroundTexture(getGuiScreenHolographicDisplay_Sub_Background);
-        this.setSize(600, 450);
+        this.setSize(400, 250);
         this.setStretch(false);
     }
 
     private void saveCurrentState() {
         this.contents.clear();
-        this.contents.add(textFieldTileEntityXYZ.getText());
-        this.contents.add(textFieldxOffset.getText());
-        this.contents.add(textFieldyOffset.getText());
-        this.contents.add(textFieldzOffset.getText());
-        this.contents.add(textFieldRotationX.getText());
-        this.contents.add(textFieldRotationY.getText());
-        this.contents.add(textFieldRotationZ.getText());
-        this.contents.add(textFieldXRange.getText());
-        this.contents.add(textFieldYRange.getText());
-        this.contents.add(textFieldDataLimit.getText());
-        this.contents.add(textFieldInterval.getText());
 
-        this.contents.add(textFieldName.getText());
-        this.contents.add(textFieldDisplayName.getText());
-        this.contents.add(textFieldDisplayNameScale.getText());
+
+
         this.contents.add(textFieldDisplayNameColor.getText());
         this.contents.add(textFieldAxisLineColor.getText());
         this.contents.add(textFieldAxisFontColor.getText());
         this.contents.add(textFieldLineColor.getText());
-        this.contents.add(textFieldLineWidth.getText());
-        this.contents.add(textFieldScaled.getText());
-        this.contents.add(textFieldAxisFontScaled.getText());
+
     }
 
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         // this.currentHashCode = this.tileHolographicDisplay.getImgPath(this.index);
-        focusedField = textFieldTileEntityXYZ;
+        focusedField = textFieldAxisFontColor;
         isEnabled = tileEntityAdvanceDataMonotor.getEnable(index);
         isEnabledAxis = tileEntityAdvanceDataMonotor.getEnableAxis(index);
         isEnabledData = tileEntityAdvanceDataMonotor.getEnableData(index);
@@ -204,89 +171,22 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         this.updateScreen();
         this.buttonList.clear();
         this.setPosition(this.offsetX - 20, this.offsetY - 35);
-        this.textFieldsLeft.clear();
-        textFieldsLeft.add(this.textFieldTileEntityXYZ);
-        textFieldsLeft.add(this.textFieldxOffset);
-        textFieldsLeft.add(this.textFieldyOffset);
-        textFieldsLeft.add(this.textFieldzOffset);
-        textFieldsLeft.add(this.textFieldRotationX);
-        textFieldsLeft.add(this.textFieldRotationY);
-        textFieldsLeft.add(this.textFieldRotationZ);
-        textFieldsLeft.add(this.textFieldXRange);
-        textFieldsLeft.add(this.textFieldYRange);
-        textFieldsLeft.add(this.textFieldDataLimit);
-        textFieldsLeft.add(this.textFieldInterval);
-        try {
-            autoTextField("Left", this.textFieldsLeft, 0, 25, this.offsetX + 90, this.offsetY + 10, 80, 20);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
 
         this.textFieldsRight.clear();
-        textFieldsRight.add(this.textFieldName);
-        textFieldsRight.add(this.textFieldDisplayName);
-        textFieldsRight.add(this.textFieldDisplayNameScale);
         textFieldsRight.add(this.textFieldDisplayNameColor);
         textFieldsRight.add(this.textFieldAxisLineColor);
         textFieldsRight.add(this.textFieldAxisFontColor);
         textFieldsRight.add(this.textFieldLineColor);
-        textFieldsRight.add(this.textFieldLineWidth);
-        textFieldsRight.add(this.textFieldScaled);
-        textFieldsRight.add(this.textFieldAxisFontScaled);
+
         try {
-            autoTextField("Right", this.textFieldsRight, 0, 25, this.offsetX + 275, this.offsetY + 10, 80, 20);
+            autoTextField("Right", this.textFieldsRight, 0, 25, this.offsetX + 90, this.offsetY + 10, 80, 20);
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
 
-        this.textFieldTileEntityXYZ.setMaxStringLength(100);
-        this.textFieldTileEntityXYZ.setFocused(true);
-        this.textFieldTileEntityXYZ.setText(this.tileEntityAdvanceDataMonotor.getXYZ(this.index));
-
-        this.textFieldxOffset.setMaxStringLength(100);
-        this.textFieldxOffset.setText(this.tileEntityAdvanceDataMonotor.getXOffset(this.index) + "");
-
-        this.textFieldyOffset.setMaxStringLength(100);
-        this.textFieldyOffset.setText(this.tileEntityAdvanceDataMonotor.getYOffset(this.index) + "");
-
-        this.textFieldzOffset.setMaxStringLength(100);
-        this.textFieldzOffset.setText(this.tileEntityAdvanceDataMonotor.getZOffset(this.index) + "");
-
-        this.textFieldRotationX.setMaxStringLength(100);
-        this.textFieldRotationX.setText(this.tileEntityAdvanceDataMonotor.getRotationX(this.index) + "");
-
-        this.textFieldRotationY.setMaxStringLength(100);
-        this.textFieldRotationY.setText(this.tileEntityAdvanceDataMonotor.getRotationY(this.index) + "");
-
-        this.textFieldRotationZ.setMaxStringLength(100);
-        this.textFieldRotationZ.setText(this.tileEntityAdvanceDataMonotor.getRotationZ(this.index) + "");
-
-        this.textFieldXRange.setMaxStringLength(100);
-        this.textFieldXRange.setText(this.tileEntityAdvanceDataMonotor.getXRange(this.index) + "");
-
-        this.textFieldYRange.setMaxStringLength(100);
-        this.textFieldYRange.setText(this.tileEntityAdvanceDataMonotor.getYRange(this.index) + "");
-
-        this.textFieldDataLimit.setMaxStringLength(100);
-        this.textFieldDataLimit.setText(this.tileEntityAdvanceDataMonotor.getDataLimit(this.index) + "");
-
-        this.textFieldInterval.setMaxStringLength(100);
-        this.textFieldInterval.setText(this.tileEntityAdvanceDataMonotor.getInterval(this.index) + "");
-
-        // -------------------------------------------------
-        this.textFieldName.setMaxStringLength(100);
-        this.textFieldName.setText(this.tileEntityAdvanceDataMonotor.getName(this.index));
-
-        this.textFieldDisplayName.setMaxStringLength(100);
-        this.textFieldDisplayName.setText(this.tileEntityAdvanceDataMonotor.getDisplayName(this.index));
-
-        this.textFieldDisplayNameScale.setMaxStringLength(100);
-        this.textFieldDisplayNameScale.setText(this.tileEntityAdvanceDataMonotor.getDisplayNameScale(this.index) + "");
-
+        this.textFieldDisplayNameColor.setFocused(true);
         this.textFieldDisplayNameColor.setMaxStringLength(100);
         this.textFieldDisplayNameColor.setText(this.tileEntityAdvanceDataMonotor.getDisplayNameColor(this.index));
 
@@ -298,15 +198,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
 
         this.textFieldLineColor.setMaxStringLength(100);
         this.textFieldLineColor.setText(this.tileEntityAdvanceDataMonotor.getLineColor(this.index));
-
-        this.textFieldLineWidth.setMaxStringLength(100);
-        this.textFieldLineWidth.setText(this.tileEntityAdvanceDataMonotor.getLineWidth(this.index) + "");
-
-        this.textFieldScaled.setMaxStringLength(100);
-        this.textFieldScaled.setText(this.tileEntityAdvanceDataMonotor.getScale(this.index) + "");
-
-        this.textFieldAxisFontScaled.setMaxStringLength(100);
-        this.textFieldAxisFontScaled.setText(this.tileEntityAdvanceDataMonotor.getAxisFontScale(this.index) + "");
 
         // 保存/取消按钮
         this.buttonList.add(
@@ -341,174 +232,13 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
 
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        7,
-                        this.offsetX + 140,
-                        this.offsetY + buttonRowYOffset1,
-                        buttonRow1Width,
-                        20,
-                        I18n.format("adm.button.enable")) // 修改取消按钮
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow1RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
-        this.buttonList.add(
-            new ADM_GuiButton(
-                2,
-                this.offsetX + 0,
-                this.offsetY + buttonRowYOffset2,
-                buttonRow2Width,
-                20,
-                I18n.format("adm.datatype.line")) // 折线图按钮
-                    .setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
-                    .setUseRGBEffect(buttonRow2RGB)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
-        this.buttonList.add(
-            new ADM_GuiButton(
-                3,
-                this.offsetX + 70,
-                this.offsetY + buttonRowYOffset2,
-                buttonRow2Width,
-                20,
-                I18n.format("adm.datatype.bar")) // 柱状图按钮
-                    .setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
-                    .setUseRGBEffect(buttonRow2RGB)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
-        this.buttonList.add(
-            new ADM_GuiButton(
-                4,
-                this.offsetX + 140,
-                this.offsetY + buttonRowYOffset2,
-                buttonRow2Width,
-                20,
-                I18n.format("adm.datatype.bar3d")) // 3D柱状图按钮
-                    .setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
-                    .setUseRGBEffect(buttonRow2RGB)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
-        this.buttonList.add(
-            new ADM_GuiButton(
-                5,
-                this.offsetX + 210,
-                this.offsetY + buttonRowYOffset2,
-                buttonRow2Width,
-                20,
-                I18n.format("adm.datatype.waterfall")) // 瀑布图按钮
-                    .setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
-                    .setUseRGBEffect(buttonRow2RGB)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
-        this.buttonList.add(
-            new ADM_GuiButton(
-                6,
-                this.offsetX + 280,
-                this.offsetY + buttonRowYOffset2,
-                buttonRow2Width,
-                20,
-                I18n.format("adm.datatype.difference")) // 差异图按钮
-                    .setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
-                    .setUseRGBEffect(buttonRow2RGB)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
-
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        8,
-                        this.offsetX + buttonRowConfigXoffset1,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        buttonRow2Width,
-                        20,
-                        I18n.format("adm.button.enableAxis"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow2RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
-        buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
-
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        9,
-                        this.offsetX + buttonRowConfigXoffset1,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        buttonRow2Width,
-                        20,
-                        I18n.format("adm.button.enableData"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow2RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
-        buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
-
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        10,
-                        this.offsetX + buttonRowConfigXoffset1,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        buttonRow2Width,
-                        20,
-                        I18n.format("adm.button.enableAxisFont"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow2RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
-        setTileEntityDatatype(this.tileEntityAdvanceDataMonotor.getDataType(this.index));
-
         fieldHints.clear();
-        fieldHints.put(textFieldTileEntityXYZ, "adm.hint.xyz");
-        fieldHints.put(textFieldxOffset, "adm.hint.xoffset");
-        fieldHints.put(textFieldyOffset, "adm.hint.yoffset");
-        fieldHints.put(textFieldzOffset, "adm.hint.zoffset");
-        fieldHints.put(textFieldRotationX, "adm.hint.rotationx");
-        fieldHints.put(textFieldRotationY, "adm.hint.rotationy");
-        fieldHints.put(textFieldRotationZ, "adm.hint.rotationz");
-        fieldHints.put(textFieldXRange, "adm.hint.xrange");
-        fieldHints.put(textFieldYRange, "adm.hint.yrange");
-        fieldHints.put(textFieldDataLimit, "adm.hint.datalimit");
-        fieldHints.put(textFieldInterval, "adm.hint.interval");
-        fieldHints.put(textFieldName, "adm.hint.name");
-        fieldHints.put(textFieldDisplayName, "adm.hint.displayname");
-        fieldHints.put(textFieldDisplayNameScale, "adm.hint.displayscale");
         fieldHints.put(textFieldDisplayNameColor, "adm.hint.displaycolor");
         fieldHints.put(textFieldAxisLineColor, "adm.hint.axislinecolor");
         fieldHints.put(textFieldAxisFontColor, "adm.hint.axisfontcolor");
         fieldHints.put(textFieldLineColor, "adm.hint.linecolor");
-        fieldHints.put(textFieldLineWidth, "adm.hint.linewidth");
-        fieldHints.put(textFieldScaled, "adm.hint.scale");
-        fieldHints.put(textFieldAxisFontScaled, "adm.hint.axisfontscale");
-        getButtonByid(7).displayString = I18n.format(!this.isEnabled ? "adm.button.disable" : "adm.button.enable");
-        getButtonByid(8).displayString = I18n.format(!this.isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
-        getButtonByid(9).displayString = I18n.format(!this.isEnabledData ? "adm.button.disableData" : "adm.button.enableData");
-        getButtonByid(10).displayString = I18n.format(!this.isEnabledAxisFont ? "adm.button.disableAxisFont" : "adm.button.enableAxisFont");
 
-        ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF :  0xFF0000);
-        ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF :  0xFF0000);
-        ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF :  0xFF0000);
-        ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF :  0xFF0000);
+
 
     }
 
@@ -588,73 +318,19 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
             intervalXCurrent += intervalX;
             intervalYCurrent += intervalY;
 
-            if (row.equals("Left")) {
+            if (row.equals("Right")) {
                 switch (i) {
                     case 0:
-                        this.textFieldTileEntityXYZ = textField; // 第1位
-                        break;
-                    case 1:
-                        this.textFieldxOffset = textField;
-                        break;
-                    case 2:
-                        this.textFieldyOffset = textField;
-                        break;
-                    case 3:
-                        this.textFieldzOffset = textField;
-                        break;
-                    case 4:
-                        this.textFieldRotationX = textField;
-                        break;
-                    case 5:
-                        this.textFieldRotationY = textField;
-                        break;
-                    case 6:
-                        this.textFieldRotationZ = textField;
-                        break;
-                    case 7:
-                        this.textFieldXRange = textField;
-                        break;
-                    case 8:
-                        this.textFieldYRange = textField;
-                        break;
-                    case 9:
-                        this.textFieldDataLimit = textField;
-                        break;
-                    case 10:
-                        this.textFieldInterval = textField;
-                        break;
-                }
-            } else if (row.equals("Right")) {
-                switch (i) {
-                    case 0:
-                        this.textFieldName = textField;
-                        break;
-                    case 1:
-                        this.textFieldDisplayName = textField;
-                        break;
-                    case 2:
-                        this.textFieldDisplayNameScale = textField;
-                        break;
-                    case 3:
                         this.textFieldDisplayNameColor = textField;
                         break;
-                    case 4:
+                    case 1:
                         this.textFieldAxisLineColor = textField;
                         break;
-                    case 5:
+                    case 2:
                         this.textFieldAxisFontColor = textField;
                         break;
-                    case 6:
+                    case 3:
                         this.textFieldLineColor = textField;
-                        break;
-                    case 7:
-                        this.textFieldLineWidth = textField;
-                        break;
-                    case 8:
-                        this.textFieldScaled = textField;
-                        break;
-                    case 9:
-                        this.textFieldAxisFontScaled = textField;
                         break;
                 }
             }
@@ -726,105 +402,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 }
 
                 // Left 组字段（textFieldName 之前的字段）
-                String XYZ = this.textFieldTileEntityXYZ.getText()
-                    .replace("，", ",")
-                    .replace(" ", "");
-                if (!ContentsHelper.isValidPosFormat(XYZ)) {
-                    this.errorTips = I18n.format("adm.error.xyz");
-                    return;
-                } else {
-                    nbt.setString("XYZ", XYZ);
-                }
 
-                if (!isValidDouble(this.textFieldxOffset.getText())) {
-                    this.errorTips = I18n.format("adm.error.xoffset");
-                    return;
-                } else {
-                    nbt.setDouble("xOffset", Double.parseDouble(this.textFieldxOffset.getText()));
-                }
 
-                if (!isValidDouble(this.textFieldyOffset.getText())) {
-                    this.errorTips = I18n.format("adm.error.yoffset");
-                    return;
-                } else {
-                    nbt.setDouble("yOffset", Double.parseDouble(this.textFieldyOffset.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldzOffset.getText())) {
-                    this.errorTips = I18n.format("adm.error.zoffset");
-                    return;
-                } else {
-                    nbt.setDouble("zOffset", Double.parseDouble(this.textFieldzOffset.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldRotationX.getText())) {
-                    this.errorTips = I18n.format("adm.error.rotationx");
-                    return;
-                } else {
-                    nbt.setDouble("rotationX", Double.parseDouble(this.textFieldRotationX.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldRotationY.getText())) {
-                    this.errorTips = I18n.format("adm.error.rotationy");
-                    return;
-                } else {
-                    nbt.setDouble("rotationY", Double.parseDouble(this.textFieldRotationY.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldRotationZ.getText())) {
-                    this.errorTips = I18n.format("adm.error.rotationz");
-                    return;
-                } else {
-                    nbt.setDouble("rotationZ", Double.parseDouble(this.textFieldRotationZ.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldXRange.getText())) {
-                    this.errorTips = I18n.format("adm.error.xrange");
-                    return;
-                } else {
-                    nbt.setDouble("xRange", Double.parseDouble(this.textFieldXRange.getText()));
-                }
-
-                // 补充缺失的 YRange 验证
-                if (!isValidDouble(this.textFieldYRange.getText())) {
-                    this.errorTips = I18n.format("adm.error.yrange");
-                    return;
-                } else {
-                    nbt.setDouble("yRange", Double.parseDouble(this.textFieldYRange.getText()));
-                }
-
-                if (!isValidInteger(this.textFieldDataLimit.getText())) {
-                    this.errorTips = I18n.format("adm.error.datalimit");
-                    return;
-                } else {
-                    int dataLimit = Integer.parseInt(this.textFieldDataLimit.getText());
-                    if (dataLimit > 9999 || dataLimit < 2) {
-                        this.errorTips = I18n.format("adm.error.datalimit");
-                        return;
-                    }
-                    nbt.setInteger("dataLimit", Integer.parseInt(this.textFieldDataLimit.getText()));
-                }
-
-                if (!isValidInteger(this.textFieldInterval.getText())) {
-                    this.errorTips = I18n.format("adm.error.interval");
-                    return;
-                } else {
-                    int interval = Integer.parseInt(this.textFieldInterval.getText());
-                    interval = interval <= 2 ? 1 : interval; // 优化条件判断
-                    nbt.setInteger("interval", interval);
-                }
-
-                // Right 组字段（textFieldName 及之后的字段）
-                nbt.setString("name", this.textFieldName.getText());
-                nbt.setString("displayName", this.textFieldDisplayName.getText());
-
-                // 补充缺失的 DisplayNameScale
-                if (!isValidDouble(this.textFieldDisplayNameScale.getText())) {
-                    this.errorTips = I18n.format("adm.error.displayscale");
-                    return;
-                } else {
-                    nbt.setDouble("displayNameScale", Double.parseDouble(this.textFieldDisplayNameScale.getText()));
-                }
 
                 // 补充缺失的 DisplayNameColor
                 if (!isValidHexColor(this.textFieldDisplayNameColor.getText())) {
@@ -855,26 +434,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     nbt.setString("lineColor", this.textFieldLineColor.getText());
                 }
 
-                if (!isValidDouble(this.textFieldLineWidth.getText())) {
-                    this.errorTips = I18n.format("adm.error.linewidth");
-                    return;
-                } else {
-                    nbt.setDouble("lineWidth", Double.parseDouble(this.textFieldLineWidth.getText()));
-                }
 
-                if (!isValidDouble(this.textFieldScaled.getText())) {
-                    this.errorTips = I18n.format("adm.error.scale");
-                    return;
-                } else {
-                    nbt.setDouble("scale", Double.parseDouble(this.textFieldScaled.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldAxisFontScaled.getText())) {
-                    this.errorTips = I18n.format("adm.error.axisfontscale");
-                    return;
-                } else {
-                    nbt.setDouble("axisFontScale", Double.parseDouble(this.textFieldAxisFontScaled.getText()));
-                }
                 // 后续操作
                 this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
                 this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
@@ -1008,9 +568,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
         super.keyTyped(typedChar, keyCode);
-        for (ADM_GuiTextField textField : textFieldsLeft) {
-            textField.textboxKeyTyped(typedChar, keyCode);
-        }
         for (ADM_GuiTextField textField : textFieldsRight) {
             textField.textboxKeyTyped(typedChar, keyCode);
         }
@@ -1019,12 +576,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         super.mouseClicked(mouseX, mouseY, mouseButton);
-        for (ADM_GuiTextField textField : textFieldsLeft) {
-            textField.mouseClicked(mouseX, mouseY, mouseButton);
-            if (textField.isFocused()) {
-                this.focusedField = textField;
-            }
-        }
         for (ADM_GuiTextField textField : textFieldsRight) {
             textField.mouseClicked(mouseX, mouseY, mouseButton);
             if (textField.isFocused()) {
@@ -1036,9 +587,6 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     @Override
     public void updateScreen() {
         super.updateScreen();
-        for (ADM_GuiTextField textField : textFieldsLeft) {
-            textField.updateCursorCounter();
-        }
         for (ADM_GuiTextField textField : textFieldsRight) {
             textField.updateCursorCounter();
         }
@@ -1047,57 +595,49 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
-        String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
-            I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"),I18n.format("adm.label.xrotation"), I18n.format("adm.label.yrotation"),
-            I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"), I18n.format("adm.label.yrange"),
-            I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval") };
-        autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor);
-        String[] label2 = { I18n.format("adm.label.nbtname"), I18n.format("adm.label.displayname"),
-            I18n.format("adm.label.displaynamescale"), I18n.format("adm.label.displaynamecolor"),
+        String[] label1 = { I18n.format("adm.label.displaynamecolor"),
             I18n.format("adm.label.axislinecolor"), I18n.format("adm.label.axisfontcolor"),
-            I18n.format("adm.label.linecolor"), I18n.format("adm.label.linewidth"), I18n.format("adm.label.scaled"),
-            I18n.format("adm.label.axisfontscaled") };
-        autoText(label2, 0, 25, this.offsetX + 170, this.offsetY + 10, this.textColor);
+            I18n.format("adm.label.linecolor") };
+        autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor);
         this.drawCenteredString(
             this.fontRendererObj,
-            I18n.format("adm.title.data_config", this.index + 1), // 本地化标题
-            this.offsetX + 322,
-            this.offsetY - 35,
+            I18n.format("adm.title.data_config_color", this.index + 1), // 本地化标题
+            this.offsetX + 200,
+            this.offsetY - 37,
             this.textColor);
 
         this.fontRendererObj.drawString(errorTips, this.offsetX + 150, this.offsetY + 380, 0xff0000);
-        drawTextFieldBackground(textFieldsLeft);
         drawTextFieldBackground(textFieldsRight);
         if (isValidHexColor(this.textFieldDisplayNameColor.getText())) {
             this.drawCenteredString(
                 this.fontRendererObj,
                 "§l■",
-                this.offsetX + 320,
-                this.offsetY + 85,
+                this.offsetX + 150,
+                this.offsetY + 10,
                 Integer.parseInt(this.textFieldDisplayNameColor.getText(), 16));
         }
         if (isValidHexColor(this.textFieldAxisLineColor.getText())) {
             this.drawCenteredString(
                 this.fontRendererObj,
                 "§l■",
-                this.offsetX + 320,
-                this.offsetY + 110,
+                this.offsetX + 150,
+                this.offsetY + 35,
                 Integer.parseInt(this.textFieldAxisLineColor.getText(), 16));
         }
         if (isValidHexColor(this.textFieldAxisFontColor.getText())) {
             this.drawCenteredString(
                 this.fontRendererObj,
                 "§l■",
-                this.offsetX + 320,
-                this.offsetY + 136,
+                this.offsetX + 150,
+                this.offsetY + 60,
                 Integer.parseInt(this.textFieldAxisFontColor.getText(), 16));
         }
         if (isValidHexColor(this.textFieldLineColor.getText())) {
             this.drawCenteredString(
                 this.fontRendererObj,
                 "§l■",
-                this.offsetX + 320,
-                this.offsetY + 160,
+                this.offsetX + 150,
+                this.offsetY + 85,
                 Integer.parseInt(this.textFieldLineColor.getText(), 16));
         }
 
@@ -1105,12 +645,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         // this.textColor);
 
         hoveredTextField = null;
-        for (ADM_GuiTextField textField : textFieldsLeft) {
-            textField.drawTextBox();
-            if (isMouseOver(textField, mouseX, mouseY)) {
-                hoveredTextField = textField;
-            }
-        }
+
         for (ADM_GuiTextField textField : textFieldsRight) {
             textField.drawTextBox();
             if (isMouseOver(textField, mouseX, mouseY)) {
