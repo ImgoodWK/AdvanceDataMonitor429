@@ -61,9 +61,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
     private ADM_GuiTextField textFieldLineWidth;
     private ADM_GuiTextField textFieldScaled;
     private ADM_GuiTextField textFieldAxisFontScaled;
-    private ADM_GuiTextField textFieldGridLineWidth;
-    private ADM_GuiTextField textFieldAxisLineWidth;
-    private ADM_GuiTextField textFieldTickLengthFactor;
 
     private List<String> contents = new ArrayList<>();
 
@@ -157,9 +154,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
         this.contents.add(textFieldLineWidth.getText());
         this.contents.add(textFieldScaled.getText());
         this.contents.add(textFieldAxisFontScaled.getText());
-        this.contents.add(textFieldGridLineWidth.getText());
-        this.contents.add(textFieldAxisLineWidth.getText());
-        this.contents.add(textFieldTickLengthFactor.getText());
     }
 
 
@@ -189,15 +183,10 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDataLimit(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getInterval(this.index)));
 
-
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayName(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayNameScale(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getLineWidth(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getScale(this.index)));
-            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getAxisFontScale(this.index)));
-            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getGridLineWidth(this.index)));
-            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getAxisLineWidth(this.index)));
-            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getTickLengthFactor(this.index)));
 
             isInitialized = true;
         }
@@ -233,9 +222,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
         textFieldsRight.add(this.textFieldLineWidth);
         textFieldsRight.add(this.textFieldScaled);
         textFieldsRight.add(this.textFieldAxisFontScaled);
-        textFieldsRight.add(this.textFieldGridLineWidth);
-        textFieldsRight.add(this.textFieldAxisLineWidth);
-        textFieldsRight.add(this.textFieldTickLengthFactor);
         try {
             autoTextField("Right", this.textFieldsRight, 0, 25, this.offsetX + 275, this.offsetY + 10, 80, 20);
         } catch (NoSuchFieldException e) {
@@ -246,63 +232,38 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
 
         this.textFieldTileEntityXYZ.setMaxStringLength(100);
         this.textFieldTileEntityXYZ.setFocused(true);
-        this.textFieldTileEntityXYZ.setText(isInitialized ? contents.get(0) : this.tileEntityAdvanceDataMonotor.getXYZ(this.index));
 
         this.textFieldxOffset.setMaxStringLength(100);
-        this.textFieldxOffset.setText(isInitialized ? contents.get(1) : String.valueOf(this.tileEntityAdvanceDataMonotor.getXOffset(this.index)));
 
         this.textFieldyOffset.setMaxStringLength(100);
-        this.textFieldyOffset.setText(isInitialized ? contents.get(2) : String.valueOf(this.tileEntityAdvanceDataMonotor.getYOffset(this.index)));
 
         this.textFieldzOffset.setMaxStringLength(100);
-        this.textFieldzOffset.setText(isInitialized ? contents.get(3) : String.valueOf(this.tileEntityAdvanceDataMonotor.getZOffset(this.index)));
 
         this.textFieldRotationX.setMaxStringLength(100);
-        this.textFieldRotationX.setText(isInitialized ? contents.get(4) : String.valueOf(this.tileEntityAdvanceDataMonotor.getRotationX(this.index)));
 
         this.textFieldRotationY.setMaxStringLength(100);
-        this.textFieldRotationY.setText(isInitialized ? contents.get(5) : String.valueOf(this.tileEntityAdvanceDataMonotor.getRotationY(this.index)));
 
         this.textFieldRotationZ.setMaxStringLength(100);
-        this.textFieldRotationZ.setText(isInitialized ? contents.get(6) : String.valueOf(this.tileEntityAdvanceDataMonotor.getRotationZ(this.index)));
 
         this.textFieldXRange.setMaxStringLength(100);
-        this.textFieldXRange.setText(isInitialized ? contents.get(7) : String.valueOf(this.tileEntityAdvanceDataMonotor.getXRange(this.index)));
 
         this.textFieldYRange.setMaxStringLength(100);
-        this.textFieldYRange.setText(isInitialized ? contents.get(8) : String.valueOf(this.tileEntityAdvanceDataMonotor.getYRange(this.index)));
 
         this.textFieldDataLimit.setMaxStringLength(100);
-        this.textFieldDataLimit.setText(isInitialized ? contents.get(9) : String.valueOf(this.tileEntityAdvanceDataMonotor.getDataLimit(this.index)));
 
         this.textFieldInterval.setMaxStringLength(100);
-        this.textFieldInterval.setText(isInitialized ? contents.get(10) : String.valueOf(this.tileEntityAdvanceDataMonotor.getInterval(this.index)));
 
         // -------------------------------------------------
 
         this.textFieldDisplayName.setMaxStringLength(100);
-        this.textFieldDisplayName.setText(isInitialized ? contents.get(11) : this.tileEntityAdvanceDataMonotor.getDisplayName(this.index));
 
         this.textFieldDisplayNameScale.setMaxStringLength(100);
-        this.textFieldDisplayNameScale.setText(isInitialized ? contents.get(12) : String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayNameScale(this.index)));
 
         this.textFieldLineWidth.setMaxStringLength(100);
-        this.textFieldLineWidth.setText(isInitialized ? contents.get(13) : String.valueOf(this.tileEntityAdvanceDataMonotor.getLineWidth(this.index)));
 
         this.textFieldScaled.setMaxStringLength(100);
-        this.textFieldScaled.setText(isInitialized ? contents.get(14) : String.valueOf(this.tileEntityAdvanceDataMonotor.getScale(this.index)));
 
         this.textFieldAxisFontScaled.setMaxStringLength(100);
-        this.textFieldAxisFontScaled.setText(isInitialized ? contents.get(15) : String.valueOf(this.tileEntityAdvanceDataMonotor.getAxisFontScale(this.index)));
-
-        this.textFieldGridLineWidth.setMaxStringLength(100);
-        this.textFieldGridLineWidth.setText(isInitialized ? contents.get(16) : String.valueOf(this.tileEntityAdvanceDataMonotor.getGridLineWidth(this.index)));
-
-        this.textFieldAxisLineWidth.setMaxStringLength(100);
-        this.textFieldAxisLineWidth.setText(isInitialized ? contents.get(17) : String.valueOf(this.tileEntityAdvanceDataMonotor.getAxisLineWidth(this.index)));
-
-        this.textFieldTickLengthFactor.setMaxStringLength(100);
-        this.textFieldTickLengthFactor.setText(isInitialized ? contents.get(18) : String.valueOf(this.tileEntityAdvanceDataMonotor.getTickLengthFactor(this.index)));
 
         // 保存/取消按钮
         this.buttonList.add(
@@ -438,34 +399,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
                         .setTextColor(textColor)
                         .setTextHoverColor(textHoverColor));
 
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        16,
-                        this.offsetX + buttonRowConfigXoffset1+100,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        10,
-                        10,
-                        I18n.format("+"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(false)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        17,
-                        this.offsetX + buttonRowConfigXoffset1+150,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        10,
-                        10,
-                        I18n.format("-"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(false)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
 
         this.buttonList.add(
@@ -570,8 +503,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
                         .setTextColor(textColor)
                         .setTextHoverColor(textHoverColor));
 
-
-
         setTileEntityDatatype(this.tileEntityAdvanceDataMonotor.getDataType(this.index));
 
         fieldHints.clear();
@@ -591,9 +522,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
         fieldHints.put(textFieldLineWidth, "adm.hint.linewidth");
         fieldHints.put(textFieldScaled, "adm.hint.scale");
         fieldHints.put(textFieldAxisFontScaled, "adm.hint.axisfontscale");
-        fieldHints.put(textFieldGridLineWidth, "adm.hint.gridlinewidth");
-        fieldHints.put(textFieldAxisLineWidth, "adm.hint.axislinewidth");
-        fieldHints.put(textFieldTickLengthFactor, "adm.hint.ticklengthfactor");
 
         getButtonByid(7).displayString = I18n.format(!this.isEnabled ? "adm.button.disable" : "adm.button.enable");
         getButtonByid(8).displayString = I18n.format(!this.isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
@@ -733,22 +661,16 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
                         this.textFieldDisplayNameScale = textField;
                         break;
                     case 2:
-                        this.textFieldLineWidth = textField;
                         break;
                     case 3:
-                        this.textFieldScaled = textField;
                         break;
                     case 4:
-                        this.textFieldAxisFontScaled = textField;
                         break;
                     case 5:
-                        this.textFieldGridLineWidth = textField;
                         break;
                     case 6:
-                        this.textFieldAxisLineWidth = textField;
                         break;
                     case 7:
-                        this.textFieldTickLengthFactor = textField;
                         break;
                 }
             }
@@ -782,22 +704,9 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
         }
     }
 
-    public void autoText(String[] text, int intervalX, int intervalY, int startX, int startY, int color, boolean textCenter) {
         int intervalXCurrent = 0;
         int intervalYCurrent = 0;
-
         for (String t : text) {
-            int xPosition = startX + intervalXCurrent;
-            int yPosition = startY + intervalYCurrent;
-
-            // 居中处理逻辑
-            if (textCenter) {
-                int textWidth = this.fontRendererObj.getStringWidth(t);
-                xPosition = startX - textWidth / 2 + intervalXCurrent; // 基于起始位置居中
-            }
-
-            this.fontRendererObj.drawString(t, xPosition, yPosition, color);
-
             intervalXCurrent += intervalX;
             intervalYCurrent += intervalY;
         }
@@ -811,7 +720,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        System.out.println("Button ID: " + button.id);
         NBTTagCompound nbt;
         // 获取现有数据绑定
         NBTTagCompound existingNbt = this.tileEntityAdvanceDataMonotor.getDataBound(this.index);
@@ -949,28 +857,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
                 } else {
                     nbt.setDouble("axisFontScale", Double.parseDouble(this.textFieldAxisFontScaled.getText()));
                 }
-
-                if (!isValidDouble(this.textFieldGridLineWidth.getText())) {
-                    this.errorTips = I18n.format("adm.error.gridlinewidth");
-                    return;
-                } else {
-                    nbt.setDouble("gridLineWidth", Double.parseDouble(this.textFieldGridLineWidth.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldAxisLineWidth.getText())) {
-                    this.errorTips = I18n.format("adm.error.axislinewidth");
-                    return;
-                } else {
-                    nbt.setDouble("axisLineWidth", Double.parseDouble(this.textFieldAxisLineWidth.getText()));
-                }
-
-                if (!isValidDouble(this.textFieldTickLengthFactor.getText())) {
-                    this.errorTips = I18n.format("adm.error.ticklengthfactor");
-                    return;
-                } else {
-                    nbt.setDouble("tickLengthFactor", Double.parseDouble(this.textFieldTickLengthFactor.getText()));
-                }
-
                 // 后续操作
                 updateDataType(nbt);
                 this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
@@ -1125,34 +1011,10 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
                 }
 
             }
-            case 16 -> {
-                double gridLineAlpha = this.tileEntityAdvanceDataMonotor.getGridLineAlpha(index);
-                int step = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) ? 1 : 10; // 步长转换为整数（1代表0.01）
-                int alphaInt = (int) Math.round(gridLineAlpha * 100); // 转换为整数百分比
-
-                alphaInt += step;
-                if (alphaInt > 100) alphaInt = 0; // 超过100%重置为0
-
-                double newValue = alphaInt / 100.0; // 转回浮点数
-                updateGridLineAlpha(newValue, nbt);
-            }
-            case 17 -> {
-                double gridLineAlpha = this.tileEntityAdvanceDataMonotor.getGridLineAlpha(index);
-                int step = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) ? 1 : 10;
-                int alphaInt = (int) Math.round(gridLineAlpha * 100);
-
-                alphaInt -= step;
-                if (alphaInt < 0) alphaInt = 100; // 低于0重置为100%
-
-                double newValue = alphaInt / 100.0;
-                updateGridLineAlpha(newValue, nbt);
-            }
-
             default -> {
                 // 处理其他按钮的行为
             }
         }
-
     }
 
     @Override
@@ -1226,22 +1088,7 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
                 I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"),I18n.format("adm.label.xrotation"), I18n.format("adm.label.yrotation"),
                 I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"), I18n.format("adm.label.yrange"),
                 I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval") };
-        autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor, false);
         String[] label2 = { I18n.format("adm.label.displayname"),
-                I18n.format("adm.label.displaynamescale"), I18n.format("adm.label.linewidth"), I18n.format("adm.label.scaled"),
-                I18n.format("adm.label.axisfontscaled"),
-                I18n.format("adm.label.gridlinewidth"), // 新增标签
-                I18n.format("adm.label.axislinewidth"), // 新增标签
-                I18n.format("adm.label.ticklengthfactor") }; // 新增标签
-        autoText(label2, 0, 25, this.offsetX + 170, this.offsetY + 10, this.textColor, false);
-        String[] label3 = {
-                I18n.format("adm.label.gridlinealpha")
-        };
-        autoText(label3, 0, 25, this.offsetX + 490, this.offsetY + 10, this.textColor, true);
-        String[] label4 = {
-                tileEntityAdvanceDataMonotor.getGridLineAlpha(index)+""
-        };
-        autoText(label4, 0, 25, this.offsetX + 490, this.offsetY + 20, this.textColor, true);
         this.drawCenteredString(
                 this.fontRendererObj,
                 I18n.format("adm.title.data_config_ae_network", this.index + 1), // 本地化标题
@@ -1340,7 +1187,6 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
 
                 // 特殊字段颜色处理
                 int contentColor = 0xFFFFFF;
-
 
                 // 绘制内容（带下划线）
                 this.fontRendererObj.drawStringWithShadow(
@@ -1465,19 +1311,4 @@ public class GuiSubAENetworkAdvanceDataMonitor extends ADM_GuiScreen {
 
     }
 
-    private void updateGridLineAlpha(double newValue, NBTTagCompound nbt) {
-        nbt.setDouble("gridLineAlpha", newValue);
-        tileEntityAdvanceDataMonotor.setGridLineWidth(index, newValue);
-        this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
-        this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                new PacketSynTileEntity(
-                        tileEntityAdvanceDataMonotor.xCoord,
-                        tileEntityAdvanceDataMonotor.yCoord,
-                        tileEntityAdvanceDataMonotor.zCoord,
-                        nbt
-                )
-        );
     }
-
-}

@@ -17,7 +17,6 @@ import appeng.tile.storage.TileChest;
 import appeng.tile.storage.TileDrive;
 import com.glodblock.github.common.storage.FluidCellInventoryHandler;
 import com.glodblock.github.common.storage.IFluidCellInventory;
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
@@ -42,8 +41,6 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile {
     private int fluidUsedBytes = 0;
     private int fluidTotalTypes = 0;
     private int fluidUsedTypes = 0;
-
-    public int facing = 0;
 
     public TileEntityAdvanceNetworkLink() {
         this.getProxy().setFlags(new GridFlags[]{GridFlags.REQUIRE_CHANNEL});
@@ -151,19 +148,16 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile {
                 }
             }
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("Error retrieving network tiles: " + e.getMessage());
         }
         return list;
     }
 
     private static TileEntity getBaseTileEntity(DimensionalCoord coord) {
         if (coord == null) {
-            AdvanceDataMonitor.LOG.fatal("Coord is null");
             return null;
         }
         World world = coord.getWorld();
         if (world == null) {
-            AdvanceDataMonitor.LOG.fatal("World is null");
             return null;
         }
         return world.getTileEntity(coord.x, coord.y, coord.z);
@@ -246,9 +240,4 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile {
     public int getFluidUsedTypes() {
         return this.fluidUsedTypes;
     }
-
-    public int getFacing() {
-        return facing;
-    }
-
 }

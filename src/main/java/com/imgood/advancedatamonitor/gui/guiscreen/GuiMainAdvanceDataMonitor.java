@@ -5,8 +5,6 @@ import java.util.List;
 
 import com.imgood.advancedatamonitor.renders.RenderAdvanceDataMonotor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
-import com.imgood.advancedatamonitor.utils.BlockPos;
-import com.imgood.advancedatamonitor.utils.TileEntityTypeHelper;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.resources.I18n;
@@ -19,7 +17,6 @@ import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
 import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
@@ -36,7 +33,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     private static final ResourceLocation button_hover_texture_2020 = new ResourceLocation(
             AdvanceDataMonitor.MODID,
             "textures/gui/button_hover_ADM_2020.png");
-    private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonitor;
+    private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
     private final RenderAdvanceDataMonotor renderer = new RenderAdvanceDataMonotor();
     private EntityPlayer player;
     private World world;
@@ -60,19 +57,17 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     private int buttonRow1Width = 40;
     private int buttonRow2Width = 40;
 
-    public boolean TEST_MODE = true;
-
     public GuiMainAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity) {
         this.player = player;
         this.world = world;
-        this.tileEntityAdvanceDataMonitor = tileEntity;
+        this.tileEntityAdvanceDataMonotor = tileEntity;
         this.facing = tileEntity.facing;
         this.displayDataSize = tileEntity.getDisplayDataSize();
         this.loadDataFromTileEntity();
     }
 
-    public GuiMainAdvanceDataMonitor(TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonitor) {
-        this.tileEntityAdvanceDataMonitor = tileEntityAdvanceDataMonitor;
+    public GuiMainAdvanceDataMonitor(TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor) {
+        this.tileEntityAdvanceDataMonotor = tileEntityAdvanceDataMonotor;
     }
 
     @Override
@@ -80,7 +75,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         super.initGui();
         this.buttonList.clear();
 
-        this.currentFacing = getFacingString(this.tileEntityAdvanceDataMonitor.facing);
+        this.currentFacing = switch (this.tileEntityAdvanceDataMonotor.facing) {
+            case 0 -> I18n.format("adm.direction.south");
+            case 1 -> I18n.format("adm.direction.west");
+            case 2 -> I18n.format("adm.direction.north");
+            default -> I18n.format("adm.direction.east");
+        };
 
         this.offsetX = (this.width / 2) - 192;
         this.offsetY = (this.height / 2) - 90;
@@ -90,16 +90,63 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.setSize(420, 260);
         this.setStretch(false);
 
-        // 方向选择按钮（修改为单个循环按钮）
+        // 方向选择按钮（修改部分）
         this.buttonList.add(
                 new ADM_GuiButton(
                         100,
                         this.offsetX + 0,
                         this.offsetY + buttonRowYOffset1,
-                        buttonRow1Width, // 加宽按钮
+                        buttonRow2Width,
                         20,
-                        currentFacing) // 显示当前方向
-                        .setTexture(button_texture)
+                        I18n.format("adm.direction.north")).setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(buttonRow1RGB)
+                        .setUseHoverEffect(true)
+                        .setLeftDecoration(button_hover_texture)
+                        .setRightDecoration(button_hover_texture)
+                        .setDecorationWidth(20)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+        this.buttonList.add(
+                new ADM_GuiButton(
+                        101,
+                        this.offsetX + 60,
+                        this.offsetY + buttonRowYOffset1,
+                        buttonRow2Width,
+                        20,
+                        I18n.format("adm.direction.east")).setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(buttonRow1RGB)
+                        .setUseHoverEffect(true)
+                        .setLeftDecoration(button_hover_texture)
+                        .setRightDecoration(button_hover_texture)
+                        .setDecorationWidth(20)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+        this.buttonList.add(
+                new ADM_GuiButton(
+                        102,
+                        this.offsetX + 120,
+                        this.offsetY + buttonRowYOffset1,
+                        buttonRow2Width,
+                        20,
+                        I18n.format("adm.direction.west")).setTexture(button_texture)
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(buttonRow1RGB)
+                        .setUseHoverEffect(true)
+                        .setLeftDecoration(button_hover_texture)
+                        .setRightDecoration(button_hover_texture)
+                        .setDecorationWidth(20)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
+        this.buttonList.add(
+                new ADM_GuiButton(
+                        103,
+                        this.offsetX + 180,
+                        this.offsetY + buttonRowYOffset1,
+                        buttonRow2Width,
+                        20,
+                        I18n.format("adm.direction.south")).setTexture(button_texture)
                         .setHoverTexture(button_hover_texture)
                         .setUseRGBEffect(buttonRow1RGB)
                         .setUseHoverEffect(true)
@@ -134,7 +181,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         this.offsetY + buttonRowYOffset2,
                         buttonRow1Width,
                         20,
-                        I18n.format("adm.button.add")).setTexture(button_texture)
+                        I18n.format("adm.button.hide")).setTexture(button_texture)
                         .setHoverTexture(button_hover_texture)
                         .setUseRGBEffect(buttonRow1RGB)
                         .setUseHoverEffect(true)
@@ -146,12 +193,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
         this.buttonList.add(
                 new ADM_GuiButton(
-                        108,
+                        106,
                         this.offsetX + 120,
                         this.offsetY + buttonRowYOffset2,
                         buttonRow1Width,
                         20,
-                        I18n.format("adm.button.add")).setTexture(button_texture)
+                        I18n.format("adm.button.hide")).setTexture(button_texture)
                         .setHoverTexture(button_hover_texture)
                         .setUseRGBEffect(buttonRow1RGB)
                         .setUseHoverEffect(true)
@@ -168,40 +215,6 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         this.offsetY + buttonRowYOffset2,
                         buttonRow1Width,
                         20,
-                        I18n.format("adm.button.add")).setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow1RGB)
-                        .setUseHoverEffect(true)
-                        .setLeftDecoration(button_hover_texture)
-                        .setRightDecoration(button_hover_texture)
-                        .setDecorationWidth(20)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        106,
-                        this.offsetX + 120,
-                        this.offsetY + buttonRowYOffset1,
-                        buttonRow1Width,
-                        20,
-                        I18n.format("adm.button.hide")).setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow1RGB)
-                        .setUseHoverEffect(true)
-                        .setLeftDecoration(button_hover_texture)
-                        .setRightDecoration(button_hover_texture)
-                        .setDecorationWidth(20)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
-
-        this.buttonList.add(
-                new ADM_GuiButton(
-                        109,
-                        this.offsetX + 180,
-                        this.offsetY + buttonRowYOffset1,
-                        buttonRow1Width,
-                        20,
                         I18n.format("adm.button.single")).setTexture(button_texture)
                         .setHoverTexture(button_hover_texture)
                         .setUseRGBEffect(buttonRow1RGB)
@@ -212,44 +225,69 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         .setTextColor(textColor)
                         .setTextHoverColor(textHoverColor));
 
-
         addButtonsForExistingData(this.displayDataSize, 20, 20, 12, this.offsetX + 5, this.offsetY - 10, 10, 10);
         refreshButtons();
-    }
-
-    // 新增方法：根据方向值获取对应的本地化字符串
-    private String getFacingString(int facing) {
-        return switch (facing) {
-            case 0 -> I18n.format("adm.direction.south");
-            case 1 -> I18n.format("adm.direction.west");
-            case 2 -> I18n.format("adm.direction.north");
-            default -> I18n.format("adm.direction.east");
-        };
     }
 
     @Override
     protected void actionPerformed(GuiButton button) {
         NBTTagCompound nbt = new NBTTagCompound();
-        System.out.println("button.id:"+button.id);
+
         switch (button.id) {
-
             case 100 -> {
-                // 循环切换方向：0->1->2->3->0...
-                int newFacing = (this.tileEntityAdvanceDataMonitor.facing + 1) % 4;
-                this.tileEntityAdvanceDataMonitor.setFacing(newFacing);
-                this.currentFacing = getFacingString(newFacing);
-
-                nbt.setInteger("facing", newFacing);
-                this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
+                this.tileEntityAdvanceDataMonotor.setFacing(2);
+                this.currentFacing = I18n.format("adm.direction.north");
+                nbt.setInteger("facing", 2);
+                this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(
                         new PacketSynTileEntity(
-                                tileEntityAdvanceDataMonitor.xCoord,
-                                tileEntityAdvanceDataMonitor.yCoord,
-                                tileEntityAdvanceDataMonitor.zCoord,
+                                tileEntityAdvanceDataMonotor.xCoord,
+                                tileEntityAdvanceDataMonotor.yCoord,
+                                tileEntityAdvanceDataMonotor.zCoord,
                                 nbt));
-
-                // 更新按钮文本
-                button.displayString = this.currentFacing;
+                initGui();
+                refreshButtons();
+            }
+            case 101 -> {
+                this.tileEntityAdvanceDataMonotor.setFacing(3);
+                this.currentFacing = I18n.format("adm.direction.east");
+                nbt.setInteger("facing", 3);
+                this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                        new PacketSynTileEntity(
+                                tileEntityAdvanceDataMonotor.xCoord,
+                                tileEntityAdvanceDataMonotor.yCoord,
+                                tileEntityAdvanceDataMonotor.zCoord,
+                                nbt));
+                initGui();
+                refreshButtons();
+            }
+            case 102 -> {
+                this.tileEntityAdvanceDataMonotor.setFacing(1);
+                this.currentFacing = I18n.format("adm.direction.west");
+                nbt.setInteger("facing", 1);
+                this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                        new PacketSynTileEntity(
+                                tileEntityAdvanceDataMonotor.xCoord,
+                                tileEntityAdvanceDataMonotor.yCoord,
+                                tileEntityAdvanceDataMonotor.zCoord,
+                                nbt));
+                initGui();
+                refreshButtons();
+            }
+            case 103 -> {
+                this.tileEntityAdvanceDataMonotor.setFacing(0);
+                this.currentFacing = I18n.format("adm.direction.south");
+                nbt.setInteger("facing", 0);
+                this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                        new PacketSynTileEntity(
+                                tileEntityAdvanceDataMonotor.xCoord,
+                                tileEntityAdvanceDataMonotor.yCoord,
+                                tileEntityAdvanceDataMonotor.zCoord,
+                                nbt));
+                initGui();
                 refreshButtons();
             }
             case 105 -> {
@@ -266,48 +304,39 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 }
             }
             case 104 -> {
-                if (this.displayDataSize <= 35) {
-                    openSubAEMenu();
-                } else {
-                    mc.displayGuiScreen(
-                            new GuiScreenMessage(
-                                    this.player,
-                                    this.world,
-                                    GuiScreenMessage.MessageType.WARNING,
-                                    I18n.format("adm.error.max_data"),
-                                    this));
-                }
-            }
-            case 106 -> {
                 boolean visableBody = button.displayString.equals(I18n.format("adm.button.show"));
-                this.tileEntityAdvanceDataMonitor.setVisableBody(visableBody);
-                this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
+                this.tileEntityAdvanceDataMonotor.setVisableBody(visableBody);
+                this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
                 // 同步到服务器
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(
                         new PacketSynTileEntity(
-                                tileEntityAdvanceDataMonitor.xCoord,
-                                tileEntityAdvanceDataMonitor.yCoord,
-                                tileEntityAdvanceDataMonitor.zCoord,
+                                tileEntityAdvanceDataMonotor.xCoord,
+                                tileEntityAdvanceDataMonotor.yCoord,
+                                tileEntityAdvanceDataMonotor.zCoord,
                                 nbt));
                 refreshButtons();
             }
+            case 106 -> {
+                boolean visableScreen = button.displayString.equals(I18n.format("adm.button.show"));
+                this.tileEntityAdvanceDataMonotor.setVisableScreen(visableScreen);
+                refreshButtons();
+            }
             case 107 -> {
-
+                this.tileEntityAdvanceDataMonotor.setVisableBack(!this.tileEntityAdvanceDataMonotor.isVisableBack());
+                button.displayString = this.tileEntityAdvanceDataMonotor.isVisableBack()
+                        ? I18n.format("adm.button.single")
+                        : I18n.format("adm.button.both");
+                refreshButtons();
             }
             default -> {
                 if (button.id <= 36) {
-                    if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)){
-                        openSubColorConfigMenu(button.id);
-                    } else {
-                        openSubMenu(button.id);
-                    }
-
+                    openSubMenu(button.id);
                 }
             }
         }
 
-        tileEntityAdvanceDataMonitor.syncData();
-        tileEntityAdvanceDataMonitor.markDirty();
+        tileEntityAdvanceDataMonotor.syncData();
+        tileEntityAdvanceDataMonotor.markDirty();
     }
 
     public void addButtonsForExistingData(int displayDataSize, int buttonWidth, int buttonHeight, int maxButtonsPerRow,
@@ -334,41 +363,13 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 new GuiSubAdvanceDataMonitor(
                         this.player,
                         this.world,
-                        this.tileEntityAdvanceDataMonitor,
-                        this.displayDataSize));
-    }
-
-    private void openSubAEMenu() {
-        mc.displayGuiScreen(
-                new GuiSubAEAdvanceDataMonitor(
-                        this.player,
-                        this.world,
-                        this.tileEntityAdvanceDataMonitor,
+                        this.tileEntityAdvanceDataMonotor,
                         this.displayDataSize));
     }
 
     private void openSubMenu(int index) {
-        BlockPos pos = new BlockPos(tileEntityAdvanceDataMonitor.getXYZ(index), this.world);
-        if (TileEntityTypeHelper.getTileEntityType (pos) == TileEntityTypeHelper.TileEntityType.AE) {
-            mc.displayGuiScreen(
-                    new GuiSubAEAdvanceDataMonitor(this.player, this.world, this.tileEntityAdvanceDataMonitor, index)
-            );
-        } else if (TileEntityTypeHelper.getTileEntityType(pos) ==
-                TileEntityTypeHelper.TileEntityType.NETWORKLINK ||
-                TileEntityTypeHelper.getTileEntityType(pos) ==
-                        TileEntityTypeHelper.TileEntityType.ADV_NETWORKLINK) {
-            mc.displayGuiScreen(
-                    new GuiSubAENetworkAdvanceDataMonitor(this.player, this.world, this.tileEntityAdvanceDataMonitor, index)
-            );
-        } else {
-            mc.displayGuiScreen(
-                    new GuiSubAdvanceDataMonitor(this.player, this.world, this.tileEntityAdvanceDataMonitor, index));
-        }
-    }
-
-    private void openSubColorConfigMenu(int index) {
         mc.displayGuiScreen(
-                new GuiSubColorConfigAdvanceDataMonitor(this.player, this.world, this.tileEntityAdvanceDataMonitor, index));
+                new GuiSubAdvanceDataMonitor(this.player, this.world, this.tileEntityAdvanceDataMonotor, index));
     }
 
     public void onNewDataSaved(NBTTagCompound newData) {
@@ -383,21 +384,29 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     }
 
     public void refreshButtons() {
-        // 更新方向按钮文本
         for (GuiButton guiButton : this.buttonList) {
-            if (guiButton.id == 100) {
-                guiButton.displayString = this.currentFacing;
-                break;
+            if (guiButton.displayString.equals(currentFacing)) {
+                guiButton.enabled = false;
+            } else {
+                guiButton.enabled = true;
             }
         }
-
-        // 更新其他按钮状态
         for (GuiButton guiButton : this.buttonList) {
             switch (guiButton.id) {
-                case 106 -> {
-                    guiButton.displayString = this.tileEntityAdvanceDataMonitor.isVisableBody()
+                case 104 -> {
+                    guiButton.displayString = this.tileEntityAdvanceDataMonotor.isVisableBody()
                             ? I18n.format("adm.button.hide")
                             : I18n.format("adm.button.show");
+                }
+                case 106 -> {
+                    guiButton.displayString = this.tileEntityAdvanceDataMonotor.isVisableScreen()
+                            ? I18n.format("adm.button.hide")
+                            : I18n.format("adm.button.show");
+                }
+                case 107 -> {
+                    guiButton.displayString = this.tileEntityAdvanceDataMonotor.isVisableBack()
+                            ? I18n.format("adm.button.single")
+                            : I18n.format("adm.button.both");
                 }
             }
         }
@@ -405,7 +414,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
     private void loadDataFromTileEntity() {
         NBTTagCompound nbt = new NBTTagCompound();
-        this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
+        this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
         int count = nbt.getInteger("DataCount");
         for (int i = 0; i < count; i++) {
             dataList.add(nbt.getCompoundTag("Data" + i));
@@ -418,7 +427,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         for (int i = 0; i < dataList.size(); i++) {
             nbt.setTag("Data" + i, dataList.get(i));
         }
-        this.tileEntityAdvanceDataMonitor.readFromNBT(nbt);
+        this.tileEntityAdvanceDataMonotor.readFromNBT(nbt);
     }
 
     private boolean isMouseOverButton(GuiButton button, int mouseX, int mouseY) {
@@ -442,8 +451,8 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.drawCenteredString(
                 this.fontRendererObj,
                 I18n.format("adm.label.facing"),
-                this.offsetX + 20,
-                this.offsetY + 88,
+                this.offsetX + 110,
+                this.offsetY + 85,
                 this.textColor);
         this.drawCenteredString(
                 this.fontRendererObj,
@@ -453,31 +462,19 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.textColor);
         this.drawCenteredString(
                 this.fontRendererObj,
-                I18n.format("adm.label.aestorage"),
+                I18n.format("adm.label.body"),
                 this.offsetX + 85,
                 this.offsetY + 130,
                 this.textColor);
         this.drawCenteredString(
                 this.fontRendererObj,
-                I18n.format("adm.label.body"),
-                this.offsetX + 135,
-                this.offsetY + 88,
-                this.textColor);
-        this.drawCenteredString(
-                this.fontRendererObj,
-                I18n.format("adm.label.back"),
-                this.offsetX + 200,
-                this.offsetY + 88,
-                this.textColor);
-        this.drawCenteredString(
-                this.fontRendererObj,
-                I18n.format("adm.label.aenetwork"),
+                I18n.format("adm.label.screen"),
                 this.offsetX + 135,
                 this.offsetY + 130,
                 this.textColor);
         this.drawCenteredString(
                 this.fontRendererObj,
-                I18n.format("adm.label.player"),
+                I18n.format("adm.label.back"),
                 this.offsetX + 200,
                 this.offsetY + 130,
                 this.textColor);
@@ -491,40 +488,40 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         String.format(
                                 "%s: %s",
                                 I18n.format("adm.tooltip.position"),
-                                tileEntityAdvanceDataMonitor.getXYZ(button.id)));
+                                tileEntityAdvanceDataMonotor.getXYZ(button.id)));
                 tooltipData.add(
                         String.format(
                                 "%s: %s",
                                 I18n.format("adm.tooltip.displayname"),
-                                tileEntityAdvanceDataMonitor.getEnable(button.id) ?
-                                        tileEntityAdvanceDataMonitor.getDisplayName(button.id) :
-                                        "§m" + tileEntityAdvanceDataMonitor.getDisplayName(button.id)));;
+                                tileEntityAdvanceDataMonotor.getEnable(button.id) ?
+                                        tileEntityAdvanceDataMonotor.getDisplayName(button.id) :
+                                        "§m" + tileEntityAdvanceDataMonotor.getDisplayName(button.id)));;
                 tooltipData.add(
                         String.format(
                                 "%s: %s",
                                 I18n.format("adm.tooltip.datatype"),
-                                tileEntityAdvanceDataMonitor.getDataType(button.id)));
+                                tileEntityAdvanceDataMonotor.getDataType(button.id)));
                 tooltipData.add(
                         String.format(
                                 "%s: %s",
                                 I18n.format("adm.tooltip.dataname"),
-                                tileEntityAdvanceDataMonitor.getName(button.id)));
+                                tileEntityAdvanceDataMonotor.getName(button.id)));
                 tooltipData.add(
                         String.format(
                                 "%s",
-                                tileEntityAdvanceDataMonitor.getEnableAxis(button.id) ?
+                                tileEntityAdvanceDataMonotor.getEnableAxis(button.id) ?
                                         I18n.format("adm.tooltip.enableAxis") :
                                         "§m" + I18n.format("adm.tooltip.enableAxis")));
                 tooltipData.add(
                         String.format(
                                 "%s",
-                                tileEntityAdvanceDataMonitor.getEnableData(button.id) ?
+                                tileEntityAdvanceDataMonotor.getEnableData(button.id) ?
                                         I18n.format("adm.tooltip.enableData") :
                                         "§m" + I18n.format("adm.tooltip.enableData")));
                 tooltipData.add(
                         String.format(
                                 "%s",
-                                tileEntityAdvanceDataMonitor.getEnableAxisFont(button.id) ?
+                                tileEntityAdvanceDataMonotor.getEnableAxisFont(button.id) ?
                                         I18n.format("adm.tooltip.enableAxisFont") :
                                         "§m" + I18n.format("adm.tooltip.enableAxisFont")));
                 drawColoredHoveringText(tooltipData, mouseX, mouseY, button.id);
@@ -589,7 +586,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 int contentColor = 0xFFFFFF; // 默认白色
                 if (prefix.equals(displayNamePrefix)) {
                     // 从TileEntity获取显示名称颜色
-                    contentColor = Integer.parseInt(tileEntityAdvanceDataMonitor.getDisplayNameColor(buttonId), 16);
+                    contentColor = Integer.parseInt(tileEntityAdvanceDataMonotor.getDisplayNameColor(buttonId), 16);
                 }
 
                 this.fontRendererObj.drawStringWithShadow(
@@ -599,7 +596,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         contentColor // 使用动态颜色
                 );
                 // 绘制内容部分（带下划线）
-                if (tileEntityAdvanceDataMonitor.getEnable(buttonId)) {
+                if (tileEntityAdvanceDataMonotor.getEnable(buttonId)) {
                     this.fontRendererObj.drawStringWithShadow(
                             "§n" + content,
                             tooltipX + this.fontRendererObj.getStringWidth(prefix) + 2,
@@ -621,17 +618,17 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.fontRendererObj.drawStringWithShadow(line, tooltipX, currentY, 0x00FFFF);
                 switch (lineCount) {
                     case 4:
-                        if (!tileEntityAdvanceDataMonitor.getEnableAxis(buttonId)) {
+                        if (!tileEntityAdvanceDataMonotor.getEnableAxis(buttonId)) {
                             this.fontRendererObj.drawStringWithShadow(line, tooltipX, currentY, 0xFF0000);
                         }
                         break;
                     case 5:
-                        if (!tileEntityAdvanceDataMonitor.getDataBound(buttonId).getBoolean("enableData")) {
+                        if (!tileEntityAdvanceDataMonotor.getDataBound(buttonId).getBoolean("enableData")) {
                             this.fontRendererObj.drawStringWithShadow(line, tooltipX, currentY, 0xFF0000);
                         }
                         break;
                     case 6:
-                        if (!tileEntityAdvanceDataMonitor.getDataBound(buttonId).getBoolean("enableAxisFont")) {
+                        if (!tileEntityAdvanceDataMonotor.getDataBound(buttonId).getBoolean("enableAxisFont")) {
                             this.fontRendererObj.drawStringWithShadow(line, tooltipX, currentY, 0xFF0000);
                         }
                         break;
@@ -680,7 +677,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         // 创建虚拟TileEntity
         TileEntityAdvanceDataMonitor virtualTE = new TileEntityAdvanceDataMonitor();
         virtualTE.setFacing(this.facing);
-        virtualTE.getDataBoundList().putAll(tileEntityAdvanceDataMonitor.getDataBoundList());
+        virtualTE.getDataBoundList().putAll(tileEntityAdvanceDataMonotor.getDataBoundList());
 
         // 实际渲染
         renderer.renderTileEntityAt(virtualTE, 0, 0, 0, 0);

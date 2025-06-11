@@ -17,9 +17,6 @@ adm.error.displayscale=Title scale must be a valid number between 0.1-5.0
 adm.error.axisfontscale=Axis font scale must be a valid number between 0.1-2.0
 adm.error.axislinecolor=Axis line color format invalid. Use hexadecimal (e.g. FF00FF)
 adm.error.axisfontcolor=Axis font color format invalid. Use hexadecimal (e.g. FF00FF)
-adm.error.gridlinewidth=Grid line width must be a number greater than 0
-adm.error.axislinewidth=Axis line width must be a number greater than 0
-adm.error.ticklengthfactor=Tick length factor must be a number greater than 0
 
 adm.label.xyz=§lX,Y,Z
 adm.label.xoffset=§lX Offset
@@ -43,10 +40,6 @@ adm.label.displaynamecolor=§lTitle Color
 adm.label.linewidth=§lLine Width
 adm.label.scaled=§lScaled
 adm.label.axisfontscaled=§lAxis Font Scale
-adm.label.gridlinewidth=§lGrid Line Width
-adm.label.axislinewidth=§lAxis Line Width
-adm.label.ticklengthfactor=§lTick Length
-adm.label.gridlinealpha=§lGrid Line Alpha
 
 # Buttons
 adm.button.save=Save
@@ -57,15 +50,6 @@ adm.button.enableAxis=§lAxis
 adm.button.disableAxis=§l§mAxis
 adm.button.enableData=§lData
 adm.button.disableData=§l§mData
-adm.button.enableAxisFont=§lAxisFont
-adm.button.dataType.Item=§lItem
-adm.button.dataType.Fluid=§lFluid
-adm.button.dataType.Used=§lUsed
-adm.button.dataType.Total=§lTotal
-adm.button.dataType.Value=§lValue
-adm.button.dataType.Percent=§lPercent
-adm.button.dataType.Bytes=§lBytes
-adm.button.dataType.Type=§lType
 
 # Chart types
 adm.datatype.line=Line
@@ -76,9 +60,6 @@ adm.datatype.difference=Difference
 
 # Title
 adm.title.data_config=§lData Config Of §n%s
-adm.title.data_config_ae=§lAEData Config Of §n%s
-adm.title.data_config_ae_network=§lAENetwork Config Of §n%s
-adm.title.data_config_color=§lColor Config Of §n%s
 
 # Main GUI
 adm.direction.north=North
@@ -95,9 +76,6 @@ adm.label.facing=Facing
 adm.label.data=Data
 adm.label.body=Body
 adm.label.screen=Screen
-adm.label.aestorage=AEStorage
-adm.label.aenetwork=AENetwork
-adm.label.player=Player
 adm.label.back=Back
 adm.tooltip.displayname=Title
 adm.tooltip.position=Position
@@ -106,11 +84,6 @@ adm.tooltip.dataname=DataName
 adm.tooltip.enableAxis=Axis
 adm.tooltip.enableData=Data
 adm.tooltip.enableAxisFont=AxisFont
-adm.message.data_cleared=DataCleared
-adm.message.data_collected=DataCollected
-adm.tooltip.clearData=Clear Saved Data
-adm.tooltip.clearData.shift=Please press the Shift key to avoid accidental operations
-adm.tooltip.clear=Clear Saved Data
 adm.error.max_data=Maximum data reached
 adm.debug.mouse_position=Mouse Position
 
@@ -137,8 +110,5 @@ adm.hint.linecolor=Chart line color (hexadecimal format e.g. FF00FF)
 adm.hint.linewidth=Chart line thickness (positive number greater than 0)
 adm.hint.scale=Global scaling ratio (positive number greater than 0)
 adm.hint.axisfontscale=Axis label text scaling (positive number greater than 0)
-adm.hint.gridlinewidth=Set grid line width (number greater than 0, e.g. 1.0 or 2.5)
-adm.hint.axislinewidth=Set axis line width (number greater than 0, e.g. 1.0 or 2.5)
-adm.hint.ticklengthfactor=Set scaling factor for tick length (number > 0, e.g. 1.0=standard, 0.5=half, 2.0=double)
 
 adm.property.tips=§lProperty Explanation:
