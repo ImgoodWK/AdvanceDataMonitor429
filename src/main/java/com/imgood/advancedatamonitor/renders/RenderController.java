@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RenderController {
+
     private static final Map<String, IADMRender> RENDERERS = new HashMap<>();
 
     public static void registerRenderer(String type, IADMRender renderer) {
@@ -14,4 +15,3 @@ public class RenderController {
         return RENDERERS.getOrDefault(type, null);
     }
 }
-

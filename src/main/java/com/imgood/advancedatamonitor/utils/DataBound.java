@@ -42,6 +42,8 @@ public class DataBound {
 
     public enum DataType {
         line,
+        crafting,
+        storage,
         bar,
         bar3d,
         waterfall,

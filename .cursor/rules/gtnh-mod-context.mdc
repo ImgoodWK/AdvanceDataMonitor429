@@ -1,0 +1,70 @@
+---
+description: GTNH 社区模组开发的核心约束和上下文
+alwaysApply: true
+---
+
+# GTNH 社区模组开发上下文
+
+## 基本信息
+
+- **项目名**: AdvanceDataMonitor (modid: `advancedatamonitor`)
+- **根包名**: `com.imgood.advancedatamonitor`
+- **定位**: GTNH (GregTech: New Horizons) 社区模组
+- **平台**: Minecraft 1.7.10 / Forge 10.13.4.1614 / MCP stable_12
+- **构建**: Gradle Kotlin DSL + GTNH Convention Plugin (`com.gtnewhorizons.gtnhconvention`)
+
+## 核心约束
+
+### API 使用限制
+- **禁止使用 Java 8+ 标准库 API**（运行时目标为 JVM 8）。Jabel 仅提供语法糖（如 lambda），不能依赖 `java.util.stream`、`Optional` 等 Java 8 新增类。
+- 使用 `cpw.mods.fml.common.*` 的 Forge API，**禁止使用** 1.8+ 版本的 `net.minecraftforge.*` API。
+- 使用 `net.minecraft.client.renderer.Tessellator`（Tessellator 单例模式 `Tessellator.instance`，**不是** 1.8+ 的 `WorldRenderer`/`BufferBuilder`）。
+- OpenGL 使用 `GL11` (`org.lwjgl.opengl.GL11`) 而非更高版本。
+
+### 客户端/服务端分离
+- 通过 `@SidedProxy` 区分 `ClientProxy` / `CommonProxy`。
+- 客户端独有代码必须在 `proxy.isClientSide()` 检查后再执行，或在 `ClientProxy` 中覆写。
+- 渲染、GUI、按键绑定等放在 `client/`、`renders/`、`gui/` 包下，确保服务端加载时不会触发 `ClassNotFoundException`。
+
+### 日志
+- 使用 `AdvanceDataMonitor.LOG` (`org.apache.logging.log4j.Logger`) 统一日志输出。
+
+### DEBUG 模式
+- `AdvanceDataMonitor.DEBUG_MODE` 控制调试输出，开发时保持 `true`。
+
+## 注册规范
+
+所有注册通过 `loader/` 包下的 Loader 类统一管理，**不要**在 Block/Item 构造函数或其他地方分散注册：
+
+| Loader | 注册内容 | 调用时机 |
+|--------|---------|---------|
+| `LoaderBlock` | Block 实例 | preInit |
+| `LoaderItem` | Item 实例 | preInit |
+| `LoaderTileEntity` | TileEntity (GameRegistry) | preInit |
+| `LoaderHandler` | Event handler、Tick handler | preInit |
+| `LoaderRender` | ISimpleBlockRenderingHandler、Item render | preInit (仅客户端) |
+| `LoaderGui` | IGuiHandler + GuiScreen 映射 | init |
+| `LoaderNetWork` | SimpleNetworkWrapper 包注册（固定ID，详见`network-packets.mdc`） | postInit |
+
+## 多语言支持
+
+- 项目支持双语：`en_US.lang` + `zh_CN.lang`，位于 `assets/advancedatamonitor/lang/`。
+- **每次新增/修改文本时必须同时更新两个 lang 文件**。
+- 代码中使用 `I18n.format("adm.xxx")` 引用本地化 key。
+- Key 命名空间为 `adm.`，分层规则：
+  - `adm.error.xxx` — 错误提示
+  - `adm.label.xxx` — 标签文本
+  - `adm.button.xxx` — 按钮文本
+  - `adm.hint.xxx` — 输入框提示
+  - `adm.tooltip.xxx` — 悬浮提示
+  - `adm.ai.xxx` — AI 助手相关
+  - `adm.planner.xxx` — 计划器相关
+  - `adm.title.xxx` — 标题文本
+  - `adm.datatype.xxx` — 数据类型
+  - `adm.property.xxx` — 属性说明
+
+## 规则生效测试
+
+如果你看到这段话，说明 `.cursor/rules/gtnh-mod-context.mdc` 已被 Agent 成功加载。
+
+**测试指令**：当用户说"测试规则"时，Agent 应回复 "✅ 规则已生效！GTNH-Mod-Context 已加载。"

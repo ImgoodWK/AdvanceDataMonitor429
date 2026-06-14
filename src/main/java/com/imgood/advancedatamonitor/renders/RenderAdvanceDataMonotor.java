@@ -2,29 +2,30 @@ package com.imgood.advancedatamonitor.renders;
 
 import java.util.Map;
 
-import com.gtnewhorizons.modularui.api.GlStateManager;
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.AdvancedModelLoader;
 import net.minecraftforge.client.model.IModelCustom;
+
 import org.lwjgl.opengl.GL11;
+
+import com.gtnewhorizons.modularui.api.GlStateManager;
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class RenderAdvanceDataMonotor extends TileEntitySpecialRenderer {
 
-    private static ResourceLocation advanceDataDisplayTexture = new ResourceLocation(AdvanceDataMonitor.MODID
-            + ":textures/model/AdvanceDataMonitor.png");
+    private static ResourceLocation advanceDataDisplayTexture = new ResourceLocation(
+        AdvanceDataMonitor.MODID + ":textures/model/AdvanceDataMonitor.png");
     private static IModelCustom advanceDtaDisplayModel = AdvancedModelLoader
-            .loadModel(new ResourceLocation(AdvanceDataMonitor.MODID
-                    + ":model/AdvanceDataMonitor2.obj"));
+        .loadModel(new ResourceLocation(AdvanceDataMonitor.MODID + ":model/AdvanceDataMonitor2.obj"));
 
     @Override
     public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
@@ -95,7 +96,8 @@ public class RenderAdvanceDataMonotor extends TileEntitySpecialRenderer {
     }
 
     private void renderDataEntries(TileEntityAdvanceDataMonitor monitor, double x, double y, double z) {
-        for (Map.Entry<Integer, NBTTagCompound> entry : monitor.getDataBoundList().entrySet()) {
+        for (Map.Entry<Integer, NBTTagCompound> entry : monitor.getDataBoundList()
+            .entrySet()) {
             NBTTagCompound nbt = entry.getValue();
             String dataType = nbt.getString("dataType");
 
@@ -113,48 +115,47 @@ public class RenderAdvanceDataMonotor extends TileEntitySpecialRenderer {
 
     private void applyItemTransforms(NBTTagCompound nbt, int facing) {
         // 先应用偏移
-        double[] adjustedOffset = adjustOffsetByFacing(
-                nbt.getFloat("xOffset"),
-                nbt.getFloat("zOffset"),
-                facing
-        );
+        double[] adjustedOffset = adjustOffsetByFacing(nbt.getFloat("xOffset"), nbt.getFloat("zOffset"), facing);
         GL11.glTranslated(adjustedOffset[0], nbt.getFloat("yOffset"), adjustedOffset[1]);
 
         // 后应用旋转
-        //GL11.glRotatef(nbt.getFloat("rotationX"), 1, 0, 0);
-        //GL11.glRotatef(nbt.getFloat("rotationY"), 0, 1, 0);
-        //GL11.glRotatef(nbt.getFloat("rotationZ"), 0, 0, 1);
+        // GL11.glRotatef(nbt.getFloat("rotationX"), 1, 0, 0);
+        // GL11.glRotatef(nbt.getFloat("rotationY"), 0, 1, 0);
+        // GL11.glRotatef(nbt.getFloat("rotationZ"), 0, 0, 1);
 
         // 最后缩放
-        //GL11.glScalef(nbt.getFloat("scale"), nbt.getFloat("scale"), 1.0f);
+        // GL11.glScalef(nbt.getFloat("scale"), nbt.getFloat("scale"), 1.0f);
     }
 
     // 保持原样（根据问题要求不修改）
     private double[] adjustOffsetByFacing(float xOffset, float zOffset, int facing) {
         switch (facing) {
             case 0: // North
-                return new double[]{xOffset, zOffset + 0.5};
+                return new double[] { xOffset, zOffset + 0.5 };
             case 1: // East
-                return new double[]{xOffset, zOffset + 0.5};
+                return new double[] { xOffset, zOffset + 0.5 };
             case 2: // South
-                return new double[]{xOffset, zOffset + 0.5};
+                return new double[] { xOffset, zOffset + 0.5 };
             case 3: // West
-                return new double[]{xOffset, zOffset + 0.5};
+                return new double[] { xOffset, zOffset + 0.5 };
             default:
-                return new double[]{xOffset, zOffset + 0.5};
+                return new double[] { xOffset, zOffset + 0.5 };
         }
     }
 
     private float getRotationFromFacing(int facing) {
         switch (facing) {
-            case 0: return 180.0f;
-            case 1: return 90.0f;
-            case 2: return 0.0f;
-            case 3: return -90.0f;
-            default: return 0.0f;
+            case 0:
+                return 180.0f;
+            case 1:
+                return 90.0f;
+            case 2:
+                return 0.0f;
+            case 3:
+                return -90.0f;
+            default:
+                return 0.0f;
         }
     }
-
-
 
 }

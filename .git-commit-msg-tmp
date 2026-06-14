@@ -1,0 +1,12 @@
+全面更新: AI助手系统集成与项目大重构 
+
+- 新增 AI 助手核心系统 (assistant/ 包 33 文件): 意图解析、AE2 物品查询、合成下单、传送、计划管理
+- 新增 AI 聊天客户端 (ai/ 包 5 文件): DeepSeek/OpenAI 兼容流式 API
+- 新增语音识别系统 (voice/ 包 9 文件): Vosk 离线 + HTTP STT 在线双模式
+- 新增高级计划器物品与 HUD 渲染
+- 新增命令系统: /admassistant, /admai
+- 新增方块/物品/TileEntity: 存储链接、合成链接、网络链接
+- 新增 Cursor 规则体系与 AI 开发文档
+- 更新 libs: Chisel, Galacticraft dev jar, IC2NC 2.7.8
+- README 更新: 标注开发工具 Cursor+Claude Code, AI 模型 GPT-5.5/DeepSeek V4 Pro
+- 多语言双语同步更新

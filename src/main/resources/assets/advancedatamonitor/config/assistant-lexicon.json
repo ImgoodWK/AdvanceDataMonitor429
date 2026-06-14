@@ -1,0 +1,703 @@
+{
+  "_documentation": {
+    "title": {
+      "zh_CN": "AI 助手词库配置文件 (Assistant Lexicon)",
+      "en_US": "AI Assistant Lexicon Configuration"
+    },
+    "description": {
+      "zh_CN": "此文件定义了 AI 助手本地意图解析器所使用的关键词词库。当 AI 大模型不可用（网络断开或 API 未配置）时，助手会使用此文件中的关键词来匹配玩家的输入文本，推断意图并执行操作。",
+      "en_US": "This file defines the keyword lexicon used by the AI assistant's local intent parser. When the AI model is unavailable (network down or API not configured), the assistant uses keywords from this file to match player input text, infer intent, and execute actions."
+    },
+    "howToUse": {
+      "zh_CN": "修改指南：每个字段都是一个字符串数组，用于匹配玩家输入的文本。匹配是大小写敏感的。你可以添加、删除或修改任何数组中的词条来定制助手的行为。修改后无需重启游戏，使用 /admassistant reload 命令即可热重载。",
+      "en_US": "Usage: Each field is a string array used to match player input text. Matching is case-sensitive. You can add, remove, or modify entries in any array to customize the assistant's behavior. No game restart needed - use /admassistant reload to hot-reload."
+    },
+    "fields": {
+      "commonWords": {
+        "zh_CN": "常用语气词 — 在文本归一化时被移除的无意义词",
+        "en_US": "Common filler words — removed during text normalization"
+      },
+      "modalParticles": {
+        "zh_CN": "语气助词 — 中文句末语气词，归一化时移除",
+        "en_US": "Modal particles — Chinese sentence-final particles, removed during normalization"
+      },
+      "edgePunctuationRegex": {
+        "zh_CN": "边缘标点正则 — 匹配文本开头和结尾的标点符号（含中英文），用于去除标点",
+        "en_US": "Edge punctuation regex — matches punctuation at the start and end of text (Chinese and English), used for stripping"
+      },
+      "chineseNumbers": {
+        "zh_CN": "中文数字 — 一至十，用于解析数量描述",
+        "en_US": "Chinese numerals — one to ten, used for parsing quantity descriptions"
+      },
+      "alternateTwoWords": {
+        "zh_CN": "替代'二'的词语",
+        "en_US": "Alternative words for 'two'"
+      },
+      "optionPrefixes": {
+        "zh_CN": "选项前缀 — 如'第1个'中的'第'",
+        "en_US": "Option prefixes — e.g. '第' in '第1个'"
+      },
+      "optionSuffixes": {
+        "zh_CN": "选项后缀 — 如'第1个'中的'个'",
+        "en_US": "Option suffixes — e.g. '个' in '第1个'"
+      },
+      "amountUnits": {
+        "zh_CN": "数量单位 — 组、个、件、根、桶、mb等",
+        "en_US": "Amount units — stack, piece, item, stick, bucket, mb, etc."
+      },
+      "groupAmountWords": {
+        "zh_CN": "整组数量词 — 如'一组'=64个",
+        "en_US": "Full group amount words — e.g. '一组' = 64 items"
+      },
+      "halfGroupAmountWords": {
+        "zh_CN": "半组数量词 — 如'半组'=32个",
+        "en_US": "Half group amount words — e.g. '半组' = 32 items"
+      },
+      "bucketAmountUnits": {
+        "zh_CN": "桶单位 — 用于流体数量解析",
+        "en_US": "Bucket units — for fluid amount parsing"
+      },
+      "cancelWords": {
+        "zh_CN": "取消关键词 — 触发取消当前操作",
+        "en_US": "Cancel keywords — trigger cancellation of current operation"
+      },
+      "planCompleteWords": {
+        "zh_CN": "完成计划关键词",
+        "en_US": "Plan completion keywords"
+      },
+      "planListWords": {
+        "zh_CN": "列出计划关键词",
+        "en_US": "Plan listing keywords"
+      },
+      "planCreateWords": {
+        "zh_CN": "创建计划关键词",
+        "en_US": "Plan creation keywords"
+      },
+      "planDeleteWords": {
+        "zh_CN": "删除计划关键词",
+        "en_US": "Plan deletion keywords"
+      },
+      "planModifyWords": {
+        "zh_CN": "修改计划关键词",
+        "en_US": "Plan modification keywords"
+      },
+      "planStripWords": {
+        "zh_CN": "计划剥离词 — 从创建计划的文本中移除的前缀词",
+        "en_US": "Plan strip words — prefix words removed from plan creation text"
+      },
+      "powerQueryWords": {
+        "zh_CN": "电量查询关键词",
+        "en_US": "Power query keywords"
+      },
+      "steamQueryWords": {
+        "zh_CN": "蒸汽查询关键词",
+        "en_US": "Steam query keywords"
+      },
+      "recipeQueryWords": {
+        "zh_CN": "配方查询关键词",
+        "en_US": "Recipe query keywords"
+      },
+      "storageQueryWords": {
+        "zh_CN": "存储查询关键词",
+        "en_US": "Storage query keywords"
+      },
+      "confirmWords": {
+        "zh_CN": "确认关键词 — 用于确认选择候选项",
+        "en_US": "Confirmation keywords — for confirming candidate selection"
+      },
+      "submitWords": {
+        "zh_CN": "提交关键词",
+        "en_US": "Submission keywords"
+      },
+      "batchSeparators": {
+        "zh_CN": "批量分隔符 — 用于解析多个物品/请求",
+        "en_US": "Batch separators — for parsing multiple items/requests"
+      },
+      "withdrawStrongWords": {
+        "zh_CN": "取出强关键词 — 触发从AE2取出物品",
+        "en_US": "Strong withdraw keywords — trigger AE2 item withdrawal"
+      },
+      "withdrawStripWords": {
+        "zh_CN": "取出剥离词 — 从取出请求文本中移除的辅助词",
+        "en_US": "Withdraw strip words — auxiliary words removed from withdrawal request text"
+      },
+      "craftContextWords": {
+        "zh_CN": "合成上下文关键词 — 激活合成上下文的词",
+        "en_US": "Craft context keywords — words that activate crafting context"
+      },
+      "storageContextWords": {
+        "zh_CN": "存储上下文关键词 — 激活存储上下文的词",
+        "en_US": "Storage context keywords — words that activate storage context"
+      },
+      "orderStrongWords": {
+        "zh_CN": "下单强关键词 — 触发AE2合成下单",
+        "en_US": "Strong order keywords — trigger AE2 crafting order"
+      },
+      "ambiguousWeakWords": {
+        "zh_CN": "模糊弱意图词 — 当意图不清时用作fallback线索",
+        "en_US": "Ambiguous weak intent words — used as fallback clues when intent is unclear"
+      },
+      "orderWeakWords": {
+        "zh_CN": "下单弱关键词 — 配合上下文判断是否为合成意图",
+        "en_US": "Weak order keywords — used with context to determine crafting intent"
+      },
+      "orderStripWords": {
+        "zh_CN": "下单剥离词 — 从合成请求文本中移除的辅助词",
+        "en_US": "Order strip words — auxiliary words removed from crafting request text"
+      },
+      "confirmStripWords": {
+        "zh_CN": "确认剥离词 — 从确认文本中移除的辅助词",
+        "en_US": "Confirm strip words — auxiliary words removed from confirmation text"
+      },
+      "candidateAmountBlockWords": {
+        "zh_CN": "候选数量阻断词 — 当这些词出现时不自动填充数量",
+        "en_US": "Candidate amount block words — when present, don't auto-fill amount"
+      },
+      "testStorageWords": {
+        "zh_CN": "测试存储关键词 — 用于测试匹配",
+        "en_US": "Test storage keywords — for test matching"
+      },
+      "testRecipeWords": {
+        "zh_CN": "测试配方关键词 — 用于测试匹配",
+        "en_US": "Test recipe keywords — for test matching"
+      },
+      "fluidScopeWords": {
+        "zh_CN": "流体范围词 — 限定查询范围为流体",
+        "en_US": "Fluid scope words — limit query scope to fluids"
+      },
+      "itemScopeWords": {
+        "zh_CN": "物品范围词 — 限定查询范围为物品",
+        "en_US": "Item scope words — limit query scope to items"
+      },
+      "queryStripWords": {
+        "zh_CN": "查询剥离词 — 从查询文本中移除的语气/前缀词",
+        "en_US": "Query strip words — filler/prefix words removed from query text"
+      },
+      "recipeStripWords": {
+        "zh_CN": "配方剥离词 — 从配方查询文本中移除的辅助词",
+        "en_US": "Recipe strip words — auxiliary words removed from recipe query text"
+      },
+      "storageStripWords": {
+        "zh_CN": "存储剥离词 — 从存储查询文本中移除的辅助词",
+        "en_US": "Storage strip words — auxiliary words removed from storage query text"
+      },
+      "timeMinuteUnits": {
+        "zh_CN": "时间分钟单位词",
+        "en_US": "Time minute unit words"
+      },
+      "timeHourUnits": {
+        "zh_CN": "时间小时单位词",
+        "en_US": "Time hour unit words"
+      },
+      "timeAfterWords": {
+        "zh_CN": "时间'之后'词语",
+        "en_US": "Time 'after' words"
+      },
+      "timeDayWords": {
+        "zh_CN": "时间日期词语",
+        "en_US": "Time day words"
+      },
+      "timePointWords": {
+        "zh_CN": "时间点词语 — 如'几点'中的'点'",
+        "en_US": "Time point words — e.g. '点' in '几点'"
+      },
+      "timeMinuteWords": {
+        "zh_CN": "时间分钟词",
+        "en_US": "Time minute words"
+      },
+      "timeTomorrowWords": {
+        "zh_CN": "明天相关词语",
+        "en_US": "Tomorrow-related words"
+      },
+      "timeAfternoonWords": {
+        "zh_CN": "下午/傍晚词语",
+        "en_US": "Afternoon/evening words"
+      },
+      "timeStripWords": {
+        "zh_CN": "时间剥离词 — 从时间计划文本中移除的辅助词",
+        "en_US": "Time strip words — auxiliary words removed from time plan text"
+      },
+      "messages": {
+        "zh_CN": "系统消息模板 — AI助手在查询/操作后返回给玩家的消息文本。key是消息标识符，value是消息内容。支持 \\n 换行。",
+        "en_US": "System message templates — text messages returned to players after queries/operations. Key is the message identifier, value is the message content. Supports \\n for newlines."
+      }
+    }
+  },
+  "commonWords": [
+    "请",
+    "帮我",
+    "帮",
+    "我"
+  ],
+  "modalParticles": [
+    "吗",
+    "呢",
+    "吧",
+    "么",
+    "嘛",
+    "啊",
+    "呀"
+  ],
+  "edgePunctuationRegex": "^[\\s,.;:!?，。；：！？、]+|[\\s,.;:!?，。；：！？、]+$",
+  "chineseNumbers": [
+    "一",
+    "二",
+    "三",
+    "四",
+    "五",
+    "六",
+    "七",
+    "八",
+    "九",
+    "十"
+  ],
+  "optionPrefixes": [
+    "第"
+  ],
+  "optionSuffixes": [
+    "个",
+    "号"
+  ],
+  "amountUnits": [
+    "组",
+    "个",
+    "件",
+    "根",
+    "桶",
+    "mb"
+  ],
+  "groupAmountWords": [
+    "一组"
+  ],
+  "halfGroupAmountWords": [
+    "半组"
+  ],
+  "bucketAmountUnits": [
+    "桶"
+  ],
+  "cancelWords": [
+    "取消",
+    "算了",
+    "停止"
+  ],
+  "planCompleteWords": [
+    "完成计划",
+    "标记完成",
+    "完成第"
+  ],
+  "planListWords": [
+    "列出计划",
+    "查看计划",
+    "有哪些计划",
+    "计划列表"
+  ],
+  "planCreateWords": [
+    "计划",
+    "提醒我",
+    "预约",
+    "待办"
+  ],
+  "planDeleteWords": [
+    "删除计划",
+    "移除计划",
+    "取消计划",
+    "删掉计划",
+    "删除备忘",
+    "移除备忘"
+  ],
+  "planModifyWords": [
+    "修改计划",
+    "编辑计划",
+    "更改计划",
+    "更新计划",
+    "修改备忘",
+    "编辑备忘"
+  ],
+  "planStripWords": [
+    "提醒我",
+    "提醒",
+    "计划",
+    "待办",
+    "预约"
+  ],
+  "powerQueryWords": [
+    "电量",
+    "无线电网",
+    "eu",
+    "能源",
+    "电网"
+  ],
+  "steamQueryWords": [
+    "蒸汽",
+    "无线蒸汽",
+    "蒸汽网络",
+    "蒸汽网",
+    "steam"
+  ],
+  "recipeQueryWords": [
+    "配方",
+    "样板",
+    "样板配方",
+    "怎么做",
+    "怎么合成",
+    "能不能合成",
+    "pattern",
+    "patterns",
+    "recipe",
+    "recipes"
+  ],
+  "storageQueryWords": [
+    "库存",
+    "存储",
+    "容量",
+    "占用",
+    "百分比",
+    "还有多少",
+    "有多少",
+    "多少",
+    "数量",
+    "流体",
+    "液体",
+    "气体",
+    "物品",
+    "清单",
+    "有什么",
+    "几种",
+    "item",
+    "fluid",
+    "gas",
+    "快满",
+    "快空"
+  ],
+  "confirmWords": [
+    "确认",
+    "选择",
+    "第",
+    "号"
+  ],
+  "submitWords": [
+    "确认",
+    "提交"
+  ],
+  "batchSeparators": [
+    "和",
+    "再",
+    ",",
+    "，",
+    "、"
+  ],
+  "withdrawStrongWords": [
+    "取出",
+    "拿出",
+    "拿",
+    "取",
+    "给我",
+    "发到背包",
+    "放到背包",
+    "装进背包",
+    "从ae取",
+    "从仓库取",
+    "从库存取",
+    "withdraw",
+    "pull"
+  ],
+  "withdrawStripWords": [
+    "取出",
+    "拿出",
+    "拿",
+    "取",
+    "给我",
+    "发到背包",
+    "放到背包",
+    "装进背包",
+    "从ae",
+    "从仓库",
+    "从库存",
+    "withdraw",
+    "pull",
+    "根",
+    "个",
+    "件"
+  ],
+  "craftContextWords": [
+    "合成",
+    "配方",
+    "样板",
+    "制作",
+    "craft",
+    "pattern",
+    "recipe"
+  ],
+  "storageContextWords": [
+    "库存",
+    "仓库",
+    "存储",
+    "ae",
+    "AE",
+    "storage"
+  ],
+  "orderStrongWords": [
+    "下单",
+    "订购",
+    "制作"
+  ],
+  "ambiguousWeakWords": [
+    "来",
+    "要"
+  ],
+  "orderWeakWords": [
+    "做",
+    "合成",
+    "来",
+    "要"
+  ],
+  "orderStripWords": [
+    "下单",
+    "做",
+    "合成",
+    "制作",
+    "订购",
+    "再",
+    "来",
+    "要",
+    "根",
+    "个",
+    "件"
+  ],
+  "confirmStripWords": [
+    "确认",
+    "选择",
+    "第",
+    "号",
+    "个",
+    "件",
+    "根",
+    "组"
+  ],
+  "candidateAmountBlockWords": [
+    "库存",
+    "存储",
+    "多少",
+    "配方",
+    "样板",
+    "下单",
+    "合成"
+  ],
+  "testStorageWords": [
+    "存储",
+    "总览",
+    "all",
+    "storage"
+  ],
+  "testRecipeWords": [
+    "配方",
+    "样板",
+    "样板配方",
+    "合成",
+    "recipe",
+    "recipes",
+    "pattern",
+    "patterns",
+    "craft"
+  ],
+  "fluidScopeWords": [
+    "流体",
+    "液体",
+    "气体",
+    "fluid",
+    "fluids",
+    "gas",
+    "gases"
+  ],
+  "itemScopeWords": [
+    "物品",
+    "物资",
+    "item",
+    "items"
+  ],
+  "queryStripWords": [
+    "查询",
+    "查一下",
+    "查看下",
+    "查看",
+    "看一下",
+    "看下",
+    "还有多少",
+    "有没有",
+    "有无",
+    "是否",
+    "能否",
+    "能不能",
+    "可否",
+    "可以不可以",
+    "可以"
+  ],
+  "recipeStripWords": [
+    "ae",
+    "AE",
+    "能不能",
+    "可以",
+    "能",
+    "查看下",
+    "查看",
+    "查询",
+    "看一下",
+    "看下",
+    "一下",
+    "下",
+    "看看",
+    "网络",
+    "里",
+    "中",
+    "的",
+    "用什么",
+    "什么",
+    "哪些",
+    "所有",
+    "需要",
+    "使用",
+    "材料",
+    "原料",
+    "怎么做",
+    "怎么合成",
+    "合成",
+    "制作",
+    "配方",
+    "样板",
+    "样板配方",
+    "吗",
+    "recipe",
+    "recipes",
+    "pattern",
+    "patterns",
+    "craft",
+    "with",
+    "materials"
+  ],
+  "storageStripWords": [
+    "ae",
+    "AE",
+    "哥特女皇",
+    "女皇",
+    "看一下",
+    "看看",
+    "查一下",
+    "查看",
+    "网络中",
+    "网络里",
+    "网络",
+    "里",
+    "中",
+    "内",
+    "的",
+    "有什么",
+    "有",
+    "什么",
+    "哪些",
+    "清单",
+    "列表",
+    "有几种",
+    "几种",
+    "多少种",
+    "是否有",
+    "有没有",
+    "有无",
+    "是否",
+    "能否",
+    "能不能",
+    "可否",
+    "可以不可以",
+    "可以",
+    "存在",
+    "情况",
+    "空间",
+    "库存",
+    "存储",
+    "容量",
+    "占用",
+    "百分比",
+    "数量",
+    "多少",
+    "有多少",
+    "帮",
+    "总览",
+    "总量",
+    "统计",
+    "快满",
+    "快空"
+  ],
+  "timeMinuteUnits": [
+    "分钟",
+    "分"
+  ],
+  "timeHourUnits": [
+    "小时",
+    "钟头"
+  ],
+  "timeAfterWords": [
+    "后"
+  ],
+  "timeDayWords": [
+    "明天",
+    "今天",
+    "今晚",
+    "晚上",
+    "下午",
+    "早上"
+  ],
+  "timePointWords": [
+    "点"
+  ],
+  "timeMinuteWords": [
+    "分"
+  ],
+  "timeTomorrowWords": [
+    "明天"
+  ],
+  "timeAfternoonWords": [
+    "晚",
+    "下午"
+  ],
+  "timeStripWords": [
+    "提醒我",
+    "提醒",
+    "计划",
+    "待办",
+    "预约",
+    "在"
+  ],
+  "messages": {
+    "unknownQuery": "未知查询。",
+    "storage.noLink": "查询失败：附近没有 Advance Storage Link。",
+    "storage.noGrid": "查询失败：AE2 存储网络不可用。",
+    "storage.unknownFluid": "未知流体",
+    "storage.fluidSummaryTitle": "AE2 流体存储：",
+    "storage.fluidTypes": "\n流体种类：",
+    "storage.fluidTotal": "，流体总量：",
+    "storage.fluidList": "流体清单",
+    "storage.itemSummaryTitle": "AE2 物品存储：",
+    "storage.itemTypes": "\n物品种类：",
+    "storage.itemTotal": "，物品总数：",
+    "storage.itemList": "物品清单",
+    "storage.overviewTitle": "AE2 存储总览：",
+    "storage.capacityUnknown": "\n容量/占用百分比：当前 AE2 适配器暂时无法读取，这里返回已读取到的数量统计。",
+    "storage.queryFailedPrefix": "查询失败：",
+    "storage.matchingItems": "匹配物品",
+    "storage.matchingFluids": "匹配流体",
+    "storage.noMatchPrefix": "没有在 AE2 存储里找到：",
+    "wireless.noApi": "无线电网查询未找到兼容的 GTNH/TecTech API，请查看调试日志确认模组版本暴露的方法名。",
+    "wireless.statusTitle": "无线电网状态：",
+    "wireless.storedEu": "\n当前电量：",
+    "wireless.maxCapacity": "\n最大容量：",
+    "wireless.maxCapacityUnavailable": "\n最大容量：API 未暴露。",
+    "wireless.ioUnavailable": "\n输入/输出速率：API 未暴露。",
+    "wireless.sourceApi": "\n来源 API：",
+    "wireless.steam.noApi": "无线蒸汽查询未找到兼容的 ScienceNotLeisure API，请查看调试日志确认模组版本暴露的方法名。",
+    "wireless.steam.statusTitle": "无线蒸汽状态：",
+    "wireless.steam.storedSteam": "\n当前蒸汽量：",
+    "wireless.steam.sourceApi": "\n来源 API："
+  },
+  "alternateTwoWords": [
+    "两"
+  ]
+}

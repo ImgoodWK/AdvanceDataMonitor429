@@ -9,6 +9,7 @@ import net.minecraft.world.World;
  * @create: 2025-04-23 14:58
  **/
 public class BlockPos {
+
     private World world;
     private int x;
     private int y;
@@ -33,7 +34,7 @@ public class BlockPos {
         this.world = world;
     }
 
-     public BlockPos(String XYZ) {
+    public BlockPos(String XYZ) {
         String[] xyz = XYZ.split(",");
         try {
             x = Integer.parseInt(xyz[0]);
@@ -99,11 +100,12 @@ public class BlockPos {
             e.printStackTrace();
         }
     }
-     public World getWorld() {
+
+    public World getWorld() {
         return world;
     }
 
-     public void setWorld(World World) {
+    public void setWorld(World World) {
         this.world = World;
     }
 }

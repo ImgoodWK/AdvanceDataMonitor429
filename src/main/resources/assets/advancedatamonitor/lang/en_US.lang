@@ -1,7 +1,7 @@
 adm.error.xyz=The XYZ coordinate format is invalid. Example: 123,64,-123…
 adm.error.ymin=The Y minimum value must be a valid number.
 adm.error.ymax=The Y maximum value must be a valid number.
-adm.error.datalimit=The data limit must be an integer between 2 and 50.
+adm.error.datalimit=The data limit must be an integer between 2 and 9999.
 adm.error.linecolor=The line color format is invalid. Please use a hexadecimal color value, such as FF00FF…
 adm.error.linewidth=The line width must be a number greater than 0, such as 1.05 or 3…
 adm.error.scale=The scale must be a valid number greater than 0, such as 1.05, 3, or 0.5…
@@ -17,6 +17,9 @@ adm.error.displayscale=Title scale must be a valid number between 0.1-5.0
 adm.error.axisfontscale=Axis font scale must be a valid number between 0.1-2.0
 adm.error.axislinecolor=Axis line color format invalid. Use hexadecimal (e.g. FF00FF)
 adm.error.axisfontcolor=Axis font color format invalid. Use hexadecimal (e.g. FF00FF)
+adm.error.gridlinewidth=Grid line width must be a number greater than 0
+adm.error.axislinewidth=Axis line width must be a number greater than 0
+adm.error.ticklengthfactor=Tick length factor must be a number greater than 0
 
 adm.label.xyz=§lX,Y,Z
 adm.label.xoffset=§lX Offset
@@ -40,6 +43,14 @@ adm.label.displaynamecolor=§lTitle Color
 adm.label.linewidth=§lLine Width
 adm.label.scaled=§lScaled
 adm.label.axisfontscaled=§lAxis Font Scale
+adm.label.gridlinewidth=§lGrid Line Width
+adm.label.axislinewidth=§lAxis Line Width
+adm.label.ticklengthfactor=§lTick Length
+adm.label.gridlinealpha=§lGrid Line Alpha
+adm.label.namealpha=§lTitle Alpha
+adm.label.axisalpha=§lAxis Font Alpha
+adm.label.axisfontalpha=§lAxis Font Alpha
+adm.label.datalinealpha=§lData Line Alpha
 
 # Buttons
 adm.button.save=Save
@@ -50,6 +61,16 @@ adm.button.enableAxis=§lAxis
 adm.button.disableAxis=§l§mAxis
 adm.button.enableData=§lData
 adm.button.disableData=§l§mData
+adm.button.enableAxisFont=§lAxisFont
+adm.button.disableAxisFont=§l§mAxisFont
+adm.button.dataType.Item=§lItem
+adm.button.dataType.Fluid=§lFluid
+adm.button.dataType.Used=§lUsed
+adm.button.dataType.Total=§lTotal
+adm.button.dataType.Value=§lValue
+adm.button.dataType.Percent=§lPercent
+adm.button.dataType.Bytes=§lBytes
+adm.button.dataType.Type=§lType
 
 # Chart types
 adm.datatype.line=Line
@@ -60,6 +81,9 @@ adm.datatype.difference=Difference
 
 # Title
 adm.title.data_config=§lData Config Of §n%s
+adm.title.data_config_ae=§lAEData Config Of §n%s
+adm.title.data_config_ae_network=§lAENetwork Config Of §n%s
+adm.title.data_config_color=§lColor Config Of §n%s
 
 # Main GUI
 adm.direction.north=North
@@ -76,6 +100,9 @@ adm.label.facing=Facing
 adm.label.data=Data
 adm.label.body=Body
 adm.label.screen=Screen
+adm.label.aestorage=AEStorage
+adm.label.aenetwork=AENetwork
+adm.label.player=Player
 adm.label.back=Back
 adm.tooltip.displayname=Title
 adm.tooltip.position=Position
@@ -84,6 +111,12 @@ adm.tooltip.dataname=DataName
 adm.tooltip.enableAxis=Axis
 adm.tooltip.enableData=Data
 adm.tooltip.enableAxisFont=AxisFont
+adm.message.data_cleared=DataCleared
+adm.message.data_collected=DataCollected
+adm.tooltip.collect=Collect
+adm.tooltip.clearData=Clear Saved Data
+adm.tooltip.clearData.shift=Please press the Shift key to avoid accidental operations
+adm.tooltip.clear=Clear Saved Data
 adm.error.max_data=Maximum data reached
 adm.debug.mouse_position=Mouse Position
 
@@ -110,5 +143,236 @@ adm.hint.linecolor=Chart line color (hexadecimal format e.g. FF00FF)
 adm.hint.linewidth=Chart line thickness (positive number greater than 0)
 adm.hint.scale=Global scaling ratio (positive number greater than 0)
 adm.hint.axisfontscale=Axis label text scaling (positive number greater than 0)
+adm.hint.gridlinewidth=Set grid line width (number greater than 0, e.g. 1.0 or 2.5)
+adm.hint.axislinewidth=Set axis line width (number greater than 0, e.g. 1.0 or 2.5)
+adm.hint.ticklengthfactor=Set scaling factor for tick length (number > 0, e.g. 1.0=standard, 0.5=half, 2.0=double)
 
+adm.button.bind=Add Binding
+adm.title.bind_target=Bind Target Block
+adm.error.invalid_coord=Coordinates must be integers!
+adm.error.no_block=There is no block at this position!
+adm.error.not_tileentity=This block is not a TileEntity!
+adm.title.data_config_ae_crafting=§lCrafting CPU Config
+adm.label.craftingtemplate=§lExpression
+adm.button.monitorScope.single=CPU
+adm.button.monitorScope.network=All CPUs
+adm.button.textAlign.left=Left Align
+adm.button.textAlign.center=Center Align
+adm.button.textAlign.right=Right Align
+adm.hint.craftingtemplate=Set expression...
 adm.property.tips=§lProperty Explanation:
+
+adm.label.textscale=§lText Scale
+adm.hint.textscale=Font scale factor for data labels (1.0 = normal size)
+adm.error.textscale=Text scale must be a valid number greater than 0, e.g. 1.05 or 3 or 0.5...
+adm.label.textalpha=§lText Alpha
+item.advanceStorageLinkCell.name=Advanced Storage Link Cell
+tile.advanceStorageLink.name=Advanced Storage Link
+
+adm.title.storage=§lStorage Link Display Config #%s
+adm.storage.columns=Columns
+adm.storage.spacing=Spacing
+adm.storage.iconscale=Icon Scale
+adm.storage.textscale=Text Scale
+adm.storage.textcolor=Text Color
+adm.error.invalid_number=Invalid number
+adm.label.storagecolumns=§lColumns
+adm.label.storagespacing=§lItem Spacing
+adm.label.storageiconscale=§lIcon Scale
+adm.label.storagecolor=§lCount Color
+adm.label.storagelinespacing=§lLine Spacing
+adm.hint.storagecolumns=Set how many marked items are rendered per row. Must be an integer >= 1.
+adm.hint.storagespacing=Set spacing between rendered item icons, for example 0.45.
+adm.hint.storageiconscale=Set rendered item icon size. 1.0 is the default size.
+adm.hint.storagelinespacing=Set vertical spacing between item name/count/delta text lines. Default is 0.22. Larger values increase spacing.
+adm.hint.storagecolor=Set item count text color as hex RGB, for example FFFFFF or 00FFFF.
+adm.label.storagecellindex=§lCell Index
+adm.hint.storagecellindex=Only show the advanced storage cell at this zero-based index. Leave empty to show all cells.
+adm.error.storagecolumns=Storage columns must be an integer >= 1.
+adm.error.storagespacing=Storage spacing must be a valid number.
+adm.error.storageiconscale=Storage icon scale must be a valid number.
+adm.error.storagelinespacing=Line spacing must be a valid number.
+adm.error.storagecellindex=Storage cell index must be empty or an integer >= 0.
+adm.button.counton=Count:On
+adm.button.countoff=Count:Off
+adm.button.deltaon=I/O:On
+adm.button.deltaoff=I/O:Off
+adm.button.nameon=Name:On
+adm.button.nameoff=Name:Off
+adm.button.sortdefault=Sort:Default
+adm.button.sortcount=Sort:Count
+adm.button.sortmod=Sort:Mod
+adm.button.itemson=Items:On
+adm.button.itemsoff=Items:Off
+adm.button.fluidson=Fluids:On
+adm.button.fluidsoff=Fluids:Off
+adm.button.essentiaon=Essentia:On
+adm.button.essentiaoff=Essentia:Off
+adm.button.ai=AI
+adm.ai.title=AI Chat
+adm.ai.send=Send
+adm.ai.clear=Clear
+adm.ai.close=Close
+adm.ai.ready=Ready
+adm.ai.waiting=Waiting for AI response...
+adm.ai.failed=Request failed
+adm.ai.no_key=Set ai.apiKey in the config file or DEEPSEEK_API_KEY before chatting.
+adm.ai.configured=Configured model: %s
+adm.ai.empty=Type a message below and press Enter or Send.
+adm.ai.you=You
+adm.ai.assistant=AI
+adm.ai.error=Error: %s
+adm.ai.input_hint=Type a message, Enter to send
+adm.ai.network_disabled=AI network requests are disabled
+adm.ai.network_disabled_detail=AI network requests are currently disabled. Use /admai network on before chatting.
+adm.ai.search_on=Search: On
+adm.ai.search_off=Search: Off
+adm.ai.settings=Settings
+adm.ai.menu=Menu
+adm.ai.cancel=Cancel
+adm.ai.cancelled=Cancelled
+adm.ai.on=On
+adm.ai.off=Off
+adm.ai.next_search_auto=Next: Global
+adm.ai.next_search_on=Next: Search On
+adm.ai.next_search_off=Next: Search Off
+adm.ai.privacy_notice=AI chat sends your message history to the configured model provider. Press the search button or send again to confirm.
+adm.ai.privacy_waiting=Privacy confirmation required
+adm.ai.privacy_confirmed=Privacy confirmed. You can send the request again.
+adm.ai.settings.title=AI Settings
+adm.ai.settings.key=API Key
+adm.ai.settings.key_hint=API key
+adm.ai.settings.base=Base URL
+adm.ai.settings.base_hint=OpenAI-compatible base URL
+adm.ai.settings.model=Model
+adm.ai.settings.model_hint=Model name
+adm.ai.settings.timeout=Timeout
+adm.ai.settings.tokens=Max Tokens
+adm.ai.settings.temperature=Temperature
+adm.ai.settings.provider=Provider
+adm.ai.settings.next_model=Next Model
+adm.ai.settings.network=Network
+adm.ai.settings.search=Search
+adm.ai.settings.mode=Mode
+adm.ai.settings.debug=Debug
+adm.ai.settings.stream=Stream
+adm.ai.settings.saved=Saved AI settings.
+adm.ai.settings.invalid=Error: %s
+
+adm.ai.assistant.cancelled_action=Cancelled the pending assistant action.
+adm.ai.assistant.split_tasks=Split into %s task(s), confirming sequentially.
+adm.ai.assistant.next_queued_task=Processing next queued task: %s x%s
+adm.ai.assistant.no_pending_candidate=No pending candidate matched that choice. Ask for an order or recipe list first, then confirm by number.
+adm.ai.assistant.querying_recipe_details=Querying recipe details: %s
+adm.ai.assistant.submitted_order_confirmation=Submitted order confirmation: %s x%s
+adm.ai.assistant.no_pending_batch=No pending batch order was found.
+adm.ai.assistant.batch_line_no_candidate=Batch order not submitted: line %s has no candidate for %s.
+adm.ai.assistant.submitted_batch_confirmation=Submitted batch order confirmation for %s line(s).
+adm.ai.assistant.local_matching_candidates=Local matching candidates; say a number to confirm:
+adm.ai.assistant.searching_craft_candidates=Searching nearby AE2 crafting network for candidates...
+adm.ai.assistant.searching_batch_candidates=Searching nearby AE2 crafting network for %s order line(s)...
+adm.ai.assistant.querying_server_data=Querying server data: %s
+adm.ai.assistant.recipe_candidates_title=AE2 craftable patterns; say a number to view recipe details:
+adm.ai.assistant.craft_candidates_title=AE2 crafting candidates; say a number to confirm:
+adm.ai.assistant.batch_candidates_title=AE2 batch order candidates; say confirm to submit all:
+adm.ai.assistant.clarify_order_withdraw=Do you want to withdraw existing items from AE2 storage into your inventory, or order AE2 crafting? For example: withdraw 64 iron ingots, or order 64 iron ingots.
+adm.ai.assistant.withdraw_candidates_title=AE2 storage matches (amount is current stock); say a number to withdraw into inventory:
+adm.ai.assistant.batch_withdraw_candidates_title=AE2 batch withdraw candidates; say confirm to withdraw all into inventory:
+adm.ai.assistant.searching_withdraw_candidates=Searching nearby AE2 storage network for withdraw candidates...
+adm.ai.assistant.searching_batch_withdraw_candidates=Searching nearby AE2 storage network for %s withdraw line(s)...
+adm.ai.assistant.submitted_withdraw_confirmation=Submitted withdraw confirmation: %s x%s
+adm.ai.assistant.submitted_batch_withdraw_confirmation=Submitted batch withdraw confirmation for %s line(s).
+adm.ai.assistant.item_count_candidates_title=AE2 storage item count results (amount is current stock); say a number to withdraw into inventory:
+adm.ai.assistant.storage_candidates_title=AE2 storage overview; enter number to withdraw:
+adm.ai.assistant.query_bytes_title=AE2 Byte Usage Details:
+
+# AI assistant teleport
+adm.ai.assistant.searching_teleport_candidates=Scanning inventory for teleport gems...
+adm.ai.assistant.teleport_candidates_title=Teleport destinations; say a number or name to confirm:
+adm.ai.assistant.no_teleport_destinations=No Advanced Dislocator found in inventory, or no saved destinations.
+adm.ai.assistant.no_pending_teleport_candidate=No pending teleport destination matched. Request a teleport list first, then confirm by number or name.
+adm.ai.assistant.submitted_teleport_confirmation=Submitted teleport confirmation: %s
+
+# AI assistant pattern details
+adm.ai.assistant.pattern.default_name=AE2 pattern
+adm.ai.assistant.pattern.details_title=AE2 pattern details: 
+adm.ai.assistant.pattern.type_label=Pattern type: 
+adm.ai.assistant.pattern.type_crafting=crafting
+adm.ai.assistant.pattern.type_processing=processing or encoded processing
+adm.ai.assistant.pattern.item_inputs=Item inputs:
+adm.ai.assistant.pattern.item_outputs=Item outputs:
+adm.ai.assistant.pattern.fluid_inputs=Fluid inputs:
+adm.ai.assistant.pattern.fluid_outputs=Fluid outputs:
+adm.ai.assistant.pattern.fluid_process_note=Fluid/process detail note: this AE2 API did not expose non-item inputs or outputs for this pattern.
+adm.ai.assistant.pattern.unknown_item=Unknown item
+adm.ai.assistant.pattern.none_exposed=none exposed
+
+# Advance Planner
+item.advancePlanner.name=Advance Planner
+adm.planner.title=§lAdvance Planner
+adm.planner.custom_title=Custom Title:
+adm.planner.title_hint=Click to set custom HUD title...
+adm.planner.add=Add
+adm.planner.delete=Delete
+adm.planner.merge=§lMerge
+adm.planner.confirm_merge=§lConfirm Merge
+adm.planner.cancel=§lCancel
+adm.planner.exit=§lExit
+adm.planner.merge_confirm_title=§lMerge Confirmation
+adm.planner.merge_by_time=§lMerge by Time
+adm.planner.merge_by_index=§lMerge by Index
+adm.planner.merge_prompt=Found %s planner(s) in inventory with %s total entries to merge
+adm.planner.empty_slot=Click to add...
+adm.planner.add_hint=+ Click to add new entry
+adm.planner.completed=Completed
+adm.planner.pending=Pending
+adm.planner.added_at=Added: %s
+adm.planner.stats=Total %s | Done %s | Pending %s
+adm.planner.planner_detail=Planner #%s: %s entries
+adm.planner.current=(current)
+adm.planner.selected_mode=Selected mode:
+adm.planner.merge_tooltip=Merge all planner items in inventory
+adm.planner.mark_complete=Mark as completed
+adm.planner.mark_incomplete=Mark as incomplete
+adm.planner.hud_enabled=HUD Enabled
+adm.planner.hud_disabled=HUD Disabled
+adm.planner.hud_config=HUD Config
+adm.planner.hud_config_title=§lHUD Configuration
+adm.planner.hud_max_display=Max Display
+adm.planner.hud_max_display_hint=Set max entries shown on HUD (1-20)
+adm.planner.move_up=Move Up
+adm.planner.move_to_top=Move to Top
+adm.planner.hud_pos_x=HUD Pos X (0.0-1.0)
+adm.planner.hud_pos_y=HUD Pos Y (0.0-1.0)
+adm.planner.hud_scale=HUD Scale (0.5-3.0)
+adm.planner.hud_width=HUD Width (80-600)
+adm.planner.hud_pos_hint=0.0=left/top 1.0=right/bottom
+adm.planner.hud_scale_hint=0.5=half 3.0=triple
+adm.planner.hud_width_hint=80=narrow 600=wide
+adm.planner.hud_preview=Position Preview
+adm.planner.hud_screen_area=Screen Area
+adm.planner.hud_label=HUD
+adm.planner.hud_preview_scale=Scale: %sx (scroll wheel)
+adm.planner.hud_preview_width=Width: %s (Shift+scroll wheel)
+adm.planner.editing_entry=§eEditing Entry
+adm.planner.new_entry=§aNew Entry
+adm.planner.preview=Preview:
+adm.planner.edit_hint=Type entry content...
+adm.planner.delete_tooltip=Delete selected entry
+adm.planner.add_tooltip=Add new entry
+
+# Orange Item
+item.orange.name=Orange
+adm.orange.nameplate=Nameplate
+adm.orange.current_name=Current nameplate:
+adm.orange.no_name=Not set
+adm.orange.rename_hint=Rename this item in an anvil to set the nameplate display
+adm.orange.tooltip.nameplate=Displays a custom nameplate above the player's head
+adm.orange.tooltip.rename=Rename in an anvil to set the displayed text
+adm.orange.tooltip.check=Sneak + right-click to check current nameplate text
+
+# Key Bindings
+key.advancedatamonitor.open_ai_chat=Open AI Chat
+key.advancedatamonitor.open_planner=Open Planner
+key.advancedatamonitor.toggle_hud=Toggle HUD
+key.categories.advancedatamonitor=Advance Data Monitor

@@ -1,5 +1,9 @@
 package com.imgood.advancedatamonitor;
 
+import java.io.File;
+
+import com.imgood.advancedatamonitor.command.CommandAssistant;
+
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
@@ -10,7 +14,12 @@ public class CommonProxy {
     // preInit "Run before anything else. Read your config, create blocks, items, etc, and register them with the
     // GameRegistry." (Remove if not needed)
     public void preInit(FMLPreInitializationEvent event) {
-        Config.synchronizeConfiguration(event.getSuggestedConfigurationFile());
+        File configDir = new File(event.getModConfigurationDirectory(), "advancedatamonitor");
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+        }
+        File configFile = new File(configDir, "advancedatamonitor.cfg");
+        Config.synchronizeConfiguration(configFile);
 
         AdvanceDataMonitor.LOG.info(Config.greeting);
         AdvanceDataMonitor.LOG.info("I am AdvanceDataMonitor at version " + Tags.VERSION);
@@ -23,5 +32,7 @@ public class CommonProxy {
     public void postInit(FMLPostInitializationEvent event) {}
 
     // register server commands in this event handler (Remove if not needed)
-    public void serverStarting(FMLServerStartingEvent event) {}
+    public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new CommandAssistant());
+    }
 }

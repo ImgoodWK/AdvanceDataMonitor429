@@ -1,80 +1,107 @@
-# Example Forge Mod for Minecraft 1.7.10
+# AdvanceDataMonitor
 
-[![](https://jitpack.io/v/GTNewHorizons/ExampleMod1.7.10.svg)](https://jitpack.io/#GTNewHorizons/ExampleMod1.7.10)
-[![](https://github.com/GTNewHorizons/ExampleMod1.7.10/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/GTNewHorizons/ExampleMod1.7.10/actions/workflows/build-and-test.yml)
+**Minecraft 1.7.10 / GTNH (GregTech: New Horizons) 社区模组** — 高级数据监视器
 
-An example mod for Minecraft 1.7.10 with Forge focussed on a stable, updatable setup.
+> Mod ID: `advancedatamonitor` · 平台: Forge 10.13.4.1614 · MCP stable_12
 
-### Motivation
+---
 
-We had our fair share in struggles with build scripts for Minecraft Forge. There are quite a few pitfalls from non-obvious error messages. This Example Project provides you a build system you can adapt to over 90% of Minecraft Forge mods and can easily be updated if need be.
+## 🤖 AI 驱动开发
 
-### Help! I'm stuck!
+本项目采用 **AI 辅助开发** 模式，核心开发工具链：
 
-We all have been there! Check out our [FAQ](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/docs/FAQ.md). If that doesn't help, please open an issue.
+| 工具 | 用途 |
+|------|------|
+| **Cursor** | AI-native IDE，智能代码补全、重构与项目管理 |
+| **Claude Code** | Anthropic Claude 驱动的代码生成与审查 Agent |
+| **GPT-5.5** | OpenAI 最新大模型，负责复杂架构设计与意图解析 |
+| **DeepSeek V4 Pro** | 高效推理模型，处理流式对话响应与任务分解 |
 
-### Getting started
+模组内置的 AI 助手功能（语音/文字对话、AE2 物品查询、合成下单、任务计划）正是基于上述模型实现。
 
-Creating mod from scratch:
-1. Unzip [project starter](https://github.com/GTNewHorizons/ExampleMod1.7.10/releases/download/master-packages/starter.zip) into project directory.
-2. Replace placeholders in LICENSE-template and rename it to LICENSE, or remove LICENSE-template and put any other license you like on your code. This is an permissive OSS project and we encourage you participate in OSS movement by having permissive license like one in template. You can find out pros and cons of OSS software in [this article](https://www.freecodecamp.org/news/what-is-great-about-developing-open-source-and-what-is-not/)
-3. Ensure your project is under VCS. For example initialise git repository by running `git init; git commit --message "initialized repository"`.
-4. Replace placeholders (edit values in gradle.properties, change example package and class names, etc.)
-5. Run `./gradlew build`
-6. Make sure to check out the rest sections of this file.
-7. You are good to go!
+---
 
-We also have described guidelines for existing mod [migration](docs/migration.md) and [porting](docs/porting.md)
+## 📋 功能概览
 
-### Features
+### 核心监视器
+- **AE2 网络数据监视器** — 实时显示 ME 网络的物品、流体、能量、蒸汽数据
+- **折线图/柱状图** — 历史趋势可视化，支持多数据源叠加对比
+- **合成 CPU 监控** — 追踪 AE2 合成任务进度与耗时
+- **存储网络监控** — 全网物品总量、类型统计
 
- - Updatable: Replace [`build.gradle`](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/build.gradle) with a newer version
- - Optional API artifact (.jar)
- - Optional version replacement in Java files
- - Optional shadowing of dependencies
- - Simplified setup of Mixin and example
- - Scala support (add sources under `src/main/scala/` instead of `src/main/java/`)
- - Optional named developer account for consistent player progression during testing
- - Boilerplate forge mod as starting point
- - Improved warnings for pitfalls
- - Git Tags integration for versioning
- - [Jitpack](https://jitpack.io) CI
- - GitHub CI:
-   - Releasing your artifacts on new tags pushed. Push git tag named after version (e.g. 1.0.0) which will trigger a release of artifacts with according names.
-   - Running smoke test for server startup. On any server crash occurring workflow will fail and print the crash log.
+### AI 助手系统
+- **语音对话** — V 键语音输入（离线 Vosk + 在线 STT 双模式）
+- **文字聊天** — O 键打开 AI 聊天界面，支持流式响应
+- **意图识别** — 自然语言理解，自动执行 AE2 查询、合成下单、传送等操作
+- **计划器** — 创建多步骤任务计划，AI 辅助跟踪与提醒
 
-### Files
- - [`build.gradle`](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/build.gradle): This is the core script of the build process. You should not need to tamper with it, unless you are trying to accomplish something out of the ordinary. __Do not touch this file! You will make a future update near impossible if you do so!__
- - [`gradle.properties`](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/gradle.properties): The core configuration file. It includes
- - [`dependencies.gradle[.kts]`](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/dependencies.gradle): Add your mod's dependencies in this file. This is separate from the main build script, so you may replace the [`build.gradle`](https://github.com/SinTh0r4s/ExampleMod1.7.10/blob/main/build.gradle) if an update is available.
- - [`repositories.gradle[.kts]`](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/repositories.gradle): Add your dependencies' repositories. This is separate from the main build script, so you may replace the [`build.gradle`](https://github.com/SinTh0r4s/ExampleMod1.7.10/blob/main/build.gradle) if an update is available.
- - [`jitpack.yml`](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/jitpack.yml): Ensures that your mod is available as import over [Jitpack](https://jitpack.io).
- - [`.github/workflows/gradle.yml`](https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/.github/workflows/gradle.yml): A simple CI script that will build your mod any time it is pushed to `master` or `main` and publish the result as release in your repository. This feature is free with GitHub if your repository is public.
+### 高级计划器
+- **多任务管理** — 游戏内创建、编辑、排序任务条目
+- **进度追踪** — 任务状态展示与提醒通知
+- **HUD 叠加层** — 屏幕角落实时显示计划进度
 
-### Forge's Access Transformers
+### 存储链接元件
+- **矿典过滤 (Ore Filter)** — 按矿物词典筛选物品
+- **流体标记 (Fluid Marker)** — AE2FC 流体精确匹配
+- **名称显示开关** — 独立控制名称、数量、进出显示
 
-You may activate Forge's Access Transformers by defining a configuration file in `gradle.properties`.
+---
 
-Check out the [`example-access-transformers`](https://github.com/GTNewHorizons/ExampleMod1.7.10/tree/example-access-transformers) branch for a working example!
+## 🚀 快速开始
 
-__Warning:__ Access Transformers are bugged and will deny you any sources for the decompiled minecraft! Your development environment will still work, but you might face some inconveniences. For example, IntelliJ will not permit searches in dependencies without attached sources.
+### 构建
 
-### Mixins
+```powershell
+.\gradlew.bat build          # 编译打包
+.\gradlew.bat runClient      # 启动开发客户端
+```
 
-Mixins are usually used to modify vanilla or mod/library in runtime without having to change source code. For example, redirect a call, change visibility or make class implement your interface. It's an advanced topic and most mods don't need to do that.
+### 依赖
 
-You can activate Mixin in 'gradle.properties'. In that case a mixin configuration (usually named `mixins.mymodid.json`) will be generated automatically, and you only have to write the mixins itself. Dependencies are handled as well.
-Take a look at the examples in [Hodgepodge](https://github.com/GTNewHorizons/Hodgepodge/) and [Angelica](https://github.com/GTNewHorizons/Angelica/pull/8).
+构建依赖通过 GTNH Maven 仓库自动解析，本地 jar 依赖放在 `libs/` 目录：
 
-### Advanced
+- GT5-Unofficial 5.09.51.470
+- AE2FluidCraft-Rework 1.3.7-gtnh
+- Thaumcraft 1.7.10-4.2.3.5 (compileOnly)
+- NewHorizonsCoreMod 2.7.260
+- Chisel-2.14.1-GTNH-dev
+- Galacticraft-3.3.12-GTNH-dev
+- IC2NuclearControl-2.7.8-dev
 
-If your project requires custom gradle commands you may add a `addon.gradle[.kts]` to your project. It will be added automatically to the build script. Although we recommend against it, it is sometimes required. When in doubt, feel free to ask us about it. You may break future updates of this build system!
-If you need access to properties modified later in the buildscript, you can also use a `addon.late.gradle[.kts]`.
-For local tweaks that you don't want to commit to Git, like adding extra JVM arguments for testing, use `addon[.late].local.gradle[.kts]`.
+---
 
-### Feedback wanted
+## 📚 文档索引
 
-If you tried out this build script we would love to head your opinion! Is there any feature missing for you? Did something not work? Please open an issue and we will try to resolve it asap!
+| 文档 | 说明 |
+|------|------|
+| [AdvanceDataMonitor_使用说明.md](AdvanceDataMonitor_使用说明.md) | 功能介绍、安装、配置与使用教程 |
+| [AdvanceDataMonitor_开发者技术文档.md](AdvanceDataMonitor_开发者技术文档.md) | 项目结构、模块职责、数据流与扩展点 |
+| [AdvanceDataMonitor_AI助手技术说明.md](AdvanceDataMonitor_AI助手技术说明.md) | AI 助手实现细节与技术交接 |
+| [AdvanceDataMonitor_AI助手类引用速查.md](AdvanceDataMonitor_AI助手类引用速查.md) | AI 助手各功能对应的必改文件清单 |
+| [AdvanceDataMonitor_本地语音转写.md](AdvanceDataMonitor_本地语音转写.md) | 本地 OpenAI-compatible STT 服务配置 |
+| [AdvanceDataMonitor_高级计划器使用说明.md](AdvanceDataMonitor_高级计划器使用说明.md) | 高级计划器功能使用教程 |
+| [AdvanceDataMonitor_高级计划器开发文档.md](AdvanceDataMonitor_高级计划器开发文档.md) | 高级计划器开发细节与数据流 |
+| [AdvanceDataMonitor-Developer-Documentation.md](AdvanceDataMonitor-Developer-Documentation.md) | 项目结构、API、扩展点英文文档 |
+| [AdvanceDataMonitor-Player-Guide.md](AdvanceDataMonitor-Player-Guide.md) | 功能使用与配置英文指南 |
+| [AdvanceDataMonitor_项目说明.md](AdvanceDataMonitor_项目说明.md) | GTNH 构建模板与 Gradle 工程说明 |
+| [AdvanceDataMonitor_FAQ.md](AdvanceDataMonitor_FAQ.md) | 构建环境常见问题 |
+| [AdvanceDataMonitor_构建迁移指南.md](AdvanceDataMonitor_构建迁移指南.md) | 将旧模组迁移到 GTNH 构建系统 |
+| [AdvanceDataMonitor_模组移植指南.md](AdvanceDataMonitor_模组移植指南.md) | 模组版本/代码移植流程 |
+| [AdvanceDataMonitor概览.md](AdvanceDataMonitor概览.md) | 模组功能总览 |
 
-Happy modding, \
-[SinTh0r4s](https://github.com/SinTh0r4s), [TheElan](https://github.com/TheElan) and [basdxz](https://github.com/basdxz)
+---
+
+## 🔧 技术栈
+
+- **语言**: Java 8 (Jabel 提供 lambda 语法糖)
+- **构建**: Gradle Kotlin DSL + GTNH Convention Plugin
+- **AI 框架**: DeepSeek API / OpenAI-compatible 流式接口
+- **语音**: Vosk 离线识别 + HTTP STT 在线识别
+- **渲染**: OpenGL 1.1 (GL11) + Tessellator 单例模式
+- **架构**: @SidedProxy 客户端/服务端分离
+
+---
+
+## 📄 许可证
+
+MIT License — 详见 [LICENSE](LICENSE)

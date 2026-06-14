@@ -1,51 +1,55 @@
 package com.imgood.advancedatamonitor.utils;
 
-import appeng.helpers.AEMultiTile;
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import shedar.mods.ic2.nuclearcontrol.crossmod.appeng.TileEntityNetworkLink;
 
-import java.util.Objects;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceCraftingLink;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceStorageLink;
+
+import appeng.helpers.AEMultiTile;
 
 public class TileEntityTypeHelper {
+
     public enum TileEntityType {
         AE,
         NOMAL,
-        NETWORKLINK,
-        ADV_NETWORKLINK
+        ADV_NETWORKLINK,
+        ADV_CRAFTINGLINK,
+        ADV_STORAGELINK
     }
-     public static TileEntityType getTileEntityType(TileEntity te) {
-        //貌似不允许switch case
-         if (te instanceof AEMultiTile) {
 
-             return TileEntityType.AE;
-         } else if (te instanceof TileEntityNetworkLink) {
+    public static TileEntityType getTileEntityType(TileEntity te) {
+        if (te instanceof AEMultiTile) {
+            return TileEntityType.AE;
+        } else if (te instanceof TileEntityAdvanceCraftingLink) {
+            return TileEntityType.ADV_CRAFTINGLINK;
+        } else if (te instanceof TileEntityAdvanceNetworkLink) {
+            return TileEntityType.ADV_NETWORKLINK;
+        } else if (te instanceof TileEntityAdvanceStorageLink) {
+            return TileEntityType.ADV_STORAGELINK;
+        }
+        return TileEntityType.NOMAL;
+    }
 
-             return TileEntityType.NETWORKLINK;
-         } else if (te instanceof TileEntityAdvanceNetworkLink) {
-
-             return TileEntityType.ADV_NETWORKLINK;
-         }
-         return TileEntityType.NOMAL;
-     }
-
-     public static TileEntityType getTileEntityType(BlockPos blockPos) {
-        int  x = blockPos.getX();
-        int  y = blockPos.getY();
-        int  z = blockPos.getZ();
+    public static TileEntityType getTileEntityType(BlockPos blockPos) {
+        int x = blockPos.getX();
+        int y = blockPos.getY();
+        int z = blockPos.getZ();
         World world = blockPos.getWorld();
         TileEntity te = world.getTileEntity(x, y, z);
-        switch ( getTileEntityType(te)) {
+        switch (getTileEntityType(te)) {
             case AE:
                 return TileEntityType.AE;
-            case NETWORKLINK:
-                return TileEntityType.NETWORKLINK;
             case ADV_NETWORKLINK:
                 return TileEntityType.ADV_NETWORKLINK;
+            case ADV_CRAFTINGLINK:
+                return TileEntityType.ADV_CRAFTINGLINK;
+            case ADV_STORAGELINK:
+                return TileEntityType.ADV_STORAGELINK;
             case NOMAL:
             default:
                 return TileEntityType.NOMAL;
         }
-     }
+    }
 }

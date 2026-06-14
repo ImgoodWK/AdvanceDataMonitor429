@@ -10,6 +10,7 @@ import net.minecraft.client.gui.GuiScreen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 
 public class NBTViewerGUI extends GuiScreen {
 
@@ -19,7 +20,7 @@ public class NBTViewerGUI extends GuiScreen {
 
     public NBTViewerGUI(JsonObject data) {
         this.nbtData = data;
-        System.out.println("TestGUI" + data);
+        AdvanceDataMonitor.LOG.info("TestGUI" + data);
         buildTree(null, nbtData, 0);
     }
 

@@ -1,0 +1,488 @@
+{
+  "_documentation": {
+    "title": {
+      "zh_CN": "AI 助手功能配置 (Assistant Features)",
+      "en_US": "AI Assistant Feature Configuration"
+    },
+    "description": {
+      "zh_CN": "此文件定义了 AI 助手支持的功能列表。它同时用于：(1) 在 AI 大模型的 system prompt 中描述可用功能及其用法；(2) 在游戏内聊天界面的功能菜单中展示可选功能；(3) 玩家选择功能后，AI 会根据功能描述精准调用对应操作。",
+      "en_US": "This file defines the list of features supported by the AI assistant. It is used to: (1) describe available features and their usage in the AI model's system prompt; (2) display selectable features in the in-game chat feature menu; (3) when a player selects a feature, the AI will precisely call the corresponding operation based on the feature description."
+    },
+    "howToUse": {
+      "zh_CN": "修改指南：features 数组中的每个对象代表一个功能。你可以添加新功能或修改现有功能的以下字段：\n- key: 功能标识符，对应代码中的意图类型（如 QUERY_RECIPE、ORDER_ITEM 等）\n- displayName: 在功能菜单中显示的名称，需提供 zh_CN 和 en_US 两种语言\n- description: 功能的详细描述，需提供两种语言\n- keywords: 触发该功能的关键词列表，中英文均可\n- aiInstruction: 发送给 AI 大模型的指令说明，告诉 AI 如何识别和返回该意图\n\n修改说明：添加新功能时请确保 key 值与代码中的 AssistantIntentType 枚举值一致。删除功能会使其从菜单和 AI prompt 中移除。修改后重启游戏即可生效。",
+      "en_US": "Usage: Each object in the features array represents a feature. You can add new features or modify existing ones with the following fields:\n- key: Feature identifier, corresponds to the intent type in code (e.g. QUERY_RECIPE, ORDER_ITEM, etc.)\n- displayName: Name displayed in the feature menu, provide both zh_CN and en_US languages\n- description: Detailed description of the feature, provide both languages\n- keywords: List of keywords that trigger this feature, supports both Chinese and English\n- aiInstruction: Instruction sent to the AI model, telling it how to recognize and return this intent\n\nNotes: When adding a new feature, ensure the key value matches the AssistantIntentType enum in code. Removing a feature will remove it from the menu and AI prompt. A game restart is required for changes to take effect."
+    },
+    "fieldsInEachFeature": {
+      "key": {
+        "zh_CN": "功能键名 — 必须与代码中的意图类型一致",
+        "en_US": "Feature key — must match the intent type in code"
+      },
+      "displayName": {
+        "zh_CN": "显示名称 — zh_CN 和 en_US 两个语言版本",
+        "en_US": "Display name — zh_CN and en_US language versions"
+      },
+      "description": {
+        "zh_CN": "功能描述 — 在菜单中显示的解释文字",
+        "en_US": "Feature description — explanatory text shown in the menu"
+      },
+      "keywords": {
+        "zh_CN": "触发关键词 — 用户说出这些词时会匹配到此功能",
+        "en_US": "Trigger keywords — matching these words triggers this feature"
+      },
+      "aiInstruction": {
+        "zh_CN": "AI 指令 — 发给大模型的功能说明，指导 AI 如何返回该意图",
+        "en_US": "AI instruction — feature explanation sent to the model, guiding AI on how to return this intent"
+      }
+    }
+  },
+  "features": [
+    {
+      "key": "QUERY_RECIPE",
+      "displayName": {
+        "zh_CN": "查询合成配方/样板",
+        "en_US": "Query Crafting Recipe/Pattern"
+      },
+      "description": {
+        "zh_CN": "查询AE2网络中的可合成配方/样板，可按名称筛选或浏览全部",
+        "en_US": "Query craftable patterns/recipes in AE2 network, filter by name or browse all"
+      },
+      "keywords": [
+        "配方", "样板", "网络配方", "网络样板", "查询配方", "查询样板",
+        "查询网络配方", "查询网络样板", "查询所有配方", "查询所有样板",
+        "所有样板", "所有配方", "合成配方", "合成样板", "可合成",
+        "pattern", "patterns", "recipe", "recipes",
+        "query recipe", "query pattern", "list patterns", "list recipes",
+        "craftable", "ae2 recipe", "ae2 pattern"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_RECIPE: 查询AE2可合成配方/样板，可按名称筛选或留空浏览全部候选",
+        "en_US": "QUERY_RECIPE: query AE2 craftable patterns/recipes, filter by name or browse all candidates with empty target"
+      }
+    },
+    {
+      "key": "QUERY_STORAGE",
+      "displayName": {
+        "zh_CN": "查询AE2存储",
+        "en_US": "Query AE2 Storage"
+      },
+      "description": {
+        "zh_CN": "查询AE2网络中的存储概览，返回带缩略图的物品/流体列表（含大数K/M/T格式），可按名称筛选，也可从列表中选中取出到背包",
+        "en_US": "Query AE2 storage overview, returns items/fluids list with thumbnails (K/M/T format), filter by name, select to withdraw"
+      },
+      "keywords": [
+        "库存", "存储", "仓储", "容量", "占用", "百分比",
+        "还有多少", "有多少", "多少", "数量",
+        "流体", "液体", "气体", "物品", "清单",
+        "总览", "所有物品", "所有流体", "快满", "快空",
+        "item", "fluid", "gas", "storage",
+        "query storage", "check storage", "list storage",
+        "ae2 storage", "how many", "stock"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_STORAGE: 查询AE2存储，设storageScope为all/items/fluids",
+        "en_US": "QUERY_STORAGE: query AE2 storage, set storageScope to all/items/fluids"
+      }
+    },
+    {
+      "key": "QUERY_POWER",
+      "displayName": {
+        "zh_CN": "查询无线能源/电量",
+        "en_US": "Query Wireless Power"
+      },
+      "description": {
+        "zh_CN": "查询无线能源网络中的电量和容量",
+        "en_US": "Query wireless power network energy and capacity"
+      },
+      "keywords": [
+        "电量", "能源", "电力", "电网", "无线电网",
+        "eu", "EU", "能量", "电池",
+        "power", "energy", "electricity", "wireless power",
+        "query power", "check power", "how much power"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_POWER: 查询无线能源网络状态",
+        "en_US": "QUERY_POWER: query wireless power network status"
+      }
+    },
+    {
+      "key": "QUERY_STEAM",
+      "displayName": {
+        "zh_CN": "查询无线蒸汽",
+        "en_US": "Query Wireless Steam"
+      },
+      "description": {
+        "zh_CN": "查询无线蒸汽网络中的蒸汽量和状态",
+        "en_US": "Query wireless steam network steam amount and status"
+      },
+      "keywords": [
+        "蒸汽", "蒸汽量", "无线蒸汽", "蒸汽网络", "蒸汽网",
+        "蒸汽状态", "查询蒸汽", "蒸汽储存",
+        "steam", "steam network", "wireless steam",
+        "query steam", "check steam", "how much steam"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_STEAM: 查询无线蒸汽网络状态",
+        "en_US": "QUERY_STEAM: query wireless steam network status"
+      }
+    },
+    {
+      "key": "QUERY_WEATHER",
+      "displayName": {
+        "zh_CN": "查询天气",
+        "en_US": "Query Weather"
+      },
+      "description": {
+        "zh_CN": "查询当前世界的天气状况",
+        "en_US": "Query current world weather conditions"
+      },
+      "keywords": [
+        "天气", "下雨", "打雷", "雷暴", "晴天",
+        "weather", "rain", "thunder", "storm", "clear"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_WEATHER: 查询当前世界天气",
+        "en_US": "QUERY_WEATHER: query current world weather"
+      }
+    },
+    {
+      "key": "QUERY_TIME",
+      "displayName": {
+        "zh_CN": "查询时间",
+        "en_US": "Query Time"
+      },
+      "description": {
+        "zh_CN": "查询当前世界时间、昼夜状态",
+        "en_US": "Query current world time and day/night state"
+      },
+      "keywords": [
+        "时间", "几点", "白天", "晚上", "天亮", "天黑",
+        "time", "day", "night", "what time"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_TIME: 查询当前世界时间和昼夜状态",
+        "en_US": "QUERY_TIME: query current world time and day/night state"
+      }
+    },
+    {
+      "key": "QUERY_POSITION",
+      "displayName": {
+        "zh_CN": "查询位置",
+        "en_US": "Query Position"
+      },
+      "description": {
+        "zh_CN": "查询玩家当前位置、坐标、朝向、区块",
+        "en_US": "Query player position, coordinates, facing, chunk"
+      },
+      "keywords": [
+        "坐标", "位置", "朝向", "区块", "我在哪",
+        "coordinate", "position", "where am i", "facing", "chunk"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_POSITION: 查询玩家位置坐标信息",
+        "en_US": "QUERY_POSITION: query player position information"
+      }
+    },
+    {
+      "key": "QUERY_BIOME",
+      "displayName": {
+        "zh_CN": "查询群系",
+        "en_US": "Query Biome"
+      },
+      "description": {
+        "zh_CN": "查询当前位置的生态群系信息",
+        "en_US": "Query current biome information"
+      },
+      "keywords": [
+        "群系", "生态群系", "温度", "降雨", "湿度",
+        "biome", "temperature", "rainfall", "humidity"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_BIOME: 查询当前群系信息",
+        "en_US": "QUERY_BIOME: query current biome information"
+      }
+    },
+    {
+      "key": "QUERY_INVENTORY",
+      "displayName": {
+        "zh_CN": "查询背包",
+        "en_US": "Query Inventory"
+      },
+      "description": {
+        "zh_CN": "查询玩家背包空间信息",
+        "en_US": "Query player inventory space"
+      },
+      "keywords": [
+        "背包空间", "背包空位", "背包", "物品栏",
+        "inventory space", "inventory slots", "backpack space"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_INVENTORY: 查询玩家背包空间",
+        "en_US": "QUERY_INVENTORY: query player inventory space"
+      }
+    },
+    {
+      "key": "QUERY_NETWORK",
+      "displayName": {
+        "zh_CN": "查询ADM网络状态",
+        "en_US": "Query ADM Network"
+      },
+      "description": {
+        "zh_CN": "查询ADM网络连接器状态和绑定信息",
+        "en_US": "Query ADM network connector status and binding info"
+      },
+      "keywords": [
+        "网络状态", "连接器", "数据显示器", "高级数据显示器",
+        "link状态", "link 状态", "监视器",
+        "network status", "connector", "monitor"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_NETWORK: 查询ADM网络/连接器状态",
+        "en_US": "QUERY_NETWORK: query ADM network/connector status"
+      }
+    },
+    {
+      "key": "QUERY_JOBS",
+      "displayName": {
+        "zh_CN": "查询合成任务",
+        "en_US": "Query Crafting Jobs"
+      },
+      "description": {
+        "zh_CN": "查询AE2网络中挂起的合成任务",
+        "en_US": "Query pending AE2 crafting jobs"
+      },
+      "keywords": [
+        "合成任务", "正在合成", "挂起任务", "等待任务",
+        "crafting jobs", "craft jobs", "jobs", "pending crafts"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_JOBS: 查询挂起的AE2合成计算任务",
+        "en_US": "QUERY_JOBS: query pending AE2 crafting calculation jobs"
+      }
+    },
+    {
+      "key": "QUERY_ITEM_COUNT",
+      "displayName": {
+        "zh_CN": "查询物品/流体数量",
+        "en_US": "Query Item/Fluid Count"
+      },
+      "description": {
+        "zh_CN": "查询AE2存储网络中物品和流体的实际库存数量，可按名称模糊筛选，支持大数K/M/T显示",
+        "en_US": "Query actual item/fluid quantities in AE2 storage network, filter by name, display with K/M/T format"
+      },
+      "keywords": [
+        "物品数量", "库存数量", "储存数量", "所有物品", "全部物品",
+        "所有流体", "全部流体", "查询数量", "查询库存", "库存列表",
+        "储存列表", "查询所有", "列出所有", "列出物品",
+        "item count", "storage count", "all items", "all fluids",
+        "list items", "list storage", "inventory count", "list all",
+        "查询物品", "物品列表"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_ITEM_COUNT: 查询AE2存储中物品/流体实际数量，target可选填名称过滤留空列出所有",
+        "en_US": "QUERY_ITEM_COUNT: query AE2 storage actual item/fluid quantities, target is optional name filter, leave empty to list all"
+      }
+    },
+    {
+      "key": "QUERY_BYTES",
+      "displayName": {
+        "zh_CN": "查询字节占用/容量",
+        "en_US": "Query Byte Usage/Capacity"
+      },
+      "description": {
+        "zh_CN": "查询AE2存储网络的字节占用详情、百分比及是否含有无限存储元件",
+        "en_US": "Query AE2 storage network byte usage details, percentages, and infinite cell detection"
+      },
+      "keywords": [
+        "查询字节", "字节占用", "字节使用", "存储字节", "字节统计",
+        "字节信息", "网络字节", "网络占用", "网络使用", "占用率",
+        "剩余字节", "可用字节", "字节占比", "存储占用", "存储占比",
+        "query bytes", "byte usage", "byte info", "storage bytes",
+        "ae2 bytes", "check bytes", "byte count", "byte query"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_BYTES: 查询AE2存储网络字节占用详情、百分比及无限存储元件检测，target留空",
+        "en_US": "QUERY_BYTES: query AE2 storage network byte usage details, percentages and infinite cell detection, leave target empty"
+      }
+    },
+    {
+      "key": "TELEPORT",
+      "displayName": {
+        "zh_CN": "传送",
+        "en_US": "Teleport"
+      },
+      "description": {
+        "zh_CN": "使用背包中的高级错位宝石传送到已保存的传送点",
+        "en_US": "Teleport to a saved destination using the Advanced Dislocator in inventory"
+      },
+      "keywords": [
+        "传送", "瞬移", "回城", "回家", "TP",
+        "teleport", "warp", "recall", "return", "go to"
+      ],
+      "aiInstruction": {
+        "zh_CN": "TELEPORT: 使用背包中高级错位宝石传送到指定传送点，target为传送点名称或序号",
+        "en_US": "TELEPORT: teleport to a saved destination using Advanced Dislocator in inventory, target is destination name or number"
+      }
+    },
+    {
+      "key": "ORDER_ITEM",
+      "displayName": {
+        "zh_CN": "下单合成物品",
+        "en_US": "Order Craft Item"
+      },
+      "description": {
+        "zh_CN": "向AE2提交合成订单，可指定物品名称和数量",
+        "en_US": "Submit AE2 crafting order with item name and amount"
+      },
+      "keywords": [
+        "下单", "订购", "制作", "合成", "做", "来",
+        "craft", "order", "make", "synthesize", "produce"
+      ],
+      "aiInstruction": {
+        "zh_CN": "ORDER_ITEM: 提交AE2合成任务，必须包含非空target",
+        "en_US": "ORDER_ITEM: submit AE2 crafting job, must include non-empty target"
+      }
+    },
+    {
+      "key": "WITHDRAW_ITEM",
+      "displayName": {
+        "zh_CN": "取出存储物品",
+        "en_US": "Withdraw Item"
+      },
+      "description": {
+        "zh_CN": "从AE2存储中取出物品到背包",
+        "en_US": "Withdraw items from AE2 storage to inventory"
+      },
+      "keywords": [
+        "取出", "拿出", "拿", "取", "给我", "发到背包",
+        "放到背包", "装进背包", "从仓库取", "从库存取",
+        "withdraw", "pull", "take", "get", "extract"
+      ],
+      "aiInstruction": {
+        "zh_CN": "WITHDRAW_ITEM: 从AE2存储取出物品到背包，必须包含非空target",
+        "en_US": "WITHDRAW_ITEM: withdraw items from AE2 storage to inventory, must include non-empty target"
+      }
+    },
+    {
+      "key": "PLAN_ADD",
+      "displayName": {
+        "zh_CN": "添加计划/备忘",
+        "en_US": "Add Plan/Todo"
+      },
+      "description": {
+        "zh_CN": "在背包的高级计划器中添加新的计划条目",
+        "en_US": "Add a new plan entry to the Advanced Planner in inventory"
+      },
+      "keywords": [
+        "计划", "备忘", "待办", "预约", "提醒我",
+        "添加计划", "新增计划", "记录计划", "添加备忘",
+        "新增备忘", "添加待办", "新增待办",
+        "todo", "plan", "schedule", "task", "add plan",
+        "add todo", "add task", "remind me"
+      ],
+      "aiInstruction": {
+        "zh_CN": "PLAN_ADD: 在背包里的高级计划器中添加新条目，target为计划内容",
+        "en_US": "PLAN_ADD: add a new entry to the Advanced Planner in inventory, target is the plan content"
+      }
+    },
+    {
+      "key": "PLAN_LIST",
+      "displayName": {
+        "zh_CN": "列出计划",
+        "en_US": "List Plans"
+      },
+      "description": {
+        "zh_CN": "列出背包中高级计划器的所有条目",
+        "en_US": "List all entries from the Advanced Planner in inventory"
+      },
+      "keywords": [
+        "列出计划", "查看计划", "有哪些计划", "计划列表",
+        "列出备忘", "查看备忘", "备忘列表",
+        "列出待办", "查看待办", "待办列表",
+        "list plans", "list todos", "show plans", "show todos"
+      ],
+      "aiInstruction": {
+        "zh_CN": "PLAN_LIST: 列出背包中高级计划器的所有条目",
+        "en_US": "PLAN_LIST: list all entries from the Advanced Planner in inventory"
+      }
+    },
+    {
+      "key": "PLAN_COMPLETE",
+      "displayName": {
+        "zh_CN": "完成计划",
+        "en_US": "Complete Plan"
+      },
+      "description": {
+        "zh_CN": "标记背包中高级计划器的指定条目为已完成",
+        "en_US": "Mark a specified entry in the Advanced Planner as completed"
+      },
+      "keywords": [
+        "完成计划", "标记完成", "完成第", "完成备忘",
+        "完成待办", "完成第*个计划", "计划完成",
+        "complete plan", "complete task", "done", "finish"
+      ],
+      "aiInstruction": {
+        "zh_CN": "PLAN_COMPLETE: 标记指定编号的计划为已完成，optionNumber为序号",
+        "en_US": "PLAN_COMPLETE: mark the specified plan as completed, optionNumber is the index"
+      }
+    },
+    {
+      "key": "PLAN_DELETE",
+      "displayName": {
+        "zh_CN": "删除计划",
+        "en_US": "Delete Plan"
+      },
+      "description": {
+        "zh_CN": "从背包的高级计划器中删除指定编号的条目",
+        "en_US": "Delete a specified entry from the Advanced Planner in inventory"
+      },
+      "keywords": [
+        "删除计划", "移除计划", "取消计划", "删掉计划",
+        "删除备忘", "移除备忘", "删除待办", "移除待办",
+        "delete plan", "remove plan", "delete task", "remove task"
+      ],
+      "aiInstruction": {
+        "zh_CN": "PLAN_DELETE: 删除指定编号的计划，optionNumber为序号",
+        "en_US": "PLAN_DELETE: delete the specified plan, optionNumber is the index"
+      }
+    },
+    {
+      "key": "PLAN_MODIFY",
+      "displayName": {
+        "zh_CN": "修改计划",
+        "en_US": "Modify Plan"
+      },
+      "description": {
+        "zh_CN": "修改背包中高级计划器指定条目的内容",
+        "en_US": "Modify the content of a specified entry in the Advanced Planner"
+      },
+      "keywords": [
+        "修改计划", "编辑计划", "更改计划", "更新计划",
+        "修改备忘", "编辑备忘", "修改待办", "编辑待办",
+        "modify plan", "edit plan", "update plan", "change plan"
+      ],
+      "aiInstruction": {
+        "zh_CN": "PLAN_MODIFY: 修改指定编号的计划内容，optionNumber为序号，target为新内容",
+        "en_US": "PLAN_MODIFY: modify the specified plan content, optionNumber is the index, target is the new content"
+      }
+    },
+    {
+      "key": "CANCEL",
+      "displayName": {
+        "zh_CN": "取消操作",
+        "en_US": "Cancel"
+      },
+      "description": {
+        "zh_CN": "取消当前等待确认的操作",
+        "en_US": "Cancel the current pending confirmation operation"
+      },
+      "keywords": [
+        "取消", "算了", "停止", "不做了",
+        "cancel", "stop", "abort"
+      ],
+      "aiInstruction": {
+        "zh_CN": "CANCEL: 取消当前助手候选/批量状态并请求取消挂起的合成任务",
+        "en_US": "CANCEL: cancel current assistant candidate/batch state and request pending craft job cancellation"
+      }
+    }
+  ]
+}

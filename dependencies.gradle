@@ -34,15 +34,28 @@
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
 dependencies {
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.7.4-GTNH:dev")
-    api('com.github.GTNewHorizons:GT5-Unofficial:5.09.51.319:dev')
+    shadowImplementation('com.alphacephei:vosk:0.3.45')
+    shadowImplementation('net.java.dev.jna:jna:5.14.0')
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.5.4-GTNH:dev")
+    implementation files('libs/Chisel-2.14.1-GTNH-dev.jar', 'libs/Chisel-2.14.1-GTNH-dev.jar')
+    implementation files('libs/Galacticraft-3.3.12-GTNH-dev.jar', 'libs/Galacticraft-3.3.12-GTNH-dev.jar')
+    implementation files('libs/IC2NuclearControl-2.7.8-dev.jar', 'libs/IC2NuclearControl-2.7.8-dev.jar')
+    //implementation files('libs/IC2NuclearControl-2.7.8-api.jar', 'libs/IC2NuclearControl-2.7.8-api.jar')
+    //implementation files('libs/ArchitectureCraft-1.10.2-dev.jar', 'libs/ArchitectureCraft-1.10.2-dev.jar')
+    //implementation files('libs/geckolib3-v3.0.0-dev.jar', 'libs/geckolib3-v3.0.0-dev.jar')
+    //api("com.github.GTNewHorizons:StructureLib:1.3.1:dev")
+    //implementation files('libs/TwistSpaceTechnology-0.5.0-dev.jar', 'libs/TwistSpaceTechnology-0.5.0-dev.jar')
+    api('com.github.GTNewHorizons:GT5-Unofficial:5.09.51.470:dev')
     implementation('com.github.GTNewHorizons:AE2FluidCraft-Rework:1.3.7-gtnh:dev')
+    implementation('com.github.GTNewHorizons:ArchitectureCraft:1.10.2:dev')
     implementation('com.github.GTNewHorizons:BlockRenderer6343:1.2.12:dev')
-    implementation('com.github.GTNewHorizons:NewHorizonsCoreMod:2.7.196:dev')
-    implementation('com.github.GTNewHorizons:Avaritia:1.49:dev')
+
+    implementation('com.github.GTNewHorizons:NewHorizonsCoreMod:2.7.260:dev')
+    implementation('com.github.GTNewHorizons:Avaritia:1.61:dev')
     implementation('com.github.GTNewHorizons:Avaritiaddons:1.7.1-GTNH:dev')
     implementation('com.github.GTNewHorizons:Eternal-Singularity:1.2.1:dev')
     implementation('com.github.GTNewHorizons:Universal-Singularities:8.7.0:dev')
-    implementation('com.github.GTNewHorizons:Angelica:1.0.0-beta44:dev')
-    implementation files('libs/IC2NuclearControl-2.6.12-dev.jar', 'libs/IC2NuclearControl-2.6.12-dev.jar')
+    //implementation('com.github.GTNewHorizons:Angelica:1.0.0-beta2:dev')
+    compileOnly('thaumcraft:Thaumcraft:1.7.10-4.2.3.5:dev')
+
 }

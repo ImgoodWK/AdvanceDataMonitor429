@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -26,6 +25,7 @@ import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
 import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
 import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.utils.ContentsHelper;
 import com.imgood.advancedatamonitor.utils.DataBound;
 
@@ -342,19 +342,19 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
-                new ADM_GuiButton(
-                        7,
-                        this.offsetX + 140,
-                        this.offsetY + buttonRowYOffset1,
-                        buttonRow1Width,
-                        20,
-                        I18n.format("adm.button.enable")) // 修改取消按钮
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow1RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
+            new ADM_GuiButton(
+                7,
+                this.offsetX + 140,
+                this.offsetY + buttonRowYOffset1,
+                buttonRow1Width,
+                20,
+                I18n.format("adm.button.enable")) // 修改取消按钮
+                    .setTexture(button_texture)
+                    .setHoverTexture(button_hover_texture)
+                    .setUseRGBEffect(buttonRow1RGB)
+                    .setUseHoverEffect(true)
+                    .setTextColor(textColor)
+                    .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
             new ADM_GuiButton(
@@ -428,53 +428,50 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
-                new ADM_GuiButton(
-                        8,
-                        this.offsetX + buttonRowConfigXoffset1,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        buttonRow2Width,
-                        20,
-                        I18n.format("adm.button.enableAxis"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow2RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
+            new ADM_GuiButton(
+                8,
+                this.offsetX + buttonRowConfigXoffset1,
+                this.offsetY + buttonRowConfigYoffset1,
+                buttonRow2Width,
+                20,
+                I18n.format("adm.button.enableAxis")).setTexture(button_texture)
+                    .setHoverTexture(button_hover_texture)
+                    .setUseRGBEffect(buttonRow2RGB)
+                    .setUseHoverEffect(true)
+                    .setTextColor(textColor)
+                    .setTextHoverColor(textHoverColor));
 
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
 
         this.buttonList.add(
-                new ADM_GuiButton(
-                        9,
-                        this.offsetX + buttonRowConfigXoffset1,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        buttonRow2Width,
-                        20,
-                        I18n.format("adm.button.enableData"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow2RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
+            new ADM_GuiButton(
+                9,
+                this.offsetX + buttonRowConfigXoffset1,
+                this.offsetY + buttonRowConfigYoffset1,
+                buttonRow2Width,
+                20,
+                I18n.format("adm.button.enableData")).setTexture(button_texture)
+                    .setHoverTexture(button_hover_texture)
+                    .setUseRGBEffect(buttonRow2RGB)
+                    .setUseHoverEffect(true)
+                    .setTextColor(textColor)
+                    .setTextHoverColor(textHoverColor));
 
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
 
         this.buttonList.add(
-                new ADM_GuiButton(
-                        10,
-                        this.offsetX + buttonRowConfigXoffset1,
-                        this.offsetY + buttonRowConfigYoffset1,
-                        buttonRow2Width,
-                        20,
-                        I18n.format("adm.button.enableAxisFont"))
-                        .setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
-                        .setUseRGBEffect(buttonRow2RGB)
-                        .setUseHoverEffect(true)
-                        .setTextColor(textColor)
-                        .setTextHoverColor(textHoverColor));
+            new ADM_GuiButton(
+                10,
+                this.offsetX + buttonRowConfigXoffset1,
+                this.offsetY + buttonRowConfigYoffset1,
+                buttonRow2Width,
+                20,
+                I18n.format("adm.button.enableAxisFont")).setTexture(button_texture)
+                    .setHoverTexture(button_hover_texture)
+                    .setUseRGBEffect(buttonRow2RGB)
+                    .setUseHoverEffect(true)
+                    .setTextColor(textColor)
+                    .setTextHoverColor(textHoverColor));
 
         setTileEntityDatatype(this.tileEntityAdvanceDataMonotor.getDataType(this.index));
 
@@ -501,14 +498,17 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         fieldHints.put(textFieldScaled, "adm.hint.scale");
         fieldHints.put(textFieldAxisFontScaled, "adm.hint.axisfontscale");
         getButtonByid(7).displayString = I18n.format(!this.isEnabled ? "adm.button.disable" : "adm.button.enable");
-        getButtonByid(8).displayString = I18n.format(!this.isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
-        getButtonByid(9).displayString = I18n.format(!this.isEnabledData ? "adm.button.disableData" : "adm.button.enableData");
-        getButtonByid(10).displayString = I18n.format(!this.isEnabledAxisFont ? "adm.button.disableAxisFont" : "adm.button.enableAxisFont");
+        getButtonByid(8).displayString = I18n
+            .format(!this.isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
+        getButtonByid(9).displayString = I18n
+            .format(!this.isEnabledData ? "adm.button.disableData" : "adm.button.enableData");
+        getButtonByid(10).displayString = I18n
+            .format(!this.isEnabledAxisFont ? "adm.button.disableAxisFont" : "adm.button.enableAxisFont");
 
-        ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF :  0xFF0000);
-        ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF :  0xFF0000);
-        ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF :  0xFF0000);
-        ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF :  0xFF0000);
+        ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF : 0xFF0000);
+        ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF : 0xFF0000);
+        ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF : 0xFF0000);
+        ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF : 0xFF0000);
 
     }
 
@@ -715,14 +715,11 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         switch (button.id) {
             case 0 -> {
 
-
                 // 保留原有的dataValues数据
 
                 nbt.setTag("dataValues", existingDataValues.copy());
                 if (this.dataType == null) {
                     nbt.setString("dataType", "line");
-                } else {
-                    nbt.setString("dataType", this.dataType);
                 }
 
                 // Left 组字段（textFieldName 之前的字段）
@@ -930,7 +927,7 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
             case 7 -> {
                 // 获取现有NBT
                 isEnabled = !isEnabled;
-                ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF :  0xFF0000);
+                ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF : 0xFF0000);
 
                 // 更新NBT
                 nbt.setBoolean("enable", !existingNbt.getBoolean("enable"));
@@ -938,66 +935,70 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                 tileEntityAdvanceDataMonotor.setEnable(index, !existingNbt.getBoolean("enable"));
 
                 // 更新按钮显示文本
-                button.displayString = I18n.format(!existingNbt.getBoolean("enable") ? "adm.button.disable" : "adm.button.enable");
-
+                button.displayString = I18n
+                    .format(!existingNbt.getBoolean("enable") ? "adm.button.disable" : "adm.button.enable");
 
                 this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
                 this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
                 // 同步到服务器
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                        new PacketSynTileEntity(
-                                tileEntityAdvanceDataMonotor.xCoord,
-                                tileEntityAdvanceDataMonotor.yCoord,
-                                tileEntityAdvanceDataMonotor.zCoord,
-                                nbt));
+                    new PacketSynTileEntity(
+                        tileEntityAdvanceDataMonotor.xCoord,
+                        tileEntityAdvanceDataMonotor.yCoord,
+                        tileEntityAdvanceDataMonotor.zCoord,
+                        nbt));
 
             }
             case 8 -> {
                 isEnabledAxis = !isEnabledAxis;
-                ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF :  0xFF0000);
+                ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF : 0xFF0000);
 
                 nbt.setBoolean("enableAxis", !existingNbt.getBoolean("enableAxis"));
                 tileEntityAdvanceDataMonotor.setEnableAxis(index, !existingNbt.getBoolean("enableAxis"));
-                button.displayString = I18n.format(!existingNbt.getBoolean("enableAxis") ? "adm.button.disableAxis" : "adm.button.enableAxis");
+                button.displayString = I18n
+                    .format(!existingNbt.getBoolean("enableAxis") ? "adm.button.disableAxis" : "adm.button.enableAxis");
                 this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
                 this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
                 // 同步到服务器
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                        new PacketSynTileEntity(
-                                tileEntityAdvanceDataMonotor.xCoord,
-                                tileEntityAdvanceDataMonotor.yCoord,
-                                tileEntityAdvanceDataMonotor.zCoord,
-                                nbt));
+                    new PacketSynTileEntity(
+                        tileEntityAdvanceDataMonotor.xCoord,
+                        tileEntityAdvanceDataMonotor.yCoord,
+                        tileEntityAdvanceDataMonotor.zCoord,
+                        nbt));
             }
             case 9 -> {
                 isEnabledData = !isEnabledData;
-                ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF :  0xFF0000);
+                ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF : 0xFF0000);
                 nbt.setBoolean("enableData", !existingNbt.getBoolean("enableData"));
                 tileEntityAdvanceDataMonotor.setEnableData(index, !existingNbt.getBoolean("enableData"));
-                button.displayString = I18n.format(!existingNbt.getBoolean("enableData") ? "adm.button.disableData" : "adm.button.enableData");
+                button.displayString = I18n
+                    .format(!existingNbt.getBoolean("enableData") ? "adm.button.disableData" : "adm.button.enableData");
                 this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
                 this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                        new PacketSynTileEntity(
-                                tileEntityAdvanceDataMonotor.xCoord,
-                                tileEntityAdvanceDataMonotor.yCoord,
-                                tileEntityAdvanceDataMonotor.zCoord,
-                                nbt));
+                    new PacketSynTileEntity(
+                        tileEntityAdvanceDataMonotor.xCoord,
+                        tileEntityAdvanceDataMonotor.yCoord,
+                        tileEntityAdvanceDataMonotor.zCoord,
+                        nbt));
             }
             case 10 -> {
-                isEnabledAxisFont  = !isEnabledAxisFont;
-                ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF :  0xFF0000);
+                isEnabledAxisFont = !isEnabledAxisFont;
+                ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF : 0xFF0000);
                 nbt.setBoolean("enableAxisFont", !existingNbt.getBoolean("enableAxisFont"));
                 tileEntityAdvanceDataMonotor.setEnableAxisFont(index, !existingNbt.getBoolean("enableAxisFont"));
-                button.displayString = I18n.format(!existingNbt.getBoolean("enableAxisFont") ? "adm.button.disableAxisFont" : "adm.button.enableAxisFont");
+                button.displayString = I18n.format(
+                    !existingNbt.getBoolean("enableAxisFont") ? "adm.button.disableAxisFont"
+                        : "adm.button.enableAxisFont");
                 this.tileEntityAdvanceDataMonotor.setDisplayData(this.index, nbt);
                 this.tileEntityAdvanceDataMonotor.writeToNBT(nbt);
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                        new PacketSynTileEntity(
-                                tileEntityAdvanceDataMonotor.xCoord,
-                                tileEntityAdvanceDataMonotor.yCoord,
-                                tileEntityAdvanceDataMonotor.zCoord,
-                                nbt));
+                    new PacketSynTileEntity(
+                        tileEntityAdvanceDataMonotor.xCoord,
+                        tileEntityAdvanceDataMonotor.yCoord,
+                        tileEntityAdvanceDataMonotor.zCoord,
+                        nbt));
             }
             default -> {
                 // 处理其他按钮的行为
@@ -1048,9 +1049,9 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
-            I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"),I18n.format("adm.label.xrotation"), I18n.format("adm.label.yrotation"),
-            I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"), I18n.format("adm.label.yrange"),
-            I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval") };
+            I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"), I18n.format("adm.label.xrotation"),
+            I18n.format("adm.label.yrotation"), I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"),
+            I18n.format("adm.label.yrange"), I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval") };
         autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor);
         String[] label2 = { I18n.format("adm.label.nbtname"), I18n.format("adm.label.displayname"),
             I18n.format("adm.label.displaynamescale"), I18n.format("adm.label.displaynamecolor"),
@@ -1129,9 +1130,9 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
             int yPos = this.offsetY + 280;
             int count = 0;
             this.fontRendererObj
-                    .drawStringWithShadow(I18n.format("adm.property.tips") , this.offsetX + 10, yPos, 0x00FFff);
+                .drawStringWithShadow(I18n.format("adm.property.tips"), this.offsetX + 10, yPos, 0x00FFff);
             for (String line : wrappedHint) {
-                this.fontRendererObj.drawStringWithShadow("§l"+line, this.offsetX + 10, yPos + 10, 0x00FFff);
+                this.fontRendererObj.drawStringWithShadow("§l" + line, this.offsetX + 10, yPos + 10, 0x00FFff);
                 yPos += 10;
                 count++;
             }

@@ -1,18 +1,18 @@
 package com.imgood.advancedatamonitor;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.event.FMLLoadEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.imgood.advancedatamonitor.loader.LoaderBlock;
+import com.imgood.advancedatamonitor.loader.LoaderEntity;
+import com.imgood.advancedatamonitor.loader.LoaderGui;
 import com.imgood.advancedatamonitor.loader.LoaderHandler;
 import com.imgood.advancedatamonitor.loader.LoaderItem;
 import com.imgood.advancedatamonitor.loader.LoaderNetWork;
-import com.imgood.advancedatamonitor.loader.LoaderRender;
+import com.imgood.advancedatamonitor.loader.LoaderRecipe;
 import com.imgood.advancedatamonitor.loader.LoaderTileEntity;
-import com.imgood.advancedatamonitor.loader.LoaerGui;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -31,6 +31,7 @@ public class AdvanceDataMonitor {
 
     public static final String MODID = "advancedatamonitor";
     public static final Logger LOG = LogManager.getLogger(MODID);
+    public static final boolean DEBUG_MODE = true;
     public static SimpleNetworkWrapper ADMCHANEL = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);;
     @Mod.Instance(MODID)
     public static AdvanceDataMonitor instance;
@@ -47,9 +48,13 @@ public class AdvanceDataMonitor {
         proxy.preInit(event);
         LoaderBlock.registerBlocks();
         LoaderItem.registerItems();
+        LoaderEntity.registerEntities();
         LoaderHandler.registerHandlers();
         LoaderTileEntity.registerTileEntities();
-        if(FMLCommonHandler.instance().getEffectiveSide().isClient())  {
+        LoaderRecipe.registerRecipes();
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
             LoaderRender.registerRenderers();
         }
     }
@@ -58,7 +63,7 @@ public class AdvanceDataMonitor {
     // load "Do your mod setup. Build whatever data structures you care about. Register recipes." (Remove if not needed)
     public void init(FMLInitializationEvent event) {
         proxy.init(event);
-        LoaerGui.registerGui();
+        LoaderGui.registerGui();
     }
 
     @Mod.EventHandler

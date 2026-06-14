@@ -4,15 +4,12 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagByteArray;
 import net.minecraft.nbt.NBTTagCompound;
+
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import net.minecraft.nbt.NBTTagDouble;
 import net.minecraft.nbt.NBTTagFloat;
 import net.minecraft.nbt.NBTTagInt;
@@ -20,6 +17,11 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagLong;
 import net.minecraft.nbt.NBTTagShort;
 import net.minecraft.nbt.NBTTagString;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 public class NBTJsonParserHelper {
 
@@ -38,11 +40,11 @@ public class NBTJsonParserHelper {
         }
     }
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = AdvanceDataMonitor.DEBUG_MODE;
 
     private static void debug(String message) {
         if (DEBUG) {
-            System.out.println("[NBTDebug] " + message);
+            AdvanceDataMonitor.LOG.debug("[NBTDebug] " + message);
         }
     }
 

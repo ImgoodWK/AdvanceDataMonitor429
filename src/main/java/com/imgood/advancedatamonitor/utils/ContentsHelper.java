@@ -144,4 +144,29 @@ public class ContentsHelper {
         return true;
     }
 
+    /**
+     * 将 ICraftingCPU.getElapsedTime() 返回的纳秒格式化为 "dd:hh:mm:ss"
+     * 
+     * @param elapsedNanos 纳秒值
+     * @return 格式化后的时长字符串
+     */
+    public static String formatDuration(long elapsedNanos) {
+        if (elapsedNanos <= 0) {
+            return "00:00:00:00";
+        }
+        long totalSeconds = elapsedNanos / 1_000_000_000L;
+        long days = totalSeconds / 86400;
+        long hours = (totalSeconds % 86400) / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+        return String.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds);
+    }
+
+    public static int parseHexColorOrDefault(String hexColor, int defaultColor) {
+        if (isValidHexColor(hexColor)) {
+            return Integer.parseInt(hexColor, 16);
+        }
+        return defaultColor;
+    }
+
 }

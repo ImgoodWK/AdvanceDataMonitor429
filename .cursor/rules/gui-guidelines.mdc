@@ -1,0 +1,202 @@
+---
+description: GUI 编写规范，必须参考现有 GUI 的风格编写
+globs: **/gui/**
+alwaysApply: false
+---
+
+# GUI 编写规范
+
+## 基类选择
+
+### 1. 配置/设置界面 → 继承 `ADM_GuiScreen`
+所有数据配置、设置类界面都使用自定义基类 `ADM_GuiScreen`（位于 `gui.costom` 包）。
+
+- 提供 `setBackgroundTexture()` / `setPosition()` / `setSize()` / `setStretch()` 链式调用。
+- 自动绘制背景纹理，无需手动在 `drawScreen` 中调用 `drawDefaultBackground()`。
+- 参考所有 `GuiSub*`、`GuiAISettings`、`GuiAIChat`、`GuiAdvancePlanner`。
+
+### 2. 容器界面（有物品槽位） → 继承 `GuiContainer`
+用于需要 `InventoryPlayer` + `Container` 的标准容器界面。
+
+- 参考 `GuiAdvanceStorageLink.java`。
+- 标准尺寸：`xSize = 176`, `ySize = 184`。
+- 重写 `drawGuiContainerBackgroundLayer` 和 `drawGuiContainerForegroundLayer`。
+
+### 3. 简单消息弹窗 → 继承原版 `GuiScreen`
+仅用于提示/确认对话框。参考 `GuiScreenMessage.java`。
+
+## 构造函数模式
+
+### 子配置界面（编辑已有数据条目）
+```java
+public GuiSubXxx(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity, int index)
+```
+- `player` / `world` — 用于获取语言设置和世界信息
+- `tileEntity` — 数据源 TileEntity
+- `index` — 数据条目索引（编辑第几个数据配置）
+
+### 新增配置界面（创建新数据条目）
+```java
+public GuiSubBind(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity)
+```
+- 无 `index` 参数，因为是新条目。
+
+### 独立界面（不依赖 TileEntity）
+```java
+public GuiAIChat(GuiScreen parent)   // 接收父界面引用，用于返回
+public GuiAdvancePlanner(ItemStack plannerStack, EntityPlayer player)  // 接收 ItemStack
+```
+
+### 容器界面
+```java
+public GuiAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceStorageLink tile)
+```
+
+## drawScreen 编写模板
+
+```java
+@Override
+public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+    // 1. 绘制标签列（左侧标签列起始 x 约 50-60）
+    fontRendererObj.drawStringWithShadow(
+        I18n.format("adm.label.xxx"),
+        leftLabelX, currentY, 0x00FFFF);  // 标签颜色统一用 cyan
+
+    // 2. 绘制右侧标签列（如果存在，起始 x 约为左侧 + ~150）
+    // 同上
+
+    // 3. 绘制数值/百分比标签（alpha 值等，紧跟在文本框后面）
+    fontRendererObj.drawStringWithShadow(
+        currentAlpha + "%",
+        field.xPosition + field.width + 4, field.yPosition + 5, 0x00FFFF);
+
+    // 4. 调用 super.drawScreen() 绘制按钮和文本框
+    super.drawScreen(mouseX, mouseY, partialTicks);
+
+    // 5. 绘制输入框提示文字（当输入框聚焦时）
+    for (Entry<ADM_GuiTextField, String> entry : fieldHints.entrySet()) {
+        ADM_GuiTextField field = entry.getKey();
+        if (field.isFocused() || ...) {
+            String hintKey = entry.getValue();
+            // 在屏幕底部绘制提示
+            fontRendererObj.drawStringWithShadow(
+                I18n.format(hintKey), leftLabelX, hintY, 0xAAAAAA);
+        }
+    }
+}
+```
+
+## initGui 编写模板
+
+```java
+@Override
+public void initGui() {
+    super.initGui();
+    Keyboard.enableRepeatEvents(true);   // 允许长按重复输入
+    buttonList.clear();                   // 清除默认按钮
+    fieldList.clear();                    // 如果有自定义字段列表
+
+    // 1. 设置界面布局
+    setPosition(guiLeft, guiTop);
+    setSize(guiWidth, guiHeight);
+
+    // 2. 初始化文本框
+    fieldName = new ADM_GuiTextField(fontRendererObj, x, y, w, h);
+    fieldName.setMaxStringLength(...)
+        .setText(currentValue)
+        .setBackgroundTexture(textFieldNormalTex)
+        .setFocusedBackgroundTexture(textFieldFocusedTex)
+        .setHintText(I18n.format("adm.hint.xxx"));
+    fieldList.add(fieldName);
+
+    // 3. 初始化按钮（使用 ADM_GuiButton 链式调用）
+    ADM_GuiButton btnSave = new ADM_GuiButton(0, x, y, w, h, I18n.format("adm.button.save"));
+    btnSave.setTexture(buttonTex)
+        .setHoverTexture(buttonHoverTex)
+        .setUseHoverEffect(true)
+        .setTextColor(0x00FFFF)
+        .setTextHoverColor(0x0055FF);
+    buttonList.add(btnSave);
+
+    // 4. Alpha +/- 按钮对（如果界面包含 alpha 配置）
+    // 用 "-" / "+" 作为文字，宽度约 12，紧贴对应字段右侧
+}
+```
+
+## 颜色规范
+
+| 用途 | 颜色值 | 说明 |
+|------|--------|------|
+| 主文本色 | `0x00FFFF` | Cyan，用于标签、数值、按钮文字 |
+| Hover 文本色 | `0x0055FF` | 蓝色，鼠标悬停时按钮文字变色 |
+| 灰色文本 | `0xAAAAAA` / `0x888888` / `0x666666` | 次要信息、时间戳、提示文字 |
+| 成功/启用 | `0x55FF55` | 绿色，已完成状态、启用状态 |
+| 错误/禁用 | `0xFF5555` | 红色，错误提示、禁用状态 |
+| 禁用文本 | `0xA0A0A0` | 不可用按钮文字 |
+| 编辑区背景 | `0x30004040` / `0x20002020` | 列表交错行背景 |
+| AI 聊天面板 | `0x000000` 背景 + `0x00FFFF` 边框 | 聊天面板外观 |
+
+## 文本框组件 (ADM_GuiTextField)
+
+- **必须**调用 `setEnableBackgroundDrawing(false)` 关闭原版背景。
+- 通过 `setBackgroundTexture()` 设置自定义背景纹理。
+- 通过 `setFocusedBackgroundTexture()` 设置聚焦时背景。
+- 通过 `setHintText()` 设置失焦时的占位提示。
+- 文本框坐标有偏移：`yPosition = y - 8`, `xPosition = x - 21`（在构造函数中自动处理）。
+
+## 按钮组件 (ADM_GuiButton)
+
+链式调用模式：
+```java
+new ADM_GuiButton(id, x, y, w, h, text)
+    .setTexture(tex)          // 普通纹理
+    .setHoverTexture(hoverTex) // hover 纹理（会自动启用 hoverEffect）
+    .setUseHoverEffect(true)
+    .setTextColor(0x00FFFF)
+    .setTextHoverColor(0x0055FF);
+```
+
+特殊效果：
+- `setUseRGBEffect(true)` — 按钮文字自动循环彩虹色（用于选中/激活状态的按钮）
+- 按钮 ID 必须唯一，建议在 `initGui` 末尾调用 `checkUsedButtonIds()` 检测重复。
+
+## 数据保存与网络同步
+
+所有数据配置类界面通过统一模式保存。**当 GUI 涉及网络包时，必须同时完成网络包 Handler 的编写和注册，参见 `network-packets.mdc`。**
+
+```java
+private void saveAndSync() {
+    NBTTagCompound nbt = tileEntity.getDisplayData(index);
+    // 写入所有配置字段...
+    nbt.setString("displayName", fieldDisplayName.getText());
+    nbt.setDouble("scale", Double.parseDouble(fieldScale.getText()));
+    // ...
+    tileEntity.setDisplayData(index, nbt);
+    tileEntity.writeToNBT(new NBTTagCompound());  // 持久化到磁盘
+    AdvanceDataMonitor.ADMCHANEL.sendToServer(
+        new PacketSynTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, nbt));
+}
+```
+
+- **必须** `writeToNBT` 确保数据持久化。
+- **必须** 通过 `ADMCHANEL.sendToServer(new PacketSynTileEntity(...))` 同步到服务端。
+- **如果新增网络包**：同步编写 Handler（服务端 readFromNBT → markDirty → syncData）并在 `LoaderNetWork.registerNetWorks()` 注册。详见 `network-packets.mdc`。
+
+## 语言本地化
+
+- 所有用户可见文本使用 `I18n.format("adm.xxx")`，禁止硬编码。
+- 格式化码使用 `§` 符号：`§l` (粗体)、`§n` (下划线)、`§m` (删除线)。
+- 标题使用 `§l` 加粗：`adm.title.xxx=§lAdvance Data Monitor`。
+
+## 输入校验
+
+- 使用 `ContentsHelper` 工具类进行字段校验：
+  - `isValidDouble(s)` / `isValidInteger(s)` / `isValidPosFormat(s)` / `isValidHexColor(s)`
+- 校验失败时显示 `adm.error.xxx` 对应的错误提示。
+- 保存按钮 `actionPerformed` 中依次校验所有字段，通过后才执行 `saveAndSync()`。
+
+## 必须的覆写
+
+- `doesGuiPauseGame()` → 返回 `false`（不暂停游戏）。
+- `onGuiClosed()` → 恢复 `Keyboard.enableRepeatEvents(false)`。
+- 需要滚轮支持时覆写 `handleMouseInput()`，检查 `Mouse.getEventDWheel()`。

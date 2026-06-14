@@ -1,7 +1,5 @@
 package com.imgood.advancedatamonitor.renders;
 
-import com.gtnewhorizons.modularui.api.GlStateManager;
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.item.ItemStack;
@@ -9,23 +7,25 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.IItemRenderer;
 import net.minecraftforge.client.model.AdvancedModelLoader;
 import net.minecraftforge.client.model.IModelCustom;
+
 import org.lwjgl.opengl.GL11;
+
+import com.gtnewhorizons.modularui.api.GlStateManager;
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 
 public class RenderAdvanceNetworkLinkBlockItem implements IItemRenderer {
 
-    private static ResourceLocation advanceDataMonitorModelTexture = new ResourceLocation(AdvanceDataMonitor.MODID
-            + ":textures/model/AdvanceDataMonitor.png");
+    private static ResourceLocation advanceDataMonitorModelTexture = new ResourceLocation(
+        AdvanceDataMonitor.MODID + ":textures/model/AdvanceDataMonitor.png");
     private static IModelCustom advanceDataMonitorModel = AdvancedModelLoader
-            .loadModel(new ResourceLocation(AdvanceDataMonitor.MODID
-                    + ":model/AdvanceNetworkLink.obj"));
+        .loadModel(new ResourceLocation(AdvanceDataMonitor.MODID + ":model/AdvanceNetworkLink.obj"));
 
     @Override
     public boolean handleRenderType(ItemStack item, ItemRenderType type) {
         // 指定需要处理的渲染类型：物品栏、手持、掉落物等
-        return type == ItemRenderType.INVENTORY ||
-                type == ItemRenderType.ENTITY ||
-                type == ItemRenderType.EQUIPPED_FIRST_PERSON ||
-                type == ItemRenderType.EQUIPPED;
+        return type == ItemRenderType.INVENTORY || type == ItemRenderType.ENTITY
+            || type == ItemRenderType.EQUIPPED_FIRST_PERSON
+            || type == ItemRenderType.EQUIPPED;
     }
 
     @Override
@@ -55,7 +55,6 @@ public class RenderAdvanceNetworkLinkBlockItem implements IItemRenderer {
             renderBaseModel();
         }
         // 渲染模型
-
 
         GL11.glPopMatrix();
     }

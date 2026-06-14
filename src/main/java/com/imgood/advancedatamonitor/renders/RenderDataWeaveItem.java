@@ -1,47 +1,42 @@
 package com.imgood.advancedatamonitor.renders;
 
-import com.gtnewhorizons.modularui.api.GlStateManager;
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import forestry.api.recipes.IFabricatorManager;
-import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.entity.RenderItem;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
-import net.minecraftforge.client.IItemRenderer;
-import net.minecraftforge.client.model.AdvancedModelLoader;
-import net.minecraftforge.client.model.IModelCustom;
-import org.lwjgl.opengl.GL11;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class RenderDataWeaveItem implements IItemRenderer {
-    private static final ResourceLocation advanceDataDisplayTexture = new ResourceLocation(
-            AdvanceDataMonitor.MODID + ":textures/model/AdvanceDataMonitor.png"
-    );
-    private static final IModelCustom advanceDtaDisplayModel = AdvancedModelLoader.loadModel(
-            new ResourceLocation(AdvanceDataMonitor.MODID + ":model/DataWeave.obj")
-    );
-    private static final int SCROLL_SPEED = 30; // 像素/秒
-    private static final int LINE_HEIGHT = 9;   // 行高
-    private static final int MAX_LINES = 9;      // 最大显示行数
+import net.minecraft.block.Block;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.entity.RenderItem;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.client.IItemRenderer;
+import net.minecraftforge.client.model.AdvancedModelLoader;
+import net.minecraftforge.client.model.IModelCustom;
 
+import org.lwjgl.opengl.GL11;
+
+import com.gtnewhorizons.modularui.api.GlStateManager;
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+
+public class RenderDataWeaveItem implements IItemRenderer {
+
+    private static final ResourceLocation advanceDataDisplayTexture = new ResourceLocation(
+        AdvanceDataMonitor.MODID + ":textures/model/AdvanceDataMonitor.png");
+    private static final IModelCustom advanceDtaDisplayModel = AdvancedModelLoader
+        .loadModel(new ResourceLocation(AdvanceDataMonitor.MODID + ":model/DataWeave.obj"));
+    private static final int SCROLL_SPEED = 30; // 像素/秒
+    private static final int LINE_HEIGHT = 9; // 行高
+    private static final int MAX_LINES = 9; // 最大显示行数
 
     @Override
     public boolean handleRenderType(ItemStack item, ItemRenderType type) {
-        return type == ItemRenderType.INVENTORY ||
-                type == ItemRenderType.ENTITY ||
-                type == ItemRenderType.EQUIPPED_FIRST_PERSON ||
-                type == ItemRenderType.EQUIPPED;
+        return type == ItemRenderType.INVENTORY || type == ItemRenderType.ENTITY
+            || type == ItemRenderType.EQUIPPED_FIRST_PERSON
+            || type == ItemRenderType.EQUIPPED;
     }
 
     @Override
@@ -59,25 +54,28 @@ public class RenderDataWeaveItem implements IItemRenderer {
         renderBaseModel();
         GL11.glPopMatrix();
 
-        // ========== 文字信息渲染 ==========
-        GL11.glPushMatrix();
-        applyTextTransform(type);
-        renderBoundPositionText(type, item);
-        GL11.glPopMatrix();
-
-        // ========== 方块模型渲染 ==========
-        if (shouldRenderBlock(type, item)) {
+        if (shouldRenderFirstPersonOverlay(type)) {
+            // ========== Text overlay ==========
             GL11.glPushMatrix();
-            try {
-                renderBlockModel(item);
-            } finally {
-                GL11.glPopMatrix();
+            applyTextTransform(type);
+            renderBoundPositionText(type, item);
+            GL11.glPopMatrix();
+
+            // ========== Bound block preview ==========
+            if (shouldRenderBlock(type, item)) {
+                GL11.glPushMatrix();
+                try {
+                    renderBlockModel(type, item);
+                } finally {
+                    GL11.glPopMatrix();
+                }
             }
+
+            GL11.glPushMatrix();
+            applyNbtScrollTransform(type);
+            renderNbtScrollText(type, item);
+            GL11.glPopMatrix();
         }
-        GL11.glPushMatrix();
-        applyNbtScrollTransform(type); // 新增变换方法
-        renderNbtScrollText(type, item);
-        GL11.glPopMatrix();
     }
 
     private void applyBaseModelTransform(ItemRenderType type) {
@@ -217,18 +215,13 @@ public class RenderDataWeaveItem implements IItemRenderer {
         if (nbt.hasKey("boundBlock")) {
             Block block = Block.getBlockFromName(nbt.getString("boundBlock"));
             if (nbt.hasKey("mName")) {
-                String[] blockName = nbt.getString("boundBlock").split(":");
-                return I18n.format(blockName[1] + "." + nbt.getString("mName")+".name");
+                String[] blockName = nbt.getString("boundBlock")
+                    .split(":");
+                return I18n.format(blockName[1] + "." + nbt.getString("mName") + ".name");
             }
-            int mId  = nbt.getInteger("mId");
-            int blockMeta;
-            if (mId >0) {
-                blockMeta  = mId;
-            } else {
-                blockMeta = nbt.getInteger("boundMeta");
-            }
+            int itemMeta = getBoundItemMeta(nbt);
             if (block != null) {
-                ItemStack stack = new ItemStack(block, 1, blockMeta);
+                ItemStack stack = new ItemStack(block, 1, itemMeta);
                 try {
                     return stack.getDisplayName();
                 } catch (Exception e) {
@@ -239,116 +232,127 @@ public class RenderDataWeaveItem implements IItemRenderer {
         return "";
     }
 
-    private boolean shouldRenderBlock(ItemRenderType type, ItemStack item) {
-        return type == ItemRenderType.EQUIPPED_FIRST_PERSON &&
-                item.hasTagCompound() &&
-                item.getTagCompound().hasKey("boundBlock");
+    private boolean shouldRenderFirstPersonOverlay(ItemRenderType type) {
+        return type == ItemRenderType.EQUIPPED_FIRST_PERSON;
     }
 
-    private void renderBlockModel(ItemStack item) {
-        NBTTagCompound nbt = item.getTagCompound();
-        if (nbt == null) return;
+    private boolean shouldRenderBlock(ItemRenderType type, ItemStack item) {
+        return shouldRenderFirstPersonOverlay(type) && item.hasTagCompound()
+            && item.getTagCompound()
+                .hasKey("boundBlock");
+    }
 
-        // 从NBT获取方块信息
-        String blockId = nbt.getString("boundBlock");
-
-
-        int meta;
-        NBTTagCompound teNbt = nbt.getCompoundTag("boundTE");
-        String blockName = teNbt.getString("id");
-        if (blockName.contains("BaseMetaTileEntity")){
-            meta = teNbt.getInteger("mID");
-        } else {
-            meta = nbt.getInteger("boundMeta");
+    private void renderBlockModel(ItemRenderType type, ItemStack item) {
+        ItemStack boundStack = getBoundItemStack(item);
+        if (boundStack == null) {
+            return;
         }
 
-        // 创建方块ItemStack
-        Block block = Block.getBlockFromName(blockId);
-        if (block == null) return;
-
-        ItemStack blockStack = createBlockStack(block, meta, teNbt);
-
-        // 执行渲染
         GL11.glPushMatrix();
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         try {
-            applyBlockModelTransforms();
-            renderBlockStack(blockStack);
+            applyBoundItemPreviewTransform(type);
+            renderBoundItemPreview(boundStack, getBoundItemPreviewScale(type));
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.error("Bound item preview rendering failed", e);
         } finally {
             GL11.glPopAttrib();
             GL11.glPopMatrix();
         }
     }
 
-    private ItemStack createBlockStack(Block block, int meta, NBTTagCompound teNbt) {
-        ItemStack stack = new ItemStack(block, 1, meta);
-        if (!teNbt.hasNoTags()) {
-            NBTTagCompound stackNbt = new NBTTagCompound();
-            stackNbt.setTag("BlockEntityTag", teNbt);
-            stack.setTagCompound(stackNbt);
+    private ItemStack getBoundItemStack(ItemStack item) {
+        NBTTagCompound nbt = item.getTagCompound();
+        if (nbt == null || !nbt.hasKey("boundBlock")) {
+            return null;
         }
-        return stack;
+        Block block = Block.getBlockFromName(nbt.getString("boundBlock"));
+        if (block == null) {
+            return null;
+        }
+        return new ItemStack(block, 1, getBoundItemMeta(nbt));
     }
 
-    private void applyBlockModelTransforms() {
-        GL11.glTranslatef(-0.2f, 1.2f, 0f);
-        GL11.glScalef(0.025f, 0.025f, 0.025f);
-        //GL11.glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
-        GL11.glRotatef(-60f, 1.7f, 4f, 2f);
-        GL11.glRotatef(170.0f, 0.0f, 0.0f, 1.0f);
-        GL11.glRotatef(40.0f, 1, 1f, 0f);
-        GL11.glRotatef(-35.0f, 0, 0, 1);
-        GL11.glRotatef(-10f, 1, 0, 0);
-        GL11.glRotatef(20f, 0, 1, 0);
-
+    private int getBoundItemMeta(NBTTagCompound nbt) {
+        NBTTagCompound teNbt = nbt.getCompoundTag("boundTE");
+        String tileId = teNbt.getString("id");
+        if (tileId.contains("BaseMetaTileEntity") && teNbt.hasKey("mID")) {
+            return Math.max(0, teNbt.getInteger("mID"));
+        }
+        if (nbt.hasKey("mId")) {
+            return Math.max(0, nbt.getInteger("mId"));
+        }
+        return Math.max(0, nbt.hasKey("boundMeta") ? nbt.getInteger("boundMeta") : 0);
     }
 
-    private void renderBlockStack(ItemStack stack) {
-        // 保存所有OpenGL状态
-        GL11.glPushMatrix();
+    private void applyBoundItemPreviewTransform(ItemRenderType type) {
+        switch (type) {
+            case INVENTORY:
+                GL11.glTranslatef(6.0f, 5.0f, 80.0f);
+                break;
+            case ENTITY:
+                GL11.glTranslatef(0.42f, 0.96f, 0.10f);
+                GL11.glScalef(0.0005f, 0.0005f, 0.0005f);
+                GL11.glRotatef(25.0f, 1.0f, 0.0f, 0.0f);
+                GL11.glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+                break;
+            case EQUIPPED_FIRST_PERSON:
+                GL11.glTranslatef(-0.10f, 1.12f, -0.36f);
+                GL11.glRotatef(135.0f, 0.0f, 1.0f, 0.0f);
+                GL11.glRotatef(180.0f, 0.0f, 0.0f, 1.0f);
+                GL11.glScalef(0.25f, 0.25f, 0.25f);
+                break;
+            case EQUIPPED:
+                GL11.glTranslatef(0.58f, 0.92f, 0.22f);
+                GL11.glRotatef(25.0f, 1.0f, 0.0f, 0.0f);
+                GL11.glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+                break;
+        }
+    }
+
+    private float getBoundItemPreviewScale(ItemRenderType type) {
+        switch (type) {
+            case INVENTORY:
+                return 18.0f;
+            case EQUIPPED_FIRST_PERSON:
+                return 4.5f;
+            default:
+                return 12.0f;
+        }
+    }
+
+    private void renderBoundItemPreview(ItemStack stack, float iconScale) {
+        if (stack == null || stack.getItem() == null) return;
+
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0f, 240.0f);
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
-
-        // 配置渲染环境
-        GlStateManager.disableCull(); // 禁用面剔除
-        GlStateManager.enableRescaleNormal();
-        GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GlStateManager.enableDepth();
-        GlStateManager.depthMask(true);
-        RenderHelper.enableStandardItemLighting();
-
-        // 绑定方块纹理
-        Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationBlocksTexture);
-
-        // 调整渲染参数防止Z-fighting
-        GL11.glTranslatef(0.5f, 0.5f, 0.5f);
-        GL11.glScalef(0.8f, 0.8f, 0.8f);
-        GL11.glRotatef(-30.0f, 1.0f, 0.0f, 0.0f); // 视角倾斜
-
-        // 核心渲染调用
+        GL11.glPushMatrix();
         try {
-            RenderItem.getInstance().renderItemIntoGUI(
+            GL11.glDisable(GL11.GL_LIGHTING);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glDepthMask(true);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+            float aeItemScale = 0.8f * iconScale;
+            GL11.glRotatef(180.0f, 1.0f, 0.0f, 0.0f);
+            GL11.glScalef(1.0f, -1.0f, 1.0f);
+            GL11.glScalef(aeItemScale / 32.0f, aeItemScale / 32.0f, 0.0001f);
+            GL11.glTranslatef(-8.0f, -5.0f, 0.0f);
+            RenderItem.getInstance()
+                .renderItemAndEffectIntoGUI(
                     Minecraft.getMinecraft().fontRenderer,
-                    Minecraft.getMinecraft().getTextureManager(),
+                    Minecraft.getMinecraft()
+                        .getTextureManager(),
                     stack,
-                    0, 0
-            );
-        } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("Block rendering failed", e);
+                    0,
+                    0);
+            GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        } finally {
+            GL11.glPopMatrix();
+            GL11.glPopAttrib();
         }
-
-        // 恢复环境
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.enableCull(); // 恢复面剔除
-        GlStateManager.disableRescaleNormal();
-
-        // 强制刷新深度缓冲
-        GlStateManager.depthFunc(GL11.GL_LEQUAL);
-        GlStateManager.depthMask(false);
-        GlStateManager.depthMask(true);
-
-        GL11.glPopAttrib();
-        GL11.glPopMatrix();
     }
 
     // 新增NBT滚动文本变换方法
@@ -393,11 +397,12 @@ public class RenderDataWeaveItem implements IItemRenderer {
         @SuppressWarnings("unchecked")
         Set<String> keys = teNbt.func_150296_c();
         for (String key : keys) {
-            String value = teNbt.getTag(key).toString();
+            String value = teNbt.getTag(key)
+                .toString();
             String line = key + ": " + value;
 
             if (line.length() > MAX_CHARS) {
-                line = line.substring(0, MAX_CHARS-3) + "...";
+                line = line.substring(0, MAX_CHARS - 3) + "...";
             }
             nbtLines.add(line);
         }
@@ -457,15 +462,10 @@ public class RenderDataWeaveItem implements IItemRenderer {
                     alpha = Math.max(0.0f, Math.min(1.0f, alpha));
 
                     // 将透明度转换为颜色值
-                    int alphaInt = (int)(alpha * 255);
+                    int alphaInt = (int) (alpha * 255);
                     int colorWithAlpha = (alphaInt << 24) | 0x00FFFF;
 
-                    font.drawString(
-                            wrappedText,
-                            20,
-                            renderY,
-                            colorWithAlpha
-                    );
+                    font.drawString(wrappedText, 20, renderY, colorWithAlpha);
                 }
             }
         } finally {
@@ -480,12 +480,16 @@ public class RenderDataWeaveItem implements IItemRenderer {
 
         for (String word : text.split(" ")) {
             if (font.getStringWidth(currentLine + word) < maxWidth) {
-                currentLine.append(word).append(" ");
+                currentLine.append(word)
+                    .append(" ");
             } else {
-                result.append(currentLine).append("\n");
+                result.append(currentLine)
+                    .append("\n");
                 currentLine = new StringBuilder(word).append(" ");
             }
         }
-        return result.append(currentLine).toString().trim();
+        return result.append(currentLine)
+            .toString()
+            .trim();
     }
 }

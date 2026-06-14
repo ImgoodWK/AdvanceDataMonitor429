@@ -1,18 +1,19 @@
 package com.imgood.advancedatamonitor.network.packet;
 
 // 原有导入保持不变
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 
 public class PacketSynTileEntity implements IMessage {
@@ -102,6 +103,7 @@ public class PacketSynTileEntity implements IMessage {
             return null;
         }
     }
+
     @SideOnly(Side.CLIENT)
     public static class ClientHandler implements IMessageHandler<PacketSynTileEntity, IMessage> {
 

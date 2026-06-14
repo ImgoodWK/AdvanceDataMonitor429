@@ -1,12 +1,13 @@
 package com.imgood.advancedatamonitor.loader;
 
-import com.imgood.advancedatamonitor.blocks.BlockAdvanceNetworkLink;
 import net.minecraft.block.Block;
 
-import com.imgood.advancedatamonitor.blocks.BlockAdvDataMonitor;
+import com.imgood.advancedatamonitor.blocks.BlockAdvanceCraftingLink;
+import com.imgood.advancedatamonitor.blocks.BlockAdvanceDataMonitor;
+import com.imgood.advancedatamonitor.blocks.BlockAdvanceNetworkLink;
+import com.imgood.advancedatamonitor.blocks.BlockAdvanceStorageLink;
 
 import cpw.mods.fml.common.registry.GameRegistry;
-import shedar.mods.ic2.nuclearcontrol.crossmod.appeng.BlockNetworkLink;
 
 /**
  * @program: AdvanceDataMonitor
@@ -16,12 +17,20 @@ import shedar.mods.ic2.nuclearcontrol.crossmod.appeng.BlockNetworkLink;
  **/
 public class LoaderBlock {
 
-    public static Block advDataMonitor;
-    public static BlockAdvanceNetworkLink networkLinkBlock;
+    public static Block advanceDataMonitor;
+    public static BlockAdvanceNetworkLink advanceNetworkLinkBlock;
+    public static BlockAdvanceStorageLink advanceStorageLinkBlock;
+    public static BlockAdvanceCraftingLink advanceCraftingLink;
+
     public static void registerBlocks() {
-        advDataMonitor = new BlockAdvDataMonitor();
-        networkLinkBlock = new BlockAdvanceNetworkLink();
-        GameRegistry.registerBlock(advDataMonitor, "advDataMonitor");
-        GameRegistry.registerBlock(networkLinkBlock, "advNetworkLinkBlock");
+        advanceDataMonitor = new BlockAdvanceDataMonitor();
+        advanceNetworkLinkBlock = new BlockAdvanceNetworkLink();
+        advanceStorageLinkBlock = new BlockAdvanceStorageLink();
+        advanceCraftingLink = new BlockAdvanceCraftingLink();
+
+        GameRegistry.registerBlock(advanceDataMonitor, "advDataMonitor");
+        GameRegistry.registerBlock(advanceNetworkLinkBlock, "advNetworkLinkBlock");
+        GameRegistry.registerBlock(advanceStorageLinkBlock, "advStorageLink");
+        GameRegistry.registerBlock(advanceCraftingLink, "advCraftingLink");
     }
 }

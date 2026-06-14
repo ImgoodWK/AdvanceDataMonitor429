@@ -1,10 +1,10 @@
 package com.imgood.advancedatamonitor.network.handler;
 
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;

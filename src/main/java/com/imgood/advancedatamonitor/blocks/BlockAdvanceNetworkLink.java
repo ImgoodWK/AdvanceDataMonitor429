@@ -1,8 +1,7 @@
 package com.imgood.advancedatamonitor.blocks;
 
-import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.MathHelper;
+import java.util.Random;
+
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
@@ -10,9 +9,16 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
+
 public class BlockAdvanceNetworkLink extends BlockContainer {
+
+    // 更新间隔（tick），1 = 每tick，20 = 每秒。建议根据网络大小调整，避免性能问题。
+    private static final int UPDATE_INTERVAL = 20; // 可改为 20 或更高
 
     public BlockAdvanceNetworkLink() {
         super(Material.iron);
@@ -21,6 +27,7 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         this.setStepSound(soundTypeMetal);
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("NetworkLinkBlock");
+        this.setTickRandomly(true); // 允许接收计划刻
     }
 
     @Override
@@ -30,30 +37,95 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
 
     @Override
     public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+        int direction = MathHelper.floor_double((double) ((placer.rotationYaw + 180) * 4.0F / 360.0F) + 0.5D) & 3;
+        TileEntity tileEntity = world.getTileEntity(x, y, z);
+        if (tileEntity instanceof TileEntityAdvanceNetworkLink) {
+            ((TileEntityAdvanceNetworkLink) tileEntity).facing = direction;
+        }
+    }
+
+    private int determineFacing(World world, int x, int y, int z, EntityLivingBase placer) {
+        // 玩家面对的方向就是方块的前面
+        int facing = MathHelper.floor_double((placer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
+        switch (facing) {
+            case 0:
+                return 2; // 北
+            case 1:
+                return 5; // 东
+            case 2:
+                return 3; // 南
+            case 3:
+                return 4; // 西
+            default:
+                return 2;
+        }
+    }
+
+    // ---------- 定时刷新（计划刻） ----------
+    @Override
+    public void onBlockAdded(World world, int x, int y, int z) {
+        super.onBlockAdded(world, x, y, z);
+        if (!world.isRemote) {
+            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
+        }
     }
 
     @Override
-    public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player,
-                                    int side, float hitX, float hitY, float hitZ) {
+    public void updateTick(World world, int x, int y, int z, Random random) {
+        if (!world.isRemote) {
+            TileEntity te = world.getTileEntity(x, y, z);
+            if (te instanceof TileEntityAdvanceNetworkLink) {
+                ((TileEntityAdvanceNetworkLink) te).updateNetworkCache();
+            }
+            // 重新调度，形成循环
+            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
+        }
+    }
+
+    // ---------- 右键交互（保留原有逐条显示逻辑） ----------
+    @Override
+    public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
+        float hitY, float hitZ) {
         if (!world.isRemote) {
             TileEntity te = world.getTileEntity(x, y, z);
             if (te instanceof TileEntityAdvanceNetworkLink) {
                 TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) te;
 
-                // 显示网络信息
+                // 手动强制刷新一次
+                link.updateNetworkCache();
+
+                // 显示网络信息（保持原有格式）
                 player.addChatMessage(new ChatComponentText("AE2 Network Status"));
-                player.addChatMessage(new ChatComponentText("Items: " +
-                        link.getItemUsedBytes() + "/" + link.getItemTotalBytes() + " bytes"));
-                player.addChatMessage(new ChatComponentText("Fluids: " +
-                        link.getFluidUsedBytes() + "/" + link.getFluidTotalBytes() + " bytes"));
-                player.addChatMessage(new ChatComponentText("Item Types: " +
-                        link.getItemUsedTypes() + "/" + link.getItemTotalTypes()));
-                player.addChatMessage(new ChatComponentText("Fluid Types: " +
-                        link.getFluidUsedTypes() + "/" + link.getFluidTotalTypes()));
+                player.addChatMessage(
+                    new ChatComponentText(
+                        "Items: " + link.getItemUsedBytes() + "/" + link.getItemTotalBytes() + " bytes"));
+                player.addChatMessage(
+                    new ChatComponentText(
+                        "Fluids: " + link.getFluidUsedBytes() + "/" + link.getFluidTotalBytes() + " bytes"));
+                player.addChatMessage(
+                    new ChatComponentText("Item Types: " + link.getItemUsedTypes() + "/" + link.getItemTotalTypes()));
+                player.addChatMessage(
+                    new ChatComponentText(
+                        "Fluid Types: " + link.getFluidUsedTypes() + "/" + link.getFluidTotalTypes()));
+
                 return true;
             }
         }
         return false;
     }
 
+    @Override
+    public int getRenderType() {
+        return -1;
+    }
+
+    @Override
+    public boolean isOpaqueCube() {
+        return false;
+    }
+
+    @Override
+    public boolean renderAsNormalBlock() {
+        return false;
+    }
 }

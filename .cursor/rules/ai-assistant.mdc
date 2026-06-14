@@ -1,0 +1,815 @@
+---
+description: AI 助手完整架构与开发规范，新增或修改 AI 助手功能时的参考指南
+globs: **/assistant/**,**/ai/**,**/voice/**,**/gui/guiscreen/GuiAIChat.java,**/gui/guiscreen/GuiAISettings.java,**/command/CommandAssistant.java,**/command/CommandAIConfig.java,**/network/packet/PacketAssistantAction.java,**/network/packet/PacketAssistantResponse.java
+alwaysApply: false
+---
+
+# AI 助手完整架构与开发规范
+
+## 一、架构总览
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CLIENT (客户端)                                 │
+│                                                                             │
+│  ┌──────────────┐   ┌────────────────┐   ┌──────────────────┐              │
+│  │ GuiAIChat    │   │ VoiceCapture   │   │ GuiAISettings    │              │
+│  │ (聊天界面)    │   │ Service (语音) │   │ (设置界面)        │              │
+│  └──────┬───────┘   └───────┬────────┘   └──────────────────┘              │
+│         │                   │                                               │
+│         └───────┬───────────┘                                               │
+│                 ▼                                                           │
+│         PacketAssistantAction  ──────────►  SERVER                          │
+│         (用户文本 → 服务端)                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              SERVER (服务端)                                 │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────┐      │
+│  │                    AssistantController                             │      │
+│  │                    (主控制器，处理用户输入)                            │      │
+│  └──────────────┬───────────────────────────────────────────────────┘      │
+│                 │                                                           │
+│                 ├─ 路径 A: AI 意图解析 ─────────────────────┐               │
+│                 │                                           ▼               │
+│                 │  AssistantAiIntentService ──► DeepSeekChatClient          │
+│                 │  (构造 system prompt)          (HTTP请求)                  │
+│                 │           │                       │                       │
+│                 │           ▼                       ▼                       │
+│                 │  AssistantAiIntentJsonParser   API 响应                   │
+│                 │  (解析 JSON → 提取 tasks[])                               │
+│                 │                                                           │
+│                 ├─ 路径 B: 本地规则解析 ────────────────────┐               │
+│                 │  (AI 不可用时 fallback)                    │               │
+│                 │                                           ▼               │
+│                 │  AssistantIntentService                                   │
+│                 │  (关键词匹配 + 正则，不依赖网络)                             │
+│                 │                                                           │
+│                 └─ 统一输出: AssistantIntentPlan ──────────┐               │
+│                                           │                 │               │
+│                                           ▼                 │               │
+│                              ┌────────────────────────┐    │               │
+│                              │  AssistantSession      │    │               │
+│                              │  (会话状态管理)          │    │               │
+│                              └────────────────────────┘    │               │
+│                                           │                 │               │
+│                                           ▼                 │               │
+│                              ┌────────────────────────────┐│               │
+│                              │  AssistantServerServices   ││               │
+│                              │  (AE2 交互 + 查询 + 下单)   ││               │
+│                              └───────────┬────────────────┘│               │
+│                                          │                  │               │
+│                                          ▼                  │               │
+│                              PacketAssistantResponse       │               │
+│                              (结果 → 客户端)                 │               │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 三层架构
+
+| 层 | 包 | 职责 |
+|---|-----|------|
+| **通信层** | `ai/` | HTTP 请求、流式响应、Provider 配置 |
+| **逻辑层** | `assistant/` | 意图解析、会话管理、任务调度、业务逻辑 |
+| **执行层** | `assistant/` (ServerServices) | AE2 网络操作、物品查询、合成提交、世界数据查询 |
+
+---
+
+## 二、数据流：从用户输入到结果返回
+
+### 2.1 完整请求-响应流程
+
+```
+用户输入文本
+    │
+    ├─ 来源1: GuiAIChat (文本框输入)
+    ├─ 来源2: VoiceCaptureService (语音识别结果)
+    └─ 来源3: /admassistant 命令
+    │
+    ▼
+PacketAssistantAction.sendToServer(text, sessionKind)
+    │  fields: text, sessionKind, locale, featureContextPrefix
+    ▼
+HandlerNetWork.onMessage() [服务端]
+    │
+    ▼
+AssistantController.handleUserText(player, text, sessionKind, locale, featureContextPrefix)
+    │
+    ├─ 1. 尝试 AI 解析: AssistantAiIntentService.parse(text, locale, featureContextPrefix)
+    │      │ 构造 system prompt (含 AssistantFeatureConfig 功能列表)
+    │      │ 构造 pending session context (含候选列表)
+    │      │ DeepSeekChatClient.chat(messages, options, listener)
+    │      │ 解析 JSON → AssistantIntentPlan (含 List<AssistantIntentTask>)
+    │      │
+    │      └─ AI 不可用时 → fallback
+    │
+    ├─ 2. Fallback: AssistantIntentService.parse(text)
+    │      本地关键词+正则匹配，返回单个 AssistantIntent
+    │      (AI 返回 CHAT 意图时也可能走此路径)
+    │
+    └─ 3. 执行意图: executeIntentPlan(player, plan)
+           │
+           ├─ ORDER_ITEM       → craftingCandidates() → 展示候选列表 → 等待 CONFIRM_OPTION
+           ├─ WITHDRAW_ITEM    → withdrawCandidates()  → 展示候选列表 → 等待 CONFIRM_OPTION
+           ├─ ORDER_BATCH      → batchCraftingCandidates() → submitBatchCraft()
+           ├─ WITHDRAW_BATCH   → batchWithdrawCandidates() → submitBatchWithdraw()
+           ├─ CONFIRM_OPTION   → 根据 session.kind 执行 submitCraft()/submitWithdraw()
+           ├─ QUERY_*          → query() → 返回查询结果文本
+           ├─ PLAN_*           → PlannerServerService/PlanStore
+           ├─ CANCEL           → cancelPendingJobs() + session.clear()
+           ├─ CLARIFY          → 返回引导提示
+           └─ CHAT             → 返回 AI 原始对话文本
+           │
+           ▼
+    PacketAssistantResponse.message(result).sendTo(player)
+           │
+           ▼
+    GuiAIChat 显示结果（或客户端聊天栏）
+```
+
+### 2.2 多轮对话示例（合成下单）
+
+```
+用户: "合成64个铁锭"
+  → AI/本地解析: ORDER_ITEM, target="铁锭", amount=64
+  → ServerServices.craftingCandidates(player, "合成64个铁锭", "铁锭", 64)
+  → 返回候选列表: [1. 铁锭 x64, 2. 铁锭(GT) x64, ...]
+  → 设置 AssistantSession.kind = ORDER_CANDIDATES
+  → 客户端显示候选列表
+
+用户: "1"
+  → AI 解析: CONFIRM_OPTION, optionNumber=1
+  → session.select(1) → CraftingCandidate
+  → ServerServices.submitCraft(player, candidate, 64, rawText)
+  → AE2 异步计算 → 提交合成任务
+  → 返回: "OK：已提交 AE2 合成任务：铁锭 x64。"
+```
+
+---
+
+## 三、意图系统详解
+
+### 3.1 意图类型枚举 (`AssistantIntentType`)
+
+```java
+// 操作类
+ORDER_ITEM        // 提交 AE2 合成任务（单项）
+ORDER_BATCH       // 提交 AE2 合成任务（多项，通过分隔符）
+WITHDRAW_ITEM     // 从 AE2 存储取出物品到背包
+WITHDRAW_BATCH    // 从 AE2 存储批量取出物品
+CONFIRM_OPTION    // 确认选择的候选项
+CANCEL            // 取消当前操作
+CLARIFY           // 意图不明确，请求澄清
+
+// 查询类
+QUERY_RECIPE      // 查询 AE2 合成配方
+QUERY_STORAGE     // 查询 AE2 存储内容（返回带缩略图的物品/流体列表）
+QUERY_ITEM_COUNT  // 查询 AE2 物品/流体库存数量（K/M/T 格式）
+QUERY_BYTES       // 查询 AE2 字节占用/容量/百分比/无限元件检测
+QUERY_POWER       // 查询 AE2 无线网络电量
+QUERY_STEAM       // 查询 AE2 无线网络蒸汽量
+QUERY_WEATHER     // 查询世界天气
+QUERY_TIME        // 查询世界时间
+QUERY_POSITION    // 查询玩家坐标/朝向
+QUERY_BIOME       // 查询当前位置群系
+QUERY_INVENTORY   // 查询玩家背包空间
+QUERY_NETWORK     // 查询 ADM 网络连接器状态
+QUERY_JOBS        // 查询当前合成任务
+
+// 计划管理类
+PLAN_CREATE       // 创建计划 (已废弃，实际使用 PLAN_ADD)
+PLAN_ADD          // 添加计划条目
+PLAN_LIST         // 列出待办计划
+PLAN_COMPLETE     // 完成计划
+PLAN_DELETE       // 删除计划
+PLAN_MODIFY       // 修改计划
+
+// 对话类
+CHAT              // 普通对话（不触发任何 AI 助手工具操作）
+```
+
+### 3.2 意图数据结构
+
+```java
+// AssistantIntent — 本地解析结果（单意图）
+class AssistantIntent {
+    AssistantIntentType type;       // 意图类型
+    String rawText;                 // 原始文本
+    String target;                  // 目标物品名
+    long amount;                    // 数量
+    int optionNumber;               // 选项编号 (1-based)
+    int storageScope;               // 存储范围: ALL(0)/ITEMS(1)/FLUIDS(2)
+    List<AssistantOrderLine> orderLines; // 批量订单行 (用于 ORDER_BATCH/WITHDRAW_BATCH)
+    
+    // 常量
+    static final int STORAGE_SCOPE_ALL = 0;
+    static final int STORAGE_SCOPE_ITEMS = 1;
+    static final int STORAGE_SCOPE_FLUIDS = 2;
+    
+    // 工厂方法
+    static AssistantIntent chat(String rawText);
+    static AssistantIntent orderBatch(String rawText, List<AssistantOrderLine> lines);
+    static AssistantIntent withdrawBatch(String rawText, List<AssistantOrderLine> lines);
+}
+
+// AssistantIntentPlan — AI 解析结果（多任务）
+class AssistantIntentPlan {
+    List<AssistantIntentTask> tasks; // 最多8个任务
+}
+
+// AssistantIntentTask — 单个任务
+class AssistantIntentTask {
+    AssistantIntentType type;
+    String target;
+    long amount;
+    int optionNumber;
+    int storageScope;
+    double confidence;  // AI 置信度 (0.0-1.0)
+}
+```
+
+### 3.3 两种解析路径
+
+| 特性 | AI 解析 (`AssistantAiIntentService`) | 本地解析 (`AssistantIntentService`) |
+|------|--------------------------------------|-------------------------------------|
+| 依赖 | 需要网络 + API Key | 纯本地，无网络依赖 |
+| 能力 | 理解自然语言，支持多任务 | 关键词匹配 + 正则表达式 |
+| 支持 | 批量订单、模糊语义、CLARIFY | 精确关键词匹配 |
+| 使用场景 | 默认首选路径 | AI 不可用时的 fallback |
+| 输出 | `AssistantIntentPlan` (多任务) | 单个 `AssistantIntent` |
+
+### 3.4 本地解析优先级 (关键词匹配顺序)
+
+`AssistantIntentService.parse()` 中的匹配优先级（从上到下，先匹配到的优先）：
+
+1. `test` 前缀 → 测试意图
+2. `cancelWords` → CANCEL
+3. `planCompleteWords` → PLAN_COMPLETE
+4. `planDeleteWords` → PLAN_DELETE
+5. `planModifyWords` → PLAN_MODIFY
+6. `planListWords` → PLAN_LIST
+7. `planCreateWords` → PLAN_ADD
+8. 硬编码天气关键词 → QUERY_WEATHER
+9. 硬编码时间关键词 → QUERY_TIME
+10. 硬编码位置关键词 → QUERY_POSITION
+11. 硬编码群系关键词 → QUERY_BIOME
+12. 硬编码背包关键词 → QUERY_INVENTORY
+13. 硬编码网络关键词 → QUERY_NETWORK
+14. 硬编码合成任务关键词 → QUERY_JOBS
+15. `powerQueryWords` → QUERY_POWER
+16. `steamQueryWords` → QUERY_STEAM
+17. `recipeQueryWords` → QUERY_RECIPE
+18. `storageQueryWords` → QUERY_STORAGE
+19. 批量取出 → WITHDRAW_BATCH
+20. 批量订单 → ORDER_BATCH
+21. 取出意图 → WITHDRAW_ITEM
+22. 模糊弱意图 → CLARIFY
+23. 订单意图 → ORDER_ITEM
+24. 确认/提交关键词 → CONFIRM_OPTION
+25. 纯数字选项 → CONFIRM_OPTION
+26. 数量覆盖 → CONFIRM_OPTION
+27. 无匹配 → CHAT
+
+---
+
+## 四、会话管理 (`AssistantSession`)
+
+### 4.1 会话状态机
+
+```
+                 用户输入 ORDER_ITEM / WITHDRAW_ITEM
+                          │
+                          ▼
+    NONE ──────────────────────────────────────────► ORDER_CANDIDATES
+     ▲                                               / WITHDRAW_CANDIDATES
+     │                                                        │
+     │                                                        │ 用户选择序号
+     │  CANCEL / 操作完成                                      ▼
+     │                                              CONFIRM_OPTION
+     │                                                        │
+     │                                                        │ submitCraft()
+     │                                                        ▼
+     └────────────────────────────────────────────── 操作完成 → NONE
+```
+
+### 4.2 会话类型 (`AssistantSessionKind`)
+
+```java
+enum AssistantSessionKind {
+    NONE,                       // 无活跃会话
+    ORDER_CANDIDATES,           // 等待用户选择合成候选项
+    RECIPE_CANDIDATES,          // 等待用户选择配方候选项
+    ORDER_BATCH_CANDIDATES,     // 等待用户确认批量合成
+    WITHDRAW_CANDIDATES,        // 等待用户选择取出候选项
+    WITHDRAW_BATCH_CANDIDATES,  // 等待用户确认批量取出
+    WITHDRAW_PARTIAL_CONFIRM,   // 等待用户确认部分取出（背包空间不足）
+    ITEM_COUNT_CANDIDATES,      // 等待用户选择库存物品查询候选项
+    STORAGE_CANDIDATES,         // 等待用户选择存储概览候选项（缩略图列表）
+    TELEPORT_CANDIDATES         // 等待用户选择传送目标
+}
+```
+
+### 4.3 会话关键方法
+
+```java
+// 设置待选候选项
+session.setPendingCandidates(userText, candidates, kind)
+session.setPendingOrderLines(userText, lines, kind)
+session.setPendingPartialWithdraw(userText, candidates, requestedAmount, fitAmount)
+
+// 选择候选项
+session.select(oneBasedIndex) → CraftingCandidate
+session.findByName(target) → CraftingCandidate
+
+// 任务队列（用于多任务异步执行）
+session.enqueueRemainingTasks(tasks)  // 将未完成任务加入队列
+session.dequeueNextTask() → AssistantIntentTask
+session.hasPendingTasks() → boolean
+
+// 清理
+session.clear()
+```
+
+### 4.4 AI 解析时的会话上下文注入
+
+当 `AssistantSession.kind != NONE` 时，`AssistantAiIntentService.buildPendingSessionContext()` 会向 AI 的 system prompt 注入当前会话状态，包括：
+- 候选列表（displayName, registryName, amount）
+- 会话类型
+- 原始请求文本
+- 对 AI 的行为指引（"Do not return CHAT for candidate selection"）
+
+---
+
+## 五、AI 通信层 (`ai/`)
+
+### 5.1 文件清单
+
+| 文件 | 作用 |
+|------|------|
+| `DeepSeekChatClient.java` | HTTP 客户端，支持 OpenAI-compatible API |
+| `ChatRequestOptions.java` | 请求参数：streaming、web search、超时等 |
+| `ChatStreamListener.java` | 流式响应回调接口 |
+| `ChatResponse.java` | 响应结果（content 文本） |
+| `AiProviderProfiles.java` | Provider 预设配置（DeepSeek、OpenAI、Ollama 等） |
+
+### 5.2 DeepSeekChatClient 核心 API
+
+```java
+class DeepSeekChatClient {
+    // 内部类
+    class ChatMessage {
+        String role;    // "system", "user", "assistant"
+        String content;
+    }
+    
+    // 核心方法
+    ChatResponse chat(
+        List<ChatMessage> messages,      // 对话历史
+        ChatRequestOptions options,      // 请求选项
+        ChatStreamListener listener      // 流式监听器 (null 则非流式)
+    );
+}
+```
+
+### 5.3 在 Assistant 中的调用方式
+
+```java
+// AssistantAiIntentService.parse() 中：
+List<ChatMessage> messages = new ArrayList<>();
+messages.add(new ChatMessage("system", buildSystemPrompt(locale)));
+messages.add(new ChatMessage("user", userMessage));
+DeepSeekChatClient client = new DeepSeekChatClient();
+ChatResponse response = client.chat(messages, new ChatRequestOptions(false, "off", false), null);
+return parser.parse(response.content);  // 解析 JSON → AssistantIntentPlan
+```
+
+### 5.4 AI 请求选项 (`ChatRequestOptions`)
+
+```java
+class ChatRequestOptions {
+    boolean streaming;      // 是否流式响应
+    String webSearchMode;   // "auto", "openai", "openrouter", "dashscope", "zhipu", "generic-tools", "off"
+    boolean reasoning;      // 是否使用推理模型
+    // ... timeout, maxTokens, temperature 等从 Config 读取
+}
+```
+
+---
+
+## 六、服务端服务 (`AssistantServerServices`)
+
+这是 AI 助手最大的单文件，负责所有 AE2 交互和世界数据查询。
+
+### 6.1 AE2 网络发现策略
+
+```
+findAllLinkTiles(player, type, radius=32)
+    │
+    ├─ 步骤1: 查找附近 AdvanceDataMonitor 的绑定连接器
+    │         遍历玩家 32 格内的 TileEntityAdvanceDataMonitor
+    │         读取其 DataBound 配置，获取绑定的 Link 坐标
+    │
+    └─ 步骤2 (fallback): 如果绑定为空
+              遍历玩家 32 格内直接搜索 type 类型的 TileEntity
+              取距离最近的一个
+    │
+    └─ 步骤3: 如果仍未找到 → ConnectorSource.isEmpty() = true
+              所有操作返回失败
+```
+
+### 6.2 核心 API 方法
+
+```java
+// === 合成相关 ===
+// 搜索可合成候选项
+List<CraftingCandidate> craftingCandidates(
+    EntityPlayerMP player, String rawText, String target, long amount
+)
+// 提交合成任务（异步，通过 Future 等待计算完成）
+String submitCraft(
+    EntityPlayerMP player, CraftingCandidate candidate, long amount, String rawText, String locale
+)
+// 取消待处理任务
+String cancelPendingJobs(EntityPlayerMP player, String locale)
+
+// === 取出相关 ===
+// 搜索可取出候选项
+List<CraftingCandidate> withdrawCandidates(
+    EntityPlayerMP player, String rawText, String target, long amount
+)
+// 提交取出请求
+WithdrawSubmitOutcome submitWithdraw(
+    EntityPlayerMP player, CraftingCandidate candidate, long amount,
+    String rawText, String locale, boolean confirmPartial
+)
+
+// === 批量操作 ===
+List<AssistantOrderLine> batchCraftingCandidates(player, rawText, lines)
+List<AssistantOrderLine> batchWithdrawCandidates(player, rawText, lines)
+String submitBatchCraft(player, rawText, lines, locale)
+String submitBatchWithdraw(player, rawText, lines, locale)
+
+// === 查询操作 ===
+String query(EntityPlayerMP player, AssistantIntentType type,
+    String rawText, String target, long amount, String locale)
+// 根据 type 分发到:
+//   QUERY_STORAGE → storageSummary() / queryStorageCandidates()（缩略图候选列表）
+//   QUERY_RECIPE  → recipeSummary()
+//   QUERY_ITEM_COUNT → queryItemCountMessage() / queryItemCount()（候选列表，K/M/T格式）
+//   QUERY_BYTES   → bytesSummary()（字节占用/容量/百分比 + 无限元件检测）
+//   QUERY_POWER   → WirelessPowerQuery.query()
+//   QUERY_STEAM   → WirelessSteamQuery.query()
+//   QUERY_WEATHER → weatherSummary()
+//   QUERY_TIME    → timeSummary()
+//   QUERY_POSITION→ positionSummary()
+//   QUERY_BIOME   → biomeSummary()
+//   QUERY_INVENTORY→ inventorySummary()
+//   QUERY_NETWORK → networkSummary()
+//   QUERY_JOBS    → AssistantCraftJobManager.summary()
+//   PLAN_*        → PlannerServerService
+//   TELEPORT      → TeleportService（搜索背包中的高级错位宝石，列出传送点候选，确认后执行传送）
+```
+
+### 6.3 AE2 合成模式查找策略
+
+`lookupPatterns()` 方法有两层 fallback：
+
+1. **Strong API**: `craftingGrid.getCraftingPatterns()` → 遍历所有输出物品，模糊名称匹配
+2. **Reflection fallback**: 如果 strong API 无结果，通过 Java 反射搜索 `ICraftingGrid` 上所有名称包含 "craft" 或 "pattern" 的无参方法，调用获取可合成列表
+
+### 6.4 合成任务提交异步流程
+
+```
+submitCraft()
+  → AssistantCraftJobManager.checkCanStart()  // 检查并发数量
+  → craftingGrid.beginCraftingJob()  // 返回 Future<ICraftingJob>
+  → AssistantCraftJobManager.register()  // 注册待处理任务
+  → 启动后台线程等待 Future.get(timeout)
+     ├─ 超时 → cancel() → 发送超时消息
+     ├─ 异常 → 发送错误消息
+     └─ 成功 → HandlerTick.enqueueServerTask() 回到主线程
+              → job.isSimulation()? → 模拟失败
+              → craftingGrid.submitJob() → 提交成功 → OrderMemoryStore.remember()
+```
+
+### 6.5 取出操作的 PARTIAL_CONFIRM 流程
+
+当背包空间不足以容纳请求数量时：
+
+```
+submitWithdraw(candidate, amount=500, confirmPartial=false)
+  → storageAmount = 300 (库存)
+  → inventoryFit = 200 (背包空间)
+  → 返回 WithdrawSubmitOutcome(PARTIAL_CONFIRM, message, candidate, requested=300, fit=200)
+  → 设置 session.kind = WITHDRAW_PARTIAL_CONFIRM
+  → 用户回复确认 → submitWithdraw(candidate, amount=200, confirmPartial=true)
+```
+
+---
+
+## 七、语音识别 (`voice/`)
+
+### 7.1 文件清单
+
+| 文件 | 作用 |
+|------|------|
+| `VoiceCaptureService.java` | 语音采集入口，管理热键和麦克风 |
+| `SpeechToTextClient.java` | STT 接口 |
+| `VoskSpeechToTextClient.java` | Vosk 离线语音识别（嵌入式模型） |
+| `HttpSpeechToTextClient.java` | HTTP STT（OpenAI 兼容 API） |
+| `EmbeddedVoiceModelManager.java` | Vosk 模型文件管理 |
+| `VoiceStatusListener.java` | 语音状态回调接口 |
+| `StandaloneVoskTranscriber.java` | Vosk 独立转录器 |
+| `PcmAudioUtil.java` / `WavEncoder.java` | 音频格式处理 |
+
+### 7.2 两种模式
+
+| 模式 | `voiceSttMode` | 描述 |
+|------|---------------|------|
+| 嵌入式 | `embedded-vosk` | 使用 Vosk 离线模型 (zh-small)，无需网络 |
+| HTTP | `http` | 使用 OpenAI-compatible STT API，需要配置 baseUrl |
+
+### 7.3 语音识别 → AI 助手流程
+
+```
+按热键开始录音 → VoiceCaptureService.startCapture()
+  → 音频缓冲区累积 → VoskSpeechToTextClient / HttpSpeechToTextClient
+  → 识别结果文本 → VoiceStatusListener.onResult(text)
+  → 发送到 AI 助手处理（同 GuiAIChat 路径）
+```
+
+---
+
+## 八、配置系统
+
+### 8.1 AI 相关配置项 (`Config.java`)
+
+```java
+// AI 聊天
+aiApiBaseUrl        = "https://api.deepseek.com"
+aiApiKey            = ""  // 也可通过环境变量 DEEPSEEK_API_KEY
+aiModel             = "deepseek-chat"
+aiNetworkEnabled    = true
+aiWebSearchEnabled  = false
+aiWebSearchMode     = "auto"
+aiDebugLogging      = false
+aiStreamingEnabled  = false
+aiPrivacyConfirmed  = false
+aiRecentModels      = ""  // 最近使用的模型列表
+aiTimeoutSeconds    = 60
+aiMaxTokens         = 1024
+aiTemperature       = 0.7
+
+// 语音识别
+voiceAssistantEnabled  = false
+voicePrivacyConfirmed  = false
+voiceSttMode           = "embedded-vosk"  // 或 "http"
+voiceSttBaseUrl        = ""
+voiceSttApiKey         = ""  // 也可通过 VOICE_STT_API_KEY 环境变量
+voiceSttModel          = "zh-small"
+voiceSttTimeoutSeconds = 60
+
+// 助手限制
+assistantMaxOrderAmount         = 4096
+assistantMaxWithdrawAmount      = 4096
+assistantCraftJobTimeoutSeconds = 30
+assistantMaxConcurrentCraftJobs = 2
+```
+
+### 8.2 功能特性配置 (`AssistantFeatureConfig`)
+
+通过 JSON 文件 `config/advancedatamonitor/assistant-features.json` 定义：
+
+```json
+{
+  "features": [{
+    "key": "order_item",
+    "displayName": { "zh_CN": "合成下单", "en_US": "Craft Order" },
+    "description": { "zh_CN": "提交AE2合成任务", "en_US": "Submit AE2 crafting job" },
+    "keywords": ["合成", "下单", "craft", "order"],
+    "aiInstruction": { "zh_CN": "ORDER_ITEM: 提交AE2合成任务...", "en_US": "ORDER_ITEM: Submit AE2 crafting..." }
+  }]
+}
+```
+
+### 8.3 词库配置 (`AssistantLexicon`)
+
+通过 JSON 文件 `assets/advancedatamonitor/config/assistant-lexicon.json` 定义，包含：
+- 中英文关键词表（下单词、取出词、查询词、取消词等）
+- 数量单位（组/半组）、桶单位
+- 选项前缀/后缀
+- 分隔符（批量订单解析用）
+
+---
+
+## 九、GUI 集成
+
+### 9.1 AI 聊天界面 (`GuiAIChat`)
+
+- 继承 `ADM_GuiScreen`（遵循 `gui-guidelines.mdc` 规范）
+- 包含输入文本框、发送按钮、聊天历史显示区
+- 发送文本 → `PacketAssistantAction.sendToServer(text, kind, locale, featureContextPrefix)`
+- 接收响应 → 处理 `PacketAssistantResponse` → 更新聊天显示
+
+### 9.2 AI 设置界面 (`GuiAISettings`)
+
+- 继承 `ADM_GuiScreen`
+- 配置 API Base URL、API Key、模型名
+- 网络搜索开关、流式响应开关、调试日志开关
+- 隐私确认
+- Provider 预设选择 (`AiProviderProfiles`)
+
+---
+
+## 十、网络包
+
+### 10.1 助手专用包
+
+| 包 | ID | 方向 | 字段 |
+|-----|----|------|------|
+| `PacketAssistantAction` | 6 | Client→Server | `text`, `sessionKind`, `locale`, `featureContextPrefix` |
+| `PacketAssistantResponse` | 7 | Server→Client | `message` (文本), `responseType` (MESSAGE/CRAFTING_STATUS/...) |
+
+### 10.2 发送方式
+
+```java
+// 客户端发送用户输入
+AdvanceDataMonitor.ADMCHANEL.sendToServer(
+    new PacketAssistantAction(text, sessionKind, locale, featureContextPrefix));
+
+// 服务端发送响应
+AdvanceDataMonitor.ADMCHANEL.sendTo(
+    PacketAssistantResponse.message(resultText), player);
+
+// 服务端注册处理
+// 在 LoaderNetWork.registerNetWorks() 中注册 ID=6,7
+```
+
+---
+
+## 十一、新增 AI 助手功能的完整检查清单
+
+当需要新增一个 AI 助手功能（例如新增查询类型、新增操作类型）时，按以下步骤修改：
+
+### 步骤 1: 定义意图类型
+
+在 `AssistantIntentType.java` 中添加新的枚举值：
+
+```java
+// 命名规范：动词_名词，如 QUERY_FOO, ORDER_BAR
+QUERY_FOO
+```
+
+### 步骤 2: 更新 AI 解析
+
+**文件**: `AssistantAiIntentService.java`
+
+在 `buildSystemPrompt()` 中的枚举列表里添加新类型名。
+
+### 步骤 3: 更新本地解析（可选）
+
+**文件**: `AssistantIntentService.java`
+
+如果需要本地关键词匹配 fallback，在 `parse()` 方法的优先级链中添加匹配逻辑。
+
+### 步骤 4: 实现服务端逻辑
+
+**文件**: `AssistantServerServices.java`
+
+在 `query()` 方法的 switch 分支中添加新 case，编写对应的查询/操作逻辑。
+
+如果是新查询类型：
+```java
+case QUERY_FOO:
+    return fooSummary(player, locale);
+
+private static String fooSummary(EntityPlayerMP player, String locale) {
+    // 实现查询逻辑
+    // 返回双语文本：text(locale, "中文", "English")
+}
+```
+
+### 步骤 5: 更新词库（如需要）
+
+**文件**: `assets/advancedatamonitor/config/assistant-lexicon.json`
+
+如果需要新关键词（如查询词 `fooQueryWords`），在 JSON 中添加新字段。
+
+### 步骤 6: 更新功能配置（如需要）
+
+**文件**: `assets/advancedatamonitor/config/assistant-features.json`
+
+如果新功能需要在功能菜单中可选用，添加新的 `FeatureEntry`。
+
+### 步骤 7: 更新本地化
+
+**文件**: `en_US.lang` + `zh_CN.lang`
+
+添加新功能相关的 I18n key：
+```
+adm.ai.query.foo=FOO Query
+adm.ai.query.foo=FOO 查询
+```
+
+### 步骤 8: 更新 GUI（如需要）
+
+如果新功能需要在 `GuiAIChat` 的功能选择菜单中显示，确保 `AssistantFeatureConfig.buildFeatureMenu()` 自动生成菜单项。
+
+---
+
+## 十二、各文件职责速查表
+
+| 修改目的 | 必改文件 | 可选文件 |
+|---------|---------|---------|
+| 新增意图类型 | `AssistantIntentType.java` | `AssistantIntentService.java` |
+| 修改 AI prompt | `AssistantAiIntentService.java` | `AssistantFeatureConfig.java` |
+| 修改本地解析规则 | `AssistantIntentService.java` | `AssistantLexicon` JSON |
+| 新增 AE2 操作 | `AssistantServerServices.java` | `AssistantCraftJobManager.java` |
+| 新增存储查询（带缩略图） | `PacketAssistantAction.java`, `AssistantServerServices.java`, `AssistantController.java` | `AssistantSessionKind.java` |
+| 新增查询类型 | `AssistantServerServices.java` | `AssistantIntentService.java` |
+| 修改会话逻辑 | `AssistantSession.java` | `AssistantSessionKind.java` |
+| 修改候选列表格式 | `AssistantFormatter.java` | `CraftingCandidate.java` |
+| 修改物品缩略图渲染 | `GuiAIChat.java` (drawCandidateCells) | `RenderHelper` |
+| 修改物品匹配逻辑 | `ItemStackUtils.java` | — |
+| 修改背包操作 | `PlayerInventoryUtil.java` | `AssistantServerServices.java` |
+| 修改合成任务管理 | `AssistantCraftJobManager.java` | `AssistantServerServices.java` |
+| 新增配置项 | `Config.java` | `GuiAISettings.java` |
+| 修改 AI 通信 | `DeepSeekChatClient.java` | `ChatRequestOptions.java` |
+| 修改网络包 | `PacketAssistantAction.java` / `PacketAssistantResponse.java` | `HandlerNetWork.java` |
+| 修改语音识别 | `VoiceCaptureService.java` | `VoskSpeechToTextClient.java` / `HttpSpeechToTextClient.java` |
+| 修改 GUI | `GuiAIChat.java` / `GuiAISettings.java` | — |
+| 修改词库 | `assistant-lexicon.json` | `AssistantLexicon.java` |
+| 修改功能菜单 | `assistant-features.json` | `AssistantFeatureConfig.java` |
+| 修改订单记忆 | `OrderMemoryStore.java` | — |
+| 修改计划管理 | `PlanStore.java` | `PlannerServerService.java` |
+| 修改传送功能 | `TeleportService.java` | `TeleportDestination.java` |
+| 新增双语文本 | `en_US.lang` + `zh_CN.lang` | — |
+| 修改调试日志 | `AssistantDebugLog.java` | — |
+
+---
+
+## 十三、关键设计模式与约定
+
+### 13.1 单例模式
+
+以下类使用单例模式，通过 `instance()` 或 `client()` 获取：
+
+```java
+AssistantSession.client()           // 客户端会话单例
+AssistantCraftJobManager.instance()  // 合成任务管理单例
+OrderMemoryStore.instance()          // 订单记忆单例
+PlanStore.instance()                 // 计划存储单例
+AssistantLexicon.get()              // 词库单例
+AssistantFeatureConfig.get()        // 功能配置单例（懒加载）
+```
+
+### 13.2 双语支持模式
+
+所有用户可见文本必须使用 `text(locale, zhText, enText)` 方法（位于 `AssistantServerServices`）：
+
+```java
+private static String text(String locale, String zhText, String enText) {
+    return zh(locale) ? zhText : enText;
+}
+private static boolean zh(String locale) {
+    return locale == null || locale.trim().isEmpty() || locale.toLowerCase().startsWith("zh");
+}
+```
+
+### 13.3 异步合成模式
+
+合成任务提交使用 `Future<ICraftingJob>` + 后台线程模式：
+- 性能：避免阻塞服务端主线程
+- 超时：`Config.assistantCraftJobTimeoutSeconds` 控制最长等待时间
+- 回调：`HandlerTick.enqueueServerTask()` 回到主线程发送消息
+
+### 13.4 防御性编程
+
+- 所有网络/TileEntity 查询前检查 null
+- `PlayerSource` 创建前确认 player 和 link 非 null
+- `ItemStack` 操作前检查 `stack.getItem() != null`
+- 合成模式查找使用 try-catch + reflection fallback
+
+### 13.5 数据持久化
+
+- `OrderMemoryStore`: 内存中的 LRU 记忆（订单历史，用于排序候选列表）
+- `PlanStore`: JSON 文件持久化（`config/advancedatamonitor/plans.json`）
+- `AssistantFeatureConfig`: JSON 配置文件（支持运行时重载）
+- `AssistantLexicon`: JSON 配置文件（从 jar 资源或外部文件加载）
+
+---
+
+## 十四、文档同步要求
+
+每次新增或修改 AI 助手功能时，必须同步更新以下文档：
+
+1. **本规则文件** (`ai-assistant.mdc`) — 更新意图枚举、会话类型、文件速查表
+2. **项目根目录** `AdvanceDataMonitor_AI助手技术说明.md` — 更新功能列表、数据流、已知限制
+3. **项目根目录** `AdvanceDataMonitor_AI助手类引用速查.md` — 更新各功能对应的必改文件清单
+4. **资源文件**:
+   - `assistant-features.json` — 更新功能菜单配置
+   - `assistant-lexicon.json`（如需要新关键词）
+   - `en_US.lang` + `zh_CN.lang` — 更新双语文本
+5. **GUI 能力说明** `GuiAIChat.assistantCapabilityInstruction()` — 更新功能列表

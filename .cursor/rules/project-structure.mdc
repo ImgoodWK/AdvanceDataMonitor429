@@ -1,0 +1,158 @@
+---
+description: 项目结构速览，方便快速定位需要修改的类
+alwaysApply: true
+---
+
+# 项目结构速览
+
+## 包结构 (src/main/java/com/imgood/advancedatamonitor/)
+
+### 根包 — 模组入口
+| 类 | 作用 |
+|----|------|
+| `AdvanceDataMonitor.java` | @Mod 主类，注册调度中心 |
+| `Config.java` | 配置文件（API Key、URL、模型参数等） |
+| `ClientProxy.java` | 客户端代理（按键注册等） |
+| `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
+
+### ai/ — AI 聊天客户端 (5 文件)
+- 负责与 DeepSeek / OpenAI-compatible API 通信
+- `DeepSeekChatClient.java` — HTTP 请求、流式响应处理
+- `ChatRequestOptions.java` — 请求参数封装
+- `ChatStreamListener.java` — 流式消息回调
+
+### assistant/ — AI 助手核心逻辑 (33 文件)
+- **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理
+- **意图系统**: `AssistantIntentType.java` / `AssistantIntent.java` / `AssistantIntentTask.java` / `AssistantIntentPlan.java` / `AssistantOrderLine.java`
+- **AI 解析**: `AssistantAiIntentService.java` / `AssistantAiIntentJsonParser.java`
+- **本地解析**: `AssistantIntentService.java` (关键词匹配 fallback)
+- **主控制器**: `AssistantController.java`
+- **会话管理**: `AssistantSession.java` / `AssistantSessionKind.java`
+- **AE2 核心**: `AssistantServerServices.java` / `AssistantCraftJobManager.java` / `CraftingCandidate.java` / `WithdrawSubmitOutcome.java`
+- **词库/配置**: `AssistantLexicon.java` / `AssistantFeatureConfig.java`
+- **订单记忆**: `OrderMemoryStore.java`
+- **计划管理**: `PlannerServerService.java` / `PlanStore.java`
+- **传送服务**: `TeleportService.java` / `TeleportDestination.java`
+- **AE2 查询**: `WirelessPowerQuery.java` / `WirelessSteamQuery.java`
+- **格式化/工具**: `AssistantFormatter.java` / `AssistantTimeParser.java` / `AssistantTextNormalizer.java`
+- **物品处理**: `ItemStackUtils.java` / `PlayerInventoryUtil.java` / `PatternDetailFormatter.java`
+- **注册/调试**: `AssistantMonitorRegistry.java` / `AssistantDebugLog.java`
+- **数据文件**: `AssistantDataFiles.java`
+
+### blocks/ — 自定义方块 (4 文件)
+- `BlockAdvanceDataMonitor`、`BlockAdvanceCraftingLink`、`BlockAdvanceStorageLink`、`BlockAdvanceNetworkLink`
+
+### tileentity/ — TileEntity (4 文件)
+- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定、NBT 持久化、AE2 网络集成
+- `TileEntityAdvanceCraftingLink.java` — AE2 合成 CPU 监控
+- `TileEntityAdvanceStorageLink.java` — AE2 存储网络监控
+- `TileEntityAdvanceNetworkLink.java` — AE2 全网统计监控
+
+### gui/ — GUI 组件和界面 (20 文件)
+- **gui/costom/** — 自定义 GUI 基础组件（3 个）
+  - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
+  - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
+  - `ADM_GuiTextField.java` — 自定义文本框（背景纹理、hint 提示）
+- **gui/guiscreen/** — 具体 GUI 界面（16 个），详见 `gui-guidelines.mdc`
+- **gui/handler/** — `GuiHandler.java`（IGuiHandler 实现）
+- **container/** — `ContainerAdvanceStorageLink.java`（配合 `GuiAdvanceStorageLink` 的 Container）
+
+### items/ — 物品 (6 文件)
+- `ItemAdvancePlanner.java` — 可 NBT 持久化的任务计划器物品
+- `ItemAdvanceStorageLinkCell.java` — AE2 存储链接元件
+- `ItemDataWeave.java` — 数据编织器（方块数据绑定工具）
+- `ItemOrange.java` — Orange（头顶自定义名称铭牌，地牢/击杀稀有掉落）
+- `PlannerEntry.java` / `PlannerMergeMode.java` — 计划器数据结构
+
+### handler/ — 事件处理器 (2 文件)
+- `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、Orange 无人机管理）
+- `HandlerLoot.java` — 战利品事件（Orange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
+
+### renders/ — 渲染器 (14 文件)
+- `RenderController.java` — 渲染控制器
+- `LineChartRenderer.java` — 折线图渲染
+- `CraftingInfoRenderer.java` — 合成信息渲染
+- `StorageInfoRenderer.java` — 存储信息渲染
+- `PlannerHudRenderer.java` — 计划器 HUD 叠加层
+- `HudRenderUtil.java` — 通用 HUD 渲染工具（背景、文字换行、缩放定位）
+- `OrangeNameplateRenderer.java` — Orange 物品头顶名称渲染
+- `RenderAdvanceDataMonotor.java` — 数据监视器方块在世界的渲染
+- `RenderAdvanceNetworkLink.java` / `RenderadvanceDataMonitorBlockItem.java` / `RenderDataWeaveItem.java` / `RenderItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` — 物品/方块特殊渲染
+- `IADMRender.java` — 渲染器接口
+
+### network/ — 网络通信 (8 文件)
+- **network/packet/** — 网络包实体（6 个）
+  - `PacketSynTileEntity.java` — **最常用**，同步 TileEntity 数据到客户端
+  - `PacketAssistantAction.java` / `PacketAssistantResponse.java` — AI 助手操作/响应
+  - `PacketItemCountSync.java` / `PacketRequestItemCountSync.java` — 物品数量同步
+  - `PacketItemNBT.java` — 物品 NBT 同步
+- **network/handler/** — 包处理器（2 个）
+  - `HandlerNetWork.java` / `HandlerSynTileEntity.java`
+
+### voice/ — 语音识别 (9 文件)
+- `VoiceCaptureService.java` — 语音采集服务
+- `VoskSpeechToTextClient.java` — Vosk 离线语音识别
+- `HttpSpeechToTextClient.java` — HTTP STT（OpenAI 兼容）
+- `EmbeddedVoiceModelManager.java` — 嵌入式模型管理
+- `PcmAudioUtil.java` / `WavEncoder.java` — 音频处理工具
+
+### loader/ — 注册加载器 (10 文件)
+- `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetWork.java` / `LoaderRecipe.java` — 合成配方（含原版工作台 + GTNH IV/EV 组装机）
+- `LoaerGui.java` — 疑似遗留拼写错误文件
+
+### client/ — 客户端事件处理器 (2 文件)
+- `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
+- `KeyBindings.java` — O/P/H 快捷键（AI聊天/计划器/HUD切换）
+
+### command/ — 命令 (2 文件)
+- `CommandAssistant.java` — `/admassistant` 命令
+- `CommandAIConfig.java` — `/admai` 命令
+
+### utils/ — 工具类 (8 文件)
+- `NBTDataHelper.java` / `NBTJsonParser.java` / `NBTJsonParserHelper.java` — NBT 与 JSON 互转
+- `CraftingTemplateParser.java` — 合成模板解析
+- `ContentsHelper.java` — 内容验证工具（坐标、数字、颜色格式等）
+- `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
+
+## 资源文件 (src/main/resources/assets/advancedatamonitor/)
+
+```
+assets/advancedatamonitor/
+  config/
+    assistant-lexicon.json       # AI 助手词库配置
+  lang/
+    en_US.lang                   # 英文翻译
+    zh_CN.lang                   # 中文翻译
+  model/                         # .obj 模型文件（方块 3D 模型）
+  textures/items/                # 物品贴图
+  voice/vosk/zh-small/           # Vosk 离线语音模型
+```
+
+## 修改指南：改动某种功能时应该看哪些文件
+
+| 需求 | 查看文件 |
+|------|---------|
+| 新增 Block | `loader/LoaderBlock.java` → `blocks/` → `tileentity/` → `en_US.lang` + `zh_CN.lang` |
+| 新增 Item | `loader/LoaderItem.java` → `items/` → `en_US.lang` + `zh_CN.lang` |
+| 新增 GUI | `loader/LoaderGui.java` → `gui/guiscreen/` → `en_US.lang` + `zh_CN.lang` |
+| 新增网络包 | `network/packet/` → `network/handler/` → `loader/LoaderNetWork.java` → 完整数据同步链路见 `network-packets.mdc` |
+| 新增渲染 | `renders/` → `loader/LoaderRender.java` |
+| 修改/新增 AI 助手功能 | 详见 `ai-assistant.mdc` → `assistant/AssistantController.java` → `ai/DeepSeekChatClient.java` |
+| 修改语音识别 | `voice/VoiceCaptureService.java` → `voice/VoskSpeechToTextClient.java` |
+| 新增命令 | `command/` → `AdvanceDataMonitor.java` (serverStarting) |
+| 修改配置项 | `Config.java` → `gui/guiscreen/GuiAISettings.java` |
+
+## 本规则同步维护要求
+
+本文件是 Agent 快速定位代码的核心索引。**每次在项目中新增、删除或重命名文件时，必须同步更新本规则文件中对应包的文件计数和关键文件清单**，不得遗漏：
+
+| 操作 | 需要更新的内容 |
+|------|---------------|
+| 在 `assistant/` 中新增/删除/重命名文件 | 更新 `assistant/` 的文件计数（如 `25 文件` → `26 文件`）和关键文件列表 |
+| 在 `gui/` 中新增/删除/重命名文件 | 更新 `gui/` 的文件计数和 `gui/costom/` / `gui/guiscreen/` 子项计数 |
+| 在 `renders/` 中新增/删除/重命名文件 | 更新 `renders/` 的文件计数和关键渲染器列表 |
+| 在 `network/` 中新增/删除/重命名文件 | 更新 `network/` 的文件计数和 `network/packet/` / `network/handler/` 子项计数 |
+| 在 `voice/`、`utils/`、`loader/`、`command/` 等包中有文件变更 | 更新对应的文件计数和关键文件列表 |
+| 在 `blocks/`、`items/`、`tileentity/` 中新增/删除类 | 更新对应的类清单（如方块列表、TileEntity 列表） |
+
+执行时机：与 `ai-assistant-docs-sync.mdc` 配合，当该规则触发文档同步时应同时检查本规则是否需要更新。其他非 AI 助手功能的文件变更后，Agent 应主动检查并更新本规则。
