@@ -1,10 +1,11 @@
 package com.imgood.advancedatamonitor.loader;
 
+import net.minecraftforge.common.MinecraftForge;
+
 import com.imgood.advancedatamonitor.handler.HandlerLoot;
 import com.imgood.advancedatamonitor.handler.HandlerTick;
 
 import cpw.mods.fml.common.FMLCommonHandler;
-import net.minecraftforge.common.MinecraftForge;
 
 /**
  * @program: AdvanceDataMonitor

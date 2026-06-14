@@ -21,7 +21,6 @@ public class CommonProxy {
         File configFile = new File(configDir, "advancedatamonitor.cfg");
         Config.synchronizeConfiguration(configFile);
 
-        AdvanceDataMonitor.LOG.info(Config.greeting);
         AdvanceDataMonitor.LOG.info("I am AdvanceDataMonitor at version " + Tags.VERSION);
     }
 

@@ -9,10 +9,9 @@ import org.vosk.LogLevel;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 
-import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 
 public class StandaloneVoskTranscriber {
 

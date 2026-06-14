@@ -234,7 +234,9 @@ public class EntityDrone extends EntityCreature {
         private EntityPlayer findOwnerByUUID(String uuid) {
             for (Object obj : drone.worldObj.playerEntities) {
                 EntityPlayer p = (EntityPlayer) obj;
-                if (!p.isDead && uuid.equals(p.getUniqueID().toString())) {
+                if (!p.isDead && uuid.equals(
+                    p.getUniqueID()
+                        .toString())) {
                     return p;
                 }
             }
@@ -248,8 +250,7 @@ public class EntityDrone extends EntityCreature {
 
         @Override
         public boolean continueExecuting() {
-            return owner != null && drone.getDistanceSqToEntity(owner) > followDistSq
-                && drone.isOwnerValid(owner);
+            return owner != null && drone.getDistanceSqToEntity(owner) > followDistSq && drone.isOwnerValid(owner);
         }
 
         @Override

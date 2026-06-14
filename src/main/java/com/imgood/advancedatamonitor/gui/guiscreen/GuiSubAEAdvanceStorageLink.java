@@ -643,8 +643,7 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
             I18n.format("adm.label.scaled"), I18n.format("adm.label.textscale"),
             I18n.format("adm.label.storagecolumns"), I18n.format("adm.label.storagespacing"),
             I18n.format("adm.label.storageiconscale"), I18n.format("adm.label.storagelinespacing"),
-            I18n.format("adm.label.storagecolor"),
-            I18n.format("adm.label.storagecellindex") };
+            I18n.format("adm.label.storagecolor"), I18n.format("adm.label.storagecellindex") };
         autoText(label2, 0, 25, offsetX + 170, offsetY + 10, textColor, false);
 
         String[] label3 = { I18n.format("adm.label.namealpha"), I18n.format("adm.label.textalpha") };

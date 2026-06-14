@@ -2,10 +2,8 @@ package com.imgood.advancedatamonitor.renders;
 
 import java.util.List;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.resources.I18n;
 
 /**
  * Shared HUD rendering utilities. Extracted from PlannerHudRenderer
@@ -39,9 +37,8 @@ public class HudRenderUtil {
      * Wrap text to fit within maxWidth, returning the list of lines
      * and the total height consumed.
      */
-    public static int drawWrappedLines(
-        FontRenderer fr, List<String> lines,
-        int x, int lineY, int lineHeight, int color) {
+    public static int drawWrappedLines(FontRenderer fr, List<String> lines, int x, int lineY, int lineHeight,
+        int color) {
         for (String line : lines) {
             fr.drawStringWithShadow(line, x, lineY, color);
             lineY += lineHeight;

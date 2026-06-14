@@ -33,7 +33,8 @@ public final class AssistantFormatter {
                 builder.append("  ");
             }
             CraftingCandidate candidate = candidates.get(i);
-            String formattedAmount = candidate.amount >= 1000 ? formatCount(candidate.amount) : String.valueOf(candidate.amount);
+            String formattedAmount = candidate.amount >= 1000 ? formatCount(candidate.amount)
+                : String.valueOf(candidate.amount);
             String entry = padLeft(candidate.index, indexWidth) + ". "
                 + truncateForDisplay(candidate.displayName, entryWidth - indexWidth - 7)
                 + " x"

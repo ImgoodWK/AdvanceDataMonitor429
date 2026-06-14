@@ -392,8 +392,7 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
             if (storageGrid == null) return 0;
 
             // Essentia in GTNH is stored as fluid with the aspect tag as fluid name
-            net.minecraftforge.fluids.Fluid essentiaFluid = net.minecraftforge.fluids.FluidRegistry
-                .getFluid(aspectTag);
+            net.minecraftforge.fluids.Fluid essentiaFluid = net.minecraftforge.fluids.FluidRegistry.getFluid(aspectTag);
             if (essentiaFluid == null) return 0;
 
             IAEFluidStack query = AEApi.instance()
@@ -409,8 +408,7 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
                         .getFluid() != null
                     && stored.getFluidStack()
                         .getFluid()
-                        .getID()
-                        == essentiaFluid.getID()) {
+                        .getID() == essentiaFluid.getID()) {
                     total += stored.getStackSize();
                 }
             }

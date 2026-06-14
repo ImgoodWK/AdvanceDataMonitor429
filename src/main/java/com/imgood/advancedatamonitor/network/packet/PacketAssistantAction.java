@@ -448,8 +448,8 @@ public class PacketAssistantAction implements IMessage {
                 if (type == AssistantIntentType.QUERY_ITEM_COUNT) {
                     List<CraftingCandidate> candidates = AssistantServerServices
                         .queryItemCount(player, message.rawText, message.target, message.locale);
-                    return PacketAssistantResponse.candidates(
-                        message.rawText, candidates, AssistantSessionKind.ITEM_COUNT_CANDIDATES);
+                    return PacketAssistantResponse
+                        .candidates(message.rawText, candidates, AssistantSessionKind.ITEM_COUNT_CANDIDATES);
                 }
                 if (type == AssistantIntentType.QUERY_STORAGE) {
                     int storageScope = message.payload != null && message.payload.hasKey("storageScope")
@@ -457,8 +457,8 @@ public class PacketAssistantAction implements IMessage {
                         : 0;
                     List<CraftingCandidate> candidates = AssistantServerServices
                         .queryStorageCandidates(player, message.rawText, message.target, storageScope, message.locale);
-                    return PacketAssistantResponse.candidates(
-                        message.rawText, candidates, AssistantSessionKind.STORAGE_CANDIDATES);
+                    return PacketAssistantResponse
+                        .candidates(message.rawText, candidates, AssistantSessionKind.STORAGE_CANDIDATES);
                 }
                 String result = AssistantServerServices
                     .query(player, type, message.rawText, message.target, message.amount, message.locale);

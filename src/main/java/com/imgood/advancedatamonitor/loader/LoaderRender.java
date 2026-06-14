@@ -3,6 +3,8 @@ package com.imgood.advancedatamonitor.loader;
 import net.minecraft.item.Item;
 import net.minecraftforge.client.MinecraftForgeClient;
 
+import com.imgood.advancedatamonitor.entity.EntityDrone;
+import com.imgood.advancedatamonitor.entity.RenderDrone;
 import com.imgood.advancedatamonitor.renders.CraftingInfoRenderer;
 import com.imgood.advancedatamonitor.renders.LineChartRenderer;
 import com.imgood.advancedatamonitor.renders.RenderAdvanceDataMonotor;
@@ -12,8 +14,6 @@ import com.imgood.advancedatamonitor.renders.RenderController;
 import com.imgood.advancedatamonitor.renders.RenderDataWeaveItem;
 import com.imgood.advancedatamonitor.renders.RenderadvanceDataMonitorBlockItem;
 import com.imgood.advancedatamonitor.renders.StorageInfoRenderer;
-import com.imgood.advancedatamonitor.entity.EntityDrone;
-import com.imgood.advancedatamonitor.entity.RenderDrone;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
 

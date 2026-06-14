@@ -25,8 +25,7 @@ public class RenderDrone extends RenderLiving {
     }
 
     @Override
-    public void doRender(EntityLivingBase entity, double x, double y, double z,
-        float entityYaw, float partialTicks) {
+    public void doRender(EntityLivingBase entity, double x, double y, double z, float entityYaw, float partialTicks) {
         GL11.glPushMatrix();
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
 
@@ -62,8 +61,7 @@ public class RenderDrone extends RenderLiving {
     }
 
     @Override
-    public void doRender(Entity entity, double x, double y, double z,
-        float entityYaw, float partialTicks) {
+    public void doRender(Entity entity, double x, double y, double z, float entityYaw, float partialTicks) {
         this.doRender((EntityLivingBase) entity, x, y, z, entityYaw, partialTicks);
     }
 

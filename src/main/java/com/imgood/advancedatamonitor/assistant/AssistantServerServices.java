@@ -705,8 +705,7 @@ public final class AssistantServerServices {
             TileEntityAdvanceStorageLink.class,
             32);
         if (source.isEmpty()) {
-            AdvanceDataMonitor.LOG
-                .info("[ADM Assistant] Item count query failed: no AdvanceStorageLink found.");
+            AdvanceDataMonitor.LOG.info("[ADM Assistant] Item count query failed: no AdvanceStorageLink found.");
             return new ArrayList<>();
         }
         String query = normalizeStorageQuery(target, AssistantIntent.STORAGE_SCOPE_ALL);
@@ -715,9 +714,7 @@ public final class AssistantServerServices {
         String cleanQuery = query;
         // Strip fluid scope words to get the actual search term
         if (searchFluids) {
-            cleanQuery = AssistantTextNormalizer.removeWords(
-                query,
-                "fluid", "fluids", "mB", "流体", "液体");
+            cleanQuery = AssistantTextNormalizer.removeWords(query, "fluid", "fluids", "mB", "流体", "液体");
             cleanQuery = stripPunctuation(stripModalParticles(cleanQuery)).trim();
         }
         List<CraftingCandidate> allCandidates = new ArrayList<>();
@@ -726,11 +723,13 @@ public final class AssistantServerServices {
         int index = 1;
         for (TileEntityAdvanceStorageLink link : source.connectors) {
             try {
-                IGrid grid = link.getProxy().getGrid();
+                IGrid grid = link.getProxy()
+                    .getGrid();
                 IStorageGrid storageGrid = grid == null ? null : grid.getCache(IStorageGrid.class);
                 if (storageGrid == null) continue;
                 // Query items
-                for (IAEItemStack item : storageGrid.getItemInventory().getStorageList()) {
+                for (IAEItemStack item : storageGrid.getItemInventory()
+                    .getStorageList()) {
                     if (item == null || item.getStackSize() <= 0) continue;
                     ItemStack stack = item.getItemStack();
                     if (stack == null || stack.getItem() == null) continue;
@@ -745,23 +744,25 @@ public final class AssistantServerServices {
                 // Query fluids
                 if (searchFluids || cleanQuery.isEmpty()) {
                     try {
-                        for (IAEFluidStack fluid : storageGrid.getFluidInventory().getStorageList()) {
+                        for (IAEFluidStack fluid : storageGrid.getFluidInventory()
+                            .getStorageList()) {
                             if (fluid == null || fluid.getStackSize() <= 0) continue;
                             FluidStack fluidStack = fluid.getFluidStack();
                             String name = fluidStack == null || fluidStack.getFluid() == null ? ""
-                                : fluidStack.getLocalizedName().toLowerCase();
+                                : fluidStack.getLocalizedName()
+                                    .toLowerCase();
                             if (!cleanQuery.isEmpty() && !name.contains(cleanQuery)) continue;
-                            String displayName = fluidStack == null ? "Unknown Fluid"
-                                : fluidStack.getLocalizedName();
+                            String displayName = fluidStack == null ? "Unknown Fluid" : fluidStack.getLocalizedName();
                             String key = displayName;
                             if (uniqueFluids.containsKey(key)) continue;
                             uniqueFluids.put(key, displayName);
                             // Create a dummy ItemStack for fluid display
                             // Use the count suffix to indicate fluid (mB)
-                            allCandidates.add(new CraftingCandidate(
-                                index++,
-                                createFluidDisplayStack(displayName),
-                                fluid.getStackSize()));
+                            allCandidates.add(
+                                new CraftingCandidate(
+                                    index++,
+                                    createFluidDisplayStack(displayName),
+                                    fluid.getStackSize()));
                             if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
                         }
                     } catch (Throwable fluidFailure) {
@@ -775,6 +776,7 @@ public final class AssistantServerServices {
         }
         // Sort by quantity descending
         allCandidates.sort(new Comparator<CraftingCandidate>() {
+
             @Override
             public int compare(CraftingCandidate a, CraftingCandidate b) {
                 return Long.compare(b.amount, a.amount);
@@ -790,12 +792,9 @@ public final class AssistantServerServices {
         return reindexed;
     }
 
-    private static String queryItemCountMessage(EntityPlayerMP player, String rawText, String target,
-        String locale) {
+    private static String queryItemCountMessage(EntityPlayerMP player, String rawText, String target, String locale) {
         // This is only used as fallback; the main response goes through candidates
-        return zh(locale)
-            ? "查询物品数量失败：请通过候选项列表查看结果。"
-            : "Item count query failed: check candidate list for results.";
+        return zh(locale) ? "查询物品数量失败：请通过候选项列表查看结果。" : "Item count query failed: check candidate list for results.";
     }
 
     /**
@@ -840,8 +839,12 @@ public final class AssistantServerServices {
                 fluidTotalBytes += link.getFluidTotalBytes();
                 fluidUsedBytes += link.getFluidUsedBytes();
             } catch (Exception e) {
-                AdvanceDataMonitor.LOG.debug("Failed to read bytes from NetworkLink at {},{},{}",
-                    link.xCoord, link.yCoord, link.zCoord, e);
+                AdvanceDataMonitor.LOG.debug(
+                    "Failed to read bytes from NetworkLink at {},{},{}",
+                    link.xCoord,
+                    link.yCoord,
+                    link.zCoord,
+                    e);
             }
         }
 
@@ -853,17 +856,18 @@ public final class AssistantServerServices {
 
         // Use directly-scanned values if NetworkLink data appears stale
         if (scanResult.nonInfiniteItemTotal > 0) {
-            itemTotalBytes = scanResult.nonInfiniteItemTotal + (hasInfiniteItemCells ? scanResult.infiniteItemBytes : 0);
+            itemTotalBytes = scanResult.nonInfiniteItemTotal
+                + (hasInfiniteItemCells ? scanResult.infiniteItemBytes : 0);
             itemUsedBytes = scanResult.nonInfiniteItemUsed;
         }
         if (scanResult.nonInfiniteFluidTotal > 0) {
-            fluidTotalBytes = scanResult.nonInfiniteFluidTotal + (hasInfiniteFluidCells ? scanResult.infiniteFluidBytes : 0);
+            fluidTotalBytes = scanResult.nonInfiniteFluidTotal
+                + (hasInfiniteFluidCells ? scanResult.infiniteFluidBytes : 0);
             fluidUsedBytes = scanResult.nonInfiniteFluidUsed;
         }
 
         StringBuilder builder = new StringBuilder();
-        builder.append(chinese ? "AE2 存储字节占用详情："
-            : "AE2 Storage Byte Usage Details:");
+        builder.append(chinese ? "AE2 存储字节占用详情：" : "AE2 Storage Byte Usage Details:");
 
         // Item bytes section
         builder.append(chinese ? "\n\n物品存储：" : "\n\nItem Storage:");
@@ -874,18 +878,15 @@ public final class AssistantServerServices {
             }
             builder.append("\n  非无限元件：");
         }
-        builder.append(chinese ? "\n  已用："
-            : "\n  Used: ")
+        builder.append(chinese ? "\n  已用：" : "\n  Used: ")
             .append(AssistantFormatter.formatBytes(itemUsedBytes));
-        builder.append(chinese ? " / 总量："
-            : " / Total: ")
+        builder.append(chinese ? " / 总量：" : " / Total: ")
             .append(AssistantFormatter.formatBytes(itemTotalBytes));
 
         // Calculate percentage for non-infinite cells
-        long nonInfiniteItemTotal = scanResult.nonInfiniteItemTotal > 0
-            ? scanResult.nonInfiniteItemTotal : itemTotalBytes;
-        long nonInfiniteItemUsed = scanResult.nonInfiniteItemUsed > 0
-            ? scanResult.nonInfiniteItemUsed : itemUsedBytes;
+        long nonInfiniteItemTotal = scanResult.nonInfiniteItemTotal > 0 ? scanResult.nonInfiniteItemTotal
+            : itemTotalBytes;
+        long nonInfiniteItemUsed = scanResult.nonInfiniteItemUsed > 0 ? scanResult.nonInfiniteItemUsed : itemUsedBytes;
         if (nonInfiniteItemTotal > 0) {
             double itemPercent = (double) nonInfiniteItemUsed / (double) nonInfiniteItemTotal * 100.0;
             builder.append(chinese ? "  占用率：" : "  Usage: ")
@@ -904,17 +905,15 @@ public final class AssistantServerServices {
             }
             builder.append(chinese ? "\n  非无限元件：" : "\n  Non-infinite:");
         }
-        builder.append(chinese ? "\n  已用："
-            : "\n  Used: ")
+        builder.append(chinese ? "\n  已用：" : "\n  Used: ")
             .append(AssistantFormatter.formatBytes(fluidUsedBytes));
-        builder.append(chinese ? " / 总量："
-            : " / Total: ")
+        builder.append(chinese ? " / 总量：" : " / Total: ")
             .append(AssistantFormatter.formatBytes(fluidTotalBytes));
 
-        long nonInfiniteFluidTotal = scanResult.nonInfiniteFluidTotal > 0
-            ? scanResult.nonInfiniteFluidTotal : fluidTotalBytes;
-        long nonInfiniteFluidUsed = scanResult.nonInfiniteFluidUsed > 0
-            ? scanResult.nonInfiniteFluidUsed : fluidUsedBytes;
+        long nonInfiniteFluidTotal = scanResult.nonInfiniteFluidTotal > 0 ? scanResult.nonInfiniteFluidTotal
+            : fluidTotalBytes;
+        long nonInfiniteFluidUsed = scanResult.nonInfiniteFluidUsed > 0 ? scanResult.nonInfiniteFluidUsed
+            : fluidUsedBytes;
         if (nonInfiniteFluidTotal > 0) {
             double fluidPercent = (double) nonInfiniteFluidUsed / (double) nonInfiniteFluidTotal * 100.0;
             builder.append(chinese ? "  占用率：" : "  Usage: ")
@@ -933,7 +932,8 @@ public final class AssistantServerServices {
             if (hasInfiniteFluidCells) {
                 builder.append(chinese ? "\n  - 无限流体存储元件" : "\n  - Infinite fluid storage cell(s)");
             }
-            builder.append(chinese ? "\n  无限元件不计入占用率统计。" : "\n  Infinite cells are excluded from usage percentage calculation.");
+            builder.append(
+                chinese ? "\n  无限元件不计入占用率统计。" : "\n  Infinite cells are excluded from usage percentage calculation.");
         }
 
         return builder.toString() + connectorInfo;
@@ -943,6 +943,7 @@ public final class AssistantServerServices {
      * Result of scanning network storage cells for infinite and non-infinite byte counts.
      */
     private static final class InfiniteCellScanResult {
+
         boolean hasInfiniteItems;
         boolean hasInfiniteFluids;
         long nonInfiniteItemTotal;
@@ -969,12 +970,14 @@ public final class AssistantServerServices {
         }
         for (TileEntityAdvanceStorageLink link : source.connectors) {
             try {
-                IGrid grid = link.getProxy().getGrid();
+                IGrid grid = link.getProxy()
+                    .getGrid();
                 if (grid == null) continue;
                 for (Class<? extends IGridHost> clazz : grid.getMachinesClasses()) {
                     if (!IChestOrDrive.class.isAssignableFrom(clazz)) continue;
                     for (IGridNode node : grid.getMachines(clazz)) {
-                        appeng.api.util.DimensionalCoord coord = node.getGridBlock().getLocation();
+                        appeng.api.util.DimensionalCoord coord = node.getGridBlock()
+                            .getLocation();
                         World world = coord.getWorld();
                         if (world == null) continue;
                         TileEntity te = world.getTileEntity(coord.x, coord.y, coord.z);
@@ -982,15 +985,18 @@ public final class AssistantServerServices {
                         // Process drive or chest
                         if (te instanceof TileDrive) {
                             TileDrive drive = (TileDrive) te;
-                            for (int i = 0; i < drive.getInternalInventory().getSizeInventory(); i++) {
-                                ItemStack stack = drive.getInternalInventory().getStackInSlot(i);
+                            for (int i = 0; i < drive.getInternalInventory()
+                                .getSizeInventory(); i++) {
+                                ItemStack stack = drive.getInternalInventory()
+                                    .getStackInSlot(i);
                                 if (stack != null) {
                                     classifyCell(result, stack);
                                 }
                             }
                         } else if (te instanceof TileChest) {
                             TileChest chest = (TileChest) te;
-                            ItemStack stack = chest.getInternalInventory().getStackInSlot(0);
+                            ItemStack stack = chest.getInternalInventory()
+                                .getStackInSlot(0);
                             if (stack != null) {
                                 classifyCell(result, stack);
                             }
@@ -1011,7 +1017,9 @@ public final class AssistantServerServices {
      */
     private static void classifyCell(InfiniteCellScanResult result, ItemStack stack) {
         // Check item cell
-        IMEInventoryHandler itemInv = AEApi.instance().registries().cell()
+        IMEInventoryHandler itemInv = AEApi.instance()
+            .registries()
+            .cell()
             .getCellInventory(stack, null, StorageChannel.ITEMS);
         if (itemInv instanceof ICellInventoryHandler) {
             ICellInventory cell = ((ICellInventoryHandler) itemInv).getCellInv();
@@ -1026,7 +1034,9 @@ public final class AssistantServerServices {
             }
         }
         // Check fluid cell (GlodBlock/AE2FluidCraft)
-        IMEInventoryHandler fluidInv = AEApi.instance().registries().cell()
+        IMEInventoryHandler fluidInv = AEApi.instance()
+            .registries()
+            .cell()
             .getCellInventory(stack, null, StorageChannel.FLUIDS);
         if (fluidInv instanceof ICellInventoryHandler) {
             ICellInventory cell = ((ICellInventoryHandler) fluidInv).getCellInv();
@@ -1048,12 +1058,20 @@ public final class AssistantServerServices {
                 Method getCellInv = glodHandlerClass.getMethod("getCellInv");
                 Object cellObj = getCellInv.invoke(handler);
                 if (cellObj != null) {
-                    long totalBytes = (Long) cellObj.getClass().getMethod("getTotalBytes").invoke(cellObj);
-                    long usedBytes = (Long) cellObj.getClass().getMethod("getUsedBytes").invoke(cellObj);
-                    String className = cellObj.getClass().getName().toLowerCase();
+                    long totalBytes = (Long) cellObj.getClass()
+                        .getMethod("getTotalBytes")
+                        .invoke(cellObj);
+                    long usedBytes = (Long) cellObj.getClass()
+                        .getMethod("getUsedBytes")
+                        .invoke(cellObj);
+                    String className = cellObj.getClass()
+                        .getName()
+                        .toLowerCase();
                     if (className.contains("infinity") || className.contains("infinite")
-                        || className.contains("creative") || totalBytes > 10_000_000_000_000L
-                        || totalBytes == Long.MAX_VALUE || totalBytes >= Long.MAX_VALUE / 2L) {
+                        || className.contains("creative")
+                        || totalBytes > 10_000_000_000_000L
+                        || totalBytes == Long.MAX_VALUE
+                        || totalBytes >= Long.MAX_VALUE / 2L) {
                         result.hasInfiniteFluids = true;
                         result.infiniteFluidBytes += totalBytes;
                     } else {
@@ -1076,9 +1094,10 @@ public final class AssistantServerServices {
     private static boolean isInfiniteCell(ICellInventory cell) {
         if (cell == null) return false;
         // Check by class name (AE2Things infinite cells have distinct class names)
-        String className = cell.getClass().getName().toLowerCase();
-        if (className.contains("infinity") || className.contains("infinite")
-            || className.contains("creative")) {
+        String className = cell.getClass()
+            .getName()
+            .toLowerCase();
+        if (className.contains("infinity") || className.contains("infinite") || className.contains("creative")) {
             return true;
         }
         // Check by total bytes threshold (> 1 trillion bytes indicates infinite)
@@ -1098,8 +1117,8 @@ public final class AssistantServerServices {
      * suitable for thumbnail rendering in the GUI.
      * Similar to queryItemCount but also includes byte summary.
      */
-    public static List<CraftingCandidate> queryStorageCandidates(EntityPlayerMP player,
-        String rawText, String target, int storageScope, String locale) {
+    public static List<CraftingCandidate> queryStorageCandidates(EntityPlayerMP player, String rawText, String target,
+        int storageScope, String locale) {
         boolean includeItems = storageScope != AssistantIntent.STORAGE_SCOPE_FLUIDS;
         boolean includeFluids = storageScope != AssistantIntent.STORAGE_SCOPE_ITEMS;
         String query = normalizeStorageQuery(target, storageScope);
@@ -1119,12 +1138,14 @@ public final class AssistantServerServices {
 
         for (TileEntityAdvanceStorageLink link : source.connectors) {
             try {
-                IGrid grid = link.getProxy().getGrid();
+                IGrid grid = link.getProxy()
+                    .getGrid();
                 IStorageGrid storageGrid = grid == null ? null : grid.getCache(IStorageGrid.class);
                 if (storageGrid == null) continue;
 
                 if (includeItems) {
-                    for (IAEItemStack item : storageGrid.getItemInventory().getStorageList()) {
+                    for (IAEItemStack item : storageGrid.getItemInventory()
+                        .getStorageList()) {
                         if (item == null || item.getStackSize() <= 0) continue;
                         ItemStack stack = item.getItemStack();
                         if (stack == null || stack.getItem() == null) continue;
@@ -1140,21 +1161,23 @@ public final class AssistantServerServices {
 
                 if (includeFluids) {
                     try {
-                        for (IAEFluidStack fluid : storageGrid.getFluidInventory().getStorageList()) {
+                        for (IAEFluidStack fluid : storageGrid.getFluidInventory()
+                            .getStorageList()) {
                             if (fluid == null || fluid.getStackSize() <= 0) continue;
                             FluidStack fluidStack = fluid.getFluidStack();
                             String name = fluidStack == null || fluidStack.getFluid() == null ? ""
-                                : fluidStack.getLocalizedName().toLowerCase();
+                                : fluidStack.getLocalizedName()
+                                    .toLowerCase();
                             if (!query.isEmpty() && !name.contains(query)) continue;
-                            String displayName = fluidStack == null ? "Unknown Fluid"
-                                : fluidStack.getLocalizedName();
+                            String displayName = fluidStack == null ? "Unknown Fluid" : fluidStack.getLocalizedName();
                             String key = displayName;
                             if (uniqueFluids.containsKey(key)) continue;
                             uniqueFluids.put(key, displayName);
-                            allCandidates.add(new CraftingCandidate(
-                                index++,
-                                createFluidDisplayStack(displayName),
-                                fluid.getStackSize()));
+                            allCandidates.add(
+                                new CraftingCandidate(
+                                    index++,
+                                    createFluidDisplayStack(displayName),
+                                    fluid.getStackSize()));
                             if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
                         }
                     } catch (Throwable fluidFailure) {
@@ -1162,13 +1185,14 @@ public final class AssistantServerServices {
                     }
                 }
             } catch (Exception e) {
-                AdvanceDataMonitor.LOG.error("Failed to query AE2 storage from link at {},{}",
-                    link.xCoord, link.yCoord, e);
+                AdvanceDataMonitor.LOG
+                    .error("Failed to query AE2 storage from link at {},{}", link.xCoord, link.yCoord, e);
             }
         }
 
         // Sort by quantity descending (largest first)
         allCandidates.sort(new Comparator<CraftingCandidate>() {
+
             @Override
             public int compare(CraftingCandidate a, CraftingCandidate b) {
                 return Long.compare(b.amount, a.amount);

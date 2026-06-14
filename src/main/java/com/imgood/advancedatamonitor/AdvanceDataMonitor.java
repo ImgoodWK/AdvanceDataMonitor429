@@ -10,6 +10,7 @@ import com.imgood.advancedatamonitor.loader.LoaderHandler;
 import com.imgood.advancedatamonitor.loader.LoaderItem;
 import com.imgood.advancedatamonitor.loader.LoaderNetWork;
 import com.imgood.advancedatamonitor.loader.LoaderRecipe;
+import com.imgood.advancedatamonitor.loader.LoaderRender;
 import com.imgood.advancedatamonitor.loader.LoaderTileEntity;
 
 import cpw.mods.fml.common.FMLCommonHandler;

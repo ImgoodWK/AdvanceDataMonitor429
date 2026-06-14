@@ -9,7 +9,6 @@ import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAIChat;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAdvancePlanner;
 import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
-import com.imgood.advancedatamonitor.items.PlannerEntry;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -93,8 +92,7 @@ public class KeyBindings {
     private void notifyPlayer(String text) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(
-                new net.minecraft.util.ChatComponentText("[ADM] " + text));
+            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText("[ADM] " + text));
         }
     }
 }

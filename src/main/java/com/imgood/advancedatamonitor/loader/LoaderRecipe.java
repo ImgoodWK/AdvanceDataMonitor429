@@ -9,6 +9,8 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import cpw.mods.fml.common.Optional;
 import cpw.mods.fml.common.registry.GameRegistry;
+import gregtech.api.enums.GTValues;
+import gregtech.api.recipe.RecipeMaps;
 
 /**
  * Register crafting recipes for all AdvanceDataMonitor blocks and items.
@@ -30,10 +32,14 @@ public class LoaderRecipe {
             "gcg",
             "qrq",
             "gcg",
-            'g', Blocks.glass,
-            'c', Items.comparator,
-            'q', Items.quartz,
-            'r', Items.redstone);
+            'g',
+            Blocks.glass,
+            'c',
+            Items.comparator,
+            'q',
+            Items.quartz,
+            'r',
+            Items.redstone);
 
         // AdvanceNetworkLink — AE2 network statistics monitor
         GameRegistry.addRecipe(
@@ -41,9 +47,12 @@ public class LoaderRecipe {
             " i ",
             "cqc",
             " i ",
-            'i', Items.iron_ingot,
-            'c', Items.comparator,
-            'q', Items.quartz);
+            'i',
+            Items.iron_ingot,
+            'c',
+            Items.comparator,
+            'q',
+            Items.quartz);
 
         // AdvanceCraftingLink — AE2 crafting CPU monitor
         GameRegistry.addRecipe(
@@ -51,9 +60,12 @@ public class LoaderRecipe {
             " g ",
             "cwc",
             " g ",
-            'g', Blocks.glass,
-            'c', Items.comparator,
-            'w', Blocks.crafting_table);
+            'g',
+            Blocks.glass,
+            'c',
+            Items.comparator,
+            'w',
+            Blocks.crafting_table);
 
         // AdvanceStorageLink — AE2 storage network monitor
         GameRegistry.addRecipe(
@@ -61,9 +73,12 @@ public class LoaderRecipe {
             " i ",
             "cwc",
             " i ",
-            'i', Items.iron_ingot,
-            'c', Items.comparator,
-            'w', Blocks.chest);
+            'i',
+            Items.iron_ingot,
+            'c',
+            Items.comparator,
+            'w',
+            Blocks.chest);
 
         // AdvancePlanner — planning tool
         GameRegistry.addRecipe(
@@ -71,9 +86,12 @@ public class LoaderRecipe {
             "b b",
             "qpq",
             "b b",
-            'b', Items.book,
-            'q', Items.quartz,
-            'p', Items.paper);
+            'b',
+            Items.book,
+            'q',
+            Items.quartz,
+            'p',
+            Items.paper);
 
         // AdvanceStorageLinkCell — storage link component
         GameRegistry.addRecipe(
@@ -81,8 +99,10 @@ public class LoaderRecipe {
             " q ",
             "i i",
             " q ",
-            'q', Items.quartz,
-            'i', Items.iron_ingot);
+            'q',
+            Items.quartz,
+            'i',
+            Items.iron_ingot);
     }
 
     // ========== GTNH Assembler recipes (GregTech required) ==========
@@ -99,8 +119,9 @@ public class LoaderRecipe {
         ItemStack circuitElite = getOreAny("circuitElite", new ItemStack(Items.comparator));
         ItemStack blockGlass = new ItemStack(Blocks.glass);
         ItemStack rodTungstenSteel = getOreAny("stickTungstenSteel", new ItemStack(Items.iron_ingot));
-        ItemStack screwTungstenSteel = getOreAny("screwTungstenSteel", getOreAny("boltTungstenSteel", new ItemStack(
-            Items.iron_ingot)));
+        ItemStack screwTungstenSteel = getOreAny(
+            "screwTungstenSteel",
+            getOreAny("boltTungstenSteel", new ItemStack(Items.iron_ingot)));
         ItemStack craftingTable = new ItemStack(Blocks.crafting_table);
         ItemStack chest = new ItemStack(Blocks.chest);
         ItemStack book = new ItemStack(Items.book);
@@ -111,88 +132,120 @@ public class LoaderRecipe {
         ItemStack circuitGood = getOreAny("circuitGood", new ItemStack(Items.comparator));
         ItemStack lensDiamond = getOreAny("lensDiamond", new ItemStack(Blocks.glass));
         ItemStack wireFineRedAlloy = getOreAny("wireFineRedAlloy", new ItemStack(Items.redstone));
-        ItemStack cableGtRedAlloy = getOreAny("cableGtSingleRedAlloy", getOreAny("wireGtSingleRedAlloy", new ItemStack(
-            Items.redstone)));
+        ItemStack cableGtRedAlloy = getOreAny(
+            "cableGtSingleRedAlloy",
+            getOreAny("wireGtSingleRedAlloy", new ItemStack(Items.redstone)));
 
         // AdvanceDataMonitor — core monitoring block (3 plates + 2 circuits + 2 glass)
         try {
-            gregtech.api.util.GT_ModHandler.addAssemblerRecipe(
-                inputs(plateTungstenSteel, plateTungstenSteel, plateTungstenSteel,
-                    circuitElite, circuitElite, blockGlass, blockGlass),
-                gregtech.api.enums.GT_Values.NF,
-                new ItemStack(LoaderBlock.advanceDataMonitor),
-                DURATION_NORMAL,
-                EU_IV);
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    circuitElite,
+                    circuitElite,
+                    blockGlass,
+                    blockGlass)
+                .itemOutputs(new ItemStack(LoaderBlock.advanceDataMonitor))
+                .duration(DURATION_NORMAL)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
         // AdvanceNetworkLink — AE2 network monitor (2 plates + 2 circuits + 2 rods + 1 glass)
         try {
-            gregtech.api.util.GT_ModHandler.addAssemblerRecipe(
-                inputs(plateTungstenSteel, plateTungstenSteel,
-                    circuitElite, circuitElite,
-                    rodTungstenSteel, rodTungstenSteel, blockGlass),
-                gregtech.api.enums.GT_Values.NF,
-                new ItemStack(LoaderBlock.advanceNetworkLinkBlock),
-                DURATION_FAST,
-                EU_IV);
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    circuitElite,
+                    circuitElite,
+                    rodTungstenSteel,
+                    rodTungstenSteel,
+                    blockGlass)
+                .itemOutputs(new ItemStack(LoaderBlock.advanceNetworkLinkBlock))
+                .duration(DURATION_FAST)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
         // AdvanceCraftingLink — AE2 crafting CPU monitor (2 plates + 2 circuits + crafting table)
         try {
-            gregtech.api.util.GT_ModHandler.addAssemblerRecipe(
-                inputs(plateTungstenSteel, plateTungstenSteel,
-                    circuitElite, circuitElite,
-                    craftingTable, screwTungstenSteel, screwTungstenSteel),
-                gregtech.api.enums.GT_Values.NF,
-                new ItemStack(LoaderBlock.advanceCraftingLink),
-                DURATION_FAST,
-                EU_IV);
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    circuitElite,
+                    circuitElite,
+                    craftingTable,
+                    screwTungstenSteel,
+                    screwTungstenSteel)
+                .itemOutputs(new ItemStack(LoaderBlock.advanceCraftingLink))
+                .duration(DURATION_FAST)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
         // AdvanceStorageLink — AE2 storage monitor (2 plates + 2 circuits + chest)
         try {
-            gregtech.api.util.GT_ModHandler.addAssemblerRecipe(
-                inputs(plateTungstenSteel, plateTungstenSteel,
-                    circuitElite, circuitElite,
-                    chest, screwTungstenSteel, screwTungstenSteel),
-                gregtech.api.enums.GT_Values.NF,
-                new ItemStack(LoaderBlock.advanceStorageLinkBlock),
-                DURATION_FAST,
-                EU_IV);
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    circuitElite,
+                    circuitElite,
+                    chest,
+                    screwTungstenSteel,
+                    screwTungstenSteel)
+                .itemOutputs(new ItemStack(LoaderBlock.advanceStorageLinkBlock))
+                .duration(DURATION_FAST)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
         // AdvancePlanner — planning tool (1 plate + 1 circuit + 2 books + 3 paper)
         try {
-            gregtech.api.util.GT_ModHandler.addAssemblerRecipe(
-                inputs(plateTungstenSteel, circuitElite,
-                    book, book, paper, paper, paper),
-                gregtech.api.enums.GT_Values.NF,
-                new ItemStack(LoaderItem.advancePlanner),
-                DURATION_FAST,
-                EU_IV);
+            GTValues.RA.stdBuilder()
+                .itemInputs(plateTungstenSteel, circuitElite, book, book, paper, paper, paper)
+                .itemOutputs(new ItemStack(LoaderItem.advancePlanner))
+                .duration(DURATION_FAST)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
         // AdvanceStorageLinkCell — storage link component (1 plate + 1 circuit + 2 glass)
         try {
-            gregtech.api.util.GT_ModHandler.addAssemblerRecipe(
-                inputs(plateTungstenSteel, circuitElite,
-                    blockGlass, blockGlass, screwTungstenSteel, screwTungstenSteel),
-                gregtech.api.enums.GT_Values.NF,
-                new ItemStack(LoaderItem.advanceStorageLinkCell, 2), // 2 cells per craft
-                DURATION_FAST,
-                EU_IV);
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTungstenSteel,
+                    circuitElite,
+                    blockGlass,
+                    blockGlass,
+                    screwTungstenSteel,
+                    screwTungstenSteel)
+                .itemOutputs(new ItemStack(LoaderItem.advanceStorageLinkCell, 2)) // 2 cells per craft
+                .duration(DURATION_FAST)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
         // ItemDataWeave — data binding tool (EV-stage: titanium plate + good circuit + diamond lens)
         try {
-            gregtech.api.util.GT_ModHandler.addAssemblerRecipe(
-                inputs(plateTitanium, plateTitanium,
-                    circuitGood, circuitGood,
-                    blockGlass, lensDiamond, wireFineRedAlloy, cableGtRedAlloy),
-                gregtech.api.enums.GT_Values.NF,
-                new ItemStack(LoaderItem.dataWeave),
-                DURATION_FAST,
-                EU_EV);
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTitanium,
+                    plateTitanium,
+                    circuitGood,
+                    circuitGood,
+                    blockGlass,
+                    lensDiamond,
+                    wireFineRedAlloy,
+                    cableGtRedAlloy)
+                .itemOutputs(new ItemStack(LoaderItem.dataWeave))
+                .duration(DURATION_FAST)
+                .eut(EU_EV)
+                .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
     }
 
@@ -209,7 +262,8 @@ public class LoaderRecipe {
     private static ItemStack getOreAny(String oreName, ItemStack fallback) {
         List<ItemStack> ores = OreDictionary.getOres(oreName);
         if (ores != null && !ores.isEmpty()) {
-            ItemStack found = ores.get(0).copy();
+            ItemStack found = ores.get(0)
+                .copy();
             found.stackSize = 1;
             return found;
         }

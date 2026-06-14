@@ -149,6 +149,7 @@ public class ItemAdvanceStorageLinkCell extends Item implements ICellWorkbenchIt
      * Simple container for an essentia marker: aspect tag name + amount.
      */
     public static class EssentiaMarker {
+
         public final String aspectTag;
         public final int amount;
 

@@ -32,8 +32,7 @@ public final class TeleportService {
     private TeleportService() {}
 
     /** Fully qualified class name of the Teleporter MKII (Advanced Dislocator). */
-    private static final String TELEPORTER_MKII_CLASS =
-        "com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII";
+    private static final String TELEPORTER_MKII_CLASS = "com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII";
 
     /** NBT compound-list key that holds all saved locations. */
     private static final String KEY_LOCATIONS = "Locations";
@@ -79,7 +78,8 @@ public final class TeleportService {
         if (stack == null || stack.getItem() == null) {
             return false;
         }
-        Class<?> itemClass = stack.getItem().getClass();
+        Class<?> itemClass = stack.getItem()
+            .getClass();
         while (itemClass != null) {
             if (TELEPORTER_MKII_CLASS.equals(itemClass.getName())) {
                 return true;
@@ -183,25 +183,32 @@ public final class TeleportService {
         }
         AdvanceDataMonitor.LOG.info(
             "[ADM Teleport] Executing teleport for {} to '{}' [dim={}] ({},{},{})",
-            player.getCommandSenderName(), dest.name, dest.dimensionId,
-            dest.x, dest.y, dest.z);
+            player.getCommandSenderName(),
+            dest.name,
+            dest.dimensionId,
+            dest.x,
+            dest.y,
+            dest.z);
 
         int currentDim = player.dimension;
         int targetDim = dest.dimensionId;
 
         if (currentDim != targetDim) {
-            MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+            MinecraftServer server = FMLCommonHandler.instance()
+                .getMinecraftServerInstance();
             if (server != null) {
-                server.getConfigurationManager().transferPlayerToDimension(
-                    player,
-                    targetDim,
-                    new net.minecraft.world.Teleporter(DimensionManager.getWorld(targetDim)) {
-                        @Override
-                        public void placeInPortal(net.minecraft.entity.Entity entity,
-                                                  double px, double py, double pz, float yaw) {
-                            entity.setPosition(dest.x + 0.5D, dest.y + 0.5D, dest.z + 0.5D);
-                        }
-                    });
+                server.getConfigurationManager()
+                    .transferPlayerToDimension(
+                        player,
+                        targetDim,
+                        new net.minecraft.world.Teleporter(DimensionManager.getWorld(targetDim)) {
+
+                            @Override
+                            public void placeInPortal(net.minecraft.entity.Entity entity, double px, double py,
+                                double pz, float yaw) {
+                                entity.setPosition(dest.x + 0.5D, dest.y + 0.5D, dest.z + 0.5D);
+                            }
+                        });
                 player.setPositionAndUpdate(dest.x + 0.5D, dest.y + 0.5D, dest.z + 0.5D);
                 AdvanceDataMonitor.LOG.info("[ADM Teleport] Cross-dimension: {} → {}", currentDim, targetDim);
             }
@@ -220,12 +227,14 @@ public final class TeleportService {
      * Filter destinations by fuzzy name matching.
      * Exact match (case-insensitive) takes priority; falls back to substring match.
      */
-    public static List<TeleportDestination> filterDestinations(
-            List<TeleportDestination> allDestinations, String target) {
-        if (target == null || target.trim().isEmpty()) {
+    public static List<TeleportDestination> filterDestinations(List<TeleportDestination> allDestinations,
+        String target) {
+        if (target == null || target.trim()
+            .isEmpty()) {
             return allDestinations;
         }
-        String normalized = target.trim().toLowerCase();
+        String normalized = target.trim()
+            .toLowerCase();
 
         List<TeleportDestination> exactMatches = new ArrayList<TeleportDestination>();
         List<TeleportDestination> partialMatches = new ArrayList<TeleportDestination>();
@@ -242,8 +251,10 @@ public final class TeleportService {
     }
 
     private static String text(String locale, String zhText, String enText) {
-        boolean zh = locale == null || locale.trim().isEmpty()
-            || locale.toLowerCase().startsWith("zh");
+        boolean zh = locale == null || locale.trim()
+            .isEmpty()
+            || locale.toLowerCase()
+                .startsWith("zh");
         return zh ? zhText : enText;
     }
 }

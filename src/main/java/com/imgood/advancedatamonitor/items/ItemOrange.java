@@ -33,9 +33,8 @@ public class ItemOrange extends Item {
         if (player.isSneaking() && world.isRemote) {
             NBTTagCompound nbt = getOrCreateNBT(stack);
             String currentName = nbt.getString(NBT_KEY_CUSTOM_NAME);
-            String hint = I18n.format("adm.orange.current_name") + " " + (currentName.isEmpty()
-                ? I18n.format("adm.orange.no_name")
-                : currentName);
+            String hint = I18n.format("adm.orange.current_name") + " "
+                + (currentName.isEmpty() ? I18n.format("adm.orange.no_name") : currentName);
             player.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD + hint));
             String usageHint = I18n.format("adm.orange.rename_hint");
             player.addChatMessage(new ChatComponentText(EnumChatFormatting.GRAY + usageHint));
