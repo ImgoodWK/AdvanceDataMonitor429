@@ -11,14 +11,31 @@ alwaysApply: false
 
 ## 核心经验
 
-### 1. Shell 工具选择策略
+### 1. Sandbox 权限策略（最重要）
 
-在 Windows + PowerShell 环境下，`Shell` 工具偶尔会返回空结果（exit code 无输出）。**优先使用 `Task` 子代理（`subagent_type: "shell"`）执行 git 命令**，它更可靠。
+在 Cursor 中执行**任何 Git 命令**（包括只读的 `git status`、`git log`、`git remote -v`），都**必须**加上 `required_permissions: ["all"]` 来禁用 Sandbox。否则命令会静默失败，返回 "The shell command returned no exit status, so its result is unknown"。
 
-- ❌ 避免：直接用 `Shell` 工具执行关键 git 操作（可能丢输出）
-- ✅ 推荐：用 `Task(subagent_type:"shell")` 执行 `git status`、`git commit`、`git push` 等
+```json
+// ✅ 正确：所有 Git 命令都带上 all 权限
+{ "command": "git status", "required_permissions": ["all"] }
+{ "command": "git push origin master", "required_permissions": ["all"] }
 
-### 2. 推送工作流
+// ❌ 错误：不加权限，命令静默失败
+{ "command": "git status" }
+```
+
+**原因**：Sandbox 默认禁止 Git 操作（包括读取），需要 `all` 权限才能执行。
+
+**排查技巧**：如果遇到 "no exit status" 错误，先用 `echo "hello"` 测试 Shell 是否正常，确认正常后加上 `required_permissions: ["all"]` 重试。
+
+### 2. Shell 工具选择策略
+
+~~在 Windows + PowerShell 环境下，`Shell` 工具偶尔会返回空结果。~~ 经验证，空结果是 Sandbox 权限不足导致，加上 `all` 权限后 `Shell` 工具完全可靠，无需改用 `Task` 子代理。
+
+- ✅ 推荐：直接使用 `Shell` 工具 + `required_permissions: ["all"]` 执行所有 Git 操作
+- ⚠️ 注意：不加权限时 Git 命令会静默失败
+
+### 3. 推送工作流
 
 当用户说"以我上传的为准，完全和我上传的一样"时，意味着要**强制覆盖远程**：
 
@@ -34,11 +51,11 @@ alwaysApply: false
 - 提交信息要概括主要变更（如"全面更新: AI助手系统集成与项目大重构"）
 - 不要遗漏 `git add -A`，否则未跟踪文件（untracked）不会被提交
 
-### 3. CRLF 换行符警告
+### 4. CRLF 换行符警告
 
 Windows 环境下 `git diff` 经常会输出 LF/CRLF 换行符警告，**这是正常的，可以忽略**。不需要修改 `core.autocrlf` 配置。
 
-### 4. 发布前更新 README
+### 5. 发布前更新 README
 
 每次推送前应检查并更新 `README.md`，确保首页说明反映最新状态：
 - 功能列表是否完整
@@ -76,7 +93,10 @@ Release notes 建议包含：
 
 | 问题 | 原因 | 解决 |
 |------|------|------|
-| `Shell` 返回空结果 | Windows/PowerShell 工具链不稳定 | 改用 `Task(subagent_type:"shell")` |
+| `Shell` 返回 "no exit status" | Sandbox 限制了 Git 操作 | 所有 Git 命令加 `required_permissions: ["all"]` |
+| `echo` 也返回 "no exit status" | Shell 环境本身异常 | 检查终端是否可用，必要时重启 |
 | 推送后远程与本地不一致 | 用了普通 push 而非 `--force` | 使用 `git push --force origin master` |
 | `gh` 命令未找到 | GitHub CLI 未安装或未登录 | 先执行 `gh auth status` 检查，必要时 `gh auth login` |
 | CRLF warning 刷屏 | Windows 换行符差异 | 忽略，不影响功能 |
+| 推送显示 "Everything up-to-date" | 本地与远程已同步，无新提交 | 正常情况，无需操作 |
+| 推送前不确定是否有待推送内容 | 未检查本地与远程差异 | `git log origin/master..HEAD --oneline` 查看 |
