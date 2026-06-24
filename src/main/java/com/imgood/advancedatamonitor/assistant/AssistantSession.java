@@ -40,6 +40,13 @@ public class AssistantSession {
         }
     }
 
+    public synchronized void appendPendingCandidates(List<CraftingCandidate> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return;
+        }
+        this.pendingCandidates.addAll(candidates);
+    }
+
     public synchronized void setPendingOrderLines(String userText, List<AssistantOrderLine> lines) {
         setPendingOrderLines(userText, lines, AssistantSessionKind.ORDER_BATCH_CANDIDATES);
     }

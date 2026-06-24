@@ -1,0 +1,35 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.ai_assistant",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.overview_title",
+      "textKey": "adm.manual.ai_assistant.overview_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.setup_title",
+      "textKey": "adm.manual.ai_assistant.setup_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.usage_title",
+      "textKey": "adm.manual.ai_assistant.usage_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.intents_title",
+      "textKey": "adm.manual.ai_assistant.intents_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.commands_title",
+      "textKey": "adm.manual.ai_assistant.commands_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.examples_title",
+      "textKey": "adm.manual.ai_assistant.examples_text"
+    }
+  ]
+}

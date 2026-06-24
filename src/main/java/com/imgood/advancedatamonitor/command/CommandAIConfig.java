@@ -9,10 +9,14 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
 import com.imgood.advancedatamonitor.Config;
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles;
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles.ProviderProfile;
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles.SearchCapability;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles.ProviderProfile;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles.SearchCapability;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+
+@SideOnly(Side.CLIENT)
 public class CommandAIConfig extends CommandBase {
 
     private static final String[] ACTIONS = { "key", "model", "base", "provider", "network", "search", "status",

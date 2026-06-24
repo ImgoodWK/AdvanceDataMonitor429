@@ -21,6 +21,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.Config;
 
 public class NBTJsonParser {
 
@@ -39,7 +40,7 @@ public class NBTJsonParser {
         }
     }
 
-    private static final boolean DEBUG = AdvanceDataMonitor.DEBUG_MODE;
+    private static final boolean DEBUG = Config.debugGeneral;
 
     private static void debug(String message) {
         if (DEBUG) {

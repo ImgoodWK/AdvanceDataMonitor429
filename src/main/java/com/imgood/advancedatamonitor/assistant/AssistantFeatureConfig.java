@@ -43,9 +43,35 @@ public final class AssistantFeatureConfig {
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("Failed to load assistant features config; using bundled defaults", e);
         }
-        data = loadedData != null && loadedData.features != null && !loadedData.features.isEmpty() ? loadedData
-            : fallback;
+        if (loadedData != null && loadedData.features != null && !loadedData.features.isEmpty()) {
+            mergeMissingFeatures(loadedData, fallback);
+            data = loadedData;
+        } else {
+            data = fallback;
+        }
         loaded = true;
+    }
+
+    private static void mergeMissingFeatures(FeatureConfigData loaded, FeatureConfigData defaults) {
+        if (loaded.features == null) {
+            loaded.features = new ArrayList<>();
+        }
+        if (defaults == null || defaults.features == null) {
+            return;
+        }
+        Map<String, FeatureEntry> existing = new LinkedHashMap<>();
+        for (FeatureEntry feature : loaded.features) {
+            if (feature != null && feature.key != null && !feature.key.isEmpty()) {
+                existing.put(feature.key, feature);
+            }
+        }
+        for (FeatureEntry feature : defaults.features) {
+            if (feature != null && feature.key != null
+                && !feature.key.isEmpty()
+                && !existing.containsKey(feature.key)) {
+                loaded.features.add(feature);
+            }
+        }
     }
 
     private static void ensureFile(File file) {
@@ -125,29 +151,13 @@ public final class AssistantFeatureConfig {
      */
     public static String buildFeatureMenu(String locale) {
         FeatureConfigData cfg = get();
-        boolean zh = locale != null && locale.trim()
-            .toLowerCase()
-            .startsWith("zh");
+        boolean zh = isChineseLocale(locale);
         StringBuilder sb = new StringBuilder();
         sb.append(zh ? "=== 功能菜单 ===\n输入数字选择功能：\n" : "=== Feature Menu ===\nEnter number to select a feature:\n");
-        if (cfg.features != null) {
-            int index = 1;
-            for (FeatureEntry feature : cfg.features) {
-                String name = zh && feature.displayName.containsKey("zh_CN") ? feature.displayName.get("zh_CN")
-                    : (!zh && feature.displayName.containsKey("en_US") ? feature.displayName.get("en_US")
-                        : feature.key);
-                String desc = zh && feature.description.containsKey("zh_CN") ? feature.description.get("zh_CN")
-                    : (!zh && feature.description.containsKey("en_US") ? feature.description.get("en_US") : "");
-                sb.append(index)
-                    .append(". ")
-                    .append(name);
-                if (!desc.isEmpty()) {
-                    sb.append(" - ")
-                        .append(desc);
-                }
-                sb.append("\n");
-                index++;
-            }
+        List<FeatureEntry> menuFeatures = listUserFacingFeatures(cfg);
+        int index = 1;
+        for (FeatureEntry feature : menuFeatures) {
+            appendFeatureLine(sb, feature, zh, index++);
         }
         sb.append("\n")
             .append(
@@ -157,14 +167,104 @@ public final class AssistantFeatureConfig {
     }
 
     /**
+     * Build a capability overview for the AI system prompt when users ask what the assistant can do.
+     */
+    public static String buildCapabilityOverview(String locale) {
+        FeatureConfigData cfg = get();
+        boolean zh = isChineseLocale(locale);
+        StringBuilder sb = new StringBuilder();
+        sb.append(
+            zh ? "当用户询问你能做什么、有哪些功能、帮助或 help 时，只能基于以下已经实现的功能回答，不要编造未实现能力：\n"
+                : "When the user asks what you can do, capabilities, help, or features, answer only from these implemented features and do not invent unavailable abilities:\n");
+        List<FeatureEntry> menuFeatures = listUserFacingFeatures(cfg);
+        int index = 1;
+        for (FeatureEntry feature : menuFeatures) {
+            appendFeatureLine(sb, feature, zh, index++);
+        }
+        sb.append("\n")
+            .append(
+                zh ? "说明限制：工具执行依赖附近 32 格内对应 ADM Link 方块；模型只做意图抽取，实际操作由客户端/服务端工具执行；不要声称能直接修改世界、自动放置机器、跨重启保存聊天、长期记忆或执行未列出的自动化。"
+                    : "Limits: tool execution depends on matching ADM Link blocks within 32 blocks; the model only extracts intent and server/client tools perform AE2 actions; do not claim world editing, machine placement, persistent chat across restarts, long-term memory, or automation not listed here.");
+        return sb.toString();
+    }
+
+    private static List<FeatureEntry> listUserFacingFeatures(FeatureConfigData cfg) {
+        List<FeatureEntry> result = new ArrayList<>();
+        if (cfg == null || cfg.features == null) {
+            return result;
+        }
+        for (FeatureEntry feature : cfg.features) {
+            if (feature != null && isUserFacingFeature(feature.key)) {
+                result.add(feature);
+            }
+        }
+        return result;
+    }
+
+    private static boolean isUserFacingFeature(String key) {
+        if (key == null || key.isEmpty()) {
+            return false;
+        }
+        try {
+            AssistantIntentType type = AssistantIntentType.valueOf(key);
+            switch (type) {
+                case CONFIRM_OPTION:
+                case CLARIFY:
+                case CHAT:
+                case ORDER_BATCH:
+                case WITHDRAW_BATCH:
+                case PLAN_CREATE:
+                    return false;
+                default:
+                    return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    private static void appendFeatureLine(StringBuilder sb, FeatureEntry feature, boolean zh, int index) {
+        String name = localizedText(feature.displayName, zh, feature.key);
+        String desc = localizedText(feature.description, zh, "");
+        sb.append(index)
+            .append(". ")
+            .append(name);
+        if (!desc.isEmpty()) {
+            sb.append(" - ")
+                .append(desc);
+        }
+        sb.append("\n");
+    }
+
+    private static String localizedText(Map<String, String> values, boolean zh, String fallback) {
+        if (values == null || values.isEmpty()) {
+            return fallback == null ? "" : fallback;
+        }
+        if (zh && values.containsKey("zh_CN")) {
+            return values.get("zh_CN");
+        }
+        if (!zh && values.containsKey("en_US")) {
+            return values.get("en_US");
+        }
+        return fallback == null ? "" : fallback;
+    }
+
+    private static boolean isChineseLocale(String locale) {
+        return locale != null && locale.trim()
+            .toLowerCase()
+            .startsWith("zh");
+    }
+
+    /**
      * Find the feature entry by its 1-based menu index.
      */
     public static FeatureEntry getFeatureByMenuIndex(int menuIndex) {
         FeatureConfigData cfg = get();
-        if (cfg.features == null || menuIndex < 1 || menuIndex > cfg.features.size()) {
+        List<FeatureEntry> menuFeatures = listUserFacingFeatures(cfg);
+        if (menuIndex < 1 || menuIndex > menuFeatures.size()) {
             return null;
         }
-        return cfg.features.get(menuIndex - 1);
+        return menuFeatures.get(menuIndex - 1);
     }
 
     /**

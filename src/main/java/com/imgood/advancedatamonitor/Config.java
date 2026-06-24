@@ -4,12 +4,30 @@ import java.io.File;
 
 import net.minecraftforge.common.config.Configuration;
 
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles.ProviderProfile;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles.ProviderProfile;
+import com.imgood.advancedatamonitor.config.ConfigAssistantLoader;
+import com.imgood.advancedatamonitor.config.ConfigDataLoomLoader;
+import com.imgood.advancedatamonitor.config.ConfigDebugLoader;
+import com.imgood.advancedatamonitor.config.ConfigGrappleLoader;
+import com.imgood.advancedatamonitor.config.ConfigPlannerHudLoader;
+import com.imgood.advancedatamonitor.config.ConfigSuperOrangeLoader;
 
+import cpw.mods.fml.common.FMLCommonHandler;
+
+/**
+ * Public configuration facade. Field values are loaded by {@code config/Config*Loader} classes.
+ */
 public class Config {
 
     private static File activeConfigFile;
 
+    // --- debug (defaults false) ---
+    public static boolean debugGeneral = false;
+    public static boolean debugGuiNetworkLink = false;
+    /** When true, data monitors refresh random chart data every tick (debug only). */
+    public static boolean debugMonitorTestMode = false;
+
+    // --- ai ---
     public static String aiApiBaseUrl = "https://api.deepseek.com";
     public static String aiApiKey = "";
     public static String aiModel = "deepseek-chat";
@@ -23,6 +41,8 @@ public class Config {
     public static int aiTimeoutSeconds = 60;
     public static int aiMaxTokens = 1024;
     public static double aiTemperature = 0.7D;
+
+    // --- voice ---
     public static final String VOICE_STT_MODE_EMBEDDED_VOSK = "embedded-vosk";
     public static final String VOICE_STT_MODE_HTTP = "http";
     public static boolean voiceAssistantEnabled = false;
@@ -32,10 +52,27 @@ public class Config {
     public static String voiceSttApiKey = "";
     public static String voiceSttModel = "zh-small";
     public static int voiceSttTimeoutSeconds = 60;
+
+    // --- assistant ---
     public static int assistantMaxOrderAmount = 4096;
     public static int assistantMaxWithdrawAmount = 4096;
     public static int assistantCraftJobTimeoutSeconds = 30;
     public static int assistantMaxConcurrentCraftJobs = 2;
+    public static int assistantQueryCandidateBatchSize = 1000;
+    public static int assistantMaxQueryCandidates = 2000;
+
+    // --- data loom ---
+    public static double dataDustLoomCellItemRatePerSecond = 1.0D;
+    public static double dataFormLoomCellItemRatePerSecond = 1.0D;
+    public static int dataFlowCellFluidRatePerSecond = 1000;
+    public static int dataSourceLoomCellEssentiaRatePerSecond = 1000;
+    public static int dataLoomCellSyncIntervalSeconds = 5;
+    public static boolean dataLoomCellDebugLogging = false;
+    public static double dataLoomCellEnergyDrainPerTick = 999999.0D;
+    public static double weaveAmplifierRateMultiplier = 4.0D;
+    public static double superWeaveAmplifierRateMultiplier = 16.0D;
+
+    // --- planner hud limits ---
     public static int plannerHudMinMaxDisplay = 1;
     public static int plannerHudMaxMaxDisplay = 20;
     public static float plannerHudMinPosX = 0.0F;
@@ -47,359 +84,192 @@ public class Config {
     public static int plannerHudMinWidth = 80;
     public static int plannerHudMaxWidth = 600;
 
+    // --- super orange ---
+    public static boolean superOrangeDroneEnabled = true;
+    public static boolean superOrangeHeadEffectsEnabled = true;
+    public static boolean superOrangeDropMultiplierEnabled = true;
+    public static int superOrangeDropMultiplier = 2;
+    public static boolean superOrangeProjectileImmunityEnabled = true;
+    public static double superOrangeDroneAttackRange = 15.0D;
+    public static double superOrangeDroneAttackDamage = 1.0D;
+    public static int superOrangeDroneAttacksPerSecond = 5;
+    public static int superOrangeDroneMaxClones = 3;
+    public static double superOrangeDroneFollowHeight = 0.5D;
+
+    // --- grapple ---
+    public static int grappleHintRange = 24;
+    public static int grappleInteractRange = 12;
+    public static int grappleScanChunkRadius = 8;
+    public static int grappleMaxTravelChunkRadius = 8;
+    public static double grappleMoveSpeed = 3.75D;
+    public static int grappleSnapRadiusPx = 72;
+    public static float grappleTravelSnapDegrees = 40.0F;
+    public static float grappleAttachSnapDegrees = 22.0F;
+    public static int grappleMaxTravelQueueSize = 20;
+
     public static void synchronizeConfiguration(File configFile) {
         activeConfigFile = configFile;
         Configuration configuration = new Configuration(configFile);
 
-        aiApiBaseUrl = configuration.getString(
-            "apiBaseUrl",
-            "ai",
-            aiApiBaseUrl,
-            "OpenAI-compatible chat API base URL. DeepSeek default is https://api.deepseek.com");
-        aiApiKey = configuration.getString(
-            "apiKey",
-            "ai",
-            aiApiKey,
-            "API key for the chat provider. You can also set the DEEPSEEK_API_KEY environment variable.");
-        aiModel = configuration.getString("model", "ai", aiModel, "Chat model name, for example deepseek-chat.");
-        aiNetworkEnabled = configuration
-            .getBoolean("networkEnabled", "ai", aiNetworkEnabled, "Allow AI chat to send network requests.");
-        aiWebSearchEnabled = configuration.getBoolean(
-            "webSearchEnabled",
-            "ai",
-            aiWebSearchEnabled,
-            "Allow the AI chat request to ask supported providers for web search.");
-        aiWebSearchMode = configuration.getString(
-            "webSearchMode",
-            "ai",
-            aiWebSearchMode,
-            "Web search request format: auto, openai, openrouter, dashscope, zhipu, generic-tools, or off.");
-        aiDebugLogging = configuration
-            .getBoolean("debugLogging", "ai", aiDebugLogging, "Write sanitized AI request diagnostics to the mod log.");
-        aiStreamingEnabled = configuration.getBoolean(
-            "streamingEnabled",
-            "ai",
-            aiStreamingEnabled,
-            "Use streaming chat responses when the provider supports it.");
-        aiPrivacyConfirmed = configuration.getBoolean(
-            "privacyConfirmed",
-            "ai",
-            aiPrivacyConfirmed,
-            "Whether the player has confirmed that AI chat sends prompts to the configured provider.");
-        aiRecentModels = configuration
-            .getString("recentModels", "ai", aiRecentModels, "Comma-separated recently used AI model names.");
-        aiTimeoutSeconds = configuration
-            .getInt("timeoutSeconds", "ai", aiTimeoutSeconds, 5, 300, "HTTP timeout in seconds.");
-        aiMaxTokens = configuration
-            .getInt("maxTokens", "ai", aiMaxTokens, 1, 8192, "Maximum tokens returned by the model.");
-        aiTemperature = configuration
-            .getFloat("temperature", "ai", (float) aiTemperature, 0.0F, 2.0F, "Sampling temperature.");
-        voiceAssistantEnabled = configuration
-            .getBoolean("enabled", "voice", voiceAssistantEnabled, "Enable the voice assistant hotkey and STT flow.");
-        voicePrivacyConfirmed = configuration.getBoolean(
-            "privacyConfirmed",
-            "voice",
-            voicePrivacyConfirmed,
-            "Whether the player has confirmed the configured voice recognition mode.");
-        voiceSttMode = normalizeVoiceSttMode(
-            configuration.getString("sttMode", "voice", voiceSttMode, "Speech-to-text mode: embedded-vosk or http."));
-        voiceSttBaseUrl = configuration.getString(
-            "sttBaseUrl",
-            "voice",
-            voiceSttBaseUrl,
-            "OpenAI-compatible STT API base URL. Used only when sttMode=http. Empty uses ai.apiBaseUrl.");
-        voiceSttApiKey = configuration.getString(
-            "sttApiKey",
-            "voice",
-            voiceSttApiKey,
-            "API key for HTTP STT. Empty uses VOICE_STT_API_KEY or ai.apiKey. Not needed for embedded-vosk.");
-        String configuredVoiceSttModel = configuration.getString(
-            "sttModel",
-            "voice",
-            voiceSttModel,
-            "Speech-to-text model. embedded-vosk default is zh-small; http default is whisper-1.");
-        voiceSttModel = normalizeVoiceSttModel(configuredVoiceSttModel);
-        if (!voiceSttModel.equals(configuredVoiceSttModel)) {
-            configuration.get("voice", "sttModel", configuredVoiceSttModel)
-                .set(voiceSttModel);
+        ConfigDebugLoader.load(configuration);
+        ConfigAssistantLoader.load(configuration);
+        ConfigPlannerHudLoader.load(configuration);
+        ConfigDataLoomLoader.load(configuration);
+        ConfigSuperOrangeLoader.load(configuration);
+        ConfigGrappleLoader.load(configuration);
+
+        if (!FMLCommonHandler.instance()
+            .getSide()
+            .isClient()) {
+            clearClientOnlySettings();
         }
-        voiceSttTimeoutSeconds = configuration
-            .getInt("sttTimeoutSeconds", "voice", voiceSttTimeoutSeconds, 5, 300, "STT timeout in seconds.");
-        assistantMaxOrderAmount = configuration.getInt(
-            "maxOrderAmount",
-            "assistant",
-            assistantMaxOrderAmount,
-            1,
-            1000000,
-            "Maximum amount accepted for one voice crafting order.");
-        assistantMaxWithdrawAmount = configuration.getInt(
-            "maxWithdrawAmount",
-            "assistant",
-            assistantMaxWithdrawAmount,
-            1,
-            1000000,
-            "Maximum amount accepted for one AE2 storage withdraw into player inventory.");
-        assistantCraftJobTimeoutSeconds = configuration.getInt(
-            "craftJobTimeoutSeconds",
-            "assistant",
-            assistantCraftJobTimeoutSeconds,
-            1,
-            300,
-            "Maximum seconds to wait for an AE2 crafting calculation before cancelling it.");
-        assistantMaxConcurrentCraftJobs = configuration.getInt(
-            "maxConcurrentCraftJobs",
-            "assistant",
-            assistantMaxConcurrentCraftJobs,
-            1,
-            16,
-            "Maximum concurrent assistant AE2 crafting calculations per player.");
-        plannerHudMinMaxDisplay = configuration.getInt(
-            "minMaxDisplay",
-            "plannerHudLimits",
-            plannerHudMinMaxDisplay,
-            1,
-            100,
-            "Minimum allowed planner HUD displayed entry count.");
-        plannerHudMaxMaxDisplay = configuration.getInt(
-            "maxMaxDisplay",
-            "plannerHudLimits",
-            plannerHudMaxMaxDisplay,
-            plannerHudMinMaxDisplay,
-            100,
-            "Maximum allowed planner HUD displayed entry count.");
-        plannerHudMinPosX = configuration.getFloat(
-            "minPosX",
-            "plannerHudLimits",
-            plannerHudMinPosX,
-            -10.0F,
-            10.0F,
-            "Minimum allowed planner HUD horizontal position ratio.");
-        plannerHudMaxPosX = configuration.getFloat(
-            "maxPosX",
-            "plannerHudLimits",
-            plannerHudMaxPosX,
-            plannerHudMinPosX,
-            10.0F,
-            "Maximum allowed planner HUD horizontal position ratio.");
-        plannerHudMinPosY = configuration.getFloat(
-            "minPosY",
-            "plannerHudLimits",
-            plannerHudMinPosY,
-            -10.0F,
-            10.0F,
-            "Minimum allowed planner HUD vertical position ratio.");
-        plannerHudMaxPosY = configuration.getFloat(
-            "maxPosY",
-            "plannerHudLimits",
-            plannerHudMaxPosY,
-            plannerHudMinPosY,
-            10.0F,
-            "Maximum allowed planner HUD vertical position ratio.");
-        plannerHudMinScale = configuration.getFloat(
-            "minScale",
-            "plannerHudLimits",
-            plannerHudMinScale,
-            0.1F,
-            20.0F,
-            "Minimum allowed planner HUD scale.");
-        plannerHudMaxScale = configuration.getFloat(
-            "maxScale",
-            "plannerHudLimits",
-            plannerHudMaxScale,
-            plannerHudMinScale,
-            20.0F,
-            "Maximum allowed planner HUD scale.");
-        plannerHudMinWidth = configuration.getInt(
-            "minWidth",
-            "plannerHudLimits",
-            plannerHudMinWidth,
-            1,
-            2000,
-            "Minimum allowed planner HUD text width.");
-        plannerHudMaxWidth = configuration.getInt(
-            "maxWidth",
-            "plannerHudLimits",
-            plannerHudMaxWidth,
-            plannerHudMinWidth,
-            2000,
-            "Maximum allowed planner HUD text width.");
 
         if (configuration.hasChanged()) {
             configuration.save();
         }
     }
 
+    public static void clearClientOnlySettings() {
+        aiApiKey = "";
+        aiPrivacyConfirmed = false;
+        voiceSttApiKey = "";
+        voicePrivacyConfirmed = false;
+    }
+
+    private static boolean isClientSide() {
+        return FMLCommonHandler.instance()
+            .getSide()
+            .isClient();
+    }
+
     public static void setAiApiKey(String apiKey) {
-        aiApiKey = apiKey == null ? "" : apiKey.trim();
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setApiKey(apiKey);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiModel(String model) {
-        setAiModelInMemory(model);
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setModel(model);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiApiBaseUrl(String apiBaseUrl) {
-        aiApiBaseUrl = apiBaseUrl == null || apiBaseUrl.trim()
-            .isEmpty() ? "https://api.deepseek.com" : apiBaseUrl.trim();
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setApiBaseUrl(apiBaseUrl);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiNetworkEnabled(boolean networkEnabled) {
-        aiNetworkEnabled = networkEnabled;
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setNetworkEnabled(networkEnabled);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void toggleAiNetworkEnabled() {
-        setAiNetworkEnabled(!aiNetworkEnabled);
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.toggleNetworkEnabled();
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiWebSearchEnabled(boolean webSearchEnabled) {
-        aiWebSearchEnabled = webSearchEnabled;
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setWebSearchEnabled(webSearchEnabled);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void toggleAiWebSearchEnabled() {
-        setAiWebSearchEnabled(!aiWebSearchEnabled);
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.toggleWebSearchEnabled();
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiWebSearchMode(String webSearchMode) {
-        aiWebSearchMode = webSearchMode == null || webSearchMode.trim()
-            .isEmpty() ? "auto" : webSearchMode.trim();
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setWebSearchMode(webSearchMode);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void applyAiProviderProfile(ProviderProfile profile) {
-        if (profile == null) {
+        if (!isClientSide()) {
             return;
         }
-        aiApiBaseUrl = profile.baseUrl;
-        setAiModelInMemory(profile.defaultModel);
-        aiWebSearchMode = profile.defaultSearchMode;
-        aiWebSearchEnabled = !"unsupported".equals(profile.defaultSearchMode)
-            && !"off".equals(profile.defaultSearchMode);
-        saveAiConfiguration();
+        com.imgood.advancedatamonitor.client.AiClientPreferences.applyProviderProfile(profile);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiDebugLogging(boolean debugLogging) {
-        aiDebugLogging = debugLogging;
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setDebugLogging(debugLogging);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiStreamingEnabled(boolean streamingEnabled) {
-        aiStreamingEnabled = streamingEnabled;
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setStreamingEnabled(streamingEnabled);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void setAiPrivacyConfirmed(boolean privacyConfirmed) {
-        aiPrivacyConfirmed = privacyConfirmed;
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.setPrivacyConfirmed(privacyConfirmed);
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void saveAiSettings(String apiKey, String baseUrl, String model, String webSearchMode,
         boolean webSearchEnabled, boolean networkEnabled, boolean debugLogging, boolean streamingEnabled,
         int timeoutSeconds, int maxTokens, double temperature) {
-        aiApiKey = apiKey == null ? "" : apiKey.trim();
-        aiApiBaseUrl = baseUrl == null || baseUrl.trim()
-            .isEmpty() ? "https://api.deepseek.com" : baseUrl.trim();
-        setAiModelInMemory(model);
-        aiWebSearchMode = webSearchMode == null || webSearchMode.trim()
-            .isEmpty() ? "auto" : webSearchMode.trim();
-        aiWebSearchEnabled = webSearchEnabled;
-        aiNetworkEnabled = networkEnabled;
-        aiDebugLogging = debugLogging;
-        aiStreamingEnabled = streamingEnabled;
-        aiTimeoutSeconds = Math.max(5, Math.min(300, timeoutSeconds));
-        aiMaxTokens = Math.max(1, Math.min(8192, maxTokens));
-        aiTemperature = Math.max(0.0D, Math.min(2.0D, temperature));
-        saveAiConfiguration();
-    }
-
-    private static void setAiModelInMemory(String model) {
-        aiModel = model == null || model.trim()
-            .isEmpty() ? "deepseek-chat" : model.trim();
-        addRecentAiModel(aiModel);
-    }
-
-    private static void addRecentAiModel(String model) {
-        if (model == null || model.trim()
-            .isEmpty()) {
+        if (!isClientSide()) {
             return;
         }
-        String normalized = model.trim();
-        StringBuilder builder = new StringBuilder(normalized);
-        int count = 1;
-        String recentModels = aiRecentModels == null ? "" : aiRecentModels;
-        for (String entry : recentModels.split(",")) {
-            String existing = entry.trim();
-            if (existing.isEmpty() || existing.equalsIgnoreCase(normalized)) {
-                continue;
-            }
-            builder.append(',')
-                .append(existing);
-            if (++count >= 8) {
-                break;
-            }
-        }
-        aiRecentModels = builder.toString();
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveAllSettings(
+            apiKey,
+            baseUrl,
+            model,
+            webSearchMode,
+            webSearchEnabled,
+            networkEnabled,
+            debugLogging,
+            streamingEnabled,
+            timeoutSeconds,
+            maxTokens,
+            temperature);
     }
 
     public static String[] getRecentAiModels() {
-        return aiRecentModels == null || aiRecentModels.trim()
-            .isEmpty() ? new String[0] : aiRecentModels.split(",");
+        if (isClientSide()) {
+            return com.imgood.advancedatamonitor.client.AiClientPreferences.getRecentModels();
+        }
+        return new String[0];
     }
 
     public static void saveAiConfiguration() {
-        if (activeConfigFile == null) {
+        if (!isClientSide()) {
             return;
         }
-        Configuration configuration = new Configuration(activeConfigFile);
-        configuration.load();
-        configuration.get("ai", "apiBaseUrl", aiApiBaseUrl)
-            .set(aiApiBaseUrl);
-        configuration.get("ai", "apiKey", aiApiKey)
-            .set(aiApiKey);
-        configuration.get("ai", "model", aiModel)
-            .set(aiModel);
-        configuration.get("ai", "networkEnabled", aiNetworkEnabled)
-            .set(aiNetworkEnabled);
-        configuration.get("ai", "webSearchEnabled", aiWebSearchEnabled)
-            .set(aiWebSearchEnabled);
-        configuration.get("ai", "webSearchMode", aiWebSearchMode)
-            .set(aiWebSearchMode);
-        configuration.get("ai", "debugLogging", aiDebugLogging)
-            .set(aiDebugLogging);
-        configuration.get("ai", "streamingEnabled", aiStreamingEnabled)
-            .set(aiStreamingEnabled);
-        configuration.get("ai", "privacyConfirmed", aiPrivacyConfirmed)
-            .set(aiPrivacyConfirmed);
-        configuration.get("ai", "recentModels", aiRecentModels)
-            .set(aiRecentModels);
-        configuration.get("ai", "timeoutSeconds", aiTimeoutSeconds)
-            .set(aiTimeoutSeconds);
-        configuration.get("ai", "maxTokens", aiMaxTokens)
-            .set(aiMaxTokens);
-        configuration.get("ai", "temperature", aiTemperature)
-            .set(aiTemperature);
-        configuration.get("voice", "enabled", voiceAssistantEnabled)
-            .set(voiceAssistantEnabled);
-        configuration.get("voice", "privacyConfirmed", voicePrivacyConfirmed)
-            .set(voicePrivacyConfirmed);
-        configuration.get("voice", "sttMode", voiceSttMode)
-            .set(voiceSttMode);
-        configuration.get("voice", "sttBaseUrl", voiceSttBaseUrl)
-            .set(voiceSttBaseUrl);
-        configuration.get("voice", "sttApiKey", voiceSttApiKey)
-            .set(voiceSttApiKey);
-        configuration.get("voice", "sttModel", voiceSttModel)
-            .set(voiceSttModel);
-        configuration.get("voice", "sttTimeoutSeconds", voiceSttTimeoutSeconds)
-            .set(voiceSttTimeoutSeconds);
-        configuration.get("assistant", "maxOrderAmount", assistantMaxOrderAmount)
-            .set(assistantMaxOrderAmount);
-        configuration.get("assistant", "maxWithdrawAmount", assistantMaxWithdrawAmount)
-            .set(assistantMaxWithdrawAmount);
-        configuration.save();
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveLocal();
     }
 
     public static void saveVoiceSettings(boolean enabled, boolean privacyConfirmed, String sttBaseUrl, String sttApiKey,
@@ -409,14 +279,17 @@ public class Config {
 
     public static void saveVoiceSettings(boolean enabled, boolean privacyConfirmed, String sttMode, String sttBaseUrl,
         String sttApiKey, String sttModel, int timeoutSeconds) {
-        voiceAssistantEnabled = enabled;
-        voicePrivacyConfirmed = privacyConfirmed;
-        voiceSttMode = normalizeVoiceSttMode(sttMode);
-        voiceSttBaseUrl = sttBaseUrl == null ? "" : sttBaseUrl.trim();
-        voiceSttApiKey = sttApiKey == null ? "" : sttApiKey.trim();
-        voiceSttModel = normalizeVoiceSttModel(sttModel);
-        voiceSttTimeoutSeconds = Math.max(5, Math.min(300, timeoutSeconds));
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveVoiceSettings(
+            enabled,
+            privacyConfirmed,
+            sttMode,
+            sttBaseUrl,
+            sttApiKey,
+            sttModel,
+            timeoutSeconds);
     }
 
     public static boolean isEmbeddedVoskVoiceMode() {
@@ -462,29 +335,30 @@ public class Config {
     }
 
     public static void setVoicePrivacyConfirmed(boolean confirmed) {
-        voicePrivacyConfirmed = confirmed;
-        saveAiConfiguration();
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.advancedatamonitor.client.AiClientPreferences.saveVoiceSettings(
+            voiceAssistantEnabled,
+            confirmed,
+            voiceSttMode,
+            voiceSttBaseUrl,
+            voiceSttApiKey,
+            voiceSttModel,
+            voiceSttTimeoutSeconds);
     }
 
     public static String getVoiceSttApiKey() {
-        if (voiceSttApiKey != null && !voiceSttApiKey.trim()
-            .isEmpty()) {
-            return voiceSttApiKey.trim();
+        if (!isClientSide()) {
+            return "";
         }
-        String envKey = System.getenv("VOICE_STT_API_KEY");
-        if (envKey != null && !envKey.trim()
-            .isEmpty()) {
-            return envKey.trim();
-        }
-        return getAiApiKey();
+        return com.imgood.advancedatamonitor.client.AiClientPreferences.getVoiceSttApiKey();
     }
 
     public static String getAiApiKey() {
-        if (aiApiKey != null && !aiApiKey.trim()
-            .isEmpty()) {
-            return aiApiKey.trim();
+        if (!isClientSide()) {
+            return "";
         }
-        String envKey = System.getenv("DEEPSEEK_API_KEY");
-        return envKey == null ? "" : envKey.trim();
+        return com.imgood.advancedatamonitor.client.AiClientPreferences.getApiKey();
     }
 }

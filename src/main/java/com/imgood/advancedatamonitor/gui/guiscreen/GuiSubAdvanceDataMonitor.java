@@ -21,14 +21,20 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.utils.ContentsHelper;
 import com.imgood.advancedatamonitor.utils.DataBound;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Data Config (chart binding sub GUI)
+ * - ZH: 数据配置（图表绑定子界面）
+ * Lang keys: adm.title.data_config
+ */
 public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
 
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
@@ -56,6 +62,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
     private ADM_GuiTextField textFieldYRange;
     private ADM_GuiTextField textFieldDataLimit;
     private ADM_GuiTextField textFieldInterval;
+    private ADM_GuiTextField textFieldYMin;
+    private ADM_GuiTextField textFieldYMax;
 
     private ADM_GuiTextField textFieldName;
     private ADM_GuiTextField textFieldDisplayName;
@@ -147,6 +155,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         this.contents.add(textFieldYRange.getText());
         this.contents.add(textFieldDataLimit.getText());
         this.contents.add(textFieldInterval.getText());
+        this.contents.add(textFieldYMin.getText());
+        this.contents.add(textFieldYMax.getText());
 
         this.contents.add(textFieldName.getText());
         this.contents.add(textFieldDisplayName.getText());
@@ -185,6 +195,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getYRange(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDataLimit(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getInterval(this.index)));
+            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getYMin(this.index)));
+            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getYMax(this.index)));
 
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getName(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayName(this.index)));
@@ -216,6 +228,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         textFieldsLeft.add(this.textFieldYRange);
         textFieldsLeft.add(this.textFieldDataLimit);
         textFieldsLeft.add(this.textFieldInterval);
+        textFieldsLeft.add(this.textFieldYMin);
+        textFieldsLeft.add(this.textFieldYMax);
         try {
             autoTextField("Left", this.textFieldsLeft, 0, 25, this.offsetX + 90, this.offsetY + 10, 80, 20);
         } catch (NoSuchFieldException e) {
@@ -276,6 +290,12 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
 
         this.textFieldInterval.setMaxStringLength(100);
         this.textFieldInterval.setText(this.tileEntityAdvanceDataMonotor.getInterval(this.index) + "");
+
+        this.textFieldYMin.setMaxStringLength(100);
+        this.textFieldYMin.setText(this.tileEntityAdvanceDataMonotor.getYMin(this.index) + "");
+
+        this.textFieldYMax.setMaxStringLength(100);
+        this.textFieldYMax.setText(this.tileEntityAdvanceDataMonotor.getYMax(this.index) + "");
 
         // -------------------------------------------------
         this.textFieldName.setMaxStringLength(100);
@@ -623,6 +643,12 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     case 10:
                         this.textFieldInterval = textField;
                         break;
+                    case 11:
+                        this.textFieldYMin = textField;
+                        break;
+                    case 12:
+                        this.textFieldYMax = textField;
+                        break;
                 }
             } else if (row.equals("Right")) {
                 switch (i) {
@@ -809,6 +835,20 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
                     int interval = Integer.parseInt(this.textFieldInterval.getText());
                     interval = interval <= 2 ? 1 : interval; // 优化条件判断
                     nbt.setInteger("interval", interval);
+                }
+
+                if (!isValidDouble(this.textFieldYMin.getText())) {
+                    this.errorTips = I18n.format("adm.error.ymin");
+                    return;
+                } else {
+                    nbt.setDouble("yMin", Double.parseDouble(this.textFieldYMin.getText()));
+                }
+
+                if (!isValidDouble(this.textFieldYMax.getText())) {
+                    this.errorTips = I18n.format("adm.error.ymax");
+                    return;
+                } else {
+                    nbt.setDouble("yMax", Double.parseDouble(this.textFieldYMax.getText()));
                 }
 
                 // Right 组字段（textFieldName 及之后的字段）
@@ -1051,7 +1091,8 @@ public class GuiSubAdvanceDataMonitor extends ADM_GuiScreen {
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
             I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"), I18n.format("adm.label.xrotation"),
             I18n.format("adm.label.yrotation"), I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"),
-            I18n.format("adm.label.yrange"), I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval") };
+            I18n.format("adm.label.yrange"), I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval"),
+            "yMin", "yMax" };
         autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor);
         String[] label2 = { I18n.format("adm.label.nbtname"), I18n.format("adm.label.displayname"),
             I18n.format("adm.label.displaynamescale"), I18n.format("adm.label.displaynamecolor"),

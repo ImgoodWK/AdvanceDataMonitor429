@@ -1,0 +1,25 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.getting_started",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.getting_started.welcome_title",
+      "textKey": "adm.manual.getting_started.welcome_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.getting_started.core_concepts_title",
+      "textKey": "adm.manual.getting_started.core_concepts_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.getting_started.quick_start_title",
+      "textKey": "adm.manual.getting_started.quick_start_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.getting_started.manual_info_title",
+      "textKey": "adm.manual.getting_started.manual_info_text"
+    }
+  ]
+}

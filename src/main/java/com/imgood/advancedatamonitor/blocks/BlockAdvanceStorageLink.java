@@ -3,7 +3,9 @@ package com.imgood.advancedatamonitor.blocks;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
@@ -12,11 +14,11 @@ import com.imgood.advancedatamonitor.gui.handler.GuiHandler;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceStorageLink;
 
 /**
- * @program: AdvanceDataMonitor429
- * @description:
- * @author: Imgood
- * @create: 2025-07-02 09:48
- **/
+ * Display names / 显示名称:
+ * - EN: Advanced Storage Linker
+ * - ZH: 高级存储链接器
+ * Lang keys: tile.StorageLinkBlock.name, adm.title.storage
+ */
 public class BlockAdvanceStorageLink extends BlockContainer {
 
     public BlockAdvanceStorageLink() {
@@ -26,11 +28,20 @@ public class BlockAdvanceStorageLink extends BlockContainer {
         this.setStepSound(soundTypeMetal);
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("StorageLinkBlock");
+        this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_storage_link");
     }
 
     @Override
     public TileEntity createNewTileEntity(World world, int meta) {
         return new TileEntityAdvanceStorageLink();
+    }
+
+    @Override
+    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileEntityAdvanceStorageLink) {
+            ((TileEntityAdvanceStorageLink) te).setOwnerFromPlacer(placer);
+        }
     }
 
     @Override

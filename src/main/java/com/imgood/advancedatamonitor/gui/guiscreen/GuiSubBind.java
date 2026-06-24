@@ -10,12 +10,18 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.utils.TileEntityTypeHelper;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Bind Target Block
+ * - ZH: 绑定目标方块
+ * Lang keys: adm.title.bind_target
+ */
 public class GuiSubBind extends ADM_GuiScreen {
 
     private final EntityPlayer player;

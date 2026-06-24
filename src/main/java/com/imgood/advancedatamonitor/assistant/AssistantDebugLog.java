@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.Config;
 
 public final class AssistantDebugLog {
 
@@ -14,6 +15,9 @@ public final class AssistantDebugLog {
     private AssistantDebugLog() {}
 
     public static synchronized void append(String phase, String message) {
+        if (!Config.aiDebugLogging) {
+            return;
+        }
         PrintWriter writer = null;
         try {
             writer = new PrintWriter(

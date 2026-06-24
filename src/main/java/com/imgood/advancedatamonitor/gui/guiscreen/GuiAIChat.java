@@ -15,23 +15,29 @@ import org.lwjgl.input.Mouse;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles;
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles.SearchCapability;
-import com.imgood.advancedatamonitor.ai.ChatRequestOptions;
-import com.imgood.advancedatamonitor.ai.ChatResponse;
-import com.imgood.advancedatamonitor.ai.DeepSeekChatClient;
-import com.imgood.advancedatamonitor.ai.DeepSeekChatClient.ChatMessage;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles.SearchCapability;
+import com.imgood.advancedatamonitor.assistant.ai.ChatRequestOptions;
+import com.imgood.advancedatamonitor.assistant.ai.ChatResponse;
+import com.imgood.advancedatamonitor.assistant.ai.DeepSeekChatClient;
+import com.imgood.advancedatamonitor.assistant.ai.DeepSeekChatClient.ChatMessage;
 import com.imgood.advancedatamonitor.assistant.AssistantController;
 import com.imgood.advancedatamonitor.assistant.AssistantFeatureConfig;
 import com.imgood.advancedatamonitor.assistant.AssistantFeatureConfig.FeatureEntry;
 import com.imgood.advancedatamonitor.assistant.AssistantOrderLine;
 import com.imgood.advancedatamonitor.assistant.CraftingCandidate;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
+/**
+ * Display names / 显示名称:
+ * - EN: AI Chat
+ * - ZH: AI 对话
+ * Lang keys: adm.ai.title
+ */
 public class GuiAIChat extends ADM_GuiScreen {
 
     private static final int BUTTON_SEND = 0;
@@ -45,6 +51,12 @@ public class GuiAIChat extends ADM_GuiScreen {
     private static final int MAX_CONTEXT_MESSAGES = 16;
     private static final int PANEL_WIDTH = 600;
     private static final int PANEL_HEIGHT = 450;
+    private static final int CHAT_PANEL_INSET_LEFT = 18;
+    private static final int CHAT_PANEL_INSET_RIGHT = 22;
+    private static final int INPUT_BOTTOM_MARGIN = 38;
+    private static final int INPUT_LEFT = 42;
+    private static final int MENU_BUTTON_WIDTH = 54;
+    private static final int MENU_BUTTON_GAP = 6;
     private static final int SCROLLBAR_WIDTH = 10;
     private static final int SCROLL_BUTTON_HEIGHT = 12;
     private static final int TEXT_COLOR = 0x00FFFF;
@@ -101,12 +113,14 @@ public class GuiAIChat extends ADM_GuiScreen {
         this.offsetY = (this.height - PANEL_HEIGHT) / 2;
         this.setPosition(this.offsetX, this.offsetY);
 
-        int inputY = this.offsetY + PANEL_HEIGHT - 38;
+        int inputY = this.offsetY + PANEL_HEIGHT - INPUT_BOTTOM_MARGIN;
+        int sendButtonX = this.offsetX + PANEL_WIDTH - 112;
+        int menuButtonX = sendButtonX - MENU_BUTTON_GAP - MENU_BUTTON_WIDTH;
         this.inputField = new ADM_GuiTextField(
             this.fontRendererObj,
-            this.offsetX + 42,
+            this.offsetX + INPUT_LEFT,
             inputY + 8,
-            PANEL_WIDTH - 160,
+            menuButtonX - (this.offsetX + INPUT_LEFT) - 8,
             20).setBackgroundTexture(TEXTFIELD_TEXTURE)
                 .setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE)
                 .setHintText(I18n.format("adm.ai.input_hint"));
@@ -125,14 +139,6 @@ public class GuiAIChat extends ADM_GuiScreen {
                 buildNextSearchButtonText()));
         this.buttonList.add(
             createButton(
-                BUTTON_MENU,
-                this.offsetX + PANEL_WIDTH - 224,
-                this.offsetY + 12,
-                54,
-                20,
-                I18n.format("adm.ai.menu")));
-        this.buttonList.add(
-            createButton(
                 BUTTON_SETTINGS,
                 this.offsetX + PANEL_WIDTH - 164,
                 this.offsetY + 12,
@@ -147,8 +153,9 @@ public class GuiAIChat extends ADM_GuiScreen {
                 46,
                 20,
                 I18n.format("adm.ai.cancel")));
-        this.buttonList.add(
-            createButton(BUTTON_SEND, this.offsetX + PANEL_WIDTH - 112, inputY, 46, 20, I18n.format("adm.ai.send")));
+        this.buttonList
+            .add(createButton(BUTTON_MENU, menuButtonX, inputY, MENU_BUTTON_WIDTH, 20, I18n.format("adm.ai.menu")));
+        this.buttonList.add(createButton(BUTTON_SEND, sendButtonX, inputY, 46, 20, I18n.format("adm.ai.send")));
         this.buttonList.add(
             createButton(BUTTON_CLEAR, this.offsetX + PANEL_WIDTH - 62, inputY, 46, 20, I18n.format("adm.ai.clear")));
         this.buttonList.add(
@@ -253,9 +260,9 @@ public class GuiAIChat extends ADM_GuiScreen {
         super.mouseClicked(mouseX, mouseY, mouseButton);
         this.inputField.mouseClicked(mouseX, mouseY, mouseButton);
         if (mouseButton == 0 && isChatScrollbarVisible()) {
-            int panelX = this.offsetX + 18;
+            int panelX = this.offsetX + CHAT_PANEL_INSET_LEFT;
             int panelY = this.offsetY + 52;
-            int panelW = PANEL_WIDTH - 36;
+            int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
             int panelH = PANEL_HEIGHT - 100;
             int scrollX = panelX + panelW - SCROLLBAR_WIDTH - 3;
             if (mouseX >= scrollX && mouseX <= scrollX + SCROLLBAR_WIDTH) {
@@ -299,9 +306,9 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     private void drawChatPanel() {
-        int panelX = this.offsetX + 18;
+        int panelX = this.offsetX + CHAT_PANEL_INSET_LEFT;
         int panelY = this.offsetY + 52;
-        int panelW = PANEL_WIDTH - 36;
+        int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
         int panelH = PANEL_HEIGHT - 100;
         drawRect(panelX - 2, panelY - 2, panelX + panelW + 2, panelY + panelH + 2, 0xAA00AAAA);
         drawRect(panelX, panelY, panelX + panelW, panelY + panelH, 0xB0000000);
@@ -505,7 +512,7 @@ public class GuiAIChat extends ADM_GuiScreen {
                 requestScrollToBottom();
                 final int assistantIndex = streamingIndex;
                 ChatResponse response = client
-                    .chat(requestMessages, options, new com.imgood.advancedatamonitor.ai.ChatStreamListener() {
+                    .chat(requestMessages, options, new com.imgood.advancedatamonitor.assistant.ai.ChatStreamListener() {
 
                         @Override
                         public void onDelta(String delta) {
@@ -624,47 +631,13 @@ public class GuiAIChat extends ADM_GuiScreen {
         String locale = currentLocale();
         String prompt = "You are an assistant inside a Minecraft GTNH data monitor mod. " + languageInstruction(locale)
             + " Answer concisely and helpfully. Markdown is supported in the chat UI. "
-            + assistantCapabilityInstruction(locale);
+            + AssistantFeatureConfig.buildCapabilityOverview(locale);
         if (capability.enabled) {
             return prompt
                 + " Web search is enabled for this request. When you use current information, cite sources or clearly name where the information came from. If search is unavailable, say so instead of guessing.";
         }
         return prompt
             + " Web search is disabled or unsupported for this model. Do not claim to have checked live web results.";
-    }
-
-    private String assistantCapabilityInstruction(String locale) {
-        String normalized = locale == null ? ""
-            : locale.trim()
-                .toLowerCase();
-        if (normalized.startsWith("zh")) {
-            return "当用户询问你能做什么、有哪些功能、帮助或 help 时，只能基于以下已经实现的功能回答，不要编造未实现能力："
-                + "1) 查询附近 Advance Crafting Link 连接的 AE2 可合成样板/配方，可按目标筛选，也可空目标浏览候选并让用户输入序号查看详情；"
-                + "2) 查询附近 Advance Storage Link 连接的 AE2 存储概览，返回带缩略图的物品/流体列表（含大数K/M/T格式），可按名称筛选，也可从列表中选中取出到背包；"
-                + "3) 查询附近 Advance Network Link 连接的 AE2 字节占用详情（物品/流体已用/总量字节、百分比、无限存储元件检测）；"
-                + "4) 下单/提交 AE2 合成，支持单个物品、多物品批量下单、候选序号确认、批量确认、追加/合并当前待确认批量订单；"
-                + "5) 从 AE2 存储取出现有物品到玩家背包，支持单个或批量取出、候选确认、背包空间不足时部分取出确认；"
-                + "6) 查询无线能源；"
-                + "7) 查询无线蒸汽；"
-                + "8) 添加、列出、完成、删除、修改背包中高级计划器的计划/待办/备忘条目；"
-                + "9) 取消当前助手候选/批量状态并请求服务端取消挂起的合成任务；"
-                + "10) 查询天气、时间、位置、群系、背包空间、ADM网络状态、挂起合成任务；"
-                + "11) 普通聊天、可选联网搜索、流式输出、AI 设置界面、语音转文字输入、功能菜单按钮。"
-                + "说明限制：工具执行依赖附近 32 格内对应 Link；模型只做意图抽取，实际操作由客户端/服务端工具执行；不要声称能直接修改世界、自动放置机器、跨重启保存聊天、长期记忆或执行未列出的自动化。";
-        }
-        return "When the user asks what you can do, capabilities, help, or features, answer only from these implemented features and do not invent unavailable abilities: "
-            + "1) query AE2 craftable patterns/recipes through nearby Advance Crafting Link, filter by target, or browse candidates and select by number for details; "
-            + "2) query AE2 storage through nearby Advance Storage Link, returns items/fluids list with thumbnails (K/M/T format for large numbers), filter by name, select to withdraw; "
-            + "3) query AE2 byte usage details through nearby Advance Network Link (item/fluid used/total bytes, percentages, infinite storage cell detection); "
-            + "4) submit AE2 crafting orders for one item or multiple items, confirm numbered candidates, confirm batches, and append/merge the current pending batch; "
-            + "5) withdraw existing items from AE2 storage into the player inventory, singly or in batches, with candidate confirmation and partial-withdraw confirmation when inventory space is limited; "
-            + "6) query wireless power; "
-            + "7) query wireless steam; "
-            + "8) add, list, complete, delete, and modify plan/todo/memo entries in the Advanced Planner from the player's inventory; "
-            + "9) cancel current assistant candidate/batch state and request server-side pending craft-job cancellation; "
-            + "10) query weather, time, position, biome, inventory space, ADM network status, pending crafting jobs; "
-            + "11) ordinary chat, optional web search, streaming output, AI settings UI, speech-to-text input, and feature menu button. "
-            + "Limits: tool execution depends on matching Link blocks within 32 blocks; the model only extracts intent and server/client tools perform AE2 actions; do not claim world editing, machine placement, persistent chat across restarts, long-term memory, or automation not listed here.";
     }
 
     private String languageInstruction(String locale) {
@@ -855,7 +828,8 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     private void addWrappedRenderLine(String text, int color, int indent, boolean codeBlock) {
-        int maxWidth = PANEL_WIDTH - 78 - indent;
+        int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
+        int maxWidth = panelW - 42 - indent;
         List<String> wrapped = this.fontRendererObj.listFormattedStringToWidth(text.isEmpty() ? " " : text, maxWidth);
         for (String line : wrapped) {
             this.displayLines.add(new RenderLine(line, color, indent, codeBlock));
@@ -939,7 +913,8 @@ public class GuiAIChat extends ADM_GuiScreen {
         if (cells == null || cells.isEmpty()) {
             return;
         }
-        int cellWidth = (PANEL_WIDTH - 62) / 3;
+        int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
+        int cellWidth = (panelW - 26) / 3;
         for (int i = 0; i < cells.size(); i++) {
             CandidateCell cell = cells.get(i);
             int cellX = x + i * cellWidth;

@@ -1,0 +1,34 @@
+{
+  "chapters": [
+    {
+      "id": "getting_started",
+      "titleKey": "adm.manual.chapter.getting_started",
+      "icon": "advancedatamonitor:data_imprint"
+    },
+    {
+      "id": "blocks_items",
+      "titleKey": "adm.manual.chapter.blocks_items",
+      "icon": "advancedatamonitor:advDataMonitor"
+    },
+    {
+      "id": "data_monitor",
+      "titleKey": "adm.manual.chapter.data_monitor",
+      "icon": "advancedatamonitor:advNetworkLinkBlock"
+    },
+    {
+      "id": "ai_assistant",
+      "titleKey": "adm.manual.chapter.ai_assistant",
+      "icon": "minecraft:command_block"
+    },
+    {
+      "id": "planner_teleport",
+      "titleKey": "adm.manual.chapter.planner_teleport",
+      "icon": "advancedatamonitor:advance_planner"
+    },
+    {
+      "id": "config_reference",
+      "titleKey": "adm.manual.chapter.config_reference",
+      "icon": "minecraft:paper"
+    }
+  ]
+}

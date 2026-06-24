@@ -1,0 +1,60 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.config_reference",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.config_reference.intro_title",
+      "textKey": "adm.manual.config_reference.intro_text"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.ai_category_title",
+      "category": "ai"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.voice_category_title",
+      "category": "voice"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.assistant_category_title",
+      "category": "assistant"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.hud_category_title",
+      "category": "plannerHudLimits"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.super_orange_category_title",
+      "category": "superOrange"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.data_loom_category_title",
+      "category": "dataLoomCell"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.data_dust_loom_category_title",
+      "category": "dataDustLoomCell"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.data_form_loom_category_title",
+      "category": "dataFormLoomCell"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.data_flow_cell_category_title",
+      "category": "dataFlowCell"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.data_source_loom_category_title",
+      "category": "dataSourceLoomCell"
+    }
+  ]
+}

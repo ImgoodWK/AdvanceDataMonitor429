@@ -10,14 +10,13 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 
 import org.lwjgl.opengl.GL11;
 
-import com.imgood.advancedatamonitor.items.ItemOrange;
+import com.imgood.advancedatamonitor.items.ItemSuperOrange;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Renders a billboard nameplate above players who have an ItemOrange in their
- * inventory. The nameplate always faces the camera (like multiplayer player
- * nametags) and is visible to the player themselves.
+ * Renders a billboard nameplate above players who have an ItemSuperOrange in
+ * their inventory. Visible to other players and to yourself in third person only.
  */
 public class OrangeNameplateRenderer {
 
@@ -40,34 +39,29 @@ public class OrangeNameplateRenderer {
 
             ItemStack orange = findOrangeItem(player);
             if (orange == null) continue;
+            if (!SuperOrangeHeadRenderUtil.shouldRenderHeadEffects(player)) continue;
 
-            String name = ItemOrange.getNameplateText(orange);
+            String name = ItemSuperOrange.getNameplateText(orange);
             if (name == null || name.isEmpty()) continue;
 
             double x = player.lastTickPosX + (player.posX - player.lastTickPosX) * partialTicks;
             double y = player.lastTickPosY + (player.posY - player.lastTickPosY) * partialTicks;
             double z = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * partialTicks;
 
-            // Translate to camera-relative world coordinates
             x -= renderManager.viewerPosX;
             y -= renderManager.viewerPosY;
             z -= renderManager.viewerPosZ;
 
-            float playerHeight = player == mc.thePlayer && mc.gameSettings.thirdPersonView == 0
-                ? player.getEyeHeight() + HEIGHT_OFFSET
-                : player.height + HEIGHT_OFFSET;
-
-            renderBillboardName(name, x, y + playerHeight, z, renderManager);
+            renderBillboardName(name, x, y + player.height + HEIGHT_OFFSET, z, renderManager);
         }
     }
 
     private ItemStack findOrangeItem(EntityPlayer player) {
         if (player == null || player.inventory == null) return null;
 
-        // Check main inventory (includes hotbar)
         for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
             ItemStack stack = player.inventory.getStackInSlot(i);
-            if (stack != null && stack.getItem() instanceof ItemOrange) {
+            if (stack != null && stack.getItem() instanceof ItemSuperOrange) {
                 return stack;
             }
         }
@@ -82,7 +76,6 @@ public class OrangeNameplateRenderer {
         try {
             GL11.glTranslated(x, y, z);
 
-            // Billboard: always face the camera
             GL11.glNormal3f(0.0f, 1.0f, 0.0f);
             GL11.glRotatef(-renderManager.playerViewY, 0.0f, 1.0f, 0.0f);
             GL11.glRotatef(renderManager.playerViewX, 1.0f, 0.0f, 0.0f);
@@ -91,16 +84,13 @@ public class OrangeNameplateRenderer {
             int textWidth = fontRenderer.getStringWidth(name);
             int halfWidth = textWidth / 2;
 
-            // Disable depth test so nameplate renders through walls
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glDisable(GL11.GL_LIGHTING);
 
-            // Draw background rectangle
             drawNameBackground(halfWidth, fontRenderer.FONT_HEIGHT);
 
-            // Draw text
             fontRenderer.drawString(name, -halfWidth, 0, NAME_COLOR);
 
             GL11.glEnable(GL11.GL_DEPTH_TEST);

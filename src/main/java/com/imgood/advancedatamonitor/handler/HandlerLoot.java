@@ -16,7 +16,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
  * Handles loot acquisition for items that don't have crafting recipes:
- * - ItemOrange: 0.1% dungeon chest loot, 0.05% mob kill drop
+ * - ItemSuperOrange: 0.1% dungeon chest loot, 0.05% mob kill drop
  */
 public class HandlerLoot {
 

@@ -5,10 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.imgood.advancedatamonitor.Config;
-import com.imgood.advancedatamonitor.ai.ChatRequestOptions;
-import com.imgood.advancedatamonitor.ai.ChatResponse;
-import com.imgood.advancedatamonitor.ai.DeepSeekChatClient;
-import com.imgood.advancedatamonitor.ai.DeepSeekChatClient.ChatMessage;
+import com.imgood.advancedatamonitor.assistant.ai.ChatRequestOptions;
+import com.imgood.advancedatamonitor.assistant.ai.ChatResponse;
+import com.imgood.advancedatamonitor.assistant.ai.DeepSeekChatClient;
+import com.imgood.advancedatamonitor.assistant.ai.DeepSeekChatClient.ChatMessage;
 
 public class AssistantAiIntentService {
 

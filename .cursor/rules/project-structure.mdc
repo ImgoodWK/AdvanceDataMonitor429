@@ -1,9 +1,25 @@
----
+﻿---
 description: 项目结构速览，方便快速定位需要修改的类
 alwaysApply: true
 ---
 
 # 项目结构速览
+
+## 包组织约定
+
+项目顶层只允许两类包：
+
+1. **标准 Forge 分层**（按 Minecraft 类型）：`blocks/`、`items/`、`entity/`、`tileentity/`、`gui/`、`renders/`、`handler/`、`network/`、`loader/`、`client/`、`config/`、`utils/`
+2. **系统级功能包**（跨方块/物品/GUI/网络，非单物品）：`assistant/`（含子包 `assistant/ai/`）、`voice/`
+
+**物品类及其紧密配套逻辑**归位标准分层，**禁止**在根包下为单物品新建与 `items/` 平级的功能包：
+
+- Item 与 AE2 深耦合 → `items/cell/` 子包
+- 服务端行为/状态机 → `handler/`（类名保留 `Grapple*`、`StarryCosmos*` 前缀便于检索）
+- 手册 JSON 数据结构 → `gui/manual/`（与 `GuiManual` 同层）
+- 扫描器 DTO → `items/` 根，与 `ItemAdvanceLinkScanner` 并列；服务 → `handler/LinkScannerService`
+
+**客户端代码约定**：`@SideOnly(CLIENT)` 的输入/缓存/选点逻辑放 `client/`；所有 Render/TESR/HUD（含手册页面渲染）放 `renders/`；GUI 统一经 `gui/handler/GuiHandler` 的 `openGui` 打开。
 
 ## 包结构 (src/main/java/com/imgood/advancedatamonitor/)
 
@@ -11,24 +27,30 @@ alwaysApply: true
 | 类 | 作用 |
 |----|------|
 | `AdvanceDataMonitor.java` | @Mod 主类，注册调度中心 |
-| `Config.java` | 配置文件（API Key、URL、模型参数等） |
+| `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包 |
+| `ConfigDescriptions.java` | 配置项双语说明（英文 / 中文，供 .cfg 注释与手册引用） |
 | `ClientProxy.java` | 客户端代理（按键注册等） |
 | `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
 
-### ai/ — AI 聊天客户端 (5 文件)
-- 负责与 DeepSeek / OpenAI-compatible API 通信
-- `DeepSeekChatClient.java` — HTTP 请求、流式响应处理
-- `ChatRequestOptions.java` — 请求参数封装
-- `ChatStreamListener.java` — 流式消息回调
+### config/ — 配置分节加载 (9 文件)
+- `ConfigDebugLoader.java` — `[debug]` 通用/GUI 调试开关
+- `ConfigAiLoader.java` / `ConfigAiMutators.java` — `[ai]`
+- `ConfigVoiceLoader.java` — `[voice]`
+- `ConfigAssistantLoader.java` — `[assistant]`
+- `ConfigPlannerHudLoader.java` — `[plannerHudLimits]`
+- `ConfigDataLoomLoader.java` — 编织元件各节 + `[dataLoomCell]`
+- `ConfigSuperOrangeLoader.java` — `[superOrange]`
+- `ConfigGrappleLoader.java` — `[grapple]`
 
-### assistant/ — AI 助手核心逻辑 (33 文件)
+### assistant/ — AI 助手核心逻辑 (41 文件)
 - **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理
+- **assistant/ai/** — AI 聊天 HTTP 客户端（5 文件）：`DeepSeekChatClient.java` / `ChatRequestOptions.java` / `ChatStreamListener.java` / `ChatResponse.java` / `AiProviderProfiles.java`
 - **意图系统**: `AssistantIntentType.java` / `AssistantIntent.java` / `AssistantIntentTask.java` / `AssistantIntentPlan.java` / `AssistantOrderLine.java`
 - **AI 解析**: `AssistantAiIntentService.java` / `AssistantAiIntentJsonParser.java`
 - **本地解析**: `AssistantIntentService.java` (关键词匹配 fallback)
 - **主控制器**: `AssistantController.java`
 - **会话管理**: `AssistantSession.java` / `AssistantSessionKind.java`
-- **AE2 核心**: `AssistantServerServices.java` / `AssistantCraftJobManager.java` / `CraftingCandidate.java` / `WithdrawSubmitOutcome.java`
+- **AE2 核心**: `AssistantServerServices.java` / `AssistantCraftJobManager.java` / `CraftingCandidate.java` / `WithdrawSubmitOutcome.java` / `AssistantCandidateDelivery.java` / `CandidateQueryResult.java` / `CandidateBatchMeta.java`
 - **词库/配置**: `AssistantLexicon.java` / `AssistantFeatureConfig.java`
 - **订单记忆**: `OrderMemoryStore.java`
 - **计划管理**: `PlannerServerService.java` / `PlanStore.java`
@@ -39,55 +61,113 @@ alwaysApply: true
 - **注册/调试**: `AssistantMonitorRegistry.java` / `AssistantDebugLog.java`
 - **数据文件**: `AssistantDataFiles.java`
 
-### blocks/ — 自定义方块 (4 文件)
-- `BlockAdvanceDataMonitor`、`BlockAdvanceCraftingLink`、`BlockAdvanceStorageLink`、`BlockAdvanceNetworkLink`
+### items/ — 物品 (45 文件)
+| 类 | 游戏内名称 (ZH / EN) | lang 键 |
+|----|---------------------|---------|
+| `ItemAdvancePlanner` | 高级计划器 / Advance Planner | `item.advancePlanner.name` |
+| `ItemAdvanceLinkScanner` | 高级链接扫描器 / Advance Link Scanner | `item.advanceLinkScanner.name` |
+| `ItemAdvanceStorageLinkCell` | 高级存储链接元件 / Advanced Storage Link Cell | `item.advanceStorageLinkCell.name` |
+| `ItemDataImprint` | 数据映录器 / Data Imprint Tool | `item.dataImprint.name` |
+| `ItemManual` | 高级数据监视器手册 / AdvanceDataMonitor Manual | `item.manual.name` |
+| `ItemSuperOrange` | 超能砂糖桔 / Super Orange | `item.orange.name` |
+| `ItemGrappleHook` | 挂索器 / Grapple Hook | `item.grappleHook.name` |
+| `ItemStarryCosmosSword` | 至高天圣裁 / Empyrean Holy Judgment | `item.starryCosmosSword.name` |
+| `ItemBlockGrappleAnchor` | 挂索节点（方块物品） | `tile.grappleAnchor.name` |
+| `PlannerEntry` / `PlannerMergeMode` | （数据结构，与计划器同层） | — |
+| `LinkScanEntry` / `LinkScanBlockType` | （扫描器数据结构/枚举） | `adm.scanner.type.*` |
+| **items/cell/** 子包 (32 文件) | 见下 | `item.data*LoomCell.name` 等 |
 
-### tileentity/ — TileEntity (4 文件)
-- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定、NBT 持久化、AE2 网络集成
+#### items/cell/ — 数据编织元件 AE2 集成 (32 文件)
+- 负责织尘/织形/涌流/织源元件的 AE2 驱动器/箱子兼容、时间基物品/流体/源质编织、能量消耗
+- `ItemDataDustLoomCell.java` — 织尘元件（仅粉类，不可标记本模组物品）
+- `ItemDataFormLoomCell.java` — 织形元件（任意物品，不可标记本模组物品）
+- `ItemDataFlowCell.java` — 涌流元件（任意流体，5 种类；`FlowLoomCellConfig` 拒绝本模组物品标记）
+- `ItemDataTideLoomCell.java` — 织潮元件（涌流升级，63 种类，附魔光效；其余同涌流元件）
+- `ItemDataSourceLoomCell.java` — 织源元件（仅神秘时代源质 aspect 流体）
+- `AbstractDataLoomFluidCell.java` — 流体编织元件基类（`DataLoomFluidCellConfig`）
+- `ItemWeaveAmplifier.java` / `ItemSuperWeaveAmplifier.java` — 编织增幅卡（默认 4×/16× 每张，Config 注册时写入 `DataLoomAmplifierRates`）
+- `DataLoomCellTooltipCache.java` — 元件 tooltip 增幅/有效速率 NBT 缓存（仅工作台变更时刷新）；公共 footer 含 高级存储链接器 排除说明
+- `DataLoomAmplifierRates.java` — 增幅倍率静态常量（Config.load 后初始化）
+- `DataLoomCellConfig.java` / `FormLoomCellConfig.java` / `FlowLoomCellConfig.java` / `DataLoomFluidCellConfig.java` — 工作台分区槽
+- `DataLoomDebugLog.java` — `Config.dataLoomCellDebugLogging` 为 true 时编织 trace 日志
+- `DataLoomCellHandler.java` — ICellHandler 注册
+- `DataLoomItemInventory.java` / `DataLoomFluidInventory.java` — IMEInventoryHandler 实现
+- `DataLoomCellUpgrades.java` — 仅允许编织增幅卡的升级槽
+- `AbstractDataLoomItemCell.java` / `DataLoomCellUtil.java` / `DustLoomCellConfig.java` / `IWeaveAmplifierCard.java`
+
+### blocks/ — 自定义方块 (5 文件)
+| 类 | 游戏内名称 (ZH / EN) | lang 键 |
+|----|---------------------|---------|
+| `BlockAdvanceDataMonitor` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
+| `BlockAdvanceCraftingLink` | 合成链接器 / Crafting Linker | `tile.CraftingMonitorBlock.name` |
+| `BlockAdvanceStorageLink` | 高级存储链接器 / Advanced Storage Linker | `tile.StorageLinkBlock.name` |
+| `BlockAdvanceNetworkLink` | 网络链接器 / Network Linker | `tile.NetworkLinkBlock.name` |
+| `BlockGrappleAnchor` | 挂索节点 / Grapple Anchor | `tile.grappleAnchor.name` |
+
+### tileentity/ — TileEntity (5 文件 + 2 接口工具)
+- `IOwnableTile.java` / `OwnableTileUtil.java` — 方块放置者游戏名（`OwnerName` NBT）
+- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定、NBT 持久化、AE2 网络集成；首次打开可补录所属者
 - `TileEntityAdvanceCraftingLink.java` — AE2 合成 CPU 监控
 - `TileEntityAdvanceStorageLink.java` — AE2 存储网络监控
 - `TileEntityAdvanceNetworkLink.java` — AE2 全网统计监控
+- `TileEntityGrappleAnchor.java` — 挂索节点（贴面放置、悬挂锚点计算）
 
-### gui/ — GUI 组件和界面 (20 文件)
-- **gui/costom/** — 自定义 GUI 基础组件（3 个）
+### gui/ — GUI 组件和界面 (27 文件)
+- **gui/custom/** — 自定义 GUI 基础组件（3 个）
   - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
   - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
   - `ADM_GuiTextField.java` — 自定义文本框（背景纹理、hint 提示）
-- **gui/guiscreen/** — 具体 GUI 界面（16 个），详见 `gui-guidelines.mdc`
-- **gui/handler/** — `GuiHandler.java`（IGuiHandler 实现）
-- **container/** — `ContainerAdvanceStorageLink.java`（配合 `GuiAdvanceStorageLink` 的 Container）
+- **gui/guiscreen/** — 具体 GUI 界面（20 个），详见 `gui-guidelines.mdc`
+  - `GuiManual.java` — 模组手册GUI（左侧章节导航 + 右侧内容区 + 翻页）
+  - `GuiNbtViewer.java` — NBT 树查看器（映录器用）
+  - `GuiAdvanceLinkScanner.java` — 链接扫描器（列表/筛选/备注/传送）
+- **gui/manual/** — 手册数据结构（3 个）：`ManualChapter.java` / `ManualPage.java` / `ManualDataLoader.java`
+- **gui/container/** — `ContainerAdvanceStorageLink.java`（配合 `GuiAdvanceStorageLink`）
+- **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`）
 
-### items/ — 物品 (6 文件)
-- `ItemAdvancePlanner.java` — 可 NBT 持久化的任务计划器物品
-- `ItemAdvanceStorageLinkCell.java` — AE2 存储链接元件
-- `ItemDataWeave.java` — 数据编织器（方块数据绑定工具）
-- `ItemOrange.java` — Orange（头顶自定义名称铭牌，地牢/击杀稀有掉落）
-- `PlannerEntry.java` / `PlannerMergeMode.java` — 计划器数据结构
+### handler/ — 事件处理器与物品服务端逻辑 (19 文件)
+- `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理）
+- `HandlerLoot.java` — 战利品事件（SuperOrange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
+- `HandlerPlayerJoin.java` — 玩家首次加入事件（赠送手册物品 + NBT标记）
+- `HandlerSuperOrange.java` — 超能砂糖桔能力（投掷物免疫 + 1024x挖掘掉落 + Matter Ball存入）
+- `HandlerGrapple.java` — 挂索节点索引/挂接 tick/区块加载注册
+- `HandlerDataLoomCell.java` — 编织元件事件
+- `HandlerStarryCosmosSword.java` — 星空剑事件
+- **挂索服务端逻辑**（原 handler/）：`GrappleNodeIndex.java` / `GrapplePlayerState.java` / `GrappleAnchorPositions.java` / `GrappleQueuedHop.java`
+- **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
+- `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
 
-### handler/ — 事件处理器 (2 文件)
-- `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、Orange 无人机管理）
-- `HandlerLoot.java` — 战利品事件（Orange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
+### entity/ — 实体类 only (8 文件，不含 Render)
+- `EntitySuperOrangeDrone.java` — 超能砂糖桔无人机
+- `EntityGrappleSlide.java` — 挂索滑移实体
+- `EntityStarrySwordLineSlash.java` / `EntityStarrySwordLineStab.java` / `EntityStarrySwordThrown.java` / `EntityStarrySwordRain.java` / `EntityStarrySwordRainField.java` / `EntityStarrySwordSlam.java` — 星空剑技能实体
 
-### renders/ — 渲染器 (14 文件)
-- `RenderController.java` — 渲染控制器
-- `LineChartRenderer.java` — 折线图渲染
-- `CraftingInfoRenderer.java` — 合成信息渲染
-- `StorageInfoRenderer.java` — 存储信息渲染
-- `PlannerHudRenderer.java` — 计划器 HUD 叠加层
-- `HudRenderUtil.java` — 通用 HUD 渲染工具（背景、文字换行、缩放定位）
-- `OrangeNameplateRenderer.java` — Orange 物品头顶名称渲染
-- `RenderAdvanceDataMonotor.java` — 数据监视器方块在世界的渲染
-- `RenderAdvanceNetworkLink.java` / `RenderadvanceDataMonitorBlockItem.java` / `RenderDataWeaveItem.java` / `RenderItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` — 物品/方块特殊渲染
-- `IADMRender.java` — 渲染器接口
+### renders/ — 全部客户端渲染 (33 文件)
+- **约定**：实体 Render、TESR、物品 Render、HUD、手册页面渲染均在此包；`entity/` 不放 Render 类
+- `AdvanceBlockCubeRenderUtil.java` — 占位方块立方体/挂索节点薄板几何（模型未完成前）
+- `RenderAdvanceStorageLink.java` / `RenderAdvanceCraftingLink.java` — 存储/合成链接器占位 TESR（`USE_PLACEHOLDER_CUBE` 开关，待 OBJ 接入）
+- `LineChartRenderer.java` / `CraftingInfoRenderer.java` / `StorageInfoRenderer.java` — 监视器图表
+- `PlannerHudRenderer.java` / `GrappleHudRenderer.java` / `GrappleTravelLineRenderer.java` — HUD
+- `ManualPageRenderer.java` — 手册页面渲染（text/item_showcase/config_ref）
+- `OrangeNameplateRenderer.java` / `SuperOrangeHaloRenderer.java` / `SuperOrangeHeadRenderUtil.java` — 超能砂糖桔
+- `RenderSuperOrangeDrone.java` — 无人机实体渲染
+- `RenderStarrySword*.java`（4 个）/ `CosmicStarrySwordRenderer.java` / `StarryCosmosWorldRenderer.java` / `StarryCosmicRenderUtil.java` — 星空剑
+- `RenderAdvanceDataMonitor.java` / `RenderGrappleAnchor.java` / `RenderGrappleSlide.java` — 方块/实体 TESR
+- `RenderAdvanceDataMonitorBlockItem.java` / `RenderDataImprintItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderItem.java` — 物品渲染
+- `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java`
 
-### network/ — 网络通信 (8 文件)
-- **network/packet/** — 网络包实体（6 个）
+### network/ — 网络通信 (13 文件)
+- **network/packet/** — 网络包实体（11 个）
   - `PacketSynTileEntity.java` — **最常用**，同步 TileEntity 数据到客户端
   - `PacketAssistantAction.java` / `PacketAssistantResponse.java` — AI 助手操作/响应
   - `PacketItemCountSync.java` / `PacketRequestItemCountSync.java` — 物品数量同步
   - `PacketItemNBT.java` — 物品 NBT 同步
-- **network/handler/** — 包处理器（2 个）
-  - `HandlerNetWork.java` / `HandlerSynTileEntity.java`
+  - `PacketGrappleAction.java` / `PacketGrappleSync.java` — 挂索挂接/移动同步
+  - `PacketGrappleHookConfig.java` / `PacketGrappleAnchorConfig.java` — 挂索器/节点配置
+  - `PacketMonitorRecord.java` — 快捷键打开附近监视器 AI 时登记监视器坐标
+  - `PacketLinkScannerAction.java` — 链接扫描器扫描/同步/传送
+- **network/handler/** — 包处理器（3 个）
+  - `HandlerNetwork.java` / `HandlerSynTileEntity.java` / `HandlerLinkScannerAction.java`
 
 ### voice/ — 语音识别 (9 文件)
 - `VoiceCaptureService.java` — 语音采集服务
@@ -96,13 +176,18 @@ alwaysApply: true
 - `EmbeddedVoiceModelManager.java` — 嵌入式模型管理
 - `PcmAudioUtil.java` / `WavEncoder.java` — 音频处理工具
 
-### loader/ — 注册加载器 (10 文件)
-- `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetWork.java` / `LoaderRecipe.java` — 合成配方（含原版工作台 + GTNH IV/EV 组装机）
-- `LoaerGui.java` — 疑似遗留拼写错误文件
+### loader/ — 注册加载器 (9 文件)
+- `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java`
 
-### client/ — 客户端事件处理器 (2 文件)
+### client/ — 客户端事件与挂索客户端逻辑 (8 文件)
 - `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
 - `KeyBindings.java` — O/P/H 快捷键（AI聊天/计划器/HUD切换）
+- `HandlerGrappleClient.java` — 挂索 Shift 取消 / 右键移动（客户端输入）
+- `GrappleClientCache.java` — 挂索客户端状态缓存（接收 `PacketGrappleSync`）
+- `GrappleSelectionUtil.java` — 挂索节点磁吸选点、路径预览坐标
+- `GrappleClientNodeIndex.java` — 客户端挂索节点 chunk 索引（区块加载时维护）
+- `ItemClientGui.java` — 物品打开 GUI 的客户端辅助（避免 items/ 导入 Minecraft）
+- `AiClientPreferences.java` — 客户端本地 AI/语音密钥与偏好（`ai-client-local.cfg`，不上传服务端）
 
 ### command/ — 命令 (2 文件)
 - `CommandAssistant.java` — `/admassistant` 命令
@@ -114,19 +199,40 @@ alwaysApply: true
 - `ContentsHelper.java` — 内容验证工具（坐标、数字、颜色格式等）
 - `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
 
+### manual/ — （已迁入 gui/manual/）
+- 页面渲染见 `renders/ManualPageRenderer.java`；GUI 入口 `gui/guiscreen/GuiManual.java`
+
 ## 资源文件 (src/main/resources/assets/advancedatamonitor/)
 
 ```
 assets/advancedatamonitor/
   config/
     assistant-lexicon.json       # AI 助手词库配置
+    assistant-features.json      # AI 助手功能配置
   lang/
     en_US.lang                   # 英文翻译
     zh_CN.lang                   # 中文翻译
+  manual/
+    index.json                   # 手册目录（章节列表）
+    chapters/                    # 手册各章节内容JSON
   model/                         # .obj 模型文件（方块 3D 模型）
   textures/items/                # 物品贴图
   voice/vosk/zh-small/           # Vosk 离线语音模型
 ```
+
+## 工作区临时产物 (`.workspace/`)
+
+**不属于模组源码**，已 gitignore，详见 `workspace-artifacts.mdc`：
+
+| 子目录/内容 | 用途 |
+|-------------|------|
+| `decompiled/` | 根目录误放的 AE2 / FluidCraft 等 `.class` 反编译产物 |
+| `ae2_decomp/`、`ae2_sources/` | AE2 jar 反编译与参考源码 |
+| `assistant-parser-suite/` | 助手解析器本地测试桩与 class |
+| `appeng/`、`com/` | 从外部拉取的 Java 参考片段 |
+| 根级 `.py`、预览 PNG、vosk 缓存等 | Agent 脚本与中间产物 |
+
+Agent 与开发者产生的临时文件**只放此处**，不得放在项目根目录或 `src/` 下。
 
 ## 修改指南：改动某种功能时应该看哪些文件
 
@@ -135,12 +241,18 @@ assets/advancedatamonitor/
 | 新增 Block | `loader/LoaderBlock.java` → `blocks/` → `tileentity/` → `en_US.lang` + `zh_CN.lang` |
 | 新增 Item | `loader/LoaderItem.java` → `items/` → `en_US.lang` + `zh_CN.lang` |
 | 新增 GUI | `loader/LoaderGui.java` → `gui/guiscreen/` → `en_US.lang` + `zh_CN.lang` |
-| 新增网络包 | `network/packet/` → `network/handler/` → `loader/LoaderNetWork.java` → 完整数据同步链路见 `network-packets.mdc` |
-| 新增渲染 | `renders/` → `loader/LoaderRender.java` |
-| 修改/新增 AI 助手功能 | 详见 `ai-assistant.mdc` → `assistant/AssistantController.java` → `ai/DeepSeekChatClient.java` |
+| 新增网络包 | `network/packet/` → `network/handler/` → `loader/LoaderNetwork.java` → 完整数据同步链路见 `network-packets.mdc` |
+| 新增渲染 | `renders/`（实体 Render 也放此包）→ `loader/LoaderRender.java` |
+| 修改/新增 AI 助手功能 | 详见 `ai-assistant.mdc` → `docs/zh/ai-assistant/开发指南.md` / `docs/en/ai-assistant/development-guide.md` → `assistant/AssistantController.java` |
+| 修改挂索 | `docs/zh/subsystems/挂索节点系统设计.md` / `docs/en/subsystems/grapple-system-design.md` → `handler/Grapple*.java` + `client/HandlerGrappleClient.java` |
+| 修改计划器 | `docs/zh/developer/技术文档.md` §5.11 / `docs/en/developer/technical-documentation.md` §5.11 → `items/ItemAdvancePlanner.java` |
+| 更新玩家/开发者文档 | `docs/zh/player/用户手册.md` / `docs/en/player/player-guide.md` · `docs/zh/developer/技术文档.md` / `docs/en/developer/technical-documentation.md` · `docs/README.md` |
 | 修改语音识别 | `voice/VoiceCaptureService.java` → `voice/VoskSpeechToTextClient.java` |
 | 新增命令 | `command/` → `AdvanceDataMonitor.java` (serverStarting) |
-| 修改配置项 | `Config.java` → `gui/guiscreen/GuiAISettings.java` |
+| 修改配置项 | `Config.java` + `config/Config*Loader.java` + `ConfigDescriptions.java` → `gui/guiscreen/GuiAISettings.java` |
+| 新增复杂功能子系统 | 评估是否需系统级包（仅 `assistant/`、`voice/`）→ 物品逻辑归 `items/`、`handler/`、`gui/` → `loader/` → `config/`（如需）→ lang → 本规则 |
+| 新增手册内容 | `assets/.../manual/` JSON → `gui/guiscreen/GuiManual.java` → `renders/ManualPageRenderer.java` → `en_US.lang` + `zh_CN.lang` → 本规则 |
+| 新增 AE2 存储元件 | `items/cell/` → `loader/LoaderItem.java` → `AdvanceDataMonitor.java` (postInit) → `en_US.lang` + `zh_CN.lang` → 手册 JSON |
 
 ## 本规则同步维护要求
 
@@ -149,10 +261,10 @@ assets/advancedatamonitor/
 | 操作 | 需要更新的内容 |
 |------|---------------|
 | 在 `assistant/` 中新增/删除/重命名文件 | 更新 `assistant/` 的文件计数（如 `25 文件` → `26 文件`）和关键文件列表 |
-| 在 `gui/` 中新增/删除/重命名文件 | 更新 `gui/` 的文件计数和 `gui/costom/` / `gui/guiscreen/` 子项计数 |
+| 在 `gui/` 中新增/删除/重命名文件 | 更新 `gui/` 的文件计数和 `gui/custom/` / `gui/guiscreen/` / `gui/manual/` 子项计数 |
 | 在 `renders/` 中新增/删除/重命名文件 | 更新 `renders/` 的文件计数和关键渲染器列表 |
 | 在 `network/` 中新增/删除/重命名文件 | 更新 `network/` 的文件计数和 `network/packet/` / `network/handler/` 子项计数 |
 | 在 `voice/`、`utils/`、`loader/`、`command/` 等包中有文件变更 | 更新对应的文件计数和关键文件列表 |
 | 在 `blocks/`、`items/`、`tileentity/` 中新增/删除类 | 更新对应的类清单（如方块列表、TileEntity 列表） |
 
-执行时机：与 `ai-assistant-docs-sync.mdc` 配合，当该规则触发文档同步时应同时检查本规则是否需要更新。其他非 AI 助手功能的文件变更后，Agent 应主动检查并更新本规则。
+执行时机：与 `ai-assistant-docs-sync.mdc`、`docs-structure-sync.mdc` 配合，当该规则触发文档同步时应同时检查本规则是否需要更新。其他非 AI 助手功能的文件变更后，Agent 应主动检查并更新本规则。

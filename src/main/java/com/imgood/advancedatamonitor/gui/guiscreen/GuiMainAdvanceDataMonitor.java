@@ -15,14 +15,20 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
-import com.imgood.advancedatamonitor.renders.RenderAdvanceDataMonotor;
+import com.imgood.advancedatamonitor.renders.RenderAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.utils.BlockPos;
 import com.imgood.advancedatamonitor.utils.TileEntityTypeHelper;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Advance Data Monitor (main config GUI)
+ * - ZH: 高级数据监视器（主配置界面）
+ * Lang keys: adm.title.main
+ */
 public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
     private static final ResourceLocation button_texture = new ResourceLocation(
@@ -38,7 +44,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         AdvanceDataMonitor.MODID,
         "textures/gui/button_hover_ADM_2020.png");
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonitor;
-    private final RenderAdvanceDataMonotor renderer = new RenderAdvanceDataMonotor();
+    private final RenderAdvanceDataMonitor renderer = new RenderAdvanceDataMonitor();
     private EntityPlayer player;
     private World world;
     private int index = 0;
@@ -60,8 +66,6 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     private boolean buttonRow2RGB = false;
     private int buttonRow1Width = 40;
     private int buttonRow2Width = 40;
-
-    public boolean TEST_MODE = true;
 
     public GuiMainAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity) {
         this.player = player;
@@ -220,12 +224,31 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
         this.buttonList.add(
             new ADM_GuiButton(
+                107,
+                this.offsetX + 158,
+                this.offsetY + buttonRowYOffset1,
+                45,
+                20,
+                this.tileEntityAdvanceDataMonitor.isVisableScreen() ? I18n.format("adm.button.hide")
+                    : I18n.format("adm.button.show")).setTexture(button_texture)
+                    .setHoverTexture(button_hover_texture)
+                    .setUseRGBEffect(buttonRow1RGB)
+                    .setUseHoverEffect(true)
+                    .setLeftDecoration(button_hover_texture)
+                    .setRightDecoration(button_hover_texture)
+                    .setDecorationWidth(20)
+                    .setTextColor(textColor)
+                    .setTextHoverColor(textHoverColor));
+
+        this.buttonList.add(
+            new ADM_GuiButton(
                 109,
-                this.offsetX + 180,
+                this.offsetX + 205,
                 this.offsetY + buttonRowYOffset1,
                 buttonRow1Width,
                 20,
-                I18n.format("adm.button.single")).setTexture(button_texture)
+                this.tileEntityAdvanceDataMonitor.isRenderBothSides() ? I18n.format("adm.button.both")
+                    : I18n.format("adm.button.single")).setTexture(button_texture)
                     .setHoverTexture(button_hover_texture)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
@@ -238,7 +261,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.buttonList.add(
             new ADM_GuiButton(
                 110,
-                this.offsetX + 240,
+                this.offsetX + 265,
                 this.offsetY + buttonRowYOffset1,
                 buttonRow1Width,
                 20,
@@ -338,7 +361,30 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 refreshButtons();
             }
             case 107 -> {
-
+                boolean visableScreen = button.displayString.equals(I18n.format("adm.button.show"));
+                this.tileEntityAdvanceDataMonitor.setVisableScreen(visableScreen);
+                nbt.setBoolean("visableScreen", visableScreen);
+                this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                    new PacketSynTileEntity(
+                        tileEntityAdvanceDataMonitor.xCoord,
+                        tileEntityAdvanceDataMonitor.yCoord,
+                        tileEntityAdvanceDataMonitor.zCoord,
+                        nbt));
+                refreshButtons();
+            }
+            case 109 -> {
+                boolean bothSides = !this.tileEntityAdvanceDataMonitor.isRenderBothSides();
+                this.tileEntityAdvanceDataMonitor.setRenderBothSides(bothSides);
+                nbt.setBoolean("renderBothSides", bothSides);
+                this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                    new PacketSynTileEntity(
+                        tileEntityAdvanceDataMonitor.xCoord,
+                        tileEntityAdvanceDataMonitor.yCoord,
+                        tileEntityAdvanceDataMonitor.zCoord,
+                        nbt));
+                refreshButtons();
             }
             case 110 -> {
                 mc.displayGuiScreen(new GuiAIChat(this));
@@ -448,6 +494,16 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         ? I18n.format("adm.button.hide")
                         : I18n.format("adm.button.show");
                 }
+                case 107 -> {
+                    guiButton.displayString = this.tileEntityAdvanceDataMonitor.isVisableScreen()
+                        ? I18n.format("adm.button.hide")
+                        : I18n.format("adm.button.show");
+                }
+                case 109 -> {
+                    guiButton.displayString = this.tileEntityAdvanceDataMonitor.isRenderBothSides()
+                        ? I18n.format("adm.button.both")
+                        : I18n.format("adm.button.single");
+                }
             }
         }
     }
@@ -514,8 +570,14 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
             this.textColor);
         this.drawCenteredString(
             this.fontRendererObj,
+            I18n.format("adm.label.screen"),
+            this.offsetX + 168,
+            this.offsetY + 88,
+            this.textColor);
+        this.drawCenteredString(
+            this.fontRendererObj,
             I18n.format("adm.label.back"),
-            this.offsetX + 200,
+            this.offsetX + 220,
             this.offsetY + 88,
             this.textColor);
         this.drawCenteredString(

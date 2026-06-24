@@ -22,20 +22,20 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.utils.ContentsHelper;
 import com.imgood.advancedatamonitor.utils.DataBound;
 
 /**
- * @program: AdvanceDataMonitor429
- * @description: GUI for AE2 crafting link configuration
- * @author: Imgood
- * @create: 2026-05-06 15:42
- **/
+ * Display names / 显示名称:
+ * - EN: Crafting CPU Config (per-binding sub GUI)
+ * - ZH: 合成处理器配置（绑定子界面）
+ * Lang keys: adm.title.data_config_ae_crafting
+ */
 public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
 
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;

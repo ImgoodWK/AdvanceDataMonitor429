@@ -1,6 +1,6 @@
 ---
 description: AI 助手完整架构与开发规范，新增或修改 AI 助手功能时的参考指南
-globs: **/assistant/**,**/ai/**,**/voice/**,**/gui/guiscreen/GuiAIChat.java,**/gui/guiscreen/GuiAISettings.java,**/command/CommandAssistant.java,**/command/CommandAIConfig.java,**/network/packet/PacketAssistantAction.java,**/network/packet/PacketAssistantResponse.java
+globs: **/assistant/**,**/assistant/ai/**,**/voice/**,**/gui/guiscreen/GuiAIChat.java,**/gui/guiscreen/GuiAISettings.java,**/command/CommandAssistant.java,**/command/CommandAIConfig.java,**/network/packet/PacketAssistantAction.java,**/network/packet/PacketAssistantResponse.java
 alwaysApply: false
 ---
 
@@ -92,7 +92,7 @@ alwaysApply: false
 PacketAssistantAction.sendToServer(text, sessionKind)
     │  fields: text, sessionKind, locale, featureContextPrefix
     ▼
-HandlerNetWork.onMessage() [服务端]
+HandlerNetwork.onMessage() [服务端]
     │
     ▼
 AssistantController.handleUserText(player, text, sessionKind, locale, featureContextPrefix)
@@ -423,10 +423,11 @@ findAllLinkTiles(player, type, radius=32)
 
 ```java
 // === 合成相关 ===
-// 搜索可合成候选项
-List<CraftingCandidate> craftingCandidates(
+// 搜索可合成候选项（返回 CandidateQueryResult，含 truncated 标志）
+CandidateQueryResult queryCraftingCandidates(
     EntityPlayerMP player, String rawText, String target, long amount
 )
+List<CraftingCandidate> craftingCandidates(...) // 兼容包装，仅返回 .candidates
 // 提交合成任务（异步，通过 Future 等待计算完成）
 String submitCraft(
     EntityPlayerMP player, CraftingCandidate candidate, long amount, String rawText, String locale
@@ -435,8 +436,8 @@ String submitCraft(
 String cancelPendingJobs(EntityPlayerMP player, String locale)
 
 // === 取出相关 ===
-// 搜索可取出候选项
-List<CraftingCandidate> withdrawCandidates(
+// 搜索可取出候选项（返回 CandidateQueryResult）
+CandidateQueryResult queryWithdrawCandidates(
     EntityPlayerMP player, String rawText, String target, long amount
 )
 // 提交取出请求
@@ -470,9 +471,18 @@ String query(EntityPlayerMP player, AssistantIntentType type,
 //   QUERY_JOBS    → AssistantCraftJobManager.summary()
 //   PLAN_*        → PlannerServerService
 //   TELEPORT      → TeleportService（搜索背包中的高级错位宝石，列出传送点候选，确认后执行传送）
+
+// === 候选项分批返回 ===
+// Config: assistantQueryCandidateBatchSize (默认 1000), assistantMaxQueryCandidates (默认 20000)
+// AssistantCandidateDelivery.sendCandidateBatches() 按批 sendTo 多个 PacketAssistantResponse(CANDIDATES)
+// payload 含 batchIndex/batchCount/totalCount/append；客户端 AssistantSession.appendPendingCandidates 合并
 ```
 
-### 6.3 AE2 合成模式查找策略
+### 6.2.1 候选项数量与分批
+
+- 单次 AE2 候选项查询（合成/取出/存储/库存）最多返回 `assistantMaxQueryCandidates`（默认 20000）条；超出时 `truncated=true` 并发送截断提示。
+- 网络传输按 `assistantQueryCandidateBatchSize`（默认 1000）条拆成多个 `CANDIDATES` 包；客户端逐批追加聊天消息，session 中编号全局连续（1..N）。
+- 适用路径：`REQUEST_CRAFT_CANDIDATES`、`REQUEST_WITHDRAW_CANDIDATES`、`QUERY_RECIPE`（空 target）、`QUERY_ITEM_COUNT`、`QUERY_STORAGE`。
 
 `lookupPatterns()` 方法有两层 fallback：
 
@@ -644,7 +654,7 @@ AdvanceDataMonitor.ADMCHANEL.sendTo(
     PacketAssistantResponse.message(resultText), player);
 
 // 服务端注册处理
-// 在 LoaderNetWork.registerNetWorks() 中注册 ID=6,7
+// 在 LoaderNetwork.registerNetWorks() 中注册 ID=6,7
 ```
 
 ---
@@ -737,7 +747,7 @@ adm.ai.query.foo=FOO 查询
 | 修改合成任务管理 | `AssistantCraftJobManager.java` | `AssistantServerServices.java` |
 | 新增配置项 | `Config.java` | `GuiAISettings.java` |
 | 修改 AI 通信 | `DeepSeekChatClient.java` | `ChatRequestOptions.java` |
-| 修改网络包 | `PacketAssistantAction.java` / `PacketAssistantResponse.java` | `HandlerNetWork.java` |
+| 修改网络包 | `PacketAssistantAction.java` / `PacketAssistantResponse.java` | `HandlerNetwork.java` |
 | 修改语音识别 | `VoiceCaptureService.java` | `VoskSpeechToTextClient.java` / `HttpSpeechToTextClient.java` |
 | 修改 GUI | `GuiAIChat.java` / `GuiAISettings.java` | — |
 | 修改词库 | `assistant-lexicon.json` | `AssistantLexicon.java` |
@@ -806,10 +816,9 @@ private static boolean zh(String locale) {
 每次新增或修改 AI 助手功能时，必须同步更新以下文档：
 
 1. **本规则文件** (`ai-assistant.mdc`) — 更新意图枚举、会话类型、文件速查表
-2. **项目根目录** `AdvanceDataMonitor_AI助手技术说明.md` — 更新功能列表、数据流、已知限制
-3. **项目根目录** `AdvanceDataMonitor_AI助手类引用速查.md` — 更新各功能对应的必改文件清单
-4. **资源文件**:
+2. **`docs/zh/ai-assistant/开发指南.md`** / **`docs/en/ai-assistant/development-guide.md`** — Part A 架构与数据流 · Part B 必改文件速查 · Part C 本地 STT
+3. **资源文件**:
    - `assistant-features.json` — 更新功能菜单配置
    - `assistant-lexicon.json`（如需要新关键词）
    - `en_US.lang` + `zh_CN.lang` — 更新双语文本
-5. **GUI 能力说明** `GuiAIChat.assistantCapabilityInstruction()` — 更新功能列表
+4. **GUI 能力说明** `GuiAIChat.assistantCapabilityInstruction()` — 更新功能列表

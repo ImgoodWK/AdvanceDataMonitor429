@@ -3,12 +3,13 @@ package com.imgood.advancedatamonitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.imgood.advancedatamonitor.items.cell.DataLoomCellHandler;
 import com.imgood.advancedatamonitor.loader.LoaderBlock;
 import com.imgood.advancedatamonitor.loader.LoaderEntity;
 import com.imgood.advancedatamonitor.loader.LoaderGui;
 import com.imgood.advancedatamonitor.loader.LoaderHandler;
 import com.imgood.advancedatamonitor.loader.LoaderItem;
-import com.imgood.advancedatamonitor.loader.LoaderNetWork;
+import com.imgood.advancedatamonitor.loader.LoaderNetwork;
 import com.imgood.advancedatamonitor.loader.LoaderRecipe;
 import com.imgood.advancedatamonitor.loader.LoaderRender;
 import com.imgood.advancedatamonitor.loader.LoaderTileEntity;
@@ -27,12 +28,12 @@ import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
     modid = AdvanceDataMonitor.MODID,
     version = Tags.VERSION,
     name = "AdvanceDataMonitor",
-    acceptedMinecraftVersions = "[1.7.10]")
+    acceptedMinecraftVersions = "[1.7.10]",
+    dependencies = "required-after:gregtech;required-after:structurelib")
 public class AdvanceDataMonitor {
 
     public static final String MODID = "advancedatamonitor";
     public static final Logger LOG = LogManager.getLogger(MODID);
-    public static final boolean DEBUG_MODE = true;
     public static SimpleNetworkWrapper ADMCHANEL = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);;
     @Mod.Instance(MODID)
     public static AdvanceDataMonitor instance;
@@ -71,7 +72,9 @@ public class AdvanceDataMonitor {
     // postInit "Handle interaction with other mods, complete your setup based on this." (Remove if not needed)
     public void postInit(FMLPostInitializationEvent event) {
         proxy.postInit(event);
-        LoaderNetWork.registerNetWorks();
+        LoaderNetwork.registerNetWorks();
+        // AE2 Api/RegistryContainer requires AEConfig — must run after AE2 preInit (postInit phase).
+        DataLoomCellHandler.register();
     }
 
     @Mod.EventHandler

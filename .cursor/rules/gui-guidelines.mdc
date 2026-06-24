@@ -9,7 +9,7 @@ alwaysApply: false
 ## 基类选择
 
 ### 1. 配置/设置界面 → 继承 `ADM_GuiScreen`
-所有数据配置、设置类界面都使用自定义基类 `ADM_GuiScreen`（位于 `gui.costom` 包）。
+所有数据配置、设置类界面都使用自定义基类 `ADM_GuiScreen`（位于 `gui.custom` 包）。
 
 - 提供 `setBackgroundTexture()` / `setPosition()` / `setSize()` / `setStretch()` 链式调用。
 - 自动绘制背景纹理，无需手动在 `drawScreen` 中调用 `drawDefaultBackground()`。
@@ -180,7 +180,7 @@ private void saveAndSync() {
 
 - **必须** `writeToNBT` 确保数据持久化。
 - **必须** 通过 `ADMCHANEL.sendToServer(new PacketSynTileEntity(...))` 同步到服务端。
-- **如果新增网络包**：同步编写 Handler（服务端 readFromNBT → markDirty → syncData）并在 `LoaderNetWork.registerNetWorks()` 注册。详见 `network-packets.mdc`。
+- **如果新增网络包**：同步编写 Handler（服务端 readFromNBT → markDirty → syncData）并在 `LoaderNetwork.registerNetWorks()` 注册。详见 `network-packets.mdc`。
 
 ## 语言本地化
 

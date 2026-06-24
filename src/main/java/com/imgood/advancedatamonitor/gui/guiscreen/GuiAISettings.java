@@ -9,12 +9,18 @@ import org.lwjgl.input.Keyboard;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles;
-import com.imgood.advancedatamonitor.ai.AiProviderProfiles.ProviderProfile;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles;
+import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles.ProviderProfile;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 
+/**
+ * Display names / 显示名称:
+ * - EN: AI Settings
+ * - ZH: AI 设置
+ * Lang keys: adm.ai.settings.title
+ */
 public class GuiAISettings extends ADM_GuiScreen {
 
     private static final int BUTTON_SAVE = 10;

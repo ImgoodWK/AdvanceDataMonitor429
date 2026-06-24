@@ -1,14 +1,21 @@
 package com.imgood.advancedatamonitor.loader;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.network.handler.HandlerNetWork;
+import com.imgood.advancedatamonitor.network.handler.HandlerLinkScannerAction;
+import com.imgood.advancedatamonitor.network.handler.HandlerNetwork;
 import com.imgood.advancedatamonitor.network.handler.HandlerPlannerMerge;
 import com.imgood.advancedatamonitor.network.handler.HandlerPlannerSync;
 import com.imgood.advancedatamonitor.network.handler.HandlerSynTileEntity;
 import com.imgood.advancedatamonitor.network.packet.PacketAssistantAction;
 import com.imgood.advancedatamonitor.network.packet.PacketAssistantResponse;
+import com.imgood.advancedatamonitor.network.packet.PacketGrappleAction;
+import com.imgood.advancedatamonitor.network.packet.PacketGrappleAnchorConfig;
+import com.imgood.advancedatamonitor.network.packet.PacketGrappleHookConfig;
+import com.imgood.advancedatamonitor.network.packet.PacketGrappleSync;
 import com.imgood.advancedatamonitor.network.packet.PacketItemCountSync;
 import com.imgood.advancedatamonitor.network.packet.PacketItemNBT;
+import com.imgood.advancedatamonitor.network.packet.PacketLinkScannerAction;
+import com.imgood.advancedatamonitor.network.packet.PacketMonitorRecord;
 import com.imgood.advancedatamonitor.network.packet.PacketPlannerMerge;
 import com.imgood.advancedatamonitor.network.packet.PacketPlannerSync;
 import com.imgood.advancedatamonitor.network.packet.PacketRequestItemCountSync;
@@ -17,14 +24,13 @@ import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 
-public class LoaderNetWork {
+public class LoaderNetwork {
 
     public static void registerNetWorks() {
-        // 使用固定ID，确保顺序一致
         AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            HandlerNetWork.class,
+            HandlerNetwork.class,
             PacketItemNBT.class,
-            0, // 固定ID 0
+            0,
             Side.SERVER);
 
         if (FMLCommonHandler.instance()
@@ -33,27 +39,20 @@ public class LoaderNetWork {
             AdvanceDataMonitor.ADMCHANEL.registerMessage(
                 PacketSynTileEntity.ClientHandler.class,
                 PacketSynTileEntity.class,
-                1, // 固定ID 1
+                1,
                 Side.CLIENT);
         }
 
         AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            PacketSynTileEntity.ServerHandler.class,
-            PacketSynTileEntity.class,
-            2, // 固定ID 2
-            Side.SERVER);
-
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
             HandlerSynTileEntity.class,
             PacketSynTileEntity.class,
-            3, // 固定ID 3
+            2,
             Side.SERVER);
 
-        // 注册新的同步包
         AdvanceDataMonitor.ADMCHANEL.registerMessage(
             PacketRequestItemCountSync.Handler.class,
             PacketRequestItemCountSync.class,
-            4, // 固定ID 4
+            4,
             Side.SERVER);
         if (FMLCommonHandler.instance()
             .getEffectiveSide()
@@ -61,7 +60,7 @@ public class LoaderNetWork {
             AdvanceDataMonitor.ADMCHANEL.registerMessage(
                 PacketItemCountSync.Handler.class,
                 PacketItemCountSync.class,
-                5, // 固定ID 5
+                5,
                 Side.CLIENT);
         }
 
@@ -74,9 +73,7 @@ public class LoaderNetWork {
                 .registerMessage(PacketAssistantResponse.Handler.class, PacketAssistantResponse.class, 7, Side.CLIENT);
         }
 
-        // Planner sync: client → server
         AdvanceDataMonitor.ADMCHANEL.registerMessage(HandlerPlannerSync.class, PacketPlannerSync.class, 8, Side.SERVER);
-        // Planner sync: server → client (for merge result)
         if (FMLCommonHandler.instance()
             .getEffectiveSide()
             .isClient()) {
@@ -84,8 +81,61 @@ public class LoaderNetWork {
                 .registerMessage(HandlerPlannerSync.ClientHandler.class, PacketPlannerSync.class, 9, Side.CLIENT);
         }
 
-        // Planner merge: client → server
         AdvanceDataMonitor.ADMCHANEL
             .registerMessage(HandlerPlannerMerge.class, PacketPlannerMerge.class, 10, Side.SERVER);
+
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketGrappleAction.Handler.class, PacketGrappleAction.class, 11, Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketGrappleSync.ClientHandler.class,
+                PacketGrappleSync.class,
+                12,
+                Side.CLIENT);
+        }
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketGrappleHookConfig.Handler.class,
+            PacketGrappleHookConfig.class,
+            13,
+            Side.SERVER);
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketGrappleAnchorConfig.ServerHandler.class,
+            PacketGrappleAnchorConfig.class,
+            14,
+            Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketGrappleAnchorConfig.ClientHandler.class,
+                PacketGrappleAnchorConfig.class,
+                14,
+                Side.CLIENT);
+        }
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketMonitorRecord.Handler.class,
+            PacketMonitorRecord.class,
+            15,
+            Side.SERVER);
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            HandlerLinkScannerAction.class,
+            PacketLinkScannerAction.class,
+            16,
+            Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                HandlerLinkScannerAction.ClientHandler.class,
+                PacketLinkScannerAction.class,
+                16,
+                Side.CLIENT);
+        }
     }
 }

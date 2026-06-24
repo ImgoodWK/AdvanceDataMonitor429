@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
@@ -31,7 +32,15 @@ import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import io.netty.buffer.ByteBuf;
 
-public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInventory {
+/**
+ * Display names / 显示名称:
+ * - EN: Advanced Storage Linker
+ * - ZH: 高级存储链接器
+ * Lang keys: tile.StorageLinkBlock.name (parent block)
+ */
+public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInventory, IOwnableTile {
+
+    private String ownerName = "";
 
     private static final int SLOT_COUNT = 36;
     private static final int DELTA_STATISTICS_INTERVAL_TICKS = 20;
@@ -45,6 +54,27 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
     private static final String CELL_ITEMS_TAG = "AdvStorageLink_CellItems";
     private static final String LEGACY_MARKED_ITEMS_TAG = "AdvStorageLink_MarkedItems";
     private static final String CACHE_DATA_TAG = "AdvStorageLink_CacheData";
+
+    @Override
+    public String getOwnerName() {
+        return ownerName == null ? "" : ownerName;
+    }
+
+    @Override
+    public void setOwnerName(String name) {
+        this.ownerName = name == null ? "" : name;
+        markDirty();
+    }
+
+    @Override
+    public void setOwnerFromPlacer(EntityLivingBase placer) {
+        setOwnerName(OwnableTileUtil.nameFromPlacer(placer));
+    }
+
+    @Override
+    public void claimOwnerIfEmpty(EntityPlayer player) {
+        // Storage link: no claim-on-open; re-place to set owner.
+    }
 
     @Override
     public int getSizeInventory() {
@@ -664,6 +694,7 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
             }
             nbt.setTag(CACHE_DATA_TAG, cacheNbt);
         }
+        OwnableTileUtil.writeOwner(nbt, ownerName);
     }
 
     @TileEvent(TileEventType.WORLD_NBT_READ)
@@ -689,6 +720,7 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
                 if (cacheNbt.hasKey(key)) itemCountCache.put(i, cacheNbt.getLong(key));
             }
         }
+        ownerName = OwnableTileUtil.readOwner(nbt);
     }
 
     @TileEvent(TileEventType.TICK)

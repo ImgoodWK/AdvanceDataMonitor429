@@ -14,12 +14,18 @@ import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.assistant.AssistantMonitorRegistry;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Advance Data Monitor
+ * - ZH: 高级数据监视器
+ * Lang keys: tile.advDataMonitor.name, adm.title.main
+ */
 public class BlockAdvanceDataMonitor extends BlockContainer {
 
     public BlockAdvanceDataMonitor() {
         super(Material.iron);
         this.setBlockName("advDataMonitor");
-        this.setBlockTextureName(AdvanceDataMonitor.MODID + ":textures/items/AdvanceDataMonitor.png");
+        this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_data_monitor");
         this.setHardness(2.0F);
         this.setResistance(5.0F);
         this.setCreativeTab(CreativeTabs.tabRedstone);
@@ -52,8 +58,10 @@ public class BlockAdvanceDataMonitor extends BlockContainer {
         int direction = MathHelper.floor_double((double) ((placer.rotationYaw + 180) * 4.0F / 360.0F) + 0.5D) & 3;
         TileEntity tileEntity = world.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityAdvanceDataMonitor) {
-            ((TileEntityAdvanceDataMonitor) tileEntity).facing = direction;
-            ((TileEntityAdvanceDataMonitor) tileEntity).setXYZ(0, x + "," + y + "," + z);
+            TileEntityAdvanceDataMonitor monitor = (TileEntityAdvanceDataMonitor) tileEntity;
+            monitor.facing = direction;
+            monitor.setXYZ(0, x + "," + y + "," + z);
+            monitor.setOwnerFromPlacer(placer);
         }
         if (!world.isRemote && placer instanceof EntityPlayer) {
             AssistantMonitorRegistry.record((EntityPlayer) placer, world.provider.dimensionId, x, y, z);
@@ -67,6 +75,7 @@ public class BlockAdvanceDataMonitor extends BlockContainer {
         TileEntityAdvanceDataMonitor te = (TileEntityAdvanceDataMonitor) world.getTileEntity(x, y, z);
         if (!world.isRemote) {
             AssistantMonitorRegistry.record(player, world.provider.dimensionId, x, y, z);
+            te.claimOwnerIfEmpty(player);
         }
         player.openGui(AdvanceDataMonitor.instance, 1, world, x, y, z);
 

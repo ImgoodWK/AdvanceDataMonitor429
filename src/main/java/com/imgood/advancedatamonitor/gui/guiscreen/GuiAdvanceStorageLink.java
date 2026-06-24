@@ -12,10 +12,16 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.container.ContainerAdvanceStorageLink;
+import com.imgood.advancedatamonitor.gui.container.ContainerAdvanceStorageLink;
 import com.imgood.advancedatamonitor.network.packet.PacketRequestItemCountSync;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceStorageLink;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Advanced Storage Linker (container GUI)
+ * - ZH: 高级存储链接器（容器界面）
+ * Lang keys: tile.StorageLinkBlock.name
+ */
 public class GuiAdvanceStorageLink extends GuiContainer {
 
     private static final ResourceLocation TEXTURE = new ResourceLocation(
@@ -53,7 +59,7 @@ public class GuiAdvanceStorageLink extends GuiContainer {
 
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        String title = I18n.format("tile.advanceStorageLink.name");
+        String title = I18n.format("tile.StorageLinkBlock.name");
         this.fontRendererObj
             .drawString(title, (this.xSize - this.fontRendererObj.getStringWidth(title)) / 2, 6, 0x404040);
         this.fontRendererObj.drawString(I18n.format("container.inventory"), 8, 90, 0x404040);

@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -19,6 +21,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.Config;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.utils.CraftingTemplateParser;
 import com.imgood.advancedatamonitor.utils.DataBound;
@@ -36,14 +39,22 @@ import appeng.tile.storage.TileDrive;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Optional;
 
-public class TileEntityAdvanceDataMonitor extends TileEntity {
+/**
+ * Display names / 显示名称:
+ * - EN: Advance Data Monitor
+ * - ZH: 高级数据监视器
+ * Lang keys: tile.advDataMonitor.name (parent block)
+ */
+public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnableTile {
+
+    private String ownerName = "";
 
     private final Map<Integer, NBTTagCompound> dataBoundList = new HashMap<>();
     private boolean visableScreen = true;
     private boolean visableBody = true;
     private boolean visableBack = true;
+    private boolean renderBothSides = false;
     public int facing = 0;
-    public boolean TEST_MODE = true;
     private int testRandomData = 0;
     private Random random = new Random();
 
@@ -57,6 +68,30 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
         initializeDefaultData();
     }
 
+    @Override
+    public String getOwnerName() {
+        return ownerName == null ? "" : ownerName;
+    }
+
+    @Override
+    public void setOwnerName(String name) {
+        this.ownerName = name == null ? "" : name;
+        markDirty();
+    }
+
+    @Override
+    public void setOwnerFromPlacer(EntityLivingBase placer) {
+        setOwnerName(OwnableTileUtil.nameFromPlacer(placer));
+    }
+
+    @Override
+    public void claimOwnerIfEmpty(EntityPlayer player) {
+        if (player == null || !OwnableTileUtil.isEmpty(getOwnerName())) {
+            return;
+        }
+        setOwnerName(player.getCommandSenderName());
+    }
+
     public int getDisplayDataSize() {
         return dataBoundList.size();
     }
@@ -65,7 +100,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
     @Override
     public void updateEntity() {
         updateRollRotation((float) 91 / getMinDataInterval());
-        if (TEST_MODE) {
+        if (Config.debugMonitorTestMode) {
             refreshRamdomData();
         }
         if (worldObj == null || worldObj.isRemote) return;
@@ -203,8 +238,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
         compound.setBoolean("visableScreen", visableScreen);
         compound.setBoolean("visableBody", visableBody);
         compound.setBoolean("visableBack", visableBack);
+        compound.setBoolean("renderBothSides", renderBothSides);
         compound.setInteger("facing", facing);
         compound.setInteger("testRandomData", testRandomData);
+        OwnableTileUtil.writeOwner(compound, ownerName);
 
         NBTTagCompound displayDataNBT = new NBTTagCompound();
         for (Map.Entry<Integer, NBTTagCompound> entry : dataBoundList.entrySet()) {
@@ -223,8 +260,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
         visableScreen = compound.getBoolean("visableScreen");
         visableBody = compound.getBoolean("visableBody");
         visableBack = compound.getBoolean("visableBack");
+        renderBothSides = compound.getBoolean("renderBothSides");
         facing = compound.getInteger("facing");
         testRandomData = compound.getInteger("testRandomData");
+        ownerName = OwnableTileUtil.readOwner(compound);
 
         if (compound.hasKey("DisplayDataMap")) {
             NBTTagCompound displayDataNBT = compound.getCompoundTag("DisplayDataMap");
@@ -565,6 +604,16 @@ public class TileEntityAdvanceDataMonitor extends TileEntity {
 
     public void setVisableBack(boolean visable) {
         this.visableBack = visable;
+        markDirty();
+        syncData();
+    }
+
+    public boolean isRenderBothSides() {
+        return renderBothSides;
+    }
+
+    public void setRenderBothSides(boolean bothSides) {
+        this.renderBothSides = bothSides;
         markDirty();
         syncData();
     }

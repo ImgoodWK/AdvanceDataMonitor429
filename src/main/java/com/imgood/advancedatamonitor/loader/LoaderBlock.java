@@ -6,6 +6,8 @@ import com.imgood.advancedatamonitor.blocks.BlockAdvanceCraftingLink;
 import com.imgood.advancedatamonitor.blocks.BlockAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.blocks.BlockAdvanceNetworkLink;
 import com.imgood.advancedatamonitor.blocks.BlockAdvanceStorageLink;
+import com.imgood.advancedatamonitor.blocks.BlockGrappleAnchor;
+import com.imgood.advancedatamonitor.items.ItemBlockGrappleAnchor;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -21,16 +23,19 @@ public class LoaderBlock {
     public static BlockAdvanceNetworkLink advanceNetworkLinkBlock;
     public static BlockAdvanceStorageLink advanceStorageLinkBlock;
     public static BlockAdvanceCraftingLink advanceCraftingLink;
+    public static BlockGrappleAnchor grappleAnchor;
 
     public static void registerBlocks() {
         advanceDataMonitor = new BlockAdvanceDataMonitor();
         advanceNetworkLinkBlock = new BlockAdvanceNetworkLink();
         advanceStorageLinkBlock = new BlockAdvanceStorageLink();
         advanceCraftingLink = new BlockAdvanceCraftingLink();
+        grappleAnchor = new BlockGrappleAnchor();
 
         GameRegistry.registerBlock(advanceDataMonitor, "advDataMonitor");
         GameRegistry.registerBlock(advanceNetworkLinkBlock, "advNetworkLinkBlock");
         GameRegistry.registerBlock(advanceStorageLinkBlock, "advStorageLink");
         GameRegistry.registerBlock(advanceCraftingLink, "advCraftingLink");
+        GameRegistry.registerBlock(grappleAnchor, ItemBlockGrappleAnchor.class, "grappleAnchor");
     }
 }

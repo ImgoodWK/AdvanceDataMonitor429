@@ -5,13 +5,22 @@ import java.util.Random;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
 
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceCraftingLink;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Crafting Linker
+ * - ZH: 合成链接器
+ * Lang keys: tile.CraftingMonitorBlock.name
+ */
 public class BlockAdvanceCraftingLink extends BlockContainer {
 
     private static final int UPDATE_INTERVAL = 20;
@@ -23,12 +32,21 @@ public class BlockAdvanceCraftingLink extends BlockContainer {
         this.setStepSound(soundTypeMetal);
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("CraftingMonitorBlock");
+        this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_crafting_link");
         this.setTickRandomly(true); // 允许接收计划刻
     }
 
     @Override
     public TileEntity createNewTileEntity(World world, int meta) {
         return new TileEntityAdvanceCraftingLink();
+    }
+
+    @Override
+    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileEntityAdvanceCraftingLink) {
+            ((TileEntityAdvanceCraftingLink) te).setOwnerFromPlacer(placer);
+        }
     }
 
     // ---------- 方块放置时启动计划刻 ----------

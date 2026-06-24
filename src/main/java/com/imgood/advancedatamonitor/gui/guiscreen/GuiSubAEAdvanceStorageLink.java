@@ -20,13 +20,19 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.utils.ContentsHelper;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Advanced Storage Linker Display Config (per-binding sub GUI)
+ * - ZH: 高级存储链接器显示配置（绑定子界面）
+ * Lang keys: adm.title.storage
+ */
 public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
 
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
@@ -37,6 +43,7 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
     private final List<ADM_GuiTextField> textFieldsLeft = new ArrayList<>();
     private final List<ADM_GuiTextField> textFieldsRight = new ArrayList<>();
     private final Map<ADM_GuiTextField, String> fieldHints = new HashMap<>();
+    private final Map<ADM_GuiTextField, String> fieldStorageTooltips = new HashMap<>();
     private final List<String> contents = new ArrayList<>();
 
     private ADM_GuiTextField focusedField;
@@ -248,6 +255,11 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
         fieldHints.put(textFieldLineSpacing, "adm.hint.storagelinespacing");
         fieldHints.put(textFieldTextColor, "adm.hint.storagecolor");
         fieldHints.put(textFieldStorageIndex, "adm.hint.storagecellindex");
+        fieldStorageTooltips.put(textFieldColumns, "adm.storage.columns");
+        fieldStorageTooltips.put(textFieldSpacing, "adm.storage.spacing");
+        fieldStorageTooltips.put(textFieldIconScale, "adm.storage.iconscale");
+        fieldStorageTooltips.put(textFieldTextScale, "adm.storage.textscale");
+        fieldStorageTooltips.put(textFieldTextColor, "adm.storage.textcolor");
     }
 
     private void initButtons() {
@@ -688,6 +700,10 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
                 yPos += 10;
             }
         }
+
+        if (hoveredTextField != null && fieldStorageTooltips.containsKey(hoveredTextField)) {
+            drawHoveringText(I18n.format(fieldStorageTooltips.get(hoveredTextField)), mouseX, mouseY);
+        }
     }
 
     public void autoText(String[] text, int intervalX, int intervalY, int startX, int startY, int color,
@@ -712,5 +728,11 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
     @Override
     public boolean doesGuiPauseGame() {
         return false;
+    }
+
+    private void drawHoveringText(String text, int x, int y) {
+        List<String> lines = new ArrayList<>();
+        lines.add(text);
+        this.drawHoveringText(lines, x, y, this.fontRendererObj);
     }
 }

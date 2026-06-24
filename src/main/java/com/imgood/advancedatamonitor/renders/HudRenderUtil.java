@@ -2,8 +2,12 @@ package com.imgood.advancedatamonitor.renders;
 
 import java.util.List;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.OpenGlHelper;
+
+import org.lwjgl.opengl.GL11;
 
 /**
  * Shared HUD rendering utilities. Extracted from PlannerHudRenderer
@@ -78,5 +82,56 @@ public class HudRenderUtil {
      */
     public static int totalLineHeight(List<String> lines, int lineHeight) {
         return lineHeight * Math.max(1, lines.size());
+    }
+
+    public static int packArgb(int alpha, int rgb) {
+        return ((alpha & 0xFF) << 24) | (rgb & 0x00FFFFFF);
+    }
+
+    /**
+     * Draw screen-space text with ARGB alpha. FontRenderer only enables GL_ALPHA_TEST by default;
+     * this sets up orthographic projection and GL_BLEND so partial transparency works in 1.7.10.
+     */
+    public static void drawScreenTextWithAlpha(FontRenderer fr, String text, int x, int y, int argbColor) {
+        if (fr == null || text == null || text.isEmpty()) {
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null) {
+            return;
+        }
+        ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        int width = sr.getScaledWidth();
+        int height = sr.getScaledHeight();
+
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glPushMatrix();
+        try {
+            GL11.glMatrixMode(GL11.GL_PROJECTION);
+            GL11.glPushMatrix();
+            GL11.glLoadIdentity();
+            GL11.glOrtho(0.0D, width, height, 0.0D, -1.0D, 1.0D);
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+            GL11.glPushMatrix();
+            GL11.glLoadIdentity();
+
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDepthMask(false);
+            GL11.glDisable(GL11.GL_ALPHA_TEST);
+            GL11.glEnable(GL11.GL_BLEND);
+            OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            fr.drawString(text, x, y, argbColor, true);
+
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+            GL11.glPopMatrix();
+            GL11.glMatrixMode(GL11.GL_PROJECTION);
+            GL11.glPopMatrix();
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        } finally {
+            GL11.glPopMatrix();
+            GL11.glPopAttrib();
+        }
     }
 }

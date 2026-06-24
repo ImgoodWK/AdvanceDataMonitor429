@@ -1,0 +1,14 @@
+Starry Cosmos Sword custom sounds (CC0)
+
+Sources: Kenney (https://kenney.nl) via github.com/ETdoFresh/kenney.nl mirror
+License: Creative Commons Zero (CC0 1.0)
+
+starry_melee_hit.ogg  <- kenney_rpgaudio/Audio/metalLatch.ogg
+starry_slash.ogg      <- kenney_rpgaudio/Audio/knifeSlice2.ogg
+starry_throw.ogg      <- kenney_rpgaudio/Audio/drawKnife2.ogg
+starry_slam.ogg       <- kenney_impactsounds/Audio/impactBell_heavy_000.ogg
+starry_stab_impact.ogg<- kenney_impactsounds/Audio/impactMetal_heavy_002.ogg
+starry_stab_fall.ogg  <- kenney_digitalaudio/Audio/phaserDown2.ogg
+starry_rain_start.ogg <- kenney_digitalaudio/Audio/laser3.ogg
+starry_rain_tick.ogg  <- kenney_rpgaudio/Audio/metalClick.ogg
+starry_judgment.ogg   <- kenney_digitalaudio/Audio/phaserUp3.ogg

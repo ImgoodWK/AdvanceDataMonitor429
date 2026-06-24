@@ -324,6 +324,25 @@
       }
     },
     {
+      "key": "TELEPORT_LIST",
+      "displayName": {
+        "zh_CN": "列出传送点",
+        "en_US": "List Teleport Destinations"
+      },
+      "description": {
+        "zh_CN": "列出背包中高级错位宝石已保存的全部传送点",
+        "en_US": "List all saved teleport destinations on the Advanced Dislocator in inventory"
+      },
+      "keywords": [
+        "传送点", "传送列表", "有哪些传送点", "列出传送点",
+        "teleport list", "list teleports", "list destinations", "warp list"
+      ],
+      "aiInstruction": {
+        "zh_CN": "TELEPORT_LIST: 列出高级错位宝石的全部传送点，target留空",
+        "en_US": "TELEPORT_LIST: list all Advanced Dislocator destinations, leave target empty"
+      }
+    },
+    {
       "key": "ORDER_ITEM",
       "displayName": {
         "zh_CN": "下单合成物品",

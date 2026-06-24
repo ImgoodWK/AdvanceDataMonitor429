@@ -1,5 +1,5 @@
 ---
-description: AI 助手功能变更时自动同步 Cursor 规则和项目根目录 markdown 文档
+description: AI 助手功能变更时自动同步 Cursor 规则和 docs/ai-assistant/ 文档
 alwaysApply: true
 ---
 # AI 助手功能文档同步规则
@@ -14,11 +14,11 @@ alwaysApply: true
 - `.cursor/rules/ai-assistant.mdc` — 更新意图枚举、会话类型、文件速查表、查询分发列表
 - `.cursor/rules/project-structure.mdc` — 如果 `assistant/`、`ai/`、`voice/` 包中有文件新增/删除/重命名，更新对应的文件计数（如 `25 文件` → `26 文件`）和关键文件列表
 
-### 2. 项目根目录 Markdown 文档
+### 2. 项目 Markdown 文档（`docs/` 目录）
+
 | 文件 | 更新内容 |
 |------|---------|
-| `AdvanceDataMonitor_AI助手技术说明.md` | 功能列表、数据流、已知限制、文件职责表 |
-| `AdvanceDataMonitor_AI助手类引用速查.md` | 各功能对应的必改文件清单 |
+| `docs/zh/ai-assistant/开发指南.md` · `docs/en/ai-assistant/development-guide.md` | Part A：功能列表、数据流、已知限制、文件职责表 · Part B：必改文件速查 · Part C：本地 STT |
 
 ### 3. 功能配置文件
 | 文件 | 更新内容 |

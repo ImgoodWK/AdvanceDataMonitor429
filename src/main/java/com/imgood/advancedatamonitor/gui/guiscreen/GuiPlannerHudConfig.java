@@ -11,11 +11,17 @@ import org.lwjgl.input.Mouse;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
 
+/**
+ * Display names / 显示名称:
+ * - EN: HUD Configuration
+ * - ZH: HUD 配置
+ * Lang keys: adm.planner.hud_config_title
+ */
 public class GuiPlannerHudConfig extends ADM_GuiScreen {
 
     private final ItemStack plannerStack;

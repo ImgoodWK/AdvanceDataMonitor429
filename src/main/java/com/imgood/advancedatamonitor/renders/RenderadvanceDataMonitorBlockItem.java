@@ -13,7 +13,7 @@ import org.lwjgl.opengl.GL11;
 import com.gtnewhorizons.modularui.api.GlStateManager;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 
-public class RenderadvanceDataMonitorBlockItem implements IItemRenderer {
+public class RenderAdvanceDataMonitorBlockItem implements IItemRenderer {
 
     private static ResourceLocation advanceDataMonitorModelTexture = new ResourceLocation(
         AdvanceDataMonitor.MODID + ":textures/model/AdvanceDataMonitor.png");

@@ -49,7 +49,7 @@ public final class AssistantMonitorRegistry {
         return tile instanceof TileEntityAdvanceDataMonitor ? (TileEntityAdvanceDataMonitor) tile : null;
     }
 
-    public static TileEntityAdvanceDataMonitor findNearbyAndRecord(EntityPlayerMP player, int radius) {
+    public static TileEntityAdvanceDataMonitor findNearest(EntityPlayer player, int radius) {
         if (player == null || player.worldObj == null) {
             return null;
         }
@@ -74,8 +74,13 @@ public final class AssistantMonitorRegistry {
                 }
             }
         }
-        if (best != null) {
-            record(player, world.provider.dimensionId, best.xCoord, best.yCoord, best.zCoord);
+        return best;
+    }
+
+    public static TileEntityAdvanceDataMonitor findNearbyAndRecord(EntityPlayerMP player, int radius) {
+        TileEntityAdvanceDataMonitor best = findNearest(player, radius);
+        if (best != null && player != null && player.worldObj != null) {
+            record(player, player.worldObj.provider.dimensionId, best.xCoord, best.yCoord, best.zCoord);
         }
         return best;
     }

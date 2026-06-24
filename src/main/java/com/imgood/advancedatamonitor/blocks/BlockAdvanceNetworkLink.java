@@ -13,8 +13,15 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
+import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Network Linker
+ * - ZH: 网络链接器
+ * Lang keys: tile.NetworkLinkBlock.name, adm.title.data_config_ae_network
+ */
 public class BlockAdvanceNetworkLink extends BlockContainer {
 
     // 更新间隔（tick），1 = 每tick，20 = 每秒。建议根据网络大小调整，避免性能问题。
@@ -27,6 +34,7 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         this.setStepSound(soundTypeMetal);
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("NetworkLinkBlock");
+        this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_network_link");
         this.setTickRandomly(true); // 允许接收计划刻
     }
 
@@ -40,7 +48,9 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         int direction = MathHelper.floor_double((double) ((placer.rotationYaw + 180) * 4.0F / 360.0F) + 0.5D) & 3;
         TileEntity tileEntity = world.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityAdvanceNetworkLink) {
-            ((TileEntityAdvanceNetworkLink) tileEntity).facing = direction;
+            TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) tileEntity;
+            link.facing = direction;
+            link.setOwnerFromPlacer(placer);
         }
     }
 

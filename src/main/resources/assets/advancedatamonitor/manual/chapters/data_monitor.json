@@ -1,0 +1,35 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.data_monitor",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.system_overview_title",
+      "textKey": "adm.manual.data_monitor.system_overview_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.setup_title",
+      "textKey": "adm.manual.data_monitor.setup_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.binding_title",
+      "textKey": "adm.manual.data_monitor.binding_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.data_types_title",
+      "textKey": "adm.manual.data_monitor.data_types_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.main_gui_title",
+      "textKey": "adm.manual.data_monitor.main_gui_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.chart_config_title",
+      "textKey": "adm.manual.data_monitor.chart_config_text"
+    }
+  ]
+}

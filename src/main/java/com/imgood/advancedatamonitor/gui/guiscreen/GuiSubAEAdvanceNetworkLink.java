@@ -22,14 +22,21 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.utils.ContentsHelper;
 import com.imgood.advancedatamonitor.utils.DataBound;
 
+/**
+ * Display names / 显示名称:
+ * - EN: AE Network Config (per-binding sub GUI)
+ * - ZH: AE网络数据配置（绑定子界面）
+ * Lang keys: adm.title.data_config_ae_network
+ */
 public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
 
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
@@ -57,6 +64,8 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
     private ADM_GuiTextField textFieldYRange;
     private ADM_GuiTextField textFieldDataLimit;
     private ADM_GuiTextField textFieldInterval;
+    private ADM_GuiTextField textFieldYMin;
+    private ADM_GuiTextField textFieldYMax;
 
     private ADM_GuiTextField textFieldDisplayName;
     private ADM_GuiTextField textFieldDisplayNameScale;
@@ -212,6 +221,8 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
         this.contents.add(textFieldYRange.getText());
         this.contents.add(textFieldDataLimit.getText());
         this.contents.add(textFieldInterval.getText());
+        this.contents.add(textFieldYMin.getText());
+        this.contents.add(textFieldYMax.getText());
 
         this.contents.add(textFieldDisplayName.getText());
         this.contents.add(textFieldDisplayNameScale.getText());
@@ -249,6 +260,8 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getYRange(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDataLimit(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getInterval(this.index)));
+            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getYMin(this.index)));
+            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getYMax(this.index)));
 
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayName(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayNameScale(this.index)));
@@ -279,6 +292,8 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
         textFieldsLeft.add(this.textFieldYRange);
         textFieldsLeft.add(this.textFieldDataLimit);
         textFieldsLeft.add(this.textFieldInterval);
+        textFieldsLeft.add(this.textFieldYMin);
+        textFieldsLeft.add(this.textFieldYMax);
         try {
             autoTextField("Left", this.textFieldsLeft, 0, 25, this.offsetX + 90, this.offsetY + 10, 80, 20);
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -350,44 +365,52 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
             isInitialized ? contents.get(10)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getInterval(this.index)));
 
+        this.textFieldYMin.setMaxStringLength(100);
+        this.textFieldYMin.setText(
+            isInitialized ? contents.get(11) : String.valueOf(this.tileEntityAdvanceDataMonotor.getYMin(this.index)));
+
+        this.textFieldYMax.setMaxStringLength(100);
+        this.textFieldYMax.setText(
+            isInitialized ? contents.get(12) : String.valueOf(this.tileEntityAdvanceDataMonotor.getYMax(this.index)));
+
         // -------------------------------------------------
 
         this.textFieldDisplayName.setMaxStringLength(100);
         this.textFieldDisplayName
-            .setText(isInitialized ? contents.get(11) : this.tileEntityAdvanceDataMonotor.getDisplayName(this.index));
+            .setText(isInitialized ? contents.get(13) : this.tileEntityAdvanceDataMonotor.getDisplayName(this.index));
 
         this.textFieldDisplayNameScale.setMaxStringLength(100);
         this.textFieldDisplayNameScale.setText(
-            isInitialized ? contents.get(12)
+            isInitialized ? contents.get(14)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayNameScale(this.index)));
 
         this.textFieldLineWidth.setMaxStringLength(100);
         this.textFieldLineWidth.setText(
-            isInitialized ? contents.get(13)
+            isInitialized ? contents.get(15)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getLineWidth(this.index)));
 
         this.textFieldScaled.setMaxStringLength(100);
         this.textFieldScaled.setText(
-            isInitialized ? contents.get(14) : String.valueOf(this.tileEntityAdvanceDataMonotor.getScale(this.index)));
+            isInitialized ? contents.get(16) : String.valueOf(this.tileEntityAdvanceDataMonotor.getScale(this.index)));
 
         this.textFieldAxisFontScaled.setMaxStringLength(100);
         this.textFieldAxisFontScaled.setText(
-            isInitialized ? contents.get(15)
+            isInitialized ? contents.get(17)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getAxisFontScale(this.index)));
 
         this.textFieldGridLineWidth.setMaxStringLength(100);
         this.textFieldGridLineWidth.setText(
-            isInitialized ? contents.get(16)
+            isInitialized ? contents.get(18)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getGridLineWidth(this.index)));
 
         this.textFieldAxisLineWidth.setMaxStringLength(100);
         this.textFieldAxisLineWidth.setText(
-            isInitialized ? contents.get(17)
+            isInitialized ? contents.get(19)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getAxisLineWidth(this.index)));
 
         this.textFieldTickLengthFactor.setMaxStringLength(100);
         this.textFieldTickLengthFactor.setText(
-            isInitialized ? contents.get(18)
+            isInitialized ? contents.get(20)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getTickLengthFactor(this.index)));
 
         // 保存/取消按钮
@@ -919,6 +942,12 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
                     case 10:
                         this.textFieldInterval = textField;
                         break;
+                    case 11:
+                        this.textFieldYMin = textField;
+                        break;
+                    case 12:
+                        this.textFieldYMax = textField;
+                        break;
                 }
             } else if (row.equals("Right")) {
                 switch (i) {
@@ -1114,6 +1143,20 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
                     int interval = Integer.parseInt(this.textFieldInterval.getText());
                     interval = interval <= 2 ? 1 : interval; // 优化条件判断
                     nbt.setInteger("interval", interval);
+                }
+
+                if (!isValidDouble(this.textFieldYMin.getText())) {
+                    this.errorTips = I18n.format("adm.error.ymin");
+                    return;
+                } else {
+                    nbt.setDouble("yMin", Double.parseDouble(this.textFieldYMin.getText()));
+                }
+
+                if (!isValidDouble(this.textFieldYMax.getText())) {
+                    this.errorTips = I18n.format("adm.error.ymax");
+                    return;
+                } else {
+                    nbt.setDouble("yMax", Double.parseDouble(this.textFieldYMax.getText()));
                 }
 
                 // 补充缺失的 DisplayNameScale
@@ -1324,11 +1367,16 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
             case 15 -> { // 清除数据按钮
                 if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
                     clearDataValues();
-                    errorTips = I18n.format("adm.tooltip.clearData");
+                    errorTips = I18n.format("adm.message.data_cleared");
                 } else {
                     errorTips = I18n.format("adm.tooltip.clearData.shift");
                 }
 
+            }
+            case 18 -> {
+                NBTTagCompound bound = this.tileEntityAdvanceDataMonotor.getDataBound(this.index);
+                this.tileEntityAdvanceDataMonotor.processDataImmediately(this.index, bound);
+                errorTips = I18n.format("adm.message.data_collected");
             }
             case 16 -> {
                 double gridLineAlpha = this.tileEntityAdvanceDataMonotor.getGridLineAlpha(index);
@@ -1518,8 +1566,15 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
 
         }
 
+        GuiButton btnCollect = getButtonByid(18);
+        if (btnCollect != null && mouseX >= btnCollect.xPosition && mouseX < btnCollect.xPosition + btnCollect.width
+            && mouseY >= btnCollect.yPosition
+            && mouseY < btnCollect.yPosition + btnCollect.height) {
+            drawHoveringText(I18n.format("adm.tooltip.collect"), mouseX, mouseY);
+        }
+
         // 可选：在GUI上显示已使用的按钮ID数量（调试用）
-        if (AdvanceDataMonitor.DEBUG_MODE) {
+        if (Config.debugGuiNetworkLink) {
             this.fontRendererObj.drawStringWithShadow(
                 "按钮ID数: " + usedButtonIds.size(),
                 this.offsetX + 10,
@@ -1530,7 +1585,8 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
             I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"), I18n.format("adm.label.xrotation"),
             I18n.format("adm.label.yrotation"), I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"),
-            I18n.format("adm.label.yrange"), I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval") };
+            I18n.format("adm.label.yrange"), I18n.format("adm.label.datalimit"), I18n.format("adm.label.interval"),
+            "yMin", "yMax" };
         autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor, false);
         String[] label2 = { I18n.format("adm.label.displayname"), I18n.format("adm.label.displaynamescale"),
             I18n.format("adm.label.linewidth"), I18n.format("adm.label.scaled"),
@@ -1838,6 +1894,12 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
                 tileEntityAdvanceDataMonotor.yCoord,
                 tileEntityAdvanceDataMonotor.zCoord,
                 nbt));
+    }
+
+    private void drawHoveringText(String text, int x, int y) {
+        List<String> lines = new ArrayList<>();
+        lines.add(text);
+        this.drawHoveringText(lines, x, y, this.fontRendererObj);
     }
 
 }

@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -18,12 +17,18 @@ import net.minecraft.world.World;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
-import com.imgood.advancedatamonitor.gui.guiscreen.GuiAdvancePlanner;
+import com.imgood.advancedatamonitor.client.ItemClientGui;
 import com.imgood.advancedatamonitor.network.packet.PacketPlannerSync;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Advance Planner
+ * - ZH: 高级计划器
+ * Lang keys: item.advancePlanner.name, adm.planner.title
+ */
 public class ItemAdvancePlanner extends Item {
 
     private static final String NBT_KEY_ENTRIES = "plannerEntries";
@@ -65,8 +70,7 @@ public class ItemAdvancePlanner extends Item {
 
     @SideOnly(Side.CLIENT)
     private void openPlannerGui(ItemStack stack, EntityPlayer player) {
-        Minecraft.getMinecraft()
-            .displayGuiScreen(new GuiAdvancePlanner(stack, player));
+        ItemClientGui.openPlannerGui(stack, player);
     }
 
     // ========== 核心数据操作 API ==========

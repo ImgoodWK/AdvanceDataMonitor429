@@ -21,6 +21,7 @@ import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.assistant.AssistantController;
 import com.imgood.advancedatamonitor.assistant.AssistantOrderLine;
 import com.imgood.advancedatamonitor.assistant.AssistantSessionKind;
+import com.imgood.advancedatamonitor.assistant.CandidateBatchMeta;
 import com.imgood.advancedatamonitor.assistant.CraftingCandidate;
 import com.imgood.advancedatamonitor.assistant.TeleportDestination;
 
@@ -59,10 +60,19 @@ public class PacketAssistantResponse implements IMessage {
 
     public static PacketAssistantResponse candidates(String rawText, List<CraftingCandidate> candidates,
         AssistantSessionKind kind) {
+        return candidates(rawText, candidates, kind, 0, 1, candidates == null ? 0 : candidates.size(), false);
+    }
+
+    public static PacketAssistantResponse candidates(String rawText, List<CraftingCandidate> candidates,
+        AssistantSessionKind kind, int batchIndex, int batchCount, int totalCount, boolean append) {
         PacketAssistantResponse packet = new PacketAssistantResponse();
         packet.type = CANDIDATES;
         packet.rawText = rawText == null ? "" : rawText;
         packet.payload.setString("kind", (kind == null ? AssistantSessionKind.ORDER_CANDIDATES : kind).name());
+        packet.payload.setInteger("batchIndex", Math.max(0, batchIndex));
+        packet.payload.setInteger("batchCount", Math.max(1, batchCount));
+        packet.payload.setInteger("totalCount", Math.max(0, totalCount));
+        packet.payload.setBoolean("append", append);
         packet.payload.setTag("candidates", writeCandidates(candidates));
         return packet;
     }
@@ -237,8 +247,12 @@ public class PacketAssistantResponse implements IMessage {
 
         private void handleOnClientThread(PacketAssistantResponse message) {
             if (message.type == CANDIDATES) {
-                AssistantController
-                    .handleCandidates(message.rawText, readCandidates(message.payload), readKind(message.payload));
+                CandidateBatchMeta batchMeta = readCandidateBatchMeta(message.payload);
+                AssistantController.handleCandidates(
+                    message.rawText,
+                    readCandidates(message.payload),
+                    readKind(message.payload),
+                    batchMeta);
             } else if (message.type == BATCH_CANDIDATES) {
                 AssistantController.handleBatchCandidates(
                     message.rawText,
@@ -325,6 +339,17 @@ public class PacketAssistantResponse implements IMessage {
             }
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Decoded {} candidates from response payload.", result.size());
             return result;
+        }
+
+        private CandidateBatchMeta readCandidateBatchMeta(NBTTagCompound payload) {
+            if (payload == null) {
+                return CandidateBatchMeta.single(0);
+            }
+            int batchIndex = payload.hasKey("batchIndex") ? payload.getInteger("batchIndex") : 0;
+            int batchCount = payload.hasKey("batchCount") ? payload.getInteger("batchCount") : 1;
+            int totalCount = payload.hasKey("totalCount") ? payload.getInteger("totalCount") : 0;
+            boolean append = payload.hasKey("append") && payload.getBoolean("append");
+            return new CandidateBatchMeta(batchIndex, batchCount, totalCount, append);
         }
 
         private CraftingCandidate readCandidate(NBTTagCompound tag) {

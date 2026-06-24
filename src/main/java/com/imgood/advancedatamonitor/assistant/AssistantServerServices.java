@@ -13,8 +13,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
@@ -40,6 +38,7 @@ import appeng.api.implementations.tiles.IChestOrDrive;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingCallback;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingJob;
 import appeng.api.networking.crafting.ICraftingLink;
@@ -63,10 +62,15 @@ public final class AssistantServerServices {
 
     public static List<CraftingCandidate> craftingCandidates(EntityPlayerMP player, String rawText, String target,
         long amount) {
-        return craftingCandidates(player, rawText, target, amount, null);
+        return queryCraftingCandidates(player, rawText, target, amount).candidates;
     }
 
-    private static List<CraftingCandidate> craftingCandidates(EntityPlayerMP player, String rawText, String target,
+    public static CandidateQueryResult queryCraftingCandidates(EntityPlayerMP player, String rawText, String target,
+        long amount) {
+        return queryCraftingCandidates(player, rawText, target, amount, null);
+    }
+
+    private static CandidateQueryResult queryCraftingCandidates(EntityPlayerMP player, String rawText, String target,
         long amount, String[] outSourceInfo) {
         AdvanceDataMonitor.LOG.info(
             "[ADM Assistant] Server craft candidate request: player={}, raw='{}', target='{}', amount={}",
@@ -81,13 +85,14 @@ public final class AssistantServerServices {
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Craft candidate request failed: no AdvanceCraftingLink found.");
-            return new ArrayList<>();
+            return CandidateQueryResult.empty();
         }
         if (outSourceInfo != null && outSourceInfo.length > 0) {
             outSourceInfo[0] = source.sourceDescription("zh_CN");
         }
         List<CraftingCandidate> allCandidates = new ArrayList<>();
         Map<String, ItemStack> unique = new LinkedHashMap<>();
+        boolean truncated = false;
         for (TileEntityAdvanceCraftingLink link : source.connectors) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Using CraftingLink at {},{},{}", link.xCoord, link.yCoord, link.zCoord);
@@ -108,12 +113,18 @@ public final class AssistantServerServices {
                     Math.max(1L, amount),
                     Integer.MAX_VALUE);
                 for (CraftingCandidate c : patternLookup.candidates) {
-                    if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                    if (candidateLimitReached(allCandidates.size())) {
+                        truncated = true;
+                        break;
+                    }
                     String key = candidateKey(c.toItemStack());
                     if (unique.put(key, c.toItemStack()) != null) continue;
                     allCandidates.add(c);
                 }
-                if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                if (truncated || candidateLimitReached(allCandidates.size())) {
+                    truncated = true;
+                    break;
+                }
                 if (allCandidates.isEmpty() && !patternLookup.usedStrongApi) {
                     Collection<?> craftables = reflectCraftables(craftingGrid);
                     if (craftables != null) {
@@ -124,7 +135,10 @@ public final class AssistantServerServices {
                             target,
                             Math.max(1L, amount));
                         for (CraftingCandidate c : reflected) {
-                            if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                            if (candidateLimitReached(allCandidates.size())) {
+                                truncated = true;
+                                break;
+                            }
                             String key = candidateKey(c.toItemStack());
                             if (unique.put(key, c.toItemStack()) != null) continue;
                             allCandidates.add(c);
@@ -135,9 +149,12 @@ public final class AssistantServerServices {
                 AdvanceDataMonitor.LOG
                     .error("Failed to build AE2 crafting candidates from link at {},{}", link.xCoord, link.yCoord, e);
             }
+            if (truncated) {
+                break;
+            }
         }
         if (allCandidates.isEmpty()) {
-            return allCandidates;
+            return CandidateQueryResult.empty();
         }
         final String owner = ownerKey(player);
         allCandidates.sort(new Comparator<CraftingCandidate>() {
@@ -157,11 +174,17 @@ public final class AssistantServerServices {
         for (CraftingCandidate candidate : allCandidates) {
             reindexed.add(new CraftingCandidate(i++, candidate.toItemStack(), candidate.amount));
         }
-        AdvanceDataMonitor.LOG.info("[ADM Assistant] Craft candidate result count={}", reindexed.size());
-        return reindexed;
+        AdvanceDataMonitor.LOG
+            .info("[ADM Assistant] Craft candidate result count={}, truncated={}", reindexed.size(), truncated);
+        return new CandidateQueryResult(reindexed, truncated);
     }
 
     public static List<CraftingCandidate> withdrawCandidates(EntityPlayerMP player, String rawText, String target,
+        long amount) {
+        return queryWithdrawCandidates(player, rawText, target, amount).candidates;
+    }
+
+    public static CandidateQueryResult queryWithdrawCandidates(EntityPlayerMP player, String rawText, String target,
         long amount) {
         AdvanceDataMonitor.LOG.info(
             "[ADM Assistant] Server withdraw candidate request: player={}, raw='{}', target='{}', amount={}",
@@ -176,12 +199,13 @@ public final class AssistantServerServices {
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Withdraw candidate request failed: no AdvanceStorageLink found.");
-            return new ArrayList<>();
+            return CandidateQueryResult.empty();
         }
         String query = normalizeStorageQuery(target, AssistantIntent.STORAGE_SCOPE_ITEMS);
         List<CraftingCandidate> allCandidates = new ArrayList<>();
         Map<String, ItemStack> unique = new LinkedHashMap<>();
         int index = 1;
+        boolean truncated = false;
         for (TileEntityAdvanceStorageLink link : source.connectors) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Using StorageLink at {},{},{}", link.xCoord, link.yCoord, link.zCoord);
@@ -211,15 +235,22 @@ public final class AssistantServerServices {
                     String key = candidateKey(stack);
                     if (unique.put(key, stack) != null) continue;
                     allCandidates.add(new CraftingCandidate(index++, stack, item.getStackSize()));
-                    if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                    if (candidateLimitReached(allCandidates.size())) {
+                        truncated = true;
+                        break;
+                    }
                 }
             } catch (Exception e) {
                 AdvanceDataMonitor.LOG
                     .error("Failed to build AE2 withdraw candidates from link at {},{}", link.xCoord, link.yCoord, e);
             }
+            if (truncated) {
+                break;
+            }
         }
-        AdvanceDataMonitor.LOG.info("[ADM Assistant] Withdraw candidate result count={}", allCandidates.size());
-        return allCandidates;
+        AdvanceDataMonitor.LOG
+            .info("[ADM Assistant] Withdraw candidate result count={}, truncated={}", allCandidates.size(), truncated);
+        return new CandidateQueryResult(allCandidates, truncated);
     }
 
     public static List<AssistantOrderLine> batchWithdrawCandidates(EntityPlayerMP player, String rawText,
@@ -686,14 +717,17 @@ public final class AssistantServerServices {
         }
     }
 
-    private static final int MAX_STORAGE_CANDIDATES = 200;
-
     /**
      * Query AE2 storage network for item/fluid quantities.
      * Returns a List of CraftingCandidate with actual stock amounts.
      * Supports: all items (empty target), specific name, fuzzy name matching.
      */
     public static List<CraftingCandidate> queryItemCount(EntityPlayerMP player, String rawText, String target,
+        String locale) {
+        return queryItemCountResult(player, rawText, target, locale).candidates;
+    }
+
+    public static CandidateQueryResult queryItemCountResult(EntityPlayerMP player, String rawText, String target,
         String locale) {
         AdvanceDataMonitor.LOG.info(
             "[ADM Assistant] Server item count query: player={}, raw='{}', target='{}'",
@@ -706,7 +740,7 @@ public final class AssistantServerServices {
             32);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Item count query failed: no AdvanceStorageLink found.");
-            return new ArrayList<>();
+            return CandidateQueryResult.empty();
         }
         String query = normalizeStorageQuery(target, AssistantIntent.STORAGE_SCOPE_ALL);
         boolean searchFluids = query.contains("fluid") || query.contains("mB")
@@ -721,6 +755,7 @@ public final class AssistantServerServices {
         Map<String, ItemStack> uniqueItems = new LinkedHashMap<>();
         Map<String, String> uniqueFluids = new LinkedHashMap<>();
         int index = 1;
+        boolean truncated = false;
         for (TileEntityAdvanceStorageLink link : source.connectors) {
             try {
                 IGrid grid = link.getProxy()
@@ -738,9 +773,15 @@ public final class AssistantServerServices {
                     if (uniqueItems.containsKey(key)) continue;
                     uniqueItems.put(key, stack);
                     allCandidates.add(new CraftingCandidate(index++, stack, item.getStackSize()));
-                    if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                    if (candidateLimitReached(allCandidates.size())) {
+                        truncated = true;
+                        break;
+                    }
                 }
-                if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                if (truncated || candidateLimitReached(allCandidates.size())) {
+                    truncated = true;
+                    break;
+                }
                 // Query fluids
                 if (searchFluids || cleanQuery.isEmpty()) {
                     try {
@@ -756,14 +797,15 @@ public final class AssistantServerServices {
                             String key = displayName;
                             if (uniqueFluids.containsKey(key)) continue;
                             uniqueFluids.put(key, displayName);
-                            // Create a dummy ItemStack for fluid display
-                            // Use the count suffix to indicate fluid (mB)
                             allCandidates.add(
                                 new CraftingCandidate(
                                     index++,
                                     createFluidDisplayStack(displayName),
                                     fluid.getStackSize()));
-                            if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                            if (candidateLimitReached(allCandidates.size())) {
+                                truncated = true;
+                                break;
+                            }
                         }
                     } catch (Throwable fluidFailure) {
                         AdvanceDataMonitor.LOG.debug("Fluid inventory unavailable", fluidFailure);
@@ -772,6 +814,9 @@ public final class AssistantServerServices {
             } catch (Exception e) {
                 AdvanceDataMonitor.LOG
                     .error("Failed to query AE2 storage from link at {},{}", link.xCoord, link.yCoord, e);
+            }
+            if (truncated) {
+                break;
             }
         }
         // Sort by quantity descending
@@ -788,8 +833,9 @@ public final class AssistantServerServices {
         for (CraftingCandidate c : allCandidates) {
             reindexed.add(new CraftingCandidate(i++, c.toItemStack(), c.amount));
         }
-        AdvanceDataMonitor.LOG.info("[ADM Assistant] Item count query result count={}", reindexed.size());
-        return reindexed;
+        AdvanceDataMonitor.LOG
+            .info("[ADM Assistant] Item count query result count={}, truncated={}", reindexed.size(), truncated);
+        return new CandidateQueryResult(reindexed, truncated);
     }
 
     private static String queryItemCountMessage(EntityPlayerMP player, String rawText, String target, String locale) {
@@ -867,7 +913,7 @@ public final class AssistantServerServices {
         }
 
         StringBuilder builder = new StringBuilder();
-        builder.append(chinese ? "AE2 存储字节占用详情：" : "AE2 Storage Byte Usage Details:");
+        builder.append(serverLang("adm.ai.assistant.query_bytes_title", locale, "AE2 字节占用详情：", "AE2 Byte Usage Details:"));
 
         // Item bytes section
         builder.append(chinese ? "\n\n物品存储：" : "\n\nItem Storage:");
@@ -1119,6 +1165,11 @@ public final class AssistantServerServices {
      */
     public static List<CraftingCandidate> queryStorageCandidates(EntityPlayerMP player, String rawText, String target,
         int storageScope, String locale) {
+        return queryStorageCandidatesResult(player, rawText, target, storageScope, locale).candidates;
+    }
+
+    public static CandidateQueryResult queryStorageCandidatesResult(EntityPlayerMP player, String rawText,
+        String target, int storageScope, String locale) {
         boolean includeItems = storageScope != AssistantIntent.STORAGE_SCOPE_FLUIDS;
         boolean includeFluids = storageScope != AssistantIntent.STORAGE_SCOPE_ITEMS;
         String query = normalizeStorageQuery(target, storageScope);
@@ -1128,13 +1179,14 @@ public final class AssistantServerServices {
             TileEntityAdvanceStorageLink.class,
             32);
         if (source.isEmpty()) {
-            return new ArrayList<>();
+            return CandidateQueryResult.empty();
         }
 
         List<CraftingCandidate> allCandidates = new ArrayList<>();
         Map<String, ItemStack> uniqueItems = new LinkedHashMap<>();
         Map<String, String> uniqueFluids = new LinkedHashMap<>();
         int index = 1;
+        boolean truncated = false;
 
         for (TileEntityAdvanceStorageLink link : source.connectors) {
             try {
@@ -1154,10 +1206,16 @@ public final class AssistantServerServices {
                         if (uniqueItems.containsKey(key)) continue;
                         uniqueItems.put(key, stack);
                         allCandidates.add(new CraftingCandidate(index++, stack, item.getStackSize()));
-                        if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                        if (candidateLimitReached(allCandidates.size())) {
+                            truncated = true;
+                            break;
+                        }
                     }
                 }
-                if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                if (truncated || candidateLimitReached(allCandidates.size())) {
+                    truncated = true;
+                    break;
+                }
 
                 if (includeFluids) {
                     try {
@@ -1178,7 +1236,10 @@ public final class AssistantServerServices {
                                     index++,
                                     createFluidDisplayStack(displayName),
                                     fluid.getStackSize()));
-                            if (allCandidates.size() >= MAX_STORAGE_CANDIDATES) break;
+                            if (candidateLimitReached(allCandidates.size())) {
+                                truncated = true;
+                                break;
+                            }
                         }
                     } catch (Throwable fluidFailure) {
                         AdvanceDataMonitor.LOG.debug("Fluid inventory unavailable", fluidFailure);
@@ -1187,6 +1248,9 @@ public final class AssistantServerServices {
             } catch (Exception e) {
                 AdvanceDataMonitor.LOG
                     .error("Failed to query AE2 storage from link at {},{}", link.xCoord, link.yCoord, e);
+            }
+            if (truncated) {
+                break;
             }
         }
 
@@ -1205,7 +1269,7 @@ public final class AssistantServerServices {
         for (CraftingCandidate c : allCandidates) {
             reindexed.add(new CraftingCandidate(i++, c.toItemStack(), c.amount));
         }
-        return reindexed;
+        return new CandidateQueryResult(reindexed, truncated);
     }
 
     private static String weatherSummary(EntityPlayerMP player, String locale) {
@@ -1733,6 +1797,13 @@ public final class AssistantServerServices {
         return zh(locale) ? zhText : enText;
     }
 
+    private static String serverLang(String langKey, String locale, String zhText, String enText) {
+        if (langKey == null || langKey.isEmpty()) {
+            return text(locale, zhText, enText);
+        }
+        return text(locale, zhText, enText);
+    }
+
     private static String orderFailed(String locale, String reason) {
         return text(
             locale,
@@ -2201,85 +2272,15 @@ public final class AssistantServerServices {
         }
         request.setStackSize(amount);
         final BaseActionSource source = new PlayerSource(player, link);
-        final Future<ICraftingJob> future;
-        try {
-            future = craftingGrid.beginCraftingJob(player.worldObj, grid, source, request, null);
-        } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("[ADM Assistant] AE2 crafting calculation failed to start", e);
-            AssistantDebugLog.append(
-                "server-submit",
-                "status=FAIL, reason=begin-job-exception, target='" + safe(
-                    stack.getDisplayName()) + "', amount=" + amount + ", message='" + safe(e.getMessage()) + "'");
-            return orderFailed(locale, e.getMessage());
-        }
-        if (future == null) {
-            AssistantDebugLog.append(
-                "server-submit",
-                "status=FAIL, reason=null-future, target='" + safe(stack.getDisplayName()) + "', amount=" + amount);
-            return orderFailed(locale, text(locale, "AE2 没有启动合成计算。", "AE2 did not start crafting calculation."));
-        }
-        AssistantCraftJobManager.instance()
-            .register(player, future, stack.getDisplayName(), amount);
-        Thread waiter = new Thread(new Runnable() {
+        final Future<ICraftingJob>[] futureHolder = new Future[1];
+        final ICraftingCallback callback = new ICraftingCallback() {
 
             @Override
-            public void run() {
-                final ICraftingJob job;
-                try {
-                    job = future.get(Math.max(1, Config.assistantCraftJobTimeoutSeconds), TimeUnit.SECONDS);
-                } catch (final TimeoutException e) {
-                    try {
-                        future.cancel(true);
-                    } catch (Throwable ignored) {}
-                    AssistantCraftJobManager.instance()
-                        .complete(player, future);
-                    AssistantDebugLog.append(
-                        "server-submit",
-                        "status=FAIL, reason=future-timeout, target='" + safe(stack.getDisplayName())
-                            + "', amount="
-                            + amount
-                            + ", timeout="
-                            + Config.assistantCraftJobTimeoutSeconds);
-                    HandlerTick.enqueueServerTask(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            sendAssistantMessage(
-                                player,
-                                orderFailed(
-                                    locale,
-                                    text(
-                                        locale,
-                                        "AE2 合成计算超时：" + stack.getDisplayName() + " x" + amount + "。",
-                                        "AE2 crafting calculation timed out for " + stack.getDisplayName()
-                                            + " x"
-                                            + amount
-                                            + ".")));
-                        }
-                    });
-                    return;
-                } catch (final Exception e) {
-                    AssistantCraftJobManager.instance()
-                        .complete(player, future);
-                    AssistantDebugLog.append(
-                        "server-submit",
-                        "status=FAIL, reason=future-exception, target='" + safe(stack.getDisplayName())
-                            + "', amount="
-                            + amount
-                            + ", message='"
-                            + safe(e.getMessage())
-                            + "'");
-                    HandlerTick.enqueueServerTask(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            sendAssistantMessage(player, orderFailed(locale, e.getMessage()));
-                        }
-                    });
+            public void calculationComplete(final ICraftingJob job) {
+                if (!AssistantCraftJobManager.instance()
+                    .complete(player, futureHolder[0])) {
                     return;
                 }
-                AssistantCraftJobManager.instance()
-                    .complete(player, future);
                 HandlerTick.enqueueServerTask(new Runnable() {
 
                     @Override
@@ -2288,9 +2289,50 @@ public final class AssistantServerServices {
                     }
                 });
             }
-        }, "ADM-AE2-CraftSubmit");
-        waiter.setDaemon(true);
-        waiter.start();
+        };
+        final Future<ICraftingJob> future;
+        try {
+            future = craftingGrid.beginCraftingJob(player.worldObj, grid, source, request, callback);
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.error("[ADM Assistant] AE2 crafting calculation failed to start", e);
+            AssistantDebugLog.append(
+                "server-submit",
+                "status=FAIL, reason=begin-job-exception, target='" + safe(
+                    stack.getDisplayName()) + "', amount=" + amount + ", message='" + safe(e.getMessage()) + "'");
+            return orderFailed(locale, e.getMessage());
+        }
+        futureHolder[0] = future;
+        if (future == null) {
+            AssistantDebugLog.append(
+                "server-submit",
+                "status=FAIL, reason=null-future, target='" + safe(stack.getDisplayName()) + "', amount=" + amount);
+            return orderFailed(locale, text(locale, "AE2 没有启动合成计算。", "AE2 did not start crafting calculation."));
+        }
+        AssistantCraftJobManager.instance()
+            .register(player, future, stack.getDisplayName(), amount, new Runnable() {
+
+                @Override
+                public void run() {
+                    AssistantDebugLog.append(
+                        "server-submit",
+                        "status=FAIL, reason=future-timeout, target='" + safe(stack.getDisplayName())
+                            + "', amount="
+                            + amount
+                            + ", timeout="
+                            + Config.assistantCraftJobTimeoutSeconds);
+                    sendAssistantMessage(
+                        player,
+                        orderFailed(
+                            locale,
+                            text(
+                                locale,
+                                "AE2 合成计算超时：" + stack.getDisplayName() + " x" + amount + "。",
+                                "AE2 crafting calculation timed out for " + stack.getDisplayName()
+                                    + " x"
+                                    + amount
+                                    + ".")));
+                }
+            });
         return text(
             locale,
             "AE2 合成计算已开始：" + stack.getDisplayName() + " x" + amount + "。",
@@ -2530,5 +2572,13 @@ public final class AssistantServerServices {
                 player.getCommandSenderName());
         }
         return new ConnectorSource<T>(nearbyConnectors, 0, nearbyConnectors.size());
+    }
+
+    private static int maxQueryCandidates() {
+        return Math.max(1, Config.assistantMaxQueryCandidates);
+    }
+
+    private static boolean candidateLimitReached(int size) {
+        return size >= maxQueryCandidates();
     }
 }

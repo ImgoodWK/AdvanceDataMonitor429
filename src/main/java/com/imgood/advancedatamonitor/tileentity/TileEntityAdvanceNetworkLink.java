@@ -5,6 +5,8 @@ import static com.imgood.advancedatamonitor.AdvanceDataMonitor.LOG;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
@@ -36,7 +38,15 @@ import appeng.tile.grid.AENetworkTile;
 import appeng.tile.storage.TileChest;
 import appeng.tile.storage.TileDrive;
 
-public class TileEntityAdvanceNetworkLink extends AENetworkTile {
+/**
+ * Display names / 显示名称:
+ * - EN: Network Linker
+ * - ZH: 网络链接器
+ * Lang keys: tile.NetworkLinkBlock.name (parent block)
+ */
+public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwnableTile {
+
+    private String ownerName = "";
 
     // 物品存储统计（改用 long 防止溢出）
     private long itemTotalBytes = 0L;
@@ -55,6 +65,27 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile {
     public TileEntityAdvanceNetworkLink() {
         this.getProxy()
             .setFlags(new GridFlags[] { GridFlags.REQUIRE_CHANNEL });
+    }
+
+    @Override
+    public String getOwnerName() {
+        return ownerName == null ? "" : ownerName;
+    }
+
+    @Override
+    public void setOwnerName(String name) {
+        this.ownerName = name == null ? "" : name;
+        markDirty();
+    }
+
+    @Override
+    public void setOwnerFromPlacer(EntityLivingBase placer) {
+        setOwnerName(OwnableTileUtil.nameFromPlacer(placer));
+    }
+
+    @Override
+    public void claimOwnerIfEmpty(EntityPlayer player) {
+        // Network link: no claim-on-open; re-place to set owner.
     }
 
     @Override
@@ -232,6 +263,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile {
         data.setLong("FluidUsedBytes", this.fluidUsedBytes);
         data.setInteger("FluidTotalTypes", this.fluidTotalTypes);
         data.setInteger("FluidUsedTypes", this.fluidUsedTypes);
+        OwnableTileUtil.writeOwner(data, ownerName);
     }
 
     @Override
@@ -245,6 +277,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile {
         this.fluidUsedBytes = data.getLong("FluidUsedBytes");
         this.fluidTotalTypes = data.getInteger("FluidTotalTypes");
         this.fluidUsedTypes = data.getInteger("FluidUsedTypes");
+        ownerName = OwnableTileUtil.readOwner(data);
     }
 
     // ========== 客户端同步包（使用 getLong/setLong） ==========

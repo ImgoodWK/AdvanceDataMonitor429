@@ -10,11 +10,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.assistant.AssistantCraftJobManager;
 import com.imgood.advancedatamonitor.assistant.PlanStore;
 import com.imgood.advancedatamonitor.assistant.PlanStore.PlanEntry;
-import com.imgood.advancedatamonitor.entity.EntityDrone;
-import com.imgood.advancedatamonitor.items.ItemDataWeave;
-import com.imgood.advancedatamonitor.items.ItemOrange;
+import com.imgood.advancedatamonitor.entity.EntitySuperOrangeDrone;
+import com.imgood.advancedatamonitor.items.ItemDataImprint;
+import com.imgood.advancedatamonitor.items.ItemSuperOrange;
 import com.imgood.advancedatamonitor.network.packet.PacketAssistantResponse;
 import com.imgood.advancedatamonitor.utils.BlockPos;
 
@@ -51,6 +52,9 @@ public class HandlerTick {
             task.run();
         }
         scanPlanReminders();
+        AssistantCraftJobManager.instance()
+            .tickPendingJobs();
+        com.imgood.advancedatamonitor.items.cell.DataLoomWeaveScheduler.onServerTick();
     }
 
     private void scanPlanReminders() {
@@ -82,17 +86,20 @@ public class HandlerTick {
         if (event.phase == TickEvent.Phase.END && event.side.isServer()) {
             EntityPlayer player = event.player;
 
-            // --- Orange drone spawn ---
-            if (hasOrangeItem(player)) {
-                EntityDrone.spawnForPlayer(player);
+            // --- Super Orange drone: respawn original body every second to keep client position in sync ---
+            if (ItemSuperOrange.isDroneActiveForPlayer(player)) {
+                if (player.ticksExisted % EntitySuperOrangeDrone.RESPAWN_INTERVAL_TICKS == 0) {
+                    EntitySuperOrangeDrone.refreshOriginalDrone(player);
+                } else {
+                    EntitySuperOrangeDrone.spawnForPlayer(player);
+                }
             } else {
-                // Remove drones if player no longer has an orange
                 despawnPlayerDrones(player);
             }
 
             ItemStack stack = player.getHeldItem();
 
-            if (stack != null && stack.getItem() instanceof ItemDataWeave) {
+            if (stack != null && stack.getItem() instanceof ItemDataImprint) {
                 long now = System.currentTimeMillis();
                 if (now - lastOutput > 1000) {
                     lastOutput = now;
@@ -148,24 +155,13 @@ public class HandlerTick {
             .toString();
     }
 
-    private boolean hasOrangeItem(EntityPlayer player) {
-        if (player == null || player.inventory == null) return false;
-        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
-            ItemStack stack = player.inventory.getStackInSlot(i);
-            if (stack != null && stack.getItem() instanceof ItemOrange) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void despawnPlayerDrones(EntityPlayer player) {
         if (player == null || player.worldObj == null) return;
         String uuid = player.getUniqueID()
             .toString();
         for (Object obj : player.worldObj.loadedEntityList) {
-            if (obj instanceof EntityDrone) {
-                EntityDrone drone = (EntityDrone) obj;
+            if (obj instanceof EntitySuperOrangeDrone) {
+                EntitySuperOrangeDrone drone = (EntitySuperOrangeDrone) obj;
                 if (!drone.isDead && uuid.equals(drone.getOwnerUUID())) {
                     drone.setDead();
                 }

@@ -1,0 +1,40 @@
+---
+description: 项目结构、配置、渲染层变更时同步文档与 Cursor 规则
+alwaysApply: true
+---
+
+# 文档与规则同步要求
+
+当 Agent 进行以下类型的代码变更时，**必须同步更新相关文档与 Cursor 规则**，不得遗漏：
+
+## 触发条件
+
+| 变更类型 | 必须更新的文件 |
+|---------|---------------|
+| 新增/删除/重命名 Java 源文件或包 | `.cursor/rules/project-structure.mdc`（文件计数、关键文件列表） |
+| 渲染类迁移或渲染包结构调整 | `.cursor/rules/project-structure.mdc` 的 `renders/` 与 `entity/` 章节 |
+| 新增/修改/删除 Config 配置项 | `Config.java`、`config/Config*Loader.java`、`ConfigDescriptions.java`；若影响手册则更新 `manual/` JSON |
+| 移除遗留/重复文件 | 从 `project-structure.mdc` 与开发者文档中删除对应条目 |
+| 调试开关或日志行为变更 | `.cursor/rules/gtnh-mod-context.mdc` 的 DEBUG 说明；必要时更新 `docs/zh/developer/技术文档.md` / `docs/en/developer/technical-documentation.md` |
+| AI 助手相关功能变更 | 同时遵循 `ai-assistant-docs-sync.mdc` |
+
+## 执行时机
+
+- 在完成代码修改的**同一轮对话内**检查并更新，不要等用户提醒。
+- 若仅修改 `project-structure.mdc` 本身（无代码变更），无需额外更新其他文档。
+
+## 渲染层约定（写入 project-structure 时需保持一致）
+
+- **`entity/`**：仅放 Entity 类，不放 Render 类。
+- **`renders/`**：所有客户端渲染（TESR、实体 Render、物品 Render、HUD、工具 RenderUtil）。
+- 注册入口：`loader/LoaderRender.java`（客户端）+ `ClientProxy`（Forge 事件 HUD）。
+
+## 配置约定
+
+- 公共字段门面：`Config.java`
+- 分节加载逻辑：`config/Config*Loader.java`
+- 所有 debug 开关默认 `false`；分节见 `[debug]`、`[ai]`、`[dataLoomCell]` 等。
+
+## 目的
+
+避免 Agent 与贡献者依据过期的包结构、文件计数或调试说明定位错误文件。

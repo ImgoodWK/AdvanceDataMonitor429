@@ -9,10 +9,12 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.assistant.AssistantCandidateDelivery;
 import com.imgood.advancedatamonitor.assistant.AssistantIntentType;
 import com.imgood.advancedatamonitor.assistant.AssistantOrderLine;
 import com.imgood.advancedatamonitor.assistant.AssistantServerServices;
 import com.imgood.advancedatamonitor.assistant.AssistantSessionKind;
+import com.imgood.advancedatamonitor.assistant.CandidateQueryResult;
 import com.imgood.advancedatamonitor.assistant.CraftingCandidate;
 import com.imgood.advancedatamonitor.assistant.TeleportDestination;
 import com.imgood.advancedatamonitor.assistant.TeleportService;
@@ -363,9 +365,15 @@ public class PacketAssistantAction implements IMessage {
 
         private IMessage handleOnServerThread(PacketAssistantAction message, EntityPlayerMP player) {
             if (message.action == REQUEST_CRAFT_CANDIDATES) {
-                List<CraftingCandidate> candidates = AssistantServerServices
-                    .craftingCandidates(player, message.rawText, message.target, message.amount);
-                return PacketAssistantResponse.candidates(message.rawText, candidates);
+                CandidateQueryResult result = AssistantServerServices
+                    .queryCraftingCandidates(player, message.rawText, message.target, message.amount);
+                AssistantCandidateDelivery.sendCandidateBatches(
+                    player,
+                    message.rawText,
+                    result,
+                    AssistantSessionKind.ORDER_CANDIDATES,
+                    message.locale);
+                return null;
             }
             if (message.action == REQUEST_BATCH_CANDIDATES) {
                 List<AssistantOrderLine> lines = AssistantServerServices
@@ -388,10 +396,15 @@ public class PacketAssistantAction implements IMessage {
                 return PacketAssistantResponse.message(result);
             }
             if (message.action == REQUEST_WITHDRAW_CANDIDATES) {
-                List<CraftingCandidate> candidates = AssistantServerServices
-                    .withdrawCandidates(player, message.rawText, message.target, message.amount);
-                return PacketAssistantResponse
-                    .candidates(message.rawText, candidates, AssistantSessionKind.WITHDRAW_CANDIDATES);
+                CandidateQueryResult result = AssistantServerServices
+                    .queryWithdrawCandidates(player, message.rawText, message.target, message.amount);
+                AssistantCandidateDelivery.sendCandidateBatches(
+                    player,
+                    message.rawText,
+                    result,
+                    AssistantSessionKind.WITHDRAW_CANDIDATES,
+                    message.locale);
+                return null;
             }
             if (message.action == REQUEST_BATCH_WITHDRAW_CANDIDATES) {
                 List<AssistantOrderLine> lines = AssistantServerServices
@@ -440,25 +453,44 @@ public class PacketAssistantAction implements IMessage {
                     : AssistantIntentType.CHAT;
                 if (type == AssistantIntentType.QUERY_RECIPE && (message.target == null || message.target.trim()
                     .isEmpty())) {
-                    List<CraftingCandidate> candidates = AssistantServerServices
-                        .craftingCandidates(player, message.rawText, message.target, message.amount);
-                    return PacketAssistantResponse
-                        .candidates(message.rawText, candidates, AssistantSessionKind.RECIPE_CANDIDATES);
+                    CandidateQueryResult result = AssistantServerServices
+                        .queryCraftingCandidates(player, message.rawText, message.target, message.amount);
+                    AssistantCandidateDelivery.sendCandidateBatches(
+                        player,
+                        message.rawText,
+                        result,
+                        AssistantSessionKind.RECIPE_CANDIDATES,
+                        message.locale);
+                    return null;
                 }
                 if (type == AssistantIntentType.QUERY_ITEM_COUNT) {
-                    List<CraftingCandidate> candidates = AssistantServerServices
-                        .queryItemCount(player, message.rawText, message.target, message.locale);
-                    return PacketAssistantResponse
-                        .candidates(message.rawText, candidates, AssistantSessionKind.ITEM_COUNT_CANDIDATES);
+                    CandidateQueryResult result = AssistantServerServices
+                        .queryItemCountResult(player, message.rawText, message.target, message.locale);
+                    AssistantCandidateDelivery.sendCandidateBatches(
+                        player,
+                        message.rawText,
+                        result,
+                        AssistantSessionKind.ITEM_COUNT_CANDIDATES,
+                        message.locale);
+                    return null;
                 }
                 if (type == AssistantIntentType.QUERY_STORAGE) {
                     int storageScope = message.payload != null && message.payload.hasKey("storageScope")
                         ? message.payload.getInteger("storageScope")
                         : 0;
-                    List<CraftingCandidate> candidates = AssistantServerServices
-                        .queryStorageCandidates(player, message.rawText, message.target, storageScope, message.locale);
-                    return PacketAssistantResponse
-                        .candidates(message.rawText, candidates, AssistantSessionKind.STORAGE_CANDIDATES);
+                    CandidateQueryResult result = AssistantServerServices.queryStorageCandidatesResult(
+                        player,
+                        message.rawText,
+                        message.target,
+                        storageScope,
+                        message.locale);
+                    AssistantCandidateDelivery.sendCandidateBatches(
+                        player,
+                        message.rawText,
+                        result,
+                        AssistantSessionKind.STORAGE_CANDIDATES,
+                        message.locale);
+                    return null;
                 }
                 String result = AssistantServerServices
                     .query(player, type, message.rawText, message.target, message.amount, message.locale);

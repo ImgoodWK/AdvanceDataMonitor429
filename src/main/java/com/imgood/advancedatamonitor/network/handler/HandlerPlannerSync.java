@@ -1,11 +1,12 @@
 package com.imgood.advancedatamonitor.network.handler;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
+import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
 import com.imgood.advancedatamonitor.network.packet.PacketPlannerSync;
+import com.imgood.advancedatamonitor.utils.NetworkValidationUtil;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -18,22 +19,22 @@ public class HandlerPlannerSync implements IMessageHandler<PacketPlannerSync, IM
     @Override
     public IMessage onMessage(PacketPlannerSync message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-        ItemStack stack = player.inventory.getStackInSlot(message.slot);
-
-        if (stack != null && message.nbt != null) {
-            NBTTagCompound existingNbt = stack.getTagCompound();
-            if (existingNbt == null) {
-                existingNbt = new NBTTagCompound();
-            }
-            mergePlannerNbt(existingNbt, message.nbt);
-            stack.setTagCompound(existingNbt);
-            player.inventory.setInventorySlotContents(message.slot, stack);
-            player.inventory.markDirty();
-
-            // Reply back to client with confirmed NBT to keep client-side inventory in sync
-            return new PacketPlannerSync(message.slot, (NBTTagCompound) existingNbt.copy());
+        if (!NetworkValidationUtil.isValidInventorySlot(player, message.slot)) {
+            return null;
         }
-        return null;
+        ItemStack stack = player.inventory.getStackInSlot(message.slot);
+        if (stack == null || !(stack.getItem() instanceof ItemAdvancePlanner) || message.nbt == null) {
+            return null;
+        }
+        NBTTagCompound existingNbt = stack.getTagCompound();
+        if (existingNbt == null) {
+            existingNbt = new NBTTagCompound();
+        }
+        mergePlannerNbt(existingNbt, message.nbt);
+        stack.setTagCompound(existingNbt);
+        player.inventory.setInventorySlotContents(message.slot, stack);
+        player.inventory.markDirty();
+        return new PacketPlannerSync(message.slot, (NBTTagCompound) existingNbt.copy());
     }
 
     @SideOnly(Side.CLIENT)
@@ -41,7 +42,7 @@ public class HandlerPlannerSync implements IMessageHandler<PacketPlannerSync, IM
 
         @Override
         public IMessage onMessage(PacketPlannerSync message, MessageContext ctx) {
-            Minecraft mc = Minecraft.getMinecraft();
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
             if (mc.thePlayer == null) return null;
 
             ItemStack stack = mc.thePlayer.inventory.getStackInSlot(message.slot);

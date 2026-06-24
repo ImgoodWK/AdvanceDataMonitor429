@@ -30,7 +30,12 @@ alwaysApply: true
 - 使用 `AdvanceDataMonitor.LOG` (`org.apache.logging.log4j.Logger`) 统一日志输出。
 
 ### DEBUG 模式
-- `AdvanceDataMonitor.DEBUG_MODE` 控制调试输出，开发时保持 `true`。
+- 所有调试开关在 `config/advancedatamonitor/advancedatamonitor.cfg` 中配置，**默认均为 `false`**。
+- 通用调试：`Config.debugGeneral`（`[debug] general`）
+- 监视器测试数据：`Config.debugMonitorTestMode`（`[debug] monitorTestMode`）
+- GUI 调试：`Config.debugGuiNetworkLink`（`[debug] guiNetworkLink`）
+- AI 助手：`Config.aiDebugLogging`（`[ai] debugLogging`）
+- 编织元件：`Config.dataLoomCellDebugLogging`（`[dataLoomCell] debugLogging`）
 
 ## 注册规范
 
@@ -44,7 +49,7 @@ alwaysApply: true
 | `LoaderHandler` | Event handler、Tick handler | preInit |
 | `LoaderRender` | ISimpleBlockRenderingHandler、Item render | preInit (仅客户端) |
 | `LoaderGui` | IGuiHandler + GuiScreen 映射 | init |
-| `LoaderNetWork` | SimpleNetworkWrapper 包注册（固定ID，详见`network-packets.mdc`） | postInit |
+| `LoaderNetwork` | SimpleNetworkWrapper 包注册（固定ID，详见`network-packets.mdc`） | postInit |
 
 ## 多语言支持
 

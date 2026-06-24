@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.handler.HandlerTick;
 
 import appeng.api.networking.crafting.ICraftingJob;
 
@@ -57,7 +58,7 @@ public final class AssistantCraftJobManager {
     }
 
     public synchronized void register(EntityPlayerMP player, Future<ICraftingJob> future, String displayName,
-        long amount) {
+        long amount, Runnable onTimeout) {
         pruneFinished();
         if (future == null) {
             return;
@@ -69,17 +70,47 @@ public final class AssistantCraftJobManager {
         job.displayName = displayName == null ? "" : displayName;
         job.amount = amount;
         job.createdAt = System.currentTimeMillis();
+        job.onTimeout = onTimeout;
         jobs.add(job);
     }
 
-    public synchronized void complete(EntityPlayerMP player, Future<ICraftingJob> future) {
+    /**
+     * Removes a pending job if still tracked. Returns true when the job was present (not already timed out).
+     */
+    public synchronized boolean complete(EntityPlayerMP player, Future<ICraftingJob> future) {
         UUID owner = owner(player);
         Iterator<PendingJob> iterator = jobs.iterator();
         while (iterator.hasNext()) {
             PendingJob job = iterator.next();
             if (job.owner.equals(owner) && job.future == future) {
                 iterator.remove();
-                return;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public synchronized void tickPendingJobs() {
+        pruneFinished();
+        long now = System.currentTimeMillis();
+        long timeoutMs = Math.max(1, Config.assistantCraftJobTimeoutSeconds) * 1000L;
+        Iterator<PendingJob> iterator = jobs.iterator();
+        while (iterator.hasNext()) {
+            PendingJob job = iterator.next();
+            if (job.future != null && job.future.isDone()) {
+                continue;
+            }
+            if (now - job.createdAt <= timeoutMs) {
+                continue;
+            }
+            if (job.future != null) {
+                try {
+                    job.future.cancel(true);
+                } catch (Throwable ignored) {}
+            }
+            iterator.remove();
+            if (job.onTimeout != null) {
+                HandlerTick.enqueueServerTask(job.onTimeout);
             }
         }
     }
@@ -167,5 +198,6 @@ public final class AssistantCraftJobManager {
         private String displayName;
         private long amount;
         private long createdAt;
+        private Runnable onTimeout;
     }
 }

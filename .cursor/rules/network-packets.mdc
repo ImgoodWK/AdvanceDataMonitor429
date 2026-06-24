@@ -137,9 +137,9 @@ PacketResponseXxx response = new PacketResponseXxx(data);
 AdvanceDataMonitor.ADMCHANEL.sendTo(response, (EntityPlayerMP) player);
 ```
 
-## 注册规范 (LoaderNetWork.registerNetWorks)
+## 注册规范 (LoaderNetwork.registerNetWorks)
 
-所有包在 `postInit` 阶段通过 `LoaderNetWork.registerNetWorks()` 注册。
+所有包在 `postInit` 阶段通过 `LoaderNetwork.registerNetWorks()` 注册。
 
 ### 注册格式
 
@@ -166,16 +166,27 @@ if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
 
 | ID | 包 | Side |
 |----|-----|------|
-| 0 | PacketItemNBT → HandlerNetWork | SERVER |
+| 0 | PacketItemNBT → HandlerNetwork | SERVER |
 | 1 | PacketSynTileEntity → ClientHandler | CLIENT |
-| 2 | PacketSynTileEntity → ServerHandler | SERVER |
-| 3 | PacketSynTileEntity → HandlerSynTileEntity | SERVER |
+| 2 | PacketSynTileEntity → HandlerSynTileEntity | SERVER |
+| 3 | *(未使用，原重复 HandlerSynTileEntity 已合并)* | — |
 | 4 | PacketRequestItemCountSync → Handler | SERVER |
 | 5 | PacketItemCountSync → Handler | CLIENT |
 | 6 | PacketAssistantAction → Handler | SERVER |
 | 7 | PacketAssistantResponse → Handler | CLIENT |
+| 8 | PacketPlannerSync → HandlerPlannerSync | SERVER |
+| 9 | PacketPlannerSync → ClientHandler | CLIENT |
+| 10 | PacketPlannerMerge → Handler | SERVER |
+| 11 | PacketGrappleAction → Handler | SERVER |
+| 12 | PacketGrappleSync → ClientHandler | CLIENT |
+| 13 | PacketGrappleHookConfig → Handler | SERVER |
+| 14 | PacketGrappleAnchorConfig → ServerHandler | SERVER |
+| 14 | PacketGrappleAnchorConfig → ClientHandler | CLIENT |
+| 15 | PacketMonitorRecord → Handler | SERVER |
+| 16 | PacketLinkScannerAction → HandlerLinkScannerAction | SERVER |
+| 16 | PacketLinkScannerAction → ClientHandler | CLIENT |
 
-**新增包时从 ID=8 开始递增，确保不重复。新增后必须同步更新上方的 ID 占用表。**
+**新增包时从 ID=17 开始递增，确保不重复。新增后必须同步更新上方的 ID 占用表。**
 
 ## 本规则同步维护要求
 
@@ -223,7 +234,7 @@ AdvanceDataMonitor.ADMCHANEL.sendToDimension(packet, world.provider.dimensionId)
 - [ ] 服务端 Handler 调用 `markDirty()` 和 `syncData()`（如果需要广播）
 - [ ] 客户端 Handler 调用 `world.markBlockForUpdate()` 触发渲染
 - [ ] 双向包模式中，响应包同样要完整注册 Handler
-- [ ] `LoaderNetWork.registerNetWorks()` 中注册了新包的 Handler
+- [ ] `LoaderNetwork.registerNetWorks()` 中注册了新包的 Handler
 - [ ] 新增包对应的新 TileEntity 类型，在 `saveAndSync` 中调用 `writeToNBT`
 
 ## 常见序列化方法

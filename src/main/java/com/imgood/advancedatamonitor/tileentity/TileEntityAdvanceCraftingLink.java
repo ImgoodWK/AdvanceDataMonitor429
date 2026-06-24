@@ -8,6 +8,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
@@ -32,7 +34,15 @@ import appeng.api.util.DimensionalCoord;
 import appeng.me.GridAccessException;
 import appeng.tile.grid.AENetworkTile;
 
-public class TileEntityAdvanceCraftingLink extends AENetworkTile {
+/**
+ * Display names / 显示名称:
+ * - EN: Crafting Linker
+ * - ZH: 合成链接器
+ * Lang keys: tile.CraftingMonitorBlock.name (parent block)
+ */
+public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwnableTile {
+
+    private String ownerName = "";
 
     // ---------- 监控指标 ----------
     private int totalCpus = 0;
@@ -45,6 +55,27 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile {
     public TileEntityAdvanceCraftingLink() {
         this.getProxy()
             .setFlags(new GridFlags[] { GridFlags.REQUIRE_CHANNEL });
+    }
+
+    @Override
+    public String getOwnerName() {
+        return ownerName == null ? "" : ownerName;
+    }
+
+    @Override
+    public void setOwnerName(String name) {
+        this.ownerName = name == null ? "" : name;
+        markDirty();
+    }
+
+    @Override
+    public void setOwnerFromPlacer(EntityLivingBase placer) {
+        setOwnerName(OwnableTileUtil.nameFromPlacer(placer));
+    }
+
+    @Override
+    public void claimOwnerIfEmpty(EntityPlayer player) {
+        // Crafting link: no claim-on-open; re-place to set owner.
     }
 
     // ================= AE 网络集成 =================
@@ -211,6 +242,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile {
             snapshotList.appendTag(snapTag);
         }
         tag.setTag("CpuSnapshots", snapshotList);
+        OwnableTileUtil.writeOwner(tag, ownerName);
     }
 
     @Override
@@ -255,6 +287,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile {
                 outputs);
             this.cpuSnapshots.add(snap);
         }
+        ownerName = OwnableTileUtil.readOwner(tag);
     }
 
     // ================= 客户端同步 =================

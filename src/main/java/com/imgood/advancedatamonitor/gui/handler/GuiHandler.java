@@ -9,13 +9,18 @@ import net.minecraft.world.World;
 
 import com.google.gson.JsonObject;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.container.ContainerAdvanceStorageLink;
-import com.imgood.advancedatamonitor.gui.guiscreen.GUINBTViewer;
+import com.imgood.advancedatamonitor.gui.container.ContainerAdvanceStorageLink;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiNbtViewer;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAdvanceStorageLink;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiGrappleAnchorConfig;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiGrappleHookConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiMainAdvanceDataMonitor;
-import com.imgood.advancedatamonitor.items.ItemDataWeave;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiManual;
+import com.imgood.advancedatamonitor.items.ItemDataImprint;
+import com.imgood.advancedatamonitor.items.ItemGrappleHook;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.advancedatamonitor.tileentity.TileEntityGrappleAnchor;
 import com.imgood.advancedatamonitor.utils.NBTJsonParserHelper;
 
 import cpw.mods.fml.common.network.IGuiHandler;
@@ -35,6 +40,9 @@ public class GuiHandler implements IGuiHandler {
     public static final int NBT_VIEWER_GUI_ID = 0;
     public static final int ADM_MAIN_GUI_ID = 1;
     public static final int ADM_STORAGELINK_ID = 2;
+    public static final int MANUAL_GUI_ID = 3;
+    public static final int GRAPPLE_ANCHOR_GUI_ID = 4;
+    public static final int GRAPPLE_HOOK_GUI_ID = 5;
 
     @Override
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
@@ -52,11 +60,11 @@ public class GuiHandler implements IGuiHandler {
         switch (ID) {
             case NBT_VIEWER_GUI_ID:
                 ItemStack stack = player.getHeldItem();
-                if (stack != null && stack.getItem() instanceof ItemDataWeave) {
+                if (stack != null && stack.getItem() instanceof ItemDataImprint) {
                     NBTTagCompound nbt = stack.getTagCompound();
                     if (nbt != null && nbt.hasKey("tileNBT")) {
                         JsonObject json = NBTJsonParserHelper.parseNBTToJson(nbt.getCompoundTag("tileNBT"));
-                        return new GUINBTViewer(json);
+                        return new GuiNbtViewer(json);
                     }
                 }
                 return null;
@@ -76,6 +84,20 @@ public class GuiHandler implements IGuiHandler {
                     return new GuiAdvanceStorageLink(
                         player.inventory,
                         (TileEntityAdvanceStorageLink) tileEntityAdvanceStorageLink);
+                }
+                return null;
+            case MANUAL_GUI_ID:
+                return new GuiManual();
+            case GRAPPLE_ANCHOR_GUI_ID:
+                TileEntity grappleTe = world.getTileEntity(x, y, z);
+                if (grappleTe instanceof TileEntityGrappleAnchor) {
+                    return new GuiGrappleAnchorConfig(player, world, x, y, z);
+                }
+                return null;
+            case GRAPPLE_HOOK_GUI_ID:
+                ItemStack hookStack = player.getHeldItem();
+                if (hookStack != null && hookStack.getItem() instanceof ItemGrappleHook) {
+                    return new GuiGrappleHookConfig(hookStack, player);
                 }
                 return null;
         }

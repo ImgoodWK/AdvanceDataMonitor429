@@ -5,6 +5,7 @@ import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.advancedatamonitor.tileentity.TileEntityGrappleAnchor;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -23,6 +24,8 @@ public class LoaderTileEntity {
         GameRegistry.registerTileEntity(
             TileEntityAdvanceCraftingLink.class,
             AdvanceDataMonitor.MODID + "TileEntityAdvanceCraftingLink");
+        GameRegistry
+            .registerTileEntity(TileEntityGrappleAnchor.class, AdvanceDataMonitor.MODID + "TileEntityGrappleAnchor");
 
     }
 }

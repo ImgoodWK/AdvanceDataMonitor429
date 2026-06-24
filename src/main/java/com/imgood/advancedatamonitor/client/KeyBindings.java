@@ -1,14 +1,20 @@
 package com.imgood.advancedatamonitor.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.assistant.AssistantMonitorRegistry;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAIChat;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAdvancePlanner;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiMainAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
+import com.imgood.advancedatamonitor.network.packet.PacketMonitorRecord;
+import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -18,6 +24,11 @@ import cpw.mods.fml.common.gameevent.InputEvent;
  * Manages all AdvanceDataMonitor key bindings registered in the Controls menu.
  */
 public class KeyBindings {
+
+    private static final int MONITOR_SEARCH_RADIUS = 32;
+    private static final ResourceLocation MONITOR_MAIN_BACKGROUND = new ResourceLocation(
+        AdvanceDataMonitor.MODID,
+        "textures/gui/background_AdvanceDataMonitor_Main.png");
 
     public final KeyBinding openAiChat = new KeyBinding(
         "key.advancedatamonitor.open_ai_chat",
@@ -34,10 +45,16 @@ public class KeyBindings {
         Keyboard.KEY_H,
         "key.categories.advancedatamonitor");
 
+    public final KeyBinding openMonitorAi = new KeyBinding(
+        "key.advancedatamonitor.open_monitor_ai",
+        Keyboard.KEY_NONE,
+        "key.categories.advancedatamonitor");
+
     public void register() {
         ClientRegistry.registerKeyBinding(openAiChat);
         ClientRegistry.registerKeyBinding(openPlanner);
         ClientRegistry.registerKeyBinding(toggleHud);
+        ClientRegistry.registerKeyBinding(openMonitorAi);
     }
 
     @SubscribeEvent
@@ -48,6 +65,8 @@ public class KeyBindings {
             openPlannerGui();
         } else if (toggleHud.isPressed()) {
             togglePlannerHud();
+        } else if (openMonitorAi.isPressed()) {
+            openNearbyMonitorAiGui();
         }
     }
 
@@ -56,6 +75,28 @@ public class KeyBindings {
         if (mc.thePlayer == null) return;
         AdvanceDataMonitor.LOG.info("[ADM] AI Chat key pressed");
         mc.displayGuiScreen(new GuiAIChat(mc.currentScreen));
+    }
+
+    private void openNearbyMonitorAiGui() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.theWorld == null) {
+            return;
+        }
+        AdvanceDataMonitor.LOG.info("[ADM] Nearby monitor AI key pressed");
+        TileEntityAdvanceDataMonitor monitor = AssistantMonitorRegistry
+            .findNearest(mc.thePlayer, MONITOR_SEARCH_RADIUS);
+        if (monitor == null) {
+            notifyPlayer(I18n.format("adm.error.no_nearby_monitor"));
+            return;
+        }
+        AdvanceDataMonitor.ADMCHANEL
+            .sendToServer(new PacketMonitorRecord(monitor.xCoord, monitor.yCoord, monitor.zCoord));
+        GuiMainAdvanceDataMonitor monitorGui = new GuiMainAdvanceDataMonitor(mc.thePlayer, mc.theWorld, monitor);
+        monitorGui.setPosition(-10, 30);
+        monitorGui.setSize(470, 270);
+        monitorGui.setStretch(false);
+        monitorGui.setBackgroundTexture(MONITOR_MAIN_BACKGROUND);
+        mc.displayGuiScreen(new GuiAIChat(monitorGui));
     }
 
     private void openPlannerGui() {

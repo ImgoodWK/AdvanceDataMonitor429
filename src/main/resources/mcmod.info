@@ -3,19 +3,19 @@
 	"modList": [{
 		"modid": "${modId}",
 		"name": "${modName}",
-		"description": "An example mod for Minecraft 1.7.10 with Forge focused on a stable setup.",
+		"description": "GTNH community mod: AE2 data monitors, AI/voice assistant, grapple travel, data loom cells, and advance planner.",
 		"version": "${modVersion}",
 		"mcversion": "${minecraftVersion}",
-		"url": "https://github.com/SinTh0r4s/MyMod",
+		"url": "https://github.com/imgood/AdvanceDataMonitor429",
 		"updateUrl": "",
-		"authorList": ["SinTho0r4s"],
-		"credits": "",
+		"authorList": ["imgood"],
+		"credits": "GregTech: New Horizons community",
 		"logoFile": "",
 		"screenshots": [],
 		"parent": "",
-		"requiredMods": [],
+		"requiredMods": ["gregtech", "structurelib"],
 		"dependencies": [],
 		"dependants": [],
-		"useDependencyInformation": false
+		"useDependencyInformation": true
 	}]
 }

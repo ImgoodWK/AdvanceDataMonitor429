@@ -12,13 +12,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 
-public class GUINBTViewer extends GuiScreen {
+public class GuiNbtViewer extends GuiScreen {
 
     private JsonObject nbtData;
     private List<TreeEntry> entries = new ArrayList<>();
     private int scrollY;
 
-    public GUINBTViewer(JsonObject data) {
+    public GuiNbtViewer(JsonObject data) {
         this.nbtData = data;
         AdvanceDataMonitor.LOG.info("TestGUI" + data);
         buildTree(null, nbtData, 0);
@@ -40,7 +40,7 @@ public class GUINBTViewer extends GuiScreen {
                 if (valueObj.has("type") && valueObj.get("type")
                     .getAsString()
                     .equals("LIST")) {
-                    // 如果是LIST类型，处理其数组内容
+                    // 濡傛灉鏄疞IST绫诲瀷锛屽鐞嗗叾鏁扮粍鍐呭
                     if (valueObj.has("value") && valueObj.get("value")
                         .isJsonArray()) {
                         JsonArray listItems = valueObj.get("value")
@@ -54,7 +54,7 @@ public class GUINBTViewer extends GuiScreen {
                         }
                     }
                 } else {
-                    // 普通对象继续递归
+                    // 鏅€氬璞＄户缁€掑綊
                     buildTree(treeEntry, valueObj, depth + 1);
                 }
             }
@@ -99,7 +99,7 @@ public class GUINBTViewer extends GuiScreen {
             if (entry.isVisible()) {
                 String displayText = getIndent(entry.depth);
                 if (entry.hasChildren()) {
-                    displayText += (entry.expanded ? "▼ " : "▶ ");
+                    displayText += (entry.expanded ? "鈻?" : "鈻?");
                 }
                 displayText += entry.getDisplayText();
                 drawString(fontRendererObj, displayText, 20, yPos, 0xFFFFFF);

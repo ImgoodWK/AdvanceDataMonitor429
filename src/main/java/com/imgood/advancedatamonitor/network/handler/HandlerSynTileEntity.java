@@ -1,10 +1,12 @@
 package com.imgood.advancedatamonitor.network.handler;
 
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.advancedatamonitor.utils.NetworkValidationUtil;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -14,17 +16,29 @@ public class HandlerSynTileEntity implements IMessageHandler<PacketSynTileEntity
 
     @Override
     public IMessage onMessage(PacketSynTileEntity message, MessageContext ctx) {
-        World world = ctx.getServerHandler().playerEntity.worldObj;
-        if (world != null) {
-            TileEntity tileEntity = world.getTileEntity(message.getX(), message.getY(), message.getZ());
-            if ((tileEntity != null) && (tileEntity instanceof TileEntityAdvanceDataMonitor)) {
-                TileEntityAdvanceDataMonitor tileEntityADM = (TileEntityAdvanceDataMonitor) tileEntity;
-                tileEntityADM.readFromNBT(message.getData());
-                tileEntityADM.markDirty();
-                tileEntityADM.syncData();
-                world.markBlockForUpdate(message.getX(), message.getY(), message.getZ());
-            }
+        EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+        World world = player == null ? null : player.worldObj;
+        if (world == null) {
+            return null;
         }
+        if (!NetworkValidationUtil.isWithinReach(player, message.getX(), message.getY(), message.getZ())) {
+            return null;
+        }
+        TileEntity tileEntity = world.getTileEntity(message.getX(), message.getY(), message.getZ());
+        if (!(tileEntity instanceof TileEntityAdvanceDataMonitor)) {
+            return null;
+        }
+        if (!NetworkValidationUtil.canEditOwnedTile(player, tileEntity)) {
+            return null;
+        }
+        if (message.getData() == null) {
+            return null;
+        }
+        TileEntityAdvanceDataMonitor tileEntityADM = (TileEntityAdvanceDataMonitor) tileEntity;
+        tileEntityADM.readFromNBT(message.getData());
+        tileEntityADM.markDirty();
+        tileEntityADM.syncData();
+        world.markBlockForUpdate(message.getX(), message.getY(), message.getZ());
         return null;
     }
 }

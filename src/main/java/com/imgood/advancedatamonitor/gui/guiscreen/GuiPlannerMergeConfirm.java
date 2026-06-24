@@ -9,12 +9,18 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
 import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
 import com.imgood.advancedatamonitor.items.PlannerMergeMode;
 import com.imgood.advancedatamonitor.network.packet.PacketPlannerMerge;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Merge Confirmation
+ * - ZH: 整合确认
+ * Lang keys: adm.planner.merge_confirm_title
+ */
 public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
 
     private final ItemStack currentStack;

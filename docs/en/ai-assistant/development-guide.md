@@ -1,0 +1,609 @@
+# AI Assistant Development Guide
+
+> Audience: Developers / Cursor Agent · Last synced: 2026-06  
+> Player-facing docs: [Player Guide §8](../player/player-guide.md#8-ai-chat-and-assistant)  
+> **Language note:** Body sections below are in Chinese (mirrors `docs/zh/ai-assistant/开发指南.md`). English overview: see [Player Guide §8](../player/player-guide.md#8-ai-chat-and-assistant) and Cursor rule `.cursor/rules/ai-assistant.mdc`.
+
+---
+
+## 目录
+
+### Part A — 架构与数据流
+
+- [A1. 当前定位和总览](#a1-当前定位和总览)
+- [A2. 关键入口和数据流](#a2-关键入口和数据流)
+- [A3. 主要文件和职责](#a3-主要文件和职责)
+- [A4. AI JSON schema 和 parser 行为](#a4-ai-json-schema-和-parser-行为)
+- [A5. Controller 执行逻辑](#a5-controller-执行逻辑)
+- [A6. Pending batch 上下文修复](#a6-pending-batch-上下文修复)
+- [A7. GUI 状态和聊天记录](#a7-gui-状态和聊天记录)
+- [A8. Packet 和服务端执行](#a8-packet-和服务端执行)
+- [A9. 配置和命令](#a9-配置和命令)
+- [A10. 测试和验证状态](#a10-测试和验证状态)
+- [A11. 已知限制和建议后续开发](#a11-已知限制和建议后续开发)
+- [A12. 快速任务指南](#a12-快速任务指南)
+
+### Part B — 必改文件速查
+
+- [B1. 意图体系](#b1-意图体系)
+- [B2. 功能修改文件清单](#b2-功能修改文件清单)
+- [B3. assistant/ 核心文件路径](#b3-assistant-核心文件路径)
+
+### Part C — 本地语音转写
+
+- [C1. 本地 STT 服务](#c1-本地-stt-服务)
+- [C2. 模组配置](#c2-模组配置)
+- [C3. 环境变量与健康检查](#c3-环境变量与健康检查)
+
+---
+## A1. 当前定位和总览
+
+- AI 助手当前定位：从玩家输入中抽取结构化 intent plan，再由客户端 controller 调用既有 packet/server service 执行工具动作。
+- 主路径：`AssistantController` 优先调用 `AssistantAiIntentService`，让模型返回 `AssistantIntentPlan`。
+- fallback：当 AI 不可用、返回空计划、输出非法 JSON、任一 task 非法或调用异常时，才退回 `AssistantIntentService.parse()` 规则 parser。
+- 普通聊天仍使用 `GuiAIChat` + `DeepSeekChatClient`，不是 assistant tool flow。
+- 游戏工具执行仍走现有 packet/server service：模型只输出结构化意图，不直接执行 AE2 查询、合成提交、物品取出、计划管理或取消任务。
+
+## A2. 关键入口和数据流
+
+```mermaid
+flowchart TD
+    A[GuiAIChat.sendMessage] --> B[AssistantController.handlePrompt(prompt, locale)]
+    V[VoiceAssistantKeyHandler] --> W[SpeechToTextClient]
+    W --> X[GuiAIChat.submitAssistantPrompt]
+    X --> A
+    B --> C{pending batch 本地规则命中?}
+    C -->|是| C1[confirm/append/merge batch]
+    C -->|否| D{AI available?}
+    D -->|否| E[AssistantIntentService.parse fallback]
+    D -->|是| F[后台线程 AssistantAiIntentService]
+    F --> G[DeepSeekChatClient intent JSON request]
+    G --> H[AssistantAiIntentJsonParser -> AssistantIntentPlan]
+    H -->|空/非法/异常| E
+    H -->|CHAT-only| I[GuiAIChat.startNormalAiChatAfterAssistantParse]
+    I --> J[普通 DeepSeekChatClient chat]
+    H -->|Tool tasks| K[AssistantController.executePlan]
+    E --> K
+    K --> L[PacketAssistantAction]
+    L --> M[AssistantServerServices]
+    M --> N[PacketAssistantResponse]
+    N --> O[AssistantController.handleServerMessage/handleCandidates/handleBatchCandidates]
+```
+
+主链路要点：
+
+1. `GuiAIChat.sendMessage()` 先调用 `AssistantController.handlePrompt(prompt, locale)`。
+2. 如果存在 pending batch，`AssistantController.tryHandlePendingBatchPrompt()` 会先处理确认、追加、合并等本地上下文语句，避免把“继续”交给 AI 误判成 target。
+3. AI 可用时，controller 创建后台线程调用 `AssistantAiIntentService.parse(prompt, locale)`，返回 `AssistantIntentPlan` 后再切回客户端线程执行。
+4. AI 不可用、空计划、非法 JSON、任一 task 非法或异常时，执行 `AssistantIntentService.parse()` fallback。
+5. CHAT-only plan 调用 `GuiAIChat.startNormalAiChatAfterAssistantParse(prompt)`，进入普通聊天。
+6. Tool tasks 由 `AssistantController.executePlan/executeTask/executeIntent/executeWithdrawTasks` 转成 `PacketAssistantAction`，服务端由 `AssistantServerServices` 执行，再通过 `PacketAssistantResponse` 回到客户端。
+7. 语音入口是 `VoiceAssistantKeyHandler`：按键录音，`SpeechToTextClient` 转文字后调用 `GuiAIChat.submitAssistantPrompt()`，后续复用同一 assistant flow。
+
+## A3. 主要文件和职责
+
+### GUI、入口和聊天
+
+- `src/main/java/com/imgood/advancedatamonitor/gui/guiscreen/GuiAIChat.java`
+  - AI 聊天窗口、输入框、按钮、普通聊天 HTTP 请求、显示和滚动。
+  - `sendMessage()` 是文本入口，先交给 `AssistantController`，只有 controller 返回 false 才直接普通聊天。
+  - `sharedHistory` 是 static，全局共享聊天记录；关闭再打开 GUI 会保留，直到点击清除按钮。
+  - `MAX_CONTEXT_MESSAGES=16` 控制普通聊天发送给模型的上下文窗口。
+  - `currentClient.cancel()` 只取消普通 AI chat HTTP 请求。
+
+- `src/main/java/com/imgood/advancedatamonitor/client/VoiceAssistantKeyHandler.java`
+  - 语音热键入口。负责开始/停止录音、隐私确认、调用 STT，并把转写文本提交到 `GuiAIChat`。
+  - 如果当前屏幕不是 `GuiAIChat`，会打开一个新的 `GuiAIChat` 后提交 prompt。
+
+- `src/main/java/com/imgood/advancedatamonitor/voice/SpeechToTextClient.java`
+  - OpenAI-compatible `/v1/audio/transcriptions` STT 客户端。
+  - 使用 `Config.voiceSttBaseUrl` 或回退到 `Config.aiApiBaseUrl`，key 使用 `Config.getVoiceSttApiKey()`。
+
+- `src/main/java/com/imgood/advancedatamonitor/voice/VoiceCaptureService.java`、`WavEncoder.java`、`VoiceStatusListener.java`
+  - 负责客户端录音、PCM/WAV 编码和状态回调。
+
+### Client controller 和 intent
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantController.java`
+  - assistant 客户端总控。负责 AI/fallback 解析选择、执行 plan、聚合多订单、处理 pending candidates/batch、发送 packet、接收 response 后更新 GUI/session。
+  - AI 可用时后台解析，完成后切回 client thread 执行。
+  - `executePlan()` 对非 CHAT task 逐个执行；多个 `ORDER_ITEM` 会聚合成 `AssistantIntent.orderBatch()`。
+  - `tryHandlePendingBatchPrompt()` 是当前 pending batch 上下文修复的关键入口，且在 AI 之前执行。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantAiIntentService.java`
+  - AI 结构化意图抽取服务。
+  - `isAvailable()` 条件是 `Config.aiNetworkEnabled && !Config.getAiApiKey().isEmpty()`。
+  - 构造 system prompt，要求模型只返回 JSON object；调用 `DeepSeekChatClient.chat()`，禁用 stream/search，然后交给 `AssistantAiIntentJsonParser`。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantAiIntentJsonParser.java`
+  - 从模型输出中抽取第一个 JSON object，解析 `tasks` array 为 `AssistantIntentPlan`。
+  - 校验 type、target、amount、optionNumber、storageScope、confidence 等字段。
+  - 任一 task 非法时返回 empty plan，触发 controller fallback。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentTask.java`
+  - AI task DTO。字段：`type`、`target`、`amount`、`optionNumber`、`storageScope`、`confidence`。
+  - 提供 `toIntent()`、`toOrderLine()`、`storageScopeFromString()`、`isValidStorageScope()`。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentPlan.java`
+  - AI task plan 容器。提供 `empty()`、`isEmpty()`、`size()`、`isChatOnly()`。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentService.java`
+  - 旧规则 parser，现在是 fallback 和 pending batch append 辅助解析的核心。
+  - 依赖 `AssistantLexicon` 识别查询、下单、确认、取消、计划等。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntent.java`
+  - 执行层 intent DTO。含 `STORAGE_SCOPE_ALL/ITEMS/FLUIDS`，以及 `orderBatch()` 工厂。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentType.java`
+  - intent 类型枚举。当前包含查询、下单、批量下单、确认、计划、取消、聊天等类型。新增了 `QUERY_ITEM_COUNT`、`QUERY_BYTES`。
+  - 注意：AI parser 不允许模型直接返回 `ORDER_BATCH`；只有 controller 内部聚合多个 `ORDER_ITEM` 后生成。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantOrderLine.java`
+  - batch order 行模型。保存 lineIndex、target、amount、候选列表和 selectedCandidate。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantSession.java`
+  - 客户端 pending state：候选项、recipe candidates、batch candidates、last user text。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantSessionKind.java`
+  - session 类型：`ORDER_CANDIDATES`、`RECIPE_CANDIDATES`、`ORDER_BATCH_CANDIDATES`、`WITHDRAW_CANDIDATES`、`WITHDRAW_BATCH_CANDIDATES`、`WITHDRAW_PARTIAL_CONFIRM`、
+    `ITEM_COUNT_CANDIDATES`（物品库存数量查询缩略图结果）、`STORAGE_CANDIDATES`（存储概览缩略图结果）、`TELEPORT_CANDIDATES` 等。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/WithdrawSubmitOutcome.java`
+  - AE2 取出物品的服务端结果封装。三种结果：`SUCCESS`、`FAILURE`、`PARTIAL_CONFIRM`（背包空间不足时触发）。
+
+- `src/main/java/com/imgood/advancedatamonitor/utils/PlayerInventoryUtil.java`
+  - 背包空间计算工具，用于判断玩家背包能放入多少物品，以及实际向背包插入物品。
+
+### Packet 和 server service
+
+- `src/main/java/com/imgood/advancedatamonitor/network/packet/PacketAssistantAction.java`
+  - 客户端到服务端 assistant 请求 packet。
+  - actions 1-7：craft candidates、submit craft、query、query recipe candidate、batch candidates、submit batch craft、cancel server jobs。
+  - `QUERY_STORAGE` 可通过 payload 携带 `storageScope`。
+
+- `src/main/java/com/imgood/advancedatamonitor/network/packet/PacketAssistantResponse.java`
+  - 服务端到客户端 assistant 响应 packet。
+  - 类型：message、candidates、batch candidates。
+  - `CANDIDATES` payload 可含 `batchIndex`/`batchCount`/`totalCount`/`append` 分批元数据。
+  - 客户端 handler 调用 `AssistantController.handleServerMessage()`、`handleCandidates()` 或 `handleBatchCandidates()`。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantCandidateDelivery.java`
+  - 服务端将候选项按 `assistantQueryCandidateBatchSize` 切分并连续 `sendTo` 多个 `CANDIDATES` 包；超 `assistantMaxQueryCandidates` 时附带截断提示。
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantServerServices.java`
+  - 服务端执行层。负责 AE2 crafting candidates、recipe summary、storage summary、submit craft、batch submit、cancel jobs、plan query。
+  - 新增 `queryStorageCandidates()` — 返回带缩略图的存储候选列表（支持 items/fluids scope）。
+  - 新增 `bytesSummary()` — 查询字节占用/容量/百分比，并检测 AE2Things 无限存储元件。内部使用 `scanNetworkCellsForInfinite()` + `classifyCell()` + `isInfiniteCell()`。
+  - 查找玩家附近 32 格内 `TileEntityAdvanceCraftingLink` / `TileEntityAdvanceStorageLink`。
+
+### 格式化、辅助、存储和 lexicon
+
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantFormatter.java`：候选项、批量订单行等面向聊天窗口的格式化输出。
+- `src/main/java/com/imgood/advancedatamonitor/assistant/PatternDetailFormatter.java`：AE2 pattern/recipe 详情格式化。
+- `src/main/java/com/imgood/advancedatamonitor/assistant/CraftingCandidate.java`：AE2 craftable candidate DTO，保存 index、displayName、registryName、meta、amount、item NBT。
+- `src/main/java/com/imgood/advancedatamonitor/assistant/OrderMemoryStore.java`：用户下单候选偏好记忆，用于 candidate 排序加权。
+- `src/main/java/com/imgood/advancedatamonitor/assistant/PlanStore.java`：简单 plan/task 存储，支持 create/list/complete。
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantDebugLog.java`：assistant 调试日志辅助，受配置影响写入诊断信息。
+- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantLexicon.java`：加载和提供 lexicon 数据；现在主要用于 fallback、时间/数量/词语清理、pending batch append 辅助解析。
+- `src/main/resources/assets/advancedatamonitor/assistant/assistant-lexicon.json`：规则 parser 词表，包含 order/query/confirm/cancel/plan/storage scope 等关键词。
+
+### AI client、配置和设置界面
+
+- `src/main/java/com/imgood/advancedatamonitor/ai/DeepSeekChatClient.java`
+  - OpenAI-compatible chat HTTP client。普通聊天和 AI intent 抽取都复用它。
+  - 支持非流式/流式、web search 请求格式、取消请求、debug logging。
+
+- `src/main/java/com/imgood/advancedatamonitor/ai/ChatRequestOptions.java`
+  - 单次 chat 请求选项：是否搜索、search mode、是否 stream。
+
+- `src/main/java/com/imgood/advancedatamonitor/Config.java`
+  - AI、voice、assistant 配置的内存字段、加载和保存。
+
+- `src/main/java/com/imgood/advancedatamonitor/gui/guiscreen/GuiAISettings.java`
+  - 游戏内 AI/voice 设置界面。
+
+- `src/main/java/com/imgood/advancedatamonitor/command/CommandAIConfig.java`
+  - 命令行配置入口，用于设置/查看 AI 相关配置。
+
+## A4. AI JSON schema 和 parser 行为
+
+`AssistantAiIntentService` 要求模型返回一个 JSON object，schema 如下：
+
+```json
+{
+  "tasks": [
+    {
+      "type": "QUERY_RECIPE|QUERY_STORAGE|QUERY_POWER|QUERY_ITEM_COUNT|QUERY_BYTES|ORDER_ITEM|WITHDRAW_ITEM|CONFIRM_OPTION|PLAN_CREATE|PLAN_LIST|PLAN_COMPLETE|CANCEL|CHAT",
+      "target": "...",
+      "amount": 1,
+      "optionNumber": -1,
+      "storageScope": "all|items|fluids",
+      "confidence": 0.9
+    }
+  ]
+}
+```
+
+当前 parser 规则：
+
+- 顶层必须有 `tasks` array。
+- 允许类型：`QUERY_RECIPE`、`QUERY_STORAGE`、`QUERY_ITEM_COUNT`、`QUERY_BYTES`、`QUERY_POWER`、`ORDER_ITEM`、`WITHDRAW_ITEM`、`CONFIRM_OPTION`、`PLAN_CREATE`、`PLAN_LIST`、`PLAN_COMPLETE`、`CANCEL`、`CHAT`。
+- `MAX_TASKS=8`，超过的 task 会被截断到前 8 个。
+- `MIN_CONFIDENCE=0.5`，且 confidence 不能大于 1.0。
+- 会从模型输出中提取第一个完整 JSON object；即使包在 markdown code fence 里，也会尝试抽取 `{...}`。
+- 任一 task 非法时，当前 parser 返回 empty plan；controller 随后整体 fallback 到规则 parser，而不是跳过单个坏 task。
+- `ORDER_BATCH` 不允许 AI 直接返回；多个 `ORDER_ITEM` 会在 controller 中聚合为 `AssistantIntent.orderBatch()`。
+- 类似地，`WITHDRAW_BATCH` 也不允许 AI 直接返回；多个 `WITHDRAW_ITEM` 会在 controller 聚合为 `AssistantIntent.withdrawBatch()`。
+- `WITHDRAW_ITEM` 表示从 AE2 存储中取出已有物品到玩家背包，区别于 `ORDER_ITEM`（合成/制作新物品）。AI prompt 中约定 craft/order/make/synthesize 逻辑用 `ORDER_ITEM`，take/pull/get/give-me/withdraw 逻辑用 `WITHDRAW_ITEM`。
+- `ORDER_ITEM` 空 target 非法。
+- `QUERY_RECIPE` 空 target 合法，用于浏览 AE2 可合成候选。
+- `storageScope` 只允许 `all`、`items`、`fluids`；空或缺省会按 `all` 处理。
+- `ORDER_ITEM`、`QUERY_RECIPE`、`QUERY_STORAGE` 的 amount 会归一化为至少 1；其他类型至少 0。
+
+## A5. Controller 执行逻辑
+
+- AI 可用判断：`Config.aiNetworkEnabled && !Config.getAiApiKey().isEmpty()`。
+- AI intent 解析在后台 daemon thread 执行；执行 plan 时通过 client thread 调度回 Minecraft 客户端线程。
+- `executePlan()`：
+  - `plan.isChatOnly()` 时直接进入普通聊天：`GuiAIChat.startNormalAiChatAfterAssistantParse(prompt)`。
+  - 多任务时先显示 `adm.ai.assistant.split_tasks`。
+  - 非 order/withdraw task 逐个 `executeTask()`。
+  - 多个 `ORDER_ITEM` 收集后由 `executeOrderTasks()` 聚合。
+  - 多个 `WITHDRAW_ITEM` 收集后由 `executeWithdrawTasks()` 聚合。
+- 多个查询会逐个发送 query packet。
+- 多个 `ORDER_ITEM` 会转成 `AssistantIntent.orderBatch()`，再请求 batch candidates。
+- `QUERY_STORAGE` 的显式 `storageScope` 会通过 `PacketAssistantAction.query(..., storageScope)` 写入 packet payload，服务端进入 `AssistantServerServices.queryStorageCandidates()`，返回缩略图候选列表（`STORAGE_CANDIDATES` session）。
+- `QUERY_BYTES` 通过 `requestServerQuery()` 发送，服务端调用 `bytesSummary()` 返回格式化文本，包含字节占用/容量/百分比以及无限存储元件检测结果。
+- `WITHDRAW_ITEM` 单任务：调用 `requestWithdrawCandidates()`，服务端通过 `AssistantServerServices.withdrawCandidates()` 搜索 AE2 存储网络（依赖附近 32 格内的 `TileEntityAdvanceStorageLink`）。候选项返回后通过 `confirmOption()` 走 `submitWithdraw()`。
+- `WITHDRAW_ITEM` 多任务：聚合为 `WITHDRAW_BATCH`，调用 `requestBatchWithdrawCandidates()`，服务端 `AssistantServerServices.batchWithdrawCandidates()` 逐行搜索候选项。确认后走 `submitBatchWithdraw()`，逐行执行取出并转入玩家背包。
+- 取出物品时如果背包空间不足以容纳全部数量，服务端返回 `WithdrawSubmitOutcome(PARTIAL_CONFIRM, ...)`，客户端进入 `WITHDRAW_PARTIAL_CONFIRM` session。用户确认后提交部分取出。
+- 批量取出时如果某一行空间不足会暂停整个批量操作，提示用户先单项确认。
+- `CONFIRM_OPTION` 当前根据 session kind 分流：
+  - `ORDER_CANDIDATES`：提交 craft。
+  - `RECIPE_CANDIDATES`：发送 `QUERY_RECIPE_CANDIDATE` 查询配方详情。
+  - `ORDER_BATCH_CANDIDATES`：走 `confirmBatch()` 批量提交。
+- `CANCEL` 会清空客户端 `AssistantSession`，发送 `PacketAssistantAction.cancelServerJobs()`，并提示取消动作。普通 AI chat HTTP 取消不走这里，而是 GUI cancel button 调 `currentClient.cancel()`。
+
+## A6. Pending batch 上下文修复
+
+当前已支持的本地上下文修复都在 `AssistantController.tryHandlePendingBatchPrompt()`，且在 AI 之前执行。前提是 `AssistantSession.client().getKind() == ORDER_BATCH_CANDIDATES` 或 `WITHDRAW_BATCH_CANDIDATES`。
+
+已支持行为：
+
+- 有 `ORDER_BATCH_CANDIDATES` 或 `WITHDRAW_BATCH_CANDIDATES` 时，以下确认类输入本地优先 `confirmBatch()` / `confirmWithdrawBatch()`：
+  - `确认`、`提交`、`继续`、`继续下单`、`确认下单`、`现在可以继续下单`
+  - 以及若干等价中文短语和英文 `confirm`、`submit`、`continue`
+- 追加类输入会解析新增订单行并追加到当前 batch，然后重新请求 batch candidates：
+  - `再加`、`加一个`、`添加`、`补一个`、`追加`、`再来`、`再要`
+  - 追加解析流程：先移除这些追加词，再补上“下单”前缀，交给 `AssistantIntentService.parse()`；如果解析出 `ORDER_ITEM` 或 `ORDER_BATCH`，就追加到当前 pending lines。
+- 合并类输入会按 target 保序合并数量，然后重新请求 batch candidates：
+  - 需要同时命中 `刚刚/刚才/之前/上次/前面` 和 `加起来/合并/汇总/一起/总共/加总` 这两组关键词。
+  - 合并逻辑使用 `LinkedHashMap<String, AssistantOrderLine>`，key 是原始 target 字符串，保留首次出现顺序，数量累加。
+- 这些逻辑先于 AI 执行，主要用于避免“继续”被 AI 或规则 parser 当作物品 target。
+
+当前限制：
+
+- 只是浅层关键词规则，不是真正长期记忆。
+- 只操作当前 pending batch，不会跨 GUI/session 或跨游戏重启恢复。
+- 追加语句仍依赖规则 parser，复杂自然语言追加可能失败。
+
+## A7. GUI 状态和聊天记录
+
+- `GuiAIChat` 的 `history` 指向 static `sharedHistory`，多次关闭再打开 GUI 会保留聊天记录，直到玩家点击清除按钮。
+- 清除按钮会清空共享 `history`、重置 scroll/status 并 rebuild display lines。
+- `scrollToBottomRequested` 在新增 user/assistant/server message、streaming delta、error、privacy notice/confirm 等路径都会置位；`rebuildDisplayLines()` 后会自动滚到底。
+- 普通聊天请求上下文由 `MAX_CONTEXT_MESSAGES=16` 控制，只取最近 16 条 history 加 system prompt。
+- `currentClient.cancel()` 只取消普通 AI chat 的 HTTP 请求。
+- 服务端 AE2 jobs cancel 通过 assistant `CANCEL` intent 发送到服务端。
+- 多界面共享 history，但每次 `initGui()` 都会新建一个 `AssistantController`。
+- 普通聊天 history 只在内存 static 中，不持久化到磁盘。
+
+## A8. Packet 和服务端执行
+
+`PacketAssistantAction` action 编号：
+
+1. `REQUEST_CRAFT_CANDIDATES`
+2. `SUBMIT_CRAFT`
+3. `QUERY`
+4. `QUERY_RECIPE_CANDIDATE`
+5. `REQUEST_BATCH_CANDIDATES`
+6. `SUBMIT_BATCH_CRAFT`
+7. `CANCEL_SERVER_JOBS`
+8. `REQUEST_WITHDRAW_CANDIDATES` — 请求 AE2 存储取出候选项
+9. `SUBMIT_WITHDRAW` — 提交单次取出（含 partialConfirm 标志）
+10. `REQUEST_BATCH_WITHDRAW_CANDIDATES` — 请求批量取出候选项
+11. `SUBMIT_BATCH_WITHDRAW` — 提交批量取出
+
+关键服务端行为：
+
+- `QUERY_STORAGE` payload 可包含 `storageScope`；如果存在，handler 调用 `AssistantServerServices.queryStorageCandidates(player, rawText, target, storageScope, locale)`，返回 `PacketAssistantResponse.candidates()` 带 `STORAGE_CANDIDATES` session kind。结果在客户端渲染为缩略图列表，支持输入序号取出物品。
+- `QUERY_BYTES` 通过标准 query 流程，handler 路由到 `AssistantServerServices.query()` → `bytesSummary()`，返回文本消息。
+- 空 target 的 `QUERY_RECIPE` 会返回 recipe candidates，即 `AssistantSessionKind.RECIPE_CANDIDATES`，让用户后续确认某个候选查看详情。
+- `AssistantServerServices` 查找附近 32 格：
+  - crafting：`TileEntityAdvanceCraftingLink`
+  - storage：`TileEntityAdvanceStorageLink`
+- server service 当前覆盖：
+  - AE2 crafting candidates
+  - recipe summary / pattern details
+  - storage summary（缩略图候选列表，含 item/fluid scope）+ 字节占用详情（含无限元件检测）
+  - submit craft
+  - batch candidates / batch submit
+  - cancel pending craft jobs
+  - plan create/list/complete
+  - withdraw candidates / submit withdraw / batch withdraw — 从 AE2 存储转移物品到玩家背包，含背包空间检测和部分取出确认
+  - 物品库存数量查询（QUERY_ITEM_COUNT，带 K/M/T 格式缩略图列表）
+  - 字节占用查询（QUERY_BYTES，含 scanNetworkCellsForInfinite 无限元件扫描）
+- batch submit 先校验每行都有 usable candidate、数量合法且不超过 `Config.assistantMaxOrderAmount`。
+- batch submit 还要求 `AssistantCraftJobManager.instance().availableSlots(player) >= lines.size()`；否则返回“可用 AE2 计算槽不足”，且不提交任何任务。
+
+## A9. 配置和命令
+
+`Config` 当前相关字段：
+
+- AI 网络和模型：`aiNetworkEnabled`、`aiApiKey`、`aiApiBaseUrl`、`aiModel`、`aiRecentModels`。
+- 搜索和流式：`aiWebSearchEnabled`、`aiWebSearchMode`、`aiStreamingEnabled`。
+- 调试和隐私：`aiDebugLogging`、`aiPrivacyConfirmed`。
+- HTTP 参数：`aiTimeoutSeconds`、`aiMaxTokens`、`aiTemperature`。
+- voice/STT：`voiceAssistantEnabled`、`voicePrivacyConfirmed`、`voiceSttBaseUrl`、`voiceSttApiKey`、`voiceSttModel`、`voiceSttTimeoutSeconds`。
+- assistant 执行限制：`assistantMaxOrderAmount`、`assistantMaxWithdrawAmount`、`assistantCraftJobTimeoutSeconds`、`assistantMaxConcurrentCraftJobs`。
+- AE2 候选项查询：`assistantQueryCandidateBatchSize`（每批网络包条数，默认 1000）、`assistantMaxQueryCandidates`（单次查询总上限，默认 20000）。
+
+配置入口：
+
+- `CommandAIConfig`：命令方式查看/修改 AI 配置，适合服务端或调试环境。
+- `GuiAISettings`：游戏内设置界面，配置 provider/base/model/search/streaming/debug/privacy/timeout/maxTokens/temperature，以及 voice 设置。
+- `AssistantLexicon` / `assistant-lexicon.json`：现在主要用于 fallback 和辅助解析/时间/数量/词语清理，不再是 assistant 主路径。
+
+## A10. 测试和验证状态
+
+- 测试入口：`src/test/java/test/AssistantIntentParserSuite.java`。
+- 覆盖内容：
+  - 旧规则 parser：storage、recipe、power、order、confirm、cancel、batch order、plan、chat fallback。
+  - AI JSON parser：单/多 task、batch order 的多个 `ORDER_ITEM`、confirm、chat、空 recipe target、空 order target 非法、低 confidence 非法、非法 storageScope、最多 8 task。
+- 当前尝试运行 `./gradlew.bat test` 的结果：Gradle wrapper 可启动，但未进入完整测试；`compileClasspath` 依赖解析失败，缺少以下依赖：
+  - `com.github.GTNewHorizons:Avaritiaddons:1.7.1-GTNH`
+  - `com.github.GTNewHorizons:Eternal-Singularity:1.2.1`
+  - `com.github.GTNewHorizons:Universal-Singularities:8.7.0`
+- 后续 agent 如果修复依赖源或本地缓存后，应重新运行 `./gradlew.bat test`，再根据输出确认 parser suite 是否通过。
+
+## A11. 当前已知限制和建议后续开发
+
+已知限制：
+
+- AI parser prompt 不带完整结构化历史，只靠当前句子 + controller pending batch 本地规则。
+- `再加...` fallback 解析仍依赖规则 parser，复杂追加句可能失败。
+- pending batch 合并按 target 字符串，不按 candidate registry/meta 规范化；例如 `木棍` 和 `minecraft:stick` 可能不会合并。
+- pending batch 重新请求 candidates 会刷新 session，旧 candidates 不保留。
+- 普通聊天历史存在内存 static，重启游戏不持久化到磁盘。
+- 多 GUI 实例共享 history，但 controller 每次打开 GUI 重新创建。
+- AI 输出非法时整计划 fallback，不是跳过单个坏 task。
+- 服务端返回多为格式化字符串，不是结构化结果。
+- 物品匹配仍偏 fuzzy contains，短词有误匹配风险。
+- AE2 候选项单次查询总上限由 `assistantMaxQueryCandidates` 控制（默认 20000）；超出会截断并提示。分批大小由 `assistantQueryCandidateBatchSize` 控制（默认 1000）。
+- AE2 查询半径、batch lines 上限等部分参数仍硬编码，例如附近 32 格、batch lines 上限 8。
+- 批量提交按行数占用 AE2 计算槽；重复项如果未合并会占更多槽。
+- 取出物品时背包空间不足会触发部分取出确认流程，但该确认复用 `CONFIRM_OPTION` intent，且只支持中文"确认"关键词。
+- 批量取出中某一行需要部分确认时，整个批量操作暂停，不能跳过该行继续后续行。
+- 取出物品依赖 AE2 `extractItems` API，如果存储单元不支持提取（如部分特殊存储），会失败。
+- 无限存储元件检测通过类名关键词（`infinity`/`infinite`/`creative`）和字节阈值（>10TB）判断，AE2Things 的流体单元通过反射 GlodBlock `FluidCellInventoryHandler` 额外检测，可能遗漏未识别的变种。
+
+建议下一步：
+
+- 引入结构化 conversation state，把 pending batch、最近候选、最近查询目标等作为显式上下文传给 AI intent parser。
+- 增加 batch edit API，支持 add/remove/update/merge line，而不是只靠重新请求 candidates。
+- 规范化 target/candidate identity，按 registryName + meta 或 item NBT 合并，而不是纯字符串。
+- 将服务层结果改为结构化 result，再由客户端 formatter 渲染，降低后续 UI/自动化成本。
+- 增加 mock 单元测试，覆盖 controller plan execution、pending batch 修复、packet payload、server service 边界。
+- 配置化硬编码参数：AE2 查询半径、batch line 上限、local inventory fallback 上限等（候选项总上限与分批大小已配置化）。
+
+## A12. 给后续 agent 的快速任务指南
+
+- 改 AI 意图抽取：优先看 `AssistantAiIntentService` 的 prompt 和 `AssistantAiIntentJsonParser` 的校验逻辑。
+- 改工具执行/多任务分发：看 `AssistantController.executePlan()`、`executeOrderTasks()`、`confirmOption()`、`tryHandlePendingBatchPrompt()`。
+- 改 AE2 行为：看 `AssistantServerServices`，以及 `AssistantCraftJobManager` 的并发/超时/取消逻辑。新增查询/操作类型时需同步更新 `query()` 方法的 switch 分支和 `PacketAssistantAction` handler。
+- 改无限元件检测：看 `AssistantServerServices.scanNetworkCellsForInfinite()`、`classifyCell()`、`isInfiniteCell()`。
+- 改 UI、聊天历史、滚动、普通聊天：看 `GuiAIChat`。
+- 改 voice 入口：看 `VoiceAssistantKeyHandler`、`SpeechToTextClient`、`VoiceCaptureService`。
+- 改 fallback：看 `AssistantIntentService`、`AssistantLexicon`、`assistant-lexicon.json`。
+- 改 packet 协议：看 `PacketAssistantAction` 和 `PacketAssistantResponse`，注意客户端/服务端读写 NBT 的兼容性。
+
+
+---
+
+# Part B — 必改文件速查
+
+## B1. 意图体系
+
+| 意图 | 类型枚举 | 涉及的类 |
+|------|---------|---------|
+| 查询 AE2 合成配方/样板 | `QUERY_RECIPE` | `AssistantIntentType`, `AssistantServerServices.recipeSummary()`, `PatternDetailFormatter` |
+| 查询 AE2 存储概览（缩略图） | `QUERY_STORAGE` | `AssistantIntentType`, `PacketAssistantAction` handler, `AssistantServerServices.queryStorageCandidatesResult()`, `AssistantCandidateDelivery`, `AssistantSessionKind.STORAGE_CANDIDATES`, `AssistantController.handleCandidates()` |
+| 查询物品/流体库存数量 | `QUERY_ITEM_COUNT` | `AssistantIntentType`, `PacketAssistantAction` handler, `AssistantServerServices.queryItemCountResult()`, `AssistantCandidateDelivery`, `AssistantSessionKind.ITEM_COUNT_CANDIDATES` |
+| 查询字节占用/容量/无限元件 | `QUERY_BYTES` | `AssistantIntentType`, `AssistantIntentService`, `AssistantAiIntentService`, `AssistantAiIntentJsonParser`, `PacketAssistantAction` handler, `AssistantServerServices.bytesSummary()` / `scanNetworkCellsForInfinite()` / `classifyCell()` / `isInfiniteCell()` |
+| 查询无线能源 | `QUERY_POWER` | `WirelessPowerQuery` |
+| 查询无线蒸汽 | `QUERY_STEAM` | `WirelessSteamQuery` |
+| 查询天气/时间/位置/群系 | `QUERY_WEATHER` 等 | `AssistantServerServices` (weatherSummary 等) |
+| 查询背包/网络/合成任务 | `QUERY_INVENTORY` 等 | `AssistantServerServices` |
+| 下单合成 | `ORDER_ITEM` | `AssistantIntentType`, `AssistantServerServices.queryCraftingCandidates()` / `AssistantCandidateDelivery` / `submitCraft()` |
+| 取出物品 | `WITHDRAW_ITEM` | `AssistantIntentType`, `AssistantServerServices.queryWithdrawCandidates()` / `AssistantCandidateDelivery` / `submitWithdraw()` |
+| 确认选项 | `CONFIRM_OPTION` | `AssistantController.confirmOption()`, `AssistantSession` |
+| 取消操作 | `CANCEL` | `AssistantController`, `AssistantServerServices.cancelPendingJobs()` |
+| 计划管理 | `PLAN_ADD/LIST/COMPLETE/DELETE/MODIFY` | `PlannerServerService`, `PlanStore` |
+
+## B2. 功能修改文件清单
+
+### 新增一个查询意图（以 QUERY_BYTES 为例）
+
+```
+必改文件：
+├─ AssistantIntentType.java          ← 添加枚举值
+├─ AssistantIntentService.java       ← 添加本地关键词匹配
+├─ AssistantAiIntentService.java     ← 添加 AI prompt 描述
+├─ AssistantAiIntentJsonParser.java  ← parseType() 接受新类型
+├─ AssistantServerServices.java      ← query() switch + 实现方法
+├─ PacketAssistantAction.java        ← handler 路由逻辑
+├─ AssistantController.java          ← executeIntent() 路由
+├─ assistant-features.json           ← 功能菜单配置
+├─ en_US.lang + zh_CN.lang           ← 双语文本
+
+可选文件：
+├─ AssistantSessionKind.java         ← 如需新的会话状态
+├─ GuiAIChat.assistantCapabilityInstruction() ← 功能列表更新
+└─ assistant-lexicon.json            ← 如需新词表
+```
+
+### 新增一个缩略图候选返回（以 STORAGE_CANDIDATES 为例）
+
+```
+必改文件：
+├─ AssistantSessionKind.java         ← 添加新枚举值
+├─ AssistantServerServices.java      ← 实现 queryXxxCandidates()
+├─ PacketAssistantAction.java        ← handler 调用 candidates() 返回
+├─ AssistantController.java          ← handleCandidates() 设置标题
+│                                      confirmOption() 支持新 kind
+│                                      tryPendingCandidateRuleFallback() 添加 kind
+│                                      executeIntent() 路由
+├─ en_US.lang + zh_CN.lang           ← 标题文本
+```
+
+### 修改 AI prompt / 意图解析
+
+```
+必看文件：
+├─ AssistantAiIntentService.java     ← buildSystemPrompt(), buildPendingSessionContext()
+├─ AssistantAiIntentJsonParser.java  ← parse(), parseType(), parseTask()
+├─ AssistantFeatureConfig.java       ← buildFeaturesInstruction() 自动从 JSON 生成
+├─ assistant-features.json           ← function list source of truth
+
+间接影响：
+└─ AssistantController.java          ← executePlan(), executeIntent()
+```
+
+### 修改网络包
+
+```
+必改文件：
+├─ PacketAssistantAction.java        ← 客户端→服务端包定义 + Handler
+├─ PacketAssistantResponse.java      ← 服务端→客户端包定义 + Handler
+├─ HandlerNetwork.java               ← 注册处理器
+└─ LoaderNetwork.java                ← 包 ID 注册（如需新 ID）
+```
+
+### 修改 GUI / 聊天界面
+
+```
+必改文件：
+├─ GuiAIChat.java                    ← 聊天窗口、缩略图渲染、功能菜单按钮
+├─ GuiAISettings.java                ← AI 配置界面
+└─ gui/custom/                       ← 自定义 GUI 基类组件
+```
+
+### 修改 AE2 交互
+
+```
+必看文件：
+├─ AssistantServerServices.java      ← 所有 AE2 查询/操作入口
+├─ AssistantCraftJobManager.java     ← 合成任务管理（异步+超时）
+├─ TileEntityAdvanceCraftingLink.java ← 合成网络连接器
+├─ TileEntityAdvanceStorageLink.java  ← 存储网络连接器
+└─ TileEntityAdvanceNetworkLink.java  ← 全网统计连接器
+```
+
+### 修改语音识别
+
+```
+必改文件：
+├─ VoiceCaptureService.java          ← 录音入口
+├─ SpeechToTextClient.java           ← STT 接口
+├─ VoskSpeechToTextClient.java       ← 离线 Vosk 识别
+├─ HttpSpeechToTextClient.java       ← HTTP STT（OpenAI 兼容）
+└─ VoiceAssistantKeyHandler.java     ← 热键触发
+```
+
+### 修改多语言文本
+
+```
+必改文件：
+├─ en_US.lang                        ← 英文翻译
+└─ zh_CN.lang                        ← 中文翻译
+
+Key 命名规范（详见 gtnh-mod-context.mdc）:
+  adm.error.xxx     — 错误提示
+  adm.label.xxx     — 标签文本
+  adm.button.xxx    — 按钮文本
+  adm.hint.xxx      — 输入框提示
+  adm.tooltip.xxx   — 悬浮提示
+  adm.ai.xxx        — AI 助手相关
+  adm.planner.xxx   — 计划器相关
+```
+
+## B3. assistant/ 核心文件路径（assistant/ 核心文件）
+
+| 文件 | 完整路径 |
+|------|---------|
+| IntentType | `src/main/java/.../assistant/AssistantIntentType.java` |
+| IntentService | `src/main/java/.../assistant/AssistantIntentService.java` |
+| AiIntentService | `src/main/java/.../assistant/AssistantAiIntentService.java` |
+| AiIntentJsonParser | `src/main/java/.../assistant/AssistantAiIntentJsonParser.java` |
+| ServerServices | `src/main/java/.../assistant/AssistantServerServices.java` |
+| Controller | `src/main/java/.../assistant/AssistantController.java` |
+| Session | `src/main/java/.../assistant/AssistantSession.java` |
+| SessionKind | `src/main/java/.../assistant/AssistantSessionKind.java` |
+| Formatter | `src/main/java/.../assistant/AssistantFormatter.java` |
+| Candidate | `src/main/java/.../assistant/CraftingCandidate.java` |
+| FeatureConfig | `src/main/java/.../assistant/AssistantFeatureConfig.java` |
+| features.json | `src/main/resources/.../config/assistant-features.json` |
+| PacketAction | `src/main/java/.../network/packet/PacketAssistantAction.java` |
+| PacketResponse | `src/main/java/.../network/packet/PacketAssistantResponse.java` |
+| GuiAIChat | `src/main/java/.../gui/guiscreen/GuiAIChat.java` |
+| lang | `src/main/resources/.../lang/zh_CN.lang` + `en_US.lang` |
+
+> 根包 = `com.imgood.advancedatamonitor`
+
+---
+
+# Part C — 本地语音转写
+
+## C1. 本地 STT 服务
+
+`tools/local-stt/` 提供 OpenAI-compatible 本地语音转写服务，暴露 `POST /v1/audio/transcriptions`，模组通过 `Config.voiceSttBaseUrl` 调用。
+
+**Windows 快速启动**：
+
+1. 在 PowerShell 中进入 `tools/local-stt/`
+2. 运行 `.\start-local-stt.bat`
+3. 首次运行会安装 Python 依赖并下载 Whisper 模型；游戏期间保持窗口开启
+
+## C2. 模组配置
+
+编辑 `.minecraft/config/advancedatamonitor/advancedatamonitor.cfg`：
+
+```text
+voice {
+    B:enabled=true
+    B:privacyConfirmed=true
+    S:sttBaseUrl=http://127.0.0.1:8000
+    S:sttApiKey=
+    S:sttModel=small
+    I:sttTimeoutSeconds=120
+}
+```
+
+`sttApiKey` 在 `127.0.0.1` / `localhost` 时可留空。
+
+也可使用模组内置 **Vosk 离线模型**（`assets/advancedatamonitor/voice/vosk/zh-small/`），无需本地 STT 服务；详见 [用户手册 §9](../player/用户手册.md#9-语音助手)。
+
+## C3. 环境变量与健康检查
+
+```powershell
+$env:ADM_STT_MODEL = "small"          # tiny, base, small, medium, large-v3 或本地模型路径
+$env:ADM_STT_LANGUAGE = "zh"          # 可选；留空自动检测
+$env:ADM_STT_DEVICE = "auto"          # auto, cpu, cuda
+$env:ADM_STT_COMPUTE_TYPE = "int8"    # CPU 用 int8；CUDA 常用 float16
+$env:ADM_STT_PORT = "8000"
+.\start-local-stt.bat
+```
+
+中文语音命令建议从 `small` 开始；识别不佳且机器性能允许时可试 `medium`。
+
+健康检查：访问 <http://127.0.0.1:8000/health>，应返回 `ok: true` 的 JSON。

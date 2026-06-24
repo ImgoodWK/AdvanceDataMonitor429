@@ -1,0 +1,18 @@
+// 可选全局初始化脚本：复制到 %USERPROFILE%\.gradle\init.d\mirrors.gradle
+// 为所有 Gradle 项目补充国内镜像（本项目已在 settings.gradle.kts 中配置，通常无需复制）
+
+allprojects {
+    buildscript {
+        repositories {
+            maven { name = "Aliyun Public"; url = "https://maven.aliyun.com/repository/public" }
+            maven { name = "Aliyun Gradle Plugin"; url = "https://maven.aliyun.com/repository/gradle-plugin" }
+            maven { name = "Aliyun Google"; url = "https://maven.aliyun.com/repository/google" }
+            maven { name = "Tencent Maven Public"; url = "https://mirrors.tencent.com/nexus/repository/maven-public/" }
+        }
+    }
+    repositories {
+        maven { name = "Aliyun Public"; url = "https://maven.aliyun.com/repository/public" }
+        maven { name = "Aliyun Google"; url = "https://maven.aliyun.com/repository/google" }
+        maven { name = "Tencent Maven Public"; url = "https://mirrors.tencent.com/nexus/repository/maven-public/" }
+    }
+}

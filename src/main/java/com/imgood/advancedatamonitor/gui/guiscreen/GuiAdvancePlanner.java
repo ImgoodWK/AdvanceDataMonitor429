@@ -17,12 +17,18 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiButton;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiScreen;
-import com.imgood.advancedatamonitor.gui.costom.ADM_GuiTextField;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
+import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
 import com.imgood.advancedatamonitor.items.PlannerEntry;
 
+/**
+ * Display names / 显示名称:
+ * - EN: Advance Planner
+ * - ZH: 高级计划器
+ * Lang keys: adm.planner.title
+ */
 public class GuiAdvancePlanner extends ADM_GuiScreen {
 
     private final ItemStack plannerStack;
@@ -482,6 +488,7 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
             editingField.setMaxStringLength(256);
             editingField.setBackgroundTexture(TEXTFIELD_TEXTURE);
             editingField.setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
+            editingField.setHintText(I18n.format("adm.planner.edit_hint"));
         }
     }
 
@@ -782,7 +789,7 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
 
                 // Timestamp (shown only if row is tall enough, at bottom right)
                 if (rowH >= minRowHeight + textLineHeight) {
-                    String timeStr = entry.getFormattedTime();
+                    String timeStr = I18n.format("adm.planner.added_at", entry.getFormattedTime());
                     int timeX = listStartX + listWidth - this.fontRendererObj.getStringWidth(timeStr) - 25;
                     this.fontRendererObj.drawString(timeStr, timeX, lineY - textLineHeight, timestampColor);
                 }
@@ -891,6 +898,14 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                 String tip = entry.isCompleted() ? I18n.format("adm.planner.mark_incomplete")
                     : I18n.format("adm.planner.mark_complete");
                 drawHoveringText(tip, mouseX, mouseY);
+                return;
+            }
+            int textX = listStartX + 50;
+            if (mouseX >= textX && mouseX <= listStartX + listWidth - 25) {
+                String status = entry.isCompleted() ? I18n.format("adm.planner.completed")
+                    : I18n.format("adm.planner.pending");
+                drawHoveringText(status, mouseX, mouseY);
+                return;
             }
         }
 

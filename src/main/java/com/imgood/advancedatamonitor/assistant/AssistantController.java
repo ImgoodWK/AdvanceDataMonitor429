@@ -15,7 +15,10 @@ import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAIChat;
 import com.imgood.advancedatamonitor.network.packet.PacketAssistantAction;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
+@SideOnly(Side.CLIENT)
 public class AssistantController {
 
     private final AssistantIntentService intentService = new AssistantIntentService();
@@ -922,6 +925,7 @@ public class AssistantController {
     }
 
     public static void handleServerMessage(String message) {
+        message = resolveAssistantServerMessage(message);
         AdvanceDataMonitor.LOG.info("[ADM Assistant] Server message received: {}", safe(message));
         AssistantDebugLog.append("client-response", safe(message));
         if (message != null
@@ -941,27 +945,53 @@ public class AssistantController {
         }
     }
 
+    private static String resolveAssistantServerMessage(String message) {
+        if (message == null || !message.startsWith(AssistantCandidateDelivery.I18N_TRUNCATED_PREFIX)) {
+            return message;
+        }
+        String rest = message.substring(AssistantCandidateDelivery.I18N_TRUNCATED_PREFIX.length());
+        int sep = rest.indexOf('|');
+        if (sep <= 0) {
+            return message;
+        }
+        try {
+            int shown = Integer.parseInt(rest.substring(0, sep));
+            int limit = Integer.parseInt(rest.substring(sep + 1));
+            return I18n.format("adm.ai.assistant.candidates_truncated", shown, limit);
+        } catch (NumberFormatException e) {
+            return message;
+        }
+    }
+
     public static void handleCandidates(String rawText, List<CraftingCandidate> candidates, AssistantSessionKind kind) {
+        handleCandidates(
+            rawText,
+            candidates,
+            kind,
+            CandidateBatchMeta.single(candidates == null ? 0 : candidates.size()));
+    }
+
+    public static void handleCandidates(String rawText, List<CraftingCandidate> candidates, AssistantSessionKind kind,
+        CandidateBatchMeta batchMeta) {
+        CandidateBatchMeta meta = batchMeta == null
+            ? CandidateBatchMeta.single(candidates == null ? 0 : candidates.size())
+            : batchMeta;
         AdvanceDataMonitor.LOG.info(
-            "[ADM Assistant] Server candidates received: raw='{}', kind={}, count={}",
+            "[ADM Assistant] Server candidates received: raw='{}', kind={}, count={}, batch={}/{}, append={}",
             safe(rawText),
             kind,
-            candidates == null ? 0 : candidates.size());
+            candidates == null ? 0 : candidates.size(),
+            meta.batchIndex + 1,
+            meta.batchCount,
+            meta.append);
         AssistantSessionKind effectiveKind = kind == null ? AssistantSessionKind.ORDER_CANDIDATES : kind;
-        AssistantSession.client()
-            .setPendingCandidates(rawText, candidates, effectiveKind);
-        String title;
-        if (effectiveKind == AssistantSessionKind.RECIPE_CANDIDATES) {
-            title = I18n.format("adm.ai.assistant.recipe_candidates_title");
-        } else if (effectiveKind == AssistantSessionKind.WITHDRAW_CANDIDATES) {
-            title = I18n.format("adm.ai.assistant.withdraw_candidates_title");
-        } else if (effectiveKind == AssistantSessionKind.ITEM_COUNT_CANDIDATES) {
-            title = I18n.format("adm.ai.assistant.item_count_candidates_title");
-        } else if (effectiveKind == AssistantSessionKind.STORAGE_CANDIDATES) {
-            title = I18n.format("adm.ai.assistant.storage_candidates_title");
+        AssistantSession session = AssistantSession.client();
+        if (meta.append) {
+            session.appendPendingCandidates(candidates);
         } else {
-            title = I18n.format("adm.ai.assistant.craft_candidates_title");
+            session.setPendingCandidates(rawText, candidates, effectiveKind);
         }
+        String title = resolveCandidateTitle(effectiveKind, meta, candidates);
         Minecraft mc = Minecraft.getMinecraft();
         String message = AssistantFormatter.candidates(title, candidates);
         if (mc.currentScreen instanceof GuiAIChat) {
@@ -969,6 +999,46 @@ public class AssistantController {
         } else {
             handleServerMessage(message);
         }
+    }
+
+    private static String resolveCandidateTitle(AssistantSessionKind kind, CandidateBatchMeta meta,
+        List<CraftingCandidate> candidates) {
+        int rangeStart = meta.rangeStart();
+        int rangeEnd = meta.rangeEnd();
+        if (candidates != null && !candidates.isEmpty()) {
+            rangeStart = candidates.get(0).index;
+            rangeEnd = candidates.get(candidates.size() - 1).index;
+        }
+        if (meta.append) {
+            return I18n.format(
+                "adm.ai.assistant.candidates_batch_title",
+                meta.batchIndex + 1,
+                meta.batchCount,
+                rangeStart,
+                rangeEnd,
+                meta.totalCount);
+        }
+        String base;
+        if (kind == AssistantSessionKind.RECIPE_CANDIDATES) {
+            base = I18n.format("adm.ai.assistant.recipe_candidates_title");
+        } else if (kind == AssistantSessionKind.WITHDRAW_CANDIDATES) {
+            base = I18n.format("adm.ai.assistant.withdraw_candidates_title");
+        } else if (kind == AssistantSessionKind.ITEM_COUNT_CANDIDATES) {
+            base = I18n.format("adm.ai.assistant.item_count_candidates_title");
+        } else if (kind == AssistantSessionKind.STORAGE_CANDIDATES) {
+            base = I18n.format("adm.ai.assistant.storage_candidates_title");
+        } else {
+            base = I18n.format("adm.ai.assistant.craft_candidates_title");
+        }
+        if (meta.batchCount > 1) {
+            return I18n.format(
+                "adm.ai.assistant.candidates_first_batch_title",
+                base,
+                meta.totalCount,
+                meta.batchIndex + 1,
+                meta.batchCount);
+        }
+        return base;
     }
 
     public static void handleBatchCandidates(String rawText, List<AssistantOrderLine> lines) {

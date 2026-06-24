@@ -1,7 +1,6 @@
 package com.imgood.advancedatamonitor.network.packet;
 
-// 原有导入保持不变
-import net.minecraft.client.Minecraft;
+// Client handler uses Minecraft; keep import scoped to nested class only via fully qualified name below.
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
@@ -87,23 +86,6 @@ public class PacketSynTileEntity implements IMessage {
         this.data = data;
     }
 
-    public static class ServerHandler implements IMessageHandler<PacketSynTileEntity, IMessage> {
-
-        @Override
-        public IMessage onMessage(PacketSynTileEntity message, MessageContext ctx) {
-            World world = ctx.getServerHandler().playerEntity.worldObj;
-            TileEntity te = world.getTileEntity(message.x, message.y, message.z);
-            if (te instanceof TileEntityAdvanceDataMonitor) {
-                TileEntityAdvanceDataMonitor tile = (TileEntityAdvanceDataMonitor) te;
-                tile.readFromNBT(message.data);
-                tile.markDirty();
-                // 同步到所有客户端
-                // ((TileEntityAdvanceDataMonitor) te).syncData();
-            }
-            return null;
-        }
-    }
-
     @SideOnly(Side.CLIENT)
     public static class ClientHandler implements IMessageHandler<PacketSynTileEntity, IMessage> {
 
@@ -111,7 +93,7 @@ public class PacketSynTileEntity implements IMessage {
         public IMessage onMessage(PacketSynTileEntity message, MessageContext ctx) {
             // AdvanceDataMonitor.LOG.info("Received sync packet at ({}, {}, {})", message.getX(), message.getY(),
             // message.getZ());
-            World world = Minecraft.getMinecraft().theWorld; // 确保获取客户端World
+            World world = net.minecraft.client.Minecraft.getMinecraft().theWorld; // 确保获取客户端World
             TileEntity te = world.getTileEntity(message.getX(), message.getY(), message.getZ());
             if (te instanceof TileEntityAdvanceDataMonitor) {
                 te.readFromNBT(message.getData());

@@ -20,7 +20,12 @@ import appeng.items.contents.CellConfig;
 import appeng.items.contents.CellUpgrades;
 
 /**
- * Cell used by Advance Storage Link. The AE cell workbench partition slots define
+ * Display names / 显示名称:
+ * - EN: Advanced Storage Link Cell
+ * - ZH: 高级存储链接元件
+ * Lang keys: item.advanceStorageLinkCell.name
+ *
+ * Cell used by Advanced Storage Linker. The AE cell workbench partition slots define
  * which items this cell contributes to the Storage Link display.
  */
 public class ItemAdvanceStorageLinkCell extends Item implements ICellWorkbenchItem {

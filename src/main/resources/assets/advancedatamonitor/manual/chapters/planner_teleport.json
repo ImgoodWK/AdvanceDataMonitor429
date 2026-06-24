@@ -1,0 +1,35 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.planner_teleport",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner_teleport.overview_title",
+      "textKey": "adm.manual.planner_teleport.overview_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner_teleport.planner_usage_title",
+      "textKey": "adm.manual.planner_teleport.planner_usage_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner_teleport.planner_entries_title",
+      "textKey": "adm.manual.planner_teleport.planner_entries_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner_teleport.planner_merge_title",
+      "textKey": "adm.manual.planner_teleport.planner_merge_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner_teleport.planner_hud_title",
+      "textKey": "adm.manual.planner_teleport.planner_hud_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner_teleport.teleport_title",
+      "textKey": "adm.manual.planner_teleport.teleport_text"
+    }
+  ]
+}
