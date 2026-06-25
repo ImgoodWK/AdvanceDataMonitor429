@@ -1567,7 +1567,8 @@ public class GuiSubAEAdvanceNetworkLink extends ADM_GuiScreen {
         }
 
         GuiButton btnCollect = getButtonByid(18);
-        if (btnCollect != null && mouseX >= btnCollect.xPosition && mouseX < btnCollect.xPosition + btnCollect.width
+        if (btnCollect != null && mouseX >= btnCollect.xPosition
+            && mouseX < btnCollect.xPosition + btnCollect.width
             && mouseY >= btnCollect.yPosition
             && mouseY < btnCollect.yPosition + btnCollect.height) {
             drawHoveringText(I18n.format("adm.tooltip.collect"), mouseX, mouseY);

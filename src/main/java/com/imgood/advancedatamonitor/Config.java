@@ -6,6 +6,7 @@ import net.minecraftforge.common.config.Configuration;
 
 import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles.ProviderProfile;
 import com.imgood.advancedatamonitor.config.ConfigAssistantLoader;
+import com.imgood.advancedatamonitor.config.ConfigCompatLoader;
 import com.imgood.advancedatamonitor.config.ConfigDataLoomLoader;
 import com.imgood.advancedatamonitor.config.ConfigDebugLoader;
 import com.imgood.advancedatamonitor.config.ConfigGrappleLoader;
@@ -20,6 +21,10 @@ import cpw.mods.fml.common.FMLCommonHandler;
 public class Config {
 
     private static File activeConfigFile;
+
+    // --- compat ---
+    /** {@code auto}, {@code legacy}, or {@code native} — forces AE integration profile when not auto. */
+    public static String compatAeProfileOverride = "auto";
 
     // --- debug (defaults false) ---
     public static boolean debugGeneral = false;
@@ -112,6 +117,7 @@ public class Config {
         Configuration configuration = new Configuration(configFile);
 
         ConfigDebugLoader.load(configuration);
+        ConfigCompatLoader.load(configuration);
         ConfigAssistantLoader.load(configuration);
         ConfigPlannerHudLoader.load(configuration);
         ConfigDataLoomLoader.load(configuration);
@@ -282,14 +288,8 @@ public class Config {
         if (!isClientSide()) {
             return;
         }
-        com.imgood.advancedatamonitor.client.AiClientPreferences.saveVoiceSettings(
-            enabled,
-            privacyConfirmed,
-            sttMode,
-            sttBaseUrl,
-            sttApiKey,
-            sttModel,
-            timeoutSeconds);
+        com.imgood.advancedatamonitor.client.AiClientPreferences
+            .saveVoiceSettings(enabled, privacyConfirmed, sttMode, sttBaseUrl, sttApiKey, sttModel, timeoutSeconds);
     }
 
     public static boolean isEmbeddedVoskVoiceMode() {

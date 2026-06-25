@@ -231,14 +231,14 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 20,
                 this.tileEntityAdvanceDataMonitor.isVisableScreen() ? I18n.format("adm.button.hide")
                     : I18n.format("adm.button.show")).setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
-                    .setUseRGBEffect(buttonRow1RGB)
-                    .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
-                    .setDecorationWidth(20)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(buttonRow1RGB)
+                        .setUseHoverEffect(true)
+                        .setLeftDecoration(button_hover_texture)
+                        .setRightDecoration(button_hover_texture)
+                        .setDecorationWidth(20)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
             new ADM_GuiButton(
@@ -249,14 +249,14 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 20,
                 this.tileEntityAdvanceDataMonitor.isRenderBothSides() ? I18n.format("adm.button.both")
                     : I18n.format("adm.button.single")).setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
-                    .setUseRGBEffect(buttonRow1RGB)
-                    .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
-                    .setDecorationWidth(20)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
+                        .setHoverTexture(button_hover_texture)
+                        .setUseRGBEffect(buttonRow1RGB)
+                        .setUseHoverEffect(true)
+                        .setLeftDecoration(button_hover_texture)
+                        .setRightDecoration(button_hover_texture)
+                        .setDecorationWidth(20)
+                        .setTextColor(textColor)
+                        .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
             new ADM_GuiButton(

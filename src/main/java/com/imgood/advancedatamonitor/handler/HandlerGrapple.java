@@ -5,8 +5,6 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 
-import com.imgood.advancedatamonitor.handler.GrappleNodeIndex;
-import com.imgood.advancedatamonitor.handler.GrapplePlayerState;
 import com.imgood.advancedatamonitor.loader.LoaderBlock;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;

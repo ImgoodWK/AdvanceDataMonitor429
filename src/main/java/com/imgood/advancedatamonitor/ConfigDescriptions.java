@@ -15,6 +15,12 @@ public final class ConfigDescriptions {
 
     static {
         put(
+            "compat",
+            "aeProfileOverride",
+            "AE integration profile: auto (detect GTNH/AE2 version), legacy (pre-2.9.0 beta-1), or native (2.9.0 beta-1+ native fluids).",
+            "AE 集成配置：auto（自动检测 GTNH/AE2 版本）、legacy（2.9.0 beta-1 之前）或 native（2.9.0 beta-1 及以上原生流体）。");
+
+        put(
             "debug",
             "general",
             "Enable general mod debug traces (for example NBT JSON parser diagnostics).",

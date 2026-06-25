@@ -5,7 +5,6 @@ import java.util.Random;
 import net.minecraft.world.World;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
-import com.imgood.advancedatamonitor.handler.StarryCosmosSwordConstants;
 
 /**
  * Custom sound effects for Empyrean Holy Judgment (CC0 Kenney assets — see assets/.../sound/CREDITS.txt).

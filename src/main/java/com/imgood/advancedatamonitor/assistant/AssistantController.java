@@ -15,6 +15,7 @@ import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAIChat;
 import com.imgood.advancedatamonitor.network.packet.PacketAssistantAction;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 

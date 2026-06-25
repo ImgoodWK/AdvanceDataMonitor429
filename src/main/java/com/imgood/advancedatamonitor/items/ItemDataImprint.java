@@ -1,8 +1,8 @@
 package com.imgood.advancedatamonitor.items;
 
-import net.minecraft.block.Block;
 import java.util.List;
 
+import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -18,7 +18,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.imgood.advancedatamonitor.client.ItemClientGui;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
-import com.imgood.advancedatamonitor.utils.NBTJsonParserHelper;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

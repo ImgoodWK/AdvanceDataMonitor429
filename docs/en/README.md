@@ -35,6 +35,8 @@
 | [developer/technical-documentation.md](developer/technical-documentation.md) | Structure, Forge registration, modules, data flow (Advance Planner API: §5.11) |
 | [developer/gradle-workflow.md](developer/gradle-workflow.md) | Build / migration (body in Chinese; see header note) |
 | [developer/temporary-textures.md](developer/temporary-textures.md) | Missing/placeholder block & item texture audit; **temporary** procedural art |
+| [developer/gtnh-version-compatibility.md](developer/gtnh-version-compatibility.md) | v1.0.0 GTNH 2.8.x / 2.9.0-beta+ support and planned Legacy removal |
+| [developer/ae-compat-290.md](developer/ae-compat-290.md) | AE dual-path compat technical reference |
 
 ### AI assistant
 

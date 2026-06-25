@@ -65,21 +65,27 @@ public class ItemSuperOrange extends Item {
             if (enabled && Config.superOrangeDropMultiplierEnabled) {
                 player.addChatMessage(
                     new ChatComponentText(
-                        EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.matter_ball.on", multiplier)));
+                        EnumChatFormatting.GOLD + StatCollector
+                            .translateToLocalFormatted("adm.super_orange.toggle.matter_ball.on", multiplier)));
             } else {
                 player.addChatMessage(
                     new ChatComponentText(
-                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.matter_ball.off")));
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.matter_ball.off")));
             }
         } else {
             boolean enabled = !isDroneEnabled(stack);
             setDroneEnabled(stack, enabled);
             if (enabled) {
                 player.addChatMessage(
-                    new ChatComponentText(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.drone.on")));
+                    new ChatComponentText(
+                        EnumChatFormatting.GOLD
+                            + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.drone.on")));
             } else {
                 player.addChatMessage(
-                    new ChatComponentText(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.drone.off")));
+                    new ChatComponentText(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.drone.off")));
             }
         }
 
@@ -90,8 +96,10 @@ public class ItemSuperOrange extends Item {
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List<String> tooltip, boolean advanced) {
         tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("adm.super_orange.tooltip.title"));
-        tooltip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.toggle_matter"));
-        tooltip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.toggle_drone"));
+        tooltip.add(
+            EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.toggle_matter"));
+        tooltip.add(
+            EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.toggle_drone"));
         tooltip.add("");
 
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.mine"));
@@ -101,35 +109,44 @@ public class ItemSuperOrange extends Item {
         appendDroneLines(stack, tooltip);
         appendNameplateLines(stack, tooltip);
 
-        tooltip.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.legendary"));
+        tooltip.add(
+            EnumChatFormatting.LIGHT_PURPLE
+                + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.legendary"));
         super.addInformation(stack, player, tooltip, advanced);
     }
 
     private void appendHeadEffectsLine(List<String> tooltip) {
         if (!Config.superOrangeHeadEffectsEnabled) {
-            tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.head_effects.disabled"));
+            tooltip.add(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.head_effects.disabled"));
             return;
         }
-        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.head_effects.enabled"));
+        tooltip.add(
+            EnumChatFormatting.GRAY
+                + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.head_effects.enabled"));
     }
 
     private void appendMatterBallLine(ItemStack stack, List<String> tooltip) {
         int multiplier = Math.max(1, Config.superOrangeDropMultiplier);
         if (!Config.superOrangeDropMultiplierEnabled) {
             tooltip.add(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.matter_ball.config_off", multiplier));
+                EnumChatFormatting.GRAY + StatCollector
+                    .translateToLocalFormatted("adm.super_orange.tooltip.matter_ball.config_off", multiplier));
             return;
         }
 
         boolean active = isMatterBallFeatureActive(stack);
         tooltip.add(
-            EnumChatFormatting.GRAY
-                + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.matter_ball", multiplier, formatState(active)));
+            EnumChatFormatting.GRAY + StatCollector
+                .translateToLocalFormatted("adm.super_orange.tooltip.matter_ball", multiplier, formatState(active)));
     }
 
     private void appendDroneLines(ItemStack stack, List<String> tooltip) {
         if (!Config.superOrangeDroneEnabled) {
-            tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.drone.config_off"));
+            tooltip.add(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.drone.config_off"));
             return;
         }
 
@@ -145,17 +162,26 @@ public class ItemSuperOrange extends Item {
                 state));
 
         if (Config.superOrangeProjectileImmunityEnabled) {
-            tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.projectile", state));
+            tooltip.add(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.projectile", state));
         } else {
-            tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.projectile.config_off"));
+            tooltip.add(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.projectile.config_off"));
         }
     }
 
     private void appendNameplateLines(ItemStack stack, List<String> tooltip) {
-        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.nameplate_rename"));
+        tooltip.add(
+            EnumChatFormatting.GRAY
+                + StatCollector.translateToLocalFormatted("adm.super_orange.tooltip.nameplate_rename"));
         String name = getNameplateText(stack);
         if (name != null && !name.isEmpty()) {
-            tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("adm.super_orange.nameplate") + ": " + name);
+            tooltip.add(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("adm.super_orange.nameplate")
+                    + ": "
+                    + name);
         }
     }
 

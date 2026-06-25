@@ -15,17 +15,17 @@ import org.lwjgl.input.Mouse;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.assistant.AssistantController;
+import com.imgood.advancedatamonitor.assistant.AssistantFeatureConfig;
+import com.imgood.advancedatamonitor.assistant.AssistantFeatureConfig.FeatureEntry;
+import com.imgood.advancedatamonitor.assistant.AssistantOrderLine;
+import com.imgood.advancedatamonitor.assistant.CraftingCandidate;
 import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles;
 import com.imgood.advancedatamonitor.assistant.ai.AiProviderProfiles.SearchCapability;
 import com.imgood.advancedatamonitor.assistant.ai.ChatRequestOptions;
 import com.imgood.advancedatamonitor.assistant.ai.ChatResponse;
 import com.imgood.advancedatamonitor.assistant.ai.DeepSeekChatClient;
 import com.imgood.advancedatamonitor.assistant.ai.DeepSeekChatClient.ChatMessage;
-import com.imgood.advancedatamonitor.assistant.AssistantController;
-import com.imgood.advancedatamonitor.assistant.AssistantFeatureConfig;
-import com.imgood.advancedatamonitor.assistant.AssistantFeatureConfig.FeatureEntry;
-import com.imgood.advancedatamonitor.assistant.AssistantOrderLine;
-import com.imgood.advancedatamonitor.assistant.CraftingCandidate;
 import com.imgood.advancedatamonitor.gui.custom.ADM_GuiButton;
 import com.imgood.advancedatamonitor.gui.custom.ADM_GuiScreen;
 import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
@@ -511,8 +511,10 @@ public class GuiAIChat extends ADM_GuiScreen {
                 }
                 requestScrollToBottom();
                 final int assistantIndex = streamingIndex;
-                ChatResponse response = client
-                    .chat(requestMessages, options, new com.imgood.advancedatamonitor.assistant.ai.ChatStreamListener() {
+                ChatResponse response = client.chat(
+                    requestMessages,
+                    options,
+                    new com.imgood.advancedatamonitor.assistant.ai.ChatStreamListener() {
 
                         @Override
                         public void onDelta(String delta) {

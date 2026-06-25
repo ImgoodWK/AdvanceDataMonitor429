@@ -14,10 +14,9 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
-import com.glodblock.github.common.item.ItemFluidPacket;
-import com.glodblock.github.util.Util;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.compat.ae.AeCompat;
 
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
@@ -263,14 +262,8 @@ public final class DataLoomCellUtil {
      * GT dust ore-dictionary prefixes (longest first). Same family as TakoTech {@code OreStorageType} dust cells:
      * item must register at least one equivalent starting with one of these prefixes.
      */
-    private static final String[] DUST_ORE_DICT_PREFIXES = {
-        "dusttiny",
-        "dustsmall",
-        "dustimpure",
-        "dustpure",
-        "dustrefined",
-        "dust",
-    };
+    private static final String[] DUST_ORE_DICT_PREFIXES = { "dusttiny", "dustsmall", "dustimpure", "dustpure",
+        "dustrefined", "dust", };
 
     /** True when the stack has an ore-dictionary name with a GT dust prefix (dust / dustTiny / …). */
     public static boolean isDustItem(ItemStack stack) {
@@ -597,79 +590,10 @@ public final class DataLoomCellUtil {
         return handlerStack;
     }
 
-    /** Resolve a Cell Workbench partition marker to a fluid type (AE2FC fluid-cell rules). */
+    /** Resolve a Cell Workbench partition marker to a fluid type (profile-aware). */
     public static FluidStack resolveMarkerFluid(ItemStack markerItem) {
-        if (markerItem == null || markerItem.getItem() == null) {
-            return null;
-        }
-
-        // NBT-first: AE2FC ItemFluidPacket.getFluidStack() rejects amount <= 0, but workbench ghosts may use 0.
-        FluidStack fromNbt = resolveMarkerFluidFromNbt(markerItem);
-        if (fromNbt != null) {
-            return fromNbt;
-        }
-
-        if (markerItem.getItem() instanceof ItemFluidPacket) {
-            FluidStack packetFluid = ItemFluidPacket.getFluidStack(markerItem);
-            if (packetFluid != null && packetFluid.getFluid() != null) {
-                return normalizeMarkerFluid(packetFluid);
-            }
-        }
-
-        FluidStack fluid = Util.getFluidFromVirtual(markerItem);
-        if (fluid != null && fluid.getFluid() != null) {
-            return normalizeMarkerFluid(fluid);
-        }
-
-        fluid = Util.getFluidFromItem(markerItem);
-        if (fluid != null && fluid.getFluid() != null) {
-            return normalizeMarkerFluid(fluid);
-        }
-
-        try {
-            appeng.api.storage.data.IAEFluidStack aeFluid = Util.loadFluidStackFromNBT(markerItem.getTagCompound());
-            if (aeFluid != null && aeFluid.getFluid() != null) {
-                return normalizeMarkerFluid(aeFluid.getFluidStack());
-            }
-        } catch (Throwable ignored) {
-            // AE2FC util optional path
-        }
-
-        return null;
-    }
-
-    private static FluidStack resolveMarkerFluidFromNbt(ItemStack markerItem) {
-        if (!markerItem.hasTagCompound()) {
-            return null;
-        }
-        NBTTagCompound tag = markerItem.getTagCompound();
-        try {
-            if (tag.hasKey("FluidStack", 10)) {
-                FluidStack nested = FluidStack.loadFluidStackFromNBT(tag.getCompoundTag("FluidStack"));
-                if (nested != null && nested.getFluid() != null) {
-                    return normalizeMarkerFluid(nested);
-                }
-            }
-            FluidStack fluid = FluidStack.loadFluidStackFromNBT(tag);
-            if (fluid != null && fluid.getFluid() != null) {
-                return normalizeMarkerFluid(fluid);
-            }
-        } catch (Throwable ignored) {
-            // ignore malformed ghost stacks
-        }
-        return null;
-    }
-
-    /** Marker slots only define type; normalize amount so downstream capacity math stays stable. */
-    private static FluidStack normalizeMarkerFluid(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) {
-            return null;
-        }
-        FluidStack copy = fluid.copy();
-        if (copy.amount <= 0) {
-            copy.amount = 1000;
-        }
-        return copy;
+        return AeCompat.fluidMarkers()
+            .resolveMarkerFluid(markerItem);
     }
 
     public static List<FluidStack> readPartitionFluids(IInventory config) {

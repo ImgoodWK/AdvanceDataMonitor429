@@ -15,10 +15,10 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.gui.handler.GuiHandler;
 import com.imgood.advancedatamonitor.handler.GrappleAnchorPositions;
 import com.imgood.advancedatamonitor.handler.GrappleNodeIndex;
 import com.imgood.advancedatamonitor.handler.GrapplePlayerState;
-import com.imgood.advancedatamonitor.gui.handler.GuiHandler;
 import com.imgood.advancedatamonitor.items.ItemGrappleHook;
 import com.imgood.advancedatamonitor.tileentity.TileEntityGrappleAnchor;
 

@@ -31,11 +31,8 @@ public class HandlerNetwork implements IMessageHandler<PacketItemNBT, IMessage> 
         if (message.textData.length() > 4096) {
             return null;
         }
-        if (!NetworkValidationUtil.isWithinReach(
-            player,
-            message.position.getX(),
-            message.position.getY(),
-            message.position.getZ())) {
+        if (!NetworkValidationUtil
+            .isWithinReach(player, message.position.getX(), message.position.getY(), message.position.getZ())) {
             return null;
         }
 

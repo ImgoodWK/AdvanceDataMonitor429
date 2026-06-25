@@ -504,7 +504,8 @@ public final class GrappleSelectionUtil {
             + (player.posY - lastRangeScanY) * (player.posY - lastRangeScanY)
             + (player.posZ - lastRangeScanZ) * (player.posZ - lastRangeScanZ);
         if (!cachedRangeNodes.isEmpty() && tick - lastRangeScanTick < RANGE_SCAN_INTERVAL_TICKS
-            && moveSq < RANGE_SCAN_MOVE_THRESHOLD_SQ && Math.abs(maxRange - lastRangeScanMaxRange) < 0.01D) {
+            && moveSq < RANGE_SCAN_MOVE_THRESHOLD_SQ
+            && Math.abs(maxRange - lastRangeScanMaxRange) < 0.01D) {
             return cachedRangeNodes;
         }
         cachedRangeNodes = findNodesInRange(player, maxRange);

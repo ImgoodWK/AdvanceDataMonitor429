@@ -25,8 +25,7 @@ public final class GrappleClientNodeIndex {
 
     public static final GrappleClientNodeIndex INSTANCE = new GrappleClientNodeIndex();
 
-    private final Map<Integer, Map<ChunkCoordIntPair, List<BlockPos>>> byDimension =
-        new HashMap<Integer, Map<ChunkCoordIntPair, List<BlockPos>>>();
+    private final Map<Integer, Map<ChunkCoordIntPair, List<BlockPos>>> byDimension = new HashMap<Integer, Map<ChunkCoordIntPair, List<BlockPos>>>();
 
     private GrappleClientNodeIndex() {}
 

@@ -19,10 +19,9 @@ import net.minecraftforge.common.util.EnumHelper;
 import com.imgood.advancedatamonitor.entity.EntityStarrySwordLineSlash;
 import com.imgood.advancedatamonitor.entity.EntityStarrySwordLineStab;
 import com.imgood.advancedatamonitor.entity.EntityStarrySwordThrown;
-import com.imgood.advancedatamonitor.loader.LoaderItem;
+import com.imgood.advancedatamonitor.handler.StarryCosmosSounds;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSwordConstants;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSwordUtil;
-import com.imgood.advancedatamonitor.handler.StarryCosmosSounds;
 import com.imgood.advancedatamonitor.handler.StarryEntityMotionUtil;
 
 import cpw.mods.fml.relauncher.Side;
@@ -70,15 +69,15 @@ public class ItemStarryCosmosSword extends ItemSword implements ICosmicRenderIte
         if (targets.isEmpty()) {
             return;
         }
-        StarryCosmosSounds.playJudgmentCast(world, player.posX, player.posY + player.getEyeHeight() * 0.5D, player.posZ);
+        StarryCosmosSounds
+            .playJudgmentCast(world, player.posX, player.posY + player.getEyeHeight() * 0.5D, player.posZ);
         float displayYaw = player.rotationYaw;
         float miniScale = StarryCosmosSwordConstants.SCALE_LINE_STAB_MINI;
         for (EntityLivingBase target : targets) {
             if (target == null || target.isDead) {
                 continue;
             }
-            world.spawnEntityInWorld(
-                new EntityStarrySwordLineStab(world, target, player, displayYaw, miniScale));
+            world.spawnEntityInWorld(new EntityStarrySwordLineStab(world, target, player, displayYaw, miniScale));
         }
     }
 
@@ -86,11 +85,8 @@ public class ItemStarryCosmosSword extends ItemSword implements ICosmicRenderIte
     public boolean hitEntity(ItemStack stack, EntityLivingBase victim, EntityLivingBase attacker) {
         if (!attacker.worldObj.isRemote) {
             StarryCosmosSwordUtil.instantKill(victim, attacker);
-            StarryCosmosSounds.playMeleeHit(
-                attacker.worldObj,
-                victim.posX,
-                victim.posY + victim.height * 0.5D,
-                victim.posZ);
+            StarryCosmosSounds
+                .playMeleeHit(attacker.worldObj, victim.posX, victim.posY + victim.height * 0.5D, victim.posZ);
         }
         return true;
     }
@@ -101,11 +97,8 @@ public class ItemStarryCosmosSword extends ItemSword implements ICosmicRenderIte
             if (player.isSneaking()) {
                 spawnChunkJudgment(player);
             } else {
-                StarryCosmosSounds.playThrow(
-                    world,
-                    player.posX,
-                    player.posY + player.getEyeHeight() - 0.1D,
-                    player.posZ);
+                StarryCosmosSounds
+                    .playThrow(world, player.posX, player.posY + player.getEyeHeight() - 0.1D, player.posZ);
                 EntityStarrySwordThrown thrown = new EntityStarrySwordThrown(world, player, stack.copy());
                 world.spawnEntityInWorld(thrown);
             }

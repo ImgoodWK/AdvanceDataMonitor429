@@ -52,15 +52,7 @@ public final class LinkScannerService {
             String key = dimension + ":" + tile.xCoord + ":" + tile.yCoord + ":" + tile.zCoord;
             String alias = previousAliases.containsKey(key) ? previousAliases.get(key) : "";
             found.add(
-                new LinkScanEntry(
-                    nextSlot++,
-                    dimension,
-                    tile.xCoord,
-                    tile.yCoord,
-                    tile.zCoord,
-                    owner,
-                    type,
-                    alias));
+                new LinkScanEntry(nextSlot++, dimension, tile.xCoord, tile.yCoord, tile.zCoord, owner, type, alias));
         }
 
         writeEntries(scannerStack, found);
@@ -106,8 +98,8 @@ public final class LinkScannerService {
     }
 
     private static int[] findSafeLanding(World world, int x, int y, int z) {
-        int[][] offsets = new int[][] { { 0, 1, 0 }, { 1, 1, 0 }, { -1, 1, 0 }, { 0, 1, 1 }, { 0, 1, -1 }, { 1, 1,
-            1 }, { 1, 1, -1 }, { -1, 1, 1 }, { -1, 1, -1 }, { 0, 2, 0 }, { 0, 3, 0 }, { 0, 0, 0 }, { 0, -1, 0 } };
+        int[][] offsets = new int[][] { { 0, 1, 0 }, { 1, 1, 0 }, { -1, 1, 0 }, { 0, 1, 1 }, { 0, 1, -1 }, { 1, 1, 1 },
+            { 1, 1, -1 }, { -1, 1, 1 }, { -1, 1, -1 }, { 0, 2, 0 }, { 0, 3, 0 }, { 0, 0, 0 }, { 0, -1, 0 } };
 
         for (int i = 0; i < offsets.length; i++) {
             int tx = x + offsets[i][0];

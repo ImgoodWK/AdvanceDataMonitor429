@@ -27,27 +27,17 @@ import cpw.mods.fml.relauncher.Side;
 public class LoaderNetwork {
 
     public static void registerNetWorks() {
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            HandlerNetwork.class,
-            PacketItemNBT.class,
-            0,
-            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(HandlerNetwork.class, PacketItemNBT.class, 0, Side.SERVER);
 
         if (FMLCommonHandler.instance()
             .getEffectiveSide()
             .isClient()) {
-            AdvanceDataMonitor.ADMCHANEL.registerMessage(
-                PacketSynTileEntity.ClientHandler.class,
-                PacketSynTileEntity.class,
-                1,
-                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketSynTileEntity.ClientHandler.class, PacketSynTileEntity.class, 1, Side.CLIENT);
         }
 
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            HandlerSynTileEntity.class,
-            PacketSynTileEntity.class,
-            2,
-            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(HandlerSynTileEntity.class, PacketSynTileEntity.class, 2, Side.SERVER);
 
         AdvanceDataMonitor.ADMCHANEL.registerMessage(
             PacketRequestItemCountSync.Handler.class,
@@ -57,11 +47,8 @@ public class LoaderNetwork {
         if (FMLCommonHandler.instance()
             .getEffectiveSide()
             .isClient()) {
-            AdvanceDataMonitor.ADMCHANEL.registerMessage(
-                PacketItemCountSync.Handler.class,
-                PacketItemCountSync.class,
-                5,
-                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketItemCountSync.Handler.class, PacketItemCountSync.class, 5, Side.CLIENT);
         }
 
         AdvanceDataMonitor.ADMCHANEL
@@ -89,18 +76,12 @@ public class LoaderNetwork {
         if (FMLCommonHandler.instance()
             .getEffectiveSide()
             .isClient()) {
-            AdvanceDataMonitor.ADMCHANEL.registerMessage(
-                PacketGrappleSync.ClientHandler.class,
-                PacketGrappleSync.class,
-                12,
-                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketGrappleSync.ClientHandler.class, PacketGrappleSync.class, 12, Side.CLIENT);
         }
 
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            PacketGrappleHookConfig.Handler.class,
-            PacketGrappleHookConfig.class,
-            13,
-            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketGrappleHookConfig.Handler.class, PacketGrappleHookConfig.class, 13, Side.SERVER);
 
         AdvanceDataMonitor.ADMCHANEL.registerMessage(
             PacketGrappleAnchorConfig.ServerHandler.class,
@@ -117,17 +98,11 @@ public class LoaderNetwork {
                 Side.CLIENT);
         }
 
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            PacketMonitorRecord.Handler.class,
-            PacketMonitorRecord.class,
-            15,
-            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketMonitorRecord.Handler.class, PacketMonitorRecord.class, 15, Side.SERVER);
 
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            HandlerLinkScannerAction.class,
-            PacketLinkScannerAction.class,
-            16,
-            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(HandlerLinkScannerAction.class, PacketLinkScannerAction.class, 16, Side.SERVER);
         if (FMLCommonHandler.instance()
             .getEffectiveSide()
             .isClient()) {

@@ -13,8 +13,8 @@ import net.minecraft.util.MathHelper;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
-import com.imgood.advancedatamonitor.items.ItemStarryCosmosSword;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSwordConstants;
+import com.imgood.advancedatamonitor.items.ItemStarryCosmosSword;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

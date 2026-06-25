@@ -6,8 +6,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChatComponentTranslation;
 
-import com.imgood.advancedatamonitor.items.ItemAdvanceLinkScanner;
 import com.imgood.advancedatamonitor.handler.LinkScannerService;
+import com.imgood.advancedatamonitor.items.ItemAdvanceLinkScanner;
 import com.imgood.advancedatamonitor.network.packet.PacketLinkScannerAction;
 import com.imgood.advancedatamonitor.utils.NetworkValidationUtil;
 
@@ -36,21 +36,19 @@ public class HandlerLinkScannerAction implements IMessageHandler<PacketLinkScann
                 LinkScannerService.notifyScanResult(player, count);
                 player.inventory.markDirty();
                 NBTTagCompound nbt = stack.getTagCompound();
-                return PacketLinkScannerAction.sync(
-                    message.slot,
-                    nbt == null ? new NBTTagCompound() : (NBTTagCompound) nbt.copy());
+                return PacketLinkScannerAction
+                    .sync(message.slot, nbt == null ? new NBTTagCompound() : (NBTTagCompound) nbt.copy());
             }
             case PacketLinkScannerAction.ACTION_SYNC: {
                 if (message.nbt == null) {
                     return null;
                 }
                 mergeScannerNbt(stack, message.nbt);
-                    player.inventory.setInventorySlotContents(message.slot, stack);
-                    player.inventory.markDirty();
-                    NBTTagCompound confirmed = stack.getTagCompound();
-                    return PacketLinkScannerAction.sync(
-                        message.slot,
-                        confirmed == null ? new NBTTagCompound() : (NBTTagCompound) confirmed.copy());
+                player.inventory.setInventorySlotContents(message.slot, stack);
+                player.inventory.markDirty();
+                NBTTagCompound confirmed = stack.getTagCompound();
+                return PacketLinkScannerAction
+                    .sync(message.slot, confirmed == null ? new NBTTagCompound() : (NBTTagCompound) confirmed.copy());
             }
             case PacketLinkScannerAction.ACTION_TELEPORT: {
                 if (!LinkScannerService.hasScannerEntry(stack, message.dimension, message.x, message.y, message.z)) {
@@ -101,7 +99,9 @@ public class HandlerLinkScannerAction implements IMessageHandler<PacketLinkScann
                 source.getTagList(ItemAdvanceLinkScanner.NBT_KEY_ENTRIES, 10));
         }
         if (source.hasKey(ItemAdvanceLinkScanner.NBT_KEY_NEXT_SLOT)) {
-            target.setInteger(ItemAdvanceLinkScanner.NBT_KEY_NEXT_SLOT, source.getInteger(ItemAdvanceLinkScanner.NBT_KEY_NEXT_SLOT));
+            target.setInteger(
+                ItemAdvanceLinkScanner.NBT_KEY_NEXT_SLOT,
+                source.getInteger(ItemAdvanceLinkScanner.NBT_KEY_NEXT_SLOT));
         }
         if (source.hasKey(ItemAdvanceLinkScanner.NBT_KEY_OWNER_FILTER)) {
             target.setInteger(

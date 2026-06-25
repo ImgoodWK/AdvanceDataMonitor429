@@ -13,6 +13,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.compat.ae.AeCompat;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEFluidStack;
@@ -42,7 +43,8 @@ public abstract class AbstractDataLoomFluidCell extends Item implements IDataLoo
 
     @Override
     public IInventory getConfigInventory(ItemStack is) {
-        return new DataLoomFluidCellConfig(is);
+        return AeCompat.fluidCellConfig()
+            .createConfigInventory(is);
     }
 
     @Override

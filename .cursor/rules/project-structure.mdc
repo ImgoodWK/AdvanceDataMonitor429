@@ -10,7 +10,7 @@ alwaysApply: true
 项目顶层只允许两类包：
 
 1. **标准 Forge 分层**（按 Minecraft 类型）：`blocks/`、`items/`、`entity/`、`tileentity/`、`gui/`、`renders/`、`handler/`、`network/`、`loader/`、`client/`、`config/`、`utils/`
-2. **系统级功能包**（跨方块/物品/GUI/网络，非单物品）：`assistant/`（含子包 `assistant/ai/`）、`voice/`
+2. **系统级功能包**（跨方块/物品/GUI/网络，非单物品）：`assistant/`（含子包 `assistant/ai/`）、`voice/`、`compat/`（AE 版本兼容）
 
 **物品类及其紧密配套逻辑**归位标准分层，**禁止**在根包下为单物品新建与 `items/` 平级的功能包：
 
@@ -32,8 +32,9 @@ alwaysApply: true
 | `ClientProxy.java` | 客户端代理（按键注册等） |
 | `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
 
-### config/ — 配置分节加载 (9 文件)
+### config/ — 配置分节加载 (10 文件)
 - `ConfigDebugLoader.java` — `[debug]` 通用/GUI 调试开关
+- `ConfigCompatLoader.java` — `[compat]` AE 2.9 兼容 profile 覆盖
 - `ConfigAiLoader.java` / `ConfigAiMutators.java` — `[ai]`
 - `ConfigVoiceLoader.java` — `[voice]`
 - `ConfigAssistantLoader.java` — `[assistant]`
@@ -41,6 +42,12 @@ alwaysApply: true
 - `ConfigDataLoomLoader.java` — 编织元件各节 + `[dataLoomCell]`
 - `ConfigSuperOrangeLoader.java` — `[superOrange]`
 - `ConfigGrappleLoader.java` — `[grapple]`
+
+### compat/ — GTNH / AE2 版本兼容 (18 文件)
+- **compat/ae/** — `AeCompat` 门面、`GtnhEnvironmentProbe`、`GtnhVersion`、`AeCellStatsAdapter` 等
+- **compat/ae/legacy/** — 2.9.0 beta-1 之前 GlodBlock / AE2FC 路径
+- **compat/ae/native_/** — 2.9.0 beta-1+ AE2 原生流体路径
+- 详见 `docs/zh/developer/ae-compat-290.md` / `docs/en/developer/ae-compat-290.md`
 
 ### assistant/ — AI 助手核心逻辑 (41 文件)
 - **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理

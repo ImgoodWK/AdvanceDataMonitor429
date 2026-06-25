@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -12,10 +11,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
+
+import com.imgood.advancedatamonitor.compat.ae.AeCompat;
 
 import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 
 public final class PatternDetailFormatter {
@@ -51,20 +50,22 @@ public final class PatternDetailFormatter {
             "adm.ai.assistant.pattern.item_outputs",
             pattern == null ? null : pattern.getCondensedOutputs(),
             chinese);
-        boolean fluidInput = appendFluidLike(
-            builder,
-            "adm.ai.assistant.pattern.fluid_inputs",
-            pattern,
-            chinese,
-            "getCondensedFluidInputs",
-            "getFluidInputs");
-        boolean fluidOutput = appendFluidLike(
-            builder,
-            "adm.ai.assistant.pattern.fluid_outputs",
-            pattern,
-            chinese,
-            "getCondensedFluidOutputs",
-            "getFluidOutputs");
+        boolean fluidInput = AeCompat.patternFluids()
+            .hasFluidInputs(pattern);
+        boolean fluidOutput = AeCompat.patternFluids()
+            .hasFluidOutputs(pattern);
+        if (fluidInput) {
+            builder.append("\n")
+                .append(text(chinese, "adm.ai.assistant.pattern.fluid_inputs"));
+            AeCompat.patternFluids()
+                .appendFluidInputs(builder, pattern);
+        }
+        if (fluidOutput) {
+            builder.append("\n")
+                .append(text(chinese, "adm.ai.assistant.pattern.fluid_outputs"));
+            AeCompat.patternFluids()
+                .appendFluidOutputs(builder, pattern);
+        }
         if (!fluidInput && !fluidOutput && !isCrafting(pattern)) {
             builder.append("\n")
                 .append(text(chinese, "adm.ai.assistant.pattern.fluid_process_note"));
@@ -110,89 +111,6 @@ public final class PatternDetailFormatter {
             builder.append("\n- ")
                 .append(text(chinese, "adm.ai.assistant.pattern.none_exposed"));
         }
-    }
-
-    private static boolean appendFluidLike(StringBuilder builder, String titleKey, ICraftingPatternDetails pattern,
-        boolean chinese, String... methodNames) {
-        if (pattern == null) {
-            return false;
-        }
-        StringBuilder section = new StringBuilder();
-        boolean any = false;
-        for (String methodName : methodNames) {
-            Object value = invokeNoArg(pattern, methodName);
-            if (value == null) {
-                continue;
-            }
-            int before = section.length();
-            appendFluidValue(section, value);
-            if (section.length() > before) {
-                any = true;
-                break;
-            }
-        }
-        if (any) {
-            builder.append("\n")
-                .append(text(chinese, titleKey))
-                .append(section);
-        }
-        return any;
-    }
-
-    private static Object invokeNoArg(Object target, String methodName) {
-        try {
-            Method method = target.getClass()
-                .getMethod(methodName);
-            if (method.getParameterTypes().length == 0) {
-                return method.invoke(target);
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    private static void appendFluidValue(StringBuilder section, Object value) {
-        if (value == null) {
-            return;
-        }
-        if (value instanceof IAEFluidStack) {
-            appendAeFluid(section, (IAEFluidStack) value);
-            return;
-        }
-        if (value instanceof FluidStack) {
-            appendFluid(section, (FluidStack) value, ((FluidStack) value).amount);
-            return;
-        }
-        if (value.getClass()
-            .isArray()) {
-            int length = Array.getLength(value);
-            for (int i = 0; i < length; i++) {
-                appendFluidValue(section, Array.get(value, i));
-            }
-            return;
-        }
-        if (value instanceof Iterable) {
-            for (Object item : (Iterable<?>) value) {
-                appendFluidValue(section, item);
-            }
-        }
-    }
-
-    private static void appendAeFluid(StringBuilder section, IAEFluidStack stack) {
-        if (stack == null || stack.getStackSize() <= 0) {
-            return;
-        }
-        appendFluid(section, stack.getFluidStack(), stack.getStackSize());
-    }
-
-    private static void appendFluid(StringBuilder section, FluidStack stack, long amount) {
-        if (stack == null || stack.getFluid() == null || amount <= 0) {
-            return;
-        }
-        section.append("\n- ")
-            .append(stack.getLocalizedName())
-            .append(" ")
-            .append(amount)
-            .append(" mB");
     }
 
     private static String text(boolean chinese, String key) {

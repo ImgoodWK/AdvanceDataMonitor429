@@ -16,10 +16,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.glodblock.github.common.storage.FluidCellInventoryHandler;
-import com.glodblock.github.common.storage.IFluidCellInventory;
+import com.imgood.advancedatamonitor.compat.ae.AeCompat;
+import com.imgood.advancedatamonitor.compat.ae.AeStorageStatsAccumulator;
 
-import appeng.api.AEApi;
 import appeng.api.implementations.tiles.IChestOrDrive;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGrid;
@@ -28,10 +27,6 @@ import appeng.api.networking.IGridNode;
 import appeng.api.networking.events.MENetworkCellArrayUpdate;
 import appeng.api.networking.events.MENetworkEventSubscribe;
 import appeng.api.networking.events.MENetworkStorageEvent;
-import appeng.api.storage.ICellInventory;
-import appeng.api.storage.ICellInventoryHandler;
-import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
 import appeng.api.util.AECableType;
 import appeng.api.util.DimensionalCoord;
 import appeng.tile.grid.AENetworkTile;
@@ -102,11 +97,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
      * 核心数据更新方法 —— 遍历网络存储单元统计，所有字节值均使用 long 累加
      */
     public void updateNetworkCache() {
-        // 改用 long 数组存储累加值
-        long[] itemBytes = new long[2]; // [0]总字节, [1]已用字节
-        int[] itemTypes = new int[2]; // [0]总类型, [1]已用类型
-        long[] fluidBytes = new long[2];
-        int[] fluidTypes = new int[2];
+        AeStorageStatsAccumulator stats = new AeStorageStatsAccumulator();
 
         List<TileEntity> tileEntities = getTiles();
         for (TileEntity tile : tileEntities) {
@@ -117,7 +108,8 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
                     ItemStack stack = drive.getInternalInventory()
                         .getStackInSlot(i);
                     if (stack != null) {
-                        processStorageStack(stack, itemBytes, itemTypes, fluidBytes, fluidTypes);
+                        AeCompat.cells()
+                            .accumulateStorageStack(stack, stats);
                     }
                 }
             } else if (tile instanceof TileChest) {
@@ -125,71 +117,25 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
                 ItemStack stack = chest.getInternalInventory()
                     .getStackInSlot(0);
                 if (stack != null) {
-                    processStorageStack(stack, itemBytes, itemTypes, fluidBytes, fluidTypes);
+                    AeCompat.cells()
+                        .accumulateStorageStack(stack, stats);
                 }
             }
         }
 
-        this.itemTotalBytes = itemBytes[0];
-        this.itemUsedBytes = itemBytes[1];
-        this.itemTotalTypes = itemTypes[0];
-        this.itemUsedTypes = itemTypes[1];
+        this.itemTotalBytes = stats.itemBytes[0];
+        this.itemUsedBytes = stats.itemBytes[1];
+        this.itemTotalTypes = stats.itemTypes[0];
+        this.itemUsedTypes = stats.itemTypes[1];
 
-        this.fluidTotalBytes = fluidBytes[0];
-        this.fluidUsedBytes = fluidBytes[1];
-        this.fluidTotalTypes = fluidTypes[0];
-        this.fluidUsedTypes = fluidTypes[1];
+        this.fluidTotalBytes = stats.fluidBytes[0];
+        this.fluidUsedBytes = stats.fluidBytes[1];
+        this.fluidTotalTypes = stats.fluidTypes[0];
+        this.fluidUsedTypes = stats.fluidTypes[1];
 
         markDirty();
         if (worldObj != null) {
             worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
-        }
-    }
-
-    private void processStorageStack(ItemStack stack, long[] itemBytes, int[] itemTypes, long[] fluidBytes,
-        int[] fluidTypes) {
-        // 物品存储单元
-        IMEInventoryHandler itemInventory = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.ITEMS);
-        if (itemInventory instanceof ICellInventoryHandler) {
-            ICellInventoryHandler handler = (ICellInventoryHandler) itemInventory;
-            ICellInventory cell = handler.getCellInv();
-            if (cell != null) {
-                itemBytes[0] += cell.getTotalBytes();
-                itemBytes[1] += cell.getUsedBytes();
-                itemTypes[0] += cell.getTotalItemTypes();
-                itemTypes[1] += cell.getStoredItemTypes();
-            }
-        }
-
-        // 流体存储单元
-        IMEInventoryHandler fluidInventory = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.FLUIDS);
-        if (fluidInventory instanceof ICellInventoryHandler) {
-            ICellInventoryHandler handler = (ICellInventoryHandler) fluidInventory;
-            ICellInventory cell = handler.getCellInv();
-            if (cell != null) {
-                fluidBytes[0] += cell.getTotalBytes();
-                fluidBytes[1] += cell.getUsedBytes();
-                fluidTypes[0] += cell.getTotalItemTypes();
-                fluidTypes[1] += cell.getStoredItemTypes();
-            }
-        }
-
-        // 流体特殊处理（ExtraCells / GlodBlock 的 FluidCellInventoryHandler）
-        if (fluidInventory instanceof FluidCellInventoryHandler) {
-            FluidCellInventoryHandler handler = (FluidCellInventoryHandler) fluidInventory;
-            IFluidCellInventory cell = handler.getCellInv();
-            if (cell != null) {
-                fluidBytes[0] += cell.getTotalBytes();
-                fluidBytes[1] += cell.getUsedBytes();
-                fluidTypes[0] += cell.getTotalFluidTypes();
-                fluidTypes[1] += cell.getStoredFluidTypes();
-            }
         }
     }
 

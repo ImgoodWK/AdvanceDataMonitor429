@@ -240,7 +240,10 @@ public class ItemGrappleHook extends Item {
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("adm.tooltip.grappleHook.story"));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("adm.tooltip.grappleHook.usage"));
-        list.add(StatCollector.translateToLocalFormatted("adm.label.grapple.travel_speed", String.format("%.1f", getTravelSpeed(stack))));
+        list.add(
+            StatCollector.translateToLocalFormatted(
+                "adm.label.grapple.travel_speed",
+                String.format("%.1f", getTravelSpeed(stack))));
 
         list.add(
 
@@ -256,7 +259,8 @@ public class ItemGrappleHook extends Item {
 
                 "adm.label.grapple.show_node_distance",
 
-                StatCollector.translateToLocalFormatted(getShowNodeDistance(stack) ? "adm.label.on" : "adm.label.off")));
+                StatCollector
+                    .translateToLocalFormatted(getShowNodeDistance(stack) ? "adm.label.on" : "adm.label.off")));
 
     }
 

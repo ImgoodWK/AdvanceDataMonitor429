@@ -1,11 +1,11 @@
 package com.imgood.advancedatamonitor.items;
 
+import net.minecraft.tileentity.TileEntity;
+
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceStorageLink;
-
-import net.minecraft.tileentity.TileEntity;
 
 public enum LinkScanBlockType {
 

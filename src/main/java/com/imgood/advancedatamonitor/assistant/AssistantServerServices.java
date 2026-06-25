@@ -25,6 +25,8 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.compat.ae.AeCellStats;
+import com.imgood.advancedatamonitor.compat.ae.AeCompat;
 import com.imgood.advancedatamonitor.handler.HandlerTick;
 import com.imgood.advancedatamonitor.network.packet.PacketAssistantResponse;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceCraftingLink;
@@ -46,10 +48,6 @@ import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.security.BaseActionSource;
 import appeng.api.networking.security.PlayerSource;
 import appeng.api.networking.storage.IStorageGrid;
-import appeng.api.storage.ICellInventory;
-import appeng.api.storage.ICellInventoryHandler;
-import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.tile.storage.TileChest;
@@ -913,7 +911,8 @@ public final class AssistantServerServices {
         }
 
         StringBuilder builder = new StringBuilder();
-        builder.append(serverLang("adm.ai.assistant.query_bytes_title", locale, "AE2 字节占用详情：", "AE2 Byte Usage Details:"));
+        builder
+            .append(serverLang("adm.ai.assistant.query_bytes_title", locale, "AE2 字节占用详情：", "AE2 Byte Usage Details:"));
 
         // Item bytes section
         builder.append(chinese ? "\n\n物品存储：" : "\n\nItem Storage:");
@@ -1062,100 +1061,31 @@ public final class AssistantServerServices {
      * and accumulate byte counts accordingly.
      */
     private static void classifyCell(InfiniteCellScanResult result, ItemStack stack) {
-        // Check item cell
-        IMEInventoryHandler itemInv = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.ITEMS);
-        if (itemInv instanceof ICellInventoryHandler) {
-            ICellInventory cell = ((ICellInventoryHandler) itemInv).getCellInv();
-            if (cell != null) {
-                if (isInfiniteCell(cell)) {
-                    result.hasInfiniteItems = true;
-                    result.infiniteItemBytes += cell.getTotalBytes();
-                } else {
-                    result.nonInfiniteItemTotal += cell.getTotalBytes();
-                    result.nonInfiniteItemUsed += cell.getUsedBytes();
-                }
+        AeCellStats itemStats = new AeCellStats();
+        AeCompat.cells()
+            .readItemCellStats(stack, itemStats);
+        if (itemStats.present) {
+            if (itemStats.infinite) {
+                result.hasInfiniteItems = true;
+                result.infiniteItemBytes += itemStats.totalBytes;
+            } else {
+                result.nonInfiniteItemTotal += itemStats.totalBytes;
+                result.nonInfiniteItemUsed += itemStats.usedBytes;
             }
         }
-        // Check fluid cell (GlodBlock/AE2FluidCraft)
-        IMEInventoryHandler fluidInv = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.FLUIDS);
-        if (fluidInv instanceof ICellInventoryHandler) {
-            ICellInventory cell = ((ICellInventoryHandler) fluidInv).getCellInv();
-            if (cell != null) {
-                if (isInfiniteCell(cell)) {
-                    result.hasInfiniteFluids = true;
-                    result.infiniteFluidBytes += cell.getTotalBytes();
-                } else {
-                    result.nonInfiniteFluidTotal += cell.getTotalBytes();
-                    result.nonInfiniteFluidUsed += cell.getUsedBytes();
-                }
-            }
-        }
-        // Also check GlodBlock's FluidCellInventoryHandler for ExtraCells/GTNH fluid cells
-        try {
-            Class<?> glodHandlerClass = Class.forName("com.glodblock.github.common.storage.FluidCellInventoryHandler");
-            if (glodHandlerClass.isInstance(fluidInv)) {
-                Object handler = glodHandlerClass.cast(fluidInv);
-                Method getCellInv = glodHandlerClass.getMethod("getCellInv");
-                Object cellObj = getCellInv.invoke(handler);
-                if (cellObj != null) {
-                    long totalBytes = (Long) cellObj.getClass()
-                        .getMethod("getTotalBytes")
-                        .invoke(cellObj);
-                    long usedBytes = (Long) cellObj.getClass()
-                        .getMethod("getUsedBytes")
-                        .invoke(cellObj);
-                    String className = cellObj.getClass()
-                        .getName()
-                        .toLowerCase();
-                    if (className.contains("infinity") || className.contains("infinite")
-                        || className.contains("creative")
-                        || totalBytes > 10_000_000_000_000L
-                        || totalBytes == Long.MAX_VALUE
-                        || totalBytes >= Long.MAX_VALUE / 2L) {
-                        result.hasInfiniteFluids = true;
-                        result.infiniteFluidBytes += totalBytes;
-                    } else {
-                        result.nonInfiniteFluidTotal += totalBytes;
-                        result.nonInfiniteFluidUsed += usedBytes;
-                    }
-                }
-            }
-        } catch (Throwable ignored) {
-            // GlodBlock not available, skip
-        }
-    }
 
-    /**
-     * Detect whether a cell inventory is an infinite storage cell.
-     * Checks for:
-     * - Class name containing "infinity", "infinite", or "creative"
-     * - TotalBytes exceeding a large threshold (indicating infinite capacity)
-     */
-    private static boolean isInfiniteCell(ICellInventory cell) {
-        if (cell == null) return false;
-        // Check by class name (AE2Things infinite cells have distinct class names)
-        String className = cell.getClass()
-            .getName()
-            .toLowerCase();
-        if (className.contains("infinity") || className.contains("infinite") || className.contains("creative")) {
-            return true;
+        AeCellStats fluidStats = new AeCellStats();
+        AeCompat.cells()
+            .readFluidCellStats(stack, fluidStats);
+        if (fluidStats.present) {
+            if (fluidStats.infinite) {
+                result.hasInfiniteFluids = true;
+                result.infiniteFluidBytes += fluidStats.totalBytes;
+            } else {
+                result.nonInfiniteFluidTotal += fluidStats.totalBytes;
+                result.nonInfiniteFluidUsed += fluidStats.usedBytes;
+            }
         }
-        // Check by total bytes threshold (> 1 trillion bytes indicates infinite)
-        long totalBytes = cell.getTotalBytes();
-        if (totalBytes > 10_000_000_000_000L) { // > 10 TB
-            return true;
-        }
-        // Check for Long.MAX_VALUE (common infinite cell representation)
-        if (totalBytes == Long.MAX_VALUE || totalBytes >= Long.MAX_VALUE / 2L) {
-            return true;
-        }
-        return false;
     }
 
     /**

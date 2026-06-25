@@ -75,39 +75,22 @@ public final class AiClientPreferences {
         apiBaseUrl = configuration
             .getString("apiBaseUrl", "ai", apiBaseUrl, ConfigDescriptions.get("ai", "apiBaseUrl"));
         model = configuration.getString("model", "ai", model, ConfigDescriptions.get("ai", "model"));
-        networkEnabled = configuration.getBoolean(
-            "networkEnabled",
-            "ai",
-            networkEnabled,
-            ConfigDescriptions.get("ai", "networkEnabled"));
-        webSearchEnabled = configuration.getBoolean(
-            "webSearchEnabled",
-            "ai",
-            webSearchEnabled,
-            ConfigDescriptions.get("ai", "webSearchEnabled"));
+        networkEnabled = configuration
+            .getBoolean("networkEnabled", "ai", networkEnabled, ConfigDescriptions.get("ai", "networkEnabled"));
+        webSearchEnabled = configuration
+            .getBoolean("webSearchEnabled", "ai", webSearchEnabled, ConfigDescriptions.get("ai", "webSearchEnabled"));
         webSearchMode = configuration
             .getString("webSearchMode", "ai", webSearchMode, ConfigDescriptions.get("ai", "webSearchMode"));
         debugLogging = configuration
             .getBoolean("debugLogging", "ai", debugLogging, ConfigDescriptions.get("ai", "debugLogging"));
-        streamingEnabled = configuration.getBoolean(
-            "streamingEnabled",
-            "ai",
-            streamingEnabled,
-            ConfigDescriptions.get("ai", "streamingEnabled"));
-        privacyConfirmed = configuration.getBoolean(
-            "privacyConfirmed",
-            "ai",
-            privacyConfirmed,
-            ConfigDescriptions.get("ai", "privacyConfirmed"));
+        streamingEnabled = configuration
+            .getBoolean("streamingEnabled", "ai", streamingEnabled, ConfigDescriptions.get("ai", "streamingEnabled"));
+        privacyConfirmed = configuration
+            .getBoolean("privacyConfirmed", "ai", privacyConfirmed, ConfigDescriptions.get("ai", "privacyConfirmed"));
         recentModels = configuration
             .getString("recentModels", "ai", recentModels, ConfigDescriptions.get("ai", "recentModels"));
-        timeoutSeconds = configuration.getInt(
-            "timeoutSeconds",
-            "ai",
-            timeoutSeconds,
-            5,
-            300,
-            ConfigDescriptions.get("ai", "timeoutSeconds"));
+        timeoutSeconds = configuration
+            .getInt("timeoutSeconds", "ai", timeoutSeconds, 5, 300, ConfigDescriptions.get("ai", "timeoutSeconds"));
         maxTokens = configuration
             .getInt("maxTokens", "ai", maxTokens, 1, 8192, ConfigDescriptions.get("ai", "maxTokens"));
         temperature = configuration.getFloat(
@@ -205,8 +188,9 @@ public final class AiClientPreferences {
         }
         String legacyKey = sharedConfiguration.get("ai", "apiKey", "")
             .getString();
-        if (apiKey.isEmpty() && legacyKey != null && !legacyKey.trim()
-            .isEmpty()) {
+        if (apiKey.isEmpty() && legacyKey != null
+            && !legacyKey.trim()
+                .isEmpty()) {
             apiKey = legacyKey.trim();
         }
         if (apiBaseUrl.equals("https://api.deepseek.com")) {
@@ -248,8 +232,9 @@ public final class AiClientPreferences {
                 .getString();
             String legacyVoiceKey = sharedConfiguration.get("voice", "sttApiKey", voiceSttApiKey)
                 .getString();
-            if (voiceSttApiKey.isEmpty() && legacyVoiceKey != null && !legacyVoiceKey.trim()
-                .isEmpty()) {
+            if (voiceSttApiKey.isEmpty() && legacyVoiceKey != null
+                && !legacyVoiceKey.trim()
+                    .isEmpty()) {
                 voiceSttApiKey = legacyVoiceKey.trim();
             }
             voiceSttModel = Config.normalizeVoiceSttModel(
@@ -381,8 +366,7 @@ public final class AiClientPreferences {
         apiBaseUrl = profile.baseUrl;
         setModel(profile.defaultModel);
         webSearchMode = profile.defaultSearchMode;
-        webSearchEnabled = !"unsupported".equals(profile.defaultSearchMode)
-            && !"off".equals(profile.defaultSearchMode);
+        webSearchEnabled = !"unsupported".equals(profile.defaultSearchMode) && !"off".equals(profile.defaultSearchMode);
     }
 
     public static void saveAllSettings(String key, String baseUrl, String modelValue, String searchModeValue,

@@ -3,13 +3,6 @@ package com.imgood.advancedatamonitor.loader;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import com.imgood.advancedatamonitor.items.cell.ItemDataDustLoomCell;
-import com.imgood.advancedatamonitor.items.cell.ItemDataFlowCell;
-import com.imgood.advancedatamonitor.items.cell.ItemDataFormLoomCell;
-import com.imgood.advancedatamonitor.items.cell.ItemDataSourceLoomCell;
-import com.imgood.advancedatamonitor.items.cell.ItemDataTideLoomCell;
-import com.imgood.advancedatamonitor.items.cell.ItemSuperWeaveAmplifier;
-import com.imgood.advancedatamonitor.items.cell.ItemWeaveAmplifier;
 import com.imgood.advancedatamonitor.items.ItemAdvanceLinkScanner;
 import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
 import com.imgood.advancedatamonitor.items.ItemAdvanceStorageLinkCell;
@@ -18,6 +11,13 @@ import com.imgood.advancedatamonitor.items.ItemGrappleHook;
 import com.imgood.advancedatamonitor.items.ItemManual;
 import com.imgood.advancedatamonitor.items.ItemStarryCosmosSword;
 import com.imgood.advancedatamonitor.items.ItemSuperOrange;
+import com.imgood.advancedatamonitor.items.cell.ItemDataDustLoomCell;
+import com.imgood.advancedatamonitor.items.cell.ItemDataFlowCell;
+import com.imgood.advancedatamonitor.items.cell.ItemDataFormLoomCell;
+import com.imgood.advancedatamonitor.items.cell.ItemDataSourceLoomCell;
+import com.imgood.advancedatamonitor.items.cell.ItemDataTideLoomCell;
+import com.imgood.advancedatamonitor.items.cell.ItemSuperWeaveAmplifier;
+import com.imgood.advancedatamonitor.items.cell.ItemWeaveAmplifier;
 
 import appeng.api.config.Upgrades;
 import cpw.mods.fml.common.registry.GameRegistry;

@@ -24,6 +24,8 @@
 .\gradlew.bat runClient      # 启动开发客户端
 ```
 
+**当前版本**：v1.0.0（初次公开发布）· GTNH 2.8.x 与 2.9.0-beta-1+ 双路径兼容，详见 [GTNH 版本兼容说明](docs/zh/developer/GTNH版本兼容说明.md)
+
 主要依赖通过 GTNH Maven 自动解析；本地 dev jar 放在 `libs/`（Chisel、Galacticraft、IC2NuclearControl 等）。
 
 ---

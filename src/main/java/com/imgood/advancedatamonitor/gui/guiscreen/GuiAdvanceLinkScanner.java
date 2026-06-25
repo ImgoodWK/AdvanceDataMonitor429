@@ -7,6 +7,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -19,8 +20,6 @@ import com.imgood.advancedatamonitor.gui.custom.ADM_GuiTextField;
 import com.imgood.advancedatamonitor.items.ItemAdvanceLinkScanner;
 import com.imgood.advancedatamonitor.items.LinkScanEntry;
 import com.imgood.advancedatamonitor.network.packet.PacketLinkScannerAction;
-
-import net.minecraft.util.ResourceLocation;
 
 /**
  * Display names / 显示名称:
@@ -95,43 +94,28 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         int bottomY = this.height / 2 + 110;
 
         this.buttonList.add(
-            new ADM_GuiButton(
-                BUTTON_OWNER_FILTER,
-                this.width / 2 - 170,
-                bottomY,
-                100,
-                20,
-                getOwnerFilterLabel()).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
+            new ADM_GuiButton(BUTTON_OWNER_FILTER, this.width / 2 - 170, bottomY, 100, 20, getOwnerFilterLabel())
+                .setTexture(BUTTON_TEXTURE)
+                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setUseHoverEffect(true)
+                .setTextColor(textColor)
+                .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
-            new ADM_GuiButton(
-                BUTTON_NAME_FILTER,
-                this.width / 2 - 60,
-                bottomY,
-                100,
-                20,
-                getNameFilterLabel()).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
+            new ADM_GuiButton(BUTTON_NAME_FILTER, this.width / 2 - 60, bottomY, 100, 20, getNameFilterLabel())
+                .setTexture(BUTTON_TEXTURE)
+                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setUseHoverEffect(true)
+                .setTextColor(textColor)
+                .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
-            new ADM_GuiButton(
-                BUTTON_EXIT,
-                this.width / 2 + 50,
-                bottomY,
-                60,
-                20,
-                I18n.format("adm.scanner.exit")).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
-                    .setUseHoverEffect(true)
-                    .setTextColor(textColor)
-                    .setTextHoverColor(textHoverColor));
+            new ADM_GuiButton(BUTTON_EXIT, this.width / 2 + 50, bottomY, 60, 20, I18n.format("adm.scanner.exit"))
+                .setTexture(BUTTON_TEXTURE)
+                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setUseHoverEffect(true)
+                .setTextColor(textColor)
+                .setTextHoverColor(textHoverColor));
 
         updateAliasField();
         updateScreen();
@@ -283,8 +267,8 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         if (mouseX >= tpX && mouseX <= tpX + 18 && mouseY >= rowY + 2 && mouseY <= rowY + 18) {
             commitAlias();
             int slot = player.inventory.currentItem;
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                PacketLinkScannerAction.teleport(slot, entry.dimension, entry.x, entry.y, entry.z));
+            AdvanceDataMonitor.ADMCHANEL
+                .sendToServer(PacketLinkScannerAction.teleport(slot, entry.dimension, entry.x, entry.y, entry.z));
             return;
         }
 
@@ -296,7 +280,8 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
     }
 
     private boolean isMouseInListArea(int mouseX, int mouseY) {
-        return mouseX >= listStartX && mouseX <= listStartX + listWidth && mouseY >= listStartY
+        return mouseX >= listStartX && mouseX <= listStartX + listWidth
+            && mouseY >= listStartY
             && mouseY <= listStartY + visibleAreaHeight;
     }
 
@@ -340,7 +325,12 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         this.fontRendererObj.drawString(stats, listStartX, listStartY - 12, slotNumberColor);
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        drawRect(listStartX - 2, listStartY - 2, listStartX + listWidth + 2, listStartY + visibleAreaHeight + 2, 0x80000000);
+        drawRect(
+            listStartX - 2,
+            listStartY - 2,
+            listStartX + listWidth + 2,
+            listStartY + visibleAreaHeight + 2,
+            0x80000000);
 
         for (int i = 0; i < visibleEntries.size(); i++) {
             int rowY = listStartY + i * rowHeight - scrollOffset;
@@ -356,8 +346,10 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
             String slotLabel = String.format("#%03d", entry.slotIndex);
             this.fontRendererObj.drawString(slotLabel, listStartX + 4, rowY + 6, slotNumberColor);
 
-            String typeLabel = entry.getBlockType() != null ? I18n.format(entry.getBlockType()
-                .getLangKey()) : "?";
+            String typeLabel = entry.getBlockType() != null ? I18n.format(
+                entry.getBlockType()
+                    .getLangKey())
+                : "?";
             if (typeLabel.length() > 6) {
                 typeLabel = typeLabel.substring(0, 6);
             }
@@ -372,8 +364,7 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
             }
             this.fontRendererObj.drawString(owner, listStartX + 168, rowY + 6, 0xAAAAFF);
 
-            String alias = entry.hasAlias() ? entry.alias
-                : I18n.format("adm.scanner.alias_empty");
+            String alias = entry.hasAlias() ? entry.alias : I18n.format("adm.scanner.alias_empty");
             int aliasColor = entry.hasAlias() ? 0xFFFFFF : aliasEmptyColor;
             if (this.fontRendererObj.getStringWidth(alias) > 52) {
                 alias = this.fontRendererObj.trimStringToWidth(alias, 50) + "..";

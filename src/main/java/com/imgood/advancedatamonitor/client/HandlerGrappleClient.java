@@ -9,18 +9,18 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.event.world.BlockEvent;
-import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.event.world.ChunkEvent;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.Config;
 import com.imgood.advancedatamonitor.gui.handler.GuiHandler;
 import com.imgood.advancedatamonitor.items.ItemGrappleHook;
-import com.imgood.advancedatamonitor.Config;
 import com.imgood.advancedatamonitor.loader.LoaderBlock;
 import com.imgood.advancedatamonitor.network.packet.PacketGrappleAction;
 import com.imgood.advancedatamonitor.utils.BlockPos;
@@ -45,10 +45,8 @@ public class HandlerGrappleClient {
         if (!event.world.isRemote) {
             return;
         }
-        GrappleClientNodeIndex.INSTANCE.rebuildChunkFromBlocks(
-            event.world,
-            event.getChunk(),
-            event.world.provider.dimensionId);
+        GrappleClientNodeIndex.INSTANCE
+            .rebuildChunkFromBlocks(event.world, event.getChunk(), event.world.provider.dimensionId);
         GrappleSelectionUtil.invalidateRangeCache();
     }
 
@@ -69,11 +67,7 @@ public class HandlerGrappleClient {
         if (!event.world.isRemote || event.block != LoaderBlock.grappleAnchor) {
             return;
         }
-        GrappleClientNodeIndex.INSTANCE.removeNode(
-            event.world.provider.dimensionId,
-            event.x,
-            event.y,
-            event.z);
+        GrappleClientNodeIndex.INSTANCE.removeNode(event.world.provider.dimensionId, event.x, event.y, event.z);
         GrappleSelectionUtil.invalidateRangeCache();
     }
 
@@ -82,11 +76,7 @@ public class HandlerGrappleClient {
         if (!event.world.isRemote || event.block != LoaderBlock.grappleAnchor) {
             return;
         }
-        GrappleClientNodeIndex.INSTANCE.addNode(
-            event.world.provider.dimensionId,
-            event.x,
-            event.y,
-            event.z);
+        GrappleClientNodeIndex.INSTANCE.addNode(event.world.provider.dimensionId, event.x, event.y, event.z);
         GrappleSelectionUtil.invalidateRangeCache();
     }
 
@@ -114,10 +104,8 @@ public class HandlerGrappleClient {
         if (!event.world.isRemote) {
             return;
         }
-        GrappleClientNodeIndex.INSTANCE.clearChunk(
-            event.world.provider.dimensionId,
-            event.getChunk().xPosition,
-            event.getChunk().zPosition);
+        GrappleClientNodeIndex.INSTANCE
+            .clearChunk(event.world.provider.dimensionId, event.getChunk().xPosition, event.getChunk().zPosition);
     }
 
     @SubscribeEvent

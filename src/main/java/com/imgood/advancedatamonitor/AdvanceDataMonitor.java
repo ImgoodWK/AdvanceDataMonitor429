@@ -3,6 +3,7 @@ package com.imgood.advancedatamonitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.imgood.advancedatamonitor.compat.ae.AeCompat;
 import com.imgood.advancedatamonitor.items.cell.DataLoomCellHandler;
 import com.imgood.advancedatamonitor.loader.LoaderBlock;
 import com.imgood.advancedatamonitor.loader.LoaderEntity;
@@ -74,6 +75,7 @@ public class AdvanceDataMonitor {
         proxy.postInit(event);
         LoaderNetwork.registerNetWorks();
         // AE2 Api/RegistryContainer requires AEConfig — must run after AE2 preInit (postInit phase).
+        AeCompat.init();
         DataLoomCellHandler.register();
     }
 

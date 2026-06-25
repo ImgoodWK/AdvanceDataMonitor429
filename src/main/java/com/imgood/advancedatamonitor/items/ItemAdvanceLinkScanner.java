@@ -101,15 +101,13 @@ public class ItemAdvanceLinkScanner extends Item {
                 entries.add(entry);
             }
         }
-        Collections.sort(
-            entries,
-            new Comparator<LinkScanEntry>() {
+        Collections.sort(entries, new Comparator<LinkScanEntry>() {
 
-                @Override
-                public int compare(LinkScanEntry a, LinkScanEntry b) {
-                    return a.slotIndex - b.slotIndex;
-                }
-            });
+            @Override
+            public int compare(LinkScanEntry a, LinkScanEntry b) {
+                return a.slotIndex - b.slotIndex;
+            }
+        });
         return entries;
     }
 

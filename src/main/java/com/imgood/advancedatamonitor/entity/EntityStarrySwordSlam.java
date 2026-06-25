@@ -8,11 +8,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
-import com.imgood.advancedatamonitor.loader.LoaderItem;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSwordConstants;
 import com.imgood.advancedatamonitor.handler.StarryEntityMotionUtil;
 import com.imgood.advancedatamonitor.handler.StarryPlayerLookup;
 import com.imgood.advancedatamonitor.handler.ThrownImpactPoint;
+import com.imgood.advancedatamonitor.loader.LoaderItem;
 
 import cpw.mods.fml.common.registry.IEntityAdditionalSpawnData;
 import io.netty.buffer.ByteBuf;

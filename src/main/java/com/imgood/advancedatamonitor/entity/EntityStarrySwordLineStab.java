@@ -8,11 +8,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
-import com.imgood.advancedatamonitor.loader.LoaderItem;
-import com.imgood.advancedatamonitor.handler.StarryCosmosSwordConstants;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSounds;
+import com.imgood.advancedatamonitor.handler.StarryCosmosSwordConstants;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSwordUtil;
 import com.imgood.advancedatamonitor.handler.StarryPlayerLookup;
+import com.imgood.advancedatamonitor.loader.LoaderItem;
 
 import cpw.mods.fml.common.registry.IEntityAdditionalSpawnData;
 import io.netty.buffer.ByteBuf;
@@ -46,8 +46,8 @@ public class EntityStarrySwordLineStab extends Entity implements IEntityAddition
         this(world, target, owner, displayYawDeg, StarryCosmosSwordConstants.SCALE_SLAM);
     }
 
-    public EntityStarrySwordLineStab(World world, EntityLivingBase target, EntityLivingBase owner,
-        float displayYawDeg, float renderScale) {
+    public EntityStarrySwordLineStab(World world, EntityLivingBase target, EntityLivingBase owner, float displayYawDeg,
+        float renderScale) {
         this(world);
         if (target == null) {
             return;
@@ -187,8 +187,8 @@ public class EntityStarrySwordLineStab extends Entity implements IEntityAddition
         dataWatcher.updateObject(DW_DISPLAY_YAW, Float.valueOf(tag.getFloat("DisplayYaw")));
         dataWatcher.updateObject(
             DW_RENDER_SCALE,
-            Float.valueOf(tag.hasKey("RenderScale") ? tag.getFloat("RenderScale")
-                : StarryCosmosSwordConstants.SCALE_SLAM));
+            Float.valueOf(
+                tag.hasKey("RenderScale") ? tag.getFloat("RenderScale") : StarryCosmosSwordConstants.SCALE_SLAM));
         targetEntityId = tag.getInteger("TargetId");
         damageApplied = tag.getBoolean("DamageApplied");
         if (tag.hasKey("Owner")) {

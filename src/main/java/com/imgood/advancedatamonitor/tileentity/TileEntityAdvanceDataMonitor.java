@@ -22,18 +22,15 @@ import net.minecraft.util.AxisAlignedBB;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.compat.ae.AeCompat;
+import com.imgood.advancedatamonitor.compat.ae.AeStorageStatsAccumulator;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 import com.imgood.advancedatamonitor.utils.CraftingTemplateParser;
 import com.imgood.advancedatamonitor.utils.DataBound;
 import com.imgood.advancedatamonitor.utils.TileEntityTypeHelper;
 
-import appeng.api.AEApi;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridNode;
-import appeng.api.storage.ICellInventory;
-import appeng.api.storage.ICellInventoryHandler;
-import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
 import appeng.tile.storage.TileChest;
 import appeng.tile.storage.TileDrive;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -1209,39 +1206,11 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
     @Optional.Method(modid = "appliedenergistics2")
     private long[] processCellStack(ItemStack stack) {
-        long[] stats = new long[8];
-
-        IMEInventoryHandler itemInventory = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.ITEMS);
-        if (itemInventory instanceof ICellInventoryHandler) {
-            ICellInventoryHandler itemHandler = (ICellInventoryHandler) itemInventory;
-            ICellInventory itemCell = itemHandler.getCellInv();
-            if (itemCell != null) {
-                stats[0] = itemCell.getTotalBytes();
-                stats[1] = itemCell.getUsedBytes();
-                stats[2] = itemCell.getTotalItemTypes();
-                stats[3] = itemCell.getStoredItemTypes();
-            }
-        }
-
-        IMEInventoryHandler fluidInventory = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.FLUIDS);
-        if (fluidInventory instanceof ICellInventoryHandler) {
-            ICellInventoryHandler fluidHandler = (ICellInventoryHandler) fluidInventory;
-            ICellInventory fluidCell = fluidHandler.getCellInv();
-            if (fluidCell != null) {
-                stats[4] = fluidCell.getTotalBytes();
-                stats[5] = fluidCell.getUsedBytes();
-                stats[6] = fluidCell.getTotalItemTypes();
-                stats[7] = fluidCell.getStoredItemTypes();
-            }
-        }
-
-        return stats;
+        AeStorageStatsAccumulator stats = new AeStorageStatsAccumulator();
+        AeCompat.cells()
+            .accumulateStorageStack(stack, stats);
+        return new long[] { stats.itemBytes[0], stats.itemBytes[1], stats.itemTypes[0], stats.itemTypes[1],
+            stats.fluidBytes[0], stats.fluidBytes[1], stats.fluidTypes[0], stats.fluidTypes[1] };
     }
 
     @Optional.Method(modid = "appliedenergistics2")
