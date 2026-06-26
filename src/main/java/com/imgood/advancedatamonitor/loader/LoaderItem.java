@@ -7,8 +7,11 @@ import com.imgood.advancedatamonitor.items.ItemAdvanceLinkScanner;
 import com.imgood.advancedatamonitor.items.ItemAdvancePlanner;
 import com.imgood.advancedatamonitor.items.ItemAdvanceStorageLinkCell;
 import com.imgood.advancedatamonitor.items.ItemDataImprint;
+import com.imgood.advancedatamonitor.items.ItemDimensionalPocket;
 import com.imgood.advancedatamonitor.items.ItemGrappleHook;
 import com.imgood.advancedatamonitor.items.ItemManual;
+import com.imgood.advancedatamonitor.items.ItemPageUpgradeCard;
+import com.imgood.advancedatamonitor.items.ItemSpaceUpgradeCard;
 import com.imgood.advancedatamonitor.items.ItemStarryCosmosSword;
 import com.imgood.advancedatamonitor.items.ItemSuperOrange;
 import com.imgood.advancedatamonitor.items.cell.ItemDataDustLoomCell;
@@ -45,6 +48,9 @@ public class LoaderItem {
     public static Item superWeaveAmplifier;
     public static Item grappleHook;
     public static Item starryCosmosSword;
+    public static Item dimensionalPocket;
+    public static Item spaceUpgradeCard;
+    public static Item pageUpgradeCard;
 
     public static void registerItems() {
         dataImprint = new ItemDataImprint().setUnlocalizedName("dataImprint")
@@ -74,6 +80,12 @@ public class LoaderItem {
             .setTextureName("advancedatamonitor:super_weave_amplifier");
         starryCosmosSword = new ItemStarryCosmosSword();
         grappleHook = new ItemGrappleHook();
+        dimensionalPocket = new ItemDimensionalPocket().setUnlocalizedName("dimensionalPocket")
+            .setTextureName("advancedatamonitor:dimensional_pocket");
+        spaceUpgradeCard = new ItemSpaceUpgradeCard().setUnlocalizedName("spaceUpgradeCard")
+            .setTextureName("advancedatamonitor:space_upgrade_card");
+        pageUpgradeCard = new ItemPageUpgradeCard().setUnlocalizedName("pageUpgradeCard")
+            .setTextureName("advancedatamonitor:page_upgrade_card");
 
         GameRegistry.registerItem(dataImprint, "data_imprint");
         GameRegistry.registerItem(advanceStorageLinkCell, "advance_storage_link_cell");
@@ -90,6 +102,9 @@ public class LoaderItem {
         GameRegistry.registerItem(superWeaveAmplifier, "super_weave_amplifier");
         GameRegistry.registerItem(starryCosmosSword, "starry_cosmos_sword");
         GameRegistry.registerItem(grappleHook, "grapple_hook");
+        GameRegistry.registerItem(dimensionalPocket, "dimensional_pocket");
+        GameRegistry.registerItem(spaceUpgradeCard, "space_upgrade_card");
+        GameRegistry.registerItem(pageUpgradeCard, "page_upgrade_card");
 
         Upgrades.FUZZY.registerItem(new ItemStack(advanceStorageLinkCell), 1);
         Upgrades.INVERTER.registerItem(new ItemStack(advanceStorageLinkCell), 1);

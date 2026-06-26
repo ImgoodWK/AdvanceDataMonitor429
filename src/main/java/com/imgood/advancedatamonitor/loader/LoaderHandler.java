@@ -9,6 +9,7 @@ import com.imgood.advancedatamonitor.handler.HandlerPlayerJoin;
 import com.imgood.advancedatamonitor.handler.HandlerStarryCosmosSword;
 import com.imgood.advancedatamonitor.handler.HandlerSuperOrange;
 import com.imgood.advancedatamonitor.handler.HandlerTick;
+import com.imgood.advancedatamonitor.handler.PocketServerInjector;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -31,5 +32,6 @@ public class LoaderHandler {
         MinecraftForge.EVENT_BUS.register(new HandlerStarryCosmosSword());
         MinecraftForge.EVENT_BUS.register(new HandlerGrapple());
         MinecraftForge.EVENT_BUS.register(new HandlerDataLoomCell());
+        MinecraftForge.EVENT_BUS.register(PocketServerInjector.INSTANCE);
     }
 }

@@ -29,6 +29,8 @@ public class ItemGrappleHook extends Item {
 
     public static final String NBT_SHOW_NODE_DISTANCE = "grappleShowNodeDistance";
 
+    public static final String NBT_HOOK_MODE = "grappleHookMode";
+
     public ItemGrappleHook() {
 
         this.setMaxStackSize(1);
@@ -235,6 +237,35 @@ public class ItemGrappleHook extends Item {
 
     }
 
+    public static GrappleHookMode getHookMode(ItemStack stack) {
+        if (stack == null || !stack.hasTagCompound()) {
+            return GrappleHookMode.QUEUE;
+        }
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag.hasKey(NBT_HOOK_MODE)) {
+            return GrappleHookMode.fromId(tag.getInteger(NBT_HOOK_MODE));
+        }
+        return GrappleHookMode.QUEUE;
+    }
+
+    public static GrappleHookMode getHookMode(EntityPlayer player) {
+        return getHookMode(findHookStack(player));
+    }
+
+    public static void setHookMode(ItemStack stack, GrappleHookMode mode) {
+        if (stack == null || mode == null) {
+            return;
+        }
+        getOrCreateNBT(stack).setInteger(NBT_HOOK_MODE, mode.getId());
+    }
+
+    public static void setHookModeOnHeldOrAny(EntityPlayer player, GrappleHookMode mode) {
+        ItemStack stack = findHookStack(player);
+        if (stack != null) {
+            setHookMode(stack, mode);
+        }
+    }
+
     @SideOnly(Side.CLIENT)
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
@@ -261,6 +292,13 @@ public class ItemGrappleHook extends Item {
 
                 StatCollector
                     .translateToLocalFormatted(getShowNodeDistance(stack) ? "adm.label.on" : "adm.label.off")));
+
+        list.add(
+            StatCollector.translateToLocalFormatted(
+                "adm.label.grapple.mode",
+                StatCollector.translateToLocal(
+                    "adm.grapple.mode." + getHookMode(stack).name()
+                        .toLowerCase())));
 
     }
 

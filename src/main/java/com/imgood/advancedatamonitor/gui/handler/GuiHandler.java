@@ -10,7 +10,9 @@ import net.minecraft.world.World;
 import com.google.gson.JsonObject;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.gui.container.ContainerAdvanceStorageLink;
+import com.imgood.advancedatamonitor.gui.container.ContainerDimensionalPocket;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAdvanceStorageLink;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiDimensionalPocketConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiGrappleAnchorConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiGrappleHookConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiMainAdvanceDataMonitor;
@@ -43,6 +45,7 @@ public class GuiHandler implements IGuiHandler {
     public static final int MANUAL_GUI_ID = 3;
     public static final int GRAPPLE_ANCHOR_GUI_ID = 4;
     public static final int GRAPPLE_HOOK_GUI_ID = 5;
+    public static final int POCKET_CONFIG_GUI_ID = 6;
 
     @Override
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
@@ -51,6 +54,8 @@ public class GuiHandler implements IGuiHandler {
             if (tileEntity instanceof TileEntityAdvanceStorageLink) {
                 return new ContainerAdvanceStorageLink(player.inventory, (TileEntityAdvanceStorageLink) tileEntity);
             }
+        } else if (ID == POCKET_CONFIG_GUI_ID) {
+            return new ContainerDimensionalPocket(player);
         }
         return null;
     }
@@ -100,6 +105,8 @@ public class GuiHandler implements IGuiHandler {
                     return new GuiGrappleHookConfig(hookStack, player);
                 }
                 return null;
+            case POCKET_CONFIG_GUI_ID:
+                return new GuiDimensionalPocketConfig(player);
         }
         return null;
     }

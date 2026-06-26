@@ -73,5 +73,19 @@ public final class ConfigGrappleLoader {
             1,
             256,
             ConfigDescriptions.get("grapple", "maxTravelQueueSize"));
+        Config.grappleMaxSavedRoutes = configuration.getInt(
+            "maxSavedRoutes",
+            "grapple",
+            Config.grappleMaxSavedRoutes,
+            1,
+            512,
+            ConfigDescriptions.get("grapple", "maxSavedRoutes"));
+        Config.grappleMaxNodesPerRoute = configuration.getInt(
+            "maxNodesPerRoute",
+            "grapple",
+            Config.grappleMaxNodesPerRoute,
+            2,
+            512,
+            ConfigDescriptions.get("grapple", "maxNodesPerRoute"));
     }
 }

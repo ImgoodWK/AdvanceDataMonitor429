@@ -6,8 +6,11 @@ import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.config.Configuration;
 
 import com.imgood.advancedatamonitor.client.AiClientPreferences;
+import com.imgood.advancedatamonitor.client.GrappleRoutePickerHud;
 import com.imgood.advancedatamonitor.client.HandlerGrappleClient;
 import com.imgood.advancedatamonitor.client.KeyBindings;
+import com.imgood.advancedatamonitor.client.PocketOverlayHandler;
+import com.imgood.advancedatamonitor.client.StarryCosmosClientWarmup;
 import com.imgood.advancedatamonitor.client.VoiceAssistantKeyHandler;
 import com.imgood.advancedatamonitor.command.CommandAIConfig;
 import com.imgood.advancedatamonitor.command.CommandAssistant;
@@ -26,6 +29,7 @@ public class ClientProxy extends CommonProxy {
     private final VoiceAssistantKeyHandler voiceAssistantKeyHandler = new VoiceAssistantKeyHandler();
     private final KeyBindings keyBindings = new KeyBindings();
     private final HandlerGrappleClient grappleClientHandler = new HandlerGrappleClient();
+    private final StarryCosmosClientWarmup starryCosmosClientWarmup = new StarryCosmosClientWarmup();
 
     @Override
     public void preInit(FMLPreInitializationEvent event) {
@@ -57,7 +61,12 @@ public class ClientProxy extends CommonProxy {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new PlannerHudRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new GrappleHudRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new GrappleTravelLineRenderer());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new GrappleRoutePickerHud());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new OrangeNameplateRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new SuperOrangeHaloRenderer());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(PocketOverlayHandler.instance());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(this.starryCosmosClientWarmup);
     }
 }

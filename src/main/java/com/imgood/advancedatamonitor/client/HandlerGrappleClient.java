@@ -1,5 +1,6 @@
 package com.imgood.advancedatamonitor.client;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -19,7 +20,11 @@ import org.lwjgl.input.Mouse;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.Config;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiGrappleSavePrompt;
 import com.imgood.advancedatamonitor.gui.handler.GuiHandler;
+import com.imgood.advancedatamonitor.handler.GrappleRouteMatcher;
+import com.imgood.advancedatamonitor.items.GrappleHookMode;
+import com.imgood.advancedatamonitor.items.GrappleRouteEntry;
 import com.imgood.advancedatamonitor.items.ItemGrappleHook;
 import com.imgood.advancedatamonitor.loader.LoaderBlock;
 import com.imgood.advancedatamonitor.network.packet.PacketGrappleAction;
@@ -39,6 +44,7 @@ public class HandlerGrappleClient {
     private boolean lastShiftUseDown;
     private boolean wasAttached;
     private int selectionRefreshCooldown;
+    private BlockPos pendingPathTarget;
 
     @SubscribeEvent
     public void onChunkLoad(ChunkEvent.Load event) {
@@ -60,6 +66,8 @@ public class HandlerGrappleClient {
             return;
         }
         backfillLoadedChunks(event.world, (EntityPlayer) event.entity);
+        AdvanceDataMonitor.ADMCHANEL
+            .sendToServer(com.imgood.advancedatamonitor.network.packet.PacketGrapplePathAction.requestSync());
     }
 
     @SubscribeEvent
@@ -113,11 +121,17 @@ public class HandlerGrappleClient {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        Minecraft mc = Minecraft.getMinecraft();
-        EntityPlayer player = mc.thePlayer;
-        if (player == null || mc.currentScreen != null) {
+        // 预览过期清理：不依赖 player/currentScreen，确保 GUI 打开时也能及时清理
+        Minecraft mcForTick = Minecraft.getMinecraft();
+        if (mcForTick != null && mcForTick.theWorld != null) {
+            GrappleClientRouteCache.cleanupExpired(mcForTick.theWorld.getTotalWorldTime());
+        }
+
+        EntityPlayer player = mcForTick == null ? null : mcForTick.thePlayer;
+        if (player == null || mcForTick.currentScreen != null) {
             return;
         }
+        Minecraft mc = mcForTick;
 
         boolean shiftDown = isShiftDown();
         boolean useDown = isUseKeyDown();
@@ -130,7 +144,13 @@ public class HandlerGrappleClient {
         wasAttached = attached;
 
         if (attached && shiftDown && !useDown && !lastShiftDown) {
+            if (tryPromptSaveBeforeDetach(player)) {
+                lastShiftDown = shiftDown;
+                lastUseDown = useDown;
+                return;
+            }
             AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketGrappleAction.detach());
+            GrappleRoutePickerHud.clear();
             lastShiftDown = shiftDown;
             lastUseDown = useDown;
             return;
@@ -161,10 +181,45 @@ public class HandlerGrappleClient {
         }
 
         if (useDown && !lastUseDown && !shiftDown) {
-            List<BlockPos> candidates = GrappleSelectionUtil.buildCandidateNodes(player, true);
-            tryTravel(player, candidates);
+            if (GrappleRoutePickerHud.isOpen()) {
+                confirmRoutePickerTravel();
+            } else {
+                List<BlockPos> candidates = GrappleSelectionUtil.buildCandidateNodes(player, true);
+                tryTravel(player, candidates);
+            }
         }
+
+        int scroll = Mouse.getEventDWheel();
+        if (scroll != 0 && GrappleRoutePickerHud.isOpen()) {
+            GrappleRoutePickerHud.scrollSelection(scroll > 0 ? -1 : 1);
+        }
+
         lastUseDown = useDown;
+    }
+
+    private boolean tryPromptSaveBeforeDetach(EntityPlayer player) {
+        if (ItemGrappleHook.getHookMode(player) != GrappleHookMode.PLANNING) {
+            return false;
+        }
+        if (GrappleClientRouteCache.getRecordingBufferSize() <= 0) {
+            return false;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.displayGuiScreen(
+            new GuiGrappleSavePrompt(
+                player,
+                null,
+                () -> AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketGrappleAction.detach())));
+        return true;
+    }
+
+    private void confirmRoutePickerTravel() {
+        GrappleRouteMatcher.Match match = GrappleRoutePickerHud.getSelectedMatch();
+        if (match != null) {
+            sendTravelPath(match.routeId, match.subPath);
+        }
+        GrappleRoutePickerHud.clear();
+        pendingPathTarget = null;
     }
 
     @SubscribeEvent
@@ -241,7 +296,11 @@ public class HandlerGrappleClient {
                 return;
             }
             event.setCanceled(true);
-            sendTravel(target);
+            if (GrappleRoutePickerHud.isOpen()) {
+                confirmRoutePickerTravel();
+            } else {
+                tryTravelToTarget(player, target);
+            }
         } else if (GrappleSelectionUtil.isWithinInteractRange(player, target)) {
             event.setCanceled(true);
             sendAttach(target);
@@ -322,8 +381,42 @@ public class HandlerGrappleClient {
             target = GrappleClientCache.getSelectedTarget();
         }
         if (target != null && isValidTravelTarget(player, target)) {
-            sendTravel(target);
+            tryTravelToTarget(player, target);
         }
+    }
+
+    private void tryTravelToTarget(EntityPlayer player, BlockPos target) {
+        if (GrappleClientCache.isTraveling()) {
+            sendTravel(target);
+            return;
+        }
+        GrappleHookMode mode = ItemGrappleHook.getHookMode(player);
+        if (mode != GrappleHookMode.PATH) {
+            sendTravel(target);
+            return;
+        }
+        BlockPos anchor = new BlockPos(
+            GrappleClientCache.getAnchorX(),
+            GrappleClientCache.getAnchorY(),
+            GrappleClientCache.getAnchorZ());
+        int dim = player.worldObj.provider.dimensionId;
+        List<GrappleRouteEntry> dimRoutes = new ArrayList<GrappleRouteEntry>();
+        for (GrappleRouteEntry route : GrappleClientRouteCache.getRoutes()) {
+            if (route.dimension == dim) {
+                dimRoutes.add(route);
+            }
+        }
+        List<GrappleRouteMatcher.Match> matches = GrappleRouteMatcher.findMatchesInRoutes(dimRoutes, anchor, target);
+        if (matches.isEmpty()) {
+            sendTravel(target);
+            return;
+        }
+        if (matches.size() == 1) {
+            sendTravelPath(matches.get(0).routeId, matches.get(0).subPath);
+            return;
+        }
+        pendingPathTarget = target;
+        GrappleRoutePickerHud.open(matches);
     }
 
     private static boolean isValidTravelTarget(EntityPlayer player, BlockPos target) {
@@ -345,8 +438,14 @@ public class HandlerGrappleClient {
     }
 
     private static void sendTravel(BlockPos target) {
+        GrappleClientRouteCache.clearPreview();
         AdvanceDataMonitor.ADMCHANEL
             .sendToServer(PacketGrappleAction.travel(target.getX(), target.getY(), target.getZ()));
+    }
+
+    private static void sendTravelPath(String routeId, List<BlockPos> nodes) {
+        GrappleClientRouteCache.clearPreview();
+        AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketGrappleAction.travelPath(routeId, nodes));
     }
 
     private static void sendAttach(BlockPos target) {

@@ -1,250 +1,64 @@
 ---
-description: 网络包编写规范，涉及网络包时必须同步写好数据同步功能
+description: 网络包注册与同步规则，新增/修改 packet 必须遵循
 globs: **/network/**
 alwaysApply: false
 ---
 
-# 网络包与数据同步规范
+# 网络包注册与同步规则
 
-## 核心原则
+## 通道与注册时机
 
-**每次新增或修改网络包时，必须同时完成从客户端到服务端再到客户端的完整数据同步链路。** 不能只写一半。
+- 通道：`AdvanceDataMonitor.ADMCHANEL`（`SimpleNetworkWrapper`，modid 命名空间）
+- 注册入口：`loader/LoaderNetwork.registerNetWorks()`，在 `postInit` 调用
+- 客户端 Handler 注册必须用 `FMLCommonHandler.instance().getEffectiveSide().isClient()` 包裹，避免服务端启动时类加载 `@SideOnly(CLIENT)` 报错
 
-## 数据同步完整链路
+## Packet ID 表（与 `LoaderNetwork.java` 保持同步）
 
-```
-GUI/Client                →  网络包              →  Server Handler         →  Response/Client Sync
-─────────────────────────────────────────────────────────────────────────────────────────────────
-收集用户输入                Packet.sendToServer   接收包数据                  读回客户端 TileEntity
-封装为 NBTTagCompound      (FML SimpleImpl)      获取目标 TileEntity         markBlockForUpdate()
-sendToServer(...)                                 readFromNBT(nbt)           触发渲染更新
-                                                  markDirty()
-                                                  syncData()  ← 如果需要广播给其他玩家
-```
+| ID | 包类 | Handler | 方向 | 用途 |
+|----|------|---------|------|------|
+| 0 | `PacketItemNBT` | `HandlerNetwork` | SERVER | 物品 NBT 同步（映录器） |
+| 1 | `PacketSynTileEntity` | `ClientHandler`（仅客户端注册） | CLIENT | TE 数据下发客户端 |
+| 2 | `PacketSynTileEntity` | `HandlerSynTileEntity` | SERVER | 请求 TE 同步 |
+| 3 | — | — | — | 未使用 |
+| 4 | `PacketRequestItemCountSync` | `Handler` | SERVER | 请求物品数量同步 |
+| 5 | `PacketItemCountSync` | `Handler` | CLIENT | 物品数量下发 |
+| 6 | `PacketAssistantAction` | `Handler` | SERVER | AI 助手操作 |
+| 7 | `PacketAssistantResponse` | `Handler` | CLIENT | AI 助手响应 |
+| 8 | `PacketPlannerSync` | `HandlerPlannerSync` | SERVER | 计划器 NBT 上行 |
+| 9 | `PacketPlannerSync` | `ClientHandler` | CLIENT | 计划器 NBT 下发 |
+| 10 | `PacketPlannerMerge` | `HandlerPlannerMerge` | SERVER | 计划器合并 |
+| 11 | `PacketGrappleAction` | `Handler` | SERVER | 挂索动作 |
+| 12 | `PacketGrappleSync` | `ClientHandler` | CLIENT | 挂接状态同步 |
+| 13 | `PacketGrappleHookConfig` | `Handler` | SERVER | 挂索器配置 |
+| 14 | `PacketGrappleAnchorConfig` | `ServerHandler` + `ClientHandler` | SERVER + CLIENT | 挂索节点配置（双向同 ID） |
+| 15 | `PacketMonitorRecord` | `Handler` | SERVER | 监视器坐标登记 |
+| 16 | `PacketLinkScannerAction` | `HandlerLinkScannerAction` + `ClientHandler` | SERVER + CLIENT | 链接扫描器动作/同步（双向同 ID） |
+| 17 | `PacketGrapplePathAction` | `ServerHandler` | SERVER | 挂索路径动作 |
+| 18 | `PacketGrapplePathSync` | `ClientHandler` | CLIENT | 挂索路径下发 |
+| 19 | `PacketPocketAction` | `ServerHandler` | SERVER | 次元口袋 C→S 动作（开关/翻页/拖动/升级） |
+| 20 | `PacketPocketAction` | `ClientHandler` | CLIENT | 次元口袋动作响应（保留，当前空实现） |
+| 21 | `PacketPocketSync` | `ClientHandler` | CLIENT | 次元口袋状态/物品栏下发（全量或单页） |
 
-## 包类编写模板
+**下一个可用 ID = 22**
 
-### 1. 实现 `IMessage` 接口
+## 新增 Packet 接入步骤
 
-```java
-package com.imgood.advancedatamonitor.network.packet;
+1. 在 `network/packet/` 新建类，实现 `IMessage`（无参构造 + `toBytes`/`fromBytes` 严格对称）
+2. 内部或独立 `IMessageHandler`；NBT 用 `cpw.mods.fml.common.network.ByteBufUtils.writeTag`/`readTag`
+3. 在 `LoaderNetwork.registerNetWorks()` 用下一个可用 ID 注册
+4. 客户端 Handler 用 `isClient()` 包裹注册
+5. 双向包可同 ID 分别注册 SERVER/CLIENT
+6. **写完 C→S 必须补 S→C 同步链路**（规则核心）
+7. Handler 内做 null / `instanceof` / 距离校验（`NetworkValidationUtil`）
+8. 服务端改世界状态用 `HandlerTick.enqueueServerTask` 推迟到主线程
+9. 发送：`ADMCHANEL.sendToServer()` / `sendTo()` / `sendToAll()` / `sendToDimension()`
+10. **更新本规则文件的 ID 表**，保持与 `LoaderNetwork.java` 一致
 
-import cpw.mods.fml.common.network.ByteBufUtils;
-import cpw.mods.fml.common.network.simpleimpl.IMessage;
-import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import io.netty.buffer.ByteBuf;
+## 大 payload 注意
 
-public class PacketXxx implements IMessage {
+- 整栏 `ItemStack` 同步：用 `NBTTagList` + `ItemStack.writeToNBT`/`loadItemStackFromNBT`，包一层 `ByteBufUtils.writeTag`
+- 超过 ~32KB 时分页/分块传输（参考 `PacketPocketSync` 的 `KIND_FULL` / `KIND_SINGLE_PAGE`）
 
-    // === 数据字段 ===
-    private int x, y, z;            // 定位目标 TileEntity/Block
-    private NBTTagCompound data;    // 核心数据用 NBT
+## 目的
 
-    // === 必须有无参构造 ===
-    public PacketXxx() {}
-
-    // === 有参构造方便调用方 ===
-    public PacketXxx(int x, int y, int z, NBTTagCompound data) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.data = data;
-    }
-
-    // === 序列化：写出顺序 ===
-    @Override
-    public void toBytes(ByteBuf buf) {
-        buf.writeInt(x);
-        buf.writeInt(y);
-        buf.writeInt(z);
-        ByteBufUtils.writeTag(buf, data);
-        // 其他字段按 writeByte/writeLong/writeUTF8String 写入
-    }
-
-    // === 反序列化：必须与 toBytes 顺序完全一致 ===
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        x = buf.readInt();
-        y = buf.readInt();
-        z = buf.readInt();
-        data = ByteBufUtils.readTag(buf);
-        if (data == null) data = new NBTTagCompound();
-    }
-
-    // === Getter ===
-    public int getX() { return x; }
-    public int getY() { return y; }
-    public int getZ() { return z; }
-    public NBTTagCompound getData() { return data; }
-}
-```
-
-### 2. Handler 的两种写法
-
-#### 方式 A：内部静态类 Handler（推荐，单个包内自包含）
-
-```java
-// 服务端处理
-public static class ServerHandler implements IMessageHandler<PacketXxx, IMessage> {
-    @Override
-    public IMessage onMessage(PacketXxx message, MessageContext ctx) {
-        World world = ctx.getServerHandler().playerEntity.worldObj;
-        TileEntity te = world.getTileEntity(message.x, message.y, message.z);
-        if (te instanceof YourTileEntity) {
-            YourTileEntity tile = (YourTileEntity) te;
-            tile.readFromNBT(message.data);
-            tile.markDirty();
-            tile.syncData();  // 广播到所有客户端
-        }
-        return null;
-    }
-}
-
-// 客户端处理（需要 @SideOnly(Side.CLIENT)）
-@SideOnly(Side.CLIENT)
-public static class ClientHandler implements IMessageHandler<PacketXxx, IMessage> {
-    @Override
-    public IMessage onMessage(PacketXxx message, MessageContext ctx) {
-        World world = Minecraft.getMinecraft().theWorld;
-        TileEntity te = world.getTileEntity(message.x, message.y, message.z);
-        if (te instanceof YourTileEntity) {
-            te.readFromNBT(message.data);
-            world.markBlockForUpdate(message.x, message.y, message.z);  // ← 触发渲染更新
-        }
-        return null;
-    }
-}
-```
-
-#### 方式 B：独立 Handler 类（当包逻辑复杂或需要复用）
-
-放在 `network/handler/` 包下，类名形如 `HandlerXxx`。与内部类功能等价，只是分离到独立文件。
-
-### 3. 双向包模式（请求 + 响应）
-
-当客户端请求数据、服务端处理后返回结果时：
-
-```
-客户端发送 PacketRequestXxx → 服务端 Handler 处理 → 服务端创建 PacketResponseXxx → sendTo(player)
-```
-
-示例：`PacketRequestItemCountSync` (请求) → 服务端查询 AE2 数据 → `PacketItemCountSync` (响应，客户端 Handler 更新)
-
-服务端 Handler 中响应：
-```java
-PacketResponseXxx response = new PacketResponseXxx(data);
-AdvanceDataMonitor.ADMCHANEL.sendTo(response, (EntityPlayerMP) player);
-```
-
-## 注册规范 (LoaderNetwork.registerNetWorks)
-
-所有包在 `postInit` 阶段通过 `LoaderNetwork.registerNetWorks()` 注册。
-
-### 注册格式
-
-```java
-// 固定 discriminator ID，保证顺序一致不冲突
-// Server side
-AdvanceDataMonitor.ADMCHANEL.registerMessage(
-    PacketXxx.ServerHandler.class,   // Handler
-    PacketXxx.class,                 // Message
-    NEXT_ID,                          // 固定数字 ID（递增）
-    Side.SERVER);
-
-// Client side — 必须用 isClient() 包裹
-if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
-    AdvanceDataMonitor.ADMCHANEL.registerMessage(
-        PacketXxx.ClientHandler.class,
-        PacketXxx.class,
-        NEXT_ID,
-        Side.CLIENT);
-}
-```
-
-### 当前已占用的 ID
-
-| ID | 包 | Side |
-|----|-----|------|
-| 0 | PacketItemNBT → HandlerNetwork | SERVER |
-| 1 | PacketSynTileEntity → ClientHandler | CLIENT |
-| 2 | PacketSynTileEntity → HandlerSynTileEntity | SERVER |
-| 3 | *(未使用，原重复 HandlerSynTileEntity 已合并)* | — |
-| 4 | PacketRequestItemCountSync → Handler | SERVER |
-| 5 | PacketItemCountSync → Handler | CLIENT |
-| 6 | PacketAssistantAction → Handler | SERVER |
-| 7 | PacketAssistantResponse → Handler | CLIENT |
-| 8 | PacketPlannerSync → HandlerPlannerSync | SERVER |
-| 9 | PacketPlannerSync → ClientHandler | CLIENT |
-| 10 | PacketPlannerMerge → Handler | SERVER |
-| 11 | PacketGrappleAction → Handler | SERVER |
-| 12 | PacketGrappleSync → ClientHandler | CLIENT |
-| 13 | PacketGrappleHookConfig → Handler | SERVER |
-| 14 | PacketGrappleAnchorConfig → ServerHandler | SERVER |
-| 14 | PacketGrappleAnchorConfig → ClientHandler | CLIENT |
-| 15 | PacketMonitorRecord → Handler | SERVER |
-| 16 | PacketLinkScannerAction → HandlerLinkScannerAction | SERVER |
-| 16 | PacketLinkScannerAction → ClientHandler | CLIENT |
-
-**新增包时从 ID=17 开始递增，确保不重复。新增后必须同步更新上方的 ID 占用表。**
-
-## 本规则同步维护要求
-
-当新增、删除或修改网络包时，**必须同步更新本规则文件中的以下内容**：
-
-| 操作 | 需要更新的内容 |
-|------|---------------|
-| 新增网络包（packet/ 或 handler/） | 在"当前已占用的 ID"表中添加新行，记录 ID、包名、Side |
-| 删除网络包 | 从 ID 表中移除对应行 |
-| 修改包 ID | 更新 ID 表中的对应 ID |
-| 新增 handler 类 | 更新"包类编写模板"部分如需要，同时更新 `project-structure.mdc` 的 `network/` 文件计数 |
-
-执行时机：每次涉及 `network/packet/` 或 `network/handler/` 的变更后，Agent 应主动检查并更新本规则。
-
-## 发送方式汇总
-
-### 客户端 → 服务端
-```java
-AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
-```
-
-### 服务端 → 某个玩家
-```java
-AdvanceDataMonitor.ADMCHANEL.sendTo(packet, (EntityPlayerMP) player);
-```
-
-### 服务端 → 所有玩家
-```java
-AdvanceDataMonitor.ADMCHANEL.sendToAll(packet);
-```
-
-### 服务端 → 追踪某维度的玩家
-```java
-AdvanceDataMonitor.ADMCHANEL.sendToDimension(packet, world.provider.dimensionId);
-```
-
-## 数据完整性检查清单
-
-写网络包时必须确保：
-
-- [ ] `fromBytes` 中每个 `read*` 的 null 检查（`ByteBufUtils.readTag` 可能返回 null）
-- [ ] `toBytes` 中每个 `write*` 的 null 保护（NBT 用 `data == null ? new NBTTagCompound() : data`）
-- [ ] TileEntity null 检查（世界可能未加载区块）
-- [ ] `instanceof` 类型检查后再强转
-- [ ] 服务端 Handler 调用 `markDirty()` 和 `syncData()`（如果需要广播）
-- [ ] 客户端 Handler 调用 `world.markBlockForUpdate()` 触发渲染
-- [ ] 双向包模式中，响应包同样要完整注册 Handler
-- [ ] `LoaderNetwork.registerNetWorks()` 中注册了新包的 Handler
-- [ ] 新增包对应的新 TileEntity 类型，在 `saveAndSync` 中调用 `writeToNBT`
-
-## 常见序列化方法
-
-| 数据类型 | write | read |
-|---------|-------|------|
-| int | `buf.writeInt(v)` | `buf.readInt()` |
-| long | `buf.writeLong(v)` | `buf.readLong()` |
-| byte | `buf.writeByte(v)` | `buf.readByte()` |
-| boolean | `buf.writeBoolean(v)` | `buf.readBoolean()` |
-| String | `ByteBufUtils.writeUTF8String(buf, s)` | `ByteBufUtils.readUTF8String(buf)` |
-| NBTTagCompound | `ByteBufUtils.writeTag(buf, nbt)` | `ByteBufUtils.readTag(buf)` |
-| Map | 先 `writeByte(size)`，再遍历 `entrySet` 逐条 `writeByte(key)` + `writeLong(value)` |
+避免 packet ID 冲突、遗漏 S→C 回包、客户端 Handler 在服务端启动时类加载失败。

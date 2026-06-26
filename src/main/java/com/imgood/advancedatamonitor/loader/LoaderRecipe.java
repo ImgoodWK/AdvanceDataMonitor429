@@ -174,6 +174,50 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
+        // DimensionalPocket — extra inventory item bound to player UUID
+        try {
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    circuitMaster,
+                    circuitMaster,
+                    chest,
+                    crystalFluix,
+                    crystalFluix)
+                .itemOutputs(new ItemStack(LoaderItem.dimensionalPocket))
+                .duration(DURATION_NORMAL)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
+        } catch (Throwable ignored) {}
+
+        // SpaceUpgradeCard — one card per craft
+        try {
+            GTValues.RA.stdBuilder()
+                .itemInputs(plateTungstenSteel, circuitMaster, crystalFluix, screwTungstenSteel)
+                .itemOutputs(new ItemStack(LoaderItem.spaceUpgradeCard, 4))
+                .duration(DURATION_FAST)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
+        } catch (Throwable ignored) {}
+
+        // PageUpgradeCard — one card per craft (higher tier)
+        try {
+            GTValues.RA.stdBuilder()
+                .itemInputs(
+                    plateTungstenSteel,
+                    plateTungstenSteel,
+                    circuitMaster,
+                    crystalFluix,
+                    crystalFluix,
+                    screwTungstenSteel)
+                .itemOutputs(new ItemStack(LoaderItem.pageUpgradeCard, 2))
+                .duration(DURATION_FAST)
+                .eut(EU_IV)
+                .addTo(RecipeMaps.assemblerRecipes);
+        } catch (Throwable ignored) {}
+
     }
 
     /** Fetch one matching OreDict item, or return the fallback if none found. */

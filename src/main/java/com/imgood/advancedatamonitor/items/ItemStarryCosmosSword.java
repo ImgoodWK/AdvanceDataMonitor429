@@ -23,6 +23,7 @@ import com.imgood.advancedatamonitor.handler.StarryCosmosSounds;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSwordConstants;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSwordUtil;
 import com.imgood.advancedatamonitor.handler.StarryEntityMotionUtil;
+import com.imgood.advancedatamonitor.handler.StarrySwordSpawnScheduler;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -73,11 +74,24 @@ public class ItemStarryCosmosSword extends ItemSword implements ICosmicRenderIte
             .playJudgmentCast(world, player.posX, player.posY + player.getEyeHeight() * 0.5D, player.posZ);
         float displayYaw = player.rotationYaw;
         float miniScale = StarryCosmosSwordConstants.SCALE_LINE_STAB_MINI;
-        for (EntityLivingBase target : targets) {
+        for (final EntityLivingBase target : targets) {
             if (target == null || target.isDead) {
                 continue;
             }
-            world.spawnEntityInWorld(new EntityStarrySwordLineStab(world, target, player, displayYaw, miniScale));
+            final EntityPlayer owner = player;
+            final World spawnWorld = world;
+            final float yaw = displayYaw;
+            final float scale = miniScale;
+            StarrySwordSpawnScheduler.schedule(new Runnable() {
+
+                @Override
+                public void run() {
+                    if (target.isDead || spawnWorld.isRemote) {
+                        return;
+                    }
+                    spawnWorld.spawnEntityInWorld(new EntityStarrySwordLineStab(spawnWorld, target, owner, yaw, scale));
+                }
+            });
         }
     }
 

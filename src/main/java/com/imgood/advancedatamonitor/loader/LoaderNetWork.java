@@ -11,6 +11,8 @@ import com.imgood.advancedatamonitor.network.packet.PacketAssistantResponse;
 import com.imgood.advancedatamonitor.network.packet.PacketGrappleAction;
 import com.imgood.advancedatamonitor.network.packet.PacketGrappleAnchorConfig;
 import com.imgood.advancedatamonitor.network.packet.PacketGrappleHookConfig;
+import com.imgood.advancedatamonitor.network.packet.PacketGrapplePathAction;
+import com.imgood.advancedatamonitor.network.packet.PacketGrapplePathSync;
 import com.imgood.advancedatamonitor.network.packet.PacketGrappleSync;
 import com.imgood.advancedatamonitor.network.packet.PacketItemCountSync;
 import com.imgood.advancedatamonitor.network.packet.PacketItemNBT;
@@ -18,6 +20,8 @@ import com.imgood.advancedatamonitor.network.packet.PacketLinkScannerAction;
 import com.imgood.advancedatamonitor.network.packet.PacketMonitorRecord;
 import com.imgood.advancedatamonitor.network.packet.PacketPlannerMerge;
 import com.imgood.advancedatamonitor.network.packet.PacketPlannerSync;
+import com.imgood.advancedatamonitor.network.packet.PacketPocketAction;
+import com.imgood.advancedatamonitor.network.packet.PacketPocketSync;
 import com.imgood.advancedatamonitor.network.packet.PacketRequestItemCountSync;
 import com.imgood.advancedatamonitor.network.packet.PacketSynTileEntity;
 
@@ -111,6 +115,36 @@ public class LoaderNetwork {
                 PacketLinkScannerAction.class,
                 16,
                 Side.CLIENT);
+        }
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketGrapplePathAction.ServerHandler.class,
+            PacketGrapplePathAction.class,
+            17,
+            Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketGrapplePathSync.ClientHandler.class,
+                PacketGrapplePathSync.class,
+                18,
+                Side.CLIENT);
+        }
+
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketPocketAction.ServerHandler.class, PacketPocketAction.class, 19, Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketPocketAction.ClientHandler.class, PacketPocketAction.class, 20, Side.CLIENT);
+        }
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketPocketSync.ClientHandler.class, PacketPocketSync.class, 21, Side.CLIENT);
         }
     }
 }

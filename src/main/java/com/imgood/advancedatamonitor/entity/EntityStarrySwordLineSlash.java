@@ -14,6 +14,7 @@ import net.minecraft.world.World;
 import com.imgood.advancedatamonitor.handler.StarryCosmosSounds;
 import com.imgood.advancedatamonitor.handler.StarryEntityMotionUtil;
 import com.imgood.advancedatamonitor.handler.StarryPlayerLookup;
+import com.imgood.advancedatamonitor.handler.StarrySwordSpawnScheduler;
 
 import cpw.mods.fml.common.registry.IEntityAdditionalSpawnData;
 import io.netty.buffer.ByteBuf;
@@ -136,8 +137,10 @@ public class EntityStarrySwordLineSlash extends Entity implements IEntityAdditio
             this);
 
         Set<Integer> seen = new HashSet<Integer>();
-        float displayYaw = (float) (Math.atan2(dirX, dirZ) * 180.0D / Math.PI);
-        for (EntityLivingBase target : targets) {
+        final float displayYaw = (float) (Math.atan2(dirX, dirZ) * 180.0D / Math.PI);
+        final EntityLivingBase slashOwner = owner;
+        final World spawnWorld = worldObj;
+        for (final EntityLivingBase target : targets) {
             if (target == null || target.isDead) {
                 continue;
             }
@@ -145,7 +148,17 @@ public class EntityStarrySwordLineSlash extends Entity implements IEntityAdditio
             if (!seen.add(id)) {
                 continue;
             }
-            worldObj.spawnEntityInWorld(new EntityStarrySwordLineStab(worldObj, target, owner, displayYaw));
+            StarrySwordSpawnScheduler.schedule(new Runnable() {
+
+                @Override
+                public void run() {
+                    if (target.isDead || spawnWorld.isRemote) {
+                        return;
+                    }
+                    spawnWorld
+                        .spawnEntityInWorld(new EntityStarrySwordLineStab(spawnWorld, target, slashOwner, displayYaw));
+                }
+            });
         }
     }
 

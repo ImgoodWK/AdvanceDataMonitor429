@@ -111,6 +111,8 @@ public class Config {
     public static float grappleTravelSnapDegrees = 40.0F;
     public static float grappleAttachSnapDegrees = 22.0F;
     public static int grappleMaxTravelQueueSize = 20;
+    public static int grappleMaxSavedRoutes = 64;
+    public static int grappleMaxNodesPerRoute = 128;
 
     public static void synchronizeConfiguration(File configFile) {
         activeConfigFile = configFile;

@@ -299,6 +299,8 @@ public final class ConfigDescriptions {
             "maxTravelQueueSize",
             "Maximum queued grapple travel hops while already sliding.",
             "已在滑移中时允许排队的最大挂索移动跳数。");
+        put("grapple", "maxSavedRoutes", "Maximum saved grapple routes per player.", "每位玩家最多可保存的挂索路线数量。");
+        put("grapple", "maxNodesPerRoute", "Maximum nodes per saved grapple route.", "每条保存路线最多节点数。");
     }
 
     private ConfigDescriptions() {}

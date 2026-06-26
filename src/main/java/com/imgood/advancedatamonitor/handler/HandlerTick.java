@@ -55,6 +55,7 @@ public class HandlerTick {
         AssistantCraftJobManager.instance()
             .tickPendingJobs();
         com.imgood.advancedatamonitor.items.cell.DataLoomWeaveScheduler.onServerTick();
+        StarrySwordSpawnScheduler.drainServerTick();
     }
 
     private void scanPlanReminders() {

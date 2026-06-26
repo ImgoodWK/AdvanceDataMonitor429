@@ -1,6 +1,7 @@
 package com.imgood.advancedatamonitor.renders;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -13,6 +14,7 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.advancedatamonitor.client.GrappleClientCache;
+import com.imgood.advancedatamonitor.client.GrappleClientRouteCache;
 import com.imgood.advancedatamonitor.client.GrappleSelectionUtil;
 import com.imgood.advancedatamonitor.items.ItemGrappleHook;
 import com.imgood.advancedatamonitor.utils.BlockPos;
@@ -77,6 +79,12 @@ public class GrappleTravelLineRenderer {
         if (player == null || mc.theWorld == null || mc.currentScreen != null) {
             return;
         }
+
+        if (GrappleClientRouteCache.hasPreview()) {
+            renderPreviewPath(mc, player, event.partialTicks);
+            return;
+        }
+
         if (!GrappleClientCache.isAttached()) {
             return;
         }
@@ -137,6 +145,29 @@ public class GrappleTravelLineRenderer {
             }
             if (drawQueue) {
                 drawWhiteQueuePath(world, queuePath, ox, oy, oz, animSeconds);
+            }
+        } finally {
+            endLineRender();
+        }
+    }
+
+    private static void renderPreviewPath(Minecraft mc, EntityPlayer player, float partialTicks) {
+        World world = mc.theWorld;
+        float animSeconds = (world.getTotalWorldTime() + partialTicks) / 20.0F;
+        RenderManager rm = RenderManager.instance;
+        double[] offset = resolveLineRenderOffset(player, rm, partialTicks);
+        Collection<GrappleClientRouteCache.PreviewState> previews = GrappleClientRouteCache.getActivePreviews();
+        if (previews.isEmpty()) {
+            return;
+        }
+        beginLineRender();
+        try {
+            for (GrappleClientRouteCache.PreviewState state : previews) {
+                List<BlockPos> preview = state.nodes;
+                if (preview == null || preview.size() < 2) {
+                    continue;
+                }
+                drawWhiteQueuePath(world, preview, offset[0], offset[1], offset[2], animSeconds);
             }
         } finally {
             endLineRender();

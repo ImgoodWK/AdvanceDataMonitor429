@@ -72,6 +72,7 @@ public final class GrapplePlayerState {
         refreshNearby(state);
         STATES.put(player.getUniqueID(), state);
         snapToHangPosition(player, state);
+        GrapplePlanningSession.recordNode(player, x, y, z);
         syncToPlayer((EntityPlayerMP) player, state);
     }
 
@@ -111,6 +112,62 @@ public final class GrapplePlayerState {
             return;
         }
         startTravel(player, state, targetX, targetY, targetZ, ItemGrappleHook.resolveTravelSpeed(player));
+    }
+
+    public static boolean travelPath(EntityPlayer player, List<BlockPos> path) {
+        if (player == null || player.worldObj.isRemote || path == null || path.size() < 2) {
+            return false;
+        }
+        State state = STATES.get(player.getUniqueID());
+        if (state == null || !state.attached || state.traveling) {
+            return false;
+        }
+        if (!ItemGrappleHook.hasHookAnywhere(player)) {
+            detach(player);
+            return false;
+        }
+        double speed = ItemGrappleHook.resolveTravelSpeed(player);
+        int dimId = player.worldObj.provider.dimensionId;
+        double maxDist = Config.grappleMaxTravelChunkRadius * 16.0D;
+        BlockPos start = path.get(0);
+        if (!isSameBlock(start.getX(), start.getY(), start.getZ(), state.anchorX, state.anchorY, state.anchorZ)) {
+            return false;
+        }
+        BlockPos firstHop = path.get(1);
+        int prevX = state.anchorX;
+        int prevY = state.anchorY;
+        int prevZ = state.anchorZ;
+        for (int i = 1; i < path.size(); i++) {
+            BlockPos hop = path.get(i);
+            if (!GrappleNodeIndex.INSTANCE.contains(dimId, hop.getX(), hop.getY(), hop.getZ())) {
+                return false;
+            }
+            double[] startHang = resolveHangPosition(player.worldObj, prevX, prevY, prevZ);
+            double[] endHang = resolveHangPosition(player.worldObj, hop.getX(), hop.getY(), hop.getZ());
+            if (startHang == null || endHang == null) {
+                return false;
+            }
+            double dx = endHang[0] - startHang[0];
+            double dy = endHang[1] - startHang[1];
+            double dz = endHang[2] - startHang[2];
+            double distance = MathHelper.sqrt_double(dx * dx + dy * dy + dz * dz);
+            if (distance > maxDist) {
+                return false;
+            }
+            prevX = hop.getX();
+            prevY = hop.getY();
+            prevZ = hop.getZ();
+        }
+        state.travelQueue.clear();
+        for (int i = 2; i < path.size(); i++) {
+            if (state.travelQueue.size() >= Config.grappleMaxTravelQueueSize) {
+                return false;
+            }
+            BlockPos hop = path.get(i);
+            state.travelQueue.add(new GrappleQueuedHop(hop.getX(), hop.getY(), hop.getZ(), speed));
+        }
+        startTravel(player, state, firstHop.getX(), firstHop.getY(), firstHop.getZ(), speed);
+        return true;
     }
 
     private static void startTravel(EntityPlayer player, State state, int targetX, int targetY, int targetZ,
@@ -223,6 +280,11 @@ public final class GrapplePlayerState {
         state.anchorY = targetY;
         state.anchorZ = targetZ;
         refreshNearby(state);
+        GrapplePlanningSession.recordNode(player, targetX, targetY, targetZ);
+        if (player instanceof EntityPlayerMP
+            && ItemGrappleHook.getHookMode(player) == com.imgood.advancedatamonitor.items.GrappleHookMode.PLANNING) {
+            GrappleRouteSync.syncBuffer((EntityPlayerMP) player);
+        }
         if (!(player instanceof EntityPlayerMP)) {
             return;
         }

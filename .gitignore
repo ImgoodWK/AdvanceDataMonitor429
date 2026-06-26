@@ -43,3 +43,8 @@ layout.json
 .workspace/
 .tmp/
 .cursor/plans/
+
+# 临时压缩包/备份
+repo.zip
+*.bak
+*.orig
