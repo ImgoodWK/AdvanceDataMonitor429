@@ -1,0 +1,29 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.grapple_system",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.grapple_system.overview_title",
+      "textKey": "adm.manual.grapple_system.overview_text"
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.grapple_system.anchor_title",
+      "items": [
+        {"registryName": "advancedatamonitor:grappleAnchor", "descKey": "adm.manual.item.grappleAnchor"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.grapple_system.hook_title",
+      "items": [
+        {"registryName": "advancedatamonitor:grapple_hook", "descKey": "adm.manual.item.grappleHook"}
+      ]
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.grapple_system.story_title",
+      "textKey": "adm.manual.grapple_system.story_text"
+    }
+  ]
+}

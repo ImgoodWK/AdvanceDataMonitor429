@@ -16,6 +16,8 @@ public class PocketInventory implements IInventory {
     private final String playerUuid;
     private int currentPage = 0;
     private final boolean serverSide;
+    private long lastSaveMs = 0L;
+    private static final long SAVE_COOLDOWN_MS = 2000L;
 
     public PocketInventory(PocketState state, String playerUuid, boolean serverSide) {
         this.state = state;
@@ -94,12 +96,31 @@ public class PocketInventory implements IInventory {
 
     @Override
     public int getInventoryStackLimit() {
-        return 64;
+        if (state.isInfiniteStackUpgrade()) return Integer.MAX_VALUE;
+        int mult = state.getStackMultiplier();
+        if (mult == Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return Math.min(64 * mult, Integer.MAX_VALUE);
     }
 
     @Override
     public void markDirty() {
         if (serverSide) {
+            long now = System.currentTimeMillis();
+            if (now - lastSaveMs >= SAVE_COOLDOWN_MS) {
+                lastSaveMs = now;
+                PocketStore.instance()
+                    .save(playerUuid);
+            }
+        }
+    }
+
+    /**
+     * Force an immediate save regardless of the cooldown. Called on container
+     * close and from periodic tick to ensure data is not lost on crash.
+     */
+    public void flush() {
+        if (serverSide) {
+            lastSaveMs = System.currentTimeMillis();
             PocketStore.instance()
                 .save(playerUuid);
         }

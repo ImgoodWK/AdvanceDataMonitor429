@@ -36,7 +36,8 @@
 dependencies {
     shadowImplementation('com.alphacephei:vosk:0.3.45')
     shadowImplementation('net.java.dev.jna:jna:5.14.0')
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.5.4-GTNH:dev")
+    shadowImplementation('com.github.Towdium:PinIn:1.6.0')
+    devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.5.4-GTNH:dev")
     implementation files('libs/Chisel-2.14.1-GTNH-dev.jar')
     implementation files('libs/Galacticraft-3.3.12-GTNH-dev.jar')
     implementation files('libs/IC2NuclearControl-2.7.8-dev.jar')

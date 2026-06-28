@@ -30,6 +30,16 @@
       "type": "text",
       "titleKey": "adm.manual.ai_assistant.examples_title",
       "textKey": "adm.manual.ai_assistant.examples_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.teleport_title",
+      "textKey": "adm.manual.ai_assistant.teleport_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.planner_title",
+      "textKey": "adm.manual.ai_assistant.planner_text"
     }
   ]
 }

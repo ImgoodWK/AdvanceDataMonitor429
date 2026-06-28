@@ -9,9 +9,11 @@ import com.imgood.advancedatamonitor.items.ItemAdvanceStorageLinkCell;
 import com.imgood.advancedatamonitor.items.ItemDataImprint;
 import com.imgood.advancedatamonitor.items.ItemDimensionalPocket;
 import com.imgood.advancedatamonitor.items.ItemGrappleHook;
+import com.imgood.advancedatamonitor.items.ItemInfiniteStackUpgradeCard;
 import com.imgood.advancedatamonitor.items.ItemManual;
 import com.imgood.advancedatamonitor.items.ItemPageUpgradeCard;
 import com.imgood.advancedatamonitor.items.ItemSpaceUpgradeCard;
+import com.imgood.advancedatamonitor.items.ItemStackUpgradeCard;
 import com.imgood.advancedatamonitor.items.ItemStarryCosmosSword;
 import com.imgood.advancedatamonitor.items.ItemSuperOrange;
 import com.imgood.advancedatamonitor.items.cell.ItemDataDustLoomCell;
@@ -51,6 +53,8 @@ public class LoaderItem {
     public static Item dimensionalPocket;
     public static Item spaceUpgradeCard;
     public static Item pageUpgradeCard;
+    public static Item stackUpgradeCard;
+    public static Item infiniteStackUpgradeCard;
 
     public static void registerItems() {
         dataImprint = new ItemDataImprint().setUnlocalizedName("dataImprint")
@@ -86,6 +90,10 @@ public class LoaderItem {
             .setTextureName("advancedatamonitor:space_upgrade_card");
         pageUpgradeCard = new ItemPageUpgradeCard().setUnlocalizedName("pageUpgradeCard")
             .setTextureName("advancedatamonitor:page_upgrade_card");
+        stackUpgradeCard = new ItemStackUpgradeCard().setUnlocalizedName("stackUpgradeCard")
+            .setTextureName("advancedatamonitor:stack_upgrade_card");
+        infiniteStackUpgradeCard = new ItemInfiniteStackUpgradeCard().setUnlocalizedName("infiniteStackUpgradeCard")
+            .setTextureName("advancedatamonitor:infinite_stack_upgrade_card");
 
         GameRegistry.registerItem(dataImprint, "data_imprint");
         GameRegistry.registerItem(advanceStorageLinkCell, "advance_storage_link_cell");
@@ -105,6 +113,8 @@ public class LoaderItem {
         GameRegistry.registerItem(dimensionalPocket, "dimensional_pocket");
         GameRegistry.registerItem(spaceUpgradeCard, "space_upgrade_card");
         GameRegistry.registerItem(pageUpgradeCard, "page_upgrade_card");
+        GameRegistry.registerItem(stackUpgradeCard, "stack_upgrade_card");
+        GameRegistry.registerItem(infiniteStackUpgradeCard, "infinite_stack_upgrade_card");
 
         Upgrades.FUZZY.registerItem(new ItemStack(advanceStorageLinkCell), 1);
         Upgrades.INVERTER.registerItem(new ItemStack(advanceStorageLinkCell), 1);

@@ -24,6 +24,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
   - [3.10 Super Orange](#310-super-orange)
   - [3.11 Empyrean Holy Judgment](#311-empyrean-holy-judgment)
   - [3.12 AdvanceDataMonitor Manual](#312-advancedatamonitor-manual)
+  - [3.13 Dimensional Pocket](#313-dimensional-pocket)
 - [4. Advance Data Monitor Tutorial](#4-advance-data-monitor-tutorial)
 - [5. AE2 Network Monitoring](#5-ae2-network-monitoring)
 - [6. AE2 Crafting Monitoring](#6-ae2-crafting-monitoring)
@@ -55,7 +56,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
 | AI Assistant | Natural-language AE2 queries, crafting orders, withdrawals, plans, and **Advanced Dislocator** teleport |
 | Voice Assistant | **V** key recording; embedded Vosk (offline) or HTTP STT |
 
-**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, AdvanceDataMonitor Manual, and more.
+**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, AdvanceDataMonitor Manual, Dimensional Pocket (with Space/Page upgrade cards), and more.
 
 **Environment:** GTNH or any 1.7.10 pack with AE2/GTNH dependencies. After install, edit `config/advancedatamonitor/advancedatamonitor.cfg` and set an AI API key to enable the assistant.
 
@@ -230,7 +231,7 @@ Connects to AE2 and tracks crafting CPU state. Also powers AI craft queries and 
 ### 3.5 Advanced Storage Linker
 
 **Registry:** `advancedatamonitor:advStorageLink`  
-**Lang name:** Advanced Storage Linker (`tile.advanceStorageLink.name`)
+**Lang name:** Advanced Storage Linker (`tile.StorageLinkBlock.name`)
 
 Shows AE2 counts for items/fluids configured on **Advanced Storage Link Cell** partitions placed inside the block.
 
@@ -431,6 +432,47 @@ Right-click opens the in-game manual GUI (chapter sidebar + page content) coveri
 **First join:** one manual is automatically added to new players (`HandlerPlayerJoin`).
 
 Page types: `text`, `item_showcase`, `config_ref`.
+
+**GUI controls**
+
+| Area | Behavior |
+|------|----------|
+| Top search box | Searches chapter titles and all page body text. Space-separated keywords use AND logic. Supports Chinese and English; with **NotEnoughCharacters** installed, pinyin / abbreviation search matches NEI behavior |
+| Chapter sidebar | Click to switch chapters. When searching, only matching chapters are listed; matched terms are highlighted in titles and body text |
+| Sidebar scroll | Scrollbar appears when chapters overflow. Mouse wheel, drag thumb, or click `^` / `v` buttons to jump to top/bottom |
+| Content area | Prev/Next page buttons; mouse wheel on long `config_ref` pages; search highlights in visible text |
+
+---
+
+### 3.13 Dimensional Pocket
+
+**Registry:** `advancedatamonitor:dimensionalPocket`
+**Lang name:** Dimensional Pocket (`item.dimensionalPocket.name`)
+
+A player-UUID-bound portable storage. All pocket items in your inventory share the same storage (state persisted to `config/advancedatamonitor/pocket-<uuid>.json`; the item itself carries no data).
+
+**Usage**
+
+| Action | Effect |
+|--------|--------|
+| Right-click | Opens the **storage GUI**: the pocket's current page as a slot grid on top, player inventory below. Drag / shift-click to move items in and out. |
+| Shift+right-click | Toggles the overlay window (a draggable pocket panel overlaid on any open container; AE2 containers auto-degrade to read-only). |
+
+Inside the storage GUI:
+
+- **Prev / Next** buttons switch pages (server-side page change; slot contents refresh via native container sync).
+- **Upgrade Config** button opens the upgrade config GUI (install / remove upgrade cards).
+
+**Upgrades**
+
+| Card | Registry | Effect | Cap |
+|------|----------|--------|-----|
+| Space Upgrade Card | `advancedatamonitor:spaceUpgradeCard` | +1 slot per card (baseline 1, max 63 per page) | 64 (62 effective) |
+| Page Upgrade Card | `advancedatamonitor:pageUpgradeCard` | +1 page per card (max 9 pages) | 8, requires space upgrades fully stacked (64) to take effect |
+
+Installed upgrade cards are **consumed** (written into the player's PocketState) and not returned on GUI close; only cards rejected by the prerequisite rule (e.g. page cards installed while space isn't full) are returned to the player's inventory.
+
+**Capacity formula:** slots per page = `min(63, 1 + min(space upgrades, 62))`; page count = `1 + min(page upgrades, 8)` when space upgrades reach 64, otherwise 1.
 
 ---
 

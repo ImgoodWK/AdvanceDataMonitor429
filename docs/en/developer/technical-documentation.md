@@ -53,7 +53,7 @@ Key configuration:
 
 - `build.gradle.kts`: applies only `com.gtnewhorizons.gtnhconvention`; most build behavior comes from the GTNH convention plugin.
 - `gradle.properties`: defines `modName`, `modId`, `modGroup`, MC/Forge/MCP versions, Jabel, shadow, publishing, and proxy settings.
-- `dependencies.gradle`: declares runtime/compile dependencies. Currently includes Vosk/JNA shadow dependencies plus GTNH, AE2 Fluid Craft, GT5, ArchitectureCraft, BlockRenderer6343, and other dev dependencies.
+- `dependencies.gradle`: declares runtime/compile dependencies. Shadow deps include Vosk/JNA, PinIn (manual pinyin search), plus GTNH, AE2 Fluid Craft, GT5, ArchitectureCraft, BlockRenderer6343, and other dev dependencies.
 - `repositories.gradle`: supplemental dependency repositories.
 - `libs/`: local dev jars.
 
@@ -70,29 +70,28 @@ On Unix-like shells, use `./gradlew` instead. Jabel allows some modern Java synt
 
 ## 3. Source Directory Structure
 
-The project uses **dual-axis package organization**: standard Forge layering (`blocks/`, `items/`, `entity/`, etc.) plus feature packages (`assistant/`, `items/cell/`, `handler/`, `handler/`, `manual/`, `voice/`, `ai/`). Shared logic for complex subsystems lives in feature packages; Block/Item/Entity/Handler/Render still register in standard packages via centralized `loader/` registration.
+The project uses **dual-axis package organization**: standard Forge layering (`blocks/`, `items/`, `entity/`, etc.) plus feature packages (`assistant/`, `items/cell/`, `handler/`, `voice/`). Shared logic for complex subsystems lives in feature packages; Block/Item/Entity/Handler/Render still register in standard packages via centralized `loader/` registration.
 
 Main directories:
 
 - `src/main/java/com/imgood/advancedatamonitor/`: mod entry, proxy, config, and business packages.
 - `blocks/`: five block implementations (including grapple node `BlockGrappleAnchor`); creates TileEntities, opens GUIs, placement facing, basic interaction.
-- `items/`: `ItemDataImprint`, `ItemAdvanceStorageLinkCell`, `ItemAdvancePlanner`, `ItemManual`, `ItemSuperOrange`, `ItemGrappleHook`, `ItemStarryCosmosSword`; Data Loom cells live in `items/cell/` (items also in `items/cell/`, unlike handler/manual items/ pattern).
+- `items/`: `ItemDataImprint`, `ItemAdvanceStorageLinkCell`, `ItemAdvancePlanner`, `ItemManual`, `ItemSuperOrange`, `ItemGrappleHook`, `ItemStarryCosmosSword`, `ItemDimensionalPocket` (+ `ItemSpaceUpgradeCard` / `ItemPageUpgradeCard` / `ItemStackUpgradeCard` / `ItemInfiniteStackUpgradeCard`); Data Loom cells live in `items/cell/` (items also in `items/cell/`, unlike handler/manual items/ pattern).
 - `tileentity/`: monitor, three AE2 Linkers, and grapple node server state, NBT persistence, AE2 network access, and sync logic.
 - `gui/`: Forge GUI handler (`GuiHandler`, includes `GRAPPLE_HOOK_GUI_ID`), containers, custom GUI widgets, and all client config screens.
 - `renders/`: TESR, item rendering, monitor content renderers, HUD, manual page rendering (`ManualPageRenderer`).
 - `network/`: SimpleNetworkWrapper packets and handlers.
 - `loader/`: centralized registration entry points during Forge lifecycle.
-- `handler/`: tick handler, Super Orange ability handler, loot handler, player join handler, `HandlerGrapple` (grapple node index, attach tick, chunk-load backfill), `HandlerStarryCosmosSword`.
+- `handler/`: tick handler, Super Orange ability handler, loot handler, player join handler, grapple server logic (node index, player state, anchor positions, travel queue), Empyrean Holy Judgment shared utilities (damage source, motion, impact point, constants, sounds), Dimensional Pocket server logic (state, store, inventory, upgrade rules); includes `HandlerTick` / `HandlerSuperOrange` / `HandlerLoot` / `HandlerPlayerJoin` / `HandlerGrapple` / `HandlerStarryCosmosSword` / `HandlerDataLoomCell` etc.
 - `entity/`: `EntitySuperOrangeDrone`, grapple slide entity, Empyrean Holy Judgment skill entities (6); no Render classes.
-- `client/`: voice hotkey, key bindings, grapple client input (`HandlerGrappleClient`), grapple client cache and selection (`GrappleClientCache`, `GrappleSelectionUtil`).
-- `handler/`: grapple server logic (node index, player state, anchor positions, travel queue).
-- `handler/`: Empyrean Holy Judgment shared utilities (damage source, motion, impact point, constants, sounds); Item/Entity/Render in standard packages.
-- `manual/`: manual chapter/page model and JSON loading; `ItemManual` in `items/`, `GuiManual` in `gui/guiscreen/`.
+- `client/`: voice hotkey, key bindings, grapple client input (`HandlerGrappleClient`), grapple client cache and selection (`GrappleClientCache`, `GrappleSelectionUtil`), Dimensional Pocket overlay and client cache.
+- `gui/manual/`: manual chapter/page model and JSON loading (moved into `gui/` sub-package); `ItemManual` in `items/`, `GuiManual` in `gui/guiscreen/`.
 - `assistant/`: AI assistant intent, controller, server execution, formatting, preference memory, and local plan storage.
-- `ai/`: OpenAI-compatible chat client, request options, provider profiles, stream listener.
+- `assistant/ai/`: OpenAI-compatible chat client, request options, provider profiles, stream listener (assistant sub-package).
 - `voice/`: recording, STT, embedded Vosk model.
 - `items/cell/`: Data Loom Cells — implement `ICellWorkbenchItem` + `ICellHandler`; weave marked items/fluids/essentia over time in ME drives/chests; accept only Weave Amplifier cards (default 4×/16× per card, multiplicative); tooltip caches effective rates.
-- `utils/`: NBT parsing, binding data model, TileEntity type detection, AE2 crafting templates, and other helpers.
+- `utils/`: NBT parsing, binding data model, TileEntity type detection, network validation, AE2 crafting templates, and other helpers.
+- `mixin/`: client-side Mixins (NEI tooltip/layout, GUI container hooks); config in `mixins.advancedatamonitor.json`.
 - `src/main/resources/assets/advancedatamonitor/`: lang, textures, AI lexicon, embedded Vosk model manifest.
 - `src/test/java/test/AssistantIntentParserSuite.java`: regression tests for assistant rule parser and AI JSON parser.
 
@@ -122,7 +121,7 @@ Centralized loader classes:
 - `LoaderGui` registers `GuiHandler`.
 - `LoaderHandler` registers `HandlerTick`, `HandlerLoot`, `HandlerPlayerJoin`, `HandlerSuperOrange`, `HandlerGrapple`. `HandlerTick` runs server deferred task queue, plan reminder scans, and Super Orange drone spawn/remove logic. `HandlerSuperOrange` handles projectile immunity and mining drop multipliers. `HandlerGrapple` handles grapple tick, immobilization, and node index backfill on chunk load.
 
-- `LoaderNetwork` registers all packets, discriminators `0`–`12` (including grapple 11, 12).
+- `LoaderNetwork` registers all packets, discriminators `0`–`21` (full ID table in `.cursor/rules/network-packets.mdc` and `LoaderNetwork.java`).
 
 When adding registrations, keep using centralized loader entry points.
 
@@ -144,6 +143,11 @@ In-game display names below come from `assets/advancedatamonitor/lang/` (Chinese
 | `ItemSuperOrange` | 超能砂糖桔 | Super Orange | `item.orange.name` |
 | `ItemGrappleHook` | 挂索器 | Grapple Hook | `item.grappleHook.name` |
 | `ItemStarryCosmosSword` | 至高天圣裁 | Empyrean Holy Judgment | `item.starryCosmosSword.name` |
+| `ItemDimensionalPocket` | 次元口袋 | Dimensional Pocket | `item.dimensionalPocket.name` |
+| `ItemSpaceUpgradeCard` | 空间升级卡 | Space Upgrade Card | `item.spaceUpgradeCard.name` |
+| `ItemPageUpgradeCard` | 翻页升级卡 | Page Upgrade Card | `item.pageUpgradeCard.name` |
+| `ItemStackUpgradeCard` | 堆叠升级卡 | Stack Upgrade Card | `item.stackUpgradeCard.name` |
+| `ItemInfiniteStackUpgradeCard` | 无尽堆叠升级卡 | Infinite Stack Upgrade Card | `item.infiniteStackUpgradeCard.name` |
 | `ItemDataDustLoomCell` | 数据织尘元件 | Data Dust Loom Cell | `item.dataDustLoomCell.name` |
 | `ItemDataFormLoomCell` | 数据织形元件 | Data Form Loom Cell | `item.dataFormLoomCell.name` |
 | `ItemDataFlowCell` | 数据涌流元件 | Data Flow Cell | `item.dataFlowCell.name` |
@@ -310,9 +314,11 @@ Key classes: `ItemStarryCosmosSword`, `HandlerStarryCosmosSword`, `handler/*`, s
 
 Registry name `manual` (lang: `item.manual.name` — AdvanceDataMonitor Manual).
 
-Key classes: `ItemManual`, `manual/ManualDataLoader`, `ManualChapter`, `ManualPage`, `GuiManual`, `ManualPageRenderer`.
+Key classes: `ItemManual`, `gui/manual/ManualDataLoader`, `ManualChapter`, `ManualPage`, `GuiManual`, `renders/ManualPageRenderer`; search/highlight: `ManualSearchIndex`, `ManualSearchUtil` (PinIn + optional NEC `NecharUtils` reflection), `ManualTextHighlighter`.
 
-JSON under `assets/advancedatamonitor/manual/`; `HandlerPlayerJoin` grants the manual on first join. See [Player Guide §3.12](../player/player-guide.md#312-advancedatamonitor-manual).
+JSON under `assets/advancedatamonitor/manual/`; `HandlerPlayerJoin` grants the manual on first join.
+
+`GuiManual` layout: top search field, scrollable chapter sidebar (scrollbar with top/bottom jump buttons), paginated content pane. Search indexes chapter titles and all page bodies (`ManualSearchIndex`); space-separated AND keywords; pinyin via shadowed **PinIn 1.6.0**, delegating to **NotEnoughCharacters** `NecharUtils.contain` when that mod is loaded. See [Player Guide §3.12](../player/player-guide.md#312-advancedatamonitor-manual).
 
 
 
@@ -1095,11 +1101,16 @@ adm.planner.merge_tooltip=Merge all planner items in inventory
 
 ## 6. GUI and Interaction
 
-`GuiHandler` currently defines three Forge GUI ids:
+`GuiHandler` currently defines eight Forge GUI ids:
 
-- `0`: NBT Viewer — client only.
-- `1`: main monitor GUI.
-- `2`: Advanced Storage Linker GUI — server returns `ContainerAdvanceStorageLink`, client returns `GuiAdvanceStorageLink`.
+- `0` (`NBT_VIEWER_GUI_ID`): NBT Viewer — client only.
+- `1` (`ADM_MAIN_GUI_ID`): main monitor GUI.
+- `2` (`ADM_STORAGELINK_ID`): Advanced Storage Linker GUI — server returns `ContainerAdvanceStorageLink`, client returns `GuiAdvanceStorageLink`.
+- `3` (`MANUAL_GUI_ID`): mod manual `GuiManual`.
+- `4` (`GRAPPLE_ANCHOR_GUI_ID`): grapple anchor config `GuiGrappleAnchorConfig`.
+- `5` (`GRAPPLE_HOOK_GUI_ID`): grapple hook config `GuiGrappleHookConfig`.
+- `6` (`POCKET_CONFIG_GUI_ID`): dimensional pocket upgrade config `GuiDimensionalPocketConfig` (must open via server `openGui`).
+- `7` (`POCKET_STORAGE_GUI_ID`): dimensional pocket storage `GuiPocketStorage` (must open via server `openGui`; right-click pocket main entry).
 
 Main monitor GUI entry is `GuiMainAdvanceDataMonitor`; sub-pages configure bind targets, AE2 Network Linker, Crafting Linker, Advanced Storage Linker, colors, and display transforms. AI chat and AI settings are separate `GuiScreen`s opened from main UI buttons, commands, or voice hotkey.
 
@@ -1107,16 +1118,27 @@ When GUIs modify TileEntities, respect side: client edits UI and sends packets; 
 
 ## 7. Network Packets
 
-All packets share `AdvanceDataMonitor.ADMCHANEL`, registered in `LoaderNetwork`:
+All packets share `AdvanceDataMonitor.ADMCHANEL`, registered in `LoaderNetwork` (full table in `.cursor/rules/network-packets.mdc`):
 
-- `0 PacketItemNBT -> SERVER`: Data Imprint Tool NBT interaction.
-- `1 PacketSynTileEntity -> CLIENT`: sync monitor TileEntity to client.
-- `2 PacketSynTileEntity -> SERVER`: client submits monitor config to server.
-- `3 PacketSynTileEntity -> SERVER`: legacy sync handler.
-- `4 PacketRequestItemCountSync -> SERVER`: client requests Advanced Storage Linker counts.
-- `5 PacketItemCountSync -> CLIENT`: server returns Advanced Storage Linker counts.
-- `6 PacketAssistantAction -> SERVER`: AI assistant tool actions.
-- `7 PacketAssistantResponse -> CLIENT`: AI assistant server responses.
+| ID | Packet | Direction | Purpose |
+|----|--------|-----------|---------|
+| 0 | `PacketItemNBT` | SERVER | Data Imprint Tool NBT interaction |
+| 1 | `PacketSynTileEntity` | CLIENT | monitor TE sync to client |
+| 2 | `PacketSynTileEntity` | SERVER | client submits monitor config |
+| 3 | — | — | unused |
+| 4 | `PacketRequestItemCountSync` | SERVER | request Advanced Storage Linker counts |
+| 5 | `PacketItemCountSync` | CLIENT | return Advanced Storage Linker counts |
+| 6 | `PacketAssistantAction` | SERVER | AI assistant actions |
+| 7 | `PacketAssistantResponse` | CLIENT | AI assistant responses |
+| 8–9 | `PacketPlannerSync` | SERVER / CLIENT | planner NBT up/down |
+| 10 | `PacketPlannerMerge` | SERVER | planner merge |
+| 11–12 | `PacketGrappleAction` / `PacketGrappleSync` | SERVER / CLIENT | grapple action/state sync |
+| 13–14 | `PacketGrappleHookConfig` / `PacketGrappleAnchorConfig` | SERVER (14 bidirectional) | hook/anchor config |
+| 15 | `PacketMonitorRecord` | SERVER | monitor coordinate registration |
+| 16 | `PacketLinkScannerAction` | SERVER + CLIENT | link scanner action/sync |
+| 17–18 | `PacketGrapplePathAction` / `PacketGrapplePathSync` | SERVER / CLIENT | grapple path save/sync |
+| 19–20 | `PacketPocketAction` | SERVER / CLIENT | dimensional pocket C→S / response placeholder |
+| 21 | `PacketPocketSync` | CLIENT | dimensional pocket state/inventory sync |
 
 `PacketAssistantAction` currently supports 11 actions (1–7 crafting/query, 8–11 withdraw), carrying parameters in payload NBT.
 

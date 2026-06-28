@@ -36,6 +36,8 @@ public class ItemSpaceUpgradeCard extends Item {
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("adm.tooltip.pocket.space_card.desc"));
         tooltip
             .add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("adm.tooltip.pocket.space_card.stackable"));
+        tooltip.add(
+            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("adm.tooltip.pocket.space_card.page_unlock"));
         super.addInformation(stack, player, tooltip, advanced);
     }
 }

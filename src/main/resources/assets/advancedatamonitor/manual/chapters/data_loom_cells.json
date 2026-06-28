@@ -1,0 +1,52 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.data_loom_cells",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_loom_cells.overview_title",
+      "textKey": "adm.manual.data_loom_cells.overview_text"
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.data_loom_cells.data_dust_loom_title",
+      "items": [
+        {"registryName": "advancedatamonitor:data_dust_loom_cell", "descKey": "adm.manual.item.data_dust_loom_cell"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.data_loom_cells.data_form_loom_title",
+      "items": [
+        {"registryName": "advancedatamonitor:data_form_loom_cell", "descKey": "adm.manual.item.data_form_loom_cell"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.data_loom_cells.data_flow_cell_title",
+      "items": [
+        {"registryName": "advancedatamonitor:data_flow_cell", "descKey": "adm.manual.item.data_flow_cell"},
+        {"registryName": "advancedatamonitor:data_tide_loom_cell", "descKey": "adm.manual.item.data_tide_loom_cell"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.data_loom_cells.data_source_loom_title",
+      "items": [
+        {"registryName": "advancedatamonitor:data_source_loom_cell", "descKey": "adm.manual.item.data_source_loom_cell"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.data_loom_cells.weave_amplifier_title",
+      "items": [
+        {"registryName": "advancedatamonitor:weave_amplifier", "descKey": "adm.manual.item.weave_amplifier"},
+        {"registryName": "advancedatamonitor:super_weave_amplifier", "descKey": "adm.manual.item.super_weave_amplifier"}
+      ]
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_loom_cells.usage_title",
+      "textKey": "adm.manual.data_loom_cells.usage_text"
+    }
+  ]
+}

@@ -479,17 +479,24 @@ adm.error.no_nearby_monitor=附近 32 格内未找到高级数据监视器。
 # 手册
 item.manual.name=高级数据监视器手册
 adm.manual.prev_page=< 上一页
+adm.manual.search_hint=搜索...
+adm.manual.search_no_results=无匹配
 adm.manual.next_page=下一页 >
 
 adm.manual.chapter.getting_started=入门指南
-adm.manual.chapter.blocks_items=方块与物品
+adm.manual.chapter.monitor_blocks=监视器方块
+adm.manual.chapter.monitor_tools=监视器工具
 adm.manual.chapter.data_monitor=数据监控
+adm.manual.chapter.dimensional_pocket=次元口袋
+adm.manual.chapter.data_loom_cells=数据编织元件
+adm.manual.chapter.grapple_system=挂索系统
+adm.manual.chapter.combat_special=战斗与特殊物品
 adm.manual.chapter.ai_assistant=AI 助手
-adm.manual.chapter.planner_teleport=计划器与传送
+adm.manual.chapter.planner=高级计划器
 adm.manual.chapter.config_reference=配置文件参考
 
 adm.manual.getting_started.welcome_title=欢迎
-adm.manual.getting_started.welcome_text=欢迎使用高级数据监视器手册！\n\n本模组为 GTNH 带来高级数据可视化和 AI 辅助自动化。你可以在世界中实时渲染 AE2 和 TileEntity 数据的图表,用自然语言控制 AE2 合成,并通过计划器管理任务。\n\n使用左侧边栏浏览各章节。鼠标滚轮可滚动长页面。
+adm.manual.getting_started.welcome_text=欢迎使用高级数据监视器手册！\n\n本模组为 GTNH 带来高级数据可视化和 AI 辅助自动化。你可以在世界中实时渲染 AE2 和 TileEntity 数据的图表,用自然语言控制 AE2 合成,并通过计划器管理任务。\n\n左侧顶栏可搜索章节与正文（支持拼音，与 NEI 拼音搜索模组兼容）。章节列表可滚轮或滚动条浏览；右侧长页同样支持滚轮。
 
 adm.manual.getting_started.core_concepts_title=四大核心系统
 adm.manual.getting_started.core_concepts_text=1. 高级数据监视器 - 在 Minecraft 世界中根据 TileEntity NBT 数据实时渲染图表（折线图、柱状图、瀑布图、势差图）和文字。每个面可独立配置。\n\n2. AE2 集成 - 三个专用链接器方块连接至 AE2 网络：合成链接器监控处理器、高级存储链接器显示库存、网络链接器汇总全网统计。\n\n3. AI 助手 - 通过兼容 OpenAI 的 API 实现自然语言控制。下单合成、取出物品、查询电量/存储/配方、通过龙之进化宝石传送、管理计划器任务 - 全部通过对话窗口完成（O 键）。\n\n4. 计划器 - 一件持久化任务管理器,以 NBT 形式存储在物品中。支持添加、完成、删除、排序、合并条目,带屏幕 HUD 悬浮显示。
@@ -498,7 +505,7 @@ adm.manual.getting_started.quick_start_title=快速上手
 adm.manual.getting_started.quick_start_text=1. 在想要显示的位置放置高级数据监视器方块。\n2. 通过线缆邻接在 AE2 网络旁放置合成/高级存储/网络链接器方块。\n3. 合成数据映录器,潜行右键链接器方块映录其 NBT 数据。\n4. 手持已映录的数据映录器,潜行右键高级数据监视器,将数据源添加到监视器面。\n5. 右键高级数据监视器打开配置 GUI,设置图表类型、颜色、缩放等。\n6. 按 O 打开 AI 对话,在设置中配置 API Key（齿轮图标）。\n7. 按 P 打开计划器（背包中需有计划器物品）。\n\n提示：AI 助手即使没有 AE2 也能使用 - 可以随时随地查询时间、天气、位置、群系和背包空间。
 
 adm.manual.getting_started.manual_info_title=关于本手册
-adm.manual.getting_started.manual_info_text=每位玩家每个世界首次进入时都会获赠一本手册。如果丢失,可以：\n- 从创造模式工具标签页获取新手册\n- 通过合成获取\n\n右键手册物品即可打开。左侧章节列表可跳转各主题。使用上/下一页按钮翻页。每页顶部显示当前章节标题。
+adm.manual.getting_started.manual_info_text=每位玩家每个世界首次进入时都会获赠一本手册。如果丢失,可以：\n- 从创造模式工具标签页获取新手册\n- 通过合成获取\n\n右键手册物品即可打开。左侧顶部搜索框可检索标题与全部正文,匹配词会高亮；多词用空格分隔。章节列表过多时可滚轮、拖拽滚动条,或点滚动条旁的 ^ / v 跳到顶/底。点击章节切换主题,用底部上/下一页翻页,页顶显示当前章节标题。
 
 adm.manual.blocks_items.overview_title=方块与物品总览
 adm.manual.blocks_items.overview_text=AdvanceDataMonitor 添加了 4 个方块和 10 个物品。每个方块连接 AE2 系统的特定部分,将数据输入到高级数据监视器显示方块。后续页面详细介绍每个物品的功能、使用技巧和关键特性。
@@ -689,24 +696,29 @@ item.dimensionalPocket.name=次元口袋
 item.spaceUpgradeCard.name=空间升级卡
 item.pageUpgradeCard.name=翻页升级卡
 adm.tooltip.pocket.title=次元口袋
-adm.tooltip.pocket.usage=右键：打开配置界面（升级插槽、开关）。Shift+右键：切换悬浮窗开关。
+adm.tooltip.pocket.usage=右键：打开存储界面（存取物品）。Shift+右键：切换悬浮窗开关。
 adm.tooltip.pocket.stats_space=空间升级：%d / %d（当前每页 %d 格）
 adm.tooltip.pocket.stats_pages=翻页升级：%d / %d（当前共 %d 页）
 adm.tooltip.pocket.stats_enabled=功能状态：%s
 adm.tooltip.pocket.space_card.title=空间升级卡
 adm.tooltip.pocket.space_card.desc=放入次元口袋配置界面的空间插槽，每张增加 1 个槽位（默认 1 格，最多 63 格）
 adm.tooltip.pocket.space_card.stackable=可堆叠 64 张，但仅 62 张有效
+adm.tooltip.pocket.space_card.page_unlock=第 63、64 张用于解锁翻页功能（不会增加额外槽位）
 adm.tooltip.pocket.page_card.title=翻页升级卡
 adm.tooltip.pocket.page_card.desc=放入次元口袋配置界面的翻页插槽，每张增加 1 页空间（最多 8 张 = 9 页）
 adm.tooltip.pocket.page_card.prereq=需要空间升级装满 64 张后才能生效
 adm.pocket.toggle.on=次元口袋悬浮窗：已开启
 adm.pocket.toggle.off=次元口袋悬浮窗：已关闭
 adm.title.pocketConfig=次元口袋配置
+adm.title.pocketOverlay=次元口袋
+adm.title.pocketStoragePaged=次元口袋存储 (第 %d 页 / 共 %d 页)
+adm.button.pocket.openConfig=升级配置
 adm.label.pocket.spaceUpgrade=空间升级插槽
 adm.label.pocket.pageUpgrade=翻页升级插槽
 adm.label.pocket.switch=功能开关
 adm.label.pocket.capacity=当前容量：%d 格 × %d 页 = %d 总格
 adm.label.pocket.currentPage=第 %d 页 / 共 %d 页
+adm.label.pocket.pageFooter=第 %d/%d 页
 adm.button.pocket.collapse=收起
 adm.button.pocket.expand=展开
 adm.button.pocket.prevPage=<
@@ -719,3 +731,105 @@ adm.error.pocket.cannotRemoveSpace=空间不足，无法取出空间升级卡（
 adm.error.pocket.cannotRemovePage=有物品在更高页，无法取出翻页升级卡（至少保留 %d 个）
 adm.error.pocket.pageUpgradeBlocked=翻页升级需要空间升级先装满 64 张
 adm.error.pocket.noPocket=背包中没有次元口袋
+
+# 堆叠升级卡
+item.stackUpgradeCard.name=堆叠升级卡
+item.infiniteStackUpgradeCard.name=无尽堆叠升级卡
+adm.tooltip.pocket.stack_card.title=堆叠升级卡
+adm.tooltip.pocket.stack_card.desc=放入次元口袋配置界面的堆叠插槽，每张使单格堆叠上限翻倍（2^n）。
+adm.tooltip.pocket.stack_card.stackable=可堆叠 8 张。64×1=64、64×2=128、64×4=256、64×8=512、64×16=1024、64×32=2048、64×64=4096、64×128=8192。
+adm.tooltip.pocket.stack_card.formula=公式：基础堆叠 64 × 2^n，n 为已安装卡数。
+adm.tooltip.pocket.infinite_stack_card.title=无尽堆叠升级卡
+adm.tooltip.pocket.infinite_stack_card.desc=放入次元口袋配置界面的无尽堆叠插槽，使单格堆叠上限变为 Integer.MAX_VALUE。
+adm.tooltip.pocket.infinite_stack_card.max=最多 1 张。仅放入对应专属插槽时生效。
+adm.tooltip.pocket.infinite_stack_card.warning=警告：大量堆叠物品在渲染时可能造成严重卡顿！
+adm.label.pocket.stackUpgrade=堆叠升级插槽
+adm.label.pocket.infiniteStackUpgrade=无尽堆叠插槽
+adm.label.pocket.stackLimit=堆叠上限：每格 %d 个
+adm.label.pocket.stackLimitInfinite=堆叠上限：每格无限
+
+# 手册 - 新章节键 (Phase 2)
+adm.manual.monitor_blocks.overview_title=数据监视器方块概述
+adm.manual.monitor_blocks.overview_text=高级数据监视器模组添加了 4 个监视器方块，分别连接到 AE2 系统的不同部分，向数据监视器显示方块提供数据。每个方块在数据管道中有独特的功能。\n\n放置方式：所有方块通过线缆邻接连接 AE2 网络，需 AE2 能量。\n\n右键点击任意链接器方块可在聊天中查看当前状态。将其绑定到数据监视器可在世界中持续显示。\n\n提示：使用数据映录器快速绑定链接器到监视器（潜行+右键链接器，然后潜行+右键监视器）。
+
+adm.manual.monitor_blocks.data_monitor_title=高级数据监视器
+adm.manual.monitor_blocks.crafting_link_title=合成链接器
+adm.manual.monitor_blocks.storage_link_title=高级存储链接器
+adm.manual.monitor_blocks.network_link_title=网络链接器
+
+adm.manual.monitor_tools.overview_title=监视器配套工具概述
+adm.manual.monitor_tools.overview_text=这些工具支持和增强数据监视器系统。数据映录器用于捕获 NBT 快照进行绑定，高级存储链接元件用于配置存储监控过滤，高级链接扫描器可查找和管理全世界的所有链接方块。\n\n三种工具与上一章介绍的监视器方块协同工作。
+
+adm.manual.monitor_tools.data_imprint_title=数据映录器
+adm.manual.monitor_tools.storage_cell_title=高级存储链接元件
+adm.manual.monitor_tools.link_scanner_title=高级链接扫描器
+adm.manual.item.advance_link_scanner=扫描已加载区块中的高级数据监视器链接方块（监视器、网络/存储/合成链接器）。\n\nShift+右键：扫描所有已加载区块。结果以可展开列表存储，包含所有者名称、坐标、别名和方块类型。\n\n右键：打开扫描器 GUI——浏览条目，按所有者/名称过滤，设置自定义别名，直接传送到任意找到的方块。\n\n过滤器：所有者（全部/我的/他人）、名称（全部/未命名/已命名）。\n\n传送：点击行条目传送到对应方块（同维度，安全检查落地位置）。\n\n堆叠数：1。创造模式标签页：工具。
+
+adm.manual.dimensional_pocket.overview_title=次元口袋概述
+adm.manual.dimensional_pocket.overview_text=次元口袋是绑定玩家 UUID 的便携式存储。背包中所有口袋物品共享同一个存储空间——物品本身不携带数据。\n\n存储数据跨会话持久化在 config/advancedatamonitor/pocket-<uuid>.json 中。右键打开存储 GUI；Shift+右键切换可拖动的悬浮窗。\n\n升级系统：四种升级卡分别扩展容量、增加页数、倍增堆叠上限和解锁无限堆叠。升级卡安装后消耗不可回收——仅被前置条件拒绝的卡片会返还。\n\n容量公式：每页槽位数 = min(63, 1 + min(空间升级数, 62))；页数 = 1 + min(翻页升级数, 8)（当空间升级>=64时），否则为 1。
+
+adm.manual.dimensional_pocket.pocket_title=次元口袋
+adm.manual.dimensional_pocket.space_card_title=空间升级卡
+adm.manual.dimensional_pocket.page_card_title=翻页升级卡
+adm.manual.dimensional_pocket.stack_card_title=堆叠升级卡
+adm.manual.dimensional_pocket.infinite_stack_card_title=无尽堆叠升级卡
+adm.manual.dimensional_pocket.usage_title=口袋使用与升级规则
+adm.manual.dimensional_pocket.usage_text=存储 GUI：右键口袋物品。上网格显示当前页，下网格显示玩家背包。拖拽或 Shift+点击在两者间转移物品。使用上一页/下一页按钮切换页面；升级配置按钮打开升级 GUI。\n\n悬浮窗：Shift+右键切换开关。可拖动的口袋悬浮窗可覆盖在任意已打开的容器上。AE2 容器在悬浮窗激活时自动降级为只读模式。\n\n升级安装顺序：空间升级优先（最多 64 张，基础 1 槽）→ 翻页升级（需空间升级 64 张已满，最多 8 张）→ 堆叠升级（每张增倍单格堆叠上限，最多 8 张）→ 无尽堆叠升级（需堆叠升级已满，最多 1 张）。\n\n卡片安装后消耗。仅被前置规则拒绝的卡片（如在空间升级未满前尝试翻页升级）返还给玩家。\n\n堆叠上限公式：基础 64 × 2^n，n 为已安装堆叠升级卡数（最多 10）。无尽卡将上限设为 Integer.MAX_VALUE。
+
+adm.manual.item.dimensional_pocket=绑定玩家 UUID 的便携式存储口袋。所有副本共享同一存储空间。\n\n右键：打开存储 GUI，包含口袋格子 + 玩家背包。拖拽或 Shift+点击转移物品。\n\nShift+右键：切换悬浮窗（可拖动，可覆盖任意容器）。\n\n存储按玩家绑定，持久化到 pocket-<uuid>.json。\n\n堆叠数：1。创造模式标签页：工具。
+
+adm.manual.item.space_upgrade_card=增加口袋槽位容量。每张增加 1 个槽位（基础 1 槽，每页最多 63 槽）。\n\n可堆叠 64 张，但仅 62 张对槽位有效。第 63-64 张用于解锁翻页升级。\n\n通过升级配置 GUI（从存储 GUI 进入）安装。安装后消耗。\n\n创造模式标签页：工具。
+
+adm.manual.item.page_upgrade_card=为口袋增加额外页面。每张增加 1 页（最多 8 张 = 共 9 页）。\n\n需空间升级完全堆满（64 张）才能生效。\n\n通过升级配置 GUI 安装。安装后消耗。\n\n创造模式标签页：工具。
+
+adm.manual.item.stack_upgrade_card=倍增单格堆叠上限。基础 64，公式：64 × 2^n。\n\n倍率：1=128、2=256、4=1024、8=8192。最多 8 张。\n\n通过升级配置 GUI 安装。安装后消耗。\n\n创造模式标签页：工具。
+
+adm.manual.item.infinite_stack_upgrade_card=将单格堆叠上限设为 Integer.MAX_VALUE，实现无限堆叠。\n\n需堆叠升级满才能生效。最多 1 张。\n\n警告：大量堆叠物品可能导致渲染卡顿。\n\n通过升级配置 GUI 安装。安装后消耗。\n\n创造模式标签页：工具。
+
+adm.manual.data_loom_cells.overview_title=数据编织元件 — 背景与技术
+adm.manual.data_loom_cells.overview_text=AE 将物质数字化为网络数据。高级数据监视器的研究者反其道而行之——将数据重新编织为物质。\n\n演进历程：\n- 数据织尘元件（基础）：技术不成熟，仅能编织最简单的形态——粉（GT 粉尘前缀）。\n- 数据织形元件（高级）：完全掌握，可重构任意复杂物品。\n- 数据涌流元件：流体通道，将数据编织为流体（mB 单位，默认 1000 mB/秒 = 1 桶/秒）。\n- 数据织潮元件（高级）：流体通道升级——数据如潮汐，最多 63 种流体。\n- 数据织源元件：流体通道，将数据编织为神秘时代源质（aspect 流体，默认 1000 mB/秒）。\n\n使用方式：放入 ME 驱动器或箱子，在工作台标记目标物品/流体/源质，随时间缓慢生成。织尘/织形/涌流元件不可标记本模组物品。每 5 秒结算一次（可配）；有效速率在标记或增幅卡变化时缓存到物品 tooltip。编织增幅卡倍增产出（普通 4×/张、超级 16×/张，最多 8 张，倍率相乘）。消耗 AE 网络能量。\n\n高级存储链接器说明：数据编织元件内部存储内容不计入高级存储链接器统计。\n\n配置文件：[dataDustLoomCell]、[dataFormLoomCell]、[dataFlowCell]、[dataSourceLoomCell]、[dataLoomCell]（同步间隔、能量消耗、增幅倍率）。
+
+adm.manual.data_loom_cells.data_dust_loom_title=数据织尘元件
+adm.manual.data_loom_cells.data_form_loom_title=数据织形元件
+adm.manual.data_loom_cells.data_flow_cell_title=数据涌流/织潮元件
+adm.manual.data_loom_cells.data_source_loom_title=数据织源元件
+adm.manual.data_loom_cells.weave_amplifier_title=编织增幅卡
+adm.manual.data_loom_cells.usage_title=使用说明与增幅卡安装
+adm.manual.data_loom_cells.usage_text=数据编织元件使用步骤：\n\n1. 合成所需元件类型（织尘/织形/涌流/织潮/织源）。\n2. 将元件放入元件工作台。在分区槽中标记目标物品/流体/源质。\n3. 可选安装编织增幅卡或超级编织增幅卡（总计最多 8 张）。仅接受此卡——AE 加速卡无法使用。\n4. 将元件插入 ME 驱动器或箱子（织尘/织形走物品通道；涌流/织潮/织源走流体通道）。\n5. 元件自动开始编织——每 [dataLoomCell] syncIntervalSeconds 结算一次（默认 5 秒）。\n\n增幅卡倍率：\n- 普通卡：每张 4×，倍率相乘。1→4×、2→16×、4→256×、8→65536×。\n- 超级卡：每张 16×，与普通卡倍率相乘。\n- 总计最多 8 张，所有类型共用。\n\n能量：消耗 [dataLoomCell] energyDrainPerTick AE/t（默认 999999）。\n\n外部访问：内部存储可通过存储总线读取，但不计入高级存储链接器统计。
+
+adm.manual.grapple_system.overview_title=挂索系统概述
+adm.manual.grapple_system.overview_text=挂索系统让你在精心建造的基地中旅行时拥有旅程感——欣赏沿途风景，而不是一闪而过的传送或飞行。\n\n两部分协同工作：\n- 挂索节点：可贴面放置的薄板节点，沿路径布置。\n- 挂索器：手持工具，用于挂接到节点并在节点间滑行。\n\n核心循环：靠近节点 → 用挂索器磁吸选中 → 右键挂接 → 看向下一节点 → 右键滑行 → Shift 取消。过程解放双手。\n\n配置文件：[grapple] 分类（提示范围、交互距离、滑行速度、磁吸角度）。详见用户手册 §3.7–3.8。
+
+adm.manual.grapple_system.anchor_title=挂索节点
+adm.manual.grapple_system.hook_title=挂索器
+adm.manual.grapple_system.story_title=设计理念与快速参考
+adm.manual.grapple_system.story_text=我们经常花费巨大精力建造漂亮的基地与生产线，但日常出行仍然默认飞行、跑步或传送——飞行和跑步占用双手，传送则完全错过了风景。\n\n挂索节点与挂索器力求在"快速到达"与"欣赏旅程"间找到平衡：在工厂走廊、风景桥、生产观览路线等关键路径上放置节点，用挂索器挂接并在节点间流畅滑行，同时双手始终空闲——移动本身成为体验的一部分。\n\n快速参考：\n- 挂索节点：墙壁/天花板/地面贴面放置，可重命名，自定义导航图标颜色\n- 挂索器：12 格内 HUD 提示，6 格内磁吸选择；挂接后可穿过墙壁看到可到达节点\n- 右键挂接，再右键滑行，Shift 取消挂索\n- 配置分类 [grapple]（提示范围、交互距离、滑行速度等）
+
+adm.manual.combat_special.overview_title=战斗与特殊物品概述
+adm.manual.combat_special.overview_text=高级数据监视器包含两件传奇级别的战斗/特殊物品：至高天圣裁剑和超能砂糖桔。\n\n至高天圣裁在战斗中具有毁灭性，拥有即死、斩波、投掷和范围剑雨等能力。还具备宇宙着色器渲染效果。\n\n超能砂糖桔是传奇实用物品，赋予瞬间挖掘、物质球转换、伴随无人机和投掷物免疫能力——配置高度可自定义。\n\n两件物品均为终局级别：超能砂糖桔从地牢宝箱（0.1%）和生物击杀（0.05%）掉落；圣剑通过合成或创造模式获取。
+
+adm.manual.combat_special.sword_title=至高天圣裁
+adm.manual.combat_special.orange_title=超能砂糖桔
+adm.manual.combat_special.usage_title=战斗与能力使用
+adm.manual.combat_special.usage_text=至高天圣裁（starry_cosmos_sword）：\n- 左键：即死 + 新月斩波\n- 右键：沿准星投掷；击中后触发 5 秒剑雨\n- Shift+右键：在 3×3 区块内降下迷你审判剑\n- 宇宙着色器渲染与自定义粒子效果\n\n超能砂糖桔（orange）：\n- 手持：瞬间破坏任意方块（含 GT 矿石）\n- 右键：开关无人机与投掷物免疫\n- 潜行+右键：开关物质球与掉落倍率\n- 铁砧重命名：设置头顶铭牌文字\n- 无人机：环绕玩家，拦截投掷物，分身战斗\n\n详见配置参考中的 [superOrange] 和 [dataLoomCell] 分类。
+
+adm.manual.item.starry_cosmos_sword=终极战斗武器。即死左键附带新月斩波。\n\n左键：瞬间击杀目标，释放前方宽范围新月斩波。\n\n右键：沿准星投掷剑身。击中后在该区域触发 5 秒剑雨。\n\nShift+右键：在 3×3 区块范围内对所有敌对生物降下迷你审判剑。\n\n宇宙渲染：使用特殊着色器效果呈现星空外观。\n\n创造模式标签页：战斗。堆叠数：1。
+
+adm.manual.ai_assistant.teleport_title=传送系统
+adm.manual.ai_assistant.teleport_text=AI 助手集成龙之进化高级错位宝石（com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII）实现传送功能。\n\n要求：\n- 背包中有高级错位宝石（TeleporterMKII）。\n- 宝石上至少保存了一个传送点（通过 DE 自身界面添加）。\n\n工作原理：\n1. 助手扫描背包中的 TeleporterMKII 物品。\n2. 读取每颗宝石的"Locations"NBT 标签列表。\n3. 每个位置包含：X、Y、Z、Dimension、Name。\n4. 以编号列表显示传送点，含维度信息。\n5. 通过编号或模糊名称匹配确认。\n\n执行：\n- 同维度：setPositionAndUpdate() 即时传送。\n- 跨维度：使用 configurationManager.transferPlayerToDimension() 配合自定义 Teleporter 实例。\n\n维度解析：按存储的 DimentionName（DE 内部使用此拼写）、标准名称（地狱/主世界/末地）或自定义维度 ID 解析。\n\n名称匹配：优先精确匹配，无精确匹配时回退到子串匹配。\n\nAI 提示词示例："传送到我的基地"、"列出我的传送点"、"带我去采矿维度"。
+
+adm.manual.ai_assistant.planner_title=计划器集成
+adm.manual.ai_assistant.planner_text=AI 助手可直接通过文字指令管理你的高级计划器条目——无需打开计划器 GUI 进行基本操作。\n\nAI 支持的计划器命令：\n- "添加计划：建造聚变反应堆"——创建新的计划条目\n- "列出我的计划"——显示所有当前条目及状态\n- "完成计划 1"——将第 1 条标记为已完成\n- "删除计划 2"——移除第 2 条\n- "修改计划 3 为：建造 HV 阵列"——更新条目文字\n\n此功能在任何地方都能使用——AI 与服务端通信修改背包中的计划器物品。计划器的 NBT 数据自动更新。\n\n完整计划器 GUI 使用、合并、HUD 自定义和高级功能请参阅高级计划器章节。
+
+adm.manual.planner.overview_title=高级计划器概述
+adm.manual.planner.overview_text=高级计划器是你的个人任务管理工具，具有完整 NBT 持久化。存储多条待办事项，标记完成，合并多个计划器，可选在屏幕上显示 HUD 浮层。\n\n核心功能：\n- 每物品支持多条条目，自动编号\n- 每条包含文字 + 完成标记 + 创建时间戳\n- 可滚动 GUI（最多 50 行可见）\n- 合并多个计划器（按时间或按序号）\n- 屏幕 HUD 浮层，位置、缩放、宽度均可自定义\n\n右键计划器物品打开其 GUI。潜行+右键切换 HUD。按 P 从快捷栏打开。\n\n计划器还与 AI 助手集成——可通过自然语言命令管理条目。
+
+adm.manual.planner.item_title=高级计划器
+adm.manual.planner.entries_title=条目管理
+adm.manual.planner.entries_text=每个计划条目在 NBT 中存储四个字段：\n- slotIndex：自增编号（1、2、3...）。删除时自动重新编号。\n- text：你输入的任务描述文字。\n- timestamp：创建时间（System.currentTimeMillis()，显示格式 yyyy-MM-dd HH:mm）。\n- completed：布尔标志，可通过复选框切换。\n\n创建条目：点击 + 或空槽位 → 输入文字 → 回车。编辑：点击文字 → 修改 → 回车。切换完成：点击复选框。删除：垃圾桶图标。排序：上移/置顶箭头。\n\n持久化：所有条目存储在物品 NBT 的"plannerEntries"标签列表中。数据在登出/登入、物品转移、复制、破坏拾取时保持。\n\n统计显示：计划器 GUI 顶部显示"共 N 条 | 完成 N | 未完成 N"。
+
+adm.manual.planner.merge_title=计划器合并
+adm.manual.planner.merge_text=当你拥有多个计划器物品时（如从其他玩家获得、创造模式或意外复制），可将它们合并为一个：\n\n1. 打开任意计划器 GUI。\n2. 点击整合按钮。模组扫描背包中所有计划器物品。\n3. 显示合并确认窗口："背包中有 N 个计划器，共 M 条数据需要合并"。\n4. 选择合并模式：\n   按时间合并 - 按创建时间戳排序，最新在前。\n   按序号合并 - 保留各计划器原始槽位顺序，依次追加。\n5. 点击确认整合。创建新的合并 ItemStack。原物品消耗（除打开的那个外）。\n\n合并后的计划器获得新的 nextSlotIndex，所有条目重新顺序编号。\n\n此功能使用 ItemAdvancePlanner 上的 mergePlanners() / mergeMultiplePlanners() 静态方法。
+
+adm.manual.planner.hud_title=HUD 配置
+adm.manual.planner.hud_text=HUD 悬浮显示在游戏中展示你的计划条目。完全可自定义：\n\nHUD 配置（从计划器 GUI 访问）：\n- 显示条数：显示的条目数量（1-20，默认 5）。\n- X/Y 位置：归一化屏幕位置（0.0=左/上，1.0=右/下，默认 1.0/0.0 = 右上角）。\n- 缩放：大小倍率（0.5-3.0，默认 1.0）。\n- 宽度：文字区域宽度像素值（80-600，默认 160）。\n- 自定义标题：可选标题文字（空 = 无标题）。\n\n预览窗口：实时显示 HUD 位置和大小。滚轮调整缩放，Shift+滚轮调整宽度。\n\n所有 HUD 设置存储在每个计划器物件的 NBT 中。不同计划器可拥有完全不同的 HUD 配置。\n\n范围限制由 Config.java 强制执行：每项设置的 plannerHudMin/Max 值。\n\nHUD 渲染使用 HudRenderUtil 处理背景、文字换行、定位和缩放计算。

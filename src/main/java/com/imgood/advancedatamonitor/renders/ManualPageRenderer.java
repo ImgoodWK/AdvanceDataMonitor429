@@ -17,6 +17,7 @@ import com.imgood.advancedatamonitor.gui.manual.ManualDataLoader;
 import com.imgood.advancedatamonitor.gui.manual.ManualDataLoader.ConfigEntry;
 import com.imgood.advancedatamonitor.gui.manual.ManualPage;
 import com.imgood.advancedatamonitor.gui.manual.ManualPage.ManualItemEntry;
+import com.imgood.advancedatamonitor.gui.manual.ManualTextHighlighter;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -53,13 +54,17 @@ public class ManualPageRenderer {
      */
     public static void renderTextPage(FontRenderer font, ManualPage page, int x, int y, int maxWidth,
         int contentHeight) {
+        renderTextPage(font, page, x, y, maxWidth, contentHeight, "");
+    }
+
+    public static void renderTextPage(FontRenderer font, ManualPage page, int x, int y, int maxWidth,
+        int contentHeight, String searchQuery) {
         int currentY = y;
 
         if (page.titleKey != null && !page.titleKey.isEmpty()) {
             String title = fixNewlines(I18n.format(page.titleKey));
-            font.drawString(title, x, currentY, TITLE_COLOR);
+            drawHighlightedLine(font, title, x, currentY, searchQuery, TITLE_COLOR);
             currentY += LINE_HEIGHT + 4;
-            // Draw separator
             font.drawString("------------------------", x, currentY, SEPARATOR_COLOR);
             currentY += LINE_HEIGHT + 6;
         }
@@ -69,7 +74,7 @@ public class ManualPageRenderer {
             List<String> lines = font.listFormattedStringToWidth(text, maxWidth);
             for (String line : lines) {
                 if (currentY + LINE_HEIGHT > y + contentHeight) break;
-                font.drawString(line, x, currentY, TEXT_COLOR);
+                drawHighlightedLine(font, line, x, currentY, searchQuery, TEXT_COLOR);
                 currentY += LINE_HEIGHT;
             }
         }
@@ -80,11 +85,16 @@ public class ManualPageRenderer {
      */
     public static void renderItemShowcase(FontRenderer font, ManualPage page, int x, int y, int maxWidth,
         int contentHeight) {
+        renderItemShowcase(font, page, x, y, maxWidth, contentHeight, "");
+    }
+
+    public static void renderItemShowcase(FontRenderer font, ManualPage page, int x, int y, int maxWidth,
+        int contentHeight, String searchQuery) {
         int currentY = y;
 
         if (page.titleKey != null && !page.titleKey.isEmpty()) {
             String title = fixNewlines(I18n.format(page.titleKey));
-            font.drawString(title, x, currentY, TITLE_COLOR);
+            drawHighlightedLine(font, title, x, currentY, searchQuery, TITLE_COLOR);
             currentY += LINE_HEIGHT + 4;
             font.drawString("------------------------", x, currentY, SEPARATOR_COLOR);
             currentY += LINE_HEIGHT + 6;
@@ -95,24 +105,21 @@ public class ManualPageRenderer {
         for (ManualItemEntry entry : page.items) {
             if (currentY + ITEM_ICON_SIZE > y + contentHeight) break;
 
-            // Render item icon
             ItemStack stack = getItemStack(entry.registryName);
             if (stack != null) {
                 renderItemIcon(stack, x, currentY);
             }
 
-            // Render item name beside icon
             String itemName = stack != null ? stack.getDisplayName() : entry.registryName;
-            font.drawString(itemName, x + ITEM_ICON_SIZE + 4, currentY, ITEM_NAME_COLOR);
+            drawHighlightedLine(font, itemName, x + ITEM_ICON_SIZE + 4, currentY, searchQuery, ITEM_NAME_COLOR);
 
-            // Render description below name
             if (entry.descKey != null && !entry.descKey.isEmpty()) {
                 String desc = fixNewlines(I18n.format(entry.descKey));
                 List<String> descLines = font.listFormattedStringToWidth(desc, maxWidth - ITEM_ICON_SIZE - 4);
                 int descY = currentY + LINE_HEIGHT;
                 for (String line : descLines) {
                     if (descY + LINE_HEIGHT > y + contentHeight) break;
-                    font.drawString(line, x + ITEM_ICON_SIZE + 4, descY, CONFIG_DESC_COLOR);
+                    drawHighlightedLine(font, line, x + ITEM_ICON_SIZE + 4, descY, searchQuery, CONFIG_DESC_COLOR);
                     descY += LINE_HEIGHT;
                 }
                 currentY = descY + 4;
@@ -127,11 +134,16 @@ public class ManualPageRenderer {
      */
     public static void renderConfigRef(FontRenderer font, ManualPage page, int x, int y, int maxWidth,
         int contentHeight) {
+        renderConfigRef(font, page, x, y, maxWidth, contentHeight, "");
+    }
+
+    public static void renderConfigRef(FontRenderer font, ManualPage page, int x, int y, int maxWidth,
+        int contentHeight, String searchQuery) {
         int currentY = y;
 
         if (page.titleKey != null && !page.titleKey.isEmpty()) {
             String title = fixNewlines(I18n.format(page.titleKey));
-            font.drawString(title, x, currentY, TITLE_COLOR);
+            drawHighlightedLine(font, title, x, currentY, searchQuery, TITLE_COLOR);
             currentY += LINE_HEIGHT + 4;
             font.drawString("------------------------", x, currentY, SEPARATOR_COLOR);
             currentY += LINE_HEIGHT + 6;
@@ -146,29 +158,28 @@ public class ManualPageRenderer {
         for (ConfigEntry entry : entries) {
             if (currentY + LINE_HEIGHT * 3 > y + contentHeight) break;
 
-            // Key: type
             String keyLine = entry.category + "." + entry.key + "  [" + entry.type + "]";
-            font.drawString(keyLine, x, currentY, CONFIG_KEY_COLOR);
+            drawHighlightedLine(font, keyLine, x, currentY, searchQuery, CONFIG_KEY_COLOR);
             currentY += LINE_HEIGHT;
 
-            // Default value
-            font.drawString(
-                "  " + I18n.format("adm.manual.config_reference.default_label") + entry.defaultValue,
-                x,
-                currentY,
-                CONFIG_VAL_COLOR);
+            String defaultLine = "  " + I18n.format("adm.manual.config_reference.default_label") + entry.defaultValue;
+            drawHighlightedLine(font, defaultLine, x, currentY, searchQuery, CONFIG_VAL_COLOR);
             currentY += LINE_HEIGHT;
 
-            // Description (wrapped) - fix newlines in description too
             String desc = fixNewlines(entry.description);
             List<String> descLines = font.listFormattedStringToWidth(desc, maxWidth - 4);
             for (String line : descLines) {
                 if (currentY + LINE_HEIGHT > y + contentHeight) break;
-                font.drawString("  " + line, x, currentY, CONFIG_DESC_COLOR);
+                drawHighlightedLine(font, "  " + line, x, currentY, searchQuery, CONFIG_DESC_COLOR);
                 currentY += LINE_HEIGHT;
             }
-            currentY += 2; // Spacing between entries
+            currentY += 2;
         }
+    }
+
+    private static void drawHighlightedLine(FontRenderer font, String line, int x, int y, String searchQuery,
+        int normalColor) {
+        ManualTextHighlighter.drawLine(font, line, x, y, searchQuery, normalColor);
     }
 
     /**

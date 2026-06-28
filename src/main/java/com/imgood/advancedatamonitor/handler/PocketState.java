@@ -12,11 +12,15 @@ import net.minecraft.nbt.NBTTagList;
  * Layout: pages = 1 + pageUpgrades (max 9), slotsPerPage = 1 + spaceUpgrades (max 63).
  * Space upgrades: 64 max, but only 62 are effective (1 free slot baseline).
  * Page upgrades: 8 max, require space upgrades to be fully stacked (64) to take effect.
+ *
+ * Stack upgrades: 8 max, each doubles the per-slot stack limit (2^n).
+ * Infinite stack upgrade: 1 max, sets per-slot limit to Integer.MAX_VALUE.
  */
 public class PocketState {
 
     public static final int MAX_SPACE_UPGRADES = 64;
     public static final int MAX_PAGE_UPGRADES = 8;
+    public static final int MAX_STACK_UPGRADES = 8;
     public static final int BASE_SLOTS_PER_PAGE = 1;
     public static final int SLOTS_PER_PAGE_CAP = 63; // 7 rows x 9 cols
     public static final int BASE_PAGES = 1;
@@ -25,6 +29,8 @@ public class PocketState {
     private ItemStack[][] pages; // [page][slot]
     private int spaceUpgrades;
     private int pageUpgrades;
+    private int stackUpgrades; // 0..8, stack limit = base * 2^stackUpgrades
+    private boolean infiniteStackUpgrade;
     private boolean enabled;
     private float windowX = 0.02f;
     private float windowY = 0.02f;
@@ -33,6 +39,8 @@ public class PocketState {
     public PocketState() {
         this.spaceUpgrades = 0;
         this.pageUpgrades = 0;
+        this.stackUpgrades = 0;
+        this.infiniteStackUpgrade = false;
         this.enabled = false;
         this.collapsed = false;
         resizeStorage();
@@ -65,6 +73,28 @@ public class PocketState {
     public void setPageUpgrades(int value) {
         this.pageUpgrades = Math.max(0, Math.min(MAX_PAGE_UPGRADES, value));
         resizeStorage();
+    }
+
+    public int getStackUpgrades() {
+        return stackUpgrades;
+    }
+
+    public void setStackUpgrades(int value) {
+        this.stackUpgrades = Math.max(0, Math.min(MAX_STACK_UPGRADES, value));
+    }
+
+    public boolean isInfiniteStackUpgrade() {
+        return infiniteStackUpgrade;
+    }
+
+    public void setInfiniteStackUpgrade(boolean value) {
+        this.infiniteStackUpgrade = value;
+    }
+
+    public int getStackMultiplier() {
+        if (infiniteStackUpgrade) return Integer.MAX_VALUE;
+        if (stackUpgrades == 0) return 1;
+        return 1 << stackUpgrades; // 2^stackUpgrades
     }
 
     public boolean isEnabled() {
@@ -147,6 +177,8 @@ public class PocketState {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setInteger("spaceUpgrades", spaceUpgrades);
         tag.setInteger("pageUpgrades", pageUpgrades);
+        tag.setInteger("stackUpgrades", stackUpgrades);
+        tag.setBoolean("infiniteStackUpgrade", infiniteStackUpgrade);
         tag.setBoolean("enabled", enabled);
         tag.setFloat("windowX", windowX);
         tag.setFloat("windowY", windowY);
@@ -176,6 +208,8 @@ public class PocketState {
         if (tag == null) {
             spaceUpgrades = 0;
             pageUpgrades = 0;
+            stackUpgrades = 0;
+            infiniteStackUpgrade = false;
             enabled = false;
             collapsed = false;
             resizeStorage();
@@ -183,6 +217,8 @@ public class PocketState {
         }
         spaceUpgrades = tag.getInteger("spaceUpgrades");
         pageUpgrades = tag.getInteger("pageUpgrades");
+        stackUpgrades = tag.hasKey("stackUpgrades") ? tag.getInteger("stackUpgrades") : 0;
+        infiniteStackUpgrade = tag.hasKey("infiniteStackUpgrade") ? tag.getBoolean("infiniteStackUpgrade") : false;
         enabled = tag.getBoolean("enabled");
         windowX = tag.hasKey("windowX") ? tag.getFloat("windowX") : 0.02f;
         windowY = tag.hasKey("windowY") ? tag.getFloat("windowY") : 0.02f;

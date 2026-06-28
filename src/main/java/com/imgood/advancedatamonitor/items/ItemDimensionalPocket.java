@@ -13,6 +13,7 @@ import net.minecraft.world.World;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.client.PocketClientCache;
+import com.imgood.advancedatamonitor.gui.handler.GuiHandler;
 import com.imgood.advancedatamonitor.handler.PocketState;
 import com.imgood.advancedatamonitor.network.packet.PacketPocketAction;
 
@@ -54,17 +55,19 @@ public class ItemDimensionalPocket extends Item {
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.toggleEnabled());
             }
         } else {
-            if (world.isRemote) {
-                openConfigGuiClient(stack, player);
+            // Open the storage GUI on the SERVER side. In 1.7.10 Forge, only a server-side
+            // openGui call triggers getServerGuiElement + S2D_OPEN_WINDOW, which assigns a
+            // non-zero windowId and syncs the container to the client. Calling openGui on
+            // the client player (e.g. GCEntityClientPlayerMP) only builds the client GUI
+            // without server participation, leaving the server's openContainer as the
+            // default ContainerPlayer (windowId 0). Every windowClick packet then gets
+            // validated against and executed on ContainerPlayer, so items never reach the
+            // pocket's PocketInventory and appear to "bounce back to the inventory".
+            if (!world.isRemote) {
+                player.openGui(AdvanceDataMonitor.instance, GuiHandler.POCKET_STORAGE_GUI_ID, world, 0, 0, 0);
             }
         }
         return stack;
-    }
-
-    @SideOnly(Side.CLIENT)
-    private void openConfigGuiClient(ItemStack stack, EntityPlayer player) {
-        // Defer to a client helper to avoid importing Minecraft on the server side.
-        com.imgood.advancedatamonitor.client.ItemClientGui.openPocketConfigGui(stack, player);
     }
 
     @SideOnly(Side.CLIENT)

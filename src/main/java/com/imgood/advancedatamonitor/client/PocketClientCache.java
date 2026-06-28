@@ -21,6 +21,8 @@ public final class PocketClientCache {
 
     private static int spaceUpgrades = 0;
     private static int pageUpgrades = 0;
+    private static int stackUpgrades = 0;
+    private static boolean infiniteStackUpgrade = false;
     private static boolean enabled = false;
     private static float windowX = 0.02f;
     private static float windowY = 0.02f;
@@ -37,6 +39,8 @@ public final class PocketClientCache {
         if (message == null) return;
         spaceUpgrades = message.spaceUpgrades;
         pageUpgrades = message.pageUpgrades;
+        stackUpgrades = message.stackUpgrades;
+        infiniteStackUpgrade = message.infiniteStackUpgrade;
         enabled = message.enabled;
         windowX = message.windowX;
         windowY = message.windowY;
@@ -48,16 +52,17 @@ public final class PocketClientCache {
         if (message.kind == PacketPocketSync.KIND_FULL) {
             pages.clear();
         }
-        // Ensure page arrays match the latest slotsPerPage size.
         for (int p = 0; p < pageCount; p++) {
             ItemStack[] existing = pages.get(p);
             if (existing == null || existing.length != slotsPerPage) {
                 pages.put(p, new ItemStack[slotsPerPage]);
             }
         }
-        // Remove pages beyond current pageCount.
-        pages.keySet()
-            .removeIf(p -> p >= pageCount);
+        java.util.Iterator<Integer> it = pages.keySet()
+            .iterator();
+        while (it.hasNext()) {
+            if (it.next() >= pageCount) it.remove();
+        }
 
         for (PacketPocketSync.PagePayload payload : message.pages) {
             if (payload.pageIndex < 0 || payload.pageIndex >= pageCount) continue;
@@ -85,6 +90,27 @@ public final class PocketClientCache {
         return pageUpgrades;
     }
 
+    public static int getStackUpgrades() {
+        return stackUpgrades;
+    }
+
+    public static boolean isInfiniteStackUpgrade() {
+        return infiniteStackUpgrade;
+    }
+
+    public static int getStackMultiplier() {
+        if (infiniteStackUpgrade) return Integer.MAX_VALUE;
+        if (stackUpgrades == 0) return 1;
+        return 1 << stackUpgrades;
+    }
+
+    public static int getStackLimit() {
+        if (infiniteStackUpgrade) return Integer.MAX_VALUE;
+        int mult = getStackMultiplier();
+        if (mult == Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return Math.min(64 * mult, Integer.MAX_VALUE);
+    }
+
     public static boolean isEnabled() {
         return enabled;
     }
@@ -99,6 +125,19 @@ public final class PocketClientCache {
 
     public static float getWindowY() {
         return windowY;
+    }
+
+    /**
+     * Optimistic local update of the cached window position. Called from
+     * {@link GuiPocketOverlay#onDragFinished()} so the next attach() reads the
+     * just-released position instead of the stale pre-drag value while the
+     * server's PacketPocketSync round-trip is still in flight. Without this,
+     * attach() snaps the panel back to the old position for one frame (the
+     * "flash at the original start position" on drag release).
+     */
+    public static void setWindowPos(float x, float y) {
+        windowX = x;
+        windowY = y;
     }
 
     public static boolean isCollapsed() {
@@ -154,5 +193,9 @@ public final class PocketClientCache {
 
     public static int getMaxPageUpgrades() {
         return PocketState.MAX_PAGE_UPGRADES;
+    }
+
+    public static int getMaxStackUpgrades() {
+        return PocketState.MAX_STACK_UPGRADES;
     }
 }

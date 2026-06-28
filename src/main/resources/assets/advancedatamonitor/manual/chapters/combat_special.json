@@ -1,0 +1,29 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.combat_special",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.combat_special.overview_title",
+      "textKey": "adm.manual.combat_special.overview_text"
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.combat_special.sword_title",
+      "items": [
+        {"registryName": "advancedatamonitor:starry_cosmos_sword", "descKey": "adm.manual.item.starry_cosmos_sword"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.combat_special.orange_title",
+      "items": [
+        {"registryName": "advancedatamonitor:orange", "descKey": "adm.manual.item.superOrange"}
+      ]
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.combat_special.usage_title",
+      "textKey": "adm.manual.combat_special.usage_text"
+    }
+  ]
+}

@@ -50,6 +50,12 @@ English docs: [docs/en/README.md](../en/README.md)
 |------|------|
 | [subsystems/挂索节点系统设计.md](subsystems/挂索节点系统设计.md) | 挂索状态机、磁吸、网络包、Config |
 
+### 设计草案
+
+| 文档 | 说明 |
+|------|------|
+| [design/未来开发愿景.md](design/未来开发愿景.md) | 长期功能愿景与架构草案（非当前实现规格） |
+
 ### 归档
 
 | 文档 | 说明 |

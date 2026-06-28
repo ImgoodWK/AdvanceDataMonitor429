@@ -1,0 +1,31 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.monitor_tools",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.monitor_tools.overview_title",
+      "textKey": "adm.manual.monitor_tools.overview_text"
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.monitor_tools.data_imprint_title",
+      "items": [
+        {"registryName": "advancedatamonitor:data_imprint", "descKey": "adm.manual.item.data_imprint"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.monitor_tools.storage_cell_title",
+      "items": [
+        {"registryName": "advancedatamonitor:advance_storage_link_cell", "descKey": "adm.manual.item.advance_storage_link_cell"}
+      ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.monitor_tools.link_scanner_title",
+      "items": [
+        {"registryName": "advancedatamonitor:advance_link_scanner", "descKey": "adm.manual.item.advance_link_scanner"}
+      ]
+    }
+  ]
+}

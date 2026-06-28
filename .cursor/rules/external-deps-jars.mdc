@@ -27,6 +27,7 @@ alwaysApply: true
 | Eternal-Singularity | 1.2.1 | 永恒奇点 |
 | Universal-Singularities | 8.7.0 | 通用奇点 |
 | NotEnoughItems | 2.5.4-GTNH | NEI (仅运行时，不发布) |
+| PinIn (shadow) | 1.6.0 (JitPack) | 手册拼音搜索（`ManualSearchUtil`）；运行时可选对接 NotEnoughCharacters |
 
 ### 本地 Jar 依赖（需要放在 `libs/` 下）
 这些在 `dependencies.gradle` 中通过 `implementation files('libs/xxx.jar')` 声明：

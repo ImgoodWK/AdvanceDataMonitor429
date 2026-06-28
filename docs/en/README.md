@@ -50,6 +50,12 @@
 |-----|-------------|
 | [subsystems/grapple-system-design.md](subsystems/grapple-system-design.md) | Grapple Anchor / Grapple Hook design |
 
+### Design drafts
+
+| Doc | Description |
+|-----|-------------|
+| [design/future-development-vision.md](design/future-development-vision.md) | Long-term feature vision and architecture drafts (not current implementation spec) |
+
 ---
 
 ## Naming convention

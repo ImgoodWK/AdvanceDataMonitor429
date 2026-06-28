@@ -8,6 +8,9 @@ package com.imgood.advancedatamonitor.handler;
  * Page upgrade removal: the highest page index that contains items needs K page
  * upgrades to exist (page index 0 = base page needs 0 upgrades); so at least
  * highestUsedPage page upgrades must remain.
+ *
+ * Stack upgrade: max 8, each doubles the per-slot stack limit (2^n).
+ * Infinite stack upgrade: max 1, sets per-slot limit to Integer.MAX_VALUE.
  */
 public final class PocketUpgradeRules {
 
@@ -40,8 +43,14 @@ public final class PocketUpgradeRules {
     public static boolean canRemoveSpaceUpgrade(PocketState state, int amountToRemove) {
         if (state == null) return false;
         int current = state.getSpaceUpgrades();
-        int min = computeMinSpaceUpgrades(state);
-        return (current - amountToRemove) >= min;
+        int remaining = current - amountToRemove;
+        int minForItems = computeMinSpaceUpgrades(state);
+        if (remaining < minForItems) return false;
+        if (current >= PocketState.MAX_SPACE_UPGRADES && remaining < PocketState.MAX_SPACE_UPGRADES) {
+            int pagesWithContent = computeMinPageUpgrades(state);
+            if (pagesWithContent > 0) return false;
+        }
+        return true;
     }
 
     public static boolean canRemovePageUpgrade(PocketState state, int amountToRemove) {
@@ -58,8 +67,22 @@ public final class PocketUpgradeRules {
 
     public static boolean canAddPageUpgrade(PocketState state, int amountToAdd) {
         if (state == null) return false;
-        // Page upgrades require space upgrades to be fully stacked (64).
         if (state.getSpaceUpgrades() < PocketState.MAX_SPACE_UPGRADES) return false;
         return state.getPageUpgrades() + amountToAdd <= PocketState.MAX_PAGE_UPGRADES;
+    }
+
+    public static boolean canAddStackUpgrade(PocketState state, int amountToAdd) {
+        if (state == null) return false;
+        return state.getStackUpgrades() + amountToAdd <= PocketState.MAX_STACK_UPGRADES;
+    }
+
+    public static boolean canRemoveStackUpgrade(PocketState state, int amountToRemove) {
+        if (state == null) return false;
+        return state.getStackUpgrades() >= amountToRemove;
+    }
+
+    public static boolean canAddInfiniteStackUpgrade(PocketState state) {
+        if (state == null) return false;
+        return !state.isInfiniteStackUpgrade();
     }
 }

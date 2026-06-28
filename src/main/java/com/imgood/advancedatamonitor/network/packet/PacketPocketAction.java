@@ -1,6 +1,7 @@
 package com.imgood.advancedatamonitor.network.packet;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentTranslation;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
@@ -32,6 +33,28 @@ public class PacketPocketAction implements IMessage {
     public static final byte REMOVE_SPACE_UPGRADE = 6;
     public static final byte ADD_PAGE_UPGRADE = 7;
     public static final byte REMOVE_PAGE_UPGRADE = 8;
+    /** Deposit player's cursor stack into pocket slot. intValue=slotIndex, floatValue1=pageIndex. */
+    public static final byte DEPOSIT_FROM_CURSOR = 9;
+    /** Withdraw stack from pocket slot to player's cursor. intValue=slotIndex, floatValue1=pageIndex. */
+    public static final byte WITHDRAW_TO_CURSOR = 10;
+    /** Quick-deposit: transfer one matching item from player inv to pocket slot. */
+    public static final byte QUICK_DEPOSIT = 11;
+    /** Quick-withdraw: transfer whole stack from pocket slot to player inventory. */
+    public static final byte QUICK_WITHDRAW = 12;
+    /** Deposit a single item from cursor (right-click). */
+    public static final byte DEPOSIT_SINGLE_FROM_CURSOR = 13;
+    /** Add stack upgrade card. intValue=amount. */
+    public static final byte ADD_STACK_UPGRADE = 14;
+    /** Remove stack upgrade card. intValue=amount. */
+    public static final byte REMOVE_STACK_UPGRADE = 15;
+    /** Add infinite stack upgrade card. */
+    public static final byte ADD_INFINITE_STACK_UPGRADE = 16;
+    /** Remove infinite stack upgrade card. */
+    public static final byte REMOVE_INFINITE_STACK_UPGRADE = 17;
+    /** Request the server to open the pocket config (upgrade) GUI. Handled server-side so
+     *  the container gets a proper windowId and the server's openContainer is the real
+     *  ContainerDimensionalPocket — same reason onItemRightClick opens storage server-side. */
+    public static final byte OPEN_CONFIG_GUI = 18;
 
     private byte action;
     private int intValue;
@@ -103,6 +126,78 @@ public class PacketPocketAction implements IMessage {
         return p;
     }
 
+    public static PacketPocketAction depositFromCursor(int page, int slot) {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = DEPOSIT_FROM_CURSOR;
+        p.intValue = slot;
+        p.floatValue1 = page;
+        return p;
+    }
+
+    public static PacketPocketAction withdrawToCursor(int page, int slot) {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = WITHDRAW_TO_CURSOR;
+        p.intValue = slot;
+        p.floatValue1 = page;
+        return p;
+    }
+
+    public static PacketPocketAction quickDeposit(int page, int slot) {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = QUICK_DEPOSIT;
+        p.intValue = slot;
+        p.floatValue1 = page;
+        return p;
+    }
+
+    public static PacketPocketAction quickWithdraw(int page, int slot) {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = QUICK_WITHDRAW;
+        p.intValue = slot;
+        p.floatValue1 = page;
+        return p;
+    }
+
+    public static PacketPocketAction depositSingleFromCursor(int page, int slot) {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = DEPOSIT_SINGLE_FROM_CURSOR;
+        p.intValue = slot;
+        p.floatValue1 = page;
+        return p;
+    }
+
+    public static PacketPocketAction addStackUpgrade(int amount) {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = ADD_STACK_UPGRADE;
+        p.intValue = amount;
+        return p;
+    }
+
+    public static PacketPocketAction removeStackUpgrade(int amount) {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = REMOVE_STACK_UPGRADE;
+        p.intValue = amount;
+        return p;
+    }
+
+    public static PacketPocketAction addInfiniteStackUpgrade() {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = ADD_INFINITE_STACK_UPGRADE;
+        return p;
+    }
+
+    public static PacketPocketAction removeInfiniteStackUpgrade() {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = REMOVE_INFINITE_STACK_UPGRADE;
+        return p;
+    }
+
+    public static PacketPocketAction openConfigGui() {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = OPEN_CONFIG_GUI;
+        return p;
+    }
+
     @Override
     public void toBytes(ByteBuf buf) {
         buf.writeByte(action);
@@ -145,10 +240,10 @@ public class PacketPocketAction implements IMessage {
         boolean error = false;
         String errorKey = null;
         int errorArg = 0;
+        boolean skipDefaultSync = false;
 
         switch (message.action) {
             case REQUEST_SYNC:
-                // Sync is handled by sending a full sync packet below; nothing to mutate.
                 changed = true;
                 break;
             case TOGGLE_ENABLED:
@@ -156,8 +251,11 @@ public class PacketPocketAction implements IMessage {
                 changed = true;
                 break;
             case SET_PAGE:
-                // Page is client-display-only; we don't persist it in the player file.
-                // Still ack so the client can confirm range.
+                if (player.openContainer instanceof com.imgood.advancedatamonitor.gui.container.ContainerPocketStorage) {
+                    ((com.imgood.advancedatamonitor.gui.container.ContainerPocketStorage) player.openContainer)
+                        .setPage(message.intValue);
+                    skipDefaultSync = true;
+                }
                 changed = true;
                 break;
             case SET_WINDOW_POS:
@@ -216,6 +314,152 @@ public class PacketPocketAction implements IMessage {
                 }
                 break;
             }
+            case DEPOSIT_FROM_CURSOR: {
+                int page = (int) message.floatValue1;
+                int slot = message.intValue;
+                ItemStack cursorStack = player.inventory.getItemStack();
+                if (cursorStack != null && state.isValid(page, slot)) {
+                    ItemStack existing = state.getStack(page, slot);
+                    int maxStack = getPocketStackLimit(state);
+                    if (existing == null) {
+                        ItemStack copy = cursorStack.copy();
+                        if (copy.stackSize > maxStack) copy.stackSize = maxStack;
+                        state.setStack(page, slot, copy);
+                        cursorStack.stackSize -= copy.stackSize;
+                        if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
+                    } else if (existing.isItemEqual(cursorStack) && ItemStack.areItemStackTagsEqual(existing, cursorStack)) {
+                        int space = maxStack - existing.stackSize;
+                        int toAdd = Math.min(space, cursorStack.stackSize);
+                        if (toAdd > 0) {
+                            existing.stackSize += toAdd;
+                            cursorStack.stackSize -= toAdd;
+                            if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
+                        }
+                    }
+                    changed = true;
+                }
+                break;
+            }
+            case WITHDRAW_TO_CURSOR: {
+                int page = (int) message.floatValue1;
+                int slot = message.intValue;
+                ItemStack pocketStack = state.getStack(page, slot);
+                if (pocketStack != null) {
+                    player.inventory.setItemStack(pocketStack.copy());
+                    state.setStack(page, slot, null);
+                    changed = true;
+                }
+                break;
+            }
+            case DEPOSIT_SINGLE_FROM_CURSOR: {
+                int page = (int) message.floatValue1;
+                int slot = message.intValue;
+                ItemStack cursorStack = player.inventory.getItemStack();
+                if (cursorStack != null && state.isValid(page, slot)) {
+                    ItemStack existing = state.getStack(page, slot);
+                    int maxStack = getPocketStackLimit(state);
+                    if (existing == null) {
+                        ItemStack one = cursorStack.copy();
+                        one.stackSize = 1;
+                        state.setStack(page, slot, one);
+                        cursorStack.stackSize--;
+                        if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
+                    } else if (existing.isItemEqual(cursorStack) && ItemStack.areItemStackTagsEqual(existing, cursorStack)
+                        && existing.stackSize < maxStack) {
+                        existing.stackSize++;
+                        cursorStack.stackSize--;
+                        if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
+                    }
+                    changed = true;
+                }
+                break;
+            }
+            case QUICK_DEPOSIT: {
+                int page = (int) message.floatValue1;
+                int slot = message.intValue;
+                ItemStack pocketStack = state.getStack(page, slot);
+                if (pocketStack != null && state.isValid(page, slot)) {
+                    int maxStack = getPocketStackLimit(state);
+                    int space = maxStack - pocketStack.stackSize;
+                    if (space <= 0) break;
+                    for (int i = 0; i < player.inventory.mainInventory.length; i++) {
+                        ItemStack invStack = player.inventory.mainInventory[i];
+                        if (invStack != null && invStack.isItemEqual(pocketStack)
+                            && ItemStack.areItemStackTagsEqual(invStack, pocketStack)) {
+                            int toMove = Math.min(space, invStack.stackSize);
+                            pocketStack.stackSize += toMove;
+                            invStack.stackSize -= toMove;
+                            if (invStack.stackSize <= 0) player.inventory.mainInventory[i] = null;
+                            space -= toMove;
+                            if (space <= 0) break;
+                        }
+                    }
+                    changed = true;
+                }
+                break;
+            }
+            case QUICK_WITHDRAW: {
+                int page = (int) message.floatValue1;
+                int slot = message.intValue;
+                ItemStack pocketStack = state.getStack(page, slot);
+                if (pocketStack != null) {
+                    boolean fit = player.inventory.addItemStackToInventory(pocketStack.copy());
+                    if (fit) {
+                        state.setStack(page, slot, null);
+                    }
+                    changed = true;
+                }
+                break;
+            }
+            case ADD_STACK_UPGRADE: {
+                int amount = Math.max(0, message.intValue);
+                if (PocketUpgradeRules.canAddStackUpgrade(state, amount)) {
+                    state.setStackUpgrades(state.getStackUpgrades() + amount);
+                    changed = true;
+                } else {
+                    error = true;
+                }
+                break;
+            }
+            case REMOVE_STACK_UPGRADE: {
+                int amount = Math.max(0, message.intValue);
+                if (PocketUpgradeRules.canRemoveStackUpgrade(state, amount)) {
+                    state.setStackUpgrades(state.getStackUpgrades() - amount);
+                    changed = true;
+                } else {
+                    error = true;
+                }
+                break;
+            }
+            case ADD_INFINITE_STACK_UPGRADE: {
+                if (PocketUpgradeRules.canAddInfiniteStackUpgrade(state)) {
+                    state.setInfiniteStackUpgrade(true);
+                    changed = true;
+                } else {
+                    error = true;
+                }
+                break;
+            }
+            case REMOVE_INFINITE_STACK_UPGRADE: {
+                if (state.isInfiniteStackUpgrade()) {
+                    state.setInfiniteStackUpgrade(false);
+                    changed = true;
+                } else {
+                    error = true;
+                }
+                break;
+            }
+            case OPEN_CONFIG_GUI: {
+                // Open the config GUI server-side so the container gets a real windowId
+                // and the server's openContainer is the authoritative ContainerDimensionalPocket.
+                // Forge will sync S2D_OPEN_WINDOW to the client, which calls getClientGuiElement.
+                player.openGui(com.imgood.advancedatamonitor.AdvanceDataMonitor.instance,
+                    com.imgood.advancedatamonitor.gui.handler.GuiHandler.POCKET_CONFIG_GUI_ID,
+                    player.worldObj, 0, 0, 0);
+                // openGui triggers its own container sync; skip the default pocket sync.
+                skipDefaultSync = true;
+                break;
+            }
             default:
                 break;
         }
@@ -224,12 +468,43 @@ public class PacketPocketAction implements IMessage {
             PocketStore.instance()
                 .save(player);
         }
+        // Cursor/mainInventory operations mutate the player's cursor stack or inventory
+        // outside the vanilla windowClick path. The default PacketPocketSync only mirrors
+        // pocket contents, NOT the player's cursor — so the client's
+        // mc.thePlayer.inventory.getItemStack() would stay stale (cursor appears empty
+        // even though the server moved a stack onto it). Force the open container to
+        // detect & send its slot 0 (cursor) plus any changed inventory slots via the
+        // vanilla S2FPacketSetSlot mechanism.
+        if (changed && (message.action == DEPOSIT_FROM_CURSOR || message.action == WITHDRAW_TO_CURSOR
+            || message.action == DEPOSIT_SINGLE_FROM_CURSOR || message.action == QUICK_DEPOSIT
+            || message.action == QUICK_WITHDRAW)) {
+            player.openContainer.detectAndSendChanges();
+        }
         if (error && errorKey != null) {
             player.addChatMessage(new ChatComponentTranslation(errorKey, errorArg));
         }
+        if (skipDefaultSync) return;
         // Always reply with a sync so the client stays in step.
         PacketPocketSync sync = PacketPocketSync.fullState(state);
+        // detectAndSendChanges() above only syncs container SLOT contents — it does NOT
+        // sync the player's carried item (player.inventory.itemStack), which lives outside
+        // Container.inventorySlots. So a withdraw that calls setItemStack() on the server
+        // never reaches the client cursor, and the held item is invisible. Attach the
+        // authoritative server cursor to the sync for the actions that mutate it, and the
+        // client handler will call mc.thePlayer.inventory.setItemStack() to apply it.
+        if (message.action == WITHDRAW_TO_CURSOR || message.action == DEPOSIT_FROM_CURSOR
+            || message.action == DEPOSIT_SINGLE_FROM_CURSOR) {
+            sync.hasCursor = true;
+            sync.cursorStack = player.inventory.getItemStack();
+        }
         AdvanceDataMonitor.ADMCHANEL.sendTo(sync, player);
+    }
+
+    private static int getPocketStackLimit(PocketState state) {
+        if (state.isInfiniteStackUpgrade()) return Integer.MAX_VALUE;
+        int mult = state.getStackMultiplier();
+        if (mult == Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return Math.min(64 * mult, Integer.MAX_VALUE);
     }
 
     @SideOnly(Side.CLIENT)
@@ -237,7 +512,6 @@ public class PacketPocketAction implements IMessage {
 
         @Override
         public IMessage onMessage(PacketPocketAction message, MessageContext ctx) {
-            // Client side does not expect PacketPocketAction replies; sync comes via PacketPocketSync.
             return null;
         }
     }

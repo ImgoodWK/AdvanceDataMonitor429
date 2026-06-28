@@ -65,6 +65,11 @@ public class ClientProxy extends CommonProxy {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new OrangeNameplateRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new SuperOrangeHaloRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(PocketOverlayHandler.instance());
+        // TickEvent.ClientTickEvent is an FML bus event, so register there too — otherwise
+        // the overlay never updates/renders even when enabled.
+        FMLCommonHandler.instance()
+            .bus()
+            .register(PocketOverlayHandler.instance());
         FMLCommonHandler.instance()
             .bus()
             .register(this.starryCosmosClientWarmup);

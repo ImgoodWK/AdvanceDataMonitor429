@@ -1,0 +1,32 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.planner",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner.overview_title",
+      "textKey": "adm.manual.planner.overview_text"
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.planner.item_title",
+      "items": [
+        {"registryName": "advancedatamonitor:advance_planner", "descKey": "adm.manual.item.advance_planner"}
+      ]
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner.entries_title",
+      "textKey": "adm.manual.planner.entries_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner.merge_title",
+      "textKey": "adm.manual.planner.merge_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.planner.hud_title",
+      "textKey": "adm.manual.planner.hud_text"
+    }
+  ]
+}

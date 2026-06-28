@@ -476,17 +476,24 @@ adm.error.no_nearby_monitor=No Advance Data Monitor found within 32 blocks.
 # Manual
 item.manual.name=AdvanceDataMonitor Manual
 adm.manual.prev_page=< Prev
+adm.manual.search_hint=Search...
+adm.manual.search_no_results=No match
 adm.manual.next_page=Next >
 
 adm.manual.chapter.getting_started=Getting Started
-adm.manual.chapter.blocks_items=Blocks & Items
+adm.manual.chapter.monitor_blocks=Monitor Blocks
+adm.manual.chapter.monitor_tools=Monitor Tools
 adm.manual.chapter.data_monitor=Data Monitor
+adm.manual.chapter.dimensional_pocket=Dimensional Pocket
+adm.manual.chapter.data_loom_cells=Data Loom Cells
+adm.manual.chapter.grapple_system=Grapple System
+adm.manual.chapter.combat_special=Combat & Special
 adm.manual.chapter.ai_assistant=AI Assistant
-adm.manual.chapter.planner_teleport=Planner & Teleport
+adm.manual.chapter.planner=Advance Planner
 adm.manual.chapter.config_reference=Config Reference
 
 adm.manual.getting_started.welcome_title=Welcome
-adm.manual.getting_started.welcome_text=Welcome to the AdvanceDataMonitor manual!\n\nThis mod brings advanced data visualization and AI-assisted automation to GTNH. You can render live charts in-world from AE2 and TileEntity data, control AE2 crafting with natural language, and manage tasks with the planner.\n\nUse the sidebar on the left to browse chapters. Mouse wheel scrolls long pages.
+adm.manual.getting_started.welcome_text=Welcome to the AdvanceDataMonitor manual!\n\nThis mod brings advanced data visualization and AI-assisted automation to GTNH. You can render live charts in-world from AE2 and TileEntity data, control AE2 crafting with natural language, and manage tasks with the planner.\n\nUse the search bar atop the left sidebar to find chapters and body text (pinyin supported; compatible with NotEnoughCharacters). Scroll the chapter list with the wheel or scrollbar; long pages on the right also scroll with the wheel.
 
 adm.manual.getting_started.core_concepts_title=Four Core Systems
 adm.manual.getting_started.core_concepts_text=1. Advance Data Monitor - renders live charts (line, bar, waterfall, difference) and text in the Minecraft world from TileEntity NBT data. Each face of the monitor can be configured independently.\n\n2. AE2 Integration - three dedicated linker blocks connect to your AE2 network: Crafting Linker monitors CPUs, Advanced Storage Linker shows inventory, Network Linker aggregates full-network statistics.\n\n3. AI Assistant - natural language control via OpenAI-compatible APIs. Order crafting, withdraw items, query power/storage/recipes, teleport via Draconic Evolution gems, and manage planner tasks - all through the chat window (O key).\n\n4. Planner - a persistent task manager stored in NBT on the item. Supports adding, completing, deleting, reordering, merging entries, with an on-screen HUD overlay.
@@ -495,7 +502,7 @@ adm.manual.getting_started.quick_start_title=Quick Start
 adm.manual.getting_started.quick_start_text=1. Place an Advance Data Monitor block where you want the display.\n2. Place a Crafting/Advanced Storage/Network Linker next to your AE2 network via cable adjacency.\n3. Craft a Data Imprint Tool and sneak+right-click the linker block to imprint its NBT data.\n4. Sneak+right-click the Advance Data Monitor with the imprinted tool to bind the data to a monitor face.\n5. Right-click the Advance Data Monitor to open its GUI and configure chart type, colors, scale, and more.\n6. Press O to open the AI Chat. Configure your API key in the Settings (gear icon).\n7. Press P to open the Planner if you have one in your inventory.\n\nTip: The AI Assistant works even without AE2 - you can query time, weather, position, biome, and inventory space anywhere.
 
 adm.manual.getting_started.manual_info_title=About This Manual
-adm.manual.getting_started.manual_info_text=You receive this manual once per world when you first join. If you lose it, you can:\n- Get a new one from the Tools tab in Creative mode\n- Craft it (see recipe)\n\nRight-click the manual item to open it. The chapter list on the left lets you jump between topics. Use Prev/Next buttons to flip pages. Chapter titles appear at the top of each page.
+adm.manual.getting_started.manual_info_text=You receive this manual once per world when you first join. If you lose it, you can:\n- Get a new one from the Tools tab in Creative mode\n- Craft it (see recipe)\n\nRight-click the manual item to open it. The top search box searches titles and all page text; matches are highlighted (space-separated AND keywords). When many chapters are listed, scroll with the wheel, drag the scrollbar, or click ^ / v beside it to jump to top/bottom. Click a chapter to switch topics; use Prev/Next at the bottom to flip pages. Chapter titles appear at the top of each page.
 
 adm.manual.blocks_items.overview_title=Blocks & Items Overview
 adm.manual.blocks_items.overview_text=AdvanceDataMonitor adds 4 blocks and 10 items. Each block connects to a specific part of your AE2 system and feeds data to the Data Monitor display block. The following pages describe each item in detail with its function, usage tips, and key capabilities.
@@ -686,24 +693,29 @@ item.dimensionalPocket.name=Dimensional Pocket
 item.spaceUpgradeCard.name=Space Upgrade Card
 item.pageUpgradeCard.name=Page Upgrade Card
 adm.tooltip.pocket.title=Dimensional Pocket
-adm.tooltip.pocket.usage=Right-click: open config GUI (upgrade slots, switch). Shift+right-click: toggle the overlay window.
+adm.tooltip.pocket.usage=Right-click: open storage GUI (store/retrieve items). Shift+right-click: toggle the overlay window.
 adm.tooltip.pocket.stats_space=Space upgrades: %d / %d (current %d slots per page)
 adm.tooltip.pocket.stats_pages=Page upgrades: %d / %d (current %d pages)
 adm.tooltip.pocket.stats_enabled=Function state: %s
 adm.tooltip.pocket.space_card.title=Space Upgrade Card
 adm.tooltip.pocket.space_card.desc=Insert into the pocket's space upgrade slot. Each card adds 1 slot (baseline 1, max 63 per page).
 adm.tooltip.pocket.space_card.stackable=Stacks up to 64, but only 62 are effective.
+adm.tooltip.pocket.space_card.page_unlock=Card 63 and 64 unlock page upgrades (they do not add extra slots).
 adm.tooltip.pocket.page_card.title=Page Upgrade Card
 adm.tooltip.pocket.page_card.desc=Insert into the pocket's page upgrade slot. Each card adds 1 page (max 8 = 9 pages total).
 adm.tooltip.pocket.page_card.prereq=Requires space upgrades to be fully stacked (64) to take effect.
 adm.pocket.toggle.on=Dimensional Pocket overlay: enabled
 adm.pocket.toggle.off=Dimensional Pocket overlay: disabled
 adm.title.pocketConfig=Dimensional Pocket Config
+adm.title.pocketOverlay=Dimensional Pocket
+adm.title.pocketStoragePaged=Dimensional Pocket Storage (Page %d / %d)
+adm.button.pocket.openConfig=Upgrade Config
 adm.label.pocket.spaceUpgrade=Space Upgrade Slot
 adm.label.pocket.pageUpgrade=Page Upgrade Slot
 adm.label.pocket.switch=Function Switch
 adm.label.pocket.capacity=Current capacity: %d slots x %d pages = %d total
 adm.label.pocket.currentPage=Page %d / %d
+adm.label.pocket.pageFooter=Page %d/%d
 adm.button.pocket.collapse=Collapse
 adm.button.pocket.expand=Expand
 adm.button.pocket.prevPage=<
@@ -716,3 +728,105 @@ adm.error.pocket.cannotRemoveSpace=Not enough space, cannot remove space upgrade
 adm.error.pocket.cannotRemovePage=Items exist on higher pages, cannot remove page upgrade card (must keep at least %d)
 adm.error.pocket.pageUpgradeBlocked=Page upgrades require space upgrades to be fully stacked (64) first
 adm.error.pocket.noPocket=No Dimensional Pocket in inventory
+
+# Stack upgrade items
+item.stackUpgradeCard.name=Stack Upgrade Card
+item.infiniteStackUpgradeCard.name=Infinite Stack Upgrade Card
+adm.tooltip.pocket.stack_card.title=Stack Upgrade Card
+adm.tooltip.pocket.stack_card.desc=Insert into the pocket's stack upgrade slot. Each card doubles the per-slot stack limit (2^n).
+adm.tooltip.pocket.stack_card.stackable=Stacks up to 8. 64×1=64, 64×2=128, 64×4=256, 64×8=512, 64×16=1024, 64×32=2048, 64×64=4096, 64×128=8192.
+adm.tooltip.pocket.stack_card.formula=Formula: base stack 64 × 2^n, where n = number of cards installed.
+adm.tooltip.pocket.infinite_stack_card.title=Infinite Stack Upgrade Card
+adm.tooltip.pocket.infinite_stack_card.desc=Insert into the pocket's infinite stack upgrade slot. Sets per-slot stack limit to Integer.MAX_VALUE.
+adm.tooltip.pocket.infinite_stack_card.max=Max 1. Only takes effect when installed in its dedicated slot.
+adm.tooltip.pocket.infinite_stack_card.warning=Warning: may cause severe lag with large item stacks in rendering!
+adm.label.pocket.stackUpgrade=Stack Upgrade Slot
+adm.label.pocket.infiniteStackUpgrade=Infinite Stack Slot
+adm.label.pocket.stackLimit=Stack limit: %d per slot
+adm.label.pocket.stackLimitInfinite=Stack limit: infinite per slot
+
+# Manual - new chapter keys (Phase 2)
+adm.manual.monitor_blocks.overview_title=Monitor Blocks Overview
+adm.manual.monitor_blocks.overview_text=AdvanceDataMonitor adds 4 monitor blocks that connect to specific parts of your AE2 system and feed data to the Advance Data Monitor display block. Each block serves a distinct purpose in the data pipeline.\n\nPlacement: all blocks connect to AE2 via cable adjacency and require AE2 power.\n\nRight-click any linker block to see its current status in chat. Bind them to a Data Monitor for continuous in-world display.\n\nTips: use a Data Imprint Tool to bind linkers to monitors quickly (sneak+right-click linker, then sneak+right-click monitor).
+
+adm.manual.monitor_blocks.data_monitor_title=Advanced Data Monitor
+adm.manual.monitor_blocks.crafting_link_title=Crafting Linker
+adm.manual.monitor_blocks.storage_link_title=Advanced Storage Linker
+adm.manual.monitor_blocks.network_link_title=Network Linker
+
+adm.manual.monitor_tools.overview_title=Monitor Tools Overview
+adm.manual.monitor_tools.overview_text=These tools support and enhance the Data Monitor system. The Data Imprint Tool captures NBT snapshots for binding, the Advanced Storage Link Cell configures storage monitoring filters, and the Advance Link Scanner lets you find and manage all link blocks across your world.\n\nAll three tools work together with the monitor blocks described in the previous chapter.
+
+adm.manual.monitor_tools.data_imprint_title=Data Imprint Tool
+adm.manual.monitor_tools.storage_cell_title=Advanced Storage Link Cell
+adm.manual.monitor_tools.link_scanner_title=Advance Link Scanner
+adm.manual.item.advance_link_scanner=Scans loaded chunks for AdvanceDataMonitor link blocks (monitors, network/storage/crafting linkers).\n\nShift+right-click: scan all loaded chunks. Stores results as an expandable list with owner names, coordinates, aliases, and block types.\n\nRight-click: open scanner GUI — browse entries, filter by owner/name, set custom aliases, and teleport directly to any found block.\n\nFilters: Owner (All/Mine/Others), Name (All/Unnamed/Named).\n\nTeleport: click a row to teleport to that block (same dimension, safe landing check).\n\nStack size: 1. Creative tab: Tools.
+
+adm.manual.dimensional_pocket.overview_title=Dimensional Pocket Overview
+adm.manual.dimensional_pocket.overview_text=The Dimensional Pocket is a player-UUID-bound portable storage. All pocket items in your inventory share the same storage space — the item itself carries no data.\n\nStorage persists across sessions in config/advancedatamonitor/pocket-<uuid>.json. Right-click opens the storage GUI; shift+right-click toggles the draggable overlay window.\n\nUpgrades: four types of upgrade cards expand capacity, add pages, multiply stack limits, and unlock infinite stacking. Cards are consumed on installation and cannot be recovered — except cards rejected by prerequisite rules.\n\nCapacity formula: slots per page = min(63, 1 + min(space upgrades, 62)); pages = 1 + min(page upgrades, 8) when space >= 64, else 1.
+
+adm.manual.dimensional_pocket.pocket_title=Dimensional Pocket
+adm.manual.dimensional_pocket.space_card_title=Space Upgrade Card
+adm.manual.dimensional_pocket.page_card_title=Page Upgrade Card
+adm.manual.dimensional_pocket.stack_card_title=Stack Upgrade Card
+adm.manual.dimensional_pocket.infinite_stack_card_title=Infinite Stack Upgrade Card
+adm.manual.dimensional_pocket.usage_title=Pocket Usage & Upgrade Rules
+adm.manual.dimensional_pocket.usage_text=Storage GUI: right-click the pocket item. Top grid shows the current page; bottom shows player inventory. Drag or shift-click items between them. Use Prev/Next buttons to switch pages; Upgrade Config button opens the upgrade GUI.\n\nOverlay window: shift+right-click to toggle. A draggable pocket panel appears over any open container. AE2 containers auto-degrade to read-only when the overlay is active.\n\nUpgrade installation order: Space upgrades first (up to 64, baseline 1 slot) → Page upgrades (require 64 space upgrades, up to 8) → Stack upgrades (doubles per-slot stack limit, up to 8) → Infinite Stack upgrade (requires full stack upgrades, max 1).\n\nCards are consumed on install. Only cards rejected by prerequisite rules (e.g. page card before space is full) are returned to inventory.\n\nStack limit formula: base 64 × 2^n where n = stack upgrade count (max 10). Infinite card sets limit to Integer.MAX_VALUE.
+
+adm.manual.item.dimensional_pocket=A player-UUID-bound portable storage pocket. All copies share the same storage.\n\nRight-click: open storage GUI with pocket grid + player inventory. Drag/shift-click items to transfer.\n\nShift+right-click: toggle overlay window (draggable, works over any container).\n\nStorage is per-player, persisted to pocket-<uuid>.json.\n\nStack size: 1. Creative tab: Tools.
+
+adm.manual.item.space_upgrade_card=Increases pocket slot capacity. Each card adds 1 slot (baseline 1, max 63 per page).\n\nStacks up to 64, but only 62 are effective for slots. Cards 63-64 unlock page upgrades.\n\nInstall via the Upgrade Config GUI (from storage GUI). Cards are consumed on installation.\n\nCreative tab: Tools.
+
+adm.manual.item.page_upgrade_card=Adds extra pages to the pocket. Each card adds 1 page (max 8 = 9 pages total).\n\nRequires space upgrades to be fully stacked (64) to take effect.\n\nInstall via the Upgrade Config GUI. Cards are consumed on installation.\n\nCreative tab: Tools.
+
+adm.manual.item.stack_upgrade_card=Doubles the per-slot stack limit. Base 64, formula: 64 × 2^n.\n\nScaling: 1=128, 2=256, 4=1024, 8=8192. Max 8 cards.\n\nInstall via the Upgrade Config GUI. Cards are consumed on installation.\n\nCreative tab: Tools.
+
+adm.manual.item.infinite_stack_upgrade_card=Sets per-slot stack limit to Integer.MAX_VALUE for unlimited stacking.\n\nRequires stack upgrades to be full before taking effect. Max 1 card.\n\nWarning: very large stacks may cause rendering lag.\n\nInstall via the Upgrade Config GUI. Card is consumed on installation.\n\nCreative tab: Tools.
+
+adm.manual.data_loom_cells.overview_title=Data Loom Cells — Lore & Overview
+adm.manual.data_loom_cells.overview_text=AE digitizes matter into network data. AdvanceDataMonitor researchers reversed this — weaving data back into matter.\n\nEvolution:\n- Data Dust Loom Cell (basic): immature tech, only weaves the simplest form — dusts (GT dust prefix).\n- Data Form Loom Cell (advanced): full mastery, reconstructs any complex item.\n- Data Flow Cell: fluid channel, weaves data into fluids (mB units, default 1000 mB/s = 1 bucket/s).\n- Data Tide Loom Cell (advanced): fluid channel upgrade — tides of data, up to 63 fluid types.\n- Data Source Loom Cell: fluid channel, weaves data into Thaumcraft essentia (aspect fluids, default 1000 mB/s).\n\nUsage: place in ME Drive or ME Chest, mark targets in Cell Workbench, generate slowly over time. Dust/Form/Flow cells cannot mark AdvanceDataMonitor items. Output settles on a configurable interval (default 5 s); effective rates are cached on the item tooltip when markers or amplifier cards change. Weave Amplifier cards multiply output (default 4×/card, Super 16×/card, max 8 cards, multiplicative). Drains AE network energy.\n\nAdvanced Storage Linker note: contents stored inside Data Loom cells are excluded from Advanced Storage Linker statistics.\n\nConfig: [dataDustLoomCell], [dataFormLoomCell], [dataFlowCell], [dataSourceLoomCell], [dataLoomCell] (sync interval, energy drain, amplifier multipliers).
+
+adm.manual.data_loom_cells.data_dust_loom_title=Data Dust Loom Cell
+adm.manual.data_loom_cells.data_form_loom_title=Data Form Loom Cell
+adm.manual.data_loom_cells.data_flow_cell_title=Data Flow / Tide Loom Cell
+adm.manual.data_loom_cells.data_source_loom_title=Data Source Loom Cell
+adm.manual.data_loom_cells.weave_amplifier_title=Weave Amplifier Cards
+adm.manual.data_loom_cells.usage_title=Usage & Amplifier Installation
+adm.manual.data_loom_cells.usage_text=How to use Data Loom Cells:\n\n1. Craft the desired cell type (Dust/Form/Flow/Tide/Source).\n2. Place the cell in a Cell Workbench. Mark target items/fluids/essentia in the partition slots.\n3. Optionally install Weave Amplifier or Super Weave Amplifier cards (max 8 combined). Only these cards are accepted — AE acceleration cards will not work.\n4. Insert the cell into an ME Drive or ME Chest (item channel for Dust/Form; fluid channel for Flow/Tide/Source).\n5. The cell automatically starts weaving — output settles every [dataLoomCell] syncIntervalSeconds (default 5s).\n\nAmplifier scaling:\n- Normal: 4× per card, multiplicative. 1→4×, 2→16×, 4→256×, 8→65536×.\n- Super: 16× per card, stacks multiplicatively with normal cards.\n- Max 8 cards shared across all types.\n\nEnergy: drains [dataLoomCell] energyDrainPerTick AE/t (default 999999).\n\nExternal access: internal accumulators can be read via storage bus, but are excluded from Advanced Storage Linker statistics.
+
+adm.manual.grapple_system.overview_title=Grapple System Overview
+adm.manual.grapple_system.overview_text=The Grapple System lets you travel through your beautifully built base with a sense of journey — enjoying the scenery instead of skipping it with teleport or flight.\n\nTwo components work together:\n- Grapple Anchor: face-mountable thin-plate nodes placed along paths.\n- Grapple Hook: handheld tool for attaching to and gliding between anchors.\n\nCore loop: approach anchor → magnetic-select with hook → right-click attach → look at next anchor → right-click glide → Shift to detach. Both hands remain free during travel.\n\nConfig: [grapple] category (hint range, interact distance, travel speed, magnetic angle). See Player Guide §3.7–3.8 for full usage details.
+
+adm.manual.grapple_system.anchor_title=Grapple Anchor
+adm.manual.grapple_system.hook_title=Grapple Hook
+adm.manual.grapple_system.story_title=Design Intent & Quick Reference
+adm.manual.grapple_system.story_text=We often spend enormous effort making beautiful bases and production lines, yet daily travel still defaults to flying, sprinting, or teleporting — flying and sprinting tie up your hands, and teleporting skips the scenery entirely.\n\nGrapple anchors and the grapple hook aim for a balance between "getting there fast" and "seeing the journey": place nodes along factory corridors, scenic bridges, production tour routes, and other key paths. Attach with the hook and glide smoothly between nodes while keeping both hands free — movement itself becomes part of the experience.\n\nQuick reference:\n- Grapple Anchor: wall/ceiling/floor mount, renameable, custom nav icon color\n- Grapple Hook: HUD hint within 12 blocks, magnetic attach within 6; shows reachable nodes through walls when attached\n- Right-click to attach, right-click again to travel, Shift to detach\n- Config category [grapple] (hint range, interact distance, travel speed, etc.)
+
+adm.manual.combat_special.overview_title=Combat & Special Items Overview
+adm.manual.combat_special.overview_text=AdvanceDataMonitor includes two legendary-tier combat/special items: the Empyrean Holy Judgment sword and the Super Orange utility item.\n\nThe Empyrean Holy Judgment is devastating in combat with instant-kill, slash waves, thrown attacks, and area sword rains. It also features cosmic shader rendering.\n\nThe Super Orange is a legendary utility item granting instant mining, matter ball conversion, companion drones, and projectile immunity — with deep config customization.\n\nBoth items are endgame-tier: the Super Orange drops from dungeon chests (0.1%) and mob kills (0.05%); the sword is crafted or given via creative mode.
+
+adm.manual.combat_special.sword_title=Empyrean Holy Judgment
+adm.manual.combat_special.orange_title=Super Orange
+adm.manual.combat_special.usage_title=Combat & Ability Usage
+adm.manual.combat_special.usage_text=Empyrean Holy Judgment (starry_cosmos_sword):\n- Left-click: instant kill + crescent slash wave\n- Right-click: throw straight along crosshair; 5-second sword rain on impact\n- Shift+right-click: mini judgment swords on mobs in 3×3 chunks\n- Cosmic shader rendering with custom particle effects\n\nSuper Orange (orange):\n- Hold: instant break any block (including GT ores)\n- Right-click: toggle drone and projectile immunity\n- Sneak+right-click: toggle matter ball and drop multiplier\n- Anvil rename: set head nameplate text\n- Drone: orbits player, intercepts projectiles, clones fight hostiles\n\nSee Config Reference for [superOrange] and [dataLoomCell] categories.
+
+adm.manual.item.starry_cosmos_sword=The ultimate combat weapon. Instant-kill left-click with crescent slash wave.\n\nLeft-click: kill target instantly, releasing a wide crescent slash wave in front.\n\nRight-click: throw the sword along your crosshair. On impact, triggers a 5-second sword rain over the area.\n\nShift+right-click: mini judgment swords rain on all hostile mobs within a 3×3 chunk area.\n\nCosmic rendering: uses special shader effects for a celestial appearance.\n\nCreative tab: Combat. Stack size: 1.
+
+adm.manual.ai_assistant.teleport_title=Teleport System
+adm.manual.ai_assistant.teleport_text=The AI Assistant integrates with Draconic Evolution's Advanced Dislocator (com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII) for teleportation.\n\nRequirements:\n- An Advanced Dislocator (TeleporterMKII) in your inventory.\n- At least one saved destination on the gem (added via DE's own interface).\n\nHow it works:\n1. The assistant scans your inventory for TeleporterMKII items.\n2. Reads the "Locations" NBT tag list from each gem.\n3. Each location has: X, Y, Z, Dimension, Name.\n4. Displays destinations as a numbered list with dimension info.\n5. Confirm by number or fuzzy name match.\n\nExecution:\n- Same dimension: setPositionAndUpdate() for instant teleport.\n- Cross-dimension: uses configurationManager.transferPlayerToDimension() with a custom Teleporter instance.\n\nDimensions are resolved by stored DimentionName (DE uses this typo internally), standard names (Nether/Overworld/The End), or custom dimension IDs.\n\nName matching: exact match preferred, falls back to substring matching if no exact match found.\n\nExample AI prompts: "Teleport me to my base", "List my teleport points", "Take me to the mining dimension".
+
+adm.manual.ai_assistant.planner_title=Planner Integration
+adm.manual.ai_assistant.planner_text=The AI Assistant can manage your Advance Planner entries directly through text commands — no need to open the planner GUI for basic operations.\n\nSupported planner commands through AI:\n- "Add plan: build fusion reactor" — creates a new planner entry\n- "List my plans" — shows all current entries with their status\n- "Complete plan 1" — marks entry #1 as done\n- "Delete plan 2" — removes entry #2\n- "Modify plan 3 to say: build HV array" — updates entry text\n\nThis works from anywhere — the AI communicates with the server to modify the planner item in your inventory. The planner's NBT data is updated automatically.\n\nSee the Advance Planner chapter for full planner GUI usage, merging, HUD customization, and advanced features.
+
+adm.manual.planner.overview_title=Advance Planner Overview
+adm.manual.planner.overview_text=The Advance Planner is your personal task management tool with full NBT persistence. Store multiple todo entries, mark them complete, merge planners together, and optionally show a HUD overlay on screen.\n\nCore features:\n- Multiple entries per item with auto-numbering\n- Text + completed flag + creation timestamp per entry\n- Scrollable GUI (up to 50 visible rows)\n- Merge multiple planners into one (by time or by index)\n- On-screen HUD overlay with customizable position, scale, and width\n\nRight-click the planner item to open its GUI. Sneak+right-click to toggle the HUD. Press P to open from hotbar.\n\nThe planner also integrates with the AI Assistant — manage entries via natural language commands.
+
+adm.manual.planner.item_title=Advance Planner
+adm.manual.planner.entries_title=Entry Management
+adm.manual.planner.entries_text=Each planner entry stores four fields in NBT:\n- slotIndex: auto-incrementing number (1, 2, 3...). Auto-renumbers on deletion.\n- text: the task description text you entered.\n- timestamp: creation time (System.currentTimeMillis(), displayed as yyyy-MM-dd HH:mm).\n- completed: boolean flag, toggleable via checkbox.\n\nCreating entries: click + or empty slot → type text → Enter. Editing: click text → edit → Enter. Toggle complete: click checkbox. Delete: trash icon. Reorder: up/top arrows.\n\nPersistence: all entries are stored in the item's NBT under the "plannerEntries" tag list. Data survives logout/login, item transfers, duplication, breaking and pickup.\n\nStats display: "Total N | Done N | Pending N" at the top of the planner GUI.
+
+adm.manual.planner.merge_title=Planner Merging
+adm.manual.planner.merge_text=When you have multiple planner items (e.g. from other players, creative mode, or accidental duplication), merge them into one:\n\n1. Open any planner GUI.\n2. Click Merge. The mod scans your inventory for all planner items.\n3. A merge confirmation window appears showing: "Found N planners with M total entries to merge".\n4. Choose merge mode:\n   By Time - sorts all entries by creation timestamp, newest first.\n   By Index - preserves original slot order from each planner, appending sequentially.\n5. Click Confirm Merge. A new merged ItemStack is created. Original items are consumed (except the opened one).\n\nThe merged planner gets a new nextSlotIndex, renumbering all entries sequentially.\n\nThis function uses mergePlanners() / mergeMultiplePlanners() static methods on ItemAdvancePlanner.
+
+adm.manual.planner.hud_title=HUD Configuration
+adm.manual.planner.hud_text=The HUD overlay displays planner entries on screen while playing. Full customization:\n\nHUD Config (accessible from planner GUI):\n- Max Display: number of entries shown (1-20, default 5).\n- Pos X/Y: normalized screen position (0.0=left/top, 1.0=right/bottom, default 1.0/0.0 = top-right).\n- Scale: size multiplier (0.5-3.0, default 1.0).\n- Width: text area width in pixels (80-600, default 160).\n- Custom Title: optional header text (empty = no title).\n\nPreview window: shows HUD position and size in real-time. Scroll wheel adjusts scale, Shift+scroll adjusts width.\n\nAll HUD settings are stored per-planner in the item's NBT. Different planner items can have completely different HUD configs.\n\nRange limits enforced by Config.java: plannerHudMin/Max values for each setting.\n\nHUD rendering uses HudRenderUtil for background, text wrapping, positioning, and scaling calculations.

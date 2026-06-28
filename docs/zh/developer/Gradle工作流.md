@@ -47,7 +47,7 @@ Unix-like shell 下对应使用 `./gradlew`。
 |------|------|
 | `build.gradle.kts` | 应用 GTNH convention 插件；**勿随意修改**，升级时替换模板版本 |
 | `gradle.properties` | modId、版本、MC/Forge/MCP 版本、Jabel、Mixin、Access Transformer 等 |
-| `dependencies.gradle` | 模组依赖声明（GT5、AE2FC、Vosk/JNA shadow 等） |
+| `dependencies.gradle` | 模组依赖声明（GT5、AE2FC、Vosk/JNA/PinIn shadow 等） |
 | `repositories.gradle` | 额外 Maven 仓库 |
 | `libs/` | 本地 dev jar（Chisel、Galacticraft、IC2NuclearControl 等） |
 | `jitpack.yml` | Jitpack CI 配置 |

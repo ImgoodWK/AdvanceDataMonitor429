@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.imgood.advancedatamonitor.mixin",
+  "refmap": "mixins.advancedatamonitor.refmap.json",
+  "mixins": [],
+  "client": [
+    "MixinGuiScreen",
+    "MixinGuiContainer",
+    "MixinNeiRenderToolTips",
+    "MixinNeiLayoutManager",
+    "MixinNeiItemZoom"
+  ]
+}

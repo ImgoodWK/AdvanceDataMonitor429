@@ -6,9 +6,14 @@
       "icon": "advancedatamonitor:data_imprint"
     },
     {
-      "id": "blocks_items",
-      "titleKey": "adm.manual.chapter.blocks_items",
+      "id": "monitor_blocks",
+      "titleKey": "adm.manual.chapter.monitor_blocks",
       "icon": "advancedatamonitor:advDataMonitor"
+    },
+    {
+      "id": "monitor_tools",
+      "titleKey": "adm.manual.chapter.monitor_tools",
+      "icon": "advancedatamonitor:advance_link_scanner"
     },
     {
       "id": "data_monitor",
@@ -16,13 +21,33 @@
       "icon": "advancedatamonitor:advNetworkLinkBlock"
     },
     {
+      "id": "dimensional_pocket",
+      "titleKey": "adm.manual.chapter.dimensional_pocket",
+      "icon": "advancedatamonitor:dimensional_pocket"
+    },
+    {
+      "id": "data_loom_cells",
+      "titleKey": "adm.manual.chapter.data_loom_cells",
+      "icon": "advancedatamonitor:data_dust_loom_cell"
+    },
+    {
+      "id": "grapple_system",
+      "titleKey": "adm.manual.chapter.grapple_system",
+      "icon": "advancedatamonitor:grappleAnchor"
+    },
+    {
+      "id": "combat_special",
+      "titleKey": "adm.manual.chapter.combat_special",
+      "icon": "advancedatamonitor:starry_cosmos_sword"
+    },
+    {
       "id": "ai_assistant",
       "titleKey": "adm.manual.chapter.ai_assistant",
       "icon": "minecraft:command_block"
     },
     {
-      "id": "planner_teleport",
-      "titleKey": "adm.manual.chapter.planner_teleport",
+      "id": "planner",
+      "titleKey": "adm.manual.chapter.planner",
       "icon": "advancedatamonitor:advance_planner"
     },
     {

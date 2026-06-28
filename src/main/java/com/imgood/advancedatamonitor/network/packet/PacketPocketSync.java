@@ -23,12 +23,6 @@ import io.netty.buffer.ByteBuf;
  * snapshot (metadata + all pages) or a single page delta. The client applies
  * it to PocketClientCache so the overlay and tooltip can render local data
  * without round-tripping per slot click.
- *
- * Pages are serialized as a NBTTagList of compounds (each carrying a page
- * index and an Items list of ItemStacks), wrapped via ByteBufUtils.writeTag.
- * To stay under the ~32KB packet ceiling, send single-page deltas when only
- * one page changed; full snapshots are reserved for initial sync / state
- * mutations (toggle, upgrade changes) where the structure changed.
  */
 public class PacketPocketSync implements IMessage {
 
@@ -38,6 +32,8 @@ public class PacketPocketSync implements IMessage {
     public byte kind = KIND_FULL;
     public int spaceUpgrades;
     public int pageUpgrades;
+    public int stackUpgrades;
+    public boolean infiniteStackUpgrade;
     public boolean enabled;
     public float windowX;
     public float windowY;
@@ -46,6 +42,11 @@ public class PacketPocketSync implements IMessage {
     public int slotsPerPage;
     public int pageIndex; // only for KIND_SINGLE_PAGE
     public final List<PagePayload> pages = new ArrayList<PagePayload>();
+    // When true, the client handler applies cursorStack to mc.thePlayer.inventory.itemStack.
+    // Only set for cursor-mutating actions (WITHDRAW/DEPOSIT); false for all other syncs so
+    // a legitimately held vanilla cursor is never cleared by an unrelated pocket sync.
+    public boolean hasCursor = false;
+    public ItemStack cursorStack = null;
 
     public static class PagePayload {
 
@@ -60,6 +61,8 @@ public class PacketPocketSync implements IMessage {
         p.kind = KIND_FULL;
         p.spaceUpgrades = state.getSpaceUpgrades();
         p.pageUpgrades = state.getPageUpgrades();
+        p.stackUpgrades = state.getStackUpgrades();
+        p.infiniteStackUpgrade = state.isInfiniteStackUpgrade();
         p.enabled = state.isEnabled();
         p.windowX = state.getWindowX();
         p.windowY = state.getWindowY();
@@ -83,6 +86,8 @@ public class PacketPocketSync implements IMessage {
         p.kind = KIND_SINGLE_PAGE;
         p.spaceUpgrades = state.getSpaceUpgrades();
         p.pageUpgrades = state.getPageUpgrades();
+        p.stackUpgrades = state.getStackUpgrades();
+        p.infiniteStackUpgrade = state.isInfiniteStackUpgrade();
         p.enabled = state.isEnabled();
         p.windowX = state.getWindowX();
         p.windowY = state.getWindowY();
@@ -107,6 +112,8 @@ public class PacketPocketSync implements IMessage {
         buf.writeByte(kind);
         buf.writeInt(spaceUpgrades);
         buf.writeInt(pageUpgrades);
+        buf.writeInt(stackUpgrades);
+        buf.writeBoolean(infiniteStackUpgrade);
         buf.writeBoolean(enabled);
         buf.writeFloat(windowX);
         buf.writeFloat(windowY);
@@ -133,6 +140,12 @@ public class PacketPocketSync implements IMessage {
             pageTag.setTag("Items", slotList);
             ByteBufUtils.writeTag(buf, pageTag);
         }
+        buf.writeBoolean(hasCursor);
+        if (hasCursor) {
+            NBTTagCompound cursorTag = new NBTTagCompound();
+            if (cursorStack != null) cursorStack.writeToNBT(cursorTag);
+            ByteBufUtils.writeTag(buf, cursorTag);
+        }
     }
 
     @Override
@@ -140,6 +153,8 @@ public class PacketPocketSync implements IMessage {
         kind = buf.readByte();
         spaceUpgrades = buf.readInt();
         pageUpgrades = buf.readInt();
+        stackUpgrades = buf.readInt();
+        infiniteStackUpgrade = buf.readBoolean();
         enabled = buf.readBoolean();
         windowX = buf.readFloat();
         windowY = buf.readFloat();
@@ -167,6 +182,11 @@ public class PacketPocketSync implements IMessage {
             }
             pages.add(payload);
         }
+        hasCursor = buf.readBoolean();
+        if (hasCursor) {
+            NBTTagCompound cursorTag = ByteBufUtils.readTag(buf);
+            cursorStack = ItemStack.loadItemStackFromNBT(cursorTag);
+        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -174,7 +194,34 @@ public class PacketPocketSync implements IMessage {
 
         @Override
         public IMessage onMessage(PacketPocketSync message, MessageContext ctx) {
+            // #region agent log
+            java.io.FileWriter fw = null;
+            try {
+                fw = new java.io.FileWriter("D:/gtnhcode/AdvanceDataMonitor429/debug-a26165.log", true);
+                fw.write("{\"sessionId\":\"a26165\",\"id\":\"log_" + System.currentTimeMillis() + "_"
+                    + (int) (Math.random() * 100000) + "\",\"timestamp\":" + System.currentTimeMillis()
+                    + ",\"location\":\"PacketPocketSync.ClientHandler.onMessage\""
+                    + ",\"message\":\"sync received\""
+                    + ",\"data\":{\"kind\":" + message.kind + ",\"winX\":" + message.windowX + ",\"winY\":"
+                    + message.windowY + ",\"pageCount\":" + message.pageCount + ",\"hasCursor\":" + message.hasCursor
+                    + "}" + ",\"hypothesisId\":\"A\"}\n");
+            } catch (Exception e) {
+                // ignore
+            } finally {
+                if (fw != null) {
+                    try {
+                        fw.close();
+                    } catch (Exception e2) {}
+                }
+            }
+            // #endregion
             PocketClientCache.apply(message);
+            if (message.hasCursor) {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+                if (mc.thePlayer != null) {
+                    mc.thePlayer.inventory.setItemStack(message.cursorStack);
+                }
+            }
             return null;
         }
     }

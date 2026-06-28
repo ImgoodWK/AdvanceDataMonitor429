@@ -48,4 +48,16 @@ public final class ItemClientGui {
         if (p == null) return;
         p.openGui(AdvanceDataMonitor.instance, GuiHandler.POCKET_CONFIG_GUI_ID, p.worldObj, 0, 0, 0);
     }
+
+    /**
+     * Open the Dimensional Pocket storage GUI via the IGuiHandler. This is the
+     * primary entry point: a native Container with the pocket's slot grid plus
+     * the player inventory, so item movement works through vanilla windowClick.
+     */
+    public static void openPocketStorageGui(net.minecraft.item.ItemStack stack,
+        net.minecraft.entity.player.EntityPlayer player) {
+        net.minecraft.entity.player.EntityPlayer p = player;
+        if (p == null) return;
+        p.openGui(AdvanceDataMonitor.instance, GuiHandler.POCKET_STORAGE_GUI_ID, p.worldObj, 0, 0, 0);
+    }
 }

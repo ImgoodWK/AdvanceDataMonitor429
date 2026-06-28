@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.gui.container.ContainerAdvanceStorageLink;
 import com.imgood.advancedatamonitor.gui.container.ContainerDimensionalPocket;
+import com.imgood.advancedatamonitor.gui.container.ContainerPocketStorage;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiAdvanceStorageLink;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiDimensionalPocketConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiGrappleAnchorConfig;
@@ -18,6 +19,7 @@ import com.imgood.advancedatamonitor.gui.guiscreen.GuiGrappleHookConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiMainAdvanceDataMonitor;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiManual;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiNbtViewer;
+import com.imgood.advancedatamonitor.gui.guiscreen.GuiPocketStorage;
 import com.imgood.advancedatamonitor.items.ItemDataImprint;
 import com.imgood.advancedatamonitor.items.ItemGrappleHook;
 import com.imgood.advancedatamonitor.tileentity.TileEntityAdvanceDataMonitor;
@@ -46,6 +48,7 @@ public class GuiHandler implements IGuiHandler {
     public static final int GRAPPLE_ANCHOR_GUI_ID = 4;
     public static final int GRAPPLE_HOOK_GUI_ID = 5;
     public static final int POCKET_CONFIG_GUI_ID = 6;
+    public static final int POCKET_STORAGE_GUI_ID = 7;
 
     @Override
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
@@ -56,6 +59,8 @@ public class GuiHandler implements IGuiHandler {
             }
         } else if (ID == POCKET_CONFIG_GUI_ID) {
             return new ContainerDimensionalPocket(player);
+        } else if (ID == POCKET_STORAGE_GUI_ID) {
+            return new ContainerPocketStorage(player);
         }
         return null;
     }
@@ -107,6 +112,8 @@ public class GuiHandler implements IGuiHandler {
                 return null;
             case POCKET_CONFIG_GUI_ID:
                 return new GuiDimensionalPocketConfig(player);
+            case POCKET_STORAGE_GUI_ID:
+                return new GuiPocketStorage(player);
         }
         return null;
     }
