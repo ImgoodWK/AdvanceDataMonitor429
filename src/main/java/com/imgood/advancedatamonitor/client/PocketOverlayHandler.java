@@ -5,7 +5,10 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.item.ItemStack;
 
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
+
+import com.imgood.advancedatamonitor.client.PocketStackSizeFormat;
 
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiDimensionalPocketConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiPocketStorage;
@@ -79,8 +82,7 @@ public class PocketOverlayHandler {
         GuiScreen screen = mc.currentScreen;
         boolean shouldShow = screen instanceof GuiContainer
             && !isPocketNativeGui(screen)
-            && ItemDimensionalPocket.hasPocketInInventory(mc.thePlayer)
-            && PocketClientCache.isEnabled();
+            && ItemDimensionalPocket.hasPocketInInventory(mc.thePlayer);
 
         if (shouldShow) {
             ensureOverlay((GuiContainer) screen);
@@ -101,38 +103,11 @@ public class PocketOverlayHandler {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onDrawScreenPost(GuiScreenEvent.DrawScreenEvent.Post event) {
         if (!overlayActive || overlay == null) return;
-        Minecraft mc = Minecraft.getMinecraft();
-        ItemStack cursor = mc.thePlayer == null ? null : mc.thePlayer.inventory.getItemStack();
         // Use saved real mouse coordinates; drawScreen parameters are suppressed
         // to -9999 by @ModifyArgs when cursor is over the overlay.
         int realMx = realMouseX >= 0 ? realMouseX : event.mouseX;
         int realMy = realMouseY >= 0 ? realMouseY : event.mouseY;
-        GL11.glPushMatrix();
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        overlay.draw(event.renderPartialTicks);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glPopMatrix();
-        // Re-render the held (cursor) item ABOVE the overlay. The overlay panel is drawn
-        // with depth test disabled (color-only), so it covers the vanilla cursor that
-        // drawScreen() drew earlier. Re-draw the cursor AFTER the overlay with depth test
-        // also disabled so it wins by draw order (last drawn = on top), at the base z like
-        // the rest of the GUI — a glTranslatef z bump can push the 2D icon past the ortho
-        // near clipping plane and make it vanish. The overlay's hovered-slot tooltip / font
-        // rendering leaves GL state that makes RenderItem draw nothing; a zero-alpha
-        // Gui.drawRect first resets that state (blendFunc + a Tessellator flush) without
-        // painting any visible pixels, so the subsequent RenderItem renders the icon.
-        if (cursor != null) {
-            int cx = realMx - 8;
-            int cy = realMy - 8;
-            net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            net.minecraft.client.gui.Gui.drawRect(cx, cy, cx + 16, cy + 16, 0x00000000);
-            net.minecraft.client.renderer.entity.RenderItem renderItem = new net.minecraft.client.renderer.entity.RenderItem();
-            renderItem.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy);
-            renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy);
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
-        }
+        renderOverlayPass(realMx, realMy, event.renderPartialTicks);
     }
 
     /**
@@ -141,31 +116,45 @@ public class PocketOverlayHandler {
      * delete button, bookmarks) inside drawScreen AFTER Forge's
      * DrawScreenEvent.Post fires, so the Post render ends up beneath NEI. The RETURN
      * inject runs after all of NEI's in-drawScreen injections, so re-rendering here
-     * paints the opaque overlay on top of NEI's highlights. The held cursor item is
-     * re-drawn last so it stays above the overlay.
+     * paints the opaque overlay on top of NEI's highlights. Tooltip and held cursor
+     * are drawn last so they stay above the overlay panel.
      */
     public void renderOverlayAtReturn(int mouseX, int mouseY, float partialTicks) {
         if (!overlayActive || overlay == null) return;
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null) return;
-        ItemStack cursor = mc.thePlayer.inventory.getItemStack();
+        renderOverlayPass(mouseX, mouseY, partialTicks);
+    }
+
+    private void renderOverlayPass(int mouseX, int mouseY, float partialTicks) {
+        if (overlay == null) return;
         GL11.glPushMatrix();
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         overlay.draw(partialTicks);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glPopMatrix();
-        if (cursor != null) {
-            int cx = mouseX - 8;
-            int cy = mouseY - 8;
-            net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            net.minecraft.client.gui.Gui.drawRect(cx, cy, cx + 16, cy + 16, 0x00000000);
-            net.minecraft.client.renderer.entity.RenderItem renderItem = new net.minecraft.client.renderer.entity.RenderItem();
-            renderItem.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy);
-            renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy);
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
-        }
+        renderCursorStack(mouseX, mouseY);
+        overlay.drawHoveredItemTooltip(mouseX, mouseY);
+    }
+
+    private static void renderCursorStack(int mouseX, int mouseY) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) return;
+        ItemStack cursor = mc.thePlayer.inventory.getItemStack();
+        if (cursor == null) return;
+        int cx = mouseX - 8;
+        int cy = mouseY - 8;
+        net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        net.minecraft.client.gui.Gui.drawRect(cx, cy, cx + 16, cy + 16, 0x00000000);
+        net.minecraft.client.renderer.entity.RenderItem renderItem = new net.minecraft.client.renderer.entity.RenderItem();
+        renderItem.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy);
+        String overlay = PocketStackSizeFormat.formatOverlayText(cursor.stackSize);
+        renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy, overlay);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -224,8 +213,12 @@ public class PocketOverlayHandler {
         if (slotInPage >= 0) {
             int page = PocketClientCache.getCurrentPage();
             ItemStack cursorStack = mc.thePlayer.inventory.getItemStack();
+            boolean shift = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
             if (evButton == 0) {
-                if (cursorStack != null) {
+                if (shift && cursorStack == null) {
+                    com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
+                        .sendToServer(PacketPocketAction.quickWithdraw(page, slotInPage));
+                } else if (cursorStack != null) {
                     com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
                         .sendToServer(PacketPocketAction.depositFromCursor(page, slotInPage));
                 } else {
@@ -239,7 +232,7 @@ public class PocketOverlayHandler {
                             .sendToServer(PacketPocketAction.quickDeposit(page, slotInPage));
                     } else {
                         com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
-                            .sendToServer(PacketPocketAction.quickWithdraw(page, slotInPage));
+                            .sendToServer(PacketPocketAction.withdrawToCursor(page, slotInPage));
                     }
                 } else {
                     com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL

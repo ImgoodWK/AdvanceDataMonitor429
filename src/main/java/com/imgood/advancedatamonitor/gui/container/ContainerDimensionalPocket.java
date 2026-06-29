@@ -1,13 +1,17 @@
 package com.imgood.advancedatamonitor.gui.container;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChatComponentTranslation;
 
+import com.imgood.advancedatamonitor.client.PocketPortalGuiRenderer;
 import com.imgood.advancedatamonitor.handler.PocketState;
 import com.imgood.advancedatamonitor.handler.PocketStore;
+import com.imgood.advancedatamonitor.handler.PocketUpgradeRules;
 import com.imgood.advancedatamonitor.items.ItemInfiniteStackUpgradeCard;
 import com.imgood.advancedatamonitor.items.ItemPageUpgradeCard;
 import com.imgood.advancedatamonitor.items.ItemSpaceUpgradeCard;
@@ -38,7 +42,8 @@ public class ContainerDimensionalPocket extends Container {
         this.upgradeInventory = new UpgradeSlotInventory(player);
 
         // Space upgrade slot (row 1, col 1)
-        addSlotToContainer(new Slot(upgradeInventory, SPACE_UPGRADE_SLOT, 18, 22) {
+        addSlotToContainer(new UpgradeCardSlot(upgradeInventory, SPACE_UPGRADE_SLOT,
+            PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X, PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_Y) {
 
             @Override
             public boolean isItemValid(ItemStack stack) {
@@ -51,7 +56,9 @@ public class ContainerDimensionalPocket extends Container {
             }
         });
         // Page upgrade slot (row 1, col 2)
-        addSlotToContainer(new Slot(upgradeInventory, PAGE_UPGRADE_SLOT, 18 + 18 + 4, 22) {
+        addSlotToContainer(new UpgradeCardSlot(upgradeInventory, PAGE_UPGRADE_SLOT,
+            PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X + PocketPortalGuiRenderer.CONFIG_UPGRADE_COL_STEP,
+            PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_Y) {
 
             @Override
             public boolean isItemValid(ItemStack stack) {
@@ -64,7 +71,8 @@ public class ContainerDimensionalPocket extends Container {
             }
         });
         // Stack upgrade slot (row 2, col 1)
-        addSlotToContainer(new Slot(upgradeInventory, STACK_UPGRADE_SLOT, 18, 54) {
+        addSlotToContainer(new UpgradeCardSlot(upgradeInventory, STACK_UPGRADE_SLOT,
+            PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X, PocketPortalGuiRenderer.CONFIG_UPGRADE_ROW2_Y) {
 
             @Override
             public boolean isItemValid(ItemStack stack) {
@@ -77,7 +85,9 @@ public class ContainerDimensionalPocket extends Container {
             }
         });
         // Infinite stack upgrade slot (row 2, col 2)
-        addSlotToContainer(new Slot(upgradeInventory, INFINITE_STACK_UPGRADE_SLOT, 18 + 18 + 4, 54) {
+        addSlotToContainer(new UpgradeCardSlot(upgradeInventory, INFINITE_STACK_UPGRADE_SLOT,
+            PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X + PocketPortalGuiRenderer.CONFIG_UPGRADE_COL_STEP,
+            PocketPortalGuiRenderer.CONFIG_UPGRADE_ROW2_Y) {
 
             @Override
             public boolean isItemValid(ItemStack stack) {
@@ -128,7 +138,19 @@ public class ContainerDimensionalPocket extends Container {
     }
 
     @Override
+    public void detectAndSendChanges() {
+        super.detectAndSendChanges();
+        if (!player.worldObj.isRemote) {
+            upgradeInventory.flushToStateIfDirty();
+        }
+    }
+
+    @Override
     public ItemStack transferStackInSlot(EntityPlayer player, int index) {
+        if (index < UPGRADE_SLOTS_COUNT && blocksUpgradeRemoval()) {
+            notifyUpgradeRemovalBlocked(player);
+            return null;
+        }
         ItemStack result = null;
         Slot slot = (Slot) this.inventorySlots.get(index);
         if (slot != null && slot.getHasStack()) {
@@ -170,6 +192,39 @@ public class ContainerDimensionalPocket extends Container {
         }
     }
 
+    public boolean isUpgradeRemovalBlocked() {
+        return blocksUpgradeRemoval();
+    }
+
+    private static void notifyUpgradeRemovalBlocked(EntityPlayer player) {
+        if (player == null || player.worldObj.isRemote) return;
+        player.addChatMessage(new ChatComponentTranslation("adm.error.pocket.cannotRemoveUpgradeWhileStored"));
+    }
+
+    private boolean blocksUpgradeRemoval() {
+        if (player.worldObj.isRemote) {
+            return com.imgood.advancedatamonitor.client.PocketClientCache.hasStoredItems();
+        }
+        PocketState state = PocketStore.instance()
+            .getOrCreate((EntityPlayerMP) player);
+        return PocketUpgradeRules.hasStoredItems(state);
+    }
+
+    private static class UpgradeCardSlot extends Slot {
+
+        UpgradeCardSlot(IInventory inv, int index, int x, int y) {
+            super(inv, index, x, y);
+        }
+
+        @Override
+        public void onSlotChanged() {
+            super.onSlotChanged();
+            if (inventory instanceof UpgradeSlotInventory) {
+                ((UpgradeSlotInventory) inventory).markUpgradeDirty();
+            }
+        }
+    }
+
     /**
      * Tiny IInventory backing the four upgrade slots. Each slot holds at most
      * one ItemStack whose stackSize is the upgrade count.
@@ -181,6 +236,7 @@ public class ContainerDimensionalPocket extends Container {
         private ItemStack pageStack;
         private ItemStack stackStack;
         private ItemStack infiniteStack;
+        private boolean dirty;
 
         UpgradeSlotInventory(EntityPlayer player) {
             this.player = player;
@@ -253,6 +309,16 @@ public class ContainerDimensionalPocket extends Container {
             return infiniteStack != null;
         }
 
+        void markUpgradeDirty() {
+            dirty = true;
+        }
+
+        void flushToStateIfDirty() {
+            if (!dirty) return;
+            dirty = false;
+            commitToState();
+        }
+
         void refreshFromClientCache() {
             if (!player.worldObj.isRemote) return;
             int space = com.imgood.advancedatamonitor.client.PocketClientCache.getSpaceUpgrades();
@@ -289,6 +355,10 @@ public class ContainerDimensionalPocket extends Container {
 
         @Override
         public ItemStack decrStackSize(int slot, int amount) {
+            if (blocksUpgradeRemoval()) {
+                notifyUpgradeRemovalBlocked(player);
+                return null;
+            }
             ItemStack stack = getStackInSlot(slot);
             if (stack == null) return null;
             int take = Math.min(amount, stack.stackSize);
@@ -296,12 +366,16 @@ public class ContainerDimensionalPocket extends Container {
             if (stack.stackSize <= 0) {
                 setSlotNull(slot);
             }
-            commitToState();
+            markUpgradeDirty();
             return result;
         }
 
         @Override
         public ItemStack getStackInSlotOnClosing(int slot) {
+            if (blocksUpgradeRemoval()) {
+                notifyUpgradeRemovalBlocked(player);
+                return null;
+            }
             ItemStack stack = getStackInSlot(slot);
             setInventorySlotContents(slot, null);
             return stack;
@@ -309,13 +383,38 @@ public class ContainerDimensionalPocket extends Container {
 
         @Override
         public void setInventorySlotContents(int slot, ItemStack stack) {
+            int oldCount = countInSlot(slot);
+            int newCount = stack == null ? 0 : (slot == INFINITE_STACK_UPGRADE_SLOT && stack.stackSize > 0 ? 1 : stack.stackSize);
+            if (newCount < oldCount && blocksUpgradeRemoval()) {
+                notifyUpgradeRemovalBlocked(player);
+                return;
+            }
             switch (slot) {
                 case SPACE_UPGRADE_SLOT: spaceStack = stack; break;
                 case PAGE_UPGRADE_SLOT: pageStack = stack; break;
                 case STACK_UPGRADE_SLOT: stackStack = stack; break;
                 case INFINITE_STACK_UPGRADE_SLOT: infiniteStack = stack; break;
             }
-            commitToState();
+            markUpgradeDirty();
+        }
+
+        private int countInSlot(int slot) {
+            switch (slot) {
+                case SPACE_UPGRADE_SLOT: return spaceStack == null ? 0 : spaceStack.stackSize;
+                case PAGE_UPGRADE_SLOT: return pageStack == null ? 0 : pageStack.stackSize;
+                case STACK_UPGRADE_SLOT: return stackStack == null ? 0 : stackStack.stackSize;
+                case INFINITE_STACK_UPGRADE_SLOT: return infiniteStack == null ? 0 : 1;
+                default: return 0;
+            }
+        }
+
+        private boolean blocksUpgradeRemoval() {
+            if (player.worldObj.isRemote) {
+                return com.imgood.advancedatamonitor.client.PocketClientCache.hasStoredItems();
+            }
+            PocketState state = PocketStore.instance()
+                .getOrCreate((EntityPlayerMP) player);
+            return PocketUpgradeRules.hasStoredItems(state);
         }
 
         private void setSlotNull(int slot) {
@@ -331,48 +430,113 @@ public class ContainerDimensionalPocket extends Container {
             if (player.worldObj.isRemote) return;
             PocketState state = PocketStore.instance()
                 .getOrCreate((net.minecraft.entity.player.EntityPlayerMP) player);
+            int prevSpace = state.getSpaceUpgrades();
+            int prevPage = state.getPageUpgrades();
+            int prevSlots = state.getSlotsPerPage();
+            int prevPageCount = state.getPageCount();
+
+            int prevStack = state.getStackUpgrades();
+            boolean prevInfinite = state.isInfiniteStackUpgrade();
+
             int newSpace = spaceStack == null ? 0 : Math.min(spaceStack.stackSize, PocketState.MAX_SPACE_UPGRADES);
             int newPage = pageStack == null ? 0 : Math.min(pageStack.stackSize, PocketState.MAX_PAGE_UPGRADES);
             int newStack = stackStack == null ? 0 : Math.min(stackStack.stackSize, PocketState.MAX_STACK_UPGRADES);
             boolean newInfinite = infiniteStack != null;
 
-            // Enforce page-upgrade prerequisite: page upgrades only when space upgrades are maxed.
+            boolean reducing = newSpace < prevSpace || newPage < prevPage || newStack < prevStack
+                || (prevInfinite && !newInfinite);
+            if (reducing && PocketUpgradeRules.hasStoredItems(state)) {
+                restoreUpgradeStacksFromState(state);
+                notifyUpgradeRemovalBlocked(player);
+                return;
+            }
+
+            refundOverflow(spaceStack, com.imgood.advancedatamonitor.loader.LoaderItem.spaceUpgradeCard, newSpace);
+            refundOverflow(pageStack, com.imgood.advancedatamonitor.loader.LoaderItem.pageUpgradeCard, newPage);
+            refundOverflow(stackStack, com.imgood.advancedatamonitor.loader.LoaderItem.stackUpgradeCard, newStack);
+
             if (newSpace < PocketState.MAX_SPACE_UPGRADES && newPage > 0) {
-                ItemStack toReturn = new ItemStack(
-                    com.imgood.advancedatamonitor.loader.LoaderItem.pageUpgradeCard,
-                    newPage);
-                if (!player.inventory.addItemStackToInventory(toReturn)) {
-                    player.dropPlayerItemWithRandomChoice(toReturn, false);
-                }
+                returnCardsToPlayer(com.imgood.advancedatamonitor.loader.LoaderItem.pageUpgradeCard, newPage);
                 newPage = 0;
-                if (pageStack != null) {
-                    pageStack.stackSize = 0;
-                    pageStack = null;
-                }
+                pageStack = null;
             }
-            // Trim spaceStack
-            if (spaceStack != null && spaceStack.stackSize > newSpace) {
-                spaceStack.stackSize = newSpace;
-                if (spaceStack.stackSize <= 0) spaceStack = null;
+            if (newStack < PocketState.MAX_STACK_UPGRADES && newInfinite) {
+                returnCardsToPlayer(com.imgood.advancedatamonitor.loader.LoaderItem.infiniteStackUpgradeCard, 1);
+                newInfinite = false;
+                infiniteStack = null;
             }
-            // Enforce stack upgrade cap
-            if (newStack > PocketState.MAX_STACK_UPGRADES) {
-                newStack = PocketState.MAX_STACK_UPGRADES;
-                if (stackStack != null) stackStack.stackSize = PocketState.MAX_STACK_UPGRADES;
-            }
+
+            normalizeDisplayStack(spaceStack, newSpace);
+            normalizeDisplayStack(pageStack, newPage);
+            normalizeDisplayStack(stackStack, newStack);
+
             state.setSpaceUpgrades(newSpace);
             state.setPageUpgrades(newPage);
             state.setStackUpgrades(newStack);
             state.setInfiniteStackUpgrade(newInfinite);
+
+            if (newSpace <= 0) spaceStack = null;
+            else if (spaceStack != null) spaceStack.stackSize = newSpace;
+            if (newPage <= 0) pageStack = null;
+            else if (pageStack != null) pageStack.stackSize = newPage;
+            if (newStack <= 0) stackStack = null;
+            else if (stackStack != null) stackStack.stackSize = newStack;
+            if (!newInfinite) infiniteStack = null;
+
             PocketStore.instance()
                 .save((net.minecraft.entity.player.EntityPlayerMP) player);
+
+            boolean layoutChanged = prevSpace != newSpace || prevPage != newPage
+                || prevSlots != state.getSlotsPerPage() || prevPageCount != state.getPageCount();
+            com.imgood.advancedatamonitor.network.packet.PacketPocketSync sync = layoutChanged
+                ? com.imgood.advancedatamonitor.network.packet.PacketPocketSync.fullState(state)
+                : com.imgood.advancedatamonitor.network.packet.PacketPocketSync.metadataState(state);
             com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
-                .sendTo(com.imgood.advancedatamonitor.network.packet.PacketPocketSync.fullState(state),
-                    (net.minecraft.entity.player.EntityPlayerMP) player);
+                .sendTo(sync, (net.minecraft.entity.player.EntityPlayerMP) player);
+        }
+
+        private void restoreUpgradeStacksFromState(PocketState state) {
+            spaceStack = buildStackOrNull(
+                com.imgood.advancedatamonitor.loader.LoaderItem.spaceUpgradeCard,
+                state.getSpaceUpgrades(),
+                PocketState.MAX_SPACE_UPGRADES);
+            pageStack = buildStackOrNull(
+                com.imgood.advancedatamonitor.loader.LoaderItem.pageUpgradeCard,
+                state.getPageUpgrades(),
+                PocketState.MAX_PAGE_UPGRADES);
+            stackStack = buildStackOrNull(
+                com.imgood.advancedatamonitor.loader.LoaderItem.stackUpgradeCard,
+                state.getStackUpgrades(),
+                PocketState.MAX_STACK_UPGRADES);
+            infiniteStack = state.isInfiniteStackUpgrade()
+                ? new ItemStack(com.imgood.advancedatamonitor.loader.LoaderItem.infiniteStackUpgradeCard, 1)
+                : null;
+            dirty = false;
+        }
+
+        private void refundOverflow(ItemStack slotStack, net.minecraft.item.Item item, int allowed) {
+            if (slotStack == null || slotStack.stackSize <= allowed) return;
+            int excess = slotStack.stackSize - allowed;
+            slotStack.stackSize = allowed;
+            returnCardsToPlayer(item, excess);
+        }
+
+        private void normalizeDisplayStack(ItemStack slotStack, int count) {
+            if (count <= 0) return;
+            if (slotStack != null) slotStack.stackSize = count;
+        }
+
+        private void returnCardsToPlayer(net.minecraft.item.Item item, int count) {
+            if (count <= 0) return;
+            ItemStack toReturn = new ItemStack(item, count);
+            if (!player.inventory.addItemStackToInventory(toReturn)) {
+                player.dropPlayerItemWithRandomChoice(toReturn, false);
+            }
         }
 
         void commitToStateAndReturnExtras(EntityPlayer playerIn) {
-            commitToState();
+            dirty = true;
+            flushToStateIfDirty();
             spaceStack = null;
             pageStack = null;
             stackStack = null;

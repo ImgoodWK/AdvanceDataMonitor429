@@ -474,6 +474,15 @@ Installed upgrade cards are **consumed** (written into the player's PocketState)
 
 **Capacity formula:** slots per page = `min(63, 1 + min(space upgrades, 62))`; page count = `1 + min(page upgrades, 8)` when space upgrades reach 64, otherwise 1.
 
+**Known issues (unfixed)**
+
+| Symptom | Notes |
+|---------|-------|
+| Stack size becomes 1 after reload | After reloading the world, stored item counts in the pocket may all reset to 1; unrelated to upgrades — a save/load bug. |
+| Overlay badge always shows 0 | The draggable overlay may always show **0** on slot badges even when the pocket holds items; the right-click storage GUI usually still shows correct counts. |
+
+Developer details: [Technical Documentation §5.12](../developer/technical-documentation.md#512-dimensional-pocket).
+
 ---
 
 ## 4. Advance Data Monitor Tutorial

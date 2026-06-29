@@ -2,10 +2,6 @@ package com.imgood.advancedatamonitor.client;
 
 
 
-import java.util.List;
-
-
-
 import net.minecraft.client.Minecraft;
 
 import net.minecraft.client.gui.Gui;
@@ -20,8 +16,6 @@ import net.minecraft.client.resources.I18n;
 
 import net.minecraft.item.ItemStack;
 
-
-
 import org.lwjgl.input.Mouse;
 
 import org.lwjgl.opengl.GL11;
@@ -29,6 +23,9 @@ import org.lwjgl.opengl.GL11;
 
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+
+import com.imgood.advancedatamonitor.client.PocketStackOverlayRenderer;
+import com.imgood.advancedatamonitor.mixin.GuiScreenTooltipAccess;
 
 import com.imgood.advancedatamonitor.network.packet.PacketPocketAction;
 
@@ -76,11 +73,9 @@ public class GuiPocketOverlay {
 
 
 
-    private static final int PAGE_ARROW_W = 12;
+    private static final int PAGE_ARROW_W = 10;
 
-    private static final int PAGE_ARROW_H = 16;
-
-    private static final int COLLAPSE_BTN_SIZE = 12;
+    private static final int COLLAPSE_BTN_SIZE = 9;
 
     private static final int ARROW_BTN_FILL_ENABLED = 0x4A7098E0;
 
@@ -90,8 +85,17 @@ public class GuiPocketOverlay {
 
     private static final int ARROW_BTN_RIM_DISABLED = 0x4088AA60;
 
-    private static final int FONT_LINE_HEIGHT = 9;
-    private static final int FOOTER_ARROW_GAP = 3;
+    private static final int CHROME_BTN_FILL = 0xFF0C121C;
+
+    private static final int CHROME_BTN_RIM = 0xFF5588CC;
+
+    private static final int HEADER_ARROW_GAP = 3;
+    private static final int HEADER_EDGE_PAD = 4;
+    private static final int COLLAPSE_PAGE_GAP = 4;
+    /** Semi-transparent backdrop behind overlay title / header labels. */
+    private static final int LABEL_BACKDROP = 0xC0101828;
+    private static final int LABEL_BACKDROP_PAD_X = 4;
+    private static final int LABEL_BACKDROP_PAD_Y = 2;
 
 
 
@@ -113,9 +117,9 @@ public class GuiPocketOverlay {
 
         float ny = PocketClientCache.getWindowY();
 
-        int pw = getPanelWidth();
+        int pw = PocketPortalGuiRenderer.overlayPanelWidth();
 
-        int ph = getPanelHeight();
+        int ph = PocketPortalGuiRenderer.overlayPanelHeight();
 
         net.minecraft.client.gui.ScaledResolution sr = new net.minecraft.client.gui.ScaledResolution(
 
@@ -149,6 +153,21 @@ public class GuiPocketOverlay {
 
 
 
+    /**
+     * Hovered pocket-slot tooltip via {@link net.minecraft.client.gui.inventory.GuiContainer#renderToolTip}
+     * so GTNH / Forge / community tooltip hooks run on the same path as normal container slots.
+     */
+    public void drawHoveredItemTooltip(int mouseX, int mouseY) {
+        if (host == null || PocketClientCache.isCollapsed() || dragging) return;
+        int slot = getSlotAt(mouseX, mouseY);
+        if (slot < 0) return;
+        ItemStack stack = PocketClientCache.getStack(PocketClientCache.getCurrentPage(), slot);
+        if (stack == null) return;
+        ((GuiScreenTooltipAccess) (Object) host).adm$renderToolTip(stack, mouseX, mouseY);
+    }
+
+
+
     public void setDragging(boolean dragging) {
 
         this.dragging = dragging;
@@ -166,8 +185,6 @@ public class GuiPocketOverlay {
 
 
     public int getPanelHeight() {
-
-        if (PocketClientCache.isCollapsed()) return COLLAPSE_BTN_SIZE + 8;
 
         return PocketPortalGuiRenderer.overlayPanelHeight();
 
@@ -217,23 +234,33 @@ public class GuiPocketOverlay {
 
         GL11.glDisable(GL11.GL_ALPHA_TEST);
 
-        PocketPortalGuiRenderer.drawOverlayGridPortalRift(gridX, gridY);
+        double overlayPhase = PocketPortalGuiRenderer.overlayAnimationPhase();
+        PocketPortalGuiRenderer.drawOverlayGridPortalRift(gridX, gridY, overlayPhase);
 
 
 
-        drawCenteredAnimatedGradientTitle(mc, panelX, pw, getTitleY(mc), I18n.format("adm.title.pocketOverlay"));
+        HeaderLayout header = computeHeaderLayout(mc);
+        drawLeftAlignedAnimatedGradientTitle(
+            mc,
+            panelX + PocketPortalGuiRenderer.RIFT_OVERSHOOT,
+            header.titleY,
+            I18n.format("adm.title.pocketOverlay"));
+
+        drawCollapseButton(getCollapseButtonX(), getCollapseButtonY());
 
 
 
-        drawCollapseButton(panelX + pw - COLLAPSE_BTN_SIZE - 2, panelY + 2);
-
-
-
-        PocketPortalGuiRenderer.drawSlotGrid(gridX, gridY, slotsPerPage);
+        PocketPortalGuiRenderer.drawOverlaySlotGrid(gridX, gridY, slotsPerPage, overlayPhase);
 
 
 
         RenderHelper.enableGUIStandardItemLighting();
+
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+
+        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
@@ -259,23 +286,23 @@ public class GuiPocketOverlay {
 
                 int y = gridY + row * CELL_SIZE + 1;
 
-                renderItem.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, x, y);
-
-                renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, x, y);
+                PocketStackOverlayRenderer.renderSlotItem(renderItem, mc.fontRenderer, mc.getTextureManager(), stack, x, y);
 
             }
 
             if (i == hoveredSlot) {
 
+                int inset = 1;
+
                 Gui.drawRect(
 
-                    gridX + col * CELL_SIZE,
+                    gridX + col * CELL_SIZE + inset,
 
-                    gridY + row * CELL_SIZE,
+                    gridY + row * CELL_SIZE + inset,
 
-                    gridX + col * CELL_SIZE + CELL_SIZE,
+                    gridX + col * CELL_SIZE + CELL_SIZE - inset,
 
-                    gridY + row * CELL_SIZE + CELL_SIZE,
+                    gridY + row * CELL_SIZE + CELL_SIZE - inset,
 
                     0x80FFFFFF);
 
@@ -285,48 +312,20 @@ public class GuiPocketOverlay {
 
         RenderHelper.disableStandardItemLighting();
 
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
 
+        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
 
-        if (hoveredSlot >= 0) {
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
-            ItemStack hoveredStack = PocketClientCache.getStack(page, hoveredSlot);
-
-            if (hoveredStack != null) {
-
-                RenderHelper.enableGUIStandardItemLighting();
-
-                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-
-                List<String> tooltip = hoveredStack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips);
-
-                int tooltipX = getCurrentMouseX() + 12;
-
-                int tooltipY = getCurrentMouseY() - 12;
-
-                for (String line : tooltip) {
-
-                    mc.fontRenderer.drawStringWithShadow(line, tooltipX, tooltipY, 0xFFFFFF);
-
-                    tooltipY += 10;
-
-                }
-
-                RenderHelper.disableStandardItemLighting();
-
-            }
-
-        }
-
-
-
-        FooterLayout footer = computeFooterLayout(mc, pw);
         boolean canPrev = PocketClientCache.getCurrentPage() > 0;
         boolean canNext = PocketClientCache.getCurrentPage() < PocketClientCache.getPageCount() - 1;
-        drawArrowButton(footer.leftArrowX, footer.footerY, true, canPrev);
-        drawArrowButton(footer.rightArrowX, footer.footerY, false, canNext);
-        mc.fontRenderer.drawStringWithShadow(footer.pageText, footer.pageTextX, footer.pageTextY, 0xAACCFF);
+        drawHeaderBackdrop(header, mc);
+        drawArrowButton(header.leftArrowX, header.lineY, true, canPrev);
+        drawArrowButton(header.rightArrowX, header.lineY, false, canNext);
+        mc.fontRenderer.drawStringWithShadow(header.pageText, header.pageTextX, header.pageTextY, 0xAACCFF);
 
-
+        drawDragHint(getCurrentMouseX(), getCurrentMouseY());
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
 
@@ -336,14 +335,28 @@ public class GuiPocketOverlay {
 
 
 
-    private int getTitleY(Minecraft mc) {
-        return panelY + 4 - mc.fontRenderer.FONT_HEIGHT / 2 - FONT_LINE_HEIGHT * 2;
-    }
-
-    private static void drawCenteredAnimatedGradientTitle(Minecraft mc, int panelX, int panelW, int y, String text) {
+    private static void drawLeftAlignedAnimatedGradientTitle(Minecraft mc, int x, int y, String text) {
         if (text == null || text.isEmpty()) return;
         int totalWidth = mc.fontRenderer.getStringWidth(text);
-        drawAnimatedGradientTitle(mc, panelX + (panelW - totalWidth) / 2, y, text);
+        drawLabelBackdrop(
+            x - LABEL_BACKDROP_PAD_X,
+            y - LABEL_BACKDROP_PAD_Y,
+            x + totalWidth + LABEL_BACKDROP_PAD_X,
+            y + mc.fontRenderer.FONT_HEIGHT + LABEL_BACKDROP_PAD_Y);
+        drawAnimatedGradientTitle(mc, x, y, text);
+    }
+
+    private static void drawLabelBackdrop(int x1, int y1, int x2, int y2) {
+        Gui.drawRect(x1, y1, x2, y2, LABEL_BACKDROP);
+    }
+
+    private void drawHeaderBackdrop(HeaderLayout header, Minecraft mc) {
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        drawLabelBackdrop(
+            header.leftArrowX - LABEL_BACKDROP_PAD_X,
+            header.lineY - LABEL_BACKDROP_PAD_Y,
+            header.rightArrowX + PAGE_ARROW_W + LABEL_BACKDROP_PAD_X,
+            header.lineY + lineH + LABEL_BACKDROP_PAD_Y);
     }
 
     /** Blue-violet gradient title that oscillates over time. */
@@ -384,31 +397,40 @@ public class GuiPocketOverlay {
 
 
 
-    private int getFooterY() {
-        int gridY = PocketPortalGuiRenderer.overlayGridOriginY(panelY);
-        return gridY + PocketPortalGuiRenderer.gridPixelHeight(PocketPortalGuiRenderer.maxDisplaySlots())
-            + PocketPortalGuiRenderer.RIFT_OVERSHOOT + 2 - FONT_LINE_HEIGHT * 2;
-    }
-
-    private FooterLayout computeFooterLayout(Minecraft mc, int pw) {
-        FooterLayout layout = new FooterLayout();
-        layout.footerY = getFooterY();
-        layout.pageText = String.format(
-            I18n.format("adm.label.pocket.pageFooter"),
+    private HeaderLayout computeHeaderLayout(Minecraft mc) {
+        HeaderLayout layout = new HeaderLayout();
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        layout.lineY = panelY + (PocketPortalGuiRenderer.OVERLAY_TITLE_HEIGHT - lineH) / 2;
+        layout.titleY = layout.lineY;
+        layout.pageText = I18n.format(
+            "adm.label.pocket.pageFooter",
             PocketClientCache.getCurrentPage() + 1,
             PocketClientCache.getPageCount());
         int pageTextWidth = mc.fontRenderer.getStringWidth(layout.pageText);
-        int groupW = PAGE_ARROW_W + FOOTER_ARROW_GAP + pageTextWidth + FOOTER_ARROW_GAP + PAGE_ARROW_W;
-        int groupLeft = panelX + (pw - groupW) / 2;
-        layout.leftArrowX = groupLeft;
-        layout.pageTextX = layout.leftArrowX + PAGE_ARROW_W + FOOTER_ARROW_GAP;
-        layout.rightArrowX = layout.pageTextX + pageTextWidth + FOOTER_ARROW_GAP;
-        layout.pageTextY = layout.footerY + 4;
+        int collapseX = getCollapseButtonX();
+        int groupRight = collapseX - COLLAPSE_PAGE_GAP;
+        layout.rightArrowX = groupRight - PAGE_ARROW_W;
+        layout.pageTextX = layout.rightArrowX - HEADER_ARROW_GAP - pageTextWidth;
+        layout.leftArrowX = layout.pageTextX - HEADER_ARROW_GAP - PAGE_ARROW_W;
+        layout.pageTextY = layout.lineY;
         return layout;
     }
 
-    private static final class FooterLayout {
-        int footerY;
+    private int getCollapseButtonX() {
+        return panelX + PocketPortalGuiRenderer.overlayPanelWidth() - COLLAPSE_BTN_SIZE - HEADER_EDGE_PAD;
+    }
+
+    private int getCollapseButtonY() {
+        return panelY + (PocketPortalGuiRenderer.OVERLAY_TITLE_HEIGHT - COLLAPSE_BTN_SIZE) / 2;
+    }
+
+    private boolean hitsCollapseButton(int mouseX, int mouseY) {
+        return hitsRect(mouseX, mouseY, getCollapseButtonX(), getCollapseButtonY(), COLLAPSE_BTN_SIZE, COLLAPSE_BTN_SIZE);
+    }
+
+    private static final class HeaderLayout {
+        int lineY;
+        int titleY;
         int leftArrowX;
         int rightArrowX;
         int pageTextX;
@@ -420,17 +442,21 @@ public class GuiPocketOverlay {
 
     private void drawCollapsed() {
 
-        int pw = COLLAPSE_BTN_SIZE + 8;
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+        GL11.glEnable(GL11.GL_BLEND);
+
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
         GL11.glDisable(GL11.GL_DEPTH_TEST);
 
         GL11.glDisable(GL11.GL_ALPHA_TEST);
 
-        PocketPortalGuiRenderer.drawPanel(panelX, panelY, pw, COLLAPSE_BTN_SIZE + 8);
+        drawExpandButton(getCollapseButtonX(), getCollapseButtonY());
 
-        Minecraft mc = Minecraft.getMinecraft();
-
-        mc.fontRenderer.drawStringWithShadow("+", panelX + 4, panelY + 3, 0xFFFFFF);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
 
     }
 
@@ -438,7 +464,173 @@ public class GuiPocketOverlay {
 
     private void drawCollapseButton(int x, int y) {
 
-        Minecraft.getMinecraft().fontRenderer.drawStringWithShadow("_", x + 3, y + 1, 0xFFFFFF);
+        drawChromeButton(x, y, "_");
+
+    }
+
+
+
+    private void drawExpandButton(int x, int y) {
+
+        drawAnimatedChromeButton(x, y, "+");
+
+    }
+
+
+
+    private void drawChromeButton(int x, int y, String glyph) {
+
+        Minecraft mc = Minecraft.getMinecraft();
+
+        Gui.drawRect(x, y, x + COLLAPSE_BTN_SIZE, y + COLLAPSE_BTN_SIZE, CHROME_BTN_RIM);
+
+        Gui.drawRect(x + 1, y + 1, x + COLLAPSE_BTN_SIZE - 1, y + COLLAPSE_BTN_SIZE - 1, CHROME_BTN_FILL);
+
+        drawChromeGlyph(mc, x, y, glyph);
+
+    }
+
+
+
+    /** Collapsed expand chip: portal-toned chaotic blue-violet fill synced with overlay rift phase. */
+
+    private void drawAnimatedChromeButton(int x, int y, String glyph) {
+
+        Minecraft mc = Minecraft.getMinecraft();
+
+        int size = COLLAPSE_BTN_SIZE;
+
+        double phase = PocketPortalGuiRenderer.overlayAnimationPhase();
+
+
+
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+
+        GL11.glEnable(GL11.GL_BLEND);
+
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+
+
+        float pulse = (float) ((Math.sin(phase) + 1.0) * 0.5);
+
+        float pulse2 = (float) ((Math.sin(phase * 1.35 + 1.2) + 1.0) * 0.5);
+
+        int rimAlpha = (int) (0x88 + pulse * 0x77);
+
+        int topColor = portalGradientArgb(pulse, rimAlpha);
+
+        int bottomColor = portalGradientArgb(1.0f - pulse, rimAlpha);
+
+
+
+        Gui.drawRect(x, y, x + size, y + 1, topColor);
+
+        Gui.drawRect(x, y + size - 1, x + size, y + size, bottomColor);
+
+        Gui.drawRect(x, y, x + 1, y + size, topColor);
+
+        Gui.drawRect(x + size - 1, y, x + size, y + size, bottomColor);
+
+
+
+        int innerX = x + 1;
+
+        int innerY = y + 1;
+
+        int innerW = size - 2;
+
+        int innerH = size - 2;
+
+        for (int row = 0; row < innerH; row++) {
+
+            float t = innerH <= 1 ? 0.5f : row / (float) (innerH - 1);
+
+            float wave = (float) (Math.sin(phase + t * Math.PI * 4.0)
+
+                + Math.sin(phase * 0.85 + x * 0.3 + row * 0.55));
+
+            float blend = wave * 0.25f + 0.5f;
+
+            if (blend < 0.0f) blend = 0.0f;
+
+            if (blend > 1.0f) blend = 1.0f;
+
+            float alphaWave = (float) (0.55 + 0.35 * Math.sin(phase * 1.1 + row * 0.9 + y * 0.2));
+
+            int fillA = (int) (alphaWave * 0xFF);
+
+            if (fillA < 0x40) fillA = 0x40;
+
+            Gui.drawRect(innerX, innerY + row, innerX + innerW, innerY + row + 1, portalGradientArgb(blend, fillA));
+
+        }
+
+
+
+        float travel = (float) ((1.0 + Math.sin(phase * 1.2)) * 0.5);
+
+        int bandY = innerY + (int) (travel * Math.max(0, innerH - 2));
+
+        float fade = (float) (Math.sin(travel * Math.PI) * 0.7);
+
+        int bandA = (int) (fade * 0x90);
+
+        if (bandA > 8) {
+
+            Gui.drawRect(innerX, bandY, innerX + innerW, bandY + 2, portalGradientArgb(pulse2, bandA));
+
+        }
+
+
+
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+
+
+
+        drawChromeGlyph(mc, x, y, glyph);
+
+    }
+
+
+
+    private static void drawChromeGlyph(Minecraft mc, int x, int y, String glyph) {
+
+        int glyphW = mc.fontRenderer.getStringWidth(glyph);
+
+        mc.fontRenderer.drawStringWithShadow(
+
+            glyph,
+
+            x + (COLLAPSE_BTN_SIZE - glyphW) / 2,
+
+            y + (COLLAPSE_BTN_SIZE - mc.fontRenderer.FONT_HEIGHT) / 2,
+
+            0xFFFFFF);
+
+    }
+
+
+
+    private static int portalGradientArgb(float blend, int alpha) {
+
+        int r = blendChannel(0x55, 0xCC, blend);
+
+        int g = blendChannel(0x88, 0x55, blend);
+
+        int b = 0xFF;
+
+        return (alpha << 24) | (r << 16) | (g << 8) | b;
+
+    }
+
+
+
+    private static int blendChannel(int from, int to, float t) {
+
+        return (int) (from + (to - from) * t);
 
     }
 
@@ -446,19 +638,60 @@ public class GuiPocketOverlay {
 
     private void drawArrowButton(int x, int y, boolean left, boolean enabled) {
 
+        Minecraft mc = Minecraft.getMinecraft();
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+
         int rim = enabled ? ARROW_BTN_RIM_ENABLED : ARROW_BTN_RIM_DISABLED;
 
         int fill = enabled ? ARROW_BTN_FILL_ENABLED : ARROW_BTN_FILL_DISABLED;
 
-        Gui.drawRect(x, y, x + PAGE_ARROW_W, y + PAGE_ARROW_H, rim);
+        Gui.drawRect(x, y, x + PAGE_ARROW_W, y + lineH, rim);
 
-        Gui.drawRect(x + 1, y + 1, x + PAGE_ARROW_W - 1, y + PAGE_ARROW_H - 1, fill);
-
-        Minecraft mc = Minecraft.getMinecraft();
+        Gui.drawRect(x + 1, y + 1, x + PAGE_ARROW_W - 1, y + lineH - 1, fill);
 
         String glyph = left ? "<" : ">";
 
-        mc.fontRenderer.drawStringWithShadow(glyph, x + 3, y + 4, enabled ? 0xFFFFFF : 0x808080);
+        int glyphW = mc.fontRenderer.getStringWidth(glyph);
+
+        mc.fontRenderer.drawStringWithShadow(
+            glyph,
+            x + (PAGE_ARROW_W - glyphW) / 2,
+            y + (lineH - mc.fontRenderer.FONT_HEIGHT) / 2,
+            enabled ? 0xFFFFFF : 0x808080);
+
+    }
+
+
+
+    /**
+
+     * 鼠标悬停在可拖动边缘一圈时显示"拖动"小提示;拖动进行中不显示。
+
+     */
+
+    private void drawDragHint(int mouseX, int mouseY) {
+
+        if (dragging) return;
+
+        if (PocketClientCache.isCollapsed()) return;
+
+        if (!isInDragZone(mouseX, mouseY)) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+
+        String hint = I18n.format("adm.tooltip.pocket.dragHint");
+
+        int textW = mc.fontRenderer.getStringWidth(hint);
+
+        int tx = mouseX + 12;
+
+        int ty = mouseY - 12;
+
+        Gui.drawRect(tx - 3, ty - 2, tx + textW + 3, ty + 9, 0xE0001018);
+
+        Gui.drawRect(tx - 3, ty - 2, tx + textW + 3, ty - 1, 0xFF5588FF);
+
+        mc.fontRenderer.drawStringWithShadow(hint, tx, ty, 0xAACCFF);
 
     }
 
@@ -514,8 +747,9 @@ public class GuiPocketOverlay {
 
         if (PocketClientCache.isCollapsed()) {
 
-            if (hitsRect(mouseX, mouseY, panelX, panelY, COLLAPSE_BTN_SIZE + 8, COLLAPSE_BTN_SIZE + 8)) {
+            if (hitsCollapseButton(mouseX, mouseY)) {
 
+                PocketClientCache.setCollapsed(false);
                 AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.setCollapsed(false));
 
                 return true;
@@ -526,29 +760,16 @@ public class GuiPocketOverlay {
 
         }
 
-        int pw = getPanelWidth();
+        if (hitsCollapseButton(mouseX, mouseY)) {
 
-        if (hitsRect(
-
-            mouseX,
-
-            mouseY,
-
-            panelX + pw - COLLAPSE_BTN_SIZE - 2,
-
-            panelY + 2,
-
-            COLLAPSE_BTN_SIZE,
-
-            COLLAPSE_BTN_SIZE)) {
-
+            PocketClientCache.setCollapsed(true);
             AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.setCollapsed(true));
 
             return true;
 
         }
 
-        if (hitsRect(mouseX, mouseY, panelX, panelY, pw, 16)) {
+        if (isInDragZone(mouseX, mouseY)) {
 
             dragging = true;
 
@@ -560,9 +781,9 @@ public class GuiPocketOverlay {
 
         }
 
-        int slotsPerPage = PocketClientCache.getSlotsPerPage();
-        FooterLayout footer = computeFooterLayout(Minecraft.getMinecraft(), pw);
-        if (hitsRect(mouseX, mouseY, footer.leftArrowX, footer.footerY, PAGE_ARROW_W, PAGE_ARROW_H)) {
+        HeaderLayout header = computeHeaderLayout(Minecraft.getMinecraft());
+        int lineH = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
+        if (hitsRect(mouseX, mouseY, header.leftArrowX, header.lineY, PAGE_ARROW_W, lineH)) {
 
             if (PocketClientCache.getCurrentPage() > 0) {
 
@@ -578,7 +799,7 @@ public class GuiPocketOverlay {
 
         }
 
-        if (hitsRect(mouseX, mouseY, footer.rightArrowX, footer.footerY, PAGE_ARROW_W, PAGE_ARROW_H)) {
+        if (hitsRect(mouseX, mouseY, header.rightArrowX, header.lineY, PAGE_ARROW_W, lineH)) {
 
             if (PocketClientCache.getCurrentPage() < PocketClientCache.getPageCount() - 1) {
 
@@ -698,11 +919,52 @@ public class GuiPocketOverlay {
 
         if (PocketClientCache.isCollapsed()) {
 
-            return hitsRect(mouseX, mouseY, panelX, panelY, COLLAPSE_BTN_SIZE + 8, COLLAPSE_BTN_SIZE + 8);
+            return hitsCollapseButton(mouseX, mouseY);
 
         }
 
         return hitsRect(mouseX, mouseY, panelX, panelY, getPanelWidth(), getPanelHeight());
+
+    }
+
+
+
+    /**
+
+     * Expanded overlay 的"边缘一圈"拖动区:整个面板减去中央 slot 网格、折叠按钮与顶部翻页控件。
+
+     * 折叠状态返回 false(点击用于展开)。
+
+     */
+
+    public boolean isInDragZone(int mouseX, int mouseY) {
+
+        if (PocketClientCache.isCollapsed()) return false;
+
+        if (!hitsPanel(mouseX, mouseY)) return false;
+
+        int pw = getPanelWidth();
+
+        int gridX = PocketPortalGuiRenderer.overlayGridOriginX(panelX);
+
+        int gridY = PocketPortalGuiRenderer.overlayGridOriginY(panelY);
+
+        int gridW = PocketPortalGuiRenderer.gridPixelWidth();
+
+        int gridH = PocketPortalGuiRenderer.gridPixelHeight(PocketPortalGuiRenderer.maxDisplaySlots());
+
+        if (hitsRect(mouseX, mouseY, gridX, gridY, gridW, gridH)) return false;
+
+        if (hitsCollapseButton(mouseX, mouseY)) return false;
+
+        HeaderLayout header = computeHeaderLayout(Minecraft.getMinecraft());
+        int lineH = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
+
+        if (hitsRect(mouseX, mouseY, header.leftArrowX, header.lineY, PAGE_ARROW_W, lineH)) return false;
+
+        if (hitsRect(mouseX, mouseY, header.rightArrowX, header.lineY, PAGE_ARROW_W, lineH)) return false;
+
+        return true;
 
     }
 

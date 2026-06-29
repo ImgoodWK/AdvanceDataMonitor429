@@ -41,7 +41,7 @@ public class PocketState {
         this.pageUpgrades = 0;
         this.stackUpgrades = 0;
         this.infiniteStackUpgrade = false;
-        this.enabled = false;
+        this.enabled = true;
         this.collapsed = false;
         resizeStorage();
     }
@@ -98,11 +98,11 @@ public class PocketState {
     }
 
     public boolean isEnabled() {
-        return enabled;
+        return true;
     }
 
     public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+        this.enabled = true;
     }
 
     public float getWindowX() {
@@ -151,6 +151,15 @@ public class PocketState {
             if (s != null) n++;
         }
         return n;
+    }
+
+    /** True if any page contains at least one non-empty slot. */
+    public boolean hasStoredItems() {
+        if (pages == null) return false;
+        for (int p = 0; p < pages.length; p++) {
+            if (countItemsInPage(p) > 0) return true;
+        }
+        return false;
     }
 
     public boolean isValid(int page, int slot) {

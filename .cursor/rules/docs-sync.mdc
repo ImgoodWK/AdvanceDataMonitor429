@@ -1,0 +1,84 @@
+---
+description: 文档与规则同步：变更时强制同步相关文档；任务结尾询问用户是否检查全局一致性
+alwaysApply: true
+---
+
+# 文档与规则同步
+
+本规则合并两类要求：(1) 代码变更时**必须**同步更新受影响的文档与 Cursor 规则；(2) 任务结尾**主动询问**用户是否需要全局一致性核对。
+
+## 变更时强制同步
+
+当 Agent 进行以下类型的代码变更时，**必须同步更新相关文档与 Cursor 规则**，不得遗漏：
+
+### 触发条件
+
+| 变更类型 | 必须更新的文件 |
+|---------|---------------|
+| 新增/删除/重命名 Java 源文件或包 | `project-structure.mdc`（核心索引，包概览文件计数）与 `project-structure-details.mdc`（详细清单，逐文件列表与 lang 键） |
+| 渲染类迁移或渲染包结构调整 | `project-structure-details.mdc` 的 `renders/` 与 `entity/` 章节 |
+| 新增/修改/删除 Config 配置项 | `Config.java`、`config/Config*Loader.java`、`ConfigDescriptions.java`；若影响手册则更新 `manual/` JSON |
+| 移除遗留/重复文件 | 从 `project-structure.mdc`（核心）/ `project-structure-details.mdc`（详细）与开发者文档中删除对应条目 |
+| 调试开关或日志行为变更 | `gtnh-mod-context.mdc` 的 DEBUG 说明（指向 `config/` 包）；必要时更新 `docs/zh/developer/技术文档.md` / `docs/en/developer/technical-documentation.md` |
+| AI 助手相关功能变更 | 同时遵循 `ai-assistant-docs-sync.mdc` |
+
+### 渲染层约定（写入 project-structure 时需保持一致）
+
+- **`entity/`**：仅放 Entity 类，不放 Render 类。
+- **`renders/`**：所有客户端渲染（TESR、实体 Render、物品 Render、HUD、工具 RenderUtil）。
+- 注册入口：`loader/LoaderRender.java`（客户端）+ `ClientProxy`（Forge 事件 HUD）。
+
+### 配置约定
+
+- 公共字段门面：`Config.java`
+- 分节加载逻辑：`config/Config*Loader.java`
+- 所有 debug 开关默认 `false`；分节见 `[debug]`、`[ai]`、`[dataLoomCell]` 等。
+
+## 任务结尾询问用户
+
+在本轮对话**完成主要工作后、给出最终总结之前**，若本次工作**可能**影响项目文档或与文档描述不一致，须**主动询问用户**（中文），而不是默认全量扫描或静默跳过。
+
+### 可能涉及文档的判定（任一即触发询问）
+
+- 新增/删除/重命名 Java 源文件、包或资源（含 `manual/` JSON、`lang`）
+- 修改功能行为、配置项、调试开关、网络包、GUI、渲染或子系统逻辑（挂索、计划器、编织元件、AI 助手等）
+- 调整项目结构、目录约定或 Cursor 规则索引（`project-structure.mdc` 等）
+- 用户明确要求改代码但未提及文档，且改动范围超出纯内部重构（无对外行为/结构变化）
+
+**不触发**：仅改注释、格式化、纯问答无代码改动、或用户已明确说「不用动文档」。
+
+### 询问方式
+
+用简短中文询问，例如：
+
+> 本次改动可能影响项目文档。是否需要我检查 `docs/`、手册 JSON、lang 及 Cursor 规则与当前代码是否一致，并帮你更新？
+
+- **一次即可**：同一轮对话末尾问一次；用户已在本轮明确答复过的，不必重复追问。
+- **不代替同步规则**：仍须遵守本规则的「变更时强制同步」章节、`ai-assistant-docs-sync.mdc` 等在变更当时应做的必要更新；本节是在**额外**提供可选的全局一致性核对。
+
+### 用户同意后的检查范围
+
+按本次改动类型优先核对，典型路径：
+
+| 类型 | 优先检查 |
+|------|----------|
+| 通用 / 结构 | `docs/zh/`、`docs/en/`、`README.md`、`project-structure.mdc`（核心）/ `project-structure-details.mdc`（详细） |
+| AI 助手 | `docs/zh/ai-assistant/`、`assistant-features.json`、`ai-assistant.mdc` |
+| 玩家向 | `docs/zh/player/`、`manual/chapters/`、`lang` |
+| 配置 | `ConfigDescriptions.java`、手册 `config_reference`、开发者文档配置章节 |
+
+发现不一致时：简要列出差异，经用户确认或按用户指示更新；更新后说明改了哪些文件。
+
+### 用户拒绝或暂不处理
+
+尊重选择，在总结中可一句提示「文档尚未核对，需要时可再说」即可，勿反复劝说。
+
+## 执行时机
+
+- 变更时强制同步：在完成代码修改的**同一轮对话内**检查并更新，不要等用户提醒。
+- 任务结尾询问：在给出最终总结之前进行。
+- 若仅修改 `project-structure.mdc` / `project-structure-details.mdc` 本身（无代码变更），无需额外更新其他文档。
+
+## 目的
+
+避免 Agent 与贡献者依据过期的包结构、文件计数或调试说明定位错误文件；同时避免文档与代码长期脱节。

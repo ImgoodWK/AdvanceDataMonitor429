@@ -23,6 +23,7 @@
   - [5.9 Empyrean Holy Judgment](#59-empyrean-holy-judgment)
   - [5.10 Manual System](#510-manual-system)
   - [5.11 Advance Planner](#511-advance-planner)
+  - [5.12 Dimensional Pocket](#512-dimensional-pocket)
 - [6. GUI and Interaction](#6-gui-and-interaction)
 - [7. Network Packets](#7-network-packets)
 - [8. AI Assistant Architecture](#8-ai-assistant-architecture)
@@ -1094,6 +1095,35 @@ adm.planner.merge_tooltip=Merge all planner items in inventory
 2. Add matching en_US pair.
 3. Reference via `I18n.format("adm.planner.xxx")`.
 4. Pass format args for `%s` placeholders.
+
+---
+
+### 5.12 Dimensional Pocket
+
+> Player-facing summary: [Player Guide §3.13](../player/player-guide.md#313-dimensional-pocket)
+
+#### Architecture Overview
+
+| Layer | Class | Role |
+|-------|-------|------|
+| State / persistence | `PocketState` / `PocketStore` / `PocketInventory` | Per-player UUID slots and upgrades; JSON at `config/advancedatamonitor/pocket-<uuid>.json` |
+| Shared interaction | `PocketSlotInteraction` | Left/right click and Shift quick-withdraw (one stack batch at a time) shared by GUI and overlay |
+| GUI | `ContainerPocketStorage` / `GuiPocketStorage` | Main storage UI; `slotClick` / `transferStackInSlot` delegate to `PocketSlotInteraction` |
+| Overlay | `PocketOverlayHandler` / `GuiPocketOverlay` | Shift+right-click toggle; tooltips via `GuiScreenTooltipAccess` → Forge `renderToolTip` |
+| Client cache | `PocketClientCache` | Applies `PacketPocketSync` for overlay rendering |
+| Network | `PacketPocketAction` / `PacketPocketSync` | C→S deposit/withdraw/page/overlay toggle; S→C state sync |
+| Stack badge | `PocketStackSizeFormat` / `PocketStackOverlayRenderer` / `MixinPocketDrawSlotOverlay` | K/M/G formatting for large counts (aligned with GT Not Leisure portable infinity chest approach) |
+
+**GUI open rule:** storage and upgrade config GUIs must be opened via **server-side** `player.openGui`; otherwise `openContainer` stays on `ContainerPlayer` and clicks hit the wrong container.
+
+#### Known Issues (unfixed, 2026-06)
+
+Confirmed after recent pocket interaction/overlay work; **not yet fixed**. Use the table below when debugging.
+
+| # | Symptom | Scope | Initial investigation |
+|---|---------|-------|------------------------|
+| 1 | After **world reload / save restart**, pocket item **stack sizes reset to 1** | Persisted data; affects storage GUI and JSON on disk | Whether `PocketStore` JSON read/write drops or truncates `stackSize`; load path in `PocketState` / `PocketInventory` vs save path |
+| 2 | **Overlay slot badge always shows 0** regardless of actual pocket quantity | Overlay only; right-click storage GUI counts are correct | Whether `PocketClientCache` holds correct `stackSize` after `PacketPocketSync`; whether `GuiPocketOverlay` / `PocketStackOverlayRenderer` sees null stacks or count 0 at draw time |
 
 ---
 

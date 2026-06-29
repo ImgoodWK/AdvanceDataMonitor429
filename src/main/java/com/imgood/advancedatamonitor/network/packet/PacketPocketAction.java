@@ -6,6 +6,7 @@ import net.minecraft.util.ChatComponentTranslation;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 import com.imgood.advancedatamonitor.handler.HandlerTick;
+import com.imgood.advancedatamonitor.handler.PocketSlotInteraction;
 import com.imgood.advancedatamonitor.handler.PocketState;
 import com.imgood.advancedatamonitor.handler.PocketStore;
 import com.imgood.advancedatamonitor.handler.PocketUpgradeRules;
@@ -284,8 +285,12 @@ public class PacketPocketAction implements IMessage {
                     changed = true;
                 } else {
                     error = true;
-                    errorKey = "adm.error.pocket.cannotRemoveSpace";
-                    errorArg = PocketUpgradeRules.computeMinSpaceUpgrades(state);
+                    if (PocketUpgradeRules.hasStoredItems(state)) {
+                        errorKey = "adm.error.pocket.cannotRemoveUpgradeWhileStored";
+                    } else {
+                        errorKey = "adm.error.pocket.cannotRemoveSpace";
+                        errorArg = PocketUpgradeRules.computeMinSpaceUpgrades(state);
+                    }
                 }
                 break;
             }
@@ -309,67 +314,22 @@ public class PacketPocketAction implements IMessage {
                     changed = true;
                 } else {
                     error = true;
-                    errorKey = "adm.error.pocket.cannotRemovePage";
-                    errorArg = PocketUpgradeRules.computeMinPageUpgrades(state);
-                }
-                break;
-            }
-            case DEPOSIT_FROM_CURSOR: {
-                int page = (int) message.floatValue1;
-                int slot = message.intValue;
-                ItemStack cursorStack = player.inventory.getItemStack();
-                if (cursorStack != null && state.isValid(page, slot)) {
-                    ItemStack existing = state.getStack(page, slot);
-                    int maxStack = getPocketStackLimit(state);
-                    if (existing == null) {
-                        ItemStack copy = cursorStack.copy();
-                        if (copy.stackSize > maxStack) copy.stackSize = maxStack;
-                        state.setStack(page, slot, copy);
-                        cursorStack.stackSize -= copy.stackSize;
-                        if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
-                    } else if (existing.isItemEqual(cursorStack) && ItemStack.areItemStackTagsEqual(existing, cursorStack)) {
-                        int space = maxStack - existing.stackSize;
-                        int toAdd = Math.min(space, cursorStack.stackSize);
-                        if (toAdd > 0) {
-                            existing.stackSize += toAdd;
-                            cursorStack.stackSize -= toAdd;
-                            if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
-                        }
+                    if (PocketUpgradeRules.hasStoredItems(state)) {
+                        errorKey = "adm.error.pocket.cannotRemoveUpgradeWhileStored";
+                    } else {
+                        errorKey = "adm.error.pocket.cannotRemovePage";
+                        errorArg = PocketUpgradeRules.computeMinPageUpgrades(state);
                     }
-                    changed = true;
                 }
                 break;
             }
-            case WITHDRAW_TO_CURSOR: {
-                int page = (int) message.floatValue1;
-                int slot = message.intValue;
-                ItemStack pocketStack = state.getStack(page, slot);
-                if (pocketStack != null) {
-                    player.inventory.setItemStack(pocketStack.copy());
-                    state.setStack(page, slot, null);
-                    changed = true;
-                }
-                break;
-            }
+            case DEPOSIT_FROM_CURSOR:
+            case WITHDRAW_TO_CURSOR:
             case DEPOSIT_SINGLE_FROM_CURSOR: {
                 int page = (int) message.floatValue1;
                 int slot = message.intValue;
-                ItemStack cursorStack = player.inventory.getItemStack();
-                if (cursorStack != null && state.isValid(page, slot)) {
-                    ItemStack existing = state.getStack(page, slot);
-                    int maxStack = getPocketStackLimit(state);
-                    if (existing == null) {
-                        ItemStack one = cursorStack.copy();
-                        one.stackSize = 1;
-                        state.setStack(page, slot, one);
-                        cursorStack.stackSize--;
-                        if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
-                    } else if (existing.isItemEqual(cursorStack) && ItemStack.areItemStackTagsEqual(existing, cursorStack)
-                        && existing.stackSize < maxStack) {
-                        existing.stackSize++;
-                        cursorStack.stackSize--;
-                        if (cursorStack.stackSize <= 0) player.inventory.setItemStack(null);
-                    }
+                int mouseButton = message.action == DEPOSIT_SINGLE_FROM_CURSOR ? 1 : 0;
+                if (PocketSlotInteraction.applySlotClick(state, page, slot, mouseButton, player)) {
                     changed = true;
                 }
                 break;
@@ -379,7 +339,7 @@ public class PacketPocketAction implements IMessage {
                 int slot = message.intValue;
                 ItemStack pocketStack = state.getStack(page, slot);
                 if (pocketStack != null && state.isValid(page, slot)) {
-                    int maxStack = getPocketStackLimit(state);
+                    int maxStack = PocketSlotInteraction.getStackLimit(state);
                     int space = maxStack - pocketStack.stackSize;
                     if (space <= 0) break;
                     for (int i = 0; i < player.inventory.mainInventory.length; i++) {
@@ -401,12 +361,7 @@ public class PacketPocketAction implements IMessage {
             case QUICK_WITHDRAW: {
                 int page = (int) message.floatValue1;
                 int slot = message.intValue;
-                ItemStack pocketStack = state.getStack(page, slot);
-                if (pocketStack != null) {
-                    boolean fit = player.inventory.addItemStackToInventory(pocketStack.copy());
-                    if (fit) {
-                        state.setStack(page, slot, null);
-                    }
+                if (PocketSlotInteraction.quickMoveFromPocketToPlayer(state, page, slot, player)) {
                     changed = true;
                 }
                 break;
@@ -428,6 +383,9 @@ public class PacketPocketAction implements IMessage {
                     changed = true;
                 } else {
                     error = true;
+                    if (PocketUpgradeRules.hasStoredItems(state)) {
+                        errorKey = "adm.error.pocket.cannotRemoveUpgradeWhileStored";
+                    }
                 }
                 break;
             }
@@ -441,11 +399,14 @@ public class PacketPocketAction implements IMessage {
                 break;
             }
             case REMOVE_INFINITE_STACK_UPGRADE: {
-                if (state.isInfiniteStackUpgrade()) {
+                if (PocketUpgradeRules.canRemoveInfiniteStackUpgrade(state)) {
                     state.setInfiniteStackUpgrade(false);
                     changed = true;
                 } else {
                     error = true;
+                    if (PocketUpgradeRules.hasStoredItems(state)) {
+                        errorKey = "adm.error.pocket.cannotRemoveUpgradeWhileStored";
+                    }
                 }
                 break;
             }
@@ -498,13 +459,6 @@ public class PacketPocketAction implements IMessage {
             sync.cursorStack = player.inventory.getItemStack();
         }
         AdvanceDataMonitor.ADMCHANEL.sendTo(sync, player);
-    }
-
-    private static int getPocketStackLimit(PocketState state) {
-        if (state.isInfiniteStackUpgrade()) return Integer.MAX_VALUE;
-        int mult = state.getStackMultiplier();
-        if (mult == Integer.MAX_VALUE) return Integer.MAX_VALUE;
-        return Math.min(64 * mult, Integer.MAX_VALUE);
     }
 
     @SideOnly(Side.CLIENT)

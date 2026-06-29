@@ -1,6 +1,7 @@
 ---
 description: 外部模组依赖与 Jar 知识库管理
-alwaysApply: true
+globs: **/dependencies.gradle,**/build.gradle,**/settings.gradle,**/libs/**,**/compat/ae/**
+alwaysApply: false
 ---
 
 # 外部模组依赖与 Jar 知识库

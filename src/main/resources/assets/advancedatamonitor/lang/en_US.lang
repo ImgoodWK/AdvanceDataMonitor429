@@ -1,4 +1,4 @@
-﻿adm.error.xyz=The XYZ coordinate format is invalid. Example: 123,64,-123…
+adm.error.xyz=The XYZ coordinate format is invalid. Example: 123,64,-123…
 adm.error.ymin=The Y minimum value must be a valid number.
 adm.error.ymax=The Y maximum value must be a valid number.
 adm.error.datalimit=The data limit must be an integer between 2 and 9999.
@@ -693,7 +693,7 @@ item.dimensionalPocket.name=Dimensional Pocket
 item.spaceUpgradeCard.name=Space Upgrade Card
 item.pageUpgradeCard.name=Page Upgrade Card
 adm.tooltip.pocket.title=Dimensional Pocket
-adm.tooltip.pocket.usage=Right-click: open storage GUI (store/retrieve items). Shift+right-click: toggle the overlay window.
+adm.tooltip.pocket.usage=Right-click: open storage GUI. Shift+right-click: toggle overlay collapsed/expanded.
 adm.tooltip.pocket.stats_space=Space upgrades: %d / %d (current %d slots per page)
 adm.tooltip.pocket.stats_pages=Page upgrades: %d / %d (current %d pages)
 adm.tooltip.pocket.stats_enabled=Function state: %s
@@ -704,18 +704,29 @@ adm.tooltip.pocket.space_card.page_unlock=Card 63 and 64 unlock page upgrades (t
 adm.tooltip.pocket.page_card.title=Page Upgrade Card
 adm.tooltip.pocket.page_card.desc=Insert into the pocket's page upgrade slot. Each card adds 1 page (max 8 = 9 pages total).
 adm.tooltip.pocket.page_card.prereq=Requires space upgrades to be fully stacked (64) to take effect.
-adm.pocket.toggle.on=Dimensional Pocket overlay: enabled
-adm.pocket.toggle.off=Dimensional Pocket overlay: disabled
+adm.pocket.collapse.on=Dimensional Pocket overlay: collapsed
+adm.pocket.collapse.off=Dimensional Pocket overlay: expanded
 adm.title.pocketConfig=Dimensional Pocket Config
 adm.title.pocketOverlay=Dimensional Pocket
+adm.tooltip.pocket.dragHint=Drag
 adm.title.pocketStoragePaged=Dimensional Pocket Storage (Page %d / %d)
 adm.button.pocket.openConfig=Upgrade Config
+adm.button.pocket.upgrade=Upgrade
+adm.label.pocket.overlayDefault=Expanded
+adm.label.pocket.slot.space=Space
+adm.label.pocket.slot.page=Page
+adm.label.pocket.slot.stack=Stack
+adm.label.pocket.slot.infinite=Inf.
+adm.tooltip.pocket.configSlot.space=Insert Space Upgrade Cards (+1 slot each, max 63/page)
+adm.tooltip.pocket.configSlot.page=Insert Page Upgrade Cards (requires 64 space upgrades, max 9 pages)
+adm.tooltip.pocket.configSlot.stack=Insert Stack Upgrade Cards (doubles per-slot stack limit each)
+adm.tooltip.pocket.configSlot.infinite=Insert Infinite Stack Upgrade Card (unlimited stack, max 1)
 adm.label.pocket.spaceUpgrade=Space Upgrade Slot
 adm.label.pocket.pageUpgrade=Page Upgrade Slot
 adm.label.pocket.switch=Function Switch
-adm.label.pocket.capacity=Current capacity: %d slots x %d pages = %d total
+adm.label.pocket.capacity=Capacity: %d slots/page, %d pages = %d slots
 adm.label.pocket.currentPage=Page %d / %d
-adm.label.pocket.pageFooter=Page %d/%d
+adm.label.pocket.pageFooter=%d/%d
 adm.button.pocket.collapse=Collapse
 adm.button.pocket.expand=Expand
 adm.button.pocket.prevPage=<
@@ -742,8 +753,10 @@ adm.tooltip.pocket.infinite_stack_card.max=Max 1. Only takes effect when install
 adm.tooltip.pocket.infinite_stack_card.warning=Warning: may cause severe lag with large item stacks in rendering!
 adm.label.pocket.stackUpgrade=Stack Upgrade Slot
 adm.label.pocket.infiniteStackUpgrade=Infinite Stack Slot
-adm.label.pocket.stackLimit=Stack limit: %d per slot
-adm.label.pocket.stackLimitInfinite=Stack limit: infinite per slot
+adm.label.pocket.stackLimit=Stack: %d per slot
+adm.label.pocket.stackLimitInfinite=Stack: ∞
+adm.error.pocket.cannotRemoveUpgradeWhileStored=Cannot remove upgrade cards while the pocket stores items
+adm.hint.pocket.upgradeLockedWhileStored=Cannot remove upgrade cards while the pocket stores items
 
 # Manual - new chapter keys (Phase 2)
 adm.manual.monitor_blocks.overview_title=Monitor Blocks Overview

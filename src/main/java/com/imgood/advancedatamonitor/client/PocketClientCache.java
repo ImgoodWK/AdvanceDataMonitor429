@@ -52,6 +52,10 @@ public final class PocketClientCache {
         if (message.kind == PacketPocketSync.KIND_FULL) {
             pages.clear();
         }
+        if (message.kind == PacketPocketSync.KIND_METADATA) {
+            if (currentPage >= pageCount) currentPage = Math.max(0, pageCount - 1);
+            return;
+        }
         for (int p = 0; p < pageCount; p++) {
             ItemStack[] existing = pages.get(p);
             if (existing == null || existing.length != slotsPerPage) {
@@ -74,6 +78,9 @@ public final class PocketClientCache {
                 }
             }
             pages.put(payload.pageIndex, arr);
+        }
+        if (message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
+            setCurrentPage(message.pageIndex);
         }
         if (currentPage >= pageCount) currentPage = Math.max(0, pageCount - 1);
     }
@@ -112,11 +119,15 @@ public final class PocketClientCache {
     }
 
     public static boolean isEnabled() {
-        return enabled;
+        return true;
     }
 
     public static void setEnabled(boolean v) {
-        enabled = v;
+        enabled = true;
+    }
+
+    public static void setCollapsed(boolean v) {
+        collapsed = v;
     }
 
     public static float getWindowX() {
@@ -197,5 +208,17 @@ public final class PocketClientCache {
 
     public static int getMaxStackUpgrades() {
         return PocketState.MAX_STACK_UPGRADES;
+    }
+
+    /** True if any synced page contains a non-empty slot. */
+    public static boolean hasStoredItems() {
+        for (int p = 0; p < pageCount; p++) {
+            ItemStack[] arr = pages.get(p);
+            if (arr == null) continue;
+            for (int s = 0; s < arr.length; s++) {
+                if (arr[s] != null) return true;
+            }
+        }
+        return false;
     }
 }
