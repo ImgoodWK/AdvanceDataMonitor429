@@ -7,6 +7,7 @@
   "client": [
     "MixinGuiScreen",
     "MixinGuiContainer",
+    "GuiScreenTooltipAccess",
     "MixinNeiRenderToolTips",
     "MixinNeiLayoutManager",
     "MixinNeiItemZoom"

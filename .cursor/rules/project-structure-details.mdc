@@ -1,0 +1,230 @@
+---
+description: 各包逐文件清单、lang 键、游戏内名称（project-structure 核心索引的详细附录）
+globs: **/src/main/java/**
+alwaysApply: false
+---
+
+# 项目结构详细清单
+
+本文件是 `project-structure.mdc`（核心索引）的详细附录，列出每个包的逐文件清单、lang 键与游戏内名称。编辑模组 Java 源文件时自动加载；纯问答/文档/配置场景时按需 Read。
+
+## 包结构 (src/main/java/com/imgood/advancedatamonitor/)
+
+### 根包 — 模组入口
+| 类 | 作用 |
+|----|------|
+| `AdvanceDataMonitor.java` | @Mod 主类，注册调度中心 |
+| `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包 |
+| `ConfigDescriptions.java` | 配置项双语说明（英文 / 中文，供 .cfg 注释与手册引用） |
+| `ClientProxy.java` | 客户端代理（按键注册等） |
+| `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
+
+### config/ — 配置分节加载 (10 文件)
+- `ConfigDebugLoader.java` — `[debug]` 通用/GUI 调试开关
+- `ConfigCompatLoader.java` — `[compat]` AE 2.9 兼容 profile 覆盖
+- `ConfigAiLoader.java` / `ConfigAiMutators.java` — `[ai]`
+- `ConfigVoiceLoader.java` — `[voice]`
+- `ConfigAssistantLoader.java` — `[assistant]`
+- `ConfigPlannerHudLoader.java` — `[plannerHudLimits]`
+- `ConfigDataLoomLoader.java` — 编织元件各节 + `[dataLoomCell]`
+- `ConfigSuperOrangeLoader.java` — `[superOrange]`
+- `ConfigGrappleLoader.java` — `[grapple]`
+
+### compat/ — GTNH / AE2 版本兼容 (20 文件)
+- **compat/ae/** — `AeCompat` 门面、`GtnhEnvironmentProbe`、`GtnhVersion`、`AeCellStatsAdapter` 等
+- **compat/ae/legacy/** — 2.9.0 beta-1 之前 GlodBlock / AE2FC 路径
+- **compat/ae/native_/** — 2.9.0 beta-1+ AE2 原生流体路径
+- 详见 `docs/zh/developer/ae-compat-290.md` / `docs/en/developer/ae-compat-290.md`
+
+### assistant/ — AI 助手核心逻辑 (41 文件)
+- **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理
+- **assistant/ai/** — AI 聊天 HTTP 客户端（5 文件）：`DeepSeekChatClient.java` / `ChatRequestOptions.java` / `ChatStreamListener.java` / `ChatResponse.java` / `AiProviderProfiles.java`
+- **意图系统**: `AssistantIntentType.java` / `AssistantIntent.java` / `AssistantIntentTask.java` / `AssistantIntentPlan.java` / `AssistantOrderLine.java`
+- **AI 解析**: `AssistantAiIntentService.java` / `AssistantAiIntentJsonParser.java`
+- **本地解析**: `AssistantIntentService.java` (关键词匹配 fallback)
+- **主控制器**: `AssistantController.java`
+- **会话管理**: `AssistantSession.java` / `AssistantSessionKind.java`
+- **AE2 核心**: `AssistantServerServices.java` / `AssistantCraftJobManager.java` / `CraftingCandidate.java` / `WithdrawSubmitOutcome.java` / `AssistantCandidateDelivery.java` / `CandidateQueryResult.java` / `CandidateBatchMeta.java`
+- **词库/配置**: `AssistantLexicon.java` / `AssistantFeatureConfig.java`
+- **订单记忆**: `OrderMemoryStore.java`
+- **计划管理**: `PlannerServerService.java` / `PlanStore.java`
+- **传送服务**: `TeleportService.java` / `TeleportDestination.java`
+- **AE2 查询**: `WirelessPowerQuery.java` / `WirelessSteamQuery.java`
+- **格式化/工具**: `AssistantFormatter.java` / `AssistantTimeParser.java` / `AssistantTextNormalizer.java`
+- **物品处理**: `ItemStackUtils.java` / `PlayerInventoryUtil.java` / `PatternDetailFormatter.java`
+- **注册/调试**: `AssistantMonitorRegistry.java` / `AssistantDebugLog.java`
+- **数据文件**: `AssistantDataFiles.java`
+
+### items/ — 物品 (53 文件)
+| 类 | 游戏内名称 (ZH / EN) | lang 键 |
+|----|---------------------|---------|
+| `ItemAdvancePlanner` | 高级计划器 / Advance Planner | `item.advancePlanner.name` |
+| `ItemAdvanceLinkScanner` | 高级链接扫描器 / Advance Link Scanner | `item.advanceLinkScanner.name` |
+| `ItemAdvanceStorageLinkCell` | 高级存储链接元件 / Advanced Storage Link Cell | `item.advanceStorageLinkCell.name` |
+| `ItemDataImprint` | 数据映录器 / Data Imprint Tool | `item.dataImprint.name` |
+| `ItemManual` | 高级数据监视器手册 / AdvanceDataMonitor Manual | `item.manual.name` |
+| `ItemSuperOrange` | 超能砂糖桔 / Super Orange | `item.orange.name` |
+| `ItemGrappleHook` | 挂索器 / Grapple Hook | `item.grappleHook.name` |
+| `ItemStarryCosmosSword` | 至高天圣裁 / Empyrean Holy Judgment | `item.starryCosmosSword.name` |
+| `ItemDimensionalPocket` | 次元口袋 / Dimensional Pocket | `item.dimensionalPocket.name` |
+| `ItemSpaceUpgradeCard` | 空间升级卡 / Space Upgrade Card | `item.spaceUpgradeCard.name` |
+| `ItemPageUpgradeCard` | 翻页升级卡 / Page Upgrade Card | `item.pageUpgradeCard.name` |
+| `ItemStackUpgradeCard` | 堆叠升级卡 / Stack Upgrade Card | `item.stackUpgradeCard.name` |
+| `ItemInfiniteStackUpgradeCard` | 无尽堆叠升级卡 / Infinite Stack Upgrade Card | `item.infiniteStackUpgradeCard.name` |
+| `ItemBlockGrappleAnchor` | 挂索节点（方块物品） | `tile.grappleAnchor.name` |
+| `PlannerEntry` / `PlannerMergeMode` | （数据结构，与计划器同层） | — |
+| `LinkScanEntry` / `LinkScanBlockType` | （扫描器数据结构/枚举） | `adm.scanner.type.*` |
+| **items/cell/** 子包 (33 文件) | 见下 | `item.data*LoomCell.name` 等 |
+
+#### items/cell/ — 数据编织元件 AE2 集成 (33 文件)
+- 负责织尘/织形/涌流/织源元件的 AE2 驱动器/箱子兼容、时间基物品/流体/源质编织、能量消耗
+- `ItemDataDustLoomCell.java` — 织尘元件（仅粉类，不可标记本模组物品）
+- `ItemDataFormLoomCell.java` — 织形元件（任意物品，不可标记本模组物品）
+- `ItemDataFlowCell.java` — 涌流元件（任意流体，5 种类；`FlowLoomCellConfig` 拒绝本模组物品标记）
+- `ItemDataTideLoomCell.java` — 织潮元件（涌流升级，63 种类，附魔光效；其余同涌流元件）
+- `ItemDataSourceLoomCell.java` — 织源元件（仅神秘时代源质 aspect 流体）
+- `AbstractDataLoomFluidCell.java` — 流体编织元件基类（`DataLoomFluidCellConfig`）
+- `ItemWeaveAmplifier.java` / `ItemSuperWeaveAmplifier.java` — 编织增幅卡（默认 4×/16× 每张，Config 注册时写入 `DataLoomAmplifierRates`）
+- `DataLoomCellTooltipCache.java` — 元件 tooltip 增幅/有效速率 NBT 缓存（仅工作台变更时刷新）；公共 footer 含 高级存储链接器 排除说明
+- `DataLoomAmplifierRates.java` — 增幅倍率静态常量（Config.load 后初始化）
+- `DataLoomCellConfig.java` / `FormLoomCellConfig.java` / `FlowLoomCellConfig.java` / `DataLoomFluidCellConfig.java` — 工作台分区槽
+- `DataLoomDebugLog.java` — `Config.dataLoomCellDebugLogging` 为 true 时编织 trace 日志
+- `DataLoomCellHandler.java` — ICellHandler 注册
+- `DataLoomItemInventory.java` / `DataLoomFluidInventory.java` — IMEInventoryHandler 实现
+- `DataLoomCellUpgrades.java` — 仅允许编织增幅卡的升级槽
+- `AbstractDataLoomItemCell.java` / `DataLoomCellUtil.java` / `DustLoomCellConfig.java` / `IWeaveAmplifierCard.java`
+
+### blocks/ — 自定义方块 (5 文件)
+| 类 | 游戏内名称 (ZH / EN) | lang 键 |
+|----|---------------------|---------|
+| `BlockAdvanceDataMonitor` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
+| `BlockAdvanceCraftingLink` | 合成链接器 / Crafting Linker | `tile.CraftingMonitorBlock.name` |
+| `BlockAdvanceStorageLink` | 高级存储链接器 / Advanced Storage Linker | `tile.StorageLinkBlock.name` |
+| `BlockAdvanceNetworkLink` | 网络链接器 / Network Linker | `tile.NetworkLinkBlock.name` |
+| `BlockGrappleAnchor` | 挂索节点 / Grapple Anchor | `tile.grappleAnchor.name` |
+
+### tileentity/ — TileEntity (5 文件 + 2 接口工具)
+- `IOwnableTile.java` / `OwnableTileUtil.java` — 方块放置者游戏名（`OwnerName` NBT）
+- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定、NBT 持久化、AE2 网络集成；首次打开可补录所属者
+- `TileEntityAdvanceCraftingLink.java` — AE2 合成 CPU 监控
+- `TileEntityAdvanceStorageLink.java` — AE2 存储网络监控
+- `TileEntityAdvanceNetworkLink.java` — AE2 全网统计监控
+- `TileEntityGrappleAnchor.java` — 挂索节点（贴面放置、悬挂锚点计算）
+
+### gui/ — GUI 组件和界面 (35 文件)
+- **gui/custom/** — 自定义 GUI 基础组件（3 个）
+  - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
+  - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
+  - `ADM_GuiTextField.java` — 自定义文本框（背景纹理、hint 提示）
+- **gui/guiscreen/** — 具体 GUI 界面（22 个），详见 `gui-guidelines.mdc`
+  - `GuiManual.java` — 模组手册 GUI（左侧搜索框 + 可滚动章节导航 + 右侧内容区 + 翻页；搜索高亮与拼音匹配）
+  - `GuiNbtViewer.java` — NBT 树查看器（映录器用）
+  - `GuiAdvanceLinkScanner.java` — 链接扫描器（列表/筛选/备注/传送）
+  - `GuiDimensionalPocketConfig.java` — 次元口袋配置 GUI（升级插槽：空间/翻页/堆叠/无尽堆叠 + 开关 + 容量统计 + 堆叠倍数显示）
+  - `GuiPocketStorage.java` — 次元口袋存储 GUI（原生 Container，口袋格 + 玩家背包 + 翻页/升级配置按钮；右键口袋主入口）
+- **gui/manual/** — 手册数据结构（6 个）：`ManualChapter.java` / `ManualPage.java` / `ManualDataLoader.java` / `ManualSearchUtil.java` / `ManualSearchIndex.java` / `ManualTextHighlighter.java`
+- **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）
+- **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`、`POCKET_CONFIG_GUI_ID`、`POCKET_STORAGE_GUI_ID`）
+
+### handler/ — 事件处理器与物品服务端逻辑 (28 文件)
+- `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理）
+- `HandlerLoot.java` — 战利品事件（SuperOrange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
+- `HandlerPlayerJoin.java` — 玩家首次加入事件（赠送手册物品 + NBT标记）
+- `HandlerSuperOrange.java` — 超能砂糖桔能力（投掷物免疫 + 1024x挖掘掉落 + Matter Ball存入）
+- `HandlerGrapple.java` — 挂索节点索引/挂接 tick/区块加载注册
+- `HandlerDataLoomCell.java` — 编织元件事件
+- `HandlerStarryCosmosSword.java` — 星空剑事件
+- **挂索服务端逻辑**（原 handler/）：`GrappleNodeIndex.java` / `GrapplePlayerState.java` / `GrappleAnchorPositions.java` / `GrappleQueuedHop.java` / `GrapplePathStore.java` / `GrappleRouteSync.java` / `GrappleRouteMatcher.java` / `GrapplePlanningSession.java`
+- `StarrySwordSpawnScheduler.java` — 星空剑技能实体生成调度
+- **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
+- `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
+- **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player JSON 存储单例）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
+
+### entity/ — 实体类 only (8 文件，不含 Render)
+- `EntitySuperOrangeDrone.java` — 超能砂糖桔无人机
+- `EntityGrappleSlide.java` — 挂索滑移实体
+- `EntityStarrySwordLineSlash.java` / `EntityStarrySwordLineStab.java` / `EntityStarrySwordThrown.java` / `EntityStarrySwordRain.java` / `EntityStarrySwordRainField.java` / `EntityStarrySwordSlam.java` — 星空剑技能实体
+
+### renders/ — 全部客户端渲染 (33 文件)
+- **约定**：实体 Render、TESR、物品 Render、HUD、手册页面渲染均在此包；`entity/` 不放 Render 类
+- `AdvanceBlockCubeRenderUtil.java` — 占位方块立方体/挂索节点薄板几何（模型未完成前）
+- `RenderAdvanceStorageLink.java` / `RenderAdvanceCraftingLink.java` — 存储/合成链接器占位 TESR（`USE_PLACEHOLDER_CUBE` 开关，待 OBJ 接入）
+- `LineChartRenderer.java` / `CraftingInfoRenderer.java` / `StorageInfoRenderer.java` — 监视器图表
+- `PlannerHudRenderer.java` / `GrappleHudRenderer.java` / `GrappleTravelLineRenderer.java` — HUD
+- `ManualPageRenderer.java` — 手册页面渲染（text/item_showcase/config_ref）
+- `OrangeNameplateRenderer.java` / `SuperOrangeHaloRenderer.java` / `SuperOrangeHeadRenderUtil.java` — 超能砂糖桔
+- `RenderSuperOrangeDrone.java` — 无人机实体渲染
+- `RenderStarrySword*.java`（4 个）/ `CosmicStarrySwordRenderer.java` / `StarryCosmosWorldRenderer.java` / `StarryCosmicRenderUtil.java` — 星空剑
+- `RenderAdvanceDataMonitor.java` / `RenderGrappleAnchor.java` / `RenderGrappleSlide.java` — 方块/实体 TESR
+- `RenderAdvanceDataMonitorBlockItem.java` / `RenderDataImprintItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderItem.java` — 物品渲染
+- `RenderController.java` — 监视器内容渲染器注册（line / crafting / storage）
+- `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java`
+
+### network/ — 网络通信 (24 文件)
+- **network/packet/** — 网络包实体（19 个）
+  - `PacketSynTileEntity.java` — **最常用**，同步 TileEntity 数据到客户端
+  - `PacketAssistantAction.java` / `PacketAssistantResponse.java` — AI 助手操作/响应
+  - `PacketItemCountSync.java` / `PacketRequestItemCountSync.java` — 物品数量同步
+  - `PacketItemNBT.java` — 物品 NBT 同步
+  - `PacketGrappleAction.java` / `PacketGrappleSync.java` — 挂索挂接/移动同步
+  - `PacketGrapplePathAction.java` / `PacketGrapplePathSync.java` — 挂索路径保存/下发（ID 17/18）
+  - `PacketGrappleHookConfig.java` / `PacketGrappleAnchorConfig.java` — 挂索器/节点配置
+  - `PacketMonitorRecord.java` — 快捷键打开附近监视器 AI 时登记监视器坐标
+  - `PacketLinkScannerAction.java` — 链接扫描器扫描/同步/传送
+  - `PacketPocketAction.java` — 次元口袋 C→S 动作（开关/翻页/拖动位置/升级增减/堆叠升级/存取物品/打开配置GUI，ID 19/20）
+  - `PacketPocketSync.java` — 次元口袋 S→C 同步（全量/单页 `ItemStack[][]`，ID 21）
+- **network/handler/** — 包处理器（5 个）
+  - `HandlerNetwork.java` / `HandlerSynTileEntity.java` / `HandlerLinkScannerAction.java` / `HandlerPlannerSync.java` / `HandlerPlannerMerge.java`
+
+### voice/ — 语音识别 (9 文件)
+- `VoiceCaptureService.java` — 语音采集入口，管理热键和麦克风
+- `SpeechToTextClient.java` — STT 接口
+- `VoskSpeechToTextClient.java` — Vosk 离线语音识别（嵌入式模型）
+- `HttpSpeechToTextClient.java` — HTTP STT（OpenAI 兼容 API）
+- `EmbeddedVoiceModelManager.java` — Vosk 模型文件管理
+- `VoiceStatusListener.java` — 语音状态回调接口
+- `StandaloneVoskTranscriber.java` — Vosk 独立转录器
+- `PcmAudioUtil.java` / `WavEncoder.java` — 音频格式处理
+
+### loader/ — 注册加载器 (9 文件)
+- `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java`
+
+### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (18 文件)
+- `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
+- `KeyBindings.java` — O/P/H 快捷键（AI聊天/计划器/HUD切换）
+- `HandlerGrappleClient.java` — 挂索 Shift 取消 / 右键移动（客户端输入）
+- `GrappleClientCache.java` — 挂索客户端状态缓存（接收 `PacketGrappleSync`）
+- `GrappleSelectionUtil.java` — 挂索节点磁吸选点、路径预览坐标
+- `GrappleClientNodeIndex.java` — 客户端挂索节点 chunk 索引（区块加载时维护）
+- `GrappleClientRouteCache.java` — 挂索路径客户端缓存（接收 `PacketGrapplePathSync`）
+- `GrappleRoutePickerHud.java` — 挂索路径选择 HUD
+- `StarryCosmosClientWarmup.java` — 星空剑客户端资源预热
+- `ItemClientGui.java` — 物品打开 GUI 的客户端辅助（避免 items/ 导入 Minecraft；含 `openPocketConfigGui`）
+- `AiClientPreferences.java` — 客户端本地 AI/语音密钥与偏好（`ai-client-local.cfg`，不上传服务端）
+- `PocketClientCache.java` — 次元口袋客户端镜像缓存（接收 `PacketPocketSync`，按玩家绑定；含堆叠升级字段）
+- `PocketOverlayHandler.java` — 次元口袋客户端事件中枢（覆层渲染 + 鼠标路由；右键打开的 `GuiPocketStorage` / `GuiDimensionalPocketConfig` 上不显示浮窗）
+- `PocketPortalGuiRenderer.java` — 传送门 9-slice 面板渲染（`textures/gui/pocket_portal_panel.png`，随升级格数缩放）
+- `GuiPocketOverlay.java` — 次元口袋悬浮窗（传送门边框 + 原版 inventory 槽位；拖动/翻页/收起）
+
+### command/ — 命令 (2 文件)
+- `CommandAssistant.java` — `/admassistant` 命令
+- `CommandAIConfig.java` — `/admai` 命令
+
+### utils/ — 工具类 (10 文件)
+- `NBTDataHelper.java` / `NBTJsonParser.java` / `NBTJsonParserHelper.java` — NBT 与 JSON 互转
+- `CraftingTemplateParser.java` — 合成模板解析
+- `ContentsHelper.java` — 内容验证工具（坐标、数字、颜色格式等）
+- `DataBound.java` — 监视器数据绑定 DTO
+- `TileEntityTypeHelper.java` — TileEntity 类型识别
+- `NetworkValidationUtil.java` — 网络包距离/权限校验
+- `ModLogFiles.java` — 模组日志文件路径
+- `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
+
+### mixin/ — Mixin 注入 (6 文件，仅客户端)
+- `MixinGuiScreen.java` / `MixinGuiContainer.java` — GUI 输入/容器钩子
+- `GuiScreenTooltipAccess.java` — Invoker：`GuiScreen.drawHoveringText`（悬浮窗槽位 tooltip 走 GTNH 样式 hook）
+- `MixinNeiRenderToolTips.java` / `MixinNeiLayoutManager.java` / `MixinNeiItemZoom.java` — NEI tooltip/布局兼容
+- 配置：`src/main/resources/mixins.advancedatamonitor.json`
+
+### manual/ — （已迁入 gui/manual/）
+- 页面渲染见 `renders/ManualPageRenderer.java`；GUI 入口 `gui/guiscreen/GuiManual.java`

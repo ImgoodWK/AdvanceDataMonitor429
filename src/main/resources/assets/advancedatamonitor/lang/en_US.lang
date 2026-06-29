@@ -1,4 +1,4 @@
-﻿adm.error.xyz=The XYZ coordinate format is invalid. Example: 123,64,-123…
+adm.error.xyz=The XYZ coordinate format is invalid. Example: 123,64,-123…
 adm.error.ymin=The Y minimum value must be a valid number.
 adm.error.ymax=The Y maximum value must be a valid number.
 adm.error.datalimit=The data limit must be an integer between 2 and 9999.
@@ -708,6 +708,7 @@ adm.pocket.toggle.on=Dimensional Pocket overlay: enabled
 adm.pocket.toggle.off=Dimensional Pocket overlay: disabled
 adm.title.pocketConfig=Dimensional Pocket Config
 adm.title.pocketOverlay=Dimensional Pocket
+adm.tooltip.pocket.dragHint=Drag
 adm.title.pocketStoragePaged=Dimensional Pocket Storage (Page %d / %d)
 adm.button.pocket.openConfig=Upgrade Config
 adm.label.pocket.spaceUpgrade=Space Upgrade Slot

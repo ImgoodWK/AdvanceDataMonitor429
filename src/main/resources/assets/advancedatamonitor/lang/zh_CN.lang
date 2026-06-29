@@ -1,4 +1,4 @@
-﻿adm.error.xyz=XYZ坐标格式无效,如: 123,64,-123...
+adm.error.xyz=XYZ坐标格式无效,如: 123,64,-123...
 adm.error.ymin=Y最小值必须是有效数字
 adm.error.ymax=Y最大值必须是有效数字
 adm.error.axislinecolor=轴线颜色格式无效,请使用十六进制色值,如:FF00FF...
@@ -711,6 +711,7 @@ adm.pocket.toggle.on=次元口袋悬浮窗：已开启
 adm.pocket.toggle.off=次元口袋悬浮窗：已关闭
 adm.title.pocketConfig=次元口袋配置
 adm.title.pocketOverlay=次元口袋
+adm.tooltip.pocket.dragHint=拖动
 adm.title.pocketStoragePaged=次元口袋存储 (第 %d 页 / 共 %d 页)
 adm.button.pocket.openConfig=升级配置
 adm.label.pocket.spaceUpgrade=空间升级插槽

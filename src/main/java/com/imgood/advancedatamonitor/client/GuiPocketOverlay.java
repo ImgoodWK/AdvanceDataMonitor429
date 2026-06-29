@@ -30,6 +30,8 @@ import org.lwjgl.opengl.GL11;
 
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
 
+import com.imgood.advancedatamonitor.mixin.GuiScreenTooltipAccess;
+
 import com.imgood.advancedatamonitor.network.packet.PacketPocketAction;
 
 
@@ -92,6 +94,10 @@ public class GuiPocketOverlay {
 
     private static final int FONT_LINE_HEIGHT = 9;
     private static final int FOOTER_ARROW_GAP = 3;
+    /** Semi-transparent backdrop behind overlay title / footer labels. */
+    private static final int LABEL_BACKDROP = 0xC0101828;
+    private static final int LABEL_BACKDROP_PAD_X = 4;
+    private static final int LABEL_BACKDROP_PAD_Y = 2;
 
 
 
@@ -145,6 +151,25 @@ public class GuiPocketOverlay {
 
         return dragging;
 
+    }
+
+
+
+    /**
+     * Hovered pocket-slot tooltip via {@link GuiContainer#drawHoveringText} so GTNH / NEI /
+     * community tooltip-style mods can replace the vanilla box. Call after cursor item render.
+     */
+    public void drawHoveredItemTooltip(int mouseX, int mouseY) {
+        if (host == null || PocketClientCache.isCollapsed() || dragging) return;
+        int slot = getSlotAt(mouseX, mouseY);
+        if (slot < 0) return;
+        ItemStack stack = PocketClientCache.getStack(PocketClientCache.getCurrentPage(), slot);
+        if (stack == null) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) return;
+        List<String> lines = stack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips);
+        if (lines == null || lines.isEmpty()) return;
+        ((GuiScreenTooltipAccess) (Object) host).adm$drawHoveringText(lines, mouseX, mouseY, mc.fontRenderer);
     }
 
 
@@ -217,7 +242,8 @@ public class GuiPocketOverlay {
 
         GL11.glDisable(GL11.GL_ALPHA_TEST);
 
-        PocketPortalGuiRenderer.drawOverlayGridPortalRift(gridX, gridY);
+        double overlayPhase = PocketPortalGuiRenderer.overlayAnimationPhase();
+        PocketPortalGuiRenderer.drawOverlayGridPortalRift(gridX, gridY, overlayPhase);
 
 
 
@@ -229,7 +255,7 @@ public class GuiPocketOverlay {
 
 
 
-        PocketPortalGuiRenderer.drawSlotGrid(gridX, gridY, slotsPerPage);
+        PocketPortalGuiRenderer.drawOverlaySlotGrid(gridX, gridY, slotsPerPage, overlayPhase);
 
 
 
@@ -267,15 +293,17 @@ public class GuiPocketOverlay {
 
             if (i == hoveredSlot) {
 
+                int inset = 1;
+
                 Gui.drawRect(
 
-                    gridX + col * CELL_SIZE,
+                    gridX + col * CELL_SIZE + inset,
 
-                    gridY + row * CELL_SIZE,
+                    gridY + row * CELL_SIZE + inset,
 
-                    gridX + col * CELL_SIZE + CELL_SIZE,
+                    gridX + col * CELL_SIZE + CELL_SIZE - inset,
 
-                    gridY + row * CELL_SIZE + CELL_SIZE,
+                    gridY + row * CELL_SIZE + CELL_SIZE - inset,
 
                     0x80FFFFFF);
 
@@ -287,46 +315,15 @@ public class GuiPocketOverlay {
 
 
 
-        if (hoveredSlot >= 0) {
-
-            ItemStack hoveredStack = PocketClientCache.getStack(page, hoveredSlot);
-
-            if (hoveredStack != null) {
-
-                RenderHelper.enableGUIStandardItemLighting();
-
-                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-
-                List<String> tooltip = hoveredStack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips);
-
-                int tooltipX = getCurrentMouseX() + 12;
-
-                int tooltipY = getCurrentMouseY() - 12;
-
-                for (String line : tooltip) {
-
-                    mc.fontRenderer.drawStringWithShadow(line, tooltipX, tooltipY, 0xFFFFFF);
-
-                    tooltipY += 10;
-
-                }
-
-                RenderHelper.disableStandardItemLighting();
-
-            }
-
-        }
-
-
-
         FooterLayout footer = computeFooterLayout(mc, pw);
         boolean canPrev = PocketClientCache.getCurrentPage() > 0;
         boolean canNext = PocketClientCache.getCurrentPage() < PocketClientCache.getPageCount() - 1;
+        drawFooterBackdrop(footer, mc);
         drawArrowButton(footer.leftArrowX, footer.footerY, true, canPrev);
         drawArrowButton(footer.rightArrowX, footer.footerY, false, canNext);
         mc.fontRenderer.drawStringWithShadow(footer.pageText, footer.pageTextX, footer.pageTextY, 0xAACCFF);
 
-
+        drawDragHint(getCurrentMouseX(), getCurrentMouseY());
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
 
@@ -343,7 +340,27 @@ public class GuiPocketOverlay {
     private static void drawCenteredAnimatedGradientTitle(Minecraft mc, int panelX, int panelW, int y, String text) {
         if (text == null || text.isEmpty()) return;
         int totalWidth = mc.fontRenderer.getStringWidth(text);
-        drawAnimatedGradientTitle(mc, panelX + (panelW - totalWidth) / 2, y, text);
+        int x = panelX + (panelW - totalWidth) / 2;
+        drawLabelBackdrop(
+            x - LABEL_BACKDROP_PAD_X,
+            y - LABEL_BACKDROP_PAD_Y,
+            x + totalWidth + LABEL_BACKDROP_PAD_X,
+            y + mc.fontRenderer.FONT_HEIGHT + LABEL_BACKDROP_PAD_Y);
+        drawAnimatedGradientTitle(mc, x, y, text);
+    }
+
+    private static void drawLabelBackdrop(int x1, int y1, int x2, int y2) {
+        Gui.drawRect(x1, y1, x2, y2, LABEL_BACKDROP);
+    }
+
+    private void drawFooterBackdrop(FooterLayout footer, Minecraft mc) {
+        int textBottom = footer.pageTextY + mc.fontRenderer.FONT_HEIGHT;
+        int bottom = Math.max(footer.footerY + PAGE_ARROW_H, textBottom) + LABEL_BACKDROP_PAD_Y;
+        drawLabelBackdrop(
+            footer.leftArrowX - LABEL_BACKDROP_PAD_X,
+            footer.footerY - LABEL_BACKDROP_PAD_Y,
+            footer.rightArrowX + PAGE_ARROW_W + LABEL_BACKDROP_PAD_X,
+            bottom);
     }
 
     /** Blue-violet gradient title that oscillates over time. */
@@ -393,8 +410,8 @@ public class GuiPocketOverlay {
     private FooterLayout computeFooterLayout(Minecraft mc, int pw) {
         FooterLayout layout = new FooterLayout();
         layout.footerY = getFooterY();
-        layout.pageText = String.format(
-            I18n.format("adm.label.pocket.pageFooter"),
+        layout.pageText = I18n.format(
+            "adm.label.pocket.pageFooter",
             PocketClientCache.getCurrentPage() + 1,
             PocketClientCache.getPageCount());
         int pageTextWidth = mc.fontRenderer.getStringWidth(layout.pageText);
@@ -459,6 +476,40 @@ public class GuiPocketOverlay {
         String glyph = left ? "<" : ">";
 
         mc.fontRenderer.drawStringWithShadow(glyph, x + 3, y + 4, enabled ? 0xFFFFFF : 0x808080);
+
+    }
+
+
+
+    /**
+
+     * 鼠标悬停在可拖动边缘一圈时显示"拖动"小提示;拖动进行中不显示。
+
+     */
+
+    private void drawDragHint(int mouseX, int mouseY) {
+
+        if (dragging) return;
+
+        if (PocketClientCache.isCollapsed()) return;
+
+        if (!isInDragZone(mouseX, mouseY)) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+
+        String hint = I18n.format("adm.tooltip.pocket.dragHint");
+
+        int textW = mc.fontRenderer.getStringWidth(hint);
+
+        int tx = mouseX + 12;
+
+        int ty = mouseY - 12;
+
+        Gui.drawRect(tx - 3, ty - 2, tx + textW + 3, ty + 9, 0xE0001018);
+
+        Gui.drawRect(tx - 3, ty - 2, tx + textW + 3, ty - 1, 0xFF5588FF);
+
+        mc.fontRenderer.drawStringWithShadow(hint, tx, ty, 0xAACCFF);
 
     }
 
@@ -548,7 +599,7 @@ public class GuiPocketOverlay {
 
         }
 
-        if (hitsRect(mouseX, mouseY, panelX, panelY, pw, 16)) {
+        if (isInDragZone(mouseX, mouseY)) {
 
             dragging = true;
 
@@ -703,6 +754,48 @@ public class GuiPocketOverlay {
         }
 
         return hitsRect(mouseX, mouseY, panelX, panelY, getPanelWidth(), getPanelHeight());
+
+    }
+
+
+
+    /**
+
+     * Expanded overlay 的"边缘一圈"拖动区:整个面板减去中央 slot 网格、折叠按钮与翻页箭头。
+
+     * 折叠状态返回 false(点击用于展开)。
+
+     */
+
+    public boolean isInDragZone(int mouseX, int mouseY) {
+
+        if (PocketClientCache.isCollapsed()) return false;
+
+        if (!hitsPanel(mouseX, mouseY)) return false;
+
+        int pw = getPanelWidth();
+
+        int gridX = PocketPortalGuiRenderer.overlayGridOriginX(panelX);
+
+        int gridY = PocketPortalGuiRenderer.overlayGridOriginY(panelY);
+
+        int gridW = PocketPortalGuiRenderer.gridPixelWidth();
+
+        int gridH = PocketPortalGuiRenderer.gridPixelHeight(PocketPortalGuiRenderer.maxDisplaySlots());
+
+        if (hitsRect(mouseX, mouseY, gridX, gridY, gridW, gridH)) return false;
+
+        if (hitsRect(mouseX, mouseY, panelX + pw - COLLAPSE_BTN_SIZE - 2, panelY + 2,
+
+            COLLAPSE_BTN_SIZE, COLLAPSE_BTN_SIZE)) return false;
+
+        FooterLayout footer = computeFooterLayout(Minecraft.getMinecraft(), pw);
+
+        if (hitsRect(mouseX, mouseY, footer.leftArrowX, footer.footerY, PAGE_ARROW_W, PAGE_ARROW_H)) return false;
+
+        if (hitsRect(mouseX, mouseY, footer.rightArrowX, footer.footerY, PAGE_ARROW_W, PAGE_ARROW_H)) return false;
+
+        return true;
 
     }
 

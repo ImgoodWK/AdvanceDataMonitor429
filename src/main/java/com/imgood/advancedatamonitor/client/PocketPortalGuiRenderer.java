@@ -41,6 +41,14 @@ public final class PocketPortalGuiRenderer {
     private static final int SLOT_EDGE_COLOR = deepenArgb(0x4088AAFF);
     /** Very faint slot tint (ARGB ~9% alpha). */
     private static final int SLOT_TINT_COLOR = deepenArgb(0x187098D0);
+    /** Minimum along-segment alpha at line ends (high transparency); center uses full sampled alpha. */
+    private static final float OVERLAY_GRID_LINE_END_ALPHA = 0.10f;
+    private static final float OVERLAY_GRID_LINE_UNDERLAY_HALF = 2.75f;
+    private static final float OVERLAY_GRID_LINE_GLOW_HALF = 2.0f;
+    private static final float OVERLAY_GRID_LINE_CORE_HALF = 0.85f;
+    private static final int OVERLAY_GRID_LINE_ALPHA_UNDERLAY = 0xD0;
+    private static final int OVERLAY_GRID_LINE_ALPHA_GLOW = 0x88;
+    private static final int OVERLAY_GRID_LINE_ALPHA_CORE = 0xF0;
     /** Pocket slot grid origin within a {@link com.imgood.advancedatamonitor.gui.guiscreen.GuiPocketStorage} panel. */
     public static final int STORAGE_SLOT_ORIGIN_X = 8;
     public static final int STORAGE_SLOT_ORIGIN_Y = 18;
@@ -59,6 +67,8 @@ public final class PocketPortalGuiRenderer {
     private static final int CONFIG_PLAYER_STRIP_Y = 126;
     /** Overlay wobble/ripple intensity (1.0 = original baseline). */
     private static final float OVERLAY_RIPPLE_SCALE = 1.3f;
+    /** Shared overlay animation period — background rift and slot grid lines use the same phase. */
+    public static final long OVERLAY_ANIM_PERIOD_MS = 8000L;
 
     private PocketPortalGuiRenderer() {}
 
@@ -98,6 +108,10 @@ public final class PocketPortalGuiRenderer {
      * on top of the existing atlas — no texture edits required.
      */
     public static void drawOverlayGridPortalRift(int gridOriginX, int gridOriginY) {
+        drawOverlayGridPortalRift(gridOriginX, gridOriginY, overlayAnimationPhase());
+    }
+
+    public static void drawOverlayGridPortalRift(int gridOriginX, int gridOriginY, double phase) {
         int gridW = gridPixelWidth();
         int gridH = gridPixelHeight(maxDisplaySlots());
         int ring = RIFT_OVERSHOOT;
@@ -106,7 +120,6 @@ public final class PocketPortalGuiRenderer {
         int outerW = gridW + ring * 2;
         int outerH = gridH + ring * 2;
         int border = Math.min(ring, Math.min(outerW, outerH) / 2);
-        double phase = animationPhase();
         drawNineSlicePanelWavy(outerX, outerY, outerW, outerH, border, phase);
         int innerX = outerX + border;
         int innerY = outerY + border;
@@ -186,7 +199,7 @@ public final class PocketPortalGuiRenderer {
         GL11.glDisable(GL11.GL_BLEND);
     }
 
-    /** Expanding ripple rings + drifting shimmer bands — pure color, no extra textures. */
+    /** Expanding ripple rings + drifting shimmer bands — phase-driven, loops seamlessly. */
     private static void drawPortalRippleOverlay(int x, int y, int w, int h, double phase) {
         if (w <= 2 || h <= 2) return;
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -196,11 +209,11 @@ public final class PocketPortalGuiRenderer {
         float cx = x + w * 0.5f;
         float cy = y + h * 0.52f;
         float maxRadius = Math.min(w, h) * 0.62f * OVERLAY_RIPPLE_SCALE;
-        double time = Minecraft.getSystemTime() / 1000.0;
 
         for (int ring = 0; ring < 4; ring++) {
-            double travel = (time * 0.55 * OVERLAY_RIPPLE_SCALE + ring * 0.28) % 1.0;
-            float radius = (float) (travel * maxRadius);
+            double ringPhase = phase + ring * (Math.PI * 0.5);
+            float travel = (float) ((1.0 + Math.cos(ringPhase)) * 0.5);
+            float radius = travel * maxRadius;
             float fade = (float) (Math.sin(travel * Math.PI) * 0.42 * OVERLAY_RIPPLE_SCALE);
             if (fade <= 0.02f) continue;
             int alpha = Math.min(255, (int) (fade * 0x55 * OVERLAY_RIPPLE_SCALE));
@@ -210,12 +223,13 @@ public final class PocketPortalGuiRenderer {
 
         int bandCount = 6;
         for (int band = 0; band < bandCount; band++) {
-            double travel = (time * 0.35 * OVERLAY_RIPPLE_SCALE + band * (1.0 / bandCount)) % 1.0;
+            double bandPhase = phase + band * (Math.PI * 2.0 / bandCount);
+            float travel = (float) ((1.0 + Math.sin(bandPhase)) * 0.5);
             int by = y + (int) (travel * (h - 3));
             float fade = (float) (Math.sin(travel * Math.PI) * 0.55 * OVERLAY_RIPPLE_SCALE);
             int alpha = Math.min(255, (int) (fade * 0x20 * OVERLAY_RIPPLE_SCALE));
             if (alpha < 4) continue;
-            float waveShift = (float) (Math.sin(phase * 1.4 + band * 0.9) * 3.0 * OVERLAY_RIPPLE_SCALE);
+            float waveShift = (float) (Math.sin(phase + band * 0.9) * 3.0 * OVERLAY_RIPPLE_SCALE);
             int color = gradientArgb((float) band / bandCount, alpha);
             Gui.drawRect(x + 6 + (int) waveShift, by, x + w - 6 + (int) waveShift, by + 2, color);
         }
@@ -228,7 +242,7 @@ public final class PocketPortalGuiRenderer {
         int strips = Math.max(12, h / 3);
         for (int i = 0; i < strips; i++) {
             float t = i / (float) strips;
-            float wave = (float) (Math.sin(phase * 1.25 * OVERLAY_RIPPLE_SCALE + t * Math.PI * 4.0 * OVERLAY_RIPPLE_SCALE)
+            float wave = (float) (Math.sin(phase + t * Math.PI * 4.0 * OVERLAY_RIPPLE_SCALE)
                 * 2.0 * OVERLAY_RIPPLE_SCALE);
             int sy = y + (int) (t * h);
             int nextY = (i + 1 == strips) ? y + h : y + (int) ((i + 1) / (float) strips * h);
@@ -283,6 +297,164 @@ public final class PocketPortalGuiRenderer {
             Gui.drawRect(ex - 1, sy, ex, ey, SLOT_EDGE_COLOR);
         }
         GL11.glEnable(GL11.GL_TEXTURE_2D);
+    }
+
+    /**
+     * Overlay-only slot grid: one continuous segment per row/column boundary; color field is
+     * sampled from screen position + shared {@link #overlayAnimationPhase()} so lines and rift match.
+     */
+    public static void drawOverlaySlotGrid(int originX, int originY, int slotCount) {
+        drawOverlaySlotGrid(originX, originY, slotCount, overlayAnimationPhase());
+    }
+
+    public static void drawOverlaySlotGrid(int originX, int originY, int slotCount, double phase) {
+        if (slotCount <= 0) return;
+        beginOverlayLineBlend();
+        int cols = 9;
+        int rows = (slotCount + cols - 1) / cols;
+
+        // Internal horizontal dividers only — skip top (r=0) and bottom (r=rows) outer ring.
+        for (int r = 1; r < rows; r++) {
+            int widthCols = overlayRowBoundaryWidthCols(slotCount, cols, rows, r);
+            if (widthCols <= 0) continue;
+            float y = originY + r * CELL_SIZE;
+            drawOverlayGradientLine(originX, y, originX + widthCols * CELL_SIZE, y, phase);
+        }
+
+        // Internal vertical dividers per row — skip left (c=0) and right (c=colsInRow) outer ring.
+        for (int r = 0; r < rows; r++) {
+            int colsInRow = overlayColsInRow(slotCount, cols, r);
+            for (int c = 1; c < colsInRow; c++) {
+                float x = originX + c * CELL_SIZE;
+                float yTop = originY + r * CELL_SIZE;
+                float yBot = originY + (r + 1) * CELL_SIZE;
+                drawOverlayGradientLine(x, yTop, x, yBot, phase);
+            }
+        }
+
+        endOverlayLineBlend();
+    }
+
+    private static int overlayColsInRow(int slotCount, int cols, int row) {
+        int rowStart = row * cols;
+        if (rowStart >= slotCount) return 0;
+        return Math.min(cols, slotCount - rowStart);
+    }
+
+    private static int overlayRowBoundaryWidthCols(int slotCount, int cols, int rows, int boundaryRow) {
+        if (boundaryRow <= 0) {
+            return overlayColsInRow(slotCount, cols, 0);
+        }
+        if (boundaryRow >= rows) {
+            return overlayColsInRow(slotCount, cols, rows - 1);
+        }
+        return Math.max(
+            overlayColsInRow(slotCount, cols, boundaryRow - 1),
+            overlayColsInRow(slotCount, cols, boundaryRow));
+    }
+
+    private static void beginOverlayLineBlend() {
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    private static void endOverlayLineBlend() {
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+    }
+
+    /**
+     * Portal-toned grid stroke: dark indigo underlay (reads on bright patches) + saturated
+     * blue-violet core (reads on black) — same {@code phase} field as the rift background.
+     */
+    private static void drawOverlayGradientLine(float x0, float y0, float x1, float y1, double phase) {
+        drawOverlayGradientLinePass(
+            x0, y0, x1, y1, phase, OVERLAY_GRID_LINE_UNDERLAY_HALF, OVERLAY_GRID_LINE_ALPHA_UNDERLAY, 1.0f, true);
+        drawOverlayGradientLinePass(
+            x0, y0, x1, y1, phase, OVERLAY_GRID_LINE_GLOW_HALF, OVERLAY_GRID_LINE_ALPHA_GLOW, 0.62f, false);
+        drawOverlayGradientLinePass(
+            x0, y0, x1, y1, phase, OVERLAY_GRID_LINE_CORE_HALF, OVERLAY_GRID_LINE_ALPHA_CORE, 1.0f, false);
+    }
+
+    private static void drawOverlayGradientLinePass(
+        float x0, float y0, float x1, float y1, double phase,
+        float halfThickness, int peakAlpha, float alphaScale, boolean underlay) {
+        float dx = x1 - x0;
+        float dy = y1 - y0;
+        float len = (float) Math.sqrt(dx * dx + dy * dy);
+        if (len < 0.5f) return;
+
+        float nx = -dy / len;
+        float ny = dx / len;
+        int steps = Math.max(8, (int) (len / 2.5f));
+
+        Tessellator tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_QUAD_STRIP);
+        for (int i = 0; i <= steps; i++) {
+            float t = i / (float) steps;
+            float px = x0 + dx * t;
+            float py = y0 + dy * t;
+            int argb = underlay
+                ? sampleOverlayGridLineUnderlayArgb(px, py, phase, peakAlpha, alphaScale)
+                : sampleOverlayGridLineArgb(px, py, phase, peakAlpha, alphaScale);
+            float rf = ((argb >> 16) & 0xFF) / 255.0f;
+            float gf = ((argb >> 8) & 0xFF) / 255.0f;
+            float bf = (argb & 0xFF) / 255.0f;
+            float a = ((argb >> 24) & 0xFF) / 255.0f * overlayGridLineAlongAlpha(t);
+
+            tess.setColorRGBA_F(rf, gf, bf, a);
+            tess.addVertex(px - nx * halfThickness, py - ny * halfThickness, 0.0);
+            tess.setColorRGBA_F(rf, gf, bf, a);
+            tess.addVertex(px + nx * halfThickness, py + ny * halfThickness, 0.0);
+        }
+        tess.draw();
+    }
+
+    /** Along each segment: ends fade out (high transparency), center stays opaque; RGB from spatial field. */
+    private static float overlayGridLineAlongAlpha(float tAlongSegment) {
+        float center = (float) Math.sin(tAlongSegment * Math.PI);
+        return OVERLAY_GRID_LINE_END_ALPHA + (1.0f - OVERLAY_GRID_LINE_END_ALPHA) * center;
+    }
+
+    /** Shared blue-violet field for overlay grid lines — matches rift {@code phase} for seamless motion. */
+    private static int sampleOverlayGridLineArgb(float px, float py, double phase, int peakAlpha, float alphaScale) {
+        float hueBlend = overlayGridHueBlend(px, py, phase);
+        float alphaMod = (float) (0.72 + 0.28 * Math.sin(px * 0.048 + py * 0.048 + phase * 1.05));
+        int alpha = (int) (peakAlpha * alphaMod * alphaScale);
+        if (alpha < 16) alpha = 16;
+        return overlayGridLineGradientArgb(hueBlend, alpha);
+    }
+
+    /** Deep indigo under-stroke — same hue family as portal, adds contrast on bright background tiles. */
+    private static int sampleOverlayGridLineUnderlayArgb(float px, float py, double phase, int peakAlpha, float alphaScale) {
+        float hueBlend = overlayGridHueBlend(px, py, phase);
+        float alphaMod = (float) (0.78 + 0.22 * Math.sin(px * 0.048 + py * 0.048 + phase * 1.05));
+        int alpha = (int) (peakAlpha * alphaMod * alphaScale);
+        if (alpha < 28) alpha = 28;
+        int r = blendChannel(0x06, 0x16, hueBlend);
+        int g = blendChannel(0x08, 0x12, hueBlend);
+        int b = blendChannel(0x22, 0x42, hueBlend);
+        return (alpha << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    private static float overlayGridHueBlend(float px, float py, double phase) {
+        float hueBlend = (float) ((Math.sin(px * 0.065 + phase) + Math.sin(py * 0.065 + phase * 0.92)) * 0.25 + 0.5);
+        if (hueBlend < 0.0f) hueBlend = 0.0f;
+        if (hueBlend > 1.0f) hueBlend = 1.0f;
+        return hueBlend;
+    }
+
+    /** Saturated blue-violet core — bright enough on black, underlay handles light patches. */
+    private static int overlayGridLineGradientArgb(float blend, int alpha) {
+        int r = blendChannel(0x55, 0xAA, blend);
+        int g = blendChannel(0x68, 0x66, blend);
+        int b = blendChannel(0xCC, 0xFF, blend);
+        return (alpha << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    /** Phase in [0, 2π) for overlay rift + slot grid; wraps without discontinuity. */
+    public static double overlayAnimationPhase() {
+        return (Minecraft.getSystemTime() % OVERLAY_ANIM_PERIOD_MS) / (double) OVERLAY_ANIM_PERIOD_MS * Math.PI * 2.0;
     }
 
     /** X of the slot grid within an overlay panel anchored at {@code panelX}. */
