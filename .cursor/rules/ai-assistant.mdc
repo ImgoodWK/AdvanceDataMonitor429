@@ -813,12 +813,4 @@ private static boolean zh(String locale) {
 
 ## 十四、文档同步要求
 
-每次新增或修改 AI 助手功能时，必须同步更新以下文档：
-
-1. **本规则文件** (`ai-assistant.mdc`) — 更新意图枚举、会话类型、文件速查表
-2. **`docs/zh/ai-assistant/开发指南.md`** / **`docs/en/ai-assistant/development-guide.md`** — Part A 架构与数据流 · Part B 必改文件速查 · Part C 本地 STT
-3. **资源文件**:
-   - `assistant-features.json` — 更新功能菜单配置
-   - `assistant-lexicon.json`（如需要新关键词）
-   - `en_US.lang` + `zh_CN.lang` — 更新双语文本
-4. **GUI 能力说明** `GuiAIChat.assistantCapabilityInstruction()` — 更新功能列表
+AI 助手功能的文档同步要求（必改文件清单、`assistant-features.json` / `assistant-lexicon.json`、`en_US.lang` + `zh_CN.lang`、`GuiAIChat.assistantCapabilityInstruction()` 等）详见 `ai-assistant-docs-sync.mdc`（与本规则同 glob 触发），此处不再重复以避免双份维护。

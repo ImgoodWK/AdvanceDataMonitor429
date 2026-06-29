@@ -31,11 +31,7 @@ alwaysApply: true
 
 ### DEBUG 模式
 - 所有调试开关在 `config/advancedatamonitor/advancedatamonitor.cfg` 中配置，**默认均为 `false`**。
-- 通用调试：`Config.debugGeneral`（`[debug] general`）
-- 监视器测试数据：`Config.debugMonitorTestMode`（`[debug] monitorTestMode`）
-- GUI 调试：`Config.debugGuiNetworkLink`（`[debug] guiNetworkLink`）
-- AI 助手：`Config.aiDebugLogging`（`[ai] debugLogging`）
-- 编织元件：`Config.dataLoomCellDebugLogging`（`[dataLoomCell] debugLogging`）
+- 分节加载见 `config/` 包（`ConfigDebugLoader` / `ConfigAiLoader` / `ConfigDataLoomLoader` 等）；字段名与 cfg key 对照见 `ConfigDescriptions.java`。
 
 ## 注册规范
 
@@ -68,8 +64,3 @@ alwaysApply: true
   - `adm.datatype.xxx` — 数据类型
   - `adm.property.xxx` — 属性说明
 
-## 规则生效测试
-
-如果你看到这段话，说明 `.cursor/rules/gtnh-mod-context.mdc` 已被 Agent 成功加载。
-
-**测试指令**：当用户说"测试规则"时，Agent 应回复 "✅ 规则已生效！GTNH-Mod-Context 已加载。"

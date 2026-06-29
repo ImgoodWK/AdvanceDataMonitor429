@@ -1,6 +1,7 @@
 ---
 description: AI 助手功能变更时自动同步 Cursor 规则和 docs/ai-assistant/ 文档
-alwaysApply: true
+globs: **/assistant/**,**/assistant/ai/**,**/voice/**,**/gui/guiscreen/GuiAIChat.java,**/gui/guiscreen/GuiAISettings.java,**/command/CommandAssistant.java,**/command/CommandAIConfig.java,**/network/packet/PacketAssistantAction.java,**/network/packet/PacketAssistantResponse.java
+alwaysApply: false
 ---
 # AI 助手功能文档同步规则
 
@@ -12,7 +13,8 @@ alwaysApply: true
 
 ### 1. Cursor 规则文件
 - `.cursor/rules/ai-assistant.mdc` — 更新意图枚举、会话类型、文件速查表、查询分发列表
-- `.cursor/rules/project-structure.mdc` — 如果 `assistant/`、`ai/`、`voice/` 包中有文件新增/删除/重命名，更新对应的文件计数（如 `25 文件` → `26 文件`）和关键文件列表
+- `.cursor/rules/project-structure.mdc`（核心索引）— 如果 `assistant/`、`ai/`、`voice/` 包中有文件新增/删除/重命名，更新顶层包概览与文件计数
+- `.cursor/rules/project-structure-details.mdc`（详细清单）— 同步更新 `assistant/` 段的逐文件清单、文件计数（如 `25 文件` → `26 文件`）和关键文件列表
 
 ### 2. 项目 Markdown 文档（`docs/` 目录）
 
@@ -34,7 +36,7 @@ alwaysApply: true
 
 ## 执行时机
 
-此规则为 `alwaysApply: true`，每次涉及 AI 助手功能的修改后，Agent 应主动检查并更新以上文件，而不是等用户提醒。
+此规则为 glob 按需加载（编辑 `assistant/`、`voice/` 或相关 GUI/命令/网络包文件时自动触发）。每次涉及 AI 助手功能的修改后，Agent 应主动检查并更新以上文件，而不是等用户提醒。
 
 ## 目的
 
