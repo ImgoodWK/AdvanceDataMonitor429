@@ -1,6 +1,6 @@
 # Unreferenced Lang Keys
 
-Lang keys present in `en_US.lang` / `zh_CN.lang` but not found in Java sources or packaged resources under `assets/advancedatamonitor/` (manual JSON, assistant config, etc.).
+Lang keys present in `en_US.lang` / `zh_CN.lang` but not found in Java sources or packaged resources under `assets/textech/` (manual JSON, assistant config, etc.).
 
 - lang 键总数 / total keys: **643**
 - 未引用键数 / unreferenced: **13**

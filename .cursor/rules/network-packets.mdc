@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## 通道与注册时机
 
-- 通道：`AdvanceDataMonitor.ADMCHANEL`（`SimpleNetworkWrapper`，modid 命名空间）
+- 通道：`TeXTech.ADMCHANEL`（`SimpleNetworkWrapper`，modid 命名空间）
 - 注册入口：`loader/LoaderNetwork.registerNetWorks()`，在 `postInit` 调用
 - 客户端 Handler 注册必须用 `FMLCommonHandler.instance().getEffectiveSide().isClient()` 包裹，避免服务端启动时类加载 `@SideOnly(CLIENT)` 报错
 

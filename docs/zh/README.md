@@ -1,6 +1,6 @@
-﻿# AdvanceDataMonitor 文档中心（中文）
+# TeXTech 文档中心（中文）
 
-> Mod ID: `advancedatamonitor` · Minecraft 1.7.10 / GTNH · 最后同步：2026-06
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · 最后同步：2026-06
 
 English docs: [docs/en/README.md](../en/README.md)
 
@@ -71,4 +71,4 @@ English docs: [docs/en/README.md](../en/README.md)
 - **高级数据监视器**、**数据映录器**
 - **网络链接器**、**合成链接器**、**高级存储链接器**、**高级存储链接元件**
 - **挂索节点** / **挂索器**、**高级计划器**、**超能砂糖桔**、**至高天圣裁**
-- **高级数据监视器手册**（物品 `manual`）
+- **铽丝科技手册**（物品 `manual`）

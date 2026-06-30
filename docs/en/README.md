@@ -1,6 +1,6 @@
-﻿# AdvanceDataMonitor Documentation (English)
+# TeXTech Documentation (English)
 
-> Mod ID: `advancedatamonitor` · Minecraft 1.7.10 / GTNH · Last synced: 2026-06
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-06
 
 中文文档: [docs/zh/README.md](../zh/README.md)
 
@@ -65,4 +65,4 @@ In-game display names follow `lang/en_US.lang`, e.g.:
 - **Advance Data Monitor**, **Data Imprint Tool**
 - **Network Linker**, **Crafting Linker**, **Advanced Storage Linker**, **Advanced Storage Link Cell**
 - **Grapple Anchor** / **Grapple Hook**, **Advance Planner**, **Super Orange**, **Empyrean Holy Judgment**
-- **AdvanceDataMonitor Manual** (item `manual`)
+- **TeXTech Manual** (item `manual`)

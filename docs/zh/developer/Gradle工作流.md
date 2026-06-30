@@ -1,4 +1,4 @@
-﻿# AdvanceDataMonitor Gradle 工作流
+# TeXTech Gradle 工作流
 
 > 受众：开发者 · 构建 / 迁移 / 移植 · 最后同步：2026-06
 
@@ -27,7 +27,7 @@
 
 ## 1. 项目构建概览
 
-AdvanceDataMonitor 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/ExampleMod1.7.10) 构建骨架，主要行为由 `com.gtnewhorizons.gtnhconvention` 插件提供。
+TeXTech 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/ExampleMod1.7.10) 构建骨架，主要行为由 `com.gtnewhorizons.gtnhconvention` 插件提供。
 
 ### 1.1 常用命令
 

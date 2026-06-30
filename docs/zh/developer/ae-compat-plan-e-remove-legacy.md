@@ -24,7 +24,7 @@
 ## 目标架构（完成后）
 
 ```
-AdvanceDataMonitor.postInit
+TeXTech.postInit
     └── AeCompat（单路径，无 profile 分支）
             ├── AeCellStatsAdapter      → 唯一实现
             ├── AeFluidMarkerAdapter
@@ -87,7 +87,7 @@ gradlew compileJava
 - 四个 adapter 字段**静态绑定**为 Native 实现（Step 4 重命名后的类）
 - `init()` 可简化为 `initialized = true` + 可选一行 `LOG.info("[ADM] AE compat: native fluid (2.9.0+)")`
 
-[`AdvanceDataMonitor.postInit`](../../../src/main/java/com/imgood/advancedatamonitor/AdvanceDataMonitor.java) 可保留或移除 `AeCompat.init()`。
+[`TeXTech.postInit`](../../../src/main/java/com/imgood/advancedatamonitor/TeXTech.java) 可保留或移除 `AeCompat.init()`。
 
 ---
 

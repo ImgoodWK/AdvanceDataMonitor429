@@ -1,6 +1,6 @@
 # GTNH 版本兼容说明
 
-> **适用版本**：AdvanceDataMonitor **v1.0.0**（初次公开发布）  
+> **适用版本**：TeXTech **v1.0.0**（初次公开发布）  
 > **最后更新**：2026-06-25  
 > English: [gtnh-version-compatibility.md](../../en/developer/gtnh-version-compatibility.md)
 
@@ -27,7 +27,7 @@
 
 ### 手动覆盖（高级）
 
-配置文件 `config/advancedatamonitor/advancedatamonitor.cfg` 中 `[compat]` 节：
+配置文件 `config/textech/textech.cfg` 中 `[compat]` 节：
 
 | 配置项 | 可选值 | 说明 |
 |--------|--------|------|
@@ -76,14 +76,14 @@
 ### 迁移建议
 
 - **仍在 2.8.x 的玩家**：可继续使用 **v1.0.0**；计划升级整合包前无需额外操作。
-- **整合包作者**：若包体仍基于 2.8.x，请在发布说明中标注「AdvanceDataMonitor ≥1.1.0 需 GTNH 2.9.0-beta-1+」；或锁定模组版本为 `1.0.x`。
+- **整合包作者**：若包体仍基于 2.8.x，请在发布说明中标注「TeXTech ≥1.1.0 需 GTNH 2.9.0-beta-1+」；或锁定模组版本为 `1.0.x`。
 - **开发者**：移除工作按 [ae-compat-plan-e-remove-legacy.md](ae-compat-plan-e-remove-legacy.md) 执行；对话开场白：「继续 GTNH 2.9 AE 兼容，执行 Plan E — 移除 Legacy 支持」。
 
 ---
 
 ## 4. v1.0.0 已知限制（与版本无关）
 
-初次发布 intentionally 不完整，与 GTNH 版本兼容无关：
+初次发布有意不完整，与 GTNH 版本兼容无关：
 
 - **配方**：大量物品/方块尚未添加 GTNH 合成配方，需 NEI / 创造模式获取。
 - **材质**：部分物品使用程序化临时贴图，见 [临时材质清单.md](临时材质清单.md)。

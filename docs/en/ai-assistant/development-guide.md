@@ -185,7 +185,7 @@ flowchart TD
 - `src/main/java/com/imgood/advancedatamonitor/assistant/PlanStore.java`：简单 plan/task 存储，支持 create/list/complete。
 - `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantDebugLog.java`：assistant 调试日志辅助，受配置影响写入诊断信息。
 - `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantLexicon.java`：加载和提供 lexicon 数据；现在主要用于 fallback、时间/数量/词语清理、pending batch append 辅助解析。
-- `src/main/resources/assets/advancedatamonitor/assistant/assistant-lexicon.json`：规则 parser 词表，包含 order/query/confirm/cancel/plan/storage scope 等关键词。
+- `src/main/resources/assets/textech/assistant/assistant-lexicon.json`：规则 parser 词表，包含 order/query/confirm/cancel/plan/storage scope 等关键词。
 
 ### AI client、配置和设置界面
 
@@ -558,7 +558,7 @@ Key 命名规范（详见 gtnh-mod-context.mdc）:
 | GuiAIChat | `src/main/java/.../gui/guiscreen/GuiAIChat.java` |
 | lang | `src/main/resources/.../lang/zh_CN.lang` + `en_US.lang` |
 
-> 根包 = `com.imgood.advancedatamonitor`
+> 根包 = `com.imgood.textech`
 
 ---
 
@@ -576,7 +576,7 @@ Key 命名规范（详见 gtnh-mod-context.mdc）:
 
 ## C2. 模组配置
 
-编辑 `.minecraft/config/advancedatamonitor/advancedatamonitor.cfg`：
+编辑 `.minecraft/config/textech/textech.cfg`：
 
 ```text
 voice {
@@ -591,7 +591,7 @@ voice {
 
 `sttApiKey` 在 `127.0.0.1` / `localhost` 时可留空。
 
-也可使用模组内置 **Vosk 离线模型**（`assets/advancedatamonitor/voice/vosk/zh-small/`），无需本地 STT 服务；详见 [用户手册 §9](../player/用户手册.md#9-语音助手)。
+也可使用模组内置 **Vosk 离线模型**（`assets/textech/voice/vosk/zh-small/`），无需本地 STT 服务；详见 [用户手册 §9](../player/用户手册.md#9-语音助手)。
 
 ## C3. 环境变量与健康检查
 

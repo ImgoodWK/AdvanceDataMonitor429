@@ -407,8 +407,8 @@ class ChatRequestOptions {
 ```
 findAllLinkTiles(player, type, radius=32)
     │
-    ├─ 步骤1: 查找附近 AdvanceDataMonitor 的绑定连接器
-    │         遍历玩家 32 格内的 TileEntityAdvanceDataMonitor
+    ├─ 步骤1: 查找附近 TeXTech 的绑定连接器
+    │         遍历玩家 32 格内的 TileEntityTeXTech
     │         读取其 DataBound 配置，获取绑定的 Link 坐标
     │
     └─ 步骤2 (fallback): 如果绑定为空
@@ -646,11 +646,11 @@ assistantMaxConcurrentCraftJobs = 2
 
 ```java
 // 客户端发送用户输入
-AdvanceDataMonitor.ADMCHANEL.sendToServer(
+TeXTech.ADMCHANEL.sendToServer(
     new PacketAssistantAction(text, sessionKind, locale, featureContextPrefix));
 
 // 服务端发送响应
-AdvanceDataMonitor.ADMCHANEL.sendTo(
+TeXTech.ADMCHANEL.sendTo(
     PacketAssistantResponse.message(resultText), player);
 
 // 服务端注册处理

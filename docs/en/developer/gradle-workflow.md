@@ -1,4 +1,4 @@
-﻿# Gradle Workflow
+# Gradle Workflow
 
 > Audience: Developers · Build / migration / porting · Last synced: 2026-06  
 > **Language note:** This file mirrors `docs/zh/developer/Gradle工作流.md` (Chinese). English build commands are identical — see [Technical Documentation](technical-documentation.md#2-build-and-runtime-environment).
@@ -26,7 +26,7 @@
 
 ## 1. 项目构建概览
 
-AdvanceDataMonitor 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/ExampleMod1.7.10) 构建骨架，主要行为由 `com.gtnewhorizons.gtnhconvention` 插件提供。
+TeXTech 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/ExampleMod1.7.10) 构建骨架，主要行为由 `com.gtnewhorizons.gtnhconvention` 插件提供。
 
 ### 1.1 常用命令
 

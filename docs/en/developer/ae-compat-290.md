@@ -2,7 +2,7 @@
 
 ## Overview
 
-AdvanceDataMonitor uses dual AE integration paths under `compat/ae/`: **Legacy** (before 2.9.0 beta-1) and **NativeFluid** (2.9.0 beta-1+). `AeCompat.init()` runs in `postInit`, probes the environment, and binds adapters.
+TeXTech uses dual AE integration paths under `compat/ae/`: **Legacy** (before 2.9.0 beta-1) and **NativeFluid** (2.9.0 beta-1+). `AeCompat.init()` runs in `postInit`, probes the environment, and binds adapters.
 
 ## Detection priority
 
@@ -41,7 +41,7 @@ Log example: `[ADM] AE compat profile=LEGACY (source=DEFAULT_LEGACY, detail=pre-
 
 ## Call sites
 
-- `TileEntityAdvanceNetworkLink` / `TileEntityAdvanceDataMonitor` — `AeCompat.cells().accumulateStorageStack`
+- `TileEntityAdvanceNetworkLink` / `TileEntityTeXTech` — `AeCompat.cells().accumulateStorageStack`
 - `AssistantServerServices.classifyCell` — `readItemCellStats` / `readFluidCellStats`
 - `PatternDetailFormatter` — `AeCompat.patternFluids()`
 - `AbstractDataLoomFluidCell` / `DataLoomCellUtil` — config and marker adapters

@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.imgood.textech.mixin",
+  "refmap": "mixins.textech.refmap.json",
+  "mixins": [],
+  "client": [
+    "MixinGuiScreen",
+    "MixinGuiContainer",
+    "MixinPocketDrawSlotOverlay",
+    "GuiScreenTooltipAccess",
+    "MixinNeiRenderToolTips",
+    "MixinNeiLayoutManager",
+    "MixinNeiItemZoom"
+  ]
+}

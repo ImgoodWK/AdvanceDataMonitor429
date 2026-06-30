@@ -1,4 +1,4 @@
-﻿# AdvanceDataMonitor Player Guide
+# TeXTech Player Guide
 
 > Audience: players / pack authors / server admins · Last synced: 2026-06
 
@@ -23,7 +23,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
   - [3.9 Data Loom Cells](#39-data-loom-cells)
   - [3.10 Super Orange](#310-super-orange)
   - [3.11 Empyrean Holy Judgment](#311-empyrean-holy-judgment)
-  - [3.12 AdvanceDataMonitor Manual](#312-advancedatamonitor-manual)
+  - [3.12 TeXTech Manual](#312-advancedatamonitor-manual)
   - [3.13 Dimensional Pocket](#313-dimensional-pocket)
 - [4. Advance Data Monitor Tutorial](#4-advance-data-monitor-tutorial)
 - [5. AE2 Network Monitoring](#5-ae2-network-monitoring)
@@ -46,7 +46,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
 
 ## 0. Quick Overview
 
-**AdvanceDataMonitor** is a Minecraft 1.7.10 utility mod for GTNH-style packs. It adds in-world data visualization for AE2 networks plus AI-assisted automation.
+**TeXTech** is a Minecraft 1.7.10 utility mod for GTNH-style packs. It adds in-world data visualization for AE2 networks plus AI-assisted automation.
 
 | Capability | Description |
 |------------|-------------|
@@ -56,15 +56,15 @@ For developer details see [Technical Documentation](../developer/technical-docum
 | AI Assistant | Natural-language AE2 queries, crafting orders, withdrawals, plans, and **Advanced Dislocator** teleport |
 | Voice Assistant | **V** key recording; embedded Vosk (offline) or HTTP STT |
 
-**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, AdvanceDataMonitor Manual, Dimensional Pocket (with Space/Page upgrade cards), and more.
+**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, TeXTech Manual, Dimensional Pocket (with Space/Page upgrade cards), and more.
 
-**Environment:** GTNH or any 1.7.10 pack with AE2/GTNH dependencies. After install, edit `config/advancedatamonitor/advancedatamonitor.cfg` and set an AI API key to enable the assistant.
+**Environment:** GTNH or any 1.7.10 pack with AE2/GTNH dependencies. After install, edit `config/textech/textech.cfg` and set an AI API key to enable the assistant.
 
 ---
 
 ## 1. Mod Overview
 
-AdvanceDataMonitor centers on **in-world data panels + AE2 network monitoring + an AI assistant**. It reads machine TileEntity NBT, AE2 network stats, crafting CPU state, and filtered storage counts, then renders charts or item grids in the world. A chat window lets you query AE2 storage, inspect patterns, submit craft jobs, withdraw items, manage lightweight plans, and teleport via Draconic Evolution's **Advanced Dislocator**.
+TeXTech centers on **in-world data panels + AE2 network monitoring + an AI assistant**. It reads machine TileEntity NBT, AE2 network stats, crafting CPU state, and filtered storage counts, then renders charts or item grids in the world. A chat window lets you query AE2 storage, inspect patterns, submit craft jobs, withdraw items, manage lightweight plans, and teleport via Draconic Evolution's **Advanced Dislocator**.
 
 Core features:
 
@@ -88,8 +88,8 @@ Core features:
 |---------|-------|
 | Minecraft | 1.7.10 |
 | Forge | 10.13.4.1614 |
-| Mod ID | `advancedatamonitor` |
-| Mod name | AdvanceDataMonitor |
+| Mod ID | `textech` |
+| Mod name | TeXTech |
 | Java | JVM 8 target |
 
 ### 2.2 Dependencies
@@ -105,7 +105,7 @@ Use inside GTNH or a pack that already ships AE2 and related GTNH mods.
 ### 2.3 Install Steps
 
 1. Install Forge 1.7.10 on client and server.
-2. Place the compiled AdvanceDataMonitor jar in `mods/` on both sides.
+2. Place the compiled TeXTech jar in `mods/` on both sides.
 3. Ensure AE2 and pack dependencies are present.
 4. Launch once to generate config files.
 5. For AI/voice: set API keys in config or in-game AI Settings.
@@ -131,7 +131,7 @@ The mod does **not** register shaped/shapeless recipes in code. Obtain blocks an
 
 ### 3.1 Advance Data Monitor
 
-**Registry:** `advancedatamonitor:advDataMonitor`
+**Registry:** `textech:advDataMonitor`
 
 The main display block. Right-click to open the configuration GUI: add data bindings, change facing, toggle body/screen visibility, and open AI chat. All settings persist in TileEntity NBT and sync to clients for rendering.
 
@@ -149,7 +149,7 @@ The main display block. Right-click to open the configuration GUI: add data bind
 
 ### 3.2 Data Imprint Tool
 
-**Registry:** `advancedatamonitor:data_imprint`  
+**Registry:** `textech:data_imprint`  
 **Lang name:** Data Imprint Tool (`item.dataImprint.name`)
 
 **Tooltips (from lang):**
@@ -175,7 +175,7 @@ The main display block. Right-click to open the configuration GUI: add data bind
 
 ### 3.3 Network Linker
 
-**Registry:** `advancedatamonitor:advNetworkLinkBlock`
+**Registry:** `textech:advNetworkLinkBlock`
 
 Connects to AE2 and reports network-wide storage capacity for items and fluids.
 
@@ -201,7 +201,7 @@ Bind the block on an **Advance Data Monitor** and choose raw values or percentag
 
 ### 3.4 Crafting Linker
 
-**Registry:** `advancedatamonitor:advCraftingLink`
+**Registry:** `textech:advCraftingLink`
 
 Connects to AE2 and tracks crafting CPU state. Also powers AI craft queries and job submission within **32 blocks** of the player.
 
@@ -230,7 +230,7 @@ Connects to AE2 and tracks crafting CPU state. Also powers AI craft queries and 
 
 ### 3.5 Advanced Storage Linker
 
-**Registry:** `advancedatamonitor:advStorageLink`  
+**Registry:** `textech:advStorageLink`  
 **Lang name:** Advanced Storage Linker (`tile.StorageLinkBlock.name`)
 
 Shows AE2 counts for items/fluids configured on **Advanced Storage Link Cell** partitions placed inside the block.
@@ -256,7 +256,7 @@ Shows AE2 counts for items/fluids configured on **Advanced Storage Link Cell** p
 
 ### 3.6 Advanced Storage Link Cell
 
-**Registry:** `advancedatamonitor:advance_storage_link_cell`  
+**Registry:** `textech:advance_storage_link_cell`  
 **Lang name:** Advanced Storage Link Cell (`item.advanceStorageLinkCell.name`)
 
 A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkbenchItem`.
@@ -277,7 +277,7 @@ A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkben
 
 ### 3.7 Grapple Anchor
 
-**Registry:** `advancedatamonitor:grappleAnchor`  
+**Registry:** `textech:grappleAnchor`  
 **Lang name:** Grapple Anchor (`tile.grappleAnchor.name`)
 
 **Design intent:** Bases and production lines are often built to be seen, yet daily travel defaults to flight, sprinting, or teleport — all of which either tie up your hands or skip the scenery. Grapple anchors plus the **Grapple Hook** balance **speed** and **seeing the journey**.
@@ -305,7 +305,7 @@ A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkben
 
 ### 3.8 Grapple Hook
 
-**Registry:** `advancedatamonitor:grapple_hook`  
+**Registry:** `textech:grapple_hook`  
 **Lang name:** Grapple Hook (`item.grappleHook.name`)
 
 Core interaction tool for grapple anchors. Stack size 1.
@@ -332,8 +332,8 @@ AE2 storage cells that **weave** items, fluids, or essentia from network data (u
 
 | Cell | Registry prefix | Channel | Marking rules |
 |------|-----------------|---------|---------------|
-| Data Dust Loom Cell | `data_dust_loom_cell` | Items | GT dusts only; cannot mark AdvanceDataMonitor items |
-| Data Form Loom Cell | `data_form_loom_cell` | Items | Any item; cannot mark AdvanceDataMonitor items |
+| Data Dust Loom Cell | `data_dust_loom_cell` | Items | GT dusts only; cannot mark TeXTech items |
+| Data Form Loom Cell | `data_form_loom_cell` | Items | Any item; cannot mark TeXTech items |
 | Data Flow Cell | `data_flow_cell` | Fluids | Any fluid; 5 types |
 | Data Tide Loom Cell | `data_tide_loom_cell` | Fluids | Same as Flow; 63 types; enchanted glint |
 | Data Source Loom Cell | `data_source_loom_cell` | Fluids | Thaumcraft essentia aspect fluids only |
@@ -345,22 +345,22 @@ AE2 storage cells that **weave** items, fluids, or essentia from network data (u
 **Data Dust Loom Cell**
 
 > *Weaves AE network data into matter. Early tech can only reconstruct the simplest form — dust.*  
-> *Mark dust items in Cell Workbench partition slots to generate slowly; AdvanceDataMonitor items cannot be marked.*
+> *Mark dust items in Cell Workbench partition slots to generate slowly; TeXTech items cannot be marked.*
 
 **Data Form Loom Cell**
 
 > *Fully mastered data weaving — reconstructs any complex item from network data.*  
-> *Mark any item in Cell Workbench partition slots to generate slowly; AdvanceDataMonitor items cannot be marked.*
+> *Mark any item in Cell Workbench partition slots to generate slowly; TeXTech items cannot be marked.*
 
 **Data Flow Cell**
 
 > *Weaves AE network data into fluids for the storage network.*  
-> *Mark any fluid using fluid-cell style markers (containers, fluid packets, NEI drag); AdvanceDataMonitor items cannot be used as markers.*
+> *Mark any fluid using fluid-cell style markers (containers, fluid packets, NEI drag); TeXTech items cannot be used as markers.*
 
 **Data Tide Loom Cell**
 
 > *Fully mastered fluid weaving — tides of data become up to 63 fluid types at once.*  
-> *Same as Data Flow Cell: mark any fluid in Cell Workbench partition slots; AdvanceDataMonitor items cannot be used as markers.*
+> *Same as Data Flow Cell: mark any fluid in Cell Workbench partition slots; TeXTech items cannot be used as markers.*
 
 **Data Source Loom Cell**
 
@@ -391,7 +391,7 @@ Config sections: `[dataDustLoomCell]`, `[dataFormLoomCell]`, `[dataFlowCell]`, `
 
 ### 3.10 Super Orange
 
-**Registry:** `advancedatamonitor:super_orange`  
+**Registry:** `textech:super_orange`  
 **Lang name:** Super Orange (`item.orange.name`)
 
 Legendary item (`adm.super_orange.tooltip.legendary` — *Dungeon/Mob Drop (Legendary Item)*)
@@ -405,13 +405,13 @@ Legendary item (`adm.super_orange.tooltip.legendary` — *Dungeon/Mob Drop (Lege
 | Drone & projectile immunity | Right-click | Body orbits player, intercepts projectiles; clones attack nearby hostiles |
 | Head nameplate & halo | Anvil rename | Custom nameplate text; hidden in first-person, visible in third person / to others |
 
-Config section: `[superOrange]`. **Not** auto-gifted on first join (unlike the **AdvanceDataMonitor Manual**).
+Config section: `[superOrange]`. **Not** auto-gifted on first join (unlike the **TeXTech Manual**).
 
 ---
 
 ### 3.11 Empyrean Holy Judgment
 
-**Registry:** `advancedatamonitor:starry_cosmos_sword`  
+**Registry:** `textech:starry_cosmos_sword`  
 **Lang name:** Empyrean Holy Judgment (`item.starryCosmosSword.name`)
 
 **Tooltip (`adm.tooltip.starry_cosmos_sword`):**
@@ -422,12 +422,12 @@ Creative tab: Combat. Max stack 1.
 
 ---
 
-### 3.12 AdvanceDataMonitor Manual
+### 3.12 TeXTech Manual
 
-**Registry:** `advancedatamonitor:manual`  
-**Lang name:** AdvanceDataMonitor Manual (`item.manual.name`)
+**Registry:** `textech:manual`  
+**Lang name:** TeXTech Manual (`item.manual.name`)
 
-Right-click opens the in-game manual GUI (chapter sidebar + page content) covering blocks, items, AI assistant, planner, teleport, and config reference. Content is driven by JSON under `assets/advancedatamonitor/manual/`.
+Right-click opens the in-game manual GUI (chapter sidebar + page content) covering blocks, items, AI assistant, planner, teleport, and config reference. Content is driven by JSON under `assets/textech/manual/`.
 
 **First join:** one manual is automatically added to new players (`HandlerPlayerJoin`).
 
@@ -446,10 +446,10 @@ Page types: `text`, `item_showcase`, `config_ref`.
 
 ### 3.13 Dimensional Pocket
 
-**Registry:** `advancedatamonitor:dimensionalPocket`
+**Registry:** `textech:dimensionalPocket`
 **Lang name:** Dimensional Pocket (`item.dimensionalPocket.name`)
 
-A player-UUID-bound portable storage. All pocket items in your inventory share the same storage (state persisted to `config/advancedatamonitor/pocket-<uuid>.json`; the item itself carries no data).
+A player-UUID-bound portable storage. All pocket items in your inventory share the same storage (state persisted to `advancedatamonitor/pocket-<uuid>.dat` in the world save directory; the item itself carries no data).
 
 **Usage**
 
@@ -467,19 +467,19 @@ Inside the storage GUI:
 
 | Card | Registry | Effect | Cap |
 |------|----------|--------|-----|
-| Space Upgrade Card | `advancedatamonitor:spaceUpgradeCard` | +1 slot per card (baseline 1, max 63 per page) | 64 (62 effective) |
-| Page Upgrade Card | `advancedatamonitor:pageUpgradeCard` | +1 page per card (max 9 pages) | 8, requires space upgrades fully stacked (64) to take effect |
+| Space Upgrade Card | `textech:spaceUpgradeCard` | +1 slot per card (baseline 1, max 63 per page) | 64 (62 effective) |
+| Page Upgrade Card | `textech:pageUpgradeCard` | +1 page per card (max 9 pages) | 8, requires space upgrades fully stacked (64) to take effect |
 
 Installed upgrade cards are **consumed** (written into the player's PocketState) and not returned on GUI close; only cards rejected by the prerequisite rule (e.g. page cards installed while space isn't full) are returned to the player's inventory.
 
 **Capacity formula:** slots per page = `min(63, 1 + min(space upgrades, 62))`; page count = `1 + min(page upgrades, 8)` when space upgrades reach 64, otherwise 1.
 
-**Known issues (unfixed)**
+**Fixed issues (2026-06)**
 
-| Symptom | Notes |
-|---------|-------|
-| Stack size becomes 1 after reload | After reloading the world, stored item counts in the pocket may all reset to 1; unrelated to upgrades — a save/load bug. |
-| Overlay badge always shows 0 | The draggable overlay may always show **0** on slot badges even when the pocket holds items; the right-click storage GUI usually still shows correct counts. |
+| Issue | Fix |
+|---------|------|
+| Stack size becomes 1 after reload | **Fixed.** Root cause: `ItemStack.writeToNBT` casts `stackSize` to byte in NBT, incompatible with GTNH/Forge's Int read path. Unified to explicit `setInteger("Count")` with backward-compatible int/short/byte read. |
+| Overlay badge always shows 0 | **Fixed.** Same root cause: `PacketPocketSync` used vanilla byte serialization, causing client-side `loadItemStackFromNBT` to read Count as 0. Unified to Integer type in packet transmission. |
 
 Developer details: [Technical Documentation §5.12](../developer/technical-documentation.md#512-dimensional-pocket).
 
@@ -617,7 +617,7 @@ Providers include `deepseek`, `openai`, `openrouter`, `dashscope`, `zhipu`, `kim
 
 ## 11. Configuration Reference
 
-**Path:** `.minecraft/config/advancedatamonitor/advancedatamonitor.cfg` (client) or `config/advancedatamonitor.cfg` (server).
+**Path:** `.minecraft/config/textech/textech.cfg` (client) or `config/textech.cfg` (server).
 
 | Section | Key fields |
 |---------|------------|
@@ -634,7 +634,7 @@ In-game **AI Settings** saves some fields; server admins editing `craftJobTimeou
 
 ## 12. Assistant Lexicon
 
-Runtime file: `assets/advancedatamonitor/config/assistant-lexicon.json` (path shown by `/admassistant lexicon`). Used for keyword fallback when AI is offline, batch merge/confirm phrasing, and time/quantity parsing. Reload with `/admassistant reloadLexicon`.
+Runtime file: `assets/textech/config/assistant-lexicon.json` (path shown by `/admassistant lexicon`). Used for keyword fallback when AI is offline, batch merge/confirm phrasing, and time/quantity parsing. Reload with `/admassistant reloadLexicon`.
 
 ---
 
@@ -706,7 +706,7 @@ Built-in provider profiles cover major OpenAI-compatible hosts. `webSearchMode`:
 
 ### Core blocks & items
 
-Advance Data Monitor · Data Imprint Tool · Network Linker · Crafting Linker · Advanced Storage Linker · Advanced Storage Link Cell · Grapple Anchor · Grapple Hook · Data Dust/Form/Flow/Tide/Source Loom Cell · Weave Amplifier Card · Super Weave Amplifier Card · Advance Planner · AdvanceDataMonitor Manual · Super Orange · Empyrean Holy Judgment
+Advance Data Monitor · Data Imprint Tool · Network Linker · Crafting Linker · Advanced Storage Linker · Advanced Storage Link Cell · Grapple Anchor · Grapple Hook · Data Dust/Form/Flow/Tide/Source Loom Cell · Weave Amplifier Card · Super Weave Amplifier Card · Advance Planner · TeXTech Manual · Super Orange · Empyrean Holy Judgment
 
 ### Commands
 
@@ -790,7 +790,7 @@ Creative tab **Tools** — search "Planner" or "Advance Planner".
 
 | Display name | Registry ID |
 |--------------|-------------|
-| Advance Planner | `advancedatamonitor:advance_planner` |
+| Advance Planner | `textech:advance_planner` |
 
 ---
 
@@ -936,4 +936,4 @@ A: Pending edit auto-commits on close.
 
 ---
 
-> This guide reflects the AdvanceDataMonitor source tree at time of writing. Report doc drift against [Technical Documentation](../developer/technical-documentation.md).
+> This guide reflects the TeXTech source tree at time of writing. Report doc drift against [Technical Documentation](../developer/technical-documentation.md).

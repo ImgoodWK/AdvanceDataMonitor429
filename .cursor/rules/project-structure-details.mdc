@@ -13,7 +13,7 @@ alwaysApply: false
 ### 根包 — 模组入口
 | 类 | 作用 |
 |----|------|
-| `AdvanceDataMonitor.java` | @Mod 主类，注册调度中心 |
+| `TeXTech.java` | @Mod 主类，注册调度中心 |
 | `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包 |
 | `ConfigDescriptions.java` | 配置项双语说明（英文 / 中文，供 .cfg 注释与手册引用） |
 | `ClientProxy.java` | 客户端代理（按键注册等） |
@@ -62,7 +62,7 @@ alwaysApply: false
 | `ItemAdvanceLinkScanner` | 高级链接扫描器 / Advance Link Scanner | `item.advanceLinkScanner.name` |
 | `ItemAdvanceStorageLinkCell` | 高级存储链接元件 / Advanced Storage Link Cell | `item.advanceStorageLinkCell.name` |
 | `ItemDataImprint` | 数据映录器 / Data Imprint Tool | `item.dataImprint.name` |
-| `ItemManual` | 高级数据监视器手册 / AdvanceDataMonitor Manual | `item.manual.name` |
+| `ItemManual` | 高级数据监视器手册 / TeXTech Manual | `item.manual.name` |
 | `ItemSuperOrange` | 超能砂糖桔 / Super Orange | `item.orange.name` |
 | `ItemGrappleHook` | 挂索器 / Grapple Hook | `item.grappleHook.name` |
 | `ItemStarryCosmosSword` | 至高天圣裁 / Empyrean Holy Judgment | `item.starryCosmosSword.name` |
@@ -97,7 +97,7 @@ alwaysApply: false
 ### blocks/ — 自定义方块 (5 文件)
 | 类 | 游戏内名称 (ZH / EN) | lang 键 |
 |----|---------------------|---------|
-| `BlockAdvanceDataMonitor` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
+| `BlockTeXTech` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
 | `BlockAdvanceCraftingLink` | 合成链接器 / Crafting Linker | `tile.CraftingMonitorBlock.name` |
 | `BlockAdvanceStorageLink` | 高级存储链接器 / Advanced Storage Linker | `tile.StorageLinkBlock.name` |
 | `BlockAdvanceNetworkLink` | 网络链接器 / Network Linker | `tile.NetworkLinkBlock.name` |
@@ -105,7 +105,7 @@ alwaysApply: false
 
 ### tileentity/ — TileEntity (5 文件 + 2 接口工具)
 - `IOwnableTile.java` / `OwnableTileUtil.java` — 方块放置者游戏名（`OwnerName` NBT）
-- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定、NBT 持久化、AE2 网络集成；首次打开可补录所属者
+- `TileEntityTeXTech.java` — **核心 TE**，数据绑定、NBT 持久化、AE2 网络集成；首次打开可补录所属者
 - `TileEntityAdvanceCraftingLink.java` — AE2 合成 CPU 监控
 - `TileEntityAdvanceStorageLink.java` — AE2 存储网络监控
 - `TileEntityAdvanceNetworkLink.java` — AE2 全网统计监控
@@ -138,7 +138,7 @@ alwaysApply: false
 - `StarrySwordSpawnScheduler.java` — 星空剑技能实体生成调度
 - **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
 - `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
-- **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player JSON 存储单例）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketSlotInteraction.java`（存储 GUI 与悬浮窗共享的槽位点击逻辑）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
+- **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player NBT 压缩存储单例，`<世界存档>/advancedatamonitor/pocket-<uuid>.dat`）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketSlotInteraction.java`（存储 GUI 与悬浮窗共享的槽位点击逻辑）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
 
 ### entity/ — 实体类 only (8 文件，不含 Render)
 - `EntitySuperOrangeDrone.java` — 超能砂糖桔无人机
@@ -155,8 +155,8 @@ alwaysApply: false
 - `OrangeNameplateRenderer.java` / `SuperOrangeHaloRenderer.java` / `SuperOrangeHeadRenderUtil.java` — 超能砂糖桔
 - `RenderSuperOrangeDrone.java` — 无人机实体渲染
 - `RenderStarrySword*.java`（4 个）/ `CosmicStarrySwordRenderer.java` / `StarryCosmosWorldRenderer.java` / `StarryCosmicRenderUtil.java` — 星空剑
-- `RenderAdvanceDataMonitor.java` / `RenderGrappleAnchor.java` / `RenderGrappleSlide.java` — 方块/实体 TESR
-- `RenderAdvanceDataMonitorBlockItem.java` / `RenderDataImprintItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderItem.java` — 物品渲染
+- `RenderTeXTech.java` / `RenderGrappleAnchor.java` / `RenderGrappleSlide.java` — 方块/实体 TESR
+- `RenderTeXTechBlockItem.java` / `RenderDataImprintItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderItem.java` — 物品渲染
 - `RenderController.java` — 监视器内容渲染器注册（line / crafting / storage）
 - `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java`
 

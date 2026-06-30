@@ -1,6 +1,6 @@
 # Grapple System — Complete Design Document
 
-> **Project**: AdvanceDataMonitor (GTNH 1.7.10 / Forge)  
+> **Project**: TeXTech (GTNH 1.7.10 / Forge)  
 > **Code names**: `GrappleAnchor` (block) / `GrappleHook` (item)  
 > **Display names (en_US)**: Grapple Anchor / Grapple Hook  
 > **Status**: Implemented and compiles; models/textures are placeholders; final naming may still change  
@@ -145,7 +145,7 @@ Selection refreshes every **tick** and every **render frame** (`HandlerGrappleCl
 | Unlocalized name | `grappleAnchor` |
 | Creative tab | `CreativeTabs.tabRedstone` |
 | Rendering | `getRenderType() == -1` + TESR |
-| Placeholder texture | `textures/items/AdvanceDataMonitor.png` |
+| Placeholder texture | `textures/items/TeXTech.png` |
 
 **Face mounting**:
 
@@ -198,7 +198,7 @@ z = blockZ + 0.5 + outward.offsetZ * 0.55
 | Registry name | `grapple_hook` |
 | Unlocalized name | `grappleHook` |
 | maxStackSize | 1 |
-| Placeholder texture | `advancedatamonitor:advance_planner` |
+| Placeholder texture | `textech:advance_planner` |
 
 **Static methods**:
 
@@ -374,8 +374,8 @@ Registration: `ClientProxy.init()` → Forge bus
 
 **Path**: `renders/RenderGrappleAnchor.java`
 
-- Model: `model/AdvanceDataMonitor2.obj`  
-- Texture: `textures/model/AdvanceDataMonitor.png`  
+- Model: `model/TeXTech2.obj`  
+- Texture: `textures/model/TeXTech.png`  
 - Rotated by `attachFace`, scale 0.45  
 
 Registration: `LoaderRender.registerRenderers()`
@@ -419,7 +419,7 @@ short nodeCount
 
 ## 11. Config Keys
 
-**Category**: `grapple` (in `config/advancedatamonitor/advancedatamonitor.cfg`)
+**Category**: `grapple` (in `config/textech/textech.cfg`)
 
 | Key | Default (design doc) | Description |
 |-----|----------------------|-------------|
@@ -551,7 +551,7 @@ sequenceDiagram
 
 | Asset | Current placeholder |
 |-------|---------------------|
-| Block TESR | `AdvanceDataMonitor2.obj` + texture |
+| Block TESR | `TeXTech2.obj` + texture |
 | Item icon | `advance_planner` |
 | HUD icon | Same item via `RenderItem` |
 | Crafting recipe | Creative tab only (no workbench recipe) |

@@ -1,14 +1,14 @@
-# AdvanceDataMonitor Future Development Vision
+# TeXTech Future Development Vision
 
 > *"Weaving reality from the torrent of data, stitching matter and substance with threads of binary."*
 
 ## Vision Overview
 
-AdvanceDataMonitor was born amidst the stellar odyssey of GregTech: New Horizons. As players accumulate astronomical quantities of items and data within their AE2 networks, and as digital miners tirelessly produce rivers of resources around the clock, a fundamental question emerges: **What else can we do with all this data?**
+TeXTech was born amidst the stellar odyssey of GregTech: New Horizons. As players accumulate astronomical quantities of items and data within their AE2 networks, and as digital miners tirelessly produce rivers of resources around the clock, a fundamental question emerges: **What else can we do with all this data?**
 
 The mod's core philosophy has always been **"From Data to Matter"** — the inverse weaving of digital records from AE2 storage systems (item types, quantities, fluid levels, essentia distributions) back into real items and liquids through data weave cells. The Advanced Data Monitor, AI Assistant, Grapple System, and other subsystems form a complete ecosystem surrounding this central concept.
 
-Looking forward, AdvanceDataMonitor will deepen its development along the following axes:
+Looking forward, TeXTech will deepen its development along the following axes:
 
 1. **Deepening Data Weaving**: Expanding from simple "stored item type → matter" to "crafting template data → multi-step synthesis", "spacetime data → dimensional travel", and "biological data → entity manipulation".
 2. **Broadening Visualization**: Beyond existing line/bar charts, introducing heatmaps, Sankey diagrams, network topology maps, and 3D holographic projections.
@@ -191,7 +191,7 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `A Minecraft monitor screen displaying a heatmap with gradient color grid from deep blue through cyan to bright white, slight glow on grid boundaries, resembling infrared thermal imaging in tech-blue color scheme, color legend in corner, dark sci-fi monitor casing, 4K game asset`
   - CN Prompt: `显示热力图的监视器屏幕，从深蓝到青色再到亮白的渐变色网格，网格边界有轻微发光，类似红外热成像但配色为科技蓝青色系，角落有颜色图例，深色科幻监视器外壳，4K游戏资产`
 - **Technical Approach**:
-  - Files: `renders/HeatmapRenderer.java` (new), modify `TileEntityAdvanceDataMonitor.java` render mode enum, modify `gui/guiscreen/GuiAdvanceDataMonitor.java`
+  - Files: `renders/HeatmapRenderer.java` (new), modify `TileEntityTeXTech.java` render mode enum, modify `gui/guiscreen/GuiTeXTech.java`
   - Core Design: `HeatmapRenderer` receives 2D `int[][] data` and value range, maps each value to a gradient color (using `Color.getHSBColor` linear interpolation), draws colored rectangles with Tessellator.
   - Integration: Extend `LineChartRenderer.java`'s mode switching, or dispatch via the monitor's render mode field.
   - Config: `[monitor] heatmapColorScheme`, `heatmapGridSize`
@@ -209,7 +209,7 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `A monitor screen showing a Sankey flow diagram with multi-level nodes as rounded rectangle icons, glowing cyan flow bands connecting them with varying thickness, animated particles flowing along connections, deep navy-black background, clean data visualization aesthetic, 4K render`
   - CN Prompt: `显示桑基流程图的监视器屏幕，多层级节点为圆角矩形图标，发光青色流量条带连接节点，粗细表示流量大小，粒子沿连线流动的动画，深蓝黑色背景，清爽的数据可视化美学，4K渲染`
 - **Technical Approach**:
-  - Files: `renders/SankeyRenderer.java` (new), modify `TileEntityAdvanceDataMonitor.java`
+  - Files: `renders/SankeyRenderer.java` (new), modify `TileEntityTeXTech.java`
   - Core Design: `SankeyRenderer` receives node list and connection list (with flow weights), calculates Bezier curve paths for each connection, draws gradient-width triangle strips with Tessellator. Particles move along curve paths.
   - Config: `[monitor] sankeyMaxNodes`, `sankeyFlowParticleSpeed`
 - **Dependencies**: None additional
@@ -226,7 +226,7 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `A monitor block projecting a 3D holographic display floating above it in a 3x3x3 area, semi-transparent hologram made of cyan light beams weaving together, showing network topology or item models with rotation, scanline and flicker effects, pulsing light from base upward, sci-fi hologram aesthetic, dark background, 4K game asset`
   - CN Prompt: `监视器方块上方3x3x3区域投射3D全息影像，由交错的青色光束构成的半透明全息图，显示网络拓扑或物品旋转模型，扫描线和闪烁效果，底座脉冲光向上投射，科幻全息投影美学，暗色背景，4K游戏资产`
 - **Technical Approach**:
-  - Files: `renders/HolographicRenderer.java` (new), modify `TileEntityAdvanceDataMonitor.java`
+  - Files: `renders/HolographicRenderer.java` (new), modify `TileEntityTeXTech.java`
   - Core Design: `HolographicRenderer` uses GL11 in world space via TESR. For topology mode, renders node spheres and connections. For item display mode, renders item 3D model in world space. Mouse interaction via RayTrace.
   - Config: `[monitor] enableHolographicMode`, `hologramMaxRenderDistance`
 - **Dependencies**: None additional
@@ -243,7 +243,7 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `A monitor screen showing multiple colored waveform lines scrolling left to right in real-time oscilloscope style, cyan gold white magenta lines, Y-axis scale on left, time axis at bottom, slight glow on lines, deep navy-black grid background, sci-fi oscilloscope aesthetic, 4K game asset`
   - CN Prompt: `监视器屏幕显示多条彩色波形线从左向右实时滚动（示波器风格），青色金色白色品红多通道线，左侧Y轴刻度，底部时间轴，线条轻微发光，深蓝黑色网格背景，科幻示波器美学，4K游戏资产`
 - **Technical Approach**:
-  - Files: `renders/WaveformRenderer.java` (new), modify `TileEntityAdvanceDataMonitor.java`
+  - Files: `renders/WaveformRenderer.java` (new), modify `TileEntityTeXTech.java`
   - Core Design: `WaveformRenderer` maintains a ring buffer for recent data points. Draws lines with Tessellator. Scrolling is achieved by shifting X offset per tick.
   - Integration: Extend `LineChartRenderer.java`, add "realtime" sub-mode.
   - Config: `[monitor] waveformBufferSize`, `waveformDefaultChannels`
@@ -278,7 +278,7 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `A monitor screen with customizable dashboard layout, multiple widgets including circular gauges for AE2 storage, bar progress for energy, digital counters for online players, task list panel, each widget with cyan border on deep navy-black background, clean modern dashboard aesthetic, 4K game asset`
   - CN Prompt: `可自定义仪表盘布局的监视器屏幕，多个小部件：AE2存储圆形仪表、能量进度条、在线玩家数字计数器、任务列表面板，每个小部件有青色边框深蓝黑色背景，简洁现代仪表盘美学，4K游戏资产`
 - **Technical Approach**:
-  - Files: `renders/DashboardRenderer.java` (new), `gui/guiscreen/GuiDashboardConfig.java` (new), modify `TileEntityAdvanceDataMonitor.java`
+  - Files: `renders/DashboardRenderer.java` (new), `gui/guiscreen/GuiDashboardConfig.java` (new), modify `TileEntityTeXTech.java`
   - Core Design: `DashboardRenderer` reads widget layout definitions from NBT, calls corresponding render subroutines for each widget. Layout editing happens in GUI, synced to server via `PacketDashboardConfig`.
   - Config: `[monitor] dashboardMaxWidgetsPerPage`
 - **Dependencies**: AE2FluidCraft-Rework (required, for querying AE2 data)
@@ -296,7 +296,7 @@ The following 105 future development projects systematically unfold this vision 
   - CN Prompt: `手持平板设备，深蓝金属外壳，屏幕边框为青色发光线条，中央显示监视器实时画面，背面有小型AE2无线水晶天线，Minecraft物品风格，科幻便携设备，4K游戏资产渲染`
 - **Technical Approach**:
   - Files: `items/ItemRemoteMonitorViewer.java` (new), `gui/guiscreen/GuiRemoteViewer.java` (new), `client/PocketOverlayHandler.java` (reference overlay pattern)
-  - Core Design: Right-click opens `GuiRemoteViewer`, which queries `TileEntityAdvanceDataMonitor` list to select which monitor to view. Display updates via periodic `PacketMonitorFrameSync` (similar to remote desktop).
+  - Core Design: Right-click opens `GuiRemoteViewer`, which queries `TileEntityTeXTech` list to select which monitor to view. Display updates via periodic `PacketMonitorFrameSync` (similar to remote desktop).
   - Config: `[remoteViewer] frameSyncInterval`, `maxViewerDistance`
 - **Dependencies**: AE2FluidCraft-Rework (required, for Wireless Terminal material)
 
@@ -579,7 +579,7 @@ The following 105 future development projects systematically unfold this vision 
   - CN Prompt: `小型投影仪方块，发光青色镜头，向远处石英屏幕投射青色光束，屏幕方块上实时渲染监视器内容（图表数字波形），光束中有微小数据粒子漂浮，Minecraft指挥中心美学，4K游戏场景`
 - **Technical Approach**:
   - Files: `blocks/BlockDataProjector.java` (new), `tileentity/TileEntityDataProjector.java` (new), `renders/ScreenOverlayRenderer.java` (new)
-  - Core Design: `TileEntityDataProjector` binds to a `TileEntityAdvanceDataMonitor`, reads its render data, projects onto NBT-specified screen coordinate area.
+  - Core Design: `TileEntityDataProjector` binds to a `TileEntityTeXTech`, reads its render data, projects onto NBT-specified screen coordinate area.
   - Config: `[projector] maxScreenArea`, `beamParticleDensity`
 - **Dependencies**: None additional
 
@@ -1051,7 +1051,7 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `Monitor config GUI with new Sharing tab, player whitelist with view/edit permissions, monitor border changing from cyan to gold when shared, shared monitors appearing with gold marker in other players' remote viewer list, multiplayer collaboration UI, 4K mockup`
   - CN Prompt: `监视器配置GUI新增共享标签页，玩家白名单含查看/编辑权限，共享时监视器边框从青色变为金色，其他玩家远程查看器列表中显示带金色标记的共享监视器，多人协作UI，4K模型`
 - **Technical Approach**:
-  - Files: `tileentity/TileEntityAdvanceDataMonitor.java` (extend), `network/packet/PacketMonitorShareAction.java` (new), `gui/guiscreen/GuiMonitorShare.java` (new)
+  - Files: `tileentity/TileEntityTeXTech.java` (extend), `network/packet/PacketMonitorShareAction.java` (new), `gui/guiscreen/GuiMonitorShare.java` (new)
   - Core Design: Extend TileEntity NBT with share whitelist. When client requests view, server validates permission then syncs data via Packet.
   - Config: `[multiplayer] maxSharedMonitors`, `enableWebExport`
 - **Dependencies**: None additional
@@ -1193,7 +1193,7 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `A horizontal thin cyan light bar scanning from top to bottom of monitor block at constant speed, surface briefly brightening 50% as it passes, full scan every 3 seconds, 2px wide with faded ends, subtle electronic sound, sci-fi scanning effect, 4K game asset`
   - CN Prompt: `水平细长青色光条从监视器方块顶部匀速向下扫描，经过表面瞬间高亮50%然后恢复，约每3秒一次完整扫描，2px宽两端渐隐，微弱电子音效，科幻扫描效果，4K游戏资产`
 - **Technical Approach**:
-  - Files: `renders/RenderAdvanceDataMonitor.java` (modify), `renders/RenderAdvanceStorageLink.java` (modify)
+  - Files: `renders/RenderTeXTech.java` (modify), `renders/RenderAdvanceStorageLink.java` (modify)
   - Core Design: In TESR's `renderTileEntityAt` method, calculate scanline current position using `System.currentTimeMillis() % 3000`, draw light bar rectangle with Tessellator.
   - Config: `[visual] enableScanlineEffect`, `scanIntervalMs`
 - **Dependencies**: None additional
@@ -1336,8 +1336,8 @@ The following 105 future development projects systematically unfold this vision 
   - EN Prompt: `An upgraded monitor block 1x1x2 larger than standard, ultra-wide curved display on front showing multiple panels simultaneously, iridescent flowing lights on bezel indicating full network awareness, small holographic projector on top, sci-fi command center display, 4K game asset`
   - CN Prompt: `升级版监视器方块1x1x2比标准更大，正面超宽曲面显示屏分屏显示多个面板，边框彩虹色流光表示全网络感知，顶部小型全息投影发射器，科幻指挥中心显示器，4K游戏资产`
 - **Technical Approach**:
-  - Files: `blocks/BlockAdvanceDataMonitorOmniscient.java` (new), `tileentity/TileEntityAdvanceDataMonitorOmniscient.java` (new), `renders/OmniscientRenderer.java` (new)
-  - Core Design: Extends `TileEntityAdvanceDataMonitor`, adds multi-data-source binding. Multi-panel rendering via independent per-region drawing. Holographic projection linkage via holographic render API calls.
+  - Files: `blocks/BlockTeXTechOmniscient.java` (new), `tileentity/TileEntityTeXTechOmniscient.java` (new), `renders/OmniscientRenderer.java` (new)
+  - Core Design: Extends `TileEntityTeXTech`, adds multi-data-source binding. Multi-panel rendering via independent per-region drawing. Holographic projection linkage via holographic render API calls.
   - Config: `[monitor] omniscientMaxPanels`, `enableOmniscient`
 - **Dependencies**: AE2FluidCraft-Rework (required)
 
@@ -1914,14 +1914,14 @@ The following 105 future development projects systematically unfold this vision 
 - **Name**: 彩蛋：开发者密室 / Easter Egg: Developer's Vault
 - **Category**: Misc & Easter Eggs
 - **Priority**: C
-- **Description**: An extremely rarely generated hidden room in the world — the "Developer's Vault". The vault's walls are made of Data Fragment Blocks, with a holographic podium in the center displaying the AdvanceDataMonitor development team's names (as holographic text). The vault contains a chest with a full set of data weaving tools (unbreakable versions). The spawn chance is extremely low (comparable to Woodland Mansions), but discovering it grants the achievement "Behind the Scenes".
+- **Description**: An extremely rarely generated hidden room in the world — the "Developer's Vault". The vault's walls are made of Data Fragment Blocks, with a holographic podium in the center displaying the TeXTech development team's names (as holographic text). The vault contains a chest with a full set of data weaving tools (unbreakable versions). The spawn chance is extremely low (comparable to Woodland Mansions), but discovering it grants the achievement "Behind the Scenes".
 - **Lore**: It is said that the original inventors of data weaving left a hidden vault somewhere in the real world. Those fortunate enough to find it will see the creators' names eternally inscribed in data form. This is the mod developers' tribute to careful explorers.
 - **Visual & AI Prompts**:
   - Visual Description: A hidden 5x5x3 underground room. Walls made of Data Fragment Blocks (glowing cyan blocks). Ceiling with flowing data stream overlay. Central holographic podium projecting developer team names in rotating glowing gold-cyan text. Circuit board floor texture.
   - EN Prompt: `A hidden 5x5x3 underground room, walls made of data fragment blocks, ceiling with flowing data stream overlay, central holographic podium projecting developer team names in rotating glowing gold-cyan text, circuit board floor texture, secret developer tribute room, 4K game scene`
   - CN Prompt: `隐藏地下的5x5x3小房间，墙壁由数据碎片块构成，天花板流动数据流覆盖层，中央全息投影台投射开发团队名字以发光金色青色混色文字旋转显示，电路板纹理地板，秘密开发者致敬房间，4K游戏场景`
 - **Technical Approach**:
-  - Files: `world/DevVaultGenerator.java` (new), modify `AdvanceDataMonitor.java` (register world generator)
+  - Files: `world/DevVaultGenerator.java` (new), modify `TeXTech.java` (register world generator)
   - Core Design: Use `IWorldGenerator` to randomly generate the structure underground. Structure is a pre-made Schematic or hardcoded block placement logic.
   - Config: `[misc] devVaultSpawnChance` (per-chunk generation chance)
 - **Dependencies**: None additional
@@ -1930,4 +1930,4 @@ The following 105 future development projects systematically unfold this vision 
 
 > *"The future is not predicted — it is woven. In this digitized GregTech New Horizon, every line of code, every segment of data, every woven substance — are all steps toward the sea of stars."*
 
-> *— AdvanceDataMonitor Development Team, 2026*
+> *— TeXTech Development Team, 2026*

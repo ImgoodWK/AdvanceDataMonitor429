@@ -1,4 +1,4 @@
-﻿---
+---
 description: 项目结构速览，方便快速定位需要修改的类
 alwaysApply: true
 ---
@@ -79,16 +79,16 @@ assets/advancedatamonitor/
 | 新增渲染 | `renders/`（实体 Render 也放此包）→ `loader/LoaderRender.java` |
 | 修改/新增 AI 助手功能 | 详见 `ai-assistant.mdc` → `docs/zh/ai-assistant/开发指南.md` / `docs/en/ai-assistant/development-guide.md` → `assistant/AssistantController.java` |
 | 修改挂索 | `docs/zh/subsystems/挂索节点系统设计.md` / `docs/en/subsystems/grapple-system-design.md` → `handler/Grapple*.java` + `client/HandlerGrappleClient.java` |
-| 修改次元口袋 | `handler/PocketState.java`（状态 + 堆叠升级字段）/ `handler/PocketStore.java`（JSON存储）/ `handler/PocketInventory.java`（IInventory 实现，动态堆叠上限）/ `handler/PocketUpgradeRules.java`（升级校验，含堆叠/无尽堆叠规则）+ `client/PocketOverlayHandler.java`（覆层渲染/鼠标路由，通过自定义包通信）/ `client/GuiPocketOverlay.java`（悬浮窗渲染 + hover tooltip）/ `client/PocketClientCache.java`（客户端缓存，含堆叠字段）+ `items/ItemDimensionalPocket.java`（口袋物品）/ `items/ItemSpaceUpgradeCard.java` / `items/ItemPageUpgradeCard.java` / `items/ItemStackUpgradeCard.java` / `items/ItemInfiniteStackUpgradeCard.java` + `gui/container/ContainerDimensionalPocket.java`（升级配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）/ `gui/container/ContainerPocketStorage.java`（存储容器）+ `gui/guiscreen/GuiDimensionalPocketConfig.java`（升级配置 GUI，4 槽位）/ `gui/guiscreen/GuiPocketStorage.java`（存储 GUI，右键主入口）+ `network/packet/PacketPocketAction.java`（C→S 动作，含堆叠升级/存取操作类型）/ `network/packet/PacketPocketSync.java`（S→C 同步，含堆叠字段）。**GUI 打开约定**：口袋存储/配置 GUI 必须由**服务端** `player.openGui` 触发（存储 GUI 在 `ItemDimensionalPocket.onItemRightClick` 用 `if(!world.isRemote)`；配置 GUI 经 `PacketPocketAction.OPEN_CONFIG_GUI` 由服务端 `handleServer` 调用 `openGui`），否则服务端 `openContainer` 停留为 `ContainerPlayer`(windowId=0)，物品/升级卡点击会落到错误容器而弹回背包。 |
+| 修改次元口袋 | `handler/PocketState.java`（状态 + 堆叠升级字段）/ `handler/PocketStore.java`（压缩 NBT 存储）/ `handler/PocketInventory.java`（IInventory 实现，动态堆叠上限）/ `handler/PocketUpgradeRules.java`（升级校验，含堆叠/无尽堆叠规则）+ `client/PocketOverlayHandler.java`（覆层渲染/鼠标路由，通过自定义包通信）/ `client/GuiPocketOverlay.java`（悬浮窗渲染 + hover tooltip）/ `client/PocketClientCache.java`（客户端缓存，含堆叠字段）+ `items/ItemDimensionalPocket.java`（口袋物品）/ `items/ItemSpaceUpgradeCard.java` / `items/ItemPageUpgradeCard.java` / `items/ItemStackUpgradeCard.java` / `items/ItemInfiniteStackUpgradeCard.java` + `gui/container/ContainerDimensionalPocket.java`（升级配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）/ `gui/container/ContainerPocketStorage.java`（存储容器）+ `gui/guiscreen/GuiDimensionalPocketConfig.java`（升级配置 GUI，4 槽位）/ `gui/guiscreen/GuiPocketStorage.java`（存储 GUI，右键主入口）+ `network/packet/PacketPocketAction.java`（C→S 动作，含堆叠升级/存取操作类型）/ `network/packet/PacketPocketSync.java`（S→C 同步，含堆叠字段）。**GUI 打开约定**：口袋存储/配置 GUI 必须由**服务端** `player.openGui` 触发（存储 GUI 在 `ItemDimensionalPocket.onItemRightClick` 用 `if(!world.isRemote)`；配置 GUI 经 `PacketPocketAction.OPEN_CONFIG_GUI` 由服务端 `handleServer` 调用 `openGui`），否则服务端 `openContainer` 停留为 `ContainerPlayer`(windowId=0)，物品/升级卡点击会落到错误容器而弹回背包。 |
 | 修改计划器 | `docs/zh/developer/技术文档.md` §5.11 / `docs/en/developer/technical-documentation.md` §5.11 → `items/ItemAdvancePlanner.java` |
 | 更新玩家/开发者文档 | `docs/zh/player/用户手册.md` / `docs/en/player/player-guide.md` · `docs/zh/developer/技术文档.md` / `docs/en/developer/technical-documentation.md` · `docs/README.md` |
 | 修改语音识别 | `voice/VoiceCaptureService.java` → `voice/VoskSpeechToTextClient.java` |
-| 新增命令 | `command/` → `AdvanceDataMonitor.java` (serverStarting) |
+| 新增命令 | `command/` → `TeXTech.java` (serverStarting) |
 | 修改配置项 | `Config.java` + `config/Config*Loader.java` + `ConfigDescriptions.java` → `gui/guiscreen/GuiAISettings.java` |
 | 新增复杂功能子系统 | 评估是否需系统级包（仅 `assistant/`、`voice/`）→ 物品逻辑归 `items/`、`handler/`、`gui/` → `loader/` → `config/`（如需）→ lang → 本规则 |
 | 修改/新增手册 GUI（搜索、滚动、高亮） | `gui/guiscreen/GuiManual.java` → `gui/manual/ManualSearch*.java` / `ManualTextHighlighter.java` → `renders/ManualPageRenderer.java` → `getting_started` lang 文案 → `docs/` §3.12 / §5.10 |
 | 新增手册内容 | `assets/.../manual/` JSON (11 章: `getting_started` / `monitor_blocks` / `monitor_tools` / `data_monitor` / `dimensional_pocket` / `data_loom_cells` / `grapple_system` / `combat_special` / `ai_assistant` / `planner` / `config_reference`) → `gui/guiscreen/GuiManual.java` → `renders/ManualPageRenderer.java` → `en_US.lang` + `zh_CN.lang` → 本规则 |
-| 新增 AE2 存储元件 | `items/cell/` → `loader/LoaderItem.java` → `AdvanceDataMonitor.java` (postInit) → `en_US.lang` + `zh_CN.lang` → 手册 JSON |
+| 新增 AE2 存储元件 | `items/cell/` → `loader/LoaderItem.java` → `TeXTech.java` (postInit) → `en_US.lang` + `zh_CN.lang` → 手册 JSON |
 
 ## 本规则同步维护要求
 

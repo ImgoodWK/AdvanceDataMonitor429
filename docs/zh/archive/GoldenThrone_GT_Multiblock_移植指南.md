@@ -1,8 +1,8 @@
-﻿> **已归档** — 本文档已过时，仅供历史参考。请参阅 [docs/README.md](../README.md)。
+> **已归档** — 本文档已过时，仅供历史参考。请参阅 [docs/README.md](../README.md)。
 
 # 黄金王座（Golden Throne）GT 多方块发电机 — 移植指南
 
-> 本文档从 AdvanceDataMonitor 模组剥离，供在 **另一 GTNH 社区模组** 中完整复现「黄金王座」仪式发电机。  
+> 本文档从 TeXTech 模组剥离，供在 **另一 GTNH 社区模组** 中完整复现「黄金王座」仪式发电机。  
 > 目标平台：Minecraft 1.7.10 / Forge / GT5-Unofficial 5.09.x + StructureLib。  
 > 参考写法：GT5U 官方多方块 + [Twist Space Technology](https://github.com/Nxer/Twist-Space-Technology-Mod) 社区模组。
 
@@ -42,7 +42,7 @@
 4. **清算**：积攒满 M 秒后，对首名玩家结算（有护符免死，否则击杀）；进入 **发电阶段**。
 5. **发电**：持续 `baseGeneration + 曲线(献祭增幅)` 秒，每 tick 输出配置 EU/t；期间不再积攒。
 
-**Lore**：隐晦 net a 战锤 40K「黄金王座 / 帝皇 / 灵魂献祭」——文案见 Lang 模板。
+**背景故事**：暗指 战锤 40K 中「黄金王座 / 帝皇 / 灵魂献祭」的设定——具体文案见 Lang 模板。
 
 ---
 
@@ -807,5 +807,5 @@ buildHatchAdder(MTE.class).atLeast(InputHatch, OutputHatch)
 
 ---
 
-*文档版本：自 AdvanceDataMonitor 移除黄金王座时的实现快照。生成后请按目标 modid / 包名 / MTE ID 全局替换占位符。*
+*文档版本：自 TeXTech 移除黄金王座时的实现快照。生成后请按目标 modid / 包名 / MTE ID 全局替换占位符。*
 

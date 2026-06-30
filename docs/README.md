@@ -1,6 +1,6 @@
-﻿# AdvanceDataMonitor Documentation
+# TeXTech Documentation
 
-> Mod ID: `advancedatamonitor` · Minecraft 1.7.10 / GTNH · Last synced: 2026-06
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-06
 
 Documentation is split by language under `docs/zh/` (简体中文) and `docs/en/` (English).  
 The project root [`README.md`](../README.md) keeps only a short intro and build commands.
@@ -37,7 +37,7 @@ The project root [`README.md`](../README.md) keeps only a short intro and build 
 
 When code or in-game names change, update **both** language trees where applicable, and align names with:
 
-- `src/main/resources/assets/advancedatamonitor/lang/zh_CN.lang`
-- `src/main/resources/assets/advancedatamonitor/lang/en_US.lang`
+- `src/main/resources/assets/textech/lang/zh_CN.lang`
+- `src/main/resources/assets/textech/lang/en_US.lang`
 
 Cursor Agent rules under `.cursor/rules/` complement these docs for quick file lookup.

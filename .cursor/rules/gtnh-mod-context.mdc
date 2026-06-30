@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## 基本信息
 
-- **项目名**: AdvanceDataMonitor (modid: `advancedatamonitor`)
+- **项目名**: TeXTech (modid: `advancedatamonitor`)
 - **根包名**: `com.imgood.advancedatamonitor`
 - **定位**: GTNH (GregTech: New Horizons) 社区模组
 - **平台**: Minecraft 1.7.10 / Forge 10.13.4.1614 / MCP stable_12
@@ -27,7 +27,7 @@ alwaysApply: true
 - 渲染、GUI、按键绑定等放在 `client/`、`renders/`、`gui/` 包下，确保服务端加载时不会触发 `ClassNotFoundException`。
 
 ### 日志
-- 使用 `AdvanceDataMonitor.LOG` (`org.apache.logging.log4j.Logger`) 统一日志输出。
+- 使用 `TeXTech.LOG` (`org.apache.logging.log4j.Logger`) 统一日志输出。
 
 ### DEBUG 模式
 - 所有调试开关在 `config/advancedatamonitor/advancedatamonitor.cfg` 中配置，**默认均为 `false`**。

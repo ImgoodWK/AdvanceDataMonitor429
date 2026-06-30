@@ -1,6 +1,6 @@
 # 未引用 lang 键清单
 
-本文档列出 `en_US.lang` / `zh_CN.lang` 中存在、但在 Java 源码与 `assets/advancedatamonitor/` 资源（手册 JSON、assistant 配置等）中未找到引用的键。
+本文档列出 `en_US.lang` / `zh_CN.lang` 中存在、但在 Java 源码与 `assets/textech/` 资源（手册 JSON、assistant 配置等）中未找到引用的键。
 
 - lang 键总数 / total keys: **643**
 - 未引用键数 / unreferenced: **13**

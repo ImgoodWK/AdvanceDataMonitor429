@@ -1,0 +1,33 @@
+package com.imgood.textech.assistant;
+
+public enum AssistantIntentType {
+    ORDER_ITEM,
+    ORDER_BATCH,
+    WITHDRAW_ITEM,
+    WITHDRAW_BATCH,
+    CONFIRM_OPTION,
+    QUERY_RECIPE,
+    QUERY_STORAGE,
+    QUERY_POWER,
+    QUERY_STEAM,
+    QUERY_WEATHER,
+    QUERY_TIME,
+    QUERY_POSITION,
+    QUERY_BIOME,
+    QUERY_INVENTORY,
+    QUERY_NETWORK,
+    QUERY_JOBS,
+    PLAN_CREATE,
+    PLAN_ADD,
+    PLAN_LIST,
+    PLAN_COMPLETE,
+    PLAN_DELETE,
+    PLAN_MODIFY,
+    TELEPORT,
+    TELEPORT_LIST,
+    CANCEL,
+    CLARIFY,
+    CHAT,
+    QUERY_ITEM_COUNT,
+    QUERY_BYTES
+}

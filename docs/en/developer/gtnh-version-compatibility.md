@@ -1,6 +1,6 @@
 # GTNH Version Compatibility
 
-> **Applies to**: AdvanceDataMonitor **v1.0.0** (first public release)  
+> **Applies to**: TeXTech **v1.0.0** (first public release)  
 > **Last updated**: 2026-06-25  
 > 中文: [GTNH版本兼容说明.md](../../zh/developer/GTNH版本兼容说明.md)
 
@@ -27,7 +27,7 @@ The mod picks the path automatically at startup via `AeCompat.init()`. Example l
 
 ### Manual override (advanced)
 
-In `config/advancedatamonitor/advancedatamonitor.cfg`, section `[compat]`:
+In `config/textech/textech.cfg`, section `[compat]`:
 
 | Setting | Values | Description |
 |---------|--------|-------------|
@@ -76,7 +76,7 @@ These features work on **both 2.8.x and 2.9.0-beta+**, with different adapters u
 ### Migration tips
 
 - **Still on 2.8.x**: stay on **v1.0.0** until you upgrade the pack; no extra steps required beforehand.
-- **Pack authors**: if your pack remains on 2.8.x, note in your changelog that AdvanceDataMonitor **≥1.1.0** requires GTNH 2.9.0-beta-1+, or pin the mod to `1.0.x`.
+- **Pack authors**: if your pack remains on 2.8.x, note in your changelog that TeXTech **≥1.1.0** requires GTNH 2.9.0-beta-1+, or pin the mod to `1.0.x`.
 - **Developers**: follow [ae-compat-plan-e-remove-legacy.md](ae-compat-plan-e-remove-legacy.md); opening prompt: *「继续 GTNH 2.9 AE 兼容，执行 Plan E — 移除 Legacy 支持」*.
 
 ---
