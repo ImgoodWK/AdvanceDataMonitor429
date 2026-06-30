@@ -19,7 +19,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Display names / 显示名称:
  * - EN: Weave Amplifier Card
- * - ZH: 编织增幅�?
+ * - ZH: 编织增幅占
  * Lang keys: item.weaveAmplifier.name, adm.tooltip.weave_amplifier.title
  */
 public class ItemWeaveAmplifier extends Item implements IWeaveAmplifierCard, IUpgradeModule {

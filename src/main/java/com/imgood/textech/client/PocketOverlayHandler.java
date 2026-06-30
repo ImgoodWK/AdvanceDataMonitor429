@@ -4,11 +4,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.client.event.MouseEvent;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
-
-import com.imgood.textech.client.PocketStackSizeFormat;
 
 import com.imgood.textech.gui.guiscreen.GuiDimensionalPocketConfig;
 import com.imgood.textech.gui.guiscreen.GuiPocketStorage;
@@ -20,8 +20,6 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraftforge.client.event.GuiScreenEvent;
-import net.minecraftforge.client.event.MouseEvent;
 
 /**
  * Client-side event hub for the Dimensional Pocket overlay. Detects when the
@@ -80,8 +78,7 @@ public class PocketOverlayHandler {
             return;
         }
         GuiScreen screen = mc.currentScreen;
-        boolean shouldShow = screen instanceof GuiContainer
-            && !isPocketNativeGui(screen)
+        boolean shouldShow = screen instanceof GuiContainer && !isPocketNativeGui(screen)
             && ItemDimensionalPocket.hasPocketInInventory(mc.thePlayer);
 
         if (shouldShow) {
@@ -95,7 +92,7 @@ public class PocketOverlayHandler {
     }
 
     /**
-     * Render AFTER the entire GuiScreen.drawScreen() finishes â€?including NEI's
+     * Render AFTER the entire GuiScreen.drawScreen() finishes â€”including NEI's
      * item panel, search bar, and transparent overlay which are drawn via the
      * GuiContainer rendering pipeline (not via Forge's RenderGameOverlayEvent).
      * This guarantees the pocket overlay is always on top, never behind NEI.
@@ -182,7 +179,9 @@ public class PocketOverlayHandler {
         int evDwheel = org.lwjgl.input.Mouse.getEventDWheel();
 
         net.minecraft.client.gui.ScaledResolution sr = new net.minecraft.client.gui.ScaledResolution(
-            mc, mc.displayWidth, mc.displayHeight);
+            mc,
+            mc.displayWidth,
+            mc.displayHeight);
         int scaledX = rawX * sr.getScaledWidth() / mc.displayWidth;
         int scaledY = sr.getScaledHeight() - rawY * sr.getScaledHeight() / mc.displayHeight - 1;
 

@@ -63,6 +63,7 @@ public class LoaderRender {
         MinecraftForgeClient.registerItemRenderer(advanceDataMonitorBlockItem, new RenderAdvanceDataMonitorBlockItem());
         MinecraftForgeClient.registerItemRenderer(LoaderItem.dataImprint, new RenderDataImprintItem());
         MinecraftForgeClient.registerItemRenderer(LoaderItem.starryCosmosSword, CosmicStarrySwordRenderer.INSTANCE);
+        MinecraftForgeClient.registerItemRenderer(LoaderItem.holyJudgment, CosmicStarrySwordRenderer.INSTANCE);
         MinecraftForgeClient.registerItemRenderer(advanceNetworkLink, new RenderAdvanceNetworkLinkBlockItem());
 
         RenderingRegistry.registerEntityRenderingHandler(EntitySuperOrangeDrone.class, new RenderSuperOrangeDrone());

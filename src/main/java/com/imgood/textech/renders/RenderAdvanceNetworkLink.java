@@ -35,7 +35,7 @@ public class RenderAdvanceNetworkLink extends TileEntitySpecialRenderer {
         GL11.glRotatef(getRotationFromFacing(link.getFacing()), 0, 1, 0);
         GL11.glTranslated(0, -0.5, 0); // 调整模型位置
 
-        // 保存当前光贴图状�?
+        // 保存当前光贴图状总
         float lastBrightnessX = OpenGlHelper.lastBrightnessX;
         float lastBrightnessY = OpenGlHelper.lastBrightnessY;
 
@@ -45,7 +45,7 @@ public class RenderAdvanceNetworkLink extends TileEntitySpecialRenderer {
         // 渲染发光部件
         renderEmissiveParts();
 
-        // 恢复光贴图状�?
+        // 恢复光贴图状总
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lastBrightnessX, lastBrightnessY);
 
         GL11.glPopMatrix();
@@ -65,7 +65,7 @@ public class RenderAdvanceNetworkLink extends TileEntitySpecialRenderer {
         // 发光部件设置
         GL11.glDepthMask(false);
         GlStateManager.disableLighting();
-        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0f, 240.0f); // 最大亮�?
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0f, 240.0f); // 最大亮应
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
 
@@ -74,7 +74,7 @@ public class RenderAdvanceNetworkLink extends TileEntitySpecialRenderer {
         MODEL.renderPart("CableLighting");
         MODEL.renderPart("RollLighting"); // 添加滚轮发光部件
 
-        // 恢复状�?
+        // 恢复状总
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glDepthMask(true);
         GlStateManager.enableLighting();

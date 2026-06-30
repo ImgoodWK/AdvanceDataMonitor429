@@ -14,13 +14,8 @@ public final class PocketStackOverlayRenderer {
 
     private PocketStackOverlayRenderer() {}
 
-    public static void renderSlotItem(
-        RenderItem renderItem,
-        FontRenderer font,
-        TextureManager textureManager,
-        ItemStack stack,
-        int x,
-        int y) {
+    public static void renderSlotItem(RenderItem renderItem, FontRenderer font, TextureManager textureManager,
+        ItemStack stack, int x, int y) {
         if (stack == null || renderItem == null) return;
         renderItem.renderItemAndEffectIntoGUI(font, textureManager, stack, x, y);
         String overlay = PocketStackSizeFormat.formatOverlayText(stack.stackSize);

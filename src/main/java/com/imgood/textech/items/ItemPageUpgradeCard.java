@@ -15,7 +15,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Display names / 显示名称:
  * - EN: Page Upgrade Card
- * - ZH: 翻页升级�?
+ * - ZH: 翻页升级占
  * Lang keys: item.pageUpgradeCard.name, adm.tooltip.pocket.page_card
  *
  * Stacks up to 8. Each card adds one extra page to the Dimensional Pocket.

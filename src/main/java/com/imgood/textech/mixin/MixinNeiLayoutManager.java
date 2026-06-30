@@ -18,11 +18,11 @@ import com.imgood.textech.client.PocketOverlayHandler;
  * coordinates. This Mixin intercepts the coordinates directly at the
  * LayoutManager level, rewriting them to -9999 so that:
  *
- * - {@code widget.draw(-9999, -9999)} â†?no widget detects hover
- * - {@code ItemZoom} â†?no zoomed item preview rendered
- * - {@code ItemPanel/BookmarkPanel} â†?no slot highlight
+ * - {@code widget.draw(-9999, -9999)} â†’no widget detects hover
+ * - {@code ItemZoom} â†’no zoomed item preview rendered
+ * - {@code ItemPanel/BookmarkPanel} â†’no slot highlight
  *
- * The NEI panel background and item grid remain visible â€?only hover-
+ * The NEI panel background and item grid remain visible â€”only hover-
  * dependent rendering (highlights, zoomed previews) is suppressed.
  *
  * During an overlay drag operation, suppression is unconditional because
@@ -32,14 +32,22 @@ import com.imgood.textech.client.PocketOverlayHandler;
 @Mixin(codechicken.nei.LayoutManager.class)
 public abstract class MixinNeiLayoutManager {
 
-    @ModifyVariable(method = "renderObjects(Lnet/minecraft/client/gui/inventory/GuiContainer;II)V",
-        at = @At("HEAD"), argsOnly = true, ordinal = 1, remap = false)
+    @ModifyVariable(
+        method = "renderObjects(Lnet/minecraft/client/gui/inventory/GuiContainer;II)V",
+        at = @At("HEAD"),
+        argsOnly = true,
+        ordinal = 1,
+        remap = false)
     private int adm$suppressWidgetMouseX(int mousex) {
         return shouldSuppress() ? -9999 : mousex;
     }
 
-    @ModifyVariable(method = "renderObjects(Lnet/minecraft/client/gui/inventory/GuiContainer;II)V",
-        at = @At("HEAD"), argsOnly = true, ordinal = 2, remap = false)
+    @ModifyVariable(
+        method = "renderObjects(Lnet/minecraft/client/gui/inventory/GuiContainer;II)V",
+        at = @At("HEAD"),
+        argsOnly = true,
+        ordinal = 2,
+        remap = false)
     private int adm$suppressWidgetMouseY(int mousey) {
         return shouldSuppress() ? -9999 : mousey;
     }

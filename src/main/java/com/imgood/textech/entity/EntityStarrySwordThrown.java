@@ -83,7 +83,8 @@ public class EntityStarrySwordThrown extends Entity implements IEntityAdditional
         if (!worldObj.isRemote) {
             EntityLivingBase owner = resolveThrower();
             if (owner != null) {
-                StarryEntityMotionUtil.killLivingInBox(worldObj, boundingBox.expand(0.35D, 0.35D, 0.35D), owner, this);
+                StarryEntityMotionUtil
+                    .killLivingInBox(worldObj, boundingBox.expand(0.35D, 0.35D, 0.35D), owner, this, true);
             }
 
             MovingObjectPosition blockHit = StarryEntityMotionUtil

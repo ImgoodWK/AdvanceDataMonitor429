@@ -26,15 +26,14 @@ import com.imgood.textech.client.PocketOverlayHandler;
 @Mixin(codechicken.nei.guihook.GuiContainerManager.class)
 public abstract class MixinNeiRenderToolTips {
 
-    @Inject(method = "renderToolTips(II)V", at = @At("HEAD"),
-        cancellable = true, remap = false)
+    @Inject(method = "renderToolTips(II)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void adm$cancelNeiTooltips(int mousex, int mousey, CallbackInfo ci) {
         PocketOverlayHandler handler = PocketOverlayHandler.instance();
         if (!handler.isOverlayActive()) return;
         GuiPocketOverlay overlay = handler.getOverlay();
         if (overlay == null) return;
 
-        // During drag, cancel tooltips unconditionally â€?the overlay
+        // During drag, cancel tooltips unconditionally â€”the overlay
         // position is stale (one frame behind) and hitsPanel can miss.
         if (overlay.isDragging()) {
             ci.cancel();

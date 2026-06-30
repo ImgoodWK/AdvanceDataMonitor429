@@ -19,13 +19,13 @@ import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 /**
  * Display names / 显示名称:
  * - EN: Network Linker
- * - ZH: 网络链接�?
+ * - ZH: 网络链接器
  * Lang keys: tile.NetworkLinkBlock.name, adm.title.data_config_ae_network
  */
 public class BlockAdvanceNetworkLink extends BlockContainer {
 
-    // 更新间隔（tick），1 = 每tick�?0 = 每秒。建议根据网络大小调整，避免性能问题�?
-    private static final int UPDATE_INTERVAL = 20; // 可改�?20 或更�?
+    // 更新间隔（tick），1 = 每tick，20 = 每秒。建议根据网络大小调整，避免性能问题。
+    private static final int UPDATE_INTERVAL = 20; // 可改为 20 或更高
 
     public BlockAdvanceNetworkLink() {
         super(Material.iron);
@@ -35,7 +35,7 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("NetworkLinkBlock");
         this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_network_link");
-        this.setTickRandomly(true); // 允许接收计划�?
+        this.setTickRandomly(true); // 允许接收计划刻
     }
 
     @Override
@@ -59,19 +59,19 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         int facing = MathHelper.floor_double((placer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
         switch (facing) {
             case 0:
-                return 2; // �?
+                return 2; // 北
             case 1:
-                return 5; // �?
+                return 5; // 东
             case 2:
-                return 3; // �?
+                return 3; // 南
             case 3:
-                return 4; // �?
+                return 4; // 西
             default:
                 return 2;
         }
     }
 
-    // ---------- 定时刷新（计划刻�?----------
+    // ---------- 定时刷新（计划刻） ----------
     @Override
     public void onBlockAdded(World world, int x, int y, int z) {
         super.onBlockAdded(world, x, y, z);
@@ -87,12 +87,12 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             if (te instanceof TileEntityAdvanceNetworkLink) {
                 ((TileEntityAdvanceNetworkLink) te).updateNetworkCache();
             }
-            // 重新调度，形成循�?
+            // 重新调度，形成循环
             world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
         }
     }
 
-    // ---------- 右键交互（保留原有逐条显示逻辑�?----------
+    // ---------- 右键交互（保留原有逐条显示逻辑） ----------
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
         float hitY, float hitZ) {
@@ -101,7 +101,7 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             if (te instanceof TileEntityAdvanceNetworkLink) {
                 TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) te;
 
-                // 手动强制刷新一�?
+                // 手动强制刷新一次
                 link.updateNetworkCache();
 
                 // 显示网络信息（保持原有格式）

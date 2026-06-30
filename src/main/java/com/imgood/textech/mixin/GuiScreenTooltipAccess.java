@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 /**
  * Invokes protected {@link GuiScreen} helpers so overlay slot tooltips use the same Forge /
- * GTNH tooltip pipeline as normal container slots ({@code renderToolTip} â†?ItemTooltipEvent).
+ * GTNH tooltip pipeline as normal container slots ({@code renderToolTip} â†’ItemTooltipEvent).
  */
 @Mixin(GuiScreen.class)
 public interface GuiScreenTooltipAccess {

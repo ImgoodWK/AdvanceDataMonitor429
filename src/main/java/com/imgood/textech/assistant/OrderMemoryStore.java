@@ -104,7 +104,7 @@ public class OrderMemoryStore {
     private String normalize(String text) {
         return text == null ? ""
             : text.toLowerCase()
-                .replaceAll("[\\s，�?.?!？！]", "")
+                .replaceAll("[\\s，。.?!？！]", "")
                 .trim();
     }
 

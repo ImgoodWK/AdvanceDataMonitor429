@@ -38,7 +38,7 @@
     {
       "id": "combat_special",
       "titleKey": "adm.manual.chapter.combat_special",
-      "icon": "advancedatamonitor:starry_cosmos_sword"
+      "icon": "textech:starry_cosmos_sword"
     },
     {
       "id": "ai_assistant",

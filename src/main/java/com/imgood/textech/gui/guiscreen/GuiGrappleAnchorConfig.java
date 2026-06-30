@@ -310,7 +310,7 @@ public class GuiGrappleAnchorConfig extends ADM_GuiScreen {
 
                 this.fontRendererObj,
 
-                "§l�?,
+                "§l■",
 
                 centerX - 58,
 

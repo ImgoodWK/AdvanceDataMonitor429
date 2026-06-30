@@ -36,7 +36,10 @@
 dependencies {
     shadowImplementation('com.alphacephei:vosk:0.3.45')
     shadowImplementation('net.java.dev.jna:jna:5.14.0')
-    shadowImplementation('com.github.Towdium:PinIn:1.6.0')
+    // PinIn 传递依赖 fastutil；打入 it.unimi.dsi.fastutil 会与 gtnhlib 冲突。运行时由 gtnhlib 提供。
+    shadowImplementation('com.github.Towdium:PinIn:1.6.0') {
+        exclude group: 'it.unimi.dsi', module: 'fastutil'
+    }
     devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.5.4-GTNH:dev")
     implementation files('libs/Chisel-2.14.1-GTNH-dev.jar')
     implementation files('libs/Galacticraft-3.3.12-GTNH-dev.jar')

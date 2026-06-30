@@ -443,6 +443,8 @@ adm.scanner.tooltip.storage_hint=Re-place storage linkers to set owner; empty ce
 item.orange.name=Super Orange
 item.starryCosmosSword.name=Empyrean Holy Judgment
 adm.tooltip.starry_cosmos_sword=Left-click: instant kill + crescent slash wave. Right-click: throw straight along crosshair; sword rain for 5s on impact. Shift+right-click: mini judgment swords on mobs in 3×3 chunks.
+item.holyJudgment.name=Holy Judgment
+adm.tooltip.holy_judgment=Left-click: 20 true damage to all hostile mobs along your aim (no giant stab). Right-click: throw along crosshair; 5s sword rain on impact (10 true each). Shift+right-click: no effect. Melee: 5 true + 5 armor-respecting.
 adm.super_orange.tooltip.title=Super Orange
 adm.super_orange.tooltip.toggle_matter=Sneak + right-click: toggle matter ball and drop multiplier
 adm.super_orange.tooltip.toggle_drone=Right-click: toggle drone and projectile immunity
@@ -721,6 +723,7 @@ adm.tooltip.pocket.configSlot.space=Insert Space Upgrade Cards (+1 slot each, ma
 adm.tooltip.pocket.configSlot.page=Insert Page Upgrade Cards (requires 64 space upgrades, max 9 pages)
 adm.tooltip.pocket.configSlot.stack=Insert Stack Upgrade Cards (doubles per-slot stack limit each)
 adm.tooltip.pocket.configSlot.infinite=Insert Infinite Stack Upgrade Card (unlimited stack, max 1)
+adm.tooltip.pocket.back=Back
 adm.label.pocket.spaceUpgrade=Space Upgrade Slot
 adm.label.pocket.pageUpgrade=Page Upgrade Slot
 adm.label.pocket.switch=Function Switch
@@ -824,6 +827,7 @@ adm.manual.combat_special.usage_title=Combat & Ability Usage
 adm.manual.combat_special.usage_text=Empyrean Holy Judgment (starry_cosmos_sword):\n- Left-click: instant kill + crescent slash wave\n- Right-click: throw straight along crosshair; 5-second sword rain on impact\n- Shift+right-click: mini judgment swords on mobs in 3×3 chunks\n- Cosmic shader rendering with custom particle effects\n\nSuper Orange (orange):\n- Hold: instant break any block (including GT ores)\n- Right-click: toggle drone and projectile immunity\n- Sneak+right-click: toggle matter ball and drop multiplier\n- Anvil rename: set head nameplate text\n- Drone: orbits player, intercepts projectiles, clones fight hostiles\n\nSee Config Reference for [superOrange] and [dataLoomCell] categories.
 
 adm.manual.item.starry_cosmos_sword=The ultimate combat weapon. Instant-kill left-click with crescent slash wave.\n\nLeft-click: kill target instantly, releasing a wide crescent slash wave in front.\n\nRight-click: throw the sword along your crosshair. On impact, triggers a 5-second sword rain over the area.\n\nShift+right-click: mini judgment swords rain on all hostile mobs within a 3×3 chunk area.\n\nCosmic rendering: uses special shader effects for a celestial appearance.\n\nCreative tab: Combat. Stack size: 1.
+adm.manual.item.holy_judgment=Holy Judgment is the non-enchanted variant with the same skills.\n\nLeft-click giant stab and right-click throw/slam/rain: 10 true damage each (not instant kill).\n\nMelee and Shift+right-click mini swords: 5 true + 5 armor-respecting damage.\n\nSame cosmic rendering as Empyrean Holy Judgment (rain shows blade only for performance), without enchantment glow.\n\nRegistry: holy_judgment. Creative tab: Combat.
 
 adm.manual.ai_assistant.teleport_title=Teleport System
 adm.manual.ai_assistant.teleport_text=The AI Assistant integrates with Draconic Evolution's Advanced Dislocator (com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII) for teleportation.\n\nRequirements:\n- An Advanced Dislocator (TeleporterMKII) in your inventory.\n- At least one saved destination on the gem (added via DE's own interface).\n\nHow it works:\n1. The assistant scans your inventory for TeleporterMKII items.\n2. Reads the "Locations" NBT tag list from each gem.\n3. Each location has: X, Y, Z, Dimension, Name.\n4. Displays destinations as a numbered list with dimension info.\n5. Confirm by number or fuzzy name match.\n\nExecution:\n- Same dimension: setPositionAndUpdate() for instant teleport.\n- Cross-dimension: uses configurationManager.transferPlayerToDimension() with a custom Teleporter instance.\n\nDimensions are resolved by stored DimentionName (DE uses this typo internally), standard names (Nether/Overworld/The End), or custom dimension IDs.\n\nName matching: exact match preferred, falls back to substring matching if no exact match found.\n\nExample AI prompts: "Teleport me to my base", "List my teleport points", "Take me to the mining dimension".

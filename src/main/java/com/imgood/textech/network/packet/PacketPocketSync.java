@@ -28,7 +28,7 @@ public class PacketPocketSync implements IMessage {
 
     public static final byte KIND_FULL = 0;
     public static final byte KIND_SINGLE_PAGE = 1;
-    /** Upgrade counts / overlay prefs only â€?no page item payloads. */
+    /** Upgrade counts / overlay prefs only â€”no page item payloads. */
     public static final byte KIND_METADATA = 2;
 
     public byte kind = KIND_FULL;
@@ -216,8 +216,7 @@ public class PacketPocketSync implements IMessage {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
             if (mc.thePlayer != null) {
                 if (mc.thePlayer.openContainer instanceof com.imgood.textech.gui.container.ContainerPocketStorage) {
-                    com.imgood.textech.gui.container.ContainerPocketStorage storage =
-                        (com.imgood.textech.gui.container.ContainerPocketStorage) mc.thePlayer.openContainer;
+                    com.imgood.textech.gui.container.ContainerPocketStorage storage = (com.imgood.textech.gui.container.ContainerPocketStorage) mc.thePlayer.openContainer;
                     if (message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
                         storage.applyClientPage(message.pageIndex);
                     }

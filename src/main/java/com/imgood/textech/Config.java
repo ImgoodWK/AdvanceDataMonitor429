@@ -23,7 +23,7 @@ public class Config {
     private static File activeConfigFile;
 
     // --- compat ---
-    /** {@code auto}, {@code legacy}, or {@code native} â€?forces AE integration profile when not auto. */
+    /** {@code auto}, {@code legacy}, or {@code native} â€”forces AE integration profile when not auto. */
     public static String compatAeProfileOverride = "auto";
 
     // --- debug (defaults false) ---

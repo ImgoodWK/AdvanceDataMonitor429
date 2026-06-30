@@ -25,8 +25,6 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
-import com.imgood.textech.compat.ae.AeCellStats;
-import com.imgood.textech.compat.ae.AeCompat;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.network.packet.PacketAssistantResponse;
 import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
@@ -48,6 +46,10 @@ import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.security.BaseActionSource;
 import appeng.api.networking.security.PlayerSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.storage.ICellInventory;
+import appeng.api.storage.ICellInventoryHandler;
+import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.StorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.tile.storage.TileChest;
@@ -270,14 +272,14 @@ public final class AssistantServerServices {
         if (candidate == null) {
             return new WithdrawSubmitOutcome(
                 WithdrawSubmitOutcome.Kind.FAILURE,
-                withdrawFailed(locale, text(locale, "候选项为空�?, "empty candidate.")));
+                withdrawFailed(locale, text(locale, "候选项为空。", "empty candidate.")));
         }
         if (amount <= 0L || amount > Config.assistantMaxWithdrawAmount) {
             return new WithdrawSubmitOutcome(
                 WithdrawSubmitOutcome.Kind.FAILURE,
                 withdrawFailed(
                     locale,
-                    text(locale, "数量无效或超过取出配置上限�?, "invalid amount or above configured withdraw limit.")));
+                    text(locale, "数量无效或超过取出配置上限。", "invalid amount or above configured withdraw limit.")));
         }
         ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
             player,
@@ -286,7 +288,7 @@ public final class AssistantServerServices {
         if (source.isEmpty()) {
             return new WithdrawSubmitOutcome(
                 WithdrawSubmitOutcome.Kind.FAILURE,
-                withdrawFailed(locale, text(locale, "附近没有 Advance Storage Link�?, "no nearby Advance Storage Link.")));
+                withdrawFailed(locale, text(locale, "附近没有 Advance Storage Link。", "no nearby Advance Storage Link.")));
         }
         // Try each connector; use the first one that has the item
         WithdrawSubmitOutcome bestOutcome = null;
@@ -307,22 +309,22 @@ public final class AssistantServerServices {
                         WithdrawSubmitOutcome.Kind.FAILURE,
                         withdrawFailed(
                             locale,
-                            text(locale, "背包已满，无法取出物品�?, "inventory is full; cannot withdraw items.")));
+                            text(locale, "背包已满，无法取出物品。", "inventory is full; cannot withdraw items.")));
                     continue;
                 }
                 if (inventoryFit < requestedAmount && !confirmPartial) {
                     String message = text(
                         locale,
                         "您的背包最多还能放 " + inventoryFit
-                            + " �?"
+                            + " 个 "
                             + stack.getDisplayName()
-                            + "（请�?"
+                            + "（请求 "
                             + requestedAmount
-                            + "，库�?"
+                            + "，库存 "
                             + storageAmount
-                            + "）。是否取�?"
+                            + "）。是否取出 "
                             + inventoryFit
-                            + " 个？请回复确认�?,
+                            + " 个？请回复确认。",
                         "Your inventory can only fit " + inventoryFit
                             + " more "
                             + stack.getDisplayName()
@@ -346,13 +348,13 @@ public final class AssistantServerServices {
                 if (inserted > 0L) {
                     String success = text(
                         locale,
-                        "已取出到背包�? + stack.getDisplayName()
+                        "已取出到背包：" + stack.getDisplayName()
                             + " x"
                             + inserted
                             + (inserted < requestedAmount
-                                ? "（请�?" + requestedAmount + "，库存剩余约 " + Math.max(0L, storageAmount - inserted) + "�?
+                                ? "（请求 " + requestedAmount + "，库存剩余约 " + Math.max(0L, storageAmount - inserted) + "）"
                                 : "")
-                            + "�?,
+                            + "。",
                         "Withdrawn to inventory: " + stack.getDisplayName()
                             + " x"
                             + inserted
@@ -367,7 +369,7 @@ public final class AssistantServerServices {
                 }
                 bestOutcome = new WithdrawSubmitOutcome(
                     WithdrawSubmitOutcome.Kind.FAILURE,
-                    withdrawFailed(locale, text(locale, "�?AE2 取出失败�?, "failed to withdraw from AE2.")));
+                    withdrawFailed(locale, text(locale, "从 AE2 取出失败。", "failed to withdraw from AE2.")));
             } catch (Exception e) {
                 AdvanceDataMonitor.LOG.error("Failed to withdraw from link at {},{}", link.xCoord, link.yCoord, e);
             }
@@ -375,30 +377,30 @@ public final class AssistantServerServices {
         if (bestOutcome != null) return bestOutcome;
         return new WithdrawSubmitOutcome(
             WithdrawSubmitOutcome.Kind.FAILURE,
-            withdrawFailed(locale, text(locale, "在所有连接器中均未找到该物品�?, "item not found in any connector.")));
+            withdrawFailed(locale, text(locale, "在所有连接器中均未找到该物品。", "item not found in any connector.")));
     }
 
     public static String submitBatchWithdraw(EntityPlayerMP player, String rawText, List<AssistantOrderLine> lines,
         String locale) {
         if (lines == null || lines.isEmpty()) {
-            return text(locale, "批量取出失败：没有取出行�?, "Batch withdraw failed: no withdraw lines.");
+            return text(locale, "批量取出失败：没有取出行。", "Batch withdraw failed: no withdraw lines.");
         }
         for (AssistantOrderLine line : lines) {
             if (line == null || line.selectedOrFirstCandidate() == null) {
                 return text(
                     locale,
-                    "批量取出失败：第 " + (line == null ? "?" : line.lineIndex) + " 行没有候选项。没有取出任何物品�?,
+                    "批量取出失败：第 " + (line == null ? "?" : line.lineIndex) + " 行没有候选项。没有取出任何物品。",
                     "Batch withdraw failed: no candidate for line " + (line == null ? "?" : line.lineIndex)
                         + ". Nothing was withdrawn.");
             }
             if (line.amount <= 0L || line.amount > Config.assistantMaxWithdrawAmount) {
                 return text(
                     locale,
-                    "批量取出失败：第 " + line.lineIndex + " 行数量无效。没有取出任何物品�?,
+                    "批量取出失败：第 " + line.lineIndex + " 行数量无效。没有取出任何物品。",
                     "Batch withdraw failed: invalid amount for line " + line.lineIndex + ". Nothing was withdrawn.");
             }
         }
-        StringBuilder builder = new StringBuilder(text(locale, "批量取出结果�?, "Batch withdraw results:"));
+        StringBuilder builder = new StringBuilder(text(locale, "批量取出结果：", "Batch withdraw results:"));
         for (AssistantOrderLine line : lines) {
             CraftingCandidate candidate = line.selectedOrFirstCandidate();
             WithdrawSubmitOutcome outcome = submitWithdraw(player, candidate, line.amount, rawText, locale, true);
@@ -467,7 +469,7 @@ public final class AssistantServerServices {
     private static String withdrawFailed(String locale, String reason) {
         return text(
             locale,
-            "取出失败�? + (reason == null ? "" : reason),
+            "取出失败：" + (reason == null ? "" : reason),
             "Withdraw failed: " + (reason == null ? "" : reason));
     }
 
@@ -492,20 +494,20 @@ public final class AssistantServerServices {
     public static String submitBatchCraft(EntityPlayerMP player, String rawText, List<AssistantOrderLine> lines,
         String locale) {
         if (lines == null || lines.isEmpty()) {
-            return text(locale, "批量订单失败：没有订单行�?, "Batch order failed: no order lines.");
+            return text(locale, "批量订单失败：没有订单行。", "Batch order failed: no order lines.");
         }
         for (AssistantOrderLine line : lines) {
             if (line == null || line.selectedOrFirstCandidate() == null) {
                 return text(
                     locale,
-                    "批量订单失败：第 " + (line == null ? "?" : line.lineIndex) + " 行没有候选项。没有提交任何任务�?,
+                    "批量订单失败：第 " + (line == null ? "?" : line.lineIndex) + " 行没有候选项。没有提交任何任务。",
                     "Batch order failed: no candidate for line " + (line == null ? "?" : line.lineIndex)
                         + ". No jobs were submitted.");
             }
             if (line.amount <= 0 || line.amount > Config.assistantMaxOrderAmount) {
                 return text(
                     locale,
-                    "批量订单失败：第 " + line.lineIndex + " 行数量无效。没有提交任何任务�?,
+                    "批量订单失败：第 " + line.lineIndex + " 行数量无效。没有提交任何任务。",
                     "Batch order failed: invalid amount for line " + line.lineIndex + ". No jobs were submitted.");
             }
         }
@@ -513,7 +515,7 @@ public final class AssistantServerServices {
             .availableSlots(player) < lines.size()) {
             return text(
                 locale,
-                "批量订单失败：可�?AE2 计算槽不足，无法提交 " + lines.size() + " 行任务。没有提交任何任务�?,
+                "批量订单失败：可用 AE2 计算槽不足，无法提交 " + lines.size() + " 行任务。没有提交任何任务。",
                 "Batch order failed: not enough available AE2 calculation slots for " + lines.size()
                     + " line(s). No jobs were submitted.");
         }
@@ -557,7 +559,7 @@ public final class AssistantServerServices {
             safe(rawText));
         if (candidate == null) {
             AssistantDebugLog.append("server-submit", "status=FAIL, reason=empty-candidate");
-            return orderFailed(locale, text(locale, "候选项为空�?, "empty candidate."));
+            return orderFailed(locale, text(locale, "候选项为空。", "empty candidate."));
         }
         if (amount <= 0 || amount > Config.assistantMaxOrderAmount) {
             AdvanceDataMonitor.LOG.info(
@@ -567,7 +569,7 @@ public final class AssistantServerServices {
             AssistantDebugLog.append(
                 "server-submit",
                 "status=FAIL, reason=invalid-amount, amount=" + amount + ", max=" + Config.assistantMaxOrderAmount);
-            return orderFailed(locale, text(locale, "数量无效或超过配置上限�?, "invalid amount or above configured limit."));
+            return orderFailed(locale, text(locale, "数量无效或超过配置上限。", "invalid amount or above configured limit."));
         }
         ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
             player,
@@ -576,13 +578,13 @@ public final class AssistantServerServices {
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Craft submit failed: no AdvanceCraftingLink found.");
             AssistantDebugLog.append("server-submit", "status=FAIL, reason=no-crafting-link");
-            return orderFailed(locale, text(locale, "附近没有 Advance Crafting Link�?, "no nearby Advance Crafting Link."));
+            return orderFailed(locale, text(locale, "附近没有 Advance Crafting Link。", "no nearby Advance Crafting Link."));
         }
         String lastError = null;
         for (TileEntityAdvanceCraftingLink link : source.connectors) {
             ItemStack stack = candidate.toItemStack();
             if (stack == null || stack.getItem() == null) {
-                lastError = orderFailed(locale, text(locale, "候选物品无法还原�?, "candidate item could not be restored."));
+                lastError = orderFailed(locale, text(locale, "候选物品无法还原。", "candidate item could not be restored."));
                 continue;
             }
             try {
@@ -590,7 +592,7 @@ public final class AssistantServerServices {
                     .getGrid();
                 ICraftingGrid craftingGrid = grid == null ? null : grid.getCache(ICraftingGrid.class);
                 if (craftingGrid == null) {
-                    lastError = orderFailed(locale, text(locale, "AE2 合成网络不可用�?, "AE2 crafting grid unavailable."));
+                    lastError = orderFailed(locale, text(locale, "AE2 合成网络不可用。", "AE2 crafting grid unavailable."));
                     continue;
                 }
                 CraftingCandidate serverCandidate = resolveServerCandidate(craftingGrid, candidate, amount);
@@ -599,7 +601,7 @@ public final class AssistantServerServices {
                         locale,
                         text(
                             locale,
-                            "所选物品在�?AE2 网络中已不再可合成�?,
+                            "所选物品在此 AE2 网络中已不再可合成。",
                             "selected item is no longer craftable in this AE2 network."));
                     continue;
                 }
@@ -621,7 +623,7 @@ public final class AssistantServerServices {
                     locale,
                     text(
                         locale,
-                        "AE2 没有接受 " + stack.getDisplayName() + " x" + amount + " 的合成任务�?,
+                        "AE2 没有接受 " + stack.getDisplayName() + " x" + amount + " 的合成任务。",
                         "AE2 did not accept the crafting job for " + stack.getDisplayName() + " x" + amount + "."));
             } catch (Exception e) {
                 AdvanceDataMonitor.LOG.error("Failed to submit AE2 crafting job", e);
@@ -629,7 +631,7 @@ public final class AssistantServerServices {
             }
         }
         return lastError != null ? lastError
-            : orderFailed(locale, text(locale, "在所有连接器中均未找到可合成该物品的网络�?, "no network found that can craft this item."));
+            : orderFailed(locale, text(locale, "在所有连接器中均未找到可合成该物品的网络。", "no network found that can craft this item."));
     }
 
     public static String query(EntityPlayerMP player, AssistantIntentType type, String rawText, String target,
@@ -838,7 +840,7 @@ public final class AssistantServerServices {
 
     private static String queryItemCountMessage(EntityPlayerMP player, String rawText, String target, String locale) {
         // This is only used as fallback; the main response goes through candidates
-        return zh(locale) ? "查询物品数量失败：请通过候选项列表查看结果�? : "Item count query failed: check candidate list for results.";
+        return zh(locale) ? "查询物品数量失败：请通过候选项列表查看结果。" : "Item count query failed: check candidate list for results.";
     }
 
     /**
@@ -863,7 +865,7 @@ public final class AssistantServerServices {
             TileEntityAdvanceNetworkLink.class,
             32);
         if (source.isEmpty()) {
-            return (chinese ? "字节查询失败：附近没�?Advance Network Link�?
+            return (chinese ? "字节查询失败：附近没有 Advance Network Link。"
                 : "Byte query failed: no nearby Advance Network Link.");
         }
         String connectorInfo = "\n(" + source.sourceDescription(locale) + ")";
@@ -912,20 +914,20 @@ public final class AssistantServerServices {
 
         StringBuilder builder = new StringBuilder();
         builder
-            .append(serverLang("adm.ai.assistant.query_bytes_title", locale, "AE2 字节占用详情�?, "AE2 Byte Usage Details:"));
+            .append(serverLang("adm.ai.assistant.query_bytes_title", locale, "AE2 字节占用详情：", "AE2 Byte Usage Details:"));
 
         // Item bytes section
-        builder.append(chinese ? "\n\n物品存储�? : "\n\nItem Storage:");
+        builder.append(chinese ? "\n\n物品存储：" : "\n\nItem Storage:");
         if (hasInfiniteItemCells) {
-            builder.append(chinese ? "\n  无限存储元件：存�? : "\n  Infinite cells: present");
+            builder.append(chinese ? "\n  无限存储元件：存在" : "\n  Infinite cells: present");
             if (itemUsedBytes > 0 || itemTotalBytes > 0) {
-                builder.append(chinese ? "（非无限元件统计如下�? : " (non-infinite cell stats below)");
+                builder.append(chinese ? "（非无限元件统计如下）" : " (non-infinite cell stats below)");
             }
             builder.append("\n  非无限元件：");
         }
-        builder.append(chinese ? "\n  已用�? : "\n  Used: ")
+        builder.append(chinese ? "\n  已用：" : "\n  Used: ")
             .append(AssistantFormatter.formatBytes(itemUsedBytes));
-        builder.append(chinese ? " / 总量�? : " / Total: ")
+        builder.append(chinese ? " / 总量：" : " / Total: ")
             .append(AssistantFormatter.formatBytes(itemTotalBytes));
 
         // Calculate percentage for non-infinite cells
@@ -942,17 +944,17 @@ public final class AssistantServerServices {
         }
 
         // Fluid bytes section
-        builder.append(chinese ? "\n\n流体存储�? : "\n\nFluid Storage:");
+        builder.append(chinese ? "\n\n流体存储：" : "\n\nFluid Storage:");
         if (hasInfiniteFluidCells) {
-            builder.append(chinese ? "\n  无限存储元件：存�? : "\n  Infinite cells: present");
+            builder.append(chinese ? "\n  无限存储元件：存在" : "\n  Infinite cells: present");
             if (fluidUsedBytes > 0 || fluidTotalBytes > 0) {
-                builder.append(chinese ? "（非无限元件统计如下�? : " (non-infinite cell stats below)");
+                builder.append(chinese ? "（非无限元件统计如下）" : " (non-infinite cell stats below)");
             }
             builder.append(chinese ? "\n  非无限元件：" : "\n  Non-infinite:");
         }
-        builder.append(chinese ? "\n  已用�? : "\n  Used: ")
+        builder.append(chinese ? "\n  已用：" : "\n  Used: ")
             .append(AssistantFormatter.formatBytes(fluidUsedBytes));
-        builder.append(chinese ? " / 总量�? : " / Total: ")
+        builder.append(chinese ? " / 总量：" : " / Total: ")
             .append(AssistantFormatter.formatBytes(fluidTotalBytes));
 
         long nonInfiniteFluidTotal = scanResult.nonInfiniteFluidTotal > 0 ? scanResult.nonInfiniteFluidTotal
@@ -970,7 +972,7 @@ public final class AssistantServerServices {
 
         // Summary of infinite cells
         if (hasInfiniteItemCells || hasInfiniteFluidCells) {
-            builder.append(chinese ? "\n\n注意：网络中存在无限存储元件�? : "\n\nNote: Infinite storage cells detected in network:");
+            builder.append(chinese ? "\n\n注意：网络中存在无限存储元件：" : "\n\nNote: Infinite storage cells detected in network:");
             if (hasInfiniteItemCells) {
                 builder.append(chinese ? "\n  - 无限物品存储元件" : "\n  - Infinite item storage cell(s)");
             }
@@ -978,7 +980,7 @@ public final class AssistantServerServices {
                 builder.append(chinese ? "\n  - 无限流体存储元件" : "\n  - Infinite fluid storage cell(s)");
             }
             builder.append(
-                chinese ? "\n  无限元件不计入占用率统计�? : "\n  Infinite cells are excluded from usage percentage calculation.");
+                chinese ? "\n  无限元件不计入占用率统计。" : "\n  Infinite cells are excluded from usage percentage calculation.");
         }
 
         return builder.toString() + connectorInfo;
@@ -1061,31 +1063,100 @@ public final class AssistantServerServices {
      * and accumulate byte counts accordingly.
      */
     private static void classifyCell(InfiniteCellScanResult result, ItemStack stack) {
-        AeCellStats itemStats = new AeCellStats();
-        AeCompat.cells()
-            .readItemCellStats(stack, itemStats);
-        if (itemStats.present) {
-            if (itemStats.infinite) {
-                result.hasInfiniteItems = true;
-                result.infiniteItemBytes += itemStats.totalBytes;
-            } else {
-                result.nonInfiniteItemTotal += itemStats.totalBytes;
-                result.nonInfiniteItemUsed += itemStats.usedBytes;
+        // Check item cell
+        IMEInventoryHandler itemInv = AEApi.instance()
+            .registries()
+            .cell()
+            .getCellInventory(stack, null, StorageChannel.ITEMS);
+        if (itemInv instanceof ICellInventoryHandler) {
+            ICellInventory cell = ((ICellInventoryHandler) itemInv).getCellInv();
+            if (cell != null) {
+                if (isInfiniteCell(cell)) {
+                    result.hasInfiniteItems = true;
+                    result.infiniteItemBytes += cell.getTotalBytes();
+                } else {
+                    result.nonInfiniteItemTotal += cell.getTotalBytes();
+                    result.nonInfiniteItemUsed += cell.getUsedBytes();
+                }
             }
         }
+        // Check fluid cell (GlodBlock/AE2FluidCraft)
+        IMEInventoryHandler fluidInv = AEApi.instance()
+            .registries()
+            .cell()
+            .getCellInventory(stack, null, StorageChannel.FLUIDS);
+        if (fluidInv instanceof ICellInventoryHandler) {
+            ICellInventory cell = ((ICellInventoryHandler) fluidInv).getCellInv();
+            if (cell != null) {
+                if (isInfiniteCell(cell)) {
+                    result.hasInfiniteFluids = true;
+                    result.infiniteFluidBytes += cell.getTotalBytes();
+                } else {
+                    result.nonInfiniteFluidTotal += cell.getTotalBytes();
+                    result.nonInfiniteFluidUsed += cell.getUsedBytes();
+                }
+            }
+        }
+        // Also check GlodBlock's FluidCellInventoryHandler for ExtraCells/GTNH fluid cells
+        try {
+            Class<?> glodHandlerClass = Class.forName("com.glodblock.github.common.storage.FluidCellInventoryHandler");
+            if (glodHandlerClass.isInstance(fluidInv)) {
+                Object handler = glodHandlerClass.cast(fluidInv);
+                Method getCellInv = glodHandlerClass.getMethod("getCellInv");
+                Object cellObj = getCellInv.invoke(handler);
+                if (cellObj != null) {
+                    long totalBytes = (Long) cellObj.getClass()
+                        .getMethod("getTotalBytes")
+                        .invoke(cellObj);
+                    long usedBytes = (Long) cellObj.getClass()
+                        .getMethod("getUsedBytes")
+                        .invoke(cellObj);
+                    String className = cellObj.getClass()
+                        .getName()
+                        .toLowerCase();
+                    if (className.contains("infinity") || className.contains("infinite")
+                        || className.contains("creative")
+                        || totalBytes > 10_000_000_000_000L
+                        || totalBytes == Long.MAX_VALUE
+                        || totalBytes >= Long.MAX_VALUE / 2L) {
+                        result.hasInfiniteFluids = true;
+                        result.infiniteFluidBytes += totalBytes;
+                    } else {
+                        result.nonInfiniteFluidTotal += totalBytes;
+                        result.nonInfiniteFluidUsed += usedBytes;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+            // GlodBlock not available, skip
+        }
+    }
 
-        AeCellStats fluidStats = new AeCellStats();
-        AeCompat.cells()
-            .readFluidCellStats(stack, fluidStats);
-        if (fluidStats.present) {
-            if (fluidStats.infinite) {
-                result.hasInfiniteFluids = true;
-                result.infiniteFluidBytes += fluidStats.totalBytes;
-            } else {
-                result.nonInfiniteFluidTotal += fluidStats.totalBytes;
-                result.nonInfiniteFluidUsed += fluidStats.usedBytes;
-            }
+    /**
+     * Detect whether a cell inventory is an infinite storage cell.
+     * Checks for:
+     * - Class name containing "infinity", "infinite", or "creative"
+     * - TotalBytes exceeding a large threshold (indicating infinite capacity)
+     */
+    private static boolean isInfiniteCell(ICellInventory cell) {
+        if (cell == null) return false;
+        // Check by class name (AE2Things infinite cells have distinct class names)
+        String className = cell.getClass()
+            .getName()
+            .toLowerCase();
+        if (className.contains("infinity") || className.contains("infinite") || className.contains("creative")) {
+            return true;
         }
+        // Check by total bytes threshold (> 1 trillion bytes indicates infinite)
+        long totalBytes = cell.getTotalBytes();
+        if (totalBytes > 10_000_000_000_000L) { // > 10 TB
+            return true;
+        }
+        // Check for Long.MAX_VALUE (common infinite cell representation)
+        if (totalBytes == Long.MAX_VALUE || totalBytes >= Long.MAX_VALUE / 2L) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -1204,7 +1275,7 @@ public final class AssistantServerServices {
 
     private static String weatherSummary(EntityPlayerMP player, String locale) {
         if (player == null || player.worldObj == null) {
-            return queryFailed(locale, text(locale, "玩家或世界不可用�?, "player or world unavailable."));
+            return queryFailed(locale, text(locale, "玩家或世界不可用。", "player or world unavailable."));
         }
         World world = player.worldObj;
         boolean raining = world.isRaining();
@@ -1212,8 +1283,8 @@ public final class AssistantServerServices {
         boolean sky = world.provider == null || world.provider.hasNoSky ? false : true;
         String state = thundering ? text(locale, "雷暴", "thunderstorm")
             : raining ? text(locale, "下雨/下雪", "raining/snowing") : text(locale, "晴朗", "clear");
-        return text(locale, "当前世界天气�?, "Current world weather:") + "\n"
-            + text(locale, "维度�?, "Dimension: ")
+        return text(locale, "当前世界天气：", "Current world weather:") + "\n"
+            + text(locale, "维度：", "Dimension: ")
             + world.provider.dimensionId
             + " / "
             + world.provider.getDimensionName()
@@ -1224,39 +1295,39 @@ public final class AssistantServerServices {
             + text(locale, "状态：", "State: ")
             + state
             + "\n"
-            + text(locale, "下雨�?, "Raining: ")
+            + text(locale, "下雨：", "Raining: ")
             + yesNo(raining, locale)
             + "\n"
-            + text(locale, "打雷�?, "Thundering: ")
+            + text(locale, "打雷：", "Thundering: ")
             + yesNo(thundering, locale);
     }
 
     private static String timeSummary(EntityPlayerMP player, String locale) {
         if (player == null || player.worldObj == null) {
-            return queryFailed(locale, text(locale, "玩家或世界不可用�?, "player or world unavailable."));
+            return queryFailed(locale, text(locale, "玩家或世界不可用。", "player or world unavailable."));
         }
         long dayTime = player.worldObj.getWorldTime() % 24000L;
         long totalDays = player.worldObj.getWorldTime() / 24000L;
         boolean day = dayTime >= 0L && dayTime < 12000L;
         long toNext = day ? 12000L - dayTime : 24000L - dayTime;
-        return text(locale, "当前世界时间�?, "Current world time:") + "\n"
-            + text(locale, "维度时间�?, "Day time: ")
+        return text(locale, "当前世界时间：", "Current world time:") + "\n"
+            + text(locale, "维度时间：", "Day time: ")
             + dayTime
             + " ticks\n"
-            + text(locale, "世界天数�?, "World days: ")
+            + text(locale, "世界天数：", "World days: ")
             + totalDays
             + "\n"
             + text(locale, "昼夜状态：", "Day/night: ")
             + (day ? text(locale, "白天", "day") : text(locale, "夜晚", "night"))
             + "\n"
-            + (day ? text(locale, "距离天黑�?, "Ticks until night: ") : text(locale, "距离天亮�?, "Ticks until day: "))
+            + (day ? text(locale, "距离天黑：", "Ticks until night: ") : text(locale, "距离天亮：", "Ticks until day: "))
             + toNext
             + " ticks";
     }
 
     private static String positionSummary(EntityPlayerMP player, String locale) {
         if (player == null || player.worldObj == null) {
-            return queryFailed(locale, text(locale, "玩家或世界不可用�?, "player or world unavailable."));
+            return queryFailed(locale, text(locale, "玩家或世界不可用。", "player or world unavailable."));
         }
         int x = MathHelper.floor_double(player.posX);
         int y = MathHelper.floor_double(player.posY);
@@ -1264,8 +1335,8 @@ public final class AssistantServerServices {
         int chunkX = x >> 4;
         int chunkZ = z >> 4;
         String facing = facingName(player.rotationYaw, locale);
-        return text(locale, "当前位置�?, "Current position:") + "\n"
-            + text(locale, "维度�?, "Dimension: ")
+        return text(locale, "当前位置：", "Current position:") + "\n"
+            + text(locale, "维度：", "Dimension: ")
             + player.worldObj.provider.dimensionId
             + " / "
             + player.worldObj.provider.getDimensionName()
@@ -1277,7 +1348,7 @@ public final class AssistantServerServices {
             + ", "
             + z
             + "\n"
-            + text(locale, "区块�?, "Chunk: ")
+            + text(locale, "区块：", "Chunk: ")
             + chunkX
             + ", "
             + chunkZ
@@ -1287,31 +1358,31 @@ public final class AssistantServerServices {
             + ", "
             + (z & 15)
             + "\n"
-            + text(locale, "朝向�?, "Facing: ")
+            + text(locale, "朝向：", "Facing: ")
             + facing;
     }
 
     private static String biomeSummary(EntityPlayerMP player, String locale) {
         if (player == null || player.worldObj == null) {
-            return queryFailed(locale, text(locale, "玩家或世界不可用�?, "player or world unavailable."));
+            return queryFailed(locale, text(locale, "玩家或世界不可用。", "player or world unavailable."));
         }
         int x = MathHelper.floor_double(player.posX);
         int z = MathHelper.floor_double(player.posZ);
         BiomeGenBase biome = player.worldObj.getBiomeGenForCoords(x, z);
         if (biome == null) {
-            return queryFailed(locale, text(locale, "无法读取当前位置群系�?, "could not read current biome."));
+            return queryFailed(locale, text(locale, "无法读取当前位置群系。", "could not read current biome."));
         }
-        return text(locale, "当前位置群系�?, "Current biome:") + "\n"
-            + text(locale, "名称�?, "Name: ")
+        return text(locale, "当前位置群系：", "Current biome:") + "\n"
+            + text(locale, "名称：", "Name: ")
             + biome.biomeName
             + "\n"
-            + text(locale, "温度�?, "Temperature: ")
+            + text(locale, "温度：", "Temperature: ")
             + biome.temperature
             + "\n"
             + text(locale, "降雨量：", "Rainfall: ")
             + biome.rainfall
             + "\n"
-            + text(locale, "可降�?雪：", "Can rain/snow: ")
+            + text(locale, "可降雨/雪：", "Can rain/snow: ")
             + yesNo(biome.canSpawnLightningBolt(), locale)
             + "\n"
             + text(locale, "高湿度：", "High humidity: ")
@@ -1320,7 +1391,7 @@ public final class AssistantServerServices {
 
     private static String inventorySummary(EntityPlayerMP player, String target, long amount, String locale) {
         if (player == null || player.inventory == null) {
-            return queryFailed(locale, text(locale, "玩家背包不可用�?, "player inventory unavailable."));
+            return queryFailed(locale, text(locale, "玩家背包不可用。", "player inventory unavailable."));
         }
         int empty = 0;
         int occupied = 0;
@@ -1330,7 +1401,7 @@ public final class AssistantServerServices {
             if (stack == null) empty++;
             else occupied++;
         }
-        return text(locale, "背包空间�?, "Inventory space:") + "\n"
+        return text(locale, "背包空间：", "Inventory space:") + "\n"
             + text(locale, "空槽位：", "Empty slots: ")
             + empty
             + "\n"
@@ -1343,7 +1414,7 @@ public final class AssistantServerServices {
 
     private static String networkSummary(EntityPlayerMP player, String locale) {
         if (player == null || player.worldObj == null) {
-            return queryFailed(locale, text(locale, "玩家或世界不可用�?, "player or world unavailable."));
+            return queryFailed(locale, text(locale, "玩家或世界不可用。", "player or world unavailable."));
         }
         TileEntityAdvanceDataMonitor monitor = AssistantMonitorRegistry.getMonitor(player);
         boolean recorded = monitor != null;
@@ -1353,7 +1424,7 @@ public final class AssistantServerServices {
         StringBuilder builder = new StringBuilder(text(locale, "ADM 网络/连接器状态：", "ADM network/connector status:"));
         if (monitor == null) {
             builder.append("\n")
-                .append(text(locale, "未找到已记录或附近的高级数据显示器�?, "No recorded or nearby Advance Data Monitor found."));
+                .append(text(locale, "未找到已记录或附近的高级数据显示器。", "No recorded or nearby Advance Data Monitor found."));
         } else {
             builder.append("\n")
                 .append(text(locale, "高级数据显示器：", "Advance Data Monitor: "))
@@ -1416,20 +1487,20 @@ public final class AssistantServerServices {
     }
 
     private static String yesNo(boolean value, String locale) {
-        return value ? text(locale, "�?, "yes") : text(locale, "�?, "no");
+        return value ? text(locale, "是", "yes") : text(locale, "否", "no");
     }
 
     private static String facingName(float yaw, String locale) {
         int direction = MathHelper.floor_double((double) (yaw * 4.0F / 360.0F) + 0.5D) & 3;
         switch (direction) {
             case 0:
-                return text(locale, "�?, "south");
+                return text(locale, "南", "south");
             case 1:
-                return text(locale, "�?, "west");
+                return text(locale, "西", "west");
             case 2:
-                return text(locale, "�?, "north");
+                return text(locale, "北", "north");
             case 3:
-                return text(locale, "�?, "east");
+                return text(locale, "东", "east");
             default:
                 return text(locale, "未知", "unknown");
         }
@@ -1442,11 +1513,11 @@ public final class AssistantServerServices {
     public static String recipeDetailsForCandidate(EntityPlayerMP player, CraftingCandidate candidate, long amount,
         String locale) {
         if (candidate == null) {
-            return recipeFailed(locale, text(locale, "候选项为空�?, "empty candidate."));
+            return recipeFailed(locale, text(locale, "候选项为空。", "empty candidate."));
         }
         ItemStack stack = candidate.toItemStack();
         if (stack == null || stack.getItem() == null) {
-            return recipeFailed(locale, text(locale, "候选物品无法还原�?, "candidate item could not be restored."));
+            return recipeFailed(locale, text(locale, "候选物品无法还原。", "candidate item could not be restored."));
         }
         return recipeSummary(player, candidate.displayName, amount, stack, locale);
     }
@@ -1471,7 +1542,7 @@ public final class AssistantServerServices {
             TileEntityAdvanceCraftingLink.class,
             32);
         if (source.isEmpty()) {
-            return queryFailed(locale, text(locale, "附近没有 Advance Crafting Link�?, "no nearby Advance Crafting Link."));
+            return queryFailed(locale, text(locale, "附近没有 Advance Crafting Link。", "no nearby Advance Crafting Link."));
         }
         String connectorInfo = "\n(" + source.sourceDescription(locale) + ")";
         List<CraftingCandidate> allCandidates = new ArrayList<>();
@@ -1508,15 +1579,15 @@ public final class AssistantServerServices {
                 + connectorInfo;
         }
         if (allCandidates.isEmpty()) {
-            return (query.isEmpty() ? text(locale, "附近没有找到 AE2 可合成样板�?, "No AE2 craftable patterns were found nearby.")
-                : text(locale, "附近没有找到匹配�?AE2 可合成样板�?, "No matching AE2 craftable patterns were found nearby."))
+            return (query.isEmpty() ? text(locale, "附近没有找到 AE2 可合成样板。", "No AE2 craftable patterns were found nearby.")
+                : text(locale, "附近没有找到匹配的 AE2 可合成样板。", "No matching AE2 craftable patterns were found nearby."))
                 + connectorInfo;
         }
         return AssistantFormatter.candidates(
-            query.isEmpty() ? text(locale, "AE2 可合成样板总览�?, "AE2 craftable pattern overview:")
-                : text(locale, "匹配�?AE2 可合成项�?, "Matching AE2 craftables:"),
+            query.isEmpty() ? text(locale, "AE2 可合成样板总览：", "AE2 craftable pattern overview:")
+                : text(locale, "匹配的 AE2 可合成项：", "Matching AE2 craftables:"),
             allCandidates,
-            text(locale, "没有找到匹配的候选项�?, "No matching candidates were found.")) + connectorInfo;
+            text(locale, "没有找到匹配的候选项。", "No matching candidates were found.")) + connectorInfo;
     }
 
     private static String storageSummary(EntityPlayerMP player, String target, int scope, String locale) {
@@ -1737,21 +1808,21 @@ public final class AssistantServerServices {
     private static String orderFailed(String locale, String reason) {
         return text(
             locale,
-            "订单失败�? + (reason == null ? "" : reason),
+            "订单失败：" + (reason == null ? "" : reason),
             "Order failed: " + (reason == null ? "" : reason));
     }
 
     private static String queryFailed(String locale, String reason) {
         return text(
             locale,
-            "查询失败�? + (reason == null ? "" : reason),
+            "查询失败：" + (reason == null ? "" : reason),
             "Query failed: " + (reason == null ? "" : reason));
     }
 
     private static String recipeFailed(String locale, String reason) {
         return text(
             locale,
-            "配方查询失败�? + (reason == null ? "" : reason),
+            "配方查询失败：" + (reason == null ? "" : reason),
             "Recipe query failed: " + (reason == null ? "" : reason));
     }
 
@@ -2197,7 +2268,7 @@ public final class AssistantServerServices {
                 locale,
                 text(
                     locale,
-                    "AE2 无法�?" + stack.getDisplayName() + " 创建物品请求�?,
+                    "AE2 无法为 " + stack.getDisplayName() + " 创建物品请求。",
                     "AE2 could not create an item request for " + stack.getDisplayName() + "."));
         }
         request.setStackSize(amount);
@@ -2236,7 +2307,7 @@ public final class AssistantServerServices {
             AssistantDebugLog.append(
                 "server-submit",
                 "status=FAIL, reason=null-future, target='" + safe(stack.getDisplayName()) + "', amount=" + amount);
-            return orderFailed(locale, text(locale, "AE2 没有启动合成计算�?, "AE2 did not start crafting calculation."));
+            return orderFailed(locale, text(locale, "AE2 没有启动合成计算。", "AE2 did not start crafting calculation."));
         }
         AssistantCraftJobManager.instance()
             .register(player, future, stack.getDisplayName(), amount, new Runnable() {
@@ -2256,7 +2327,7 @@ public final class AssistantServerServices {
                             locale,
                             text(
                                 locale,
-                                "AE2 合成计算超时�? + stack.getDisplayName() + " x" + amount + "�?,
+                                "AE2 合成计算超时：" + stack.getDisplayName() + " x" + amount + "。",
                                 "AE2 crafting calculation timed out for " + stack.getDisplayName()
                                     + " x"
                                     + amount
@@ -2265,7 +2336,7 @@ public final class AssistantServerServices {
             });
         return text(
             locale,
-            "AE2 合成计算已开始：" + stack.getDisplayName() + " x" + amount + "�?,
+            "AE2 合成计算已开始：" + stack.getDisplayName() + " x" + amount + "。",
             "AE2 crafting calculation started for " + stack.getDisplayName() + " x" + amount + ".");
     }
 
@@ -2277,7 +2348,7 @@ public final class AssistantServerServices {
                 "status=FAIL, reason=null-job, target='" + safe(stack.getDisplayName()) + "', amount=" + amount);
             sendAssistantMessage(
                 player,
-                orderFailed(locale, text(locale, "AE2 合成计算没有返回任务�?, "AE2 crafting calculation returned no job.")));
+                orderFailed(locale, text(locale, "AE2 合成计算没有返回任务。", "AE2 crafting calculation returned no job.")));
             return;
         }
         if (job.isSimulation()) {
@@ -2291,7 +2362,7 @@ public final class AssistantServerServices {
                     locale,
                     text(
                         locale,
-                        "AE2 只能模拟该合成，可能缺少材料或样板无效：" + stack.getDisplayName() + " x" + amount + "�?,
+                        "AE2 只能模拟该合成，可能缺少材料或样板无效：" + stack.getDisplayName() + " x" + amount + "。",
                         "AE2 can only simulate this craft. Missing ingredients or invalid pattern for " + stack
                             .getDisplayName() + " x" + amount + ".")));
             return;
@@ -2309,7 +2380,7 @@ public final class AssistantServerServices {
                         locale,
                         text(
                             locale,
-                            "AE2 没有接受合成任务�? + stack.getDisplayName() + " x" + amount + "�?,
+                            "AE2 没有接受合成任务：" + stack.getDisplayName() + " x" + amount + "。",
                             "AE2 did not accept the crafting job for " + stack.getDisplayName()
                                 + " x"
                                 + amount
@@ -2337,7 +2408,7 @@ public final class AssistantServerServices {
                 player,
                 text(
                     locale,
-                    "OK：已提交 AE2 合成任务�? + stack.getDisplayName() + " x" + amount + "�?,
+                    "OK：已提交 AE2 合成任务：" + stack.getDisplayName() + " x" + amount + "。",
                     "OK: submitted AE2 crafting job for " + stack.getDisplayName() + " x" + amount + "."));
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[ADM Assistant] AE2 crafting submit failed", e);
@@ -2480,7 +2551,7 @@ public final class AssistantServerServices {
                 player.getCommandSenderName());
             return new ConnectorSource<T>(boundConnectors, boundCount, 0);
         }
-        // Step 2: Fallback �?search nearby for any matching connector not already found
+        // Step 2: Fallback — search nearby for any matching connector not already found
         List<T> nearbyConnectors = new ArrayList<T>();
         T nearest = findNearest(player, type, radius);
         if (nearest != null) {

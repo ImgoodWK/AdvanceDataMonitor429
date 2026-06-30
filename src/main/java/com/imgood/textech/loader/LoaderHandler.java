@@ -6,9 +6,11 @@ import com.imgood.textech.handler.HandlerDataLoomCell;
 import com.imgood.textech.handler.HandlerGrapple;
 import com.imgood.textech.handler.HandlerLoot;
 import com.imgood.textech.handler.HandlerPlayerJoin;
+import com.imgood.textech.handler.HandlerPocketWorldLoad;
 import com.imgood.textech.handler.HandlerStarryCosmosSword;
 import com.imgood.textech.handler.HandlerSuperOrange;
 import com.imgood.textech.handler.HandlerTick;
+
 import cpw.mods.fml.common.FMLCommonHandler;
 
 /**
@@ -30,5 +32,6 @@ public class LoaderHandler {
         MinecraftForge.EVENT_BUS.register(new HandlerStarryCosmosSword());
         MinecraftForge.EVENT_BUS.register(new HandlerGrapple());
         MinecraftForge.EVENT_BUS.register(new HandlerDataLoomCell());
+        MinecraftForge.EVENT_BUS.register(new HandlerPocketWorldLoad());
     }
 }

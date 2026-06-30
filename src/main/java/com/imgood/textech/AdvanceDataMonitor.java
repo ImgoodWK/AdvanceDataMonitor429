@@ -11,21 +11,16 @@ import com.imgood.textech.loader.LoaderGui;
 import com.imgood.textech.loader.LoaderHandler;
 import com.imgood.textech.loader.LoaderItem;
 import com.imgood.textech.loader.LoaderNetwork;
-import com.imgood.textech.handler.PocketStore;
 import com.imgood.textech.loader.LoaderRecipe;
 import com.imgood.textech.loader.LoaderRender;
 import com.imgood.textech.loader.LoaderTileEntity;
 import com.imgood.textech.loader.ModMigrationHandler;
 
-import java.io.File;
-
 import cpw.mods.fml.common.FMLCommonHandler;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.world.WorldEvent;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLMissingMappingsEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
@@ -48,9 +43,7 @@ public class AdvanceDataMonitor {
     @Mod.Instance(MODID)
     public static AdvanceDataMonitor instance;
 
-    @SidedProxy(
-        clientSide = "com.imgood.textech.ClientProxy",
-        serverSide = "com.imgood.textech.CommonProxy")
+    @SidedProxy(clientSide = "com.imgood.textech.ClientProxy", serverSide = "com.imgood.textech.CommonProxy")
     public static CommonProxy proxy;
 
     @Mod.EventHandler
@@ -69,18 +62,11 @@ public class AdvanceDataMonitor {
             .isClient()) {
             LoaderRender.registerRenderers();
         }
-        // Register migration handler to remap legacy "advancedatamonitor:*" block/item IDs
-        FMLCommonHandler.instance().bus().register(new ModMigrationHandler());
-        MinecraftForge.EVENT_BUS.register(new Object() {
-            @cpw.mods.fml.common.eventhandler.SubscribeEvent
-            public void onWorldLoad(WorldEvent.Load event) {
-                if (event.world instanceof WorldServer && !event.world.isRemote) {
-                    File worldDir = ((WorldServer) event.world).getSaveHandler()
-                        .getWorldDirectory();
-                    PocketStore.setWorldDirectory(worldDir);
-                }
-            }
-        });
+    }
+
+    @Mod.EventHandler
+    public void missingMappings(FMLMissingMappingsEvent event) {
+        ModMigrationHandler.handle(event);
     }
 
     @Mod.EventHandler
@@ -95,7 +81,7 @@ public class AdvanceDataMonitor {
     public void postInit(FMLPostInitializationEvent event) {
         proxy.postInit(event);
         LoaderNetwork.registerNetWorks();
-        // AE2 Api/RegistryContainer requires AEConfig â€?must run after AE2 preInit (postInit phase).
+        // AE2 Api/RegistryContainer requires AEConfig - must run after AE2 preInit (postInit phase).
         AeCompat.init();
         DataLoomCellHandler.register();
     }

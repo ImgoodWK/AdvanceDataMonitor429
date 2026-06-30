@@ -13,8 +13,8 @@ import net.minecraft.util.EnumChatFormatting;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.client.PocketPortalGuiRenderer;
 import com.imgood.textech.client.PocketClientCache;
+import com.imgood.textech.client.PocketPortalGuiRenderer;
 import com.imgood.textech.gui.container.ContainerDimensionalPocket;
 import com.imgood.textech.handler.PocketState;
 import com.imgood.textech.network.packet.PacketPocketAction;
@@ -35,32 +35,24 @@ public class GuiDimensionalPocketConfig extends GuiContainer {
 
     private static final int UPGRADE_SLOT_COUNT = 4;
 
-    private static final int[] UPGRADE_SLOT_X = new int[] {
-        PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X,
+    private static final int[] UPGRADE_SLOT_X = new int[] { PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X,
         PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X + PocketPortalGuiRenderer.CONFIG_UPGRADE_COL_STEP,
         PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X,
-        PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X + PocketPortalGuiRenderer.CONFIG_UPGRADE_COL_STEP,
-    };
-    private static final int[] UPGRADE_SLOT_Y = new int[] {
-        PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_Y,
-        PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_Y,
-        PocketPortalGuiRenderer.CONFIG_UPGRADE_ROW2_Y,
-        PocketPortalGuiRenderer.CONFIG_UPGRADE_ROW2_Y,
-    };
-    private static final String[] UPGRADE_LABEL_KEYS = new String[] {
-        "adm.label.pocket.slot.space",
-        "adm.label.pocket.slot.page",
-        "adm.label.pocket.slot.stack",
-        "adm.label.pocket.slot.infinite",
-    };
+        PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X + PocketPortalGuiRenderer.CONFIG_UPGRADE_COL_STEP, };
+    private static final int[] UPGRADE_SLOT_Y = new int[] { PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_Y,
+        PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_Y, PocketPortalGuiRenderer.CONFIG_UPGRADE_ROW2_Y,
+        PocketPortalGuiRenderer.CONFIG_UPGRADE_ROW2_Y, };
+    private static final String[] UPGRADE_LABEL_KEYS = new String[] { "adm.label.pocket.slot.space",
+        "adm.label.pocket.slot.page", "adm.label.pocket.slot.stack", "adm.label.pocket.slot.infinite", };
     private static final String[][] UPGRADE_EMPTY_TOOLTIP = new String[][] {
         { "adm.tooltip.pocket.space_card.title", "adm.tooltip.pocket.configSlot.space" },
         { "adm.tooltip.pocket.page_card.title", "adm.tooltip.pocket.configSlot.page" },
         { "adm.tooltip.pocket.stack_card.title", "adm.tooltip.pocket.configSlot.stack" },
-        { "adm.tooltip.pocket.infinite_stack_card.title", "adm.tooltip.pocket.configSlot.infinite" },
-    };
+        { "adm.tooltip.pocket.infinite_stack_card.title", "adm.tooltip.pocket.configSlot.infinite" }, };
 
     private final ContainerDimensionalPocket container;
+    private int backBtnX;
+    private int backBtnY;
     private int collapseBtnX;
     private int collapseBtnY;
     private int collapseLabelY;
@@ -78,6 +70,8 @@ public class GuiDimensionalPocketConfig extends GuiContainer {
         super.initGui();
         int startX = (this.width - this.xSize) / 2;
         int startY = (this.height - this.ySize) / 2;
+        backBtnX = startX + PocketPortalGuiRenderer.CONFIG_BACK_BTN_X;
+        backBtnY = startY + PocketPortalGuiRenderer.CONFIG_BACK_BTN_Y;
         collapseBtnX = startX + PocketPortalGuiRenderer.CONFIG_COLLAPSE_BTN_X;
         collapseBtnY = startY + PocketPortalGuiRenderer.CONFIG_COLLAPSE_BTN_Y;
         collapseLabelY = collapseBtnY - PocketPortalGuiRenderer.CONFIG_LINE_HEIGHT - 1;
@@ -105,6 +99,7 @@ public class GuiDimensionalPocketConfig extends GuiContainer {
         PocketPortalGuiRenderer.drawSimpleConfigBackground(startX, startY);
 
         Minecraft mc = Minecraft.getMinecraft();
+        PocketPortalGuiRenderer.drawConfigBackButton(mc, backBtnX, backBtnY);
         PocketPortalGuiRenderer.drawOverlayStyleTitle(
             mc,
             startX + PocketPortalGuiRenderer.CONFIG_UPGRADE_ORIGIN_X,
@@ -154,9 +149,11 @@ public class GuiDimensionalPocketConfig extends GuiContainer {
         this.fontRendererObj.drawString(stackInfo, 18, 88 + line, 0x00FFAA);
 
         if (container.isUpgradeRemovalBlocked()) {
-            this.fontRendererObj.drawString(I18n.format("adm.hint.pocket.upgradeLockedWhileStored"), 18, 98 + line, 0xFFAA55);
+            this.fontRendererObj
+                .drawString(I18n.format("adm.hint.pocket.upgradeLockedWhileStored"), 18, 98 + line, 0xFFAA55);
         } else if (spaceCount < PocketState.MAX_SPACE_UPGRADES && pageCount > 0) {
-            this.fontRendererObj.drawString(I18n.format("adm.error.pocket.pageUpgradeBlocked"), 18, 98 + line, 0xFFAA55);
+            this.fontRendererObj
+                .drawString(I18n.format("adm.error.pocket.pageUpgradeBlocked"), 18, 98 + line, 0xFFAA55);
         }
 
         this.fontRendererObj.drawString(I18n.format("container.inventory"), 8, 120, 0x404040);
@@ -165,7 +162,19 @@ public class GuiDimensionalPocketConfig extends GuiContainer {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         super.drawScreen(mouseX, mouseY, partialTicks);
+        drawBackButtonTooltip(mouseX, mouseY);
         drawEmptyUpgradeSlotTooltip(mouseX, mouseY);
+    }
+
+    private void drawBackButtonTooltip(int mouseX, int mouseY) {
+        if (!PocketPortalGuiRenderer.hitsConfigBackButton(backBtnX, backBtnY, mouseX, mouseY)) {
+            return;
+        }
+        this.drawHoveringText(
+            Arrays.asList(I18n.format("adm.tooltip.pocket.back")),
+            mouseX,
+            mouseY,
+            this.fontRendererObj);
     }
 
     private void drawUpgradeSlotLabels() {
@@ -216,13 +225,17 @@ public class GuiDimensionalPocketConfig extends GuiContainer {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0
-            && PocketPortalGuiRenderer.hitsPortalStyleButton(
-                collapseBtnX,
-                collapseBtnY,
-                PocketPortalGuiRenderer.CONFIG_TOGGLE_BTN_W,
-                PocketPortalGuiRenderer.CONFIG_TOGGLE_BTN_H,
-                mouseX,
-                mouseY)) {
+            && PocketPortalGuiRenderer.hitsConfigBackButton(backBtnX, backBtnY, mouseX, mouseY)) {
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.openStorageGui());
+            return;
+        }
+        if (mouseButton == 0 && PocketPortalGuiRenderer.hitsPortalStyleButton(
+            collapseBtnX,
+            collapseBtnY,
+            PocketPortalGuiRenderer.CONFIG_TOGGLE_BTN_W,
+            PocketPortalGuiRenderer.CONFIG_TOGGLE_BTN_H,
+            mouseX,
+            mouseY)) {
             boolean next = !PocketClientCache.isCollapsed();
             PocketClientCache.setCollapsed(next);
             AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.setCollapsed(next));

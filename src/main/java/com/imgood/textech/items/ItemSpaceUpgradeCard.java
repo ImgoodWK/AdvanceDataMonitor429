@@ -15,7 +15,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Display names / 显示名称:
  * - EN: Space Upgrade Card
- * - ZH: 空间升级�?
+ * - ZH: 空间升级占
  * Lang keys: item.spaceUpgradeCard.name, adm.tooltip.pocket.space_card
  *
  * Stacks up to 64. Used to expand the Dimensional Pocket's per-page slot count.

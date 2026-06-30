@@ -15,7 +15,7 @@ import org.lwjgl.opengl.GL15;
 
 /**
  * @program: AdvanceDataMonitor429
- * @description: 修复OpenGL状态管理问�?
+ * @description: 修复OpenGL状态管理问题
  * @author: Imgood
  * @create: 2025-05-15 09:22
  **/
@@ -29,17 +29,17 @@ public class LineChartRenderer implements IADMRender {
         if (!nbt.getBoolean("enable")) return;
         NBTTagList dataValues = nbt.getTagList("dataValues", 10);
 
-        // 保存当前OpenGL状�?
+        // 保存当前OpenGL状态
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         GL11.glPushMatrix();
 
         try {
-            // 确保所有状态重�?
+            // 确保所有状态重置
             GL11.glDisable(GL11.GL_TEXTURE_2D);
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_CULL_FACE);
 
-            // ============== 关键修复：启用混�?============== //
+            // ============== 关键修复：启用混合 ============== //
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
@@ -49,11 +49,11 @@ public class LineChartRenderer implements IADMRender {
             GL11.glRotatef(nbt.getFloat("rotationY"), 0, 1, 0);
             GL11.glRotatef(nbt.getFloat("rotationZ"), 0, 0, 1);
 
-            // 动态缩�?
+            // 动态缩放
             float scaleFactor = nbt.getFloat("scale");
             GL11.glScalef(scaleFactor, scaleFactor, 1.0f);
 
-            // 计算动态数据范�?
+            // 计算动态数据范围
             double dataMin = Double.MAX_VALUE;
             double dataMax = -Double.MAX_VALUE;
             for (int i = 0; i < dataValues.tagCount(); i++) {
@@ -71,12 +71,12 @@ public class LineChartRenderer implements IADMRender {
             int color = Integer.parseInt(nbt.getString("lineColor"), 16);
             double lineAlpha = nbt.hasKey("lineAlpha") ? nbt.getDouble("lineAlpha") : 1.0;
 
-            // ============== 关键修复：设置混合颜�?============== //
+            // ============== 关键修复：设置混合颜色 ============== //
             GL11.glColor4f(
                 ((color >> 16) & 0xFF) / 255.0f,
                 ((color >> 8) & 0xFF) / 255.0f,
                 (color & 0xFF) / 255.0f,
-                (float) lineAlpha // 这里使用透明�?
+                (float) lineAlpha // 这里使用透明度
             );
 
             // 生成顶点数据
@@ -117,7 +117,7 @@ public class LineChartRenderer implements IADMRender {
                 GL11.glDrawArrays(GL11.GL_LINE_STRIP, 0, vertices.size() / 3);
                 GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
 
-                // 清理VBO - 确保状态恢�?
+                // 清理VBO - 确保状态恢复
                 GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
                 GL15.glDeleteBuffers(vboId);
             }
@@ -125,11 +125,11 @@ public class LineChartRenderer implements IADMRender {
             renderAxis(nbt, facing, dataMin, dataMax, yRange, Y_AXIS_BASE);
 
         } finally {
-            // 确保所有状态恢�?
+            // 确保所有状态恢复
             GL11.glPopMatrix();
             GL11.glPopAttrib();
 
-            // 强制重置可能影响字体渲染器的状�?
+            // 强制重置可能影响字体渲染器的状态
             GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
             GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
@@ -148,11 +148,11 @@ public class LineChartRenderer implements IADMRender {
 
     private void renderAxis(NBTTagCompound nbt, int facing, double dataMin, double dataMax, double yRange,
         double yAxisBase) {
-        // 保存状�?
+        // 保存状态
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
 
         try {
-            // 参数初始�?
+            // 参数初始化
             int axisLineColor = Integer.parseInt(nbt.getString("axisLineColor"), 16);
             int axisFontColor = Integer.parseInt(nbt.getString("axisFontColor"), 16);
             int displayNameColor = Integer.parseInt(nbt.getString("displayNameColor"), 16);
@@ -166,7 +166,7 @@ public class LineChartRenderer implements IADMRender {
             int dataLimit = nbt.getInteger("dataLimit");
             List<Integer> majorIndices = new ArrayList<>();
 
-            // 获取透明度�?
+            // 获取透明度值
             double axisLineAlpha = nbt.hasKey("axisLineAlpha") ? nbt.getDouble("axisLineAlpha") : 1.0;
             double axisFontAlpha = nbt.hasKey("axisFontAlpha") ? nbt.getDouble("axisFontAlpha") : 1.0;
             double nameAlpha = nbt.hasKey("nameAlpha") ? nbt.getDouble("nameAlpha") : 1.0;
@@ -176,11 +176,11 @@ public class LineChartRenderer implements IADMRender {
             // 确保最小值为0.1
             tickLengthFactor = Math.max(0.1, tickLengthFactor);
 
-            // 计算标签偏移�?
+            // 计算标签偏移量
             double xLabelOffset = 0.05 * (1 + 0.5 * (tickLengthFactor - 1.0) * tickLengthFactor);
             double yLabelOffset = 0.05 * (1 + 0.5 * (tickLengthFactor - 1.0) * tickLengthFactor);
 
-            // 提升sortedMajorIndices作用�?
+            // 提升sortedMajorIndices作用域
             List<Integer> sortedMajorIndices = new ArrayList<>();
 
             // ========================== 计算部分 ========================== //
@@ -199,13 +199,13 @@ public class LineChartRenderer implements IADMRender {
             axisLines.add((float) yAxisTop);
             axisLines.add((float) zOffset);
 
-            // 计算Y轴刻�?- 确保8-10个标�?
+            // 计算Y轴刻度 - 确保8-10个标签
             double yDataBorder = dataMax - dataMin;
             List<Float> yTicks = new ArrayList<>();
             List<Double> yLabelValues = new ArrayList<>();
             List<Double> yTickPositions = new ArrayList<>();
 
-            // 目标刻度数量�?-10个）
+            // 目标刻度数量（8-10个）
             int targetTicks = 8;
             if (yDataBorder > 0) {
                 // 计算初始步长
@@ -214,7 +214,7 @@ public class LineChartRenderer implements IADMRender {
                 double factor = Math.pow(10, exponent);
                 double normalizedStep = tempStep / factor;
 
-                // 将步长规范化�?, 2�?的倍数
+                // 将步长规范化为1, 2或5的倍数
                 double chosenStep;
                 if (normalizedStep <= 1.0) {
                     chosenStep = 1.0;
@@ -241,7 +241,7 @@ public class LineChartRenderer implements IADMRender {
                     yTicks.add((float) xStart);
                     yTicks.add((float) yPos);
                     yTicks.add((float) zOffset);
-                    // 应用刻度线长度因�?
+                    // 应用刻度线长度因子
                     yTicks.add((float) (xStart - 0.05 * tickLengthFactor));
                     yTicks.add((float) yPos);
                     yTicks.add((float) zOffset);
@@ -250,9 +250,9 @@ public class LineChartRenderer implements IADMRender {
                 }
             }
 
-            // 如果数据范围太小，至少显示最小值和最大�?
+            // 如果数据范围太小，至少显示最小值和最大值
             if (yLabelValues.isEmpty() && yDataBorder > 0) {
-                // 最小值位�?
+                // 最小值位置
                 double minYPos = yAxisBase;
                 yTicks.add((float) xStart);
                 yTicks.add((float) minYPos);
@@ -263,7 +263,7 @@ public class LineChartRenderer implements IADMRender {
                 yLabelValues.add(dataMin);
                 yTickPositions.add(minYPos);
 
-                // 最大值位�?
+                // 最大值位置
                 double maxYPos = yAxisTop;
                 yTicks.add((float) xStart);
                 yTicks.add((float) maxYPos);
@@ -275,7 +275,7 @@ public class LineChartRenderer implements IADMRender {
                 yTickPositions.add(maxYPos);
             }
 
-            // 计算X轴刻�?
+            // 计算X轴刻度
             List<Float> majorTicks = new ArrayList<>();
             List<Float> minorTicks = new ArrayList<>();
             if (dataLimit > 1) {
@@ -297,7 +297,7 @@ public class LineChartRenderer implements IADMRender {
                 sortedMajorIndices = new ArrayList<>(majorIndices);
                 Collections.sort(sortedMajorIndices);
 
-                // 主刻�?
+                // 主刻度
                 for (int i : sortedMajorIndices) {
                     double xPos = xStart + i * xStep;
                     majorTicks.add((float) xPos);
@@ -308,7 +308,7 @@ public class LineChartRenderer implements IADMRender {
                     majorTicks.add((float) zOffset);
                 }
 
-                // 次刻�?
+                // 次刻度
                 for (int i = 0; i < sortedMajorIndices.size() - 1; i++) {
                     int prev = sortedMajorIndices.get(i);
                     int next = sortedMajorIndices.get(i + 1);
@@ -330,17 +330,17 @@ public class LineChartRenderer implements IADMRender {
             }
 
             // ========================== 渲染部分 ========================== //
-            // ====================== 网格线渲�?====================== //
+            // ====================== 网格线渲染 ====================== //
             boolean enableGrid = nbt.getBoolean("enableGrid");
             if (enableGrid && !yTickPositions.isEmpty() && !sortedMajorIndices.isEmpty()) {
-                // 保存网格线渲染前的状�?
+                // 保存网格线渲染前的状态
                 GL11.glPushAttrib(GL11.GL_LINE_BIT | GL11.GL_COLOR_BUFFER_BIT);
 
                 try {
-                    // 准备网格线顶点数�?
+                    // 准备网格线顶点数据
                     List<Float> gridLines = new ArrayList<>();
 
-                    // 横向网格�?
+                    // 横向网格线
                     for (Double yPos : yTickPositions) {
                         gridLines.add((float) xStart);
                         gridLines.add(yPos.floatValue());
@@ -351,7 +351,7 @@ public class LineChartRenderer implements IADMRender {
                         gridLines.add(0.0f);
                     }
 
-                    // 纵向网格�?
+                    // 纵向网格线
                     for (int index : sortedMajorIndices) {
                         double xPos = xStart + index * (xRange / (dataLimit - 1));
                         gridLines.add((float) xPos);
@@ -423,7 +423,7 @@ public class LineChartRenderer implements IADMRender {
                         GL11.glDisable(GL11.GL_BLEND);
                     }
                 } finally {
-                    // 恢复网格线渲染前的状�?
+                    // 恢复网格线渲染前的状态
                     GL11.glPopAttrib();
                 }
             }
@@ -431,7 +431,7 @@ public class LineChartRenderer implements IADMRender {
             GL11.glTranslatef(0, 0, -0.11F);
 
             if (nbt.getBoolean("enableAxis")) {
-                // 保存坐标轴渲染前的状�?
+                // 保存坐标轴渲染前的状态
                 GL11.glPushAttrib(GL11.GL_LINE_BIT | GL11.GL_COLOR_BUFFER_BIT);
 
                 try {
@@ -441,7 +441,7 @@ public class LineChartRenderer implements IADMRender {
                     float axisLineWidth = (float) nbt.getDouble("axisLineWidth");
                     GL11.glLineWidth(axisLineWidth);
 
-                    // 渲染坐标轴线，使用axisLineAlpha透明�?
+                    // 渲染坐标轴线，使用axisLineAlpha透明度
                     GL11.glColor4f(
                         ((axisLineColor >> 16) & 0xFF) / 255.0f,
                         ((axisLineColor >> 8) & 0xFF) / 255.0f,
@@ -449,7 +449,7 @@ public class LineChartRenderer implements IADMRender {
                         (float) axisLineAlpha);
                     renderLinesWithVBO(axisLines);
 
-                    // 渲染Y轴刻�?
+                    // 渲染Y轴刻度
                     if (!yTicks.isEmpty()) {
                         GL11.glColor4f(
                             ((axisLineColor >> 16) & 0xFF) / 255.0f,
@@ -485,16 +485,16 @@ public class LineChartRenderer implements IADMRender {
                 }
             }
 
-            // 渲染文本 - 需要在调用字体渲染器前确保OpenGL状态正�?
+            // 渲染文本 - 需要在调用字体渲染器前确保OpenGL状态正确
             if (nbt.getBoolean("enableAxisFont") && !sortedMajorIndices.isEmpty()) {
                 double xStep = xRange / (dataLimit - 1);
 
-                // 保存字体渲染前的状�?- 关键修复
+                // 保存字体渲染前的状态 - 关键修复
                 GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
                 GL11.glPushClientAttrib(GL11.GL_CLIENT_VERTEX_ARRAY_BIT);
 
                 try {
-                    // 确保VBO未绑�?
+                    // 确保VBO未绑定
                     GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 
                     // 确保所有客户端状态已禁用
@@ -502,7 +502,7 @@ public class LineChartRenderer implements IADMRender {
                     GL11.glDisableClientState(GL11.GL_COLOR_ARRAY);
                     GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
 
-                    // 启用字体渲染所需状�?
+                    // 启用字体渲染所需状态
                     GL11.glEnable(GL11.GL_TEXTURE_2D);
                     GL11.glEnable(GL11.GL_BLEND);
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -512,7 +512,7 @@ public class LineChartRenderer implements IADMRender {
                         standardGap = sortedMajorIndices.get(1) - sortedMajorIndices.get(0);
                     }
 
-                    // 应用轴字体透明�?
+                    // 应用轴字体透明度
                     int axisFontColorWithAlpha = applyAlphaToColor(axisFontColor, axisFontAlpha);
 
                     for (int i = 0; i < sortedMajorIndices.size(); i++) {
@@ -588,7 +588,7 @@ public class LineChartRenderer implements IADMRender {
                             facing);
                     }
                 } finally {
-                    // 恢复字体渲染前的状�?
+                    // 恢复字体渲染前的状态
                     GL11.glPopClientAttrib();
                     GL11.glPopAttrib();
                 }
@@ -597,12 +597,12 @@ public class LineChartRenderer implements IADMRender {
             // 标题渲染
             String displayName = nbt.getString("displayName");
             if (!displayName.isEmpty()) {
-                // 保存标题渲染前的状�?
+                // 保存标题渲染前的状态
                 GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
                 GL11.glPushClientAttrib(GL11.GL_CLIENT_VERTEX_ARRAY_BIT);
 
                 try {
-                    // 确保VBO未绑�?
+                    // 确保VBO未绑定
                     GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 
                     // 确保所有客户端状态已禁用
@@ -610,7 +610,7 @@ public class LineChartRenderer implements IADMRender {
                     GL11.glDisableClientState(GL11.GL_COLOR_ARRAY);
                     GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
 
-                    // 应用名称透明�?
+                    // 应用名称透明度
                     int displayNameColorWithAlpha = applyAlphaToColor(displayNameColor, nameAlpha);
                     renderTitle(displayName, displayNameColorWithAlpha, displayNameScale, facing, yAxisTop);
                 } finally {
@@ -628,17 +628,17 @@ public class LineChartRenderer implements IADMRender {
 
     // 辅助方法：将颜色和透明度合并为ARGB格式
     private int applyAlphaToColor(int rgbColor, double alpha) {
-        // 确保alpha�?-1范围�?
+        // 确保alpha在0-1范围内
         alpha = Math.max(0.0, Math.min(1.0, alpha));
 
-        // 将透明度从0-1转换�?-255
+        // 将透明度从0-1转换为0-255
         int alphaInt = (int) (alpha * 255) & 0xFF;
 
-        // 合并为ARGB格式�?xAARRGGBB
+        // 合并为ARGB格式：0xAARRGGBB
         return (alphaInt << 24) | (rgbColor & 0x00FFFFFF);
     }
 
-    // 新增：使用VBO渲染线段的辅助方�?
+    // 新增：使用VBO渲染线段的辅助方法
     private void renderLinesWithVBO(List<Float> lines) {
         if (lines.isEmpty()) return;
 

@@ -21,7 +21,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Display names / 显示名称:
  * - EN: Super Orange
- * - ZH: 超能砂糖�?
+ * - ZH: 超能砂糖桔
  * Lang keys: item.orange.name, adm.super_orange.tooltip.title
  *
  * Legendary item with mining, matter-ball drops, companion drone, head effects, and per-item feature toggles.

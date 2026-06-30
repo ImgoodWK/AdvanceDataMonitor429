@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.ItemRenderer;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -62,49 +63,31 @@ public class CosmicStarrySwordRenderer implements IItemRenderer {
                 GL11.glEnable(GL11.GL_BLEND);
                 GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                 RenderHelper.enableGUIStandardItemLighting();
-
+                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
                 GL11.glDisable(GL11.GL_ALPHA_TEST);
                 GL11.glDisable(GL11.GL_DEPTH_TEST);
 
-                RenderItem r = RenderItem.getInstance();
-                r.renderItemIntoGUI(mc.fontRenderer, mc.getTextureManager(), item, 0, 0, true);
+                mc.getTextureManager().bindTexture(TextureMap.locationItemsTexture);
+                drawInventoryIcon(item, item.getItem().getIcon(item, 0));
 
                 if (item.getItem() instanceof ICosmicRenderItem) {
-                    GL11.glEnable(GL11.GL_BLEND);
-                    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                    RenderHelper.enableGUIStandardItemLighting();
-                    GL11.glDisable(GL11.GL_ALPHA_TEST);
-                    GL11.glDisable(GL11.GL_DEPTH_TEST);
-
                     ICosmicRenderItem icri = (ICosmicRenderItem) item.getItem();
                     StarryCosmicRenderUtil.cosmicOpacity = icri.getMaskMultiplier(item, null);
                     StarryCosmicRenderUtil.inventoryRender = true;
                     StarryCosmicRenderUtil.useShader();
-
-                    IIcon cosmicicon = icri.getMaskTexture(item, null);
-                    GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-
-                    float minu = cosmicicon.getMinU();
-                    float maxu = cosmicicon.getMaxU();
-                    float minv = cosmicicon.getMinV();
-                    float maxv = cosmicicon.getMaxV();
-
-                    Tessellator t = Tessellator.instance;
-                    t.startDrawingQuads();
-                    t.addVertexWithUV(0.0D, 0.0D, 0.0D, minu, minv);
-                    t.addVertexWithUV(0.0D, 16.0D, 0.0D, minu, maxv);
-                    t.addVertexWithUV(16.0D, 16.0D, 0.0D, maxu, maxv);
-                    t.addVertexWithUV(16.0D, 0.0D, 0.0D, maxu, minv);
-                    t.draw();
-
+                    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+                    drawInventoryIcon(item, icri.getMaskTexture(item, null));
+                    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                     StarryCosmicRenderUtil.releaseShader();
                     StarryCosmicRenderUtil.inventoryRender = false;
                 }
 
+                if (item.hasEffect(0)) {
+                    RenderItem.getInstance().renderEffect(mc.getTextureManager(), 0, 0);
+                }
+
                 GL11.glEnable(GL11.GL_ALPHA_TEST);
-                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
                 GL11.glEnable(GL11.GL_DEPTH_TEST);
-                r.renderWithColor = true;
                 GL11.glDisable(GL11.GL_BLEND);
                 GL11.glPopMatrix();
                 break;
@@ -218,5 +201,32 @@ public class CosmicStarrySwordRenderer implements IItemRenderer {
                 StarryCosmicRenderUtil.setLightLevel(1.0F);
             }
         }
+    }
+
+    /** Vanilla-equivalent 16×16 GUI icon quad; avoids recursive {@link RenderItem#renderItemIntoGUI}. */
+    private static void drawInventoryIcon(ItemStack stack, IIcon icon) {
+        if (stack == null || icon == null) {
+            return;
+        }
+
+        int color = stack.getItem().getColorFromItemStack(stack, 0);
+        float r = (float) (color >> 16 & 255) / 255.0F;
+        float g = (float) (color >> 8 & 255) / 255.0F;
+        float b = (float) (color & 255) / 255.0F;
+        GL11.glColor4f(r, g, b, 1.0F);
+
+        float minU = icon.getMinU();
+        float maxU = icon.getMaxU();
+        float minV = icon.getMinV();
+        float maxV = icon.getMaxV();
+
+        Tessellator tess = Tessellator.instance;
+        tess.startDrawingQuads();
+        tess.addVertexWithUV(0.0D, 16.0D, 0.0D, minU, maxV);
+        tess.addVertexWithUV(16.0D, 16.0D, 0.0D, maxU, maxV);
+        tess.addVertexWithUV(16.0D, 0.0D, 0.0D, maxU, minV);
+        tess.addVertexWithUV(0.0D, 0.0D, 0.0D, minU, minV);
+        tess.draw();
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 }

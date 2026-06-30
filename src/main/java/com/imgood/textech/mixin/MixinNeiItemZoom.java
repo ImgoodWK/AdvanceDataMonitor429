@@ -12,7 +12,7 @@ import com.imgood.textech.client.PocketOverlayHandler;
  * Cancels NEI's ItemZoom (magnified item preview on the sides of the GUI)
  * when the cursor is inside the Dimensional Pocket overlay.
  *
- * ItemZoom.draw(mx, my) ignores the mx/my parameters entirely â€?it renders
+ * ItemZoom.draw(mx, my) ignores the mx/my parameters entirely â€”it renders
  * based on {@code this.stack}, which was pre-set by
  * {@code ItemZoom.resize()} using {@code GuiDraw.getMousePosition()}
  * (the real LWJGL mouse position, not the passed-in parameters).
@@ -25,8 +25,7 @@ import com.imgood.textech.client.PocketOverlayHandler;
 @Mixin(codechicken.nei.ItemZoom.class)
 public abstract class MixinNeiItemZoom {
 
-    @Inject(method = "draw(II)V", at = @At("HEAD"), cancellable = true,
-        remap = false)
+    @Inject(method = "draw(II)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void adm$cancelItemZoom(int mx, int my, CallbackInfo ci) {
         PocketOverlayHandler handler = PocketOverlayHandler.instance();
         if (!handler.isOverlayActive()) return;

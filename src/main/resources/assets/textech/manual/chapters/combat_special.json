@@ -10,7 +10,8 @@
       "type": "item_showcase",
       "titleKey": "adm.manual.combat_special.sword_title",
       "items": [
-        {"registryName": "advancedatamonitor:starry_cosmos_sword", "descKey": "adm.manual.item.starry_cosmos_sword"}
+        {"registryName": "textech:starry_cosmos_sword", "descKey": "adm.manual.item.starry_cosmos_sword"},
+        {"registryName": "textech:holy_judgment", "descKey": "adm.manual.item.holy_judgment"}
       ]
     },
     {

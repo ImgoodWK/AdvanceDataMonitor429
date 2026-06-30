@@ -142,7 +142,7 @@ public class StorageInfoRenderer implements IADMRender {
     }
 
     /**
-     * Render a fluid entry in AE2 terminal style â€?a tinted square with the
+     * Render a fluid entry in AE2 terminal style â€”a tinted square with the
      * fluid's still icon, similar to how AE2FluidCraft displays fluids in its
      * terminal grid.
      */

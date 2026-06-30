@@ -92,7 +92,7 @@ public final class TeleportService {
     /**
      * Extract teleport destinations from a single Teleporter MKII's NBT data.
      *
-     * DE stores locations as "Locations" �?NBTTagList of NBTTagCompound,
+     * DE stores locations as "Locations" → NBTTagList of NBTTagCompound,
      * each compound following TeleportLocation.writeToNBT() layout.
      */
     private static List<TeleportDestination> extractDestinations(ItemStack stack, int startIndex) {
@@ -179,7 +179,7 @@ public final class TeleportService {
      */
     public static String executeTeleport(EntityPlayerMP player, TeleportDestination dest, String locale) {
         if (player == null || dest == null) {
-            return text(locale, "传送失败：无效的传送目标�?, "Teleport failed: invalid destination.");
+            return text(locale, "传送失败：无效的传送目标。", "Teleport failed: invalid destination.");
         }
         AdvanceDataMonitor.LOG.info(
             "[ADM Teleport] Executing teleport for {} to '{}' [dim={}] ({},{},{})",
@@ -210,7 +210,7 @@ public final class TeleportService {
                             }
                         });
                 player.setPositionAndUpdate(dest.x + 0.5D, dest.y + 0.5D, dest.z + 0.5D);
-                AdvanceDataMonitor.LOG.info("[ADM Teleport] Cross-dimension: {} �?{}", currentDim, targetDim);
+                AdvanceDataMonitor.LOG.info("[ADM Teleport] Cross-dimension: {} → {}", currentDim, targetDim);
             }
         } else {
             player.setPositionAndUpdate(dest.x + 0.5D, dest.y + 0.5D, dest.z + 0.5D);

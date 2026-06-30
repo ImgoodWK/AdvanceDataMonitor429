@@ -10,14 +10,14 @@ import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
+import com.imgood.textech.items.ItemHolyJudgment;
 import com.imgood.textech.items.ItemStarryCosmosSword;
-import com.imgood.textech.loader.LoaderItem;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Spawns line slash when the player attacks with the Starry Cosmos Sword.
+ * Left-click skills: Empyrean Holy Judgment line slash; Holy Judgment area true damage (no giant stab).
  */
 public class HandlerStarryCosmosSword {
 
@@ -34,7 +34,10 @@ public class HandlerStarryCosmosSword {
         if (event.action != PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) {
             return;
         }
-        trySpawnSlash(event.entityPlayer);
+        if (!isHoldingStarrySword(event.entityPlayer)) {
+            return;
+        }
+        trySpawnLeftClickSkill(event.entityPlayer);
     }
 
     @SubscribeEvent
@@ -46,10 +49,10 @@ public class HandlerStarryCosmosSword {
         if (player.worldObj.isRemote) {
             return;
         }
-        if (!isHoldingSword(player)) {
+        if (!isHoldingStarrySword(player)) {
             return;
         }
-        trySpawnSlash(player);
+        trySpawnLeftClickSkill(player);
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -62,7 +65,7 @@ public class HandlerStarryCosmosSword {
             return;
         }
 
-        if (!isHoldingSword(player)) {
+        if (!isHoldingStarrySword(player)) {
             lastSwingProgress.remove(player.getUniqueID());
             return;
         }
@@ -70,13 +73,13 @@ public class HandlerStarryCosmosSword {
         int current = player.swingProgressInt;
         Integer previous = lastSwingProgress.get(player.getUniqueID());
         if (previous != null && previous == -1 && current == 0 && player.isSwingInProgress) {
-            trySpawnSlash(player);
+            trySpawnLeftClickSkill(player);
         }
         lastSwingProgress.put(player.getUniqueID(), current);
     }
 
-    private void trySpawnSlash(EntityPlayer player) {
-        if (!isHoldingSword(player)) {
+    private void trySpawnLeftClickSkill(EntityPlayer player) {
+        if (!isHoldingStarrySword(player)) {
             return;
         }
         int now = player.ticksExisted;
@@ -86,11 +89,16 @@ public class HandlerStarryCosmosSword {
             return;
         }
         lastWaveTick.put(id, now);
-        ItemStarryCosmosSword.spawnLineSlash(player);
+        ItemStack held = player.getHeldItem();
+        if (held != null && held.getItem() instanceof ItemHolyJudgment) {
+            ItemHolyJudgment.spawnLeftClickAreaJudgment(player);
+        } else {
+            ItemStarryCosmosSword.spawnLineSlash(player);
+        }
     }
 
-    private boolean isHoldingSword(EntityPlayer player) {
+    private boolean isHoldingStarrySword(EntityPlayer player) {
         ItemStack held = player.getHeldItem();
-        return held != null && held.getItem() == LoaderItem.starryCosmosSword;
+        return held != null && held.getItem() instanceof ItemStarryCosmosSword;
     }
 }

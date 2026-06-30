@@ -51,7 +51,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
     private ADM_GuiTextField hoveredTextField;
     private ADM_GuiTextField focusedField = null;
 
-    // 左侧文本�?
+    // 左侧文本框
     private ADM_GuiTextField textFieldTileEntityXYZ;
     private ADM_GuiTextField textFieldxOffset;
     private ADM_GuiTextField textFieldyOffset;
@@ -61,7 +61,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
     private ADM_GuiTextField textFieldRotationZ;
     private ADM_GuiTextField textFieldInterval;
 
-    // 右侧文本�?
+    // 右侧文本框
     private ADM_GuiTextField textFieldDisplayName;
     private ADM_GuiTextField textFieldDisplayNameScale;
     private ADM_GuiTextField textFieldScaled;
@@ -111,9 +111,9 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
     private boolean isInitialized = false;
     private String dataType;
     private boolean isEnabled;
-    // 新增：监测范围和文字对齐状�?
-    private boolean monitorNetworkWide; // false=单处理器，true=全网�?
-    private int textAlign; // 0=左对齐，1=居中�?=右对�?
+    // 新增：监测范围和文字对齐状态
+    private boolean monitorNetworkWide; // false=单处理器，true=全网络
+    private int textAlign; // 0=左对齐，1=居中，2=右对齐
 
     private Set<Integer> usedButtonIds = new HashSet<>();
 
@@ -169,7 +169,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         isEnabled = tileEntityAdvanceDataMonotor.getEnable(index);
-        // 读取新字�?
+        // 读取新字段
         monitorNetworkWide = tileEntityAdvanceDataMonotor.getMonitorNetworkWide(index);
         textAlign = tileEntityAdvanceDataMonotor.getTextAlign(index);
 
@@ -189,7 +189,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getDisplayNameScale(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getScale(this.index)));
             this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getTextScale(this.index)));
-            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getCraftingTemplate(this.index))); // 新增初始化内�?
+            this.contents.add(String.valueOf(this.tileEntityAdvanceDataMonotor.getCraftingTemplate(this.index))); // 新增初始化内容
             isInitialized = true;
         }
 
@@ -199,7 +199,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
         this.buttonList.clear();
         this.setPosition(this.offsetX - 20, this.offsetY - 35);
 
-        // ---- 左侧文本�?----
+        // ---- 左侧文本框 ----
         this.textFieldsLeft.clear();
         textFieldsLeft.add(this.textFieldTileEntityXYZ);
         textFieldsLeft.add(this.textFieldxOffset);
@@ -215,7 +215,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
             throw new RuntimeException(e);
         }
 
-        // ---- 右侧文本�?----
+        // ---- 右侧文本框 ----
         this.textFieldsRight.clear();
         textFieldsRight.add(this.textFieldDisplayName);
         textFieldsRight.add(this.textFieldDisplayNameScale);
@@ -228,7 +228,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
             throw new RuntimeException(e);
         }
 
-        // 设置文本框内�?
+        // 设置文本框内容
         this.textFieldTileEntityXYZ.setMaxStringLength(100);
         this.textFieldTileEntityXYZ.setFocused(true);
         this.textFieldTileEntityXYZ
@@ -277,14 +277,14 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
             isInitialized ? contents.get(11)
                 : String.valueOf(this.tileEntityAdvanceDataMonotor.getTextScale(this.index)));
 
-        // 新增 craftingTemplate 文本�?
+        // 新增 craftingTemplate 文本框
         this.textFieldCraftingTemplate.setMaxStringLength(400); // 可适当增加长度
         this.textFieldCraftingTemplate.setText(
             isInitialized ? contents.get(12) : this.tileEntityAdvanceDataMonotor.getCraftingTemplate(this.index));
 
         focusedField = textFieldTileEntityXYZ;
 
-        // ------------------- 按钮初始�?-------------------
+        // ------------------- 按钮初始化 -------------------
         // 底部保存/取消/启用
         this.buttonList.add(
             new ADM_GuiButton(
@@ -345,7 +345,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
                     .setUseHoverEffect(true)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
-        buttonRowConfigYoffset1 += buttonRowConfigYinterval1; // 下一�?
+        buttonRowConfigYoffset1 += buttonRowConfigYinterval1; // 下一行
 
         // 文字对齐按钮 (ID 9)
         String alignKey = switch (textAlign) {
@@ -368,8 +368,8 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
 
-        buttonRowConfigYoffset1 -= buttonRowConfigYinterval1; // 下一�?
-        // ---- 透明度调节按�?(nameAlpha �?textAlpha) ----
+        buttonRowConfigYoffset1 -= buttonRowConfigYinterval1; // 下一行
+        // ---- 透明度调节按钮 (nameAlpha 和 textAlpha) ----
         // nameAlpha
         this.buttonList.add(
             new ADM_GuiButton(
@@ -396,7 +396,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
 
-        buttonRowConfigYoffset1 += buttonRowConfigYinterval1; // 下一�?
+        buttonRowConfigYoffset1 += buttonRowConfigYinterval1; // 下一行
         // textAlpha
         this.buttonList.add(
             new ADM_GuiButton(
@@ -422,7 +422,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
                     .setUseRGBEffect(false)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
-        // 不需要再递增 Yoffset，后面没有其他配置按�?
+        // 不需要再递增 Yoffset，后面没有其他配置按钮
 
         checkUsedButtonIds();
 
@@ -558,7 +558,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
                 nbt.setString("dataType", this.dataType);
 
                 String XYZ = this.textFieldTileEntityXYZ.getText()
-                    .replace("�?, ",")
+                    .replace("，", ",")
                     .replace(" ", "");
                 if (!ContentsHelper.isValidPosFormat(XYZ)) {
                     this.errorTips = I18n.format("adm.error.xyz");
@@ -610,10 +610,10 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
                     return;
                 } else nbt.setDouble("textScale", Double.parseDouble(this.textScale.getText()));
 
-                // 新增 craftingTemplate 保存（直接保存字符串，无额外验证�?
+                // 新增 craftingTemplate 保存（直接保存字符串，无额外验证）
                 nbt.setString("craftingTemplate", this.textFieldCraftingTemplate.getText());
 
-                // 新字段写�?
+                // 新字段写入
                 nbt.setBoolean("monitorNetworkWide", monitorNetworkWide);
                 nbt.setInteger("textAlign", textAlign);
 
@@ -672,7 +672,7 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
                 button.displayString = I18n.format(alignKey);
                 saveAndSync(nbt);
             }
-            // ---------- 透明度调�?----------
+            // ---------- 透明度调节 ----------
             case 20 -> { // nameAlpha +
                 double nameAlpha = this.tileEntityAdvanceDataMonotor.getNameAlpha(index);
                 int step = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) ? 1 : 10;
@@ -752,17 +752,17 @@ public class GuiSubAEAdvanceCraftingLink extends ADM_GuiScreen {
             I18n.format("adm.label.yrotation"), I18n.format("adm.label.zrotation"), I18n.format("adm.label.interval") };
         autoText(label1, 0, 25, this.offsetX + 20, this.offsetY + 10, this.textColor, false);
 
-        // 右侧标签（新�?craftingtemplate�?
+        // 右侧标签（新增 craftingtemplate）
         String[] label2 = { I18n.format("adm.label.displayname"), I18n.format("adm.label.displaynamescale"),
             I18n.format("adm.label.scaled"), I18n.format("adm.label.textscale"),
             I18n.format("adm.label.craftingtemplate") };
         autoText(label2, 0, 25, this.offsetX + 170, this.offsetY + 10, this.textColor, false);
 
-        // 透明度标�?
+        // 透明度标签
         String[] label3 = { I18n.format("adm.label.namealpha"), I18n.format("adm.label.textalpha") };
         autoText(label3, 0, 25, this.offsetX + 490, this.offsetY + 10, this.textColor, true);
 
-        // 透明度数�?
+        // 透明度数值
         String[] label4 = { (int) (tileEntityAdvanceDataMonotor.getNameAlpha(index) * 100) + "%",
             (int) (tileEntityAdvanceDataMonotor.getTextAlpha(index) * 100) + "%" };
         autoText(label4, 0, 25, this.offsetX + 490, this.offsetY + 20, this.textColor, true);

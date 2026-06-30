@@ -35,7 +35,7 @@ import io.netty.buffer.ByteBuf;
 /**
  * Display names / 显示名称:
  * - EN: Advanced Storage Linker
- * - ZH: 高级存储链接�?
+ * - ZH: 高级存储链接器
  * Lang keys: tile.StorageLinkBlock.name (parent block)
  */
 public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInventory, IOwnableTile {

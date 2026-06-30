@@ -5,6 +5,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.client.PocketClientCache;
 import com.imgood.textech.client.PocketPortalGuiRenderer;
@@ -26,7 +27,7 @@ import com.imgood.textech.network.packet.PacketPocketSync;
  * Container.detectAndSendChanges.
  *
  * Stack upgrades bypass vanilla {@link ItemStack#getMaxStackSize()} when moving
- * items into pocket slots â€?same pattern as Science Not Leisure portable infinity chest.
+ * items into pocket slots â€”same pattern as Science Not Leisure portable infinity chest.
  */
 public class ContainerPocketStorage extends Container {
 
@@ -61,8 +62,11 @@ public class ContainerPocketStorage extends Container {
             s = buildClientMirrorState(slotsPerPage, pageCount);
         }
         this.state = s;
-        this.pocketInv = new PocketInventory(s, player.getUniqueID()
-            .toString(), server);
+        this.pocketInv = new PocketInventory(
+            s,
+            player.getUniqueID()
+                .toString(),
+            server);
         this.pocketInv.setCurrentPage(0);
         layoutSlots();
     }
@@ -108,7 +112,8 @@ public class ContainerPocketStorage extends Container {
         int playerY = startY + maxRows * 18 + 14 + PocketPortalGuiRenderer.STORAGE_PLAYER_INV_EXTRA_Y;
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 9; ++col) {
-                addSlotToContainer(new Slot(player.inventory, col + row * 9 + 9, startX + col * 18, playerY + row * 18));
+                addSlotToContainer(
+                    new Slot(player.inventory, col + row * 9 + 9, startX + col * 18, playerY + row * 18));
             }
         }
         int hotbarY = playerY + 3 * 18 + 4;
@@ -172,8 +177,7 @@ public class ContainerPocketStorage extends Container {
         this.currentPage = page;
         pocketInv.setCurrentPage(page);
         pocketInv.flush();
-        AdvanceDataMonitor.ADMCHANEL
-            .sendTo(PacketPocketSync.singlePage(state, page), (EntityPlayerMP) player);
+        AdvanceDataMonitor.ADMCHANEL.sendTo(PacketPocketSync.singlePage(state, page), (EntityPlayerMP) player);
     }
 
     /**

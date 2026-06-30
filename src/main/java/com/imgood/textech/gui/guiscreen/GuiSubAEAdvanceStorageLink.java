@@ -472,7 +472,7 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
     private void save(NBTTagCompound nbt) {
         NBTTagList existingStorageItems = nbt.getTagList("storageItems", 10);
         String xyz = textFieldTileEntityXYZ.getText()
-            .replace("ï¼?, ",")
+            .replace("ï¼Œ", ",")
             .replace(" ", "");
         if (!ContentsHelper.isValidPosFormat(xyz)) {
             errorTips = I18n.format("adm.error.xyz");

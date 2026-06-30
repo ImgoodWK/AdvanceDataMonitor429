@@ -24,7 +24,6 @@ import com.imgood.textech.handler.StarryCosmosSounds;
 import com.imgood.textech.handler.StarryCosmosSwordConstants;
 import com.imgood.textech.handler.StarryCosmosSwordUtil;
 import com.imgood.textech.handler.StarryEntityMotionUtil;
-import com.imgood.textech.handler.StarrySwordSpawnScheduler;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -33,7 +32,7 @@ import fox.spiteful.avaritia.render.ICosmicRenderItem;
 /**
  * Display names / 显示名称:
  * - EN: Empyrean Holy Judgment
- * - ZH: 至高天圣�?
+ * - ZH: 至高天圣裁
  * Lang keys: item.starryCosmosSword.name, adm.tooltip.starry_cosmos_sword
  *
  * Cosmic shader blade with line slash, throw and sword rain.
@@ -47,11 +46,28 @@ public class ItemStarryCosmosSword extends ItemSword implements ICosmicRenderIte
     private IIcon cosmicMask;
 
     public ItemStarryCosmosSword() {
+        this("starryCosmosSword");
+    }
+
+    protected ItemStarryCosmosSword(String unlocalizedName) {
         super(MATERIAL);
-        setUnlocalizedName("starryCosmosSword");
+        setUnlocalizedName(unlocalizedName);
         setTextureName(AdvanceDataMonitor.MODID + ":starry_cosmos_sword");
         setCreativeTab(CreativeTabs.tabCombat);
         setMaxStackSize(1);
+    }
+
+    public StarryCosmosSwordUtil.StarryCosmosDamageMode getDamageMode() {
+        return StarryCosmosSwordUtil.StarryCosmosDamageMode.INSTANT_KILL;
+    }
+
+    public StarryCosmosSwordUtil.StarryCosmosDamageMode resolveDamageMode(
+        StarryCosmosSwordUtil.StarryCosmosAttackKind kind) {
+        return getDamageMode();
+    }
+
+    public boolean hasEnchantGlow() {
+        return true;
     }
 
     public static void spawnLineSlash(EntityPlayer player) {
@@ -75,31 +91,18 @@ public class ItemStarryCosmosSword extends ItemSword implements ICosmicRenderIte
             .playJudgmentCast(world, player.posX, player.posY + player.getEyeHeight() * 0.5D, player.posZ);
         float displayYaw = player.rotationYaw;
         float miniScale = StarryCosmosSwordConstants.SCALE_LINE_STAB_MINI;
-        for (final EntityLivingBase target : targets) {
+        for (EntityLivingBase target : targets) {
             if (target == null || target.isDead) {
                 continue;
             }
-            final EntityPlayer owner = player;
-            final World spawnWorld = world;
-            final float yaw = displayYaw;
-            final float scale = miniScale;
-            StarrySwordSpawnScheduler.schedule(new Runnable() {
-
-                @Override
-                public void run() {
-                    if (target.isDead || spawnWorld.isRemote) {
-                        return;
-                    }
-                    spawnWorld.spawnEntityInWorld(new EntityStarrySwordLineStab(spawnWorld, target, owner, yaw, scale));
-                }
-            });
+            world.spawnEntityInWorld(new EntityStarrySwordLineStab(world, target, player, displayYaw, miniScale));
         }
     }
 
     @Override
     public boolean hitEntity(ItemStack stack, EntityLivingBase victim, EntityLivingBase attacker) {
         if (!attacker.worldObj.isRemote) {
-            StarryCosmosSwordUtil.instantKill(victim, attacker);
+            StarryCosmosSwordUtil.applyDamage(victim, attacker, StarryCosmosSwordUtil.StarryCosmosAttackKind.DEFAULT);
             StarryCosmosSounds
                 .playMeleeHit(attacker.worldObj, victim.posX, victim.posY + victim.height * 0.5D, victim.posZ);
         }
@@ -168,6 +171,6 @@ public class ItemStarryCosmosSword extends ItemSword implements ICosmicRenderIte
     @SideOnly(Side.CLIENT)
     @Override
     public boolean hasEffect(ItemStack stack, int pass) {
-        return false;
+        return hasEnchantGlow();
     }
 }

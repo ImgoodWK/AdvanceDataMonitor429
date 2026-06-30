@@ -37,7 +37,7 @@ import appeng.tile.grid.AENetworkTile;
 /**
  * Display names / 显示名称:
  * - EN: Crafting Linker
- * - ZH: 合成链接�?
+ * - ZH: 合成链接器
  * Lang keys: tile.CraftingMonitorBlock.name (parent block)
  */
 public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwnableTile {
@@ -90,7 +90,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
     }
 
     /**
-     * 核心数据更新 —�?从网络中获取最新合�?CPU 统计
+     * 核心数据更新 —— 从网络中获取最新合成 CPU 统计
      */
     public void updateCraftingStats() {
 
@@ -130,7 +130,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
             totalBytes += (available + used);
             usedBytes += used;
 
-            // 最终产物信�?
+            // 最终产物信息
             String finalOutputName = null;
             long finalOutputAmount = 0;
             List<String> finalOutputList = new ArrayList<>();
@@ -146,7 +146,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
                 finalOutputList.add(finalOutputName + " x" + finalOutputAmount);
             }
 
-            // 配方输入�?API 限制暂不可用，留�?
+            // 配方输入因 API 限制暂不可用，留空
             List<String> inputList = new ArrayList<>();
 
             long remainingItems = cpu.getRemainingItemCount();
@@ -200,7 +200,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
         updateCraftingStats();
     }
 
-    // ================= NBT 持久�?=================
+    // ================= NBT 持久化 =================
     @Override
     public void writeToNBT_AENetwork(NBTTagCompound tag) {
         tag.setInteger("TotalCpus", totalCpus);
@@ -232,7 +232,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
             }
             snapTag.setTag("Inputs", inputList);
 
-            // 最终产物数�?
+            // 最终产物数组
             NBTTagList outputList = new NBTTagList();
             for (String s : snap.finalOutputDisplayNames) {
                 outputList.appendTag(new NBTTagString(s));
@@ -290,7 +290,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
         ownerName = OwnableTileUtil.readOwner(tag);
     }
 
-    // ================= 客户端同�?=================
+    // ================= 客户端同步 =================
     @Override
     public Packet getDescriptionPacket() {
         NBTTagCompound data = new NBTTagCompound();
@@ -542,7 +542,7 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
         return sb.toString();
     }
 
-    // ================= 内部数据�? CPU 快照 =================
+    // ================= 内部数据类: CPU 快照 =================
     public static class CraftingCpuSnapshot {
 
         public final String name;

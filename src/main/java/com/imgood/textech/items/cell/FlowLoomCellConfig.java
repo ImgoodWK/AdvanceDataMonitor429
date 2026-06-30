@@ -2,7 +2,7 @@ package com.imgood.textech.items.cell;
 
 import net.minecraft.item.ItemStack;
 
-/** Cell workbench partition inventory for the Data Flow Cell â€?rejects this mod's items as markers. */
+/** Cell workbench partition inventory for the Data Flow Cell â€”rejects this mod's items as markers. */
 public class FlowLoomCellConfig extends DataLoomFluidCellConfig {
 
     public FlowLoomCellConfig(ItemStack cellStack) {

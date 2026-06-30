@@ -126,7 +126,8 @@ public class EntityStarrySwordSlam extends Entity implements IEntityAdditionalSp
             if (ticksExisted >= DESCENT_TICKS && !damageApplied) {
                 damageApplied = true;
                 EntityLivingBase owner = resolveOwner();
-                StarryEntityMotionUtil.killLivingInRadius(worldObj, posX, getGroundY(), posZ, KILL_RADIUS, owner, this);
+                StarryEntityMotionUtil
+                    .killLivingInRadius(worldObj, posX, getGroundY(), posZ, KILL_RADIUS, owner, this, true);
             }
             if (ticksExisted >= getLifetimeTicks()) {
                 setDead();

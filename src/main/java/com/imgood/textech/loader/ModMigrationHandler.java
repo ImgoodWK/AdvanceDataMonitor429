@@ -5,21 +5,21 @@ import net.minecraft.item.Item;
 
 import com.imgood.textech.AdvanceDataMonitor;
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.registry.FMLMissingMappingsEvent;
-import cpw.mods.fml.common.registry.FMLMissingMappingsEvent.MissingMapping;
+import cpw.mods.fml.common.event.FMLMissingMappingsEvent;
+import cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 /**
  * Handles archive migration when mod ID changes from "advancedatamonitor" to "textech".
- * Registered on FMLCommonEventBus during preInit by AdvanceDataMonitor.
+ * Invoked from {@link AdvanceDataMonitor#missingMappings(FMLMissingMappingsEvent)}.
  */
 public class ModMigrationHandler {
 
     private static final String LEGACY_MODID = "advancedatamonitor";
 
-    @SubscribeEvent
-    public void onMissingMappings(FMLMissingMappingsEvent event) {
+    private ModMigrationHandler() {}
+
+    public static void handle(FMLMissingMappingsEvent event) {
         for (MissingMapping mapping : event.get()) {
             if (!mapping.name.startsWith(LEGACY_MODID + ":")) {
                 continue;
@@ -31,16 +31,22 @@ public class ModMigrationHandler {
                 Block newBlock = GameRegistry.findBlock(AdvanceDataMonitor.MODID, objectName);
                 if (newBlock != null) {
                     mapping.remap(newBlock);
-                    AdvanceDataMonitor.LOG.info("[TeXTech] Migrated block: {} -> {}:{}",
-                        mapping.name, AdvanceDataMonitor.MODID, objectName);
+                    AdvanceDataMonitor.LOG.info(
+                        "[TeXTech] Migrated block: {} -> {}:{}",
+                        mapping.name,
+                        AdvanceDataMonitor.MODID,
+                        objectName);
                     continue;
                 }
             } else if (mapping.type == GameRegistry.Type.ITEM) {
                 Item newItem = GameRegistry.findItem(AdvanceDataMonitor.MODID, objectName);
                 if (newItem != null) {
                     mapping.remap(newItem);
-                    AdvanceDataMonitor.LOG.info("[TeXTech] Migrated item: {} -> {}:{}",
-                        mapping.name, AdvanceDataMonitor.MODID, objectName);
+                    AdvanceDataMonitor.LOG.info(
+                        "[TeXTech] Migrated item: {} -> {}:{}",
+                        mapping.name,
+                        AdvanceDataMonitor.MODID,
+                        objectName);
                     continue;
                 }
             }

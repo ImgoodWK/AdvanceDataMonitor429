@@ -7,7 +7,7 @@ import net.minecraft.world.World;
 import com.imgood.textech.AdvanceDataMonitor;
 
 /**
- * Custom sound effects for Empyrean Holy Judgment (CC0 Kenney assets â€?see assets/.../sound/CREDITS.txt).
+ * Custom sound effects for Empyrean Holy Judgment (CC0 Kenney assets â€”see assets/.../sound/CREDITS.txt).
  */
 public final class StarryCosmosSounds {
 

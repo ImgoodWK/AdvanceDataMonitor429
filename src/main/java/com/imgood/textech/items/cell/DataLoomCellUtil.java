@@ -86,8 +86,7 @@ public final class DataLoomCellUtil {
                 appeng.api.config.Actionable.MODULATE,
                 appeng.api.config.PowerMultiplier.CONFIG);
         } catch (Exception e) {
-            com.imgood.textech.AdvanceDataMonitor.LOG
-                .warn("[DataLoomCell] Failed to drain energy: {}", e.getMessage());
+            com.imgood.textech.AdvanceDataMonitor.LOG.warn("[DataLoomCell] Failed to drain energy: {}", e.getMessage());
         }
     }
 
@@ -253,8 +252,7 @@ public final class DataLoomCellUtil {
                 appeng.api.config.Actionable.MODULATE,
                 appeng.api.config.PowerMultiplier.CONFIG);
         } catch (Exception e) {
-            com.imgood.textech.AdvanceDataMonitor.LOG
-                .warn("[DataLoomCell] Failed to drain energy: {}", e.getMessage());
+            com.imgood.textech.AdvanceDataMonitor.LOG.warn("[DataLoomCell] Failed to drain energy: {}", e.getMessage());
         }
     }
 
@@ -265,7 +263,7 @@ public final class DataLoomCellUtil {
     private static final String[] DUST_ORE_DICT_PREFIXES = { "dusttiny", "dustsmall", "dustimpure", "dustpure",
         "dustrefined", "dust", };
 
-    /** True when the stack has an ore-dictionary name with a GT dust prefix (dust / dustTiny / â€?. */
+    /** True when the stack has an ore-dictionary name with a GT dust prefix (dust / dustTiny / â€”. */
     public static boolean isDustItem(ItemStack stack) {
         if (stack == null || stack.getItem() == null) {
             return false;
@@ -321,14 +319,14 @@ public final class DataLoomCellUtil {
                 filtered.add(marker);
             } else if (marker != null && marker.getItem() != null) {
                 DataLoomDebugLog.warn(
-                    "Dust loom ignored invalid marker {} â€?no dust ore-dictionary prefix",
+                    "Dust loom ignored invalid marker {} â€”no dust ore-dictionary prefix",
                     DataLoomDebugLog.describeCell(marker));
             }
         }
         return filtered;
     }
 
-    /** Read Cell Workbench fluid markers â€?same two-source merge as {@link #resolveMarkedItems}. */
+    /** Read Cell Workbench fluid markers â€”same two-source merge as {@link #resolveMarkedItems}. */
     public static List<FluidStack> resolveMarkedFluids(ItemStack cellStack) {
         List<FluidStack> fluids = newFluidList();
         if (cellStack == null || cellStack.getItem() == null) {
@@ -351,7 +349,7 @@ public final class DataLoomCellUtil {
 
         if (DataLoomDebugLog.isEnabled() && fluids.isEmpty()) {
             DataLoomDebugLog.warn(
-                "resolveMarkedFluids empty for {} â€?configSlots={} nbtListSlots={} hasTag={}",
+                "resolveMarkedFluids empty for {} â€”configSlots={} nbtListSlots={} hasTag={}",
                 DataLoomDebugLog.describeCell(cellStack),
                 countConfigInventorySlots(config),
                 countConfigListSlots(cellStack),

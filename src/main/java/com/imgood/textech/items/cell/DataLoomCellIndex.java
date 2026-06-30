@@ -22,7 +22,7 @@ import appeng.tile.storage.TileDrive;
 
 /**
  * Server-side registry of ME hosts that currently hold data loom cells.
- * Maintained on chunk load/unload and by periodic rescan â€?independent of AE inventory polling.
+ * Maintained on chunk load/unload and by periodic rescan â€”independent of AE inventory polling.
  */
 public final class DataLoomCellIndex {
 
@@ -176,7 +176,7 @@ public final class DataLoomCellIndex {
 
         ItemStack inSlot = inv.getStackInSlot(slot);
         if (inSlot != null && inSlot == stack) {
-            // Weave engine mutates the live drive/chest stack â€?avoid copy() so AE cell handlers keep the same ref.
+            // Weave engine mutates the live drive/chest stack â€”avoid copy() so AE cell handlers keep the same ref.
         } else if (inSlot != null && stack.hasTagCompound()) {
             inSlot.setTagCompound(
                 (NBTTagCompound) stack.getTagCompound()
@@ -240,7 +240,7 @@ public final class DataLoomCellIndex {
                     .postEvent(new MENetworkCellArrayUpdate());
             }
         } catch (Throwable ignored) {
-            // offline drive â€?NBT is still persisted on the tile
+            // offline drive â€”NBT is still persisted on the tile
         }
     }
 

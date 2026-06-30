@@ -10,7 +10,7 @@ import appeng.tile.storage.TileDrive;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Keeps the data loom cell index in sync with loaded chunks â€?no AE hooks involved.
+ * Keeps the data loom cell index in sync with loaded chunks â€”no AE hooks involved.
  */
 public class HandlerDataLoomCell {
 

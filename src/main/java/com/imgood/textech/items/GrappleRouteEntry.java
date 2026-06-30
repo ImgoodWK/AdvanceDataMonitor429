@@ -6,7 +6,7 @@ import java.util.List;
 import com.imgood.textech.utils.BlockPos;
 
 /**
- * Saved grapple route DTO / 已保存挂索路�?
+ * Saved grapple route DTO / 已保存挂索路纹
  */
 public class GrappleRouteEntry {
 

@@ -1,63 +1,40 @@
 package com.imgood.textech.client;
 
-
-
 import net.minecraft.client.Minecraft;
-
 import net.minecraft.client.gui.Gui;
-
 import net.minecraft.client.gui.inventory.GuiContainer;
-
 import net.minecraft.client.renderer.RenderHelper;
-
 import net.minecraft.client.renderer.entity.RenderItem;
-
 import net.minecraft.client.resources.I18n;
-
 import net.minecraft.item.ItemStack;
 
 import org.lwjgl.input.Mouse;
-
 import org.lwjgl.opengl.GL11;
 
-
-
 import com.imgood.textech.AdvanceDataMonitor;
-
-import com.imgood.textech.client.PocketStackOverlayRenderer;
 import com.imgood.textech.mixin.GuiScreenTooltipAccess;
-
 import com.imgood.textech.network.packet.PacketPocketAction;
 
-
-
 import cpw.mods.fml.relauncher.Side;
-
 import cpw.mods.fml.relauncher.SideOnly;
 
-
-
 /**
-
+ * 
  * Renders the draggable, paged extra-inventory overlay on top of the currently
-
+ * 
  * open GuiContainer. Slot markers are semi-transparent blue-violet cells; the
-
+ * 
  * portal rift texture wraps the grid two cell rings larger so items feel pulled
-
+ * 
  * through a dimensional crack.
-
+ * 
  */
 
 @SideOnly(Side.CLIENT)
 
 public class GuiPocketOverlay {
 
-
-
     private static final int CELL_SIZE = PocketPortalGuiRenderer.CELL_SIZE;
-
-
 
     private GuiContainer host;
 
@@ -70,8 +47,6 @@ public class GuiPocketOverlay {
     private int dragOffsetX;
 
     private int dragOffsetY;
-
-
 
     private static final int PAGE_ARROW_W = 10;
 
@@ -97,15 +72,11 @@ public class GuiPocketOverlay {
     private static final int LABEL_BACKDROP_PAD_X = 4;
     private static final int LABEL_BACKDROP_PAD_Y = 2;
 
-
-
     public GuiPocketOverlay(GuiContainer host) {
 
         attach(host);
 
     }
-
-
 
     public void attach(GuiContainer host) {
 
@@ -143,15 +114,11 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     public boolean isDragging() {
 
         return dragging;
 
     }
-
-
 
     /**
      * Hovered pocket-slot tooltip via {@link net.minecraft.client.gui.inventory.GuiContainer#renderToolTip}
@@ -166,15 +133,11 @@ public class GuiPocketOverlay {
         ((GuiScreenTooltipAccess) (Object) host).adm$renderToolTip(stack, mouseX, mouseY);
     }
 
-
-
     public void setDragging(boolean dragging) {
 
         this.dragging = dragging;
 
     }
-
-
 
     public int getPanelWidth() {
 
@@ -182,15 +145,11 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     public int getPanelHeight() {
 
         return PocketPortalGuiRenderer.overlayPanelHeight();
 
     }
-
-
 
     public void draw(float partialTicks) {
 
@@ -200,11 +159,7 @@ public class GuiPocketOverlay {
 
         updatePositionFromMouse();
 
-
-
         GL11.glPushMatrix();
-
-
 
         if (PocketClientCache.isCollapsed()) {
 
@@ -216,8 +171,6 @@ public class GuiPocketOverlay {
 
         }
 
-
-
         int pw = getPanelWidth();
 
         int slotsPerPage = PocketClientCache.getSlotsPerPage();
@@ -225,8 +178,6 @@ public class GuiPocketOverlay {
         int gridX = PocketPortalGuiRenderer.overlayGridOriginX(panelX);
 
         int gridY = PocketPortalGuiRenderer.overlayGridOriginY(panelY);
-
-
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
@@ -237,8 +188,6 @@ public class GuiPocketOverlay {
         double overlayPhase = PocketPortalGuiRenderer.overlayAnimationPhase();
         PocketPortalGuiRenderer.drawOverlayGridPortalRift(gridX, gridY, overlayPhase);
 
-
-
         HeaderLayout header = computeHeaderLayout(mc);
         drawLeftAlignedAnimatedGradientTitle(
             mc,
@@ -248,11 +197,7 @@ public class GuiPocketOverlay {
 
         drawCollapseButton(getCollapseButtonX(), getCollapseButtonY());
 
-
-
         PocketPortalGuiRenderer.drawOverlaySlotGrid(gridX, gridY, slotsPerPage, overlayPhase);
-
-
 
         RenderHelper.enableGUIStandardItemLighting();
 
@@ -286,7 +231,8 @@ public class GuiPocketOverlay {
 
                 int y = gridY + row * CELL_SIZE + 1;
 
-                PocketStackOverlayRenderer.renderSlotItem(renderItem, mc.fontRenderer, mc.getTextureManager(), stack, x, y);
+                PocketStackOverlayRenderer
+                    .renderSlotItem(renderItem, mc.fontRenderer, mc.getTextureManager(), stack, x, y);
 
             }
 
@@ -332,8 +278,6 @@ public class GuiPocketOverlay {
         GL11.glPopMatrix();
 
     }
-
-
 
     private static void drawLeftAlignedAnimatedGradientTitle(Minecraft mc, int x, int y, String text) {
         if (text == null || text.isEmpty()) return;
@@ -395,8 +339,6 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     private HeaderLayout computeHeaderLayout(Minecraft mc) {
         HeaderLayout layout = new HeaderLayout();
         int lineH = mc.fontRenderer.FONT_HEIGHT;
@@ -425,10 +367,17 @@ public class GuiPocketOverlay {
     }
 
     private boolean hitsCollapseButton(int mouseX, int mouseY) {
-        return hitsRect(mouseX, mouseY, getCollapseButtonX(), getCollapseButtonY(), COLLAPSE_BTN_SIZE, COLLAPSE_BTN_SIZE);
+        return hitsRect(
+            mouseX,
+            mouseY,
+            getCollapseButtonX(),
+            getCollapseButtonY(),
+            COLLAPSE_BTN_SIZE,
+            COLLAPSE_BTN_SIZE);
     }
 
     private static final class HeaderLayout {
+
         int lineY;
         int titleY;
         int leftArrowX;
@@ -437,8 +386,6 @@ public class GuiPocketOverlay {
         int pageTextY;
         String pageText;
     }
-
-
 
     private void drawCollapsed() {
 
@@ -460,23 +407,17 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     private void drawCollapseButton(int x, int y) {
 
         drawChromeButton(x, y, "_");
 
     }
 
-
-
     private void drawExpandButton(int x, int y) {
 
         drawAnimatedChromeButton(x, y, "+");
 
     }
-
-
 
     private void drawChromeButton(int x, int y, String glyph) {
 
@@ -490,8 +431,6 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     /** Collapsed expand chip: portal-toned chaotic blue-violet fill synced with overlay rift phase. */
 
     private void drawAnimatedChromeButton(int x, int y, String glyph) {
@@ -502,15 +441,11 @@ public class GuiPocketOverlay {
 
         double phase = PocketPortalGuiRenderer.overlayAnimationPhase();
 
-
-
         GL11.glDisable(GL11.GL_TEXTURE_2D);
 
         GL11.glEnable(GL11.GL_BLEND);
 
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-
 
         float pulse = (float) ((Math.sin(phase) + 1.0) * 0.5);
 
@@ -522,8 +457,6 @@ public class GuiPocketOverlay {
 
         int bottomColor = portalGradientArgb(1.0f - pulse, rimAlpha);
 
-
-
         Gui.drawRect(x, y, x + size, y + 1, topColor);
 
         Gui.drawRect(x, y + size - 1, x + size, y + size, bottomColor);
@@ -531,8 +464,6 @@ public class GuiPocketOverlay {
         Gui.drawRect(x, y, x + 1, y + size, topColor);
 
         Gui.drawRect(x + size - 1, y, x + size, y + size, bottomColor);
-
-
 
         int innerX = x + 1;
 
@@ -566,8 +497,6 @@ public class GuiPocketOverlay {
 
         }
 
-
-
         float travel = (float) ((1.0 + Math.sin(phase * 1.2)) * 0.5);
 
         int bandY = innerY + (int) (travel * Math.max(0, innerH - 2));
@@ -582,19 +511,13 @@ public class GuiPocketOverlay {
 
         }
 
-
-
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
-
-
         drawChromeGlyph(mc, x, y, glyph);
 
     }
-
-
 
     private static void drawChromeGlyph(Minecraft mc, int x, int y, String glyph) {
 
@@ -612,8 +535,6 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     private static int portalGradientArgb(float blend, int alpha) {
 
         int r = blendChannel(0x55, 0xCC, blend);
@@ -626,15 +547,11 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     private static int blendChannel(int from, int to, float t) {
 
         return (int) (from + (to - from) * t);
 
     }
-
-
 
     private void drawArrowButton(int x, int y, boolean left, boolean enabled) {
 
@@ -661,12 +578,10 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     /**
-
-     * 鼠标悬停在可拖动边缘一圈时显示"拖动"小提�?拖动进行中不显示�?
-
+     * 
+     * 鼠标悬停在可拖动边缘一圈时显示"拖动"小提示;拖动进行中不显示。
+     * 
      */
 
     private void drawDragHint(int mouseX, int mouseY) {
@@ -695,8 +610,6 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     private void updatePositionFromMouse() {
 
         if (!dragging) return;
@@ -716,8 +629,6 @@ public class GuiPocketOverlay {
         if (panelY < 0) panelY = 0;
 
     }
-
-
 
     public void onDragFinished() {
 
@@ -740,8 +651,6 @@ public class GuiPocketOverlay {
         AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.setWindowPos(cx, cy));
 
     }
-
-
 
     public boolean onMouseClicked(int mouseX, int mouseY, int button) {
 
@@ -819,15 +728,11 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     public void onMouseReleased(int mouseX, int mouseY, int button) {
 
         dragging = false;
 
     }
-
-
 
     public int getSlotAt(int mouseX, int mouseY) {
 
@@ -859,8 +764,6 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     public void setPanelPos(int x, int y) {
 
         panelX = x;
@@ -869,13 +772,13 @@ public class GuiPocketOverlay {
 
     }
 
+    public int getPanelX() {
+        return panelX;
+    }
 
-
-    public int getPanelX() { return panelX; }
-
-    public int getPanelY() { return panelY; }
-
-
+    public int getPanelY() {
+        return panelY;
+    }
 
     public boolean onMouseWheel(int mouseX, int mouseY, int delta) {
 
@@ -913,8 +816,6 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     public boolean hitsPanel(int mouseX, int mouseY) {
 
         if (PocketClientCache.isCollapsed()) {
@@ -927,14 +828,12 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     /**
-
-     * Expanded overlay �?边缘一�?拖动�?整个面板减去中央 slot 网格、折叠按钮与顶部翻页控件�?
-
-     * 折叠状态返�?false(点击用于展开)�?
-
+     * 
+     * Expanded overlay 的"边缘一圈"拖动区:整个面板减去中央 slot 网格、折叠按钮与顶部翻页控件。
+     * 
+     * 折叠状态返回 false(点击用于展开)。
+     * 
      */
 
     public boolean isInDragZone(int mouseX, int mouseY) {
@@ -968,15 +867,11 @@ public class GuiPocketOverlay {
 
     }
 
-
-
     private static boolean hitsRect(int mx, int my, int x, int y, int w, int h) {
 
         return mx >= x && mx < x + w && my >= y && my < y + h;
 
     }
-
-
 
     private static int getCurrentMouseX() {
 
@@ -985,8 +880,6 @@ public class GuiPocketOverlay {
         return Mouse.getEventX() * mc.currentScreen.width / mc.displayWidth;
 
     }
-
-
 
     private static int getCurrentMouseY() {
 

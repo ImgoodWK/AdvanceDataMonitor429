@@ -59,6 +59,11 @@ public final class StarryEntityMotionUtil {
 
     public static void killLivingInRadius(World world, double centerX, double centerY, double centerZ, float radius,
         EntityLivingBase owner, net.minecraft.entity.Entity exclude) {
+        killLivingInRadius(world, centerX, centerY, centerZ, radius, owner, exclude, false);
+    }
+
+    public static void killLivingInRadius(World world, double centerX, double centerY, double centerZ, float radius,
+        EntityLivingBase owner, net.minecraft.entity.Entity exclude, boolean thrownGreatswordChain) {
         if (world.isRemote || owner == null || radius <= 0.0F) {
             return;
         }
@@ -92,7 +97,11 @@ public final class StarryEntityMotionUtil {
                     continue;
                 }
             }
-            StarryCosmosSwordUtil.instantKill(living, owner);
+            StarryCosmosSwordUtil.applyDamage(
+                living,
+                owner,
+                thrownGreatswordChain ? StarryCosmosSwordUtil.StarryCosmosAttackKind.GREATSWORD
+                    : StarryCosmosSwordUtil.StarryCosmosAttackKind.DEFAULT);
             world.spawnParticle(
                 "magicCrit",
                 living.posX,
@@ -106,6 +115,11 @@ public final class StarryEntityMotionUtil {
 
     public static void killLivingInBox(World world, AxisAlignedBB box, EntityLivingBase owner,
         net.minecraft.entity.Entity exclude) {
+        killLivingInBox(world, box, owner, exclude, false);
+    }
+
+    public static void killLivingInBox(World world, AxisAlignedBB box, EntityLivingBase owner,
+        net.minecraft.entity.Entity exclude, boolean thrownGreatswordChain) {
         if (world.isRemote || owner == null) {
             return;
         }
@@ -124,7 +138,11 @@ public final class StarryEntityMotionUtil {
                     continue;
                 }
             }
-            StarryCosmosSwordUtil.instantKill(living, owner);
+            StarryCosmosSwordUtil.applyDamage(
+                living,
+                owner,
+                thrownGreatswordChain ? StarryCosmosSwordUtil.StarryCosmosAttackKind.GREATSWORD
+                    : StarryCosmosSwordUtil.StarryCosmosAttackKind.DEFAULT);
             world.spawnParticle(
                 "magicCrit",
                 living.posX,
@@ -136,32 +154,40 @@ public final class StarryEntityMotionUtil {
         }
     }
 
-    /**
-     * Hostile mobs ({@link IMob}) in a square of {@code (2 * chunkRadius + 1)^2} chunks centered on
-     * {@code anchor}'s current chunk.
-     */
     public static List<EntityLivingBase> collectHostileInChunkArea(World world, EntityLivingBase anchor,
         int chunkRadius) {
-        List<EntityLivingBase> result = new ArrayList<EntityLivingBase>();
         if (world.isRemote || anchor == null || chunkRadius < 0) {
+            return new ArrayList<EntityLivingBase>();
+        }
+        return collectHostileInChunkAreaAt(world, anchor.posX, anchor.posZ, chunkRadius, anchor);
+    }
+
+    /**
+     * Hostile mobs ({@link IMob}) in a square of {@code (2 * chunkRadius + 1)^2} chunks centered on
+     * ({@code centerX}, {@code centerZ}).
+     */
+    public static List<EntityLivingBase> collectHostileInChunkAreaAt(World world, double centerX, double centerZ,
+        int chunkRadius, net.minecraft.entity.Entity exclude) {
+        List<EntityLivingBase> result = new ArrayList<EntityLivingBase>();
+        if (world.isRemote || chunkRadius < 0) {
             return result;
         }
 
-        int centerChunkX = MathHelper.floor_double(anchor.posX / 16.0D);
-        int centerChunkZ = MathHelper.floor_double(anchor.posZ / 16.0D);
+        int centerChunkX = MathHelper.floor_double(centerX / 16.0D);
+        int centerChunkZ = MathHelper.floor_double(centerZ / 16.0D);
         double minX = (centerChunkX - chunkRadius) * 16.0D;
         double maxX = (centerChunkX + chunkRadius + 1) * 16.0D;
         double minZ = (centerChunkZ - chunkRadius) * 16.0D;
         double maxZ = (centerChunkZ + chunkRadius + 1) * 16.0D;
         AxisAlignedBB box = AxisAlignedBB.getBoundingBox(minX, 0.0D, minZ, maxX, 256.0D, maxZ);
 
-        List<?> list = world.getEntitiesWithinAABBExcludingEntity(anchor, box);
+        List<?> list = world.getEntitiesWithinAABBExcludingEntity(exclude, box);
         for (Object obj : list) {
             if (!(obj instanceof EntityLivingBase)) {
                 continue;
             }
             EntityLivingBase living = (EntityLivingBase) obj;
-            if (living.isDead || living == anchor) {
+            if (living.isDead) {
                 continue;
             }
             if (!(living instanceof IMob)) {
@@ -230,6 +256,12 @@ public final class StarryEntityMotionUtil {
      */
     public static void killLivingAlongLine(World world, double x0, double y0, double z0, double dirX, double dirY,
         double dirZ, double length, double radius, EntityLivingBase owner, net.minecraft.entity.Entity exclude) {
+        killLivingAlongLine(world, x0, y0, z0, dirX, dirY, dirZ, length, radius, owner, exclude, false);
+    }
+
+    public static void killLivingAlongLine(World world, double x0, double y0, double z0, double dirX, double dirY,
+        double dirZ, double length, double radius, EntityLivingBase owner, net.minecraft.entity.Entity exclude,
+        boolean thrownGreatswordChain) {
         if (world.isRemote || owner == null || length <= 0.0D || radius <= 0.0D) {
             return;
         }
@@ -249,7 +281,11 @@ public final class StarryEntityMotionUtil {
             double px = living.posX;
             double py = living.posY + living.height * 0.5D;
             double pz = living.posZ;
-            StarryCosmosSwordUtil.instantKill(living, owner);
+            StarryCosmosSwordUtil.applyDamage(
+                living,
+                owner,
+                thrownGreatswordChain ? StarryCosmosSwordUtil.StarryCosmosAttackKind.GREATSWORD
+                    : StarryCosmosSwordUtil.StarryCosmosAttackKind.DEFAULT);
             world.spawnParticle("magicCrit", px, py, pz, 0.0D, 0.1D, 0.0D);
         }
     }

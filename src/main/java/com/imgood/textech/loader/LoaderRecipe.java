@@ -46,7 +46,7 @@ public class LoaderRecipe {
         ItemStack book = new ItemStack(Items.book);
         ItemStack paper = new ItemStack(Items.paper);
 
-        // AdvanceDataMonitor â€?core monitoring block (3 plates + 2 master circuits + 2 fluix crystals)
+        // AdvanceDataMonitor â€”core monitoring block (3 plates + 2 master circuits + 2 fluix crystals)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -63,7 +63,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // AdvanceNetworkLink â€?AE2 network monitor (2 plates + 2 master circuits + 2 rods + 1 fluix crystal)
+        // AdvanceNetworkLink â€”AE2 network monitor (2 plates + 2 master circuits + 2 rods + 1 fluix crystal)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -80,7 +80,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // AdvanceCraftingLink â€?AE2 crafting CPU monitor (2 plates + 2 master circuits + 1 crafting table + 2 screws)
+        // AdvanceCraftingLink â€”AE2 crafting CPU monitor (2 plates + 2 master circuits + 1 crafting table + 2 screws)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -97,7 +97,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // AdvanceStorageLink â€?AE2 storage monitor (2 plates + 2 master circuits + 1 chest + 2 screws)
+        // AdvanceStorageLink â€”AE2 storage monitor (2 plates + 2 master circuits + 1 chest + 2 screws)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -114,7 +114,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // AdvancePlanner â€?planning tool (1 plate + 1 master circuit + 2 books + 3 paper)
+        // AdvancePlanner â€”planning tool (1 plate + 1 master circuit + 2 books + 3 paper)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(plateTungstenSteel, circuitMaster, book, book, paper, paper, paper)
@@ -124,7 +124,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // AdvanceLinkScanner â€?link scanner (1 plate + 1 master circuit + 1 planner + 1 data imprint)
+        // AdvanceLinkScanner â€”link scanner (1 plate + 1 master circuit + 1 planner + 1 data imprint)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -140,7 +140,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // AdvanceStorageLinkCell â€?storage link component (1 plate + 1 master circuit + 2 fluix crystals + 2 screws)
+        // AdvanceStorageLinkCell â€”storage link component (1 plate + 1 master circuit + 2 fluix crystals + 2 screws)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -156,7 +156,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // ItemDataImprint â€?data imprint / binding tool
+        // ItemDataImprint â€”data imprint / binding tool
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -174,7 +174,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // DimensionalPocket â€?extra inventory item bound to player UUID
+        // DimensionalPocket â€”extra inventory item bound to player UUID
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(
@@ -192,7 +192,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // SpaceUpgradeCard â€?one card per craft
+        // SpaceUpgradeCard â€”one card per craft
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(plateTungstenSteel, circuitMaster, crystalFluix, screwTungstenSteel)
@@ -202,7 +202,7 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // PageUpgradeCard â€?one card per craft (higher tier)
+        // PageUpgradeCard â€”one card per craft (higher tier)
         try {
             GTValues.RA.stdBuilder()
                 .itemInputs(

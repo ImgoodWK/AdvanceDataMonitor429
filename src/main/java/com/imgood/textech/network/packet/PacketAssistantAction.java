@@ -417,8 +417,7 @@ public class PacketAssistantAction implements IMessage {
                 boolean confirmPartial = message.payload != null && message.payload.getBoolean("confirmPartial");
                 com.imgood.textech.assistant.WithdrawSubmitOutcome outcome = AssistantServerServices
                     .submitWithdraw(player, candidate, message.amount, message.rawText, message.locale, confirmPartial);
-                if (outcome.kind
-                    == com.imgood.textech.assistant.WithdrawSubmitOutcome.Kind.PARTIAL_CONFIRM) {
+                if (outcome.kind == com.imgood.textech.assistant.WithdrawSubmitOutcome.Kind.PARTIAL_CONFIRM) {
                     return PacketAssistantResponse.withdrawPartial(
                         message.rawText,
                         outcome.message,
@@ -505,7 +504,7 @@ public class PacketAssistantAction implements IMessage {
                 return PacketAssistantResponse.message(
                     text(
                         message.locale,
-                        "背包中没有找到高级错位宝石（Advanced Dislocator），或没有已保存的传送点�?,
+                        "背包中没有找到高级错位宝石（Advanced Dislocator），或没有已保存的传送点。",
                         "No Advanced Dislocator found in inventory, or no saved destinations."));
             }
             List<TeleportDestination> filtered = TeleportService.filterDestinations(allDestinations, message.target);
@@ -526,7 +525,7 @@ public class PacketAssistantAction implements IMessage {
             TeleportDestination dest = readTeleportDestination(message.payload);
             if (dest == null) {
                 return PacketAssistantResponse
-                    .message(text(message.locale, "传送失败：无效的传送目标�?, "Teleport failed: invalid destination."));
+                    .message(text(message.locale, "传送失败：无效的传送目标。", "Teleport failed: invalid destination."));
             }
             String result = TeleportService.executeTeleport(player, dest, message.locale);
             return PacketAssistantResponse.message(result);

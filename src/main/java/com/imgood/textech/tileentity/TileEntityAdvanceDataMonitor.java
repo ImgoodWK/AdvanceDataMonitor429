@@ -22,15 +22,18 @@ import net.minecraft.util.AxisAlignedBB;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
-import com.imgood.textech.compat.ae.AeCompat;
-import com.imgood.textech.compat.ae.AeStorageStatsAccumulator;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.utils.CraftingTemplateParser;
 import com.imgood.textech.utils.DataBound;
 import com.imgood.textech.utils.TileEntityTypeHelper;
 
+import appeng.api.AEApi;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridNode;
+import appeng.api.storage.ICellInventory;
+import appeng.api.storage.ICellInventoryHandler;
+import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.StorageChannel;
 import appeng.tile.storage.TileChest;
 import appeng.tile.storage.TileDrive;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -39,7 +42,7 @@ import cpw.mods.fml.common.Optional;
 /**
  * Display names / 显示名称:
  * - EN: Advance Data Monitor
- * - ZH: 高级数据监视�?
+ * - ZH: 高级数据监视器
  * Lang keys: tile.advDataMonitor.name (parent block)
  */
 public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnableTile {
@@ -114,12 +117,12 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                     continue;
                 }
 
-                // 获取interval并确保最小�?
+                // 获取interval并确保最小值
                 int interval = Math.max(getSafeInt(nbt, "interval", 20), 1);
                 int currentTick = tickCounters.getOrDefault(index, 0);
                 currentTick++;
                 if (currentTick >= interval) {
-                    // 处理数据�?
+                    // 处理数据项
                     String[] xyz = parseXYZ(nbt);
                     if (xyz != null) {
                         try {
@@ -156,7 +159,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             NBTTagList lineList = new NBTTagList();
 
             if (monitorNetworkWide) {
-                // 全网络模式：忽略模板，直接使�?getStatsInfo()
+                // 全网络模式：忽略模板，直接使用 getStatsInfo()
                 String info = craftingLink.getStatsInfo();
                 String[] lines = info.split("\\n");
                 for (String line : lines) {
@@ -165,7 +168,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                 nbt.setTag("networkLines", lineList);
                 nbt.removeTag("lines"); // 移除可能残留的单 CPU 数据
             } else {
-                // �?CPU / 模板模式
+                // 单 CPU / 模板模式
                 String[] lines;
                 if (template != null && !template.isEmpty()) {
                     lines = parseTemplateWithLink(template, craftingLink);
@@ -192,7 +195,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         }
         // =============================================
 
-        // --- 原有其他类型的处理（保持不变�?--
+        // --- 原有其他类型的处理（保持不变）---
         if (getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.ADV_STORAGELINK) {
             TileEntityAdvanceStorageLink storageLink = (TileEntityAdvanceStorageLink) target;
             nbt.removeTag("storageStatisticsInterval");
@@ -276,15 +279,15 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
     // ========================= 数据绑定操作 =========================//
     public void setDisplayData(int index, NBTTagCompound displayData) {
-        // 获取旧的interval�?
+        // 获取旧的interval值
         NBTTagCompound oldData = dataBoundList.get(index);
         int oldInterval = oldData != null ? getSafeInt(oldData, "interval", 20) : 20;
 
-        // 合并新数�?
+        // 合并新数据
         NBTTagCompound mergedData = mergeWithDefault(displayData);
         int newInterval = getSafeInt(mergedData, "interval", 20);
 
-        // --- 新增：如果是 Crafting 类型，补全缺失的渲染默认值（仅当字段不存在时�?--
+        // --- 新增：如果是 Crafting 类型，补全缺失的渲染默认值（仅当字段不存在时）---
         /*
          * if ("crafting".equals(mergedData.getString("dataType"))) {
          * if (!mergedData.hasKey("textColor")) mergedData.setString("textColor", "FFFFFF");
@@ -307,11 +310,11 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         markDirty();
         syncData();
 
-        // 仅在服务端处理立即采�?
+        // 仅在服务端处理立即采集
         if (worldObj != null && !worldObj.isRemote) {
             // 检查interval是否变化
             if (oldInterval != newInterval) {
-                // 立即处理一次数据采�?
+                // 立即处理一次数据采集
                 processDataImmediately(index, mergedData);
                 // 重置计数器以确保新interval生效
                 tickCounters.put(index, 0);
@@ -546,12 +549,12 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         defaultData.setDouble("gridLineAlpha", 0.3);
         defaultData.setDouble("axisLineWidth", 1.0);
         defaultData.setDouble("tickLengthFactor", 1.0);
-        // 新增透明度属�?
+        // 新增透明度属性
         defaultData.setDouble("nameAlpha", 1.0);
         defaultData.setDouble("axisLineAlpha", 1.0);
         defaultData.setDouble("axisFontAlpha", 1.0);
         defaultData.setDouble("lineAlpha", 1.0);
-        // 用于crafting类型的属�?
+        // 用于crafting类型的属性
         defaultData.setFloat("textAlpha", 0.3f);
         defaultData.setFloat("textScale", 1);
         defaultData.setInteger("textAlign", 0);
@@ -863,7 +866,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         setDisplayData(index, nbt);
     }
 
-    // ========================= 数据值访问方�?=========================//
+    // ========================= 数据值访问方法 =========================//
     public NBTTagList getDataValues(int index) {
         NBTTagCompound nbt = getDataBound(index);
         NBTTagList list = nbt.getTagList("dataValues", 6);
@@ -985,7 +988,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         syncData();
     }
 
-    // ========================= 新增的三个方�?=========================//
+    // ========================= 新增的三个方法 =========================//
     public double getGridLineWidth(int index) {
         return getSafeDouble(getDataBound(index), "gridLineWidth", 0.8);
     }
@@ -1029,7 +1032,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         return getSafeDouble(getDataBound(index), "textAlpha", 0.8);
     }
 
-    // 监测范围 (单处理器 / 全网�?
+    // 监测范围 (单处理器 / 全网络)
     public boolean getMonitorNetworkWide(int index) {
         return getSafeBoolean(getDataBound(index), "monitorNetworkWide", false);
     }
@@ -1040,7 +1043,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         setDisplayData(index, nbt);
     }
 
-    // 文字对齐 (0=左对�? 1=居中, 2=右对�?
+    // 文字对齐 (0=左对齐, 1=居中, 2=右对齐)
     public int getTextAlign(int index) {
         return getSafeInt(getDataBound(index), "textAlign", 0);
     }
@@ -1206,11 +1209,39 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
     @Optional.Method(modid = "appliedenergistics2")
     private long[] processCellStack(ItemStack stack) {
-        AeStorageStatsAccumulator stats = new AeStorageStatsAccumulator();
-        AeCompat.cells()
-            .accumulateStorageStack(stack, stats);
-        return new long[] { stats.itemBytes[0], stats.itemBytes[1], stats.itemTypes[0], stats.itemTypes[1],
-            stats.fluidBytes[0], stats.fluidBytes[1], stats.fluidTypes[0], stats.fluidTypes[1] };
+        long[] stats = new long[8];
+
+        IMEInventoryHandler itemInventory = AEApi.instance()
+            .registries()
+            .cell()
+            .getCellInventory(stack, null, StorageChannel.ITEMS);
+        if (itemInventory instanceof ICellInventoryHandler) {
+            ICellInventoryHandler itemHandler = (ICellInventoryHandler) itemInventory;
+            ICellInventory itemCell = itemHandler.getCellInv();
+            if (itemCell != null) {
+                stats[0] = itemCell.getTotalBytes();
+                stats[1] = itemCell.getUsedBytes();
+                stats[2] = itemCell.getTotalItemTypes();
+                stats[3] = itemCell.getStoredItemTypes();
+            }
+        }
+
+        IMEInventoryHandler fluidInventory = AEApi.instance()
+            .registries()
+            .cell()
+            .getCellInventory(stack, null, StorageChannel.FLUIDS);
+        if (fluidInventory instanceof ICellInventoryHandler) {
+            ICellInventoryHandler fluidHandler = (ICellInventoryHandler) fluidInventory;
+            ICellInventory fluidCell = fluidHandler.getCellInv();
+            if (fluidCell != null) {
+                stats[4] = fluidCell.getTotalBytes();
+                stats[5] = fluidCell.getUsedBytes();
+                stats[6] = fluidCell.getTotalItemTypes();
+                stats[7] = fluidCell.getStoredItemTypes();
+            }
+        }
+
+        return stats;
     }
 
     @Optional.Method(modid = "appliedenergistics2")
@@ -1282,7 +1313,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     }
 
     /**
-     * 使用 CraftingTemplateParser 解析用户自定义模�?
+     * 使用 CraftingTemplateParser 解析用户自定义模板
      */
     private String[] parseTemplateWithLink(String template, final TileEntityAdvanceCraftingLink link) {
         CraftingTemplateParser.DataProvider provider = new CraftingTemplateParser.DataProvider() {
@@ -1307,7 +1338,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
             @Override
             public Object getValue(String variable, String argument) {
-                // argument �?CPU 名称（如 "CPU#1"�?
+                // argument 即 CPU 名称（如 "CPU#1"）
                 TileEntityAdvanceCraftingLink.CraftingCpuSnapshot snap = link.getCpuSnapshotByName(argument);
                 if (snap == null) return null;
 

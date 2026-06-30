@@ -6,7 +6,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Stack count overlay text for pocket slots â€?same tiers as Science Not Leisure
+ * Stack count overlay text for pocket slots â€”same tiers as Science Not Leisure
  * {@code MixinGuiContainer#gtnl$humanReadableValue} (portable infinity chest).
  */
 @SideOnly(Side.CLIENT)

@@ -26,7 +26,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * - ZH: 次元口袋
  * Lang keys: item.dimensionalPocket.name, adm.title.pocketConfig, adm.tooltip.pocket.usage
  *
- * The item itself carries NO state �?all pocket content/upgrade/switch/window-position
+ * The item itself carries NO state —all pocket content/upgrade/switch/window-position
  * state is bound to the player UUID via PocketStore. Multiple pocket items in the
  * inventory share the same PocketState. The item is only a trigger.
  *

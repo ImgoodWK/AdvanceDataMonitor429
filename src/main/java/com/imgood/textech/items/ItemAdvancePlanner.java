@@ -26,7 +26,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Display names / 显示名称:
  * - EN: Advance Planner
- * - ZH: 高级计划�?
+ * - ZH: 高级计划器
  * Lang keys: item.advancePlanner.name, adm.planner.title
  */
 public class ItemAdvancePlanner extends Item {

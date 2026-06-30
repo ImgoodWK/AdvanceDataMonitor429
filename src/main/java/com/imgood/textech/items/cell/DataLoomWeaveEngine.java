@@ -17,7 +17,7 @@ import appeng.tile.storage.TileDrive;
  * 
  * Stand-alone weaving engine. Mutates drive/chest cell {@link ItemStack} NBT on a fixed server-tick schedule.
  * 
- * AE cell handlers only mirror this NBT â€?they never trigger weaving.
+ * AE cell handlers only mirror this NBT â€”they never trigger weaving.
  * 
  */
 
@@ -29,7 +29,7 @@ public final class DataLoomWeaveEngine {
 
         List<DataLoomCellSlot> targets = DataLoomCellIndex.INSTANCE.snapshot();
 
-        DataLoomDebugLog.info("Weave pass started â€?indexed slots={}", targets.size());
+        DataLoomDebugLog.info("Weave pass started â€”indexed slots={}", targets.size());
 
         for (DataLoomCellSlot slotRef : targets) {
 
@@ -71,7 +71,7 @@ public final class DataLoomWeaveEngine {
 
         if (world == null) {
 
-            DataLoomDebugLog.warn("Skip {} â€?world dim {} not loaded", describeSlot(slotRef), slotRef.dimensionId);
+            DataLoomDebugLog.warn("Skip {} â€”world dim {} not loaded", describeSlot(slotRef), slotRef.dimensionId);
 
             return;
 
@@ -87,7 +87,7 @@ public final class DataLoomWeaveEngine {
 
             DataLoomDebugLog.info(
 
-                "Skip {} â€?host={} stack={}",
+                "Skip {} â€”host={} stack={}",
 
                 describeSlot(slotRef),
 
@@ -201,7 +201,7 @@ public final class DataLoomWeaveEngine {
 
             DataLoomDebugLog.warn(
 
-                "Item weave skipped {} â€?no markers (nbtListSlots={})",
+                "Item weave skipped {} â€”no markers (nbtListSlots={})",
 
                 describeSlot(slotRef),
 
@@ -221,7 +221,7 @@ public final class DataLoomWeaveEngine {
 
             DataLoomDebugLog.warn(
 
-                "Item weave skipped {} â€?full (types={} count={})",
+                "Item weave skipped {} â€”full (types={} count={})",
 
                 describeSlot(slotRef),
 
@@ -241,7 +241,7 @@ public final class DataLoomWeaveEngine {
 
             DataLoomDebugLog.warn(
 
-                "Item weave skipped {} â€?totalToAdd=0 rate={} mult={} interval={}s",
+                "Item weave skipped {} â€”totalToAdd=0 rate={} mult={} interval={}s",
 
                 describeSlot(slotRef),
 
@@ -278,7 +278,7 @@ public final class DataLoomWeaveEngine {
 
                 DataLoomDebugLog.warn(
 
-                    "Item weave skipped marker {} â€?not a dust ore-dictionary item",
+                    "Item weave skipped marker {} â€”not a dust ore-dictionary item",
 
                     DataLoomDebugLog.describeCell(mark));
 
@@ -372,7 +372,7 @@ public final class DataLoomWeaveEngine {
 
             DataLoomDebugLog.warn(
 
-                "Fluid weave skipped {} â€?no markers (nbtListSlots={})",
+                "Fluid weave skipped {} â€”no markers (nbtListSlots={})",
 
                 describeSlot(slotRef),
 
@@ -394,7 +394,7 @@ public final class DataLoomWeaveEngine {
 
             DataLoomDebugLog.warn(
 
-                "Fluid weave skipped {} â€?full (types={} mb={})",
+                "Fluid weave skipped {} â€”full (types={} mb={})",
 
                 describeSlot(slotRef),
 
@@ -414,7 +414,7 @@ public final class DataLoomWeaveEngine {
 
             DataLoomDebugLog.warn(
 
-                "Fluid weave skipped {} â€?totalToAdd=0 rate={} mult={} interval={}s",
+                "Fluid weave skipped {} â€”totalToAdd=0 rate={} mult={} interval={}s",
 
                 describeSlot(slotRef),
 
@@ -464,7 +464,7 @@ public final class DataLoomWeaveEngine {
 
                     DataLoomDebugLog.warn(
 
-                        "Fluid weave {} â€?cannot add new type {} (types={} mb={})",
+                        "Fluid weave {} â€”cannot add new type {} (types={} mb={})",
 
                         describeSlot(slotRef),
 
@@ -506,7 +506,7 @@ public final class DataLoomWeaveEngine {
 
                 DataLoomDebugLog.warn(
 
-                    "Fluid weave {} â€?marker budget exhausted for {} (stored={} remaining={})",
+                    "Fluid weave {} â€”marker budget exhausted for {} (stored={} remaining={})",
 
                     describeSlot(slotRef),
 

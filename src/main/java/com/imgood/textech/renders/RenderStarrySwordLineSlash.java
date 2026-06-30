@@ -7,7 +7,7 @@ import net.minecraft.util.ResourceLocation;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Line slash coordinator â€?visuals are particles (entity client) + {@link EntityStarrySwordLineStab} swords. */
+/** Line slash coordinator â€”visuals are particles (entity client) + {@link EntityStarrySwordLineStab} swords. */
 @SideOnly(Side.CLIENT)
 public class RenderStarrySwordLineSlash extends Render {
 

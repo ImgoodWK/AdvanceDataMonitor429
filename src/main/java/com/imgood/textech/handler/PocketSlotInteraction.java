@@ -169,11 +169,7 @@ public final class PocketSlotInteraction {
         return changed;
     }
 
-    private static boolean withdrawPartialToCursor(
-        PocketState state,
-        int page,
-        int slot,
-        ItemStack slotStack,
+    private static boolean withdrawPartialToCursor(PocketState state, int page, int slot, ItemStack slotStack,
         EntityPlayer player) {
         ItemStack pickup = slotStack.copy();
         int take = MathHelper.clamp_int(slotStack.stackSize, 1, pickup.getMaxStackSize());

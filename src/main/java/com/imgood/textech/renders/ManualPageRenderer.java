@@ -57,8 +57,8 @@ public class ManualPageRenderer {
         renderTextPage(font, page, x, y, maxWidth, contentHeight, "");
     }
 
-    public static void renderTextPage(FontRenderer font, ManualPage page, int x, int y, int maxWidth,
-        int contentHeight, String searchQuery) {
+    public static void renderTextPage(FontRenderer font, ManualPage page, int x, int y, int maxWidth, int contentHeight,
+        String searchQuery) {
         int currentY = y;
 
         if (page.titleKey != null && !page.titleKey.isEmpty()) {

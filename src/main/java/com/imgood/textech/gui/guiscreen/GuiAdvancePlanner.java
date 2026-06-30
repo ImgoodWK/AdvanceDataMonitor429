@@ -26,7 +26,7 @@ import com.imgood.textech.items.PlannerEntry;
 /**
  * Display names / 显示名称:
  * - EN: Advance Planner
- * - ZH: 高级计划�?
+ * - ZH: 高级计划器
  * Lang keys: adm.planner.title
  */
 public class GuiAdvancePlanner extends ADM_GuiScreen {
@@ -220,8 +220,7 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
     }
 
     private List<PlannerEntry> getSortedEntries() {
-        return ItemAdvancePlanner
-            .getEntriesSorted(plannerStack, com.imgood.textech.items.PlannerMergeMode.BY_INDEX);
+        return ItemAdvancePlanner.getEntriesSorted(plannerStack, com.imgood.textech.items.PlannerMergeMode.BY_INDEX);
     }
 
     private int computeRowHeight(PlannerEntry entry) {

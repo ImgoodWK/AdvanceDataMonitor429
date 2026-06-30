@@ -160,7 +160,7 @@ public class EntityStarrySwordLineStab extends Entity implements IEntityAddition
         if (target.isDead || target == owner) {
             return;
         }
-        StarryCosmosSwordUtil.instantKill(target, owner);
+        StarryCosmosSwordUtil.applyDamage(target, owner, resolveStabAttackKind());
         StarryCosmosSounds.playStabImpact(worldObj, target.posX, target.posY, target.posZ, getRenderScale());
         worldObj.spawnParticle(
             "magicCrit",
@@ -170,6 +170,13 @@ public class EntityStarrySwordLineStab extends Entity implements IEntityAddition
             0.0D,
             0.15D,
             0.0D);
+    }
+
+    private StarryCosmosSwordUtil.StarryCosmosAttackKind resolveStabAttackKind() {
+        if (getRenderScale() > StarryCosmosSwordConstants.SCALE_LINE_STAB_MINI + 0.01F) {
+            return StarryCosmosSwordUtil.StarryCosmosAttackKind.GREATSWORD;
+        }
+        return StarryCosmosSwordUtil.StarryCosmosAttackKind.DEFAULT;
     }
 
     private EntityLivingBase resolveOwner() {

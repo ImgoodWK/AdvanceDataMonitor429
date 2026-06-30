@@ -25,7 +25,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Display names / 显示名称:
  * - EN: Advance Link Scanner
- * - ZH: 高级链接扫描�?
+ * - ZH: 高级链接扫描器
  * Lang keys: item.advanceLinkScanner.name, adm.scanner.title
  */
 public class ItemAdvanceLinkScanner extends Item {

@@ -18,7 +18,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Display names / 显示名称:
  * - EN: Grapple Hook
- * - ZH: 挂索�?
+ * - ZH: 挂索器
  * Lang keys: item.grappleHook.name, adm.title.grappleHook, adm.title.grappleHookConfig
  */
 public class ItemGrappleHook extends Item {

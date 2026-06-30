@@ -36,20 +36,20 @@ import appeng.tile.storage.TileDrive;
 /**
  * Display names / 显示名称:
  * - EN: Network Linker
- * - ZH: 网络链接�?
+ * - ZH: 网络链接器
  * Lang keys: tile.NetworkLinkBlock.name (parent block)
  */
 public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwnableTile {
 
     private String ownerName = "";
 
-    // 物品存储统计（改�?long 防止溢出�?
+    // 物品存储统计（改用long 防止溢出：
     private long itemTotalBytes = 0L;
     private long itemUsedBytes = 0L;
     private int itemTotalTypes = 0;
     private int itemUsedTypes = 0;
 
-    // 流体存储统计（改�?long 防止溢出�?
+    // 流体存储统计（改用long 防止溢出：
     private long fluidTotalBytes = 0L;
     private long fluidUsedBytes = 0L;
     private int fluidTotalTypes = 0;
@@ -94,7 +94,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
     }
 
     /**
-     * 核心数据更新方法 —�?遍历网络存储单元统计，所有字节值均使用 long 累加
+     * 核心数据更新方法 ——遍历网络存储单元统计，所有字节值均使用 long 累加
      */
     public void updateNetworkCache() {
         AeStorageStatsAccumulator stats = new AeStorageStatsAccumulator();
@@ -186,7 +186,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
         updateNetworkCache();
     }
 
-    // ========== 区块加载时强制刷�?==========
+    // ========== 区块加载时强制刷方==========
     /*
      * @Override
      * public void validate() {
@@ -197,7 +197,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
      * }
      */
 
-    // ========== NBT 持久化（使用 getLong/setLong�?==========
+    // ========== NBT 持久化（使用 getLong/setLong：==========
     @Override
     public void writeToNBT_AENetwork(NBTTagCompound data) {
         data.setLong("ItemTotalBytes", this.itemTotalBytes);
@@ -226,7 +226,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
         ownerName = OwnableTileUtil.readOwner(data);
     }
 
-    // ========== 客户端同步包（使�?getLong/setLong�?==========
+    // ========== 客户端同步包（使用getLong/setLong：==========
     @Override
     public Packet getDescriptionPacket() {
         NBTTagCompound syncData = new NBTTagCompound();
@@ -257,7 +257,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
         this.fluidUsedTypes = data.getInteger("FluidUsedTypes");
     }
 
-    // ========== 公共 Getter（返�?long�?==========
+    // ========== 公共 Getter（返回long：==========
     public long getItemTotalBytes() {
         return this.itemTotalBytes;
     }
@@ -294,7 +294,7 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
         return facing;
     }
 
-    // 格式化信息（%d 可处�?long�?
+    // 格式化信息（%d 可处理long：
     public String getStatsInfo() {
         return String.format(
             "§eAE2 Network Status§r\n" + "§aItems:§r %d / %d bytes (%d/%d types)\n"

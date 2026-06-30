@@ -12,7 +12,7 @@ import com.imgood.textech.gui.handler.GuiHandler;
 /**
  * Display names / 显示名称:
  * - EN: AdvanceDataMonitor Manual
- * - ZH: 高级数据监视器手�?
+ * - ZH: 高级数据监视器手册
  * Lang keys: item.manual.name
  *
  * Right-click to open the in-game manual GUI.
@@ -24,7 +24,7 @@ public class ItemManual extends Item {
         setMaxStackSize(1);
         setCreativeTab(CreativeTabs.tabTools);
         setUnlocalizedName("manual");
-        setTextureName(AdvanceDataMonitor.MODID + ":manual");
+        setTextureName("advancedatamonitor:manual");
     }
 
     @Override

@@ -154,7 +154,7 @@ public final class AssistantFormatter {
     }
 
     /**
-     * AE2-style large number formatting: 1234 â†?1.2K, 1234567 â†?1.2M, etc.
+     * AE2-style large number formatting: 1234 â†’1.2K, 1234567 â†’1.2M, etc.
      * Supports K (thousand), M (million), G (billion), T (trillion), P (quadrillion).
      */
     public static String formatCount(long value) {

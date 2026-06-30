@@ -76,7 +76,7 @@ public class GrappleHudRenderer {
     private static final float LABEL_SIZE_OF_ICON = 0.066F;
     private static final float LABEL_VERTICAL_OFFSET = 1.75F;
     private static final int LABEL_BG_COLOR = 0x40000000;
-    /** Detach hint color cycles white â†?green via sine wave. */
+    /** Detach hint color cycles white â†’green via sine wave. */
     private static final int DETACH_HINT_COLOR_WHITE = 0xFFFFFF;
     private static final float DETACH_HINT_COLOR_CYCLE_HZ = 1.2F;
     /** Fixed 50% opacity for detach hint text. */

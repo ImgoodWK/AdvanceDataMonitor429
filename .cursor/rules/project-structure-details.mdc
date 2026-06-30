@@ -66,6 +66,7 @@ alwaysApply: false
 | `ItemSuperOrange` | 超能砂糖桔 / Super Orange | `item.orange.name` |
 | `ItemGrappleHook` | 挂索器 / Grapple Hook | `item.grappleHook.name` |
 | `ItemStarryCosmosSword` | 至高天圣裁 / Empyrean Holy Judgment | `item.starryCosmosSword.name` |
+| `ItemHolyJudgment` | 圣裁 / Holy Judgment | `item.holyJudgment.name` |
 | `ItemDimensionalPocket` | 次元口袋 / Dimensional Pocket | `item.dimensionalPocket.name` |
 | `ItemSpaceUpgradeCard` | 空间升级卡 / Space Upgrade Card | `item.spaceUpgradeCard.name` |
 | `ItemPageUpgradeCard` | 翻页升级卡 / Page Upgrade Card | `item.pageUpgradeCard.name` |
@@ -126,7 +127,7 @@ alwaysApply: false
 - **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`、`POCKET_CONFIG_GUI_ID`、`POCKET_STORAGE_GUI_ID`）
 
-### handler/ — 事件处理器与物品服务端逻辑 (29 文件)
+### handler/ — 事件处理器与物品服务端逻辑 (30 文件)
 - `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理）
 - `HandlerLoot.java` — 战利品事件（SuperOrange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
 - `HandlerPlayerJoin.java` — 玩家首次加入事件（赠送手册物品 + NBT标记）
@@ -134,6 +135,7 @@ alwaysApply: false
 - `HandlerGrapple.java` — 挂索节点索引/挂接 tick/区块加载注册
 - `HandlerDataLoomCell.java` — 编织元件事件
 - `HandlerStarryCosmosSword.java` — 星空剑事件
+- `HandlerPocketWorldLoad.java` — 世界加载时设置次元口袋存档目录（`PocketStore.setWorldDirectory`）
 - **挂索服务端逻辑**（原 handler/）：`GrappleNodeIndex.java` / `GrapplePlayerState.java` / `GrappleAnchorPositions.java` / `GrappleQueuedHop.java` / `GrapplePathStore.java` / `GrappleRouteSync.java` / `GrappleRouteMatcher.java` / `GrapplePlanningSession.java`
 - `StarrySwordSpawnScheduler.java` — 星空剑技能实体生成调度
 - **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`

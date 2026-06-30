@@ -89,8 +89,8 @@ public final class PocketStore {
             File legacyModDir = new File(worldSaveDir, "advancedatamonitor");
             File legacyFile = new File(legacyModDir, "pocket-" + uuid + ".dat");
             if (legacyFile.exists()) {
-                AdvanceDataMonitor.LOG.info("[TeXTech] Pocket data found in legacy path, migrating: {}",
-                    legacyFile.getAbsolutePath());
+                AdvanceDataMonitor.LOG
+                    .info("[TeXTech] Pocket data found in legacy path, migrating: {}", legacyFile.getAbsolutePath());
                 return legacyFile;
             }
             // Neither exists, use new path
@@ -99,7 +99,7 @@ public final class PocketStore {
             }
             return newFile;
         }
-        // Fallback for server startup before world is loaded â€?use new MODID
+        // Fallback for server startup before world is loaded â€”use new MODID
         File dir = new File("config", AdvanceDataMonitor.MODID);
         if (!dir.exists()) {
             dir.mkdirs();

@@ -15,6 +15,7 @@ import com.imgood.textech.items.ItemManual;
 import com.imgood.textech.items.ItemPageUpgradeCard;
 import com.imgood.textech.items.ItemSpaceUpgradeCard;
 import com.imgood.textech.items.ItemStackUpgradeCard;
+import com.imgood.textech.items.ItemHolyJudgment;
 import com.imgood.textech.items.ItemStarryCosmosSword;
 import com.imgood.textech.items.ItemSuperOrange;
 import com.imgood.textech.items.cell.ItemDataDustLoomCell;
@@ -51,6 +52,7 @@ public class LoaderItem {
     public static Item superWeaveAmplifier;
     public static Item grappleHook;
     public static Item starryCosmosSword;
+    public static Item holyJudgment;
     public static Item dimensionalPocket;
     public static Item spaceUpgradeCard;
     public static Item pageUpgradeCard;
@@ -84,6 +86,7 @@ public class LoaderItem {
         superWeaveAmplifier = new ItemSuperWeaveAmplifier().setUnlocalizedName("superWeaveAmplifier")
             .setTextureName(AdvanceDataMonitor.MODID + ":super_weave_amplifier");
         starryCosmosSword = new ItemStarryCosmosSword();
+        holyJudgment = new ItemHolyJudgment();
         grappleHook = new ItemGrappleHook();
         dimensionalPocket = new ItemDimensionalPocket().setUnlocalizedName("dimensionalPocket")
             .setTextureName(AdvanceDataMonitor.MODID + ":dimensional_pocket");
@@ -110,6 +113,7 @@ public class LoaderItem {
         GameRegistry.registerItem(weaveAmplifier, "weave_amplifier");
         GameRegistry.registerItem(superWeaveAmplifier, "super_weave_amplifier");
         GameRegistry.registerItem(starryCosmosSword, "starry_cosmos_sword");
+        GameRegistry.registerItem(holyJudgment, "holy_judgment");
         GameRegistry.registerItem(grappleHook, "grapple_hook");
         GameRegistry.registerItem(dimensionalPocket, "dimensional_pocket");
         GameRegistry.registerItem(spaceUpgradeCard, "space_upgrade_card");

@@ -28,7 +28,7 @@ public class NBTJsonParser {
     private static final String[] NBT_TYPES = { "TAG_End", "TAG_Byte", "TAG_Short", "TAG_Int", "TAG_Long", "TAG_Float",
         "TAG_Double", "TAG_Byte_Array", "TAG_String", "TAG_List", "TAG_Compound", "TAG_Int_Array" };
 
-    // 通过反射获取 NBTTagList �?tagList 字段
+    // 通过反射获取 NBTTagList 的 tagList 字段
     private static final Field TAG_LIST_FIELD;
 
     static {
@@ -49,10 +49,10 @@ public class NBTJsonParser {
     }
 
     public static JsonObject parseNBTToJson(NBTTagCompound nbt) {
-        debug("开始解析NBT根复合标�?);
+        debug("开始解析NBT根复合标签");
         JsonObject root = new JsonObject();
         parseCompound(nbt, root);
-        debug("完成根复合标签解�?);
+        debug("完成根复合标签解析");
         return root;
     }
 
@@ -63,7 +63,7 @@ public class NBTJsonParser {
         for (Object keyObj : compound.func_150296_c()) {
             String key = (String) keyObj;
             NBTBase tag = compound.getTag(key);
-            debug("解析�?'" + key + "' 类型: " + getTypeName(tag));
+            debug("解析键 '" + key + "' 类型: " + getTypeName(tag));
             json.add(key, parseTag(tag));
         }
     }
@@ -72,7 +72,7 @@ public class NBTJsonParser {
         debug("解析单个标签开始，类型ID: " + tag.getId() + " (" + getTypeName(tag) + ")");
         JsonObject entry = new JsonObject();
 
-        // 添加类型安全检�?
+        // 添加类型安全检查
         String typeName;
         try {
             typeName = NBT_TYPES[tag.getId()];
@@ -85,7 +85,7 @@ public class NBTJsonParser {
         switch (tag.getId()) {
             case 1: // Byte
                 byte byteVal = ((NBTTagByte) tag).func_150290_f();
-                debug("Byte �? " + byteVal);
+                debug("Byte 值: " + byteVal);
                 entry.addProperty("value", byteVal);
                 break;
             case 2: // Short
@@ -117,7 +117,7 @@ public class NBTJsonParser {
                 entry.addProperty("value", ((NBTTagString) tag).func_150285_a_());
                 break;
             case 9: // List
-                debug("开始解析列表标�?);
+                debug("开始解析列表标签");
                 entry.add("value", parseList((NBTTagList) tag));
                 debug("完成列表标签解析");
                 break;
@@ -127,11 +127,11 @@ public class NBTJsonParser {
                 JsonObject compoundJson = new JsonObject();
                 parseCompound((NBTTagCompound) tag, compoundJson);
                 entry.add("value", compoundJson);
-                debug("退出嵌套复合标�?);
+                debug("退出嵌套复合标签");
                 break;
 
             default:
-                debug("遇到未处理类�? ID=" + tag.getId());
+                debug("遇到未处理类型: ID=" + tag.getId());
                 entry.addProperty("value", "[Unsupported Type]");
         }
         return entry;
@@ -140,14 +140,14 @@ public class NBTJsonParser {
     private static JsonArray parseList(NBTTagList list) {
         try {
             int listTypeId = list.func_150303_d(); // 获取列表元素类型ID
-            debug("\n--- 开始解析列�?---");
+            debug("\n--- 开始解析列表 ---");
             debug("ListTag" + list);
-            debug("列表元类�? " + getTypeNameById(listTypeId) + " 元素数量: " + list.tagCount());
+            debug("列表元类型: " + getTypeNameById(listTypeId) + " 元素数量: " + list.tagCount());
 
             List<NBTBase> tagList = (List<NBTBase>) TAG_LIST_FIELD.get(list);
             JsonArray array = new JsonArray();
 
-            debug("实际存储的列表元素数�? " + tagList.size());
+            debug("实际存储的列表元素数量: " + tagList.size());
             for (int i = 0; i < tagList.size(); i++) {
                 NBTBase element = tagList.get(i);
                 debug("处理元素 #" + i + " 类型: " + getTypeName(element) + " 内容: " + element.toString());
@@ -156,7 +156,7 @@ public class NBTJsonParser {
             debug("--- 结束列表解析 ---\n");
             return array;
         } catch (IllegalAccessException e) {
-            debug("列表解析失败！错误信�? " + e.getMessage());
+            debug("列表解析失败！错误信息: " + e.getMessage());
             e.printStackTrace(); // 打印完整堆栈
             throw new RuntimeException("无法读取NBTTagList", e);
         }

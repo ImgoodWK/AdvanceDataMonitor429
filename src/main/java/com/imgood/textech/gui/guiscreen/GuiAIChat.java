@@ -404,12 +404,12 @@ public class GuiAIChat extends ADM_GuiScreen {
                     this.waitingForMenuSelection = false;
                     this.assistantController.setSelectedFeature(feature.key);
                     String locale = currentLocale();
-                    String selectedMsg = locale.startsWith("zh") ? "已选择功能�?
+                    String selectedMsg = locale.startsWith("zh") ? "已选择功能："
                         + (feature.displayName.containsKey("zh_CN") ? feature.displayName.get("zh_CN") : feature.key)
                         : "Selected feature: "
                             + (feature.displayName.containsKey("en_US") ? feature.displayName.get("en_US")
                                 : feature.key);
-                    selectedMsg += locale.startsWith("zh") ? "。请输入具体内容�? : ". Enter your specific content:";
+                    selectedMsg += locale.startsWith("zh") ? "。请输入具体内容：" : ". Enter your specific content:";
                     addUserMessage(prompt);
                     synchronized (this.history) {
                         this.history.add(ChatEntry.text("assistant", selectedMsg));
@@ -511,10 +511,8 @@ public class GuiAIChat extends ADM_GuiScreen {
                 }
                 requestScrollToBottom();
                 final int assistantIndex = streamingIndex;
-                ChatResponse response = client.chat(
-                    requestMessages,
-                    options,
-                    new com.imgood.textech.assistant.ai.ChatStreamListener() {
+                ChatResponse response = client
+                    .chat(requestMessages, options, new com.imgood.textech.assistant.ai.ChatStreamListener() {
 
                         @Override
                         public void onDelta(String delta) {
@@ -647,7 +645,7 @@ public class GuiAIChat extends ADM_GuiScreen {
             : locale.trim()
                 .toLowerCase();
         if (normalized.startsWith("zh")) {
-            return "请使用简体中文回复，除非用户明确要求其他语言。当前客户端语言�?" + locale + ".";
+            return "请使用简体中文回复，除非用户明确要求其他语言。当前客户端语言是 " + locale + ".";
         }
         return "Respond in the client's configured language (" + locale
             + "), unless the user explicitly asks for another language.";

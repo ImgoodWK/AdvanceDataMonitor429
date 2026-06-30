@@ -52,10 +52,14 @@ public class PacketPocketAction implements IMessage {
     public static final byte ADD_INFINITE_STACK_UPGRADE = 16;
     /** Remove infinite stack upgrade card. */
     public static final byte REMOVE_INFINITE_STACK_UPGRADE = 17;
-    /** Request the server to open the pocket config (upgrade) GUI. Handled server-side so
-     *  the container gets a proper windowId and the server's openContainer is the real
-     *  ContainerDimensionalPocket â€?same reason onItemRightClick opens storage server-side. */
+    /**
+     * Request the server to open the pocket config (upgrade) GUI. Handled server-side so
+     * the container gets a proper windowId and the server's openContainer is the real
+     * ContainerDimensionalPocket â€”same reason onItemRightClick opens storage server-side.
+     */
     public static final byte OPEN_CONFIG_GUI = 18;
+    /** Request the server to reopen the pocket storage GUI (return from upgrade config). */
+    public static final byte OPEN_STORAGE_GUI = 19;
 
     private byte action;
     private int intValue;
@@ -196,6 +200,12 @@ public class PacketPocketAction implements IMessage {
     public static PacketPocketAction openConfigGui() {
         PacketPocketAction p = new PacketPocketAction();
         p.action = OPEN_CONFIG_GUI;
+        return p;
+    }
+
+    public static PacketPocketAction openStorageGui() {
+        PacketPocketAction p = new PacketPocketAction();
+        p.action = OPEN_STORAGE_GUI;
         return p;
     }
 
@@ -414,10 +424,25 @@ public class PacketPocketAction implements IMessage {
                 // Open the config GUI server-side so the container gets a real windowId
                 // and the server's openContainer is the authoritative ContainerDimensionalPocket.
                 // Forge will sync S2D_OPEN_WINDOW to the client, which calls getClientGuiElement.
-                player.openGui(com.imgood.textech.AdvanceDataMonitor.instance,
+                player.openGui(
+                    com.imgood.textech.AdvanceDataMonitor.instance,
                     com.imgood.textech.gui.handler.GuiHandler.POCKET_CONFIG_GUI_ID,
-                    player.worldObj, 0, 0, 0);
+                    player.worldObj,
+                    0,
+                    0,
+                    0);
                 // openGui triggers its own container sync; skip the default pocket sync.
+                skipDefaultSync = true;
+                break;
+            }
+            case OPEN_STORAGE_GUI: {
+                player.openGui(
+                    com.imgood.textech.AdvanceDataMonitor.instance,
+                    com.imgood.textech.gui.handler.GuiHandler.POCKET_STORAGE_GUI_ID,
+                    player.worldObj,
+                    0,
+                    0,
+                    0);
                 skipDefaultSync = true;
                 break;
             }
@@ -431,13 +456,14 @@ public class PacketPocketAction implements IMessage {
         }
         // Cursor/mainInventory operations mutate the player's cursor stack or inventory
         // outside the vanilla windowClick path. The default PacketPocketSync only mirrors
-        // pocket contents, NOT the player's cursor â€?so the client's
+        // pocket contents, NOT the player's cursor â€”so the client's
         // mc.thePlayer.inventory.getItemStack() would stay stale (cursor appears empty
         // even though the server moved a stack onto it). Force the open container to
         // detect & send its slot 0 (cursor) plus any changed inventory slots via the
         // vanilla S2FPacketSetSlot mechanism.
         if (changed && (message.action == DEPOSIT_FROM_CURSOR || message.action == WITHDRAW_TO_CURSOR
-            || message.action == DEPOSIT_SINGLE_FROM_CURSOR || message.action == QUICK_DEPOSIT
+            || message.action == DEPOSIT_SINGLE_FROM_CURSOR
+            || message.action == QUICK_DEPOSIT
             || message.action == QUICK_WITHDRAW)) {
             player.openContainer.detectAndSendChanges();
         }
@@ -447,7 +473,7 @@ public class PacketPocketAction implements IMessage {
         if (skipDefaultSync) return;
         // Always reply with a sync so the client stays in step.
         PacketPocketSync sync = PacketPocketSync.fullState(state);
-        // detectAndSendChanges() above only syncs container SLOT contents â€?it does NOT
+        // detectAndSendChanges() above only syncs container SLOT contents â€”it does NOT
         // sync the player's carried item (player.inventory.itemStack), which lives outside
         // Container.inventorySlots. So a withdraw that calls setItemStack() on the server
         // never reaches the client cursor, and the held item is invisible. Attach the

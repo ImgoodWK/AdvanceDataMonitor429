@@ -13,7 +13,7 @@ import com.imgood.textech.Config;
 
 /**
  * Caches computed tooltip fields on the cell stack NBT. Refreshed only when partition markers or
- * weave amplifier cards change in the Cell Workbench â€?not on every hover or weave tick.
+ * weave amplifier cards change in the Cell Workbench â€”not on every hover or weave tick.
  */
 public final class DataLoomCellTooltipCache {
 

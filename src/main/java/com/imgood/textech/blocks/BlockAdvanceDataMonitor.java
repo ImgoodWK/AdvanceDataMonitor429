@@ -17,7 +17,7 @@ import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 /**
  * Display names / 显示名称:
  * - EN: Advance Data Monitor
- * - ZH: 高级数据监视�?
+ * - ZH: 高级数据监视器
  * Lang keys: tile.advDataMonitor.name, adm.title.main
  */
 public class BlockAdvanceDataMonitor extends BlockContainer {

@@ -18,7 +18,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Client-side chunk-indexed registry of grapple anchor blocks.
- * Updated on chunk load/unload â€?avoids cubic world scans when selecting nodes.
+ * Updated on chunk load/unload â€”avoids cubic world scans when selecting nodes.
  */
 @SideOnly(Side.CLIENT)
 public final class GrappleClientNodeIndex {

@@ -29,7 +29,7 @@ public class NBTDataHelper {
         if (stack.hasTagCompound()) {
             NBTTagCompound nbt = stack.getTagCompound();
             if (nbt.hasKey("TextData")) {
-                NBTTagList list = nbt.getTagList("TextData", 8); // 8=字符串类�?
+                NBTTagList list = nbt.getTagList("TextData", 8); // 8=字符串类型
                 String[] result = new String[list.tagCount()];
                 for (int i = 0; i < list.tagCount(); i++) {
                     result[i] = list.getStringTagAt(i);

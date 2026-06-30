@@ -40,7 +40,7 @@ public class HandlerSuperOrange {
 
     /**
      * Maximum total item count a single Matter Cluster can hold.
-     * Mirrors {@code ItemMatterCluster.capacity} �?the Avaritia cluster
+     * Mirrors {@code ItemMatterCluster.capacity} —the Avaritia cluster
      * capacity is 64 × 256 = 16384.
      */
     private static final int MATTER_CLUSTER_CAPACITY = 16384;

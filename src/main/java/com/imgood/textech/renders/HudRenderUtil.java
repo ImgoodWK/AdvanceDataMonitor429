@@ -16,7 +16,7 @@ import org.lwjgl.opengl.GL11;
  */
 public class HudRenderUtil {
 
-    /** Default HUD text color â€?cyan. */
+    /** Default HUD text color â€”cyan. */
     public static final int COLOR_TITLE = 0x00FFFF;
     public static final int COLOR_VALUE = 0xFFFFFF;
     public static final int COLOR_LABEL = 0x888888;

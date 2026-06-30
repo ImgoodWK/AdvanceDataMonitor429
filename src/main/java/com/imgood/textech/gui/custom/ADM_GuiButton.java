@@ -159,10 +159,10 @@ public class ADM_GuiButton extends GuiButton {
             int textColor = this.textColor;
             if (!this.enabled) {
                 this.setUseHoverEffect(false);
-                // 不可用状�?
+                // 不可用状总
                 textColor = disabledTextColor;
             } else if (isHovered) {
-                // 鼠标悬停状�?
+                // 鼠标悬停状总
                 textColor = textColorHover;
             } else if (this.useRGBEffect) {
                 // RGB 效果

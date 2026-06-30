@@ -50,7 +50,7 @@ public class HandlerNetwork implements IMessageHandler<PacketItemNBT, IMessage> 
 
         stack.setTagCompound(nbt);
         syncItemStack(player, stack, message.slot);
-        player.addChatMessage(new ChatComponentText("数据保存成功�?));
+        player.addChatMessage(new ChatComponentText("数据保存成功。"));
         return null;
     }
 

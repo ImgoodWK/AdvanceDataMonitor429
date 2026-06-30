@@ -95,7 +95,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.setSize(420, 260);
         this.setStretch(false);
 
-        // 方向选择按钮（修改为单个循环按钮�?
+        // 方向选择按钮（修改为单个循环按钮）
         this.buttonList.add(
             new ADM_GuiButton(
                 100,
@@ -296,7 +296,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         switch (button.id) {
 
             case 100 -> {
-                // 循环切换方向�?->1->2->3->0...
+                // 循环切换方向：0->1->2->3->0...
                 int newFacing = (this.tileEntityAdvanceDataMonitor.facing + 1) % 4;
                 this.tileEntityAdvanceDataMonitor.setFacing(newFacing);
                 this.currentFacing = getFacingString(newFacing);
@@ -486,7 +486,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
             }
         }
 
-        // 更新其他按钮状�?
+        // 更新其他按钮状态
         for (GuiButton guiButton : this.buttonList) {
             switch (guiButton.id) {
                 case 106 -> {
@@ -537,7 +537,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.drawDefaultBackground();
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        // 标题和标签（修改部分�?
+        // 标题和标签（修改部分）
         this.drawCenteredString(
             this.fontRendererObj,
             I18n.format("adm.title.main"),
@@ -705,7 +705,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                     "§n" + content,
                     tooltipX + this.fontRendererObj.getStringWidth(prefix) + 2,
                     currentY,
-                    contentColor // 使用动态颜�?
+                    contentColor // 使用动态颜色
                 );
                 // 绘制内容部分（带下划线）
                 if (tileEntityAdvanceDataMonitor.getEnable(buttonId)) {
@@ -713,7 +713,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         "§n" + content,
                         tooltipX + this.fontRendererObj.getStringWidth(prefix) + 2,
                         currentY,
-                        contentColor // 使用动态颜�?
+                        contentColor // 使用动态颜色
                     );
                 } else {
                     if (lineCount == 1) {
@@ -721,7 +721,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                             "§n§m" + content,
                             tooltipX + this.fontRendererObj.getStringWidth(prefix) + 2,
                             currentY,
-                            0xff0000 // 使用动态颜�?
+                            0xff0000 // 使用动态颜色
                         );
                     }
                 }
@@ -764,7 +764,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     }
 
     private void renderDataPreview(int x, int y, int width, int height) {
-        // 保存当前OpenGL状�?
+        // 保存当前OpenGL状态
         GL11.glPushMatrix();
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
 
@@ -797,7 +797,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         // 实际渲染
         renderer.renderTileEntityAt(virtualTE, 0, 0, 0, 0);
 
-        // 恢复OpenGL状�?
+        // 恢复OpenGL状态
         GL11.glMatrixMode(GL11.GL_PROJECTION);
         GL11.glPopMatrix();
         GL11.glMatrixMode(GL11.GL_MODELVIEW);

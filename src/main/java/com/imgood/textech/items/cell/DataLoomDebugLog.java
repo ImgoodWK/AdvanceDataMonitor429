@@ -47,7 +47,7 @@ public final class DataLoomDebugLog {
         startupBannerLogged = true;
         appendLine(
             "INFO",
-            "Debug logging ON â€?file={} syncInterval={}s energyDrain={} AE/t dustRate={}/s formRate={}/s flowRate={}mB/s sourceRate={}mB/s",
+            "Debug logging ON â€”file={} syncInterval={}s energyDrain={} AE/t dustRate={}/s formRate={}/s flowRate={}mB/s sourceRate={}mB/s",
             logFilePath(),
             Config.dataLoomCellSyncIntervalSeconds,
             Config.dataLoomCellEnergyDrainPerTick,
@@ -55,7 +55,7 @@ public final class DataLoomDebugLog {
             Config.dataFormLoomCellItemRatePerSecond,
             Config.dataFlowCellFluidRatePerSecond,
             Config.dataSourceLoomCellEssentiaRatePerSecond);
-        AdvanceDataMonitor.LOG.info("[DataLoomCell] Debug logging enabled â€?see {}", logFilePath());
+        AdvanceDataMonitor.LOG.info("[DataLoomCell] Debug logging enabled â€”see {}", logFilePath());
     }
 
     public static void info(String message, Object... args) {

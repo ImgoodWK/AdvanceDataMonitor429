@@ -66,7 +66,7 @@ public final class WirelessSteamQuery {
                 Class<?> clazz = Class.forName(className);
                 AdvanceDataMonitor.LOG.info("[ADM Assistant] Wireless steam: loaded class {}", className);
 
-                // Strategy 1: Try calling getUserSteam(UUID) â€?preferred because it handles
+                // Strategy 1: Try calling getUserSteam(UUID) â€”preferred because it handles
                 // UUIDâ†’teamLeader transformation internally
                 Value value = tryGetUserSteamMethod(clazz, player);
                 if (value != null) {
@@ -79,7 +79,7 @@ public final class WirelessSteamQuery {
                     return value;
                 }
 
-                // Strategy 3: Try static method auto-discovery â€?any static method with
+                // Strategy 3: Try static method auto-discovery â€”any static method with
                 // "steam" in name that takes UUID/no-args and returns BigInteger/Number
                 value = tryAutoDiscoverMethod(clazz, player);
                 if (value != null) {
@@ -106,7 +106,7 @@ public final class WirelessSteamQuery {
     }
 
     /**
-     * Try calling getUserSteam(UUID) â€?the canonical API method.
+     * Try calling getUserSteam(UUID) â€”the canonical API method.
      */
     private static Value tryGetUserSteamMethod(Class<?> clazz, EntityPlayerMP player) {
         try {
@@ -128,7 +128,7 @@ public final class WirelessSteamQuery {
     }
 
     /**
-     * Try calling getUserSteamInt(UUID) â€?returns int (capped at Integer.MAX_VALUE).
+     * Try calling getUserSteamInt(UUID) â€”returns int (capped at Integer.MAX_VALUE).
      */
     private static Value tryGetUserSteamIntMethod(Class<?> clazz, EntityPlayerMP player) {
         try {
@@ -261,7 +261,7 @@ public final class WirelessSteamQuery {
                         return value;
                     }
                 } else {
-                    // Value is null in map â€?player has never used steam
+                    // Value is null in map â€”player has never used steam
                     // Return zero so we at least report something instead of "API not found"
                     Value value = new Value(BigInteger.ZERO);
                     value.source = clazz.getName() + "." + fieldName + " (player not in map; steam=0)";

@@ -201,7 +201,7 @@ public class GrappleTravelLineRenderer {
 
     /**
      * Marching dashed queue route: silver dashes crawl forward with comet-tail fade and spark tips.
-     * No beat-sync â€?visually distinct from blue/red solid rhythmic lines.
+     * No beat-sync â€”visually distinct from blue/red solid rhythmic lines.
      */
     private static void drawAnimatedDashedQueueSegment(double x1, double y1, double z1, double x2, double y2, double z2,
         double ox, double oy, double oz, float animSeconds, int segmentIndex) {

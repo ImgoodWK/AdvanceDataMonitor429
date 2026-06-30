@@ -13,7 +13,7 @@ import com.imgood.textech.utils.BlockPos;
 
 /**
  * Server-side chunk-indexed registry of grapple anchor blocks.
- * Updated on block place/break only â€?no world scans at query time.
+ * Updated on block place/break only â€”no world scans at query time.
  */
 public final class GrappleNodeIndex {
 

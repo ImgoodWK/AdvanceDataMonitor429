@@ -5,15 +5,14 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import org.lwjgl.input.Mouse;
-
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.handler.PocketState;
-import com.imgood.textech.client.PocketPortalGuiRenderer;
 import com.imgood.textech.client.PocketClientCache;
+import com.imgood.textech.client.PocketPortalGuiRenderer;
 import com.imgood.textech.gui.container.ContainerPocketStorage;
+import com.imgood.textech.handler.PocketState;
 import com.imgood.textech.network.packet.PacketPocketAction;
 
 /**
@@ -45,8 +44,7 @@ public class GuiPocketStorage extends GuiContainer {
 
     private static int computeHeight() {
         int rows = (PocketState.SLOTS_PER_PAGE_CAP + 8) / 9;
-        return PocketPortalGuiRenderer.STORAGE_SLOT_ORIGIN_Y
-            + rows * PocketPortalGuiRenderer.CELL_SIZE
+        return PocketPortalGuiRenderer.STORAGE_SLOT_ORIGIN_Y + rows * PocketPortalGuiRenderer.CELL_SIZE
             + 14
             + PocketPortalGuiRenderer.STORAGE_PLAYER_INV_EXTRA_Y
             + 3 * PocketPortalGuiRenderer.CELL_SIZE
@@ -63,7 +61,9 @@ public class GuiPocketStorage extends GuiContainer {
         int startY = (this.height - this.ySize) / 2;
         int rows = (PocketState.SLOTS_PER_PAGE_CAP + 8) / 9;
         configBtnX = startX + (this.xSize - PocketPortalGuiRenderer.STORAGE_CONFIG_BTN_W) / 2;
-        configBtnY = startY + PocketPortalGuiRenderer.STORAGE_SLOT_ORIGIN_Y + rows * PocketPortalGuiRenderer.CELL_SIZE + 6;
+        configBtnY = startY + PocketPortalGuiRenderer.STORAGE_SLOT_ORIGIN_Y
+            + rows * PocketPortalGuiRenderer.CELL_SIZE
+            + 6;
     }
 
     @Override
@@ -98,20 +98,12 @@ public class GuiPocketStorage extends GuiContainer {
         int pageCount = container.getPageCount();
         boolean canPrev = currentPage > 0;
         boolean canNext = currentPage < pageCount - 1;
-        PocketPortalGuiRenderer.StorageHeaderLayout header = PocketPortalGuiRenderer.computeStorageHeaderLayout(
-            mc,
-            startX,
-            startY,
-            this.xSize,
-            currentPage,
-            pageCount);
+        PocketPortalGuiRenderer.StorageHeaderLayout header = PocketPortalGuiRenderer
+            .computeStorageHeaderLayout(mc, startX, startY, this.xSize, currentPage, pageCount);
         PocketPortalGuiRenderer.drawStorageHeader(mc, startX, header, canPrev, canNext);
 
-        PocketPortalGuiRenderer.drawStorageUpgradeButton(
-            mc,
-            configBtnX,
-            configBtnY,
-            I18n.format("adm.button.pocket.upgrade"));
+        PocketPortalGuiRenderer
+            .drawStorageUpgradeButton(mc, configBtnX, configBtnY, I18n.format("adm.button.pocket.upgrade"));
 
         PocketPortalGuiRenderer.drawVanillaPlayerInventoryBackground(startX, startY);
     }
@@ -119,8 +111,7 @@ public class GuiPocketStorage extends GuiContainer {
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         int playerAreaTop = PocketPortalGuiRenderer.storagePlayerInventoryOriginY();
-        this.fontRendererObj
-            .drawString(I18n.format("container.inventory"), 8, playerAreaTop - 10, 0x404040);
+        this.fontRendererObj.drawString(I18n.format("container.inventory"), 8, playerAreaTop - 10, 0x404040);
     }
 
     @Override
@@ -163,13 +154,8 @@ public class GuiPocketStorage extends GuiContainer {
         int startY = (this.height - this.ySize) / 2;
         int currentPage = container.getCurrentPage();
         int pageCount = container.getPageCount();
-        PocketPortalGuiRenderer.StorageHeaderLayout header = PocketPortalGuiRenderer.computeStorageHeaderLayout(
-            Minecraft.getMinecraft(),
-            startX,
-            startY,
-            this.xSize,
-            currentPage,
-            pageCount);
+        PocketPortalGuiRenderer.StorageHeaderLayout header = PocketPortalGuiRenderer
+            .computeStorageHeaderLayout(Minecraft.getMinecraft(), startX, startY, this.xSize, currentPage, pageCount);
         int lineH = this.fontRendererObj.FONT_HEIGHT;
         if (PocketPortalGuiRenderer.hitsStoragePageArrow(header, mouseX, mouseY, true, lineH)) {
             if (currentPage > 0) {

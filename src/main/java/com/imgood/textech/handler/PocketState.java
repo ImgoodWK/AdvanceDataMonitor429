@@ -11,7 +11,7 @@ import net.minecraft.nbt.NBTTagShort;
 
 /**
  * Per-player Dimensional Pocket state. All state is bound to the player UUID,
- * not to any specific item instance â€?every ItemDimensionalPocket in the player's
+ * not to any specific item instance â€”every ItemDimensionalPocket in the player's
  * inventory shares the same PocketState.
  *
  * Layout: pages = 1 + pageUpgrades (max 9), slotsPerPage = 1 + spaceUpgrades (max 63).
@@ -224,10 +224,10 @@ public class PocketState {
         if (!tag.hasKey("Count")) return 0;
         NBTBase countTag = tag.getTag("Count");
         if (countTag instanceof NBTTagInt) {
-            return ((NBTTagInt) countTag).func_150287_c();
+            return ((NBTTagInt) countTag).func_150287_d();
         }
         if (countTag instanceof NBTTagByte) {
-            int b = ((NBTTagByte) countTag).func_150290_a();
+            int b = ((NBTTagByte) countTag).func_150290_f();
             return b < 0 ? b + 256 : b;
         }
         if (countTag instanceof NBTTagShort) {

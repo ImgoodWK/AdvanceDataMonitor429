@@ -55,7 +55,6 @@ public class HandlerTick {
         AssistantCraftJobManager.instance()
             .tickPendingJobs();
         com.imgood.textech.items.cell.DataLoomWeaveScheduler.onServerTick();
-        StarrySwordSpawnScheduler.drainServerTick();
     }
 
     private void scanPlanReminders() {
@@ -128,12 +127,12 @@ public class HandlerTick {
                      * if (te != null) {
                      * NBTTagCompound teNbt = new NBTTagCompound();
                      * te.writeToNBT(teNbt);
-                     * // 获取启用的标�?
+                     * // 获取启用的标签
                      * NBTTagCompound enabledTags = nbt.getCompoundTag("enabledTags");
                      * for (Object key : enabledTags.func_150296_c()) {
                      * String tagPath = (String) key;
                      * if (enabledTags.getBoolean(tagPath)) {
-                     * // 获取具体�?
+                     * // 获取具体值
                      * String value = getNbtValue(teNbt, tagPath);
                      * System.out.println("[ADM] " + tagPath + ": " + value);
                      * }

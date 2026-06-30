@@ -2,8 +2,8 @@ package com.imgood.textech.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
@@ -27,18 +27,18 @@ public final class PocketPortalGuiRenderer {
         AdvanceDataMonitor.MODID,
         "textures/gui/pocket_portal_panel.png");
 
-    /** Atlas size in pixels â€?must match pocket_portal_panel.png. */
+    /** Atlas size in pixels â€”must match pocket_portal_panel.png. */
     public static final int TEX_SIZE = 256;
     /** Non-stretching border width on each side of the 9-slice atlas. */
     public static final int BORDER = 32;
     public static final int CELL_SIZE = 18;
-    /** Two slot rings beyond the grid â€?portal rift overshoot on each side. */
+    /** Two slot rings beyond the grid â€”portal rift overshoot on each side. */
     public static final int RIFT_OVERSHOOT = CELL_SIZE * 2;
     /** Overlay title bar height above the slot grid. */
     public static final int OVERLAY_TITLE_HEIGHT = 18;
     /** RGB scale for slot/frame outlines (~30% darker). */
     private static final float FRAME_RGB_DEPTH = 0.7f;
-    /** Thin slot outline â€?low alpha so portal background stays visible. */
+    /** Thin slot outline â€”low alpha so portal background stays visible. */
     private static final int SLOT_EDGE_COLOR = deepenArgb(0x4088AAFF);
     /** Very faint slot tint (ARGB ~9% alpha). */
     private static final int SLOT_TINT_COLOR = deepenArgb(0x187098D0);
@@ -70,6 +70,9 @@ public final class PocketPortalGuiRenderer {
     public static final int CONFIG_COLLAPSE_BTN_X = 128;
     /** Two lines below legacy Y=18. */
     public static final int CONFIG_COLLAPSE_BTN_Y = 36;
+    /** Back arrow in upgrade config GUI header (returns to storage GUI). */
+    public static final int CONFIG_BACK_BTN_X = 6;
+    public static final int CONFIG_BACK_BTN_Y = 6;
     public static final int CONFIG_PLAYER_INV_Y = 126;
     private static final int STORAGE_HEADER_ARROW_GAP = 3;
     private static final int STORAGE_HEADER_EDGE_PAD = 8;
@@ -95,7 +98,7 @@ public final class PocketPortalGuiRenderer {
     private static final int CONFIG_PLAYER_STRIP_Y = 126;
     /** Overlay wobble/ripple intensity (1.0 = original baseline). */
     private static final float OVERLAY_RIPPLE_SCALE = 1.3f;
-    /** Shared overlay animation period â€?background rift and slot grid lines use the same phase. */
+    /** Shared overlay animation period â€”background rift and slot grid lines use the same phase. */
     public static final long OVERLAY_ANIM_PERIOD_MS = 8000L;
 
     private PocketPortalGuiRenderer() {}
@@ -109,7 +112,7 @@ public final class PocketPortalGuiRenderer {
         drawNineSlicePanel(x, y, width, height, b);
     }
 
-    /** Maximum pocket slots per page â€?panel/rift always sized for this cap. */
+    /** Maximum pocket slots per page â€”panel/rift always sized for this cap. */
     public static int maxDisplaySlots() {
         return PocketState.SLOTS_PER_PAGE_CAP;
     }
@@ -133,7 +136,7 @@ public final class PocketPortalGuiRenderer {
 
     /**
      * Overlay-only portal rift: wavy center UV strips plus procedural ripple rings/shimmer
-     * on top of the existing atlas â€?no texture edits required.
+     * on top of the existing atlas â€”no texture edits required.
      */
     public static void drawOverlayGridPortalRift(int gridOriginX, int gridOriginY) {
         drawOverlayGridPortalRift(gridOriginX, gridOriginY, overlayAnimationPhase());
@@ -192,7 +195,7 @@ public final class PocketPortalGuiRenderer {
         GL11.glDisable(GL11.GL_BLEND);
     }
 
-    /** Nine-slice panel with horizontal UV strip offset on the center â€?subtle liquid wobble. */
+    /** Nine-slice panel with horizontal UV strip offset on the center â€”subtle liquid wobble. */
     private static void drawNineSlicePanelWavy(int x, int y, int width, int height, int borderPx, double phase) {
         if (width <= 0 || height <= 0 || borderPx <= 0) return;
         Minecraft mc = Minecraft.getMinecraft();
@@ -227,7 +230,7 @@ public final class PocketPortalGuiRenderer {
         GL11.glDisable(GL11.GL_BLEND);
     }
 
-    /** Expanding ripple rings + drifting shimmer bands â€?phase-driven, loops seamlessly. */
+    /** Expanding ripple rings + drifting shimmer bands â€”phase-driven, loops seamlessly. */
     private static void drawPortalRippleOverlay(int x, int y, int w, int h, double phase) {
         if (w <= 2 || h <= 2) return;
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -265,13 +268,12 @@ public final class PocketPortalGuiRenderer {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
     }
 
-    private static void blitWavyCenter(
-        int x, int y, int w, int h, int u, int v, int sw, int sh, double phase) {
+    private static void blitWavyCenter(int x, int y, int w, int h, int u, int v, int sw, int sh, double phase) {
         int strips = Math.max(12, h / 3);
         for (int i = 0; i < strips; i++) {
             float t = i / (float) strips;
-            float wave = (float) (Math.sin(phase + t * Math.PI * 4.0 * OVERLAY_RIPPLE_SCALE)
-                * 2.0 * OVERLAY_RIPPLE_SCALE);
+            float wave = (float) (Math.sin(phase + t * Math.PI * 4.0 * OVERLAY_RIPPLE_SCALE) * 2.0
+                * OVERLAY_RIPPLE_SCALE);
             int sy = y + (int) (t * h);
             int nextY = (i + 1 == strips) ? y + h : y + (int) ((i + 1) / (float) strips * h);
             int shStrip = Math.max(1, nextY - sy);
@@ -303,7 +305,7 @@ public final class PocketPortalGuiRenderer {
     }
 
     /**
-     * Faint blue-violet slot markers â€?thin outline + minimal tint, portal texture visible underneath.
+     * Faint blue-violet slot markers â€”thin outline + minimal tint, portal texture visible underneath.
      */
     public static void drawSlotGrid(int originX, int originY, int slotCount) {
         if (slotCount <= 0) return;
@@ -341,7 +343,7 @@ public final class PocketPortalGuiRenderer {
         int cols = 9;
         int rows = (slotCount + cols - 1) / cols;
 
-        // Internal horizontal dividers only â€?skip top (r=0) and bottom (r=rows) outer ring.
+        // Internal horizontal dividers only â€”skip top (r=0) and bottom (r=rows) outer ring.
         for (int r = 1; r < rows; r++) {
             int widthCols = overlayRowBoundaryWidthCols(slotCount, cols, rows, r);
             if (widthCols <= 0) continue;
@@ -349,7 +351,7 @@ public final class PocketPortalGuiRenderer {
             drawOverlayGradientLine(originX, y, originX + widthCols * CELL_SIZE, y, phase);
         }
 
-        // Internal vertical dividers per row â€?skip left (c=0) and right (c=colsInRow) outer ring.
+        // Internal vertical dividers per row â€”skip left (c=0) and right (c=colsInRow) outer ring.
         for (int r = 0; r < rows; r++) {
             int colsInRow = overlayColsInRow(slotCount, cols, r);
             for (int c = 1; c < colsInRow; c++) {
@@ -376,9 +378,8 @@ public final class PocketPortalGuiRenderer {
         if (boundaryRow >= rows) {
             return overlayColsInRow(slotCount, cols, rows - 1);
         }
-        return Math.max(
-            overlayColsInRow(slotCount, cols, boundaryRow - 1),
-            overlayColsInRow(slotCount, cols, boundaryRow));
+        return Math
+            .max(overlayColsInRow(slotCount, cols, boundaryRow - 1), overlayColsInRow(slotCount, cols, boundaryRow));
     }
 
     private static void beginOverlayLineBlend() {
@@ -393,19 +394,42 @@ public final class PocketPortalGuiRenderer {
 
     /**
      * Portal-toned grid stroke: dark indigo underlay (reads on bright patches) + saturated
-     * blue-violet core (reads on black) â€?same {@code phase} field as the rift background.
+     * blue-violet core (reads on black) â€”same {@code phase} field as the rift background.
      */
     private static void drawOverlayGradientLine(float x0, float y0, float x1, float y1, double phase) {
         drawOverlayGradientLinePass(
-            x0, y0, x1, y1, phase, OVERLAY_GRID_LINE_UNDERLAY_HALF, OVERLAY_GRID_LINE_ALPHA_UNDERLAY, 1.0f, true);
+            x0,
+            y0,
+            x1,
+            y1,
+            phase,
+            OVERLAY_GRID_LINE_UNDERLAY_HALF,
+            OVERLAY_GRID_LINE_ALPHA_UNDERLAY,
+            1.0f,
+            true);
         drawOverlayGradientLinePass(
-            x0, y0, x1, y1, phase, OVERLAY_GRID_LINE_GLOW_HALF, OVERLAY_GRID_LINE_ALPHA_GLOW, 0.62f, false);
+            x0,
+            y0,
+            x1,
+            y1,
+            phase,
+            OVERLAY_GRID_LINE_GLOW_HALF,
+            OVERLAY_GRID_LINE_ALPHA_GLOW,
+            0.62f,
+            false);
         drawOverlayGradientLinePass(
-            x0, y0, x1, y1, phase, OVERLAY_GRID_LINE_CORE_HALF, OVERLAY_GRID_LINE_ALPHA_CORE, 1.0f, false);
+            x0,
+            y0,
+            x1,
+            y1,
+            phase,
+            OVERLAY_GRID_LINE_CORE_HALF,
+            OVERLAY_GRID_LINE_ALPHA_CORE,
+            1.0f,
+            false);
     }
 
-    private static void drawOverlayGradientLinePass(
-        float x0, float y0, float x1, float y1, double phase,
+    private static void drawOverlayGradientLinePass(float x0, float y0, float x1, float y1, double phase,
         float halfThickness, int peakAlpha, float alphaScale, boolean underlay) {
         float dx = x1 - x0;
         float dy = y1 - y0;
@@ -422,8 +446,7 @@ public final class PocketPortalGuiRenderer {
             float t = i / (float) steps;
             float px = x0 + dx * t;
             float py = y0 + dy * t;
-            int argb = underlay
-                ? sampleOverlayGridLineUnderlayArgb(px, py, phase, peakAlpha, alphaScale)
+            int argb = underlay ? sampleOverlayGridLineUnderlayArgb(px, py, phase, peakAlpha, alphaScale)
                 : sampleOverlayGridLineArgb(px, py, phase, peakAlpha, alphaScale);
             float rf = ((argb >> 16) & 0xFF) / 255.0f;
             float gf = ((argb >> 8) & 0xFF) / 255.0f;
@@ -444,7 +467,7 @@ public final class PocketPortalGuiRenderer {
         return OVERLAY_GRID_LINE_END_ALPHA + (1.0f - OVERLAY_GRID_LINE_END_ALPHA) * center;
     }
 
-    /** Shared blue-violet field for overlay grid lines â€?matches rift {@code phase} for seamless motion. */
+    /** Shared blue-violet field for overlay grid lines â€”matches rift {@code phase} for seamless motion. */
     private static int sampleOverlayGridLineArgb(float px, float py, double phase, int peakAlpha, float alphaScale) {
         float hueBlend = overlayGridHueBlend(px, py, phase);
         float alphaMod = (float) (0.72 + 0.28 * Math.sin(px * 0.048 + py * 0.048 + phase * 1.05));
@@ -453,8 +476,9 @@ public final class PocketPortalGuiRenderer {
         return overlayGridLineGradientArgb(hueBlend, alpha);
     }
 
-    /** Deep indigo under-stroke â€?same hue family as portal, adds contrast on bright background tiles. */
-    private static int sampleOverlayGridLineUnderlayArgb(float px, float py, double phase, int peakAlpha, float alphaScale) {
+    /** Deep indigo under-stroke â€”same hue family as portal, adds contrast on bright background tiles. */
+    private static int sampleOverlayGridLineUnderlayArgb(float px, float py, double phase, int peakAlpha,
+        float alphaScale) {
         float hueBlend = overlayGridHueBlend(px, py, phase);
         float alphaMod = (float) (0.78 + 0.22 * Math.sin(px * 0.048 + py * 0.048 + phase * 1.05));
         int alpha = (int) (peakAlpha * alphaMod * alphaScale);
@@ -472,7 +496,7 @@ public final class PocketPortalGuiRenderer {
         return hueBlend;
     }
 
-    /** Saturated blue-violet core â€?bright enough on black, underlay handles light patches. */
+    /** Saturated blue-violet core â€”bright enough on black, underlay handles light patches. */
     private static int overlayGridLineGradientArgb(float blend, int alpha) {
         int r = blendChannel(0x55, 0xAA, blend);
         int g = blendChannel(0x68, 0x66, blend);
@@ -513,7 +537,7 @@ public final class PocketPortalGuiRenderer {
         return OVERLAY_TITLE_HEIGHT + gridPixelHeight(maxDisplaySlots()) + RIFT_OVERSHOOT;
     }
 
-    /** Player inventory strip Y â€?fixed below the max-size pocket grid. */
+    /** Player inventory strip Y â€”fixed below the max-size pocket grid. */
     public static int storagePlayerInventoryOriginY() {
         int rows = (maxDisplaySlots() + 8) / 9;
         return STORAGE_SLOT_ORIGIN_Y + rows * CELL_SIZE + 14 + STORAGE_PLAYER_INV_EXTRA_Y;
@@ -526,7 +550,7 @@ public final class PocketPortalGuiRenderer {
     private static final int SIMPLE_SLOT_HIGHLIGHT = 0xFF5A6A88;
     private static final int SIMPLE_SLOT_SHADOW = 0xFF1A2030;
 
-    /** Procedural slot cell â€?no texture atlas. */
+    /** Procedural slot cell â€”no texture atlas. */
     public static void drawSimpleSlotCell(int x, int y) {
         Gui.drawRect(x, y, x + CELL_SIZE, y + CELL_SIZE, SIMPLE_SLOT_FILL);
         Gui.drawRect(x, y, x + CELL_SIZE, y + 1, SIMPLE_SLOT_HIGHLIGHT);
@@ -562,12 +586,10 @@ public final class PocketPortalGuiRenderer {
         Gui.drawRect(sectionX1, sectionY1, sectionX1 + 1, sectionY2, SIMPLE_SECTION_BORDER);
         Gui.drawRect(sectionX2 - 1, sectionY1, sectionX2, sectionY2, SIMPLE_SECTION_BORDER);
 
-        int[][] upgradeSlots = new int[][] {
-            { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ORIGIN_Y },
+        int[][] upgradeSlots = new int[][] { { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ORIGIN_Y },
             { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ORIGIN_Y },
             { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ROW2_Y },
-            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ROW2_Y },
-        };
+            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ROW2_Y }, };
         for (int i = 0; i < upgradeSlots.length; i++) {
             drawSimpleSlotCell(guiLeft + upgradeSlots[i][0], guiTop + upgradeSlots[i][1]);
         }
@@ -633,12 +655,10 @@ public final class PocketPortalGuiRenderer {
         int x2 = guiLeft + CONFIG_UPGRADE_ORIGIN_X + CELL_SIZE + CONFIG_UPGRADE_COL_STEP + CELL_SIZE + pad;
         int y2 = guiTop + CONFIG_UPGRADE_ROW2_Y + CELL_SIZE + pad;
         drawLabelBackdrop(x1, y1, x2, y2);
-        int[][] slotPos = new int[][] {
-            { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ORIGIN_Y },
+        int[][] slotPos = new int[][] { { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ORIGIN_Y },
             { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ORIGIN_Y },
             { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ROW2_Y },
-            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ROW2_Y },
-        };
+            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ROW2_Y }, };
         for (int i = 0; i < slotPos.length; i++) {
             int sx = guiLeft + slotPos[i][0];
             int sy = guiTop + slotPos[i][1];
@@ -647,7 +667,7 @@ public final class PocketPortalGuiRenderer {
         }
     }
 
-    /** Player inventory strip for config GUI â€?same portal-toned frame as storage. */
+    /** Player inventory strip for config GUI â€”same portal-toned frame as storage. */
     public static void drawConfigPlayerInventoryBackground(int guiLeft, int guiTop) {
         int slotX = guiLeft + STORAGE_SLOT_ORIGIN_X;
         int playerY = guiTop + CONFIG_PLAYER_INV_Y;
@@ -660,7 +680,12 @@ public final class PocketPortalGuiRenderer {
         int frameW = gridW + framePad * 2;
         int frameH = hotbarY - playerY + CELL_SIZE + framePad * 2;
         double phase = animationPhase();
-        drawAnimatedGradientFrame(frameX - glowPad, frameY - glowPad, frameW + glowPad * 2, frameH + glowPad * 2, phase);
+        drawAnimatedGradientFrame(
+            frameX - glowPad,
+            frameY - glowPad,
+            frameW + glowPad * 2,
+            frameH + glowPad * 2,
+            phase);
         drawAnimatedGradientSlotGrid(slotX, playerY, 9, 3, phase, 0);
         drawAnimatedGradientSlotGrid(slotX, hotbarY, 9, 1, phase, 27);
     }
@@ -676,11 +701,7 @@ public final class PocketPortalGuiRenderer {
         Gui.drawRect(x, y, x + width, y + btnH, PAGE_ARROW_RIM_ENABLED);
         Gui.drawRect(x + 1, y + 1, x + width - 1, y + btnH - 1, PAGE_ARROW_FILL_ENABLED);
         int textW = mc.fontRenderer.getStringWidth(label);
-        mc.fontRenderer.drawStringWithShadow(
-            label,
-            x + (width - textW) / 2,
-            y + (btnH - lineH) / 2,
-            0xFFFFFF);
+        mc.fontRenderer.drawStringWithShadow(label, x + (width - textW) / 2, y + (btnH - lineH) / 2, 0xFFFFFF);
     }
 
     public static boolean hitsPortalStyleButton(int x, int y, int width, int height, int mouseX, int mouseY) {
@@ -688,8 +709,24 @@ public final class PocketPortalGuiRenderer {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + btnH;
     }
 
+    /** Small left arrow in {@link com.imgood.textech.gui.guiscreen.GuiDimensionalPocketConfig} header. */
+    public static void drawConfigBackButton(Minecraft mc, int x, int y) {
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        drawLabelBackdrop(
+            x - LABEL_BACKDROP_PAD_X,
+            y - LABEL_BACKDROP_PAD_Y,
+            x + STORAGE_PAGE_ARROW_W + LABEL_BACKDROP_PAD_X,
+            y + lineH + LABEL_BACKDROP_PAD_Y);
+        drawPageArrowButton(mc, x, y, true, true);
+    }
+
+    public static boolean hitsConfigBackButton(int x, int y, int mouseX, int mouseY) {
+        return mouseX >= x && mouseX < x + STORAGE_PAGE_ARROW_W && mouseY >= y && mouseY < y + CONFIG_LINE_HEIGHT;
+    }
+
     /** Header chrome for {@link com.imgood.textech.gui.guiscreen.GuiPocketStorage}. */
     public static final class StorageHeaderLayout {
+
         public int lineY;
         public int titleY;
         public int leftArrowX;
@@ -699,8 +736,8 @@ public final class PocketPortalGuiRenderer {
         public String pageText;
     }
 
-    public static StorageHeaderLayout computeStorageHeaderLayout(
-        Minecraft mc, int guiLeft, int guiTop, int guiWidth, int currentPage, int pageCount) {
+    public static StorageHeaderLayout computeStorageHeaderLayout(Minecraft mc, int guiLeft, int guiTop, int guiWidth,
+        int currentPage, int pageCount) {
         StorageHeaderLayout layout = new StorageHeaderLayout();
         int lineH = mc.fontRenderer.FONT_HEIGHT;
         layout.lineY = guiTop + (OVERLAY_TITLE_HEIGHT - lineH) / 2;
@@ -715,9 +752,13 @@ public final class PocketPortalGuiRenderer {
         return layout;
     }
 
-    public static void drawStorageHeader(
-        Minecraft mc, int guiLeft, StorageHeaderLayout header, boolean canPrev, boolean canNext) {
-        drawOverlayStyleTitle(mc, guiLeft + STORAGE_SLOT_ORIGIN_X, header.titleY, I18n.format("adm.title.pocketOverlay"));
+    public static void drawStorageHeader(Minecraft mc, int guiLeft, StorageHeaderLayout header, boolean canPrev,
+        boolean canNext) {
+        drawOverlayStyleTitle(
+            mc,
+            guiLeft + STORAGE_SLOT_ORIGIN_X,
+            header.titleY,
+            I18n.format("adm.title.pocketOverlay"));
         int lineH = mc.fontRenderer.FONT_HEIGHT;
         drawLabelBackdrop(
             header.leftArrowX - LABEL_BACKDROP_PAD_X,
@@ -729,11 +770,12 @@ public final class PocketPortalGuiRenderer {
         mc.fontRenderer.drawStringWithShadow(header.pageText, header.pageTextX, header.pageTextY, 0xAACCFF);
     }
 
-    public static boolean hitsStoragePageArrow(
-        StorageHeaderLayout header, int mouseX, int mouseY, boolean left, int lineH) {
+    public static boolean hitsStoragePageArrow(StorageHeaderLayout header, int mouseX, int mouseY, boolean left,
+        int lineH) {
         int x = left ? header.leftArrowX : header.rightArrowX;
         return mouseX >= x && mouseX < x + STORAGE_PAGE_ARROW_W
-            && mouseY >= header.lineY && mouseY < header.lineY + lineH;
+            && mouseY >= header.lineY
+            && mouseY < header.lineY + lineH;
     }
 
     public static void drawStorageUpgradeButton(Minecraft mc, int x, int y, String label) {
@@ -747,17 +789,13 @@ public final class PocketPortalGuiRenderer {
         Gui.drawRect(x, y, x + STORAGE_CONFIG_BTN_W, y + btnH, PAGE_ARROW_RIM_ENABLED);
         Gui.drawRect(x + 1, y + 1, x + STORAGE_CONFIG_BTN_W - 1, y + btnH - 1, PAGE_ARROW_FILL_ENABLED);
         int textW = mc.fontRenderer.getStringWidth(label);
-        mc.fontRenderer.drawStringWithShadow(
-            label,
-            x + (STORAGE_CONFIG_BTN_W - textW) / 2,
-            y + (btnH - lineH) / 2,
-            0xFFFFFF);
+        mc.fontRenderer
+            .drawStringWithShadow(label, x + (STORAGE_CONFIG_BTN_W - textW) / 2, y + (btnH - lineH) / 2, 0xFFFFFF);
     }
 
     public static boolean hitsStorageUpgradeButton(int x, int y, int mouseX, int mouseY) {
         int btnH = Math.max(STORAGE_CONFIG_BTN_H, 9 + 2);
-        return mouseX >= x && mouseX < x + STORAGE_CONFIG_BTN_W
-            && mouseY >= y && mouseY < y + btnH;
+        return mouseX >= x && mouseX < x + STORAGE_CONFIG_BTN_W && mouseY >= y && mouseY < y + btnH;
     }
 
     public static void drawOverlayStyleTitle(Minecraft mc, int x, int y, String text) {
@@ -834,7 +872,12 @@ public final class PocketPortalGuiRenderer {
         int frameH = hotbarY - playerY + CELL_SIZE + framePad * 2;
         double phase = animationPhase();
 
-        drawAnimatedGradientFrame(frameX - glowPad, frameY - glowPad, frameW + glowPad * 2, frameH + glowPad * 2, phase);
+        drawAnimatedGradientFrame(
+            frameX - glowPad,
+            frameY - glowPad,
+            frameW + glowPad * 2,
+            frameH + glowPad * 2,
+            phase);
         drawAnimatedGradientSlotGrid(slotX, playerY, 9, 3, phase, 0);
         drawAnimatedGradientSlotGrid(slotX, hotbarY, 9, 1, phase, 27);
     }
@@ -899,8 +942,8 @@ public final class PocketPortalGuiRenderer {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
     }
 
-    private static void drawAnimatedGradientSlotGrid(
-        int originX, int originY, int cols, int rows, double phase, int indexOffset) {
+    private static void drawAnimatedGradientSlotGrid(int originX, int originY, int cols, int rows, double phase,
+        int indexOffset) {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
                 int idx = indexOffset + row * cols + col;

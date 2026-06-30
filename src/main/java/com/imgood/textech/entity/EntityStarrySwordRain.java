@@ -11,6 +11,7 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
 import com.imgood.textech.handler.StarryCosmosSounds;
+import com.imgood.textech.handler.StarryCosmosSwordUtil;
 import com.imgood.textech.handler.StarryEntityMotionUtil;
 import com.imgood.textech.handler.StarryPlayerLookup;
 import com.imgood.textech.loader.LoaderItem;
@@ -19,15 +20,21 @@ import cpw.mods.fml.common.registry.IEntityAdditionalSpawnData;
 import io.netty.buffer.ByteBuf;
 
 /**
- * Single falling sword from sword rain; sticks into ground at a random angle for one second.
+ * Single sword from sword rain. Legacy mode: gravity fall and ground stick.
+ * Empyrean homing mode: hover, lock a unique hostile target within 1 chunk, fly tip-first, then damage.
  */
 public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSpawnData {
 
     public static final byte PHASE_FALLING = 0;
     public static final byte PHASE_STUCK = 1;
+    public static final byte PHASE_HOVER = 2;
+    public static final byte PHASE_HOMING = 3;
 
     private static final int STICK_TICKS = 20;
     private static final float GRAVITY = 0.09F;
+    private static final int HOVER_TICKS = 14;
+    private static final double HOMING_SPEED = 1.35D;
+    private static final double HOMING_HIT_DISTANCE = 1.25D;
 
     private static final int DW_PHASE = 10;
     private static final int DW_STICK_PITCH = 11;
@@ -35,8 +42,12 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
     private static final int DW_STICK_YAW = 13;
     private static final int DW_STICK_TIMER = 14;
     private static final int DW_FALL_YAW = 15;
+    private static final int DW_TARGET_ID = 16;
 
     private UUID ownerId;
+    private int rainFieldId;
+    private boolean homingRain;
+    private int targetEntityId;
 
     public EntityStarrySwordRain(World world) {
         super(world);
@@ -44,16 +55,31 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
     }
 
     public EntityStarrySwordRain(World world, double x, double y, double z, EntityLivingBase owner) {
+        this(world, x, y, z, owner, 0, false);
+    }
+
+    public EntityStarrySwordRain(World world, double x, double y, double z, EntityLivingBase owner, int rainFieldId,
+        boolean homingRain) {
         this(world);
         setPosition(x, y, z);
-        motionX = (world.rand.nextDouble() - 0.5D) * 0.12D;
-        motionZ = (world.rand.nextDouble() - 0.5D) * 0.12D;
-        motionY = -0.25D - world.rand.nextDouble() * 0.35D;
-        float fallYaw = world.rand.nextFloat() * 360.0F;
+        this.rainFieldId = rainFieldId;
+        this.homingRain = homingRain;
         if (owner != null) {
             ownerId = owner.getUniqueID();
         }
+        float fallYaw = world.rand.nextFloat() * 360.0F;
         dataWatcher.updateObject(DW_FALL_YAW, Float.valueOf(fallYaw));
+        if (homingRain) {
+            motionX = 0.0D;
+            motionY = 0.0D;
+            motionZ = 0.0D;
+            syncPhase(PHASE_HOVER, -1, 0.0F, 0.0F, fallYaw);
+        } else {
+            motionX = (world.rand.nextDouble() - 0.5D) * 0.12D;
+            motionZ = (world.rand.nextDouble() - 0.5D) * 0.12D;
+            motionY = -0.25D - world.rand.nextDouble() * 0.35D;
+            syncPhase(PHASE_FALLING, -1, 0.0F, 0.0F, fallYaw);
+        }
     }
 
     @Override
@@ -64,6 +90,7 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
         dataWatcher.addObject(DW_STICK_YAW, Float.valueOf(0.0F));
         dataWatcher.addObject(DW_STICK_TIMER, Integer.valueOf(-1));
         dataWatcher.addObject(DW_FALL_YAW, Float.valueOf(0.0F));
+        dataWatcher.addObject(DW_TARGET_ID, Integer.valueOf(-1));
     }
 
     private void syncPhase(byte phase, int stickTimer, float pitch, float roll, float yaw) {
@@ -79,6 +106,12 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
         super.onUpdate();
 
         byte phase = dataWatcher.getWatchableObjectByte(DW_PHASE);
+
+        if (homingRain) {
+            onUpdateHomingRain(phase);
+            return;
+        }
+
         int stickTimer = dataWatcher.getWatchableObjectInt(DW_STICK_TIMER);
 
         if (phase == PHASE_STUCK) {
@@ -87,7 +120,8 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
             if (!worldObj.isRemote) {
                 EntityLivingBase owner = resolveOwner();
                 if (owner != null) {
-                    StarryEntityMotionUtil.killLivingInBox(worldObj, boundingBox.expand(0.4D, 0.8D, 0.4D), owner, this);
+                    StarryEntityMotionUtil
+                        .killLivingInBox(worldObj, boundingBox.expand(0.4D, 0.8D, 0.4D), owner, this, true);
                 }
             }
             if (stickTimer >= STICK_TICKS) {
@@ -118,7 +152,7 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
                 EntityLivingBase owner = resolveOwner();
                 if (owner != null) {
                     AxisAlignedBB box = boundingBox.expand(0.35D, 0.6D, 0.35D);
-                    StarryEntityMotionUtil.killLivingInBox(worldObj, box, owner, this);
+                    StarryEntityMotionUtil.killLivingInBox(worldObj, box, owner, this, true);
                 }
             }
         }
@@ -126,6 +160,113 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
         if (ticksExisted > 160) {
             setDead();
         }
+    }
+
+    private void onUpdateHomingRain(byte phase) {
+        if (phase == PHASE_HOVER) {
+            motionX = 0.0D;
+            motionY = 0.0D;
+            motionZ = 0.0D;
+            if (!worldObj.isRemote && ticksExisted >= HOVER_TICKS) {
+                beginHoming();
+            }
+            return;
+        }
+
+        if (phase == PHASE_HOMING) {
+            prevPosX = posX;
+            prevPosY = posY;
+            prevPosZ = posZ;
+
+            if (worldObj.isRemote) {
+                return;
+            }
+
+            EntityLivingBase target = resolveTarget();
+            if (target == null || target.isDead) {
+                setDead();
+                return;
+            }
+
+            double tx = target.posX;
+            double ty = target.posY + target.height * 0.5D;
+            double tz = target.posZ;
+            double dx = tx - posX;
+            double dy = ty - posY;
+            double dz = tz - posZ;
+            double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist < HOMING_HIT_DISTANCE) {
+                applyHomingImpact(target);
+                setDead();
+                return;
+            }
+
+            motionX = dx / dist * HOMING_SPEED;
+            motionY = dy / dist * HOMING_SPEED;
+            motionZ = dz / dist * HOMING_SPEED;
+            moveEntity(motionX, motionY, motionZ);
+
+            float yaw = (float) (Math.atan2(dx, dz) * 180.0D / Math.PI);
+            dataWatcher.updateObject(DW_FALL_YAW, Float.valueOf(yaw));
+
+            if (ticksExisted > 160) {
+                setDead();
+            }
+        }
+    }
+
+    private void beginHoming() {
+        EntityStarrySwordRainField field = resolveRainField();
+        EntityLivingBase target = field != null ? field.acquireRainTarget() : null;
+        if (target == null) {
+            setDead();
+            return;
+        }
+        targetEntityId = target.getEntityId();
+        dataWatcher.updateObject(DW_TARGET_ID, Integer.valueOf(targetEntityId));
+        float yaw = (float) (Math.atan2(target.posX - posX, target.posZ - posZ) * 180.0D / Math.PI);
+        syncPhase(PHASE_HOMING, -1, 0.0F, 0.0F, yaw);
+        dataWatcher.updateObject(DW_FALL_YAW, Float.valueOf(yaw));
+    }
+
+    private void applyHomingImpact(EntityLivingBase target) {
+        EntityLivingBase owner = resolveOwner();
+        if (owner == null || target.isDead) {
+            return;
+        }
+        StarryCosmosSwordUtil.applyDamage(target, owner, StarryCosmosSwordUtil.StarryCosmosAttackKind.DEFAULT);
+        StarryCosmosSounds.playRainSwordImpact(worldObj, target.posX, target.posY, target.posZ, worldObj.rand);
+        worldObj.spawnParticle(
+            "magicCrit",
+            target.posX,
+            target.posY + target.height * 0.5D,
+            target.posZ,
+            0.0D,
+            0.15D,
+            0.0D);
+    }
+
+    private EntityStarrySwordRainField resolveRainField() {
+        if (rainFieldId <= 0) {
+            return null;
+        }
+        Entity entity = worldObj.getEntityByID(rainFieldId);
+        if (entity instanceof EntityStarrySwordRainField) {
+            return (EntityStarrySwordRainField) entity;
+        }
+        return null;
+    }
+
+    private EntityLivingBase resolveTarget() {
+        int id = targetEntityId > 0 ? targetEntityId : dataWatcher.getWatchableObjectInt(DW_TARGET_ID);
+        if (id <= 0) {
+            return null;
+        }
+        Entity entity = worldObj.getEntityByID(id);
+        if (entity instanceof EntityLivingBase) {
+            return (EntityLivingBase) entity;
+        }
+        return null;
     }
 
     private void stickIntoGround() {
@@ -179,6 +320,10 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
             tag.getFloat("StickRoll"),
             tag.getFloat("StickYaw"));
         dataWatcher.updateObject(DW_FALL_YAW, Float.valueOf(tag.getFloat("FallYaw")));
+        dataWatcher.updateObject(DW_TARGET_ID, Integer.valueOf(tag.getInteger("TargetId")));
+        rainFieldId = tag.getInteger("RainFieldId");
+        homingRain = tag.getBoolean("HomingRain");
+        targetEntityId = tag.getInteger("TargetId");
         if (tag.hasKey("Owner")) {
             ownerId = UUID.fromString(tag.getString("Owner"));
         }
@@ -192,6 +337,9 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
         tag.setFloat("StickRoll", getStickRoll());
         tag.setFloat("StickYaw", getStickYaw());
         tag.setFloat("FallYaw", getFallYaw());
+        tag.setInteger("TargetId", dataWatcher.getWatchableObjectInt(DW_TARGET_ID));
+        tag.setInteger("RainFieldId", rainFieldId);
+        tag.setBoolean("HomingRain", homingRain);
         if (ownerId != null) {
             tag.setString("Owner", ownerId.toString());
         }
@@ -205,6 +353,9 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
         buf.writeFloat(getStickYaw());
         buf.writeInt(dataWatcher.getWatchableObjectInt(DW_STICK_TIMER));
         buf.writeFloat(getFallYaw());
+        buf.writeInt(dataWatcher.getWatchableObjectInt(DW_TARGET_ID));
+        buf.writeInt(rainFieldId);
+        buf.writeBoolean(homingRain);
         if (ownerId == null) {
             buf.writeBoolean(false);
         } else {
@@ -222,8 +373,13 @@ public class EntityStarrySwordRain extends Entity implements IEntityAdditionalSp
         float yaw = buf.readFloat();
         int timer = buf.readInt();
         float fallYaw = buf.readFloat();
+        int targetId = buf.readInt();
+        rainFieldId = buf.readInt();
+        homingRain = buf.readBoolean();
         syncPhase(phase, timer, pitch, roll, yaw);
         dataWatcher.updateObject(DW_FALL_YAW, Float.valueOf(fallYaw));
+        dataWatcher.updateObject(DW_TARGET_ID, Integer.valueOf(targetId));
+        targetEntityId = targetId;
         if (buf.readBoolean()) {
             ownerId = new UUID(buf.readLong(), buf.readLong());
         }

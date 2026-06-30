@@ -28,9 +28,9 @@ public class RenderDataImprintItem implements IItemRenderer {
         AdvanceDataMonitor.MODID + ":textures/model/AdvanceDataMonitor.png");
     private static final IModelCustom advanceDtaDisplayModel = AdvancedModelLoader
         .loadModel(new ResourceLocation(AdvanceDataMonitor.MODID + ":model/DataWeave.obj"));
-    private static final int SCROLL_SPEED = 30; // 像素/�?
+    private static final int SCROLL_SPEED = 30; // 像素/秒
     private static final int LINE_HEIGHT = 9; // 行高
-    private static final int MAX_LINES = 9; // 最大显示行�?
+    private static final int MAX_LINES = 9; // 最大显示行数
 
     @Override
     public boolean handleRenderType(ItemStack item, ItemRenderType type) {
@@ -449,11 +449,11 @@ public class RenderDataImprintItem implements IItemRenderer {
                     float distTop = Math.max(0, renderY - 50);
                     float distBottom = Math.max(0, 150 - renderY); // 150 = 50 + viewportHeight
 
-                    // 顶部渐变：从0%�?0%高度
+                    // 顶部渐变：从0%到20%高度
                     if (distTop < FADE_HEIGHT) {
                         alpha = distTop / FADE_HEIGHT;
                     }
-                    // 底部渐变：从80%�?00%高度
+                    // 底部渐变：从80%到100%高度
                     else if (distBottom < FADE_HEIGHT) {
                         alpha = distBottom / FADE_HEIGHT;
                     }
@@ -461,7 +461,7 @@ public class RenderDataImprintItem implements IItemRenderer {
                     // 确保透明度在有效范围
                     alpha = Math.max(0.0f, Math.min(1.0f, alpha));
 
-                    // 将透明度转换为颜色�?
+                    // 将透明度转换为颜色值
                     int alphaInt = (int) (alpha * 255);
                     int colorWithAlpha = (alphaInt << 24) | 0x00FFFF;
 

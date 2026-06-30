@@ -24,7 +24,7 @@ import com.imgood.textech.network.packet.PacketLinkScannerAction;
 /**
  * Display names / 显示名称:
  * - EN: Advance Link Scanner
- * - ZH: 高级链接扫描�?
+ * - ZH: 高级链接扫描器
  * Lang keys: adm.scanner.title
  */
 public class GuiAdvanceLinkScanner extends ADM_GuiScreen {

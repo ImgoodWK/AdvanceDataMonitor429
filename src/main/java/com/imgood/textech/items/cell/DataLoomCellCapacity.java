@@ -8,7 +8,7 @@ import java.util.Map;
  * <li>Item channel: 576P bytes, 63 types, 8 items per byte</li>
  * <li>Fluid channel: 4.5P bytes, 5 types, 2048 mB per byte (AE2FC)</li>
  * </ul>
- * Type-byte overhead follows AE2 {@code (int)(totalBytes / 128)} â€?for universe-tier cells that
+ * Type-byte overhead follows AE2 {@code (int)(totalBytes / 128)} â€”for universe-tier cells that
  * value overflows {@code int} to {@code 0}, so only stored item/fluid volume counts toward used bytes.
  */
 public final class DataLoomCellCapacity {
@@ -26,7 +26,7 @@ public final class DataLoomCellCapacity {
     /** GTNH Artificial Universe fluid cell (standard data flow cell). */
     public static final long FLUID_TOTAL_BYTES = 9L * ONE_P_BYTES / 2L;
     public static final int FLUID_MAX_TYPES = 5;
-    /** Extended fluid loom cell â€?same type cap as universe item cells. */
+    /** Extended fluid loom cell â€”same type cap as universe item cells. */
     public static final int FLUID_EXTENDED_MAX_TYPES = ITEM_MAX_TYPES;
     public static final int FLUID_MB_PER_BYTE = 2048;
 
