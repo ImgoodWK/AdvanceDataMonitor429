@@ -5,9 +5,11 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
-
 import com.imgood.advancedatamonitor.AdvanceDataMonitor;
+import com.imgood.advancedatamonitor.client.PocketClientCache;
+import com.imgood.advancedatamonitor.client.PocketPortalGuiRenderer;
 import com.imgood.advancedatamonitor.handler.PocketInventory;
+import com.imgood.advancedatamonitor.handler.PocketSlotInteraction;
 import com.imgood.advancedatamonitor.handler.PocketState;
 import com.imgood.advancedatamonitor.handler.PocketStore;
 import com.imgood.advancedatamonitor.network.packet.PacketPocketSync;
@@ -23,9 +25,8 @@ import com.imgood.advancedatamonitor.network.packet.PacketPocketSync;
  * stays in step. Slot contents themselves are synced by vanilla
  * Container.detectAndSendChanges.
  *
- * Modeled after the GTNH pattern used by portable container mods (Ender Pouch,
- * Travelers Backpack style): a self-contained Container with its own slots,
- * not an overlay on top of someone else's GUI.
+ * Stack upgrades bypass vanilla {@link ItemStack#getMaxStackSize()} when moving
+ * items into pocket slots — same pattern as Science Not Leisure portable infinity chest.
  */
 public class ContainerPocketStorage extends Container {
 
@@ -66,30 +67,30 @@ public class ContainerPocketStorage extends Container {
         layoutSlots();
     }
 
+    private static void applyUpgradeFieldsFromCache(PocketState mirror) {
+        mirror.setStackUpgrades(PocketClientCache.getStackUpgrades());
+        mirror.setInfiniteStackUpgrade(PocketClientCache.isInfiniteStackUpgrade());
+    }
+
     private PocketState buildClientMirrorState(int slotsPerPage, int pageCount) {
-        // Prefer the explicitly passed dimensions (from GuiHandler encoding); fall back
-        // to PocketClientCache if not provided. The server is authoritative for actual
-        // item contents, which arrive via vanilla container sync.
         PocketState mirror = new PocketState();
         if (slotsPerPage > 0 && pageCount > 0) {
-            // Reconstruct upgrade counts that would yield the requested dimensions.
-            // slotsPerPage = min(CAP, 1 + min(space, MAX-2)); solve for space.
             int space = Math.max(0, slotsPerPage - 1);
             if (space > PocketState.MAX_SPACE_UPGRADES - 2) space = PocketState.MAX_SPACE_UPGRADES - 2;
             if (slotsPerPage >= PocketState.SLOTS_PER_PAGE_CAP) space = PocketState.MAX_SPACE_UPGRADES - 2;
             mirror.setSpaceUpgrades(space);
-            // pageCount = space>=MAX ? min(CAP, 1 + min(page, MAX)) : 1
             if (pageCount > 1) {
                 mirror.setSpaceUpgrades(PocketState.MAX_SPACE_UPGRADES);
                 mirror.setPageUpgrades(Math.min(PocketState.MAX_PAGE_UPGRADES, pageCount - 1));
             }
+            applyUpgradeFieldsFromCache(mirror);
             return mirror;
         }
-        // Fallback to client cache.
-        int space = com.imgood.advancedatamonitor.client.PocketClientCache.getSpaceUpgrades();
-        int page = com.imgood.advancedatamonitor.client.PocketClientCache.getPageUpgrades();
+        int space = PocketClientCache.getSpaceUpgrades();
+        int page = PocketClientCache.getPageUpgrades();
         mirror.setSpaceUpgrades(space);
         mirror.setPageUpgrades(page);
+        applyUpgradeFieldsFromCache(mirror);
         return mirror;
     }
 
@@ -102,20 +103,34 @@ public class ContainerPocketStorage extends Container {
         for (int i = 0; i < slotsPerPage; i++) {
             int row = i / cols;
             int col = i % cols;
-            addSlotToContainer(new Slot(pocketInv, i, startX + col * 18, startY + row * 18));
+            addSlotToContainer(new PocketStorageSlot(pocketInv, i, startX + col * 18, startY + row * 18));
         }
-        // Player main inventory below the max-size pocket grid.
-        int playerY = startY + maxRows * 18 + 14;
+        int playerY = startY + maxRows * 18 + 14 + PocketPortalGuiRenderer.STORAGE_PLAYER_INV_EXTRA_Y;
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 9; ++col) {
                 addSlotToContainer(new Slot(player.inventory, col + row * 9 + 9, startX + col * 18, playerY + row * 18));
             }
         }
-        // Hotbar
         int hotbarY = playerY + 3 * 18 + 4;
         for (int col = 0; col < 9; ++col) {
             addSlotToContainer(new Slot(player.inventory, col, startX + col * 18, hotbarY));
         }
+    }
+
+    private int pocketSlotCount() {
+        return state.getSlotsPerPage();
+    }
+
+    private int pocketStackLimit() {
+        return pocketInv.getInventoryStackLimit();
+    }
+
+    private static boolean stacksMergeable(ItemStack a, ItemStack b) {
+        return a != null && b != null && a.isItemEqual(b) && ItemStack.areItemStackTagsEqual(a, b);
+    }
+
+    private boolean isPocketSlotIndex(int slotIndex) {
+        return slotIndex >= 0 && slotIndex < pocketSlotCount();
     }
 
     public int getCurrentPage() {
@@ -134,13 +149,21 @@ public class ContainerPocketStorage extends Container {
         return state;
     }
 
-    /**
-     * Server-side page switch. Updates the PocketInventory's current page so the
-     * slot grid reads from the new page, then broadcasts a PacketPocketSync so
-     * the client cache (overlay/tooltip) stays consistent. Vanilla
-     * detectAndSendChanges will push the changed slot contents to the client
-     * on the next tick — no need to call onSlotChanged on every individual slot.
-     */
+    public void applyClientPage(int page) {
+        if (!player.worldObj.isRemote) return;
+        int pageCount = state.getPageCount();
+        if (page < 0) page = 0;
+        if (page >= pageCount) page = Math.max(0, pageCount - 1);
+        this.currentPage = page;
+        pocketInv.setCurrentPage(page);
+    }
+
+    /** Refresh stack-upgrade fields on the client mirror when metadata sync arrives. */
+    public void applyClientUpgradeMetadata() {
+        if (!player.worldObj.isRemote) return;
+        applyUpgradeFieldsFromCache(state);
+    }
+
     public void setPage(int page) {
         if (player.worldObj.isRemote) return;
         int pageCount = state.getPageCount();
@@ -148,15 +171,108 @@ public class ContainerPocketStorage extends Container {
         if (page >= pageCount) page = Math.max(0, pageCount - 1);
         this.currentPage = page;
         pocketInv.setCurrentPage(page);
-        // Save the pocket state once (page switch itself doesn't mutate items,
-        // but we flush in case previous mutations hadn't been persisted yet).
         pocketInv.flush();
         AdvanceDataMonitor.ADMCHANEL
             .sendTo(PacketPocketSync.singlePage(state, page), (EntityPlayerMP) player);
     }
 
+    /**
+     * Shift-click into pocket slots: ignore item {@link ItemStack#getMaxStackSize()} and
+     * merge up to {@link PocketInventory#getInventoryStackLimit()} per slot.
+     */
+    @Override
+    protected boolean mergeItemStack(ItemStack stack, int startIndex, int endIndex, boolean reverse) {
+        if (player.worldObj.isRemote) return false;
+        if (!reverse && startIndex == 0 && endIndex <= pocketSlotCount()) {
+            return mergeIntoPocketSlots(stack, startIndex, endIndex);
+        }
+        if (reverse && startIndex >= pocketSlotCount()) {
+            return PocketSlotInteraction.mergeOneStackBatchIntoPlayerInventory(stack, player);
+        }
+        return super.mergeItemStack(stack, startIndex, endIndex, reverse);
+    }
+
+    private boolean mergeIntoPocketSlots(ItemStack stack, int startIndex, int endIndex) {
+        if (stack == null || stack.stackSize <= 0) return false;
+        int limit = pocketStackLimit();
+        boolean merged = false;
+        for (int i = startIndex; i < endIndex && stack.stackSize > 0; i++) {
+            Slot slot = (Slot) inventorySlots.get(i);
+            ItemStack existing = slot.getStack();
+            if (existing == null || !stacksMergeable(existing, stack)) continue;
+            int space = limit - existing.stackSize;
+            if (space <= 0) continue;
+            int transfer = Math.min(space, stack.stackSize);
+            existing.stackSize += transfer;
+            stack.stackSize -= transfer;
+            slot.onSlotChanged();
+            merged = true;
+        }
+        for (int i = startIndex; i < endIndex && stack.stackSize > 0; i++) {
+            Slot slot = (Slot) inventorySlots.get(i);
+            if (slot.getStack() != null) continue;
+            int place = Math.min(stack.stackSize, limit);
+            ItemStack copy = stack.copy();
+            copy.stackSize = place;
+            slot.putStack(copy);
+            stack.stackSize -= place;
+            merged = true;
+        }
+        return merged;
+    }
+
+    /**
+     * Left/right click on pocket slots: placing and merging respect pocket stack limit,
+     * not the item's vanilla max stack size.
+     */
+    @Override
+    public ItemStack slotClick(int slotId, int mouseButton, int clickType, EntityPlayer playerIn) {
+        if (isPocketSlotIndex(slotId) && clickType == 1) {
+            if (playerIn.worldObj.isRemote) {
+                return null;
+            }
+            Slot slot = (Slot) inventorySlots.get(slotId);
+            if (slot != null && slot.getHasStack()) {
+                ItemStack result = slot.getStack()
+                    .copy();
+                if (PocketSlotInteraction.quickMoveFromPocketToPlayer(state, currentPage, slotId, playerIn)) {
+                    slot.putStack(state.getStack(currentPage, slotId));
+                    slot.onSlotChanged();
+                    return result;
+                }
+            }
+            return null;
+        }
+        if (!isPocketSlotIndex(slotId) || clickType != 0) {
+            return super.slotClick(slotId, mouseButton, clickType, playerIn);
+        }
+        if (playerIn.worldObj.isRemote) {
+            return super.slotClick(slotId, mouseButton, clickType, playerIn);
+        }
+
+        Slot slot = (Slot) inventorySlots.get(slotId);
+        if (PocketSlotInteraction.applySlotClick(state, currentPage, slotId, mouseButton, playerIn)) {
+            slot.onSlotChanged();
+        }
+        return playerIn.inventory.getItemStack();
+    }
+
     @Override
     public ItemStack transferStackInSlot(EntityPlayer playerIn, int index) {
+        if (!playerIn.worldObj.isRemote && isPocketSlotIndex(index)) {
+            Slot slot = (Slot) inventorySlots.get(index);
+            if (slot != null && slot.getHasStack()) {
+                ItemStack before = slot.getStack();
+                ItemStack result = before.copy();
+                if (PocketSlotInteraction.quickMoveFromPocketToPlayer(state, currentPage, index, playerIn)) {
+                    ItemStack remaining = state.getStack(currentPage, index);
+                    slot.putStack(remaining);
+                    return result;
+                }
+            }
+            return null;
+        }
+
         ItemStack result = null;
         Slot slot = (Slot) this.inventorySlots.get(index);
         if (slot != null && slot.getHasStack()) {
@@ -164,10 +280,8 @@ public class ContainerPocketStorage extends Container {
             result = stack.copy();
             int pocketSlots = state.getSlotsPerPage();
             if (index < pocketSlots) {
-                // Move from pocket to player inventory.
                 if (!this.mergeItemStack(stack, pocketSlots, this.inventorySlots.size(), true)) return null;
             } else {
-                // Move from player inventory to pocket.
                 if (!this.mergeItemStack(stack, 0, pocketSlots, false)) return null;
             }
             if (stack.stackSize == 0) slot.putStack(null);
@@ -178,20 +292,28 @@ public class ContainerPocketStorage extends Container {
 
     @Override
     public boolean canInteractWith(EntityPlayer playerIn) {
-        // Always allow — the pocket is bound to the player, not a tile entity.
         return true;
     }
 
     @Override
     public void onContainerClosed(EntityPlayer playerIn) {
         super.onContainerClosed(playerIn);
-        // PocketInventory writes through to PocketState on every mutation, and
-        // markDirty uses a cooldown to avoid thrashing the disk. Force-flush on
-        // close so no mutation is lost, then save the PocketStore.
         pocketInv.flush();
         if (!playerIn.worldObj.isRemote) {
             PocketStore.instance()
                 .save((EntityPlayerMP) playerIn);
+        }
+    }
+
+    private static final class PocketStorageSlot extends Slot {
+
+        PocketStorageSlot(PocketInventory inventory, int index, int x, int y) {
+            super(inventory, index, x, y);
+        }
+
+        @Override
+        public int getSlotStackLimit() {
+            return ((PocketInventory) inventory).getInventoryStackLimit();
         }
     }
 }

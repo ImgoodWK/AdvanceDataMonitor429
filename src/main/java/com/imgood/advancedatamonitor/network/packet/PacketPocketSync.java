@@ -28,6 +28,8 @@ public class PacketPocketSync implements IMessage {
 
     public static final byte KIND_FULL = 0;
     public static final byte KIND_SINGLE_PAGE = 1;
+    /** Upgrade counts / overlay prefs only — no page item payloads. */
+    public static final byte KIND_METADATA = 2;
 
     public byte kind = KIND_FULL;
     public int spaceUpgrades;
@@ -104,6 +106,22 @@ public class PacketPocketSync implements IMessage {
             }
             p.pages.add(payload);
         }
+        return p;
+    }
+
+    public static PacketPocketSync metadataState(PocketState state) {
+        PacketPocketSync p = new PacketPocketSync();
+        p.kind = KIND_METADATA;
+        p.spaceUpgrades = state.getSpaceUpgrades();
+        p.pageUpgrades = state.getPageUpgrades();
+        p.stackUpgrades = state.getStackUpgrades();
+        p.infiniteStackUpgrade = state.isInfiniteStackUpgrade();
+        p.enabled = state.isEnabled();
+        p.windowX = state.getWindowX();
+        p.windowY = state.getWindowY();
+        p.collapsed = state.isCollapsed();
+        p.pageCount = state.getPageCount();
+        p.slotsPerPage = state.getSlotsPerPage();
         return p;
     }
 
@@ -194,30 +212,25 @@ public class PacketPocketSync implements IMessage {
 
         @Override
         public IMessage onMessage(PacketPocketSync message, MessageContext ctx) {
-            // #region agent log
-            java.io.FileWriter fw = null;
-            try {
-                fw = new java.io.FileWriter("D:/gtnhcode/AdvanceDataMonitor429/debug-a26165.log", true);
-                fw.write("{\"sessionId\":\"a26165\",\"id\":\"log_" + System.currentTimeMillis() + "_"
-                    + (int) (Math.random() * 100000) + "\",\"timestamp\":" + System.currentTimeMillis()
-                    + ",\"location\":\"PacketPocketSync.ClientHandler.onMessage\""
-                    + ",\"message\":\"sync received\""
-                    + ",\"data\":{\"kind\":" + message.kind + ",\"winX\":" + message.windowX + ",\"winY\":"
-                    + message.windowY + ",\"pageCount\":" + message.pageCount + ",\"hasCursor\":" + message.hasCursor
-                    + "}" + ",\"hypothesisId\":\"A\"}\n");
-            } catch (Exception e) {
-                // ignore
-            } finally {
-                if (fw != null) {
-                    try {
-                        fw.close();
-                    } catch (Exception e2) {}
+            PocketClientCache.apply(message);
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+            if (mc.thePlayer != null) {
+                if (mc.thePlayer.openContainer instanceof com.imgood.advancedatamonitor.gui.container.ContainerPocketStorage) {
+                    com.imgood.advancedatamonitor.gui.container.ContainerPocketStorage storage =
+                        (com.imgood.advancedatamonitor.gui.container.ContainerPocketStorage) mc.thePlayer.openContainer;
+                    if (message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
+                        storage.applyClientPage(message.pageIndex);
+                    }
+                    if (message.kind == PacketPocketSync.KIND_METADATA || message.kind == PacketPocketSync.KIND_FULL) {
+                        storage.applyClientUpgradeMetadata();
+                    }
+                }
+                if (mc.thePlayer.openContainer instanceof com.imgood.advancedatamonitor.gui.container.ContainerDimensionalPocket) {
+                    ((com.imgood.advancedatamonitor.gui.container.ContainerDimensionalPocket) mc.thePlayer.openContainer)
+                        .refreshUpgradeDisplayFromClientCache();
                 }
             }
-            // #endregion
-            PocketClientCache.apply(message);
             if (message.hasCursor) {
-                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
                 if (mc.thePlayer != null) {
                     mc.thePlayer.inventory.setItemStack(message.cursorStack);
                 }

@@ -30,8 +30,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * state is bound to the player UUID via PocketStore. Multiple pocket items in the
  * inventory share the same PocketState. The item is only a trigger.
  *
- * Right-click: open config GUI (upgrades, switch, capacity stats).
- * Shift+right-click: toggle the pocket function on/off (writes to player's PocketState).
+ * Right-click: open storage GUI (store/retrieve items). Shift+right-click: toggle overlay collapsed/expanded.
  * Tooltip shows current upgrade counts and switch state (read from client cache).
  */
 public class ItemDimensionalPocket extends Item {
@@ -45,14 +44,12 @@ public class ItemDimensionalPocket extends Item {
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (player.isSneaking()) {
             if (world.isRemote) {
-                // Client-side optimistic toggle for snappy feedback; server confirms via sync.
-                boolean next = !PocketClientCache.isEnabled();
-                PocketClientCache.setEnabled(next);
-                String msg = next ? StatCollector.translateToLocal("adm.pocket.toggle.on")
-                    : StatCollector.translateToLocal("adm.pocket.toggle.off");
+                boolean next = !PocketClientCache.isCollapsed();
+                PocketClientCache.setCollapsed(next);
+                String msg = next ? StatCollector.translateToLocal("adm.pocket.collapse.on")
+                    : StatCollector.translateToLocal("adm.pocket.collapse.off");
                 player.addChatMessage(new ChatComponentText(EnumChatFormatting.AQUA + msg));
-                // Send action to server so it persists and broadcasts.
-                AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.toggleEnabled());
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.setCollapsed(next));
             }
         } else {
             // Open the storage GUI on the SERVER side. In 1.7.10 Forge, only a server-side
@@ -82,7 +79,6 @@ public class ItemDimensionalPocket extends Item {
         int slots = Math.min(PocketState.SLOTS_PER_PAGE_CAP, 1 + Math.min(space, PocketState.MAX_SPACE_UPGRADES - 2));
         int pages = PocketState.BASE_PAGES
             + (space >= PocketState.MAX_SPACE_UPGRADES ? Math.min(page, PocketState.MAX_PAGE_UPGRADES) : 0);
-        boolean enabled = PocketClientCache.isEnabled();
 
         tooltip.add(
             EnumChatFormatting.GRAY + String.format(
@@ -96,11 +92,6 @@ public class ItemDimensionalPocket extends Item {
                 page,
                 PocketState.MAX_PAGE_UPGRADES,
                 pages));
-        String stateStr = enabled ? StatCollector.translateToLocal("adm.label.on")
-            : StatCollector.translateToLocal("adm.label.off");
-        tooltip.add(
-            EnumChatFormatting.GRAY
-                + String.format(StatCollector.translateToLocal("adm.tooltip.pocket.stats_enabled"), stateStr));
         super.addInformation(stack, player, tooltip, advanced);
     }
 

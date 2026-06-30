@@ -16,6 +16,15 @@ public final class PocketUpgradeRules {
 
     private PocketUpgradeRules() {}
 
+    public static boolean hasStoredItems(PocketState state) {
+        return state != null && state.hasStoredItems();
+    }
+
+    /** When the pocket holds any item, no upgrade card may be removed. */
+    public static boolean canRemoveUpgradeCards(PocketState state) {
+        return !hasStoredItems(state);
+    }
+
     public static int computeMinSpaceUpgrades(PocketState state) {
         if (state == null) return 0;
         int maxItemsInAnyPage = 0;
@@ -41,7 +50,8 @@ public final class PocketUpgradeRules {
     }
 
     public static boolean canRemoveSpaceUpgrade(PocketState state, int amountToRemove) {
-        if (state == null) return false;
+        if (state == null || amountToRemove <= 0) return false;
+        if (!canRemoveUpgradeCards(state)) return false;
         int current = state.getSpaceUpgrades();
         int remaining = current - amountToRemove;
         int minForItems = computeMinSpaceUpgrades(state);
@@ -54,7 +64,8 @@ public final class PocketUpgradeRules {
     }
 
     public static boolean canRemovePageUpgrade(PocketState state, int amountToRemove) {
-        if (state == null) return false;
+        if (state == null || amountToRemove <= 0) return false;
+        if (!canRemoveUpgradeCards(state)) return false;
         int current = state.getPageUpgrades();
         int min = computeMinPageUpgrades(state);
         return (current - amountToRemove) >= min;
@@ -77,8 +88,15 @@ public final class PocketUpgradeRules {
     }
 
     public static boolean canRemoveStackUpgrade(PocketState state, int amountToRemove) {
-        if (state == null) return false;
+        if (state == null || amountToRemove <= 0) return false;
+        if (!canRemoveUpgradeCards(state)) return false;
         return state.getStackUpgrades() >= amountToRemove;
+    }
+
+    public static boolean canRemoveInfiniteStackUpgrade(PocketState state) {
+        if (state == null) return false;
+        if (!canRemoveUpgradeCards(state)) return false;
+        return state.isInfiniteStackUpgrade();
     }
 
     public static boolean canAddInfiniteStackUpgrade(PocketState state) {

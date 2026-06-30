@@ -7,6 +7,7 @@
   "client": [
     "MixinGuiScreen",
     "MixinGuiContainer",
+    "MixinPocketDrawSlotOverlay",
     "GuiScreenTooltipAccess",
     "MixinNeiRenderToolTips",
     "MixinNeiLayoutManager",

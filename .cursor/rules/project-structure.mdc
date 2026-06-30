@@ -35,16 +35,16 @@ alwaysApply: true
 | `blocks/` | 5 | 自定义方块（监视器 / 链接器 / 挂索节点） |
 | `tileentity/` | 5+2 | TileEntity（含 `IOwnableTile` 接口工具） |
 | `gui/` | 35 | GUI 组件与界面（`custom/` / `guiscreen/` / `manual/` / `container/` / `handler/`），详见 `gui-guidelines.mdc` |
-| `handler/` | 28 | 事件处理器与服务端逻辑（挂索 / 星空剑 / 口袋 / 扫描器 / 编织元件） |
+| `handler/` | 29 | 事件处理器与服务端逻辑（挂索 / 星空剑 / 口袋 / 扫描器 / 编织元件） |
 | `entity/` | 8 | 实体类 only（不含 Render） |
 | `renders/` | 33 | 全部客户端渲染（TESR / 实体 Render / 物品 Render / HUD / 手册页面） |
 | `network/` | 24 | 网络通信（19 packet + 5 handler），详见 `network-packets.mdc` |
 | `voice/` | 9 | 语音识别（Vosk / HTTP STT / 音频处理） |
 | `loader/` | 9 | 注册加载器（Block / Item / TE / Entity / Handler / Gui / Render / Network / Recipe） |
-| `client/` | 18 | 客户端事件与缓存（挂索 / 口袋 / AI 偏好 / 按键） |
+| `client/` | 20 | 客户端事件与缓存（挂索 / 口袋 / AI 偏好 / 按键） |
 | `command/` | 2 | 命令（`/admassistant`、`/admai`） |
 | `utils/` | 10 | 工具类（NBT / JSON / `BlockPos` / 校验等） |
-| `mixin/` | 6 | Mixin 注入（仅客户端：GUI / NEI 兼容 / tooltip Invoker） |
+| `mixin/` | 7 | Mixin 注入（仅客户端：GUI / NEI 兼容 / tooltip Invoker / 口袋角标） |
 
 ## 资源文件 (src/main/resources/assets/advancedatamonitor/)
 

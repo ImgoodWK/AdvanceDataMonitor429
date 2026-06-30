@@ -2,6 +2,7 @@ package com.imgood.advancedatamonitor.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ResourceLocation;
 
@@ -52,6 +53,33 @@ public final class PocketPortalGuiRenderer {
     /** Pocket slot grid origin within a {@link com.imgood.advancedatamonitor.gui.guiscreen.GuiPocketStorage} panel. */
     public static final int STORAGE_SLOT_ORIGIN_X = 8;
     public static final int STORAGE_SLOT_ORIGIN_Y = 18;
+    /** Extra gap between pocket grid and player inventory (1.5 slot rows). */
+    public static final int STORAGE_PLAYER_INV_EXTRA_Y = CELL_SIZE + CELL_SIZE / 2;
+    public static final int STORAGE_PAGE_ARROW_W = 10;
+    public static final int STORAGE_CONFIG_BTN_W = 40;
+    public static final int STORAGE_CONFIG_BTN_H = 11;
+    public static final int CONFIG_UPGRADE_ORIGIN_X = 18;
+    /** One {@link #CONFIG_LINE_HEIGHT} below legacy Y=22. */
+    public static final int CONFIG_UPGRADE_ORIGIN_Y = 31;
+    /** One line below legacy row-2 Y=54. */
+    public static final int CONFIG_UPGRADE_ROW2_Y = 63;
+    public static final int CONFIG_UPGRADE_COL_STEP = 22;
+    public static final int CONFIG_LINE_HEIGHT = 9;
+    public static final int CONFIG_TOGGLE_BTN_W = 24;
+    public static final int CONFIG_TOGGLE_BTN_H = 11;
+    public static final int CONFIG_COLLAPSE_BTN_X = 128;
+    /** Two lines below legacy Y=18. */
+    public static final int CONFIG_COLLAPSE_BTN_Y = 36;
+    public static final int CONFIG_PLAYER_INV_Y = 126;
+    private static final int STORAGE_HEADER_ARROW_GAP = 3;
+    private static final int STORAGE_HEADER_EDGE_PAD = 8;
+    private static final int LABEL_BACKDROP = 0xC0101828;
+    private static final int LABEL_BACKDROP_PAD_X = 4;
+    private static final int LABEL_BACKDROP_PAD_Y = 2;
+    private static final int PAGE_ARROW_FILL_ENABLED = 0x4A7098E0;
+    private static final int PAGE_ARROW_FILL_DISABLED = 0x28709880;
+    private static final int PAGE_ARROW_RIM_ENABLED = 0x5588AAFF;
+    private static final int PAGE_ARROW_RIM_DISABLED = 0x4088AA60;
 
     private static final ResourceLocation CHEST_GUI_TEXTURE = new ResourceLocation(
         "minecraft",
@@ -488,7 +516,67 @@ public final class PocketPortalGuiRenderer {
     /** Player inventory strip Y — fixed below the max-size pocket grid. */
     public static int storagePlayerInventoryOriginY() {
         int rows = (maxDisplaySlots() + 8) / 9;
-        return STORAGE_SLOT_ORIGIN_Y + rows * CELL_SIZE + 14;
+        return STORAGE_SLOT_ORIGIN_Y + rows * CELL_SIZE + 14 + STORAGE_PLAYER_INV_EXTRA_Y;
+    }
+
+    private static final int SIMPLE_PANEL_BG = 0xF0141C2C;
+    private static final int SIMPLE_SECTION_BG = 0xE01A2438;
+    private static final int SIMPLE_SECTION_BORDER = 0xFF4466AA;
+    private static final int SIMPLE_SLOT_FILL = 0xFF2A3344;
+    private static final int SIMPLE_SLOT_HIGHLIGHT = 0xFF5A6A88;
+    private static final int SIMPLE_SLOT_SHADOW = 0xFF1A2030;
+
+    /** Procedural slot cell — no texture atlas. */
+    public static void drawSimpleSlotCell(int x, int y) {
+        Gui.drawRect(x, y, x + CELL_SIZE, y + CELL_SIZE, SIMPLE_SLOT_FILL);
+        Gui.drawRect(x, y, x + CELL_SIZE, y + 1, SIMPLE_SLOT_HIGHLIGHT);
+        Gui.drawRect(x, y, x + 1, y + CELL_SIZE, SIMPLE_SLOT_HIGHLIGHT);
+        Gui.drawRect(x + CELL_SIZE - 1, y, x + CELL_SIZE, y + CELL_SIZE, SIMPLE_SLOT_SHADOW);
+        Gui.drawRect(x, y + CELL_SIZE - 1, x + CELL_SIZE, y + CELL_SIZE, SIMPLE_SLOT_SHADOW);
+    }
+
+    public static void drawSimpleSlotGrid(int originX, int originY, int cols, int rows) {
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                drawSimpleSlotCell(originX + col * CELL_SIZE, originY + row * CELL_SIZE);
+            }
+        }
+    }
+
+    /**
+     * Upgrade-config GUI background: flat panel, upgrade section, 2x2 upgrade slots,
+     * and player inventory slot grid (no portal / vanilla chest textures).
+     */
+    public static void drawSimpleConfigBackground(int guiLeft, int guiTop) {
+        int guiW = 176;
+        int guiH = 222;
+        Gui.drawRect(guiLeft, guiTop, guiLeft + guiW, guiTop + guiH, SIMPLE_PANEL_BG);
+
+        int sectionX1 = guiLeft + 6;
+        int sectionY1 = guiTop + 8;
+        int sectionX2 = guiLeft + 170;
+        int sectionY2 = guiTop + CONFIG_PLAYER_INV_Y - 6;
+        Gui.drawRect(sectionX1, sectionY1, sectionX2, sectionY2, SIMPLE_SECTION_BG);
+        Gui.drawRect(sectionX1, sectionY1, sectionX2, sectionY1 + 1, SIMPLE_SECTION_BORDER);
+        Gui.drawRect(sectionX1, sectionY2 - 1, sectionX2, sectionY2, SIMPLE_SECTION_BORDER);
+        Gui.drawRect(sectionX1, sectionY1, sectionX1 + 1, sectionY2, SIMPLE_SECTION_BORDER);
+        Gui.drawRect(sectionX2 - 1, sectionY1, sectionX2, sectionY2, SIMPLE_SECTION_BORDER);
+
+        int[][] upgradeSlots = new int[][] {
+            { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ORIGIN_Y },
+            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ORIGIN_Y },
+            { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ROW2_Y },
+            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ROW2_Y },
+        };
+        for (int i = 0; i < upgradeSlots.length; i++) {
+            drawSimpleSlotCell(guiLeft + upgradeSlots[i][0], guiTop + upgradeSlots[i][1]);
+        }
+
+        int playerX = guiLeft + STORAGE_SLOT_ORIGIN_X;
+        int playerY = guiTop + CONFIG_PLAYER_INV_Y;
+        int hotbarY = guiTop + 184;
+        drawSimpleSlotGrid(playerX, playerY, 9, 3);
+        drawSimpleSlotGrid(playerX, hotbarY, 9, 1);
     }
 
     /** Vanilla single inventory slot cell from {@code inventory.png}. */
@@ -531,8 +619,193 @@ public final class PocketPortalGuiRenderer {
     public static void drawStorageRift(int guiLeft, int guiTop, int unlockedSlots) {
         int gridX = guiLeft + STORAGE_SLOT_ORIGIN_X;
         int gridY = guiTop + STORAGE_SLOT_ORIGIN_Y;
-        drawGridPortalRift(gridX, gridY);
-        drawSlotGrid(gridX, gridY, unlockedSlots);
+        double phase = overlayAnimationPhase();
+        drawOverlayGridPortalRift(gridX, gridY, phase);
+        drawOverlaySlotGrid(gridX, gridY, unlockedSlots, phase);
+    }
+
+    /** Portal rift + animated slot outlines for the 2x2 upgrade grid in the config GUI. */
+    public static void drawConfigUpgradePortal(int guiLeft, int guiTop) {
+        double phase = overlayAnimationPhase();
+        int pad = 8;
+        int x1 = guiLeft + CONFIG_UPGRADE_ORIGIN_X - pad;
+        int y1 = guiTop + CONFIG_UPGRADE_ORIGIN_Y - pad;
+        int x2 = guiLeft + CONFIG_UPGRADE_ORIGIN_X + CELL_SIZE + CONFIG_UPGRADE_COL_STEP + CELL_SIZE + pad;
+        int y2 = guiTop + CONFIG_UPGRADE_ROW2_Y + CELL_SIZE + pad;
+        drawLabelBackdrop(x1, y1, x2, y2);
+        int[][] slotPos = new int[][] {
+            { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ORIGIN_Y },
+            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ORIGIN_Y },
+            { CONFIG_UPGRADE_ORIGIN_X, CONFIG_UPGRADE_ROW2_Y },
+            { CONFIG_UPGRADE_ORIGIN_X + CONFIG_UPGRADE_COL_STEP, CONFIG_UPGRADE_ROW2_Y },
+        };
+        for (int i = 0; i < slotPos.length; i++) {
+            int sx = guiLeft + slotPos[i][0];
+            int sy = guiTop + slotPos[i][1];
+            drawOverlayGridPortalRift(sx, sy, phase);
+            drawOverlaySlotGrid(sx, sy, 1, phase);
+        }
+    }
+
+    /** Player inventory strip for config GUI — same portal-toned frame as storage. */
+    public static void drawConfigPlayerInventoryBackground(int guiLeft, int guiTop) {
+        int slotX = guiLeft + STORAGE_SLOT_ORIGIN_X;
+        int playerY = guiTop + CONFIG_PLAYER_INV_Y;
+        int hotbarY = playerY + 3 * CELL_SIZE + 4;
+        int gridW = gridPixelWidth();
+        int framePad = 3;
+        int glowPad = 2;
+        int frameX = slotX - framePad;
+        int frameY = playerY - framePad;
+        int frameW = gridW + framePad * 2;
+        int frameH = hotbarY - playerY + CELL_SIZE + framePad * 2;
+        double phase = animationPhase();
+        drawAnimatedGradientFrame(frameX - glowPad, frameY - glowPad, frameW + glowPad * 2, frameH + glowPad * 2, phase);
+        drawAnimatedGradientSlotGrid(slotX, playerY, 9, 3, phase, 0);
+        drawAnimatedGradientSlotGrid(slotX, hotbarY, 9, 1, phase, 27);
+    }
+
+    public static void drawPortalStyleButton(Minecraft mc, int x, int y, int width, int height, String label) {
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        int btnH = Math.max(height, lineH + 2);
+        drawLabelBackdrop(
+            x - LABEL_BACKDROP_PAD_X,
+            y - LABEL_BACKDROP_PAD_Y,
+            x + width + LABEL_BACKDROP_PAD_X,
+            y + btnH + LABEL_BACKDROP_PAD_Y);
+        Gui.drawRect(x, y, x + width, y + btnH, PAGE_ARROW_RIM_ENABLED);
+        Gui.drawRect(x + 1, y + 1, x + width - 1, y + btnH - 1, PAGE_ARROW_FILL_ENABLED);
+        int textW = mc.fontRenderer.getStringWidth(label);
+        mc.fontRenderer.drawStringWithShadow(
+            label,
+            x + (width - textW) / 2,
+            y + (btnH - lineH) / 2,
+            0xFFFFFF);
+    }
+
+    public static boolean hitsPortalStyleButton(int x, int y, int width, int height, int mouseX, int mouseY) {
+        int btnH = Math.max(height, 9 + 2);
+        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + btnH;
+    }
+
+    /** Header chrome for {@link com.imgood.advancedatamonitor.gui.guiscreen.GuiPocketStorage}. */
+    public static final class StorageHeaderLayout {
+        public int lineY;
+        public int titleY;
+        public int leftArrowX;
+        public int rightArrowX;
+        public int pageTextX;
+        public int pageTextY;
+        public String pageText;
+    }
+
+    public static StorageHeaderLayout computeStorageHeaderLayout(
+        Minecraft mc, int guiLeft, int guiTop, int guiWidth, int currentPage, int pageCount) {
+        StorageHeaderLayout layout = new StorageHeaderLayout();
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        layout.lineY = guiTop + (OVERLAY_TITLE_HEIGHT - lineH) / 2;
+        layout.titleY = layout.lineY;
+        layout.pageText = I18n.format("adm.label.pocket.pageFooter", currentPage + 1, pageCount);
+        int pageTextWidth = mc.fontRenderer.getStringWidth(layout.pageText);
+        int groupRight = guiLeft + guiWidth - STORAGE_HEADER_EDGE_PAD;
+        layout.rightArrowX = groupRight - STORAGE_PAGE_ARROW_W;
+        layout.pageTextX = layout.rightArrowX - STORAGE_HEADER_ARROW_GAP - pageTextWidth;
+        layout.leftArrowX = layout.pageTextX - STORAGE_HEADER_ARROW_GAP - STORAGE_PAGE_ARROW_W;
+        layout.pageTextY = layout.lineY;
+        return layout;
+    }
+
+    public static void drawStorageHeader(
+        Minecraft mc, int guiLeft, StorageHeaderLayout header, boolean canPrev, boolean canNext) {
+        drawOverlayStyleTitle(mc, guiLeft + STORAGE_SLOT_ORIGIN_X, header.titleY, I18n.format("adm.title.pocketOverlay"));
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        drawLabelBackdrop(
+            header.leftArrowX - LABEL_BACKDROP_PAD_X,
+            header.lineY - LABEL_BACKDROP_PAD_Y,
+            header.rightArrowX + STORAGE_PAGE_ARROW_W + LABEL_BACKDROP_PAD_X,
+            header.lineY + lineH + LABEL_BACKDROP_PAD_Y);
+        drawPageArrowButton(mc, header.leftArrowX, header.lineY, true, canPrev);
+        drawPageArrowButton(mc, header.rightArrowX, header.lineY, false, canNext);
+        mc.fontRenderer.drawStringWithShadow(header.pageText, header.pageTextX, header.pageTextY, 0xAACCFF);
+    }
+
+    public static boolean hitsStoragePageArrow(
+        StorageHeaderLayout header, int mouseX, int mouseY, boolean left, int lineH) {
+        int x = left ? header.leftArrowX : header.rightArrowX;
+        return mouseX >= x && mouseX < x + STORAGE_PAGE_ARROW_W
+            && mouseY >= header.lineY && mouseY < header.lineY + lineH;
+    }
+
+    public static void drawStorageUpgradeButton(Minecraft mc, int x, int y, String label) {
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        int btnH = Math.max(STORAGE_CONFIG_BTN_H, lineH + 2);
+        drawLabelBackdrop(
+            x - LABEL_BACKDROP_PAD_X,
+            y - LABEL_BACKDROP_PAD_Y,
+            x + STORAGE_CONFIG_BTN_W + LABEL_BACKDROP_PAD_X,
+            y + btnH + LABEL_BACKDROP_PAD_Y);
+        Gui.drawRect(x, y, x + STORAGE_CONFIG_BTN_W, y + btnH, PAGE_ARROW_RIM_ENABLED);
+        Gui.drawRect(x + 1, y + 1, x + STORAGE_CONFIG_BTN_W - 1, y + btnH - 1, PAGE_ARROW_FILL_ENABLED);
+        int textW = mc.fontRenderer.getStringWidth(label);
+        mc.fontRenderer.drawStringWithShadow(
+            label,
+            x + (STORAGE_CONFIG_BTN_W - textW) / 2,
+            y + (btnH - lineH) / 2,
+            0xFFFFFF);
+    }
+
+    public static boolean hitsStorageUpgradeButton(int x, int y, int mouseX, int mouseY) {
+        int btnH = Math.max(STORAGE_CONFIG_BTN_H, 9 + 2);
+        return mouseX >= x && mouseX < x + STORAGE_CONFIG_BTN_W
+            && mouseY >= y && mouseY < y + btnH;
+    }
+
+    public static void drawOverlayStyleTitle(Minecraft mc, int x, int y, String text) {
+        if (text == null || text.isEmpty()) return;
+        int totalWidth = mc.fontRenderer.getStringWidth(text);
+        drawLabelBackdrop(
+            x - LABEL_BACKDROP_PAD_X,
+            y - LABEL_BACKDROP_PAD_Y,
+            x + totalWidth + LABEL_BACKDROP_PAD_X,
+            y + mc.fontRenderer.FONT_HEIGHT + LABEL_BACKDROP_PAD_Y);
+        drawAnimatedGradientTitle(mc, x, y, text);
+    }
+
+    private static void drawLabelBackdrop(int x1, int y1, int x2, int y2) {
+        Gui.drawRect(x1, y1, x2, y2, LABEL_BACKDROP);
+    }
+
+    private static void drawAnimatedGradientTitle(Minecraft mc, int x, int y, String text) {
+        if (text == null || text.isEmpty()) return;
+        double phase = (Minecraft.getSystemTime() % 3000L) / 3000.0 * Math.PI * 2.0;
+        int offset = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            double wave = Math.sin(phase + i * 0.55);
+            float blend = (float) ((wave + 1.0) * 0.5);
+            int r = (int) (0x55 + (0xCC - 0x55) * blend);
+            int g = (int) (0x88 + (0x55 - 0x88) * blend);
+            int b = 0xFF;
+            int color = (r << 16) | (g << 8) | b;
+            String segment = String.valueOf(ch);
+            mc.fontRenderer.drawStringWithShadow(segment, x + offset, y, color);
+            offset += mc.fontRenderer.getCharWidth(ch);
+        }
+    }
+
+    private static void drawPageArrowButton(Minecraft mc, int x, int y, boolean left, boolean enabled) {
+        int lineH = mc.fontRenderer.FONT_HEIGHT;
+        int rim = enabled ? PAGE_ARROW_RIM_ENABLED : PAGE_ARROW_RIM_DISABLED;
+        int fill = enabled ? PAGE_ARROW_FILL_ENABLED : PAGE_ARROW_FILL_DISABLED;
+        Gui.drawRect(x, y, x + STORAGE_PAGE_ARROW_W, y + lineH, rim);
+        Gui.drawRect(x + 1, y + 1, x + STORAGE_PAGE_ARROW_W - 1, y + lineH - 1, fill);
+        String glyph = left ? "<" : ">";
+        int glyphW = mc.fontRenderer.getStringWidth(glyph);
+        mc.fontRenderer.drawStringWithShadow(
+            glyph,
+            x + (STORAGE_PAGE_ARROW_W - glyphW) / 2,
+            y + (lineH - mc.fontRenderer.FONT_HEIGHT) / 2,
+            enabled ? 0xFFFFFF : 0x808080);
     }
 
     /** Vanilla player inventory + hotbar strip for the storage GUI lower half. */

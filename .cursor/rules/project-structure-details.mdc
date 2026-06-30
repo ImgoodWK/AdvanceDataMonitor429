@@ -126,7 +126,7 @@ alwaysApply: false
 - **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`、`POCKET_CONFIG_GUI_ID`、`POCKET_STORAGE_GUI_ID`）
 
-### handler/ — 事件处理器与物品服务端逻辑 (28 文件)
+### handler/ — 事件处理器与物品服务端逻辑 (29 文件)
 - `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理）
 - `HandlerLoot.java` — 战利品事件（SuperOrange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
 - `HandlerPlayerJoin.java` — 玩家首次加入事件（赠送手册物品 + NBT标记）
@@ -138,7 +138,7 @@ alwaysApply: false
 - `StarrySwordSpawnScheduler.java` — 星空剑技能实体生成调度
 - **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
 - `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
-- **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player JSON 存储单例）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
+- **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player JSON 存储单例）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketSlotInteraction.java`（存储 GUI 与悬浮窗共享的槽位点击逻辑）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
 
 ### entity/ — 实体类 only (8 文件，不含 Render)
 - `EntitySuperOrangeDrone.java` — 超能砂糖桔无人机
@@ -189,7 +189,7 @@ alwaysApply: false
 ### loader/ — 注册加载器 (9 文件)
 - `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java`
 
-### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (18 文件)
+### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (20 文件)
 - `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
 - `KeyBindings.java` — O/P/H 快捷键（AI聊天/计划器/HUD切换）
 - `HandlerGrappleClient.java` — 挂索 Shift 取消 / 右键移动（客户端输入）
@@ -205,6 +205,8 @@ alwaysApply: false
 - `PocketOverlayHandler.java` — 次元口袋客户端事件中枢（覆层渲染 + 鼠标路由；右键打开的 `GuiPocketStorage` / `GuiDimensionalPocketConfig` 上不显示浮窗）
 - `PocketPortalGuiRenderer.java` — 传送门 9-slice 面板渲染（`textures/gui/pocket_portal_panel.png`，随升级格数缩放）
 - `GuiPocketOverlay.java` — 次元口袋悬浮窗（传送门边框 + 原版 inventory 槽位；拖动/翻页/收起）
+- `PocketStackSizeFormat.java` — 口袋槽位数量角标格式化（1K / 1M / 1G，对齐 SNL 便携无尽箱）
+- `PocketStackOverlayRenderer.java` — 悬浮窗物品 + 角标渲染
 
 ### command/ — 命令 (2 文件)
 - `CommandAssistant.java` — `/admassistant` 命令
@@ -220,9 +222,10 @@ alwaysApply: false
 - `ModLogFiles.java` — 模组日志文件路径
 - `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
 
-### mixin/ — Mixin 注入 (6 文件，仅客户端)
+### mixin/ — Mixin 注入 (7 文件，仅客户端)
 - `MixinGuiScreen.java` / `MixinGuiContainer.java` — GUI 输入/容器钩子
-- `GuiScreenTooltipAccess.java` — Invoker：`GuiScreen.drawHoveringText`（悬浮窗槽位 tooltip 走 GTNH 样式 hook）
+- `MixinPocketDrawSlotOverlay.java` — 口袋存储 GUI 槽位角标 K/M/G 格式化（对齐 SNL 便携无尽箱）
+- `GuiScreenTooltipAccess.java` — Invoker：`GuiScreen.renderToolTip` / `drawHoveringText`（悬浮窗槽位 tooltip 与容器槽位同路径）
 - `MixinNeiRenderToolTips.java` / `MixinNeiLayoutManager.java` / `MixinNeiItemZoom.java` — NEI tooltip/布局兼容
 - 配置：`src/main/resources/mixins.advancedatamonitor.json`
 

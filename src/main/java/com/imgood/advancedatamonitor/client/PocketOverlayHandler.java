@@ -5,7 +5,10 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.item.ItemStack;
 
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
+
+import com.imgood.advancedatamonitor.client.PocketStackSizeFormat;
 
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiDimensionalPocketConfig;
 import com.imgood.advancedatamonitor.gui.guiscreen.GuiPocketStorage;
@@ -79,8 +82,7 @@ public class PocketOverlayHandler {
         GuiScreen screen = mc.currentScreen;
         boolean shouldShow = screen instanceof GuiContainer
             && !isPocketNativeGui(screen)
-            && ItemDimensionalPocket.hasPocketInInventory(mc.thePlayer)
-            && PocketClientCache.isEnabled();
+            && ItemDimensionalPocket.hasPocketInInventory(mc.thePlayer);
 
         if (shouldShow) {
             ensureOverlay((GuiContainer) screen);
@@ -141,11 +143,16 @@ public class PocketOverlayHandler {
         int cx = mouseX - 8;
         int cy = mouseY - 8;
         net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         net.minecraft.client.gui.Gui.drawRect(cx, cy, cx + 16, cy + 16, 0x00000000);
         net.minecraft.client.renderer.entity.RenderItem renderItem = new net.minecraft.client.renderer.entity.RenderItem();
         renderItem.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy);
-        renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy);
+        String overlay = PocketStackSizeFormat.formatOverlayText(cursor.stackSize);
+        renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), cursor, cx, cy, overlay);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
     }
@@ -206,8 +213,12 @@ public class PocketOverlayHandler {
         if (slotInPage >= 0) {
             int page = PocketClientCache.getCurrentPage();
             ItemStack cursorStack = mc.thePlayer.inventory.getItemStack();
+            boolean shift = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
             if (evButton == 0) {
-                if (cursorStack != null) {
+                if (shift && cursorStack == null) {
+                    com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
+                        .sendToServer(PacketPocketAction.quickWithdraw(page, slotInPage));
+                } else if (cursorStack != null) {
                     com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
                         .sendToServer(PacketPocketAction.depositFromCursor(page, slotInPage));
                 } else {
@@ -221,7 +232,7 @@ public class PocketOverlayHandler {
                             .sendToServer(PacketPocketAction.quickDeposit(page, slotInPage));
                     } else {
                         com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
-                            .sendToServer(PacketPocketAction.quickWithdraw(page, slotInPage));
+                            .sendToServer(PacketPocketAction.withdrawToCursor(page, slotInPage));
                     }
                 } else {
                     com.imgood.advancedatamonitor.AdvanceDataMonitor.ADMCHANEL
