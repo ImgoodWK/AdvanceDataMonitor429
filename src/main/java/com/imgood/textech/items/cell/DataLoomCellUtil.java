@@ -539,7 +539,8 @@ public final class DataLoomCellUtil {
 
     /**
      * ME drive slot holding this handler's cell, or chest slot {@code 0}. Returns {@code -1} when unknown.
-     * Does not assign {@link #NBT_INSTANCE_ID} on {@code cellStack} — AE often passes a copy unrelated to the drive slot.
+     * Does not assign {@link #NBT_INSTANCE_ID} on {@code cellStack} — AE often passes a copy unrelated to the drive
+     * slot.
      */
     public static int resolveHostSlot(ItemStack cellStack, ISaveProvider saveProvider) {
         if (cellStack == null || saveProvider == null) {
@@ -594,7 +595,8 @@ public final class DataLoomCellUtil {
         ensureInstanceId(liveStack);
         long liveId = readInstanceId(liveStack);
         if (liveId != 0L) {
-            DataLoomCellStorage.getOrCreateTag(handlerStack).setLong(NBT_INSTANCE_ID, liveId);
+            DataLoomCellStorage.getOrCreateTag(handlerStack)
+                .setLong(NBT_INSTANCE_ID, liveId);
         }
         if (liveStack.hasTagCompound()) {
             handlerStack.setTagCompound(
@@ -681,13 +683,15 @@ public final class DataLoomCellUtil {
         }
         if (tag.hasKey(NBT_CONFIG_LIST, 10)) {
             signature.append(":list=")
-                .append(tag.getCompoundTag(NBT_CONFIG_LIST)
-                    .toString());
+                .append(
+                    tag.getCompoundTag(NBT_CONFIG_LIST)
+                        .toString());
         }
         if (tag.hasKey("upgrades", 10)) {
             signature.append(":upgrades=")
-                .append(tag.getCompoundTag("upgrades")
-                    .toString());
+                .append(
+                    tag.getCompoundTag("upgrades")
+                        .toString());
         }
         return signature.toString();
     }

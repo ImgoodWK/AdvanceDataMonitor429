@@ -1,9 +1,7 @@
 package com.imgood.textech.entity;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.entity.Entity;
@@ -23,21 +21,21 @@ import cpw.mods.fml.common.registry.IEntityAdditionalSpawnData;
 import io.netty.buffer.ByteBuf;
 
 /**
- * Spawns falling sword models around an impact point for five seconds.
- * Empyrean Holy Judgment rain: one sword at a time, hover, homing to unique hostile targets within 1 chunk.
+ * Spawns falling swords around an impact point for five seconds.
+ * Targeted rain (Empyrean / non-HolyJudgment): scans chunk-radius for hostile mobs and drops swords above their heads.
+ * Legacy rain: random scatter within radius.
  */
 public class EntityStarrySwordRainField extends Entity implements IEntityAdditionalSpawnData {
 
     public static final int DURATION = 100;
     private static final float RADIUS = 5.0F;
-    private static final int CHUNK_TARGET_RADIUS = 1;
+    private static final int TARGET_CHUNK_RADIUS = 1;
     private static final Random RANDOM = new Random();
 
     private UUID ownerId;
     private int spawnCooldown;
     private double groundY;
-    private boolean homingRain;
-    private final Set<Integer> assignedTargetIds = new HashSet<Integer>();
+    private boolean targetedRain;
 
     public EntityStarrySwordRainField(World world) {
         super(world);
@@ -46,62 +44,29 @@ public class EntityStarrySwordRainField extends Entity implements IEntityAdditio
     }
 
     public EntityStarrySwordRainField(World world, ThrownImpactPoint impact, EntityLivingBase owner) {
-        this(world, impact, owner, isEmpyreanRainOwner(owner));
+        this(world, impact, owner, isTargetedRainOwner(owner));
     }
 
     public EntityStarrySwordRainField(World world, ThrownImpactPoint impact, EntityLivingBase owner,
-        boolean homingRain) {
+        boolean targetedRain) {
         this(world);
         posX = impact.x;
         posZ = impact.z;
         groundY = impact.groundY;
         posY = groundY;
-        this.homingRain = homingRain;
+        this.targetedRain = targetedRain;
         if (owner != null) {
             ownerId = owner.getUniqueID();
         }
     }
 
-    public static boolean isEmpyreanRainOwner(EntityLivingBase owner) {
+    public static boolean isTargetedRainOwner(EntityLivingBase owner) {
         if (!(owner instanceof EntityPlayer)) {
             return true;
         }
         ItemStack held = ((EntityPlayer) owner).getHeldItem();
         return held != null && held.getItem() instanceof ItemStarryCosmosSword
             && !(held.getItem() instanceof ItemHolyJudgment);
-    }
-
-    /**
-     * Picks the nearest unassigned hostile mob within {@link #CHUNK_TARGET_RADIUS} chunks of the rain center.
-     */
-    public EntityLivingBase acquireRainTarget() {
-        if (worldObj.isRemote) {
-            return null;
-        }
-        List<EntityLivingBase> candidates = StarryEntityMotionUtil
-            .collectHostileInChunkAreaAt(worldObj, posX, posZ, CHUNK_TARGET_RADIUS, this);
-        EntityLivingBase best = null;
-        double bestDistSq = Double.MAX_VALUE;
-        for (EntityLivingBase living : candidates) {
-            if (living == null || living.isDead) {
-                continue;
-            }
-            int id = living.getEntityId();
-            if (assignedTargetIds.contains(id)) {
-                continue;
-            }
-            double dx = living.posX - posX;
-            double dz = living.posZ - posZ;
-            double distSq = dx * dx + dz * dz;
-            if (distSq < bestDistSq) {
-                bestDistSq = distSq;
-                best = living;
-            }
-        }
-        if (best != null) {
-            assignedTargetIds.add(best.getEntityId());
-        }
-        return best;
     }
 
     @Override
@@ -134,30 +99,51 @@ public class EntityStarrySwordRainField extends Entity implements IEntityAdditio
         if (spawnCooldown > 0) {
             return;
         }
-        spawnCooldown = homingRain ? 5 + RANDOM.nextInt(4) : 2 + RANDOM.nextInt(3);
+        spawnCooldown = targetedRain ? 5 + RANDOM.nextInt(4) : 2 + RANDOM.nextInt(3);
 
         EntityLivingBase owner = resolveOwner();
-        if (homingRain) {
-            double angle = RANDOM.nextDouble() * Math.PI * 2.0D;
-            double dist = RANDOM.nextDouble() * RADIUS;
-            double sx = posX + Math.cos(angle) * dist;
-            double sz = posZ + Math.sin(angle) * dist;
-            double sy = groundY + 8.0D + RANDOM.nextDouble() * 6.0D;
-            EntityStarrySwordRain rain = new EntityStarrySwordRain(worldObj, sx, sy, sz, owner, getEntityId(), true);
-            worldObj.spawnEntityInWorld(rain);
+
+        if (targetedRain) {
+            List<EntityLivingBase> targets = StarryEntityMotionUtil
+                .collectHostileInChunkAreaAt(worldObj, posX, posZ, TARGET_CHUNK_RADIUS, this);
+
+            if (targets.isEmpty()) {
+                // Fallback: random legacy rain
+                int batch = 1 + RANDOM.nextInt(2);
+                for (int i = 0; i < batch; i++) {
+                    randomLegacySword(owner);
+                }
+                return;
+            }
+
+            // Drop one sword above each hostile mob
+            for (EntityLivingBase target : targets) {
+                if (target == null || target.isDead) {
+                    continue;
+                }
+                double sx = target.posX;
+                double sy = target.posY + target.height + 8.0D + RANDOM.nextDouble() * 4.0D;
+                double sz = target.posZ;
+                EntityStarrySwordRain rain = new EntityStarrySwordRain(worldObj, sx, sy, sz, owner);
+                worldObj.spawnEntityInWorld(rain);
+            }
             return;
         }
 
         int batch = 1 + RANDOM.nextInt(2);
         for (int i = 0; i < batch; i++) {
-            double angle = RANDOM.nextDouble() * Math.PI * 2.0D;
-            double dist = RANDOM.nextDouble() * RADIUS;
-            double sx = posX + Math.cos(angle) * dist;
-            double sz = posZ + Math.sin(angle) * dist;
-            double sy = groundY + 8.0D + RANDOM.nextDouble() * 6.0D;
-            EntityStarrySwordRain rain = new EntityStarrySwordRain(worldObj, sx, sy, sz, owner);
-            worldObj.spawnEntityInWorld(rain);
+            randomLegacySword(owner);
         }
+    }
+
+    private void randomLegacySword(EntityLivingBase owner) {
+        double angle = RANDOM.nextDouble() * Math.PI * 2.0D;
+        double dist = RANDOM.nextDouble() * RADIUS;
+        double sx = posX + Math.cos(angle) * dist;
+        double sz = posZ + Math.sin(angle) * dist;
+        double sy = groundY + 8.0D + RANDOM.nextDouble() * 6.0D;
+        EntityStarrySwordRain rain = new EntityStarrySwordRain(worldObj, sx, sy, sz, owner);
+        worldObj.spawnEntityInWorld(rain);
     }
 
     private EntityLivingBase resolveOwner() {
@@ -170,7 +156,7 @@ public class EntityStarrySwordRainField extends Entity implements IEntityAdditio
     @Override
     protected void readEntityFromNBT(NBTTagCompound tag) {
         groundY = tag.getDouble("GroundY");
-        homingRain = !tag.hasKey("HomingRain") || tag.getBoolean("HomingRain");
+        targetedRain = tag.getBoolean("HomingRain");
         if (tag.hasKey("Owner")) {
             ownerId = UUID.fromString(tag.getString("Owner"));
         }
@@ -179,7 +165,7 @@ public class EntityStarrySwordRainField extends Entity implements IEntityAdditio
     @Override
     protected void writeEntityToNBT(NBTTagCompound tag) {
         tag.setDouble("GroundY", groundY);
-        tag.setBoolean("HomingRain", homingRain);
+        tag.setBoolean("HomingRain", targetedRain);
         if (ownerId != null) {
             tag.setString("Owner", ownerId.toString());
         }
@@ -190,7 +176,7 @@ public class EntityStarrySwordRainField extends Entity implements IEntityAdditio
         buf.writeDouble(posX);
         buf.writeDouble(posZ);
         buf.writeDouble(groundY);
-        buf.writeBoolean(homingRain);
+        buf.writeBoolean(targetedRain);
         if (ownerId == null) {
             buf.writeBoolean(false);
         } else {
@@ -205,7 +191,7 @@ public class EntityStarrySwordRainField extends Entity implements IEntityAdditio
         posX = buf.readDouble();
         posZ = buf.readDouble();
         groundY = buf.readDouble();
-        homingRain = buf.readBoolean();
+        targetedRain = buf.readBoolean();
         posY = groundY;
         if (buf.readBoolean()) {
             ownerId = new UUID(buf.readLong(), buf.readLong());

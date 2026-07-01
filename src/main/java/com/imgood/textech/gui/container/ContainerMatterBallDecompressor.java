@@ -55,8 +55,7 @@ public class ContainerMatterBallDecompressor extends Container {
         int playerInvY = 18 + 9 * 18 + 14;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlotToContainer(
-                    new Slot(playerInventory, col + row * 9 + 9, 26 + col * 18, playerInvY + row * 18));
+                addSlotToContainer(new Slot(playerInventory, col + row * 9 + 9, 26 + col * 18, playerInvY + row * 18));
             }
         }
         for (int col = 0; col < 9; col++) {

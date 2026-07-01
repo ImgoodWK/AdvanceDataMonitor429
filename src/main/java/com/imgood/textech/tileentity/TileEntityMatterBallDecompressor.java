@@ -36,8 +36,7 @@ import io.netty.buffer.ByteBuf;
 /**
  * AE matter-ball decompressor: extracts items from Avaritia matter clusters into the network or a local buffer.
  */
-public class TileEntityMatterBallDecompressor extends AENetworkTile
-    implements IActionHost, IAEAppEngInventory {
+public class TileEntityMatterBallDecompressor extends AENetworkTile implements IActionHost, IAEAppEngInventory {
 
     public static final int INPUT_SLOTS = 9;
     public static final int BUFFER_SLOTS = 81;

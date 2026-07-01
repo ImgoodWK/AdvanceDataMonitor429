@@ -224,8 +224,7 @@ public class GuiDimensionalPocketConfig extends GuiContainer {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        if (mouseButton == 0
-            && PocketPortalGuiRenderer.hitsConfigBackButton(backBtnX, backBtnY, mouseX, mouseY)) {
+        if (mouseButton == 0 && PocketPortalGuiRenderer.hitsConfigBackButton(backBtnX, backBtnY, mouseX, mouseY)) {
             AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketPocketAction.openStorageGui());
             return;
         }

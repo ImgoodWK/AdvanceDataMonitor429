@@ -91,8 +91,8 @@ public class ItemSuperOrange extends Item {
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List<String> tooltip, boolean advanced) {
         tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("adm.super_orange.tooltip.title"));
-        tooltip.add(
-            EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.open_config"));
+        tooltip
+            .add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.open_config"));
         tooltip.add(
             EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.toggle_drone"));
         tooltip.add("");

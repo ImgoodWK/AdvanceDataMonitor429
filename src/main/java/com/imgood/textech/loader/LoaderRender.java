@@ -22,8 +22,8 @@ import com.imgood.textech.renders.RenderAdvanceStorageLink;
 import com.imgood.textech.renders.RenderController;
 import com.imgood.textech.renders.RenderDataImprintItem;
 import com.imgood.textech.renders.RenderGrappleAnchor;
-import com.imgood.textech.renders.RenderMatterBallDecompressor;
 import com.imgood.textech.renders.RenderGrappleSlide;
+import com.imgood.textech.renders.RenderMatterBallDecompressor;
 import com.imgood.textech.renders.RenderStarrySwordLineSlash;
 import com.imgood.textech.renders.RenderStarrySwordRain;
 import com.imgood.textech.renders.RenderStarrySwordSlam;
@@ -58,9 +58,8 @@ public class LoaderRender {
         ClientRegistry
             .bindTileEntitySpecialRenderer(TileEntityAdvanceCraftingLink.class, new RenderAdvanceCraftingLink());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityGrappleAnchor.class, new RenderGrappleAnchor());
-        ClientRegistry.bindTileEntitySpecialRenderer(
-            TileEntityMatterBallDecompressor.class,
-            new RenderMatterBallDecompressor());
+        ClientRegistry
+            .bindTileEntitySpecialRenderer(TileEntityMatterBallDecompressor.class, new RenderMatterBallDecompressor());
         RenderController.registerRenderer("line", new LineChartRenderer());
         RenderController.registerRenderer("crafting", new CraftingInfoRenderer());
         RenderController.registerRenderer("storage", new StorageInfoRenderer());

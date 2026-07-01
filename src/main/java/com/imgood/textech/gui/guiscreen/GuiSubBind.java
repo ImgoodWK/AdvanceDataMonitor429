@@ -190,9 +190,8 @@ public class GuiSubBind extends ADM_GuiScreen {
 
                 int newIndex = tileEntity.findNextAvailableBindingIndex();
                 if (newIndex < 0) {
-                    errorTips = I18n.format(
-                        "adm.error.data_bindings_full",
-                        TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS);
+                    errorTips = I18n
+                        .format("adm.error.data_bindings_full", TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS);
                     return;
                 }
 

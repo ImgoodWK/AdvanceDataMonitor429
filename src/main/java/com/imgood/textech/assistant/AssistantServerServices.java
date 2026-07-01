@@ -27,8 +27,8 @@ import net.minecraftforge.fluids.FluidStack;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.handler.HandlerTick;
-import com.imgood.textech.network.packet.PacketAssistantResponse;
 import com.imgood.textech.network.packet.PacketAssistantMenuStateResponse;
+import com.imgood.textech.network.packet.PacketAssistantResponse;
 import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
@@ -36,6 +36,7 @@ import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
+import appeng.api.config.SecurityPermissions;
 import appeng.api.implementations.tiles.IChestOrDrive;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridHost;
@@ -48,7 +49,6 @@ import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.security.BaseActionSource;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.security.PlayerSource;
-import appeng.api.networking.security.SecurityPermissions;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ICellInventoryHandler;
@@ -2676,7 +2676,7 @@ public final class AssistantServerServices {
             if (security == null) {
                 return true;
             }
-            return security.hasPermission(player, SecurityPermissions.DEPOSIT);
+            return security.hasPermission(player, SecurityPermissions.INJECT);
         } catch (Exception ignored) {
             return true;
         }

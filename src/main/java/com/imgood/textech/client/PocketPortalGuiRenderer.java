@@ -262,7 +262,7 @@ public final class PocketPortalGuiRenderer {
             if (alpha < 4) continue;
             float waveShift = (float) (Math.sin(phase + band * 0.9) * 3.0 * OVERLAY_RIPPLE_SCALE);
             int color = gradientArgb((float) band / bandCount, alpha);
-            Gui.drawRect(x + 6 + (int) waveShift, by, x + w - 6 + (int) waveShift, by + 2, color);
+            Gui.drawRect(x + 4 + (int) waveShift, by, x + w - 4 + (int) waveShift, by + 2, color);
         }
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);

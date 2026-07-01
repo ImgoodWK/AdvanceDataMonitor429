@@ -36,8 +36,9 @@ public class PacketSuperOrangeConfig implements IMessage {
         int nameLen = Math.min(customName.length(), 64);
         buf.writeInt(nameLen);
         if (nameLen > 0) {
-            buf.writeBytes(customName.substring(0, nameLen)
-                .getBytes(java.nio.charset.Charset.forName("UTF-8")));
+            buf.writeBytes(
+                customName.substring(0, nameLen)
+                    .getBytes(java.nio.charset.Charset.forName("UTF-8")));
         }
         buf.writeBoolean(matterBallEnabled);
         buf.writeBoolean(pickupMatterBallEnabled);

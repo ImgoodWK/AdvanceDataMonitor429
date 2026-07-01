@@ -3,9 +3,9 @@ package com.imgood.textech.gui.guiscreen;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -496,7 +496,8 @@ public class GuiAIChat extends ADM_GuiScreen {
                 if (!this.history.isEmpty()) {
                     ChatEntry last = this.history.get(this.history.size() - 1);
                     if ("assistant".equals(last.role) && last.content != null
-                        && (last.content.startsWith("=== \u529f\u80fd\u83dc\u5355") || last.content.startsWith("=== Feature Menu"))) {
+                        && (last.content.startsWith("=== \u529f\u80fd\u83dc\u5355")
+                            || last.content.startsWith("=== Feature Menu"))) {
                         this.history.remove(this.history.size() - 1);
                     }
                 }
@@ -544,8 +545,7 @@ public class GuiAIChat extends ADM_GuiScreen {
                         String reason;
                         if (!cachedMenuState.isFeatureAvailable(connector)) {
                             reason = I18n.format("adm.ai.menu.unavailable.no_connector")
-                                + AssistantFeatureConfig.getConnectorLabel(connector, currentLocale()
-                                    .startsWith("zh"));
+                                + AssistantFeatureConfig.getConnectorLabel(connector, currentLocale().startsWith("zh"));
                         } else {
                             reason = I18n.format("adm.ai.menu.unavailable.no_permission");
                         }
@@ -1219,7 +1219,6 @@ public class GuiAIChat extends ADM_GuiScreen {
         public String getContent() {
             return content;
         }
-    }
 
         private boolean hasCandidates() {
             return this.candidates != null && !this.candidates.isEmpty();

@@ -67,8 +67,12 @@ public class CosmicStarrySwordRenderer implements IItemRenderer {
                 GL11.glDisable(GL11.GL_ALPHA_TEST);
                 GL11.glDisable(GL11.GL_DEPTH_TEST);
 
-                mc.getTextureManager().bindTexture(TextureMap.locationItemsTexture);
-                drawInventoryIcon(item, item.getItem().getIcon(item, 0));
+                mc.getTextureManager()
+                    .bindTexture(TextureMap.locationItemsTexture);
+                drawInventoryIcon(
+                    item,
+                    item.getItem()
+                        .getIcon(item, 0));
 
                 if (item.getItem() instanceof ICosmicRenderItem) {
                     ICosmicRenderItem icri = (ICosmicRenderItem) item.getItem();
@@ -83,7 +87,8 @@ public class CosmicStarrySwordRenderer implements IItemRenderer {
                 }
 
                 if (item.hasEffect(0)) {
-                    RenderItem.getInstance().renderEffect(mc.getTextureManager(), 0, 0);
+                    RenderItem.getInstance()
+                        .renderEffect(mc.getTextureManager(), 0, 0);
                 }
 
                 GL11.glEnable(GL11.GL_ALPHA_TEST);
@@ -209,7 +214,8 @@ public class CosmicStarrySwordRenderer implements IItemRenderer {
             return;
         }
 
-        int color = stack.getItem().getColorFromItemStack(stack, 0);
+        int color = stack.getItem()
+            .getColorFromItemStack(stack, 0);
         float r = (float) (color >> 16 & 255) / 255.0F;
         float g = (float) (color >> 8 & 255) / 255.0F;
         float b = (float) (color & 255) / 255.0F;

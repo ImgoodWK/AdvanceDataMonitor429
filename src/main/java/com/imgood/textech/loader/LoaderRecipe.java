@@ -5,10 +5,9 @@ import java.util.List;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.oredict.OreDictionary;
-
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.oredict.OreDictionary;
 
 import cpw.mods.fml.common.Optional;
 import gregtech.api.enums.GTValues;
@@ -233,7 +232,9 @@ public class LoaderRecipe {
         final int SCAN_TIME = 90;
 
         ItemStack plateNeutronium = getOreAny("plateNeutronium", new ItemStack(Blocks.iron_block));
-        ItemStack circuitUltimate = getOreAny("circuitUltimate", getOreAny("circuitSuperconductor", new ItemStack(Items.comparator)));
+        ItemStack circuitUltimate = getOreAny(
+            "circuitUltimate",
+            getOreAny("circuitSuperconductor", new ItemStack(Items.comparator)));
         ItemStack crystalFluix = getOreAny("crystalFluix", new ItemStack(Items.quartz));
         ItemStack screwNeutronium = getOreAny(
             "screwNeutronium",

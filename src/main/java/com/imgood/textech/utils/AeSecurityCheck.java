@@ -11,11 +11,11 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.textech.AdvanceDataMonitor;
 
+import appeng.api.config.SecurityPermissions;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.security.ISecurityGrid;
-import appeng.api.networking.security.SecurityPermissions;
 
 /**
  * AE2 security terminal permission checks for custom blocks. When a player
@@ -87,8 +87,8 @@ public final class AeSecurityCheck {
      * Returns true when the block was rejected (caller should skip further
      * initialization), false when placement is allowed.
      */
-    public static boolean rejectIfUnauthorized(World world, int x, int y, int z, Block block,
-        EntityLivingBase placer, String localizedDenialMessage) {
+    public static boolean rejectIfUnauthorized(World world, int x, int y, int z, Block block, EntityLivingBase placer,
+        String localizedDenialMessage) {
         if (world == null || world.isRemote) {
             return false;
         }
@@ -99,7 +99,7 @@ public final class AeSecurityCheck {
         // security-enforced rejection of unauthorized network attachments.
         int meta = world.getBlockMetadata(x, y, z);
         try {
-            block.dropBlockAsItem(world, x, y, z, meta);
+            block.dropBlockAsItemWithChance(world, x, y, z, meta, 1.0f, 0);
         } catch (Exception ignored) {
             AdvanceDataMonitor.LOG.warn("[TeXTech] Failed to drop block as item during AE security rejection", ignored);
         }

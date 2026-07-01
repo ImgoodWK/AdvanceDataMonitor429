@@ -47,13 +47,7 @@ public class BlockMatterBallDecompressor extends BlockContainer {
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
         float hitY, float hitZ) {
         if (!world.isRemote) {
-            player.openGui(
-                AdvanceDataMonitor.instance,
-                GuiHandler.MATTER_BALL_DECOMPRESSOR_GUI_ID,
-                world,
-                x,
-                y,
-                z);
+            player.openGui(AdvanceDataMonitor.instance, GuiHandler.MATTER_BALL_DECOMPRESSOR_GUI_ID, world, x, y, z);
         }
         return true;
     }

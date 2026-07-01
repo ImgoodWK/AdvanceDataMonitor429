@@ -24,26 +24,10 @@ public class AssistantIntentService {
      * command.
      */
     private AssistantIntent parseHudIntent(String raw, String normalized) {
-        if (containsAnyText(
-            normalized,
-            "打开hud",
-            "显示hud",
-            "显示对话",
-            "打开对话",
-            "open hud",
-            "show hud",
-            "show chat")) {
+        if (containsAnyText(normalized, "打开hud", "显示hud", "显示对话", "打开对话", "open hud", "show hud", "show chat")) {
             return new AssistantIntent(AssistantIntentType.HUD_OPEN, raw, "", 0, -1);
         }
-        if (containsAnyText(
-            normalized,
-            "关闭hud",
-            "隐藏hud",
-            "隐藏对话",
-            "关闭对话",
-            "close hud",
-            "hide hud",
-            "hide chat")) {
+        if (containsAnyText(normalized, "关闭hud", "隐藏hud", "隐藏对话", "关闭对话", "close hud", "hide hud", "hide chat")) {
             return new AssistantIntent(AssistantIntentType.HUD_CLOSE, raw, "", 0, -1);
         }
         if (containsAnyText(normalized, "上一页", "前页", "往前翻", "previous page", "prev page", "page back")) {

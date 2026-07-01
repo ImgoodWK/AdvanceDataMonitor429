@@ -98,9 +98,7 @@ public class ItemDataImprint extends Item {
                 if (nextIndex < 0) {
                     player.addChatMessage(
                         new ChatComponentText(
-                            "§c数据显示器数据已满（最多"
-                                + TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS
-                                + "条），无法添加新数据。"));
+                            "§c数据显示器数据已满（最多" + TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS + "条），无法添加新数据。"));
                     return;
                 }
 

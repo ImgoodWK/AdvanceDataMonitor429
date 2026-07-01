@@ -85,8 +85,16 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
         buttonList.add(toggleButton(BUTTON_MATTER, centerX - 180, centerY + 18, 118, matterBallLabel()));
         buttonList.add(toggleButton(BUTTON_PICKUP, centerX - 56, centerY + 18, 118, pickupMatterBallLabel()));
         buttonList.add(toggleButton(BUTTON_DROP, centerX + 68, centerY + 18, 118, dropMatterBallLabel()));
-        buttonList.add(actionButton(BUTTON_SAVE, centerX - 60, centerY + 72, I18n.format("adm.button.save"), 0x00FF00, 0x55FF55));
-        buttonList.add(actionButton(BUTTON_CANCEL, centerX + 10, centerY + 72, I18n.format("adm.button.cancel"), 0xFF5555, 0xFF0000));
+        buttonList.add(
+            actionButton(BUTTON_SAVE, centerX - 60, centerY + 72, I18n.format("adm.button.save"), 0x00FF00, 0x55FF55));
+        buttonList.add(
+            actionButton(
+                BUTTON_CANCEL,
+                centerX + 10,
+                centerY + 72,
+                I18n.format("adm.button.cancel"),
+                0xFF5555,
+                0xFF0000));
     }
 
     private ADM_GuiButton toggleButton(int id, int x, int y, int width, String label) {
@@ -140,8 +148,9 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
 
     private void saveConfig() {
         try {
-            int multiplier = Integer.parseInt(multiplierField.getText()
-                .trim());
+            int multiplier = Integer.parseInt(
+                multiplierField.getText()
+                    .trim());
             int max = Math.max(1, Config.superOrangeDropMultiplierMax);
             if (multiplier < 1 || multiplier > max) {
                 errorTips = I18n.format("adm.error.super_orange.multiplier_range", max);
@@ -185,7 +194,12 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
         super.drawScreen(mouseX, mouseY, partialTicks);
         int centerX = width / 2;
         int centerY = height / 2;
-        drawCenteredString(fontRendererObj, I18n.format("adm.title.superOrangeConfig"), centerX, centerY - 82, 0x00FFFF);
+        drawCenteredString(
+            fontRendererObj,
+            I18n.format("adm.title.superOrangeConfig"),
+            centerX,
+            centerY - 82,
+            0x00FFFF);
         drawString(
             fontRendererObj,
             I18n.format("adm.label.super_orange.rename"),

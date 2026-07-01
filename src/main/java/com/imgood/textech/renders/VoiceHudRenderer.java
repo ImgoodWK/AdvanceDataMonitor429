@@ -33,7 +33,11 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 public class VoiceHudRenderer {
 
     private enum HudState {
-        HIDDEN, ACTIVE_MANUAL, ACTIVE_AUTO, RECORDING, TRANSCRIBING
+        HIDDEN,
+        ACTIVE_MANUAL,
+        ACTIVE_AUTO,
+        RECORDING,
+        TRANSCRIBING
     }
 
     private static final int ENTRIES_PER_PAGE = 6;
@@ -187,7 +191,7 @@ public class VoiceHudRenderer {
         // Determine the entries for the current page.
         // Page 0 = newest (last ENTRIES_PER_PAGE entries).
         // Page n = the ENTRIES_PER_PAGE entries starting at
-        //   (totalEntries - (currentPage + 1) * ENTRIES_PER_PAGE).
+        // (totalEntries - (currentPage + 1) * ENTRIES_PER_PAGE).
         int totalEntries = cachedRoles.size();
         int pageEndExclusive = totalEntries - currentPage * ENTRIES_PER_PAGE;
         int pageStart = Math.max(0, pageEndExclusive - ENTRIES_PER_PAGE);
