@@ -38,8 +38,10 @@ alwaysApply: false
 | 19 | `PacketPocketAction` | `ServerHandler` | SERVER | 次元口袋 C→S 动作（开关/翻页/拖动/升级） |
 | 20 | `PacketPocketAction` | `ClientHandler` | CLIENT | 次元口袋动作响应（保留，当前空实现） |
 | 21 | `PacketPocketSync` | `ClientHandler` | CLIENT | 次元口袋状态/物品栏下发（全量或单页） |
+| 22 | `PacketSuperOrangeConfig` | `Handler` | SERVER | 超能砂糖桔设置 GUI 保存 |
+| 23 | `PacketMatterBallDecompressorToggle` | `Handler` | SERVER | 物质球解压器输出模式/阻塞模式切换 |
 
-**下一个可用 ID = 22**
+**下一个可用 ID = 24**
 
 ## 新增 Packet 接入步骤
 

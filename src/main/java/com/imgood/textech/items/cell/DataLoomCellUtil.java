@@ -539,53 +539,157 @@ public final class DataLoomCellUtil {
 
     /**
      * ME drive slot holding this handler's cell, or chest slot {@code 0}. Returns {@code -1} when unknown.
+     * Does not assign {@link #NBT_INSTANCE_ID} on {@code cellStack} — AE often passes a copy unrelated to the drive slot.
      */
     public static int resolveHostSlot(ItemStack cellStack, ISaveProvider saveProvider) {
         if (cellStack == null || saveProvider == null) {
             return -1;
         }
-        if (saveProvider instanceof TileChest) {
-            return 0;
-        }
-        if (!(saveProvider instanceof TileDrive)) {
+        IInventory inv = resolveHostInventory(saveProvider);
+        if (inv == null) {
             return -1;
         }
-        IInventory inv = ((TileDrive) saveProvider).getInternalInventory();
-        for (int slot = 0; slot < inv.getSizeInventory(); slot++) {
+        int slotCount = inv.getSizeInventory();
+        for (int slot = 0; slot < slotCount; slot++) {
             if (inv.getStackInSlot(slot) == cellStack) {
                 return slot;
             }
         }
         long instanceId = readInstanceId(cellStack);
         if (instanceId != 0L) {
-            for (int slot = 0; slot < inv.getSizeInventory(); slot++) {
+            for (int slot = 0; slot < slotCount; slot++) {
                 ItemStack candidate = inv.getStackInSlot(slot);
                 if (candidate != null && readInstanceId(candidate) == instanceId) {
                     return slot;
                 }
             }
         }
+        int signatureSlot = matchHostSlotByCellSignature(cellStack, inv);
+        if (signatureSlot >= 0) {
+            return signatureSlot;
+        }
+        int soleLoomSlot = -1;
+        int loomCount = 0;
+        for (int slot = 0; slot < slotCount; slot++) {
+            ItemStack candidate = inv.getStackInSlot(slot);
+            if (candidate != null && candidate.getItem() != null && isDataLoomCell(candidate.getItem())) {
+                loomCount++;
+                soleLoomSlot = slot;
+            }
+        }
+        if (loomCount == 1) {
+            return soleLoomSlot;
+        }
         return -1;
+    }
+
+    /**
+     * When AE builds a cell handler from a stack copy, mirror the live drive/chest stack identity and NBT so
+     * {@link DataLoomWeaveEngine} writes remain visible in ME terminals.
+     */
+    public static void syncHandlerStackFromLive(ItemStack handlerStack, ItemStack liveStack) {
+        if (handlerStack == null || liveStack == null || handlerStack == liveStack) {
+            return;
+        }
+        ensureInstanceId(liveStack);
+        long liveId = readInstanceId(liveStack);
+        if (liveId != 0L) {
+            DataLoomCellStorage.getOrCreateTag(handlerStack).setLong(NBT_INSTANCE_ID, liveId);
+        }
+        if (liveStack.hasTagCompound()) {
+            handlerStack.setTagCompound(
+                (NBTTagCompound) liveStack.getTagCompound()
+                    .copy());
+        }
     }
 
     /** Read the authoritative cell stack from its ME host inventory slot. */
     public static ItemStack resolveLiveCellStack(ItemStack handlerStack, ISaveProvider saveProvider, int hostSlot) {
-        if (saveProvider instanceof TileDrive && hostSlot >= 0) {
-            IInventory inv = ((TileDrive) saveProvider).getInternalInventory();
-            if (hostSlot < inv.getSizeInventory()) {
-                ItemStack live = inv.getStackInSlot(hostSlot);
-                if (live != null && isDataLoomCell(live.getItem())) {
-                    return live;
-                }
-            }
-        } else if (saveProvider instanceof TileChest) {
-            ItemStack live = ((TileChest) saveProvider).getInternalInventory()
-                .getStackInSlot(0);
-            if (live != null && isDataLoomCell(live.getItem())) {
-                return live;
-            }
+        if (handlerStack == null || saveProvider == null) {
+            return handlerStack;
+        }
+        int slot = hostSlot >= 0 ? hostSlot : resolveHostSlot(handlerStack, saveProvider);
+        ItemStack live = readHostStackAt(saveProvider, slot);
+        if (live != null && live.getItem() != null && isDataLoomCell(live.getItem())) {
+            syncHandlerStackFromLive(handlerStack, live);
+            return live;
         }
         return handlerStack;
+    }
+
+    private static IInventory resolveHostInventory(ISaveProvider saveProvider) {
+        if (saveProvider instanceof TileChest) {
+            return ((TileChest) saveProvider).getInternalInventory();
+        }
+        if (saveProvider instanceof TileDrive) {
+            return ((TileDrive) saveProvider).getInternalInventory();
+        }
+        return null;
+    }
+
+    private static ItemStack readHostStackAt(ISaveProvider saveProvider, int slot) {
+        IInventory inv = resolveHostInventory(saveProvider);
+        if (inv == null) {
+            return null;
+        }
+        int hostSlot = saveProvider instanceof TileChest ? 0 : slot;
+        if (hostSlot < 0 || hostSlot >= inv.getSizeInventory()) {
+            return null;
+        }
+        return inv.getStackInSlot(hostSlot);
+    }
+
+    /** Match a handler copy to a drive slot using item id + workbench partition signature. */
+    private static int matchHostSlotByCellSignature(ItemStack handlerStack, IInventory inv) {
+        String handlerSignature = buildLoomCellSignature(handlerStack);
+        if (handlerSignature.isEmpty()) {
+            return -1;
+        }
+        int matchedSlot = -1;
+        int matchCount = 0;
+        for (int slot = 0; slot < inv.getSizeInventory(); slot++) {
+            ItemStack candidate = inv.getStackInSlot(slot);
+            if (candidate == null || candidate.getItem() == null || !isDataLoomCell(candidate.getItem())) {
+                continue;
+            }
+            if (handlerSignature.equals(buildLoomCellSignature(candidate))) {
+                matchCount++;
+                matchedSlot = slot;
+            }
+        }
+        return matchCount == 1 ? matchedSlot : -1;
+    }
+
+    private static String buildLoomCellSignature(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            return "";
+        }
+        String registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+        if (registryName == null) {
+            registryName = stack.getItem()
+                .getClass()
+                .getName();
+        }
+        if (!stack.hasTagCompound()) {
+            return registryName;
+        }
+        NBTTagCompound tag = stack.getTagCompound();
+        StringBuilder signature = new StringBuilder(registryName);
+        if (tag.hasKey(NBT_INSTANCE_ID)) {
+            signature.append(":id=")
+                .append(tag.getLong(NBT_INSTANCE_ID));
+        }
+        if (tag.hasKey(NBT_CONFIG_LIST, 10)) {
+            signature.append(":list=")
+                .append(tag.getCompoundTag(NBT_CONFIG_LIST)
+                    .toString());
+        }
+        if (tag.hasKey("upgrades", 10)) {
+            signature.append(":upgrades=")
+                .append(tag.getCompoundTag("upgrades")
+                    .toString());
+        }
+        return signature.toString();
     }
 
     /** Resolve a Cell Workbench partition marker to a fluid type (profile-aware). */

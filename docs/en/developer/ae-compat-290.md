@@ -41,7 +41,7 @@ Log example: `[ADM] AE compat profile=LEGACY (source=DEFAULT_LEGACY, detail=pre-
 
 ## Call sites
 
-- `TileEntityAdvanceNetworkLink` / `TileEntityTeXTech` — `AeCompat.cells().accumulateStorageStack`
+- `TileEntityAdvanceNetworkLink` / `TileEntityAdvanceDataMonitor` — `AeCompat.cells().accumulateStorageStack`
 - `AssistantServerServices.classifyCell` — `readItemCellStats` / `readFluidCellStats`
 - `PatternDetailFormatter` — `AeCompat.patternFluids()`
 - `AbstractDataLoomFluidCell` / `DataLoomCellUtil` — config and marker adapters

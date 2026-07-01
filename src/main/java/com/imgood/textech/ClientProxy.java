@@ -19,6 +19,7 @@ import com.imgood.textech.renders.GrappleTravelLineRenderer;
 import com.imgood.textech.renders.OrangeNameplateRenderer;
 import com.imgood.textech.renders.PlannerHudRenderer;
 import com.imgood.textech.renders.SuperOrangeHaloRenderer;
+import com.imgood.textech.renders.VoiceHudRenderer;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -64,6 +65,7 @@ public class ClientProxy extends CommonProxy {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new GrappleRoutePickerHud());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new OrangeNameplateRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new SuperOrangeHaloRenderer());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(VoiceHudRenderer.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(PocketOverlayHandler.instance());
         // TickEvent.ClientTickEvent is an FML bus event, so register there too —otherwise
         // the overlay never updates/renders even when enabled.

@@ -29,7 +29,7 @@ alwaysApply: false
 
 ### 子配置界面（编辑已有数据条目）
 ```java
-public GuiSubXxx(EntityPlayer player, World world, TileEntityTeXTech tileEntity, int index)
+public GuiSubXxx(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity, int index)
 ```
 - `player` / `world` — 用于获取语言设置和世界信息
 - `tileEntity` — 数据源 TileEntity
@@ -37,7 +37,7 @@ public GuiSubXxx(EntityPlayer player, World world, TileEntityTeXTech tileEntity,
 
 ### 新增配置界面（创建新数据条目）
 ```java
-public GuiSubBind(EntityPlayer player, World world, TileEntityTeXTech tileEntity)
+public GuiSubBind(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity)
 ```
 - 无 `index` 参数，因为是新条目。
 

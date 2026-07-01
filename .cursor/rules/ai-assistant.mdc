@@ -407,8 +407,8 @@ class ChatRequestOptions {
 ```
 findAllLinkTiles(player, type, radius=32)
     │
-    ├─ 步骤1: 查找附近 TeXTech 的绑定连接器
-    │         遍历玩家 32 格内的 TileEntityTeXTech
+    ├─ 步骤1: 查找附近数据监视器的绑定连接器
+    │         遍历玩家 32 格内的 TileEntityAdvanceDataMonitor
     │         读取其 DataBound 配置，获取绑定的 Link 坐标
     │
     └─ 步骤2 (fallback): 如果绑定为空

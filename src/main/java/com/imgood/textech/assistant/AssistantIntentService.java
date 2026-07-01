@@ -17,6 +17,45 @@ public class AssistantIntentService {
                 + ")?");
     }
 
+    /**
+     * Parse HUD-control and history-paging intents. These are pure
+     * client-side commands that open/close the voice HUD or page through
+     * the chat history. Returns null if the text does not match any HUD
+     * command.
+     */
+    private AssistantIntent parseHudIntent(String raw, String normalized) {
+        if (containsAnyText(
+            normalized,
+            "打开hud",
+            "显示hud",
+            "显示对话",
+            "打开对话",
+            "open hud",
+            "show hud",
+            "show chat")) {
+            return new AssistantIntent(AssistantIntentType.HUD_OPEN, raw, "", 0, -1);
+        }
+        if (containsAnyText(
+            normalized,
+            "关闭hud",
+            "隐藏hud",
+            "隐藏对话",
+            "关闭对话",
+            "close hud",
+            "hide hud",
+            "hide chat")) {
+            return new AssistantIntent(AssistantIntentType.HUD_CLOSE, raw, "", 0, -1);
+        }
+        if (containsAnyText(normalized, "上一页", "前页", "往前翻", "previous page", "prev page", "page back")) {
+            return new AssistantIntent(AssistantIntentType.HISTORY_PREV, raw, "", 0, -1);
+        }
+        // "翻页" defaults to next page (newer content).
+        if (containsAnyText(normalized, "下一页", "后页", "翻页", "往后翻", "next page", "page next")) {
+            return new AssistantIntent(AssistantIntentType.HISTORY_NEXT, raw, "", 0, -1);
+        }
+        return null;
+    }
+
     private Pattern amountPattern(LexiconData lexicon) {
         return Pattern
             .compile("(" + numberTokenPattern(lexicon) + ")\\s*(" + regexAlternation(lexicon.amountUnits) + ")?");
@@ -33,6 +72,13 @@ public class AssistantIntentService {
         AssistantIntent testIntent = parseTestIntent(raw, normalized, lexicon);
         if (testIntent != null) {
             return testIntent;
+        }
+
+        // HUD control and history paging intents — pure client-side, checked
+        // early so they take priority over AE operation keywords.
+        AssistantIntent hudIntent = parseHudIntent(raw, normalized);
+        if (hudIntent != null) {
+            return hudIntent;
         }
 
         int option = parseOptionNumber(normalized, lexicon);

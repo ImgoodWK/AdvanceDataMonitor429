@@ -15,6 +15,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.gui.guiscreen.GuiAIChat;
 import com.imgood.textech.network.packet.PacketAssistantAction;
+import com.imgood.textech.renders.VoiceHudRenderer;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -412,7 +413,10 @@ public class AssistantController {
             "\u53ef\u4ee5\u63d0\u4ea4",
             "confirm",
             "submit",
-            "continue");
+            "continue",
+            "yes",
+            "ok",
+            "y");
     }
 
     private boolean isPendingBatchMergeText(String prompt) {
@@ -533,6 +537,26 @@ public class AssistantController {
     }
 
     private boolean executeIntent(AssistantIntent intent) {
+        // Check connector availability/permission before executing. When the
+        // client menu state is valid and the feature's required connector is
+        // missing or the AE security terminal denies the player, show a red
+        // reason message instead of sending the request to the server.
+        String connector = getRequiredConnectorForIntent(intent.type);
+        if (connector != null && !"none".equals(connector)) {
+            AssistantMenuState state = GuiAIChat.getCachedMenuState();
+            if (state.isValid() && !state.isFeatureUsable(connector)) {
+                boolean zh = isChineseLocale();
+                String reason;
+                if (!state.isFeatureAvailable(connector)) {
+                    reason = I18n.format("adm.ai.menu.unavailable.no_connector")
+                        + AssistantFeatureConfig.getConnectorLabel(connector, zh);
+                } else {
+                    reason = I18n.format("adm.ai.menu.unavailable.no_permission");
+                }
+                chat.addAssistantMessage("\u00a7c" + reason + "\u00a7r");
+                return true;
+            }
+        }
         switch (intent.type) {
             case TELEPORT:
             case TELEPORT_LIST:
@@ -584,10 +608,66 @@ public class AssistantController {
             case QUERY_BYTES:
                 requestServerQuery(intent);
                 return true;
+            case HISTORY_PREV:
+                VoiceHudRenderer.instance()
+                    .pagePrev();
+                return true;
+            case HISTORY_NEXT:
+                VoiceHudRenderer.instance()
+                    .pageNext();
+                return true;
+            case HUD_OPEN:
+                VoiceHudRenderer.instance()
+                    .openManual();
+                return true;
+            case HUD_CLOSE:
+                VoiceHudRenderer.instance()
+                    .hide();
+                return true;
             default:
                 AdvanceDataMonitor.LOG
                     .info("[ADM Assistant] Falling back to normal AI chat for prompt='{}'", safe(intent.rawText));
                 return false;
+        }
+    }
+
+    /**
+     * Map an intent type to its required connector type for menu/permission
+     * gating. Returns "none" for intents that do not depend on an ADM
+     * connector. This mirrors the {@code requiredConnector} field in
+     * {@code assistant-features.json} but is hardcoded so batch/internal
+     * intents (e.g. ORDER_BATCH) are also gated correctly.
+     */
+    static String getRequiredConnectorForIntent(AssistantIntentType type) {
+        if (type == null) {
+            return "none";
+        }
+        switch (type) {
+            case ORDER_ITEM:
+            case ORDER_BATCH:
+            case QUERY_RECIPE:
+            case QUERY_JOBS:
+                return "crafting";
+            case WITHDRAW_ITEM:
+            case WITHDRAW_BATCH:
+            case QUERY_STORAGE:
+            case QUERY_ITEM_COUNT:
+                return "storage";
+            case QUERY_NETWORK:
+            case QUERY_BYTES:
+                return "network";
+            default:
+                return "none";
+        }
+    }
+
+    private boolean isChineseLocale() {
+        try {
+            String lang = Minecraft.getMinecraft().gameSettings.language;
+            return lang != null && lang.toLowerCase()
+                .startsWith("zh");
+        } catch (Exception ignored) {
+            return false;
         }
     }
 

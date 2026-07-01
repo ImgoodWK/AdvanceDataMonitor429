@@ -13,7 +13,9 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
+import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.gui.handler.GuiHandler;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -30,6 +32,9 @@ public class ItemSuperOrange extends Item {
 
     private static final String NBT_KEY_CUSTOM_NAME = "customDisplayName";
     public static final String NBT_MATTER_BALL_ENABLED = "matterBallEnabled";
+    public static final String NBT_PICKUP_MATTER_BALL_ENABLED = "pickupMatterBallEnabled";
+    public static final String NBT_DROP_MATTER_BALL_ENABLED = "dropMatterBallEnabled";
+    public static final String NBT_DROP_MULTIPLIER = "dropMultiplier";
     public static final String NBT_DRONE_ENABLED = "droneEnabled";
 
     public ItemSuperOrange() {
@@ -55,24 +60,14 @@ public class ItemSuperOrange extends Item {
     @Override
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (world.isRemote) {
+            if (player.isSneaking()) {
+                player.openGui(AdvanceDataMonitor.instance, GuiHandler.SUPER_ORANGE_GUI_ID, world, 0, 0, 0);
+            }
             return stack;
         }
 
         if (player.isSneaking()) {
-            boolean enabled = !isMatterBallEnabled(stack);
-            setMatterBallEnabled(stack, enabled);
-            int multiplier = Math.max(1, Config.superOrangeDropMultiplier);
-            if (enabled && Config.superOrangeDropMultiplierEnabled) {
-                player.addChatMessage(
-                    new ChatComponentText(
-                        EnumChatFormatting.GOLD + StatCollector
-                            .translateToLocalFormatted("adm.super_orange.toggle.matter_ball.on", multiplier)));
-            } else {
-                player.addChatMessage(
-                    new ChatComponentText(
-                        EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocalFormatted("adm.super_orange.toggle.matter_ball.off")));
-            }
+            return stack;
         } else {
             boolean enabled = !isDroneEnabled(stack);
             setDroneEnabled(stack, enabled);
@@ -97,7 +92,7 @@ public class ItemSuperOrange extends Item {
     public void addInformation(ItemStack stack, EntityPlayer player, List<String> tooltip, boolean advanced) {
         tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("adm.super_orange.tooltip.title"));
         tooltip.add(
-            EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.toggle_matter"));
+            EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.open_config"));
         tooltip.add(
             EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.super_orange.tooltip.toggle_drone"));
         tooltip.add("");
@@ -128,7 +123,7 @@ public class ItemSuperOrange extends Item {
     }
 
     private void appendMatterBallLine(ItemStack stack, List<String> tooltip) {
-        int multiplier = Math.max(1, Config.superOrangeDropMultiplier);
+        int multiplier = getDropMultiplier(stack);
         if (!Config.superOrangeDropMultiplierEnabled) {
             tooltip.add(
                 EnumChatFormatting.GRAY + StatCollector
@@ -140,6 +135,14 @@ public class ItemSuperOrange extends Item {
         tooltip.add(
             EnumChatFormatting.GRAY + StatCollector
                 .translateToLocalFormatted("adm.super_orange.tooltip.matter_ball", multiplier, formatState(active)));
+        boolean pickupActive = isPickupMatterBallFeatureActive(stack);
+        tooltip.add(
+            EnumChatFormatting.GRAY + StatCollector
+                .translateToLocalFormatted("adm.super_orange.tooltip.pickup_matter_ball", formatState(pickupActive)));
+        boolean dropActive = isDropMatterBallFeatureActive(stack);
+        tooltip.add(
+            EnumChatFormatting.GRAY + StatCollector
+                .translateToLocalFormatted("adm.super_orange.tooltip.drop_matter_ball", formatState(dropActive)));
     }
 
     private void appendDroneLines(ItemStack stack, List<String> tooltip) {
@@ -234,6 +237,59 @@ public class ItemSuperOrange extends Item {
         getOrCreateNBT(stack).setBoolean(NBT_MATTER_BALL_ENABLED, enabled);
     }
 
+    public static boolean isPickupMatterBallEnabled(ItemStack stack) {
+        if (stack == null) return false;
+        NBTTagCompound nbt = stack.getTagCompound();
+        if (nbt == null || !nbt.hasKey(NBT_PICKUP_MATTER_BALL_ENABLED)) {
+            return true;
+        }
+        return nbt.getBoolean(NBT_PICKUP_MATTER_BALL_ENABLED);
+    }
+
+    public static void setPickupMatterBallEnabled(ItemStack stack, boolean enabled) {
+        if (stack == null || !(stack.getItem() instanceof ItemSuperOrange)) return;
+        getOrCreateNBT(stack).setBoolean(NBT_PICKUP_MATTER_BALL_ENABLED, enabled);
+    }
+
+    public static boolean isDropMatterBallEnabled(ItemStack stack) {
+        if (stack == null) return false;
+        NBTTagCompound nbt = stack.getTagCompound();
+        if (nbt == null || !nbt.hasKey(NBT_DROP_MATTER_BALL_ENABLED)) {
+            return true;
+        }
+        return nbt.getBoolean(NBT_DROP_MATTER_BALL_ENABLED);
+    }
+
+    public static void setDropMatterBallEnabled(ItemStack stack, boolean enabled) {
+        if (stack == null || !(stack.getItem() instanceof ItemSuperOrange)) return;
+        getOrCreateNBT(stack).setBoolean(NBT_DROP_MATTER_BALL_ENABLED, enabled);
+    }
+
+    public static int getDropMultiplier(ItemStack stack) {
+        int configuredDefault = Math.max(1, Config.superOrangeDropMultiplier);
+        int max = Math.max(1, Config.superOrangeDropMultiplierMax);
+        if (stack == null) {
+            return Math.min(configuredDefault, max);
+        }
+        NBTTagCompound nbt = stack.getTagCompound();
+        if (nbt == null || !nbt.hasKey(NBT_DROP_MULTIPLIER)) {
+            return Math.min(configuredDefault, max);
+        }
+        int value = nbt.getInteger(NBT_DROP_MULTIPLIER);
+        if (value < 1) {
+            value = 1;
+        }
+        if (value > max) {
+            value = max;
+        }
+        return value;
+    }
+
+    public static void setDropMultiplier(ItemStack stack, int multiplier) {
+        if (stack == null || !(stack.getItem() instanceof ItemSuperOrange)) return;
+        getOrCreateNBT(stack).setInteger(NBT_DROP_MULTIPLIER, multiplier);
+    }
+
     public static boolean isDroneEnabled(ItemStack stack) {
         if (stack == null) return false;
         NBTTagCompound nbt = stack.getTagCompound();
@@ -252,6 +308,24 @@ public class ItemSuperOrange extends Item {
         return stack != null && stack.getItem() instanceof ItemSuperOrange
             && Config.superOrangeDropMultiplierEnabled
             && isMatterBallEnabled(stack);
+    }
+
+    public static boolean isPickupMatterBallFeatureActive(ItemStack stack) {
+        return isMatterBallFeatureActive(stack) && isPickupMatterBallEnabled(stack);
+    }
+
+    public static boolean isDropMatterBallFeatureActive(ItemStack stack) {
+        return isMatterBallFeatureActive(stack) && isDropMatterBallEnabled(stack);
+    }
+
+    public static boolean isPickupMatterBallActiveForPlayer(EntityPlayer player) {
+        ItemStack stack = findOrangeStack(player);
+        return isPickupMatterBallFeatureActive(stack);
+    }
+
+    public static boolean isDropMatterBallActiveForPlayer(EntityPlayer player) {
+        ItemStack stack = findOrangeStack(player);
+        return isDropMatterBallFeatureActive(stack);
     }
 
     public static boolean isDroneFeatureActive(ItemStack stack) {

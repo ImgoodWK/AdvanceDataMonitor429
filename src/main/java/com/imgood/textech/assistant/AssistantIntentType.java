@@ -29,5 +29,9 @@ public enum AssistantIntentType {
     CLARIFY,
     CHAT,
     QUERY_ITEM_COUNT,
-    QUERY_BYTES
+    QUERY_BYTES,
+    HISTORY_PREV,
+    HISTORY_NEXT,
+    HUD_OPEN,
+    HUD_CLOSE
 }

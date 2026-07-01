@@ -174,7 +174,7 @@ flowchart TD
   - 服务端执行层。负责 AE2 crafting candidates、recipe summary、storage summary、submit craft、batch submit、cancel jobs、plan query。
   - 新增 `queryStorageCandidates()` — 返回带缩略图的存储候选列表（支持 items/fluids scope）。
   - Added `bytesSummary()` — query byte usage/capacity/percentage and detect AE2Things infinite cells via `scanNetworkCellsForInfinite()` + `classifyCell()` (through `compat/ae/AeCompat.cells()`).
-  - 查找玩家附近 32 格内 `TileEntityAdvanceCraftingLink` / `TileEntityAdvanceStorageLink`。
+  - Searches within default 32 blocks of the player (configurable via `assistant.linkSearchRadius`, range 4–128) for `TileEntityAdvanceCraftingLink` / `TileEntityAdvanceStorageLink`.
 
 ### 格式化、辅助、存储和 lexicon
 
@@ -254,7 +254,7 @@ flowchart TD
 - 多个 `ORDER_ITEM` 会转成 `AssistantIntent.orderBatch()`，再请求 batch candidates。
 - `QUERY_STORAGE` 的显式 `storageScope` 会通过 `PacketAssistantAction.query(..., storageScope)` 写入 packet payload，服务端进入 `AssistantServerServices.queryStorageCandidates()`，返回缩略图候选列表（`STORAGE_CANDIDATES` session）。
 - `QUERY_BYTES` 通过 `requestServerQuery()` 发送，服务端调用 `bytesSummary()` 返回格式化文本，包含字节占用/容量/百分比以及无限存储元件检测结果。
-- `WITHDRAW_ITEM` 单任务：调用 `requestWithdrawCandidates()`，服务端通过 `AssistantServerServices.withdrawCandidates()` 搜索 AE2 存储网络（依赖附近 32 格内的 `TileEntityAdvanceStorageLink`）。候选项返回后通过 `confirmOption()` 走 `submitWithdraw()`。
+- Single `WITHDRAW_ITEM` task: calls `requestWithdrawCandidates()`; the server searches the AE2 storage network via `AssistantServerServices.withdrawCandidates()` (requires a nearby `TileEntityAdvanceStorageLink` within default 32 blocks, configurable via `assistant.linkSearchRadius`, range 4–128). After candidates return, `confirmOption()` routes to `submitWithdraw()`.
 - `WITHDRAW_ITEM` 多任务：聚合为 `WITHDRAW_BATCH`，调用 `requestBatchWithdrawCandidates()`，服务端 `AssistantServerServices.batchWithdrawCandidates()` 逐行搜索候选项。确认后走 `submitBatchWithdraw()`，逐行执行取出并转入玩家背包。
 - 取出物品时如果背包空间不足以容纳全部数量，服务端返回 `WithdrawSubmitOutcome(PARTIAL_CONFIRM, ...)`，客户端进入 `WITHDRAW_PARTIAL_CONFIRM` session。用户确认后提交部分取出。
 - 批量取出时如果某一行空间不足会暂停整个批量操作，提示用户先单项确认。
@@ -319,7 +319,7 @@ flowchart TD
 - `QUERY_STORAGE` payload 可包含 `storageScope`；如果存在，handler 调用 `AssistantServerServices.queryStorageCandidates(player, rawText, target, storageScope, locale)`，返回 `PacketAssistantResponse.candidates()` 带 `STORAGE_CANDIDATES` session kind。结果在客户端渲染为缩略图列表，支持输入序号取出物品。
 - `QUERY_BYTES` 通过标准 query 流程，handler 路由到 `AssistantServerServices.query()` → `bytesSummary()`，返回文本消息。
 - 空 target 的 `QUERY_RECIPE` 会返回 recipe candidates，即 `AssistantSessionKind.RECIPE_CANDIDATES`，让用户后续确认某个候选查看详情。
-- `AssistantServerServices` 查找附近 32 格：
+- `AssistantServerServices` searches within default 32 blocks (configurable via `assistant.linkSearchRadius`, range 4–128):
   - crafting：`TileEntityAdvanceCraftingLink`
   - storage：`TileEntityAdvanceStorageLink`
 - server service 当前覆盖：
@@ -380,9 +380,9 @@ flowchart TD
 - 服务端返回多为格式化字符串，不是结构化结果。
 - 物品匹配仍偏 fuzzy contains，短词有误匹配风险。
 - AE2 候选项单次查询总上限由 `assistantMaxQueryCandidates` 控制（默认 20000）；超出会截断并提示。分批大小由 `assistantQueryCandidateBatchSize` 控制（默认 1000）。
-- AE2 查询半径、batch lines 上限等部分参数仍硬编码，例如附近 32 格、batch lines 上限 8。
-- 批量提交按行数占用 AE2 计算槽；重复项如果未合并会占更多槽。
-- 取出物品时背包空间不足会触发部分取出确认流程，但该确认复用 `CONFIRM_OPTION` intent，且只支持中文"确认"关键词。
+- Hard-coded limits remain for some parameters (e.g. batch line cap 8); AE2 link search radius is configurable via `assistant.linkSearchRadius` (default 32, range 4–128).
+- Batch submit consumes AE2 calculation slots per line; unmerged duplicates use more slots.
+- Partial-withdraw confirmation supports bilingual keywords (e.g. 确认 / confirm / yes / ok) via lexicon and `isPendingBatchConfirmText`.
 - 批量取出中某一行需要部分确认时，整个批量操作暂停，不能跳过该行继续后续行。
 - 取出物品依赖 AE2 `extractItems` API，如果存储单元不支持提取（如部分特殊存储），会失败。
 - 无限存储元件检测通过 `AeCompat.cells().readItemCellStats()` / `readFluidCellStats()`（Legacy 路径含 GlodBlock `FluidCellInventoryHandler` 反射）；类名关键词与字节阈值逻辑见 `compat/ae/legacy/LegacyAeCellStatsAdapter`。GTNH 2.9.0+ 使用 Native 路径时见 `docs/en/developer/ae-compat-290.md`。

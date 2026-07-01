@@ -7,19 +7,25 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
 
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+
 import cpw.mods.fml.common.Optional;
 import gregtech.api.enums.GTValues;
+import gregtech.api.enums.Materials;
+import gregtech.api.enums.TierEU;
 import gregtech.api.recipe.RecipeMaps;
+import gregtech.api.util.GTRecipeConstants;
+import gregtech.api.util.recipe.Scanning;
 
 /**
- * Register GTNH Assembler recipes for all AdvanceDataMonitor blocks and items.
- * All recipes are IV-stage (8192 EU/t) requiring tungstensteel, master circuits,
- * and AE2 fluix crystals. No vanilla crafting table recipes.
+ * Register GTNH Assembler (IV) and Assembly Line (UHV) recipes for TeXTech blocks and items.
  */
 public class LoaderRecipe {
 
     public static void registerRecipes() {
         registerAssemblerRecipes();
+        registerAssemblyLineRecipes();
     }
 
     // ========== GTNH Assembler recipes (GregTech required) ==========
@@ -220,6 +226,62 @@ public class LoaderRecipe {
 
     }
 
+    /** UHV Assembly Line recipe for the Matter Ball Decompressor (AE matter cluster extraction). */
+    @Optional.Method(modid = "gregtech")
+    private static void registerAssemblyLineRecipes() {
+        final int DURATION_UHV = 120;
+        final int SCAN_TIME = 90;
+
+        ItemStack plateNeutronium = getOreAny("plateNeutronium", new ItemStack(Blocks.iron_block));
+        ItemStack circuitUltimate = getOreAny("circuitUltimate", getOreAny("circuitSuperconductor", new ItemStack(Items.comparator)));
+        ItemStack crystalFluix = getOreAny("crystalFluix", new ItemStack(Items.quartz));
+        ItemStack screwNeutronium = getOreAny(
+            "screwNeutronium",
+            getOreAny("boltNeutronium", new ItemStack(Items.iron_ingot)));
+        screwNeutronium.stackSize = 8;
+        ItemStack wireFineNaquadah = getOreAny("wireFineNaquadah", new ItemStack(Items.string));
+        wireFineNaquadah.stackSize = 16;
+        ItemStack storageLink = new ItemStack(LoaderBlock.advanceStorageLinkBlock);
+        ItemStack networkLink = new ItemStack(LoaderBlock.advanceNetworkLinkBlock);
+
+        FluidStack solder = Materials.SolderingAlloy.getMolten(5760);
+        FluidStack lubricant = Materials.Lubricant.getFluid(2000);
+        if (solder == null) {
+            solder = getFluidAny("molten.solderingalloy", 5760);
+        }
+        if (lubricant == null) {
+            lubricant = getFluidAny("lubricant", 2000);
+        }
+
+        try {
+            GTValues.RA.stdBuilder()
+                .metadata(GTRecipeConstants.RESEARCH_ITEM, storageLink.copy())
+                .metadata(GTRecipeConstants.SCANNING, new Scanning(SCAN_TIME, TierEU.RECIPE_UV))
+                .itemInputs(
+                    plateNeutronium,
+                    plateNeutronium,
+                    plateNeutronium,
+                    plateNeutronium,
+                    circuitUltimate,
+                    circuitUltimate,
+                    storageLink,
+                    networkLink,
+                    crystalFluix,
+                    crystalFluix,
+                    crystalFluix,
+                    crystalFluix,
+                    screwNeutronium,
+                    screwNeutronium,
+                    wireFineNaquadah,
+                    wireFineNaquadah)
+                .fluidInputs(solder, lubricant)
+                .itemOutputs(new ItemStack(LoaderBlock.matterBallDecompressor))
+                .duration(DURATION_UHV)
+                .eut(TierEU.RECIPE_UHV)
+                .addTo(GTRecipeConstants.AssemblyLine);
+        } catch (Throwable ignored) {}
+    }
+
     /** Fetch one matching OreDict item, or return the fallback if none found. */
     private static ItemStack getOreAny(String oreName, ItemStack fallback) {
         List<ItemStack> ores = OreDictionary.getOres(oreName);
@@ -230,5 +292,12 @@ public class LoaderRecipe {
             return found;
         }
         return fallback.copy();
+    }
+
+    private static FluidStack getFluidAny(String fluidName, int amount) {
+        if (FluidRegistry.isFluidRegistered(fluidName)) {
+            return new FluidStack(FluidRegistry.getFluid(fluidName), amount);
+        }
+        return null;
     }
 }

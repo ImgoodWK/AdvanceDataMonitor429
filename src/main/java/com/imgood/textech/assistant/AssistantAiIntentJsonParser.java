@@ -10,7 +10,7 @@ import com.google.gson.JsonParser;
 
 public class AssistantAiIntentJsonParser {
 
-    public static final int MAX_TASKS = 16;
+    public static final int MAX_TASKS = 8;
     public static final double MIN_CONFIDENCE = 0.5D;
 
     public AssistantIntentPlan parse(String modelOutput) {

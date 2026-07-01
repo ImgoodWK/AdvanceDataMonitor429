@@ -118,6 +118,11 @@ public final class ConfigDescriptions {
             "maxQueryCandidates",
             "Maximum AE2 query candidates returned for one assistant lookup.",
             "单次助手 AE2 查询最多返回的候选项条数。");
+        put(
+            "assistant",
+            "linkSearchRadius",
+            "Block radius around the player when searching for AE2 link blocks (crafting/storage/network).",
+            "助手搜索 AE2 链接方块（合成/存储/网络）时以玩家为中心的水平搜索半径（格）。");
 
         put(
             "plannerHudLimits",
@@ -219,8 +224,13 @@ public final class ConfigDescriptions {
         put(
             "superOrange",
             "dropMultiplier",
-            "Drop multiplier applied when dropMultiplierEnabled is true.",
-            "dropMultiplierEnabled 为 true 时应用的掉落倍率。");
+            "Default per-item drop multiplier for new Super Orange stacks (GUI can override up to dropMultiplierMax).",
+            "新超能砂糖桔默认掉落倍率（GUI 可设置，上限见 dropMultiplierMax）。");
+        put(
+            "superOrange",
+            "dropMultiplierMax",
+            "Maximum per-item drop multiplier configurable in the Super Orange GUI.",
+            "超能砂糖桔 GUI 可设置的最大掉落倍率。");
         put(
             "superOrange",
             "projectileImmunityEnabled",
@@ -251,6 +261,12 @@ public final class ConfigDescriptions {
             "droneFollowHeight",
             "Height offset above the player where the companion drone hovers.",
             "伴生无人机在玩家上方悬浮的高度偏移。");
+
+        put(
+            "matterBallDecompressor",
+            "itemsPerSecond",
+            "Base item decompression rate (items per second) before AE acceleration cards.",
+            "物质球解压器基础解压速率（每秒物品数，未计 AE 加速卡）。");
 
         put(
             "grapple",

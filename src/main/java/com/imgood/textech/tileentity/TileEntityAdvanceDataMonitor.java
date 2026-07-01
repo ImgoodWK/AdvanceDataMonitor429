@@ -47,6 +47,9 @@ import cpw.mods.fml.common.Optional;
  */
 public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnableTile {
 
+    /** Maximum number of data bindings per monitor (GUI list capacity). */
+    public static final int MAX_DATA_BINDINGS = 36;
+
     private String ownerName = "";
 
     private final Map<Integer, NBTTagCompound> dataBoundList = new HashMap<>();
@@ -333,6 +336,13 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         }
     }
 
+    /**
+     * Returns a bound entry without creating placeholder slots.
+     */
+    public NBTTagCompound peekDataBound(int index) {
+        return dataBoundList.get(index);
+    }
+
     public NBTTagCompound getDataBound(int index) {
         NBTTagCompound nbt = dataBoundList.get(index);
         if (nbt == null) {
@@ -340,6 +350,34 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             dataBoundList.put(index, nbt);
         }
         return nbt;
+    }
+
+    public boolean hasBindingAtCoords(int x, int y, int z) {
+        String target = x + "," + y + "," + z;
+        for (NBTTagCompound nbt : dataBoundList.values()) {
+            if (nbt == null || !nbt.hasKey("XYZ")) {
+                continue;
+            }
+            if (target.equals(nbt.getString("XYZ"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the lowest free binding index, or -1 when at {@link #MAX_DATA_BINDINGS}.
+     */
+    public int findNextAvailableBindingIndex() {
+        if (dataBoundList.size() >= MAX_DATA_BINDINGS) {
+            return -1;
+        }
+        for (int i = 0; i < MAX_DATA_BINDINGS; i++) {
+            if (!dataBoundList.containsKey(i)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public void removeDataBound(int index) {
@@ -1117,9 +1155,11 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     }
 
     public int getMinDataInterval() {
-        for (int i = 0; i < getDataBoundCount(); i++) {
-            int interval = getSafeInt(getDataBound(i), "interval", 1);
-            if (interval > 0) return interval;
+        for (NBTTagCompound nbt : dataBoundList.values()) {
+            int interval = getSafeInt(nbt, "interval", 1);
+            if (interval > 0) {
+                return interval;
+            }
         }
         return 1;
     }

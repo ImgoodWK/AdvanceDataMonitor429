@@ -19,7 +19,7 @@ alwaysApply: false
 | `ClientProxy.java` | 客户端代理（按键注册等） |
 | `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
 
-### config/ — 配置分节加载 (10 文件)
+### config/ — 配置分节加载 (11 文件)
 - `ConfigDebugLoader.java` — `[debug]` 通用/GUI 调试开关
 - `ConfigCompatLoader.java` — `[compat]` AE 2.9 兼容 profile 覆盖
 - `ConfigAiLoader.java` / `ConfigAiMutators.java` — `[ai]`
@@ -28,6 +28,7 @@ alwaysApply: false
 - `ConfigPlannerHudLoader.java` — `[plannerHudLimits]`
 - `ConfigDataLoomLoader.java` — 编织元件各节 + `[dataLoomCell]`
 - `ConfigSuperOrangeLoader.java` — `[superOrange]`
+- `ConfigMatterBallDecompressorLoader.java` — `[matterBallDecompressor]`
 - `ConfigGrappleLoader.java` — `[grapple]`
 
 ### compat/ — GTNH / AE2 版本兼容 (20 文件)
@@ -95,7 +96,7 @@ alwaysApply: false
 - `DataLoomCellUpgrades.java` — 仅允许编织增幅卡的升级槽
 - `AbstractDataLoomItemCell.java` / `DataLoomCellUtil.java` / `DustLoomCellConfig.java` / `IWeaveAmplifierCard.java`
 
-### blocks/ — 自定义方块 (5 文件)
+### blocks/ — 自定义方块 (6 文件)
 | 类 | 游戏内名称 (ZH / EN) | lang 键 |
 |----|---------------------|---------|
 | `BlockTeXTech` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
@@ -103,16 +104,19 @@ alwaysApply: false
 | `BlockAdvanceStorageLink` | 高级存储链接器 / Advanced Storage Linker | `tile.StorageLinkBlock.name` |
 | `BlockAdvanceNetworkLink` | 网络链接器 / Network Linker | `tile.NetworkLinkBlock.name` |
 | `BlockGrappleAnchor` | 挂索节点 / Grapple Anchor | `tile.grappleAnchor.name` |
+| `BlockMatterBallDecompressor` | 物质球解压器 / Matter Ball Decompressor | `tile.matterBallDecompressor.name` |
 
-### tileentity/ — TileEntity (5 文件 + 2 接口工具)
+### tileentity/ — TileEntity (6 文件 + 3 辅助)
 - `IOwnableTile.java` / `OwnableTileUtil.java` — 方块放置者游戏名（`OwnerName` NBT）
-- `TileEntityTeXTech.java` — **核心 TE**，数据绑定、NBT 持久化、AE2 网络集成；首次打开可补录所属者
+- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定（`MAX_DATA_BINDINGS = 36`）、NBT 持久化、AE2 网络集成；首次打开可补录所属者
 - `TileEntityAdvanceCraftingLink.java` — AE2 合成 CPU 监控
 - `TileEntityAdvanceStorageLink.java` — AE2 存储网络监控
 - `TileEntityAdvanceNetworkLink.java` — AE2 全网统计监控
 - `TileEntityGrappleAnchor.java` — 挂索节点（贴面放置、悬挂锚点计算）
+- `TileEntityMatterBallDecompressor.java` — 物质球解压器（AE 网络、9 输入 + 81 缓存、4 加速卡槽）
+- `MatterBallDecompressorUpgrades.java` — 解压器 AE 升级槽（`Upgrades.SPEED` / `SUPERSPEED`）
 
-### gui/ — GUI 组件和界面 (35 文件)
+### gui/ — GUI 组件和界面 (37 文件)
 - **gui/custom/** — 自定义 GUI 基础组件（3 个）
   - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
   - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
@@ -123,6 +127,8 @@ alwaysApply: false
   - `GuiAdvanceLinkScanner.java` — 链接扫描器（列表/筛选/备注/传送）
   - `GuiDimensionalPocketConfig.java` — 次元口袋配置 GUI（升级插槽：空间/翻页/堆叠/无尽堆叠 + 开关 + 容量统计 + 堆叠倍数显示）
   - `GuiPocketStorage.java` — 次元口袋存储 GUI（原生 Container，口袋格 + 玩家背包 + 翻页/升级配置按钮；右键口袋主入口）
+  - `GuiSuperOrangeConfig.java` — 超能砂糖桔设置（铭牌、物质球开关、拾取合并、丢弃合并、倍率）
+  - `GuiMatterBallDecompressor.java` — 物质球解压器（9 输入 + 9×9 缓存 + 4 加速卡槽 + 模式按钮）
 - **gui/manual/** — 手册数据结构（6 个）：`ManualChapter.java` / `ManualPage.java` / `ManualDataLoader.java` / `ManualSearchUtil.java` / `ManualSearchIndex.java` / `ManualTextHighlighter.java`
 - **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`、`POCKET_CONFIG_GUI_ID`、`POCKET_STORAGE_GUI_ID`）
@@ -131,7 +137,7 @@ alwaysApply: false
 - `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理）
 - `HandlerLoot.java` — 战利品事件（SuperOrange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
 - `HandlerPlayerJoin.java` — 玩家首次加入事件（赠送手册物品 + NBT标记）
-- `HandlerSuperOrange.java` — 超能砂糖桔能力（投掷物免疫 + 1024x挖掘掉落 + Matter Ball存入）
+- `HandlerSuperOrange.java` — 超能砂糖桔能力（投掷物免疫 + 挖掘掉落 + 拾取/丢弃合并物质团簇）
 - `HandlerGrapple.java` — 挂索节点索引/挂接 tick/区块加载注册
 - `HandlerDataLoomCell.java` — 编织元件事件
 - `HandlerStarryCosmosSword.java` — 星空剑事件
@@ -147,7 +153,7 @@ alwaysApply: false
 - `EntityGrappleSlide.java` — 挂索滑移实体
 - `EntityStarrySwordLineSlash.java` / `EntityStarrySwordLineStab.java` / `EntityStarrySwordThrown.java` / `EntityStarrySwordRain.java` / `EntityStarrySwordRainField.java` / `EntityStarrySwordSlam.java` — 星空剑技能实体
 
-### renders/ — 全部客户端渲染 (33 文件)
+### renders/ — 全部客户端渲染 (32 文件)
 - **约定**：实体 Render、TESR、物品 Render、HUD、手册页面渲染均在此包；`entity/` 不放 Render 类
 - `AdvanceBlockCubeRenderUtil.java` — 占位方块立方体/挂索节点薄板几何（模型未完成前）
 - `RenderAdvanceStorageLink.java` / `RenderAdvanceCraftingLink.java` — 存储/合成链接器占位 TESR（`USE_PLACEHOLDER_CUBE` 开关，待 OBJ 接入）
@@ -214,7 +220,7 @@ alwaysApply: false
 - `CommandAssistant.java` — `/admassistant` 命令
 - `CommandAIConfig.java` — `/admai` 命令
 
-### utils/ — 工具类 (10 文件)
+### utils/ — 工具类 (12 文件)
 - `NBTDataHelper.java` / `NBTJsonParser.java` / `NBTJsonParserHelper.java` — NBT 与 JSON 互转
 - `CraftingTemplateParser.java` — 合成模板解析
 - `ContentsHelper.java` — 内容验证工具（坐标、数字、颜色格式等）
@@ -223,6 +229,8 @@ alwaysApply: false
 - `NetworkValidationUtil.java` — 网络包距离/权限校验
 - `ModLogFiles.java` — 模组日志文件路径
 - `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
+- `MatterBallClusterUtil.java` — Avaritia 物质团簇插入/提取
+- `AeUpgradeSpeedUtil.java` — AE 加速卡倍率（分子装配室档位 + 超级加速）
 
 ### mixin/ — Mixin 注入 (7 文件，仅客户端)
 - `MixinGuiScreen.java` / `MixinGuiContainer.java` — GUI 输入/容器钩子

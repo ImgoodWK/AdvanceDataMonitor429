@@ -32,6 +32,13 @@ public final class ConfigSuperOrangeLoader {
             1,
             1000000,
             ConfigDescriptions.get("superOrange", "dropMultiplier"));
+        Config.superOrangeDropMultiplierMax = configuration.getInt(
+            "dropMultiplierMax",
+            "superOrange",
+            Config.superOrangeDropMultiplierMax,
+            1,
+            1000000,
+            ConfigDescriptions.get("superOrange", "dropMultiplierMax"));
         Config.superOrangeProjectileImmunityEnabled = configuration.getBoolean(
             "projectileImmunityEnabled",
             "superOrange",

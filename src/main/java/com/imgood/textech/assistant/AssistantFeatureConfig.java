@@ -148,8 +148,20 @@ public final class AssistantFeatureConfig {
 
     /**
      * Build the feature menu text for display in the chat dialog.
+     * Uses an invalid (fail-open) menu state, so all features render normally.
      */
     public static String buildFeatureMenu(String locale) {
+        return buildFeatureMenu(locale, null);
+    }
+
+    /**
+     * Build the feature menu text for display in the chat dialog.
+     * When {@code state} is non-null and valid, features whose required
+     * connector is missing render in gray and features whose AE security
+     * terminal denies the player render in red. Each feature line also
+     * includes a parenthesized connector requirement note.
+     */
+    public static String buildFeatureMenu(String locale, AssistantMenuState state) {
         FeatureConfigData cfg = get();
         boolean zh = isChineseLocale(locale);
         StringBuilder sb = new StringBuilder();
@@ -157,12 +169,12 @@ public final class AssistantFeatureConfig {
         List<FeatureEntry> menuFeatures = listUserFacingFeatures(cfg);
         int index = 1;
         for (FeatureEntry feature : menuFeatures) {
-            appendFeatureLine(sb, feature, zh, index++);
+            appendFeatureLine(sb, feature, zh, index++, state);
         }
         sb.append("\n")
             .append(
-                zh ? "选择后请直接输入具体内容，AI将精准调用对应功能。"
-                    : "After selection, enter your specific content and AI will precisely call the corresponding feature.");
+                zh ? "选择后请直接输入具体内容，AI将精准调用对应功能。灰色=缺少连接器，红色=无AE网络权限。"
+                    : "After selection, enter your specific content and AI will precisely call the corresponding feature. Gray=missing connector, Red=no AE network permission.");
         return sb.toString();
     }
 
@@ -214,6 +226,10 @@ public final class AssistantFeatureConfig {
                 case ORDER_BATCH:
                 case WITHDRAW_BATCH:
                 case PLAN_CREATE:
+                case HISTORY_PREV:
+                case HISTORY_NEXT:
+                case HUD_OPEN:
+                case HUD_CLOSE:
                     return false;
                 default:
                     return true;
@@ -224,16 +240,75 @@ public final class AssistantFeatureConfig {
     }
 
     private static void appendFeatureLine(StringBuilder sb, FeatureEntry feature, boolean zh, int index) {
+        appendFeatureLine(sb, feature, zh, index, null);
+    }
+
+    private static void appendFeatureLine(StringBuilder sb, FeatureEntry feature, boolean zh, int index,
+        AssistantMenuState state) {
         String name = localizedText(feature.displayName, zh, feature.key);
         String desc = localizedText(feature.description, zh, "");
-        sb.append(index)
+        String connector = getRequiredConnector(feature);
+        String connectorNote = getConnectorLabel(connector, zh);
+
+        // Apply color coding based on connector availability/permission.
+        // \u00a77 = section sign + 7 (gray), \u00a7c = red, \u00a7r = reset.
+        String color = "";
+        if (state != null && state.isValid() && !"none".equals(connector)) {
+            if (!state.isFeatureAvailable(connector)) {
+                color = "\u00a77";
+            } else if (!state.isFeaturePermitted(connector)) {
+                color = "\u00a7c";
+            }
+        }
+
+        sb.append(color)
+            .append(index)
             .append(". ")
             .append(name);
         if (!desc.isEmpty()) {
             sb.append(" - ")
                 .append(desc);
         }
+        if (!connectorNote.isEmpty()) {
+            sb.append(" (")
+                .append(connectorNote)
+                .append(")");
+        }
+        if (!color.isEmpty()) {
+            sb.append("\u00a7r");
+        }
         sb.append("\n");
+    }
+
+    /**
+     * Returns the required connector type for a feature, defaulting to "none".
+     */
+    public static String getRequiredConnector(FeatureEntry feature) {
+        if (feature == null || feature.requiredConnector == null || feature.requiredConnector.isEmpty()) {
+            return "none";
+        }
+        return feature.requiredConnector;
+    }
+
+    /**
+     * Returns a human-readable label for the connector requirement, or empty
+     * string for "none". Used both in the menu parenthesized note and in the
+     * unavailability reason text.
+     */
+    public static String getConnectorLabel(String connector, boolean zh) {
+        if (connector == null || connector.isEmpty() || "none".equals(connector)) {
+            return "";
+        }
+        if (zh) {
+            if ("crafting".equals(connector)) return "\u9700\u8981\u5408\u6210\u8fde\u63a5\u5668";
+            if ("storage".equals(connector)) return "\u9700\u8981\u5b58\u50a8\u8fde\u63a5\u5668";
+            if ("network".equals(connector)) return "\u9700\u8981\u7f51\u7edc\u8fde\u63a5\u5668";
+        } else {
+            if ("crafting".equals(connector)) return "requires Crafting Link";
+            if ("storage".equals(connector)) return "requires Storage Link";
+            if ("network".equals(connector)) return "requires Network Link";
+        }
+        return "";
     }
 
     private static String localizedText(Map<String, String> values, boolean zh, String fallback) {
@@ -307,6 +382,7 @@ public final class AssistantFeatureConfig {
     public static final class FeatureEntry {
 
         public String key;
+        public String requiredConnector = "none";
         public Map<String, String> displayName = new LinkedHashMap<>();
         public Map<String, String> description = new LinkedHashMap<>();
         public List<String> keywords = new ArrayList<>();

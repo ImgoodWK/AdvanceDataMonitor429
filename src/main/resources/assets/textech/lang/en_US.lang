@@ -151,6 +151,7 @@ adm.button.bind=Add Binding
 adm.title.bind_target=Bind Target Block
 adm.error.invalid_coord=Coordinates must be integers!
 adm.error.no_block=There is no block at this position!
+adm.error.data_bindings_full=Data monitor binding list is full (max %d entries).
 adm.error.not_tileentity=This block is not a TileEntity!
 adm.title.data_config_ae_crafting=§lCrafting CPU Config
 adm.label.craftingtemplate=§lExpression
@@ -214,6 +215,7 @@ tile.advDataMonitor.name=Advance Data Monitor
 tile.NetworkLinkBlock.name=Network Linker
 tile.CraftingMonitorBlock.name=Crafting Linker
 tile.StorageLinkBlock.name=Advanced Storage Linker
+tile.matterBallDecompressor.name=Matter Ball Decompressor
 
 adm.title.storage=§lAdvanced Storage Linker Display Config #%s
 adm.storage.columns=Columns
@@ -256,6 +258,11 @@ adm.button.essentiaon=Essentia:On
 adm.button.essentiaoff=Essentia:Off
 adm.button.ai=AI
 adm.ai.title=AI Chat
+adm.voice.hud.user_prefix=You
+adm.voice.hud.assistant_prefix=AI
+adm.voice.hud.recording=Recording... press the voice key again to submit
+adm.voice.hud.transcribing=Transcribing...
+adm.voice.hud.page_indicator=Page %s/%s (say "prev page"/"next page" to navigate)
 adm.ai.send=Send
 adm.ai.clear=Clear
 adm.ai.close=Close
@@ -275,6 +282,9 @@ adm.ai.search_on=Search: On
 adm.ai.search_off=Search: Off
 adm.ai.settings=Settings
 adm.ai.menu=Menu
+adm.ai.menu.unavailable.no_connector=Feature unavailable: missing connector -
+adm.ai.menu.unavailable.no_permission=Feature unavailable: no AE network permission
+adm.ae.no_build_permission=\u00a7c[TeXTech] AE security terminal denied block placement (no BUILD permission). Block dropped.
 adm.ai.cancel=Cancel
 adm.ai.cancelled=Cancelled
 adm.ai.on=On
@@ -446,12 +456,14 @@ adm.tooltip.starry_cosmos_sword=Left-click: instant kill + crescent slash wave. 
 item.holyJudgment.name=Holy Judgment
 adm.tooltip.holy_judgment=Left-click: 20 true damage to all hostile mobs along your aim (no giant stab). Right-click: throw along crosshair; 5s sword rain on impact (10 true each). Shift+right-click: no effect. Melee: 5 true + 5 armor-respecting.
 adm.super_orange.tooltip.title=Super Orange
-adm.super_orange.tooltip.toggle_matter=Sneak + right-click: toggle matter ball and drop multiplier
+adm.super_orange.tooltip.open_config=Sneak + right-click: open Super Orange settings GUI
 adm.super_orange.tooltip.toggle_drone=Right-click: toggle drone and projectile immunity
 adm.super_orange.tooltip.mine=Instantly mine any block when held
 adm.super_orange.tooltip.head_effects.enabled=Head nameplate and rotating halo (hidden for self in first person; visible in third person and to others)
 adm.super_orange.tooltip.head_effects.disabled=Head nameplate and halo: disabled in server config
 adm.super_orange.tooltip.matter_ball=Matter ball: when enabled, mined drops become matter clusters at x%d [%s]
+adm.super_orange.tooltip.pickup_matter_ball=Pickup merge: picked-up items also enter matter clusters [%s]
+adm.super_orange.tooltip.drop_matter_ball=Drop merge: tossed items also enter matter clusters [%s]
 adm.super_orange.tooltip.matter_ball.config_off=Matter ball and drop multiplier: disabled on server (configured x%d)
 adm.super_orange.tooltip.drone=Drone: body orbits randomly within 3 blocks each second and intercepts projectiles; clones fight nearby hostiles (scan range %.0f, %.1f true dmg/hit, %.0f hits/s, up to %d clones) [%s]
 adm.super_orange.tooltip.drone.config_off=Drone and projectile intercept: disabled in server config
@@ -466,6 +478,16 @@ adm.super_orange.toggle.matter_ball.off=Matter ball and drop multiplier: OFF
 adm.super_orange.toggle.drone.on=Drone and projectile immunity: ON
 adm.super_orange.toggle.drone.off=Drone and projectile immunity: OFF
 adm.super_orange.tooltip.legendary=Dungeon/Mob Drop (Legendary Item)
+adm.title.superOrangeConfig=Super Orange Settings
+adm.label.super_orange.rename=Nameplate text
+adm.label.super_orange.multiplier=Drop multiplier (max x%d)
+adm.label.super_orange.matter_ball_short=Matter Ball Mining
+adm.label.super_orange.pickup_matter_short=Pickup Merge
+adm.label.super_orange.drop_matter_short=Drop Merge
+adm.tooltip.super_orange.matter_ball_toggle=Mining multiplier + merge mined drops into matter clusters
+adm.tooltip.super_orange.pickup_matter_toggle=Also merge picked-up items into matter clusters
+adm.tooltip.super_orange.drop_matter_toggle=Also merge items you toss (Q/drop) into matter clusters
+adm.error.super_orange.multiplier_range=Multiplier must be between 1 and %d
 
 # Key Bindings
 key.textech.open_ai_chat=Open AI Chat
@@ -531,7 +553,7 @@ adm.manual.blocks_items.grapple_story_text=We often spend enormous effort making
 adm.manual.item.grappleAnchor=Face-mountable anchor that forms a grapple route network across your base with the Grapple Hook.\n\nPlacement: attaches to any solid face (wall, ceiling, floor) like a thin plate embedded in your build.\n\nNaming: Shift+Right-click to set display name and selected icon color for long-distance navigation.\n\nSuggested spots: production tour paths, scenic bridges, multi-floor factory shafts, main routes from base entrance to core areas.
 adm.manual.item.grappleHook=Core tool for interacting with grapple anchors. Stack size: 1.\n\nNot attached: on-screen hint within 12 blocks; world-space nav icons within 6 blocks (selected target turns green and enlarges). Right-click to attach.\n\nAttached: shows all reachable nodes; right-click to glide in a straight line to the selected target. Shift to detach.\n\nShift+Right-click: open hook settings — travel speed, show node name/distance toggles.
 adm.manual.blocks_items.data_imprint_usage_title=How to Use Data Imprint
-adm.manual.blocks_items.data_imprint_usage_text=The Data Imprint Tool records block state as a data snapshot and binds it to Data Monitors — it observes and displays, it does not weave matter. Workflow:\n\n1. Sneak + right-click a target TileEntity (e.g. a Crafting Linker) to imprint its NBT snapshot.\n\n2. Sneak + right-click a Data Monitor with the imprinted tool to add the location as a data source.\n\n3. Open the Data Monitor GUI and configure the binding: chart type, NBT path, colors, scale, update interval, etc.\n\n4. Plain right-click (no sneak) opens a JSON NBT viewer for finding the correct NBT path.\n\n5. Sneak + right-click air clears all imprint data from the tool.\n\nHard limit: 100 data bindings per monitor face.
+adm.manual.blocks_items.data_imprint_usage_text=The Data Imprint Tool records block state as a data snapshot and binds it to Data Monitors — it observes and displays, it does not weave matter. Workflow:\n\n1. Sneak + right-click a target TileEntity (e.g. a Crafting Linker) to imprint its NBT snapshot.\n\n2. Sneak + right-click a Data Monitor with the imprinted tool to add the location as a data source.\n\n3. Open the Data Monitor GUI and configure the binding: chart type, NBT path, colors, scale, update interval, etc.\n\n4. Plain right-click (no sneak) opens a JSON NBT viewer for finding the correct NBT path.\n\n5. Sneak + right-click air clears all imprint data from the tool.\n\nHard limit: 36 data bindings per monitor face.
 
 adm.manual.item.advDataMonitor=The core display block of the mod. Renders live data in the Minecraft world from any TileEntity's NBT data.\n\nChart types: Line (continuous tracking), Bar (discrete comparison), 3D Bar (with depth), Waterfall (cumulative flow), Difference (delta between readings).\n\nAE2 text displays: item counts with icons, fluid storage, crafting CPU status with template expressions.\n\nMulti-face: each of the 6 sides can have independent data bindings and configurations.\n\nCustomization per binding: line color, line width, grid settings, axis colors/font, title text, scale, rotation angles, position offsets, update interval (in ticks), data limit (max visible points).\n\nDefault config: cyan (00FFFF), scale 0.3, interval 20 ticks, 100 data points max.\n\nRendering range: 128 blocks around the monitor.\n\nHardness: 2.0, light level: 1 (self-illuminated).
 
@@ -561,16 +583,17 @@ adm.manual.item.weave_amplifier=Dedicated amplifier for Data Loom cells. Default
 
 adm.manual.item.super_weave_amplifier=Super Weave Amplifier Card. Default 16× per card (configurable in [dataLoomCell] superWeaveAmplifierRateMultiplier), stacks multiplicatively with normal cards.\n\nWarning: many cards can flood the AE network instantly!
 
-adm.manual.item.superOrange=A legendary item with immense power. When carried in your inventory or held, it grants abilities governed by config/AdvanceDataMonitor.cfg [superOrange] and per-item NBT toggles:\n\nControls:\n- Right-click: toggle drone and projectile immunity (item NBT toggle)\n- Sneak + right-click: toggle matter ball and drop multiplier (item NBT toggle)\n- Anvil rename: set head nameplate text\n\n1. Mine Any Block: instantly break any block when held (including GT ores).\n\n2. Head Effects: custom nameplate + rotating halo (OrangeBuff.png). Hidden for yourself in first person; visible in third person and to others. Disable globally with headEffectsEnabled.\n\n3. Matter Ball and Drop Multiplier: when enabled, mined drops auto-convert to Avaritia matter clusters (merge existing or create new), multiplied by dropMultiplier (default x2). Disable globally with dropMultiplierEnabled, or per-item with sneak+right-click.\n\n4. Companion Drone: the body picks a new random point within 3 blocks of you every second (height offset droneFollowHeight), stays near you, and intercepts projectiles (spawns temporary intercept drones per incoming projectile). When hostiles are nearby, combat clones split off to fight; the body never joins combat. Clones deal true armor-bypassing damage. Scan range/damage/rate/max clones are configurable. Right-click toggles drone and projectile immunity.\n\n5. Projectile Immunity: follows the drone toggle (requires projectileImmunityEnabled in config).\n\nAcquisition: 0.1% dungeon/mineshaft chests, 0.05% mob kills.\n\nStack size: 1. Creative tab: Tools.
+adm.manual.item.superOrange=A legendary item with immense power. When carried in your inventory or held, it grants abilities governed by config/textech/textech.cfg [superOrange] and per-item NBT:\n\nControls:\n- Right-click: toggle drone and projectile immunity (item NBT)\n- Sneak + right-click: open settings GUI (not a toggle)\n- Settings GUI: nameplate text, matter-ball mining toggle, pickup-merge toggle, drop/toss-merge toggle, custom drop multiplier (max from dropMultiplierMax, default x2)\n- Anvil rename: also sets nameplate text\n\n1. Mine Any Block: instantly break any block when held (including GT ores).\n\n2. Head Effects: custom nameplate + rotating halo (OrangeBuff.png). Hidden for yourself in first person; visible in third person and to others. Disable globally with headEffectsEnabled.\n\n3. Matter Ball: the settings GUI controls three merge channels (mining / pickup / toss). When mining is enabled, drops auto-convert to Avaritia matter clusters (merge existing or create new) at the per-item dropMultiplier (new stacks default to dropMultiplier config, default x2). Disable globally with dropMultiplierEnabled.\n\n4. Companion Drone: the body picks a new random point within 3 blocks of you every second (height offset droneFollowHeight), stays near you, and intercepts projectiles (spawns temporary intercept drones per incoming projectile). When hostiles are nearby, combat clones split off to fight; the body never joins combat. Clones deal true armor-bypassing damage. Scan range/damage/rate/max clones are configurable. Right-click toggles drone and projectile immunity.\n\n5. Projectile Immunity: follows the drone toggle (requires projectileImmunityEnabled in config).\n\nAcquisition: 0.1% dungeon/mineshaft chests, 0.05% mob kills.\n\nStack size: 1. Creative tab: Tools.
+adm.manual.item.matterBallDecompressor=AE2 block that decompresses Avaritia matter clusters into individual items.\n\nLayout: left 9 slots accept matter clusters only; right 9x9 buffer; bottom 4 AE acceleration card slots (SPEED / SUPERSPEED).\n\nGUI mode buttons:\n- To Network / To Buffer: output to the AE network or local buffer (network is default); stops when buffer is full\n- Block On/Off (buffer mode): when on, pauses decompression while the buffer holds any item until emptied\n\nRate: [matterBallDecompressor] itemsPerSecond (default 16/s); AE speed cards stack like a molecular assembler (SUPERSPEED x8 per card).\n\nRequires an AE channel; smart-cable connection.\n\nCrafting: UHV Assembly Line (scan Advanced Storage Linker 90s @ UV, 120s @ UHV). Materials: neutronium plate x4, ultimate circuit x2, Advanced Storage Linker x1, Network Linker x1, fluix crystal x4, neutronium screw x8, naquadah fine wire x16 (OreDict wireFineNaquadah), solder 5760 mB + lubricant 2000 mB.
 
 adm.manual.data_monitor.system_overview_title=System Overview
-adm.manual.data_monitor.system_overview_text=The Data Monitor system visualizes TileEntity NBT data as in-world rendered graphics. The pipeline:\n\nData Source (e.g. AE2 linker block) -> Data Imprint Tool imprints NBT snapshot -> binds to Data Monitor -> Monitor reads NBT value every N ticks -> renders chart/text in world.\n\nFour block types work together: Advance Data Monitor (display), Crafting Linker (CPU data), Advanced Storage Linker (inventory data), Network Linker (aggregate stats).\n\nEach monitor face (6 sides) has independent bindings - you can show different data on each face, or the same data on all faces.\n\nRendering uses GL11 + Tessellator with 128-block view range.
+adm.manual.data_monitor.system_overview_text=The Data Monitor system visualizes TileEntity NBT data as in-world rendered graphics. The pipeline:\n\nData Source (e.g. AE2 linker block) -> Data Imprint Tool imprints NBT snapshot -> binds to Data Monitor -> Monitor reads NBT value every N ticks -> renders chart/text in world.\n\nFour block types work together: Advance Data Monitor (display), Crafting Linker (CPU data), Advanced Storage Linker (inventory data), Network Linker (aggregate stats).\n\nEach monitor face (6 sides) has independent bindings - you can show different data on each face, or the same data on all faces. Each face holds at most 36 binding entries (`dataLimit` is per-chart point history, default 100, unrelated to this cap).\n\nRendering uses GL11 + Tessellator with 128-block view range.
 
 adm.manual.data_monitor.setup_title=Network Setup
 adm.manual.data_monitor.setup_text=Step-by-step network setup:\n\n1. Place an Advance Data Monitor where you want the display. It auto-records its position and orientation on placement.\n\n2. Place linker blocks adjacent to AE2 cables in your network. Crafting Linker near CPUs, Advanced Storage Linker near drives, Network Linker anywhere on the network.\n\n3. Linkers auto-detect nearby AE2 networks through cable adjacency. They must receive AE2 power.\n\n4. Linkers have internal tick timers (20 ticks = 1 second) for auto-refresh.\n\n5. Craft a Data Imprint Tool. Sneak+right-click the linker block to imprint its data.\n\n6. Sneak+right-click the Advance Data Monitor to add the imprinted source.\n\n7. Right-click the Advance Data Monitor to open configuration GUI. Configure each binding's display settings.\n\nAll blocks: hardness 2.0-3.0, blast resistance 5.0-10.0, iron block texture, custom TESR rendering.
 
 adm.manual.data_monitor.binding_title=Data Imprint Binding Flow
-adm.manual.data_monitor.binding_text=Complete Data Imprint binding flow:\n\n1. Sneak+right-click a target TileEntity with the Data Imprint Tool. It records: XYZ coordinates, block registry name, metadata, full NBT dump. For GregTech machines, also captures mName (machine display name).\n\n2. Sneak+right-click a Data Monitor. If the tool has an imprinted coordinate, it is added to the monitor's data bound list for the current face (auto-deduplication, max 100).\n\n3. Open Data Monitor GUI. Each binding appears as a configurable entry with default settings (cyan color, 0.3 scale, 20 tick interval, 100 data limit).\n\n4. For direct NBT tracking: edit the dataName field in the GUI to set the NBT path (e.g. "Items" for item count).\n\n5. For AE2 linker blocks: the monitor auto-detects the link type (Crafting/Storage/Network) and uses the appropriate data processing method.\n\nThe Imprint Tool only records data; weaving matter from the AE network requires Data Loom cells (Dust/Form/Flow).
+adm.manual.data_monitor.binding_text=Complete Data Imprint binding flow:\n\n1. Sneak+right-click a target TileEntity with the Data Imprint Tool. It records: XYZ coordinates, block registry name, metadata, full NBT dump. For GregTech machines, also captures mName (machine display name).\n\n2. Sneak+right-click a Data Monitor. If the tool has an imprinted coordinate, it is added to the monitor's data bound list for the current face (auto-deduplication, max 36).\n\n3. Open Data Monitor GUI. Each binding appears as a configurable entry with default settings (cyan color, 0.3 scale, 20 tick interval, 100 data limit).\n\n4. For direct NBT tracking: edit the dataName field in the GUI to set the NBT path (e.g. "Items" for item count).\n\n5. For AE2 linker blocks: the monitor auto-detects the link type (Crafting/Storage/Network) and uses the appropriate data processing method.\n\nThe Imprint Tool only records data; weaving matter from the AE network requires Data Loom cells (Dust/Form/Flow).
 
 adm.manual.data_monitor.data_types_title=Chart & Data Types
 adm.manual.data_monitor.data_types_text=Supported chart types for numerical data:\n\nLine Chart - plots values over time with a continuous line. Best for monitoring trend changes (e.g. power levels, item counts).\nBar Chart - discrete bars for each data point. Good for comparing snapshots.\n3D Bar Chart - same as bar but with depth rendering for visual depth.\nWaterfall - shows cumulative increases/decreases. Useful for resource flow tracking.\nDifference - shows delta (change) between consecutive readings.\n\nAE2 text display types:\nStorage mode - renders item icons with names and counts in a grid (configurable columns, spacing, icon size).\nCrafting mode - renders template-expressions as formatted text with live variable substitution.\nNetwork mode - renders numeric values (bytes, types) as text or bars.\n\nAll chart types support: color customization, axis configuration, grid lines, title display, scaling, opacity control.
@@ -618,13 +641,14 @@ adm.manual.planner_teleport.teleport_title=Teleport System
 adm.manual.planner_teleport.teleport_text=The AI Assistant integrates with Draconic Evolution's Advanced Dislocator (com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII) for teleportation.\n\nRequirements:\n- An Advanced Dislocator (TeleporterMKII) in your inventory.\n- At least one saved destination on the gem (added via DE's own interface).\n\nHow it works:\n1. The assistant scans your inventory for TeleporterMKII items.\n2. Reads the "Locations" NBT tag list from each gem.\n3. Each location has: X, Y, Z, Dimension, Name.\n4. Displays destinations as a numbered list with dimension info.\n5. Confirm by number or fuzzy name match.\n\nExecution:\n- Same dimension: setPositionAndUpdate() for instant teleport.\n- Cross-dimension: uses configurationManager.transferPlayerToDimension() with a custom Teleporter instance.\n\nDimensions are resolved by stored DimentionName (DE uses this typo internally), standard names (Nether/Overworld/The End), or custom dimension IDs.\n\nName matching: exact match preferred, falls back to substring matching if no exact match found.\n\nExample AI prompts: "Teleport me to my base", "List my teleport points", "Take me to the mining dimension".
 
 adm.manual.config_reference.intro_title=Configuration Reference
-adm.manual.config_reference.intro_text=This chapter documents all configuration options in the mod's .cfg file (config/AdvanceDataMonitor.cfg). The file is auto-generated on first run with default values.\n\nOrganization: 30 options across 4 categories:\n  ai.* (13 options) - API endpoint, key, model, network, search, streaming, debug, privacy, timeout, tokens, temperature.\n  voice.* (7 options) - Voice assistant enable, privacy, STT mode (embedded-vosk/http), base URL, API key, model, timeout.\n  assistant.* (4 options) - Max order amount, max withdraw amount, craft job timeout, max concurrent craft jobs.\n  plannerHudLimits.* (10 options) - Min/Max bounds for HUD display count, position X/Y, scale, and width.\n\nConfiguration can also be changed in-game via:\n- AI Settings GUI (gear icon in AI Chat)\n- /admai command\n- /admassistant reloadLexicon command\n\nScroll this page with your mouse wheel to browse long config entries.
+adm.manual.config_reference.intro_text=This chapter documents all configuration options in the mod's .cfg file (config/AdvanceDataMonitor.cfg). The file is auto-generated on first run with default values.\n\nOrganization: 33 options across 4 categories:\n  ai.* (13 options) - API endpoint, key, model, network, search, streaming, debug, privacy, timeout, tokens, temperature.\n  voice.* (7 options) - Voice assistant enable, privacy, STT mode (embedded-vosk/http), base URL, API key, model, timeout.\n  assistant.* (7 options) - Max order amount, max withdraw amount, craft job timeout, max concurrent craft jobs, link search radius, query candidate batch size, max query candidates.\n  plannerHudLimits.* (10 options) - Min/Max bounds for HUD display count, position X/Y, scale, and width.\n\nConfiguration can also be changed in-game via:\n- AI Settings GUI (gear icon in AI Chat)\n- /admai command\n- /admassistant reloadLexicon command\n\nScroll this page with your mouse wheel to browse long config entries.
 
 adm.manual.config_reference.ai_category_title=AI Category (ai.*)
 adm.manual.config_reference.voice_category_title=Voice Category (voice.*)
 adm.manual.config_reference.assistant_category_title=Assistant Category (assistant.*)
 adm.manual.config_reference.hud_category_title=Planner HUD Category (plannerHudLimits.*)
 adm.manual.config_reference.super_orange_category_title=Super Orange Category (superOrange.*)
+adm.manual.config_reference.matter_ball_decompressor_category_title=Matter Ball Decompressor Category (matterBallDecompressor.*)
 adm.manual.config_reference.data_loom_category_title=Data Loom Cells — Shared (dataLoomCell.*)
 adm.manual.config_reference.data_dust_loom_category_title=Data Dust Loom Cell (dataDustLoomCell.*)
 adm.manual.config_reference.data_form_loom_category_title=Data Form Loom Cell (dataFormLoomCell.*)
@@ -633,6 +657,14 @@ adm.manual.config_reference.data_source_loom_category_title=Data Source Loom Cel
 adm.manual.config_reference.default_label=Default: 
 
 tile.grappleAnchor.name=Grapple Anchor
+adm.button.matter_decompressor.mode_network_short=To Network
+adm.button.matter_decompressor.mode_buffer_short=To Buffer
+adm.button.matter_decompressor.block_on_short=Block: ON
+adm.button.matter_decompressor.block_off_short=Block: OFF
+adm.tooltip.matter_decompressor.mode_network=Decompress into the connected AE network (default)
+adm.tooltip.matter_decompressor.mode_buffer=Decompress into the local 9x9 buffer; stops when full
+adm.tooltip.matter_decompressor.block_on=Buffer mode: pause while any buffer slot is occupied
+adm.tooltip.matter_decompressor.block_off=Buffer mode: continue even if buffer has items
 item.grappleHook.name=Grapple Hook
 adm.title.grappleAnchor=Grapple Anchor
 adm.title.grappleHook=Grapple Hook
@@ -763,12 +795,13 @@ adm.hint.pocket.upgradeLockedWhileStored=Cannot remove upgrade cards while the p
 
 # Manual - new chapter keys (Phase 2)
 adm.manual.monitor_blocks.overview_title=Monitor Blocks Overview
-adm.manual.monitor_blocks.overview_text=AdvanceDataMonitor adds 4 monitor blocks that connect to specific parts of your AE2 system and feed data to the Advance Data Monitor display block. Each block serves a distinct purpose in the data pipeline.\n\nPlacement: all blocks connect to AE2 via cable adjacency and require AE2 power.\n\nRight-click any linker block to see its current status in chat. Bind them to a Data Monitor for continuous in-world display.\n\nTips: use a Data Imprint Tool to bind linkers to monitors quickly (sneak+right-click linker, then sneak+right-click monitor).
+adm.manual.monitor_blocks.overview_text=TeXTech adds 5 AE2-related blocks: four monitor linkers feed statistics to the Advance Data Monitor display, plus the Matter Ball Decompressor for extracting Avaritia matter clusters.\n\nPlacement: all blocks connect to AE2 via cable adjacency and require AE2 power and a channel (the decompressor also needs a channel).\n\nRight-click linker blocks to see current status in chat. Bind them to a Data Monitor for continuous in-world display.\n\nTips: use a Data Imprint Tool to bind linkers to monitors quickly (sneak+right-click linker, then sneak+right-click monitor).
 
 adm.manual.monitor_blocks.data_monitor_title=Advanced Data Monitor
 adm.manual.monitor_blocks.crafting_link_title=Crafting Linker
 adm.manual.monitor_blocks.storage_link_title=Advanced Storage Linker
 adm.manual.monitor_blocks.network_link_title=Network Linker
+adm.manual.monitor_blocks.matter_decompressor_title=Matter Ball Decompressor
 
 adm.manual.monitor_tools.overview_title=Monitor Tools Overview
 adm.manual.monitor_tools.overview_text=These tools support and enhance the Data Monitor system. The Data Imprint Tool captures NBT snapshots for binding, the Advanced Storage Link Cell configures storage monitoring filters, and the Advance Link Scanner lets you find and manage all link blocks across your world.\n\nAll three tools work together with the monitor blocks described in the previous chapter.
@@ -824,7 +857,7 @@ adm.manual.combat_special.overview_text=AdvanceDataMonitor includes two legendar
 adm.manual.combat_special.sword_title=Empyrean Holy Judgment
 adm.manual.combat_special.orange_title=Super Orange
 adm.manual.combat_special.usage_title=Combat & Ability Usage
-adm.manual.combat_special.usage_text=Empyrean Holy Judgment (starry_cosmos_sword):\n- Left-click: instant kill + crescent slash wave\n- Right-click: throw straight along crosshair; 5-second sword rain on impact\n- Shift+right-click: mini judgment swords on mobs in 3×3 chunks\n- Cosmic shader rendering with custom particle effects\n\nSuper Orange (orange):\n- Hold: instant break any block (including GT ores)\n- Right-click: toggle drone and projectile immunity\n- Sneak+right-click: toggle matter ball and drop multiplier\n- Anvil rename: set head nameplate text\n- Drone: orbits player, intercepts projectiles, clones fight hostiles\n\nSee Config Reference for [superOrange] and [dataLoomCell] categories.
+adm.manual.combat_special.usage_text=Empyrean Holy Judgment (starry_cosmos_sword):\n- Left-click: instant kill + crescent slash wave\n- Right-click: throw straight along crosshair; 5-second sword rain on impact\n- Shift+right-click: mini judgment swords on mobs in 3×3 chunks\n- Cosmic shader rendering with custom particle effects\n\nSuper Orange (orange):\n- Hold: instant break any block (including GT ores)\n- Right-click: toggle drone and projectile immunity\n- Sneak+right-click: open settings GUI (nameplate, matter-ball / pickup / drop merge, drop multiplier)\n- Drone: orbits player, intercepts projectiles, clones fight hostiles\n\nSee Config Reference for [superOrange] and [dataLoomCell] categories.
 
 adm.manual.item.starry_cosmos_sword=The ultimate combat weapon. Instant-kill left-click with crescent slash wave.\n\nLeft-click: kill target instantly, releasing a wide crescent slash wave in front.\n\nRight-click: throw the sword along your crosshair. On impact, triggers a 5-second sword rain over the area.\n\nShift+right-click: mini judgment swords rain on all hostile mobs within a 3×3 chunk area.\n\nCosmic rendering: uses special shader effects for a celestial appearance.\n\nCreative tab: Combat. Stack size: 1.
 adm.manual.item.holy_judgment=Holy Judgment is the non-enchanted variant with the same skills.\n\nLeft-click giant stab and right-click throw/slam/rain: 10 true damage each (not instant kill).\n\nMelee and Shift+right-click mini swords: 5 true + 5 armor-respecting damage.\n\nSame cosmic rendering as Empyrean Holy Judgment (rain shows blade only for performance), without enchantment glow.\n\nRegistry: holy_judgment. Creative tab: Combat.

@@ -7,6 +7,8 @@ import net.minecraft.util.IIcon;
 import com.imgood.textech.AdvanceDataMonitor;
 
 import appeng.api.AEApi;
+import appeng.tile.storage.TileChest;
+import appeng.tile.storage.TileDrive;
 import appeng.api.implementations.tiles.IChestOrDrive;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.IMEInventory;
@@ -42,7 +44,11 @@ public class DataLoomCellHandler implements ICellHandler {
 
         }
 
-        DataLoomCellUtil.ensureInstanceId(is);
+        if (container instanceof TileDrive) {
+            DataLoomCellIndex.INSTANCE.registerDrive((TileDrive) container);
+        } else if (container instanceof TileChest) {
+            DataLoomCellIndex.INSTANCE.registerChest((TileChest) container);
+        }
 
         IMEInventoryHandler internal = null;
 

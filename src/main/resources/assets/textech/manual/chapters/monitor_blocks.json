@@ -33,6 +33,13 @@
       "items": [
         {"registryName": "advancedatamonitor:advNetworkLinkBlock", "descKey": "adm.manual.item.advNetworkLinkBlock"}
       ]
+    },
+    {
+      "type": "item_showcase",
+      "titleKey": "adm.manual.monitor_blocks.matter_decompressor_title",
+      "items": [
+        {"registryName": "textech:matterBallDecompressor", "descKey": "adm.manual.item.matterBallDecompressor"}
+      ]
     }
   ]
 }

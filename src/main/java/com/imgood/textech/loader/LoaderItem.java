@@ -126,5 +126,9 @@ public class LoaderItem {
 
         Upgrades.SPEED.registerItem(new ItemStack(weaveAmplifier), 1);
         Upgrades.SUPERSPEED.registerItem(new ItemStack(superWeaveAmplifier), 1);
+
+        ItemStack decompressor = new ItemStack(Item.getItemFromBlock(LoaderBlock.matterBallDecompressor));
+        Upgrades.SPEED.registerItem(decompressor, 4);
+        Upgrades.SUPERSPEED.registerItem(decompressor, 4);
     }
 }

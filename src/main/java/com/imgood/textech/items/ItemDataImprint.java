@@ -89,38 +89,18 @@ public class ItemDataImprint extends Item {
 
                 TileEntityAdvanceDataMonitor monitor = (TileEntityAdvanceDataMonitor) te;
 
-                int count = monitor.getDataBoundCount();
-                boolean duplicate = false;
-                for (int i = 0; i < count; i++) {
-                    int[] existingPos = monitor.parseBoundXYZ(i);
-                    if (existingPos != null) {
-                        String existingStr = existingPos[0] + "," + existingPos[1] + "," + existingPos[2];
-                        if (newCoordStr.equals(existingStr)) {
-                            duplicate = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (duplicate) {
+                if (monitor.hasBindingAtCoords(boundX, boundY, boundZ)) {
                     player.addChatMessage(new ChatComponentText("§c该坐标 (" + newCoordStr + ") 已存在于数据显示器的数据中，跳过添加。"));
                     return;
                 }
 
-                int nextIndex = 0;
-                boolean found = false;
-                for (int i = 0; i < 100; i++) {
-                    NBTTagCompound existing = monitor.getDataBound(i);
-                    if (existing == null || !existing.hasKey("XYZ")
-                        || existing.getString("XYZ")
-                            .isEmpty()) {
-                        nextIndex = i;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    player.addChatMessage(new ChatComponentText("§c数据显示器数据已满（最多100条），无法添加新数据。"));
+                int nextIndex = monitor.findNextAvailableBindingIndex();
+                if (nextIndex < 0) {
+                    player.addChatMessage(
+                        new ChatComponentText(
+                            "§c数据显示器数据已满（最多"
+                                + TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS
+                                + "条），无法添加新数据。"));
                     return;
                 }
 

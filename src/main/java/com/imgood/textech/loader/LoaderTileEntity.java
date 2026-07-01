@@ -8,6 +8,7 @@ import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 import com.imgood.textech.tileentity.TileEntityGrappleAnchor;
+import com.imgood.textech.tileentity.TileEntityMatterBallDecompressor;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -20,8 +21,9 @@ public class LoaderTileEntity {
         GameRegistry.registerTileEntity(TileEntityAdvanceStorageLink.class, "texStorageLink");
         GameRegistry.registerTileEntity(TileEntityAdvanceCraftingLink.class, "texCraftingLink");
         GameRegistry.registerTileEntity(TileEntityGrappleAnchor.class, "texGrappleAnchor");
+        GameRegistry.registerTileEntity(TileEntityMatterBallDecompressor.class, "texMatterBallDecompressor");
 
-        // Legacy ID mappings so old saves with "advancedatamonitorTileEntity*" still load
+        // Legacy ID mappings
         addLegacyMapping(TileEntityAdvanceDataMonitor.class, "advancedatamonitorTileEntityAdvanceDataMonitor");
         addLegacyMapping(TileEntityAdvanceNetworkLink.class, "advancedatamonitorTileEntityAdvanceNetworkLink");
         addLegacyMapping(TileEntityAdvanceStorageLink.class, "advancedatamonitorTileEntityAdvanceStorageLink");

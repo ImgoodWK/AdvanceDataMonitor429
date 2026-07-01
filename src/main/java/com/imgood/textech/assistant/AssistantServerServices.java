@@ -21,12 +21,14 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.network.packet.PacketAssistantResponse;
+import com.imgood.textech.network.packet.PacketAssistantMenuStateResponse;
 import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
@@ -44,7 +46,9 @@ import appeng.api.networking.crafting.ICraftingJob;
 import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.security.BaseActionSource;
+import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.security.PlayerSource;
+import appeng.api.networking.security.SecurityPermissions;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ICellInventoryHandler;
@@ -80,8 +84,7 @@ public final class AssistantServerServices {
             amount);
         ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class,
-            32);
+            TileEntityAdvanceCraftingLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Craft candidate request failed: no AdvanceCraftingLink found.");
@@ -194,8 +197,7 @@ public final class AssistantServerServices {
             amount);
         ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class,
-            32);
+            TileEntityAdvanceStorageLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Withdraw candidate request failed: no AdvanceStorageLink found.");
@@ -283,8 +285,7 @@ public final class AssistantServerServices {
         }
         ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class,
-            32);
+            TileEntityAdvanceStorageLink.class);
         if (source.isEmpty()) {
             return new WithdrawSubmitOutcome(
                 WithdrawSubmitOutcome.Kind.FAILURE,
@@ -573,8 +574,7 @@ public final class AssistantServerServices {
         }
         ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class,
-            32);
+            TileEntityAdvanceCraftingLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Craft submit failed: no AdvanceCraftingLink found.");
             AssistantDebugLog.append("server-submit", "status=FAIL, reason=no-crafting-link");
@@ -736,8 +736,7 @@ public final class AssistantServerServices {
             safe(target));
         ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class,
-            32);
+            TileEntityAdvanceStorageLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Item count query failed: no AdvanceStorageLink found.");
             return CandidateQueryResult.empty();
@@ -862,8 +861,7 @@ public final class AssistantServerServices {
         boolean chinese = zh(locale);
         ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceNetworkLink.class,
-            32);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             return (chinese ? "字节查询失败：附近没有 Advance Network Link。"
                 : "Byte query failed: no nearby Advance Network Link.");
@@ -1010,8 +1008,7 @@ public final class AssistantServerServices {
         // Find any connector that has AE2 grid access
         ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class,
-            32);
+            TileEntityAdvanceStorageLink.class);
         if (source.isEmpty()) {
             return result;
         }
@@ -1177,8 +1174,7 @@ public final class AssistantServerServices {
 
         ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class,
-            32);
+            TileEntityAdvanceStorageLink.class);
         if (source.isEmpty()) {
             return CandidateQueryResult.empty();
         }
@@ -1419,7 +1415,7 @@ public final class AssistantServerServices {
         TileEntityAdvanceDataMonitor monitor = AssistantMonitorRegistry.getMonitor(player);
         boolean recorded = monitor != null;
         if (monitor == null) {
-            monitor = AssistantMonitorRegistry.findNearbyAndRecord(player, 32);
+            monitor = AssistantMonitorRegistry.findNearbyAndRecord(player, linkSearchRadius());
         }
         StringBuilder builder = new StringBuilder(text(locale, "ADM 网络/连接器状态：", "ADM network/connector status:"));
         if (monitor == null) {
@@ -1439,16 +1435,13 @@ public final class AssistantServerServices {
         }
         ConnectorSource<TileEntityAdvanceCraftingLink> crafting = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class,
-            32);
+            TileEntityAdvanceCraftingLink.class);
         ConnectorSource<TileEntityAdvanceStorageLink> storage = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class,
-            32);
+            TileEntityAdvanceStorageLink.class);
         ConnectorSource<TileEntityAdvanceNetworkLink> network = findAllLinkTiles(
             player,
-            TileEntityAdvanceNetworkLink.class,
-            32);
+            TileEntityAdvanceNetworkLink.class);
         builder.append("\nAdvance Crafting Link: ")
             .append(crafting.connectors.size())
             .append(" (")
@@ -1539,8 +1532,7 @@ public final class AssistantServerServices {
         String query = target == null ? "" : target.trim();
         ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class,
-            32);
+            TileEntityAdvanceCraftingLink.class);
         if (source.isEmpty()) {
             return queryFailed(locale, text(locale, "附近没有 Advance Crafting Link。", "no nearby Advance Crafting Link."));
         }
@@ -1594,8 +1586,7 @@ public final class AssistantServerServices {
         boolean chinese = zh(locale);
         ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class,
-            32);
+            TileEntityAdvanceStorageLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Storage query failed: no AdvanceStorageLink found.");
             return (chinese ? msg("storage.noLink", "Query failed: no nearby Advance Storage Link.")
@@ -2508,6 +2499,15 @@ public final class AssistantServerServices {
     }
 
     @SuppressWarnings("unchecked")
+    private static <T extends TileEntity> ConnectorSource<T> findAllLinkTiles(EntityPlayerMP player, Class<T> type) {
+        return findAllLinkTiles(player, type, linkSearchRadius());
+    }
+
+    private static int linkSearchRadius() {
+        return Math.max(1, Config.assistantLinkSearchRadius);
+    }
+
+    @SuppressWarnings("unchecked")
     private static <T extends TileEntity> ConnectorSource<T> findAllLinkTiles(EntityPlayerMP player, Class<T> type,
         int radius) {
         if (player == null || player.worldObj == null) {
@@ -2536,7 +2536,12 @@ public final class AssistantServerServices {
                         if (!player.worldObj.blockExists(pos[0], pos[1], pos[2])) continue;
                         TileEntity boundTe = player.worldObj.getTileEntity(pos[0], pos[1], pos[2]);
                         if (type.isInstance(boundTe)) {
-                            boundConnectors.add((T) boundTe);
+                            // Skip connectors on AE networks where the player
+                            // lacks security terminal permission, so AI
+                            // assistant actions only use authorized bindings.
+                            if (hasAePermission(player, boundTe)) {
+                                boundConnectors.add((T) boundTe);
+                            }
                         }
                     }
                 }
@@ -2557,7 +2562,9 @@ public final class AssistantServerServices {
         if (nearest != null) {
             String key = nearest.xCoord + "," + nearest.yCoord + "," + nearest.zCoord;
             if (boundCoordKeys.add(key)) {
-                nearbyConnectors.add(nearest);
+                if (hasAePermission(player, nearest)) {
+                    nearbyConnectors.add(nearest);
+                }
             }
         }
         if (nearbyConnectors.isEmpty()) {
@@ -2581,5 +2588,97 @@ public final class AssistantServerServices {
 
     private static boolean candidateLimitReached(int size) {
         return size >= maxQueryCandidates();
+    }
+
+    /**
+     * Query the AI assistant menu state for a player: per-connector-type
+     * availability (is there a bound/nearby connector) and AE security
+     * terminal permission. Sends a {@link PacketAssistantMenuStateResponse}
+     * back to the requesting client so the feature menu can color-code
+     * unavailable features.
+     */
+    public static void respondMenuState(EntityPlayerMP player) {
+        int radius = linkSearchRadius();
+
+        ConnectorSource<TileEntityAdvanceCraftingLink> crafting = findAllLinkTiles(
+            player,
+            TileEntityAdvanceCraftingLink.class,
+            radius);
+        boolean craftingAvailable = !crafting.isEmpty();
+        boolean craftingHasPermission = checkConnectorPermission(player, crafting.connectors);
+
+        ConnectorSource<TileEntityAdvanceStorageLink> storage = findAllLinkTiles(
+            player,
+            TileEntityAdvanceStorageLink.class,
+            radius);
+        boolean storageAvailable = !storage.isEmpty();
+        boolean storageHasPermission = checkConnectorPermission(player, storage.connectors);
+
+        ConnectorSource<TileEntityAdvanceNetworkLink> network = findAllLinkTiles(
+            player,
+            TileEntityAdvanceNetworkLink.class,
+            radius);
+        boolean networkAvailable = !network.isEmpty();
+        boolean networkHasPermission = checkConnectorPermission(player, network.connectors);
+
+        AdvanceDataMonitor.ADMCHANEL.sendTo(
+            new PacketAssistantMenuStateResponse(
+                craftingAvailable,
+                craftingHasPermission,
+                storageAvailable,
+                storageHasPermission,
+                networkAvailable,
+                networkHasPermission),
+            player);
+    }
+
+    /**
+     * Check whether the player has AE security terminal permission on the
+     * networks reachable from the given connector list. Returns true (fail
+     * open) when the connector list is empty, when a connector is not on a
+     * grid, or when the grid has no security station — only an explicit
+     * {@code hasPermission == false} from an existing {@link ISecurityGrid}
+     * yields false.
+     */
+    private static boolean checkConnectorPermission(EntityPlayerMP player, List<? extends TileEntity> connectors) {
+        if (connectors == null || connectors.isEmpty()) {
+            return true;
+        }
+        for (TileEntity te : connectors) {
+            if (!hasAePermission(player, te)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check whether the player has AE security terminal DEPOSIT permission on
+     * the grid reachable from a single connector tile entity. Fail-open
+     * semantics: returns true when the tile is not an IGridHost, not on a
+     * grid, or the grid has no security station.
+     */
+    private static boolean hasAePermission(EntityPlayerMP player, TileEntity te) {
+        if (!(te instanceof IGridHost)) {
+            return true;
+        }
+        IGridHost gridHost = (IGridHost) te;
+        try {
+            IGridNode node = gridHost.getGridNode(ForgeDirection.UNKNOWN);
+            if (node == null) {
+                return true;
+            }
+            IGrid grid = node.getGrid();
+            if (grid == null) {
+                return true;
+            }
+            ISecurityGrid security = grid.getCache(ISecurityGrid.class);
+            if (security == null) {
+                return true;
+            }
+            return security.hasPermission(player, SecurityPermissions.DEPOSIT);
+        } catch (Exception ignored) {
+            return true;
+        }
     }
 }

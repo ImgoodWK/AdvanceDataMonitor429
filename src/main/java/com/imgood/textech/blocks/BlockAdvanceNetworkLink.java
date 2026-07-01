@@ -11,10 +11,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
+import com.imgood.textech.utils.AeSecurityCheck;
 
 /**
  * Display names / 显示名称:
@@ -52,6 +54,8 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             link.facing = direction;
             link.setOwnerFromPlacer(placer);
         }
+        String denial = StatCollector.translateToLocal("adm.ae.no_build_permission");
+        AeSecurityCheck.rejectIfUnauthorized(world, x, y, z, this, placer, denial);
     }
 
     private int determineFacing(World world, int x, int y, int z, EntityLivingBase placer) {

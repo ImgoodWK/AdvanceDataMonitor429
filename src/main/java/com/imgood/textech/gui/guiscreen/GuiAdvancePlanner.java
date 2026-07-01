@@ -509,10 +509,18 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
             } else {
                 PlannerEntry existing = entryMap.get(selectedSlotIndex);
                 if (existing != null) {
-                    existing.setText(text);
-                    ItemAdvancePlanner.setEntry(plannerStack, selectedSlotIndex, text, existing.isCompleted());
+                    if (text.isEmpty()) {
+                        ItemAdvancePlanner.removeEntry(plannerStack, selectedSlotIndex);
+                    } else {
+                        existing.setText(text);
+                        ItemAdvancePlanner.setEntry(plannerStack, selectedSlotIndex, text, existing.isCompleted());
+                    }
                     ItemAdvancePlanner.syncPlannerToServer(player, plannerStack);
                     refreshEntries();
+                    selectedSlotIndex = -1;
+                    editingField = null;
+                    isAddingNew = false;
+                    updateDynamicButtons();
                 }
             }
         }

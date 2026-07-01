@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.container.ContainerAdvanceStorageLink;
 import com.imgood.textech.gui.container.ContainerDimensionalPocket;
+import com.imgood.textech.gui.container.ContainerMatterBallDecompressor;
 import com.imgood.textech.gui.container.ContainerPocketStorage;
 import com.imgood.textech.gui.guiscreen.GuiAdvanceStorageLink;
 import com.imgood.textech.gui.guiscreen.GuiDimensionalPocketConfig;
@@ -18,13 +19,17 @@ import com.imgood.textech.gui.guiscreen.GuiGrappleAnchorConfig;
 import com.imgood.textech.gui.guiscreen.GuiGrappleHookConfig;
 import com.imgood.textech.gui.guiscreen.GuiMainAdvanceDataMonitor;
 import com.imgood.textech.gui.guiscreen.GuiManual;
+import com.imgood.textech.gui.guiscreen.GuiMatterBallDecompressor;
 import com.imgood.textech.gui.guiscreen.GuiNbtViewer;
 import com.imgood.textech.gui.guiscreen.GuiPocketStorage;
+import com.imgood.textech.gui.guiscreen.GuiSuperOrangeConfig;
 import com.imgood.textech.items.ItemDataImprint;
 import com.imgood.textech.items.ItemGrappleHook;
+import com.imgood.textech.items.ItemSuperOrange;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 import com.imgood.textech.tileentity.TileEntityGrappleAnchor;
+import com.imgood.textech.tileentity.TileEntityMatterBallDecompressor;
 import com.imgood.textech.utils.NBTJsonParserHelper;
 
 import cpw.mods.fml.common.network.IGuiHandler;
@@ -49,6 +54,8 @@ public class GuiHandler implements IGuiHandler {
     public static final int GRAPPLE_HOOK_GUI_ID = 5;
     public static final int POCKET_CONFIG_GUI_ID = 6;
     public static final int POCKET_STORAGE_GUI_ID = 7;
+    public static final int SUPER_ORANGE_GUI_ID = 8;
+    public static final int MATTER_BALL_DECOMPRESSOR_GUI_ID = 9;
 
     @Override
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
@@ -61,6 +68,13 @@ public class GuiHandler implements IGuiHandler {
             return new ContainerDimensionalPocket(player);
         } else if (ID == POCKET_STORAGE_GUI_ID) {
             return new ContainerPocketStorage(player);
+        } else if (ID == MATTER_BALL_DECOMPRESSOR_GUI_ID) {
+            TileEntity tileEntity = world.getTileEntity(x, y, z);
+            if (tileEntity instanceof TileEntityMatterBallDecompressor) {
+                return new ContainerMatterBallDecompressor(
+                    player.inventory,
+                    (TileEntityMatterBallDecompressor) tileEntity);
+            }
         }
         return null;
     }
@@ -114,6 +128,24 @@ public class GuiHandler implements IGuiHandler {
                 return new GuiDimensionalPocketConfig(player);
             case POCKET_STORAGE_GUI_ID:
                 return new GuiPocketStorage(player);
+            case SUPER_ORANGE_GUI_ID:
+                ItemStack orangeStack = player.getHeldItem();
+                if (orangeStack != null && orangeStack.getItem() instanceof ItemSuperOrange) {
+                    return new GuiSuperOrangeConfig(orangeStack, player);
+                }
+                orangeStack = ItemSuperOrange.findOrangeStack(player);
+                if (orangeStack != null) {
+                    return new GuiSuperOrangeConfig(orangeStack, player);
+                }
+                return null;
+            case MATTER_BALL_DECOMPRESSOR_GUI_ID:
+                TileEntity decompressorTe = world.getTileEntity(x, y, z);
+                if (decompressorTe instanceof TileEntityMatterBallDecompressor) {
+                    return new GuiMatterBallDecompressor(
+                        player.inventory,
+                        (TileEntityMatterBallDecompressor) decompressorTe);
+                }
+                return null;
         }
         return null;
     }

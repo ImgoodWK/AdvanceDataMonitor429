@@ -52,6 +52,13 @@ public final class ConfigAssistantLoader {
             1000,
             50000,
             ConfigDescriptions.get("assistant", "maxQueryCandidates"));
+        Config.assistantLinkSearchRadius = configuration.getInt(
+            "linkSearchRadius",
+            "assistant",
+            Config.assistantLinkSearchRadius,
+            4,
+            128,
+            ConfigDescriptions.get("assistant", "linkSearchRadius"));
     }
 
     public static void save(Configuration configuration) {
@@ -59,5 +66,15 @@ public final class ConfigAssistantLoader {
             .set(Config.assistantMaxOrderAmount);
         configuration.get("assistant", "maxWithdrawAmount", Config.assistantMaxWithdrawAmount)
             .set(Config.assistantMaxWithdrawAmount);
+        configuration.get("assistant", "craftJobTimeoutSeconds", Config.assistantCraftJobTimeoutSeconds)
+            .set(Config.assistantCraftJobTimeoutSeconds);
+        configuration.get("assistant", "maxConcurrentCraftJobs", Config.assistantMaxConcurrentCraftJobs)
+            .set(Config.assistantMaxConcurrentCraftJobs);
+        configuration.get("assistant", "queryCandidateBatchSize", Config.assistantQueryCandidateBatchSize)
+            .set(Config.assistantQueryCandidateBatchSize);
+        configuration.get("assistant", "maxQueryCandidates", Config.assistantMaxQueryCandidates)
+            .set(Config.assistantMaxQueryCandidates);
+        configuration.get("assistant", "linkSearchRadius", Config.assistantLinkSearchRadius)
+            .set(Config.assistantLinkSearchRadius);
     }
 }

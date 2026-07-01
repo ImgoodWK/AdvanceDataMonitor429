@@ -1,6 +1,6 @@
 # TeXTech Player Guide
 
-> Audience: players / pack authors / server admins · Last synced: 2026-06
+> Audience: players / pack authors / server admins · Last synced: 2026-07
 
 For developer details see [Technical Documentation](../developer/technical-documentation.md). Subsystem deep-dive: [Grapple System Design](../subsystems/grapple-system-design.md). Advance Planner API: [Technical Documentation §5.11](../developer/technical-documentation.md#511-advance-planner)
 
@@ -25,6 +25,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
   - [3.11 Empyrean Holy Judgment](#311-empyrean-holy-judgment)
   - [3.12 TeXTech Manual](#312-advancedatamonitor-manual)
   - [3.13 Dimensional Pocket](#313-dimensional-pocket)
+  - [3.14 Matter Ball Decompressor](#314-matter-ball-decompressor)
 - [4. Advance Data Monitor Tutorial](#4-advance-data-monitor-tutorial)
 - [5. AE2 Network Monitoring](#5-ae2-network-monitoring)
 - [6. AE2 Crafting Monitoring](#6-ae2-crafting-monitoring)
@@ -56,7 +57,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
 | AI Assistant | Natural-language AE2 queries, crafting orders, withdrawals, plans, and **Advanced Dislocator** teleport |
 | Voice Assistant | **V** key recording; embedded Vosk (offline) or HTTP STT |
 
-**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, TeXTech Manual, Dimensional Pocket (with Space/Page upgrade cards), and more.
+**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Matter Ball Decompressor, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, TeXTech Manual, Dimensional Pocket (with Space/Page upgrade cards), Super Orange, Empyrean Holy Judgment, and more.
 
 **Environment:** GTNH or any 1.7.10 pack with AE2/GTNH dependencies. After install, edit `config/textech/textech.cfg` and set an AI API key to enable the assistant.
 
@@ -140,6 +141,7 @@ The main display block. Right-click to open the configuration GUI: add data bind
 - Records its own coordinates as the default bind target on placement.
 - Ships with a demo binding (`testRandomData`) enabled by default.
 - Supports multiple display entries per face, each with its own coordinates, field name, chart type, sample interval, and transform.
+- Up to **36** data binding entries per monitor face (`MAX_DATA_BINDINGS`); per-entry chart point cap (`dataLimit`) still defaults to 100.
 - Chart types: line, bar, 3D bar, waterfall, difference, crafting text, storage item grid.
 - **AI** button on the main GUI opens the assistant chat window.
 
@@ -168,6 +170,7 @@ The main display block. Right-click to open the configuration GUI: add data bind
 **Notes:**
 
 - Cannot bind another **Advance Data Monitor**.
+- Sneak + right-click binding stops at 36 entries per face; shows `adm.error.data_bindings_full` when full.
 - Stores a **snapshot** — not a live feed unless rebound.
 - Blocks without TileEntity/NBT show an empty-viewer message.
 
@@ -391,7 +394,7 @@ Config sections: `[dataDustLoomCell]`, `[dataFormLoomCell]`, `[dataFlowCell]`, `
 
 ### 3.10 Super Orange
 
-**Registry:** `textech:super_orange`  
+**Registry:** `textech:orange`  
 **Lang name:** Super Orange (`item.orange.name`)
 
 Legendary item (`adm.super_orange.tooltip.legendary` — *Dungeon/Mob Drop (Legendary Item)*)
@@ -401,11 +404,11 @@ Legendary item (`adm.super_orange.tooltip.legendary` — *Dungeon/Mob Drop (Lege
 | Feature | Control | Description |
 |---------|---------|-------------|
 | Instant mining | Hold item | *Instantly mine any block when held* (including GT ores) |
-| Matter ball & drop multiplier | Sneak + right-click | Toggle; mined drops become Avaritia matter clusters at configured multiplier |
+| Settings GUI | Sneak + right-click (`adm.super_orange.tooltip.open_config`) | Nameplate text; matter-ball mining / pickup-merge / drop-merge toggles; custom drop multiplier (max from `[superOrange] dropMultiplierMax`, default ×2) |
 | Drone & projectile immunity | Right-click | Body orbits player, intercepts projectiles; clones attack nearby hostiles |
-| Head nameplate & halo | Anvil rename | Custom nameplate text; hidden in first-person, visible in third person / to others |
+| Head nameplate & halo | Settings GUI or anvil rename | Custom nameplate text; hidden in first-person, visible in third person / to others |
 
-Config section: `[superOrange]`. **Not** auto-gifted on first join (unlike the **TeXTech Manual**).
+Config section: `[superOrange]`. **Not** auto-gifted on first join (unlike the **TeXTech Manual**). Developer detail: [Technical Documentation §5.6](../developer/technical-documentation.md#56-super-orange).
 
 ---
 
@@ -485,13 +488,43 @@ Developer details: [Technical Documentation §5.12](../developer/technical-docum
 
 ---
 
+### 3.14 Matter Ball Decompressor
+
+**Registry:** `textech:matterBallDecompressor`  
+**Lang name:** Matter Ball Decompressor (`tile.matterBallDecompressor.name`)
+
+AE2 block that decompresses Avaritia matter clusters into individual items. Requires an AE channel and smart-cable connection.
+
+**GUI layout**
+
+| Area | Description |
+|------|-------------|
+| Left 9 slots | Matter clusters only |
+| Right 9×9 | Local buffer (81 slots) |
+| Bottom 4 slots | AE acceleration cards (`SPEED` / `SUPERSPEED`) |
+
+**Mode buttons** (lang: `adm.button.matter_decompressor.*` / `adm.tooltip.matter_decompressor.*`)
+
+| Button | Effect |
+|--------|--------|
+| To Network / To Buffer | Output to AE network (default) or local buffer; stops when buffer is full |
+| Block On/Off | **Buffer mode only:** when on, pauses decompression while the buffer holds any item until emptied |
+
+**Rate:** `[matterBallDecompressor] itemsPerSecond` (default 16/s); AE speed cards stack like a molecular assembler (`SUPERSPEED` ×8 per card).
+
+**Crafting** (UHV Assembly Line): scan Advanced Storage Linker 90s @ UV, 120s @ UHV. Materials: neutronium plate ×4, ultimate circuit ×2, Advanced Storage Linker ×1, Network Linker ×1, fluix crystal ×4, neutronium screw ×8, naquadah fine wire ×16 (OreDict `wireFineNaquadah`), solder 5760 mB + lubricant 2000 mB.
+
+Developer detail: [Technical Documentation §5.13](../developer/technical-documentation.md#513-matter-ball-decompressor).
+
+---
+
 ## 4. Advance Data Monitor Tutorial
 
 **Setup:** Place block → right-click GUI → **Add binding** → enter `x,y,z` → configure per target type (generic TileEntity, Network Linker, Crafting Linker, or Advanced Storage Linker) → set title, chart type, offsets, rotation, scale, interval → save.
 
 **Main GUI buttons:** facing cycle; add binding; body/screen/single-vs-dual toggles; **AI** chat; per-entry config buttons; color/chart sub-pages.
 
-**Coordinates:** comma-separated integers, e.g. `123,64,-123` — English comma only.
+**Coordinates:** comma-separated integers, e.g. `123,64,-123` — English comma only. Each monitor face holds at most **36** binding entries (Data Imprint sneak-bind and GUI **Add binding** share this cap). `dataLimit` is the per-chart point history (default 100), not the binding count.
 
 **Chart fields:** `name` (NBT path or AE metric), `displayName`, `dataType`, `dataLimit`, `interval` (ticks), `xRange`, `yRange`, `yMin`/`yMax`, `isValue` (percentage mode for AE bytes).
 
@@ -628,7 +661,7 @@ Providers include `deepseek`, `openai`, `openrouter`, `dashscope`, `zhipu`, `kim
 | `[grapple]` | hint range, interact distance, travel speed — see grapple subsystem doc |
 | `[dataLoomCell]` / per-cell sections | energy drain, sync interval, base rates |
 
-In-game **AI Settings** saves some fields; server admins editing `craftJobTimeoutSeconds` or `maxConcurrentCraftJobs` should edit cfg directly. Config key descriptions: [Technical Documentation](../developer/technical-documentation.md).
+In-game **AI Settings** saves client AI/voice preferences only; server-side `[assistant]` numeric keys should be edited in cfg directly. `ConfigAssistantLoader.save()` now persists all `[assistant]` fields including `craftJobTimeoutSeconds`, `maxConcurrentCraftJobs`, and `linkSearchRadius`.
 
 ---
 
@@ -663,6 +696,7 @@ Built-in provider profiles cover major OpenAI-compatible hosts. `webSearchMode`:
 |---------|--------|
 | Blank monitor | Entry enabled? Screen visible? `scale` too small? Wrong coordinates? Chunk loaded? |
 | Chart stuck at 0 | Wrong `name`; use **Data Imprint Tool** NBT viewer; AE metric spelling; chunk loaded |
+| Binding list full | Max **36** entries per face; remove unused bindings or use another face (`dataLimit` default 100 is unrelated) |
 | Network Linker empty | Cabled to AE2? Channel? Drives present? Right-click chat output? |
 | No CPUs on Crafting Linker | Same network as CPUs? Valid multiblock? Name matches template? |
 | Advanced Storage Linker empty | AE2 online? Cell partitions set? Cell inserted in linker GUI? Inverter card inverted filter? |
@@ -690,7 +724,7 @@ Built-in provider profiles cover major OpenAI-compatible hosts. `webSearchMode`:
 ## 17. Known Limitations
 
 - No built-in survival recipes in mod code.
-- AE2 link search radius for assistant: **32 blocks** (hard-coded).
+- AE2 link search radius defaults to **32 blocks**; configure via `assistant.linkSearchRadius` (4–128).
 - AI structured parse: max **8** tasks; one bad task fails entire AI parse (falls back to rules).
 - Withdraw needs backpack space; partial withdraw pauses batch operations.
 - Chat history is client-only (not saved across sessions).
@@ -706,7 +740,7 @@ Built-in provider profiles cover major OpenAI-compatible hosts. `webSearchMode`:
 
 ### Core blocks & items
 
-Advance Data Monitor · Data Imprint Tool · Network Linker · Crafting Linker · Advanced Storage Linker · Advanced Storage Link Cell · Grapple Anchor · Grapple Hook · Data Dust/Form/Flow/Tide/Source Loom Cell · Weave Amplifier Card · Super Weave Amplifier Card · Advance Planner · TeXTech Manual · Super Orange · Empyrean Holy Judgment
+Advance Data Monitor · Data Imprint Tool · Network Linker · Crafting Linker · Advanced Storage Linker · Matter Ball Decompressor · Advanced Storage Link Cell · Grapple Anchor · Grapple Hook · Data Dust/Form/Flow/Tide/Source Loom Cell · Weave Amplifier Card · Super Weave Amplifier Card · Advance Planner · TeXTech Manual · Super Orange · Empyrean Holy Judgment
 
 ### Commands
 
@@ -807,7 +841,7 @@ Creative tab **Tools** — search "Planner" or "Advance Planner".
 3. Type text → green **Add** button or **Enter**.
 4. Red **X** or **Esc** cancels without creating a row.
 
-> Empty confirm on a new row does nothing. Clearing an existing row's text and saving keeps the row with blank text.
+> Empty confirm on a new row does nothing. Clearing an existing row's text and saving **deletes** that row (same as the X button).
 
 #### Edit entry
 

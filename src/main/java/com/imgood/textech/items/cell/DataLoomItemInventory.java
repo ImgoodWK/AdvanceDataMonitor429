@@ -26,7 +26,6 @@ public class DataLoomItemInventory implements IMEInventoryHandler {
         this.cellStack = cellStack;
         this.saveProvider = saveProvider;
         this.cellItem = cellItem;
-        DataLoomCellUtil.ensureInstanceId(cellStack);
         this.hostSlot = DataLoomCellUtil.resolveHostSlot(cellStack, saveProvider);
     }
 

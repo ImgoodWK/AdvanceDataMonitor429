@@ -63,6 +63,6 @@
 In-game display names follow `lang/en_US.lang`, e.g.:
 
 - **Advance Data Monitor**, **Data Imprint Tool**
-- **Network Linker**, **Crafting Linker**, **Advanced Storage Linker**, **Advanced Storage Link Cell**
+- **Network Linker**, **Crafting Linker**, **Advanced Storage Linker**, **Advanced Storage Link Cell**, **Matter Ball Decompressor**
 - **Grapple Anchor** / **Grapple Hook**, **Advance Planner**, **Super Orange**, **Empyrean Holy Judgment**
 - **TeXTech Manual** (item `manual`)

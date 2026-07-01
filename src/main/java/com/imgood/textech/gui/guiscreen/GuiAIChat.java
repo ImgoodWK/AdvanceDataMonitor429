@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -18,6 +19,7 @@ import com.imgood.textech.Config;
 import com.imgood.textech.assistant.AssistantController;
 import com.imgood.textech.assistant.AssistantFeatureConfig;
 import com.imgood.textech.assistant.AssistantFeatureConfig.FeatureEntry;
+import com.imgood.textech.assistant.AssistantMenuState;
 import com.imgood.textech.assistant.AssistantOrderLine;
 import com.imgood.textech.assistant.CraftingCandidate;
 import com.imgood.textech.assistant.ai.AiProviderProfiles;
@@ -29,6 +31,8 @@ import com.imgood.textech.assistant.ai.DeepSeekChatClient.ChatMessage;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
+import com.imgood.textech.network.packet.PacketAssistantMenuStateQuery;
+import com.imgood.textech.renders.VoiceHudRenderer;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -80,6 +84,11 @@ public class GuiAIChat extends ADM_GuiScreen {
         "textures/gui/background_ADM_Sub.png");
 
     private static final List<ChatEntry> sharedHistory = new ArrayList<ChatEntry>();
+
+    // Client-side cache of the AI assistant menu state, refreshed from the
+    // server via PacketAssistantMenuStateResponse. Used to color-code features
+    // in the feature menu (gray = missing connector, red = no AE permission).
+    private static final AssistantMenuState cachedMenuState = new AssistantMenuState();
 
     private final GuiScreen parent;
     private final List<ChatEntry> history = sharedHistory;
@@ -355,6 +364,12 @@ public class GuiAIChat extends ADM_GuiScreen {
         requestScrollToBottom();
         this.statusMessage = I18n.format("adm.ai.ready");
         rebuildDisplayLines();
+        // If the chat GUI is not currently open, pop the voice HUD in auto
+        // mode so the player sees the reply without losing game control.
+        if (Minecraft.getMinecraft().currentScreen != this) {
+            VoiceHudRenderer.instance()
+                .openAuto();
+        }
     }
 
     public void addAssistantCandidatesMessage(String message, List<CraftingCandidate> candidates) {
@@ -364,6 +379,10 @@ public class GuiAIChat extends ADM_GuiScreen {
         requestScrollToBottom();
         this.statusMessage = I18n.format("adm.ai.ready");
         rebuildDisplayLines();
+        if (Minecraft.getMinecraft().currentScreen != this) {
+            VoiceHudRenderer.instance()
+                .openAuto();
+        }
     }
 
     public void addAssistantBatchMessage(String message, List<AssistantOrderLine> lines) {
@@ -373,11 +392,128 @@ public class GuiAIChat extends ADM_GuiScreen {
         requestScrollToBottom();
         this.statusMessage = I18n.format("adm.ai.ready");
         rebuildDisplayLines();
+        if (Minecraft.getMinecraft().currentScreen != this) {
+            VoiceHudRenderer.instance()
+                .openAuto();
+        }
+    }
+
+    /**
+     * Returns the shared client-side menu state cache. Also used by
+     * {@code PacketAssistantMenuStateResponse.Handler} to update the cache.
+     */
+    public static AssistantMenuState getCachedMenuState() {
+        return cachedMenuState;
+    }
+
+    /**
+     * Snapshot the shared chat history into the provided lists (cleared
+     * first). Used by {@code VoiceHudRenderer} to render the paged dialog
+     * without holding a lock on the history during rendering.
+     */
+    public static void snapshotHistory(List<String> roles, List<String> contents) {
+        if (roles == null || contents == null) {
+            return;
+        }
+        synchronized (sharedHistory) {
+            roles.clear();
+            contents.clear();
+            for (ChatEntry entry : sharedHistory) {
+                roles.add(entry.role);
+                contents.add(entry.content);
+            }
+        }
+    }
+
+    /**
+     * Returns the current number of entries in the shared chat history.
+     */
+    public static int getSharedHistorySize() {
+        synchronized (sharedHistory) {
+            return sharedHistory.size();
+        }
+    }
+
+    // Headless voice-prompt support: a GuiAIChat instance that is never
+    // displayed, used only to host an AssistantController so voice input can
+    // be dispatched without opening the full-screen GUI.
+    private static GuiAIChat headlessVoiceChat;
+    private static AssistantController headlessVoiceController;
+
+    /**
+     * Submit a voice-transcribed prompt without opening the GUI. The user
+     * message is added to the shared history, the headless controller
+     * dispatches the intent, and the {@link VoiceHudRenderer} displays the
+     * ongoing conversation. The caller is expected to have already opened
+     * the HUD via {@code VoiceHudRenderer.instance().openManual()}.
+     */
+    public static void submitVoicePrompt(String prompt) {
+        if (prompt == null || prompt.trim()
+            .isEmpty()) {
+            return;
+        }
+        prompt = prompt.trim();
+        ensureHeadlessVoiceController();
+        synchronized (sharedHistory) {
+            sharedHistory.add(ChatEntry.text("user", prompt));
+        }
+        String locale = currentLocaleStatic();
+        if (!headlessVoiceController.handlePrompt(prompt, locale)) {
+            // Intent was CHAT or unrecognized — start normal AI chat on the
+            // headless instance. addUserMessage=false because we already
+            // added the user message above.
+            headlessVoiceChat.sendNormalAiMessage(prompt, false);
+        }
+    }
+
+    private static void ensureHeadlessVoiceController() {
+        if (headlessVoiceChat == null) {
+            headlessVoiceChat = new GuiAIChat(null);
+        }
+        if (headlessVoiceController == null) {
+            headlessVoiceController = new AssistantController(headlessVoiceChat);
+        }
+    }
+
+    private static String currentLocaleStatic() {
+        try {
+            return Minecraft.getMinecraft().gameSettings.language;
+        } catch (Exception e) {
+            return "en_US";
+        }
+    }
+
+    /**
+     * Called by {@code PacketAssistantMenuStateResponse.Handler} when the
+     * server has refreshed the menu state. If the feature menu is currently
+     * displayed and was shown with a stale/invalid state, re-render it with
+     * the fresh color-coded version.
+     */
+    public void onMenuStateRefreshed() {
+        if (this.waitingForMenuSelection && cachedMenuState.isValid()) {
+            // Replace the last assistant menu entry with the color-coded version.
+            synchronized (this.history) {
+                if (!this.history.isEmpty()) {
+                    ChatEntry last = this.history.get(this.history.size() - 1);
+                    if ("assistant".equals(last.role) && last.content != null
+                        && (last.content.startsWith("=== \u529f\u80fd\u83dc\u5355") || last.content.startsWith("=== Feature Menu"))) {
+                        this.history.remove(this.history.size() - 1);
+                    }
+                }
+                String menuText = AssistantFeatureConfig.buildFeatureMenu(currentLocale(), cachedMenuState);
+                this.history.add(ChatEntry.text("assistant", menuText));
+            }
+            requestScrollToBottom();
+            rebuildDisplayLines();
+        }
     }
 
     private void showFeatureMenu() {
         String locale = currentLocale();
-        String menuText = AssistantFeatureConfig.buildFeatureMenu(locale);
+        // Request fresh menu state from the server so the menu can be
+        // color-coded with the latest connector availability/permissions.
+        AdvanceDataMonitor.ADMCHANEL.sendToServer(new PacketAssistantMenuStateQuery());
+        String menuText = AssistantFeatureConfig.buildFeatureMenu(locale, cachedMenuState);
         synchronized (this.history) {
             this.history.add(ChatEntry.text("assistant", menuText));
         }
@@ -401,6 +537,28 @@ public class GuiAIChat extends ADM_GuiScreen {
                 int menuIndex = Integer.parseInt(prompt);
                 FeatureEntry feature = AssistantFeatureConfig.getFeatureByMenuIndex(menuIndex);
                 if (feature != null) {
+                    String connector = AssistantFeatureConfig.getRequiredConnector(feature);
+                    if (cachedMenuState.isValid() && !cachedMenuState.isFeatureUsable(connector)) {
+                        // Feature unavailable — show reason in red, don't select.
+                        addUserMessage(prompt);
+                        String reason;
+                        if (!cachedMenuState.isFeatureAvailable(connector)) {
+                            reason = I18n.format("adm.ai.menu.unavailable.no_connector")
+                                + AssistantFeatureConfig.getConnectorLabel(connector, currentLocale()
+                                    .startsWith("zh"));
+                        } else {
+                            reason = I18n.format("adm.ai.menu.unavailable.no_permission");
+                        }
+                        synchronized (this.history) {
+                            this.history.add(ChatEntry.text("assistant", "\u00a7c" + reason + "\u00a7r"));
+                        }
+                        this.inputField.setText("");
+                        requestScrollToBottom();
+                        rebuildDisplayLines();
+                        this.statusMessage = reason;
+                        // Keep waitingForMenuSelection true so player can pick another number.
+                        return;
+                    }
                     this.waitingForMenuSelection = false;
                     this.assistantController.setSelectedFeature(feature.key);
                     String locale = currentLocale();
@@ -663,6 +821,12 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     private void rebuildDisplayLines() {
+        if (this.fontRendererObj == null) {
+            // Headless mode (e.g. voice prompt without opening the GUI):
+            // skip display-line rebuild; the shared history is still updated
+            // so the VoiceHudRenderer can render it.
+            return;
+        }
         synchronized (this.displayLines) {
             this.displayLines.clear();
             synchronized (this.history) {
@@ -1047,6 +1211,15 @@ public class GuiAIChat extends ADM_GuiScreen {
         private static ChatEntry batch(String content, List<AssistantOrderLine> lines) {
             return new ChatEntry("assistant", content, null, lines);
         }
+
+        public String getRole() {
+            return role;
+        }
+
+        public String getContent() {
+            return content;
+        }
+    }
 
         private boolean hasCandidates() {
             return this.candidates != null && !this.candidates.isEmpty();

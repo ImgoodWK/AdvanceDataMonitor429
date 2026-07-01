@@ -41,7 +41,7 @@ TeXTech 在 `compat/ae/` 包中实现 **Legacy**（2.9.0 beta-1 之前）与 **N
 
 ## 调用方
 
-- `TileEntityAdvanceNetworkLink` / `TileEntityTeXTech` — `AeCompat.cells().accumulateStorageStack`
+- `TileEntityAdvanceNetworkLink` / `TileEntityAdvanceDataMonitor` — `AeCompat.cells().accumulateStorageStack`
 - `AssistantServerServices.classifyCell` — `readItemCellStats` / `readFluidCellStats`
 - `PatternDetailFormatter` — `AeCompat.patternFluids()`
 - `AbstractDataLoomFluidCell` / `DataLoomCellUtil` — config 与 marker 适配器

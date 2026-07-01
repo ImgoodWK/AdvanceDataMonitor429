@@ -11,6 +11,7 @@ import org.lwjgl.input.Keyboard;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.gui.guiscreen.GuiAIChat;
+import com.imgood.textech.renders.VoiceHudRenderer;
 import com.imgood.textech.voice.PcmAudioUtil;
 import com.imgood.textech.voice.SpeechToTextClient;
 import com.imgood.textech.voice.VoiceCaptureService;
@@ -67,9 +68,16 @@ public class VoiceAssistantKeyHandler {
             notifyPlayer("Using microphone: " + inputDevice);
             notifyPlayer("Listening... press the voice key again to submit.");
             GuiAIChat.updateGlobalVoiceStatus("Listening... mic: " + inputDevice);
+            // Show the HUD in manual mode and mark recording state so the
+            // player sees the live status while keeping full game control.
+            VoiceHudRenderer hud = VoiceHudRenderer.instance();
+            hud.openManual();
+            hud.setRecording(true);
         } catch (Exception e) {
             notifyPlayer("Voice capture failed: " + e.getMessage());
             GuiAIChat.updateGlobalVoiceStatus("Voice capture failed: " + e.getMessage());
+            VoiceHudRenderer.instance()
+                .setRecording(false);
         }
     }
 
@@ -80,6 +88,9 @@ public class VoiceAssistantKeyHandler {
             "[TeXTech] Voice recording stopped: {} bytes captured, {}.",
             audio == null ? 0 : audio.length,
             stats.describe());
+        VoiceHudRenderer hud = VoiceHudRenderer.instance();
+        hud.setRecording(false);
+        hud.setTranscribing(true);
         if (stats.isProbablySilent()) {
             notifyPlayer(
                 "Voice input is very quiet (" + stats.describe() + "). Check the selected microphone or speak closer.");
@@ -104,6 +115,8 @@ public class VoiceAssistantKeyHandler {
 
                     @Override
                     public void run() {
+                        VoiceHudRenderer.instance()
+                            .setTranscribing(false);
                         submitText(text);
                     }
                 });
@@ -115,6 +128,8 @@ public class VoiceAssistantKeyHandler {
 
                     @Override
                     public void run() {
+                        VoiceHudRenderer.instance()
+                            .setTranscribing(false);
                         notifyPlayer("STT failed: " + error);
                         GuiAIChat.updateGlobalVoiceStatus("STT failed: " + error);
                     }
@@ -127,15 +142,17 @@ public class VoiceAssistantKeyHandler {
 
     private void submitText(String text) {
         Minecraft mc = Minecraft.getMinecraft();
-        GuiAIChat gui;
         AdvanceDataMonitor.LOG.info("[TeXTech] Submitting transcribed prompt to chat: '{}'", sanitize(text));
         if (mc.currentScreen instanceof GuiAIChat) {
-            gui = (GuiAIChat) mc.currentScreen;
+            // If the chat GUI is already open, submit through it as before.
+            ((GuiAIChat) mc.currentScreen).submitAssistantPrompt(text);
         } else {
-            gui = new GuiAIChat(mc.currentScreen);
-            mc.displayGuiScreen(gui);
+            // No GUI open — submit via the headless path and show the voice
+            // HUD so the player keeps full game control (no GUI opened).
+            VoiceHudRenderer.instance()
+                .openManual();
+            GuiAIChat.submitVoicePrompt(text);
         }
-        gui.submitAssistantPrompt(text);
     }
 
     private void runOnClientThread(Runnable runnable) {

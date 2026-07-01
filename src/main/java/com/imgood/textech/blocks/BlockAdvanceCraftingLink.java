@@ -10,10 +10,12 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
+import com.imgood.textech.utils.AeSecurityCheck;
 
 /**
  * Display names / 显示名称:
@@ -47,6 +49,10 @@ public class BlockAdvanceCraftingLink extends BlockContainer {
         if (te instanceof TileEntityAdvanceCraftingLink) {
             ((TileEntityAdvanceCraftingLink) te).setOwnerFromPlacer(placer);
         }
+        // AE2 security check: reject placement if the player lacks BUILD
+        // permission on an adjacent AE network with a security terminal.
+        String denial = StatCollector.translateToLocal("adm.ae.no_build_permission");
+        AeSecurityCheck.rejectIfUnauthorized(world, x, y, z, this, placer, denial);
     }
 
     // ---------- 方块放置时启动计划刻 ----------

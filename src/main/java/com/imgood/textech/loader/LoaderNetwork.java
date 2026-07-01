@@ -18,11 +18,15 @@ import com.imgood.textech.network.packet.PacketItemCountSync;
 import com.imgood.textech.network.packet.PacketItemNBT;
 import com.imgood.textech.network.packet.PacketLinkScannerAction;
 import com.imgood.textech.network.packet.PacketMonitorRecord;
+import com.imgood.textech.network.packet.PacketAssistantMenuStateQuery;
+import com.imgood.textech.network.packet.PacketAssistantMenuStateResponse;
+import com.imgood.textech.network.packet.PacketMatterBallDecompressorToggle;
 import com.imgood.textech.network.packet.PacketPlannerMerge;
 import com.imgood.textech.network.packet.PacketPlannerSync;
 import com.imgood.textech.network.packet.PacketPocketAction;
 import com.imgood.textech.network.packet.PacketPocketSync;
 import com.imgood.textech.network.packet.PacketRequestItemCountSync;
+import com.imgood.textech.network.packet.PacketSuperOrangeConfig;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -145,6 +149,29 @@ public class LoaderNetwork {
             .isClient()) {
             AdvanceDataMonitor.ADMCHANEL
                 .registerMessage(PacketPocketSync.ClientHandler.class, PacketPocketSync.class, 21, Side.CLIENT);
+        }
+
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketSuperOrangeConfig.Handler.class, PacketSuperOrangeConfig.class, 22, Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketMatterBallDecompressorToggle.Handler.class,
+            PacketMatterBallDecompressorToggle.class,
+            23,
+            Side.SERVER);
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketAssistantMenuStateQuery.Handler.class,
+            PacketAssistantMenuStateQuery.class,
+            24,
+            Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketAssistantMenuStateResponse.Handler.class,
+                PacketAssistantMenuStateResponse.class,
+                25,
+                Side.CLIENT);
         }
     }
 }

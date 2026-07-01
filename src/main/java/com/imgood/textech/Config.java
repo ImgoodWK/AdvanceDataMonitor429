@@ -10,6 +10,7 @@ import com.imgood.textech.config.ConfigCompatLoader;
 import com.imgood.textech.config.ConfigDataLoomLoader;
 import com.imgood.textech.config.ConfigDebugLoader;
 import com.imgood.textech.config.ConfigGrappleLoader;
+import com.imgood.textech.config.ConfigMatterBallDecompressorLoader;
 import com.imgood.textech.config.ConfigPlannerHudLoader;
 import com.imgood.textech.config.ConfigSuperOrangeLoader;
 
@@ -65,6 +66,7 @@ public class Config {
     public static int assistantMaxConcurrentCraftJobs = 2;
     public static int assistantQueryCandidateBatchSize = 1000;
     public static int assistantMaxQueryCandidates = 2000;
+    public static int assistantLinkSearchRadius = 32;
 
     // --- data loom ---
     public static double dataDustLoomCellItemRatePerSecond = 1.0D;
@@ -94,12 +96,16 @@ public class Config {
     public static boolean superOrangeHeadEffectsEnabled = true;
     public static boolean superOrangeDropMultiplierEnabled = true;
     public static int superOrangeDropMultiplier = 2;
+    public static int superOrangeDropMultiplierMax = 2;
     public static boolean superOrangeProjectileImmunityEnabled = true;
     public static double superOrangeDroneAttackRange = 15.0D;
     public static double superOrangeDroneAttackDamage = 1.0D;
     public static int superOrangeDroneAttacksPerSecond = 5;
     public static int superOrangeDroneMaxClones = 3;
     public static double superOrangeDroneFollowHeight = 0.5D;
+
+    // --- matter ball decompressor ---
+    public static double matterBallDecompressorItemsPerSecond = 16.0D;
 
     // --- grapple ---
     public static int grappleHintRange = 24;
@@ -124,6 +130,7 @@ public class Config {
         ConfigPlannerHudLoader.load(configuration);
         ConfigDataLoomLoader.load(configuration);
         ConfigSuperOrangeLoader.load(configuration);
+        ConfigMatterBallDecompressorLoader.load(configuration);
         ConfigGrappleLoader.load(configuration);
 
         if (!FMLCommonHandler.instance()

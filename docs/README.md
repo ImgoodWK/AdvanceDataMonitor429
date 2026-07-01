@@ -1,6 +1,6 @@
 # TeXTech Documentation
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-06
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-07
 
 Documentation is split by language under `docs/zh/` (简体中文) and `docs/en/` (English).  
 The project root [`README.md`](../README.md) keeps only a short intro and build commands.

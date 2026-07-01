@@ -9,13 +9,17 @@
       "en_US": "This file defines the list of features supported by the AI assistant. It is used to: (1) describe available features and their usage in the AI model's system prompt; (2) display selectable features in the in-game chat feature menu; (3) when a player selects a feature, the AI will precisely call the corresponding operation based on the feature description."
     },
     "howToUse": {
-      "zh_CN": "修改指南：features 数组中的每个对象代表一个功能。你可以添加新功能或修改现有功能的以下字段：\n- key: 功能标识符，对应代码中的意图类型（如 QUERY_RECIPE、ORDER_ITEM 等）\n- displayName: 在功能菜单中显示的名称，需提供 zh_CN 和 en_US 两种语言\n- description: 功能的详细描述，需提供两种语言\n- keywords: 触发该功能的关键词列表，中英文均可\n- aiInstruction: 发送给 AI 大模型的指令说明，告诉 AI 如何识别和返回该意图\n\n修改说明：添加新功能时请确保 key 值与代码中的 AssistantIntentType 枚举值一致。删除功能会使其从菜单和 AI prompt 中移除。修改后重启游戏即可生效。",
-      "en_US": "Usage: Each object in the features array represents a feature. You can add new features or modify existing ones with the following fields:\n- key: Feature identifier, corresponds to the intent type in code (e.g. QUERY_RECIPE, ORDER_ITEM, etc.)\n- displayName: Name displayed in the feature menu, provide both zh_CN and en_US languages\n- description: Detailed description of the feature, provide both languages\n- keywords: List of keywords that trigger this feature, supports both Chinese and English\n- aiInstruction: Instruction sent to the AI model, telling it how to recognize and return this intent\n\nNotes: When adding a new feature, ensure the key value matches the AssistantIntentType enum in code. Removing a feature will remove it from the menu and AI prompt. A game restart is required for changes to take effect."
+      "zh_CN": "修改指南：features 数组中的每个对象代表一个功能。你可以添加新功能或修改现有功能的以下字段：\n- key: 功能标识符，对应代码中的意图类型（如 QUERY_RECIPE、ORDER_ITEM 等）\n- requiredConnector: 该功能依赖的连接器类型，取值 none（无依赖）/crafting（合成连接器）/storage（存储连接器）/network（网络连接器）。菜单会根据玩家附近的连接器绑定情况和 AE 网络权限用灰色/红色标注不可用功能\n- displayName: 在功能菜单中显示的名称，需提供 zh_CN 和 en_US 两种语言\n- description: 功能的详细描述，需提供两种语言\n- keywords: 触发该功能的关键词列表，中英文均可\n- aiInstruction: 发送给 AI 大模型的指令说明，告诉 AI 如何识别和返回该意图\n\n修改说明：添加新功能时请确保 key 值与代码中的 AssistantIntentType 枚举值一致。删除功能会使其从菜单和 AI prompt 中移除。修改后重启游戏即可生效。",
+      "en_US": "Usage: Each object in the features array represents a feature. You can add new features or modify existing ones with the following fields:\n- key: Feature identifier, corresponds to the intent type in code (e.g. QUERY_RECIPE, ORDER_ITEM, etc.)\n- requiredConnector: Connector type this feature depends on. Values: none (no dependency) / crafting (Crafting Link) / storage (Storage Link) / network (Network Link). The menu marks unavailable features in gray/red based on nearby connector bindings and AE network permissions.\n- displayName: Name displayed in the feature menu, provide both zh_CN and en_US languages\n- description: Detailed description of the feature, provide both languages\n- keywords: List of keywords that trigger this feature, supports both Chinese and English\n- aiInstruction: Instruction sent to the AI model, telling AI how to recognize and return this intent\n\nNotes: When adding a new feature, ensure the key value matches the AssistantIntentType enum in code. Removing a feature will remove it from the menu and AI prompt. A game restart is required for changes to take effect."
     },
     "fieldsInEachFeature": {
       "key": {
         "zh_CN": "功能键名 — 必须与代码中的意图类型一致",
         "en_US": "Feature key — must match the intent type in code"
+      },
+      "requiredConnector": {
+        "zh_CN": "所需连接器 — none/crafting/storage/network，决定菜单中该功能是否可用",
+        "en_US": "Required connector — none/crafting/storage/network, determines feature availability in the menu"
       },
       "displayName": {
         "zh_CN": "显示名称 — zh_CN 和 en_US 两个语言版本",
@@ -38,6 +42,7 @@
   "features": [
     {
       "key": "QUERY_RECIPE",
+      "requiredConnector": "crafting",
       "displayName": {
         "zh_CN": "查询合成配方/样板",
         "en_US": "Query Crafting Recipe/Pattern"
@@ -61,6 +66,7 @@
     },
     {
       "key": "QUERY_STORAGE",
+      "requiredConnector": "storage",
       "displayName": {
         "zh_CN": "查询AE2存储",
         "en_US": "Query AE2 Storage"
@@ -85,6 +91,7 @@
     },
     {
       "key": "QUERY_POWER",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "查询无线能源/电量",
         "en_US": "Query Wireless Power"
@@ -106,6 +113,7 @@
     },
     {
       "key": "QUERY_STEAM",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "查询无线蒸汽",
         "en_US": "Query Wireless Steam"
@@ -127,6 +135,7 @@
     },
     {
       "key": "QUERY_WEATHER",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "查询天气",
         "en_US": "Query Weather"
@@ -146,6 +155,7 @@
     },
     {
       "key": "QUERY_TIME",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "查询时间",
         "en_US": "Query Time"
@@ -165,6 +175,7 @@
     },
     {
       "key": "QUERY_POSITION",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "查询位置",
         "en_US": "Query Position"
@@ -184,6 +195,7 @@
     },
     {
       "key": "QUERY_BIOME",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "查询群系",
         "en_US": "Query Biome"
@@ -203,6 +215,7 @@
     },
     {
       "key": "QUERY_INVENTORY",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "查询背包",
         "en_US": "Query Inventory"
@@ -222,6 +235,7 @@
     },
     {
       "key": "QUERY_NETWORK",
+      "requiredConnector": "network",
       "displayName": {
         "zh_CN": "查询ADM网络状态",
         "en_US": "Query ADM Network"
@@ -242,6 +256,7 @@
     },
     {
       "key": "QUERY_JOBS",
+      "requiredConnector": "crafting",
       "displayName": {
         "zh_CN": "查询合成任务",
         "en_US": "Query Crafting Jobs"
@@ -261,6 +276,7 @@
     },
     {
       "key": "QUERY_ITEM_COUNT",
+      "requiredConnector": "storage",
       "displayName": {
         "zh_CN": "查询物品/流体数量",
         "en_US": "Query Item/Fluid Count"
@@ -284,6 +300,7 @@
     },
     {
       "key": "QUERY_BYTES",
+      "requiredConnector": "network",
       "displayName": {
         "zh_CN": "查询字节占用/容量",
         "en_US": "Query Byte Usage/Capacity"
@@ -306,6 +323,7 @@
     },
     {
       "key": "TELEPORT",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "传送",
         "en_US": "Teleport"
@@ -325,6 +343,7 @@
     },
     {
       "key": "TELEPORT_LIST",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "列出传送点",
         "en_US": "List Teleport Destinations"
@@ -344,6 +363,7 @@
     },
     {
       "key": "ORDER_ITEM",
+      "requiredConnector": "crafting",
       "displayName": {
         "zh_CN": "下单合成物品",
         "en_US": "Order Craft Item"
@@ -363,6 +383,7 @@
     },
     {
       "key": "WITHDRAW_ITEM",
+      "requiredConnector": "storage",
       "displayName": {
         "zh_CN": "取出存储物品",
         "en_US": "Withdraw Item"
@@ -383,6 +404,7 @@
     },
     {
       "key": "PLAN_ADD",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "添加计划/备忘",
         "en_US": "Add Plan/Todo"
@@ -405,6 +427,7 @@
     },
     {
       "key": "PLAN_LIST",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "列出计划",
         "en_US": "List Plans"
@@ -426,6 +449,7 @@
     },
     {
       "key": "PLAN_COMPLETE",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "完成计划",
         "en_US": "Complete Plan"
@@ -446,6 +470,7 @@
     },
     {
       "key": "PLAN_DELETE",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "删除计划",
         "en_US": "Delete Plan"
@@ -466,6 +491,7 @@
     },
     {
       "key": "PLAN_MODIFY",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "修改计划",
         "en_US": "Modify Plan"
@@ -486,6 +512,7 @@
     },
     {
       "key": "CANCEL",
+      "requiredConnector": "none",
       "displayName": {
         "zh_CN": "取消操作",
         "en_US": "Cancel"

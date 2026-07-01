@@ -143,6 +143,9 @@ public class ManualDataLoader {
         assistantEntries.add(entry("assistant", "maxWithdrawAmount", "int", "4096"));
         assistantEntries.add(entry("assistant", "craftJobTimeoutSeconds", "int", "30"));
         assistantEntries.add(entry("assistant", "maxConcurrentCraftJobs", "int", "2"));
+        assistantEntries.add(entry("assistant", "linkSearchRadius", "int", "32"));
+        assistantEntries.add(entry("assistant", "queryCandidateBatchSize", "int", "1000"));
+        assistantEntries.add(entry("assistant", "maxQueryCandidates", "int", "2000"));
         map.put("assistant", assistantEntries);
 
         List<ConfigEntry> hudEntries = new ArrayList<>();

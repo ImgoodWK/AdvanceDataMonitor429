@@ -373,11 +373,19 @@
     "确认",
     "选择",
     "第",
-    "号"
+    "号",
+    "confirm",
+    "yes",
+    "ok",
+    "y"
   ],
   "submitWords": [
     "确认",
-    "提交"
+    "提交",
+    "confirm",
+    "submit",
+    "yes",
+    "ok"
   ],
   "batchSeparators": [
     "和",

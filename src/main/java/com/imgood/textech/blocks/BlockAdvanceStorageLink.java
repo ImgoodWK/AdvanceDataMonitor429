@@ -7,11 +7,13 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.handler.GuiHandler;
 import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.utils.AeSecurityCheck;
 
 /**
  * Display names / 显示名称:
@@ -42,6 +44,8 @@ public class BlockAdvanceStorageLink extends BlockContainer {
         if (te instanceof TileEntityAdvanceStorageLink) {
             ((TileEntityAdvanceStorageLink) te).setOwnerFromPlacer(placer);
         }
+        String denial = StatCollector.translateToLocal("adm.ae.no_build_permission");
+        AeSecurityCheck.rejectIfUnauthorized(world, x, y, z, this, placer, denial);
     }
 
     @Override

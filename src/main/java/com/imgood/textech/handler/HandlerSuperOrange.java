@@ -1,14 +1,12 @@
 package com.imgood.textech.handler;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.IProjectile;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.entity.projectile.EntityFishHook;
@@ -16,38 +14,24 @@ import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityThrowable;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.world.BlockEvent;
 
 import com.imgood.textech.Config;
 import com.imgood.textech.items.ItemSuperOrange;
+import com.imgood.textech.utils.MatterBallClusterUtil;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import fox.spiteful.avaritia.items.ItemMatterCluster;
-import fox.spiteful.avaritia.items.ItemStackWrapper;
 
 /**
  * Handles all Super Orange passive abilities:
- * <ul>
- * <li>Instant mining of any block when ItemSuperOrange is held</li>
- * <li>Configurable block drop multiplier, auto-collected into Avaritia Matter Cluster</li>
- * <li>Configurable projectile damage immunity</li>
- * </ul>
+ * instant mining, configurable drop multiplier with matter clusters, pickup merging, projectile immunity.
  */
 public class HandlerSuperOrange {
 
-    /**
-     * Maximum total item count a single Matter Cluster can hold.
-     * Mirrors {@code ItemMatterCluster.capacity} —the Avaritia cluster
-     * capacity is 64 × 256 = 16384.
-     */
-    private static final int MATTER_CLUSTER_CAPACITY = 16384;
-
-    /**
-     * Allow instant break speed when holding ItemSuperOrange (modded-block fallback).
-     */
     @SubscribeEvent
     public void onBreakSpeed(PlayerEvent.BreakSpeed event) {
         ItemStack held = event.entityPlayer.getHeldItem();
@@ -56,11 +40,8 @@ public class HandlerSuperOrange {
         }
     }
 
-    /**
-     * Handle projectile immunity when enabled in config.
-     */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void onLivingAttack(LivingAttackEvent event) {
+    public void onLivingAttack(net.minecraftforge.event.entity.living.LivingAttackEvent event) {
         if (!Config.superOrangeProjectileImmunityEnabled) return;
         if (!(event.entityLiving instanceof EntityPlayer)) return;
         EntityPlayer player = (EntityPlayer) event.entityLiving;
@@ -77,17 +58,13 @@ public class HandlerSuperOrange {
         }
     }
 
-    /**
-     * Handle configurable block drop multiplier for players with ItemSuperOrange.
-     * Drops are automatically collected into an existing Avaritia Matter Cluster,
-     * or a new cluster is created and added to the inventory when none exists.
-     */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onBlockHarvestDrops(BlockEvent.HarvestDropsEvent event) {
         if (event.harvester == null) return;
-        if (!ItemSuperOrange.isMatterBallActiveForPlayer(event.harvester)) return;
+        ItemStack orange = ItemSuperOrange.findOrangeStack(event.harvester);
+        if (!ItemSuperOrange.isMatterBallFeatureActive(orange)) return;
 
-        int multiplier = Math.max(1, Config.superOrangeDropMultiplier);
+        int multiplier = ItemSuperOrange.getDropMultiplier(orange);
 
         List<ItemStack> allMultiplied = new ArrayList<>();
         for (ItemStack drop : event.drops) {
@@ -100,152 +77,71 @@ public class HandlerSuperOrange {
 
         if (allMultiplied.isEmpty()) return;
 
-        List<ItemStack> remainders = insertIntoMatterClusters(event.harvester, allMultiplied);
+        List<ItemStack> remainders = MatterBallClusterUtil.insertIntoPlayerClusters(event.harvester, allMultiplied);
 
         event.drops.clear();
         event.drops.addAll(remainders);
     }
 
-    /**
-     * Insert a list of ItemStacks into Matter Clusters in the player's inventory.
-     * If no cluster exists or existing ones are full, new clusters are created.
-     * Returns items that couldn't be inserted.
-     */
-    private List<ItemStack> insertIntoMatterClusters(EntityPlayer player, List<ItemStack> toInsert) {
-        ArrayList<ItemStack> workingList = new ArrayList<>(toInsert);
-
-        InventoryPlayer inv = player.inventory;
-        for (int i = 0; i < inv.getSizeInventory(); i++) {
-            ItemStack stack = inv.getStackInSlot(i);
-            if (stack == null || !(stack.getItem() instanceof ItemMatterCluster)) continue;
-
-            workingList = insertIntoCluster(stack, workingList);
-            if (workingList.isEmpty()) return workingList;
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public void onItemPickup(EntityItemPickupEvent event) {
+        if (event.entityPlayer == null || event.entityPlayer.worldObj.isRemote) {
+            return;
+        }
+        if (!ItemSuperOrange.isPickupMatterBallActiveForPlayer(event.entityPlayer)) {
+            return;
+        }
+        EntityItem entityItem = event.item;
+        if (entityItem == null) {
+            return;
+        }
+        ItemStack picked = entityItem.getEntityItem();
+        if (picked == null || picked.stackSize <= 0 || MatterBallClusterUtil.isMatterCluster(picked)) {
+            return;
         }
 
-        while (!workingList.isEmpty()) {
-            ItemStack newCluster = createClusterFromDrops(workingList);
-            if (newCluster == null) break;
-
-            if (!tryAddToInventory(player, newCluster)) {
-                workingList.add(newCluster);
-                break;
-            }
-
-            workingList = compactStacks(workingList);
+        ArrayList<ItemStack> batch = new ArrayList<>();
+        batch.add(picked.copy());
+        List<ItemStack> remainders = MatterBallClusterUtil.insertIntoPlayerClusters(event.entityPlayer, batch);
+        if (remainders.isEmpty()) {
+            event.setCanceled(true);
+            entityItem.setDead();
+            return;
         }
-
-        return workingList;
+        ItemStack left = remainders.get(0);
+        if (left != null && left.stackSize > 0 && left.stackSize < picked.stackSize) {
+            entityItem.getEntityItem().stackSize = left.stackSize;
+        }
     }
 
-    private ArrayList<ItemStack> compactStacks(ArrayList<ItemStack> items) {
-        ArrayList<ItemStack> remainders = new ArrayList<>();
-        for (ItemStack item : items) {
-            if (item != null && item.stackSize > 0) {
-                remainders.add(item);
-            }
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public void onItemToss(ItemTossEvent event) {
+        if (event.player == null || event.player.worldObj.isRemote) {
+            return;
         }
-        return remainders;
-    }
-
-    private ArrayList<ItemStack> insertIntoCluster(ItemStack cluster, ArrayList<ItemStack> items) {
-        Map<ItemStackWrapper, Integer> data = ItemMatterCluster.getClusterData(cluster);
-        if (data == null) {
-            data = new HashMap<>();
+        if (!ItemSuperOrange.isDropMatterBallActiveForPlayer(event.player)) {
+            return;
         }
-
-        int currentTotal = 0;
-        for (int count : data.values()) {
-            currentTotal += count;
+        EntityItem entityItem = event.entityItem;
+        if (entityItem == null) {
+            return;
         }
-        int capacity = MATTER_CLUSTER_CAPACITY;
-
-        for (int idx = 0; idx < items.size(); idx++) {
-            ItemStack item = items.get(idx);
-            if (item == null || item.stackSize <= 0) continue;
-
-            int space = capacity - currentTotal;
-            if (space <= 0) break;
-
-            int toAdd = Math.min(item.stackSize, space);
-            ItemStackWrapper wrapper = new ItemStackWrapper(item);
-
-            Integer existing = data.get(wrapper);
-            if (existing != null) {
-                data.put(wrapper, existing + toAdd);
-            } else {
-                data.put(wrapper, toAdd);
-            }
-            currentTotal += toAdd;
-
-            if (toAdd >= item.stackSize) {
-                items.set(idx, null);
-            } else {
-                item.stackSize -= toAdd;
-            }
+        ItemStack tossed = entityItem.getEntityItem();
+        if (tossed == null || tossed.stackSize <= 0 || MatterBallClusterUtil.isMatterCluster(tossed)) {
+            return;
         }
 
-        int newTotal = 0;
-        for (int cnt : data.values()) newTotal += cnt;
-        ItemMatterCluster.setClusterData(cluster, data, newTotal);
-
-        return compactStacks(items);
-    }
-
-    private ItemStack createClusterFromDrops(List<ItemStack> items) {
-        Map<ItemStackWrapper, Integer> data = new HashMap<>();
-        int total = 0;
-        int capacity = MATTER_CLUSTER_CAPACITY;
-
-        for (ItemStack item : items) {
-            if (item == null || item.stackSize <= 0) continue;
-            int toAdd = Math.min(item.stackSize, capacity - total);
-            if (toAdd <= 0) break;
-
-            ItemStackWrapper wrapper = new ItemStackWrapper(item);
-            Integer existing = data.get(wrapper);
-            if (existing != null) {
-                data.put(wrapper, existing + toAdd);
-            } else {
-                data.put(wrapper, toAdd);
-            }
-            total += toAdd;
-            item.stackSize -= toAdd;
+        ArrayList<ItemStack> batch = new ArrayList<>();
+        batch.add(tossed.copy());
+        List<ItemStack> remainders = MatterBallClusterUtil.insertIntoPlayerClusters(event.player, batch);
+        if (remainders.isEmpty()) {
+            event.setCanceled(true);
+            return;
         }
-
-        if (data.isEmpty()) return null;
-
-        return ItemMatterCluster.makeCluster(data);
-    }
-
-    /**
-     * Attempt to add an ItemStack to the player's inventory.
-     * Returns true when the entire stack was added.
-     */
-    private boolean tryAddToInventory(EntityPlayer player, ItemStack stack) {
-        if (stack == null || stack.stackSize <= 0) return true;
-
-        for (int i = 0; i < player.inventory.mainInventory.length; i++) {
-            ItemStack slot = player.inventory.mainInventory[i];
-            if (slot != null && slot.isItemEqual(stack) && ItemStack.areItemStackTagsEqual(slot, stack)) {
-                int space = slot.getMaxStackSize() - slot.stackSize;
-                int add = Math.min(space, stack.stackSize);
-                if (add > 0) {
-                    slot.stackSize += add;
-                    stack.stackSize -= add;
-                }
-                if (stack.stackSize <= 0) return true;
-            }
+        ItemStack left = remainders.get(0);
+        if (left != null && left.stackSize > 0 && left.stackSize < tossed.stackSize) {
+            entityItem.getEntityItem().stackSize = left.stackSize;
         }
-
-        for (int i = 0; i < player.inventory.mainInventory.length; i++) {
-            if (player.inventory.mainInventory[i] == null) {
-                player.inventory.mainInventory[i] = stack.copy();
-                return true;
-            }
-        }
-
-        return stack.stackSize <= 0;
     }
 
     public static boolean hasSuperOrange(EntityPlayer player) {

@@ -33,6 +33,11 @@
     },
     {
       "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.matter_ball_decompressor_category_title",
+      "category": "matterBallDecompressor"
+    },
+    {
+      "type": "config_ref",
       "titleKey": "adm.manual.config_reference.data_loom_category_title",
       "category": "dataLoomCell"
     },
