@@ -29,6 +29,11 @@ public final class ConfigDescriptions {
             "monitorTestMode",
             "Refresh data monitor chart bindings with random values every tick and sync to clients.",
             "每 tick 用随机值刷新数据监视器图表绑定并同步到客户端（仅调试）。");
+        put(
+            "debug",
+            "connectorProfile",
+            "Log AE connector refresh counts and average durations every 10 seconds (network / crafting / storage links).",
+            "每 10 秒记录 AE 连接器（网络/合成/存储链接器）刷新次数与平均耗时，便于 Spark 对照。");
 
         put(
             "ai",
@@ -45,13 +50,29 @@ public final class ConfigDescriptions {
         put(
             "ai",
             "webSearchEnabled",
-            "Allow the AI chat request to ask supported providers for web search.",
-            "是否允许 AI 聊天请求联网搜索（需服务商支持）。");
+            "Enable built-in web search before sending the prompt to the LLM.",
+            "是否在调用 LLM 前启用内置联网搜索。");
         put(
             "ai",
             "webSearchMode",
-            "Web search request format: auto, openai, openrouter, dashscope, zhipu, generic-tools, or off.",
-            "联网搜索请求格式：auto、openai、openrouter、dashscope、zhipu、generic-tools 或 off。");
+            "Built-in search engine: auto, tavily_keyless, duckduckgo, tavily, brave, serper, searxng, or off.",
+            "内置搜索引擎：auto、tavily_keyless、duckduckgo、tavily、brave、serper、searxng 或 off。");
+        put(
+            "ai",
+            "searchApiKey",
+            "API key for Tavily, Brave, or Serper search engines (client-local only).",
+            "Tavily / Brave / Serper 搜索引擎 API Key（仅客户端本地）。");
+        put(
+            "ai",
+            "searchBaseUrl",
+            "Base URL for a self-hosted SearXNG instance, for example https://searx.example.com.",
+            "自建 SearXNG 实例的基础 URL，例如 https://searx.example.com。");
+        put("ai", "searchMaxResults", "Maximum web search results to inject (1-10).", "注入 LLM 的搜索结果数量上限（1-10）。");
+        put(
+            "ai",
+            "searchFallback",
+            "When one search engine fails, automatically try the next engine in the chain.",
+            "某个搜索引擎失败时，是否自动尝试链上的下一个引擎。");
         put("ai", "debugLogging", "Write sanitized AI request diagnostics to the mod log.", "将脱敏后的 AI 请求诊断信息写入模组日志。");
         put(
             "ai",

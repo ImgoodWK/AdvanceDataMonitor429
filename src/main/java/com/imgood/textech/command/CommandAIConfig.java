@@ -12,6 +12,7 @@ import com.imgood.textech.Config;
 import com.imgood.textech.assistant.ai.AiProviderProfiles;
 import com.imgood.textech.assistant.ai.AiProviderProfiles.ProviderProfile;
 import com.imgood.textech.assistant.ai.AiProviderProfiles.SearchCapability;
+import com.imgood.textech.assistant.ai.WebSearchService;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -22,8 +23,8 @@ public class CommandAIConfig extends CommandBase {
     private static final String[] ACTIONS = { "key", "model", "base", "provider", "network", "search", "status",
         "clearKey", "help" };
     private static final String[] NETWORK_OPTIONS = { "on", "off", "toggle", "true", "false" };
-    private static final String[] SEARCH_OPTIONS = { "on", "off", "toggle", "true", "false", "auto", "openai",
-        "openrouter", "dashscope", "zhipu", "generic-tools" };
+    private static final String[] SEARCH_OPTIONS = { "on", "off", "toggle", "true", "false", "auto", "tavily_keyless",
+        "duckduckgo", "tavily", "brave", "serper", "searxng" };
     private static final String[] PROVIDERS = AiProviderProfiles.providerIds();
     private static final String[] BASE_URLS = { "https://api.deepseek.com", "https://api.openai.com",
         "https://openrouter.ai/api", "https://api.siliconflow.cn", "https://api.moonshot.cn",
@@ -205,32 +206,30 @@ public class CommandAIConfig extends CommandBase {
             send(
                 sender,
                 EnumChatFormatting.RED
-                    + "Usage: /admai search <on|off|toggle|auto|openai|openrouter|dashscope|zhipu|generic-tools>");
+                    + "Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>");
             return;
         }
         if ("toggle".equals(value)) {
             Config.toggleAiWebSearchEnabled();
         } else if ("on".equals(value) || "true".equals(value) || "enable".equals(value) || "enabled".equals(value)) {
             Config.setAiWebSearchEnabled(true);
-        } else
-            if ("off".equals(value) || "false".equals(value) || "disable".equals(value) || "disabled".equals(value)) {
-                Config.setAiWebSearchEnabled(false);
-            } else if (AiProviderProfiles.isSearchMode(value)) {
-                Config.setAiWebSearchMode(value);
-                Config.setAiWebSearchEnabled(
-                    !AiProviderProfiles.MODE_OFF.equals(value) && !AiProviderProfiles.MODE_UNSUPPORTED.equals(value));
-            } else {
-                send(
-                    sender,
-                    EnumChatFormatting.RED
-                        + "Usage: /admai search <on|off|toggle|auto|openai|openrouter|dashscope|zhipu|generic-tools>");
-                return;
-            }
+        } else if ("off".equals(value) || "false".equals(value) || "disable".equals(value) || "disabled".equals(value)) {
+            Config.setAiWebSearchEnabled(false);
+        } else if (WebSearchService.isProvider(value)) {
+            Config.setAiWebSearchMode(value);
+            Config.setAiWebSearchEnabled(true);
+        } else {
+            send(
+                sender,
+                EnumChatFormatting.RED
+                    + "Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>");
+            return;
+        }
         send(
             sender,
             EnumChatFormatting.GREEN + "AI web search: "
                 + (Config.aiWebSearchEnabled ? "enabled" : "disabled")
-                + ", mode: "
+                + ", engine: "
                 + Config.aiWebSearchMode);
     }
 
@@ -247,9 +246,24 @@ public class CommandAIConfig extends CommandBase {
             sender,
             EnumChatFormatting.AQUA + "AI web search: "
                 + (capability.enabled ? "enabled" : "disabled")
-                + ", mode: "
+                + ", engine: "
                 + capability.mode);
         send(sender, EnumChatFormatting.AQUA + "AI web search detail: " + capability.message);
+        send(
+            sender,
+            EnumChatFormatting.AQUA + "Search API key: "
+                + (Config.getAiSearchApiKey().isEmpty() ? "not set" : maskKey(Config.getAiSearchApiKey())));
+        send(
+            sender,
+            EnumChatFormatting.AQUA + "SearXNG base URL: "
+                + (Config.aiSearchBaseUrl == null || Config.aiSearchBaseUrl.isEmpty() ? "not set"
+                    : Config.aiSearchBaseUrl));
+        send(
+            sender,
+            EnumChatFormatting.AQUA + "Search max results: "
+                + Config.aiSearchMaxResults
+                + ", fallback: "
+                + (Config.aiSearchFallback ? "enabled" : "disabled"));
         send(sender, EnumChatFormatting.AQUA + "AI streaming: " + (Config.aiStreamingEnabled ? "enabled" : "disabled"));
         send(sender, EnumChatFormatting.AQUA + "AI debug logging: " + (Config.aiDebugLogging ? "enabled" : "disabled"));
         send(sender, EnumChatFormatting.AQUA + "AI privacy confirmed: " + (Config.aiPrivacyConfirmed ? "yes" : "no"));
@@ -270,11 +284,11 @@ public class CommandAIConfig extends CommandBase {
         send(sender, EnumChatFormatting.YELLOW + "/admai network on|off|toggle  Allow or block AI network requests");
         send(
             sender,
-            EnumChatFormatting.YELLOW + "/admai search on|off|toggle  Enable web search for supported providers");
+            EnumChatFormatting.YELLOW + "/admai search on|off|toggle  Enable built-in web search before LLM requests");
         send(
             sender,
             EnumChatFormatting.YELLOW
-                + "/admai search auto|openai|openrouter|dashscope|zhipu|generic-tools  Set web search format");
+                + "/admai search auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng  Set search engine");
         send(sender, EnumChatFormatting.YELLOW + "/admai status  Show current AI config");
     }
 

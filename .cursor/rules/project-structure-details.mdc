@@ -39,7 +39,7 @@ alwaysApply: false
 
 ### assistant/ — AI 助手核心逻辑 (41 文件)
 - **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理
-- **assistant/ai/** — AI 聊天 HTTP 客户端（5 文件）：`DeepSeekChatClient.java` / `ChatRequestOptions.java` / `ChatStreamListener.java` / `ChatResponse.java` / `AiProviderProfiles.java`
+- **assistant/ai/** — AI 聊天 HTTP 客户端与内置联网搜索（8 文件）：`DeepSeekChatClient.java` / `ChatRequestOptions.java` / `ChatStreamListener.java` / `ChatResponse.java` / `AiProviderProfiles.java` / `WebSearchService.java` / `WebSearchData.java` / `WebSearchResult.java`
 - **意图系统**: `AssistantIntentType.java` / `AssistantIntent.java` / `AssistantIntentTask.java` / `AssistantIntentPlan.java` / `AssistantOrderLine.java`
 - **AI 解析**: `AssistantAiIntentService.java` / `AssistantAiIntentJsonParser.java`
 - **本地解析**: `AssistantIntentService.java` (关键词匹配 fallback)
@@ -133,8 +133,11 @@ alwaysApply: false
 - **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`、`POCKET_CONFIG_GUI_ID`、`POCKET_STORAGE_GUI_ID`）
 
-### handler/ — 事件处理器与物品服务端逻辑 (30 文件)
+### handler/ — 事件处理器与物品服务端逻辑 (33 文件)
 - `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理）
+- `ConnectorTickService.java` — AE 连接器 debounced 刷新调度（网络/合成/存储链接器）+ `[debug] connectorProfile` 统计
+- `NetworkLinkGridStatsCache.java` — 同 AE grid 多网络链接器共享存储统计缓存
+- `StorageLinkWatchRegistry.java` — 存储链接器被监视器绑定时的按需刷新注册表
 - `HandlerLoot.java` — 战利品事件（SuperOrange 地牢宝箱 0.1%、生物击杀掉落 0.05%）
 - `HandlerPlayerJoin.java` — 玩家首次加入事件（赠送手册物品 + NBT标记）
 - `HandlerSuperOrange.java` — 超能砂糖桔能力（投掷物免疫 + 挖掘掉落 + 拾取/丢弃合并物质团簇）

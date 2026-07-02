@@ -127,6 +127,48 @@ public final class MatterBallClusterUtil {
     }
 
     /**
+     * Extract up to {@code maxItems} from the first remaining type in the cluster.
+     * Returns empty list when the cluster has no items. A partial stack (&lt; maxItems) still
+     * counts as a full type batch for timing purposes (caller handles cadence).
+     */
+    public static ArrayList<ItemStack> extractOneTypeBatch(ItemStack cluster, int maxItems) {
+        ArrayList<ItemStack> out = new ArrayList<>();
+        if (!isMatterCluster(cluster) || maxItems <= 0) {
+            return out;
+        }
+        Map<ItemStackWrapper, Integer> data = ItemMatterCluster.getClusterData(cluster);
+        if (data == null || data.isEmpty()) {
+            return out;
+        }
+        Map.Entry<ItemStackWrapper, Integer> entry = data.entrySet()
+            .iterator()
+            .next();
+        ItemStackWrapper wrapper = entry.getKey();
+        int count = entry.getValue();
+        if (wrapper == null || wrapper.stack == null || count <= 0) {
+            data.remove(wrapper);
+            refreshCluster(cluster, data);
+            return out;
+        }
+        int remaining = Math.min(maxItems, count);
+        while (remaining > 0) {
+            int stackSize = Math.min(remaining, Math.min(64, wrapper.stack.getMaxStackSize()));
+            ItemStack piece = wrapper.stack.copy();
+            piece.stackSize = stackSize;
+            out.add(piece);
+            remaining -= stackSize;
+        }
+        int left = count - Math.min(maxItems, count);
+        if (left <= 0) {
+            data.remove(wrapper);
+        } else {
+            data.put(wrapper, left);
+        }
+        refreshCluster(cluster, data);
+        return out;
+    }
+
+    /**
      * Extract a single item stack (size 1..maxSize) from a matter cluster. Returns null if empty.
      */
     public static ItemStack extractOne(ItemStack cluster, int maxSize) {

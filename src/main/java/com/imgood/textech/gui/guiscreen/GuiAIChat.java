@@ -26,8 +26,12 @@ import com.imgood.textech.assistant.ai.AiProviderProfiles;
 import com.imgood.textech.assistant.ai.AiProviderProfiles.SearchCapability;
 import com.imgood.textech.assistant.ai.ChatRequestOptions;
 import com.imgood.textech.assistant.ai.ChatResponse;
+import com.imgood.textech.assistant.ai.ChatResponse.Source;
 import com.imgood.textech.assistant.ai.DeepSeekChatClient;
 import com.imgood.textech.assistant.ai.DeepSeekChatClient.ChatMessage;
+import com.imgood.textech.assistant.ai.WebSearchData;
+import com.imgood.textech.assistant.ai.WebSearchService;
+import com.imgood.textech.assistant.ai.WebSearchService.WebSearchException;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
@@ -660,6 +664,25 @@ public class GuiAIChat extends ADM_GuiScreen {
         StringBuilder streamingContent = new StringBuilder();
         try {
             List<ChatMessage> requestMessages = buildRequestMessages();
+            WebSearchData searchData = null;
+            if (options.webSearchEnabled) {
+                String userQuery = extractLastUserQuery();
+                if (userQuery != null && !userQuery.isEmpty()) {
+                    try {
+                        searchData = WebSearchService.performWebSearch(userQuery);
+                        if (searchData.hasResults()) {
+                            requestMessages = WebSearchService.injectSearchIntoMessages(requestMessages, searchData);
+                            appendSearchInfoMessage(searchData);
+                        }
+                    } catch (WebSearchException failure) {
+                        appendSearchWarning(failure.getMessage());
+                    }
+                }
+            }
+            ChatRequestOptions llmOptions = new ChatRequestOptions(
+                false,
+                AiProviderProfiles.MODE_OFF,
+                options.stream);
             DeepSeekChatClient client = new DeepSeekChatClient();
             this.currentClient = client;
             if (options.stream) {
@@ -670,7 +693,7 @@ public class GuiAIChat extends ADM_GuiScreen {
                 requestScrollToBottom();
                 final int assistantIndex = streamingIndex;
                 ChatResponse response = client
-                    .chat(requestMessages, options, new com.imgood.textech.assistant.ai.ChatStreamListener() {
+                    .chat(requestMessages, llmOptions, new com.imgood.textech.assistant.ai.ChatStreamListener() {
 
                         @Override
                         public void onDelta(String delta) {
@@ -685,6 +708,7 @@ public class GuiAIChat extends ADM_GuiScreen {
                             GuiAIChat.this.displayDirty = true;
                         }
                     });
+                response = mergeSearchSources(response, searchData);
                 synchronized (this.history) {
                     if (assistantIndex >= 0 && assistantIndex < this.history.size()) {
                         this.history.set(assistantIndex, ChatEntry.text("assistant", response.contentWithSources()));
@@ -692,7 +716,7 @@ public class GuiAIChat extends ADM_GuiScreen {
                 }
                 requestScrollToBottom();
             } else {
-                ChatResponse response = client.chat(requestMessages, options, null);
+                ChatResponse response = mergeSearchSources(client.chat(requestMessages, llmOptions, null), searchData);
                 synchronized (this.history) {
                     this.history.add(ChatEntry.text("assistant", response.contentWithSources()));
                 }
@@ -710,6 +734,73 @@ public class GuiAIChat extends ADM_GuiScreen {
             this.waitingForResponse = false;
             this.displayDirty = true;
         }
+    }
+
+    private String extractLastUserQuery() {
+        synchronized (this.history) {
+            for (int i = this.history.size() - 1; i >= 0; i--) {
+                ChatEntry entry = this.history.get(i);
+                if ("user".equals(entry.getRole())) {
+                    return entry.getContent();
+                }
+            }
+        }
+        return "";
+    }
+
+    private void appendSearchInfoMessage(WebSearchData searchData) {
+        if (searchData == null || !searchData.hasResults()) {
+            return;
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append(I18n.format("adm.ai.search_info_header", searchData.provider));
+        int index = 1;
+        for (com.imgood.textech.assistant.ai.WebSearchResult result : searchData.results) {
+            builder.append("\n")
+                .append(index++)
+                .append(". ");
+            if (!result.title.isEmpty()) {
+                builder.append(result.title)
+                    .append(" - ");
+            }
+            builder.append(result.url);
+        }
+        synchronized (this.history) {
+            this.history.add(ChatEntry.text("assistant", builder.toString()));
+        }
+        requestScrollToBottom();
+    }
+
+    private void appendSearchWarning(String message) {
+        synchronized (this.history) {
+            this.history.add(ChatEntry.text("assistant", I18n.format("adm.ai.search_warning", message)));
+        }
+        requestScrollToBottom();
+    }
+
+    private ChatResponse mergeSearchSources(ChatResponse response, WebSearchData searchData) {
+        if (searchData == null || !searchData.hasResults()) {
+            return response;
+        }
+        List<Source> merged = new ArrayList<Source>(WebSearchService.toSources(searchData));
+        for (Source source : response.sources) {
+            if (!containsSource(merged, source.url)) {
+                merged.add(source);
+            }
+        }
+        return new ChatResponse(response.content, merged, response.webSearchFallbackUsed);
+    }
+
+    private boolean containsSource(List<Source> sources, String url) {
+        if (url == null || url.isEmpty()) {
+            return true;
+        }
+        for (Source source : sources) {
+            if (url.equals(source.url)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void cancelRequest() {
@@ -757,7 +848,7 @@ public class GuiAIChat extends ADM_GuiScreen {
         if (this.nextSearchState == 2) {
             return AiProviderProfiles.MODE_OFF;
         }
-        return Config.aiWebSearchMode;
+        return WebSearchService.normalizeProvider(Config.aiWebSearchMode);
     }
 
     private void updateButtonText(int id, String text) {
@@ -792,10 +883,10 @@ public class GuiAIChat extends ADM_GuiScreen {
             + AssistantFeatureConfig.buildCapabilityOverview(locale);
         if (capability.enabled) {
             return prompt
-                + " Web search is enabled for this request. When you use current information, cite sources or clearly name where the information came from. If search is unavailable, say so instead of guessing.";
+                + " Built-in web search results may be injected into this request. When you use current information, cite the numbered references or source links. If search failed, say so instead of guessing.";
         }
         return prompt
-            + " Web search is disabled or unsupported for this model. Do not claim to have checked live web results.";
+            + " Web search is disabled for this request. Do not claim to have checked live web results.";
     }
 
     private String languageInstruction(String locale) {

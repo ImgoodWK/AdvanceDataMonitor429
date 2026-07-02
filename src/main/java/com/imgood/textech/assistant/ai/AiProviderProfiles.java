@@ -176,26 +176,17 @@ public final class AiProviderProfiles {
         if (!enabled || MODE_OFF.equals(requestedMode)) {
             return new SearchCapability(profile, MODE_OFF, false, "Web search is off.");
         }
-        String mode = requestedMode.isEmpty() || MODE_AUTO.equals(requestedMode) ? profile.defaultSearchMode
-            : requestedMode;
-        if (MODE_UNSUPPORTED.equals(mode)) {
-            return new SearchCapability(profile, MODE_UNSUPPORTED, false, unsupportedSearchMessage(profile));
-        }
-        if (!isSearchMode(mode)) {
-            return new SearchCapability(profile, MODE_UNSUPPORTED, false, "Unknown web search mode: " + configuredMode);
-        }
-        return new SearchCapability(profile, mode, true, "Web search mode: " + mode);
+        String provider = WebSearchService.normalizeProvider(requestedMode);
+        return new SearchCapability(
+            profile,
+            provider,
+            true,
+            WebSearchService.capabilityMessage(provider, true));
     }
 
     public static boolean isSearchMode(String value) {
         String mode = normalize(value);
-        return MODE_AUTO.equals(mode) || MODE_OPENAI.equals(mode)
-            || MODE_OPENROUTER.equals(mode)
-            || MODE_DASHSCOPE.equals(mode)
-            || MODE_ZHIPU.equals(mode)
-            || MODE_GENERIC_TOOLS.equals(mode)
-            || MODE_OFF.equals(mode)
-            || MODE_UNSUPPORTED.equals(mode);
+        return WebSearchService.isProvider(mode) || MODE_OFF.equals(mode);
     }
 
     public static String[] fallbackModes(String firstMode) {

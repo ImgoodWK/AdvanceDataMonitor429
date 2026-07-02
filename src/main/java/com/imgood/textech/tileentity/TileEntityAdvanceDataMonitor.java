@@ -10,7 +10,6 @@ import java.util.Random;
 
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
@@ -22,21 +21,13 @@ import net.minecraft.util.AxisAlignedBB;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.handler.StorageLinkWatchRegistry;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.utils.CraftingTemplateParser;
 import com.imgood.textech.utils.DataBound;
 import com.imgood.textech.utils.TileEntityTypeHelper;
 
-import appeng.api.AEApi;
-import appeng.api.networking.IGrid;
-import appeng.api.networking.IGridNode;
-import appeng.api.storage.ICellInventory;
-import appeng.api.storage.ICellInventoryHandler;
-import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
-import appeng.tile.storage.TileChest;
-import appeng.tile.storage.TileDrive;
-import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.Optional;
 
 /**
@@ -61,14 +52,19 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     private int testRandomData = 0;
     private Random random = new Random();
 
+    private static final int SYNC_RADIUS = 64;
+    private static final int DEFAULT_BINDING_INTERVAL = 20;
+
     private final Map<Integer, Integer> tickCounters = new HashMap<>();
     private float rollRotation;
 
     public TileEntityAdvanceDataMonitor() {
-        FMLCommonHandler.instance()
-            .bus()
-            .register(this);
         initializeDefaultData();
+    }
+
+    @Override
+    public boolean canUpdate() {
+        return true;
     }
 
     @Override
@@ -120,9 +116,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                     continue;
                 }
 
-                // 获取interval并确保最小值
-                int interval = Math.max(getSafeInt(nbt, "interval", 20), 1);
-                int currentTick = tickCounters.getOrDefault(index, 0);
+                // 分片轮询：不同 binding 错开起始计数，避免同 tick 集中查询
+                int interval = Math.max(getSafeInt(nbt, "interval", DEFAULT_BINDING_INTERVAL), 1);
+                int phase = index % interval;
+                int currentTick = tickCounters.getOrDefault(index, phase);
                 currentTick++;
                 if (currentTick >= interval) {
                     // 处理数据项
@@ -201,6 +198,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         // --- 原有其他类型的处理（保持不变）---
         if (getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.ADV_STORAGELINK) {
             TileEntityAdvanceStorageLink storageLink = (TileEntityAdvanceStorageLink) target;
+            storageLink.noteMonitorPolling();
             nbt.removeTag("storageStatisticsInterval");
             nbt.setTag("storageItems", storageLink.createStorageItemsSnapshot());
             nbt.setString("dataType", "storage");
@@ -312,6 +310,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         dataBoundList.put(index, mergedData);
         markDirty();
         syncData();
+        updateStorageWatchForBinding(mergedData, true);
 
         // 仅在服务端处理立即采集
         if (worldObj != null && !worldObj.isRemote) {
@@ -382,6 +381,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
     public void removeDataBound(int index) {
         if (dataBoundList.containsKey(index)) {
+            NBTTagCompound removed = dataBoundList.get(index);
+            updateStorageWatchForBinding(removed, false);
             dataBoundList.remove(index);
             markDirty();
             syncData();
@@ -394,8 +395,34 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             NBTTagCompound tag = new NBTTagCompound();
             writeToNBT(tag);
             PacketSynTileEntity packet = new PacketSynTileEntity(xCoord, yCoord, zCoord, tag);
-            AdvanceDataMonitor.ADMCHANEL.sendToDimension(packet, worldObj.provider.dimensionId);
+            AdvanceDataMonitor.ADMCHANEL.sendToAllAround(
+                packet,
+                new NetworkRegistry.TargetPoint(
+                    worldObj.provider.dimensionId,
+                    xCoord + 0.5D,
+                    yCoord + 0.5D,
+                    zCoord + 0.5D,
+                    SYNC_RADIUS));
         }
+    }
+
+    private void updateStorageWatchForBinding(NBTTagCompound nbt, boolean watched) {
+        if (nbt == null || worldObj == null || worldObj.isRemote) {
+            return;
+        }
+        if (!"storage".equals(getSafeString(nbt, "dataType", ""))) {
+            return;
+        }
+        String[] xyz = parseXYZ(nbt);
+        if (xyz == null) {
+            return;
+        }
+        StorageLinkWatchRegistry.setWatched(
+            worldObj.provider.dimensionId,
+            parseIntSafe(xyz[0]),
+            parseIntSafe(xyz[1]),
+            parseIntSafe(xyz[2]),
+            watched);
     }
 
     @Override
@@ -566,7 +593,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         defaultData.setString("name", "testRandomData");
         defaultData.setString("displayName", "演示模式");
         defaultData.setTag("dataValues", new NBTTagList());
-        defaultData.setInteger("interval", 1);
+        defaultData.setInteger("interval", DEFAULT_BINDING_INTERVAL);
         defaultData.setDouble("xRange", 5);
         defaultData.setDouble("yRange", 3);
         defaultData.setString("axisLineColor", "FFFFFF");
@@ -603,7 +630,6 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         defaultData.setInteger("storageColumns", 4);
         defaultData.setDouble("storageSpacing", 0.45);
         defaultData.setDouble("storageIconScale", 1.0);
-        defaultData.setInteger("storageStatisticsInterval", 20);
         defaultData.setBoolean("showItemCount", true);
         defaultData.setBoolean("showItemDelta", false);
         defaultData.setBoolean("showItemName", false);
@@ -1156,134 +1182,15 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
     public int getMinDataInterval() {
         for (NBTTagCompound nbt : dataBoundList.values()) {
-            int interval = getSafeInt(nbt, "interval", 1);
+            int interval = getSafeInt(nbt, "interval", DEFAULT_BINDING_INTERVAL);
             if (interval > 0) {
                 return interval;
             }
         }
-        return 1;
+        return DEFAULT_BINDING_INTERVAL;
     }
 
     // ========================= AE2 网络支持 =========================//
-    @Optional.Method(modid = "appliedenergistics2")
-    private Map<String, Long> getAE2NetworkStats(IGrid grid) {
-        Map<String, Long> stats = new HashMap<>();
-        long totalBytes = 0L;
-        long usedBytes = 0L;
-        long totalItemTypes = 0L;
-        long usedItemTypes = 0L;
-        long totalFluidBytes = 0L;
-        long usedFluidBytes = 0L;
-        long totalFluidTypes = 0L;
-        long usedFluidTypes = 0L;
-
-        for (IGridNode node : grid.getMachines(TileDrive.class)) {
-            TileDrive drive = (TileDrive) node.getMachine();
-            long[] driveStats = processDriveInventory(drive);
-            totalBytes += driveStats[0];
-            usedBytes += driveStats[1];
-            totalItemTypes += driveStats[2];
-            usedItemTypes += driveStats[3];
-            totalFluidBytes += driveStats[4];
-            usedFluidBytes += driveStats[5];
-            totalFluidTypes += driveStats[6];
-            usedFluidTypes += driveStats[7];
-        }
-
-        for (IGridNode node : grid.getMachines(TileChest.class)) {
-            TileChest chest = (TileChest) node.getMachine();
-            long[] chestStats = processChestInventory(chest);
-            totalBytes += chestStats[0];
-            usedBytes += chestStats[1];
-            totalItemTypes += chestStats[2];
-            usedItemTypes += chestStats[3];
-            totalFluidBytes += chestStats[4];
-            usedFluidBytes += chestStats[5];
-            totalFluidTypes += chestStats[6];
-            usedFluidTypes += chestStats[7];
-        }
-
-        stats.put("TotalBytes", totalBytes);
-        stats.put("UsedBytes", usedBytes);
-        stats.put("TotalItemTypes", totalItemTypes);
-        stats.put("UsedItemTypes", usedItemTypes);
-
-        stats.put("TotalFluidBytes", totalFluidBytes);
-        stats.put("UsedFluidBytes", usedFluidBytes);
-        stats.put("TotalFluidTypes", totalFluidTypes);
-        stats.put("UsedFluidTypes", usedFluidTypes);
-
-        return stats;
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    private long[] processDriveInventory(TileDrive drive) {
-        long[] stats = new long[8];
-        for (int i = 0; i < drive.getInternalInventory()
-            .getSizeInventory(); i++) {
-            ItemStack stack = drive.getInternalInventory()
-                .getStackInSlot(i);
-            if (stack != null) {
-                long[] cellStats = processCellStack(stack);
-                for (int j = 0; j < cellStats.length; j++) {
-                    stats[j] += cellStats[j];
-                }
-            }
-        }
-        return stats;
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    private long[] processChestInventory(TileChest chest) {
-        long[] stats = new long[8];
-        ItemStack stack = chest.getInternalInventory()
-            .getStackInSlot(0);
-        if (stack != null) {
-            long[] cellStats = processCellStack(stack);
-            for (int j = 0; j < cellStats.length; j++) {
-                stats[j] += cellStats[j];
-            }
-        }
-        return stats;
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    private long[] processCellStack(ItemStack stack) {
-        long[] stats = new long[8];
-
-        IMEInventoryHandler itemInventory = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.ITEMS);
-        if (itemInventory instanceof ICellInventoryHandler) {
-            ICellInventoryHandler itemHandler = (ICellInventoryHandler) itemInventory;
-            ICellInventory itemCell = itemHandler.getCellInv();
-            if (itemCell != null) {
-                stats[0] = itemCell.getTotalBytes();
-                stats[1] = itemCell.getUsedBytes();
-                stats[2] = itemCell.getTotalItemTypes();
-                stats[3] = itemCell.getStoredItemTypes();
-            }
-        }
-
-        IMEInventoryHandler fluidInventory = AEApi.instance()
-            .registries()
-            .cell()
-            .getCellInventory(stack, null, StorageChannel.FLUIDS);
-        if (fluidInventory instanceof ICellInventoryHandler) {
-            ICellInventoryHandler fluidHandler = (ICellInventoryHandler) fluidInventory;
-            ICellInventory fluidCell = fluidHandler.getCellInv();
-            if (fluidCell != null) {
-                stats[4] = fluidCell.getTotalBytes();
-                stats[5] = fluidCell.getUsedBytes();
-                stats[6] = fluidCell.getTotalItemTypes();
-                stats[7] = fluidCell.getStoredItemTypes();
-            }
-        }
-
-        return stats;
-    }
-
     @Optional.Method(modid = "appliedenergistics2")
     private double processAE2NetworkData(TileEntity target, String dataName) {
         if (!(target instanceof TileEntityAdvanceNetworkLink)) {

@@ -22,5 +22,10 @@ public final class ConfigDebugLoader {
             "debug",
             Config.debugMonitorTestMode,
             ConfigDescriptions.get("debug", "monitorTestMode"));
+        Config.debugConnectorProfile = configuration.getBoolean(
+            "connectorProfile",
+            "debug",
+            Config.debugConnectorProfile,
+            ConfigDescriptions.get("debug", "connectorProfile"));
     }
 }

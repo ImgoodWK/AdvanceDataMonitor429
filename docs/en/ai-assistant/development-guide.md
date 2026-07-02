@@ -191,10 +191,13 @@ flowchart TD
 
 - `src/main/java/com/imgood/advancedatamonitor/ai/DeepSeekChatClient.java`
   - OpenAI-compatible chat HTTP client。普通聊天和 AI intent 抽取都复用它。
-  - 支持非流式/流式、web search 请求格式、取消请求、debug logging。
+  - 支持非流式/流式、取消请求、debug logging。普通聊天联网搜索由 `WebSearchService` 在请求前完成，LLM 调用固定关闭 provider-native search。
+
+- `src/main/java/com/imgood/advancedatamonitor/ai/WebSearchService.java`
+  - 内置联网搜索层：多引擎适配、自动降级、结果注入 user 消息。
 
 - `src/main/java/com/imgood/advancedatamonitor/ai/ChatRequestOptions.java`
-  - 单次 chat 请求选项：是否搜索、search mode、是否 stream。
+  - 单次 chat 请求选项：是否搜索、search engine、是否 stream。
 
 - `src/main/java/com/imgood/advancedatamonitor/Config.java`
   - AI、voice、assistant 配置的内存字段、加载和保存。

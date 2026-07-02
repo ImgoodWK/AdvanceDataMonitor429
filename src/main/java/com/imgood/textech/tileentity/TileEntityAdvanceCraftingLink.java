@@ -19,6 +19,7 @@ import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.textech.utils.ContentsHelper;
+import com.imgood.textech.handler.ConnectorTickService;
 
 import appeng.api.config.CraftingAllow;
 import appeng.api.networking.GridFlags;
@@ -175,6 +176,10 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
                     finalOutputList.toArray(new String[0])));
         }
 
+        boolean changed = this.totalCpus != tCpus || this.busyCpus != bCpus || this.cpuTotalBytes != (int) totalBytes
+            || this.cpuUsedBytes != (int) usedBytes || this.totalCoProcessors != cproc
+            || !snapshotsEqual(this.cpuSnapshots, snapshots);
+
         this.totalCpus = tCpus;
         this.busyCpus = bCpus;
         this.cpuTotalBytes = (int) totalBytes;
@@ -182,22 +187,51 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
         this.totalCoProcessors = cproc;
         this.cpuSnapshots = snapshots;
 
-        markDirty();
+        if (changed) {
+            markDirty();
+        }
+    }
+
+    private static boolean snapshotsEqual(List<CraftingCpuSnapshot> left, List<CraftingCpuSnapshot> right) {
+        if (left.size() != right.size()) {
+            return false;
+        }
+        for (int i = 0; i < left.size(); i++) {
+            CraftingCpuSnapshot a = left.get(i);
+            CraftingCpuSnapshot b = right.get(i);
+            if (a.busy != b.busy || a.availableStorage != b.availableStorage || a.usedStorage != b.usedStorage
+                || a.coProcessors != b.coProcessors || a.finalOutputAmount != b.finalOutputAmount
+                || a.remainingItems != b.remainingItems || a.startItems != b.startItems
+                || a.elapsedTime != b.elapsedTime) {
+                return false;
+            }
+            if (a.name != null ? !a.name.equals(b.name) : b.name != null) {
+                return false;
+            }
+            if (a.finalOutputName != null ? !a.finalOutputName.equals(b.finalOutputName) : b.finalOutputName != null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void resetStats() {
+        if (totalCpus == 0 && busyCpus == 0 && cpuSnapshots.isEmpty()) {
+            return;
+        }
         this.totalCpus = 0;
         this.busyCpus = 0;
         this.cpuTotalBytes = 0;
         this.cpuUsedBytes = 0;
         this.totalCoProcessors = 0;
         this.cpuSnapshots.clear();
+        markDirty();
     }
 
-    // ================= 事件驱动更新 =================
+    // ================= 事件驱动更新（debounced） =================
     @MENetworkEventSubscribe
     public void onCraftingCpuChange(MENetworkCraftingCpuChange event) {
-        updateCraftingStats();
+        ConnectorTickService.scheduleCraftingRefresh(this);
     }
 
     // ================= NBT 持久化 =================

@@ -8,9 +8,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.imgood.textech.Config;
-import com.imgood.textech.utils.AeUpgradeSpeedUtil;
 import com.imgood.textech.utils.MatterBallClusterUtil;
+import com.imgood.textech.utils.MatterBallDecompressorCapacityUtil;
+import com.imgood.textech.utils.MatterBallDecompressorSpeedUtil;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.GridFlags;
@@ -39,8 +39,8 @@ import io.netty.buffer.ByteBuf;
 public class TileEntityMatterBallDecompressor extends AENetworkTile implements IActionHost, IAEAppEngInventory {
 
     public static final int INPUT_SLOTS = 9;
-    public static final int BUFFER_SLOTS = 81;
-    public static final int UPGRADE_SLOTS = 4;
+    public static final int BUFFER_SLOTS = MatterBallDecompressorCapacityUtil.MAX_BUFFER_SLOTS;
+    public static final int UPGRADE_SLOTS = MatterBallDecompressorUpgrades.TOTAL_UPGRADE_SLOTS;
 
     private final AppEngInternalInventory inputInv = new AppEngInternalInventory(this, INPUT_SLOTS);
     private final AppEngInternalInventory bufferInv = new AppEngInternalInventory(this, BUFFER_SLOTS);
@@ -112,6 +112,14 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         return upgrades;
     }
 
+    public int getBufferSide() {
+        return MatterBallDecompressorCapacityUtil.getBufferSide(upgrades);
+    }
+
+    public int getActiveBufferSlots() {
+        return MatterBallDecompressorCapacityUtil.getActiveBufferSlots(upgrades);
+    }
+
     public AppEngInternalInventory getInputInventory() {
         return inputInv;
     }
@@ -128,14 +136,9 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         if (!outputToNetwork && blockMode && hasAnyBufferItem()) {
             return;
         }
-        double itemsPerSecond = Config.matterBallDecompressorItemsPerSecond
-            * AeUpgradeSpeedUtil.getSpeedMultiplier(upgrades);
-        if (itemsPerSecond <= 0.0D) {
-            return;
-        }
-        processAccumulator += itemsPerSecond / 20.0D;
+        processAccumulator += 1.0D / 20.0D;
         while (processAccumulator >= 1.0D) {
-            if (!decompressOneItem()) {
+            if (!decompressOneSecondBatch()) {
                 break;
             }
             processAccumulator -= 1.0D;
@@ -143,7 +146,8 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
     }
 
     private boolean hasAnyBufferItem() {
-        for (int i = 0; i < BUFFER_SLOTS; i++) {
+        int active = getActiveBufferSlots();
+        for (int i = 0; i < active; i++) {
             if (bufferInv.getStackInSlot(i) != null) {
                 return true;
             }
@@ -151,29 +155,54 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         return false;
     }
 
-    private boolean decompressOneItem() {
-        int clusterSlot = findClusterSlot();
-        if (clusterSlot < 0) {
+    /**
+     * Once per second: up to {@link MatterBallDecompressorSpeedUtil#getParallelTypesPerSecond} types,
+     * each up to {@link MatterBallDecompressorSpeedUtil#getItemsPerTypePerSecond} items.
+     * A type with fewer items still consumes one parallel slot for that second.
+     */
+    private boolean decompressOneSecondBatch() {
+        int parallel = MatterBallDecompressorSpeedUtil.getParallelTypesPerSecond(upgrades);
+        int maxPerType = MatterBallDecompressorSpeedUtil.getItemsPerTypePerSecond(upgrades);
+        if (maxPerType <= 0) {
             return false;
         }
-        ItemStack cluster = inputInv.getStackInSlot(clusterSlot);
-        ItemStack extracted = MatterBallClusterUtil.extractOne(cluster, 64);
-        if (extracted == null) {
-            if (!MatterBallClusterUtil.isMatterCluster(cluster) || cluster.getTagCompound() == null) {
-                inputInv.setInventorySlotContents(clusterSlot, null);
+        boolean any = false;
+        for (int pass = 0; pass < parallel; pass++) {
+            int clusterSlot = findClusterSlot();
+            if (clusterSlot < 0) {
+                break;
             }
-            return false;
+            ItemStack cluster = inputInv.getStackInSlot(clusterSlot);
+            java.util.ArrayList<ItemStack> extracted = MatterBallClusterUtil.extractOneTypeBatch(cluster, maxPerType);
+            if (extracted.isEmpty()) {
+                if (!MatterBallClusterUtil.isMatterCluster(cluster) || cluster.getTagCompound() == null) {
+                    inputInv.setInventorySlotContents(clusterSlot, null);
+                }
+                continue;
+            }
+            any = true;
+            if (cluster.getTagCompound() == null) {
+                inputInv.setInventorySlotContents(clusterSlot, null);
+            } else {
+                inputInv.setInventorySlotContents(clusterSlot, cluster);
+            }
+            for (ItemStack stack : extracted) {
+                if (!outputStack(stack)) {
+                    return any;
+                }
+            }
         }
-        if (cluster.getTagCompound() == null) {
-            inputInv.setInventorySlotContents(clusterSlot, null);
-        } else {
-            inputInv.setInventorySlotContents(clusterSlot, cluster);
-        }
+        return any;
+    }
 
-        if (outputToNetwork) {
-            return injectToNetwork(extracted);
+    private boolean outputStack(ItemStack stack) {
+        if (stack == null || stack.stackSize <= 0) {
+            return true;
         }
-        return insertToBuffer(extracted);
+        if (outputToNetwork) {
+            return injectToNetwork(stack);
+        }
+        return insertToBuffer(stack);
     }
 
     private int findClusterSlot() {
@@ -216,7 +245,8 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         if (stack == null || stack.stackSize <= 0) {
             return true;
         }
-        for (int i = 0; i < BUFFER_SLOTS; i++) {
+        int active = getActiveBufferSlots();
+        for (int i = 0; i < active; i++) {
             ItemStack slot = bufferInv.getStackInSlot(i);
             if (slot != null && slot.isItemEqual(stack) && ItemStack.areItemStackTagsEqual(slot, stack)) {
                 int space = Math.min(slot.getMaxStackSize(), 64) - slot.stackSize;
@@ -231,7 +261,7 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
                 }
             }
         }
-        for (int i = 0; i < BUFFER_SLOTS; i++) {
+        for (int i = 0; i < active; i++) {
             if (bufferInv.getStackInSlot(i) == null) {
                 bufferInv.setInventorySlotContents(i, stack.copy());
                 return true;

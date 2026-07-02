@@ -28,7 +28,7 @@ alwaysApply: false
 | Eternal-Singularity | 1.2.1 | 永恒奇点 |
 | Universal-Singularities | 8.7.0 | 通用奇点 |
 | NotEnoughItems | 2.5.4-GTNH | NEI (仅运行时，不发布) |
-| PinIn (shadow) | 1.6.0 (JitPack) | 手册拼音搜索（`ManualSearchUtil`）；运行时可选对接 NotEnoughCharacters |
+| PinIn (shadow) | 1.6.0 (libs/PinIn-1.6.0.jar) | 手册拼音搜索（`ManualSearchUtil`）；运行时可选对接 NotEnoughCharacters |
 
 ### 本地 Jar 依赖（需要放在 `libs/` 下）
 这些在 `dependencies.gradle` 中通过 `implementation files('libs/xxx.jar')` 声明：
@@ -36,6 +36,7 @@ alwaysApply: false
 | Jar 文件名 | 用途 | 状态 |
 |-----------|------|------|
 | Chisel-2.14.1-GTNH-dev.jar | 凿子模组 | 未添加 |
+| PinIn-1.6.0.jar | 手册拼音搜索（shadow） | 已添加 |
 | Galacticraft-3.3.12-GTNH-dev.jar | 星系模组 | 未添加 |
 | IC2NuclearControl-2.7.8-dev.jar | IC2 核电控制 | 未添加 |
 

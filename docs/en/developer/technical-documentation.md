@@ -1264,7 +1264,7 @@ Adding assistant capabilities usually requires:
 
 `DeepSeekChatClient` is the OpenAI-compatible HTTP client; general chat and AI intent extraction both use it. Config in `Config`, main categories:
 
-- `ai`: base URL, API key, model, network enabled, web search, streaming, timeout, max tokens, temperature, privacy flag, debug logging.
+- `ai`: base URL, API key, model, network enabled, built-in web search (engine/key/SearXNG URL/max results/fallback), streaming, timeout, max tokens, temperature, privacy flag, debug logging. Client-side values live in `ai-client-local.cfg`.
 - `voice`: enabled, privacy flag, STT mode, STT URL/key/model, timeout.
 - `assistant`: max order quantity, craft job timeout, concurrent job count.
 

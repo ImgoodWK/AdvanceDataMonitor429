@@ -1,34 +1,32 @@
 package com.imgood.textech.gui.guiscreen;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.util.ResourceLocation;
-
-import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.gui.MatterBallDecompressorGuiLayout;
 import com.imgood.textech.gui.container.ContainerMatterBallDecompressor;
 import com.imgood.textech.network.packet.PacketMatterBallDecompressorToggle;
+import com.imgood.textech.renders.MatterBallDecompressorGuiRenderer;
 import com.imgood.textech.tileentity.TileEntityMatterBallDecompressor;
 
 public class GuiMatterBallDecompressor extends GuiContainer {
-
-    private static final ResourceLocation TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/matter_ball_decompressor.png");
 
     private static final int BUTTON_OUTPUT_MODE = 0;
     private static final int BUTTON_BLOCK_MODE = 1;
 
     private final TileEntityMatterBallDecompressor tile;
+    private final MatterBallDecompressorGuiLayout.Metrics metrics;
 
     public GuiMatterBallDecompressor(InventoryPlayer playerInventory, TileEntityMatterBallDecompressor tile) {
         super(new ContainerMatterBallDecompressor(playerInventory, tile));
         this.tile = tile;
-        this.xSize = 300;
-        this.ySize = 232;
+        this.metrics = ((ContainerMatterBallDecompressor) inventorySlots).getMetrics();
+        this.xSize = metrics.guiWidth;
+        this.ySize = metrics.guiHeight;
     }
 
     @Override
@@ -37,8 +35,39 @@ public class GuiMatterBallDecompressor extends GuiContainer {
         buttonList.clear();
         int left = (width - xSize) / 2;
         int top = (height - ySize) / 2;
-        buttonList.add(new GuiButton(BUTTON_OUTPUT_MODE, left + 8, top + 6, 46, 20, outputModeLabel()));
-        buttonList.add(new GuiButton(BUTTON_BLOCK_MODE, left + 8, top + 30, 46, 20, blockModeLabel()));
+        buttonList.add(modeButton(
+            BUTTON_OUTPUT_MODE,
+            left + MatterBallDecompressorGuiLayout.BUTTON_OUTPUT_X,
+            top + MatterBallDecompressorGuiLayout.TOP_ROW_Y,
+            outputModeLabel()));
+        buttonList.add(modeButton(
+            BUTTON_BLOCK_MODE,
+            left + MatterBallDecompressorGuiLayout.BUTTON_BLOCK_X,
+            top + MatterBallDecompressorGuiLayout.TOP_ROW_Y,
+            blockModeLabel()));
+    }
+
+    private GuiButton modeButton(int id, int x, int y, String label) {
+        return new GuiButton(id, x, y, MatterBallDecompressorGuiLayout.BUTTON_WIDTH,
+            MatterBallDecompressorGuiLayout.BUTTON_HEIGHT, label) {
+
+            @Override
+            public void drawButton(Minecraft mc, int mouseX, int mouseY) {
+                if (!visible) {
+                    return;
+                }
+                boolean hover = mouseX >= xPosition && mouseY >= yPosition
+                    && mouseX < xPosition + width
+                    && mouseY < yPosition + height;
+                int color = enabled ? (hover ? 0x2060A0 : 0x404040) : 0xA0A0A0;
+                String text = displayString;
+                mc.fontRenderer.drawString(
+                    text,
+                    xPosition + (width - mc.fontRenderer.getStringWidth(text)) / 2,
+                    yPosition + (height - 8) / 2,
+                    color);
+            }
+        };
     }
 
     @Override
@@ -112,18 +141,19 @@ public class GuiMatterBallDecompressor extends GuiContainer {
 
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        mc.getTextureManager()
-            .bindTexture(TEXTURE);
         int left = (width - xSize) / 2;
         int top = (height - ySize) / 2;
-        drawTexturedModalRect(left, top, 0, 0, xSize, ySize);
+        MatterBallDecompressorGuiRenderer.drawBackground(left, top, metrics);
     }
 
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         String title = I18n.format("tile.matterBallDecompressor.name");
-        fontRendererObj.drawString(title, (xSize - fontRendererObj.getStringWidth(title)) / 2, 6, 0x404040);
-        fontRendererObj.drawString(I18n.format("container.inventory"), 26, ySize - 94, 0x404040);
+        fontRendererObj.drawString(title, (xSize - fontRendererObj.getStringWidth(title)) / 2, 7, 0x404040);
+        fontRendererObj.drawString(
+            I18n.format("container.inventory"),
+            metrics.playerInvX,
+            metrics.playerInvY - 12,
+            0x404040);
     }
 }

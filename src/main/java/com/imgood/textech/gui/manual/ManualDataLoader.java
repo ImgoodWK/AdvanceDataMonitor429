@@ -119,6 +119,10 @@ public class ManualDataLoader {
         aiEntries.add(entry("ai", "networkEnabled", "boolean", "true"));
         aiEntries.add(entry("ai", "webSearchEnabled", "boolean", "false"));
         aiEntries.add(entry("ai", "webSearchMode", "String", "auto"));
+        aiEntries.add(entry("ai", "searchApiKey", "String", ""));
+        aiEntries.add(entry("ai", "searchBaseUrl", "String", ""));
+        aiEntries.add(entry("ai", "searchMaxResults", "int", "5"));
+        aiEntries.add(entry("ai", "searchFallback", "boolean", "true"));
         aiEntries.add(entry("ai", "debugLogging", "boolean", "false"));
         aiEntries.add(entry("ai", "streamingEnabled", "boolean", "false"));
         aiEntries.add(entry("ai", "privacyConfirmed", "boolean", "false"));

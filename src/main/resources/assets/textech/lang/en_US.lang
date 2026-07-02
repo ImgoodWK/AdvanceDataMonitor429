@@ -310,6 +310,16 @@ adm.ai.settings.next_model=Next Model
 adm.ai.settings.network=Network
 adm.ai.settings.search=Search
 adm.ai.settings.mode=Mode
+adm.ai.settings.search_engine=Engine
+adm.ai.settings.search_key=Search Key
+adm.ai.settings.search_key_hint=Tavily / Brave / Serper API key
+adm.ai.settings.search_base=SearXNG URL
+adm.ai.settings.search_base_hint=https://searx.example.com
+adm.ai.settings.search_max=Search Results
+adm.ai.settings.search_max_hint=1-10
+adm.ai.settings.search_fallback=Fallback
+adm.ai.search_info_header=Search references (%s):
+adm.ai.search_warning=Web search failed: %s. Continuing without search results.
 adm.ai.settings.debug=Debug
 adm.ai.settings.stream=Stream
 adm.ai.settings.saved=Saved AI settings.
@@ -641,7 +651,7 @@ adm.manual.planner_teleport.teleport_title=Teleport System
 adm.manual.planner_teleport.teleport_text=The AI Assistant integrates with Draconic Evolution's Advanced Dislocator (com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII) for teleportation.\n\nRequirements:\n- An Advanced Dislocator (TeleporterMKII) in your inventory.\n- At least one saved destination on the gem (added via DE's own interface).\n\nHow it works:\n1. The assistant scans your inventory for TeleporterMKII items.\n2. Reads the "Locations" NBT tag list from each gem.\n3. Each location has: X, Y, Z, Dimension, Name.\n4. Displays destinations as a numbered list with dimension info.\n5. Confirm by number or fuzzy name match.\n\nExecution:\n- Same dimension: setPositionAndUpdate() for instant teleport.\n- Cross-dimension: uses configurationManager.transferPlayerToDimension() with a custom Teleporter instance.\n\nDimensions are resolved by stored DimentionName (DE uses this typo internally), standard names (Nether/Overworld/The End), or custom dimension IDs.\n\nName matching: exact match preferred, falls back to substring matching if no exact match found.\n\nExample AI prompts: "Teleport me to my base", "List my teleport points", "Take me to the mining dimension".
 
 adm.manual.config_reference.intro_title=Configuration Reference
-adm.manual.config_reference.intro_text=This chapter documents all configuration options in the mod's .cfg file (config/AdvanceDataMonitor.cfg). The file is auto-generated on first run with default values.\n\nOrganization: 33 options across 4 categories:\n  ai.* (13 options) - API endpoint, key, model, network, search, streaming, debug, privacy, timeout, tokens, temperature.\n  voice.* (7 options) - Voice assistant enable, privacy, STT mode (embedded-vosk/http), base URL, API key, model, timeout.\n  assistant.* (7 options) - Max order amount, max withdraw amount, craft job timeout, max concurrent craft jobs, link search radius, query candidate batch size, max query candidates.\n  plannerHudLimits.* (10 options) - Min/Max bounds for HUD display count, position X/Y, scale, and width.\n\nConfiguration can also be changed in-game via:\n- AI Settings GUI (gear icon in AI Chat)\n- /admai command\n- /admassistant reloadLexicon command\n\nScroll this page with your mouse wheel to browse long config entries.
+adm.manual.config_reference.intro_text=This chapter documents all configuration options in the mod's .cfg file (config/AdvanceDataMonitor.cfg). The file is auto-generated on first run with default values.\n\nOrganization: 37 options across 4 categories:\n  ai.* (17 options) - API endpoint, key, model, network, search, search engine key/URL/max results/fallback, streaming, debug, privacy, timeout, tokens, temperature.\n  voice.* (7 options) - Voice assistant enable, privacy, STT mode (embedded-vosk/http), base URL, API key, model, timeout.\n  assistant.* (7 options) - Max order amount, max withdraw amount, craft job timeout, max concurrent craft jobs, link search radius, query candidate batch size, max query candidates.\n  plannerHudLimits.* (10 options) - Min/Max bounds for HUD display count, position X/Y, scale, and width.\n\nConfiguration can also be changed in-game via:\n- AI Settings GUI (gear icon in AI Chat)\n- /admai command\n- /admassistant reloadLexicon command\n\nScroll this page with your mouse wheel to browse long config entries.
 
 adm.manual.config_reference.ai_category_title=AI Category (ai.*)
 adm.manual.config_reference.voice_category_title=Voice Category (voice.*)

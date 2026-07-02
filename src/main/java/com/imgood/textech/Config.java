@@ -32,6 +32,8 @@ public class Config {
     public static boolean debugGuiNetworkLink = false;
     /** When true, data monitors refresh random chart data every tick (debug only). */
     public static boolean debugMonitorTestMode = false;
+    /** When true, logs connector refresh counts and average durations every 10 seconds. */
+    public static boolean debugConnectorProfile = false;
 
     // --- ai ---
     public static String aiApiBaseUrl = "https://api.deepseek.com";
@@ -39,7 +41,12 @@ public class Config {
     public static String aiModel = "deepseek-chat";
     public static boolean aiNetworkEnabled = true;
     public static boolean aiWebSearchEnabled = false;
+    /** Built-in search engine: auto, tavily_keyless, duckduckgo, tavily, brave, serper, searxng, or off. */
     public static String aiWebSearchMode = "auto";
+    public static String aiSearchApiKey = "";
+    public static String aiSearchBaseUrl = "";
+    public static int aiSearchMaxResults = 5;
+    public static boolean aiSearchFallback = true;
     public static boolean aiDebugLogging = false;
     public static boolean aiStreamingEnabled = false;
     public static boolean aiPrivacyConfirmed = false;
@@ -256,6 +263,28 @@ public class Config {
     public static void saveAiSettings(String apiKey, String baseUrl, String model, String webSearchMode,
         boolean webSearchEnabled, boolean networkEnabled, boolean debugLogging, boolean streamingEnabled,
         int timeoutSeconds, int maxTokens, double temperature) {
+        saveAiSettings(
+            apiKey,
+            baseUrl,
+            model,
+            webSearchMode,
+            webSearchEnabled,
+            networkEnabled,
+            debugLogging,
+            streamingEnabled,
+            timeoutSeconds,
+            maxTokens,
+            temperature,
+            aiSearchApiKey,
+            aiSearchBaseUrl,
+            aiSearchMaxResults,
+            aiSearchFallback);
+    }
+
+    public static void saveAiSettings(String apiKey, String baseUrl, String model, String webSearchMode,
+        boolean webSearchEnabled, boolean networkEnabled, boolean debugLogging, boolean streamingEnabled,
+        int timeoutSeconds, int maxTokens, double temperature, String searchApiKey, String searchBaseUrl,
+        int searchMaxResults, boolean searchFallback) {
         if (!isClientSide()) {
             return;
         }
@@ -270,7 +299,34 @@ public class Config {
             streamingEnabled,
             timeoutSeconds,
             maxTokens,
-            temperature);
+            temperature,
+            searchApiKey,
+            searchBaseUrl,
+            searchMaxResults,
+            searchFallback);
+    }
+
+    public static void setAiSearchApiKey(String searchApiKey) {
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.textech.client.AiClientPreferences.setSearchApiKey(searchApiKey);
+        com.imgood.textech.client.AiClientPreferences.saveLocal();
+    }
+
+    public static void setAiSearchBaseUrl(String searchBaseUrl) {
+        if (!isClientSide()) {
+            return;
+        }
+        com.imgood.textech.client.AiClientPreferences.setSearchBaseUrl(searchBaseUrl);
+        com.imgood.textech.client.AiClientPreferences.saveLocal();
+    }
+
+    public static String getAiSearchApiKey() {
+        if (!isClientSide()) {
+            return "";
+        }
+        return com.imgood.textech.client.AiClientPreferences.getSearchApiKey();
     }
 
     public static String[] getRecentAiModels() {

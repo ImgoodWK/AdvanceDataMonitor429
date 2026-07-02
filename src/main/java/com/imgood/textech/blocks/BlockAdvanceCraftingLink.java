@@ -1,7 +1,5 @@
 package com.imgood.textech.blocks;
 
-import java.util.Random;
-
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
@@ -25,8 +23,6 @@ import com.imgood.textech.utils.AeSecurityCheck;
  */
 public class BlockAdvanceCraftingLink extends BlockContainer {
 
-    private static final int UPDATE_INTERVAL = 20;
-
     public BlockAdvanceCraftingLink() {
         super(Material.iron);
         this.setHardness(3.0F);
@@ -35,7 +31,6 @@ public class BlockAdvanceCraftingLink extends BlockContainer {
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("CraftingMonitorBlock");
         this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_crafting_link");
-        this.setTickRandomly(true); // 允许接收计划分
     }
 
     @Override
@@ -53,28 +48,6 @@ public class BlockAdvanceCraftingLink extends BlockContainer {
         // permission on an adjacent AE network with a security terminal.
         String denial = StatCollector.translateToLocal("adm.ae.no_build_permission");
         AeSecurityCheck.rejectIfUnauthorized(world, x, y, z, this, placer, denial);
-    }
-
-    // ---------- 方块放置时启动计划刻 ----------
-    @Override
-    public void onBlockAdded(World world, int x, int y, int z) {
-        super.onBlockAdded(world, x, y, z);
-        if (!world.isRemote) {
-            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
-        }
-    }
-
-    // ---------- 计划刻回调：更新数据并重新调应----------
-    @Override
-    public void updateTick(World world, int x, int y, int z, Random random) {
-        if (!world.isRemote) {
-            TileEntity te = world.getTileEntity(x, y, z);
-            if (te instanceof TileEntityAdvanceCraftingLink) {
-                ((TileEntityAdvanceCraftingLink) te).updateCraftingStats();
-            }
-            // 重新调度下一次更新（实现循环定时：
-            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
-        }
     }
 
     // ---------- 右键交互：强制刷新并显示 ----------

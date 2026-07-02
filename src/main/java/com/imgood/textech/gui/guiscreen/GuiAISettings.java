@@ -11,6 +11,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.assistant.ai.AiProviderProfiles;
 import com.imgood.textech.assistant.ai.AiProviderProfiles.ProviderProfile;
+import com.imgood.textech.assistant.ai.WebSearchService;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
@@ -34,14 +35,14 @@ public class GuiAISettings extends ADM_GuiScreen {
     private static final int BUTTON_STREAM = 18;
     private static final int BUTTON_VOICE = 19;
     private static final int BUTTON_VOICE_MODE = 20;
+    private static final int BUTTON_SEARCH_FALLBACK = 21;
     private static final int PANEL_WIDTH = 620;
-    private static final int PANEL_HEIGHT = 460;
+    private static final int PANEL_HEIGHT = 500;
     private static final int TEXT_COLOR = 0x00FFFF;
     private static final int TEXT_HOVER_COLOR = 0x0055FF;
 
-    private static final String[] SEARCH_MODES = { AiProviderProfiles.MODE_AUTO, AiProviderProfiles.MODE_OPENAI,
-        AiProviderProfiles.MODE_OPENROUTER, AiProviderProfiles.MODE_DASHSCOPE, AiProviderProfiles.MODE_ZHIPU,
-        AiProviderProfiles.MODE_GENERIC_TOOLS, AiProviderProfiles.MODE_OFF };
+    private static final String[] SEARCH_MODES = WebSearchService.allProviders();
+
     private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
         AdvanceDataMonitor.MODID,
         "textures/gui/button_ADM.png");
@@ -65,11 +66,15 @@ public class GuiAISettings extends ADM_GuiScreen {
     private ADM_GuiTextField timeoutField;
     private ADM_GuiTextField maxTokensField;
     private ADM_GuiTextField temperatureField;
+    private ADM_GuiTextField searchApiKeyField;
+    private ADM_GuiTextField searchBaseUrlField;
+    private ADM_GuiTextField searchMaxResultsField;
     private ADM_GuiTextField focusedField;
     private ProviderProfile provider;
     private int modelIndex;
     private boolean networkEnabled;
     private boolean webSearchEnabled;
+    private boolean searchFallback;
     private boolean debugLogging;
     private boolean streamingEnabled;
     private boolean voiceEnabled;
@@ -101,7 +106,8 @@ public class GuiAISettings extends ADM_GuiScreen {
         this.streamingEnabled = Config.aiStreamingEnabled;
         this.voiceEnabled = Config.voiceAssistantEnabled;
         this.voiceMode = Config.voiceSttMode;
-        this.searchMode = Config.aiWebSearchMode;
+        this.searchMode = WebSearchService.normalizeProvider(Config.aiWebSearchMode);
+        this.searchFallback = Config.aiSearchFallback;
 
         int x = this.offsetX + 170;
         int y = this.offsetY + 64;
@@ -115,6 +121,21 @@ public class GuiAISettings extends ADM_GuiScreen {
         this.timeoutField = createField(x, y + 96, String.valueOf(Config.aiTimeoutSeconds), "");
         this.maxTokensField = createField(x, y + 128, String.valueOf(Config.aiMaxTokens), "");
         this.temperatureField = createField(x, y + 160, String.valueOf(Config.aiTemperature), "");
+        this.searchApiKeyField = createField(
+            x,
+            y + 192,
+            Config.getAiSearchApiKey(),
+            "adm.ai.settings.search_key_hint");
+        this.searchBaseUrlField = createField(
+            x,
+            y + 224,
+            Config.aiSearchBaseUrl,
+            "adm.ai.settings.search_base_hint");
+        this.searchMaxResultsField = createField(
+            x,
+            y + 256,
+            String.valueOf(Config.aiSearchMaxResults),
+            "adm.ai.settings.search_max_hint");
         this.focusedField = this.modelField;
         this.modelField.setFocused(true);
 
@@ -125,7 +146,7 @@ public class GuiAISettings extends ADM_GuiScreen {
             createButton(
                 BUTTON_NETWORK,
                 this.offsetX + 54,
-                y + 204,
+                y + 292,
                 120,
                 20,
                 boolText("adm.ai.settings.network", this.networkEnabled)));
@@ -133,16 +154,24 @@ public class GuiAISettings extends ADM_GuiScreen {
             createButton(
                 BUTTON_SEARCH,
                 this.offsetX + 184,
-                y + 204,
+                y + 292,
                 120,
                 20,
                 boolText("adm.ai.settings.search", this.webSearchEnabled)));
-        this.buttonList.add(createButton(BUTTON_SEARCH_MODE, this.offsetX + 314, y + 204, 140, 20, modeText()));
+        this.buttonList.add(createButton(BUTTON_SEARCH_MODE, this.offsetX + 314, y + 292, 140, 20, modeText()));
+        this.buttonList.add(
+            createButton(
+                BUTTON_SEARCH_FALLBACK,
+                this.offsetX + 464,
+                y + 292,
+                106,
+                20,
+                boolText("adm.ai.settings.search_fallback", this.searchFallback)));
         this.buttonList.add(
             createButton(
                 BUTTON_DEBUG,
                 this.offsetX + 54,
-                y + 232,
+                y + 320,
                 120,
                 20,
                 boolText("adm.ai.settings.debug", this.debugLogging)));
@@ -150,13 +179,13 @@ public class GuiAISettings extends ADM_GuiScreen {
             createButton(
                 BUTTON_STREAM,
                 this.offsetX + 184,
-                y + 232,
+                y + 320,
                 120,
                 20,
                 boolText("adm.ai.settings.stream", this.streamingEnabled)));
         this.buttonList.add(
-            createButton(BUTTON_VOICE, this.offsetX + 314, y + 232, 120, 20, boolText("Voice", this.voiceEnabled)));
-        this.buttonList.add(createButton(BUTTON_VOICE_MODE, this.offsetX + 444, y + 232, 126, 20, voiceModeText()));
+            createButton(BUTTON_VOICE, this.offsetX + 314, y + 320, 120, 20, boolText("Voice", this.voiceEnabled)));
+        this.buttonList.add(createButton(BUTTON_VOICE_MODE, this.offsetX + 444, y + 320, 126, 20, voiceModeText()));
         this.buttonList.add(
             createButton(
                 BUTTON_SAVE,
@@ -220,8 +249,12 @@ public class GuiAISettings extends ADM_GuiScreen {
                 button.displayString = boolText("adm.ai.settings.search", this.webSearchEnabled);
                 break;
             case BUTTON_SEARCH_MODE:
-                this.searchMode = nextSearchMode(this.searchMode);
+                this.searchMode = WebSearchService.nextProvider(this.searchMode);
                 button.displayString = modeText();
+                break;
+            case BUTTON_SEARCH_FALLBACK:
+                this.searchFallback = !this.searchFallback;
+                button.displayString = boolText("adm.ai.settings.search_fallback", this.searchFallback);
                 break;
             case BUTTON_DEBUG:
                 this.debugLogging = !this.debugLogging;
@@ -259,9 +292,8 @@ public class GuiAISettings extends ADM_GuiScreen {
         this.modelIndex = 0;
         this.baseUrlField.setText(this.provider.baseUrl);
         this.modelField.setText(this.provider.defaultModel);
-        this.searchMode = this.provider.defaultSearchMode;
-        this.webSearchEnabled = !AiProviderProfiles.MODE_UNSUPPORTED.equals(this.searchMode)
-            && !AiProviderProfiles.MODE_OFF.equals(this.searchMode);
+        this.searchMode = WebSearchService.PROVIDER_AUTO;
+        this.webSearchEnabled = false;
         button.displayString = providerText();
         refreshButtons();
     }
@@ -312,12 +344,7 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     private String nextSearchMode(String current) {
-        for (int i = 0; i < SEARCH_MODES.length; i++) {
-            if (SEARCH_MODES[i].equalsIgnoreCase(current)) {
-                return SEARCH_MODES[(i + 1) % SEARCH_MODES.length];
-            }
-        }
-        return AiProviderProfiles.MODE_AUTO;
+        return WebSearchService.nextProvider(current);
     }
 
     private void refreshButtons() {
@@ -350,7 +377,13 @@ public class GuiAISettings extends ADM_GuiScreen {
                         .trim()),
                 Double.parseDouble(
                     this.temperatureField.getText()
-                        .trim()));
+                        .trim()),
+                this.searchApiKeyField.getText(),
+                this.searchBaseUrlField.getText(),
+                Integer.parseInt(
+                    this.searchMaxResultsField.getText()
+                        .trim()),
+                this.searchFallback);
             Config.saveVoiceSettings(
                 this.voiceEnabled,
                 Config.voicePrivacyConfirmed,
@@ -385,6 +418,9 @@ public class GuiAISettings extends ADM_GuiScreen {
         focusField(this.timeoutField, mouseX, mouseY, mouseButton);
         focusField(this.maxTokensField, mouseX, mouseY, mouseButton);
         focusField(this.temperatureField, mouseX, mouseY, mouseButton);
+        focusField(this.searchApiKeyField, mouseX, mouseY, mouseButton);
+        focusField(this.searchBaseUrlField, mouseX, mouseY, mouseButton);
+        focusField(this.searchMaxResultsField, mouseX, mouseY, mouseButton);
     }
 
     private void focusField(ADM_GuiTextField field, int mouseX, int mouseY, int mouseButton) {
@@ -406,6 +442,9 @@ public class GuiAISettings extends ADM_GuiScreen {
         this.timeoutField.updateCursorCounter();
         this.maxTokensField.updateCursorCounter();
         this.temperatureField.updateCursorCounter();
+        this.searchApiKeyField.updateCursorCounter();
+        this.searchBaseUrlField.updateCursorCounter();
+        this.searchMaxResultsField.updateCursorCounter();
     }
 
     @Override
@@ -425,27 +464,26 @@ public class GuiAISettings extends ADM_GuiScreen {
         drawString(this.fontRendererObj, I18n.format("adm.ai.settings.timeout"), labelX, y + 96, 0xAAAAAA);
         drawString(this.fontRendererObj, I18n.format("adm.ai.settings.tokens"), labelX, y + 128, 0xAAAAAA);
         drawString(this.fontRendererObj, I18n.format("adm.ai.settings.temperature"), labelX, y + 160, 0xAAAAAA);
+        drawString(this.fontRendererObj, I18n.format("adm.ai.settings.search_key"), labelX, y + 192, 0xAAAAAA);
+        drawString(this.fontRendererObj, I18n.format("adm.ai.settings.search_base"), labelX, y + 224, 0xAAAAAA);
+        drawString(this.fontRendererObj, I18n.format("adm.ai.settings.search_max"), labelX, y + 256, 0xAAAAAA);
         drawString(
             this.fontRendererObj,
             "Voice mode: " + this.voiceMode + " (details are in the voice config section).",
             labelX,
-            y + 256,
+            y + 344,
             0xAAAAAA);
         drawString(
             this.fontRendererObj,
-            AiProviderProfiles.searchCapability(
-                this.baseUrlField.getText(),
-                this.modelField.getText(),
-                this.searchMode,
-                this.webSearchEnabled).message,
+            WebSearchService.capabilityMessage(this.searchMode, this.webSearchEnabled),
             labelX,
-            y + 272,
+            y + 360,
             0xAAAAAA);
         drawString(
             this.fontRendererObj,
             this.statusMessage,
             labelX,
-            y + 292,
+            y + 380,
             this.statusMessage.startsWith("Error") ? 0xFF5555 : 0x55FF55);
         this.apiKeyField.drawTextBox();
         this.baseUrlField.drawTextBox();
@@ -453,6 +491,9 @@ public class GuiAISettings extends ADM_GuiScreen {
         this.timeoutField.drawTextBox();
         this.maxTokensField.drawTextBox();
         this.temperatureField.drawTextBox();
+        this.searchApiKeyField.drawTextBox();
+        this.searchBaseUrlField.drawTextBox();
+        this.searchMaxResultsField.drawTextBox();
     }
 
     private String providerText() {
@@ -460,7 +501,7 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     private String modeText() {
-        return I18n.format("adm.ai.settings.mode") + ": " + this.searchMode;
+        return I18n.format("adm.ai.settings.search_engine") + ": " + this.searchMode;
     }
 
     private String voiceModeText() {

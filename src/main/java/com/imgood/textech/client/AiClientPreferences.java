@@ -8,6 +8,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.ConfigDescriptions;
 import com.imgood.textech.assistant.ai.AiProviderProfiles.ProviderProfile;
+import com.imgood.textech.assistant.ai.WebSearchService;
 import com.imgood.textech.config.ConfigAiMutators;
 
 import cpw.mods.fml.relauncher.Side;
@@ -30,6 +31,10 @@ public final class AiClientPreferences {
     private static boolean networkEnabled = true;
     private static boolean webSearchEnabled = false;
     private static String webSearchMode = "auto";
+    private static String searchApiKey = "";
+    private static String searchBaseUrl = "";
+    private static int searchMaxResults = 5;
+    private static boolean searchFallback = true;
     private static boolean debugLogging = false;
     private static boolean streamingEnabled = false;
     private static boolean privacyConfirmed = false;
@@ -82,6 +87,20 @@ public final class AiClientPreferences {
             .getBoolean("webSearchEnabled", "ai", webSearchEnabled, ConfigDescriptions.get("ai", "webSearchEnabled"));
         webSearchMode = configuration
             .getString("webSearchMode", "ai", webSearchMode, ConfigDescriptions.get("ai", "webSearchMode"));
+        webSearchMode = com.imgood.textech.assistant.ai.WebSearchService.normalizeProvider(webSearchMode);
+        searchApiKey = configuration
+            .getString("searchApiKey", "ai", searchApiKey, ConfigDescriptions.get("ai", "searchApiKey"));
+        searchBaseUrl = configuration
+            .getString("searchBaseUrl", "ai", searchBaseUrl, ConfigDescriptions.get("ai", "searchBaseUrl"));
+        searchMaxResults = configuration.getInt(
+            "searchMaxResults",
+            "ai",
+            searchMaxResults,
+            1,
+            10,
+            ConfigDescriptions.get("ai", "searchMaxResults"));
+        searchFallback = configuration
+            .getBoolean("searchFallback", "ai", searchFallback, ConfigDescriptions.get("ai", "searchFallback"));
         debugLogging = configuration
             .getBoolean("debugLogging", "ai", debugLogging, ConfigDescriptions.get("ai", "debugLogging"));
         streamingEnabled = configuration
@@ -149,6 +168,14 @@ public final class AiClientPreferences {
             .set(webSearchEnabled);
         configuration.get("ai", "webSearchMode", webSearchMode)
             .set(webSearchMode);
+        configuration.get("ai", "searchApiKey", searchApiKey)
+            .set(searchApiKey);
+        configuration.get("ai", "searchBaseUrl", searchBaseUrl)
+            .set(searchBaseUrl);
+        configuration.get("ai", "searchMaxResults", searchMaxResults)
+            .set(searchMaxResults);
+        configuration.get("ai", "searchFallback", searchFallback)
+            .set(searchFallback);
         configuration.get("ai", "debugLogging", debugLogging)
             .set(debugLogging);
         configuration.get("ai", "streamingEnabled", streamingEnabled)
@@ -206,6 +233,15 @@ public final class AiClientPreferences {
             .getBoolean();
         webSearchMode = sharedConfiguration.get("ai", "webSearchMode", webSearchMode)
             .getString();
+        webSearchMode = com.imgood.textech.assistant.ai.WebSearchService.normalizeProvider(webSearchMode);
+        searchApiKey = sharedConfiguration.get("ai", "searchApiKey", searchApiKey)
+            .getString();
+        searchBaseUrl = sharedConfiguration.get("ai", "searchBaseUrl", searchBaseUrl)
+            .getString();
+        searchMaxResults = sharedConfiguration.get("ai", "searchMaxResults", searchMaxResults)
+            .getInt();
+        searchFallback = sharedConfiguration.get("ai", "searchFallback", searchFallback)
+            .getBoolean();
         debugLogging = sharedConfiguration.get("ai", "debugLogging", debugLogging)
             .getBoolean();
         streamingEnabled = sharedConfiguration.get("ai", "streamingEnabled", streamingEnabled)
@@ -272,6 +308,10 @@ public final class AiClientPreferences {
         Config.aiNetworkEnabled = networkEnabled;
         Config.aiWebSearchEnabled = webSearchEnabled;
         Config.aiWebSearchMode = webSearchMode;
+        Config.aiSearchApiKey = searchApiKey;
+        Config.aiSearchBaseUrl = searchBaseUrl;
+        Config.aiSearchMaxResults = searchMaxResults;
+        Config.aiSearchFallback = searchFallback;
         Config.aiDebugLogging = debugLogging;
         Config.aiStreamingEnabled = streamingEnabled;
         Config.aiPrivacyConfirmed = privacyConfirmed;
@@ -344,8 +384,24 @@ public final class AiClientPreferences {
     }
 
     public static void setWebSearchMode(String modeValue) {
-        webSearchMode = modeValue == null || modeValue.trim()
-            .isEmpty() ? "auto" : modeValue.trim();
+        webSearchMode = com.imgood.textech.assistant.ai.WebSearchService.normalizeProvider(modeValue);
+    }
+
+    public static void setSearchApiKey(String value) {
+        searchApiKey = value == null ? "" : value.trim();
+    }
+
+    public static void setSearchBaseUrl(String value) {
+        searchBaseUrl = value == null ? "" : value.trim();
+    }
+
+    public static String getSearchApiKey() {
+        if (searchApiKey != null && !searchApiKey.trim()
+            .isEmpty()) {
+            return searchApiKey.trim();
+        }
+        String envKey = System.getenv("AI_SEARCH_API_KEY");
+        return envKey == null ? "" : envKey.trim();
     }
 
     public static void setDebugLogging(boolean enabled) {
@@ -366,20 +422,44 @@ public final class AiClientPreferences {
         }
         apiBaseUrl = profile.baseUrl;
         setModel(profile.defaultModel);
-        webSearchMode = profile.defaultSearchMode;
-        webSearchEnabled = !"unsupported".equals(profile.defaultSearchMode) && !"off".equals(profile.defaultSearchMode);
+        webSearchMode = WebSearchService.PROVIDER_AUTO;
+        webSearchEnabled = false;
     }
 
     public static void saveAllSettings(String key, String baseUrl, String modelValue, String searchModeValue,
         boolean searchEnabled, boolean networkOn, boolean debug, boolean streaming, int timeout, int tokens,
         double temp) {
+        saveAllSettings(
+            key,
+            baseUrl,
+            modelValue,
+            searchModeValue,
+            searchEnabled,
+            networkOn,
+            debug,
+            streaming,
+            timeout,
+            tokens,
+            temp,
+            searchApiKey,
+            searchBaseUrl,
+            searchMaxResults,
+            searchFallback);
+    }
+
+    public static void saveAllSettings(String key, String baseUrl, String modelValue, String searchModeValue,
+        boolean searchEnabled, boolean networkOn, boolean debug, boolean streaming, int timeout, int tokens,
+        double temp, String searchKey, String searchBase, int maxResults, boolean fallback) {
         apiKey = key == null ? "" : key.trim();
         apiBaseUrl = baseUrl == null || baseUrl.trim()
             .isEmpty() ? "https://api.deepseek.com" : baseUrl.trim();
         setModel(modelValue);
-        webSearchMode = searchModeValue == null || searchModeValue.trim()
-            .isEmpty() ? "auto" : searchModeValue.trim();
+        webSearchMode = com.imgood.textech.assistant.ai.WebSearchService.normalizeProvider(searchModeValue);
         webSearchEnabled = searchEnabled;
+        searchApiKey = searchKey == null ? "" : searchKey.trim();
+        searchBaseUrl = searchBase == null ? "" : searchBase.trim();
+        searchMaxResults = Math.max(1, Math.min(10, maxResults));
+        searchFallback = fallback;
         networkEnabled = networkOn;
         debugLogging = debug;
         streamingEnabled = streaming;

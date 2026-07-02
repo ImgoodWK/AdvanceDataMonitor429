@@ -351,8 +351,25 @@ session.clear()
 | `DeepSeekChatClient.java` | HTTP 客户端，支持 OpenAI-compatible API |
 | `ChatRequestOptions.java` | 请求参数：streaming、web search、超时等 |
 | `ChatStreamListener.java` | 流式响应回调接口 |
-| `ChatResponse.java` | 响应结果（content 文本） |
-| `AiProviderProfiles.java` | Provider 预设配置（DeepSeek、OpenAI、Ollama 等） |
+| `ChatResponse.java` | 响应结果（content 文本 + sources） |
+| `AiProviderProfiles.java` | Provider 预设配置（DeepSeek、OpenAI 等） |
+| `WebSearchService.java` | 内置联网搜索层：多引擎适配、降级、结果注入 |
+| `WebSearchData.java` / `WebSearchResult.java` | 搜索结果 DTO |
+
+### 5.1.1 内置联网搜索（Chat Hub 方案）
+
+启用 `webSearchEnabled` 后，**不依赖 LLM 服务商原生 search 参数**：
+
+1. `GuiAIChat.requestAnswer()` 调用 `WebSearchService.performWebSearch(userQuery)`
+2. 结果经 `injectSearchIntoMessages()` 拼入最后一条 user 消息
+3. 调用 LLM 时固定 `webSearchEnabled=false`（任意 provider 均可联网）
+4. 搜索失败仅 warning，不阻断对话；引用来源显示在聊天区
+
+搜索引擎（`webSearchMode` / `searchProvider`）：`auto`、`tavily_keyless`、`duckduckgo`、`tavily`、`brave`、`serper`、`searxng`。
+
+`auto` 降级链：`tavily_keyless → duckduckgo → tavily → brave → serper → searxng`（未配置 Key/URL 的引擎自动跳过）。
+
+配置项（客户端 `ai-client-local.cfg`）：`searchApiKey`、`searchBaseUrl`（SearXNG）、`searchMaxResults`（1–10）、`searchFallback`。
 
 ### 5.2 DeepSeekChatClient 核心 API
 
@@ -390,7 +407,7 @@ return parser.parse(response.content);  // 解析 JSON → AssistantIntentPlan
 ```java
 class ChatRequestOptions {
     boolean streaming;      // 是否流式响应
-    String webSearchMode;   // "auto", "openai", "openrouter", "dashscope", "zhipu", "generic-tools", "off"
+    String webSearchMode;   // 内置搜索引擎: "auto", "tavily_keyless", "duckduckgo", "tavily", "brave", "serper", "searxng"
     boolean reasoning;      // 是否使用推理模型
     // ... timeout, maxTokens, temperature 等从 Config 读取
 }

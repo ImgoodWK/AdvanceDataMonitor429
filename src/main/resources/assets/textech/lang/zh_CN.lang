@@ -311,6 +311,16 @@ adm.ai.settings.next_model=下个模型
 adm.ai.settings.network=联网
 adm.ai.settings.search=搜索
 adm.ai.settings.mode=模式
+adm.ai.settings.search_engine=搜索引擎
+adm.ai.settings.search_key=搜索 Key
+adm.ai.settings.search_key_hint=Tavily / Brave / Serper API Key
+adm.ai.settings.search_base=SearXNG 地址
+adm.ai.settings.search_base_hint=https://searx.example.com
+adm.ai.settings.search_max=结果数
+adm.ai.settings.search_max_hint=1-10
+adm.ai.settings.search_fallback=降级
+adm.ai.search_info_header=引用来源（%s）：
+adm.ai.search_warning=联网搜索失败：%s。将继续回答，但不包含检索结果。
 adm.ai.settings.debug=调试
 adm.ai.settings.stream=流式
 adm.ai.settings.saved=AI 设置已保存。
@@ -642,7 +652,7 @@ adm.manual.planner_teleport.teleport_title=传送系统
 adm.manual.planner_teleport.teleport_text=AI 助手集成龙之进化高级错位宝石（com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII）实现传送功能。\n\n要求：\n- 背包中有高级错位宝石（TeleporterMKII）。\n- 宝石上至少保存了一个传送点（通过 DE 自身界面添加）。\n\n工作原理：\n1. 助手扫描背包中的 TeleporterMKII 物品。\n2. 读取每颗宝石的"Locations"NBT 标签列表。\n3. 每个位置包含：X、Y、Z、Dimension、Name。\n4. 以编号列表显示传送点,含维度信息。\n5. 通过编号或模糊名称匹配确认。\n\n执行：\n- 同维度：setPositionAndUpdate() 即时传送。\n- 跨维度：使用 configurationManager.transferPlayerToDimension() 配合自定义 Teleporter 实例。\n\n维度解析：按存储的 DimentionName（DE 内部使用此拼写）、标准名称（地狱/主世界/末地）或自定义维度 ID 解析。\n\n名称匹配：优先精确匹配,无精确匹配时回退到子串匹配。\n\nAI 提示词示例："传送到我的基地"、"列出我的传送点"、"带我去采矿维度"。
 
 adm.manual.config_reference.intro_title=配置文件参考
-adm.manual.config_reference.intro_text=本章记录模组 .cfg 配置文件中所有配置项（config/AdvanceDataMonitor.cfg）。文件首次运行时以默认值自动生成。\n\n组织方式：33 个配置项分为 4 个分类：\n  ai.*（13 项）- API 地址、密钥、模型、联网、搜索、流式、调试、隐私、超时、Token、温度。\n  voice.*（7 项）- 语音助手开关、隐私、STT 模式（内置-vosk/http）、URL、密钥、模型、超时。\n  assistant.*（7 项）- 最大下单量、最大取出量、合成作业超时、最大并发合成任务数、链接搜索半径、查询候选项分批大小、查询候选项上限。\n  plannerHudLimits.*（10 项）- HUD 显示数、X/Y 位置、缩放和宽度的最小/最大范围。\n\n配置也可在游戏中通过以下方式修改：\n- AI 设置 GUI（AI 对话中的齿轮图标）\n- /admai 命令\n- /admassistant reloadLexicon 命令\n\n使用鼠标滚轮滚动浏览较长的配置条目。
+adm.manual.config_reference.intro_text=本章记录模组 .cfg 配置文件中所有配置项（config/AdvanceDataMonitor.cfg）。文件首次运行时以默认值自动生成。\n\n组织方式：37 个配置项分为 4 个分类：\n  ai.*（17 项）- API 地址、密钥、模型、联网、搜索、搜索引擎 Key/URL/结果数/降级、流式、调试、隐私、超时、Token、温度。\n  voice.*（7 项）- 语音助手开关、隐私、STT 模式（内置-vosk/http）、URL、密钥、模型、超时。\n  assistant.*（7 项）- 最大下单量、最大取出量、合成作业超时、最大并发合成任务数、链接搜索半径、查询候选项分批大小、查询候选项上限。\n  plannerHudLimits.*（10 项）- HUD 显示数、X/Y 位置、缩放和宽度的最小/最大范围。\n\n配置也可在游戏中通过以下方式修改：\n- AI 设置 GUI（AI 对话中的齿轮图标）\n- /admai 命令\n- /admassistant reloadLexicon 命令\n\n使用鼠标滚轮滚动浏览较长的配置条目。
 
 adm.manual.config_reference.ai_category_title=AI 分类 (ai.*)
 adm.manual.config_reference.voice_category_title=语音分类 (voice.*)

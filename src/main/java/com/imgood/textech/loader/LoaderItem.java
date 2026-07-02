@@ -130,5 +130,7 @@ public class LoaderItem {
         ItemStack decompressor = new ItemStack(Item.getItemFromBlock(LoaderBlock.matterBallDecompressor));
         Upgrades.SPEED.registerItem(decompressor, 4);
         Upgrades.SUPERSPEED.registerItem(decompressor, 4);
+        Upgrades.SUPERLUMINALSPEED.registerItem(decompressor, 4);
+        Upgrades.CAPACITY.registerItem(decompressor, 2);
     }
 }

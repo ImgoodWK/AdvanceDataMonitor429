@@ -634,7 +634,7 @@ Enable `voice.enabled=true`. STT key priority: `voice.sttApiKey` → `VOICE_STT_
 /admai base https://api.deepseek.com
 /admai provider openrouter
 /admai network on|off|toggle
-/admai search on|off|auto|openrouter|...
+/admai search on|off|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng
 ```
 
 Providers include `deepseek`, `openai`, `openrouter`, `dashscope`, `zhipu`, `kimi`, `volcengine`, `siliconflow`, `minimax`, `groq`, `mistral`, `gemini`, `anthropic`.
@@ -655,7 +655,7 @@ Providers include `deepseek`, `openai`, `openrouter`, `dashscope`, `zhipu`, `kim
 | Section | Key fields |
 |---------|------------|
 | `general` | `greeting` — log-only |
-| `ai` | `apiBaseUrl`, `apiKey`, `model`, `networkEnabled`, `webSearchEnabled`, `webSearchMode`, `streamingEnabled`, `privacyConfirmed`, `timeoutSeconds`, `maxTokens`, `temperature` |
+| `ai` | `apiBaseUrl`, `apiKey`, `model`, `networkEnabled`, `webSearchEnabled`, `webSearchMode`, `searchApiKey`, `searchBaseUrl`, `searchMaxResults`, `searchFallback`, `streamingEnabled`, `privacyConfirmed`, `timeoutSeconds`, `maxTokens`, `temperature` |
 | `voice` | `enabled`, `privacyConfirmed`, `sttMode`, `sttBaseUrl`, `sttApiKey`, `sttModel`, `sttTimeoutSeconds` |
 | `assistant` | `maxOrderAmount`, `maxWithdrawAmount`, `craftJobTimeoutSeconds`, `maxConcurrentCraftJobs` |
 | `[grapple]` | hint range, interact distance, travel speed — see grapple subsystem doc |
@@ -671,9 +671,23 @@ Runtime file: `assets/textech/config/assistant-lexicon.json` (path shown by `/ad
 
 ---
 
-## 13. AI Providers & Search Modes
+## 13. Built-in Web Search
 
-Built-in provider profiles cover major OpenAI-compatible hosts. `webSearchMode`: `auto`, `off`, `openai`, `openrouter`, `dashscope`, `zhipu`, `generic-tools`. Actual search support depends on the provider API.
+The assistant uses a **unified search + context injection** flow: when search is enabled, the client queries configured search engines, formats results into the user message, then calls any LLM. This does **not** rely on provider-native search parameters—DeepSeek and other OpenAI-compatible models can all use web search.
+
+| Engine ID | Description | Key required |
+|-----------|-------------|--------------|
+| `auto` | Try engines in order | Depends on chain |
+| `tavily_keyless` | Tavily keyless mode | No |
+| `duckduckgo` | DuckDuckGo HTML search | No |
+| `tavily` | Tavily API | Yes |
+| `brave` | Brave Search API | Yes |
+| `serper` | Serper / Google results | Yes |
+| `searxng` | Self-hosted SearXNG | URL required |
+
+`auto` fallback chain: `tavily_keyless → duckduckgo → tavily → brave → serper → searxng`. Engines without keys/URLs are skipped automatically.
+
+Enable via AI chat **Search: On**, **AI Settings** GUI, or `/admai search on`. Client config is stored in `config/advancedatamonitor/ai-client-local.cfg`.
 
 ---
 
@@ -749,7 +763,7 @@ Advance Data Monitor · Data Imprint Tool · Network Linker · Crafting Linker �
 /admai key <apiKey>
 /admai provider <provider>
 /admai network on|off|toggle
-/admai search on|off|auto|openrouter|openai|dashscope|zhipu|generic-tools
+/admai search on|off|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng
 /admassistant lexicon
 /admassistant reloadLexicon
 ```
@@ -763,6 +777,10 @@ ai.model
 ai.networkEnabled
 ai.webSearchEnabled
 ai.webSearchMode
+ai.searchApiKey
+ai.searchBaseUrl
+ai.searchMaxResults
+ai.searchFallback
 voice.enabled
 voice.sttBaseUrl
 voice.sttApiKey
