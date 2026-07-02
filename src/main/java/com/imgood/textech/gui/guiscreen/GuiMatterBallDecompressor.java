@@ -1,10 +1,14 @@
 package com.imgood.textech.gui.guiscreen;
 
-import net.minecraft.client.Minecraft;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.util.EnumChatFormatting;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.MatterBallDecompressorGuiLayout;
@@ -13,13 +17,18 @@ import com.imgood.textech.network.packet.PacketMatterBallDecompressorToggle;
 import com.imgood.textech.renders.MatterBallDecompressorGuiRenderer;
 import com.imgood.textech.tileentity.TileEntityMatterBallDecompressor;
 
-public class GuiMatterBallDecompressor extends GuiContainer {
+import appeng.api.config.OperationMode;
+import appeng.api.config.Settings;
+import appeng.api.config.YesNo;
+import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.gui.widgets.ITooltip;
 
-    private static final int BUTTON_OUTPUT_MODE = 0;
-    private static final int BUTTON_BLOCK_MODE = 1;
+public class GuiMatterBallDecompressor extends GuiContainer {
 
     private final TileEntityMatterBallDecompressor tile;
     private final MatterBallDecompressorGuiLayout.Metrics metrics;
+    private GuiImgButton outputModeButton;
+    private GuiImgButton blockModeButton;
 
     public GuiMatterBallDecompressor(InventoryPlayer playerInventory, TileEntityMatterBallDecompressor tile) {
         super(new ContainerMatterBallDecompressor(playerInventory, tile));
@@ -35,52 +44,24 @@ public class GuiMatterBallDecompressor extends GuiContainer {
         buttonList.clear();
         int left = (width - xSize) / 2;
         int top = (height - ySize) / 2;
-        buttonList.add(modeButton(
-            BUTTON_OUTPUT_MODE,
-            left + MatterBallDecompressorGuiLayout.BUTTON_OUTPUT_X,
-            top + MatterBallDecompressorGuiLayout.TOP_ROW_Y,
-            outputModeLabel()));
-        buttonList.add(modeButton(
-            BUTTON_BLOCK_MODE,
-            left + MatterBallDecompressorGuiLayout.BUTTON_BLOCK_X,
-            top + MatterBallDecompressorGuiLayout.TOP_ROW_Y,
-            blockModeLabel()));
-    }
-
-    private GuiButton modeButton(int id, int x, int y, String label) {
-        return new GuiButton(id, x, y, MatterBallDecompressorGuiLayout.BUTTON_WIDTH,
-            MatterBallDecompressorGuiLayout.BUTTON_HEIGHT, label) {
-
-            @Override
-            public void drawButton(Minecraft mc, int mouseX, int mouseY) {
-                if (!visible) {
-                    return;
-                }
-                boolean hover = mouseX >= xPosition && mouseY >= yPosition
-                    && mouseX < xPosition + width
-                    && mouseY < yPosition + height;
-                int color = enabled ? (hover ? 0x2060A0 : 0x404040) : 0xA0A0A0;
-                String text = displayString;
-                mc.fontRenderer.drawString(
-                    text,
-                    xPosition + (width - mc.fontRenderer.getStringWidth(text)) / 2,
-                    yPosition + (height - 8) / 2,
-                    color);
-            }
-        };
+        outputModeButton = new GuiImgButton(
+            left + MatterBallDecompressorGuiLayout.CACHE_BUTTON_X,
+            top + MatterBallDecompressorGuiLayout.CACHE_BUTTON_Y,
+            Settings.OPERATION_MODE,
+            getOutputOperationMode());
+        buttonList.add(outputModeButton);
+        blockModeButton = new GuiImgButton(
+            left + MatterBallDecompressorGuiLayout.BLOCK_BUTTON_X,
+            top + MatterBallDecompressorGuiLayout.BLOCK_BUTTON_Y,
+            Settings.BLOCK,
+            tile.getConfigManager()
+                .getSetting(Settings.BLOCK));
+        buttonList.add(blockModeButton);
     }
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        if (button.id == BUTTON_OUTPUT_MODE) {
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                new PacketMatterBallDecompressorToggle(
-                    tile.xCoord,
-                    tile.yCoord,
-                    tile.zCoord,
-                    PacketMatterBallDecompressorToggle.KIND_OUTPUT_MODE,
-                    !tile.isOutputToNetwork()));
-        } else if (button.id == BUTTON_BLOCK_MODE) {
+        if (button == blockModeButton) {
             AdvanceDataMonitor.ADMCHANEL.sendToServer(
                 new PacketMatterBallDecompressorToggle(
                     tile.xCoord,
@@ -88,55 +69,81 @@ public class GuiMatterBallDecompressor extends GuiContainer {
                     tile.zCoord,
                     PacketMatterBallDecompressorToggle.KIND_BLOCK_MODE,
                     !tile.isBlockMode()));
+            return;
+        }
+        if (button == outputModeButton) {
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                new PacketMatterBallDecompressorToggle(
+                    tile.xCoord,
+                    tile.yCoord,
+                    tile.zCoord,
+                    PacketMatterBallDecompressorToggle.KIND_OUTPUT_MODE,
+                    !tile.isOutputToNetwork()));
         }
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        if (outputModeButton != null) {
+            outputModeButton.set(getOutputOperationMode());
+        }
+        if (blockModeButton != null) {
+            blockModeButton.set(tile.getConfigManager()
+                .getSetting(Settings.BLOCK));
+        }
         super.drawScreen(mouseX, mouseY, partialTicks);
-        for (Object obj : buttonList) {
-            GuiButton button = (GuiButton) obj;
-            if (button.id == BUTTON_OUTPUT_MODE) {
-                button.displayString = outputModeLabel();
-            } else if (button.id == BUTTON_BLOCK_MODE) {
-                button.displayString = blockModeLabel();
-            }
-            if (button.mousePressed(mc, mouseX, mouseY)) {
-                drawHoveringText(outputModeTooltip(button.id), mouseX, mouseY, fontRendererObj);
-            }
+        drawSideButtonTooltips(mouseX, mouseY);
+    }
+
+    private void drawSideButtonTooltips(int mouseX, int mouseY) {
+        if (outputModeButton != null && outputModeButton.getMouseIn()) {
+            drawAeStyleTooltip(cacheModeTooltip(), mouseX, mouseY);
+        }
+        if (blockModeButton != null && blockModeButton.getMouseIn()) {
+            drawImgButtonTooltip(blockModeButton, mouseX, mouseY);
         }
     }
 
-    private String outputModeLabel() {
+    private OperationMode getOutputOperationMode() {
+        // AE IO Port convention: EMPTY = to network, FILL = to storage/buffer.
+        return tile.isOutputToNetwork() ? OperationMode.EMPTY : OperationMode.FILL;
+    }
+
+    private List<String> cacheModeTooltip() {
         if (tile.isOutputToNetwork()) {
-            return I18n.format("adm.button.matter_decompressor.mode_network_short");
+            return aeTooltipLines(
+                "adm.label.matter_decompressor.mode_network",
+                "adm.tooltip.matter_decompressor.mode_network");
         }
-        return I18n.format("adm.button.matter_decompressor.mode_buffer_short");
+        return aeTooltipLines(
+            "adm.label.matter_decompressor.mode_buffer",
+            "adm.tooltip.matter_decompressor.mode_buffer");
     }
 
-    private String blockModeLabel() {
-        if (tile.isBlockMode()) {
-            return I18n.format("adm.button.matter_decompressor.block_on_short");
-        }
-        return I18n.format("adm.button.matter_decompressor.block_off_short");
+    private static List<String> aeTooltipLines(String titleKey, String bodyKey) {
+        return Arrays.asList(
+            EnumChatFormatting.WHITE + I18n.format(titleKey),
+            EnumChatFormatting.GRAY + I18n.format(bodyKey));
     }
 
-    private java.util.List<String> outputModeTooltip(int buttonId) {
-        java.util.ArrayList<String> lines = new java.util.ArrayList<>();
-        if (buttonId == BUTTON_OUTPUT_MODE) {
-            if (tile.isOutputToNetwork()) {
-                lines.add(I18n.format("adm.tooltip.matter_decompressor.mode_network"));
-            } else {
-                lines.add(I18n.format("adm.tooltip.matter_decompressor.mode_buffer"));
-            }
-        } else if (buttonId == BUTTON_BLOCK_MODE) {
-            if (tile.isBlockMode()) {
-                lines.add(I18n.format("adm.tooltip.matter_decompressor.block_on"));
-            } else {
-                lines.add(I18n.format("adm.tooltip.matter_decompressor.block_off"));
+    private void drawAeStyleTooltip(List<String> lines, int mouseX, int mouseY) {
+        drawHoveringText(lines, mouseX, mouseY, fontRendererObj);
+    }
+
+    private void drawImgButtonTooltip(ITooltip tooltip, int mouseX, int mouseY) {
+        String message = tooltip.getMessage();
+        if (message == null || message.isEmpty()) {
+            return;
+        }
+        ArrayList<String> lines = new ArrayList<>();
+        for (String line : message.split("\n")) {
+            if (line != null && !line.isEmpty()) {
+                lines.add(line);
             }
         }
-        return lines;
+        if (!lines.isEmpty()) {
+            drawHoveringText(lines, mouseX, mouseY, fontRendererObj);
+        }
     }
 
     @Override
@@ -149,7 +156,9 @@ public class GuiMatterBallDecompressor extends GuiContainer {
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         String title = I18n.format("tile.matterBallDecompressor.name");
-        fontRendererObj.drawString(title, (xSize - fontRendererObj.getStringWidth(title)) / 2, 7, 0x404040);
+        int titleX = MatterBallDecompressorGuiLayout.LEFT_GUTTER
+            + (metrics.mainPanelWidth - fontRendererObj.getStringWidth(title)) / 2;
+        fontRendererObj.drawString(title, titleX, 7, 0x404040);
         fontRendererObj.drawString(
             I18n.format("container.inventory"),
             metrics.playerInvX,
@@ -157,3 +166,4 @@ public class GuiMatterBallDecompressor extends GuiContainer {
             0x404040);
     }
 }
+

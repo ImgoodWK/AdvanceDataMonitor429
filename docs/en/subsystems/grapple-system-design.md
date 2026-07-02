@@ -136,7 +136,7 @@ Selection refreshes every **tick** and every **render frame** (`HandlerGrappleCl
 
 ### 4.1 `BlockGrappleAnchor`
 
-**Path**: `src/main/java/com/imgood/advancedatamonitor/blocks/BlockGrappleAnchor.java`
+**Path**: `src/main/java/com/imgood/textech/blocks/BlockGrappleAnchor.java`
 
 | Property | Value |
 |----------|-------|
@@ -170,7 +170,7 @@ Selection refreshes every **tick** and every **render frame** (`HandlerGrappleCl
 
 ### 5.1 `TileEntityGrappleAnchor`
 
-**Path**: `src/main/java/com/imgood/advancedatamonitor/tileentity/TileEntityGrappleAnchor.java`
+**Path**: `src/main/java/com/imgood/textech/tileentity/TileEntityGrappleAnchor.java`
 
 | Field | Description |
 |-------|-------------|
@@ -191,7 +191,7 @@ z = blockZ + 0.5 + outward.offsetZ * 0.55
 
 ### 6.1 `ItemGrappleHook`
 
-**Path**: `src/main/java/com/imgood/advancedatamonitor/items/ItemGrappleHook.java`
+**Path**: `src/main/java/com/imgood/textech/items/ItemGrappleHook.java`
 
 | Property | Value |
 |----------|-------|
@@ -419,7 +419,7 @@ short nodeCount
 
 ## 11. Config Keys
 
-**Category**: `grapple` (in `config/textech/textech.cfg`)
+**Category**: `grapple` (in `config/advancedatamonitor/advancedatamonitor.cfg`)
 
 | Key | Default (design doc) | Description |
 |-----|----------------------|-------------|

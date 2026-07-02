@@ -13,13 +13,19 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Procedural (solid-color) GUI for the matter-ball decompressor.
- * <p>
- * Default: flat fills + beveled slot cells — no AE / vanilla atlas. Drop custom PNGs to override:
- * {@link #BACKGROUND_TEXTURE} (full panel) or {@link #SLOT_TEXTURE} (18×18 cell).
+ * GUI rendering for the matter-ball decompressor.
+ * Side buttons use AE {@code GuiImgButton} ({@code guis/states.png}); upgrade slots use the AE
+ * upgradeable-machine column from {@code guis/storagebus.png}.
  */
 @SideOnly(Side.CLIENT)
 public final class MatterBallDecompressorGuiRenderer {
+
+    private static final String AE_MODID = "appliedenergistics2";
+
+    /** AE upgradeable-machine GUI — upgrade column strip at u=177. */
+    public static final ResourceLocation AE_UPGRADEABLE_TEXTURE = new ResourceLocation(
+        AE_MODID,
+        "textures/guis/storagebus.png");
 
     public static final ResourceLocation SLOT_TEXTURE = new ResourceLocation(
         AdvanceDataMonitor.MODID,
@@ -31,9 +37,6 @@ public final class MatterBallDecompressorGuiRenderer {
 
     /** Main panel — replace via {@link #BACKGROUND_TEXTURE} when hand-painted. */
     private static final int PANEL_BG = 0xFFC8C8C8;
-    /** Top toolbar strip (buttons + upgrades). */
-    private static final int TOOLBAR_BG = 0xFFB0B0B0;
-    private static final int TOOLBAR_BORDER = 0xFF909090;
     /** Player-inventory separator line. */
     private static final int SECTION_LINE = 0xFF909090;
 
@@ -41,36 +44,78 @@ public final class MatterBallDecompressorGuiRenderer {
     private static final int SLOT_HIGHLIGHT = 0xFF9A9A9A;
     private static final int SLOT_SHADOW = 0xFF3A3A3A;
 
+    /** AE upgrade column: slot x=187, panel x=177. */
+    private static final int AE_UPGRADE_PANEL_U = 177;
+    private static final int AE_UPGRADE_PANEL_V = 0;
+    private static final int AE_UPGRADE_PANEL_W = 35;
+    private static final int AE_UPGRADE_PANEL_HEADER = 14;
+    /** AE first upgrade slot is at (187, 8) relative to GUI origin. */
+    private static final int AE_UPGRADE_SLOT_X = 187;
+    private static final int AE_UPGRADE_SLOT_Y = 8;
+
     private MatterBallDecompressorGuiRenderer() {}
 
     public static void drawBackground(int guiLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
+        int panelLeft = guiLeft + MatterBallDecompressorGuiLayout.LEFT_GUTTER;
         if (hasResource(BACKGROUND_TEXTURE)) {
             Minecraft mc = Minecraft.getMinecraft();
             mc.getTextureManager()
                 .bindTexture(BACKGROUND_TEXTURE);
-            mc.ingameGUI.drawTexturedModalRect(guiLeft, guiTop, 0, 0, metrics.guiWidth, metrics.guiHeight);
+            mc.ingameGUI.drawTexturedModalRect(
+                panelLeft,
+                guiTop,
+                0,
+                0,
+                metrics.mainPanelWidth,
+                metrics.guiHeight);
         } else {
-            drawSolidPanel(guiLeft, guiTop, metrics);
+            drawSolidPanel(panelLeft, guiTop, metrics);
         }
 
         drawAllSlotBackgrounds(guiLeft, guiTop, metrics);
+        drawAeUpgradeColumn(guiLeft, guiTop, metrics);
         drawPlayerInventorySlots(guiLeft, guiTop, metrics);
     }
 
-    private static void drawSolidPanel(int guiLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
-        Gui.drawRect(guiLeft, guiTop, guiLeft + metrics.guiWidth, guiTop + metrics.guiHeight, PANEL_BG);
+    /** AE upgradeable-machine right column (matches {@code GuiUpgradeable.drawBG}). */
+    public static void drawAeUpgradeColumn(int guiLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
+        int upgradeCount = MatterBallDecompressorGuiLayout.UPGRADE_COUNT;
+        int panelHeight = AE_UPGRADE_PANEL_HEADER + upgradeCount * MatterBallDecompressorGuiLayout.CELL;
+        int panelX = guiLeft + metrics.upgradeColumnX - (AE_UPGRADE_SLOT_X - AE_UPGRADE_PANEL_U);
+        int panelY = guiTop + MatterBallDecompressorGuiLayout.CONTENT_START_Y
+            - (AE_UPGRADE_SLOT_Y - AE_UPGRADE_PANEL_V);
 
-        int barY1 = guiTop + 4;
-        int barY2 = barY1 + 20;
-        Gui.drawRect(guiLeft + 6, barY1, guiLeft + metrics.guiWidth - 6, barY2, TOOLBAR_BG);
-        Gui.drawRect(guiLeft + 6, barY1, guiLeft + metrics.guiWidth - 6, barY1 + 1, TOOLBAR_BORDER);
-        Gui.drawRect(guiLeft + 6, barY2 - 1, guiLeft + metrics.guiWidth - 6, barY2, TOOLBAR_BORDER);
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.getTextureManager()
+            .bindTexture(AE_UPGRADEABLE_TEXTURE);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        mc.ingameGUI.drawTexturedModalRect(
+            panelX,
+            panelY,
+            AE_UPGRADE_PANEL_U,
+            AE_UPGRADE_PANEL_V,
+            AE_UPGRADE_PANEL_W,
+            panelHeight);
+    }
+
+    private static void drawSolidPanel(int panelLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
+        Gui.drawRect(
+            panelLeft,
+            guiTop,
+            panelLeft + metrics.mainPanelWidth,
+            guiTop + metrics.guiHeight,
+            PANEL_BG);
 
         int splitY = guiTop + metrics.playerInvY - 6;
-        Gui.drawRect(guiLeft + 8, splitY, guiLeft + metrics.guiWidth - 8, splitY + 1, SECTION_LINE);
+        Gui.drawRect(
+            panelLeft + 8,
+            splitY,
+            panelLeft + metrics.mainPanelWidth - 8,
+            splitY + 1,
+            SECTION_LINE);
     }
 
     public static void drawSlotCell(int x, int y) {
@@ -98,7 +143,7 @@ public final class MatterBallDecompressorGuiRenderer {
     private static void drawAllSlotBackgrounds(int guiLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
         for (int row = 0; row < MatterBallDecompressorGuiLayout.INPUT_ROWS; row++) {
             drawSlotCell(
-                guiLeft + MatterBallDecompressorGuiLayout.INPUT_X,
+                guiLeft + metrics.inputX,
                 guiTop + MatterBallDecompressorGuiLayout.CONTENT_START_Y + row * MatterBallDecompressorGuiLayout.CELL);
         }
 
@@ -106,17 +151,10 @@ public final class MatterBallDecompressorGuiRenderer {
         for (int row = 0; row < metrics.bufferSide; row++) {
             for (int col = 0; col < metrics.bufferSide; col++) {
                 drawSlotCell(
-                    guiLeft + MatterBallDecompressorGuiLayout.BUFFER_REGION_X
-                        + (offset + col) * MatterBallDecompressorGuiLayout.CELL,
+                    guiLeft + metrics.bufferRegionX + (offset + col) * MatterBallDecompressorGuiLayout.CELL,
                     guiTop + MatterBallDecompressorGuiLayout.CONTENT_START_Y
                         + (offset + row) * MatterBallDecompressorGuiLayout.CELL);
             }
-        }
-
-        for (int i = 0; i < MatterBallDecompressorGuiLayout.UPGRADE_COUNT; i++) {
-            drawSlotCell(
-                guiLeft + metrics.upgradeStartX + i * MatterBallDecompressorGuiLayout.CELL,
-                guiTop + MatterBallDecompressorGuiLayout.TOP_ROW_Y);
         }
     }
 
@@ -145,3 +183,4 @@ public final class MatterBallDecompressorGuiRenderer {
         }
     }
 }
+

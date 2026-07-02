@@ -14,7 +14,11 @@ import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.assistant.AssistantDataFiles;
@@ -24,6 +28,7 @@ import com.imgood.textech.utils.BlockPos;
 public final class GrapplePathStore {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .registerTypeAdapter(BlockPos.class, new BlockPosTypeAdapter())
         .create();
     private static final GrapplePathStore INSTANCE = new GrapplePathStore();
     private final List<GrappleRouteEntry> routes = new ArrayList<GrappleRouteEntry>();
@@ -197,6 +202,60 @@ public final class GrapplePathStore {
             GSON.toJson(routes, writer);
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("Failed to save grapple paths", e);
+        }
+    }
+
+    /**
+     * Serializes only x/y/z so Gson never reflects into {@link BlockPos}'s transient {@code World} field
+     * (breaks on Java 17 module access rules).
+     */
+    private static final class BlockPosTypeAdapter extends TypeAdapter<BlockPos> {
+
+        @Override
+        public void write(JsonWriter out, BlockPos value) throws java.io.IOException {
+            if (value == null) {
+                out.nullValue();
+                return;
+            }
+            out.beginObject();
+            out.name("x")
+                .value(value.getX());
+            out.name("y")
+                .value(value.getY());
+            out.name("z")
+                .value(value.getZ());
+            out.endObject();
+        }
+
+        @Override
+        public BlockPos read(JsonReader in) throws java.io.IOException {
+            if (in.peek() == JsonToken.NULL) {
+                in.nextNull();
+                return null;
+            }
+            int x = 0;
+            int y = 0;
+            int z = 0;
+            in.beginObject();
+            while (in.hasNext()) {
+                String name = in.nextName();
+                if ("x".equals(name)) {
+                    x = in.nextInt();
+                } else if ("y".equals(name)) {
+                    y = in.nextInt();
+                } else if ("z".equals(name)) {
+                    z = in.nextInt();
+                } else if ("XYZ".equals(name) && in.peek() == JsonToken.STRING) {
+                    BlockPos parsed = new BlockPos(in.nextString());
+                    x = parsed.getX();
+                    y = parsed.getY();
+                    z = parsed.getZ();
+                } else {
+                    in.skipValue();
+                }
+            }
+            in.endObject();
+            return new BlockPos(x, y, z);
         }
     }
 }

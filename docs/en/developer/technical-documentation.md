@@ -76,7 +76,7 @@ The project uses **dual-axis package organization**: standard Forge layering (`b
 
 Main directories:
 
-- `src/main/java/com/imgood/advancedatamonitor/`: mod entry, proxy, config, and business packages.
+- `src/main/java/com/imgood/textech/`: mod entry, proxy, config, and business packages.
 - `blocks/`: five block implementations (including grapple node `BlockGrappleAnchor`); creates TileEntities, opens GUIs, placement facing, basic interaction.
 - `items/`: `ItemDataImprint`, `ItemAdvanceStorageLinkCell`, `ItemAdvancePlanner`, `ItemManual`, `ItemSuperOrange`, `ItemGrappleHook`, `ItemStarryCosmosSword`, `ItemDimensionalPocket` (+ `ItemSpaceUpgradeCard` / `ItemPageUpgradeCard` / `ItemStackUpgradeCard` / `ItemInfiniteStackUpgradeCard`); Data Loom cells live in `items/cell/` (items also in `items/cell/`, unlike handler/manual items/ pattern).
 - `tileentity/`: monitor, three AE2 Linkers, and grapple node server state, NBT persistence, AE2 network access, and sync logic.
@@ -97,7 +97,7 @@ Main directories:
 - `src/main/resources/assets/textech/`: lang, textures, AI lexicon, embedded Vosk model manifest.
 - `src/test/java/test/AssistantIntentParserSuite.java`: regression tests for assistant rule parser and AI JSON parser.
 
-Note a few historical naming typos, e.g. `RenderTeXTech`, `gui/custom/`. When maintaining, check for external references or registered names before renaming for aesthetics.
+Note a few historical naming typos, e.g. `RenderAdvanceDataMonitor*`, `gui/custom/`. When maintaining, check for external references or registered names before renaming for aesthetics.
 
 Configuration: `Config.java` is the public facade; section loaders live in `config/Config*Loader.java`; all debug switches default to `false` (see `[debug]`, `[ai] debugLogging`, `[dataLoomCell] debugLogging`).
 
@@ -133,7 +133,7 @@ In-game display names below come from `assets/textech/lang/` (Chinese / English)
 
 | Class (primary) | Chinese | English | lang key |
 |-----------------|---------|---------|----------|
-| `BlockTeXTech` | 高级数据监视器 | Advance Data Monitor | `tile.advDataMonitor.name` |
+| `BlockAdvanceDataMonitor` | 高级数据监视器 | Advance Data Monitor | `tile.advDataMonitor.name` |
 | `BlockAdvanceCraftingLink` | 合成链接器 | Crafting Linker | `tile.CraftingMonitorBlock.name` |
 | `BlockAdvanceStorageLink` | 高级存储链接器 | Advanced Storage Linker | `tile.StorageLinkBlock.name` |
 | `BlockAdvanceNetworkLink` | 网络链接器 | Network Linker | `tile.NetworkLinkBlock.name` |
@@ -165,10 +165,10 @@ Unreferenced lang keys: [unreferenced-lang-keys.md](unreferenced-lang-keys.md) �
 
 Key classes:
 
-- `BlockTeXTech`
+- `BlockAdvanceDataMonitor`
 - `TileEntityAdvanceDataMonitor`
-- `GuiMainTeXTech` and multiple `GuiSub*` config pages
-- `RenderTeXTech`
+- `GuiMainAdvanceDataMonitor` and multiple `GuiSub*` config pages
+- `RenderAdvanceDataMonitor`
 - `RenderController` / `IADMRender`
 
 `TileEntityAdvanceDataMonitor` holds `dataBoundList`; each index is an `NBTTagCompound` display entry. Constant `MAX_DATA_BINDINGS = 36` caps binding entries per monitor face (shared by Data Imprint sneak-bind and `GuiSubBind` add-binding; full list shows `adm.error.data_bindings_full`). Entries store target coordinates, field name, sample interval, color, scale, rotation, data type, etc.; `dataLimit` is the per-chart point history (default 100), unrelated to the binding entry cap. Server `updateEntity()` samples per entry `interval`:
@@ -1170,7 +1170,7 @@ Key classes: `BlockMatterBallDecompressor`, `TileEntityMatterBallDecompressor`, 
 - `8` (`SUPER_ORANGE_GUI_ID`): Super Orange settings `GuiSuperOrangeConfig` (sneak+right-click on client; save via `PacketSuperOrangeConfig`).
 - `9` (`MATTER_BALL_DECOMPRESSOR_GUI_ID`): Matter Ball Decompressor `GuiMatterBallDecompressor` / `ContainerMatterBallDecompressor`.
 
-Main monitor GUI entry is `GuiMainTeXTech`; sub-pages configure bind targets, AE2 Network Linker, Crafting Linker, Advanced Storage Linker, colors, and display transforms. AI chat and AI settings are separate `GuiScreen`s opened from main UI buttons, commands, or voice hotkey.
+Main monitor GUI entry is `GuiMainAdvanceDataMonitor`; sub-pages configure bind targets, AE2 Network Linker, Crafting Linker, Advanced Storage Linker, colors, and display transforms. AI chat and AI settings are separate `GuiScreen`s opened from main UI buttons, commands, or voice hotkey.
 
 When GUIs modify TileEntities, respect side: client edits UI and sends packets; server applies trusted state and calls `markDirty()` / `markBlockForUpdate()`. Do not modify client-only TileEntity state — it will be lost on world reload or server sync.
 
@@ -1290,7 +1290,7 @@ On STT success, text goes to `GuiAIChat.submitAssistantPrompt()`, reusing the as
 
 Two rendering categories:
 
-- Block / item appearance: `RenderTeXTech`, `RenderAdvanceNetworkLink`, item renderers — bound in `LoaderRender`.
+- Block / item appearance: `RenderAdvanceDataMonitor`, `RenderAdvanceDataMonitorBlockItem`, `RenderAdvanceNetworkLink`, `RenderAdvanceNetworkLinkBlockItem`, item renderers — bound in `LoaderRender`.
 - Monitor content: implement `IADMRender`, dispatched by type via `RenderController`.
 
 `IADMRender.render(NBTTagCompound nbt, double x, double y, double z, int facing)` consumes display entry NBT directly; contract between renderer and sampling is NBT field names. Renaming fields requires syncing GUI defaults, TileEntity sampling, NBT persistence, sync packets, and renderer.

@@ -2,7 +2,6 @@ package com.imgood.textech.loader;
 
 import net.minecraftforge.common.MinecraftForge;
 
-import com.imgood.textech.handler.ConnectorTickService;
 import com.imgood.textech.handler.HandlerDataLoomCell;
 import com.imgood.textech.handler.HandlerGrapple;
 import com.imgood.textech.handler.HandlerLoot;
@@ -26,9 +25,6 @@ public class LoaderHandler {
         FMLCommonHandler.instance()
             .bus()
             .register(new HandlerTick());
-        FMLCommonHandler.instance()
-            .bus()
-            .register(new ConnectorTickService());
         MinecraftForge.EVENT_BUS.register(new HandlerLoot());
         HandlerLoot.registerChestLoot();
         MinecraftForge.EVENT_BUS.register(new HandlerPlayerJoin());

@@ -8,7 +8,7 @@ alwaysApply: true
 ## 基本信息
 
 - **项目名**: TeXTech (modid: `advancedatamonitor`)
-- **根包名**: `com.imgood.advancedatamonitor`
+- **根包名**: `com.imgood.textech`（部分类仍引用 `com.imgood.advancedatamonitor` 旧包名，实际源码根包为 `textech`）
 - **定位**: GTNH (GregTech: New Horizons) 社区模组
 - **平台**: Minecraft 1.7.10 / Forge 10.13.4.1614 / MCP stable_12
 - **构建**: Gradle Kotlin DSL + GTNH Convention Plugin (`com.gtnewhorizons.gtnhconvention`)
@@ -30,7 +30,7 @@ alwaysApply: true
 - 使用 `TeXTech.LOG` (`org.apache.logging.log4j.Logger`) 统一日志输出。
 
 ### DEBUG 模式
-- 所有调试开关在 `config/advancedatamonitor/advancedatamonitor.cfg` 中配置，**默认均为 `false`**。
+- 所有调试开关在 `config/advancedatamonitor/advancedatamonitor.cfg` 中配置（引导主文件为 `advancedatamonitor.cfg`，部分配置值也可来自 `ai-client-local.cfg`），**默认均为 `false`**。
 - 分节加载见 `config/` 包（`ConfigDebugLoader` / `ConfigAiLoader` / `ConfigDataLoomLoader` 等）；字段名与 cfg key 对照见 `ConfigDescriptions.java`。
 
 ## 注册规范
@@ -46,10 +46,13 @@ alwaysApply: true
 | `LoaderRender` | ISimpleBlockRenderingHandler、Item render | preInit (仅客户端) |
 | `LoaderGui` | IGuiHandler + GuiScreen 映射 | init |
 | `LoaderNetwork` | SimpleNetworkWrapper 包注册（固定ID，详见`network-packets.mdc`） | postInit |
+| `ModMigrationHandler` | 代码迁移兼容处理（旧包名 `advancedatamonitor` → `textech`） | preInit |
 
 ## 多语言支持
 
-- 项目支持双语：`en_US.lang` + `zh_CN.lang`，位于 `assets/advancedatamonitor/lang/`。
+- 项目支持双语：`en_US.lang` + `zh_CN.lang`，位于两处：
+  - `assets/advancedatamonitor/lang/`（旧位置，部分旧键保留于此）
+  - `assets/textech/lang/`（新位置，主 lang 文件，896+ 行，包含最新键）
 - **每次新增/修改文本时必须同时更新两个 lang 文件**。
 - 代码中使用 `I18n.format("adm.xxx")` 引用本地化 key。
 - Key 命名空间为 `adm.`，分层规则：

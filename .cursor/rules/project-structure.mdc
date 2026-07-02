@@ -33,35 +33,44 @@ alwaysApply: true
 | `assistant/` | 45 | AI 助手核心（意图解析 / AE2 查询 / 合成下单 / 内置联网搜索 / 计划 / 菜单状态缓存），详见 `ai-assistant.mdc` |
 | `items/` | 54 | 物品（含 `items/cell/` 33 文件：数据编织元件 AE2 集成） |
 | `blocks/` | 6 | 自定义方块（监视器 / 链接器 / 挂索节点 / 物质球解压器） |
-| `tileentity/` | 5+2 | TileEntity（含 `IOwnableTile` 接口工具） |
-| `gui/` | 35 | GUI 组件与界面（`custom/` / `guiscreen/` / `manual/` / `container/` / `handler/`），详见 `gui-guidelines.mdc` |
+| `tileentity/` | 9 | TileEntity + 接口 + 辅助（含 `IOwnableTile`、`MatterBallDecompressorUpgrades`） |
+| `gui/` | 39 | GUI 组件与界面（根 1 + `custom/` 3 + `guiscreen/` 24 + `manual/` 6 + `container/` 4 + `handler/` 1），详见 `gui-guidelines.mdc` |
 | `handler/` | 33 | 事件处理器与服务端逻辑（挂索 / 星空剑 / 口袋 / 扫描器 / 编织元件 / AE 连接器性能调度） |
 | `entity/` | 8 | 实体类 only（不含 Render） |
-| `renders/` | 34 | 全部客户端渲染（TESR / 实体 Render / 物品 Render / HUD / 语音助手 HUD / 手册页面） |
-| `network/` | 26 | 网络通信（23 packet + 5 handler），详见 `network-packets.mdc` |
+| `renders/` | 35 | 全部客户端渲染（TESR / 实体 Render / 物品 Render / HUD / 语音助手 HUD / 手册页面 / 解压器 GUI） |
+| `network/` | 27 | 网络通信（22 packet + 5 handler），详见 `network-packets.mdc` |
 | `voice/` | 9 | 语音识别（Vosk / HTTP STT / 音频处理） |
-| `loader/` | 9 | 注册加载器（Block / Item / TE / Entity / Handler / Gui / Render / Network / Recipe） |
-| `client/` | 20 | 客户端事件与缓存（挂索 / 口袋 / AI 偏好 / 按键 / 语音按键） |
+| `loader/` | 10 | 注册加载器（Block / Item / TE / Entity / Handler / Gui / Render / Network / Recipe）+ `ModMigrationHandler` |
+| `client/` | 17 | 客户端事件与缓存（挂索 / 口袋 / AI 偏好 / 按键 / 语音按键 / 星空剑预热） |
 | `command/` | 2 | 命令（`/admassistant`、`/admai`） |
-| `utils/` | 13 | 工具类（NBT / JSON / `BlockPos` / 物质团簇 / AE 加速倍率 / AE 安全检查等） |
+| `utils/` | 15 | 工具类（NBT / JSON / `BlockPos` / 物质团簇 / 解压器容量与速度 / AE 加速倍率 / AE 安全检查等） |
 | `mixin/` | 7 | Mixin 注入（仅客户端：GUI / NEI 兼容 / tooltip Invoker / 口袋角标） |
 
-## 资源文件 (src/main/resources/assets/advancedatamonitor/)
+## 资源文件 (src/main/resources/)
 
 ```
 assets/advancedatamonitor/
+ lang/
+ en_US.lang                   # 英文翻译（旧位置，部分旧键）
+ zh_CN.lang                   # 中文翻译（旧位置）
+assets/textech/
  config/
  assistant-lexicon.json       # AI 助手词库配置
  assistant-features.json      # AI 助手功能配置
  lang/
- en_US.lang                   # 英文翻译
- zh_CN.lang                   # 中文翻译
+ en_US.lang                   # 英文翻译（主文件，896+ 行，最新键）
+ zh_CN.lang                   # 中文翻译（主文件）
  manual/
  index.json                   # 手册目录（章节列表）
- chapters/                    # 手册各章节内容JSON
- model/                         # .obj 模型文件（方块 3D 模型）
- textures/items/                # 物品贴图
- voice/vosk/zh-small/           # Vosk 离线语音模型
+ chapters/                    # 手册各章节内容JSON (11 章)
+ model/                       # .obj 模型文件（AdvanceDataMonitor.obj, AdvanceNetworkLink.obj）
+ textures/
+ blocks/                      # 方块贴图
+ items/                       # 物品贴图
+ gui/                         # GUI 纹理
+ voice/vosk/zh-small/         # Vosk 离线语音模型
+ sound/                       # 音效文件（星空剑等）
+ sounds.json                  # 音效注册表
 ```
 
 ## 工作区临时产物 (`.workspace/`)

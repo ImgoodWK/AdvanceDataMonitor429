@@ -1,0 +1,38 @@
+{
+  "starry_melee_hit": {
+    "category": "master",
+    "sounds": ["starry_melee_hit"]
+  },
+  "starry_slash": {
+    "category": "master",
+    "sounds": ["starry_slash"]
+  },
+  "starry_throw": {
+    "category": "master",
+    "sounds": ["starry_throw"]
+  },
+  "starry_slam": {
+    "category": "master",
+    "sounds": ["starry_slam"]
+  },
+  "starry_stab_fall": {
+    "category": "master",
+    "sounds": ["starry_stab_fall"]
+  },
+  "starry_stab_impact": {
+    "category": "master",
+    "sounds": ["starry_stab_impact"]
+  },
+  "starry_rain_start": {
+    "category": "master",
+    "sounds": ["starry_rain_start"]
+  },
+  "starry_rain_tick": {
+    "category": "master",
+    "sounds": ["starry_rain_tick"]
+  },
+  "starry_judgment": {
+    "category": "master",
+    "sounds": ["starry_judgment"]
+  }
+}

@@ -84,93 +84,93 @@ flowchart TD
 
 ### GUI、入口和聊天
 
-- `src/main/java/com/imgood/advancedatamonitor/gui/guiscreen/GuiAIChat.java`
+- `src/main/java/com/imgood/textech/gui/guiscreen/GuiAIChat.java`
   - AI 聊天窗口、输入框、按钮、普通聊天 HTTP 请求、显示和滚动。
   - `sendMessage()` 是文本入口，先交给 `AssistantController`，只有 controller 返回 false 才直接普通聊天。
   - `sharedHistory` 是 static，全局共享聊天记录；关闭再打开 GUI 会保留，直到点击清除按钮。
   - `MAX_CONTEXT_MESSAGES=16` 控制普通聊天发送给模型的上下文窗口。
   - `currentClient.cancel()` 只取消普通 AI chat HTTP 请求。
 
-- `src/main/java/com/imgood/advancedatamonitor/client/VoiceAssistantKeyHandler.java`
+- `src/main/java/com/imgood/textech/client/VoiceAssistantKeyHandler.java`
   - 语音热键入口。负责开始/停止录音、隐私确认、调用 STT，并把转写文本提交到 `GuiAIChat`。
   - 如果当前屏幕不是 `GuiAIChat`，会打开一个新的 `GuiAIChat` 后提交 prompt。
 
-- `src/main/java/com/imgood/advancedatamonitor/voice/SpeechToTextClient.java`
+- `src/main/java/com/imgood/textech/voice/SpeechToTextClient.java`
   - OpenAI-compatible `/v1/audio/transcriptions` STT 客户端。
   - 使用 `Config.voiceSttBaseUrl` 或回退到 `Config.aiApiBaseUrl`，key 使用 `Config.getVoiceSttApiKey()`。
 
-- `src/main/java/com/imgood/advancedatamonitor/voice/VoiceCaptureService.java`、`WavEncoder.java`、`VoiceStatusListener.java`
+- `src/main/java/com/imgood/textech/voice/VoiceCaptureService.java`、`WavEncoder.java`、`VoiceStatusListener.java`
   - 负责客户端录音、PCM/WAV 编码和状态回调。
 
 ### Client controller 和 intent
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantController.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantController.java`
   - assistant 客户端总控。负责 AI/fallback 解析选择、执行 plan、聚合多订单、处理 pending candidates/batch、发送 packet、接收 response 后更新 GUI/session。
   - AI 可用时后台解析，完成后切回 client thread 执行。
   - `executePlan()` 对非 CHAT task 逐个执行；多个 `ORDER_ITEM` 会聚合成 `AssistantIntent.orderBatch()`。
   - `tryHandlePendingBatchPrompt()` 是当前 pending batch 上下文修复的关键入口，且在 AI 之前执行。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantAiIntentService.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantAiIntentService.java`
   - AI 结构化意图抽取服务。
   - `isAvailable()` 条件是 `Config.aiNetworkEnabled && !Config.getAiApiKey().isEmpty()`。
   - 构造 system prompt，要求模型只返回 JSON object；调用 `DeepSeekChatClient.chat()`，禁用 stream/search，然后交给 `AssistantAiIntentJsonParser`。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantAiIntentJsonParser.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantAiIntentJsonParser.java`
   - 从模型输出中抽取第一个 JSON object，解析 `tasks` array 为 `AssistantIntentPlan`。
   - 校验 type、target、amount、optionNumber、storageScope、confidence 等字段。
   - 任一 task 非法时返回 empty plan，触发 controller fallback。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentTask.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantIntentTask.java`
   - AI task DTO。字段：`type`、`target`、`amount`、`optionNumber`、`storageScope`、`confidence`。
   - 提供 `toIntent()`、`toOrderLine()`、`storageScopeFromString()`、`isValidStorageScope()`。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentPlan.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantIntentPlan.java`
   - AI task plan 容器。提供 `empty()`、`isEmpty()`、`size()`、`isChatOnly()`。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentService.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantIntentService.java`
   - 旧规则 parser，现在是 fallback 和 pending batch append 辅助解析的核心。
   - 依赖 `AssistantLexicon` 识别查询、下单、确认、取消、计划等。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntent.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantIntent.java`
   - 执行层 intent DTO。含 `STORAGE_SCOPE_ALL/ITEMS/FLUIDS`，以及 `orderBatch()` 工厂。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantIntentType.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantIntentType.java`
   - intent 类型枚举。当前包含查询、下单、批量下单、确认、计划、取消、聊天等类型。新增了 `QUERY_ITEM_COUNT`、`QUERY_BYTES`。
   - 注意：AI parser 不允许模型直接返回 `ORDER_BATCH`；只有 controller 内部聚合多个 `ORDER_ITEM` 后生成。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantOrderLine.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantOrderLine.java`
   - batch order 行模型。保存 lineIndex、target、amount、候选列表和 selectedCandidate。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantSession.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantSession.java`
   - 客户端 pending state：候选项、recipe candidates、batch candidates、last user text。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantSessionKind.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantSessionKind.java`
   - session 类型：`ORDER_CANDIDATES`、`RECIPE_CANDIDATES`、`ORDER_BATCH_CANDIDATES`、`WITHDRAW_CANDIDATES`、`WITHDRAW_BATCH_CANDIDATES`、`WITHDRAW_PARTIAL_CONFIRM`、
     `ITEM_COUNT_CANDIDATES`（物品库存数量查询缩略图结果）、`STORAGE_CANDIDATES`（存储概览缩略图结果）、`TELEPORT_CANDIDATES` 等。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/WithdrawSubmitOutcome.java`
+- `src/main/java/com/imgood/textech/assistant/WithdrawSubmitOutcome.java`
   - AE2 取出物品的服务端结果封装。三种结果：`SUCCESS`、`FAILURE`、`PARTIAL_CONFIRM`（背包空间不足时触发）。
 
-- `src/main/java/com/imgood/advancedatamonitor/utils/PlayerInventoryUtil.java`
+- `src/main/java/com/imgood/textech/assistant/PlayerInventoryUtil.java`
   - 背包空间计算工具，用于判断玩家背包能放入多少物品，以及实际向背包插入物品。
 
 ### Packet 和 server service
 
-- `src/main/java/com/imgood/advancedatamonitor/network/packet/PacketAssistantAction.java`
+- `src/main/java/com/imgood/textech/network/packet/PacketAssistantAction.java`
   - 客户端到服务端 assistant 请求 packet。
   - actions 1-7：craft candidates、submit craft、query、query recipe candidate、batch candidates、submit batch craft、cancel server jobs。
   - `QUERY_STORAGE` 可通过 payload 携带 `storageScope`。
 
-- `src/main/java/com/imgood/advancedatamonitor/network/packet/PacketAssistantResponse.java`
+- `src/main/java/com/imgood/textech/network/packet/PacketAssistantResponse.java`
   - 服务端到客户端 assistant 响应 packet。
   - 类型：message、candidates、batch candidates。
   - `CANDIDATES` payload 可含 `batchIndex`/`batchCount`/`totalCount`/`append` 分批元数据。
   - 客户端 handler 调用 `AssistantController.handleServerMessage()`、`handleCandidates()` 或 `handleBatchCandidates()`。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantCandidateDelivery.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantCandidateDelivery.java`
   - 服务端将候选项按 `assistantQueryCandidateBatchSize` 切分并连续 `sendTo` 多个 `CANDIDATES` 包；超 `assistantMaxQueryCandidates` 时附带截断提示。
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantServerServices.java`
+- `src/main/java/com/imgood/textech/assistant/AssistantServerServices.java`
   - 服务端执行层。负责 AE2 crafting candidates、recipe summary、storage summary、submit craft、batch submit、cancel jobs、plan query。
   - 新增 `queryStorageCandidates()` — 返回带缩略图的存储候选列表（支持 items/fluids scope）。
   - Added `bytesSummary()` — query byte usage/capacity/percentage and detect AE2Things infinite cells via `scanNetworkCellsForInfinite()` + `classifyCell()` (through `compat/ae/AeCompat.cells()`).
@@ -178,34 +178,34 @@ flowchart TD
 
 ### 格式化、辅助、存储和 lexicon
 
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantFormatter.java`：候选项、批量订单行等面向聊天窗口的格式化输出。
-- `src/main/java/com/imgood/advancedatamonitor/assistant/PatternDetailFormatter.java`：AE2 pattern/recipe 详情格式化。
-- `src/main/java/com/imgood/advancedatamonitor/assistant/CraftingCandidate.java`：AE2 craftable candidate DTO，保存 index、displayName、registryName、meta、amount、item NBT。
-- `src/main/java/com/imgood/advancedatamonitor/assistant/OrderMemoryStore.java`：用户下单候选偏好记忆，用于 candidate 排序加权。
-- `src/main/java/com/imgood/advancedatamonitor/assistant/PlanStore.java`：简单 plan/task 存储，支持 create/list/complete。
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantDebugLog.java`：assistant 调试日志辅助，受配置影响写入诊断信息。
-- `src/main/java/com/imgood/advancedatamonitor/assistant/AssistantLexicon.java`：加载和提供 lexicon 数据；现在主要用于 fallback、时间/数量/词语清理、pending batch append 辅助解析。
-- `src/main/resources/assets/textech/assistant/assistant-lexicon.json`：规则 parser 词表，包含 order/query/confirm/cancel/plan/storage scope 等关键词。
+- `src/main/java/com/imgood/textech/assistant/AssistantFormatter.java`：候选项、批量订单行等面向聊天窗口的格式化输出。
+- `src/main/java/com/imgood/textech/assistant/PatternDetailFormatter.java`：AE2 pattern/recipe 详情格式化。
+- `src/main/java/com/imgood/textech/assistant/CraftingCandidate.java`：AE2 craftable candidate DTO，保存 index、displayName、registryName、meta、amount、item NBT。
+- `src/main/java/com/imgood/textech/assistant/OrderMemoryStore.java`：用户下单候选偏好记忆，用于 candidate 排序加权。
+- `src/main/java/com/imgood/textech/assistant/PlanStore.java`：简单 plan/task 存储，支持 create/list/complete。
+- `src/main/java/com/imgood/textech/assistant/AssistantDebugLog.java`：assistant 调试日志辅助，受配置影响写入诊断信息。
+- `src/main/java/com/imgood/textech/assistant/AssistantLexicon.java`：加载和提供 lexicon 数据；现在主要用于 fallback、时间/数量/词语清理、pending batch append 辅助解析。
+- `src/main/resources/assets/textech/config/assistant-lexicon.json`：规则 parser 词表，包含 order/query/confirm/cancel/plan/storage scope 等关键词。
 
 ### AI client、配置和设置界面
 
-- `src/main/java/com/imgood/advancedatamonitor/ai/DeepSeekChatClient.java`
+- `src/main/java/com/imgood/textech/assistant/ai/DeepSeekChatClient.java`
   - OpenAI-compatible chat HTTP client。普通聊天和 AI intent 抽取都复用它。
   - 支持非流式/流式、取消请求、debug logging。普通聊天联网搜索由 `WebSearchService` 在请求前完成，LLM 调用固定关闭 provider-native search。
 
-- `src/main/java/com/imgood/advancedatamonitor/ai/WebSearchService.java`
+- `src/main/java/com/imgood/textech/assistant/ai/WebSearchService.java`
   - 内置联网搜索层：多引擎适配、自动降级、结果注入 user 消息。
 
-- `src/main/java/com/imgood/advancedatamonitor/ai/ChatRequestOptions.java`
+- `src/main/java/com/imgood/textech/ai/ChatRequestOptions.java`
   - 单次 chat 请求选项：是否搜索、search engine、是否 stream。
 
-- `src/main/java/com/imgood/advancedatamonitor/Config.java`
+- `src/main/java/com/imgood/textech/Config.java`
   - AI、voice、assistant 配置的内存字段、加载和保存。
 
-- `src/main/java/com/imgood/advancedatamonitor/gui/guiscreen/GuiAISettings.java`
+- `src/main/java/com/imgood/textech/gui/guiscreen/GuiAISettings.java`
   - 游戏内 AI/voice 设置界面。
 
-- `src/main/java/com/imgood/advancedatamonitor/command/CommandAIConfig.java`
+- `src/main/java/com/imgood/textech/command/CommandAIConfig.java`
   - 命令行配置入口，用于设置/查看 AI 相关配置。
 
 ## A4. AI JSON schema 和 parser 行为

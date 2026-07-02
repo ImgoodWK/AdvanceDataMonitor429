@@ -33,7 +33,7 @@ public class ContainerMatterBallDecompressor extends Container {
         IInventory upgrades = tile.getUpgradeInventory();
 
         for (int row = 0; row < MatterBallDecompressorGuiLayout.INPUT_ROWS; row++) {
-            addSlotToContainer(new Slot(input, row, MatterBallDecompressorGuiLayout.INPUT_X,
+            addSlotToContainer(new Slot(input, row, metrics.inputX,
                 MatterBallDecompressorGuiLayout.CONTENT_START_Y + row * MatterBallDecompressorGuiLayout.CELL) {
 
                 @Override
@@ -53,15 +53,13 @@ public class ContainerMatterBallDecompressor extends Container {
                 int offset = (MatterBallDecompressorGuiLayout.MAX_BUFFER_SIDE - side) / 2;
                 int row = bufferIndex / side;
                 int col = bufferIndex % side;
-                slotX = MatterBallDecompressorGuiLayout.BUFFER_REGION_X
-                    + (offset + col) * MatterBallDecompressorGuiLayout.CELL;
+                slotX = metrics.bufferRegionX + (offset + col) * MatterBallDecompressorGuiLayout.CELL;
                 slotY = MatterBallDecompressorGuiLayout.CONTENT_START_Y
                     + (offset + row) * MatterBallDecompressorGuiLayout.CELL;
             } else {
                 int row = bufferIndex / MatterBallDecompressorGuiLayout.MAX_BUFFER_SIDE;
                 int col = bufferIndex % MatterBallDecompressorGuiLayout.MAX_BUFFER_SIDE;
-                slotX = MatterBallDecompressorGuiLayout.BUFFER_REGION_X
-                    + col * MatterBallDecompressorGuiLayout.CELL;
+                slotX = metrics.bufferRegionX + col * MatterBallDecompressorGuiLayout.CELL;
                 slotY = MatterBallDecompressorGuiLayout.CONTENT_START_Y
                     + row * MatterBallDecompressorGuiLayout.CELL;
             }
@@ -81,9 +79,8 @@ public class ContainerMatterBallDecompressor extends Container {
 
         for (int i = 0; i < UPGRADE_COUNT; i++) {
             final int upgradeSlot = i;
-            addSlotToContainer(new Slot(upgrades, upgradeSlot,
-                metrics.upgradeStartX + i * MatterBallDecompressorGuiLayout.CELL,
-                MatterBallDecompressorGuiLayout.TOP_ROW_Y) {
+            addSlotToContainer(new Slot(upgrades, upgradeSlot, metrics.upgradeColumnX,
+                MatterBallDecompressorGuiLayout.CONTENT_START_Y + i * MatterBallDecompressorGuiLayout.CELL) {
 
                 @Override
                 public int getSlotStackLimit() {

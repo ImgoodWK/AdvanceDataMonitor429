@@ -80,20 +80,20 @@ gradlew compileJava
 
 ## Step 3 — 简化 `AeCompat` 门面
 
-**文件**：[`AeCompat.java`](../../../src/main/java/com/imgood/advancedatamonitor/compat/ae/AeCompat.java)
+**文件**：[`AeCompat.java`](../../../src/main/java/com/imgood/textech/compat/ae/AeCompat.java)
 
 - 删除 `bindAdapters()`、`profile()`、`detectionSource()`、`detectionDetail()`、`isNativeFluid()`
 - 删除对 `GtnhEnvironmentProbe` 的调用
 - 四个 adapter 字段**静态绑定**为 Native 实现（Step 4 重命名后的类）
 - `init()` 可简化为 `initialized = true` + 可选一行 `LOG.info("[ADM] AE compat: native fluid (2.9.0+)")`
 
-[`TeXTech.postInit`](../../../src/main/java/com/imgood/advancedatamonitor/TeXTech.java) 可保留或移除 `AeCompat.init()`。
+[`TeXTech.postInit`](../../../src/main/java/com/imgood/textech/TeXTech.java) 可保留或移除 `AeCompat.init()`。
 
 ---
 
 ## Step 4 — 合并 `native_` 为默认实现
 
-将 [`compat/ae/native_/`](../../../src/main/java/com/imgood/advancedatamonitor/compat/ae/native_/) 4 个类**上移**到 `compat/ae/` 并重命名（示例）：
+将 [`compat/ae/native_/`](../../../src/main/java/com/imgood/textech/compat/ae/native_/) 4 个类**上移**到 `compat/ae/` 并重命名（示例）：
 
 | 现类 | 建议新名 |
 |------|----------|

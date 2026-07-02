@@ -667,6 +667,8 @@ adm.manual.config_reference.data_source_loom_category_title=Data Source Loom Cel
 adm.manual.config_reference.default_label=Default: 
 
 tile.grappleAnchor.name=Grapple Anchor
+adm.label.matter_decompressor.mode_network=Output: To Network
+adm.label.matter_decompressor.mode_buffer=Output: To Buffer
 adm.button.matter_decompressor.mode_network_short=To Network
 adm.button.matter_decompressor.mode_buffer_short=To Buffer
 adm.button.matter_decompressor.block_on_short=Block: ON

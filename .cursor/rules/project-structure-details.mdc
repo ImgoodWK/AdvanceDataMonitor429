@@ -8,7 +8,7 @@ alwaysApply: false
 
 本文件是 `project-structure.mdc`（核心索引）的详细附录，列出每个包的逐文件清单、lang 键与游戏内名称。编辑模组 Java 源文件时自动加载；纯问答/文档/配置场景时按需 Read。
 
-## 包结构 (src/main/java/com/imgood/advancedatamonitor/)
+## 包结构 (src/main/java/com/imgood/textech/)
 
 ### 根包 — 模组入口
 | 类 | 作用 |
@@ -37,7 +37,7 @@ alwaysApply: false
 - **compat/ae/native_/** — 2.9.0 beta-1+ AE2 原生流体路径
 - 详见 `docs/zh/developer/ae-compat-290.md` / `docs/en/developer/ae-compat-290.md`
 
-### assistant/ — AI 助手核心逻辑 (41 文件)
+### assistant/ — AI 助手核心逻辑 (45 文件：根 37 + ai 8)
 - **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理
 - **assistant/ai/** — AI 聊天 HTTP 客户端与内置联网搜索（8 文件）：`DeepSeekChatClient.java` / `ChatRequestOptions.java` / `ChatStreamListener.java` / `ChatResponse.java` / `AiProviderProfiles.java` / `WebSearchService.java` / `WebSearchData.java` / `WebSearchResult.java`
 - **意图系统**: `AssistantIntentType.java` / `AssistantIntent.java` / `AssistantIntentTask.java` / `AssistantIntentPlan.java` / `AssistantOrderLine.java`
@@ -56,7 +56,7 @@ alwaysApply: false
 - **注册/调试**: `AssistantMonitorRegistry.java` / `AssistantDebugLog.java`
 - **数据文件**: `AssistantDataFiles.java`
 
-### items/ — 物品 (53 文件)
+### items/ — 物品 (54 文件：根 21 + cell 33)
 | 类 | 游戏内名称 (ZH / EN) | lang 键 |
 |----|---------------------|---------|
 | `ItemAdvancePlanner` | 高级计划器 / Advance Planner | `item.advancePlanner.name` |
@@ -99,29 +99,30 @@ alwaysApply: false
 ### blocks/ — 自定义方块 (6 文件)
 | 类 | 游戏内名称 (ZH / EN) | lang 键 |
 |----|---------------------|---------|
-| `BlockTeXTech` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
+| `BlockAdvanceDataMonitor` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
 | `BlockAdvanceCraftingLink` | 合成链接器 / Crafting Linker | `tile.CraftingMonitorBlock.name` |
 | `BlockAdvanceStorageLink` | 高级存储链接器 / Advanced Storage Linker | `tile.StorageLinkBlock.name` |
 | `BlockAdvanceNetworkLink` | 网络链接器 / Network Linker | `tile.NetworkLinkBlock.name` |
 | `BlockGrappleAnchor` | 挂索节点 / Grapple Anchor | `tile.grappleAnchor.name` |
 | `BlockMatterBallDecompressor` | 物质球解压器 / Matter Ball Decompressor | `tile.matterBallDecompressor.name` |
 
-### tileentity/ — TileEntity (6 文件 + 3 辅助)
+### tileentity/ — TileEntity 与辅助工具 (9 文件)
 - `IOwnableTile.java` / `OwnableTileUtil.java` — 方块放置者游戏名（`OwnerName` NBT）
+- `MatterBallDecompressorUpgrades.java` — 解压器 AE 升级槽（`Upgrades.SPEED` / `SUPERSPEED`）
 - `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定（`MAX_DATA_BINDINGS = 36`）、NBT 持久化、AE2 网络集成；首次打开可补录所属者
 - `TileEntityAdvanceCraftingLink.java` — AE2 合成 CPU 监控
 - `TileEntityAdvanceStorageLink.java` — AE2 存储网络监控
 - `TileEntityAdvanceNetworkLink.java` — AE2 全网统计监控
 - `TileEntityGrappleAnchor.java` — 挂索节点（贴面放置、悬挂锚点计算）
 - `TileEntityMatterBallDecompressor.java` — 物质球解压器（AE 网络、9 输入 + 81 缓存、4 加速卡槽）
-- `MatterBallDecompressorUpgrades.java` — 解压器 AE 升级槽（`Upgrades.SPEED` / `SUPERSPEED`）
 
-### gui/ — GUI 组件和界面 (37 文件)
+### gui/ — GUI 组件和界面 (39 文件)
+- **gui/根** — `MatterBallDecompressorGuiLayout.java`（解压器 GUI 布局常量与尺寸计算）
 - **gui/custom/** — 自定义 GUI 基础组件（3 个）
   - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
   - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
   - `ADM_GuiTextField.java` — 自定义文本框（背景纹理、hint 提示）
-- **gui/guiscreen/** — 具体 GUI 界面（22 个），详见 `gui-guidelines.mdc`
+- **gui/guiscreen/** — 具体 GUI 界面（24 个），详见 `gui-guidelines.mdc`
   - `GuiManual.java` — 模组手册 GUI（左侧搜索框 + 可滚动章节导航 + 右侧内容区 + 翻页；搜索高亮与拼音匹配）
   - `GuiNbtViewer.java` — NBT 树查看器（映录器用）
   - `GuiAdvanceLinkScanner.java` — 链接扫描器（列表/筛选/备注/传送）
@@ -129,8 +130,12 @@ alwaysApply: false
   - `GuiPocketStorage.java` — 次元口袋存储 GUI（原生 Container，口袋格 + 玩家背包 + 翻页/升级配置按钮；右键口袋主入口）
   - `GuiSuperOrangeConfig.java` — 超能砂糖桔设置（铭牌、物质球开关、拾取合并、丢弃合并、倍率）
   - `GuiMatterBallDecompressor.java` — 物质球解压器（9 输入 + 9×9 缓存 + 4 加速卡槽 + 模式按钮）
+  - `GuiGrappleSavePrompt.java` — 挂索路径保存命名弹窗
+  - `GuiPlannerHudConfig.java` — 计划器 HUD 配置（显示项目/位置/透明度）
+  - `GuiPlannerMergeConfirm.java` — 计划器合并确认弹窗
+  - `GuiScreenMessage.java` — 通用消息提示弹窗
 - **gui/manual/** — 手册数据结构（6 个）：`ManualChapter.java` / `ManualPage.java` / `ManualDataLoader.java` / `ManualSearchUtil.java` / `ManualSearchIndex.java` / `ManualTextHighlighter.java`
-- **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）
+- **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）、`ContainerMatterBallDecompressor.java`（物质球解压器容器，9 输入 + 9×9 缓存 + 4 加速卡槽）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`、`POCKET_CONFIG_GUI_ID`、`POCKET_STORAGE_GUI_ID`）
 
 ### handler/ — 事件处理器与物品服务端逻辑 (33 文件)
@@ -156,7 +161,7 @@ alwaysApply: false
 - `EntityGrappleSlide.java` — 挂索滑移实体
 - `EntityStarrySwordLineSlash.java` / `EntityStarrySwordLineStab.java` / `EntityStarrySwordThrown.java` / `EntityStarrySwordRain.java` / `EntityStarrySwordRainField.java` / `EntityStarrySwordSlam.java` — 星空剑技能实体
 
-### renders/ — 全部客户端渲染 (32 文件)
+### renders/ — 全部客户端渲染 (35 文件)
 - **约定**：实体 Render、TESR、物品 Render、HUD、手册页面渲染均在此包；`entity/` 不放 Render 类
 - `AdvanceBlockCubeRenderUtil.java` — 占位方块立方体/挂索节点薄板几何（模型未完成前）
 - `RenderAdvanceStorageLink.java` / `RenderAdvanceCraftingLink.java` — 存储/合成链接器占位 TESR（`USE_PLACEHOLDER_CUBE` 开关，待 OBJ 接入）
@@ -166,24 +171,28 @@ alwaysApply: false
 - `OrangeNameplateRenderer.java` / `SuperOrangeHaloRenderer.java` / `SuperOrangeHeadRenderUtil.java` — 超能砂糖桔
 - `RenderSuperOrangeDrone.java` — 无人机实体渲染
 - `RenderStarrySword*.java`（4 个）/ `CosmicStarrySwordRenderer.java` / `StarryCosmosWorldRenderer.java` / `StarryCosmicRenderUtil.java` — 星空剑
-- `RenderTeXTech.java` / `RenderGrappleAnchor.java` / `RenderGrappleSlide.java` — 方块/实体 TESR
-- `RenderTeXTechBlockItem.java` / `RenderDataImprintItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderItem.java` — 物品渲染
+- `RenderAdvanceDataMonitor.java` / `RenderGrappleAnchor.java` / `RenderGrappleSlide.java` — 方块/实体 TESR
+- `RenderAdvanceDataMonitorBlockItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderDataImprintItem.java` / `RenderItem.java` — 物品渲染
+- `RenderMatterBallDecompressor.java` — 物质球解压器 TESR
 - `RenderController.java` — 监视器内容渲染器注册（line / crafting / storage）
-- `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java`
+- `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java` / `AdvanceBlockCubeRenderUtil.java`
 
-### network/ — 网络通信 (24 文件)
-- **network/packet/** — 网络包实体（19 个）
+### network/ — 网络通信 (27 文件)
+- **network/packet/** — 网络包实体（22 个）
   - `PacketSynTileEntity.java` — **最常用**，同步 TileEntity 数据到客户端
   - `PacketAssistantAction.java` / `PacketAssistantResponse.java` — AI 助手操作/响应
+  - `PacketAssistantMenuStateQuery.java` / `PacketAssistantMenuStateResponse.java` — AI 助手菜单状态查询/响应
   - `PacketItemCountSync.java` / `PacketRequestItemCountSync.java` — 物品数量同步
   - `PacketItemNBT.java` — 物品 NBT 同步
   - `PacketGrappleAction.java` / `PacketGrappleSync.java` — 挂索挂接/移动同步
-  - `PacketGrapplePathAction.java` / `PacketGrapplePathSync.java` — 挂索路径保存/下发（ID 17/18）
+  - `PacketGrapplePathAction.java` / `PacketGrapplePathSync.java` — 挂索路径保存/下发
   - `PacketGrappleHookConfig.java` / `PacketGrappleAnchorConfig.java` — 挂索器/节点配置
   - `PacketMonitorRecord.java` — 快捷键打开附近监视器 AI 时登记监视器坐标
   - `PacketLinkScannerAction.java` — 链接扫描器扫描/同步/传送
-  - `PacketPocketAction.java` — 次元口袋 C→S 动作（开关/翻页/拖动位置/升级增减/堆叠升级/存取物品/打开配置GUI，ID 19/20）
-  - `PacketPocketSync.java` — 次元口袋 S→C 同步（全量/单页 `ItemStack[][]`，ID 21）
+  - `PacketPocketAction.java` — 次元口袋 C→S 动作（开关/翻页/拖动位置/升级增减/堆叠升级/存取物品/打开配置GUI）
+  - `PacketPocketSync.java` — 次元口袋 S→C 同步（全量/单页 `ItemStack[][]`）
+  - `PacketSuperOrangeConfig.java` — 超能砂糖桔设置 GUI 保存
+  - `PacketMatterBallDecompressorToggle.java` — 物质球解压器输出模式/阻塞模式切换
 - **network/handler/** — 包处理器（5 个）
   - `HandlerNetwork.java` / `HandlerSynTileEntity.java` / `HandlerLinkScannerAction.java` / `HandlerPlannerSync.java` / `HandlerPlannerMerge.java`
 
@@ -197,10 +206,11 @@ alwaysApply: false
 - `StandaloneVoskTranscriber.java` — Vosk 独立转录器
 - `PcmAudioUtil.java` / `WavEncoder.java` — 音频格式处理
 
-### loader/ — 注册加载器 (9 文件)
+### loader/ — 注册加载器 (10 文件)
 - `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java`
+- `ModMigrationHandler.java` — 代码迁移兼容处理（旧包名 `advancedatamonitor` → `textech`）
 
-### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (20 文件)
+### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (17 文件)
 - `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
 - `KeyBindings.java` — O/P/H 快捷键（AI聊天/计划器/HUD切换）
 - `HandlerGrappleClient.java` — 挂索 Shift 取消 / 右键移动（客户端输入）
@@ -223,7 +233,7 @@ alwaysApply: false
 - `CommandAssistant.java` — `/admassistant` 命令
 - `CommandAIConfig.java` — `/admai` 命令
 
-### utils/ — 工具类 (12 文件)
+### utils/ — 工具类 (15 文件)
 - `NBTDataHelper.java` / `NBTJsonParser.java` / `NBTJsonParserHelper.java` — NBT 与 JSON 互转
 - `CraftingTemplateParser.java` — 合成模板解析
 - `ContentsHelper.java` — 内容验证工具（坐标、数字、颜色格式等）
@@ -233,7 +243,10 @@ alwaysApply: false
 - `ModLogFiles.java` — 模组日志文件路径
 - `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
 - `MatterBallClusterUtil.java` — Avaritia 物质团簇插入/提取
+- `MatterBallDecompressorCapacityUtil.java` — 物质球解压器容量计算
+- `MatterBallDecompressorSpeedUtil.java` — 物质球解压器速度计算
 - `AeUpgradeSpeedUtil.java` — AE 加速卡倍率（分子装配室档位 + 超级加速）
+- `AeSecurityCheck.java` — AE 安全终端权限检查
 
 ### mixin/ — Mixin 注入 (7 文件，仅客户端)
 - `MixinGuiScreen.java` / `MixinGuiContainer.java` — GUI 输入/容器钩子

@@ -668,6 +668,8 @@ adm.manual.config_reference.data_source_loom_category_title=数据织源元件 (
 adm.manual.config_reference.default_label=默认值： 
 
 tile.grappleAnchor.name=挂索节点
+adm.label.matter_decompressor.mode_network=输出：进网络
+adm.label.matter_decompressor.mode_buffer=输出：进缓存
 adm.button.matter_decompressor.mode_network_short=进网络
 adm.button.matter_decompressor.mode_buffer_short=进缓存
 adm.button.matter_decompressor.block_on_short=阻塞:开

@@ -13,6 +13,8 @@ import com.imgood.textech.utils.MatterBallDecompressorCapacityUtil;
 import com.imgood.textech.utils.MatterBallDecompressorSpeedUtil;
 
 import appeng.api.config.Actionable;
+import appeng.api.config.Settings;
+import appeng.api.config.YesNo;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.security.IActionHost;
@@ -21,6 +23,8 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.DimensionalCoord;
+import appeng.api.util.IConfigManager;
+import appeng.api.util.IConfigurableObject;
 import appeng.me.GridAccessException;
 import appeng.parts.automation.UpgradeInventory;
 import appeng.tile.TileEvent;
@@ -29,6 +33,8 @@ import appeng.tile.grid.AENetworkTile;
 import appeng.tile.inventory.AppEngInternalInventory;
 import appeng.tile.inventory.IAEAppEngInventory;
 import appeng.tile.inventory.InvOperation;
+import appeng.util.ConfigManager;
+import appeng.util.IConfigManagerHost;
 import appeng.util.item.AEItemStack;
 import fox.spiteful.avaritia.items.ItemMatterCluster;
 import io.netty.buffer.ByteBuf;
@@ -36,7 +42,8 @@ import io.netty.buffer.ByteBuf;
 /**
  * AE matter-ball decompressor: extracts items from Avaritia matter clusters into the network or a local buffer.
  */
-public class TileEntityMatterBallDecompressor extends AENetworkTile implements IActionHost, IAEAppEngInventory {
+public class TileEntityMatterBallDecompressor extends AENetworkTile
+    implements IActionHost, IAEAppEngInventory, IConfigManagerHost, IConfigurableObject {
 
     public static final int INPUT_SLOTS = 9;
     public static final int BUFFER_SLOTS = MatterBallDecompressorCapacityUtil.MAX_BUFFER_SLOTS;
@@ -46,15 +53,16 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
     private final AppEngInternalInventory bufferInv = new AppEngInternalInventory(this, BUFFER_SLOTS);
     private final UpgradeInventory upgrades;
     private final MachineSource machineSource = new MachineSource(this);
+    private final ConfigManager configManager = new ConfigManager(this);
 
     private boolean outputToNetwork = true;
-    private boolean blockMode = false;
     private double processAccumulator = 0.0D;
 
     public TileEntityMatterBallDecompressor() {
         this.getProxy()
             .setFlags(new GridFlags[] { GridFlags.REQUIRE_CHANNEL });
         this.upgrades = new MatterBallDecompressorUpgrades(this, UPGRADE_SLOTS);
+        this.configManager.registerSetting(Settings.BLOCK, YesNo.NO);
     }
 
     @Override
@@ -99,12 +107,22 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         markDirty();
     }
 
+    @Override
+    public IConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    @Override
+    public void updateSetting(IConfigManager manager, Enum setting, Enum newValue) {
+        markDirty();
+    }
+
     public boolean isBlockMode() {
-        return blockMode;
+        return configManager.getSetting(Settings.BLOCK) == YesNo.YES;
     }
 
     public void setBlockMode(boolean blockMode) {
-        this.blockMode = blockMode;
+        configManager.putSetting(Settings.BLOCK, blockMode ? YesNo.YES : YesNo.NO);
         markDirty();
     }
 
@@ -133,7 +151,7 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         if (worldObj == null || worldObj.isRemote) {
             return;
         }
-        if (!outputToNetwork && blockMode && hasAnyBufferItem()) {
+        if (!outputToNetwork && isBlockMode() && hasAnyBufferItem()) {
             return;
         }
         processAccumulator += 1.0D / 20.0D;
@@ -295,7 +313,7 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         bufferInv.writeToNBT(tag, "buffer");
         upgrades.writeToNBT(tag, "upgrades");
         tag.setBoolean("outputToNetwork", outputToNetwork);
-        tag.setBoolean("blockMode", blockMode);
+        configManager.writeToNBT(tag);
         tag.setDouble("processAccumulator", processAccumulator);
         data.setTag("MatterBallDecompressor", tag);
     }
@@ -310,20 +328,24 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile implements I
         bufferInv.readFromNBT(tag, "buffer");
         upgrades.readFromNBT(tag, "upgrades");
         outputToNetwork = !tag.hasKey("outputToNetwork") || tag.getBoolean("outputToNetwork");
-        blockMode = tag.getBoolean("blockMode");
+        if (tag.hasKey("settings")) {
+            configManager.readFromNBT(tag);
+        } else if (tag.hasKey("blockMode")) {
+            setBlockMode(tag.getBoolean("blockMode"));
+        }
         processAccumulator = tag.hasKey("processAccumulator") ? tag.getDouble("processAccumulator") : 0.0D;
     }
 
     @TileEvent(TileEventType.NETWORK_WRITE)
     public void writeToStream(ByteBuf data) {
         data.writeBoolean(outputToNetwork);
-        data.writeBoolean(blockMode);
+        data.writeBoolean(isBlockMode());
     }
 
     @TileEvent(TileEventType.NETWORK_READ)
     public boolean readFromStream(ByteBuf data) {
         outputToNetwork = data.readBoolean();
-        blockMode = data.readBoolean();
+        setBlockMode(data.readBoolean());
         return true;
     }
 }

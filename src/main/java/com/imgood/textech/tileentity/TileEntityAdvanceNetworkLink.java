@@ -2,6 +2,9 @@ package com.imgood.textech.tileentity;
 
 import static com.imgood.textech.AdvanceDataMonitor.LOG;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -9,19 +12,26 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.imgood.textech.handler.NetworkLinkGridStatsCache;
-import com.imgood.textech.handler.NetworkLinkGridStatsCache.StatsSnapshot;
+import com.imgood.textech.compat.ae.AeCompat;
+import com.imgood.textech.compat.ae.AeStorageStatsAccumulator;
 
+import appeng.api.implementations.tiles.IChestOrDrive;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGrid;
+import appeng.api.networking.IGridHost;
+import appeng.api.networking.IGridNode;
 import appeng.api.networking.events.MENetworkCellArrayUpdate;
 import appeng.api.networking.events.MENetworkEventSubscribe;
+import appeng.api.networking.events.MENetworkStorageEvent;
 import appeng.api.util.AECableType;
 import appeng.api.util.DimensionalCoord;
-import appeng.me.GridAccessException;
 import appeng.tile.grid.AENetworkTile;
+import appeng.tile.storage.TileChest;
+import appeng.tile.storage.TileDrive;
 
 /**
  * Display names / 显示名称:
@@ -32,6 +42,9 @@ import appeng.tile.grid.AENetworkTile;
 public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwnableTile {
 
     private String ownerName = "";
+
+    // 同 tick 去重：避免多个监视器重复触发网格扫描
+    private long lastStatsTick = -1L;
 
     // 物品存储统计（改用long 防止溢出：
     private long itemTotalBytes = 0L;
@@ -84,78 +97,111 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
     }
 
     /**
-     * Request a debounced refresh via the shared per-grid stats cache.
+     * 核心数据更新方法 ——遍历网络存储单元统计，所有字节值均使用 long 累加
      */
     public void updateNetworkCache() {
-        NetworkLinkGridStatsCache.scheduleRefresh(this);
-    }
+        if (worldObj == null) return;
+        long t = worldObj.getTotalWorldTime();
+        if (t == lastStatsTick) return;
+        lastStatsTick = t;
 
-    /**
-     * Applies shared grid statistics to this link (called by {@link com.imgood.textech.handler.ConnectorTickService}).
-     */
-    public void refreshFromSharedCache(long worldTick) {
-        if (worldObj == null || worldObj.isRemote) {
-            return;
-        }
-        IGrid grid = NetworkLinkGridStatsCache.resolveGrid(this);
-        if (grid == null) {
-            return;
-        }
-        StatsSnapshot snapshot = NetworkLinkGridStatsCache.getOrCompute(grid, worldObj, worldTick);
-        if (snapshot == null) {
-            return;
-        }
-        applyStatsSnapshot(snapshot);
-    }
+        AeStorageStatsAccumulator stats = new AeStorageStatsAccumulator();
 
-    private void applyStatsSnapshot(StatsSnapshot snapshot) {
-        boolean changed = !snapshot.equalsValues(
-            itemTotalBytes,
-            itemUsedBytes,
-            itemTotalTypes,
-            itemUsedTypes,
-            fluidTotalBytes,
-            fluidUsedBytes,
-            fluidTotalTypes,
-            fluidUsedTypes);
-
-        this.itemTotalBytes = snapshot.itemTotalBytes;
-        this.itemUsedBytes = snapshot.itemUsedBytes;
-        this.itemTotalTypes = snapshot.itemTotalTypes;
-        this.itemUsedTypes = snapshot.itemUsedTypes;
-        this.fluidTotalBytes = snapshot.fluidTotalBytes;
-        this.fluidUsedBytes = snapshot.fluidUsedBytes;
-        this.fluidTotalTypes = snapshot.fluidTotalTypes;
-        this.fluidUsedTypes = snapshot.fluidUsedTypes;
-
-        if (changed) {
-            markDirty();
-            if (worldObj != null) {
-                worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+        List<TileEntity> tileEntities = getTiles();
+        for (TileEntity tile : tileEntities) {
+            if (tile instanceof TileDrive) {
+                TileDrive drive = (TileDrive) tile;
+                for (int i = 0; i < drive.getInternalInventory()
+                    .getSizeInventory(); i++) {
+                    ItemStack stack = drive.getInternalInventory()
+                        .getStackInSlot(i);
+                    if (stack != null) {
+                        AeCompat.cells()
+                            .accumulateStorageStack(stack, stats);
+                    }
+                }
+            } else if (tile instanceof TileChest) {
+                TileChest chest = (TileChest) tile;
+                ItemStack stack = chest.getInternalInventory()
+                    .getStackInSlot(0);
+                if (stack != null) {
+                    AeCompat.cells()
+                        .accumulateStorageStack(stack, stats);
+                }
             }
         }
+
+        this.itemTotalBytes = stats.itemBytes[0];
+        this.itemUsedBytes = stats.itemBytes[1];
+        this.itemTotalTypes = stats.itemTypes[0];
+        this.itemUsedTypes = stats.itemTypes[1];
+
+        this.fluidTotalBytes = stats.fluidBytes[0];
+        this.fluidUsedBytes = stats.fluidBytes[1];
+        this.fluidTotalTypes = stats.fluidTypes[0];
+        this.fluidUsedTypes = stats.fluidTypes[1];
+
+        markDirty();
+        if (worldObj != null) {
+            worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+        }
     }
 
-    // ========== 事件驱动（debounced；不订阅 MENetworkStorageEvent 以避免每次存取全扫） ==========
+    private List<TileEntity> getTiles() {
+        List<TileEntity> list = new ArrayList<>();
+        try {
+            IGrid grid = this.getProxy()
+                .getGrid();
+            if (grid == null) return list;
+
+            for (Class<? extends IGridHost> clazz : grid.getMachinesClasses()) {
+                if (IChestOrDrive.class.isAssignableFrom(clazz)) {
+                    for (IGridNode node : grid.getMachines(clazz)) {
+                        TileEntity te = getBaseTileEntity(
+                            node.getGridBlock()
+                                .getLocation());
+                        if (te != null) list.add(te);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("Error retrieving network tiles: " + e.getMessage());
+        }
+        return list;
+    }
+
+    private static TileEntity getBaseTileEntity(DimensionalCoord coord) {
+        if (coord == null) {
+            LOG.fatal("Coord is null");
+            return null;
+        }
+        World world = coord.getWorld();
+        if (world == null) {
+            LOG.fatal("World is null");
+            return null;
+        }
+        return world.getTileEntity(coord.x, coord.y, coord.z);
+    }
+
+    // ========== 事件驱动 ==========
     @MENetworkEventSubscribe
     public void updateViaCellEvent(MENetworkCellArrayUpdate event) {
-        IGrid grid = NetworkLinkGridStatsCache.resolveGrid(this);
-        if (grid != null) {
-            NetworkLinkGridStatsCache.invalidate(grid);
-        }
         updateNetworkCache();
     }
 
-    // ========== 区块加载时强制刷方==========
-    /*
-     * @Override
-     * public void validate() {
-     * super.validate();
-     * if (!worldObj.isRemote) {
-     * updateNetworkCache();
-     * }
-     * }
-     */
+    @MENetworkEventSubscribe
+    public void updateViaStorageEvent(MENetworkStorageEvent event) {
+        updateNetworkCache();
+    }
+
+    // ========== 区块加载时强制刷新 ==========
+    @Override
+    public void validate() {
+        super.validate();
+        if (worldObj != null && !worldObj.isRemote) {
+            updateNetworkCache();
+        }
+    }
 
     // ========== NBT 持久化（使用 getLong/setLong：==========
     @Override

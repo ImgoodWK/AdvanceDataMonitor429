@@ -1,5 +1,7 @@
 package com.imgood.textech.blocks;
 
+import java.util.Random;
+
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
@@ -9,12 +11,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
-import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
-import com.imgood.textech.utils.AeSecurityCheck;
 
 /**
  * Display names / 显示名称:
@@ -24,6 +24,9 @@ import com.imgood.textech.utils.AeSecurityCheck;
  */
 public class BlockAdvanceNetworkLink extends BlockContainer {
 
+    // 更新间隔（tick），1 = 每tick，20 = 每秒。建议根据网络大小调整，避免性能问题。
+    private static final int UPDATE_INTERVAL = 20; // 可改为 20 或更高
+
     public BlockAdvanceNetworkLink() {
         super(Material.iron);
         this.setHardness(3.0F);
@@ -32,6 +35,7 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("NetworkLinkBlock");
         this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_network_link");
+        this.setTickRandomly(true); // 允许接收计划刻
     }
 
     @Override
@@ -48,8 +52,6 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             link.facing = direction;
             link.setOwnerFromPlacer(placer);
         }
-        String denial = StatCollector.translateToLocal("adm.ae.no_build_permission");
-        AeSecurityCheck.rejectIfUnauthorized(world, x, y, z, this, placer, denial);
     }
 
     private int determineFacing(World world, int x, int y, int z, EntityLivingBase placer) {
@@ -69,7 +71,28 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         }
     }
 
-    // ---------- 右键交互（手动强制刷新） ----------
+    // ---------- 定时刷新（计划刻） ----------
+    @Override
+    public void onBlockAdded(World world, int x, int y, int z) {
+        super.onBlockAdded(world, x, y, z);
+        if (!world.isRemote) {
+            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
+        }
+    }
+
+    @Override
+    public void updateTick(World world, int x, int y, int z, Random random) {
+        if (!world.isRemote) {
+            TileEntity te = world.getTileEntity(x, y, z);
+            if (te instanceof TileEntityAdvanceNetworkLink) {
+                ((TileEntityAdvanceNetworkLink) te).updateNetworkCache();
+            }
+            // 重新调度，形成循环
+            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
+        }
+    }
+
+    // ---------- 右键交互（保留原有逐条显示逻辑） ----------
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
         float hitY, float hitZ) {
@@ -78,8 +101,8 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             if (te instanceof TileEntityAdvanceNetworkLink) {
                 TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) te;
 
-                // 手动强制刷新一次（立即应用共享缓存）
-                link.refreshFromSharedCache(world.getTotalWorldTime());
+                // 手动强制刷新一次
+                link.updateNetworkCache();
 
                 // 显示网络信息（保持原有格式）
                 player.addChatMessage(new ChatComponentText("AE2 Network Status"));

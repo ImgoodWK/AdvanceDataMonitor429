@@ -19,7 +19,6 @@ import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.textech.utils.ContentsHelper;
-import com.imgood.textech.handler.ConnectorTickService;
 
 import appeng.api.config.CraftingAllow;
 import appeng.api.networking.GridFlags;
@@ -44,6 +43,9 @@ import appeng.tile.grid.AENetworkTile;
 public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwnableTile {
 
     private String ownerName = "";
+
+    // 同 tick 去重：避免多个监视器重复触发合成 CPU 扫描
+    private long lastStatsTick = -1L;
 
     // ---------- 监控指标 ----------
     private int totalCpus = 0;
@@ -93,7 +95,19 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
     /**
      * 核心数据更新 —— 从网络中获取最新合成 CPU 统计
      */
+    @Override
+    public void validate() {
+        super.validate();
+        if (worldObj != null && !worldObj.isRemote) {
+            updateCraftingStats();
+        }
+    }
+
     public void updateCraftingStats() {
+        if (worldObj == null) return;
+        long t = worldObj.getTotalWorldTime();
+        if (t == lastStatsTick) return;
+        lastStatsTick = t;
 
         IGrid grid;
         try {
@@ -176,10 +190,6 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
                     finalOutputList.toArray(new String[0])));
         }
 
-        boolean changed = this.totalCpus != tCpus || this.busyCpus != bCpus || this.cpuTotalBytes != (int) totalBytes
-            || this.cpuUsedBytes != (int) usedBytes || this.totalCoProcessors != cproc
-            || !snapshotsEqual(this.cpuSnapshots, snapshots);
-
         this.totalCpus = tCpus;
         this.busyCpus = bCpus;
         this.cpuTotalBytes = (int) totalBytes;
@@ -187,51 +197,22 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
         this.totalCoProcessors = cproc;
         this.cpuSnapshots = snapshots;
 
-        if (changed) {
-            markDirty();
-        }
-    }
-
-    private static boolean snapshotsEqual(List<CraftingCpuSnapshot> left, List<CraftingCpuSnapshot> right) {
-        if (left.size() != right.size()) {
-            return false;
-        }
-        for (int i = 0; i < left.size(); i++) {
-            CraftingCpuSnapshot a = left.get(i);
-            CraftingCpuSnapshot b = right.get(i);
-            if (a.busy != b.busy || a.availableStorage != b.availableStorage || a.usedStorage != b.usedStorage
-                || a.coProcessors != b.coProcessors || a.finalOutputAmount != b.finalOutputAmount
-                || a.remainingItems != b.remainingItems || a.startItems != b.startItems
-                || a.elapsedTime != b.elapsedTime) {
-                return false;
-            }
-            if (a.name != null ? !a.name.equals(b.name) : b.name != null) {
-                return false;
-            }
-            if (a.finalOutputName != null ? !a.finalOutputName.equals(b.finalOutputName) : b.finalOutputName != null) {
-                return false;
-            }
-        }
-        return true;
+        markDirty();
     }
 
     private void resetStats() {
-        if (totalCpus == 0 && busyCpus == 0 && cpuSnapshots.isEmpty()) {
-            return;
-        }
         this.totalCpus = 0;
         this.busyCpus = 0;
         this.cpuTotalBytes = 0;
         this.cpuUsedBytes = 0;
         this.totalCoProcessors = 0;
         this.cpuSnapshots.clear();
-        markDirty();
     }
 
-    // ================= 事件驱动更新（debounced） =================
+    // ================= 事件驱动更新 =================
     @MENetworkEventSubscribe
     public void onCraftingCpuChange(MENetworkCraftingCpuChange event) {
-        ConnectorTickService.scheduleCraftingRefresh(this);
+        updateCraftingStats();
     }
 
     // ================= NBT 持久化 =================

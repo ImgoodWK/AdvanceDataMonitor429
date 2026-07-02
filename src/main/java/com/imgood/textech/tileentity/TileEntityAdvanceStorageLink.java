@@ -15,7 +15,6 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.common.util.Constants;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.handler.StorageLinkWatchRegistry;
 import com.imgood.textech.items.ItemAdvanceStorageLinkCell;
 import com.imgood.textech.network.packet.PacketItemCountSync;
 
@@ -44,17 +43,12 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
     private String ownerName = "";
 
     private static final int SLOT_COUNT = 36;
-    private static final int STORAGE_CACHE_TTL_TICKS = 20;
-    private static final int MONITOR_CONSUMER_GRACE_TICKS = 40;
+    private static final int DELTA_STATISTICS_INTERVAL_TICKS = 20;
     private final ItemStack[] cellItems = new ItemStack[SLOT_COUNT];
     private final Map<Integer, Long> itemCountCache = new HashMap<>();
     private final Map<String, Long> previousSnapshotCounts = new HashMap<>();
     private final Map<String, Long> displayedSnapshotDeltas = new HashMap<>();
     private long lastDeltaSampleTick = -1L;
-    private long cachedSnapshotTick = -1L;
-    private NBTTagList cachedStorageSnapshot;
-    private int inventoryViewers = 0;
-    private long lastMonitorPollTick = -1L;
     private boolean requiresNbtSync = false;
 
     private static final String CELL_ITEMS_TAG = "AdvStorageLink_CellItems";
@@ -123,7 +117,6 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
 
         cellItems[slot] = stack;
         if (stack != null && stack.stackSize > 1) stack.stackSize = 1;
-        invalidateStorageCache();
         updateItemCountCache(slot);
         markForUpdate();
         markDirty();
@@ -159,16 +152,10 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
     }
 
     @Override
-    public void openInventory() {
-        inventoryViewers++;
-    }
+    public void openInventory() {}
 
     @Override
-    public void closeInventory() {
-        if (inventoryViewers > 0) {
-            inventoryViewers--;
-        }
-    }
+    public void closeInventory() {}
 
     @Override
     public boolean isItemValidForSlot(int slot, ItemStack stack) {
@@ -293,84 +280,6 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
     }
 
     public NBTTagList createStorageItemsSnapshot() {
-        if (worldObj == null) {
-            return new NBTTagList();
-        }
-        ensureStorageCacheFresh(worldObj.getTotalWorldTime());
-        if (cachedStorageSnapshot == null) {
-            return new NBTTagList();
-        }
-        return (NBTTagList) cachedStorageSnapshot.copy();
-    }
-
-    public void noteMonitorPolling() {
-        if (worldObj != null && !worldObj.isRemote) {
-            lastMonitorPollTick = worldObj.getTotalWorldTime();
-        }
-    }
-
-    public boolean shouldAutoRefreshStorage() {
-        if (!hasOccupiedSlots() || worldObj == null || worldObj.isRemote) {
-            return false;
-        }
-        if (inventoryViewers > 0) {
-            return true;
-        }
-        long worldTick = worldObj.getTotalWorldTime();
-        if (lastMonitorPollTick >= 0 && worldTick - lastMonitorPollTick < MONITOR_CONSUMER_GRACE_TICKS) {
-            return true;
-        }
-        return StorageLinkWatchRegistry.isWatched(worldObj.provider.dimensionId, xCoord, yCoord, zCoord);
-    }
-
-    public void refreshStorageCache(long worldTick) {
-        if (worldObj == null || worldObj.isRemote) {
-            return;
-        }
-        Map<String, Long> currentCounts = createCurrentStorageCounts();
-        Map<String, Long> newDeltas = new HashMap<>();
-        for (Map.Entry<String, Long> entry : currentCounts.entrySet()) {
-            Long previousCount = previousSnapshotCounts.get(entry.getKey());
-            newDeltas.put(entry.getKey(), previousCount == null ? 0L : entry.getValue() - previousCount);
-        }
-        previousSnapshotCounts.clear();
-        previousSnapshotCounts.putAll(currentCounts);
-        displayedSnapshotDeltas.clear();
-        displayedSnapshotDeltas.putAll(newDeltas);
-        lastDeltaSampleTick = worldTick;
-
-        cachedStorageSnapshot = buildStorageItemsSnapshotFromCounts();
-        cachedSnapshotTick = worldTick;
-
-        if (requiresNbtSync) {
-            worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
-            requiresNbtSync = false;
-        }
-    }
-
-    private void ensureStorageCacheFresh(long worldTick) {
-        if (cachedStorageSnapshot != null && cachedSnapshotTick >= 0
-            && worldTick - cachedSnapshotTick < STORAGE_CACHE_TTL_TICKS) {
-            return;
-        }
-        refreshStorageCache(worldTick);
-    }
-
-    private void invalidateStorageCache() {
-        cachedStorageSnapshot = null;
-        cachedSnapshotTick = -1L;
-    }
-
-    private boolean hasOccupiedSlots() {
-        for (int i = 0; i < SLOT_COUNT; i++) {
-            if (isStorageLinkCell(cellItems[i])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private NBTTagList buildStorageItemsSnapshotFromCounts() {
         NBTTagList list = new NBTTagList();
         for (int slot = 0; slot < SLOT_COUNT; slot++) {
             ItemStack cell = getCellItem(slot);
@@ -649,14 +558,16 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
 
     private long countExactMatches(IStorageGrid storageGrid, ItemStack target) {
         if (target == null || target.getItem() == null) return 0;
-        IAEItemStack query = AEApi.instance()
-            .storage()
-            .createItemStack(target);
-        if (query == null) return 0;
-        IAEItemStack stored = storageGrid.getItemInventory()
-            .getStorageList()
-            .findPrecise(query);
-        return stored != null ? stored.getStackSize() : 0L;
+        long total = 0;
+        for (IAEItemStack stored : storageGrid.getItemInventory()
+            .getStorageList()) {
+            if (stored == null) continue;
+            ItemStack storedStack = stored.getItemStack();
+            if (storedStack != null && target.isItemEqual(storedStack)) {
+                total += stored.getStackSize();
+            }
+        }
+        return total;
     }
 
     private long countOreDictMatches(IStorageGrid storageGrid, String oreName) {
@@ -810,6 +721,35 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
             }
         }
         ownerName = OwnableTileUtil.readOwner(nbt);
+    }
+
+    @TileEvent(TileEventType.TICK)
+    public void onTickEvent() {
+        if (worldObj != null && !worldObj.isRemote) {
+            sampleStorageDeltasIfNeeded();
+            if (requiresNbtSync) {
+                worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+                requiresNbtSync = false;
+            }
+        }
+    }
+
+    private void sampleStorageDeltasIfNeeded() {
+        long currentTick = worldObj.getTotalWorldTime();
+        if (lastDeltaSampleTick >= 0 && currentTick - lastDeltaSampleTick < DELTA_STATISTICS_INTERVAL_TICKS) return;
+
+        Map<String, Long> currentCounts = createCurrentStorageCounts();
+        Map<String, Long> newDeltas = new HashMap<>();
+        for (Map.Entry<String, Long> entry : currentCounts.entrySet()) {
+            Long previousCount = previousSnapshotCounts.get(entry.getKey());
+            newDeltas.put(entry.getKey(), previousCount == null ? 0L : entry.getValue() - previousCount);
+        }
+
+        previousSnapshotCounts.clear();
+        previousSnapshotCounts.putAll(currentCounts);
+        displayedSnapshotDeltas.clear();
+        displayedSnapshotDeltas.putAll(newDeltas);
+        lastDeltaSampleTick = currentTick;
     }
 
     private Map<String, Long> createCurrentStorageCounts() {
@@ -1006,7 +946,6 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
 
     public void handleItemCountSyncRequest() {
         if (worldObj.isRemote) return;
-        ensureStorageCacheFresh(worldObj.getTotalWorldTime());
         for (int slot = 0; slot < SLOT_COUNT; slot++) if (cellItems[slot] != null) updateItemCountCache(slot);
 
         AdvanceDataMonitor.ADMCHANEL.sendToAllAround(
@@ -1022,7 +961,6 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
 
     public void handleRightClick(EntityPlayer player) {
         if (worldObj.isRemote) return;
-        ensureStorageCacheFresh(worldObj.getTotalWorldTime());
 
         boolean foundItems = false;
         StringBuilder output = new StringBuilder("Storage item counts:");

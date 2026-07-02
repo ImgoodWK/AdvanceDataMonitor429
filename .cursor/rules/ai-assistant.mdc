@@ -607,7 +607,7 @@ assistantMaxConcurrentCraftJobs = 2
 
 ### 8.2 功能特性配置 (`AssistantFeatureConfig`)
 
-通过 JSON 文件 `config/advancedatamonitor/assistant-features.json` 定义：
+通过 JSON 文件 `assets/textech/config/assistant-features.json` 定义：
 
 ```json
 {
@@ -623,7 +623,7 @@ assistantMaxConcurrentCraftJobs = 2
 
 ### 8.3 词库配置 (`AssistantLexicon`)
 
-通过 JSON 文件 `assets/advancedatamonitor/config/assistant-lexicon.json` 定义，包含：
+通过 JSON 文件 `assets/textech/config/assistant-lexicon.json` 定义，包含：
 - 中英文关键词表（下单词、取出词、查询词、取消词等）
 - 数量单位（组/半组）、桶单位
 - 选项前缀/后缀
@@ -720,13 +720,13 @@ private static String fooSummary(EntityPlayerMP player, String locale) {
 
 ### 步骤 5: 更新词库（如需要）
 
-**文件**: `assets/advancedatamonitor/config/assistant-lexicon.json`
+**文件**: `assets/textech/config/assistant-lexicon.json`
 
 如果需要新关键词（如查询词 `fooQueryWords`），在 JSON 中添加新字段。
 
 ### 步骤 6: 更新功能配置（如需要）
 
-**文件**: `assets/advancedatamonitor/config/assistant-features.json`
+**文件**: `assets/textech/config/assistant-features.json`
 
 如果新功能需要在功能菜单中可选用，添加新的 `FeatureEntry`。
 
