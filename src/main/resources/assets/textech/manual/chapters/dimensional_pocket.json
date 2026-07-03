@@ -10,35 +10,35 @@
       "type": "item_showcase",
       "titleKey": "adm.manual.dimensional_pocket.pocket_title",
       "items": [
-        {"registryName": "advancedatamonitor:dimensional_pocket", "descKey": "adm.manual.item.dimensional_pocket"}
+        {"registryName": "textech:dimensional_pocket", "descKey": "adm.manual.item.dimensional_pocket"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.dimensional_pocket.space_card_title",
       "items": [
-        {"registryName": "advancedatamonitor:space_upgrade_card", "descKey": "adm.manual.item.space_upgrade_card"}
+        {"registryName": "textech:space_upgrade_card", "descKey": "adm.manual.item.space_upgrade_card"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.dimensional_pocket.page_card_title",
       "items": [
-        {"registryName": "advancedatamonitor:page_upgrade_card", "descKey": "adm.manual.item.page_upgrade_card"}
+        {"registryName": "textech:page_upgrade_card", "descKey": "adm.manual.item.page_upgrade_card"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.dimensional_pocket.stack_card_title",
       "items": [
-        {"registryName": "advancedatamonitor:stack_upgrade_card", "descKey": "adm.manual.item.stack_upgrade_card"}
+        {"registryName": "textech:stack_upgrade_card", "descKey": "adm.manual.item.stack_upgrade_card"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.dimensional_pocket.infinite_stack_card_title",
       "items": [
-        {"registryName": "advancedatamonitor:infinite_stack_upgrade_card", "descKey": "adm.manual.item.infinite_stack_upgrade_card"}
+        {"registryName": "textech:infinite_stack_upgrade_card", "descKey": "adm.manual.item.infinite_stack_upgrade_card"}
       ]
     },
     {

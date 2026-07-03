@@ -7,7 +7,6 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -17,6 +16,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.items.ItemAdvanceLinkScanner;
 import com.imgood.textech.items.LinkScanEntry;
 import com.imgood.textech.network.packet.PacketLinkScannerAction;
@@ -44,22 +44,6 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
 
     private ADM_GuiTextField aliasField;
 
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-    private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation BUTTON_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation TEXTFIELD_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_ADM_8020.png");
-    private static final ResourceLocation TEXTFIELD_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_hover_ADM_8020.png");
-
     private static final int BUTTON_OWNER_FILTER = 100;
     private static final int BUTTON_NAME_FILTER = 101;
     private static final int BUTTON_EXIT = 102;
@@ -74,7 +58,7 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
     public GuiAdvanceLinkScanner(ItemStack scannerStack, EntityPlayer player) {
         this.scannerStack = scannerStack;
         this.player = player;
-        this.setBackgroundTexture(BACKGROUND_TEXTURE);
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
         this.setSize(430, 330);
         this.setStretch(false);
     }
@@ -95,24 +79,24 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
 
         this.buttonList.add(
             new ADM_GuiButton(BUTTON_OWNER_FILTER, this.width / 2 - 170, bottomY, 100, 20, getOwnerFilterLabel())
-                .setTexture(BUTTON_TEXTURE)
-                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setTexture(AdmGuiTextures.BUTTON)
+                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseHoverEffect(true)
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
             new ADM_GuiButton(BUTTON_NAME_FILTER, this.width / 2 - 60, bottomY, 100, 20, getNameFilterLabel())
-                .setTexture(BUTTON_TEXTURE)
-                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setTexture(AdmGuiTextures.BUTTON)
+                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseHoverEffect(true)
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor));
 
         this.buttonList.add(
             new ADM_GuiButton(BUTTON_EXIT, this.width / 2 + 50, bottomY, 60, 20, I18n.format("adm.scanner.exit"))
-                .setTexture(BUTTON_TEXTURE)
-                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setTexture(AdmGuiTextures.BUTTON)
+                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseHoverEffect(true)
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor));
@@ -163,8 +147,8 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         if (aliasField == null) {
             aliasField = new ADM_GuiTextField(this.fontRendererObj, fieldX, fieldY, fieldWidth, 16);
             aliasField.setMaxStringLength(48);
-            aliasField.setBackgroundTexture(TEXTFIELD_TEXTURE);
-            aliasField.setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
+            aliasField.setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020);
+            aliasField.setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
             aliasField.setHintText(I18n.format("adm.scanner.alias_hint"));
         }
 
@@ -181,8 +165,8 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
                     listStartY + visibleAreaHeight + 26,
                     58,
                     18,
-                    I18n.format("adm.scanner.save")).setTexture(BUTTON_TEXTURE)
-                        .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                    I18n.format("adm.scanner.save")).setTexture(AdmGuiTextures.BUTTON)
+                        .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                         .setUseHoverEffect(true)
                         .setTextColor(0x00FF00)
                         .setTextHoverColor(0x55FF55));

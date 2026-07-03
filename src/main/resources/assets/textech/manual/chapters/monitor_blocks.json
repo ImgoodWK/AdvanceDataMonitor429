@@ -10,28 +10,28 @@
       "type": "item_showcase",
       "titleKey": "adm.manual.monitor_blocks.data_monitor_title",
       "items": [
-        {"registryName": "advancedatamonitor:advDataMonitor", "descKey": "adm.manual.item.advDataMonitor"}
+        {"registryName": "textech:advDataMonitor", "descKey": "adm.manual.item.advDataMonitor"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.monitor_blocks.crafting_link_title",
       "items": [
-        {"registryName": "advancedatamonitor:advCraftingLink", "descKey": "adm.manual.item.advCraftingLink"}
+        {"registryName": "textech:advCraftingLink", "descKey": "adm.manual.item.advCraftingLink"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.monitor_blocks.storage_link_title",
       "items": [
-        {"registryName": "advancedatamonitor:advStorageLink", "descKey": "adm.manual.item.advStorageLink"}
+        {"registryName": "textech:advStorageLink", "descKey": "adm.manual.item.advStorageLink"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.monitor_blocks.network_link_title",
       "items": [
-        {"registryName": "advancedatamonitor:advNetworkLinkBlock", "descKey": "adm.manual.item.advNetworkLinkBlock"}
+        {"registryName": "textech:advNetworkLinkBlock", "descKey": "adm.manual.item.advNetworkLinkBlock"}
       ]
     },
     {

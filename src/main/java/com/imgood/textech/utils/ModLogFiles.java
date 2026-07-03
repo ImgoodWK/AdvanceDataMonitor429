@@ -2,15 +2,17 @@ package com.imgood.textech.utils;
 
 import java.io.File;
 
+import com.imgood.textech.AdvanceDataMonitor;
+
 /**
- * Paths for AdvanceDataMonitor-owned log files (under {@code logs/advancedatamonitor/}).
+ * Paths for TeXTech-owned log files (under {@code logs/textech/}).
  */
 public final class ModLogFiles {
 
     private ModLogFiles() {}
 
     public static File modLogFile(String fileName) {
-        File dir = new File("logs/advancedatamonitor");
+        File dir = new File("logs", AdvanceDataMonitor.MODID);
         if (!dir.exists()) {
             dir.mkdirs();
         }

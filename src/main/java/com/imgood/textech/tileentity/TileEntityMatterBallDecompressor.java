@@ -12,14 +12,14 @@ import com.imgood.textech.utils.MatterBallClusterUtil;
 import com.imgood.textech.utils.MatterBallDecompressorCapacityUtil;
 import com.imgood.textech.utils.MatterBallDecompressorSpeedUtil;
 
-import appeng.api.config.Actionable;
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
+import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.MachineSource;
-import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.DimensionalCoord;
@@ -35,6 +35,7 @@ import appeng.tile.inventory.IAEAppEngInventory;
 import appeng.tile.inventory.InvOperation;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
+import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import fox.spiteful.avaritia.items.ItemMatterCluster;
 import io.netty.buffer.ByteBuf;
@@ -179,6 +180,9 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile
      * A type with fewer items still consumes one parallel slot for that second.
      */
     private boolean decompressOneSecondBatch() {
+        if (outputToNetwork && !getProxy().isActive()) {
+            return false;
+        }
         int parallel = MatterBallDecompressorSpeedUtil.getParallelTypesPerSecond(upgrades);
         int maxPerType = MatterBallDecompressorSpeedUtil.getItemsPerTypePerSecond(upgrades);
         if (maxPerType <= 0) {
@@ -236,16 +240,20 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile
         return -1;
     }
 
+    /**
+     * Inject into ME storage the same way as AE import bus / interface export:
+     * {@link Platform#poweredInsert} on {@code getProxy().getStorage().getItemInventory()}.
+     */
     private boolean injectToNetwork(ItemStack stack) {
+        if (!getProxy().isActive()) {
+            return false;
+        }
         try {
-            IStorageGrid storage = getProxy().getGrid()
-                .getCache(IStorageGrid.class);
-            if (storage == null) {
-                return false;
-            }
+            IMEMonitor<IAEItemStack> inv = getProxy().getStorage()
+                .getItemInventory();
+            IEnergyGrid energy = getProxy().getEnergy();
             IAEItemStack aeStack = AEItemStack.create(stack);
-            IAEItemStack remainder = storage.getItemInventory()
-                .injectItems(aeStack, Actionable.MODULATE, machineSource);
+            IAEItemStack remainder = Platform.poweredInsert(energy, inv, aeStack, machineSource);
             if (remainder == null || remainder.getStackSize() <= 0) {
                 return true;
             }
@@ -255,7 +263,7 @@ public class TileEntityMatterBallDecompressor extends AENetworkTile
             }
             return insertToBuffer(left);
         } catch (GridAccessException e) {
-            return false;
+            return insertToBuffer(stack);
         }
     }
 

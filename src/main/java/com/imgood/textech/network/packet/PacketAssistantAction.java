@@ -18,7 +18,7 @@ import com.imgood.textech.assistant.CandidateQueryResult;
 import com.imgood.textech.assistant.CraftingCandidate;
 import com.imgood.textech.assistant.TeleportDestination;
 import com.imgood.textech.assistant.TeleportService;
-import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.network.handler.PacketHandlers;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -350,17 +350,17 @@ public class PacketAssistantAction implements IMessage {
                 safe(message.target),
                 message.amount,
                 safe(message.locale));
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
-                    IMessage response = handleOnServerThread(message, player);
-                    if (response != null && player != null) {
-                        AdvanceDataMonitor.ADMCHANEL.sendTo(response, player);
+                    EntityPlayerMP serverPlayer = ctx.getServerHandler().playerEntity;
+                    IMessage response = handleOnServerThread(message, serverPlayer);
+                    if (response != null) {
+                        AdvanceDataMonitor.ADMCHANEL.sendTo(response, serverPlayer);
                     }
                 }
             });
-            return null;
         }
 
         private IMessage handleOnServerThread(PacketAssistantAction message, EntityPlayerMP player) {

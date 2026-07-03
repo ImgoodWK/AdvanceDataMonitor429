@@ -34,6 +34,11 @@ public final class ConfigDescriptions {
             "connectorProfile",
             "Log AE connector refresh counts and average durations every 10 seconds (network / crafting / storage links).",
             "每 10 秒记录 AE 连接器（网络/合成/存储链接器）刷新次数与平均耗时，便于 Spark 对照。");
+        put(
+            "debug",
+            "uiFrameworkBlock",
+            "Register the UI framework debug block (creative) and its component showcase GUI.",
+            "注册 UI 框架调试方块（创造模式）及组件展示 GUI。");
 
         put(
             "ai",
@@ -43,8 +48,8 @@ public final class ConfigDescriptions {
         put(
             "ai",
             "apiKey",
-            "Client-local API key (stored in config/advancedatamonitor/ai-client-local.cfg, never on dedicated server). DEEPSEEK_API_KEY env var also works.",
-            "客户端本地 API 密钥（保存在 config/advancedatamonitor/ai-client-local.cfg，专用服不会读取）。也可使用 DEEPSEEK_API_KEY 环境变量。");
+            "Client-local API key (stored in config/textech/ai-client-local.cfg, never on dedicated server). DEEPSEEK_API_KEY env var also works.",
+            "客户端本地 API 密钥（保存在 config/textech/ai-client-local.cfg，专用服不会读取）。也可使用 DEEPSEEK_API_KEY 环境变量。");
         put("ai", "model", "Chat model name, for example deepseek-chat.", "聊天模型名称，例如 deepseek-chat。");
         put("ai", "networkEnabled", "Allow AI chat to send network requests.", "是否允许 AI 聊天发送网络请求。");
         put(
@@ -209,8 +214,8 @@ public final class ConfigDescriptions {
             "dataLoomCell",
             "debugLogging",
             "Server-side trace log for Data Loom weaving (indexing, skip reasons, energy, output). "
-                + "Only when true: writes to logs/advancedatamonitor/data-loom-debug.log.",
-            "数据编织元件服务端追踪日志（索引、跳过原因、能量、产出等）。" + "仅在为 true 时写入 logs/advancedatamonitor/data-loom-debug.log。");
+                + "Only when true: writes to logs/textech/data-loom-debug.log.",
+            "数据编织元件服务端追踪日志（索引、跳过原因、能量、产出等）。" + "仅在为 true 时写入 logs/textech/data-loom-debug.log。");
         put(
             "dataLoomCell",
             "energyDrainPerTick",

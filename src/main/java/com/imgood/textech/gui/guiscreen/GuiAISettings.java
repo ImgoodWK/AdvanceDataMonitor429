@@ -3,11 +3,9 @@ package com.imgood.textech.gui.guiscreen;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.input.Keyboard;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.assistant.ai.AiProviderProfiles;
 import com.imgood.textech.assistant.ai.AiProviderProfiles.ProviderProfile;
@@ -15,6 +13,7 @@ import com.imgood.textech.assistant.ai.WebSearchService;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 
 /**
  * Display names / 显示名称:
@@ -43,22 +42,6 @@ public class GuiAISettings extends ADM_GuiScreen {
 
     private static final String[] SEARCH_MODES = WebSearchService.allProviders();
 
-    private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation BUTTON_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation TEXTFIELD_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_ADM_8020.png");
-    private static final ResourceLocation TEXTFIELD_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_hover_ADM_8020.png");
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-
     private final GuiScreen parent;
     private ADM_GuiTextField apiKeyField;
     private ADM_GuiTextField baseUrlField;
@@ -86,7 +69,7 @@ public class GuiAISettings extends ADM_GuiScreen {
 
     public GuiAISettings(GuiScreen parent) {
         this.parent = parent;
-        this.setBackgroundTexture(BACKGROUND_TEXTURE);
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
         this.setSize(PANEL_WIDTH, PANEL_HEIGHT);
         this.setStretch(false);
     }
@@ -206,8 +189,8 @@ public class GuiAISettings extends ADM_GuiScreen {
 
     private ADM_GuiTextField createField(int x, int y, String text, String hintKey) {
         ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y + 8, 240, 20)
-            .setBackgroundTexture(TEXTFIELD_TEXTURE)
-            .setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE)
+            .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
+            .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
             .setHintText(hintKey.isEmpty() ? "" : I18n.format(hintKey));
         field.setMaxStringLength(2048);
         field.setText(text == null ? "" : text);
@@ -215,11 +198,11 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     private ADM_GuiButton createButton(int id, int x, int y, int width, int height, String text) {
-        return new ADM_GuiButton(id, x, y, width, height, text).setTexture(BUTTON_TEXTURE)
-            .setHoverTexture(BUTTON_HOVER_TEXTURE)
+        return new ADM_GuiButton(id, x, y, width, height, text).setTexture(AdmGuiTextures.BUTTON)
+            .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
             .setUseHoverEffect(true)
-            .setLeftDecoration(BUTTON_HOVER_TEXTURE)
-            .setRightDecoration(BUTTON_HOVER_TEXTURE)
+            .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+            .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
             .setDecorationWidth(20)
             .setTextColor(TEXT_COLOR)
             .setTextHoverColor(TEXT_HOVER_COLOR);

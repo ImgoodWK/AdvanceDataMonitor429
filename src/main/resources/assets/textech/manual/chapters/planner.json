@@ -10,7 +10,7 @@
       "type": "item_showcase",
       "titleKey": "adm.manual.planner.item_title",
       "items": [
-        {"registryName": "advancedatamonitor:advance_planner", "descKey": "adm.manual.item.advance_planner"}
+        {"registryName": "textech:advance_planner", "descKey": "adm.manual.item.advance_planner"}
       ]
     },
     {

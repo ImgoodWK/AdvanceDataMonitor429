@@ -619,7 +619,7 @@ adm.manual.ai_assistant.overview_title=AI 助手概述
 adm.manual.ai_assistant.overview_text=AI 助手利用兼容 OpenAI 的大语言模型 API 实现自然语言控制 AE2 系统。按 O（默认键）打开 600x450 对话窗口。\n\n核心功能：\n- 合成：下单单个或批量 AE2 合成任务。每次最多 8 个任务。多步骤确认,含候选物品选择。\n- 取物：从 AE2 存储取出物品/流体到背包。支持批量取出。背包满时支持部分取出。\n- 查询：仓库概览（物品+流体含图标）、无线能源/蒸汽水平、AE2 配方/样板、详细物品数量、字节占用及无限元件检测。\n- 世界信息：当前天气、时间（tick + 天数）、玩家位置/坐标/朝向、群系名称/温度/降雨、背包空间。\n- 传送：扫描背包中龙之进化高级错位宝石（TeleporterMKII）,显示已保存传送点,执行跨维度传送,支持模糊名称匹配。\n- 计划器：通过文字命令添加/列出/完成/删除/修改计划条目。\n- 取消：随时中止待处理操作并取消排队中的 AE2 合成任务。
 
 adm.manual.ai_assistant.setup_title=API 配置
-adm.manual.ai_assistant.setup_text=AI 助手使用兼容 OpenAI 的 API。默认供应商为 DeepSeek（有免费额度）。\n\n设置窗口（对话中的齿轮图标）或 /admai 命令：\n\nAPI Key：供应商密钥。也可设置 DEEPSEEK_API_KEY 环境变量。支持 DeepSeek、OpenAI、OpenRouter、Anthropic Claude、Google Gemini、阿里通义千问、智谱 GLM、月之暗面 Kimi、字节豆包、硅基流动、Mistral、Groq、MiniMax、火山引擎等多种供应商。\n\nBase URL：供应商接口地址（默认 https://api.deepseek.com）。通过 /admai provider <名称> 预配置 13+ 供应商地址。\n\nModel：模型名称（默认 deepseek-chat）。支持 Tab 补全常见模型。\n\n高级设置：超时（5-300秒）、最大 Token（1-8192）、温度（0.0-2.0）、流式模式、网络搜索开关、调试日志。\n\n隐私：首次使用需确认隐私提示（数据发送至供应商）。每位玩家一次。\n\n配置存储在 config/AdvanceDataMonitor.cfg,跨会话持久化。
+adm.manual.ai_assistant.setup_text=AI 助手使用兼容 OpenAI 的 API。默认供应商为 DeepSeek（有免费额度）。\n\n设置窗口（对话中的齿轮图标）或 /admai 命令：\n\nAPI Key：供应商密钥。也可设置 DEEPSEEK_API_KEY 环境变量。支持 DeepSeek、OpenAI、OpenRouter、Anthropic Claude、Google Gemini、阿里通义千问、智谱 GLM、月之暗面 Kimi、字节豆包、硅基流动、Mistral、Groq、MiniMax、火山引擎等多种供应商。\n\nBase URL：供应商接口地址（默认 https://api.deepseek.com）。通过 /admai provider <名称> 预配置 13+ 供应商地址。\n\nModel：模型名称（默认 deepseek-chat）。支持 Tab 补全常见模型。\n\n高级设置：超时（5-300秒）、最大 Token（1-8192）、温度（0.0-2.0）、流式模式、网络搜索开关、调试日志。\n\n隐私：首次使用需确认隐私提示（数据发送至供应商）。每位玩家一次。\n\n服务端共享选项在 config/textech/textech.cfg；API Key 等客户端选项在 config/textech/ai-client-local.cfg。
 
 adm.manual.ai_assistant.usage_title=对话界面与工作流
 adm.manual.ai_assistant.usage_text=对话窗口布局（600x450）：消息历史（顶部,可滚动）、输入框（底部）、操作按钮（发送、清空、关闭、设置、菜单、搜索切换、取消）。\n\n基本工作流：\n1. 输入请求,如"下单 64 铁锭"。按回车或点击发送。\n2. 如果意图明确,助手搜索 AE2 网络匹配物品并显示带编号的候选项。\n3. 输入编号确认（如"1"）。订单提交。\n4. 批量订单："下单 64 铁锭和 32 金锭"。逐行确认后输入"确认"全部提交。\n5. 查询："显示我的存储"返回物品/流体列表含图标。"有多少电量？"显示 EU/t 和容量。\n6. 菜单按钮列出全部 22+ 功能及编号。输入编号直接调用对应功能。\n\n多任务：AI 每次最多返回 8 个任务。合成任务优先执行,其次取物任务。\n\n随时输入"取消"中止操作,清除会话并取消排队中的 AE2 合成任务。\n\nMarkdown 渲染：对话回复支持标题（# ## ###）、粗体（**）、代码块（```）、列表和内联代码。
@@ -652,7 +652,7 @@ adm.manual.planner_teleport.teleport_title=传送系统
 adm.manual.planner_teleport.teleport_text=AI 助手集成龙之进化高级错位宝石（com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII）实现传送功能。\n\n要求：\n- 背包中有高级错位宝石（TeleporterMKII）。\n- 宝石上至少保存了一个传送点（通过 DE 自身界面添加）。\n\n工作原理：\n1. 助手扫描背包中的 TeleporterMKII 物品。\n2. 读取每颗宝石的"Locations"NBT 标签列表。\n3. 每个位置包含：X、Y、Z、Dimension、Name。\n4. 以编号列表显示传送点,含维度信息。\n5. 通过编号或模糊名称匹配确认。\n\n执行：\n- 同维度：setPositionAndUpdate() 即时传送。\n- 跨维度：使用 configurationManager.transferPlayerToDimension() 配合自定义 Teleporter 实例。\n\n维度解析：按存储的 DimentionName（DE 内部使用此拼写）、标准名称（地狱/主世界/末地）或自定义维度 ID 解析。\n\n名称匹配：优先精确匹配,无精确匹配时回退到子串匹配。\n\nAI 提示词示例："传送到我的基地"、"列出我的传送点"、"带我去采矿维度"。
 
 adm.manual.config_reference.intro_title=配置文件参考
-adm.manual.config_reference.intro_text=本章记录模组 .cfg 配置文件中所有配置项（config/AdvanceDataMonitor.cfg）。文件首次运行时以默认值自动生成。\n\n组织方式：37 个配置项分为 4 个分类：\n  ai.*（17 项）- API 地址、密钥、模型、联网、搜索、搜索引擎 Key/URL/结果数/降级、流式、调试、隐私、超时、Token、温度。\n  voice.*（7 项）- 语音助手开关、隐私、STT 模式（内置-vosk/http）、URL、密钥、模型、超时。\n  assistant.*（7 项）- 最大下单量、最大取出量、合成作业超时、最大并发合成任务数、链接搜索半径、查询候选项分批大小、查询候选项上限。\n  plannerHudLimits.*（10 项）- HUD 显示数、X/Y 位置、缩放和宽度的最小/最大范围。\n\n配置也可在游戏中通过以下方式修改：\n- AI 设置 GUI（AI 对话中的齿轮图标）\n- /admai 命令\n- /admassistant reloadLexicon 命令\n\n使用鼠标滚轮滚动浏览较长的配置条目。
+adm.manual.config_reference.intro_text=本章记录模组 .cfg 配置文件中所有配置项（config/textech/textech.cfg）。文件首次运行时以默认值自动生成。\n\n组织方式：37 个配置项分为 4 个分类：\n  ai.*（17 项）- API 地址、密钥、模型、联网、搜索、搜索引擎 Key/URL/结果数/降级、流式、调试、隐私、超时、Token、温度。\n  voice.*（7 项）- 语音助手开关、隐私、STT 模式（内置-vosk/http）、URL、密钥、模型、超时。\n  assistant.*（7 项）- 最大下单量、最大取出量、合成作业超时、最大并发合成任务数、链接搜索半径、查询候选项分批大小、查询候选项上限。\n  plannerHudLimits.*（10 项）- HUD 显示数、X/Y 位置、缩放和宽度的最小/最大范围。\n\n配置也可在游戏中通过以下方式修改：\n- AI 设置 GUI（AI 对话中的齿轮图标）\n- /admai 命令\n- /admassistant reloadLexicon 命令\n\n使用鼠标滚轮滚动浏览较长的配置条目。
 
 adm.manual.config_reference.ai_category_title=AI 分类 (ai.*)
 adm.manual.config_reference.voice_category_title=语音分类 (voice.*)
@@ -825,7 +825,7 @@ adm.manual.monitor_tools.link_scanner_title=高级链接扫描器
 adm.manual.item.advance_link_scanner=扫描已加载区块中的高级数据监视器链接方块（监视器、网络/存储/合成链接器）。\n\nShift+右键：扫描所有已加载区块。结果以可展开列表存储，包含所有者名称、坐标、别名和方块类型。\n\n右键：打开扫描器 GUI——浏览条目，按所有者/名称过滤，设置自定义别名，直接传送到任意找到的方块。\n\n过滤器：所有者（全部/我的/他人）、名称（全部/未命名/已命名）。\n\n传送：点击行条目传送到对应方块（同维度，安全检查落地位置）。\n\n堆叠数：1。创造模式标签页：工具。
 
 adm.manual.dimensional_pocket.overview_title=次元口袋概述
-adm.manual.dimensional_pocket.overview_text=次元口袋是绑定玩家 UUID 的便携式存储。背包中所有口袋物品共享同一个存储空间——物品本身不携带数据。\n\n存储数据跨会话持久化在世界存档目录下的 advancedatamonitor/pocket-<uuid>.dat 中。右键打开存储 GUI；Shift+右键切换可拖动的悬浮窗。\n\n升级系统：四种升级卡分别扩展容量、增加页数、倍增堆叠上限和解锁无限堆叠。升级卡安装后消耗不可回收——仅被前置条件拒绝的卡片会返还。\n\n容量公式：每页槽位数 = min(63, 1 + min(空间升级数, 62))；页数 = 1 + min(翻页升级数, 8)（当空间升级>=64时），否则为 1。
+adm.manual.dimensional_pocket.overview_text=次元口袋是绑定玩家 UUID 的便携式存储。背包中所有口袋物品共享同一个存储空间——物品本身不携带数据。\n\n存储数据跨会话持久化在世界存档目录下的 textech/pocket-<uuid>.dat 中。右键打开存储 GUI；Shift+右键切换可拖动的悬浮窗。\n\n升级系统：四种升级卡分别扩展容量、增加页数、倍增堆叠上限和解锁无限堆叠。升级卡安装后消耗不可回收——仅被前置条件拒绝的卡片会返还。\n\n容量公式：每页槽位数 = min(63, 1 + min(空间升级数, 62))；页数 = 1 + min(翻页升级数, 8)（当空间升级>=64时），否则为 1。
 
 adm.manual.dimensional_pocket.pocket_title=次元口袋
 adm.manual.dimensional_pocket.space_card_title=空间升级卡
@@ -835,7 +835,7 @@ adm.manual.dimensional_pocket.infinite_stack_card_title=无尽堆叠升级卡
 adm.manual.dimensional_pocket.usage_title=口袋使用与升级规则
 adm.manual.dimensional_pocket.usage_text=存储 GUI：右键口袋物品。上网格显示当前页，下网格显示玩家背包。拖拽或 Shift+点击在两者间转移物品。使用上一页/下一页按钮切换页面；升级配置按钮打开升级 GUI。\n\n悬浮窗：Shift+右键切换开关。可拖动的口袋悬浮窗可覆盖在任意已打开的容器上。AE2 容器在悬浮窗激活时自动降级为只读模式。\n\n升级安装顺序：空间升级优先（最多 64 张，基础 1 槽）→ 翻页升级（需空间升级 64 张已满，最多 8 张）→ 堆叠升级（每张增倍单格堆叠上限，最多 8 张）→ 无尽堆叠升级（需堆叠升级已满，最多 1 张）。\n\n卡片安装后消耗。仅被前置规则拒绝的卡片（如在空间升级未满前尝试翻页升级）返还给玩家。\n\n堆叠上限公式：基础 64 × 2^n，n 为已安装堆叠升级卡数（最多 10）。无尽卡将上限设为 Integer.MAX_VALUE。
 
-adm.manual.item.dimensional_pocket=绑定玩家 UUID 的便携式存储口袋。所有副本共享同一存储空间。\n\n右键：打开存储 GUI，包含口袋格子 + 玩家背包。拖拽或 Shift+点击转移物品。\n\nShift+右键：切换悬浮窗（可拖动，可覆盖任意容器）。\n\n存储按玩家绑定，持久化到 world save/advancedatamonitor/pocket-<uuid>.dat。\n\n堆叠数：1。创造模式标签页：工具。
+adm.manual.item.dimensional_pocket=绑定玩家 UUID 的便携式存储口袋。所有副本共享同一存储空间。\n\n右键：打开存储 GUI，包含口袋格子 + 玩家背包。拖拽或 Shift+点击转移物品。\n\nShift+右键：切换悬浮窗（可拖动，可覆盖任意容器）。\n\n存储按玩家绑定，持久化到 world save/textech/pocket-<uuid>.dat。\n\n堆叠数：1。创造模式标签页：工具。
 
 adm.manual.item.space_upgrade_card=增加口袋槽位容量。每张增加 1 个槽位（基础 1 槽，每页最多 63 槽）。\n\n可堆叠 64 张，但仅 62 张对槽位有效。第 63-64 张用于解锁翻页升级。\n\n通过升级配置 GUI（从存储 GUI 进入）安装。安装后消耗。\n\n创造模式标签页：工具。
 
@@ -893,3 +893,28 @@ adm.manual.planner.merge_text=当你拥有多个计划器物品时（如从其�
 
 adm.manual.planner.hud_title=HUD 配置
 adm.manual.planner.hud_text=HUD 悬浮显示在游戏中展示你的计划条目。完全可自定义：\n\nHUD 配置（从计划器 GUI 访问）：\n- 显示条数：显示的条目数量（1-20，默认 5）。\n- X/Y 位置：归一化屏幕位置（0.0=左/上，1.0=右/下，默认 1.0/0.0 = 右上角）。\n- 缩放：大小倍率（0.5-3.0，默认 1.0）。\n- 宽度：文字区域宽度像素值（80-600，默认 160）。\n- 自定义标题：可选标题文字（空 = 无标题）。\n\n预览窗口：实时显示 HUD 位置和大小。滚轮调整缩放，Shift+滚轮调整宽度。\n\n所有 HUD 设置存储在每个计划器物件的 NBT 中。不同计划器可拥有完全不同的 HUD 配置。\n\n范围限制由 Config.java 强制执行：每项设置的 plannerHudMin/Max 值。\n\nHUD 渲染使用 HudRenderUtil 处理背景、文字换行、定位和缩放计算。
+
+tile.uiFrameworkDebug.name=UI 框架调试方块
+adm.title.ui_framework_debug=ADM UI 框架组件展示
+adm.error.ui_framework.debug_disabled=UI 框架调试方块未启用。请在配置 [debug] uiFrameworkBlock=true 后重启游戏。
+adm.label.ui_framework.atlas_file=图集: textech:textures/gui/adm_ui_atlas.png (256x256)
+adm.label.ui_framework.section.components=组件预览
+adm.label.ui_framework.section.atlas=图集 UV 对照
+adm.label.ui_framework.component.ui_panel=整页背景 9-slice
+adm.label.ui_framework.component.ui_icon=图标网格 index 0-3
+adm.label.ui_framework.component.ui_button=横向 3-slice 按钮
+adm.label.ui_framework.component.ui_button_disabled=disabled 态按钮
+adm.label.ui_framework.component.ui_toggle=两态切换按钮
+adm.label.ui_framework.component.ui_slot=槽位单元格
+adm.label.ui_framework.component.ui_field=9-slice 输入框
+adm.label.ui_framework.sample_primary=UiText 主色 (textPrimary)
+adm.label.ui_framework.sample_accent=UiText 强调色 (textAccent)
+adm.label.ui_framework.slot_vanilla=vanilla
+adm.label.ui_framework.slot_procedural=procedural
+adm.label.ui_framework.icon_grid=icons UV(64,0) 16x16 网格
+adm.label.ui_framework.edit_hint=修改材质: 编辑 adm_ui_atlas.png 对应 UV 区域, 同步 AdmUiTheme 常量
+adm.label.ui_framework.toggle_off=关
+adm.label.ui_framework.toggle_on=开
+adm.button.ui_framework.demo=演示按钮
+adm.button.ui_framework.disabled=禁用按钮
+adm.hint.ui_framework.field=UiTextField 输入...

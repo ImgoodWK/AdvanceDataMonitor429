@@ -21,5 +21,5 @@ def convert_file(filepath):
     print("Done!")
 
 if __name__ == '__main__':
-    path = sys.argv[1] if len(sys.argv) > 1 else r'src\main\resources\assets\advancedatamonitor\config\assistant-lexicon.json'
+    path = sys.argv[1] if len(sys.argv) > 1 else r'src\main\resources\assets\textech\config\assistant-lexicon.json'
     convert_file(path)

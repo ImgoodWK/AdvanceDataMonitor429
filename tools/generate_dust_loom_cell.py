@@ -12,7 +12,7 @@ from typing import List, Sequence, Tuple
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS = os.path.join(ROOT, "src/main/resources/assets/advancedatamonitor/textures")
+ASSETS = os.path.join(ROOT, "src/main/resources/assets/textech/textures")
 ITEMS = os.path.join(ASSETS, "items")
 GENERATED = os.path.join(ASSETS, "review/generated")
 

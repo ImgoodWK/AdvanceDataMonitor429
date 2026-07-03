@@ -17,7 +17,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 public final class AssistantFeatureConfig {
 
     private static final String FILE_NAME = "assistant-features.json";
-    private static final String RESOURCE_PATH = "/assets/advancedatamonitor/config/assistant-features.json";
+    private static final String RESOURCE_PATH = "/assets/textech/config/assistant-features.json";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .create();
 

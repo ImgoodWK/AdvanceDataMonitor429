@@ -92,17 +92,6 @@ public class TileEntityAdvanceCraftingLink extends AENetworkTile implements IOwn
         return AECableType.SMART;
     }
 
-    /**
-     * 核心数据更新 —— 从网络中获取最新合成 CPU 统计
-     */
-    @Override
-    public void validate() {
-        super.validate();
-        if (worldObj != null && !worldObj.isRemote) {
-            updateCraftingStats();
-        }
-    }
-
     public void updateCraftingStats() {
         if (worldObj == null) return;
         long t = worldObj.getTotalWorldTime();

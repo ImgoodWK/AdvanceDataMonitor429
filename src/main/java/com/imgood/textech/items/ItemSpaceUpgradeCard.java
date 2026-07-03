@@ -2,12 +2,9 @@ package com.imgood.textech.items;
 
 import java.util.List;
 
-import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.StatCollector;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -21,23 +18,27 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Stacks up to 64. Used to expand the Dimensional Pocket's per-page slot count.
  * 1 free slot by default; up to 62 effective upgrades (63 slots total per page).
  */
-public class ItemSpaceUpgradeCard extends Item {
+public class ItemSpaceUpgradeCard extends AbstractPocketUpgradeCard {
 
     public ItemSpaceUpgradeCard() {
-        setMaxStackSize(64);
-        setCreativeTab(CreativeTabs.tabMisc);
+        super(64);
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     @SuppressWarnings("unchecked")
     public void addInformation(ItemStack stack, EntityPlayer player, List tooltip, boolean advanced) {
-        tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("adm.tooltip.pocket.space_card.title"));
-        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("adm.tooltip.pocket.space_card.desc"));
-        tooltip
-            .add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("adm.tooltip.pocket.space_card.stackable"));
-        tooltip.add(
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("adm.tooltip.pocket.space_card.page_unlock"));
+        addPocketCardTooltip(
+            tooltip,
+            "adm.tooltip.pocket.space_card.title",
+            new String[] {
+                "adm.tooltip.pocket.space_card.desc",
+                "adm.tooltip.pocket.space_card.stackable",
+                "adm.tooltip.pocket.space_card.page_unlock" },
+            new EnumChatFormatting[] {
+                EnumChatFormatting.GRAY,
+                EnumChatFormatting.YELLOW,
+                EnumChatFormatting.DARK_AQUA });
         super.addInformation(stack, player, tooltip, advanced);
     }
 }

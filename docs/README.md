@@ -22,6 +22,8 @@ The project root [`README.md`](../README.md) keeps only a short intro and build 
 |-------|------|---------|
 | Player guide | [zh/player/用户手册.md](zh/player/用户手册.md) | [en/player/player-guide.md](en/player/player-guide.md) |
 | Developer tech doc | [zh/developer/技术文档.md](zh/developer/技术文档.md) | [en/developer/technical-documentation.md](en/developer/technical-documentation.md) |
+| UI framework | [zh/developer/ui-framework.md](zh/developer/ui-framework.md) | [en/developer/ui-framework.md](en/developer/ui-framework.md) |
+| New feature checklist | [zh/developer/new-feature-checklist.md](zh/developer/new-feature-checklist.md) | [en/developer/new-feature-checklist.md](en/developer/new-feature-checklist.md) |
 | Gradle workflow | [zh/developer/Gradle工作流.md](zh/developer/Gradle工作流.md) | [en/developer/gradle-workflow.md](en/developer/gradle-workflow.md) |
 | Temporary textures | [zh/developer/临时材质清单.md](zh/developer/临时材质清单.md) | [en/developer/temporary-textures.md](en/developer/temporary-textures.md) |
 | GTNH version compatibility | [zh/developer/GTNH版本兼容说明.md](zh/developer/GTNH版本兼容说明.md) | [en/developer/gtnh-version-compatibility.md](en/developer/gtnh-version-compatibility.md) |
@@ -29,6 +31,7 @@ The project root [`README.md`](../README.md) keeps only a short intro and build 
 | AI assistant dev | [zh/ai-assistant/开发指南.md](zh/ai-assistant/开发指南.md) | [en/ai-assistant/development-guide.md](en/ai-assistant/development-guide.md) |
 | Grapple subsystem | [zh/subsystems/挂索节点系统设计.md](zh/subsystems/挂索节点系统设计.md) | [en/subsystems/grapple-system-design.md](en/subsystems/grapple-system-design.md) |
 | Design vision (draft) | [zh/design/未来开发愿景.md](zh/design/未来开发愿景.md) | [en/design/future-development-vision.md](en/design/future-development-vision.md) |
+| Brand & visual design | [zh/design/品牌视觉设计指南.md](zh/design/品牌视觉设计指南.md) | [en/design/brand-visual-design-guide.md](en/design/brand-visual-design-guide.md) |
 | Archive | [zh/archive/GoldenThrone_GT_Multiblock_移植指南.md](zh/archive/GoldenThrone_GT_Multiblock_移植指南.md) | — |
 
 ---

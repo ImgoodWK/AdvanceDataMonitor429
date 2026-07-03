@@ -9,6 +9,8 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.NineSliceRegion;
 import com.imgood.textech.handler.PocketState;
 
 import cpw.mods.fml.relauncher.Side;
@@ -31,6 +33,15 @@ public final class PocketPortalGuiRenderer {
     public static final int TEX_SIZE = 256;
     /** Non-stretching border width on each side of the 9-slice atlas. */
     public static final int BORDER = 32;
+
+    private static final NineSliceRegion POCKET_PANEL_REGION = new NineSliceRegion(
+        PANEL_TEXTURE,
+        TEX_SIZE,
+        0,
+        0,
+        TEX_SIZE,
+        TEX_SIZE,
+        BORDER);
     public static final int CELL_SIZE = 18;
     /** Two slot rings beyond the grid —portal rift overshoot on each side. */
     public static final int RIFT_OVERSHOOT = CELL_SIZE * 2;
@@ -162,37 +173,7 @@ public final class PocketPortalGuiRenderer {
     }
 
     private static void drawNineSlicePanel(int x, int y, int width, int height, int borderPx) {
-        if (width <= 0 || height <= 0 || borderPx <= 0) return;
-        Minecraft mc = Minecraft.getMinecraft();
-        mc.getTextureManager()
-            .bindTexture(PANEL_TEXTURE);
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-        int b = borderPx;
-        int midW = width - b * 2;
-        int midH = height - b * 2;
-        int srcMid = TEX_SIZE - BORDER * 2;
-
-        blit(x, y, b, b, 0, 0, BORDER, BORDER);
-        blit(x + width - b, y, b, b, TEX_SIZE - BORDER, 0, BORDER, BORDER);
-        blit(x, y + height - b, b, b, 0, TEX_SIZE - BORDER, BORDER, BORDER);
-        blit(x + width - b, y + height - b, b, b, TEX_SIZE - BORDER, TEX_SIZE - BORDER, BORDER, BORDER);
-
-        if (midW > 0) {
-            blit(x + b, y, midW, b, BORDER, 0, srcMid, BORDER);
-            blit(x + b, y + height - b, midW, b, BORDER, TEX_SIZE - BORDER, srcMid, BORDER);
-        }
-        if (midH > 0) {
-            blit(x, y + b, b, midH, 0, BORDER, BORDER, srcMid);
-            blit(x + width - b, y + b, b, midH, TEX_SIZE - BORDER, BORDER, BORDER, srcMid);
-        }
-        if (midW > 0 && midH > 0) {
-            blit(x + b, y + b, midW, midH, BORDER, BORDER, srcMid, srcMid);
-        }
-
-        GL11.glDisable(GL11.GL_BLEND);
+        GuiBlitUtil.drawNineSlice(POCKET_PANEL_REGION, x, y, width, height, borderPx);
     }
 
     /** Nine-slice panel with horizontal UV strip offset on the center —subtle liquid wobble. */
@@ -210,18 +191,27 @@ public final class PocketPortalGuiRenderer {
         int midH = height - b * 2;
         int srcMid = TEX_SIZE - BORDER * 2;
 
-        blit(x, y, b, b, 0, 0, BORDER, BORDER);
-        blit(x + width - b, y, b, b, TEX_SIZE - BORDER, 0, BORDER, BORDER);
-        blit(x, y + height - b, b, b, 0, TEX_SIZE - BORDER, BORDER, BORDER);
-        blit(x + width - b, y + height - b, b, b, TEX_SIZE - BORDER, TEX_SIZE - BORDER, BORDER, BORDER);
+        blitPanel(PANEL_TEXTURE, x, y, b, b, 0, 0, BORDER, BORDER);
+        blitPanel(PANEL_TEXTURE, x + width - b, y, b, b, TEX_SIZE - BORDER, 0, BORDER, BORDER);
+        blitPanel(PANEL_TEXTURE, x, y + height - b, b, b, 0, TEX_SIZE - BORDER, BORDER, BORDER);
+        blitPanel(
+            PANEL_TEXTURE,
+            x + width - b,
+            y + height - b,
+            b,
+            b,
+            TEX_SIZE - BORDER,
+            TEX_SIZE - BORDER,
+            BORDER,
+            BORDER);
 
         if (midW > 0) {
-            blit(x + b, y, midW, b, BORDER, 0, srcMid, BORDER);
-            blit(x + b, y + height - b, midW, b, BORDER, TEX_SIZE - BORDER, srcMid, BORDER);
+            blitPanel(PANEL_TEXTURE, x + b, y, midW, b, BORDER, 0, srcMid, BORDER);
+            blitPanel(PANEL_TEXTURE, x + b, y + height - b, midW, b, BORDER, TEX_SIZE - BORDER, srcMid, BORDER);
         }
         if (midH > 0) {
-            blit(x, y + b, b, midH, 0, BORDER, BORDER, srcMid);
-            blit(x + width - b, y + b, b, midH, TEX_SIZE - BORDER, BORDER, BORDER, srcMid);
+            blitPanel(PANEL_TEXTURE, x, y + b, b, midH, 0, BORDER, BORDER, srcMid);
+            blitPanel(PANEL_TEXTURE, x + width - b, y + b, b, midH, TEX_SIZE - BORDER, BORDER, BORDER, srcMid);
         }
         if (midW > 0 && midH > 0) {
             blitWavyCenter(x + b, y + b, midW, midH, BORDER, BORDER, srcMid, srcMid, phase);
@@ -280,8 +270,12 @@ public final class PocketPortalGuiRenderer {
             int sv = v + (int) (t * sh);
             int nextV = (i + 1 == strips) ? v + sh : v + (int) ((i + 1) / (float) strips * sh);
             int ssh = Math.max(1, nextV - sv);
-            blit(x + (int) wave, sy, w, shStrip, u, sv, sw, ssh);
+            blitPanel(PANEL_TEXTURE, x + (int) wave, sy, w, shStrip, u, sv, sw, ssh);
         }
+    }
+
+    private static void blitPanel(ResourceLocation texture, int x, int y, int w, int h, int u, int v, int sw, int sh) {
+        GuiBlitUtil.blit(texture, TEX_SIZE, x, y, w, h, u, v, sw, sh);
     }
 
     private static void drawRippleRing(float cx, float cy, float radius, int color) {
@@ -966,18 +960,4 @@ public final class PocketPortalGuiRenderer {
         }
     }
 
-    private static void blit(int x, int y, int w, int h, int u, int v, int sw, int sh) {
-        float tex = (float) TEX_SIZE;
-        float u0 = u / tex;
-        float v0 = v / tex;
-        float u1 = (u + sw) / tex;
-        float v1 = (v + sh) / tex;
-        Tessellator tessellator = Tessellator.instance;
-        tessellator.startDrawingQuads();
-        tessellator.addVertexWithUV(x, y + h, 0, u0, v1);
-        tessellator.addVertexWithUV(x + w, y + h, 0, u1, v1);
-        tessellator.addVertexWithUV(x + w, y, 0, u1, v0);
-        tessellator.addVertexWithUV(x, y, 0, u0, v0);
-        tessellator.draw();
-    }
 }

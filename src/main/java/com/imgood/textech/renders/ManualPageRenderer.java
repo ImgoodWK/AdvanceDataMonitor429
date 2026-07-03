@@ -189,12 +189,20 @@ public class ManualPageRenderer {
     private static ItemStack getItemStack(String registryName) {
         if (registryName == null || registryName.isEmpty()) return null;
         try {
-            // Try full name first (e.g. "advancedatamonitor:data_imprint")
+            // Try full name first (e.g. "textech:data_imprint"), then legacy modid, then bare name
             Object obj = Item.itemRegistry.getObject(registryName);
             if (obj instanceof Item) return new ItemStack((Item) obj);
             // Try block registry with full name
             obj = net.minecraft.block.Block.blockRegistry.getObject(registryName);
             if (obj instanceof net.minecraft.block.Block) return new ItemStack((net.minecraft.block.Block) obj);
+            if (registryName.startsWith(com.imgood.textech.AdvanceDataMonitor.MODID + ":")) {
+                String legacyName = com.imgood.textech.AdvanceDataMonitor.LEGACY_MODID
+                    + registryName.substring(com.imgood.textech.AdvanceDataMonitor.MODID.length());
+                obj = Item.itemRegistry.getObject(legacyName);
+                if (obj instanceof Item) return new ItemStack((Item) obj);
+                obj = net.minecraft.block.Block.blockRegistry.getObject(legacyName);
+                if (obj instanceof net.minecraft.block.Block) return new ItemStack((net.minecraft.block.Block) obj);
+            }
             // Try bare name (strip modid prefix)
             if (registryName.contains(":")) {
                 String bareName = registryName.substring(registryName.indexOf(':') + 1);

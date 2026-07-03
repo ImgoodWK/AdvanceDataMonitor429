@@ -6,11 +6,11 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.items.ItemAdvancePlanner;
 import com.imgood.textech.items.PlannerMergeMode;
 import com.imgood.textech.network.packet.PacketPlannerMerge;
@@ -31,16 +31,6 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
     private int totalEntries;
     private PlannerMergeMode selectedMode = PlannerMergeMode.BY_TIME;
 
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-    private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation BUTTON_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-
     private int textColor = 0x00FFFF;
     private int textHoverColor = 0x0055FF;
     private int warningColor = 0xFFFF55;
@@ -53,7 +43,7 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
     public GuiPlannerMergeConfirm(ItemStack currentStack, EntityPlayer player) {
         this.currentStack = currentStack;
         this.player = player;
-        this.setBackgroundTexture(BACKGROUND_TEXTURE);
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
         this.setSize(350, 220);
         this.setStretch(false);
     }
@@ -81,8 +71,8 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
                 centerY - 10,
                 110,
                 20,
-                I18n.format("adm.planner.merge_by_time")).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                I18n.format("adm.planner.merge_by_time")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseHoverEffect(true)
                     .setUseRGBEffect(selectedMode == PlannerMergeMode.BY_TIME)
                     .setTextColor(selectedMode == PlannerMergeMode.BY_TIME ? 0x00FF00 : textColor)
@@ -95,8 +85,8 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
                 centerY - 10,
                 110,
                 20,
-                I18n.format("adm.planner.merge_by_index")).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                I18n.format("adm.planner.merge_by_index")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseHoverEffect(true)
                     .setUseRGBEffect(selectedMode == PlannerMergeMode.BY_INDEX)
                     .setTextColor(selectedMode == PlannerMergeMode.BY_INDEX ? 0x00FF00 : textColor)
@@ -109,16 +99,16 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
                 centerY + 50,
                 70,
                 20,
-                I18n.format("adm.planner.confirm_merge")).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                I18n.format("adm.planner.confirm_merge")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseHoverEffect(true)
                     .setTextColor(0x00FF00)
                     .setTextHoverColor(0x55FF55));
 
         this.buttonList.add(
             new ADM_GuiButton(buttonCancelId, centerX + 10, centerY + 50, 70, 20, I18n.format("adm.planner.cancel"))
-                .setTexture(BUTTON_TEXTURE)
-                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setTexture(AdmGuiTextures.BUTTON)
+                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseHoverEffect(true)
                 .setTextColor(0xFF5555)
                 .setTextHoverColor(0xFF0000));

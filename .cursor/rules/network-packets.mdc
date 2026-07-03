@@ -52,7 +52,7 @@ alwaysApply: false
 5. 双向包可同 ID 分别注册 SERVER/CLIENT
 6. **写完 C→S 必须补 S→C 同步链路**（规则核心）
 7. Handler 内做 null / `instanceof` / 距离校验（`NetworkValidationUtil`）
-8. 服务端改世界状态用 `HandlerTick.enqueueServerTask` 推迟到主线程
+8. 服务端改世界状态用 `PacketHandlers.runOnServer(ctx, Runnable)`（内部 `HandlerTick.enqueueServerTask`）推迟到主线程
 9. 发送：`ADMCHANEL.sendToServer()` / `sendTo()` / `sendToAll()` / `sendToDimension()`
 10. **更新本规则文件的 ID 表**，保持与 `LoaderNetwork.java` 一致
 

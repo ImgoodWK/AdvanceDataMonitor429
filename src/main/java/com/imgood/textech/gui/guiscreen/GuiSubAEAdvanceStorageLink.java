@@ -19,11 +19,10 @@ import net.minecraft.world.World;
 
 import org.lwjgl.input.Keyboard;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
-import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
-import com.imgood.textech.network.packet.PacketSynTileEntity;
+import com.imgood.textech.gui.custom.AbstractMonitorSubGui;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.ContentsHelper;
 
@@ -33,21 +32,9 @@ import com.imgood.textech.utils.ContentsHelper;
  * - ZH: 高级存储链接器显示配置（绑定子界面）
  * Lang keys: adm.title.storage
  */
-public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
+public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
 
-    private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonotor;
-    private final EntityPlayer player;
-    private final World world;
-    private final int index;
-
-    private final List<ADM_GuiTextField> textFieldsLeft = new ArrayList<>();
-    private final List<ADM_GuiTextField> textFieldsRight = new ArrayList<>();
-    private final Map<ADM_GuiTextField, String> fieldHints = new HashMap<>();
     private final Map<ADM_GuiTextField, String> fieldStorageTooltips = new HashMap<>();
-    private final List<String> contents = new ArrayList<>();
-
-    private ADM_GuiTextField focusedField;
-    private ADM_GuiTextField hoveredTextField;
     private ADM_GuiTextField textFieldTileEntityXYZ;
     private ADM_GuiTextField textFieldxOffset;
     private ADM_GuiTextField textFieldyOffset;
@@ -80,69 +67,46 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
     private boolean showFluids = true;
     private boolean showEssentia = true;
 
-    private static final ResourceLocation button_texture = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation button_hover_texture = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation guiScreenHolographicDisplay_Main_Background = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_AdvanceDataMonitor_Main.png");
-    private static final ResourceLocation textField_texture = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_ADM_8020.png");
-    private static final ResourceLocation textField_selected_texture = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_selected_ADM.png");
-    private static final ResourceLocation getGuiScreenHolographicDisplay_Sub_Background = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-
-    private int offsetX = 100;
-    private int offsetY = 100;
-    private int startOffsetX = -270;
-    private int startOffsetY = -200;
-    private final int textColor = 0x00FFFF;
-    private final int textHoverColor = 0x0055FF;
-    private final int buttonRowYOffset1 = 370;
-    private final int buttonRow1Width = 60;
-    private String errorTips = "";
-    private boolean isInitialized = false;
-    private boolean isEnabled;
-
     public GuiSubAEAdvanceStorageLink(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
         int index) {
-        this.player = player;
-        this.world = world;
-        this.tileEntityAdvanceDataMonotor = tileEntity;
-        this.index = index;
-        this.setBackgroundTexture(getGuiScreenHolographicDisplay_Sub_Background);
+        super(player, world, tileEntity, index);
         this.setSize(600, 450);
-        this.setStretch(false);
+    }
+
+    @Override
+    protected ResourceLocation textFieldFocusedTexture() {
+        return AdmGuiTextures.TEXTFIELD_SELECTED;
+    }
+
+    @Override
+    protected void assignTextField(String row, int fieldIndex, ADM_GuiTextField field) {
+        if ("Left".equals(row)) {
+            assignLeftField(fieldIndex, field);
+        } else if ("Right".equals(row)) {
+            assignRightField(fieldIndex, field);
+        }
     }
 
     @Override
     public void initGui() {
-        Keyboard.enableRepeatEvents(true);
-        isEnabled = tileEntityAdvanceDataMonotor.getEnable(index);
+        beginInitGui();
 
         if (isInitialized) {
             saveCurrentState();
         } else {
             contents.clear();
-            contents.add(tileEntityAdvanceDataMonotor.getXYZ(index));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getXOffset(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getYOffset(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getZOffset(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getRotationX(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getRotationY(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getRotationZ(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getInterval(index)));
-            contents.add(tileEntityAdvanceDataMonotor.getDisplayName(index));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getDisplayNameScale(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getScale(index)));
-            contents.add(String.valueOf(tileEntityAdvanceDataMonotor.getTextScale(index)));
+            contents.add(tileEntity.getXYZ(index));
+            contents.add(String.valueOf(tileEntity.getXOffset(index)));
+            contents.add(String.valueOf(tileEntity.getYOffset(index)));
+            contents.add(String.valueOf(tileEntity.getZOffset(index)));
+            contents.add(String.valueOf(tileEntity.getRotationX(index)));
+            contents.add(String.valueOf(tileEntity.getRotationY(index)));
+            contents.add(String.valueOf(tileEntity.getRotationZ(index)));
+            contents.add(String.valueOf(tileEntity.getInterval(index)));
+            contents.add(tileEntity.getDisplayName(index));
+            contents.add(String.valueOf(tileEntity.getDisplayNameScale(index)));
+            contents.add(String.valueOf(tileEntity.getScale(index)));
+            contents.add(String.valueOf(tileEntity.getTextScale(index)));
             contents.add(String.valueOf(getStorageInt("storageColumns", 4)));
             contents.add(String.valueOf(getStorageFloat("storageSpacing", 0.45f)));
             contents.add(String.valueOf(getStorageFloat("storageIconScale", 1.0f)));
@@ -162,10 +126,7 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
             isInitialized = true;
         }
 
-        this.offsetX = (this.width / 2) + startOffsetX;
-        this.offsetY = (this.height / 2) + startOffsetY;
-        this.buttonList.clear();
-        this.setPosition(this.offsetX - 20, this.offsetY - 35);
+        layoutMonitorPanel();
 
         textFieldsLeft.clear();
         textFieldsLeft.add(textFieldTileEntityXYZ);
@@ -203,22 +164,22 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
     }
 
     private int getStorageInt(String key, int fallback) {
-        NBTTagCompound nbt = tileEntityAdvanceDataMonotor.getDataBound(index);
+        NBTTagCompound nbt = tileEntity.getDataBound(index);
         return nbt.hasKey(key) ? nbt.getInteger(key) : fallback;
     }
 
     private float getStorageFloat(String key, float fallback) {
-        NBTTagCompound nbt = tileEntityAdvanceDataMonotor.getDataBound(index);
+        NBTTagCompound nbt = tileEntity.getDataBound(index);
         return nbt.hasKey(key) ? nbt.getFloat(key) : fallback;
     }
 
     private String getStorageString(String key, String fallback) {
-        NBTTagCompound nbt = tileEntityAdvanceDataMonotor.getDataBound(index);
+        NBTTagCompound nbt = tileEntity.getDataBound(index);
         return nbt.hasKey(key) ? nbt.getString(key) : fallback;
     }
 
     private boolean getStorageBoolean(String key, boolean fallback) {
-        NBTTagCompound nbt = tileEntityAdvanceDataMonotor.getDataBound(index);
+        NBTTagCompound nbt = tileEntity.getDataBound(index);
         return nbt.hasKey(key) ? nbt.getBoolean(key) : fallback;
     }
 
@@ -322,33 +283,7 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
     }
 
     private ADM_GuiButton button(int id, int x, int y, int width, int height, String key) {
-        return new ADM_GuiButton(id, x, y, width, height, I18n.format(key)).setTexture(button_texture)
-            .setHoverTexture(button_hover_texture)
-            .setUseHoverEffect(true)
-            .setTextColor(textColor)
-            .setTextHoverColor(textHoverColor);
-    }
-
-    public void autoTextField(String row, List<ADM_GuiTextField> textFields, int intervalX, int intervalY, int startX,
-        int startY, int width, int height) {
-        int curX = 0;
-        int curY = 0;
-        for (int i = 0; i < textFields.size(); i++) {
-            ADM_GuiTextField field = new ADM_GuiTextField(
-                this.fontRendererObj,
-                startX + curX,
-                startY + curY,
-                width,
-                height).setBackgroundTexture(textField_texture)
-                    .setFocusedBackgroundTexture(textField_selected_texture);
-            textFields.set(i, field);
-            switch (row) {
-                case "Left" -> assignLeftField(i, field);
-                case "Right" -> assignRightField(i, field);
-            }
-            curX += intervalX;
-            curY += intervalY;
-        }
+        return monitorButton(id, x, y, width, height, I18n.format(key), textColor, textHoverColor);
     }
 
     private void assignLeftField(int index, ADM_GuiTextField field) {
@@ -381,21 +316,21 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        NBTTagCompound existingNbt = tileEntityAdvanceDataMonotor.getDataBound(index);
+        NBTTagCompound existingNbt = tileEntity.getDataBound(index);
         NBTTagCompound nbt = (NBTTagCompound) existingNbt.copy();
         switch (button.id) {
             case 0 -> save(nbt);
-            case 1 -> openMain();
+            case 1 -> openMainGui();
             case 7 -> {
                 isEnabled = !isEnabled;
                 nbt.setBoolean("enable", isEnabled);
                 button.displayString = I18n.format(isEnabled ? "adm.button.disable" : "adm.button.enable");
                 saveAndSync(nbt);
             }
-            case 20 -> updateNameAlpha(stepAlpha(tileEntityAdvanceDataMonotor.getNameAlpha(index), true), nbt);
-            case 21 -> updateNameAlpha(stepAlpha(tileEntityAdvanceDataMonotor.getNameAlpha(index), false), nbt);
-            case 22 -> updateTextAlpha(stepAlpha(tileEntityAdvanceDataMonotor.getTextAlpha(index), true), nbt);
-            case 23 -> updateTextAlpha(stepAlpha(tileEntityAdvanceDataMonotor.getTextAlpha(index), false), nbt);
+            case 20 -> updateNameAlpha(stepAlpha(tileEntity.getNameAlpha(index), true), nbt);
+            case 21 -> updateNameAlpha(stepAlpha(tileEntity.getNameAlpha(index), false), nbt);
+            case 22 -> updateTextAlpha(stepAlpha(tileEntity.getTextAlpha(index), true), nbt);
+            case 23 -> updateTextAlpha(stepAlpha(tileEntity.getTextAlpha(index), false), nbt);
             case 30 -> toggleItemCount(button, nbt);
             case 31 -> toggleItemDelta(button, nbt);
             case 33 -> toggleItemName(button, nbt);
@@ -527,7 +462,7 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
         saveAndSync(nbt);
         isInitialized = false;
         errorTips = "";
-        openMain();
+        openMainGui();
     }
 
     private boolean validateNumbers() {
@@ -560,87 +495,15 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
     }
 
     private void updateNameAlpha(double alpha, NBTTagCompound nbt) {
-        tileEntityAdvanceDataMonotor.setNameAlpha(index, alpha);
+        tileEntity.setNameAlpha(index, alpha);
         nbt.setDouble("nameAlpha", alpha);
         saveAndSync(nbt);
     }
 
     private void updateTextAlpha(double alpha, NBTTagCompound nbt) {
-        tileEntityAdvanceDataMonotor.setTextAlpha(index, alpha);
+        tileEntity.setTextAlpha(index, alpha);
         nbt.setDouble("textAlpha", alpha);
         saveAndSync(nbt);
-    }
-
-    private void saveAndSync(NBTTagCompound nbt) {
-        tileEntityAdvanceDataMonotor.setDisplayData(index, nbt);
-        tileEntityAdvanceDataMonotor.writeToNBT(nbt);
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(
-            new PacketSynTileEntity(
-                tileEntityAdvanceDataMonotor.xCoord,
-                tileEntityAdvanceDataMonotor.yCoord,
-                tileEntityAdvanceDataMonotor.zCoord,
-                nbt));
-    }
-
-    private void openMain() {
-        mc.displayGuiScreen(
-            new GuiMainAdvanceDataMonitor(player, world, tileEntityAdvanceDataMonotor).setPosition(0, 0)
-                .setSize(200, 200)
-                .setStretch(true)
-                .setBackgroundTexture(guiScreenHolographicDisplay_Main_Background));
-    }
-
-    @Override
-    protected void keyTyped(char typedChar, int keyCode) {
-        super.keyTyped(typedChar, keyCode);
-        for (ADM_GuiTextField field : textFieldsLeft) field.textboxKeyTyped(typedChar, keyCode);
-        for (ADM_GuiTextField field : textFieldsRight) field.textboxKeyTyped(typedChar, keyCode);
-    }
-
-    @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
-        for (ADM_GuiTextField field : textFieldsLeft) {
-            field.mouseClicked(mouseX, mouseY, mouseButton);
-            if (field.isFocused()) focusedField = field;
-        }
-        for (ADM_GuiTextField field : textFieldsRight) {
-            field.mouseClicked(mouseX, mouseY, mouseButton);
-            if (field.isFocused()) focusedField = field;
-        }
-    }
-
-    @Override
-    public void updateScreen() {
-        super.updateScreen();
-        for (ADM_GuiTextField field : textFieldsLeft) field.updateCursorCounter();
-        for (ADM_GuiTextField field : textFieldsRight) field.updateCursorCounter();
-    }
-
-    public void drawTextFieldBackground(ADM_GuiTextField textField, int x, int y, int width, int height) {
-        this.drawImage(textField.getTextFieldTexture(), x, y, width, height);
-    }
-
-    public void drawTextFieldFocusBackground(ADM_GuiTextField textField, int x, int y, int width, int height) {
-        this.drawImage(textField.getFocusedTextFieldTexture(), x, y, width, height);
-    }
-
-    public void drawTextFieldBackground(List<ADM_GuiTextField> textFields) {
-        for (ADM_GuiTextField tf : textFields) {
-            int xCoord = tf.xPosition;
-            int yCoord = tf.yPosition + 2;
-            if (tf.isFocused()) {
-                drawTextFieldFocusBackground(tf, xCoord, yCoord, 100, 20);
-            } else {
-                drawTextFieldBackground(tf, xCoord, yCoord, 100, 20);
-            }
-        }
-    }
-
-    private boolean isMouseOver(ADM_GuiTextField textField, int mouseX, int mouseY) {
-        return mouseX >= textField.xPosition && mouseX < textField.xPosition + textField.width
-            && mouseY >= textField.yPosition
-            && mouseY < textField.yPosition + textField.height;
     }
 
     @Override
@@ -660,8 +523,8 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
 
         String[] label3 = { I18n.format("adm.label.namealpha"), I18n.format("adm.label.textalpha") };
         autoText(label3, 0, 25, offsetX + 490, offsetY + 10, textColor, true);
-        String[] label4 = { (int) (tileEntityAdvanceDataMonotor.getNameAlpha(index) * 100) + "%",
-            (int) (tileEntityAdvanceDataMonotor.getTextAlpha(index) * 100) + "%" };
+        String[] label4 = { (int) (tileEntity.getNameAlpha(index) * 100) + "%",
+            (int) (tileEntity.getTextAlpha(index) * 100) + "%" };
         autoText(label4, 0, 25, offsetX + 490, offsetY + 20, textColor, true);
 
         drawCenteredString(
@@ -671,63 +534,15 @@ public class GuiSubAEAdvanceStorageLink extends ADM_GuiScreen {
             offsetY - 35,
             textColor);
         fontRendererObj.drawString(errorTips, offsetX + 230, offsetY + 380, 0xff0000);
-        drawTextFieldBackground(textFieldsLeft);
-        drawTextFieldBackground(textFieldsRight);
-
-        hoveredTextField = null;
-        for (ADM_GuiTextField field : textFieldsLeft) {
-            field.drawTextBox();
-            if (isMouseOver(field, mouseX, mouseY)) hoveredTextField = field;
-        }
-        for (ADM_GuiTextField field : textFieldsRight) {
-            field.drawTextBox();
-            if (isMouseOver(field, mouseX, mouseY)) hoveredTextField = field;
-        }
+        drawTextFieldsWithHover(mouseX, mouseY);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        if (focusedField != null && fieldHints.containsKey(focusedField)) {
-            String hint = I18n.format(fieldHints.get(focusedField));
-            List<String> wrappedHint = wrapText(hint, 35);
-            int yPos = offsetY + 280;
-            fontRendererObj.drawStringWithShadow(I18n.format("adm.property.tips"), offsetX + 10, yPos, 0x00FFFF);
-            for (String line : wrappedHint) {
-                fontRendererObj.drawStringWithShadow(
-                    String.valueOf((char) 0x00A7) + "l" + line,
-                    offsetX + 10,
-                    yPos + 10,
-                    0x00FFFF);
-                yPos += 10;
-            }
-        }
+        drawFocusedFieldHint(offsetX + 10, offsetY + 280);
 
         if (hoveredTextField != null && fieldStorageTooltips.containsKey(hoveredTextField)) {
             drawHoveringText(I18n.format(fieldStorageTooltips.get(hoveredTextField)), mouseX, mouseY);
         }
-    }
-
-    public void autoText(String[] text, int intervalX, int intervalY, int startX, int startY, int color,
-        boolean textCenter) {
-        int curX = 0;
-        int curY = 0;
-        for (String t : text) {
-            int x = startX + curX;
-            int y = startY + curY;
-            if (textCenter) x = startX - fontRendererObj.getStringWidth(t) / 2 + curX;
-            fontRendererObj.drawString(t, x, y, color);
-            curX += intervalX;
-            curY += intervalY;
-        }
-    }
-
-    @Override
-    public void onGuiClosed() {
-        Keyboard.enableRepeatEvents(false);
-    }
-
-    @Override
-    public boolean doesGuiPauseGame() {
-        return false;
     }
 
     private void drawHoveringText(String text, int x, int y) {

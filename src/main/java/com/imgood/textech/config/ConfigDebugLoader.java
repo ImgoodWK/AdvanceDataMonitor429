@@ -27,5 +27,10 @@ public final class ConfigDebugLoader {
             "debug",
             Config.debugConnectorProfile,
             ConfigDescriptions.get("debug", "connectorProfile"));
+        Config.debugUiFrameworkBlock = configuration.getBoolean(
+            "uiFrameworkBlock",
+            "debug",
+            Config.debugUiFrameworkBlock,
+            ConfigDescriptions.get("debug", "uiFrameworkBlock"));
     }
 }

@@ -10,16 +10,15 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.items.ItemAdvancePlanner;
 import com.imgood.textech.items.PlannerEntry;
 
@@ -52,22 +51,6 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
 
     private ADM_GuiTextField titleField;
 
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-    private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation BUTTON_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation TEXTFIELD_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_ADM_8020.png");
-    private static final ResourceLocation TEXTFIELD_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_hover_ADM_8020.png");
-
     private int textColor = 0x00FFFF;
     private int textHoverColor = 0x0055FF;
     private int completedColor = 0x55FF55;
@@ -86,7 +69,7 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
     public GuiAdvancePlanner(ItemStack plannerStack, EntityPlayer player) {
         this.plannerStack = plannerStack;
         this.player = player;
-        this.setBackgroundTexture(BACKGROUND_TEXTURE);
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
         this.setSize(430, 330);
         this.setStretch(false);
     }
@@ -111,8 +94,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
         titleField = new ADM_GuiTextField(this.fontRendererObj, titleFieldX, titleFieldY - 20, titleFieldWidth, 16);
         titleField.setMaxStringLength(32);
         titleField.setText(currentTitle);
-        titleField.setBackgroundTexture(TEXTFIELD_TEXTURE);
-        titleField.setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
+        titleField.setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020);
+        titleField.setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
 
         this.buttonList.clear();
 
@@ -123,8 +106,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                 this.height / 2 + 110,
                 60,
                 20,
-                I18n.format("adm.planner.merge")).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                I18n.format("adm.planner.merge")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseHoverEffect(true)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -136,8 +119,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                 this.height / 2 + 110,
                 60,
                 20,
-                getHudToggleLabel()).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                getHudToggleLabel()).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseHoverEffect(true)
                     .setTextColor(ItemAdvancePlanner.isHudEnabled(plannerStack) ? 0x00FF00 : 0xFF5555)
                     .setTextHoverColor(textHoverColor));
@@ -149,8 +132,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                 this.height / 2 + 110,
                 70,
                 20,
-                I18n.format("adm.planner.hud_config")).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                I18n.format("adm.planner.hud_config")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseHoverEffect(true)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -162,8 +145,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                 this.height / 2 + 110,
                 60,
                 20,
-                I18n.format("adm.planner.exit")).setTexture(BUTTON_TEXTURE)
-                    .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                I18n.format("adm.planner.exit")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseHoverEffect(true)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -184,8 +167,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                         listStartY + visibleAreaHeight + 48,
                         58,
                         18,
-                        I18n.format("adm.planner.add")).setTexture(BUTTON_TEXTURE)
-                            .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                        I18n.format("adm.planner.add")).setTexture(AdmGuiTextures.BUTTON)
+                            .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                             .setUseHoverEffect(true)
                             .setTextColor(0x00FF00)
                             .setTextHoverColor(0x55FF55));
@@ -197,8 +180,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                         listStartY + visibleAreaHeight + 48,
                         58,
                         18,
-                        I18n.format("adm.planner.delete")).setTexture(BUTTON_TEXTURE)
-                            .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                        I18n.format("adm.planner.delete")).setTexture(AdmGuiTextures.BUTTON)
+                            .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                             .setUseHoverEffect(true)
                             .setTextColor(0xFF5555)
                             .setTextHoverColor(0xFF0000));
@@ -485,8 +468,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
         if (editingField == null) {
             editingField = new ADM_GuiTextField(this.fontRendererObj, editFieldX, editFieldY, editFieldWidth, 16);
             editingField.setMaxStringLength(256);
-            editingField.setBackgroundTexture(TEXTFIELD_TEXTURE);
-            editingField.setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
+            editingField.setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020);
+            editingField.setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
             editingField.setHintText(I18n.format("adm.planner.edit_hint"));
         }
     }

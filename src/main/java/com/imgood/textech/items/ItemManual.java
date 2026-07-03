@@ -24,7 +24,6 @@ public class ItemManual extends Item {
         setMaxStackSize(1);
         setCreativeTab(CreativeTabs.tabTools);
         setUnlocalizedName("manual");
-        setTextureName("advancedatamonitor:manual");
     }
 
     @Override

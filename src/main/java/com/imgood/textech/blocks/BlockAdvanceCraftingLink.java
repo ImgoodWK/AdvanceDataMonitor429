@@ -1,5 +1,7 @@
 package com.imgood.textech.blocks;
 
+import java.util.Random;
+
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
@@ -23,6 +25,8 @@ import com.imgood.textech.utils.AeSecurityCheck;
  */
 public class BlockAdvanceCraftingLink extends BlockContainer {
 
+    private static final int UPDATE_INTERVAL = 20;
+
     public BlockAdvanceCraftingLink() {
         super(Material.iron);
         this.setHardness(3.0F);
@@ -31,6 +35,7 @@ public class BlockAdvanceCraftingLink extends BlockContainer {
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("CraftingMonitorBlock");
         this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_crafting_link");
+        this.setTickRandomly(true);
     }
 
     @Override
@@ -48,6 +53,25 @@ public class BlockAdvanceCraftingLink extends BlockContainer {
         // permission on an adjacent AE network with a security terminal.
         String denial = StatCollector.translateToLocal("adm.ae.no_build_permission");
         AeSecurityCheck.rejectIfUnauthorized(world, x, y, z, this, placer, denial);
+    }
+
+    @Override
+    public void onBlockAdded(World world, int x, int y, int z) {
+        super.onBlockAdded(world, x, y, z);
+        if (!world.isRemote) {
+            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
+        }
+    }
+
+    @Override
+    public void updateTick(World world, int x, int y, int z, Random random) {
+        if (!world.isRemote) {
+            TileEntity te = world.getTileEntity(x, y, z);
+            if (te instanceof TileEntityAdvanceCraftingLink) {
+                ((TileEntityAdvanceCraftingLink) te).updateCraftingStats();
+            }
+            world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
+        }
     }
 
     // ---------- 右键交互：强制刷新并显示 ----------

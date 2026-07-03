@@ -8,6 +8,8 @@ import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.MatterBallDecompressorGuiLayout;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -31,14 +33,10 @@ public final class MatterBallDecompressorGuiRenderer {
         AdvanceDataMonitor.MODID,
         "textures/gui/matter_ball_decompressor_slot.png");
 
+    /** Main panel — legacy optional full PNG override (superseded by {@link UiPanel} 9-slice). */
     public static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
         AdvanceDataMonitor.MODID,
         "textures/gui/matter_ball_decompressor_bg.png");
-
-    /** Main panel — replace via {@link #BACKGROUND_TEXTURE} when hand-painted. */
-    private static final int PANEL_BG = 0xFFC8C8C8;
-    /** Player-inventory separator line. */
-    private static final int SECTION_LINE = 0xFF909090;
 
     private static final int SLOT_FILL = 0xFF6E6E6E;
     private static final int SLOT_HIGHLIGHT = 0xFF9A9A9A;
@@ -60,24 +58,29 @@ public final class MatterBallDecompressorGuiRenderer {
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
         int panelLeft = guiLeft + MatterBallDecompressorGuiLayout.LEFT_GUTTER;
-        if (hasResource(BACKGROUND_TEXTURE)) {
-            Minecraft mc = Minecraft.getMinecraft();
-            mc.getTextureManager()
-                .bindTexture(BACKGROUND_TEXTURE);
-            mc.ingameGUI.drawTexturedModalRect(
-                panelLeft,
-                guiTop,
-                0,
-                0,
-                metrics.mainPanelWidth,
-                metrics.guiHeight);
-        } else {
-            drawSolidPanel(panelLeft, guiTop, metrics);
-        }
+        UiPanel.draw(
+            UiThemes.ADM,
+            panelLeft,
+            guiTop,
+            metrics.mainPanelWidth,
+            metrics.guiHeight);
+
+        int splitY = guiTop + metrics.playerInvY - 6;
+        UiPanel.drawDivider(panelLeft + 8, splitY, metrics.mainPanelWidth - 16);
 
         drawAllSlotBackgrounds(guiLeft, guiTop, metrics);
         drawAeUpgradeColumn(guiLeft, guiTop, metrics);
         drawPlayerInventorySlots(guiLeft, guiTop, metrics);
+    }
+
+    public static void drawBackground(
+        int guiLeft,
+        int guiTop,
+        MatterBallDecompressorGuiLayout.Metrics metrics,
+        boolean outputToNetwork,
+        boolean blockMode) {
+        drawBackground(guiLeft, guiTop, metrics);
+        drawSideStatusIcons(guiLeft, guiTop, outputToNetwork, blockMode);
     }
 
     /** AE upgradeable-machine right column (matches {@code GuiUpgradeable.drawBG}). */
@@ -101,21 +104,26 @@ public final class MatterBallDecompressorGuiRenderer {
             panelHeight);
     }
 
-    private static void drawSolidPanel(int panelLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
-        Gui.drawRect(
-            panelLeft,
-            guiTop,
-            panelLeft + metrics.mainPanelWidth,
-            guiTop + metrics.guiHeight,
-            PANEL_BG);
+    /** Side gutter status icons drawn beside AE toggle buttons (UiIcon debug). */
+    public static void drawSideStatusIcons(int guiLeft, int guiTop, boolean outputToNetwork, boolean blockMode) {
+        int iconSize = 8;
+        int cacheIconX = guiLeft + MatterBallDecompressorGuiLayout.CACHE_BUTTON_X
+            + MatterBallDecompressorGuiLayout.SIDE_BUTTON
+            + 2;
+        int cacheIconY = guiTop + MatterBallDecompressorGuiLayout.CACHE_BUTTON_Y
+            + (MatterBallDecompressorGuiLayout.SIDE_BUTTON - iconSize) / 2;
+        drawStatusIcon(cacheIconX, cacheIconY, iconSize, outputToNetwork ? 0 : 1);
 
-        int splitY = guiTop + metrics.playerInvY - 6;
-        Gui.drawRect(
-            panelLeft + 8,
-            splitY,
-            panelLeft + metrics.mainPanelWidth - 8,
-            splitY + 1,
-            SECTION_LINE);
+        int blockIconX = guiLeft + MatterBallDecompressorGuiLayout.BLOCK_BUTTON_X
+            + MatterBallDecompressorGuiLayout.SIDE_BUTTON
+            + 2;
+        int blockIconY = guiTop + MatterBallDecompressorGuiLayout.BLOCK_BUTTON_Y
+            + (MatterBallDecompressorGuiLayout.SIDE_BUTTON - iconSize) / 2;
+        drawStatusIcon(blockIconX, blockIconY, iconSize, blockMode ? 2 : 3);
+    }
+
+    private static void drawStatusIcon(int x, int y, int size, int themeIconIndex) {
+        com.imgood.textech.gui.framework.UiIcon.drawThemeIcon(UiThemes.ADM, themeIconIndex, x, y, size);
     }
 
     public static void drawSlotCell(int x, int y) {
@@ -183,4 +191,4 @@ public final class MatterBallDecompressorGuiRenderer {
         }
     }
 }
-
+

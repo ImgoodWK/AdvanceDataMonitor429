@@ -10,21 +10,21 @@
       "type": "item_showcase",
       "titleKey": "adm.manual.monitor_tools.data_imprint_title",
       "items": [
-        {"registryName": "advancedatamonitor:data_imprint", "descKey": "adm.manual.item.data_imprint"}
+        {"registryName": "textech:data_imprint", "descKey": "adm.manual.item.data_imprint"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.monitor_tools.storage_cell_title",
       "items": [
-        {"registryName": "advancedatamonitor:advance_storage_link_cell", "descKey": "adm.manual.item.advance_storage_link_cell"}
+        {"registryName": "textech:advance_storage_link_cell", "descKey": "adm.manual.item.advance_storage_link_cell"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.monitor_tools.link_scanner_title",
       "items": [
-        {"registryName": "advancedatamonitor:advance_link_scanner", "descKey": "adm.manual.item.advance_link_scanner"}
+        {"registryName": "textech:advance_link_scanner", "descKey": "adm.manual.item.advance_link_scanner"}
       ]
     }
   ]

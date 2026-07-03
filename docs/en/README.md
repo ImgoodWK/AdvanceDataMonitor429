@@ -33,6 +33,8 @@
 | Doc | Description |
 |-----|-------------|
 | [developer/technical-documentation.md](developer/technical-documentation.md) | Structure, Forge registration, modules, data flow (Advance Planner API: §5.11) |
+| [developer/ui-framework.md](developer/ui-framework.md) | Container GUI 9-slice framework, `ADM_UiContainer`, debug status table |
+| [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | New-feature checklist (base classes, packets, lang sync) |
 | [developer/gradle-workflow.md](developer/gradle-workflow.md) | Build / migration (body in Chinese; see header note) |
 | [developer/temporary-textures.md](developer/temporary-textures.md) | Missing/placeholder block & item texture audit; **temporary** procedural art |
 | [developer/gtnh-version-compatibility.md](developer/gtnh-version-compatibility.md) | v1.0.0 GTNH 2.8.x / 2.9.0-beta+ support and planned Legacy removal |
@@ -54,6 +56,7 @@
 
 | Doc | Description |
 |-----|-------------|
+| [design/brand-visual-design-guide.md](design/brand-visual-design-guide.md) | Mod name, lore, color palette, promo asset specs, AI image prompts |
 | [design/future-development-vision.md](design/future-development-vision.md) | Long-term feature vision and architecture drafts (not current implementation spec) |
 
 ---

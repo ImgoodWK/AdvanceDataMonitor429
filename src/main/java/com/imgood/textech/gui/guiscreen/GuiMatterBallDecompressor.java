@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.util.EnumChatFormatting;
@@ -13,25 +12,30 @@ import net.minecraft.util.EnumChatFormatting;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.MatterBallDecompressorGuiLayout;
 import com.imgood.textech.gui.container.ContainerMatterBallDecompressor;
+import com.imgood.textech.gui.custom.ADM_UiContainer;
+import com.imgood.textech.gui.framework.UiButton;
+import com.imgood.textech.gui.framework.UiText;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.network.packet.PacketMatterBallDecompressorToggle;
 import com.imgood.textech.renders.MatterBallDecompressorGuiRenderer;
 import com.imgood.textech.tileentity.TileEntityMatterBallDecompressor;
 
 import appeng.api.config.OperationMode;
 import appeng.api.config.Settings;
-import appeng.api.config.YesNo;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.ITooltip;
 
-public class GuiMatterBallDecompressor extends GuiContainer {
+public class GuiMatterBallDecompressor extends ADM_UiContainer {
 
     private final TileEntityMatterBallDecompressor tile;
     private final MatterBallDecompressorGuiLayout.Metrics metrics;
     private GuiImgButton outputModeButton;
     private GuiImgButton blockModeButton;
+    /** Decorative 3-slice chip — validates {@link UiButton} rendering (no click action). */
+    private UiButton titleAccentChip;
 
     public GuiMatterBallDecompressor(InventoryPlayer playerInventory, TileEntityMatterBallDecompressor tile) {
-        super(new ContainerMatterBallDecompressor(playerInventory, tile));
+        super(new ContainerMatterBallDecompressor(playerInventory, tile), UiThemes.ADM);
         this.tile = tile;
         this.metrics = ((ContainerMatterBallDecompressor) inventorySlots).getMetrics();
         this.xSize = metrics.guiWidth;
@@ -42,8 +46,8 @@ public class GuiMatterBallDecompressor extends GuiContainer {
     public void initGui() {
         super.initGui();
         buttonList.clear();
-        int left = (width - xSize) / 2;
-        int top = (height - ySize) / 2;
+        int left = panelLeft();
+        int top = panelTop();
         outputModeButton = new GuiImgButton(
             left + MatterBallDecompressorGuiLayout.CACHE_BUTTON_X,
             top + MatterBallDecompressorGuiLayout.CACHE_BUTTON_Y,
@@ -57,6 +61,10 @@ public class GuiMatterBallDecompressor extends GuiContainer {
             tile.getConfigManager()
                 .getSetting(Settings.BLOCK));
         buttonList.add(blockModeButton);
+
+        int chipX = left + MatterBallDecompressorGuiLayout.LEFT_GUTTER + metrics.mainPanelWidth - 26;
+        titleAccentChip = new UiButton(chipX, top + 5, 20, 11).setIconIndex(3)
+            .setEnabled(false);
     }
 
     @Override
@@ -92,6 +100,9 @@ public class GuiMatterBallDecompressor extends GuiContainer {
                 .getSetting(Settings.BLOCK));
         }
         super.drawScreen(mouseX, mouseY, partialTicks);
+        if (titleAccentChip != null) {
+            titleAccentChip.draw(UiThemes.ADM, fontRendererObj, mouseX, mouseY);
+        }
         drawSideButtonTooltips(mouseX, mouseY);
     }
 
@@ -105,7 +116,6 @@ public class GuiMatterBallDecompressor extends GuiContainer {
     }
 
     private OperationMode getOutputOperationMode() {
-        // AE IO Port convention: EMPTY = to network, FILL = to storage/buffer.
         return tile.isOutputToNetwork() ? OperationMode.EMPTY : OperationMode.FILL;
     }
 
@@ -148,22 +158,26 @@ public class GuiMatterBallDecompressor extends GuiContainer {
 
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-        int left = (width - xSize) / 2;
-        int top = (height - ySize) / 2;
-        MatterBallDecompressorGuiRenderer.drawBackground(left, top, metrics);
+        int left = panelLeft();
+        int top = panelTop();
+        MatterBallDecompressorGuiRenderer.drawBackground(
+            left,
+            top,
+            metrics,
+            tile.isOutputToNetwork(),
+            tile.isBlockMode());
     }
 
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         String title = I18n.format("tile.matterBallDecompressor.name");
-        int titleX = MatterBallDecompressorGuiLayout.LEFT_GUTTER
-            + (metrics.mainPanelWidth - fontRendererObj.getStringWidth(title)) / 2;
-        fontRendererObj.drawString(title, titleX, 7, 0x404040);
-        fontRendererObj.drawString(
+        int titleCenterX = MatterBallDecompressorGuiLayout.LEFT_GUTTER + metrics.mainPanelWidth / 2;
+        UiText.drawCenteredTitle(UiThemes.ADM, fontRendererObj, title, titleCenterX, 7);
+        UiText.drawLabel(
+            UiThemes.ADM,
+            fontRendererObj,
             I18n.format("container.inventory"),
             metrics.playerInvX,
-            metrics.playerInvY - 12,
-            0x404040);
+            metrics.playerInvY - 12);
     }
 }
-

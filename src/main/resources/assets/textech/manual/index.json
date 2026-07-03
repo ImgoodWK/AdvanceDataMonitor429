@@ -3,37 +3,37 @@
     {
       "id": "getting_started",
       "titleKey": "adm.manual.chapter.getting_started",
-      "icon": "advancedatamonitor:data_imprint"
+      "icon": "textech:data_imprint"
     },
     {
       "id": "monitor_blocks",
       "titleKey": "adm.manual.chapter.monitor_blocks",
-      "icon": "advancedatamonitor:advDataMonitor"
+      "icon": "textech:advDataMonitor"
     },
     {
       "id": "monitor_tools",
       "titleKey": "adm.manual.chapter.monitor_tools",
-      "icon": "advancedatamonitor:advance_link_scanner"
+      "icon": "textech:advance_link_scanner"
     },
     {
       "id": "data_monitor",
       "titleKey": "adm.manual.chapter.data_monitor",
-      "icon": "advancedatamonitor:advNetworkLinkBlock"
+      "icon": "textech:advNetworkLinkBlock"
     },
     {
       "id": "dimensional_pocket",
       "titleKey": "adm.manual.chapter.dimensional_pocket",
-      "icon": "advancedatamonitor:dimensional_pocket"
+      "icon": "textech:dimensional_pocket"
     },
     {
       "id": "data_loom_cells",
       "titleKey": "adm.manual.chapter.data_loom_cells",
-      "icon": "advancedatamonitor:data_dust_loom_cell"
+      "icon": "textech:data_dust_loom_cell"
     },
     {
       "id": "grapple_system",
       "titleKey": "adm.manual.chapter.grapple_system",
-      "icon": "advancedatamonitor:grappleAnchor"
+      "icon": "textech:grappleAnchor"
     },
     {
       "id": "combat_special",
@@ -48,7 +48,7 @@
     {
       "id": "planner",
       "titleKey": "adm.manual.chapter.planner",
-      "icon": "advancedatamonitor:advance_planner"
+      "icon": "textech:advance_planner"
     },
     {
       "id": "config_reference",

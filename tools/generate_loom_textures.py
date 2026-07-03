@@ -14,11 +14,11 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REF = os.path.join(
     ROOT,
-    "src/main/resources/assets/advancedatamonitor/textures/review/reference_ae2",
+    "src/main/resources/assets/textech/textures/review/reference_ae2",
 )
 OUT = os.path.join(
     ROOT,
-    "src/main/resources/assets/advancedatamonitor/textures/review/generated",
+    "src/main/resources/assets/textech/textures/review/generated",
 )
 
 FRAME_SIZE = 16

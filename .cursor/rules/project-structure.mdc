@@ -31,14 +31,14 @@ alwaysApply: true
 | `config/` | 11 | 配置分节加载（debug / compat / ai / voice / assistant / plannerHud / dataLoom / superOrange / matterBallDecompressor / grapple） |
 | `compat/` | 20 | GTNH / AE2 版本兼容（`ae/` 门面 + `legacy/` + `native_/`） |
 | `assistant/` | 45 | AI 助手核心（意图解析 / AE2 查询 / 合成下单 / 内置联网搜索 / 计划 / 菜单状态缓存），详见 `ai-assistant.mdc` |
-| `items/` | 54 | 物品（含 `items/cell/` 33 文件：数据编织元件 AE2 集成） |
-| `blocks/` | 6 | 自定义方块（监视器 / 链接器 / 挂索节点 / 物质球解压器） |
+| `items/` | 55 | 物品（含 `items/cell/` 33 文件；`AbstractPocketUpgradeCard` 口袋升级卡基类） |
+| `blocks/` | 7 | 自定义方块（含可选调试方块 `BlockUiFrameworkDebug`） |
 | `tileentity/` | 9 | TileEntity + 接口 + 辅助（含 `IOwnableTile`、`MatterBallDecompressorUpgrades`） |
-| `gui/` | 39 | GUI 组件与界面（根 1 + `custom/` 3 + `guiscreen/` 24 + `manual/` 6 + `container/` 4 + `handler/` 1），详见 `gui-guidelines.mdc` |
+| `gui/` | 61 | GUI 组件与界面（根 2 + `framework/` 15 + `custom/` 7 + `guiscreen/` 25 + `manual/` 6 + `container/` 5 + `handler/` 1），详见 `gui-guidelines.mdc` |
 | `handler/` | 33 | 事件处理器与服务端逻辑（挂索 / 星空剑 / 口袋 / 扫描器 / 编织元件 / AE 连接器性能调度） |
 | `entity/` | 8 | 实体类 only（不含 Render） |
 | `renders/` | 35 | 全部客户端渲染（TESR / 实体 Render / 物品 Render / HUD / 语音助手 HUD / 手册页面 / 解压器 GUI） |
-| `network/` | 27 | 网络通信（22 packet + 5 handler），详见 `network-packets.mdc` |
+| `network/` | 28 | 网络通信（22 packet + 6 handler，含 `PacketHandlers`），详见 `network-packets.mdc` |
 | `voice/` | 9 | 语音识别（Vosk / HTTP STT / 音频处理） |
 | `loader/` | 10 | 注册加载器（Block / Item / TE / Entity / Handler / Gui / Render / Network / Recipe）+ `ModMigrationHandler` |
 | `client/` | 17 | 客户端事件与缓存（挂索 / 口袋 / AI 偏好 / 按键 / 语音按键 / 星空剑预热） |
@@ -49,17 +49,13 @@ alwaysApply: true
 ## 资源文件 (src/main/resources/)
 
 ```
-assets/advancedatamonitor/
- lang/
- en_US.lang                   # 英文翻译（旧位置，部分旧键）
- zh_CN.lang                   # 中文翻译（旧位置）
 assets/textech/
  config/
- assistant-lexicon.json       # AI 助手词库配置
- assistant-features.json      # AI 助手功能配置
+   assistant-lexicon.json       # AI 助手词库配置
+   assistant-features.json      # AI 助手功能配置
  lang/
- en_US.lang                   # 英文翻译（主文件，896+ 行，最新键）
- zh_CN.lang                   # 中文翻译（主文件）
+   en_US.lang                   # 英文翻译（814+ 行，主 lang 文件）
+   zh_CN.lang                   # 中文翻译（主 lang 文件）
  manual/
  index.json                   # 手册目录（章节列表）
  chapters/                    # 手册各章节内容JSON (11 章)
@@ -81,9 +77,9 @@ assets/textech/
 
 | 需求 | 查看文件 |
 |------|---------|
-| 新增 Block | `loader/LoaderBlock.java` → `blocks/` → `tileentity/` → `en_US.lang` + `zh_CN.lang` |
-| 新增 Item | `loader/LoaderItem.java` → `items/` → `en_US.lang` + `zh_CN.lang` |
-| 新增 GUI | `loader/LoaderGui.java` → `gui/guiscreen/` → `en_US.lang` + `zh_CN.lang` |
+| 新增 Block | `loader/LoaderBlock.java` → `blocks/` → `tileentity/` → `assets/textech/lang/en_US.lang` + `zh_CN.lang` |
+| 新增 Item | `loader/LoaderItem.java` → `items/` → `assets/textech/lang/en_US.lang` + `zh_CN.lang` |
+| 新增 GUI | `loader/LoaderGui.java` → `gui/guiscreen/` → 选基类：`AdmItemConfigScreen` / `AbstractMonitorSubGui` / `ADM_UiContainer` → `AdmGuiTextures` → lang；详见 `docs/zh/developer/new-feature-checklist.md` |
 | 新增网络包 | `network/packet/` → `network/handler/` → `loader/LoaderNetwork.java` → 完整数据同步链路见 `network-packets.mdc` |
 | 新增渲染 | `renders/`（实体 Render 也放此包）→ `loader/LoaderRender.java` |
 | 修改/新增 AI 助手功能 | 详见 `ai-assistant.mdc` → `docs/zh/ai-assistant/开发指南.md` / `docs/en/ai-assistant/development-guide.md` → `assistant/AssistantController.java` |
@@ -96,8 +92,8 @@ assets/textech/
 | 修改配置项 | `Config.java` + `config/Config*Loader.java` + `ConfigDescriptions.java` → `gui/guiscreen/GuiAISettings.java` |
 | 新增复杂功能子系统 | 评估是否需系统级包（仅 `assistant/`、`voice/`）→ 物品逻辑归 `items/`、`handler/`、`gui/` → `loader/` → `config/`（如需）→ lang → 本规则 |
 | 修改/新增手册 GUI（搜索、滚动、高亮） | `gui/guiscreen/GuiManual.java` → `gui/manual/ManualSearch*.java` / `ManualTextHighlighter.java` → `renders/ManualPageRenderer.java` → `getting_started` lang 文案 → `docs/` §3.12 / §5.10 |
-| 新增手册内容 | `assets/.../manual/` JSON (11 章: `getting_started` / `monitor_blocks` / `monitor_tools` / `data_monitor` / `dimensional_pocket` / `data_loom_cells` / `grapple_system` / `combat_special` / `ai_assistant` / `planner` / `config_reference`) → `gui/guiscreen/GuiManual.java` → `renders/ManualPageRenderer.java` → `en_US.lang` + `zh_CN.lang` → 本规则 |
-| 新增 AE2 存储元件 | `items/cell/` → `loader/LoaderItem.java` → `TeXTech.java` (postInit) → `en_US.lang` + `zh_CN.lang` → 手册 JSON |
+| 新增手册内容 | `assets/textech/manual/` JSON (11 章: `getting_started` / `monitor_blocks` / `monitor_tools` / `data_monitor` / `dimensional_pocket` / `data_loom_cells` / `grapple_system` / `combat_special` / `ai_assistant` / `planner` / `config_reference`) → `gui/guiscreen/GuiManual.java` → `renders/ManualPageRenderer.java` → `assets/textech/lang/en_US.lang` + `zh_CN.lang` → 本规则 |
+| 新增 AE2 存储元件 | `items/cell/` → `loader/LoaderItem.java` → `TeXTech.java` (postInit) → `assets/textech/lang/en_US.lang` + `zh_CN.lang` → 手册 JSON |
 
 ## 本规则同步维护要求
 

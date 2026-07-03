@@ -34,6 +34,8 @@ public class Config {
     public static boolean debugMonitorTestMode = false;
     /** When true, logs connector refresh counts and average durations every 10 seconds. */
     public static boolean debugConnectorProfile = false;
+    /** When true, registers the UI framework debug block and showcase GUI. */
+    public static boolean debugUiFrameworkBlock = false;
 
     // --- ai ---
     public static String aiApiBaseUrl = "https://api.deepseek.com";

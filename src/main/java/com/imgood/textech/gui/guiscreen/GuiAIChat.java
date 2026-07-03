@@ -9,8 +9,6 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -35,6 +33,7 @@ import com.imgood.textech.assistant.ai.WebSearchService.WebSearchException;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.network.packet.PacketAssistantMenuStateQuery;
 import com.imgood.textech.renders.VoiceHudRenderer;
 
@@ -71,22 +70,6 @@ public class GuiAIChat extends ADM_GuiScreen {
     private static final int TEXT_HOVER_COLOR = 0x0055FF;
     private static volatile String globalVoiceStatus = "";
 
-    private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation BUTTON_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation TEXTFIELD_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_ADM_8020.png");
-    private static final ResourceLocation TEXTFIELD_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_hover_ADM_8020.png");
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-
     private static final List<ChatEntry> sharedHistory = new ArrayList<ChatEntry>();
 
     // Client-side cache of the AI assistant menu state, refreshed from the
@@ -113,7 +96,7 @@ public class GuiAIChat extends ADM_GuiScreen {
 
     public GuiAIChat(GuiScreen parent) {
         this.parent = parent;
-        this.setBackgroundTexture(BACKGROUND_TEXTURE);
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
         this.setSize(PANEL_WIDTH, PANEL_HEIGHT);
         this.setStretch(false);
     }
@@ -134,8 +117,8 @@ public class GuiAIChat extends ADM_GuiScreen {
             this.offsetX + INPUT_LEFT,
             inputY + 8,
             menuButtonX - (this.offsetX + INPUT_LEFT) - 8,
-            20).setBackgroundTexture(TEXTFIELD_TEXTURE)
-                .setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE)
+            20).setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
+                .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
                 .setHintText(I18n.format("adm.ai.input_hint"));
         this.inputField.setMaxStringLength(1000);
         this.inputField.setFocused(true);
@@ -187,11 +170,11 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     private ADM_GuiButton createButton(int id, int x, int y, int width, int height, String text) {
-        return new ADM_GuiButton(id, x, y, width, height, text).setTexture(BUTTON_TEXTURE)
-            .setHoverTexture(BUTTON_HOVER_TEXTURE)
+        return new ADM_GuiButton(id, x, y, width, height, text).setTexture(AdmGuiTextures.BUTTON)
+            .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
             .setUseHoverEffect(true)
-            .setLeftDecoration(BUTTON_HOVER_TEXTURE)
-            .setRightDecoration(BUTTON_HOVER_TEXTURE)
+            .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+            .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
             .setDecorationWidth(20)
             .setTextColor(TEXT_COLOR)
             .setTextHoverColor(TEXT_HOVER_COLOR);

@@ -54,9 +54,9 @@ alwaysApply: false
 - **格式化/工具**: `AssistantFormatter.java` / `AssistantTimeParser.java` / `AssistantTextNormalizer.java`
 - **物品处理**: `ItemStackUtils.java` / `PlayerInventoryUtil.java` / `PatternDetailFormatter.java`
 - **注册/调试**: `AssistantMonitorRegistry.java` / `AssistantDebugLog.java`
-- **数据文件**: `AssistantDataFiles.java`
+- **数据文件**: `AssistantDataFiles.java`（`config/textech/` 下 JSON，启动时从旧目录迁移）
 
-### items/ — 物品 (54 文件：根 21 + cell 33)
+### items/ — 物品 (55 文件：根 22 + cell 33)
 | 类 | 游戏内名称 (ZH / EN) | lang 键 |
 |----|---------------------|---------|
 | `ItemAdvancePlanner` | 高级计划器 / Advance Planner | `item.advancePlanner.name` |
@@ -69,6 +69,7 @@ alwaysApply: false
 | `ItemStarryCosmosSword` | 至高天圣裁 / Empyrean Holy Judgment | `item.starryCosmosSword.name` |
 | `ItemHolyJudgment` | 圣裁 / Holy Judgment | `item.holyJudgment.name` |
 | `ItemDimensionalPocket` | 次元口袋 / Dimensional Pocket | `item.dimensionalPocket.name` |
+| `AbstractPocketUpgradeCard` | 口袋升级卡基类（4 张子类共享 tooltip 格式） | — |
 | `ItemSpaceUpgradeCard` | 空间升级卡 / Space Upgrade Card | `item.spaceUpgradeCard.name` |
 | `ItemPageUpgradeCard` | 翻页升级卡 / Page Upgrade Card | `item.pageUpgradeCard.name` |
 | `ItemStackUpgradeCard` | 堆叠升级卡 / Stack Upgrade Card | `item.stackUpgradeCard.name` |
@@ -96,7 +97,7 @@ alwaysApply: false
 - `DataLoomCellUpgrades.java` — 仅允许编织增幅卡的升级槽
 - `AbstractDataLoomItemCell.java` / `DataLoomCellUtil.java` / `DustLoomCellConfig.java` / `IWeaveAmplifierCard.java`
 
-### blocks/ — 自定义方块 (6 文件)
+### blocks/ — 自定义方块 (7 文件)
 | 类 | 游戏内名称 (ZH / EN) | lang 键 |
 |----|---------------------|---------|
 | `BlockAdvanceDataMonitor` | 高级数据监视器 / Advance Data Monitor | `tile.advDataMonitor.name` |
@@ -105,6 +106,7 @@ alwaysApply: false
 | `BlockAdvanceNetworkLink` | 网络链接器 / Network Linker | `tile.NetworkLinkBlock.name` |
 | `BlockGrappleAnchor` | 挂索节点 / Grapple Anchor | `tile.grappleAnchor.name` |
 | `BlockMatterBallDecompressor` | 物质球解压器 / Matter Ball Decompressor | `tile.matterBallDecompressor.name` |
+| `BlockUiFrameworkDebug` | UI 框架调试方块 / UI Framework Debug Block | `tile.uiFrameworkDebug.name`（`[debug] uiFrameworkBlock=true` 时注册） |
 
 ### tileentity/ — TileEntity 与辅助工具 (9 文件)
 - `IOwnableTile.java` / `OwnableTileUtil.java` — 方块放置者游戏名（`OwnerName` NBT）
@@ -116,27 +118,33 @@ alwaysApply: false
 - `TileEntityGrappleAnchor.java` — 挂索节点（贴面放置、悬挂锚点计算）
 - `TileEntityMatterBallDecompressor.java` — 物质球解压器（AE 网络、9 输入 + 81 缓存、4 加速卡槽）
 
-### gui/ — GUI 组件和界面 (39 文件)
-- **gui/根** — `MatterBallDecompressorGuiLayout.java`（解压器 GUI 布局常量与尺寸计算）
-- **gui/custom/** — 自定义 GUI 基础组件（3 个）
+### gui/ — GUI 组件和界面 (61 文件)
+- **gui/根** — `MatterBallDecompressorGuiLayout.java`（解压器 GUI 布局）、`UiFrameworkDebugLayout.java`（UI 框架调试 GUI 布局）
+- **gui/framework/** — 通用容器 UI 框架（15 个）：`GuiBlitUtil` / `NineSliceRegion` / `UiTheme` / `AdmUiTheme` / `PocketUiTheme` / `UiThemes` / `UiPanel` / `UiText` / `UiIcon` / `UiButton` / `UiToggleButton` / `UiSlot` / `UiTextField` / `UiLayoutContext` / `UiTooltip`；图集 `textures/gui/adm_ui_atlas.png`；详见 `docs/zh/developer/ui-framework.md`
+- **gui/custom/** — 自定义 GUI 基础组件（7 个）
   - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
   - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
   - `ADM_GuiTextField.java` — 自定义文本框（背景纹理、hint 提示）
-- **gui/guiscreen/** — 具体 GUI 界面（24 个），详见 `gui-guidelines.mdc`
+  - `ADM_UiContainer.java` — 容器 GUI 基类（`UiTheme` + `drawMainPanel`）
+  - `AdmGuiTextures.java` — 共享 ADM GUI 纹理 `ResourceLocation` 常量
+  - `AbstractMonitorSubGui.java` — 数据监视器 per-binding 子界面基类
+  - `AdmItemConfigScreen.java` — 小型配置对话框基类（物品/节点 NBT 设置）
+- **gui/guiscreen/** — 具体 GUI 界面（25 个），详见 `gui-guidelines.mdc`
   - `GuiManual.java` — 模组手册 GUI（左侧搜索框 + 可滚动章节导航 + 右侧内容区 + 翻页；搜索高亮与拼音匹配）
   - `GuiNbtViewer.java` — NBT 树查看器（映录器用）
   - `GuiAdvanceLinkScanner.java` — 链接扫描器（列表/筛选/备注/传送）
   - `GuiDimensionalPocketConfig.java` — 次元口袋配置 GUI（升级插槽：空间/翻页/堆叠/无尽堆叠 + 开关 + 容量统计 + 堆叠倍数显示）
   - `GuiPocketStorage.java` — 次元口袋存储 GUI（原生 Container，口袋格 + 玩家背包 + 翻页/升级配置按钮；右键口袋主入口）
   - `GuiSuperOrangeConfig.java` — 超能砂糖桔设置（铭牌、物质球开关、拾取合并、丢弃合并、倍率）
-  - `GuiMatterBallDecompressor.java` — 物质球解压器（9 输入 + 9×9 缓存 + 4 加速卡槽 + 模式按钮）
+  - `GuiMatterBallDecompressor.java` — 物质球解压器（`ADM_UiContainer` + `UiPanel`/`UiText`/`UiIcon`/`UiButton`）
+  - `GuiUiFrameworkDebug.java` — UI 框架组件展示（调试方块右键打开）
   - `GuiGrappleSavePrompt.java` — 挂索路径保存命名弹窗
   - `GuiPlannerHudConfig.java` — 计划器 HUD 配置（显示项目/位置/透明度）
   - `GuiPlannerMergeConfirm.java` — 计划器合并确认弹窗
   - `GuiScreenMessage.java` — 通用消息提示弹窗
 - **gui/manual/** — 手册数据结构（6 个）：`ManualChapter.java` / `ManualPage.java` / `ManualDataLoader.java` / `ManualSearchUtil.java` / `ManualSearchIndex.java` / `ManualTextHighlighter.java`
-- **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）、`ContainerMatterBallDecompressor.java`（物质球解压器容器，9 输入 + 9×9 缓存 + 4 加速卡槽）
-- **gui/handler/** — `GuiHandler.java`（IGuiHandler；含 `MANUAL_GUI_ID`、`GRAPPLE_ANCHOR_GUI_ID`、`GRAPPLE_HOOK_GUI_ID`、`POCKET_CONFIG_GUI_ID`、`POCKET_STORAGE_GUI_ID`）
+- **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）、`ContainerMatterBallDecompressor.java`（物质球解压器容器，9 输入 + 9×9 缓存 + 4 加速卡槽）、`ContainerUiFrameworkDebug.java`（UI 框架展示，无槽位）
+- **gui/handler/** — `GuiHandler.java`（IGuiHandler；GUI ID 0–10，含 `UI_FRAMEWORK_DEBUG_GUI_ID=10`）
 
 ### handler/ — 事件处理器与物品服务端逻辑 (33 文件)
 - `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理）
@@ -154,7 +162,7 @@ alwaysApply: false
 - `StarrySwordSpawnScheduler.java` — 星空剑技能实体生成调度
 - **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
 - `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
-- **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player NBT 压缩存储单例，`<世界存档>/advancedatamonitor/pocket-<uuid>.dat`）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketSlotInteraction.java`（存储 GUI 与悬浮窗共享的槽位点击逻辑）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
+- **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player NBT 压缩存储单例，`<世界存档>/textech/pocket-<uuid>.dat`）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketSlotInteraction.java`（存储 GUI 与悬浮窗共享的槽位点击逻辑）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
 
 ### entity/ — 实体类 only (8 文件，不含 Render)
 - `EntitySuperOrangeDrone.java` — 超能砂糖桔无人机
@@ -177,7 +185,7 @@ alwaysApply: false
 - `RenderController.java` — 监视器内容渲染器注册（line / crafting / storage）
 - `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java` / `AdvanceBlockCubeRenderUtil.java`
 
-### network/ — 网络通信 (27 文件)
+### network/ — 网络通信 (28 文件)
 - **network/packet/** — 网络包实体（22 个）
   - `PacketSynTileEntity.java` — **最常用**，同步 TileEntity 数据到客户端
   - `PacketAssistantAction.java` / `PacketAssistantResponse.java` — AI 助手操作/响应
@@ -193,7 +201,8 @@ alwaysApply: false
   - `PacketPocketSync.java` — 次元口袋 S→C 同步（全量/单页 `ItemStack[][]`）
   - `PacketSuperOrangeConfig.java` — 超能砂糖桔设置 GUI 保存
   - `PacketMatterBallDecompressorToggle.java` — 物质球解压器输出模式/阻塞模式切换
-- **network/handler/** — 包处理器（5 个）
+- **network/handler/** — 包处理器（6 个）
+  - `PacketHandlers.java` — 服务端线程调度工具（`runOnServer` / `runOnServerThread`）
   - `HandlerNetwork.java` / `HandlerSynTileEntity.java` / `HandlerLinkScannerAction.java` / `HandlerPlannerSync.java` / `HandlerPlannerMerge.java`
 
 ### voice/ — 语音识别 (9 文件)
@@ -208,7 +217,7 @@ alwaysApply: false
 
 ### loader/ — 注册加载器 (10 文件)
 - `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java`
-- `ModMigrationHandler.java` — 代码迁移兼容处理（旧包名 `advancedatamonitor` → `textech`）
+- `ModMigrationHandler.java` — 存档迁移兼容处理（旧 modid `advancedatamonitor` → `textech`）
 
 ### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (17 文件)
 - `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
@@ -221,7 +230,8 @@ alwaysApply: false
 - `GrappleRoutePickerHud.java` — 挂索路径选择 HUD
 - `StarryCosmosClientWarmup.java` — 星空剑客户端资源预热
 - `ItemClientGui.java` — 物品打开 GUI 的客户端辅助（避免 items/ 导入 Minecraft；含 `openPocketConfigGui`）
-- `AiClientPreferences.java` — 客户端本地 AI/语音密钥与偏好（`ai-client-local.cfg`，不上传服务端）
+- `AiClientPreferences.java` — 客户端本地 AI/语音密钥与偏好（`config/textech/ai-client-local.cfg`，不上传服务端）
+- `AssistantDataFiles.java` — 客户端/服务端数据文件路径（`config/textech/plans.json`、`assistant-features.json` 等，启动时从旧目录迁移）
 - `PocketClientCache.java` — 次元口袋客户端镜像缓存（接收 `PacketPocketSync`，按玩家绑定；含堆叠升级字段）
 - `PocketOverlayHandler.java` — 次元口袋客户端事件中枢（覆层渲染 + 鼠标路由；右键打开的 `GuiPocketStorage` / `GuiDimensionalPocketConfig` 上不显示浮窗）
 - `PocketPortalGuiRenderer.java` — 传送门 9-slice 面板渲染（`textures/gui/pocket_portal_panel.png`，随升级格数缩放）
@@ -240,7 +250,7 @@ alwaysApply: false
 - `DataBound.java` — 监视器数据绑定 DTO
 - `TileEntityTypeHelper.java` — TileEntity 类型识别
 - `NetworkValidationUtil.java` — 网络包距离/权限校验
-- `ModLogFiles.java` — 模组日志文件路径
+- `ModLogFiles.java` — 模组日志文件路径（`logs/textech/`）
 - `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
 - `MatterBallClusterUtil.java` — Avaritia 物质团簇插入/提取
 - `MatterBallDecompressorCapacityUtil.java` — 物质球解压器容量计算
@@ -253,7 +263,7 @@ alwaysApply: false
 - `MixinPocketDrawSlotOverlay.java` — 口袋存储 GUI 槽位角标 K/M/G 格式化（对齐 SNL 便携无尽箱）
 - `GuiScreenTooltipAccess.java` — Invoker：`GuiScreen.renderToolTip` / `drawHoveringText`（悬浮窗槽位 tooltip 与容器槽位同路径）
 - `MixinNeiRenderToolTips.java` / `MixinNeiLayoutManager.java` / `MixinNeiItemZoom.java` — NEI tooltip/布局兼容
-- 配置：`src/main/resources/mixins.advancedatamonitor.json`
+- 配置：`src/main/resources/mixins.textech.json`
 
 ### manual/ — （已迁入 gui/manual/）
 - 页面渲染见 `renders/ManualPageRenderer.java`；GUI 入口 `gui/guiscreen/GuiManual.java`

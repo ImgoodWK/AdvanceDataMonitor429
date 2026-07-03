@@ -4,38 +4,16 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-
-import org.lwjgl.input.Keyboard;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
-import com.imgood.textech.gui.custom.ADM_GuiButton;
-import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
+import com.imgood.textech.gui.custom.AdmItemConfigScreen;
 import com.imgood.textech.items.ItemSuperOrange;
 import com.imgood.textech.network.packet.PacketSuperOrangeConfig;
 
-public class GuiSuperOrangeConfig extends ADM_GuiScreen {
+public class GuiSuperOrangeConfig extends AdmItemConfigScreen {
 
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-    private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation BUTTON_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation TEXTFIELD_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_ADM_8020.png");
-    private static final ResourceLocation TEXTFIELD_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_hover_ADM_8020.png");
-
-    private static final int BUTTON_SAVE = 0;
-    private static final int BUTTON_CANCEL = 1;
     private static final int BUTTON_MATTER = 2;
     private static final int BUTTON_PICKUP = 3;
     private static final int BUTTON_DROP = 4;
@@ -48,69 +26,35 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
     private boolean matterBallEnabled;
     private boolean pickupMatterBallEnabled;
     private boolean dropMatterBallEnabled;
-    private String errorTips = "";
 
     public GuiSuperOrangeConfig(ItemStack orangeStack, EntityPlayer player) {
+        super(380, 240);
         this.orangeStack = orangeStack;
         this.player = player;
         this.matterBallEnabled = ItemSuperOrange.isMatterBallEnabled(orangeStack);
         this.pickupMatterBallEnabled = ItemSuperOrange.isPickupMatterBallEnabled(orangeStack);
         this.dropMatterBallEnabled = ItemSuperOrange.isDropMatterBallEnabled(orangeStack);
-        setBackgroundTexture(BACKGROUND_TEXTURE);
-        setSize(380, 240);
-        setStretch(false);
     }
 
     @Override
-    public void initGui() {
-        Keyboard.enableRepeatEvents(true);
-        setPosition((width - 380) / 2, (height - 240) / 2);
-        buttonList.clear();
-        int centerX = width / 2;
-        int centerY = height / 2;
+    protected void initConfigContent() {
+        int cx = centerX();
+        int cy = centerY();
 
         String currentName = ItemSuperOrange.getNameplateText(orangeStack);
-        nameField = new ADM_GuiTextField(fontRendererObj, centerX - 90, centerY - 58, 180, 20);
+        nameField = createTextField(cx - 90, cy - 58, 180, 20);
         nameField.setMaxStringLength(64);
-        nameField.setBackgroundTexture(TEXTFIELD_TEXTURE);
-        nameField.setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
         nameField.setText(currentName != null ? currentName : "");
 
-        multiplierField = new ADM_GuiTextField(fontRendererObj, centerX - 30, centerY - 18, 60, 20);
+        multiplierField = createTextField(cx - 30, cy - 18, 60, 20);
         multiplierField.setMaxStringLength(4);
-        multiplierField.setBackgroundTexture(TEXTFIELD_TEXTURE);
-        multiplierField.setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
         multiplierField.setText(String.valueOf(ItemSuperOrange.getDropMultiplier(orangeStack)));
 
-        buttonList.add(toggleButton(BUTTON_MATTER, centerX - 180, centerY + 18, 118, matterBallLabel()));
-        buttonList.add(toggleButton(BUTTON_PICKUP, centerX - 56, centerY + 18, 118, pickupMatterBallLabel()));
-        buttonList.add(toggleButton(BUTTON_DROP, centerX + 68, centerY + 18, 118, dropMatterBallLabel()));
-        buttonList.add(
-            actionButton(BUTTON_SAVE, centerX - 60, centerY + 72, I18n.format("adm.button.save"), 0x00FF00, 0x55FF55));
-        buttonList.add(
-            actionButton(
-                BUTTON_CANCEL,
-                centerX + 10,
-                centerY + 72,
-                I18n.format("adm.button.cancel"),
-                0xFF5555,
-                0xFF0000));
-    }
-
-    private ADM_GuiButton toggleButton(int id, int x, int y, int width, String label) {
-        return new ADM_GuiButton(id, x, y, width, 20, label).setTexture(BUTTON_TEXTURE)
-            .setHoverTexture(BUTTON_HOVER_TEXTURE)
-            .setUseHoverEffect(true)
-            .setTextColor(0x00FFFF)
-            .setTextHoverColor(0x55FFFF);
-    }
-
-    private ADM_GuiButton actionButton(int id, int x, int y, String label, int color, int hoverColor) {
-        return new ADM_GuiButton(id, x, y, 50, 20, label).setTexture(BUTTON_TEXTURE)
-            .setHoverTexture(BUTTON_HOVER_TEXTURE)
-            .setUseHoverEffect(true)
-            .setTextColor(color)
-            .setTextHoverColor(hoverColor);
+        buttonList.add(createToggleButton(BUTTON_MATTER, cx - 180, cy + 18, 118, matterBallLabel()));
+        buttonList.add(createToggleButton(BUTTON_PICKUP, cx - 56, cy + 18, 118, pickupMatterBallLabel()));
+        buttonList.add(createToggleButton(BUTTON_DROP, cx + 68, cy + 18, 118, dropMatterBallLabel()));
+        buttonList.add(createSaveButton(cx - 60, cy + 72));
+        buttonList.add(createCancelButton(cx + 10, cy + 72));
     }
 
     private String matterBallLabel() {
@@ -129,12 +73,8 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
     }
 
     @Override
-    protected void actionPerformed(GuiButton button) {
-        if (button.id == BUTTON_SAVE) {
-            saveConfig();
-        } else if (button.id == BUTTON_CANCEL) {
-            mc.displayGuiScreen(null);
-        } else if (button.id == BUTTON_MATTER) {
+    protected void onConfigButton(GuiButton button) {
+        if (button.id == BUTTON_MATTER) {
             matterBallEnabled = !matterBallEnabled;
             button.displayString = matterBallLabel();
         } else if (button.id == BUTTON_PICKUP) {
@@ -146,11 +86,10 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
         }
     }
 
-    private void saveConfig() {
+    @Override
+    protected void onSave() {
         try {
-            int multiplier = Integer.parseInt(
-                multiplierField.getText()
-                    .trim());
+            int multiplier = Integer.parseInt(multiplierField.getText().trim());
             int max = Math.max(1, Config.superOrangeDropMultiplierMax);
             if (multiplier < 1 || multiplier > max) {
                 errorTips = I18n.format("adm.error.super_orange.multiplier_range", max);
@@ -163,7 +102,7 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
                     pickupMatterBallEnabled,
                     dropMatterBallEnabled,
                     multiplier));
-            mc.displayGuiScreen(null);
+            closeScreen();
         } catch (NumberFormatException e) {
             errorTips = I18n.format("adm.error.invalid_number");
         }
@@ -192,31 +131,19 @@ public class GuiSuperOrangeConfig extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         super.drawScreen(mouseX, mouseY, partialTicks);
-        int centerX = width / 2;
-        int centerY = height / 2;
-        drawCenteredString(
-            fontRendererObj,
-            I18n.format("adm.title.superOrangeConfig"),
-            centerX,
-            centerY - 82,
-            0x00FFFF);
-        drawString(
-            fontRendererObj,
-            I18n.format("adm.label.super_orange.rename"),
-            centerX - 170,
-            centerY - 54,
-            0xAAAAAA);
+        int cx = centerX();
+        int cy = centerY();
+        drawCenteredString(fontRendererObj, I18n.format("adm.title.superOrangeConfig"), cx, cy - 82, 0x00FFFF);
+        drawString(fontRendererObj, I18n.format("adm.label.super_orange.rename"), cx - 170, cy - 54, 0xAAAAAA);
         drawString(
             fontRendererObj,
             I18n.format("adm.label.super_orange.multiplier", Config.superOrangeDropMultiplierMax),
-            centerX - 170,
-            centerY - 14,
+            cx - 170,
+            cy - 14,
             0xAAAAAA);
         nameField.drawTextBox();
         multiplierField.drawTextBox();
-        if (!errorTips.isEmpty()) {
-            drawCenteredString(fontRendererObj, errorTips, centerX, centerY + 98, 0xFF5555);
-        }
+        drawErrorTips(cy + 98);
         drawButtonTooltip(BUTTON_MATTER, mouseX, mouseY, I18n.format("adm.tooltip.super_orange.matter_ball_toggle"));
         drawButtonTooltip(BUTTON_PICKUP, mouseX, mouseY, I18n.format("adm.tooltip.super_orange.pickup_matter_toggle"));
         drawButtonTooltip(BUTTON_DROP, mouseX, mouseY, I18n.format("adm.tooltip.super_orange.drop_matter_toggle"));

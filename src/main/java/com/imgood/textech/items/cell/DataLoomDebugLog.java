@@ -18,7 +18,7 @@ import com.imgood.textech.utils.ModLogFiles;
 /**
  * Server-side trace logging for data loom weaving.
  * Only active when {@link Config#dataLoomCellDebugLogging} is true.
- * Writes to {@code logs/advancedatamonitor/data-loom-debug.log} (not mixed into latest.log).
+ * Writes to {@code logs/textech/data-loom-debug.log} (not mixed into latest.log).
  */
 public final class DataLoomDebugLog {
 

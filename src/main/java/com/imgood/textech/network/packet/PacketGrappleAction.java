@@ -7,7 +7,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentTranslation;
 
 import com.imgood.textech.handler.GrapplePlayerState;
-import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.items.ItemGrappleHook;
 import com.imgood.textech.utils.BlockPos;
 
@@ -115,14 +115,11 @@ public class PacketGrappleAction implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketGrappleAction message, MessageContext ctx) {
-            final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
-                    if (player == null) {
-                        return;
-                    }
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
                     if (message.action == DETACH) {
                         GrapplePlayerState.detach(player);
                         return;
@@ -150,7 +147,6 @@ public class PacketGrappleAction implements IMessage {
                     }
                 }
             });
-            return null;
         }
     }
 }

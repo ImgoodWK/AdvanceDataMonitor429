@@ -18,7 +18,7 @@
       "type": "item_showcase",
       "titleKey": "adm.manual.combat_special.orange_title",
       "items": [
-        {"registryName": "advancedatamonitor:orange", "descKey": "adm.manual.item.superOrange"}
+        {"registryName": "textech:orange", "descKey": "adm.manual.item.superOrange"}
       ]
     },
     {

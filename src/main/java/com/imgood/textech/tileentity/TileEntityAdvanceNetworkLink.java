@@ -194,15 +194,6 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
         updateNetworkCache();
     }
 
-    // ========== 区块加载时强制刷新 ==========
-    @Override
-    public void validate() {
-        super.validate();
-        if (worldObj != null && !worldObj.isRemote) {
-            updateNetworkCache();
-        }
-    }
-
     // ========== NBT 持久化（使用 getLong/setLong：==========
     @Override
     public void writeToNBT_AENetwork(NBTTagCompound data) {

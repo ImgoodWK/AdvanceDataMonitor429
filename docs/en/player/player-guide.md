@@ -23,7 +23,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
   - [3.9 Data Loom Cells](#39-data-loom-cells)
   - [3.10 Super Orange](#310-super-orange)
   - [3.11 Empyrean Holy Judgment](#311-empyrean-holy-judgment)
-  - [3.12 TeXTech Manual](#312-advancedatamonitor-manual)
+  - [3.12 TeXTech Manual](#312-textech-manual)
   - [3.13 Dimensional Pocket](#313-dimensional-pocket)
   - [3.14 Matter Ball Decompressor](#314-matter-ball-decompressor)
 - [4. Advance Data Monitor Tutorial](#4-advance-data-monitor-tutorial)
@@ -452,7 +452,7 @@ Page types: `text`, `item_showcase`, `config_ref`.
 **Registry:** `textech:dimensionalPocket`
 **Lang name:** Dimensional Pocket (`item.dimensionalPocket.name`)
 
-A player-UUID-bound portable storage. All pocket items in your inventory share the same storage (state persisted to `advancedatamonitor/pocket-<uuid>.dat` in the world save directory; the item itself carries no data).
+A player-UUID-bound portable storage. All pocket items in your inventory share the same storage (state persisted to `textech/pocket-<uuid>.dat` in the world save directory; the item itself carries no data).
 
 **Usage**
 
@@ -650,7 +650,7 @@ Providers include `deepseek`, `openai`, `openrouter`, `dashscope`, `zhipu`, `kim
 
 ## 11. Configuration Reference
 
-**Path:** `.minecraft/config/textech/textech.cfg` (client) or `config/textech.cfg` (server).
+**Path:** `.minecraft/config/textech/textech.cfg` (client) or `config/textech/textech.cfg` (server).
 
 | Section | Key fields |
 |---------|------------|
@@ -687,7 +687,7 @@ The assistant uses a **unified search + context injection** flow: when search is
 
 `auto` fallback chain: `tavily_keyless → duckduckgo → tavily → brave → serper → searxng`. Engines without keys/URLs are skipped automatically.
 
-Enable via AI chat **Search: On**, **AI Settings** GUI, or `/admai search on`. Client config is stored in `config/advancedatamonitor/ai-client-local.cfg`.
+Enable via AI chat **Search: On**, **AI Settings** GUI, or `/admai search on`. Client config is stored in `config/textech/ai-client-local.cfg`.
 
 ---
 

@@ -369,7 +369,7 @@ session.clear()
 
 `auto` 降级链：`tavily_keyless → duckduckgo → tavily → brave → serper → searxng`（未配置 Key/URL 的引擎自动跳过）。
 
-配置项（客户端 `ai-client-local.cfg`）：`searchApiKey`、`searchBaseUrl`（SearXNG）、`searchMaxResults`（1–10）、`searchFallback`。
+配置项（客户端 `config/textech/ai-client-local.cfg`）：`searchApiKey`、`searchBaseUrl`（SearXNG）、`searchMaxResults`（1–10）、`searchFallback`。
 
 ### 5.2 DeepSeekChatClient 核心 API
 
@@ -822,7 +822,7 @@ private static boolean zh(String locale) {
 ### 13.5 数据持久化
 
 - `OrderMemoryStore`: 内存中的 LRU 记忆（订单历史，用于排序候选列表）
-- `PlanStore`: JSON 文件持久化（`config/advancedatamonitor/plans.json`）
+- `PlanStore`: JSON 文件持久化（`config/textech/plans.json`）
 - `AssistantFeatureConfig`: JSON 配置文件（支持运行时重载）
 - `AssistantLexicon`: JSON 配置文件（从 jar 资源或外部文件加载）
 

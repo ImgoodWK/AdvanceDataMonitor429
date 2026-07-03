@@ -61,6 +61,13 @@ public final class AiClientPreferences {
         preferencesFile = new File(dir, LOCAL_FILE);
 
         if (!preferencesFile.exists()) {
+            File legacyFile = new File(new File("config", AdvanceDataMonitor.LEGACY_MODID), LOCAL_FILE);
+            if (legacyFile.exists()) {
+                copyConfigFile(legacyFile, preferencesFile);
+            }
+        }
+
+        if (!preferencesFile.exists()) {
             migrateLegacyFromShared(sharedConfiguration);
             saveLocal();
         } else {
@@ -208,6 +215,30 @@ public final class AiClientPreferences {
 
         configuration.save();
         applyToConfig();
+    }
+
+    private static void copyConfigFile(File source, File target) {
+        File parent = target.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+        try (java.io.FileInputStream in = new java.io.FileInputStream(source);
+            java.io.FileOutputStream out = new java.io.FileOutputStream(target)) {
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = in.read(buffer)) >= 0) {
+                out.write(buffer, 0, read);
+            }
+            AdvanceDataMonitor.LOG.info(
+                "[TeXTech] Migrated client config: {} -> {}",
+                source.getAbsolutePath(),
+                target.getAbsolutePath());
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.warn(
+                "[TeXTech] Failed to migrate client config from {}",
+                source.getAbsolutePath(),
+                e);
+        }
     }
 
     private static void migrateLegacyFromShared(Configuration sharedConfiguration) {

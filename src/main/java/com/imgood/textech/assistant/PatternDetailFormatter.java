@@ -19,7 +19,7 @@ import appeng.api.storage.data.IAEItemStack;
 
 public final class PatternDetailFormatter {
 
-    private static final String LANG_PATH = "assets/advancedatamonitor/lang/";
+    private static final String LANG_PATH = "assets/textech/lang/";
     private static final Map<String, String> EN_US = loadLang("en_US");
     private static final Map<String, String> ZH_CN = loadLang("zh_CN");
 
@@ -124,8 +124,12 @@ public final class PatternDetailFormatter {
     }
 
     private static Map<String, String> loadLang(String locale) {
+        return loadLangFromPath(LANG_PATH + locale + ".lang");
+    }
+
+    private static Map<String, String> loadLangFromPath(String resourcePath) {
         InputStream stream = PatternDetailFormatter.class.getClassLoader()
-            .getResourceAsStream(LANG_PATH + locale + ".lang");
+            .getResourceAsStream(resourcePath);
         if (stream == null) {
             return Collections.emptyMap();
         }

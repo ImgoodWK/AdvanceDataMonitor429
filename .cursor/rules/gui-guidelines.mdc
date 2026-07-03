@@ -8,19 +8,48 @@ alwaysApply: false
 
 ## 基类选择
 
-### 1. 配置/设置界面 → 继承 `ADM_GuiScreen`
-所有数据配置、设置类界面都使用自定义基类 `ADM_GuiScreen`（位于 `gui.custom` 包）。
+### 1. 小型配置对话框 → 继承 `AdmItemConfigScreen`
+手持物品 NBT、挂索节点等小型配置窗优先使用 `AdmItemConfigScreen`（位于 `gui.custom`）。
+
+- 自动居中、`Keyboard.enableRepeatEvents`、保存/取消按钮工厂、`AdmGuiTextures` 纹理。
+- 参考 `GuiGrappleHookConfig`、`GuiGrappleAnchorConfig`、`GuiSuperOrangeConfig`。
+
+### 1b. 监视器绑定子页 → 继承 `AbstractMonitorSubGui`
+数据监视器 per-binding 子界面继承 `AbstractMonitorSubGui`，勿复制 `drawTextFieldBackground` / `autoTextField` 样板。
+
+- 参考 `GuiSubAEAdvanceStorageLink` 及同系列 `GuiSub*`。
+- 纹理使用 `AdmGuiTextures`；同步走基类 `saveAndSync` / `openMainGui`。
+
+### 1c. 其他配置/设置界面 → 继承 `ADM_GuiScreen`
+复杂配置屏（AI 聊天、计划器、扫描器等）仍使用 `ADM_GuiScreen`（位于 `gui.custom` 包）。
 
 - 提供 `setBackgroundTexture()` / `setPosition()` / `setSize()` / `setStretch()` 链式调用。
-- 自动绘制背景纹理，无需手动在 `drawScreen` 中调用 `drawDefaultBackground()`。
-- 参考所有 `GuiSub*`、`GuiAISettings`、`GuiAIChat`、`GuiAdvancePlanner`。
+- 背景纹理优先使用 `AdmGuiTextures.BACKGROUND_SUB` 等常量，勿重复定义 `ResourceLocation`。
+- 参考 `GuiAISettings`、`GuiAIChat`、`GuiAdvancePlanner`。
 
-### 2. 容器界面（有物品槽位） → 继承 `GuiContainer`
+### 2. 容器界面（有物品槽位） → 继承 `ADM_UiContainer`（新界面强制）
 用于需要 `InventoryPlayer` + `Container` 的标准容器界面。
 
-- 参考 `GuiAdvanceStorageLink.java`。
-- 标准尺寸：`xSize = 176`, `ySize = 184`。
+- **新容器 GUI 必须**继承 `ADM_UiContainer` + `UiThemes.ADM`（或 `POCKET`）。
+- 参考 `GuiMatterBallDecompressor.java` + `gui/framework/`（详见 `docs/zh/developer/ui-framework.md`）。
+- 旧界面（`GuiAdvanceStorageLink`、口袋 GUI）触达时再迁移，不必批量重写。
+- 标准尺寸：`xSize = 176`, `ySize = 184`（固定布局容器）。
 - 重写 `drawGuiContainerBackgroundLayer` 和 `drawGuiContainerForegroundLayer`。
+
+### 2b. 容器 UI 框架（`gui/framework/`）
+
+| 场景 | 使用 |
+|------|------|
+| 9-slice 主面板 | `UiPanel.draw(UiThemes.ADM, absX, absY, w, h)` — 背景层绝对坐标 |
+| 标题/标签 | `UiText.drawCenteredTitle` / `drawLabel` — 前景层 GUI 本地坐标 |
+| 图标 | `UiIcon.drawThemeIcon` / `drawAnchored` |
+| 自定义按钮（非 GuiButton 列表） | `UiButton` + `draw` / `click` |
+| 主题 | `UiThemes.ADM`（默认）、`UiThemes.POCKET`（stub） |
+| 图集 | `assets/textech/textures/gui/adm_ui_atlas.png` |
+
+配置类界面仍用 `ADM_GuiScreen` + 整图拉伸，不必迁移到本框架。
+
+**调试状态**（2026-07）：已在物质球解压器验证 `UiPanel` / `UiText` / `UiIcon` / `UiButton`；`UiSlot` / `UiTextField` / `UiToggleButton` 已实现未接入。完整表见 `docs/zh/developer/ui-framework.md`。
 
 ### 3. 简单消息弹窗 → 继承原版 `GuiScreen`
 仅用于提示/确认对话框。参考 `GuiScreenMessage.java`。

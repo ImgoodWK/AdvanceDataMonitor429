@@ -331,7 +331,7 @@ Key classes: `ItemManual`, `gui/manual/ManualDataLoader`, `ManualChapter`, `Manu
 
 JSON under `assets/textech/manual/`; `HandlerPlayerJoin` grants the manual on first join.
 
-`GuiManual` layout: top search field, scrollable chapter sidebar (scrollbar with top/bottom jump buttons), paginated content pane. Search indexes chapter titles and all page bodies (`ManualSearchIndex`); space-separated AND keywords; pinyin via shadowed **PinIn 1.6.0**, delegating to **NotEnoughCharacters** `NecharUtils.contain` when that mod is loaded. See [Player Guide §3.12](../player/player-guide.md#312-advancedatamonitor-manual).
+`GuiManual` layout: top search field, scrollable chapter sidebar (scrollbar with top/bottom jump buttons), paginated content pane. Search indexes chapter titles and all page bodies (`ManualSearchIndex`); space-separated AND keywords; pinyin via shadowed **PinIn 1.6.0**, delegating to **NotEnoughCharacters** `NecharUtils.contain` when that mod is loaded. See [Player Guide §3.12](../player/player-guide.md#312-textech-manual).
 
 
 
@@ -744,6 +744,16 @@ public static int countPlannerEntriesInInventory(EntityPlayer player)
 
 #### GUI System
 
+**Base class selection** (`gui/custom/`; see [ui-framework.md](ui-framework.md) and [new-feature-checklist.md](new-feature-checklist.md)):
+
+| Base | Use | Examples |
+|------|-----|----------|
+| `ADM_GuiScreen` | Complex config / chat / planner | `GuiAIChat`, `GuiAdvancePlanner` |
+| `AdmItemConfigScreen` | Small item/tile NBT config dialogs | `GuiGrappleHookConfig`, `GuiGrappleAnchorConfig`, `GuiSuperOrangeConfig` |
+| `AbstractMonitorSubGui` | Monitor per-binding sub-pages | Five `GuiSub*` classes |
+| `ADM_UiContainer` | New container GUIs (9-slice atlas) | `GuiMatterBallDecompressor` |
+| `AdmGuiTextures` | Shared texture constants | All ADM GUIs |
+
 ##### 7.1 GuiAdvancePlanner
 
 **Package:** `com.imgood.textech.gui.guiscreen.GuiAdvancePlanner`
@@ -1102,7 +1112,7 @@ adm.planner.merge_tooltip=Merge all planner items in inventory
 
 | Layer | Class | Role |
 |-------|-------|------|
-| State / persistence | `PocketState` / `PocketStore` / `PocketInventory` | Per-player UUID slots and upgrades; compressed NBT at `<world save>/advancedatamonitor/pocket-<uuid>.dat` |
+| State / persistence | `PocketState` / `PocketStore` / `PocketInventory` | Per-player UUID slots and upgrades; compressed NBT at `<world save>/textech/pocket-<uuid>.dat` |
 | Shared interaction | `PocketSlotInteraction` | Left/right click and Shift quick-withdraw (one stack batch at a time) shared by GUI and overlay |
 | GUI | `ContainerPocketStorage` / `GuiPocketStorage` | Main storage UI; `slotClick` / `transferStackInSlot` delegate to `PocketSlotInteraction` |
 | Overlay | `PocketOverlayHandler` / `GuiPocketOverlay` | Shift+right-click toggle; tooltips via `GuiScreenTooltipAccess` → Forge `renderToolTip` |
@@ -1120,7 +1130,7 @@ The following issues were fixed on 2026-06-30. Root cause and fix are recorded f
 |---|---------|------------|-----|
 | 1 | After **world reload**, pocket item **stack sizes reset to 1** | Vanilla `ItemStack.writeToNBT(slotTag)` writes `stackSize` as `setByte("Count", (byte)stackSize)`. In GTNH/Forge, `ItemStack.loadItemStackFromNBT` may be patched to read `getInteger("Count")`, causing a type mismatch. The JSON persistence path (`tag.toString()` → `JsonToNBT.func_150315_a()`) may return a Count tag type inconsistent with the load path, losing the count (defaulting to 1). | Added `writeItemStackToNBT` / `readItemStackToNBT` helpers in `PocketState` that write Count as `setInteger("Count", stack.stackSize)` and read with backward-compatible byte/short/int type handling. |
 | 2 | **Overlay slot badge always shows 0** | Same root cause: `PacketPocketSync.toBytes()` used vanilla `writeToNBT` (byte Count); client `fromBytes()` → `loadItemStackFromNBT` reads Count as 0. Storage GUI unaffected (uses vanilla `S2FPacketSetSlot` with raw `buf.writeByte`). | `PacketPocketSync.toBytes/fromBytes` now uses `PocketState.writeItemStackToNBT` / `readItemStackFromNBT`, ensuring int-typed Count in network transmission. |
-| 3 | **Pocket data lost after world reload** (JSON→NBT storage migration) | Previously pocket data was stored as JSON at `config/textech/pocket-<uuid>.json`. New implementation uses `CompressedStreamTools` compressed NBT at `<world save>/advancedatamonitor/pocket-<uuid>.dat`, scoped per world save. | `PocketStore` refactored to use `CompressedStreamTools` read/write; `铽丝科技` added `WorldEvent.Load` listener to set the world save directory. During migration, auto-falls back to the old JSON path when the new path has no file. |
+| 3 | **Pocket data lost after world reload** (JSON→NBT storage migration) | Previously pocket data was stored as JSON at `config/textech/pocket-<uuid>.json`. New implementation uses `CompressedStreamTools` compressed NBT at `<world save>/textech/pocket-<uuid>.dat`, scoped per world save. | `PocketStore` refactored to use `CompressedStreamTools` read/write; TeXTech added `WorldEvent.Load` listener to set the world save directory. During migration, auto-falls back to legacy `advancedatamonitor/` or JSON paths when the new path has no file. |
 
 **Files affected**: `handler/PocketState.java`, `handler/PocketStore.java`, `network/packet/PacketPocketSync.java`, `TeXTech.java`.
 
@@ -1157,7 +1167,7 @@ Key classes: `BlockMatterBallDecompressor`, `TileEntityMatterBallDecompressor`, 
 
 ## 6. GUI and Interaction
 
-`GuiHandler` currently defines ten Forge GUI ids:
+`GuiHandler` currently defines eleven Forge GUI ids:
 
 - `0` (`NBT_VIEWER_GUI_ID`): NBT Viewer — client only.
 - `1` (`ADM_MAIN_GUI_ID`): main monitor GUI.
@@ -1169,6 +1179,9 @@ Key classes: `BlockMatterBallDecompressor`, `TileEntityMatterBallDecompressor`, 
 - `7` (`POCKET_STORAGE_GUI_ID`): dimensional pocket storage `GuiPocketStorage` (must open via server `openGui`; right-click pocket main entry).
 - `8` (`SUPER_ORANGE_GUI_ID`): Super Orange settings `GuiSuperOrangeConfig` (sneak+right-click on client; save via `PacketSuperOrangeConfig`).
 - `9` (`MATTER_BALL_DECOMPRESSOR_GUI_ID`): Matter Ball Decompressor `GuiMatterBallDecompressor` / `ContainerMatterBallDecompressor`.
+- `10` (`UI_FRAMEWORK_DEBUG_GUI_ID`): UI framework debug block → `GuiUiFrameworkDebug` / `ContainerUiFrameworkDebug` (requires `[debug] uiFrameworkBlock=true`).
+
+**Container UI framework** (9-slice atlas, `UiTheme`; Matter Ball Decompressor is the first in-game verification target): see [ui-framework.md](ui-framework.md).
 
 Main monitor GUI entry is `GuiMainAdvanceDataMonitor`; sub-pages configure bind targets, AE2 Network Linker, Crafting Linker, Advanced Storage Linker, colors, and display transforms. AI chat and AI settings are separate `GuiScreen`s opened from main UI buttons, commands, or voice hotkey.
 
@@ -1206,7 +1219,7 @@ Maintenance notes:
 
 - 1.7.10 `SimpleNetworkWrapper` discriminators must match on both sides; do not reuse IDs for new packets.
 - Consider NBT payload size and trust boundaries; client NBT must not become authoritative without validation.
-- World/TileEntity changes in server handlers must run on server thread; `PacketAssistantAction` currently uses `HandlerTick.enqueueServerTask()` to defer assistant tool actions to server tick.
+- World/TileEntity changes in server handlers must run on server thread; packet handlers use `PacketHandlers.runOnServer()` (which delegates to `HandlerTick.enqueueServerTask`).
 
 ## 8. AI Assistant Architecture
 
@@ -1264,7 +1277,7 @@ Adding assistant capabilities usually requires:
 
 `DeepSeekChatClient` is the OpenAI-compatible HTTP client; general chat and AI intent extraction both use it. Config in `Config`, main categories:
 
-- `ai`: base URL, API key, model, network enabled, built-in web search (engine/key/SearXNG URL/max results/fallback), streaming, timeout, max tokens, temperature, privacy flag, debug logging. Client-side values live in `ai-client-local.cfg`.
+- `ai`: base URL, API key, model, network enabled, built-in web search (engine/key/SearXNG URL/max results/fallback), streaming, timeout, max tokens, temperature, privacy flag, debug logging. Client-side values live in `config/textech/ai-client-local.cfg`.
 - `voice`: enabled, privacy flag, STT mode, STT URL/key/model, timeout.
 - `assistant`: max order quantity, craft job timeout, concurrent job count.
 
@@ -1381,6 +1394,6 @@ When enabled, logs go through `TeXTech.LOG`.
 
 1. Fork the repo, branch from latest `master`
 2. Follow existing package structure and loader registration conventions
-3. Sync `en_US.lang` + `zh_CN.lang` for any new/changed text
+3. Sync `assets/textech/lang/en_US.lang` + `zh_CN.lang` for any new/changed text
 4. Run `AssistantIntentParserSuite` / `./gradlew.bat test` when changing assistant code
 5. Open a PR describing how you tested

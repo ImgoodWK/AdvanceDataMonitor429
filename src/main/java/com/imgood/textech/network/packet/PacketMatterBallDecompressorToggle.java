@@ -4,7 +4,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.tileentity.TileEntityMatterBallDecompressor;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -55,14 +55,11 @@ public class PacketMatterBallDecompressorToggle implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketMatterBallDecompressorToggle message, MessageContext ctx) {
-            final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
-                    if (player == null) {
-                        return;
-                    }
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
                     World world = player.worldObj;
                     TileEntity te = world.getTileEntity(message.x, message.y, message.z);
                     if (!(te instanceof TileEntityMatterBallDecompressor)) {
@@ -80,7 +77,6 @@ public class PacketMatterBallDecompressorToggle implements IMessage {
                     world.markBlockForUpdate(message.x, message.y, message.z);
                 }
             });
-            return null;
         }
     }
 }

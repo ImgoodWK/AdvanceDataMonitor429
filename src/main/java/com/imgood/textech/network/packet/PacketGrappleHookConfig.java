@@ -3,9 +3,9 @@ package com.imgood.textech.network.packet;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
-import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.items.GrappleHookMode;
 import com.imgood.textech.items.ItemGrappleHook;
+import com.imgood.textech.network.handler.PacketHandlers;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -57,14 +57,11 @@ public class PacketGrappleHookConfig implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketGrappleHookConfig message, MessageContext ctx) {
-            final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
-                    if (player == null) {
-                        return;
-                    }
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
                     ItemStack held = player.getHeldItem();
                     if (held == null || !(held.getItem() instanceof ItemGrappleHook)) {
                         return;
@@ -82,7 +79,6 @@ public class PacketGrappleHookConfig implements IMessage {
                     ItemGrappleHook.setHookMode(held, GrappleHookMode.fromId(message.modeId));
                 }
             });
-            return null;
         }
     }
 }

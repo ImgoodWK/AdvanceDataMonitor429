@@ -4,8 +4,8 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
 import com.imgood.textech.Config;
-import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.items.ItemSuperOrange;
+import com.imgood.textech.network.handler.PacketHandlers;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -66,14 +66,11 @@ public class PacketSuperOrangeConfig implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketSuperOrangeConfig message, MessageContext ctx) {
-            final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
-                    if (player == null) {
-                        return;
-                    }
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
                     ItemStack held = player.getHeldItem();
                     if (held == null || !(held.getItem() instanceof ItemSuperOrange)) {
                         held = ItemSuperOrange.findOrangeStack(player);
@@ -105,7 +102,6 @@ public class PacketSuperOrangeConfig implements IMessage {
                     ItemSuperOrange.setDropMultiplier(held, mult);
                 }
             });
-            return null;
         }
     }
 }

@@ -5,8 +5,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentTranslation;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.handler.PocketSlotInteraction;
+import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.handler.PocketState;
 import com.imgood.textech.handler.PocketStore;
 import com.imgood.textech.handler.PocketUpgradeRules;
@@ -231,20 +231,18 @@ public class PacketPocketAction implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketPocketAction message, MessageContext ctx) {
-            final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
                     handleServer(player, message);
                 }
             });
-            return null;
         }
     }
 
     private static void handleServer(EntityPlayerMP player, PacketPocketAction message) {
-        if (player == null) return;
         PocketState state = PocketStore.instance()
             .getOrCreate(player);
         boolean changed = false;

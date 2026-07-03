@@ -10,14 +10,14 @@
       "type": "item_showcase",
       "titleKey": "adm.manual.grapple_system.anchor_title",
       "items": [
-        {"registryName": "advancedatamonitor:grappleAnchor", "descKey": "adm.manual.item.grappleAnchor"}
+        {"registryName": "textech:grappleAnchor", "descKey": "adm.manual.item.grappleAnchor"}
       ]
     },
     {
       "type": "item_showcase",
       "titleKey": "adm.manual.grapple_system.hook_title",
       "items": [
-        {"registryName": "advancedatamonitor:grapple_hook", "descKey": "adm.manual.item.grappleHook"}
+        {"registryName": "textech:grapple_hook", "descKey": "adm.manual.item.grappleHook"}
       ]
     },
     {

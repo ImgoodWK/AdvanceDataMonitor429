@@ -68,43 +68,35 @@ public class ADM_GuiTextField extends GuiTextField {
 
     @Override
     public void drawTextBox() {
-        if (this.getVisible()) {
-            ResourceLocation textureToDraw = this.isFocused() && this.focusedBackgroundTexture != null
-                ? this.focusedBackgroundTexture
-                : this.backgroundTexture;
-            if (textureToDraw != null) {
-                drawTexturedRect(
-                    this.xPosition - 1,
-                    this.yPosition - 1,
-                    this.width + 2,
-                    this.height + 2,
-                    textureToDraw);
-            } else {
-                drawTexturedRect(
-                    this.xPosition - 1,
-                    this.yPosition - 1,
-                    this.width + 2,
-                    this.height + 2,
-                    textureToDraw);
-                // 使用原版逻辑绘制背景
-                super.drawTextBox();
-            }
+        if (!this.getVisible()) {
+            return;
+        }
+        ResourceLocation textureToDraw = this.isFocused() && this.focusedBackgroundTexture != null
+            ? this.focusedBackgroundTexture
+            : this.backgroundTexture;
+        if (textureToDraw != null) {
+            drawTexturedRect(
+                this.xPosition - 1,
+                this.yPosition - 1,
+                this.width + 2,
+                this.height + 2,
+                textureToDraw);
+        }
 
-            if (this.getText()
-                .isEmpty() && !this.isFocused()
-                && !hintText.isEmpty()) {
-                this.fontRendererObj
-                    .drawStringWithShadow(this.hintText, this.hintDrawX(), this.hintDrawY(), this.hintColor);
-            } else {
-                // 使用原版逻辑绘制文本
-                super.drawTextBox();
-
-            }
+        if (this.getText()
+            .isEmpty() && !this.isFocused()
+            && !hintText.isEmpty()) {
+            this.fontRendererObj
+                .drawStringWithShadow(this.hintText, this.hintDrawX(), this.hintDrawY(), this.hintColor);
+        } else {
+            super.drawTextBox();
         }
     }
 
     private void drawTexturedRect(int x, int y, int width, int height, ResourceLocation texture) {
-        // 重置颜色
+        if (texture == null) {
+            return;
+        }
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         Minecraft minecraft = Minecraft.getMinecraft();
         minecraft.getTextureManager()

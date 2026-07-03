@@ -33,6 +33,8 @@ English docs: [docs/en/README.md](../en/README.md)
 | 文档 | 说明 |
 |------|------|
 | [developer/技术文档.md](developer/技术文档.md) | 项目结构、Forge 注册、核心模块、数据流（高级计划器 API：§5.11） |
+| [developer/ui-framework.md](developer/ui-framework.md) | 容器 GUI 9-slice 框架、`ADM_UiContainer`、调试状态表 |
+| [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | 新功能开发决策清单（基类选型、网络包、lang 同步） |
 | [developer/Gradle工作流.md](developer/Gradle工作流.md) | ExampleMod 模板、构建迁移、FAQ |
 | [developer/临时材质清单.md](developer/临时材质清单.md) | 缺失/占位方块与物品材质审计；**临时**程序化贴图说明 |
 | [developer/GTNH版本兼容说明.md](developer/GTNH版本兼容说明.md) | v1.0.0 对 2.8.x / 2.9.0-beta+ 的支持范围与下一版移除 Legacy 计划 |
@@ -54,6 +56,7 @@ English docs: [docs/en/README.md](../en/README.md)
 
 | 文档 | 说明 |
 |------|------|
+| [design/品牌视觉设计指南.md](design/品牌视觉设计指南.md) | 模组名称、世界观、配色、宣传图规格与 AI 生图提示词 |
 | [design/未来开发愿景.md](design/未来开发愿景.md) | 长期功能愿景与架构草案（非当前实现规格） |
 
 ### 归档

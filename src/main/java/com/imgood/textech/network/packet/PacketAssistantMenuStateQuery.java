@@ -3,7 +3,7 @@ package com.imgood.textech.network.packet;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.imgood.textech.assistant.AssistantServerServices;
-import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.network.handler.PacketHandlers;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -35,18 +35,14 @@ public class PacketAssistantMenuStateQuery implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketAssistantMenuStateQuery message, final MessageContext ctx) {
-            final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
-                    if (player == null) {
-                        return;
-                    }
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
                     AssistantServerServices.respondMenuState(player);
                 }
             });
-            return null;
         }
     }
 }

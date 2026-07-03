@@ -6,7 +6,7 @@ import net.minecraft.util.ChatComponentTranslation;
 import com.imgood.textech.handler.GrapplePathStore;
 import com.imgood.textech.handler.GrapplePlanningSession;
 import com.imgood.textech.handler.GrappleRouteSync;
-import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.items.GrappleHookMode;
 import com.imgood.textech.items.ItemGrappleHook;
 
@@ -115,22 +115,18 @@ public class PacketGrapplePathAction implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketGrapplePathAction message, MessageContext ctx) {
-            final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
                     handleServer(player, message);
                 }
             });
-            return null;
         }
     }
 
     private static void handleServer(EntityPlayerMP player, PacketGrapplePathAction message) {
-        if (player == null) {
-            return;
-        }
         if (message.action == REQUEST_SYNC) {
             GrappleRouteSync.syncAll(player);
         } else if (message.action == SAVE_ROUTE) {

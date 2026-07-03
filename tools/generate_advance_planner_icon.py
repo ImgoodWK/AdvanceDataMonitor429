@@ -11,7 +11,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(
     ROOT,
-    "src/main/resources/assets/advancedatamonitor/textures/items/advance_planner.png",
+    "src/main/resources/assets/textech/textures/items/advance_planner.png",
 )
 
 SIZE = 64

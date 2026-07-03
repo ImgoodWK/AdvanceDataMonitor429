@@ -1,11 +1,13 @@
 package com.imgood.textech.network.packet;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.tileentity.TileEntityGrappleAnchor;
+import com.imgood.textech.utils.NetworkValidationUtil;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -135,29 +137,37 @@ public class PacketGrappleAnchorConfig implements IMessage {
 
         public IMessage onMessage(final PacketGrappleAnchorConfig message, MessageContext ctx) {
 
-            HandlerTick.enqueueServerTask(new Runnable() {
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
 
                 public void run() {
 
-                    World world = ctx.getServerHandler().playerEntity.worldObj;
+                    EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+
+                    World world = player.worldObj;
 
                     TileEntity te = world.getTileEntity(message.x, message.y, message.z);
 
-                    if (te instanceof TileEntityGrappleAnchor) {
+                    if (!(te instanceof TileEntityGrappleAnchor)) {
 
-                        TileEntityGrappleAnchor anchor = (TileEntityGrappleAnchor) te;
-
-                        anchor.applyConfig(message.displayName, message.iconCursorColor);
+                        return;
 
                     }
+
+                    if (!NetworkValidationUtil.canEditOwnedTile(player, te)) {
+
+                        return;
+
+                    }
+
+                    TileEntityGrappleAnchor anchor = (TileEntityGrappleAnchor) te;
+
+                    anchor.applyConfig(message.displayName, message.iconCursorColor);
 
                 }
 
             });
-
-            return null;
 
         }
 

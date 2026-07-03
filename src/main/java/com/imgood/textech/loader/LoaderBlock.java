@@ -8,6 +8,8 @@ import com.imgood.textech.blocks.BlockAdvanceNetworkLink;
 import com.imgood.textech.blocks.BlockAdvanceStorageLink;
 import com.imgood.textech.blocks.BlockGrappleAnchor;
 import com.imgood.textech.blocks.BlockMatterBallDecompressor;
+import com.imgood.textech.blocks.BlockUiFrameworkDebug;
+import com.imgood.textech.Config;
 import com.imgood.textech.items.ItemBlockGrappleAnchor;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -26,6 +28,7 @@ public class LoaderBlock {
     public static BlockAdvanceCraftingLink advanceCraftingLink;
     public static BlockGrappleAnchor grappleAnchor;
     public static BlockMatterBallDecompressor matterBallDecompressor;
+    public static BlockUiFrameworkDebug uiFrameworkDebug;
 
     public static void registerBlocks() {
         advanceDataMonitor = new BlockAdvanceDataMonitor();
@@ -41,5 +44,10 @@ public class LoaderBlock {
         GameRegistry.registerBlock(advanceCraftingLink, "advCraftingLink");
         GameRegistry.registerBlock(grappleAnchor, ItemBlockGrappleAnchor.class, "grappleAnchor");
         GameRegistry.registerBlock(matterBallDecompressor, "matterBallDecompressor");
+
+        if (Config.debugUiFrameworkBlock) {
+            uiFrameworkDebug = new BlockUiFrameworkDebug();
+            GameRegistry.registerBlock(uiFrameworkDebug, "uiFrameworkDebug");
+        }
     }
 }

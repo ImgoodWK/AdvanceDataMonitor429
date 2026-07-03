@@ -4,15 +4,14 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import org.lwjgl.input.Keyboard;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.TileEntityTypeHelper;
 
@@ -35,22 +34,6 @@ public class GuiSubBind extends ADM_GuiScreen {
 
     private String errorTips = "";
 
-    private static final ResourceLocation BUTTON_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation BUTTON_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation TEXTFIELD_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_ADM_8020.png");
-    private static final ResourceLocation TEXTFIELD_HOVER_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/textfield_hover_ADM_8020.png");
-    private static final ResourceLocation BACKGROUND = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_ADM_Sub.png");
-
     private int offsetX, offsetY;
 
     private int textColor = 0x00FFFF;
@@ -60,7 +43,7 @@ public class GuiSubBind extends ADM_GuiScreen {
         this.player = player;
         this.world = world;
         this.tileEntity = tileEntity;
-        this.setBackgroundTexture(BACKGROUND);
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
         this.setSize(300, 150);
         this.setStretch(false);
 
@@ -76,14 +59,14 @@ public class GuiSubBind extends ADM_GuiScreen {
         this.setPosition(this.offsetX, this.offsetY);
 
         textFieldX = new ADM_GuiTextField(this.fontRendererObj, this.offsetX + 45, this.offsetY + 60, 60, 20)
-            .setBackgroundTexture(TEXTFIELD_TEXTURE)
-            .setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
+            .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
+            .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
         textFieldY = new ADM_GuiTextField(this.fontRendererObj, this.offsetX + 125, this.offsetY + 60, 60, 20)
-            .setBackgroundTexture(TEXTFIELD_TEXTURE)
-            .setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
+            .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
+            .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
         textFieldZ = new ADM_GuiTextField(this.fontRendererObj, this.offsetX + 205, this.offsetY + 60, 60, 20)
-            .setBackgroundTexture(TEXTFIELD_TEXTURE)
-            .setFocusedBackgroundTexture(TEXTFIELD_HOVER_TEXTURE);
+            .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
+            .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
 
         textFieldX.setMaxStringLength(10);
         textFieldY.setMaxStringLength(10);
@@ -92,8 +75,8 @@ public class GuiSubBind extends ADM_GuiScreen {
 
         this.buttonList.add(
             new ADM_GuiButton(0, this.offsetX + 80, this.offsetY + 100, 60, 20, I18n.format("adm.button.save"))
-                .setTexture(BUTTON_TEXTURE)
-                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setTexture(AdmGuiTextures.BUTTON)
+                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseRGBEffect(false)
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor)
@@ -101,8 +84,8 @@ public class GuiSubBind extends ADM_GuiScreen {
 
         this.buttonList.add(
             new ADM_GuiButton(1, this.offsetX + 160, this.offsetY + 100, 60, 20, I18n.format("adm.button.cancel"))
-                .setTexture(BUTTON_TEXTURE)
-                .setHoverTexture(BUTTON_HOVER_TEXTURE)
+                .setTexture(AdmGuiTextures.BUTTON)
+                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseRGBEffect(false)
                 .setTextColor(textColor)
                 .setTextHoverColor(textHoverColor)
@@ -212,10 +195,7 @@ public class GuiSubBind extends ADM_GuiScreen {
                     new GuiMainAdvanceDataMonitor(player, world, tileEntity).setPosition(0, 0)
                         .setSize(200, 200)
                         .setStretch(true)
-                        .setBackgroundTexture(
-                            new ResourceLocation(
-                                AdvanceDataMonitor.MODID,
-                                "textures/gui/background_AdvanceDataMonitor_Main.png")));
+                        .setBackgroundTexture(AdmGuiTextures.BACKGROUND_MONITOR_MAIN));
         }
     }
 

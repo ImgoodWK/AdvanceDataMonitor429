@@ -4,15 +4,15 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import com.google.gson.JsonObject;
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.container.ContainerAdvanceStorageLink;
 import com.imgood.textech.gui.container.ContainerDimensionalPocket;
 import com.imgood.textech.gui.container.ContainerMatterBallDecompressor;
 import com.imgood.textech.gui.container.ContainerPocketStorage;
+import com.imgood.textech.gui.container.ContainerUiFrameworkDebug;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.gui.guiscreen.GuiAdvanceStorageLink;
 import com.imgood.textech.gui.guiscreen.GuiDimensionalPocketConfig;
 import com.imgood.textech.gui.guiscreen.GuiGrappleAnchorConfig;
@@ -23,6 +23,7 @@ import com.imgood.textech.gui.guiscreen.GuiMatterBallDecompressor;
 import com.imgood.textech.gui.guiscreen.GuiNbtViewer;
 import com.imgood.textech.gui.guiscreen.GuiPocketStorage;
 import com.imgood.textech.gui.guiscreen.GuiSuperOrangeConfig;
+import com.imgood.textech.gui.guiscreen.GuiUiFrameworkDebug;
 import com.imgood.textech.items.ItemDataImprint;
 import com.imgood.textech.items.ItemGrappleHook;
 import com.imgood.textech.items.ItemSuperOrange;
@@ -42,9 +43,6 @@ import cpw.mods.fml.common.network.IGuiHandler;
  **/
 public class GuiHandler implements IGuiHandler {
 
-    ResourceLocation guiAdvanceDataMonitor_Main_Background = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/background_AdvanceDataMonitor_Main.png");
     // GUI的唯一ID
     public static final int NBT_VIEWER_GUI_ID = 0;
     public static final int ADM_MAIN_GUI_ID = 1;
@@ -56,6 +54,7 @@ public class GuiHandler implements IGuiHandler {
     public static final int POCKET_STORAGE_GUI_ID = 7;
     public static final int SUPER_ORANGE_GUI_ID = 8;
     public static final int MATTER_BALL_DECOMPRESSOR_GUI_ID = 9;
+    public static final int UI_FRAMEWORK_DEBUG_GUI_ID = 10;
 
     @Override
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
@@ -75,6 +74,8 @@ public class GuiHandler implements IGuiHandler {
                     player.inventory,
                     (TileEntityMatterBallDecompressor) tileEntity);
             }
+        } else if (ID == UI_FRAMEWORK_DEBUG_GUI_ID) {
+            return new ContainerUiFrameworkDebug(player);
         }
         return null;
     }
@@ -99,7 +100,7 @@ public class GuiHandler implements IGuiHandler {
                         .setPosition(-10, 30)
                         .setSize(470, 270)
                         .setStretch(false)
-                        .setBackgroundTexture(guiAdvanceDataMonitor_Main_Background);
+                        .setBackgroundTexture(AdmGuiTextures.BACKGROUND_MONITOR_MAIN);
                 }
                 return null;
             case ADM_STORAGELINK_ID:
@@ -146,6 +147,8 @@ public class GuiHandler implements IGuiHandler {
                         (TileEntityMatterBallDecompressor) decompressorTe);
                 }
                 return null;
+            case UI_FRAMEWORK_DEBUG_GUI_ID:
+                return new GuiUiFrameworkDebug(player);
         }
         return null;
     }

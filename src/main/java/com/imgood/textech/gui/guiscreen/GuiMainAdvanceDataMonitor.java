@@ -8,7 +8,6 @@ import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import org.lwjgl.input.Keyboard;
@@ -17,6 +16,7 @@ import org.lwjgl.opengl.GL11;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.renders.RenderAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
@@ -31,18 +31,6 @@ import com.imgood.textech.utils.TileEntityTypeHelper;
  */
 public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
-    private static final ResourceLocation button_texture = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM.png");
-    private static final ResourceLocation button_hover_texture = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM.png");
-    private static final ResourceLocation button_texture_2020 = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_ADM_2020.png");
-    private static final ResourceLocation button_hover_texture_2020 = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/button_hover_ADM_2020.png");
     private final TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonitor;
     private final RenderAdvanceDataMonitor renderer = new RenderAdvanceDataMonitor();
     private EntityPlayer player;
@@ -104,12 +92,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 buttonRow1Width, // 加宽按钮
                 20,
                 currentFacing) // 显示当前方向
-                    .setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
+                    .setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
+                    .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                    .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                     .setDecorationWidth(20)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -121,12 +109,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.offsetY + buttonRowYOffset2,
                 80,
                 20,
-                I18n.format("adm.button.bind")).setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
+                I18n.format("adm.button.bind")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
+                    .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                    .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                     .setDecorationWidth(20)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -139,12 +127,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
          * this.offsetY + buttonRowYOffset2,
          * buttonRow1Width,
          * 20,
-         * I18n.format("adm.button.add")).setTexture(button_texture)
-         * .setHoverTexture(button_hover_texture)
+         * I18n.format("adm.button.add")).setTexture(AdmGuiTextures.BUTTON)
+         * .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
          * .setUseRGBEffect(buttonRow1RGB)
          * .setUseHoverEffect(true)
-         * .setLeftDecoration(button_hover_texture)
-         * .setRightDecoration(button_hover_texture)
+         * .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+         * .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
          * .setDecorationWidth(20)
          * .setTextColor(textColor)
          * .setTextHoverColor(textHoverColor));
@@ -158,12 +146,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
          * this.offsetY + buttonRowYOffset2,
          * buttonRow1Width,
          * 20,
-         * I18n.format("adm.button.add")).setTexture(button_texture)
-         * .setHoverTexture(button_hover_texture)
+         * I18n.format("adm.button.add")).setTexture(AdmGuiTextures.BUTTON)
+         * .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
          * .setUseRGBEffect(buttonRow1RGB)
          * .setUseHoverEffect(true)
-         * .setLeftDecoration(button_hover_texture)
-         * .setRightDecoration(button_hover_texture)
+         * .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+         * .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
          * .setDecorationWidth(20)
          * .setTextColor(textColor)
          * .setTextHoverColor(textHoverColor));
@@ -176,12 +164,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.offsetY + buttonRowYOffset2,
                 buttonRow1Width,
                 20,
-                I18n.format("adm.button.add")).setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
+                I18n.format("adm.button.add")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
+                    .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                    .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                     .setDecorationWidth(20)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -194,12 +182,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
          * this.offsetY + buttonRowYOffset2,
          * buttonRow1Width,
          * 20,
-         * I18n.format("adm.button.add")).setTexture(button_texture)
-         * .setHoverTexture(button_hover_texture)
+         * I18n.format("adm.button.add")).setTexture(AdmGuiTextures.BUTTON)
+         * .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
          * .setUseRGBEffect(buttonRow1RGB)
          * .setUseHoverEffect(true)
-         * .setLeftDecoration(button_hover_texture)
-         * .setRightDecoration(button_hover_texture)
+         * .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+         * .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
          * .setDecorationWidth(20)
          * .setTextColor(textColor)
          * .setTextHoverColor(textHoverColor));
@@ -212,12 +200,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.offsetY + buttonRowYOffset1,
                 buttonRow1Width,
                 20,
-                I18n.format("adm.button.hide")).setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
+                I18n.format("adm.button.hide")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
+                    .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                    .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                     .setDecorationWidth(20)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -230,12 +218,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 45,
                 20,
                 this.tileEntityAdvanceDataMonitor.isVisableScreen() ? I18n.format("adm.button.hide")
-                    : I18n.format("adm.button.show")).setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
+                    : I18n.format("adm.button.show")).setTexture(AdmGuiTextures.BUTTON)
+                        .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                         .setUseRGBEffect(buttonRow1RGB)
                         .setUseHoverEffect(true)
-                        .setLeftDecoration(button_hover_texture)
-                        .setRightDecoration(button_hover_texture)
+                        .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                        .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                         .setDecorationWidth(20)
                         .setTextColor(textColor)
                         .setTextHoverColor(textHoverColor));
@@ -248,12 +236,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 buttonRow1Width,
                 20,
                 this.tileEntityAdvanceDataMonitor.isRenderBothSides() ? I18n.format("adm.button.both")
-                    : I18n.format("adm.button.single")).setTexture(button_texture)
-                        .setHoverTexture(button_hover_texture)
+                    : I18n.format("adm.button.single")).setTexture(AdmGuiTextures.BUTTON)
+                        .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                         .setUseRGBEffect(buttonRow1RGB)
                         .setUseHoverEffect(true)
-                        .setLeftDecoration(button_hover_texture)
-                        .setRightDecoration(button_hover_texture)
+                        .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                        .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                         .setDecorationWidth(20)
                         .setTextColor(textColor)
                         .setTextHoverColor(textHoverColor));
@@ -265,12 +253,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.offsetY + buttonRowYOffset1,
                 buttonRow1Width,
                 20,
-                I18n.format("adm.button.ai")).setTexture(button_texture)
-                    .setHoverTexture(button_hover_texture)
+                I18n.format("adm.button.ai")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
+                    .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                    .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                     .setDecorationWidth(20)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));
@@ -424,12 +412,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
             int y = offsetY + (i / maxButtonsPerRow) * (buttonHeight + ySpacing);
             this.buttonList.add(
                 new ADM_GuiButton(i, x, y, buttonWidth, buttonHeight, String.valueOf(i + 1))
-                    .setTexture(button_texture_2020)
-                    .setHoverTexture(button_hover_texture_2020)
+                    .setTexture(AdmGuiTextures.BUTTON_2020)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER_2020)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
-                    .setLeftDecoration(button_hover_texture)
-                    .setRightDecoration(button_hover_texture)
+                    .setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
+                    .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
                     .setDecorationWidth(20)
                     .setTextColor(textColor)
                     .setTextHoverColor(textHoverColor));

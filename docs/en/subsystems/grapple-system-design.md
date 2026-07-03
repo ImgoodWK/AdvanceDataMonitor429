@@ -396,7 +396,7 @@ Registration: `LoaderRender.registerRenderers()`
 
 **Registration**: `LoaderNetwork.registerNetWorks()` (postInit)
 
-**Server handling**: `HandlerTick.enqueueServerTask` ensures main thread
+**Server handling**: `PacketHandlers.runOnServer` (delegates to `HandlerTick.enqueueServerTask`) ensures main thread
 
 ### `PacketGrappleAction` payload
 
@@ -419,7 +419,7 @@ short nodeCount
 
 ## 11. Config Keys
 
-**Category**: `grapple` (in `config/advancedatamonitor/advancedatamonitor.cfg`)
+**Category**: `grapple` (in `config/textech/textech.cfg`)
 
 | Key | Default (design doc) | Description |
 |-----|----------------------|-------------|
