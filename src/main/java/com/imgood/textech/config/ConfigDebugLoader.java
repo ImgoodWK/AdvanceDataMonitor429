@@ -32,5 +32,7 @@ public final class ConfigDebugLoader {
             "debug",
             Config.debugUiFrameworkBlock,
             ConfigDescriptions.get("debug", "uiFrameworkBlock"));
+        Config.debugWebae = configuration
+            .getBoolean("webae", "debug", Config.debugWebae, ConfigDescriptions.get("debug", "webae"));
     }
 }

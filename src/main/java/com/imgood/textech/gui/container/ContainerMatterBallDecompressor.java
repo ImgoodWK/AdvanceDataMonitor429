@@ -33,14 +33,18 @@ public class ContainerMatterBallDecompressor extends Container {
         IInventory upgrades = tile.getUpgradeInventory();
 
         for (int row = 0; row < MatterBallDecompressorGuiLayout.INPUT_ROWS; row++) {
-            addSlotToContainer(new Slot(input, row, metrics.inputX,
-                MatterBallDecompressorGuiLayout.CONTENT_START_Y + row * MatterBallDecompressorGuiLayout.CELL) {
+            addSlotToContainer(
+                new Slot(
+                    input,
+                    row,
+                    metrics.inputX,
+                    MatterBallDecompressorGuiLayout.CONTENT_START_Y + row * MatterBallDecompressorGuiLayout.CELL) {
 
-                @Override
-                public boolean isItemValid(ItemStack stack) {
-                    return MatterBallClusterUtil.isMatterCluster(stack);
-                }
-            });
+                    @Override
+                    public boolean isItemValid(ItemStack stack) {
+                        return MatterBallClusterUtil.isMatterCluster(stack);
+                    }
+                });
         }
 
         for (int index = 0; index < BUFFER_COUNT; index++) {
@@ -60,8 +64,7 @@ public class ContainerMatterBallDecompressor extends Container {
                 int row = bufferIndex / MatterBallDecompressorGuiLayout.MAX_BUFFER_SIDE;
                 int col = bufferIndex % MatterBallDecompressorGuiLayout.MAX_BUFFER_SIDE;
                 slotX = metrics.bufferRegionX + col * MatterBallDecompressorGuiLayout.CELL;
-                slotY = MatterBallDecompressorGuiLayout.CONTENT_START_Y
-                    + row * MatterBallDecompressorGuiLayout.CELL;
+                slotY = MatterBallDecompressorGuiLayout.CONTENT_START_Y + row * MatterBallDecompressorGuiLayout.CELL;
             }
             addSlotToContainer(new Slot(buffer, bufferIndex, slotX, slotY) {
 
@@ -79,36 +82,46 @@ public class ContainerMatterBallDecompressor extends Container {
 
         for (int i = 0; i < UPGRADE_COUNT; i++) {
             final int upgradeSlot = i;
-            addSlotToContainer(new Slot(upgrades, upgradeSlot, metrics.upgradeColumnX,
-                MatterBallDecompressorGuiLayout.CONTENT_START_Y + i * MatterBallDecompressorGuiLayout.CELL) {
+            addSlotToContainer(
+                new Slot(
+                    upgrades,
+                    upgradeSlot,
+                    metrics.upgradeColumnX,
+                    MatterBallDecompressorGuiLayout.CONTENT_START_Y + i * MatterBallDecompressorGuiLayout.CELL) {
 
-                @Override
-                public int getSlotStackLimit() {
-                    return 1;
-                }
-
-                @Override
-                public boolean isItemValid(ItemStack stack) {
-                    if (stack == null || !(stack.getItem() instanceof IUpgradeModule)) {
-                        return false;
+                    @Override
+                    public int getSlotStackLimit() {
+                        return 1;
                     }
-                    Upgrades type = ((IUpgradeModule) stack.getItem()).getType(stack);
-                    return MatterBallDecompressorUpgrades.acceptsUpgradeInSlot(upgradeSlot, type);
-                }
-            });
+
+                    @Override
+                    public boolean isItemValid(ItemStack stack) {
+                        if (stack == null || !(stack.getItem() instanceof IUpgradeModule)) {
+                            return false;
+                        }
+                        Upgrades type = ((IUpgradeModule) stack.getItem()).getType(stack);
+                        return MatterBallDecompressorUpgrades.acceptsUpgradeInSlot(upgradeSlot, type);
+                    }
+                });
         }
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlotToContainer(new Slot(playerInventory, col + row * 9 + 9,
-                    metrics.playerInvX + col * MatterBallDecompressorGuiLayout.CELL,
-                    metrics.playerInvY + row * MatterBallDecompressorGuiLayout.CELL));
+                addSlotToContainer(
+                    new Slot(
+                        playerInventory,
+                        col + row * 9 + 9,
+                        metrics.playerInvX + col * MatterBallDecompressorGuiLayout.CELL,
+                        metrics.playerInvY + row * MatterBallDecompressorGuiLayout.CELL));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlotToContainer(new Slot(playerInventory, col,
-                metrics.playerInvX + col * MatterBallDecompressorGuiLayout.CELL,
-                metrics.playerInvY + 58));
+            addSlotToContainer(
+                new Slot(
+                    playerInventory,
+                    col,
+                    metrics.playerInvX + col * MatterBallDecompressorGuiLayout.CELL,
+                    metrics.playerInvY + 58));
         }
     }
 

@@ -213,18 +213,19 @@ public class CommandAIConfig extends CommandBase {
             Config.toggleAiWebSearchEnabled();
         } else if ("on".equals(value) || "true".equals(value) || "enable".equals(value) || "enabled".equals(value)) {
             Config.setAiWebSearchEnabled(true);
-        } else if ("off".equals(value) || "false".equals(value) || "disable".equals(value) || "disabled".equals(value)) {
-            Config.setAiWebSearchEnabled(false);
-        } else if (WebSearchService.isProvider(value)) {
-            Config.setAiWebSearchMode(value);
-            Config.setAiWebSearchEnabled(true);
-        } else {
-            send(
-                sender,
-                EnumChatFormatting.RED
-                    + "Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>");
-            return;
-        }
+        } else
+            if ("off".equals(value) || "false".equals(value) || "disable".equals(value) || "disabled".equals(value)) {
+                Config.setAiWebSearchEnabled(false);
+            } else if (WebSearchService.isProvider(value)) {
+                Config.setAiWebSearchMode(value);
+                Config.setAiWebSearchEnabled(true);
+            } else {
+                send(
+                    sender,
+                    EnumChatFormatting.RED
+                        + "Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>");
+                return;
+            }
         send(
             sender,
             EnumChatFormatting.GREEN + "AI web search: "
@@ -252,7 +253,8 @@ public class CommandAIConfig extends CommandBase {
         send(
             sender,
             EnumChatFormatting.AQUA + "Search API key: "
-                + (Config.getAiSearchApiKey().isEmpty() ? "not set" : maskKey(Config.getAiSearchApiKey())));
+                + (Config.getAiSearchApiKey()
+                    .isEmpty() ? "not set" : maskKey(Config.getAiSearchApiKey())));
         send(
             sender,
             EnumChatFormatting.AQUA + "SearXNG base URL: "

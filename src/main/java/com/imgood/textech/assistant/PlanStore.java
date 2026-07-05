@@ -135,6 +135,22 @@ public class PlanStore {
         return complete(null, id, text);
     }
 
+    /**
+     * Returns a copy of all plans owned by the given UUID (for WebAE read-only view).
+     */
+    public synchronized List<PlanEntry> listForOwner(String ownerUuid) {
+        load();
+        List<PlanEntry> result = new ArrayList<PlanEntry>();
+        String owner = ownerUuid == null ? new UUID(0L, 0L).toString() : ownerUuid;
+        for (PlanEntry plan : plans) {
+            normalizeLoaded(plan);
+            if (owner.equals(plan.owner)) {
+                result.add(plan.copy());
+            }
+        }
+        return result;
+    }
+
     public synchronized List<PlanEntry> dueReminders(EntityPlayerMP player) {
         load();
         long now = System.currentTimeMillis();

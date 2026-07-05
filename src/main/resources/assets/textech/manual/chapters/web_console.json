@@ -1,0 +1,85 @@
+{
+  "chapterTitleKey": "adm.manual.chapter.web_console",
+  "pages": [
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.brief_overview_title",
+      "textKey": "adm.manual.web_console.brief_overview_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.brief_start_title",
+      "textKey": "adm.manual.web_console.brief_start_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.brief_docs_title",
+      "textKey": "adm.manual.web_console.brief_docs_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.topology_title",
+      "textKey": "adm.manual.web_console.topology_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.phase3_title",
+      "textKey": "adm.manual.web_console.phase3_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.search_title",
+      "textKey": "adm.manual.web_console.search_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.recipes_title",
+      "textKey": "adm.manual.web_console.recipes_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.recipe_cache_title",
+      "textKey": "adm.manual.web_console.recipe_cache_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.icon_cache_title",
+      "textKey": "adm.manual.web_console.icon_cache_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.command_upload_title",
+      "textKey": "adm.manual.web_console.command_upload_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.visibility_refresh_title",
+      "textKey": "adm.manual.web_console.visibility_refresh_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.gt_charts_title",
+      "textKey": "adm.manual.web_console.gt_charts_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.essentia_title",
+      "textKey": "adm.manual.web_console.essentia_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.alerts_edit_title",
+      "textKey": "adm.manual.web_console.alerts_edit_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.order_templates_title",
+      "textKey": "adm.manual.web_console.order_templates_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.extensions_title",
+      "textKey": "adm.manual.web_console.extensions_text"
+    }
+  ]
+}

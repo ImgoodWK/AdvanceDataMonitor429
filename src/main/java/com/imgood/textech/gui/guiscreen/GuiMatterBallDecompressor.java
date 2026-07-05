@@ -96,8 +96,9 @@ public class GuiMatterBallDecompressor extends ADM_UiContainer {
             outputModeButton.set(getOutputOperationMode());
         }
         if (blockModeButton != null) {
-            blockModeButton.set(tile.getConfigManager()
-                .getSetting(Settings.BLOCK));
+            blockModeButton.set(
+                tile.getConfigManager()
+                    .getSetting(Settings.BLOCK));
         }
         super.drawScreen(mouseX, mouseY, partialTicks);
         if (titleAccentChip != null) {
@@ -131,9 +132,8 @@ public class GuiMatterBallDecompressor extends ADM_UiContainer {
     }
 
     private static List<String> aeTooltipLines(String titleKey, String bodyKey) {
-        return Arrays.asList(
-            EnumChatFormatting.WHITE + I18n.format(titleKey),
-            EnumChatFormatting.GRAY + I18n.format(bodyKey));
+        return Arrays
+            .asList(EnumChatFormatting.WHITE + I18n.format(titleKey), EnumChatFormatting.GRAY + I18n.format(bodyKey));
     }
 
     private void drawAeStyleTooltip(List<String> lines, int mouseX, int mouseY) {
@@ -160,12 +160,8 @@ public class GuiMatterBallDecompressor extends ADM_UiContainer {
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
         int left = panelLeft();
         int top = panelTop();
-        MatterBallDecompressorGuiRenderer.drawBackground(
-            left,
-            top,
-            metrics,
-            tile.isOutputToNetwork(),
-            tile.isBlockMode());
+        MatterBallDecompressorGuiRenderer
+            .drawBackground(left, top, metrics, tile.isOutputToNetwork(), tile.isBlockMode());
     }
 
     @Override

@@ -46,6 +46,7 @@ public class HandlerTick {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        long now = System.currentTimeMillis();
         Runnable task;
         int processed = 0;
         while ((task = SERVER_TASKS.poll()) != null && processed++ < 64) {
@@ -55,6 +56,19 @@ public class HandlerTick {
         AssistantCraftJobManager.instance()
             .tickPendingJobs();
         com.imgood.textech.items.cell.DataLoomWeaveScheduler.onServerTick();
+        com.imgood.textech.webae.cache.SnapshotScheduler.onServerTick();
+        com.imgood.textech.webae.power.PowerSampler.getInstance()
+            .onServerTick();
+        com.imgood.textech.webae.metric.NetworkMetricSampler.getInstance()
+            .onServerTick();
+        com.imgood.textech.handler.HandlerWebPlayerTracker.onServerTick(now);
+        com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
+        com.imgood.textech.webae.icon.IconMissingQueue.instance()
+            .onServerTick();
+        com.imgood.textech.webae.events.EventStreamHub.instance()
+            .tickHeartbeats();
+        com.imgood.textech.webae.chat.ChatMessageStore.instance()
+            .tickSave(now);
     }
 
     private void scanPlanReminders() {

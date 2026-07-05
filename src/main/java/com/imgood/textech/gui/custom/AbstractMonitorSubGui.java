@@ -83,8 +83,8 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
     protected void saveAndSync(NBTTagCompound nbt) {
         tileEntity.setDisplayData(index, nbt);
         tileEntity.writeToNBT(nbt);
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(
-            new PacketSynTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, nbt));
+        AdvanceDataMonitor.ADMCHANEL
+            .sendToServer(new PacketSynTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, nbt));
     }
 
     protected void openMainGui() {
@@ -95,7 +95,7 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
                 .setBackgroundTexture(AdmGuiTextures.BACKGROUND_MONITOR_MAIN));
     }
 
-  /**
+    /**
      * Subclasses assign field references when text fields are created.
      */
     protected void assignTextField(String row, int fieldIndex, ADM_GuiTextField field) {}
@@ -194,11 +194,8 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
         int yPos = hintY;
         fontRendererObj.drawStringWithShadow(I18n.format("adm.property.tips"), hintX, yPos, 0x00FFFF);
         for (String line : wrappedHint) {
-            fontRendererObj.drawStringWithShadow(
-                String.valueOf((char) 0x00A7) + "l" + line,
-                hintX,
-                yPos + 10,
-                0x00FFFF);
+            fontRendererObj
+                .drawStringWithShadow(String.valueOf((char) 0x00A7) + "l" + line, hintX, yPos + 10, 0x00FFFF);
             yPos += 10;
         }
     }

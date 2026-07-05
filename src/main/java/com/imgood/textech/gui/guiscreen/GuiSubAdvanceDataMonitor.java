@@ -236,7 +236,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
                 isEnabled ? "adm.button.disable" : "adm.button.enable"));
 
         this.buttonList.add(button(2, offsetX, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.line"));
-        this.buttonList.add(button(3, offsetX + 70, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar"));
+        this.buttonList
+            .add(button(3, offsetX + 70, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar"));
         this.buttonList
             .add(button(4, offsetX + 140, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar3d"));
         this.buttonList
@@ -245,14 +246,32 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
             .add(button(6, offsetX + 280, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.difference"));
 
         int configY = buttonRowConfigYoffset1;
-        this.buttonList
-            .add(button(8, offsetX + buttonRowConfigXoffset1, offsetY + configY, buttonRow2Width, 20, "adm.button.enableAxis"));
-        configY += buttonRowConfigYinterval1;
-        this.buttonList
-            .add(button(9, offsetX + buttonRowConfigXoffset1, offsetY + configY, buttonRow2Width, 20, "adm.button.enableData"));
+        this.buttonList.add(
+            button(
+                8,
+                offsetX + buttonRowConfigXoffset1,
+                offsetY + configY,
+                buttonRow2Width,
+                20,
+                "adm.button.enableAxis"));
         configY += buttonRowConfigYinterval1;
         this.buttonList.add(
-            button(10, offsetX + buttonRowConfigXoffset1, offsetY + configY, buttonRow2Width, 20, "adm.button.enableAxisFont"));
+            button(
+                9,
+                offsetX + buttonRowConfigXoffset1,
+                offsetY + configY,
+                buttonRow2Width,
+                20,
+                "adm.button.enableData"));
+        configY += buttonRowConfigYinterval1;
+        this.buttonList.add(
+            button(
+                10,
+                offsetX + buttonRowConfigXoffset1,
+                offsetY + configY,
+                buttonRow2Width,
+                20,
+                "adm.button.enableAxisFont"));
     }
 
     private void updateEnableButtonLabels() {

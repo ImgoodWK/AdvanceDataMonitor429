@@ -39,6 +39,11 @@ public final class ConfigDescriptions {
             "uiFrameworkBlock",
             "Register the UI framework debug block (creative) and its component showcase GUI.",
             "注册 UI 框架调试方块（创造模式）及组件展示 GUI。");
+        put(
+            "debug",
+            "webae",
+            "Log WebAE diagnostics (NEI recipe collector handler/recipe counts, icon rendering, etc.).",
+            "记录 WebAE 调试诊断（NEI 配方采集器 handler/配方计数、图标渲染等）。");
 
         put(
             "ai",
@@ -335,6 +340,188 @@ public final class ConfigDescriptions {
             "maxTravelQueueSize",
             "Maximum queued grapple travel hops while already sliding.",
             "已在滑移中时允许排队的最大挂索移动跳数。");
+
+        put(
+            "webConsole",
+            "enabled",
+            "Enable the WebAE HTTP console for remote AE2 monitoring and control. Default false.",
+            "启用 WebAE HTTP 控制台，用于远程 AE2 监控和控制。默认关闭。");
+        put("webConsole", "port", "HTTP server port for WebAE console. Default 8090.", "WebAE 控制台的 HTTP 服务端口。默认 8090。");
+        put(
+            "webConsole",
+            "bindAddress",
+            "Bind address for WebAE HTTP server. Default 127.0.0.1 (local only). Set to 0.0.0.0 to expose to LAN. WARNING: Exposing to LAN without additional firewall may allow unauthorized access.",
+            "WebAE HTTP 服务绑定地址。默认 127.0.0.1（仅本机）。设为 0.0.0.0 可开放局域网访问。警告：开放局域网未经额外防火墙保护可能存在安全风险。");
+        put(
+            "webConsole",
+            "snapshotIntervalSeconds",
+            "Interval in seconds for automatic background storage snapshots. Set to 0 to disable periodic snapshots. Default 30.",
+            "后台自动存储快照的间隔秒数。设为 0 禁用定期快照。默认 30 秒。");
+        put(
+            "webConsole",
+            "recipeUploadEnabled",
+            "Allow OPs to upload NEI recipes to the server recipe cache via /admweb recipes upload command. Phase 2 removed the in-game keybind. Default true.",
+            "允许 OP 通过 /admweb recipes upload 命令上传 NEI 配方到服务器配方缓存。Phase 2 起移除了游戏内快捷键。默认开启。");
+        put(
+            "webConsole",
+            "recipeCacheMode",
+            "Recipe cache eviction mode: lru (evict oldest when maxRecipeCacheMB exceeded) or full (no LRU eviction; GTNH recommended). Default full.",
+            "配方缓存淘汰模式：lru（超过 maxRecipeCacheMB 时 LRU 淘汰）或 full（不 LRU 淘汰，GTNH 推荐）。默认 full。");
+        put(
+            "webConsole",
+            "maxRecipeCacheMB",
+            "Approximate maximum memory (MB) for the server-side recipe cache. In lru mode recipes are evicted when exceeded; in full mode only logs a warning. Default 256.",
+            "服务端配方缓存的最大近似内存（MB）。lru 模式下超过时淘汰；full 模式仅告警。默认 256。");
+        put(
+            "webConsole",
+            "recipeUploadBatchesPerTick",
+            "Recipe upload JSON batches sent per client tick. Default 3, range 1-32.",
+            "每 tick 上传的配方 JSON 批次数。默认 3，范围 1-32。");
+        put(
+            "webConsole",
+            "recipeSearchMinIntervalMs",
+            "Minimum interval (ms) between fuzzy recipe searches per owner via /api/recipes/search?q=. Default 300.",
+            "每位 owner 模糊配方搜索 /api/recipes/search?q= 的最小间隔（毫秒）。默认 300。");
+        put(
+            "webConsole",
+            "nesqlRepositoryPath",
+            "NESQL exporter repository root for /admweb icons import-nesql. Empty = <instance>/TeXTechWebAE (same folder as client recipe export).",
+            "NESQL 导出仓库根目录，用于 /admweb icons import-nesql。空 = 实例根目录下 TeXTechWebAE（与客户端配方导出目录相同）。");
+        put(
+            "webConsole",
+            "neiDeepScanItemsPerTick",
+            "NEI item-driven deep scan items per client tick (/admweb recipes upload deep). 0 = disabled (default).",
+            "NEI 物品驱动深度扫描每 tick 物品数（/admweb recipes upload deep）。0 = 禁用（默认）。");
+        put(
+            "webConsole",
+            "iconMissingDispatchPerTick",
+            "IconMissingQueue lazy-load requests dispatched per server tick. Default 8, range 1-64.",
+            "IconMissingQueue 懒加载图标请求每 tick 派发数。默认 8，范围 1-64。");
+        put(
+            "webConsole",
+            "powerSampleWindowSeconds",
+            "Sliding window duration in seconds for power/steam rate calculation. Longer windows give smoother rates. Default 60.",
+            "电力/蒸汽速率计算的滑动窗口时长（秒）。窗口越长速率越平滑。默认 60 秒。");
+        put(
+            "webConsole",
+            "metricSampleIntervalMs",
+            "Sampling interval in milliseconds for network-wide scalar metrics (item/fluid/CPU/GT counts) used by dashboard trend charts. Valid values: 1000-60000. Default 10000.",
+            "网络级标量指标（物品/流体/CPU/GT 计数）的采样间隔（毫秒），用于仪表盘趋势图。有效值：1000-60000。默认 10000。");
+        put(
+            "webConsole",
+            "metricSampleWindowSeconds",
+            "Rolling window duration in seconds for network metric history. Longer windows retain more trend history at the cost of memory. Valid values: 60-3600. Default 300.",
+            "网络指标历史的滚动窗口时长（秒）。窗口越长保留的趋势历史越多，但内存占用更高。有效值：60-3600。默认 300。");
+        put(
+            "webConsole",
+            "gtDefaultScanRadius",
+            "Default GT machine scan radius for Data Imprint Tool batch scanning. Valid values: 1-256. Default 16.",
+            "数据映录器批量扫描 GT 机器的默认半径。有效值：1-256。默认 16。");
+        put(
+            "webConsole",
+            "refreshIntervalMs",
+            "Unified refresh interval in milliseconds for server snapshot collection and frontend polling. Lower values give fresher data but cost more main-thread time. Valid values: 1000-60000. Default 1000.",
+            "服务端快照采集与前端轮询的统一刷新间隔（毫秒）。值越小数据越新鲜但占主线程时间越多。有效值：1000-60000。默认 1000。");
+        put(
+            "webConsole",
+            "gtRefreshIntervalMs",
+            "GT machine snapshot collection interval in milliseconds. GT machines change slowly so this can be larger than refreshIntervalMs. Valid values: 1000-60000. Default 10000.",
+            "GT 机器快照采集间隔（毫秒）。GT 机器状态变化较慢，可大于 refreshIntervalMs。有效值：1000-60000。默认 10000。");
+        put(
+            "webConsole",
+            "maxNetworksDisplayed",
+            "Maximum number of AE2 networks the web console can display simultaneously (multi-select). Valid values: 1-20. Default 5.",
+            "网页控制台可同时显示的 AE2 网络数量上限（多选）。有效值：1-20。默认 5。");
+        put(
+            "webConsole",
+            "tokenLifetimeHours",
+            "Web auth token lifetime in hours. 0 means never expire. When >0, tokens are rejected after issuedAt + TTL. Valid values: 0-8760. Default 0.",
+            "Web 认证 Token 有效期（小时）。0 表示永不过期；>0 时按签发时间 + TTL 校验。有效值：0-8760。默认 0。");
+        put(
+            "webConsole",
+            "iconCacheEnabled",
+            "Enable the item/fluid icon cache system so the web console can render item icons. Default true.",
+            "启用物品/流体图标缓存系统，使网页控制台能够渲染物品图标。默认开启。");
+        put(
+            "webConsole",
+            "iconUploadEnabled",
+            "Allow clients to upload rendered item icons to the server via /admweb icons upload command. Phase 2 removed the in-game keybind. Default true.",
+            "允许客户端通过 /admweb icons upload 命令上传渲染好的物品图标到服务器。Phase 2 起移除了游戏内快捷键。默认开启。");
+        put(
+            "webConsole",
+            "iconPackEnabled",
+            "Allow the web console to switch between and upload icon texture packs. Default true.",
+            "允许网页控制台切换与上传图标材质包。默认开启。");
+        put(
+            "webConsole",
+            "iconRenderPerTick",
+            "Icons rendered per client tick for a single-mode /admweb icons upload. Default 64, range 8-512.",
+            "单 mode 图标导出时每 tick 渲染数量。默认 64，范围 8-512。");
+        put(
+            "webConsole",
+            "iconRenderPerTickAll",
+            "Icons rendered per tick when /admweb icons upload uses mode all (more conservative). Default 32.",
+            "upload all 时每 tick 渲染数量（更保守）。默认 32。");
+        put(
+            "webConsole",
+            "iconUploadChunksPerTick",
+            "Icon upload JSON chunks sent per client tick. Default 4, range 1-32.",
+            "每 tick 上传的图标 JSON 分片数。默认 4，范围 1-32。");
+        put(
+            "webConsole",
+            "iconProgressChatIntervalMs",
+            "Minimum interval (ms) between in-game chat progress messages during icon export. Default 3000.",
+            "图标导出时游戏内聊天进度提示的最小间隔（毫秒）。默认 3000。");
+        put(
+            "webConsole",
+            "patternBrowsePageSize",
+            "Default page size for GET /api/patterns/browse (Grid + Interface merged). Default 80, range 20-200.",
+            "GET /api/patterns/browse 分页默认条数（Grid + Interface 合并）。默认 80，范围 20-200。");
+        put(
+            "webConsole",
+            "patternBrowseMaxTotal",
+            "Maximum total patterns returned by browse API before truncation. Default 20000.",
+            "browse API 返回的最大样板总数（超出则截断）。默认 20000。");
+        put(
+            "webConsole",
+            "patternCacheTtlMs",
+            "TTL in milliseconds for per-network pattern browse cache. Default 30000.",
+            "按网络缓存样板 browse 结果的 TTL（毫秒）。默认 30000。");
+        put(
+            "webConsole",
+            "topologyEnabled",
+            "Enable GET /api/network/topology for simulated AE network topology graphs. Default true.",
+            "启用 GET /api/network/topology 模拟 AE 网络拓扑图 API。默认开启。");
+        put(
+            "webConsole",
+            "topologyCacheTtlMs",
+            "TTL in milliseconds for manual topology snapshot cooldown (logical/spatial). Default 300000 (5 min).",
+            "手动拓扑快照冷却时间（毫秒，逻辑/空间视图）。默认 300000（5 分钟）。");
+        put(
+            "debug",
+            "webaeIcons",
+            "Enable verbose WebAE icon rendering/upload logging to logs/textech/webae-icons.log. Default false.",
+            "启用 WebAE 图标渲染/上传详细日志，写入 logs/textech/webae-icons.log。默认关闭。");
+        put(
+            "debug",
+            "webaeChat",
+            "Enable verbose WebAE chat collection/send logging to logs/textech/webae-chat.log. Default false.",
+            "启用 WebAE 聊天收集/发送详细日志，写入 logs/textech/webae-chat.log。默认关闭。");
+        put(
+            "debug",
+            "webaeDashboard",
+            "Enable verbose WebAE snapshot/dashboard collection logging to logs/textech/webae-dashboard.log. Default false.",
+            "启用 WebAE 快照/仪表盘采集详细日志，写入 logs/textech/webae-dashboard.log。默认关闭。");
+        put(
+            "debug",
+            "webaeSynthesis",
+            "Enable verbose WebAE synthesis/order logging to logs/textech/webae-synthesis.log. Default false.",
+            "启用 WebAE 合成/下单详细日志，写入 logs/textech/webae-synthesis.log。默认关闭。");
+        put(
+            "debug",
+            "webaePatterns",
+            "Enable verbose WebAE pattern list/encode/inject logging to logs/textech/webae-patterns.log. Default false.",
+            "启用 WebAE 样板列表/编码/注入详细日志，写入 logs/textech/webae-patterns.log。默认关闭。");
     }
 
     private ConfigDescriptions() {}

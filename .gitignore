@@ -38,11 +38,20 @@ addon.late.local.gradle.kts
 layout.json
 
 .gradle-user-home/
+.gradle-home/
+
+# Cursor / Agent 调试日志
+.cursor/debug-*.log
+debug-*.log
 
 # Agent / 开发临时产物（反编译、参考代码、工具缓存等，见 .cursor/rules/workspace-artifacts.mdc）
 .workspace/
 .tmp/
 .cursor/plans/
+
+# WebAE 前端构建依赖（webae-frontend/ 有独立 .gitignore，此处额外确保）
+webae-frontend/node_modules/
+webae-frontend/dist/
 
 # 临时压缩包/备份
 repo.zip

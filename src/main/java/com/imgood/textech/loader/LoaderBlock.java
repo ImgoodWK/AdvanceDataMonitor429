@@ -2,6 +2,7 @@ package com.imgood.textech.loader;
 
 import net.minecraft.block.Block;
 
+import com.imgood.textech.Config;
 import com.imgood.textech.blocks.BlockAdvanceCraftingLink;
 import com.imgood.textech.blocks.BlockAdvanceDataMonitor;
 import com.imgood.textech.blocks.BlockAdvanceNetworkLink;
@@ -9,7 +10,6 @@ import com.imgood.textech.blocks.BlockAdvanceStorageLink;
 import com.imgood.textech.blocks.BlockGrappleAnchor;
 import com.imgood.textech.blocks.BlockMatterBallDecompressor;
 import com.imgood.textech.blocks.BlockUiFrameworkDebug;
-import com.imgood.textech.Config;
 import com.imgood.textech.items.ItemBlockGrappleAnchor;
 
 import cpw.mods.fml.common.registry.GameRegistry;

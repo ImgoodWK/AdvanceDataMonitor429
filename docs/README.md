@@ -22,6 +22,8 @@ The project root [`README.md`](../README.md) keeps only a short intro and build 
 |-------|------|---------|
 | Player guide | [zh/player/用户手册.md](zh/player/用户手册.md) | [en/player/player-guide.md](en/player/player-guide.md) |
 | Developer tech doc | [zh/developer/技术文档.md](zh/developer/技术文档.md) | [en/developer/technical-documentation.md](en/developer/technical-documentation.md) |
+| WebAE user guide | [zh/webae/用户手册.md](zh/webae/用户手册.md) | [en/webae/user-guide.md](en/webae/user-guide.md) |
+| WebAE developer guide | [zh/webae/开发者手册.md](zh/webae/开发者手册.md) | [en/webae/developer-guide.md](en/webae/developer-guide.md) |
 | UI framework | [zh/developer/ui-framework.md](zh/developer/ui-framework.md) | [en/developer/ui-framework.md](en/developer/ui-framework.md) |
 | New feature checklist | [zh/developer/new-feature-checklist.md](zh/developer/new-feature-checklist.md) | [en/developer/new-feature-checklist.md](en/developer/new-feature-checklist.md) |
 | Gradle workflow | [zh/developer/Gradle工作流.md](zh/developer/Gradle工作流.md) | [en/developer/gradle-workflow.md](en/developer/gradle-workflow.md) |

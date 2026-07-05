@@ -75,12 +75,7 @@ public class ADM_GuiTextField extends GuiTextField {
             ? this.focusedBackgroundTexture
             : this.backgroundTexture;
         if (textureToDraw != null) {
-            drawTexturedRect(
-                this.xPosition - 1,
-                this.yPosition - 1,
-                this.width + 2,
-                this.height + 2,
-                textureToDraw);
+            drawTexturedRect(this.xPosition - 1, this.yPosition - 1, this.width + 2, this.height + 2, textureToDraw);
         }
 
         if (this.getText()

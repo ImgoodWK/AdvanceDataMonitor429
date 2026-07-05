@@ -69,11 +69,7 @@ public final class UiButton {
     }
 
     public boolean hitTest(int mouseX, int mouseY) {
-        return enabled
-            && mouseX >= x
-            && mouseX < x + width
-            && mouseY >= y
-            && mouseY < y + height;
+        return enabled && mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
     public void draw(UiTheme theme, FontRenderer font, int mouseX, int mouseY) {
@@ -87,27 +83,9 @@ public final class UiButton {
 
         if (iconIndex >= 0) {
             if (label != null && !label.isEmpty()) {
-                UiIcon.drawAnchored(
-                    theme,
-                    iconIndex,
-                    x,
-                    y,
-                    width / 2,
-                    height,
-                    UiIcon.Anchor.CENTER,
-                    0,
-                    0);
+                UiIcon.drawAnchored(theme, iconIndex, x, y, width / 2, height, UiIcon.Anchor.CENTER, 0, 0);
             } else {
-                UiIcon.drawAnchored(
-                    theme,
-                    iconIndex,
-                    x,
-                    y,
-                    width,
-                    height,
-                    UiIcon.Anchor.CENTER,
-                    0,
-                    0);
+                UiIcon.drawAnchored(theme, iconIndex, x, y, width, height, UiIcon.Anchor.CENTER, 0, 0);
             }
         }
 

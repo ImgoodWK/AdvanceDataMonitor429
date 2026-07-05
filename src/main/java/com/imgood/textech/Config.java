@@ -13,6 +13,8 @@ import com.imgood.textech.config.ConfigGrappleLoader;
 import com.imgood.textech.config.ConfigMatterBallDecompressorLoader;
 import com.imgood.textech.config.ConfigPlannerHudLoader;
 import com.imgood.textech.config.ConfigSuperOrangeLoader;
+import com.imgood.textech.config.ConfigWebaeDebugLoader;
+import com.imgood.textech.config.ConfigWebaeLoader;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -36,6 +38,8 @@ public class Config {
     public static boolean debugConnectorProfile = false;
     /** When true, registers the UI framework debug block and showcase GUI. */
     public static boolean debugUiFrameworkBlock = false;
+    /** When true, logs WebAE diagnostics (NEI recipe collector counts, etc.). */
+    public static boolean debugWebae = false;
 
     // --- ai ---
     public static String aiApiBaseUrl = "https://api.deepseek.com";
@@ -116,6 +120,76 @@ public class Config {
     // --- matter ball decompressor ---
     public static double matterBallDecompressorItemsPerSecond = 16.0D;
 
+    // --- web console ---
+    public static boolean webConsoleEnabled = false;
+    public static int webConsolePort = 8090;
+    public static String webConsoleBindAddress = "127.0.0.1";
+    public static int webConsoleSnapshotIntervalSeconds = 30;
+    public static boolean webRecipeUploadEnabled = true;
+    /** Recipe cache eviction: {@code lru} (small packs) or {@code full} (GTNH-scale, no LRU eviction). */
+    public static String webRecipeCacheMode = "full";
+    public static int webMaxRecipeCacheMB = 256;
+    /** Client recipe upload batches sent per tick. Default 3. */
+    public static int webRecipeUploadBatchesPerTick = 3;
+    /** Minimum interval (ms) between fuzzy recipe searches per owner. Default 300. */
+    public static int webRecipeSearchMinIntervalMs = 300;
+    /** NESQL repository path for {@code /admweb icons import-nesql}. Empty = {@code TeXTechWebAE} under instance root. */
+    public static String webNesqlRepositoryPath = "";
+    /** NEI item-driven deep scan items per tick ({@code /admweb recipes upload deep}). 0 = disabled. */
+    public static int webNeiDeepScanItemsPerTick = 0;
+    /** IconMissingQueue dispatches per server tick. Default 8. */
+    public static int webIconMissingDispatchPerTick = 8;
+    public static int webGtDefaultScanRadius = 16;
+    public static int webPowerSampleWindowSeconds = 60;
+    /** Network metric (item/fluid/CPU/GT counts) sample interval in ms. Default 10000, range 1000-60000. */
+    public static int webMetricSampleIntervalMs = 10000;
+    /** Network metric rolling window in seconds. Default 300, range 60-3600. */
+    public static int webMetricSampleWindowSeconds = 300;
+    /** Unified refresh interval (ms) for server collection and frontend polling. Default 1000, range 1000-60000. */
+    public static int webRefreshIntervalMs = 1000;
+    /** GT machine collection interval (ms). Default 10000, range 1000-60000. */
+    public static int webGtRefreshIntervalMs = 10000;
+    /** Maximum number of networks displayed simultaneously in the web console. Default 5, range 1-20. */
+    public static int webMaxNetworksDisplayed = 5;
+    /** Web auth token lifetime in hours. 0 = never expire. Default 0, range 0-8760. */
+    public static int webTokenLifetimeHours = 0;
+    /** Whether the item/fluid icon cache system is enabled. Default true. */
+    public static boolean webIconCacheEnabled = true;
+    /** Whether clients are allowed to upload rendered icons to the server. Default true. */
+    public static boolean webIconUploadEnabled = true;
+    /** Whether the web console may switch/upload icon texture packs. Default true. */
+    public static boolean webIconPackEnabled = true;
+    /** Icons rendered per client tick for a single mode upload. Default 64. */
+    public static int webIconRenderPerTick = 64;
+    /** Icons rendered per tick when uploading all modes (more conservative). Default 32. */
+    public static int webIconRenderPerTickAll = 32;
+    /** Icon upload JSON chunks sent per client tick. Default 4. */
+    public static int webIconUploadChunksPerTick = 4;
+    /** Minimum interval (ms) between in-game chat progress messages during icon export. Default 3000. */
+    public static int webIconProgressChatIntervalMs = 3000;
+    /** Default page size for GET /api/patterns/browse. Default 80, range 20-200. */
+    public static int webPatternBrowsePageSize = 80;
+    /** Maximum total patterns returned by browse API before truncation. Default 20000. */
+    public static int webPatternBrowseMaxTotal = 20000;
+    /** TTL in ms for pattern browse cache per network. Default 30000. */
+    public static int webPatternCacheTtlMs = 30000;
+    /** Whether the network topology API is enabled. Default true. */
+    public static boolean webTopologyEnabled = true;
+    /** TTL in ms for network topology cache per network/mode. Default 30000. */
+    public static int webTopologyCacheTtlMs = 300000;
+
+    // --- web console per-feature debug logs (default false, gate logs/textech/webae-<feature>.log) ---
+    /** Verbose icon rendering/upload logging (IconRenderer, IconHandler, PacketWebIconUpload). */
+    public static boolean webDebugIcons = false;
+    /** Chat collection/send logging (ChatHandler, ChatMessageStore, HandlerWebChatCollector). */
+    public static boolean webDebugChat = false;
+    /** Dashboard/snapshot collection logging (SnapshotScheduler, AeSnapshotCollector, PlayerOnlineSampler). */
+    public static boolean webDebugDashboard = false;
+    /** Synthesis/order logging (OrderHandler, AssistantServerServices.submitCraft). */
+    public static boolean webDebugSynthesis = false;
+    /** Pattern list/encode/inject logging (PatternListHandler, PatternEncoder, PatternInjector). */
+    public static boolean webDebugPatterns = false;
+
     // --- grapple ---
     public static int grappleHintRange = 24;
     public static int grappleInteractRange = 12;
@@ -141,6 +215,8 @@ public class Config {
         ConfigSuperOrangeLoader.load(configuration);
         ConfigMatterBallDecompressorLoader.load(configuration);
         ConfigGrappleLoader.load(configuration);
+        ConfigWebaeLoader.load(configuration);
+        ConfigWebaeDebugLoader.load(configuration);
 
         if (!FMLCommonHandler.instance()
             .getSide()
@@ -150,6 +226,51 @@ public class Config {
 
         if (configuration.hasChanged()) {
             configuration.save();
+        }
+    }
+
+    /**
+     * Reload the shared server-side configuration from the same file used during
+     * {@link #synchronizeConfiguration(File)}. Invoked by {@code /admweb reload}.
+     *
+     * <p>
+     * Client-only settings (AI/voice API keys, preferences) are <em>not</em>
+     * reloaded here because they live in {@code config/textech/ai-client-local.cfg}
+     * and are loaded by the client proxy. Settings that require a server restart
+     * (e.g. {@code webConsolePort}, {@code webConsoleBindAddress}) will only take
+     * effect after the server restarts — the caller is expected to warn the user.
+     * </p>
+     *
+     * @return true if the reload succeeded
+     */
+    public static boolean reloadConfiguration() {
+        if (activeConfigFile == null || !activeConfigFile.isFile()) {
+            return false;
+        }
+        try {
+            Configuration configuration = new Configuration(activeConfigFile);
+            ConfigDebugLoader.load(configuration);
+            ConfigCompatLoader.load(configuration);
+            ConfigAssistantLoader.load(configuration);
+            ConfigPlannerHudLoader.load(configuration);
+            ConfigDataLoomLoader.load(configuration);
+            ConfigSuperOrangeLoader.load(configuration);
+            ConfigMatterBallDecompressorLoader.load(configuration);
+            ConfigGrappleLoader.load(configuration);
+            ConfigWebaeLoader.load(configuration);
+            ConfigWebaeDebugLoader.load(configuration);
+            if (!FMLCommonHandler.instance()
+                .getSide()
+                .isClient()) {
+                clearClientOnlySettings();
+            }
+            if (configuration.hasChanged()) {
+                configuration.save();
+            }
+            return true;
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.error("[TeXTech] Failed to reload configuration", t);
+            return false;
         }
     }
 

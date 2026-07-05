@@ -918,3 +918,200 @@ adm.label.ui_framework.toggle_on=开
 adm.button.ui_framework.demo=演示按钮
 adm.button.ui_framework.disabled=禁用按钮
 adm.hint.ui_framework.field=UiTextField 输入...
+
+adm.webconsole.token.issued_header=您的 Web 控制台访问令牌（已自动复制，点击 token 可再次复制，点击 URL 打开浏览器）:
+adm.webconsole.token.issued=您的 Web 控制台访问令牌: {0}\n访问地址: http://localhost:{1}
+adm.webconsole.token.revoked={0} 的令牌已撤销。
+adm.webconsole.token.notfound=找不到 {0} 的令牌。
+adm.webconsole.token.list=活跃令牌: {0}
+adm.webconsole.token.usage_hint=点击 token 可复制到剪贴板，点击 URL 可在浏览器中打开。
+adm.webconsole.token.copied=Token 已复制到剪贴板。
+adm.webconsole.token.copy_failed=无法复制到剪贴板，请手动选中 token 文本。
+adm.webconsole.token.click_copy=点击复制 Token 到剪贴板
+adm.webconsole.token.click_open=点击在浏览器中打开
+adm.webconsole.config.reloaded=Web 控制台配置已重载。
+adm.webconsole.disabled=Web 控制台未启用。请在 config/textech/textech.cfg 的 [webConsole] 节中启用。
+adm.webconsole.error=Web 控制台错误: {0}
+
+adm.webconsole.pattern.title=样板编辑器
+adm.webconsole.pattern.encode=编码样板
+adm.webconsole.pattern.inject=注入样板
+adm.webconsole.pattern.injectSuccess=样板已注入到槽位 {0}
+adm.webconsole.pattern.injectFailed=样板注入失败: {0}
+adm.webconsole.pattern.selectInterface=选择接口
+adm.webconsole.pattern.crafting=合成样板
+adm.webconsole.pattern.processing=处理样板
+adm.webconsole.pattern.searchRecipe=查配方
+adm.webconsole.pattern.clear=清空
+adm.webconsole.pattern.addOutput=添加输出
+adm.webconsole.pattern.findRecipes=查找配方
+adm.webconsole.pattern.useRecipe=使用配方
+adm.webconsole.pattern.freeSlots={0}/{1} 空槽
+adm.webconsole.refresh.started_single=已强制重采集网络 {0}。
+adm.webconsole.refresh.started_all=已强制重采集 {0} 个活跃网络。
+adm.webconsole.refresh.no_active=未发现监视器 AE 网络（主人离线或区块未加载）。
+adm.webconsole.token.no_monitor=须至少拥有 1 块高级数据监视器才能签发 Web 令牌。
+adm.webconsole.guest.usage=用法：/admweb guest <玩家名>
+adm.webconsole.guest.not_online=访客玩家「{0}」不在线。
+adm.webconsole.guest.issued_to_guest=你收到了 {0} 的 WebAE 访客令牌，请勿泄露：
+adm.webconsole.guest.issued_to_owner=已向 {0} 私发访客令牌。
+adm.webconsole.guest.revoked=已撤销访客 {0} 的令牌。
+adm.webconsole.refresh.admin_only=刷新为管理员专用，请在游戏内执行 /admweb refresh。
+adm.manual.web_console.refresh_multi_title=刷新与多网络
+adm.manual.web_console.refresh_multi_text=阶段一引入了定速刷新模型与多网络显示。\n\n刷新模型：\n- 服务端每 refreshIntervalMs（默认 1000 毫秒）采集一次快照，并分摊到多个 tick，单 tick 仅入队有限数量的采集任务（只采集最近 2 分钟活跃的网络）。\n- GT 机器每 gtRefreshIntervalMs（默认 10000 毫秒）由同一调度器采集。\n- 电力（EU/蒸汽）保持 5 秒采样窗口；读取始终走缓存。\n- 浏览器只读缓存（GET /api/storage、/api/power、/api/gt/machines）。缓存为空时返回上次快照并标记 cached:false，等调度器追上。\n- 自动刷新按 refreshIntervalMs 轮询，覆盖当前 tab 的相关数据（storage/power/gt/orders）。\n- 手动强制刷新为管理员专用：POST /api/refresh（非 OP 返回 403）或游戏内 /admweb refresh [网络]。\n- 公开端点 /api/config 返回 refreshIntervalMs / gtRefreshIntervalMs / maxNetworksDisplayed / tokenLifetimeHours / themePresets，供前端自适应。\n\n多网络显示：\n- 顶栏网络选择为多选下拉，上限 maxNetworksDisplayed（默认 5）。\n- 分开模式：每个选中网络独立渲染卡片/表格。\n- 综合模式：物品/流体/源质/字节/EU/蒸汽/机器数跨网络汇总（聚合在浏览器完成）。\n- 批量端点：GET /api/storage/batch?networks=0,1,2、POST /api/refresh/batch（管理员），以及对应的 /api/power/batch、/api/gt/machines/batch。
+adm.webconsole.order.title=AE 下单
+adm.webconsole.order.place=下单
+adm.webconsole.order.amount=数量
+adm.webconsole.order.status=状态
+adm.webconsole.order.pending=待处理
+adm.webconsole.order.crafting=合成中
+adm.webconsole.order.completed=已完成
+adm.webconsole.order.failed=失败
+adm.webconsole.order.cancel=取消
+adm.webconsole.order.cancelSuccess=订单已取消
+adm.webconsole.recipes.cleared=配方缓存已清空（内存 + 磁盘）。
+adm.webconsole.icons.disabled=物品图标系统未启用。请在 config 中设置 iconCacheEnabled=true。
+adm.webconsole.icons.upload_disabled=图标上传未启用。请在 config 中设置 iconUploadEnabled=true。
+adm.webconsole.icons.uploading_started=开始渲染并上传物品图标到材质包「{0}」，请稍候...
+adm.webconsole.icons.uploading_started_mode=开始渲染并上传物品图标到材质包「{0}」模式「{1}」，请稍候...
+adm.webconsole.icons.pack_invalid=无效的材质包名称：{0}
+adm.webconsole.icons.mode_invalid=无效的图标渲染模式：{0}
+adm.webconsole.icons.mode_not_implemented=图标渲染模式尚未实现：{0}
+
+adm.iconRenderMode.nei=NEI 风格（推荐）
+adm.iconRenderMode.nei.tooltip=NEI 网格 FBO 导出，与 NEI 槽位一致。WebAE 默认。
+adm.iconRenderMode.hybrid=自动混合（已弃用）
+adm.iconRenderMode.hybrid.tooltip=已弃用：旧版图集+GL 混合路径，请改用 nei。
+adm.iconRenderMode.atlas=图集裁剪（已弃用）
+adm.iconRenderMode.atlas.tooltip=已弃用：CPU 图集裁剪易出错，请改用 nei。
+adm.webconsole.server.restarted=WebAE HTTP 服务已重启：{0}:{1}
+adm.webconsole.server.restart_failed=WebAE HTTP 服务重启失败 — 请查看 logs/latest.log
+adm.manual.chapter.web_console=Web 控制台
+adm.manual.web_console.brief_overview_title=WebAE 控制台
+adm.manual.web_console.brief_overview_text=WebAE 是 TeXTech 内嵌的浏览器管理面板。可在网页中查看 AE2 存储与电力、GT 机器、NEI 配方与 AE 样板，并提交合成订单或与游戏内聊天互通。\n\n默认关闭，需服管在 config/textech/textech.cfg 的 [webConsole] 节启用。默认仅本机访问（127.0.0.1:8090），使用 Token 认证。
+adm.manual.web_console.brief_start_title=快速开始
+adm.manual.web_console.brief_start_text=1. 服管启用 [webConsole] enabled=true 并重启服务端。\n2. 游戏内执行 /admweb issue 获取 Token（完整值仅显示一次）。\n3. 浏览器打开 http://127.0.0.1:8090，粘贴 Token 登录。\n\n常用命令：/admweb issue · /admweb revoke · /admweb help\nOP 上传：/admweb recipes upload snapshot（日常）· /admweb recipes upload（全量）· /admweb icons upload · /admweb icons import-nesql
+adm.manual.web_console.brief_docs_title=详细文档
+adm.manual.web_console.brief_docs_text=本手册仅作简介。完整功能说明、各页面用法与安全注意事项请参阅模组仓库 docs/zh/webae/用户手册.md。\n\n服管与开发者还可参阅 docs/zh/webae/开发者手册.md（REST API、网络包与前端架构）。
+adm.manual.web_console.overview_title=Web 控制台概述
+adm.manual.web_console.overview_text=WebAE 控制台是 TeXTech 内嵌的浏览器可访问 HTTP 管理面板。默认访问地址 http://127.0.0.1:8090，使用 /admweb issue 获取的 Token 登录。\n\n核心功能：\n- 存储监控：实时 AE2 物品/流体类型数、字节使用量、剩余空间。\n- 电力监控：无线电力/蒸汽水平及输入/输出速率折线图。\n- GT 机器：在线 GT 机器状态、进度条、配方详情。\n- 配方搜索：按产物或原料名称搜索 NEI 配方，显示完整输入/输出清单。\n- 样板管理：查看/编辑/注入 AE2 样板到 ME 接口。\n- AE 下单：单物品或批量合成订单，实时进度跟踪。\n- 自动登录：保存的 Token 在下次访问时自动重连。\n- 多网络：最多可选 maxNetworksDisplayed 个网络，切换「分开」（每网络独立卡片）/「综合」（合并总量）显示模式。\n- 定速刷新：服务端按 refreshIntervalMs 分摊采集，浏览器只读缓存轮询；手动刷新为管理员专用 /admweb refresh。\n\n需在配置文件中启用 [webConsole] 节。默认仅本机访问，使用 Token 认证保证安全。\n\n详细使用说明见玩家手册。
+adm.manual.web_console.setup_title=启用与配置
+adm.manual.web_console.setup_text=Web 控制台默认关闭。在 config/textech/textech.cfg 中编辑启用：\n\n[webConsole]\nenabled=true\nport=8090\nbindAddress=127.0.0.1\nsnapshotIntervalSeconds=30\nrefreshIntervalMs=1000\ngtRefreshIntervalMs=10000\nmaxNetworksDisplayed=5\ntokenLifetimeHours=0\nmaxRecipeCacheMB=64\npowerSampleWindowSeconds=60\ngtDefaultScanRadius=16\nrecipeUploadEnabled=true\n\n重启服务端后生效。\n\n重要说明：\n- bindAddress=127.0.0.1 仅允许本机访问。设为 0.0.0.0 可局域网访问（请配合防火墙或 SSH 隧道）。\n- refreshIntervalMs 是服务端采集与前端轮询的统一刷新间隔（毫秒），最低 1000、最高 60000、默认 1000。\n- gtRefreshIntervalMs 是 GT 机器采集间隔（毫秒，默认 10000）。\n- maxNetworksDisplayed 限制网页同时显示的网络数（1-20，默认 5）。\n- tokenLifetimeHours=0 表示 Token 永不过期；设为 >0 启用按签发时间 + TTL 校验（最大 8760）。\n- snapshotIntervalSeconds 为遗留回退项，仅在 refreshIntervalMs 不可用时使用。
+adm.manual.web_console.auth_title=认证与访问
+adm.manual.web_console.auth_text=Web 控制台使用 Token 认证，无需 Minecraft 登录凭据。\n\n获取 Token：\n/admweb issue - 生成新 Token（仅显示一次，请立即保存）\n/admweb list - 列出所有已签发的 Token（仅 OP，仅显示前缀）\n/admweb revoke [玩家] - 撤销 Token（OP 可撤销他人）\n/admweb refresh [网络] - 管理员强制重采集快照（阶段 1.2）\n\n浏览器访问：\n1. 启动服务端并启用 webConsole。\n2. 浏览器打开 http://127.0.0.1:8090（或你的服务器地址）。\n3. 在登录页输入 /admweb issue 获取的 Token。\n4. Token 存储在浏览器 localStorage（webae_token）。开启自动登录（默认开启）后，下次访问会自动重连。\n5. 若 Token 过期或被撤销，登录页会提示「Token 已过期」/「Token 无效」并清除本地 Token，请重新签发。\n6. 需要更换 Token 时，在设置页输入新 Token，会立即重连。\n\nToken 有效期：配置项 tokenLifetimeHours（0=永不过期，>0 时按签发时间 + TTL 校验）。Token 持久化到 config/textech/web-tokens.json（每位玩家一个，重新签发会替换旧的）。\n\n如不想自动登录，可在设置页关闭「自动登录」开关。
+adm.manual.web_console.storage_title=存储监控
+adm.manual.web_console.storage_text=存储页面提供 AE2 网络存储的实时概览。\n\n顶部总览（Phase 3）：可配置 widget 行，复用仪表盘属性继承（图表类型 statCard/progressBar/gauge、数据源、9 宫格对齐、颜色覆盖）。默认显示物品种类、流体种类、字节占用率、活跃 CPU 数；点击「编辑总览」可拖拽/添加/删除组件，配置持久化 localStorage.webae_storage_overview_config。所有总览卡片固定 112px 等高。\n\n子表：物品 / 流体 / 源质（CPU 已移至独立「合成 CPU」菜单）。每个子表支持列头排序与搜索过滤。\n\n刷新机制（阶段 1.2）：服务端每 refreshIntervalMs 毫秒采集一次快照，并分摊到多个 tick。浏览器只读缓存（GET /api/storage）；手动强制刷新为管理员专用（POST /api/refresh 或 /admweb refresh）。\n\n多网络（阶段 1.4）：顶栏选择多个网络；「分开」/「综合」模式汇总物品/流体/源质/字节。
+adm.manual.web_console.cpu_title=合成 CPU
+adm.manual.web_console.cpu_text=独立「合成 CPU」菜单（侧边栏 Hdd 图标）集中展示 AE2 合成 CPU 状态。\n\n顶部总览（Phase 3）：4 个可配置 statCard/progressBar——活跃/总数、总存储使用率、总协同处理器数、并行合成数；配置持久化 localStorage.webae_cpu_overview_config。\n\nCPU 列表：名称、状态、协同、进度、已存储、产物、合成存储、已用时；点击行打开详情 Drawer（坐标、所属网络、存储图表、当前任务与预计剩余）。历史合成记录暂无后端支持时显示「暂无历史」。\n\n多网络：「综合」模式合并所有 CPU；「分开」且选中多个网络时用 Tabs 切换。\n\n后端 CpuEntry 含合成链接坐标、监视器坐标、remainingItems/startItems 等字段，由 AeSnapshotCollector 采集。
+adm.manual.web_console.power_title=电力监控
+adm.manual.web_console.power_text=电力页面以可配置 GridStack 布局（Phase 4）显示无线能源网络的 EU 与蒸汽数据。\n\n默认组件：\n- EU 仪表：当前电量与容量占用率。\n- EU 入/出速率 statCard：能量流速（EU/t），由滑动窗口采样计算。\n- 蒸汽进度条：蒸汽存量与容量。\n- 电力趋势折线图：EU + 蒸汽双序列 SVG 趋势（约最近 60 个采样点）。\n- 蒸汽入/出 statCard：蒸汽流速。\n\n点击「编辑布局」可拖拽、添加/删除组件并切换图表类型与数据源；布局持久化在浏览器（`webae_power_config`）。「电力布局设置」可调整全局间距、颜色与对齐。\n\n多网络「分开」模式用 Tabs 切换各网络快照；自动刷新时趋势图保持显示、不再闪烁。\n\n数据采用与存储相同的 SnapshotScheduler + 缓存模式；PowerSampler 滑动窗口计算速率，读数平滑稳定。
+adm.manual.web_console.gt_machines_title=GT 机器监控
+adm.manual.web_console.gt_machines_text=GT 机器页面列出所有在线 GregTech 机器的当前运行状态。\n\n每台机器显示：\n- 机器名称和类型。\n- 当前工作进度（百分比进度条）。\n- 正在执行的配方（如有）。\n- 电力消耗。\n- 输入仓物品：当前正在消耗的物品。\n- 输出仓物品：已产出的物品。\n\n进度条在每个快照间隔（gtSnapshotIntervalSeconds）实时更新。\n\n数据通过 GtMachineStateReader 采集，通过 GtCompat 兼容层访问 GT 机器内部状态。需要安装 GTNH GregTech 模组，否则页面显示为空。
+adm.manual.web_console.recipes_title=配方搜索
+adm.manual.web_console.recipes_text=配方页面支持模糊搜索、物品补全、配方总览无限滚动懒加载、缩略/详细双布局，以及完整/合并显示模式（Phase 5）。\n\n采集与上传：\n1. 客户端混合采集：NeiRecipeCollector（主线程，NEI/AE2 等）+ GameRecipeCollector（补充 vanilla/GT）。\n2. handler 显示名在客户端本地化，如「合金炉 (gt.recipe.alloysmelter)」；物品 itemId 含 meta 以对齐图标缓存。\n3. 去重合并后经 PacketWebRecipeUpload 分批上传；RecipeUploadSession 确保仅首个 isStart 清空服务端内存。\n4. 服务端 RecipeCacheStore 维护 outputIndex/inputIndex 与 handlerRecipeKeys/suggestPrefixIndex，gzip 持久化到 config/textech/web-recipes.json.gz。\n5. 客户端 RecipeLocalExporter 同步写入 .minecraft/TeXTechWebAE/web-recipes.json.gz（与服务端 gzip schema 相同）。\n\n使用：\n- 进入页面自动加载全部配方，滚到底部继续加载（每批 24 条）。\n- 默认模糊搜索物品中/英文名称；从补全选择可精确按产物搜索。\n- 类别区可多选 Tag 筛选 handler、搜索类别名、收起/展开；缩略卡片为正方形，点击查看详情弹窗。\n- 「合并」模式按主产物分组，同一产物多种配方类型可在弹窗 Tabs 切换。\n- 详细布局采用 CSS Grid 列独立排列；点击物品打开「合成此物品 / 使用此物品」。\n\n需 OP 在游戏内执行 /admweb recipes upload snapshot（日常推荐）或 upload（全量）上传配方后 Web 端才有数据（Phase 2 起移除了游戏内快捷键，仅由命令触发）；更新 handler 名或 itemId 后需重新上传。
+adm.manual.web_console.patterns_title=样板管理
+adm.manual.web_console.patterns_text=样板页面通过浏览器提供完整的 AE2 样板管理界面（仿增广样板终端）。\n\n功能：\n- 样板总览：列出当前网络所有 ME 接口槽位上的已有样板，支持搜索、多选、批量删除/导出。\n- 编辑面板：9×3 输入网格与输出行显示物品图标和数量；输出支持 ×2/×4/×8/×16/×32/×64 倍率与 ÷2（不低于配方原始数量）。\n- 配方搜索：按主产物合并显示，点击添加默认配方，或通过「详情」弹窗选择具体配方类型。\n- 编码样板：PatternEncoder 生成 AE2 NBT；启用 consumeBlank 时从 AE 网络扣除 1 个空白样板（BlankPatternHelper），不足返回 NO_BLANK_PATTERN。\n- 注入样板：PatternInjector 将编码样板写入目标 ME 接口；接口列表显示坐标、已有样板数、机器配方类型及已有样板详情。\n\n所有修改 AE2 网络的操作使用 CountDownLatch 在主线程执行（5 秒超时）。
+adm.manual.web_console.orders_title=AE 合成下单
+adm.manual.web_console.orders_text=下单页面让你直接从浏览器提交 AE2 合成任务。\n\nCPU 选择：\n- 顶部下拉框列出网络所有合成 CPU（名称、容量、并行数、忙碌/空闲）。\n- 留空「自动分配」由 AE2 选择 CPU；指定名称时任务提交到该 CPU。\n\n按样板下单（Tab）：\n- GET /api/patterns/browse 双源分页（Grid + Interface），debounce 搜索，滚动触底加载更多。\n- 视图切换：「按产物」虚拟滚动卡片或「按样板」虚拟滚动列表（大量样板时更流畅）。\n- Grid/Interface 标签区分来源；详情弹窗 Grid 源 lazy 拉取完整 inputs/outputs。\n- 多选样板 + 设置数量 + 批量提交到 /api/order/batch。\n\n按物品下单（Tab）：\n- 搜索 AE 存储中的物品，输入数量提交 /api/order。\n- 或添加多行批量列表，一次提交 /api/order/batch。\n\n材料树（Tab）：\n- 输入物品 registry 名与数量，GET /api/craft/tree 递归展开 NEI 配方链。\n- 表格显示每层需要/库存/缺口；叶子节点为无配方原材料。\n\n订单追踪：\n- 活跃订单与历史订单均从 GET /api/order/list 获取（history 字段）。\n- 每 3 秒自动刷新；进度采用混合方案：AE2 合成计算阶段 → CPU 真实进度 → 时间估算兜底。\n- 完成后自动移入历史（进度 100%）；历史表显示所用 CPU，悬停查看协同/存储/并行详情。\n- 「全部取消」调用 POST /api/order/cancel。\n\n后端：AssistantServerServices.submitCraft 接受 cpuName；OrderHandler 维护内存 historyOrders（最多 200 条，重启清空）。\n\n注意：订单提交会阻塞 HTTP 线程直到主线程处理完成（CountDownLatch，15 秒超时）。
+adm.manual.web_console.theme_dashboard_title=主题与仪表盘自定义
+adm.manual.web_console.theme_dashboard_text=阶段二加入了完整的主题系统与可拖拽自定义的仪表盘。\n\n主题系统：\n- 主题 = 配色方案 × 布局预设，在设置页中独立选择。\n- 配色方案（24 套）：经典 19 套 + 科技风 5 套（hologram/plasma/neon-pulse/quantum/crystal）。每套重新定义背景、强调色、文字与状态颜色。\n- 布局预设（5 套）：standard（标准）、compact（紧凑，信息密度更高）、wide（宽屏，间距与字号更大）、sidebar-right（侧栏移到右侧）、topnav（隐藏侧栏，导航移到顶栏横向排列）。\n- 选择持久化在浏览器（localStorage webae_theme，格式 "color|layout"）；旧的 dark/light 选择会自动迁移。\n- 切换主题时图表会自动重新配色。\n\n仪表盘自定义：\n- 仪表盘标签页是一个 GridStack.js 网格，可进入编辑模式后拖拽组件手柄移动、从右下角缩放。\n- 「添加组件」打开组件库：统计卡、进度条（横向/竖向/环形）、折线图、柱状图、饼图、数据表、仪表。\n- 每个组件绑定一个数据源（物品种类、流体种类、EU 存储、字节占用率、电力历史、Top 物品、网络对比等）和一个作用域：global（跨选中网络聚合）或 perNetwork（绑定单网络；分开模式下每个网络重复一组）。\n- 编辑组件可修改类型、数据源、作用域、样式（进度条方向、时间窗口、最大行数）和尺寸。\n- 布局持久化在 localStorage.webae_dashboard_config。「重置布局」恢复默认组件集。\n- 全局样式与 JSON 导入导出详见「仪表盘设置」章节。\n- 在分开多网络模式下，global 组件显示在顶部「总览」网格，perNetwork 组件在每个网络的分区下重复渲染。
+adm.manual.web_console.topology_title=网络拓扑图
+adm.manual.web_console.topology_text=Web 控制台已提供「网络拓扑」页面（侧栏入口），由模拟 AE 拓扑 API 驱动。\n\n特性：\n- 不反映真实 AE 线缆连接，仅统计网格内设备并按规则归类。\n- 逻辑视图：按设备类聚合（控制器/驱动/接口/CPU/P2P/量子桥/其他），星形假线缆从控制器向外辐射。\n- 空间视图：按维度 + 64×64 区块粗聚类，仍非物理拓扑。\n- P2P 频道视图：按 AE P2P 隧道 frequency 分组列表（非物理连接），显示端点坐标与 IN/OUT 侧。\n- 假线缆显示模拟频道（如 12/32）；若 AE API 可读则 meta 中并列真实频道。\n- SVG 图支持平移/缩放；点击节点可查看设备坐标列表；拓扑页支持 CSV 导出。\n\nAPI：GET /api/network/topology?network=<id>&mode=logical|spatial；GET /api/network/p2p?network=<id>（P2P 地图）。\n\n配置（[webConsole]）：topologyEnabled（默认 true）、topologyCacheTtlMs（默认 30000 毫秒）。
+adm.webae.topology.title=网络拓扑
+adm.webae.topology.mode.logical=逻辑分组
+adm.webae.topology.mode.spatial=空间分区
+adm.webae.topology.channels.simulated=模拟频道
+adm.webae.topology.channels.real=真实频道
+adm.webae.topology.cable.smart=智能线缆
+adm.webae.topology.cable.covered=包层线缆
+adm.webae.topology.cable.dense=致密线缆
+adm.manual.web_console.icon_cache_title=物品图标与材质包
+adm.manual.web_console.icon_cache_text=阶段三加入了物品/流体图标缓存系统，让网页控制台用真实游戏图标替代纯文本。\n\n工作流程：\n1. OP 在游戏内执行 /admweb icons upload [packName] 命令触发渲染（Phase 2 起移除了游戏内快捷键，仅由命令触发）。\n2. 客户端 IconRenderer（@SideOnly CLIENT）遍历 Item.itemRegistry，用 RenderItem + Framebuffer 离屏渲染为 32×32 PNG，每帧渲染若干项避免卡顿。\n3. 渲染完成的图标打包成 IconBundle（itemId → base64 PNG），通过 PacketWebIconUpload（网络 ID 28）分片上传到服务端。\n4. 服务端解码并写入 config/textech/web-icons/<packName>/<itemId>.png，刷新 IconStore 索引。\n5. 上传确认通过 PacketWebIconUploadAck（网络 ID 29）回传进度。\n\n网页端使用：\n- 物品表、配方输入/输出展示真实图标；图标加载失败时回退为物品名缩写。\n- 设置页可选择材质包（localStorage webae_icon_pack 持久化），切换后用 ?v=<timestamp> 强制刷新所有图标。\n- 管理员（OP>=2）可在设置页上传材质包 zip（POST /api/icon/pack?pack=<name>），服务端解包并做 Zip Slip 路径穿越防护。\n- 也可直接访问 /icons/<pack>/<itemId>.png 静态路径（WebConsoleServer 托管 config/textech/web-icons/ 外部目录）。\n\n配置项（[webConsole] 节）：iconCacheEnabled、iconUploadEnabled、iconPackEnabled、nesqlRepositoryPath（import-nesql，空则 TeXTechWebAE）、iconMissingDispatchPerTick。/api/config 返回布尔开关。\n\n命令：/admweb icons upload [packName]、/admweb icons import-nesql [pack] [subpath]（默认从 TeXTechWebAE 导入）、/admweb icons status。\n\n懒加载：404 图标入队 IconMissingQueue；就绪后服务端推送 SSE icon-ready，前端经 webae-icon-ready 事件刷新图标。
+adm.manual.web_console.recipe_cache_title=配方缓存优化
+adm.manual.web_console.recipe_cache_text=阶段三对配方缓存做了增量优化（搜索与倒排索引已在阶段一完成，此处不再重做）。NEI 性能 Phase 0–4 新增 handlerRecipeKeys/suggestPrefixIndex、recipeCacheMode=full（GTNH 默认；lru 在超过 maxRecipeCacheMB 时淘汰）、RecipeUploadThrottler（recipeUploadBatchesPerTick）与 RecipeSearchRateLimiter（recipeSearchMinIntervalMs）。\n\n磁盘持久化：\n- RecipeCacheStore.ingest() 完成后自动通过 HandlerTick.enqueueServerTask 异步保存到磁盘（去抖：同一时间只排队一个保存任务，避免每个分批都写盘）。\n- 保存格式改为 gzip 压缩：config/textech/web-recipes.json.gz，体积更小。加载时优先读 gzip，若存在旧的未压缩 web-recipes.json 会先读取再在下次保存时迁移为 gzip。\n- 客户端本地副本：.minecraft/TeXTechWebAE/web-recipes.json.gz（RecipeLocalExporter，与上传命令同步写入）。\n- 记录 lastDiskSave（最后保存时间戳）与 diskCacheSize（gzip 文件字节数）供状态查询。\n\n状态查询：\n- /api/recipes/status 新增 diskCacheSize、lastDiskSave 字段。\n- 前端配方页显示磁盘缓存大小与最后保存时间，并提供「重新导出」提示。\n- /admweb recipes status 命令输出同样包含磁盘缓存信息。\n\n命令：\n- /admweb recipes upload [snapshot|deep] — 上传 NEI 配方（snapshot 仅存储相关物品；deep 全量物品扫描）；同时写入客户端 TeXTechWebAE/web-recipes.json.gz。\n- /admweb recipes export — upload 的别名。\n- /admweb recipes status — 查看缓存状态（含磁盘缓存）。\n- /admweb recipes clear — 清空内存与磁盘缓存（OP 专用）。
+adm.manual.web_console.safety_title=安全与注意事项
+adm.manual.web_console.safety_text=Web 控制台是功能强大的工具——请小心保管访问凭证。\n\n安全机制：\n- Token 认证（每位玩家一个随机 UUID，持久化到 config/textech/web-tokens.json；重新签发会替换旧 Token）。\n- 所有 /api/ 端点强制 Bearer 认证（无关闭配置）。\n- 管理员专用端点（POST /api/refresh、/api/refresh/batch、/api/power/refresh、/api/gt/machines/refresh）额外要求 OP 等级 >= 2。\n- 默认仅本机绑定（127.0.0.1）。\n- 无 TLS — NanoHTTPD 不支持 HTTPS。\n\n安全建议：\n- 在面向公网的服务器上切勿设置 bindAddress=0.0.0.0，除非有防火墙或反向代理保护。\n- 使用 SSH 隧道（ssh -L 8090:localhost:8090 user@server）进行远程访问，而非直接开放端口。\n- 局域网联机时，仅向可信玩家分享 Token。\n- Token 泄露后立即撤销（/admweb revoke）。\n- Token 拥有对 AE2 存储和合成的完整读写权限——如同服务器密码一样保管。\n\n配置验证：\n- enabled 默认为 false（需主动启用）。\n- bindAddress 默认为 127.0.0.1（非 0.0.0.0）。\n- tokenLifetimeHours 默认为 0（永不过期）；设为 >0 启用按 TTL 过期。\n- refreshIntervalMs / gtRefreshIntervalMs 被限制在 1000-60000 毫秒。\n- maxNetworksDisplayed 被限制在 1-20。
+
+# ===== Web 控制台手册：新页面（阶段 E 与升级）=====
+adm.manual.web_console.command_upload_title=命令触发上传
+adm.manual.web_console.command_upload_text=OP 玩家通过聊天命令触发配方与图标上传（Phase 2 起移除了游戏内快捷键，上传仅由命令触发）。\n\n命令：\n- /admweb recipes upload [snapshot|deep] — 上传 NEI 配方（snapshot 仅存储相关物品；deep 全量物品扫描）；同时写入客户端 TeXTechWebAE/web-recipes.json.gz。\n- /admweb icons upload [packName] — 同样通过触发包让客户端渲染物品图标并通过 PacketWebIconUpload 上传。\n- /admweb icons import-nesql [pack] [subpath] — 从 nesqlRepositoryPath（空则 TeXTechWebAE）导入预渲染 PNG（增量）。\n\n上传子命令均要求 OP 权限（canUseOpCommands）；基础 /admweb 权限等级保持 0。\n\n客户端采集在主线程执行（Minecraft.addScheduledTask），因为 NEI API 非线程安全；RecipeUploadThrottler 按 recipeUploadBatchesPerTick 每 tick 发送批次。\n\n调试日志：在 [debug] debugWebae=true 时输出 handler 数量、numRecipes 总和与过滤前后配方数。
+adm.manual.web_console.refresh_status_title=顶栏刷新状态
+adm.manual.web_console.refresh_status_text=自动刷新倒计时不再单独切换显示一个文本元素（之前会导致顶栏宽度抖动）。\n\n- 绿色连接点旁新增固定宽度的状态栏（min-width 90px），始终占位渲染。\n- 状态文案由小型状态机驱动：「空闲」/「Ns 后刷新」/「刷新中...」。\n- 刷新按钮内的 spinner 改为绝对定位覆盖层，按钮宽度在加载过程中不再变化。\n\n这消除了每次刷新周期引起的 flex 重排抖动。
+adm.manual.web_console.dashboard_settings_title=仪表盘设置面板
+adm.manual.web_console.dashboard_settings_text=除单组件编辑外，仪表盘新增全局设置侧滑面板，管理默认样式与预设。\n\n从仪表盘/存储总览/电力页工具栏的「设置」按钮打开。面板采用 Tabs 分页：\n- **布局**：页面边距、组件间距（widgetGap）、视觉内边距（contentInset，不改变 GridStack 吸附）、默认 9 宫格对齐。\n- **图表**：默认字体/图表占比、折线图拉伸模式（fit / 横向拉伸 / 填满）、Y 轴/时间轴刻度、可选 footer「N 秒前更新」。\n- **颜色**：五项默认色 + 颜色预设管理。\n- **高级**：组件 JSON 导出到剪贴板 / 从 JSON 导入；颜色预设。\n\n单组件编辑弹窗同样采用 Tabs（基础 / 布局 / 颜色 / 高级），可覆盖 contentInset、chartStretchMode、边框厚度、statCard 变化量（showDelta）与有效位数。\n\n三处 GridStack（主仪表盘、存储总览、电力页）统一使用 WidgetShell 外壳（CSS 变量着色）；编辑模式支持复制组件。\n\n配置持久化：主仪表盘 localStorage.webae_dashboard_config；存储/电力页各有独立 key。从旧配置加载时与 DEFAULT 合并补齐新字段。
+adm.manual.web_console.sidebar_modes_title=导航栏三态切换
+adm.manual.web_console.sidebar_modes_text=底部折叠按钮已移除。取而代之的是导航栏边缘的标签式切换按钮，在三态之间循环：\n- expanded（默认）— 完整侧栏，图标 + 文字。\n- collapsed — 60px 宽，仅图标，隐藏文字。\n- hidden — 侧栏滑出视野（translateX -100%），仅保留切换按钮以便重新展开。\n\n当前模式通过 aside.sidebar 的 data-mode 属性存储，驱动所有 CSS 过渡。在 sidebar-right 布局下，切换按钮移到左边缘，hidden 方向反转。选择持久化到 localStorage（webae_sidebar_mode）。\n\n移动端滑入（sidebarMobileOpen）保持独立控制，窄屏保留自己的行为。
+adm.manual.web_console.chat_title=网页聊天
+adm.manual.web_console.chat_text=网页控制台新增聊天标签页（侧栏与顶栏的 💬 图标），打通浏览器与游戏内聊天。\n\n布局：\n- 左侧：玩家列表，含头像、名字、在线时长、上次上线时间。在线玩家排在前。\n- 右侧：气泡式消息区，含头像、玩家名、来源标签（网页/游戏/系统）、时间戳、内容。网页消息靠右，其他靠左（按 source==='web' 启发式区分）。系统消息渲染为居中黄色 pill。\n- 底部：输入框（回车发送）。\n\n发送：POST /api/chat/send 携带 {content}，从 Token 取 playerUuid，校验后追加 source=web 消息到 ChatMessageStore，并广播到游戏内显示为「[Web] <玩家名>: 内容」。被封禁玩家、空内容或超长内容会被拒绝。\n\n轮询：聊天标签页激活时，前端每 2.5 秒轮询 GET /api/chat/since=<ts>，玩家列表每 10 秒通过 GET /api/players 刷新。\n\n头像：服务端从玩家 GameProfile textures property 解析皮肤 URL（base64 解码）返回 skinUrl。浏览器从 https://textures.minecraft.net/<hash> 加载 32×32 头像；离线玩家或加载失败回退为圆形首字母占位。\n\n历史：GET /api/chat/history?limit=200&since=<ts> 返回近期消息；服务端维护 200 条环形缓冲并持久化到 config/textech/web-chat.json（防抖保存），重启后保留历史。\n\n设置：showAvatars / showPlayerInfo 开关持久化到 localStorage（webae_chat_settings）。
+adm.manual.web_console.reload_command_title=Reload 命令
+adm.manual.web_console.reload_command_text=/admweb reload 现在会真正重载 TeXTech 配置，而不再仅打印提示。\n\n它调用 Config.reloadConfiguration()，重新读取当前配置文件（config/textech/textech.cfg）并重新运行所有分节加载器（debug、compat、ai、voice、assistant、plannerHud、dataLoom、superOrange、matterBallDecompressor、grapple、webConsole）。\n\n注意：\n- 部分选项仍需重启服务端才能生效（例如 web 服务器自身的 enabled、port、bindAddress）。命令响应会列出此提示。\n- Token 与运行时数据文件（web-tokens.json、web-players.json、web-chat.json、web-icons/）不受 reload 影响。
+
+# ===== Web 控制台聊天（阶段 E）=====
+adm.webconsole.chat.title=聊天
+adm.webconsole.chat.send_failed=发送聊天消息失败：{0}
+adm.webconsole.chat.empty=暂无消息
+adm.webconsole.chat.no_players=暂无在线玩家
+adm.webconsole.chat.broadcast_format=[Web] <{0}>: {1}
+adm.webconsole.chat.source_web=网页
+adm.webconsole.chat.source_game=游戏
+adm.webconsole.chat.source_system=系统
+adm.webconsole.chat.show_avatars=显示头像
+adm.webconsole.chat.show_player_info=显示玩家信息
+adm.webconsole.chat.online_duration=在线时长
+adm.webconsole.chat.last_seen=上次上线
+adm.webconsole.chat.input_placeholder=输入消息，回车发送...
+adm.webconsole.chat.send=发送
+adm.webconsole.chat.player_banned=被封禁玩家无法发送消息。
+adm.webconsole.chat.content_too_long=消息内容过长（最多 {0} 字符）。
+adm.webconsole.chat.content_empty=消息内容不能为空。
+
+# ===== Web 控制台仪表盘设置（阶段 B）=====
+adm.webconsole.dashboard.settings=仪表盘设置
+adm.webconsole.dashboard.margin=组件间距
+adm.webconsole.dashboard.margin_hint=组件之间的留白（0-30px，默认 12）
+adm.webconsole.dashboard.border_width=默认边框厚度
+adm.webconsole.dashboard.default_colors=默认颜色
+adm.webconsole.dashboard.title_color=标题颜色
+adm.webconsole.dashboard.chart_color=图表颜色
+adm.webconsole.dashboard.icon_color=图标颜色
+adm.webconsole.dashboard.background_color=背景颜色
+adm.webconsole.dashboard.border_color=边框颜色
+adm.webconsole.dashboard.color_hex_placeholder=留空继承主题
+adm.webconsole.dashboard.clear=清除
+adm.webconsole.dashboard.presets=预设颜色组
+adm.webconsole.dashboard.presets_hint=保存当前默认颜色为命名预设，可在组件编辑中一键套用
+adm.webconsole.dashboard.preset_name_placeholder=预设名称
+adm.webconsole.dashboard.preset_add=添加预设
+adm.webconsole.dashboard.preset_apply=套用
+adm.webconsole.dashboard.inherit_default=继承默认
+adm.webconsole.dashboard.widget_colors=组件颜色覆盖
+adm.webconsole.dashboard.widget_colors_hint=勾选「继承默认」使用仪表盘设置中的全局默认色
+
+# ===== Web 控制台侧栏三态模式（阶段 D1）=====
+adm.webconsole.sidebar.mode_expanded=展开侧栏（点击收起）
+adm.webconsole.sidebar.mode_collapsed=折叠侧栏（点击隐藏）
+adm.webconsole.sidebar.mode_hidden=隐藏侧栏（点击展开）
+
+# ===== WebAE Phase 3 集成与告警 =====
+adm.webae.phase3.integration_title=Phase 3 集成页面
+adm.webae.phase3.alerts_title=自动化告警
+adm.webae.phase3.alerts_text=在 config/textech/web-alerts.json 配置规则（首次访问自动创建）。服务端 tick 检测库存阈值、CPU 卡住、GT 异常、下单完成与频道超载；浏览器轮询 GET /api/alerts 并 Toast/系统通知。
+adm.webae.pocket.overview_op=次元口袋概览需 OP（仅只读统计，不暴露物品内容）。
+adm.webae.search.title=全局搜索（Ctrl+K）
+adm.webae.search.text=按 Ctrl+K 打开命令面板，可搜索 AE 存储物品/流体/要素、NEI 配方、GT 机器与 AE 样板，并跳转到对应页面。优先调用 GET /api/search；离线时回退本地快照过滤。
+adm.manual.web_console.search_title=全局搜索（Ctrl+K）
+adm.manual.web_console.search_text=Web 控制台命令面板（Ctrl+K / Cmd+K）支持跨页面搜索：\n- 页面导航（侧栏全部页面）\n- AE 存储物品、流体、要素（snapshot 缓存）\n- NEI 配方缓存\n- GT 机器名称/状态\n- AE 样板（Grid + Interface）\n\n优先使用 GET /api/search 聚合端点（500ms 限流）；API 不可用时使用已加载的 storage/GT 快照本地过滤。选中结果会跳转到对应页面并预填搜索框。
+adm.manual.web_console.visibility_refresh_title=后台标签页与自动刷新
+adm.manual.web_console.visibility_refresh_text=Web 控制台在浏览器标签页处于后台时可暂停自动轮询（Settings → 数据更新时间 →「标签页隐藏时暂停刷新」，默认开启）。\n\n暂停范围包括：顶栏全局自动刷新、连接心跳、告警轮询、仪表盘指标、聊天/玩家列表、AE 下单进度等。切回可见标签页时会立即刷新一次，TopBar 倒计时在暂停期间显示「已暂停」。
+adm.manual.web_console.gt_charts_title=GT 机器图表
+adm.manual.web_console.gt_charts_text=GT 机器页在表格上方显示摘要图表：\n\n- 状态分布饼图（运行中 / 异常 / 空闲）。\n- 配方图条形图（按机器数量统计 Top 配方图）。\n\n表格使用进度条显示每台机器进度；异常/故障行会高亮。图表与表格均按当前选中的多网络合并聚合。
+adm.manual.web_console.essentia_title=源质专用页
+adm.manual.web_console.essentia_text=侧栏「源质」页（?page=essentia）展示 Thaumcraft 源质（aspect）库存：\n\n- 顶部摘要：源质种类数、总量（多网络综合模式下合并）。\n- 趋势图：NetworkMetricSampler 的 essentiaCountHistory（源质种类数随时间变化）。\n- 表格：按 aspect 搜索、列排序、分页。\n\n全局搜索（Ctrl+K）命中源质时会跳转到本页并预填搜索框。无 Thaumcraft 或未存储源质时显示空状态。
+adm.manual.web_console.alerts_edit_title=自动化告警规则
+adm.manual.web_console.alerts_edit_text=WebAE 可监控库存阈值、CPU 卡住、GT 异常、下单完成与频道超载（config/textech/web-alerts.json）。\n\n在 Settings → 自动化告警 中，游戏内 OP（等级 2+）可在浏览器编辑并保存规则；非 OP 仅只读查看。\n\n库存规则须填写 itemId 或 fluidName、最小数量，可选网络过滤（-1 表示全部网络）。
+adm.manual.web_console.order_templates_title=批量下单模板
+adm.manual.web_console.order_templates_text=在 Orders（查询下单）页的批量面板中，可保存与加载常用补货预设。\n\n保存为模板：将当前批量行、所选合成 CPU 与网络 ID 写入 config/textech/web-order-templates.json（按 WebAE owner UUID 隔离）。\n\n模板：加载预设到批量表单、重命名或删除。「缺口补货」对比模板目标数量与 AE 存储，仅写入缺口行。\n\n加载后照常点击「全部下单」（/api/order/batch）。模板在刷新浏览器与服务端重启后仍保留。
+adm.manual.web_console.extensions_title=扩展功能（Phase 6–12）
+adm.manual.web_console.extensions_text=WebAE 近期扩展：\n\n- **材料树（Phase 6）**：下单页 → 材料树 Tab；GET /api/craft/tree 递归展开 NEI 配方并对比存储缺口。\n- **SSE 告警（Phase 9）**：GET /api/events/stream 实时推送告警（15 秒心跳）；useEventStream 与 10 秒轮询互补。\n- **P2P 频道地图（Phase 10）**：拓扑页 → P2P 频道视图；GET /api/network/p2p 按 frequency 分组隧道。\n- **监视器预览（Phase 11）**：监视器绑定 → 每槽「预览」；GET /api/monitor/preview 返回折线数据 Drawer。\n- **PWA 与移动端（Phase 12）**：manifest.webmanifest + 窄屏响应式 CSS；手机可添加到主屏幕。\n- **CSV 导出（Phase 13）**：存储 / GT / 拓扑页通过客户端 Blob 导出表格。
+adm.manual.web_console.phase3_title=Phase 3 集成与告警
+adm.manual.web_console.phase3_text=Phase 3 新增跨系统只读页面与自动化告警。\n\n集成页面（侧栏）：\n- 链接扫描器镜像：GET /api/scanner/blocks — 已加载区块 Link 方块；传送仍在游戏内。\n- 监视器绑定：GET /api/monitor/bindings — 图表槽位与 GT 机器坐标；每槽「预览」调用 GET /api/monitor/preview 在 Drawer 中显示折线。\n- 计划器：GET /api/planner/plans — 只读列表，来自 config/textech/plans.json。\n- AI 助手：POST /api/assistant/query — 服务端规则查询（2 秒限流；密钥不上服务端）。\n- 拓扑元件摘要：GET /api/network/cells — 拓扑页显示无限元件/字节统计。\n- 口袋概览：GET /api/pocket/overview — 仅 OP 最小统计（不含存储物品）。\n\n自动化（A1–A5）：config/textech/web-alerts.json 驱动 WebAlertEngine；GET /api/alerts 返回活跃告警；设置页可编辑规则（OP）；useWebAlerts Toast + 浏览器通知；useEventStream 经 GET /api/events/stream SSE 实时推送（15s 心跳，标签页隐藏时暂停）。

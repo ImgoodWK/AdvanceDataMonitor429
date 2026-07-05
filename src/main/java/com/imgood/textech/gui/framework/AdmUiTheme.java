@@ -1,8 +1,8 @@
 package com.imgood.textech.gui.framework;
 
-import com.imgood.textech.gui.custom.AdmGuiTextures;
-
 import net.minecraft.util.ResourceLocation;
+
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 
 /**
  * Default ADM sci-fi theme backed by {@code textures/gui/adm_ui_atlas.png}.

@@ -23,6 +23,22 @@ public final class WirelessPowerQuery {
 
     private WirelessPowerQuery() {}
 
+    /**
+     * Query stored EU as a numeric value. Returns null if the API is unavailable.
+     */
+    public static BigInteger queryEuStored(EntityPlayerMP player) {
+        Value energy = findValue(player, ENERGY_METHODS);
+        return energy != null ? energy.value : null;
+    }
+
+    /**
+     * Query max EU capacity as a numeric value. Returns null if the API is unavailable.
+     */
+    public static BigInteger queryEuMaxCapacity(EntityPlayerMP player) {
+        Value capacity = findValue(player, CAPACITY_METHODS);
+        return capacity != null ? capacity.value : null;
+    }
+
     public static String query(EntityPlayerMP player, boolean chinese) {
         Value energy = findValue(player, ENERGY_METHODS);
         Value capacity = findValue(player, CAPACITY_METHODS);

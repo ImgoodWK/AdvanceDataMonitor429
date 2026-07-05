@@ -1,0 +1,58 @@
+{
+
+  "name": "textech-webae-frontend",
+
+  "version": "3.0.0",
+
+  "private": true,
+
+  "type": "module",
+
+  "description": "TeXTech WebAE Console - React + Ant Design frontend",
+
+  "scripts": {
+
+    "dev": "vite",
+
+    "build": "tsc --noEmit && vite build",
+
+    "build:no-typecheck": "vite build",
+
+    "preview": "vite preview"
+
+  },
+
+  "dependencies": {
+
+    "@ant-design/icons": "^5.5.2",
+
+    "@tanstack/react-virtual": "^3.14.5",
+
+    "antd": "^5.22.2",
+
+    "fflate": "^0.8.2",
+
+    "gridstack": "^11.1.0",
+
+    "react": "^18.3.1",
+
+    "react-dom": "^18.3.1"
+
+  },
+
+  "devDependencies": {
+
+    "@types/react": "^18.3.12",
+
+    "@types/react-dom": "^18.3.1",
+
+    "@vitejs/plugin-react": "^4.3.3",
+
+    "typescript": "^5.6.3",
+
+    "vite": "^5.4.11"
+
+  }
+
+}
+

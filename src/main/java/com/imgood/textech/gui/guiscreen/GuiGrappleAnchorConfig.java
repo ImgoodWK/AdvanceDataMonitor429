@@ -64,14 +64,17 @@ public class GuiGrappleAnchorConfig extends AdmItemConfigScreen {
 
     @Override
     protected void onSave() {
-        String colorText = colorField.getText().trim();
+        String colorText = colorField.getText()
+            .trim();
         if (!isValidHexColor(colorText)) {
             errorTips = I18n.format("adm.error.displaycolor");
             return;
         }
-        String name = nameField.getText().trim();
+        String name = nameField.getText()
+            .trim();
         int color = parseHexColorOrDefault(colorText, TileEntityGrappleAnchor.DEFAULT_ICON_CURSOR_COLOR);
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(new PacketGrappleAnchorConfig(anchorX, anchorY, anchorZ, name, color));
+        AdvanceDataMonitor.ADMCHANEL
+            .sendToServer(new PacketGrappleAnchorConfig(anchorX, anchorY, anchorZ, name, color));
         closeScreen();
     }
 

@@ -58,12 +58,7 @@ public final class MatterBallDecompressorGuiRenderer {
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
         int panelLeft = guiLeft + MatterBallDecompressorGuiLayout.LEFT_GUTTER;
-        UiPanel.draw(
-            UiThemes.ADM,
-            panelLeft,
-            guiTop,
-            metrics.mainPanelWidth,
-            metrics.guiHeight);
+        UiPanel.draw(UiThemes.ADM, panelLeft, guiTop, metrics.mainPanelWidth, metrics.guiHeight);
 
         int splitY = guiTop + metrics.playerInvY - 6;
         UiPanel.drawDivider(panelLeft + 8, splitY, metrics.mainPanelWidth - 16);
@@ -73,12 +68,8 @@ public final class MatterBallDecompressorGuiRenderer {
         drawPlayerInventorySlots(guiLeft, guiTop, metrics);
     }
 
-    public static void drawBackground(
-        int guiLeft,
-        int guiTop,
-        MatterBallDecompressorGuiLayout.Metrics metrics,
-        boolean outputToNetwork,
-        boolean blockMode) {
+    public static void drawBackground(int guiLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics,
+        boolean outputToNetwork, boolean blockMode) {
         drawBackground(guiLeft, guiTop, metrics);
         drawSideStatusIcons(guiLeft, guiTop, outputToNetwork, blockMode);
     }
@@ -132,7 +123,12 @@ public final class MatterBallDecompressorGuiRenderer {
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             mc.getTextureManager()
                 .bindTexture(SLOT_TEXTURE);
-            mc.ingameGUI.drawTexturedModalRect(x, y, 0, 0, MatterBallDecompressorGuiLayout.CELL,
+            mc.ingameGUI.drawTexturedModalRect(
+                x,
+                y,
+                0,
+                0,
+                MatterBallDecompressorGuiLayout.CELL,
                 MatterBallDecompressorGuiLayout.CELL);
             return;
         }
@@ -148,7 +144,8 @@ public final class MatterBallDecompressorGuiRenderer {
         Gui.drawRect(x, y + s - 1, x + s, y + s, SLOT_SHADOW);
     }
 
-    private static void drawAllSlotBackgrounds(int guiLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
+    private static void drawAllSlotBackgrounds(int guiLeft, int guiTop,
+        MatterBallDecompressorGuiLayout.Metrics metrics) {
         for (int row = 0; row < MatterBallDecompressorGuiLayout.INPUT_ROWS; row++) {
             drawSlotCell(
                 guiLeft + metrics.inputX,
@@ -166,7 +163,8 @@ public final class MatterBallDecompressorGuiRenderer {
         }
     }
 
-    private static void drawPlayerInventorySlots(int guiLeft, int guiTop, MatterBallDecompressorGuiLayout.Metrics metrics) {
+    private static void drawPlayerInventorySlots(int guiLeft, int guiTop,
+        MatterBallDecompressorGuiLayout.Metrics metrics) {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 drawSlotCell(
@@ -191,4 +189,3 @@ public final class MatterBallDecompressorGuiRenderer {
         }
     }
 }
-

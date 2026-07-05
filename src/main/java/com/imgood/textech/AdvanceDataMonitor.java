@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.imgood.textech.compat.ae.AeCompat;
+import com.imgood.textech.handler.WebAeServerHandler;
 import com.imgood.textech.items.cell.DataLoomCellHandler;
 import com.imgood.textech.loader.LoaderBlock;
 import com.imgood.textech.loader.LoaderEntity;
@@ -23,7 +24,10 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLMissingMappingsEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
+import cpw.mods.fml.common.event.FMLServerStoppingEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 
@@ -84,11 +88,45 @@ public class AdvanceDataMonitor {
         // AE2 Api/RegistryContainer requires AEConfig - must run after AE2 preInit (postInit phase).
         AeCompat.init();
         DataLoomCellHandler.register();
+        com.imgood.textech.webae.pattern.PatternBrowseGridCacheRegistrar.register();
+        com.imgood.textech.webae.topology.TopologyGridCacheRegistrar.register();
     }
 
     @Mod.EventHandler
     // register server commands in this event handler (Remove if not needed)
     public void serverStarting(FMLServerStartingEvent event) {
         proxy.serverStarting(event);
+    }
+
+    @Mod.EventHandler
+    public void serverStarted(FMLServerStartedEvent event) {
+        if (Config.webConsoleEnabled) {
+            WebAeServerHandler.startIfEnabled();
+        } else {
+            LOG.info("[WebAE] Web Console is disabled. Set [webConsole] enabled=true in config to enable.");
+        }
+    }
+
+    @Mod.EventHandler
+    public void serverStopping(FMLServerStoppingEvent event) {
+        WebAeServerHandler.stopServer();
+    }
+
+    @Mod.EventHandler
+    public void serverStopped(FMLServerStoppedEvent event) {
+        WebAeServerHandler.stopServer();
+        // Flush any pending WebAE player/chat store writes so data is not lost on shutdown.
+        try {
+            com.imgood.textech.webae.player.PlayerInfoStore.instance()
+                .saveNow();
+        } catch (Throwable t) {
+            LOG.warn("[WebAE] Failed to flush player info store on server stop", t);
+        }
+        try {
+            com.imgood.textech.webae.chat.ChatMessageStore.instance()
+                .saveNow();
+        } catch (Throwable t) {
+            LOG.warn("[WebAE] Failed to flush chat message store on server stop", t);
+        }
     }
 }

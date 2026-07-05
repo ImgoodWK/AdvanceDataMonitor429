@@ -1,9 +1,9 @@
 package com.imgood.textech.gui.framework;
 
+import net.minecraft.util.ResourceLocation;
+
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.client.PocketPortalGuiRenderer;
-
-import net.minecraft.util.ResourceLocation;
 
 /**
  * Pocket portal theme stub — maps {@link PocketPortalGuiRenderer} atlas constants.

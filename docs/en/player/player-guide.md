@@ -56,6 +56,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
 | Grapple travel | Smooth gliding along anchor networks with both hands free |
 | AI Assistant | Natural-language AE2 queries, crafting orders, withdrawals, plans, and **Advanced Dislocator** teleport |
 | Voice Assistant | **V** key recording; embedded Vosk (offline) or HTTP STT |
+| WebAE Console | Browser AE2/GT management (disabled by default; see [WebAE User Guide](../webae/user-guide.md)) |
 
 **Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Matter Ball Decompressor, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, TeXTech Manual, Dimensional Pocket (with Space/Page upgrade cards), Super Orange, Empyrean Holy Judgment, and more.
 

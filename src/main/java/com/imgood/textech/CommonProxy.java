@@ -3,6 +3,7 @@ package com.imgood.textech;
 import java.io.File;
 
 import com.imgood.textech.command.CommandAssistant;
+import com.imgood.textech.command.CommandWebConsole;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -50,10 +51,8 @@ public class CommonProxy {
                 legacyFile.getAbsolutePath(),
                 targetFile.getAbsolutePath());
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.warn(
-                "[TeXTech] Failed to migrate main config from {}",
-                legacyFile.getAbsolutePath(),
-                e);
+            AdvanceDataMonitor.LOG
+                .warn("[TeXTech] Failed to migrate main config from {}", legacyFile.getAbsolutePath(), e);
         }
     }
 
@@ -66,5 +65,6 @@ public class CommonProxy {
     // register server commands in this event handler (Remove if not needed)
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new CommandAssistant());
+        event.registerServerCommand(new CommandWebConsole());
     }
 }

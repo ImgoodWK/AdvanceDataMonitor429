@@ -49,9 +49,12 @@ import cpw.mods.fml.common.Optional;
  */
 public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnableTile {
 
+    public static final int MAX_DATA_BINDINGS = 36;
+
     private String ownerName = "";
 
     private final Map<Integer, NBTTagCompound> dataBoundList = new HashMap<>();
+    private NBTTagCompound gtBoundMachinesNbt;
     private boolean visableScreen = true;
     private boolean visableBody = true;
     private boolean visableBack = true;
@@ -257,6 +260,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         compound.setInteger("testRandomData", testRandomData);
         OwnableTileUtil.writeOwner(compound, ownerName);
 
+        if (gtBoundMachinesNbt != null) {
+            compound.setTag("gtBoundMachinesRoot", gtBoundMachinesNbt);
+        }
+
         NBTTagCompound displayDataNBT = new NBTTagCompound();
         for (Map.Entry<Integer, NBTTagCompound> entry : dataBoundList.entrySet()) {
             if (entry.getValue() != null) {
@@ -278,6 +285,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         facing = compound.getInteger("facing");
         testRandomData = compound.getInteger("testRandomData");
         ownerName = OwnableTileUtil.readOwner(compound);
+
+        if (compound.hasKey("gtBoundMachinesRoot")) {
+            gtBoundMachinesNbt = compound.getCompoundTag("gtBoundMachinesRoot");
+        }
 
         if (compound.hasKey("DisplayDataMap")) {
             NBTTagCompound displayDataNBT = compound.getCompoundTag("DisplayDataMap");
@@ -354,6 +365,17 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             dataBoundList.put(index, nbt);
         }
         return nbt;
+    }
+
+    /**
+     * Check whether an index has a non-default data entry without creating one.
+     * Unlike getDataBound(), this does NOT auto-create a default NBT.
+     */
+    public boolean hasDataBoundEntry(int index) {
+        NBTTagCompound nbt = dataBoundList.get(index);
+        return nbt != null && nbt.hasKey("XYZ")
+            && !nbt.getString("XYZ")
+                .isEmpty();
     }
 
     public void removeDataBound(int index) {
@@ -1329,6 +1351,17 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     /**
      * 使用 CraftingTemplateParser 解析用户自定义模板
      */
+    // ========================= GT机器绑定 NBT 访问器 =========================//
+
+    public NBTTagCompound getGtBoundMachinesNbt() {
+        return gtBoundMachinesNbt;
+    }
+
+    public void setGtBoundMachinesNbt(NBTTagCompound nbt) {
+        this.gtBoundMachinesNbt = nbt;
+        markDirty();
+    }
+
     private String[] parseTemplateWithLink(String template, final TileEntityAdvanceCraftingLink link) {
         CraftingTemplateParser.DataProvider provider = new CraftingTemplateParser.DataProvider() {
 

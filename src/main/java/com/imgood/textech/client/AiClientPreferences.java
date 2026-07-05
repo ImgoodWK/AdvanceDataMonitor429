@@ -229,15 +229,11 @@ public final class AiClientPreferences {
             while ((read = in.read(buffer)) >= 0) {
                 out.write(buffer, 0, read);
             }
-            AdvanceDataMonitor.LOG.info(
-                "[TeXTech] Migrated client config: {} -> {}",
-                source.getAbsolutePath(),
-                target.getAbsolutePath());
+            AdvanceDataMonitor.LOG
+                .info("[TeXTech] Migrated client config: {} -> {}", source.getAbsolutePath(), target.getAbsolutePath());
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.warn(
-                "[TeXTech] Failed to migrate client config from {}",
-                source.getAbsolutePath(),
-                e);
+            AdvanceDataMonitor.LOG
+                .warn("[TeXTech] Failed to migrate client config from {}", source.getAbsolutePath(), e);
         }
     }
 

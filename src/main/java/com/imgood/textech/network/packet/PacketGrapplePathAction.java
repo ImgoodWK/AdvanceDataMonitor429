@@ -6,9 +6,9 @@ import net.minecraft.util.ChatComponentTranslation;
 import com.imgood.textech.handler.GrapplePathStore;
 import com.imgood.textech.handler.GrapplePlanningSession;
 import com.imgood.textech.handler.GrappleRouteSync;
-import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.items.GrappleHookMode;
 import com.imgood.textech.items.ItemGrappleHook;
+import com.imgood.textech.network.handler.PacketHandlers;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;

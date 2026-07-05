@@ -1,0 +1,1276 @@
+/* ===== Global styles for TeXTech WebAE Console =====
+ * Theme colors and layout are driven by CSS custom properties set via
+ * applyCssVars() in theme/antdTheme.ts. This file provides base resets,
+ * scrollbar styling, and the advanced UI mode effect layers.
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Microsoft YaHei', 'PingFang SC', sans-serif;
+  background: var(--bg-primary, #1a1a2e);
+  color: var(--text-primary, #e0e0e0);
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-dim);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Skip link — visible only when focused (WCAG 2.4.1) */
+.skip-link:focus {
+  left: 8px !important;
+  top: 8px !important;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* ===== Custom component helpers ===== */
+.webae-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  vertical-align: middle;
+}
+.webae-icon-box-fluid {
+  border-radius: 4px;
+}
+.webae-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.webae-icon-fluid {
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.stat-card-equal {
+  height: 112px;
+  min-height: unset;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.stat-card-equal .ant-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 12px !important;
+}
+.stat-card-with-progress .stat-card-progress {
+  margin-top: auto;
+  padding-top: 4px;
+  flex-shrink: 0;
+}
+.stat-card-with-progress .ant-progress {
+  margin-bottom: 0;
+  line-height: 1;
+}
+
+/* Phase 3: configurable storage / CPU overview grids (112px fixed row) */
+.overview-widget-grid .overview-grid-item-content {
+  min-height: 112px;
+  height: auto !important;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.overview-widget-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.overview-widget-inner .overview-stat-value {
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.overview-progress-area {
+  flex-shrink: 0;
+  width: 100%;
+}
+.overview-progress-area .ant-progress-text {
+  font-size: 0.75rem !important;
+}
+.overview-grid-edit-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+/* Phase 4: configurable power page GridStack + anti-flicker trend chart */
+.power-widget-grid .power-grid-item-content {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.power-grid-edit-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+.power-trend-chart {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 120px;
+  width: 100%;
+}
+.power-chart-stable {
+  contain: layout style;
+}
+.power-chart-stable .power-trend-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: opacity 0.15s ease;
+}
+.chart-no-data-watermark {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 16px;
+  user-select: none;
+}
+.power-trend-legend {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.power-refresh-indicator {
+  opacity: 0.85;
+}
+
+.icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.stat-card {
+  padding: var(--layout-card-pad, 16px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-card-value {
+  font-size: var(--layout-dash-value, 1.8rem);
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.stat-card-label {
+  font-size: var(--layout-font-base, 0.83rem);
+  color: var(--text-secondary);
+}
+
+/* ===== Effects system — gated by data-effects-level (none/subtle/full) =====
+ * data-ui-mode='advanced' is always set (legacy). Intensity is controlled by
+ * data-effects-level on <html>:
+ *   none    — no glass, no hover lift, no animations (low-end devices)
+ *   subtle  — light glass blur, transitions kept, no hover lift / particles
+ *   full    — liquid glass, hover lift, particle background, number roll, shimmer
+ * backdrop-filter carries a -webkit- prefix for Safari/Electron compatibility.
+ */
+
+/* ---- Liquid glass card (opt-in via .glass-card) ---- */
+.glass-card {
+  background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 18%, transparent),
+    0 4px 18px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+[data-ui-mode='advanced'][data-effects-level='subtle'] .glass-card {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+[data-ui-mode='advanced'][data-effects-level='full'] .glass-card {
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bg-card) 70%, transparent),
+    color-mix(in srgb, var(--bg-secondary) 55%, transparent)
+  );
+}
+[data-ui-mode='advanced'][data-effects-level='none'] .glass-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ---- stat-card base + intensity tiers ---- */
+[data-ui-mode='advanced'] .stat-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+[data-ui-mode='advanced'][data-effects-level='subtle'] .stat-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bg-card) 88%, transparent),
+    color-mix(in srgb, var(--bg-secondary) 80%, transparent)
+  );
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+[data-ui-mode='advanced'][data-effects-level='full'] .stat-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bg-card) 90%, transparent),
+    color-mix(in srgb, var(--bg-secondary) 80%, transparent)
+  );
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--accent) 8%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--accent) 5%, transparent);
+}
+[data-ui-mode='advanced'][data-effects-level='full'] .stat-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+[data-ui-mode='advanced'][data-effects-level='full'] .stat-card-value {
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* ---- Particle / flowing gradient background (full only) ---- */
+[data-ui-mode='advanced'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(
+      circle at 20% 30%,
+      color-mix(in srgb, var(--accent) 6%, transparent) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 70%,
+      color-mix(in srgb, var(--accent) 4%, transparent) 0%,
+      transparent 50%
+    );
+  pointer-events: none;
+  z-index: 0;
+  animation: bgDrift 24s ease-in-out infinite alternate;
+}
+@keyframes bgDrift {
+  0% {
+    background-position: 0% 0%, 100% 100%;
+  }
+  100% {
+    background-position: 30% 20%, 70% 80%;
+  }
+}
+
+/* ---- Shimmer (skeleton + progress bars) ---- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+[data-ui-mode='advanced'][data-effects-level='full'] .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+[data-ui-mode='advanced'][data-effects-level='full'] .ant-progress-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 35%, transparent),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  pointer-events: none;
+}
+
+/* ---- Number roll animation (full only) ---- */
+@keyframes numberRoll {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+[data-ui-mode='advanced'][data-effects-level='full'] .stat-card-value {
+  animation: numberRoll 0.4s ease;
+}
+
+/* ---- Page fade-in (subtle + full) ---- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+[data-ui-mode='advanced'][data-effects-level='subtle'] .app-content > *,
+[data-ui-mode='advanced'][data-effects-level='full'] .app-content > * {
+  animation: fadeInUp 0.25s ease;
+}
+
+/* ===== Reduced motion (WCAG 2.3.3) ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  [data-ui-mode='advanced'] .stat-card:hover {
+    transform: none;
+  }
+
+  [data-ui-mode='advanced'] .skeleton-shimmer,
+  [data-ui-mode='advanced'] .ant-progress-bg::after,
+  [data-ui-mode='advanced'] .app-content::before {
+    animation: none;
+  }
+}
+
+/* ===== High contrast focus indicators (WCAG 1.4.11, 2.4.7) ===== */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* GridStack overrides */
+.grid-stack {
+  background: transparent;
+  width: 100%;
+}
+.grid-stack-item-content {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.widget-shell {
+  background: var(--widget-bg, var(--bg-card));
+  border: var(--widget-border-width, 1px) solid var(--widget-border, var(--border));
+  position: relative;
+}
+.widget-shell-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.widget-shell-footer {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-align: right;
+  padding-top: 4px;
+  opacity: 0.85;
+}
+.virtual-pattern-grid {
+  display: block;
+}
+/* Dashboard widget 内部不再包一层独立卡片：让 .stat-card 退化为纯布局容器
+   (保留 flex/gap)，卡片外观由 .grid-stack-item-content 统一提供，避免双层
+   padding/边框导致 1×1/2×2 widget 内容区被压缩。 */
+.grid-stack-item-content .stat-card {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* Trend chart axes */
+.chart-trend-wrap {
+  width: 100%;
+  height: 100%;
+}
+.chart-trend-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr auto;
+  width: 100%;
+  height: 100%;
+  gap: 2px 6px;
+}
+.chart-trend-with-axes:not(:has(.chart-y-axis)) .chart-trend-layout {
+  grid-template-columns: 1fr;
+}
+.chart-trend-with-axes:not(:has(.chart-x-axis)) .chart-trend-layout {
+  grid-template-rows: 1fr;
+}
+.chart-y-axis {
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 2px 4px 2px 0;
+  min-width: 2.5rem;
+}
+.chart-plot-area {
+  grid-row: 1;
+  grid-column: 2;
+  height: 100%;
+}
+.chart-trend-with-axes:not(:has(.chart-y-axis)) .chart-plot-area {
+  grid-column: 1;
+}
+.chart-x-axis {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 2px 2px;
+  min-height: 1rem;
+}
+.chart-axis-label {
+  font-size: 0.62rem;
+  line-height: 1.2;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.chart-y-axis-label {
+  font-variant-numeric: tabular-nums;
+}
+.chart-x-axis-label-left {
+  text-align: left;
+  flex: 1;
+}
+.chart-x-axis-label-center {
+  text-align: center;
+  flex: 1;
+}
+.chart-x-axis-label-right {
+  text-align: right;
+  flex: 1;
+}
+
+/* Wiki-linked item icons */
+.webae-icon-wiki-link {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: outline-color 0.15s ease, box-shadow 0.15s ease;
+}
+.webae-icon-wiki-link:hover,
+.webae-icon-wiki-link:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.webae-icon-wiki-link:focus {
+  outline: none;
+}
+.webae-icon-wiki-link:focus-visible {
+  outline: 2px solid var(--accent);
+}
+[data-ui-mode='advanced'] .grid-stack-item-content .stat-card {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  border: none;
+}
+
+/* ===== Widget alignment 9-grid (Phase 1) =====
+ * .widget-align is a column flex container; data-align picks the 9-grid slot.
+ * vertical → justify-content, horizontal → align-items + text-align.
+ */
+.widget-align {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  gap: 6px;
+}
+.widget-align[data-align='top-left']      { justify-content: flex-start; align-items: flex-start; text-align: left; }
+.widget-align[data-align='top']           { justify-content: flex-start; align-items: center;     text-align: center; }
+.widget-align[data-align='top-right']     { justify-content: flex-start; align-items: flex-end;   text-align: right; }
+.widget-align[data-align='left']          { justify-content: center;     align-items: flex-start; text-align: left; }
+.widget-align[data-align='center']        { justify-content: center;     align-items: center;     text-align: center; }
+.widget-align[data-align='right']         { justify-content: center;     align-items: flex-end;   text-align: right; }
+.widget-align[data-align='bottom-left']   { justify-content: flex-end;   align-items: flex-start; text-align: left; }
+.widget-align[data-align='bottom']        { justify-content: flex-end;   align-items: center;     text-align: center; }
+.widget-align[data-align='bottom-right']  { justify-content: flex-end;   align-items: flex-end;   text-align: right; }
+.widget-align .widget-chart-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.widget-align .widget-chart-area.widget-chart-area--sized {
+  flex: 0 0 auto;
+}
+.widget-align .widget-chart-area svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Alignment 9-grid picker (used in Edit Modal + Dashboard Settings Drawer) */
+.align-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+  width: 120px;
+  height: 120px;
+}
+.align-grid-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.align-grid-cell:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+.align-grid-cell.is-active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.align-grid-cell .anticon {
+  font-size: 0.85rem;
+}
+
+/* Chat message styles */
+.chat-message {
+  padding: 6px 10px;
+  margin: 2px 0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.chat-message.system {
+  color: var(--text-dim);
+  font-style: italic;
+}
+.chat-message.web {
+  background: var(--accent-dim);
+}
+.chat-message.game {
+  background: var(--bg-hover);
+}
+
+/* ===== Chat bubble mode (p2-chat) =====
+ * 气泡模式：自己（web 来源且匹配当前用户名）靠右，其他靠左。
+ * 圆角气泡 + 尾巴 CSS，气泡内含头像、发送者、时间、内容。
+ */
+.chat-bubble-row {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0;
+  align-items: flex-start;
+}
+.chat-bubble-row.chat-bubble-self {
+  flex-direction: row-reverse;
+}
+.chat-bubble-avatar {
+  flex-shrink: 0;
+}
+.chat-bubble-body {
+  max-width: 75%;
+  display: flex;
+  flex-direction: column;
+}
+.chat-bubble-row.chat-bubble-self .chat-bubble-body {
+  align-items: flex-end;
+}
+.chat-bubble-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+.chat-bubble-row.chat-bubble-self .chat-bubble-meta {
+  flex-direction: row-reverse;
+}
+.chat-bubble-content {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  position: relative;
+}
+.chat-bubble-other .chat-bubble-content {
+  border-top-left-radius: 4px;
+  background: var(--bg-hover);
+}
+.chat-bubble-self .chat-bubble-content {
+  border-top-right-radius: 4px;
+  background: var(--accent-dim);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+/* 气泡尾巴（小三角） */
+.chat-bubble-content::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 6px 5px 0;
+}
+.chat-bubble-other .chat-bubble-content::after {
+  left: -5px;
+  border-color: transparent var(--bg-hover) transparent transparent;
+}
+.chat-bubble-self .chat-bubble-content::after {
+  right: -5px;
+  border-width: 5px 0 5px 6px;
+  border-color: transparent transparent transparent var(--accent-dim);
+}
+.chat-bubble-system {
+  text-align: center;
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 0.78rem;
+  margin: 4px 0;
+}
+/* 首字母圆形头像占位（Crafatar 加载失败时回退） */
+.chat-avatar-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: #fff;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+/* 玩家列表折叠浮窗（Drawer 内部样式微调） */
+.chat-player-drawer .ant-drawer-body {
+  padding: 12px;
+}
+
+/* Connection badge */
+.conn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+.conn-badge.online {
+  background: var(--success-dim);
+  color: var(--success);
+}
+.conn-badge.offline {
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+/* Table row hover */
+.ant-table-tbody > tr:hover > td {
+  background: var(--bg-hover) !important;
+}
+
+/* ===== Recipe page layouts (Phase 5) ===== */
+.recipe-thumbnail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-auto-rows: minmax(120px, auto);
+  gap: 12px;
+  align-items: stretch;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1px;
+}
+
+.recipe-thumbnail-card {
+  aspect-ratio: 1;
+  width: 100%;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 130px;
+}
+
+.recipe-thumbnail-card .ant-card-body {
+  min-height: 0;
+}
+
+.recipe-thumbnail-icon {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  width: 100%;
+}
+
+.recipe-thumbnail-icon-placeholder {
+  width: 48px;
+  height: 48px;
+  background: var(--bg-muted);
+  border-radius: 4px;
+}
+
+.recipe-thumbnail-name {
+  font-size: 0.85rem;
+  width: 100%;
+  text-align: center;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.recipe-thumbnail-tag {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.recipe-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-auto-flow: row;
+  align-items: start;
+  gap: 12px;
+}
+
+.recipe-detail-grid-item {
+  break-inside: avoid;
+  min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
+}
+
+.recipe-layout-viewport {
+  min-height: 120px;
+  overflow-anchor: none;
+}
+
+.recipe-load-sentinel {
+  height: 1px;
+  overflow-anchor: none;
+  pointer-events: none;
+}
+
+.recipe-result-count {
+  min-height: 1.5em;
+}
+
+.recipe-layout-container {
+  contain: layout style;
+}
+
+.recipe-layout-container[hidden] {
+  display: none !important;
+}
+
+.recipe-thumbnail-card .recipe-merged-footer {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* AE Ordering — pattern cards (Phase 7) */
+.pattern-order-card-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.pattern-order-info-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.pattern-order-info-btn:hover,
+.pattern-order-info-btn:focus-visible {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.pattern-order-add-btn {
+  position: absolute;
+  top: 4px;
+  right: 32px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.pattern-order-add-btn:hover,
+.pattern-order-add-btn:focus-visible {
+  color: var(--success);
+  background: var(--success-dim, var(--accent-dim));
+}
+
+.pattern-tag-crafting {
+  color: #1677ff !important;
+  background: rgba(22, 119, 255, 0.12) !important;
+  border-color: rgba(22, 119, 255, 0.35) !important;
+}
+
+.pattern-tag-processing {
+  color: #52c41a !important;
+  background: rgba(82, 196, 26, 0.12) !important;
+  border-color: rgba(82, 196, 26, 0.35) !important;
+}
+
+.pattern-detail-io-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 40px);
+  gap: 4px;
+}
+
+.pattern-detail-io-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+}
+
+.pattern-detail-io-empty {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.pattern-detail-io-count {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text);
+  text-shadow: 0 0 2px var(--bg-primary);
+}
+
+/* ===== Phase 8: Sci-fi theme special styles ===== */
+
+/* Hologram — scan lines + glass glow */
+[data-theme-color='hologram'][data-effects-level='full'] .widget-shell,
+[data-theme-color='hologram'][data-effects-level='full'] .grid-stack-item-content,
+[data-theme-color='hologram'][data-effects-level='full'] .stat-card,
+[data-theme-color='hologram'][data-effects-level='full'] .overview-grid-item-content,
+[data-theme-color='hologram'][data-effects-level='full'] .power-grid-item-content {
+  background: color-mix(in srgb, var(--widget-bg, var(--bg-card)) 75%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--accent) 12%, transparent),
+    inset 0 0 30px color-mix(in srgb, var(--accent) 5%, transparent);
+}
+[data-theme-color='hologram'][data-effects-level='full'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    color-mix(in srgb, var(--accent) 4%, transparent) 2px,
+    color-mix(in srgb, var(--accent) 4%, transparent) 4px
+  );
+  animation: hologramScan 8s linear infinite;
+}
+@keyframes hologramScan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(8px); }
+}
+
+/* Plasma — radial particle glow */
+[data-theme-color='plasma'][data-effects-level='full'] .app-content::before {
+  background-image:
+    radial-gradient(circle at 15% 25%, rgba(224, 64, 251, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(255, 64, 128, 0.1) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(234, 128, 252, 0.06) 0%, transparent 60%);
+  animation: plasmaPulse 6s ease-in-out infinite alternate;
+}
+@keyframes plasmaPulse {
+  0% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Neon Pulse — breathing border */
+[data-theme-color='neon-pulse'][data-effects-level='full'] .widget-shell,
+[data-theme-color='neon-pulse'][data-effects-level='full'] .grid-stack-item-content,
+[data-theme-color='neon-pulse'][data-effects-level='full'] .stat-card {
+  animation: neonBorderBreath 3s ease-in-out infinite;
+}
+@keyframes neonBorderBreath {
+  0%, 100% {
+    border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+}
+
+/* Quantum — grid background */
+[data-theme-color='quantum'][data-effects-level='full'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.35;
+  animation: quantumGridDrift 20s linear infinite;
+}
+@keyframes quantumGridDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 32px 32px; }
+}
+
+/* Crystal — prismatic refraction shimmer */
+[data-theme-color='crystal'][data-effects-level='full'] .stat-card-value {
+  background: linear-gradient(
+    135deg,
+    var(--accent),
+    var(--accent-hover),
+    #34d399,
+    var(--accent)
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: crystalShimmer 5s ease infinite;
+}
+@keyframes crystalShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ===== Phase 8: Chart continuous animations (effectsLevel=full) ===== */
+@keyframes chartFlowDash {
+  to { stroke-dashoffset: -40; }
+}
+@keyframes chartAreaPulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.45; }
+}
+@keyframes chartPieSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes chartRadarPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); transform-origin: center; }
+  50% { opacity: 1; transform: scale(1.03); transform-origin: center; }
+}
+@keyframes chartBarPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.25); }
+}
+
+[data-effects-level='full'] .chart-svg-line {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 50%, transparent));
+}
+[data-effects-level='full'] .chart-flow-line {
+  stroke-dasharray: 6 4;
+  animation: chartFlowDash 2s linear infinite;
+}
+[data-effects-level='full'] .chart-svg-area {
+  animation: chartAreaPulse 3s ease-in-out infinite;
+}
+[data-effects-level='full'] .chart-pie-group {
+  animation: chartPieSpin 30s linear infinite;
+  transform-origin: 21px 21px;
+}
+[data-effects-level='full'] .chart-radar-data {
+  animation: chartRadarPulse 2.5s ease-in-out infinite;
+  transform-origin: 50px 50px;
+}
+[data-effects-level='full'] .chart-bar-segment {
+  animation: chartBarPulse 2s ease-in-out infinite;
+}
+[data-effects-level='full'] .chart-gauge-ring {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 40%, transparent));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme-color='hologram'] .app-content::after,
+  [data-theme-color='plasma'] .app-content::before,
+  [data-theme-color='neon-pulse'] .widget-shell,
+  [data-theme-color='neon-pulse'] .grid-stack-item-content,
+  [data-theme-color='neon-pulse'] .stat-card,
+  [data-theme-color='quantum'] .app-content::after,
+  [data-theme-color='crystal'] .stat-card-value,
+  [data-effects-level='full'] .chart-flow-line,
+  [data-effects-level='full'] .chart-svg-area,
+  [data-effects-level='full'] .chart-pie-group,
+  [data-effects-level='full'] .chart-radar-data,
+  [data-effects-level='full'] .chart-bar-segment {
+    animation: none !important;
+  }
+  [data-theme-color='crystal'] .stat-card-value {
+    -webkit-text-fill-color: var(--accent);
+    background: none;
+  }
+}
+
+/* Network topology graph */
+.topology-graph-host {
+  overflow: hidden;
+  background: var(--bg-primary);
+  border-radius: 0 0 var(--layout-radius, 8px) var(--layout-radius, 8px);
+  cursor: grab;
+}
+.topology-graph-host:active {
+  cursor: grabbing;
+}
+.topology-graph-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  transition: transform 0.05s linear;
+}
+.topology-edge-line {
+  stroke-linecap: round;
+}
+[data-effects-level='full'] .topology-edge-line {
+  filter: drop-shadow(0 0 2px color-mix(in srgb, currentColor 40%, transparent));
+}
+.topology-loading-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+/* GT machines summary charts (Phase 4c) */
+.gt-summary-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 140px;
+}
+.gt-summary-chart__pie-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
+}
+.gt-summary-chart__pie-wrap .chart-svg {
+  width: 100px;
+  height: 100px;
+}
+.gt-summary-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.gt-summary-chart--bars {
+  gap: 8px;
+}
+.gt-summary-bar-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 28%) 1fr 36px;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.72rem;
+}
+.gt-summary-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+.gt-summary-bar-track {
+  height: 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.gt-summary-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.3s ease;
+}
+.gt-summary-bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.gt-row-error > td {
+  background: color-mix(in srgb, var(--error, #ff4d4f) 8%, transparent) !important;
+}
+.gt-row-error:hover > td {
+  background: color-mix(in srgb, var(--error, #ff4d4f) 14%, transparent) !important;
+}
+
+/* Phase 12 — mobile / narrow viewport */
+@media (max-width: 768px) {
+  body {
+    overflow: auto;
+  }
+
+  .webae-layout .ant-layout-sider {
+    position: fixed !important;
+    z-index: 1001;
+    height: 100vh;
+  }
+
+  .webae-layout .ant-layout-header {
+    padding-inline: 8px !important;
+  }
+
+  .webae-layout .ant-layout-content {
+    padding: 8px !important;
+  }
+
+  .topology-graph-card {
+    min-height: 360px !important;
+  }
+
+  .monitor-preview-chart {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ant-table {
+    font-size: 12px;
+  }
+
+  .ant-segmented {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}

@@ -54,6 +54,11 @@
       "id": "config_reference",
       "titleKey": "adm.manual.chapter.config_reference",
       "icon": "minecraft:paper"
+    },
+    {
+      "id": "web_console",
+      "titleKey": "adm.manual.chapter.web_console",
+      "icon": "minecraft:web"
     }
   ]
 }

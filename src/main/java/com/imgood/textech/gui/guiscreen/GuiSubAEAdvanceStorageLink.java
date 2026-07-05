@@ -2,7 +2,6 @@ package com.imgood.textech.gui.guiscreen;
 
 import static com.imgood.textech.utils.ContentsHelper.isValidDouble;
 import static com.imgood.textech.utils.ContentsHelper.isValidInteger;
-import static com.imgood.textech.utils.ContentsHelper.wrapText;
 
 import java.util.ArrayList;
 import java.util.HashMap;

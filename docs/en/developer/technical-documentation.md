@@ -91,6 +91,7 @@ Main directories:
 - `assistant/`: AI assistant intent, controller, server execution, formatting, preference memory, and local plan storage.
 - `assistant/ai/`: OpenAI-compatible chat client, request options, provider profiles, stream listener (assistant sub-package).
 - `voice/`: recording, STT, embedded Vosk model.
+- `webae/`: embedded Web Console (NanoHTTPD HTTP server + REST API + frontend SPA); sub-packages `auth/`, `api/handler/`, `cache/`, `dto/`, `power/`, `snapshot/`, `gt/`, `network/`, `recipe/`, `pattern/`, `icon/`, `player/` (player info collection + skin URL resolver), `chat/` (chat message ring buffer); for full architecture, API endpoint table, network packets, and subsystem design see [WebAE Developer Guide](../webae/developer-guide.md).
 - `items/cell/`: Data Loom Cells — implement `ICellWorkbenchItem` + `ICellHandler`; weave marked items/fluids/essentia over time in ME drives/chests; accept only Weave Amplifier cards (default 4×/16× per card, multiplicative); tooltip caches effective rates.
 - `utils/`: NBT parsing, binding data model, TileEntity type detection, network validation, AE2 crafting templates, and other helpers.
 - `mixin/`: client-side Mixins (NEI tooltip/layout, GUI container hooks); config in `mixins.textech.json`.

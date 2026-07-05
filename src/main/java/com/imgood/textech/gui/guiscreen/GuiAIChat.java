@@ -9,6 +9,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
+
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -662,10 +663,7 @@ public class GuiAIChat extends ADM_GuiScreen {
                     }
                 }
             }
-            ChatRequestOptions llmOptions = new ChatRequestOptions(
-                false,
-                AiProviderProfiles.MODE_OFF,
-                options.stream);
+            ChatRequestOptions llmOptions = new ChatRequestOptions(false, AiProviderProfiles.MODE_OFF, options.stream);
             DeepSeekChatClient client = new DeepSeekChatClient();
             this.currentClient = client;
             if (options.stream) {
@@ -868,8 +866,7 @@ public class GuiAIChat extends ADM_GuiScreen {
             return prompt
                 + " Built-in web search results may be injected into this request. When you use current information, cite the numbered references or source links. If search failed, say so instead of guessing.";
         }
-        return prompt
-            + " Web search is disabled for this request. Do not claim to have checked live web results.";
+        return prompt + " Web search is disabled for this request. Do not claim to have checked live web results.";
     }
 
     private String languageInstruction(String locale) {

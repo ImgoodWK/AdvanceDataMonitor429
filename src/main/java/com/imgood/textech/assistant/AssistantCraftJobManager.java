@@ -146,6 +146,53 @@ public final class AssistantCraftJobManager {
         return builder.toString();
     }
 
+    /**
+     * 玩家是否仍有与 displayName 匹配的 AE2 合成计算（Future 未完成）。
+     */
+    public synchronized boolean isCalculating(UUID owner, String displayName) {
+        pruneFinished();
+        if (owner == null || displayName == null) {
+            return false;
+        }
+        for (PendingJob job : jobs) {
+            if (!job.owner.equals(owner)) {
+                continue;
+            }
+            if (job.future == null || job.future.isDone() || job.future.isCancelled()) {
+                continue;
+            }
+            if (displayName.equals(job.displayName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 合成计算阶段的进度（0–25），基于已等待时间与配置超时。
+     */
+    public synchronized int getCalculationProgressPercent(UUID owner, String displayName) {
+        pruneFinished();
+        if (owner == null || displayName == null) {
+            return 0;
+        }
+        long timeoutMs = Math.max(1, Config.assistantCraftJobTimeoutSeconds) * 1000L;
+        long now = System.currentTimeMillis();
+        for (PendingJob job : jobs) {
+            if (!job.owner.equals(owner)) {
+                continue;
+            }
+            if (job.future == null || job.future.isDone() || job.future.isCancelled()) {
+                continue;
+            }
+            if (displayName.equals(job.displayName)) {
+                long elapsed = Math.max(0L, now - job.createdAt);
+                return Math.min(25, (int) (elapsed * 25 / timeoutMs));
+            }
+        }
+        return 0;
+    }
+
     public synchronized String cancel(EntityPlayerMP player, String locale) {
         UUID owner = owner(player);
         int cancelled = 0;

@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -18,6 +19,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
@@ -33,6 +35,7 @@ import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.webae.dto.OrderStatus;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
@@ -41,6 +44,7 @@ import appeng.api.implementations.tiles.IChestOrDrive;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingCallback;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingJob;
@@ -61,6 +65,12 @@ import appeng.tile.storage.TileDrive;
 import appeng.util.item.AEItemStack;
 
 public final class AssistantServerServices {
+
+    /** 合成下单通知来源：AI 助手 vs WebAE 网页控制台。 */
+    public enum CraftNotifySource {
+        ASSISTANT,
+        WEB_AE
+    }
 
     private AssistantServerServices() {}
 
@@ -494,6 +504,16 @@ public final class AssistantServerServices {
 
     public static String submitBatchCraft(EntityPlayerMP player, String rawText, List<AssistantOrderLine> lines,
         String locale) {
+        return submitBatchCraft(player, rawText, lines, locale, null);
+    }
+
+    public static String submitBatchCraft(EntityPlayerMP player, String rawText, List<AssistantOrderLine> lines,
+        String locale, String cpuName) {
+        return submitBatchCraft(player, rawText, lines, locale, cpuName, CraftNotifySource.ASSISTANT);
+    }
+
+    public static String submitBatchCraft(EntityPlayerMP player, String rawText, List<AssistantOrderLine> lines,
+        String locale, String cpuName, CraftNotifySource notifySource) {
         if (lines == null || lines.isEmpty()) {
             return text(locale, "批量订单失败：没有订单行。", "Batch order failed: no order lines.");
         }
@@ -523,7 +543,7 @@ public final class AssistantServerServices {
         StringBuilder builder = new StringBuilder(text(locale, "批量订单已开始：", "Batch order started:"));
         for (AssistantOrderLine line : lines) {
             CraftingCandidate candidate = line.selectedOrFirstCandidate();
-            String result = submitCraft(player, candidate, line.amount, rawText, locale);
+            String result = submitCraft(player, candidate, line.amount, rawText, locale, cpuName, notifySource);
             builder.append("\n")
                 .append(line.lineIndex)
                 .append(". ")
@@ -551,6 +571,16 @@ public final class AssistantServerServices {
 
     public static String submitCraft(EntityPlayerMP player, CraftingCandidate candidate, long amount, String rawText,
         String locale) {
+        return submitCraft(player, candidate, amount, rawText, locale, null);
+    }
+
+    public static String submitCraft(EntityPlayerMP player, CraftingCandidate candidate, long amount, String rawText,
+        String locale, String cpuName) {
+        return submitCraft(player, candidate, amount, rawText, locale, cpuName, CraftNotifySource.ASSISTANT);
+    }
+
+    public static String submitCraft(EntityPlayerMP player, CraftingCandidate candidate, long amount, String rawText,
+        String locale, String cpuName, CraftNotifySource notifySource) {
         AdvanceDataMonitor.LOG.info(
             "[ADM Assistant] Server craft submit request: player={}, candidate='{}', registry='{}', amount={}, raw='{}'",
             player == null ? "null" : player.getCommandSenderName(),
@@ -615,7 +645,9 @@ public final class AssistantServerServices {
                     stack,
                     amount,
                     rawText,
-                    locale);
+                    locale,
+                    cpuName,
+                    notifySource);
                 if (apiResult != null) {
                     return apiResult;
                 }
@@ -632,6 +664,143 @@ public final class AssistantServerServices {
         }
         return lastError != null ? lastError
             : orderFailed(locale, text(locale, "在所有连接器中均未找到可合成该物品的网络。", "no network found that can craft this item."));
+    }
+
+    /**
+     * WebAE: query craft candidates from one Advance Crafting Link (owner network context).
+     */
+    public static List<CraftingCandidate> craftingCandidatesForLink(EntityPlayerMP player,
+        TileEntityAdvanceCraftingLink link, String rawText, String target, long amount) {
+        if (player == null || link == null) {
+            return Collections.emptyList();
+        }
+        List<CraftingCandidate> allCandidates = new ArrayList<CraftingCandidate>();
+        Map<String, ItemStack> unique = new LinkedHashMap<String, ItemStack>();
+        try {
+            IGrid grid = link.getProxy()
+                .getGrid();
+            ICraftingGrid craftingGrid = grid == null ? null : grid.getCache(ICraftingGrid.class);
+            if (craftingGrid == null) {
+                return Collections.emptyList();
+            }
+            PatternLookup patternLookup = lookupPatterns(craftingGrid, target, Math.max(1L, amount), Integer.MAX_VALUE);
+            for (CraftingCandidate c : patternLookup.candidates) {
+                if (candidateLimitReached(allCandidates.size())) {
+                    break;
+                }
+                String key = candidateKey(c.toItemStack());
+                if (unique.put(key, c.toItemStack()) != null) {
+                    continue;
+                }
+                allCandidates.add(c);
+            }
+            if (allCandidates.isEmpty() && !patternLookup.usedStrongApi) {
+                Collection<?> craftables = reflectCraftables(craftingGrid);
+                if (craftables != null) {
+                    List<CraftingCandidate> reflected = craftingCandidatesFromReflected(
+                        craftables,
+                        target,
+                        Math.max(1L, amount));
+                    for (CraftingCandidate c : reflected) {
+                        if (candidateLimitReached(allCandidates.size())) {
+                            break;
+                        }
+                        String key = candidateKey(c.toItemStack());
+                        if (unique.put(key, c.toItemStack()) != null) {
+                            continue;
+                        }
+                        allCandidates.add(c);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.error("[WebAE] Craft candidate query failed for link at {},{}", link.xCoord, link.yCoord, e);
+        }
+        if (allCandidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+        final String owner = ownerKey(player);
+        allCandidates.sort(new Comparator<CraftingCandidate>() {
+
+            @Override
+            public int compare(CraftingCandidate a, CraftingCandidate b) {
+                int memory = Integer.compare(
+                    OrderMemoryStore.instance()
+                        .score(owner, rawText, b),
+                    OrderMemoryStore.instance()
+                        .score(owner, rawText, a));
+                return memory != 0 ? memory : a.displayName.compareToIgnoreCase(b.displayName);
+            }
+        });
+        List<CraftingCandidate> reindexed = new ArrayList<CraftingCandidate>();
+        int i = 1;
+        for (CraftingCandidate candidate : allCandidates) {
+            reindexed.add(new CraftingCandidate(i++, candidate.toItemStack(), candidate.amount));
+        }
+        return reindexed;
+    }
+
+    /**
+     * WebAE: submit a craft job via one Advance Crafting Link (owner network context).
+     */
+    public static String submitCraftForLink(EntityPlayerMP player, TileEntityAdvanceCraftingLink link,
+        CraftingCandidate candidate, long amount, String rawText, String locale, String cpuName,
+        CraftNotifySource notifySource) {
+        if (candidate == null) {
+            return orderFailed(locale, text(locale, "候选项为空。", "empty candidate."));
+        }
+        if (amount <= 0 || amount > Config.assistantMaxOrderAmount) {
+            return orderFailed(locale, text(locale, "数量无效或超过配置上限。", "invalid amount or above configured limit."));
+        }
+        if (player == null || link == null) {
+            return orderFailed(locale, text(locale, "附近没有 Advance Crafting Link。", "no nearby Advance Crafting Link."));
+        }
+        ItemStack stack = candidate.toItemStack();
+        if (stack == null || stack.getItem() == null) {
+            return orderFailed(locale, text(locale, "候选物品无法还原。", "candidate item could not be restored."));
+        }
+        try {
+            IGrid grid = link.getProxy()
+                .getGrid();
+            ICraftingGrid craftingGrid = grid == null ? null : grid.getCache(ICraftingGrid.class);
+            if (craftingGrid == null) {
+                return orderFailed(locale, text(locale, "AE2 合成网络不可用。", "AE2 crafting grid unavailable."));
+            }
+            CraftingCandidate serverCandidate = resolveServerCandidate(craftingGrid, candidate, amount);
+            if (serverCandidate == null) {
+                return orderFailed(
+                    locale,
+                    text(
+                        locale,
+                        "所选物品在此 AE2 网络中已不再可合成。",
+                        "selected item is no longer craftable in this AE2 network."));
+            }
+            stack = serverCandidate.toItemStack();
+            String apiResult = trySubmit(
+                craftingGrid,
+                grid,
+                link,
+                player,
+                serverCandidate,
+                stack,
+                amount,
+                rawText,
+                locale,
+                cpuName,
+                notifySource);
+            if (apiResult != null) {
+                return apiResult;
+            }
+            return orderFailed(
+                locale,
+                text(
+                    locale,
+                    "AE2 没有接受 " + stack.getDisplayName() + " x" + amount + " 的合成任务。",
+                    "AE2 did not accept the crafting job for " + stack.getDisplayName() + " x" + amount + "."));
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.error("[WebAE] Failed to submit AE2 crafting job via link", e);
+            return orderFailed(locale, e.getMessage());
+        }
     }
 
     public static String query(EntityPlayerMP player, AssistantIntentType type, String rawText, String target,
@@ -1127,6 +1296,13 @@ public final class AssistantServerServices {
         } catch (Throwable ignored) {
             // GlodBlock not available, skip
         }
+    }
+
+    /**
+     * Public wrapper for WebAE cell summary (infinite cell detection).
+     */
+    public static boolean isInfiniteCellPublic(ICellInventory cell) {
+        return isInfiniteCell(cell);
     }
 
     /**
@@ -2239,7 +2415,8 @@ public final class AssistantServerServices {
 
     private static String trySubmit(final ICraftingGrid craftingGrid, final IGrid grid,
         final TileEntityAdvanceCraftingLink link, final EntityPlayerMP player, final CraftingCandidate candidate,
-        final ItemStack stack, final long amount, final String rawText, final String locale) {
+        final ItemStack stack, final long amount, final String rawText, final String locale, final String cpuName,
+        final CraftNotifySource notifySource) {
         String pendingError = AssistantCraftJobManager.instance()
             .checkCanStart(player, locale);
         if (pendingError != null) {
@@ -2277,7 +2454,18 @@ public final class AssistantServerServices {
 
                     @Override
                     public void run() {
-                        finishCraftSubmit(craftingGrid, source, player, candidate, stack, amount, rawText, job, locale);
+                        finishCraftSubmit(
+                            craftingGrid,
+                            source,
+                            player,
+                            candidate,
+                            stack,
+                            amount,
+                            rawText,
+                            job,
+                            locale,
+                            cpuName,
+                            notifySource);
                     }
                 });
             }
@@ -2312,7 +2500,7 @@ public final class AssistantServerServices {
                             + amount
                             + ", timeout="
                             + Config.assistantCraftJobTimeoutSeconds);
-                    sendAssistantMessage(
+                    sendCraftNotification(
                         player,
                         orderFailed(
                             locale,
@@ -2322,7 +2510,8 @@ public final class AssistantServerServices {
                                 "AE2 crafting calculation timed out for " + stack.getDisplayName()
                                     + " x"
                                     + amount
-                                    + ".")));
+                                    + ".")),
+                        notifySource);
                 }
             });
         return text(
@@ -2332,14 +2521,16 @@ public final class AssistantServerServices {
     }
 
     private static void finishCraftSubmit(ICraftingGrid craftingGrid, BaseActionSource source, EntityPlayerMP player,
-        CraftingCandidate candidate, ItemStack stack, long amount, String rawText, ICraftingJob job, String locale) {
+        CraftingCandidate candidate, ItemStack stack, long amount, String rawText, ICraftingJob job, String locale,
+        String cpuName, CraftNotifySource notifySource) {
         if (job == null) {
             AssistantDebugLog.append(
                 "server-submit",
                 "status=FAIL, reason=null-job, target='" + safe(stack.getDisplayName()) + "', amount=" + amount);
-            sendAssistantMessage(
+            sendCraftNotification(
                 player,
-                orderFailed(locale, text(locale, "AE2 合成计算没有返回任务。", "AE2 crafting calculation returned no job.")));
+                orderFailed(locale, text(locale, "AE2 合成计算没有返回任务。", "AE2 crafting calculation returned no job.")),
+                notifySource);
             return;
         }
         if (job.isSimulation()) {
@@ -2347,7 +2538,7 @@ public final class AssistantServerServices {
                 "server-submit",
                 "status=FAIL, reason=simulation, target='" + safe(
                     stack.getDisplayName()) + "', amount=" + amount + ", bytes=" + job.getByteTotal());
-            sendAssistantMessage(
+            sendCraftNotification(
                 player,
                 orderFailed(
                     locale,
@@ -2355,27 +2546,27 @@ public final class AssistantServerServices {
                         locale,
                         "AE2 只能模拟该合成，可能缺少材料或样板无效：" + stack.getDisplayName() + " x" + amount + "。",
                         "AE2 can only simulate this craft. Missing ingredients or invalid pattern for " + stack
-                            .getDisplayName() + " x" + amount + ".")));
+                            .getDisplayName() + " x" + amount + ".")),
+                notifySource);
             return;
         }
         try {
-            ICraftingLink craftingLink = craftingGrid.submitJob(job, null, null, true, source, false);
+            ICraftingCPU targetCpu = resolveCpu(craftingGrid, cpuName);
+            ICraftingLink craftingLink = craftingGrid.submitJob(job, null, targetCpu, true, source, false);
             if (craftingLink == null) {
                 AssistantDebugLog.append(
                     "server-submit",
                     "status=FAIL, reason=submit-null-link, target='" + safe(
                         stack.getDisplayName()) + "', amount=" + amount + ", bytes=" + job.getByteTotal());
-                sendAssistantMessage(
+                sendCraftNotification(
                     player,
                     orderFailed(
                         locale,
                         text(
                             locale,
                             "AE2 没有接受合成任务：" + stack.getDisplayName() + " x" + amount + "。",
-                            "AE2 did not accept the crafting job for " + stack.getDisplayName()
-                                + " x"
-                                + amount
-                                + ".")));
+                            "AE2 did not accept the crafting job for " + stack.getDisplayName() + " x" + amount + ".")),
+                    notifySource);
                 return;
             }
             AdvanceDataMonitor.LOG.info(
@@ -2395,20 +2586,32 @@ public final class AssistantServerServices {
                     + job.getByteTotal());
             OrderMemoryStore.instance()
                 .remember(ownerKey(player), rawText, candidate);
-            sendAssistantMessage(
+            sendCraftNotification(
                 player,
                 text(
                     locale,
                     "OK：已提交 AE2 合成任务：" + stack.getDisplayName() + " x" + amount + "。",
-                    "OK: submitted AE2 crafting job for " + stack.getDisplayName() + " x" + amount + "."));
+                    "OK: submitted AE2 crafting job for " + stack.getDisplayName() + " x" + amount + "."),
+                notifySource);
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[ADM Assistant] AE2 crafting submit failed", e);
             AssistantDebugLog.append(
                 "server-submit",
                 "status=FAIL, reason=submit-exception, target='" + safe(
                     stack.getDisplayName()) + "', amount=" + amount + ", message='" + safe(e.getMessage()) + "'");
-            sendAssistantMessage(player, orderFailed(locale, e.getMessage()));
+            sendCraftNotification(player, orderFailed(locale, e.getMessage()), notifySource);
         }
+    }
+
+    private static void sendCraftNotification(EntityPlayerMP player, String message, CraftNotifySource source) {
+        if (player == null || message == null) {
+            return;
+        }
+        if (source == CraftNotifySource.WEB_AE) {
+            player.addChatMessage(new ChatComponentText("\u00a7b[WebAE]\u00a7r " + message));
+            return;
+        }
+        sendAssistantMessage(player, message);
     }
 
     private static void sendAssistantMessage(EntityPlayerMP player, String message) {
@@ -2680,5 +2883,194 @@ public final class AssistantServerServices {
         } catch (Exception ignored) {
             return true;
         }
+    }
+
+    // ---- WebAE order progress / CPU helpers (Phase 7) ----
+
+    /** 混合进度结果：真实 AE2 进度优先，时间估算兜底。 */
+    public static final class OrderProgressResult {
+
+        public String status;
+        public int progressPercent;
+        public boolean completed;
+    }
+
+    /**
+     * 解析 WebAE 订单进度：先查 {@link AssistantCraftJobManager} 计算阶段，再查 CPU 合成进度，最后用时间估算。
+     */
+    public static OrderProgressResult resolveOrderProgress(EntityPlayerMP player, String cpuName, String itemName,
+        long submittedAt) {
+        OrderProgressResult result = new OrderProgressResult();
+        if (player != null && itemName != null) {
+            UUID owner = player.getUniqueID();
+            if (AssistantCraftJobManager.instance()
+                .isCalculating(owner, itemName)) {
+                result.status = "pending";
+                result.progressPercent = Math.max(
+                    1,
+                    AssistantCraftJobManager.instance()
+                        .getCalculationProgressPercent(owner, itemName));
+                result.completed = false;
+                return result;
+            }
+            Integer cpuProgress = queryCpuCraftProgress(player, cpuName, itemName);
+            if (cpuProgress != null) {
+                if (cpuProgress >= 100) {
+                    result.status = "completed";
+                    result.progressPercent = 100;
+                    result.completed = true;
+                } else if (cpuProgress > 0) {
+                    result.status = "crafting";
+                    result.progressPercent = cpuProgress;
+                    result.completed = false;
+                } else {
+                    result.status = "crafting";
+                    result.progressPercent = Math.max(25, estimateTimeProgress(submittedAt));
+                    result.completed = false;
+                }
+                return result;
+            }
+        }
+        int est = estimateTimeProgress(submittedAt);
+        if (est >= 100) {
+            result.status = "completed";
+            result.progressPercent = 100;
+            result.completed = true;
+        } else if (est > 30) {
+            result.status = "crafting";
+            result.progressPercent = est;
+            result.completed = false;
+        } else {
+            result.status = "pending";
+            result.progressPercent = est;
+            result.completed = false;
+        }
+        return result;
+    }
+
+    /** 时间估算进度：0–30s→0–30%，30–120s→30–90%，>120s→100%。 */
+    public static int estimateTimeProgress(long submittedAt) {
+        long elapsed = Math.max(0L, System.currentTimeMillis() - submittedAt);
+        if (elapsed > 120_000L) {
+            return 100;
+        }
+        if (elapsed > 30_000L) {
+            return Math.min(90, 30 + (int) ((elapsed - 30_000L) * 60 / 90_000L));
+        }
+        return Math.min(30, (int) (elapsed * 30 / 30_000L));
+    }
+
+    /**
+     * 下单前快照 CPU 详情；cpuName 为空或找不到时返回 null。
+     */
+    public static OrderStatus.CpuInfo snapshotCpuInfo(EntityPlayerMP player, String cpuName) {
+        if (player == null || cpuName == null
+            || cpuName.trim()
+                .isEmpty()) {
+            return null;
+        }
+        ICraftingCPU cpu = findCpuByName(player, cpuName.trim());
+        if (cpu == null) {
+            return null;
+        }
+        OrderStatus.CpuInfo info = new OrderStatus.CpuInfo();
+        info.coProcessors = cpu.getCoProcessors();
+        info.storage = cpu.getAvailableStorage();
+        info.parallelism = Math.max(1, cpu.getCoProcessors() + 1);
+        return info;
+    }
+
+    private static ICraftingCPU resolveCpu(ICraftingGrid grid, String cpuName) {
+        if (grid == null || cpuName == null
+            || cpuName.trim()
+                .isEmpty()) {
+            return null;
+        }
+        String target = cpuName.trim();
+        try {
+            for (ICraftingCPU cpu : grid.getCpus()) {
+                if (cpu != null && target.equals(cpu.getName())) {
+                    return cpu;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private static ICraftingCPU findCpuByName(EntityPlayerMP player, String cpuName) {
+        ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
+            player,
+            TileEntityAdvanceCraftingLink.class);
+        for (TileEntityAdvanceCraftingLink link : source.connectors) {
+            try {
+                IGrid grid = link.getProxy()
+                    .getGrid();
+                ICraftingGrid craftingGrid = grid == null ? null : grid.getCache(ICraftingGrid.class);
+                ICraftingCPU cpu = resolveCpu(craftingGrid, cpuName);
+                if (cpu != null) {
+                    return cpu;
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    /**
+     * 查询 CPU 上匹配 itemName 的合成进度（0–99）；100 表示完成；null 表示无匹配 CPU 任务。
+     */
+    private static Integer queryCpuCraftProgress(EntityPlayerMP player, String cpuName, String itemName) {
+        ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
+            player,
+            TileEntityAdvanceCraftingLink.class);
+        for (TileEntityAdvanceCraftingLink link : source.connectors) {
+            try {
+                link.updateCraftingStats();
+                List<TileEntityAdvanceCraftingLink.CraftingCpuSnapshot> snaps = link.getCpuSnapshots();
+                for (int i = 0; i < snaps.size(); i++) {
+                    TileEntityAdvanceCraftingLink.CraftingCpuSnapshot snap = snaps.get(i);
+                    String name = snap.name;
+                    if (name == null || name.isEmpty()) {
+                        name = "CPU#" + (i + 1);
+                    }
+                    if (cpuName != null && !cpuName.isEmpty() && !cpuName.equals(name)) {
+                        continue;
+                    }
+                    if (snap.busy && snap.finalOutputName != null && itemNameMatches(snap.finalOutputName, itemName)) {
+                        if (snap.startItems > 0) {
+                            long done = Math.max(0L, snap.startItems - snap.remainingItems);
+                            if (snap.remainingItems <= 0) {
+                                return 100;
+                            }
+                            return (int) Math.min(99L, done * 100L / snap.startItems);
+                        }
+                        return 50;
+                    }
+                }
+                if (cpuName != null && !cpuName.isEmpty()) {
+                    for (int i = 0; i < snaps.size(); i++) {
+                        TileEntityAdvanceCraftingLink.CraftingCpuSnapshot snap = snaps.get(i);
+                        String name = snap.name;
+                        if (name == null || name.isEmpty()) {
+                            name = "CPU#" + (i + 1);
+                        }
+                        if (cpuName.equals(name)) {
+                            return snap.busy ? 10 : 0;
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private static boolean itemNameMatches(String cpuOutputName, String orderItemName) {
+        if (cpuOutputName == null || orderItemName == null) {
+            return false;
+        }
+        String a = cpuOutputName.trim()
+            .toLowerCase();
+        String b = orderItemName.trim()
+            .toLowerCase();
+        return a.equals(b) || a.contains(b) || b.contains(a);
     }
 }

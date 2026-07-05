@@ -18,6 +18,14 @@ public final class WirelessSteamQuery {
 
     private WirelessSteamQuery() {}
 
+    /**
+     * Query stored steam as a numeric value. Returns null if the API is unavailable.
+     */
+    public static BigInteger querySteamStored(EntityPlayerMP player) {
+        Value steam = findSteamValue(player);
+        return steam != null ? steam.value : null;
+    }
+
     public static String query(EntityPlayerMP player, boolean chinese) {
         Value steam = findSteamValue(player);
         if (steam == null) {

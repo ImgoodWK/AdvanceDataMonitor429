@@ -51,10 +51,8 @@ public final class AssistantDataFiles {
                 legacyFile.getAbsolutePath(),
                 targetFile.getAbsolutePath());
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.warn(
-                "[TeXTech] Failed to migrate config data from {}",
-                legacyFile.getAbsolutePath(),
-                e);
+            AdvanceDataMonitor.LOG
+                .warn("[TeXTech] Failed to migrate config data from {}", legacyFile.getAbsolutePath(), e);
         }
     }
 }

@@ -56,17 +56,17 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             top + UiFrameworkDebugLayout.ROW_BTN_DISABLED,
             UiFrameworkDebugLayout.BTN_W,
             UiFrameworkDebugLayout.BTN_H).setLabel(I18n.format("adm.button.ui_framework.disabled"))
-            .setEnabled(false);
+                .setEnabled(false);
 
         toggleButton = new UiToggleButton(
             left + UiFrameworkDebugLayout.COL_LEFT,
             top + UiFrameworkDebugLayout.ROW_TOGGLE,
             UiFrameworkDebugLayout.TOGGLE_W,
             UiFrameworkDebugLayout.TOGGLE_H).setIcons(1, 0)
-            .setLabels(
-                I18n.format("adm.label.ui_framework.toggle_off"),
-                I18n.format("adm.label.ui_framework.toggle_on"))
-            .setState(false);
+                .setLabels(
+                    I18n.format("adm.label.ui_framework.toggle_off"),
+                    I18n.format("adm.label.ui_framework.toggle_on"))
+                .setState(false);
 
         demoField = new UiTextField(
             fontRendererObj,
@@ -74,8 +74,8 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             top + UiFrameworkDebugLayout.ROW_FIELD,
             UiFrameworkDebugLayout.FIELD_W,
             UiFrameworkDebugLayout.FIELD_H).setTheme(UiThemes.ADM)
-            .setHintText(I18n.format("adm.hint.ui_framework.field"))
-            .setMaxStringLength(48);
+                .setHintText(I18n.format("adm.hint.ui_framework.field"))
+                .setMaxStringLength(48);
     }
 
     @Override
@@ -121,8 +121,9 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         super.drawScreen(mouseX, mouseY, partialTicks);
         if (demoField != null) {
-            demoField.drawBackground(demoField.delegate()
-                .isFocused());
+            demoField.drawBackground(
+                demoField.delegate()
+                    .isFocused());
             demoField.drawTextBox();
         }
         if (demoButton != null) {
@@ -141,9 +142,7 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
         drawMainPanel(0, 0, xSize, ySize);
         int left = panelLeft();
         int top = panelTop();
-        UiSlot.drawVanilla(
-            left + UiFrameworkDebugLayout.COL_LEFT,
-            top + UiFrameworkDebugLayout.ROW_SLOT);
+        UiSlot.drawVanilla(left + UiFrameworkDebugLayout.COL_LEFT, top + UiFrameworkDebugLayout.ROW_SLOT);
         UiSlot.drawProcedural(
             left + UiFrameworkDebugLayout.COL_LEFT + UiFrameworkDebugLayout.SLOT_GAP,
             top + UiFrameworkDebugLayout.ROW_SLOT);
@@ -225,7 +224,10 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             UiFrameworkDebugLayout.COL_LEFT + UiFrameworkDebugLayout.SLOT_GAP,
             UiFrameworkDebugLayout.ROW_SLOT + 18);
 
-        drawComponentRow("UiTextField", "adm.label.ui_framework.component.ui_field", UiFrameworkDebugLayout.ROW_FIELD - 10);
+        drawComponentRow(
+            "UiTextField",
+            "adm.label.ui_framework.component.ui_field",
+            UiFrameworkDebugLayout.ROW_FIELD - 10);
 
         drawAtlasReference();
         UiText.drawLabel(
@@ -244,12 +246,7 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
         UiText.drawLabel(UiThemes.ADM, fontRendererObj, className, UiFrameworkDebugLayout.COL_LEFT, y);
         String desc = I18n.format(descKey);
         if (desc != null && !desc.isEmpty() && !desc.equals(descKey)) {
-            UiText.drawLabel(
-                UiThemes.ADM,
-                fontRendererObj,
-                desc,
-                UiFrameworkDebugLayout.COL_LEFT + 72,
-                y);
+            UiText.drawLabel(UiThemes.ADM, fontRendererObj, desc, UiFrameworkDebugLayout.COL_LEFT + 72, y);
         }
     }
 
@@ -271,8 +268,16 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
     }
 
     private int drawRegionLine(NineSliceRegion region, String name, int y) {
-        String line = name + " UV(" + region.u() + "," + region.v() + ") "
-            + region.regionW() + "x" + region.regionH() + " b" + region.borderPx();
+        String line = name + " UV("
+            + region.u()
+            + ","
+            + region.v()
+            + ") "
+            + region.regionW()
+            + "x"
+            + region.regionH()
+            + " b"
+            + region.borderPx();
         UiText.drawLabel(UiThemes.ADM, fontRendererObj, line, UiFrameworkDebugLayout.COL_ATLAS, y);
         return y + UiFrameworkDebugLayout.ATLAS_LINE_H;
     }

@@ -17,13 +17,7 @@ public final class NineSliceRegion {
     private final int regionH;
     private final int borderPx;
 
-    public NineSliceRegion(
-        ResourceLocation texture,
-        int atlasSize,
-        int u,
-        int v,
-        int regionW,
-        int regionH,
+    public NineSliceRegion(ResourceLocation texture, int atlasSize, int u, int v, int regionW, int regionH,
         int borderPx) {
         this.texture = texture;
         this.atlasSize = atlasSize;

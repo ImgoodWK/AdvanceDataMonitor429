@@ -6,10 +6,10 @@ import net.minecraft.util.ChatComponentTranslation;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.handler.PocketSlotInteraction;
-import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.handler.PocketState;
 import com.imgood.textech.handler.PocketStore;
 import com.imgood.textech.handler.PocketUpgradeRules;
+import com.imgood.textech.network.handler.PacketHandlers;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;

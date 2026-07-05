@@ -211,8 +211,8 @@ public class GuiSubAEAdvanceCraftingLink extends AbstractMonitorSubGui {
             case 2 -> "adm.button.textAlign.right";
             default -> "adm.button.textAlign.left";
         };
-        this.buttonList.add(
-            button(9, offsetX + buttonRowConfigXoffset1, offsetY + configY, buttonRow2Width, 20, alignKey));
+        this.buttonList
+            .add(button(9, offsetX + buttonRowConfigXoffset1, offsetY + configY, buttonRow2Width, 20, alignKey));
 
         configY = buttonRowConfigYoffset1;
         this.buttonList.add(button(20, offsetX + buttonRowConfigXoffset1 + 100, offsetY + configY, 10, 10, "+"));

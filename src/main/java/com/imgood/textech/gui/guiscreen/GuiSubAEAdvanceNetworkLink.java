@@ -226,22 +226,28 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
     }
 
     private void initButtons() {
-        ADM_GuiButton saveBtn = row1Button(0, offsetX, offsetY + buttonRowYOffset1, buttonRow1Width, 20, "adm.button.save");
+        ADM_GuiButton saveBtn = row1Button(
+            0,
+            offsetX,
+            offsetY + buttonRowYOffset1,
+            buttonRow1Width,
+            20,
+            "adm.button.save");
         saveBtn.setLeftDecoration(AdmGuiTextures.BUTTON_HOVER)
             .setRightDecoration(AdmGuiTextures.BUTTON_HOVER)
             .setDecorationWidth(20);
         this.buttonList.add(saveBtn);
         this.buttonList
             .add(row1Button(1, offsetX + 70, offsetY + buttonRowYOffset1, buttonRow1Width, 20, "adm.button.cancel"));
-        this.buttonList.add(
-            row1Button(7, offsetX + 140, offsetY + buttonRowYOffset1, buttonRow1Width, 20, "adm.button.enable"));
+        this.buttonList
+            .add(row1Button(7, offsetX + 140, offsetY + buttonRowYOffset1, buttonRow1Width, 20, "adm.button.enable"));
 
         this.buttonList
             .add(row2Button(2, offsetX, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.line"));
         this.buttonList
             .add(row2Button(3, offsetX + 70, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar"));
-        this.buttonList.add(
-            row2Button(4, offsetX + 140, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar3d"));
+        this.buttonList
+            .add(row2Button(4, offsetX + 140, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar3d"));
         this.buttonList.add(
             row2Button(5, offsetX + 210, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.waterfall"));
         this.buttonList.add(
@@ -256,24 +262,34 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
                 20,
                 "adm.button.enableAxis"));
 
-        this.buttonList.add(alphaButton(20, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
-        this.buttonList.add(alphaButton(21, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(20, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(21, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
 
-        this.buttonList.add(alphaButton(22, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
-        this.buttonList.add(alphaButton(23, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(22, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(23, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
 
-        this.buttonList.add(alphaButton(24, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
-        this.buttonList.add(alphaButton(25, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(24, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(25, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
 
-        this.buttonList.add(alphaButton(26, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
-        this.buttonList.add(alphaButton(27, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(26, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(27, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
 
-        this.buttonList.add(alphaButton(16, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
-        this.buttonList.add(alphaButton(17, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(16, offsetX + buttonRowConfigXoffset1 + 100, offsetY + buttonRowConfigYoffset1));
+        this.buttonList
+            .add(alphaButton(17, offsetX + buttonRowConfigXoffset1 + 150, offsetY + buttonRowConfigYoffset1));
 
         buttonRowConfigYoffset1 = 20;
         buttonRowConfigYoffset1 += buttonRowConfigYinterval1;
@@ -297,14 +313,10 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
                 20,
                 "adm.button.enableAxisFont"));
 
-        this.buttonList.add(
-            plainButton(11, offsetX + 215, offsetY + 240, 40, 20, "adm.button.dataType.Item"));
-        this.buttonList.add(
-            plainButton(12, offsetX + 275, offsetY + 240, 40, 20, "adm.button.dataType.Used"));
-        this.buttonList.add(
-            plainButton(13, offsetX + 402, offsetY + 240, 50, 20, "adm.button.dataType.Value"));
-        this.buttonList.add(
-            plainButton(14, offsetX + 335, offsetY + 240, 40, 20, "adm.button.dataType.Bytes"));
+        this.buttonList.add(plainButton(11, offsetX + 215, offsetY + 240, 40, 20, "adm.button.dataType.Item"));
+        this.buttonList.add(plainButton(12, offsetX + 275, offsetY + 240, 40, 20, "adm.button.dataType.Used"));
+        this.buttonList.add(plainButton(13, offsetX + 402, offsetY + 240, 50, 20, "adm.button.dataType.Value"));
+        this.buttonList.add(plainButton(14, offsetX + 335, offsetY + 240, 40, 20, "adm.button.dataType.Bytes"));
         this.buttonList.add(plainButton(15, offsetX + 535, offsetY + 350, 10, 10, "×"));
         this.buttonList.add(plainButton(18, offsetX + 535, offsetY + 365, 10, 10, "+"));
 
@@ -326,7 +338,15 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
     }
 
     private ADM_GuiButton alphaButton(int id, int x, int y) {
-        ADM_GuiButton btn = monitorButton(id, x, y, 10, 10, I18n.format(id % 2 == 0 ? "+" : "-"), textColor, textHoverColor);
+        ADM_GuiButton btn = monitorButton(
+            id,
+            x,
+            y,
+            10,
+            10,
+            I18n.format(id % 2 == 0 ? "+" : "-"),
+            textColor,
+            textHoverColor);
         btn.setUseRGBEffect(false);
         return btn;
     }
@@ -339,15 +359,20 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
 
     private void refreshToggleButtons() {
         getButtonByid(7).displayString = I18n.format(!isEnabled ? "adm.button.disable" : "adm.button.enable");
-        getButtonByid(8).displayString = I18n.format(!isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
-        getButtonByid(9).displayString = I18n.format(!isEnabledData ? "adm.button.disableData" : "adm.button.enableData");
+        getButtonByid(8).displayString = I18n
+            .format(!isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
+        getButtonByid(9).displayString = I18n
+            .format(!isEnabledData ? "adm.button.disableData" : "adm.button.enableData");
         getButtonByid(10).displayString = I18n
             .format(!isEnabledAxisFont ? "adm.button.disableAxisFont" : "adm.button.enableAxisFont");
         getButtonByid(11).displayString = I18n
             .format(isTypeItem ? "adm.button.dataType.Item" : "adm.button.dataType.Fluid");
-        getButtonByid(12).displayString = I18n.format(isUsed ? "adm.button.dataType.Used" : "adm.button.dataType.Total");
-        getButtonByid(13).displayString = I18n.format(isValue ? "adm.button.dataType.Percent" : "adm.button.dataType.Value");
-        getButtonByid(14).displayString = I18n.format(isBytes ? "adm.button.dataType.Bytes" : "adm.button.dataType.Type");
+        getButtonByid(12).displayString = I18n
+            .format(isUsed ? "adm.button.dataType.Used" : "adm.button.dataType.Total");
+        getButtonByid(13).displayString = I18n
+            .format(isValue ? "adm.button.dataType.Percent" : "adm.button.dataType.Value");
+        getButtonByid(14).displayString = I18n
+            .format(isBytes ? "adm.button.dataType.Bytes" : "adm.button.dataType.Type");
 
         ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF : 0xFF0000);
         ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF : 0xFF0000);
@@ -733,11 +758,8 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
         }
 
         if (Config.debugGuiNetworkLink) {
-            fontRendererObj.drawStringWithShadow(
-                "按钮ID数: " + usedButtonIds.size(),
-                offsetX + 10,
-                offsetY + 400,
-                0x00FF00);
+            fontRendererObj
+                .drawStringWithShadow("按钮ID数: " + usedButtonIds.size(), offsetX + 10, offsetY + 400, 0x00FF00);
         }
 
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
@@ -760,8 +782,7 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
 
         String[] label4 = { (int) (tileEntity.getNameAlpha(index) * 100) + "%",
             (int) (tileEntity.getAxisLineAlpha(index) * 100) + "%",
-            (int) (tileEntity.getAxisFontAlpha(index) * 100) + "%",
-            (int) (tileEntity.getLineAlpha(index) * 100) + "%",
+            (int) (tileEntity.getAxisFontAlpha(index) * 100) + "%", (int) (tileEntity.getLineAlpha(index) * 100) + "%",
             (int) (tileEntity.getGridLineAlpha(index) * 100) + "%" };
         autoText(label4, 0, 25, offsetX + 490, offsetY + 20, textColor, true);
 

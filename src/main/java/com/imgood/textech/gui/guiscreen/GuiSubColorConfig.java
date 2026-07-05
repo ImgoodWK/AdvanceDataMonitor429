@@ -92,7 +92,8 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
     private void fillFieldsFromContents() {
         textFieldDisplayNameColor.setFocused(true);
         textFieldDisplayNameColor.setMaxStringLength(100);
-        textFieldDisplayNameColor.setText(contents.size() > 0 ? contents.get(0) : tileEntity.getDisplayNameColor(index));
+        textFieldDisplayNameColor
+            .setText(contents.size() > 0 ? contents.get(0) : tileEntity.getDisplayNameColor(index));
         textFieldAxisLineColor.setMaxStringLength(100);
         textFieldAxisLineColor.setText(contents.size() > 1 ? contents.get(1) : tileEntity.getAxisLineColor(index));
         textFieldAxisFontColor.setMaxStringLength(100);

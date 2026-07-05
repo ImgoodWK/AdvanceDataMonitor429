@@ -7,8 +7,8 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentTranslation;
 
 import com.imgood.textech.handler.GrapplePlayerState;
-import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.items.ItemGrappleHook;
+import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.utils.BlockPos;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;

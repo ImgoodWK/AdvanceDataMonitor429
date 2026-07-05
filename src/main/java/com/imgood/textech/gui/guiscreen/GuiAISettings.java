@@ -104,16 +104,8 @@ public class GuiAISettings extends ADM_GuiScreen {
         this.timeoutField = createField(x, y + 96, String.valueOf(Config.aiTimeoutSeconds), "");
         this.maxTokensField = createField(x, y + 128, String.valueOf(Config.aiMaxTokens), "");
         this.temperatureField = createField(x, y + 160, String.valueOf(Config.aiTemperature), "");
-        this.searchApiKeyField = createField(
-            x,
-            y + 192,
-            Config.getAiSearchApiKey(),
-            "adm.ai.settings.search_key_hint");
-        this.searchBaseUrlField = createField(
-            x,
-            y + 224,
-            Config.aiSearchBaseUrl,
-            "adm.ai.settings.search_base_hint");
+        this.searchApiKeyField = createField(x, y + 192, Config.getAiSearchApiKey(), "adm.ai.settings.search_key_hint");
+        this.searchBaseUrlField = createField(x, y + 224, Config.aiSearchBaseUrl, "adm.ai.settings.search_base_hint");
         this.searchMaxResultsField = createField(
             x,
             y + 256,

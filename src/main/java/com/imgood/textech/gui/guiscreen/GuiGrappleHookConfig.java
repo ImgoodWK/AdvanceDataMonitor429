@@ -83,7 +83,9 @@ public class GuiGrappleHookConfig extends AdmItemConfigScreen {
     @Override
     protected void onSave() {
         try {
-            double speed = Double.parseDouble(speedField.getText().trim());
+            double speed = Double.parseDouble(
+                speedField.getText()
+                    .trim());
             if (speed < 0.1D || speed > 5.0D) {
                 errorTips = I18n.format("adm.grapple.speed_hint");
                 return;
@@ -91,8 +93,8 @@ public class GuiGrappleHookConfig extends AdmItemConfigScreen {
             ItemGrappleHook.setTravelSpeed(hookStack, speed);
             ItemGrappleHook.setShowNodeName(hookStack, showNodeName);
             ItemGrappleHook.setShowNodeDistance(hookStack, showNodeDistance);
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                new PacketGrappleHookConfig(speed, showNodeName, showNodeDistance));
+            AdvanceDataMonitor.ADMCHANEL
+                .sendToServer(new PacketGrappleHookConfig(speed, showNodeName, showNodeDistance));
             closeScreen();
         } catch (NumberFormatException e) {
             errorTips = I18n.format("adm.error.invalid_number");

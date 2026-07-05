@@ -45,16 +45,8 @@ public final class UiText {
         font.drawStringWithShadow(text, x, y, color);
     }
 
-    public static void drawOnButton(
-        UiTheme theme,
-        FontRenderer font,
-        String text,
-        int btnX,
-        int btnY,
-        int btnW,
-        int btnH,
-        boolean enabled,
-        boolean hovered) {
+    public static void drawOnButton(UiTheme theme, FontRenderer font, String text, int btnX, int btnY, int btnW,
+        int btnH, boolean enabled, boolean hovered) {
         if (text == null || text.isEmpty()) {
             return;
         }

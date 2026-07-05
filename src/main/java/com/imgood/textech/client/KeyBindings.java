@@ -1,5 +1,13 @@
 package com.imgood.textech.client;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.KeyBinding;
@@ -7,14 +15,30 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.input.Keyboard;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.Config;
 import com.imgood.textech.assistant.AssistantMonitorRegistry;
 import com.imgood.textech.gui.guiscreen.GuiAIChat;
 import com.imgood.textech.gui.guiscreen.GuiAdvancePlanner;
+import com.imgood.textech.gui.guiscreen.GuiIconVerifyScreen;
 import com.imgood.textech.gui.guiscreen.GuiMainAdvanceDataMonitor;
 import com.imgood.textech.items.ItemAdvancePlanner;
 import com.imgood.textech.network.packet.PacketMonitorRecord;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.textech.webae.dto.RecipeDto;
+import com.imgood.textech.webae.icon.IconExportScope;
+import com.imgood.textech.webae.icon.IconRenderer;
+import com.imgood.textech.webae.icon.IconRenderMode;
+import com.imgood.textech.webae.icon.IconStore;
+import com.imgood.textech.webae.network.RecipeUploadBatcher;
+import com.imgood.textech.webae.network.RecipeUploadBatcher.Batch;
+import com.imgood.textech.webae.network.RecipeUploadThrottler;
+import com.imgood.textech.webae.recipe.GameRecipeCollector;
+import com.imgood.textech.webae.recipe.NeiRecipeCollector;
+import com.imgood.textech.webae.recipe.RecipeLocalExporter;
+import com.imgood.textech.webae.recipe.RecipeSnapshotCollector;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -22,8 +46,24 @@ import cpw.mods.fml.common.gameevent.InputEvent;
 
 /**
  * Manages all AdvanceDataMonitor key bindings registered in the Controls menu.
+ *
+ * <p>
+ * Recipe/icon upload is triggered via {@code /admweb} commands through
+ * {@link com.imgood.textech.webae.network.PacketWebUploadTrigger}.
+ * </p>
  */
 public class KeyBindings {
+
+    private static IconExportScope pendingIconExportScope = IconExportScope.ALL;
+    private static final List<String> pendingIconExportItemIds = new ArrayList<String>();
+
+    public static void setPendingIconExportScope(IconExportScope scope, List<String> itemIds) {
+        pendingIconExportScope = scope != null ? scope : IconExportScope.ALL;
+        pendingIconExportItemIds.clear();
+        if (itemIds != null) {
+            pendingIconExportItemIds.addAll(itemIds);
+        }
+    }
 
     private static final int MONITOR_SEARCH_RADIUS = 32;
     private static final ResourceLocation MONITOR_MAIN_BACKGROUND = new ResourceLocation(
@@ -128,6 +168,185 @@ public class KeyBindings {
             }
         }
         notifyPlayer("No Advance Planner found in inventory.");
+    }
+
+    public static void uploadNeiRecipes() {
+        uploadNeiRecipes("full", null);
+    }
+
+    public static void uploadNeiRecipes(String scope, List<String> snapshotItemIds) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) return;
+        if (!Config.webConsoleEnabled) {
+            notifyStatic(mc, "Web Console is disabled. Enable it in config.");
+            return;
+        }
+        final String playerUuid = mc.thePlayer.getUniqueID()
+            .toString();
+        final boolean deepScan = "deep".equalsIgnoreCase(scope);
+        final boolean snapshot = "snapshot".equalsIgnoreCase(scope);
+        final List<String> snapshotIds = snapshotItemIds;
+
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    final Map<String, RecipeDto> merged = new LinkedHashMap<String, RecipeDto>();
+                    final AtomicReference<List<RecipeDto>> neiRef = new AtomicReference<List<RecipeDto>>(
+                        new ArrayList<RecipeDto>());
+                    final CountDownLatch neiDone = new CountDownLatch(1);
+
+                    scheduleOnClientThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            try {
+                                List<RecipeDto> nei;
+                                if (snapshot && snapshotIds != null && !snapshotIds.isEmpty()) {
+                                    nei = RecipeSnapshotCollector.collectForItems(snapshotIds);
+                                } else {
+                                    nei = NeiRecipeCollector.collectAll(deepScan);
+                                }
+                                neiRef.set(nei);
+                            } finally {
+                                neiDone.countDown();
+                            }
+                        }
+                    });
+                    neiDone.await(45, TimeUnit.MINUTES);
+                    mergeInto(merged, neiRef.get(), true);
+
+                    List<RecipeDto> game = GameRecipeCollector.collectAll();
+                    mergeInto(merged, game, false);
+
+                    scheduleOnClientThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            List<RecipeDto> recipes = new ArrayList<RecipeDto>(merged.values());
+                            if (recipes.isEmpty()) {
+                                notifyStatic(mc, "No recipes collected.");
+                                return;
+                            }
+                            java.io.File localExport = RecipeLocalExporter.exportRecipes(recipes);
+                            Gson gson = new GsonBuilder().serializeNulls()
+                                .create();
+                            List<Batch> batches = RecipeUploadBatcher.buildBatches(recipes, gson);
+                            if (batches.isEmpty()) return;
+                            RecipeUploadThrottler.instance()
+                                .startUpload(playerUuid, batches, scope);
+                            StringBuilder msg = new StringBuilder();
+                            msg.append("Uploading ")
+                                .append(recipes.size())
+                                .append(" merged recipes (")
+                                .append(scope)
+                                .append(") in ")
+                                .append(batches.size())
+                                .append(" batches");
+                            if (localExport != null) {
+                                msg.append("; local export: ")
+                                    .append(localExport.getAbsolutePath());
+                            }
+                            msg.append('.');
+                            notifyStatic(mc, msg.toString());
+                        }
+                    });
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] Recipe upload failed", t);
+                }
+            }
+        }, "WebAE-RecipeCollector").start();
+    }
+
+    private static void mergeInto(Map<String, RecipeDto> merged, List<RecipeDto> recipes, boolean neiPriority) {
+        if (recipes == null) return;
+        for (RecipeDto dto : recipes) {
+            if (dto == null) continue;
+            String key = dto.handlerId + ":" + dto.recipeIndex;
+            if (neiPriority || !merged.containsKey(key)) {
+                merged.put(key, dto);
+            }
+        }
+    }
+
+    private static void scheduleOnClientThread(Runnable runnable) {
+        try {
+            Minecraft mc = Minecraft.getMinecraft();
+            mc.func_152344_a(runnable);
+        } catch (Exception e) {
+            runnable.run();
+        }
+    }
+
+    public static void triggerIconUpload(String packName) {
+        triggerIconUpload(packName, IconRenderMode.NEI.getId());
+    }
+
+    public static void triggerIconUpload(String packName, String renderModeId) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) return;
+        if (!Config.webConsoleEnabled) {
+            notifyStatic(mc, "Web Console is disabled. Enable it in config.");
+            return;
+        }
+        if (!Config.webIconCacheEnabled) {
+            notifyStatic(mc, "Item icon cache is disabled in config.");
+            return;
+        }
+        if (!Config.webIconUploadEnabled) {
+            notifyStatic(mc, "Icon upload is disabled in config.");
+            return;
+        }
+        if (IconRenderer.instance()
+            .isRunning()) {
+            notifyStatic(mc, "Icon rendering already in progress, please wait...");
+            return;
+        }
+        if (!IconStore.isValidPackName(packName)) {
+            notifyStatic(mc, "Invalid pack name: " + packName);
+            return;
+        }
+        if (!IconRenderMode.isValidModeId(renderModeId)) {
+            notifyStatic(mc, "Invalid render mode: " + renderModeId);
+            return;
+        }
+        if (!IconRenderMode.isAllToken(renderModeId)) {
+            IconRenderMode parsed = IconRenderMode.fromId(renderModeId);
+            if (parsed != null && !parsed.isImplemented()) {
+                notifyStatic(mc, "Render mode not implemented yet: " + renderModeId);
+                return;
+            }
+        }
+        String playerUuid = mc.thePlayer.getUniqueID()
+            .toString();
+        AdvanceDataMonitor.LOG.info(
+            "[WebAE] Icon upload triggered: pack='{}' mode='{}' scope='{}'",
+            packName,
+            renderModeId,
+            pendingIconExportScope.getId());
+        notifyStatic(mc, I18n.format("adm.webconsole.icons.uploading_started_mode", packName, renderModeId));
+        IconRenderer.instance()
+            .start(
+                packName,
+                playerUuid,
+                renderModeId,
+                pendingIconExportScope,
+                new ArrayList<String>(pendingIconExportItemIds));
+        pendingIconExportScope = IconExportScope.ALL;
+        pendingIconExportItemIds.clear();
+    }
+
+    public static void openIconVerify(String packName, String itemId) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || itemId == null || itemId.isEmpty()) return;
+        mc.displayGuiScreen(new GuiIconVerifyScreen(itemId, packName));
+    }
+
+    private static void notifyStatic(Minecraft mc, String text) {
+        if (mc.thePlayer != null) {
+            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText("[WebAE] " + text));
+        }
     }
 
     private void notifyPlayer(String text) {

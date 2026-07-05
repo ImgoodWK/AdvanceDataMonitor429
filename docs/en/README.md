@@ -12,7 +12,7 @@
 |---------|------------|
 | **New player** | [Player Guide §0 Quick Overview](player/player-guide.md#0-quick-overview) |
 | **Planner user** | [Player Guide §19 Advance Planner](player/player-guide.md#19-advance-planner) |
-| **Server / pack author** | [Player Guide §2 Environment](player/player-guide.md#2-environment-and-installation) · [§11 Config](player/player-guide.md#11-configuration-reference) |
+| **Server / pack author** | [Player Guide §2 Environment](player/player-guide.md#2-environment-and-installation) · [§11 Config](player/player-guide.md#11-configuration-reference) · [WebAE User Guide](webae/user-guide.md) |
 | **New contributor** | [Technical Documentation](developer/technical-documentation.md) · [Gradle Workflow](developer/gradle-workflow.md) |
 | **AI assistant work** | [AI Assistant Development Guide](ai-assistant/development-guide.md) · `.cursor/rules/ai-assistant.mdc` |
 | **Grapple system** | [Grapple System Design](subsystems/grapple-system-design.md) |
@@ -27,6 +27,13 @@
 | Doc | Description |
 |-----|-------------|
 | [player/player-guide.md](player/player-guide.md) | Install, blocks/items, monitors, AE2, AI/voice, config, FAQ, Advance Planner |
+
+### WebAE Console
+
+| Doc | Description |
+|-----|-------------|
+| [webae/user-guide.md](webae/user-guide.md) | Enable, tokens, feature pages, commands, security notes |
+| [webae/developer-guide.md](webae/developer-guide.md) | Architecture, REST API, network packets, frontend build, subsystems |
 
 ### Developer
 

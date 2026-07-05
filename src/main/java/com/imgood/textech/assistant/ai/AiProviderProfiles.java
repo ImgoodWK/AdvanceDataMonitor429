@@ -177,11 +177,7 @@ public final class AiProviderProfiles {
             return new SearchCapability(profile, MODE_OFF, false, "Web search is off.");
         }
         String provider = WebSearchService.normalizeProvider(requestedMode);
-        return new SearchCapability(
-            profile,
-            provider,
-            true,
-            WebSearchService.capabilityMessage(provider, true));
+        return new SearchCapability(profile, provider, true, WebSearchService.capabilityMessage(provider, true));
     }
 
     public static boolean isSearchMode(String value) {

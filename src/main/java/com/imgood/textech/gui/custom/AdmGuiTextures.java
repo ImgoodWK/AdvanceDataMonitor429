@@ -13,7 +13,8 @@ public final class AdmGuiTextures {
     private AdmGuiTextures() {}
 
     public static final ResourceLocation BACKGROUND_SUB = rl("textures/gui/background_ADM_Sub.png");
-    public static final ResourceLocation BACKGROUND_MONITOR_MAIN = rl("textures/gui/background_AdvanceDataMonitor_Main.png");
+    public static final ResourceLocation BACKGROUND_MONITOR_MAIN = rl(
+        "textures/gui/background_AdvanceDataMonitor_Main.png");
     public static final ResourceLocation BUTTON = rl("textures/gui/button_ADM.png");
     public static final ResourceLocation BUTTON_HOVER = rl("textures/gui/button_hover_ADM.png");
     public static final ResourceLocation BUTTON_2020 = rl("textures/gui/button_ADM_2020.png");

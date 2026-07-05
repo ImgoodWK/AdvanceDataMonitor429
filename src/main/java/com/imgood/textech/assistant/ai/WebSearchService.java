@@ -141,8 +141,7 @@ public final class WebSearchService {
     }
 
     public static List<DeepSeekChatClient.ChatMessage> injectSearchIntoMessages(
-        List<DeepSeekChatClient.ChatMessage> messages,
-        WebSearchData searchData) {
+        List<DeepSeekChatClient.ChatMessage> messages, WebSearchData searchData) {
         if (searchData == null || searchData.context.isEmpty()) {
             return messages;
         }
@@ -264,8 +263,10 @@ public final class WebSearchService {
         body.addProperty("api_key", getSearchApiKey());
         body.addProperty("query", query);
         body.addProperty("max_results", maxResults);
-        String response = postJson("https://api.tavily.com/search", body.toString(), new String[] {
-            "Content-Type: application/json" });
+        String response = postJson(
+            "https://api.tavily.com/search",
+            body.toString(),
+            new String[] { "Content-Type: application/json" });
         return parseTavilyResults(response, maxResults);
     }
 
@@ -316,10 +317,7 @@ public final class WebSearchService {
     }
 
     private static List<WebSearchResult> searchBrave(String query, int maxResults) throws IOException {
-        String url = "https://api.search.brave.com/res/v1/web/search?q="
-            + urlEncode(query)
-            + "&count="
-            + maxResults;
+        String url = "https://api.search.brave.com/res/v1/web/search?q=" + urlEncode(query) + "&count=" + maxResults;
         String response = getJson(
             url,
             new String[] { "Accept: application/json", "X-Subscription-Token: " + getSearchApiKey() });
@@ -480,9 +478,8 @@ public final class WebSearchService {
         if ("POST".equals(method)) {
             connection.setDoOutput(true);
         }
-        connection.setRequestProperty(
-            "User-Agent",
-            "Mozilla/5.0 (compatible; AdvanceDataMonitor/1.0; +https://github.com/)");
+        connection
+            .setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; AdvanceDataMonitor/1.0; +https://github.com/)");
         return connection;
     }
 
@@ -491,8 +488,10 @@ public final class WebSearchService {
         if (split <= 0) {
             return;
         }
-        connection.setRequestProperty(header.substring(0, split)
-            .trim(), header.substring(split + 1)
+        connection.setRequestProperty(
+            header.substring(0, split)
+                .trim(),
+            header.substring(split + 1)
                 .trim());
     }
 

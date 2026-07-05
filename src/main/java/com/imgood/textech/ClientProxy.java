@@ -6,6 +6,7 @@ import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.config.Configuration;
 
 import com.imgood.textech.client.AiClientPreferences;
+import com.imgood.textech.client.DataImprintScrollHandler;
 import com.imgood.textech.client.GrappleRoutePickerHud;
 import com.imgood.textech.client.HandlerGrappleClient;
 import com.imgood.textech.client.KeyBindings;
@@ -58,6 +59,15 @@ public class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(this.grappleClientHandler);
+        // WebAE icon renderer listens on the render tick (FML bus). Icon upload
+        // itself is now triggered only via /admweb icons upload (Phase 2 removed
+        // the in-game keybind handler).
+        FMLCommonHandler.instance()
+            .bus()
+            .register(com.imgood.textech.webae.icon.IconRenderer.instance());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(com.imgood.textech.webae.network.RecipeUploadThrottler.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(this.grappleClientHandler);
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new PlannerHudRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new GrappleHudRenderer());
@@ -67,7 +77,8 @@ public class ClientProxy extends CommonProxy {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new SuperOrangeHaloRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(VoiceHudRenderer.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(PocketOverlayHandler.instance());
-        // TickEvent.ClientTickEvent is an FML bus event, so register there too —otherwise
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new DataImprintScrollHandler());
+        // TickEvent.ClientTickEvent is an FML bus event, so register there too — otherwise
         // the overlay never updates/renders even when enabled.
         FMLCommonHandler.instance()
             .bus()

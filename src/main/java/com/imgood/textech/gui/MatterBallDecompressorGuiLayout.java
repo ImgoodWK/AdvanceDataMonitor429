@@ -112,16 +112,8 @@ public final class MatterBallDecompressorGuiLayout {
         public final int playerInvY;
         public final int upgradeColumnX;
 
-        private Metrics(
-            int guiWidth,
-            int guiHeight,
-            int mainPanelWidth,
-            int bufferSide,
-            int inputX,
-            int bufferRegionX,
-            int playerInvX,
-            int playerInvY,
-            int upgradeColumnX) {
+        private Metrics(int guiWidth, int guiHeight, int mainPanelWidth, int bufferSide, int inputX, int bufferRegionX,
+            int playerInvX, int playerInvY, int upgradeColumnX) {
             this.guiWidth = guiWidth;
             this.guiHeight = guiHeight;
             this.mainPanelWidth = mainPanelWidth;

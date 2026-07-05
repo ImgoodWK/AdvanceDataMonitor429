@@ -1,0 +1,65 @@
+---
+description: WebAE React 前端开发规范（Ant Design 5 + WCAG 2.1 AA）
+globs: webae-frontend/**
+alwaysApply: false
+---
+
+# WebAE 前端开发规范
+
+源码目录：`webae-frontend/`（React 18 + TypeScript + Ant Design 5 + Vite 5）。构建产物输出到 `src/main/resources/assets/textech/webae/`。
+
+## UI 组件
+
+- **仅允许** Ant Design 5（`antd`）+ `@ant-design/icons`
+- **禁止** MUI、Chakra、Tailwind 组件库、Bootstrap 等第三方 UI 框架
+- 自定义样式以 antd `ConfigProvider` theme token + 项目 CSS 变量（`theme/antdTheme.ts`、`theme/layouts.ts`、`styles/global.css`）为主
+- **禁止**新增第三方 CSS 框架
+
+## 图表
+
+- Dashboard 内联 SVG 图表（`ChartTrendSvg`、柱状/饼图/雷达等）为主；GT 页等可按需引入图表库
+- 已移除未使用的 `@ant-design/plots` 依赖（2026-07 Phase 2）
+
+## 布局引擎例外
+
+- Dashboard 拖拽布局允许使用已依赖的 `gridstack`（**仅**网格布局引擎，非 UI 组件库）
+- 三处 GridStack（主仪表盘 / 存储总览 / 电力页）统一用 `WidgetShell` 外壳；组件配置见 `utils/presets.ts` + `utils/dashboardResolve.ts`；复制/JSON 见 `utils/widgetGridActions.ts`
+- 长列表虚拟滚动使用 `@tanstack/react-virtual`（如 AE 下单 `VirtualPatternGrid` / `VirtualProductGrid`）
+- 页面容器统一使用 `components/Layout/PageShell.tsx`
+
+## 页面结构
+
+- 所有业务页面应包裹 `PageShell`，统一 padding/gap/标题区
+- Card 内边距使用 `var(--layout-card-pad)`
+- Content 区：`standard` 布局 max-width 1600px 居中，`wide` 全宽（见 `AppLayout` / `global.css`）
+
+## WCAG 2.1 AA
+
+- 正文/辅助文字对比度 ≥ 4.5:1，大号文字 ≥ 3:1
+- 交互控件具备可见 focus 环（`:focus-visible` 已在 global.css）
+- 图标按钮必须 `Tooltip` + `aria-label`；Toggle 使用 `aria-pressed`
+- 表单控件关联 `label` 或 `aria-labelledby`
+- 支持键盘导航（Tab 顺序、Enter/Esc 关闭 Modal）
+- 保留 skip-link（`global.css`）
+- 连接状态、刷新倒计时等动态区域使用 `aria-live="polite"`
+- 尊重 `prefers-reduced-motion`
+
+## 图标双轨
+
+1. **服务器材质包**（OP 游戏内 upload，全员只读选择）— `AppContext.iconPack` + `/api/icon/packs`
+2. **浏览器本地材质包**（IndexedDB，`utils/localIconPack.ts`）— 仅本浏览器可见
+
+`Icon.tsx` 解析顺序：本地 pack → 服务器 pack → 缩写 fallback
+
+## i18n
+
+- 文案键定义在 `src/i18n/zh.ts` 与 `en.ts`，禁止硬编码用户可见字符串
+- 模组 lang 文件（`adm.*`）仅用于游戏内；Web 控制台用前端 i18n
+
+## 构建
+
+```bash
+cd webae-frontend && npm run build
+```
+
+详见 `webae-frontend/README.md` 与 `docs/zh/webae/开发者手册.md` §6。

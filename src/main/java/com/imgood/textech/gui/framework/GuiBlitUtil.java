@@ -17,16 +17,7 @@ public final class GuiBlitUtil {
 
     private GuiBlitUtil() {}
 
-    public static void blit(
-        ResourceLocation texture,
-        int atlasSize,
-        int x,
-        int y,
-        int w,
-        int h,
-        int u,
-        int v,
-        int sw,
+    public static void blit(ResourceLocation texture, int atlasSize, int x, int y, int w, int h, int u, int v, int sw,
         int sh) {
         if (w <= 0 || h <= 0 || sw <= 0 || sh <= 0) {
             return;
@@ -84,17 +75,7 @@ public final class GuiBlitUtil {
 
         blit(tex, atlas, x, y, b, b, ru, rv, srcBorder, srcBorder);
         blit(tex, atlas, x + width - b, y, b, b, ru + region.regionW() - srcBorder, rv, srcBorder, srcBorder);
-        blit(
-            tex,
-            atlas,
-            x,
-            y + height - b,
-            b,
-            b,
-            ru,
-            rv + region.regionH() - srcBorder,
-            srcBorder,
-            srcBorder);
+        blit(tex, atlas, x, y + height - b, b, b, ru, rv + region.regionH() - srcBorder, srcBorder, srcBorder);
         blit(
             tex,
             atlas,
@@ -171,17 +152,7 @@ public final class GuiBlitUtil {
         if (midW > 0) {
             blit(tex, atlas, x + cap, y, midW, height, ru + srcCap, rv, srcMidW, region.regionH());
         }
-        blit(
-            tex,
-            atlas,
-            x + width - cap,
-            y,
-            cap,
-            height,
-            ru + region.regionW() - srcCap,
-            rv,
-            srcCap,
-            region.regionH());
+        blit(tex, atlas, x + width - cap, y, cap, height, ru + region.regionW() - srcCap, rv, srcCap, region.regionH());
 
         GL11.glDisable(GL11.GL_BLEND);
     }

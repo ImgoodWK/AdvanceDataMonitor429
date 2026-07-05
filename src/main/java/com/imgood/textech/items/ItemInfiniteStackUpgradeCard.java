@@ -27,13 +27,9 @@ public class ItemInfiniteStackUpgradeCard extends AbstractPocketUpgradeCard {
         addPocketCardTooltip(
             tooltip,
             "adm.tooltip.pocket.infinite_stack_card.title",
-            new String[] {
-                "adm.tooltip.pocket.infinite_stack_card.desc",
-                "adm.tooltip.pocket.infinite_stack_card.max",
+            new String[] { "adm.tooltip.pocket.infinite_stack_card.desc", "adm.tooltip.pocket.infinite_stack_card.max",
                 "adm.tooltip.pocket.infinite_stack_card.warning" },
-            new EnumChatFormatting[] {
-                EnumChatFormatting.GRAY,
-                EnumChatFormatting.YELLOW,
+            new EnumChatFormatting[] { EnumChatFormatting.GRAY, EnumChatFormatting.YELLOW,
                 EnumChatFormatting.DARK_RED });
         super.addInformation(stack, player, tooltip, advanced);
     }

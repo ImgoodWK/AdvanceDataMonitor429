@@ -45,16 +45,8 @@ public final class UiIcon {
     }
 
     /** Draw icon anchored relative to a parent rectangle (e.g. button or slot). */
-    public static void drawAnchored(
-        UiTheme theme,
-        int index,
-        int parentX,
-        int parentY,
-        int parentW,
-        int parentH,
-        Anchor anchor,
-        int offsetX,
-        int offsetY) {
+    public static void drawAnchored(UiTheme theme, int index, int parentX, int parentY, int parentW, int parentH,
+        Anchor anchor, int offsetX, int offsetY) {
         int size = theme != null ? theme.iconSize() : 16;
         int drawX;
         int drawY;

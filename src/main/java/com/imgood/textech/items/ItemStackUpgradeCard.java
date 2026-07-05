@@ -27,13 +27,9 @@ public class ItemStackUpgradeCard extends AbstractPocketUpgradeCard {
         addPocketCardTooltip(
             tooltip,
             "adm.tooltip.pocket.stack_card.title",
-            new String[] {
-                "adm.tooltip.pocket.stack_card.desc",
-                "adm.tooltip.pocket.stack_card.stackable",
+            new String[] { "adm.tooltip.pocket.stack_card.desc", "adm.tooltip.pocket.stack_card.stackable",
                 "adm.tooltip.pocket.stack_card.formula" },
-            new EnumChatFormatting[] {
-                EnumChatFormatting.GRAY,
-                EnumChatFormatting.YELLOW,
+            new EnumChatFormatting[] { EnumChatFormatting.GRAY, EnumChatFormatting.YELLOW,
                 EnumChatFormatting.DARK_AQUA });
         super.addInformation(stack, player, tooltip, advanced);
     }

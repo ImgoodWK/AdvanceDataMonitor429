@@ -1,7 +1,6 @@
 package com.imgood.textech.gui.framework;
 
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.Gui;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -21,13 +20,7 @@ public final class UiLayoutContext {
     private final int guiWidth;
     private final int guiHeight;
 
-    public UiLayoutContext(
-        UiTheme theme,
-        FontRenderer font,
-        int guiLeft,
-        int guiTop,
-        int guiWidth,
-        int guiHeight) {
+    public UiLayoutContext(UiTheme theme, FontRenderer font, int guiLeft, int guiTop, int guiWidth, int guiHeight) {
         this.theme = theme;
         this.font = font;
         this.guiLeft = guiLeft;

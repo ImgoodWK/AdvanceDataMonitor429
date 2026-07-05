@@ -89,7 +89,9 @@ public class GuiSuperOrangeConfig extends AdmItemConfigScreen {
     @Override
     protected void onSave() {
         try {
-            int multiplier = Integer.parseInt(multiplierField.getText().trim());
+            int multiplier = Integer.parseInt(
+                multiplierField.getText()
+                    .trim());
             int max = Math.max(1, Config.superOrangeDropMultiplierMax);
             if (multiplier < 1 || multiplier > max) {
                 errorTips = I18n.format("adm.error.super_orange.multiplier_range", max);

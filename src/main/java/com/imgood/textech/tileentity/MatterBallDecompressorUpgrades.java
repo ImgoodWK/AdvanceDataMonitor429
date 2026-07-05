@@ -20,9 +20,7 @@ public final class MatterBallDecompressorUpgrades extends UpgradeInventory {
 
     @Override
     public int getMaxInstalled(Upgrades upgrades) {
-        if (upgrades == Upgrades.SPEED
-            || upgrades == Upgrades.SUPERSPEED
-            || upgrades == Upgrades.SUPERLUMINALSPEED) {
+        if (upgrades == Upgrades.SPEED || upgrades == Upgrades.SUPERSPEED || upgrades == Upgrades.SUPERLUMINALSPEED) {
             return SPEED_UPGRADE_SLOTS;
         }
         if (upgrades == Upgrades.CAPACITY) {
@@ -44,9 +42,7 @@ public final class MatterBallDecompressorUpgrades extends UpgradeInventory {
             return false;
         }
         if (isSpeedUpgradeSlot(slotIndex)) {
-            return upgrade == Upgrades.SPEED
-                || upgrade == Upgrades.SUPERSPEED
-                || upgrade == Upgrades.SUPERLUMINALSPEED;
+            return upgrade == Upgrades.SPEED || upgrade == Upgrades.SUPERSPEED || upgrade == Upgrades.SUPERLUMINALSPEED;
         }
         if (isCapacityUpgradeSlot(slotIndex)) {
             return upgrade == Upgrades.CAPACITY;
