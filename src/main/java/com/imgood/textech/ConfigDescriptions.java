@@ -498,6 +498,11 @@ public final class ConfigDescriptions {
             "TTL in milliseconds for manual topology snapshot cooldown (logical/spatial). Default 300000 (5 min).",
             "手动拓扑快照冷却时间（毫秒，逻辑/空间视图）。默认 300000（5 分钟）。");
         put(
+            "webConsole",
+            "dynmapBaseUrl",
+            "Optional Dynmap base URL (e.g. http://host:8123) for WebAE player location deep links. Empty disables the button.",
+            "可选 Dynmap 基础 URL（如 http://host:8123），供 WebAE 玩家坐标外链使用。留空则隐藏按钮。");
+        put(
             "debug",
             "webaeIcons",
             "Enable verbose WebAE icon rendering/upload logging to logs/textech/webae-icons.log. Default false.",

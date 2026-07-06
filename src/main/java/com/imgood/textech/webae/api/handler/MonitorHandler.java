@@ -52,14 +52,11 @@ public final class MonitorHandler {
             return json(NanoHTTPD.Response.Status.INTERNAL_ERROR, "{\"success\":false,\"message\":\"Interrupted\"}");
         }
 
-        List<MonitorBindingDto> monitors = holder[0] != null ? holder[0] : java.util.Collections.<MonitorBindingDto>emptyList();
+        List<MonitorBindingDto> monitors = holder[0] != null ? holder[0]
+            : java.util.Collections.<MonitorBindingDto>emptyList();
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":"
-                + monitors.size()
-                + ",\"monitors\":"
-                + GSON.toJson(monitors)
-                + "}");
+            "{\"success\":true,\"count\":" + monitors.size() + ",\"monitors\":" + GSON.toJson(monitors) + "}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

@@ -65,6 +65,35 @@ final class IconGlFallback {
         return renderTypedItemIcon(mc, stack, IItemRenderer.ItemRenderType.EQUIPPED_FIRST_PERSON);
     }
 
+    /**
+     * NEI slot layout but always uses vanilla {@link RenderItem} — skips custom
+     * {@link IItemRenderer} so halo/cosmic overlays that fail in isolated FBO still yield a flat icon.
+     */
+    byte[] renderVanillaNeiSlotIcon(Minecraft mc, ItemStack stack) {
+        ensureFbo();
+        beginFboRender();
+        try {
+            GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            RenderHelper.enableGUIStandardItemLighting();
+            GL11.glPushMatrix();
+            GL11.glTranslatef(RENDER_OFFSET + RENDER_SCALE, RENDER_OFFSET + RENDER_SCALE, 0.0F);
+            GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
+            RenderItem.getInstance()
+                .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
+            GL11.glPopMatrix();
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.debug("[WebAE] Vanilla NEI slot render failed: {}", t.getMessage());
+        }
+        RenderHelper.disableStandardItemLighting();
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+
+        byte[] png = readPixelsToPng();
+        finishFboRender(mc);
+        return png;
+    }
+
     /** NEI slot spacing: 18×18 slot with item at (+1,+1), standard GUI lighting. */
     byte[] renderNeiSlotIcon(Minecraft mc, ItemStack stack) {
         ensureFbo();

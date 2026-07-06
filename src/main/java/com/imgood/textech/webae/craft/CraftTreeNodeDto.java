@@ -16,8 +16,14 @@ public final class CraftTreeNodeDto {
     public long required;
     /** Amount available in AE storage snapshot (0 if unknown). */
     public long available;
+    /** Alias for {@link #available} (Phase 4.1 plan DTO). */
+    public long inStock;
     /** Shortfall = max(0, required - available). */
     public long missing;
+    /** Alias for {@link #missing} — amount to craft (Phase 4.1). */
+    public long toCraft;
+    /** AE pattern id when a matching interface/grid pattern exists ({@code x:y:z:dim#slot}). */
+    public String patternId = "";
     /** True when this item has no craft recipe (leaf / raw material). */
     public boolean leaf;
     /** Handler id of chosen recipe, empty if leaf. */

@@ -20,7 +20,8 @@ public final class IconItemId {
     }
 
     /**
-     * Ordered lookup candidates: exact id first, then registry-only when meta was specified.
+     * Ordered lookup candidates: exact id first, then registry-only when meta was specified,
+     * or {@code mod:id:0} when the request has no numeric meta suffix (NESQL compatibility).
      */
     public static List<String> lookupCandidates(String itemId) {
         List<String> out = new ArrayList<String>();
@@ -35,6 +36,16 @@ public final class IconItemId {
                 if (!base.isEmpty() && !out.contains(base)) {
                     out.add(base);
                 }
+            } else {
+                String withZero = itemId + ":0";
+                if (!out.contains(withZero)) {
+                    out.add(withZero);
+                }
+            }
+        } else {
+            String withZero = itemId + ":0";
+            if (!out.contains(withZero)) {
+                out.add(withZero);
             }
         }
         return out;

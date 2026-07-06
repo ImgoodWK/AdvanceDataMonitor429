@@ -73,7 +73,11 @@ export const RecipeDetailCard = memo(function RecipeDetailCard({
   const inputSplit = splitEntries(recipe.inputs || []);
   const outputSplit = splitEntries(recipe.outputs || []);
   const hasGt =
-    recipe.euPerTick != null || recipe.durationTicks != null || Boolean(recipe.voltageTier);
+    recipe.euPerTick != null ||
+    recipe.durationTicks != null ||
+    Boolean(recipe.voltageTier) ||
+    recipe.requiresCleanroom != null ||
+    recipe.powerConsumption != null;
 
   return (
     <Card size="small" title={recipe.handlerName} extra={<Tag>#{recipe.recipeIndex}</Tag>}>
@@ -92,6 +96,16 @@ export const RecipeDetailCard = memo(function RecipeDetailCard({
           {recipe.durationTicks != null && (
             <Tag color="blue">
               {t('gtDuration')}: {recipe.durationTicks} t
+            </Tag>
+          )}
+          {recipe.powerConsumption != null && (
+            <Tag color="orange">
+              {t('gtPower')}: {recipe.powerConsumption} EU
+            </Tag>
+          )}
+          {recipe.requiresCleanroom != null && (
+            <Tag color={recipe.requiresCleanroom ? 'red' : 'default'}>
+              {recipe.requiresCleanroom ? t('gtCleanroomRequired') : t('gtCleanroomNone')}
             </Tag>
           )}
         </Space>

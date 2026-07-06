@@ -5,9 +5,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.MinecraftServer;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imgood.textech.webae.dto.PlayerDto;
+import com.imgood.textech.webae.dto.PlayerLocationDto;
 import com.imgood.textech.webae.player.PlayerInfo;
 import com.imgood.textech.webae.player.PlayerInfoStore;
 import com.imgood.textech.webae.player.PlayerOnlineSampler;
@@ -28,6 +32,7 @@ import fi.iki.elonen.NanoHTTPD;
  * players whose online status / onlineMs changed since {@code ts})</li>
  * <li>{@code GET /api/players/online/history} — 在线人数趋势历史（p2-dashboard），
  * 返回 {@code {success, history:[{ts, count}, ...]}}</li>
+ * <li>{@code GET /api/players/locations} — 在线玩家世界坐标（Phase 6.1）</li>
  * </ul>
  */
 public class PlayerHandler {
@@ -50,6 +55,9 @@ public class PlayerHandler {
         }
         if ("/api/players/online/history".equals(uri)) {
             return handleOnlineHistory();
+        }
+        if ("/api/players/locations".equals(uri)) {
+            return handleLocations();
         }
         return json(
             NanoHTTPD.Response.Status.NOT_FOUND,
@@ -113,6 +121,35 @@ public class PlayerHandler {
                     .currentOnlineCount())
             .append('}');
         return json(NanoHTTPD.Response.Status.OK, sb.toString());
+    }
+
+    // ---- GET /api/players/locations (Phase 6.1) ----
+    private static NanoHTTPD.Response handleLocations() {
+        List<PlayerLocationDto> locations = new ArrayList<PlayerLocationDto>();
+        MinecraftServer server = MinecraftServer.getServer();
+        if (server != null && server.getConfigurationManager() != null) {
+            for (Object obj : server.getConfigurationManager().playerEntityList) {
+                if (!(obj instanceof EntityPlayerMP)) {
+                    continue;
+                }
+                EntityPlayerMP player = (EntityPlayerMP) obj;
+                String name = player.getDisplayName();
+                if (name == null || name.isEmpty()) {
+                    name = player.getCommandSenderName();
+                }
+                locations.add(
+                    new PlayerLocationDto(
+                        player.getUniqueID()
+                            .toString(),
+                        name,
+                        (int) Math.floor(player.posX),
+                        (int) Math.floor(player.posY),
+                        (int) Math.floor(player.posZ),
+                        player.dimension,
+                        true));
+            }
+        }
+        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"locations\":" + GSON.toJson(locations) + "}");
     }
 
     private static PlayerDto toDto(PlayerInfo info, long now) {

@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Empty, Input, InputNumber, Space, Spin, Table, Tag, Typography } from 'antd';
-import { SearchOutlined, NodeExpandOutlined } from '@ant-design/icons';
+import { SearchOutlined, NodeExpandOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { getApiClient } from '@/api/client';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { Icon } from '@/components/Icon';
-import type { CraftTreeNodeDto, CraftTreeResponse } from '@/types/dto';
+import type { CraftTreeNodeDto, CraftTreeResponse, OrderBatchRequest, OrderResult } from '@/types/dto';
 
 const { Text } = Typography;
 
@@ -35,6 +35,7 @@ export function CraftTreePanel({ networkId }: CraftTreePanelProps) {
   const [itemQuery, setItemQuery] = useState('');
   const [amount, setAmount] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [ordering, setOrdering] = useState(false);
   const [tree, setTree] = useState<CraftTreeNodeDto | null>(null);
 
   const loadTree = useCallback(async () => {
@@ -46,7 +47,7 @@ export function CraftTreePanel({ networkId }: CraftTreePanelProps) {
     setLoading(true);
     try {
       const data = await getApiClient().get<CraftTreeResponse>(
-        `/api/craft/tree?item=${encodeURIComponent(item)}&amount=${amount}&network=${networkId}`
+        `/api/craft/tree?item=${encodeURIComponent(item)}&amount=${amount}&network=${networkId}&maxDepth=8`
       );
       if (!data.success || !data.tree) {
         notify(data.message || t('craftTreeLoadFailed'), 'error');
@@ -62,7 +63,51 @@ export function CraftTreePanel({ networkId }: CraftTreePanelProps) {
     }
   }, [itemQuery, amount, networkId, notify, t]);
 
+  const orderMissing = useCallback(async () => {
+    if (!tree) return;
+    const gaps: { patternId: string; amount: number }[] = [];
+    const walk = (node: CraftTreeNodeDto) => {
+      const missing = node.toCraft ?? node.missing;
+      if (missing > 0 && node.patternId) {
+        gaps.push({ patternId: node.patternId, amount: Math.min(missing, 2_000_000_000) });
+      }
+      for (const child of node.children || []) {
+        walk(child);
+      }
+    };
+    walk(tree);
+    if (gaps.length === 0) {
+      notify(t('craftTreeNoGaps'), 'info');
+      return;
+    }
+    setOrdering(true);
+    try {
+      const results = await getApiClient().post<OrderResult[]>('/api/order/batch', {
+        networkId,
+        items: gaps.map((g) => ({
+          itemName: '',
+          amount: g.amount,
+          patternId: g.patternId,
+        })),
+      } as OrderBatchRequest);
+      const okCount = Array.isArray(results) ? results.filter((r) => r.success).length : 0;
+      if (okCount > 0) {
+        notify(t('craftTreeOrderPlaced').replace('{n}', String(okCount)), 'success');
+      } else {
+        notify((Array.isArray(results) && results[0]?.message) || t('orderFailed'), 'error');
+      }
+    } catch (e) {
+      notify((e as Error).message || t('orderFailed'), 'error');
+    } finally {
+      setOrdering(false);
+    }
+  }, [tree, networkId, notify, t]);
+
   const rows = useMemo(() => flattenTree(tree ?? undefined), [tree]);
+  const hasGaps = useMemo(
+    () => rows.some((r) => (r.node.toCraft ?? r.node.missing) > 0 && Boolean(r.node.patternId)),
+    [rows]
+  );
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
@@ -80,6 +125,15 @@ export function CraftTreePanel({ networkId }: CraftTreePanelProps) {
         <Button type="primary" icon={<NodeExpandOutlined />} loading={loading} onClick={() => void loadTree()}>
           {t('craftTreeCalculate')}
         </Button>
+        {hasGaps ? (
+          <Button
+            icon={<ShoppingCartOutlined />}
+            loading={ordering}
+            onClick={() => void orderMissing()}
+          >
+            {t('craftTreeOrderGaps')}
+          </Button>
+        ) : null}
       </Space>
       <Text type="secondary">{t('craftTreeHint')}</Text>
       <Spin spinning={loading}>
@@ -100,21 +154,25 @@ export function CraftTreePanel({ networkId }: CraftTreePanelProps) {
                     <Icon id={r.node.itemId || r.node.registryName} size={20} />
                     <span>{r.node.displayName || r.node.registryName || r.node.itemId}</span>
                     {r.node.leaf ? <Tag>{t('craftTreeLeaf')}</Tag> : null}
+                    {r.node.patternId ? <Tag color="cyan">{t('craftTreeHasPattern')}</Tag> : null}
                   </Space>
                 ),
               },
               { title: t('craftTreeColRequired'), dataIndex: ['node', 'required'], width: 100 },
-              { title: t('craftTreeColAvailable'), dataIndex: ['node', 'available'], width: 100 },
+              {
+                title: t('craftTreeColAvailable'),
+                key: 'inStock',
+                width: 100,
+                render: (_, r) => r.node.inStock ?? r.node.available,
+              },
               {
                 title: t('craftTreeColMissing'),
                 key: 'missing',
                 width: 100,
-                render: (_, r) =>
-                  r.node.missing > 0 ? (
-                    <Text type="danger">{r.node.missing}</Text>
-                  ) : (
-                    <Text type="success">0</Text>
-                  ),
+                render: (_, r) => {
+                  const gap = r.node.toCraft ?? r.node.missing;
+                  return gap > 0 ? <Text type="danger">{gap}</Text> : <Text type="success">0</Text>;
+                },
               },
             ]}
           />

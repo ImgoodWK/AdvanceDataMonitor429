@@ -63,6 +63,8 @@ public final class WebAeServerHandler {
             server = null;
         }
         unregisterShutdownHook();
+        com.imgood.textech.webae.alerts.WebhookDispatcher.instance()
+            .shutdown();
     }
 
     /** Stop and start the in-process HTTP server (OP command). */

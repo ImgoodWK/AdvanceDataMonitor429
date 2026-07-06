@@ -11,15 +11,15 @@ import java.util.concurrent.TimeUnit;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 
-import com.imgood.textech.webae.context.WebAeOwnerContext;
-
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.assistant.WirelessPowerQuery;
 import com.imgood.textech.assistant.WirelessSteamQuery;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.cache.SnapshotCache;
+import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.dto.PowerDto;
+import com.imgood.textech.webae.metric.MetricDownsampleUtil;
 
 /**
  * Wireless power / steam sampler with sliding-window rate calculation.
@@ -287,6 +287,12 @@ public class PowerSampler {
                 steamHist.add((double) sp.steamValue);
                 euTs.add(sp.timestamp);
                 steamTs.add(sp.timestamp);
+            }
+            if (euHist.size() > MetricDownsampleUtil.DEFAULT_MAX_POINTS) {
+                euTs = MetricDownsampleUtil.downsampleTimestamps(euTs, MetricDownsampleUtil.DEFAULT_MAX_POINTS);
+                euHist = MetricDownsampleUtil.downsampleValuesMax(euHist, MetricDownsampleUtil.DEFAULT_MAX_POINTS);
+                steamHist = MetricDownsampleUtil
+                    .downsampleValuesMax(steamHist, MetricDownsampleUtil.DEFAULT_MAX_POINTS);
             }
             dto.euHistory = euHist;
             dto.steamHistory = steamHist;

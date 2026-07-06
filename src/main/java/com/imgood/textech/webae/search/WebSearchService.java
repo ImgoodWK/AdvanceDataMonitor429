@@ -201,8 +201,7 @@ public final class WebSearchService {
         }
     }
 
-    private static void collectStorageFluids(List<SearchResultDto> hits, int networkId, StorageDto dto,
-        String qLower) {
+    private static void collectStorageFluids(List<SearchResultDto> hits, int networkId, StorageDto dto, String qLower) {
         if (dto.fluids == null) {
             return;
         }
@@ -334,7 +333,13 @@ public final class WebSearchService {
                 entry.dim = machine.dim;
                 entry.label = machine.recipeMapName != null && !machine.recipeMapName.isEmpty() ? machine.recipeMapName
                     : (machine.currentOutput != null ? machine.currentOutput : "GT Machine");
-                entry.subtitle = "Network " + networkId + " · " + machine.x + "," + machine.y + "," + machine.z
+                entry.subtitle = "Network " + networkId
+                    + " · "
+                    + machine.x
+                    + ","
+                    + machine.y
+                    + ","
+                    + machine.z
                     + " · "
                     + (machine.statusText != null ? machine.statusText : "");
                 entry.id = "gt:" + networkId + ":" + machine.x + ":" + machine.y + ":" + machine.z + ":" + machine.dim;

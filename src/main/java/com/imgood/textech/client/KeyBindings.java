@@ -29,8 +29,8 @@ import com.imgood.textech.network.packet.PacketMonitorRecord;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.webae.dto.RecipeDto;
 import com.imgood.textech.webae.icon.IconExportScope;
-import com.imgood.textech.webae.icon.IconRenderer;
 import com.imgood.textech.webae.icon.IconRenderMode;
+import com.imgood.textech.webae.icon.IconRenderer;
 import com.imgood.textech.webae.icon.IconStore;
 import com.imgood.textech.webae.network.RecipeUploadBatcher;
 import com.imgood.textech.webae.network.RecipeUploadBatcher.Batch;
@@ -284,6 +284,11 @@ public class KeyBindings {
     }
 
     public static void triggerIconUpload(String packName, String renderModeId) {
+        triggerIconUpload(packName, renderModeId, null, null);
+    }
+
+    public static void triggerIconUpload(String packName, String renderModeId, IconExportScope scope,
+        List<String> itemIds) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null) return;
         if (!Config.webConsoleEnabled) {
@@ -320,19 +325,23 @@ public class KeyBindings {
         }
         String playerUuid = mc.thePlayer.getUniqueID()
             .toString();
+        IconExportScope effectiveScope = scope != null ? scope : pendingIconExportScope;
+        List<String> effectiveIds = itemIds != null ? new ArrayList<String>(itemIds)
+            : new ArrayList<String>(pendingIconExportItemIds);
         AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon upload triggered: pack='{}' mode='{}' scope='{}'",
+            "[WebAE] Icon upload triggered: pack='{}' mode='{}' scope='{}' ids={}",
             packName,
             renderModeId,
-            pendingIconExportScope.getId());
+            effectiveScope.getId(),
+            effectiveIds.size());
         notifyStatic(mc, I18n.format("adm.webconsole.icons.uploading_started_mode", packName, renderModeId));
         IconRenderer.instance()
             .start(
                 packName,
                 playerUuid,
                 renderModeId,
-                pendingIconExportScope,
-                new ArrayList<String>(pendingIconExportItemIds));
+                effectiveScope,
+                effectiveIds);
         pendingIconExportScope = IconExportScope.ALL;
         pendingIconExportItemIds.clear();
     }

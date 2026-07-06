@@ -16,12 +16,14 @@ import { useI18n } from '@/i18n';
 import { useSnapshotData } from '@/hooks/useSnapshotData';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { usePlayers } from '@/hooks/usePlayers';
+import { useServerHealth } from '@/hooks/useServerHealth';
 import { useNetworkMetrics } from '@/hooks/useNetworkMetrics';
 import { useDebouncedLocalStorageSaver } from '@/hooks/useDebouncedLocalStorageSaver';
 import {
   isHistoryDataSource,
   isPlayerHistoryDataSource,
   isPowerHistoryDataSource,
+  isServerHealthHistoryDataSource,
 } from '@/utils/dataSourceChartMap';
 
 import {
@@ -70,7 +72,7 @@ const DATA_SOURCES = [
   'activeCpu', 'busyCpu', 'cpuBusyRatio', 'gtMachineCount', 'gtActiveCount',
   'itemTotal', 'fluidTotal', 'topItems', 'cpuList', 'gtMachineList',
   'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
-  'playerOnlineCount', 'playerOnlineTrend',
+  'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
 ];
 
 export function Dashboard() {
@@ -79,6 +81,7 @@ export function Dashboard() {
   const { storageMap, powerMap, gtMap, loading } = useSnapshotData();
   const fmtNum = useNumberFormat();
   const { onlineCount: playerOnlineCount, history: playerOnlineHistory } = usePlayers();
+  const serverHealth = useServerHealth();
   const networkMetrics = useNetworkMetrics();
   const [editMode, setEditMode] = useState(false);
   const [settings, setSettings] = useState<DashboardSettings>(loadDashboardSettings);
@@ -157,10 +160,12 @@ export function Dashboard() {
       switch (ds) {
         case 'playerOnlineCount': return playerOnlineCount;
         case 'playerOnlineTrend': return playerOnlineHistory.length;
+        case 'serverTps': return serverHealth.health?.tps ?? 0;
+        case 'serverMspt': return serverHealth.health?.mspt ?? 0;
       }
       return 0;
     },
-    [storage, power, gt, playerOnlineCount, playerOnlineHistory]
+    [storage, power, gt, playerOnlineCount, playerOnlineHistory, serverHealth.health]
   );
 
   const dataSourceLabel = (ds: string): string => {
@@ -171,7 +176,7 @@ export function Dashboard() {
       'activeCpu', 'busyCpu', 'cpuBusyRatio', 'gtMachineCount', 'gtActiveCount',
       'itemTotal', 'fluidTotal', 'topItems', 'cpuList', 'gtMachineList',
       'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
-      'playerOnlineCount', 'playerOnlineTrend',
+      'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
     ];
     for (const k of keys) map[k] = t('dataSource_' + k);
     return map[ds] || ds;
@@ -344,6 +349,46 @@ export function Dashboard() {
                     },
                   ]}
                   formatValue={(v) => String(Math.round(v))}
+                  formatTime={(ts) => formatTime(ts)}
+                  showValueAxis={settings.chartShowValueAxis}
+                  showTimeAxis={settings.chartShowTimeAxis}
+                  stretchMode={chartStretch}
+                  colors={{
+                    gridColor: colors.chartGridColor || 'var(--border-light)',
+                    pointColor: colors.chartPointColor || lineColor,
+                    axisTextColor: colors.axisTextColor || undefined,
+                  }}
+                />
+              </div>
+            </>
+          );
+        }
+
+        // 1b) Server TPS / MSPT (GET /api/server/health)
+        if (isServerHealthHistoryDataSource(ds)) {
+          const points =
+            ds === 'serverMspt'
+              ? serverHealth.getMsptHistory()
+              : serverHealth.getTpsHistory();
+          if (points.length < 2) {
+            return wrap(notEnoughData);
+          }
+          const isMspt = ds === 'serverMspt';
+          return wrap(
+            <>
+              {labelText(label)}
+              <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%`, minHeight: 80 }}>
+                <ChartTrendSvg
+                  series={[
+                    {
+                      id: ds,
+                      label,
+                      points,
+                      lineColor,
+                      areaColor,
+                    },
+                  ]}
+                  formatValue={(v) => (isMspt ? v.toFixed(1) + ' ms' : v.toFixed(1))}
                   formatTime={(ts) => formatTime(ts)}
                   showValueAxis={settings.chartShowValueAxis}
                   showTimeAxis={settings.chartShowTimeAxis}

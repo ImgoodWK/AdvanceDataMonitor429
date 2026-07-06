@@ -62,6 +62,8 @@ public class HandlerTick {
         com.imgood.textech.webae.metric.NetworkMetricSampler.getInstance()
             .onServerTick();
         com.imgood.textech.handler.HandlerWebPlayerTracker.onServerTick(now);
+        com.imgood.textech.webae.health.ServerHealthSampler.instance()
+            .onServerTick();
         com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
         com.imgood.textech.webae.icon.IconMissingQueue.instance()
             .onServerTick();

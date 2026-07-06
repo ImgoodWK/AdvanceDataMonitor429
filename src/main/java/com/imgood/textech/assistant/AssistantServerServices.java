@@ -714,7 +714,8 @@ public final class AssistantServerServices {
                 }
             }
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("[WebAE] Craft candidate query failed for link at {},{}", link.xCoord, link.yCoord, e);
+            AdvanceDataMonitor.LOG
+                .error("[WebAE] Craft candidate query failed for link at {},{}", link.xCoord, link.yCoord, e);
         }
         if (allCandidates.isEmpty()) {
             return Collections.emptyList();
@@ -770,10 +771,7 @@ public final class AssistantServerServices {
             if (serverCandidate == null) {
                 return orderFailed(
                     locale,
-                    text(
-                        locale,
-                        "所选物品在此 AE2 网络中已不再可合成。",
-                        "selected item is no longer craftable in this AE2 network."));
+                    text(locale, "所选物品在此 AE2 网络中已不再可合成。", "selected item is no longer craftable in this AE2 network."));
             }
             stack = serverCandidate.toItemStack();
             String apiResult = trySubmit(

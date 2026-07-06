@@ -53,8 +53,8 @@ export function iconModeFallbackChain(selectedMode: string): string[] {
 }
 
 /**
- * Ordered icon cache lookup ids — exact itemId first, then registry-only fallback.
- * Mirrors server IconItemId.lookupCandidates.
+ * Ordered icon cache lookup ids — exact itemId first, then registry-only fallback,
+ * or {@code mod:id:0} when no numeric meta suffix (mirrors server IconItemId.lookupCandidates).
  */
 export function iconLookupIds(
   item?: { itemId?: string; registryName?: string; meta?: number } | null,
@@ -67,10 +67,12 @@ export function iconLookupIds(
 
   if (id) {
     push(id);
+    pushMetaLookupVariants(id, push);
   }
 
   if (item?.itemId) {
     push(item.itemId);
+    pushMetaLookupVariants(item.itemId, push);
   }
 
   const reg = item?.registryName || '';
@@ -85,9 +87,29 @@ export function iconLookupIds(
       push(`${reg}:${meta}`);
     }
     push(reg);
+    if (meta == null || meta === 0) {
+      push(`${reg}:0`);
+    }
   }
 
   return out;
+}
+
+/** mod:id:meta → mod:id ; mod:id → mod:id:0 (matches IconItemId.lookupCandidates). */
+function pushMetaLookupVariants(itemId: string, push: (v: string) => void) {
+  if (itemId.startsWith(FLUID_ID_PREFIX)) return;
+  const colon = itemId.lastIndexOf(':');
+  if (colon <= 0) {
+    push(`${itemId}:0`);
+    return;
+  }
+  const suffix = itemId.substring(colon + 1);
+  if (/^\d+$/.test(suffix)) {
+    const base = itemId.substring(0, colon);
+    if (base) push(base);
+  } else {
+    push(`${itemId}:0`);
+  }
 }
 
 /** Primary lookup id for an item or raw id string. */

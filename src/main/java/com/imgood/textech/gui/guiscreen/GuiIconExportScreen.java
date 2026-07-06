@@ -20,7 +20,6 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuiIconExportScreen extends GuiScreen {
 
     private final IconRenderer session;
-    private final IconGridExporter gridExporter = new IconGridExporter();
     private int pageIndex;
     private int renderedItems;
     private boolean cancelled;
@@ -47,8 +46,8 @@ public class GuiIconExportScreen extends GuiScreen {
 
         int total = session.getPendingCount();
         if (pageIndex * IconGridExporter.SLOTS_PER_PAGE >= total) {
-            session.onExportComplete(gridExporter);
-            gridExporter.reset();
+            session.onExportComplete(session.getGridExporter());
+            session.getGridExporter().reset();
             mc.displayGuiScreen(null);
             return;
         }
@@ -56,7 +55,7 @@ public class GuiIconExportScreen extends GuiScreen {
         int start = pageIndex * IconGridExporter.SLOTS_PER_PAGE;
         int end = Math.min(start + IconGridExporter.SLOTS_PER_PAGE, total);
         java.util.List<IconItemEnumerator.StackTask> page = session.getPendingSubList(start, end);
-        java.util.Map<String, byte[]> rendered = gridExporter.renderPage(mc, page);
+        java.util.Map<String, byte[]> rendered = session.getGridExporter().renderPage(mc, page);
         session.mergeRenderedIcons(rendered);
         renderedItems += page.size();
         pageIndex++;

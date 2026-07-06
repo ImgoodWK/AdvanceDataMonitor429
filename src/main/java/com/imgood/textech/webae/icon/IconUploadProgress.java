@@ -43,12 +43,7 @@ final class IconUploadProgress {
         actionBar("WebAE " + mode.getId() + " 0/" + taskTotal);
     }
 
-    void onRenderProgress(
-        IconRenderMode mode,
-        int modeIndexOneBased,
-        int modeTotal,
-        int currentIndex,
-        int taskTotal) {
+    void onRenderProgress(IconRenderMode mode, int modeIndexOneBased, int modeTotal, int currentIndex, int taskTotal) {
         if (taskTotal <= 0) return;
         int pct = currentIndex * 100 / taskTotal;
         boolean byPercent = pct >= lastRenderPercent + 5;
@@ -88,8 +83,7 @@ final class IconUploadProgress {
     }
 
     void onUploadChunk(IconRenderMode mode, int chunkOneBased, int totalChunks) {
-        if (chunkOneBased < totalChunks && chunkOneBased % Math.max(1, totalChunks / 10) != 0
-            && chunkOneBased != 1) {
+        if (chunkOneBased < totalChunks && chunkOneBased % Math.max(1, totalChunks / 10) != 0 && chunkOneBased != 1) {
             if (chunkOneBased - lastUploadChunk < 3 && !shouldThrottleChat()) return;
         }
         if (!shouldThrottleChat() && chunkOneBased < totalChunks) return;

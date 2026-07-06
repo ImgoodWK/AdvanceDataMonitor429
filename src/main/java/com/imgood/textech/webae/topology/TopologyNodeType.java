@@ -8,6 +8,9 @@ public enum TopologyNodeType {
 
     CONTROLLER("controller", "hub"),
     DRIVE("drive", "branch"),
+    TERMINAL("terminal", "branch"),
+    BUS("bus", "branch"),
+    MONITOR("monitor", "branch"),
     INTERFACE("interface", "branch"),
     CPU("cpu", "branch"),
     P2P("p2p", "branch"),

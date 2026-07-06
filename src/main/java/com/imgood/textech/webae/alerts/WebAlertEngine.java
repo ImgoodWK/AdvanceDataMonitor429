@@ -8,23 +8,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.config.ConfigWebAlertsLoader;
-import com.imgood.textech.webae.auth.WebAuthToken;
 import com.imgood.textech.webae.api.handler.OrderHandler;
+import com.imgood.textech.webae.auth.WebAuthToken;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
-import com.imgood.textech.webae.context.WebAeOwnerContext.NetworkGroup;
 import com.imgood.textech.webae.dto.GtMachineDto;
 import com.imgood.textech.webae.dto.GtMachineListDto;
+import com.imgood.textech.webae.dto.OrderStatus;
 import com.imgood.textech.webae.dto.StorageDto;
 import com.imgood.textech.webae.dto.StorageDto.CpuEntry;
 import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
-import com.imgood.textech.webae.dto.StorageDto.ItemEntry;
-import com.imgood.textech.webae.dto.OrderStatus;
+import com.imgood.textech.webae.health.ServerHealthSampler;
+import com.imgood.textech.webae.order.OrderSubmitService;
+import com.imgood.textech.webae.order.OrderSubmitService.AutomationSubmitResult;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector.NetworkInfo;
 import com.imgood.textech.webae.topology.TopologyCache;
-import com.imgood.textech.webae.topology.TopologyEdge;
 import com.imgood.textech.webae.topology.TopologySnapshot;
 
 /**
@@ -52,6 +53,9 @@ public final class WebAlertEngine {
             lastPollByOwner.put(ownerUuid, now);
             evaluateOwner(ownerUuid, cfg, now);
         }
+        if (cfg.serverTpsBelowEnabled) {
+            checkServerTpsForAllOwners(cfg, now);
+        }
     }
 
     private static void evaluateOwner(String ownerUuid, WebAlertsConfig cfg, long now) {
@@ -61,6 +65,7 @@ public final class WebAlertEngine {
         for (NetworkInfo net : networks) {
             int networkId = net.networkId;
             checkInventoryThresholds(ownerUuid, networkId, cfg, activeSources);
+            checkAutomationRules(ownerUuid, networkId, cfg, now, activeSources);
             checkCpuStuck(ownerUuid, networkId, cfg, now, activeSources);
             checkGtErrors(ownerUuid, networkId, cfg, activeSources);
             checkChannelOverload(ownerUuid, networkId, cfg, activeSources);
@@ -107,12 +112,7 @@ public final class WebAlertEngine {
                 alert.timestamp = System.currentTimeMillis();
                 alert.sourceKey = sourceKey;
                 alert.title = rule.label != null && !rule.label.isEmpty() ? rule.label : "Low inventory";
-                alert.message = "Amount "
-                    + amount
-                    + " below threshold "
-                    + rule.minAmount
-                    + " on network "
-                    + networkId;
+                alert.message = "Amount " + amount + " below threshold " + rule.minAmount + " on network " + networkId;
                 WebAlertStore.instance()
                     .upsert(ownerUuid, alert);
                 activeSources.add(sourceKey);
@@ -158,6 +158,78 @@ public final class WebAlertEngine {
             }
         }
         return total;
+    }
+
+    private static void checkAutomationRules(String ownerUuid, int networkId, WebAlertsConfig cfg, long now,
+        Set<String> activeSources) {
+        if (cfg.automationRules == null || cfg.automationRules.isEmpty()) {
+            return;
+        }
+        StorageDto storage = SnapshotCache.instance()
+            .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE);
+        if (storage == null) {
+            return;
+        }
+        for (WebAlertsConfig.AutomationRule rule : cfg.automationRules) {
+            if (rule == null || !rule.enabled || !"craft_when_below".equals(rule.type)) {
+                continue;
+            }
+            if (rule.networkId >= 0 && rule.networkId != networkId) {
+                continue;
+            }
+            if (rule.itemId == null || rule.itemId.trim()
+                .isEmpty()) {
+                continue;
+            }
+            if (rule.threshold <= 0) {
+                continue;
+            }
+            if (rule.cooldownSeconds < 1) {
+                continue;
+            }
+            long amount = findItemAmount(storage, rule.itemId);
+            if (amount >= rule.threshold) {
+                continue;
+            }
+            if (rule.requireCpuIdle && !OrderSubmitService.isCpuIdle(storage)) {
+                continue;
+            }
+            if (!AutomationCooldownTracker.instance()
+                .canTrigger(ownerUuid, rule, now)) {
+                continue;
+            }
+            AutomationSubmitResult submit = OrderSubmitService.submitAutomationCraft(ownerUuid, rule, amount);
+            if (!submit.success) {
+                AdvanceDataMonitor.LOG
+                    .warn("[WebAE] Automation rule {} failed for owner {}: {}", rule.id, ownerUuid, submit.message);
+                continue;
+            }
+            AutomationCooldownTracker.instance()
+                .recordTrigger(ownerUuid, rule, now);
+            String sourceKey = "automation:" + rule.id;
+            activeSources.add(sourceKey);
+            WebAlertDto historyEvent = new WebAlertDto();
+            historyEvent.id = ownerUuid + ":" + sourceKey + ":" + now;
+            historyEvent.type = "automation_craft";
+            historyEvent.severity = "info";
+            historyEvent.networkId = networkId;
+            historyEvent.timestamp = now;
+            historyEvent.sourceKey = sourceKey;
+            historyEvent.title = "Auto craft: " + rule.itemId;
+            historyEvent.message = "Submitted " + submit.craftAmount
+                + "x "
+                + rule.itemId
+                + " (stock "
+                + amount
+                + " < "
+                + rule.threshold
+                + "): "
+                + submit.message;
+            WebAlertHistoryStore.instance()
+                .recordNew(ownerUuid, historyEvent);
+            WebhookDispatcher.instance()
+                .enqueue(ownerUuid, historyEvent);
+        }
     }
 
     private static void checkCpuStuck(String ownerUuid, int networkId, WebAlertsConfig cfg, long now,
@@ -206,8 +278,7 @@ public final class WebAlertEngine {
                 alert.timestamp = now;
                 alert.sourceKey = sourceKey;
                 alert.title = "CPU stuck: " + cpu.name;
-                alert.message = "CPU busy for "
-                    + cfg.cpuStuckMinutes
+                alert.message = "CPU busy for " + cfg.cpuStuckMinutes
                     + "+ minutes without elapsedTime progress on network "
                     + networkId;
                 WebAlertStore.instance()
@@ -238,8 +309,7 @@ public final class WebAlertEngine {
             alert.timestamp = System.currentTimeMillis();
             alert.sourceKey = sourceKey;
             alert.title = "GT machine error";
-            alert.message = "Machine at "
-                + machine.x
+            alert.message = "Machine at " + machine.x
                 + ","
                 + machine.y
                 + ","
@@ -289,12 +359,7 @@ public final class WebAlertEngine {
             alert.timestamp = System.currentTimeMillis();
             alert.sourceKey = sourceKey;
             alert.title = "Channel overload";
-            alert.message = "Channels "
-                + used
-                + "/"
-                + max
-                + " exceed threshold on network "
-                + networkId;
+            alert.message = "Channels " + used + "/" + max + " exceed threshold on network " + networkId;
             WebAlertStore.instance()
                 .upsert(ownerUuid, alert);
             activeSources.add(sourceKey);
@@ -339,6 +404,35 @@ public final class WebAlertEngine {
                 it.remove();
             } else {
                 break;
+            }
+        }
+    }
+
+    private static void checkServerTpsForAllOwners(WebAlertsConfig cfg, long now) {
+        ServerHealthSampler sampler = ServerHealthSampler.instance();
+        double tps = sampler.getLatestTps();
+        boolean low = sampler.isTpsBelowForDuration(cfg.serverTpsThreshold, cfg.serverTpsDurationSeconds);
+        String sourceKey = "server:tps";
+        for (String ownerUuid : WebAuthToken.listActiveOwnerUuids()) {
+            if (low) {
+                WebAlertDto alert = new WebAlertDto();
+                alert.type = "server_tps_below";
+                alert.severity = "error";
+                alert.networkId = -1;
+                alert.timestamp = now;
+                alert.sourceKey = sourceKey;
+                alert.title = "Server TPS low";
+                alert.message = "TPS " + String.format("%.1f", tps)
+                    + " below threshold "
+                    + String.format("%.1f", cfg.serverTpsThreshold)
+                    + " for "
+                    + cfg.serverTpsDurationSeconds
+                    + "+ seconds";
+                WebAlertStore.instance()
+                    .upsert(ownerUuid, alert);
+            } else {
+                WebAlertStore.instance()
+                    .clearSource(ownerUuid, sourceKey);
             }
         }
     }

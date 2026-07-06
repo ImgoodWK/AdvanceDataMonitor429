@@ -37,7 +37,8 @@ import com.imgood.textech.Tags;
 public class IconStore {
 
     private static final IconStore INSTANCE = new IconStore();
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
     private static final String MANIFEST_FILE = "manifest.json";
     private static final String LEGACY_MIGRATED_FLAG = ".legacy-migrated";
 
@@ -106,7 +107,8 @@ public class IconStore {
                 File target = new File(hybridDir, child.getName());
                 if (target.exists()) {
                     if (!child.delete()) {
-                        AdvanceDataMonitor.LOG.warn("[WebAE] Could not remove duplicate legacy icon {}", child.getName());
+                        AdvanceDataMonitor.LOG
+                            .warn("[WebAE] Could not remove duplicate legacy icon {}", child.getName());
                     }
                     movedAny = true;
                     continue;
@@ -199,7 +201,9 @@ public class IconStore {
         String normalized = normalizeModeId(modeId);
         boolean found = false;
         for (int i = 0; i < modes.size(); i++) {
-            if (normalized.equals(modes.get(i).getAsString())) {
+            if (normalized.equals(
+                modes.get(i)
+                    .getAsString())) {
                 found = true;
                 break;
             }
@@ -218,7 +222,8 @@ public class IconStore {
             writer.write(GSON.toJson(root));
             writer.newLine();
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to write icon manifest for pack {}: {}", packName, e.getMessage());
+            AdvanceDataMonitor.LOG
+                .warn("[WebAE] Failed to write icon manifest for pack {}: {}", packName, e.getMessage());
         } finally {
             if (writer != null) {
                 try {
@@ -253,7 +258,8 @@ public class IconStore {
             writer.write(GSON.toJson(root));
             writer.newLine();
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to refresh icon manifest for pack {}: {}", packName, e.getMessage());
+            AdvanceDataMonitor.LOG
+                .warn("[WebAE] Failed to refresh icon manifest for pack {}: {}", packName, e.getMessage());
         } finally {
             if (writer != null) {
                 try {

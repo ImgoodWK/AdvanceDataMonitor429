@@ -7,7 +7,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * NEI-style slot layout ({@code GuiContainer.drawSlot} spacing). Falls back to inventory GL when blank.
+ * NEI-style slot layout ({@code GuiContainer.drawSlot} spacing). Delegates to {@link IconExportResolver}.
  */
 @SideOnly(Side.CLIENT)
 final class IconNeiStyleRenderer {
@@ -28,10 +28,8 @@ final class IconNeiStyleRenderer {
         return neiPresent.booleanValue();
     }
 
-    static byte[] render(Minecraft mc, ItemStack stack, IconGlFallback glFallback) {
-        if (stack == null || glFallback == null) return null;
-        byte[] png = glFallback.renderNeiSlotIcon(mc, stack);
-        if (!IconAtlasSampler.isPngBlank(png)) return png;
-        return glFallback.renderInventoryIcon(mc, stack);
+    static byte[] render(Minecraft mc, ItemStack stack, String itemId, IconExportResolver resolver) {
+        if (stack == null || resolver == null) return null;
+        return resolver.resolve(mc, stack, itemId, null).png;
     }
 }

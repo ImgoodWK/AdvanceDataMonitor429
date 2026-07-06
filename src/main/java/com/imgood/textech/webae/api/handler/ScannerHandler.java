@@ -54,14 +54,11 @@ public final class ScannerHandler {
             return json(NanoHTTPD.Response.Status.INTERNAL_ERROR, "{\"success\":false,\"message\":\"Interrupted\"}");
         }
 
-        List<LinkScannerBlockDto> blocks = holder[0] != null ? holder[0] : java.util.Collections.<LinkScannerBlockDto>emptyList();
+        List<LinkScannerBlockDto> blocks = holder[0] != null ? holder[0]
+            : java.util.Collections.<LinkScannerBlockDto>emptyList();
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":"
-                + blocks.size()
-                + ",\"blocks\":"
-                + GSON.toJson(blocks)
-                + "}");
+            "{\"success\":true,\"count\":" + blocks.size() + ",\"blocks\":" + GSON.toJson(blocks) + "}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

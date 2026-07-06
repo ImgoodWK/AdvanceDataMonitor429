@@ -7,6 +7,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
@@ -15,6 +16,7 @@ import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
+import com.imgood.textech.webae.onboarding.WebConsoleOnboarding;
 
 /**
  * Display names / 显示名称:
@@ -51,6 +53,9 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) tileEntity;
             link.facing = direction;
             link.setOwnerFromPlacer(placer);
+        }
+        if (!world.isRemote && placer instanceof EntityPlayerMP) {
+            WebConsoleOnboarding.notifyOwnerOnNetworkLinkPlaced((EntityPlayerMP) placer);
         }
     }
 

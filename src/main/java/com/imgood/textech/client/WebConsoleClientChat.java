@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.event.ClickEvent;
 import net.minecraft.event.HoverEvent;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.StatCollector;
@@ -36,6 +37,55 @@ public final class WebConsoleClientChat {
         hint.getChatStyle()
             .setColor(EnumChatFormatting.GRAY);
         mc.thePlayer.addChatMessage(hint);
+    }
+
+    public static void showLoginCode(String code, int port, String bindAddress) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) {
+            return;
+        }
+        String url = resolveAccessUrl(port, bindAddress) + "/?code=" + code;
+
+        IChatComponent header = new ChatComponentText(I18n("adm.webconsole.login.issued_header"));
+        header.getChatStyle()
+            .setColor(EnumChatFormatting.GREEN);
+        mc.thePlayer.addChatMessage(header);
+
+        IChatComponent codeLine = new ChatComponentTranslation("adm.webconsole.login.code", code);
+        codeLine.getChatStyle()
+            .setColor(EnumChatFormatting.WHITE);
+        mc.thePlayer.addChatMessage(codeLine);
+
+        mc.thePlayer.addChatMessage(buildUrlLine(url));
+
+        IChatComponent hint = new ChatComponentText(I18n("adm.webconsole.login.usage_hint"));
+        hint.getChatStyle()
+            .setColor(EnumChatFormatting.GRAY);
+        mc.thePlayer.addChatMessage(hint);
+    }
+
+    public static void showOnboarding(int port, String bindAddress) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) {
+            return;
+        }
+
+        IChatComponent header = new ChatComponentText(I18n("adm.webconsole.onboarding.header"));
+        header.getChatStyle()
+            .setColor(EnumChatFormatting.GREEN);
+        mc.thePlayer.addChatMessage(header);
+
+        mc.thePlayer.addChatMessage(buildUrlLine(resolveAccessUrl(port, bindAddress)));
+
+        IChatComponent loginHint = new ChatComponentText(I18n("adm.webconsole.onboarding.login_hint"));
+        loginHint.getChatStyle()
+            .setColor(EnumChatFormatting.GRAY);
+        mc.thePlayer.addChatMessage(loginHint);
+
+        IChatComponent usageHint = new ChatComponentText(I18n("adm.webconsole.onboarding.usage_hint"));
+        usageHint.getChatStyle()
+            .setColor(EnumChatFormatting.GRAY);
+        mc.thePlayer.addChatMessage(usageHint);
     }
 
     public static void copyToken(String token) {

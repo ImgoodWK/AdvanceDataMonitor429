@@ -11,10 +11,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.webae.events.EventStreamHub;
 import com.imgood.textech.webae.icon.IconMissingQueue;
-import com.imgood.textech.webae.icon.IconStore;
 import com.imgood.textech.webae.icon.IconRenderMode;
+import com.imgood.textech.webae.icon.IconStore;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -172,8 +171,12 @@ public class PacketWebIconUpload implements IMessage {
                         true,
                         message.totalChunks,
                         message.totalChunks,
-                        "Icon upload complete. " + written + " icons stored in pack '" + message.packName + "' mode '"
-                            + modeId + "'.");
+                        "Icon upload complete. " + written
+                            + " icons stored in pack '"
+                            + message.packName
+                            + "' mode '"
+                            + modeId
+                            + "'.");
                 }
 
                 return new PacketWebIconUploadAck(

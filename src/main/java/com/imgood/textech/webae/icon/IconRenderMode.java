@@ -48,7 +48,10 @@ public enum IconRenderMode {
 
     /** Deprecated atlas/hybrid modes are no longer exported. */
     public boolean isDeprecated() {
-        return this == ATLAS || this == HYBRID || this == INVENTORY_FLAT || this == ENTITY || this == BLOCK
+        return this == ATLAS || this == HYBRID
+            || this == INVENTORY_FLAT
+            || this == ENTITY
+            || this == BLOCK
             || this == FIRST_PERSON;
     }
 

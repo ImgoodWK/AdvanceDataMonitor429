@@ -24,8 +24,7 @@ public final class EventStreamHub {
     private static final Charset UTF8 = Charset.forName("UTF-8");
     private static final long HEARTBEAT_MS = 15_000L;
 
-    private final ConcurrentHashMap<String, CopyOnWriteArrayList<Subscriber>> byOwner =
-        new ConcurrentHashMap<String, CopyOnWriteArrayList<Subscriber>>();
+    private final ConcurrentHashMap<String, CopyOnWriteArrayList<Subscriber>> byOwner = new ConcurrentHashMap<String, CopyOnWriteArrayList<Subscriber>>();
 
     private EventStreamHub() {}
 

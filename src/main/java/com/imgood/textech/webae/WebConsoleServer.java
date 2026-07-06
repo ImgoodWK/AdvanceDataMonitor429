@@ -8,6 +8,7 @@ import java.io.InputStream;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.api.WebApiRouter;
+import com.imgood.textech.webae.api.handler.AuthExchangeHandler;
 import com.imgood.textech.webae.auth.WebAuthMiddleware;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
@@ -62,6 +63,10 @@ public class WebConsoleServer extends NanoHTTPD {
 
     private Response handleApi(IHTTPSession session) {
         try {
+            String uri = session.getUri();
+            if ("/api/auth/exchange".equals(uri)) {
+                return AuthExchangeHandler.handle(session);
+            }
             WebAuthMiddleware.AuthResult authResult = authMiddleware.authenticate(session);
             if (!authResult.success) {
                 return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json", authResult.errorBody);

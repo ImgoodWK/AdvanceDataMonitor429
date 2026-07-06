@@ -17,9 +17,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
-import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
-import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 import com.imgood.textech.webae.dto.PatternDto.InterfaceDto;
 import com.imgood.textech.webae.dto.PatternDto.InterfaceDto.ExistingPatternEntry;
 import com.imgood.textech.webae.dto.PatternDto.InterfaceDto.SlotState;
@@ -304,8 +301,10 @@ public class InterfaceLocator {
         if (player == null) {
             return null;
         }
-        return findGrid(player.getUniqueID()
-            .toString(), networkId);
+        return findGrid(
+            player.getUniqueID()
+                .toString(),
+            networkId);
     }
 
     /**

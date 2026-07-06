@@ -35,14 +35,14 @@ export class ApiClient {
 
   private async request<T>(
     url: string,
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
     body?: unknown
   ): Promise<T> {
     const opts: RequestInit = {
       method,
       headers: this.authHeaders(),
     };
-    if (body !== undefined && (method === 'POST' || method === 'PUT')) {
+    if (body !== undefined && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       opts.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
     let resp: Response;
@@ -96,6 +96,10 @@ export class ApiClient {
 
   put<T>(url: string, body?: unknown): Promise<T> {
     return this.request<T>(url, 'PUT', body);
+  }
+
+  patch<T>(url: string, body?: unknown): Promise<T> {
+    return this.request<T>(url, 'PATCH', body);
   }
 
   delete<T>(url: string): Promise<T> {

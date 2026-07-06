@@ -67,11 +67,7 @@ public final class CellSummaryHandler {
         }
 
         NetworkCellSummaryDto data = holder[0] != null ? holder[0] : new NetworkCellSummaryDto();
-        return json(
-            NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"data\":"
-                + GSON.toJson(data)
-                + "}");
+        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"data\":" + GSON.toJson(data) + "}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

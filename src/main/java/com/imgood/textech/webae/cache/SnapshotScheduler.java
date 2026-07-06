@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.tileentity.TileEntity;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
@@ -198,7 +197,8 @@ public class SnapshotScheduler {
                 try {
                     PatternBrowseService.buildAndStoreCache(playerUuid, networkId);
                 } catch (Throwable t) {
-                    AdvanceDataMonitor.LOG.error("[WebAE] Pattern browse periodic collection failed for key={}", key, t);
+                    AdvanceDataMonitor.LOG
+                        .error("[WebAE] Pattern browse periodic collection failed for key={}", key, t);
                 }
             }
         });

@@ -16,8 +16,6 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.client.IItemRenderer;
-import net.minecraftforge.client.MinecraftForgeClient;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -45,16 +43,19 @@ public final class IconGridExporter {
     private static final int FBO_WIDTH = COLS * SLOT_SIZE;
     private static final int FBO_HEIGHT = ROWS * SLOT_SIZE;
 
-    private final IconGlFallback singleFallback = new IconGlFallback();
+    private final IconExportResolver resolver;
     private Framebuffer fbo;
     private boolean prevScissorEnabled;
+
+    public IconGridExporter(IconExportResolver resolver) {
+        this.resolver = resolver;
+    }
 
     public void reset() {
         if (fbo != null) {
             fbo.deleteFramebuffer();
             fbo = null;
         }
-        singleFallback.reset();
     }
 
     /**
@@ -62,7 +63,7 @@ public final class IconGridExporter {
      */
     public Map<String, byte[]> renderPage(Minecraft mc, List<IconItemEnumerator.StackTask> tasks) {
         Map<String, byte[]> out = new LinkedHashMap<String, byte[]>();
-        if (tasks == null || tasks.isEmpty()) return out;
+        if (tasks == null || tasks.isEmpty() || resolver == null) return out;
         ensureFbo();
         beginGridRender();
         try {
@@ -91,43 +92,27 @@ public final class IconGridExporter {
         for (int i = 0; i < tasks.size() && i < SLOTS_PER_PAGE; i++) {
             IconItemEnumerator.StackTask task = tasks.get(i);
             if (task == null || task.stack == null) continue;
-            byte[] png = cropSlot(page, i);
-            if (IconAtlasSampler.isPngBlank(png)) {
-                png = singleFallback.renderNeiSlotIcon(mc, task.stack);
-                if (IconAtlasSampler.isPngBlank(png)) {
-                    png = singleFallback.renderInventoryIcon(mc, task.stack);
-                }
-            }
-            if (png != null && png.length > 0) {
-                out.put(task.itemId, png);
+            byte[] gridCrop = cropSlot(page, i);
+            IconExportResolver.ResolveResult result = resolver.resolve(mc, task.stack, task.itemId, gridCrop);
+            if (result.png != null && result.png.length > 0) {
+                out.put(task.itemId, result.png);
             }
         }
-        singleFallback.reset();
         return out;
     }
 
     /** High-res single-item export for lazy-load / verify. */
-    public byte[] renderSingle(Minecraft mc, ItemStack stack) {
-        if (stack == null) return null;
-        byte[] png = singleFallback.renderNeiSlotIcon(mc, stack);
-        if (IconAtlasSampler.isPngBlank(png)) {
-            png = singleFallback.renderInventoryIcon(mc, stack);
-        }
-        singleFallback.reset();
-        return png;
+    public byte[] renderSingle(Minecraft mc, ItemStack stack, String itemId) {
+        if (stack == null || resolver == null) return null;
+        return resolver.resolve(mc, stack, itemId, null).png;
     }
 
     private void drawStackInSlot(Minecraft mc, ItemStack stack, int x, int y) {
-        IItemRenderer custom = MinecraftForgeClient.getItemRenderer(stack, IItemRenderer.ItemRenderType.INVENTORY);
-        if (custom != null && custom.handleRenderType(stack, IItemRenderer.ItemRenderType.INVENTORY)) {
-            GL11.glPushMatrix();
-            GL11.glTranslatef(x, y, 0.0F);
-            custom.renderItem(IItemRenderer.ItemRenderType.INVENTORY, stack);
-            GL11.glPopMatrix();
-        } else {
-            RenderItem.getInstance()
-                .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, x, y);
+        if (IconGlFallback.needsGlFallback(stack)) {
+            return;
         }
+        RenderItem.getInstance()
+            .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, x, y);
     }
 
     private byte[] cropSlot(BufferedImage page, int index) {
@@ -138,7 +123,10 @@ public final class IconGridExporter {
         int y = row * SLOT_SIZE + ICON_INSET;
         if (x + ICON_PX > page.getWidth() || y + ICON_PX > page.getHeight()) return null;
         BufferedImage icon = page.getSubimage(x, y, ICON_PX, ICON_PX);
-        BufferedImage scaled = new BufferedImage(IconRenderer.ICON_SIZE, IconRenderer.ICON_SIZE, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage scaled = new BufferedImage(
+            IconRenderer.ICON_SIZE,
+            IconRenderer.ICON_SIZE,
+            BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = scaled.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.drawImage(icon, 0, 0, IconRenderer.ICON_SIZE, IconRenderer.ICON_SIZE, null);

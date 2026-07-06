@@ -38,8 +38,7 @@ public final class PatternBrowseService {
     /**
      * Paginate from an existing cache entry. Safe to call from any thread (read-only).
      */
-    public static BrowseResult paginate(CachedBrowseData cached, String query, int offset, int limit,
-        String source) {
+    public static BrowseResult paginate(CachedBrowseData cached, String query, int offset, int limit, String source) {
         if (cached == null) {
             return emptyResult(offset, limit);
         }
@@ -393,6 +392,74 @@ public final class PatternBrowseService {
             return null;
         }
         return world.getTileEntity(x, y, z);
+    }
+
+    /**
+     * Resolve an AE pattern id whose primary output matches {@code itemKey}. Read-only; uses browse TTL cache.
+     */
+    public static String findPatternIdForOutput(String ownerUuid, int networkId, String itemKey) {
+        if (itemKey == null || itemKey.trim()
+            .isEmpty()) {
+            return "";
+        }
+        CachedBrowseData cached = getFresh(ownerUuid, networkId);
+        if (cached == null) {
+            cached = getStale(ownerUuid, networkId);
+        }
+        if (cached == null) {
+            return "";
+        }
+        String needle = itemKey.trim()
+            .toLowerCase();
+        PatternBrowseEntryDto best = null;
+        int bestInputs = Integer.MAX_VALUE;
+        List<PatternBrowseEntryDto> all = selectSource(cached, "all");
+        for (PatternBrowseEntryDto entry : all) {
+            if (entry == null || !outputMatches(entry, needle)) {
+                continue;
+            }
+            String pid = entry.patternId != null && !entry.patternId.isEmpty() ? entry.patternId : entry.gridKey;
+            if (pid == null || pid.isEmpty()) {
+                continue;
+            }
+            int inputs = entry.inputsCount > 0 ? entry.inputsCount : (entry.inputs != null ? entry.inputs.size() : 0);
+            if (inputs < bestInputs) {
+                bestInputs = inputs;
+                best = entry;
+            }
+        }
+        if (best == null) {
+            return "";
+        }
+        if (best.patternId != null && !best.patternId.isEmpty()) {
+            return best.patternId;
+        }
+        return best.gridKey != null ? best.gridKey : "";
+    }
+
+    private static boolean outputMatches(PatternBrowseEntryDto entry, String needle) {
+        if (entry.registryName != null && entry.registryName.toLowerCase()
+            .equals(needle)) {
+            return true;
+        }
+        if (entry.displayName != null && entry.displayName.toLowerCase()
+            .contains(needle)) {
+            return true;
+        }
+        for (PatternItemEntry pe : entry.outputs) {
+            if (pe == null) {
+                continue;
+            }
+            if (pe.registryName != null && pe.registryName.toLowerCase()
+                .equals(needle)) {
+                return true;
+            }
+            if (pe.displayName != null && pe.displayName.toLowerCase()
+                .contains(needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static final class BrowseResult {

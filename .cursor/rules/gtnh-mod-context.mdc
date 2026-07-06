@@ -41,6 +41,7 @@ alwaysApply: true
 | `config/textech/ai-client-local.cfg` | 客户端 AI/语音密钥与偏好 |
 | `config/textech/plans.json` | 助手计划持久化 |
 | `config/textech/web-alerts.json` | WebAE 自动化告警规则（库存阈值/CPU 卡住/GT 异常/下单完成/频道超载；首次访问自动创建） |
+| `config/textech/web-favorites.json` | WebAE 配方/样板/物品收藏（按 ownerUuid；首次 PUT 自动创建） |
 | `config/textech/web-order-templates.json` | WebAE 批量下单模板（按 ownerUuid 隔离；首次访问自动创建空结构） |
 | `config/textech/web-recipes.json.gz` | WebAE NEI 配方缓存（gzip 持久化；`/admweb recipes upload` 写入服务端） |
 | `<实例根>/TeXTechWebAE/web-recipes.json.gz` | 客户端 NEI 配方本地导出（`/admweb recipes upload*` 同时写入；GTNH 客户端为 `.minecraft/TeXTechWebAE/`） |

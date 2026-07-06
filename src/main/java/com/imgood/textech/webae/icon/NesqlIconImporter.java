@@ -36,8 +36,10 @@ public final class NesqlIconImporter {
             if (src == null || !src.getName()
                 .endsWith(".png")) continue;
             String base = src.getName()
-                .substring(0, src.getName()
-                    .length() - 4);
+                .substring(
+                    0,
+                    src.getName()
+                        .length() - 4);
             String itemId = base.replace('~', ':')
                 .replace('_', ':');
             File out = new File(destDir, IconStore.sanitizeItemId(itemId) + ".png");

@@ -28,6 +28,7 @@ import com.imgood.textech.network.packet.PacketPocketSync;
 import com.imgood.textech.network.packet.PacketRequestItemCountSync;
 import com.imgood.textech.network.packet.PacketSuperOrangeConfig;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
+import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
 import com.imgood.textech.webae.network.PacketWebIconExportScope;
 import com.imgood.textech.webae.network.PacketWebIconRequest;
 import com.imgood.textech.webae.network.PacketWebIconUpload;
@@ -35,7 +36,6 @@ import com.imgood.textech.webae.network.PacketWebIconUploadAck;
 import com.imgood.textech.webae.network.PacketWebRecipeUpload;
 import com.imgood.textech.webae.network.PacketWebRecipeUploadAck;
 import com.imgood.textech.webae.network.PacketWebUploadTrigger;
-import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
@@ -224,11 +224,8 @@ public class LoaderNetwork {
                 PacketWebIconExportScope.class,
                 32,
                 Side.CLIENT);
-            AdvanceDataMonitor.ADMCHANEL.registerMessage(
-                PacketWebIconRequest.Handler.class,
-                PacketWebIconRequest.class,
-                33,
-                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketWebIconRequest.Handler.class, PacketWebIconRequest.class, 33, Side.CLIENT);
         }
     }
 }

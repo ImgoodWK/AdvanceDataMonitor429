@@ -37,12 +37,8 @@ public final class NetworkBalanceHandler {
         long minShortage = parseLong(params.get("minShortage"), NetworkBalanceCollector.DEFAULT_MIN_SHORTAGE);
         int limit = (int) parseLong(params.get("limit"), NetworkBalanceCollector.DEFAULT_LIMIT);
 
-        List<NetworkBalanceSuggestion> suggestions = NetworkBalanceCollector.collect(
-            ownerUuid,
-            networks,
-            minSurplus,
-            minShortage,
-            limit);
+        List<NetworkBalanceSuggestion> suggestions = NetworkBalanceCollector
+            .collect(ownerUuid, networks, minSurplus, minShortage, limit);
 
         long ts = 0L;
         for (int i = 0; i < networks.length; i++) {
@@ -55,13 +51,8 @@ public final class NetworkBalanceHandler {
 
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":"
-                + suggestions.size()
-                + ",\"timestamp\":"
-                + ts
-                + ",\"suggestions\":"
-                + GSON.toJson(suggestions)
-                + "}");
+            "{\"success\":true,\"count\":" + suggestions
+                .size() + ",\"timestamp\":" + ts + ",\"suggestions\":" + GSON.toJson(suggestions) + "}");
     }
 
     private static int[] parseNetworks(String raw) {

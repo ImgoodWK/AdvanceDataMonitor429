@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { Card, Input, Button, Checkbox, Typography, Alert, Space } from 'antd';
+import { Card, Input, Button, Checkbox, Typography, Alert, Space, Divider } from 'antd';
 
-import { LockOutlined, LinkOutlined } from '@ant-design/icons';
+import { LockOutlined, LinkOutlined, NumberOutlined } from '@ant-design/icons';
 
 import { useAppContext } from '@/context/AppContext';
 
@@ -16,21 +16,76 @@ const { Title, Text } = Typography;
 
 export function Login() {
 
-  const { login, autoLogin, setAutoLogin, authError, lang, token } = useAppContext();
+  const { login, exchangeLoginCode, autoLogin, setAutoLogin, authError, lang, token, isLoggedIn } = useAppContext();
 
   const { t } = useI18n();
 
   const [tokenInput, setTokenInput] = useState('');
 
+  const [codeInput, setCodeInput] = useState('');
+
   const [connecting, setConnecting] = useState(false);
 
+  const [exchanging, setExchanging] = useState(false);
 
+  const autoCodeHandled = useRef(false);
+  const autoTokenHandled = useRef(false);
+
+  useEffect(() => {
+    if (token) setTokenInput(token);
+  }, [token]);
+
+  useEffect(() => {
+    if (autoTokenHandled.current || isLoggedIn) return;
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (!urlToken || urlToken.trim().length < 8) return;
+    autoTokenHandled.current = true;
+    setTokenInput(urlToken.trim());
+    setConnecting(true);
+    void login(urlToken.trim()).then((ok) => {
+      setConnecting(false);
+      if (ok) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('token');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    });
+  }, [login, isLoggedIn]);
 
   useEffect(() => {
 
-    if (token) setTokenInput(token);
+    if (autoCodeHandled.current || isLoggedIn) return;
 
-  }, [token]);
+    const params = new URLSearchParams(window.location.search);
+
+    const code = params.get('code');
+
+    if (!code || !/^\d{6}$/.test(code.trim())) return;
+
+    autoCodeHandled.current = true;
+
+    setCodeInput(code.trim());
+
+    setExchanging(true);
+
+    void exchangeLoginCode(code.trim()).then((ok) => {
+
+      setExchanging(false);
+
+      if (ok) {
+
+        const url = new URL(window.location.href);
+
+        url.searchParams.delete('code');
+
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+
+      }
+
+    });
+
+  }, [exchangeLoginCode, isLoggedIn]);
 
 
 
@@ -48,6 +103,20 @@ export function Login() {
 
 
 
+  const handleExchange = async () => {
+
+    if (!codeInput.trim()) return;
+
+    setExchanging(true);
+
+    await exchangeLoginCode(codeInput.trim());
+
+    setExchanging(false);
+
+  };
+
+
+
   const errorMap: Record<string, string> = {
 
     missing_token: t('tokenInvalid'),
@@ -60,11 +129,23 @@ export function Login() {
 
     empty_token: t('tokenInvalid'),
 
+    invalid_code: t('loginCodeInvalid'),
+
+    invalid_or_used: t('loginCodeInvalid'),
+
+    expired: t('loginCodeExpired'),
+
+    missing_code: t('loginCodeInvalid'),
+
+    no_monitor: t('loginCodeNoMonitor'),
+
   };
 
   const errorMsg = authError ? errorMap[authError] || t('authFailed') : null;
 
   const hasSavedToken = !!tokenInput.trim();
+
+  const busy = connecting || exchanging;
 
 
 
@@ -154,6 +235,58 @@ export function Login() {
 
 
 
+          <Input
+
+            size="large"
+
+            placeholder={t('loginCodePlaceholder')}
+
+            prefix={<NumberOutlined style={{ color: 'var(--text-dim)' }} />}
+
+            value={codeInput}
+
+            onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+
+            onPressEnter={handleExchange}
+
+            aria-label={t('loginCodePlaceholder')}
+
+            disabled={busy}
+
+            maxLength={6}
+
+            inputMode="numeric"
+
+          />
+
+
+
+          <Button
+
+            type="default"
+
+            size="large"
+
+            block
+
+            loading={exchanging}
+
+            onClick={handleExchange}
+
+            disabled={codeInput.trim().length !== 6 || busy}
+
+          >
+
+            {exchanging ? t('connecting') : t('loginCodeExchange')}
+
+          </Button>
+
+
+
+          <Divider plain>{lang === 'zh' ? '或使用 Token' : 'Or use token'}</Divider>
+
+
+
           <Input.Password
 
             size="large"
@@ -170,7 +303,7 @@ export function Login() {
 
             aria-label={t('tokenPlaceholder')}
 
-            disabled={connecting}
+            disabled={busy}
 
           />
 
@@ -210,7 +343,7 @@ export function Login() {
 
             onClick={handleConnect}
 
-            disabled={!tokenInput.trim()}
+            disabled={!tokenInput.trim() || busy}
 
           >
 

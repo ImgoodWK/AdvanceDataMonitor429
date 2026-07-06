@@ -22,6 +22,8 @@ public class PacketWebConsoleTokenNotify implements IMessage {
 
     public static final byte KIND_ISSUE = 0;
     public static final byte KIND_CLIP = 1;
+    public static final byte KIND_LOGIN = 2;
+    public static final byte KIND_ONBOARDING = 3;
 
     public byte kind;
     public String token;
@@ -82,6 +84,10 @@ public class PacketWebConsoleTokenNotify implements IMessage {
             }
             if (message.kind == KIND_CLIP) {
                 WebConsoleClientChat.copyToken(message.token);
+            } else if (message.kind == KIND_LOGIN) {
+                WebConsoleClientChat.showLoginCode(message.token, message.port, message.bindAddress);
+            } else if (message.kind == KIND_ONBOARDING) {
+                WebConsoleClientChat.showOnboarding(message.port, message.bindAddress);
             } else {
                 WebConsoleClientChat.showIssue(message.token, message.port, message.bindAddress);
             }

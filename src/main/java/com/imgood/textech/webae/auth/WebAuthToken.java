@@ -99,6 +99,15 @@ public class WebAuthToken {
         return generateOwnerToken(playerUuid, name);
     }
 
+    /**
+     * Shareable guest invite link (not tied to a specific online player).
+     */
+    public static WebAuthToken generateShareGuestToken(String ownerUuid, String ownerName) {
+        String inviteId = UUID.randomUUID()
+            .toString();
+        return generateGuestToken(ownerUuid, ownerName, "invite:" + inviteId, "Guest");
+    }
+
     public static WebAuthToken generateGuestToken(String ownerUuid, String ownerName, String guestUuid,
         String guestName) {
         WebAuthToken authToken = new WebAuthToken(
@@ -374,7 +383,8 @@ public class WebAuthToken {
         try {
             reader = new FileReader(TOKEN_FILE);
             List<WebAuthToken> tokens = GSON.fromJson(reader, new TypeToken<List<WebAuthToken>>() {}.getType());
-            List<WebAuthToken> result = tokens != null ? new ArrayList<WebAuthToken>(tokens) : new ArrayList<WebAuthToken>();
+            List<WebAuthToken> result = tokens != null ? new ArrayList<WebAuthToken>(tokens)
+                : new ArrayList<WebAuthToken>();
             for (WebAuthToken t : result) {
                 migrateEntry(t);
             }

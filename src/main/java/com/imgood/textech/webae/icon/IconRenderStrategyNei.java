@@ -16,11 +16,22 @@ final class IconRenderStrategyNei implements IconRenderStrategy {
 
     @Override
     public byte[] renderItem(Minecraft mc, ItemStack stack, String itemId, IconRenderContext ctx) {
-        byte[] png = IconNeiStyleRenderer.render(mc, stack, ctx.glFallback);
-        if (!IconAtlasSampler.isPngBlank(png)) {
-            ctx.glFallbackCount++;
-            return png;
+        IconExportResolver.ResolveResult result = ctx.exportResolver.resolve(mc, stack, itemId, null);
+        recordSource(ctx, result.source);
+        return result.png;
+    }
+
+    private static void recordSource(IconRenderContext ctx, IconExportResolver.Source source) {
+        switch (source) {
+            case ATLAS:
+                ctx.atlasSampleCount++;
+                break;
+            case PLACEHOLDER:
+                ctx.placeholderCount++;
+                break;
+            default:
+                ctx.glFallbackCount++;
+                break;
         }
-        return null;
     }
 }

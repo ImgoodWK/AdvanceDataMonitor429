@@ -139,7 +139,10 @@ public class WebConfigHandler {
             .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)
             .append(',');
         sb.append("\"alertsPollIntervalSeconds\":")
-            .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().pollIntervalSeconds);
+            .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().pollIntervalSeconds)
+            .append(',');
+        sb.append("\"dynmapBaseUrl\":")
+            .append(GSON.toJson(Config.webDynmapBaseUrl != null ? Config.webDynmapBaseUrl : ""));
         sb.append("}}");
         return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
     }

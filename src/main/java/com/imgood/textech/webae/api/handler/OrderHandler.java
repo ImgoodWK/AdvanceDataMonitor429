@@ -15,7 +15,6 @@ import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
@@ -28,12 +27,12 @@ import com.imgood.textech.assistant.AssistantServerServices;
 import com.imgood.textech.assistant.AssistantServerServices.OrderProgressResult;
 import com.imgood.textech.assistant.CraftingCandidate;
 import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.craft.WebAeCraftService;
 import com.imgood.textech.webae.dto.OrderBatchRequest;
 import com.imgood.textech.webae.dto.OrderRequest;
 import com.imgood.textech.webae.dto.OrderResult;
 import com.imgood.textech.webae.dto.OrderStatus;
-import com.imgood.textech.webae.craft.WebAeCraftService;
-import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.pattern.InterfaceLocator;
 
 import fi.iki.elonen.NanoHTTPD;
@@ -66,6 +65,21 @@ public class OrderHandler {
     private static final int HISTORY_MAX = 200;
 
     private static final Map<String, OrderTrackEntry> activeOrders = new ConcurrentHashMap<String, OrderTrackEntry>();
+
+    /** Active (non-completed) craft orders for OC summary and monitoring. */
+    public static int countActiveOrdersForOwner(String ownerUuid) {
+        if (ownerUuid == null || ownerUuid.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (Map.Entry<String, OrderTrackEntry> e : activeOrders.entrySet()) {
+            OrderTrackEntry entry = e.getValue();
+            if (entry != null && ownerUuid.equals(entry.playerUuid)) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     private static final LinkedList<OrderStatus> historyOrders = new LinkedList<OrderStatus>();
 
@@ -446,7 +460,8 @@ public class OrderHandler {
 
                         OrderResult or = new OrderResult();
 
-                        or.success = candidate != null && lineMessage != null && !lineMessage.isEmpty()
+                        or.success = candidate != null && lineMessage != null
+                            && !lineMessage.isEmpty()
                             && !lineMessage.toLowerCase()
                                 .contains("fail");
 

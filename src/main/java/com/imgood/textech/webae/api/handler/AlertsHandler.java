@@ -12,6 +12,7 @@ import com.imgood.textech.webae.alerts.WebAlertHistoryStore;
 import com.imgood.textech.webae.alerts.WebAlertStore;
 import com.imgood.textech.webae.alerts.WebAlertsConfig;
 import com.imgood.textech.webae.alerts.WebAlertsConfigValidator;
+import com.imgood.textech.webae.alerts.WebhookDispatcher;
 import com.imgood.textech.webae.auth.WebAuthOpCheck;
 
 import fi.iki.elonen.NanoHTTPD;
@@ -38,8 +39,7 @@ public final class AlertsHandler {
             .count(ownerUuid);
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"total\":"
-                + total
+            "{\"success\":true,\"total\":" + total
                 + ",\"offset\":"
                 + Math.max(0, offset)
                 + ",\"limit\":"
@@ -54,29 +54,26 @@ public final class AlertsHandler {
             .getAlerts(ownerUuid);
         WebAlertsConfig rules = ConfigWebAlertsLoader.get();
         boolean canEdit = WebAuthOpCheck.isOp(actorUuid);
+        WebAlertsConfig clientRules = WebhookDispatcher.sanitizeForClient(rules);
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":"
-                + alerts.size()
+            "{\"success\":true,\"count\":" + alerts.size()
                 + ",\"canEditRules\":"
                 + canEdit
                 + ",\"alerts\":"
                 + GSON.toJson(alerts)
                 + ",\"rules\":"
-                + GSON.toJson(rules)
+                + GSON.toJson(clientRules)
                 + "}");
     }
 
     public static NanoHTTPD.Response handleGetRules(String actorUuid) {
         WebAlertsConfig rules = ConfigWebAlertsLoader.get();
         boolean canEdit = WebAuthOpCheck.isOp(actorUuid);
+        WebAlertsConfig clientRules = WebhookDispatcher.sanitizeForClient(rules);
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"canEditRules\":"
-                + canEdit
-                + ",\"rules\":"
-                + GSON.toJson(rules)
-                + "}");
+            "{\"success\":true,\"canEditRules\":" + canEdit + ",\"rules\":" + GSON.toJson(clientRules) + "}");
     }
 
     public static NanoHTTPD.Response handlePutRules(String body, String actorUuid) {
@@ -103,21 +100,20 @@ public final class AlertsHandler {
         if (err != null) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
-                "{\"success\":false,\"message\":\""
-                    + escapeJson(err)
-                    + "\",\"code\":\"validation_error\"}");
+                "{\"success\":false,\"message\":\"" + escapeJson(err) + "\",\"code\":\"validation_error\"}");
         }
+        WebAlertsConfig existing = ConfigWebAlertsLoader.get();
+        incoming = WebAlertsConfigValidator.mergeWebhookSecrets(incoming, existing);
         if (!ConfigWebAlertsLoader.save(incoming)) {
             return json(
                 NanoHTTPD.Response.Status.INTERNAL_ERROR,
                 "{\"success\":false,\"message\":\"Failed to save web-alerts.json\",\"code\":\"save_failed\"}");
         }
         WebAlertsConfig saved = ConfigWebAlertsLoader.get();
+        WebAlertsConfig clientRules = WebhookDispatcher.sanitizeForClient(saved);
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"canEditRules\":true,\"rules\":"
-                + GSON.toJson(saved)
-                + "}");
+            "{\"success\":true,\"canEditRules\":true,\"rules\":" + GSON.toJson(clientRules) + "}");
     }
 
     private static int parseIntParam(String raw, int defaultValue) {

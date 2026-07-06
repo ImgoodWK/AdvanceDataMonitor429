@@ -1,8 +1,5 @@
 package com.imgood.textech.webae.monitor;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Read-only DTO for one data monitor chart binding slot.
  */

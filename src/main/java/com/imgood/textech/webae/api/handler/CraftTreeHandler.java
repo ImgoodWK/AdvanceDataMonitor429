@@ -12,8 +12,10 @@ import fi.iki.elonen.NanoHTTPD;
 /**
  * GET /api/craft/tree — material tree calculator (Phase 6).
  *
- * <p>Query: {@code item} (required), {@code amount} (default 1), {@code network} (default 0),
- * {@code maxDepth} (default 8, max 16).</p>
+ * <p>
+ * Query: {@code item} (required), {@code amount} (default 1), {@code network} (default 0),
+ * {@code maxDepth} (default 8, max 16).
+ * </p>
  */
 public final class CraftTreeHandler {
 
@@ -42,8 +44,7 @@ public final class CraftTreeHandler {
         }
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"networkId\":"
-                + networkId
+            "{\"success\":true,\"networkId\":" + networkId
                 + ",\"amount\":"
                 + amount
                 + ",\"tree\":"

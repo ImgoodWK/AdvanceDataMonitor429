@@ -216,5 +216,10 @@ public final class ConfigWebaeLoader {
             5000,
             300000,
             ConfigDescriptions.get("webConsole", "topologyCacheTtlMs"));
+        Config.webDynmapBaseUrl = configuration.getString(
+            "dynmapBaseUrl",
+            "webConsole",
+            Config.webDynmapBaseUrl,
+            ConfigDescriptions.get("webConsole", "dynmapBaseUrl"));
     }
 }

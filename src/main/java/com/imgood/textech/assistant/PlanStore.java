@@ -151,6 +151,75 @@ public class PlanStore {
         return result;
     }
 
+    /** Web POST /api/planner/plans — create plan for owner (no player required). */
+    public synchronized PlanEntry webAdd(String ownerUuid, String title, String rawText) {
+        load();
+        String owner = ownerUuid == null ? new UUID(0L, 0L).toString() : ownerUuid;
+        String text = rawText == null ? "" : rawText.trim();
+        String name = title == null || title.trim()
+            .isEmpty() ? text : title.trim();
+        if (name.isEmpty()) {
+            return null;
+        }
+        AssistantTimeParser.Result parsed = AssistantTimeParser.parse(text, name);
+        PlanEntry entry = new PlanEntry();
+        entry.id = nextId(owner);
+        entry.owner = owner;
+        entry.rawText = text.isEmpty() ? name : text;
+        entry.title = parsed.cleanedTitle == null || parsed.cleanedTitle.trim()
+            .isEmpty() ? name : parsed.cleanedTitle.trim();
+        entry.status = "open";
+        entry.createdAt = System.currentTimeMillis();
+        entry.dueAt = parsed.dueAt;
+        entry.completed = false;
+        entry.reminded = false;
+        plans.add(entry);
+        save();
+        return entry.copy();
+    }
+
+    /** Web PATCH — update title and/or completed flag. */
+    public synchronized PlanEntry webUpdate(String ownerUuid, int id, String title, Boolean completed) {
+        load();
+        String owner = ownerUuid == null ? new UUID(0L, 0L).toString() : ownerUuid;
+        for (PlanEntry plan : plans) {
+            normalizeLoaded(plan);
+            if (!owner.equals(plan.owner) || plan.id != id) {
+                continue;
+            }
+            if (title != null && !title.trim()
+                .isEmpty()) {
+                plan.title = title.trim();
+            }
+            if (completed != null) {
+                plan.completed = completed.booleanValue();
+                plan.status = plan.completed ? "done" : "open";
+                if (plan.completed) {
+                    plan.completedAt = System.currentTimeMillis();
+                }
+            }
+            save();
+            return plan.copy();
+        }
+        return null;
+    }
+
+    /** Web DELETE — remove plan by id. */
+    public synchronized boolean webDelete(String ownerUuid, int id) {
+        load();
+        String owner = ownerUuid == null ? new UUID(0L, 0L).toString() : ownerUuid;
+        for (int i = 0; i < plans.size(); i++) {
+            PlanEntry plan = plans.get(i);
+            normalizeLoaded(plan);
+            if (owner.equals(plan.owner) && plan.id == id) {
+                plans.remove(i);
+                save();
+                return true;
+            }
+        }
+        return false;
+    }
+
     public synchronized List<PlanEntry> dueReminders(EntityPlayerMP player) {
         load();
         long now = System.currentTimeMillis();

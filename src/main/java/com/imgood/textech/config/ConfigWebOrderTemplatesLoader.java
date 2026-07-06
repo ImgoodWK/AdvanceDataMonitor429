@@ -127,7 +127,8 @@ public final class ConfigWebOrderTemplatesLoader {
             try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) {
                 GSON.toJson(defaults, writer);
             }
-            AdvanceDataMonitor.LOG.info("[WebAE] Created default web-order-templates.json at {}", file.getAbsolutePath());
+            AdvanceDataMonitor.LOG
+                .info("[WebAE] Created default web-order-templates.json at {}", file.getAbsolutePath());
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to write default web-order-templates.json", e);
         }

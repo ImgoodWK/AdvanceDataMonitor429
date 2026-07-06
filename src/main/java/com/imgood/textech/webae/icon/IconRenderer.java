@@ -60,7 +60,8 @@ public class IconRenderer {
     private final Map<String, String> bundle = new LinkedHashMap<String, String>();
     private final IconAtlasSampler atlasSampler = new IconAtlasSampler();
     private final IconGlFallback glFallback = new IconGlFallback();
-    private final IconGridExporter gridExporter = new IconGridExporter();
+    private final IconExportResolver exportResolver = new IconExportResolver(atlasSampler, glFallback);
+    private final IconGridExporter gridExporter = new IconGridExporter(exportResolver);
     private final IconUploadProgress progress = new IconUploadProgress();
 
     private int currentIndex = 0;
@@ -80,13 +81,20 @@ public class IconRenderer {
     private int uploadTotalChunks = 0;
     private int lastModeIconCount = 0;
     private int renderContextGlCount = 0;
+    private int renderContextVanillaCount = 0;
     private int renderContextAtlasCount = 0;
+    private int renderContextBlockCount = 0;
+    private int renderContextEntityCount = 0;
     private int renderContextPlaceholderCount = 0;
 
     private IconRenderer() {}
 
     public static IconRenderer instance() {
         return INSTANCE;
+    }
+
+    public IconGridExporter getGridExporter() {
+        return gridExporter;
     }
 
     public boolean isRunning() {
@@ -138,7 +146,6 @@ public class IconRenderer {
         for (Map.Entry<String, byte[]> e : rendered.entrySet()) {
             if (e.getValue() != null && e.getValue().length > 0) {
                 bundle.put(e.getKey(), DatatypeConverter.printBase64Binary(e.getValue()));
-                renderContextGlCount++;
             }
         }
     }
@@ -200,17 +207,20 @@ public class IconRenderer {
     }
 
     /** Render and upload a single icon (lazy-load / on-demand). */
-    public void renderAndUploadSingle(String pack, String playerUuid, String modeId, IconItemEnumerator.StackTask task) {
+    public void renderAndUploadSingle(String pack, String playerUuid, String modeId,
+        IconItemEnumerator.StackTask task) {
         if (task == null || phase != Phase.IDLE) return;
         Minecraft mc = Minecraft.getMinecraft();
-        byte[] png = null;
+        byte[] png;
         if (task.fluid != null) {
             atlasSampler.ensureAtlases(mc);
             png = atlasSampler.sampleFluid(mc, task.fluid);
+            if (IconAtlasSampler.isPngBlank(png)) {
+                png = createPlaceholderPng(task.itemId);
+            }
         } else if (task.stack != null) {
-            png = gridExporter.renderSingle(mc, task.stack);
-        }
-        if (IconAtlasSampler.isPngBlank(png)) {
+            png = gridExporter.renderSingle(mc, task.stack, task.itemId);
+        } else {
             png = createPlaceholderPng(task.itemId);
         }
         Map<String, String> single = new LinkedHashMap<String, String>();
@@ -223,17 +233,30 @@ public class IconRenderer {
     }
 
     public void onExportComplete(IconGridExporter exporter) {
+        syncResolverCounts();
         renderFluidsAfterGrid();
         progress.onRenderProgress(renderMode, modeQueueIndex + 1, modeQueue.size(), pending.size(), pending.size());
         progress.onRenderComplete(packName, renderMode, bundle.size());
         AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon grid export complete mode={}: {} icons ({} gl, {} fluid-atlas, {} placeholders)",
+            "[WebAE] Icon grid export complete mode={}: {} icons ({} grid+gl, {} vanilla, {} atlas, {} block, {} entity, {} placeholders)",
             renderMode.getId(),
             bundle.size(),
             renderContextGlCount,
+            renderContextVanillaCount,
             renderContextAtlasCount,
+            renderContextBlockCount,
+            renderContextEntityCount,
             renderContextPlaceholderCount);
         beginAsyncUpload();
+    }
+
+    private void syncResolverCounts() {
+        renderContextGlCount = exportResolver.getGridCount() + exportResolver.getGlCount();
+        renderContextVanillaCount = exportResolver.getVanillaCount();
+        renderContextAtlasCount = exportResolver.getAtlasCount();
+        renderContextBlockCount = exportResolver.getBlockCount();
+        renderContextEntityCount = exportResolver.getEntityCount();
+        renderContextPlaceholderCount = exportResolver.getPlaceholderCount();
     }
 
     public void onExportCancelled() {
@@ -304,11 +327,15 @@ public class IconRenderer {
         this.currentIndex = 0;
         this.skippedNoIcon = 0;
         this.renderContextGlCount = 0;
+        this.renderContextVanillaCount = 0;
         this.renderContextAtlasCount = 0;
+        this.renderContextBlockCount = 0;
+        this.renderContextEntityCount = 0;
         this.renderContextPlaceholderCount = 0;
         this.atlasSampler.reset();
         this.glFallback.reset();
         this.gridExporter.reset();
+        this.exportResolver.resetCounts();
     }
 
     private void buildPendingTasks() {
@@ -344,16 +371,14 @@ public class IconRenderer {
                 fluids++;
             }
         }
-        AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon task queue: {} items + {} fluids (mode={})",
-            items,
-            fluids,
-            renderMode.getId());
+        AdvanceDataMonitor.LOG
+            .info("[WebAE] Icon task queue: {} items + {} fluids (mode={})", items, fluids, renderMode.getId());
     }
 
     private void beginAsyncUpload() {
         if (bundle.isEmpty()) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Icon bundle is empty for mode {}; nothing to upload", renderMode.getId());
+            AdvanceDataMonitor.LOG
+                .warn("[WebAE] Icon bundle is empty for mode {}; nothing to upload", renderMode.getId());
             onModeFinished(false);
             return;
         }
@@ -433,10 +458,8 @@ public class IconRenderer {
                 .displayGuiScreen(new GuiIconExportScreen(this));
             return;
         }
-        AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon export session complete pack='{}' ({} mode(s))",
-            packName,
-            modeQueue.size());
+        AdvanceDataMonitor.LOG
+            .info("[WebAE] Icon export session complete pack='{}' ({} mode(s))", packName, modeQueue.size());
         if (uploadAllModes) {
             progress.onSessionComplete(packName, modeQueue.size());
         }

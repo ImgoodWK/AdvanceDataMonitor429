@@ -8,8 +8,10 @@ import com.imgood.textech.Config;
  * Shared local data folder under the Minecraft instance root ({@code .minecraft} on client,
  * server root on dedicated server): {@code TeXTechWebAE}.
  *
- * <p>Used by {@code /admweb icons import-nesql} (server) and client NEI recipe export after
- * {@code /admweb recipes upload*}.</p>
+ * <p>
+ * Used by {@code /admweb icons import-nesql} (server) and client NEI recipe export after
+ * {@code /admweb recipes upload*}.
+ * </p>
  */
 public final class WebAeLocalDataDir {
 

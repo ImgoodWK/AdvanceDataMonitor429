@@ -29,7 +29,8 @@ public final class LinkScannerCollector {
         LinkScanBlockType typeEnum = typeFilter != null && !typeFilter.isEmpty()
             ? LinkScanBlockType.fromId(typeFilter.trim())
             : null;
-        String q = query != null ? query.trim().toLowerCase() : "";
+        String q = query != null ? query.trim()
+            .toLowerCase() : "";
 
         List<LinkScannerBlockDto> found = new ArrayList<LinkScannerBlockDto>();
         for (int d = 0; d < server.worldServers.length; d++) {
@@ -86,14 +87,19 @@ public final class LinkScannerCollector {
         if (dto.blockTypeId.contains(q)) {
             return true;
         }
-        if (dto.owner != null && dto.owner.toLowerCase().contains(q)) {
+        if (dto.owner != null && dto.owner.toLowerCase()
+            .contains(q)) {
             return true;
         }
-        if (dto.alias != null && dto.alias.toLowerCase().contains(q)) {
+        if (dto.alias != null && dto.alias.toLowerCase()
+            .contains(q)) {
             return true;
         }
-        return String.valueOf(dto.x).contains(q)
-            || String.valueOf(dto.y).contains(q)
-            || String.valueOf(dto.z).contains(q);
+        return String.valueOf(dto.x)
+            .contains(q)
+            || String.valueOf(dto.y)
+                .contains(q)
+            || String.valueOf(dto.z)
+                .contains(q);
     }
 }

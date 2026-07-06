@@ -65,10 +65,7 @@ public final class RecipeLocalExporter {
                 AdvanceDataMonitor.LOG.warn("[WebAE] Failed to rename local recipe export {}", tmp.getName());
                 return null;
             }
-            AdvanceDataMonitor.LOG.info(
-                "[WebAE] Exported {} recipes to {}",
-                recipes.size(),
-                file.getAbsolutePath());
+            AdvanceDataMonitor.LOG.info("[WebAE] Exported {} recipes to {}", recipes.size(), file.getAbsolutePath());
             return file;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to export recipes locally", e);

@@ -8,9 +8,9 @@ import net.minecraft.client.Minecraft;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.client.KeyBindings;
+import com.imgood.textech.webae.icon.IconExportScope;
 import com.imgood.textech.webae.icon.IconRenderMode;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -42,6 +42,12 @@ public class PacketWebUploadTrigger implements IMessage {
     public String packName;
     /** Icon render mode id, or {@code all} for sequential multi-mode export. Empty → nei. */
     public String renderMode;
+    /** Optional export scope id ({@link IconExportScope}); empty → client pending / all. */
+    public String exportScope;
+    /** JSON array of item ids when {@code exportScope} is list or snapshot. */
+    public String itemIdsJson;
+
+    private static final Gson GSON = new com.google.gson.GsonBuilder().create();
 
     public PacketWebUploadTrigger() {}
 
@@ -50,9 +56,20 @@ public class PacketWebUploadTrigger implements IMessage {
     }
 
     public PacketWebUploadTrigger(String uploadType, String packName, String renderMode) {
+        this(uploadType, packName, renderMode, null, null);
+    }
+
+    public PacketWebUploadTrigger(String uploadType, String packName, String renderMode,
+        IconExportScope scope, List<String> itemIds) {
         this.uploadType = uploadType;
         this.packName = packName;
         this.renderMode = renderMode;
+        this.exportScope = scope != null ? scope.getId() : "";
+        if (itemIds != null && !itemIds.isEmpty()) {
+            this.itemIdsJson = GSON.toJson(itemIds);
+        } else {
+            this.itemIdsJson = "";
+        }
     }
 
     @Override
@@ -60,6 +77,8 @@ public class PacketWebUploadTrigger implements IMessage {
         writeUtf8(buf, uploadType);
         writeUtf8(buf, packName);
         writeUtf8(buf, renderMode);
+        writeUtf8(buf, exportScope);
+        writeUtf8(buf, itemIdsJson);
     }
 
     @Override
@@ -67,6 +86,13 @@ public class PacketWebUploadTrigger implements IMessage {
         uploadType = readUtf8(buf);
         packName = readUtf8(buf);
         renderMode = readUtf8(buf);
+        if (buf.isReadable()) {
+            exportScope = readUtf8(buf);
+            itemIdsJson = readUtf8(buf);
+        } else {
+            exportScope = "";
+            itemIdsJson = "";
+        }
     }
 
     private static void writeUtf8(ByteBuf buf, String s) {
@@ -117,18 +143,22 @@ public class PacketWebUploadTrigger implements IMessage {
                         .getName());
                 if (message.uploadType == null) return;
                 if (TYPE_RECIPES.equalsIgnoreCase(message.uploadType)) {
-                    String scope = message.renderMode != null && !message.renderMode.isEmpty()
-                        ? message.renderMode
+                    String scope = message.renderMode != null && !message.renderMode.isEmpty() ? message.renderMode
                         : "full";
                     List<String> snapshotIds = parseSnapshotItemIds(message.packName);
                     KeyBindings.uploadNeiRecipes(scope, snapshotIds);
                 } else if (TYPE_ICONS.equalsIgnoreCase(message.uploadType)) {
                     String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
                         : "default";
-                    String mode = (message.renderMode != null && !message.renderMode.isEmpty())
-                        ? message.renderMode
+                    String mode = (message.renderMode != null && !message.renderMode.isEmpty()) ? message.renderMode
                         : IconRenderMode.NEI.getId();
-                    KeyBindings.triggerIconUpload(pack, mode);
+                    IconExportScope scope = null;
+                    List<String> itemIds = null;
+                    if (message.exportScope != null && !message.exportScope.isEmpty()) {
+                        scope = IconExportScope.fromId(message.exportScope);
+                        itemIds = PacketWebIconExportScope.parseItemIds(message.itemIdsJson);
+                    }
+                    KeyBindings.triggerIconUpload(pack, mode, scope, itemIds);
                 } else if (TYPE_ICON_VERIFY.equalsIgnoreCase(message.uploadType)) {
                     String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
                         : "default";

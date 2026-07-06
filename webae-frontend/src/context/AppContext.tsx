@@ -51,6 +51,7 @@ export type DisplayMode = 'split' | 'merged';
 export type PageId =
   | 'dashboard'
   | 'storage'
+  | 'fluids'
   | 'essentia'
   | 'cpu'
   | 'power'
@@ -81,12 +82,14 @@ export interface PageSearchPrefill {
 
 interface LoginResponse {
   status: string;
+  token?: string;
   playerUuid?: string;
   ownerUuid?: string;
   ownerName?: string;
   actorUuid?: string;
   actorName?: string;
   tokenType?: string;
+  code?: string;
 }
 
 interface AppContextValue {
@@ -103,6 +106,7 @@ interface AppContextValue {
   tokenType: string | null;
   authSessionLabel: string | null;
   login: (token: string) => Promise<boolean>;
+  exchangeLoginCode: (code: string) => Promise<boolean>;
   logout: () => void;
   authError: string | null;
   networksError: string | null;
@@ -573,6 +577,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setTokenState, handleAuthFailure, applyLoginResponse]
   );
 
+  const exchangeLoginCode = useCallback(
+    async (code: string): Promise<boolean> => {
+      const trimmed = code.trim();
+      if (!/^\d{6}$/.test(trimmed)) {
+        setAuthError('invalid_code');
+        return false;
+      }
+      setAuthError(null);
+      try {
+        const resp = await fetch('/api/auth/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: trimmed }),
+        });
+        const data = (await resp.json()) as LoginResponse;
+        if (!resp.ok || data.status !== 'ok' || !data.token) {
+          setAuthError(data.code || 'auth_failed');
+          return false;
+        }
+        return login(data.token);
+      } catch (e) {
+        setAuthError((e as Error).message || 'auth_failed');
+        return false;
+      }
+    },
+    [login]
+  );
+
   const logout = useCallback(() => {
     setIsLoggedIn(false);
     setPlayerUuid(null);
@@ -880,6 +912,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     tokenType,
     authSessionLabel,
     login,
+    exchangeLoginCode,
     logout,
     authError,
     networksError,

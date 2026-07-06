@@ -26,11 +26,7 @@ public final class OrderTemplatesHandler {
         List<WebOrderTemplate> templates = ConfigWebOrderTemplatesLoader.getForOwner(ownerUuid);
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":"
-                + templates.size()
-                + ",\"templates\":"
-                + GSON.toJson(templates)
-                + "}");
+            "{\"success\":true,\"count\":" + templates.size() + ",\"templates\":" + GSON.toJson(templates) + "}");
     }
 
     public static NanoHTTPD.Response handlePut(String body, String ownerUuid) {
@@ -48,16 +44,13 @@ public final class OrderTemplatesHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Invalid JSON body\",\"code\":\"invalid_json\"}");
         }
-        List<WebOrderTemplate> templates = incoming != null && incoming.templates != null
-            ? incoming.templates
+        List<WebOrderTemplate> templates = incoming != null && incoming.templates != null ? incoming.templates
             : new ArrayList<WebOrderTemplate>();
         String err = WebOrderTemplatesValidator.validateOwnerTemplates(templates);
         if (err != null) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
-                "{\"success\":false,\"message\":\""
-                    + escapeJson(err)
-                    + "\",\"code\":\"validation_error\"}");
+                "{\"success\":false,\"message\":\"" + escapeJson(err) + "\",\"code\":\"validation_error\"}");
         }
         if (!ConfigWebOrderTemplatesLoader.saveForOwner(ownerUuid, templates)) {
             return json(
@@ -67,11 +60,7 @@ public final class OrderTemplatesHandler {
         List<WebOrderTemplate> saved = ConfigWebOrderTemplatesLoader.getForOwner(ownerUuid);
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":"
-                + saved.size()
-                + ",\"templates\":"
-                + GSON.toJson(saved)
-                + "}");
+            "{\"success\":true,\"count\":" + saved.size() + ",\"templates\":" + GSON.toJson(saved) + "}");
     }
 
     private static final class PutBody {

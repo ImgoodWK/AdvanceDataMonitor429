@@ -45,25 +45,31 @@ export function useSnapshotData() {
           ),
         ]);
         if (storageBatch.status === 'fulfilled' && storageBatch.value.success) {
-          const map: Record<number, StorageDto> = {};
-          for (const r of storageBatch.value.results) {
-            if (r.data) map[r.networkId] = r.data;
-          }
-          setStorageMap(map);
+          setStorageMap((prev) => {
+            const map = { ...prev };
+            for (const r of storageBatch.value.results) {
+              if (r.data) map[r.networkId] = r.data;
+            }
+            return map;
+          });
         }
         if (powerBatch.status === 'fulfilled' && powerBatch.value.success) {
-          const map: Record<number, PowerDto> = {};
-          for (const r of powerBatch.value.results) {
-            if (r.data) map[r.networkId] = r.data;
-          }
-          setPowerMap(map);
+          setPowerMap((prev) => {
+            const map = { ...prev };
+            for (const r of powerBatch.value.results) {
+              if (r.data) map[r.networkId] = r.data;
+            }
+            return map;
+          });
         }
         if (gtBatch.status === 'fulfilled' && gtBatch.value.success) {
-          const map: Record<number, GtMachineListDto> = {};
-          for (const r of gtBatch.value.results) {
-            if (r.data) map[r.networkId] = r.data;
-          }
-          setGtMap(map);
+          setGtMap((prev) => {
+            const map = { ...prev };
+            for (const r of gtBatch.value.results) {
+              if (r.data) map[r.networkId] = r.data;
+            }
+            return map;
+          });
         }
       } else {
         const nid = selectedNetworks[0];
@@ -73,13 +79,13 @@ export function useSnapshotData() {
           client.get<GtMachineResponse>(`/api/gt/machines?network=${nid}`),
         ]);
         if (storage.status === 'fulfilled' && storage.value.success && storage.value.data) {
-          setStorageMap({ [nid]: storage.value.data });
+          setStorageMap((prev) => ({ ...prev, [nid]: storage.value.data! }));
         }
         if (power.status === 'fulfilled' && power.value.success && power.value.data) {
-          setPowerMap({ [nid]: power.value.data });
+          setPowerMap((prev) => ({ ...prev, [nid]: power.value.data! }));
         }
         if (gt.status === 'fulfilled' && gt.value.success && gt.value.data) {
-          setGtMap({ [nid]: gt.value.data });
+          setGtMap((prev) => ({ ...prev, [nid]: gt.value.data! }));
         }
       }
     } catch {
@@ -101,6 +107,12 @@ export function useSnapshotData() {
     [selectedNetworks, storageMap, powerMap, gtMap]
   );
 
+  /** True when selected networks have cached snapshot rows (stale-while-revalidate). */
+  const hasSelectedStorage = useMemo(
+    () => selectedNetworks.some((nid) => storageMap[nid] != null),
+    [selectedNetworks, storageMap]
+  );
+
   const initialLoading = loading && !hasAnyData;
   const refreshing = loading && hasAnyData;
 
@@ -111,6 +123,7 @@ export function useSnapshotData() {
     loading: initialLoading,
     initialLoading,
     refreshing,
+    hasSelectedStorage,
     refetch: fetchAll,
   };
 }

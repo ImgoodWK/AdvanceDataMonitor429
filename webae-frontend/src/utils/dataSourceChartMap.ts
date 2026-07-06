@@ -45,6 +45,7 @@ const DATA_SOURCE_CATEGORY_MAP: Record<string, DataSourceCategory> = {
   gtMachineCount: 'scalarCount',
   gtActiveCount: 'scalarCount',
   playerOnlineCount: 'scalarCount',
+  serverTps: 'scalarCount',
   // Scalar amounts (sums / stored quantities)
   bytesUsed: 'scalarAmount',
   bytesMax: 'scalarAmount',
@@ -53,6 +54,7 @@ const DATA_SOURCE_CATEGORY_MAP: Record<string, DataSourceCategory> = {
   euStored: 'scalarAmount',
   euMax: 'scalarAmount',
   steamStored: 'scalarAmount',
+  serverMspt: 'scalarAmount',
   // Percent / ratio (0-100 or 0-1)
   bytesPercent: 'percent',
   euPercent: 'percent',
@@ -135,4 +137,11 @@ export function isPowerHistoryDataSource(dataSource: string): boolean {
  */
 export function isPlayerHistoryDataSource(dataSource: string): boolean {
   return dataSource === 'playerOnlineTrend' || dataSource === 'playerOnlineCount';
+}
+
+/**
+ * @returns {@code true} if history comes from GET /api/server/health.
+ */
+export function isServerHealthHistoryDataSource(dataSource: string): boolean {
+  return dataSource === 'serverTps' || dataSource === 'serverMspt';
 }

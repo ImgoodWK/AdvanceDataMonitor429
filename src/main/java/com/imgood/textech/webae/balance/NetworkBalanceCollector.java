@@ -24,12 +24,8 @@ public final class NetworkBalanceCollector {
 
     private NetworkBalanceCollector() {}
 
-    public static List<NetworkBalanceSuggestion> collect(
-        String ownerUuid,
-        int[] networkIds,
-        long minSurplus,
-        long minShortage,
-        int limit) {
+    public static List<NetworkBalanceSuggestion> collect(String ownerUuid, int[] networkIds, long minSurplus,
+        long minShortage, int limit) {
         if (ownerUuid == null || ownerUuid.isEmpty() || networkIds == null || networkIds.length < 2) {
             return Collections.emptyList();
         }
@@ -68,22 +64,20 @@ public final class NetworkBalanceCollector {
         collectFluids(storageByNet, minSurplus, minShortage, out);
         collectEssentia(storageByNet, minSurplus, minShortage, out);
 
-        Collections.sort(
-            out,
-            new Comparator<NetworkBalanceSuggestion>() {
+        Collections.sort(out, new Comparator<NetworkBalanceSuggestion>() {
 
-                @Override
-                public int compare(NetworkBalanceSuggestion a, NetworkBalanceSuggestion b) {
-                    long diff = b.transferable - a.transferable;
-                    if (diff > 0L) {
-                        return 1;
-                    }
-                    if (diff < 0L) {
-                        return -1;
-                    }
-                    return 0;
+            @Override
+            public int compare(NetworkBalanceSuggestion a, NetworkBalanceSuggestion b) {
+                long diff = b.transferable - a.transferable;
+                if (diff > 0L) {
+                    return 1;
                 }
-            });
+                if (diff < 0L) {
+                    return -1;
+                }
+                return 0;
+            }
+        });
 
         if (out.size() > limit) {
             return new ArrayList<NetworkBalanceSuggestion>(out.subList(0, limit));
@@ -91,10 +85,7 @@ public final class NetworkBalanceCollector {
         return out;
     }
 
-    private static void collectItems(
-        Map<Integer, StorageDto> storageByNet,
-        long minSurplus,
-        long minShortage,
+    private static void collectItems(Map<Integer, StorageDto> storageByNet, long minSurplus, long minShortage,
         List<NetworkBalanceSuggestion> out) {
         Map<String, Map<Integer, ItemEntry>> byKey = new HashMap<String, Map<Integer, ItemEntry>>();
         for (Map.Entry<Integer, StorageDto> e : storageByNet.entrySet()) {
@@ -131,10 +122,7 @@ public final class NetworkBalanceCollector {
         }
     }
 
-    private static void collectFluids(
-        Map<Integer, StorageDto> storageByNet,
-        long minSurplus,
-        long minShortage,
+    private static void collectFluids(Map<Integer, StorageDto> storageByNet, long minSurplus, long minShortage,
         List<NetworkBalanceSuggestion> out) {
         Map<String, Map<Integer, Long>> byKey = new HashMap<String, Map<Integer, Long>>();
         for (Map.Entry<Integer, StorageDto> e : storageByNet.entrySet()) {
@@ -157,15 +145,16 @@ public final class NetworkBalanceCollector {
             }
         }
         for (Map.Entry<String, Map<Integer, Long>> e : byKey.entrySet()) {
-            String label = e.getKey().startsWith("fluid:") ? e.getKey().substring(6) : e.getKey();
+            String label = e.getKey()
+                .startsWith("fluid:")
+                    ? e.getKey()
+                        .substring(6)
+                    : e.getKey();
             addSuggestionsForAmounts(out, "fluid", e.getKey(), label, e.getValue(), minSurplus, minShortage);
         }
     }
 
-    private static void collectEssentia(
-        Map<Integer, StorageDto> storageByNet,
-        long minSurplus,
-        long minShortage,
+    private static void collectEssentia(Map<Integer, StorageDto> storageByNet, long minSurplus, long minShortage,
         List<NetworkBalanceSuggestion> out) {
         Map<String, Map<Integer, Long>> byKey = new HashMap<String, Map<Integer, Long>>();
         for (Map.Entry<Integer, StorageDto> e : storageByNet.entrySet()) {
@@ -188,7 +177,11 @@ public final class NetworkBalanceCollector {
             }
         }
         for (Map.Entry<String, Map<Integer, Long>> e : byKey.entrySet()) {
-            String label = e.getKey().startsWith("essentia:") ? e.getKey().substring(9) : e.getKey();
+            String label = e.getKey()
+                .startsWith("essentia:")
+                    ? e.getKey()
+                        .substring(9)
+                    : e.getKey();
             addSuggestionsForAmounts(out, "essentia", e.getKey(), label, e.getValue(), minSurplus, minShortage);
         }
     }
@@ -227,14 +220,8 @@ public final class NetworkBalanceCollector {
         return "";
     }
 
-    private static void addSuggestionsForAmounts(
-        List<NetworkBalanceSuggestion> out,
-        String resourceType,
-        String itemId,
-        String displayName,
-        Map<Integer, Long> amounts,
-        long minSurplus,
-        long minShortage) {
+    private static void addSuggestionsForAmounts(List<NetworkBalanceSuggestion> out, String resourceType, String itemId,
+        String displayName, Map<Integer, Long> amounts, long minSurplus, long minShortage) {
         if (amounts == null || amounts.size() < 2) {
             return;
         }
@@ -243,7 +230,8 @@ public final class NetworkBalanceCollector {
         long minAmt = Long.MAX_VALUE;
         int minNet = -1;
         for (Map.Entry<Integer, Long> e : amounts.entrySet()) {
-            long amt = e.getValue() != null ? e.getValue().longValue() : 0L;
+            long amt = e.getValue() != null ? e.getValue()
+                .longValue() : 0L;
             if (amt > maxAmt) {
                 maxAmt = amt;
                 maxNet = e.getKey();

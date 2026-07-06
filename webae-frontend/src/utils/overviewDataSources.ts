@@ -14,6 +14,11 @@ export interface OverviewSnapshot {
   bytesUsed: number;
   bytesMax: number;
   cpus: StorageCpu[];
+  /** When set, overrides items.length for count widgets (paged storage API). */
+  itemCount?: number;
+  itemTotal?: number;
+  fluidCount?: number;
+  essentiaCount?: number;
 }
 
 /** Label + value pair for bar/pie dashboard charts. */
@@ -58,9 +63,9 @@ export function getStorageCategoryBreakdown(
   t: (key: string) => string
 ): ChartCategory[] {
   return [
-    { label: t('items'), value: snap?.items?.length || 0, colorKey: 'items' },
-    { label: t('fluids'), value: snap?.fluids?.length || 0, colorKey: 'fluids' },
-    { label: t('essentia'), value: snap?.essentia?.length || 0, colorKey: 'essentia' },
+    { label: t('items'), value: snap?.itemCount ?? snap?.items?.length ?? 0, colorKey: 'items' },
+    { label: t('fluids'), value: snap?.fluidCount ?? snap?.fluids?.length ?? 0, colorKey: 'fluids' },
+    { label: t('essentia'), value: snap?.essentiaCount ?? snap?.essentia?.length ?? 0, colorKey: 'essentia' },
   ];
 }
 
@@ -177,8 +182,9 @@ export function getOverviewDataSourceValue(
   const cpuStats = aggregateCpuStats(snap.cpus || []);
   switch (ds) {
     case 'itemCount':
-      return snap.items?.length || 0;
+      return snap.itemCount ?? snap.items?.length ?? 0;
     case 'itemTotal': {
+      if (snap.itemTotal != null) return snap.itemTotal;
       let total = 0;
       for (const item of snap.items || []) {
         total += item.amount || 0;
@@ -186,9 +192,9 @@ export function getOverviewDataSourceValue(
       return total;
     }
     case 'fluidCount':
-      return snap.fluids?.length || 0;
+      return snap.fluidCount ?? snap.fluids?.length ?? 0;
     case 'essentiaCount':
-      return snap.essentia?.length || 0;
+      return snap.essentiaCount ?? snap.essentia?.length ?? 0;
     case 'bytesUsed':
       return snap.bytesUsed || 0;
     case 'bytesMax':

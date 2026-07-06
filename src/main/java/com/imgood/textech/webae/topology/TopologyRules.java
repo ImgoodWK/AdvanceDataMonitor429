@@ -1,14 +1,14 @@
 package com.imgood.textech.webae.topology;
 
 /**
- * Built-in topology classification and layout rules (Phase 1 defaults).
+ * Built-in topology classification and layout rules.
  *
  * <ul>
- * <li>Grouping: aggregate by device class, not by dimension</li>
- * <li>channelCost: controller/drive/cpu/quantum=0; interface/p2p/misc=1</li>
- * <li>Layout: tree (controller → cable tiers → devices; drives → cells)</li>
+ * <li>Grouping: aggregate by device type + item id (network-tool parity)</li>
+ * <li>channelCost: controller/drive/cpu/quantum=0; terminal/bus/monitor/interface/p2p/misc=1</li>
+ * <li>Layout: star (controller → aggregated device groups)</li>
  * <li>Spatial bin: 64×64 chunks</li>
- * <li>Cable tiers: smart ≤8, covered ≤32, dense beyond</li>
+ * <li>Cable tiers: smart ≤8, covered ≤32, dense beyond (edge coloring only)</li>
  * </ul>
  */
 public final class TopologyRules {
@@ -21,7 +21,7 @@ public final class TopologyRules {
     public static final String LAYOUT_STAR = "star";
 
     private static final String[] BRANCH_ORDER = {
-        "drive", "interface", "cpu", "p2p", "quantum", "misc"
+        "drive", "terminal", "bus", "monitor", "interface", "cpu", "p2p", "quantum", "misc"
     };
 
     private TopologyRules() {}
@@ -35,7 +35,7 @@ public final class TopologyRules {
             return TopologyNodeType.MISC;
         }
         String simple = simpleName(className);
-        if (containsAny(simple, "Cable", "GridBlock", "GridNode", "MultiblockNode")) {
+        if (isCableFacility(simple)) {
             return TopologyNodeType.MISC;
         }
         if (containsAny(simple, "Controller")) {
@@ -43,6 +43,26 @@ public final class TopologyRules {
         }
         if (containsAny(simple, "Drive", "Chest", "IOPort", "MEChest")) {
             return TopologyNodeType.DRIVE;
+        }
+        if (containsAny(
+            simple,
+            "Terminal",
+            "WirelessTerminal",
+            "PatternEncodingTerminal",
+            "PatternAccessTerminal")) {
+            return TopologyNodeType.TERMINAL;
+        }
+        if (containsAny(simple, "ImportBus", "ExportBus", "StorageBus", "OreFilterBus", "PartBus")) {
+            return TopologyNodeType.BUS;
+        }
+        if (containsAny(
+            simple,
+            "StorageMonitor",
+            "ConversionMonitor",
+            "LevelEmitter",
+            "EnergyLevelEmitter",
+            "PartMonitor")) {
+            return TopologyNodeType.MONITOR;
         }
         if (containsAny(simple, "Interface", "PatternProvider", "PatternTerminal")) {
             return TopologyNodeType.INTERFACE;
@@ -61,6 +81,12 @@ public final class TopologyRules {
             if (reg != null) {
                 if (reg.contains("Drive") || reg.contains("Chest")) {
                     return TopologyNodeType.DRIVE;
+                }
+                if (reg.contains("Terminal")) {
+                    return TopologyNodeType.TERMINAL;
+                }
+                if (reg.contains("Bus")) {
+                    return TopologyNodeType.BUS;
                 }
                 if (reg.contains("Interface")) {
                     return TopologyNodeType.INTERFACE;
@@ -83,6 +109,9 @@ public final class TopologyRules {
             case CABLE_SMART:
             case CABLE_DENSE:
                 return 0;
+            case TERMINAL:
+            case BUS:
+            case MONITOR:
             case INTERFACE:
             case P2P:
             case MISC:
@@ -101,6 +130,12 @@ public final class TopologyRules {
                 return "ME Controller";
             case DRIVE:
                 return "Storage (Drive/Chest)";
+            case TERMINAL:
+                return "ME Terminal";
+            case BUS:
+                return "ME Bus";
+            case MONITOR:
+                return "ME Monitor / Emitter";
             case INTERFACE:
                 return "Interface / Provider";
             case CPU:
@@ -132,6 +167,10 @@ public final class TopologyRules {
                 return "appeng:tile.BlockController";
             case DRIVE:
                 return "appeng:tile.BlockDrive";
+            case TERMINAL:
+            case BUS:
+            case MONITOR:
+                return "appeng:item.ItemMultiPart";
             case INTERFACE:
                 return "appeng:tile.BlockInterface";
             case CPU:
@@ -143,9 +182,9 @@ public final class TopologyRules {
             case CELL:
                 return "appeng:item.ItemBasicStorageCell";
             case CABLE_SMART:
-                return "appeng:item.ItemMultiPart";
+                return "appeng:tile.BlockCableBus";
             case CABLE_DENSE:
-                return "appeng:item.ItemMultiPart";
+                return "appeng:tile.BlockCableBus";
             case MISC:
             case SPATIAL_BIN:
             default:
@@ -161,6 +200,34 @@ public final class TopologyRules {
             return "covered";
         }
         return "dense";
+    }
+
+    /**
+     * Returns true for AE cable hosts / grid blocks that should never become topology
+     * device nodes — cables are represented as graph edges, not devices.
+     */
+    public static boolean isCableFacility(String className) {
+        if (className == null || className.isEmpty()) {
+            return false;
+        }
+        String simple = simpleName(className);
+        return containsAny(simple, "Cable", "GridBlock", "GridNode", "MultiblockNode");
+    }
+
+    public static boolean isCableFacility(TopologyNodeType type) {
+        return type == TopologyNodeType.CABLE_SMART || type == TopologyNodeType.CABLE_DENSE;
+    }
+
+    public static int branchOrderIndex(String typeId) {
+        if (typeId == null) {
+            return BRANCH_ORDER.length;
+        }
+        for (int i = 0; i < BRANCH_ORDER.length; i++) {
+            if (BRANCH_ORDER[i].equals(typeId)) {
+                return i;
+            }
+        }
+        return BRANCH_ORDER.length;
     }
 
     public static String[] branchOrder() {

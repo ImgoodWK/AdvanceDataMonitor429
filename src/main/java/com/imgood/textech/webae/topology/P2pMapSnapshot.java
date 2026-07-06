@@ -16,6 +16,16 @@ public final class P2pMapSnapshot {
     public int tunnelCount;
     public int frequencyCount;
     public List<P2pFrequencyGroupDto> groups = new ArrayList<P2pFrequencyGroupDto>();
+    /** Power P2P channels with estimated EU/t (Phase 3.2); empty when none enumerated. */
+    public List<P2pPowerChannelDto> powerChannels = new ArrayList<P2pPowerChannelDto>();
+
+    public static final class P2pPowerChannelDto {
+
+        public int frequency;
+        public String frequencyHex = "";
+        public double avgEuPerTick;
+        public int endpointCount;
+    }
 
     public static final class P2pFrequencyGroupDto {
 
@@ -62,6 +72,31 @@ public final class P2pMapSnapshot {
         });
         snap.groups = groups;
         snap.frequencyCount = groups.size();
+        snap.powerChannels = buildPowerChannels(groups, tunnels);
         return snap;
+    }
+
+    private static List<P2pPowerChannelDto> buildPowerChannels(List<P2pFrequencyGroupDto> groups,
+        List<P2pTunnelDto> tunnels) {
+        List<P2pPowerChannelDto> channels = new ArrayList<P2pPowerChannelDto>();
+        if (groups == null) {
+            return channels;
+        }
+        for (P2pFrequencyGroupDto group : groups) {
+            if (group == null || group.type == null) {
+                continue;
+            }
+            String typeLower = group.type.toLowerCase();
+            if (!typeLower.contains("power")) {
+                continue;
+            }
+            P2pPowerChannelDto ch = new P2pPowerChannelDto();
+            ch.frequency = group.frequency;
+            ch.frequencyHex = group.frequencyHex;
+            ch.endpointCount = group.endpointCount;
+            ch.avgEuPerTick = P2pTunnelEnumerator.probePowerEuPerTick(tunnels, group.frequency);
+            channels.add(ch);
+        }
+        return channels;
     }
 }

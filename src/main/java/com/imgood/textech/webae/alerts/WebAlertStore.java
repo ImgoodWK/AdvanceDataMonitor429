@@ -64,6 +64,8 @@ public final class WebAlertStore {
                 .recordNew(ownerUuid, published);
             EventStreamHub.instance()
                 .publishAlert(ownerUuid, published);
+            WebhookDispatcher.instance()
+                .enqueue(ownerUuid, published);
         } else {
             WebAlertHistoryStore.instance()
                 .recordUpdate(ownerUuid, published);

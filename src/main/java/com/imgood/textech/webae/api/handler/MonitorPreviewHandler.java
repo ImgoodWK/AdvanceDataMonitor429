@@ -15,7 +15,9 @@ import fi.iki.elonen.NanoHTTPD;
 /**
  * GET /api/monitor/preview — read-only chart data for one monitor slot (Phase 11).
  *
- * <p>Query: {@code dim}, {@code x}, {@code y}, {@code z}, {@code slot} (all required).</p>
+ * <p>
+ * Query: {@code dim}, {@code x}, {@code y}, {@code z}, {@code slot} (all required).
+ * </p>
  */
 public final class MonitorPreviewHandler {
 
@@ -69,9 +71,7 @@ public final class MonitorPreviewHandler {
                 NanoHTTPD.Response.Status.NOT_FOUND,
                 "{\"success\":false,\"message\":\"Monitor or slot not found\"}");
         }
-        return json(
-            NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"preview\":" + GSON.toJson(holder[0]) + "}");
+        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"preview\":" + GSON.toJson(holder[0]) + "}");
     }
 
     private static int parseInt(String raw, int defaultValue) {

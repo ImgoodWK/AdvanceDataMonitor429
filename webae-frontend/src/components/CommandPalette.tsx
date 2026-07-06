@@ -3,6 +3,7 @@ import { Input, Modal, List, Tag, Spin } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { useAppContext, type PageId } from '@/context/AppContext';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
+import { useFavorites } from '@/hooks/useFavorites';
 import { useI18n } from '@/i18n';
 import { ALL_PAGES } from '@/components/Layout/AppLayout';
 import type { GlobalSearchResultDto } from '@/types/dto';
@@ -12,7 +13,7 @@ interface CommandPaletteProps {
   onClose: () => void;
 }
 
-type PaletteKind = 'page' | GlobalSearchResultDto['type'];
+type PaletteKind = 'page' | 'favorite' | GlobalSearchResultDto['type'];
 
 interface PaletteItem {
   id: string;
@@ -22,10 +23,12 @@ interface PaletteItem {
   keywords: string;
   pageId?: PageId;
   searchResult?: GlobalSearchResultDto;
+  favoriteKey?: string;
 }
 
 const TAG_COLORS: Record<PaletteKind, string> = {
   page: 'blue',
+  favorite: 'gold',
   storage: 'green',
   recipe: 'orange',
   gt: 'purple',
@@ -41,6 +44,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     query,
     open
   );
+  const { favoriteRecipeItems } = useFavorites();
 
   useEffect(() => {
     if (open) setQuery('');
@@ -56,6 +60,17 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }));
   }, [t]);
 
+  const favoriteItems = useMemo<PaletteItem[]>(() => {
+    return favoriteRecipeItems().map((fav) => ({
+      id: fav.id,
+      kind: 'favorite' as const,
+      label: fav.label,
+      subtitle: fav.subtitle,
+      keywords: `favorite ${fav.label} ${fav.subtitle ?? ''}`.toLowerCase(),
+      favoriteKey: fav.favoriteKey,
+    }));
+  }, [favoriteRecipeItems]);
+
   const searchItems = useMemo<PaletteItem[]>(() => {
     const source = usedFallback ? fallbackResults : remoteResults;
     return source.map((result) => ({
@@ -70,11 +85,18 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const favs = !q
+      ? favoriteItems
+      : favoriteItems.filter((item) => item.keywords.includes(q));
     const pages = !q ? pageItems : pageItems.filter((item) => item.keywords.includes(q));
     if (!hasQuery) {
-      return pages;
+      return [...favs, ...pages];
     }
-    const merged = [...pages.filter((p) => q && p.keywords.includes(q)), ...searchItems];
+    const merged = [
+      ...favs,
+      ...pages.filter((p) => q && p.keywords.includes(q)),
+      ...searchItems,
+    ];
     const seen = new Set<string>();
     const deduped: PaletteItem[] = [];
     for (const item of merged) {
@@ -83,12 +105,18 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       deduped.push(item);
     }
     return deduped;
-  }, [pageItems, searchItems, query, hasQuery]);
+  }, [pageItems, favoriteItems, searchItems, query, hasQuery]);
 
   const activate = useCallback(
     (item: PaletteItem) => {
       if (item.kind === 'page' && item.pageId) {
         setActivePage(item.pageId);
+        onClose();
+        return;
+      }
+      if (item.kind === 'favorite' && item.favoriteKey) {
+        setPageSearchPrefill({ page: 'recipes', query: item.label });
+        setActivePage('recipes');
         onClose();
         return;
       }
@@ -107,6 +135,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           if (result.category === 'essentia') {
             setPageSearchPrefill({ page: 'essentia', query: result.label, networkId: result.networkId });
             setActivePage('essentia');
+          } else if (result.category === 'fluid') {
+            setPageSearchPrefill({ page: 'fluids', query: result.label, networkId: result.networkId });
+            setActivePage('fluids');
           } else {
             setPageSearchPrefill({ page: 'storage', query: result.label, networkId: result.networkId });
             setActivePage('storage');
@@ -141,6 +172,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       switch (kind) {
         case 'page':
           return t('commandPalettePage');
+        case 'favorite':
+          return t('commandPaletteFavorite');
         case 'storage':
           return t('commandPaletteStorage');
         case 'recipe':

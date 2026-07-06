@@ -35,6 +35,8 @@ import {
   ClockCircleOutlined,
   ReloadOutlined,
   BellOutlined,
+  CopyOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -85,6 +87,7 @@ export function SettingsPage() {
     token,
     setToken,
     authSessionLabel,
+    tokenType,
     logout,
     presets,
     savePreset,
@@ -108,6 +111,8 @@ export function SettingsPage() {
   } = useAppContext();
   const { t } = useI18n();
   const [newToken, setNewToken] = useState('');
+  const [guestInviteUrl, setGuestInviteUrl] = useState('');
+  const [guestInviteLoading, setGuestInviteLoading] = useState(false);
   const [renameTarget, setRenameTarget] = useState<AppPreset | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [savePresetOpen, setSavePresetOpen] = useState(false);
@@ -612,6 +617,68 @@ export function SettingsPage() {
                   </Button>
                 </div>
                 <Divider />
+                {tokenType !== 'guest' ? (
+                  <>
+                    <div>
+                      <Text strong>{t('inviteGuestTitle')}</Text>
+                      <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginBottom: 8 }}>
+                        {t('inviteGuestHint')}
+                      </Text>
+                      <Space wrap>
+                        <Button
+                          type="default"
+                          icon={<UserAddOutlined />}
+                          loading={guestInviteLoading}
+                          onClick={async () => {
+                            setGuestInviteLoading(true);
+                            try {
+                              const data = await getApiClient().post<{ success: boolean; url?: string; message?: string }>(
+                                '/api/auth/guest-invite',
+                                {}
+                              );
+                              if (data.success && data.url) {
+                                setGuestInviteUrl(data.url);
+                                notify(t('inviteGuestGenerated'), 'success');
+                              } else {
+                                notify(data.message || t('inviteGuestFailed'), 'error');
+                              }
+                            } catch (e) {
+                              notify((e as Error).message || t('inviteGuestFailed'), 'error');
+                            } finally {
+                              setGuestInviteLoading(false);
+                            }
+                          }}
+                        >
+                          {t('inviteGuestGenerate')}
+                        </Button>
+                        {guestInviteUrl ? (
+                          <Button
+                            icon={<CopyOutlined />}
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(guestInviteUrl);
+                                notify(t('inviteGuestCopied'), 'success');
+                              } catch {
+                                notify(t('inviteGuestCopyFailed'), 'error');
+                              }
+                            }}
+                          >
+                            {t('inviteGuestCopy')}
+                          </Button>
+                        ) : null}
+                      </Space>
+                      {guestInviteUrl ? (
+                        <Input.TextArea
+                          style={{ marginTop: 8 }}
+                          value={guestInviteUrl}
+                          readOnly
+                          autoSize={{ minRows: 2, maxRows: 4 }}
+                        />
+                      ) : null}
+                    </div>
+                    <Divider />
+                  </>
+                ) : null}
                 <Space>
                   <Switch checked={autoLogin} onChange={setAutoLogin} />
                   <Text>{t('autoLogin')}</Text>

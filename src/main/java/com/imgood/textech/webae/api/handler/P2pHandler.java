@@ -85,9 +85,7 @@ public final class P2pHandler {
                 "{\"success\":false,\"message\":\"Failed to enumerate P2P tunnels\"}");
         }
         P2pMapSnapshot snap = P2pMapSnapshot.fromTunnels(networkId, tunnels);
-        return json(
-            NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"data\":" + GSON.toJson(snap) + "}");
+        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"data\":" + GSON.toJson(snap) + "}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

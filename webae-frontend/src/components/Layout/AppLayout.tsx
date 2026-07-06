@@ -8,6 +8,7 @@ import { TopBar } from './TopBar';
 import { Dashboard } from '@/pages/Dashboard';
 import { StoragePage } from '@/pages/Storage';
 import { EssentiaPage } from '@/pages/Essentia';
+import { FluidsPage } from '@/pages/Fluids';
 import { CpuPage } from '@/pages/Cpu';
 import { PowerPage } from '@/pages/Power';
 import { GtMachinesPage } from '@/pages/GtMachines';
@@ -151,6 +152,8 @@ export function AppLayout() {
         return <Dashboard />;
       case 'storage':
         return <StoragePage />;
+      case 'fluids':
+        return <FluidsPage />;
       case 'essentia':
         return <EssentiaPage />;
       case 'cpu':
@@ -272,6 +275,7 @@ export function AppLayout() {
 export const ALL_PAGES: Array<{ id: PageId; icon: string; labelKey: string }> = [
   { id: 'dashboard', icon: 'DashboardOutlined', labelKey: 'dashboard' },
   { id: 'storage', icon: 'DatabaseOutlined', labelKey: 'storage' },
+  { id: 'fluids', icon: 'BgColorsOutlined', labelKey: 'fluidsPage' },
   { id: 'essentia', icon: 'ExperimentOutlined', labelKey: 'essentiaPage' },
   { id: 'cpu', icon: 'HddOutlined', labelKey: 'cpuPage' },
   { id: 'power', icon: 'ThunderboltOutlined', labelKey: 'power' },

@@ -30,7 +30,7 @@ alwaysApply: false
 - `ConfigSuperOrangeLoader.java` — `[superOrange]`
 - `ConfigMatterBallDecompressorLoader.java` — `[matterBallDecompressor]`
 - `ConfigGrappleLoader.java` — `[grapple]`
-- `ConfigWebaeLoader.java` — `[webConsole]`（含阶段 3.1 图标三开关 `iconCacheEnabled`/`iconUploadEnabled`/`iconPackEnabled`）
+- `ConfigWebaeLoader.java` — `[webConsole]`（含阶段 3.1 图标三开关 `iconCacheEnabled`/`iconUploadEnabled`/`iconPackEnabled` + **Phase6** `dynmapBaseUrl`）
 - `ConfigWebaeDebugLoader.java` — `[debug]` 节 WebAE 分功能 debug 开关（阶段 3.3：`webaeIcons`/`webaeChat`/`webaeDashboard`/`webaeSynthesis`/`webaePatterns`，默认 false，gate `WebAeDebugLog`）
 - `ConfigWebAlertsLoader.java` — 加载/保存 `config/textech/web-alerts.json`（WebAE 自动化告警规则）
 - `ConfigWebOrderTemplatesLoader.java` — 加载/保存 `config/textech/web-order-templates.json`（按 ownerUuid 批量下单模板）
@@ -282,16 +282,20 @@ alwaysApply: false
 ### manual/ — （已迁入 gui/manual/）
 - 页面渲染见 `renders/ManualPageRenderer.java`；GUI 入口 `gui/guiscreen/GuiManual.java`
 
-### webae/ — WebAE 嵌入式 HTTP 控制台 (131 文件)
+### webae/ — WebAE 嵌入式 HTTP 控制台 (135 文件)
 - `webae/WebConsoleServer.java` — NanoHTTPD 服务生命周期 + 静态资源托管（classpath `assets/textech/webae/` + 阶段 3.1 扩展托管外部 `config/textech/web-icons/` 经 `/icons/<pack>/<itemId>.png`，含路径穿越防护）
 - `webae/auth/WebAuthSession.java` — 认证会话 DTO（`ownerUuid` 网络归属 + `actorUuid`/`actorName` 聊天身份 + `type` owner/guest）
 - `webae/auth/WebAuthToken.java` — Token 生成/校验/持久化（主人 Token 每 owner 一条；访客 Token 按 owner+guest；旧 JSON 自动迁移；含可选 TTL：`webTokenLifetimeHours`）
 - `webae/auth/WebAuthMiddleware.java` — HTTP 请求认证中间件（返回 `WebAuthSession`；401 响应带 `code` 字段区分过期/无效）
 - `webae/auth/WebAuthOpCheck.java` — OP 等级校验工具（管理员刷新端点用，按 playerUuid 查在线玩家并校验 OP>=2）
-- `webae/context/WebAeOwnerContext.java` — 按 OwnerName 跨 `WorldServer` 扫描监视器/连接器；`monitorDim` 修正；30s 连接器缓存 + invalidate；`getOwnerPlayerOrFake` 离线 FakePlayer
+- `webae/auth/WebLoginCodeStore.java` — 6 位登录码生成/兑换（5 分钟 TTL、单次使用；`/admweb login` + `POST /api/auth/exchange`）
+- `webae/oc/OcSummaryRateLimiter.java` — OC summary API 每 owner 1 req/s 限流
 - `webae/craft/WebAeCraftService.java` — 按 ownerUuid+networkId 从 `NetworkGroup.craftingLink` 查候选/下单（离线路径）
-- `webae/api/WebApiRouter.java` — REST API 路由分发（`/api/auth/login` 返回 owner/actor/tokenType；存储 + 电力 + 配方 + 样板 + GT 机器 + 下单 + /api/config + 图标 `/api/icon` + 聊天 `/api/chat/*` + 玩家 `/api/players` + **Phase3** `/api/scanner/blocks`/`/api/monitor/bindings`/`/api/monitor/preview`/`/api/planner/plans`/`POST /api/assistant/query`/`/api/network/cells`/`/api/pocket/overview`/`/api/alerts` + **Phase4a** `/api/search` + **Phase6** `/api/craft/tree` + **Phase9** `/api/events/stream` + **Phase10** `/api/network/p2p` + 批量端点）
+- `webae/api/WebApiRouter.java` — REST API 路由分发（`POST /api/auth/exchange` 登录码兑换免鉴权；`/api/auth/login` 返回 owner/actor/tokenType；**Phase5** `GET /api/oc/summary` OC 只读摘要；存储 + 电力 + 配方 + 样板 + GT 机器 + 下单 + /api/config + 图标 `/api/icon` + 聊天 `/api/chat/*` + 玩家 `/api/players` + **Phase3** `/api/scanner/blocks`/`/api/monitor/bindings`/`/api/monitor/preview`/`/api/planner/plans`/`POST /api/assistant/query`/`/api/network/cells`/`/api/pocket/overview`/`/api/alerts` + **Phase4a** `/api/search` + **Phase6** `/api/craft/tree` + **Phase9** `/api/events/stream` + **Phase10** `/api/network/p2p` + 批量端点）
+- `webae/api/handler/AuthExchangeHandler.java` — `POST /api/auth/exchange` 登录码 → owner Token
+- `webae/api/handler/OcSummaryHandler.java` — `GET /api/oc/summary` OC Internet Card 只读轮询（1 req/s）
 - `webae/api/handler/StorageHandler.java` — AE 存储快照 REST handler（只读缓存 + 管理员刷新 + 批量）
+- `webae/api/handler/StoragePagedHandler.java` — 存储 cursor 分页（`GET /api/storage/items|fluids|essentia`；内存切片 + snapshotVersion cursor）
 - `webae/api/handler/PowerHandler.java` — 无线电力/蒸汽 REST handler（只读缓存 + 管理员刷新 + 批量）
 - `webae/api/handler/RecipeHandler.java` — 配方 REST（browse/search/suggest/status/handlers/单条详情）
 - `webae/api/handler/PatternHandler.java` — 样板编码/注入/接口枚举 REST handler
@@ -299,25 +303,30 @@ alwaysApply: false
 - `webae/api/handler/PatternBrowseHandler.java` — 样板 browse REST handler（`GET /api/patterns/browse` HTTP 只读缓存 + `cached`/`timestamp`；`POST /api/patterns/browse/refresh` OP 强制重建；后台 `SnapshotScheduler` 按 `patternCacheTtlMs` 预采集；owner 离线经 `getOwnerPlayerOrFake`；配置项 `patternBrowsePageSize`/`patternBrowseMaxTotal`/`patternCacheTtlMs`）
 - `webae/api/handler/PatternGridDetailHandler.java` — Grid 单条目详情 REST handler（`GET /api/patterns/grid/<gridKey>?network=`；`gridKey` 为 `grid:<index>`，与 browse 索引一致；返回完整 inputs/outputs）
 - `webae/api/handler/NetworkMetricHandler.java` — AE 网络指标历史 REST handler（`GET /api/network/metrics?network=`）
+- `webae/api/handler/NetworkMetricFluidHandler.java` — 钉选流体趋势 REST handler（`GET /api/network/metrics/fluids`；参考 Phase 3.1）
 - `webae/api/handler/NetworkBalanceHandler.java` — 多网存储平衡 REST handler（`GET /api/network/balance`；Phase 8 只读建议）
 - `webae/api/handler/TopologyHandler.java` — 网络拓扑 REST（`GET /api/network/topology` 读上次手动快照；`POST /api/network/topology/snapshot` 主线程采集 + 冷却；`topologyEnabled` 关闭时 503）
 - `webae/api/handler/OrderHandler.java` — AE 合成订单 REST handler（`POST /api/order`/`POST /api/order/batch`，支持 `cpuName` 指定 CPU；batch 支持 `patternId` 按样板下单；`GET /api/order/list` 返回 `{orders,history}` 混合进度[AssistantCraftJobManager+CPU+时间估算]；完成订单移入内存 history；`GET /api/order/status`/`POST /api/order/cancel`）
 - `webae/api/handler/OrderTemplatesHandler.java` — 批量下单模板 REST handler（`GET/PUT /api/order/templates`；`config/textech/web-order-templates.json` 按 ownerUuid 隔离）
 - `webae/api/handler/GtMachineHandler.java` — GT 机器监控 REST handler（只读缓存 + 管理员刷新 + 批量）
-- `webae/api/handler/WebConfigHandler.java` — `/api/config` 公开客户端可读配置端点（refreshIntervalMs/gtRefreshIntervalMs/maxNetworksDisplayed/tokenLifetimeHours/themePresets[兼容]/themeColors[阶段 3.2：19 套]/themeLayouts[5 套]/iconCacheEnabled/iconUploadEnabled/iconPackEnabled[阶段 3.1]/debugFlags[阶段 3.3：5 个分功能服务端开关只读镜像]/topologyEnabled/topologyCacheTtlMs[Phase 1 拓扑]/alertsEnabled/alertsPollIntervalSeconds[Phase 3 告警]）
+- `webae/api/handler/WebConfigHandler.java` — `/api/config` 公开客户端可读配置端点（refreshIntervalMs/gtRefreshIntervalMs/maxNetworksDisplayed/tokenLifetimeHours/themePresets[兼容]/themeColors[阶段 3.2：19 套]/themeLayouts[5 套]/iconCacheEnabled/iconUploadEnabled/iconPackEnabled[阶段 3.1]/debugFlags[阶段 3.3：5 个分功能服务端开关只读镜像]/topologyEnabled/topologyCacheTtlMs[Phase 1 拓扑]/alertsEnabled/alertsPollIntervalSeconds[Phase 3 告警]/dynmapBaseUrl[Phase 6]）
 - `webae/api/handler/IconHandler.java` — 图标 REST handler（`GET /api/icon` 返回 PNG+ETag+Cache-Control、`GET /api/icon/packs` 响应含 `defaultPack` 字段、`POST /api/icon/pack` 管理员 zip 上传含 Zip Slip 防护）
 - `webae/api/handler/ChatHandler.java` — 聊天 REST handler（`GET /api/chat/history?limit=&since=`、`POST /api/chat/send` body `{content}` 存入 ChatMessageStore 并广播 `[Web] <name>: <content>` 到游戏内、`GET /api/chat/since=<ts>` 增量）
-- `webae/api/handler/PlayerHandler.java` — 玩家 REST handler（`GET /api/players` 返回 `{online:[...],offline:[...]}` 每项含 uuid/name/online/onlineMs/lastLogin/lastLogout/skinUrl、`GET /api/players/since=<ts>` 增量、`GET /api/players/online/history` 在线人数趋势 `[{"ts":,"count":}]`）
+- `webae/api/handler/PlayerHandler.java` — 玩家 REST handler（`GET /api/players` 返回 `{online:[...],offline:[...]}` 每项含 uuid/name/online/onlineMs/lastLogin/lastLogout/skinUrl、`GET /api/players/since=<ts>` 增量、`GET /api/players/online/history` 在线人数趋势 `[{"ts":,"count":}]`、**Phase6** `GET /api/players/locations` 在线玩家坐标）
+- `webae/api/handler/AuthGuestInviteHandler.java` — **Phase6** `POST /api/auth/guest-invite` 主人生成可分享访客 Token 链接
 - `webae/api/handler/SearchHandler.java` — 聚合搜索 REST handler（`GET /api/search?q=&limit=&offset=&types=storage,recipe,gt,pattern&network=`；500ms 限流；pattern 类型读 browse 缓存，HTTP 线程无阻塞；Phase 4a）
+- `webae/api/handler/ServerHealthHandler.java` — 服务器健康 REST handler（`GET /api/server/health` TPS/MSPT/在线人数/300s 历史；参考 Phase 2）
 - `webae/cache/SnapshotCache.java` — 线程安全 TTL 快照缓存（TTL = `webRefreshIntervalMs * 3`，含 getStale/timestampOf/invalidateType）
 - `webae/cache/SnapshotScheduler.java` — 定速分摊快照调度器（storage 按 `webRefreshIntervalMs`、GT 按 `webGtRefreshIntervalMs`、pattern browse 按 `webPatternCacheTtlMs`，每 tick 处理 ceil(activeKeys/N) 个，只采集 2 分钟活跃网络；含 forceCollectStorage/forceCollectGt/forceCollectPatternBrowse）
 - `webae/dto/StorageDto.java` — 存储快照 DTO（`CpuEntry` 含 name/进度/存储/协同/产物/坐标 x-y-z-dim/监视器 monitorX-Y-Z-Dim/remainingItems/startItems，Phase 3 扩展）
+- `webae/dto/StoragePagedDto.java` — 存储分页响应 DTO（items/fluids/essentia 切片、nextCursor、totalEstimate、summary 字段）
 - `webae/dto/PowerDto.java` — 电力/蒸汽快照 DTO
 - `webae/dto/RecipeDto.java` — NEI 配方 DTO
 - `webae/dto/PatternDto.java` — 样板编码/注入/接口枚举 DTO
 - `webae/dto/PatternListEntryDto.java` — 样板总览条目 DTO（patternId/sourceInterface/sourceInterfaceName/slotIndex/crafting/substitute/beSubstitute/author/inputs[27 槽位,null 表空]/outputs/encodedNbt，对应 `GET /api/patterns` 响应项）
 - `webae/dto/PatternBrowseEntryDto.java` — browse API 统一条目 DTO（source grid|interface、gridKey、精简 inputs/outputs、displayName/registryName）
 - `webae/dto/NetworkMetricHistoryDto.java` — 网络指标历史 DTO（供 `/api/network/metrics/history`）
+- `webae/dto/NetworkMetricFluidHistoryDto.java` — 钉选流体趋势 DTO（Phase 3.1 `/api/network/metrics/fluids`）
 - `webae/dto/OrderRequest.java` — 合成订单请求 DTO（含可选 `cpuName`）
 - `webae/dto/OrderBatchRequest.java` — 批量订单请求 DTO，含内部 OrderItem（itemName/amount/patternId[可选,按样板下单]）+ 可选 `cpuName`
 - `webae/dto/OrderResult.java` — 订单结果 DTO
@@ -326,13 +335,17 @@ alwaysApply: false
 - `webae/dto/GtMachineListDto.java` — GT 机器列表 DTO
 - `webae/dto/SearchResultDto.java` — 聚合搜索单条结果 DTO（`GET /api/search`；type storage/recipe/gt/pattern + 导航字段）
 - `webae/dto/PlayerDto.java` — 玩家 DTO（uuid/name/online/onlineMs/lastLogin/lastLogout/skinUrl，对应 `/api/players` 响应项）
+- `webae/dto/PlayerLocationDto.java` — 玩家坐标 DTO（uuid/name/x/y/z/dim/online，对应 `/api/players/locations`）
+- `webae/WebConsoleUrlHelper.java` — WebAE 控制台 URL 构建（服务端 guest 邀请链接等）
+- `webae/onboarding/WebConsoleOnboarding.java` — NetworkLink 放置后 S→C 可点击 onboarding 聊天
 - `webae/dto/ChatMessageDto.java` — 聊天消息 DTO（id/senderUuid/senderName/content/timestamp/source，对应 `/api/chat/*` 响应项）
 - `webae/power/PowerSampler.java` — 电力采样器（5 秒滑动窗口速率计算，CountDownLatch 主线程采集）
 - `webae/snapshot/AeSnapshotCollector.java` — AE2 快照采集器（主线程阻塞 + 回调模式；itemId 改用 registry name，meta 仅在 !=0 时拼接）
 - `webae/snapshot/GtSnapshotCollector.java` — GT 机器快照采集器（主线程阻塞 + 回调模式）
 - `webae/gt/GtMachineStateReader.java` — GT 机器状态读取器（进度/配方/电力/仓室）
 - `webae/gt/GtMachineBinding.java` — GT 机器绑定数据结构
-- `webae/metric/NetworkMetricSampler.java` — AE 网络指标历史采样（滑动窗口，供 NetworkMetricHandler）
+- `webae/metric/NetworkMetricSampler.java` — AE 网络指标历史采样（滑动窗口，供 NetworkMetricHandler；Phase 3.1 per-fluid 钉选）
+- `webae/metric/MetricDownsampleUtil.java` — 时序降采样（Phase 3.2 Power 历史 >120 点）
 - `webae/recipe/NeiRecipeCollector.java` — NEI handler 反射采集（主路径之一；gridSlots、GT 参数；handlerName 经 RecipeDisplayNames 本地化；itemId 含 meta；客户端主线程）
 - `webae/recipe/GameRecipeCollector.java` — vanilla/GT RecipeMap 采集（补充路径；ShapedRecipes grid、GT EU/流体；handlerName 本地化）
 - `webae/recipe/RecipeDisplayNames.java` — 客户端 handler 显示名本地化（`合金炉 (gt.recipe.alloysmelter)` 格式）
@@ -355,7 +368,8 @@ alwaysApply: false
 - `webae/icon/IconExportScope.java` — 导出范围枚举（all/snapshot/list）
 - `webae/icon/IconSnapshotItemCollector.java` — 从 SnapshotCache 存储快照收集 itemId（服务端）
 - `webae/icon/IconMissingQueue.java` — 404 缺失图标队列 + 向 icon-provider 客户端派发 PacketWebIconRequest
-- `webae/icon/IconGridExporter.java` — NEI 网格批量 FBO 渲染（16×8 槽/页，与 GuiItemIconDumper 间距一致）
+- `webae/icon/IconGridExporter.java` — NEI 网格批量 FBO 渲染（16×8 槽/页；自定义 IItemRenderer 格留空，per-slot 走 IconExportResolver）
+- `webae/icon/IconExportResolver.java` — 统一图标导出回退链（grid → GL custom → GL vanilla → atlas → block → entity → placeholder）+ ResolveResult/Source 枚举与计数
 - `gui/guiscreen/GuiIconExportScreen.java` — 隔离 GUI 驱动 bulk 导出（暂停世界渲染）
 - `gui/guiscreen/GuiIconVerifyScreen.java` — 单物品 live vs cached 对比 GUI
 - `webae/icon/IconRenderMode.java` — 图标 mode 枚举（导出推荐 nei/inventory_gl；atlas/hybrid 等已弃用）
@@ -373,12 +387,12 @@ alwaysApply: false
 - `webae/icon/IconBlockRenderer.java` — ItemBlock + RenderBlocks FBO 迷你场景
 - `webae/icon/IconNeiStyleRenderer.java` — NEI 槽位布局检测与渲染入口
 - `webae/icon/IconUploadProgress.java` — 游戏内聊天/action bar 导出进度（节流 iconProgressChatIntervalMs）
-- `webae/icon/IconItemId.java` — 图标缓存 canonical key 与 lookupCandidates（与 RecipeItemEntries.buildItemId / 前端 iconLookupIds 对齐）
+- `webae/icon/IconItemId.java` — 图标缓存 canonical key 与 lookupCandidates（mod:id ↔ mod:id:0 双向；与 RecipeItemEntries.buildItemId / 前端 iconLookupIds 对齐）
 - `webae/icon/IconItemEnumerator.java` — 客户端图标上传任务枚举（优先 NEI ItemList.items 含 GT meta，回退 itemRegistry meta=0）
 - `webae/icon/IconStore.java` — 服务端物品图标材质包存储单例（`config/textech/web-icons/<pack>/<mode>/<itemId>.png` + `manifest.json`；legacy 根 PNG 迁移 hybrid/；recordModeUpload/migrateLegacyPackIfNeeded）
 - `webae/icon/IconAtlasSampler.java` — 客户端图标图集 CPU 采样（一次性 glGetTexImage 快照 items/blocks atlas，按 IIcon UV 裁剪 + 染色叠层，输出 32×32 PNG）
-- `webae/icon/IconGlFallback.java` — GL FBO 回退（inventory/flat/entity/first_person/block + NEI 槽位）；64×64 FBO + RenderItem/custom renderer
-- `webae/icon/IconRenderer.java` — 客户端图标导出调度（GuiIconExportScreen + IconGridExporter；默认 nei；snapshot/list 范围；ClientTick 异步上传；按需单图标 renderAndUploadSingle）
+- `webae/icon/IconGlFallback.java` — GL FBO 回退（inventory/flat/entity/first_person/block + NEI 槽位 + **renderVanillaNeiSlotIcon** 强制原版 RenderItem）；64×64 FBO + RenderItem/custom renderer
+- `webae/icon/IconRenderer.java` — 客户端图标导出调度（GuiIconExportScreen + IconGridExporter + IconExportResolver；默认 nei；snapshot/list 范围；ClientTick 异步上传；按需单图标 renderAndUploadSingle 复用 resolver）
 - `webae/network/PacketWebIconUpload.java` — C→S 分批图标上传（packet ID 28，含 renderMode 子目录；ChunkSink key=player|pack|mode；isEnd 解码 base64 PNG 写盘并 `recordDefaultPack`）
 - `webae/network/PacketWebIconUploadAck.java` — S→C 图标上传确认（packet ID 29，回传进度+消息）
 - `webae/player/PlayerInfo.java` — 玩家信息 DTO（uuid/name/firstLogin/lastLogin/lastLogout/totalOnlineMs/online）
@@ -397,23 +411,29 @@ alwaysApply: false
 - `webae/pattern/PatternInjector.java` — 样板注入器（主线程；Phase 6 注入前扣空白样板，`consumeBlank` 可跳过重复扣除）
 - `webae/balance/NetworkBalanceSuggestion.java` — 多网平衡建议 DTO（Phase 8）
 - `webae/balance/NetworkBalanceCollector.java` — 对比缓存 storage snapshot 生成短缺/余量建议
-- `webae/topology/TopologyNode.java` — 拓扑节点 DTO（聚合 count、layout 坐标、devices 明细列表）
-- `webae/topology/TopologyEdge.java` — 假线缆边 DTO（cableType + channelsSimulated/channelsReal）
-- `webae/topology/TopologyRules.java` — 内置分类/频道 cost/树形线缆规划/64×64 spatial bin/线缆 tier 规则
-- `webae/topology/NetworkStatusEnumerator.java` — 与游戏内网络工具相同：`getMachinesClasses()` + `getMachineRepresentation()` 非空才计入；驱动器槽位元件枚举
+- `webae/topology/TopologyNode.java` — 拓扑节点 DTO（聚合 count、layout 坐标、simGrid 模拟坐标、cellSlots[]、devices 明细含 iconItemId、cpuSummary 合成 CPU 集群摘要）
+- `webae/topology/CraftingCpuTopologyCollector.java` — 通过 `ICraftingGrid.getCpus()` 聚合 `CraftingCPUCluster` 为单节点设施（协处理器/存储/构成方块坐标）
+- `webae/topology/TopologyEdge.java` — 假线缆边 DTO（cableType + channelsSimulated/channelsReal + pathPoints[] 正交折点）
+- `webae/topology/TopologyRules.java` — 内置分类（含 terminal/bus/monitor）/频道 cost/星形布局/64×64 spatial bin/边 tier 规则
+- `webae/topology/NetworkStatusEnumerator.java` — 与游戏内网络工具相同：`getMachinesClasses()` + `getMachineRepresentation()` 非空才计入；物品 displayName；part `getItemStack` 兜底；驱动器槽位元件枚举
+- `webae/topology/TopologyFacilityGrouper.java` — 按 `TopologyNodeType` + `representationItemId` 聚合（网络工具 merge-by-item parity）
 - `webae/topology/NetworkDeviceEnumerator.java` — （legacy）`IGrid.getMachinesClasses()` 设备枚举
-- `webae/topology/TreeTopologyBuilder.java` — 左→右树形伪拓扑（控制器→致密/智能线缆→频道设备；驱动器→元件）
-- `webae/topology/FakeChannelAllocator.java` — spatial 星形假线缆（logical 已由 TreeTopologyBuilder 取代）
-- `webae/topology/TopologySnapshot.java` — 拓扑图构建器（logical=树形 + network tool 数据源；spatial=空间 bin + 星形）
+- `webae/topology/TreeTopologyBuilder.java` — 星形伪拓扑（控制器→聚合设备组；无合成线缆节点；边 tier 着色）
+- `webae/topology/SimulatedLayoutBuilder.java` — 星形设备环坐标（中心控制器 + 外围设备组；直连 pathPoints，无线缆格雕刻）
+- `webae/topology/FakeChannelAllocator.java` — spatial 星形假线缆（logical 已由 TreeTopologyBuilder 星形边取代）
+- `webae/topology/TopologySnapshot.java` — 拓扑图构建器（logical=星形聚合 + network tool 数据源；spatial=空间 bin + 星形）
 - `webae/topology/TopologyCache.java` — 手动快照缓存 + `topologyCacheTtlMs` 采集冷却（默认 5 分钟）
 - `webae/topology/TopologyInvalidationGridCache.java` — AE `IGridCache` 占位（手动快照模式不自动失效）
 - `webae/topology/TopologyGridCacheRegistrar.java` — postInit 注册拓扑 grid cache（`AdvanceDataMonitor.postInit`）
 - `webae/topology/P2pTunnelDto.java` / `P2pMapSnapshot.java` / `P2pTunnelEnumerator.java` — **Phase10** P2P 频率分组地图（`GET /api/network/p2p`；反射读 frequency）
-- `webae/craft/CraftTreeNodeDto.java` / `CraftTreeCalculator.java` — **Phase6** NEI 配方递归材料树 + 存储缺口
+- `webae/craft/CraftTreeNodeDto.java` / `CraftTreeCalculator.java` — **Phase 4.1** NEI 配方递归材料树 + `inStock`/`toCraft`/`patternId` + 存储缺口
+- `webae/favorites/WebFavoritesStore.java` — **Phase 4.2** `config/textech/web-favorites.json` 按 owner 收藏
+- `webae/planner/PlannerFlowExporter.java` — **Phase 4.3** Factory Flow / gtnh-flow 互操作导出
+- `webae/api/handler/FavoritesHandler.java` — **Phase 4.2** `GET/PUT /api/favorites`
 - `webae/events/EventStreamHub.java` — **Phase9** SSE 订阅 hub（告警广播 + 15s 心跳；`HandlerTick` tick）
 - `webae/monitor/MonitorPreviewDto.java` / `MonitorPreviewCollector.java` — **Phase11** 监视器单槽折线预览
-- **Phase 3 集成** — `webae/scanner/LinkScannerCollector.java` + `LinkScannerBlockDto`（I1 已加载区块 Link 镜像）；`webae/monitor/MonitorBindingCollector.java` + DTOs（I2 监视器绑定只读）；`webae/api/handler/ScannerHandler.java`/`MonitorHandler.java`/`MonitorPreviewHandler.java`/`PlannerHandler.java`（I3 读 `plans.json`）；`webae/assistant/WebAssistantService.java` + `WebAssistantRateLimiter.java` + `AssistantHandler.java`（I4 规则查询 2s 限流）；`webae/cells/NetworkCellSummaryCollector.java` + `CellSummaryHandler.java`（I5 无限元件/字节摘要）；`webae/pocket/PocketOverviewCollector.java` + `PocketHandler.java`（I6 OP 只读概览，无物品内容）；`CraftTreeHandler.java`/`EventStreamHandler.java`/`P2pHandler.java`（Phase6/9/10 REST）
-- **Phase 3 告警** — `config/ConfigWebAlertsLoader.java` 加载/保存 `config/textech/web-alerts.json`；`webae/alerts/WebAlertsConfig.java`/`WebAlertsConfigValidator.java`/`WebAlertEngine.java`/`WebAlertStore.java`/`WebAlertHistoryStore.java`/`WebAlertHistoryEntry.java`/`WebAlertDto.java` + `AlertsHandler.java`（A1–A5 tick 检测 + `GET /api/alerts` + `GET /api/alerts/history` 历史列表 + **Phase 4d** `PUT /api/alerts/rules` OP 编辑；新 occurrence 才 SSE 推送）；`HandlerTick` 调用 `WebAlertEngine.onServerTick`；前端 `AlertsRulesEditor.tsx` + `pages/AlertsHistory.tsx` + `utils/alertNotification.ts`（localStorage 去重，每条 occurrence 最多弹窗一次）
+- **Phase 3 集成** — `webae/scanner/LinkScannerCollector.java` + `LinkScannerBlockDto`（I1 已加载区块 Link 镜像）；`webae/monitor/MonitorBindingCollector.java` + DTOs（I2 监视器绑定只读）；`webae/api/handler/ScannerHandler.java`/`MonitorHandler.java`/`MonitorPreviewHandler.java`/`PlannerHandler.java`（I3 读/写 `plans.json` + `POST /api/planner/export-flow`）；`webae/assistant/WebAssistantService.java` + `WebAssistantRateLimiter.java` + `AssistantHandler.java`（I4 规则查询 2s 限流）；`webae/cells/NetworkCellSummaryCollector.java` + `CellSummaryHandler.java`（I5 无限元件/字节摘要）；`webae/pocket/PocketOverviewCollector.java` + `PocketHandler.java`（I6 OP 只读概览，无物品内容）；`CraftTreeHandler.java`/`EventStreamHandler.java`/`P2pHandler.java`（Phase6/9/10 REST）
+- **Phase 3 告警** — `config/ConfigWebAlertsLoader.java` 加载/保存 `config/textech/web-alerts.json`；`webae/alerts/WebAlertsConfig.java`/`WebAlertsConfigValidator.java`/`WebAlertEngine.java`/`WebAlertStore.java`/`WebAlertHistoryStore.java`/`WebAlertHistoryEntry.java`/`WebAlertDto.java`/`WebhookDispatcher.java`/`AutomationCooldownTracker.java`（**参考 Phase 2** Webhook + **Phase 3.3** `automationRules` 自动下单）+ `webae/order/OrderSubmitService.java`（Phase 3.3 服务端线程提交合成）+ `AlertsHandler.java`（A1–A5 + `server_tps_below` + `automation_craft` 历史 + **Phase 4d** `PUT /api/alerts/rules` OP 编辑）；`webae/health/ServerHealthSampler.java` + `ServerHealthHandler.java`（**参考 Phase 2**）；`HandlerTick` 调用 `ServerHealthSampler` + `WebAlertEngine.onServerTick`；前端 `AlertsRulesEditor.tsx` + `pages/Fluids.tsx` + `hooks/useFluidMetrics.ts` + `hooks/useServerHealth.ts` + Dashboard `serverTps`/`serverMspt` + `pages/AlertsHistory.tsx`
 - **Phase 7 下单模板** — `config/ConfigWebOrderTemplatesLoader.java` + `webae/order/WebOrderTemplate.java`/`WebOrderTemplateItem.java`/`WebOrderTemplatesStore.java`/`WebOrderTemplatesValidator.java` + `OrderTemplatesHandler.java`（`GET/PUT /api/order/templates`）；前端 `utils/orderTemplates.ts` + `components/patterns/OrderTemplatesModal.tsx` + `AeOrdering.tsx`/`OrderBatchPanel.tsx` 保存/加载/重命名/删除/缺口补货
 - **Phase 4a 聚合搜索** — `webae/search/WebSearchService.java`（合并 snapshot storage/GT、RecipeCacheStore、PatternBrowseService）；`webae/search/WebSearchRateLimiter.java`（500ms/owner）；`webae/dto/SearchResultDto.java`；`SearchHandler.java`；前端 `hooks/useGlobalSearch.ts` + `CommandPalette.tsx` 扩展（API 优先 + snapshot fallback）
 - **Phase 4b 可见性轮询** — 前端 `hooks/usePageVisibility.ts` + `hooks/useVisibilityAwarePolling.ts`；`AppContext` `pauseRefreshWhenHidden`/`refreshPaused`；Settings 开关 `webae_pause_refresh_when_hidden`；覆盖全局 refresh/连接心跳/告警/指标/Chat/AeOrdering/usePlayers

@@ -3,6 +3,7 @@ import type { PageId } from '@/context/AppContext';
 const VALID_PAGES: PageId[] = [
   'dashboard',
   'storage',
+  'fluids',
   'essentia',
   'cpu',
   'power',

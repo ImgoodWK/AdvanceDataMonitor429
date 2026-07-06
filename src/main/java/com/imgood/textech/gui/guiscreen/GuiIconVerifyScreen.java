@@ -18,6 +18,7 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.imgood.textech.webae.icon.IconExportResolver;
 import com.imgood.textech.webae.icon.IconGridExporter;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
 import com.imgood.textech.webae.icon.IconRenderMode;
@@ -35,7 +36,8 @@ public class GuiIconVerifyScreen extends GuiScreen {
     private final String itemId;
     private final String packName;
     private final IconItemEnumerator.StackTask task;
-    private final IconGridExporter exporter = new IconGridExporter();
+    private final IconExportResolver resolver = IconExportResolver.createStandalone();
+    private final IconGridExporter exporter = new IconGridExporter(resolver);
     private byte[] livePng;
     private BufferedImage cachedImage;
     private ResourceLocation cachedTexLoc;
@@ -71,6 +73,7 @@ public class GuiIconVerifyScreen extends GuiScreen {
             } catch (Exception ignored) {}
         }
         exporter.reset();
+        resolver.reset();
     }
 
     @Override
@@ -129,7 +132,12 @@ public class GuiIconVerifyScreen extends GuiScreen {
                 0xAAAAAA);
         }
 
-        drawCenteredString(fontRendererObj, EnumChatFormatting.GRAY + "Press ESC to close", width / 2, height - 24, 0xAAAAAA);
+        drawCenteredString(
+            fontRendererObj,
+            EnumChatFormatting.GRAY + "Press ESC to close",
+            width / 2,
+            height - 24,
+            0xAAAAAA);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 

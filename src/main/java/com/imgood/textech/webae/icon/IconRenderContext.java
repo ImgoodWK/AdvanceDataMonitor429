@@ -11,6 +11,7 @@ public final class IconRenderContext {
 
     final IconAtlasSampler atlasSampler;
     final IconGlFallback glFallback;
+    final IconExportResolver exportResolver;
     int atlasSampleCount;
     int glFallbackCount;
     int placeholderCount;
@@ -18,5 +19,6 @@ public final class IconRenderContext {
     IconRenderContext(IconAtlasSampler atlasSampler, IconGlFallback glFallback) {
         this.atlasSampler = atlasSampler;
         this.glFallback = glFallback;
+        this.exportResolver = new IconExportResolver(atlasSampler, glFallback);
     }
 }

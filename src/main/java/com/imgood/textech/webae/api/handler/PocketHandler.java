@@ -23,17 +23,12 @@ public final class PocketHandler {
         if (!dto.available && dto.opRequired) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,
-                "{\"success\":false,\"code\":\"op_required\",\"message\":"
-                    + GSON.toJson(dto.message)
+                "{\"success\":false,\"code\":\"op_required\",\"message\":" + GSON.toJson(dto.message)
                     + ",\"data\":"
                     + GSON.toJson(dto)
                     + "}");
         }
-        return json(
-            NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"data\":"
-                + GSON.toJson(dto)
-                + "}");
+        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"data\":" + GSON.toJson(dto) + "}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

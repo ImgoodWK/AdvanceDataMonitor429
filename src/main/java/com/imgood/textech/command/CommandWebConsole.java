@@ -14,23 +14,23 @@ import net.minecraft.util.EnumChatFormatting;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
-import com.imgood.textech.webae.auth.WebAuthToken;
+import com.imgood.textech.webae.WebAeLocalDataDir;
 import com.imgood.textech.webae.auth.WebAuthSession;
+import com.imgood.textech.webae.auth.WebAuthToken;
+import com.imgood.textech.webae.auth.WebLoginCodeStore;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.icon.IconExportScope;
 import com.imgood.textech.webae.icon.IconMissingQueue;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconSnapshotItemCollector;
 import com.imgood.textech.webae.icon.IconStore;
-import com.imgood.textech.webae.network.PacketWebIconExportScope;
 import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
-import com.imgood.textech.webae.WebAeLocalDataDir;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector;
 
 public class CommandWebConsole extends CommandBase {
 
-    private static final String[] SUBCOMMANDS = { "issue", "guest", "copy", "revoke", "list", "reload", "recipes", "icons",
-        "refresh", "server", "help" };
+    private static final String[] SUBCOMMANDS = { "issue", "login", "guest", "copy", "revoke", "list", "reload",
+        "recipes", "icons", "refresh", "server", "help" };
 
     @Override
     public String getCommandName() {
@@ -62,6 +62,8 @@ public class CommandWebConsole extends CommandBase {
         String sub = args[0].toLowerCase();
         if ("issue".equals(sub)) {
             handleIssue(sender);
+        } else if ("login".equals(sub)) {
+            handleLogin(sender);
         } else if ("guest".equals(sub)) {
             handleGuest(sender, args);
         } else if ("copy".equals(sub)) {
@@ -103,6 +105,33 @@ public class CommandWebConsole extends CommandBase {
         sendTokenIssue(player, token.token);
     }
 
+    private void handleLogin(ICommandSender sender) {
+        if (!(sender instanceof EntityPlayerMP)) {
+            send(sender, EnumChatFormatting.RED + "This command can only be used by a player.");
+            return;
+        }
+        EntityPlayerMP player = (EntityPlayerMP) sender;
+        String uuid = player.getUniqueID()
+            .toString();
+        String ownerName = player.getCommandSenderName();
+        if (WebAeOwnerContext.countMonitors(uuid) <= 0) {
+            sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.no_monitor");
+            return;
+        }
+        String code = WebLoginCodeStore.generateCode(uuid, ownerName);
+        if (code == null) {
+            sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.login.failed");
+            return;
+        }
+        AdvanceDataMonitor.ADMCHANEL.sendTo(
+            new PacketWebConsoleTokenNotify(
+                PacketWebConsoleTokenNotify.KIND_LOGIN,
+                code,
+                Config.webConsolePort,
+                Config.webConsoleBindAddress),
+            player);
+    }
+
     private void handleCopy(ICommandSender sender) {
         if (!(sender instanceof EntityPlayerMP)) {
             send(sender, EnumChatFormatting.RED + "This command can only be used by a player.");
@@ -113,12 +142,15 @@ public class CommandWebConsole extends CommandBase {
             player.getUniqueID()
                 .toString());
         if (token == null) {
-            sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.notfound", player.getCommandSenderName());
+            sendFormatted(
+                sender,
+                EnumChatFormatting.RED,
+                "adm.webconsole.token.notfound",
+                player.getCommandSenderName());
             return;
         }
-        AdvanceDataMonitor.ADMCHANEL.sendTo(
-            new PacketWebConsoleTokenNotify(PacketWebConsoleTokenNotify.KIND_CLIP, token.token, 0, ""),
-            player);
+        AdvanceDataMonitor.ADMCHANEL
+            .sendTo(new PacketWebConsoleTokenNotify(PacketWebConsoleTokenNotify.KIND_CLIP, token.token, 0, ""), player);
     }
 
     private static void sendTokenIssue(EntityPlayerMP player, String tokenValue) {
@@ -330,7 +362,8 @@ public class CommandWebConsole extends CommandBase {
         } else {
             send(
                 sender,
-                EnumChatFormatting.RED + "Refresh must be triggered by a player, or specify: /admweb refresh [network] <ownerUuid>");
+                EnumChatFormatting.RED
+                    + "Refresh must be triggered by a player, or specify: /admweb refresh [network] <ownerUuid>");
             return;
         }
 
@@ -368,7 +401,8 @@ public class CommandWebConsole extends CommandBase {
     }
 
     private int refreshAllNetworks(String uuid) {
-        java.util.List<AeSnapshotCollector.NetworkInfo> networks = AeSnapshotCollector.findNetworksBlocking(uuid, 10_000L, true);
+        java.util.List<AeSnapshotCollector.NetworkInfo> networks = AeSnapshotCollector
+            .findNetworksBlocking(uuid, 10_000L, true);
         if (networks == null || networks.isEmpty()) return 0;
         for (int i = 0; i < networks.size(); i++) {
             refreshOneNetwork(uuid, i);
@@ -415,11 +449,14 @@ public class CommandWebConsole extends CommandBase {
             if (args.length >= 3) {
                 if ("snapshot".equalsIgnoreCase(args[2])) {
                     scope = "snapshot";
-                    java.util.List<String> itemIds = com.imgood.textech.webae.icon.IconSnapshotItemCollector.collectItemIds();
+                    java.util.List<String> itemIds = com.imgood.textech.webae.icon.IconSnapshotItemCollector
+                        .collectItemIds();
                     snapshotJson = new com.google.gson.Gson().toJson(itemIds);
                     send(
                         sender,
-                        EnumChatFormatting.AQUA + "Snapshot upload: " + itemIds.size() + " storage items → related recipes");
+                        EnumChatFormatting.AQUA + "Snapshot upload: "
+                            + itemIds.size()
+                            + " storage items → related recipes");
                 } else if ("deep".equalsIgnoreCase(args[2])) {
                     scope = "deep";
                     send(sender, EnumChatFormatting.YELLOW + "Deep NEI item scan — may take several minutes.");
@@ -477,10 +514,16 @@ public class CommandWebConsole extends CommandBase {
             send(sender, EnumChatFormatting.AQUA + "=== WebAE Icon Render Modes ===");
             for (IconRenderMode mode : IconRenderMode.allModes()) {
                 String status = mode.isImplemented() ? EnumChatFormatting.GREEN + "ready"
-                    : (mode.isDeprecated() ? EnumChatFormatting.GRAY + "deprecated" : EnumChatFormatting.GRAY + "planned");
+                    : (mode.isDeprecated() ? EnumChatFormatting.GRAY + "deprecated"
+                        : EnumChatFormatting.GRAY + "planned");
                 send(
                     sender,
-                    EnumChatFormatting.WHITE + "  " + mode.getId() + " " + status + EnumChatFormatting.RESET + " — "
+                    EnumChatFormatting.WHITE + "  "
+                        + mode.getId()
+                        + " "
+                        + status
+                        + EnumChatFormatting.RESET
+                        + " — "
                         + I18nFormat(mode.getLabelKey()));
             }
             return;
@@ -529,10 +572,16 @@ public class CommandWebConsole extends CommandBase {
             send(sender, EnumChatFormatting.WHITE + "  iconCacheEnabled: " + Config.webIconCacheEnabled);
             send(sender, EnumChatFormatting.WHITE + "  iconUploadEnabled: " + Config.webIconUploadEnabled);
             send(sender, EnumChatFormatting.WHITE + "  iconPackEnabled: " + Config.webIconPackEnabled);
-            send(sender, EnumChatFormatting.WHITE + "  missingIconQueue: " + IconMissingQueue.instance()
-                .pendingCount());
+            send(
+                sender,
+                EnumChatFormatting.WHITE + "  missingIconQueue: "
+                    + IconMissingQueue.instance()
+                        .pendingCount());
         } else {
-            send(sender, EnumChatFormatting.RED + "Unknown icons subcommand. Use: upload, render, verify, import, modes, status");
+            send(
+                sender,
+                EnumChatFormatting.RED
+                    + "Unknown icons subcommand. Use: upload, render, verify, import, modes, status");
         }
     }
 
@@ -558,26 +607,31 @@ public class CommandWebConsole extends CommandBase {
             send(sender, EnumChatFormatting.RED + "Invalid pack or mode.");
             return;
         }
-        java.util.List<String> itemIds = scope == IconExportScope.SNAPSHOT
-            ? IconSnapshotItemCollector.collectItemIds()
+        java.util.List<String> itemIds = scope == IconExportScope.SNAPSHOT ? IconSnapshotItemCollector.collectItemIds()
             : new java.util.ArrayList<String>();
         if (scope == IconExportScope.SNAPSHOT && itemIds.isEmpty()) {
             send(sender, EnumChatFormatting.YELLOW + "No cached AE storage snapshots yet.");
             return;
         }
         IconMissingQueue.instance()
-            .setProviderUuid(player.getUniqueID()
-                .toString());
-        AdvanceDataMonitor.ADMCHANEL.sendTo(new PacketWebIconExportScope(scope, itemIds), player);
+            .setProviderUuid(
+                player.getUniqueID()
+                    .toString());
         AdvanceDataMonitor.ADMCHANEL.sendTo(
             new com.imgood.textech.webae.network.PacketWebUploadTrigger(
                 com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS,
                 packName,
-                renderMode),
+                renderMode,
+                scope,
+                itemIds),
             player);
         send(
             sender,
-            EnumChatFormatting.GREEN + "Icon upload started: pack=" + packName + " mode=" + renderMode + " scope="
+            EnumChatFormatting.GREEN + "Icon upload started: pack="
+                + packName
+                + " mode="
+                + renderMode
+                + " scope="
                 + scope.getId());
     }
 
@@ -593,14 +647,16 @@ public class CommandWebConsole extends CommandBase {
         java.util.List<String> ids = new java.util.ArrayList<String>();
         ids.add(itemId);
         IconMissingQueue.instance()
-            .setProviderUuid(player.getUniqueID()
-                .toString());
-        AdvanceDataMonitor.ADMCHANEL.sendTo(new PacketWebIconExportScope(IconExportScope.LIST, ids), player);
+            .setProviderUuid(
+                player.getUniqueID()
+                    .toString());
         AdvanceDataMonitor.ADMCHANEL.sendTo(
             new com.imgood.textech.webae.network.PacketWebUploadTrigger(
                 com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS,
                 packName,
-                renderMode),
+                renderMode,
+                IconExportScope.LIST,
+                ids),
             player);
         send(sender, EnumChatFormatting.GREEN + "Rendering " + itemId);
     }
@@ -631,8 +687,10 @@ public class CommandWebConsole extends CommandBase {
             send(sender, EnumChatFormatting.RED + "Invalid pack or folder.");
             return;
         }
-        java.io.File destDir = new java.io.File(IconStore.instance()
-            .getBaseDir(), packName + java.io.File.separator + IconRenderMode.NEI.getId());
+        java.io.File destDir = new java.io.File(
+            IconStore.instance()
+                .getBaseDir(),
+            packName + java.io.File.separator + IconRenderMode.NEI.getId());
         destDir.mkdirs();
         int copied = 0;
         java.io.File[] files = src.listFiles();
@@ -641,11 +699,14 @@ public class CommandWebConsole extends CommandBase {
                 if (f == null || !f.getName()
                     .endsWith(".png")) continue;
                 String base = f.getName()
-                    .substring(0, f.getName()
-                        .length() - 4);
+                    .substring(
+                        0,
+                        f.getName()
+                            .length() - 4);
                 java.io.File out = new java.io.File(destDir, IconStore.sanitizeItemId(base.replace(':', '_')) + ".png");
                 try {
-                    java.nio.file.Files.copy(f.toPath(), out.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    java.nio.file.Files
+                        .copy(f.toPath(), out.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     copied++;
                 } catch (Exception ignored) {}
             }
@@ -674,8 +735,13 @@ public class CommandWebConsole extends CommandBase {
         int copied = com.imgood.textech.webae.icon.NesqlIconImporter.importFromRepository(packName, subPath);
         send(
             sender,
-            EnumChatFormatting.GREEN + "NESQL import: " + copied + " icons → " + packName + "/nei/ (from "
-                + repoPath + ")");
+            EnumChatFormatting.GREEN + "NESQL import: "
+                + copied
+                + " icons → "
+                + packName
+                + "/nei/ (from "
+                + repoPath
+                + ")");
     }
 
     private static String formatTime(long ms) {
@@ -690,7 +756,12 @@ public class CommandWebConsole extends CommandBase {
     }
 
     private void sendUsage(ICommandSender sender) {
-        send(sender, EnumChatFormatting.YELLOW + "/admweb issue  - Generate your owner access token (requires a monitor)");
+        send(
+            sender,
+            EnumChatFormatting.YELLOW + "/admweb issue  - Generate your owner access token (requires a monitor)");
+        send(
+            sender,
+            EnumChatFormatting.YELLOW + "/admweb login  - Generate a 6-digit login code for browser self-service");
         send(sender, EnumChatFormatting.YELLOW + "/admweb guest <player>  - Issue a guest token to an online player");
         send(sender, EnumChatFormatting.YELLOW + "/admweb copy  - Copy your active Web token to clipboard");
         send(sender, EnumChatFormatting.YELLOW + "/admweb revoke [guestName]  - Revoke your token or a guest token");
@@ -701,7 +772,9 @@ public class CommandWebConsole extends CommandBase {
             sender,
             EnumChatFormatting.YELLOW + "/admweb recipes status  - View recipe cache status (incl. disk cache)");
         send(sender, EnumChatFormatting.YELLOW + "/admweb recipes clear  - Clear recipe cache (OP only)");
-        send(sender, EnumChatFormatting.YELLOW + "/admweb icons upload [pack] [mode|all]  - Upload item icons (client only)");
+        send(
+            sender,
+            EnumChatFormatting.YELLOW + "/admweb icons upload [pack] [mode|all]  - Upload item icons (client only)");
         send(sender, EnumChatFormatting.YELLOW + "/admweb icons modes  - List icon render modes");
         send(sender, EnumChatFormatting.YELLOW + "/admweb icons status  - View icon pack status");
         send(sender, EnumChatFormatting.YELLOW + "/admweb refresh [network]  - Force snapshot re-collect (OP only)");

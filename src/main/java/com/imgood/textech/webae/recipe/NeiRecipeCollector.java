@@ -1356,10 +1356,8 @@ public class NeiRecipeCollector {
         if (stack == null) return;
         try {
             Class<?> guiCrafting = Class.forName("codechicken.nei.recipe.GuiCraftingRecipe");
-            java.lang.reflect.Method getCrafting = guiCrafting.getMethod(
-                "getCraftingHandlers",
-                String.class,
-                Object[].class);
+            java.lang.reflect.Method getCrafting = guiCrafting
+                .getMethod("getCraftingHandlers", String.class, Object[].class);
             List<?> crafting = (List<?>) getCrafting.invoke(null, "item", new Object[] { stack.copy() });
             if (crafting != null) mergeHandlersIntoRecipes(crafting, all, seen, "crafting");
         } catch (Exception ignored) {}

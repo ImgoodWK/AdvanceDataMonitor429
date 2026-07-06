@@ -83,9 +83,8 @@ public final class IconMissingQueue {
             }
         }
         for (MissingIcon missing : batch) {
-            AdvanceDataMonitor.ADMCHANEL.sendTo(
-                new PacketWebIconRequest(missing.pack, missing.mode, missing.itemId),
-                provider);
+            AdvanceDataMonitor.ADMCHANEL
+                .sendTo(new PacketWebIconRequest(missing.pack, missing.mode, missing.itemId), provider);
         }
     }
 
@@ -110,8 +109,9 @@ public final class IconMissingQueue {
             @SuppressWarnings("unchecked")
             List<EntityPlayerMP> players = server.getConfigurationManager().playerEntityList;
             for (EntityPlayerMP player : players) {
-                if (player != null && providerUuid.equals(player.getUniqueID()
-                    .toString())) {
+                if (player != null && providerUuid.equals(
+                    player.getUniqueID()
+                        .toString())) {
                     return player;
                 }
             }

@@ -1,17 +1,16 @@
 package com.imgood.textech.webae.topology;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.imgood.textech.webae.topology.FakeChannelAllocator.ChannelProbeResult;
 import com.imgood.textech.webae.topology.NetworkStatusEnumerator.NetworkFacility;
 import com.imgood.textech.webae.topology.NetworkStatusEnumerator.NetworkFacility.CellSlot;
+import com.imgood.textech.webae.topology.TopologyFacilityGrouper.AggregatedGroup;
 
 /**
- * Builds a left-to-right tree pseudo-topology:
- * controller → (dense cable → smart cable → channel devices) | drives → cells | zero-cost devices.
+ * Builds a star pseudo-topology: controller → aggregated device-type groups (network-tool parity).
+ * No synthetic cable nodes; channel tier is reflected on edges only.
  */
 public final class TreeTopologyBuilder {
 
@@ -23,30 +22,34 @@ public final class TreeTopologyBuilder {
         public List<TopologyEdge> edges = new ArrayList<TopologyEdge>();
         public int channelDeviceCount;
         public int controllerCapacity;
+        public int facilityCount;
     }
 
     public static BuildResult build(List<NetworkFacility> facilities, ChannelProbeResult probe) {
+        return build(facilities, probe, null);
+    }
+
+    public static BuildResult build(List<NetworkFacility> facilities, ChannelProbeResult probe,
+        List<CraftingCpuTopologyCollector.CpuClusterFacility> cpuClusters) {
         BuildResult result = new BuildResult();
-        if (facilities == null || facilities.isEmpty()) {
+        if (facilities == null && (cpuClusters == null || cpuClusters.isEmpty())) {
             return result;
         }
+        if (facilities == null) {
+            facilities = new ArrayList<NetworkFacility>();
+        }
+
+        result.facilityCount = facilities.size();
 
         List<NetworkFacility> controllers = filterType(facilities, TopologyNodeType.CONTROLLER);
-        List<NetworkFacility> drives = filterType(facilities, TopologyNodeType.DRIVE);
-        List<NetworkFacility> channelDevices = new ArrayList<NetworkFacility>();
-        List<NetworkFacility> zeroCost = new ArrayList<NetworkFacility>();
-
+        List<NetworkFacility> forGrouping = new ArrayList<NetworkFacility>();
         for (NetworkFacility facility : facilities) {
-            if (facility.type == TopologyNodeType.CONTROLLER) {
+            if (facility.type == TopologyNodeType.CONTROLLER || facility.type == TopologyNodeType.CPU) {
                 continue;
             }
-            if (facility.type == TopologyNodeType.DRIVE) {
-                continue;
-            }
+            forGrouping.add(facility);
             if (facility.channelCost > 0) {
-                channelDevices.add(facility);
-            } else {
-                zeroCost.add(facility);
+                result.channelDeviceCount++;
             }
         }
 
@@ -54,37 +57,19 @@ public final class TreeTopologyBuilder {
         result.nodes.add(root);
         result.controllerCapacity = estimateControllerCapacity(controllers, probe);
 
-        int driveIndex = 0;
-        for (NetworkFacility drive : drives) {
-            TopologyNode driveNode = createDriveNode(drive, driveIndex++);
-            result.nodes.add(driveNode);
-            result.edges.add(edge(root.id, driveNode.id, 0, TopologyRules.CABLE_SMART_MAX, "smart"));
-
-            int cellIndex = 0;
-            if (drive.cells.isEmpty()) {
-                TopologyNode empty = createCellNode(drive, null, cellIndex++);
-                result.nodes.add(empty);
-                result.edges.add(edge(driveNode.id, empty.id, 0, 0, "smart"));
-            } else {
-                for (CellSlot cell : drive.cells) {
-                    TopologyNode cellNode = createCellNode(drive, cell, cellIndex++);
-                    result.nodes.add(cellNode);
-                    result.edges.add(edge(driveNode.id, cellNode.id, 0, 0, "smart"));
-                }
-            }
-        }
-
-        result.channelDeviceCount = channelDevices.size();
-        appendChannelTree(result, root.id, channelDevices);
-
-        int zeroIndex = 0;
-        for (NetworkFacility facility : zeroCost) {
-            TopologyNode node = createLeafDeviceNode(facility, "zero:" + zeroIndex++);
+        List<AggregatedGroup> groups = TopologyFacilityGrouper.group(forGrouping);
+        int groupIndex = 0;
+        for (AggregatedGroup group : groups) {
+            TopologyNode node = createAggregatedNode(group, groupIndex++);
             result.nodes.add(node);
-            result.edges.add(edge(root.id, node.id, 0, 0, "smart"));
+            String cableType = TopologyRules.cableTypeForLoad(group.channelCostSum);
+            int edgeMax = group.channelCostSum > 0 ? Math.max(group.channelCostSum, TopologyRules.CABLE_SMART_MAX)
+                : 0;
+            result.edges.add(edge(root.id, node.id, group.channelCostSum, edgeMax, cableType));
         }
 
-        assignTreeLayout(result.nodes, result.edges, root.id);
+        appendCpuClusters(result, root.id, cpuClusters);
+        assignStarLayout(result.nodes, root.id);
         return result;
     }
 
@@ -95,6 +80,7 @@ public final class TreeTopologyBuilder {
         meta.channelsSimulated.used = tree.channelDeviceCount;
         meta.channelsSimulated.max = Math.max(tree.controllerCapacity, TopologyRules.CABLE_SMART_MAX);
         meta.channelsSimulated.available = true;
+        meta.facilityCount = tree.facilityCount;
 
         if (probe != null && probe.available) {
             if (meta.channelsReal == null) {
@@ -109,52 +95,58 @@ public final class TreeTopologyBuilder {
         }
     }
 
-    private static void appendChannelTree(BuildResult result, String rootId, List<NetworkFacility> channelDevices) {
-        if (channelDevices.isEmpty()) {
+    private static void appendCpuClusters(BuildResult result, String rootId,
+        List<CraftingCpuTopologyCollector.CpuClusterFacility> cpuClusters) {
+        if (cpuClusters == null || cpuClusters.isEmpty()) {
             return;
         }
-        List<List<NetworkFacility>> smartGroups = chunk(channelDevices, TopologyRules.CABLE_SMART_MAX);
-        List<List<List<NetworkFacility>>> denseGroups = chunk(smartGroups, 4);
-
-        int denseIndex = 0;
-        for (List<List<NetworkFacility>> denseGroup : denseGroups) {
-            int denseLoad = 0;
-            for (List<NetworkFacility> smartGroup : denseGroup) {
-                denseLoad += smartGroup.size();
-            }
-            int denseMax = Math.max(TopologyRules.CABLE_COVERED_MAX, denseLoad);
-            String denseId = "cable-dense:" + denseIndex;
-            TopologyNode denseNode = cableNode(
-                denseId,
-                TopologyNodeType.CABLE_DENSE,
-                "Dense cable (" + denseLoad + "/" + denseMax + ")",
-                denseLoad,
-                denseMax);
-            result.nodes.add(denseNode);
-            result.edges.add(edge(rootId, denseId, denseLoad, denseMax, "dense"));
-
-            int smartIndex = 0;
-            for (List<NetworkFacility> smartGroup : denseGroup) {
-                int smartLoad = smartGroup.size();
-                String smartId = denseId + ":smart:" + smartIndex++;
-                TopologyNode smartNode = cableNode(
-                    smartId,
-                    TopologyNodeType.CABLE_SMART,
-                    "Smart cable (" + smartLoad + "/" + TopologyRules.CABLE_SMART_MAX + ")",
-                    smartLoad,
-                    TopologyRules.CABLE_SMART_MAX);
-                result.nodes.add(smartNode);
-                result.edges.add(edge(denseId, smartId, smartLoad, TopologyRules.CABLE_SMART_MAX, "smart"));
-
-                int leafIndex = 0;
-                for (NetworkFacility facility : smartGroup) {
-                    TopologyNode leaf = createLeafDeviceNode(facility, smartId + ":dev:" + leafIndex++);
-                    result.nodes.add(leaf);
-                    result.edges.add(edge(smartId, leaf.id, facility.channelCost, TopologyRules.CABLE_SMART_MAX, "smart"));
-                }
-            }
-            denseIndex++;
+        int index = 0;
+        for (CraftingCpuTopologyCollector.CpuClusterFacility cluster : cpuClusters) {
+            TopologyNode node = createCpuClusterNode(cluster, index++);
+            result.nodes.add(node);
+            result.edges.add(edge(rootId, node.id, 0, 0, "smart"));
         }
+    }
+
+    private static TopologyNode createCpuClusterNode(CraftingCpuTopologyCollector.CpuClusterFacility cluster, int index) {
+        TopologyNode node = new TopologyNode();
+        node.id = "cpu:" + index + ":" + cluster.dim + ":" + cluster.x + ":" + cluster.y + ":" + cluster.z;
+        node.type = TopologyNodeType.CPU.id;
+        node.displayName = cluster.displayName;
+        node.count = cluster.unitCount;
+        node.channelCost = 0;
+        node.iconItemId = TopologyRules.iconItemIdFor(TopologyNodeType.CPU);
+        node.role = "branch";
+        node.dim = cluster.dim;
+        node.binX = cluster.x;
+        node.binZ = cluster.z;
+
+        TopologyNode.CpuSummary summary = new TopologyNode.CpuSummary();
+        summary.name = cluster.name;
+        summary.coProcessors = cluster.coProcessors;
+        summary.availableStorage = cluster.availableStorage;
+        summary.usedStorage = cluster.usedStorage;
+        summary.busy = cluster.busy;
+        summary.unitCount = cluster.unitCount;
+        summary.storageUnits = cluster.storageUnits;
+        summary.acceleratorUnits = cluster.acceleratorUnits;
+        summary.monitorUnits = cluster.monitorUnits;
+        node.cpuSummary = summary;
+
+        for (CraftingCpuTopologyCollector.CpuClusterFacility.Unit unit : cluster.units) {
+            TopologyNode.DeviceRecord record = new TopologyNode.DeviceRecord();
+            record.className = "appeng.tile.crafting.TileCraftingTile";
+            record.displayName = unit.accelerator ? "Crafting Co-Processor"
+                : unit.storage ? "Crafting Storage Unit" : unit.monitor ? "Crafting Monitor" : "Crafting Unit";
+            record.iconItemId = TopologyRules.iconItemIdFor(TopologyNodeType.CPU);
+            record.x = unit.x;
+            record.y = unit.y;
+            record.z = unit.z;
+            record.dim = unit.dim;
+            record.channelCost = 0;
+            node.devices.add(record);
+        }
+        return node;
     }
 
     private static TopologyNode createControllerNode(List<NetworkFacility> controllers) {
@@ -172,75 +164,26 @@ public final class TreeTopologyBuilder {
         return node;
     }
 
-    private static TopologyNode createDriveNode(NetworkFacility drive, int index) {
+    private static TopologyNode createAggregatedNode(AggregatedGroup group, int index) {
         TopologyNode node = new TopologyNode();
-        node.id = "drive:" + drive.dim + ":" + drive.x + ":" + drive.y + ":" + drive.z + ":" + index;
-        node.type = TopologyNodeType.DRIVE.id;
-        node.displayName = drive.displayName + " @ " + drive.x + "," + drive.y + "," + drive.z;
-        node.count = 1;
-        node.channelCost = 0;
-        node.iconItemId = drive.representationItemId.isEmpty()
-            ? TopologyRules.iconItemIdFor(TopologyNodeType.DRIVE)
-            : drive.representationItemId;
+        String safeKey = group.groupKey.replace('|', '_')
+            .replace(':', '_');
+        node.id = "group:" + safeKey + ":" + index;
+        node.type = group.type.id;
+        node.displayName = group.count > 1 ? group.displayName + " x" + group.count : group.displayName;
+        node.count = group.count;
+        node.channelCost = group.channelCostSum;
+        node.iconItemId = preferredIconItemId(group.type, group.iconItemId);
         node.role = "branch";
-        node.devices.add(toRecord(drive));
-        return node;
-    }
 
-    private static TopologyNode createCellNode(NetworkFacility drive, CellSlot cell, int index) {
-        TopologyNode node = new TopologyNode();
-        node.id = "cell:" + drive.x + ":" + drive.y + ":" + drive.z + ":" + index;
-        node.type = TopologyNodeType.CELL.id;
-        node.role = "leaf";
-        node.channelCost = 0;
-        node.count = 1;
-        node.iconItemId = TopologyRules.iconItemIdFor(TopologyNodeType.CELL);
-        if (cell == null || cell.empty) {
-            node.displayName = "Empty cell slot";
-        } else {
-            node.displayName = cell.displayName;
-            node.iconItemId = cell.itemId.isEmpty() ? node.iconItemId : cell.itemId;
+        for (NetworkFacility member : group.members) {
+            node.devices.add(toRecord(member));
+            if (member.type == TopologyNodeType.DRIVE) {
+                for (CellSlot cell : member.cells) {
+                    node.cellSlots.add(toCellRecord(cell));
+                }
+            }
         }
-        TopologyNode.DeviceRecord record = new TopologyNode.DeviceRecord();
-        record.className = drive.className;
-        record.displayName = node.displayName;
-        record.x = drive.x;
-        record.y = drive.y;
-        record.z = drive.z;
-        record.dim = drive.dim;
-        record.channelCost = 0;
-        node.devices.add(record);
-        return node;
-    }
-
-    private static TopologyNode createLeafDeviceNode(NetworkFacility facility, String id) {
-        TopologyNode node = new TopologyNode();
-        node.id = id;
-        node.type = facility.type.id;
-        node.displayName = facility.displayName;
-        node.count = 1;
-        node.channelCost = facility.channelCost;
-        node.iconItemId = facility.representationItemId.isEmpty()
-            ? TopologyRules.iconItemIdFor(facility.type)
-            : facility.representationItemId;
-        node.role = facility.channelCost > 0 ? "leaf" : "branch";
-        node.devices.add(toRecord(facility));
-        return node;
-    }
-
-    private static TopologyNode cableNode(String id, TopologyNodeType type, String label, int used, int max) {
-        TopologyNode node = new TopologyNode();
-        node.id = id;
-        node.type = type.id;
-        node.displayName = label;
-        node.count = 1;
-        node.channelCost = 0;
-        node.role = "branch";
-        node.iconItemId = TopologyRules.iconItemIdFor(type);
-        TopologyNode.DeviceRecord record = new TopologyNode.DeviceRecord();
-        record.displayName = label;
-        record.channelCost = used;
-        node.devices.add(record);
         return node;
     }
 
@@ -248,11 +191,31 @@ public final class TreeTopologyBuilder {
         TopologyNode.DeviceRecord record = new TopologyNode.DeviceRecord();
         record.className = facility.className;
         record.displayName = facility.displayName;
+        record.iconItemId = preferredIconItemId(facility.type, facility.representationItemId);
         record.x = facility.x;
         record.y = facility.y;
         record.z = facility.z;
         record.dim = facility.dim;
         record.channelCost = facility.channelCost;
+        return record;
+    }
+
+    private static String preferredIconItemId(TopologyNodeType type, String representationItemId) {
+        if (representationItemId != null && !representationItemId.isEmpty()) {
+            return representationItemId;
+        }
+        String tileIcon = TopologyRules.iconItemIdFor(type);
+        return tileIcon == null ? "" : tileIcon;
+    }
+
+    private static TopologyNode.CellSlotRecord toCellRecord(CellSlot cell) {
+        TopologyNode.CellSlotRecord record = new TopologyNode.CellSlotRecord();
+        record.slot = cell.slot;
+        record.empty = cell.empty;
+        record.displayName = cell.displayName;
+        record.itemId = cell.itemId;
+        record.itemBytes = cell.itemBytes;
+        record.fluidBytes = cell.fluidBytes;
         return record;
     }
 
@@ -286,61 +249,27 @@ public final class TreeTopologyBuilder {
         return out;
     }
 
-    private static <T> List<List<T>> chunk(List<T> source, int size) {
-        List<List<T>> groups = new ArrayList<List<T>>();
-        if (source.isEmpty()) {
-            return groups;
-        }
-        for (int i = 0; i < source.size(); i += size) {
-            int end = Math.min(i + size, source.size());
-            groups.add(new ArrayList<T>(source.subList(i, end)));
-        }
-        return groups;
-    }
-
-    /** Assign layoutX = depth, layoutY = sibling index within depth (left tree). */
-    private static void assignTreeLayout(List<TopologyNode> nodes, List<TopologyEdge> edges, String rootId) {
-        Map<String, List<String>> children = new HashMap<String, List<String>>();
-        for (TopologyEdge edge : edges) {
-            List<String> list = children.get(edge.from);
-            if (list == null) {
-                list = new ArrayList<String>();
-                children.put(edge.from, list);
-            }
-            list.add(edge.to);
-        }
-        Map<String, TopologyNode> byId = new HashMap<String, TopologyNode>();
+    /**
+     * Star layout: hub at (0,0); satellites at depth 1 with evenly spaced sibling indices.
+     */
+    private static void assignStarLayout(List<TopologyNode> nodes, String rootId) {
+        TopologyNode root = null;
+        List<TopologyNode> satellites = new ArrayList<TopologyNode>();
         for (TopologyNode node : nodes) {
-            byId.put(node.id, node);
-        }
-        assignRecursive(rootId, 0, 0, children, byId, new int[] { 0 });
-    }
-
-    private static double assignRecursive(String nodeId, int depth, double desiredY, Map<String, List<String>> children,
-        Map<String, TopologyNode> byId, int[] nextLeafY) {
-        TopologyNode node = byId.get(nodeId);
-        if (node == null) {
-            return desiredY;
-        }
-        List<String> childIds = children.get(nodeId);
-        if (childIds == null || childIds.isEmpty()) {
-            double y = nextLeafY[0]++;
-            node.layoutX = depth;
-            node.layoutY = y;
-            return y;
-        }
-
-        double firstY = -1;
-        double lastY = 0;
-        for (String childId : childIds) {
-            double childY = assignRecursive(childId, depth + 1, nextLeafY[0], children, byId, nextLeafY);
-            if (firstY < 0) {
-                firstY = childY;
+            if (rootId.equals(node.id)) {
+                root = node;
+            } else if (!TopologyNodeType.CELL.id.equals(node.type)) {
+                satellites.add(node);
             }
-            lastY = childY;
         }
-        node.layoutX = depth;
-        node.layoutY = (firstY + lastY) / 2.0;
-        return node.layoutY;
+        if (root != null) {
+            root.layoutX = 0;
+            root.layoutY = 0;
+        }
+        int index = 0;
+        for (TopologyNode satellite : satellites) {
+            satellite.layoutX = 1;
+            satellite.layoutY = index++;
+        }
     }
 }

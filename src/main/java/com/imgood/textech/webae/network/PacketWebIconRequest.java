@@ -6,9 +6,8 @@ import net.minecraft.client.Minecraft;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
-import com.imgood.textech.webae.icon.IconItemId;
-import com.imgood.textech.webae.icon.IconRenderer;
 import com.imgood.textech.webae.icon.IconRenderMode;
+import com.imgood.textech.webae.icon.IconRenderer;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -93,8 +92,7 @@ public class PacketWebIconRequest implements IMessage {
                 return;
             }
             String pack = message.packName != null && !message.packName.isEmpty() ? message.packName : "default";
-            String mode = message.renderMode != null && !message.renderMode.isEmpty()
-                ? message.renderMode
+            String mode = message.renderMode != null && !message.renderMode.isEmpty() ? message.renderMode
                 : IconRenderMode.NEI.getId();
             IconItemEnumerator.StackTask task = resolveTask(message.itemId);
             if (task == null) {

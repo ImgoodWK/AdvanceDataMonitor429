@@ -82,6 +82,23 @@ export interface StorageBatchResponse {
   results: StorageBatchResult[];
 }
 
+export interface StoragePagedResponse {
+  success: boolean;
+  items?: StorageItem[];
+  fluids?: StorageFluid[];
+  essentia?: StorageEssentia[];
+  nextCursor?: string | null;
+  totalEstimate: number;
+  fromCache: boolean;
+  cacheAgeMs: number;
+  snapshotVersion: number;
+  networkId?: number;
+  bytesUsed?: number;
+  bytesMax?: number;
+  cpus?: StorageCpu[];
+  totalAmountSum?: number;
+}
+
 export interface NetworksResponse {
   success: boolean;
   networks: NetworkInfo[];
@@ -198,6 +215,8 @@ export interface RecipeDto {
   euPerTick?: number;
   durationTicks?: number;
   voltageTier?: string;
+  requiresCleanroom?: boolean;
+  powerConsumption?: number;
   recipeType?: string;
 }
 
@@ -534,6 +553,31 @@ export interface PlayersResponse {
   offline?: PlayerDto[];
 }
 
+/** GET /api/players/locations (Phase 6.1). */
+export interface PlayerLocationDto {
+  uuid: string;
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+  dim: number;
+  online: boolean;
+}
+
+export interface PlayerLocationsResponse {
+  success: boolean;
+  locations: PlayerLocationDto[];
+}
+
+/** POST /api/auth/guest-invite (Phase 6.2). */
+export interface GuestInviteResponse {
+  success: boolean;
+  token: string;
+  url: string;
+  tokenType: string;
+  message?: string;
+}
+
 /** 后端 {@code /api/players/online/history} 返回的在线人数趋势点。 */
 export interface PlayerOnlineHistoryPoint {
   ts: number;
@@ -573,6 +617,21 @@ export interface NetworkMetricHistoryResponse {
   history: NetworkMetricHistory;
 }
 
+export interface NetworkMetricFluidSeries {
+  timestamps: number[];
+  amounts: number[];
+}
+
+export interface NetworkMetricFluidHistory {
+  networkId: number;
+  fluids: Record<string, NetworkMetricFluidSeries>;
+}
+
+export interface NetworkMetricFluidHistoryResponse {
+  success: boolean;
+  history: NetworkMetricFluidHistory;
+}
+
 export interface IconRenderModeInfo {
   id: string;
   labelKey: string;
@@ -607,6 +666,8 @@ export interface ServerConfig {
   topologyCacheTtlMs?: number;
   alertsEnabled?: boolean;
   alertsPollIntervalSeconds?: number;
+  /** Phase 6.1: optional Dynmap base URL from [webConsole] dynmapBaseUrl. */
+  dynmapBaseUrl?: string;
 }
 
 export interface ConfigResponse {
@@ -668,6 +729,9 @@ export interface TopologyMetaDto {
   showOccupiedChannels?: boolean;
   channelsSimulated?: TopologyChannelInfoDto;
   channelsReal?: TopologyChannelInfoDto;
+  renderLayout?: string;
+  channelTierHint?: string;
+  layoutUnitPx?: number;
 }
 
 export interface TopologyChannelInfoDto {
@@ -686,20 +750,47 @@ export interface TopologyNodeDto {
   role?: string;
   layoutX: number;
   layoutY: number;
+  simGridX?: number;
+  simGridY?: number;
+  simKind?: string;
+  cellSlots?: TopologyCellSlotDto[];
   devices?: TopologyDeviceRecordDto[];
+  cpuSummary?: TopologyCpuSummaryDto;
   dim?: number;
   binX?: number;
   binZ?: number;
 }
 
+export interface TopologyCellSlotDto {
+  slot: number;
+  empty: boolean;
+  displayName?: string;
+  itemId?: string;
+  itemBytes?: number;
+  fluidBytes?: number;
+}
+
 export interface TopologyDeviceRecordDto {
   className?: string;
   displayName?: string;
+  iconItemId?: string;
   x: number;
   y: number;
   z: number;
   dim: number;
   channelCost?: number;
+}
+
+export interface TopologyCpuSummaryDto {
+  name?: string;
+  coProcessors: number;
+  availableStorage: number;
+  usedStorage: number;
+  busy: boolean;
+  unitCount: number;
+  storageUnits: number;
+  acceleratorUnits: number;
+  monitorUnits: number;
 }
 
 export interface TopologyEdgeDto {
@@ -708,6 +799,7 @@ export interface TopologyEdgeDto {
   cableType?: 'smart' | 'covered' | 'dense' | string;
   channelsSimulated?: TopologyChannelInfoDto;
   channelsReal?: TopologyChannelInfoDto;
+  pathPoints?: { x: number; y: number }[];
 }
 
 // Phase 3 integration DTOs
@@ -783,6 +875,25 @@ export interface PlannerPlansResponse {
   plans: PlanEntryDto[];
 }
 
+export interface WebFavoritesDto {
+  recipes: string[];
+  patterns: string[];
+  items: string[];
+}
+
+export interface PlannerExportFlowRequest {
+  networkId?: number;
+  format?: 'gtnh-flow-v1' | 'factory-flow-v1';
+  roots: { itemId: string; amount: number }[];
+}
+
+export interface PlannerExportFlowResponse {
+  success: boolean;
+  format?: string;
+  export?: Record<string, unknown>;
+  message?: string;
+}
+
 export interface WebAssistantResponse {
   success: boolean;
   message: string;
@@ -830,6 +941,10 @@ export interface WebAlertsConfigDto {
   orderCompleteEnabled: boolean;
   channelThresholdPercent: number;
   channelThresholdAbsolute: number;
+  serverTpsBelowEnabled?: boolean;
+  serverTpsThreshold?: number;
+  serverTpsDurationSeconds?: number;
+  webhooks?: WebhookRuleDto[];
   inventoryThresholds?: Array<{
     itemId?: string;
     fluidName?: string;
@@ -837,6 +952,44 @@ export interface WebAlertsConfigDto {
     networkId: number;
     label?: string;
   }>;
+  automationRules?: AutomationRuleDto[];
+}
+
+export interface AutomationRuleDto {
+  id: string;
+  enabled: boolean;
+  type: string;
+  itemId: string;
+  threshold: number;
+  craftAmount?: number;
+  patternId?: string;
+  cpuName?: string;
+  networkId: number;
+  cooldownSeconds: number;
+  requireCpuIdle?: boolean;
+  maxTriggersPerHour?: number;
+}
+
+export interface WebhookRuleDto {
+  id: string;
+  url?: string;
+  urlConfigured?: boolean;
+  enabled: boolean;
+  events?: string[];
+  mention?: string;
+}
+
+export interface ServerHealthResponse {
+  success: boolean;
+  tps: number;
+  mspt: number;
+  onlinePlayers: number;
+  uptimeSeconds: number;
+  history?: {
+    tps: number[];
+    mspt: number[];
+    timestamps: number[];
+  };
 }
 
 export interface AlertsResponse {
@@ -926,7 +1079,7 @@ export interface NetworkBalanceResponse {
   message?: string;
 }
 
-/** GET /api/craft/tree node (Phase 6). */
+/** GET /api/craft/tree node (Phase 6 / 4.1). */
 export interface CraftTreeNodeDto {
   itemId: string;
   registryName: string;
@@ -934,7 +1087,10 @@ export interface CraftTreeNodeDto {
   meta: number;
   required: number;
   available: number;
+  inStock?: number;
   missing: number;
+  toCraft?: number;
+  patternId?: string;
   leaf: boolean;
   recipeHandlerId?: string;
   recipeIndex?: number;
@@ -970,12 +1126,20 @@ export interface P2pFrequencyGroupDto {
   endpoints: P2pTunnelDto[];
 }
 
+export interface P2pPowerChannelDto {
+  frequency: number;
+  frequencyHex: string;
+  avgEuPerTick: number;
+  endpointCount: number;
+}
+
 export interface P2pMapSnapshotDto {
   networkId: number;
   timestamp: number;
   tunnelCount: number;
   frequencyCount: number;
   groups: P2pFrequencyGroupDto[];
+  powerChannels?: P2pPowerChannelDto[];
 }
 
 export interface P2pMapResponse {

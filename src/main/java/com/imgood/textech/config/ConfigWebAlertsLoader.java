@@ -64,8 +64,8 @@ public final class ConfigWebAlertsLoader {
             }
             cached = normalized;
             lastLoadMs = System.currentTimeMillis();
-            AdvanceDataMonitor.LOG.info("[WebAE] Saved web-alerts.json ({} inventory rules)", normalized.inventoryThresholds
-                .size());
+            AdvanceDataMonitor.LOG
+                .info("[WebAE] Saved web-alerts.json ({} inventory rules)", normalized.inventoryThresholds.size());
             return true;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to save web-alerts.json", e);
@@ -87,6 +87,12 @@ public final class ConfigWebAlertsLoader {
             }
             if (loaded.inventoryThresholds == null) {
                 loaded.inventoryThresholds = new java.util.ArrayList<WebAlertsConfig.InventoryThresholdRule>();
+            }
+            if (loaded.webhooks == null) {
+                loaded.webhooks = new java.util.ArrayList<WebAlertsConfig.WebhookRule>();
+            }
+            if (loaded.automationRules == null) {
+                loaded.automationRules = new java.util.ArrayList<WebAlertsConfig.AutomationRule>();
             }
             return loaded;
         } catch (Exception e) {

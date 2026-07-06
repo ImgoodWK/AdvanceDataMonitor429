@@ -1173,6 +1173,132 @@ body {
   border: 1px solid var(--border);
 }
 
+/* Topology page split layout */
+.topology-page-split {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 320px);
+  gap: 8px;
+  align-items: stretch;
+}
+.topology-page-graph {
+  min-width: 0;
+}
+.topology-page-sidebar .ant-card-body {
+  padding: 8px 12px 12px;
+}
+.topology-device-list-scroll {
+  scrollbar-width: thin;
+}
+.topology-device-list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  min-height: 40px;
+}
+.topology-device-list-row:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+}
+.topology-device-list-row--selected {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.topology-device-list-row-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.topology-device-list-row-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Simulated cable view */
+.topology-simulated-host {
+  background: color-mix(in srgb, var(--bg-primary) 92%, #0a1628);
+}
+.topology-sim-cable {
+  stroke-linecap: square;
+}
+.topology-sim-corner {
+  pointer-events: none;
+}
+
+/* Drive simulated GUI */
+.drive-simulated-modal .ant-modal-body {
+  overflow-x: hidden;
+}
+.drive-simulated-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+.drive-simulated-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 8px 6px;
+  min-height: 88px;
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.drive-simulated-slot--empty {
+  border-style: dashed;
+  opacity: 0.75;
+  justify-content: center;
+}
+.drive-simulated-slot-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drive-simulated-slot-name {
+  font-size: 11px;
+  line-height: 1.3;
+  width: 100%;
+  text-align: center;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.drive-simulated-slot-usage {
+  font-size: 10px;
+  text-align: center;
+  word-break: break-word;
+}
+.drive-simulated-slot-empty {
+  font-size: 11px;
+  text-align: center;
+}
+
+.topology-sim-texture {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 /* GT machines summary charts (Phase 4c) */
 .gt-summary-chart {
   display: flex;
@@ -1257,6 +1383,14 @@ body {
 
   .topology-graph-card {
     min-height: 360px !important;
+  }
+
+  .topology-page-split {
+    grid-template-columns: 1fr;
+  }
+
+  .topology-page-sidebar {
+    order: 2;
   }
 
   .monitor-preview-chart {

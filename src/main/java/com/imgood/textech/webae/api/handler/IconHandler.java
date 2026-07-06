@@ -16,9 +16,9 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.auth.WebAuthOpCheck;
 import com.imgood.textech.webae.icon.IconMissingQueue;
+import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconStore;
 import com.imgood.textech.webae.icon.IconStore.PackInfo;
-import com.imgood.textech.webae.icon.IconRenderMode;
 
 import fi.iki.elonen.NanoHTTPD;
 

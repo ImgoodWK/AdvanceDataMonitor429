@@ -37,10 +37,8 @@ public final class EventStreamHandler {
             PipedOutputStream out = new PipedOutputStream(in);
             subHolder[0] = EventStreamHub.instance()
                 .register(ownerUuid, out);
-            NanoHTTPD.Response response = NanoHTTPD.newChunkedResponse(
-                NanoHTTPD.Response.Status.OK,
-                "text/event-stream; charset=utf-8",
-                in);
+            NanoHTTPD.Response response = NanoHTTPD
+                .newChunkedResponse(NanoHTTPD.Response.Status.OK, "text/event-stream; charset=utf-8", in);
             response.addHeader("Cache-Control", "no-cache");
             response.addHeader("Connection", "keep-alive");
             response.addHeader("X-Accel-Buffering", "no");

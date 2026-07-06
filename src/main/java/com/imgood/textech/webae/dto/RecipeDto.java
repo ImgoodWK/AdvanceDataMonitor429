@@ -35,6 +35,10 @@ public class RecipeDto {
     public Integer durationTicks;
     /** GT voltage tier label (e.g. "LV", "MV"). */
     public String voltageTier;
+    /** GT cleanroom requirement when available. */
+    public Boolean requiresCleanroom;
+    /** GT total power consumption (euPerTick * duration) when both known. */
+    public Long powerConsumption;
 
     /** Source type hint: crafting, smelting, gt, nei. */
     public String recipeType;

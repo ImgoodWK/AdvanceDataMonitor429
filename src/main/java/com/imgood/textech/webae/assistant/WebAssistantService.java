@@ -51,8 +51,7 @@ public final class WebAssistantService {
             || intent.type == AssistantIntentType.HISTORY_NEXT
             || intent.type == AssistantIntentType.CANCEL) {
             result.success = true;
-            result.message = zh(safeLocale)
-                ? "该指令需在客户端执行，Web 面板仅支持查询类助手功能。"
+            result.message = zh(safeLocale) ? "该指令需在客户端执行，Web 面板仅支持查询类助手功能。"
                 : "This command must run in-game; Web panel supports query intents only.";
             result.code = "client_only";
             return result;
@@ -67,13 +66,8 @@ public final class WebAssistantService {
         }
 
         try {
-            String response = AssistantServerServices.query(
-                player,
-                intent.type,
-                intent.rawText,
-                intent.target,
-                intent.amount,
-                safeLocale);
+            String response = AssistantServerServices
+                .query(player, intent.type, intent.rawText, intent.target, intent.amount, safeLocale);
             result.success = true;
             result.message = response == null ? "" : response;
             result.code = "ok";

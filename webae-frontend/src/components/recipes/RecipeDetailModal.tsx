@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 
-import { Modal, Tabs, Button } from 'antd';
+import { Modal, Tabs, Button, Space } from 'antd';
+import { StarFilled, StarOutlined } from '@ant-design/icons';
 
 import { RecipeDetailCard } from '@/components/recipes/RecipeDetailCard';
 import type { RecipeDto, RecipeItemEntry } from '@/types/dto';
 import { primaryOutput } from '@/utils/recipe';
+import { recipeFavoriteKey, useFavorites } from '@/hooks/useFavorites';
 
 interface RecipeDetailModalProps {
   open: boolean;
@@ -29,6 +31,7 @@ export function RecipeDetailModal({
   t,
 }: RecipeDetailModalProps) {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const { isRecipeFavorite, toggleRecipe } = useFavorites();
 
   useEffect(() => {
     if (open) setActiveIndex(initialIndex);
@@ -39,6 +42,9 @@ export function RecipeDetailModal({
   const main = primaryOutput(recipes[0]);
   const title =
     main?.displayName || main?.registryName || recipes[0].handlerName || t('recipes');
+  const activeRecipe = recipes[activeIndex];
+  const favKey = recipeFavoriteKey(activeRecipe.handlerId, activeRecipe.recipeIndex);
+  const favorited = isRecipeFavorite(favKey);
 
   const showTabs = recipes.length > 1;
 
@@ -47,17 +53,27 @@ export function RecipeDetailModal({
       open={open}
       onCancel={onClose}
       footer={
-        onApplyRecipe ? (
+        <Space>
           <Button
-            type="primary"
-            onClick={() => {
-              onApplyRecipe(recipes[activeIndex]);
-              onClose();
-            }}
+            icon={favorited ? <StarFilled /> : <StarOutlined />}
+            type={favorited ? 'primary' : 'default'}
+            onClick={() => void toggleRecipe(favKey)}
+            aria-pressed={favorited}
           >
-            {applyLabel || t('useRecipe')}
+            {favorited ? t('unfavorite') : t('favorite')}
           </Button>
-        ) : null
+          {onApplyRecipe ? (
+            <Button
+              type="primary"
+              onClick={() => {
+                onApplyRecipe(recipes[activeIndex]);
+                onClose();
+              }}
+            >
+              {applyLabel || t('useRecipe')}
+            </Button>
+          ) : null}
+        </Space>
       }
       width={720}
       title={title}

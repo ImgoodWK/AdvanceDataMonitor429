@@ -7,7 +7,6 @@ import java.util.List;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.textech.AdvanceDataMonitor;
@@ -86,15 +85,28 @@ public final class NetworkStatusEnumerator {
             if (block == null) {
                 return null;
             }
-            ItemStack representation = block.getMachineRepresentation();
-            if (representation == null || representation.getItem() == null) {
-                return null;
-            }
 
             String className = host.getClass()
                 .getName();
             if (className == null || className.isEmpty()) {
                 className = clazz != null ? clazz.getName() : "unknown";
+            }
+
+            ItemStack representation = block.getMachineRepresentation();
+            if (representation == null || representation.getItem() == null) {
+                representation = fallbackRepresentation(host, className);
+            }
+            if (representation == null || representation.getItem() == null) {
+                AdvanceDataMonitor.LOG.debug(
+                    "[WebAE] Topology skipped node without representation: {} @ {}",
+                    className,
+                    block.getLocation());
+                return null;
+            }
+
+            // Cables are pure transport — never emit them as topology devices.
+            if (TopologyRules.isCableFacility(className)) {
+                return null;
             }
 
             int x = 0;
@@ -121,7 +133,11 @@ public final class NetworkStatusEnumerator {
             }
 
             TopologyNodeType type = TopologyRules.classify(className, representation);
-            String displayName = TopologyRules.displayNameFor(type);
+            String displayName = representation.getDisplayName();
+            if (displayName == null || displayName.trim()
+                .isEmpty()) {
+                displayName = TopologyRules.displayNameFor(type);
+            }
             if (host instanceof TileEntity && InterfaceLocator.isInterface((TileEntity) host)) {
                 try {
                     String term = InterfaceLocator.getTermName((TileEntity) host);
@@ -246,8 +262,7 @@ public final class NetworkStatusEnumerator {
     }
 
     private static int probeNodeInt(IGridNode node, boolean used) {
-        String[] names = used
-            ? new String[] { "getUsedChannels", "getChannelsUsed", "getChannelUsed" }
+        String[] names = used ? new String[] { "getUsedChannels", "getChannelsUsed", "getChannelUsed" }
             : new String[] { "getMaxChannels", "getChannelCapacity", "getChannelMax" };
         for (String name : names) {
             try {
@@ -263,6 +278,30 @@ public final class NetworkStatusEnumerator {
             } catch (Exception ignored) {}
         }
         return -1;
+    }
+
+    private static ItemStack fallbackRepresentation(IGridHost host, String className) {
+        if (host == null || className == null) {
+            return null;
+        }
+        if (TopologyRules.isCableFacility(className)) {
+            return null;
+        }
+        String[] methods = { "getItemStack", "getDisplayStack", "getCableItem" };
+        for (String methodName : methods) {
+            try {
+                Method m = host.getClass()
+                    .getMethod(methodName);
+                Object val = m.invoke(host);
+                if (val instanceof ItemStack) {
+                    ItemStack stack = (ItemStack) val;
+                    if (stack.getItem() != null) {
+                        return stack;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
     }
 
     private static String stackItemId(ItemStack stack) {

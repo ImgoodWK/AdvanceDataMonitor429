@@ -1,6 +1,5 @@
 package com.imgood.textech.webae.craft;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +9,7 @@ import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.dto.RecipeDto;
 import com.imgood.textech.webae.dto.RecipeDto.ItemEntry;
 import com.imgood.textech.webae.dto.StorageDto;
+import com.imgood.textech.webae.pattern.PatternBrowseService;
 import com.imgood.textech.webae.recipe.RecipeCacheStore;
 
 /**
@@ -28,23 +28,29 @@ public final class CraftTreeCalculator {
         }
         int depth = maxDepth <= 0 ? DEFAULT_MAX_DEPTH : Math.min(maxDepth, MAX_DEPTH_CAP);
         long qty = amount <= 0 ? 1L : amount;
-        StorageDto storage = ownerUuid != null && !ownerUuid.isEmpty()
-            ? SnapshotCache.instance()
-                .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE)
-            : null;
+        StorageDto storage = ownerUuid != null && !ownerUuid.isEmpty() ? SnapshotCache.instance()
+            .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE) : null;
         Set<String> visiting = new HashSet<String>();
-        return expand(itemKey, qty, depth, storage, visiting);
+        return expand(ownerUuid, networkId, itemKey, qty, depth, storage, visiting);
     }
 
-    private static CraftTreeNodeDto expand(String itemKey, long amount, int depthLeft, StorageDto storage,
-        Set<String> visiting) {
+    private static CraftTreeNodeDto expand(String ownerUuid, int networkId, String itemKey, long amount, int depthLeft,
+        StorageDto storage, Set<String> visiting) {
         CraftTreeNodeDto node = new CraftTreeNodeDto();
         node.registryName = itemKey;
         node.itemId = itemKey;
         node.displayName = itemKey;
         node.required = amount;
         node.available = findAvailable(storage, itemKey);
+        node.inStock = node.available;
         node.missing = Math.max(0L, node.required - node.available);
+        node.toCraft = node.missing;
+        if (ownerUuid != null && !ownerUuid.isEmpty() && node.toCraft > 0L) {
+            String patternId = PatternBrowseService.findPatternIdForOutput(ownerUuid, networkId, itemKey);
+            if (patternId != null && !patternId.isEmpty()) {
+                node.patternId = patternId;
+            }
+        }
 
         if (depthLeft <= 0 || visiting.contains(itemKey.toLowerCase())) {
             node.leaf = true;
@@ -96,7 +102,14 @@ public final class CraftTreeCalculator {
                 }
                 int inSize = input.stackSize > 0 ? input.stackSize : 1;
                 long childAmount = craftsNeeded * inSize;
-                CraftTreeNodeDto child = expand(inKey, childAmount, depthLeft - 1, storage, visiting);
+                CraftTreeNodeDto child = expand(
+                    ownerUuid,
+                    networkId,
+                    inKey,
+                    childAmount,
+                    depthLeft - 1,
+                    storage,
+                    visiting);
                 if (child != null) {
                     if (input.displayName != null && !input.displayName.isEmpty()) {
                         child.displayName = input.displayName;

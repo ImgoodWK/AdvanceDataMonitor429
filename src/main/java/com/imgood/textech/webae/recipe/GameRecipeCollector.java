@@ -336,6 +336,16 @@ public final class GameRecipeCollector {
                 }
             } catch (Throwable ignored) {}
         }
+        if (dto.euPerTick != null && dto.durationTicks != null && dto.durationTicks.intValue() > 0) {
+            dto.powerConsumption = Long.valueOf(dto.euPerTick.longValue() * dto.durationTicks.intValue());
+        }
+        try {
+            java.lang.reflect.Field cleanField = findField(recipe.getClass(), "mRequiresCleanRoom");
+            if (cleanField != null) {
+                cleanField.setAccessible(true);
+                dto.requiresCleanroom = Boolean.valueOf(cleanField.getBoolean(recipe));
+            }
+        } catch (Throwable ignored) {}
     }
 
     private static ItemStack[] readItemStackArray(Object recipe, String fieldName) {

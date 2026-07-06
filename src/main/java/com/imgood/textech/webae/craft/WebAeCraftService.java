@@ -27,12 +27,7 @@ public final class WebAeCraftService {
             return Collections.emptyList();
         }
         WebAeOwnerContext.positionPlayerAtMonitor(player, group);
-        return AssistantServerServices.craftingCandidatesForLink(
-            player,
-            group.craftingLink,
-            rawText,
-            target,
-            amount);
+        return AssistantServerServices.craftingCandidatesForLink(player, group.craftingLink, rawText, target, amount);
     }
 
     public static String submitCraft(String ownerUuid, int networkId, CraftingCandidate candidate, long amount,

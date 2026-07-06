@@ -133,7 +133,9 @@ public class Config {
     public static int webRecipeUploadBatchesPerTick = 3;
     /** Minimum interval (ms) between fuzzy recipe searches per owner. Default 300. */
     public static int webRecipeSearchMinIntervalMs = 300;
-    /** NESQL repository path for {@code /admweb icons import-nesql}. Empty = {@code TeXTechWebAE} under instance root. */
+    /**
+     * NESQL repository path for {@code /admweb icons import-nesql}. Empty = {@code TeXTechWebAE} under instance root.
+     */
     public static String webNesqlRepositoryPath = "";
     /** NEI item-driven deep scan items per tick ({@code /admweb recipes upload deep}). 0 = disabled. */
     public static int webNeiDeepScanItemsPerTick = 0;
@@ -177,6 +179,8 @@ public class Config {
     public static boolean webTopologyEnabled = true;
     /** TTL in ms for network topology cache per network/mode. Default 30000. */
     public static int webTopologyCacheTtlMs = 300000;
+    /** Optional Dynmap base URL for player location deep links (Phase 6.1). Empty = disabled. */
+    public static String webDynmapBaseUrl = "";
 
     // --- web console per-feature debug logs (default false, gate logs/textech/webae-<feature>.log) ---
     /** Verbose icon rendering/upload logging (IconRenderer, IconHandler, PacketWebIconUpload). */

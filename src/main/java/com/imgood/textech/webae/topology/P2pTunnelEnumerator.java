@@ -6,6 +6,8 @@ import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
+import net.minecraftforge.common.DimensionManager;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
@@ -140,5 +142,65 @@ public final class P2pTunnelEnumerator {
             }
         } catch (Exception ignored) {}
         return false;
+    }
+
+    /**
+     * Best-effort EU/t for a power P2P frequency (Phase 3.2). Returns {@code 0} when unknown.
+     */
+    public static double probePowerEuPerTick(List<P2pTunnelDto> tunnels, int frequency) {
+        if (tunnels == null) {
+            return 0.0;
+        }
+        for (P2pTunnelDto t : tunnels) {
+            if (t == null || t.frequency != frequency) {
+                continue;
+            }
+            if (t.type == null || !t.type.toLowerCase()
+                .contains("power")) {
+                continue;
+            }
+            if (!t.inputSide) {
+                continue;
+            }
+            double flow = probePowerFlowAt(t);
+            if (flow > 0.0) {
+                return flow;
+            }
+        }
+        return 0.0;
+    }
+
+    private static double probePowerFlowAt(P2pTunnelDto t) {
+        try {
+            World world = DimensionManager.getWorld(t.dim);
+            if (world == null || !world.blockExists(t.x, t.y, t.z)) {
+                return 0.0;
+            }
+            TileEntity te = world.getTileEntity(t.x, t.y, t.z);
+            if (te == null) {
+                return 0.0;
+            }
+            return probePowerFlowObject(te);
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    private static double probePowerFlowObject(Object host) {
+        String[] methods = new String[] { "getPowerFlow", "getEnergyFlow", "getAvgPowerUsage", "getPowerUsage" };
+        for (int i = 0; i < methods.length; i++) {
+            try {
+                Method m = host.getClass()
+                    .getMethod(methods[i]);
+                Object val = m.invoke(host);
+                if (val instanceof Number) {
+                    double d = ((Number) val).doubleValue();
+                    if (d > 0.0) {
+                        return d;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return 0.0;
     }
 }

@@ -73,6 +73,14 @@ public class SnapshotCache {
         return entry != null ? entry.timestamp : 0L;
     }
 
+    /**
+     * Monotonic version token for cursor pagination — changes when the cached snapshot is replaced
+     * or invalidated so clients can detect stale cursors.
+     */
+    public long snapshotVersion(String playerUuid, int networkId, String dataType) {
+        return timestampOf(playerUuid, networkId, dataType);
+    }
+
     public boolean isFresh(String playerUuid, int networkId, String dataType) {
         return get(playerUuid, networkId, dataType) != null;
     }
@@ -123,6 +131,25 @@ public class SnapshotCache {
             if (key == null || !key.endsWith(":storage")) continue;
             CachedEntry cached = entry.getValue();
             if (cached == null || !(cached.data instanceof com.imgood.textech.webae.dto.StorageDto)) continue;
+            consumer.accept((com.imgood.textech.webae.dto.StorageDto) cached.data);
+        }
+    }
+
+    /** Iterate cached storage snapshots for one owner (includes stale entries). */
+    public void forEachStorageSnapshotForOwner(String ownerUuid, StorageSnapshotConsumer consumer) {
+        if (consumer == null || ownerUuid == null || ownerUuid.isEmpty()) {
+            return;
+        }
+        String prefix = ownerUuid + ":";
+        for (java.util.Map.Entry<String, CachedEntry> entry : cache.entrySet()) {
+            String key = entry.getKey();
+            if (key == null || !key.startsWith(prefix) || !key.endsWith(":storage")) {
+                continue;
+            }
+            CachedEntry cached = entry.getValue();
+            if (cached == null || !(cached.data instanceof com.imgood.textech.webae.dto.StorageDto)) {
+                continue;
+            }
             consumer.accept((com.imgood.textech.webae.dto.StorageDto) cached.data);
         }
     }

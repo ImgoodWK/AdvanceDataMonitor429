@@ -3,7 +3,10 @@ package com.imgood.textech.webae.metric;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.imgood.textech.AdvanceDataMonitor;
@@ -12,8 +15,10 @@ import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.dto.GtMachineDto;
 import com.imgood.textech.webae.dto.GtMachineListDto;
+import com.imgood.textech.webae.dto.NetworkMetricFluidHistoryDto;
 import com.imgood.textech.webae.dto.NetworkMetricHistoryDto;
 import com.imgood.textech.webae.dto.StorageDto;
+import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
 
 /**
  * Network-wide scalar metric sampler for the WebAE dashboard trend charts.
@@ -49,6 +54,7 @@ public class NetworkMetricSampler {
 
     private static final NetworkMetricSampler INSTANCE = new NetworkMetricSampler();
     private static final long IDLE_EVICT_MS = 120_000L;
+    private static final int MAX_TRACKED_FLUIDS = 10;
 
     private final ConcurrentHashMap<String, NetworkMetricRecord> records = new ConcurrentHashMap<String, NetworkMetricRecord>();
     private SnapshotCache snapshotCache;
@@ -185,6 +191,10 @@ public class NetworkMetricSampler {
                 cpuBusyRatio,
                 gtMachineCount,
                 gtActiveCount));
+
+        if (storage != null && storage.fluids != null) {
+            record.sampleTrackedFluids(storage, now);
+        }
     }
 
     /**
@@ -212,6 +222,37 @@ public class NetworkMetricSampler {
         if (record == null) return null;
         record.lastAccessTime = System.currentTimeMillis();
         return record.toDto(networkId);
+    }
+
+    /**
+     * Register up to {@link #MAX_TRACKED_FLUIDS} fluid names for per-fluid trend sampling.
+     */
+    public void registerTrackedFluids(String playerUuid, int networkId, List<String> fluidNames) {
+        if (fluidNames == null || fluidNames.isEmpty()) {
+            return;
+        }
+        String key = playerUuid + ":" + networkId;
+        NetworkMetricRecord record = records.get(key);
+        if (record == null) {
+            markActive(playerUuid, networkId);
+            record = records.get(key);
+        }
+        if (record != null) {
+            record.registerFluids(fluidNames);
+        }
+    }
+
+    /**
+     * @return per-fluid history snapshot, or {@code null} when no record exists yet.
+     */
+    public NetworkMetricFluidHistoryDto getFluidHistory(String playerUuid, int networkId) {
+        String key = playerUuid + ":" + networkId;
+        NetworkMetricRecord record = records.get(key);
+        if (record == null) {
+            return null;
+        }
+        record.lastAccessTime = System.currentTimeMillis();
+        return record.toFluidDto(networkId);
     }
 
     // ---- inner types ----
@@ -262,12 +303,91 @@ public class NetworkMetricSampler {
     public static final class NetworkMetricRecord {
 
         private final Deque<NetworkMetricSample> samples = new ArrayDeque<NetworkMetricSample>();
+        private final Map<String, Deque<FluidSamplePoint>> fluidSamples = new HashMap<String, Deque<FluidSamplePoint>>();
+        private final LinkedHashSet<String> trackedFluidKeys = new LinkedHashSet<String>();
         private final long windowMs;
         private volatile long lastAccessTime;
 
         public NetworkMetricRecord(long windowMs) {
             this.windowMs = windowMs;
             this.lastAccessTime = System.currentTimeMillis();
+        }
+
+        public synchronized void registerFluids(List<String> fluidNames) {
+            for (String name : fluidNames) {
+                if (name == null) {
+                    continue;
+                }
+                String key = name.trim()
+                    .toLowerCase();
+                if (key.isEmpty()) {
+                    continue;
+                }
+                if (trackedFluidKeys.contains(key)) {
+                    continue;
+                }
+                if (trackedFluidKeys.size() >= MAX_TRACKED_FLUIDS) {
+                    break;
+                }
+                trackedFluidKeys.add(key);
+                if (!fluidSamples.containsKey(key)) {
+                    fluidSamples.put(key, new ArrayDeque<FluidSamplePoint>());
+                }
+            }
+        }
+
+        public synchronized void sampleTrackedFluids(StorageDto storage, long now) {
+            if (trackedFluidKeys.isEmpty()) {
+                return;
+            }
+            long cutoff = now - windowMs;
+            for (String fluidKey : trackedFluidKeys) {
+                Deque<FluidSamplePoint> deque = fluidSamples.get(fluidKey);
+                if (deque == null) {
+                    deque = new ArrayDeque<FluidSamplePoint>();
+                    fluidSamples.put(fluidKey, deque);
+                }
+                long amount = findFluidAmount(storage, fluidKey);
+                deque.addLast(new FluidSamplePoint(now, amount));
+                while (!deque.isEmpty() && deque.peekFirst().ts < cutoff) {
+                    deque.pollFirst();
+                }
+            }
+        }
+
+        private static long findFluidAmount(StorageDto storage, String needle) {
+            if (storage.fluids == null || needle == null || needle.isEmpty()) {
+                return 0L;
+            }
+            long total = 0L;
+            for (FluidEntry fluid : storage.fluids) {
+                if (fluid == null || fluid.fluidName == null) {
+                    continue;
+                }
+                if (fluid.fluidName.toLowerCase()
+                    .contains(needle)) {
+                    total += fluid.amount;
+                }
+            }
+            return total;
+        }
+
+        public synchronized NetworkMetricFluidHistoryDto toFluidDto(int networkId) {
+            NetworkMetricFluidHistoryDto dto = new NetworkMetricFluidHistoryDto();
+            dto.networkId = networkId;
+            for (String fluidKey : trackedFluidKeys) {
+                Deque<FluidSamplePoint> deque = fluidSamples.get(fluidKey);
+                if (deque == null || deque.isEmpty()) {
+                    continue;
+                }
+                NetworkMetricFluidHistoryDto.FluidSeries series = new NetworkMetricFluidHistoryDto.FluidSeries();
+                for (FluidSamplePoint p : deque) {
+                    series.timestamps.add(p.ts);
+                    series.amounts.add(p.amount);
+                }
+                dto.fluids.put(fluidKey, series);
+            }
+            return dto;
         }
 
         public synchronized void addSample(NetworkMetricSample sample) {
@@ -327,6 +447,17 @@ public class NetworkMetricSampler {
             dto.gtMachineCountHistory = gtMachineCount;
             dto.gtActiveCountHistory = gtActiveCount;
             return dto;
+        }
+    }
+
+    static final class FluidSamplePoint {
+
+        final long ts;
+        final long amount;
+
+        FluidSamplePoint(long ts, long amount) {
+            this.ts = ts;
+            this.amount = amount;
         }
     }
 }

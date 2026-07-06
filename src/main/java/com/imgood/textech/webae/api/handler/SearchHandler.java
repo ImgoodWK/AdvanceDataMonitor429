@@ -56,7 +56,9 @@ public final class SearchHandler {
 
         SearchResponse response = WebSearchService.search(ownerUuid, q, offset, limit, types, networkFilter);
         if (response == null) {
-            return json(NanoHTTPD.Response.Status.INTERNAL_ERROR, "{\"success\":false,\"message\":\"No search result\"}");
+            return json(
+                NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                "{\"success\":false,\"message\":\"No search result\"}");
         }
 
         StringBuilder sb = new StringBuilder();

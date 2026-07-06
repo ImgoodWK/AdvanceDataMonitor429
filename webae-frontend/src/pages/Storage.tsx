@@ -1,14 +1,17 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Tabs, Table, Input, Empty, Card, Tag, Button } from 'antd';
+import { Tabs, Input, Empty, Card, Tag, Button, Alert, Select, Spin } from 'antd';
+import type { ColumnType } from 'antd/es/table';
 import { SearchOutlined } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { useSnapshotData } from '@/hooks/useSnapshotData';
+import { useStoragePaged, type StorageSortKey } from '@/hooks/useStoragePaged';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { Icon } from '@/components/Icon';
 import { PageShell } from '@/components/Layout/PageShell';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { OverviewWidgetGrid } from '@/components/dashboard/OverviewWidgetGrid';
+import { VirtualStorageTable } from '@/components/storage/VirtualStorageTable';
 import {
   DEFAULT_STORAGE_OVERVIEW_SETTINGS,
   STORAGE_OVERVIEW_CONFIG_KEY,
@@ -22,106 +25,85 @@ export function StoragePage() {
   const { selectedNetworks, displayMode, setActivePage, setOrderNavigation, consumePageSearchPrefill } =
     useAppContext();
   const { t } = useI18n();
-  const { storageMap, loading } = useSnapshotData();
+  const { refreshing, hasSelectedStorage } = useSnapshotData();
   const fmtNum = useNumberFormat();
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('items');
+  const [sort, setSort] = useState<StorageSortKey>('amount_desc');
+
+  const merged = displayMode === 'merged';
+  const networkIds = selectedNetworks;
 
   useEffect(() => {
     const prefill = consumePageSearchPrefill('storage');
     if (prefill?.query) setSearch(prefill.query);
   }, [consumePageSearchPrefill]);
 
-  const allData = useMemo((): OverviewSnapshot | null => {
-    const storages = selectedNetworks.map((nid) => storageMap[nid]).filter(Boolean);
-    if (storages.length === 0) return null;
-    if (displayMode === 'merged') {
-      const itemMap = new Map<string, StorageItem>();
-      const fluidMap = new Map<string, StorageFluid>();
-      const essentiaMap = new Map<string, StorageEssentia>();
-      let bytesUsed = 0;
-      let bytesMax = 0;
-      const allCpus: OverviewSnapshot['cpus'] = [];
-      for (const s of storages) {
-        bytesUsed += s.bytesUsed || 0;
-        bytesMax += s.bytesMax || 0;
-        allCpus.push(...(s.cpus || []));
-        for (const item of s.items || []) {
-          const key = item.itemId || item.registryName;
-          const existing = itemMap.get(key);
-          if (existing) existing.amount += item.amount;
-          else itemMap.set(key, { ...item });
-        }
-        for (const fluid of s.fluids || []) {
-          const existing = fluidMap.get(fluid.fluidName);
-          if (existing) existing.amount += fluid.amount;
-          else fluidMap.set(fluid.fluidName, { ...fluid });
-        }
-        for (const e of s.essentia || []) {
-          const existing = essentiaMap.get(e.aspect);
-          if (existing) existing.amount += e.amount;
-          else essentiaMap.set(e.aspect, { ...e });
-        }
-      }
-      return {
-        items: Array.from(itemMap.values()),
-        fluids: Array.from(fluidMap.values()),
-        essentia: Array.from(essentiaMap.values()),
-        bytesUsed,
-        bytesMax,
-        cpus: allCpus,
-      };
-    }
-    const first = storages[0];
-    return {
-      items: first.items,
-      fluids: first.fluids,
-      essentia: first.essentia,
-      bytesUsed: first.bytesUsed || 0,
-      bytesMax: first.bytesMax || 0,
-      cpus: first.cpus || [],
-    };
-  }, [storageMap, selectedNetworks, displayMode]);
+  const itemsPaged = useStoragePaged({
+    kind: 'items',
+    networkIds,
+    merged,
+    search,
+    sort,
+    enabled: selectedNetworks.length > 0,
+  });
 
-  if (!allData) {
+  const fluidsPaged = useStoragePaged({
+    kind: 'fluids',
+    networkIds,
+    merged,
+    search,
+    sort,
+    enabled: selectedNetworks.length > 0,
+  });
+
+  const essentiaPaged = useStoragePaged({
+    kind: 'essentia',
+    networkIds,
+    merged,
+    search,
+    sort,
+    enabled: selectedNetworks.length > 0,
+  });
+
+  const overviewSnapshot = useMemo((): OverviewSnapshot | null => {
+    const summary = itemsPaged.summary;
+    if (!summary && !itemsPaged.loading && itemsPaged.totalEstimate === 0) {
+      return null;
+    }
+    return {
+      bytesUsed: summary?.bytesUsed ?? 0,
+      bytesMax: summary?.bytesMax ?? 0,
+      cpus: summary?.cpus ?? [],
+      itemCount: itemsPaged.totalEstimate,
+      itemTotal: summary?.totalAmountSum,
+      fluidCount: fluidsPaged.totalEstimate,
+      essentiaCount: essentiaPaged.totalEstimate,
+    };
+  }, [itemsPaged, fluidsPaged, essentiaPaged]);
+
+  if (selectedNetworks.length === 0) {
     return (
       <PageShell title={t('storage')}>
         <Card>
-          <Empty description={selectedNetworks.length === 0 ? t('selectNetworkFirst') : t('noDataYet')} />
+          <Empty description={t('selectNetworkFirst')} />
         </Card>
       </PageShell>
     );
   }
 
-  const filteredItems = (allData.items || []).filter((item) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      (item.displayName || '').toLowerCase().includes(q) ||
-      (item.registryName || '').toLowerCase().includes(q)
-    );
-  });
-  const filteredFluids = (allData.fluids || []).filter((f) => {
-    if (!search) return true;
-    return (f.fluidName || '').toLowerCase().includes(search.toLowerCase());
-  });
-  const filteredEssentia = (allData.essentia || []).filter((e) => {
-    if (!search) return true;
-    return (e.aspect || '').toLowerCase().includes(search.toLowerCase());
-  });
+  const mergeLimited = itemsPaged.mergeLimited;
 
   const navigateToCraftable = (displayName: string) => {
     setOrderNavigation({ tab: 'patterns', view: 'byProduct', search: displayName });
     setActivePage('order');
   };
 
-  const itemColumns = [
+  const itemColumns: ColumnType<StorageItem>[] = [
     {
       title: t('item'),
       dataIndex: 'displayName',
       key: 'displayName',
-      sorter: (a: StorageItem, b: StorageItem) =>
-        (a.displayName || '').localeCompare(b.displayName || ''),
       render: (_: string, record: StorageItem) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon item={record} size={32} alt={record.displayName} />
@@ -141,8 +123,6 @@ export function StoragePage() {
       dataIndex: 'amount',
       key: 'amount',
       align: 'right' as const,
-      sorter: (a: StorageItem, b: StorageItem) => a.amount - b.amount,
-      defaultSortOrder: 'descend' as const,
       render: (v: number, record: StorageItem) =>
         v === 0 ? (
           <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigateToCraftable(record.displayName || record.registryName || '')}>
@@ -154,13 +134,11 @@ export function StoragePage() {
     },
   ];
 
-  const fluidColumns = [
+  const fluidColumns: ColumnType<StorageFluid>[] = [
     {
       title: t('fluid'),
       dataIndex: 'fluidName',
       key: 'fluidName',
-      sorter: (a: StorageFluid, b: StorageFluid) =>
-        (a.fluidName || '').localeCompare(b.fluidName || ''),
       render: (v: string) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon id={fluidIconId(v)} size={32} alt={v} />
@@ -173,19 +151,15 @@ export function StoragePage() {
       dataIndex: 'amount',
       key: 'amount',
       align: 'right' as const,
-      sorter: (a: StorageFluid, b: StorageFluid) => a.amount - b.amount,
-      defaultSortOrder: 'descend' as const,
       render: (v: number) => <strong style={{ color: 'var(--accent)' }}>{fmtNum(v)}</strong>,
     },
   ];
 
-  const essentiaColumns = [
+  const essentiaColumns: ColumnType<StorageEssentia>[] = [
     {
       title: t('aspect'),
       dataIndex: 'aspect',
       key: 'aspect',
-      sorter: (a: StorageEssentia, b: StorageEssentia) =>
-        (a.aspect || '').localeCompare(b.aspect || ''),
       render: (v: string) => <Tag color="purple">{v}</Tag>,
     },
     {
@@ -193,94 +167,143 @@ export function StoragePage() {
       dataIndex: 'amount',
       key: 'amount',
       align: 'right' as const,
-      sorter: (a: StorageEssentia, b: StorageEssentia) => a.amount - b.amount,
-      defaultSortOrder: 'descend' as const,
       render: (v: number) => <strong style={{ color: 'var(--accent)' }}>{fmtNum(v)}</strong>,
     },
   ];
+
+  const sortOptions = [
+    { value: 'amount_desc', label: t('storageSortAmountDesc') },
+    { value: 'amount_asc', label: t('storageSortAmountAsc') },
+    { value: 'name_asc', label: t('storageSortNameAsc') },
+    { value: 'name_desc', label: t('storageSortNameDesc') },
+  ];
+
+  const exportRows = (itemsPaged.rows as StorageItem[]).map((item) => [
+    item.displayName || '',
+    item.registryName || item.itemId || '',
+    item.amount,
+  ]);
 
   return (
     <PageShell
       title={t('storage')}
       actions={
-        <ExportCsvButton
-          filename="storage-items.csv"
-          headers={[t('displayName'), 'registry', t('amount')]}
-          rows={filteredItems.map((item) => [
-            item.displayName || '',
-            item.registryName || item.itemId || '',
-            item.amount,
-          ])}
-          disabled={filteredItems.length === 0}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {(refreshing || hasSelectedStorage) && refreshing && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }} aria-live="polite">
+              {t('refreshing')}
+            </span>
+          )}
+          <ExportCsvButton
+            filename="storage-items.csv"
+            headers={[t('displayName'), 'registry', t('amount')]}
+            rows={exportRows}
+            disabled={exportRows.length === 0}
+          />
+        </div>
       }
     >
-      <OverviewWidgetGrid
-        storageKey={STORAGE_OVERVIEW_CONFIG_KEY}
-        defaultSettings={DEFAULT_STORAGE_OVERVIEW_SETTINGS}
-        snapshot={allData}
-        dataSources={STORAGE_OVERVIEW_DATA_SOURCES}
-        settingsTitleKey="storageOverviewSettings"
-        gridClassName="overview-widget-grid storage-overview-grid"
-      />
-
-      <Card loading={loading && !allData} style={{ marginTop: 16 }}>
-        <Input
-          placeholder={t('searchPlaceholder')}
-          prefix={<SearchOutlined />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          allowClear
-          style={{ marginBottom: 16 }}
-          aria-label={t('searchPlaceholder')}
+      {overviewSnapshot && (
+        <OverviewWidgetGrid
+          storageKey={STORAGE_OVERVIEW_CONFIG_KEY}
+          defaultSettings={DEFAULT_STORAGE_OVERVIEW_SETTINGS}
+          snapshot={overviewSnapshot}
+          dataSources={STORAGE_OVERVIEW_DATA_SOURCES}
+          settingsTitleKey="storageOverviewSettings"
+          gridClassName="overview-widget-grid storage-overview-grid"
         />
+      )}
+
+      <Card style={{ marginTop: 16 }}>
+        {mergeLimited && (
+          <Alert
+            type="warning"
+            showIcon
+            message={t('storageMergeLimit')}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <Input
+            placeholder={t('searchPlaceholder')}
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
+            style={{ flex: '1 1 200px' }}
+            aria-label={t('searchPlaceholder')}
+          />
+          <Select
+            value={sort}
+            onChange={(v) => setSort(v as StorageSortKey)}
+            options={sortOptions}
+            style={{ minWidth: 160 }}
+            aria-label={t('storageSortLabel')}
+          />
+        </div>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           items={[
             {
               key: 'items',
-              label: `${t('items')} (${filteredItems.length})`,
-              children: filteredItems.length ? (
-                <Table
-                  dataSource={filteredItems}
+              label: `${t('items')} (${itemsPaged.totalEstimate})`,
+              children: mergeLimited ? (
+                <Empty description={t('storageMergeLimit')} />
+              ) : itemsPaged.loading && itemsPaged.rows.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 48 }}>
+                  <Spin aria-label={t('loading')} />
+                </div>
+              ) : (
+                <VirtualStorageTable
+                  rows={itemsPaged.rows as StorageItem[]}
                   columns={itemColumns}
                   rowKey={(r) => r.itemId || r.registryName}
-                  size="small"
-                  pagination={{ pageSize: 50, showSizeChanger: true, showTotal: (total) => `${t('showing')} ${total}` }}
+                  totalEstimate={itemsPaged.totalEstimate}
+                  loading={itemsPaged.loading}
+                  loadingMore={itemsPaged.loadingMore}
+                  hasMore={itemsPaged.hasMore}
+                  onLoadMore={itemsPaged.loadMore}
+                  emptyText={<Empty description={t('noItems')} />}
                 />
-              ) : (
-                <Empty description={t('noItems')} />
               ),
             },
             {
               key: 'fluids',
-              label: `${t('fluids')} (${filteredFluids.length})`,
-              children: filteredFluids.length ? (
-                <Table
-                  dataSource={filteredFluids}
-                  columns={fluidColumns}
-                  rowKey="fluidName"
-                  size="small"
-                  pagination={{ pageSize: 50, showTotal: (total) => `${t('showing')} ${total}` }}
-                />
+              label: `${t('fluids')} (${fluidsPaged.totalEstimate})`,
+              children: mergeLimited ? (
+                <Empty description={t('storageMergeLimit')} />
               ) : (
-                <Empty description={t('noFluids')} />
+                <VirtualStorageTable
+                  rows={fluidsPaged.rows as StorageFluid[]}
+                  columns={fluidColumns}
+                  rowKey={(r) => r.fluidName}
+                  totalEstimate={fluidsPaged.totalEstimate}
+                  loading={fluidsPaged.loading}
+                  loadingMore={fluidsPaged.loadingMore}
+                  hasMore={fluidsPaged.hasMore}
+                  onLoadMore={fluidsPaged.loadMore}
+                  emptyText={<Empty description={t('noFluids')} />}
+                />
               ),
             },
             {
               key: 'essentia',
-              label: `${t('essentia')} (${filteredEssentia.length})`,
-              children: filteredEssentia.length ? (
-                <Table
-                  dataSource={filteredEssentia}
-                  columns={essentiaColumns}
-                  rowKey="aspect"
-                  size="small"
-                  pagination={{ pageSize: 50 }}
-                />
+              label: `${t('essentia')} (${essentiaPaged.totalEstimate})`,
+              children: mergeLimited ? (
+                <Empty description={t('storageMergeLimit')} />
               ) : (
-                <Empty description={t('noEssentia')} />
+                <VirtualStorageTable
+                  rows={essentiaPaged.rows as StorageEssentia[]}
+                  columns={essentiaColumns}
+                  rowKey={(r) => r.aspect}
+                  totalEstimate={essentiaPaged.totalEstimate}
+                  loading={essentiaPaged.loading}
+                  loadingMore={essentiaPaged.loadingMore}
+                  hasMore={essentiaPaged.hasMore}
+                  onLoadMore={essentiaPaged.loadMore}
+                  emptyText={<Empty description={t('noEssentia')} />}
+                />
               ),
             },
           ]}

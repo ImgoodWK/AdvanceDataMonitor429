@@ -75,7 +75,7 @@ All source code resides under `com.imgood.textech.webae/` (152 files). See `proj
 | `webae/` root | 1 | `WebConsoleServer` service lifecycle + static serving (classpath and external `config/textech/web-icons/`) |
 | `webae/auth/` | 3 | Token generation/validation, request auth middleware, OP-level check util |
 | `webae/api/` | 1 | REST API route dispatcher (includes `/api/chat/*`, `/api/players`, `/api/network/metrics`) |
-| `webae/api/handler/` | 29 | REST endpoint implementations (storage/power/recipes/patterns/pattern browse·grid detail/pattern list/orders/GT machines/network metrics/network topology/P2P map/craft tree/SSE/monitor preview/config/icons/chat/players/search/alerts/integration, etc.) |
+| `webae/api/handler/` | 30 | REST endpoint implementations (storage/power/recipes/patterns/pattern browse·grid detail/pattern list/orders/GT machines/network metrics/network topology/P2P map/craft tree/SSE/monitor preview/config/icons/chat/players/search/alerts/server health/integration, etc.) |
 | `webae/cache/` | 2 | Thread-safe TTL snapshot cache + background scheduler |
 | `webae/dto/` | 15 | Data transfer objects (Storage/Power/Recipe/Pattern/PatternListEntry/PatternBrowseEntry/NetworkMetricHistory/Order×4/GtMachine×2/Player/ChatMessage) |
 | `webae/power/` | 1 | Power sampler (sliding window rate calculation) |
@@ -85,8 +85,10 @@ All source code resides under `com.imgood.textech.webae/` (152 files). See `proj
 | `webae/network/` | 6 | Recipe/icon upload packets + command-trigger upload packet + `RecipeUploadBatcher` chunking |
 | `webae/recipe/` | 5 | NEI/vanilla/GT recipe collectors + server cache + itemId normalization |
 | `webae/pattern/` | 8 | Pattern encoder/injector/interface locator + blank pattern consumer + Grid browse merge cache (`PatternBrowseService`) + AE event invalidation (`PatternBrowseInvalidationGridCache`, registered at postInit) |
-| `webae/topology/` | 13 | Network topology enumeration/rules/fake channel allocation/TTL cache + P2P frequency map + AE event invalidation (`TopologyInvalidationGridCache`, registered at postInit) |
-| `webae/craft/` | 2 | Material craft tree (NEI recipe recursion + storage gaps; `GET /api/craft/tree`) |
+| `webae/topology/` | 16 | Network topology enumeration/rules/TopologyFacilityGrouper type aggregation/TTL cache + CraftingCpuTopologyCollector + P2P frequency map + SimulatedLayoutBuilder device ring + AE event invalidation |
+| `webae/craft/` | 2 | Material craft tree (NEI recipe recursion + storage gaps + `patternId`; `GET /api/craft/tree`) |
+| `webae/favorites/` | 1 | Recipe/pattern favorites (`config/textech/web-favorites.json`; `GET/PUT /api/favorites`) |
+| `webae/planner/` | 1 | Factory Flow / gtnh-flow export interop (`POST /api/planner/export-flow`) |
 | `webae/events/` | 1 | SSE subscriber hub (`GET /api/events/stream`; alert broadcast + 15s heartbeat) |
 | `webae/icon/` | 6 | Item icon texture-pack store + atlas sampling/GL fallback + client batched render/upload |
 | `webae/player/` | 4 | Player info store + online-count history sampler + DTO + skin URL resolver |
@@ -136,11 +138,15 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 
 | Method | Path | Auth | Admin? | Description |
 |--------|------|------|--------|-------------|
+| POST | `/api/auth/exchange` | **No** | No | Exchange 6-digit login code for owner token (5 min TTL, single-use; body `{"code":"123456"}`) |
 | GET | `/api/auth/login` | Yes | No | Post-auth info (playerUuid) |
 | GET | `/api/config` | Yes | No | Public client-readable config (refreshIntervalMs, gtRefreshIntervalMs, maxNetworksDisplayed, tokenLifetimeHours, themePresets [legacy, mirrors themeColors], themeColors, themeLayouts) |
 | GET | `/api/networks` | Yes | No | List available AE2 networks for the player |
 | GET | `/api/storage?network=<id>` | Yes | No | Cached storage snapshot (stale fallback with `cached:false`) |
 | GET | `/api/storage/batch?networks=0,1,2` | Yes | No | Batched cached storage read |
+| GET | `/api/storage/items?network=<id>&cursor=&limit=200&sort=amount_desc&search=` | Yes | No | Cursor-paginated items (in-memory slice; `nextCursor`/`totalEstimate`/`snapshotVersion`; stale cursor → 409) |
+| GET | `/api/storage/fluids?network=<id>&cursor=&limit=&sort=&search=` | Yes | No | Cursor-paginated fluids (same) |
+| GET | `/api/storage/essentia?network=<id>&cursor=&limit=&sort=&search=` | Yes | No | Cursor-paginated essentia (same) |
 | POST | `/api/refresh?network=<id>` | Yes | **Yes (OP)** | Force storage re-collect (returns 403 for non-OP) |
 | POST | `/api/refresh/batch?networks=0,1,2` | Yes | **Yes (OP)** | Batched force storage re-collect |
 | GET | `/api/power?network=<id>` | Yes | No | Cached power/steam snapshot |
@@ -185,22 +191,30 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/players` | Yes | No | Returns `{online:[...],offline:[...]}`; each entry has uuid/name/online/onlineMs/lastLogin/lastLogout/skinUrl |
 | GET | `/api/players/since=<ts>` | Yes | No | Incremental fetch of player online-state changes |
 | GET | `/api/players/online/history` | Yes | No | Online player count trend `[{"ts":,"count":}]` (~60 min, 30s samples, for dashboard widgets) |
+| GET | `/api/players/locations` | Yes | No | **Phase6** Online player coordinates `{locations:[{uuid,name,x,y,z,dim,online}]}` |
+| POST | `/api/auth/guest-invite` | Yes | No (owner) | **Phase6** Generate shareable guest token link `{token,url}` |
 | GET | `/api/network/metrics?network=<id>` | Yes | No | AE network metric history (item/fluid/essentia/bytes/CPU busy ratio/GT active count rolling window, `NetworkMetricSampler`) |
+| GET | `/api/network/metrics/fluids?network=<id>&fluids=water,lava` | Yes | No | Pinned fluid amount trends (max 10/network; reference plan Phase 3.1) |
 | GET | `/api/network/topology?network=<id>&mode=logical\|spatial` | Yes | No | AE network topology graph (simulated star fake cables + channels; `logical` groups by device class, `spatial` bins by dimension + 64×64 chunks; TTL via `topologyCacheTtlMs`; returns 503 when `topologyEnabled=false`) |
 | GET | `/api/network/cells?network=<id>` | Yes | No | Network cell byte summary + infinite cell detection (I5) |
 | GET | `/api/network/balance?networks=0,1&minSurplus=&minShortage=&limit=` | Yes | No | Cross-network storage balance suggestions (read-only; compares cached snapshots; Phase 8) |
 | GET | `/api/network/p2p?network=<id>` | Yes | No | P2P tunnel map grouped by frequency (Phase 10; requires `topologyEnabled`) |
-| GET | `/api/craft/tree?item=&amount=&network=&maxDepth=` | Yes | No | Material craft tree (NEI recipe cache recursion + storage gaps; Phase 6) |
+| GET | `/api/craft/tree?item=&amount=&network=&maxDepth=` | Yes | No | Material tree (`required`/`inStock`/`toCraft`/`patternId`; Phase 4.1) |
+| GET/PUT | `/api/favorites` | Yes | PUT No (guest read-only) | Favorites (`web-favorites.json`; Phase 4.2) |
+| GET/POST | `/api/planner/plans` | Yes | POST No (guest) | Plan list / create (`plans.json`; Phase 4.4) |
+| PATCH/DELETE | `/api/planner/plans/<id>` | Yes | No (guest) | Edit title / complete / delete plan |
+| POST | `/api/planner/export-flow` | Yes | No (guest) | Material tree export (`factory-flow-v1` / `gtnh-flow-v1`; Phase 4.3) |
 | GET | `/api/events/stream?token=` | Yes | No | SSE alert push + 15s heartbeat (Phase 9; Bearer or query token) |
 | GET | `/api/monitor/preview?dim=&x=&y=&z=&slot=` | Yes | No | Monitor slot line-chart preview (Phase 11) |
 | GET | `/api/scanner/blocks?type=&q=` | Yes | No | Link Scanner read-only mirror (loaded chunks; I1) |
 | GET | `/api/monitor/bindings` | Yes | No | Data monitor Link/GT binding read-only view (I2) |
-| GET | `/api/planner/plans` | Yes | No | Read-only planner list from `config/textech/plans.json` (I3) |
 | POST | `/api/assistant/query` body `{text,locale}` | Yes | No | Web assistant rule intent parsing (2s rate limit; no AI keys; I4) |
 | GET | `/api/pocket/overview` | Yes | **Yes (OP)** | Minimal read-only dimensional pocket overview (no item contents; I6) |
 | GET | `/api/alerts` | Yes | No | Active automation alerts + `web-alerts.json` rules mirror (A1–A5); includes `canEditRules` (OP) |
 | GET | `/api/alerts/rules` | Yes | No | Rules only + `canEditRules` |
-| PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `config/textech/web-alerts.json`; `WebAlertEngine` reads on next tick |
+| PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `config/textech/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |
+| GET | `/api/server/health` | Yes | No | Server TPS / MSPT / online players / uptime + 300s rolling history (reference plan Phase 2) |
+| GET | `/api/oc/summary` | Yes | No | OC read-only summary (item types, CPU busy, active orders, TPS; 1 req/s; see [oc-integration.md](oc-integration.md)) |
 | GET | `/api/search?q=&limit=&offset=&types=&network=` | Yes | No | Aggregated read-only search (storage/recipe/gt/pattern; 500ms rate limit; pagination; Phase 4a) |
 
 Authentication: `Authorization: Bearer <token>` header. All `/api/` endpoints require it; admin-only endpoints additionally check the player's OP level (>= 2) via `WebAuthOpCheck`.
@@ -358,13 +372,13 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 
 ### 11.1 Storage Monitoring
 
-- **Handler**: `StorageHandler.java`
+- **Handler**: `StorageHandler.java` (full snapshot), `StoragePagedHandler.java` (cursor pagination)
 - **Collector**: `AeSnapshotCollector.java` reads AE2 network storage stats on the main thread
-- **Cache**: `SnapshotCache` TTL = `webRefreshIntervalMs * 3` (tolerates collection jitter)
+- **Cache**: `SnapshotCache` TTL = `webRefreshIntervalMs * 3` (tolerates collection jitter); `snapshotVersion()` for cursor invalidation
 - **Scheduler (Phase 1.2)**: `SnapshotScheduler` collects every `refreshIntervalMs`, spread across ticks (`ceil(activeKeys / N)` per tick where `N = intervalMs / 50`), only for networks active in the last 2 minutes
 - **Return data**: items / fluids / essentia / bytes used+max / crafting CPUs (`CpuEntry` extended in Phase 3 with coordinates, monitor position, remainingItems/startItems)
-- **Endpoints**: `GET /api/storage` (cache-only, stale fallback), `GET /api/storage/batch`, `POST /api/refresh` (admin), `POST /api/refresh/batch` (admin)
-- **Frontend**: Storage page top row uses configurable `OverviewWidgetGrid` (persisted in `webae_storage_overview_config`); sub-tables are items/fluids/essentia only; CPUs moved to standalone menu (see [11.14](#1114-configurable-storage-overview--standalone-cpu-page-phase-3)). Multi-network split/merged; full dashboard GridStack remains (see 11.7 / 11.12)
+- **Endpoints**: `GET /api/storage` (cache-only, stale fallback), `GET /api/storage/batch`, `GET /api/storage/items|fluids|essentia` (cursor pagination, default limit=200, sort=`amount_desc|amount_asc|name_asc|name_desc`, search filter; 409 `cursor_stale`), `POST /api/refresh` (admin), `POST /api/refresh/batch` (admin)
+- **Frontend**: Storage tabs use `useStoragePaged` + `VirtualStorageTable` (`@tanstack/react-virtual` row virtualization + infinite scroll); 300ms search debounce; sort change resets cursor; merge mode client-merge for ≤3 networks, warning when >3; top `OverviewWidgetGrid` uses paged `totalEstimate`/`totalAmountSum` via `OverviewSnapshot` count overrides; `useSnapshotData` stale-while-revalidate on network switch (per-network cache + `refreshing` indicator). CPUs on standalone menu (see [11.14](#1114-configurable-storage-overview--standalone-cpu-page-phase-3))
 
 ### 11.2 Power Monitoring
 
@@ -578,16 +592,22 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
   - E: bind items/blocks atlases before each batch
   - F: when NEI unavailable, enumerate meta variants via `Item.getSubItems`
 
-### 11.17 Network Topology Backend (Phase 1)
+### 11.17 Network Topology (Phase 1 + v2 + v3 + network-tool alignment)
 
-- **Package**: `webae/topology/` — `NetworkDeviceEnumerator` (`IGrid.getMachinesClasses()` walk), `TopologyRules` (built-in classification + channel costs), `FakeChannelAllocator` (star fake cables), `TopologySnapshot` (graph builder), `TopologyCache` (TTL)
-- **Default rules**: aggregate by device class (not dimension); controller/drive/cpu/quantum channelCost=0, interface/p2p/misc=1; star layout (controller hub); spatial mode uses 64×64 chunk bins; channels always include simulated values, with `meta.channelsReal` when AE API is readable
+- **Package**: `webae/topology/` — `NetworkStatusEnumerator` (in-game network-tool parity + item display names), `TopologyRules` (terminal/bus/monitor types), `TopologyFacilityGrouper` (aggregate by type + item id), `TreeTopologyBuilder` (controller star to aggregated groups), `CraftingCpuTopologyCollector` (`ICraftingCPU` cluster aggregation), `SimulatedLayoutBuilder` (device ring, no synthetic cable cells), `TopologySnapshot`, `TopologyCache`
+- **Device enumeration**: `getMachinesClasses()` + `getMachineRepresentation()!=null`; real AE cable parts skipped; terminals/buses/monitors use AE item `displayName`; `getItemStack` reflection fallback when representation is null
+- **Logical layout**: Controller hub → device-type groups (e.g. `ME Terminal x3`); **no** synthetic `cable_smart`/`cable_dense` nodes; channel tier only on edge coloring + `meta.channelsSimulated`/`channelsReal`
+- **Crafting CPU aggregation**: Each `ICraftingCPU` (`CraftingCPUCluster`) → one topology node (`type=cpu`); `cpuSummary` holds co-processors/storage/busy/unit counts; `devices[]` lists constituent block coords (detail drawer only)
+- **Node DTO extensions**: `simGridX/simGridY/simKind`; drive aggregate `cellSlots[]`; `devices[].iconItemId`; optional `cpuSummary`; `meta.facilityCount` total enumerated facilities
+- **Edge/meta extensions**: `pathPoints[]`; `meta.renderLayout=star_grid`/`channelTierHint=edge_only`/`layoutUnitPx`; `meta.layout=star`
+- **Frontend** (`components/topology/`): `TopologyGraphSvg` (`computeStarPixelLayout` radial + `collapseCableEdges` compat), `TopologySimulatedView` (device ring, no cable-cell fill), `TopologyDeviceList` (dual-tab + terminal/bus/monitor groups; cables excluded), `TopologySettingsDrawer`, `DriveSimulatedGui`; default `hideCableNodes=true`
+- **Default rules**: Aggregate by device type + item id (network-tool parity); controller/drive/cpu/quantum channelCost=0; logical star + spatial 64×64 bin; icons prefer `representationItemId` (part items)
 - **REST**: `GET /api/network/topology?network=<id>&mode=logical|spatial` → `{success,cached,timestamp,data:{networkId,mode,meta,nodes[],edges[]}}`; `TopologyHandler` uses `HandlerTick.enqueueServerTask` + CountDownLatch on the main thread (**15s** timeout → **500**)
 - **Query**: `network` required (int); `mode` optional, `logical` (default) or `spatial`; invalid `mode` silently falls back to `logical`
 - **Success `data` shape**:
   - `meta`: `{layout:"star",hubGroup:"controller",spatialBinSize:64,showOccupiedChannels:true,channelsSimulated:{used,max,available},channelsReal:{used,max,available}}`
-  - `nodes[]`: `{id,type,displayName,count,channelCost,iconItemId,role,layoutX,layoutY,devices[],dim?,binX?,binZ?}` (spatial: `type=spatial_bin`, `id=bin:<dim>:<binX>:<binZ>`)
-  - `edges[]`: `{from,to,cableType:"smart"|"covered"|"dense",channelsSimulated:{used,max,available},channelsReal:{used,max,available}}` (star hub→branch; per-edge `channelsReal.available` is always false)
+  - `nodes[]`: `{id,type,displayName,count,channelCost,iconItemId,role,layoutX,layoutY,simGridX?,simGridY?,simKind?,cellSlots?,devices[],cpuSummary?,dim?,binX?,binZ?}`
+  - `edges[]`: `{from,to,cableType,channelsSimulated,channelsReal,pathPoints?[]}`
 - **Error responses**:
   - **503** `{"success":false,"message":"Network topology API is disabled","code":"topology_disabled"}` — when `topologyEnabled=false`
   - **400** missing or invalid `network` (no `code` field)
@@ -625,6 +645,20 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 - **Persistence**: `ConfigWebAlertsLoader.save()` writes `web-alerts.json` and refreshes the 30s memory cache; `WebAlertEngine` reads via `get()` each tick
 - **REST**: `PUT /api/alerts/rules` requires `WebAuthOpCheck.isOp(actorUuid)`; `GET /api/alerts` includes `canEditRules`
 - **Frontend**: `components/settings/AlertsRulesEditor.tsx` — editable Settings alerts tab (toggles/thresholds/inventory CRUD); non-OP sees read-only Descriptions
+
+### 11.20a Outbound Integration: Webhooks + Server Health (reference plan Phase 2)
+
+- **Webhooks** (AE2 Web Integration style): extend `web-alerts.json` with `webhooks[]` (`id`/`url`/`enabled`/`events`/`mention`); `WebhookDispatcher.java` single-thread `BlockingQueue` async POST (Discord embed or generic JSON); queue cap 1000; 5s HTTP timeout; enqueued on `WebAlertStore.recordNew`; URLs server-only, API responses masked via `sanitizeForClient`
+- **Event types**: `inventory_threshold` / `cpu_stuck` / `gt_error` / `order_complete` / `channel_overload` / `server_tps_below` / `automation_craft`
+- **TPS alert**: `serverTpsBelowEnabled` + `serverTpsThreshold` (default 15) + `serverTpsDurationSeconds` (default 60); evaluated by `WebAlertEngine` via `ServerHealthSampler`
+- **Health sampler**: `webae/health/ServerHealthSampler.java` — MSPT measured each tick, 1s samples in a 300s rolling window; `GET /api/server/health` (`ServerHealthHandler`)
+
+### 11.20b Monitoring Deepening (reference plan Phase 3)
+
+- **Fluids page** (3.1): standalone `pages/Fluids.tsx` sidebar entry; type/total summary + `fluidCountHistory`; pin up to 10 fluids; `GET /api/network/metrics/fluids` + `useFluidMetrics` 5-minute window polling
+- **Power downsampling** (3.2): `PowerSampler.toDto` applies `MetricDownsampleUtil` when history exceeds 120 points; `GET /api/network/p2p` adds `powerChannels[]` (frequency / avgEuPerTick / endpointCount); topology P2P mode shows power summary in `P2pMapPanel`
+- **Auto craft** (3.3): extend `web-alerts.json` with `automationRules[]` (`craft_when_below` + itemId/threshold/patternId/cpuName/cooldown/requireCpuIdle/maxTriggersPerHour); `OrderSubmitService` + `AutomationCooldownTracker`; `WebAlertEngine` submits on server thread; history `type=automation_craft`; editable in Settings `AlertsRulesEditor`
+- **Frontend**: `AlertsRulesEditor` webhook table + TPS toggles; `hooks/useServerHealth.ts`; Dashboard data sources `serverTps` / `serverMspt` line charts
 
 ### 11.21 Material Craft Tree (Phase 6)
 
