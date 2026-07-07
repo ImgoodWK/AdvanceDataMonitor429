@@ -68,7 +68,7 @@ Core data flow:
 
 ## 3. Package Structure
 
-All source code resides under `com.imgood.textech.webae/` (152 files). See `project-structure-details.mdc` for the full per-file listing.
+All source code resides under `com.imgood.textech.webae/` (205 files). See `project-structure-details.mdc` for the full per-file listing.
 
 | Sub-package | Files | Purpose |
 |-------------|-------|---------|
@@ -86,6 +86,7 @@ All source code resides under `com.imgood.textech.webae/` (152 files). See `proj
 | `webae/recipe/` | 5 | NEI/vanilla/GT recipe collectors + server cache + itemId normalization |
 | `webae/pattern/` | 8 | Pattern encoder/injector/interface locator + blank pattern consumer + Grid browse merge cache (`PatternBrowseService`) + AE event invalidation (`PatternBrowseInvalidationGridCache`, registered at postInit) |
 | `webae/topology/` | 16 | Network topology enumeration/rules/TopologyFacilityGrouper type aggregation/TTL cache + CraftingCpuTopologyCollector + P2P frequency map + SimulatedLayoutBuilder device ring + AE event invalidation |
+| `webae/worldmap/` | 15+ | **Phase A/B** world map meta/markers + flat/oblique terrain tiles + **AE overlay layer** (`WorldMapAePlacementCollector`/`WorldMapAeOverlayRenderer`/`WorldMapAeOverlayLayer`; `/tiles/{view}/ae/...`) |
 | `webae/craft/` | 2 | Material craft tree (NEI recipe recursion + storage gaps + `patternId`; `GET /api/craft/tree`) |
 | `webae/favorites/` | 1 | Recipe/pattern favorites (`config/textech/web-favorites.json`; `GET/PUT /api/favorites`) |
 | `webae/planner/` | 1 | Factory Flow / gtnh-flow export interop (`POST /api/planner/export-flow`) |
@@ -128,7 +129,13 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `patternBrowseMaxTotal` | int | `20000` | 1000-100000 | Max pattern browse entries per network |
 | `patternCacheTtlMs` | int | `30000` | 5000-300000 | Pattern browse TTL cache duration (ms) |
 | `topologyEnabled` | boolean | `true` | — | Enable `GET /api/network/topology` network topology API |
-| `topologyCacheTtlMs` | int | `30000` | 5000-300000 | Network topology TTL cache duration (ms, per network + mode) |
+| `topologyCacheTtlMs` | int | `1800000` | 5000-3600000 | Manual topology snapshot cooldown (ms; default 30 min) |
+| `topologySnapshotPersist` | boolean | `true` | — | Persist snapshots under `config/textech/web-topology/` |
+| `worldMapEnabled` | boolean | `true` | — | Enable `GET /api/worldmap/*` world map API (requires `topologyEnabled`) |
+| `worldMapTilePx` | int | `128` | — | Pixel size per chunk tile (Phase B terrain rendering) |
+| `worldMapBoundsPaddingChunks` | int | `2` | — | AE network bbox padding in chunks |
+| `worldMapTileBudgetPerTick` | int | `2` | — | Max chunk tiles rendered per tick (Phase B) |
+| `worldMapMaxChunks` | int | `512` | — | Max chunk tiles per dimension (clamp + `boundsTooLarge`) |
 
 **Security note**: Default binds to `127.0.0.1`. All `/api/` endpoints enforce Bearer authentication (no opt-out). Changing `bindAddress` to `0.0.0.0` exposes the console to the LAN — use a firewall or SSH tunnel. Admin-only endpoints (refresh) additionally require OP level >= 2.
 
@@ -199,6 +206,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/network/cells?network=<id>` | Yes | No | Network cell byte summary + infinite cell detection (I5) |
 | GET | `/api/network/balance?networks=0,1&minSurplus=&minShortage=&limit=` | Yes | No | Cross-network storage balance suggestions (read-only; compares cached snapshots; Phase 8) |
 | GET | `/api/network/p2p?network=<id>` | Yes | No | P2P tunnel map grouped by frequency (Phase 10; requires `topologyEnabled`) |
+| GET | `/api/worldmap/meta?network=<id>` | Yes | No | World map meta (dimension bboxes, tilePx, markerCount, `boundsTooLarge`; **Phase A**; requires logical snapshot; 503 when `worldMapEnabled=false` or `topologyEnabled=false`) |
+| GET | `/api/worldmap/markers?network=<id>` | Yes | No | Flattened AE device markers (**Phase A**; from logical snapshot `devices[]`; cables excluded at enumeration; `code:no_logical_snapshot` when missing) |
 | GET | `/api/craft/tree?item=&amount=&network=&maxDepth=` | Yes | No | Material tree (`required`/`inStock`/`toCraft`/`patternId`; Phase 4.1) |
 | GET/PUT | `/api/favorites` | Yes | PUT No (guest read-only) | Favorites (`web-favorites.json`; Phase 4.2) |
 | GET/POST | `/api/planner/plans` | Yes | POST No (guest) | Plan list / create (`plans.json`; Phase 4.4) |
@@ -491,9 +500,14 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 - **Static serving**: `WebConsoleServer.serveStatic()` extended to serve `/icons/<pack>/<itemId>.png` from the external `config/textech/web-icons/` directory with canonical path-traversal protection + `Cache-Control`
 - **Routing**: `WebApiRouter` dispatches `/api/icon` and the `/api/icon/` prefix to `IconHandler`
 - **Client renderer (Phase 0 — 8 modes)**: `IconRenderer.java` strategy pattern + mode queue; eight `IconRenderMode` values with matching strategies; `IconGlFallback`, `IconBlockRenderer`, `IconNeiStyleRenderer`, `IconUploadProgress`; `start(pack, uuid, mode|all)` queues all 8 modes for `all`; batched RenderTick render + ClientTick chunked upload
+- **Production stability (full GTNH pack)**:
+  - `IconRenderGuard` — after each off-screen GL/FBO export, force-finish dangling `Tessellator` draws and restore the main framebuffer (prevents `Already tesselating!` crashes from GTNH custom item renderers)
+  - `IconLazyRenderQueue` — client-side lazy-load queue, max 2 icon renders per tick; `PacketWebIconRequest` no longer blocks the main thread synchronously; bulk `/admweb icons upload` clears the queue and pauses lazy work
+  - `PacketWebIconUploadAck` — suppresses chat spam for single-icon lazy completions (`1 icons stored`); bulk/multi-icon batch completions still notify in chat
+  - **Recommendation**: close the WebAE browser tab before full-pack export; prefer `/admweb icons upload snapshot default nei` or `/admweb icons import-nesql` instead of enumerating 40k+ items at once
 - **Commands**: `/admweb icons upload [pack] [mode|all]`, `/admweb icons upload snapshot [pack] [mode]`, `/admweb icons import-nesql [pack] [subpath]`, `/admweb icons import <folder> [pack]`, `/admweb icons modes`, `/admweb icons status`
 - **NESQL import**: `WebAeLocalDataDir` + `NesqlIconImporter` reads pre-rendered PNGs from `nesqlRepositoryPath` (empty → `TeXTechWebAE`); incremental, skips existing icons
-- **Lazy-load SSE**: `IconMissingQueue` dispatches `iconMissingDispatchPerTick` requests per tick; when an icon is ready the server emits SSE `icon-ready` → frontend `webae-icon-ready` event for live `<Icon>` refresh
+- **Lazy-load SSE**: `IconMissingQueue` dispatches `iconMissingDispatchPerTick` requests per tick → client `IconLazyRenderQueue` (2/tick) renders/uploads asynchronously; when an icon is ready the server emits SSE `icon-ready` → frontend `webae-icon-ready` event for live `<Icon>` refresh
 - **Config** (`[webConsole]`): `iconCacheEnabled` / `iconUploadEnabled` / `iconPackEnabled` / `iconRenderPerTick`(64) / `iconRenderPerTickAll`(32) / `iconUploadChunksPerTick`(4) / `iconProgressChatIntervalMs`(3000)
 - **Frontend**: Settings icon render mode dropdown (`localStorage.webae_icon_render_mode`, default hybrid); `Icon.tsx` passes `&mode=`; `/api/config` returns `iconRenderModes[]`
 - **Icon auth fix (v3.0)**: `WebAuthMiddleware.authenticate()` now falls back to reading the token from the `?token=` or `?access_token=` query parameter when the `Authorization` header is missing; security is preserved (token validity still checked); this fixes `<img src="/api/icon?...">` returning 401 (missing Authorization header) → icon error → text fallback
@@ -584,36 +598,25 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
   - Dashboard SVG: `.chart-flow-line` (stroke-dash flow), `.chart-svg-area` (area pulse), `.chart-pie-group` (slow spin), `.chart-radar-data` (radar pulse), `.chart-bar-segment` (bar brightness pulse)
   - Power trend: inline SVG in `PowerWidgetContent.tsx` reuses the same CSS classes
   - `@media (prefers-reduced-motion: reduce)` disables all Phase 8 animations
-- **Icon rendering optimizations** (`IconRenderer.java` + `IconItemEnumerator.java`):
+- **Icon rendering optimizations** (`IconRenderer.java` + `IconItemEnumerator.java` + `IconExportResolver.java` + `IconRenderGuard.java`):
   - A: 128×128 FBO + 4× scale, read 64×64 downsampled to 32×32
   - B: flat icon quad UV inset (1/16 atlas margin)
   - C: ItemBlock fallback via `RenderBlocks.renderBlockAsItem`
   - D: blank detection → multi-path retry → placeholder PNG with abbreviated itemId
   - E: bind items/blocks atlases before each batch
   - F: when NEI unavailable, enumerate meta variants via `Item.getSubItems`
+  - G: `IconRenderGuard` resets Tessellator after each slot/page/GL fallback; `IconLazyRenderQueue` throttles lazy load to 2/tick
 
-### 11.17 Network Topology (Phase 1 + v2 + v3 + network-tool alignment)
+### 11.17 Network Topology (tree/double-ring + disk persistence)
 
-- **Package**: `webae/topology/` — `NetworkStatusEnumerator` (in-game network-tool parity + item display names), `TopologyRules` (terminal/bus/monitor types), `TopologyFacilityGrouper` (aggregate by type + item id), `TreeTopologyBuilder` (controller star to aggregated groups), `CraftingCpuTopologyCollector` (`ICraftingCPU` cluster aggregation), `SimulatedLayoutBuilder` (device ring, no synthetic cable cells), `TopologySnapshot`, `TopologyCache`
-- **Device enumeration**: `getMachinesClasses()` + `getMachineRepresentation()!=null`; real AE cable parts skipped; terminals/buses/monitors use AE item `displayName`; `getItemStack` reflection fallback when representation is null
-- **Logical layout**: Controller hub → device-type groups (e.g. `ME Terminal x3`); **no** synthetic `cable_smart`/`cable_dense` nodes; channel tier only on edge coloring + `meta.channelsSimulated`/`channelsReal`
-- **Crafting CPU aggregation**: Each `ICraftingCPU` (`CraftingCPUCluster`) → one topology node (`type=cpu`); `cpuSummary` holds co-processors/storage/busy/unit counts; `devices[]` lists constituent block coords (detail drawer only)
-- **Node DTO extensions**: `simGridX/simGridY/simKind`; drive aggregate `cellSlots[]`; `devices[].iconItemId`; optional `cpuSummary`; `meta.facilityCount` total enumerated facilities
-- **Edge/meta extensions**: `pathPoints[]`; `meta.renderLayout=star_grid`/`channelTierHint=edge_only`/`layoutUnitPx`; `meta.layout=star`
-- **Frontend** (`components/topology/`): `TopologyGraphSvg` (`computeStarPixelLayout` radial + `collapseCableEdges` compat), `TopologySimulatedView` (device ring, no cable-cell fill), `TopologyDeviceList` (dual-tab + terminal/bus/monitor groups; cables excluded), `TopologySettingsDrawer`, `DriveSimulatedGui`; default `hideCableNodes=true`
-- **Default rules**: Aggregate by device type + item id (network-tool parity); controller/drive/cpu/quantum channelCost=0; logical star + spatial 64×64 bin; icons prefer `representationItemId` (part items)
-- **REST**: `GET /api/network/topology?network=<id>&mode=logical|spatial` → `{success,cached,timestamp,data:{networkId,mode,meta,nodes[],edges[]}}`; `TopologyHandler` uses `HandlerTick.enqueueServerTask` + CountDownLatch on the main thread (**15s** timeout → **500**)
-- **Query**: `network` required (int); `mode` optional, `logical` (default) or `spatial`; invalid `mode` silently falls back to `logical`
-- **Success `data` shape**:
-  - `meta`: `{layout:"star",hubGroup:"controller",spatialBinSize:64,showOccupiedChannels:true,channelsSimulated:{used,max,available},channelsReal:{used,max,available}}`
-  - `nodes[]`: `{id,type,displayName,count,channelCost,iconItemId,role,layoutX,layoutY,simGridX?,simGridY?,simKind?,cellSlots?,devices[],cpuSummary?,dim?,binX?,binZ?}`
-  - `edges[]`: `{from,to,cableType,channelsSimulated,channelsReal,pathPoints?[]}`
-- **Error responses**:
-  - **503** `{"success":false,"message":"Network topology API is disabled","code":"topology_disabled"}` — when `topologyEnabled=false`
-  - **400** missing or invalid `network` (no `code` field)
-  - **500** main-thread 15s timeout / build failure / interrupted
-- **Cache invalidation**: `TopologyInvalidationGridCache` listens for `MENetworkCellArrayUpdate`/`MENetworkCraftingPatternChange`/`MENetworkStorageEvent` and node add/remove; `TopologyGridCacheRegistrar` registers at postInit
-- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default 30000); read-only mirror in `/api/config` as `topologyEnabled`/`topologyCacheTtlMs`
+- **Package**: `webae/topology/` — `NetworkStatusEnumerator` (network-tool parity + subtype classification + drive pattern counts), `TopologyRules` (fine-grained subtypes), `TopologyFacilityGrouper` (`subtype|itemId` groups), `ChannelBranchAllocator` (4×8 smart branches), `LogicalTopologyBuilder` (tree dense→smart fork + `buildStar()` double-ring semantics), `TopologySnapshotStore` (`config/textech/web-topology/<owner>-<network>.json`), `CraftingCpuTopologyCollector`, `SimulatedLayoutBuilder` (Manhattan `pathPoints`), `TopologySnapshot`, `TopologyCache` (cold-start disk load + cooldown survives restart)
+- **Logical layout**: Controller hub; terminals/WAP/security above; Energy Cell/Acceptor west/east; dense trunk (32ch) → 4× smart branches (8ch each); Drive/Chest/IO/CPU/Quantum direct to controller (0 channels); edges carry `branchIndex` for coloring
+- **Node DTO**: `subtype`, `patternCount`, `patternSlots[]`, `branchIndex`, `layoutSector`; drive icon badge for pattern count
+- **Frontend**: `TopologyCytoscapeGraph` (cytoscape.js: `concentric` star / `breadthfirst` tree / `cose-bilkent` spatial force layout; bezier edges + native pan/zoom; node `background-image` icons; legacy `TopologyGraphSvg` kept for rollback); `TopologySimulatedView` (client double-ring grid + spoke cables when `abstractLayout=star`; block icons via `SimTextureImage` using `aeCableBlockIconId` to render BlockCableBus block face textures, `truncateBlockLabel` adaptive truncation; `topologyCablePath` dense-wins cell priority + viewBox padding); `TopologyDeviceList` v1 (52px dual-line rows, Badge groups, graph↔list hover/scroll); `TopologySettingsDrawer` abstract layout Segmented (abstract + simulated modes); CPU detail Drawer multiblock composition table; OP `canForceSnapshot` + force refresh button; **Phase A** 4th view `worldMap`: `TopologyWorldMapView` + `WorldMapMarkerLayer` (supercluster + grid background; terrain tiles pending Phase B)
+- **Icons**: `IconTileResolver` resolves `mod:tile.BlockClass[:meta]` pseudo ids (incl. `BlockCableBus`) → `ItemStack` → `IconBlockRenderer` block-face export
+- **SimulatedLayoutBuilder**: Manhattan paths emit independent `cable_smart`/`cable_dense`/`cable_corner_*` intermediate nodes (`simKind`); empty smart-branch placeholder nodes + dashed edges
+- **REST**: GET returns `persisted:true` when loaded from disk; GET never auto-rebuilds; `POST .../snapshot?force=1` OP forced refresh (`canForceSnapshot` + `WebAuthOpCheck`)
+- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **1800000**), `topologySnapshotPersist` (default true); world map `worldMap*` keys — see §11.26
 
 ### 11.18 Page Visibility Polling (Phase 4b)
 
@@ -679,7 +682,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 - **Package**: `webae/topology/P2pTunnelEnumerator` — filters P2P classes from `IGrid.getMachinesClasses()`; reflects `getFrequency`/`isOutput`
 - **DTO**: `P2pTunnelDto` + `P2pMapSnapshot.fromTunnels` groups by frequency
 - **REST**: `GET /api/network/p2p?network=<id>` — main thread 15s timeout; requires `topologyEnabled`
-- **Frontend**: `NetworkTopology.tsx` view mode `p2p` + `P2pMapPanel.tsx`
+- **Frontend**: `NetworkTopology.tsx` view mode `p2p` + `P2pMapPanel.tsx` (card grid layout, per-frequency cards with IN/OUT direction tags + coordinates, search & sort)
 
 ### 11.24 Monitor Line Preview (Phase 11)
 
@@ -693,6 +696,16 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 - **HTML**: `index.html` adds `theme-color`, Apple mobile meta, `link rel=manifest`
 - **CSS**: `styles/global.css` `@media (max-width: 768px/480px)` — fixed sider, content padding, table font size
 - **Layout**: root `Layout` uses `webae-layout` class in `AppLayout`
+
+### 11.26 World Map View (Phase A/B + AE Overlay)
+
+- **Package**: `webae/worldmap/` — `WorldMapMarkerDto`/`WorldMapMetaDto`, `WorldMapMarkerBuilder`, `WorldMapBoundsBuilder` (scope from `TopologySnapshot.aePlacements` including cable chunks; legacy snapshots fall back to `devices[]`), `WorldMapHandler`, `WorldMapFlatRenderer`/`WorldMapIsoRenderer` (terrain), `WorldMapAePlacementCollector`/`WorldMapAeOverlayRenderer` (transparent ARGB AE layer), `WorldMapTileQueue`/`WorldMapTileCache` (`layer=terrain|ae`)
+- **REST**: `GET /api/worldmap/meta?network=<id>`; `GET /api/worldmap/markers?network=<id>`; `GET /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png` (terrain); `GET /api/worldmap/tiles/{view}/ae/{dim}/{cx}/{cz}.png` (AE overlay); `POST /api/worldmap/invalidate?views=&layer=` (defaults invalidate both terrain + ae)
+- **Snapshot**: `TopologySnapshot.aePlacements[]` (written on logical capture; block/cable/part coords + iconItemId)
+- **Config**: `[webConsole] worldMapEnabled`, `worldMapTilePx` (128), `worldMapBoundsPaddingChunks` (1), `worldMapTileBudgetPerTick` (2), `worldMapMaxChunks` (512), `worldMapClientHdEnabled`, `worldMapAeOverlayEnabled` (default true), `worldMapAeOverlayIncludeCables` (default true)
+- **HD**: `PacketWebMapTileJob` (34) / `PacketWebMapTileUpload` (35) include `layer`; client `WorldMapChunkGlRenderer.renderAeOverlay`
+- **Frontend**: `TopologyWorldMapView` stack: grid → `WorldMapTerrainLayer` → `WorldMapAeOverlayLayer` (toggle, default off) → `WorldMapMarkerLayer` (toggle); `TopologySettingsDrawer` world map layer toggles + AE opacity
+- **Phase C pending**: device list click → map `fitView` focus
 
 ## 12. Frontend Resources
 

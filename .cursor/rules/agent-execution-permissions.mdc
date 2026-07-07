@@ -1,0 +1,75 @@
+---
+description: Agent Shell/网络/Git 执行权限默认策略（主动申请、少静默失败）
+alwaysApply: true
+---
+
+# Agent 执行权限默认策略
+
+本规则统一 Shell 工具、`required_permissions` 与外部代码获取的默认行为。与 `git-push-release.mdc`（推送/Release 工作流）、`external-deps-jars.mdc`（jar 查找）、`workspace-artifacts.mdc`（临时产物路径）配合使用。
+
+## 核心原则
+
+1. **主动带权限**：预判命令是否需要 Sandbox 外能力，**首次调用即带上**对应 `required_permissions`，不要等静默失败后再重试。
+2. **自己排查**：命令失败时先判断是否为权限/网络/Sandbox 问题，换权限重试；不要未经尝试就放弃。
+3. **获取代码优先本地**：已有 `libs/` jar、Maven 缓存、工作区内源码时直接读；缺依赖再联网或询问用户（见 `external-deps-jars.mdc`）。
+
+## `required_permissions` 选用表
+
+| 场景 | 权限 | 说明 |
+|------|------|------|
+| 任意 `git` / `gh` 命令（含只读 `status`/`log`/`diff`） | `["all"]` | Sandbox 默认禁止 Git 读取，不加会返回 `no exit status` 静默失败 |
+| `git clone` / `git fetch` / `git push` / `git submodule` | `["all"]` | 同上 |
+| `npm` / `yarn` / `pnpm` / `gradle` / `gradlew` 构建与依赖解析 | 先试默认 Sandbox；失败则 `["full_network"]`，仍失败则 `["all"]` | 包管理器域名在 Sandbox 白名单内，多数情况无需额外权限 |
+| `curl` / `wget` / 访问非包管理器 URL、`WebFetch` 类下载 | `["full_network"]`；失败则 `["all"]` | 拉取文档、Release 资产、自定义 API |
+| 反编译 / 解压 jar / 读写 `.workspace/` 临时文件 | 通常默认 Sandbox 即可 | 输出路径见 `workspace-artifacts.mdc` |
+| 写 `.git/`、改 git 索引、`git commit` / `git add` | `["all"]` 或 `["git_write"]`；Git 相关统一用 `["all"]` 更稳妥 | 与只读 Git 策略一致 |
+| 系统级操作（全局安装、改 git config、访问被 ignore 的敏感路径） | `["all"]` | 且须遵守 user rules：不擅自 `git config`、不 force push main 除非用户明确要求 |
+
+### Shell 调用示例
+
+```json
+{ "command": "git status", "required_permissions": ["all"] }
+{ "command": "gh pr create ...", "required_permissions": ["all"] }
+{ "command": "git clone https://github.com/org/repo .workspace/external-snippets/repo", "required_permissions": ["all"] }
+{ "command": "curl -fsSL https://example.com/file.json -o .workspace/assets/file.json", "required_permissions": ["full_network"] }
+```
+
+## 获取外部代码 / 仓库内容
+
+### 本地优先（无需询问）
+
+| 来源 | 行为 |
+|------|------|
+| `libs/*.jar` 已存在 | 直接列表/反编译到 `.workspace/decompiled/` 等，**不要再次询问**（`external-deps-jars.mdc`） |
+| Maven / Gradle 已声明依赖 | 用 `./gradlew` 或读本地 `~/.gradle/caches`；构建命令按上表带网络权限 |
+| 工作区内已有源码（含 `.workspace/` 缓存） | 直接读取 |
+
+### 需要联网拉取时
+
+| 操作 | 默认行为 |
+|------|----------|
+| `git clone` 参考仓库到 `.workspace/external-snippets/` 或 `.workspace/` 子目录 | **直接执行**（带 `["all"]`）；clone 目标必须在 `.workspace/`，不得 clone 到 `src/` 或覆盖项目根 |
+| 下载单个文件 / API JSON / lang 对照 | 写入 `.workspace/assets/` 等，带 `full_network` |
+| `libs/` 缺少某模组 jar 且无法从 Maven 解析 | **询问用户**是否手动添加 jar 或跳过（`external-deps-jars.mdc`） |
+
+### 禁止默认自动做
+
+- 向远程 `git push` / `force push`（须用户明确要求，见 user rules）
+- 修改 `git config`
+- 将 `.workspace/` 内容 `git add` 提交
+- 未经用户同意提交含密钥的 `.env` / 凭证文件
+
+## 失败排查顺序
+
+1. 输出为 `no exit status` 或空结果 → 对 Git/gh **立即**用 `["all"]` 重试。
+2. 网络超时 / `Could not resolve host` / 403 → 升级为 `["full_network"]` 或 `["all"]` 重试。
+3. 仍失败 → 说明已尝试的权限与错误信息，再向用户汇报阻塞点。
+
+## 与其他规则的分工
+
+| 规则 | 分工 |
+|------|------|
+| **本规则** | Shell 权限默认策略、clone/下载/反编译的执行态度 |
+| `git-push-release.mdc` | 推送、`--force`、Release 命名、README 检查等**工作流** |
+| `external-deps-jars.mdc` | `libs/` 清单、Maven vs 本地 jar、缺 jar 时的询问话术 |
+| `workspace-artifacts.mdc` | 反编译/临时脚本/拉取内容的**目录**约定 |

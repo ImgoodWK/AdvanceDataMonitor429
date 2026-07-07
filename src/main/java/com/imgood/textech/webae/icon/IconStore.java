@@ -502,6 +502,54 @@ public class IconStore {
         return null;
     }
 
+    /**
+     * Delete every icon pack under {@link #baseDir} and reset the in-memory index.
+     *
+     * @return number of PNG files removed
+     */
+    public synchronized int clearAll() {
+        int pngRemoved = 0;
+        if (baseDir.exists()) {
+            File[] children = baseDir.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    if (child.isDirectory() && isValidPackName(child.getName())) {
+                        pngRemoved += deletePackTree(child);
+                    } else if (child.isFile() && "default-pack.txt".equals(child.getName())) {
+                        child.delete();
+                    }
+                }
+            }
+        }
+        cachedDefaultPack = null;
+        packIndex.clear();
+        indexed = true;
+        AdvanceDataMonitor.LOG.info("[WebAE] Cleared all icon packs ({} PNG files)", pngRemoved);
+        return pngRemoved;
+    }
+
+    private static int deletePackTree(File root) {
+        int pngCount = 0;
+        File[] children = root.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                if (child.isDirectory()) {
+                    pngCount += deletePackTree(child);
+                } else if (child.isFile()) {
+                    if (isPngFile(child)) {
+                        if (child.delete()) {
+                            pngCount++;
+                        }
+                    } else {
+                        child.delete();
+                    }
+                }
+            }
+        }
+        root.delete();
+        return pngCount;
+    }
+
     private static boolean isPngFile(File f) {
         return f.getName()
             .toLowerCase()

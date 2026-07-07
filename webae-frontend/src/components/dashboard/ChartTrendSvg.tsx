@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 
 
 
@@ -86,22 +86,18 @@ interface HoverInfo {
 
 
 
-function normalizeSeries(points: ChartTrendPoint[]): Array<{ x: number; y: number; pt: ChartTrendPoint }> {
-
+function normalizeSeries(
+  points: ChartTrendPoint[],
+  min: number,
+  max: number
+): Array<{ x: number; y: number; pt: ChartTrendPoint }> {
   if (points.length < 2) return [];
-
-  const max = Math.max(...points.map((p) => p.value), 1);
-
+  const range = max === min ? 1 : max - min;
   return points.map((pt, i) => ({
-
     x: (i / (points.length - 1)) * 100,
-
-    y: 100 - (pt.value / max) * 90,
-
+    y: Math.max(0, Math.min(100, 100 - ((pt.value - min) / range) * 90)),
     pt,
-
   }));
-
 }
 
 
@@ -144,33 +140,43 @@ export function ChartTrendSvg({
 
   const svgRef = useRef<SVGSVGElement>(null);
 
+  const clipId = useId().replace(/:/g, '');
+
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
 
+
+  const filteredSeries = useMemo(
+
+    () => series.filter((s) => s.points.length >= 2),
+
+    [series]
+
+  );
+
+  const valueRange = useMemo(() => computeValueRange(filteredSeries), [filteredSeries]);
 
   const normalized = useMemo(
 
     () =>
 
-      series
+      filteredSeries.map((s) => {
 
-        .filter((s) => s.points.length >= 2)
+        const norm = normalizeSeries(s.points, valueRange.min, valueRange.max);
 
-        .map((s) => ({
+        return {
 
           ...s,
 
-          norm: normalizeSeries(s.points),
+          norm,
 
-          poly: normalizeSeries(s.points)
+          poly: norm.map((p) => `${p.x},${p.y}`).join(' '),
 
-            .map((p) => `${p.x},${p.y}`)
+        };
 
-            .join(' '),
+      }),
 
-        })),
-
-    [series]
+    [filteredSeries, valueRange.max, valueRange.min]
 
   );
 
@@ -179,8 +185,6 @@ export function ChartTrendSvg({
   const primaryLen = normalized[0]?.points.length ?? 0;
 
   const primarySeriesId = normalized[0]?.id ?? 'default';
-
-  const valueRange = useMemo(() => computeValueRange(normalized), [normalized]);
 
 
 
@@ -340,6 +344,16 @@ export function ChartTrendSvg({
 
     >
 
+      <defs>
+
+        <clipPath id={clipId}>
+
+          <rect x="0" y="0" width="100" height="100" />
+
+        </clipPath>
+
+      </defs>
+
       {[20, 40, 60, 80].map((y) => (
 
         <line
@@ -366,47 +380,51 @@ export function ChartTrendSvg({
 
       ))}
 
-      {normalized.map((s) => (
+      <g clipPath={`url(#${clipId})`}>
 
-        <g key={s.id}>
+        {normalized.map((s) => (
 
-          {s.areaColor && (
+          <g key={s.id}>
 
-            <polygon
+            {s.areaColor && (
 
-              className="chart-svg-area"
+              <polygon
 
-              points={`0,100 ${s.poly} 100,100`}
+                className="chart-svg-area"
 
-              fill={s.areaColor}
+                points={`0,100 ${s.poly} 100,100`}
 
-              opacity={0.3}
+                fill={s.areaColor}
+
+                opacity={0.3}
+
+              />
+
+            )}
+
+            <polyline
+
+              className="chart-svg-line chart-flow-line"
+
+              points={s.poly}
+
+              fill="none"
+
+              stroke={s.lineColor}
+
+              strokeWidth={1.5}
+
+              vectorEffect="non-scaling-stroke"
+
+              strokeDasharray={s.dashed ? '4 2' : undefined}
 
             />
 
-          )}
+          </g>
 
-          <polyline
+        ))}
 
-            className="chart-svg-line chart-flow-line"
-
-            points={s.poly}
-
-            fill="none"
-
-            stroke={s.lineColor}
-
-            strokeWidth={1.5}
-
-            vectorEffect="non-scaling-stroke"
-
-            strokeDasharray={s.dashed ? '4 2' : undefined}
-
-          />
-
-        </g>
-
-      ))}
+      </g>
 
       {hover != null && stretchMode === 'fit' &&
 

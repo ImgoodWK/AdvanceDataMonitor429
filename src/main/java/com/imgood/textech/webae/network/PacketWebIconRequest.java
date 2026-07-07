@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
+import com.imgood.textech.webae.icon.IconLazyRenderQueue;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconRenderer;
 
@@ -96,13 +97,13 @@ public class PacketWebIconRequest implements IMessage {
                 : IconRenderMode.NEI.getId();
             IconItemEnumerator.StackTask task = resolveTask(message.itemId);
             if (task == null) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] Icon request could not resolve stack: {}", message.itemId);
+                AdvanceDataMonitor.LOG.debug("[WebAE] Icon request could not resolve stack: {}", message.itemId);
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                    new PacketWebIconResolveNack(pack, mode, message.itemId));
                 return;
             }
-            String uuid = mc.thePlayer.getUniqueID()
-                .toString();
-            IconRenderer.instance()
-                .renderAndUploadSingle(pack, uuid, mode, task);
+            IconLazyRenderQueue.instance()
+                .enqueue(pack, mode, task);
         }
 
         @SideOnly(Side.CLIENT)

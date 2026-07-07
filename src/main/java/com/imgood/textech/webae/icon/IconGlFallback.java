@@ -17,6 +17,7 @@ import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.IItemRenderer;
 import net.minecraftforge.client.MinecraftForgeClient;
+import net.minecraftforge.fluids.Fluid;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -70,173 +71,257 @@ final class IconGlFallback {
      * {@link IItemRenderer} so halo/cosmic overlays that fail in isolated FBO still yield a flat icon.
      */
     byte[] renderVanillaNeiSlotIcon(Minecraft mc, ItemStack stack) {
-        ensureFbo();
-        beginFboRender();
         try {
-            GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+            ensureFbo();
+            beginFboRender();
+            try {
+                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+                GL11.glDisable(GL11.GL_DEPTH_TEST);
+                RenderHelper.enableGUIStandardItemLighting();
+                GL11.glPushMatrix();
+                GL11.glTranslatef(RENDER_OFFSET + RENDER_SCALE, RENDER_OFFSET + RENDER_SCALE, 0.0F);
+                GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
+                RenderItem.getInstance()
+                    .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
+                GL11.glPopMatrix();
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] Vanilla NEI slot render failed: {}", t.getMessage());
+            }
+            RenderHelper.disableStandardItemLighting();
             GL11.glDisable(GL11.GL_DEPTH_TEST);
-            RenderHelper.enableGUIStandardItemLighting();
-            GL11.glPushMatrix();
-            GL11.glTranslatef(RENDER_OFFSET + RENDER_SCALE, RENDER_OFFSET + RENDER_SCALE, 0.0F);
-            GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
-            RenderItem.getInstance()
-                .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
-            GL11.glPopMatrix();
-        } catch (Throwable t) {
-            AdvanceDataMonitor.LOG.debug("[WebAE] Vanilla NEI slot render failed: {}", t.getMessage());
-        }
-        RenderHelper.disableStandardItemLighting();
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
 
-        byte[] png = readPixelsToPng();
-        finishFboRender(mc);
-        return png;
+            byte[] png = readPixelsToPng();
+            finishFboRender(mc);
+            return png;
+        } finally {
+            IconRenderGuard.afterRender(mc);
+        }
+    }
+
+    /** Registry fluid icon ({@code fluid:water}) — tinted still texture like AE2 terminal slots. */
+    byte[] renderRegistryFluidIcon(Minecraft mc, Fluid fluid) {
+        try {
+            ensureFbo();
+            beginFboRender();
+            try {
+                IconFluidRenderer.drawTintedFluidIcon(mc, fluid, RENDER_OFFSET, RENDER_OFFSET, RENDERED_SIZE);
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] Fluid GL render failed: {}", t.getMessage());
+            }
+            byte[] png = readPixelsToPng();
+            finishFboRender(mc);
+            return png;
+        } finally {
+            IconRenderGuard.afterRender(mc);
+        }
+    }
+
+    /**
+     * Fluid cells / fluid drops: NEI slot item pass plus AE2 post-render hooks for in-game overlays.
+     */
+    byte[] renderFluidAwareSlotIcon(Minecraft mc, ItemStack stack) {
+        try {
+            ensureFbo();
+            beginFboRender();
+            try {
+                if (IconFluidRenderer.isFluidDropItem(stack.getItem()) || IconFluidRenderer.isFluidDropStack(stack)) {
+                    IconFluidRenderer.drawFluidDropStack(mc, stack, RENDER_OFFSET, RENDER_OFFSET, RENDERED_SIZE);
+                } else {
+                    GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+                    GL11.glDisable(GL11.GL_DEPTH_TEST);
+                    RenderHelper.enableGUIStandardItemLighting();
+                    GL11.glPushMatrix();
+                    GL11.glTranslatef(RENDER_OFFSET + RENDER_SCALE, RENDER_OFFSET + RENDER_SCALE, 0.0F);
+                    GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
+
+                    IItemRenderer custom = MinecraftForgeClient
+                        .getItemRenderer(stack, IItemRenderer.ItemRenderType.INVENTORY);
+                    if (custom != null && custom.handleRenderType(stack, IItemRenderer.ItemRenderType.INVENTORY)) {
+                        custom.renderItem(IItemRenderer.ItemRenderType.INVENTORY, stack);
+                    } else {
+                        RenderItem.getInstance()
+                            .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
+                    }
+                    IconFluidRenderer.invokeAePostRenderHooks(mc, stack, 0, 0);
+                    GL11.glPopMatrix();
+                    RenderHelper.disableStandardItemLighting();
+                    GL11.glDisable(GL11.GL_DEPTH_TEST);
+                    GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+                }
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] Fluid-aware slot render failed: {}", t.getMessage());
+            }
+
+            byte[] png = readPixelsToPng();
+            finishFboRender(mc);
+            return png;
+        } finally {
+            IconRenderGuard.afterRender(mc);
+        }
     }
 
     /** NEI slot spacing: 18×18 slot with item at (+1,+1), standard GUI lighting. */
     byte[] renderNeiSlotIcon(Minecraft mc, ItemStack stack) {
-        ensureFbo();
-        beginFboRender();
         try {
-            GL11.glEnable(GL12.GL_RESCALE_NORMAL);
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            RenderHelper.enableGUIStandardItemLighting();
-            GL11.glPushMatrix();
-            GL11.glTranslatef(RENDER_OFFSET + RENDER_SCALE, RENDER_OFFSET + RENDER_SCALE, 0.0F);
-            GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
+            ensureFbo();
+            beginFboRender();
+            try {
+                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+                GL11.glDisable(GL11.GL_DEPTH_TEST);
+                RenderHelper.enableGUIStandardItemLighting();
+                GL11.glPushMatrix();
+                GL11.glTranslatef(RENDER_OFFSET + RENDER_SCALE, RENDER_OFFSET + RENDER_SCALE, 0.0F);
+                GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
 
-            IItemRenderer custom = MinecraftForgeClient.getItemRenderer(stack, IItemRenderer.ItemRenderType.INVENTORY);
-            if (custom != null && custom.handleRenderType(stack, IItemRenderer.ItemRenderType.INVENTORY)) {
-                custom.renderItem(IItemRenderer.ItemRenderType.INVENTORY, stack);
-            } else {
-                RenderItem.getInstance()
-                    .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
+                IItemRenderer custom = MinecraftForgeClient
+                    .getItemRenderer(stack, IItemRenderer.ItemRenderType.INVENTORY);
+                if (custom != null && custom.handleRenderType(stack, IItemRenderer.ItemRenderType.INVENTORY)) {
+                    custom.renderItem(IItemRenderer.ItemRenderType.INVENTORY, stack);
+                } else {
+                    RenderItem.getInstance()
+                        .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
+                }
+                GL11.glPopMatrix();
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] NEI slot render failed: {}", t.getMessage());
             }
-            GL11.glPopMatrix();
-        } catch (Throwable t) {
-            AdvanceDataMonitor.LOG.debug("[WebAE] NEI slot render failed: {}", t.getMessage());
-        }
-        RenderHelper.disableStandardItemLighting();
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+            RenderHelper.disableStandardItemLighting();
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
 
-        byte[] png = readPixelsToPng();
-        finishFboRender(mc);
-        return png;
+            byte[] png = readPixelsToPng();
+            finishFboRender(mc);
+            return png;
+        } finally {
+            IconRenderGuard.afterRender(mc);
+        }
     }
 
     /** Mini block scene for {@link net.minecraft.item.ItemBlock} via {@link RenderBlocks#renderBlockAsItem}. */
     byte[] renderBlockAsItem(Minecraft mc, Block block, int metadata) {
-        ensureFbo();
-        beginFboRender3D();
         try {
-            RenderHelper.enableStandardItemLighting();
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+            ensureFbo();
+            beginFboRender3D();
+            try {
+                RenderHelper.enableStandardItemLighting();
+                GL11.glEnable(GL11.GL_DEPTH_TEST);
+                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
 
-            GL11.glPushMatrix();
-            GL11.glTranslatef(0.0F, -0.05F, 0.0F);
-            GL11.glScalef(1.15F, 1.15F, 1.15F);
-            GL11.glRotatef(25.0F, 1.0F, 0.0F, 0.0F);
-            GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
+                GL11.glPushMatrix();
+                GL11.glTranslatef(0.0F, -0.05F, 0.0F);
+                GL11.glScalef(1.15F, 1.15F, 1.15F);
+                GL11.glRotatef(25.0F, 1.0F, 0.0F, 0.0F);
+                GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
 
-            RenderBlocks renderBlocks = new RenderBlocks();
-            renderBlocks.renderBlockAsItem(block, metadata, 1.0F);
-            GL11.glPopMatrix();
-        } catch (Throwable t) {
-            AdvanceDataMonitor.LOG.debug("[WebAE] Block FBO render failed: {}", t.getMessage());
+                RenderBlocks renderBlocks = new RenderBlocks();
+                renderBlocks.renderBlockAsItem(block, metadata, 1.0F);
+                GL11.glPopMatrix();
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] Block FBO render failed: {}", t.getMessage());
+            }
+            RenderHelper.disableStandardItemLighting();
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+
+            byte[] png = readPixelsToPng();
+            finishFboRender(mc);
+            return png;
+        } finally {
+            IconRenderGuard.afterRender(mc);
         }
-        RenderHelper.disableStandardItemLighting();
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-
-        byte[] png = readPixelsToPng();
-        finishFboRender(mc);
-        return png;
     }
 
     private byte[] renderTypedItemIcon(Minecraft mc, ItemStack stack, IItemRenderer.ItemRenderType type) {
-        ensureFbo();
-        beginFboRender3D();
         try {
-            RenderHelper.enableStandardItemLighting();
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+            ensureFbo();
+            beginFboRender3D();
+            try {
+                RenderHelper.enableStandardItemLighting();
+                GL11.glEnable(GL11.GL_DEPTH_TEST);
+                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
 
-            GL11.glPushMatrix();
-            if (type == IItemRenderer.ItemRenderType.ENTITY) {
-                GL11.glRotatef(20.0F, 1.0F, 0.0F, 0.0F);
-                GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
-            } else {
-                GL11.glRotatef(-12.0F, 1.0F, 0.0F, 0.0F);
-                GL11.glRotatef(48.0F, 0.0F, 1.0F, 0.0F);
-                GL11.glTranslatef(0.0F, 0.08F, 0.0F);
-            }
+                GL11.glPushMatrix();
+                if (type == IItemRenderer.ItemRenderType.ENTITY) {
+                    GL11.glRotatef(20.0F, 1.0F, 0.0F, 0.0F);
+                    GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
+                } else {
+                    GL11.glRotatef(-12.0F, 1.0F, 0.0F, 0.0F);
+                    GL11.glRotatef(48.0F, 0.0F, 1.0F, 0.0F);
+                    GL11.glTranslatef(0.0F, 0.08F, 0.0F);
+                }
 
-            IItemRenderer custom = MinecraftForgeClient.getItemRenderer(stack, type);
-            RenderBlocks renderBlocks = new RenderBlocks();
-            if (custom != null && custom.handleRenderType(stack, type)) {
-                custom.renderItem(type, stack, renderBlocks, mc.thePlayer);
-            } else if (type == IItemRenderer.ItemRenderType.ENTITY) {
-                GL11.glRotatef(335.0F, 0.0F, 1.0F, 0.0F);
-                GL11.glRotatef(50.0F, 1.0F, 0.0F, 0.0F);
-                GL11.glScalef(0.42F, 0.42F, 0.42F);
-                RenderItem.getInstance()
-                    .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, -8, -8);
-            } else {
-                GL11.glScalef(0.38F, 0.38F, 0.38F);
-                RenderItem.getInstance()
-                    .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, -8, -8);
+                IItemRenderer custom = MinecraftForgeClient.getItemRenderer(stack, type);
+                RenderBlocks renderBlocks = new RenderBlocks();
+                if (custom != null && custom.handleRenderType(stack, type)) {
+                    custom.renderItem(type, stack, renderBlocks, mc.thePlayer);
+                } else if (type == IItemRenderer.ItemRenderType.ENTITY) {
+                    GL11.glRotatef(335.0F, 0.0F, 1.0F, 0.0F);
+                    GL11.glRotatef(50.0F, 1.0F, 0.0F, 0.0F);
+                    GL11.glScalef(0.42F, 0.42F, 0.42F);
+                    RenderItem.getInstance()
+                        .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, -8, -8);
+                } else {
+                    GL11.glScalef(0.38F, 0.38F, 0.38F);
+                    RenderItem.getInstance()
+                        .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, -8, -8);
+                }
+                GL11.glPopMatrix();
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] Typed item render failed ({}): {}", type, t.getMessage());
             }
-            GL11.glPopMatrix();
-        } catch (Throwable t) {
-            AdvanceDataMonitor.LOG.debug("[WebAE] Typed item render failed ({}): {}", type, t.getMessage());
+            RenderHelper.disableStandardItemLighting();
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+
+            byte[] png = readPixelsToPng();
+            finishFboRender(mc);
+            return png;
+        } finally {
+            IconRenderGuard.afterRender(mc);
         }
-        RenderHelper.disableStandardItemLighting();
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-
-        byte[] png = readPixelsToPng();
-        finishFboRender(mc);
-        return png;
     }
 
     private byte[] renderInventoryIcon(Minecraft mc, ItemStack stack, boolean depthAndLighting) {
-        ensureFbo();
-        beginFboRender();
         try {
-            if (depthAndLighting) {
-                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
-                GL11.glEnable(GL11.GL_DEPTH_TEST);
-                RenderHelper.enableGUIStandardItemLighting();
-            } else {
-                GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-                GL11.glDisable(GL11.GL_DEPTH_TEST);
-                RenderHelper.disableStandardItemLighting();
-            }
-            GL11.glPushMatrix();
-            GL11.glTranslatef(RENDER_OFFSET, RENDER_OFFSET, 0.0F);
-            GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
+            ensureFbo();
+            beginFboRender();
+            try {
+                if (depthAndLighting) {
+                    GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+                    GL11.glEnable(GL11.GL_DEPTH_TEST);
+                    RenderHelper.enableGUIStandardItemLighting();
+                } else {
+                    GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+                    GL11.glDisable(GL11.GL_DEPTH_TEST);
+                    RenderHelper.disableStandardItemLighting();
+                }
+                GL11.glPushMatrix();
+                GL11.glTranslatef(RENDER_OFFSET, RENDER_OFFSET, 0.0F);
+                GL11.glScalef(RENDER_SCALE, RENDER_SCALE, RENDER_SCALE);
 
-            IItemRenderer custom = MinecraftForgeClient.getItemRenderer(stack, IItemRenderer.ItemRenderType.INVENTORY);
-            if (custom != null && custom.handleRenderType(stack, IItemRenderer.ItemRenderType.INVENTORY)) {
-                custom.renderItem(IItemRenderer.ItemRenderType.INVENTORY, stack);
-            } else {
-                RenderItem.getInstance()
-                    .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
+                IItemRenderer custom = MinecraftForgeClient
+                    .getItemRenderer(stack, IItemRenderer.ItemRenderType.INVENTORY);
+                if (custom != null && custom.handleRenderType(stack, IItemRenderer.ItemRenderType.INVENTORY)) {
+                    custom.renderItem(IItemRenderer.ItemRenderType.INVENTORY, stack);
+                } else {
+                    RenderItem.getInstance()
+                        .renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, 0, 0);
+                }
+                GL11.glPopMatrix();
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] GL fallback render failed: {}", t.getMessage());
             }
-            GL11.glPopMatrix();
-        } catch (Throwable t) {
-            AdvanceDataMonitor.LOG.debug("[WebAE] GL fallback render failed: {}", t.getMessage());
+            RenderHelper.disableStandardItemLighting();
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+
+            byte[] png = readPixelsToPng();
+            finishFboRender(mc);
+            return png;
+        } finally {
+            IconRenderGuard.afterRender(mc);
         }
-        RenderHelper.disableStandardItemLighting();
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-
-        byte[] png = readPixelsToPng();
-        finishFboRender(mc);
-        return png;
     }
 
     static boolean needsGlFallback(ItemStack stack) {

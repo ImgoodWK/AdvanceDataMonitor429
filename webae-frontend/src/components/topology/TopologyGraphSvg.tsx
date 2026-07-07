@@ -4,24 +4,26 @@ import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
 import { Icon } from '@/components/Icon';
 import {
   abbreviateLabel,
+  avoidLabelOverlap,
+  branchColorForIndex,
+  computeDoubleRingPixelLayout,
   computeSpatialPixelLayout,
-  computeStarPixelLayout,
   computeTreePixelLayout,
+  estimateLabelWidth,
   fitViewTransform,
   labelDetailLevel,
   TOPOLOGY_MAX_SCALE,
   TOPOLOGY_MIN_SCALE,
+  type NodeRect,
   type ScreenPoint,
 } from '@/utils/topologyLayout';
 import { collapseCableEdges, visibleAbstractNodes } from '@/utils/topologyAbstractEdges';
+import { topologyNodeLabel } from '@/utils/topologyDevices';
 import { blockIconIdForNode } from '@/utils/aeCableColors';
 
-export interface TopologyGraphHandle {
-  resetView: () => void;
-  fitView: () => void;
-  zoomIn: () => void;
-  zoomOut: () => void;
-}
+import type { TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
+
+/** @deprecated Use {@link TopologyCytoscapeGraph} — kept for rollback. */
 
 interface TopologyGraphSvgProps {
   nodes: TopologyNodeDto[];
@@ -34,7 +36,6 @@ interface TopologyGraphSvgProps {
   onNodeSelect: (node: TopologyNodeDto | null) => void;
   onNodeHover?: (nodeId: string | null) => void;
   height?: number;
-  /** Changes when snapshot data changes — triggers fit-to-view once. */
   layoutEpoch?: string;
 }
 
@@ -65,29 +66,26 @@ export const TopologyGraphSvg = forwardRef<TopologyGraphHandle, TopologyGraphSvg
   const lastFitEpochRef = useRef('');
 
   const visibleNodes = useMemo(() => visibleAbstractNodes(nodes), [nodes]);
-
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes]);
-
   const displayEdges = useMemo(() => collapseCableEdges(nodes, edges), [nodes, edges]);
+
+  const abstractLayout =
+    mode === 'logical' ? displaySettings.abstractLayout ?? (layout === 'star' ? 'star' : 'tree') : 'tree';
 
   const pixelLayout = useMemo(() => {
     if (mode === 'spatial') {
-      return computeSpatialPixelLayout(nodes, displaySettings);
+      return { ...computeSpatialPixelLayout(nodes, displaySettings), branchColors: new Map<string, string>() };
     }
-    if (mode === 'logical' && layout === 'star') {
-      return computeStarPixelLayout(nodes, displaySettings);
+    if (mode === 'logical' && abstractLayout === 'star') {
+      return computeDoubleRingPixelLayout(nodes, displaySettings);
     }
-    if (mode === 'logical' && layout === 'tree') {
-      return computeTreePixelLayout(nodes, displaySettings);
-    }
-    return computeStarPixelLayout(nodes, displaySettings);
-  }, [nodes, mode, layout, displaySettings]);
+    return { ...computeTreePixelLayout(nodes, displaySettings), branchColors: new Map<string, string>() };
+  }, [nodes, mode, abstractLayout, displaySettings]);
 
-  const { points, viewBox, width, height: layoutHeight } = pixelLayout;
+  const { points, viewBox, width, height: layoutHeight, branchColors } = pixelLayout;
   const detail = labelDetailLevel(scale);
   const colors = displaySettings.colors;
   const r = displaySettings.nodeRadius;
-  const lr = displaySettings.layoutDirection === 'LR';
 
   const fitView = useCallback(() => {
     const el = containerRef.current;
@@ -147,25 +145,59 @@ export const TopologyGraphSvg = forwardRef<TopologyGraphHandle, TopologyGraphSvg
     }
   }, []);
 
+  const edgeColor = (edge: TopologyEdgeDto) => {
+    if (edge.branchIndex != null && edge.branchIndex >= 0) {
+      return branchColorForIndex(edge.branchIndex);
+    }
+    const cableKey = edge.cableType || 'covered';
+    return colors[cableKey as keyof typeof colors] || colors.covered;
+  };
+
+  const nodeRects: NodeRect[] = useMemo(
+    () =>
+      visibleNodes
+        .filter((n) => points.has(n.id))
+        .map((n) => {
+          const pt = points.get(n.id)!;
+          const isHub = n.role === 'hub';
+          const nr = isHub ? r + 2 : r;
+          return { id: n.id, cx: pt.x, cy: pt.y, r: nr, label: topologyNodeLabel(n) } as NodeRect;
+        }),
+    [visibleNodes, points, r]
+  );
+
   const renderLabel = (node: TopologyNodeDto, pt: ScreenPoint, isSelected: boolean, isHovered: boolean) => {
     const forceFull = isSelected || isHovered || displaySettings.labelStrategy === 'hover';
     if (detail === 'icon' && !forceFull && displaySettings.labelStrategy !== 'external') return null;
 
-    let text = node.displayName;
+    let text = topologyNodeLabel(node);
     if (!forceFull && detail === 'abbrev') text = abbreviateLabel(text);
     const countSuffix = displaySettings.showCountLabels && node.count > 1 ? ` ×${node.count}` : '';
+    const fullText = text + countSuffix;
+    const labelW = estimateLabelWidth(fullText);
 
     const external = displaySettings.labelStrategy === 'external';
-    const labelX = external && lr ? pt.x + r + displaySettings.labelMargin : pt.x;
-    const labelY =
+    const lr = displaySettings.layoutDirection === 'LR';
+    const isHub = node.role === 'hub';
+    const nodeR = isHub ? r + 2 : r;
+
+    let labelX = external && lr ? pt.x + nodeR + displaySettings.labelMargin : pt.x;
+    let labelY =
       external && lr
         ? pt.y + 4
         : external
-          ? pt.y + r + displaySettings.labelMargin
-          : pt.y + r + displaySettings.labelMargin;
+          ? pt.y + nodeR + displaySettings.labelMargin
+          : pt.y + nodeR + displaySettings.labelMargin;
     const anchor = external && lr ? 'start' : 'middle';
 
     if (detail === 'icon' && !forceFull) return null;
+
+    // Apply label overlap avoidance (only for non-hover, non-selected external labels in LR mode)
+    if (anchor === 'start' && !isSelected && !isHovered) {
+      const adjusted = avoidLabelOverlap(labelX, labelY, labelW, node.id, nodeRects);
+      labelX = adjusted.x;
+      labelY = adjusted.y;
+    }
 
     return (
       <g className="topology-node-label-group">
@@ -217,12 +249,12 @@ export const TopologyGraphSvg = forwardRef<TopologyGraphHandle, TopologyGraphSvg
         </defs>
 
         {displayEdges.map((edge) => {
-          if (!visibleNodeIds.has(edge.from) || !visibleNodeIds.has(edge.to)) return null;
           const from = points.get(edge.from);
           const to = points.get(edge.to);
           if (!from || !to) return null;
-          const cableKey = edge.cableType || 'covered';
-          const color = colors[cableKey as keyof typeof colors] || colors.covered;
+          const isEmpty = edge.emptyBranch;
+          if (!isEmpty && (!visibleNodeIds.has(edge.from) || !visibleNodeIds.has(edge.to))) return null;
+          const color = edgeColor(edge);
           const ch = edge.channelsSimulated;
           const label = displaySettings.showEdgeChannelLabels && ch?.available ? `${ch.used}/${ch.max}` : '';
           const mid = edgeMid(from, to);
@@ -235,10 +267,11 @@ export const TopologyGraphSvg = forwardRef<TopologyGraphHandle, TopologyGraphSvg
                 y2={to.y}
                 stroke={color}
                 strokeWidth={edge.cableType === 'dense' ? 4 : edge.cableType === 'smart' ? 2.5 : 3}
-                strokeOpacity={0.85}
+                strokeOpacity={isEmpty ? 0.45 : 0.85}
+                strokeDasharray={isEmpty ? '6 4' : undefined}
                 className="topology-edge-line"
               />
-              {label && (
+              {label && !isEmpty && (
                 <g transform={`translate(${mid.x}, ${mid.y})`}>
                   <rect x={-18} y={-9} width={36} height={18} rx={4} fill="var(--bg-primary, #0d1117)" fillOpacity={0.88} />
                   <text textAnchor="middle" dominantBaseline="middle" fontSize={10} fill={colors.labelDim} className="topology-channel-label">
@@ -257,10 +290,14 @@ export const TopologyGraphSvg = forwardRef<TopologyGraphHandle, TopologyGraphSvg
           const isSelected = selectedNodeId === node.id;
           const isHovered = hoveredNodeId === node.id;
           const nodeR = isHub ? r + 2 : r;
+          const strokeColor =
+            isSelected || isHovered
+              ? 'var(--accent)'
+              : branchColors.get(node.id) ?? (node.branchIndex != null && node.branchIndex >= 0 ? branchColorForIndex(node.branchIndex) : colors.nodeStroke);
           return (
             <g
               key={node.id}
-              className="topology-node-hit"
+              className={`topology-node-hit${isHovered ? ' topology-node-hit--hover' : ''}`}
               style={{ cursor: 'pointer' }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -282,17 +319,20 @@ export const TopologyGraphSvg = forwardRef<TopologyGraphHandle, TopologyGraphSvg
                 cy={pt.y}
                 r={nodeR + 3}
                 fill={isSelected ? 'var(--accent)' : colors.nodeFill}
-                fillOpacity={isSelected ? 0.35 : 0.92}
-                stroke={isSelected ? 'var(--accent)' : colors.nodeStroke}
-                strokeWidth={isHub ? 2 : 1.2}
+                fillOpacity={isSelected ? 0.35 : isHovered ? 0.98 : 0.92}
+                stroke={strokeColor}
+                strokeWidth={isHub ? 2 : isHovered ? 2 : 1.2}
                 filter={isHub ? 'url(#topology-glow)' : undefined}
               />
               <foreignObject x={pt.x - nodeR} y={pt.y - nodeR} width={nodeR * 2} height={nodeR * 2} pointerEvents="none">
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   {node.iconItemId || node.type ? (
                     <Icon id={blockIconIdForNode(node.type, node.iconItemId)} size={Math.round(nodeR * 1.6)} linkToWiki={false} />
                   ) : (
                     <span style={{ fontSize: 10, color: colors.labelDim }}>?</span>
+                  )}
+                  {(node.patternCount ?? 0) > 0 && (
+                    <span className="topology-pattern-badge">{node.patternCount}</span>
                   )}
                 </div>
               </foreignObject>

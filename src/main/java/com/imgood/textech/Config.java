@@ -177,10 +177,34 @@ public class Config {
     public static int webPatternCacheTtlMs = 30000;
     /** Whether the network topology API is enabled. Default true. */
     public static boolean webTopologyEnabled = true;
-    /** TTL in ms for network topology cache per network/mode. Default 30000. */
-    public static int webTopologyCacheTtlMs = 300000;
+    /** TTL in ms for network topology cache per network/mode. Default 1800000 (30 min). */
+    public static int webTopologyCacheTtlMs = 1800000;
+    /** Persist topology snapshots to config/textech/web-topology/. Default true. */
+    public static boolean webTopologySnapshotPersist = true;
     /** Optional Dynmap base URL for player location deep links (Phase 6.1). Empty = disabled. */
     public static String webDynmapBaseUrl = "";
+    /** Whether the world map overlay API is enabled (requires topologyEnabled). Default true. */
+    public static boolean webWorldMapEnabled = true;
+    /** Pixel edge length per chunk tile for world map rendering. Default 128. */
+    public static int webWorldMapTilePx = 128;
+    /** Extra chunk padding around AE network occupied chunks for world map. Default 1. */
+    public static int webWorldMapBoundsPaddingChunks = 1;
+    /** Max chunk tiles rendered per server tick (Phase B). Default 2. */
+    public static int webWorldMapTileBudgetPerTick = 2;
+    /** Max chunk tiles per dimension for world map bounds. Default 512. */
+    public static int webWorldMapMaxChunks = 512;
+    /** Require network query param and allowed-chunk scope check on tile API. Default true. */
+    public static boolean webWorldMapRequireNetworkScope = true;
+    /** Comma-separated enabled world map views (flat, oblique, or oblique_se/sw/ne/nw). */
+    public static String webWorldMapViewsEnabled = "flat,oblique";
+    /** Allow online client to upload HD world map tiles (Phase 4). Default true. */
+    public static boolean webWorldMapClientHdEnabled = true;
+    /** Max HD world map tiles rendered per client tick. Default 1. */
+    public static int webWorldMapClientHdBudgetPerTick = 1;
+    /** Enable AE overlay tile layer on world map. Default true. */
+    public static boolean webWorldMapAeOverlayEnabled = true;
+    /** Include AE cables in AE overlay scope and tiles. Default true. */
+    public static boolean webWorldMapAeOverlayIncludeCables = true;
 
     // --- web console per-feature debug logs (default false, gate logs/textech/webae-<feature>.log) ---
     /** Verbose icon rendering/upload logging (IconRenderer, IconHandler, PacketWebIconUpload). */

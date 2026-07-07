@@ -29,6 +29,19 @@ export interface CornerCell {
   cableType: string;
 }
 
+/** Higher rank wins when multiple cables share a grid cell (dense > covered > smart). */
+const CABLE_TYPE_RANK: Record<string, number> = {
+  smart: 1,
+  covered: 2,
+  dense: 3,
+};
+
+function pickHigherCableType(a: string, b: string): string {
+  const rankA = CABLE_TYPE_RANK[a] ?? 0;
+  const rankB = CABLE_TYPE_RANK[b] ?? 0;
+  return rankA >= rankB ? a : b;
+}
+
 function manhattanPath(from: GridPoint, to: GridPoint, horizontalFirst: boolean): GridPoint[] {
   const points: GridPoint[] = [{ ...from }];
   if (horizontalFirst) {
@@ -42,10 +55,28 @@ function manhattanPath(from: GridPoint, to: GridPoint, horizontalFirst: boolean)
   return points;
 }
 
-function pickPath(from: GridPoint, to: GridPoint): GridPoint[] {
+/** Pick the Manhattan path variant that avoids existing occupied cells when possible. */
+function pickPath(
+  from: GridPoint,
+  to: GridPoint,
+  occupied: Set<string>
+): GridPoint[] {
   const hFirst = manhattanPath(from, to, true);
   const vFirst = manhattanPath(from, to, false);
-  return hFirst.length <= vFirst.length ? hFirst : vFirst;
+
+  // Score each path by how many intermediate cells are occupied
+  const score = (path: GridPoint[]) => {
+    let s = 0;
+    for (let i = 1; i < path.length - 1; i++) {
+      const k = `${path[i].x},${path[i].y}`;
+      if (occupied.has(k)) s += 1;
+    }
+    return s;
+  };
+
+  const hScore = score(hFirst);
+  const vScore = score(vFirst);
+  return hScore <= vScore ? hFirst : vFirst;
 }
 
 function segmentKey(x1: number, y1: number, x2: number, y2: number): string {
@@ -95,11 +126,14 @@ export function buildCableCells(
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const cellMap = new Map<string, CableCell>();
   const blockCells = new Set<string>();
+  const occupied = new Set<string>();
 
   for (const node of nodes) {
     if (node.simGridX == null || node.simGridY == null) continue;
     if (node.simKind === 'block' || node.simKind === 'junction' || node.simKind?.startsWith('cable')) {
-      blockCells.add(`${node.simGridX},${node.simGridY}`);
+      const key = `${node.simGridX},${node.simGridY}`;
+      blockCells.add(key);
+      occupied.add(key);
     }
   }
 
@@ -116,14 +150,18 @@ export function buildCableCells(
 
     const from: GridPoint = { x: fromNode.simGridX, y: fromNode.simGridY };
     const to: GridPoint = { x: toNode.simGridX, y: toNode.simGridY };
-    const path = pickPath(from, to);
+    const path = pickPath(from, to, occupied);
     const cableType = edge.cableType || 'covered';
 
     for (const cell of cellsAlongPath(path)) {
       const key = `${cell.x},${cell.y}`;
       if (blockCells.has(key)) continue;
-      if (!cellMap.has(key)) {
+      const existing = cellMap.get(key);
+      if (existing) {
+        existing.cableType = pickHigherCableType(existing.cableType, cableType);
+      } else {
         cellMap.set(key, { gx: cell.x, gy: cell.y, cableType });
+        occupied.add(key);
       }
     }
   }
@@ -153,6 +191,13 @@ export function buildCableSegments(
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const segmentMap = new Map<string, CableSegment>();
   const cornerMap = new Map<string, CornerCell>();
+  const occupied = new Set<string>();
+
+  for (const node of nodes) {
+    if (node.simGridX != null && node.simGridY != null) {
+      occupied.add(`${node.simGridX},${node.simGridY}`);
+    }
+  }
 
   for (const edge of edges) {
     const fromNode = byId.get(edge.from);
@@ -167,12 +212,16 @@ export function buildCableSegments(
 
     const from: GridPoint = { x: fromNode.simGridX, y: fromNode.simGridY };
     const to: GridPoint = { x: toNode.simGridX, y: toNode.simGridY };
-    const path = pickPath(from, to);
+    const path = pickPath(from, to, occupied);
     const cableType = edge.cableType || 'covered';
 
     for (let i = 0; i < path.length - 1; i++) {
       const a = path[i];
       const b = path[i + 1];
+      // Mark intermediate cells as occupied
+      if (i > 0) {
+        occupied.add(`${a.x},${a.y}`);
+      }
       const px1 = a.x * cellPx + cellPx / 2;
       const py1 = a.y * cellPx + cellPx / 2;
       const px2 = b.x * cellPx + cellPx / 2;
@@ -221,6 +270,7 @@ export function simulatedViewBox(
   blockPx: number,
   margin = 40
 ): string {
+  margin = Math.max(margin, cellPx + blockPx);
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;

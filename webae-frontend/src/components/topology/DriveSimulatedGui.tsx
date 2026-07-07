@@ -3,6 +3,7 @@ import { Modal, Typography } from 'antd';
 import { Icon } from '@/components/Icon';
 import { useI18n } from '@/i18n';
 import type { TopologyNodeDto } from '@/types/dto';
+import { topologyNodeLabel } from '@/utils/topologyDevices';
 import { formatBytes } from '@/utils/format';
 
 const { Text } = Typography;
@@ -34,15 +35,18 @@ function buildSlots(node: TopologyNodeDto, cellChildren: TopologyNodeDto[]): Slo
       fluidBytes: c.fluidBytes,
     }));
   }
-  const sorted = [...cellChildren].sort((a, b) => a.id.localeCompare(b.id));
-  return sorted.map((c, i) => ({
+  const sorted = [...cellChildren].sort((a, b) => (a.id ?? '').localeCompare(b.id ?? ''));
+  return sorted.map((c, i) => {
+    const label = topologyNodeLabel(c);
+    return {
     slot: i,
-    empty: c.displayName.toLowerCase().includes('empty'),
-    displayName: c.displayName,
+    empty: label.toLowerCase().includes('empty'),
+    displayName: label,
     itemId: c.iconItemId,
     itemBytes: undefined,
     fluidBytes: undefined,
-  }));
+  };
+  });
 }
 
 export function DriveSimulatedGui({ node, cellChildNodes = [], open, onClose }: DriveSimulatedGuiProps) {
@@ -51,7 +55,7 @@ export function DriveSimulatedGui({ node, cellChildNodes = [], open, onClose }: 
   const slots = useMemo(() => (node ? buildSlots(node, cellChildNodes) : []), [node, cellChildNodes]);
 
   const title = node
-    ? `${node.displayName}${node.devices?.[0] ? ` (${node.devices[0].x}, ${node.devices[0].y}, ${node.devices[0].z})` : ''}`
+    ? `${topologyNodeLabel(node)}${node.devices?.[0] ? ` (${node.devices[0].x}, ${node.devices[0].y}, ${node.devices[0].z})` : ''}`
     : '';
 
   return (

@@ -159,14 +159,24 @@ public class PacketWebIconUpload implements IMessage {
                     IconMissingQueue.instance()
                         .setProviderUuid(message.playerUuid);
                     acknowledgeUploadedIcons(message.packName, modeId, full);
-                    AdvanceDataMonitor.LOG.info(
-                        "[WebAE] Icon upload complete: {}/{} chunks, {} icons written for pack '{}' mode '{}' from player {}",
-                        message.totalChunks,
-                        message.totalChunks,
-                        written,
-                        message.packName,
-                        modeId,
-                        message.playerUuid);
+                    if (written <= 1 && message.totalChunks <= 1) {
+                        com.imgood.textech.webae.debug.WebAeDebugLog.info(
+                            com.imgood.textech.webae.debug.WebAeDebugLog.Feature.ICONS,
+                            "lazy icon upload: pack={} mode={} iconsWritten={} player={}",
+                            message.packName,
+                            modeId,
+                            written,
+                            message.playerUuid);
+                    } else {
+                        AdvanceDataMonitor.LOG.info(
+                            "[WebAE] Icon upload complete: {}/{} chunks, {} icons written for pack '{}' mode '{}' from player {}",
+                            message.totalChunks,
+                            message.totalChunks,
+                            written,
+                            message.packName,
+                            modeId,
+                            message.playerUuid);
+                    }
                     return new PacketWebIconUploadAck(
                         true,
                         message.totalChunks,

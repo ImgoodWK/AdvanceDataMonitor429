@@ -7,6 +7,8 @@ package com.imgood.textech.webae.topology;
 public enum TopologyNodeType {
 
     CONTROLLER("controller", "hub"),
+    /** Energy cell / acceptor adjacent to controller hub. */
+    ENERGY("energy", "hub"),
     DRIVE("drive", "branch"),
     TERMINAL("terminal", "branch"),
     BUS("bus", "branch"),

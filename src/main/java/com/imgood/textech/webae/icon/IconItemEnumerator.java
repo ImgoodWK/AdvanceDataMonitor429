@@ -77,10 +77,8 @@ public final class IconItemEnumerator {
                 byId.put(task.itemId, task);
             }
         }
-        AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon enumerator (scoped): {} resolved tasks ({} requested ids)",
-            byId.size(),
-            requested);
+        AdvanceDataMonitor.LOG
+            .info("[WebAE] Icon enumerator (scoped): {} resolved tasks ({} requested ids)", byId.size(), requested);
         return new ArrayList<StackTask>(byId.values());
     }
 
@@ -99,7 +97,7 @@ public final class IconItemEnumerator {
             StackTask task = resolveItemStackCandidate(candidate);
             if (task != null) return task;
         }
-        AdvanceDataMonitor.LOG.warn("[WebAE] Icon resolve failed: no registry match for '{}'", itemId);
+        AdvanceDataMonitor.LOG.debug("[WebAE] Icon resolve failed: no registry match for '{}'", itemId);
         return null;
     }
 
@@ -109,6 +107,8 @@ public final class IconItemEnumerator {
      */
     private static StackTask resolveItemStackCandidate(String candidate) {
         if (candidate == null || candidate.isEmpty()) return null;
+        StackTask tileTask = IconTileResolver.resolve(candidate);
+        if (tileTask != null) return tileTask;
         String registry = candidate;
         int meta = 0;
         int colon = candidate.lastIndexOf(':');
@@ -157,12 +157,24 @@ public final class IconItemEnumerator {
         int meta = stack.getItemDamage();
         if (meta == Short.MAX_VALUE) meta = 0;
         String itemId = RecipeItemEntries.buildItemId(registryName, meta);
-        if (byId.containsKey(itemId)) return false;
+        boolean exportable = false;
         try {
-            if (stack.getItem()
-                .getIconIndex(stack) == null) return false;
-        } catch (Throwable ignored) {
-            return false;
+            exportable = stack.getItem()
+                .getIconIndex(stack) != null;
+        } catch (Throwable ignored) {}
+        if (!exportable) {
+            exportable = IconGlFallback.needsGlFallback(stack) || IconFluidRenderer.needsInGameItemRender(stack);
+        }
+        if (!exportable) return false;
+        if (byId.containsKey(itemId)) {
+            if (!IconFluidRenderer.isFluidDropItem(stack.getItem())) {
+                return false;
+            }
+            StackTask existing = byId.get(itemId);
+            if (existing != null && IconFluidRenderer.isFluidDropStack(existing.stack)
+                && !IconFluidRenderer.isFluidDropStack(stack)) {
+                return false;
+            }
         }
         byId.put(itemId, new StackTask(itemId, stack.copy(), null));
         return true;

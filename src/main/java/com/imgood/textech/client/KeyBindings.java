@@ -336,12 +336,7 @@ public class KeyBindings {
             effectiveIds.size());
         notifyStatic(mc, I18n.format("adm.webconsole.icons.uploading_started_mode", packName, renderModeId));
         IconRenderer.instance()
-            .start(
-                packName,
-                playerUuid,
-                renderModeId,
-                effectiveScope,
-                effectiveIds);
+            .start(packName, playerUuid, renderModeId, effectiveScope, effectiveIds);
         pendingIconExportScope = IconExportScope.ALL;
         pendingIconExportItemIds.clear();
     }

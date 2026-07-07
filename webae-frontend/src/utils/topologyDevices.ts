@@ -24,22 +24,61 @@ const CABLE_TYPES = new Set(['cable_smart', 'cable_dense', 'cable_covered']);
 /** Fixed display order for device-type collapse groups. */
 export const DEVICE_TYPE_ORDER = [
   'controller',
+  'energy_cell',
+  'energy_acceptor',
   'drive',
+  'chest',
+  'io_port',
+  'terminal_me',
+  'terminal_crafting',
+  'terminal_pattern_encoding',
+  'terminal_pattern_access',
+  'terminal_wireless',
+  'wireless_access_point',
+  'security_terminal',
+  'terminal_other',
   'terminal',
+  'bus_import',
+  'bus_export',
+  'bus_storage',
+  'bus_ore_filter',
   'bus',
-  'monitor',
   'interface',
+  'pattern_provider',
+  'monitor_storage',
+  'monitor_conversion',
+  'emitter_level',
+  'emitter_energy',
+  'monitor',
   'cpu',
+  'p2p_me',
+  'p2p_item',
+  'p2p_fluid',
+  'p2p_power',
+  'p2p_light',
+  'p2p_other',
   'p2p',
   'quantum',
+  'energy',
   'misc',
   'spatial_bin',
 ] as const;
 
+/** Safe label for topology nodes — API may serialize null displayName (Gson serializeNulls). */
+export function topologyNodeLabel(node: Pick<TopologyNodeDto, 'displayName' | 'type' | 'id' | 'subtype'>): string {
+  const name = node.displayName?.trim();
+  if (name) return name;
+  const subtype = node.subtype?.trim();
+  if (subtype) return subtype;
+  if (node.type) return node.type;
+  if (node.id) return node.id;
+  return '?';
+}
+
 export function isCableNode(node: TopologyNodeDto): boolean {
   return (
     CABLE_TYPES.has(node.type) ||
-    node.id.startsWith('cable-') ||
+    (node.id != null && node.id.startsWith('cable-')) ||
     node.simKind === 'junction' ||
     !!node.simKind?.startsWith('cable')
   );
@@ -64,16 +103,14 @@ export function flattenDevices(nodes: TopologyNodeDto[]): FlatDeviceRow[] {
   const rows: FlatDeviceRow[] = [];
   for (const node of nodes) {
     if (isCableNode(node) || isCellNode(node)) continue;
-    // CPU clusters: constituent blocks are shown only in the detail drawer.
-    if (node.type === 'cpu') continue;
     for (let i = 0; i < (node.devices?.length ?? 0); i++) {
       const device = node.devices![i];
       if (isCableClassName(device.className)) continue;
       rows.push({
         key: `${node.id}:${i}:${device.x},${device.y},${device.z}`,
         nodeId: node.id,
-        nodeType: node.type,
-        nodeDisplayName: node.displayName,
+        nodeType: node.subtype || node.type,
+        nodeDisplayName: topologyNodeLabel(node),
         device,
       });
     }
@@ -107,7 +144,7 @@ export function filterNodeRows(rows: DeviceListNodeRow[], query: string, _hideCa
   if (!q) return out;
   return out.filter((r) => {
     const n = r.node;
-    const hay = [n.displayName, n.type, n.id, String(n.count)].join(' ').toLowerCase();
+    const hay = [topologyNodeLabel(n), n.type, n.id, String(n.count)].join(' ').toLowerCase();
     return hay.includes(q);
   });
 }
@@ -122,12 +159,16 @@ export function buildNodeListRows(nodes: TopologyNodeDto[]): DeviceListNodeRow[]
     }));
 }
 
+export function resolveGroupType(node: TopologyNodeDto): string {
+  return node.subtype || node.type || 'misc';
+}
+
 export function groupRowsByDeviceType<T extends { nodeType?: string; node?: TopologyNodeDto }>(
   rows: T[]
 ): DeviceTypeGroup<T>[] {
   const buckets = new Map<string, T[]>();
   for (const row of rows) {
-    const type = row.nodeType ?? row.node?.type ?? 'misc';
+    const type = row.nodeType ?? row.node?.subtype ?? row.node?.type ?? 'misc';
     const list = buckets.get(type) ?? [];
     list.push(row);
     buckets.set(type, list);

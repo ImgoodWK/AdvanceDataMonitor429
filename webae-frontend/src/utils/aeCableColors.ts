@@ -63,9 +63,27 @@ export function hexFromAeCableColorId(id: AeCableColorId | string | undefined): 
   return findAeCableColor(id).hex;
 }
 
-/** Build block-tile icon id for AE cable bus texture (simulated topology). */
-export function aeCableIconId(_cableType: 'smart' | 'covered' | 'dense', _colorId: AeCableColorId | string | undefined): string {
-  return 'appeng:tile.BlockCableBus';
+/** Build item-damage icon id for AE cable (legacy — item form, rendered as flat inventory item). */
+export function aeCableIconId(
+  cableType: 'smart' | 'covered' | 'dense',
+  colorId: AeCableColorId | string | undefined
+): string {
+  const preset = findAeCableColor(colorId);
+  const meta =
+    cableType === 'dense' ? preset.denseMeta : cableType === 'smart' ? preset.smartMeta : preset.coveredMeta;
+  return `appeng:item.ItemMultiPart:${meta}`;
+}
+
+/** Build block-tile icon id for AE cable bus texture — simulates block face (not flat item). */
+export function aeCableBlockIconId(
+  cableType: 'smart' | 'covered' | 'dense',
+  colorId: AeCableColorId | string | undefined
+): string {
+  const preset = findAeCableColor(colorId);
+  const meta =
+    cableType === 'dense' ? preset.denseMeta : cableType === 'smart' ? preset.smartMeta : preset.coveredMeta;
+  // BlockCableBus uses the same ItemBlock damage values for cable colors
+  return `appeng:tile.BlockCableBus:${meta}`;
 }
 
 /** Block texture icon ids for simulated topology devices. */

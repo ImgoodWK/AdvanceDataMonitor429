@@ -949,6 +949,7 @@ adm.webconsole.icons.uploading_started_mode=Rendering and uploading item icons t
 adm.webconsole.icons.pack_invalid=Invalid icon pack name: {0}
 adm.webconsole.icons.mode_invalid=Invalid icon render mode: {0}
 adm.webconsole.icons.mode_not_implemented=Icon render mode not implemented yet: {0}
+adm.webconsole.icons.cleared=Icon cache cleared ({0} PNG files removed from config/textech/web-icons/).
 
 adm.iconRenderMode.nei=NEI style (recommended)
 adm.iconRenderMode.nei.tooltip=NEI grid FBO export; matches NEI slot appearance. WebAE default.
@@ -1032,10 +1033,26 @@ adm.manual.web_console.orders_text=The Orders page lets you submit AE2 crafting 
 adm.manual.web_console.theme_dashboard_title=Themes & Dashboard Customization
 adm.manual.web_console.theme_dashboard_text=Phase 2 added a full theme system and a customizable drag-and-drop dashboard.\n\nTheme system:\n- Theme = color scheme x layout preset, chosen independently in Settings.\n- Color schemes (24): 19 classic + 5 Phase 8 sci-fi themes (hologram/plasma/neon-pulse/quantum/crystal). Each recolors the background, accent, text, and status colors.\n- Layout presets (5): standard, compact (denser, smaller fonts), wide (larger gaps, bigger fonts), sidebar-right (sidebar on the right), topnav (sidebar hidden, navigation moved into the top bar).\n- Your choice persists in the browser (localStorage webae_theme as "color|layout"); legacy dark/light choices auto-migrate.\n- Charts recolor automatically when you switch themes.\n\nDashboard customization:\n- The Dashboard tab is a GridStack.js grid you can edit: drag widgets by their handle, resize from the corner, and use the toolbar to toggle Edit mode.\n- Add Widget opens a library of widget types: stat card, progress bar (horizontal/vertical/circular), line chart, bar chart, pie chart, data table, gauge.\n- Each widget binds to a data source (item types, fluid types, EU stored, bytes usage %, power history, top items, network compare, etc.) and a scope: global (aggregated across all selected networks) or per-network (bound to one network; in split mode each network gets its own copy).\n- Edit a widget to change its type, data source, scope, style (progress orientation, time window, max rows), and size.\n- Layout persists in localStorage.webae_dashboard_config. "Reset Layout" restores the default widget set.\n- Global style defaults and widgets JSON import/export are covered in the Dashboard Settings chapter.\n- In split multi-network mode, global widgets appear in a top "Overview" grid and per-network widgets repeat under each network's section.
 adm.manual.web_console.topology_title=Network Topology
-adm.manual.web_console.topology_text=Web console includes a Network Topology page (sidebar: Network Topology) backed by a simulated AE API.\n\nFeatures:\n- Does not reflect real AE cable routing; only counts devices on the grid and groups them by rules.\n- Logical view: aggregate by device class (controller/drive/interface/CPU/P2P/quantum/misc) with star fake cables radiating from the controller hub.\n- Spatial view: coarse clustering by dimension + 64x64 chunk bins — still not physical topology.\n- P2P channels view: list P2P tunnels grouped by frequency (not physical links), with endpoint coords and IN/OUT side.\n- Fake cables show simulated channel usage (e.g. 12/32); when the AE API is readable, meta also includes real channel totals.\n- SVG graph with pan/zoom; click a node to list device coordinates; CSV export on the topology page.\n\nAPI: GET /api/network/topology?network=<id>&mode=logical|spatial; GET /api/network/p2p?network=<id> (P2P map).\n\nConfig ([webConsole]): topologyEnabled (default true), topologyCacheTtlMs (default 30000 ms).
+adm.manual.web_console.topology_text=Web console includes a Network Topology page (sidebar: Network Topology) backed by a simulated AE API.\n\nFeatures:\n- Does not reflect real AE cable routing; devices are grouped by fine-grained subtype rules.\n- Logical view: tree layout (controller → dense trunk 32ch → 4× smart branches 8ch); settings can switch to double-ring star abstract layout.\n- Terminals/WAP/security above; Energy Cell/Acceptor left/right of controller; Drive/Chest/IO/CPU direct below (0 channels).\n- Drive icon badge shows pattern count; device list supports graph↔table hover linkage.\n- Spatial view: dimension + 64×64 chunk bins; P2P view groups by frequency; world map view (Phase A) shows AE devices on a grid at real coordinates (requires logical snapshot; top-down terrain tiles pending Phase B).\n- Snapshots persist under config/textech/web-topology/ and survive server restart (GET never auto-rebuilds).\n- Abstract vs cable-simulation render modes; SVG pan/zoom; CSV export.\n\nAPI: GET /api/network/topology; POST /api/network/topology/snapshot (manual capture + cooldown); GET /api/network/p2p; GET /api/worldmap/meta and /api/worldmap/markers (Phase A).\n\nConfig ([webConsole]): topologyEnabled, topologyCacheTtlMs (default 1800000 ms / 30 min), topologySnapshotPersist (default true); worldMapEnabled, worldMapTilePx, worldMapBoundsPaddingChunks, worldMapTileBudgetPerTick, worldMapMaxChunks.
 adm.webae.topology.title=Network Topology
 adm.webae.topology.mode.logical=Logical grouping
 adm.webae.topology.mode.spatial=Spatial bins
+adm.webae.topology.mode.worldMap=World Map
+adm.webae.topology.worldMap.noSnapshot=Capture a logical topology snapshot first
+adm.webae.topology.worldMap.boundsTooLarge=AE network span too large; render bounds clamped
+adm.webae.topology.worldMap.dimTab=Dimension %s
+adm.webae.topology.worldMap.markerCluster=%s devices
+adm.webae.worldmap.view.flat=Flat map
+adm.webae.worldmap.view.oblique=Oblique view
+adm.webae.worldmap.oblique.se=Southeast
+adm.webae.worldmap.oblique.sw=Southwest
+adm.webae.worldmap.oblique.ne=Northeast
+adm.webae.worldmap.oblique.nw=Northwest
+adm.webae.worldmap.layer.terrain=Terrain tiles
+adm.webae.worldmap.layer.aeOverlay=AE overlay
+adm.webae.worldmap.layer.deviceIcons=Device icons
+adm.webae.topology.settings.worldMapLayers=Map layers
+adm.webae.topology.settings.worldMapAeOverlayOpacity=AE overlay opacity
 adm.webae.topology.channels.simulated=Simulated channels
 adm.webae.topology.channels.real=Real channels
 adm.webae.topology.cable.smart=Smart cable

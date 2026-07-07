@@ -9,6 +9,7 @@ import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.webae.auth.WebAuthOpCheck;
 import com.imgood.textech.webae.topology.TopologyCache;
 import com.imgood.textech.webae.topology.TopologyCache.CachedResult;
 import com.imgood.textech.webae.topology.TopologyCache.CaptureResult;
@@ -28,7 +29,7 @@ public final class TopologyHandler {
 
     private TopologyHandler() {}
 
-    public static NanoHTTPD.Response handle(Map<String, String> params, String ownerUuid) {
+    public static NanoHTTPD.Response handle(Map<String, String> params, String ownerUuid, String actorUuid) {
         if (!Config.webTopologyEnabled) {
             return json(
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
@@ -45,18 +46,27 @@ public final class TopologyHandler {
             .getCached(ownerUuid, networkId, mode);
         long cooldownRemainingMs = TopologyCache.instance()
             .remainingCooldownMs(ownerUuid, networkId);
+        boolean canForceSnapshot = WebAuthOpCheck.isOp(actorUuid);
         if (warm != null) {
-            return buildSuccess(warm.snapshot, true, warm.timestamp, cooldownRemainingMs);
+            return buildSuccess(
+                warm.snapshot,
+                true,
+                warm.timestamp,
+                cooldownRemainingMs,
+                warm.persisted,
+                canForceSnapshot);
         }
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"hasSnapshot\":false,\"cached\":false,\"cooldownRemainingMs\":" + cooldownRemainingMs
+            "{\"success\":true,\"hasSnapshot\":false,\"cached\":false,\"canForceSnapshot\":" + canForceSnapshot
+                + ",\"cooldownRemainingMs\":"
+                + cooldownRemainingMs
                 + ",\"cooldownMs\":"
                 + Config.webTopologyCacheTtlMs
                 + ",\"message\":\"No topology snapshot yet. Capture one manually.\"}");
     }
 
-    public static NanoHTTPD.Response handleSnapshot(Map<String, String> params, String ownerUuid) {
+    public static NanoHTTPD.Response handleSnapshot(Map<String, String> params, String ownerUuid, String actorUuid) {
         if (!Config.webTopologyEnabled) {
             return json(
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
@@ -69,6 +79,12 @@ public final class TopologyHandler {
         }
         final String mode = params.get("mode") != null ? params.get("mode") : "logical";
         final boolean force = "1".equals(params.get("force")) || "true".equalsIgnoreCase(params.get("force"));
+
+        if (force && !WebAuthOpCheck.isOp(actorUuid)) {
+            return json(
+                NanoHTTPD.Response.Status.FORBIDDEN,
+                "{\"success\":false,\"code\":\"forbidden\",\"message\":\"Operator permission required for force refresh\"}");
+        }
 
         final CaptureResult[] holder = new CaptureResult[1];
         final CountDownLatch latch = new CountDownLatch(1);
@@ -113,11 +129,12 @@ public final class TopologyHandler {
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
                 "{\"success\":false,\"message\":\"Network topology API is disabled\",\"code\":\"topology_disabled\"}");
         }
+        boolean canForceSnapshot = WebAuthOpCheck.isOp(actorUuid);
         if (result.cooldown) {
             long remaining = TopologyCache.instance()
                 .remainingCooldownMs(ownerUuid, networkId);
             if (result.snapshot != null) {
-                return buildSuccess(result.snapshot, true, result.timestamp, remaining);
+                return buildSuccess(result.snapshot, true, result.timestamp, remaining, true, canForceSnapshot);
             }
             return json(
                 NanoHTTPD.Response.Status.TOO_MANY_REQUESTS,
@@ -131,7 +148,9 @@ public final class TopologyHandler {
             false,
             result.timestamp,
             TopologyCache.instance()
-                .remainingCooldownMs(ownerUuid, networkId));
+                .remainingCooldownMs(ownerUuid, networkId),
+            Config.webTopologySnapshotPersist,
+            canForceSnapshot);
     }
 
     private static int parseNetworkId(Map<String, String> params) {
@@ -159,8 +178,12 @@ public final class TopologyHandler {
     }
 
     private static NanoHTTPD.Response buildSuccess(TopologySnapshot snapshot, boolean cached, long timestamp,
-        long cooldownRemainingMs) {
+        long cooldownRemainingMs, boolean persisted, boolean canForceSnapshot) {
         String body = "{\"success\":true,\"hasSnapshot\":true,\"cached\":" + cached
+            + ",\"persisted\":"
+            + persisted
+            + ",\"canForceSnapshot\":"
+            + canForceSnapshot
             + ",\"timestamp\":"
             + timestamp
             + ",\"cooldownRemainingMs\":"

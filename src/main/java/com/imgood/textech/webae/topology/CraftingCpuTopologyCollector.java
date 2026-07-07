@@ -23,7 +23,9 @@ import appeng.tile.crafting.TileCraftingTile;
  * the abstract tree and device list show one icon per CPU, with constituent blocks listed
  * only in the detail drawer.
  *
- * <p>Must run on the server main thread (grid access).</p>
+ * <p>
+ * Must run on the server main thread (grid access).
+ * </p>
  */
 public final class CraftingCpuTopologyCollector {
 

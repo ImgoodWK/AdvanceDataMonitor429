@@ -495,13 +495,73 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "topologyCacheTtlMs",
-            "TTL in milliseconds for manual topology snapshot cooldown (logical/spatial). Default 300000 (5 min).",
-            "手动拓扑快照冷却时间（毫秒，逻辑/空间视图）。默认 300000（5 分钟）。");
+            "TTL in milliseconds for manual topology snapshot cooldown (logical/spatial). Default 1800000 (30 min).",
+            "手动拓扑快照冷却时间（毫秒，逻辑/空间视图）。默认 1800000（30 分钟）。");
+        put(
+            "webConsole",
+            "topologySnapshotPersist",
+            "Persist topology snapshots to config/textech/web-topology/ across server restarts. Default true.",
+            "将拓扑快照持久化到 config/textech/web-topology/，服务端重启后仍可读取。默认开启。");
         put(
             "webConsole",
             "dynmapBaseUrl",
             "Optional Dynmap base URL (e.g. http://host:8123) for WebAE player location deep links. Empty disables the button.",
             "可选 Dynmap 基础 URL（如 http://host:8123），供 WebAE 玩家坐标外链使用。留空则隐藏按钮。");
+        put(
+            "webConsole",
+            "worldMapEnabled",
+            "Enable GET /api/worldmap/* world map overlay API (requires topologyEnabled). Default true.",
+            "启用 GET /api/worldmap/* 世界地图覆盖层 API（需 topologyEnabled）。默认开启。");
+        put(
+            "webConsole",
+            "worldMapTilePx",
+            "Pixel edge length per chunk tile for world map terrain rendering. Default 128.",
+            "世界地图每个 chunk 瓦片的像素边长。默认 128。");
+        put(
+            "webConsole",
+            "worldMapBoundsPaddingChunks",
+            "Extra chunk padding around AE device occupied chunks for world map (Chebyshev). Default 1.",
+            "世界地图 AE 设备所在 chunk 外扩邻接 chunk 数（切比雪夫距离，含对角）。默认 1。");
+        put(
+            "webConsole",
+            "worldMapTileBudgetPerTick",
+            "Max chunk tiles rendered per server tick for world map (Phase B). Default 2.",
+            "世界地图每 tick 最多渲染的 chunk 瓦片数（Phase B）。默认 2。");
+        put(
+            "webConsole",
+            "worldMapMaxChunks",
+            "Max chunk tiles per dimension for world map bounds clamp. Default 512.",
+            "世界地图单维度最大 chunk 瓦片数（超出则 clamp）。默认 512。");
+        put(
+            "webConsole",
+            "worldMapRequireNetworkScope",
+            "Require network query param and allowed-chunk scope check on GET /api/worldmap/tiles. Default true.",
+            "GET /api/worldmap/tiles 须带 network 参数并校验 AE 网络允许 chunk 范围。默认开启。");
+        put(
+            "webConsole",
+            "worldMapViewsEnabled",
+            "Comma-separated enabled world map tile views (flat, oblique, or oblique_se/oblique_sw/oblique_ne/oblique_nw). Default flat + all oblique directions.",
+            "启用的世界地图瓦片视角，逗号分隔（flat、oblique 或 oblique_se/oblique_sw/oblique_ne/oblique_nw）。默认俯视 + 全部斜视角。");
+        put(
+            "webConsole",
+            "worldMapClientHdEnabled",
+            "Allow online owner/authorized client to upload HD world map tiles over server software renders. Default true.",
+            "允许在线主人/授权客户端上传 HD 世界地图瓦片覆盖服务端软件渲染。默认开启。");
+        put(
+            "webConsole",
+            "worldMapClientHdBudgetPerTick",
+            "Max HD world map chunk tiles rendered per client tick (Phase 4). Default 1.",
+            "客户端每 tick 最多渲染的 HD 世界地图 chunk 瓦片数（Phase 4）。默认 1。");
+        put(
+            "webConsole",
+            "worldMapAeOverlayEnabled",
+            "Enable AE overlay tile layer (devices + cables + parts) on world map. Default true.",
+            "启用世界地图 AE 透视瓦片层（设备 + 线缆 + 零件）。默认开启。");
+        put(
+            "webConsole",
+            "worldMapAeOverlayIncludeCables",
+            "Include AE cables in AE overlay scope and tile rendering. Default true.",
+            "AE 透视层范围与瓦片渲染包含线缆。默认开启。");
         put(
             "debug",
             "webaeIcons",

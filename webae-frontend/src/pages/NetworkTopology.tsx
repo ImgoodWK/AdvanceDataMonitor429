@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
 
@@ -25,6 +25,8 @@ import {
   Tag,
 
   Typography,
+
+  Tooltip,
 
 } from 'antd';
 
@@ -56,15 +58,20 @@ import { useI18n } from '@/i18n';
 
 import { usePlayerLocations } from '@/hooks/usePlayerLocations';
 
+import { useWorldMapData } from '@/hooks/useWorldMapData';
+
 import { useTopologyDisplay } from '@/hooks/useTopologyDisplay';
 
 import { PageShell } from '@/components/Layout/PageShell';
 
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 
-import { TopologyGraphSvg, type TopologyGraphHandle } from '@/components/topology/TopologyGraphSvg';
+import { TopologyCytoscapeGraph } from '@/components/topology/TopologyCytoscapeGraph';
+import type { TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
 
 import { TopologySimulatedView } from '@/components/topology/TopologySimulatedView';
+
+import { TopologyWorldMapView } from '@/components/topology/TopologyWorldMapView';
 
 import { TopologyDeviceList } from '@/components/topology/TopologyDeviceList';
 
@@ -77,6 +84,9 @@ import { P2pMapPanel } from '@/components/topology/P2pMapPanel';
 import { formatTime } from '@/utils/format';
 
 import { buildDynmapUrl } from '@/utils/dynmap';
+
+import { buildNodeIndex } from '@/utils/worldMapMarkers';
+import { buildWorldMapInvalidateViews } from '@/utils/worldMapViews';
 
 import type {
 
@@ -98,7 +108,15 @@ const { Text } = Typography;
 
 
 
-type ViewMode = 'logical' | 'spatial' | 'p2p';
+type ViewMode = 'logical' | 'spatial' | 'p2p' | 'worldMap';
+
+
+
+function topologyApiMode(viewMode: ViewMode): 'logical' | 'spatial' {
+
+  return viewMode === 'spatial' ? 'spatial' : 'logical';
+
+}
 
 
 
@@ -154,15 +172,53 @@ export function NetworkTopologyPage() {
 
   const [driveModalNode, setDriveModalNode] = useState<TopologyNodeDto | null>(null);
 
+  const [canForceSnapshot, setCanForceSnapshot] = useState(false);
+
 
 
   const currentNet = activeNetwork ?? selectedNetworks[0] ?? 0;
 
   const topologyEnabled = serverConfig?.topologyEnabled !== false;
 
+  const worldMapEnabled = serverConfig?.worldMapEnabled !== false && topologyEnabled;
+
   const dynmapBaseUrl = (serverConfig?.dynmapBaseUrl ?? '').trim();
 
   const { locations: playerLocations, loading: locationsLoading } = usePlayerLocations(10000);
+
+  const {
+
+    meta: worldMapMeta,
+
+    markers: worldMapMarkers,
+
+    loading: worldMapLoading,
+
+    error: worldMapError,
+
+    reload: reloadWorldMap,
+
+    invalidateTiles: invalidateWorldMapTiles,
+
+  } = useWorldMapData(currentNet, viewMode === 'worldMap' && worldMapEnabled);
+
+
+
+  const refreshWorldMapTiles = useCallback(
+    async (obliqueDirection = displaySettings.worldMapObliqueDirection) => {
+      if (viewMode !== 'worldMap' || !worldMapEnabled) return;
+      const views = buildWorldMapInvalidateViews(obliqueDirection);
+      await invalidateWorldMapTiles(views);
+      await reloadWorldMap();
+    },
+    [
+      viewMode,
+      worldMapEnabled,
+      displaySettings.worldMapObliqueDirection,
+      invalidateWorldMapTiles,
+      reloadWorldMap,
+    ]
+  );
 
 
 
@@ -177,6 +233,8 @@ export function NetworkTopologyPage() {
     if (data.cooldownRemainingMs != null) setCooldownRemainingMs(data.cooldownRemainingMs);
 
     if (data.cooldownMs != null) setCooldownMs(data.cooldownMs);
+
+    if (data.canForceSnapshot != null) setCanForceSnapshot(data.canForceSnapshot);
 
     if (data.success && data.data && data.hasSnapshot !== false) {
 
@@ -222,13 +280,21 @@ export function NetworkTopologyPage() {
 
     try {
 
+      const apiMode = topologyApiMode(viewMode);
+
       const data = await getApiClient().get<TopologyResponse>(
 
-        `/api/network/topology?network=${currentNet}&mode=${viewMode}`
+        `/api/network/topology?network=${currentNet}&mode=${apiMode}`
 
       );
 
       applyResponse(data, true);
+
+      if (viewMode === 'worldMap') {
+
+        await refreshWorldMapTiles();
+
+      }
 
     } catch (e) {
 
@@ -242,15 +308,15 @@ export function NetworkTopologyPage() {
 
     }
 
-  }, [currentNet, viewMode, topologyEnabled, selectedNetworks.length, t, applyResponse]);
+  }, [currentNet, viewMode, topologyEnabled, selectedNetworks.length, t, applyResponse, refreshWorldMapTiles]);
 
 
 
-  const captureSnapshot = useCallback(async () => {
+  const captureSnapshot = useCallback(async (force = false) => {
 
     if (!topologyEnabled || selectedNetworks.length === 0 || viewMode === 'p2p') return;
 
-    if (cooldownRemainingMs > 0) {
+    if (!force && cooldownRemainingMs > 0) {
 
       notify(t('topologyCooldownWait'), 'warning');
 
@@ -264,15 +330,27 @@ export function NetworkTopologyPage() {
 
     try {
 
+      const forceParam = force ? '&force=1' : '';
+
+      const apiMode = topologyApiMode(viewMode);
+
       const data = await getApiClient().post<TopologyResponse>(
 
-        `/api/network/topology/snapshot?network=${currentNet}&mode=${viewMode}`
+        `/api/network/topology/snapshot?network=${currentNet}&mode=${apiMode}${forceParam}`
 
       );
 
+      if (data.canForceSnapshot != null) setCanForceSnapshot(data.canForceSnapshot);
+
       if (applyResponse(data, false)) {
 
-        notify(t('topologyCaptureSnapshot'), 'success');
+        notify(force ? t('topologyForceSnapshot') : t('topologyCaptureSnapshot'), 'success');
+
+        if (viewMode === 'worldMap') {
+
+          await refreshWorldMapTiles();
+
+        }
 
       }
 
@@ -285,6 +363,14 @@ export function NetworkTopologyPage() {
         notify(t('topologyCooldownWait'), 'warning');
 
         void loadCached();
+
+      } else if (e instanceof ApiClientError && e.code === 'forbidden') {
+
+        const msg = (e as Error).message || t('topologyForceSnapshotHint');
+
+        setError(msg);
+
+        notify(msg, 'error');
 
       } else {
 
@@ -321,6 +407,8 @@ export function NetworkTopologyPage() {
     applyResponse,
 
     loadCached,
+
+    refreshWorldMapTiles,
 
   ]);
 
@@ -386,7 +474,7 @@ export function NetworkTopologyPage() {
 
     const onKey = (e: KeyboardEvent) => {
 
-      if (viewMode === 'p2p' || !snapshot) return;
+      if (viewMode === 'p2p' || (!snapshot && viewMode !== 'worldMap')) return;
 
       if (e.key === '+' || e.key === '=') {
 
@@ -405,6 +493,16 @@ export function NetworkTopologyPage() {
     return () => window.removeEventListener('keydown', onKey);
 
   }, [viewMode, snapshot]);
+
+
+
+  const nodeIndex = useMemo(
+
+    () => (snapshot ? buildNodeIndex(snapshot.nodes) : new Map()),
+
+    [snapshot]
+
+  );
 
 
 
@@ -457,8 +555,10 @@ export function NetworkTopologyPage() {
   const meta = snapshot?.meta;
 
   const layoutEpoch = snapshot
-    ? `${snapshotTs ?? 0}:${viewMode}:${displaySettings.renderMode}:${snapshot.nodes.length}:${snapshot.edges.length}`
-    : '';
+    ? `${snapshotTs ?? 0}:${viewMode}:${displaySettings.renderMode}:${displaySettings.abstractLayout}:${snapshot.nodes.length}:${snapshot.edges.length}`
+    : worldMapMeta?.timestamp != null
+      ? `wm:${worldMapMeta.timestamp}:${worldMapMarkers.length}`
+      : '';
 
   const simCh = meta?.channelsSimulated;
 
@@ -538,7 +638,7 @@ export function NetworkTopologyPage() {
 
             icon={<CameraOutlined />}
 
-            onClick={() => void captureSnapshot()}
+            onClick={() => void captureSnapshot(false)}
 
             loading={capturing}
 
@@ -549,6 +649,28 @@ export function NetworkTopologyPage() {
             {t('topologyCaptureSnapshot')}
 
           </Button>
+
+          {canForceSnapshot && (
+
+            <Tooltip title={t('topologyForceSnapshotHint')}>
+
+              <Button
+
+                icon={<ReloadOutlined />}
+
+                onClick={() => void captureSnapshot(true)}
+
+                loading={capturing}
+
+              >
+
+                {t('topologyForceSnapshot')}
+
+              </Button>
+
+            </Tooltip>
+
+          )}
 
           <Button icon={<ReloadOutlined />} onClick={() => void loadCached()} loading={loading} aria-label={t('refresh')}>
 
@@ -706,6 +828,12 @@ export function NetworkTopologyPage() {
 
                 { value: 'p2p', label: t('topologyMode_p2p') },
 
+                ...(worldMapEnabled
+
+                  ? [{ value: 'worldMap' as const, label: t('topologyMode_worldMap') }]
+
+                  : []),
+
               ]}
 
             />
@@ -762,7 +890,7 @@ export function NetworkTopologyPage() {
 
 
 
-      {!snapshot && !loading && viewMode !== 'p2p' && (
+      {!snapshot && !loading && viewMode !== 'p2p' && viewMode !== 'worldMap' && (
 
         <Alert type="info" showIcon message={t('topologyNoSnapshot')} style={{ marginBottom: 8 }} />
 
@@ -770,7 +898,19 @@ export function NetworkTopologyPage() {
 
 
 
-      {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 8 }} closable />}
+      {viewMode === 'worldMap' && worldMapMeta?.boundsTooLarge && (
+
+        <Alert type="warning" showIcon message={t('worldMapBoundsTooLarge')} style={{ marginBottom: 8 }} />
+
+      )}
+
+
+
+      {(error || worldMapError) && (
+
+        <Alert type="error" showIcon message={error || worldMapError} style={{ marginBottom: 8 }} closable />
+
+      )}
 
 
 
@@ -816,7 +956,7 @@ export function NetworkTopologyPage() {
 
 
 
-      {meta && (
+      {meta && viewMode !== 'worldMap' && (
 
         <Card size="small" style={{ marginBottom: 8 }}>
 
@@ -824,15 +964,23 @@ export function NetworkTopologyPage() {
 
             <Descriptions.Item label={t('topologyLayout')}>
 
-              {meta.layout === 'tree'
+              {viewMode === 'logical'
 
-                ? t('topologyLayout_tree')
-
-                : meta.layout === 'star'
+                ? displaySettings.abstractLayout === 'star'
 
                   ? t('topologyLayout_star')
 
-                  : meta.layout}
+                  : t('topologyLayout_tree')
+
+                : meta.layout === 'tree'
+
+                  ? t('topologyLayout_tree')
+
+                  : meta.layout === 'star'
+
+                    ? t('topologyLayout_star')
+
+                    : meta.layout}
 
             </Descriptions.Item>
 
@@ -902,13 +1050,75 @@ export function NetworkTopologyPage() {
 
           >
 
-            {loading && !snapshot ? (
+            {loading && !snapshot && viewMode !== 'worldMap' ? (
 
               <div style={{ textAlign: 'center', padding: 80 }}>
 
                 <Spin aria-label={t('loading')} />
 
               </div>
+
+            ) : viewMode === 'worldMap' ? (
+
+              worldMapLoading && !worldMapMeta ? (
+
+                <div style={{ textAlign: 'center', padding: 80 }}>
+
+                  <Spin aria-label={t('loading')} />
+
+                </div>
+
+              ) : worldMapMeta?.hasLogicalSnapshot === false || !snapshot ? (
+
+                <Empty description={t('worldMapNoSnapshot')} style={{ padding: 64 }}>
+
+                  <Button type="primary" icon={<CameraOutlined />} onClick={() => void captureSnapshot(false)} loading={capturing}>
+
+                    {t('topologyCaptureSnapshot')}
+
+                  </Button>
+
+                </Empty>
+
+              ) : worldMapMeta && worldMapMarkers.length > 0 ? (
+
+                <TopologyWorldMapView
+
+                  ref={graphRef}
+
+                  meta={worldMapMeta}
+
+                  markers={worldMapMarkers}
+
+                  networkId={currentNet}
+
+                  nodeIndex={nodeIndex}
+
+                  selectedNodeId={selectedNode?.id ?? null}
+
+                  onNodeSelect={setSelectedNode}
+
+                  layoutEpoch={layoutEpoch}
+
+                  obliqueDirection={displaySettings.worldMapObliqueDirection}
+
+                  displaySettings={displaySettings}
+
+                  onDriveClick={(node) => {
+
+                    setSelectedNode(node);
+
+                    setDriveModalNode(node);
+
+                  }}
+
+                />
+
+              ) : (
+
+                <Empty description={t('topologyEmpty')} style={{ padding: 64 }} />
+
+              )
 
             ) : snapshot && snapshot.nodes.length > 0 ? (
 
@@ -942,7 +1152,7 @@ export function NetworkTopologyPage() {
 
               ) : (
 
-                <TopologyGraphSvg
+                <TopologyCytoscapeGraph
 
                   ref={graphRef}
 
@@ -950,7 +1160,7 @@ export function NetworkTopologyPage() {
 
                   edges={snapshot.edges}
 
-                  mode={viewMode}
+                  mode={viewMode === 'spatial' ? 'spatial' : 'logical'}
 
                   layout={meta?.layout}
 
@@ -976,7 +1186,7 @@ export function NetworkTopologyPage() {
 
             )}
 
-            {(loading || capturing) && snapshot && (
+            {(loading || capturing || worldMapLoading) && (snapshot || worldMapMeta) && (
 
               <div className="topology-loading-overlay">
 
@@ -990,7 +1200,9 @@ export function NetworkTopologyPage() {
 
 
 
-          {snapshot && snapshot.nodes.length > 0 && (
+          {((snapshot && snapshot.nodes.length > 0) ||
+
+            (viewMode === 'worldMap' && snapshot && worldMapMeta?.hasLogicalSnapshot)) && (
 
             <Card className="topology-page-sidebar" title={t('topologyDeviceListTitle')} size="small">
 
@@ -1000,9 +1212,13 @@ export function NetworkTopologyPage() {
 
                 selectedNodeId={selectedNode?.id ?? null}
 
+                hoveredNodeId={hoveredNodeId}
+
                 hideCableNodes={displaySettings.hideCableNodes}
 
                 onSelectNode={setSelectedNode}
+
+                onHoverNode={setHoveredNodeId}
 
                 onSelectDevice={(nodeId) => {
 
@@ -1054,12 +1270,24 @@ export function NetworkTopologyPage() {
 
         settings={displaySettings}
 
-        onChange={setDisplaySettings}
+        onChange={(next) => {
+          const prevDir = displaySettings.worldMapObliqueDirection;
+          setDisplaySettings(next);
+          if (
+            viewMode === 'worldMap' &&
+            next.worldMapObliqueDirection !== prevDir
+          ) {
+            void refreshWorldMapTiles(next.worldMapObliqueDirection);
+          }
+        }}
 
         onReset={resetDisplaySettings}
 
         showRenderMode={viewMode === 'logical'}
 
+        showWorldMapSettings={viewMode === 'worldMap'}
+
+        obliqueDirectionOptions={worldMapMeta?.obliqueDirections}
       />
 
 
@@ -1165,6 +1393,76 @@ export function NetworkTopologyPage() {
 
               )}
 
+              {selectedNode.type === 'cpu' && (selectedNode.devices?.length ?? 0) > 0 && (
+
+                <>
+
+                  <Typography.Title level={5} style={{ marginTop: 0 }}>
+
+                    {t('topologyCpuComponents')}
+
+                  </Typography.Title>
+
+                  <Table
+
+                    size="small"
+
+                    pagination={{ pageSize: 8, showSizeChanger: false }}
+
+                    style={{ marginBottom: 16 }}
+
+                    dataSource={(selectedNode.devices ?? []).map((d, i) => ({ ...d, key: i }))}
+
+                    columns={[
+
+                      {
+
+                        title: t('topologyCpuUnitType'),
+
+                        dataIndex: 'displayName',
+
+                        ellipsis: true,
+
+                        render: (v: string) => v || '—',
+
+                      },
+
+                      {
+
+                        title: t('topologyCoords'),
+
+                        key: 'coords',
+
+                        width: 140,
+
+                        render: (_, row) => `${row.x}, ${row.y}, ${row.z}`,
+
+                      },
+
+                      { title: t('topologyDim'), dataIndex: 'dim', width: 48 },
+
+                      {
+
+                        title: t('topologyCpuBlockId'),
+
+                        key: 'blockId',
+
+                        ellipsis: true,
+
+                        render: (_, row) => row.className || row.iconItemId || '—',
+
+                      },
+
+                    ]}
+
+                  />
+
+                </>
+
+              )}
+
+              {selectedNode.type !== 'cpu' && (
+
               <Table
 
                 size="small"
@@ -1204,6 +1502,8 @@ export function NetworkTopologyPage() {
                 ]}
 
               />
+
+              )}
 
             </>
 

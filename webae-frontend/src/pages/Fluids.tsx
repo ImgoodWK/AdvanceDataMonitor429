@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Empty, Input, Table, Tag, Typography } from 'antd';
+import { Button, Card, Empty, Input, Table, Typography } from 'antd';
 import { PushpinFilled, PushpinOutlined, SearchOutlined } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -9,7 +9,9 @@ import { useFluidMetrics, loadPinnedFluids, savePinnedFluids } from '@/hooks/use
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { PageShell } from '@/components/Layout/PageShell';
 import { ChartTrendSvg } from '@/components/dashboard/ChartTrendSvg';
+import { Icon } from '@/components/Icon';
 import { formatTime } from '@/utils/format';
+import { fluidIconId } from '@/utils/icon';
 import type { StorageFluid } from '@/types/dto';
 
 const { Text } = Typography;
@@ -59,7 +61,7 @@ export function FluidsPage() {
     return (f.fluidName || '').toLowerCase().includes(search.trim().toLowerCase());
   });
 
-  const trendPoints = getHistory(currentNet, 'fluidCount');
+  const trendPoints = getHistory(currentNet, 'fluidTotal');
   const totalTypes = fluidRows.length;
   const totalAmount = fluidRows.reduce((sum, f) => sum + (f.amount || 0), 0);
 
@@ -104,7 +106,12 @@ export function FluidsPage() {
       key: 'fluidName',
       sorter: (a: StorageFluid, b: StorageFluid) =>
         (a.fluidName || '').localeCompare(b.fluidName || ''),
-      render: (v: string) => <Tag color="cyan">{v}</Tag>,
+      render: (v: string) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon id={fluidIconId(v)} size={32} alt={v} />
+          <span>{v}</span>
+        </div>
+      ),
     },
     {
       title: t('amount'),
@@ -142,21 +149,21 @@ export function FluidsPage() {
         </div>
         <div style={{ marginTop: 16 }}>
           <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-            {t('dataSource_fluidCount')}
+            {t('dataSource_fluidTotal')}
           </Text>
           {trendPoints.length >= 2 ? (
             <div className="widget-chart-area" style={{ height: 120, minHeight: 80 }}>
               <ChartTrendSvg
                 series={[
                   {
-                    id: 'fluidCount',
-                    label: t('dataSource_fluidCount'),
+                    id: 'fluidTotal',
+                    label: t('dataSource_fluidTotal'),
                     points: trendPoints,
                     lineColor: 'var(--category-fluid, #06b6d4)',
                     areaColor: 'rgba(6, 182, 212, 0.15)',
                   },
                 ]}
-                formatValue={(v) => String(Math.round(v))}
+                formatValue={(v) => `${fmtNum(v)} mB`}
                 formatTime={(ts) => formatTime(ts)}
                 showValueAxis
                 showTimeAxis={false}
@@ -181,9 +188,10 @@ export function FluidsPage() {
               const label = fluidRows.find((f) => f.fluidName.toLowerCase() === fluidKey)?.fluidName ?? fluidKey;
               return (
                 <div key={fluidKey}>
-                  <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                    {label}
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Icon id={fluidIconId(label)} size={24} alt={label} />
+                    <Text strong>{label}</Text>
+                  </div>
                   {points.length >= 2 ? (
                     <div className="widget-chart-area" style={{ height: 100 }}>
                       <ChartTrendSvg

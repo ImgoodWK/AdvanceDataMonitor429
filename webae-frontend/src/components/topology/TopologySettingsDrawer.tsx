@@ -7,7 +7,9 @@ import {
   type TopologyLabelStrategy,
   type TopologyLayoutDirection,
   type TopologyRenderMode,
+  type WorldMapObliqueDirection,
 } from '@/types/topologyDisplay';
+import type { WorldMapViewDto } from '@/types/dto';
 import { AE_CABLE_COLORS, type AeCableColorId, hexFromAeCableColorId } from '@/utils/aeCableColors';
 
 const { Text } = Typography;
@@ -20,6 +22,9 @@ interface TopologySettingsDrawerProps {
   onReset: () => void;
   /** Whether render mode toggle is shown (logical view only). */
   showRenderMode?: boolean;
+  /** World map oblique direction (world map mode only). */
+  showWorldMapSettings?: boolean;
+  obliqueDirectionOptions?: WorldMapViewDto[];
 }
 
 function clampSettings(s: TopologyDisplaySettings): TopologyDisplaySettings {
@@ -31,6 +36,7 @@ function clampSettings(s: TopologyDisplaySettings): TopologyDisplaySettings {
     nodeRadius: Math.max(12, Math.min(32, s.nodeRadius)),
     cableCellPx: Math.max(16, Math.min(40, s.cableCellPx)),
     nodeBlockPx: Math.max(24, Math.min(48, s.nodeBlockPx)),
+    worldMapAeOverlayOpacity: Math.max(0.5, Math.min(1, s.worldMapAeOverlayOpacity ?? 0.85)),
   };
 }
 
@@ -49,6 +55,8 @@ export function TopologySettingsDrawer({
   onChange,
   onReset,
   showRenderMode = true,
+  showWorldMapSettings = false,
+  obliqueDirectionOptions,
 }: TopologySettingsDrawerProps) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<TopologyDisplaySettings>(() => cloneSettings(settings));
@@ -75,6 +83,19 @@ export function TopologySettingsDrawer({
     onChange(clampSettings(draft));
     onClose();
   };
+
+  const obliqueOptions = (obliqueDirectionOptions && obliqueDirectionOptions.length > 0
+    ? obliqueDirectionOptions
+    : [
+        { id: 'se', labelKey: 'adm.webae.worldmap.oblique.se' },
+        { id: 'sw', labelKey: 'adm.webae.worldmap.oblique.sw' },
+        { id: 'ne', labelKey: 'adm.webae.worldmap.oblique.ne' },
+        { id: 'nw', labelKey: 'adm.webae.worldmap.oblique.nw' },
+      ]
+  ).map((opt) => ({
+    value: opt.id as WorldMapObliqueDirection,
+    label: t(`worldMapOblique_${opt.id}`),
+  }));
 
   const colorOptions = AE_CABLE_COLORS.map((c) => ({
     value: c.id,
@@ -115,6 +136,57 @@ export function TopologySettingsDrawer({
         </Space>
       }
     >
+      {showWorldMapSettings && (
+        <>
+          <Divider orientation="left" plain>
+            {t('worldMapSettingsTitle')}
+          </Divider>
+          <Text type="secondary">{t('worldMapObliqueDirection')}</Text>
+          <Select
+            style={{ width: '100%', marginTop: 8, marginBottom: 16 }}
+            value={draft.worldMapObliqueDirection}
+            onChange={(v) => patch({ worldMapObliqueDirection: v as WorldMapObliqueDirection })}
+            options={obliqueOptions}
+          />
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            {t('worldMapObliqueDirectionHint')}
+          </Text>
+          <Divider orientation="left" plain>
+            {t('worldMapLayerSettingsTitle')}
+          </Divider>
+          <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }}>
+            <Space>
+              <Switch checked={draft.showWorldMapTerrain} onChange={(v) => patch({ showWorldMapTerrain: v })} />
+              <Text>{t('worldMapLayerTerrain')}</Text>
+            </Space>
+            <Space>
+              <Switch checked={draft.showWorldMapAeOverlay} onChange={(v) => patch({ showWorldMapAeOverlay: v })} />
+              <Text>{t('worldMapLayerAeOverlay')}</Text>
+            </Space>
+            <Space>
+              <Switch
+                checked={draft.showWorldMapDeviceIcons}
+                onChange={(v) => patch({ showWorldMapDeviceIcons: v })}
+              />
+              <Text>{t('worldMapLayerDeviceIcons')}</Text>
+            </Space>
+          </Space>
+          {draft.showWorldMapAeOverlay && (
+            <div style={{ marginBottom: 16 }}>
+              <Text>{t('worldMapAeOverlayOpacity')}</Text>
+              <InputNumber
+                min={0.5}
+                max={1}
+                step={0.05}
+                value={draft.worldMapAeOverlayOpacity}
+                onChange={(v) => patch({ worldMapAeOverlayOpacity: v ?? DEFAULT_TOPOLOGY_DISPLAY.worldMapAeOverlayOpacity })}
+                style={{ width: '100%', marginTop: 4 }}
+              />
+            </div>
+          )}
+        </>
+      )}
+
       {showRenderMode && (
         <>
           <Text type="secondary">{t('topologyRenderMode')}</Text>
@@ -128,9 +200,26 @@ export function TopologySettingsDrawer({
               { value: 'simulated', label: t('topologyRenderMode_simulated') },
             ]}
           />
+          {(draft.renderMode === 'abstract' || draft.renderMode === 'simulated') && (
+            <>
+              <Text type="secondary">{t('topologyAbstractLayout')}</Text>
+              <Segmented
+                block
+                style={{ marginTop: 8, marginBottom: 16 }}
+                value={draft.abstractLayout}
+                onChange={(v) => patch({ abstractLayout: v as 'tree' | 'star' })}
+                options={[
+                  { value: 'tree', label: t('topologyLayout_tree') },
+                  { value: 'star', label: t('topologyLayout_star') },
+                ]}
+              />
+            </>
+          )}
         </>
       )}
 
+      {!showWorldMapSettings && (
+        <>
       <Text type="secondary">{t('topologyLayoutDirection')}</Text>
       <Segmented
         block
@@ -213,6 +302,8 @@ export function TopologySettingsDrawer({
           </div>
         ))}
       </Space>
+        </>
+      )}
     </Drawer>
   );
 }

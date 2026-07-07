@@ -38,6 +38,7 @@ import com.imgood.textech.webae.api.handler.StorageHandler;
 import com.imgood.textech.webae.api.handler.StoragePagedHandler;
 import com.imgood.textech.webae.api.handler.TopologyHandler;
 import com.imgood.textech.webae.api.handler.WebConfigHandler;
+import com.imgood.textech.webae.worldmap.WorldMapHandler;
 import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 
@@ -310,7 +311,7 @@ public class WebApiRouter {
 
             }
 
-            return TopologyHandler.handleSnapshot(params, ownerUuid);
+            return TopologyHandler.handleSnapshot(params, ownerUuid, auth.actorUuid);
 
         }
 
@@ -328,7 +329,79 @@ public class WebApiRouter {
 
             }
 
-            return TopologyHandler.handle(params, ownerUuid);
+            return TopologyHandler.handle(params, ownerUuid, auth.actorUuid);
+
+        }
+
+        if ("/api/worldmap/meta".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/worldmap/meta\"}");
+
+            }
+
+            return WorldMapHandler.handleMeta(params, ownerUuid, auth.actorUuid);
+
+        }
+
+        if ("/api/worldmap/markers".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/worldmap/markers\"}");
+
+            }
+
+            return WorldMapHandler.handleMarkers(params, ownerUuid);
+
+        }
+
+        if ("/api/worldmap/invalidate".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/worldmap/invalidate\"}");
+
+            }
+
+            return WorldMapHandler.handleInvalidate(params, ownerUuid);
+
+        }
+
+        if (uri.startsWith("/api/worldmap/tiles/")) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/worldmap/tiles/<dim>/<chunkX>/<chunkZ>.png\"}");
+
+            }
+
+            return WorldMapHandler.handleTile(uri, params, ownerUuid);
 
         }
 

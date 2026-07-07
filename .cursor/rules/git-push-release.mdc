@@ -11,31 +11,13 @@ alwaysApply: false
 
 ## 核心经验
 
-### 1. Sandbox 权限策略（最重要）
+### 1. Sandbox 权限策略
 
-在 Cursor 中执行**任何 Git 命令**（包括只读的 `git status`、`git log`、`git remote -v`），都**必须**加上 `required_permissions: ["all"]` 来禁用 Sandbox。否则命令会静默失败，返回 "The shell command returned no exit status, so its result is unknown"。
+Git / `gh` 的 `required_permissions` 默认策略见 **`agent-execution-permissions.mdc`**（`alwaysApply`）：所有 Git 命令必须带 `["all"]`，否则 Windows 下常静默失败（`no exit status`）。
 
-```json
-// ✅ 正确：所有 Git 命令都带上 all 权限
-{ "command": "git status", "required_permissions": ["all"] }
-{ "command": "git push origin master", "required_permissions": ["all"] }
+本文件以下章节只描述**推送与 Release 工作流**；权限选用表与 clone/下载策略以该规则为准。
 
-// ❌ 错误：不加权限，命令静默失败
-{ "command": "git status" }
-```
-
-**原因**：Sandbox 默认禁止 Git 操作（包括读取），需要 `all` 权限才能执行。
-
-**排查技巧**：如果遇到 "no exit status" 错误，先用 `echo "hello"` 测试 Shell 是否正常，确认正常后加上 `required_permissions: ["all"]` 重试。
-
-### 2. Shell 工具选择策略
-
-~~在 Windows + PowerShell 环境下，`Shell` 工具偶尔会返回空结果。~~ 经验证，空结果是 Sandbox 权限不足导致，加上 `all` 权限后 `Shell` 工具完全可靠，无需改用 `Task` 子代理。
-
-- ✅ 推荐：直接使用 `Shell` 工具 + `required_permissions: ["all"]` 执行所有 Git 操作
-- ⚠️ 注意：不加权限时 Git 命令会静默失败
-
-### 3. 推送工作流
+### 2. 推送工作流
 
 当用户说"以我上传的为准，完全和我上传的一样"时，意味着要**强制覆盖远程**：
 
@@ -53,11 +35,11 @@ alwaysApply: false
 - **必须包含 `.cursor/rules/`**：Cursor Agent 规则（`*.mdc`）应随代码一并推送，便于协作者与 Agent 共享项目约定；新增规则文件后 `git add -A` 会自动纳入
 - **排除 `.workspace/` 与 `.cursor/plans/`**：`.workspace/` 已在 `.gitignore`（Agent 临时/反编译产物）；`.cursor/plans/` 为本地 Agent 计划缓存，不必推送
 
-### 4. CRLF 换行符警告
+### 3. CRLF 换行符警告
 
 Windows 环境下 `git diff` 经常会输出 LF/CRLF 换行符警告，**这是正常的，可以忽略**。不需要修改 `core.autocrlf` 配置。
 
-### 5. 发布前更新 README
+### 4. 发布前更新 README
 
 每次推送前应检查并更新 `README.md` 与 `docs/README.md`，确保首页说明反映最新状态：
 - 功能列表是否完整
@@ -94,7 +76,7 @@ Release notes 建议包含：
 
 | 问题 | 原因 | 解决 |
 |------|------|------|
-| `Shell` 返回 "no exit status" | Sandbox 限制了 Git 操作 | 所有 Git 命令加 `required_permissions: ["all"]` |
+| `Shell` 返回 "no exit status" | Sandbox 限制了 Git 操作 | 见 `agent-execution-permissions.mdc`，Git 命令加 `["all"]` |
 | `echo` 也返回 "no exit status" | Shell 环境本身异常 | 检查终端是否可用，必要时重启 |
 | 推送后远程与本地不一致 | 用了普通 push 而非 `--force` | 使用 `git push --force origin master` |
 | `gh` 命令未找到 | GitHub CLI 未安装或未登录 | 先执行 `gh auth status` 检查，必要时 `gh auth login` |

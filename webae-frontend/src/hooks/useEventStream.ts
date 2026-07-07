@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import type { WebAlertDto } from '@/types/dto';
 import { notifyAlertOnce } from '@/utils/alertNotification';
-import { bumpIconVersion } from '@/utils/icon';
+import type { IconReadyDetail } from '@/utils/icon';
 
 /**
  * SSE client for /api/events/stream (Phase 9). Falls back silently if unsupported.
@@ -39,9 +39,13 @@ export function useEventStream(enabled: boolean) {
       }
     });
 
-    es.addEventListener('icon-ready', () => {
-      bumpIconVersion();
-      window.dispatchEvent(new CustomEvent('webae-icon-ready'));
+    es.addEventListener('icon-ready', (ev) => {
+      try {
+        const detail = JSON.parse((ev as MessageEvent).data) as IconReadyDetail;
+        window.dispatchEvent(new CustomEvent('webae-icon-ready', { detail }));
+      } catch {
+        window.dispatchEvent(new CustomEvent('webae-icon-ready'));
+      }
     });
 
     es.onerror = () => {

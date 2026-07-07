@@ -59,8 +59,8 @@ public class PacketWebUploadTrigger implements IMessage {
         this(uploadType, packName, renderMode, null, null);
     }
 
-    public PacketWebUploadTrigger(String uploadType, String packName, String renderMode,
-        IconExportScope scope, List<String> itemIds) {
+    public PacketWebUploadTrigger(String uploadType, String packName, String renderMode, IconExportScope scope,
+        List<String> itemIds) {
         this.uploadType = uploadType;
         this.packName = packName;
         this.renderMode = renderMode;

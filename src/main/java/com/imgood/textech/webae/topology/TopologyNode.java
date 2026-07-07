@@ -10,6 +10,8 @@ public class TopologyNode {
 
     public String id;
     public String type;
+    /** Fine-grained device subtype (e.g. bus_import, terminal_me). */
+    public String subtype = "";
     public String displayName;
     public int count;
     public int channelCost;
@@ -17,6 +19,12 @@ public class TopologyNode {
     public String role;
     public double layoutX;
     public double layoutY;
+    /** Layout sector: north | south | east | west | center | branch0..branch3 */
+    public String layoutSector = "center";
+    /** Smart branch index (0-3) for channel-consuming groups. */
+    public int branchIndex = -1;
+    /** Pattern count badge for drive/chest aggregated nodes. */
+    public int patternCount;
 
     /** Simulated cable-bus grid coordinates (logical mode). */
     public double simGridX;
@@ -25,6 +33,8 @@ public class TopologyNode {
     public String simKind = "block";
 
     public List<CellSlotRecord> cellSlots = new ArrayList<CellSlotRecord>();
+    /** Pattern-only cell slots (detail drawer; not graph leaves). */
+    public List<PatternSlotRecord> patternSlots = new ArrayList<PatternSlotRecord>();
     public List<DeviceRecord> devices = new ArrayList<DeviceRecord>();
 
     /** Aggregated crafting CPU summary — only set for nodes of type {@code cpu}. */
@@ -55,6 +65,13 @@ public class TopologyNode {
         public String itemId = "";
         public long itemBytes;
         public long fluidBytes;
+    }
+
+    public static class PatternSlotRecord {
+
+        public int slot;
+        public String displayName = "";
+        public String itemId = "";
     }
 
     /** Aggregated stats for a crafting CPU cluster (one multi-block ICraftingCPU). */

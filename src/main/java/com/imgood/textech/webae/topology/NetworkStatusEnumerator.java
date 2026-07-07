@@ -133,10 +133,11 @@ public final class NetworkStatusEnumerator {
             }
 
             TopologyNodeType type = TopologyRules.classify(className, representation);
+            String subtype = TopologyRules.classifySubtype(className, representation);
             String displayName = representation.getDisplayName();
             if (displayName == null || displayName.trim()
                 .isEmpty()) {
-                displayName = TopologyRules.displayNameFor(type);
+                displayName = TopologyRules.displayNameForSubtype(subtype, type);
             }
             if (host instanceof TileEntity && InterfaceLocator.isInterface((TileEntity) host)) {
                 try {
@@ -151,6 +152,7 @@ public final class NetworkStatusEnumerator {
             facility.className = className;
             facility.displayName = displayName;
             facility.type = type;
+            facility.subtype = subtype;
             facility.x = x;
             facility.y = y;
             facility.z = z;
@@ -161,6 +163,7 @@ public final class NetworkStatusEnumerator {
 
             if (host instanceof IChestOrDrive || host instanceof TileDrive || host instanceof TileChest) {
                 populateDriveCells(host, facility);
+                facility.patternCount = countPatterns(facility.cells);
             }
             return facility;
         } catch (Exception e) {
@@ -206,9 +209,43 @@ public final class NetworkStatusEnumerator {
         cell.displayName = stack.getDisplayName();
         cell.itemId = stackItemId(stack);
         cell.count = stack.stackSize;
+        cell.isPattern = isPatternStack(stack);
         cell.itemBytes = cellBytes(stack, StorageChannel.ITEMS);
         cell.fluidBytes = cellBytes(stack, StorageChannel.FLUIDS);
         return cell;
+    }
+
+    private static boolean isPatternStack(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            return false;
+        }
+        try {
+            Class<?> patternIface = Class.forName("appeng.api.implementations.items.ICraftingPatternItem");
+            if (patternIface.isInstance(stack.getItem())) {
+                return true;
+            }
+        } catch (Throwable ignored) {}
+        String reg = net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem());
+        if (reg != null) {
+            String lower = reg.toLowerCase();
+            if (lower.contains("pattern") && !lower.contains("provider")) {
+                return true;
+            }
+            if (lower.contains("encodedpattern") || lower.contains("craftingitem")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int countPatterns(List<NetworkFacility.CellSlot> cells) {
+        int count = 0;
+        for (NetworkFacility.CellSlot cell : cells) {
+            if (cell != null && cell.isPattern) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static long cellBytes(ItemStack stack, StorageChannel channel) {
@@ -332,6 +369,7 @@ public final class NetworkStatusEnumerator {
         public String className;
         public String displayName;
         public TopologyNodeType type;
+        public String subtype = TopologyRules.SUB_MISC;
         public int x;
         public int y;
         public int z;
@@ -339,12 +377,14 @@ public final class NetworkStatusEnumerator {
         public String representationItemId = "";
         public int channelCost;
         public double idlePower;
+        public int patternCount;
         public List<CellSlot> cells = new ArrayList<CellSlot>();
 
         public static final class CellSlot {
 
             public int slot;
             public boolean empty;
+            public boolean isPattern;
             public String displayName = "";
             public String itemId = "";
             public int count;

@@ -163,3 +163,24 @@ export function itemAbbrev(
 export function fluidIconId(fluidName: string): string {
   return FLUID_ID_PREFIX + fluidName;
 }
+
+export interface IconReadyDetail {
+  pack?: string;
+  mode?: string;
+  itemId?: string;
+}
+
+/** True when an SSE icon-ready payload applies to a displayed icon id. */
+export function iconReadyMatchesId(detail: IconReadyDetail | undefined, id: string): boolean {
+  if (!detail?.itemId || !id) return false;
+  if (detail.itemId === id) return true;
+  const lhs = iconLookupIds(undefined, detail.itemId);
+  const rhs = iconLookupIds(undefined, id);
+  return lhs.some((candidate) => rhs.includes(candidate));
+}
+
+export function iconIsMarkedFailed(failedIcons: Record<string, boolean>, id: string): boolean {
+  if (!id) return false;
+  if (failedIcons[id]) return true;
+  return iconLookupIds(undefined, id).some((candidate) => failedIcons[candidate]);
+}

@@ -668,6 +668,8 @@ export interface ServerConfig {
   alertsPollIntervalSeconds?: number;
   /** Phase 6.1: optional Dynmap base URL from [webConsole] dynmapBaseUrl. */
   dynmapBaseUrl?: string;
+  /** World map overlay API enabled (requires topologyEnabled). */
+  worldMapEnabled?: boolean;
 }
 
 export interface ConfigResponse {
@@ -705,9 +707,11 @@ export interface TopologyResponse {
   success: boolean;
   hasSnapshot?: boolean;
   cached: boolean;
+  persisted?: boolean;
   timestamp?: number;
   cooldownRemainingMs?: number;
   cooldownMs?: number;
+  canForceSnapshot?: boolean;
   data?: TopologySnapshotDto;
   message?: string;
   code?: string;
@@ -743,6 +747,7 @@ export interface TopologyChannelInfoDto {
 export interface TopologyNodeDto {
   id: string;
   type: string;
+  subtype?: string;
   displayName: string;
   count: number;
   channelCost: number;
@@ -750,15 +755,25 @@ export interface TopologyNodeDto {
   role?: string;
   layoutX: number;
   layoutY: number;
+  layoutSector?: string;
+  branchIndex?: number;
+  patternCount?: number;
   simGridX?: number;
   simGridY?: number;
   simKind?: string;
   cellSlots?: TopologyCellSlotDto[];
+  patternSlots?: TopologyPatternSlotDto[];
   devices?: TopologyDeviceRecordDto[];
   cpuSummary?: TopologyCpuSummaryDto;
   dim?: number;
   binX?: number;
   binZ?: number;
+}
+
+export interface TopologyPatternSlotDto {
+  slot: number;
+  displayName?: string;
+  itemId?: string;
 }
 
 export interface TopologyCellSlotDto {
@@ -797,9 +812,75 @@ export interface TopologyEdgeDto {
   from: string;
   to: string;
   cableType?: 'smart' | 'covered' | 'dense' | string;
+  branchIndex?: number;
+  emptyBranch?: boolean;
   channelsSimulated?: TopologyChannelInfoDto;
   channelsReal?: TopologyChannelInfoDto;
   pathPoints?: { x: number; y: number }[];
+}
+
+export interface WorldMapMarkerDto {
+  id: string;
+  nodeId: string;
+  type: string;
+  subtype?: string;
+  displayName: string;
+  iconItemId: string;
+  x: number;
+  y: number;
+  z: number;
+  dim: number;
+  channelCost: number;
+}
+
+export interface WorldMapDimensionDto {
+  dim: number;
+  name: string;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  minChunkX?: number;
+  maxChunkX?: number;
+  minChunkZ?: number;
+  maxChunkZ?: number;
+  /** Compact "cx,cz" list when chunk count <= 256; omitted when only bbox applies. */
+  allowedChunks?: string[] | null;
+  markerCount: number;
+  chunkCount: number;
+}
+
+export interface WorldMapViewDto {
+  id: string;
+  labelKey: string;
+}
+
+export interface WorldMapMetaDto {
+  success: boolean;
+  hasLogicalSnapshot: boolean;
+  timestamp?: number;
+  dimensions: WorldMapDimensionDto[];
+  tilePx?: number;
+  pxPerBlock?: number;
+  paddingChunks?: number;
+  maxChunks?: number;
+  boundsTooLarge?: boolean;
+  markerCount?: number;
+  worldMapEnabled?: boolean;
+  cooldownRemainingMs?: number;
+  cooldownMs?: number;
+  message?: string;
+  views?: WorldMapViewDto[];
+  obliqueDirections?: WorldMapViewDto[];
+  hdAvailable?: boolean;
+}
+
+export interface WorldMapMarkersResponse {
+  success: boolean;
+  hasLogicalSnapshot?: boolean;
+  markers?: WorldMapMarkerDto[];
+  message?: string;
+  code?: string;
 }
 
 // Phase 3 integration DTOs

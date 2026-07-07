@@ -109,6 +109,14 @@ public final class IconExportResolver {
             return placeholder(itemId);
         }
 
+        if (IconFluidRenderer.needsInGameItemRender(stack)) {
+            byte[] png = glFallback.renderFluidAwareSlotIcon(mc, stack);
+            if (!IconAtlasSampler.isPngBlank(png)) {
+                glCount++;
+                return new ResolveResult(png, Source.GL_NEI);
+            }
+        }
+
         byte[] png = gridCropPng;
         if (!IconAtlasSampler.isPngBlank(png)) {
             gridCount++;

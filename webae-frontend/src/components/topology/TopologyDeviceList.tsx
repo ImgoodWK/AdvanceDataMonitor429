@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { Collapse, Input, Tabs, Typography } from 'antd';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Badge, Collapse, Input, Tag, Tabs, Typography } from 'antd';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Icon } from '@/components/Icon';
 import { useI18n } from '@/i18n';
@@ -11,20 +11,50 @@ import {
   filterNodeRows,
   flattenDevices,
   groupRowsByDeviceType,
+  resolveGroupType,
+  topologyNodeLabel,
   type DeviceListNodeRow,
   type FlatDeviceRow,
 } from '@/utils/topologyDevices';
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 52;
 
 const GROUP_I18N_KEYS: Record<string, string> = {
   controller: 'topologyGroup_controller',
+  energy_cell: 'topologyGroup_energy_cell',
+  energy_acceptor: 'topologyGroup_energy_acceptor',
+  energy: 'topologyGroup_energy',
   drive: 'topologyGroup_drive',
+  chest: 'topologyGroup_chest',
+  io_port: 'topologyGroup_io_port',
+  terminal_me: 'topologyGroup_terminal',
+  terminal_crafting: 'topologyGroup_terminal_crafting',
+  terminal_pattern_encoding: 'topologyGroup_terminal_pattern_encoding',
+  terminal_pattern_access: 'topologyGroup_terminal_pattern_access',
+  terminal_wireless: 'topologyGroup_terminal_wireless',
+  wireless_access_point: 'topologyGroup_wireless_access_point',
+  security_terminal: 'topologyGroup_security_terminal',
+  terminal_other: 'topologyGroup_terminal',
   terminal: 'topologyGroup_terminal',
+  bus_import: 'topologyGroup_bus_import',
+  bus_export: 'topologyGroup_bus_export',
+  bus_storage: 'topologyGroup_bus_storage',
+  bus_ore_filter: 'topologyGroup_bus_ore_filter',
   bus: 'topologyGroup_bus',
+  monitor_storage: 'topologyGroup_monitor',
+  monitor_conversion: 'topologyGroup_monitor_conversion',
+  emitter_level: 'topologyGroup_emitter_level',
+  emitter_energy: 'topologyGroup_emitter_energy',
   monitor: 'topologyGroup_monitor',
   interface: 'topologyGroup_interface',
+  pattern_provider: 'topologyGroup_pattern_provider',
   cpu: 'topologyGroup_cpu',
+  p2p_me: 'topologyGroup_p2p_me',
+  p2p_item: 'topologyGroup_p2p_item',
+  p2p_fluid: 'topologyGroup_p2p_fluid',
+  p2p_power: 'topologyGroup_p2p_power',
+  p2p_light: 'topologyGroup_p2p_light',
+  p2p_other: 'topologyGroup_p2p',
   p2p: 'topologyGroup_p2p',
   quantum: 'topologyGroup_quantum',
   misc: 'topologyGroup_misc',
@@ -34,19 +64,23 @@ const GROUP_I18N_KEYS: Record<string, string> = {
 interface TopologyDeviceListProps {
   nodes: TopologyNodeDto[];
   selectedNodeId: string | null;
+  hoveredNodeId?: string | null;
   hideCableNodes: boolean;
   onSelectNode: (node: TopologyNodeDto | null) => void;
   onSelectDevice?: (nodeId: string) => void;
+  onHoverNode?: (nodeId: string | null) => void;
   height?: number;
 }
 
-function VirtualRowList<T>({
+function VirtualRowList<T extends { key: string }>({
   items,
   height,
+  scrollToKey,
   renderRow,
 }: {
   items: T[];
   height: number;
+  scrollToKey?: string | null;
   renderRow: (item: T, index: number) => ReactNode;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -55,7 +89,22 @@ function VirtualRowList<T>({
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 8,
+    getItemKey: (index) => items[index].key,
   });
+
+  useEffect(() => {
+    if (!scrollToKey) return;
+    const index = items.findIndex((item) => {
+      if (item.key === scrollToKey) return true;
+      const anyItem = item as unknown as FlatDeviceRow & DeviceListNodeRow;
+      if (anyItem.nodeId === scrollToKey) return true;
+      if (anyItem.node?.id === scrollToKey) return true;
+      return false;
+    });
+    if (index >= 0) {
+      virtualizer.scrollToIndex(index, { align: 'center' });
+    }
+  }, [scrollToKey, items, virtualizer]);
 
   if (items.length === 0) {
     return (
@@ -93,13 +142,15 @@ function VirtualRowList<T>({
 function GroupedDeviceList({
   groups,
   groupHeight,
+  scrollToKey,
   renderRow,
   groupLabel,
 }: {
   groups: ReturnType<typeof groupRowsByDeviceType<FlatDeviceRow>>;
   groupHeight: number;
+  scrollToKey?: string | null;
   renderRow: (row: FlatDeviceRow) => ReactNode;
-  groupLabel: (type: string, count: number) => string;
+  groupLabel: (type: string, count: number) => ReactNode;
 }) {
   if (groups.length === 0) {
     return (
@@ -119,6 +170,7 @@ function GroupedDeviceList({
         children: (
           <VirtualRowList
             items={group.rows}
+            scrollToKey={scrollToKey}
             height={Math.min(groupHeight, Math.max(ROW_HEIGHT * 2, group.rows.length * ROW_HEIGHT))}
             renderRow={(row) => renderRow(row)}
           />
@@ -131,13 +183,15 @@ function GroupedDeviceList({
 function GroupedNodeList({
   groups,
   groupHeight,
+  scrollToKey,
   renderRow,
   groupLabel,
 }: {
   groups: ReturnType<typeof groupRowsByDeviceType<DeviceListNodeRow>>;
   groupHeight: number;
+  scrollToKey?: string | null;
   renderRow: (row: DeviceListNodeRow) => ReactNode;
-  groupLabel: (type: string, count: number) => string;
+  groupLabel: (type: string, count: number) => ReactNode;
 }) {
   if (groups.length === 0) {
     return (
@@ -157,6 +211,7 @@ function GroupedNodeList({
         children: (
           <VirtualRowList
             items={group.rows}
+            scrollToKey={scrollToKey}
             height={Math.min(groupHeight, Math.max(ROW_HEIGHT * 2, group.rows.length * ROW_HEIGHT))}
             renderRow={(row) => renderRow(row)}
           />
@@ -169,9 +224,11 @@ function GroupedNodeList({
 export function TopologyDeviceList({
   nodes,
   selectedNodeId,
+  hoveredNodeId,
   hideCableNodes,
   onSelectNode,
   onSelectDevice,
+  onHoverNode,
   height = 480,
 }: TopologyDeviceListProps) {
   const { t } = useI18n();
@@ -185,7 +242,16 @@ export function TopologyDeviceList({
   );
 
   const deviceGroups = useMemo(() => groupRowsByDeviceType(deviceRows), [deviceRows]);
-  const nodeGroups = useMemo(() => groupRowsByDeviceType(nodeRows), [nodeRows]);
+  const nodeGroups = useMemo(
+    () =>
+      groupRowsByDeviceType(
+        nodeRows.map((row) => ({
+          ...row,
+          nodeType: resolveGroupType(row.node),
+        }))
+      ),
+    [nodeRows]
+  );
 
   const scrollHeight = height - 88;
   const groupHeight = Math.max(120, Math.floor(scrollHeight / Math.max(1, Math.min(4, tab === 'devices' ? deviceGroups.length : nodeGroups.length))));
@@ -193,37 +259,53 @@ export function TopologyDeviceList({
   const groupLabel = (type: string, count: number) => {
     const key = GROUP_I18N_KEYS[type];
     const label = key ? t(key) : type;
-    return `${label} (${count})`;
+    return (
+      <span className="topology-device-list-group-label">
+        <span>{label}</span>
+        <Badge count={count} size="small" color="var(--accent)" />
+      </span>
+    );
   };
 
   const renderDeviceRow = (row: FlatDeviceRow) => {
     const selected = selectedNodeId === row.nodeId;
+    const hovered = hoveredNodeId === row.nodeId;
     const iconId = blockIconIdForNode(row.nodeType, row.device.iconItemId);
+    const node = nodes.find((n) => n.id === row.nodeId);
     return (
       <div
-        className={`topology-device-list-row${selected ? ' topology-device-list-row--selected' : ''}`}
+        className={`topology-device-list-row${selected ? ' topology-device-list-row--selected' : ''}${hovered ? ' topology-device-list-row--hover' : ''}`}
         role="button"
         tabIndex={0}
         onClick={() => {
           onSelectDevice?.(row.nodeId);
-          const node = nodes.find((n) => n.id === row.nodeId);
           if (node) onSelectNode(node);
         }}
+        onMouseEnter={() => onHoverNode?.(row.nodeId)}
+        onMouseLeave={() => onHoverNode?.(null)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             onSelectDevice?.(row.nodeId);
-            const node = nodes.find((n) => n.id === row.nodeId);
             if (node) onSelectNode(node);
           }
         }}
       >
         <div className="topology-device-list-row-icon">
-          {iconId ? <Icon id={iconId} size={22} linkToWiki={false} /> : null}
+          {iconId ? <Icon id={iconId} size={24} linkToWiki={false} /> : null}
         </div>
         <div className="topology-device-list-row-body">
           <Typography.Text ellipsis>{row.device.displayName || row.nodeDisplayName}</Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {row.device.x}, {row.device.y}, {row.device.z} · {row.nodeType}
+          <Typography.Text type="secondary" className="topology-device-list-row-meta">
+            {row.device.x}, {row.device.y}, {row.device.z}
+            {row.device.channelCost != null && row.device.channelCost > 0 ? ` · ${row.device.channelCost}ch` : ''}
+            {(node?.patternCount ?? 0) > 0 ? (
+              <>
+                {' · '}
+                <Tag className="topology-pattern-tag" bordered={false}>
+                  {t('topologyPatternCount').replace('{count}', String(node!.patternCount!))}
+                </Tag>
+              </>
+            ) : null}
           </Typography.Text>
         </div>
       </div>
@@ -232,25 +314,37 @@ export function TopologyDeviceList({
 
   const renderNodeRow = (row: DeviceListNodeRow) => {
     const selected = selectedNodeId === row.node.id;
+    const hovered = hoveredNodeId === row.node.id;
     const iconId = blockIconIdForNode(row.node.type, row.node.iconItemId);
     return (
       <div
-        className={`topology-device-list-row${selected ? ' topology-device-list-row--selected' : ''}`}
+        className={`topology-device-list-row${selected ? ' topology-device-list-row--selected' : ''}${hovered ? ' topology-device-list-row--hover' : ''}`}
         role="button"
         tabIndex={0}
         onClick={() => onSelectNode(selected ? null : row.node)}
+        onMouseEnter={() => onHoverNode?.(row.node.id)}
+        onMouseLeave={() => onHoverNode?.(null)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') onSelectNode(selected ? null : row.node);
         }}
       >
         <div className="topology-device-list-row-icon">
-          {iconId ? <Icon id={iconId} size={22} linkToWiki={false} /> : null}
+          {iconId ? <Icon id={iconId} size={24} linkToWiki={false} /> : null}
         </div>
         <div className="topology-device-list-row-body">
-          <Typography.Text ellipsis>{row.node.displayName}</Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {row.node.type}
-            {row.node.count > 1 ? ` ×${row.node.count}` : ''}
+          <Typography.Text ellipsis>{topologyNodeLabel(row.node)}</Typography.Text>
+          <Typography.Text type="secondary" className="topology-device-list-row-meta">
+            {row.node.subtype || row.node.type}
+            {(row.node.count ?? 0) > 1 ? ` ×${row.node.count}` : ''}
+            {(row.node.channelCost ?? 0) > 0 ? ` · ${row.node.channelCost}ch` : ''}
+            {(row.node.patternCount ?? 0) > 0 ? (
+              <>
+                {' · '}
+                <Tag className="topology-pattern-tag" bordered={false}>
+                  {t('topologyPatternCount').replace('{count}', String(row.node.patternCount!))}
+                </Tag>
+              </>
+            ) : null}
           </Typography.Text>
         </div>
       </div>
@@ -280,6 +374,7 @@ export function TopologyDeviceList({
                 <GroupedDeviceList
                   groups={deviceGroups}
                   groupHeight={groupHeight}
+                  scrollToKey={selectedNodeId}
                   renderRow={renderDeviceRow}
                   groupLabel={groupLabel}
                 />
@@ -294,6 +389,7 @@ export function TopologyDeviceList({
                 <GroupedNodeList
                   groups={nodeGroups}
                   groupHeight={groupHeight}
+                  scrollToKey={selectedNodeId}
                   renderRow={renderNodeRow}
                   groupLabel={groupLabel}
                 />

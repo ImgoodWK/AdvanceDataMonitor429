@@ -50,8 +50,10 @@ alwaysApply: false
 | 31 | `PacketWebConsoleTokenNotify` | `PacketWebConsoleTokenNotify.Handler` | S→C | WebAE `/admweb issue`/`guest`/`copy` 客户端可点击 token/URL 与剪贴板复制 |
 | 32 | `PacketWebIconExportScope` | `PacketWebIconExportScope.Handler` | S→C | 图标导出范围（all/snapshot/list）与 itemId 列表 |
 | 33 | `PacketWebIconRequest` | `PacketWebIconRequest.Handler` | S→C | 按需懒加载：请求客户端渲染单个缺失图标 |
+| 34 | `PacketWebMapTileJob` | `PacketWebMapTileJob.Handler` | S→C | 世界地图 HD 瓦片渲染任务（view/dim/cx/cz/networkId） |
+| 35 | `PacketWebMapTileUpload` | `PacketWebMapTileUpload.Handler` | C→S | 世界地图 HD 瓦片 PNG 上传覆盖服务端缓存 |
 
-**下一个可用 ID = 34**
+**下一个可用 ID = 36**
 
 ## 新增 Packet 接入步骤
 

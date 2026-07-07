@@ -8,8 +8,10 @@ import java.util.Map;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.webae.topology.FakeChannelAllocator.ChannelProbeResult;
+import com.imgood.textech.webae.topology.LogicalTopologyBuilder.BuildResult;
 import com.imgood.textech.webae.topology.NetworkStatusEnumerator.NetworkFacility;
-import com.imgood.textech.webae.topology.TreeTopologyBuilder.BuildResult;
+import com.imgood.textech.webae.worldmap.WorldMapAePlacementCollector;
+import com.imgood.textech.webae.worldmap.WorldMapAePlacementRecord;
 
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridHost;
@@ -17,7 +19,7 @@ import appeng.api.networking.IGridNode;
 
 /**
  * Builds a complete topology graph snapshot for one owner network.
- * Logical mode uses {@link NetworkStatusEnumerator} (network tool data) + {@link TreeTopologyBuilder}.
+ * Logical mode uses {@link NetworkStatusEnumerator} (network tool data) + {@link LogicalTopologyBuilder}.
  * Must run on the server main thread.
  */
 public final class TopologySnapshot {
@@ -28,6 +30,8 @@ public final class TopologySnapshot {
     public Meta meta = new Meta();
     public List<TopologyNode> nodes = new ArrayList<TopologyNode>();
     public List<TopologyEdge> edges = new ArrayList<TopologyEdge>();
+    /** AE device/cable/part placements for world-map overlay (logical snapshots). */
+    public List<WorldMapAePlacementRecord> aePlacements = new ArrayList<WorldMapAePlacementRecord>();
 
     private TopologySnapshot() {}
 
@@ -51,18 +55,22 @@ public final class TopologySnapshot {
             snapshot.edges = FakeChannelAllocator.allocateStar(snapshot.nodes);
             applyLegacyChannelTotals(snapshot.meta, snapshot.edges, probe, facilities);
         } else {
-            snapshot.meta.layout = TopologyRules.LAYOUT_STAR;
+            snapshot.meta.layout = TopologyRules.LAYOUT_TREE;
             List<CraftingCpuTopologyCollector.CpuClusterFacility> cpuClusters = CraftingCpuTopologyCollector
                 .collect(ownerUuid, networkId);
-            BuildResult tree = TreeTopologyBuilder.build(facilities, probe, cpuClusters);
+            BuildResult tree = LogicalTopologyBuilder.buildTree(facilities, probe, cpuClusters);
             snapshot.nodes = tree.nodes;
             snapshot.edges = tree.edges;
-            SimulatedLayoutBuilder.apply(tree);
-            TreeTopologyBuilder.applyChannelTotals(snapshot.meta, tree, probe);
-            snapshot.meta.renderLayout = "star_grid";
-            snapshot.meta.channelTierHint = "edge_only";
+            SimulatedLayoutBuilder.apply(tree, TopologyRules.LAYOUT_TREE);
+            LogicalTopologyBuilder.applyChannelTotals(snapshot.meta, tree, probe);
+            snapshot.meta.renderLayout = "tree_branches";
+            snapshot.meta.channelTierHint = "dense_smart_branches";
             snapshot.meta.layoutUnitPx = 72;
             snapshot.meta.facilityCount = tree.facilityCount;
+        }
+
+        if ("logical".equals(snapshot.mode)) {
+            snapshot.aePlacements = WorldMapAePlacementCollector.collect(ownerUuid, networkId);
         }
 
         return snapshot;
@@ -130,8 +138,7 @@ public final class TopologySnapshot {
         TopologyNode.DeviceRecord record = new TopologyNode.DeviceRecord();
         record.className = device.className;
         record.displayName = device.displayName;
-        record.iconItemId = device.representationItemId.isEmpty()
-            ? TopologyRules.iconItemIdFor(device.type)
+        record.iconItemId = device.representationItemId.isEmpty() ? TopologyRules.iconItemIdFor(device.type)
             : device.representationItemId;
         record.x = device.x;
         record.y = device.y;

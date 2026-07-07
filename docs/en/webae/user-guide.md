@@ -29,7 +29,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Recipe Search | Fuzzy NEI search with merged/compact/detailed layouts |
 | Pattern Manager | View, create, edit, and inject AE2 patterns into ME Interfaces |
 | AE Orders | Pattern/item/**craft tree** orders with optional CPU selection and hybrid progress |
-| Network Topology | Logical / spatial / **P2P channel** views; simulated cables; CSV export |
+| Network Topology | Logical / spatial / **P2P channel** / **world map** views; simulated cables; CSV export |
 | Monitor Bindings | Read-only chart slots; per-slot **line preview** Drawer |
 | Automation Alerts | Storage/CPU/GT/order/channel alerts; **SSE** push + Toast |
 | Chat | Web-to-in-game chat bridge with online player list |
@@ -172,7 +172,7 @@ Optional CPU selector at top. **By pattern** tab: paginated Grid + Interface bro
 
 ### Network Topology
 
-Sidebar **Network Topology** offers logical grouping, spatial bins, and **P2P channels** views. Logical/spatial use simulated star fake cables (not real AE routing); P2P view lists tunnel endpoints grouped by frequency. CSV export supported.
+Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channels**, and **world map** views. Logical/spatial use simulated star fake cables (not real AE routing); P2P view lists tunnel endpoints grouped by frequency; **world map** (Phase A/B) shows AE device icons on a grid at real world coordinates with optional flat/oblique terrain tiles and an AE overlay layer (devices + cables); requires a logical topology snapshot first. CSV export supported.
 
 ### Monitor Bindings & Preview
 

@@ -160,6 +160,8 @@ public class IconRenderer {
             AdvanceDataMonitor.LOG.warn("[WebAE] Icon render already in progress");
             return;
         }
+        IconLazyRenderQueue.instance()
+            .clear();
         this.packName = (packName != null && !packName.isEmpty()) ? packName : "default";
         this.playerUuid = playerUuid != null ? playerUuid : "";
         this.exportScope = scope != null ? scope : IconExportScope.ALL;
@@ -211,25 +213,28 @@ public class IconRenderer {
         IconItemEnumerator.StackTask task) {
         if (task == null || phase != Phase.IDLE) return;
         Minecraft mc = Minecraft.getMinecraft();
-        byte[] png;
-        if (task.fluid != null) {
-            atlasSampler.ensureAtlases(mc);
-            png = atlasSampler.sampleFluid(mc, task.fluid);
-            if (IconAtlasSampler.isPngBlank(png)) {
+        try {
+            byte[] png;
+            if (task.fluid != null) {
+                png = glFallback.renderRegistryFluidIcon(mc, task.fluid);
+                if (IconAtlasSampler.isPngBlank(png)) {
+                    png = createPlaceholderPng(task.itemId);
+                }
+            } else if (task.stack != null) {
+                png = gridExporter.renderSingle(mc, task.stack, task.itemId);
+            } else {
                 png = createPlaceholderPng(task.itemId);
             }
-        } else if (task.stack != null) {
-            png = gridExporter.renderSingle(mc, task.stack, task.itemId);
-        } else {
-            png = createPlaceholderPng(task.itemId);
+            Map<String, String> single = new LinkedHashMap<String, String>();
+            single.put(task.itemId, DatatypeConverter.printBase64Binary(png));
+            this.packName = pack;
+            this.playerUuid = playerUuid;
+            this.renderMode = IconRenderMode.fromId(modeId);
+            if (this.renderMode == null) this.renderMode = IconRenderMode.NEI;
+            uploadSingleBundle(single);
+        } finally {
+            IconRenderGuard.afterRender(mc);
         }
-        Map<String, String> single = new LinkedHashMap<String, String>();
-        single.put(task.itemId, DatatypeConverter.printBase64Binary(png));
-        this.packName = pack;
-        this.playerUuid = playerUuid;
-        this.renderMode = IconRenderMode.fromId(modeId);
-        if (this.renderMode == null) this.renderMode = IconRenderMode.NEI;
-        uploadSingleBundle(single);
     }
 
     public void onExportComplete(IconGridExporter exporter) {
@@ -278,16 +283,15 @@ public class IconRenderer {
 
     private void renderFluidsAfterGrid() {
         Minecraft mc = Minecraft.getMinecraft();
-        atlasSampler.ensureAtlases(mc);
         for (Task task : pending) {
             if (task.fluid == null) continue;
             if (bundle.containsKey(task.itemId)) continue;
-            byte[] png = atlasSampler.sampleFluid(mc, task.fluid);
+            byte[] png = glFallback.renderRegistryFluidIcon(mc, task.fluid);
             if (IconAtlasSampler.isPngBlank(png)) {
                 png = createPlaceholderPng(task.itemId);
                 renderContextPlaceholderCount++;
             } else {
-                renderContextAtlasCount++;
+                renderContextGlCount++;
             }
             if (png != null && png.length > 0) {
                 bundle.put(task.itemId, DatatypeConverter.printBase64Binary(png));

@@ -7,6 +7,7 @@ import com.imgood.textech.Config;
 /**
  * Manual snapshot cache for topology graphs. Snapshots are captured only via
  * {@link #captureSnapshot(String, int, String)} (or forced refresh); GET never rebuilds automatically.
+ * Cold-start loads from {@link TopologySnapshotStore} when memory is empty.
  */
 public final class TopologyCache {
 
@@ -26,10 +27,17 @@ public final class TopologyCache {
         }
         String key = cacheKey(ownerUuid, networkId, mode);
         CachedEntry entry = cache.get(key);
-        if (entry == null) {
+        if (entry != null) {
+            return new CachedResult(entry.snapshot, true, entry.cachedAt, true);
+        }
+
+        TopologySnapshot disk = loadFromDisk(ownerUuid, networkId, mode);
+        if (disk == null) {
             return null;
         }
-        return new CachedResult(entry.snapshot, true, entry.cachedAt);
+        long cachedAt = disk.timestamp > 0 ? disk.timestamp : System.currentTimeMillis();
+        put(ownerUuid, networkId, mode, disk);
+        return new CachedResult(disk, true, cachedAt, true);
     }
 
     public CaptureResult captureSnapshot(String ownerUuid, int networkId, String mode, boolean force) {
@@ -37,6 +45,8 @@ public final class TopologyCache {
             return CaptureResult.disabled();
         }
         String networkKey = ownerUuid + ":" + networkId;
+        ensureCooldownLoaded(ownerUuid, networkId);
+
         long now = System.currentTimeMillis();
         Long last = lastCaptureByNetwork.get(networkKey);
         long cooldownMs = Math.max(1000L, Config.webTopologyCacheTtlMs);
@@ -47,10 +57,15 @@ public final class TopologyCache {
         TopologySnapshot snapshot = TopologySnapshot.build(ownerUuid, networkId, mode);
         put(ownerUuid, networkId, mode, snapshot);
         lastCaptureByNetwork.put(networkKey, now);
+
+        if (Config.webTopologySnapshotPersist) {
+            TopologySnapshotStore.save(ownerUuid, networkId, mode, snapshot, now);
+        }
         return CaptureResult.captured(snapshot, now);
     }
 
     public long remainingCooldownMs(String ownerUuid, int networkId) {
+        ensureCooldownLoaded(ownerUuid, networkId);
         Long last = lastCaptureByNetwork.get(ownerUuid + ":" + networkId);
         if (last == null) {
             return 0L;
@@ -65,6 +80,28 @@ public final class TopologyCache {
             return;
         }
         cache.put(cacheKey(ownerUuid, networkId, mode), new CachedEntry(snapshot, System.currentTimeMillis()));
+    }
+
+    private static void ensureCooldownLoaded(String ownerUuid, int networkId) {
+        String networkKey = ownerUuid + ":" + networkId;
+        if (INSTANCE.lastCaptureByNetwork.containsKey(networkKey)) {
+            return;
+        }
+        if (!Config.webTopologySnapshotPersist) {
+            return;
+        }
+        long last = TopologySnapshotStore.loadLastCaptureAt(ownerUuid, networkId);
+        if (last > 0L) {
+            INSTANCE.lastCaptureByNetwork.put(networkKey, last);
+        }
+    }
+
+    private static TopologySnapshot loadFromDisk(String ownerUuid, int networkId, String mode) {
+        if (!Config.webTopologySnapshotPersist) {
+            return null;
+        }
+        ensureCooldownLoaded(ownerUuid, networkId);
+        return TopologySnapshotStore.loadSnapshot(ownerUuid, networkId, mode);
     }
 
     public static void invalidateAll() {
@@ -121,11 +158,14 @@ public final class TopologyCache {
         public final TopologySnapshot snapshot;
         public final boolean cached;
         public final long timestamp;
+        /** True when loaded from disk (memory was cold). */
+        public final boolean persisted;
 
-        public CachedResult(TopologySnapshot snapshot, boolean cached, long timestamp) {
+        public CachedResult(TopologySnapshot snapshot, boolean cached, long timestamp, boolean persisted) {
             this.snapshot = snapshot;
             this.cached = cached;
             this.timestamp = timestamp;
+            this.persisted = persisted;
         }
     }
 

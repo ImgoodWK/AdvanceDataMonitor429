@@ -82,6 +82,8 @@ public final class IconGridExporter {
             }
         } catch (Throwable t) {
             AdvanceDataMonitor.LOG.debug("[WebAE] Grid page render failed: {}", t.getMessage());
+        } finally {
+            IconRenderGuard.afterRender(mc);
         }
         RenderHelper.disableStandardItemLighting();
         GL11.glDisable(GL12.GL_RESCALE_NORMAL);
@@ -92,10 +94,14 @@ public final class IconGridExporter {
         for (int i = 0; i < tasks.size() && i < SLOTS_PER_PAGE; i++) {
             IconItemEnumerator.StackTask task = tasks.get(i);
             if (task == null || task.stack == null) continue;
-            byte[] gridCrop = cropSlot(page, i);
-            IconExportResolver.ResolveResult result = resolver.resolve(mc, task.stack, task.itemId, gridCrop);
-            if (result.png != null && result.png.length > 0) {
-                out.put(task.itemId, result.png);
+            try {
+                byte[] gridCrop = cropSlot(page, i);
+                IconExportResolver.ResolveResult result = resolver.resolve(mc, task.stack, task.itemId, gridCrop);
+                if (result.png != null && result.png.length > 0) {
+                    out.put(task.itemId, result.png);
+                }
+            } finally {
+                IconRenderGuard.afterRender(mc);
             }
         }
         return out;
@@ -108,7 +114,7 @@ public final class IconGridExporter {
     }
 
     private void drawStackInSlot(Minecraft mc, ItemStack stack, int x, int y) {
-        if (IconGlFallback.needsGlFallback(stack)) {
+        if (IconGlFallback.needsGlFallback(stack) || IconFluidRenderer.needsInGameItemRender(stack)) {
             return;
         }
         RenderItem.getInstance()

@@ -32,6 +32,8 @@ alwaysApply: true
 
 ## Agent 执行要求
 
+Shell / 网络 / Git 权限默认策略见 **`agent-execution-permissions.mdc`**。
+
 1. 需要反编译、解压 jar、下载参考文件时，输出路径一律在 `.workspace/` 下。
 2. 若发现根目录或 `src/` 下已有误放的 `.class`、`.zip` 备份、临时 Java/Python，**移入** `.workspace/` 对应子目录，不要留在原处。
 3. 不要修改 `.workspace/` 内已有内容的语义结构，除非用户明确要求整理。

@@ -8,6 +8,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.webae.icon.IconGridExporter;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
+import com.imgood.textech.webae.icon.IconRenderGuard;
 import com.imgood.textech.webae.icon.IconRenderer;
 
 import cpw.mods.fml.relauncher.Side;
@@ -47,7 +48,8 @@ public class GuiIconExportScreen extends GuiScreen {
         int total = session.getPendingCount();
         if (pageIndex * IconGridExporter.SLOTS_PER_PAGE >= total) {
             session.onExportComplete(session.getGridExporter());
-            session.getGridExporter().reset();
+            session.getGridExporter()
+                .reset();
             mc.displayGuiScreen(null);
             return;
         }
@@ -55,7 +57,8 @@ public class GuiIconExportScreen extends GuiScreen {
         int start = pageIndex * IconGridExporter.SLOTS_PER_PAGE;
         int end = Math.min(start + IconGridExporter.SLOTS_PER_PAGE, total);
         java.util.List<IconItemEnumerator.StackTask> page = session.getPendingSubList(start, end);
-        java.util.Map<String, byte[]> rendered = session.getGridExporter().renderPage(mc, page);
+        java.util.Map<String, byte[]> rendered = session.getGridExporter()
+            .renderPage(mc, page);
         session.mergeRenderedIcons(rendered);
         renderedItems += page.size();
         pageIndex++;
@@ -74,6 +77,7 @@ public class GuiIconExportScreen extends GuiScreen {
         drawCenteredString(fontRendererObj, hint, width / 2, height / 2 + 8, 0xAAAAAA);
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        IconRenderGuard.afterRender(mc);
     }
 
     @Override

@@ -9,7 +9,15 @@ const CABLE_TIER_RANK: Record<string, number> = {
 
 /** Nodes that should never appear as clickable device circles in the abstract tree. */
 export function visibleAbstractNodes(nodes: TopologyNodeDto[]): TopologyNodeDto[] {
-  return nodes.filter((n) => !isCableNode(n) && !isCellNode(n) && n.simKind !== 'junction' && !n.simKind?.startsWith('cable'));
+  return nodes.filter(
+    (n) =>
+      !!n.id &&
+      !isCableNode(n) &&
+      !isCellNode(n) &&
+      n.simKind !== 'junction' &&
+      !n.simKind?.startsWith('cable') &&
+      n.role !== 'empty_branch'
+  );
 }
 
 function isCableLikeNode(node: TopologyNodeDto | undefined): boolean {
@@ -80,6 +88,15 @@ export function collapseCableEdges(nodes: TopologyNodeDto[], edges: TopologyEdge
   for (const edge of edges) {
     if (!visibleIds.has(edge.from) || !visibleIds.has(edge.to)) continue;
     const key = `${edge.from}->${edge.to}`;
+    if (!collapsed.has(key)) {
+      collapsed.set(key, { ...edge });
+    }
+  }
+
+  // Preserve empty smart-branch placeholder edges (dashed lines in abstract view).
+  for (const edge of edges) {
+    if (!edge.emptyBranch) continue;
+    const key = `empty:${edge.from}->${edge.to}`;
     if (!collapsed.has(key)) {
       collapsed.set(key, { ...edge });
     }

@@ -67,6 +67,8 @@ public class HandlerTick {
         com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
         com.imgood.textech.webae.icon.IconMissingQueue.instance()
             .onServerTick();
+        com.imgood.textech.webae.worldmap.WorldMapTileQueue.instance()
+            .onServerTick();
         com.imgood.textech.webae.events.EventStreamHub.instance()
             .tickHeartbeats();
         com.imgood.textech.webae.chat.ChatMessageStore.instance()

@@ -30,9 +30,12 @@ import com.imgood.textech.network.packet.PacketSuperOrangeConfig;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
 import com.imgood.textech.webae.network.PacketWebIconExportScope;
+import com.imgood.textech.webae.network.PacketWebIconResolveNack;
 import com.imgood.textech.webae.network.PacketWebIconRequest;
 import com.imgood.textech.webae.network.PacketWebIconUpload;
 import com.imgood.textech.webae.network.PacketWebIconUploadAck;
+import com.imgood.textech.webae.network.PacketWebMapTileJob;
+import com.imgood.textech.webae.network.PacketWebMapTileUpload;
 import com.imgood.textech.webae.network.PacketWebRecipeUpload;
 import com.imgood.textech.webae.network.PacketWebRecipeUploadAck;
 import com.imgood.textech.webae.network.PacketWebUploadTrigger;
@@ -226,6 +229,21 @@ public class LoaderNetwork {
                 Side.CLIENT);
             AdvanceDataMonitor.ADMCHANEL
                 .registerMessage(PacketWebIconRequest.Handler.class, PacketWebIconRequest.class, 33, Side.CLIENT);
+        }
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketWebIconResolveNack.Handler.class,
+            PacketWebIconResolveNack.class,
+            36,
+            Side.SERVER);
+
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketWebMapTileUpload.Handler.class, PacketWebMapTileUpload.class, 35, Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketWebMapTileJob.Handler.class, PacketWebMapTileJob.class, 34, Side.CLIENT);
         }
     }
 }

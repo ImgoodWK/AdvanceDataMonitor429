@@ -15,7 +15,10 @@ import {
   iconAbbrev,
   iconLookupIds,
   iconModeFallbackChain,
+  iconReadyMatchesId,
+  iconIsMarkedFailed,
   itemAbbrev,
+  type IconReadyDetail,
 
   FLUID_ID_PREFIX,
 
@@ -119,7 +122,10 @@ export const Icon = memo(function Icon({
 
 
   useEffect(() => {
-    const onReady = () => {
+    const onReady = (ev: Event) => {
+      const detail = (ev as CustomEvent<IconReadyDetail>).detail;
+      const matches = candidates.some((candidate) => iconReadyMatchesId(detail, candidate));
+      if (!matches) return;
       retryAttemptRef.current = 0;
       setErrored(false);
       setCandidateIndex(0);
@@ -128,7 +134,7 @@ export const Icon = memo(function Icon({
     };
     window.addEventListener('webae-icon-ready', onReady);
     return () => window.removeEventListener('webae-icon-ready', onReady);
-  }, []);
+  }, [candidates]);
 
 
 
@@ -165,9 +171,8 @@ export const Icon = memo(function Icon({
 
 
   const serverUrl = activeId
-
+    && !iconIsMarkedFailed(failedIcons, activeId)
     ? buildIconUrl(activeId, iconPack, token, iconCacheEnabled, activeMode) + (retryGen ? `&r=${retryGen}` : '')
-
     : '';
 
   const url = localUrl || serverUrl;
@@ -357,6 +362,8 @@ export const Icon = memo(function Icon({
           setErrored(true);
 
           if (activeId && !localUrl && !failedIcons[activeId]) markIconFailed(activeId);
+
+          if (iconIsMarkedFailed(failedIcons, activeId)) return;
 
           const delays = [2000, 5000, 10000];
           const attempt = retryAttemptRef.current;

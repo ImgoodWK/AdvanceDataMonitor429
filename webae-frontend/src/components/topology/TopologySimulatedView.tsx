@@ -12,10 +12,10 @@ import type { TopologyEdgeDto, TopologyNodeDto } from '@/types/dto';
 import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
 import { SimTextureImage } from '@/components/topology/SimTextureImage';
 import { buildCableCells, simulatedViewBox } from '@/utils/topologyCablePath';
-import { fitViewTransform, TOPOLOGY_MAX_SCALE, TOPOLOGY_MIN_SCALE } from '@/utils/topologyLayout';
-import { isCellNode, isCableNode } from '@/utils/topologyDevices';
-import { aeCableIconId, blockIconIdForNode } from '@/utils/aeCableColors';
-import type { TopologyGraphHandle } from '@/components/topology/TopologyGraphSvg';
+import { fitViewTransform, remapSimNodesForStarLayout, TOPOLOGY_MAX_SCALE, TOPOLOGY_MIN_SCALE, estimateLabelWidth, type NodeRect } from '@/utils/topologyLayout';
+import { isCellNode, isCableNode, topologyNodeLabel } from '@/utils/topologyDevices';
+import { aeCableBlockIconId, blockIconIdForNode } from '@/utils/aeCableColors';
+import type { TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
 
 interface TopologySimulatedViewProps {
   nodes: TopologyNodeDto[];
@@ -52,9 +52,36 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
     const cellPx = displaySettings.cableCellPx;
     const blockPx = displaySettings.nodeBlockPx;
 
+    const starLayout = displaySettings.abstractLayout === 'star';
+
+    const displayNodes = useMemo(() => {
+      const base = starLayout ? nodes.filter((n) => !n.id?.startsWith('cable:')) : nodes;
+      return starLayout ? remapSimNodesForStarLayout(base) : base;
+    }, [nodes, starLayout]);
+
+    const displayEdges = useMemo((): TopologyEdgeDto[] => {
+      if (!starLayout) return edges;
+      const hub = displayNodes.find((n) => n.id === 'controller' || n.type === 'controller');
+      if (!hub) return edges;
+      return displayNodes
+        .filter(
+          (n) =>
+            n.id !== hub.id &&
+            n.simKind === 'block' &&
+            n.type !== 'cell' &&
+            n.simGridX != null &&
+            n.id != null && !n.id.startsWith('virtual:')
+        )
+        .map((n) => ({
+          from: hub.id,
+          to: n.id,
+          cableType: ((n.channelCost ?? 0) > 0 ? 'smart' : 'covered') as TopologyEdgeDto['cableType'],
+        }));
+    }, [displayNodes, edges, starLayout]);
+
     const blockNodes = useMemo(
       () =>
-        nodes.filter((n) => {
+        displayNodes.filter((n) => {
           if (isCellNode(n)) return false;
           if (n.simKind === 'hidden') return false;
           if (displaySettings.hideCableNodes && isCableNode(n)) return false;
@@ -62,12 +89,17 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
           if (n.simKind === 'junction') return false;
           return n.simGridX != null;
         }),
-      [nodes, displaySettings.hideCableNodes]
+      [displayNodes, displaySettings.hideCableNodes]
+    );
+
+    const cableNodes = useMemo(
+      () => displayNodes.filter((n) => n.simKind === 'junction' || n.simKind?.startsWith('cable')),
+      [displayNodes]
     );
 
     const cableCells = useMemo(
-      () => buildCableCells(nodes, edges, displaySettings.hideCableNodes),
-      [nodes, edges, displaySettings.hideCableNodes]
+      () => buildCableCells(displayNodes, displayEdges, displaySettings.hideCableNodes),
+      [displayNodes, displayEdges, displaySettings.hideCableNodes]
     );
 
     const viewBox = useMemo(
@@ -137,6 +169,40 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
 
     const cablePreset = displaySettings.cableColorPreset;
 
+    // Build spatial adjacency map for label overlap avoidance
+    const blockNodeRects = useMemo(() => {
+      const rects: NodeRect[] = [];
+      for (const node of blockNodes) {
+        const px = (node.simGridX ?? 0) * cellPx;
+        const py = (node.simGridY ?? 0) * cellPx;
+        rects.push({
+          id: node.id,
+          cx: px + blockPx / 2,
+          cy: py + blockPx / 2,
+          r: blockPx / 2,
+          label: topologyNodeLabel(node),
+        });
+      }
+      return rects;
+    }, [blockNodes, cellPx, blockPx]);
+
+    const maxBlockLabelLen = useMemo(() => {
+      let maxW = 0;
+      for (const rect of blockNodeRects) {
+        if (rect.label) maxW = Math.max(maxW, estimateLabelWidth(rect.label));
+      }
+      // Limit label to ~200px max
+      const maxChars = Math.max(6, Math.floor(200 / 7.5));
+      return maxChars;
+    }, [blockNodeRects]);
+
+    /** Truncate block label for simulated view (shorter than abstract view). */
+    const truncateBlockLabel = (name: string | null | undefined): string => {
+      const text = name?.trim() || '?';
+      if (text.length <= maxBlockLabelLen) return text;
+      return `${text.slice(0, maxBlockLabelLen - 1)}…`;
+    };
+
     return (
       <div
         ref={containerRef}
@@ -163,7 +229,7 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
           {cableCells.map((cell) => {
             const tier = cell.cableType === 'dense' ? 'dense' : cell.cableType === 'smart' ? 'smart' : 'covered';
             const colorId = cablePreset[tier];
-            const iconId = aeCableIconId(tier, colorId);
+            const iconId = aeCableBlockIconId(tier, colorId);
             return (
               <SimTextureImage
                 key={`cable-${cell.gx}-${cell.gy}`}
@@ -178,13 +244,12 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
           })}
 
           {/* Junction / cable nodes rendered as cable textures */}
-          {nodes
-            .filter((n) => n.simKind === 'junction' || n.simKind?.startsWith('cable'))
-            .map((node) => {
+          {!starLayout &&
+            cableNodes.map((node) => {
               if (node.simGridX == null || node.simGridY == null) return null;
               const tier =
                 node.type === 'cable_dense' ? 'dense' : node.type === 'cable_smart' ? 'smart' : 'covered';
-              const iconId = aeCableIconId(tier, cablePreset[tier]);
+              const iconId = aeCableBlockIconId(tier, cablePreset[tier]);
               return (
                 <SimTextureImage
                   key={`junction-${node.id}`}
@@ -199,7 +264,7 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
             })}
 
           {displaySettings.showEdgeChannelLabels &&
-            edges.map((edge) => {
+            displayEdges.map((edge) => {
               const ch = edge.channelsSimulated;
               if (!ch?.available || !edge.pathPoints || edge.pathPoints.length < 2) return null;
               const mid = edge.pathPoints[Math.floor(edge.pathPoints.length / 2)];
@@ -251,13 +316,14 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
                 <SimTextureImage iconId={iconId} x={px} y={py} size={blockPx} renderMode="block" />
                 <text
                   x={px + blockPx / 2}
-                  y={py + blockPx + 12}
+                  y={py + blockPx + 14}
                   textAnchor="middle"
                   fontSize={10}
                   fill={displaySettings.colors.label}
                   className="topology-node-label"
+                  style={{ pointerEvents: 'none', userSelect: 'none' }}
                 >
-                  {node.displayName.length > 22 ? `${node.displayName.slice(0, 21)}…` : node.displayName}
+                  {truncateBlockLabel(topologyNodeLabel(node))}
                 </text>
               </g>
             );

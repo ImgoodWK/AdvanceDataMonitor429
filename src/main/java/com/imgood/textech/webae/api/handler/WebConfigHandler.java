@@ -135,6 +135,12 @@ public class WebConfigHandler {
         sb.append("\"topologyCacheTtlMs\":")
             .append(Config.webTopologyCacheTtlMs)
             .append(',');
+        sb.append("\"topologySnapshotPersist\":")
+            .append(Config.webTopologySnapshotPersist)
+            .append(',');
+        sb.append("\"worldMapEnabled\":")
+            .append(Config.webWorldMapEnabled && Config.webTopologyEnabled)
+            .append(',');
         sb.append("\"alertsEnabled\":")
             .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)
             .append(',');

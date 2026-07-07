@@ -408,7 +408,7 @@ public final class WebAeOwnerContext {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    static EntityPlayerMP findOnlinePlayer(String ownerUuid) {
+    public static EntityPlayerMP findOnlinePlayer(String ownerUuid) {
         MinecraftServer server = MinecraftServer.getServer();
         if (server == null || server.getConfigurationManager() == null) {
             return null;

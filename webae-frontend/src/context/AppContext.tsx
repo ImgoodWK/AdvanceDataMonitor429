@@ -24,7 +24,7 @@ import { applyCssVars } from '@/theme/antdTheme';
 import { COLOR_SCHEMES, type ThemeColor, type EffectsLevel } from '@/theme/colors';
 import { LAYOUT_PRESETS, type ThemeLayout } from '@/theme/layouts';
 import { formatNumber, type NumberFormat } from '@/utils/format';
-import { bumpIconVersion } from '@/utils/icon';
+import { bumpIconVersion, iconLookupIds } from '@/utils/icon';
 import {
   getActiveLocalPack,
   listLocalIconPacks,
@@ -361,7 +361,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const markIconFailed = useCallback((id: string) => {
-    setFailedIcons((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
+    setFailedIcons((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const candidate of iconLookupIds(undefined, id)) {
+        if (!next[candidate]) {
+          next[candidate] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   }, []);
 
   const refreshIconPacks = useCallback(async () => {

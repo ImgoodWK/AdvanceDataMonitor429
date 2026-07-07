@@ -3,11 +3,16 @@ import { DEFAULT_AE_CABLE_COLOR_ID, hexFromAeCableColorId } from '@/utils/aeCabl
 
 export type TopologyLayoutDirection = 'LR' | 'TB';
 export type TopologyRenderMode = 'abstract' | 'simulated';
+export type TopologyAbstractLayout = 'tree' | 'star';
 export type TopologyLabelStrategy = 'external' | 'below' | 'hover';
+
+export type WorldMapObliqueDirection = 'se' | 'sw' | 'ne' | 'nw';
 
 export interface TopologyDisplaySettings {
   /** Abstract vs simulated cable-bus view (logical mode only). */
   renderMode: TopologyRenderMode;
+  /** Tree vs double-ring star abstract layout (logical mode only). */
+  abstractLayout: TopologyAbstractLayout;
   layoutDirection: TopologyLayoutDirection;
   depthGap: number;
   siblingGap: number;
@@ -35,12 +40,23 @@ export interface TopologyDisplaySettings {
     covered: AeCableColorId;
     dense: AeCableColorId;
   };
+  /** Oblique world map orbit direction (mineshot-style). */
+  worldMapObliqueDirection: WorldMapObliqueDirection;
+  /** Show terrain tile layer on world map. */
+  showWorldMapTerrain: boolean;
+  /** Show AE overlay tile layer (devices + cables). */
+  showWorldMapAeOverlay: boolean;
+  /** Show device icon markers on world map. */
+  showWorldMapDeviceIcons: boolean;
+  /** AE overlay opacity (0.5–1.0). */
+  worldMapAeOverlayOpacity: number;
 }
 
 export const TOPOLOGY_DISPLAY_STORAGE_KEY = 'webae_topology_display';
 
 export const DEFAULT_TOPOLOGY_DISPLAY: TopologyDisplaySettings = {
   renderMode: 'abstract',
+  abstractLayout: 'tree',
   layoutDirection: 'LR',
   depthGap: 140,
   siblingGap: 72,
@@ -66,6 +82,11 @@ export const DEFAULT_TOPOLOGY_DISPLAY: TopologyDisplaySettings = {
     covered: DEFAULT_AE_CABLE_COLOR_ID,
     dense: DEFAULT_AE_CABLE_COLOR_ID,
   },
+  worldMapObliqueDirection: 'se',
+  showWorldMapTerrain: true,
+  showWorldMapAeOverlay: false,
+  showWorldMapDeviceIcons: true,
+  worldMapAeOverlayOpacity: 0.85,
 };
 
 export function mergeTopologyDisplay(

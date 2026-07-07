@@ -10,7 +10,7 @@ import java.util.Map;
 import com.imgood.textech.webae.topology.NetworkStatusEnumerator.NetworkFacility;
 
 /**
- * Aggregates enumerated grid facilities by {@link TopologyNodeType} + item id,
+ * Aggregates enumerated grid facilities by fine subtype + item id,
  * matching the in-game network tool merge-by-item behavior.
  */
 public final class TopologyFacilityGrouper {
@@ -20,11 +20,13 @@ public final class TopologyFacilityGrouper {
     public static final class AggregatedGroup {
 
         public TopologyNodeType type;
+        public String subtype = "";
         public String groupKey;
         public String displayName;
         public String iconItemId = "";
         public int count;
         public int channelCostSum;
+        public int patternCountSum;
         public final List<NetworkFacility> members = new ArrayList<NetworkFacility>();
     }
 
@@ -38,12 +40,15 @@ public final class TopologyFacilityGrouper {
             if (facility == null) {
                 continue;
             }
+            String subtype = facility.subtype == null || facility.subtype.isEmpty() ? TopologyRules.SUB_MISC
+                : facility.subtype;
             String itemId = facility.representationItemId == null ? "" : facility.representationItemId;
-            String key = facility.type.id + "|" + itemId;
+            String key = subtype + "|" + itemId;
             AggregatedGroup group = byKey.get(key);
             if (group == null) {
                 group = new AggregatedGroup();
                 group.type = facility.type;
+                group.subtype = subtype;
                 group.groupKey = key;
                 group.displayName = facility.displayName;
                 group.iconItemId = itemId;
@@ -51,6 +56,7 @@ public final class TopologyFacilityGrouper {
             }
             group.count++;
             group.channelCostSum += Math.max(0, facility.channelCost);
+            group.patternCountSum += Math.max(0, facility.patternCount);
             group.members.add(facility);
         }
 
@@ -59,9 +65,8 @@ public final class TopologyFacilityGrouper {
 
             @Override
             public int compare(AggregatedGroup a, AggregatedGroup b) {
-                int order = Integer.compare(
-                    TopologyRules.branchOrderIndex(a.type.id),
-                    TopologyRules.branchOrderIndex(b.type.id));
+                int order = Integer
+                    .compare(TopologyRules.branchOrderIndex(a.subtype), TopologyRules.branchOrderIndex(b.subtype));
                 if (order != 0) {
                     return order;
                 }

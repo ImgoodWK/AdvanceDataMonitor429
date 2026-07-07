@@ -506,7 +506,7 @@ public class CommandWebConsole extends CommandBase {
             send(sender, EnumChatFormatting.YELLOW + "/admweb icons verify <itemId> [pack]");
             send(sender, EnumChatFormatting.YELLOW + "/admweb icons import <folder> [pack]");
             send(sender, EnumChatFormatting.YELLOW + "/admweb icons import-nesql [pack] [subpath]");
-            send(sender, EnumChatFormatting.YELLOW + "/admweb icons modes | status");
+            send(sender, EnumChatFormatting.YELLOW + "/admweb icons modes | status | clear");
             return;
         }
         String action = args[1].toLowerCase();
@@ -577,11 +577,21 @@ public class CommandWebConsole extends CommandBase {
                 EnumChatFormatting.WHITE + "  missingIconQueue: "
                     + IconMissingQueue.instance()
                         .pendingCount());
+        } else if ("clear".equals(action)) {
+            if (!canUseOpCommands(sender)) {
+                send(sender, EnumChatFormatting.RED + "You need operator permission to clear the icon cache.");
+                return;
+            }
+            int removed = IconStore.instance()
+                .clearAll();
+            IconMissingQueue.instance()
+                .clear();
+            sendFormatted(sender, EnumChatFormatting.GREEN, "adm.webconsole.icons.cleared", removed);
         } else {
             send(
                 sender,
                 EnumChatFormatting.RED
-                    + "Unknown icons subcommand. Use: upload, render, verify, import, modes, status");
+                    + "Unknown icons subcommand. Use: upload, render, verify, import, modes, status, clear");
         }
     }
 
@@ -777,6 +787,7 @@ public class CommandWebConsole extends CommandBase {
             EnumChatFormatting.YELLOW + "/admweb icons upload [pack] [mode|all]  - Upload item icons (client only)");
         send(sender, EnumChatFormatting.YELLOW + "/admweb icons modes  - List icon render modes");
         send(sender, EnumChatFormatting.YELLOW + "/admweb icons status  - View icon pack status");
+        send(sender, EnumChatFormatting.YELLOW + "/admweb icons clear  - Delete all icon packs (OP only)");
         send(sender, EnumChatFormatting.YELLOW + "/admweb refresh [network]  - Force snapshot re-collect (OP only)");
         send(sender, EnumChatFormatting.YELLOW + "/admweb server status  - Show WebAE HTTP server state");
         send(sender, EnumChatFormatting.YELLOW + "/admweb server restart  - Restart HTTP server (OP only)");
@@ -808,7 +819,8 @@ public class CommandWebConsole extends CommandBase {
             return filtered;
         }
         if (args.length == 2 && "icons".equalsIgnoreCase(args[0])) {
-            List<String> opts = Arrays.asList("upload", "modes", "status");
+            List<String> opts = Arrays
+                .asList("upload", "render", "verify", "import", "import-nesql", "modes", "status", "clear");
             List<String> filtered = new ArrayList<>();
             for (String s : opts) {
                 if (s.startsWith(args[1].toLowerCase())) {

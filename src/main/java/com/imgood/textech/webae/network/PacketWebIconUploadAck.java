@@ -78,7 +78,8 @@ public class PacketWebIconUploadAck implements IMessage {
             boolean isError = !message.success;
             boolean isCompletion = isFinalChunk && message.message != null
                 && message.message.startsWith("Icon upload complete");
-            if (isError || isCompletion) {
+            boolean isLazySingle = isCompletion && message.message.startsWith("Icon upload complete. 1 icons");
+            if (isError || (isCompletion && !isLazySingle)) {
                 mc.thePlayer.addChatMessage(new ChatComponentText(color + prefix + message.message));
             }
 
