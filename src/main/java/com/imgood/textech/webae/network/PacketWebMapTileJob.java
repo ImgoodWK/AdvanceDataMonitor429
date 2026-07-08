@@ -3,6 +3,7 @@ package com.imgood.textech.webae.network;
 import java.nio.charset.StandardCharsets;
 
 import com.imgood.textech.client.worldmap.WorldMapTileRenderWorker;
+import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -20,6 +21,7 @@ public class PacketWebMapTileJob implements IMessage {
 
     public String view;
     public String layer = WorldMapTileLayer.TERRAIN;
+    public String quality = WorldMapQualityTier.ULTRA.id;
     public int dim;
     public int chunkX;
     public int chunkZ;
@@ -32,8 +34,14 @@ public class PacketWebMapTileJob implements IMessage {
     }
 
     public PacketWebMapTileJob(String view, String layer, int dim, int chunkX, int chunkZ, int networkId) {
+        this(view, layer, WorldMapQualityTier.ULTRA.id, dim, chunkX, chunkZ, networkId);
+    }
+
+    public PacketWebMapTileJob(String view, String layer, String quality, int dim, int chunkX, int chunkZ,
+        int networkId) {
         this.view = view;
         this.layer = WorldMapTileLayer.normalize(layer);
+        this.quality = quality != null && !quality.isEmpty() ? quality : WorldMapQualityTier.ULTRA.id;
         this.dim = dim;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
@@ -44,6 +52,7 @@ public class PacketWebMapTileJob implements IMessage {
     public void toBytes(ByteBuf buf) {
         writeUtf8(buf, view);
         writeUtf8(buf, layer);
+        writeUtf8(buf, quality);
         buf.writeInt(dim);
         buf.writeInt(chunkX);
         buf.writeInt(chunkZ);
@@ -54,6 +63,10 @@ public class PacketWebMapTileJob implements IMessage {
     public void fromBytes(ByteBuf buf) {
         view = readUtf8(buf);
         layer = WorldMapTileLayer.normalize(readUtf8(buf));
+        quality = readUtf8(buf);
+        if (quality == null || quality.isEmpty()) {
+            quality = WorldMapQualityTier.ULTRA.id;
+        }
         dim = buf.readInt();
         chunkX = buf.readInt();
         chunkZ = buf.readInt();

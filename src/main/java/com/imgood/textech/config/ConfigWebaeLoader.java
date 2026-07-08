@@ -238,6 +238,16 @@ public final class ConfigWebaeLoader {
             32,
             512,
             ConfigDescriptions.get("webConsole", "worldMapTilePx"));
+        Config.webWorldMapMaxQualityTier = configuration.getString(
+            "worldMapMaxQualityTier",
+            "webConsole",
+            Config.webWorldMapMaxQualityTier,
+            ConfigDescriptions.get("webConsole", "worldMapMaxQualityTier"));
+        Config.webWorldMapDefaultQualityTier = configuration.getString(
+            "worldMapDefaultQualityTier",
+            "webConsole",
+            Config.webWorldMapDefaultQualityTier,
+            ConfigDescriptions.get("webConsole", "worldMapDefaultQualityTier"));
         Config.webWorldMapBoundsPaddingChunks = configuration.getInt(
             "worldMapBoundsPaddingChunks",
             "webConsole",
@@ -291,5 +301,84 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.webWorldMapAeOverlayIncludeCables,
             ConfigDescriptions.get("webConsole", "worldMapAeOverlayIncludeCables"));
+        Config.webWorldMapRenderEngine = configuration.getString(
+            "worldMapRenderEngine",
+            "webConsole",
+            Config.webWorldMapRenderEngine,
+            ConfigDescriptions.get("webConsole", "worldMapRenderEngine"));
+        Config.webWorldMapObliqueEngine = configuration.getString(
+            "worldMapObliqueEngine",
+            "webConsole",
+            Config.webWorldMapObliqueEngine,
+            ConfigDescriptions.get("webConsole", "worldMapObliqueEngine"));
+        Config.webWorldMapChunkPadding = configuration.getInt(
+            "worldMapChunkPadding",
+            "webConsole",
+            Config.webWorldMapChunkPadding,
+            0,
+            4,
+            ConfigDescriptions.get("webConsole", "worldMapChunkPadding"));
+        Config.webWorldMapTextureCacheMax = configuration.getInt(
+            "worldMapTextureCacheMax",
+            "webConsole",
+            Config.webWorldMapTextureCacheMax,
+            256,
+            8192,
+            ConfigDescriptions.get("webConsole", "worldMapTextureCacheMax"));
+        Config.webWorldMapRayBudgetPerTick = configuration.getInt(
+            "worldMapRayBudgetPerTick",
+            "webConsole",
+            Config.webWorldMapRayBudgetPerTick,
+            1,
+            32,
+            ConfigDescriptions.get("webConsole", "worldMapRayBudgetPerTick"));
+        Config.webWorldMapMaxRayDepth = configuration.getInt(
+            "worldMapMaxRayDepth",
+            "webConsole",
+            Config.webWorldMapMaxRayDepth,
+            1,
+            8,
+            ConfigDescriptions.get("webConsole", "worldMapMaxRayDepth"));
+        Config.webWorldMapLowTierObliqueEngine = configuration.getString(
+            "worldMapLowTierObliqueEngine",
+            "webConsole",
+            Config.webWorldMapLowTierObliqueEngine,
+            ConfigDescriptions.get("webConsole", "worldMapLowTierObliqueEngine"));
+        Config.webWorldMapZoomLevels = configuration.getInt(
+            "worldMapZoomLevels",
+            "webConsole",
+            Config.webWorldMapZoomLevels,
+            1,
+            6,
+            ConfigDescriptions.get("webConsole", "worldMapZoomLevels"));
+        Config.webWorldMapZoomBudgetPerTick = configuration.getInt(
+            "worldMapZoomBudgetPerTick",
+            "webConsole",
+            Config.webWorldMapZoomBudgetPerTick,
+            1,
+            64,
+            ConfigDescriptions.get("webConsole", "worldMapZoomBudgetPerTick"));
+        Config.webWorldMapBlockPatchesEnabled = configuration.getBoolean(
+            "worldMapBlockPatchesEnabled",
+            "webConsole",
+            Config.webWorldMapBlockPatchesEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapBlockPatchesEnabled"));
+        Config.webWorldMapAeQualityBoost = configuration.getBoolean(
+            "worldMapAeQualityBoost",
+            "webConsole",
+            Config.webWorldMapAeQualityBoost,
+            ConfigDescriptions.get("webConsole", "worldMapAeQualityBoost"));
+        Config.webWorldMapServerAtlasEnabled = configuration.getBoolean(
+            "worldMapServerAtlasEnabled",
+            "webConsole",
+            Config.webWorldMapServerAtlasEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapServerAtlasEnabled"));
+        Config.webWorldMapServerAtlasPx = configuration.getInt(
+            "worldMapServerAtlasPx",
+            "webConsole",
+            Config.webWorldMapServerAtlasPx,
+            256,
+            4096,
+            ConfigDescriptions.get("webConsole", "worldMapServerAtlasPx"));
     }
 }

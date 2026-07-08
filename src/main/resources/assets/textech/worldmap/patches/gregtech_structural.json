@@ -1,0 +1,47 @@
+{
+  "entries": [
+    {
+      "comment": "GregTech decorative / structural full blocks.",
+      "registryPrefix": "gregtech:gt.blockmetal",
+      "boxes": [
+        { "x0": 0, "y0": 0, "z0": 0, "x1": 1, "y1": 1, "z1": 1, "face": "SIDE" }
+      ]
+    },
+    {
+      "registryPrefix": "gregtech:gt.blockgem",
+      "boxes": [
+        { "x0": 0, "y0": 0, "z0": 0, "x1": 1, "y1": 1, "z1": 1, "face": "SIDE" }
+      ]
+    },
+    {
+      "blocks": [
+        "gregtech:gt.blockreinforced",
+        "gregtech:gt.blockgranites",
+        "gregtech:gt.blockconcretes",
+        "gregtech:gt.blockstones"
+      ],
+      "boxes": [
+        { "x0": 0, "y0": 0, "z0": 0, "x1": 1, "y1": 1, "z1": 1, "face": "SIDE" }
+      ]
+    },
+    {
+      "comment": "GregTech frame blocks — hollow frame geometry via class resolver when TE present.",
+      "registryPrefix": "gregtech:gt.blockframes",
+      "boxes": [
+        { "x0": 0, "y0": 0, "z0": 0, "x1": 0.125, "y1": 1, "z1": 0.125, "face": "SIDE" },
+        { "x0": 0.875, "y0": 0, "z0": 0, "x1": 1, "y1": 1, "z1": 0.125, "face": "SIDE" },
+        { "x0": 0, "y0": 0, "z0": 0.875, "x1": 0.125, "y1": 1, "z1": 1, "face": "SIDE" },
+        { "x0": 0.875, "y0": 0, "z0": 0.875, "x1": 1, "y1": 1, "z1": 1, "face": "SIDE" }
+      ]
+    },
+    {
+      "classContains": "BlockFrames",
+      "boxes": [
+        { "x0": 0, "y0": 0, "z0": 0, "x1": 0.125, "y1": 1, "z1": 0.125, "face": "SIDE" },
+        { "x0": 0.875, "y0": 0, "z0": 0, "x1": 1, "y1": 1, "z1": 0.125, "face": "SIDE" },
+        { "x0": 0, "y0": 0, "z0": 0.875, "x1": 0.125, "y1": 1, "z1": 1, "face": "SIDE" },
+        { "x0": 0.875, "y0": 0, "z0": 0.875, "x1": 1, "y1": 1, "z1": 1, "face": "SIDE" }
+      ]
+    }
+  ]
+}

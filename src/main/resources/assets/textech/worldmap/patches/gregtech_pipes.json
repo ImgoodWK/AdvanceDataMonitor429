@@ -1,0 +1,24 @@
+{
+  "entries": [
+    {
+      "comment": "Long-distance fluid pipe block — thicker center conduit.",
+      "blocks": ["gregtech:gt.blocklongdistancepipe"],
+      "boxes": [
+        { "x0": 0.375, "y0": 0.375, "z0": 0.375, "x1": 0.625, "y1": 0.625, "z1": 0.625, "face": "SIDE" }
+      ]
+    },
+    {
+      "classContains": "BlockLongDistancePipe",
+      "boxes": [
+        { "x0": 0.375, "y0": 0.375, "z0": 0.375, "x1": 0.625, "y1": 0.625, "z1": 0.625, "face": "SIDE" }
+      ]
+    },
+    {
+      "comment": "MetaPipeEntity host without TE read — thin center fallback.",
+      "classContains": "MetaPipeEntity",
+      "boxes": [
+        { "x0": 0.4375, "y0": 0.4375, "z0": 0.4375, "x1": 0.5625, "y1": 0.5625, "z1": 0.5625, "face": "SIDE" }
+      ]
+    }
+  ]
+}

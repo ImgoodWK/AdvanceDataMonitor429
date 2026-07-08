@@ -87,6 +87,8 @@ import { buildDynmapUrl } from '@/utils/dynmap';
 
 import { buildNodeIndex } from '@/utils/worldMapMarkers';
 import { buildWorldMapInvalidateViews } from '@/utils/worldMapViews';
+import { clampWorldMapQuality } from '@/utils/worldMapTerrain';
+import type { WorldMapQualityTierId } from '@/types/topologyDisplay';
 
 import type {
 
@@ -174,6 +176,8 @@ export function NetworkTopologyPage() {
 
   const [canForceSnapshot, setCanForceSnapshot] = useState(false);
 
+  const [worldMapProgressEpoch, setWorldMapProgressEpoch] = useState(0);
+
 
 
   const currentNet = activeNetwork ?? selectedNetworks[0] ?? 0;
@@ -204,17 +208,35 @@ export function NetworkTopologyPage() {
 
 
 
+  const worldMapMaxQuality: WorldMapQualityTierId =
+    serverConfig?.worldMapMaxQualityTier === 'low' ||
+    serverConfig?.worldMapMaxQualityTier === 'medium' ||
+    serverConfig?.worldMapMaxQualityTier === 'high' ||
+    serverConfig?.worldMapMaxQualityTier === 'ultra'
+      ? serverConfig.worldMapMaxQualityTier
+      : worldMapMeta?.maxQualityTier === 'low' ||
+          worldMapMeta?.maxQualityTier === 'medium' ||
+          worldMapMeta?.maxQualityTier === 'high' ||
+          worldMapMeta?.maxQualityTier === 'ultra'
+        ? worldMapMeta.maxQualityTier
+        : 'ultra';
+
   const refreshWorldMapTiles = useCallback(
-    async (obliqueDirection = displaySettings.worldMapObliqueDirection) => {
+    async (
+      obliqueDirection = displaySettings.worldMapObliqueDirection,
+      quality = displaySettings.worldMapQuality
+    ) => {
       if (viewMode !== 'worldMap' || !worldMapEnabled) return;
       const views = buildWorldMapInvalidateViews(obliqueDirection);
-      await invalidateWorldMapTiles(views);
+      await invalidateWorldMapTiles(views, quality);
+      setWorldMapProgressEpoch((n) => n + 1);
       await reloadWorldMap();
     },
     [
       viewMode,
       worldMapEnabled,
       displaySettings.worldMapObliqueDirection,
+      displaySettings.worldMapQuality,
       invalidateWorldMapTiles,
       reloadWorldMap,
     ]
@@ -1100,6 +1122,8 @@ export function NetworkTopologyPage() {
 
                   layoutEpoch={layoutEpoch}
 
+                  progressEpoch={worldMapProgressEpoch}
+
                   obliqueDirection={displaySettings.worldMapObliqueDirection}
 
                   displaySettings={displaySettings}
@@ -1272,12 +1296,18 @@ export function NetworkTopologyPage() {
 
         onChange={(next) => {
           const prevDir = displaySettings.worldMapObliqueDirection;
-          setDisplaySettings(next);
-          if (
-            viewMode === 'worldMap' &&
-            next.worldMapObliqueDirection !== prevDir
-          ) {
-            void refreshWorldMapTiles(next.worldMapObliqueDirection);
+          const prevQuality = displaySettings.worldMapQuality;
+          const clamped = {
+            ...next,
+            worldMapQuality: clampWorldMapQuality(next.worldMapQuality ?? 'medium', worldMapMaxQuality),
+          };
+          setDisplaySettings(clamped);
+          if (viewMode === 'worldMap') {
+            if (clamped.worldMapObliqueDirection !== prevDir) {
+              void refreshWorldMapTiles(clamped.worldMapObliqueDirection, clamped.worldMapQuality);
+            } else if (clamped.worldMapQuality !== prevQuality) {
+              void refreshWorldMapTiles(clamped.worldMapObliqueDirection, clamped.worldMapQuality);
+            }
           }
         }}
 
@@ -1288,6 +1318,8 @@ export function NetworkTopologyPage() {
         showWorldMapSettings={viewMode === 'worldMap'}
 
         obliqueDirectionOptions={worldMapMeta?.obliqueDirections}
+        qualityTierOptions={worldMapMeta?.qualityTiers}
+        maxQualityTier={worldMapMaxQuality}
       />
 
 

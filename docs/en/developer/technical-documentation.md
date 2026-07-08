@@ -1190,29 +1190,22 @@ When GUIs modify TileEntities, respect side: client edits UI and sends packets; 
 
 ## 7. Network Packets
 
-All packets share `TeXTech.ADMCHANEL`, registered in `LoaderNetwork` (full table in `.cursor/rules/network-packets.mdc`):
+All packets share `TeXTech.ADMCHANEL`, registered in `LoaderNetwork.registerNetWorks()` (postInit).
 
-| ID | Packet | Direction | Purpose |
-|----|--------|-----------|---------|
-| 0 | `PacketItemNBT` | SERVER | Data Imprint Tool NBT interaction |
-| 1 | `PacketSynTileEntity` | CLIENT | monitor TE sync to client |
-| 2 | `PacketSynTileEntity` | SERVER | client submits monitor config |
-| 3 | — | — | unused |
-| 4 | `PacketRequestItemCountSync` | SERVER | request Advanced Storage Linker counts |
-| 5 | `PacketItemCountSync` | CLIENT | return Advanced Storage Linker counts |
-| 6 | `PacketAssistantAction` | SERVER | AI assistant actions |
-| 7 | `PacketAssistantResponse` | CLIENT | AI assistant responses |
-| 8–9 | `PacketPlannerSync` | SERVER / CLIENT | planner NBT up/down |
-| 10 | `PacketPlannerMerge` | SERVER | planner merge |
-| 11–12 | `PacketGrappleAction` / `PacketGrappleSync` | SERVER / CLIENT | grapple action/state sync |
-| 13–14 | `PacketGrappleHookConfig` / `PacketGrappleAnchorConfig` | SERVER (14 bidirectional) | hook/anchor config |
-| 15 | `PacketMonitorRecord` | SERVER | monitor coordinate registration |
-| 16 | `PacketLinkScannerAction` | SERVER + CLIENT | link scanner action/sync |
-| 17–18 | `PacketGrapplePathAction` / `PacketGrapplePathSync` | SERVER / CLIENT | grapple path save/sync |
-| 19–20 | `PacketPocketAction` | SERVER / CLIENT | dimensional pocket C→S / response placeholder |
-| 21 | `PacketPocketSync` | CLIENT | dimensional pocket state/inventory sync |
-| 22 | `PacketSuperOrangeConfig` | SERVER | Super Orange settings GUI save |
-| 23 | `PacketMatterBallDecompressorToggle` | SERVER | matter ball decompressor output/block mode toggle |
+**Full ID table (0–36) and add-packet checklist**: see [`.cursor/rules/network-packets.mdc`](../../.cursor/rules/network-packets.mdc) (kept in sync with source; next available ID = 37).
+
+Summary:
+
+| Range | Subsystem |
+|-------|-----------|
+| 0–5 | Data Imprint Tool / monitor TE sync / storage linker counts |
+| 6–7 | AI assistant C→S / S→C |
+| 8–10 | Planner sync and merge |
+| 11–18 | Grapple action, config, paths |
+| 19–21 | Dimensional pocket |
+| 22–23 | Super Orange / matter ball decompressor |
+| 24–25 | AI assistant menu state |
+| 26–36 | WebAE recipes/icons/token/world-map HD tiles/icon nack |
 
 `PacketAssistantAction` currently supports 11 actions (1–7 crafting/query, 8–11 withdraw), carrying parameters in payload NBT.
 
@@ -1224,55 +1217,25 @@ Maintenance notes:
 
 ## 8. AI Assistant Architecture
 
-AI assistant: client parsing, server execution. Main path:
+AI assistant: client parsing, server execution. **Full architecture, JSON schema, file checklist, and testing guide**: see [AI Assistant Development Guide](../ai-assistant/development-guide.md) and `.cursor/rules/ai-assistant.mdc`.
+
+Overview:
 
 ```mermaid
 flowchart TD
     A[GuiAIChat.sendMessage] --> B[AssistantController.handlePrompt]
-    V[VoiceAssistantKeyHandler] --> W[STT client]
-    W --> A
-    B --> C{pending batch local handling?}
-    C -->|yes| D[confirm/append/merge]
-    C -->|no| E{AI available?}
-    E -->|no| F[AssistantIntentService fallback]
-    E -->|yes| G[AssistantAiIntentService]
-    G --> H[DeepSeekChatClient]
-    H --> I[AssistantAiIntentJsonParser]
-    I -->|invalid/empty| F
-    I -->|CHAT only| J[general chat]
-    I -->|tool tasks| K[PacketAssistantAction]
-    F --> K
-    K --> L[AssistantServerServices]
-    L --> M[PacketAssistantResponse]
-    M --> N[AssistantController updates GUI/session]
+    B --> C{AI available?}
+    C -->|no| D[AssistantIntentService fallback]
+    C -->|yes| E[AssistantAiIntentService → DeepSeekChatClient]
+    E --> F[PacketAssistantAction]
+    D --> F
+    F --> G[AssistantServerServices]
+    G --> H[PacketAssistantResponse]
 ```
 
-Key classes:
+Key classes: `AssistantController` (client orchestrator), `AssistantAiIntentService` + `AssistantIntentService` (AI / fallback parsing), `PacketAssistantAction` / `PacketAssistantResponse`, `AssistantServerServices` (server AE2 execution).
 
-- `GuiAIChat`: chat window, general chat requests, assistant text entry.
-- `AssistantController`: client orchestrator — pending sessions, AI/fallback switching, plan execution, candidate confirmation, server responses.
-- `AssistantAiIntentService`: builds system prompt, calls OpenAI-compatible chat API for structured JSON.
-- `AssistantAiIntentJsonParser`: extracts and validates `{ tasks: [...] }`.
-- `AssistantIntentService`: rule parser, mainly fallback when AI unavailable or output invalid.
-- `PacketAssistantAction` / `PacketAssistantResponse`: tool action requests and server results.
-- `AssistantServerServices`: server AE2 query, candidate building, craft submit, batch order, job cancel, plan query.
-- `AssistantSession`: client pending candidate state.
-- `WithdrawSubmitOutcome`: AE2 withdraw server result — `SUCCESS` / `FAILURE` / `PARTIAL_CONFIRM` plus requested amount, inventory capacity, storage amount, etc.
-- `PlayerInventoryUtil`: inventory space calculation and item insertion.
-- `OrderMemoryStore`: candidate preference memory.
-- `PlanStore`: simple local plan storage.
-
-AI JSON schema allows only a single JSON object with `tasks` array. Allowed task types: `QUERY_RECIPE`, `QUERY_STORAGE`, `QUERY_POWER`, `ORDER_ITEM`, `WITHDRAW_ITEM`, `CONFIRM_OPTION`, `PLAN_CREATE`, `PLAN_LIST`, `PLAN_COMPLETE`, `CANCEL`, `CHAT`. `ORDER_BATCH` and `WITHDRAW_BATCH` are not returned by the model; the controller aggregates multiple `ORDER_ITEM` / `WITHDRAW_ITEM` tasks.
-
-Adding assistant capabilities usually requires:
-
-1. Add type in `AssistantIntentType`.
-2. Extend `AssistantIntentTask` and JSON parser validation/conversion.
-3. Update prompt schema in `AssistantAiIntentService`.
-4. Fallback rules in `AssistantIntentService` and `assistant-lexicon.json`.
-5. Map in `AssistantController.executeTask()` to packet or local action.
-6. `PacketAssistantAction` / `AssistantServerServices` / `PacketAssistantResponse`.
-7. Regression cases in `AssistantIntentParserSuite`.
+Adding assistant capabilities usually requires syncing intent types, JSON parser, prompt schema, lexicon, controller mapping, packets, and `AssistantIntentParserSuite` regression cases. See Development Guide Part B.
 
 ## 9. General AI Chat and Configuration
 

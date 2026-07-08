@@ -83,7 +83,7 @@ public class WebConsoleServer extends NanoHTTPD {
 
     private Response serveStatic(String uri) {
         // External icon pack files (Phase 3.1): /icons/<pack>/<itemId>.png
-        // → config/textech/web-icons/<pack>/<itemId>.png
+        // → TeXTech/WebAE/icons/<pack>/<itemId>.png
         if (uri.startsWith("/icons/")) {
             return serveIconFile(uri);
         }

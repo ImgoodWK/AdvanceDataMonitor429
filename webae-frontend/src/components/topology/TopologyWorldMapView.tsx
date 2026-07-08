@@ -18,11 +18,13 @@ import {
 
 
 
-import { Segmented } from 'antd';
+import { Segmented, Progress } from 'antd';
 
 
 
 import { useI18n } from '@/i18n';
+
+import { WorldMapChunkStatusOverlay } from '@/components/topology/WorldMapChunkStatusOverlay';
 
 import { WorldMapMarkerLayer } from '@/components/topology/WorldMapMarkerLayer';
 
@@ -33,6 +35,10 @@ import { WorldMapTerrainLayer } from '@/components/topology/WorldMapTerrainLayer
 import type { TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
 
 import { useMapViewport } from '@/hooks/useMapViewport';
+
+import { useWorldMapProgress } from '@/hooks/useWorldMapProgress';
+
+import { useWorldMapTileLoader } from '@/hooks/useWorldMapTileLoader';
 
 import type { TopologyNodeDto, WorldMapMarkerDto, WorldMapMetaDto, WorldMapViewDto } from '@/types/dto';
 
@@ -52,7 +58,7 @@ import {
 
 } from '@/utils/worldMapProjection';
 
-import { boundsFromChunkScope, type ChunkScope } from '@/utils/worldMapTerrain';
+import { boundsFromChunkScope, selectWorldMapZoomLevel, type ChunkScope } from '@/utils/worldMapTerrain';
 
 import { resolveWorldMapTileViewId } from '@/utils/worldMapViews';
 
@@ -98,6 +104,9 @@ export interface TopologyWorldMapViewProps {
 
   layoutEpoch?: string;
 
+  /** Increment to start tile progress polling (refresh / snapshot). */
+  progressEpoch?: number;
+
 }
 
 
@@ -129,6 +138,8 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       height = 520,
 
       layoutEpoch = '',
+
+      progressEpoch = 0,
 
     },
 
@@ -293,6 +304,72 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       fitBounds,
 
     } = useMapViewport();
+
+    const worldMapQuality = displaySettings.worldMapQuality ?? 'medium';
+    const maxZoomLevel = meta.zoomLevels?.length ?? 3;
+    const mapZoom = useMemo(
+      () => selectWorldMapZoomLevel(viewport.scale, pxPerBlock, maxZoomLevel),
+      [viewport.scale, pxPerBlock, maxZoomLevel]
+    );
+    const terrainEnabled = meta.worldMapEnabled !== false && displaySettings.showWorldMapTerrain;
+    const aeVisible = meta.worldMapEnabled !== false && displaySettings.showWorldMapAeOverlay;
+
+    const terrainLoader = useWorldMapTileLoader({
+      dim: activeDim,
+      networkId,
+      chunkScope,
+      viewport,
+      origin,
+      containerWidth: containerSize.w,
+      containerHeight: containerSize.h,
+      view: tileView,
+      layer: 'terrain',
+      quality: worldMapQuality,
+      zoom: mapZoom,
+      active: terrainEnabled,
+    });
+
+    const aeLoader = useWorldMapTileLoader({
+      dim: activeDim,
+      networkId,
+      chunkScope,
+      viewport,
+      origin,
+      containerWidth: containerSize.w,
+      containerHeight: containerSize.h,
+      view: tileView,
+      layer: 'ae',
+      quality: worldMapQuality,
+      zoom: mapZoom,
+      active: aeVisible,
+      prefetch: true,
+    });
+
+    const overlayTiles =
+      terrainLoader.debouncedTiles.length >= aeLoader.debouncedTiles.length
+        ? terrainLoader.debouncedTiles
+        : aeLoader.debouncedTiles;
+
+    const { progress, polling, startPolling, stopPolling } = useWorldMapProgress({
+      networkId,
+      view: tileView,
+      dim: activeDim,
+      quality: worldMapQuality,
+      enabled: false,
+    });
+
+    useEffect(() => {
+      startPolling();
+      return () => stopPolling();
+    }, [networkId, tileView, activeDim, worldMapQuality, progressEpoch, startPolling, stopPolling]);
+
+    const progressPercent =
+      progress?.total && progress.total > 0
+        ? Math.round(((progress.completed ?? 0) / progress.total) * 100)
+        : 0;
+
+    const showProgressUi =
+      polling || ((progress?.total ?? 0) > 0 && (progress?.completed ?? 0) < (progress?.total ?? 0));
 
 
 
@@ -504,6 +581,22 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
           )}
 
+          {showProgressUi && (
+            <div className="topology-worldmap-progress" style={{ flex: 1, minWidth: 160, maxWidth: 360 }}>
+              <Progress
+                percent={progressPercent}
+                size="small"
+                status={polling ? 'active' : 'normal'}
+                format={() =>
+                  `${progress?.completed ?? 0}/${progress?.total ?? 0} ${t('worldMapProgressSuffix')}`
+                }
+              />
+              <div className="topology-worldmap-progress-hint" title={t('worldMapProgressHint')}>
+                {t('worldMapProgressHint')}
+              </div>
+            </div>
+          )}
+
         </div>
 
         <div
@@ -539,50 +632,35 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
           />
 
           <WorldMapTerrainLayer
-
-            dim={activeDim}
-
-            networkId={networkId}
-
-            chunkScope={chunkScope}
-
-            viewport={viewport}
-
-            origin={origin}
-
-            containerWidth={containerSize.w}
-
-            containerHeight={containerSize.h}
-
-            enabled={meta.worldMapEnabled !== false && displaySettings.showWorldMapTerrain}
-
-            view={tileView}
-
+            tileCoords={terrainLoader.debouncedTiles}
+            tiles={terrainLoader.tiles}
+            chunkStyle={terrainLoader.chunkStyle}
+            visible={terrainEnabled}
           />
 
           <WorldMapAeOverlayLayer
-
-            dim={activeDim}
-
-            networkId={networkId}
-
-            chunkScope={chunkScope}
-
-            viewport={viewport}
-
-            origin={origin}
-
-            containerWidth={containerSize.w}
-
-            containerHeight={containerSize.h}
-
-            enabled={meta.worldMapEnabled !== false && displaySettings.showWorldMapAeOverlay}
-
-            view={tileView}
-
+            tileCoords={aeLoader.debouncedTiles}
+            tiles={aeLoader.tiles}
+            chunkStyle={aeLoader.chunkStyle}
+            visible={aeVisible}
             opacity={displaySettings.worldMapAeOverlayOpacity}
-
           />
+
+          <WorldMapChunkStatusOverlay
+            tileCoords={overlayTiles}
+            terrainTiles={terrainLoader.tiles}
+            aeTiles={aeLoader.tiles}
+            serverProgress={progress?.chunks ?? null}
+            chunkStyle={terrainLoader.chunkStyle}
+            showTerrain={terrainEnabled}
+            showAe={true}
+          />
+
+          {showProgressUi && (
+            <div className="worldmap-chunk-status-legend" title={t('worldMapChunkBadgeHint')}>
+              {t('worldMapChunkBadgeHint')}
+            </div>
+          )}
 
           {displaySettings.showWorldMapDeviceIcons && (
 

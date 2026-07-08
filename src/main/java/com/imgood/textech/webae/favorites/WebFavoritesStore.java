@@ -16,7 +16,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.assistant.AssistantDataFiles;
 
 /**
- * Persists per-owner recipe/pattern/item favorites at {@code config/textech/web-favorites.json}.
+ * Persists per-owner recipe/pattern/item favorites at {@code TeXTech/WebAE/web-favorites.json}.
  */
 public final class WebFavoritesStore {
 

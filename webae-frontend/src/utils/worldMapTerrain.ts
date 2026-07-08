@@ -26,23 +26,87 @@ export function chunkKey(chunkX: number, chunkZ: number): string {
 
 export type WorldMapTileLayer = 'terrain' | 'ae';
 
+export type WorldMapQualityTierId = 'low' | 'medium' | 'high' | 'ultra';
+
+export interface WorldMapZoomLevelInfo {
+  level: number;
+  chunkSpan: number;
+  tilePx: number;
+  pxPerBlock: number;
+}
+
+const QUALITY_ORDER: WorldMapQualityTierId[] = ['low', 'medium', 'high', 'ultra'];
+
+export function clampWorldMapQuality(
+  requested: WorldMapQualityTierId,
+  maxTier: WorldMapQualityTierId
+): WorldMapQualityTierId {
+  const reqIdx = QUALITY_ORDER.indexOf(requested);
+  const maxIdx = QUALITY_ORDER.indexOf(maxTier);
+  const safeReq = reqIdx >= 0 ? reqIdx : QUALITY_ORDER.indexOf('medium');
+  const safeMax = maxIdx >= 0 ? maxIdx : QUALITY_ORDER.length - 1;
+  return QUALITY_ORDER[Math.min(safeReq, safeMax)];
+}
+
+export function chunkSpanForZoom(zoom: number): number {
+  if (zoom <= 0) return 1;
+  return 1 << zoom;
+}
+
+export function tileIndexForChunk(chunkCoord: number, zoom: number): number {
+  const span = chunkSpanForZoom(zoom);
+  if (chunkCoord >= 0) {
+    return Math.floor(chunkCoord / span);
+  }
+  return Math.floor((chunkCoord - span + 1) / span);
+}
+
+/** Pick pyramid zoom level from viewport scale (higher scale → finer z0). */
+export function selectWorldMapZoomLevel(
+  scale: number,
+  pxPerBlock: number,
+  maxLevel: number
+): number {
+  const safeMax = Math.max(0, maxLevel - 1);
+  const pxPerBlockScaled = pxPerBlock * scale;
+  if (pxPerBlockScaled >= 6 || safeMax <= 0) return 0;
+  if (pxPerBlockScaled >= 3 && safeMax >= 1) return 1;
+  return safeMax >= 2 ? 2 : safeMax;
+}
+
+export interface WorldMapTileCoord {
+  tileX: number;
+  tileZ: number;
+  zoom: number;
+}
+
+export function tileKey(tileX: number, tileZ: number, zoom = 0): string {
+  return zoom > 0 ? `${zoom}:${tileX},${tileZ}` : chunkKey(tileX, tileZ);
+}
+
 export function buildWorldMapTileUrl(
   dim: number,
-  chunkX: number,
-  chunkZ: number,
+  tileX: number,
+  tileZ: number,
   token: string | null,
   networkId: number,
   view = 'flat',
-  layer: WorldMapTileLayer = 'terrain'
+  layer: WorldMapTileLayer = 'terrain',
+  quality: WorldMapQualityTierId = 'medium',
+  zoom = 0
 ): string {
   const params = new URLSearchParams();
   params.set('network', String(networkId));
+  params.set('quality', quality);
+  if (zoom > 0) {
+    params.set('zoom', String(zoom));
+  }
   if (token) {
     params.set('token', token);
   }
   const qs = params.toString();
   const layerSegment = layer === 'ae' ? '/ae' : '';
-  return `/api/worldmap/tiles/${view}${layerSegment}/${dim}/${chunkX}/${chunkZ}.png?${qs}`;
+  return `/api/worldmap/tiles/${view}${layerSegment}/${dim}/${tileX}/${tileZ}.png?${qs}`;
 }
 
 export function isChunkInScope(chunkX: number, chunkZ: number, scope: ChunkScope | null): boolean {
@@ -115,7 +179,39 @@ export function visibleChunksForViewport(
   return out;
 }
 
-/** Screen position and size for a chunk tile image. */
+/** Visible tile coords at a zoom pyramid level (tile indices, not chunk indices when zoom > 0). */
+export function visibleTilesForViewport(
+  viewport: MapViewport,
+  origin: WorldMapOrigin,
+  containerWidth: number,
+  containerHeight: number,
+  zoom = 0,
+  paddingTiles = 1
+): WorldMapTileCoord[] {
+  const chunks = visibleChunksForViewport(
+    viewport,
+    origin,
+    containerWidth,
+    containerHeight,
+    paddingTiles
+  );
+  if (zoom <= 0) {
+    return chunks.map((c) => ({ tileX: c.chunkX, tileZ: c.chunkZ, zoom: 0 }));
+  }
+  const seen = new Set<string>();
+  const out: WorldMapTileCoord[] = [];
+  for (const c of chunks) {
+    const tileX = tileIndexForChunk(c.chunkX, zoom);
+    const tileZ = tileIndexForChunk(c.chunkZ, zoom);
+    const key = tileKey(tileX, tileZ, zoom);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ tileX, tileZ, zoom });
+  }
+  return out;
+}
+
+/** Screen position and size for a chunk tile image (z0). */
 export function chunkTileScreenRect(
   chunkX: number,
   chunkZ: number,
@@ -125,6 +221,38 @@ export function chunkTileScreenRect(
   const tileScreenSize = 16 * origin.pxPerBlock * viewport.scale;
   const { sx, sy } = worldToScreen(chunkX * 16, chunkZ * 16 + 15, viewport, origin);
   return { left: sx, top: sy, size: tileScreenSize };
+}
+
+/** Screen rect for a pyramid tile (z0 = one chunk, z1 = 2×2 chunks, …). */
+export function pyramidTileScreenRect(
+  tileX: number,
+  tileZ: number,
+  zoom: number,
+  viewport: MapViewport,
+  origin: WorldMapOrigin
+): { left: number; top: number; size: number } {
+  const span = chunkSpanForZoom(zoom);
+  const tileScreenSize = 16 * span * origin.pxPerBlock * viewport.scale;
+  const worldX = tileX * span * 16;
+  const worldZ = tileZ * span * 16 + span * 16 - 1;
+  const { sx, sy } = worldToScreen(worldX, worldZ, viewport, origin);
+  return { left: sx, top: sy, size: tileScreenSize };
+}
+
+/** Rounded screen rect to reduce sub-pixel tile seams. */
+export function chunkTileScreenStyle(
+  chunkX: number,
+  chunkZ: number,
+  viewport: MapViewport,
+  origin: WorldMapOrigin
+): { left: number; top: number; width: number; height: number } {
+  const rect = chunkTileScreenRect(chunkX, chunkZ, viewport, origin);
+  return {
+    left: Math.round(rect.left),
+    top: Math.round(rect.top),
+    width: Math.round(rect.size),
+    height: Math.round(rect.size),
+  };
 }
 
 /** Block bounds from allowed chunk bbox (for fitBounds). */

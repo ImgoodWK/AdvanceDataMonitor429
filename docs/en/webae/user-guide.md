@@ -75,7 +75,7 @@ iconPackEnabled=true
 - `maxNetworksDisplayed`: max AE2 networks shown at once (1–20, default 5).
 - `tokenLifetimeHours`: token TTL in hours; 0 = never expire.
 - `recipeCacheMode`: `full` (GTNH default, no LRU eviction) or `lru` (evict when `maxRecipeCacheMB` exceeded).
-- `nesqlRepositoryPath`: NESQL repo root for `/admweb icons import-nesql`. **When empty**, defaults to `<instance>/TeXTechWebAE` (`.minecraft/TeXTechWebAE` on client; same folder name under server root on dedicated servers; same as client recipe export).
+- `nesqlRepositoryPath`: NESQL repo root for `/admweb icons import-nesql`. **When empty**, defaults to `<instance>/TeXTech/WebAE/` (`.minecraft/TeXTech/WebAE/` on client; same folder name under server root on dedicated servers; same as client recipe export).
 - `bindAddress=127.0.0.1` is localhost only; set `0.0.0.0` for LAN (use a firewall).
 
 Full config reference: [Developer Guide §4](developer-guide.md#4-configuration).
@@ -94,8 +94,8 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 | `/admweb revoke [guestName]` | Revoke your owner token; owners revoke guest tokens; OP can revoke others |
 | `/admweb reload` | Reload TeXTech config; `enabled`/`port`/`bindAddress` still need restart (OP only) |
 | `/admweb refresh [network]` | Admin force re-collect snapshots (OP only) |
-| `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload; also writes `<instance>/TeXTechWebAE/web-recipes.json.gz` on the client; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
-| `/admweb icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTechWebAE`; incremental) |
+| `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload; also writes `<instance>/TeXTech/WebAE/web-recipes.json.gz` on the client; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
+| `/admweb icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/`; incremental) |
 | `/admweb recipes status` | Show recipe cache status (incl. disk size) |
 | `/admweb recipes clear` | Clear recipe memory + disk cache (OP only) |
 | `/admweb icons upload [packName]` | **OP** triggers own client icon render/upload |
@@ -106,7 +106,7 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 
 - **Owner token**: bound to the monitor owner UUID; read/write all AE networks linked to their monitors; **owner need not be online**.
 - **Guest token**: issued via `/admweb guest`; nearly the same AE access (operations still use owner identity); chat shows the guest name.
-- Tokens persist in `config/textech/web-tokens.json`; legacy entries migrate to `type: owner` on load.
+- Tokens persist in `TeXTech/WebAE/web-tokens.json`; legacy entries migrate to `type: owner` on load.
 
 **Offline access & chunks**
 
@@ -147,18 +147,18 @@ Lists online machines with name, progress, recipe, and input/output slots. Filte
 
 ### Recipe Search
 
-Auto-loads recipe overview on open; fuzzy search, category multi-select, Full/Merged and Compact/Detailed layouts. OP must run `/admweb recipes upload snapshot` (recommended) or `upload` (full) before search works. Collection also writes `.minecraft/TeXTechWebAE/web-recipes.json.gz` on the client for offline backup or external tools.
+Auto-loads recipe overview on open; fuzzy search, category multi-select, Full/Merged and Compact/Detailed layouts. OP must run `/admweb recipes upload snapshot` (recommended) or `upload` (full) before search works. Collection also writes `.minecraft/TeXTech/WebAE/web-recipes.json.gz` on the client for offline backup or external tools.
 
 ### Item Icons & Texture Packs
 
-Real game icons in tables and recipes; abbreviation fallback on failure. OP runs `/admweb icons upload [packName]` or `/admweb icons import-nesql` (defaults to `TeXTechWebAE`; override with `nesqlRepositoryPath`); Settings page switches packs; admins can upload zip. Missing icons lazy-load via SSE `icon-ready`.
+Real game icons in tables and recipes; abbreviation fallback on failure. OP runs `/admweb icons upload [packName]` or `/admweb icons import-nesql` (defaults to `TeXTech/WebAE/`; override with `nesqlRepositoryPath`); Settings page switches packs; admins can upload zip. Missing icons lazy-load via SSE `icon-ready`.
 
-### Local data folder `TeXTechWebAE`
+### Local data folder `TeXTech/WebAE/`
 
 | Path | Purpose |
 |------|---------|
-| Client `.minecraft/TeXTechWebAE/web-recipes.json.gz` | NEI recipe gzip cache written after `/admweb recipes upload*` |
-| Server `<instance>/TeXTechWebAE/` (or configured `nesqlRepositoryPath`) | NESQL pre-rendered PNGs for `/admweb icons import-nesql` (often under `images/`) |
+| Client `.minecraft/TeXTech/WebAE/web-recipes.json.gz` | NEI recipe gzip cache written after `/admweb recipes upload*` |
+| Server `<instance>/TeXTech/WebAE/` (or configured `nesqlRepositoryPath`) | NESQL pre-rendered PNGs for `/admweb icons import-nesql` (often under `images/`) |
 
 The folder is created automatically on first use.
 
@@ -172,7 +172,16 @@ Optional CPU selector at top. **By pattern** tab: paginated Grid + Interface bro
 
 ### Network Topology
 
-Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channels**, and **world map** views. Logical/spatial use simulated star fake cables (not real AE routing); P2P view lists tunnel endpoints grouped by frequency; **world map** (Phase A/B) shows AE device icons on a grid at real world coordinates with optional flat/oblique terrain tiles and an AE overlay layer (devices + cables); requires a logical topology snapshot first. CSV export supported.
+Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channels**, and **world map** views. Logical/spatial use simulated star fake cables (not real AE routing); P2P view lists tunnel endpoints grouped by frequency. CSV export supported.
+
+#### World Map View
+
+1. **Prerequisite**: Capture a logical topology snapshot first (POST `/api/network/topology/snapshot` or the in-page **Capture snapshot** button).
+2. **Terrain tiles**: flat (top-down) and oblique views; four quality tiers via Segmented control (low 64px / medium 128px / high 256px / ultra 512px HD).
+3. **Loading progress**: Toolbar shows overall progress (`completed/total layer jobs`, scoped to current network·view·quality); each chunk displays loading / ready / error badges (`WorldMapChunkStatusOverlay`); subtle hint text appears in the toolbar and bottom-left of the map while loading.
+4. **AE overlay**: Toggle AE overlay to show device icons and cable positions; prefetched independently from terrain.
+5. **Refresh & invalidation**: Tiles auto-invalidate when switching networks or capturing a new snapshot; OP can POST `/api/worldmap/invalidate` to force rebuild.
+6. **Config**: `[webConsole] worldMapEnabled`, `worldMapMaxQualityTier` (default ultra), `worldMapDefaultQualityTier` (default medium), `worldMapBoundsPaddingChunks` (default 1). See [Developer Guide §4](developer-guide.md#4-configuration) and [§11.26](developer-guide.md#1126-world-map-view-phase-ab--ae-overlay).
 
 ### Monitor Bindings & Preview
 
@@ -180,7 +189,7 @@ Sidebar **Monitor Bindings** shows read-only chart slots and GT binding coords. 
 
 ### Automation Alerts
 
-Driven by `config/textech/web-alerts.json` (inventory, stuck CPU, GT errors, order complete, channel overload). Besides 10s polling, the browser connects to SSE (`/api/events/stream`) for real-time alerts; connection pauses when the tab is hidden.
+Driven by `TeXTech/WebAE/web-alerts.json` (inventory, stuck CPU, GT errors, order complete, channel overload). Besides 10s polling, the browser connects to SSE (`/api/events/stream`) for real-time alerts; connection pauses when the tab is hidden.
 
 ### Mobile & PWA
 

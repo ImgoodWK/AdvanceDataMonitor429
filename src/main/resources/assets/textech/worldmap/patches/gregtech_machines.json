@@ -1,0 +1,18 @@
+{
+  "entries": [
+    {
+      "comment": "GregTech machine block (MTE host) — full cube; pipes/cables resolved via WorldMapGtPatchResolver.",
+      "blocks": ["gregtech:tile.blockmachines"],
+      "boxes": [
+        { "x0": 0, "y0": 0, "z0": 0, "x1": 1, "y1": 1, "z1": 1, "face": "SIDE" }
+      ]
+    },
+    {
+      "comment": "BlockMachines fallback when MTE type has no specialized geometry.",
+      "classContains": "BlockMachines",
+      "boxes": [
+        { "x0": 0, "y0": 0, "z0": 0, "x1": 1, "y1": 1, "z1": 1, "face": "SIDE" }
+      ]
+    }
+  ]
+}

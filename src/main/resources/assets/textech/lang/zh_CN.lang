@@ -665,6 +665,7 @@ adm.manual.config_reference.data_dust_loom_category_title=数据织尘元件 (da
 adm.manual.config_reference.data_form_loom_category_title=数据织形元件 (dataFormLoomCell.*)
 adm.manual.config_reference.data_flow_cell_category_title=数据涌流元件 (dataFlowCell.*)
 adm.manual.config_reference.data_source_loom_category_title=数据织源元件 (dataSourceLoomCell.*)
+adm.manual.config_reference.web_console_category_title=Web 控制台分类 (webConsole.*)
 adm.manual.config_reference.default_label=默认值： 
 
 tile.grappleAnchor.name=挂索节点
@@ -1024,7 +1025,7 @@ adm.manual.web_console.orders_text=下单页面让你直接从浏览器提交 AE
 adm.manual.web_console.theme_dashboard_title=主题与仪表盘自定义
 adm.manual.web_console.theme_dashboard_text=阶段二加入了完整的主题系统与可拖拽自定义的仪表盘。\n\n主题系统：\n- 主题 = 配色方案 × 布局预设，在设置页中独立选择。\n- 配色方案（24 套）：经典 19 套 + 科技风 5 套（hologram/plasma/neon-pulse/quantum/crystal）。每套重新定义背景、强调色、文字与状态颜色。\n- 布局预设（5 套）：standard（标准）、compact（紧凑，信息密度更高）、wide（宽屏，间距与字号更大）、sidebar-right（侧栏移到右侧）、topnav（隐藏侧栏，导航移到顶栏横向排列）。\n- 选择持久化在浏览器（localStorage webae_theme，格式 "color|layout"）；旧的 dark/light 选择会自动迁移。\n- 切换主题时图表会自动重新配色。\n\n仪表盘自定义：\n- 仪表盘标签页是一个 GridStack.js 网格，可进入编辑模式后拖拽组件手柄移动、从右下角缩放。\n- 「添加组件」打开组件库：统计卡、进度条（横向/竖向/环形）、折线图、柱状图、饼图、数据表、仪表。\n- 每个组件绑定一个数据源（物品种类、流体种类、EU 存储、字节占用率、电力历史、Top 物品、网络对比等）和一个作用域：global（跨选中网络聚合）或 perNetwork（绑定单网络；分开模式下每个网络重复一组）。\n- 编辑组件可修改类型、数据源、作用域、样式（进度条方向、时间窗口、最大行数）和尺寸。\n- 布局持久化在 localStorage.webae_dashboard_config。「重置布局」恢复默认组件集。\n- 全局样式与 JSON 导入导出详见「仪表盘设置」章节。\n- 在分开多网络模式下，global 组件显示在顶部「总览」网格，perNetwork 组件在每个网络的分区下重复渲染。
 adm.manual.web_console.topology_title=网络拓扑图
-adm.manual.web_console.topology_text=Web 控制台已提供「网络拓扑」页面（侧栏入口），由模拟 AE 拓扑 API 驱动。\n\n特性：\n- 不反映真实 AE 线缆连接，仅统计网格内设备并按细粒度 subtype 归类。\n- 逻辑视图：树状布局（控制器 → 致密主干 32ch → 4×智能分支 8ch）；设置中可切换双环星形抽象布局。\n- 终端/WAP/安全终端在上方；Energy Cell/Acceptor 在控制器左右；Drive/Chest/IO/CPU 直连下方（0 频道）。\n- 驱动器图标角标显示样板数量；设备列表支持图↔表 hover 联动。\n- 空间视图：按维度 + 64×64 区块粗聚类；P2P 视图按 frequency 分组；世界地图视图（Phase A）在网格上按真实坐标显示 AE 设备（需逻辑快照，俯视地形瓦片 Phase B 待实现）。\n- 快照持久化至 config/textech/web-topology/，服务端重启后 GET 仍可读取（不自动重建）。\n- 抽象/线缆模拟双渲染模式；SVG 平移/缩放；CSV 导出。\n\nAPI：GET /api/network/topology；POST /api/network/topology/snapshot（手动采集 + 冷却）；GET /api/network/p2p；GET /api/worldmap/meta 与 /api/worldmap/markers（Phase A）。\n\n配置（[webConsole]）：topologyEnabled、topologyCacheTtlMs（默认 1800000 毫秒 / 30 分钟）、topologySnapshotPersist（默认 true）；worldMapEnabled、worldMapTilePx、worldMapBoundsPaddingChunks、worldMapTileBudgetPerTick、worldMapMaxChunks。
+adm.manual.web_console.topology_text=Web 控制台已提供「网络拓扑」页面（侧栏入口），由模拟 AE 拓扑 API 驱动。\n\n特性：\n- 不反映真实 AE 线缆连接，仅统计网格内设备并按细粒度 subtype 归类。\n- 逻辑视图：树状布局（控制器 → 致密主干 32ch → 4×智能分支 8ch）；设置中可切换双环星形抽象布局。\n- 终端/WAP/安全终端在上方；Energy Cell/Acceptor 在控制器左右；Drive/Chest/IO/CPU 直连下方（0 频道）。\n- 驱动器图标角标显示样板数量；设备列表支持图↔表 hover 联动。\n- 空间视图：按维度 + 64×64 区块粗聚类；P2P 视图按 frequency 分组。\n- 世界地图视图：在真实世界坐标网格上显示 AE 设备；需先采集逻辑拓扑快照。支持 flat/oblique 俯视地形瓦片（四档清晰度 low/medium/high/ultra）、AE 透视层（设备+线缆）、chunk 加载进度徽标与工具栏总进度；设置中可切换清晰度与视角。\n- 快照持久化至 config/textech/web-topology/，服务端重启后 GET 仍可读取（不自动重建）。\n- 抽象/线缆模拟双渲染模式；SVG 平移/缩放；CSV 导出。\n\nAPI：GET /api/network/topology；POST /api/network/topology/snapshot（手动采集 + 冷却）；GET /api/network/p2p；GET /api/worldmap/meta、/api/worldmap/markers、/api/worldmap/progress 与 /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png。\n\n配置（[webConsole]）：topologyEnabled、topologyCacheTtlMs（默认 1800000 毫秒 / 30 分钟）、topologySnapshotPersist（默认 true）；worldMapEnabled、worldMapMaxQualityTier、worldMapDefaultQualityTier、worldMapBoundsPaddingChunks（默认 1）、worldMapTileBudgetPerTick、worldMapMaxChunks、worldMapAeOverlayEnabled。
 adm.webae.topology.title=网络拓扑
 adm.webae.topology.mode.logical=逻辑分组
 adm.webae.topology.mode.spatial=空间分区
@@ -1042,6 +1043,10 @@ adm.webae.worldmap.oblique.nw=西北
 adm.webae.worldmap.layer.terrain=地形瓦片
 adm.webae.worldmap.layer.aeOverlay=AE 透视层
 adm.webae.worldmap.layer.deviceIcons=设备图标
+adm.webae.worldmap.quality.low=低
+adm.webae.worldmap.quality.medium=中
+adm.webae.worldmap.quality.high=高
+adm.webae.worldmap.quality.ultra=极高
 adm.webae.topology.settings.worldMapLayers=地图图层
 adm.webae.topology.settings.worldMapAeOverlayOpacity=AE 透视层透明度
 adm.webae.topology.channels.simulated=模拟频道

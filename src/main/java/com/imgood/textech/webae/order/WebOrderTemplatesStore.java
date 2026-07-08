@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Root document for {@code config/textech/web-order-templates.json}.
+ * Root document for {@code TeXTech/WebAE/web-order-templates.json}.
  * Templates are keyed by owner UUID (WebAE token owner).
  */
 public final class WebOrderTemplatesStore {

@@ -670,6 +670,8 @@ export interface ServerConfig {
   dynmapBaseUrl?: string;
   /** World map overlay API enabled (requires topologyEnabled). */
   worldMapEnabled?: boolean;
+  worldMapMaxQualityTier?: string;
+  worldMapDefaultQualityTier?: string;
 }
 
 export interface ConfigResponse {
@@ -873,6 +875,44 @@ export interface WorldMapMetaDto {
   views?: WorldMapViewDto[];
   obliqueDirections?: WorldMapViewDto[];
   hdAvailable?: boolean;
+  qualityTiers?: WorldMapQualityTierDto[];
+  maxQualityTier?: string;
+  defaultQualityTier?: string;
+  flatRenderEngine?: string;
+  obliqueRenderEngine?: string;
+  zoomLevels?: WorldMapZoomLevelDto[];
+  recommendedZoom?: number;
+  blockPatchesEnabled?: boolean;
+  aeQualityBoost?: boolean;
+  serverAtlasEnabled?: boolean;
+  blockPatchEntries?: number;
+  serverAtlasSlots?: number;
+}
+
+export interface WorldMapZoomLevelDto {
+  level: number;
+  chunkSpan: number;
+  tilePx: number;
+  pxPerBlock: number;
+}
+
+export interface WorldMapQualityTierDto {
+  id: string;
+  labelKey: string;
+  tilePx: number;
+  pxPerBlock: number;
+  hdCapable?: boolean;
+}
+
+export interface WorldMapProgressDto {
+  success: boolean;
+  networkId?: number;
+  quality?: string;
+  view?: string;
+  dim?: number;
+  total?: number;
+  completed?: number;
+  chunks?: Record<string, { terrain?: string; ae?: string }>;
 }
 
 export interface WorldMapMarkersResponse {

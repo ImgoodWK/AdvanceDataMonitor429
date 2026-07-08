@@ -11,6 +11,8 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 
+import com.imgood.textech.webae.worldmap.engine.WorldMapChunkContext;
+
 /**
  * Lightweight isometric (SE) chunk renderer using column painter's algorithm.
  */
@@ -19,18 +21,27 @@ public final class WorldMapIsoRenderer {
     private WorldMapIsoRenderer() {}
 
     public static byte[] renderTerrain(int dim, int chunkX, int chunkZ) {
-        return renderTerrain(dim, chunkX, chunkZ, WorldMapObliqueDirection.SE);
+        return renderTerrain(WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ, WorldMapObliqueDirection.SE);
     }
 
     public static byte[] renderTerrain(int dim, int chunkX, int chunkZ, WorldMapObliqueDirection direction) {
+        return renderTerrain(WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ, direction);
+    }
+
+    public static byte[] renderTerrain(WorldMapQualityTier quality, int dim, int chunkX, int chunkZ,
+        WorldMapObliqueDirection direction) {
         if (direction == null) {
             direction = WorldMapObliqueDirection.SE;
         }
-        int tilePx = WorldMapRenderSupport.tilePx();
-        int pxPerBlock = WorldMapRenderSupport.pxPerBlock(tilePx);
+        int tilePx = WorldMapRenderSupport.tilePx(quality);
+        int pxPerBlock = WorldMapRenderSupport.pxPerBlock(quality);
 
         WorldServer world = WorldMapRenderSupport.worldForDim(dim);
         if (world == null) {
+            return null;
+        }
+        WorldMapChunkContext ctx = WorldMapChunkContext.create(world, chunkX, chunkZ);
+        if (ctx == null) {
             return null;
         }
         Chunk chunk = WorldMapRenderSupport.chunkFor(world, chunkX, chunkZ);
@@ -41,6 +52,8 @@ public final class WorldMapIsoRenderer {
         BufferedImage img = new BufferedImage(tilePx, tilePx, BufferedImage.TYPE_INT_RGB);
         int centerX = tilePx / 2;
         int centerY = tilePx / 4;
+        int baseX = chunkX << 4;
+        int baseZ = chunkZ << 4;
 
         int[] mapped = new int[2];
         List<Column> columns = new ArrayList<Column>();
@@ -49,7 +62,9 @@ public final class WorldMapIsoRenderer {
                 direction.mapLocal(lx, lz, mapped);
                 int sampleX = mapped[0];
                 int sampleZ = mapped[1];
-                int topY = WorldMapRenderSupport.findTopSolidY(chunk, sampleX, sampleZ, world);
+                int wx = baseX + sampleX;
+                int wz = baseZ + sampleZ;
+                int topY = ctx.findTopSolidY(wx, wz);
                 if (topY >= 0) {
                     columns.add(new Column(lx, lz, sampleX, sampleZ, topY));
                 }
@@ -89,23 +104,25 @@ public final class WorldMapIsoRenderer {
         }
 
         for (Column col : columns) {
-            drawColumn(img, chunk, world, col.sampleX, col.sampleZ, col.lx, col.lz, col.topY, minTopY, centerX,
-                centerY, pxPerBlock);
+            drawColumn(img, chunk, ctx, col.sampleX, col.sampleZ, col.lx, col.lz, col.topY, minTopY, centerX,
+                centerY, pxPerBlock, baseX, baseZ);
         }
 
         return WorldMapRenderSupport.toPng(img);
     }
 
-    private static void drawColumn(BufferedImage img, Chunk chunk, WorldServer world, int sampleX, int sampleZ, int lx,
-        int lz, int topY, int minTopY, int centerX, int centerY, int pxPerBlock) {
+    private static void drawColumn(BufferedImage img, Chunk chunk, WorldMapChunkContext ctx, int sampleX, int sampleZ,
+        int lx, int lz, int topY, int minTopY, int centerX, int centerY, int pxPerBlock, int baseX, int baseZ) {
         Block block = chunk.getBlock(sampleX, topY, sampleZ);
         int meta = chunk.getBlockMetadata(sampleX, topY, sampleZ);
         if (!WorldMapRenderSupport.isMapSolid(block)) {
             return;
         }
 
-        int southNeighborY = neighborTopY(chunk, world, sampleX, sampleZ + 1);
-        int eastNeighborY = neighborTopY(chunk, world, sampleX + 1, sampleZ);
+        int wx = baseX + sampleX;
+        int wz = baseZ + sampleZ;
+        int southNeighborY = neighborTopY(ctx, wx, wz + 1);
+        int eastNeighborY = neighborTopY(ctx, wx + 1, wz);
 
         int wallSouth = southNeighborY >= 0 ? topY - southNeighborY : 0;
         int wallEast = eastNeighborY >= 0 ? topY - eastNeighborY : 0;
@@ -136,11 +153,11 @@ public final class WorldMapIsoRenderer {
         drawTopDiamond(img, cx, cy, half, quarter, topColor);
     }
 
-    private static int neighborTopY(Chunk chunk, WorldServer world, int lx, int lz) {
-        if (lx < 0 || lx >= 16 || lz < 0 || lz >= 16) {
+    private static int neighborTopY(WorldMapChunkContext ctx, int wx, int wz) {
+        if (ctx == null) {
             return -1;
         }
-        return WorldMapRenderSupport.findTopSolidY(chunk, lx, lz, world);
+        return ctx.findTopSolidY(wx, wz);
     }
 
     private static void drawTopDiamond(BufferedImage img, int cx, int cy, int half, int quarter, int rgb) {

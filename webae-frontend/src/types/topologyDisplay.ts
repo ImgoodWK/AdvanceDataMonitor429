@@ -7,6 +7,7 @@ export type TopologyAbstractLayout = 'tree' | 'star';
 export type TopologyLabelStrategy = 'external' | 'below' | 'hover';
 
 export type WorldMapObliqueDirection = 'se' | 'sw' | 'ne' | 'nw';
+export type WorldMapQualityTierId = 'low' | 'medium' | 'high' | 'ultra';
 
 export interface TopologyDisplaySettings {
   /** Abstract vs simulated cable-bus view (logical mode only). */
@@ -42,6 +43,8 @@ export interface TopologyDisplaySettings {
   };
   /** Oblique world map orbit direction (mineshot-style). */
   worldMapObliqueDirection: WorldMapObliqueDirection;
+  /** World map tile quality tier (clamped by server max on apply). */
+  worldMapQuality: WorldMapQualityTierId;
   /** Show terrain tile layer on world map. */
   showWorldMapTerrain: boolean;
   /** Show AE overlay tile layer (devices + cables). */
@@ -83,6 +86,7 @@ export const DEFAULT_TOPOLOGY_DISPLAY: TopologyDisplaySettings = {
     dense: DEFAULT_AE_CABLE_COLOR_ID,
   },
   worldMapObliqueDirection: 'se',
+  worldMapQuality: 'medium',
   showWorldMapTerrain: true,
   showWorldMapAeOverlay: false,
   showWorldMapDeviceIcons: true,

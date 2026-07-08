@@ -5,7 +5,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 
-import com.imgood.textech.loader.LoaderBlock;
+import com.imgood.textech.tileentity.TileEntityGrappleAnchor;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -47,19 +47,15 @@ public class HandlerGrapple {
         if (event.world.isRemote) {
             return;
         }
-        Chunk chunk = event.getChunk();
-        int dimId = event.world.provider.dimensionId;
-        int baseX = chunk.xPosition * 16;
-        int baseZ = chunk.zPosition * 16;
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                for (int y = 0; y < 256; y++) {
-                    int wx = baseX + x;
-                    int wz = baseZ + z;
-                    if (event.world.getBlock(wx, y, wz) == LoaderBlock.grappleAnchor) {
-                        GrappleNodeIndex.INSTANCE.addNode(dimId, wx, y, wz);
-                    }
-                }
+        scanChunkForGrappleAnchors(event.getChunk(), event.world.provider.dimensionId);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private static void scanChunkForGrappleAnchors(Chunk chunk, int dimId) {
+        for (Object loaded : chunk.chunkTileEntityMap.values()) {
+            if (loaded instanceof TileEntityGrappleAnchor) {
+                TileEntityGrappleAnchor anchor = (TileEntityGrappleAnchor) loaded;
+                GrappleNodeIndex.INSTANCE.addNode(dimId, anchor.xCoord, anchor.yCoord, anchor.zCoord);
             }
         }
     }

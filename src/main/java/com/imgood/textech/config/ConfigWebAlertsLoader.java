@@ -14,7 +14,7 @@ import com.imgood.textech.webae.alerts.WebAlertsConfig;
 import com.imgood.textech.webae.alerts.WebAlertsConfigValidator;
 
 /**
- * Loads {@code config/textech/web-alerts.json} for WebAE automation alerts.
+ * Loads {@code TeXTech/WebAE/web-alerts.json} for WebAE automation alerts.
  */
 public final class ConfigWebAlertsLoader {
 

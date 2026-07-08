@@ -15,12 +15,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.TeXTechDataDir;
 
 /**
  * Server-side ring buffer of recent chat messages for the WebAE
  * {@code /api/chat/*} endpoints. Keeps the most recent {@code capacity}
  * messages (default 200) in memory and optionally persists to
- * {@code config/textech/web-chat.json} so history survives restarts.
+ * {@code TeXTech/WebAE/web-chat.json} so history survives restarts.
  *
  * <p>
  * Thread-safety: all public methods are synchronized on this instance.
@@ -34,7 +35,9 @@ public class ChatMessageStore {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .create();
-    private static final File STORE_FILE = new File("config/textech/web-chat.json");
+    private static File storeFile() {
+        return TeXTechDataDir.webAeFile("web-chat.json");
+    }
     private static final int DEFAULT_CAPACITY = 200;
 
     private final Deque<ChatMessage> buffer = new ArrayDeque<ChatMessage>();
@@ -146,14 +149,14 @@ public class ChatMessageStore {
     }
 
     public synchronized void saveNow() {
-        File parent = STORE_FILE.getParentFile();
+        File parent = storeFile().getParentFile();
         if (parent != null && !parent.exists()) {
             parent.mkdirs();
         }
         BufferedWriter writer = null;
         try {
             List<ChatMessage> snapshot = new ArrayList<ChatMessage>(buffer);
-            writer = new BufferedWriter(new FileWriter(STORE_FILE, false));
+            writer = new BufferedWriter(new FileWriter(storeFile(), false));
             GSON.toJson(snapshot, writer);
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to save chat message store", e);
@@ -169,10 +172,10 @@ public class ChatMessageStore {
     private synchronized void ensureLoaded() {
         if (loaded) return;
         loaded = true;
-        if (!STORE_FILE.isFile()) return;
+        if (!storeFile().isFile()) return;
         BufferedReader reader = null;
         try {
-            reader = new BufferedReader(new FileReader(STORE_FILE));
+            reader = new BufferedReader(new FileReader(storeFile()));
             List<ChatMessage> loaded = GSON.fromJson(reader, new TypeToken<List<ChatMessage>>() {}.getType());
             if (loaded != null) {
                 long maxId = 0;

@@ -134,7 +134,7 @@ public class Config {
     /** Minimum interval (ms) between fuzzy recipe searches per owner. Default 300. */
     public static int webRecipeSearchMinIntervalMs = 300;
     /**
-     * NESQL repository path for {@code /admweb icons import-nesql}. Empty = {@code TeXTechWebAE} under instance root.
+     * NESQL repository path for {@code /admweb icons import-nesql}. Empty = {@code TeXTech/WebAE} under instance root.
      */
     public static String webNesqlRepositoryPath = "";
     /** NEI item-driven deep scan items per tick ({@code /admweb recipes upload deep}). 0 = disabled. */
@@ -179,14 +179,18 @@ public class Config {
     public static boolean webTopologyEnabled = true;
     /** TTL in ms for network topology cache per network/mode. Default 1800000 (30 min). */
     public static int webTopologyCacheTtlMs = 1800000;
-    /** Persist topology snapshots to config/textech/web-topology/. Default true. */
+    /** Persist topology snapshots to TeXTech/WebAE/topology/. Default true. */
     public static boolean webTopologySnapshotPersist = true;
     /** Optional Dynmap base URL for player location deep links (Phase 6.1). Empty = disabled. */
     public static String webDynmapBaseUrl = "";
     /** Whether the world map overlay API is enabled (requires topologyEnabled). Default true. */
     public static boolean webWorldMapEnabled = true;
-    /** Pixel edge length per chunk tile for world map rendering. Default 128. */
+    /** @deprecated Use {@code worldMapDefaultQualityTier} / {@link com.imgood.textech.webae.worldmap.WorldMapQualityTier}. Kept for legacy cfg migration. */
     public static int webWorldMapTilePx = 128;
+    /** Highest allowed world map quality tier: low, medium, high, ultra. Default ultra. */
+    public static String webWorldMapMaxQualityTier = "ultra";
+    /** Default world map quality tier when the client has no preference. Default medium. */
+    public static String webWorldMapDefaultQualityTier = "medium";
     /** Extra chunk padding around AE network occupied chunks for world map. Default 1. */
     public static int webWorldMapBoundsPaddingChunks = 1;
     /** Max chunk tiles rendered per server tick (Phase B). Default 2. */
@@ -205,6 +209,32 @@ public class Config {
     public static boolean webWorldMapAeOverlayEnabled = true;
     /** Include AE cables in AE overlay scope and tiles. Default true. */
     public static boolean webWorldMapAeOverlayIncludeCables = true;
+    /** Flat terrain render engine: legacy (average color) or uv (texture UV grid). Default uv. */
+    public static String webWorldMapRenderEngine = "uv";
+    /** Oblique terrain render engine: legacy (column painter) or ray. Default ray. */
+    public static String webWorldMapObliqueEngine = "ray";
+    /** Chunk padding around each tile snapshot for cross-boundary lookups (3x3 when 1). Default 1. */
+    public static int webWorldMapChunkPadding = 1;
+    /** LRU cap for server-side block texture images used by UV renderer. Default 2048. */
+    public static int webWorldMapTextureCacheMax = 2048;
+    /** Per-tick chunk budget when oblique ray engine is active. Default 1. */
+    public static int webWorldMapRayBudgetPerTick = 1;
+    /** Max transparent block layers per oblique ray pixel. Default 3. */
+    public static int webWorldMapMaxRayDepth = 3;
+    /** low/medium tier oblique engine: legacy | ray. Default legacy. */
+    public static String webWorldMapLowTierObliqueEngine = "legacy";
+    /** Number of zoom pyramid levels (z0 native + parent merges). Default 3. */
+    public static int webWorldMapZoomLevels = 3;
+    /** Max parent zoom tile syntheses per server tick. Default 4. */
+    public static int webWorldMapZoomBudgetPerTick = 4;
+    /** Enable JSON + built-in block patch models for oblique ray hits. Default true. */
+    public static boolean webWorldMapBlockPatchesEnabled = true;
+    /** Bump terrain quality one tier for chunks containing AE devices. Default true. */
+    public static boolean webWorldMapAeQualityBoost = true;
+    /** Bake block face textures into a server-side atlas grid. Default true. */
+    public static boolean webWorldMapServerAtlasEnabled = true;
+    /** Server-side texture atlas edge length in pixels (multiple of 16). Default 2048. */
+    public static int webWorldMapServerAtlasPx = 2048;
 
     // --- web console per-feature debug logs (default false, gate logs/textech/webae-<feature>.log) ---
     /** Verbose icon rendering/upload logging (IconRenderer, IconHandler, PacketWebIconUpload). */

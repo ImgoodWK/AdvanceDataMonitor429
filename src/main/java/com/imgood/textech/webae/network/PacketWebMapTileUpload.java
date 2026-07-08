@@ -11,6 +11,8 @@ import com.imgood.textech.webae.worldmap.WorldMapChunkSetBuilder;
 import com.imgood.textech.webae.worldmap.WorldMapHdSupport;
 import com.imgood.textech.webae.worldmap.WorldMapMetaDto;
 import com.imgood.textech.webae.worldmap.WorldMapTileCache;
+import com.imgood.textech.webae.worldmap.WorldMapTileProgressTracker;
+import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 import com.imgood.textech.webae.worldmap.WorldMapView;
@@ -31,6 +33,7 @@ public class PacketWebMapTileUpload implements IMessage {
     public int dim;
     public int chunkX;
     public int chunkZ;
+    public String quality = WorldMapQualityTier.ULTRA.id;
     public int networkId;
     public String ownerUuid;
     public byte[] png;
@@ -44,8 +47,14 @@ public class PacketWebMapTileUpload implements IMessage {
 
     public PacketWebMapTileUpload(String view, String layer, int dim, int chunkX, int chunkZ, int networkId,
         String ownerUuid, byte[] png) {
+        this(view, layer, WorldMapQualityTier.ULTRA.id, dim, chunkX, chunkZ, networkId, ownerUuid, png);
+    }
+
+    public PacketWebMapTileUpload(String view, String layer, String quality, int dim, int chunkX, int chunkZ,
+        int networkId, String ownerUuid, byte[] png) {
         this.view = view;
         this.layer = WorldMapTileLayer.normalize(layer);
+        this.quality = quality != null && !quality.isEmpty() ? quality : WorldMapQualityTier.ULTRA.id;
         this.dim = dim;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
@@ -58,6 +67,7 @@ public class PacketWebMapTileUpload implements IMessage {
     public void toBytes(ByteBuf buf) {
         writeUtf8(buf, view);
         writeUtf8(buf, layer);
+        writeUtf8(buf, quality);
         buf.writeInt(dim);
         buf.writeInt(chunkX);
         buf.writeInt(chunkZ);
@@ -75,6 +85,10 @@ public class PacketWebMapTileUpload implements IMessage {
     public void fromBytes(ByteBuf buf) {
         view = readUtf8(buf);
         layer = WorldMapTileLayer.normalize(readUtf8(buf));
+        quality = readUtf8(buf);
+        if (quality == null || quality.isEmpty()) {
+            quality = WorldMapQualityTier.ULTRA.id;
+        }
         dim = buf.readInt();
         chunkX = buf.readInt();
         chunkZ = buf.readInt();
@@ -153,7 +167,14 @@ public class PacketWebMapTileUpload implements IMessage {
                     return;
                 }
             }
-            WorldMapTileCache.writeHd(parsed.id, message.layer, message.dim, message.chunkX, message.chunkZ, message.png);
+            WorldMapQualityTier tier = WorldMapQualityTier.fromId(message.quality);
+            if (!tier.isUltra()) {
+                return;
+            }
+            WorldMapTileCache.writeHd(parsed.id, message.layer, tier, message.dim, message.chunkX, message.chunkZ,
+                message.png);
+            WorldMapTileProgressTracker.instance()
+                .markDone(message.networkId, parsed.id, tier, message.dim, message.chunkX, message.chunkZ, message.layer);
             AdvanceDataMonitor.LOG.debug(
                 "[WebAE] Stored HD world map tile view={} layer={} dim={} cx={} cz={} bytes={}",
                 parsed.id,

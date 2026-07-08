@@ -38,20 +38,21 @@ alwaysApply: true
 | 路径 | 用途 |
 |------|------|
 | `config/textech/textech.cfg` | 主配置（服务端共享 + 非密钥项） |
-| `config/textech/ai-client-local.cfg` | 客户端 AI/语音密钥与偏好 |
-| `config/textech/plans.json` | 助手计划持久化 |
-| `config/textech/web-alerts.json` | WebAE 自动化告警规则（库存阈值/CPU 卡住/GT 异常/下单完成/频道超载；首次访问自动创建） |
-| `config/textech/web-favorites.json` | WebAE 配方/样板/物品收藏（按 ownerUuid；首次 PUT 自动创建） |
-| `config/textech/web-order-templates.json` | WebAE 批量下单模板（按 ownerUuid 隔离；首次访问自动创建空结构） |
-| `config/textech/web-recipes.json.gz` | WebAE NEI 配方缓存（gzip 持久化；`/admweb recipes upload` 写入服务端） |
-| `<实例根>/TeXTechWebAE/web-recipes.json.gz` | 客户端 NEI 配方本地导出（`/admweb recipes upload*` 同时写入；GTNH 客户端为 `.minecraft/TeXTechWebAE/`） |
-| `<实例根>/TeXTechWebAE/` | NESQL 图标导入默认目录（`/admweb icons import-nesql`；`nesqlRepositoryPath` 留空时使用） |
-| `config/textech/web-icons/` | WebAE 物品图标材质包目录（含 `<pack>/<mode>/<itemId>.png`） |
-| `config/textech/assistant-features.json` | 助手功能开关（可覆盖内置 JSON） |
+| `config/textech/ai-client-local.cfg` | 客户端 AI/语音密钥与偏好（**分享整合包前请删除或清空**；可用 `DEEPSEEK_API_KEY` 环境变量） |
+| `<实例根>/TeXTech/WebAE/web-alerts.json` | WebAE 自动化告警规则 |
+| `<实例根>/TeXTech/WebAE/web-favorites.json` | WebAE 配方/样板/物品收藏（按 ownerUuid） |
+| `<实例根>/TeXTech/WebAE/web-order-templates.json` | WebAE 批量下单模板（按 ownerUuid 隔离） |
+| `<实例根>/TeXTech/WebAE/web-recipes.json.gz` | WebAE NEI 配方缓存（服务端 + 客户端 `/admweb recipes upload*` 导出） |
+| `<实例根>/TeXTech/WebAE/icons/` | WebAE 物品图标材质包（`<pack>/<mode>/<itemId>.png`） |
+| `<实例根>/TeXTech/WebAE/map-tiles/` | WebAE 世界地图瓦片缓存 |
+| `<实例根>/TeXTech/WebAE/topology/` | WebAE 拓扑快照 |
+| `<实例根>/TeXTech/WebAE/web-tokens.json` 等 | WebAE Token、聊天、玩家信息等 |
+| `<实例根>/TeXTech/Assistant/plans.json` 等 | 助手计划、功能开关、词库、下单记忆 |
+| `<实例根>/TeXTech/Grapple/grapple-paths.json` | 挂索路径持久化 |
 | `logs/textech/data-loom-debug.log` | 编织元件 debug 日志 |
 | `<世界存档>/textech/pocket-<uuid>.dat` | 次元口袋 NBT 数据 |
 
-旧 modid 目录 `config/advancedatamonitor/` 与 `<世界存档>/advancedatamonitor/` 在首次访问时自动迁移，详见 `CommonProxy`、`AssistantDataFiles`、`PocketStore`、`AiClientPreferences`。
+旧路径 `config/textech/` 下 JSON/目录、`config/advancedatamonitor/` 与 `<实例根>/TeXTechWebAE/` 在首次访问时自动复制迁移到 `TeXTech/`，详见 `TeXTechDataDir`、`AssistantDataFiles`、`WebAeLocalDataDir`。
 
 ## 注册规范
 

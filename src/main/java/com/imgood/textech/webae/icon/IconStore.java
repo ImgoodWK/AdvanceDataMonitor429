@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Tags;
+import com.imgood.textech.TeXTechDataDir;
 
 /**
  * Server-side store for item/fluid icon PNG files organized by texture pack and render mode.
@@ -28,7 +29,7 @@ import com.imgood.textech.Tags;
  * Layout on disk:
  *
  * <pre>
- * config/textech/web-icons/
+ * TeXTech/WebAE/icons/
  *   &lt;packName&gt;/
  *     &lt;mode&gt;/&lt;sanitizedItemId&gt;.png
  *     &lt;sanitizedItemId&gt;.png   # legacy flat layout → treated as hybrid
@@ -53,7 +54,7 @@ public class IconStore {
     private volatile String cachedDefaultPack;
 
     private IconStore() {
-        this.baseDir = new File(new File("config", AdvanceDataMonitor.MODID), "web-icons");
+        this.baseDir = TeXTechDataDir.webAeDir("icons");
         this.defaultPackFile = new File(this.baseDir, "default-pack.txt");
         this.packIndex = new ConcurrentHashMap<String, PackEntry>();
         this.indexed = false;

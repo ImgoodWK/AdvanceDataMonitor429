@@ -28,8 +28,12 @@ public final class WorldMapFlatRenderer {
      * Renders chunk terrain. Returns {@code null} when the chunk is unavailable (do not cache).
      */
     public static byte[] renderTerrain(int dim, int chunkX, int chunkZ) {
-        int tilePx = Math.max(16, Config.webWorldMapTilePx);
-        int pxPerBlock = Math.max(1, tilePx / 16);
+        return renderTerrain(WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ);
+    }
+
+    public static byte[] renderTerrain(WorldMapQualityTier quality, int dim, int chunkX, int chunkZ) {
+        int tilePx = WorldMapRenderSupport.tilePx(quality);
+        int pxPerBlock = WorldMapRenderSupport.pxPerBlock(quality);
 
         MinecraftServer server = MinecraftServer.getServer();
         if (server == null) {

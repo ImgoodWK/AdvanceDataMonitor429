@@ -11,6 +11,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWebMapTileJob;
 import com.imgood.textech.webae.network.PacketWebMapTileUpload;
+import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 import com.imgood.textech.webae.worldmap.WorldMapView;
@@ -47,6 +48,10 @@ public final class WorldMapTileRenderWorker {
         if (!Config.webWorldMapClientHdEnabled) {
             return;
         }
+        WorldMapQualityTier tier = WorldMapQualityTier.fromId(job.quality);
+        if (!tier.isUltra()) {
+            return;
+        }
         if (WorldMapTileLayer.isAe(job.layer) && !Config.webWorldMapAeOverlayEnabled) {
             return;
         }
@@ -54,7 +59,7 @@ public final class WorldMapTileRenderWorker {
         if (view == null || !WorldMapView.isEnabled(view)) {
             return;
         }
-        String key = tileKey(job.view, job.layer, job.dim, job.chunkX, job.chunkZ);
+        String key = tileKey(job.view, job.layer, job.quality, job.dim, job.chunkX, job.chunkZ);
         synchronized (this) {
             if (queuedKeys.contains(key)) {
                 return;
@@ -110,11 +115,12 @@ public final class WorldMapTileRenderWorker {
             if (view == null) {
                 continue;
             }
+            WorldMapQualityTier tier = WorldMapQualityTier.fromId(job.job.quality);
             byte[] png;
             if (WorldMapTileLayer.isAe(job.job.layer)) {
-                png = renderer.renderAeOverlay(mc, view, job.job.dim, job.job.chunkX, job.job.chunkZ);
+                png = renderer.renderAeOverlay(mc, view, tier, job.job.dim, job.job.chunkX, job.job.chunkZ);
             } else {
-                png = renderer.renderTerrain(mc, view, job.job.dim, job.job.chunkX, job.job.chunkZ);
+                png = renderer.renderTerrain(mc, view, tier, job.job.dim, job.job.chunkX, job.job.chunkZ);
             }
             if (WorldMapRenderSupport.isValidTilePng(png)) {
                 String ownerUuid = mc.thePlayer.getUniqueID()
@@ -123,6 +129,7 @@ public final class WorldMapTileRenderWorker {
                     new PacketWebMapTileUpload(
                         view.id,
                         job.job.layer,
+                        tier.id,
                         job.job.dim,
                         job.job.chunkX,
                         job.job.chunkZ,
@@ -159,8 +166,8 @@ public final class WorldMapTileRenderWorker {
         }
     }
 
-    private static String tileKey(String view, String layer, int dim, int chunkX, int chunkZ) {
-        return view + ":" + WorldMapTileLayer.normalize(layer) + ":" + dim + ":" + chunkX + ":" + chunkZ;
+    private static String tileKey(String view, String layer, String quality, int dim, int chunkX, int chunkZ) {
+        return view + ":" + WorldMapTileLayer.normalize(layer) + ":" + quality + ":" + dim + ":" + chunkX + ":" + chunkZ;
     }
 
     private static final class PendingJob {

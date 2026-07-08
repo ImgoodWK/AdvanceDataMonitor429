@@ -1,8 +1,21 @@
 # TeXTech Documentation (English)
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-06
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-07
 
-中文文档: [docs/zh/README.md](../zh/README.md)
+中文文档: [docs/zh/README.md](../zh/README.md) · Index: [docs/README.md](../README.md)
+
+---
+
+## Documentation layers
+
+| Layer | Role | Paths |
+|-------|------|-------|
+| L0 Machine-readable | Agent / CI source of truth | `ConfigDescriptions.java`, `LoaderNetwork.java`, `.cursor/rules/` |
+| L1 Developer specs | Contributor design | `developer/`, WebAE developer guide, `ai-assistant/` |
+| L2 Player / admin | Tutorials | `player/`, WebAE user guide, `assets/textech/manual/` |
+| L3 Vision / design | **Not implementation spec** | `design/` |
+
+Maintenance map: [documentation-map.md](developer/documentation-map.md)
 
 ---
 
@@ -34,15 +47,17 @@
 |-----|-------------|
 | [webae/user-guide.md](webae/user-guide.md) | Enable, tokens, feature pages, commands, security notes |
 | [webae/developer-guide.md](webae/developer-guide.md) | Architecture, REST API, network packets, frontend build, subsystems |
+| [webae/oc-integration.md](webae/oc-integration.md) | OpenComputers Internet Card read-only OC integration API |
 
 ### Developer
 
 | Doc | Description |
 |-----|-------------|
 | [developer/technical-documentation.md](developer/technical-documentation.md) | Structure, Forge registration, modules, data flow (Advance Planner API: §5.11) |
+| [developer/documentation-map.md](developer/documentation-map.md) | Which docs/rules to update per feature |
 | [developer/ui-framework.md](developer/ui-framework.md) | Container GUI 9-slice framework, `ADM_UiContainer`, debug status table |
 | [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | New-feature checklist (base classes, packets, lang sync) |
-| [developer/gradle-workflow.md](developer/gradle-workflow.md) | Build / migration (body in Chinese; see header note) |
+| [developer/gradle-workflow.md](developer/gradle-workflow.md) | Build / migration / FAQ |
 | [developer/temporary-textures.md](developer/temporary-textures.md) | Missing/placeholder block & item texture audit; **temporary** procedural art |
 | [developer/gtnh-version-compatibility.md](developer/gtnh-version-compatibility.md) | v1.0.0 GTNH 2.8.x / 2.9.0-beta+ support and planned Legacy removal |
 | [developer/ae-compat-290.md](developer/ae-compat-290.md) | AE dual-path compat technical reference |
@@ -51,7 +66,7 @@
 
 | Doc | Description |
 |-----|-------------|
-| [ai-assistant/development-guide.md](ai-assistant/development-guide.md) | Architecture, file index, STT (body in Chinese; see header note) |
+| [ai-assistant/development-guide.md](ai-assistant/development-guide.md) | Architecture, file index, STT (full English) |
 
 ### Subsystems
 

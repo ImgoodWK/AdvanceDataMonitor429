@@ -12,11 +12,14 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.topology.TopologySnapshot;
 import com.imgood.textech.webae.topology.TopologySnapshotStore;
+import com.imgood.textech.webae.worldmap.engine.WorldMapRenderEngines;
+import com.imgood.textech.webae.worldmap.engine.WorldMapZoomPyramid;
 
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * REST handler for {@code GET /api/worldmap/meta}, {@code GET /api/worldmap/markers}, and
+ * REST handler for {@code GET /api/worldmap/meta}, {@code GET /api/worldmap/markers},
+ * {@code GET /api/worldmap/progress}, and
  * {@code GET /api/worldmap/tiles/[view/][ae/]<dim>/<chunkX>/<chunkZ>.png}.
  */
 public final class WorldMapHandler {
@@ -42,6 +45,7 @@ public final class WorldMapHandler {
         if (networkId < 0) {
             return parseNetworkError(networkId);
         }
+        WorldMapQualityTier quality = parseQuality(params);
 
         TopologySnapshot logical = TopologySnapshotStore.loadSnapshot(ownerUuid, networkId, "logical");
         if (logical == null) {
@@ -52,6 +56,15 @@ public final class WorldMapHandler {
             empty.views = WorldMapView.uiViewInfos();
             empty.obliqueDirections = WorldMapView.enabledObliqueDirectionInfos();
             empty.hdAvailable = WorldMapHdSupport.isHdAvailable(ownerUuid, actorUuid);
+            empty.maxQualityTier = WorldMapQualityTier.fromConfigMax().id;
+            empty.defaultQualityTier = WorldMapQualityTier.fromConfigDefault().id;
+            empty.qualityTiers = WorldMapBoundsBuilder.buildQualityTierInfosPublic();
+            empty.tilePx = WorldMapRenderSupport.tilePx(quality);
+            empty.pxPerBlock = WorldMapRenderSupport.pxPerBlock(quality);
+            empty.flatRenderEngine = WorldMapRenderEngines.flatEngineId();
+            empty.obliqueRenderEngine = WorldMapRenderEngines.obliqueEngineId();
+            empty.zoomLevels = WorldMapBoundsBuilder.buildZoomLevelInfosPublic(quality);
+            empty.recommendedZoom = 0;
             empty.message = "No logical topology snapshot yet. Capture one manually.";
             empty.cooldownMs = Math.max(1000L, Config.webTopologyCacheTtlMs);
             empty.cooldownRemainingMs = com.imgood.textech.webae.topology.TopologyCache.instance()
@@ -60,8 +73,35 @@ public final class WorldMapHandler {
         }
 
         List<WorldMapMarkerDto> markers = WorldMapMarkerBuilder.fromLogicalSnapshot(logical);
-        WorldMapMetaDto meta = WorldMapBoundsBuilder.buildMeta(ownerUuid, networkId, logical, markers, actorUuid);
+        WorldMapMetaDto meta = WorldMapBoundsBuilder.buildMeta(ownerUuid, networkId, logical, markers, actorUuid,
+            quality);
         return json(NanoHTTPD.Response.Status.OK, GSON.toJson(meta));
+    }
+
+    public static NanoHTTPD.Response handleProgress(Map<String, String> params) {
+        NanoHTTPD.Response disabled = checkEnabled();
+        if (disabled != null) {
+            return disabled;
+        }
+        WorldMapQualityTier quality = parseQuality(params);
+        String view = params.get("view");
+        if (view == null || view.isEmpty()) {
+            view = DEFAULT_VIEW;
+        }
+        int dim = 0;
+        String dimStr = params.get("dim");
+        if (dimStr != null && !dimStr.isEmpty()) {
+            try {
+                dim = Integer.parseInt(dimStr.trim());
+            } catch (NumberFormatException ignored) {}
+        }
+        int networkId = parseNetworkId(params);
+        if (networkId < 0) {
+            networkId = 0;
+        }
+        String body = WorldMapTileProgressTracker.instance()
+            .toJson(networkId, view, quality, dim);
+        return json(NanoHTTPD.Response.Status.OK, body);
     }
 
     public static NanoHTTPD.Response handleInvalidate(Map<String, String> params, String ownerUuid) {
@@ -78,8 +118,11 @@ public final class WorldMapHandler {
             views = params.get("view");
         }
         String layer = params.get("layer");
+        WorldMapQualityTier quality = parseQuality(params);
         int removed = WorldMapTileInvalidator.invalidateNetwork(ownerUuid, networkId, views, layer);
-        String body = "{\"success\":true,\"invalidatedTiles\":" + removed + "}";
+        int prefetched = WorldMapTilePrefetcher.prefetchNetwork(ownerUuid, networkId, views, quality);
+        String body = "{\"success\":true,\"invalidatedTiles\":" + removed + ",\"prefetchedChunks\":" + prefetched
+            + ",\"quality\":\"" + quality.id + "\"}";
         return json(NanoHTTPD.Response.Status.OK, body);
     }
 
@@ -176,7 +219,7 @@ public final class WorldMapHandler {
         }
 
         if (WorldMapTileLayer.isAe(layer) && !Config.webWorldMapAeOverlayEnabled) {
-            return serveTransparentTile();
+            return serveTransparentTile(layer, WorldMapQualityTier.MEDIUM);
         }
 
         WorldMapView parsedView = WorldMapView.fromId(view);
@@ -186,30 +229,54 @@ public final class WorldMapHandler {
                 "{\"success\":false,\"message\":\"Unknown or disabled world map view\"}");
         }
 
+        WorldMapQualityTier quality = parseQuality(params);
+        int zoomLevel = parseZoom(params);
+
         if (Config.webWorldMapRequireNetworkScope) {
             int networkId = parseNetworkId(params);
             if (networkId < 0) {
                 return parseNetworkError(networkId);
             }
-            if (!isChunkAllowed(ownerUuid, networkId, dim, chunkX, chunkZ)) {
-                return serveTransparentTile();
+            if (!isChunkAllowed(ownerUuid, networkId, dim, chunkX, chunkZ, zoomLevel)) {
+                return serveTransparentTile(layer, quality);
             }
-            return serveOrEnqueueTile(parsedView, layer, dim, chunkX, chunkZ, ownerUuid, networkId);
+            return serveOrEnqueueTile(parsedView, layer, quality, dim, chunkX, chunkZ, zoomLevel, ownerUuid, networkId);
         }
 
         int networkId = parseNetworkId(params);
         if (networkId < 0) {
             networkId = 0;
         }
-        return serveOrEnqueueTile(parsedView, layer, dim, chunkX, chunkZ, ownerUuid, networkId);
+        return serveOrEnqueueTile(parsedView, layer, quality, dim, chunkX, chunkZ, zoomLevel, ownerUuid, networkId);
     }
 
-    private static NanoHTTPD.Response serveOrEnqueueTile(WorldMapView parsedView, String layer, int dim, int chunkX,
-        int chunkZ, String ownerUuid, int networkId) {
-        File cached = WorldMapTileCache.getExisting(parsedView.id, layer, dim, chunkX, chunkZ);
+    private static NanoHTTPD.Response serveOrEnqueueTile(WorldMapView parsedView, String layer,
+        WorldMapQualityTier quality, int dim, int chunkX, int chunkZ, int zoomLevel, String ownerUuid, int networkId) {
+        if (zoomLevel > 0) {
+            File cachedZoom = WorldMapTileCache.getExisting(parsedView.id, layer, quality, dim, chunkX, chunkZ,
+                zoomLevel);
+            if (cachedZoom != null) {
+                return servePngFile(cachedZoom, true, "standard", layer, quality, zoomLevel);
+            }
+            WorldMapZoomPyramid.instance()
+                .enqueue(parsedView.id, layer, quality, dim, chunkX, chunkZ, zoomLevel);
+            if (WorldMapTileLayer.isAe(layer)) {
+                return serveTransparentTile(false, layer, quality);
+            }
+            return servePngBytes(
+                WorldMapFlatRenderer.stripePlaceholder(WorldMapRenderSupport.tilePx(quality)),
+                false,
+                "standard",
+                layer,
+                quality,
+                zoomLevel);
+        }
+
+        File cached = WorldMapTileCache.getExisting(parsedView.id, layer, quality, dim, chunkX, chunkZ, 0);
         if (cached != null) {
-            String quality = WorldMapTileCache.isHd(parsedView.id, layer, dim, chunkX, chunkZ) ? "hd" : "standard";
-            return servePngFile(cached, true, quality);
+            String renderQuality = WorldMapTileCache.isHd(parsedView.id, layer, quality, dim, chunkX, chunkZ) ? "hd"
+                : "standard";
+            return servePngFile(cached, true, renderQuality, layer, quality, 0);
         }
 
         if (WorldMapTileLayer.isAe(layer)) {
@@ -219,45 +286,102 @@ public final class WorldMapHandler {
                 chunkX,
                 chunkZ);
             if (inChunk.isEmpty()) {
-                return serveTransparentTile();
+                WorldMapTileProgressTracker.instance()
+                    .markEmpty(networkId, parsedView.id, quality, dim, chunkX, chunkZ, layer);
+                return serveTransparentTile(layer, quality);
             }
         }
 
         WorldMapTileQueue.instance()
-            .enqueue(parsedView.id, layer, dim, chunkX, chunkZ, ownerUuid, networkId);
+            .enqueueChunkPair(parsedView.id, quality, dim, chunkX, chunkZ, ownerUuid, networkId);
 
         if (WorldMapTileLayer.isAe(layer)) {
-            return serveTransparentTile(false);
+            return serveTransparentTile(false, layer, quality);
         }
         return servePngBytes(
-            WorldMapFlatRenderer.stripePlaceholder(Math.max(16, Config.webWorldMapTilePx)),
+            WorldMapFlatRenderer.stripePlaceholder(WorldMapRenderSupport.tilePx(quality)),
             false,
-            "standard");
+            "standard",
+            layer,
+            quality,
+            0);
     }
 
-    private static boolean isChunkAllowed(String ownerUuid, int networkId, int dim, int chunkX, int chunkZ) {
+    private static boolean isChunkAllowed(String ownerUuid, int networkId, int dim, int chunkX, int chunkZ,
+        int zoomLevel) {
         WorldMapMetaDto meta = WorldMapBoundsBuilder.rebuild(ownerUuid, networkId);
         if (meta == null || meta.dimensions == null) {
             return false;
         }
+        int span = WorldMapZoomPyramid.chunkSpan(Math.max(0, zoomLevel));
         for (WorldMapMetaDto.DimensionInfo info : meta.dimensions) {
             if (info == null || info.dim != dim) {
                 continue;
             }
-            return WorldMapChunkSetBuilder.containsChunk(info, chunkX, chunkZ);
+            if (span <= 1) {
+                return WorldMapChunkSetBuilder.containsChunk(info, chunkX, chunkZ);
+            }
+            int baseX = chunkX * span;
+            int baseZ = chunkZ * span;
+            for (int dz = 0; dz < span; dz++) {
+                for (int dx = 0; dx < span; dx++) {
+                    if (WorldMapChunkSetBuilder.containsChunk(info, baseX + dx, baseZ + dz)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
         return false;
     }
 
-    private static NanoHTTPD.Response serveTransparentTile() {
-        return serveTransparentTile(true);
+    /** @deprecated scope check without zoom — treats coords as z0 chunk indices. */
+    private static boolean isChunkAllowed(String ownerUuid, int networkId, int dim, int chunkX, int chunkZ) {
+        return isChunkAllowed(ownerUuid, networkId, dim, chunkX, chunkZ, 0);
     }
 
-    private static NanoHTTPD.Response serveTransparentTile(boolean longCache) {
-        return servePngBytes(WorldMapFlatRenderer.transparentPlaceholder(), longCache, "standard");
+    private static WorldMapQualityTier parseQuality(Map<String, String> params) {
+        if (params == null) {
+            return WorldMapQualityTier.fromConfigDefault();
+        }
+        String raw = params.get("quality");
+        return WorldMapQualityTier.resolveEffective(raw);
     }
 
-    private static NanoHTTPD.Response servePngFile(File file, boolean longCache, String quality) {
+    private static int parseZoom(Map<String, String> params) {
+        if (params == null) {
+            return 0;
+        }
+        String raw = params.get("zoom");
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return 0;
+        }
+        try {
+            int level = Integer.parseInt(raw.trim());
+            if (level < 0) {
+                return 0;
+            }
+            if (level >= WorldMapZoomPyramid.configuredLevels()) {
+                return WorldMapZoomPyramid.configuredLevels() - 1;
+            }
+            return level;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private static NanoHTTPD.Response serveTransparentTile(String layer, WorldMapQualityTier quality) {
+        return serveTransparentTile(true, layer, quality);
+    }
+
+    private static NanoHTTPD.Response serveTransparentTile(boolean longCache, String layer,
+        WorldMapQualityTier quality) {
+        return servePngBytes(WorldMapFlatRenderer.transparentPlaceholder(), longCache, "standard", layer, quality, 0);
+    }
+
+    private static NanoHTTPD.Response servePngFile(File file, boolean longCache, String quality, String layer,
+        WorldMapQualityTier tier, int zoomLevel) {
         try {
             FileInputStream fis = new FileInputStream(file);
             NanoHTTPD.Response resp = NanoHTTPD.newChunkedResponse(NanoHTTPD.Response.Status.OK, "image/png", fis);
@@ -267,7 +391,7 @@ public final class WorldMapHandler {
             } else {
                 resp.addHeader("Cache-Control", "public, max-age=60");
             }
-            resp.addHeader("X-WorldMap-Tile-Quality", quality);
+            addTileHeaders(resp, quality, layer, tier, zoomLevel);
             return resp;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to serve world map tile {}", file.getAbsolutePath(), e);
@@ -277,7 +401,8 @@ public final class WorldMapHandler {
         }
     }
 
-    private static NanoHTTPD.Response servePngBytes(byte[] png, boolean longCache, String quality) {
+    private static NanoHTTPD.Response servePngBytes(byte[] png, boolean longCache, String quality, String layer,
+        WorldMapQualityTier tier, int zoomLevel) {
         if (png == null || png.length == 0) {
             return json(
                 NanoHTTPD.Response.Status.INTERNAL_ERROR,
@@ -295,8 +420,18 @@ public final class WorldMapHandler {
             resp.addHeader("Cache-Control", "public, max-age=60");
             resp.addHeader("X-WorldMap-Tile-Status", "pending");
         }
-        resp.addHeader("X-WorldMap-Tile-Quality", quality);
+        addTileHeaders(resp, quality, layer, tier, zoomLevel);
         return resp;
+    }
+
+    private static void addTileHeaders(NanoHTTPD.Response resp, String quality, String layer, WorldMapQualityTier tier,
+        int zoomLevel) {
+        resp.addHeader("X-WorldMap-Tile-Quality", quality != null ? quality : "standard");
+        resp.addHeader("X-WorldMap-Tile-Layer", WorldMapTileLayer.normalize(layer));
+        if (tier != null) {
+            resp.addHeader("X-WorldMap-Tile-Quality-Tier", tier.id);
+        }
+        resp.addHeader("X-WorldMap-Tile-Zoom", String.valueOf(Math.max(0, zoomLevel)));
     }
 
     private static NanoHTTPD.Response checkEnabled() {

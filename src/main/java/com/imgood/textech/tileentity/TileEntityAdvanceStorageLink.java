@@ -15,6 +15,7 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.common.util.Constants;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.handler.StorageLinkWatchRegistry;
 import com.imgood.textech.items.ItemAdvanceStorageLinkCell;
 import com.imgood.textech.network.packet.PacketItemCountSync;
 
@@ -735,6 +736,9 @@ public class TileEntityAdvanceStorageLink extends AENetworkTile implements IInve
     }
 
     private void sampleStorageDeltasIfNeeded() {
+        if (!StorageLinkWatchRegistry.isWatched(worldObj.provider.dimensionId, xCoord, yCoord, zCoord)) {
+            return;
+        }
         long currentTick = worldObj.getTotalWorldTime();
         if (lastDeltaSampleTick >= 0 && currentTick - lastDeltaSampleTick < DELTA_STATISTICS_INTERVAL_TICKS) return;
 

@@ -16,11 +16,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.TeXTechDataDir;
 
 /**
  * Server-side in-memory store of per-player metadata for the WebAE
  * {@code /api/players} endpoint. Tracks first/last login, last logout, and
- * cumulative online time; persists to {@code config/textech/web-players.json}
+ * cumulative online time; persists to {@code TeXTech/WebAE/web-players.json}
  * with debounce so rapid login/logout bursts do not hammer the disk.
  *
  * <p>
@@ -35,7 +36,9 @@ public class PlayerInfoStore {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .create();
-    private static final File STORE_FILE = new File("config/textech/web-players.json");
+    private static File storeFile() {
+        return TeXTechDataDir.webAeFile("web-players.json");
+    }
 
     /** Debounce window for saves (ms). Saves requested within this window collapse into one. */
     private static final long SAVE_DEBOUNCE_MS = 2000L;
@@ -192,7 +195,7 @@ public class PlayerInfoStore {
 
     /** Force an immediate save (e.g. on server stop). */
     public synchronized void saveNow() {
-        File parent = STORE_FILE.getParentFile();
+        File parent = storeFile().getParentFile();
         if (parent != null && !parent.exists()) {
             parent.mkdirs();
         }
@@ -206,7 +209,7 @@ public class PlayerInfoStore {
                         .toString(),
                     e.getValue());
             }
-            writer = new BufferedWriter(new FileWriter(STORE_FILE, false));
+            writer = new BufferedWriter(new FileWriter(storeFile(), false));
             GSON.toJson(snapshot, writer);
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to save player info store", e);
@@ -222,10 +225,10 @@ public class PlayerInfoStore {
     private synchronized void ensureLoaded() {
         if (loaded) return;
         loaded = true;
-        if (!STORE_FILE.isFile()) return;
+        if (!storeFile().isFile()) return;
         BufferedReader reader = null;
         try {
-            reader = new BufferedReader(new FileReader(STORE_FILE));
+            reader = new BufferedReader(new FileReader(storeFile()));
             Map<String, PlayerInfo> loaded = GSON
                 .fromJson(reader, new TypeToken<Map<String, PlayerInfo>>() {}.getType());
             if (loaded != null) {

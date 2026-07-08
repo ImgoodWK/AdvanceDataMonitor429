@@ -56,6 +56,11 @@ alwaysApply: false
 - 文案键定义在 `src/i18n/zh.ts` 与 `en.ts`，禁止硬编码用户可见字符串
 - 模组 lang 文件（`adm.*`）仅用于游戏内；Web 控制台用前端 i18n
 
+## 拓扑与世界地图
+
+- 拓扑页：`pages/NetworkTopology.tsx` + `components/topology/*`（cytoscape/SVG/模拟视图）
+- 世界地图：`TopologyWorldMapView`、`WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay`；hooks `useWorldMapData`/`useWorldMapTileLoader`/`useWorldMapProgress`；utils `worldMapTerrain.ts`/`worldMapViews.ts`
+
 ## 构建
 
 ```bash

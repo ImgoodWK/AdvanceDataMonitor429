@@ -1,7 +1,7 @@
 package com.imgood.textech.webae.order;
 
 /**
- * Single line in a batch order template ({@code config/textech/web-order-templates.json}).
+ * Single line in a batch order template ({@code TeXTech/WebAE/web-order-templates.json}).
  */
 public final class WebOrderTemplateItem {
 

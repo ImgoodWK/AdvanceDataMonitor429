@@ -60,6 +60,11 @@
       "type": "config_ref",
       "titleKey": "adm.manual.config_reference.data_source_loom_category_title",
       "category": "dataSourceLoomCell"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.web_console_category_title",
+      "category": "webConsole"
     }
   ]
 }

@@ -34,6 +34,9 @@
   - [11.14 Configurable Storage Overview & Standalone CPU Page (Phase 3)](#1114-configurable-storage-overview--standalone-cpu-page-phase-3)
   - [11.15 Configurable Power Page & Anti-Flicker (Phase 4)](#1115-configurable-power-page--anti-flicker-phase-4)
   - [11.16 Sci-Fi Themes + Chart Animations + Icon Rendering (Phase 8)](#1116-sci-fi-themes--chart-animations--icon-rendering-phase-8)
+  - [11.17 Network Topology](#1117-network-topology-treedouble-ring--disk-persistence)
+  - [11.18 Page Visibility Polling (Phase 4b)](#1118-page-visibility-polling-phase-4b)
+  - [11.26 World Map View](#1126-world-map-view-phase-ab--ae-overlay)
 - [12. Frontend Resources](#12-frontend-resources)
 - [13. Debugging and Troubleshooting](#13-debugging-and-troubleshooting)
 
@@ -68,30 +71,30 @@ Core data flow:
 
 ## 3. Package Structure
 
-All source code resides under `com.imgood.textech.webae/` (205 files). See `project-structure-details.mdc` for the full per-file listing.
+All source code resides under `com.imgood.textech.webae/` (231 files). See `project-structure-details.mdc` for the full per-file listing.
 
 | Sub-package | Files | Purpose |
 |-------------|-------|---------|
-| `webae/` root | 1 | `WebConsoleServer` service lifecycle + static serving (classpath and external `config/textech/web-icons/`) |
-| `webae/auth/` | 3 | Token generation/validation, request auth middleware, OP-level check util |
-| `webae/api/` | 1 | REST API route dispatcher (includes `/api/chat/*`, `/api/players`, `/api/network/metrics`) |
-| `webae/api/handler/` | 30 | REST endpoint implementations (storage/power/recipes/patterns/pattern browse·grid detail/pattern list/orders/GT machines/network metrics/network topology/P2P map/craft tree/SSE/monitor preview/config/icons/chat/players/search/alerts/server health/integration, etc.) |
+| `webae/` root | 3 | `WebConsoleServer` + `WebConsoleUrlHelper` + `WebAeLocalDataDir` |
+| `webae/auth/` | 5 | Token/login code/middleware/OP check |
+| `webae/api/` | 1 | `WebApiRouter` REST dispatcher |
+| `webae/api/handler/` | 36 | REST endpoint handlers |
 | `webae/cache/` | 2 | Thread-safe TTL snapshot cache + background scheduler |
 | `webae/dto/` | 15 | Data transfer objects (Storage/Power/Recipe/Pattern/PatternListEntry/PatternBrowseEntry/NetworkMetricHistory/Order×4/GtMachine×2/Player/ChatMessage) |
 | `webae/power/` | 1 | Power sampler (sliding window rate calculation) |
 | `webae/snapshot/` | 2 | AE2 + GT machine snapshot collectors |
 | `webae/gt/` | 2 | GT machine state reader + binding data structure |
-| `webae/metric/` | 1 | AE network metric history sampler (`NetworkMetricSampler`) |
-| `webae/network/` | 6 | Recipe/icon upload packets + command-trigger upload packet + `RecipeUploadBatcher` chunking |
-| `webae/recipe/` | 5 | NEI/vanilla/GT recipe collectors + server cache + itemId normalization |
-| `webae/pattern/` | 8 | Pattern encoder/injector/interface locator + blank pattern consumer + Grid browse merge cache (`PatternBrowseService`) + AE event invalidation (`PatternBrowseInvalidationGridCache`, registered at postInit) |
-| `webae/topology/` | 16 | Network topology enumeration/rules/TopologyFacilityGrouper type aggregation/TTL cache + CraftingCpuTopologyCollector + P2P frequency map + SimulatedLayoutBuilder device ring + AE event invalidation |
-| `webae/worldmap/` | 15+ | **Phase A/B** world map meta/markers + flat/oblique terrain tiles + **AE overlay layer** (`WorldMapAePlacementCollector`/`WorldMapAeOverlayRenderer`/`WorldMapAeOverlayLayer`; `/tiles/{view}/ae/...`) |
+| `webae/metric/` | 2 | Network metrics + downsample util |
+| `webae/network/` | 13 | Recipe/icon/world-map HD packets + upload throttle |
+| `webae/recipe/` | 8+ | NEI/vanilla/GT recipe collect + cache |
+| `webae/pattern/` | 8+ | Pattern encode/inject/browse cache |
+| `webae/topology/` | 20 | Network topology + P2P map |
+| `webae/worldmap/` | 27 | World map meta/markers/tiles/AE overlay/quality tiers/prefetch progress |
 | `webae/craft/` | 2 | Material craft tree (NEI recipe recursion + storage gaps + `patternId`; `GET /api/craft/tree`) |
-| `webae/favorites/` | 1 | Recipe/pattern favorites (`config/textech/web-favorites.json`; `GET/PUT /api/favorites`) |
+| `webae/favorites/` | 1 | Recipe/pattern favorites (`TeXTech/WebAE/web-favorites.json`; `GET/PUT /api/favorites`) |
 | `webae/planner/` | 1 | Factory Flow / gtnh-flow export interop (`POST /api/planner/export-flow`) |
 | `webae/events/` | 1 | SSE subscriber hub (`GET /api/events/stream`; alert broadcast + 15s heartbeat) |
-| `webae/icon/` | 6 | Item icon texture-pack store + atlas sampling/GL fallback + client batched render/upload |
+| `webae/icon/` | 31 | Icon packs + multi-fallback rendering |
 | `webae/player/` | 4 | Player info store + online-count history sampler + DTO + skin URL resolver |
 | `webae/chat/` | 2 | Chat message store (ring buffer) + DTO |
 | `webae/debug/` | 1 | WebAE per-feature debug logging (`WebAeDebugLog`, gated by `[debug] webaeXxx`) |
@@ -111,7 +114,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `maxRecipeCacheMB` | int | `256` | 1-2048 | Approximate max memory (MB) for the recipe cache; evicted in `lru` mode when exceeded, warning-only in `full` |
 | `recipeUploadBatchesPerTick` | int | `3` | 1-32 | Recipe upload JSON batches sent per client tick |
 | `recipeSearchMinIntervalMs` | int | `300` | 0-5000 | Minimum interval (ms) between fuzzy recipe searches per owner via `/api/recipes/search?q=` |
-| `nesqlRepositoryPath` | string | `` | — | NESQL exporter repository root for `/admweb icons import-nesql`. Empty → `<instance>/TeXTechWebAE` (same folder as client recipe export) |
+| `nesqlRepositoryPath` | string | `` | — | NESQL exporter repository root for `/admweb icons import-nesql`. Empty → `<instance>/TeXTech/WebAE/` (same folder as client recipe export) |
 | `neiDeepScanItemsPerTick` | int | `0` | 0-512 | NEI item-driven deep scan items per client tick (`/admweb recipes upload deep`; 0 = disabled) |
 | `iconMissingDispatchPerTick` | int | `8` | 1-64 | IconMissingQueue lazy-load requests dispatched per server tick |
 | `powerSampleWindowSeconds` | int | `60` | 10-600 | Sliding window (seconds) for power/steam rate calculation |
@@ -130,12 +133,27 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `patternCacheTtlMs` | int | `30000` | 5000-300000 | Pattern browse TTL cache duration (ms) |
 | `topologyEnabled` | boolean | `true` | — | Enable `GET /api/network/topology` network topology API |
 | `topologyCacheTtlMs` | int | `1800000` | 5000-3600000 | Manual topology snapshot cooldown (ms; default 30 min) |
-| `topologySnapshotPersist` | boolean | `true` | — | Persist snapshots under `config/textech/web-topology/` |
+| `topologySnapshotPersist` | boolean | `true` | — | Persist snapshots under `TeXTech/WebAE/topology/` |
 | `worldMapEnabled` | boolean | `true` | — | Enable `GET /api/worldmap/*` world map API (requires `topologyEnabled`) |
-| `worldMapTilePx` | int | `128` | — | Pixel size per chunk tile (Phase B terrain rendering) |
-| `worldMapBoundsPaddingChunks` | int | `2` | — | AE network bbox padding in chunks |
-| `worldMapTileBudgetPerTick` | int | `2` | — | Max chunk tiles rendered per tick (Phase B) |
-| `worldMapMaxChunks` | int | `512` | — | Max chunk tiles per dimension (clamp + `boundsTooLarge`) |
+| `worldMapTilePx` | int | `128` | — | **Deprecated**: legacy single tile size; non-128 migrates to medium tier |
+| `worldMapMaxQualityTier` | string | `ultra` | — | Server cap for quality tier (low/medium/high/ultra) |
+| `worldMapDefaultQualityTier` | string | `medium` | — | Default tier when WebAE has no user preference |
+| `worldMapBoundsPaddingChunks` | int | `1` | 0-16 | AE network bbox padding in chunks |
+| `worldMapTileBudgetPerTick` | int | `2` | 1-32 | Max chunk tiles rendered per tick |
+| `worldMapMaxChunks` | int | `512` | 16-4096 | Max chunk tiles per dimension (clamp + `boundsTooLarge`) |
+| `worldMapRequireNetworkScope` | boolean | `true` | — | Render tiles only within AE network scope |
+| `worldMapViewsEnabled` | string | `flat,oblique` | — | Enabled views (comma-separated) |
+| `worldMapClientHdEnabled` | boolean | `true` | — | Allow client GL HD rendering for ultra tier |
+| `worldMapClientHdBudgetPerTick` | int | `1` | 1-8 | Client HD tile render budget per tick |
+| `worldMapAeOverlayEnabled` | boolean | `true` | — | Render AE overlay layer |
+| `worldMapAeOverlayIncludeCables` | boolean | `true` | — | Include cables in AE overlay |
+| `worldMapRenderEngine` | string | `uv` | — | Flat engine: `legacy` (average color) / `uv` (texture UV + biome/lighting) |
+| `worldMapObliqueEngine` | string | `ray` | — | Oblique engine: `legacy` (column painter) / `ray` (per-pixel ray trace) |
+| `worldMapChunkPadding` | int | `1` | 0-4 | Chunk padding for cross-boundary snapshots (1 = 3×3) |
+| `worldMapTextureCacheMax` | int | `2048` | 256-8192 | UV/ray block texture LRU cap |
+| `worldMapRayBudgetPerTick` | int | `1` | 1-32 | Per-tick chunk budget for oblique ray renders |
+| `worldMapMaxRayDepth` | int | `3` | 1-8 | Max transparent layers per ray pixel |
+| `worldMapLowTierObliqueEngine` | string | `legacy` | — | low/medium tier oblique fallback: `legacy` / `ray` |
 
 **Security note**: Default binds to `127.0.0.1`. All `/api/` endpoints enforce Bearer authentication (no opt-out). Changing `bindAddress` to `0.0.0.0` exposes the console to the LAN — use a firewall or SSH tunnel. Admin-only endpoints (refresh) additionally require OP level >= 2.
 
@@ -177,7 +195,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/order/list` | Yes | No | List active + history orders (`{success,orders,history}`; hybrid progress: AssistantCraftJobManager + CPU real progress + time estimate) |
 | GET | `/api/order/status?jobId=<id>` | Yes | No | Query a single order status (includes cpuName/cpuInfo/progressPercent) |
 | POST | `/api/order/cancel` | Yes | No | Cancel all pending/active orders for the current player |
-| GET | `/api/order/templates` | Yes | No | List batch order templates for the current owner (`config/textech/web-order-templates.json`, isolated by ownerUuid) |
+| GET | `/api/order/templates` | Yes | No | List batch order templates for the current owner (`TeXTech/WebAE/web-order-templates.json`, isolated by ownerUuid) |
 | PUT | `/api/order/templates` | Yes | No | Replace the owner's template list; body `{ "templates": [{ id, name, cpuName?, networkId, items:[{ itemName, amount, patternId? }], updatedAt }] }`; validates non-empty name, items≥1, amount≥1, ≤50 items per template |
 | GET | `/api/interfaces?network=<id>` | Yes | No | Enumerate ME interfaces (coords, slot states, `machineRecipeType`, `existingPatterns` summaries) |
 | POST | `/api/pattern/encode` | Yes | No | Encode a pattern; body may include `networkId` + `consumeBlank` (defaults true when `networkId≥0`); deducts 1 blank pattern from AE network on main thread; returns `code: NO_BLANK_PATTERN` when insufficient |
@@ -206,8 +224,12 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/network/cells?network=<id>` | Yes | No | Network cell byte summary + infinite cell detection (I5) |
 | GET | `/api/network/balance?networks=0,1&minSurplus=&minShortage=&limit=` | Yes | No | Cross-network storage balance suggestions (read-only; compares cached snapshots; Phase 8) |
 | GET | `/api/network/p2p?network=<id>` | Yes | No | P2P tunnel map grouped by frequency (Phase 10; requires `topologyEnabled`) |
-| GET | `/api/worldmap/meta?network=<id>` | Yes | No | World map meta (dimension bboxes, tilePx, markerCount, `boundsTooLarge`; **Phase A**; requires logical snapshot; 503 when `worldMapEnabled=false` or `topologyEnabled=false`) |
-| GET | `/api/worldmap/markers?network=<id>` | Yes | No | Flattened AE device markers (**Phase A**; from logical snapshot `devices[]`; cables excluded at enumeration; `code:no_logical_snapshot` when missing) |
+| GET | `/api/worldmap/progress?network=<id>&view=&dim=&quality=` | Yes | No | Batch tile prefetch progress (per-chunk terrain/ae status) |
+| GET | `/api/worldmap/meta?network=<id>` | Yes | No | World map meta (dimension bboxes, tilePx, qualityTiers[], max/defaultQualityTier, markerCount, `boundsTooLarge`; **Phase A**; requires logical snapshot; 503 when `worldMapEnabled=false` or `topologyEnabled=false`) |
+| GET | `/api/worldmap/markers?network=<id>` | Yes | No | Flattened AE device markers (from logical snapshot; `code:no_logical_snapshot` when missing) |
+| GET | `/api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png?network=&quality=` | Yes | No | Terrain tile PNG (transparent outside scope; enqueues render on miss) |
+| GET | `/api/worldmap/tiles/{view}/ae/{dim}/{cx}/{cz}.png?network=&quality=` | Yes | No | AE overlay tile PNG |
+| POST | `/api/worldmap/invalidate?network=&views=&layer=&quality=` | Yes | No | Invalidate cache and batch-prefetch terrain+ae for allowed chunks |
 | GET | `/api/craft/tree?item=&amount=&network=&maxDepth=` | Yes | No | Material tree (`required`/`inStock`/`toCraft`/`patternId`; Phase 4.1) |
 | GET/PUT | `/api/favorites` | Yes | PUT No (guest read-only) | Favorites (`web-favorites.json`; Phase 4.2) |
 | GET/POST | `/api/planner/plans` | Yes | POST No (guest) | Plan list / create (`plans.json`; Phase 4.4) |
@@ -221,7 +243,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/pocket/overview` | Yes | **Yes (OP)** | Minimal read-only dimensional pocket overview (no item contents; I6) |
 | GET | `/api/alerts` | Yes | No | Active automation alerts + `web-alerts.json` rules mirror (A1–A5); includes `canEditRules` (OP) |
 | GET | `/api/alerts/rules` | Yes | No | Rules only + `canEditRules` |
-| PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `config/textech/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |
+| PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `TeXTech/WebAE/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |
 | GET | `/api/server/health` | Yes | No | Server TPS / MSPT / online players / uptime + 300s rolling history (reference plan Phase 2) |
 | GET | `/api/oc/summary` | Yes | No | OC read-only summary (item types, CPU busy, active orders, TPS; 1 req/s; see [oc-integration.md](oc-integration.md)) |
 | GET | `/api/search?q=&limit=&offset=&types=&network=` | Yes | No | Aggregated read-only search (storage/recipe/gt/pattern; 500ms rate limit; pagination; Phase 4a) |
@@ -248,7 +270,7 @@ webae-frontend/               # Frontend source (permanent project part)
     ├── i18n/                 # zh + en dictionaries + I18nProvider hook
     ├── context/AppContext.tsx  # Global state (auth/theme/settings/presets/connection/refresh)
     ├── theme/                # 24 color schemes (19 classic + 5 Phase 8 sci-fi) + 5 layout presets + antd theme builder
-    ├── hooks/                # useLocalStorage / useInterval / usePageVisibility / useVisibilityAwarePolling / useSnapshotData / usePlayers / useWebAlerts / useNetworkMetrics / useGlobalSearch
+    ├── hooks/                # useLocalStorage / useInterval / usePageVisibility / useVisibilityAwarePolling / useSnapshotData / usePlayers / useWebAlerts / useNetworkMetrics / useGlobalSearch / useWorldMapData / useWorldMapTileLoader / useWorldMapProgress
     ├── utils/                # formatNumber / icon URL / presets / dashboardResolve / overviewDataSources / powerDataSources / cpuColumns / recipe
     ├── components/           # Login / Icon / Layout(Sidebar/TopBar/AppLayout) /
     │                         # recipes(HandlerCategoryFilter/RecipeToolbar/RecipeResultList/
@@ -311,7 +333,7 @@ Three collection strategies:
 
 ## 8. Security Model
 
-- **Token Authentication**: random UUID per player, persisted to `config/textech/web-tokens.json` (re-issue replaces the previous token). TTL is optional via `tokenLifetimeHours` (0 = never expire)
+- **Token Authentication**: random UUID per player, persisted to `TeXTech/WebAE/web-tokens.json` (re-issue replaces the previous token). TTL is optional via `tokenLifetimeHours` (0 = never expire)
 - **Mandatory auth**: all `/api/` endpoints require `Authorization: Bearer <token>`; there is no opt-out config. 401 responses carry a `code` field (`missing_token` / `invalid_format` / `empty_token` / `token_expired` / `invalid_token`)
 - **Admin-only endpoints**: `POST /api/refresh`, `/api/refresh/batch`, `/api/power/refresh`, `/api/power/refresh/batch`, `/api/gt/machines/refresh`, `/api/gt/machines/refresh/batch` require OP level >= 2 (checked via `WebAuthOpCheck`); non-OP gets 403 with `code:admin_required`
 - **Default Local Bind**: `bindAddress=127.0.0.1` restricts access to the local machine only
@@ -340,13 +362,13 @@ Recipe upload flow:
 2. First batch `isStart`: `RecipeUploadSession.onStart()` decides whether to `clearMemoryOnly()` (only the first active session per player; overlapping uploads ignored)
 3. Batches throttled client-side by `RecipeUploadThrottler` (`recipeUploadBatchesPerTick` per tick); `RecipeUploadBatcher` splits under the FML 32KB cap (JSON ≤ ~32KB−512B; oversized recipes trim grid/rawJson)
 4. Server `RecipeCacheStore.ingest()` + final `rebuildHandlerCounts()`; debounced gzip save to `web-recipes.json.gz`
-5. Client `RecipeLocalExporter` writes the same gzip schema to `<instance>/TeXTechWebAE/web-recipes.json.gz`
+5. Client `RecipeLocalExporter` writes the same gzip schema to `<instance>/TeXTech/WebAE/web-recipes.json.gz`
 6. On completion, `PacketWebRecipeUploadAck` confirms delivery
 
 Icon upload flow:
 1. Client `IconRenderer` (@SideOnly CLIENT) renders several items per frame into 32×32 PNGs offscreen
 2. Packs an IconBundle (itemId → base64PNG) and chunk-uploads via `PacketWebIconUpload`
-3. Server decodes and writes to `config/textech/web-icons/<packName>/`, then calls `IconStore.recordDefaultPack` to remember the most recent pack
+3. Server decodes and writes to `TeXTech/WebAE/icons/<packName>/`, then calls `IconStore.recordDefaultPack` to remember the most recent pack
 4. `PacketWebIconUploadAck` reports progress
 
 Command-triggered upload flow (ID 30):
@@ -367,8 +389,8 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 | `/admweb revoke [player]` | Self / OP | Revoke your own token, or another player's token (OP only) |
 | `/admweb list` | OP | List all active tokens (prefix + issue time only) |
 | `/admweb reload` | OP | Actually reloads the TeXTech configuration: calls `Config.reloadConfiguration()` to re-read the active config file and re-run every section loader (debug/compat/ai/voice/assistant/plannerHud/dataLoom/superOrange/matterBallDecompressor/grapple/webConsole); some options (e.g. `enabled`/`port`/`bindAddress` for the web server itself) still need a server restart, and the response notes this; token and runtime data files (web-tokens.json/web-players.json/web-chat.json/web-icons/) are not affected |
-| `/admweb recipes upload [snapshot\|deep]` | **OP** | Client merged NEI+Game single upload; also writes client `TeXTechWebAE/web-recipes.json.gz`; `snapshot` collects recipes for AE storage snapshot items only; `deep` enables full NEI item scan (slow) |
-| `/admweb icons import-nesql [pack] [subpath]` | **OP** | Import pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTechWebAE` when empty; incremental; does not overwrite existing) |
+| `/admweb recipes upload [snapshot\|deep]` | **OP** | Client merged NEI+Game single upload; also writes client `TeXTech/WebAE/web-recipes.json.gz`; `snapshot` collects recipes for AE storage snapshot items only; `deep` enables full NEI item scan (slow) |
+| `/admweb icons import-nesql [pack] [subpath]` | **OP** | Import pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/` when empty; incremental; does not overwrite existing) |
 | `/admweb recipes export` | **OP** | Alias of upload, emphasizing the export-to-cache semantics |
 | `/admweb recipes status` | Any | Show server recipe cache status (including disk cache size and last-save time) |
 | `/admweb recipes clear` | OP | Clear memory and disk recipe cache |
@@ -378,6 +400,38 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 | `/admweb help` | Any | Show usage |
 
 ## 11. Subsystem Design Summaries
+
+Index by functional domain (status: **done** / **Phase C pending**). Phase numbers in headings are kept for searchability.
+
+| Domain | Section | Status | Package / frontend |
+|--------|---------|--------|-------------------|
+| Storage | §11.1 | Done | `webae/snapshot/` · Storage page |
+| Power | §11.2 | Done | `webae/power/` · Power page |
+| GT machines | §11.3 | Done | `webae/gt/` · GT page |
+| Recipe search | §11.4 | Done | `webae/recipe/` · Recipes page |
+| Patterns | §11.5 | Done | `webae/pattern/` · Patterns page |
+| AE ordering | §11.6 | Done | `webae/craft/` · AeOrdering page |
+| Theme/dashboard | §11.7 | Done | `webae-frontend/` GridStack |
+| Icon cache | §11.8 | Done | `webae/icon/` · client upload |
+| Chat | §11.9 | Done | `webae/chat/` · Chat page |
+| Player info | §11.10 | Done | `webae/player/` |
+| Command upload | §11.11 | Done | `webae/network/` packets 26–36 |
+| Dashboard settings | §11.12 | Done | Settings drawer |
+| Storage/CPU pages | §11.14 | Done | Storage/Cpu pages |
+| Power page | §11.15 | Done | Power page |
+| Sci-fi themes | §11.16 | Done | CSS + IconRenderer |
+| **Network topology** | §11.17 | Done | `webae/topology/` |
+| **World map** | §11.26 | Done (Phase C: device focus pending) | `webae/worldmap/` · `TopologyWorldMapView` |
+| Visibility polling | §11.18 | Done | `usePageVisibility` |
+| GT charts | §11.19 | Done | `GtSummaryCharts` |
+| Alert editor | §11.20 | Done | `webae/alerts/` |
+| Webhook/health | §11.20a | Done | `WebhookDispatcher` |
+| Monitoring depth | §11.20b | Done | Fluids/P2P power |
+| Craft tree | §11.21 | Done | `CraftTreeCalculator` |
+| SSE alerts | §11.22 | Done | `EventStreamHub` |
+| P2P map | §11.23 | Done | `P2pTunnelEnumerator` |
+| Monitor preview | §11.24 | Done | `MonitorPreviewCollector` |
+| PWA/mobile | §11.25 | Done | manifest + CSS |
 
 ### 11.1 Storage Monitoring
 
@@ -433,7 +487,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
   - Layout switch uses CSS show/hide + `React.memo` (cards and `Icon`) to reduce re-renders; persisted in `localStorage.webae-recipe-layout` / `webae-recipe-display-mode`
   - Detailed view: crafting grid, fluid sections, GT tags; click item → Drawer (craft / usage tabs, NEI U/R equivalent)
   - Icon `itemId` includes meta; `IconStore` falls back to base id when meta-specific PNG missing
-- **Disk persistence**: `config/textech/web-recipes.json.gz`; `/admweb recipes clear` wipes memory + disk
+- **Disk persistence**: `TeXTech/WebAE/web-recipes.json.gz`; `/admweb recipes clear` wipes memory + disk
 
 ### 11.5 Pattern Management
 
@@ -463,7 +517,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
   3. Time-estimate fallback (0–30s→0–30%, 30–120s→30–90%, >120s→100%)
 - **List/history**: `GET /api/order/list` returns `{ success, orders, history }`; completed/cancelled/expired orders move from active to in-memory `historyOrders` (max 200, cleared on restart); `OrderStatus` includes `cpuName`/`cpuInfo`/`finalProgress`
 - **Status/cancel**: `GET /api/order/status?jobId=` for a single job; `POST /api/order/cancel` cancels all orders for the current player
-- **Batch templates (Phase 7)**: `config/ConfigWebOrderTemplatesLoader.java` loads/saves `config/textech/web-order-templates.json` (`webae/order/WebOrderTemplate*.java` + `WebOrderTemplatesValidator`); `OrderTemplatesHandler` exposes `GET/PUT /api/order/templates` (isolated by WebAE owner token ownerUuid; OP and guests can read/write templates for their owner); templates include `cpuName`/`networkId`/items (`itemName` or `patternId`)
+- **Batch templates (Phase 7)**: `config/ConfigWebOrderTemplatesLoader.java` loads/saves `TeXTech/WebAE/web-order-templates.json` (`webae/order/WebOrderTemplate*.java` + `WebOrderTemplatesValidator`); `OrderTemplatesHandler` exposes `GET/PUT /api/order/templates` (isolated by WebAE owner token ownerUuid; OP and guests can read/write templates for their owner); templates include `cpuName`/`networkId`/items (`itemName` or `patternId`)
 - **Backend**: Reuses AI assistant `AssistantServerServices` + `AssistantCraftJobManager`
 - **Frontend** (`pages/AeOrdering.tsx`, Phase 7):
   - Top CPU `Select` (name + capacity + parallelism + busy/idle)
@@ -492,12 +546,12 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 
 ### 11.8 Item Icon Cache & Texture Packs (Phase 3.1)
 
-- **Server store**: `webae/icon/IconStore.java` singleton manages `config/textech/web-icons/<packName>/<mode>/<itemId>.png` (legacy flat PNGs auto-migrate to `hybrid/` on first access); `manifest.json` records `modes[]`, `counts{}`, `uploadedAt`, `clientVersion`; path-traversal protection; `listPacks`/`listIcons`/`getIconFile`/`resolveWriteTarget`/`refreshPack`/`recordModeUpload`/`migrateLegacyPackIfNeeded`; `recordDefaultPack`/`getDefaultPack`
+- **Server store**: `webae/icon/IconStore.java` singleton manages `TeXTech/WebAE/icons/<packName>/<mode>/<itemId>.png` (legacy flat PNGs auto-migrate to `hybrid/` on first access); `manifest.json` records `modes[]`, `counts{}`, `uploadedAt`, `clientVersion`; path-traversal protection; `listPacks`/`listIcons`/`getIconFile`/`resolveWriteTarget`/`refreshPack`/`recordModeUpload`/`migrateLegacyPackIfNeeded`; `recordDefaultPack`/`getDefaultPack`
 - **REST handler**: `webae/api/handler/IconHandler.java`
   - `GET /api/icon?item=<itemId>&pack=<pack>&mode=<mode>&meta=<int>&size=<16|32|64>` returns PNG (`mode` defaults to hybrid; 404 falls back to hybrid/atlas); ETag + `Cache-Control: max-age=86400`
   - `GET /api/icon/packs` lists packs as JSON (`{success:true, packs:[...], defaultPack:"<name>"|null}`); `defaultPack` comes from `IconStore.getDefaultPack()` so the frontend can pick it on first load
   - `POST /api/icon/pack?pack=<packName>` admin-only (`WebAuthOpCheck.isOp` OP>=2) uploads a zip; the server extracts it with `ZipInputStream` into `web-icons/<packName>/`, applies **Zip Slip protection** (canonical-path check that entries stay inside packDir), accepts only `.png` entries, refreshes the IconStore index, and calls `recordDefaultPack` to remember the most recent pack
-- **Static serving**: `WebConsoleServer.serveStatic()` extended to serve `/icons/<pack>/<itemId>.png` from the external `config/textech/web-icons/` directory with canonical path-traversal protection + `Cache-Control`
+- **Static serving**: `WebConsoleServer.serveStatic()` extended to serve `/icons/<pack>/<itemId>.png` from the external `TeXTech/WebAE/icons/` directory with canonical path-traversal protection + `Cache-Control`
 - **Routing**: `WebApiRouter` dispatches `/api/icon` and the `/api/icon/` prefix to `IconHandler`
 - **Client renderer (Phase 0 — 8 modes)**: `IconRenderer.java` strategy pattern + mode queue; eight `IconRenderMode` values with matching strategies; `IconGlFallback`, `IconBlockRenderer`, `IconNeiStyleRenderer`, `IconUploadProgress`; `start(pack, uuid, mode|all)` queues all 8 modes for `all`; batched RenderTick render + ClientTick chunked upload
 - **Production stability (full GTNH pack)**:
@@ -506,7 +560,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
   - `PacketWebIconUploadAck` — suppresses chat spam for single-icon lazy completions (`1 icons stored`); bulk/multi-icon batch completions still notify in chat
   - **Recommendation**: close the WebAE browser tab before full-pack export; prefer `/admweb icons upload snapshot default nei` or `/admweb icons import-nesql` instead of enumerating 40k+ items at once
 - **Commands**: `/admweb icons upload [pack] [mode|all]`, `/admweb icons upload snapshot [pack] [mode]`, `/admweb icons import-nesql [pack] [subpath]`, `/admweb icons import <folder> [pack]`, `/admweb icons modes`, `/admweb icons status`
-- **NESQL import**: `WebAeLocalDataDir` + `NesqlIconImporter` reads pre-rendered PNGs from `nesqlRepositoryPath` (empty → `TeXTechWebAE`); incremental, skips existing icons
+- **NESQL import**: `WebAeLocalDataDir` + `NesqlIconImporter` reads pre-rendered PNGs from `nesqlRepositoryPath` (empty → `TeXTech/WebAE/`); incremental, skips existing icons
 - **Lazy-load SSE**: `IconMissingQueue` dispatches `iconMissingDispatchPerTick` requests per tick → client `IconLazyRenderQueue` (2/tick) renders/uploads asynchronously; when an icon is ready the server emits SSE `icon-ready` → frontend `webae-icon-ready` event for live `<Icon>` refresh
 - **Config** (`[webConsole]`): `iconCacheEnabled` / `iconUploadEnabled` / `iconPackEnabled` / `iconRenderPerTick`(64) / `iconRenderPerTickAll`(32) / `iconUploadChunksPerTick`(4) / `iconProgressChatIntervalMs`(3000)
 - **Frontend**: Settings icon render mode dropdown (`localStorage.webae_icon_render_mode`, default hybrid); `Icon.tsx` passes `&mode=`; `/api/config` returns `iconRenderModes[]`
@@ -517,7 +571,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 ### 11.9 Chat System (Phase E)
 
 - **DTO**: `webae/chat/ChatMessage.java` (id/senderUuid/senderName/content/timestamp/source=web|game|system)
-- **Store**: `webae/chat/ChatMessageStore.java` singleton, `ArrayDeque<ChatMessage>` ring buffer (default 200); `append`/`getSince(ts)`/`getRecent(limit)`/`latestTimestamp`; debounced save to `config/textech/web-chat.json` so history survives restarts
+- **Store**: `webae/chat/ChatMessageStore.java` singleton, `ArrayDeque<ChatMessage>` ring buffer (default 200); `append`/`getSince(ts)`/`getRecent(limit)`/`latestTimestamp`; debounced save to `TeXTech/WebAE/web-chat.json` so history survives restarts
 - **In-game collection**: `handler/HandlerWebChatCollector.java` `@SubscribeEvent` listens to `ServerChatEvent` (registered to `MinecraftForge.EVENT_BUS` by `LoaderHandler`) and **does not cancel the event** — it mirrors the message into `ChatMessageStore` as `source=game`
 - **Web broadcast**: `ChatHandler.handleSend` reads `playerUuid` from the token, calls `ChatMessageStore.append(source=web)`, then broadcasts to in-game chat via `FMLCommonHandler.instance().getMinecraftServerInstance().getConfigurationManager().sendChatMsg(new ChatComponentText("[Web] <name>: content"))`; banned players, empty content, and over-long content are rejected
 - **REST handler**: `webae/api/handler/ChatHandler.java`
@@ -531,7 +585,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 ### 11.10 Player Info & Skin URL (Phase E)
 
 - **DTO**: `webae/player/PlayerInfo.java` (uuid/name/firstLogin/lastLogin/lastLogout/totalOnlineMs/online)
-- **Store**: `webae/player/PlayerInfoStore.java` singleton, in-memory `Map<UUID,PlayerInfo>`; `touchLogin`/`touchLogout`/`reconcileOnline`/`getOnlinePlayers`/`getAllPlayers`/`effectiveOnlineMs`; debounced save to `config/textech/web-players.json`
+- **Store**: `webae/player/PlayerInfoStore.java` singleton, in-memory `Map<UUID,PlayerInfo>`; `touchLogin`/`touchLogout`/`reconcileOnline`/`getOnlinePlayers`/`getAllPlayers`/`effectiveOnlineMs`; debounced save to `TeXTech/WebAE/web-players.json`
 - **Tracker**: `handler/HandlerWebPlayerTracker.java` `@SubscribeEvent` listens to `PlayerEvent.PlayerLoggedInEvent`/`PlayerLoggedOutEvent` (registered to the FML bus by `LoaderHandler`) and writes to `PlayerInfoStore`; `HandlerTick` calls `reconcileOnline` + `tickSave` every tick
 - **Skin URL**: `webae/player/SkinUrlResolver.java` reads `EntityPlayerMP.getGameProfile().getProperties().get("textures")`, base64-decodes it with `javax.xml.bind.DatatypeConverter` (avoids Java 8+ APIs), parses the JSON, and returns `textures.SKIN.url`; offline players return null
 - **REST handler**: `webae/api/handler/PlayerHandler.java`
@@ -609,14 +663,12 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 
 ### 11.17 Network Topology (tree/double-ring + disk persistence)
 
-- **Package**: `webae/topology/` — `NetworkStatusEnumerator` (network-tool parity + subtype classification + drive pattern counts), `TopologyRules` (fine-grained subtypes), `TopologyFacilityGrouper` (`subtype|itemId` groups), `ChannelBranchAllocator` (4×8 smart branches), `LogicalTopologyBuilder` (tree dense→smart fork + `buildStar()` double-ring semantics), `TopologySnapshotStore` (`config/textech/web-topology/<owner>-<network>.json`), `CraftingCpuTopologyCollector`, `SimulatedLayoutBuilder` (Manhattan `pathPoints`), `TopologySnapshot`, `TopologyCache` (cold-start disk load + cooldown survives restart)
+- **Package**: `webae/topology/` — `NetworkStatusEnumerator` (network-tool parity + subtype classification + drive pattern counts), `TopologyRules` (fine-grained subtypes), `TopologyFacilityGrouper` (`subtype|itemId` groups), `ChannelBranchAllocator` (4×8 smart branches), `LogicalTopologyBuilder` (tree dense→smart fork + `buildStar()` double-ring semantics), `TopologySnapshotStore` (`TeXTech/WebAE/topology/<owner>-<network>.json`), `CraftingCpuTopologyCollector`, `SimulatedLayoutBuilder` (Manhattan `pathPoints`), `TopologySnapshot`, `TopologyCache` (cold-start disk load + cooldown survives restart)
 - **Logical layout**: Controller hub; terminals/WAP/security above; Energy Cell/Acceptor west/east; dense trunk (32ch) → 4× smart branches (8ch each); Drive/Chest/IO/CPU/Quantum direct to controller (0 channels); edges carry `branchIndex` for coloring
 - **Node DTO**: `subtype`, `patternCount`, `patternSlots[]`, `branchIndex`, `layoutSector`; drive icon badge for pattern count
-- **Frontend**: `TopologyCytoscapeGraph` (cytoscape.js: `concentric` star / `breadthfirst` tree / `cose-bilkent` spatial force layout; bezier edges + native pan/zoom; node `background-image` icons; legacy `TopologyGraphSvg` kept for rollback); `TopologySimulatedView` (client double-ring grid + spoke cables when `abstractLayout=star`; block icons via `SimTextureImage` using `aeCableBlockIconId` to render BlockCableBus block face textures, `truncateBlockLabel` adaptive truncation; `topologyCablePath` dense-wins cell priority + viewBox padding); `TopologyDeviceList` v1 (52px dual-line rows, Badge groups, graph↔list hover/scroll); `TopologySettingsDrawer` abstract layout Segmented (abstract + simulated modes); CPU detail Drawer multiblock composition table; OP `canForceSnapshot` + force refresh button; **Phase A** 4th view `worldMap`: `TopologyWorldMapView` + `WorldMapMarkerLayer` (supercluster + grid background; terrain tiles pending Phase B)
-- **Icons**: `IconTileResolver` resolves `mod:tile.BlockClass[:meta]` pseudo ids (incl. `BlockCableBus`) → `ItemStack` → `IconBlockRenderer` block-face export
-- **SimulatedLayoutBuilder**: Manhattan paths emit independent `cable_smart`/`cable_dense`/`cable_corner_*` intermediate nodes (`simKind`); empty smart-branch placeholder nodes + dashed edges
-- **REST**: GET returns `persisted:true` when loaded from disk; GET never auto-rebuilds; `POST .../snapshot?force=1` OP forced refresh (`canForceSnapshot` + `WebAuthOpCheck`)
-- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **1800000**), `topologySnapshotPersist` (default true); world map `worldMap*` keys — see §11.26
+- **Frontend**: `TopologyCytoscapeGraph` (cytoscape.js tree/star/spatial; legacy `TopologyGraphSvg` fallback); `TopologySimulatedView`/`TopologyDeviceList`/`TopologySettingsDrawer`; 4th view `worldMap`: `TopologyWorldMapView` + `WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay` (`useWorldMapTileLoader`/`useWorldMapProgress`)
+- **REST**: `GET /api/network/topology` (read disk/memory snapshot, no auto-rebuild); `POST /api/network/topology/snapshot?force=1` (OP forced capture)
+- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **1800000**), `topologySnapshotPersist` (default true); world map — see §11.26
 
 ### 11.18 Page Visibility Polling (Phase 4b)
 
@@ -699,12 +751,18 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 
 ### 11.26 World Map View (Phase A/B + AE Overlay)
 
-- **Package**: `webae/worldmap/` — `WorldMapMarkerDto`/`WorldMapMetaDto`, `WorldMapMarkerBuilder`, `WorldMapBoundsBuilder` (scope from `TopologySnapshot.aePlacements` including cable chunks; legacy snapshots fall back to `devices[]`), `WorldMapHandler`, `WorldMapFlatRenderer`/`WorldMapIsoRenderer` (terrain), `WorldMapAePlacementCollector`/`WorldMapAeOverlayRenderer` (transparent ARGB AE layer), `WorldMapTileQueue`/`WorldMapTileCache` (`layer=terrain|ae`)
-- **REST**: `GET /api/worldmap/meta?network=<id>`; `GET /api/worldmap/markers?network=<id>`; `GET /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png` (terrain); `GET /api/worldmap/tiles/{view}/ae/{dim}/{cx}/{cz}.png` (AE overlay); `POST /api/worldmap/invalidate?views=&layer=` (defaults invalidate both terrain + ae)
+- **Package**: `webae/worldmap/` + `webae/worldmap/engine/` (Dynmap-grade UV/ray core) — see `project-structure-details.mdc`; frontend overlay is `WorldMapAeOverlayLayer.tsx` (not a Java class)
+- **Render engines**: `WorldMapRenderSupport.renderForView` dispatches flat+`uv` → `WorldMapFlatUvRenderer`; oblique+`ray` → `WorldMapIsoRayRenderer` (`WorldMapObliqueProjection` ortho rays + voxel DDA + `WorldMapFaceRasterizer` UV/biome/lighting); `legacy` painters kept as fallback; meta exposes `flatRenderEngine` / `obliqueRenderEngine`
+- **REST**: `GET /api/worldmap/meta?network=<id>&quality=` (includes `zoomLevels[]`, `recommendedZoom`); `GET /api/worldmap/markers?network=<id>`; `GET /api/worldmap/progress?network=&view=&dim=&quality=`; `GET /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png?quality=&zoom=` (terrain; `zoom=0|1|2` pyramid level, cx/cz are level-aligned tile indices); `GET /api/worldmap/tiles/{view}/ae/{dim}/{cx}/{cz}.png?quality=&zoom=` (AE overlay); `POST /api/worldmap/invalidate?views=&layer=&quality=` (invalidates all tiers and zoom levels then batch-prefetches terrain+ae)
 - **Snapshot**: `TopologySnapshot.aePlacements[]` (written on logical capture; block/cable/part coords + iconItemId)
-- **Config**: `[webConsole] worldMapEnabled`, `worldMapTilePx` (128), `worldMapBoundsPaddingChunks` (1), `worldMapTileBudgetPerTick` (2), `worldMapMaxChunks` (512), `worldMapClientHdEnabled`, `worldMapAeOverlayEnabled` (default true), `worldMapAeOverlayIncludeCables` (default true)
-- **HD**: `PacketWebMapTileJob` (34) / `PacketWebMapTileUpload` (35) include `layer`; client `WorldMapChunkGlRenderer.renderAeOverlay`
-- **Frontend**: `TopologyWorldMapView` stack: grid → `WorldMapTerrainLayer` → `WorldMapAeOverlayLayer` (toggle, default off) → `WorldMapMarkerLayer` (toggle); `TopologySettingsDrawer` world map layer toggles + AE opacity
+- **Quality tiers**: `WorldMapQualityTier` — low(64px)/medium(128)/high(256)/ultra(512 HD online / 256 offline fallback); cache path `web-map-tiles/{view}/q{tier}/z{level}/[ae/]{dim}/{cx}/{cz}.png`; z0 legacy path without `z{level}` read-only fallback
+- **Zoom pyramid (Phase 3)**: `WorldMapZoomPyramid` — after z0 write, auto-enqueues parent z1/z2 (2×2 box downsample); `webWorldMapZoomLevels` (default 3), `webWorldMapZoomBudgetPerTick` (default 4); frontend `selectWorldMapZoomLevel(viewport.scale)` picks layer
+- **Block patches (Phase 4)**: `WorldMapBlockPatchRegistry` + `WorldMapGtPatchResolver` — built-in stair/slab; `assets/textech/worldmap/patches/` (`gregtech_machines` / `casings` / `structural` / `pipes`); GT pipes/cables use MTE `getConnections()` dynamic AABB; `webWorldMapBlockPatchesEnabled`
+- **Server texture atlas (Phase 4)**: `WorldMapServerAtlas` — bakes hot block face PNGs into a grid atlas; registered on `WorldMapTextureRegistry` load; `webWorldMapServerAtlasEnabled` (default true), `webWorldMapServerAtlasPx` (2048)
+- **AE quality boost (Phase 4)**: `WorldMapQualitySupport` — AE-device chunks +1 terrain tier; meta exposes `blockPatchesEnabled` / `blockPatchEntries` / `serverAtlasEnabled` / `serverAtlasSlots` / `aeQualityBoost`
+- **Config**: `[webConsole] worldMapEnabled`, …, `worldMapBlockPatchesEnabled`, `worldMapServerAtlasEnabled`, `worldMapServerAtlasPx`, `worldMapAeQualityBoost`
+- **HD**: `PacketWebMapTileJob` (34) / `PacketWebMapTileUpload` (35) include `layer` + `quality`; ultra only triggers client GL 512px FBO; `WorldMapTilePrefetcher` + `WorldMapTileProgressTracker` for batch prefetch and progress API
+- **Frontend**: `useWorldMapTileLoader` (`zoom` param + viewport-based level selection)/`useWorldMapProgress`; `TopologyWorldMapView` toolbar progress + `WorldMapChunkStatusOverlay` per-chunk badges; `TopologySettingsDrawer` quality Segmented; AE layer `prefetch=true` background load
 - **Phase C pending**: device list click → map `fitView` focus
 
 ## 12. Frontend Resources
@@ -733,7 +791,7 @@ Total gzip size ~450KB, fully offline-packaged (no CDN dependencies). Build comm
 | Storage/power shows empty briefly | Cache cold-starting | Wait one `refreshIntervalMs` cycle; the scheduler only collects active networks |
 | Storage/power persistently empty | AE2 network not connected or no active network | Open the web console / select a network so `SnapshotScheduler.markActive` runs |
 | Recipe search returns no results | Not uploaded / exact search on displayName / empty cache | Run `/admweb recipes clear` then `/admweb recipes upload snapshot` (daily) or `upload` (full NEI+Game); Web UI defaults to fuzzy search; enable `[debug] debugWebae=true` for NEI collection logs |
-| Icons show as text abbreviations | Auth failure / pack-name mismatch / itemId format mismatch | v3.0 fixed: `WebAuthMiddleware` supports `?token=` query parameter fallback, frontend Icon component auto-appends token; confirm `AeSnapshotCollector` uses registry names; check `config/textech/web-icons/default-pack.txt` |
+| Icons show as text abbreviations | Auth failure / pack-name mismatch / itemId format mismatch | v3.0 fixed: `WebAuthMiddleware` supports `?token=` query parameter fallback, frontend Icon component auto-appends token; confirm `AeSnapshotCollector` uses registry names; check `TeXTech/WebAE/icons/default-pack.txt` |
 | Chat messages don't appear | Not uploaded or token has no playerUuid | Confirm `ChatMessageStore` persisted `web-chat.json`; check `/api/chat/since` response; in-game messages require `sendChatMsg` broadcast |
 | Player avatars fall back to initials | Offline mode or GameProfile has no textures | `SkinUrlResolver` returning null for offline players is expected; for online players check the GameProfile textures property |
 | CountDownLatch timeout (503) | Main thread overloaded | Increase timeout or check `HandlerTick` task backlog |

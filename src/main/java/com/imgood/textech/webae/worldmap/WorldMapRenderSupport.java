@@ -16,6 +16,9 @@ import net.minecraft.world.chunk.Chunk;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.webae.worldmap.engine.WorldMapFlatUvRenderer;
+import com.imgood.textech.webae.worldmap.engine.WorldMapIsoRayRenderer;
+import com.imgood.textech.webae.worldmap.engine.WorldMapRenderEngines;
 
 /**
  * Shared helpers for server-side world map tile renderers.
@@ -28,11 +31,21 @@ public final class WorldMapRenderSupport {
     private WorldMapRenderSupport() {}
 
     public static int tilePx() {
-        return Math.max(16, Config.webWorldMapTilePx);
+        return tilePx(WorldMapQualityTier.MEDIUM);
+    }
+
+    public static int tilePx(WorldMapQualityTier quality) {
+        WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.MEDIUM;
+        return Math.max(16, tier.serverTilePx());
     }
 
     public static int pxPerBlock(int tilePx) {
         return Math.max(1, tilePx / 16);
+    }
+
+    public static int pxPerBlock(WorldMapQualityTier quality) {
+        WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.MEDIUM;
+        return tier.serverPxPerBlock();
     }
 
     public static WorldServer worldForDim(int dim) {
@@ -162,25 +175,40 @@ public final class WorldMapRenderSupport {
     }
 
     public static byte[] renderForView(WorldMapView view, int dim, int chunkX, int chunkZ) {
-        return renderForView(view, WorldMapTileLayer.TERRAIN, dim, chunkX, chunkZ, null, -1);
+        return renderForView(view, WorldMapTileLayer.TERRAIN, WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ, null, -1);
     }
 
     public static byte[] renderForView(WorldMapView view, String layer, int dim, int chunkX, int chunkZ,
         String ownerUuid, int networkId) {
+        return renderForView(view, layer, WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ, ownerUuid, networkId);
+    }
+
+    public static byte[] renderForView(WorldMapView view, String layer, WorldMapQualityTier quality, int dim,
+        int chunkX, int chunkZ, String ownerUuid, int networkId) {
         if (view == null) {
             return null;
         }
+        WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.MEDIUM;
         if (WorldMapTileLayer.isAe(layer)) {
             if (ownerUuid == null || ownerUuid.isEmpty() || networkId < 0) {
                 return null;
             }
-            return WorldMapAeOverlayRenderer.render(ownerUuid, networkId, view, dim, chunkX, chunkZ);
+            return WorldMapAeOverlayRenderer.render(ownerUuid, networkId, view, tier, dim, chunkX, chunkZ);
         }
         if (view == WorldMapView.FLAT) {
-            return WorldMapFlatRenderer.renderTerrain(dim, chunkX, chunkZ);
+            if (WorldMapRenderEngines.useUvFlat()) {
+                return WorldMapFlatUvRenderer.renderTerrain(tier, dim, chunkX, chunkZ);
+            }
+            return WorldMapFlatRenderer.renderTerrain(tier, dim, chunkX, chunkZ);
         }
         if (view.isOblique()) {
-            return WorldMapIsoRenderer.renderTerrain(dim, chunkX, chunkZ, view.obliqueDirection);
+            WorldMapObliqueDirection direction = view.obliqueDirection != null
+                ? view.obliqueDirection
+                : WorldMapObliqueDirection.SE;
+            if (WorldMapRenderEngines.useRayOblique(tier)) {
+                return WorldMapIsoRayRenderer.renderTerrain(tier, dim, chunkX, chunkZ, direction);
+            }
+            return WorldMapIsoRenderer.renderTerrain(tier, dim, chunkX, chunkZ, direction);
         }
         return null;
     }

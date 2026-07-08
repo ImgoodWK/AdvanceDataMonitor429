@@ -543,7 +543,7 @@ public class CommandWebConsole extends CommandBase {
                 .listPacks();
             send(sender, EnumChatFormatting.AQUA + "=== Icon Pack Status ===");
             if (packs.isEmpty()) {
-                send(sender, EnumChatFormatting.GRAY + "  No icon packs installed in config/textech/web-icons/.");
+                send(sender, EnumChatFormatting.GRAY + "  No icon packs installed in TeXTech/WebAE/icons/.");
             } else {
                 for (IconStore.PackInfo p : packs) {
                     StringBuilder line = new StringBuilder();

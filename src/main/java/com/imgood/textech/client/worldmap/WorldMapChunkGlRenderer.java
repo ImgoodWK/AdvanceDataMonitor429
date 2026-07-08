@@ -27,6 +27,7 @@ import org.lwjgl.opengl.GL12;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.icon.IconRenderGuard;
+import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 import com.imgood.textech.webae.worldmap.WorldMapView;
 
@@ -49,6 +50,11 @@ public final class WorldMapChunkGlRenderer {
     }
 
     public byte[] renderTerrain(Minecraft mc, WorldMapView view, int dim, int chunkX, int chunkZ) {
+        return renderTerrain(mc, view, WorldMapQualityTier.ULTRA, dim, chunkX, chunkZ);
+    }
+
+    public byte[] renderTerrain(Minecraft mc, WorldMapView view, WorldMapQualityTier quality, int dim, int chunkX,
+        int chunkZ) {
         if (mc == null || mc.theWorld == null || view == null) {
             return null;
         }
@@ -56,7 +62,8 @@ public final class WorldMapChunkGlRenderer {
             return null;
         }
 
-        int tilePx = Math.max(16, Config.webWorldMapTilePx);
+        WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.ULTRA;
+        int tilePx = tier.isUltra() ? tier.hdTilePx() : WorldMapRenderSupport.tilePx(tier);
         Chunk chunk = mc.theWorld.getChunkFromChunkCoords(chunkX, chunkZ);
         if (chunk == null) {
             return null;
@@ -95,8 +102,13 @@ public final class WorldMapChunkGlRenderer {
         }
     }
 
-    /** Renders only AE-related blocks in the chunk onto a transparent PNG. */
     public byte[] renderAeOverlay(Minecraft mc, WorldMapView view, int dim, int chunkX, int chunkZ) {
+        return renderAeOverlay(mc, view, WorldMapQualityTier.ULTRA, dim, chunkX, chunkZ);
+    }
+
+    /** Renders only AE-related blocks in the chunk onto a transparent PNG. */
+    public byte[] renderAeOverlay(Minecraft mc, WorldMapView view, WorldMapQualityTier quality, int dim, int chunkX,
+        int chunkZ) {
         if (mc == null || mc.theWorld == null || view == null) {
             return null;
         }
@@ -104,7 +116,8 @@ public final class WorldMapChunkGlRenderer {
             return null;
         }
 
-        int tilePx = Math.max(16, Config.webWorldMapTilePx);
+        WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.ULTRA;
+        int tilePx = tier.isUltra() ? tier.hdTilePx() : WorldMapRenderSupport.tilePx(tier);
         Chunk chunk = mc.theWorld.getChunkFromChunkCoords(chunkX, chunkZ);
         if (chunk == null) {
             return null;

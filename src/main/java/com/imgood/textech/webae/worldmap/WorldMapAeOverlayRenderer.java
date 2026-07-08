@@ -13,10 +13,11 @@ import java.util.Map;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
 
 import com.imgood.textech.Config;
 import com.imgood.textech.compat.WorldMapBlockCompat;
+import com.imgood.textech.webae.worldmap.engine.WorldMapChunkContext;
+import com.imgood.textech.webae.worldmap.engine.WorldMapFaceRasterizer;
 
 /**
  * Server-side transparent PNG overlay for AE placements within one chunk.
@@ -26,6 +27,11 @@ public final class WorldMapAeOverlayRenderer {
     private WorldMapAeOverlayRenderer() {}
 
     public static byte[] render(String ownerUuid, int networkId, WorldMapView view, int dim, int chunkX, int chunkZ) {
+        return render(ownerUuid, networkId, view, WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ);
+    }
+
+    public static byte[] render(String ownerUuid, int networkId, WorldMapView view, WorldMapQualityTier quality,
+        int dim, int chunkX, int chunkZ) {
         if (!Config.webWorldMapAeOverlayEnabled) {
             return null;
         }
@@ -41,23 +47,24 @@ public final class WorldMapAeOverlayRenderer {
             return null;
         }
         if (view == WorldMapView.FLAT) {
-            return renderFlat(dim, chunkX, chunkZ, placements);
+            return renderFlat(quality, dim, chunkX, chunkZ, placements);
         }
         if (view.isOblique()) {
-            return renderOblique(dim, chunkX, chunkZ, placements, view.obliqueDirection);
+            return renderOblique(quality, dim, chunkX, chunkZ, placements, view.obliqueDirection);
         }
         return null;
     }
 
-    private static byte[] renderFlat(int dim, int chunkX, int chunkZ, List<WorldMapAePlacementRecord> placements) {
-        int tilePx = WorldMapRenderSupport.tilePx();
-        int pxPerBlock = WorldMapRenderSupport.pxPerBlock(tilePx);
+    private static byte[] renderFlat(WorldMapQualityTier quality, int dim, int chunkX, int chunkZ,
+        List<WorldMapAePlacementRecord> placements) {
+        int tilePx = WorldMapRenderSupport.tilePx(quality);
+        int pxPerBlock = WorldMapRenderSupport.pxPerBlock(quality);
         WorldServer world = WorldMapRenderSupport.worldForDim(dim);
         if (world == null) {
             return null;
         }
-        Chunk chunk = WorldMapRenderSupport.chunkFor(world, chunkX, chunkZ);
-        if (chunk == null) {
+        WorldMapChunkContext ctx = WorldMapChunkContext.create(world, chunkX, chunkZ);
+        if (ctx == null) {
             return null;
         }
 
@@ -86,14 +93,15 @@ public final class WorldMapAeOverlayRenderer {
             if (lx < 0 || lx >= 16 || lz < 0 || lz >= 16) {
                 continue;
             }
-            Block block = world.getBlock(placement.x, placement.y, placement.z);
-            int meta = world.getBlockMetadata(placement.x, placement.y, placement.z);
+            Block block = ctx.blockAt(placement.x, placement.y, placement.z);
+            int meta = ctx.blockMeta(placement.x, placement.y, placement.z);
             if (block == null || block == Blocks.air) {
-                block = chunk.getBlock(lx, placement.y, lz);
-                meta = chunk.getBlockMetadata(lx, placement.y, lz);
+                int rgb = WorldMapBlockCompat.colorForPlacement(placement.iconItemId, block, meta);
+                paintBlockPixels(img, lx, lz, pxPerBlock, 0xFF000000 | (rgb & 0xFFFFFF));
+            } else {
+                WorldMapFaceRasterizer.rasterizeTopFace(img, lx, lz, pxPerBlock, block, meta, placement.x,
+                    placement.z, ctx);
             }
-            int rgb = WorldMapBlockCompat.colorForPlacement(placement.iconItemId, block, meta);
-            paintBlockPixels(img, lx, lz, pxPerBlock, 0xFF000000 | (rgb & 0xFFFFFF));
             painted++;
         }
         if (painted <= 0) {
@@ -102,19 +110,19 @@ public final class WorldMapAeOverlayRenderer {
         return WorldMapRenderSupport.toPng(img);
     }
 
-    private static byte[] renderOblique(int dim, int chunkX, int chunkZ, List<WorldMapAePlacementRecord> placements,
-        WorldMapObliqueDirection direction) {
+    private static byte[] renderOblique(WorldMapQualityTier quality, int dim, int chunkX, int chunkZ,
+        List<WorldMapAePlacementRecord> placements, WorldMapObliqueDirection direction) {
         if (direction == null) {
             direction = WorldMapObliqueDirection.SE;
         }
-        int tilePx = WorldMapRenderSupport.tilePx();
-        int pxPerBlock = WorldMapRenderSupport.pxPerBlock(tilePx);
+        int tilePx = WorldMapRenderSupport.tilePx(quality);
+        int pxPerBlock = WorldMapRenderSupport.pxPerBlock(quality);
         WorldServer world = WorldMapRenderSupport.worldForDim(dim);
         if (world == null) {
             return null;
         }
-        Chunk chunk = WorldMapRenderSupport.chunkFor(world, chunkX, chunkZ);
-        if (chunk == null) {
+        WorldMapChunkContext ctx = WorldMapChunkContext.create(world, chunkX, chunkZ);
+        if (ctx == null) {
             return null;
         }
 
@@ -178,12 +186,8 @@ public final class WorldMapAeOverlayRenderer {
         g.setComposite(AlphaComposite.SrcOver);
         int painted = 0;
         for (DrawColumn col : columns) {
-            Block block = world.getBlock(col.placement.x, col.y, col.placement.z);
-            int meta = world.getBlockMetadata(col.placement.x, col.y, col.placement.z);
-            if (block == null || block == Blocks.air) {
-                block = chunk.getBlock(col.sampleX, col.y, col.sampleZ);
-                meta = chunk.getBlockMetadata(col.sampleX, col.y, col.sampleZ);
-            }
+            Block block = ctx.blockAt(col.placement.x, col.y, col.placement.z);
+            int meta = ctx.blockMeta(col.placement.x, col.y, col.placement.z);
             int rgb = WorldMapBlockCompat.colorForPlacement(col.placement.iconItemId, block, meta);
             int topColor = 0xFF000000 | (rgb & 0xFFFFFF);
             int sideColor = darken(rgb, 0.72f);

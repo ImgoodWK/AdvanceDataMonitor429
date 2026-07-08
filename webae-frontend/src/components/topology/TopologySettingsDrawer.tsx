@@ -8,8 +8,10 @@ import {
   type TopologyLayoutDirection,
   type TopologyRenderMode,
   type WorldMapObliqueDirection,
+  type WorldMapQualityTierId,
 } from '@/types/topologyDisplay';
-import type { WorldMapViewDto } from '@/types/dto';
+import type { WorldMapQualityTierDto, WorldMapViewDto } from '@/types/dto';
+import { clampWorldMapQuality } from '@/utils/worldMapTerrain';
 import { AE_CABLE_COLORS, type AeCableColorId, hexFromAeCableColorId } from '@/utils/aeCableColors';
 
 const { Text } = Typography;
@@ -25,9 +27,11 @@ interface TopologySettingsDrawerProps {
   /** World map oblique direction (world map mode only). */
   showWorldMapSettings?: boolean;
   obliqueDirectionOptions?: WorldMapViewDto[];
+  qualityTierOptions?: WorldMapQualityTierDto[];
+  maxQualityTier?: WorldMapQualityTierId;
 }
 
-function clampSettings(s: TopologyDisplaySettings): TopologyDisplaySettings {
+function clampSettings(s: TopologyDisplaySettings, maxQualityTier: WorldMapQualityTierId): TopologyDisplaySettings {
   return {
     ...s,
     depthGap: Math.max(80, Math.min(240, s.depthGap)),
@@ -37,6 +41,10 @@ function clampSettings(s: TopologyDisplaySettings): TopologyDisplaySettings {
     cableCellPx: Math.max(16, Math.min(40, s.cableCellPx)),
     nodeBlockPx: Math.max(24, Math.min(48, s.nodeBlockPx)),
     worldMapAeOverlayOpacity: Math.max(0.5, Math.min(1, s.worldMapAeOverlayOpacity ?? 0.85)),
+    worldMapQuality: clampWorldMapQuality(
+      s.worldMapQuality ?? DEFAULT_TOPOLOGY_DISPLAY.worldMapQuality,
+      maxQualityTier
+    ),
   };
 }
 
@@ -57,6 +65,8 @@ export function TopologySettingsDrawer({
   showRenderMode = true,
   showWorldMapSettings = false,
   obliqueDirectionOptions,
+  qualityTierOptions,
+  maxQualityTier = 'ultra',
 }: TopologySettingsDrawerProps) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<TopologyDisplaySettings>(() => cloneSettings(settings));
@@ -80,9 +90,26 @@ export function TopologySettingsDrawer({
   };
 
   const handleApply = () => {
-    onChange(clampSettings(draft));
+    onChange(clampSettings(draft, maxQualityTier));
     onClose();
   };
+
+  const qualityOptions = (qualityTierOptions && qualityTierOptions.length > 0
+    ? qualityTierOptions
+    : [
+        { id: 'low', labelKey: 'adm.webae.worldmap.quality.low', tilePx: 64, pxPerBlock: 4 },
+        { id: 'medium', labelKey: 'adm.webae.worldmap.quality.medium', tilePx: 128, pxPerBlock: 8 },
+        { id: 'high', labelKey: 'adm.webae.worldmap.quality.high', tilePx: 256, pxPerBlock: 16 },
+        { id: 'ultra', labelKey: 'adm.webae.worldmap.quality.ultra', tilePx: 512, pxPerBlock: 32 },
+      ]
+  )
+    .filter((opt) =>
+      clampWorldMapQuality(opt.id as WorldMapQualityTierId, maxQualityTier) === opt.id
+    )
+    .map((opt) => ({
+      value: opt.id,
+      label: t(`worldMapQuality_${opt.id}`),
+    }));
 
   const obliqueOptions = (obliqueDirectionOptions && obliqueDirectionOptions.length > 0
     ? obliqueDirectionOptions
@@ -150,6 +177,17 @@ export function TopologySettingsDrawer({
           />
           <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
             {t('worldMapObliqueDirectionHint')}
+          </Text>
+          <Text type="secondary">{t('worldMapQuality')}</Text>
+          <Segmented
+            style={{ width: '100%', marginTop: 8, marginBottom: 8 }}
+            value={draft.worldMapQuality}
+            onChange={(v) => patch({ worldMapQuality: v as WorldMapQualityTierId })}
+            options={qualityOptions}
+            block
+          />
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            {t('worldMapQualityHint')}
           </Text>
           <Divider orientation="left" plain>
             {t('worldMapLayerSettingsTitle')}

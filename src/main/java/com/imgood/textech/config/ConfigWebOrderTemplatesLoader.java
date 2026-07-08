@@ -17,7 +17,7 @@ import com.imgood.textech.webae.order.WebOrderTemplatesStore;
 import com.imgood.textech.webae.order.WebOrderTemplatesValidator;
 
 /**
- * Loads and persists {@code config/textech/web-order-templates.json} (batch order presets per owner).
+ * Loads and persists {@code TeXTech/WebAE/web-order-templates.json} (batch order presets per owner).
  */
 public final class ConfigWebOrderTemplatesLoader {
 

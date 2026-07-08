@@ -28,6 +28,47 @@ public final class WorldMapMetaDto {
     public List<ViewInfo> obliqueDirections = new ArrayList<ViewInfo>();
     /** True when a client HD worker may upload higher-quality tiles (Phase 4). */
     public boolean hdAvailable;
+    /** Selectable quality tiers for world map tiles. */
+    public List<QualityTierInfo> qualityTiers = new ArrayList<QualityTierInfo>();
+    /** Server cap for world map quality tier id. */
+    public String maxQualityTier = WorldMapQualityTier.ULTRA.id;
+    /** Default world map quality tier id when client has no preference. */
+    public String defaultQualityTier = WorldMapQualityTier.MEDIUM.id;
+    /** Active flat terrain render engine id (uv or legacy). */
+    public String flatRenderEngine = "uv";
+    /** Active oblique terrain render engine id (ray or legacy). */
+    public String obliqueRenderEngine = "ray";
+    /** Configured zoom pyramid levels (z0 …). */
+    public List<ZoomLevelInfo> zoomLevels = new ArrayList<ZoomLevelInfo>();
+    /** Suggested zoom level at default viewport scale (client may override from viewport). */
+    public int recommendedZoom = 0;
+    /** Whether block patch models are enabled for oblique ray rendering. */
+    public boolean blockPatchesEnabled = true;
+    /** Whether AE chunks receive a one-tier terrain quality boost. */
+    public boolean aeQualityBoost = true;
+    /** Whether server-side texture atlas baking is enabled. */
+    public boolean serverAtlasEnabled = true;
+    /** Loaded JSON/class/prefix patch rule count (excludes built-in stairs/slabs). */
+    public int blockPatchEntries = 0;
+    /** Current baked slots in server texture atlas (0 when disabled or cold). */
+    public int serverAtlasSlots = 0;
+
+    public static final class ZoomLevelInfo {
+
+        public int level;
+        public int chunkSpan;
+        public int tilePx;
+        public int pxPerBlock;
+    }
+
+    public static final class QualityTierInfo {
+
+        public String id;
+        public String labelKey;
+        public int tilePx;
+        public int pxPerBlock;
+        public boolean hdCapable;
+    }
 
     public static final class ViewInfo {
 

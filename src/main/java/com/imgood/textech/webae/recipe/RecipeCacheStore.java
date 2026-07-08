@@ -28,6 +28,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.TeXTechDataDir;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.dto.RecipeDto;
 import com.imgood.textech.webae.dto.RecipeDto.ItemEntry;
@@ -749,9 +750,8 @@ public class RecipeCacheStore {
     }
 
     public void clearDiskCache() {
-        File configDir = new File("config", AdvanceDataMonitor.MODID);
-        File gz = new File(configDir, GZ_FILENAME);
-        File legacy = new File(configDir, LEGACY_FILENAME);
+        File gz = TeXTechDataDir.webAeFile(GZ_FILENAME);
+        File legacy = new File(TeXTechDataDir.legacyConfigDir(), LEGACY_FILENAME);
         boolean changed = false;
         if (gz.exists()) {
             changed |= gz.delete();
@@ -786,10 +786,12 @@ public class RecipeCacheStore {
         lock.readLock()
             .lock();
         try {
-            File configDir = new File("config", AdvanceDataMonitor.MODID);
-            if (!configDir.exists()) configDir.mkdirs();
-            File file = new File(configDir, GZ_FILENAME);
-            File tmp = new File(configDir, GZ_FILENAME + ".tmp");
+            File file = TeXTechDataDir.webAeFile(GZ_FILENAME);
+            File parent = file.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            File tmp = new File(parent, GZ_FILENAME + ".tmp");
 
             List<RecipeDto> all = new ArrayList<RecipeDto>(recipeMap.values());
             RecipeCacheFile cacheFile = new RecipeCacheFile(SAVE_SCHEMA_VERSION, all.size(), all);
@@ -827,12 +829,16 @@ public class RecipeCacheStore {
     }
 
     public void load() {
-        File configDir = new File("config", AdvanceDataMonitor.MODID);
-        File gzFile = new File(configDir, GZ_FILENAME);
-        File legacyFile = new File(configDir, LEGACY_FILENAME);
+        File gzFile = TeXTechDataDir.webAeFile(GZ_FILENAME);
+        File legacyFile = new File(TeXTechDataDir.legacyConfigDir(), LEGACY_FILENAME);
 
         if (gzFile.exists()) {
             loadFromFile(gzFile, true);
+            return;
+        }
+        File legacyGz = new File(TeXTechDataDir.legacyConfigDir(), GZ_FILENAME);
+        if (legacyGz.exists()) {
+            loadFromFile(legacyGz, true);
             return;
         }
         if (legacyFile.exists()) {

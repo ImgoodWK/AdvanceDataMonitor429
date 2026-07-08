@@ -6,18 +6,11 @@ package com.imgood.textech.items.cell;
 public final class DataLoomWeaveScheduler {
 
     private static int weaveCooldown;
-    private static int rescanCooldown;
 
     private DataLoomWeaveScheduler() {}
 
     public static void onServerTick() {
         weaveCooldown++;
-        rescanCooldown++;
-
-        if (rescanCooldown >= 20) {
-            rescanCooldown = 0;
-            DataLoomCellIndex.INSTANCE.rescanLoadedHosts();
-        }
 
         if (weaveCooldown < DataLoomCellUtil.getSyncIntervalTicks()) {
             return;

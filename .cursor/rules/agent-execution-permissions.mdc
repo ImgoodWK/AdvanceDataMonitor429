@@ -10,15 +10,17 @@ alwaysApply: true
 ## 核心原则
 
 1. **主动带权限**：预判命令是否需要 Sandbox 外能力，**首次调用即带上**对应 `required_permissions`，不要等静默失败后再重试。
-2. **自己排查**：命令失败时先判断是否为权限/网络/Sandbox 问题，换权限重试；不要未经尝试就放弃。
-3. **获取代码优先本地**：已有 `libs/` jar、Maven 缓存、工作区内源码时直接读；缺依赖再联网或询问用户（见 `external-deps-jars.mdc`）。
+2. **拉参考代码给足权限**：从 GitHub（或任意 Git 远程）`clone` / `fetch` / `pull` / `gh repo clone` 等**仅用于分析参考**的操作，一律**首次即带 `["all"]`**；不要先用默认 Sandbox 试探，也不要因「只读参考」而降级为 `full_network`。
+3. **自己排查**：命令失败时先判断是否为权限/网络/Sandbox 问题，换权限重试；不要未经尝试就放弃。
+4. **获取代码优先本地**：已有 `libs/` jar、Maven 缓存、工作区内源码时直接读；缺依赖再联网或询问用户（见 `external-deps-jars.mdc`）。
 
 ## `required_permissions` 选用表
 
 | 场景 | 权限 | 说明 |
 |------|------|------|
 | 任意 `git` / `gh` 命令（含只读 `status`/`log`/`diff`） | `["all"]` | Sandbox 默认禁止 Git 读取，不加会返回 `no exit status` 静默失败 |
-| `git clone` / `git fetch` / `git push` / `git submodule` | `["all"]` | 同上 |
+| `git clone` / `git fetch` / `git pull` / `git push` / `git submodule` | `["all"]` | 同上；含从 GitHub 拉取参考仓库分析 |
+| `gh repo clone` / `gh api` / 其他 `gh` 读远程仓库 | `["all"]` | GitHub CLI 与 Git 同等对待，参考分析也须 `all` |
 | `npm` / `yarn` / `pnpm` / `gradle` / `gradlew` 构建与依赖解析 | 先试默认 Sandbox；失败则 `["full_network"]`，仍失败则 `["all"]` | 包管理器域名在 Sandbox 白名单内，多数情况无需额外权限 |
 | `curl` / `wget` / 访问非包管理器 URL、`WebFetch` 类下载 | `["full_network"]`；失败则 `["all"]` | 拉取文档、Release 资产、自定义 API |
 | 反编译 / 解压 jar / 读写 `.workspace/` 临时文件 | 通常默认 Sandbox 即可 | 输出路径见 `workspace-artifacts.mdc` |
@@ -31,6 +33,8 @@ alwaysApply: true
 { "command": "git status", "required_permissions": ["all"] }
 { "command": "gh pr create ...", "required_permissions": ["all"] }
 { "command": "git clone https://github.com/org/repo .workspace/external-snippets/repo", "required_permissions": ["all"] }
+{ "command": "gh repo clone org/repo .workspace/external-snippets/repo", "required_permissions": ["all"] }
+{ "command": "git -C .workspace/external-snippets/repo fetch --depth=1 origin main", "required_permissions": ["all"] }
 { "command": "curl -fsSL https://example.com/file.json -o .workspace/assets/file.json", "required_permissions": ["full_network"] }
 ```
 
@@ -48,9 +52,12 @@ alwaysApply: true
 
 | 操作 | 默认行为 |
 |------|----------|
-| `git clone` 参考仓库到 `.workspace/external-snippets/` 或 `.workspace/` 子目录 | **直接执行**（带 `["all"]`）；clone 目标必须在 `.workspace/`，不得 clone 到 `src/` 或覆盖项目根 |
-| 下载单个文件 / API JSON / lang 对照 | 写入 `.workspace/assets/` 等，带 `full_network` |
+| 从 **GitHub**（或其他 Git 远程）`clone` / `fetch` / `pull` 参考仓库，用于对照实现、读 API、抄片段 | **直接执行**，**首次 Shell 调用即 `required_permissions: ["all"]`**；目标目录必须在 `.workspace/`（推荐 `.workspace/external-snippets/<repo>`），不得 clone 到 `src/` 或覆盖项目根；拉完后只读分析，不写入本仓库 Git 索引 |
+| `gh repo clone` / `gh api` 获取 PR、Release、文件树等 GitHub 元数据 | 同上，**一律 `["all"]`** |
+| 下载单个文件 / API JSON / lang 对照（非 Git 仓库） | 写入 `.workspace/assets/` 等，带 `full_network`；若与 Git 操作组合（如 sparse checkout），整体仍用 `["all"]` |
 | `libs/` 缺少某模组 jar 且无法从 Maven 解析 | **询问用户**是否手动添加 jar 或跳过（`external-deps-jars.mdc`） |
+
+**GitHub 参考拉取要点**：需要用户点 Allow 时属正常流程；Agent 应预判并一次性申请足量权限，避免「无权限 → 失败 → 再申请」的来回。浅克隆（`--depth=1`）、指定分支/tag、sparse checkout 均适用同一策略。
 
 ### 禁止默认自动做
 

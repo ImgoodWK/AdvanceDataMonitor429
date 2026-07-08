@@ -387,6 +387,24 @@ public class WebApiRouter {
 
         }
 
+        if ("/api/worldmap/progress".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/worldmap/progress\"}");
+
+            }
+
+            return WorldMapHandler.handleProgress(params);
+
+        }
+
         if (uri.startsWith("/api/worldmap/tiles/")) {
 
             if (method != NanoHTTPD.Method.GET) {

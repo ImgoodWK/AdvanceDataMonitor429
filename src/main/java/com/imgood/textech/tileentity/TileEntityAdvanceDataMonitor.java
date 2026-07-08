@@ -24,6 +24,7 @@ import net.minecraft.util.AxisAlignedBB;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.handler.StorageLinkWatchSync;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.utils.CraftingTemplateParser;
 import com.imgood.textech.utils.DataBound;
@@ -275,6 +276,11 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
     @Override
     public void readFromNBT(NBTTagCompound compound) {
+        if (worldObj != null && !worldObj.isRemote) {
+            for (NBTTagCompound binding : dataBoundList.values()) {
+                StorageLinkWatchSync.releaseIfStorageLink(worldObj, binding);
+            }
+        }
         super.readFromNBT(compound);
         dataBoundList.clear();
 
@@ -300,6 +306,21 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             }
         }
         initializeDefaultData();
+        if (worldObj != null && !worldObj.isRemote) {
+            for (NBTTagCompound binding : dataBoundList.values()) {
+                StorageLinkWatchSync.acquireIfStorageLink(worldObj, binding);
+            }
+        }
+    }
+
+    @Override
+    public void invalidate() {
+        if (worldObj != null && !worldObj.isRemote) {
+            for (NBTTagCompound binding : dataBoundList.values()) {
+                StorageLinkWatchSync.releaseIfStorageLink(worldObj, binding);
+            }
+        }
+        super.invalidate();
     }
 
     // ========================= 数据绑定操作 =========================//
@@ -331,6 +352,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         // ----------------------------------------------------------------
 
         // 更新数据绑定列表
+        StorageLinkWatchSync.onBindingChanged(worldObj, oldData, mergedData);
         dataBoundList.put(index, mergedData);
         markDirty();
         syncData();
@@ -380,6 +402,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
     public void removeDataBound(int index) {
         if (dataBoundList.containsKey(index)) {
+            StorageLinkWatchSync.releaseIfStorageLink(worldObj, dataBoundList.get(index));
             dataBoundList.remove(index);
             markDirty();
             syncData();

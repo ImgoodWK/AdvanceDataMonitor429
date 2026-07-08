@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Parsed config/textech/web-alerts.json (automation rules).
+ * Parsed TeXTech/WebAE/web-alerts.json (automation rules).
  */
 public final class WebAlertsConfig {
 

@@ -1,8 +1,21 @@
 # TeXTech 文档中心（中文）
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · 最后同步：2026-06
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · 最后同步：2026-07
 
-English docs: [docs/en/README.md](../en/README.md)
+English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.md](../README.md)
+
+---
+
+## 文档层级
+
+| 层级 | 作用 | 路径 |
+|------|------|------|
+| L0 机器可读 | Agent / CI 事实源 | `ConfigDescriptions.java`、`LoaderNetwork.java`、`.cursor/rules/` |
+| L1 开发者规格 | 贡献者设计文档 | `developer/`、`webae/开发者手册.md`、`ai-assistant/` |
+| L2 玩家/服管 | 教程与操作 | `player/`、`webae/用户手册.md`、`assets/textech/manual/` |
+| L3 愿景/设计 | **非实现规格** | `design/` |
+
+维护地图：[documentation-map.md](developer/documentation-map.md)
 
 ---
 
@@ -34,12 +47,14 @@ English docs: [docs/en/README.md](../en/README.md)
 |------|------|
 | [webae/用户手册.md](webae/用户手册.md) | WebAE 启用、Token、各功能页面、命令与安全注意事项 |
 | [webae/开发者手册.md](webae/开发者手册.md) | 架构、REST API、网络包、前端构建、子系统设计 |
+| [webae/oc-integration.md](webae/oc-integration.md) | OpenComputers Internet Card 只读 OC 集成 API |
 
 ### 开发者向
 
 | 文档 | 说明 |
 |------|------|
 | [developer/技术文档.md](developer/技术文档.md) | 项目结构、Forge 注册、核心模块、数据流（高级计划器 API：§5.11） |
+| [developer/documentation-map.md](developer/documentation-map.md) | 改功能应更新哪些文档/规则 |
 | [developer/ui-framework.md](developer/ui-framework.md) | 容器 GUI 9-slice 框架、`ADM_UiContainer`、调试状态表 |
 | [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | 新功能开发决策清单（基类选型、网络包、lang 同步） |
 | [developer/Gradle工作流.md](developer/Gradle工作流.md) | ExampleMod 模板、构建迁移、FAQ |

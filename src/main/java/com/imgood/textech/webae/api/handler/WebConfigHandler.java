@@ -141,6 +141,14 @@ public class WebConfigHandler {
         sb.append("\"worldMapEnabled\":")
             .append(Config.webWorldMapEnabled && Config.webTopologyEnabled)
             .append(',');
+        sb.append("\"worldMapMaxQualityTier\":")
+            .append(GSON.toJson(Config.webWorldMapMaxQualityTier != null ? Config.webWorldMapMaxQualityTier : "ultra"))
+            .append(',');
+        sb.append("\"worldMapDefaultQualityTier\":")
+            .append(
+                GSON.toJson(
+                    Config.webWorldMapDefaultQualityTier != null ? Config.webWorldMapDefaultQualityTier : "medium"))
+            .append(',');
         sb.append("\"alertsEnabled\":")
             .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)
             .append(',');

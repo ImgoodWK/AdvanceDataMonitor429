@@ -9,7 +9,7 @@ export interface UseWorldMapDataResult {
   loading: boolean;
   error: string | null;
   reload: () => Promise<void>;
-  invalidateTiles: (views: string) => Promise<void>;
+  invalidateTiles: (views: string, quality?: string) => Promise<void>;
 }
 
 export function useWorldMapData(networkId: number, enabled: boolean): UseWorldMapDataResult {
@@ -51,11 +51,11 @@ export function useWorldMapData(networkId: number, enabled: boolean): UseWorldMa
   }, [enabled, networkId]);
 
   const invalidateTiles = useCallback(
-    async (views: string) => {
+    async (views: string, quality = 'medium') => {
       if (!enabled || !views) return;
       try {
-        await getApiClient().post<{ success: boolean; invalidatedTiles?: number }>(
-          `/api/worldmap/invalidate?network=${networkId}&views=${encodeURIComponent(views)}`
+        await getApiClient().post<{ success: boolean; invalidatedTiles?: number; prefetchedChunks?: number }>(
+          `/api/worldmap/invalidate?network=${networkId}&views=${encodeURIComponent(views)}&quality=${encodeURIComponent(quality)}`
         );
       } catch {
         // Non-fatal: tiles will eventually refresh from cache miss

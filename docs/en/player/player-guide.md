@@ -584,25 +584,123 @@ CPU names must match AE2 exactly or values show as `??`.
 
 ## 8. AI Chat & Assistant
 
-Open via **AI** on the monitor GUI or **O** key (default). Supports free chat and structured AE2 actions when `ai.networkEnabled=true` and an API key is set (`ai.apiKey` or `DEEPSEEK_API_KEY`). Without AI, a local keyword parser handles limited English/Chinese commands.
+Open via **AI** on the monitor GUI or **O** key (default). Supports free chat and structured AE2 tool actions.
 
-**Privacy:** first use requires confirming `ai.privacyConfirmed=true`; voice has separate `voice.privacyConfirmed`.
+### 8.1 Overview
 
-| Action | Requires within 32 blocks | Example prompt |
-|--------|---------------------------|----------------|
-| Query storage | Advanced Storage Linker | "How much tin do I have in AE?" |
-| Query recipes | Crafting Linker | "How do I craft iridium plates?" |
-| Craft order | Crafting Linker | "Order 64 tin gears" |
-| Batch craft | Crafting Linker | "Order 64 tin gears, 32 copper wire" |
-| Withdraw | Advanced Storage Linker | "Withdraw 64 tin ingots to inventory" |
-| Teleport | **Advanced Dislocator** in inventory | "List my teleport points" / "Teleport to base" |
-| Plans | — | "Add plan: check iridium line tomorrow" |
+The AI window supports both general chat and an assistant tool flow. Click **AI** on the Advance Data Monitor main screen to open it.
 
-**Limits:** max `4096` per line (`assistant.maxOrderAmount` / `maxWithdrawAmount`); max 8 tasks per AI parse; batch craft needs enough free AE2 calculation slots.
+The assistant can: query AE2 storage; query craftable patterns and recipe details; submit AE2 craft orders and batch orders; confirm candidates by number; cancel assistant actions or server craft jobs; create/list/complete simple plans; withdraw items from AE2 storage to your inventory; and general chat.
 
-**Teleport:** scans Draconic Evolution **Advanced Dislocator** (`TeleporterMKII`) destinations. If none: *No Advanced Dislocator found in inventory, or no saved destinations.* (`adm.ai.assistant.no_teleport_destinations`)
+### 8.2 When AI Is Available
 
-**Cancel:** type `cancel` — clears pending candidates and sends server craft-cancel; chat Cancel button only aborts HTTP, not AE2 jobs.
+Structured AI assistant requires:
+
+- `ai.networkEnabled = true`
+- `ai.apiKey` configured, or non-empty `DEEPSEEK_API_KEY` environment variable.
+
+If AI is unavailable, the assistant falls back to the local rule parser. It handles some Chinese/English commands but understands natural language less well than AI.
+
+### 8.3 Privacy
+
+AI chat sends your input and recent history to the configured model provider. First use requires confirming the privacy notice (`ai.privacyConfirmed=true`). Voice has separate `voice.privacyConfirmed=true`.
+
+### 8.4 Query AE2 Storage
+
+**Requires** an **Advanced Storage Linker** within 32 blocks.
+
+Examples:
+
+```text
+How much tin do I have in AE?
+How much molten solder is in fluid storage?
+Do I have iridium ingots in storage?
+```
+
+Scopes: `all` (items + fluids), `items` only, `fluids` only. AI infers scope from words like "fluid"/"liquid" vs "item"/"material".
+
+### 8.5 Query Craftable Patterns
+
+**Requires** a **Crafting Linker** within 32 blocks on a network with patterns.
+
+Examples:
+
+```text
+How do I craft iridium plates?
+List processors I can craft in AE
+Show details for candidate 2
+```
+
+Broad or empty queries return a numbered candidate list; reply with a number for recipe details.
+
+### 8.6 Submit Craft Orders
+
+Examples:
+
+```text
+Order 64 tin gears for me
+Order 4 quantum processors
+```
+
+Flow: search craft candidates → numbered list if ambiguous → confirm by number → server submits AE2 job. Per-line cap: `assistant.maxOrderAmount` (default 4096).
+
+### 8.7 Batch Craft Orders
+
+Examples:
+
+```text
+Order 64 tin gears, 32 copper wire, 4 quantum processors
+```
+
+Confirm: `confirm`, `continue`, etc. Append: `add 16 steel plates`. Merge: phrases like "merge the previous orders".
+
+Limits: max 8 tasks per AI parse; every line needs a candidate; batch submit checks free AE2 calculation slots; per-line amount capped by `maxOrderAmount`.
+
+### 8.8 Withdraw Items to Inventory
+
+Unlike crafting (making new items), withdraw moves **existing** AE2 storage into your inventory. **Requires** **Advanced Storage Linker** within 32 blocks.
+
+Examples:
+
+```text
+Withdraw 64 tin ingots to inventory
+Get 32 copper plates from AE
+Give me 16 iridium ingots
+```
+
+Flow: search storage → numbered list if needed → confirm → server transfers items. Cap: `assistant.maxWithdrawAmount` (default 4096).
+
+**Partial withdraw:** if inventory cannot fit the full amount, the assistant asks to withdraw the fitting amount; reply `confirm` to proceed.
+
+### 8.9 Batch Withdraw
+
+Examples:
+
+```text
+Withdraw 64 tin ingots, 32 copper plates, 16 iridium ingots
+```
+
+Same flow as batch craft: parse multiple tasks → confirm → execute line by line. Max 8 tasks; partial space on one line pauses batch; failure on one line stops later lines.
+
+Append/merge phrasing ("add X more", "merge withdraws") is supported.
+
+### 8.10 Cancel
+
+Type `cancel` to clear pending candidates and request server craft job cancel. The chat **Cancel** button only aborts HTTP chat, not AE2 jobs.
+
+### 8.11 Plans
+
+Examples:
+
+```text
+Create plan: check iridium line tomorrow
+List plans
+Complete plan 1
+```
+
+Lightweight assistant feature, not a full task system.
+
+**Teleport:** scans Draconic Evolution **Advanced Dislocator** destinations in inventory.
 
 Full intent list: [AI Assistant Development Guide](../ai-assistant/development-guide.md).
 
@@ -651,18 +749,44 @@ Providers include `deepseek`, `openai`, `openrouter`, `dashscope`, `zhipu`, `kim
 
 ## 11. Configuration Reference
 
-**Path:** `.minecraft/config/textech/textech.cfg` (client) or `config/textech/textech.cfg` (server).
+### 11.1 File locations
+
+Client (typical):
+
+```text
+.minecraft/config/textech/textech.cfg
+```
+
+Server instance:
+
+```text
+config/textech/textech.cfg
+```
+
+Client AI keys also in `config/textech/ai-client-local.cfg`. **When sharing your `.minecraft` folder or GTNH instance, delete or clear this file first** (or use the `DEEPSEEK_API_KEY` environment variable instead) so your API keys are not copied with the pack.
+
+### 11.2 `general`
+
+`greeting` — startup log text only; no gameplay effect.
+
+### 11.3 `ai` section
+
+Key fields: `apiBaseUrl` (default DeepSeek), `apiKey` or `DEEPSEEK_API_KEY`, `model`, `networkEnabled`, `webSearchEnabled`, `webSearchMode` (`auto`, `tavily_keyless`, `duckduckgo`, `tavily`, `brave`, `serper`, `searxng`), `searchApiKey`, `searchBaseUrl`, `searchMaxResults`, `searchFallback`, `streamingEnabled`, `privacyConfirmed`, `timeoutSeconds`, `maxTokens`, `temperature`, `debugLogging`.
+
+### 11.4 `voice` section
+
+`enabled`, `privacyConfirmed`, `sttMode` (`embedded-vosk` offline or `http`), `sttBaseUrl`, `sttApiKey`, `sttModel`, `sttTimeoutSeconds`.
+
+### 11.5 Other sections (summary)
 
 | Section | Key fields |
 |---------|------------|
-| `general` | `greeting` — log-only |
-| `ai` | `apiBaseUrl`, `apiKey`, `model`, `networkEnabled`, `webSearchEnabled`, `webSearchMode`, `searchApiKey`, `searchBaseUrl`, `searchMaxResults`, `searchFallback`, `streamingEnabled`, `privacyConfirmed`, `timeoutSeconds`, `maxTokens`, `temperature` |
-| `voice` | `enabled`, `privacyConfirmed`, `sttMode`, `sttBaseUrl`, `sttApiKey`, `sttModel`, `sttTimeoutSeconds` |
-| `assistant` | `maxOrderAmount`, `maxWithdrawAmount`, `craftJobTimeoutSeconds`, `maxConcurrentCraftJobs` |
-| `[grapple]` | hint range, interact distance, travel speed — see grapple subsystem doc |
-| `[dataLoomCell]` / per-cell sections | energy drain, sync interval, base rates |
+| `assistant` | `maxOrderAmount`, `maxWithdrawAmount`, `craftJobTimeoutSeconds`, `maxConcurrentCraftJobs`, `linkSearchRadius` |
+| `[grapple]` | hint range, interact distance, travel speed — see grapple doc |
+| `[dataLoomCell]` / per-cell | energy drain, sync interval, base rates |
+| `[webConsole]` | WebAE port, refresh, topology, world map — see [WebAE user guide](../webae/user-guide.md) |
 
-In-game **AI Settings** saves client AI/voice preferences only; server-side `[assistant]` numeric keys should be edited in cfg directly. `ConfigAssistantLoader.save()` now persists all `[assistant]` fields including `craftJobTimeoutSeconds`, `maxConcurrentCraftJobs`, and `linkSearchRadius`.
+In-game **AI Settings** saves client AI/voice preferences only; server `[assistant]` numeric keys edit in cfg directly.
 
 ---
 
@@ -694,33 +818,110 @@ Enable via AI chat **Search: On**, **AI Settings** GUI, or `/admai search on`. C
 
 ## 14. Common Use Cases
 
-| Goal | Steps |
-|------|-------|
-| AE storage trend chart | Network Linker → bind `ItemUsedBytes` % → line chart, `interval=100`, `dataLimit=200` |
-| Crafting overview wall | Crafting Linker → whole-network template → tune text scale/offset |
-| Material stock wall | Configure cells → fill **Advanced Storage Linker** → bind with `storageColumns=4` |
-| Base tour | Place **Grapple Anchor** nodes → **Grapple Hook** attach/glide (see [§3.7](#37-grapple-anchor)) |
-| AI craft batch | Stand near **Crafting Linker** → natural language order → confirm by number or `confirm` |
-| AI withdraw | Near **Advanced Storage Linker** → "Withdraw 64 tin ingots" → confirm |
+### 14.1 AE storage usage trend chart
+
+1. Cable a **Network Linker** to your AE network.
+2. Add a monitor binding pointing at the linker.
+3. Data name: `ItemUsedBytes`.
+4. Display: percentage.
+5. Chart type: line chart.
+6. `interval=100` (~5 s refresh).
+7. `dataLimit=200` for longer history.
+
+### 14.2 Crafting CPU overview wall
+
+1. Cable a **Crafting Linker**.
+2. Bind monitor to linker coordinates.
+3. Choose whole-network crafting processor template.
+4. Tune text scale/offset for floating labels.
+5. Save.
+
+### 14.3 Key material stock wall
+
+1. Configure **Advanced Storage Link Cell** partitions (e.g. iridium, tungstensteel, tin, circuits).
+2. Insert cells into **Advanced Storage Linker**.
+3. Bind monitor to linker.
+4. Set `storageColumns=4`, `storageSpacing=0.45`, `storageIconScale=1.0`.
+5. Save.
+
+### 14.4 Base tour with grapple
+
+1. Place **Grapple Anchor** nodes along routes (Shift+right-click to name).
+2. Hold **Grapple Hook**, magnet-select start node, right-click attach.
+3. Look at next node (green icon), right-click to glide.
+4. Shift to detach. Adjust speed in hook settings.
+
+Use when you want to **see the path**, not teleport past it.
+
+### 14.5 AI batch craft
+
+1. Stand within 32 blocks of **Crafting Linker**.
+2. Open AI chat.
+3. e.g. `Order 64 tin gears and 32 copper wire`.
+4. Confirm with number or `confirm`.
+
+### 14.6 AI withdraw to inventory
+
+1. Stand within 32 blocks of **Advanced Storage Linker**.
+2. Open AI chat.
+3. e.g. `Withdraw 64 tin ingots to inventory`.
+4. Confirm. Partial withdraw prompts if backpack is tight.
 
 ---
 
 ## 15. Troubleshooting
 
-| Symptom | Checks |
-|---------|--------|
-| Blank monitor | Entry enabled? Screen visible? `scale` too small? Wrong coordinates? Chunk loaded? |
-| Chart stuck at 0 | Wrong `name`; use **Data Imprint Tool** NBT viewer; AE metric spelling; chunk loaded |
-| Binding list full | Max **36** entries per face; remove unused bindings or use another face (`dataLimit` default 100 is unrelated) |
-| Network Linker empty | Cabled to AE2? Channel? Drives present? Right-click chat output? |
-| No CPUs on Crafting Linker | Same network as CPUs? Valid multiblock? Name matches template? |
-| Advanced Storage Linker empty | AE2 online? Cell partitions set? Cell inserted in linker GUI? Inverter card inverted filter? |
-| No API key | `/admai key` or cfg `ai.apiKey`; `networkEnabled=true` |
-| AI chats but no AE2 actions | **Advanced Storage Linker** / **Crafting Linker** within 32 blocks, channeled |
-| Batch craft failed | Missing candidate line; over `maxOrderAmount`; insufficient calc slots |
-| Voice dead | `voice.enabled`; privacy confirmed; STT mode/key; mic permissions |
-| Teleport failed | **Advanced Dislocator** in inventory with saved destinations |
-| Withdraw 0 / error | Stock insufficient; backpack full; `maxWithdrawAmount`; link online |
+### 15.1 Blank monitor
+
+Check entry enabled, screen visible, `scale` not too small, offsets, correct coordinates, target is a TileEntity, chunk loaded, `interval` not too large.
+
+### 15.2 Chart stuck at zero
+
+Verify `name` field; use **Data Imprint Tool** NBT viewer; for Network Linker use supported names like `ItemUsedBytes`; chunk loaded.
+
+### 15.3 Network Linker empty
+
+AE2 cabled? Channel? Drives present? Right-click chat output?
+
+### 15.4 Crafting Linker shows no CPUs
+
+Same network as CPUs? Channel? Valid multiblock? CPU name matches template?
+
+### 15.5 Advanced Storage Linker empty
+
+AE2 online? Cell partitions set in Workbench? Cell inserted in linker GUI? Inverter card filtering everything? Binding coordinates correct?
+
+### 15.6 No API key
+
+`/admai key sk-...` or cfg `ai.apiKey` or `DEEPSEEK_API_KEY`; `ai.networkEnabled=true`.
+
+### 15.7 AI network disabled
+
+`/admai network on` or `B:networkEnabled=true` in cfg.
+
+### 15.8 AI chats but no AE2 actions
+
+**Advanced Storage Linker** / **Crafting Linker** within 32 blocks, channeled to AE2.
+
+### 15.9 Batch craft failed
+
+Missing candidate line; over `maxOrderAmount`; insufficient calc slots; no Crafting Linker; craft timeout.
+
+### 15.10 Voice assistant dead
+
+`voice.enabled=true`; privacy confirmed; STT key/URL; mic permissions; try `embedded-vosk` offline mode.
+
+### 15.11 Withdraw unavailable
+
+Advanced Storage Linker within 32 blocks; channeled; matching items in network; use withdraw keywords.
+
+### 15.12 Withdraw amount zero / error
+
+Insufficient stock; full backpack; `maxWithdrawAmount`; linker offline.
+
+### 15.13 Binding list full
+
+Max **36** bindings per monitor face; remove unused entries or use another face (`dataLimit` default 100 is chart history, unrelated).
 
 ---
 

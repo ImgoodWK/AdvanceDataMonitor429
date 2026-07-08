@@ -1,8 +1,6 @@
 package com.imgood.textech.network.packet;
 
-import net.minecraft.tileentity.TileEntity;
-
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.handler.ItemCountSyncCoordinator;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -45,10 +43,11 @@ public class PacketRequestItemCountSync implements IMessage {
 
         @Override
         public IMessage onMessage(PacketRequestItemCountSync message, MessageContext ctx) {
-            TileEntity te = ctx.getServerHandler().playerEntity.worldObj.getTileEntity(message.x, message.y, message.z);
-            if (te instanceof TileEntityAdvanceStorageLink) {
-                ((TileEntityAdvanceStorageLink) te).handleItemCountSyncRequest();
-            }
+            ItemCountSyncCoordinator.schedule(
+                ctx.getServerHandler().playerEntity.worldObj,
+                message.x,
+                message.y,
+                message.z);
             return null;
         }
     }

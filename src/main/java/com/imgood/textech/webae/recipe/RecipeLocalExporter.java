@@ -21,7 +21,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Writes collected NEI recipes to {@code <instance>/TeXTechWebAE/web-recipes.json.gz} on the client.
+ * Writes collected NEI recipes to {@code <instance>/TeXTech/WebAE/web-recipes.json.gz} on the client.
  */
 public final class RecipeLocalExporter {
 

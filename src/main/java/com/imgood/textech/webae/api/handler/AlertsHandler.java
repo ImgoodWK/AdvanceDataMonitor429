@@ -21,7 +21,7 @@ import fi.iki.elonen.NanoHTTPD;
  * GET /api/alerts — active automation alerts for the authenticated owner.
  * GET /api/alerts/history — alert occurrence history (newest first).
  * GET /api/alerts/rules — alert rules mirror (same payload as {@code rules} on GET /api/alerts).
- * PUT /api/alerts/rules — persist {@code config/textech/web-alerts.json} (OP only).
+ * PUT /api/alerts/rules — persist {@code TeXTech/WebAE/web-alerts.json} (OP only).
  */
 public final class AlertsHandler {
 

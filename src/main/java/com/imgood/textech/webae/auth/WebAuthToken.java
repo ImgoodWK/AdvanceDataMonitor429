@@ -15,6 +15,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.TeXTechDataDir;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 
@@ -23,7 +24,9 @@ public class WebAuthToken {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .create();
 
-    private static final File TOKEN_FILE = new File("config/textech/web-tokens.json");
+    private static File tokenFile() {
+        return TeXTechDataDir.webAeFile("web-tokens.json");
+    }
 
     private static List<WebAuthToken> tokenCache;
 
@@ -376,12 +379,13 @@ public class WebAuthToken {
     }
 
     private static List<WebAuthToken> loadAllFromDisk() {
-        if (!TOKEN_FILE.exists()) {
+        File tokenFile = tokenFile();
+        if (!tokenFile.exists()) {
             return new ArrayList<WebAuthToken>();
         }
         FileReader reader = null;
         try {
-            reader = new FileReader(TOKEN_FILE);
+            reader = new FileReader(tokenFile);
             List<WebAuthToken> tokens = GSON.fromJson(reader, new TypeToken<List<WebAuthToken>>() {}.getType());
             List<WebAuthToken> result = tokens != null ? new ArrayList<WebAuthToken>(tokens)
                 : new ArrayList<WebAuthToken>();
@@ -402,11 +406,12 @@ public class WebAuthToken {
     }
 
     private static void saveAllAtomic(List<WebAuthToken> tokens) {
-        File parent = TOKEN_FILE.getParentFile();
+        File tokenFile = tokenFile();
+        File parent = tokenFile.getParentFile();
         if (parent != null && !parent.exists()) {
             parent.mkdirs();
         }
-        File tmp = new File(TOKEN_FILE.getParentFile(), TOKEN_FILE.getName() + ".tmp");
+        File tmp = new File(tokenFile.getParentFile(), tokenFile.getName() + ".tmp");
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new FileWriter(tmp, false));
@@ -414,10 +419,10 @@ public class WebAuthToken {
             writer.flush();
             writer.close();
             writer = null;
-            if (TOKEN_FILE.exists() && !TOKEN_FILE.delete()) {
+            if (tokenFile.exists() && !tokenFile.delete()) {
                 AdvanceDataMonitor.LOG.warn("[WebAE] Failed to remove old tokens file before rename");
             }
-            if (!tmp.renameTo(TOKEN_FILE)) {
+            if (!tmp.renameTo(tokenFile)) {
                 AdvanceDataMonitor.LOG.error("[WebAE] Failed to rename temp tokens file");
             }
         } catch (IOException e) {

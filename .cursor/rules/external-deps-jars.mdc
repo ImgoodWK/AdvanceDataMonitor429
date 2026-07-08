@@ -47,7 +47,7 @@ alwaysApply: false
 
 ## 工作流程
 
-Shell 权限与 `git clone` 参考仓库的默认行为见 **`agent-execution-permissions.mdc`**（主动带 `all` / `full_network`，jar 已存在则直接反编译）。
+Shell 权限与 `git clone` 参考仓库的默认行为见 **`agent-execution-permissions.mdc`**：从 GitHub 拉取参考代码分析时**首次即 `required_permissions: ["all"]`**；单文件下载用 `full_network`；`libs/` 已有 jar 则直接反编译，无需再 clone。
 
 ### 当需要查看其他 GTNH 模组（官方/社区）的类或方法时：
 

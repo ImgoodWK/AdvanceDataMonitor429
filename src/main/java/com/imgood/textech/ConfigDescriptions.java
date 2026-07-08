@@ -385,8 +385,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "nesqlRepositoryPath",
-            "NESQL exporter repository root for /admweb icons import-nesql. Empty = <instance>/TeXTechWebAE (same folder as client recipe export).",
-            "NESQL 导出仓库根目录，用于 /admweb icons import-nesql。空 = 实例根目录下 TeXTechWebAE（与客户端配方导出目录相同）。");
+            "NESQL exporter repository root for /admweb icons import-nesql. Empty = <instance>/TeXTech/WebAE (same folder as client recipe export).",
+            "NESQL 导出仓库根目录，用于 /admweb icons import-nesql。空 = 实例根目录下 TeXTech/WebAE（与客户端配方导出目录相同）。");
         put(
             "webConsole",
             "neiDeepScanItemsPerTick",
@@ -500,8 +500,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "topologySnapshotPersist",
-            "Persist topology snapshots to config/textech/web-topology/ across server restarts. Default true.",
-            "将拓扑快照持久化到 config/textech/web-topology/，服务端重启后仍可读取。默认开启。");
+            "Persist topology snapshots to TeXTech/WebAE/topology/ across server restarts. Default true.",
+            "将拓扑快照持久化到 TeXTech/WebAE/topology/，服务端重启后仍可读取。默认开启。");
         put(
             "webConsole",
             "dynmapBaseUrl",
@@ -515,8 +515,18 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "worldMapTilePx",
-            "Pixel edge length per chunk tile for world map terrain rendering. Default 128.",
-            "世界地图每个 chunk 瓦片的像素边长。默认 128。");
+            "Deprecated: legacy single tile size (migrated to medium tier when not 128). Default 128.",
+            "已废弃：旧版单一瓦片像素边长（非 128 时迁移为 medium 档）。默认 128。");
+        put(
+            "webConsole",
+            "worldMapMaxQualityTier",
+            "Highest world map quality tier allowed on this server: low, medium, high, ultra. Default ultra.",
+            "服务端允许的世界地图最高清晰度档位：low / medium / high / ultra。默认 ultra。");
+        put(
+            "webConsole",
+            "worldMapDefaultQualityTier",
+            "Default world map quality tier when WebAE has no user preference. Default medium.",
+            "WebAE 未设置用户偏好时的默认世界地图清晰度档位。默认 medium。");
         put(
             "webConsole",
             "worldMapBoundsPaddingChunks",
@@ -562,6 +572,71 @@ public final class ConfigDescriptions {
             "worldMapAeOverlayIncludeCables",
             "Include AE cables in AE overlay scope and tile rendering. Default true.",
             "AE 透视层范围与瓦片渲染包含线缆。默认开启。");
+        put(
+            "webConsole",
+            "worldMapRenderEngine",
+            "Flat terrain tile engine: legacy (average color painter) or uv (texture UV + biome/lighting). Default uv.",
+            "俯视地形瓦片引擎：legacy（平均色 painter）或 uv（纹理 UV + 生物群系/光照）。默认 uv。");
+        put(
+            "webConsole",
+            "worldMapObliqueEngine",
+            "Oblique terrain tile engine: legacy (column painter) or ray (per-pixel ray trace). Default ray.",
+            "斜视角地形瓦片引擎：legacy（柱体 painter）或 ray（逐像素光线追踪）。默认 ray。");
+        put(
+            "webConsole",
+            "worldMapChunkPadding",
+            "Chunk padding around each tile snapshot for cross-boundary block lookups (1 = 3x3). Default 1.",
+            "每个瓦片快照向四周扩展的 chunk 数，用于跨边界方块查询（1 = 3×3）。默认 1。");
+        put(
+            "webConsole",
+            "worldMapTextureCacheMax",
+            "LRU cap for server-side block face textures loaded by the UV renderer. Default 2048.",
+            "UV 渲染器从 JAR 加载的方块面纹理 LRU 缓存上限。默认 2048。");
+        put(
+            "webConsole",
+            "worldMapRayBudgetPerTick",
+            "Per-tick chunk render budget when oblique ray engine is used. Default 1.",
+            "斜视角 ray 引擎每 tick 渲染的 chunk 预算。默认 1。");
+        put(
+            "webConsole",
+            "worldMapMaxRayDepth",
+            "Max transparent block layers blended per oblique ray pixel. Default 3.",
+            "斜视角光线每个像素最多叠层的透明方块数。默认 3。");
+        put(
+            "webConsole",
+            "worldMapLowTierObliqueEngine",
+            "Oblique engine for low/medium quality tiers: legacy or ray. Default legacy (saves CPU).",
+            "低/中档清晰度斜视角引擎：legacy 或 ray。默认 legacy（节省 CPU）。");
+        put(
+            "webConsole",
+            "worldMapZoomLevels",
+            "World map zoom pyramid depth (z0 native chunk tiles + parent merges). Default 3 (z0–z2).",
+            "世界地图 zoom 金字塔层数（z0 原生 chunk + 父级合并）。默认 3（z0–z2）。");
+        put(
+            "webConsole",
+            "worldMapZoomBudgetPerTick",
+            "Max parent zoom tile syntheses per server tick. Default 4.",
+            "每 tick 最多合成的父级 zoom 瓦片数。默认 4。");
+        put(
+            "webConsole",
+            "worldMapBlockPatchesEnabled",
+            "Enable JSON + built-in block patch models for oblique ray hits (stairs, slabs, GT). Default true.",
+            "启用 JSON + 内置方块 patch 模型用于斜视角光线命中（楼梯、半砖、GT 等）。默认开启。");
+        put(
+            "webConsole",
+            "worldMapAeQualityBoost",
+            "Bump terrain tile quality one tier for chunks containing AE devices (within max tier). Default true.",
+            "对含 AE 设备的 chunk 地形瓦片提升一档清晰度（不超过服务端上限）。默认开启。");
+        put(
+            "webConsole",
+            "worldMapServerAtlasEnabled",
+            "Bake server-side block face textures into a single atlas grid to reduce image object count. Default true.",
+            "将服务端方块面纹理烘焙进单张 atlas 网格，减少 Image 对象数量。默认开启。");
+        put(
+            "webConsole",
+            "worldMapServerAtlasPx",
+            "Server-side world map texture atlas edge length in pixels (multiple of 16). Default 2048.",
+            "服务端世界地图纹理 atlas 边长（像素，须为 16 的倍数）。默认 2048。");
         put(
             "debug",
             "webaeIcons",

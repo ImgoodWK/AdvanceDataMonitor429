@@ -1,5 +1,7 @@
 # TeXTech Future Development Vision
 
+> **⚠️ Not current implementation spec**: This document describes long-term vision and creative drafts. It is **excluded from CI/doc-check validation** and must not be used by Agents or contributors to infer what the codebase already implements. For current specs see [Technical Documentation](../developer/technical-documentation.md), [WebAE Developer Guide](../webae/developer-guide.md), and subsystem design docs.
+
 > *"Weaving reality from the torrent of data, stitching matter and substance with threads of binary."*
 
 ## Vision Overview

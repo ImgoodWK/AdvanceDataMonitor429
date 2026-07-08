@@ -52,9 +52,9 @@ server with the mod loaded to test against the live backend.
 ## Recipe & Icon APIs (NEI performance Phase 0–4)
 
 - **Multi-handler search**: `GET /api/recipes/search?q=&handler=h1,h2` accepts comma-separated handler IDs; the Recipes page passes selected category Tags as `handler`.
-- **Upload modes** (in-game, OP): `/admweb recipes upload snapshot` (storage items only), `upload` (default full NEI+Game), `upload deep` (slow item-driven NEI scan). Client also writes `<instance>/TeXTechWebAE/web-recipes.json.gz` (same gzip schema as the server cache).
+- **Upload modes** (in-game, OP): `/admweb recipes upload snapshot` (storage items only), `upload` (default full NEI+Game), `upload deep` (slow item-driven NEI scan). Client also writes `<instance>/TeXTech/WebAE/web-recipes.json.gz` (same gzip schema as the server cache).
 - **Icon lazy-load SSE**: when `IconMissingQueue` resolves a missing icon, the server emits SSE event `icon-ready`; `useEventStream` dispatches `webae-icon-ready` so `Icon.tsx` reloads without a full page refresh.
-- **NESQL import**: `[webConsole] nesqlRepositoryPath` optional; when empty, defaults to `<instance>/TeXTechWebAE`. OP runs `/admweb icons import-nesql [pack] [subpath]` (server-side, no client render).
+- **NESQL import**: `[webConsole] nesqlRepositoryPath` optional; when empty, defaults to `<instance>/TeXTech/WebAE`. OP runs `/admweb icons import-nesql [pack] [subpath]` (server-side, no client render).
 
 ## Project Structure
 

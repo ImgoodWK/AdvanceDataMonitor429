@@ -25,7 +25,7 @@ import io.netty.buffer.ByteBuf;
  *
  * Packet ID 28. Reuses the chunked-upload pattern from {@link PacketWebRecipeUpload}
  * but the reassembled payload is a JSON map of itemId → base64PNG strings, which the
- * server decodes and writes to {@code config/textech/web-icons/<packName>/}.
+ * server decodes and writes to {@code TeXTech/WebAE/icons/<packName>/}.
  */
 public class PacketWebIconUpload implements IMessage {
 
