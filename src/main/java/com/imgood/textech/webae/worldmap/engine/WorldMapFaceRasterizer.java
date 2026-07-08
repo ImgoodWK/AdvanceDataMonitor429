@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.BiomeGenBase;
 
+import com.imgood.textech.webae.worldmap.WorldMapAeCategory;
 import com.imgood.textech.webae.worldmap.WorldMapBlockColorResolver;
 
 /**
@@ -33,6 +34,78 @@ public final class WorldMapFaceRasterizer {
             0xFF);
     }
 
+    /**
+     * Rasterize block top-face shape using texture alpha; pixel RGB encodes {@code categoryId} in the R channel.
+     */
+    public static void rasterizeTopFaceCategoryId(BufferedImage tile, int destX, int destZ, int ppb, Block block,
+        int meta, int wx, int wz, WorldMapChunkContext ctx, int categoryId) {
+        rasterizeFaceCategoryId(
+            tile,
+            destX,
+            destZ,
+            ppb,
+            block,
+            meta,
+            wx,
+            wz,
+            ctx,
+            WorldMapBlockColorResolver.BlockFace.TOP,
+            categoryId);
+    }
+
+    public static void rasterizeFaceCategoryId(BufferedImage tile, int destX, int destZ, int ppb, Block block, int meta,
+        int wx, int wz, WorldMapChunkContext ctx, WorldMapBlockColorResolver.BlockFace face, int categoryId) {
+        if (tile == null || block == null || block == Blocks.air || ppb <= 0 || ctx == null) {
+            return;
+        }
+        int cid = categoryId & 0xFF;
+        if (cid <= 0) {
+            return;
+        }
+        int startX = destX * ppb;
+        int startZ = destZ * ppb;
+        int tileW = tile.getWidth();
+        int tileH = tile.getHeight();
+        if (startX >= tileW || startZ >= tileH) {
+            return;
+        }
+        BufferedImage texture = WorldMapTextureRegistry.faceTexture(block, meta, face);
+        int endX = Math.min(startX + ppb, tileW);
+        int endZ = Math.min(startZ + ppb, tileH);
+        for (int dz = startZ; dz < endZ; dz++) {
+            for (int dx = startX; dx < endX; dx++) {
+                int localX = dx - startX;
+                int localZ = dz - startZ;
+                int alpha = sampleAlpha(texture, localX, localZ, ppb);
+                if (alpha <= 0) {
+                    continue;
+                }
+                int argb = WorldMapAeCategory.argbForCategory(cid, alpha);
+                if (argb != 0) {
+                    tile.setRGB(dx, dz, argb);
+                }
+            }
+        }
+    }
+
+    private static int sampleAlpha(BufferedImage texture, int localX, int localZ, int ppb) {
+        if (texture == null) {
+            return 0xFF;
+        }
+        int u = localX * TEX_SIZE / ppb;
+        int v = localZ * TEX_SIZE / ppb;
+        if (u < 0 || u >= texture.getWidth() || v < 0 || v >= texture.getHeight()) {
+            return 0xFF;
+        }
+        int argb = texture.getRGB(u, v);
+        int a = (argb >>> 24) & 0xFF;
+        if (a <= 0) {
+            int rgb = WorldMapTextureRegistry.samplePixelRgb(texture, u, v);
+            return rgb >= 0 ? 0xFF : 0;
+        }
+        return a;
+    }
+
     public static void rasterizeFace(BufferedImage tile, int destX, int destZ, int ppb, Block block, int meta,
         int wx, int wz, WorldMapChunkContext ctx, WorldMapBlockColorResolver.BlockFace face, int alpha) {
         if (tile == null || block == null || block == Blocks.air || ppb <= 0 || ctx == null) {
@@ -53,8 +126,6 @@ public final class WorldMapFaceRasterizer {
             y = ctx.findTopBlockY(wx, wz);
         }
         int tint = WorldMapBiomeTint.tintFor(block, meta, biome, wx, y, wz);
-        int sky = y >= 0 ? ctx.skyLight(wx, y, wz) : 15;
-        int blockLight = y >= 0 ? ctx.blockLight(wx, y, wz) : 0;
         int fallback = WorldMapBlockColorResolver.colorFor(block, meta, face);
 
         int endX = startX + ppb;
@@ -74,7 +145,7 @@ public final class WorldMapFaceRasterizer {
                 if (WorldMapBiomeTint.needsTint(block)) {
                     rgb = WorldMapBiomeTint.applyTint(rgb, tint);
                 }
-                rgb = WorldMapFaceLighting.shadeRgb(rgb, face, sky, blockLight);
+                rgb = WorldMapFaceLighting.shadeRgbSmooth(rgb, face, wx, y, wz, ctx);
                 int a = alpha & 0xFF;
                 if (a >= 255) {
                     tile.setRGB(dx, dz, 0xFF000000 | rgb);
@@ -134,7 +205,7 @@ public final class WorldMapFaceRasterizer {
         }
         int sky = ctx.skyLight(wx, wy, wz);
         int blockLight = ctx.blockLight(wx, wy, wz);
-        return WorldMapFaceLighting.shadeRgb(rgb, face, sky, blockLight);
+        return WorldMapFaceLighting.shadeRgbSmooth(rgb, face, wx, wy, wz, ctx);
     }
 
     private static int sampleRgb(BufferedImage texture, int localX, int localZ, int ppb, int fallback) {

@@ -8,6 +8,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.webae.worldmap.WorldMapChunkSetBuilder;
+import com.imgood.textech.webae.worldmap.WorldMapClientCaptureMode;
 import com.imgood.textech.webae.worldmap.WorldMapHdSupport;
 import com.imgood.textech.webae.worldmap.WorldMapMetaDto;
 import com.imgood.textech.webae.worldmap.WorldMapTileCache;
@@ -168,7 +169,7 @@ public class PacketWebMapTileUpload implements IMessage {
                 }
             }
             WorldMapQualityTier tier = WorldMapQualityTier.fromId(message.quality);
-            if (!tier.isUltra()) {
+            if (!WorldMapClientCaptureMode.shouldUseClientForTier(tier)) {
                 return;
             }
             WorldMapTileCache.writeHd(parsed.id, message.layer, tier, message.dim, message.chunkX, message.chunkZ,

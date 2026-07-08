@@ -279,6 +279,11 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.webWorldMapViewsEnabled,
             ConfigDescriptions.get("webConsole", "worldMapViewsEnabled"));
+        Config.webWorldMapObliqueEnabled = configuration.getBoolean(
+            "worldMapObliqueEnabled",
+            "webConsole",
+            Config.webWorldMapObliqueEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapObliqueEnabled"));
         Config.webWorldMapClientHdEnabled = configuration.getBoolean(
             "worldMapClientHdEnabled",
             "webConsole",
@@ -291,6 +296,37 @@ public final class ConfigWebaeLoader {
             1,
             8,
             ConfigDescriptions.get("webConsole", "worldMapClientHdBudgetPerTick"));
+        Config.worldMapClientCaptureMode = configuration.getString(
+            "worldMapClientCaptureMode",
+            "webConsole",
+            Config.worldMapClientCaptureMode,
+            ConfigDescriptions.get("webConsole", "worldMapClientCaptureMode"));
+        Config.worldMapClientCaptureRadius = configuration.getInt(
+            "worldMapClientCaptureRadius",
+            "webConsole",
+            Config.worldMapClientCaptureRadius,
+            0,
+            8,
+            ConfigDescriptions.get("webConsole", "worldMapClientCaptureRadius"));
+        Config.worldMapClientCaptureBudgetPerTick = configuration.getInt(
+            "worldMapClientCaptureBudgetPerTick",
+            "webConsole",
+            Config.worldMapClientCaptureBudgetPerTick,
+            0,
+            4,
+            ConfigDescriptions.get("webConsole", "worldMapClientCaptureBudgetPerTick"));
+        Config.webWorldMapProgressiveFallback = configuration.getBoolean(
+            "worldMapProgressiveFallback",
+            "webConsole",
+            Config.webWorldMapProgressiveFallback,
+            ConfigDescriptions.get("webConsole", "worldMapProgressiveFallback"));
+        Config.webWorldMapClientHdTimeoutMs = configuration.getInt(
+            "worldMapClientHdTimeoutMs",
+            "webConsole",
+            Config.webWorldMapClientHdTimeoutMs,
+            1000,
+            30000,
+            ConfigDescriptions.get("webConsole", "worldMapClientHdTimeoutMs"));
         Config.webWorldMapAeOverlayEnabled = configuration.getBoolean(
             "worldMapAeOverlayEnabled",
             "webConsole",
@@ -332,6 +368,13 @@ public final class ConfigWebaeLoader {
             1,
             32,
             ConfigDescriptions.get("webConsole", "worldMapRayBudgetPerTick"));
+        Config.webWorldMapRenderThreads = configuration.getInt(
+            "worldMapRenderThreads",
+            "webConsole",
+            Config.webWorldMapRenderThreads,
+            0,
+            32,
+            ConfigDescriptions.get("webConsole", "worldMapRenderThreads"));
         Config.webWorldMapMaxRayDepth = configuration.getInt(
             "worldMapMaxRayDepth",
             "webConsole",
@@ -368,6 +411,11 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.webWorldMapAeQualityBoost,
             ConfigDescriptions.get("webConsole", "worldMapAeQualityBoost"));
+        Config.worldMapAeOverlayQualityTier = configuration.getString(
+            "worldMapAeOverlayQualityTier",
+            "webConsole",
+            Config.worldMapAeOverlayQualityTier,
+            ConfigDescriptions.get("webConsole", "worldMapAeOverlayQualityTier"));
         Config.webWorldMapServerAtlasEnabled = configuration.getBoolean(
             "worldMapServerAtlasEnabled",
             "webConsole",
@@ -380,5 +428,15 @@ public final class ConfigWebaeLoader {
             256,
             4096,
             ConfigDescriptions.get("webConsole", "worldMapServerAtlasPx"));
+        Config.worldMapTerrainSource = configuration.getString(
+            "worldMapTerrainSource",
+            "webConsole",
+            Config.worldMapTerrainSource,
+            ConfigDescriptions.get("webConsole", "worldMapTerrainSource"));
+        Config.worldMapDynmapTileRoot = configuration.getString(
+            "worldMapDynmapTileRoot",
+            "webConsole",
+            Config.worldMapDynmapTileRoot,
+            ConfigDescriptions.get("webConsole", "worldMapDynmapTileRoot"));
     }
 }

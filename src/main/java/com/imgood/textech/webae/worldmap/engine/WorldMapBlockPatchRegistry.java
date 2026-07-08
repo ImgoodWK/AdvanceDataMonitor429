@@ -144,6 +144,13 @@ public final class WorldMapBlockPatchRegistry {
     private static List<WorldMapBlockPatch> resolvePatches(WorldMapChunkContext ctx, int wx, int wy, int wz,
         Block block, int meta) {
         ensureLoaded();
+        // AE2 cable blocks: use cable-shaped patches
+        if (ctx != null) {
+            List<WorldMapBlockPatch> ae2 = WorldMapAe2PatchResolver.resolve(ctx, wx, wy, wz, block, meta);
+            if (ae2 != null && !ae2.isEmpty()) {
+                return ae2;
+            }
+        }
         if (ctx != null && isGregTechBlock(block)) {
             List<WorldMapBlockPatch> gt = WorldMapGtPatchResolver.resolve(ctx, wx, wy, wz, block);
             if (gt != null && !gt.isEmpty()) {

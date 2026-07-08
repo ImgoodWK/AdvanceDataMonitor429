@@ -29,6 +29,14 @@ interface TopologySettingsDrawerProps {
   obliqueDirectionOptions?: WorldMapViewDto[];
   qualityTierOptions?: WorldMapQualityTierDto[];
   maxQualityTier?: WorldMapQualityTierId;
+  /** Current terrain source label for display ("dynmap" / "self"). */
+  terrainSource?: string;
+  /** Whether client GL capture is available (player online). */
+  hdAvailable?: boolean;
+  /** Client capture mode from server config. */
+  clientCaptureMode?: string;
+  /** Dynmap base URL for "Open in Dynmap" button. */
+  dynmapBaseUrl?: string;
 }
 
 function clampSettings(s: TopologyDisplaySettings, maxQualityTier: WorldMapQualityTierId): TopologyDisplaySettings {
@@ -53,6 +61,8 @@ function cloneSettings(s: TopologyDisplaySettings): TopologyDisplaySettings {
     ...s,
     colors: { ...s.colors },
     cableColorPreset: { ...s.cableColorPreset },
+    worldMapAeCategoryColors: { ...s.worldMapAeCategoryColors },
+    worldMapAeItemColorOverrides: { ...s.worldMapAeItemColorOverrides },
   };
 }
 
@@ -67,6 +77,10 @@ export function TopologySettingsDrawer({
   obliqueDirectionOptions,
   qualityTierOptions,
   maxQualityTier = 'ultra',
+  terrainSource,
+  hdAvailable,
+  clientCaptureMode,
+  dynmapBaseUrl,
 }: TopologySettingsDrawerProps) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<TopologyDisplaySettings>(() => cloneSettings(settings));
@@ -168,6 +182,49 @@ export function TopologySettingsDrawer({
           <Divider orientation="left" plain>
             {t('worldMapSettingsTitle')}
           </Divider>
+          {/* Terrain source indicator */}
+          {terrainSource && (
+            <div style={{ marginBottom: 16 }}>
+              <Text type="secondary">
+                {t('worldMapTerrainSource') || '地形来源'}:{' '}
+              </Text>
+              <Text strong>
+                {terrainSource === 'dynmap'
+                  ? t('worldMapTerrainSource_dynmap') || 'Dynmap 地形'
+                  : t('worldMapTerrainSource_self') || '内置渲染'}
+              </Text>
+            </div>
+          )}
+          {clientCaptureMode && clientCaptureMode !== 'off' && (
+            <div style={{ marginBottom: 16 }}>
+              <Text type="secondary">{t('worldMapClientCaptureMode')}: </Text>
+              <Text strong>
+                {t(`worldMapClientCaptureMode_${clientCaptureMode}` as 'worldMapClientCaptureMode_when_online')}
+              </Text>
+              {hdAvailable != null && (
+                <>
+                  {' '}
+                  <Text type={hdAvailable ? 'success' : 'secondary'}>
+                    ({hdAvailable ? t('worldMapHdAvailable') : t('worldMapHdUnavailable')})
+                  </Text>
+                </>
+              )}
+            </div>
+          )}
+          {/* Open in Dynmap button */}
+          {dynmapBaseUrl && (
+            <div style={{ marginBottom: 16 }}>
+              <Button
+                type="primary"
+                ghost
+                size="small"
+                block
+                onClick={() => window.open(dynmapBaseUrl, '_blank', 'noopener')}
+              >
+                {t('worldMapOpenDynmap') || '在 Dynmap 中打开'}
+              </Button>
+            </div>
+          )}
           <Text type="secondary">{t('worldMapObliqueDirection')}</Text>
           <Select
             style={{ width: '100%', marginTop: 8, marginBottom: 16 }}

@@ -45,13 +45,29 @@ public final class WorldMapMetaDto {
     /** Whether block patch models are enabled for oblique ray rendering. */
     public boolean blockPatchesEnabled = true;
     /** Whether AE chunks receive a one-tier terrain quality boost. */
-    public boolean aeQualityBoost = true;
+    public boolean aeQualityBoost = false;
+    /** Fixed quality tier id for AE overlay tiles (independent from terrain quality). */
+    public String aeOverlayQualityTier = WorldMapQualityTier.ULTRA.id;
     /** Whether server-side texture atlas baking is enabled. */
     public boolean serverAtlasEnabled = true;
     /** Loaded JSON/class/prefix patch rule count (excludes built-in stairs/slabs). */
     public int blockPatchEntries = 0;
     /** Current baked slots in server texture atlas (0 when disabled or cold). */
     public int serverAtlasSlots = 0;
+    /** Terrain source in use: "dynmap" or "self". */
+    public String terrainSource = "self";
+    /** Whether a Dynmap (or GWM/GTNH-Web-Map) is available on this server. */
+    public boolean dynmapAvailable;
+    /** Dynmap world name when terrainSource=dynmap (e.g. "world"). */
+    public String dynmapWorldName;
+    /** URL template for Dynmap tiles served through WebAE auth proxy. */
+    public String dynmapTileUrlTemplate;
+    /** Highest native zoom level for Dynmap/GWM tile trees (single-resolution fetch). */
+    public int dynmapMaxZoom = 6;
+    /** Client GL capture mode in effect: off | ultra_only | when_online. */
+    public String clientCaptureMode = WorldMapClientCaptureMode.WHEN_ONLINE;
+    /** Whether progressive lower-tier / Dynmap crop fallback is enabled. */
+    public boolean progressiveFallback = true;
 
     public static final class ZoomLevelInfo {
 

@@ -142,11 +142,20 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `worldMapTileBudgetPerTick` | int | `2` | 1-32 | Max chunk tiles rendered per tick |
 | `worldMapMaxChunks` | int | `512` | 16-4096 | Max chunk tiles per dimension (clamp + `boundsTooLarge`) |
 | `worldMapRequireNetworkScope` | boolean | `true` | — | Render tiles only within AE network scope |
-| `worldMapViewsEnabled` | string | `flat,oblique` | — | Enabled views (comma-separated) |
-| `worldMapClientHdEnabled` | boolean | `true` | — | Allow client GL HD rendering for ultra tier |
-| `worldMapClientHdBudgetPerTick` | int | `1` | 1-8 | Client HD tile render budget per tick |
+| `worldMapViewsEnabled` | string | `flat` | — | Enabled views (comma-separated) |
+| `worldMapObliqueEnabled` | boolean | `false` | — | Master oblique switch; when false, flat only (AND with `worldMapViewsEnabled`) |
+| `worldMapZoomLevels` | int | `1` | 1-6 | Zoom pyramid depth; default 1 (z0 only; viewport scales) |
+| `worldMapClientHdEnabled` | boolean | `true` | — | Allow client GL tile capture upload |
+| `worldMapClientHdBudgetPerTick` | int | `3` | 1-8 | Client GL tile render budget per tick |
+| `worldMapClientCaptureMode` | string | `when_online` | — | Client capture policy: `off` / `ultra_only` / `when_online` |
+| `worldMapClientCaptureRadius` | int | `2` | 0-8 | Proactive flat capture radius in chunks (0=off) |
+| `worldMapClientCaptureBudgetPerTick` | int | `1` | 0-4 | Proactive captures per client tick |
+| `worldMapProgressiveFallback` | boolean | `true` | — | Serve lower tier / Dynmap crop while target tier renders |
+| `worldMapClientHdTimeoutMs` | int | `5000` | 1000-30000 | Client GL wait before server fallback |
 | `worldMapAeOverlayEnabled` | boolean | `true` | — | Render AE overlay layer |
 | `worldMapAeOverlayIncludeCables` | boolean | `true` | — | Include cables in AE overlay |
+| `worldMapAeOverlayQualityTier` | string | `ultra` | — | AE overlay tile quality (decoupled from terrain quality) |
+| `worldMapAeQualityBoost` | boolean | `false` | — | +1 terrain tier for AE-device chunks (default off) |
 | `worldMapRenderEngine` | string | `uv` | — | Flat engine: `legacy` (average color) / `uv` (texture UV + biome/lighting) |
 | `worldMapObliqueEngine` | string | `ray` | — | Oblique engine: `legacy` (column painter) / `ray` (per-pixel ray trace) |
 | `worldMapChunkPadding` | int | `1` | 0-4 | Chunk padding for cross-boundary snapshots (1 = 3×3) |
@@ -753,17 +762,25 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Package**: `webae/worldmap/` + `webae/worldmap/engine/` (Dynmap-grade UV/ray core) — see `project-structure-details.mdc`; frontend overlay is `WorldMapAeOverlayLayer.tsx` (not a Java class)
 - **Render engines**: `WorldMapRenderSupport.renderForView` dispatches flat+`uv` → `WorldMapFlatUvRenderer`; oblique+`ray` → `WorldMapIsoRayRenderer` (`WorldMapObliqueProjection` ortho rays + voxel DDA + `WorldMapFaceRasterizer` UV/biome/lighting); `legacy` painters kept as fallback; meta exposes `flatRenderEngine` / `obliqueRenderEngine`
-- **REST**: `GET /api/worldmap/meta?network=<id>&quality=` (includes `zoomLevels[]`, `recommendedZoom`); `GET /api/worldmap/markers?network=<id>`; `GET /api/worldmap/progress?network=&view=&dim=&quality=`; `GET /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png?quality=&zoom=` (terrain; `zoom=0|1|2` pyramid level, cx/cz are level-aligned tile indices); `GET /api/worldmap/tiles/{view}/ae/{dim}/{cx}/{cz}.png?quality=&zoom=` (AE overlay); `POST /api/worldmap/invalidate?views=&layer=&quality=` (invalidates all tiers and zoom levels then batch-prefetches terrain+ae)
+- **REST**: `GET /api/worldmap/meta?network=<id>&quality=` (includes `zoomLevels[]`, `dynmapMaxZoom`); terrain/AE tile URLs fixed at z0; AE tiles are category ID maps (R=categoryId); cache under `{view}/ae-id/`
 - **Snapshot**: `TopologySnapshot.aePlacements[]` (written on logical capture; block/cable/part coords + iconItemId)
-- **Quality tiers**: `WorldMapQualityTier` — low(64px)/medium(128)/high(256)/ultra(512 HD online / 256 offline fallback); cache path `web-map-tiles/{view}/q{tier}/z{level}/[ae/]{dim}/{cx}/{cz}.png`; z0 legacy path without `z{level}` read-only fallback
-- **Zoom pyramid (Phase 3)**: `WorldMapZoomPyramid` — after z0 write, auto-enqueues parent z1/z2 (2×2 box downsample); `webWorldMapZoomLevels` (default 3), `webWorldMapZoomBudgetPerTick` (default 4); frontend `selectWorldMapZoomLevel(viewport.scale)` picks layer
+- **Quality tiers**: `WorldMapQualityTier` — low/medium/high/ultra; cache `map-tiles/{view}/q{tier}/z0/` and `{view}/ae-id/q{tier}/z0/`
+- **Single-resolution zoom**: default `webWorldMapZoomLevels=1`; built-in mode always z0 + viewport scale; Dynmap mode Leaflet `maxNativeZoom` + coordinate remap for sharpest tiles
+- **AE overlay tinting**: server `WorldMapAeCategory` + ID PNG; frontend `worldMapAeTint.ts` + `WorldMapAeColorModal` category colors with item icons (no re-fetch on color change)
+- **AE oblique**: `WorldMapAeObliqueRayRenderer` shares terrain oblique projection/ray pipeline
+- **Optional zoom pyramid**: when `webWorldMapZoomLevels>1`, `WorldMapZoomPyramid` parent synthesis enabled
 - **Block patches (Phase 4)**: `WorldMapBlockPatchRegistry` + `WorldMapGtPatchResolver` — built-in stair/slab; `assets/textech/worldmap/patches/` (`gregtech_machines` / `casings` / `structural` / `pipes`); GT pipes/cables use MTE `getConnections()` dynamic AABB; `webWorldMapBlockPatchesEnabled`
 - **Server texture atlas (Phase 4)**: `WorldMapServerAtlas` — bakes hot block face PNGs into a grid atlas; registered on `WorldMapTextureRegistry` load; `webWorldMapServerAtlasEnabled` (default true), `webWorldMapServerAtlasPx` (2048)
-- **AE quality boost (Phase 4)**: `WorldMapQualitySupport` — AE-device chunks +1 terrain tier; meta exposes `blockPatchesEnabled` / `blockPatchEntries` / `serverAtlasEnabled` / `serverAtlasSlots` / `aeQualityBoost`
+- **AE overlay quality**: `worldMapAeOverlayQualityTier` (default ultra, decoupled from terrain quality); meta exposes `aeOverlayQualityTier`; dynmap mode stacks chunk tint via `DynmapAeOverlayBridge`
+- **AE terrain boost (optional)**: `worldMapAeQualityBoost` (default false) — when enabled, AE-device chunks get +1 terrain tier; meta exposes `aeQualityBoost`
 - **Config**: `[webConsole] worldMapEnabled`, …, `worldMapBlockPatchesEnabled`, `worldMapServerAtlasEnabled`, `worldMapServerAtlasPx`, `worldMapAeQualityBoost`
-- **HD**: `PacketWebMapTileJob` (34) / `PacketWebMapTileUpload` (35) include `layer` + `quality`; ultra only triggers client GL 512px FBO; `WorldMapTilePrefetcher` + `WorldMapTileProgressTracker` for batch prefetch and progress API
-- **Frontend**: `useWorldMapTileLoader` (`zoom` param + viewport-based level selection)/`useWorldMapProgress`; `TopologyWorldMapView` toolbar progress + `WorldMapChunkStatusOverlay` per-chunk badges; `TopologySettingsDrawer` quality Segmented; AE layer `prefetch=true` background load
-- **Phase C pending**: device list click → map `fitView` focus
+- **HD**: `PacketWebMapTileJob` (34) / `PacketWebMapTileUpload` (35) include `layer` + `quality`; `worldMapClientCaptureMode=when_online` prefers client GL for all tiers; `WorldMapChunkCaptureHandler` proactive pre-warm; `WorldMapTerrainFallback` + `WorldMapDynmapChunkCropper` progressive placeholders; `WorldMapTilePrefetcher` + `WorldMapTileProgressTracker` for batch prefetch and progress API
+- **Frontend**: `useWorldMapTileLoader` (fixed `zoom=0`)/`useWorldMapProgress`; `WorldMapAeOverlayLayer` Canvas category tint; `WorldMapAeColorModal` (toolbar palette button on world map); AE `prefetch=true`
+- **Phase C/D extensions**:
+  - **Terrain dual mode**: `worldMapTerrainSource` (`auto`/`dynmap`/`self`)
+  - **Dynmap bridge**: `dynmapMaxZoom` + `buildDynmapTileUrlAtDisplayZoom` single-resolution fetch
+  - **Oblique switch**: `worldMapObliqueEnabled` (AND with `worldMapViewsEnabled`)
+  - **Dual-mode UX**: `TopologyDynmapView` / `TopologyWorldMapView`
 
 ## 12. Frontend Resources
 

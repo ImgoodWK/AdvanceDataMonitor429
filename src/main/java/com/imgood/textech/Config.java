@@ -200,11 +200,23 @@ public class Config {
     /** Require network query param and allowed-chunk scope check on tile API. Default true. */
     public static boolean webWorldMapRequireNetworkScope = true;
     /** Comma-separated enabled world map views (flat, oblique, or oblique_se/sw/ne/nw). */
-    public static String webWorldMapViewsEnabled = "flat,oblique";
+    public static String webWorldMapViewsEnabled = "flat";
+    /** When false, oblique views are hidden and rejected even if listed in worldMapViewsEnabled. Default false. */
+    public static boolean webWorldMapObliqueEnabled = false;
     /** Allow online client to upload HD world map tiles (Phase 4). Default true. */
     public static boolean webWorldMapClientHdEnabled = true;
-    /** Max HD world map tiles rendered per client tick. Default 1. */
-    public static int webWorldMapClientHdBudgetPerTick = 1;
+    /** Max HD world map tiles rendered per client tick. Default 3. */
+    public static int webWorldMapClientHdBudgetPerTick = 3;
+    /** Client GL capture mode: off | ultra_only | when_online. Default when_online. */
+    public static String worldMapClientCaptureMode = "when_online";
+    /** Proactive capture radius in chunks around the player. Default 2. */
+    public static int worldMapClientCaptureRadius = 2;
+    /** Proactive capture budget per client tick. Default 1. */
+    public static int worldMapClientCaptureBudgetPerTick = 1;
+    /** Return lower-tier or Dynmap crop PNG while target tier is pending. Default true. */
+    public static boolean webWorldMapProgressiveFallback = true;
+    /** Milliseconds to wait for client GL before server fallback. Default 5000. */
+    public static int webWorldMapClientHdTimeoutMs = 5000;
     /** Enable AE overlay tile layer on world map. Default true. */
     public static boolean webWorldMapAeOverlayEnabled = true;
     /** Include AE cables in AE overlay scope and tiles. Default true. */
@@ -219,22 +231,30 @@ public class Config {
     public static int webWorldMapTextureCacheMax = 2048;
     /** Per-tick chunk budget when oblique ray engine is active. Default 1. */
     public static int webWorldMapRayBudgetPerTick = 1;
-    /** Max transparent block layers per oblique ray pixel. Default 3. */
-    public static int webWorldMapMaxRayDepth = 3;
-    /** low/medium tier oblique engine: legacy | ray. Default legacy. */
-    public static String webWorldMapLowTierObliqueEngine = "legacy";
+    /** Number of background render threads for world map tiles. 0 = auto (CPU / 2, at least 1). Default 0. */
+    public static int webWorldMapRenderThreads = 0;
+    /** Max transparent block layers per oblique ray pixel. Default 6. */
+    public static int webWorldMapMaxRayDepth = 6;
+    /** low/medium tier oblique engine: legacy | ray. Default ray. */
+    public static String webWorldMapLowTierObliqueEngine = "ray";
     /** Number of zoom pyramid levels (z0 native + parent merges). Default 3. */
-    public static int webWorldMapZoomLevels = 3;
+    public static int webWorldMapZoomLevels = 1;
     /** Max parent zoom tile syntheses per server tick. Default 4. */
     public static int webWorldMapZoomBudgetPerTick = 4;
     /** Enable JSON + built-in block patch models for oblique ray hits. Default true. */
     public static boolean webWorldMapBlockPatchesEnabled = true;
     /** Bump terrain quality one tier for chunks containing AE devices. Default true. */
-    public static boolean webWorldMapAeQualityBoost = true;
+    public static boolean webWorldMapAeQualityBoost = false;
+    /** Quality tier for AE overlay tiles (independent from terrain quality). Default ultra. */
+    public static String worldMapAeOverlayQualityTier = "ultra";
     /** Bake block face textures into a server-side atlas grid. Default true. */
     public static boolean webWorldMapServerAtlasEnabled = true;
     /** Server-side texture atlas edge length in pixels (multiple of 16). Default 2048. */
     public static int webWorldMapServerAtlasPx = 2048;
+    /** Terrain source for world map tiles: auto (detect Dynmap), dynmap (force Dynmap tiles), or self (self-render). Default auto. */
+    public static String worldMapTerrainSource = "auto";
+    /** Local Dynmap tiles root directory. Empty = auto-detect dynmap/web/tiles/ relative to instance root. */
+    public static String worldMapDynmapTileRoot = "";
 
     // --- web console per-feature debug logs (default false, gate logs/textech/webae-<feature>.log) ---
     /** Verbose icon rendering/upload logging (IconRenderer, IconHandler, PacketWebIconUpload). */

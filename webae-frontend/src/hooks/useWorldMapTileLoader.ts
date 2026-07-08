@@ -17,7 +17,7 @@ import type { MapViewport, WorldMapOrigin } from '@/utils/worldMapProjection';
 const DEBOUNCE_MS = 150;
 const MAX_CONCURRENT = 6;
 
-export type WorldMapTileLoadState = 'idle' | 'loading' | 'loaded' | 'pending' | 'error';
+export type WorldMapTileLoadState = 'idle' | 'loading' | 'loaded' | 'pending' | 'upgrading' | 'error';
 
 export interface WorldMapTileRecord {
   state: WorldMapTileLoadState;
@@ -144,7 +144,7 @@ export function useWorldMapTileLoader({
     pendingRef.current = debouncedTiles.filter((c) => {
       const key = tileKey(c.tileX, c.tileZ, zoom);
       const rec = tilesRef.current[key];
-      return !rec || rec.state === 'idle' || rec.state === 'pending' || rec.state === 'error';
+      return !rec || rec.state === 'idle' || rec.state === 'pending' || rec.state === 'upgrading' || rec.state === 'error';
     });
 
     const pump = () => {
@@ -154,7 +154,10 @@ export function useWorldMapTileLoader({
 
         const key = tileKey(next.tileX, next.tileZ, zoom);
         const existing = tilesRef.current[key];
-        if (existing && (existing.state === 'loaded' || existing.state === 'loading')) {
+        if (existing?.state === 'loading') {
+          continue;
+        }
+        if (existing?.state === 'loaded') {
           continue;
         }
 
@@ -201,6 +204,34 @@ export function useWorldMapTileLoader({
                 if (controller.signal.aborted) return;
                 setRetryEpoch((n) => n + 1);
               }, 2000);
+              return;
+            }
+            if (tileStatus === 'empty') {
+              const blobUrl = URL.createObjectURL(blob);
+              setTiles((prev) => {
+                const old = prev[key]?.blobUrl;
+                if (old) URL.revokeObjectURL(old);
+                return {
+                  ...prev,
+                  [key]: { state: 'loaded', blobUrl },
+                };
+              });
+              return;
+            }
+            if (tileStatus === 'upgrading') {
+              const blobUrl = URL.createObjectURL(blob);
+              setTiles((prev) => {
+                const old = prev[key]?.blobUrl;
+                if (old) URL.revokeObjectURL(old);
+                return {
+                  ...prev,
+                  [key]: { state: 'upgrading', blobUrl },
+                };
+              });
+              window.setTimeout(() => {
+                if (controller.signal.aborted) return;
+                setRetryEpoch((n) => n + 1);
+              }, 3000);
               return;
             }
             const blobUrl = URL.createObjectURL(blob);

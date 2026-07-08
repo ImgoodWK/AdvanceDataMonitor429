@@ -48,6 +48,8 @@ import {
 
   CompressOutlined,
 
+  BgColorsOutlined,
+
 } from '@ant-design/icons';
 
 import { getApiClient, ApiClientError } from '@/api/client';
@@ -76,6 +78,7 @@ import { TopologyWorldMapView } from '@/components/topology/TopologyWorldMapView
 import { TopologyDeviceList } from '@/components/topology/TopologyDeviceList';
 
 import { TopologySettingsDrawer } from '@/components/topology/TopologySettingsDrawer';
+import { WorldMapAeColorModal } from '@/components/topology/WorldMapAeColorModal';
 
 import { DriveSimulatedGui } from '@/components/topology/DriveSimulatedGui';
 
@@ -172,6 +175,8 @@ export function NetworkTopologyPage() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const [aeColorModalOpen, setAeColorModalOpen] = useState(false);
+
   const [driveModalNode, setDriveModalNode] = useState<TopologyNodeDto | null>(null);
 
   const [canForceSnapshot, setCanForceSnapshot] = useState(false);
@@ -204,7 +209,7 @@ export function NetworkTopologyPage() {
 
     invalidateTiles: invalidateWorldMapTiles,
 
-  } = useWorldMapData(currentNet, viewMode === 'worldMap' && worldMapEnabled);
+  } = useWorldMapData(currentNet, viewMode === 'worldMap' && worldMapEnabled, displaySettings.worldMapQuality);
 
 
 
@@ -886,6 +891,16 @@ export function NetworkTopologyPage() {
 
                 <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} aria-label={t('topologySettingsTitle')} />
 
+                {viewMode === 'worldMap' && (
+                  <Tooltip title={t('worldMapAeColorTitle')}>
+                    <Button
+                      icon={<BgColorsOutlined />}
+                      onClick={() => setAeColorModalOpen(true)}
+                      aria-label={t('worldMapAeColorTitle')}
+                    />
+                  </Tooltip>
+                )}
+
                 <Button icon={<ZoomInOutlined />} onClick={() => graphRef.current?.zoomIn()} aria-label="Zoom in" />
 
                 <Button icon={<ZoomOutOutlined />} onClick={() => graphRef.current?.zoomOut()} aria-label="Zoom out" />
@@ -1102,7 +1117,7 @@ export function NetworkTopologyPage() {
 
                 </Empty>
 
-              ) : worldMapMeta && worldMapMarkers.length > 0 ? (
+              ) : worldMapMeta?.hasLogicalSnapshot && worldMapMeta.dimensions?.length > 0 ? (
 
                 <TopologyWorldMapView
 
@@ -1320,6 +1335,18 @@ export function NetworkTopologyPage() {
         obliqueDirectionOptions={worldMapMeta?.obliqueDirections}
         qualityTierOptions={worldMapMeta?.qualityTiers}
         maxQualityTier={worldMapMaxQuality}
+        terrainSource={worldMapMeta?.terrainSource}
+        hdAvailable={worldMapMeta?.hdAvailable}
+        clientCaptureMode={worldMapMeta?.clientCaptureMode}
+        dynmapBaseUrl={dynmapBaseUrl || undefined}
+      />
+
+      <WorldMapAeColorModal
+        open={aeColorModalOpen}
+        onClose={() => setAeColorModalOpen(false)}
+        settings={displaySettings}
+        onChange={setDisplaySettings}
+        aePlacements={snapshot?.aePlacements}
       />
 
 

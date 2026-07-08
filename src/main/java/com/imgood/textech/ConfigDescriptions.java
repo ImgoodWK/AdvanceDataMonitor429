@@ -554,6 +554,11 @@ public final class ConfigDescriptions {
             "启用的世界地图瓦片视角，逗号分隔（flat、oblique 或 oblique_se/oblique_sw/oblique_ne/oblique_nw）。默认俯视 + 全部斜视角。");
         put(
             "webConsole",
+            "worldMapObliqueEnabled",
+            "Master switch for oblique/isometric world map views. When false, only flat is available regardless of worldMapViewsEnabled. Default false.",
+            "斜视角/等距世界地图总开关。关闭时仅保留俯视，无视 worldMapViewsEnabled 中的 oblique 项。默认关闭。");
+        put(
+            "webConsole",
             "worldMapClientHdEnabled",
             "Allow online owner/authorized client to upload HD world map tiles over server software renders. Default true.",
             "允许在线主人/授权客户端上传 HD 世界地图瓦片覆盖服务端软件渲染。默认开启。");
@@ -599,19 +604,24 @@ public final class ConfigDescriptions {
             "斜视角 ray 引擎每 tick 渲染的 chunk 预算。默认 1。");
         put(
             "webConsole",
+            "worldMapRenderThreads",
+            "Background render thread count for world map tiles. 0 = auto (CPU cores / 2, minimum 1). Higher values allow faster pre-rendering but increase CPU load.",
+            "世界地图瓦片后台渲染线程数。0=自动（CPU 核心数 / 2，至少 1）。增大可加快预渲染但增加 CPU 负载。");
+        put(
+            "webConsole",
             "worldMapMaxRayDepth",
-            "Max transparent block layers blended per oblique ray pixel. Default 3.",
-            "斜视角光线每个像素最多叠层的透明方块数。默认 3。");
+            "Max transparent block layers blended per oblique ray pixel. Default 6.",
+            "斜视角光线每个像素最多叠层的透明方块数。默认 6。");
         put(
             "webConsole",
             "worldMapLowTierObliqueEngine",
-            "Oblique engine for low/medium quality tiers: legacy or ray. Default legacy (saves CPU).",
-            "低/中档清晰度斜视角引擎：legacy 或 ray。默认 legacy（节省 CPU）。");
+            "Oblique engine for low/medium quality tiers: legacy or ray. Default ray (uses ray tracing for all tiers).",
+            "低/中档清晰度斜视角引擎：legacy 或 ray。默认 ray（全档位使用光线追踪）。");
         put(
             "webConsole",
             "worldMapZoomLevels",
-            "World map zoom pyramid depth (z0 native chunk tiles + parent merges). Default 3 (z0–z2).",
-            "世界地图 zoom 金字塔层数（z0 原生 chunk + 父级合并）。默认 3（z0–z2）。");
+            "World map zoom pyramid depth (z0 native chunk tiles + parent merges). Default 1 (z0 only; viewport scales).",
+            "世界地图 zoom 金字塔层数（z0 原生 chunk + 父级合并）。默认 1（仅 z0，缩放由 viewport 处理）。");
         put(
             "webConsole",
             "worldMapZoomBudgetPerTick",
@@ -625,8 +635,13 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "worldMapAeQualityBoost",
-            "Bump terrain tile quality one tier for chunks containing AE devices (within max tier). Default true.",
-            "对含 AE 设备的 chunk 地形瓦片提升一档清晰度（不超过服务端上限）。默认开启。");
+            "Bump terrain tile quality one tier for chunks containing AE devices (within max tier). Default false.",
+            "对含 AE 设备的 chunk 地形瓦片提升一档清晰度（不超过服务端上限）。默认关闭。");
+        put(
+            "webConsole",
+            "worldMapAeOverlayQualityTier",
+            "Quality tier for AE overlay tiles (low/medium/high/ultra), independent from terrain quality. Default ultra.",
+            "AE 叠加层瓦片清晰度（low/medium/high/ultra），与地形 quality 解耦。默认 ultra。");
         put(
             "webConsole",
             "worldMapServerAtlasEnabled",
@@ -637,6 +652,41 @@ public final class ConfigDescriptions {
             "worldMapServerAtlasPx",
             "Server-side world map texture atlas edge length in pixels (multiple of 16). Default 2048.",
             "服务端世界地图纹理 atlas 边长（像素，须为 16 的倍数）。默认 2048。");
+        put(
+            "webConsole",
+            "worldMapTerrainSource",
+            "World map terrain tile source: auto (auto-detect), dynmap (force GWM/GTNH-Web-Map pre-rendered tiles), or self (self-rendered). Default auto.",
+            "世界地图地形瓦片来源：auto（自动检测）、dynmap（强制使用 GWM/GTNH-Web-Map 预渲染瓦片）或 self（自研引擎渲染）。默认 auto。");
+        put(
+            "webConsole",
+            "worldMapDynmapTileRoot",
+            "Local Dynmap tile root directory. Empty = auto-detect dynmap/web/tiles/ under instance root.",
+            "本地 Dynmap 瓦片根目录。留空则自动探测实例根目录下的 dynmap/web/tiles/。");
+        put(
+            "webConsole",
+            "worldMapClientCaptureMode",
+            "Client GL capture policy: off, ultra_only (legacy), or when_online (prefer client RenderBlocks for all tiers when player is online in dim). Default when_online.",
+            "客户端 GL 截图策略：off、ultra_only（仅 ultra 档）或 when_online（玩家在线且同维度时所有档位优先客户端 RenderBlocks）。默认 when_online。");
+        put(
+            "webConsole",
+            "worldMapClientCaptureRadius",
+            "Proactive flat terrain capture radius in chunks around the player (0 = disabled). Default 2.",
+            "玩家周围主动捕获 flat 地形瓦片的 chunk 半径（0 = 关闭）。默认 2。");
+        put(
+            "webConsole",
+            "worldMapClientCaptureBudgetPerTick",
+            "Max proactive terrain captures per client tick. Default 1.",
+            "每客户端 tick 主动捕获地形瓦片数上限。默认 1。");
+        put(
+            "webConsole",
+            "worldMapProgressiveFallback",
+            "When true, serve lower cached tier or Dynmap crop PNG with X-WorldMap-Tile-Status: upgrading while target tier renders. Default true.",
+            "开启时，目标档位渲染中先返回低清缓存或 Dynmap 裁剪瓦片（响应头 upgrading）。默认开启。");
+        put(
+            "webConsole",
+            "worldMapClientHdTimeoutMs",
+            "Milliseconds to wait for client GL upload before server-side fallback render. Default 5000.",
+            "等待客户端 GL 上传的超时毫秒数，超时后回退服务端渲染。默认 5000。");
         put(
             "debug",
             "webaeIcons",

@@ -44,7 +44,7 @@ public final class WorldMapChunkContext {
             for (int dx = -pad; dx <= pad; dx++) {
                 int cx = chunkX + dx;
                 int cz = chunkZ + dz;
-                grid[dx + pad][dz + pad] = WorldMapRenderSupport.chunkFor(world, cx, cz);
+                grid[dx + pad][dz + pad] = WorldMapRenderSupport.chunkIfLoaded(world, cx, cz);
             }
         }
         Chunk center = grid[pad][pad];

@@ -61,17 +61,13 @@ export function tileIndexForChunk(chunkCoord: number, zoom: number): number {
   return Math.floor((chunkCoord - span + 1) / span);
 }
 
-/** Pick pyramid zoom level from viewport scale (higher scale → finer z0). */
+/** Always use native chunk tiles (z0); viewport scale handles zoom in/out. */
 export function selectWorldMapZoomLevel(
-  scale: number,
-  pxPerBlock: number,
-  maxLevel: number
+  _scale: number,
+  _pxPerBlock: number,
+  _maxLevel: number
 ): number {
-  const safeMax = Math.max(0, maxLevel - 1);
-  const pxPerBlockScaled = pxPerBlock * scale;
-  if (pxPerBlockScaled >= 6 || safeMax <= 0) return 0;
-  if (pxPerBlockScaled >= 3 && safeMax >= 1) return 1;
-  return safeMax >= 2 ? 2 : safeMax;
+  return 0;
 }
 
 export interface WorldMapTileCoord {

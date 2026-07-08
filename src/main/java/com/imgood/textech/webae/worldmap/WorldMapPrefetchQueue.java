@@ -39,7 +39,7 @@ public final class WorldMapPrefetchQueue {
             }
             return;
         }
-        int budget = Math.max(1, Config.webWorldMapTileBudgetPerTick * 4);
+        int budget = Math.max(1, Config.webWorldMapTileBudgetPerTick * 16);
         for (int i = 0; i < budget; i++) {
             PrefetchChunk next;
             synchronized (pending) {

@@ -12,7 +12,7 @@ export interface UseWorldMapDataResult {
   invalidateTiles: (views: string, quality?: string) => Promise<void>;
 }
 
-export function useWorldMapData(networkId: number, enabled: boolean): UseWorldMapDataResult {
+export function useWorldMapData(networkId: number, enabled: boolean, quality?: string): UseWorldMapDataResult {
   const [meta, setMeta] = useState<WorldMapMetaDto | null>(null);
   const [markers, setMarkers] = useState<WorldMapMarkerDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,8 +28,9 @@ export function useWorldMapData(networkId: number, enabled: boolean): UseWorldMa
     setError(null);
     try {
       const client = getApiClient();
+      const qualityParam = quality ? `&quality=${encodeURIComponent(quality)}` : '';
       const [metaRes, markersRes] = await Promise.all([
-        client.get<WorldMapMetaDto>(`/api/worldmap/meta?network=${networkId}`),
+        client.get<WorldMapMetaDto>(`/api/worldmap/meta?network=${networkId}${qualityParam}`),
         client.get<WorldMapMarkersResponse>(`/api/worldmap/markers?network=${networkId}`),
       ]);
       setMeta(metaRes);
@@ -48,7 +49,7 @@ export function useWorldMapData(networkId: number, enabled: boolean): UseWorldMa
     } finally {
       setLoading(false);
     }
-  }, [enabled, networkId]);
+  }, [enabled, networkId, quality]);
 
   const invalidateTiles = useCallback(
     async (views: string, quality = 'medium') => {

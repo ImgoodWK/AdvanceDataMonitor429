@@ -74,6 +74,11 @@ public enum WorldMapQualityTier {
         return fromId(Config.webWorldMapDefaultQualityTier);
     }
 
+    /** AE overlay tier from {@link Config#worldMapAeOverlayQualityTier}, clamped to max. */
+    public static WorldMapQualityTier fromConfigAeOverlay() {
+        return clamp(fromId(Config.worldMapAeOverlayQualityTier), fromConfigMax());
+    }
+
     /** Clamps {@code requested} to {@code max} by ordinal. */
     public static WorldMapQualityTier clamp(WorldMapQualityTier requested, WorldMapQualityTier max) {
         if (requested == null) {
@@ -101,6 +106,11 @@ public enum WorldMapQualityTier {
 
     public boolean isUltra() {
         return this == ULTRA;
+    }
+
+    /** True for quality tiers that are eligible for client HD rendering (high, ultra). */
+    public boolean isHdEligible() {
+        return this == HIGH || this == ULTRA;
     }
 
     private static int applyLegacyMediumOverride(int defaultPx) {

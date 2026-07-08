@@ -85,8 +85,72 @@ public final class WorldMapRenderSupport {
         return world.getChunkFromChunkCoords(chunkX, chunkZ);
     }
 
+    /**
+     * Thread-safe: returns the chunk only if it is already loaded. Does NOT trigger a chunk load.
+     * Intended for worker threads that must not call {@code loadChunk} concurrently.
+     */
+    public static Chunk chunkIfLoaded(WorldServer world, int chunkX, int chunkZ) {
+        if (world == null) {
+            return null;
+        }
+        if (world.getChunkProvider().chunkExists(chunkX, chunkZ)) {
+            return world.getChunkFromChunkCoords(chunkX, chunkZ);
+        }
+        return null;
+    }
+
+    /**
+     * Pre-loads a chunk on the main thread so it is ready when a worker thread needs it.
+     */
+    public static void preloadChunk(int dim, int chunkX, int chunkZ) {
+        WorldServer world = worldForDim(dim);
+        if (world == null) {
+            return;
+        }
+        chunkFor(world, chunkX, chunkZ);
+    }
+
+    /**
+     * Pre-loads a padded region of chunks on the main thread so worker threads always
+     * find them via {@link #chunkIfLoaded}. The padding must match {@code Config.webWorldMapChunkPadding}.
+     */
+    public static void preloadChunkRegion(int dim, int centerChunkX, int centerChunkZ, int padding) {
+        WorldServer world = worldForDim(dim);
+        if (world == null) {
+            return;
+        }
+        int pad = Math.max(0, Math.min(4, padding));
+        for (int dz = -pad; dz <= pad; dz++) {
+            for (int dx = -pad; dx <= pad; dx++) {
+                chunkFor(world, centerChunkX + dx, centerChunkZ + dz);
+            }
+        }
+    }
+
     public static boolean isValidTilePng(byte[] png) {
         return png != null && png.length >= MIN_VALID_TILE_BYTES;
+    }
+
+    /**
+     * True when the chunk is loaded and has no solid surface blocks (intentionally empty terrain).
+     */
+    public static boolean isLoadedEmptyTerrainChunk(int dim, int chunkX, int chunkZ) {
+        WorldServer world = worldForDim(dim);
+        if (world == null) {
+            return false;
+        }
+        Chunk chunk = chunkIfLoaded(world, chunkX, chunkZ);
+        if (chunk == null) {
+            return false;
+        }
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                if (findTopSolidY(chunk, lx, lz, world) >= 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

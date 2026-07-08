@@ -254,7 +254,8 @@ alwaysApply: false
 - `DataImprintScrollHandler.java` — 数据映录器滚轮滚动事件处理
 - `WebConsoleClientChat.java` — WebAE `/admweb issue`/`guest` 客户端可点击 token/URL 聊天（S→C `PacketWebConsoleTokenNotify`）
 - `WebConsoleClipboard.java` — WebAE token 剪贴板复制（AWT SystemClipboard）
-- `worldmap/WorldMapTileRenderWorker.java` — **Phase 4 + AE** 消费 S→C `PacketWebMapTileJob` 队列（terrain/AE 分支），限流渲染 HD 瓦片并 C→S 上传
+- `worldmap/WorldMapTileRenderWorker.java` — **Phase 4 + AE** 消费 S→C `PacketWebMapTileJob` 队列（`worldMapClientCaptureMode` 全档位；限流 GL 渲染并 C→S 上传）
+- `worldmap/WorldMapChunkCaptureHandler.java` — **探索预热** 玩家周围 chunk 主动 flat GL 截图上传（`worldMapClientCaptureRadius`）
 - `worldmap/WorldMapChunkGlRenderer.java` — **Phase 4 + AE overlay** 单 chunk FBO 离屏 GL 渲染（`renderTerrain` + `renderAeOverlay`；复用 `IconRenderGuard` 复位）
 - `worldmap/WorldMapOrthoCamera.java` — **Phase 4** 正交/look-at 相机预设（flat + mineshot 风格 oblique 四向 orbit）
 
@@ -449,7 +450,8 @@ alwaysApply: false
 - `webae/worldmap/WorldMapBoundsBuilder.java` — per-dim marker bbox + allowed chunk 集/meta 组装（paddingChunks/maxChunks clamp）
 - `webae/worldmap/WorldMapHandler.java` — **Phase A/B/3/4 + AE + 清晰度档位** `GET /api/worldmap/meta` + `GET /api/worldmap/markers` + `GET /api/worldmap/progress` + `POST /api/worldmap/invalidate?quality=` + `GET /api/worldmap/tiles/...?quality=`（enqueueChunkPair；响应头 layer/tier）
 - `webae/worldmap/WorldMapAePlacementRecord.java` / `WorldMapAePlacementCollector.java` / `WorldMapAePlacementSupport.java` — logical 快照采集 AE 放置点（设备 + 线缆 + part）→ `TopologySnapshot.aePlacements`
-- `webae/worldmap/WorldMapAeOverlayRenderer.java` — 服务端透明 ARGB AE 透视瓦片（flat/oblique）
+- `webae/worldmap/WorldMapAeCategory.java` — AE 设备启发式类别（世界地图 ID 图 R 通道）
+- `webae/worldmap/WorldMapAeOverlayRenderer.java` — 服务端 AE 类别 ID 透明瓦片（flat/oblique；缓存 `{view}/ae-id/`）
 - `webae/worldmap/WorldMapTileLayer.java` — `terrain|ae` 层 id + 缓存路径 `{view}/ae/...`
 - `compat/WorldMapBlockCompat.java` — 服务端 mod 方块/icon 颜色回退（GWM 风格扩展点）
 - `webae/worldmap/WorldMapView.java` — 视角枚举（flat + oblique_se/sw/ne/nw mineshot 风格斜视角）+ `webWorldMapViewsEnabled` 解析 + UI `views[]`/`obliqueDirections[]`
@@ -469,6 +471,7 @@ alwaysApply: false
 - `webae/worldmap/engine/WorldMapFaceLighting.java` — **Phase 1** 面朝向 × sky/block light 简易平滑光照
 - `webae/worldmap/engine/WorldMapFlatUvRenderer.java` — **Phase 1** 俯视 UV 渲染器（软方块 alpha 叠层；替代平均色 painter 主路径）
 - `webae/worldmap/engine/WorldMapObliqueProjection.java` — **Phase 2** 斜视角正交投影（mineshot 相机 → 世界射线）
+- `webae/worldmap/engine/WorldMapAeObliqueRayRenderer.java` — AE 斜视角 ray（与地形共用 ObliqueProjection；输出 categoryId 像素）
 - `webae/worldmap/engine/WorldMapIsoRayRenderer.java` — **Phase 2** 斜视角逐像素光线追踪（体素 DDA + UV/生物群系/光照；透明叠层）
 - `webae/worldmap/engine/WorldMapRenderEngines.java` — `webWorldMapRenderEngine` / `webWorldMapObliqueEngine` / `webWorldMapLowTierObliqueEngine` 解析（uv/legacy/ray）
 - `webae/worldmap/engine/WorldMapZoomPyramid.java` — **Phase 3** zoom 金字塔（z0 chunk 写入后 2×2 box 降采样合成 z1/z2；`webWorldMapZoomLevels` / `webWorldMapZoomBudgetPerTick`）
@@ -476,6 +479,17 @@ alwaysApply: false
 - `webae/worldmap/engine/WorldMapBlockPatchRegistry.java` — **Phase 4** JSON + 内置楼梯/半砖/GT patch 注册与 ray-AABB 命中（`registryPrefix` / `classContains`）
 - `webae/worldmap/engine/WorldMapGtPatchResolver.java` — **Phase 4** GT MTE 管道/线缆/框架动态 patch（`getConnections()`）
 - `webae/worldmap/engine/WorldMapServerAtlas.java` — **Phase 4** 服务端纹理 atlas 烘焙（`webWorldMapServerAtlasEnabled` / `webWorldMapServerAtlasPx`）
+- `webae/worldmap/engine/gwm/WorldMapFaceLighting.java` — **Phase C** GWM 面朝向光照计算（增强 sky/block light 平滑）
+- `webae/worldmap/engine/gwm/WorldMapFaceRasterizer.java` — **Phase C** GWM 面光栅化（ppb 像素 UV + 光照采样）
+- `webae/worldmap/engine/gwm/WorldMapAe2PatchResolver.java` — **Phase C** AE2 方块面片解析（线缆/设备连接 AABB patch）
+- `webae/worldmap/WorldMapRenderExecutor.java` — **Phase C** 渲染线程池执行器（`webWorldMapRenderThreads` 配置线程数）
+- `webae/worldmap/dynmap/WorldMapDynmapDetector.java` — **Phase B** Dynmap/GWM 存在性检测（`dynmapTileRoot` 目录扫描）
+- `webae/worldmap/dynmap/WorldMapDynmapCoordMapper.java` — **Phase B** Minecraft 坐标 ↔ Dynmap 瓦片坐标映射（128 block/tile z0）
+- `webae/worldmap/dynmap/WorldMapDynmapTileProvider.java` — **Phase B** Dynmap 外部瓦片 HTTP 代理读取（`GET /api/worldmap/dynmap-tiles/{world}/{z}/{x}/{y}.png`）
+- `webae/worldmap/WorldMapClientCaptureMode.java` — 客户端 GL 截图策略解析（off / ultra_only / when_online）
+- `webae/worldmap/WorldMapTerrainFallback.java` — 渐进占位：低清缓存 tier 或 Dynmap chunk 裁剪
+- `webae/worldmap/dynmap/WorldMapDynmapWorldNames.java` — 维度 → Dynmap world 目录名
+- `webae/worldmap/dynmap/WorldMapDynmapChunkCropper.java` — 从 128-block Dynmap 瓦片裁剪 16-block chunk PNG
 - `assets/textech/worldmap/patches/*.json` — GT 机器/外壳/结构/管道 patch 规则
 - `webae/worldmap/WorldMapQualitySupport.java` — **Phase 4** AE chunk 地形清晰度 +1 档解析
 - `webae/worldmap/WorldMapTileCache.java` — **Phase B/3/4 + AE + q{tier}** 磁盘缓存 `TeXTech/WebAE/map-tiles/{view}/q{tier}/[{ae}/]{dim}/{cx}/{cz}.png`（旧 `config/textech/web-map-tiles/` 只读回退；`.hd` 标记 + `writeHd`/`isHd`；`invalidateAllTiers`）
@@ -483,7 +497,7 @@ alwaysApply: false
 - `webae/worldmap/WorldMapPrefetchQueue.java` — invalidate 后分批入队 prefetch，避免单 tick 灌满队列
 - `webae/worldmap/WorldMapTilePrefetcher.java` — invalidate/刷新后按 allowedChunks 批量 `enqueueChunkPair`
 - `webae/worldmap/WorldMapTileProgressTracker.java` — per-chunk terrain/ae 状态追踪 + `GET /api/worldmap/progress` JSON
-- `webae/worldmap/WorldMapHdSupport.java` — **Phase 4** 客户端 HD 可用性判定与 provider 解析（owner/actor 在线）
+- `webae/worldmap/WorldMapHdSupport.java` — **Phase 4** 客户端 GL 可用性判定与 provider 解析（owner/actor 在线 + 目标维度）
 - `webae/craft/CraftTreeNodeDto.java` / `CraftTreeCalculator.java` — **Phase 4.1** NEI 配方递归材料树 + `inStock`/`toCraft`/`patternId` + 存储缺口
 - `webae/favorites/WebFavoritesStore.java` — **Phase 4.2** `TeXTech/WebAE/web-favorites.json` 按 owner 收藏
 - `webae/planner/PlannerFlowExporter.java` — **Phase 4.3** Factory Flow / gtnh-flow 互操作导出

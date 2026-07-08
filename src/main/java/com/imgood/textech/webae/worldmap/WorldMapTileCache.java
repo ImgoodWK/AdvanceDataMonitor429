@@ -277,13 +277,47 @@ public final class WorldMapTileCache {
         if (file.isFile() && file.length() >= WorldMapRenderSupport.MIN_VALID_TILE_BYTES) {
             return file;
         }
+        if (file.isFile() && isEmpty(view, layer, tier, dim, chunkX, chunkZ, zoomLevel)) {
+            return file;
+        }
         if (file.isFile() && file.length() > 0L) {
             deleteIfPresent(file);
             if (zoomLevel == 0) {
                 deleteIfPresent(hdMarkerFile(view, layer, tier, dim, chunkX, chunkZ, 0));
+                deleteIfPresent(emptyMarkerFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel));
             }
         }
         return null;
+    }
+
+    /** Writes a 1×1 transparent PNG plus an {@code .empty} marker (short TTL on serve). */
+    public static void writeEmpty(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX,
+        int chunkZ) {
+        writeEmpty(view, layer, quality, dim, chunkX, chunkZ, 0);
+    }
+
+    public static void writeEmpty(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX,
+        int chunkZ, int zoomLevel) {
+        WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.MEDIUM;
+        int level = Math.max(0, zoomLevel);
+        byte[] png = WorldMapFlatRenderer.transparentPlaceholder();
+        if (png == null || png.length == 0) {
+            return;
+        }
+        File file = tileFile(view, layer, tier, dim, chunkX, chunkZ, level);
+        writeFile(file, view, layer, tier, dim, chunkX, chunkZ, level, png);
+        markEmpty(view, layer, tier, dim, chunkX, chunkZ, level);
+    }
+
+    public static boolean isEmpty(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX,
+        int chunkZ) {
+        return isEmpty(view, layer, quality, dim, chunkX, chunkZ, 0);
+    }
+
+    public static boolean isEmpty(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX,
+        int chunkZ, int zoomLevel) {
+        WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.MEDIUM;
+        return emptyMarkerFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel).isFile();
     }
 
     private static void deleteTier(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
@@ -291,6 +325,7 @@ public final class WorldMapTileCache {
         deleteIfPresent(tileFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel));
         if (zoomLevel == 0) {
             deleteIfPresent(hdMarkerFile(view, layer, tier, dim, chunkX, chunkZ, 0));
+            deleteIfPresent(emptyMarkerFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel));
         }
     }
 
@@ -329,6 +364,46 @@ public final class WorldMapTileCache {
         if (file.isFile()) {
             if (!file.delete()) {
                 AdvanceDataMonitor.LOG.debug("[WebAE] Could not delete stale world map tile {}", file.getAbsolutePath());
+            }
+        }
+    }
+
+    private static File emptyMarkerFile(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
+        int chunkZ, int zoomLevel) {
+        return new File(
+            tileFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel).getParentFile(),
+            chunkZ + ".empty");
+    }
+
+    private static void markEmpty(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX, int chunkZ,
+        int zoomLevel) {
+        File marker = emptyMarkerFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel);
+        File parent = marker.getParentFile();
+        if (parent != null && !parent.exists()) {
+            if (!parent.mkdirs()) {
+                AdvanceDataMonitor.LOG.warn("[WebAE] Failed to create world map empty marker dir: {}",
+                    parent.getAbsolutePath());
+            }
+        }
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(marker);
+            fos.write(1);
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.debug(
+                "[WebAE] Failed to write world map empty marker view={} layer={} tier={} dim={} cx={} cz={}",
+                view,
+                layer,
+                tier.id,
+                dim,
+                chunkX,
+                chunkZ,
+                e);
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (Exception ignored) {}
             }
         }
     }

@@ -41,14 +41,11 @@ function layerBadge(
   if (tileState === 'error') {
     return 'error';
   }
-  if (tileState === 'pending') {
+  if (tileState === 'pending' || tileState === 'upgrading') {
     return 'pending';
   }
   if (tileState === 'loading') {
     return 'loading';
-  }
-  if (layer === 'ae' && !tileState) {
-    return 'pending';
   }
   return 'hidden';
 }

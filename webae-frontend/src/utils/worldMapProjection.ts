@@ -52,7 +52,9 @@ export function screenToWorld(
   };
 }
 
-/** Compute pan/scale to fit world bounds inside a container. */
+/** Compute pan/scale to fit world bounds inside a container.
+ *  Uses the same origin as {@link originFromBounds} (minX, maxZ) so that
+ *  pan calculations match {@link worldToScreen} exactly. */
 export function fitViewForBounds(
   bounds: WorldBounds,
   containerWidth: number,
@@ -69,12 +71,16 @@ export function fitViewForBounds(
     WORLD_MAP_MIN_SCALE,
     WORLD_MAP_MAX_SCALE
   );
-  const centerX = ((bounds.minX + bounds.maxX) / 2) * pxPerBlock;
-  const centerZ = ((bounds.minZ + bounds.maxZ) / 2) * pxPerBlock;
+  const originX = bounds.minX;
+  const originZ = bounds.maxZ;
+  const cx = (bounds.minX + bounds.maxX) / 2;
+  const cz = (bounds.minZ + bounds.maxZ) / 2;
+  const localX = (cx - originX) * pxPerBlock;
+  const localZ = (cz - originZ) * pxPerBlock;
   return {
     scale,
-    panX: containerWidth / 2 - centerX * scale,
-    panY: containerHeight / 2 + centerZ * scale,
+    panX: containerWidth / 2 - localX * scale,
+    panY: containerHeight / 2 + localZ * scale,
   };
 }
 

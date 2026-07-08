@@ -63,7 +63,7 @@ public final class WorldMapChunkGlRenderer {
         }
 
         WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.ULTRA;
-        int tilePx = tier.isUltra() ? tier.hdTilePx() : WorldMapRenderSupport.tilePx(tier);
+        int tilePx = tier.isHdEligible() ? tier.hdTilePx() : WorldMapRenderSupport.tilePx(tier);
         Chunk chunk = mc.theWorld.getChunkFromChunkCoords(chunkX, chunkZ);
         if (chunk == null) {
             return null;
@@ -117,7 +117,7 @@ public final class WorldMapChunkGlRenderer {
         }
 
         WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.ULTRA;
-        int tilePx = tier.isUltra() ? tier.hdTilePx() : WorldMapRenderSupport.tilePx(tier);
+        int tilePx = tier.isHdEligible() ? tier.hdTilePx() : WorldMapRenderSupport.tilePx(tier);
         Chunk chunk = mc.theWorld.getChunkFromChunkCoords(chunkX, chunkZ);
         if (chunk == null) {
             return null;

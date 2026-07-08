@@ -393,8 +393,9 @@ public class WebAuthToken {
                 migrateEntry(t);
             }
             return result;
-        } catch (IOException e) {
+        } catch (Exception e) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to load tokens file: {}", e.getMessage());
+            AdvanceDataMonitor.LOG.warn("[WebAE] The tokens file may be corrupted. It will be overwritten on next save.");
             return new ArrayList<WebAuthToken>();
         } finally {
             if (reader != null) {

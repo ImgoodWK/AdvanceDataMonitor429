@@ -726,6 +726,18 @@ export interface TopologySnapshotDto {
   meta: TopologyMetaDto;
   nodes: TopologyNodeDto[];
   edges: TopologyEdgeDto[];
+  aePlacements?: WorldMapAePlacementDto[];
+}
+
+export interface WorldMapAePlacementDto {
+  x: number;
+  y: number;
+  z: number;
+  dim: number;
+  kind?: string;
+  className?: string;
+  iconItemId?: string;
+  displayName?: string;
 }
 
 export interface TopologyMetaDto {
@@ -884,9 +896,24 @@ export interface WorldMapMetaDto {
   recommendedZoom?: number;
   blockPatchesEnabled?: boolean;
   aeQualityBoost?: boolean;
+  aeOverlayQualityTier?: string;
   serverAtlasEnabled?: boolean;
   blockPatchEntries?: number;
   serverAtlasSlots?: number;
+  /** Terrain source in use: "dynmap" or "self". */
+  terrainSource?: string;
+  /** Whether a Dynmap (or GWM/GTNH-Web-Map) is available on this server. */
+  dynmapAvailable?: boolean;
+  /** Dynmap world name when terrainSource=dynmap (e.g. "world"). */
+  dynmapWorldName?: string;
+  /** URL template for Dynmap tiles served through WebAE auth proxy. */
+  dynmapTileUrlTemplate?: string;
+  /** Highest native Dynmap/GWM zoom (single-resolution tile fetch). */
+  dynmapMaxZoom?: number;
+  /** Client GL capture mode: off | ultra_only | when_online. */
+  clientCaptureMode?: string;
+  /** Progressive lower-tier / Dynmap crop fallback while target tier renders. */
+  progressiveFallback?: boolean;
 }
 
 export interface WorldMapZoomLevelDto {

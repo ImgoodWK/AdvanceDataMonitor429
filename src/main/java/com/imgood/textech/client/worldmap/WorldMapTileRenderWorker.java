@@ -11,6 +11,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWebMapTileJob;
 import com.imgood.textech.webae.network.PacketWebMapTileUpload;
+import com.imgood.textech.webae.worldmap.WorldMapClientCaptureMode;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
@@ -49,7 +50,7 @@ public final class WorldMapTileRenderWorker {
             return;
         }
         WorldMapQualityTier tier = WorldMapQualityTier.fromId(job.quality);
-        if (!tier.isUltra()) {
+        if (!WorldMapClientCaptureMode.shouldUseClientForTier(tier)) {
             return;
         }
         if (WorldMapTileLayer.isAe(job.layer) && !Config.webWorldMapAeOverlayEnabled) {
@@ -116,12 +117,11 @@ public final class WorldMapTileRenderWorker {
                 continue;
             }
             WorldMapQualityTier tier = WorldMapQualityTier.fromId(job.job.quality);
-            byte[] png;
             if (WorldMapTileLayer.isAe(job.job.layer)) {
-                png = renderer.renderAeOverlay(mc, view, tier, job.job.dim, job.job.chunkX, job.job.chunkZ);
-            } else {
-                png = renderer.renderTerrain(mc, view, tier, job.job.dim, job.job.chunkX, job.job.chunkZ);
+                // AE overlay uses server-side category ID tiles; skip client GL upload.
+                continue;
             }
+            byte[] png = renderer.renderTerrain(mc, view, tier, job.job.dim, job.job.chunkX, job.job.chunkZ);
             if (WorldMapRenderSupport.isValidTilePng(png)) {
                 String ownerUuid = mc.thePlayer.getUniqueID()
                     .toString();

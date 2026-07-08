@@ -32,6 +32,8 @@ import { WorldMapAeOverlayLayer } from '@/components/topology/WorldMapAeOverlayL
 
 import { WorldMapTerrainLayer } from '@/components/topology/WorldMapTerrainLayer';
 
+import { TopologyDynmapView } from '@/components/topology/TopologyDynmapView';
+
 import type { TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
 
 import { useMapViewport } from '@/hooks/useMapViewport';
@@ -58,7 +60,7 @@ import {
 
 } from '@/utils/worldMapProjection';
 
-import { boundsFromChunkScope, selectWorldMapZoomLevel, type ChunkScope } from '@/utils/worldMapTerrain';
+import { boundsFromChunkScope, type ChunkScope } from '@/utils/worldMapTerrain';
 
 import { resolveWorldMapTileViewId } from '@/utils/worldMapViews';
 
@@ -149,6 +151,25 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
     const { t } = useI18n();
 
+    // --- Dynmap mode: render Leaflet-based external tile view ---
+    if (meta.terrainSource === 'dynmap') {
+      return (
+        <TopologyDynmapView
+          meta={meta}
+          markers={markers}
+          networkId={networkId}
+          nodeIndex={nodeIndex}
+          selectedNodeId={selectedNodeId}
+          onNodeSelect={onNodeSelect}
+          onDriveClick={onDriveClick}
+          obliqueDirection={obliqueDirection}
+          displaySettings={displaySettings}
+          height={height}
+          progressEpoch={progressEpoch}
+        />
+      );
+    }
+
     const [activeDim, setActiveDim] = useState<number>(() => meta.dimensions[0]?.dim ?? 0);
 
     const defaultView = meta.views?.[0]?.id ?? 'flat';
@@ -199,7 +220,36 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
 
 
-    const pxPerBlock = meta.pxPerBlock ?? 8;
+    const {
+
+      containerRef,
+
+      viewport,
+
+      setViewport,
+
+      onWheel,
+
+      onPointerDown,
+
+      onPointerMove,
+
+      onPointerUp,
+
+      fitBounds,
+
+    } = useMapViewport();
+
+
+
+    const worldMapQuality = displaySettings.worldMapQuality ?? 'medium';
+    const aeOverlayQuality =
+      (meta.aeOverlayQualityTier as 'low' | 'medium' | 'high' | 'ultra' | undefined) ?? 'ultra';
+
+    const pxPerBlock = useMemo(() => {
+      const tier = meta.qualityTiers?.find((qt) => qt.id === worldMapQuality);
+      return tier?.pxPerBlock ?? meta.pxPerBlock ?? 8;
+    }, [meta.qualityTiers, meta.pxPerBlock, worldMapQuality]);
 
 
 
@@ -285,32 +335,6 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
 
 
-    const {
-
-      containerRef,
-
-      viewport,
-
-      setViewport,
-
-      onWheel,
-
-      onPointerDown,
-
-      onPointerMove,
-
-      onPointerUp,
-
-      fitBounds,
-
-    } = useMapViewport();
-
-    const worldMapQuality = displaySettings.worldMapQuality ?? 'medium';
-    const maxZoomLevel = meta.zoomLevels?.length ?? 3;
-    const mapZoom = useMemo(
-      () => selectWorldMapZoomLevel(viewport.scale, pxPerBlock, maxZoomLevel),
-      [viewport.scale, pxPerBlock, maxZoomLevel]
-    );
     const terrainEnabled = meta.worldMapEnabled !== false && displaySettings.showWorldMapTerrain;
     const aeVisible = meta.worldMapEnabled !== false && displaySettings.showWorldMapAeOverlay;
 
@@ -325,7 +349,7 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       view: tileView,
       layer: 'terrain',
       quality: worldMapQuality,
-      zoom: mapZoom,
+      zoom: 0,
       active: terrainEnabled,
     });
 
@@ -339,8 +363,8 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       containerHeight: containerSize.h,
       view: tileView,
       layer: 'ae',
-      quality: worldMapQuality,
-      zoom: mapZoom,
+      quality: aeOverlayQuality,
+      zoom: 0,
       active: aeVisible,
       prefetch: true,
     });
@@ -361,7 +385,7 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
     useEffect(() => {
       startPolling();
       return () => stopPolling();
-    }, [networkId, tileView, activeDim, worldMapQuality, progressEpoch, startPolling, stopPolling]);
+    }, [networkId, tileView, activeDim, worldMapQuality, aeOverlayQuality, progressEpoch, startPolling, stopPolling]);
 
     const progressPercent =
       progress?.total && progress.total > 0
@@ -581,6 +605,11 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
           )}
 
+          {/* Terrain source indicator for self mode */}
+          <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>
+            {t('worldMapTerrainSource_self') || '内置渲染'}
+          </span>
+
           {showProgressUi && (
             <div className="topology-worldmap-progress" style={{ flex: 1, minWidth: 160, maxWidth: 360 }}>
               <Progress
@@ -644,6 +673,8 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
             chunkStyle={aeLoader.chunkStyle}
             visible={aeVisible}
             opacity={displaySettings.worldMapAeOverlayOpacity}
+            categoryColors={displaySettings.worldMapAeCategoryColors}
+            itemColorOverrides={displaySettings.worldMapAeItemColorOverrides}
           />
 
           <WorldMapChunkStatusOverlay

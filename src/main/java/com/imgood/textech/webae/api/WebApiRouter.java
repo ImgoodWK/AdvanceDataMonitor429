@@ -419,7 +419,25 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleTile(uri, params, ownerUuid);
+            return WorldMapHandler.handleTile(uri, params, ownerUuid, auth.actorUuid);
+
+        }
+
+        if (uri.startsWith("/api/worldmap/dynmap-tiles/")) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/worldmap/dynmap-tiles/<world>/<zoom>/<x>/<y>.png\"}");
+
+            }
+
+            return WorldMapHandler.handleDynmapTile(uri, params);
 
         }
 

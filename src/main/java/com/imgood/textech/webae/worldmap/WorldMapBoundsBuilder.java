@@ -53,6 +53,7 @@ public final class WorldMapBoundsBuilder {
         meta.obliqueRenderEngine = WorldMapRenderEngines.obliqueEngineId();
         meta.blockPatchesEnabled = Config.webWorldMapBlockPatchesEnabled;
         meta.aeQualityBoost = Config.webWorldMapAeQualityBoost;
+        meta.aeOverlayQualityTier = WorldMapQualityTier.fromConfigAeOverlay().id;
         meta.serverAtlasEnabled = Config.webWorldMapServerAtlasEnabled;
         WorldMapBlockPatchRegistry.ensureLoaded();
         meta.blockPatchEntries = WorldMapBlockPatchRegistry.loadedJsonEntryCount();

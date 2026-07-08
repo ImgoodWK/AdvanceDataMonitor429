@@ -177,11 +177,16 @@ Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channe
 #### World Map View
 
 1. **Prerequisite**: Capture a logical topology snapshot first (POST `/api/network/topology/snapshot` or the in-page **Capture snapshot** button).
-2. **Terrain tiles**: flat (top-down) and oblique views; four quality tiers via Segmented control (low 64px / medium 128px / high 256px / ultra 512px HD).
-3. **Loading progress**: Toolbar shows overall progress (`completed/total layer jobs`, scoped to current network·view·quality); each chunk displays loading / ready / error badges (`WorldMapChunkStatusOverlay`); subtle hint text appears in the toolbar and bottom-left of the map while loading.
-4. **AE overlay**: Toggle AE overlay to show device icons and cable positions; prefetched independently from terrain.
+2. **Terrain source dual mode**:
+   - **Self-rendered** (self): Server-side UV/ray-traced tiles; flat (top-down) and oblique views; four quality tiers via Segmented control (low 64px / medium 128px / high 256px / ultra 512px HD). **First open or cold cache is slow**; without GWM/Dynmap (`auto` falls back to self) expect slow renders and mediocre GT textures. Keep `worldMapTerrainSource=auto` on GTNH packs for instant GWM tiles.
+   - **Dynmap terrain** (dynmap): External Dynmap/GWM pre-rendered tiles via Leaflet, plus an **ultra-quality AE chunk tint overlay** (`WorldMapAeOverlayStack`) and optional dot markers; quality controls mainly affect the AE layer in dynmap mode.
+   - **Client GL priority** (`worldMapClientCaptureMode=when_online`, default): When the player is online in the target dimension, all quality tiers prefer client `RenderBlocks` FBO capture; nearby chunks are pre-warmed while exploring (`worldMapClientCaptureRadius`).
+   - **Progressive placeholder** (`worldMapProgressiveFallback=true`, default): While the target tier renders, serve lower cached tiers or a Dynmap 128-block crop preview (`X-WorldMap-Tile-Status: upgrading`) instead of stripe placeholders.
+   - Server auto-detect (`auto`) or force-select via `worldMapTerrainSource`; settings drawer shows terrain source, client capture mode, and online status.
+3. **Loading progress**: Both modes show toolbar progress (`completed/total layer jobs`, scoped to current network·view·quality); each chunk displays loading / ready / error badges (`WorldMapChunkStatusOverlay`); subtle hint text appears in the toolbar and bottom-left of the map while loading.
+4. **AE overlay**: Toggle AE overlay to show device icons and cable positions; prefetched independently from terrain. Defaults off in dynmap mode (GWM terrain includes machine textures), can be manually enabled. The toolbar **palette** button opens **World map AE colors**: per-category tinting (applies instantly) with representative icons and icons from devices in the current network.
 5. **Refresh & invalidation**: Tiles auto-invalidate when switching networks or capturing a new snapshot; OP can POST `/api/worldmap/invalidate` to force rebuild.
-6. **Config**: `[webConsole] worldMapEnabled`, `worldMapMaxQualityTier` (default ultra), `worldMapDefaultQualityTier` (default medium), `worldMapBoundsPaddingChunks` (default 1). See [Developer Guide §4](developer-guide.md#4-configuration) and [§11.26](developer-guide.md#1126-world-map-view-phase-ab--ae-overlay).
+6. **Config**: `[webConsole] worldMapEnabled`, `worldMapTerrainSource` (`auto`/`dynmap`/`self`), `dynmapTileRoot`, `worldMapClientCaptureMode` (`off`/`ultra_only`/`when_online`), `worldMapClientCaptureRadius`, `worldMapProgressiveFallback`, `worldMapMaxQualityTier` (default ultra), `worldMapDefaultQualityTier` (default medium), `worldMapBoundsPaddingChunks` (default 1). See [Developer Guide §4](developer-guide.md#4-configuration) and [§11.26](developer-guide.md#1126-world-map-view-phase-ab--ae-overlay).
 
 ### Monitor Bindings & Preview
 

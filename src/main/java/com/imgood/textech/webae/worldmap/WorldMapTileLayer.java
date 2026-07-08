@@ -6,7 +6,10 @@ package com.imgood.textech.webae.worldmap;
 public final class WorldMapTileLayer {
 
     public static final String TERRAIN = "terrain";
+    /** AE overlay layer (API segment {@code /ae/}). */
     public static final String AE = "ae";
+    /** Cache subdirectory for category-ID AE tiles (distinct from legacy colored {@code /ae/}). */
+    public static final String AE_ID = "ae-id";
 
     private WorldMapTileLayer() {}
 
@@ -27,11 +30,11 @@ public final class WorldMapTileLayer {
         return AE.equals(normalize(layer));
     }
 
-    /** Cache directory segment under {@code web-map-tiles/}. */
+    /** Cache directory segment under {@code map-tiles/}. */
     public static String cacheViewPath(String viewId, String layer) {
         String view = viewId != null ? viewId.trim() : WorldMapView.FLAT.id;
         if (isAe(layer)) {
-            return view + "/ae";
+            return view + "/" + AE_ID;
         }
         return view;
     }

@@ -32,15 +32,15 @@ function WorldMapTerrainLayerInner({
         const rec = tiles[key];
         const style = chunkStyle(tileX, tileZ);
 
-        if (rec?.state === 'loaded' && rec.blobUrl) {
+        if ((rec?.state === 'loaded' || rec?.state === 'upgrading') && rec.blobUrl) {
           return (
             <img
               key={key}
-              className="worldmap-terrain-tile"
+              className={`worldmap-terrain-tile${rec.state === 'upgrading' ? ' worldmap-terrain-tile-upgrading' : ''}`}
               src={rec.blobUrl}
               alt=""
               draggable={false}
-              style={style}
+              style={{ ...style, imageRendering: 'pixelated' }}
             />
           );
         }
@@ -49,7 +49,7 @@ function WorldMapTerrainLayerInner({
           <div
             key={key}
             className={`worldmap-terrain-placeholder${
-              rec?.state === 'loading' || rec?.state === 'pending'
+              rec?.state === 'loading' || rec?.state === 'pending' || rec?.state === 'upgrading'
                 ? ' worldmap-terrain-placeholder-loading'
                 : ''
             }`}

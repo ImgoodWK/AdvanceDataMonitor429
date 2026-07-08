@@ -1,5 +1,9 @@
 import type { AeCableColorId } from '@/utils/aeCableColors';
 import { DEFAULT_AE_CABLE_COLOR_ID, hexFromAeCableColorId } from '@/utils/aeCableColors';
+import {
+  DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS,
+  type WorldMapAeCategoryId,
+} from '@/utils/worldMapAeCategories';
 
 export type TopologyLayoutDirection = 'LR' | 'TB';
 export type TopologyRenderMode = 'abstract' | 'simulated';
@@ -53,6 +57,10 @@ export interface TopologyDisplaySettings {
   showWorldMapDeviceIcons: boolean;
   /** AE overlay opacity (0.5–1.0). */
   worldMapAeOverlayOpacity: number;
+  /** Per-category colors for world map AE overlay tinting. */
+  worldMapAeCategoryColors: Record<WorldMapAeCategoryId, string>;
+  /** Optional iconItemId → hex overrides (reserved; category tint applies per pixel today). */
+  worldMapAeItemColorOverrides: Record<string, string>;
 }
 
 export const TOPOLOGY_DISPLAY_STORAGE_KEY = 'webae_topology_display';
@@ -91,6 +99,8 @@ export const DEFAULT_TOPOLOGY_DISPLAY: TopologyDisplaySettings = {
   showWorldMapAeOverlay: false,
   showWorldMapDeviceIcons: true,
   worldMapAeOverlayOpacity: 0.85,
+  worldMapAeCategoryColors: { ...DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS },
+  worldMapAeItemColorOverrides: {},
 };
 
 export function mergeTopologyDisplay(
@@ -101,6 +111,8 @@ export function mergeTopologyDisplay(
       ...DEFAULT_TOPOLOGY_DISPLAY,
       colors: { ...DEFAULT_TOPOLOGY_DISPLAY.colors },
       cableColorPreset: { ...DEFAULT_TOPOLOGY_DISPLAY.cableColorPreset },
+      worldMapAeCategoryColors: { ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeCategoryColors },
+      worldMapAeItemColorOverrides: { ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeItemColorOverrides },
     };
   }
   return {
@@ -110,6 +122,14 @@ export function mergeTopologyDisplay(
     cableColorPreset: {
       ...DEFAULT_TOPOLOGY_DISPLAY.cableColorPreset,
       ...(partial.cableColorPreset ?? {}),
+    },
+    worldMapAeCategoryColors: {
+      ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeCategoryColors,
+      ...(partial.worldMapAeCategoryColors ?? {}),
+    },
+    worldMapAeItemColorOverrides: {
+      ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeItemColorOverrides,
+      ...(partial.worldMapAeItemColorOverrides ?? {}),
     },
   };
 }

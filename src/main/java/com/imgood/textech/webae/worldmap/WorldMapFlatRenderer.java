@@ -44,7 +44,7 @@ public final class WorldMapFlatRenderer {
             return null;
         }
 
-        Chunk chunk = WorldMapRenderSupport.chunkFor(world, chunkX, chunkZ);
+        Chunk chunk = WorldMapRenderSupport.chunkIfLoaded(world, chunkX, chunkZ);
         if (chunk == null) {
             return null;
         }
