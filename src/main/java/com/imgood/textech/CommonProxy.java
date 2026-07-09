@@ -3,6 +3,7 @@ package com.imgood.textech;
 import java.io.File;
 
 import com.imgood.textech.command.CommandAssistant;
+import com.imgood.textech.command.CommandTeXTech;
 import com.imgood.textech.command.CommandWebConsole;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -64,6 +65,7 @@ public class CommonProxy {
 
     // register server commands in this event handler (Remove if not needed)
     public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new CommandTeXTech());
         event.registerServerCommand(new CommandAssistant());
         event.registerServerCommand(new CommandWebConsole());
     }

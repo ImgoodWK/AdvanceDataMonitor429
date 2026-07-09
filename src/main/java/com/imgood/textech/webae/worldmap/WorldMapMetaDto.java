@@ -68,6 +68,14 @@ public final class WorldMapMetaDto {
     public String clientCaptureMode = WorldMapClientCaptureMode.WHEN_ONLINE;
     /** Whether progressive lower-tier / Dynmap crop fallback is enabled. */
     public boolean progressiveFallback = true;
+    /** Snapshot mode: client_only or legacy. */
+    public String snapshotMode = WorldMapSnapshotMode.CLIENT_ONLY;
+    /** Current snapshot version for this network (0 = none). */
+    public int snapshotVersion;
+    /** Snapshot capture source: journeymap, client_gl, or empty. */
+    public String snapshotSource = "";
+    /** Whether JourneyMap is available on the requesting client (informational). */
+    public boolean journeyMapPreferred = true;
 
     public static final class ZoomLevelInfo {
 

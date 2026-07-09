@@ -12,6 +12,7 @@ import {
   type WorldMapTileLayer,
   type WorldMapTileCoord,
 } from '@/utils/worldMapTerrain';
+import { buildIdbKey, getCachedTileBlob, putCachedTileBlob } from '@/utils/worldMapIdbCache';
 import type { MapViewport, WorldMapOrigin } from '@/utils/worldMapProjection';
 
 const DEBOUNCE_MS = 150;
@@ -41,6 +42,12 @@ export interface UseWorldMapTileLoaderOptions {
   active?: boolean;
   /** When true, fetch even if layer is not visible (AE background prefetch). */
   prefetch?: boolean;
+  /** Snapshot version for IndexedDB cache (0 = disabled). */
+  snapshotVersion?: number;
+  /** Owner scope key for IndexedDB (defaults to network-only bucket). */
+  ownerCacheKey?: string;
+  /** Enable browser IndexedDB tile cache. */
+  browserCacheEnabled?: boolean;
 }
 
 export interface UseWorldMapTileLoaderResult {
@@ -69,6 +76,9 @@ export function useWorldMapTileLoader({
   zoom = 0,
   active = true,
   prefetch = false,
+  snapshotVersion = 0,
+  ownerCacheKey = 'owner',
+  browserCacheEnabled = true,
 }: UseWorldMapTileLoaderOptions): UseWorldMapTileLoaderResult {
   const { token } = useAppContext();
   const [tiles, setTiles] = useState<Record<string, WorldMapTileRecord>>({});
@@ -170,43 +180,86 @@ export function useWorldMapTileLoader({
           [key]: { state: 'loading' },
         }));
 
-        const url = buildWorldMapTileUrl(
-          dim,
-          next.tileX,
-          next.tileZ,
-          token,
-          networkId,
-          view,
-          layer,
-          quality,
-          zoom
-        );
+        const idbKey =
+          browserCacheEnabled && snapshotVersion > 0
+            ? buildIdbKey({
+                ownerKey: ownerCacheKey,
+                networkId,
+                version: snapshotVersion,
+                layer,
+                dim,
+                chunkX: next.tileX,
+                chunkZ: next.tileZ,
+              })
+            : null;
 
-        fetch(url, {
-          signal: controller.signal,
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        })
-          .then((resp) => {
-            if (!resp.ok) {
-              throw new Error(`tile ${resp.status}`);
-            }
-            const tileStatus = resp.headers.get('X-WorldMap-Tile-Status');
-            return resp.blob().then((blob) => ({ blob, tileStatus }));
+        const loadFromNetwork = () => {
+          const url = buildWorldMapTileUrl(
+            dim,
+            next.tileX,
+            next.tileZ,
+            token,
+            networkId,
+            view,
+            layer,
+            quality,
+            zoom
+          );
+
+          fetch(url, {
+            signal: controller.signal,
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           })
-          .then(({ blob, tileStatus }) => {
-            if (controller.signal.aborted) return;
-            if (tileStatus === 'pending') {
-              setTiles((prev) => ({
-                ...prev,
-                [key]: { state: 'pending' },
-              }));
-              window.setTimeout(() => {
-                if (controller.signal.aborted) return;
-                setRetryEpoch((n) => n + 1);
-              }, 2000);
-              return;
-            }
-            if (tileStatus === 'empty') {
+            .then((resp) => {
+              if (!resp.ok) {
+                throw new Error(`tile ${resp.status}`);
+              }
+              const tileStatus = resp.headers.get('X-WorldMap-Tile-Status');
+              return resp.blob().then((blob) => ({ blob, tileStatus }));
+            })
+            .then(({ blob, tileStatus }) => {
+              if (controller.signal.aborted) return;
+              if (tileStatus === 'pending' || tileStatus === 'missing') {
+                setTiles((prev) => ({
+                  ...prev,
+                  [key]: { state: tileStatus === 'missing' ? 'loaded' : 'pending' },
+                }));
+                if (tileStatus === 'pending') {
+                  window.setTimeout(() => {
+                    if (controller.signal.aborted) return;
+                    setRetryEpoch((n) => n + 1);
+                  }, 2000);
+                }
+                return;
+              }
+              if (tileStatus === 'empty') {
+                const blobUrl = URL.createObjectURL(blob);
+                setTiles((prev) => {
+                  const old = prev[key]?.blobUrl;
+                  if (old) URL.revokeObjectURL(old);
+                  return {
+                    ...prev,
+                    [key]: { state: 'loaded', blobUrl },
+                  };
+                });
+                return;
+              }
+              if (tileStatus === 'upgrading') {
+                const blobUrl = URL.createObjectURL(blob);
+                setTiles((prev) => {
+                  const old = prev[key]?.blobUrl;
+                  if (old) URL.revokeObjectURL(old);
+                  return {
+                    ...prev,
+                    [key]: { state: 'upgrading', blobUrl },
+                  };
+                });
+                window.setTimeout(() => {
+                  if (controller.signal.aborted) return;
+                  setRetryEpoch((n) => n + 1);
+                }, 3000);
+                return;
+              }
               const blobUrl = URL.createObjectURL(blob);
               setTiles((prev) => {
                 const old = prev[key]?.blobUrl;
@@ -216,55 +269,70 @@ export function useWorldMapTileLoader({
                   [key]: { state: 'loaded', blobUrl },
                 };
               });
-              return;
-            }
-            if (tileStatus === 'upgrading') {
-              const blobUrl = URL.createObjectURL(blob);
+              if (idbKey && (tileStatus === 'cached' || !tileStatus)) {
+                void putCachedTileBlob(idbKey, blob);
+              }
+            })
+            .catch(() => {
+              if (controller.signal.aborted) return;
+              setTiles((prev) => ({
+                ...prev,
+                [key]: { state: 'error' },
+              }));
+            })
+            .finally(() => {
+              abortMap.delete(key);
+              inflightRef.current = Math.max(0, inflightRef.current - 1);
+              pump();
+            });
+        };
+
+        if (idbKey) {
+          void getCachedTileBlob(idbKey).then((cached) => {
+            if (controller.signal.aborted) return;
+            if (cached) {
+              const blobUrl = URL.createObjectURL(cached);
               setTiles((prev) => {
                 const old = prev[key]?.blobUrl;
                 if (old) URL.revokeObjectURL(old);
                 return {
                   ...prev,
-                  [key]: { state: 'upgrading', blobUrl },
+                  [key]: { state: 'loaded', blobUrl },
                 };
               });
-              window.setTimeout(() => {
-                if (controller.signal.aborted) return;
-                setRetryEpoch((n) => n + 1);
-              }, 3000);
+              abortMap.delete(key);
+              inflightRef.current = Math.max(0, inflightRef.current - 1);
+              pump();
               return;
             }
-            const blobUrl = URL.createObjectURL(blob);
-            setTiles((prev) => {
-              const old = prev[key]?.blobUrl;
-              if (old) URL.revokeObjectURL(old);
-              return {
-                ...prev,
-                [key]: { state: 'loaded', blobUrl },
-              };
-            });
-          })
-          .catch(() => {
-            if (controller.signal.aborted) return;
-            setTiles((prev) => ({
-              ...prev,
-              [key]: { state: 'error' },
-            }));
-          })
-          .finally(() => {
-            abortMap.delete(key);
-            inflightRef.current = Math.max(0, inflightRef.current - 1);
-            pump();
+            loadFromNetwork();
           });
+        } else {
+          loadFromNetwork();
+        }
       }
     };
 
     pump();
-  }, [debouncedTiles, dim, fetchEnabled, token, retryEpoch, networkId, view, layer, quality, zoom]);
+  }, [
+    debouncedTiles,
+    dim,
+    fetchEnabled,
+    token,
+    retryEpoch,
+    networkId,
+    view,
+    layer,
+    quality,
+    zoom,
+    snapshotVersion,
+    ownerCacheKey,
+    browserCacheEnabled,
+  ]);
 
   useEffect(() => {
     resetTiles();
-  }, [view, dim, networkId, quality, zoom, resetTiles]);
+  }, [view, dim, networkId, quality, zoom, snapshotVersion, resetTiles]);
 
   useEffect(() => {
     const abortMap = abortRef.current;

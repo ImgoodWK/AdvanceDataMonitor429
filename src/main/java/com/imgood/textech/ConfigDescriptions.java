@@ -664,6 +664,56 @@ public final class ConfigDescriptions {
             "本地 Dynmap 瓦片根目录。留空则自动探测实例根目录下的 dynmap/web/tiles/。");
         put(
             "webConsole",
+            "worldMapSnapshotMode",
+            "World map snapshot mode: client_only (JourneyMap/GL client capture) or legacy (server render).",
+            "世界地图快照模式：client_only（客户端 JourneyMap/GL 采集）或 legacy（服务端渲染）。");
+        put(
+            "webConsole",
+            "worldMapJourneyMapEnabled",
+            "When true, prefer JourneyMap local tile cache for terrain snapshots when JM is installed.",
+            "为 true 时，若已安装 JourneyMap，地形快照优先读取 JM 本地瓦片缓存。");
+        put(
+            "webConsole",
+            "worldMapJourneyMapDataRoot",
+            "Override JourneyMap data root (journeymap/data). Empty = auto-detect under instance root.",
+            "覆盖 JourneyMap 数据根目录（journeymap/data）。留空则自动探测。");
+        put(
+            "webConsole",
+            "worldMapConsentRadiusChunks",
+            "Chunk radius to find online players near an AE network for snapshot upload consent.",
+            "查找 AE 网络附近在线玩家以请求快照上传同意的区块半径。");
+        put(
+            "webConsole",
+            "worldMapConsentTimeoutSec",
+            "Seconds to wait for a player to accept a snapshot upload request.",
+            "等待玩家接受快照上传请求的秒数。");
+        put(
+            "webConsole",
+            "worldMapOwnerSkipConsent",
+            "When true, owner /admweb worldmap upload near the network skips consent prompt.",
+            "为 true 时，网络主人在附近执行 /admweb worldmap upload 可跳过同意提示。");
+        put(
+            "webConsole",
+            "worldMapClientFallbackQuality",
+            "GL fallback quality tier when JourneyMap is unavailable (low recommended).",
+            "无 JourneyMap 时的 GL 兜底质量档位（建议 low）。");
+        put(
+            "webConsole",
+            "worldMapClientDownloadBudgetPerTick",
+            "MC client tiles downloaded from server per tick for local map-cache sync.",
+            "MC 客户端每 tick 从服务端下载到本地 map-cache 的瓦片数。");
+        put(
+            "webConsole",
+            "worldMapBrowserCacheEnabled",
+            "Enable browser IndexedDB cache for world map snapshot tiles.",
+            "启用浏览器 IndexedDB 缓存世界地图快照瓦片。");
+        put(
+            "webConsole",
+            "worldMapLegacyServerRender",
+            "Enable legacy server-side world map tile rendering (ignored when snapshotMode=client_only).",
+            "启用旧版服务端世界地图瓦片渲染（snapshotMode=client_only 时忽略）。");
+        put(
+            "webConsole",
             "worldMapClientCaptureMode",
             "Client GL capture policy: off, ultra_only (legacy), or when_online (prefer client RenderBlocks for all tiers when player is online in dim). Default when_online.",
             "客户端 GL 截图策略：off、ultra_only（仅 ultra 档）或 when_online（玩家在线且同维度时所有档位优先客户端 RenderBlocks）。默认 when_online。");

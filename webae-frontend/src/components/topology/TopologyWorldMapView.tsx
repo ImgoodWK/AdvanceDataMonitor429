@@ -351,6 +351,8 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       quality: worldMapQuality,
       zoom: 0,
       active: terrainEnabled,
+      snapshotVersion: meta.snapshotVersion ?? 0,
+      browserCacheEnabled: meta.snapshotMode === 'client_only',
     });
 
     const aeLoader = useWorldMapTileLoader({
@@ -367,6 +369,8 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       zoom: 0,
       active: aeVisible,
       prefetch: true,
+      snapshotVersion: meta.snapshotVersion ?? 0,
+      browserCacheEnabled: meta.snapshotMode === 'client_only',
     });
 
     const overlayTiles =
@@ -379,13 +383,17 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       view: tileView,
       dim: activeDim,
       quality: worldMapQuality,
-      enabled: false,
+      enabled: meta.snapshotMode !== 'client_only',
     });
 
     useEffect(() => {
+      if (meta.snapshotMode === 'client_only') {
+        stopPolling();
+        return;
+      }
       startPolling();
       return () => stopPolling();
-    }, [networkId, tileView, activeDim, worldMapQuality, aeOverlayQuality, progressEpoch, startPolling, stopPolling]);
+    }, [networkId, tileView, activeDim, worldMapQuality, aeOverlayQuality, progressEpoch, startPolling, stopPolling, meta.snapshotMode]);
 
     const progressPercent =
       progress?.total && progress.total > 0

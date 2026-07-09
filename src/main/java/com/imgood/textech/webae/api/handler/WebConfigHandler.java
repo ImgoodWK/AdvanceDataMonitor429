@@ -149,6 +149,15 @@ public class WebConfigHandler {
                 GSON.toJson(
                     Config.webWorldMapDefaultQualityTier != null ? Config.webWorldMapDefaultQualityTier : "medium"))
             .append(',');
+        sb.append("\"worldMapSnapshotMode\":")
+            .append(GSON.toJson(com.imgood.textech.webae.worldmap.WorldMapSnapshotMode.normalized()))
+            .append(',');
+        sb.append("\"worldMapBrowserCacheEnabled\":")
+            .append(Config.worldMapBrowserCacheEnabled)
+            .append(',');
+        sb.append("\"worldMapJourneyMapEnabled\":")
+            .append(Config.worldMapJourneyMapEnabled)
+            .append(',');
         sb.append("\"alertsEnabled\":")
             .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)
             .append(',');

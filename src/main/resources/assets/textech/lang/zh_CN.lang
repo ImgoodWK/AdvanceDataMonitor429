@@ -628,7 +628,7 @@ adm.manual.ai_assistant.intents_title=意图类型参考
 adm.manual.ai_assistant.intents_text=助手识别 24 种意图类型。各意图功能说明：\n\nAE2 指令：\nORDER_ITEM - 提交单个合成订单。从 AE2 样板列表返回编号候选项。\nORDER_BATCH - 一次提交多个合成订单。逐行确认后批量提交。\nWITHDRAW_ITEM - 从 AE2 存储取出物品到背包。显示当前库存作为候选项。\nWITHDRAW_BATCH - 批量取出多个物品。背包空间不足时支持部分取出。\nQUERY_RECIPE - 按名称搜索 AE2 样板。返回配方详情（输入、输出）。\nQUERY_STORAGE - 完整存储概览：物品（按数量）、流体,含图标和 K/M/T 格式化。\nQUERY_JOBS - 列出 AE2 挂起的合成任务。\nQUERY_ITEM_COUNT - 存储网络中物品/流体详细数量。\nQUERY_BYTES - 字节占用明细,含无限元件检测（AE2Things）。\nCANCEL - 中止会话并取消排队中的 AE2 合成任务。\n\n能源查询：\nQUERY_POWER - 无线能源网络电量和容量。\nQUERY_STEAM - 无线蒸汽网络蒸汽量和状态。\n\n世界查询：\nQUERY_WEATHER - 维度、雨/雷暴状态、天空可见度。\nQUERY_TIME - 世界时间（tick）、天数、昼夜状态、距离天亮/天黑时间。\nQUERY_POSITION - 玩家 XYZ 坐标、区块坐标、朝向（东/南/西/北）。\nQUERY_BIOME - 群系名称、温度、降雨量、湿度。\nQUERY_INVENTORY - 空闲/已用/总计物品栏槽位。\n\n传送（需 DE 高级错位宝石）：\nTELEPORT - 扫描错位宝石,显示传送点,按名称/编号传送。\nTELEPORT_LIST - 列出宝石上所有已保存传送点。\n\n计划器：\nPLAN_ADD/CREATE/LIST/COMPLETE/DELETE/MODIFY - 通过 AI 进行完整的计划器增删改查操作。\n\n系统：\nCLARIFY - 意图不明确时提示用户澄清。\nCHAT - 普通对话,不触发工具操作。
 
 adm.manual.ai_assistant.commands_title=游戏内命令
-adm.manual.ai_assistant.commands_text=/admassistant - AI 助手管理：\n  /admassistant help - 显示帮助\n  /admassistant lexicon - 显示词库配置文件路径\n  /admassistant reloadLexicon - 重新加载词库（需 OP 权限）\n\n/admai - AI 配置管理：\n  /admai key <api_key> - 设置 API 密钥\n  /admai clearKey - 清除已保存密钥\n  /admai model <name> - 设置模型（Tab 补全常见模型）\n  /admai base <url> - 设置 API 地址（Tab 补全已知供应商）\n  /admai provider <name> - 预设 deepseek/openai/openrouter/anthropic/gemini/qwen/glm/kimi/doubao/siliconflow/mistral/groq/minimax/volcengine\n  /admai network on|off|toggle - 允许/禁止网络请求\n  /admai search on|off|toggle|auto|openai|openrouter|dashscope|zhipu|generic-tools - 网络搜索控制\n  /admai status - 显示当前配置\n\n两个命令均无需 OP 权限（reloadLexicon 除外）。所有玩家可用。
+adm.manual.ai_assistant.commands_text=/textech help（别名 /adm help）— TeXTech 命令总索引。\n\n/admassistant - AI 助手管理：\n  /admassistant help - 显示帮助\n  /admassistant lexicon - 显示词库配置文件路径\n  /admassistant reloadLexicon - 重新加载词库（需 OP 权限）\n\n/admai - AI 配置管理（仅客户端）：\n  /admai key <api_key> - 设置 API 密钥\n  /admai clearKey - 清除已保存密钥\n  /admai model <name> - 设置模型（Tab 补全常见模型）\n  /admai base <url> - 设置 API 地址（Tab 补全已知供应商）\n  /admai provider <name> - 预设 deepseek/openai/openrouter/anthropic/gemini/qwen/glm/kimi/doubao/siliconflow/mistral/groq/minimax/volcengine\n  /admai network on|off|toggle - 允许/禁止网络请求\n  /admai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng - 联网搜索控制\n  /admai searchKey <key> - 搜索 API Key\n  /admai searchBase <url> - SearXNG 地址\n  /admai debug on|off|toggle - 调试日志\n  /admai stream on|off|toggle - 流式回复\n  /admai status - 显示当前配置\n\n/admweb help - Web 控制台完整命令（Token、配方/图标、世界地图等）。\n\n除 reloadLexicon 与 admweb 部分 OP 子命令外，admai/admassistant 无需 OP。
 
 adm.manual.ai_assistant.examples_title=对话示例
 adm.manual.ai_assistant.examples_text=尝试这些提示词开始使用：\n\n单个合成："下单 256 铜导线"\n批量合成："下单 64 铁板、32 金板和 128 红石"\n取出物品："取出 64 铁锭"\n存储查询："显示我的存储概览"\n流体查询："我有多少烈焰之炽焱？"\n电量："我有多少电量？"\n蒸汽："我的蒸汽水平是多少？"\n配方查询："HV 电路有什么配方？"\n字节检查："AE2 网络还剩多少字节？"\n天气："现在天气怎么样？"\n时间："现在几点了？"或"还有多久天亮？"\n位置："我在哪里？"\n群系："这是什么群系？"\n背包："我有多少背包空间？"\n传送："传送到我的基地"或"列出我的传送点"\n计划器："添加计划：建造聚变反应堆"然后"列出我的计划"然后"完成计划 1"\n\n串联命令："下单 64 铁锭,取出 32 金锭,显示我的存储"\n\n不确定时可点击功能菜单按钮。随时输入"取消"中止操作。
@@ -1067,7 +1067,7 @@ adm.manual.web_console.safety_text=Web 控制台是功能强大的工具——�
 
 # ===== Web 控制台手册：新页面（阶段 E 与升级）=====
 adm.manual.web_console.command_upload_title=命令触发上传
-adm.manual.web_console.command_upload_text=OP 玩家通过聊天命令触发配方与图标上传（Phase 2 起移除了游戏内快捷键，上传仅由命令触发）。\n\n命令：\n- /admweb recipes upload [snapshot|deep] — 上传 NEI 配方（snapshot 仅存储相关物品；deep 全量物品扫描）；同时写入客户端 TeXTechWebAE/web-recipes.json.gz。\n- /admweb icons upload [packName] — 同样通过触发包让客户端渲染物品图标并通过 PacketWebIconUpload 上传。\n- /admweb icons import-nesql [pack] [subpath] — 从 nesqlRepositoryPath（空则 TeXTechWebAE）导入预渲染 PNG（增量）。\n\n上传子命令均要求 OP 权限（canUseOpCommands）；基础 /admweb 权限等级保持 0。\n\n客户端采集在主线程执行（Minecraft.addScheduledTask），因为 NEI API 非线程安全；RecipeUploadThrottler 按 recipeUploadBatchesPerTick 每 tick 发送批次。\n\n调试日志：在 [debug] debugWebae=true 时输出 handler 数量、numRecipes 总和与过滤前后配方数。
+adm.manual.web_console.command_upload_text=OP 玩家通过聊天命令触发配方与图标上传（Phase 2 起移除了游戏内快捷键，上传仅由命令触发）。\n\n命令索引：/textech help（别名 /adm help）。Web 控制台：/admweb help；分组：/admweb recipes、/admweb icons、/admweb worldmap、/admweb server。\n\n命令：\n- /admweb recipes upload [snapshot|deep] — 上传 NEI 配方（snapshot 仅存储相关物品；deep 全量物品扫描）；同时写入客户端 TeXTech/WebAE/web-recipes.json.gz。\n- /admweb icons upload [pack] [mode] — 客户端渲染物品图标并上传。\n- /admweb icons import-nesql [pack] [subpath] — 从 nesqlRepositoryPath（空则 TeXTech/WebAE/）导入预渲染 PNG（增量）。\n- /admweb worldmap upload|accept|status — 世界地图客户端快照。\n\n上传子命令均要求 OP 权限（canUseOpCommands）；基础 /admweb 权限等级保持 0。\n\n客户端采集在主线程执行（Minecraft.addScheduledTask），因为 NEI API 非线程安全；RecipeUploadThrottler 按 recipeUploadBatchesPerTick 每 tick 发送批次。\n\n调试日志：在 [debug] debugWebae=true 时输出 handler 数量、numRecipes 总和与过滤前后配方数。
 adm.manual.web_console.refresh_status_title=顶栏刷新状态
 adm.manual.web_console.refresh_status_text=自动刷新倒计时不再单独切换显示一个文本元素（之前会导致顶栏宽度抖动）。\n\n- 绿色连接点旁新增固定宽度的状态栏（min-width 90px），始终占位渲染。\n- 状态文案由小型状态机驱动：「空闲」/「Ns 后刷新」/「刷新中...」。\n- 刷新按钮内的 spinner 改为绝对定位覆盖层，按钮宽度在加载过程中不再变化。\n\n这消除了每次刷新周期引起的 flex 重排抖动。
 adm.manual.web_console.dashboard_settings_title=仪表盘设置面板
@@ -1148,3 +1148,199 @@ adm.manual.web_console.extensions_title=扩展功能（Phase 6–12）
 adm.manual.web_console.extensions_text=WebAE 近期扩展：\n\n- **材料树（Phase 6）**：下单页 → 材料树 Tab；GET /api/craft/tree 递归展开 NEI 配方并对比存储缺口。\n- **SSE 告警（Phase 9）**：GET /api/events/stream 实时推送告警（15 秒心跳）；useEventStream 与 10 秒轮询互补。\n- **P2P 频道地图（Phase 10）**：拓扑页 → P2P 频道视图；GET /api/network/p2p 按 frequency 分组隧道。\n- **监视器预览（Phase 11）**：监视器绑定 → 每槽「预览」；GET /api/monitor/preview 返回折线数据 Drawer。\n- **PWA 与移动端（Phase 12）**：manifest.webmanifest + 窄屏响应式 CSS；手机可添加到主屏幕。\n- **CSV 导出（Phase 13）**：存储 / GT / 拓扑页通过客户端 Blob 导出表格。
 adm.manual.web_console.phase3_title=Phase 3 集成与告警
 adm.manual.web_console.phase3_text=Phase 3 新增跨系统只读页面与自动化告警。\n\n集成页面（侧栏）：\n- 链接扫描器镜像：GET /api/scanner/blocks — 已加载区块 Link 方块；传送仍在游戏内。\n- 监视器绑定：GET /api/monitor/bindings — 图表槽位与 GT 机器坐标；每槽「预览」调用 GET /api/monitor/preview 在 Drawer 中显示折线。\n- 计划器：GET /api/planner/plans — 只读列表，来自 config/textech/plans.json。\n- AI 助手：POST /api/assistant/query — 服务端规则查询（2 秒限流；密钥不上服务端）。\n- 拓扑元件摘要：GET /api/network/cells — 拓扑页显示无限元件/字节统计。\n- 口袋概览：GET /api/pocket/overview — 仅 OP 最小统计（不含存储物品）。\n\n自动化（A1–A5）：config/textech/web-alerts.json 驱动 WebAlertEngine；GET /api/alerts 返回活跃告警；设置页可编辑规则（OP）；useWebAlerts Toast + 浏览器通知；useEventStream 经 GET /api/events/stream SSE 实时推送（15s 心跳，标签页隐藏时暂停）。
+
+# ===== TeXTech 游戏内命令 (/textech help) =====
+adm.command.common.op_required=此操作需要管理员（OP）权限。
+adm.command.common.player_required=此命令只能由玩家执行。
+adm.command.common.invalid_network_id=无效的网络 ID：{0}
+adm.command.common.usage_invalid=用法无效，请查看下方帮助。
+
+adm.command.hub.title==== TeXTech 命令 ===
+adm.command.hub.usage=/textech help  —  显示本命令索引
+adm.command.hub.1=[服务端]  /admweb help       Web 控制台（Token、配方/图标、世界地图…）
+adm.command.hub.2=[客户端]  /admai help        AI API 配置（Key、模型、联网搜索…）
+adm.command.hub.3=[通用]    /admassistant help AI 助手词库热重载
+adm.command.hub.4=输入 /xxx help 查看完整子命令。[OP] = 需管理员权限。
+adm.command.hub.client.1=[服务端]  /admweb help       Web 控制台（Token、配方/图标、世界地图…）
+adm.command.hub.client.2=[客户端]  /admai help        AI API 配置（本客户端可用）
+adm.command.hub.client.3=[通用]    /admassistant help AI 助手词库热重载
+adm.command.hub.client.4=别名：/adm help、/txt help
+adm.command.hub.client.5=输入 /xxx help 查看完整子命令。[OP] = 需管理员权限。
+adm.command.hub.footer=亦可使用 /textech help（别名：/adm、/txt）。
+
+adm.command.admassistant.usage=/admassistant <reloadLexicon|lexicon|help>
+adm.command.admassistant.title==== /admassistant — AI 助手词库 ===
+adm.command.admassistant.help.1=/admassistant lexicon  —  显示词库配置文件路径
+adm.command.admassistant.help.2=/admassistant reloadLexicon  —  编辑后重新加载词库  [OP]
+adm.command.admassistant.help.3=别名：reload（同 reloadLexicon）
+adm.command.admassistant.op_required=重新加载词库需要 OP 权限。
+adm.command.admassistant.reload_ok={0}
+adm.command.admassistant.lexicon_path=词库文件：{0}
+adm.command.admassistant.lexicon_hint=编辑后请执行 /admassistant reloadLexicon。
+
+adm.command.admai.usage=/admai <key|model|base|provider|network|search|searchKey|searchBase|debug|stream|status|clearKey|help> [值]
+adm.command.admai.title==== /admai — AI 客户端配置 ===
+adm.command.admai.help.1=/admai key <apiKey>  —  设置 OpenAI 兼容 API Key
+adm.command.admai.help.2=/admai clearKey  —  清除已保存的 API Key
+adm.command.admai.help.3=/admai model <名称>  —  设置模型（支持 Tab 补全）
+adm.command.admai.help.4=/admai base <url>  —  设置 API 地址（支持 Tab 补全）
+adm.command.admai.help.5=/admai provider <id>  —  应用供应商预设（deepseek/openai/openrouter/…）
+adm.command.admai.help.6=/admai network on|off|toggle  —  允许/禁止 AI 联网请求
+adm.command.admai.help.7=/admai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng
+adm.command.admai.help.8=/admai searchKey <key>  —  Tavily/Brave/Serper 搜索 API Key
+adm.command.admai.help.9=/admai searchBase <url>  —  SearXNG 实例地址
+adm.command.admai.help.10=/admai debug on|off|toggle  —  AI 调试日志
+adm.command.admai.help.11=/admai stream on|off|toggle  —  流式回复
+adm.command.admai.help.12=/admai status  —  显示当前 AI 配置
+adm.command.admai.help.13=仅客户端命令。无需 OP（密钥保存在本地）。
+adm.command.admai.usage_key=用法：/admai key <apiKey>
+adm.command.admai.usage_model=用法：/admai model <模型名>
+adm.command.admai.usage_base=用法：/admai base <apiBaseUrl>
+adm.command.admai.usage_provider=用法：/admai provider <deepseek|openai|openrouter|…>
+adm.command.admai.usage_network=用法：/admai network <on|off|toggle>
+adm.command.admai.usage_search=用法：/admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>
+adm.command.admai.usage_searchkey=用法：/admai searchKey <apiKey>
+adm.command.admai.usage_searchbase=用法：/admai searchBase <url>
+adm.command.admai.usage_debug=用法：/admai debug <on|off|toggle>
+adm.command.admai.usage_stream=用法：/admai stream <on|off|toggle>
+adm.command.admai.key_saved=AI API Key 已保存。当前 Key：{0}
+adm.command.admai.key_cleared=AI API Key 已清除。
+adm.command.admai.model_set=AI 模型已设为：{0}
+adm.command.admai.base_set=AI API 地址已设为：{0}
+adm.command.admai.provider_unknown=未知 AI 供应商：{0}
+adm.command.admai.provider_set=AI 供应商已设为：{0}
+adm.command.admai.provider_base=Base URL：{0}
+adm.command.admai.provider_model=模型：{0}
+adm.command.admai.provider_search=联网搜索模式：{0}{1}
+adm.command.admai.network_enabled=AI 联网请求：已开启
+adm.command.admai.network_disabled=AI 联网请求：已关闭
+adm.command.admai.search_status=AI 联网搜索：{0}，引擎：{1}
+adm.command.admai.searchkey_saved=搜索 API Key 已保存：{0}
+adm.command.admai.searchbase_set=SearXNG 地址已设为：{0}
+adm.command.admai.debug_enabled=AI 调试日志：已开启
+adm.command.admai.debug_disabled=AI 调试日志：已关闭
+adm.command.admai.stream_enabled=AI 流式回复：已开启
+adm.command.admai.stream_disabled=AI 流式回复：已关闭
+adm.command.admai.status.title==== AI 配置状态 ===
+adm.command.admai.status.network=AI 联网请求：{0}
+adm.command.admai.status.base=AI Base URL：{0}
+adm.command.admai.status.provider=AI 供应商：{0}
+adm.command.admai.status.model=AI 模型：{0}
+adm.command.admai.status.search=AI 联网搜索：{0}，引擎：{1}
+adm.command.admai.status.search_detail=联网搜索详情：{0}
+adm.command.admai.status.search_key=搜索 API Key：{0}
+adm.command.admai.status.search_base=SearXNG 地址：{0}
+adm.command.admai.status.search_max=搜索最大结果数：{0}，降级：{1}
+adm.command.admai.status.stream=AI 流式回复：{0}
+adm.command.admai.status.debug=AI 调试日志：{0}
+adm.command.admai.status.privacy=AI 隐私确认：{0}
+adm.command.admai.status.key=AI Key：{0}
+adm.command.admai.status.not_set=未设置
+adm.command.admai.status.yes=是
+adm.command.admai.status.no=否
+adm.command.admai.status.enabled=已开启
+adm.command.admai.status.disabled=已关闭
+
+adm.command.admweb.usage=/admweb help  —  Web 控制台命令（详见 /admweb help）
+adm.command.admweb.title==== /admweb — Web 控制台 ===
+adm.command.admweb.help.1=/admweb issue  —  生成主人访问 Token  [玩家]
+adm.command.admweb.help.2=/admweb login  —  6 位浏览器登录码  [玩家]
+adm.command.admweb.help.3=/admweb guest <玩家名>  —  向在线玩家签发访客 Token  [玩家]
+adm.command.admweb.help.4=/admweb copy  —  复制当前 Token 到剪贴板  [玩家]
+adm.command.admweb.help.5=/admweb revoke [访客名|玩家]  —  撤销 Token  [玩家/OP]
+adm.command.admweb.help.6=/admweb list  —  列出全部活跃 Token  [OP]
+adm.command.admweb.help.7=/admweb reload  —  重载 TeXTech 配置  [OP]
+adm.command.admweb.help.8=/admweb refresh [networkId]  —  强制重采集快照  [OP]
+adm.command.admweb.help.9=/admweb recipes …  —  配方缓存（upload/status/clear）  [见 /admweb recipes]
+adm.command.admweb.help.10=/admweb icons …  —  图标材质包（upload/import/status）  [见 /admweb icons]
+adm.command.admweb.help.11=/admweb worldmap …  —  世界地图快照  [见 /admweb worldmap]
+adm.command.admweb.help.12=/admweb server status|restart  —  HTTP 服务控制
+adm.command.admweb.help.13=reload 后 enabled/port/bindAddress 等可能仍需重启服务端。
+
+adm.command.admweb.recipes.title==== /admweb recipes ===
+adm.command.admweb.recipes.help.1=/admweb recipes upload [snapshot|deep]  —  采集并上传 NEI 配方  [OP][客户端]
+adm.command.admweb.recipes.help.2=/admweb recipes export  —  upload 别名（强调导出到磁盘缓存）
+adm.command.admweb.recipes.help.3=/admweb recipes status  —  查看服务端配方缓存状态
+adm.command.admweb.recipes.help.4=/admweb recipes clear  —  清空内存与磁盘缓存  [OP]
+adm.command.admweb.recipes.upload_disabled=配置中已禁用配方上传。
+adm.command.admweb.recipes.snapshot_info=快照上传：{0} 个存储物品 → 相关配方
+adm.command.admweb.recipes.deep_info=NEI 全物品深度扫描 — 可能耗时数分钟。
+adm.command.admweb.recipes.exporting=正在导出配方到服务端磁盘缓存…
+adm.command.admweb.recipes.triggered=已在你的客户端触发 NEI 配方上传（{0}）。
+adm.command.admweb.recipes.status.title==== 配方缓存状态 ===
+adm.command.admweb.recipes.status.total=  配方总数：{0}
+adm.command.admweb.recipes.status.handlers=  Handler 类型：{0}
+adm.command.admweb.recipes.status.updated=  最后更新：{0}
+adm.command.admweb.recipes.status.disk_size=  磁盘缓存大小：{0}
+adm.command.admweb.recipes.status.disk_save=  最后磁盘保存：{0}
+adm.command.admweb.recipes.status.disk_none=  磁盘缓存：尚未保存
+adm.command.admweb.recipes.unknown=未知 recipes 子命令。可用：upload、export、status、clear
+
+adm.command.admweb.icons.title==== /admweb icons ===
+adm.command.admweb.icons.help.1=/admweb icons upload [pack] [mode|all|snapshot]
+adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack] [mode]
+adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack] [mode]  [OP][客户端]
+adm.command.admweb.icons.help.4=/admweb icons verify <itemId> [pack]  [客户端]
+adm.command.admweb.icons.help.5=/admweb icons import <folder> [pack]  [OP]
+adm.command.admweb.icons.help.6=/admweb icons import-nesql [pack] [subpath]  [OP]
+adm.command.admweb.icons.help.7=/admweb icons modes | status | clear  [clear 需 OP]
+adm.command.admweb.icons.modes.title==== WebAE 图标渲染模式 ===
+adm.command.admweb.icons.status.title==== 图标材质包状态 ===
+adm.command.admweb.icons.status.empty=  TeXTech/WebAE/icons/ 中尚未安装材质包。
+adm.command.admweb.icons.status.pack=  {0} — {1} 个图标
+adm.command.admweb.icons.status.cache=  iconCacheEnabled：{0}
+adm.command.admweb.icons.status.upload=  iconUploadEnabled：{0}
+adm.command.admweb.icons.status.pack_enabled=  iconPackEnabled：{0}
+adm.command.admweb.icons.status.queue=  missingIconQueue：{0}
+adm.command.admweb.icons.op_player=需要 OP 玩家执行。
+adm.command.admweb.icons.disabled=图标缓存/上传已禁用。
+adm.command.admweb.icons.invalid=无效的材质包或渲染模式。
+adm.command.admweb.icons.no_snapshot=尚无 AE 存储快照缓存。
+adm.command.admweb.icons.upload_started=图标上传已开始：pack={0} mode={1} scope={2}
+adm.command.admweb.icons.render_usage=用法：/admweb icons render <itemId> [pack] [mode]
+adm.command.admweb.icons.rendering=正在渲染 {0}
+adm.command.admweb.icons.verify_usage=用法：/admweb icons verify <itemId> [pack]
+adm.command.admweb.icons.verify_open=正在打开 {0} 的验证 GUI
+adm.command.admweb.icons.import_usage=用法：/admweb icons import <folder> [pack]
+adm.command.admweb.icons.import_invalid=无效的材质包或文件夹。
+adm.command.admweb.icons.import_done=已导入 {0} 个 PNG 到 {1}/nei/
+adm.command.admweb.icons.import_nesql_invalid=无效的材质包名称。
+adm.command.admweb.icons.import_nesql_done=NESQL 导入：{0} 个图标 → {1}/nei/（来源 {2}）
+adm.command.admweb.icons.unknown=未知 icons 子命令。可用：upload、render、verify、import、import-nesql、modes、status、clear
+adm.command.admweb.icons.mode.ready=可用
+adm.command.admweb.icons.mode.deprecated=已弃用
+adm.command.admweb.icons.mode.planned=计划中
+
+adm.command.admweb.worldmap.title==== /admweb worldmap ===
+adm.command.admweb.worldmap.help.1=/admweb worldmap upload [networkId]  —  上传地图快照  [玩家][客户端]
+adm.command.admweb.worldmap.help.2=/admweb worldmap accept <requestId>  —  同意上传请求  [玩家]
+adm.command.admweb.worldmap.help.3=/admweb worldmap status [networkId]  —  快照状态
+adm.command.admweb.worldmap.accept_usage=用法：/admweb worldmap accept <requestId>
+adm.command.admweb.worldmap.start_failed=[WebAE] 无法启动快照（冷却中、无拓扑或距离网络过远）。
+adm.command.admweb.worldmap.start_ok=[WebAE] 快照采集已启动或已发送同意请求（id/version：{0}）。
+adm.command.admweb.worldmap.accept_failed=[WebAE] 请求已过期、不存在，或你距离网络过远。
+adm.command.admweb.worldmap.status=[WebAE] 世界地图快照 v{0} state={1}{2}
+adm.command.admweb.worldmap.progress= progress={0}/{1}
+adm.command.admweb.worldmap.unknown=未知 worldmap 子命令。请使用 /admweb worldmap help
+
+adm.command.admweb.server.title==== /admweb server ===
+adm.command.admweb.server.help.1=/admweb server status  —  查看 WebAE HTTP 服务状态
+adm.command.admweb.server.help.2=/admweb server restart  —  重启 HTTP 服务  [OP]
+adm.command.admweb.server.status.title==== WebAE HTTP 服务 ===
+adm.command.admweb.server.status.enabled=  配置已启用：{0}
+adm.command.admweb.server.status.running=  运行中：{0}
+adm.command.admweb.server.status.bind=  绑定：{0}:{1}
+adm.command.admweb.server.status.logs=  日志：logs/latest.log（搜索 [WebAE]）
+adm.command.admweb.server.unknown=未知 server 子命令。可用：status、restart
+
+adm.command.admweb.list.title==== 活跃 Web 控制台 Token ===
+adm.command.admweb.list.empty=暂无活跃 Token。
+adm.command.admweb.list.entry=  [{0}] owner={1} actor={2} | Token：{3}... | 签发：{4}
+adm.command.admweb.list.type.guest=访客
+adm.command.admweb.list.type.owner=主人
+adm.command.admweb.revoke.usage=用法：/admweb revoke [玩家|访客名]
+adm.command.admweb.revoke.other_op=撤销他人 Token 需要 OP 权限。
+adm.command.admweb.refresh.usage=须由玩家触发，或指定：/admweb refresh [network] <ownerUuid>
+adm.command.admweb.guest.token_preview=访客 Token：{0}...
+adm.command.admweb.reload.failed=配置重载失败 — 请查看服务端日志。
+adm.command.admweb.reload.note=提示：部分设置（如 Web 控制台 port/bindAddress）须重启服务端后生效。

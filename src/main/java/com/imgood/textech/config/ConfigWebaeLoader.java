@@ -438,5 +438,61 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.worldMapDynmapTileRoot,
             ConfigDescriptions.get("webConsole", "worldMapDynmapTileRoot"));
+        Config.worldMapSnapshotMode = configuration.getString(
+            "worldMapSnapshotMode",
+            "webConsole",
+            Config.worldMapSnapshotMode,
+            ConfigDescriptions.get("webConsole", "worldMapSnapshotMode"));
+        Config.worldMapJourneyMapEnabled = configuration.getBoolean(
+            "worldMapJourneyMapEnabled",
+            "webConsole",
+            Config.worldMapJourneyMapEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapJourneyMapEnabled"));
+        Config.worldMapJourneyMapDataRoot = configuration.getString(
+            "worldMapJourneyMapDataRoot",
+            "webConsole",
+            Config.worldMapJourneyMapDataRoot,
+            ConfigDescriptions.get("webConsole", "worldMapJourneyMapDataRoot"));
+        Config.worldMapConsentRadiusChunks = configuration.getInt(
+            "worldMapConsentRadiusChunks",
+            "webConsole",
+            Config.worldMapConsentRadiusChunks,
+            1,
+            64,
+            ConfigDescriptions.get("webConsole", "worldMapConsentRadiusChunks"));
+        Config.worldMapConsentTimeoutSec = configuration.getInt(
+            "worldMapConsentTimeoutSec",
+            "webConsole",
+            Config.worldMapConsentTimeoutSec,
+            30,
+            600,
+            ConfigDescriptions.get("webConsole", "worldMapConsentTimeoutSec"));
+        Config.worldMapOwnerSkipConsent = configuration.getBoolean(
+            "worldMapOwnerSkipConsent",
+            "webConsole",
+            Config.worldMapOwnerSkipConsent,
+            ConfigDescriptions.get("webConsole", "worldMapOwnerSkipConsent"));
+        Config.worldMapClientFallbackQuality = configuration.getString(
+            "worldMapClientFallbackQuality",
+            "webConsole",
+            Config.worldMapClientFallbackQuality,
+            ConfigDescriptions.get("webConsole", "worldMapClientFallbackQuality"));
+        Config.worldMapClientDownloadBudgetPerTick = configuration.getInt(
+            "worldMapClientDownloadBudgetPerTick",
+            "webConsole",
+            Config.worldMapClientDownloadBudgetPerTick,
+            1,
+            32,
+            ConfigDescriptions.get("webConsole", "worldMapClientDownloadBudgetPerTick"));
+        Config.worldMapBrowserCacheEnabled = configuration.getBoolean(
+            "worldMapBrowserCacheEnabled",
+            "webConsole",
+            Config.worldMapBrowserCacheEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapBrowserCacheEnabled"));
+        Config.worldMapLegacyServerRender = configuration.getBoolean(
+            "worldMapLegacyServerRender",
+            "webConsole",
+            Config.worldMapLegacyServerRender,
+            ConfigDescriptions.get("webConsole", "worldMapLegacyServerRender"));
     }
 }

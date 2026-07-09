@@ -90,6 +90,13 @@ public class PacketWebConsoleTokenNotify implements IMessage {
                 WebConsoleClientChat.showOnboarding(message.port, message.bindAddress);
             } else {
                 WebConsoleClientChat.showIssue(message.token, message.port, message.bindAddress);
+                if (mc.thePlayer != null) {
+                    com.imgood.textech.client.worldmap.WorldMapSnapshotDownloadHandler.instance()
+                        .scheduleSyncForOwner(
+                            mc.thePlayer.getUniqueID()
+                                .toString(),
+                            0);
+                }
             }
             return null;
         }

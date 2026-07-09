@@ -209,6 +209,10 @@ export function NetworkTopologyPage() {
 
     invalidateTiles: invalidateWorldMapTiles,
 
+    snapshotStatus: worldMapSnapshotStatus,
+
+    requestSnapshotUpdate,
+
   } = useWorldMapData(currentNet, viewMode === 'worldMap' && worldMapEnabled, displaySettings.worldMapQuality);
 
 
@@ -938,6 +942,41 @@ export function NetworkTopologyPage() {
       {viewMode === 'worldMap' && worldMapMeta?.boundsTooLarge && (
 
         <Alert type="warning" showIcon message={t('worldMapBoundsTooLarge')} style={{ marginBottom: 8 }} />
+
+      )}
+
+      {viewMode === 'worldMap' && worldMapSnapshotStatus?.captureState === 'awaiting_consent' && (
+
+        <Alert
+          type="info"
+          showIcon
+          message={t('worldMapSnapshotAwaitingConsent')}
+          description={worldMapSnapshotStatus.message}
+          style={{ marginBottom: 8 }}
+        />
+
+      )}
+
+      {viewMode === 'worldMap' && worldMapSnapshotStatus?.captureState === 'capturing' && (
+
+        <Alert
+          type="info"
+          showIcon
+          message={t('worldMapSnapshotCapturing', {
+            done: worldMapSnapshotStatus.completedChunks ?? 0,
+            total: worldMapSnapshotStatus.totalChunks ?? 0,
+          })}
+          style={{ marginBottom: 8 }}
+        />
+
+      )}
+
+      {viewMode === 'worldMap' &&
+        worldMapMeta?.snapshotMode === 'client_only' &&
+        (worldMapMeta.snapshotVersion ?? 0) === 0 &&
+        worldMapMeta.hasLogicalSnapshot && (
+
+        <Alert type="warning" showIcon message={t('worldMapSnapshotNone')} style={{ marginBottom: 8 }} />
 
       )}
 

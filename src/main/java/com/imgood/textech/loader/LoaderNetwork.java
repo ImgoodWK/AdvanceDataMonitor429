@@ -36,6 +36,14 @@ import com.imgood.textech.webae.network.PacketWebIconUpload;
 import com.imgood.textech.webae.network.PacketWebIconUploadAck;
 import com.imgood.textech.webae.network.PacketWebMapTileJob;
 import com.imgood.textech.webae.network.PacketWebMapTileUpload;
+import com.imgood.textech.webae.network.PacketWorldMapCaptureAccept;
+import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
+import com.imgood.textech.webae.network.PacketWorldMapCaptureOffer;
+import com.imgood.textech.webae.network.PacketWorldMapSnapshotSyncRequest;
+import com.imgood.textech.webae.network.PacketWorldMapSnapshotSyncResponse;
+import com.imgood.textech.webae.network.PacketWorldMapSnapshotTileData;
+import com.imgood.textech.webae.network.PacketWorldMapSnapshotTilePull;
+import com.imgood.textech.webae.network.PacketWorldMapSnapshotTileUpload;
 import com.imgood.textech.webae.network.PacketWebRecipeUpload;
 import com.imgood.textech.webae.network.PacketWebRecipeUploadAck;
 import com.imgood.textech.webae.network.PacketWebUploadTrigger;
@@ -244,6 +252,47 @@ public class LoaderNetwork {
             .isClient()) {
             AdvanceDataMonitor.ADMCHANEL
                 .registerMessage(PacketWebMapTileJob.Handler.class, PacketWebMapTileJob.class, 34, Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketWorldMapCaptureOffer.Handler.class,
+                PacketWorldMapCaptureOffer.class,
+                37,
+                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketWorldMapCaptureJob.Handler.class,
+                PacketWorldMapCaptureJob.class,
+                39,
+                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketWorldMapSnapshotSyncResponse.Handler.class,
+                PacketWorldMapSnapshotSyncResponse.class,
+                42,
+                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketWorldMapSnapshotTileData.Handler.class,
+                PacketWorldMapSnapshotTileData.class,
+                44,
+                Side.CLIENT);
         }
+
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketWorldMapCaptureAccept.Handler.class,
+            PacketWorldMapCaptureAccept.class,
+            38,
+            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketWorldMapSnapshotTileUpload.Handler.class,
+            PacketWorldMapSnapshotTileUpload.class,
+            40,
+            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketWorldMapSnapshotSyncRequest.Handler.class,
+            PacketWorldMapSnapshotSyncRequest.class,
+            41,
+            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketWorldMapSnapshotTilePull.Handler.class,
+            PacketWorldMapSnapshotTilePull.class,
+            43,
+            Side.SERVER);
     }
 }

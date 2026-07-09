@@ -627,7 +627,7 @@ adm.manual.ai_assistant.intents_title=Intent Types Reference
 adm.manual.ai_assistant.intents_text=The assistant recognizes 24 intent types. Here's what each does:\n\nAE2 COMMANDS:\nORDER_ITEM - submit a single craft order. Returns numbered candidates from AE2 pattern list.\nORDER_BATCH - submit multiple craft orders at once. Line-by-line confirmation, then batch submission.\nWITHDRAW_ITEM - extract items from AE2 storage to inventory. Shows current stock as candidates.\nWITHDRAW_BATCH - batch withdraw multiple items. Supports partial withdraw when inventory full.\nQUERY_RECIPE - search AE2 patterns by name. Returns recipe details (inputs, outputs).\nQUERY_STORAGE - full storage overview: items (by count), fluids, with icons and K/M/T formatting.\nQUERY_JOBS - list pending AE2 crafting jobs.\nQUERY_ITEM_COUNT - detailed item/fluid counts from storage network.\nQUERY_BYTES - byte usage breakdown with infinite cell detection (AE2Things).\nCANCEL - abort session and cancel queued AE2 craft jobs.\n\nENERGY QUERIES:\nQUERY_POWER - wireless energy network power level and capacity.\nQUERY_STEAM - wireless steam network steam amount and status.\n\nWORLD QUERIES:\nQUERY_WEATHER - dimension, rain/thunder state, sky visibility.\nQUERY_TIME - world time (ticks), day count, day/night status, time until dawn/dusk.\nQUERY_POSITION - player XYZ, chunk coords, facing direction (N/S/E/W).\nQUERY_BIOME - biome name, temperature, rainfall, humidity.\nQUERY_INVENTORY - free/used/total inventory slots.\n\nTELEPORT (requires DE Advanced Dislocator):\nTELEPORT - scan dislocator, show destinations, teleport by name/number.\nTELEPORT_LIST - list all saved destinations on dislocator.\n\nPLANNER:\nPLAN_ADD/CREATE/LIST/COMPLETE/DELETE/MODIFY - full planner CRUD operations via AI.\n\nSYSTEM:\nCLARIFY - prompts user for clarification when intent is ambiguous.\nCHAT - normal conversation, no action triggered.
 
 adm.manual.ai_assistant.commands_title=In-Game Commands
-adm.manual.ai_assistant.commands_text=/admassistant - AI Assistant management:\n  /admassistant help - show help\n  /admassistant lexicon - show lexicon config file path\n  /admassistant reloadLexicon - reload lexicon (OP required)\n\n/admai - AI configuration management:\n  /admai key <api_key> - set API key\n  /admai clearKey - remove saved key\n  /admai model <name> - set model (tab-completes common models)\n  /admai base <url> - set API base URL (tab-completes known providers)\n  /admai provider <name> - preset for deepseek/openai/openrouter/anthropic/gemini/qwen/glm/kimi/doubao/siliconflow/mistral/groq/minimax/volcengine\n  /admai network on|off|toggle - enable/disable network requests\n  /admai search on|off|toggle|auto|openai|openrouter|dashscope|zhipu|generic-tools - web search control\n  /admai status - show current config\n\nBoth commands: no OP required (except reloadLexicon). Available to all players.
+adm.manual.ai_assistant.commands_text=/textech help (aliases /adm help) — TeXTech command index.\n\n/admassistant - AI Assistant management:\n  /admassistant help - show help\n  /admassistant lexicon - show lexicon config file path\n  /admassistant reloadLexicon - reload lexicon (OP required)\n\n/admai - AI configuration (client-only):\n  /admai key <api_key> - set API key\n  /admai clearKey - remove saved key\n  /admai model <name> - set model (tab-completes common models)\n  /admai base <url> - set API base URL (tab-completes known providers)\n  /admai provider <name> - preset for deepseek/openai/openrouter/anthropic/gemini/qwen/glm/kimi/doubao/siliconflow/mistral/groq/minimax/volcengine\n  /admai network on|off|toggle - enable/disable network requests\n  /admai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng - web search control\n  /admai searchKey <key> - search API key\n  /admai searchBase <url> - SearXNG URL\n  /admai debug on|off|toggle - debug logging\n  /admai stream on|off|toggle - streaming responses\n  /admai status - show current config\n\n/admweb help - full Web console commands (token, recipes/icons, world map, etc.).\n\nNo OP required for admai/admassistant except reloadLexicon and some admweb OP subcommands.
 
 adm.manual.ai_assistant.examples_title=Conversation Examples
 adm.manual.ai_assistant.examples_text=Try these prompts to get started:\n\nSingle crafting: "Order 256 copper wire"\nBatch crafting: "Order 64 iron plates, 32 gold plates, and 128 redstone"\nWithdraw items: "Withdraw 64 iron ingots"\nStorage query: "Show me my storage overview"\nFluid query: "How much pyrotheum do I have?"\nPower check: "How much power do I have?"\nSteam check: "What's my steam level?"\nRecipe lookup: "What recipes do I have for HV circuits?"\nByte check: "How many bytes are free in my AE2 network?"\nWeather: "What's the weather like?"\nTime: "What time is it?" or "How long until dawn?"\nPosition: "Where am I?"\nBiome: "What biome is this?"\nInventory: "How much inventory space do I have?"\nTeleport: "Teleport me to my base" or "List my teleport points"\nPlanner: "Add a plan: build fusion reactor" then "List my plans" then "Complete plan 1"\n\nChain commands: "Order 64 iron, withdraw 32 gold, and show my storage"\n\nUse the Menu button if you're unsure what to ask. Type "cancel" anytime to abort.
@@ -1076,7 +1076,7 @@ adm.manual.web_console.safety_text=The Web Console is a powerful tool — treat 
 
 # ===== Web Console Manual: New Pages (Phase E + upgrades) =====
 adm.manual.web_console.command_upload_title=Command-Triggered Upload
-adm.manual.web_console.command_upload_text=OP players trigger recipe and icon uploads via chat commands (Phase 2 removed the in-game keybind, so upload is command-only).\n\nCommands:\n- /admweb recipes upload [snapshot|deep] — upload NEI recipes (snapshot = storage items only; deep = full item scan); also writes client TeXTechWebAE/web-recipes.json.gz.\n- /admweb icons upload [packName] — same trigger packet; client renders item icons and uploads via PacketWebIconUpload.\n- /admweb icons import-nesql [pack] [subpath] — import pre-rendered PNGs from nesqlRepositoryPath (empty = TeXTechWebAE; incremental).\n\nBoth upload sub-commands require OP (canUseOpCommands); base /admweb permission level stays 0.\n\nClient collection runs on the main thread (Minecraft.addScheduledTask) because NEI APIs are not thread-safe; RecipeUploadThrottler sends recipeUploadBatchesPerTick batches per tick.\n\nDebug logging: set [debug] debugWebae=true to print handler counts, total numRecipes, and filtered recipe counts during collection.
+adm.manual.web_console.command_upload_text=OP players trigger recipe and icon uploads via chat commands (Phase 2 removed the in-game keybind, so upload is command-only).\n\nIndex: /textech help (alias /adm help). Web console: /admweb help; groups: /admweb recipes, /admweb icons, /admweb worldmap, /admweb server.\n\nCommands:\n- /admweb recipes upload [snapshot|deep] — upload NEI recipes (snapshot = storage items only; deep = full item scan); also writes client TeXTech/WebAE/web-recipes.json.gz.\n- /admweb icons upload [pack] [mode] — client renders item icons and uploads via PacketWebIconUpload.\n- /admweb icons import-nesql [pack] [subpath] — import pre-rendered PNGs from nesqlRepositoryPath (empty = TeXTech/WebAE/; incremental).\n- /admweb worldmap upload|accept|status — client world map snapshots.\n\nBoth upload sub-commands require OP (canUseOpCommands); base /admweb permission level stays 0.\n\nClient collection runs on the main thread (Minecraft.addScheduledTask) because NEI APIs are not thread-safe; RecipeUploadThrottler sends recipeUploadBatchesPerTick batches per tick.\n\nDebug logging: set [debug] debugWebae=true to print handler counts, total numRecipes, and filtered recipe counts during collection.
 adm.manual.web_console.refresh_status_title=Top Bar Refresh Status
 adm.manual.web_console.refresh_status_text=The auto-refresh countdown no longer toggles a separate text element on and off (which caused the top bar to shift width).\n\n- A fixed-width status span (min-width 90px) sits next to the green connection dot and is always rendered.\n- The status text follows a small state machine: "Idle" / "Ns until refresh" / "Refreshing...".\n- The refresh button's spinner is absolutely positioned as an overlay so the button width never changes during loading.\n\nThis removes the flex reflow jitter that used to happen every refresh cycle.
 adm.manual.web_console.dashboard_settings_title=Dashboard Settings Panel
@@ -1157,3 +1157,199 @@ adm.manual.web_console.extensions_title=Extended Features (Phase 6–12)
 adm.manual.web_console.extensions_text=Recent WebAE extensions:\n\n- **Craft tree (Phase 6)**: Orders page → Craft Tree tab; GET /api/craft/tree expands NEI recipes and compares storage gaps.\n- **SSE alerts (Phase 9)**: GET /api/events/stream pushes alerts in real time (15s heartbeat); useEventStream complements 10s polling.\n- **P2P channel map (Phase 10)**: Topology page → P2P channels view; GET /api/network/p2p groups tunnels by frequency.\n- **Monitor preview (Phase 11)**: Monitor Bindings → Preview per slot; GET /api/monitor/preview returns line-chart values.\n- **PWA & mobile (Phase 12)**: manifest.webmanifest + responsive CSS for narrow screens; add to home screen on phones.\n- **CSV export (Phase 13)**: Storage / GT / Topology pages export tables via client-side Blob download.
 adm.manual.web_console.phase3_title=Phase 3 Integration & Alerts
 adm.manual.web_console.phase3_text=Phase 3 adds cross-system read-only pages and automation alerts.\n\nIntegration pages (sidebar):\n- Link Scanner mirror: GET /api/scanner/blocks — loaded-chunk link blocks; teleport stays in-game.\n- Monitor bindings: GET /api/monitor/bindings — chart slots and GT machine coords; Preview per slot calls GET /api/monitor/preview for a line chart Drawer.\n- Planner: GET /api/planner/plans — read-only list from config/textech/plans.json.\n- AI Assistant: POST /api/assistant/query — rule-based server queries (2s rate limit; no AI keys on server).\n- Topology cell summary: GET /api/network/cells — infinite cell / byte stats on the topology page.\n- Pocket overview: GET /api/pocket/overview — OP-only minimal stats (no stored items).\n\nAutomation (A1–A5): config/textech/web-alerts.json drives WebAlertEngine; GET /api/alerts returns active alerts; OP can edit rules in Settings; useWebAlerts Toast + browser notifications; useEventStream via GET /api/events/stream SSE (15s heartbeat; pauses when tab hidden).
+
+# ===== TeXTech Commands (in-game /textech help) =====
+adm.command.common.op_required=You need operator permission for this action.
+adm.command.common.player_required=This command can only be used by a player.
+adm.command.common.invalid_network_id=Invalid network id: {0}
+adm.command.common.usage_invalid=Invalid usage. See help below.
+
+adm.command.hub.title==== TeXTech Commands ===
+adm.command.hub.usage=/textech help  —  show this command index
+adm.command.hub.1=[Server]  /admweb help       Web console (token, recipes/icons, world map…)
+adm.command.hub.2=[Client]  /admai help        AI API config (key, model, web search…)
+adm.command.hub.3=[Both]    /admassistant help AI assistant lexicon reload
+adm.command.hub.4=Type /xxx help for full subcommands. [OP] = operator required.
+adm.command.hub.client.1=[Server]  /admweb help       Web console (token, recipes/icons, world map…)
+adm.command.hub.client.2=[Client]  /admai help        AI API config — available on this client
+adm.command.hub.client.3=[Both]    /admassistant help AI assistant lexicon reload
+adm.command.hub.client.4=Aliases: /adm help, /txt help
+adm.command.hub.client.5=Type /xxx help for full subcommands. [OP] = operator required.
+adm.command.hub.footer=Also try /textech help (aliases: /adm, /txt).
+
+adm.command.admassistant.usage=/admassistant <reloadLexicon|lexicon|help>
+adm.command.admassistant.title==== /admassistant — AI Assistant Lexicon ===
+adm.command.admassistant.help.1=/admassistant lexicon  —  show lexicon config file path
+adm.command.admassistant.help.2=/admassistant reloadLexicon  —  reload lexicon after editing  [OP]
+adm.command.admassistant.help.3=Aliases: reload (same as reloadLexicon)
+adm.command.admassistant.op_required=You need operator permission to reload assistant lexicon config.
+adm.command.admassistant.reload_ok={0}
+adm.command.admassistant.lexicon_path=Assistant lexicon file: {0}
+adm.command.admassistant.lexicon_hint=Use /admassistant reloadLexicon after editing it.
+
+adm.command.admai.usage=/admai <key|model|base|provider|network|search|searchKey|searchBase|debug|stream|status|clearKey|help> [value]
+adm.command.admai.title==== /admai — AI Client Config ===
+adm.command.admai.help.1=/admai key <apiKey>  —  set OpenAI-compatible API key
+adm.command.admai.help.2=/admai clearKey  —  clear saved API key
+adm.command.admai.help.3=/admai model <name>  —  set model (tab completion)
+adm.command.admai.help.4=/admai base <url>  —  set API base URL (tab completion)
+adm.command.admai.help.5=/admai provider <id>  —  apply provider preset (deepseek/openai/openrouter/…)
+adm.command.admai.help.6=/admai network on|off|toggle  —  allow or block AI network requests
+adm.command.admai.help.7=/admai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng
+adm.command.admai.help.8=/admai searchKey <key>  —  Tavily/Brave/Serper search API key
+adm.command.admai.help.9=/admai searchBase <url>  —  SearXNG instance URL
+adm.command.admai.help.10=/admai debug on|off|toggle  —  AI debug logging
+adm.command.admai.help.11=/admai stream on|off|toggle  —  streaming responses
+adm.command.admai.help.12=/admai status  —  show current AI config
+adm.command.admai.help.13=Client-only command. No OP required (except none). Keys saved locally.
+adm.command.admai.usage_key=Usage: /admai key <apiKey>
+adm.command.admai.usage_model=Usage: /admai model <modelName>
+adm.command.admai.usage_base=Usage: /admai base <apiBaseUrl>
+adm.command.admai.usage_provider=Usage: /admai provider <deepseek|openai|openrouter|…>
+adm.command.admai.usage_network=Usage: /admai network <on|off|toggle>
+adm.command.admai.usage_search=Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>
+adm.command.admai.usage_searchkey=Usage: /admai searchKey <apiKey>
+adm.command.admai.usage_searchbase=Usage: /admai searchBase <url>
+adm.command.admai.usage_debug=Usage: /admai debug <on|off|toggle>
+adm.command.admai.usage_stream=Usage: /admai stream <on|off|toggle>
+adm.command.admai.key_saved=AI API key saved. Current key: {0}
+adm.command.admai.key_cleared=AI API key cleared.
+adm.command.admai.model_set=AI model set to: {0}
+adm.command.admai.base_set=AI API base URL set to: {0}
+adm.command.admai.provider_unknown=Unknown AI provider: {0}
+adm.command.admai.provider_set=AI provider set to: {0}
+adm.command.admai.provider_base=Base URL: {0}
+adm.command.admai.provider_model=Model: {0}
+adm.command.admai.provider_search=Web search mode: {0}{1}
+adm.command.admai.network_enabled=AI network requests: enabled
+adm.command.admai.network_disabled=AI network requests: disabled
+adm.command.admai.search_status=AI web search: {0}, engine: {1}
+adm.command.admai.searchkey_saved=Search API key saved: {0}
+adm.command.admai.searchbase_set=SearXNG base URL set to: {0}
+adm.command.admai.debug_enabled=AI debug logging: enabled
+adm.command.admai.debug_disabled=AI debug logging: disabled
+adm.command.admai.stream_enabled=AI streaming: enabled
+adm.command.admai.stream_disabled=AI streaming: disabled
+adm.command.admai.status.title==== AI Config Status ===
+adm.command.admai.status.network=AI network requests: {0}
+adm.command.admai.status.base=AI base URL: {0}
+adm.command.admai.status.provider=AI provider: {0}
+adm.command.admai.status.model=AI model: {0}
+adm.command.admai.status.search=AI web search: {0}, engine: {1}
+adm.command.admai.status.search_detail=AI web search detail: {0}
+adm.command.admai.status.search_key=Search API key: {0}
+adm.command.admai.status.search_base=SearXNG base URL: {0}
+adm.command.admai.status.search_max=Search max results: {0}, fallback: {1}
+adm.command.admai.status.stream=AI streaming: {0}
+adm.command.admai.status.debug=AI debug logging: {0}
+adm.command.admai.status.privacy=AI privacy confirmed: {0}
+adm.command.admai.status.key=AI key: {0}
+adm.command.admai.status.not_set=not set
+adm.command.admai.status.yes=yes
+adm.command.admai.status.no=no
+adm.command.admai.status.enabled=enabled
+adm.command.admai.status.disabled=disabled
+
+adm.command.admweb.usage=/admweb help  —  Web console commands (see /admweb help)
+adm.command.admweb.title==== /admweb — Web Console ===
+adm.command.admweb.help.1=/admweb issue  —  generate owner access token  [Player]
+adm.command.admweb.help.2=/admweb login  —  6-digit browser login code  [Player]
+adm.command.admweb.help.3=/admweb guest <player>  —  issue guest token to online player  [Player]
+adm.command.admweb.help.4=/admweb copy  —  copy your active token to clipboard  [Player]
+adm.command.admweb.help.5=/admweb revoke [guestName|player]  —  revoke token  [Player/OP]
+adm.command.admweb.help.6=/admweb list  —  list all active tokens  [OP]
+adm.command.admweb.help.7=/admweb reload  —  reload TeXTech config  [OP]
+adm.command.admweb.help.8=/admweb refresh [networkId]  —  force snapshot re-collect  [OP]
+adm.command.admweb.help.9=/admweb recipes …  —  recipe cache (upload/status/clear)  [see /admweb recipes]
+adm.command.admweb.help.10=/admweb icons …  —  icon packs (upload/import/status)  [see /admweb icons]
+adm.command.admweb.help.11=/admweb worldmap …  —  world map snapshot  [see /admweb worldmap]
+adm.command.admweb.help.12=/admweb server status|restart  —  HTTP server control
+adm.command.admweb.help.13=Port restart note: enabled/port/bindAddress may need server restart after reload.
+
+adm.command.admweb.recipes.title==== /admweb recipes ===
+adm.command.admweb.recipes.help.1=/admweb recipes upload [snapshot|deep]  —  collect & upload NEI recipes  [OP][Client]
+adm.command.admweb.recipes.help.2=/admweb recipes export  —  alias of upload (export to disk cache)
+adm.command.admweb.recipes.help.3=/admweb recipes status  —  show server recipe cache status
+adm.command.admweb.recipes.help.4=/admweb recipes clear  —  clear memory + disk cache  [OP]
+adm.command.admweb.recipes.upload_disabled=Recipe upload is disabled in config.
+adm.command.admweb.recipes.snapshot_info=Snapshot upload: {0} storage items → related recipes
+adm.command.admweb.recipes.deep_info=Deep NEI item scan — may take several minutes.
+adm.command.admweb.recipes.exporting=Exporting recipes to the server disk cache...
+adm.command.admweb.recipes.triggered=Triggered NEI recipe upload ({0}) on your client.
+adm.command.admweb.recipes.status.title==== Recipe Cache Status ===
+adm.command.admweb.recipes.status.total=  Total recipes: {0}
+adm.command.admweb.recipes.status.handlers=  Handler types: {0}
+adm.command.admweb.recipes.status.updated=  Last update: {0}
+adm.command.admweb.recipes.status.disk_size=  Disk cache size: {0}
+adm.command.admweb.recipes.status.disk_save=  Last disk save: {0}
+adm.command.admweb.recipes.status.disk_none=  Disk cache: not yet saved
+adm.command.admweb.recipes.unknown=Unknown recipes subcommand. Use: upload, export, status, clear
+
+adm.command.admweb.icons.title==== /admweb icons ===
+adm.command.admweb.icons.help.1=/admweb icons upload [pack] [mode|all|snapshot]
+adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack] [mode]
+adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack] [mode]  [OP][Client]
+adm.command.admweb.icons.help.4=/admweb icons verify <itemId> [pack]  [Client]
+adm.command.admweb.icons.help.5=/admweb icons import <folder> [pack]  [OP]
+adm.command.admweb.icons.help.6=/admweb icons import-nesql [pack] [subpath]  [OP]
+adm.command.admweb.icons.help.7=/admweb icons modes | status | clear  [OP for clear]
+adm.command.admweb.icons.modes.title==== WebAE Icon Render Modes ===
+adm.command.admweb.icons.status.title==== Icon Pack Status ===
+adm.command.admweb.icons.status.empty=  No icon packs installed in TeXTech/WebAE/icons/.
+adm.command.admweb.icons.status.pack=  {0} — {1} icons
+adm.command.admweb.icons.status.cache=  iconCacheEnabled: {0}
+adm.command.admweb.icons.status.upload=  iconUploadEnabled: {0}
+adm.command.admweb.icons.status.pack_enabled=  iconPackEnabled: {0}
+adm.command.admweb.icons.status.queue=  missingIconQueue: {0}
+adm.command.admweb.icons.op_player=OP player required.
+adm.command.admweb.icons.disabled=Icon cache/upload disabled.
+adm.command.admweb.icons.invalid=Invalid pack or mode.
+adm.command.admweb.icons.no_snapshot=No cached AE storage snapshots yet.
+adm.command.admweb.icons.upload_started=Icon upload started: pack={0} mode={1} scope={2}
+adm.command.admweb.icons.render_usage=Usage: /admweb icons render <itemId> [pack] [mode]
+adm.command.admweb.icons.rendering=Rendering {0}
+adm.command.admweb.icons.verify_usage=Usage: /admweb icons verify <itemId> [pack]
+adm.command.admweb.icons.verify_open=Opening verify GUI for {0}
+adm.command.admweb.icons.import_usage=Usage: /admweb icons import <folder> [pack]
+adm.command.admweb.icons.import_invalid=Invalid pack or folder.
+adm.command.admweb.icons.import_done=Imported {0} PNGs to {1}/nei/
+adm.command.admweb.icons.import_nesql_invalid=Invalid pack name.
+adm.command.admweb.icons.import_nesql_done=NESQL import: {0} icons → {1}/nei/ (from {2})
+adm.command.admweb.icons.unknown=Unknown icons subcommand. Use: upload, render, verify, import, import-nesql, modes, status, clear
+adm.command.admweb.icons.mode.ready=ready
+adm.command.admweb.icons.mode.deprecated=deprecated
+adm.command.admweb.icons.mode.planned=planned
+
+adm.command.admweb.worldmap.title==== /admweb worldmap ===
+adm.command.admweb.worldmap.help.1=/admweb worldmap upload [networkId]  —  upload map snapshot  [Player][Client]
+adm.command.admweb.worldmap.help.2=/admweb worldmap accept <requestId>  —  accept upload request  [Player]
+adm.command.admweb.worldmap.help.3=/admweb worldmap status [networkId]  —  snapshot status
+adm.command.admweb.worldmap.accept_usage=Usage: /admweb worldmap accept <requestId>
+adm.command.admweb.worldmap.start_failed=[WebAE] Could not start snapshot (cooldown, no topology, or not near network).
+adm.command.admweb.worldmap.start_ok=[WebAE] Snapshot capture started or consent sent (id/version: {0}).
+adm.command.admweb.worldmap.accept_failed=[WebAE] Request expired, not found, or you are too far from the network.
+adm.command.admweb.worldmap.status=[WebAE] World map snapshot v{0} state={1}{2}
+adm.command.admweb.worldmap.progress= progress={0}/{1}
+adm.command.admweb.worldmap.unknown=Unknown worldmap subcommand. Use /admweb worldmap help
+
+adm.command.admweb.server.title==== /admweb server ===
+adm.command.admweb.server.help.1=/admweb server status  —  show WebAE HTTP server state
+adm.command.admweb.server.help.2=/admweb server restart  —  restart HTTP server  [OP]
+adm.command.admweb.server.status.title==== WebAE HTTP Server ===
+adm.command.admweb.server.status.enabled=  Config enabled: {0}
+adm.command.admweb.server.status.running=  Running: {0}
+adm.command.admweb.server.status.bind=  Bind: {0}:{1}
+adm.command.admweb.server.status.logs=  Logs: logs/latest.log (search [WebAE])
+adm.command.admweb.server.unknown=Unknown server subcommand. Use: status, restart
+
+adm.command.admweb.list.title==== Active Web Console Tokens ===
+adm.command.admweb.list.empty=No active tokens.
+adm.command.admweb.list.entry=  [{0}] owner={1} actor={2} | Token: {3}... | Issued: {4}
+adm.command.admweb.list.type.guest=guest
+adm.command.admweb.list.type.owner=owner
+adm.command.admweb.revoke.usage=Usage: /admweb revoke [player|guestName]
+adm.command.admweb.revoke.other_op=You need operator permission to revoke other players' tokens.
+adm.command.admweb.refresh.usage=Refresh must be triggered by a player, or specify: /admweb refresh [network] <ownerUuid>
+adm.command.admweb.guest.token_preview=Guest token: {0}...
+adm.command.admweb.reload.failed=Configuration reload failed — see server log for details.
+adm.command.admweb.reload.note=Note: some settings (e.g. web console port/bind address) only take effect after a server restart.

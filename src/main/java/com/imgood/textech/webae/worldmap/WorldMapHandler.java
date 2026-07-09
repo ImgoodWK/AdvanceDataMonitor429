@@ -79,6 +79,7 @@ public final class WorldMapHandler {
                 .remainingCooldownMs(ownerUuid, networkId);
             applyDynmapMeta(empty);
             applyCaptureMeta(empty);
+            applySnapshotMeta(empty, ownerUuid, networkId);
             return json(NanoHTTPD.Response.Status.OK, GSON.toJson(empty));
         }
 
@@ -87,6 +88,7 @@ public final class WorldMapHandler {
             quality);
         applyDynmapMeta(meta);
         applyCaptureMeta(meta);
+        applySnapshotMeta(meta, ownerUuid, networkId);
         return json(NanoHTTPD.Response.Status.OK, GSON.toJson(meta));
     }
 
@@ -96,6 +98,79 @@ public final class WorldMapHandler {
         }
         meta.clientCaptureMode = WorldMapClientCaptureMode.normalized();
         meta.progressiveFallback = Config.webWorldMapProgressiveFallback;
+        meta.snapshotMode = WorldMapSnapshotMode.normalized();
+        meta.journeyMapPreferred = Config.worldMapJourneyMapEnabled;
+        if (WorldMapSnapshotMode.isClientOnly()) {
+            meta.terrainSource = "snapshot";
+            meta.progressiveFallback = false;
+        }
+    }
+
+    private static void applySnapshotMeta(WorldMapMetaDto meta, String ownerUuid, int networkId) {
+        if (meta == null) {
+            return;
+        }
+        meta.snapshotVersion = WorldMapSnapshotStore.currentVersion(ownerUuid, networkId);
+        WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadCurrentManifest(ownerUuid, networkId);
+        if (manifest != null) {
+            meta.snapshotSource = manifest.source != null ? manifest.source : "";
+            if (manifest.tilePx > 0) {
+                meta.tilePx = manifest.tilePx;
+            }
+        }
+    }
+
+    public static NanoHTTPD.Response handleSnapshotManifest(Map<String, String> params, String ownerUuid) {
+        NanoHTTPD.Response disabled = checkEnabled();
+        if (disabled != null) {
+            return disabled;
+        }
+        int networkId = parseNetworkId(params);
+        if (networkId < 0) {
+            return parseNetworkError(networkId);
+        }
+        WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadCurrentManifest(ownerUuid, networkId);
+        if (manifest == null) {
+            return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"hasSnapshot\":false}");
+        }
+        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"hasSnapshot\":true,\"manifest\":" + GSON.toJson(manifest) + "}");
+    }
+
+    public static NanoHTTPD.Response handleSnapshotStatus(Map<String, String> params, String ownerUuid) {
+        NanoHTTPD.Response disabled = checkEnabled();
+        if (disabled != null) {
+            return disabled;
+        }
+        int networkId = parseNetworkId(params);
+        if (networkId < 0) {
+            return parseNetworkError(networkId);
+        }
+        WorldMapSnapshotStatusDto status = WorldMapCaptureCoordinator.instance()
+            .buildStatus(ownerUuid, networkId);
+        return json(NanoHTTPD.Response.Status.OK, GSON.toJson(status));
+    }
+
+    public static NanoHTTPD.Response handleSnapshotRequest(Map<String, String> params, String ownerUuid,
+        String actorUuid, String actorName) {
+        NanoHTTPD.Response disabled = checkEnabled();
+        if (disabled != null) {
+            return disabled;
+        }
+        int networkId = parseNetworkId(params);
+        if (networkId < 0) {
+            return parseNetworkError(networkId);
+        }
+        boolean ownerIsRequester = ownerUuid != null && ownerUuid.equals(actorUuid);
+        String requestId = WorldMapCaptureCoordinator.instance()
+            .requestSnapshot(ownerUuid, networkId, actorUuid, actorName, false, ownerIsRequester);
+        if (requestId == null) {
+            return json(
+                NanoHTTPD.Response.Status.CONFLICT,
+                "{\"success\":false,\"message\":\"No nearby online player or cooldown active. Use /admweb worldmap upload in-game.\"}");
+        }
+        return json(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"requestId\":\"" + requestId + "\",\"state\":\"awaiting_consent\"}");
     }
 
     /**
@@ -197,6 +272,11 @@ public final class WorldMapHandler {
         NanoHTTPD.Response disabled = checkEnabled();
         if (disabled != null) {
             return disabled;
+        }
+        if (WorldMapSnapshotMode.isClientOnly()) {
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "{\"success\":false,\"message\":\"Use POST /api/worldmap/snapshot/request for manual snapshot updates\"}");
         }
         int networkId = parseNetworkId(params);
         if (networkId < 0) {
@@ -411,6 +491,9 @@ public final class WorldMapHandler {
     private static NanoHTTPD.Response serveOrEnqueueTile(WorldMapView parsedView, String layer,
         WorldMapQualityTier quality, int dim, int chunkX, int chunkZ, int zoomLevel, String ownerUuid, int networkId,
         String actorUuid) {
+        if (WorldMapSnapshotMode.isClientOnly()) {
+            return serveSnapshotTile(layer, dim, chunkX, chunkZ, ownerUuid, networkId);
+        }
         boolean aeChunk = hasAeInChunk(ownerUuid, networkId, dim, chunkX, chunkZ);
         WorldMapQualityTier layerTier = resolveLayerTier(layer, quality, aeChunk);
 
@@ -587,14 +670,35 @@ public final class WorldMapHandler {
         return servePngBytes(WorldMapFlatRenderer.transparentPlaceholder(), longCache, "standard", layer, quality, 0);
     }
 
+    private static NanoHTTPD.Response serveSnapshotTile(String layer, int dim, int chunkX, int chunkZ,
+        String ownerUuid, int networkId) {
+        File cached = WorldMapSnapshotStore.getCurrentTile(ownerUuid, networkId, layer, dim, chunkX, chunkZ);
+        if (cached != null) {
+            return servePngFile(cached, true, "snapshot", layer, WorldMapQualityTier.ULTRA, 0, "cached");
+        }
+        return servePngBytes(
+            WorldMapFlatRenderer.stripePlaceholder(128),
+            false,
+            "snapshot",
+            layer,
+            WorldMapQualityTier.MEDIUM,
+            0,
+            "missing");
+    }
+
     private static NanoHTTPD.Response servePngFile(File file, boolean longCache, String quality, String layer,
         WorldMapQualityTier tier, int zoomLevel) {
+        return servePngFile(file, longCache, quality, layer, tier, zoomLevel, longCache ? "cached" : "pending");
+    }
+
+    private static NanoHTTPD.Response servePngFile(File file, boolean longCache, String quality, String layer,
+        WorldMapQualityTier tier, int zoomLevel, String tileStatus) {
         try {
             FileInputStream fis = new FileInputStream(file);
             NanoHTTPD.Response resp = NanoHTTPD.newChunkedResponse(NanoHTTPD.Response.Status.OK, "image/png", fis);
             if (longCache) {
                 resp.addHeader("Cache-Control", "public, max-age=3600");
-                resp.addHeader("X-WorldMap-Tile-Status", "cached");
+                resp.addHeader("X-WorldMap-Tile-Status", tileStatus != null ? tileStatus : "cached");
             } else {
                 resp.addHeader("Cache-Control", "public, max-age=60");
             }

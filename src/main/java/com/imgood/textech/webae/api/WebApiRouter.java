@@ -405,6 +405,60 @@ public class WebApiRouter {
 
         }
 
+        if ("/api/worldmap/snapshot/manifest".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/worldmap/snapshot/manifest\"}");
+
+            }
+
+            return WorldMapHandler.handleSnapshotManifest(params, ownerUuid);
+
+        }
+
+        if ("/api/worldmap/snapshot/status".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/worldmap/snapshot/status\"}");
+
+            }
+
+            return WorldMapHandler.handleSnapshotStatus(params, ownerUuid);
+
+        }
+
+        if ("/api/worldmap/snapshot/request".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/worldmap/snapshot/request\"}");
+
+            }
+
+            return WorldMapHandler.handleSnapshotRequest(params, ownerUuid, auth.actorUuid, auth.actorName);
+
+        }
+
         if (uri.startsWith("/api/worldmap/tiles/")) {
 
             if (method != NanoHTTPD.Method.GET) {

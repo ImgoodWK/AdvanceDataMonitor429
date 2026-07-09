@@ -84,23 +84,37 @@ Full config reference: [Developer Guide §4](developer-guide.md#4-configuration)
 
 ## 3. Get an Access Token
 
+**Command index**: run `/textech help` in-game (aliases `/adm help`, `/txt help`) for all TeXTech commands; use `/xxx help` on each command for full usage (follows game language: en/zh).
+
 The Web Console requires token authentication. Use commands in-game (or from server console):
 
 | Command | Description |
 |---------|-------------|
 | `/admweb issue` | Issue an **owner** token (requires at least one Advance Data Monitor you own) |
+| `/admweb login` | Generate a **6-digit browser login code** (5 min TTL, single use; no OP token required) |
 | `/admweb guest <player>` | Monitor owner sends a **guest** token privately to an **online** player |
+| `/admweb copy` | Copy your active token to clipboard |
 | `/admweb list` | List tokens with type, owner, actor (OP only) |
 | `/admweb revoke [guestName]` | Revoke your owner token; owners revoke guest tokens; OP can revoke others |
 | `/admweb reload` | Reload TeXTech config; `enabled`/`port`/`bindAddress` still need restart (OP only) |
 | `/admweb refresh [network]` | Admin force re-collect snapshots (OP only) |
+| `/admweb server status` | Show WebAE HTTP server state |
+| `/admweb server restart` | Restart HTTP server (OP only) |
 | `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload; also writes `<instance>/TeXTech/WebAE/web-recipes.json.gz` on the client; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
-| `/admweb icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/`; incremental) |
 | `/admweb recipes status` | Show recipe cache status (incl. disk size) |
 | `/admweb recipes clear` | Clear recipe memory + disk cache (OP only) |
-| `/admweb icons upload [packName]` | **OP** triggers own client icon render/upload |
+| `/admweb icons upload [pack] [mode\|all\|snapshot]` | **OP** triggers client icon render/upload |
+| `/admweb icons render <itemId> [pack] [mode]` | **OP** render and upload a single item icon |
+| `/admweb icons verify <itemId> [pack]` | Open icon verify GUI |
+| `/admweb icons import <folder> [pack]` | **OP** import PNGs from a local folder |
+| `/admweb icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/`; incremental) |
+| `/admweb icons modes` | List all icon render modes |
 | `/admweb icons status` | List installed icon packs and config state |
-| `/admweb help` | Show usage |
+| `/admweb icons clear` | Delete all icon packs (OP only) |
+| `/admweb worldmap upload [networkId]` | Upload world map snapshot (must be near AE network; client capture) |
+| `/admweb worldmap accept <requestId>` | Accept a guest/web map upload request |
+| `/admweb worldmap status [networkId]` | Show map snapshot capture status |
+| `/admweb help` | Show usage (incl. recipes/icons/worldmap/server grouped help) |
 
 **Token types**
 

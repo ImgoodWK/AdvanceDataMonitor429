@@ -57,6 +57,9 @@ public final class WorldMapTileQueue {
         if (!Config.webWorldMapEnabled || !Config.webTopologyEnabled) {
             return;
         }
+        if (WorldMapSnapshotMode.isClientOnly()) {
+            return;
+        }
         if (WorldMapTileLayer.isAe(layer) && !Config.webWorldMapAeOverlayEnabled) {
             return;
         }
@@ -163,6 +166,9 @@ public final class WorldMapTileQueue {
      * completed results and writes them to the tile cache on the main thread.
      */
     public void onServerTick() {
+        if (WorldMapSnapshotMode.isClientOnly()) {
+            return;
+        }
         if (!Config.webWorldMapEnabled || !Config.webTopologyEnabled) {
             return;
         }

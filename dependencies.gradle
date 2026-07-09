@@ -63,4 +63,8 @@ dependencies {
     //implementation('com.github.GTNewHorizons:Angelica:1.0.0-beta2:dev')
     compileOnly('thaumcraft:Thaumcraft:1.7.10-4.2.3.5:dev')
 
+    // JourneyMap (GTNH 整合包同款 Modrinth 构建) — 仅 dev runClient/runServer，不发布给依赖方
+    // 供 WebAE 世界地图快照从 JM 本地瓦片缓存读取地形；与 VisualProspecting / Navigator 对齐 5.2.18
+    devOnlyNonPublishable(rfg.deobf('maven.modrinth:journeymap:5.2.18'))
+
 }

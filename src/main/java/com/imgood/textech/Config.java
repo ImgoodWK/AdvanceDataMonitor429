@@ -256,6 +256,27 @@ public class Config {
     /** Local Dynmap tiles root directory. Empty = auto-detect dynmap/web/tiles/ relative to instance root. */
     public static String worldMapDynmapTileRoot = "";
 
+    /** Snapshot mode: client_only (default) or legacy server render. */
+    public static String worldMapSnapshotMode = "client_only";
+    /** Read terrain tiles from JourneyMap local cache when available. Default true. */
+    public static boolean worldMapJourneyMapEnabled = true;
+    /** Override JourneyMap data root (journeymap/data). Empty = auto. */
+    public static String worldMapJourneyMapDataRoot = "";
+    /** Chunk radius to find nearby players for snapshot consent. Default 8. */
+    public static int worldMapConsentRadiusChunks = 8;
+    /** Seconds to wait for snapshot consent accept. Default 120. */
+    public static int worldMapConsentTimeoutSec = 120;
+    /** Owner /admweb worldmap upload skips consent when near network. Default true. */
+    public static boolean worldMapOwnerSkipConsent = true;
+    /** GL fallback quality when JourneyMap unavailable: low, medium, etc. Default low. */
+    public static String worldMapClientFallbackQuality = "low";
+    /** MC client snapshot tile download budget per tick. Default 2. */
+    public static int worldMapClientDownloadBudgetPerTick = 2;
+    /** Enable browser IndexedDB tile cache (frontend). Default true. */
+    public static boolean worldMapBrowserCacheEnabled = true;
+    /** Disable legacy server-side tile rendering. Default true when client_only. */
+    public static boolean worldMapLegacyServerRender = false;
+
     // --- web console per-feature debug logs (default false, gate logs/textech/webae-<feature>.log) ---
     /** Verbose icon rendering/upload logging (IconRenderer, IconHandler, PacketWebIconUpload). */
     public static boolean webDebugIcons = false;

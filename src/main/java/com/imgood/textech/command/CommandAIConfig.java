@@ -3,9 +3,7 @@ package com.imgood.textech.command;
 import java.util.Arrays;
 import java.util.List;
 
-import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
 import com.imgood.textech.Config;
@@ -18,13 +16,15 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class CommandAIConfig extends CommandBase {
+public class CommandAIConfig extends TeXTechCommandBase {
 
-    private static final String[] ACTIONS = { "key", "model", "base", "provider", "network", "search", "status",
-        "clearKey", "help" };
+    private static final String[] ACTIONS = { "key", "model", "base", "provider", "network", "search", "searchkey",
+        "searchbase", "debug", "stream", "status", "clearkey", "help" };
     private static final String[] NETWORK_OPTIONS = { "on", "off", "toggle", "true", "false" };
     private static final String[] SEARCH_OPTIONS = { "on", "off", "toggle", "true", "false", "auto", "tavily_keyless",
         "duckduckgo", "tavily", "brave", "serper", "searxng" };
+    private static final String[] TOGGLE_OPTIONS = { "on", "off", "toggle", "true", "false", "enable", "enabled",
+        "disable", "disabled" };
     private static final String[] PROVIDERS = AiProviderProfiles.providerIds();
     private static final String[] BASE_URLS = { "https://api.deepseek.com", "https://api.openai.com",
         "https://openrouter.ai/api", "https://api.siliconflow.cn", "https://api.moonshot.cn",
@@ -42,6 +42,7 @@ public class CommandAIConfig extends CommandBase {
         "openai/gpt-4o", "openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", "anthropic/claude-3.7-sonnet",
         "google/gemini-2.5-pro", "google/gemini-2.0-flash-001", "deepseek/deepseek-chat", "deepseek/deepseek-r1",
         "qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.3-70b-instruct" };
+    private static final int HELP_LINES = 13;
 
     @Override
     public String getCommandName() {
@@ -50,7 +51,7 @@ public class CommandAIConfig extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/admai <key|model|base|provider|network|search|status|clearKey> [value]";
+        return translate("adm.command.admai.usage");
     }
 
     @Override
@@ -72,7 +73,7 @@ public class CommandAIConfig extends CommandBase {
                 break;
             case "clearkey":
                 Config.setAiApiKey("");
-                send(sender, EnumChatFormatting.GREEN + "AI API key cleared.");
+                sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.key_cleared");
                 break;
             case "model":
                 setModel(sender, args);
@@ -88,6 +89,18 @@ public class CommandAIConfig extends CommandBase {
                 break;
             case "search":
                 setWebSearch(sender, args);
+                break;
+            case "searchkey":
+                setSearchKey(sender, args);
+                break;
+            case "searchbase":
+                setSearchBase(sender, args);
+                break;
+            case "debug":
+                setDebug(sender, args);
+                break;
+            case "stream":
+                setStream(sender, args);
                 break;
             case "status":
                 sendStatus(sender);
@@ -113,8 +126,9 @@ public class CommandAIConfig extends CommandBase {
             if ("provider".equalsIgnoreCase(args[0])) {
                 return getListOfStringsMatchingLastWord(args, PROVIDERS);
             }
-            if ("network".equalsIgnoreCase(args[0])) {
-                return getListOfStringsMatchingLastWord(args, NETWORK_OPTIONS);
+            if ("network".equalsIgnoreCase(args[0]) || "debug".equalsIgnoreCase(args[0])
+                || "stream".equalsIgnoreCase(args[0])) {
+                return getListOfStringsMatchingLastWord(args, TOGGLE_OPTIONS);
             }
             if ("search".equalsIgnoreCase(args[0])) {
                 return getListOfStringsMatchingLastWord(args, SEARCH_OPTIONS);
@@ -126,87 +140,87 @@ public class CommandAIConfig extends CommandBase {
     private void setKey(ICommandSender sender, String[] args) {
         String value = joinArgs(args, 1);
         if (value.isEmpty()) {
-            send(sender, EnumChatFormatting.RED + "Usage: /admai key <apiKey>");
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_key");
             return;
         }
         Config.setAiApiKey(value);
-        send(sender, EnumChatFormatting.GREEN + "AI API key saved. Current key: " + maskKey(value));
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.key_saved", maskKey(value));
     }
 
     private void setModel(ICommandSender sender, String[] args) {
         String value = joinArgs(args, 1);
         if (value.isEmpty()) {
-            send(sender, EnumChatFormatting.RED + "Usage: /admai model <modelName>");
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_model");
             return;
         }
         Config.setAiModel(value);
-        send(sender, EnumChatFormatting.GREEN + "AI model set to: " + Config.aiModel);
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.model_set", Config.aiModel);
     }
 
     private void setBaseUrl(ICommandSender sender, String[] args) {
         String value = joinArgs(args, 1);
         if (value.isEmpty()) {
-            send(sender, EnumChatFormatting.RED + "Usage: /admai base <apiBaseUrl>");
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_base");
             return;
         }
         Config.setAiApiBaseUrl(value);
-        send(sender, EnumChatFormatting.GREEN + "AI API base URL set to: " + Config.aiApiBaseUrl);
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.base_set", Config.aiApiBaseUrl);
     }
 
     private void setProvider(ICommandSender sender, String[] args) {
         String value = joinArgs(args, 1).toLowerCase();
         if (value.isEmpty()) {
-            send(
-                sender,
-                EnumChatFormatting.RED
-                    + "Usage: /admai provider <deepseek|openai|openrouter|dashscope|zhipu|kimi|volcengine|siliconflow|...>");
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_provider");
             return;
         }
         ProviderProfile profile = AiProviderProfiles.findProfile(value);
         if (profile == null) {
-            send(sender, EnumChatFormatting.RED + "Unknown AI provider: " + value);
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.provider_unknown", value);
             return;
         }
         Config.applyAiProviderProfile(profile);
-        send(sender, EnumChatFormatting.GREEN + "AI provider set to: " + profile.displayName);
-        send(sender, EnumChatFormatting.GREEN + "Base URL: " + Config.aiApiBaseUrl);
-        send(sender, EnumChatFormatting.GREEN + "Model: " + Config.aiModel);
-        send(
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.provider_set", profile.displayName);
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.provider_base", Config.aiApiBaseUrl);
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.provider_model", Config.aiModel);
+        sendLocalized(
             sender,
-            EnumChatFormatting.GREEN + "Web search mode: "
-                + Config.aiWebSearchMode
-                + (Config.aiWebSearchEnabled ? " enabled" : " disabled"));
+            EnumChatFormatting.GREEN,
+            "adm.command.admai.provider_search",
+            Config.aiWebSearchMode,
+            Config.aiWebSearchEnabled ? " enabled" : " disabled");
     }
 
     private void setNetworkEnabled(ICommandSender sender, String[] args) {
         String value = joinArgs(args, 1).toLowerCase();
         if (value.isEmpty()) {
-            send(sender, EnumChatFormatting.RED + "Usage: /admai network <on|off|toggle>");
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_network");
             return;
         }
-        if ("toggle".equals(value)) {
-            Config.toggleAiNetworkEnabled();
-        } else if ("on".equals(value) || "true".equals(value) || "enable".equals(value) || "enabled".equals(value)) {
-            Config.setAiNetworkEnabled(true);
-        } else
-            if ("off".equals(value) || "false".equals(value) || "disable".equals(value) || "disabled".equals(value)) {
-                Config.setAiNetworkEnabled(false);
-            } else {
-                send(sender, EnumChatFormatting.RED + "Usage: /admai network <on|off|toggle>");
-                return;
+        if (!applyToggle(value, new ToggleTarget() {
+
+            @Override
+            public void set(boolean enabled) {
+                Config.setAiNetworkEnabled(enabled);
             }
-        send(
+
+            @Override
+            public void toggle() {
+                Config.toggleAiNetworkEnabled();
+            }
+        })) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_network");
+            return;
+        }
+        sendLocalized(
             sender,
-            EnumChatFormatting.GREEN + "AI network requests: " + (Config.aiNetworkEnabled ? "enabled" : "disabled"));
+            EnumChatFormatting.GREEN,
+            Config.aiNetworkEnabled ? "adm.command.admai.network_enabled" : "adm.command.admai.network_disabled");
     }
 
     private void setWebSearch(ICommandSender sender, String[] args) {
         String value = joinArgs(args, 1).toLowerCase();
         if (value.isEmpty()) {
-            send(
-                sender,
-                EnumChatFormatting.RED
-                    + "Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>");
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_search");
             return;
         }
         if ("toggle".equals(value)) {
@@ -220,104 +234,181 @@ public class CommandAIConfig extends CommandBase {
                 Config.setAiWebSearchMode(value);
                 Config.setAiWebSearchEnabled(true);
             } else {
-                send(
-                    sender,
-                    EnumChatFormatting.RED
-                        + "Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>");
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_search");
                 return;
             }
-        send(
+        sendLocalized(
             sender,
-            EnumChatFormatting.GREEN + "AI web search: "
-                + (Config.aiWebSearchEnabled ? "enabled" : "disabled")
-                + ", engine: "
-                + Config.aiWebSearchMode);
+            EnumChatFormatting.GREEN,
+            "adm.command.admai.search_status",
+            Config.aiWebSearchEnabled ? statusEnabled() : statusDisabled(),
+            Config.aiWebSearchMode);
+    }
+
+    private void setSearchKey(ICommandSender sender, String[] args) {
+        String value = joinArgs(args, 1);
+        if (value.isEmpty()) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_searchkey");
+            return;
+        }
+        Config.setAiSearchApiKey(value);
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.searchkey_saved", maskKey(value));
+    }
+
+    private void setSearchBase(ICommandSender sender, String[] args) {
+        String value = joinArgs(args, 1);
+        if (value.isEmpty()) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_searchbase");
+            return;
+        }
+        Config.setAiSearchBaseUrl(value);
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.searchbase_set", Config.aiSearchBaseUrl);
+    }
+
+    private void setDebug(ICommandSender sender, String[] args) {
+        String value = joinArgs(args, 1).toLowerCase();
+        if (value.isEmpty()) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_debug");
+            return;
+        }
+        if (!applyToggle(value, new ToggleTarget() {
+
+            @Override
+            public void set(boolean enabled) {
+                Config.setAiDebugLogging(enabled);
+            }
+
+            @Override
+            public void toggle() {
+                Config.setAiDebugLogging(!Config.aiDebugLogging);
+            }
+        })) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_debug");
+            return;
+        }
+        sendLocalized(
+            sender,
+            EnumChatFormatting.GREEN,
+            Config.aiDebugLogging ? "adm.command.admai.debug_enabled" : "adm.command.admai.debug_disabled");
+    }
+
+    private void setStream(ICommandSender sender, String[] args) {
+        String value = joinArgs(args, 1).toLowerCase();
+        if (value.isEmpty()) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_stream");
+            return;
+        }
+        if (!applyToggle(value, new ToggleTarget() {
+
+            @Override
+            public void set(boolean enabled) {
+                Config.setAiStreamingEnabled(enabled);
+            }
+
+            @Override
+            public void toggle() {
+                Config.setAiStreamingEnabled(!Config.aiStreamingEnabled);
+            }
+        })) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admai.usage_stream");
+            return;
+        }
+        sendLocalized(
+            sender,
+            EnumChatFormatting.GREEN,
+            Config.aiStreamingEnabled ? "adm.command.admai.stream_enabled" : "adm.command.admai.stream_disabled");
+    }
+
+    private boolean applyToggle(String value, ToggleTarget target) {
+        return parseOnOffToggle(value, target);
     }
 
     private void sendStatus(ICommandSender sender) {
         String key = Config.getAiApiKey();
-        send(
-            sender,
-            EnumChatFormatting.AQUA + "AI network requests: " + (Config.aiNetworkEnabled ? "enabled" : "disabled"));
-        send(sender, EnumChatFormatting.AQUA + "AI base URL: " + Config.aiApiBaseUrl);
         SearchCapability capability = AiProviderProfiles.currentSearchCapability();
-        send(sender, EnumChatFormatting.AQUA + "AI provider: " + capability.profile.displayName);
-        send(sender, EnumChatFormatting.AQUA + "AI model: " + Config.aiModel);
-        send(
+        sendHelpHeader(sender, "adm.command.admai.status.title");
+        sendLocalized(
             sender,
-            EnumChatFormatting.AQUA + "AI web search: "
-                + (capability.enabled ? "enabled" : "disabled")
-                + ", engine: "
-                + capability.mode);
-        send(sender, EnumChatFormatting.AQUA + "AI web search detail: " + capability.message);
-        send(
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.network",
+            Config.aiNetworkEnabled ? statusEnabled() : statusDisabled());
+        sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admai.status.base", Config.aiApiBaseUrl);
+        sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admai.status.provider", capability.profile.displayName);
+        sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admai.status.model", Config.aiModel);
+        sendLocalized(
             sender,
-            EnumChatFormatting.AQUA + "Search API key: "
-                + (Config.getAiSearchApiKey()
-                    .isEmpty() ? "not set" : maskKey(Config.getAiSearchApiKey())));
-        send(
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.search",
+            capability.enabled ? statusEnabled() : statusDisabled(),
+            capability.mode);
+        sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admai.status.search_detail", capability.message);
+        sendLocalized(
             sender,
-            EnumChatFormatting.AQUA + "SearXNG base URL: "
-                + (Config.aiSearchBaseUrl == null || Config.aiSearchBaseUrl.isEmpty() ? "not set"
-                    : Config.aiSearchBaseUrl));
-        send(
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.search_key",
+            Config.getAiSearchApiKey()
+                .isEmpty() ? statusNotSet() : maskKey(Config.getAiSearchApiKey()));
+        sendLocalized(
             sender,
-            EnumChatFormatting.AQUA + "Search max results: "
-                + Config.aiSearchMaxResults
-                + ", fallback: "
-                + (Config.aiSearchFallback ? "enabled" : "disabled"));
-        send(sender, EnumChatFormatting.AQUA + "AI streaming: " + (Config.aiStreamingEnabled ? "enabled" : "disabled"));
-        send(sender, EnumChatFormatting.AQUA + "AI debug logging: " + (Config.aiDebugLogging ? "enabled" : "disabled"));
-        send(sender, EnumChatFormatting.AQUA + "AI privacy confirmed: " + (Config.aiPrivacyConfirmed ? "yes" : "no"));
-        send(sender, EnumChatFormatting.AQUA + "AI key: " + (key.isEmpty() ? "not set" : maskKey(key)));
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.search_base",
+            Config.aiSearchBaseUrl == null || Config.aiSearchBaseUrl.isEmpty() ? statusNotSet() : Config.aiSearchBaseUrl);
+        sendLocalized(
+            sender,
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.search_max",
+            Config.aiSearchMaxResults,
+            Config.aiSearchFallback ? statusEnabled() : statusDisabled());
+        sendLocalized(
+            sender,
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.stream",
+            Config.aiStreamingEnabled ? statusEnabled() : statusDisabled());
+        sendLocalized(
+            sender,
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.debug",
+            Config.aiDebugLogging ? statusEnabled() : statusDisabled());
+        sendLocalized(
+            sender,
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.privacy",
+            Config.aiPrivacyConfirmed ? statusYes() : statusNo());
+        sendLocalized(
+            sender,
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.key",
+            key.isEmpty() ? statusNotSet() : maskKey(key));
     }
 
     private void sendUsage(ICommandSender sender) {
-        send(sender, EnumChatFormatting.YELLOW + getCommandUsage(sender));
-        send(sender, EnumChatFormatting.YELLOW + "/admai key sk-...  Set DeepSeek/OpenAI-compatible API key");
-        send(sender, EnumChatFormatting.YELLOW + "/admai model deepseek-chat  Set model, supports tab completion");
-        send(
-            sender,
-            EnumChatFormatting.YELLOW
-                + "/admai base https://api.deepseek.com  Set API base URL, supports tab completion");
-        send(
-            sender,
-            EnumChatFormatting.YELLOW + "/admai provider openrouter  Apply provider preset for base/model/search mode");
-        send(sender, EnumChatFormatting.YELLOW + "/admai network on|off|toggle  Allow or block AI network requests");
-        send(
-            sender,
-            EnumChatFormatting.YELLOW + "/admai search on|off|toggle  Enable built-in web search before LLM requests");
-        send(
-            sender,
-            EnumChatFormatting.YELLOW
-                + "/admai search auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng  Set search engine");
-        send(sender, EnumChatFormatting.YELLOW + "/admai status  Show current AI config");
+        sendHelpHeader(sender, "adm.command.admai.title");
+        sendUsageSummary(sender, "adm.command.admai.usage");
+        sendHelpLines(sender, "adm.command.admai.help", HELP_LINES);
     }
 
-    private String joinArgs(String[] args, int start) {
-        if (args.length <= start) {
-            return "";
-        }
-        StringBuilder builder = new StringBuilder();
-        for (int i = start; i < args.length; i++) {
-            if (builder.length() > 0) {
-                builder.append(' ');
-            }
-            builder.append(args[i]);
-        }
-        return builder.toString()
-            .trim();
+    private static String translate(String key) {
+        return net.minecraft.util.StatCollector.translateToLocal(key);
     }
 
-    private String maskKey(String key) {
-        if (key == null || key.length() <= 8) {
-            return "********";
-        }
-        return key.substring(0, 4) + "..." + key.substring(key.length() - 4);
+    private static String statusEnabled() {
+        return translate("adm.command.admai.status.enabled");
     }
 
-    private void send(ICommandSender sender, String message) {
-        sender.addChatMessage(new ChatComponentText(message));
+    private static String statusDisabled() {
+        return translate("adm.command.admai.status.disabled");
+    }
+
+    private static String statusNotSet() {
+        return translate("adm.command.admai.status.not_set");
+    }
+
+    private static String statusYes() {
+        return translate("adm.command.admai.status.yes");
+    }
+
+    private static String statusNo() {
+        return translate("adm.command.admai.status.no");
     }
 
     @Override

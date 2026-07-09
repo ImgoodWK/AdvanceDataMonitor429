@@ -53,8 +53,16 @@ alwaysApply: false
 | 34 | `PacketWebMapTileJob` | `PacketWebMapTileJob.Handler` | S→C | 世界地图 HD 瓦片渲染任务（view/dim/cx/cz/networkId + `layer` terrain\|ae + `quality` tier） |
 | 35 | `PacketWebMapTileUpload` | `PacketWebMapTileUpload.Handler` | C→S | 世界地图 HD 瓦片 PNG 上传覆盖服务端缓存（含 `layer` + `quality`） |
 | 36 | `PacketWebIconResolveNack` | `PacketWebIconResolveNack.Handler` | C→S | WebAE 图标懒加载解析失败回执（itemId + reason） |
+| 37 | `PacketWorldMapCaptureOffer` | `PacketWorldMapCaptureOffer.Handler` | S→C | 世界地图快照上传同意请求（consent flow） |
+| 38 | `PacketWorldMapCaptureAccept` | `PacketWorldMapCaptureAccept.Handler` | C→S | 接受快照上传请求 |
+| 39 | `PacketWorldMapCaptureJob` | `PacketWorldMapCaptureJob.Handler` | S→C | 开始客户端快照采集任务（terrain + ae） |
+| 40 | `PacketWorldMapSnapshotTileUpload` | `PacketWorldMapSnapshotTileUpload.Handler` | C→S | 上传快照瓦片 PNG / finalize |
+| 41 | `PacketWorldMapSnapshotSyncRequest` | `PacketWorldMapSnapshotSyncRequest.Handler` | C→S | 查询服务端快照版本（MC 客户端本地缓存同步） |
+| 42 | `PacketWorldMapSnapshotSyncResponse` | `PacketWorldMapSnapshotSyncResponse.Handler` | S→C | 快照版本与 tile key 列表 |
+| 43 | `PacketWorldMapSnapshotTilePull` | `PacketWorldMapSnapshotTilePull.Handler` | C→S | 拉取单个快照瓦片 |
+| 44 | `PacketWorldMapSnapshotTileData` | `PacketWorldMapSnapshotTileData.Handler` | S→C | 快照瓦片 PNG 数据 |
 
-**下一个可用 ID = 37**
+**下一个可用 ID = 45**
 
 ## 新增 Packet 接入步骤
 

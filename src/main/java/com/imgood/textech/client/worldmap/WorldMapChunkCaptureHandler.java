@@ -1,5 +1,6 @@
 package com.imgood.textech.client.worldmap;
 
+import com.imgood.textech.webae.worldmap.WorldMapSnapshotMode;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -51,6 +52,9 @@ public final class WorldMapChunkCaptureHandler {
             return;
         }
         if (!Config.webWorldMapClientHdEnabled || !WorldMapClientCaptureMode.isEnabled()) {
+            return;
+        }
+        if (WorldMapSnapshotMode.isClientOnly()) {
             return;
         }
         if (Config.worldMapClientCaptureRadius <= 0 || Config.worldMapClientCaptureBudgetPerTick <= 0) {

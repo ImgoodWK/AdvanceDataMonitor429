@@ -914,6 +914,30 @@ export interface WorldMapMetaDto {
   clientCaptureMode?: string;
   /** Progressive lower-tier / Dynmap crop fallback while target tier renders. */
   progressiveFallback?: boolean;
+  /** Snapshot mode: client_only or legacy. */
+  snapshotMode?: string;
+  /** Current snapshot version (0 = none). */
+  snapshotVersion?: number;
+  /** Snapshot source: journeymap, client_gl, etc. */
+  snapshotSource?: string;
+  journeyMapPreferred?: boolean;
+}
+
+export interface WorldMapSnapshotStatusDto {
+  success?: boolean;
+  networkId?: number;
+  currentVersion?: number;
+  timestamp?: number;
+  source?: string;
+  tilePx?: number;
+  captureState?: string;
+  requestId?: string;
+  acceptPlayerName?: string;
+  totalChunks?: number;
+  completedChunks?: number;
+  missingChunks?: number;
+  expiresAtMs?: number;
+  message?: string;
 }
 
 export interface WorldMapZoomLevelDto {

@@ -254,15 +254,22 @@ alwaysApply: false
 - `DataImprintScrollHandler.java` — 数据映录器滚轮滚动事件处理
 - `WebConsoleClientChat.java` — WebAE `/admweb issue`/`guest` 客户端可点击 token/URL 聊天（S→C `PacketWebConsoleTokenNotify`）
 - `WebConsoleClipboard.java` — WebAE token 剪贴板复制（AWT SystemClipboard）
-- `worldmap/WorldMapTileRenderWorker.java` — **Phase 4 + AE** 消费 S→C `PacketWebMapTileJob` 队列（`worldMapClientCaptureMode` 全档位；限流 GL 渲染并 C→S 上传）
-- `worldmap/WorldMapChunkCaptureHandler.java` — **探索预热** 玩家周围 chunk 主动 flat GL 截图上传（`worldMapClientCaptureRadius`）
+- `worldmap/WorldMapTileRenderWorker.java` — **Legacy** 消费 S→C `PacketWebMapTileJob`（client_only 模式下队列 no-op）
+- `worldmap/WorldMapChunkCaptureHandler.java` — **Legacy** 探索预热（client_only 下禁用）
+- `worldmap/WorldMapSnapshotCaptureWorker.java` — **客户端快照** JM/GL 双源 terrain+ae 采集、本地 map-cache、C→S 上传
+- `worldmap/WorldMapSnapshotLocalCache.java` — MC 客户端 `TeXTech/WebAE/map-cache/` 读写
+- `worldmap/WorldMapSnapshotDownloadHandler.java` — 登录后 packet 同步服务端快照到本地
+- `worldmap/journeymap/WorldMapJourneyMapTileReader.java` — 读取 JM 本地最高清 day 瓦片（无硬依赖）
 - `worldmap/WorldMapChunkGlRenderer.java` — **Phase 4 + AE overlay** 单 chunk FBO 离屏 GL 渲染（`renderTerrain` + `renderAeOverlay`；复用 `IconRenderGuard` 复位）
 - `worldmap/WorldMapOrthoCamera.java` — **Phase 4** 正交/look-at 相机预设（flat + mineshot 风格 oblique 四向 orbit）
 
-### command/ — 命令 (3 文件)
-- `CommandAssistant.java` — `/admassistant` 命令
-- `CommandAIConfig.java` — `/admai` 命令
-- `CommandWebConsole.java` — `/admweb` 命令（WebAE 令牌管理 + `copy` 剪贴板 + recipes upload/export/status/clear + icons upload/status + refresh + reload）；`issue`/`guest` 经 S→C `PacketWebConsoleTokenNotify` 在客户端显示可点击 token/URL；`recipes upload`/`icons upload` 子命令校验 OP（`canUseOpCommands`）后发 `PacketWebUploadTrigger` 触发客户端上传；`reload` 调用 `Config.reloadConfiguration()` 真正重载配置（基础命令权限保持 0）
+### command/ — 命令 (6 文件)
+- `TeXTechCommandBase.java` — 命令共享基类（i18n 发送、help 行渲染、OP/玩家校验、tab 过滤）
+- `CommandTeXTech.java` — `/textech help` 总索引（别名 `/adm`、`/txt`；服务端注册）
+- `CommandTeXTechClient.java` — 客户端版总索引（标注 `/admai` 可用）
+- `CommandAssistant.java` — `/admassistant` 词库热重载（服务端 + 客户端）
+- `CommandAIConfig.java` — `/admai` AI 本地配置（仅客户端；含 searchKey/searchBase/debug/stream）
+- `CommandWebConsole.java` — `/admweb` WebAE 令牌/配方/图标/世界地图/HTTP 服务；help 与 tab 补全经 lang `adm.command.admweb.*`；action 反馈复用 `adm.webconsole.*`
 
 ### utils/ — 工具类 (14 文件)
 - `NBTDataHelper.java` / `NBTJsonParser.java` / `NBTJsonParserHelper.java` — NBT 与 JSON 互转
@@ -373,7 +380,13 @@ alwaysApply: false
 - `webae/network/PacketWebIconExportScope.java` — S→C 图标导出范围 all/snapshot/list + itemId JSON（packet ID 32）
 - `webae/network/PacketWebIconRequest.java` — S→C 按需懒加载单图标渲染请求（packet ID 33；客户端入队 IconLazyRenderQueue，bulk 导出运行中忽略）
 - `webae/network/PacketWebMapTileJob.java` — **Phase 4 + AE** S→C 世界地图 HD 瓦片渲染任务（packet ID 34；含 `layer=terrain|ae` + `quality` tier）
-- `webae/network/PacketWebMapTileUpload.java` — **Phase 4 + AE** C→S 世界地图 HD 瓦片 PNG 上传（packet ID 35；含 `layer` + `quality`；写入 `WorldMapTileCache.writeHd`）
+- `webae/network/PacketWebMapTileUpload.java` — **Legacy** C→S HD 瓦片上传（packet 35；legacy 模式）
+- `webae/network/PacketWorldMapCaptureOffer.java` — S→C 快照上传 consent（37）
+- `webae/network/PacketWorldMapCaptureAccept.java` — C→S 接受 consent（38）
+- `webae/network/PacketWorldMapCaptureJob.java` — S→C 开始快照采集（39）
+- `webae/network/PacketWorldMapSnapshotTileUpload.java` — C→S 快照瓦片/finalize（40）
+- `webae/network/PacketWorldMapSnapshotSyncRequest.java` / `PacketWorldMapSnapshotSyncResponse.java` — MC 客户端版本同步（41/42）
+- `webae/network/PacketWorldMapSnapshotTilePull.java` / `PacketWorldMapSnapshotTileData.java` — MC 客户端增量拉取瓦片（43/44）
 - `webae/network/PacketWebIconResolveNack.java` — C→S 图标懒加载解析失败回执（packet ID 36；itemId + reason）
 - `webae/icon/IconExportScope.java` — 导出范围枚举（all/snapshot/list）
 - `webae/icon/IconSnapshotItemCollector.java` — 从 SnapshotCache 存储快照收集 itemId（服务端）
@@ -448,7 +461,10 @@ alwaysApply: false
 - `webae/worldmap/WorldMapMarkerBuilder.java` — 从 logical `TopologySnapshot.nodes[].devices[]` 扁平化 markers
 - `webae/worldmap/WorldMapChunkSetBuilder.java` — AE 设备占用 chunk + Chebyshev padding 精确 allowed 集（L 形网络不填充空白 chunk）
 - `webae/worldmap/WorldMapBoundsBuilder.java` — per-dim marker bbox + allowed chunk 集/meta 组装（paddingChunks/maxChunks clamp）
-- `webae/worldmap/WorldMapHandler.java` — **Phase A/B/3/4 + AE + 清晰度档位** `GET /api/worldmap/meta` + `GET /api/worldmap/markers` + `GET /api/worldmap/progress` + `POST /api/worldmap/invalidate?quality=` + `GET /api/worldmap/tiles/...?quality=`（enqueueChunkPair；响应头 layer/tier）
+- `webae/worldmap/WorldMapHandler.java` — 世界地图 REST（meta/markers/tiles + **snapshot manifest/status/request**；client_only 下 tile 只读快照）
+- `webae/worldmap/WorldMapSnapshotStore.java` — 按 network 版本化快照磁盘存储 `map-snapshots/`
+- `webae/worldmap/WorldMapCaptureCoordinator.java` — consent 状态机 + 附近玩家筛选 + 采集 job 生命周期
+- `webae/worldmap/WorldMapSnapshotMode.java` — `client_only` / `legacy` 模式判定
 - `webae/worldmap/WorldMapAePlacementRecord.java` / `WorldMapAePlacementCollector.java` / `WorldMapAePlacementSupport.java` — logical 快照采集 AE 放置点（设备 + 线缆 + part）→ `TopologySnapshot.aePlacements`
 - `webae/worldmap/WorldMapAeCategory.java` — AE 设备启发式类别（世界地图 ID 图 R 通道）
 - `webae/worldmap/WorldMapAeOverlayRenderer.java` — 服务端 AE 类别 ID 透明瓦片（flat/oblique；缓存 `{view}/ae-id/`）

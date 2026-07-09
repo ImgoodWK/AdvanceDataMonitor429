@@ -22,6 +22,9 @@ public final class WorldMapTilePrefetcher {
         if (!Config.webWorldMapEnabled || !Config.webTopologyEnabled) {
             return 0;
         }
+        if (WorldMapSnapshotMode.isClientOnly()) {
+            return 0;
+        }
         WorldMapQualityTier tier = WorldMapQualityTier.clamp(
             quality != null ? quality : WorldMapQualityTier.fromConfigDefault(),
             WorldMapQualityTier.fromConfigMax());

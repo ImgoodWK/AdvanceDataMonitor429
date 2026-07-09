@@ -3,16 +3,15 @@ package com.imgood.textech.command;
 import java.util.Arrays;
 import java.util.List;
 
-import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
 import com.imgood.textech.assistant.AssistantLexicon;
 
-public class CommandAssistant extends CommandBase {
+public class CommandAssistant extends TeXTechCommandBase {
 
     private static final String[] ACTIONS = { "reloadLexicon", "reload", "lexicon", "help" };
+    private static final int HELP_LINES = 3;
 
     @Override
     public String getCommandName() {
@@ -21,7 +20,7 @@ public class CommandAssistant extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/admassistant <reloadLexicon|lexicon|help>";
+        return translate("adm.command.admassistant.usage");
     }
 
     @Override
@@ -37,23 +36,22 @@ public class CommandAssistant extends CommandBase {
         }
         String action = args[0].toLowerCase();
         if ("reloadlexicon".equals(action) || "reload".equals(action)) {
-            if (!canReload(sender)) {
-                send(
-                    sender,
-                    EnumChatFormatting.RED + "You need operator permission to reload assistant lexicon config.");
+            if (!canUseOpCommands(sender)) {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admassistant.op_required");
                 return;
             }
             String message = AssistantLexicon.reload();
-            send(sender, EnumChatFormatting.GREEN + message);
+            sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admassistant.reload_ok", message);
             return;
         }
         if ("lexicon".equals(action)) {
-            send(
+            sendLocalized(
                 sender,
-                EnumChatFormatting.AQUA + "Assistant lexicon file: "
-                    + AssistantLexicon.file()
-                        .getPath());
-            send(sender, EnumChatFormatting.AQUA + "Use /admassistant reloadLexicon after editing it.");
+                EnumChatFormatting.AQUA,
+                "adm.command.admassistant.lexicon_path",
+                AssistantLexicon.file()
+                    .getPath());
+            sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admassistant.lexicon_hint");
             return;
         }
         sendUsage(sender);
@@ -67,20 +65,14 @@ public class CommandAssistant extends CommandBase {
         return null;
     }
 
-    private boolean canReload(ICommandSender sender) {
-        return sender == null || sender.canCommandSenderUseCommand(2, getCommandName());
-    }
-
     private void sendUsage(ICommandSender sender) {
-        send(sender, EnumChatFormatting.YELLOW + getCommandUsage(sender));
-        send(sender, EnumChatFormatting.YELLOW + "/admassistant lexicon  Show the assistant lexicon config file path");
-        send(
-            sender,
-            EnumChatFormatting.YELLOW + "/admassistant reloadLexicon  Reload assistant lexicon config after editing");
+        sendHelpHeader(sender, "adm.command.admassistant.title");
+        sendUsageSummary(sender, "adm.command.admassistant.usage");
+        sendHelpLines(sender, "adm.command.admassistant.help", HELP_LINES);
     }
 
-    private void send(ICommandSender sender, String message) {
-        sender.addChatMessage(new ChatComponentText(message));
+    private static String translate(String key) {
+        return net.minecraft.util.StatCollector.translateToLocal(key);
     }
 
     @Override
