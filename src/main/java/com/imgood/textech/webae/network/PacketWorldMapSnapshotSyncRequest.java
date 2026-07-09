@@ -3,6 +3,7 @@ package com.imgood.textech.webae.network;
 import java.nio.charset.StandardCharsets;
 
 import com.imgood.textech.network.handler.PacketHandlers;
+import com.imgood.textech.webae.worldmap.WorldMapSnapshotCurrentPointer;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotManifest;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStore;
 
@@ -74,10 +75,14 @@ public class PacketWorldMapSnapshotSyncRequest implements IMessage {
                         return;
                     }
                     int serverVersion = WorldMapSnapshotStore.currentVersion(message.ownerUuid, message.networkId);
+                    WorldMapSnapshotCurrentPointer ptr = WorldMapSnapshotStore.loadCurrent(
+                        message.ownerUuid,
+                        message.networkId);
                     PacketWorldMapSnapshotSyncResponse resp = new PacketWorldMapSnapshotSyncResponse();
                     resp.ownerUuid = message.ownerUuid;
                     resp.networkId = message.networkId;
                     resp.serverVersion = serverVersion;
+                    resp.previousServerVersion = ptr != null ? ptr.previousVersion : 0;
                     if (serverVersion > message.localVersion) {
                         WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadManifest(
                             message.ownerUuid,

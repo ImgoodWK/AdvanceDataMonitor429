@@ -55,7 +55,7 @@ export interface TopologyDisplaySettings {
   showWorldMapAeOverlay: boolean;
   /** Show device icon markers on world map. */
   showWorldMapDeviceIcons: boolean;
-  /** AE overlay opacity (0.5–1.0). */
+  /** AE overlay opacity (0–1). */
   worldMapAeOverlayOpacity: number;
   /** Per-category colors for world map AE overlay tinting. */
   worldMapAeCategoryColors: Record<WorldMapAeCategoryId, string>;

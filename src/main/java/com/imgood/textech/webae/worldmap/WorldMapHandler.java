@@ -74,8 +74,8 @@ public final class WorldMapHandler {
             empty.zoomLevels = WorldMapBoundsBuilder.buildZoomLevelInfosPublic(quality);
             empty.recommendedZoom = 0;
             empty.message = "No logical topology snapshot yet. Capture one manually.";
-            empty.cooldownMs = Math.max(1000L, Config.webTopologyCacheTtlMs);
-            empty.cooldownRemainingMs = com.imgood.textech.webae.topology.TopologyCache.instance()
+            empty.cooldownMs = WorldMapCaptureCoordinator.snapshotCooldownMs();
+            empty.cooldownRemainingMs = WorldMapCaptureCoordinator.instance()
                 .remainingCooldownMs(ownerUuid, networkId);
             applyDynmapMeta(empty);
             applyCaptureMeta(empty);
@@ -100,8 +100,12 @@ public final class WorldMapHandler {
         meta.progressiveFallback = Config.webWorldMapProgressiveFallback;
         meta.snapshotMode = WorldMapSnapshotMode.normalized();
         meta.journeyMapPreferred = Config.worldMapJourneyMapEnabled;
+        meta.snapshotSourcePriority = WorldMapTerrainSourcePriority.resolvedIds();
+        meta.spDirectServe = Config.worldMapSpDirectServe;
         if (WorldMapSnapshotMode.isClientOnly()) {
-            meta.terrainSource = "snapshot";
+            meta.terrainSource = Config.worldMapSpDirectServe && WorldMapDirectCaptureBridge.isIntegratedSinglePlayer()
+                ? "direct"
+                : "snapshot";
             meta.progressiveFallback = false;
         }
     }
@@ -111,9 +115,16 @@ public final class WorldMapHandler {
             return;
         }
         meta.snapshotVersion = WorldMapSnapshotStore.currentVersion(ownerUuid, networkId);
+        WorldMapSnapshotCurrentPointer ptr = WorldMapSnapshotStore.loadCurrent(ownerUuid, networkId);
+        if (ptr != null) {
+            meta.previousSnapshotVersion = ptr.previousVersion;
+        }
         WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadCurrentManifest(ownerUuid, networkId);
         if (manifest != null) {
             meta.snapshotSource = manifest.source != null ? manifest.source : "";
+            if (manifest.sourceStats != null && !manifest.sourceStats.isEmpty()) {
+                meta.snapshotSourceStats = manifest.sourceStats;
+            }
             if (manifest.tilePx > 0) {
                 meta.tilePx = manifest.tilePx;
             }
@@ -518,12 +529,37 @@ public final class WorldMapHandler {
                 zoomLevel);
         }
 
-        File cached = WorldMapTileCache.getExisting(parsedView.id, layer, layerTier, dim, chunkX, chunkZ, 0);
-        if (cached != null) {
-            boolean emptyTile = WorldMapTileCache.isEmpty(parsedView.id, layer, layerTier, dim, chunkX, chunkZ, 0);
-            String renderQuality = WorldMapTileCache.isHd(parsedView.id, layer, layerTier, dim, chunkX, chunkZ) ? "hd"
+        CachedTileLookup cachedLookup = findCachedTile(
+            parsedView.id,
+            layer,
+            layerTier,
+            quality,
+            aeChunk,
+            dim,
+            chunkX,
+            chunkZ,
+            0);
+        if (cachedLookup != null) {
+            WorldMapQualityTier servedTier = cachedLookup.tier;
+            boolean emptyTile = WorldMapTileCache.isEmpty(
+                parsedView.id,
+                layer,
+                servedTier,
+                dim,
+                chunkX,
+                chunkZ,
+                0);
+            String renderQuality = WorldMapTileCache.isHd(parsedView.id, layer, servedTier, dim, chunkX, chunkZ) ? "hd"
                 : "standard";
-            return servePngFile(cached, !emptyTile, renderQuality, layer, layerTier, 0);
+            // #region agent log
+            AgentDebugLog91f018.log(
+                "C",
+                "WorldMapHandler.serveOrEnqueueTile",
+                "serve cached tile",
+                "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"renderQuality\":\"" + renderQuality
+                    + "\",\"empty\":" + emptyTile + "}");
+            // #endregion
+            return servePngFile(cachedLookup.file, !emptyTile, renderQuality, layer, servedTier, 0);
         }
 
         if (WorldMapTileLayer.isAe(layer)) {
@@ -539,8 +575,17 @@ public final class WorldMapHandler {
             }
         }
 
-        WorldMapTileQueue.instance()
-            .enqueueChunkPair(parsedView.id, quality, dim, chunkX, chunkZ, ownerUuid, networkId, actorUuid);
+        enqueueLayerOnMiss(
+            parsedView,
+            layer,
+            quality,
+            dim,
+            chunkX,
+            chunkZ,
+            ownerUuid,
+            networkId,
+            actorUuid,
+            aeChunk);
 
         if (WorldMapTileLayer.isAe(layer)) {
             return serveTransparentTile(false, layer, layerTier);
@@ -556,9 +601,24 @@ public final class WorldMapHandler {
         if (fallback != null && fallback.png != null && fallback.png.length > 0) {
             String renderQuality = "dynmap_crop".equals(fallback.source) ? "dynmap" : "standard";
             String status = fallback.upgrading ? "upgrading" : "cached";
+            // #region agent log
+            AgentDebugLog91f018.log(
+                "D",
+                "WorldMapHandler.serveOrEnqueueTile",
+                "serve fallback tile",
+                "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"source\":\"" + fallback.source
+                    + "\",\"status\":\"" + status + "\",\"servedTier\":\"" + fallback.servedTier + "\"}");
+            // #endregion
             return servePngBytes(fallback.png, false, renderQuality, layer, fallback.servedTier, 0, status);
         }
 
+        // #region agent log
+        AgentDebugLog91f018.log(
+            "C",
+            "WorldMapHandler.serveOrEnqueueTile",
+            "serve stripe placeholder",
+            "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"status\":\"pending\"}");
+        // #endregion
         return servePngBytes(
             WorldMapFlatRenderer.stripePlaceholder(WorldMapRenderSupport.tilePx(layerTier)),
             false,
@@ -584,6 +644,74 @@ public final class WorldMapHandler {
                 WorldMapQualityTier.fromConfigMax());
         }
         return WorldMapQualitySupport.effectiveTier(requested, aeChunk);
+    }
+
+    private static final class CachedTileLookup {
+
+        final File file;
+        final WorldMapQualityTier tier;
+
+        CachedTileLookup(File file, WorldMapQualityTier tier) {
+            this.file = file;
+            this.tier = tier;
+        }
+    }
+
+    /**
+     * Resolves a cached tile file, trying the effective tier first and the raw requested tier for boosted AE chunks.
+     */
+    private static CachedTileLookup findCachedTile(String viewId, String layer, WorldMapQualityTier primaryTier,
+        WorldMapQualityTier requested, boolean aeChunk, int dim, int chunkX, int chunkZ, int zoomLevel) {
+        File cached = WorldMapTileCache.getExisting(viewId, layer, primaryTier, dim, chunkX, chunkZ, zoomLevel);
+        if (cached != null) {
+            return new CachedTileLookup(cached, primaryTier);
+        }
+        if (!WorldMapTileLayer.isAe(layer) && aeChunk && Config.webWorldMapAeQualityBoost) {
+            WorldMapQualityTier baseTier = WorldMapQualityTier.clamp(
+                requested != null ? requested : WorldMapQualityTier.MEDIUM,
+                WorldMapQualityTier.fromConfigMax());
+            if (!baseTier.equals(primaryTier)) {
+                cached = WorldMapTileCache.getExisting(viewId, layer, baseTier, dim, chunkX, chunkZ, zoomLevel);
+                if (cached != null) {
+                    return new CachedTileLookup(cached, baseTier);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Enqueues only the requested layer on cache miss; terrain miss may also prefetch AE when applicable. */
+    private static void enqueueLayerOnMiss(WorldMapView parsedView, String layer, WorldMapQualityTier quality,
+        int dim, int chunkX, int chunkZ, String ownerUuid, int networkId, String actorUuid, boolean aeChunk) {
+        WorldMapTileQueue queue = WorldMapTileQueue.instance();
+        if (WorldMapTileLayer.isAe(layer)) {
+            WorldMapQualityTier aeTier = WorldMapQualityTier.clamp(
+                WorldMapQualityTier.fromConfigAeOverlay(),
+                WorldMapQualityTier.fromConfigMax());
+            queue.enqueue(parsedView.id, WorldMapTileLayer.AE, aeTier, dim, chunkX, chunkZ, ownerUuid, networkId,
+                actorUuid);
+            return;
+        }
+        WorldMapQualityTier terrainTier = WorldMapQualitySupport.effectiveTier(quality, aeChunk);
+        queue.enqueue(
+            parsedView.id,
+            WorldMapTileLayer.TERRAIN,
+            terrainTier,
+            dim,
+            chunkX,
+            chunkZ,
+            ownerUuid,
+            networkId,
+            actorUuid);
+        if (aeChunk && Config.webWorldMapAeOverlayEnabled) {
+            WorldMapQualityTier aeTier = WorldMapQualityTier.clamp(
+                WorldMapQualityTier.fromConfigAeOverlay(),
+                WorldMapQualityTier.fromConfigMax());
+            if (!WorldMapTileCache.exists(parsedView.id, WorldMapTileLayer.AE, aeTier, dim, chunkX, chunkZ)) {
+                queue.enqueue(parsedView.id, WorldMapTileLayer.AE, aeTier, dim, chunkX, chunkZ, ownerUuid, networkId,
+                    actorUuid);
+            }
+        }
     }
 
     private static boolean isChunkAllowed(String ownerUuid, int networkId, int dim, int chunkX, int chunkZ,
@@ -672,9 +800,14 @@ public final class WorldMapHandler {
 
     private static NanoHTTPD.Response serveSnapshotTile(String layer, int dim, int chunkX, int chunkZ,
         String ownerUuid, int networkId) {
-        File cached = WorldMapSnapshotStore.getCurrentTile(ownerUuid, networkId, layer, dim, chunkX, chunkZ);
+        File cached = WorldMapSnapshotStore.getTileWithFallback(ownerUuid, networkId, layer, dim, chunkX, chunkZ);
         if (cached != null) {
             return servePngFile(cached, true, "snapshot", layer, WorldMapQualityTier.ULTRA, 0, "cached");
+        }
+        WorldMapDirectTileResolver.DirectTileResult direct = WorldMapDirectTileResolver.instance()
+            .resolve(layer, ownerUuid, networkId, dim, chunkX, chunkZ, 128);
+        if (direct != null && direct.png != null && direct.png.length > 0) {
+            return serveDirectPngBytes(direct.png, layer, direct.sourceId);
         }
         return servePngBytes(
             WorldMapFlatRenderer.stripePlaceholder(128),
@@ -684,6 +817,21 @@ public final class WorldMapHandler {
             WorldMapQualityTier.MEDIUM,
             0,
             "missing");
+    }
+
+    private static NanoHTTPD.Response serveDirectPngBytes(byte[] png, String layer, String sourceId) {
+        NanoHTTPD.Response resp = servePngBytes(
+            png,
+            false,
+            "direct",
+            layer,
+            WorldMapQualityTier.ULTRA,
+            0,
+            "direct");
+        if (resp != null && sourceId != null && !sourceId.isEmpty()) {
+            resp.addHeader("X-WorldMap-Tile-Source", sourceId);
+        }
+        return resp;
     }
 
     private static NanoHTTPD.Response servePngFile(File file, boolean longCache, String quality, String layer,

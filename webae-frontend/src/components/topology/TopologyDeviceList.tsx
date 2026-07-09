@@ -168,12 +168,11 @@ function GroupedDeviceList({
         key: group.type,
         label: groupLabel(group.type, group.rows.length),
         children: (
-          <VirtualRowList
-            items={group.rows}
-            scrollToKey={scrollToKey}
-            height={Math.min(groupHeight, Math.max(ROW_HEIGHT * 2, group.rows.length * ROW_HEIGHT))}
-            renderRow={(row) => renderRow(row)}
-          />
+          <div className="topology-device-list-group-rows">
+            {group.rows.map((row) => (
+              <div key={row.key}>{renderRow(row)}</div>
+            ))}
+          </div>
         ),
       }))}
     />
@@ -209,12 +208,11 @@ function GroupedNodeList({
         key: group.type,
         label: groupLabel(group.type, group.rows.length),
         children: (
-          <VirtualRowList
-            items={group.rows}
-            scrollToKey={scrollToKey}
-            height={Math.min(groupHeight, Math.max(ROW_HEIGHT * 2, group.rows.length * ROW_HEIGHT))}
-            renderRow={(row) => renderRow(row)}
-          />
+          <div className="topology-device-list-group-rows">
+            {group.rows.map((row) => (
+              <div key={row.key}>{renderRow(row)}</div>
+            ))}
+          </div>
         ),
       }))}
     />

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { getApiClient } from '@/api/client';
-import type {
+import { ApiClientError, getApiClient } from '@/api/client';import type {
   WorldMapMarkerDto,
   WorldMapMarkersResponse,
   WorldMapMetaDto,
   WorldMapSnapshotStatusDto,
 } from '@/types/dto';
+import { purgeOldSnapshotVersions } from '@/utils/worldMapIdbCache';
 
 export interface UseWorldMapDataResult {
   meta: WorldMapMetaDto | null;
@@ -17,8 +17,7 @@ export interface UseWorldMapDataResult {
   reload: () => Promise<void>;
   /** @deprecated Use requestSnapshotUpdate in client_only mode. */
   invalidateTiles: (views: string, quality?: string) => Promise<void>;
-  requestSnapshotUpdate: () => Promise<WorldMapSnapshotStatusDto | null>;
-  refreshSnapshotStatus: () => Promise<void>;
+  requestSnapshotUpdate: () => Promise<{ ok: boolean; error?: string }>;  refreshSnapshotStatus: () => Promise<void>;
 }
 
 export function useWorldMapData(networkId: number, enabled: boolean, quality?: string): UseWorldMapDataResult {
@@ -62,6 +61,10 @@ export function useWorldMapData(networkId: number, enabled: boolean, quality?: s
       ]);
       setMeta(metaRes);
       setSnapshotStatus(statusRes);
+      if (metaRes.snapshotMode === 'client_only' && (metaRes.snapshotVersion ?? 0) > 0) {
+        const keep = [metaRes.snapshotVersion ?? 0, metaRes.previousSnapshotVersion ?? 0];
+        void purgeOldSnapshotVersions('owner', networkId, keep);
+      }
       if (markersRes.success && markersRes.markers) {
         setMarkers(markersRes.markers);
       } else if (metaRes.hasLogicalSnapshot === false) {
@@ -79,25 +82,37 @@ export function useWorldMapData(networkId: number, enabled: boolean, quality?: s
     }
   }, [enabled, networkId, quality]);
 
-  const requestSnapshotUpdate = useCallback(async () => {
-    if (!enabled) return null;
+  const requestSnapshotUpdate = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!enabled) return { ok: false, error: 'disabled' };
+    setError(null);
     try {
       await getApiClient().post<{ success: boolean; requestId?: string; state?: string }>(
         `/api/worldmap/snapshot/request?network=${networkId}`
       );
       await refreshSnapshotStatus();
-      return snapshotStatus;
+      return { ok: true };
     } catch (e) {
-      setError((e as Error).message || 'Failed to request map snapshot update');
-      return null;
+      let message = 'Failed to request map snapshot update';
+      if (e instanceof ApiClientError) {
+        if (e.status === 409) {
+          message = 'No nearby player online or cooldown active. Ask a player in-game to run /admweb wm y';
+        } else if (e.status === 400) {
+          message = e.message || 'Invalid world map request';
+        } else {
+          message = e.message || message;
+        }
+      } else if (e instanceof Error) {
+        message = e.message;
+      }
+      setError(message);
+      return { ok: false, error: message };
     }
-  }, [enabled, networkId, refreshSnapshotStatus, snapshotStatus]);
+  }, [enabled, networkId, refreshSnapshotStatus]);
 
   const invalidateTiles = useCallback(
     async (views: string, quality = 'medium') => {
       if (!enabled || !views) return;
       if (meta?.snapshotMode === 'client_only') {
-        await requestSnapshotUpdate();
         return;
       }
       try {
@@ -108,9 +123,8 @@ export function useWorldMapData(networkId: number, enabled: boolean, quality?: s
         // Non-fatal
       }
     },
-    [enabled, meta?.snapshotMode, networkId, requestSnapshotUpdate]
+    [enabled, meta?.snapshotMode, networkId]
   );
-
   useEffect(() => {
     void reload();
   }, [reload]);

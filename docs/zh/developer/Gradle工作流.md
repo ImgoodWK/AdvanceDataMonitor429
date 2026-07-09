@@ -152,6 +152,44 @@ Unix-like shell 下对应使用 `./gradlew`。
 
 若仍无法解决，请在 GitHub 开 issue。
 
+### Could not find CodeChickenLib / 依赖解析失败（仅搜索国内镜像）
+
+常见于 `compileClasspath` 解析 `NewHorizonsCoreMod` 等 GTNH 传递依赖时，Gradle 使用了**过期的模块元数据缓存**，或镜像元数据与官方 Nexus 不一致。
+
+**一次性修复**（在项目根目录执行）：
+
+```powershell
+.\gradlew.bat --refresh-dependencies compileJava
+```
+
+若仍失败，可删除本地缓存后重试：
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\com.github.GTNewHorizons\CodeChickenLib" -ErrorAction SilentlyContinue
+.\gradlew.bat compileJava
+```
+
+`repositories.gradle` 已将 `nexus.gtnewhorizons.com` 置于国内镜像之前解析 `com.github.GTNewHorizons` 坐标；部分仅存在于镜像的构件（如 `CodeChickenLib`）仍由腾讯云镜像回退提供。
+
+### GregTech `NoSuchMethodError: UITexture.fullImage(..., boolean)`
+
+`GT5-Unofficial:5.09.51.470` 编译期依赖 `ModularUI2:2.2.18` 的 `fullImage(mod, path, boolean)` API；`2.3.x` 已改为 `ColorType` 参数。若 dev 依赖（如 `GTNH-Web-Map`）传递拉入 `ModularUI2:2.3.x`，会在 GregTech `preInit` 崩溃。
+
+本项目在 `dependencies.gradle` 中显式 `devOnlyNonPublishable` 锁定 `ModularUI2:2.2.18-1.7.10`，并对 Web-Map 排除 `ModularUI2` 传递。若需与整合包最新 GT / Web-Map 对齐，可一并升级 `GT5-Unofficial` 至 `5.09.52.x` 并使用 `ModularUI2:2.3.73+`。
+
+### NBTEdit `NoSuchFieldError: field_71412_D`
+
+`run/mods/ForgeNBTEdit-universal-1.0.0.test.jar` 为旧版 In-game NBTEdit，与 Java 17 / lwjgl3ify 运行时不兼容（访问 `Minecraft.mcDataDir` 的 SRG 字段名失效）。该 jar **不是** Gradle 依赖，多为历史手动放入。
+
+删除后重跑即可：
+
+```powershell
+Remove-Item -Force "run\mods\ForgeNBTEdit-universal-1.0.0.test.jar" -ErrorAction SilentlyContinue
+.\gradlew.bat runClient17
+```
+
+查看 NBT 请用本模组自带的映录器 GUI（`GuiNbtViewer`）或 NEI。
+
 ---
 
 ## 5. 高级扩展

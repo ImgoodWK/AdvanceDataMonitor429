@@ -21,6 +21,8 @@ public class PacketWorldMapSnapshotSyncResponse implements IMessage {
     public String ownerUuid;
     public int networkId;
     public int serverVersion;
+    /** Previous finalized version kept on server for fallback (0 = none). */
+    public int previousServerVersion;
     public List<String> tileKeys = new ArrayList<String>();
 
     public PacketWorldMapSnapshotSyncResponse() {}
@@ -30,6 +32,7 @@ public class PacketWorldMapSnapshotSyncResponse implements IMessage {
         writeUtf8(buf, ownerUuid);
         buf.writeInt(networkId);
         buf.writeInt(serverVersion);
+        buf.writeInt(previousServerVersion);
         buf.writeInt(tileKeys != null ? tileKeys.size() : 0);
         if (tileKeys != null) {
             for (String key : tileKeys) {
@@ -43,6 +46,7 @@ public class PacketWorldMapSnapshotSyncResponse implements IMessage {
         ownerUuid = readUtf8(buf);
         networkId = buf.readInt();
         serverVersion = buf.readInt();
+        previousServerVersion = buf.readInt();
         int count = buf.readInt();
         tileKeys = new ArrayList<String>();
         for (int i = 0; i < count; i++) {

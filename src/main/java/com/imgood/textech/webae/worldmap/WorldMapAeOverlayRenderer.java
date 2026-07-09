@@ -110,7 +110,7 @@ public final class WorldMapAeOverlayRenderer {
             Block block = ctx.blockAt(placement.x, placement.y, placement.z);
             int meta = ctx.blockMeta(placement.x, placement.y, placement.z);
             if (block == null || block == Blocks.air) {
-                paintCategoryBlockPixels(img, lx, lz, pxPerBlock, categoryId);
+                paintCategoryDot(img, lx, lz, pxPerBlock, categoryId);
             } else {
                 WorldMapFaceRasterizer.rasterizeTopFaceCategoryId(
                     img,

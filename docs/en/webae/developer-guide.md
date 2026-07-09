@@ -132,7 +132,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `patternBrowseMaxTotal` | int | `20000` | 1000-100000 | Max pattern browse entries per network |
 | `patternCacheTtlMs` | int | `30000` | 5000-300000 | Pattern browse TTL cache duration (ms) |
 | `topologyEnabled` | boolean | `true` | — | Enable `GET /api/network/topology` network topology API |
-| `topologyCacheTtlMs` | int | `1800000` | 5000-3600000 | Manual topology snapshot cooldown (ms; default 30 min) |
+| `topologyCacheTtlMs` | int | `10000` | 1000-3600000 | Manual topology snapshot capture cooldown (ms; default 10 s) |
+| `worldMapSnapshotCooldownMs` | int | `10000` | 1000-3600000 | Manual world map snapshot request cooldown (ms; client capture; default 10 s) |
 | `topologySnapshotPersist` | boolean | `true` | — | Persist snapshots under `TeXTech/WebAE/topology/` |
 | `worldMapEnabled` | boolean | `true` | — | Enable `GET /api/worldmap/*` world map API (requires `topologyEnabled`) |
 | `worldMapTilePx` | int | `128` | — | **Deprecated**: legacy single tile size; non-128 migrates to medium tier |
@@ -677,7 +678,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Node DTO**: `subtype`, `patternCount`, `patternSlots[]`, `branchIndex`, `layoutSector`; drive icon badge for pattern count
 - **Frontend**: `TopologyCytoscapeGraph` (cytoscape.js tree/star/spatial; legacy `TopologyGraphSvg` fallback); `TopologySimulatedView`/`TopologyDeviceList`/`TopologySettingsDrawer`; 4th view `worldMap`: `TopologyWorldMapView` + `WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay` (`useWorldMapTileLoader`/`useWorldMapProgress`)
 - **REST**: `GET /api/network/topology` (read disk/memory snapshot, no auto-rebuild); `POST /api/network/topology/snapshot?force=1` (OP forced capture)
-- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **1800000**), `topologySnapshotPersist` (default true); world map — see §11.26
+- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **10000**), `worldMapSnapshotCooldownMs` (default **10000**, world map client snapshot request cooldown), `topologySnapshotPersist` (default true); world map — see §11.26
 
 ### 11.18 Page Visibility Polling (Phase 4b)
 
@@ -758,15 +759,21 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **CSS**: `styles/global.css` `@media (max-width: 768px/480px)` — fixed sider, content padding, table font size
 - **Layout**: root `Layout` uses `webae-layout` class in `AppLayout`
 
-### 11.26 World Map View (Phase A/B + AE Overlay)
+### 11.26 World Map View (three-source capture / client snapshot / SP direct)
 
+- **Default** `worldMapSnapshotMode=client_only`: no server terrain/AE render; MP capture runs on consenting **player clients** per-chunk with `worldMapSnapshotSourcePriority` (default `dynmap,journeymap,client_gl`). Manual update cooldown: `worldMapSnapshotCooldownMs` (default 10 s).
+- **SP direct** (`worldMapSpDirectServe`): integrated server serves missing tiles via FS Dynmap/JM or client GL bridge (`PacketWorldMapDirectCaptureRequest/Response` IDs 45/46); headers `X-WorldMap-Tile-Status=direct`, `X-WorldMap-Tile-Source=...`.
+- **AE overlay**: `WorldMapAeVectorOverlayRenderer` on client for snapshot upload and SP direct — **device blocks rasterized** via `WorldMapFaceRasterizer.rasterizeTopFaceCategoryId` (category-ID PNG); cables/parts remain vector; cable width `worldMapAeCableWidthBlocks` (default 0.25 blocks).
+- **Tile compositing (frontend)**: `chunkTileScreenRect` anchors chunk **north-west** corner; `WORLD_MAP_TILE_FLIP_Y` (`scaleY(-1)`) aligns PNG row 0 (north) with `worldToScreen`; tests in `worldMapTerrain.test.ts`.
+- **Frontend**: unified `TopologyWorldMapView` snapshot chunks; Leaflet Dynmap terrain view removed (external Dynmap link kept).
+- **Dev deps**: `dependencies.gradle` includes `devOnlyNonPublishable` JourneyMap 5.2.18 and **GTNH-Web-Map (GWM) 0.4-beta-1** for local `runClient`/`runServer` only; not bundled in release jars.
 - **Package**: `webae/worldmap/` + `webae/worldmap/engine/` (Dynmap-grade UV/ray core) — see `project-structure-details.mdc`; frontend overlay is `WorldMapAeOverlayLayer.tsx` (not a Java class)
 - **Render engines**: `WorldMapRenderSupport.renderForView` dispatches flat+`uv` → `WorldMapFlatUvRenderer`; oblique+`ray` → `WorldMapIsoRayRenderer` (`WorldMapObliqueProjection` ortho rays + voxel DDA + `WorldMapFaceRasterizer` UV/biome/lighting); `legacy` painters kept as fallback; meta exposes `flatRenderEngine` / `obliqueRenderEngine`
 - **REST**: `GET /api/worldmap/meta?network=<id>&quality=` (includes `zoomLevels[]`, `dynmapMaxZoom`); terrain/AE tile URLs fixed at z0; AE tiles are category ID maps (R=categoryId); cache under `{view}/ae-id/`
 - **Snapshot**: `TopologySnapshot.aePlacements[]` (written on logical capture; block/cable/part coords + iconItemId)
 - **Quality tiers**: `WorldMapQualityTier` — low/medium/high/ultra; cache `map-tiles/{view}/q{tier}/z0/` and `{view}/ae-id/q{tier}/z0/`
 - **Single-resolution zoom**: default `webWorldMapZoomLevels=1`; built-in mode always z0 + viewport scale; Dynmap mode Leaflet `maxNativeZoom` + coordinate remap for sharpest tiles
-- **AE overlay tinting**: server `WorldMapAeCategory` + ID PNG; frontend `worldMapAeTint.ts` + `WorldMapAeColorModal` category colors with item icons (no re-fetch on color change)
+- **AE overlay tinting**: **`worldMapAeOverlayOpacity`** (**0–1**) → tinted pixel alpha only; layer `isolation` + AE `mix-blend-mode: normal`; per-tile re-tint. Tile compositing: `WORLD_MAP_TILE_FLIP_Y`. Snapshot: keep current + previous versions only (`previousSnapshotVersion` in meta).
 - **AE oblique**: `WorldMapAeObliqueRayRenderer` shares terrain oblique projection/ray pipeline
 - **Optional zoom pyramid**: when `webWorldMapZoomLevels>1`, `WorldMapZoomPyramid` parent synthesis enabled
 - **Block patches (Phase 4)**: `WorldMapBlockPatchRegistry` + `WorldMapGtPatchResolver` — built-in stair/slab; `assets/textech/worldmap/patches/` (`gregtech_machines` / `casings` / `structural` / `pipes`); GT pipes/cables use MTE `getConnections()` dynamic AABB; `webWorldMapBlockPatchesEnabled`
@@ -775,12 +782,12 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **AE terrain boost (optional)**: `worldMapAeQualityBoost` (default false) — when enabled, AE-device chunks get +1 terrain tier; meta exposes `aeQualityBoost`
 - **Config**: `[webConsole] worldMapEnabled`, …, `worldMapBlockPatchesEnabled`, `worldMapServerAtlasEnabled`, `worldMapServerAtlasPx`, `worldMapAeQualityBoost`
 - **HD**: `PacketWebMapTileJob` (34) / `PacketWebMapTileUpload` (35) include `layer` + `quality`; `worldMapClientCaptureMode=when_online` prefers client GL for all tiers; `WorldMapChunkCaptureHandler` proactive pre-warm; `WorldMapTerrainFallback` + `WorldMapDynmapChunkCropper` progressive placeholders; `WorldMapTilePrefetcher` + `WorldMapTileProgressTracker` for batch prefetch and progress API
-- **Frontend**: `useWorldMapTileLoader` (fixed `zoom=0`)/`useWorldMapProgress`; `WorldMapAeOverlayLayer` Canvas category tint; `WorldMapAeColorModal` (toolbar palette button on world map); AE `prefetch=true`
+- **Frontend**: `useWorldMapTileLoader` (fixed `zoom=0`)/`useWorldMapProgress`; `WorldMapAeOverlayLayer` Canvas category tint; `WorldMapAeColorModal` (toolbar palette button on world map); AE prefetch only when overlay visible (`aeVisible`)
 - **Phase C/D extensions**:
   - **Terrain dual mode**: `worldMapTerrainSource` (`auto`/`dynmap`/`self`)
   - **Dynmap bridge**: `dynmapMaxZoom` + `buildDynmapTileUrlAtDisplayZoom` single-resolution fetch
   - **Oblique switch**: `worldMapObliqueEnabled` (AND with `worldMapViewsEnabled`)
-  - **Dual-mode UX**: `TopologyDynmapView` / `TopologyWorldMapView`
+  - **Dual-mode UX**: `TopologyWorldMapView` (snapshot/direct); `TopologyDynmapView` deprecated for terrain (external Dynmap link only)
 
 ## 12. Frontend Resources
 

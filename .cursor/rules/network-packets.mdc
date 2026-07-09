@@ -61,8 +61,10 @@ alwaysApply: false
 | 42 | `PacketWorldMapSnapshotSyncResponse` | `PacketWorldMapSnapshotSyncResponse.Handler` | S→C | 快照版本与 tile key 列表 |
 | 43 | `PacketWorldMapSnapshotTilePull` | `PacketWorldMapSnapshotTilePull.Handler` | C→S | 拉取单个快照瓦片 |
 | 44 | `PacketWorldMapSnapshotTileData` | `PacketWorldMapSnapshotTileData.Handler` | S→C | 快照瓦片 PNG 数据 |
+| 45 | `PacketWorldMapDirectCaptureRequest` | `PacketWorldMapDirectCaptureRequest.Handler` | S→C | SP 直读：请求客户端 GL 捕获瓦片 |
+| 46 | `PacketWorldMapDirectCaptureResponse` | `PacketWorldMapDirectCaptureResponse.Handler` | C→S | SP 直读：客户端 GL 捕获 PNG 回传 |
 
-**下一个可用 ID = 45**
+**下一个可用 ID = 47**
 
 ## 新增 Packet 接入步骤
 

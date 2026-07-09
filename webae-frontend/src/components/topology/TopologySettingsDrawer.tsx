@@ -37,6 +37,12 @@ interface TopologySettingsDrawerProps {
   clientCaptureMode?: string;
   /** Dynmap base URL for "Open in Dynmap" button. */
   dynmapBaseUrl?: string;
+  /** Configured snapshot terrain capture priority (read-only). */
+  snapshotSourcePriority?: string[];
+  /** Last snapshot per-source chunk counts. */
+  snapshotSourceStats?: Record<string, number>;
+  /** Last finalized snapshot source label. */
+  snapshotSource?: string;
 }
 
 function clampSettings(s: TopologyDisplaySettings, maxQualityTier: WorldMapQualityTierId): TopologyDisplaySettings {
@@ -48,7 +54,7 @@ function clampSettings(s: TopologyDisplaySettings, maxQualityTier: WorldMapQuali
     nodeRadius: Math.max(12, Math.min(32, s.nodeRadius)),
     cableCellPx: Math.max(16, Math.min(40, s.cableCellPx)),
     nodeBlockPx: Math.max(24, Math.min(48, s.nodeBlockPx)),
-    worldMapAeOverlayOpacity: Math.max(0.5, Math.min(1, s.worldMapAeOverlayOpacity ?? 0.85)),
+    worldMapAeOverlayOpacity: Math.max(0, Math.min(1, s.worldMapAeOverlayOpacity ?? 0.85)),
     worldMapQuality: clampWorldMapQuality(
       s.worldMapQuality ?? DEFAULT_TOPOLOGY_DISPLAY.worldMapQuality,
       maxQualityTier
@@ -81,6 +87,9 @@ export function TopologySettingsDrawer({
   hdAvailable,
   clientCaptureMode,
   dynmapBaseUrl,
+  snapshotSourcePriority,
+  snapshotSourceStats,
+  snapshotSource,
 }: TopologySettingsDrawerProps) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<TopologyDisplaySettings>(() => cloneSettings(settings));
@@ -189,10 +198,36 @@ export function TopologySettingsDrawer({
                 {t('worldMapTerrainSource') || '地形来源'}:{' '}
               </Text>
               <Text strong>
-                {terrainSource === 'dynmap'
-                  ? t('worldMapTerrainSource_dynmap') || 'Dynmap 地形'
-                  : t('worldMapTerrainSource_self') || '内置渲染'}
+                {terrainSource === 'direct'
+                  ? (t('worldMapTerrainSource_direct') || '单人直读')
+                  : terrainSource === 'snapshot'
+                    ? (t('worldMapTerrainSource_snapshot') || '快照瓦片')
+                    : terrainSource === 'dynmap'
+                      ? (t('worldMapTerrainSource_dynmap') || 'Dynmap 地形')
+                      : (t('worldMapTerrainSource_self') || '内置渲染')}
               </Text>
+            </div>
+          )}
+          {snapshotSourcePriority && snapshotSourcePriority.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <Text type="secondary">{t('worldMapSnapshotPriority') || '采集优先级'}: </Text>
+              <Text strong>{snapshotSourcePriority.join(' → ')}</Text>
+            </div>
+          )}
+          {snapshotSourceStats && Object.keys(snapshotSourceStats).length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <Text type="secondary">{t('worldMapSnapshotSourceStats') || '上次快照源统计'}: </Text>
+              <Text>
+                {Object.entries(snapshotSourceStats)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(', ')}
+              </Text>
+              {snapshotSource && (
+                <>
+                  {' '}
+                  <Text type="secondary">({snapshotSource})</Text>
+                </>
+              )}
             </div>
           )}
           {clientCaptureMode && clientCaptureMode !== 'off' && (
@@ -270,9 +305,9 @@ export function TopologySettingsDrawer({
             <div style={{ marginBottom: 16 }}>
               <Text>{t('worldMapAeOverlayOpacity')}</Text>
               <InputNumber
-                min={0.5}
+                min={0}
                 max={1}
-                step={0.05}
+                step={0.01}
                 value={draft.worldMapAeOverlayOpacity}
                 onChange={(v) => patch({ worldMapAeOverlayOpacity: v ?? DEFAULT_TOPOLOGY_DISPLAY.worldMapAeOverlayOpacity })}
                 style={{ width: '100%', marginTop: 4 }}

@@ -100,6 +100,26 @@ public enum WorldMapQualityTier {
         return clamp(requested, fromConfigMax());
     }
 
+    /** Best-effort tier match for a snapshot job tile edge length. */
+    public static WorldMapQualityTier fromTilePx(int tilePx) {
+        if (tilePx <= 0) {
+            return fromConfigDefault();
+        }
+        WorldMapQualityTier best = MEDIUM;
+        int bestDelta = Integer.MAX_VALUE;
+        for (WorldMapQualityTier tier : values()) {
+            int[] candidates = new int[] { tier.tilePx, tier.hdTilePx(), tier.serverTilePx() };
+            for (int candidate : candidates) {
+                int delta = Math.abs(candidate - tilePx);
+                if (delta < bestDelta) {
+                    bestDelta = delta;
+                    best = tier;
+                }
+            }
+        }
+        return clamp(best, fromConfigMax());
+    }
+
     public int ordinalRank() {
         return ordinal();
     }

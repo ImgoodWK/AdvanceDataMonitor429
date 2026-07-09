@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import com.imgood.textech.Config;
+import com.imgood.textech.webae.worldmap.WorldMapSnapshotMode;
 import com.imgood.textech.webae.worldmap.dynmap.WorldMapDynmapChunkCropper;
 import com.imgood.textech.webae.worldmap.dynmap.WorldMapDynmapDetector;
 
@@ -44,6 +45,14 @@ public final class WorldMapTerrainFallback {
         if (lower != null) {
             byte[] png = readCached(view, layer, lower, dim, chunkX, chunkZ);
             if (png != null) {
+                // #region agent log
+                AgentDebugLog91f018.log(
+                    "D",
+                    "WorldMapTerrainFallback.find",
+                    "lower tier cached fallback",
+                    "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"servedTier\":\"" + lower
+                        + "\",\"requested\":\"" + req + "\"}");
+                // #endregion
                 return new Result(png, "cached", lower, !lower.equals(req));
             }
         }
@@ -52,6 +61,13 @@ public final class WorldMapTerrainFallback {
             int targetPx = WorldMapRenderSupport.tilePx(req);
             byte[] dynmap = WorldMapDynmapChunkCropper.cropChunkPng(view, dim, chunkX, chunkZ, targetPx);
             if (WorldMapRenderSupport.isValidTilePng(dynmap)) {
+                // #region agent log
+                AgentDebugLog91f018.log(
+                    "D",
+                    "WorldMapTerrainFallback.find",
+                    "dynmap crop fallback",
+                    "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"targetPx\":" + targetPx + "}");
+                // #endregion
                 return new Result(dynmap, "dynmap_crop", req, true);
             }
         }
@@ -59,6 +75,9 @@ public final class WorldMapTerrainFallback {
     }
 
     private static boolean shouldTryDynmapCrop() {
+        if (WorldMapSnapshotMode.isClientOnly()) {
+            return false;
+        }
         if (!WorldMapDynmapDetector.isDynmapAvailable()) {
             return false;
         }

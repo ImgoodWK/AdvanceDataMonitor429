@@ -22,6 +22,8 @@ public class PacketWorldMapCaptureJob implements IMessage {
     public int networkId;
     public int snapshotVersion;
     public int tilePx;
+    /** Comma-separated capture priority from server config (informational). */
+    public String sourcePriority = "";
     public List<String> chunks = new ArrayList<String>();
 
     public PacketWorldMapCaptureJob() {}
@@ -43,6 +45,7 @@ public class PacketWorldMapCaptureJob implements IMessage {
         buf.writeInt(networkId);
         buf.writeInt(snapshotVersion);
         buf.writeInt(tilePx);
+        writeUtf8(buf, sourcePriority);
         buf.writeInt(chunks != null ? chunks.size() : 0);
         if (chunks != null) {
             for (String chunk : chunks) {
@@ -57,6 +60,7 @@ public class PacketWorldMapCaptureJob implements IMessage {
         networkId = buf.readInt();
         snapshotVersion = buf.readInt();
         tilePx = buf.readInt();
+        sourcePriority = readUtf8(buf);
         int count = buf.readInt();
         chunks = new ArrayList<String>();
         for (int i = 0; i < count; i++) {

@@ -7,6 +7,7 @@ import {
   pyramidTileScreenRect,
   tileKey,
   visibleTilesForViewport,
+  WORLD_MAP_TILE_FLIP_Y,
   type ChunkScope,
   type WorldMapQualityTierId,
   type WorldMapTileLayer,
@@ -20,9 +21,19 @@ const MAX_CONCURRENT = 6;
 
 export type WorldMapTileLoadState = 'idle' | 'loading' | 'loaded' | 'pending' | 'upgrading' | 'error';
 
+/** Server-reported tile disposition from X-WorldMap-Tile-Status. */
+export type WorldMapTileServerStatus =
+  | 'cached'
+  | 'empty'
+  | 'pending'
+  | 'missing'
+  | 'upgrading'
+  | undefined;
+
 export interface WorldMapTileRecord {
   state: WorldMapTileLoadState;
   blobUrl?: string;
+  tileStatus?: WorldMapTileServerStatus;
 }
 
 export interface UseWorldMapTileLoaderOptions {
@@ -44,6 +55,8 @@ export interface UseWorldMapTileLoaderOptions {
   prefetch?: boolean;
   /** Snapshot version for IndexedDB cache (0 = disabled). */
   snapshotVersion?: number;
+  /** Fallback snapshot version for IndexedDB when current chunk is missing. */
+  previousSnapshotVersion?: number;
   /** Owner scope key for IndexedDB (defaults to network-only bucket). */
   ownerCacheKey?: string;
   /** Enable browser IndexedDB tile cache. */
@@ -58,6 +71,8 @@ export interface UseWorldMapTileLoaderResult {
     top: number;
     width: number;
     height: number;
+    transform: string;
+    transformOrigin: string;
   };
   resetTiles: () => void;
 }
@@ -77,6 +92,7 @@ export function useWorldMapTileLoader({
   active = true,
   prefetch = false,
   snapshotVersion = 0,
+  previousSnapshotVersion = 0,
   ownerCacheKey = 'owner',
   browserCacheEnabled = true,
 }: UseWorldMapTileLoaderOptions): UseWorldMapTileLoaderResult {
@@ -164,10 +180,12 @@ export function useWorldMapTileLoader({
 
         const key = tileKey(next.tileX, next.tileZ, zoom);
         const existing = tilesRef.current[key];
-        if (existing?.state === 'loading') {
+        if (existing?.state === 'loaded') {
           continue;
         }
-        if (existing?.state === 'loaded') {
+        if (existing?.state === 'upgrading') {
+          // Allow re-fetch with cache bust while HD/fallback tile is still upgrading.
+        } else if (existing?.state === 'loading') {
           continue;
         }
 
@@ -192,9 +210,21 @@ export function useWorldMapTileLoader({
                 chunkZ: next.tileZ,
               })
             : null;
+        const fallbackIdbKey =
+          browserCacheEnabled && previousSnapshotVersion > 0
+            ? buildIdbKey({
+                ownerKey: ownerCacheKey,
+                networkId,
+                version: previousSnapshotVersion,
+                layer,
+                dim,
+                chunkX: next.tileX,
+                chunkZ: next.tileZ,
+              })
+            : null;
 
-        const loadFromNetwork = () => {
-          const url = buildWorldMapTileUrl(
+        const loadFromNetwork = (cacheBust = false) => {
+          let url = buildWorldMapTileUrl(
             dim,
             next.tileX,
             next.tileZ,
@@ -205,9 +235,13 @@ export function useWorldMapTileLoader({
             quality,
             zoom
           );
+          if (cacheBust) {
+            url += `${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+          }
 
           fetch(url, {
             signal: controller.signal,
+            cache: cacheBust ? 'no-store' : 'default',
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           })
             .then((resp) => {
@@ -239,7 +273,7 @@ export function useWorldMapTileLoader({
                   if (old) URL.revokeObjectURL(old);
                   return {
                     ...prev,
-                    [key]: { state: 'loaded', blobUrl },
+                    [key]: { state: 'loaded', blobUrl, tileStatus: 'empty' },
                   };
                 });
                 return;
@@ -251,7 +285,7 @@ export function useWorldMapTileLoader({
                   if (old) URL.revokeObjectURL(old);
                   return {
                     ...prev,
-                    [key]: { state: 'upgrading', blobUrl },
+                    [key]: { state: 'upgrading', blobUrl, tileStatus: 'upgrading' },
                   };
                 });
                 window.setTimeout(() => {
@@ -261,12 +295,16 @@ export function useWorldMapTileLoader({
                 return;
               }
               const blobUrl = URL.createObjectURL(blob);
+              const resolvedStatus =
+                tileStatus === 'cached' || tileStatus === 'empty' || tileStatus === 'upgrading'
+                  ? tileStatus
+                  : undefined;
               setTiles((prev) => {
                 const old = prev[key]?.blobUrl;
                 if (old) URL.revokeObjectURL(old);
                 return {
                   ...prev,
-                  [key]: { state: 'loaded', blobUrl },
+                  [key]: { state: 'loaded', blobUrl, tileStatus: resolvedStatus },
                 };
               });
               if (idbKey && (tileStatus === 'cached' || !tileStatus)) {
@@ -287,8 +325,12 @@ export function useWorldMapTileLoader({
             });
         };
 
-        if (idbKey) {
-          void getCachedTileBlob(idbKey).then((cached) => {
+        if ((idbKey || fallbackIdbKey) && existing?.state !== 'upgrading') {
+          void (async () => {
+            let cached = idbKey ? await getCachedTileBlob(idbKey) : null;
+            if (!cached && fallbackIdbKey) {
+              cached = await getCachedTileBlob(fallbackIdbKey);
+            }
             if (controller.signal.aborted) return;
             if (cached) {
               const blobUrl = URL.createObjectURL(cached);
@@ -305,10 +347,10 @@ export function useWorldMapTileLoader({
               pump();
               return;
             }
-            loadFromNetwork();
-          });
+            loadFromNetwork(false);
+          })();
         } else {
-          loadFromNetwork();
+          loadFromNetwork(existing?.state === 'upgrading');
         }
       }
     };
@@ -326,6 +368,7 @@ export function useWorldMapTileLoader({
     quality,
     zoom,
     snapshotVersion,
+    previousSnapshotVersion,
     ownerCacheKey,
     browserCacheEnabled,
   ]);
@@ -377,6 +420,7 @@ export function useWorldMapTileLoader({
         top: Math.round(rect.top),
         width: Math.round(rect.size),
         height: Math.round(rect.size),
+        ...WORLD_MAP_TILE_FLIP_Y,
       };
     },
     [viewport, origin, zoom]

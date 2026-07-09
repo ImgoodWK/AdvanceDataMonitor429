@@ -23,6 +23,7 @@ public class CommonProxy {
         File configFile = new File(configDir, "textech.cfg");
         migrateLegacyMainConfig(event.getModConfigurationDirectory(), configFile);
         Config.synchronizeConfiguration(configFile);
+        TeXTechDataMigration.run();
 
         AdvanceDataMonitor.LOG.info("TeXTech v" + Tags.VERSION + " initialized");
     }

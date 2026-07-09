@@ -17,7 +17,8 @@ alwaysApply: false
 | `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包。含 `[webConsole]` 节字段（含阶段 3.1 图标三开关 `webIconCacheEnabled`/`webIconUploadEnabled`/`webIconPackEnabled`）+ `[debug]` 节 WebAE 分功能 debug 开关 `webDebugIcons`/`webDebugChat`/`webDebugDashboard`/`webDebugSynthesis`/`webDebugPatterns`（阶段 3.3，默认 false，gate `logs/textech/webae-<feature>.log`）；含 `reloadConfiguration()` 复用 `activeConfigFile` 重新加载所有分节（供 `/admweb reload` 调用） |
 | `ConfigDescriptions.java` | 配置项双语说明（英文 / 中文，供 .cfg 注释与手册引用） |
 | `ClientProxy.java` | 客户端代理（按键注册；FML bus 注册 `IconRenderer` + `IconLazyRenderQueue`） |
-| `TeXTechDataDir.java` | 运行时数据目录统一入口（`TeXTech/WebAE|Assistant|Grapple/`；从 `config/textech/`、`TeXTechWebAE/` 等旧路径自动迁移） |
+| `TeXTechDataDir.java` | 运行时数据目录统一入口（`TeXTech/WebAE|Assistant|Grapple/`） |
+| `TeXTechDataMigration.java` | preInit 启动迁移：`config/textech/`、`config/advancedatamonitor/`、`TeXTechWebAE/` → `TeXTech/`（移动，config 仅保留 `.cfg`） |
 | `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
 
 ### config/ — 配置分节加载 (15 文件)
@@ -60,7 +61,7 @@ alwaysApply: false
 - **格式化/工具**: `AssistantFormatter.java` / `AssistantTimeParser.java` / `AssistantTextNormalizer.java`
 - **物品处理**: `ItemStackUtils.java` / `PlayerInventoryUtil.java` / `PatternDetailFormatter.java`
 - **注册/调试**: `AssistantMonitorRegistry.java` / `AssistantDebugLog.java`
-- **数据文件**: `TeXTechDataDir.java`（`<实例>/TeXTech/<feature>/` 统一路径 + 旧路径迁移）+ `AssistantDataFiles.java`（按文件名路由到 WebAE/Assistant/Grapple 子目录）
+- **数据文件**: `TeXTechDataDir.java` + `TeXTechDataMigration.java`（`<实例>/TeXTech/<feature>/` 统一路径；启动时从旧路径移动）+ `AssistantDataFiles.java`（按文件名路由到 WebAE/Assistant/Grapple 子目录）
 
 ### items/ — 物品 (55 文件：根 22 + cell 33)
 | 类 | 游戏内名称 (ZH / EN) | lang 键 |
@@ -256,6 +257,7 @@ alwaysApply: false
 - `WebConsoleClipboard.java` — WebAE token 剪贴板复制（AWT SystemClipboard）
 - `worldmap/WorldMapTileRenderWorker.java` — **Legacy** 消费 S→C `PacketWebMapTileJob`（client_only 模式下队列 no-op）
 - `worldmap/WorldMapChunkCaptureHandler.java` — **Legacy** 探索预热（client_only 下禁用）
+- `worldmap/WorldMapCaptureClientState.java` — 客户端最新 consent requestId 缓存（`/admweb wm y` 省略 id）
 - `worldmap/WorldMapSnapshotCaptureWorker.java` — **客户端快照** JM/GL 双源 terrain+ae 采集、本地 map-cache、C→S 上传
 - `worldmap/WorldMapSnapshotLocalCache.java` — MC 客户端 `TeXTech/WebAE/map-cache/` 读写
 - `worldmap/WorldMapSnapshotDownloadHandler.java` — 登录后 packet 同步服务端快照到本地
@@ -367,7 +369,7 @@ alwaysApply: false
 - `webae/recipe/RecipeCacheStore.java` — 服务端配方缓存（full/lru 模式 + handlerRecipeKeys/suggestPrefixIndex 二级索引 + gzip schema 持久化；browse/search 分页；UploadSession 期间暂停 save）
 - `webae/recipe/RecipeUploadSession.java` — 上传会话跟踪（仅首个 isStart 清缓存）
 - `webae/recipe/RecipeSnapshotCollector.java` — 客户端 snapshot 范围配方采集
-- `webae/WebAeLocalDataDir.java` — 实例根目录下 `TeXTech/WebAE/` 本地数据目录（NESQL 导入默认路径 + 客户端配方导出；迁移旧 `TeXTechWebAE/`）
+- `webae/WebAeLocalDataDir.java` — 实例根目录下 `TeXTech/WebAE/` 本地数据目录（NESQL 导入默认路径 + 客户端配方导出；旧 `TeXTechWebAE/` 由 `TeXTechDataMigration` 迁移）
 - `webae/recipe/RecipeLocalExporter.java` — 客户端 NEI 配方导出至 `TeXTech/WebAE/web-recipes.json.gz`
 - `webae/network/RecipeUploadBatcher.java` — 配方上传分批（FML 32767B 上限）
 - `webae/network/RecipeUploadThrottler.java` — 客户端 tick 节流上传（`webRecipeUploadBatchesPerTick`）
@@ -451,7 +453,7 @@ alwaysApply: false
 - `webae/topology/SimulatedLayoutBuilder.java` — tree/star 模拟网格 + Manhattan pathPoints
 - `webae/topology/FakeChannelAllocator.java` — spatial 星形假线缆
 - `webae/topology/TopologySnapshot.java` — 拓扑图构建器（logical=树状 + network tool 数据源；spatial=空间 bin + 星形）
-- `webae/topology/TopologyCache.java` — 手动快照内存缓存 + 冷启动磁盘加载 + `topologyCacheTtlMs` 采集冷却（默认 30 分钟）
+- `webae/topology/TopologyCache.java` — 手动快照内存缓存 + 冷启动磁盘加载 + `topologyCacheTtlMs` 采集冷却（默认 10 秒）
 - `webae/topology/TopologyInvalidationGridCache.java` — AE `IGridCache` 占位（手动快照模式不自动失效）
 - `webae/topology/TopologyGridCacheRegistrar.java` — postInit 注册拓扑 grid cache（`AdvanceDataMonitor.postInit`）
 - `webae/topology/P2pTunnelDto.java` / `P2pMapSnapshot.java` / `P2pTunnelEnumerator.java` — **Phase10** P2P 频率分组地图（`GET /api/network/p2p`；反射读 frequency）
@@ -463,7 +465,8 @@ alwaysApply: false
 - `webae/worldmap/WorldMapBoundsBuilder.java` — per-dim marker bbox + allowed chunk 集/meta 组装（paddingChunks/maxChunks clamp）
 - `webae/worldmap/WorldMapHandler.java` — 世界地图 REST（meta/markers/tiles + **snapshot manifest/status/request**；client_only 下 tile 只读快照）
 - `webae/worldmap/WorldMapSnapshotStore.java` — 按 network 版本化快照磁盘存储 `map-snapshots/`
-- `webae/worldmap/WorldMapCaptureCoordinator.java` — consent 状态机 + 附近玩家筛选 + 采集 job 生命周期
+- `webae/worldmap/WorldMapCaptureCoordinator.java` — consent 状态机 + pending 去重 + 附近玩家筛选 + 采集 job 生命周期
+- `webae/worldmap/WorldMapConsentChat.java` — 服务端可点击聊天（接受/拒绝 → `/admweb wm y|n`）
 - `webae/worldmap/WorldMapSnapshotMode.java` — `client_only` / `legacy` 模式判定
 - `webae/worldmap/WorldMapAePlacementRecord.java` / `WorldMapAePlacementCollector.java` / `WorldMapAePlacementSupport.java` — logical 快照采集 AE 放置点（设备 + 线缆 + part）→ `TopologySnapshot.aePlacements`
 - `webae/worldmap/WorldMapAeCategory.java` — AE 设备启发式类别（世界地图 ID 图 R 通道）

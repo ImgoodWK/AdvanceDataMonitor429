@@ -6,6 +6,8 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.WorldServer;
 
+import com.imgood.textech.webae.worldmap.AgentDebugLog91f018;
+import com.imgood.textech.webae.worldmap.WorldMapBlockColorResolver;
 import com.imgood.textech.webae.worldmap.WorldMapFlatRenderer;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
@@ -30,6 +32,11 @@ public final class WorldMapFlatUvRenderer {
         if (ctx == null) {
             return null;
         }
+
+        // #region agent log
+        WorldMapBlockColorResolver.resetColorStats();
+        WorldMapChunkContext.resetSkyLightDebug();
+        // #endregion
 
         BufferedImage img = new BufferedImage(tilePx, tilePx, BufferedImage.TYPE_INT_RGB);
         int painted = 0;
@@ -67,6 +74,31 @@ public final class WorldMapFlatUvRenderer {
         if (painted <= 0) {
             return null;
         }
+        // #region agent log
+        long sumR = 0L;
+        long sumG = 0L;
+        long sumB = 0L;
+        int pixels = tilePx * tilePx;
+        for (int py = 0; py < tilePx; py++) {
+            for (int px = 0; px < tilePx; px++) {
+                int rgb = img.getRGB(px, py) & 0xFFFFFF;
+                sumR += (rgb >> 16) & 0xFF;
+                sumG += (rgb >> 8) & 0xFF;
+                sumB += rgb & 0xFF;
+            }
+        }
+        int centerWx = (chunkX << 4) + 8;
+        int centerWz = (chunkZ << 4) + 8;
+        int centerY = ctx.findTopSolidY(centerWx, centerWz);
+        AgentDebugLog91f018.log(
+            "B",
+            "WorldMapFlatUvRenderer.renderTerrain",
+            "chunk render stats",
+            "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"painted\":" + painted + ",\"avgR\":"
+                + (sumR / pixels) + ",\"avgG\":" + (sumG / pixels) + ",\"avgB\":" + (sumB / pixels)
+                + ",\"colorStats\":" + WorldMapBlockColorResolver.colorStatsJson() + ",\"centerSkyLight\":"
+                + (centerY >= 0 ? ctx.skyLight(centerWx, centerY, centerWz) : -1) + "}");
+        // #endregion
         return WorldMapRenderSupport.toPng(img);
     }
 

@@ -72,10 +72,18 @@ public final class WorldMapMetaDto {
     public String snapshotMode = WorldMapSnapshotMode.CLIENT_ONLY;
     /** Current snapshot version for this network (0 = none). */
     public int snapshotVersion;
+    /** Previous snapshot version kept for tile fallback (0 = none). */
+    public int previousSnapshotVersion;
     /** Snapshot capture source: journeymap, client_gl, or empty. */
     public String snapshotSource = "";
     /** Whether JourneyMap is available on the requesting client (informational). */
     public boolean journeyMapPreferred = true;
+    /** Configured snapshot terrain capture priority (read-only). */
+    public List<String> snapshotSourcePriority = new ArrayList<String>();
+    /** Last snapshot per-source chunk counts. */
+    public java.util.Map<String, Integer> snapshotSourceStats = new java.util.HashMap<String, Integer>();
+    /** Whether integrated SP direct tile serve is enabled. */
+    public boolean spDirectServe;
 
     public static final class ZoomLevelInfo {
 

@@ -135,6 +135,9 @@ public class WebConfigHandler {
         sb.append("\"topologyCacheTtlMs\":")
             .append(Config.webTopologyCacheTtlMs)
             .append(',');
+        sb.append("\"worldMapSnapshotCooldownMs\":")
+            .append(Config.worldMapSnapshotCooldownMs)
+            .append(',');
         sb.append("\"topologySnapshotPersist\":")
             .append(Config.webTopologySnapshotPersist)
             .append(',');
@@ -157,6 +160,9 @@ public class WebConfigHandler {
             .append(',');
         sb.append("\"worldMapJourneyMapEnabled\":")
             .append(Config.worldMapJourneyMapEnabled)
+            .append(',');
+        sb.append("\"worldMapSnapshotSourcePriority\":")
+            .append(GSON.toJson(Config.worldMapSnapshotSourcePriority != null ? Config.worldMapSnapshotSourcePriority : ""))
             .append(',');
         sb.append("\"alertsEnabled\":")
             .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)

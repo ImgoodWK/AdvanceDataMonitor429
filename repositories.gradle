@@ -1,8 +1,16 @@
 // Add any additional repositories for your dependencies here.
-// 国内镜像优先；GTNH / JitPack 等专用源保留在后方。
+// GTNH 官方 Nexus 优先解析 com.github.GTNewHorizons 坐标；国内镜像作通用依赖与国内可达的 GTNH 回退源。
 
 repositories {
     mavenLocal()
+
+    maven {
+        name = "GTNH Maven"
+        url = uri("https://nexus.gtnewhorizons.com/repository/public/")
+        content {
+            includeGroup("com.github.GTNewHorizons")
+        }
+    }
 
     maven {
         name = "Aliyun Public"
@@ -15,10 +23,9 @@ repositories {
     maven {
         name = "Tencent Maven Public"
         url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/")
-    }
-    maven {
-        name = "GTNH Maven"
-        url = uri("https://nexus.gtnewhorizons.com/repository/public/")
+        content {
+            includeGroup("com.github.GTNewHorizons")
+        }
     }
     maven {
         name = "JitPack"

@@ -21,6 +21,25 @@ public final class WorldMapBlockColorResolver {
     private static final int OPAQUE_UNKNOWN_RGB = 0x777777;
     private static final int TRANSPARENT_UNKNOWN_RGB = 0x555555;
 
+    // #region agent log
+    private static int statTexture;
+    private static int statPalette;
+    private static int statOpaqueFallback;
+    private static int statTransparentFallback;
+
+    public static void resetColorStats() {
+        statTexture = 0;
+        statPalette = 0;
+        statOpaqueFallback = 0;
+        statTransparentFallback = 0;
+    }
+
+    public static String colorStatsJson() {
+        return "{\"texture\":" + statTexture + ",\"palette\":" + statPalette + ",\"opaqueFallback\":"
+            + statOpaqueFallback + ",\"transparentFallback\":" + statTransparentFallback + "}";
+    }
+    // #endregion
+
     private WorldMapBlockColorResolver() {}
 
     /**
@@ -40,15 +59,27 @@ public final class WorldMapBlockColorResolver {
         BlockFace sampleFace = face != null ? face : BlockFace.TOP;
         int sampled = WorldMapBlockTextureSampler.sampleFaceColor(block, meta, sampleFace);
         if (sampled >= 0) {
+            // #region agent log
+            statTexture++;
+            // #endregion
             return sampled;
         }
         int known = WorldMapBlockPalette.knownColorFor(block, meta);
         if (known >= 0) {
+            // #region agent log
+            statPalette++;
+            // #endregion
             return known;
         }
         if (block.isOpaqueCube()) {
+            // #region agent log
+            statOpaqueFallback++;
+            // #endregion
             return OPAQUE_UNKNOWN_RGB;
         }
+        // #region agent log
+        statTransparentFallback++;
+        // #endregion
         return TRANSPARENT_UNKNOWN_RGB;
     }
 }

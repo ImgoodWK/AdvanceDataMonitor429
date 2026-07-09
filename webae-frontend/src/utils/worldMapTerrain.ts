@@ -207,7 +207,13 @@ export function visibleTilesForViewport(
   return out;
 }
 
-/** Screen position and size for a chunk tile image (z0). */
+/** PNG row 0 = chunk north; flip Y only so rows match worldToScreen without mirroring east/west. */
+export const WORLD_MAP_TILE_FLIP_Y = {
+  transform: 'scaleY(-1)',
+  transformOrigin: '0 0',
+} as const;
+
+/** Screen position and size for a chunk tile image (z0). Top-left anchored at chunk north-west. */
 export function chunkTileScreenRect(
   chunkX: number,
   chunkZ: number,
@@ -215,8 +221,8 @@ export function chunkTileScreenRect(
   origin: WorldMapOrigin
 ): { left: number; top: number; size: number } {
   const tileScreenSize = 16 * origin.pxPerBlock * viewport.scale;
-  const { sx, sy } = worldToScreen(chunkX * 16, chunkZ * 16 + 15, viewport, origin);
-  return { left: sx, top: sy, size: tileScreenSize };
+  const northWest = worldToScreen(chunkX * 16, chunkZ * 16, viewport, origin);
+  return { left: northWest.sx, top: northWest.sy, size: tileScreenSize };
 }
 
 /** Screen rect for a pyramid tile (z0 = one chunk, z1 = 2×2 chunks, …). */
@@ -230,25 +236,59 @@ export function pyramidTileScreenRect(
   const span = chunkSpanForZoom(zoom);
   const tileScreenSize = 16 * span * origin.pxPerBlock * viewport.scale;
   const worldX = tileX * span * 16;
-  const worldZ = tileZ * span * 16 + span * 16 - 1;
-  const { sx, sy } = worldToScreen(worldX, worldZ, viewport, origin);
-  return { left: sx, top: sy, size: tileScreenSize };
+  const worldZ = tileZ * span * 16;
+  const northWest = worldToScreen(worldX, worldZ, viewport, origin);
+  return { left: northWest.sx, top: northWest.sy, size: tileScreenSize };
 }
 
-/** Rounded screen rect to reduce sub-pixel tile seams. */
+/** Rounded screen rect for a chunk tile image. */
 export function chunkTileScreenStyle(
   chunkX: number,
   chunkZ: number,
   viewport: MapViewport,
   origin: WorldMapOrigin
-): { left: number; top: number; width: number; height: number } {
+): {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  transform: string;
+  transformOrigin: string;
+} {
   const rect = chunkTileScreenRect(chunkX, chunkZ, viewport, origin);
   return {
     left: Math.round(rect.left),
     top: Math.round(rect.top),
     width: Math.round(rect.size),
     height: Math.round(rect.size),
+    ...WORLD_MAP_TILE_FLIP_Y,
   };
+}
+
+/** Screen X for block column {@code lx} inside a chunk tile (PNG col 0 = west). */
+export function chunkBlockColScreenX(
+  chunkX: number,
+  chunkZ: number,
+  lx: number,
+  viewport: MapViewport,
+  origin: WorldMapOrigin
+): number {
+  const { left } = chunkTileScreenRect(chunkX, chunkZ, viewport, origin);
+  const blockSpan = origin.pxPerBlock * viewport.scale;
+  return left + lx * blockSpan;
+}
+
+/** Screen Y for block row {@code lz} inside a chunk tile (after {@link WORLD_MAP_TILE_FLIP_Y}). */
+export function chunkBlockRowScreenY(
+  chunkX: number,
+  chunkZ: number,
+  lz: number,
+  viewport: MapViewport,
+  origin: WorldMapOrigin
+): number {
+  const { top } = chunkTileScreenRect(chunkX, chunkZ, viewport, origin);
+  const blockSpan = origin.pxPerBlock * viewport.scale;
+  return top - lz * blockSpan;
 }
 
 /** Block bounds from allowed chunk bbox (for fitBounds). */

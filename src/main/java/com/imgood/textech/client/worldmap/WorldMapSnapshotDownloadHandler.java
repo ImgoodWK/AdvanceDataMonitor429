@@ -30,6 +30,7 @@ public final class WorldMapSnapshotDownloadHandler {
     private String ownerUuid;
     private int networkId;
     private int targetVersion;
+    private int targetPreviousVersion;
     private int tickCounter;
     private boolean syncRequested;
 
@@ -90,9 +91,15 @@ public final class WorldMapSnapshotDownloadHandler {
             return;
         }
         targetVersion = message.serverVersion;
+        targetPreviousVersion = message.previousServerVersion;
         pullQueue.clear();
         if (message.tileKeys == null || message.tileKeys.isEmpty()) {
             WorldMapSnapshotLocalCache.writeLocalVersion(message.ownerUuid, message.networkId, message.serverVersion);
+            WorldMapSnapshotLocalCache.pruneOldVersions(
+                message.ownerUuid,
+                message.networkId,
+                message.serverVersion,
+                message.previousServerVersion);
             return;
         }
         for (String key : message.tileKeys) {
@@ -129,6 +136,11 @@ public final class WorldMapSnapshotDownloadHandler {
             message.png);
         if (pullQueue.isEmpty()) {
             WorldMapSnapshotLocalCache.writeLocalVersion(message.ownerUuid, message.networkId, targetVersion);
+            WorldMapSnapshotLocalCache.pruneOldVersions(
+                message.ownerUuid,
+                message.networkId,
+                targetVersion,
+                targetPreviousVersion);
         }
     }
 

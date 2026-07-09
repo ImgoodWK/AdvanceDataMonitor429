@@ -31,12 +31,13 @@ import com.imgood.textech.webae.worldmap.WorldMapSnapshotStore;
 public class CommandWebConsole extends TeXTechCommandBase {
 
     private static final String[] SUBCOMMANDS = { "issue", "login", "guest", "copy", "revoke", "list", "reload",
-        "recipes", "icons", "refresh", "server", "worldmap", "help" };
+        "recipes", "icons", "refresh", "server", "worldmap", "wm", "help" };
     private static final String[] RECIPES_ACTIONS = { "upload", "export", "status", "clear" };
     private static final String[] RECIPES_UPLOAD_SCOPES = { "snapshot", "deep" };
     private static final String[] ICONS_ACTIONS = { "upload", "render", "verify", "import", "import-nesql", "modes",
         "status", "clear" };
     private static final String[] WORLDMAP_ACTIONS = { "upload", "accept", "status", "help" };
+    private static final String[] WM_ACTIONS = { "y", "n", "up", "st", "help" };
     private static final String[] SERVER_ACTIONS = { "status", "restart" };
     private static final int HELP_LINES = 13;
 
@@ -92,6 +93,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
             handleServer(sender, args);
         } else if ("worldmap".equals(sub)) {
             handleWorldMap(sender, args);
+        } else if ("wm".equals(sub)) {
+            handleWorldMapShort(sender, args);
         } else {
             sendUsage(sender);
         }
@@ -777,6 +780,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
                 .accept(args[2], player);
             if (!ok) {
                 sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.worldmap.accept_failed");
+            } else {
+                sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.wm.accept_ok");
             }
             return;
         }
@@ -810,6 +815,65 @@ public class CommandWebConsole extends TeXTechCommandBase {
         sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.worldmap.unknown");
     }
 
+    private void handleWorldMapShort(ICommandSender sender, String[] args) {
+        if (!requirePlayer(sender)) {
+            return;
+        }
+        EntityPlayerMP player = (EntityPlayerMP) sender;
+        if (args.length < 2 || "help".equalsIgnoreCase(args[1])) {
+            sendHelpHeader(sender, "adm.command.admweb.wm.title");
+            sendHelpLines(sender, "adm.command.admweb.wm.help", 4);
+            return;
+        }
+        String action = args[1].toLowerCase();
+        if ("y".equals(action) || "yes".equals(action)) {
+            String requestId = args.length >= 3 ? args[2] : WorldMapCaptureCoordinator.instance()
+                .latestPendingForPlayer(player);
+            if (requestId == null || requestId.isEmpty()) {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.wm.no_pending");
+                return;
+            }
+            boolean ok = WorldMapCaptureCoordinator.instance()
+                .accept(requestId, player);
+            if (!ok) {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.worldmap.accept_failed");
+            } else {
+                sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.wm.accept_ok");
+            }
+            return;
+        }
+        if ("n".equals(action) || "no".equals(action)) {
+            String requestId = args.length >= 3 ? args[2] : WorldMapCaptureCoordinator.instance()
+                .latestPendingForPlayer(player);
+            if (requestId == null || requestId.isEmpty()) {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.wm.no_pending");
+                return;
+            }
+            if (!WorldMapCaptureCoordinator.instance()
+                .reject(requestId, player)) {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.worldmap.accept_failed");
+            }
+            return;
+        }
+        if ("up".equals(action)) {
+            String[] forwarded = new String[] { "worldmap", "upload" };
+            if (args.length >= 3) {
+                forwarded = new String[] { "worldmap", "upload", args[2] };
+            }
+            handleWorldMap(sender, forwarded);
+            return;
+        }
+        if ("st".equals(action)) {
+            String[] forwarded = new String[] { "worldmap", "status" };
+            if (args.length >= 3) {
+                forwarded = new String[] { "worldmap", "status", args[2] };
+            }
+            handleWorldMap(sender, forwarded);
+            return;
+        }
+        sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.wm.unknown");
+    }
+
     private void sendUsage(ICommandSender sender) {
         sendHelpHeader(sender, "adm.command.admweb.title");
         sendUsageSummary(sender, "adm.command.admweb.usage");
@@ -835,9 +899,21 @@ public class CommandWebConsole extends TeXTechCommandBase {
             if ("worldmap".equals(sub)) {
                 return filterTabCompletion(args, WORLDMAP_ACTIONS);
             }
+            if ("wm".equals(sub)) {
+                return filterTabCompletion(args, WM_ACTIONS);
+            }
         }
         if (args.length == 3) {
             String sub = args[0].toLowerCase();
+            if ("wm".equals(sub) && ("y".equalsIgnoreCase(args[1]) || "n".equalsIgnoreCase(args[1]))) {
+                if (!(sender instanceof EntityPlayerMP)) {
+                    return null;
+                }
+                return filterTabCompletion(
+                    args,
+                    WorldMapCaptureCoordinator.instance()
+                        .listPendingForPlayer((EntityPlayerMP) sender));
+            }
             if ("recipes".equals(sub) && ("upload".equalsIgnoreCase(args[1]) || "export".equalsIgnoreCase(args[1]))) {
                 return filterTabCompletion(args, RECIPES_UPLOAD_SCOPES);
             }

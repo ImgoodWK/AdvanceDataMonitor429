@@ -27,7 +27,7 @@ alwaysApply: true
 
 | 包 | 文件数 | 作用 |
 |----|--------|------|
-| 根包 | 6 | `@Mod` 主类、`Config` 门面、`TeXTechDataDir` 运行时数据路径、`ClientProxy` / `CommonProxy` |
+| 根包 | 7 | `@Mod` 主类、`Config` 门面、`TeXTechDataDir` + `TeXTechDataMigration` 运行时数据路径与启动迁移、`ClientProxy` / `CommonProxy` |
 | `config/` | 15 | 配置分节加载（debug / compat / ai / voice / assistant / plannerHud / dataLoom / superOrange / matterBallDecompressor / grapple / webConsole + `ConfigWebaeDebugLoader` WebAE 分功能 debug 开关 + `ConfigWebAlertsLoader` 加载 `web-alerts.json` + `ConfigWebOrderTemplatesLoader` 加载 `web-order-templates.json`） |
 | `compat/` | 22 | GTNH / AE2 版本兼容（`ae/` 门面 + `legacy/` + `native_/`）+ `gt/` GT 兼容 |
 | `assistant/` | 45 | AI 助手核心（意图解析 / AE2 查询 / 合成下单 / 内置联网搜索 / 计划 / 菜单状态缓存），详见 `ai-assistant.mdc` |
@@ -41,10 +41,10 @@ alwaysApply: true
 | `network/` | 28 | 网络通信（24 packet + 6 handler，含 `PacketHandlers`；WebAE 专用包见 `webae/network/` 13 文件），详见 `network-packets.mdc` |
 | `voice/` | 9 | 语音识别（Vosk / HTTP STT / 音频处理） |
 | `loader/` | 10 | 注册加载器（Block / Item / TE / Entity / Handler / Gui / Render / Network / Recipe）+ `ModMigrationHandler` |
-| `client/` | 24 | 客户端事件与缓存（挂索 / 口袋 / AI / 按键 / 语音 / 星空剑 / WebAE token 剪贴板 / `client/worldmap/` HD 瓦片 Worker + 探索预热捕获）；图标/配方上传仅 `/admweb`（`KeyBindings.triggerIconUpload`/`uploadNeiRecipes`） |
+| `client/` | 29 | 客户端事件与缓存（挂索 / 口袋 / AI / 按键 / 语音 / 星空剑 / WebAE token 剪贴板 / `client/worldmap/` 三源采集、consent offer 缓存、`WorldMapCaptureClientState`、SP 直读 Worker、HD 瓦片 Worker + 探索预热捕获）；图标/配方上传仅 `/admweb`（`KeyBindings.triggerIconUpload`/`uploadNeiRecipes`） |
 | `command/` | 6 | 命令（`/textech`、`/admassistant`、`/admai`、`/admweb`；共享 `TeXTechCommandBase` + lang `adm.command.*`） |
 | `utils/` | 14 | 工具类（NBT / JSON / `BlockPos` / 物质团簇 / 解压器容量与速度 / AE 加速倍率 / AE 安全检查 / `ModLogFiles` 日志路径等） |
-| `webae/` | 255 | WebAE 嵌入式 HTTP 控制台（…）。`webae/worldmap/engine/` 为 Dynmap 级 UV/光线追踪/patch/atlas 渲染核心；`webae/worldmap/dynmap/` 为 GWM/Dynmap 外部瓦片桥接 + chunk 裁剪 fallback。
+| `webae/` | 268 | WebAE 嵌入式 HTTP 控制台（…）。`webae/worldmap/` 含三源采集链、`WorldMapDirectTileResolver` SP 直读；`webae/worldmap/engine/` 为 Dynmap 级 UV/光线追踪/patch/atlas 渲染核心；`webae/worldmap/dynmap/` 为 GWM/Dynmap 外部瓦片桥接 + chunk 裁剪 fallback。
 | `mixin/` | 7 | Mixin 注入（仅客户端：GUI / NEI 兼容 / tooltip Invoker / 口袋角标） |
 
 ## 资源文件 (src/main/resources/)

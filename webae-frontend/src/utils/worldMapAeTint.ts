@@ -46,15 +46,17 @@ function colorForCategory(categoryByte: number, palette: WorldMapAeColorPalette)
 }
 
 /**
- * Tint a server AE category ID PNG blob using the user palette. Cached by tile key + palette hash.
+ * Tint a server AE category ID PNG blob using the user palette. Cached by tile key + palette hash + opacity.
  */
 export async function tintAeIdBlob(
   blob: Blob,
   palette: WorldMapAeColorPalette,
-  cacheKey: string
+  cacheKey: string,
+  opacity = 1
 ): Promise<string> {
+  const clampedOpacity = Math.max(0, Math.min(1, opacity));
   const hash = paletteHash(palette);
-  const fullKey = `${cacheKey}:${hash}`;
+  const fullKey = `${cacheKey}:${hash}:${clampedOpacity.toFixed(3)}`;
   const cached = tintCache.get(fullKey);
   if (cached) {
     return cached;
@@ -84,6 +86,7 @@ export async function tintAeIdBlob(
     data[i] = r;
     data[i + 1] = g;
     data[i + 2] = b;
+    data[i + 3] = Math.round(a * clampedOpacity);
   }
   ctx.putImageData(imageData, 0, 0);
 

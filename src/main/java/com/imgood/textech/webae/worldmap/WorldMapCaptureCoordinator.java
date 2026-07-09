@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
@@ -17,6 +18,7 @@ import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureOffer;
 import com.imgood.textech.webae.topology.TopologySnapshot;
 import com.imgood.textech.webae.topology.TopologySnapshotStore;
+import com.imgood.textech.webae.worldmap.WorldMapTerrainSourcePriority;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -26,7 +28,6 @@ import cpw.mods.fml.common.FMLCommonHandler;
 public final class WorldMapCaptureCoordinator {
 
     private static final WorldMapCaptureCoordinator INSTANCE = new WorldMapCaptureCoordinator();
-    private static final long COOLDOWN_MS = 5L * 60L * 1000L;
 
     private final ConcurrentHashMap<String, PendingRequest> pending = new ConcurrentHashMap<String, PendingRequest>();
     private final ConcurrentHashMap<String, ActiveJob> activeJobs = new ConcurrentHashMap<String, ActiveJob>();
@@ -56,10 +57,16 @@ public final class WorldMapCaptureCoordinator {
         if (!Config.webWorldMapEnabled || !Config.webTopologyEnabled) {
             return null;
         }
+        long now = System.currentTimeMillis();
+        PendingRequest existingPending = getPendingForNetwork(ownerUuid, networkId);
+        if (existingPending != null && now < existingPending.expiresAtMs) {
+            return existingPending.requestId;
+        }
+
         String cooldownKey = ownerUuid + ":" + networkId;
         Long last = lastRequestMs.get(cooldownKey);
-        long now = System.currentTimeMillis();
-        if (last != null && now - last < COOLDOWN_MS) {
+        long cooldownMs = snapshotCooldownMs();
+        if (last != null && now - last < cooldownMs) {
             return null;
         }
 
@@ -113,20 +120,22 @@ public final class WorldMapCaptureCoordinator {
             expires);
         for (EntityPlayerMP player : nearby) {
             AdvanceDataMonitor.ADMCHANEL.sendTo(offer, player);
-            player.addChatMessage(new ChatComponentText(
-                EnumChatFormatting.AQUA + "[WebAE] "
-                    + EnumChatFormatting.WHITE
-                    + (requesterName != null ? requesterName : "Someone")
-                    + " requests a world map snapshot upload for network "
-                    + networkId
-                    + ". Run "
-                    + EnumChatFormatting.YELLOW
-                    + "/admweb worldmap accept "
-                    + requestId
-                    + EnumChatFormatting.WHITE
-                    + " to accept."));
+            WorldMapConsentChat.sendOffer(player, requestId, networkId, requesterName, chunks.size(), expires);
         }
         return requestId;
+    }
+
+    public boolean reject(String requestId, EntityPlayerMP player) {
+        if (requestId == null || requestId.isEmpty() || player == null) {
+            return false;
+        }
+        PendingRequest req = pending.get(requestId);
+        if (req == null || System.currentTimeMillis() >= req.expiresAtMs) {
+            return false;
+        }
+        player.addChatMessage(new ChatComponentText(
+            StatCollector.translateToLocal("adm.worldmap.consent.rejected")));
+        return true;
     }
 
     public boolean accept(String requestId, EntityPlayerMP player) {
@@ -172,31 +181,69 @@ public final class WorldMapCaptureCoordinator {
         }
     }
 
-    public void onSnapshotComplete(String ownerUuid, int networkId, int version, String source, int tilePx) {
+    public void onSnapshotComplete(String ownerUuid, int networkId, int version, String source, String sourceStatsJson,
+        int tilePx) {
         String jobKey = jobKey(ownerUuid, networkId, version);
         ActiveJob job = activeJobs.remove(jobKey);
         if (job != null && job.manifest != null) {
-            if (source != null && !source.isEmpty()) {
-                job.manifest.source = source;
-            }
-            if (tilePx > 0) {
-                job.manifest.tilePx = tilePx;
-            }
-            job.manifest.timestamp = System.currentTimeMillis();
+            applyFinalizeManifest(job.manifest, source, sourceStatsJson, tilePx);
             WorldMapSnapshotStore.finalizeSnapshot(job.manifest);
         } else {
             WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadManifest(ownerUuid, networkId, version);
             if (manifest != null) {
-                if (source != null && !source.isEmpty()) {
-                    manifest.source = source;
-                }
-                if (tilePx > 0) {
-                    manifest.tilePx = tilePx;
-                }
-                manifest.timestamp = System.currentTimeMillis();
+                applyFinalizeManifest(manifest, source, sourceStatsJson, tilePx);
                 WorldMapSnapshotStore.finalizeSnapshot(manifest);
             }
         }
+    }
+
+    private static void applyFinalizeManifest(WorldMapSnapshotManifest manifest, String source, String sourceStatsJson,
+        int tilePx) {
+        if (manifest == null) {
+            return;
+        }
+        if (source != null && !source.isEmpty()) {
+            manifest.source = source;
+        }
+        if (tilePx > 0) {
+            manifest.tilePx = tilePx;
+        }
+        manifest.sourceStats = parseSourceStats(sourceStatsJson);
+        manifest.timestamp = System.currentTimeMillis();
+    }
+
+    private static java.util.Map<String, Integer> parseSourceStats(String json) {
+        java.util.Map<String, Integer> out = new java.util.HashMap<String, Integer>();
+        if (json == null || json.trim().isEmpty() || "{}".equals(json.trim())) {
+            return out;
+        }
+        String trimmed = json.trim();
+        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+            return out;
+        }
+        String body = trimmed.substring(1, trimmed.length() - 1).trim();
+        if (body.isEmpty()) {
+            return out;
+        }
+        String[] pairs = body.split(",");
+        for (String pair : pairs) {
+            if (pair == null || pair.trim().isEmpty()) {
+                continue;
+            }
+            int colon = pair.indexOf(':');
+            if (colon <= 0) {
+                continue;
+            }
+            String key = pair.substring(0, colon).trim();
+            if (key.startsWith("\"") && key.endsWith("\"") && key.length() >= 2) {
+                key = key.substring(1, key.length() - 1);
+            }
+            try {
+                int value = Integer.parseInt(pair.substring(colon + 1).trim());
+                out.put(key, value);
+            } catch (NumberFormatException ignored) {}
+        }
+        return out;
     }
 
     public ActiveJob getActiveJob(String ownerUuid, int networkId) {
@@ -213,12 +260,72 @@ public final class WorldMapCaptureCoordinator {
     }
 
     public PendingRequest getPendingForNetwork(String ownerUuid, int networkId) {
+        long now = System.currentTimeMillis();
         for (PendingRequest req : pending.values()) {
-            if (req != null && ownerUuid.equals(req.ownerUuid) && req.networkId == networkId) {
+            if (req != null && ownerUuid.equals(req.ownerUuid) && req.networkId == networkId
+                && now < req.expiresAtMs) {
                 return req;
             }
         }
         return null;
+    }
+
+    /** Pending request ids visible to a nearby online player (for tab completion). */
+    public List<String> listPendingForPlayer(EntityPlayerMP player) {
+        List<String> out = new ArrayList<String>();
+        if (player == null) {
+            return out;
+        }
+        long now = System.currentTimeMillis();
+        for (PendingRequest req : pending.values()) {
+            if (req == null || now >= req.expiresAtMs || req.requestId == null) {
+                continue;
+            }
+            if (req.meta != null && isPlayerNearNetwork(player, req.meta)) {
+                out.add(req.requestId);
+            }
+        }
+        return out;
+    }
+
+    /** Latest pending offer for player when request id is omitted from /admweb wm y. */
+    public String latestPendingForPlayer(EntityPlayerMP player) {
+        List<String> ids = listPendingForPlayer(player);
+        if (ids.isEmpty()) {
+            return null;
+        }
+        String latest = null;
+        long latestExpires = 0L;
+        long now = System.currentTimeMillis();
+        for (String id : ids) {
+            PendingRequest req = pending.get(id);
+            if (req == null || now >= req.expiresAtMs) {
+                continue;
+            }
+            if (req.expiresAtMs >= latestExpires) {
+                latestExpires = req.expiresAtMs;
+                latest = id;
+            }
+        }
+        return latest;
+    }
+
+    public long remainingCooldownMs(String ownerUuid, int networkId) {
+        if (ownerUuid == null || ownerUuid.isEmpty()) {
+            return 0L;
+        }
+        String cooldownKey = ownerUuid + ":" + networkId;
+        Long last = lastRequestMs.get(cooldownKey);
+        if (last == null) {
+            return 0L;
+        }
+        long cooldownMs = snapshotCooldownMs();
+        long elapsed = System.currentTimeMillis() - last;
+        return Math.max(0L, cooldownMs - elapsed);
+    }
+
+    public static long snapshotCooldownMs() {
+        return Math.max(1000L, Config.worldMapSnapshotCooldownMs);
     }
 
     public WorldMapSnapshotStatusDto buildStatus(String ownerUuid, int networkId) {
@@ -306,6 +413,7 @@ public final class WorldMapCaptureCoordinator {
                 version,
                 chunks,
                 manifest.tilePx);
+            captureJob.sourcePriority = Config.worldMapSnapshotSourcePriority;
             AdvanceDataMonitor.ADMCHANEL.sendTo(captureJob, target);
             target.addChatMessage(new ChatComponentText(
                 EnumChatFormatting.GREEN + "[WebAE] World map snapshot capture started (v" + version + ")."));

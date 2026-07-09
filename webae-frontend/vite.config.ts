@@ -35,6 +35,9 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  test: {
+    environment: 'node',
+  },
   server: {
     port: 5174,
     proxy: {

@@ -751,13 +751,9 @@ public class RecipeCacheStore {
 
     public void clearDiskCache() {
         File gz = TeXTechDataDir.webAeFile(GZ_FILENAME);
-        File legacy = new File(TeXTechDataDir.legacyConfigDir(), LEGACY_FILENAME);
         boolean changed = false;
         if (gz.exists()) {
             changed |= gz.delete();
-        }
-        if (legacy.exists()) {
-            changed |= legacy.delete();
         }
         if (changed) {
             lastDiskSave = 0;
@@ -830,17 +826,11 @@ public class RecipeCacheStore {
 
     public void load() {
         File gzFile = TeXTechDataDir.webAeFile(GZ_FILENAME);
-        File legacyFile = new File(TeXTechDataDir.legacyConfigDir(), LEGACY_FILENAME);
-
         if (gzFile.exists()) {
             loadFromFile(gzFile, true);
             return;
         }
-        File legacyGz = new File(TeXTechDataDir.legacyConfigDir(), GZ_FILENAME);
-        if (legacyGz.exists()) {
-            loadFromFile(legacyGz, true);
-            return;
-        }
+        File legacyFile = TeXTechDataDir.webAeFile(LEGACY_FILENAME);
         if (legacyFile.exists()) {
             loadFromFile(legacyFile, false);
         }

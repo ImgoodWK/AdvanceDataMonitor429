@@ -52,7 +52,7 @@ alwaysApply: true
 | `logs/textech/data-loom-debug.log` | 编织元件 debug 日志 |
 | `<世界存档>/textech/pocket-<uuid>.dat` | 次元口袋 NBT 数据 |
 
-旧路径 `config/textech/` 下 JSON/目录、`config/advancedatamonitor/` 与 `<实例根>/TeXTechWebAE/` 在首次访问时自动复制迁移到 `TeXTech/`，详见 `TeXTechDataDir`、`AssistantDataFiles`、`WebAeLocalDataDir`。
+旧路径 `config/textech/` 下 JSON/目录、`config/advancedatamonitor/` 与 `<实例根>/TeXTechWebAE/` 在 **preInit 启动时** 由 `TeXTechDataMigration` **移动**到 `TeXTech/`（`config/textech/` 仅保留 `.cfg`）；路径解析见 `TeXTechDataDir`、`AssistantDataFiles`、`WebAeLocalDataDir`。
 
 ## 注册规范
 

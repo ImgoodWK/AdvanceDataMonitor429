@@ -111,4 +111,54 @@ public final class WorldMapSnapshotLocalCache {
             }
         }
     }
+
+    /** Keeps only {@code keepCurrent} and {@code keepPrevious} version directories on the client. */
+    public static void pruneOldVersions(String ownerUuid, int networkId, int keepCurrent, int keepPrevious) {
+        String safeOwner = ownerUuid != null ? ownerUuid.replaceAll("[^a-zA-Z0-9\\-]", "_") : "unknown";
+        File dir = new File(new File(cacheRoot(), safeOwner), String.valueOf(networkId));
+        if (!dir.isDirectory()) {
+            return;
+        }
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child == null || !child.isDirectory()) {
+                continue;
+            }
+            String name = child.getName();
+            if (name == null || !name.startsWith("v")) {
+                continue;
+            }
+            int version;
+            try {
+                version = Integer.parseInt(name.substring(1));
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (version == keepCurrent) {
+                continue;
+            }
+            if (keepPrevious > 0 && version == keepPrevious) {
+                continue;
+            }
+            deleteRecursive(child);
+        }
+    }
+
+    private static void deleteRecursive(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursive(child);
+                }
+            }
+        }
+        file.delete();
+    }
 }

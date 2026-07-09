@@ -18,7 +18,9 @@
 
     "build:no-typecheck": "vite build",
 
-    "preview": "vite preview"
+    "preview": "vite preview",
+
+    "test": "vitest run"
 
   },
 
@@ -66,7 +68,9 @@
 
     "typescript": "^5.6.3",
 
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+
+    "vitest": "^2.1.8"
 
   }
 

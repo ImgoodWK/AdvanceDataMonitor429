@@ -177,8 +177,8 @@ public class Config {
     public static int webPatternCacheTtlMs = 30000;
     /** Whether the network topology API is enabled. Default true. */
     public static boolean webTopologyEnabled = true;
-    /** TTL in ms for network topology cache per network/mode. Default 1800000 (30 min). */
-    public static int webTopologyCacheTtlMs = 1800000;
+    /** TTL in ms for manual topology snapshot cooldown (logical/spatial). Default 10000 (10 s). */
+    public static int webTopologyCacheTtlMs = 10000;
     /** Persist topology snapshots to TeXTech/WebAE/topology/. Default true. */
     public static boolean webTopologySnapshotPersist = true;
     /** Optional Dynmap base URL for player location deep links (Phase 6.1). Empty = disabled. */
@@ -266,6 +266,8 @@ public class Config {
     public static int worldMapConsentRadiusChunks = 8;
     /** Seconds to wait for snapshot consent accept. Default 120. */
     public static int worldMapConsentTimeoutSec = 120;
+    /** Cooldown in ms between manual world map snapshot requests (client capture upload). Default 10000 (10 s). */
+    public static int worldMapSnapshotCooldownMs = 10000;
     /** Owner /admweb worldmap upload skips consent when near network. Default true. */
     public static boolean worldMapOwnerSkipConsent = true;
     /** GL fallback quality when JourneyMap unavailable: low, medium, etc. Default low. */
@@ -276,6 +278,22 @@ public class Config {
     public static boolean worldMapBrowserCacheEnabled = true;
     /** Disable legacy server-side tile rendering. Default true when client_only. */
     public static boolean worldMapLegacyServerRender = false;
+    /** Comma-separated per-chunk terrain capture priority for snapshots (dynmap,journeymap,client_gl). */
+    public static String worldMapSnapshotSourcePriority = "dynmap,journeymap,client_gl";
+    public static boolean worldMapDynmapCaptureEnabled = true;
+    /** Alias gate for JourneyMap in snapshot capture chain. Defaults to worldMapJourneyMapEnabled when unset in cfg migration. */
+    public static boolean worldMapJourneyMapCaptureEnabled = true;
+    public static boolean worldMapClientGlCaptureEnabled = true;
+    /** Integrated SP: serve missing snapshot tiles via direct FS/GL read. */
+    public static boolean worldMapSpDirectServe = true;
+    /** SP direct tile memory cache TTL seconds. */
+    public static int worldMapSpDirectCacheTtlSec = 30;
+    /** Override Dynmap HTTP fetch base URL for client capture; empty = webDynmapBaseUrl. */
+    public static String worldMapDynmapClientFetchUrl = "";
+    /** AE overlay cable/part line width in blocks (default 0.25). */
+    public static double worldMapAeCableWidthBlocks = 0.25D;
+    /** AE overlay attachment line width in blocks; when <=0 uses cable width. */
+    public static double worldMapAePartWidthBlocks = 0.0D;
 
     // --- web console per-feature debug logs (default false, gate logs/textech/webae-<feature>.log) ---
     /** Verbose icon rendering/upload logging (IconRenderer, IconHandler, PacketWebIconUpload). */

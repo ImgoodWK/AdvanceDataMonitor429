@@ -12,6 +12,7 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.TeXTechDataDir;
 
 /**
  * Per-player Dimensional Pocket storage singleton.
@@ -99,12 +100,9 @@ public final class PocketStore {
             }
             return newFile;
         }
-        // Fallback for server startup before world is loaded —use new MODID
-        File dir = new File("config", AdvanceDataMonitor.MODID);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        return new File(dir, "pocket-" + uuid + ".json");
+        // Fallback for server startup before world is loaded
+        File dir = TeXTechDataDir.assistantRoot();
+        return new File(dir, "pocket-" + uuid + ".dat");
     }
 
     private PocketState loadFromDisk(String uuid) {

@@ -213,7 +213,7 @@ public final class ConfigWebaeLoader {
             "topologyCacheTtlMs",
             "webConsole",
             Config.webTopologyCacheTtlMs,
-            5000,
+            1000,
             3600000,
             ConfigDescriptions.get("webConsole", "topologyCacheTtlMs"));
         Config.webTopologySnapshotPersist = configuration.getBoolean(
@@ -467,6 +467,13 @@ public final class ConfigWebaeLoader {
             30,
             600,
             ConfigDescriptions.get("webConsole", "worldMapConsentTimeoutSec"));
+        Config.worldMapSnapshotCooldownMs = configuration.getInt(
+            "worldMapSnapshotCooldownMs",
+            "webConsole",
+            Config.worldMapSnapshotCooldownMs,
+            1000,
+            3600000,
+            ConfigDescriptions.get("webConsole", "worldMapSnapshotCooldownMs"));
         Config.worldMapOwnerSkipConsent = configuration.getBoolean(
             "worldMapOwnerSkipConsent",
             "webConsole",
@@ -494,5 +501,78 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.worldMapLegacyServerRender,
             ConfigDescriptions.get("webConsole", "worldMapLegacyServerRender"));
+        Config.worldMapSnapshotSourcePriority = configuration.getString(
+            "worldMapSnapshotSourcePriority",
+            "webConsole",
+            Config.worldMapSnapshotSourcePriority,
+            ConfigDescriptions.get("webConsole", "worldMapSnapshotSourcePriority"));
+        Config.worldMapDynmapCaptureEnabled = configuration.getBoolean(
+            "worldMapDynmapCaptureEnabled",
+            "webConsole",
+            Config.worldMapDynmapCaptureEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapDynmapCaptureEnabled"));
+        Config.worldMapJourneyMapCaptureEnabled = configuration.getBoolean(
+            "worldMapJourneyMapCaptureEnabled",
+            "webConsole",
+            Config.worldMapJourneyMapCaptureEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapJourneyMapCaptureEnabled"));
+        Config.worldMapClientGlCaptureEnabled = configuration.getBoolean(
+            "worldMapClientGlCaptureEnabled",
+            "webConsole",
+            Config.worldMapClientGlCaptureEnabled,
+            ConfigDescriptions.get("webConsole", "worldMapClientGlCaptureEnabled"));
+        Config.worldMapSpDirectServe = configuration.getBoolean(
+            "worldMapSpDirectServe",
+            "webConsole",
+            Config.worldMapSpDirectServe,
+            ConfigDescriptions.get("webConsole", "worldMapSpDirectServe"));
+        Config.worldMapSpDirectCacheTtlSec = configuration.getInt(
+            "worldMapSpDirectCacheTtlSec",
+            "webConsole",
+            Config.worldMapSpDirectCacheTtlSec,
+            5,
+            600,
+            ConfigDescriptions.get("webConsole", "worldMapSpDirectCacheTtlSec"));
+        Config.worldMapDynmapClientFetchUrl = configuration.getString(
+            "worldMapDynmapClientFetchUrl",
+            "webConsole",
+            Config.worldMapDynmapClientFetchUrl,
+            ConfigDescriptions.get("webConsole", "worldMapDynmapClientFetchUrl"));
+        Config.worldMapAeCableWidthBlocks = parseDoubleClamped(
+            configuration.getString(
+                "worldMapAeCableWidthBlocks",
+                "webConsole",
+                String.valueOf(Config.worldMapAeCableWidthBlocks),
+                ConfigDescriptions.get("webConsole", "worldMapAeCableWidthBlocks")),
+            Config.worldMapAeCableWidthBlocks,
+            0.125D,
+            1.0D);
+        Config.worldMapAePartWidthBlocks = parseDoubleClamped(
+            configuration.getString(
+                "worldMapAePartWidthBlocks",
+                "webConsole",
+                String.valueOf(Config.worldMapAePartWidthBlocks),
+                ConfigDescriptions.get("webConsole", "worldMapAePartWidthBlocks")),
+            Config.worldMapAePartWidthBlocks,
+            0.0D,
+            1.0D);
+    }
+
+    private static double parseDoubleClamped(String raw, double defaultValue, double min, double max) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            double value = Double.parseDouble(raw.trim());
+            if (value < min) {
+                return min;
+            }
+            if (value > max) {
+                return max;
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 }

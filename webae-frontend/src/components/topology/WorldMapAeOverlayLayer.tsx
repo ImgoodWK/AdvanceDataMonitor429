@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { WorldMapTileRecord } from '@/hooks/useWorldMapTileLoader';
 import { tileKey, type WorldMapTileCoord } from '@/utils/worldMapTerrain';
@@ -18,8 +18,10 @@ export interface WorldMapAeOverlayLayerProps {
     top: number;
     width: number;
     height: number;
+    transform: string;
+    transformOrigin: string;
   };
-  /** Layer visibility (opacity); tiles still prefetch when mounted with active loader upstream. */
+  /** Layer visibility; tiles still prefetch when mounted with active loader upstream. */
   visible?: boolean;
   opacity?: number;
   categoryColors: Record<WorldMapAeCategoryId, string>;
@@ -35,56 +37,62 @@ function WorldMapAeOverlayLayerInner({
   categoryColors,
   itemColorOverrides = {},
 }: WorldMapAeOverlayLayerProps) {
-  const clampedOpacity = Math.max(0.5, Math.min(1, opacity));
+  const clampedOpacity = Math.max(0, Math.min(1, opacity ?? 1));
   const palette: WorldMapAeColorPalette = useMemo(
     () => buildWorldMapAePalette(categoryColors, itemColorOverrides),
     [categoryColors, itemColorOverrides]
   );
 
   const [tintedUrls, setTintedUrls] = useState<Record<string, string>>({});
+  const tintEpochRef = useRef(0);
 
   useEffect(() => {
+    if (!visible) {
+      setTintedUrls({});
+      return;
+    }
+    const epoch = ++tintEpochRef.current;
+
     let cancelled = false;
     const run = async () => {
-      const next: Record<string, string> = {};
       for (const { tileX, tileZ, zoom } of tileCoords) {
+        if (cancelled || tintEpochRef.current !== epoch) {
+          return;
+        }
         const key = tileKey(tileX, tileZ, zoom);
         const rec = tiles[key];
-        if (rec?.state !== 'loaded' || !rec.blobUrl) {
+        if (rec?.state !== 'loaded' || !rec.blobUrl || rec.tileStatus === 'empty') {
           continue;
         }
         try {
           const response = await fetch(rec.blobUrl);
           const blob = await response.blob();
-          const tinted = await tintAeIdBlob(blob, palette, key);
-          if (!cancelled) {
-            next[key] = tinted;
+          const tinted = await tintAeIdBlob(blob, palette, key, clampedOpacity);
+          if (!cancelled && tintEpochRef.current === epoch) {
+            setTintedUrls((prev) => ({ ...prev, [key]: tinted }));
           }
         } catch {
-          if (!cancelled && rec.blobUrl) {
-            next[key] = rec.blobUrl;
-          }
+          // Keep prior tinted URL for this tile if any.
         }
-      }
-      if (!cancelled) {
-        setTintedUrls(next);
       }
     };
     void run();
     return () => {
       cancelled = true;
     };
-  }, [tileCoords, tiles, palette]);
+  }, [tileCoords, tiles, palette, clampedOpacity, visible]);
 
   useEffect(() => () => clearTintCache(), []);
+
+  if (!visible) {
+    return null;
+  }
 
   return (
     <div
       className="worldmap-ae-overlay-layer"
       aria-hidden="true"
       style={{
-        opacity: visible ? clampedOpacity : 0,
-        visibility: visible ? 'visible' : 'hidden',
         pointerEvents: 'none',
       }}
     >
@@ -92,9 +100,9 @@ function WorldMapAeOverlayLayerInner({
         const key = tileKey(tileX, tileZ, zoom);
         const rec = tiles[key];
         const style = chunkStyle(tileX, tileZ);
-        const src = tintedUrls[key] ?? (rec?.state === 'loaded' ? rec.blobUrl : undefined);
+        const src = tintedUrls[key];
 
-        if (rec?.state === 'loaded' && src) {
+        if (rec?.state === 'loaded' && rec.tileStatus !== 'empty' && src) {
           return (
             <img
               key={key}

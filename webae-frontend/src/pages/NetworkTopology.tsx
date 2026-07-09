@@ -14,6 +14,8 @@ import {
 
   Empty,
 
+  Modal,
+
   Segmented,
 
   Space,
@@ -49,6 +51,10 @@ import {
   CompressOutlined,
 
   BgColorsOutlined,
+
+  UnorderedListOutlined,
+
+  CloudUploadOutlined,
 
 } from '@ant-design/icons';
 
@@ -89,7 +95,6 @@ import { formatTime } from '@/utils/format';
 import { buildDynmapUrl } from '@/utils/dynmap';
 
 import { buildNodeIndex } from '@/utils/worldMapMarkers';
-import { buildWorldMapInvalidateViews } from '@/utils/worldMapViews';
 import { clampWorldMapQuality } from '@/utils/worldMapTerrain';
 import type { WorldMapQualityTierId } from '@/types/topologyDisplay';
 
@@ -165,7 +170,7 @@ export function NetworkTopologyPage() {
 
   const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0);
 
-  const [cooldownMs, setCooldownMs] = useState(300000);
+  const [cooldownMs, setCooldownMs] = useState(10000);
 
   const [selectedNode, setSelectedNode] = useState<TopologyNodeDto | null>(null);
 
@@ -182,6 +187,10 @@ export function NetworkTopologyPage() {
   const [canForceSnapshot, setCanForceSnapshot] = useState(false);
 
   const [worldMapProgressEpoch, setWorldMapProgressEpoch] = useState(0);
+
+  const [deviceListOpen, setDeviceListOpen] = useState(false);
+
+  const [requestingWorldMapSnapshot, setRequestingWorldMapSnapshot] = useState(false);
 
 
 
@@ -207,15 +216,38 @@ export function NetworkTopologyPage() {
 
     reload: reloadWorldMap,
 
-    invalidateTiles: invalidateWorldMapTiles,
-
     snapshotStatus: worldMapSnapshotStatus,
 
     requestSnapshotUpdate,
 
   } = useWorldMapData(currentNet, viewMode === 'worldMap' && worldMapEnabled, displaySettings.worldMapQuality);
 
+  const bumpWorldMapTileEpoch = useCallback(() => {
+    setWorldMapProgressEpoch((n) => n + 1);
+  }, []);
 
+  const reloadWorldMapView = useCallback(async () => {
+    if (viewMode !== 'worldMap' || !worldMapEnabled) return;
+    bumpWorldMapTileEpoch();
+    await reloadWorldMap();
+  }, [viewMode, worldMapEnabled, bumpWorldMapTileEpoch, reloadWorldMap]);
+
+  const requestWorldMapSnapshot = useCallback(async () => {
+    if (viewMode !== 'worldMap' || !worldMapEnabled) return;
+    setRequestingWorldMapSnapshot(true);
+    const result = await requestSnapshotUpdate();
+    setRequestingWorldMapSnapshot(false);
+    if (result.ok) {
+      notify(t('worldMapRequestSnapshotSent'), 'success');
+    } else if (result.error) {
+      notify(result.error, 'warning');
+    }
+  }, [viewMode, worldMapEnabled, requestSnapshotUpdate, notify, t]);
+
+  const worldMapSnapshotBusy =
+    requestingWorldMapSnapshot ||
+    worldMapSnapshotStatus?.captureState === 'awaiting_consent' ||
+    worldMapSnapshotStatus?.captureState === 'capturing';
 
   const worldMapMaxQuality: WorldMapQualityTierId =
     serverConfig?.worldMapMaxQualityTier === 'low' ||
@@ -229,29 +261,6 @@ export function NetworkTopologyPage() {
           worldMapMeta?.maxQualityTier === 'ultra'
         ? worldMapMeta.maxQualityTier
         : 'ultra';
-
-  const refreshWorldMapTiles = useCallback(
-    async (
-      obliqueDirection = displaySettings.worldMapObliqueDirection,
-      quality = displaySettings.worldMapQuality
-    ) => {
-      if (viewMode !== 'worldMap' || !worldMapEnabled) return;
-      const views = buildWorldMapInvalidateViews(obliqueDirection);
-      await invalidateWorldMapTiles(views, quality);
-      setWorldMapProgressEpoch((n) => n + 1);
-      await reloadWorldMap();
-    },
-    [
-      viewMode,
-      worldMapEnabled,
-      displaySettings.worldMapObliqueDirection,
-      displaySettings.worldMapQuality,
-      invalidateWorldMapTiles,
-      reloadWorldMap,
-    ]
-  );
-
-
 
   const showSimulated =
 
@@ -323,7 +332,7 @@ export function NetworkTopologyPage() {
 
       if (viewMode === 'worldMap') {
 
-        await refreshWorldMapTiles();
+        await reloadWorldMapView();
 
       }
 
@@ -339,7 +348,7 @@ export function NetworkTopologyPage() {
 
     }
 
-  }, [currentNet, viewMode, topologyEnabled, selectedNetworks.length, t, applyResponse, refreshWorldMapTiles]);
+  }, [currentNet, viewMode, topologyEnabled, selectedNetworks.length, t, applyResponse, reloadWorldMapView]);
 
 
 
@@ -379,7 +388,7 @@ export function NetworkTopologyPage() {
 
         if (viewMode === 'worldMap') {
 
-          await refreshWorldMapTiles();
+          await reloadWorldMapView();
 
         }
 
@@ -439,7 +448,7 @@ export function NetworkTopologyPage() {
 
     loadCached,
 
-    refreshWorldMapTiles,
+    reloadWorldMapView,
 
   ]);
 
@@ -811,9 +820,33 @@ export function NetworkTopologyPage() {
 
 
 
-      <Card size="small" style={{ marginBottom: 8 }}>
+      <Card size="small" style={{ marginBottom: 8 }} className="topology-toolbar-card">
 
-        <Space wrap size="middle" style={{ width: '100%', justifyContent: 'space-between' }}>
+        <div className="topology-toolbar-row">
+
+          <Segmented
+
+            value={viewMode}
+
+            onChange={(v) => setViewMode(v as ViewMode)}
+
+            options={[
+
+              { value: 'logical', label: t('topologyMode_logical') },
+
+              { value: 'spatial', label: t('topologyMode_spatial') },
+
+              { value: 'p2p', label: t('topologyMode_p2p') },
+
+              ...(worldMapEnabled
+
+                ? [{ value: 'worldMap' as const, label: t('topologyMode_worldMap') }]
+
+                : []),
+
+            ]}
+
+          />
 
           {selectedNetworks.length > 1 ? (
 
@@ -843,31 +876,17 @@ export function NetworkTopologyPage() {
 
           )}
 
+        </div>
+
+        <div
+
+          className={`topology-toolbar-context${viewMode === 'p2p' ? ' topology-toolbar-context--placeholder' : ''}`}
+
+          aria-hidden={viewMode === 'p2p'}
+
+        >
+
           <Space wrap>
-
-            <Segmented
-
-              value={viewMode}
-
-              onChange={(v) => setViewMode(v as ViewMode)}
-
-              options={[
-
-                { value: 'logical', label: t('topologyMode_logical') },
-
-                { value: 'spatial', label: t('topologyMode_spatial') },
-
-                { value: 'p2p', label: t('topologyMode_p2p') },
-
-                ...(worldMapEnabled
-
-                  ? [{ value: 'worldMap' as const, label: t('topologyMode_worldMap') }]
-
-                  : []),
-
-              ]}
-
-            />
 
             {viewMode === 'logical' && (
 
@@ -889,35 +908,61 @@ export function NetworkTopologyPage() {
 
             )}
 
-            {viewMode !== 'p2p' && (
+            <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} aria-label={t('topologySettingsTitle')} />
+
+            {viewMode === 'worldMap' && (
 
               <>
 
-                <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} aria-label={t('topologySettingsTitle')} />
+                <Tooltip title={t('worldMapAeColorTitle')}>
 
-                {viewMode === 'worldMap' && (
-                  <Tooltip title={t('worldMapAeColorTitle')}>
-                    <Button
-                      icon={<BgColorsOutlined />}
-                      onClick={() => setAeColorModalOpen(true)}
-                      aria-label={t('worldMapAeColorTitle')}
-                    />
-                  </Tooltip>
-                )}
+                  <Button
 
-                <Button icon={<ZoomInOutlined />} onClick={() => graphRef.current?.zoomIn()} aria-label="Zoom in" />
+                    icon={<BgColorsOutlined />}
 
-                <Button icon={<ZoomOutOutlined />} onClick={() => graphRef.current?.zoomOut()} aria-label="Zoom out" />
+                    onClick={() => setAeColorModalOpen(true)}
 
-                <Button icon={<CompressOutlined />} onClick={() => graphRef.current?.fitView()} aria-label={t('topologyFitView')} />
+                    aria-label={t('worldMapAeColorTitle')}
+
+                  />
+
+                </Tooltip>
+
+                <Tooltip title={t('worldMapRequestSnapshotHint')}>
+
+                  <Button
+
+                    icon={<CloudUploadOutlined />}
+
+                    onClick={() => void requestWorldMapSnapshot()}
+
+                    loading={requestingWorldMapSnapshot}
+
+                    disabled={worldMapSnapshotBusy}
+
+                    aria-label={t('worldMapRequestSnapshot')}
+
+                  >
+
+                    {t('worldMapRequestSnapshot')}
+
+                  </Button>
+
+                </Tooltip>
 
               </>
 
             )}
 
+            <Button icon={<ZoomInOutlined />} onClick={() => graphRef.current?.zoomIn()} aria-label="Zoom in" />
+
+            <Button icon={<ZoomOutOutlined />} onClick={() => graphRef.current?.zoomOut()} aria-label="Zoom out" />
+
+            <Button icon={<CompressOutlined />} onClick={() => graphRef.current?.fitView()} aria-label={t('topologyFitView')} />
+
           </Space>
 
-        </Space>
+        </div>
 
       </Card>
 
@@ -962,10 +1007,9 @@ export function NetworkTopologyPage() {
         <Alert
           type="info"
           showIcon
-          message={t('worldMapSnapshotCapturing', {
-            done: worldMapSnapshotStatus.completedChunks ?? 0,
-            total: worldMapSnapshotStatus.totalChunks ?? 0,
-          })}
+          message={t('worldMapSnapshotCapturing')
+            .replace('{done}', String(worldMapSnapshotStatus.completedChunks ?? 0))
+            .replace('{total}', String(worldMapSnapshotStatus.totalChunks ?? 0))}
           style={{ marginBottom: 8 }}
         />
 
@@ -1021,6 +1065,38 @@ export function NetworkTopologyPage() {
             {cellSummary.hasInfiniteFluidCells && (
 
               <Descriptions.Item label="∞">{t('cellSummaryInfiniteFluids')}</Descriptions.Item>
+
+            )}
+
+          </Descriptions>
+
+        </Card>
+
+      )}
+
+
+
+      {meta && viewMode === 'worldMap' && (
+
+        <Card size="small" style={{ marginBottom: 8 }}>
+
+          <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }}>
+
+            <Descriptions.Item label={t('topologyMetaNodes')}>{snapshot?.nodes.length ?? '—'}</Descriptions.Item>
+
+            <Descriptions.Item label={t('topologyMetaDevices')}>
+
+              {snapshot?.nodes.reduce((sum, n) => sum + (n.devices?.length ?? 0), 0) ?? '—'}
+
+            </Descriptions.Item>
+
+            {worldMapMeta?.snapshotVersion != null && worldMapMeta.snapshotVersion > 0 && (
+
+              <Descriptions.Item label={t('worldMapSnapshotVersion')}>
+
+                v{worldMapMeta.snapshotVersion}
+
+              </Descriptions.Item>
 
             )}
 
@@ -1116,7 +1192,7 @@ export function NetworkTopologyPage() {
 
       ) : (
 
-        <div className="topology-page-split">
+        <div className="topology-page-main">
 
           <Card
 
@@ -1125,6 +1201,32 @@ export function NetworkTopologyPage() {
             styles={{ body: { padding: 0, position: 'relative', minHeight: 520 } }}
 
           >
+
+            {((snapshot && snapshot.nodes.length > 0) ||
+
+              (viewMode === 'worldMap' && snapshot && worldMapMeta?.hasLogicalSnapshot)) && (
+
+              <Button
+
+                type="default"
+
+                size="small"
+
+                className="topology-device-list-fab"
+
+                icon={<UnorderedListOutlined />}
+
+                onClick={() => setDeviceListOpen(true)}
+
+                aria-label={t('topologyDeviceListOpen')}
+
+              >
+
+                {t('topologyDeviceListTitle')}
+
+              </Button>
+
+            )}
 
             {loading && !snapshot && viewMode !== 'worldMap' ? (
 
@@ -1276,45 +1378,67 @@ export function NetworkTopologyPage() {
 
           </Card>
 
-
-
-          {((snapshot && snapshot.nodes.length > 0) ||
-
-            (viewMode === 'worldMap' && snapshot && worldMapMeta?.hasLogicalSnapshot)) && (
-
-            <Card className="topology-page-sidebar" title={t('topologyDeviceListTitle')} size="small">
-
-              <TopologyDeviceList
-
-                nodes={snapshot.nodes}
-
-                selectedNodeId={selectedNode?.id ?? null}
-
-                hoveredNodeId={hoveredNodeId}
-
-                hideCableNodes={displaySettings.hideCableNodes}
-
-                onSelectNode={setSelectedNode}
-
-                onHoverNode={setHoveredNodeId}
-
-                onSelectDevice={(nodeId) => {
-
-                  const node = snapshot.nodes.find((n) => n.id === nodeId);
-
-                  if (node?.type === 'drive') setDriveModalNode(node);
-
-                }}
-
-              />
-
-            </Card>
-
-          )}
-
         </div>
 
       )}
+
+
+
+      <Modal
+
+        title={t('topologyDeviceListTitle')}
+
+        open={deviceListOpen}
+
+        onCancel={() => setDeviceListOpen(false)}
+
+        footer={null}
+
+        width={520}
+
+        destroyOnClose={false}
+
+        className="topology-device-list-modal"
+
+      >
+
+        {snapshot && (
+
+          <TopologyDeviceList
+
+            nodes={snapshot.nodes}
+
+            selectedNodeId={selectedNode?.id ?? null}
+
+            hoveredNodeId={hoveredNodeId}
+
+            hideCableNodes={displaySettings.hideCableNodes}
+
+            onSelectNode={(node) => {
+
+              setSelectedNode(node);
+
+              if (node) setDeviceListOpen(false);
+
+            }}
+
+            onHoverNode={setHoveredNodeId}
+
+            onSelectDevice={(nodeId) => {
+
+              const node = snapshot.nodes.find((n) => n.id === nodeId);
+
+              if (node?.type === 'drive') setDriveModalNode(node);
+
+            }}
+
+            height={480}
+
+          />
+
+        )}
+
+      </Modal>
 
 
 
@@ -1357,10 +1481,12 @@ export function NetworkTopologyPage() {
           };
           setDisplaySettings(clamped);
           if (viewMode === 'worldMap') {
-            if (clamped.worldMapObliqueDirection !== prevDir) {
-              void refreshWorldMapTiles(clamped.worldMapObliqueDirection, clamped.worldMapQuality);
-            } else if (clamped.worldMapQuality !== prevQuality) {
-              void refreshWorldMapTiles(clamped.worldMapObliqueDirection, clamped.worldMapQuality);
+            if (
+              clamped.worldMapObliqueDirection !== prevDir ||
+              clamped.worldMapQuality !== prevQuality
+            ) {
+              bumpWorldMapTileEpoch();
+              void reloadWorldMap();
             }
           }
         }}
@@ -1378,6 +1504,9 @@ export function NetworkTopologyPage() {
         hdAvailable={worldMapMeta?.hdAvailable}
         clientCaptureMode={worldMapMeta?.clientCaptureMode}
         dynmapBaseUrl={dynmapBaseUrl || undefined}
+        snapshotSourcePriority={worldMapMeta?.snapshotSourcePriority}
+        snapshotSourceStats={worldMapMeta?.snapshotSourceStats}
+        snapshotSource={worldMapMeta?.snapshotSource}
       />
 
       <WorldMapAeColorModal

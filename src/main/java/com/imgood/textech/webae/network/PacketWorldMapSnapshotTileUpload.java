@@ -31,8 +31,10 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
     public int chunkZ;
     public byte[] png;
     public boolean finalizeSnapshot;
-    /** Set when finalizeSnapshot=true: journeymap or client_gl. */
+    /** Set when finalizeSnapshot=true: dynmap, journeymap, client_gl, or mixed. */
     public String source = "client_gl";
+    /** JSON object of per-source chunk counts on finalize. */
+    public String sourceStatsJson = "";
     public int tilePx;
 
     public PacketWorldMapSnapshotTileUpload() {}
@@ -49,6 +51,7 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
         buf.writeBoolean(finalizeSnapshot);
         writeUtf8(buf, source);
         buf.writeInt(tilePx);
+        writeUtf8(buf, sourceStatsJson);
         if (png != null) {
             buf.writeInt(png.length);
             buf.writeBytes(png);
@@ -72,6 +75,7 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
             source = "client_gl";
         }
         tilePx = buf.readInt();
+        sourceStatsJson = readUtf8(buf);
         int len = buf.readInt();
         if (len > 0) {
             png = new byte[len];
@@ -123,7 +127,7 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
             if (message.finalizeSnapshot) {
                 WorldMapCaptureCoordinator.instance()
                     .onSnapshotComplete(message.ownerUuid, message.networkId, message.snapshotVersion, message.source,
-                        message.tilePx);
+                        message.sourceStatsJson, message.tilePx);
                 return;
             }
             if (message.png == null || message.png.length == 0 || message.png.length > MAX_PNG_BYTES) {

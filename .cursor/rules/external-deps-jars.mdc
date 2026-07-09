@@ -22,13 +22,15 @@ alwaysApply: false
 | Thaumcraft | 1.7.10-4.2.3.5 | 神秘时代（`compileOnly`，可选依赖） |
 | NewHorizonsCoreMod | 2.7.260 | GTNH 核心模组 |
 | ArchitectureCraft | 1.10.2 | 建筑工艺 |
-| BlockRenderer6343 | 1.2.12 | 方块渲染工具 |
+| BlockRenderer6343 | 1.3.16 | 方块渲染工具 |
 | Avaritia | 1.61 | 无尽贪婪 |
 | Avaritiaddons | 1.7.1-GTNH | 无尽贪婪扩展 |
 | Eternal-Singularity | 1.2.1 | 永恒奇点 |
 | Universal-Singularities | 8.7.0 | 通用奇点 |
 | NotEnoughItems | 2.5.4-GTNH | NEI (仅运行时，不发布) |
 | JourneyMap (Modrinth) | 5.2.18 | 旅行地图（`devOnlyNonPublishable`，仅 dev 运行；WebAE 快照地形源） |
+| GTNH-Web-Map (GWM) | 0.4-beta-1 | GTNH Dynmap 分支（`devOnlyNonPublishable`，仅 dev 运行；WebAE Dynmap 三源采集 / `dynmap/web/tiles`） |
+| ModularUI2 | 2.2.18-1.7.10 | dev 运行锁定（与 GT5 5.09.51.470 对齐；避免 Web-Map 传递 2.3.x） |
 | PinIn (shadow) | 1.6.0 (libs/PinIn-1.6.0.jar) | 手册拼音搜索（`ManualSearchUtil`）；运行时可选对接 NotEnoughCharacters |
 
 ### 本地 Jar 依赖（需要放在 `libs/` 下）

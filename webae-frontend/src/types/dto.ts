@@ -664,6 +664,7 @@ export interface ServerConfig {
   /** Phase 1 topology API gate + cache TTL mirror from [webConsole]. */
   topologyEnabled?: boolean;
   topologyCacheTtlMs?: number;
+  worldMapSnapshotCooldownMs?: number;
   alertsEnabled?: boolean;
   alertsPollIntervalSeconds?: number;
   /** Phase 6.1: optional Dynmap base URL from [webConsole] dynmapBaseUrl. */
@@ -918,9 +919,17 @@ export interface WorldMapMetaDto {
   snapshotMode?: string;
   /** Current snapshot version (0 = none). */
   snapshotVersion?: number;
-  /** Snapshot source: journeymap, client_gl, etc. */
+  /** Previous snapshot version for tile fallback during refresh (0 = none). */
+  previousSnapshotVersion?: number;
+  /** Snapshot capture source: journeymap, client_gl, mixed, etc. */
   snapshotSource?: string;
   journeyMapPreferred?: boolean;
+  /** Configured snapshot terrain capture priority (read-only). */
+  snapshotSourcePriority?: string[];
+  /** Last snapshot per-source chunk counts. */
+  snapshotSourceStats?: Record<string, number>;
+  /** Integrated SP direct tile serve enabled. */
+  spDirectServe?: boolean;
 }
 
 export interface WorldMapSnapshotStatusDto {

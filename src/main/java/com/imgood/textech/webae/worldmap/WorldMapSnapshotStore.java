@@ -194,17 +194,99 @@ public final class WorldMapSnapshotStore {
         return getExistingTile(ownerUuid, networkId, version, layer, dim, chunkX, chunkZ);
     }
 
+    /**
+     * Current snapshot tile, or previous version when the current chunk is not ready yet.
+     */
+    public static File getTileWithFallback(String ownerUuid, int networkId, String layer, int dim, int chunkX,
+        int chunkZ) {
+        WorldMapSnapshotCurrentPointer ptr = loadCurrent(ownerUuid, networkId);
+        if (ptr == null || ptr.version <= 0) {
+            return null;
+        }
+        File current = getExistingTile(ownerUuid, networkId, ptr.version, layer, dim, chunkX, chunkZ);
+        if (current != null) {
+            return current;
+        }
+        if (ptr.previousVersion > 0 && ptr.previousVersion != ptr.version) {
+            return getExistingTile(ownerUuid, networkId, ptr.previousVersion, layer, dim, chunkX, chunkZ);
+        }
+        return null;
+    }
+
     public static void finalizeSnapshot(WorldMapSnapshotManifest manifest) {
         if (manifest == null) {
             return;
         }
         saveManifest(manifest);
+        WorldMapSnapshotCurrentPointer oldPtr = loadCurrent(manifest.ownerUuid, manifest.networkId);
+        int oldVersion = oldPtr != null ? oldPtr.version : 0;
         WorldMapSnapshotCurrentPointer ptr = new WorldMapSnapshotCurrentPointer();
         ptr.version = manifest.version;
+        if (oldVersion > 0 && oldVersion != manifest.version) {
+            ptr.previousVersion = oldVersion;
+        } else if (oldPtr != null && oldPtr.previousVersion > 0 && oldPtr.previousVersion != manifest.version) {
+            ptr.previousVersion = oldPtr.previousVersion;
+        } else {
+            ptr.previousVersion = 0;
+        }
         ptr.timestamp = manifest.timestamp;
         ptr.source = manifest.source;
         ptr.tilePx = manifest.tilePx;
         saveCurrent(manifest.ownerUuid, manifest.networkId, ptr);
+        pruneOldVersions(manifest.ownerUuid, manifest.networkId, ptr.version, ptr.previousVersion);
+    }
+
+    /**
+     * Keeps only {@code keepCurrent} and {@code keepPrevious} version directories under a network.
+     */
+    public static void pruneOldVersions(String ownerUuid, int networkId, int keepCurrent, int keepPrevious) {
+        File dir = networkDir(ownerUuid, networkId);
+        if (dir == null || !dir.isDirectory()) {
+            return;
+        }
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child == null || !child.isDirectory()) {
+                continue;
+            }
+            String name = child.getName();
+            if (name == null || !name.startsWith("v")) {
+                continue;
+            }
+            int version;
+            try {
+                version = Integer.parseInt(name.substring(1));
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (version == keepCurrent) {
+                continue;
+            }
+            if (keepPrevious > 0 && version == keepPrevious) {
+                continue;
+            }
+            deleteRecursive(child);
+        }
+    }
+
+    private static void deleteRecursive(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursive(child);
+                }
+            }
+        }
+        if (!file.delete()) {
+            AdvanceDataMonitor.LOG.debug("[WebAE] Failed to delete snapshot path {}", file.getAbsolutePath());
+        }
     }
 
     public static void registerTileInManifest(WorldMapSnapshotManifest manifest, String layer, int dim, int chunkX,

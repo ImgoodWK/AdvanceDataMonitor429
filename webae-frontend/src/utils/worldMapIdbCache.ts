@@ -63,6 +63,47 @@ export async function putCachedTileBlob(key: string, blob: Blob): Promise<void> 
   }
 }
 
+export async function purgeOldSnapshotVersions(
+  ownerKey: string,
+  networkId: number,
+  keepVersions: number[]
+): Promise<void> {
+  const keep = new Set(keepVersions.filter((v) => v > 0));
+  if (keep.size === 0) {
+    return;
+  }
+  try {
+    const db = await openDb();
+    const prefix = `${ownerKey}:${networkId}:v`;
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const req = store.openCursor();
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (cursor) {
+          const key = String(cursor.key);
+          if (key.startsWith(prefix)) {
+            const rest = key.slice(prefix.length);
+            const versionEnd = rest.indexOf(':');
+            const versionStr = versionEnd >= 0 ? rest.slice(0, versionEnd) : rest;
+            const version = parseInt(versionStr, 10);
+            if (!Number.isNaN(version) && !keep.has(version)) {
+              cursor.delete();
+            }
+          }
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
+    });
+  } catch {
+    // ignore
+  }
+}
+
 export async function clearNetworkCache(ownerKey: string, networkId: number): Promise<void> {
   try {
     const db = await openDb();

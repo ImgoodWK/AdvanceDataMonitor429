@@ -46,8 +46,8 @@ public final class WorldMapBoundsBuilder {
         meta.paddingChunks = Math.max(0, Config.webWorldMapBoundsPaddingChunks);
         meta.maxChunks = Math.max(1, Config.webWorldMapMaxChunks);
         meta.worldMapEnabled = Config.webWorldMapEnabled && Config.webTopologyEnabled;
-        meta.cooldownMs = Math.max(1000L, Config.webTopologyCacheTtlMs);
-        meta.cooldownRemainingMs = com.imgood.textech.webae.topology.TopologyCache.instance()
+        meta.cooldownMs = WorldMapCaptureCoordinator.snapshotCooldownMs();
+        meta.cooldownRemainingMs = WorldMapCaptureCoordinator.instance()
             .remainingCooldownMs(ownerUuid, networkId);
         meta.flatRenderEngine = WorldMapRenderEngines.flatEngineId();
         meta.obliqueRenderEngine = WorldMapRenderEngines.obliqueEngineId();

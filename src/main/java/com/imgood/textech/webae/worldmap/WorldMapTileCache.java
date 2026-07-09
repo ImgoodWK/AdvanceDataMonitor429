@@ -9,16 +9,11 @@ import com.imgood.textech.TeXTechDataDir;
 /**
  * Disk cache for world map chunk PNG tiles at
  * {@code TeXTech/WebAE/map-tiles/{view}/q{tier}/z{level}/[{ae}/]{dim}/{cx}/{cz}.png}.
- * Legacy {@code config/textech/web-map-tiles/} is read-only fallback when the new cache is empty.
  */
 public final class WorldMapTileCache {
 
     private static File root() {
         return TeXTechDataDir.webAeDir("map-tiles");
-    }
-
-    private static File legacyConfigRoot() {
-        return TeXTechDataDir.legacyWebMapTilesDir();
     }
 
     private static final String FLAT_VIEW = WorldMapView.FLAT.id;
@@ -135,14 +130,7 @@ public final class WorldMapTileCache {
             && tier == WorldMapQualityTier.MEDIUM
             && WorldMapTileLayer.TERRAIN.equals(WorldMapTileLayer.normalize(layer))
             && FLAT_VIEW.equals(normalizeView(view))) {
-            valid = findLegacyMediumTerrain(view, layer, tier, dim, chunkX, chunkZ, level, root());
-            if (valid != null) {
-                return valid;
-            }
-            File legacyRoot = legacyConfigRoot();
-            if (legacyRoot.isDirectory()) {
-                return findLegacyMediumTerrain(view, layer, tier, dim, chunkX, chunkZ, level, legacyRoot);
-            }
+            return findLegacyMediumTerrain(view, layer, tier, dim, chunkX, chunkZ, level, root());
         }
         return null;
     }

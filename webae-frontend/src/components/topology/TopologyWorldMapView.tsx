@@ -32,8 +32,6 @@ import { WorldMapAeOverlayLayer } from '@/components/topology/WorldMapAeOverlayL
 
 import { WorldMapTerrainLayer } from '@/components/topology/WorldMapTerrainLayer';
 
-import { TopologyDynmapView } from '@/components/topology/TopologyDynmapView';
-
 import type { TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
 
 import { useMapViewport } from '@/hooks/useMapViewport';
@@ -150,25 +148,6 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
   ) {
 
     const { t } = useI18n();
-
-    // --- Dynmap mode: render Leaflet-based external tile view ---
-    if (meta.terrainSource === 'dynmap') {
-      return (
-        <TopologyDynmapView
-          meta={meta}
-          markers={markers}
-          networkId={networkId}
-          nodeIndex={nodeIndex}
-          selectedNodeId={selectedNodeId}
-          onNodeSelect={onNodeSelect}
-          onDriveClick={onDriveClick}
-          obliqueDirection={obliqueDirection}
-          displaySettings={displaySettings}
-          height={height}
-          progressEpoch={progressEpoch}
-        />
-      );
-    }
 
     const [activeDim, setActiveDim] = useState<number>(() => meta.dimensions[0]?.dim ?? 0);
 
@@ -352,6 +331,7 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       zoom: 0,
       active: terrainEnabled,
       snapshotVersion: meta.snapshotVersion ?? 0,
+      previousSnapshotVersion: meta.previousSnapshotVersion ?? 0,
       browserCacheEnabled: meta.snapshotMode === 'client_only',
     });
 
@@ -368,15 +348,13 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       quality: aeOverlayQuality,
       zoom: 0,
       active: aeVisible,
-      prefetch: true,
+      prefetch: aeVisible,
       snapshotVersion: meta.snapshotVersion ?? 0,
+      previousSnapshotVersion: meta.previousSnapshotVersion ?? 0,
       browserCacheEnabled: meta.snapshotMode === 'client_only',
     });
 
-    const overlayTiles =
-      terrainLoader.debouncedTiles.length >= aeLoader.debouncedTiles.length
-        ? terrainLoader.debouncedTiles
-        : aeLoader.debouncedTiles;
+    const overlayTiles = terrainLoader.debouncedTiles;
 
     const { progress, polling, startPolling, stopPolling } = useWorldMapProgress({
       networkId,
@@ -521,9 +499,20 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
       (marker: WorldMapMarkerDto) => {
 
-        const node = nodeIndex.get(marker.nodeId) ?? null;
-
-        if (!node) return;
+        const node =
+          nodeIndex.get(marker.nodeId) ??
+          ({
+            id: marker.nodeId,
+            type: marker.type,
+            subtype: marker.subtype,
+            displayName: marker.displayName || marker.type,
+            count: 1,
+            channelCost: marker.channelCost ?? 0,
+            iconItemId: marker.iconItemId,
+            layoutX: marker.x,
+            layoutY: marker.z,
+            dim: marker.dim,
+          } satisfies TopologyNodeDto);
 
         onNodeSelect(node);
 
@@ -676,9 +665,9 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
           />
 
           <WorldMapAeOverlayLayer
-            tileCoords={aeLoader.debouncedTiles}
+            tileCoords={terrainLoader.debouncedTiles}
             tiles={aeLoader.tiles}
-            chunkStyle={aeLoader.chunkStyle}
+            chunkStyle={terrainLoader.chunkStyle}
             visible={aeVisible}
             opacity={displaySettings.worldMapAeOverlayOpacity}
             categoryColors={displaySettings.worldMapAeCategoryColors}
@@ -692,7 +681,7 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
             serverProgress={progress?.chunks ?? null}
             chunkStyle={terrainLoader.chunkStyle}
             showTerrain={terrainEnabled}
-            showAe={true}
+            showAe={aeVisible}
           />
 
           {showProgressUi && (

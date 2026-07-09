@@ -1,10 +1,11 @@
 import { memo, useMemo } from 'react';
 
-import { useAppContext } from '@/context/AppContext';
+import { Tooltip } from 'antd';
+
+import { Icon } from '@/components/Icon';
 import { useI18n } from '@/i18n';
 import type { WorldMapMarkerDto } from '@/types/dto';
 import { blockIconIdForNode } from '@/utils/aeCableColors';
-import { buildIconUrl } from '@/utils/icon';
 import {
   buildMarkerClusterIndex,
   queryClusters,
@@ -31,6 +32,17 @@ export interface WorldMapMarkerLayerProps {
 
 const MARKER_SIZE = 28;
 
+function clusterTooltip(markers: WorldMapMarkerDto[], count: number, t: (key: string, ...args: string[]) => string) {
+  const names = markers
+    .slice(0, 4)
+    .map((m) => m.displayName || m.type)
+    .filter(Boolean);
+  const head = t('worldMapMarkerCluster', String(count));
+  if (names.length === 0) return head;
+  const more = count > names.length ? `\n… +${count - names.length}` : '';
+  return `${head}\n${names.join('\n')}${more}`;
+}
+
 function WorldMapMarkerLayerInner({
   markers,
   viewport,
@@ -41,7 +53,6 @@ function WorldMapMarkerLayerInner({
   onMarkerClick,
   onClusterClick,
 }: WorldMapMarkerLayerProps) {
-  const { iconPack, token, iconCacheEnabled, iconRenderMode } = useAppContext();
   const { t } = useI18n();
 
   const clusterIndex = useMemo(() => buildMarkerClusterIndex(markers), [markers]);
@@ -85,37 +96,50 @@ function WorldMapMarkerLayerInner({
 
         if (props.cluster && props.cluster_id != null) {
           const count = props.point_count ?? 0;
+          const clusterMarkers = props.marker ? [props.marker] : [];
           return (
-            <button
+            <Tooltip
               key={`cluster-${props.cluster_id}`}
-              type="button"
-              className="worldmap-marker-hit worldmap-cluster"
-              style={{ left, top, width: MARKER_SIZE + 8, height: MARKER_SIZE + 8 }}
-              title={t('worldMapMarkerCluster', String(count))}
-              onClick={() => onClusterClick?.(props.cluster_id!, worldX, worldZ)}
+              title={clusterTooltip(clusterMarkers, count, t)}
+              mouseEnterDelay={0.2}
             >
-              {count}
-            </button>
+              <button
+                type="button"
+                className="worldmap-marker-hit worldmap-cluster"
+                style={{ left, top, width: MARKER_SIZE + 8, height: MARKER_SIZE + 8 }}
+                aria-label={t('worldMapMarkerCluster', String(count))}
+                onClick={() => onClusterClick?.(props.cluster_id!, worldX, worldZ)}
+              >
+                <span className="worldmap-cluster-count">{count}</span>
+              </button>
+            </Tooltip>
           );
         }
 
         const marker = props.marker;
         if (!marker) return null;
         const iconId = blockIconIdForNode(marker.type, marker.iconItemId);
-        const iconUrl = buildIconUrl(iconId, iconPack, token, iconCacheEnabled, iconRenderMode);
         const selected = selectedNodeId === marker.nodeId;
+        const label = marker.displayName || marker.type;
 
         return (
-          <button
-            key={marker.id}
-            type="button"
-            className={`worldmap-marker-hit worldmap-marker${selected ? ' worldmap-marker-selected' : ''}`}
-            style={{ left, top, width: MARKER_SIZE, height: MARKER_SIZE }}
-            title={marker.displayName}
-            onClick={() => onMarkerClick(marker)}
-          >
-            <img src={iconUrl} alt="" draggable={false} width={MARKER_SIZE - 4} height={MARKER_SIZE - 4} />
-          </button>
+          <Tooltip key={marker.id} title={label} mouseEnterDelay={0.2}>
+            <button
+              type="button"
+              className={`worldmap-marker-hit worldmap-marker${selected ? ' worldmap-marker-selected' : ''}`}
+              style={{ left, top, width: MARKER_SIZE, height: MARKER_SIZE }}
+              aria-label={label}
+              onClick={() => onMarkerClick(marker)}
+            >
+              <Icon
+                id={iconId}
+                size={MARKER_SIZE - 4}
+                alt={label}
+                linkToWiki={false}
+                className="worldmap-marker-icon"
+              />
+            </button>
+          </Tooltip>
         );
       })}
     </div>

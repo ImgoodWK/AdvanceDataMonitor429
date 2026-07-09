@@ -7,6 +7,7 @@ import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 
 import com.imgood.textech.Config;
+import com.imgood.textech.webae.worldmap.AgentDebugLog91f018;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 
 /**
@@ -113,7 +114,20 @@ public final class WorldMapChunkContext {
         if (world == null || y < 0) {
             return 15;
         }
-        int combined = world.getLightBrightnessForSkyBlocks(wx, y, wz, 0);
+        float rawBrightness = world.getLightBrightnessForSkyBlocks(wx, y, wz, 0);
+        int combined = (int) rawBrightness;
+        // #region agent log
+        if (!skyLightLogged) {
+            skyLightLogged = true;
+            int savedSky = world.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Sky, wx, y, wz);
+            AgentDebugLog91f018.log(
+                "A",
+                "WorldMapChunkContext.skyLight",
+                "skyLight sample",
+                "{\"rawBrightness\":" + rawBrightness + ",\"truncatedInt\":" + combined + ",\"savedSkyLight\":"
+                    + savedSky + ",\"wx\":" + wx + ",\"y\":" + y + ",\"wz\":" + wz + "}");
+        }
+        // #endregion
         if (combined < 0) {
             return 0;
         }
@@ -122,6 +136,14 @@ public final class WorldMapChunkContext {
         }
         return combined;
     }
+
+    // #region agent log
+    private static boolean skyLightLogged;
+
+    public static void resetSkyLightDebug() {
+        skyLightLogged = false;
+    }
+    // #endregion
 
     public int blockLight(int wx, int y, int wz) {
         if (world == null || y < 0) {

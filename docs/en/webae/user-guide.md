@@ -112,7 +112,12 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 | `/admweb icons status` | List installed icon packs and config state |
 | `/admweb icons clear` | Delete all icon packs (OP only) |
 | `/admweb worldmap upload [networkId]` | Upload world map snapshot (must be near AE network; client capture) |
-| `/admweb worldmap accept <requestId>` | Accept a guest/web map upload request |
+| `/admweb worldmap accept <requestId>` | Accept a guest/web map upload request (legacy) |
+| `/admweb wm y [id]` | **Recommended** accept upload; id optional; same as clicking Accept in chat |
+| `/admweb wm n [id]` | Decline upload request |
+| `/admweb wm up [networkId]` | Same as `worldmap upload` |
+| `/admweb wm st [networkId]` | Same as `worldmap status` |
+| `/admweb worldmap status [networkId]` | Map snapshot capture status |
 | `/admweb worldmap status [networkId]` | Show map snapshot capture status |
 | `/admweb help` | Show usage (incl. recipes/icons/worldmap/server grouped help) |
 
@@ -198,7 +203,7 @@ Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channe
    - **Progressive placeholder** (`worldMapProgressiveFallback=true`, default): While the target tier renders, serve lower cached tiers or a Dynmap 128-block crop preview (`X-WorldMap-Tile-Status: upgrading`) instead of stripe placeholders.
    - Server auto-detect (`auto`) or force-select via `worldMapTerrainSource`; settings drawer shows terrain source, client capture mode, and online status.
 3. **Loading progress**: Both modes show toolbar progress (`completed/total layer jobs`, scoped to current network·view·quality); each chunk displays loading / ready / error badges (`WorldMapChunkStatusOverlay`); subtle hint text appears in the toolbar and bottom-left of the map while loading.
-4. **AE overlay**: Toggle AE overlay to show device icons and cable positions; prefetched independently from terrain. Defaults off in dynmap mode (GWM terrain includes machine textures), can be manually enabled. The toolbar **palette** button opens **World map AE colors**: per-category tinting (applies instantly) with representative icons and icons from devices in the current network.
+4. **AE overlay**: Toggle AE overlay to show device icons and cable positions; prefetched only when overlay is enabled. Defaults off in dynmap mode (GWM terrain includes machine textures), can be manually enabled. The toolbar **palette** button opens **World map AE colors**: per-category tinting (applies instantly) with representative icons and icons from devices in the current network. The **opacity** slider (0.5–1.0) affects AE tint pixels only, not terrain.
 5. **Refresh & invalidation**: Tiles auto-invalidate when switching networks or capturing a new snapshot; OP can POST `/api/worldmap/invalidate` to force rebuild.
 6. **Config**: `[webConsole] worldMapEnabled`, `worldMapTerrainSource` (`auto`/`dynmap`/`self`), `dynmapTileRoot`, `worldMapClientCaptureMode` (`off`/`ultra_only`/`when_online`), `worldMapClientCaptureRadius`, `worldMapProgressiveFallback`, `worldMapMaxQualityTier` (default ultra), `worldMapDefaultQualityTier` (default medium), `worldMapBoundsPaddingChunks` (default 1). See [Developer Guide §4](developer-guide.md#4-configuration) and [§11.26](developer-guide.md#1126-world-map-view-phase-ab--ae-overlay).
 

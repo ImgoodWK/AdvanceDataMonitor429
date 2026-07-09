@@ -495,8 +495,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "topologyCacheTtlMs",
-            "TTL in milliseconds for manual topology snapshot cooldown (logical/spatial). Default 1800000 (30 min).",
-            "手动拓扑快照冷却时间（毫秒，逻辑/空间视图）。默认 1800000（30 分钟）。");
+            "Cooldown in milliseconds for manual topology snapshot capture (logical/spatial). Default 10000 (10 s).",
+            "手动拓扑快照采集冷却时间（毫秒，逻辑/空间视图）。默认 10000（10 秒）。");
         put(
             "webConsole",
             "topologySnapshotPersist",
@@ -689,6 +689,11 @@ public final class ConfigDescriptions {
             "等待玩家接受快照上传请求的秒数。");
         put(
             "webConsole",
+            "worldMapSnapshotCooldownMs",
+            "Cooldown in milliseconds between manual world map snapshot requests (client capture/upload; minimal server load). Default 10000 (10 s).",
+            "手动世界地图快照请求冷却时间（毫秒；采集在客户端，服务端负载很小）。默认 10000（10 秒）。");
+        put(
+            "webConsole",
             "worldMapOwnerSkipConsent",
             "When true, owner /admweb worldmap upload near the network skips consent prompt.",
             "为 true 时，网络主人在附近执行 /admweb worldmap upload 可跳过同意提示。");
@@ -712,6 +717,51 @@ public final class ConfigDescriptions {
             "worldMapLegacyServerRender",
             "Enable legacy server-side world map tile rendering (ignored when snapshotMode=client_only).",
             "启用旧版服务端世界地图瓦片渲染（snapshotMode=client_only 时忽略）。");
+        put(
+            "webConsole",
+            "worldMapSnapshotSourcePriority",
+            "Comma-separated per-chunk snapshot terrain priority: dynmap, journeymap, client_gl.",
+            "逗号分隔的快照地形逐块采集优先级：dynmap、journeymap、client_gl。");
+        put(
+            "webConsole",
+            "worldMapDynmapCaptureEnabled",
+            "Allow Dynmap as a snapshot terrain capture source (local tiles or HTTP fetch on client).",
+            "允许 Dynmap 作为快照地形采集源（客户端本地瓦片或 HTTP 拉取）。");
+        put(
+            "webConsole",
+            "worldMapJourneyMapCaptureEnabled",
+            "Allow JourneyMap filesystem cache as a snapshot terrain capture source.",
+            "允许 JourneyMap 本地缓存作为快照地形采集源。");
+        put(
+            "webConsole",
+            "worldMapClientGlCaptureEnabled",
+            "Allow client GL RenderBlocks as the final snapshot terrain fallback.",
+            "允许客户端 GL RenderBlocks 作为快照地形最终兜底。");
+        put(
+            "webConsole",
+            "worldMapSpDirectServe",
+            "Integrated single-player: serve missing snapshot tiles via direct FS/GL read.",
+            "集成单人服：快照缺失时通过直读本地数据/GL 提供瓦片。");
+        put(
+            "webConsole",
+            "worldMapSpDirectCacheTtlSec",
+            "SP direct tile in-memory cache TTL seconds.",
+            "单人直读瓦片内存缓存 TTL（秒）。");
+        put(
+            "webConsole",
+            "worldMapDynmapClientFetchUrl",
+            "Override Dynmap HTTP base URL for client capture; empty uses dynmapBaseUrl.",
+            "客户端 Dynmap HTTP 拉取根 URL；留空则使用 dynmapBaseUrl。");
+        put(
+            "webConsole",
+            "worldMapAeCableWidthBlocks",
+            "AE overlay cable line width in blocks (0.125–1.0, default 0.25).",
+            "AE 透视层线缆线宽（方块，0.125–1.0，默认 0.25）。");
+        put(
+            "webConsole",
+            "worldMapAePartWidthBlocks",
+            "AE overlay attachment line width in blocks; 0 = same as cable width.",
+            "AE 透视层附件线宽（方块）；0 表示与线缆相同。");
         put(
             "webConsole",
             "worldMapClientCaptureMode",

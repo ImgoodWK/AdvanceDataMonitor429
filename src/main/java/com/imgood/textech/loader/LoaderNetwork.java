@@ -39,6 +39,8 @@ import com.imgood.textech.webae.network.PacketWebMapTileUpload;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureAccept;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureOffer;
+import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureRequest;
+import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureResponse;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotSyncRequest;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotSyncResponse;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotTileData;
@@ -294,5 +296,19 @@ public class LoaderNetwork {
             PacketWorldMapSnapshotTilePull.class,
             43,
             Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketWorldMapDirectCaptureResponse.Handler.class,
+            PacketWorldMapDirectCaptureResponse.class,
+            46,
+            Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketWorldMapDirectCaptureRequest.Handler.class,
+                PacketWorldMapDirectCaptureRequest.class,
+                45,
+                Side.CLIENT);
+        }
     }
 }

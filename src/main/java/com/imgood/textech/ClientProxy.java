@@ -84,6 +84,9 @@ public class ClientProxy extends CommonProxy {
             .register(com.imgood.textech.client.worldmap.WorldMapSnapshotDownloadHandler.instance());
         FMLCommonHandler.instance()
             .bus()
+            .register(com.imgood.textech.client.worldmap.WorldMapDirectCaptureClientWorker.instance());
+        FMLCommonHandler.instance()
+            .bus()
             .register(com.imgood.textech.webae.network.RecipeUploadThrottler.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(this.grappleClientHandler);
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new PlannerHudRenderer());

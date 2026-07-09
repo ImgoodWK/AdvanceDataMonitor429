@@ -3,7 +3,9 @@ package com.imgood.textech.client.worldmap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ChatComponentText;
@@ -11,13 +13,15 @@ import net.minecraft.util.EnumChatFormatting;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.client.worldmap.dynmap.WorldMapDynmapClientFetcher;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureOffer;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotTileUpload;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
+import com.imgood.textech.webae.worldmap.WorldMapTerrainCaptureResult;
+import com.imgood.textech.webae.worldmap.WorldMapTerrainSourceId;
+import com.imgood.textech.webae.worldmap.WorldMapTerrainSourcePriority;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
-import com.imgood.textech.webae.worldmap.WorldMapView;
-import com.imgood.textech.client.worldmap.journeymap.WorldMapJourneyMapTileReader;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -30,17 +34,17 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class WorldMapSnapshotCaptureWorker {
 
-    private static final WorldMapSnapshotCaptureWorker INSTANCE = new WorldMapSnapshotCaptureWorker();
     private static final int CHUNKS_PER_TICK = 2;
+    private static final WorldMapSnapshotCaptureWorker INSTANCE = new WorldMapSnapshotCaptureWorker();
 
     private final Deque<CaptureChunk> queue = new ArrayDeque<CaptureChunk>();
-    private final WorldMapChunkGlRenderer renderer = new WorldMapChunkGlRenderer();
+    private final Map<String, Integer> sourceStats = new HashMap<String, Integer>();
 
     private String ownerUuid;
     private int networkId;
     private int snapshotVersion;
     private int tilePx = 128;
-    private String source = "client_gl";
+    private WorldMapQualityTier glTier = WorldMapQualityTier.MEDIUM;
     private int totalChunks;
     private int completedChunks;
     private boolean active;
@@ -55,13 +59,7 @@ public final class WorldMapSnapshotCaptureWorker {
         if (offer == null) {
             return;
         }
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc != null && mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new ChatComponentText(
-                EnumChatFormatting.AQUA + "[WebAE] Map snapshot upload requested. "
-                    + EnumChatFormatting.YELLOW + "/admweb worldmap accept "
-                    + offer.requestId));
-        }
+        WorldMapCaptureClientState.setLatestRequestId(offer.requestId);
     }
 
     public void startJob(PacketWorldMapCaptureJob job) {
@@ -69,14 +67,15 @@ public final class WorldMapSnapshotCaptureWorker {
             return;
         }
         queue.clear();
+        sourceStats.clear();
         ownerUuid = job.ownerUuid;
         networkId = job.networkId;
         snapshotVersion = job.snapshotVersion;
         tilePx = job.tilePx > 0 ? job.tilePx : 128;
+        glTier = WorldMapQualityTier.fromTilePx(tilePx);
         totalChunks = job.chunks.size();
         completedChunks = 0;
         active = true;
-        source = WorldMapJourneyMapTileReader.isAvailable() ? "journeymap" : "client_gl";
         for (String entry : job.chunks) {
             int[] parsed = parseChunkEntry(entry);
             if (parsed != null) {
@@ -90,6 +89,7 @@ public final class WorldMapSnapshotCaptureWorker {
         if (event.phase != TickEvent.Phase.END || !active || queue.isEmpty()) {
             return;
         }
+        WorldMapDynmapClientFetcher.instance().onClientTickEnd();
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null || mc.thePlayer == null) {
             return;
@@ -134,26 +134,41 @@ public final class WorldMapSnapshotCaptureWorker {
     }
 
     private byte[] captureTerrain(Minecraft mc, int dim, int chunkX, int chunkZ) {
-        if (WorldMapJourneyMapTileReader.isAvailable()) {
-            byte[] jm = WorldMapJourneyMapTileReader.instance()
-                .readChunkTerrain(dim, chunkX, chunkZ, tilePx);
-            if (jm != null && jm.length > 0) {
-                return jm;
-            }
+        WorldMapTerrainCaptureResult result = WorldMapTerrainCaptureChainClient.captureTerrain(
+            mc,
+            com.imgood.textech.webae.worldmap.WorldMapView.FLAT,
+            dim,
+            chunkX,
+            chunkZ,
+            tilePx,
+            glTier);
+        if (result != null && result.isValid()) {
+            recordSource(result.source);
+            return result.png;
         }
-        WorldMapQualityTier tier = WorldMapQualityTier.fromId(Config.worldMapClientFallbackQuality);
-        if (tier == null) {
-            tier = WorldMapQualityTier.LOW;
-        }
-        return renderer.renderTerrain(mc, WorldMapView.FLAT, tier, dim, chunkX, chunkZ);
+        return null;
     }
 
     private byte[] captureAe(Minecraft mc, int dim, int chunkX, int chunkZ) {
-        WorldMapQualityTier tier = WorldMapQualityTier.fromId(Config.worldMapClientFallbackQuality);
-        if (tier == null) {
-            tier = WorldMapQualityTier.LOW;
+        if (mc.theWorld == null) {
+            return null;
         }
-        return renderer.renderAeOverlay(mc, WorldMapView.FLAT, tier, dim, chunkX, chunkZ);
+        return WorldMapAeVectorOverlayRenderer.render(
+            mc.theWorld,
+            ownerUuid,
+            networkId,
+            com.imgood.textech.webae.worldmap.WorldMapView.FLAT,
+            dim,
+            chunkX,
+            chunkZ);
+    }
+
+    private void recordSource(WorldMapTerrainSourceId source) {
+        if (source == null) {
+            return;
+        }
+        Integer count = sourceStats.get(source.id);
+        sourceStats.put(source.id, count == null ? 1 : count + 1);
     }
 
     private void sendMissing(int dim, int chunkX, int chunkZ) {
@@ -175,21 +190,46 @@ public final class WorldMapSnapshotCaptureWorker {
     }
 
     private void finalizeUpload() {
+        int previousLocal = WorldMapSnapshotLocalCache.readLocalVersion(ownerUuid, networkId);
         WorldMapSnapshotLocalCache.writeLocalVersion(ownerUuid, networkId, snapshotVersion);
+        WorldMapSnapshotLocalCache.pruneOldVersions(
+            ownerUuid,
+            networkId,
+            snapshotVersion,
+            previousLocal > 0 && previousLocal != snapshotVersion ? previousLocal : 0);
         PacketWorldMapSnapshotTileUpload packet = new PacketWorldMapSnapshotTileUpload();
         packet.ownerUuid = ownerUuid;
         packet.networkId = networkId;
         packet.snapshotVersion = snapshotVersion;
         packet.finalizeSnapshot = true;
-        packet.source = source;
+        packet.source = WorldMapTerrainSourcePriority.summarizeSourceStats(sourceStats);
+        packet.sourceStatsJson = buildSourceStatsJson();
         packet.tilePx = tilePx;
         AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.thePlayer != null) {
             mc.thePlayer.addChatMessage(new ChatComponentText(
                 EnumChatFormatting.GREEN + "[WebAE] World map snapshot v" + snapshotVersion + " uploaded ("
-                    + source + ", " + completedChunks + " chunks)."));
+                    + packet.source + ", " + completedChunks + " chunks)."));
         }
+    }
+
+    private String buildSourceStatsJson() {
+        if (sourceStats.isEmpty()) {
+            return "{}";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
+        boolean first = true;
+        for (Map.Entry<String, Integer> entry : sourceStats.entrySet()) {
+            if (!first) {
+                sb.append(',');
+            }
+            first = false;
+            sb.append('"').append(entry.getKey()).append('"').append(':').append(entry.getValue());
+        }
+        sb.append('}');
+        return sb.toString();
     }
 
     public boolean isActive() {

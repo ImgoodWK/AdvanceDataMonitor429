@@ -11,7 +11,8 @@ import com.imgood.textech.TeXTechDataDir;
  *
  * <p>
  * Used by {@code /admweb icons import-nesql} (server) and client NEI recipe export after
- * {@code /admweb recipes upload*}. Legacy {@code TeXTechWebAE/} is migrated on first access.
+ * {@code /admweb recipes upload*}. Legacy {@code TeXTechWebAE/} is migrated at startup by
+ * {@link com.imgood.textech.TeXTechDataMigration}.
  * </p>
  */
 public final class WebAeLocalDataDir {
@@ -20,13 +21,12 @@ public final class WebAeLocalDataDir {
 
     private WebAeLocalDataDir() {}
 
-    /** {@code TeXTech/WebAE/}; creates the directory and migrates legacy {@code TeXTechWebAE/} files. */
+    /** {@code TeXTech/WebAE/}; creates the directory if missing. */
     public static File resolve(File instanceRoot) {
         File root = instanceRoot != null ? instanceRoot : TeXTechDataDir.instanceRoot();
         File dir = new File(new File(root, TeXTechDataDir.ROOT_DIR_NAME), TeXTechDataDir.WEBAE_DIR);
         if (!dir.exists()) {
             dir.mkdirs();
-            migrateLegacyRootContents(dir);
         }
         return dir;
     }
@@ -51,22 +51,5 @@ public final class WebAeLocalDataDir {
 
     public static File serverRecipeExportFile() {
         return TeXTechDataDir.webAeFile(RECIPE_GZ_FILENAME);
-    }
-
-    private static void migrateLegacyRootContents(File targetDir) {
-        File legacyRoot = TeXTechDataDir.legacyWebAeRoot();
-        if (!legacyRoot.isDirectory()) {
-            return;
-        }
-        File[] children = legacyRoot.listFiles();
-        if (children == null) {
-            return;
-        }
-        for (File child : children) {
-            File dest = new File(targetDir, child.getName());
-            if (!dest.exists()) {
-                TeXTechDataDir.migrateIfNeeded(child, dest);
-            }
-        }
     }
 }

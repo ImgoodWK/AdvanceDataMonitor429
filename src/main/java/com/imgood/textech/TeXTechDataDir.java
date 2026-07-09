@@ -12,8 +12,8 @@ import cpw.mods.fml.common.Loader;
  * Forge {@code .cfg} files remain in {@code config/textech/}.
  *
  * <p>
- * On first access, copies legacy data from {@code config/textech/},
- * {@code config/advancedatamonitor/}, and {@code TeXTechWebAE/} without deleting sources.
+ * Legacy data under {@code config/textech/}, {@code config/advancedatamonitor/}, and
+ * {@code TeXTechWebAE/} is moved at startup by {@link TeXTechDataMigration}.
  * </p>
  */
 public final class TeXTechDataDir {
@@ -68,44 +68,31 @@ public final class TeXTechDataDir {
         return subdir(GRAPPEL_DIR);
     }
 
-    /**
-     * {@code TeXTech/WebAE/<fileName>}; migrates from {@code config/textech/},
-     * {@code config/advancedatamonitor/}, and {@code TeXTechWebAE/} when the target is absent.
-     */
+    /** {@code TeXTech/WebAE/<fileName>}. */
     public static File webAeFile(String fileName) {
         File target = new File(webAeRoot(), fileName);
-        if (!target.exists()) {
-            migrateFileFromLegacySources(fileName, target, true);
+        File parent = target.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
         }
         return target;
     }
 
-    /**
-     * {@code TeXTech/WebAE/<subdirName>/}; migrates from the matching {@code config/textech/web-*} tree.
-     */
+    /** {@code TeXTech/WebAE/<subdirName>/}. */
     public static File webAeDir(String subdirName) {
         File target = new File(webAeRoot(), subdirName);
-        if (!target.exists()) {
-            String legacyConfigName = legacyWebAeDirName(subdirName);
-            if (legacyConfigName != null) {
-                migrateDirFromLegacySources(legacyConfigName, target);
-            } else if (!target.mkdirs() && !target.exists()) {
-                AdvanceDataMonitor.LOG.warn("[TeXTech] Failed to create WebAE dir {}", target.getAbsolutePath());
-            }
+        if (!target.exists() && !target.mkdirs()) {
+            AdvanceDataMonitor.LOG.warn("[TeXTech] Failed to create WebAE dir {}", target.getAbsolutePath());
         }
         return target;
-    }
-
-    /** Legacy {@code config/textech/web-map-tiles/} for read-only tile fallback. */
-    public static File legacyWebMapTilesDir() {
-        return new File(legacyConfigDir(), "web-map-tiles");
     }
 
     /** {@code TeXTech/Assistant/<fileName>}. */
     public static File assistantFile(String fileName) {
         File target = new File(assistantRoot(), fileName);
-        if (!target.exists()) {
-            migrateFileFromLegacySources(fileName, target, false);
+        File parent = target.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
         }
         return target;
     }
@@ -113,8 +100,9 @@ public final class TeXTechDataDir {
     /** {@code TeXTech/Grapple/<fileName>}. */
     public static File grappleFile(String fileName) {
         File target = new File(grappleRoot(), fileName);
-        if (!target.exists()) {
-            migrateFileFromLegacySources(fileName, target, false);
+        File parent = target.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
         }
         return target;
     }
@@ -132,49 +120,11 @@ public final class TeXTechDataDir {
         return new File("config", AdvanceDataMonitor.LEGACY_MODID);
     }
 
-    private static String legacyWebAeDirName(String subdirName) {
-        if ("icons".equals(subdirName)) {
-            return "web-icons";
-        }
-        if ("map-tiles".equals(subdirName)) {
-            return "web-map-tiles";
-        }
-        if ("topology".equals(subdirName)) {
-            return "web-topology";
-        }
-        return null;
-    }
-
-    private static void migrateFileFromLegacySources(String fileName, File target, boolean includeLegacyWebAe) {
-        File parent = target.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
-        }
-        File fromConfig = new File(legacyConfigDir(), fileName);
-        File fromLegacyMod = new File(legacyModConfigDir(), fileName);
-        if (migrateIfNeeded(fromConfig, target)) {
-            return;
-        }
-        if (migrateIfNeeded(fromLegacyMod, target)) {
-            return;
-        }
-        if (includeLegacyWebAe) {
-            File fromWebAe = new File(legacyWebAeRoot(), fileName);
-            migrateIfNeeded(fromWebAe, target);
-        }
-    }
-
-    private static void migrateDirFromLegacySources(String legacyDirName, File target) {
-        File fromConfig = new File(legacyConfigDir(), legacyDirName);
-        File fromLegacyMod = new File(legacyModConfigDir(), legacyDirName);
-        if (migrateDirIfNeeded(fromConfig, target)) {
-            return;
-        }
-        migrateDirIfNeeded(fromLegacyMod, target);
-    }
-
-    /** Copy {@code legacy} to {@code target} when target is missing and legacy exists. */
-    public static boolean migrateIfNeeded(File legacy, File target) {
+    /**
+     * Move {@code legacy} to {@code target} when target is missing and legacy exists.
+     * Prefers {@link File#renameTo(File)}; falls back to copy + delete source.
+     */
+    public static boolean moveIfNeeded(File legacy, File target) {
         if (target.exists() || legacy == null || !legacy.exists()) {
             return false;
         }
@@ -184,13 +134,19 @@ public final class TeXTechDataDir {
         }
         try {
             if (legacy.isDirectory()) {
-                return migrateDirIfNeeded(legacy, target);
+                return moveDirIfNeeded(legacy, target);
+            }
+            if (legacy.renameTo(target)) {
+                logMoved(legacy, target);
+                return true;
             }
             copyFile(legacy, target);
-            AdvanceDataMonitor.LOG.info(
-                "[TeXTech] Migrated data: {} -> {}",
-                legacy.getAbsolutePath(),
-                target.getAbsolutePath());
+            if (!legacy.delete()) {
+                AdvanceDataMonitor.LOG.warn(
+                    "[TeXTech] Copied data but failed to delete legacy file {}",
+                    legacy.getAbsolutePath());
+            }
+            logMoved(legacy, target);
             return true;
         } catch (IOException e) {
             AdvanceDataMonitor.LOG.warn(
@@ -201,17 +157,19 @@ public final class TeXTechDataDir {
         }
     }
 
-    /** Recursively copy {@code legacyDir} into {@code targetDir} when target is absent. */
-    public static boolean migrateDirIfNeeded(File legacyDir, File targetDir) {
+    /** Recursively move {@code legacyDir} into {@code targetDir} when target is absent. */
+    public static boolean moveDirIfNeeded(File legacyDir, File targetDir) {
         if (targetDir.exists() || legacyDir == null || !legacyDir.isDirectory()) {
             return false;
         }
+        if (legacyDir.renameTo(targetDir)) {
+            logMoved(legacyDir, targetDir);
+            return true;
+        }
         try {
             copyDirectory(legacyDir, targetDir);
-            AdvanceDataMonitor.LOG.info(
-                "[TeXTech] Migrated data directory: {} -> {}",
-                legacyDir.getAbsolutePath(),
-                targetDir.getAbsolutePath());
+            deleteDirectory(legacyDir);
+            logMoved(legacyDir, targetDir);
             return true;
         } catch (IOException e) {
             AdvanceDataMonitor.LOG.warn(
@@ -219,6 +177,29 @@ public final class TeXTechDataDir {
                 legacyDir.getAbsolutePath(),
                 e);
             return false;
+        }
+    }
+
+    private static void logMoved(File legacy, File target) {
+        AdvanceDataMonitor.LOG.info(
+            "[TeXTech] Migrated data: {} -> {}",
+            legacy.getAbsolutePath(),
+            target.getAbsolutePath());
+    }
+
+    private static void deleteDirectory(File dir) throws IOException {
+        File[] children = dir.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                if (child.isDirectory()) {
+                    deleteDirectory(child);
+                } else if (!child.delete()) {
+                    throw new IOException("Failed to delete " + child.getAbsolutePath());
+                }
+            }
+        }
+        if (!dir.delete()) {
+            throw new IOException("Failed to delete " + dir.getAbsolutePath());
         }
     }
 

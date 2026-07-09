@@ -152,6 +152,44 @@ An MCP deobfuscator config dialog may appear:
 
 If still unresolved, open a GitHub issue.
 
+### Could not find CodeChickenLib / dependency resolution (mirror-only search)
+
+Often appears when resolving GTNH transitive deps (e.g. via `NewHorizonsCoreMod`) if Gradle uses **stale module metadata** or mirror metadata disagrees with the official Nexus.
+
+**One-time fix** (from project root):
+
+```powershell
+.\gradlew.bat --refresh-dependencies compileJava
+```
+
+If that is not enough, delete the local cache entry and rebuild:
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\com.github.GTNewHorizons\CodeChickenLib" -ErrorAction SilentlyContinue
+.\gradlew.bat compileJava
+```
+
+`repositories.gradle` resolves `com.github.GTNewHorizons` from `nexus.gtnewhorizons.com` before domestic mirrors; artifacts only on mirrors (e.g. `CodeChickenLib`) still fall back to the Tencent mirror.
+
+### GregTech `NoSuchMethodError: UITexture.fullImage(..., boolean)`
+
+`GT5-Unofficial:5.09.51.470` was built against `ModularUI2:2.2.18` (`fullImage(mod, path, boolean)`). `2.3.x` replaced the boolean overload with `ColorType`. Dev deps such as `GTNH-Web-Map` can pull `ModularUI2:2.3.x` and crash GregTech during `preInit`.
+
+This project pins `ModularUI2:2.2.18-1.7.10` via `devOnlyNonPublishable` and excludes `ModularUI2` from Web-Map transitives. To align with the latest pack GT / Web-Map stack, upgrade `GT5-Unofficial` to `5.09.52.x` and use `ModularUI2:2.3.73+`.
+
+### NBTEdit `NoSuchFieldError: field_71412_D`
+
+`run/mods/ForgeNBTEdit-universal-1.0.0.test.jar` is legacy In-game NBTEdit and breaks on Java 17 / lwjgl3ify (stale SRG field access for `Minecraft.mcDataDir`). It is **not** a Gradle dependency—usually left over from a manual drop into `run/mods`.
+
+Delete it and rerun:
+
+```powershell
+Remove-Item -Force "run\mods\ForgeNBTEdit-universal-1.0.0.test.jar" -ErrorAction SilentlyContinue
+.\gradlew.bat runClient17
+```
+
+Use this mod's binder NBT viewer (`GuiNbtViewer`) or NEI instead.
+
 ---
 
 ## 5. Advanced Extensions

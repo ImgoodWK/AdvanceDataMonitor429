@@ -97,7 +97,7 @@ export function WorldMapAeOverlayStack({
     quality: aeQuality,
     zoom: 0,
     active: aeVisible,
-    prefetch: true,
+    prefetch: aeVisible,
   });
 
   const { progress, startPolling, stopPolling } = useWorldMapProgress({
@@ -140,7 +140,7 @@ export function WorldMapAeOverlayStack({
           serverProgress={progress?.chunks ?? null}
           chunkStyle={aeLoader.chunkStyle}
           showTerrain={false}
-          showAe={true}
+          showAe={aeVisible}
         />
       )}
     </div>
