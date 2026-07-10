@@ -6,11 +6,11 @@ import {
   useRef,
   useState,
   forwardRef,
-  type WheelEvent,
 } from 'react';
 import type { TopologyEdgeDto, TopologyNodeDto } from '@/types/dto';
 import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
 import { SimTextureImage } from '@/components/topology/SimTextureImage';
+import { useNonPassiveWheelZoom } from '@/hooks/useNonPassiveWheelZoom';
 import { buildCableCells, simulatedViewBox } from '@/utils/topologyCablePath';
 import { fitViewTransform, remapSimNodesForStarLayout, TOPOLOGY_MAX_SCALE, TOPOLOGY_MIN_SCALE, estimateLabelWidth, type NodeRect } from '@/utils/topologyLayout';
 import { isCellNode, isCableNode, topologyNodeLabel } from '@/utils/topologyDevices';
@@ -135,11 +135,11 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
       fitView();
     }, [layoutEpoch, fitView]);
 
-    const onWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
-      e.preventDefault();
+    const onWheel = useCallback((e: WheelEvent) => {
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
       setScale((s) => Math.min(TOPOLOGY_MAX_SCALE, Math.max(TOPOLOGY_MIN_SCALE, s * delta)));
     }, []);
+    useNonPassiveWheelZoom(containerRef, onWheel);
 
     const onPointerDown = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
@@ -207,8 +207,7 @@ export const TopologySimulatedView = forwardRef<TopologyGraphHandle, TopologySim
       <div
         ref={containerRef}
         className="topology-graph-host topology-simulated-host"
-        style={{ height, touchAction: 'none' }}
-        onWheel={onWheel}
+        style={{ height, touchAction: 'none', overscrollBehavior: 'contain' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

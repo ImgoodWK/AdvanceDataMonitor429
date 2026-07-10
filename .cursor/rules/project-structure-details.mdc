@@ -443,7 +443,7 @@ alwaysApply: false
 - `webae/topology/TopologyNode.java` — 拓扑节点 DTO（subtype、patternCount、branchIndex、layoutSector、layout 坐标、simGrid、cellSlots[]、patternSlots[]、devices、cpuSummary）
 - `webae/topology/CraftingCpuTopologyCollector.java` — 通过 `ICraftingGrid.getCpus()` 聚合 `CraftingCPUCluster` 为单节点设施（协处理器/存储/构成方块坐标）
 - `webae/topology/TopologyEdge.java` — 假线缆边 DTO（cableType + branchIndex + emptyBranch + channelsSimulated/channelsReal + pathPoints[]）
-- `webae/topology/TopologyRules.java` — 细粒度 subtype 分类 + 频道 cost + tree/star 布局常量 + 64×64 spatial bin
+- `webae/topology/TopologyRules.java` — 细粒度 subtype 分类（含 `level_maintainer`）+ 频道 cost + tree/star 布局常量 + 64×64 spatial bin
 - `webae/topology/NetworkStatusEnumerator.java` — 与游戏内网络工具相同：`getMachinesClasses()` + `getMachineRepresentation()`；subtype 分类；驱动器槽位元件/样板计数
 - `webae/topology/TopologyFacilityGrouper.java` — 按 `subtype|representationItemId` 聚合（网络工具 merge-by-item parity）
 - `webae/topology/ChannelBranchAllocator.java` — 4×8 频道 smart 分支分配（同 subtype 优先同 branch）
@@ -460,7 +460,7 @@ alwaysApply: false
 - `webae/worldmap/WorldMapMarkerDto.java` — 世界地图标记 DTO（`dim:x:y:z` + nodeId/type/iconItemId/坐标）
 - `webae/worldmap/WorldMapMetaDto.java` — 世界地图 meta 响应（维度 bbox、allowedChunks/minChunk*、tilePx、views[]、obliqueDirections[]、qualityTiers[]、max/defaultQualityTier、flatRenderEngine/obliqueRenderEngine、hdAvailable、markerCount、boundsTooLarge）
 - `webae/worldmap/WorldMapQualityTier.java` — 四档清晰度 low/medium/high/ultra（tilePx/ppb；ultra 离线 256px 回退）
-- `webae/worldmap/WorldMapMarkerBuilder.java` — 从 logical `TopologySnapshot.nodes[].devices[]` 扁平化 markers
+- `webae/worldmap/WorldMapMarkerBuilder.java` — 从 logical `TopologySnapshot.nodes[].devices[]` 扁平化 markers；`cpu` 多方块仅 1 marker（监视器 > 协处理器 > 存储 > 首 unit）
 - `webae/worldmap/WorldMapChunkSetBuilder.java` — AE 设备占用 chunk + Chebyshev padding 精确 allowed 集（L 形网络不填充空白 chunk）
 - `webae/worldmap/WorldMapBoundsBuilder.java` — per-dim marker bbox + allowed chunk 集/meta 组装（paddingChunks/maxChunks clamp）
 - `webae/worldmap/WorldMapHandler.java` — 世界地图 REST（meta/markers/tiles + **snapshot manifest/status/request**；client_only 下 tile 只读快照）

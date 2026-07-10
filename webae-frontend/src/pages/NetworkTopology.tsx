@@ -10,8 +10,6 @@ import {
 
   Descriptions,
 
-  Drawer,
-
   Empty,
 
   Modal,
@@ -50,8 +48,6 @@ import {
 
   CompressOutlined,
 
-  BgColorsOutlined,
-
   UnorderedListOutlined,
 
   CloudUploadOutlined,
@@ -84,7 +80,7 @@ import { TopologyWorldMapView } from '@/components/topology/TopologyWorldMapView
 import { TopologyDeviceList } from '@/components/topology/TopologyDeviceList';
 
 import { TopologySettingsDrawer } from '@/components/topology/TopologySettingsDrawer';
-import { WorldMapAeColorModal } from '@/components/topology/WorldMapAeColorModal';
+import { TopologyNodeDetailDrawer } from '@/components/topology/TopologyNodeDetailDrawer';
 
 import { DriveSimulatedGui } from '@/components/topology/DriveSimulatedGui';
 
@@ -179,8 +175,6 @@ export function NetworkTopologyPage() {
   const [cellSummary, setCellSummary] = useState<NetworkCellSummaryDto | null>(null);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  const [aeColorModalOpen, setAeColorModalOpen] = useState(false);
 
   const [driveModalNode, setDriveModalNode] = useState<TopologyNodeDto | null>(null);
 
@@ -914,20 +908,6 @@ export function NetworkTopologyPage() {
 
               <>
 
-                <Tooltip title={t('worldMapAeColorTitle')}>
-
-                  <Button
-
-                    icon={<BgColorsOutlined />}
-
-                    onClick={() => setAeColorModalOpen(true)}
-
-                    aria-label={t('worldMapAeColorTitle')}
-
-                  />
-
-                </Tooltip>
-
                 <Tooltip title={t('worldMapRequestSnapshotHint')}>
 
                   <Button
@@ -1284,6 +1264,8 @@ export function NetworkTopologyPage() {
 
                   displaySettings={displaySettings}
 
+                  onDisplaySettingsChange={setDisplaySettings}
+
                   onDriveClick={(node) => {
 
                     setSelectedNode(node);
@@ -1509,235 +1491,23 @@ export function NetworkTopologyPage() {
         snapshotSource={worldMapMeta?.snapshotSource}
       />
 
-      <WorldMapAeColorModal
-        open={aeColorModalOpen}
-        onClose={() => setAeColorModalOpen(false)}
-        settings={displaySettings}
-        onChange={setDisplaySettings}
-        aePlacements={snapshot?.aePlacements}
-      />
-
-
-
       <DriveSimulatedGui
-
         node={driveModalNode}
-
         cellChildNodes={driveCellChildren}
-
         open={!!driveModalNode}
-
         onClose={() => setDriveModalNode(null)}
-
       />
-
-
 
       {viewMode !== 'p2p' && (
-
-        <Drawer
-
-          title={selectedNode?.displayName ?? t('topologyNodeDetail')}
-
+        <TopologyNodeDetailDrawer
+          node={selectedNode}
           open={!!selectedNode && !driveModalNode}
-
           onClose={() => setSelectedNode(null)}
-
-          width={Math.min(520, window.innerWidth - 24)}
-
-        >
-
-          {selectedNode && (
-
-            <>
-
-              <Descriptions size="small" column={1} style={{ marginBottom: 16 }}>
-
-                <Descriptions.Item label={t('topologyNodeType')}>{selectedNode.type}</Descriptions.Item>
-
-                <Descriptions.Item label={t('topologyNodeCount')}>{selectedNode.count}</Descriptions.Item>
-
-                <Descriptions.Item label={t('topologyChannelCost')}>{selectedNode.channelCost}</Descriptions.Item>
-
-                {selectedNode.dim != null && selectedNode.dim !== -2147483648 && (
-
-                  <Descriptions.Item label={t('topologyDim')}>{selectedNode.dim}</Descriptions.Item>
-
-                )}
-
-                {selectedNode.type === 'cpu' && selectedNode.cpuSummary && (
-
-                  <>
-
-                    <Descriptions.Item label={t('topologyCpuCoProcessors')}>
-                      {selectedNode.cpuSummary.coProcessors}
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label={t('topologyCpuStorage')}>
-                      {t('topologyCpuStorageUsed')}: {selectedNode.cpuSummary.usedStorage} ·{' '}
-                      {t('topologyCpuStorageAvail')}: {selectedNode.cpuSummary.availableStorage}
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label={t('topologyCpuStatus')}>
-                      {selectedNode.cpuSummary.busy ? t('topologyCpuBusy') : t('topologyCpuIdle')}
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label={t('topologyCpuUnitCount')}>
-                      {selectedNode.cpuSummary.unitCount}
-                    </Descriptions.Item>
-
-                    {selectedNode.cpuSummary.storageUnits > 0 && (
-                      <Descriptions.Item label={t('topologyCpuStorageUnits')}>
-                        {selectedNode.cpuSummary.storageUnits}
-                      </Descriptions.Item>
-                    )}
-
-                    {selectedNode.cpuSummary.acceleratorUnits > 0 && (
-                      <Descriptions.Item label={t('topologyCpuAcceleratorUnits')}>
-                        {selectedNode.cpuSummary.acceleratorUnits}
-                      </Descriptions.Item>
-                    )}
-
-                    {selectedNode.cpuSummary.monitorUnits > 0 && (
-                      <Descriptions.Item label={t('topologyCpuMonitorUnits')}>
-                        {selectedNode.cpuSummary.monitorUnits}
-                      </Descriptions.Item>
-                    )}
-
-                  </>
-
-                )}
-
-              </Descriptions>
-
-              {selectedNode.type === 'drive' && (
-
-                <Button type="primary" block style={{ marginBottom: 12 }} onClick={() => setDriveModalNode(selectedNode)}>
-
-                  {t('topologyOpenDriveGui')}
-
-                </Button>
-
-              )}
-
-              {selectedNode.type === 'cpu' && (selectedNode.devices?.length ?? 0) > 0 && (
-
-                <>
-
-                  <Typography.Title level={5} style={{ marginTop: 0 }}>
-
-                    {t('topologyCpuComponents')}
-
-                  </Typography.Title>
-
-                  <Table
-
-                    size="small"
-
-                    pagination={{ pageSize: 8, showSizeChanger: false }}
-
-                    style={{ marginBottom: 16 }}
-
-                    dataSource={(selectedNode.devices ?? []).map((d, i) => ({ ...d, key: i }))}
-
-                    columns={[
-
-                      {
-
-                        title: t('topologyCpuUnitType'),
-
-                        dataIndex: 'displayName',
-
-                        ellipsis: true,
-
-                        render: (v: string) => v || '—',
-
-                      },
-
-                      {
-
-                        title: t('topologyCoords'),
-
-                        key: 'coords',
-
-                        width: 140,
-
-                        render: (_, row) => `${row.x}, ${row.y}, ${row.z}`,
-
-                      },
-
-                      { title: t('topologyDim'), dataIndex: 'dim', width: 48 },
-
-                      {
-
-                        title: t('topologyCpuBlockId'),
-
-                        key: 'blockId',
-
-                        ellipsis: true,
-
-                        render: (_, row) => row.className || row.iconItemId || '—',
-
-                      },
-
-                    ]}
-
-                  />
-
-                </>
-
-              )}
-
-              {selectedNode.type !== 'cpu' && (
-
-              <Table
-
-                size="small"
-
-                pagination={{ pageSize: 8, showSizeChanger: false }}
-
-                dataSource={(selectedNode.devices ?? []).map((d, i) => ({ ...d, key: i }))}
-
-                columns={[
-
-                  {
-
-                    title: t('topologyDeviceName'),
-
-                    dataIndex: 'displayName',
-
-                    ellipsis: true,
-
-                    render: (v: string, row) => v || row.className || '—',
-
-                  },
-
-                  {
-
-                    title: t('topologyCoords'),
-
-                    key: 'coords',
-
-                    width: 140,
-
-                    render: (_, row) => `${row.x}, ${row.y}, ${row.z}`,
-
-                  },
-
-                  { title: 'Dim', dataIndex: 'dim', width: 48 },
-
-                ]}
-
-              />
-
-              )}
-
-            </>
-
-          )}
-
-        </Drawer>
-
+          onOpenDriveGui={(node) => {
+            setSelectedNode(node);
+            setDriveModalNode(node);
+          }}
+        />
       )}
 
     </PageShell>

@@ -79,7 +79,10 @@ export function useMapViewport(options: UseMapViewportOptions = {}): UseMapViewp
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if ((e.target as HTMLElement).closest('.worldmap-marker-hit')) return;
+      const target = e.target as HTMLElement;
+      if (target.closest('.worldmap-marker-hit')) return;
+      if (target.closest('.worldmap-cluster-popup')) return;
+      if (target.closest('.worldmap-legend-rail')) return;
       dragRef.current = {
         active: true,
         startX: e.clientX,

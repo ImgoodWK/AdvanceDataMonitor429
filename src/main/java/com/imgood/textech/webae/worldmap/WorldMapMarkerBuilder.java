@@ -8,6 +8,7 @@ import com.imgood.textech.webae.topology.TopologySnapshot;
 
 /**
  * Flattens a logical topology snapshot into per-block world map markers.
+ * Crafting CPU multiblocks emit a single marker (monitor &gt; coprocessor &gt; storage &gt; first unit).
  */
 public final class WorldMapMarkerBuilder {
 
@@ -22,23 +23,18 @@ public final class WorldMapMarkerBuilder {
             if (node == null || node.devices == null || node.devices.isEmpty()) {
                 continue;
             }
+            if (isCpuNode(node)) {
+                TopologyNode.DeviceRecord anchor = pickCpuAnchor(node.devices);
+                if (anchor != null) {
+                    out.add(toMarker(node, anchor));
+                }
+                continue;
+            }
             for (TopologyNode.DeviceRecord device : node.devices) {
                 if (device == null) {
                     continue;
                 }
-                WorldMapMarkerDto marker = new WorldMapMarkerDto();
-                marker.id = markerId(device.dim, device.x, device.y, device.z);
-                marker.nodeId = node.id != null ? node.id : "";
-                marker.type = node.type != null ? node.type : "misc";
-                marker.subtype = node.subtype != null ? node.subtype : "";
-                marker.displayName = pickDisplayName(device, node);
-                marker.iconItemId = pickIconId(device, node);
-                marker.x = device.x;
-                marker.y = device.y;
-                marker.z = device.z;
-                marker.dim = device.dim;
-                marker.channelCost = device.channelCost;
-                out.add(marker);
+                out.add(toMarker(node, device));
             }
         }
         return out;
@@ -46,6 +42,81 @@ public final class WorldMapMarkerBuilder {
 
     public static String markerId(int dim, int x, int y, int z) {
         return dim + ":" + x + ":" + y + ":" + z;
+    }
+
+    private static boolean isCpuNode(TopologyNode node) {
+        if (node == null) {
+            return false;
+        }
+        if ("cpu".equalsIgnoreCase(node.type)) {
+            return true;
+        }
+        return node.subtype != null && "cpu".equalsIgnoreCase(node.subtype);
+    }
+
+    private static TopologyNode.DeviceRecord pickCpuAnchor(List<TopologyNode.DeviceRecord> devices) {
+        TopologyNode.DeviceRecord best = null;
+        int bestPriority = Integer.MAX_VALUE;
+        for (TopologyNode.DeviceRecord device : devices) {
+            if (device == null) {
+                continue;
+            }
+            int priority = cpuAnchorPriority(device);
+            if (priority < bestPriority) {
+                bestPriority = priority;
+                best = device;
+            }
+        }
+        return best;
+    }
+
+    /** Lower = higher priority: monitor, coprocessor/accelerator, storage, other. */
+    private static int cpuAnchorPriority(TopologyNode.DeviceRecord device) {
+        String hay = deviceHaystack(device);
+        if (containsIgnoreCase(hay, "monitor")) {
+            return 0;
+        }
+        if (containsIgnoreCase(hay, "coprocessor") || containsIgnoreCase(hay, "accelerator")) {
+            return 1;
+        }
+        if (containsIgnoreCase(hay, "storage")) {
+            return 2;
+        }
+        return 3;
+    }
+
+    private static String deviceHaystack(TopologyNode.DeviceRecord device) {
+        StringBuilder sb = new StringBuilder();
+        if (device.displayName != null) {
+            sb.append(device.displayName).append(' ');
+        }
+        if (device.className != null) {
+            sb.append(device.className).append(' ');
+        }
+        if (device.iconItemId != null) {
+            sb.append(device.iconItemId);
+        }
+        return sb.toString();
+    }
+
+    private static boolean containsIgnoreCase(String hay, String needle) {
+        return hay != null && needle != null && hay.toLowerCase().contains(needle.toLowerCase());
+    }
+
+    private static WorldMapMarkerDto toMarker(TopologyNode node, TopologyNode.DeviceRecord device) {
+        WorldMapMarkerDto marker = new WorldMapMarkerDto();
+        marker.id = markerId(device.dim, device.x, device.y, device.z);
+        marker.nodeId = node.id != null ? node.id : "";
+        marker.type = node.type != null ? node.type : "misc";
+        marker.subtype = node.subtype != null ? node.subtype : "";
+        marker.displayName = pickDisplayName(device, node);
+        marker.iconItemId = pickIconId(device, node);
+        marker.x = device.x;
+        marker.y = device.y;
+        marker.z = device.z;
+        marker.dim = device.dim;
+        marker.channelCost = device.channelCost;
+        return marker;
     }
 
     private static String pickDisplayName(TopologyNode.DeviceRecord device, TopologyNode node) {

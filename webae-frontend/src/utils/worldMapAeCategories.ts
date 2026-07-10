@@ -1,5 +1,5 @@
 import { AE_BLOCK_ICON_IDS } from '@/utils/aeCableColors';
-import type { WorldMapAePlacementDto } from '@/types/dto';
+import type { WorldMapAePlacementDto, WorldMapMarkerDto } from '@/types/dto';
 
 /** AE world-map overlay category ids (R channel in server ID tiles). */
 export type WorldMapAeCategoryId =
@@ -104,6 +104,32 @@ export function resolveWorldMapAeCategory(placement: Pick<
   if (containsAny(hay, ['cable', 'glass', 'covered', 'smart', 'dense'])) return 'cable';
   if (containsAny(hay, ['bus', 'facade', 'part'])) return 'bus';
   return 'other';
+}
+
+/** Map a world-map device marker to an AE overlay category (for legend filter + icon tint). */
+export function resolveMarkerAeCategory(
+  marker: Pick<WorldMapMarkerDto, 'type' | 'subtype' | 'iconItemId' | 'displayName'>
+): WorldMapAeCategoryId {
+  const type = (marker.type ?? '').toLowerCase();
+  if (type.includes('cable')) {
+    return 'cable';
+  }
+  const subtype = (marker.subtype ?? '').toLowerCase();
+  const kind =
+    subtype.startsWith('bus_') || type === 'bus' || type === 'part' ? 'part' : 'block';
+  return resolveWorldMapAeCategory({
+    kind,
+    className: marker.subtype || marker.type,
+    iconItemId: marker.iconItemId,
+    displayName: marker.displayName,
+  });
+}
+
+export function markerStyleFromCategory(color: string): { borderColor: string; background: string } {
+  return {
+    borderColor: color,
+    background: `color-mix(in srgb, ${color} 32%, var(--bg-secondary))`,
+  };
 }
 
 export function groupIconIdsByAeCategory(

@@ -5,6 +5,7 @@ import { Tooltip } from 'antd';
 import { Icon } from '@/components/Icon';
 import { useI18n } from '@/i18n';
 import type { WorldMapMarkerDto } from '@/types/dto';
+import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
 import { blockIconIdForNode } from '@/utils/aeCableColors';
 import {
   buildMarkerClusterIndex,
@@ -12,7 +13,17 @@ import {
   scaleToClusterZoom,
   screenBBoxToWorldBBox,
   type ClusterFeatureProperties,
+  type MarkerClusterIndex,
 } from '@/utils/worldMapCluster';
+import {
+  DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS,
+  markerStyleFromCategory,
+  resolveMarkerAeCategory,
+} from '@/utils/worldMapAeCategories';
+import {
+  CLUSTER_TOOLTIP_MAX_ICON_TYPES,
+  summarizeClusterMarkersByIcon,
+} from '@/utils/worldMapMarkers';
 import {
   worldToScreen,
   type MapViewport,
@@ -26,21 +37,59 @@ export interface WorldMapMarkerLayerProps {
   containerWidth: number;
   containerHeight: number;
   selectedNodeId: string | null;
-  onMarkerClick: (marker: WorldMapMarkerDto) => void;
-  onClusterClick?: (clusterId: number, lng: number, lat: number) => void;
+  displaySettings: TopologyDisplaySettings;
+  onMarkerClick: (marker: WorldMapMarkerDto, clientX: number, clientY: number) => void;
+  onClusterClick?: (
+    clusterId: number,
+    markers: WorldMapMarkerDto[],
+    clientX: number,
+    clientY: number
+  ) => void;
 }
 
 const MARKER_SIZE = 28;
 
-function clusterTooltip(markers: WorldMapMarkerDto[], count: number, t: (key: string, ...args: string[]) => string) {
-  const names = markers
-    .slice(0, 4)
-    .map((m) => m.displayName || m.type)
-    .filter(Boolean);
-  const head = t('worldMapMarkerCluster', String(count));
-  if (names.length === 0) return head;
-  const more = count > names.length ? `\n… +${count - names.length}` : '';
-  return `${head}\n${names.join('\n')}${more}`;
+function WorldMapClusterTooltipContent({
+  markers,
+  count,
+  t,
+}: {
+  markers: WorldMapMarkerDto[];
+  count: number;
+  t: (key: string, ...args: string[]) => string;
+}) {
+  const groups = useMemo(() => summarizeClusterMarkersByIcon(markers), [markers]);
+  const shown = groups.slice(0, CLUSTER_TOOLTIP_MAX_ICON_TYPES);
+  const hiddenTypeCount = groups.length - shown.length;
+
+  return (
+    <div className="worldmap-cluster-tooltip">
+      <div className="worldmap-cluster-tooltip-head">{t('worldMapMarkerCluster', String(count))}</div>
+      {shown.length > 0 && (
+        <div className="worldmap-cluster-tooltip-grid">
+          {shown.map((group) => (
+            <span key={group.iconId} className="worldmap-cluster-tooltip-item" title={group.label}>
+              <Icon id={group.iconId} size={20} linkToWiki={false} alt={group.label} />
+              <span className="worldmap-cluster-tooltip-count">x{group.count}</span>
+            </span>
+          ))}
+          {hiddenTypeCount > 0 && (
+            <span className="worldmap-cluster-tooltip-more">… +{hiddenTypeCount}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getClusterMarkers(index: MarkerClusterIndex, clusterId: number): WorldMapMarkerDto[] {
+  const leaves = index.getLeaves(clusterId, Infinity);
+  const out: WorldMapMarkerDto[] = [];
+  for (const leaf of leaves) {
+    const marker = (leaf.properties as ClusterFeatureProperties).marker;
+    if (marker) out.push(marker);
+  }
+  return out;
 }
 
 function WorldMapMarkerLayerInner({
@@ -50,6 +99,7 @@ function WorldMapMarkerLayerInner({
   containerWidth,
   containerHeight,
   selectedNodeId,
+  displaySettings,
   onMarkerClick,
   onClusterClick,
 }: WorldMapMarkerLayerProps) {
@@ -58,6 +108,8 @@ function WorldMapMarkerLayerInner({
   const clusterIndex = useMemo(() => buildMarkerClusterIndex(markers), [markers]);
 
   const clusterZoom = scaleToClusterZoom(viewport.scale, origin.pxPerBlock);
+
+  const tintEnabled = displaySettings.worldMapMarkerTintEnabled !== false;
 
   const features = useMemo(() => {
     if (containerWidth <= 0 || containerHeight <= 0 || markers.length === 0) return [];
@@ -96,11 +148,12 @@ function WorldMapMarkerLayerInner({
 
         if (props.cluster && props.cluster_id != null) {
           const count = props.point_count ?? 0;
-          const clusterMarkers = props.marker ? [props.marker] : [];
+          const clusterMarkers = getClusterMarkers(clusterIndex, props.cluster_id);
           return (
             <Tooltip
               key={`cluster-${props.cluster_id}`}
-              title={clusterTooltip(clusterMarkers, count, t)}
+              title={<WorldMapClusterTooltipContent markers={clusterMarkers} count={count} t={t} />}
+              overlayClassName="worldmap-cluster-tooltip-overlay"
               mouseEnterDelay={0.2}
             >
               <button
@@ -108,7 +161,10 @@ function WorldMapMarkerLayerInner({
                 className="worldmap-marker-hit worldmap-cluster"
                 style={{ left, top, width: MARKER_SIZE + 8, height: MARKER_SIZE + 8 }}
                 aria-label={t('worldMapMarkerCluster', String(count))}
-                onClick={() => onClusterClick?.(props.cluster_id!, worldX, worldZ)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClusterClick?.(props.cluster_id!, clusterMarkers, e.clientX, e.clientY);
+                }}
               >
                 <span className="worldmap-cluster-count">{count}</span>
               </button>
@@ -121,15 +177,34 @@ function WorldMapMarkerLayerInner({
         const iconId = blockIconIdForNode(marker.type, marker.iconItemId);
         const selected = selectedNodeId === marker.nodeId;
         const label = marker.displayName || marker.type;
+        const category = resolveMarkerAeCategory(marker);
+        const categoryColor =
+          displaySettings.worldMapAeCategoryColors[category] ??
+          DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS[category];
+        const tintStyle = tintEnabled ? markerStyleFromCategory(categoryColor) : undefined;
 
         return (
           <Tooltip key={marker.id} title={label} mouseEnterDelay={0.2}>
             <button
               type="button"
               className={`worldmap-marker-hit worldmap-marker${selected ? ' worldmap-marker-selected' : ''}`}
-              style={{ left, top, width: MARKER_SIZE, height: MARKER_SIZE }}
+              style={{
+                left,
+                top,
+                width: MARKER_SIZE,
+                height: MARKER_SIZE,
+                ...(tintStyle
+                  ? {
+                      boxShadow: `0 0 0 2px ${tintStyle.borderColor}`,
+                      background: tintStyle.background,
+                    }
+                  : {}),
+              }}
               aria-label={label}
-              onClick={() => onMarkerClick(marker)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkerClick(marker, e.clientX, e.clientY);
+              }}
             >
               <Icon
                 id={iconId}

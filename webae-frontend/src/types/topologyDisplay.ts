@@ -2,8 +2,16 @@ import type { AeCableColorId } from '@/utils/aeCableColors';
 import { DEFAULT_AE_CABLE_COLOR_ID, hexFromAeCableColorId } from '@/utils/aeCableColors';
 import {
   DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS,
+  WORLD_MAP_AE_CATEGORY_IDS,
   type WorldMapAeCategoryId,
 } from '@/utils/worldMapAeCategories';
+
+function defaultCategoryVisibility(): Record<WorldMapAeCategoryId, boolean> {
+  return Object.fromEntries(WORLD_MAP_AE_CATEGORY_IDS.map((id) => [id, true])) as Record<
+    WorldMapAeCategoryId,
+    boolean
+  >;
+}
 
 export type TopologyLayoutDirection = 'LR' | 'TB';
 export type TopologyRenderMode = 'abstract' | 'simulated';
@@ -59,6 +67,12 @@ export interface TopologyDisplaySettings {
   worldMapAeOverlayOpacity: number;
   /** Per-category colors for world map AE overlay tinting. */
   worldMapAeCategoryColors: Record<WorldMapAeCategoryId, string>;
+  /** Per-category marker visibility on world map. */
+  worldMapAeCategoryVisibility: Record<WorldMapAeCategoryId, boolean>;
+  /** When true, legend rail controls are read-only (visibility + colors). */
+  worldMapLegendLocked: boolean;
+  /** Tint device icon markers using AE category colors. */
+  worldMapMarkerTintEnabled: boolean;
   /** Optional iconItemId → hex overrides (reserved; category tint applies per pixel today). */
   worldMapAeItemColorOverrides: Record<string, string>;
 }
@@ -100,6 +114,9 @@ export const DEFAULT_TOPOLOGY_DISPLAY: TopologyDisplaySettings = {
   showWorldMapDeviceIcons: true,
   worldMapAeOverlayOpacity: 0.85,
   worldMapAeCategoryColors: { ...DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS },
+  worldMapAeCategoryVisibility: defaultCategoryVisibility(),
+  worldMapLegendLocked: false,
+  worldMapMarkerTintEnabled: true,
   worldMapAeItemColorOverrides: {},
 };
 
@@ -112,6 +129,7 @@ export function mergeTopologyDisplay(
       colors: { ...DEFAULT_TOPOLOGY_DISPLAY.colors },
       cableColorPreset: { ...DEFAULT_TOPOLOGY_DISPLAY.cableColorPreset },
       worldMapAeCategoryColors: { ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeCategoryColors },
+      worldMapAeCategoryVisibility: { ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeCategoryVisibility },
       worldMapAeItemColorOverrides: { ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeItemColorOverrides },
     };
   }
@@ -126,6 +144,10 @@ export function mergeTopologyDisplay(
     worldMapAeCategoryColors: {
       ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeCategoryColors,
       ...(partial.worldMapAeCategoryColors ?? {}),
+    },
+    worldMapAeCategoryVisibility: {
+      ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeCategoryVisibility,
+      ...(partial.worldMapAeCategoryVisibility ?? {}),
     },
     worldMapAeItemColorOverrides: {
       ...DEFAULT_TOPOLOGY_DISPLAY.worldMapAeItemColorOverrides,

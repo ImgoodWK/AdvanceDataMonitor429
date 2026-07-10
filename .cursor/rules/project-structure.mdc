@@ -76,7 +76,7 @@ assets/textech/
 
 ## WebAE 前端 (`webae-frontend/`)
 
-React 18 + TS + antd 5 + Vite 5 + cytoscape.js；`npm run build` → `assets/textech/webae/`。规范见 `webae-frontend.mdc`；页面/组件/hooks 索引见 `docs/zh/webae/开发者手册.md` §6。拓扑世界地图：`TopologyWorldMapView` + `useWorldMapTileLoader`/`useWorldMapProgress` + `WorldMapChunkStatusOverlay`/`WorldMapAeOverlayLayer`。
+React 18 + TS + antd 5 + Vite 5 + cytoscape.js；`npm run build` → `assets/textech/webae/`。规范见 `webae-frontend.mdc`；页面/组件/hooks 索引见 `docs/zh/webae/开发者手册.md` §6。拓扑世界地图：`TopologyWorldMapView` + `WorldMapClusterPopup`/`WorldMapLegendRail`/`TopologyNodeDetailDrawer` + `useWorldMapTileLoader`/`useWorldMapProgress`/`useNonPassiveWheelZoom` + `WorldMapChunkStatusOverlay`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`。
 
 ## 修改指南：改动某种功能时应该看哪些文件
 

@@ -47,6 +47,7 @@ public final class TopologyRules {
     public static final String SUB_DRIVE = "drive";
     public static final String SUB_CHEST = "chest";
     public static final String SUB_IO_PORT = "io_port";
+    public static final String SUB_LEVEL_MAINTAINER = "level_maintainer";
     public static final String SUB_CPU = "cpu";
     public static final String SUB_P2P_ME = "p2p_me";
     public static final String SUB_P2P_ITEM = "p2p_item";
@@ -62,7 +63,7 @@ public final class TopologyRules {
         SUB_TERMINAL_PATTERN_ACCESS, SUB_TERMINAL_WIRELESS, SUB_WIRELESS_ACCESS_POINT, SUB_SECURITY_TERMINAL,
         SUB_TERMINAL_OTHER, SUB_BUS_IMPORT, SUB_BUS_EXPORT, SUB_BUS_STORAGE, SUB_BUS_ORE_FILTER, SUB_INTERFACE,
         SUB_PATTERN_PROVIDER, SUB_MONITOR_STORAGE, SUB_MONITOR_CONVERSION, SUB_EMITTER_LEVEL, SUB_EMITTER_ENERGY,
-        SUB_CPU, SUB_P2P_ME, SUB_P2P_ITEM, SUB_P2P_FLUID, SUB_P2P_POWER, SUB_P2P_LIGHT, SUB_P2P_OTHER, SUB_QUANTUM,
+        SUB_LEVEL_MAINTAINER, SUB_CPU, SUB_P2P_ME, SUB_P2P_ITEM, SUB_P2P_FLUID, SUB_P2P_POWER, SUB_P2P_LIGHT, SUB_P2P_OTHER, SUB_QUANTUM,
         SUB_MISC };
 
     private TopologyRules() {}
@@ -160,6 +161,9 @@ public final class TopologyRules {
 
         if (containsAny(simple, "IOPort")) {
             return SUB_IO_PORT;
+        }
+        if (containsAny(simple, "LevelMaintainer")) {
+            return SUB_LEVEL_MAINTAINER;
         }
         if (containsAny(simple, "MEChest", "Chest") && !containsAny(simple, "Controller")) {
             return SUB_CHEST;

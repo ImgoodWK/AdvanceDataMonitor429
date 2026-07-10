@@ -18,6 +18,7 @@ import { buildIconUrl, iconIsMarkedFailed, iconReadyMatchesId, type IconReadyDet
 import { branchColorForIndex, computeSpatialPixelLayout } from '@/utils/topologyLayout';
 import { collapseCableEdges, visibleAbstractNodes } from '@/utils/topologyAbstractEdges';
 import { topologyNodeLabel } from '@/utils/topologyDevices';
+import { useNonPassiveWheelZoom } from '@/hooks/useNonPassiveWheelZoom';
 import {
   TOPOLOGY_MAX_ZOOM,
   TOPOLOGY_MIN_ZOOM,
@@ -98,6 +99,7 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
     const cyRef = useRef<Core | null>(null);
     const lastFitEpochRef = useRef('');
     const nodeByIdRef = useRef<Map<string, TopologyNodeDto>>(new Map());
+    useNonPassiveWheelZoom(containerRef, useCallback(() => {}, []));
     const { token, iconPack, iconCacheEnabled, iconRenderMode, failedIcons, markIconFailed } = useAppContext();
     const [iconRefreshEpoch, setIconRefreshEpoch] = useState(0);
 
@@ -486,7 +488,7 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
       <div
         ref={containerRef}
         className="topology-graph-host topology-cytoscape-host"
-        style={{ height }}
+        style={{ height, overscrollBehavior: 'contain', touchAction: 'none' }}
         role="img"
         aria-label="Network topology graph"
       />

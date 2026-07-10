@@ -60,9 +60,42 @@ export const DEVICE_TYPE_ORDER = [
   'p2p',
   'quantum',
   'energy',
+  'level_maintainer',
   'misc',
   'spatial_bin',
 ] as const;
+
+/** Subtypes that show in world-map popup list and open a detail drawer. */
+export const DETAIL_PAGE_SUBTYPES = new Set<string>([
+  'interface',
+  'drive',
+  'cpu',
+  'bus_storage',
+  'bus_import',
+  'bus_export',
+  'chest',
+  'security_terminal',
+  'level_maintainer',
+  'controller',
+  'io_port',
+  'quantum',
+  'energy_cell',
+  'energy_acceptor',
+  'p2p_me',
+  'p2p_item',
+  'p2p_fluid',
+  'p2p_power',
+  'p2p_light',
+  'p2p_other',
+]);
+
+export function nodeHasDetailPage(node: Pick<TopologyNodeDto, 'type' | 'subtype'>): boolean {
+  return DETAIL_PAGE_SUBTYPES.has(resolveGroupType(node as TopologyNodeDto));
+}
+
+export function filterNodesWithDetailPage(nodes: TopologyNodeDto[]): TopologyNodeDto[] {
+  return nodes.filter(nodeHasDetailPage);
+}
 
 /** Safe label for topology nodes — API may serialize null displayName (Gson serializeNulls). */
 export function topologyNodeLabel(node: Pick<TopologyNodeDto, 'displayName' | 'type' | 'id' | 'subtype'>): string {
