@@ -108,7 +108,10 @@ function WorldMapMarkerLayerInner({
                 className="worldmap-marker-hit worldmap-cluster"
                 style={{ left, top, width: MARKER_SIZE + 8, height: MARKER_SIZE + 8 }}
                 aria-label={t('worldMapMarkerCluster', String(count))}
-                onClick={() => onClusterClick?.(props.cluster_id!, worldX, worldZ)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClusterClick?.(props.cluster_id!, worldX, worldZ);
+                }}
               >
                 <span className="worldmap-cluster-count">{count}</span>
               </button>
@@ -129,7 +132,10 @@ function WorldMapMarkerLayerInner({
               className={`worldmap-marker-hit worldmap-marker${selected ? ' worldmap-marker-selected' : ''}`}
               style={{ left, top, width: MARKER_SIZE, height: MARKER_SIZE }}
               aria-label={label}
-              onClick={() => onMarkerClick(marker)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkerClick(marker);
+              }}
             >
               <Icon
                 id={iconId}

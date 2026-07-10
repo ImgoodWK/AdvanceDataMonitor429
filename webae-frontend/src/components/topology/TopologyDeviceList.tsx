@@ -276,14 +276,20 @@ export function TopologyDeviceList({
         role="button"
         tabIndex={0}
         onClick={() => {
-          onSelectDevice?.(row.nodeId);
+          if (node?.type === 'drive') {
+            onSelectDevice?.(row.nodeId);
+            return;
+          }
           if (node) onSelectNode(node);
         }}
         onMouseEnter={() => onHoverNode?.(row.nodeId)}
         onMouseLeave={() => onHoverNode?.(null)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            onSelectDevice?.(row.nodeId);
+            if (node?.type === 'drive') {
+              onSelectDevice?.(row.nodeId);
+              return;
+            }
             if (node) onSelectNode(node);
           }
         }}
@@ -319,11 +325,23 @@ export function TopologyDeviceList({
         className={`topology-device-list-row${selected ? ' topology-device-list-row--selected' : ''}${hovered ? ' topology-device-list-row--hover' : ''}`}
         role="button"
         tabIndex={0}
-        onClick={() => onSelectNode(selected ? null : row.node)}
+        onClick={() => {
+          if (row.node.type === 'drive') {
+            onSelectDevice?.(row.node.id);
+            return;
+          }
+          onSelectNode(selected ? null : row.node);
+        }}
         onMouseEnter={() => onHoverNode?.(row.node.id)}
         onMouseLeave={() => onHoverNode?.(null)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') onSelectNode(selected ? null : row.node);
+          if (e.key === 'Enter') {
+            if (row.node.type === 'drive') {
+              onSelectDevice?.(row.node.id);
+              return;
+            }
+            onSelectNode(selected ? null : row.node);
+          }
         }}
       >
         <div className="topology-device-list-row-icon">

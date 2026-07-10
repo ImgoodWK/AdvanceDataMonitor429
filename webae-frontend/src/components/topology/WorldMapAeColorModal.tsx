@@ -84,6 +84,7 @@ export function WorldMapAeColorModal({
       open={open}
       onCancel={onClose}
       width={Math.min(560, window.innerWidth - 32)}
+      zIndex={1100}
       destroyOnClose
       footer={
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>

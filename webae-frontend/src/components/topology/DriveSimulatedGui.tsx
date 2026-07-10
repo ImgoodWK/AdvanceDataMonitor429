@@ -66,6 +66,7 @@ export function DriveSimulatedGui({ node, cellChildNodes = [], open, onClose }: 
       title={title}
       width={Math.min(560, window.innerWidth - 24)}
       className="drive-simulated-modal"
+      zIndex={1100}
       destroyOnClose
       styles={{ body: { padding: '12px 16px 16px' } }}
     >

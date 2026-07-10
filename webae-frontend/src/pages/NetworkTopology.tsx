@@ -554,6 +554,18 @@ export function NetworkTopologyPage() {
           .filter((n): n is TopologyNodeDto => !!n && n.type === 'cell')
       : [];
 
+  /** Node id highlighted on graph / device list (drive modal takes precedence over drawer selection). */
+  const highlightedNodeId = driveModalNode?.id ?? selectedNode?.id ?? null;
+
+  const openDriveModal = useCallback(
+    (node: TopologyNodeDto) => {
+      const full = nodeIndex.get(node.id) ?? node;
+      setDriveModalNode(full);
+      setSelectedNode(null);
+    },
+    [nodeIndex]
+  );
+
 
 
   if (selectedNetworks.length === 0) {
@@ -1272,7 +1284,7 @@ export function NetworkTopologyPage() {
 
                   nodeIndex={nodeIndex}
 
-                  selectedNodeId={selectedNode?.id ?? null}
+                  selectedNodeId={highlightedNodeId}
 
                   onNodeSelect={setSelectedNode}
 
@@ -1284,13 +1296,7 @@ export function NetworkTopologyPage() {
 
                   displaySettings={displaySettings}
 
-                  onDriveClick={(node) => {
-
-                    setSelectedNode(node);
-
-                    setDriveModalNode(node);
-
-                  }}
+                  onDriveClick={openDriveModal}
 
                 />
 
@@ -1314,19 +1320,13 @@ export function NetworkTopologyPage() {
 
                   displaySettings={displaySettings}
 
-                  selectedNodeId={selectedNode?.id ?? null}
+                  selectedNodeId={highlightedNodeId}
 
                   onNodeSelect={setSelectedNode}
 
                   layoutEpoch={layoutEpoch}
 
-                  onDriveClick={(node) => {
-
-                    setSelectedNode(node);
-
-                    setDriveModalNode(node);
-
-                  }}
+                  onDriveClick={openDriveModal}
 
                 />
 
@@ -1346,7 +1346,7 @@ export function NetworkTopologyPage() {
 
                   displaySettings={displaySettings}
 
-                  selectedNodeId={selectedNode?.id ?? null}
+                  selectedNodeId={highlightedNodeId}
 
                   hoveredNodeId={hoveredNodeId}
 
@@ -1398,6 +1398,8 @@ export function NetworkTopologyPage() {
 
         destroyOnClose={false}
 
+        zIndex={1100}
+
         className="topology-device-list-modal"
 
       >
@@ -1408,7 +1410,7 @@ export function NetworkTopologyPage() {
 
             nodes={snapshot.nodes}
 
-            selectedNodeId={selectedNode?.id ?? null}
+            selectedNodeId={highlightedNodeId}
 
             hoveredNodeId={hoveredNodeId}
 
@@ -1428,7 +1430,10 @@ export function NetworkTopologyPage() {
 
               const node = snapshot.nodes.find((n) => n.id === nodeId);
 
-              if (node?.type === 'drive') setDriveModalNode(node);
+              if (node?.type === 'drive') {
+                openDriveModal(node);
+                setDeviceListOpen(false);
+              }
 
             }}
 
@@ -1527,7 +1532,9 @@ export function NetworkTopologyPage() {
 
         open={!!driveModalNode}
 
-        onClose={() => setDriveModalNode(null)}
+        onClose={() => {
+          setDriveModalNode(null);
+        }}
 
       />
 
@@ -1612,7 +1619,7 @@ export function NetworkTopologyPage() {
 
               {selectedNode.type === 'drive' && (
 
-                <Button type="primary" block style={{ marginBottom: 12 }} onClick={() => setDriveModalNode(selectedNode)}>
+                <Button type="primary" block style={{ marginBottom: 12 }} onClick={() => openDriveModal(selectedNode)}>
 
                   {t('topologyOpenDriveGui')}
 

@@ -496,9 +496,7 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
 
     const handleMarkerClick = useCallback(
-
       (marker: WorldMapMarkerDto) => {
-
         const node =
           nodeIndex.get(marker.nodeId) ??
           ({
@@ -514,14 +512,16 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
             dim: marker.dim,
           } satisfies TopologyNodeDto);
 
-        onNodeSelect(node);
+        const isDrive = node.type === 'drive';
+        if (isDrive && onDriveClick) {
+          onDriveClick(node);
+          return;
+        }
 
-        if (node.type === 'drive') onDriveClick?.(node);
-
+        const isSelected = selectedNodeId === node.id;
+        onNodeSelect(isSelected ? null : node);
       },
-
-      [nodeIndex, onNodeSelect, onDriveClick]
-
+      [nodeIndex, onNodeSelect, onDriveClick, selectedNodeId]
     );
 
 
