@@ -16,6 +16,10 @@ import {
 } from '@/hooks/useLocalStorage';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useVisibilityAwarePolling } from '@/hooks/useVisibilityAwarePolling';
+import {
+  CONNECTION_CHECK_INTERVAL_MS,
+  CONNECTION_CHECK_PAGES,
+} from '@/constants/pagePolling';
 import { setServerDebugFlags, debugLog } from '@/utils/debugLog';
 import { I18nProvider, type Lang } from '@/i18n';
 import { zh as zhDict } from '@/i18n/zh';
@@ -204,6 +208,10 @@ interface AppContextValue {
   // Connection
   online: boolean;
   checkConnection: () => Promise<void>;
+
+  /** Per-page last successful fetch (for stale-data banner on page switch). */
+  pageFetchTimes: Partial<Record<PageId, { at: number; pollMs: number }>>;
+  reportPageFetch: (page: PageId, pollMs: number, at?: number) => void;
 
   // Refresh
   autoRefresh: boolean;
@@ -493,6 +501,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [refreshCountdown, setRefreshCountdown] = useState(0);
   const [refreshTick, setRefreshTick] = useState(0);
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
+  const [pageFetchTimes, setPageFetchTimes] = useState<
+    Partial<Record<PageId, { at: number; pollMs: number }>>
+  >({});
+
+  const reportPageFetch = useCallback((page: PageId, pollMs: number, at?: number) => {
+    const ts = at ?? Date.now();
+    setPageFetchTimes((prev) => ({ ...prev, [page]: { at: ts, pollMs } }));
+  }, []);
   const refreshIntervalMs = serverConfig?.refreshIntervalMs ?? 1000;
 
   // ---- Presets ----
@@ -766,10 +782,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [isLoggedIn, token, fetchServerConfig, fetchNetworks, refreshIconPacks, refreshLocalIconPacks]);
 
-  // ---- Periodic connection check ----
+  // ---- Periodic connection check (only on pages that show live connection status) ----
+  const connectionCheckActive = CONNECTION_CHECK_PAGES.includes(activePage);
   useVisibilityAwarePolling(
     checkConnection,
-    token ? 30000 : null,
+    token && connectionCheckActive ? CONNECTION_CHECK_INTERVAL_MS : null,
     pauseRefreshWhenHidden
   );
 
@@ -1178,6 +1195,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setIconWikiEnabled,
     online,
     checkConnection,
+    pageFetchTimes,
+    reportPageFetch,
     autoRefresh,
     setAutoRefresh,
     pauseRefreshWhenHidden,

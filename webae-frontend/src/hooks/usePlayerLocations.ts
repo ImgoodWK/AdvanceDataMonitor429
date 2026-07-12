@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getApiClient } from '@/api/client';
+import { useAppContext } from '@/context/AppContext';
+import { useVisibilityAwarePolling } from '@/hooks/useVisibilityAwarePolling';
 import type { PlayerLocationDto, PlayerLocationsResponse } from '@/types/dto';
 
-export function usePlayerLocations(refreshIntervalMs = 10000) {
+/**
+ * Polls player locations for topology world map overlays.
+ * Only mounted on the topology page; pauses when the browser tab is hidden.
+ */
+export function usePlayerLocations(refreshIntervalMs = 10000, enabled = true) {
+  const { pauseRefreshWhenHidden } = useAppContext();
   const [locations, setLocations] = useState<PlayerLocationDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +31,13 @@ export function usePlayerLocations(refreshIntervalMs = 10000) {
     }
   }, []);
 
+  const delay = enabled && refreshIntervalMs > 0 ? refreshIntervalMs : null;
+  useVisibilityAwarePolling(refresh, delay, pauseRefreshWhenHidden);
+
   useEffect(() => {
+    if (!enabled) return;
     void refresh();
-    if (refreshIntervalMs <= 0) return;
-    const id = window.setInterval(() => void refresh(), refreshIntervalMs);
-    return () => window.clearInterval(id);
-  }, [refresh, refreshIntervalMs]);
+  }, [enabled, refresh]);
 
   return { locations, loading, error, refresh };
 }

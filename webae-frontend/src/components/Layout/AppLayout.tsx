@@ -25,6 +25,7 @@ import { QuestBookPage } from '@/pages/QuestBook';
 import { AssistantPage } from '@/pages/Assistant';
 import { AlertsHistoryPage } from '@/pages/AlertsHistory';
 import { DiagnosticsPage } from '@/pages/Diagnostics';
+import { PageStaleBanner } from '@/components/Layout/PageStaleBanner';
 import { CommandPalette, useCommandPaletteShortcut } from '@/components/CommandPalette';
 import { useWebAlerts } from '@/hooks/useWebAlerts';
 import { useEventStream } from '@/hooks/useEventStream';
@@ -211,6 +212,7 @@ export function AppLayout() {
             position: 'relative',
           }}
         >
+          <PageStaleBanner />
           {renderPage()}
         </Content>
         <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
@@ -270,6 +272,7 @@ export function AppLayout() {
             position: 'relative',
           }}
         >
+          <PageStaleBanner />
           {renderPage()}
         </Content>
         <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />

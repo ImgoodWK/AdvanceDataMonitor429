@@ -181,69 +181,82 @@ public final class StoragePagedHandler {
     }
 
     private static List<ItemEntry> filterSortItems(List<ItemEntry> source, String search, String sort) {
-        List<ItemEntry> list = new ArrayList<ItemEntry>();
-        if (source == null) {
-            return list;
-        }
-        String q = search.toLowerCase(Locale.ROOT);
-        for (ItemEntry item : source) {
-            if (item == null) {
-                continue;
+        // Use the snapshot list directly when sort order matches the pre-sorted default
+        // (amount_desc). This avoids an O(n log n) re-sort on every paginated page load.
+        List<ItemEntry> list;
+        if (SORT_AMOUNT_DESC.equals(sort) && (search == null || search.isEmpty())) {
+            list = source; // already pre-sorted by amount desc during collection
+        } else {
+            // Only copy + sort when the user requests a different order or search filter
+            list = new ArrayList<ItemEntry>(source != null ? source : Collections.<ItemEntry>emptyList());
+            if (!SORT_AMOUNT_DESC.equals(sort)) {
+                sortItems(list, sort);
             }
-            if (!q.isEmpty()) {
+        }
+        // Search filter is a light pass — only copy elements matching the query
+        if (search != null && !search.isEmpty()) {
+            String q = search.toLowerCase(Locale.ROOT);
+            List<ItemEntry> filtered = new ArrayList<ItemEntry>();
+            for (ItemEntry item : list) {
+                if (item == null) continue;
                 String name = item.displayName != null ? item.displayName.toLowerCase(Locale.ROOT) : "";
                 String reg = item.registryName != null ? item.registryName.toLowerCase(Locale.ROOT) : "";
-                if (!name.contains(q) && !reg.contains(q)) {
-                    continue;
+                if (name.contains(q) || reg.contains(q)) {
+                    filtered.add(item);
                 }
             }
-            list.add(item);
+            return filtered;
         }
-        sortItems(list, sort);
         return list;
     }
 
     private static List<FluidEntry> filterSortFluids(List<FluidEntry> source, String search, String sort) {
-        List<FluidEntry> list = new ArrayList<FluidEntry>();
-        if (source == null) {
-            return list;
-        }
-        String q = search.toLowerCase(Locale.ROOT);
-        for (FluidEntry fluid : source) {
-            if (fluid == null) {
-                continue;
+        List<FluidEntry> list;
+        if (SORT_AMOUNT_DESC.equals(sort) && (search == null || search.isEmpty())) {
+            list = source; // pre-sorted
+        } else {
+            list = new ArrayList<FluidEntry>(source != null ? source : Collections.<FluidEntry>emptyList());
+            if (!SORT_AMOUNT_DESC.equals(sort)) {
+                sortFluids(list, sort);
             }
-            if (!q.isEmpty()) {
+        }
+        if (search != null && !search.isEmpty()) {
+            String q = search.toLowerCase(Locale.ROOT);
+            List<FluidEntry> filtered = new ArrayList<FluidEntry>();
+            for (FluidEntry fluid : list) {
+                if (fluid == null) continue;
                 String name = fluid.fluidName != null ? fluid.fluidName.toLowerCase(Locale.ROOT) : "";
-                if (!name.contains(q)) {
-                    continue;
+                if (name.contains(q)) {
+                    filtered.add(fluid);
                 }
             }
-            list.add(fluid);
+            return filtered;
         }
-        sortFluids(list, sort);
         return list;
     }
 
     private static List<EssentiaEntry> filterSortEssentia(List<EssentiaEntry> source, String search, String sort) {
-        List<EssentiaEntry> list = new ArrayList<EssentiaEntry>();
-        if (source == null) {
-            return list;
-        }
-        String q = search.toLowerCase(Locale.ROOT);
-        for (EssentiaEntry entry : source) {
-            if (entry == null) {
-                continue;
+        List<EssentiaEntry> list;
+        if (SORT_AMOUNT_DESC.equals(sort) && (search == null || search.isEmpty())) {
+            list = source;
+        } else {
+            list = new ArrayList<EssentiaEntry>(source != null ? source : Collections.<EssentiaEntry>emptyList());
+            if (!SORT_AMOUNT_DESC.equals(sort)) {
+                sortEssentia(list, sort);
             }
-            if (!q.isEmpty()) {
+        }
+        if (search != null && !search.isEmpty()) {
+            String q = search.toLowerCase(Locale.ROOT);
+            List<EssentiaEntry> filtered = new ArrayList<EssentiaEntry>();
+            for (EssentiaEntry entry : list) {
+                if (entry == null) continue;
                 String aspect = entry.aspect != null ? entry.aspect.toLowerCase(Locale.ROOT) : "";
-                if (!aspect.contains(q)) {
-                    continue;
+                if (aspect.contains(q)) {
+                    filtered.add(entry);
                 }
             }
-            list.add(entry);
+            return filtered;
         }
-        sortEssentia(list, sort);
         return list;
     }
 

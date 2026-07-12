@@ -360,6 +360,9 @@ public class SnapshotScheduler {
             public void onResult(Object dto) {
                 if (dto != null) {
                     snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
+                } else {
+                    // storage unchanged — keep stale data alive by bumping the timestamp
+                    snapshotCache.markRefresh(playerUuid, networkId, TYPE_STORAGE);
                 }
             }
         });

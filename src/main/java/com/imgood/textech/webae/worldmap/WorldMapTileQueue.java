@@ -331,9 +331,11 @@ public final class WorldMapTileQueue {
                     next.chunkZ,
                     next.layer);
 
-            // Pre-load the padded region on the main thread so worker threads
-            // never call loadChunk — they only use chunkIfLoaded() which is thread-safe.
-            WorldMapRenderSupport.preloadChunkRegion(
+            // Pre-load chunk references for the padded region on the main thread
+            // without triggering synchronous chunk loads. Worker threads use
+            // chunkIfLoaded() which returns null for unloaded chunks — rendering
+            // will produce empty tiles that will be retried when the chunk loads naturally.
+            WorldMapRenderSupport.preloadChunkRegionIfLoaded(
                 next.dim,
                 next.chunkX,
                 next.chunkZ,

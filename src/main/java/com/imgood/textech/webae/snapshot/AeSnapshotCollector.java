@@ -33,10 +33,21 @@ import appeng.api.storage.data.IAEItemStack;
  * All AE2 operations must run on the server thread.
  * HTTP handlers call {@link #collectBlocking(String, int, long)} which enqueues
  * via HandlerTick and waits with timeout for the result.
+ *
+ * <p>Storage fingerprints are tracked per (ownerUuid:networkId) so that
+ * unchanged networks skip the expensive DTO-building pass. When the
+ * fingerprint matches the previous collection, {@code collect()} returns
+ * {@code null} to signal &quot;no change needed&quot; — the scheduler reuses
+ * the cached snapshot and only bumps its timestamp via
+ * {@link com.imgood.textech.webae.cache.SnapshotCache#markRefresh}.</p>
  */
 public class AeSnapshotCollector {
 
     private static final Set<String> KNOWN_ASPECTS = buildKnownAspects();
+
+    /** Lightweight content fingerprint per (ownerUuid:networkId). */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Long> storageFingerprints =
+        new java.util.concurrent.ConcurrentHashMap<String, Long>();
 
     private static Set<String> buildKnownAspects() {
         Set<String> set = new HashSet<String>();
@@ -92,6 +103,15 @@ public class AeSnapshotCollector {
             return emptyDto(networkId);
         }
         NetworkGroup group = groups.get(networkId);
+
+        // Quick fingerprint check: skip expensive DTO building when storage is unchanged.
+        final String fpKey = ownerUuid + ":" + networkId;
+        long fp = computeStorageFingerprint(group);
+        Long prevFp = storageFingerprints.get(fpKey);
+        if (prevFp != null && prevFp.longValue() == fp && fp != 0L) {
+            return null; // unchanged — scheduler keeps cached snapshot alive via markRefresh
+        }
+
         StorageDto dto = new StorageDto();
         dto.networkId = networkId;
         dto.timestamp = System.currentTimeMillis();
@@ -108,7 +128,86 @@ public class AeSnapshotCollector {
         if (group.craftingLink != null) {
             collectCpus(group.craftingLink, dto, group);
         }
+        storageFingerprints.put(fpKey, Long.valueOf(fp));
         return dto;
+    }
+
+    /**
+     * Compute a lightweight content fingerprint from the AE storage grid.
+     * This is O(n) in the number of distinct items but avoids expensive per-item
+     * operations like {@code getDisplayName()} and {@code itemRegistry.getNameForObject()}.
+     * The fingerprint covers items, fluids, and CPU status.
+     */
+    private static long computeStorageFingerprint(NetworkGroup group) {
+        long fp = 0;
+        if (group.storageLink != null) {
+            try {
+                IGridNode node = ((IGridHost) group.storageLink).getGridNode(ForgeDirection.UNKNOWN);
+                if (node != null && node.getGrid() != null) {
+                    IStorageGrid sg = node.getGrid().getCache(IStorageGrid.class);
+                    if (sg != null) {
+                        // Items fingerprint: count + total amount + hash of first 20 items
+                        int itemCount = 0;
+                        long itemTotal = 0;
+                        long itemHash = 0;
+                        for (IAEItemStack stored : sg.getItemInventory().getStorageList()) {
+                            if (stored == null) continue;
+                            itemCount++;
+                            long amount = stored.getStackSize();
+                            itemTotal += amount;
+                            if (itemCount <= 20) {
+                                ItemStack stack = stored.getItemStack();
+                                if (stack != null && stack.getItem() != null) {
+                                    itemHash = itemHash * 31
+                                        + (stack.getItem().hashCode() ^ stack.getItemDamage());
+                                    itemHash ^= amount;
+                                }
+                            }
+                        }
+                        fp ^= ((long) itemCount << 48) ^ (itemTotal << 16) ^ itemHash;
+
+                        // Fluids fingerprint: count + total amount
+                        int fluidCount = 0;
+                        long fluidTotal = 0;
+                        long fluidHash = 0;
+                        for (IAEFluidStack stored : sg.getFluidInventory().getStorageList()) {
+                            if (stored == null) continue;
+                            fluidCount++;
+                            fluidTotal += stored.getStackSize();
+                            if (fluidCount <= 10) {
+                                net.minecraftforge.fluids.FluidStack fs = stored.getFluidStack();
+                                if (fs != null && fs.getFluid() != null) {
+                                    fluidHash = fluidHash * 31
+                                        + fs.getFluid().hashCode();
+                                    fluidHash ^= stored.getStackSize();
+                                }
+                            }
+                        }
+                        fp ^= ((long) fluidCount << 40) ^ (fluidTotal << 8) ^ fluidHash;
+                    }
+                }
+            } catch (Exception ignored) {
+                return 0L; // force full collect on error
+            }
+        }
+        if (group.craftingLink != null) {
+            try {
+                group.craftingLink.updateCraftingStats();
+                List<TileEntityAdvanceNetworkLink.CraftingCpuSnapshot> snaps = group.craftingLink.getCpuSnapshots();
+                long cpuFp = 0;
+                for (int i = 0; i < Math.min(snaps.size(), 8); i++) {
+                    TileEntityAdvanceNetworkLink.CraftingCpuSnapshot snap = snaps.get(i);
+                    cpuFp = cpuFp * 31 + (snap.busy ? 1 : 0);
+                    cpuFp = cpuFp * 31 + snap.startItems;
+                    cpuFp = cpuFp * 31 + snap.remainingItems;
+                    if (snap.name != null) cpuFp = cpuFp * 31 + snap.name.hashCode();
+                }
+                fp ^= (cpuFp << 4) ^ snaps.size();
+            } catch (Exception ignored) {
+                return 0L;
+            }
+        }
+        return fp;
     }
 
     /**
@@ -131,6 +230,7 @@ public class AeSnapshotCollector {
 
     /**
      * Blocking collect for HTTP handlers. Enqueues on server thread and waits up to timeoutMs.
+     * Returns stale cached data when the storage fingerprint is unchanged.
      */
     public static StorageDto collectBlocking(String ownerUuid, int networkId, long timeoutMs) {
         final StorageDto[] holder = new StorageDto[1];
@@ -140,7 +240,13 @@ public class AeSnapshotCollector {
             @Override
             public void run() {
                 try {
-                    holder[0] = collect(ownerUuid, networkId);
+                    StorageDto result = collect(ownerUuid, networkId);
+                    if (result == null) {
+                        // storage unchanged — return stale cache if available
+                        result = com.imgood.textech.webae.cache.SnapshotCache.instance()
+                            .getStale(ownerUuid, networkId, "storage");
+                    }
+                    holder[0] = result;
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG.error("[WebAE] Snapshot collection failed", t);
                     holder[0] = null;
@@ -242,6 +348,17 @@ public class AeSnapshotCollector {
                 items.add(new ItemEntry(itemId, stack.getDisplayName(), regName, meta, stored.getStackSize(), nbtHash));
             }
             dto.items = items;
+            // Pre-sort by amount descending so paginated reads can skip re-sorting.
+            java.util.Collections.sort(items, new java.util.Comparator<ItemEntry>() {
+                @Override
+                public int compare(ItemEntry a, ItemEntry b) {
+                    int c = Long.compare(b.amount, a.amount);
+                    if (c != 0) return c;
+                    String na = a.displayName != null ? a.displayName : "";
+                    String nb = b.displayName != null ? b.displayName : "";
+                    return na.compareToIgnoreCase(nb);
+                }
+            });
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to access storage grid for items", e);
         }
@@ -268,6 +385,19 @@ public class AeSnapshotCollector {
                         stored.getStackSize()));
             }
             dto.fluids = fluids;
+            java.util.Collections.sort(fluids, new java.util.Comparator<FluidEntry>() {
+                @Override
+                public int compare(FluidEntry a, FluidEntry b) {
+                    int c = Long.compare(b.amount, a.amount);
+                    if (c != 0) return c;
+                    return safeStrCmp(a.fluidName, b.fluidName);
+                }
+                private int safeStrCmp(String sa, String sb) {
+                    if (sa == null) sa = "";
+                    if (sb == null) sb = "";
+                    return sa.compareToIgnoreCase(sb);
+                }
+            });
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to access storage grid for fluids", e);
         }
@@ -300,6 +430,16 @@ public class AeSnapshotCollector {
                 }
             }
             dto.essentia = essentias;
+            java.util.Collections.sort(essentias, new java.util.Comparator<EssentiaEntry>() {
+                @Override
+                public int compare(EssentiaEntry a, EssentiaEntry b) {
+                    int c = Long.compare(b.amount, a.amount);
+                    if (c != 0) return c;
+                    String sa = a.aspect != null ? a.aspect : "";
+                    String sb = b.aspect != null ? b.aspect : "";
+                    return sa.compareToIgnoreCase(sb);
+                }
+            });
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to access storage grid for essentia", e);
         }

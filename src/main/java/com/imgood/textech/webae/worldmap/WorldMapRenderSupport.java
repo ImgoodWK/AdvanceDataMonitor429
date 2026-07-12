@@ -113,7 +113,11 @@ public final class WorldMapRenderSupport {
     /**
      * Pre-loads a padded region of chunks on the main thread so worker threads always
      * find them via {@link #chunkIfLoaded}. The padding must match {@code Config.webWorldMapChunkPadding}.
+     * <p>
+     * ⚠️ Deprecated for main-thread use — prefer {@link #preloadChunkRegionIfLoaded} to avoid
+     * triggering synchronous chunk generation on the server tick.
      */
+    @Deprecated
     public static void preloadChunkRegion(int dim, int centerChunkX, int centerChunkZ, int padding) {
         WorldServer world = worldForDim(dim);
         if (world == null) {
@@ -123,6 +127,29 @@ public final class WorldMapRenderSupport {
         for (int dz = -pad; dz <= pad; dz++) {
             for (int dx = -pad; dx <= pad; dx++) {
                 chunkFor(world, centerChunkX + dx, centerChunkZ + dz);
+            }
+        }
+    }
+
+    /**
+     * Pre-loads chunk references for a padded region without triggering chunk loads.
+     * Uses {@link #chunkIfLoaded} exclusively so worker threads can access loaded chunks
+     * via the returned {@link Chunk} references. Chunks that are not already loaded are
+     * silently skipped — rendering will produce empty tiles for them, and they will be
+     * retried when the chunk loads naturally.
+     * <p>
+     * This is the recommended method for use in {@code onServerTick()} to avoid
+     * synchronous chunk generation stalling the main server thread.
+     */
+    public static void preloadChunkRegionIfLoaded(int dim, int centerChunkX, int centerChunkZ, int padding) {
+        WorldServer world = worldForDim(dim);
+        if (world == null) {
+            return;
+        }
+        int pad = Math.max(0, Math.min(4, padding));
+        for (int dz = -pad; dz <= pad; dz++) {
+            for (int dx = -pad; dx <= pad; dx++) {
+                chunkIfLoaded(world, centerChunkX + dx, centerChunkZ + dz);
             }
         }
     }

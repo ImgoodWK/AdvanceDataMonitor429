@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
@@ -23,6 +26,7 @@ public class WebConsoleServer extends NanoHTTPD {
     private final String bindAddress;
     private final WebApiRouter apiRouter;
     private final WebAuthMiddleware authMiddleware;
+    private ExecutorService httpExecutor;
 
     public WebConsoleServer() {
         super(Config.webConsoleBindAddress, Config.webConsolePort);
@@ -34,6 +38,41 @@ public class WebConsoleServer extends NanoHTTPD {
             .setSnapshotCache(SnapshotCache.instance());
         NetworkMetricSampler.getInstance()
             .setSnapshotCache(SnapshotCache.instance());
+        initThreadPool();
+    }
+
+    /**
+     * Replace NanoHTTPD's default per-request thread with a bounded thread pool.
+     * Without this, a burst of concurrent WebAE API requests would create one
+     * daemon thread per request, wasting memory and adding GC pressure.
+     */
+    private void initThreadPool() {
+        final int poolSize = Math.max(4, Runtime.getRuntime().availableProcessors());
+        final AtomicInteger counter = new AtomicInteger(0);
+        httpExecutor = Executors.newFixedThreadPool(poolSize, new java.util.concurrent.ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, "WebAE-HTTP-" + counter.getAndIncrement());
+                t.setDaemon(true);
+                return t;
+            }
+        });
+        setAsyncRunner(new AsyncRunner() {
+            @Override
+            public void closeAll() {
+                httpExecutor.shutdownNow();
+            }
+
+            @Override
+            public void closed(ClientHandler clientHandler) {
+                // no-op: thread pooling handles cleanup internally
+            }
+
+            @Override
+            public void exec(ClientHandler clientHandler) {
+                httpExecutor.execute(clientHandler);
+            }
+        });
     }
 
     public void startServer() {

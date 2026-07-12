@@ -60,7 +60,14 @@ public final class ServerHealthSampler {
             }
         }
         lastTickMs = now;
+    }
 
+    /**
+     * Called at a reduced cadence (e.g. every 2 ticks) to collect samples
+     * without adding a synchronized call every single tick.
+     */
+    public synchronized void collectSample() {
+        long now = System.currentTimeMillis();
         if (now - lastSampleMs < SAMPLE_INTERVAL_MS) {
             return;
         }

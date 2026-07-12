@@ -60,6 +60,9 @@ public class OrderHandler {
 
     private static final Map<String, OrderTrackEntry> activeOrders = new ConcurrentHashMap<String, OrderTrackEntry>();
 
+    /** Async pending results: main-thread task writes JSON here, HTTP poller reads it. */
+    private static final Map<String, String> asyncResults = new ConcurrentHashMap<String, String>();
+
     private static final LinkedList<OrderStatus> historyOrders = new LinkedList<OrderStatus>();
 
     /** Active (non-completed) craft orders for OC summary and monitoring. */
@@ -169,9 +172,21 @@ public class OrderHandler {
             .substring(0, 8);
         final long now = System.currentTimeMillis();
         final int networkId = req.networkId;
-        final String[] resultHolder = new String[1];
-        final CountDownLatch latch = new CountDownLatch(1);
 
+        // Pre-register a calculating entry so status polls pick it up immediately.
+        OrderTrackEntry preEntry = new OrderTrackEntry();
+        preEntry.jobId = jobId;
+        preEntry.playerUuid = playerUuid;
+        preEntry.networkId = networkId;
+        preEntry.itemName = req.itemName != null ? req.itemName : (patternId != null ? patternId : "calculating");
+        preEntry.amount = req.amount;
+        preEntry.patternId = patternId;
+        preEntry.submittedAt = now;
+        preEntry.cpuName = cpuName;
+        preEntry.cpuInfo = WebAeOrderProgressService.snapshotCpuInfo(playerUuid, networkId, cpuName);
+        activeOrders.put(jobId, preEntry);
+
+        // Enqueue main-thread work without blocking the HTTP thread.
         HandlerTick.enqueueServerTask(new Runnable() {
 
             @Override
@@ -179,37 +194,32 @@ public class OrderHandler {
                 try {
                     EntityPlayerMP player = WebAeOwnerContext.getOwnerPlayerOrFake(playerUuid);
                     if (player == null) {
-                        resultHolder[0] = GSON.toJson(fail("Owner network context unavailable"));
+                        asyncResults.put(jobId, GSON.toJson(fail("Owner network context unavailable")));
                         return;
                     }
                     CraftingCandidate candidate;
                     if (patternId != null) {
                         candidate = resolvePatternCandidate(patternId, req.amount);
                         if (candidate == null) {
-                            resultHolder[0] = GSON.toJson(fail("Cannot decode pattern: " + patternId));
+                            asyncResults.put(jobId, GSON.toJson(fail("Cannot decode pattern: " + patternId)));
                             return;
                         }
                     } else {
                         List<CraftingCandidate> candidates = WebAeCraftService
                             .craftingCandidates(playerUuid, networkId, rawText, req.itemName, req.amount);
                         if (candidates == null || candidates.isEmpty()) {
-                            resultHolder[0] = GSON.toJson(fail("No craftable item found for: " + req.itemName));
+                            asyncResults.put(jobId, GSON.toJson(fail("No craftable item found for: " + req.itemName)));
                             return;
                         }
                         candidate = candidates.get(0);
                     }
 
-                    OrderTrackEntry entry = new OrderTrackEntry();
-                    entry.jobId = jobId;
-                    entry.playerUuid = playerUuid;
-                    entry.networkId = networkId;
+                    OrderTrackEntry entry = activeOrders.get(jobId);
+                    if (entry == null) {
+                        entry = preEntry;
+                        activeOrders.put(jobId, entry);
+                    }
                     entry.itemName = candidate.displayName;
-                    entry.amount = req.amount;
-                    entry.patternId = patternId;
-                    entry.submittedAt = now;
-                    entry.cpuName = cpuName;
-                    entry.cpuInfo = WebAeOrderProgressService.snapshotCpuInfo(playerUuid, networkId, cpuName);
-                    activeOrders.put(jobId, entry);
 
                     CraftSubmitHooks hooks = new CraftSubmitHooks() {
 
@@ -239,7 +249,7 @@ public class OrderHandler {
                         activeOrders.remove(jobId);
                         OrderResult or = fail(craftResult != null ? craftResult.message : "submit failed");
                         or.craftJobId = "";
-                        resultHolder[0] = GSON.toJson(or);
+                        asyncResults.put(jobId, GSON.toJson(or));
                         return;
                     }
 
@@ -248,27 +258,18 @@ public class OrderHandler {
                     or.craftJobId = jobId;
                     or.message = craftResult.message;
                     or.estimatedTime = -1;
-                    resultHolder[0] = GSON.toJson(or);
+                    asyncResults.put(jobId, GSON.toJson(or));
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG.error("[WebAE] Order submit failed", t);
-                    resultHolder[0] = GSON.toJson(fail("Internal error: " + t.getMessage()));
-                } finally {
-                    latch.countDown();
+                    asyncResults.put(jobId, GSON.toJson(fail("Internal error: " + t.getMessage())));
                 }
             }
         });
 
-        try {
-            if (latch.await(MAIN_THREAD_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                return jsonResponse(NanoHTTPD.Response.Status.OK, resultHolder[0]);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread()
-                .interrupt();
-        }
-        return jsonResponse(
-            NanoHTTPD.Response.Status.INTERNAL_ERROR,
-            GSON.toJson(fail("Order submission timed out")));
+        // Return immediately with 202 + jobId; client polls /api/order/status?jobId=xxx
+        String pendingJson = "{\"success\":true,\"craftJobId\":\"" + jobId
+            + "\",\"message\":\"calculating\",\"estimatedTime\":-1,\"status\":\"calculating\"}";
+        return jsonResponse(NanoHTTPD.Response.Status.ACCEPTED, pendingJson);
     }
 
     private static NanoHTTPD.Response handleBatch(String body, String playerUuid) {
@@ -287,8 +288,28 @@ public class OrderHandler {
             return jsonResponse(NanoHTTPD.Response.Status.BAD_REQUEST, GSON.toJson(fail("Missing 'items' array")));
         }
         final String cpuName = normalizeCpuName(req.cpuName);
-        final String[] resultHolder = new String[1];
-        final CountDownLatch latch = new CountDownLatch(1);
+        final String batchJobId = "batch-" + UUID.randomUUID()
+            .toString()
+            .substring(0, 8);
+
+        // Pre-register simple entries for each item so status polls work.
+        final long now = System.currentTimeMillis();
+        for (int i = 0; i < req.items.size(); i++) {
+            OrderBatchRequest.OrderItem item = req.items.get(i);
+            String subJobId = batchJobId + "-" + i;
+            OrderTrackEntry preEntry = new OrderTrackEntry();
+            preEntry.jobId = subJobId;
+            preEntry.playerUuid = playerUuid;
+            preEntry.networkId = req.networkId;
+            preEntry.itemName = item.itemName != null ? item.itemName
+                : (item.patternId != null ? item.patternId : "calculating");
+            preEntry.amount = Math.max(1, item.amount);
+            preEntry.patternId = item.patternId != null && !item.patternId.isEmpty() ? item.patternId : null;
+            preEntry.submittedAt = now;
+            preEntry.cpuName = cpuName;
+            preEntry.cpuInfo = WebAeOrderProgressService.snapshotCpuInfo(playerUuid, req.networkId, cpuName);
+            activeOrders.put(subJobId, preEntry);
+        }
 
         HandlerTick.enqueueServerTask(new Runnable() {
 
@@ -297,7 +318,7 @@ public class OrderHandler {
                 try {
                     EntityPlayerMP player = WebAeOwnerContext.getOwnerPlayerOrFake(playerUuid);
                     if (player == null) {
-                        resultHolder[0] = GSON.toJson(fail("Owner network context unavailable"));
+                        asyncResults.put(batchJobId, GSON.toJson(fail("Owner network context unavailable")));
                         return;
                     }
                     List<AssistantOrderLine> lines = new ArrayList<AssistantOrderLine>();
@@ -309,7 +330,8 @@ public class OrderHandler {
                         if (item.patternId != null && !item.patternId.isEmpty()) {
                             CraftingCandidate patternCandidate = resolvePatternCandidate(item.patternId, amt);
                             if (patternCandidate == null) {
-                                resultHolder[0] = GSON.toJson(fail("Cannot decode pattern: " + item.patternId));
+                                asyncResults.put(batchJobId,
+                                    GSON.toJson(fail("Cannot decode pattern: " + item.patternId)));
                                 return;
                             }
                             candidates = new ArrayList<CraftingCandidate>();
@@ -318,8 +340,8 @@ public class OrderHandler {
                         } else {
                             if (item.itemName == null || item.itemName.trim()
                                 .isEmpty()) {
-                                resultHolder[0] = GSON
-                                    .toJson(fail("Item #" + (i + 1) + " missing itemName and patternId"));
+                                asyncResults.put(batchJobId,
+                                    GSON.toJson(fail("Item #" + (i + 1) + " missing itemName and patternId")));
                                 return;
                             }
                             candidates = WebAeCraftService
@@ -332,18 +354,15 @@ public class OrderHandler {
                     }
 
                     List<OrderResult> results = new ArrayList<OrderResult>();
-                    long now = System.currentTimeMillis();
                     OrderStatus.CpuInfo cpuInfo = WebAeOrderProgressService
                         .snapshotCpuInfo(playerUuid, req.networkId, cpuName);
 
                     for (int i = 0; i < lines.size(); i++) {
-                        final String jobId = UUID.randomUUID()
-                            .toString()
-                            .substring(0, 8);
+                        final String subJobId = batchJobId + "-" + i;
                         AssistantOrderLine line = lines.get(i);
                         CraftingCandidate candidate = line.selectedOrFirstCandidate();
                         OrderResult or = new OrderResult();
-                        or.craftJobId = jobId;
+                        or.craftJobId = subJobId;
                         or.estimatedTime = -1;
                         if (candidate == null) {
                             or.success = false;
@@ -351,30 +370,21 @@ public class OrderHandler {
                             results.add(or);
                             continue;
                         }
-                        OrderTrackEntry entry = new OrderTrackEntry();
-                        entry.jobId = jobId;
-                        entry.playerUuid = playerUuid;
-                        entry.networkId = req.networkId;
-                        entry.itemName = candidate.displayName;
-                        entry.amount = line.amount;
-                        OrderBatchRequest.OrderItem srcItem = req.items.get(i);
-                        entry.patternId = srcItem.patternId != null && !srcItem.patternId.isEmpty() ? srcItem.patternId
-                            : null;
-                        entry.submittedAt = now;
-                        entry.cpuName = cpuName;
-                        entry.cpuInfo = cpuInfo;
-                        activeOrders.put(jobId, entry);
-
+                        OrderTrackEntry entry = activeOrders.get(subJobId);
+                        if (entry != null) {
+                            entry.itemName = candidate.displayName;
+                            entry.cpuInfo = cpuInfo;
+                        }
                         CraftSubmitHooks hooks = new CraftSubmitHooks() {
 
                             @Override
                             public void onSubmitted(ICraftingLink link, String craftingId, String resolvedCpuName) {
-                                OrderHandler.bindCraftingLink(jobId, link, craftingId, resolvedCpuName);
+                                OrderHandler.bindCraftingLink(subJobId, link, craftingId, resolvedCpuName);
                             }
 
                             @Override
                             public void onFailed(String reason) {
-                                OrderHandler.markFailed(jobId, reason);
+                                OrderHandler.markFailed(subJobId, reason);
                             }
                         };
                         CraftSubmitResult craftResult = WebAeCraftService.submitCraftTracked(
@@ -385,10 +395,10 @@ public class OrderHandler {
                             line.target,
                             "en_US",
                             cpuName,
-                            jobId,
+                            subJobId,
                             hooks);
                         if (craftResult == null || craftResult.failed || !craftResult.accepted) {
-                            activeOrders.remove(jobId);
+                            activeOrders.remove(subJobId);
                             or.success = false;
                             or.message = craftResult != null ? craftResult.message : "submit failed";
                             or.craftJobId = "";
@@ -399,25 +409,18 @@ public class OrderHandler {
                         or.message = craftResult.message;
                         results.add(or);
                     }
-                    resultHolder[0] = GSON.toJson(results);
+                    asyncResults.put(batchJobId, GSON.toJson(results));
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG.error("[WebAE] Batch order failed", t);
-                    resultHolder[0] = GSON.toJson(fail("Internal error: " + t.getMessage()));
-                } finally {
-                    latch.countDown();
+                    asyncResults.put(batchJobId, GSON.toJson(fail("Internal error: " + t.getMessage())));
                 }
             }
         });
 
-        try {
-            if (latch.await(MAIN_THREAD_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                return jsonResponse(NanoHTTPD.Response.Status.OK, resultHolder[0]);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread()
-                .interrupt();
-        }
-        return jsonResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, GSON.toJson(fail("Batch order timed out")));
+        // Return 202 immediately; client polls /api/order/status?jobId=<batchJobId>
+        String pendingJson = "{\"success\":true,\"craftJobId\":\"" + batchJobId
+            + "\",\"message\":\"calculating\",\"estimatedTime\":-1,\"status\":\"calculating\"}";
+        return jsonResponse(NanoHTTPD.Response.Status.ACCEPTED, pendingJson);
     }
 
     private static NanoHTTPD.Response handleStatus(Map<String, String> params, String playerUuid) {
@@ -427,6 +430,14 @@ public class OrderHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 GSON.toJson(fail("Missing 'jobId' parameter")));
         }
+
+        // Check async pending pool first (initial submit still on main thread).
+        String asyncJson = asyncResults.get(jobId);
+        if (asyncJson != null) {
+            asyncResults.remove(jobId);
+            return jsonResponse(NanoHTTPD.Response.Status.OK, asyncJson);
+        }
+
         OrderTrackEntry entry = activeOrders.get(jobId);
         if (entry == null) {
             OrderStatus status = findHistoryByJobId(jobId, playerUuid);

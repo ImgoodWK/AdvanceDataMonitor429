@@ -2,6 +2,7 @@ package com.imgood.textech.config;
 
 import net.minecraftforge.common.config.Configuration;
 
+import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.ConfigDescriptions;
 
@@ -147,6 +148,11 @@ public final class ConfigWebaeLoader {
             1,
             256,
             ConfigDescriptions.get("webConsole", "gtDefaultScanRadius"));
+        if (Config.webGtDefaultScanRadius > 8) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] gtDefaultScanRadius={} may cause high TPS overhead with many GT machines — ",
+                Config.webGtDefaultScanRadius);
+        }
         Config.webRefreshIntervalMs = configuration.getInt(
             "refreshIntervalMs",
             "webConsole",
@@ -154,6 +160,14 @@ public final class ConfigWebaeLoader {
             1000,
             60000,
             ConfigDescriptions.get("webConsole", "refreshIntervalMs"));
+        // Auto-migrate dangerously fast defaults to TPS-safe values
+        if (Config.webRefreshIntervalMs < 2000) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] refreshIntervalMs={} is too low for stable TPS — overriding to 5000 ms. "
+                    + "Update your config to avoid this warning.",
+                Config.webRefreshIntervalMs);
+            Config.webRefreshIntervalMs = 5000;
+        }
         Config.webGtRefreshIntervalMs = configuration.getInt(
             "gtRefreshIntervalMs",
             "webConsole",
@@ -161,6 +175,12 @@ public final class ConfigWebaeLoader {
             1000,
             60000,
             ConfigDescriptions.get("webConsole", "gtRefreshIntervalMs"));
+        if (Config.webGtRefreshIntervalMs < 5000) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] gtRefreshIntervalMs={} is too low for stable TPS — overriding to 20000 ms.",
+                Config.webGtRefreshIntervalMs);
+            Config.webGtRefreshIntervalMs = 20000;
+        }
         Config.webMaxNetworksDisplayed = configuration.getInt(
             "maxNetworksDisplayed",
             "webConsole",
@@ -258,6 +278,12 @@ public final class ConfigWebaeLoader {
             5000,
             300000,
             ConfigDescriptions.get("webConsole", "patternCacheTtlMs"));
+        if (Config.webPatternCacheTtlMs < 15000) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] patternCacheTtlMs={} is too low — overriding to 60000 ms.",
+                Config.webPatternCacheTtlMs);
+            Config.webPatternCacheTtlMs = 60000;
+        }
         Config.webTopologyEnabled = configuration.getBoolean(
             "topologyEnabled",
             "webConsole",
@@ -270,6 +296,12 @@ public final class ConfigWebaeLoader {
             1000,
             3600000,
             ConfigDescriptions.get("webConsole", "topologyCacheTtlMs"));
+        if (Config.webTopologyCacheTtlMs < 5000) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] topologyCacheTtlMs={} is too low — overriding to 30000 ms.",
+                Config.webTopologyCacheTtlMs);
+            Config.webTopologyCacheTtlMs = 30000;
+        }
         Config.webTopologySnapshotPersist = configuration.getBoolean(
             "topologySnapshotPersist",
             "webConsole",

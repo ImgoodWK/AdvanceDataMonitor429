@@ -141,7 +141,7 @@ public class Config {
     public static int webNeiDeepScanItemsPerTick = 0;
     /** IconMissingQueue dispatches per server tick. Default 8. */
     public static int webIconMissingDispatchPerTick = 8;
-    public static int webGtDefaultScanRadius = 16;
+    public static int webGtDefaultScanRadius = 8;
     public static int webPowerSampleWindowSeconds = 60;
     /** Network metric (item/fluid/CPU/GT counts) sample interval in ms. Default 10000, range 1000-60000. */
     public static int webMetricSampleIntervalMs = 10000;
@@ -157,10 +157,10 @@ public class Config {
     public static int webDashboardMaxFluidTracks = 16;
     /** Max CPU/GT entity history tracks per (player, network). Default 16, range 1-64. */
     public static int webDashboardMaxEntityTracks = 16;
-    /** Unified refresh interval (ms) for server collection and frontend polling. Default 1000, range 1000-60000. */
-    public static int webRefreshIntervalMs = 1000;
-    /** GT machine collection interval (ms). Default 10000, range 1000-60000. */
-    public static int webGtRefreshIntervalMs = 10000;
+    /** Unified refresh interval (ms) for server collection and frontend polling. Default 5000, range 1000-60000. */
+    public static int webRefreshIntervalMs = 5000;
+    /** GT machine collection interval (ms). Default 20000, range 1000-60000. */
+    public static int webGtRefreshIntervalMs = 20000;
     /** Maximum number of networks displayed simultaneously in the web console. Default 5, range 1-20. */
     public static int webMaxNetworksDisplayed = 5;
     /** Web auth token lifetime in hours. 0 = never expire. Default 0, range 0-8760. */
@@ -189,12 +189,12 @@ public class Config {
     public static int webPatternBrowsePageSize = 80;
     /** Maximum total patterns returned by browse API before truncation. Default 20000. */
     public static int webPatternBrowseMaxTotal = 20000;
-    /** TTL in ms for pattern browse cache per network. Default 30000. */
-    public static int webPatternCacheTtlMs = 30000;
+    /** TTL in ms for pattern browse cache per network. Default 60000. */
+    public static int webPatternCacheTtlMs = 60000;
     /** Whether the network topology API is enabled. Default true. */
     public static boolean webTopologyEnabled = true;
-    /** TTL in ms for manual topology snapshot cooldown (logical/spatial). Default 10000 (10 s). */
-    public static int webTopologyCacheTtlMs = 10000;
+    /** TTL in ms for manual topology snapshot cooldown (logical/spatial). Default 30000 (30 s). */
+    public static int webTopologyCacheTtlMs = 30000;
     /** Persist topology snapshots to TeXTech/WebAE/topology/. Default true. */
     public static boolean webTopologySnapshotPersist = true;
     /** Optional Dynmap base URL for player location deep links (Phase 6.1). Empty = disabled. */

@@ -35,6 +35,8 @@ public class HandlerTick {
 
     private long lastOutput = 0;
     private long lastReminderScan = 0;
+    /** Rotating tick counter for subsystem staggering. */
+    private int tickCounter;
 
     public static void enqueueServerTask(Runnable task) {
         if (task != null) {
@@ -54,9 +56,11 @@ public class HandlerTick {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        tickCounter++;
         WebAePerfProfiler perf = WebAePerfProfiler.instance();
         long now = System.currentTimeMillis();
 
+        // --- Server task queue (process every tick) ---
         long t0 = perf.begin();
         Runnable task;
         int processed = 0;
@@ -67,52 +71,59 @@ public class HandlerTick {
         perf.setLastTasksProcessed(processed);
         perf.endPhase(WebAePerfProfiler.PHASE_SERVER_TASKS, t0);
 
+        // --- Misc subsystems: staggered across ticks ---
         long tMisc = perf.begin();
         scanPlanReminders();
         AssistantCraftJobManager.instance()
             .tickPendingJobs();
         com.imgood.textech.items.cell.DataLoomWeaveScheduler.onServerTick();
-        com.imgood.textech.handler.HandlerWebPlayerTracker.onServerTick(now);
+        // Player tracker: every 2 ticks; health MSPT tracking every tick, sample collection every 2
+        if ((tickCounter & 1) == 0) {
+            com.imgood.textech.handler.HandlerWebPlayerTracker.onServerTick(now);
+            com.imgood.textech.webae.health.ServerHealthSampler.instance()
+                .collectSample();
+        }
         com.imgood.textech.webae.health.ServerHealthSampler.instance()
-            .onServerTick();
+            .onServerTick(); // lightweight MSPT tracking every tick
         com.imgood.textech.webae.events.EventStreamHub.instance()
             .tickHeartbeats();
         com.imgood.textech.webae.chat.ChatMessageStore.instance()
             .tickSave(now);
         perf.endPhase(WebAePerfProfiler.PHASE_MISC, tMisc);
 
+        // --- Snapshot scheduler: every tick (internal spread logic) ---
         long t1 = perf.begin();
         com.imgood.textech.webae.cache.SnapshotScheduler.onServerTick();
         perf.endPhase(WebAePerfProfiler.PHASE_SNAPSHOT_SCHEDULER, t1);
 
-        long t2 = perf.begin();
-        com.imgood.textech.webae.power.PowerSampler.getInstance()
-            .onServerTick();
-        perf.endPhase(WebAePerfProfiler.PHASE_POWER_SAMPLER, t2);
+        // --- Power / metrics / alerts / icons: every 4 ticks (~250ms spacing) ---
+        int phase = tickCounter & 3;
+        long tGroup = perf.begin();
+        if (phase == 0) {
+            com.imgood.textech.webae.power.PowerSampler.getInstance()
+                .onServerTick();
+            com.imgood.textech.webae.metric.NetworkMetricSampler.getInstance()
+                .onServerTick();
+        }
+        if (phase == 2) {
+            com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
+            com.imgood.textech.webae.icon.IconMissingQueue.instance()
+                .onServerTick();
+        }
+        perf.endPhase(WebAePerfProfiler.PHASE_METRIC_SAMPLER, tGroup);
 
-        long t3 = perf.begin();
-        com.imgood.textech.webae.metric.NetworkMetricSampler.getInstance()
-            .onServerTick();
-        perf.endPhase(WebAePerfProfiler.PHASE_METRIC_SAMPLER, t3);
+        // --- World map: every 2 ticks ---
+        if ((tickCounter & 1) == 0) {
+            long t6 = perf.begin();
+            com.imgood.textech.webae.worldmap.WorldMapTileQueue.instance()
+                .onServerTick();
+            perf.endPhase(WebAePerfProfiler.PHASE_WORLD_MAP_TILE, t6);
 
-        long t4 = perf.begin();
-        com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
-        perf.endPhase(WebAePerfProfiler.PHASE_ALERT_ENGINE, t4);
-
-        long t5 = perf.begin();
-        com.imgood.textech.webae.icon.IconMissingQueue.instance()
-            .onServerTick();
-        perf.endPhase(WebAePerfProfiler.PHASE_ICON_QUEUE, t5);
-
-        long t6 = perf.begin();
-        com.imgood.textech.webae.worldmap.WorldMapTileQueue.instance()
-            .onServerTick();
-        perf.endPhase(WebAePerfProfiler.PHASE_WORLD_MAP_TILE, t6);
-
-        long t7 = perf.begin();
-        com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator.instance()
-            .onServerTick();
-        perf.endPhase(WebAePerfProfiler.PHASE_WORLD_MAP_CAPTURE, t7);
+            long t7 = perf.begin();
+            com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator.instance()
+                .onServerTick();
+            perf.endPhase(WebAePerfProfiler.PHASE_WORLD_MAP_CAPTURE, t7);
+        }
 
         perf.onTickEnd();
     }

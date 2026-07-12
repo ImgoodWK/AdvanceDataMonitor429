@@ -1411,6 +1411,15 @@ export const en: Record<string, string> = {
   diagAvgMs: 'Avg ms',
   diagMaxMs: 'Max ms',
   diagCount: 'Count',
+  diagCumulativeCount: 'Cumulative count',
+  diagCumulativeCountTip:
+    'Total samples since server start, not per-second rate. At 20 TPS, ~60 added per 3s poll.',
+  diagMsptShare: 'MSPT share',
+  diagMsptShareTip: 'Average phase time as a percentage of MSPT — indicates TPS impact',
+  diagHttpNoTpsImpact:
+    'HTTP requests run on a separate thread and do not affect game TPS; see Tick phase timings above for TPS impact',
+  diagRouteCount: 'Requests',
+  pageDataStale: 'Data stale for {n}s, refreshing…',
   diagRoute: 'Route',
   diagTotalMs: 'Total ms',
   diagTime: 'Time',

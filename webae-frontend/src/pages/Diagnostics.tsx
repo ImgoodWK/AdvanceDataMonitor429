@@ -1,5 +1,5 @@
-import { Card, Col, Row, Spin, Table, Tag, Typography } from 'antd';
-import { DashboardOutlined } from '@ant-design/icons';
+import { Alert, Card, Col, Row, Spin, Table, Tag, Tooltip, Typography } from 'antd';
+import { DashboardOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { PageShell } from '@/components/Layout/PageShell';
 import { useServerDiagnostics } from '@/hooks/useServerDiagnostics';
@@ -8,6 +8,8 @@ import { formatTime } from '@/utils/format';
 import type { PerfPhaseView, PerfSlowHttpEntry } from '@/types/dto';
 
 const { Text, Paragraph } = Typography;
+
+const DIAGNOSTICS_POLL_MS = 3000;
 
 const PHASE_ORDER = [
   'serverTasks',
@@ -43,12 +45,80 @@ function msTag(ms: number): ReactNode {
   return <Tag color={color}>{ms.toFixed(1)} ms</Tag>;
 }
 
+function msptShareTag(avgMs: number, mspt: number): ReactNode {
+  if (mspt <= 0 || avgMs <= 0) return <Text type="secondary">—</Text>;
+  const pct = (avgMs / mspt) * 100;
+  let color: string = 'default';
+  if (pct >= 20) color = 'error';
+  else if (pct >= 10) color = 'warning';
+  else if (pct > 0) color = 'success';
+  return (
+    <Tooltip title={`${avgMs.toFixed(1)} ms / ${mspt.toFixed(1)} ms`}>
+      <Tag color={color}>{pct.toFixed(1)}%</Tag>
+    </Tooltip>
+  );
+}
+
+function cumulativeCountTitle(t: (key: string) => string): ReactNode {
+  return (
+    <Tooltip title={t('diagCumulativeCountTip')}>
+      <span>
+        {t('diagCumulativeCount')} <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+      </span>
+    </Tooltip>
+  );
+}
+
 export function DiagnosticsPage() {
   const { t } = useI18n();
-  const { data, loading, refresh } = useServerDiagnostics(3000);
+  const { data, loading, refresh } = useServerDiagnostics(DIAGNOSTICS_POLL_MS);
 
   const phaseData = phaseRows(data?.phases);
   const collectData = phaseRows(data?.collects);
+  const mspt = data?.mspt ?? 0;
+
+  const phaseColumns = [
+    { title: t('diagPhase'), dataIndex: 'key' },
+    {
+      title: t('diagLastMs'),
+      dataIndex: 'lastMs',
+      render: (v: number) => msTag(v),
+    },
+    {
+      title: t('diagAvgMs'),
+      dataIndex: 'avgMs',
+      render: (v: number) => `${Number(v).toFixed(1)}`,
+    },
+    { title: t('diagMaxMs'), dataIndex: 'maxMs' },
+    {
+      title: (
+        <Tooltip title={t('diagMsptShareTip')}>
+          <span>
+            {t('diagMsptShare')} <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+          </span>
+        </Tooltip>
+      ),
+      key: 'msptShare',
+      render: (_: unknown, row: PerfPhaseView) => msptShareTag(row.avgMs, mspt),
+    },
+    { title: cumulativeCountTitle(t), dataIndex: 'count' },
+  ];
+
+  const collectColumns = [
+    { title: t('diagPhase'), dataIndex: 'key' },
+    {
+      title: t('diagLastMs'),
+      dataIndex: 'lastMs',
+      render: (v: number) => msTag(v),
+    },
+    {
+      title: t('diagAvgMs'),
+      dataIndex: 'avgMs',
+      render: (v: number) => `${Number(v).toFixed(1)}`,
+    },
+    { title: t('diagMaxMs'), dataIndex: 'maxMs' },
+    { title: cumulativeCountTitle(t), dataIndex: 'count' },
+  ];
 
   return (
     <PageShell
@@ -126,21 +196,7 @@ export function DiagnosticsPage() {
             pagination={false}
             rowKey="key"
             dataSource={phaseData}
-            columns={[
-              { title: t('diagPhase'), dataIndex: 'key' },
-              {
-                title: t('diagLastMs'),
-                dataIndex: 'lastMs',
-                render: (v: number) => msTag(v),
-              },
-              {
-                title: t('diagAvgMs'),
-                dataIndex: 'avgMs',
-                render: (v: number) => `${Number(v).toFixed(1)}`,
-              },
-              { title: t('diagMaxMs'), dataIndex: 'maxMs' },
-              { title: t('diagCount'), dataIndex: 'count' },
-            ]}
+            columns={phaseColumns}
           />
         </Card>
 
@@ -151,25 +207,17 @@ export function DiagnosticsPage() {
             rowKey="key"
             dataSource={collectData}
             locale={{ emptyText: t('diagNoData') }}
-            columns={[
-              { title: t('diagPhase'), dataIndex: 'key' },
-              {
-                title: t('diagLastMs'),
-                dataIndex: 'lastMs',
-                render: (v: number) => msTag(v),
-              },
-              {
-                title: t('diagAvgMs'),
-                dataIndex: 'avgMs',
-                render: (v: number) => `${Number(v).toFixed(1)}`,
-              },
-              { title: t('diagMaxMs'), dataIndex: 'maxMs' },
-              { title: t('diagCount'), dataIndex: 'count' },
-            ]}
+            columns={collectColumns}
           />
         </Card>
 
         <Card size="small" title={t('diagTopRoutes')} style={{ marginTop: 16 }}>
+          <Alert
+            type="info"
+            showIcon
+            message={t('diagHttpNoTpsImpact')}
+            style={{ marginBottom: 12 }}
+          />
           <Table
             size="small"
             pagination={false}
@@ -178,7 +226,7 @@ export function DiagnosticsPage() {
             locale={{ emptyText: t('diagNoData') }}
             columns={[
               { title: t('diagRoute'), dataIndex: 'route' },
-              { title: t('diagCount'), dataIndex: 'count' },
+              { title: t('diagRouteCount'), dataIndex: 'count' },
               {
                 title: t('diagAvgMs'),
                 dataIndex: 'avgMs',
