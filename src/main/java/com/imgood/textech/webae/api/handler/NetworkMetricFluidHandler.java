@@ -6,19 +6,19 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.imgood.textech.Config;
 import com.imgood.textech.webae.dto.NetworkMetricFluidHistoryDto;
 import com.imgood.textech.webae.metric.NetworkMetricSampler;
 
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * GET /api/network/metrics/fluids?network=&lt;id&gt;&amp;fluids=water,lava — per-fluid trend (Phase 3.1).
+ * GET /api/network/metrics/fluids?network=&lt;id&gt;&amp;fluids=water,lava — per-fluid trend.
  */
 public final class NetworkMetricFluidHandler {
 
     private static final Gson GSON = new GsonBuilder().serializeNulls()
         .create();
-    private static final int MAX_FLUIDS = 10;
 
     private NetworkMetricFluidHandler() {}
 
@@ -29,19 +29,21 @@ public final class NetworkMetricFluidHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'network' parameter\"}");
         }
-        List<String> fluidNames = parseFluids(params.get("fluids"));
+        int maxPerRequest = Math.max(1, Config.webDashboardMaxTracksPerWidget);
+        List<String> fluidNames = parseFluids(params.get("fluids"), maxPerRequest);
         if (fluidNames.isEmpty()) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
-                "{\"success\":false,\"message\":\"Missing 'fluids' parameter (comma-separated, max " + MAX_FLUIDS
+                "{\"success\":false,\"message\":\"Missing 'fluids' parameter (comma-separated, max " + maxPerRequest
                     + ")\"}");
         }
-        NetworkMetricSampler.getInstance()
-            .markActive(playerUuid, networkId);
-        NetworkMetricSampler.getInstance()
-            .registerTrackedFluids(playerUuid, networkId, fluidNames);
-        NetworkMetricFluidHistoryDto history = NetworkMetricSampler.getInstance()
-            .getFluidHistory(playerUuid, networkId);
+        NetworkMetricSampler sampler = NetworkMetricSampler.getInstance();
+        sampler.markActive(playerUuid, networkId);
+        String err = sampler.registerTrackedFluids(playerUuid, networkId, fluidNames);
+        if (err != null) {
+            return json(NanoHTTPD.Response.Status.BAD_REQUEST, "{\"success\":false,\"message\":" + GSON.toJson(err) + "}");
+        }
+        NetworkMetricFluidHistoryDto history = sampler.getFluidHistory(playerUuid, networkId);
         if (history == null) {
             history = new NetworkMetricFluidHistoryDto();
             history.networkId = networkId;
@@ -49,14 +51,14 @@ public final class NetworkMetricFluidHandler {
         return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"history\":" + GSON.toJson(history) + "}");
     }
 
-    private static List<String> parseFluids(String raw) {
+    private static List<String> parseFluids(String raw, int max) {
         List<String> out = new ArrayList<String>();
         if (raw == null || raw.trim()
             .isEmpty()) {
             return out;
         }
         String[] parts = raw.split(",");
-        for (int i = 0; i < parts.length && out.size() < MAX_FLUIDS; i++) {
+        for (int i = 0; i < parts.length && out.size() < max; i++) {
             String p = parts[i].trim();
             if (!p.isEmpty()) {
                 out.add(p);

@@ -43,11 +43,11 @@
 
 | 功能 | Legacy（2.8.x） | Native（2.9.0+） |
 |------|-----------------|-------------------|
-| 网络链接器 — 存储字节/类型统计 | GlodBlock 流体 handler 反射 | `StorageChannel.FLUIDS` + `ICellInventory` |
+| 高级网络链接器 — 存储字节/类型统计 | GlodBlock 流体 handler 反射 | `StorageChannel.FLUIDS` + `ICellInventory` |
 | AI 助手 — `QUERY_BYTES`、无限元件识别 | Legacy cell stats 适配器 | Native cell stats 适配器 |
 | AI 助手 — 样板流体详情 | AE2FC 反射 API | 优先 AE2 正式 API |
 | 数据编织元件 — 流体标记与 Workbench 分区 | `DataLoomFluidCellConfig` | `NativeDataLoomFluidCellConfig` |
-| 监视器 / 存储链接器 — 流体堆栈统计 | 同上 | 同上 |
+| 监视器 / 高级网络链接器 — 流体堆栈统计 | 同上 | 同上 |
 
 **不受 AE 版本影响的模组功能**（与 compat 无关）：挂索系统、高级计划器、语音助手、超能砂糖桔、星空剑、监视器图表/UI 等。
 
@@ -85,9 +85,9 @@
 
 初次发布有意不完整，与 GTNH 版本兼容无关：
 
-- **配方**：大量物品/方块尚未添加 GTNH 合成配方，需 NEI / 创造模式获取。
+- **配方**：核心监视器 / 高级网络链接器 / 映录器 / 存储链接元件 / 计划器 / 扫描器 / 次元口袋与部分升级卡 / 物质球解压器已有 GT Assembler 或 UHV 装配线配方（见玩家手册 §2.4）。挂索、编织元件、堆叠升级卡、战斗特殊物品等仍无内置配方，需 NEI / 创造 / 整合包脚本。
 - **材质**：部分物品使用程序化临时贴图，见 [临时材质清单.md](临时材质清单.md)。
-- **渲染**：合成链接器、存储链接器等方块 TESR 仍可能使用占位立方体（`USE_PLACEHOLDER_CUBE`），待 OBJ 模型接入。
+- **渲染**：高级网络链接器等方块 TESR 仍可能使用占位立方体（`USE_PLACEHOLDER_CUBE`），待 OBJ 模型完善。
 
 ---
 

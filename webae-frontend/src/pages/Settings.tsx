@@ -37,11 +37,14 @@ import {
   BellOutlined,
   CopyOutlined,
   UserAddOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { getApiClient } from '@/api/client';
-import { importLocalIconPackZip } from '@/utils/localIconPack';
+import { importLocalIconPackZip, SERVER_SYNC_PACK_NAME, setActiveLocalPack, syncServerIconPack } from '@/utils/localIconPack';
+import { fillMissingIconsFromServer } from '@/utils/iconPrefetch';
+import { getVisibleIconIds } from '@/utils/visibleIconRegistry';
 import {
   getLocalDebugFlag,
   setLocalDebugFlag,
@@ -54,6 +57,7 @@ import { formatNumber, formatTime, formatDuration, type NumberFormat } from '@/u
 import { PageShell } from '@/components/Layout/PageShell';
 import type { AppPreset } from '@/utils/presets';
 import { AlertsRulesEditor } from '@/components/settings/AlertsRulesEditor';
+import { SettingsBackupPanel } from '@/components/settings/SettingsBackupPanel';
 
 const { Text, Title } = Typography;
 
@@ -81,7 +85,10 @@ export function SettingsPage() {
     localIconPacks,
     refreshLocalIconPacks,
     iconCacheEnabled,
+    iconAutoSyncEnabled,
+    setIconAutoSyncEnabled,
     refreshIconPacks,
+    failedIcons,
     iconWikiEnabled,
     setIconWikiEnabled,
     token,
@@ -117,6 +124,8 @@ export function SettingsPage() {
   const [renameValue, setRenameValue] = useState('');
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [iconSyncLoading, setIconSyncLoading] = useState(false);
+  const [iconFillLoading, setIconFillLoading] = useState(false);
   // Debug flags: local override snapshot (re-read on each render via getLocalDebugFlag)
   const debugFeatures: DebugFeature[] = ['icons', 'chat', 'dashboard', 'synthesis', 'patterns'];
   const [debugTick, setDebugTick] = useState(0);
@@ -177,6 +186,70 @@ export function SettingsPage() {
       notify((e as Error).message || t('localIconPackImportFailed'), 'error');
     }
     return false;
+  };
+
+  const handleSyncServerIconPack = async () => {
+    if (!token || !iconCacheEnabled) {
+      notify(t('iconSyncNeedLogin'), 'warning');
+      return;
+    }
+    setIconSyncLoading(true);
+    try {
+      const result = await syncServerIconPack({
+        pack: iconPack || 'default',
+        mode: iconRenderMode || 'nei',
+        token,
+        force: true,
+      });
+      setActiveLocalPack(SERVER_SYNC_PACK_NAME);
+      setLocalIconPack(SERVER_SYNC_PACK_NAME);
+      await refreshLocalIconPacks();
+      notify(
+        t('iconSyncPackDone')
+          .replace('{count}', String(result.iconCount))
+          .replace('{updated}', result.updated ? t('iconSyncUpdated') : t('iconSyncUnchanged')),
+        'success'
+      );
+    } catch (e) {
+      notify((e as Error).message || t('iconSyncPackFailed'), 'error');
+    } finally {
+      setIconSyncLoading(false);
+    }
+  };
+
+  const handleFillVisibleMissingIcons = async () => {
+    if (!token || !iconCacheEnabled) {
+      notify(t('iconSyncNeedLogin'), 'warning');
+      return;
+    }
+    const ids = getVisibleIconIds();
+    if (ids.length === 0) {
+      notify(t('iconFillVisibleEmpty'), 'info');
+      return;
+    }
+    setIconFillLoading(true);
+    try {
+      const result = await fillMissingIconsFromServer(ids, {
+        iconPack: iconPack || 'default',
+        iconRenderMode: iconRenderMode || 'nei',
+        token,
+        iconCacheEnabled,
+        failedIcons,
+        localPack: localIconPack || SERVER_SYNC_PACK_NAME,
+      });
+      await refreshLocalIconPacks();
+      notify(
+        t('iconFillVisibleDone')
+          .replace('{requested}', String(result.requested))
+          .replace('{fetched}', String(result.fetched))
+          .replace('{missing}', String(result.missing)),
+        'success'
+      );
+    } catch (e) {
+      notify((e as Error).message || t('iconFillVisibleFailed'), 'error');
+    } finally {
+      setIconFillLoading(false);
+    }
   };
 
   const handleSavePreset = () => {
@@ -444,18 +517,53 @@ export function SettingsPage() {
                   </Text>
                   <Select
                     style={{ width: '100%' }}
-                    value={iconRenderMode}
+                    value={iconRenderMode || 'nei'}
                     onChange={setIconRenderMode}
                     disabled={!iconCacheEnabled}
                     options={(serverConfig?.iconRenderModes ?? [
                       { id: 'nei', implemented: true },
-                      { id: 'inventory_gl', implemented: true },
                     ]).filter((m) => m.implemented !== false).map((m) => ({
                       label: t(`iconRenderMode_${m.id}`),
                       value: m.id,
                       disabled: m.implemented === false,
                     }))}
                   />
+                </div>
+                <Divider />
+                <div>
+                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <div>
+                      <Text strong>{t('iconAutoSync')}</Text>
+                      <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
+                        {t('iconAutoSyncHint')}
+                      </Text>
+                    </div>
+                    <Switch checked={iconAutoSyncEnabled} onChange={setIconAutoSyncEnabled} />
+                  </Space>
+                </div>
+                <div>
+                  <Text strong>{t('iconManualSync')}</Text>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginBottom: 8 }}>
+                    {t('iconManualSyncHint')}
+                  </Text>
+                  <Space wrap>
+                    <Button
+                      icon={<DownloadOutlined />}
+                      loading={iconSyncLoading}
+                      disabled={!iconCacheEnabled || !token}
+                      onClick={() => void handleSyncServerIconPack()}
+                    >
+                      {t('iconSyncPack')}
+                    </Button>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      loading={iconFillLoading}
+                      disabled={!iconCacheEnabled || !token}
+                      onClick={() => void handleFillVisibleMissingIcons()}
+                    >
+                      {t('iconFillVisible')}
+                    </Button>
+                  </Space>
                 </div>
                 <Divider />
                 <div>
@@ -575,6 +683,17 @@ export function SettingsPage() {
                   />
                 )}
               </Space>
+            ),
+          },
+          {
+            key: 'backup',
+            label: (
+              <span>
+                <DatabaseOutlined /> {t('settingsBackup')}
+              </span>
+            ),
+            children: (
+              <SettingsBackupPanel isLoggedIn={!!token} tokenType={tokenType} />
             ),
           },
           {

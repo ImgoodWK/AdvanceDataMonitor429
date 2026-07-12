@@ -59,6 +59,9 @@ public final class WebFavoritesStore {
         if (normalized.items == null) {
             normalized.items = new ArrayList<String>();
         }
+        if (normalized.questLines == null) {
+            normalized.questLines = new ArrayList<String>();
+        }
         owners.put(key, normalized);
         return persist();
     }
@@ -108,12 +111,14 @@ public final class WebFavoritesStore {
         public List<String> recipes = new ArrayList<String>();
         public List<String> patterns = new ArrayList<String>();
         public List<String> items = new ArrayList<String>();
+        public List<String> questLines = new ArrayList<String>();
 
         public OwnerFavorites copy() {
             OwnerFavorites copy = new OwnerFavorites();
             copy.recipes = new ArrayList<String>(this.recipes);
             copy.patterns = new ArrayList<String>(this.patterns);
             copy.items = new ArrayList<String>(this.items);
+            copy.questLines = new ArrayList<String>(this.questLines);
             return copy;
         }
     }

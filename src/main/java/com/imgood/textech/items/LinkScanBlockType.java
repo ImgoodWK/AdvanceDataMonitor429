@@ -2,17 +2,13 @@ package com.imgood.textech.items;
 
 import net.minecraft.tileentity.TileEntity;
 
-import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 
 public enum LinkScanBlockType {
 
     DATA_MONITOR("data_monitor", TileEntityAdvanceDataMonitor.class),
-    NETWORK_LINK("network_link", TileEntityAdvanceNetworkLink.class),
-    STORAGE_LINK("storage_link", TileEntityAdvanceStorageLink.class),
-    CRAFTING_LINK("crafting_link", TileEntityAdvanceCraftingLink.class);
+    NETWORK_LINK("network_link", TileEntityAdvanceNetworkLink.class);
 
     private final String id;
     private final Class<? extends TileEntity> tileClass;
@@ -49,6 +45,9 @@ public enum LinkScanBlockType {
     public static LinkScanBlockType fromId(String id) {
         if (id == null) {
             return null;
+        }
+        if ("storage_link".equals(id) || "crafting_link".equals(id)) {
+            return NETWORK_LINK;
         }
         for (LinkScanBlockType type : values()) {
             if (type.id.equals(id)) {

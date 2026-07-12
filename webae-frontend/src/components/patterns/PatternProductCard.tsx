@@ -12,23 +12,13 @@ import { Icon } from '@/components/Icon';
 
 import { useAppContext } from '@/context/AppContext';
 
+import { patternEntryIconId } from '@/utils/icon';
 import type { PatternProductGroup } from '@/utils/patternGroup';
 
 
 
 const { Text } = Typography;
 
-
-
-function entryIconId(entry: { registryName: string; meta?: number; isFluid?: boolean } | null): string | undefined {
-
-  if (!entry || !entry.registryName) return undefined;
-
-  if (entry.isFluid) return 'fluid:' + entry.registryName;
-
-  return entry.meta && entry.meta > 0 ? `${entry.registryName}:${entry.meta}` : entry.registryName;
-
-}
 
 
 
@@ -64,7 +54,7 @@ export const PatternProductCard = memo(function PatternProductCard({
 
   const { iconWikiEnabled } = useAppContext();
 
-  const iconId = entryIconId(group.primaryOutput);
+  const iconId = patternEntryIconId(group.primaryOutput);
 
   const variantCount = group.patterns.length;
 

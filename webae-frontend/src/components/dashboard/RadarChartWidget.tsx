@@ -6,9 +6,17 @@ export interface RadarAxisConfig {
   label?: string;
 }
 
+/** Pre-resolved axis values (e.g. from pins); when provided, overrides dataSource lookup. */
+export interface RadarAxisValue {
+  label: string;
+  value: number;
+}
+
 interface RadarChartWidgetProps {
   widget: DashboardWidgetConfig;
   axes: RadarAxisConfig[];
+  /** When set (e.g. from dashboard pins), used instead of getValue(dataSource). */
+  axisValues?: RadarAxisValue[];
   chartSize: number;
   chartColor: string;
   radarAxisColor: string;
@@ -35,6 +43,7 @@ export function resolveRadarAxes(widget: DashboardWidgetConfig): RadarAxisConfig
 export function RadarChartWidget({
   widget,
   axes,
+  axisValues,
   chartSize,
   chartColor,
   radarAxisColor,
@@ -42,11 +51,16 @@ export function RadarChartWidget({
   getLabel,
   fmtNum,
 }: RadarChartWidgetProps) {
+  const fromPins = axisValues && axisValues.length >= 3 ? axisValues.slice(0, 8) : null;
   const resolved = axes.length >= 3 ? axes : DEFAULT_RADAR_AXES;
-  const rawValues = resolved.map((a) => Math.max(0, getValue(a.dataSource)));
+  const rawValues = fromPins
+    ? fromPins.map((a) => Math.max(0, a.value))
+    : resolved.map((a) => Math.max(0, getValue(a.dataSource)));
   const maxVal = Math.max(...rawValues, 1);
   const normalized = rawValues.map((v) => (v / maxVal) * 100);
-  const labels = resolved.map((a) => a.label?.trim() || getLabel(a.dataSource));
+  const labels = fromPins
+    ? fromPins.map((a) => a.label)
+    : resolved.map((a) => a.label?.trim() || getLabel(a.dataSource));
 
   const center = 50;
   const radius = 40;

@@ -35,8 +35,10 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Client-side icon cache builder for WebAE.
  *
  * <p>
- * Bulk export runs inside {@link GuiIconExportScreen} using {@link IconGridExporter}
- * (NEI grid FBO). Upload is spread across client ticks.
+ * Bulk export runs inside {@link GuiIconExportScreen} using NESQL-style per-icon FBO
+ * ({@code GuiContainerManager.drawItem}) via {@link IconExportResolver}. Fluids keep the mod
+ * special path. Upload is spread across client ticks. Legacy {@link IconGridExporter} is retained
+ * but not used by the active path.
  * </p>
  */
 @SideOnly(Side.CLIENT)
@@ -61,6 +63,8 @@ public class IconRenderer {
     private final IconAtlasSampler atlasSampler = new IconAtlasSampler();
     private final IconGlFallback glFallback = new IconGlFallback();
     private final IconExportResolver exportResolver = new IconExportResolver(atlasSampler, glFallback);
+    /** @deprecated archived; active bulk path no longer uses grid FBO */
+    @Deprecated
     private final IconGridExporter gridExporter = new IconGridExporter(exportResolver);
     private final IconUploadProgress progress = new IconUploadProgress();
 
@@ -81,6 +85,7 @@ public class IconRenderer {
     private int uploadTotalChunks = 0;
     private int lastModeIconCount = 0;
     private int renderContextGlCount = 0;
+    private int renderContextNesqlCount = 0;
     private int renderContextVanillaCount = 0;
     private int renderContextAtlasCount = 0;
     private int renderContextBlockCount = 0;
@@ -93,12 +98,22 @@ public class IconRenderer {
         return INSTANCE;
     }
 
+    /** @deprecated archived grid exporter; kept for API compatibility with export-complete callback */
+    @Deprecated
     public IconGridExporter getGridExporter() {
         return gridExporter;
     }
 
+    public IconExportResolver getExportResolver() {
+        return exportResolver;
+    }
+
     public boolean isRunning() {
         return phase != Phase.IDLE;
+    }
+
+    public boolean isUploadAllModes() {
+        return uploadAllModes;
     }
 
     public IconRenderMode getCurrentMode() {
@@ -168,24 +183,10 @@ public class IconRenderer {
         this.scopedItemIds = explicitItemIds != null ? new ArrayList<String>(explicitItemIds) : new ArrayList<String>();
         this.modeQueue.clear();
         this.modeQueueIndex = 0;
-        this.uploadAllModes = IconRenderMode.isAllToken(renderModeId);
-        if (uploadAllModes) {
-            this.modeQueue.addAll(IconRenderMode.exportModes());
-            if (this.modeQueue.isEmpty()) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] No export icon render modes");
-                return;
-            }
-            this.renderMode = this.modeQueue.get(0);
-        } else {
-            IconRenderMode parsed = IconRenderMode.fromId(renderModeId);
-            if (parsed == null) parsed = IconRenderMode.NEI;
-            if (!parsed.isImplemented()) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] Icon render mode not implemented yet: {}", parsed.getId());
-                return;
-            }
-            this.renderMode = parsed;
-            this.modeQueue.add(parsed);
-        }
+        this.uploadAllModes = false;
+        // Active path is nei-only; ignore renderModeId (incl. legacy "all").
+        this.renderMode = IconRenderMode.NEI;
+        this.modeQueue.add(IconRenderMode.NEI);
         this.strategy = IconRenderStrategies.get(this.renderMode);
         resetSessionCounters();
         buildPendingTasks();
@@ -214,49 +215,66 @@ public class IconRenderer {
         if (task == null || phase != Phase.IDLE) return;
         Minecraft mc = Minecraft.getMinecraft();
         try {
-            byte[] png;
-            if (task.fluid != null) {
-                png = glFallback.renderRegistryFluidIcon(mc, task.fluid);
-                if (IconAtlasSampler.isPngBlank(png)) {
-                    png = createPlaceholderPng(task.itemId);
-                }
-            } else if (task.stack != null) {
-                png = gridExporter.renderSingle(mc, task.stack, task.itemId);
-            } else {
-                png = createPlaceholderPng(task.itemId);
-            }
+            byte[] png = renderPngBytes(modeId, task);
+            if (png == null || png.length == 0) return;
             Map<String, String> single = new LinkedHashMap<String, String>();
             single.put(task.itemId, DatatypeConverter.printBase64Binary(png));
             this.packName = pack;
             this.playerUuid = playerUuid;
-            this.renderMode = IconRenderMode.fromId(modeId);
-            if (this.renderMode == null) this.renderMode = IconRenderMode.NEI;
+            this.renderMode = IconRenderMode.NEI;
             uploadSingleBundle(single);
         } finally {
             IconRenderGuard.afterRender(mc);
         }
     }
 
+    /** Render a single icon to PNG bytes without uploading (direct HTTP capture). */
+    public byte[] renderPngBytes(String modeId, String itemId) {
+        IconItemEnumerator.StackTask task = IconItemEnumerator.resolveSingle(itemId);
+        return renderPngBytes(modeId, task);
+    }
+
+    public byte[] renderPngBytes(String modeId, IconItemEnumerator.StackTask task) {
+        if (task == null) return null;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null) return null;
+        try {
+            if (task.fluid != null) {
+                byte[] png = glFallback.renderRegistryFluidIcon(mc, task.fluid);
+                if (IconAtlasSampler.isPngBlank(png)) {
+                    return createPlaceholderPng(task.itemId);
+                }
+                return png;
+            }
+            if (task.stack != null) {
+                return exportResolver.resolve(mc, task.stack, task.itemId, null).png;
+            }
+            return createPlaceholderPng(task.itemId);
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] renderPngBytes failed for {}", task.itemId, t);
+            return null;
+        }
+    }
+
+    /** @param exporter unused; kept for call-site compatibility with archived grid path */
     public void onExportComplete(IconGridExporter exporter) {
         syncResolverCounts();
-        renderFluidsAfterGrid();
+        renderFluidsAfterItems();
         progress.onRenderProgress(renderMode, modeQueueIndex + 1, modeQueue.size(), pending.size(), pending.size());
         progress.onRenderComplete(packName, renderMode, bundle.size());
         AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon grid export complete mode={}: {} icons ({} grid+gl, {} vanilla, {} atlas, {} block, {} entity, {} placeholders)",
+            "[WebAE] Icon NESQL export complete mode={}: {} icons ({} nesql, {} fluid-gl, {} placeholders)",
             renderMode.getId(),
             bundle.size(),
+            renderContextNesqlCount,
             renderContextGlCount,
-            renderContextVanillaCount,
-            renderContextAtlasCount,
-            renderContextBlockCount,
-            renderContextEntityCount,
             renderContextPlaceholderCount);
         beginAsyncUpload();
     }
 
     private void syncResolverCounts() {
-        renderContextGlCount = exportResolver.getGridCount() + exportResolver.getGlCount();
+        renderContextGlCount = exportResolver.getGlCount();
+        renderContextNesqlCount = exportResolver.getNesqlCount();
         renderContextVanillaCount = exportResolver.getVanillaCount();
         renderContextAtlasCount = exportResolver.getAtlasCount();
         renderContextBlockCount = exportResolver.getBlockCount();
@@ -281,7 +299,8 @@ public class IconRenderer {
         }
     }
 
-    private void renderFluidsAfterGrid() {
+    /** Registry fluid icons after item stacks (mod special path, not NESQL drawItem). */
+    private void renderFluidsAfterItems() {
         Minecraft mc = Minecraft.getMinecraft();
         for (Task task : pending) {
             if (task.fluid == null) continue;
@@ -331,6 +350,7 @@ public class IconRenderer {
         this.currentIndex = 0;
         this.skippedNoIcon = 0;
         this.renderContextGlCount = 0;
+        this.renderContextNesqlCount = 0;
         this.renderContextVanillaCount = 0;
         this.renderContextAtlasCount = 0;
         this.renderContextBlockCount = 0;
@@ -339,7 +359,7 @@ public class IconRenderer {
         this.atlasSampler.reset();
         this.glFallback.reset();
         this.gridExporter.reset();
-        this.exportResolver.resetCounts();
+        this.exportResolver.reset();
     }
 
     private void buildPendingTasks() {
@@ -482,6 +502,7 @@ public class IconRenderer {
         scopedItemIds.clear();
         glFallback.reset();
         gridExporter.reset();
+        exportResolver.reset();
     }
 
     private static IIcon fluidStillIcon(Fluid fluid) {

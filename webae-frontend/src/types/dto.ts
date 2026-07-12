@@ -435,8 +435,10 @@ export interface OrderRequest {
   amount: number;
   rawText: string;
   locale: string;
-  /** 可选：指定 AE2 合成 CPU 名称。 */
+  /** 可选：指定 AE2 合成处理器名称。 */
   cpuName?: string;
+  /** 可选：按样板 ID 下单（优先于 itemName）。 */
+  patternId?: string;
 }
 
 export interface OrderBatchItem {
@@ -499,6 +501,21 @@ export interface OrderStatus {
   cpuName?: string;
   cpuInfo?: OrderCpuInfo;
   finalProgress?: number;
+  /** 下单物品显示名（用于再次下单）。 */
+  itemName?: string;
+  /** 下单数量。 */
+  amount?: number;
+  /** 按样板下单时的 patternId。 */
+  patternId?: string;
+  networkId?: number;
+  craftingId?: string;
+  startItems?: number;
+  remainingItems?: number;
+  elapsedMs?: number;
+  failReason?: string;
+  cancelReason?: string;
+  /** AE2 craft-tree step progress (not final-output count). */
+  progressKind?: 'steps';
 }
 
 export interface OrderListResponse {
@@ -632,6 +649,39 @@ export interface NetworkMetricFluidHistoryResponse {
   history: NetworkMetricFluidHistory;
 }
 
+export interface NetworkMetricItemSeries {
+  timestamps: number[];
+  amounts: number[];
+}
+
+export interface NetworkMetricItemHistory {
+  networkId: number;
+  items: Record<string, NetworkMetricItemSeries>;
+}
+
+export interface NetworkMetricItemHistoryResponse {
+  success: boolean;
+  history: NetworkMetricItemHistory;
+  message?: string;
+}
+
+export interface NetworkMetricEntitySeries {
+  field?: string;
+  timestamps: number[];
+  values: number[];
+}
+
+export interface NetworkMetricEntityHistory {
+  networkId: number;
+  entities: Record<string, NetworkMetricEntitySeries>;
+}
+
+export interface NetworkMetricEntityHistoryResponse {
+  success: boolean;
+  history: NetworkMetricEntityHistory;
+  message?: string;
+}
+
 export interface IconRenderModeInfo {
   id: string;
   labelKey: string;
@@ -673,6 +723,227 @@ export interface ServerConfig {
   worldMapEnabled?: boolean;
   worldMapMaxQualityTier?: string;
   worldMapDefaultQualityTier?: string;
+  questEnabled?: boolean;
+  questSubmitEnabled?: boolean;
+  questChainSubmitEnabled?: boolean;
+  dashboardMaxTracksPerWidget?: number;
+  dashboardMaxTracksGlobal?: number;
+  dashboardMaxItemTracks?: number;
+  dashboardMaxFluidTracks?: number;
+  dashboardMaxEntityTracks?: number;
+}
+
+export interface QuestMetaDto {
+  questsAvailable: boolean;
+  questEnabled: boolean;
+  questSubmitEnabled: boolean;
+  questChainSubmitEnabled?: boolean;
+  modVersion: string;
+  lineCount: number;
+  standardExpansionLoaded: boolean;
+}
+
+export interface QuestLineSummaryDto {
+  lineId: string;
+  name: string;
+  description: string;
+  iconItemId?: string;
+  iconMeta?: number;
+  questCount: number;
+  order: number;
+}
+
+export interface QuestLineNodeDto {
+  questId: string;
+  name: string;
+  x: number;
+  y: number;
+  sizeX: number;
+  sizeY: number;
+  state: string;
+  mainQuest?: boolean;
+  canSubmit?: boolean;
+  iconItemId?: string;
+  iconMeta?: number;
+  ghost?: boolean;
+  sourceLineId?: string;
+}
+
+export interface QuestLineEdgeDto {
+  fromQuestId: string;
+  toQuestId: string;
+  requirementType: string;
+}
+
+export interface QuestLineGraphDto {
+  lineId: string;
+  name: string;
+  nodes: QuestLineNodeDto[];
+  edges: QuestLineEdgeDto[];
+}
+
+export interface QuestTaskDto {
+  index: number;
+  taskId: string;
+  factoryId: string;
+  name: string;
+  description?: string;
+  webAction: string;
+  reasonKey?: string;
+  complete: boolean;
+  itemId?: string;
+  registryName?: string;
+  meta?: number;
+  required: number;
+  progress: number;
+  fluidName?: string;
+  fluidRequired?: number;
+  fluidProgress?: number;
+  extraItemCount?: number;
+}
+
+export interface QuestRewardDto {
+  index: number;
+  rewardId: string;
+  factoryId: string;
+  name: string;
+  description?: string;
+  itemId?: string;
+  registryName?: string;
+  meta?: number;
+  amount: number;
+}
+
+export interface QuestRelationDto {
+  questId: string;
+  name: string;
+  lineId?: string;
+  state: string;
+  requirementType?: string;
+}
+
+export interface QuestDetailDto {
+  questId: string;
+  name: string;
+  description: string;
+  state: string;
+  canSubmit: boolean;
+  canClaim?: boolean;
+  hasClaimed?: boolean;
+  mainQuest?: boolean;
+  silent?: boolean;
+  repeatable?: boolean;
+  iconItemId?: string;
+  iconMeta?: number;
+  requirementQuestIds: string[];
+  prerequisites?: QuestRelationDto[];
+  dependents?: QuestRelationDto[];
+  tasks: QuestTaskDto[];
+  rewards: QuestRewardDto[];
+}
+
+export interface QuestProgressEntryDto {
+  questId: string;
+  state: string;
+  canSubmit: boolean;
+}
+
+export interface QuestAnalysisStepDto {
+  index: number;
+  webAction: string;
+  reasonKey?: string;
+  complete: boolean;
+  webCapable: boolean;
+  itemId?: string;
+  registryName?: string;
+  meta?: number;
+  required: number;
+  available: number;
+  craftable: number;
+  missing: number;
+  fluidName?: string;
+  fluidRequired?: number;
+  fluidAvailable?: number;
+  fluidMissing?: number;
+}
+
+export interface QuestAnalysisDto {
+  questId: string;
+  networkId: number;
+  state: string;
+  canSubmit: boolean;
+  steps: QuestAnalysisStepDto[];
+}
+
+export interface QuestSubmitStepResultDto {
+  index: number;
+  success: boolean;
+  message: string;
+  itemId?: string;
+  amount?: number;
+  fluidName?: string;
+  fluidAmount?: number;
+}
+
+export interface QuestSubmitResultDto {
+  success: boolean;
+  dryRun: boolean;
+  message: string;
+  questId: string;
+  newState?: string;
+  steps: QuestSubmitStepResultDto[];
+}
+
+export interface QuestCraftJobDto {
+  jobId: string;
+  questId: string;
+  phase: string;
+  complete: boolean;
+  success: boolean;
+  message: string;
+  ordersTotal: number;
+  ordersDone: number;
+  submitResult?: QuestSubmitResultDto;
+}
+
+export interface QuestChainStepDto {
+  questId: string;
+  name: string;
+  state: string;
+  canSubmit: boolean;
+  target?: boolean;
+  skipped?: boolean;
+  skipReason?: string;
+  fullySatisfied?: boolean;
+  craftable?: boolean;
+  missingItemKinds?: number;
+  analysis?: QuestAnalysisDto;
+}
+
+export interface QuestChainPlanDto {
+  targetQuestId: string;
+  networkId: number;
+  chainEnabled: boolean;
+  steps: QuestChainStepDto[];
+}
+
+export interface QuestChainStepResultDto {
+  questId: string;
+  name: string;
+  action: string;
+  message: string;
+  submitResult?: QuestSubmitResultDto;
+}
+
+export interface QuestChainSubmitResultDto {
+  success: boolean;
+  dryRun: boolean;
+  message: string;
+  targetQuestId: string;
+  jobId?: string;
+  complete?: boolean;
+  phase?: string;
+  steps: QuestChainStepResultDto[];
 }
 
 export interface ConfigResponse {
@@ -1173,6 +1444,59 @@ export interface ServerHealthResponse {
   };
 }
 
+export interface PerfPhaseView {
+  lastMs: number;
+  avgMs: number;
+  maxMs: number;
+  count: number;
+}
+
+export interface PerfRouteView {
+  route: string;
+  count: number;
+  totalMs: number;
+  maxMs: number;
+  avgMs: number;
+}
+
+export interface PerfSlowHttpEntry {
+  ts: number;
+  route: string;
+  durationMs: number;
+}
+
+export interface ServerDiagnosticsResponse {
+  success: boolean;
+  tps: number;
+  mspt: number;
+  onlinePlayers: number;
+  uptimeSeconds: number;
+  queueDepth: number;
+  tasksProcessedThisTick: number;
+  activeNetworks: number;
+  snapshotCacheSize: number;
+  phases?: Record<string, PerfPhaseView>;
+  collects?: Record<string, PerfPhaseView>;
+  topRoutes?: PerfRouteView[];
+  slowHttp?: PerfSlowHttpEntry[];
+  history?: {
+    timestamps: number[];
+    queueDepth: number[];
+    serverTasksMs: number[];
+    snapshotSchedulerMs: number[];
+  };
+  config?: {
+    refreshIntervalMs: number;
+    gtRefreshIntervalMs: number;
+    metricSampleIntervalMs: number;
+    patternCacheTtlMs: number;
+    topologyCacheTtlMs: number;
+    worldMapTileBudgetPerTick: number;
+    iconRenderPerTick: number;
+    perfDebugEnabled: boolean;
+  };
+}
+
 export interface AlertsResponse {
   success: boolean;
   count: number;
@@ -1203,7 +1527,7 @@ export interface AlertHistoryResponse {
   history: AlertHistoryEntryDto[];
 }
 
-export type GlobalSearchResultType = 'storage' | 'recipe' | 'gt' | 'pattern';
+export type GlobalSearchResultType = 'storage' | 'recipe' | 'gt' | 'pattern' | 'quest';
 
 export interface GlobalSearchResultDto {
   type: GlobalSearchResultType;

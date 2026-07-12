@@ -22,7 +22,7 @@ export function useCpuColumns(): ColumnsType<StorageCpu> {
       key: 'isBusy',
       render: (v: boolean) =>
         v ? (
-          <Tag color="processing">{t('crafting')}</Tag>
+          <Tag color="processing">{t('busy')}</Tag>
         ) : (
           <Tag color="default">{t('idle')}</Tag>
         ),

@@ -9,6 +9,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.api.WebApiRouter;
 import com.imgood.textech.webae.api.handler.AuthExchangeHandler;
+import com.imgood.textech.webae.api.handler.WebUiDefaultsHandler;
 import com.imgood.textech.webae.auth.WebAuthMiddleware;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
@@ -66,6 +67,9 @@ public class WebConsoleServer extends NanoHTTPD {
             String uri = session.getUri();
             if ("/api/auth/exchange".equals(uri)) {
                 return AuthExchangeHandler.handle(session);
+            }
+            if ("/api/ui-defaults".equals(uri)) {
+                return WebUiDefaultsHandler.handleGet();
             }
             WebAuthMiddleware.AuthResult authResult = authMiddleware.authenticate(session);
             if (!authResult.success) {

@@ -3,7 +3,7 @@ package com.imgood.textech.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraftforge.client.event.MouseEvent;
 
 import com.imgood.textech.items.ItemDataImprint;
@@ -52,6 +52,6 @@ public class DataImprintScrollHandler {
         int newRadius = radii[currentIdx];
         ItemDataImprint.setScanRadius(held, newRadius);
 
-        player.addChatMessage(new ChatComponentText("\u00a7b\u626b\u63cf\u534a\u5f84: " + newRadius + " \u683c"));
+        player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.scan_radius_set", Integer.valueOf(newRadius)));
     }
 }

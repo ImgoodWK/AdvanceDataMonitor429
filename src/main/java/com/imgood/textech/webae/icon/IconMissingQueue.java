@@ -50,7 +50,8 @@ public final class IconMissingQueue {
         if (!Config.webIconCacheEnabled || !Config.webIconUploadEnabled) return;
         if (itemId == null || itemId.isEmpty()) return;
         if (pack == null || pack.isEmpty()) pack = "default";
-        if (mode == null || mode.isEmpty()) mode = IconRenderMode.NEI.getId();
+        // Active path is nei-only; ignore requested mode.
+        mode = IconRenderMode.NEI.getId();
         if (!IconStore.isValidPackName(pack)) return;
 
         String key = pack + "|" + mode + "|" + itemId;
@@ -105,12 +106,6 @@ public final class IconMissingQueue {
         markUnresolvableKey(pack, mode, itemId);
         for (String candidate : IconItemId.lookupCandidates(itemId)) {
             markUnresolvableKey(pack, mode, candidate);
-        }
-        for (IconRenderMode renderMode : IconRenderMode.values()) {
-            String modeId = renderMode.getId();
-            if (!modeId.equals(mode)) {
-                markUnresolvableKey(pack, modeId, itemId);
-            }
         }
     }
 
@@ -169,6 +164,13 @@ public final class IconMissingQueue {
         if (state.attempts >= MAX_DISPATCH_ATTEMPTS) {
             state.cooldownUntilMs = now + COOLDOWN_MS;
         }
+    }
+
+    /** Pick an online player to render icons (registered provider, then OP, then any). */
+    public EntityPlayerMP resolveProviderPlayer() {
+        MinecraftServer server = MinecraftServer.getServer();
+        if (server == null) return null;
+        return resolveProvider(server);
     }
 
     private EntityPlayerMP resolveProvider(MinecraftServer server) {

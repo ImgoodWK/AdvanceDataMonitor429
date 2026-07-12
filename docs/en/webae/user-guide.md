@@ -22,18 +22,22 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 
 | Feature | Description |
 |---------|-------------|
-| Storage Monitor | Real-time AE2 item/fluid/essentia counts and byte usage |
+| Dashboard | 24 color schemes × 5 layout presets, draggable widget grid |
+| Storage / Fluids / Essentia | Dedicated sidebar pages; Storage also has item/fluid/essentia sub-tables |
 | Crafting CPUs | Standalone menu for AE2 crafting CPU status and details |
 | Power Monitor | Configurable EU/steam gauges, in/out rates, dual-series trend chart |
 | GT Machines | Online GT machine status, progress, and recipes |
 | Recipe Search | Fuzzy NEI search with merged/compact/detailed layouts |
 | Pattern Manager | View, create, edit, and inject AE2 patterns into ME Interfaces |
-| AE Orders | Pattern/item/**craft tree** orders with optional CPU selection and hybrid progress |
+| AE Orders | Pattern/item/**craft tree** single orders with optional CPU selection and real AE2 progress |
 | Network Topology | Logical / spatial / **P2P channel** / **world map** views; simulated cables; CSV export |
+| Quest Book | BetterQuesting lines/graph/submit assist (requires BQ) |
+| Link Scanner | Browse in-game scanner results, aliases, and coords |
 | Monitor Bindings | Read-only chart slots; per-slot **line preview** Drawer |
-| Automation Alerts | Storage/CPU/GT/order/channel alerts; **SSE** push + Toast |
+| Planner | Sync Advance Planner entries in the browser |
+| AI Assistant | Web chat entry (same capabilities as in-game assistant) |
+| Alerts History | Browse triggered automation alerts; rules via Settings/alerts editor |
 | Chat | Web-to-in-game chat bridge with online player list |
-| Dashboard | 24 color schemes × 5 layout presets, draggable widget grid |
 | Command Upload | OPs run `/admweb recipes upload` and `/admweb icons upload` (no in-game keybind) |
 
 Default URL: `http://127.0.0.1:8090` (port is configurable).
@@ -60,6 +64,9 @@ recipeSearchMinIntervalMs=300
 nesqlRepositoryPath=
 neiDeepScanItemsPerTick=0
 iconMissingDispatchPerTick=8
+iconDirectRenderEnabled=false
+iconDirectRenderTimeoutMs=3000
+iconDirectRenderPerTick=4
 powerSampleWindowSeconds=60
 gtDefaultScanRadius=16
 recipeUploadEnabled=true
@@ -103,12 +110,12 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 | `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload; also writes `<instance>/TeXTech/WebAE/web-recipes.json.gz` on the client; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
 | `/admweb recipes status` | Show recipe cache status (incl. disk size) |
 | `/admweb recipes clear` | Clear recipe memory + disk cache (OP only) |
-| `/admweb icons upload [pack] [mode\|all\|snapshot]` | **OP** triggers client icon render/upload |
-| `/admweb icons render <itemId> [pack] [mode]` | **OP** render and upload a single item icon |
+| `/admweb icons upload [pack]` / `upload snapshot [pack]` | **OP** triggers client icon render/upload (always nei) |
+| `/admweb icons render <itemId> [pack]` | **OP** render and upload a single item icon |
 | `/admweb icons verify <itemId> [pack]` | Open icon verify GUI |
 | `/admweb icons import <folder> [pack]` | **OP** import PNGs from a local folder |
 | `/admweb icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/`; incremental) |
-| `/admweb icons modes` | List all icon render modes |
+| `/admweb icons modes` | List icon render mode (nei only) |
 | `/admweb icons status` | List installed icon packs and config state |
 | `/admweb icons clear` | Delete all icon packs (OP only) |
 | `/admweb worldmap upload [networkId]` | Upload world map snapshot (must be near AE network; client capture) |
@@ -170,7 +177,14 @@ Auto-loads recipe overview on open; fuzzy search, category multi-select, Full/Me
 
 ### Item Icons & Texture Packs
 
-Real game icons in tables and recipes; abbreviation fallback on failure. OP runs `/admweb icons upload [packName]` or `/admweb icons import-nesql` (defaults to `TeXTech/WebAE/`; override with `nesqlRepositoryPath`); Settings page switches packs; admins can upload zip. Missing icons lazy-load via SSE `icon-ready`.
+Real game icons in tables and recipes; abbreviation fallback on failure. Loading uses three tiers: **browser IndexedDB → server disk cache → async client fill on miss (SSE refresh)**.
+
+- **Local first**: IndexedDB / local pack hits never need the server; in-game `/admweb icons upload` or import fills server disk for on-demand requests.
+- **Auto-sync (off by default)**: Settings → “Auto-sync server icon pack” bulk-downloads into IndexedDB when the pack revision changes (for admin custom packs; not needed for normal browsing).
+- **Manual fetch**: Settings → **Sync full pack** downloads the server pack; **Fill visible missing** requests only icons currently on screen that are missing locally. Local ZIP import (browser-only) remains available.
+- **Server cache**: OP runs `/admweb icons upload [packName]` or `/admweb icons import-nesql` (defaults to `TeXTech/WebAE/`; override with `nesqlRepositoryPath`); Settings switches packs; admins can upload zip. Render mode is fixed to **`nei`** (NESQL-style `GuiContainerManager.drawItem` single-icon FBO; fluids use mod specials); other modes remain in code as `@Deprecated` archival only — commands no longer take a mode argument.
+- **Async fill (default)**: Disk miss returns immediately and enqueues the lazy queue (`iconUploadEnabled`); client render/upload then SSE `icon-ready` so abbreviations upgrade to icons. Synchronous direct render (`iconDirectRenderEnabled`, default **false**) is for debugging only.
+- **Multiplayer tip**: Run `/admweb icons upload snapshot` once after startup; players rely on local/on-demand loads and may manually sync a full pack in Settings when needed.
 
 ### Local data folder `TeXTech/WebAE/`
 
@@ -187,7 +201,7 @@ Left: pattern list with search and batch delete. Right: 9×3 input grid and outp
 
 ### Crafting Orders
 
-Optional CPU selector at top. **By pattern** tab: paginated Grid + Interface browse with virtual scroll and batch orders. **By item** tab: storage search and batch orders. **Craft tree** tab: enter registry name and quantity; recursively expands recipe chain and shows storage gaps. Active/history orders poll every 3s with hybrid AE2 + time-estimate progress.
+Optional CPU selector at top. **By pattern** tab: paginated Grid + Interface browse with virtual scroll and single orders. **By item** tab: storage search and single orders. **Craft tree** tab: enter registry name and quantity; recursively expands recipe chain and shows storage gaps (view only; no batch order). Active/history orders poll every 3s; progress comes from AE2 `ICraftingLink` and CPU craft-tree step counters (same as in-game CPU GUI, **not** final-output count). In-game cancelled jobs appear in history as cancelled. History rows offer **Reorder** with a confirmation dialog before resubmitting.
 
 ### Network Topology
 
@@ -204,21 +218,39 @@ Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channe
    - Server auto-detect (`auto`) or force-select via `worldMapTerrainSource`; settings drawer shows terrain source, client capture mode, and online status.
 3. **Loading progress**: Both modes show toolbar progress (`completed/total layer jobs`, scoped to current network·view·quality); each chunk displays loading / ready / error badges (`WorldMapChunkStatusOverlay`); subtle hint text appears in the toolbar and bottom-left of the map while loading.
 4. **Device list FAB**: Top-right **Device list** opens a modal without resizing the map.
-5. **Markers & popup**: Click a device icon or cluster count to open a **device thumbnail list** (detail-page types only: interface, drive, CPU, buses, chest, security terminal, level maintainer, controller, IO port, quantum bridge, energy, P2P, etc.; terminals/monitors/emitters/pattern providers are excluded). Click a row to open the **detail drawer**. Cluster open zooms the map 1.5× temporarily; closing the popup restores scale. Pan/zoom does not dismiss the popup; wheel inside the list scrolls the list only. **Hover a cluster count** to see each device type icon with quantity (xN).
-6. **Left AE legend rail**: A narrow color strip on the left edge; hover to expand category names, visibility checkboxes, and color pickers (tints both AE overlay and marker icon borders). **Unchecking a category keeps the legend row** (shown dimmed) and hides only the matching device icons on the map. Lock makes controls read-only. The toolbar **palette** button was removed.
+5. **Markers & popup**: Click a device icon or cluster count to open a **device thumbnail list** (detail-page types only: interface, drive, CPU, buses, chest, security terminal, level maintainer, controller, IO port, quantum bridge, energy, P2P, etc.; terminals/monitors/emitters/pattern providers are excluded). Click a row to open the **detail drawer**. Cluster open zooms the map 1.5× temporarily; closing the popup restores scale. Pan/zoom does not dismiss the popup; wheel inside the list scrolls the list only. **Hover a cluster count** to see each device type icon with quantity (xN). **Crafting CPUs and ME controllers** are multiblocks: each structure counts as **one device** in cluster totals (the detail drawer still lists every block coordinate).
+6. **Left AE legend rail**: A narrow color strip on the left edge; hover to expand category names, visibility checkboxes, and color pickers (tints both AE overlay and marker icon borders). **Unchecking a category keeps the legend row** (shown dimmed) and hides only the matching device icons on the map. Lock makes controls read-only (hover-out still collapses); category swatches use the same icon IDs as map device markers (first device in that category), while **Other** shows a configured color swatch only. The toolbar **palette** button was removed.
 7. **Local cache**: Browser IndexedDB tile cache; client also syncs snapshots to `TeXTech/WebAE/map-cache/` when logging in from another device.
 8. **AE overlay**: Toggle in topology settings; **opacity** slider (0.5–1.0) affects AE tint pixels only, not terrain.
 9. **Wheel isolation**: Wheel over world map, tree graph, or simulated cable view zooms the view instead of scrolling the page.
 10. **Refresh & invalidation**: Tiles auto-invalidate when switching networks or capturing a new snapshot; OP can POST `/api/worldmap/invalidate` to force rebuild.
 11. **Config**: `[webConsole] worldMapEnabled`, `worldMapTerrainSource` (`auto`/`dynmap`/`self`), `dynmapTileRoot`, `worldMapClientCaptureMode` (`off`/`ultra_only`/`when_online`), `worldMapClientCaptureRadius`, `worldMapProgressiveFallback`, `worldMapMaxQualityTier` (default ultra), `worldMapDefaultQualityTier` (default medium), `worldMapBoundsPaddingChunks` (default 1). See [Developer Guide §4](developer-guide.md#4-configuration) and [§11.26](developer-guide.md#1126-world-map-view-phase-ab--ae-overlay).
 
+### Quest Book (BetterQuesting)
+
+Requires the **BetterQuesting** mod. Sidebar **Quest Book** (`?page=quests`) uses a **left quest-line | center graph | right fixed detail panel** layout (on screens ≤768px wide, details still open in a drawer). The toolbar **Task list** button opens a drawer with search and filters.
+
+- **Graph nodes**: quest item icons; main quests (`isMain`) use diamond frames, normal quests rounded rectangles; hover highlights related nodes/edges and shows a quest-name tooltip (independent of the persistent “Show quest names” label toggle); optional **Hide completed**; cross-chapter prerequisites appear as dashed **ghost** nodes. The toolbar provides **zoom in / zoom out / fit view** and **Settings** (node spacing, node size, labels, sidebar, edges, etc.; stored in browser localStorage); **wheel** zooms at the pointer inside the graph (does not scroll the page); drag to pan. Node names on the graph can be toggled separately; labels show stripped text colored by the first `§` color code.
+- **§ format codes**: quest titles, descriptions, and step names support Minecraft `§` colors and styles (e.g. `§a§l`); the detail panel and lists render full styling; search matches ignore format codes.
+- **Quest detail**: clicking a node opens a **fixed right sidebar** (no extra drawer on desktop). Sections appear in order: **related quests** (prerequisites / unlocks), requirements (from BetterQuesting `tasks`), and reward preview (from `rewards`, one row per item when a reward grants multiple stacks). Clicking a prerequisite or follow-up quest switches quest lines when needed and centers the node; implicit/hidden prerequisites show tags. Rewards must still be claimed in-game. Panel width is configurable in Settings (default 380px).
+- **Refresh**: load once on enter / chapter switch into local cache; **no background polling**. Manual refresh has a **30s cooldown**; progress is force-refreshed before submit actions.
+- **Read-only for guests**: browse lines and party progress; **rewards cannot be claimed on Web** (UNCLAIMED prompts in-game claim).
+- **Web-assisted steps**: item/fluid submit and retrieval detect; crafting/kill/dimension steps are in-game only. Click a single step icon to submit that step; **Chain submit** walks prerequisites in topological order (configurable), shows missing materials, and allows **submit available only** or **craft and submit all**.
+- **Config**: `[webConsole] questEnabled`, `questSubmitEnabled`, `questChainSubmitEnabled` (default true), `questSubmitMaxStacks`, `questCraftWaitTimeoutMs`, `questCacheTtlSec` in `textech.cfg`.
+
 ### Monitor Bindings & Preview
 
 Sidebar **Monitor Bindings** shows read-only chart slots and GT binding coords. Click **Preview** on a slot to open a line chart Drawer mirroring in-game monitor data (edit remains in-game).
 
-### Automation Alerts
+### Link Scanner / Planner / AI Assistant
 
-Driven by `TeXTech/WebAE/web-alerts.json` (inventory, stuck CPU, GT errors, order complete, channel overload). Besides 10s polling, the browser connects to SSE (`/api/events/stream`) for real-time alerts; connection pauses when the tab is hidden.
+- **Link Scanner**: browse results from the in-game Advance Link Scanner (owner/name filters and coordinates; teleport remains in-game).
+- **Planner**: sync Advance Planner entries for browsing and progress checks in the browser.
+- **AI Assistant**: web chat entry with the same capabilities as the in-game assistant (requires AI config; AE actions still need a nearby Advanced Network Linker).
+
+### Automation Alerts & History
+
+Driven by `TeXTech/WebAE/web-alerts.json` (inventory, stuck CPU, GT errors, order complete, channel overload). Besides 10s polling, the browser connects to SSE (`/api/events/stream`) for real-time alerts; connection pauses when the tab is hidden. Sidebar **Alerts History** lists past triggers.
 
 ### Mobile & PWA
 
@@ -226,10 +258,15 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 
 ### Dashboard, Chat & Settings
 
-- **Dashboard**: GridStack drag layout, 24 themes + 5 layouts, settings drawer for spacing/colors/charts.
+- **Dashboard**: GridStack drag layout, 24 themes + 5 layouts; edit flow is **data/pins first, then chart type**; pin items/fluids/CPUs/GT (recipe-catalog search, need not exist in AE); data-table column picker; per-widget content scale and free cell sizes; settings drawer for spacing/colors/charts.
 - **Chat**: 💬 icon in sidebar; web messages broadcast in-game as `[Web] <name>: content`.
 - **Sidebar**: edge button cycles Expanded → Collapsed → Hidden.
 - **Top bar**: fixed-width refresh countdown/status next to connection dot.
+- **Backup & Restore** (Settings → **Backup & Restore** tab):
+  - **Export JSON**: one-shot backup of theme, per-page layouts (main dashboard, Storage/CPU/Power overviews, topology, quest book, recipes, chat, etc.), refresh and debug preferences; optionally presets and server data (favorites, order templates; alert rules require OP).
+  - **Import JSON**: preview affected sections, optional merge mode; reload the page afterward for GridStack layouts to fully apply.
+  - **Restore pack defaults**: re-applies server `ui-defaults.json` (instance `TeXTech/WebAE/ui-defaults.json` first, else mod jar bundled file).
+- **Pack authors**: export JSON from WebAE Settings, place at `TeXTech/WebAE/ui-defaults.json` or have an Agent write `assets/textech/webae/ui-defaults.json`; first-time visitors with no existing browser prefs apply it automatically. OP can also run `/admweb defaults install <path>`.
 
 ---
 

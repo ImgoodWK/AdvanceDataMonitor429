@@ -85,40 +85,6 @@ public class LoaderRecipe {
                 .addTo(RecipeMaps.assemblerRecipes);
         } catch (Throwable ignored) {}
 
-        // AdvanceCraftingLink —AE2 crafting CPU monitor (2 plates + 2 master circuits + 1 crafting table + 2 screws)
-        try {
-            GTValues.RA.stdBuilder()
-                .itemInputs(
-                    plateTungstenSteel,
-                    plateTungstenSteel,
-                    circuitMaster,
-                    circuitMaster,
-                    craftingTable,
-                    screwTungstenSteel,
-                    screwTungstenSteel)
-                .itemOutputs(new ItemStack(LoaderBlock.advanceCraftingLink))
-                .duration(DURATION_FAST)
-                .eut(EU_IV)
-                .addTo(RecipeMaps.assemblerRecipes);
-        } catch (Throwable ignored) {}
-
-        // AdvanceStorageLink —AE2 storage monitor (2 plates + 2 master circuits + 1 chest + 2 screws)
-        try {
-            GTValues.RA.stdBuilder()
-                .itemInputs(
-                    plateTungstenSteel,
-                    plateTungstenSteel,
-                    circuitMaster,
-                    circuitMaster,
-                    chest,
-                    screwTungstenSteel,
-                    screwTungstenSteel)
-                .itemOutputs(new ItemStack(LoaderBlock.advanceStorageLinkBlock))
-                .duration(DURATION_FAST)
-                .eut(EU_IV)
-                .addTo(RecipeMaps.assemblerRecipes);
-        } catch (Throwable ignored) {}
-
         // AdvancePlanner —planning tool (1 plate + 1 master circuit + 2 books + 3 paper)
         try {
             GTValues.RA.stdBuilder()
@@ -242,7 +208,6 @@ public class LoaderRecipe {
         screwNeutronium.stackSize = 8;
         ItemStack wireFineNaquadah = getOreAny("wireFineNaquadah", new ItemStack(Items.string));
         wireFineNaquadah.stackSize = 16;
-        ItemStack storageLink = new ItemStack(LoaderBlock.advanceStorageLinkBlock);
         ItemStack networkLink = new ItemStack(LoaderBlock.advanceNetworkLinkBlock);
 
         FluidStack solder = Materials.SolderingAlloy.getMolten(5760);
@@ -256,7 +221,7 @@ public class LoaderRecipe {
 
         try {
             GTValues.RA.stdBuilder()
-                .metadata(GTRecipeConstants.RESEARCH_ITEM, storageLink.copy())
+                .metadata(GTRecipeConstants.RESEARCH_ITEM, networkLink.copy())
                 .metadata(GTRecipeConstants.SCANNING, new Scanning(SCAN_TIME, TierEU.RECIPE_UV))
                 .itemInputs(
                     plateNeutronium,
@@ -265,7 +230,6 @@ public class LoaderRecipe {
                     plateNeutronium,
                     circuitUltimate,
                     circuitUltimate,
-                    storageLink,
                     networkLink,
                     crystalFluix,
                     crystalFluix,

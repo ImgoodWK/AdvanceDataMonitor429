@@ -31,10 +31,8 @@ import com.imgood.textech.Config;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.network.packet.PacketAssistantMenuStateResponse;
 import com.imgood.textech.network.packet.PacketAssistantResponse;
-import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 import com.imgood.textech.webae.dto.OrderStatus;
 
 import appeng.api.AEApi;
@@ -92,9 +90,9 @@ public final class AssistantServerServices {
             safe(rawText),
             safe(target),
             amount);
-        ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Craft candidate request failed: no AdvanceCraftingLink found.");
@@ -106,7 +104,7 @@ public final class AssistantServerServices {
         List<CraftingCandidate> allCandidates = new ArrayList<>();
         Map<String, ItemStack> unique = new LinkedHashMap<>();
         boolean truncated = false;
-        for (TileEntityAdvanceCraftingLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Using CraftingLink at {},{},{}", link.xCoord, link.yCoord, link.zCoord);
             try {
@@ -205,9 +203,9 @@ public final class AssistantServerServices {
             safe(rawText),
             safe(target),
             amount);
-        ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Withdraw candidate request failed: no AdvanceStorageLink found.");
@@ -218,7 +216,7 @@ public final class AssistantServerServices {
         Map<String, ItemStack> unique = new LinkedHashMap<>();
         int index = 1;
         boolean truncated = false;
-        for (TileEntityAdvanceStorageLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Using StorageLink at {},{},{}", link.xCoord, link.yCoord, link.zCoord);
             try {
@@ -293,9 +291,9 @@ public final class AssistantServerServices {
                     locale,
                     text(locale, "数量无效或超过取出配置上限。", "invalid amount or above configured withdraw limit.")));
         }
-        ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             return new WithdrawSubmitOutcome(
                 WithdrawSubmitOutcome.Kind.FAILURE,
@@ -303,7 +301,7 @@ public final class AssistantServerServices {
         }
         // Try each connector; use the first one that has the item
         WithdrawSubmitOutcome bestOutcome = null;
-        for (TileEntityAdvanceStorageLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             ItemStack stack = candidate.toItemStack();
             if (stack == null || stack.getItem() == null) continue;
             try {
@@ -443,7 +441,7 @@ public final class AssistantServerServices {
         return builder.toString();
     }
 
-    private static long getStorageAmount(TileEntityAdvanceStorageLink link, ItemStack stack) {
+    private static long getStorageAmount(TileEntityAdvanceNetworkLink link, ItemStack stack) {
         try {
             return link.getItemCountInNetwork(stack);
         } catch (Exception e) {
@@ -602,16 +600,16 @@ public final class AssistantServerServices {
                 "status=FAIL, reason=invalid-amount, amount=" + amount + ", max=" + Config.assistantMaxOrderAmount);
             return orderFailed(locale, text(locale, "数量无效或超过配置上限。", "invalid amount or above configured limit."));
         }
-        ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Craft submit failed: no AdvanceCraftingLink found.");
             AssistantDebugLog.append("server-submit", "status=FAIL, reason=no-crafting-link");
             return orderFailed(locale, text(locale, "附近没有 Advance Crafting Link。", "no nearby Advance Crafting Link."));
         }
         String lastError = null;
-        for (TileEntityAdvanceCraftingLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             ItemStack stack = candidate.toItemStack();
             if (stack == null || stack.getItem() == null) {
                 lastError = orderFailed(locale, text(locale, "候选物品无法还原。", "candidate item could not be restored."));
@@ -647,7 +645,9 @@ public final class AssistantServerServices {
                     rawText,
                     locale,
                     cpuName,
-                    notifySource);
+                    notifySource,
+                    null,
+                    null);
                 if (apiResult != null) {
                     return apiResult;
                 }
@@ -670,7 +670,7 @@ public final class AssistantServerServices {
      * WebAE: query craft candidates from one Advance Crafting Link (owner network context).
      */
     public static List<CraftingCandidate> craftingCandidatesForLink(EntityPlayerMP player,
-        TileEntityAdvanceCraftingLink link, String rawText, String target, long amount) {
+        TileEntityAdvanceNetworkLink link, String rawText, String target, long amount) {
         if (player == null || link == null) {
             return Collections.emptyList();
         }
@@ -744,9 +744,18 @@ public final class AssistantServerServices {
     /**
      * WebAE: submit a craft job via one Advance Crafting Link (owner network context).
      */
-    public static String submitCraftForLink(EntityPlayerMP player, TileEntityAdvanceCraftingLink link,
+    public static String submitCraftForLink(EntityPlayerMP player, TileEntityAdvanceNetworkLink link,
         CraftingCandidate candidate, long amount, String rawText, String locale, String cpuName,
         CraftNotifySource notifySource) {
+        return submitCraftForLink(player, link, candidate, amount, rawText, locale, cpuName, notifySource, null, null);
+    }
+
+    /**
+     * WebAE craft submit with optional tracking key + lifecycle hooks (bind ICraftingLink after submitJob).
+     */
+    public static String submitCraftForLink(EntityPlayerMP player, TileEntityAdvanceNetworkLink link,
+        CraftingCandidate candidate, long amount, String rawText, String locale, String cpuName,
+        CraftNotifySource notifySource, String trackingKey, CraftSubmitHooks hooks) {
         if (candidate == null) {
             return orderFailed(locale, text(locale, "候选项为空。", "empty candidate."));
         }
@@ -785,7 +794,9 @@ public final class AssistantServerServices {
                 rawText,
                 locale,
                 cpuName,
-                notifySource);
+                notifySource,
+                trackingKey,
+                hooks);
             if (apiResult != null) {
                 return apiResult;
             }
@@ -901,9 +912,9 @@ public final class AssistantServerServices {
             player == null ? "null" : player.getCommandSenderName(),
             safe(rawText),
             safe(target));
-        ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Item count query failed: no AdvanceStorageLink found.");
             return CandidateQueryResult.empty();
@@ -922,7 +933,7 @@ public final class AssistantServerServices {
         Map<String, String> uniqueFluids = new LinkedHashMap<>();
         int index = 1;
         boolean truncated = false;
-        for (TileEntityAdvanceStorageLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             try {
                 IGrid grid = link.getProxy()
                     .getGrid();
@@ -1173,13 +1184,13 @@ public final class AssistantServerServices {
     private static InfiniteCellScanResult scanNetworkCellsForInfinite(EntityPlayerMP player) {
         InfiniteCellScanResult result = new InfiniteCellScanResult();
         // Find any connector that has AE2 grid access
-        ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             return result;
         }
-        for (TileEntityAdvanceStorageLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             try {
                 IGrid grid = link.getProxy()
                     .getGrid();
@@ -1346,9 +1357,9 @@ public final class AssistantServerServices {
         boolean includeFluids = storageScope != AssistantIntent.STORAGE_SCOPE_ITEMS;
         String query = normalizeStorageQuery(target, storageScope);
 
-        ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             return CandidateQueryResult.empty();
         }
@@ -1359,7 +1370,7 @@ public final class AssistantServerServices {
         int index = 1;
         boolean truncated = false;
 
-        for (TileEntityAdvanceStorageLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             try {
                 IGrid grid = link.getProxy()
                     .getGrid();
@@ -1607,33 +1618,15 @@ public final class AssistantServerServices {
                     recorded ? text(locale, "（来自玩家记录）", " (from player record)")
                         : text(locale, "（本次附近搜索记录）", " (recorded from nearby search)"));
         }
-        ConnectorSource<TileEntityAdvanceCraftingLink> crafting = findAllLinkTiles(
-            player,
-            TileEntityAdvanceCraftingLink.class);
-        ConnectorSource<TileEntityAdvanceStorageLink> storage = findAllLinkTiles(
-            player,
-            TileEntityAdvanceStorageLink.class);
-        ConnectorSource<TileEntityAdvanceNetworkLink> network = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> links = findAllLinkTiles(
             player,
             TileEntityAdvanceNetworkLink.class);
-        builder.append("\nAdvance Crafting Link: ")
-            .append(crafting.connectors.size())
-            .append(" (")
-            .append(crafting.sourceDescription(locale))
-            .append(")");
-        builder.append("\nAdvance Storage Link: ")
-            .append(storage.connectors.size())
-            .append(" (")
-            .append(storage.sourceDescription(locale))
-            .append(")");
         builder.append("\nAdvance Network Link: ")
-            .append(network.connectors.size())
+            .append(links.connectors.size())
             .append(" (")
-            .append(network.sourceDescription(locale))
+            .append(links.sourceDescription(locale))
             .append(")");
-        appendConnectorDetails(builder, "Crafting", crafting.connectors);
-        appendConnectorDetails(builder, "Storage", storage.connectors);
-        appendConnectorDetails(builder, "Network", network.connectors);
+        appendConnectorDetails(builder, "Network", links.connectors);
         return builder.toString();
     }
 
@@ -1704,9 +1697,9 @@ public final class AssistantServerServices {
     private static String recipeSummary(EntityPlayerMP player, String target, long amount, ItemStack exactStack,
         String locale) {
         String query = target == null ? "" : target.trim();
-        ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             return queryFailed(locale, text(locale, "附近没有 Advance Crafting Link。", "no nearby Advance Crafting Link."));
         }
@@ -1714,7 +1707,7 @@ public final class AssistantServerServices {
         List<CraftingCandidate> allCandidates = new ArrayList<>();
         Map<String, ItemStack> unique = new LinkedHashMap<>();
         ICraftingPatternDetails firstDetail = null;
-        for (TileEntityAdvanceCraftingLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             try {
                 IGrid grid = link.getProxy()
                     .getGrid();
@@ -1758,9 +1751,9 @@ public final class AssistantServerServices {
 
     private static String storageSummary(EntityPlayerMP player, String target, int scope, String locale) {
         boolean chinese = zh(locale);
-        ConnectorSource<TileEntityAdvanceStorageLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceStorageLink.class);
+            TileEntityAdvanceNetworkLink.class);
         if (source.isEmpty()) {
             AdvanceDataMonitor.LOG.info("[ADM Assistant] Storage query failed: no AdvanceStorageLink found.");
             return (chinese ? msg("storage.noLink", "Query failed: no nearby Advance Storage Link.")
@@ -1779,7 +1772,7 @@ public final class AssistantServerServices {
         List<String> fluidMatches = new ArrayList<>();
         Map<String, Boolean> seenItemMatches = new java.util.HashMap<>();
         Map<String, Boolean> seenFluidMatches = new java.util.HashMap<>();
-        for (TileEntityAdvanceStorageLink link : source.connectors) {
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             AdvanceDataMonitor.LOG
                 .info("[ADM Assistant] Using StorageLink at {},{},{}", link.xCoord, link.yCoord, link.zCoord);
             try {
@@ -2412,9 +2405,9 @@ public final class AssistantServerServices {
     }
 
     private static String trySubmit(final ICraftingGrid craftingGrid, final IGrid grid,
-        final TileEntityAdvanceCraftingLink link, final EntityPlayerMP player, final CraftingCandidate candidate,
+        final TileEntityAdvanceNetworkLink link, final EntityPlayerMP player, final CraftingCandidate candidate,
         final ItemStack stack, final long amount, final String rawText, final String locale, final String cpuName,
-        final CraftNotifySource notifySource) {
+        final CraftNotifySource notifySource, final String trackingKey, final CraftSubmitHooks hooks) {
         String pendingError = AssistantCraftJobManager.instance()
             .checkCanStart(player, locale);
         if (pendingError != null) {
@@ -2463,7 +2456,8 @@ public final class AssistantServerServices {
                             job,
                             locale,
                             cpuName,
-                            notifySource);
+                            notifySource,
+                            hooks);
                     }
                 });
             }
@@ -2487,10 +2481,17 @@ public final class AssistantServerServices {
             return orderFailed(locale, text(locale, "AE2 没有启动合成计算。", "AE2 did not start crafting calculation."));
         }
         AssistantCraftJobManager.instance()
-            .register(player, future, stack.getDisplayName(), amount, new Runnable() {
+            .register(player, future, stack.getDisplayName(), amount, trackingKey, new Runnable() {
 
                 @Override
                 public void run() {
+                    String reason = text(
+                        locale,
+                        "AE2 合成计算超时：" + stack.getDisplayName() + " x" + amount + "。",
+                        "AE2 crafting calculation timed out for " + stack.getDisplayName()
+                            + " x"
+                            + amount
+                            + ".");
                     AssistantDebugLog.append(
                         "server-submit",
                         "status=FAIL, reason=future-timeout, target='" + safe(stack.getDisplayName())
@@ -2498,18 +2499,10 @@ public final class AssistantServerServices {
                             + amount
                             + ", timeout="
                             + Config.assistantCraftJobTimeoutSeconds);
-                    sendCraftNotification(
-                        player,
-                        orderFailed(
-                            locale,
-                            text(
-                                locale,
-                                "AE2 合成计算超时：" + stack.getDisplayName() + " x" + amount + "。",
-                                "AE2 crafting calculation timed out for " + stack.getDisplayName()
-                                    + " x"
-                                    + amount
-                                    + ".")),
-                        notifySource);
+                    sendCraftNotification(player, orderFailed(locale, reason), notifySource);
+                    if (hooks != null) {
+                        hooks.onFailed(reason);
+                    }
                 }
             });
         return text(
@@ -2520,53 +2513,53 @@ public final class AssistantServerServices {
 
     private static void finishCraftSubmit(ICraftingGrid craftingGrid, BaseActionSource source, EntityPlayerMP player,
         CraftingCandidate candidate, ItemStack stack, long amount, String rawText, ICraftingJob job, String locale,
-        String cpuName, CraftNotifySource notifySource) {
+        String cpuName, CraftNotifySource notifySource, CraftSubmitHooks hooks) {
         if (job == null) {
+            String reason = text(locale, "AE2 合成计算没有返回任务。", "AE2 crafting calculation returned no job.");
             AssistantDebugLog.append(
                 "server-submit",
                 "status=FAIL, reason=null-job, target='" + safe(stack.getDisplayName()) + "', amount=" + amount);
-            sendCraftNotification(
-                player,
-                orderFailed(locale, text(locale, "AE2 合成计算没有返回任务。", "AE2 crafting calculation returned no job.")),
-                notifySource);
+            sendCraftNotification(player, orderFailed(locale, reason), notifySource);
+            if (hooks != null) {
+                hooks.onFailed(reason);
+            }
             return;
         }
         if (job.isSimulation()) {
+            String reason = text(
+                locale,
+                "AE2 只能模拟该合成，可能缺少材料或样板无效：" + stack.getDisplayName() + " x" + amount + "。",
+                "AE2 can only simulate this craft. Missing ingredients or invalid pattern for " + stack
+                    .getDisplayName() + " x" + amount + ".");
             AssistantDebugLog.append(
                 "server-submit",
                 "status=FAIL, reason=simulation, target='" + safe(
                     stack.getDisplayName()) + "', amount=" + amount + ", bytes=" + job.getByteTotal());
-            sendCraftNotification(
-                player,
-                orderFailed(
-                    locale,
-                    text(
-                        locale,
-                        "AE2 只能模拟该合成，可能缺少材料或样板无效：" + stack.getDisplayName() + " x" + amount + "。",
-                        "AE2 can only simulate this craft. Missing ingredients or invalid pattern for " + stack
-                            .getDisplayName() + " x" + amount + ".")),
-                notifySource);
+            sendCraftNotification(player, orderFailed(locale, reason), notifySource);
+            if (hooks != null) {
+                hooks.onFailed(reason);
+            }
             return;
         }
         try {
             ICraftingCPU targetCpu = resolveCpu(craftingGrid, cpuName);
             ICraftingLink craftingLink = craftingGrid.submitJob(job, null, targetCpu, true, source, false);
             if (craftingLink == null) {
+                String reason = text(
+                    locale,
+                    "AE2 没有接受合成任务：" + stack.getDisplayName() + " x" + amount + "。",
+                    "AE2 did not accept the crafting job for " + stack.getDisplayName() + " x" + amount + ".");
                 AssistantDebugLog.append(
                     "server-submit",
                     "status=FAIL, reason=submit-null-link, target='" + safe(
                         stack.getDisplayName()) + "', amount=" + amount + ", bytes=" + job.getByteTotal());
-                sendCraftNotification(
-                    player,
-                    orderFailed(
-                        locale,
-                        text(
-                            locale,
-                            "AE2 没有接受合成任务：" + stack.getDisplayName() + " x" + amount + "。",
-                            "AE2 did not accept the crafting job for " + stack.getDisplayName() + " x" + amount + ".")),
-                    notifySource);
+                sendCraftNotification(player, orderFailed(locale, reason), notifySource);
+                if (hooks != null) {
+                    hooks.onFailed(reason);
+                }
                 return;
             }
+            String resolvedCpuName = targetCpu != null ? targetCpu.getName() : (cpuName != null ? cpuName : "");
             AdvanceDataMonitor.LOG.info(
                 "[ADM Assistant] AE2 crafting job submitted: target='{}', amount={}, link={}, bytes={}",
                 stack.getDisplayName(),
@@ -2591,6 +2584,9 @@ public final class AssistantServerServices {
                     "OK：已提交 AE2 合成任务：" + stack.getDisplayName() + " x" + amount + "。",
                     "OK: submitted AE2 crafting job for " + stack.getDisplayName() + " x" + amount + "."),
                 notifySource);
+            if (hooks != null) {
+                hooks.onSubmitted(craftingLink, craftingLink.getCraftingID(), resolvedCpuName);
+            }
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[ADM Assistant] AE2 crafting submit failed", e);
             AssistantDebugLog.append(
@@ -2598,6 +2594,9 @@ public final class AssistantServerServices {
                 "status=FAIL, reason=submit-exception, target='" + safe(
                     stack.getDisplayName()) + "', amount=" + amount + ", message='" + safe(e.getMessage()) + "'");
             sendCraftNotification(player, orderFailed(locale, e.getMessage()), notifySource);
+            if (hooks != null) {
+                hooks.onFailed(e.getMessage() != null ? e.getMessage() : "submit failed");
+            }
         }
     }
 
@@ -2801,35 +2800,21 @@ public final class AssistantServerServices {
     public static void respondMenuState(EntityPlayerMP player) {
         int radius = linkSearchRadius();
 
-        ConnectorSource<TileEntityAdvanceCraftingLink> crafting = findAllLinkTiles(
-            player,
-            TileEntityAdvanceCraftingLink.class,
-            radius);
-        boolean craftingAvailable = !crafting.isEmpty();
-        boolean craftingHasPermission = checkConnectorPermission(player, crafting.connectors);
-
-        ConnectorSource<TileEntityAdvanceStorageLink> storage = findAllLinkTiles(
-            player,
-            TileEntityAdvanceStorageLink.class,
-            radius);
-        boolean storageAvailable = !storage.isEmpty();
-        boolean storageHasPermission = checkConnectorPermission(player, storage.connectors);
-
-        ConnectorSource<TileEntityAdvanceNetworkLink> network = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> links = findAllLinkTiles(
             player,
             TileEntityAdvanceNetworkLink.class,
             radius);
-        boolean networkAvailable = !network.isEmpty();
-        boolean networkHasPermission = checkConnectorPermission(player, network.connectors);
+        boolean available = !links.isEmpty();
+        boolean hasPermission = checkConnectorPermission(player, links.connectors);
 
         AdvanceDataMonitor.ADMCHANEL.sendTo(
             new PacketAssistantMenuStateResponse(
-                craftingAvailable,
-                craftingHasPermission,
-                storageAvailable,
-                storageHasPermission,
-                networkAvailable,
-                networkHasPermission),
+                available,
+                hasPermission,
+                available,
+                hasPermission,
+                available,
+                hasPermission),
             player);
     }
 
@@ -2885,68 +2870,62 @@ public final class AssistantServerServices {
 
     // ---- WebAE order progress / CPU helpers (Phase 7) ----
 
-    /** 混合进度结果：真实 AE2 进度优先，时间估算兜底。 */
+    /** 真实进度结果：AE2 计算阶段或 CPU 快照；无时间估算假进度。 */
     public static final class OrderProgressResult {
 
         public String status;
         public int progressPercent;
         public boolean completed;
+        /** 当前是否在 CPU 上合成（用于 seenCrafting 判定）。 */
+        public boolean onCpu;
     }
 
     /**
-     * 解析 WebAE 订单进度：先查 {@link AssistantCraftJobManager} 计算阶段，再查 CPU 合成进度，最后用时间估算。
+     * Legacy progress resolver used by quest orchestration (player-proximity Link search).
+     * WebAE order UI uses {@link com.imgood.textech.webae.order.WebAeOrderProgressService} instead.
      */
     public static OrderProgressResult resolveOrderProgress(EntityPlayerMP player, String cpuName, String itemName,
         long submittedAt) {
         OrderProgressResult result = new OrderProgressResult();
-        if (player != null && itemName != null) {
-            UUID owner = player.getUniqueID();
-            if (AssistantCraftJobManager.instance()
-                .isCalculating(owner, itemName)) {
-                result.status = "pending";
-                result.progressPercent = Math.max(
-                    1,
-                    AssistantCraftJobManager.instance()
-                        .getCalculationProgressPercent(owner, itemName));
-                result.completed = false;
-                return result;
-            }
-            Integer cpuProgress = queryCpuCraftProgress(player, cpuName, itemName);
-            if (cpuProgress != null) {
-                if (cpuProgress >= 100) {
-                    result.status = "completed";
-                    result.progressPercent = 100;
-                    result.completed = true;
-                } else if (cpuProgress > 0) {
-                    result.status = "crafting";
-                    result.progressPercent = cpuProgress;
-                    result.completed = false;
-                } else {
-                    result.status = "crafting";
-                    result.progressPercent = Math.max(25, estimateTimeProgress(submittedAt));
-                    result.completed = false;
-                }
-                return result;
-            }
+        result.status = "pending";
+        result.progressPercent = 0;
+        result.completed = false;
+        result.onCpu = false;
+        if (player == null || itemName == null) {
+            return result;
         }
-        int est = estimateTimeProgress(submittedAt);
-        if (est >= 100) {
-            result.status = "completed";
-            result.progressPercent = 100;
-            result.completed = true;
-        } else if (est > 30) {
-            result.status = "crafting";
-            result.progressPercent = est;
-            result.completed = false;
-        } else {
+        UUID owner = player.getUniqueID();
+        if (AssistantCraftJobManager.instance()
+            .isCalculating(owner, itemName)) {
             result.status = "pending";
-            result.progressPercent = est;
+            result.progressPercent = Math.max(
+                1,
+                AssistantCraftJobManager.instance()
+                    .getCalculationProgressPercent(owner, itemName));
             result.completed = false;
+            return result;
+        }
+        Integer cpuProgress = queryCpuCraftProgress(player, cpuName, itemName);
+        if (cpuProgress != null) {
+            result.onCpu = true;
+            if (cpuProgress >= 100) {
+                result.status = "completed";
+                result.progressPercent = 100;
+                result.completed = true;
+            } else {
+                result.status = "crafting";
+                result.progressPercent = Math.max(0, cpuProgress);
+                result.completed = false;
+            }
+            return result;
         }
         return result;
     }
 
-    /** 时间估算进度：0–30s→0–30%，30–120s→30–90%，>120s→100%。 */
+    /**
+     * @deprecated 已不再用于订单进度；保留供兼容调用。
+     */
+    @Deprecated
     public static int estimateTimeProgress(long submittedAt) {
         long elapsed = Math.max(0L, System.currentTimeMillis() - submittedAt);
         if (elapsed > 120_000L) {
@@ -2996,10 +2975,10 @@ public final class AssistantServerServices {
     }
 
     private static ICraftingCPU findCpuByName(EntityPlayerMP player, String cpuName) {
-        ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class);
-        for (TileEntityAdvanceCraftingLink link : source.connectors) {
+            TileEntityAdvanceNetworkLink.class);
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             try {
                 IGrid grid = link.getProxy()
                     .getGrid();
@@ -3015,17 +2994,18 @@ public final class AssistantServerServices {
 
     /**
      * 查询 CPU 上匹配 itemName 的合成进度（0–99）；100 表示完成；null 表示无匹配 CPU 任务。
+     * 仅在 busy 且产物名匹配时返回；无 startItems 计数时返回 0（仍表示在 CPU 上）。
      */
     private static Integer queryCpuCraftProgress(EntityPlayerMP player, String cpuName, String itemName) {
-        ConnectorSource<TileEntityAdvanceCraftingLink> source = findAllLinkTiles(
+        ConnectorSource<TileEntityAdvanceNetworkLink> source = findAllLinkTiles(
             player,
-            TileEntityAdvanceCraftingLink.class);
-        for (TileEntityAdvanceCraftingLink link : source.connectors) {
+            TileEntityAdvanceNetworkLink.class);
+        for (TileEntityAdvanceNetworkLink link : source.connectors) {
             try {
                 link.updateCraftingStats();
-                List<TileEntityAdvanceCraftingLink.CraftingCpuSnapshot> snaps = link.getCpuSnapshots();
+                List<TileEntityAdvanceNetworkLink.CraftingCpuSnapshot> snaps = link.getCpuSnapshots();
                 for (int i = 0; i < snaps.size(); i++) {
-                    TileEntityAdvanceCraftingLink.CraftingCpuSnapshot snap = snaps.get(i);
+                    TileEntityAdvanceNetworkLink.CraftingCpuSnapshot snap = snaps.get(i);
                     String name = snap.name;
                     if (name == null || name.isEmpty()) {
                         name = "CPU#" + (i + 1);
@@ -3041,19 +3021,7 @@ public final class AssistantServerServices {
                             }
                             return (int) Math.min(99L, done * 100L / snap.startItems);
                         }
-                        return 50;
-                    }
-                }
-                if (cpuName != null && !cpuName.isEmpty()) {
-                    for (int i = 0; i < snaps.size(); i++) {
-                        TileEntityAdvanceCraftingLink.CraftingCpuSnapshot snap = snaps.get(i);
-                        String name = snap.name;
-                        if (name == null || name.isEmpty()) {
-                            name = "CPU#" + (i + 1);
-                        }
-                        if (cpuName.equals(name)) {
-                            return snap.busy ? 10 : 0;
-                        }
+                        return 0;
                     }
                 }
             } catch (Exception ignored) {}

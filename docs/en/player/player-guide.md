@@ -14,22 +14,20 @@ For developer details see [Technical Documentation](../developer/technical-docum
 - [3. Items & Blocks Overview](#3-items--blocks-overview)
   - [3.1 Advance Data Monitor](#31-advance-data-monitor)
   - [3.2 Data Imprint Tool](#32-data-imprint-tool)
-  - [3.3 Network Linker](#33-network-linker)
-  - [3.4 Crafting Linker](#34-crafting-linker)
-  - [3.5 Advanced Storage Linker](#35-advanced-storage-linker)
-  - [3.6 Advanced Storage Link Cell](#36-advanced-storage-link-cell)
-  - [3.7 Grapple Anchor](#37-grapple-anchor)
-  - [3.8 Grapple Hook](#38-grapple-hook)
-  - [3.9 Data Loom Cells](#39-data-loom-cells)
-  - [3.10 Super Orange](#310-super-orange)
-  - [3.11 Empyrean Holy Judgment](#311-empyrean-holy-judgment)
-  - [3.12 TeXTech Manual](#312-textech-manual)
-  - [3.13 Dimensional Pocket](#313-dimensional-pocket)
-  - [3.14 Matter Ball Decompressor](#314-matter-ball-decompressor)
+  - [3.3 Advanced Network Linker](#33-advanced-network-linker)
+  - [3.4 Advanced Storage Link Cell](#34-advanced-storage-link-cell)
+  - [3.5 Grapple Anchor](#35-grapple-anchor)
+  - [3.6 Grapple Hook](#36-grapple-hook)
+  - [3.7 Data Loom Cells](#37-data-loom-cells)
+  - [3.8 Super Orange](#38-super-orange)
+  - [3.9 Empyrean Holy Judgment](#39-empyrean-holy-judgment)
+  - [3.10 TeXTech Manual](#310-textech-manual)
+  - [3.11 Dimensional Pocket](#311-dimensional-pocket)
+  - [3.12 Matter Ball Decompressor](#312-matter-ball-decompressor)
 - [4. Advance Data Monitor Tutorial](#4-advance-data-monitor-tutorial)
 - [5. AE2 Network Monitoring](#5-ae2-network-monitoring)
 - [6. AE2 Crafting Monitoring](#6-ae2-crafting-monitoring)
-- [7. AE2 Advanced Storage Linker Tutorial](#7-ae2-advanced-storage-linker-tutorial)
+- [7. AE2 Storage Display Tutorial](#7-ae2-storage-display-tutorial)
 - [8. AI Chat & Assistant](#8-ai-chat--assistant)
 - [9. Voice Assistant](#9-voice-assistant)
 - [10. Commands](#10-commands)
@@ -52,13 +50,13 @@ For developer details see [Technical Documentation](../developer/technical-docum
 | Capability | Description |
 |------------|-------------|
 | Advance Data Monitor | Line charts, bar charts, 3D bars, waterfall, difference plots, and text overlays bound to live data |
-| AE2 Linkers | **Network Linker**, **Crafting Linker**, and **Advanced Storage Linker** blocks connect to AE2 |
+| AE2 Linkers | **Advanced Network Linker** — unified block (network stats + storage cells + crafting CPUs) |
 | Grapple travel | Smooth gliding along anchor networks with both hands free |
 | AI Assistant | Natural-language AE2 queries, crafting orders, withdrawals, plans, and **Advanced Dislocator** teleport |
 | Voice Assistant | **V** key recording; embedded Vosk (offline) or HTTP STT |
 | WebAE Console | Browser AE2/GT management (disabled by default; see [WebAE User Guide](../webae/user-guide.md)) |
 
-**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, the three AE2 linker blocks, Matter Ball Decompressor, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, TeXTech Manual, Dimensional Pocket (with Space/Page upgrade cards), Super Orange, Empyrean Holy Judgment, and more.
+**Key blocks & items:** Advance Data Monitor, Data Imprint Tool, Advanced Network Linker, Matter Ball Decompressor, Grapple Anchor / Grapple Hook, Advanced Storage Link Cell, Data Loom cells, Advance Planner, TeXTech Manual, Dimensional Pocket (with Space/Page upgrade cards), Super Orange, Empyrean Holy Judgment, and more.
 
 **Environment:** GTNH or any 1.7.10 pack with AE2/GTNH dependencies. After install, edit `config/textech/textech.cfg` and set an AI API key to enable the assistant.
 
@@ -72,9 +70,7 @@ Core features:
 
 - **Advance Data Monitor** — charts, titles, text, AE2 storage grids, and crafting status on any face.
 - **Data Imprint Tool** — snapshot target TileEntity NBT to discover bindable field names.
-- **Network Linker** — AE2 network item/fluid byte and type usage.
-- **Crafting Linker** — AE2 crafting CPU counts, busy state, storage, co-processors, and active jobs.
-- **Advanced Storage Linker** — displays counts for items configured on **Advanced Storage Link Cell** partitions.
+- **Advanced Network Linker** — unified AE2 connector: network byte/type stats, filtered storage display via **Advanced Storage Link Cell** slots, and crafting CPU monitoring. Right-click opens storage GUI; Shift+right-click prints comprehensive status to chat.
 - **AI chat & assistant** — OpenAI-compatible Chat API; structured AE2 actions when a key is configured.
 - **Voice assistant** — WAV upload to OpenAI-compatible STT or local Vosk transcription.
 - **Grapple Anchor / Grapple Hook** — scenic base travel without tying up movement keys (see [§3.7](#37-grapple-anchor)).
@@ -114,18 +110,28 @@ Use inside GTNH or a pack that already ships AE2 and related GTNH mods.
 
 ### 2.4 Recipes
 
-The mod does **not** register shaped/shapeless recipes in code. Obtain blocks and items via creative tab, NEI, Minetweaker/CraftTweaker scripts, or admin give commands. Pack authors should add recipes for at least:
+`LoaderRecipe` registers **GTNH Assembler (IV)** and **Assembly Line (UHV)** recipes (GregTech required). Items/blocks **with** recipes:
 
-| Registry name | Display name |
-|---------------|--------------|
-| `advDataMonitor` | Advance Data Monitor |
-| `advNetworkLinkBlock` | Network Linker |
-| `advStorageLink` | Advanced Storage Linker |
-| `advCraftingLink` | Crafting Linker |
-| `data_imprint` | Data Imprint Tool |
-| `advance_storage_link_cell` | Advanced Storage Link Cell |
-| `grappleAnchor` | Grapple Anchor |
-| `grapple_hook` | Grapple Hook |
+| Registry name | Display name | Machine |
+|---------------|--------------|---------|
+| `advDataMonitor` | Advance Data Monitor | Assembler IV |
+| `advNetworkLinkBlock` | Advanced Network Linker (unified) | Assembler IV |
+| `data_imprint` | Data Imprint Tool | Assembler IV |
+| `advance_storage_link_cell` | Advanced Storage Link Cell (×2) | Assembler IV |
+| `advance_planner` | Advance Planner | Assembler IV |
+| `advance_link_scanner` | Advance Link Scanner | Assembler IV |
+| `dimensional_pocket` | Dimensional Pocket | Assembler IV |
+| `space_upgrade_card` | Space Upgrade Card (×4) | Assembler IV |
+| `page_upgrade_card` | Page Upgrade Card (×2) | Assembler IV |
+| `matterBallDecompressor` | Matter Ball Decompressor | UHV Assembly Line (research: Advanced Network Linker) |
+
+**No built-in recipes** (creative / NEI give / CraftTweaker):
+
+- `grappleAnchor` / `grapple_hook`
+- Data loom cells and weave amplifier cards
+- `stack_upgrade_card` / `infinite_stack_upgrade_card`
+- Starry Cosmos Sword, Empyrean Holy Judgment, Super Orange, etc.
+- Manual item (gifted once per player per world on first join)
 
 ---
 
@@ -164,101 +170,53 @@ The main display block. Right-click to open the configuration GUI: add data bind
 
 | Action | Effect |
 |--------|--------|
-| Sneak + right-click block | Bind target; save coordinates, block ID, meta, and TileEntity NBT snapshot |
-| Right-click air | Open NBT viewer (when a TileEntity is bound) |
-| Sneak + right-click air | Clear all imprint data on the tool |
+| Sneak + right-click non-monitor block (non-GT) | Imprint coordinates + TileEntity NBT; clears any GT list (mutually exclusive) |
+| Sneak + right-click GT machine | Append machine coords to GT list; clears any block imprint |
+| Sneak + right-click Advance Data Monitor | Bind current payload only (GT list → batch GT bind; block imprint → chart binding slot) |
+| Right-click air | Open NBT viewer when a block TE is imprinted; if only GT list, shows count hint |
+| Sneak + right-click air | **With payload:** clear all data. **Empty tool:** scan nearby GT machines at current radius |
+| Sneak + scroll wheel | Cycle GT scan radius (8 / 16 / 32 / 64) |
+
+**Mutual exclusivity:** the tool holds either a block imprint (`boundPos`) or a GT machine list (`gtMachineList`), never both. Writing one side clears the other with a chat notice. Legacy dual-payload items keep the GT list and drop the block imprint on first monitor bind.
 
 **Notes:**
 
-- Cannot bind another **Advance Data Monitor**.
-- Sneak + right-click binding stops at 36 entries per face; shows `adm.error.data_bindings_full` when full.
-- Stores a **snapshot** — not a live feed unless rebound.
+- Cannot imprint another **Advance Data Monitor**.
+- Sneak + right-click block binding stops at 36 entries per face; shows `adm.error.data_bindings_full` when full.
+- Block imprint stores a **snapshot** — not a live feed unless rebound.
 - Blocks without TileEntity/NBT show an empty-viewer message.
 
 ---
 
-### 3.3 Network Linker
+### 3.3 Advanced Network Linker
 
-**Registry:** `textech:advNetworkLinkBlock`
+**Registry:** `textech:advNetworkLinkBlock`  
+**Lang name:** Advanced Network Linker (`tile.NetworkLinkBlock.name`)
 
-Connects to AE2 and reports network-wide storage capacity for items and fluids.
-
-**Features:**
-
-- AE network TileEntity; requires a channel.
-- Smart Cable connection type.
-- Refreshes every 20 ticks and on AE storage events.
-- Right-click prints current network stats to chat.
-
-**Bindable metrics:**
-
-| Field | Meaning |
-|-------|---------|
-| `ItemTotalBytes` / `ItemUsedBytes` | Item storage capacity / used |
-| `ItemTotalTypes` / `ItemUsedTypes` | Item type slots total / used |
-| `FluidTotalBytes` / `FluidUsedBytes` | Fluid storage capacity / used |
-| `FluidTotalTypes` / `FluidUsedTypes` | Fluid type slots total / used |
-
-Bind the block on an **Advance Data Monitor** and choose raw values or percentage display.
-
----
-
-### 3.4 Crafting Linker
-
-**Registry:** `textech:advCraftingLink`
-
-Connects to AE2 and tracks crafting CPU state. Also powers AI craft queries and job submission within **32 blocks** of the player.
+Unified AE2 connector merging the former Network Linker, Advanced Storage Linker, and Crafting Linker into one block. Provides network-wide storage stats, filtered storage display via **Advanced Storage Link Cell** slots, crafting CPU monitoring, and the AI assistant's nearby linker entry point.
 
 **Features:**
 
-- AE network TileEntity; requires a channel.
-- Refreshes every 20 ticks and on crafting CPU events.
-- Right-click prints CPU summary to chat.
+- AE network TileEntity; requires a channel; Smart Cable connection type.
+- Refreshes every 20 ticks for network stats, marked-item counts, and CPU data.
+- **Right-click** opens the storage configuration GUI (36 slots, Advanced Storage Link Cells only).
+- **Shift+right-click** prints comprehensive status to chat (network bytes/types + crafting CPU summary).
+- On **Advance Data Monitor** bindings, choose display type per `dataType`: network chart (`line`), storage icons (`storage`), or crafting text (`crafting`).
 
-**Network-wide fields:** `totalCpus`, `busyCpus`, `cpuTotalBytes`, `cpuUsedBytes`, `totalCoProcessors`
+**Network metrics** (chart bindings): `ItemTotalBytes`, `ItemUsedBytes`, `ItemTotalTypes`, `ItemUsedTypes`, `FluidTotalBytes`, `FluidUsedBytes`, `FluidTotalTypes`, `FluidUsedTypes`
 
-**Per-CPU fields** (by name or `CPU#N`):
+**Crafting fields** (`dataType=crafting`): `totalCpus`, `busyCpus`, `cpuTotalBytes`, `cpuUsedBytes`, `totalCoProcessors`, plus per-CPU `busyCpus:CPU#1`, `usedStorage:CPU#1`, `finalOutputName:CPU#1`, etc. (CPU names must match AE2 exactly).
 
-| Field | Description |
-|-------|-------------|
-| `busyCpus:CPU#1` | 1 if busy, else 0 |
-| `usedStorage:CPU#1` | Used storage bytes |
-| `availableStorage:CPU#1` | Free storage bytes |
-| `coProcessors:CPU#1` | Co-processor count |
-| `finalOutputName:CPU#1` | Current job output name |
-| `finalOutputAmount:CPU#1` | Output stack size |
-| `remainingItems:CPU#1` / `startItems:CPU#1` | Job progress |
-| `elapsedTime:CPU#1` | Elapsed ms |
+**Storage display** (`dataType=storage`):
+
+1. Configure **Advanced Storage Link Cell** partitions in a Cell Workbench (optional Fuzzy / Inverter / Ore Filter / fluid markers).
+2. Insert cells into the linker GUI (right-click the block).
+3. Bind linker coordinates on a monitor; choose **Storage Display** and tune columns, icon scale, count/delta/name toggles.
+4. **Data Loom cell internals are excluded** from storage statistics.
 
 ---
 
-### 3.5 Advanced Storage Linker
-
-**Registry:** `textech:advStorageLink`  
-**Lang name:** Advanced Storage Linker (`tile.StorageLinkBlock.name`)
-
-Shows AE2 counts for items/fluids configured on **Advanced Storage Link Cell** partitions placed inside the block.
-
-**Features:**
-
-- AE network TileEntity with **36 slots** — only accepts Advanced Storage Link Cells.
-- Right-click opens the Advanced Storage Linker GUI.
-- Partition slots on each cell (edited in AE2 Cell Workbench) define tracked items.
-- Supports AE2 Fuzzy Card, Inverter Card, Ore Filter Card, and fluid marker NBT.
-- **Data Loom cell internals are excluded** — only network stock matching cell partitions is counted.
-
-**Typical workflow:**
-
-1. Configure one or more **Advanced Storage Link Cells** in a Cell Workbench.
-2. Optionally add upgrade cards (fuzzy / inverter / ore dictionary / fluid markers).
-3. Insert cells into the **Advanced Storage Linker** GUI.
-4. Bind the linker block on an **Advance Data Monitor** with display type `storage`.
-
-> Without a Fuzzy Card, matching is exact (`isItemEqual`) so AE2FC fluid droplets are not merged incorrectly.
-
----
-
-### 3.6 Advanced Storage Link Cell
+### 3.4 Advanced Storage Link Cell
 
 **Registry:** `textech:advance_storage_link_cell`  
 **Lang name:** Advanced Storage Link Cell (`item.advanceStorageLinkCell.name`)
@@ -269,17 +227,17 @@ A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkben
 
 - Max stack size 1; 2 upgrade slots.
 - Fuzzy / Inverter / Ore Filter cards supported.
-- Partition slots define which items the parent **Advanced Storage Linker** displays.
+- Partition slots define which items the parent **Advanced Network Linker** displays.
 - Fluid marker NBT (`fluidMarkers`) tracks AE2 fluid amounts in mB.
 - Internal **Data Loom cell** accumulators (`dataLoomItemAccum` / `dataLoomFluidAccum`) are **not** counted.
 
 **Shared tooltip (Data Loom cells):**
 
-> *Items, fluids, or essentia stored inside this cell are excluded from Advanced Storage Linker statistics.*
+> *Items, fluids, or essentia stored inside this cell are excluded from Advanced Network Linker storage statistics.*
 
 ---
 
-### 3.7 Grapple Anchor
+### 3.5 Grapple Anchor
 
 **Registry:** `textech:grappleAnchor`  
 **Lang name:** Grapple Anchor (`tile.grappleAnchor.name`)
@@ -307,7 +265,7 @@ A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkben
 
 ---
 
-### 3.8 Grapple Hook
+### 3.6 Grapple Hook
 
 **Registry:** `textech:grapple_hook`  
 **Lang name:** Grapple Hook (`item.grappleHook.name`)
@@ -330,7 +288,7 @@ Grapple travel complements — not replaces — AE2 teleport or flight mods for 
 
 ---
 
-### 3.9 Data Loom Cells
+### 3.7 Data Loom Cells
 
 AE2 storage cells that **weave** items, fluids, or essentia from network data (unlike the **Data Imprint Tool**, which only observes). Place in ME Drive or ME Chest; mark targets in Cell Workbench.
 
@@ -376,7 +334,7 @@ AE2 storage cells that **weave** items, fluids, or essentia from network data (u
 > *Drains AE network energy (default 999999 AE/t, configurable via [dataLoomCell] energyDrainPerTick).*  
 > *Only Weave Amplifier cards accepted — no AE acceleration cards.*  
 > *Output settles every %d seconds ([dataLoomCell] syncIntervalSeconds); see cached rate lines above.*  
-> *Items, fluids, or essentia stored inside this cell are excluded from Advanced Storage Linker statistics.*
+> *Items, fluids, or essentia stored inside this cell are excluded from Advanced Network Linker storage statistics.*
 
 #### Weave Amplifier Card / Super Weave Amplifier Card
 
@@ -387,13 +345,13 @@ AE2 storage cells that **weave** items, fluids, or essentia from network data (u
 | Weave Amplifier Card | 4× per card (configurable) | Up to 8 cards; same-type cards multiply (1→4×, 2→16×, …) |
 | Super Weave Amplifier Card | 16× per card (configurable) | **⚠ Warning:** exponential surge may instantly flood the AE network |
 
-Both card types stack in the upgrade slot (max 8 total). Internal loom accumulators never appear on **Advanced Storage Linker** displays.
+Both card types stack in the upgrade slot (max 8 total). Internal loom accumulators never appear on **Advanced Network Linker** storage displays.
 
 Config sections: `[dataDustLoomCell]`, `[dataFormLoomCell]`, `[dataFlowCell]`, `[dataSourceLoomCell]`, `[dataLoomCell]`. Developer detail: [Technical Documentation §5.7](../developer/technical-documentation.md).
 
 ---
 
-### 3.10 Super Orange
+### 3.8 Super Orange
 
 **Registry:** `textech:orange`  
 **Lang name:** Super Orange (`item.orange.name`)
@@ -413,7 +371,7 @@ Config section: `[superOrange]`. **Not** auto-gifted on first join (unlike the *
 
 ---
 
-### 3.11 Empyrean Holy Judgment
+### 3.9 Empyrean Holy Judgment
 
 **Registry:** `textech:starry_cosmos_sword`  
 **Lang name:** Empyrean Holy Judgment (`item.starryCosmosSword.name`)
@@ -426,7 +384,7 @@ Creative tab: Combat. Max stack 1.
 
 ---
 
-### 3.12 TeXTech Manual
+### 3.10 TeXTech Manual
 
 **Registry:** `textech:manual`  
 **Lang name:** TeXTech Manual (`item.manual.name`)
@@ -448,7 +406,7 @@ Page types: `text`, `item_showcase`, `config_ref`.
 
 ---
 
-### 3.13 Dimensional Pocket
+### 3.11 Dimensional Pocket
 
 **Registry:** `textech:dimensionalPocket`
 **Lang name:** Dimensional Pocket (`item.dimensionalPocket.name`)
@@ -489,7 +447,7 @@ Developer details: [Technical Documentation §5.12](../developer/technical-docum
 
 ---
 
-### 3.14 Matter Ball Decompressor
+### 3.12 Matter Ball Decompressor
 
 **Registry:** `textech:matterBallDecompressor`  
 **Lang name:** Matter Ball Decompressor (`tile.matterBallDecompressor.name`)
@@ -513,7 +471,7 @@ AE2 block that decompresses Avaritia matter clusters into individual items. Requ
 
 **Rate:** `[matterBallDecompressor] itemsPerSecond` (default 16/s); AE speed cards stack like a molecular assembler (`SUPERSPEED` ×8 per card).
 
-**Crafting** (UHV Assembly Line): scan Advanced Storage Linker 90s @ UV, 120s @ UHV. Materials: neutronium plate ×4, ultimate circuit ×2, Advanced Storage Linker ×1, Network Linker ×1, fluix crystal ×4, neutronium screw ×8, naquadah fine wire ×16 (OreDict `wireFineNaquadah`), solder 5760 mB + lubricant 2000 mB.
+**Crafting** (UHV Assembly Line): scan Advanced Network Linker 90s @ UV, 120s @ UHV. Materials: neutronium plate ×4, ultimate circuit ×2, Advanced Network Linker ×1, fluix crystal ×4, neutronium screw ×8, naquadah fine wire ×16 (OreDict `wireFineNaquadah`), solder 5760 mB + lubricant 2000 mB.
 
 Developer detail: [Technical Documentation §5.13](../developer/technical-documentation.md#513-matter-ball-decompressor).
 
@@ -521,7 +479,7 @@ Developer detail: [Technical Documentation §5.13](../developer/technical-docume
 
 ## 4. Advance Data Monitor Tutorial
 
-**Setup:** Place block → right-click GUI → **Add binding** → enter `x,y,z` → configure per target type (generic TileEntity, Network Linker, Crafting Linker, or Advanced Storage Linker) → set title, chart type, offsets, rotation, scale, interval → save.
+**Setup:** Place block → right-click GUI → **Add binding** → enter `x,y,z` → configure per target type (generic TileEntity or unified **Advanced Network Linker** with display type network / storage / crafting) → set title, chart type, offsets, rotation, scale, interval → save.
 
 **Main GUI buttons:** facing cycle; add binding; body/screen/single-vs-dual toggles; **AI** chat; per-entry config buttons; color/chart sub-pages.
 
@@ -543,9 +501,9 @@ More rendering detail: [Technical Documentation](../developer/technical-document
 
 ## 5. AE2 Network Monitoring
 
-1. Cable-connect **Network Linker** to AE2 (channel required).
-2. Right-click — chat should show byte/type stats.
-3. Bind link coordinates on **Advance Data Monitor**.
+1. Cable-connect **Advanced Network Linker** to AE2 (channel required).
+2. Shift+right-click — chat should show byte/type stats plus crafting CPU summary.
+3. Bind linker coordinates on **Advance Data Monitor**; choose **Network Stats Chart** display type.
 4. Pick metric (e.g. `ItemUsedBytes` as percentage line chart).
 5. Save — watch live trend on the monitor face.
 
@@ -555,8 +513,8 @@ More rendering detail: [Technical Documentation](../developer/technical-document
 
 ## 6. AE2 Crafting Monitoring
 
-1. Connect **Crafting Linker** to the AE2 network with crafting CPUs online.
-2. Right-click for CPU summary; bind on **Advance Data Monitor**.
+1. Connect **Advanced Network Linker** to the AE2 network with crafting CPUs online.
+2. Shift+right-click for CPU summary; bind on **Advance Data Monitor** with **Crafting Monitor** display type.
 3. Open crafting CPU config — choose **whole network** or per-CPU template mode.
 4. Tune text scale, alpha, alignment, and template string.
 
@@ -572,13 +530,13 @@ CPU names must match AE2 exactly or values show as `??`.
 
 ---
 
-## 7. AE2 Advanced Storage Linker Tutorial
+## 7. AE2 Storage Display Tutorial
 
 **Configure Advanced Storage Link Cell:** Cell Workbench → partition slots → optional Fuzzy / Inverter / Ore Filter / fluid markers → remove cell.
 
-**Configure Advanced Storage Linker block:** cable to AE2 → open GUI → insert configured cells (up to 36).
+**Configure Advanced Network Linker block:** cable to AE2 → right-click opens GUI → insert configured cells (up to 36).
 
-**Monitor display:** bind Advanced Storage Linker coordinates → storage display config → set `storageColumns`, `storageSpacing`, `storageIconScale`, count/delta/name toggles.
+**Monitor display:** bind linker coordinates → choose **Storage Display** → set `storageColumns`, `storageSpacing`, `storageIconScale`, count/delta/name toggles.
 
 ---
 
@@ -607,7 +565,7 @@ AI chat sends your input and recent history to the configured model provider. Fi
 
 ### 8.4 Query AE2 Storage
 
-**Requires** an **Advanced Storage Linker** within 32 blocks.
+**Requires** an **Advanced Network Linker** within 32 blocks.
 
 Examples:
 
@@ -621,7 +579,7 @@ Scopes: `all` (items + fluids), `items` only, `fluids` only. AI infers scope fro
 
 ### 8.5 Query Craftable Patterns
 
-**Requires** a **Crafting Linker** within 32 blocks on a network with patterns.
+**Requires** an **Advanced Network Linker** within 32 blocks on a network with patterns.
 
 Examples:
 
@@ -658,7 +616,7 @@ Limits: max 8 tasks per AI parse; every line needs a candidate; batch submit che
 
 ### 8.8 Withdraw Items to Inventory
 
-Unlike crafting (making new items), withdraw moves **existing** AE2 storage into your inventory. **Requires** **Advanced Storage Linker** within 32 blocks.
+Unlike crafting (making new items), withdraw moves **existing** AE2 storage into your inventory. **Requires** **Advanced Network Linker** within 32 blocks.
 
 Examples:
 
@@ -820,8 +778,8 @@ Enable via AI chat **Search: On**, **AI Settings** GUI, or `/admai search on`. C
 
 ### 14.1 AE storage usage trend chart
 
-1. Cable a **Network Linker** to your AE network.
-2. Add a monitor binding pointing at the linker.
+1. Cable an **Advanced Network Linker** to your AE network.
+2. Add a monitor binding pointing at the linker; choose **Network Stats Chart**.
 3. Data name: `ItemUsedBytes`.
 4. Display: percentage.
 5. Chart type: line chart.
@@ -830,8 +788,8 @@ Enable via AI chat **Search: On**, **AI Settings** GUI, or `/admai search on`. C
 
 ### 14.2 Crafting CPU overview wall
 
-1. Cable a **Crafting Linker**.
-2. Bind monitor to linker coordinates.
+1. Cable an **Advanced Network Linker** with crafting CPUs online.
+2. Bind monitor to linker coordinates; choose **Crafting Monitor**.
 3. Choose whole-network crafting processor template.
 4. Tune text scale/offset for floating labels.
 5. Save.
@@ -839,8 +797,8 @@ Enable via AI chat **Search: On**, **AI Settings** GUI, or `/admai search on`. C
 ### 14.3 Key material stock wall
 
 1. Configure **Advanced Storage Link Cell** partitions (e.g. iridium, tungstensteel, tin, circuits).
-2. Insert cells into **Advanced Storage Linker**.
-3. Bind monitor to linker.
+2. Insert cells into **Advanced Network Linker** (right-click GUI).
+3. Bind monitor to linker; choose **Storage Display**.
 4. Set `storageColumns=4`, `storageSpacing=0.45`, `storageIconScale=1.0`.
 5. Save.
 
@@ -855,14 +813,14 @@ Use when you want to **see the path**, not teleport past it.
 
 ### 14.5 AI batch craft
 
-1. Stand within 32 blocks of **Crafting Linker**.
+1. Stand within 32 blocks of **Advanced Network Linker** (crafting path).
 2. Open AI chat.
 3. e.g. `Order 64 tin gears and 32 copper wire`.
 4. Confirm with number or `confirm`.
 
 ### 14.6 AI withdraw to inventory
 
-1. Stand within 32 blocks of **Advanced Storage Linker**.
+1. Stand within 32 blocks of **Advanced Network Linker** (withdraw path).
 2. Open AI chat.
 3. e.g. `Withdraw 64 tin ingots to inventory`.
 4. Confirm. Partial withdraw prompts if backpack is tight.
@@ -877,19 +835,19 @@ Check entry enabled, screen visible, `scale` not too small, offsets, correct coo
 
 ### 15.2 Chart stuck at zero
 
-Verify `name` field; use **Data Imprint Tool** NBT viewer; for Network Linker use supported names like `ItemUsedBytes`; chunk loaded.
+Verify `name` field; use **Data Imprint Tool** NBT viewer; for network chart bindings on **Advanced Network Linker** use supported names like `ItemUsedBytes`; chunk loaded.
 
-### 15.3 Network Linker empty
+### 15.3 Advanced Network Linker — no network stats
 
-AE2 cabled? Channel? Drives present? Right-click chat output?
+AE2 cabled? Channel? Drives present? Shift+right-click prints comprehensive status?
 
-### 15.4 Crafting Linker shows no CPUs
+### 15.4 Advanced Network Linker — no CPUs
 
 Same network as CPUs? Channel? Valid multiblock? CPU name matches template?
 
-### 15.5 Advanced Storage Linker empty
+### 15.5 Advanced Network Linker — empty storage display
 
-AE2 online? Cell partitions set in Workbench? Cell inserted in linker GUI? Inverter card filtering everything? Binding coordinates correct?
+AE2 online? Cell partitions set in Workbench? Cell inserted in linker GUI (right-click)? Binding uses **Storage Display** type? Inverter card filtering everything? Binding coordinates correct?
 
 ### 15.6 No API key
 
@@ -901,19 +859,19 @@ AE2 online? Cell partitions set in Workbench? Cell inserted in linker GUI? Inver
 
 ### 15.8 AI chats but no AE2 actions
 
-**Advanced Storage Linker** / **Crafting Linker** within 32 blocks, channeled to AE2.
+**Advanced Network Linker** within 32 blocks, channeled to AE2.
 
 ### 15.9 Batch craft failed
 
-Missing candidate line; over `maxOrderAmount`; insufficient calc slots; no Crafting Linker; craft timeout.
+Missing candidate line; over `maxOrderAmount`; insufficient calc slots; no Advanced Network Linker nearby; craft timeout.
 
 ### 15.10 Voice assistant dead
 
-`voice.enabled=true`; privacy confirmed; STT key/URL; mic permissions; try `embedded-vosk` offline mode.
+`voice.enabled=true`; privacy confirmed; mic permissions. On Windows try `embedded-vosk` (no STT key). For `http` mode configure STT key/URL. Non-Windows must set `voice.sttMode=http`.
 
 ### 15.11 Withdraw unavailable
 
-Advanced Storage Linker within 32 blocks; channeled; matching items in network; use withdraw keywords.
+Advanced Network Linker within 32 blocks; channeled; matching items in network; use withdraw keywords.
 
 ### 15.12 Withdraw amount zero / error
 
@@ -939,16 +897,16 @@ Max **36** bindings per monitor face; remove unused entries or use another face 
 
 ## 17. Known Limitations
 
-- No built-in survival recipes in mod code.
+- Some items still lack built-in recipes (grapple, loom cells, stack upgrade cards, combat specials, etc.); core monitor/linker/imprint/pocket items have GT Assembler/Assembly Line recipes — see §2.4.
 - AE2 link search radius defaults to **32 blocks**; configure via `assistant.linkSearchRadius` (4–128).
 - AI structured parse: max **8** tasks; one bad task fails entire AI parse (falls back to rules).
 - Withdraw needs backpack space; partial withdraw pauses batch operations.
 - Chat history is client-only (not saved across sessions).
 - Storage/craft query replies are formatted text, not GUI widgets.
 - Batch merge keys on natural-language target strings, not normalized item IDs.
-- Network Linker scans standard ME Drive/Chest cells — exotic storage may be incomplete.
+- Advanced Network Linker network scans standard ME Drive/Chest cells — exotic storage may be incomplete.
 - Crafting templates may omit non-item pattern I/O on some AE2 API paths.
-- HTTP voice mode requires network; `embedded-vosk` is offline but Chinese-focused by default.
+- Voice defaults to `voice.sttMode=embedded-vosk` (offline on Windows 64-bit); non-Windows must set `voice.sttMode=http` and configure external STT.
 
 ---
 
@@ -956,7 +914,7 @@ Max **36** bindings per monitor face; remove unused entries or use another face 
 
 ### Core blocks & items
 
-Advance Data Monitor · Data Imprint Tool · Network Linker · Crafting Linker · Advanced Storage Linker · Matter Ball Decompressor · Advanced Storage Link Cell · Grapple Anchor · Grapple Hook · Data Dust/Form/Flow/Tide/Source Loom Cell · Weave Amplifier Card · Super Weave Amplifier Card · Advance Planner · TeXTech Manual · Super Orange · Empyrean Holy Judgment
+Advance Data Monitor · Data Imprint Tool · Advanced Network Linker · Matter Ball Decompressor · Advanced Storage Link Cell · Grapple Anchor · Grapple Hook · Data Dust/Form/Flow/Tide/Source Loom Cell · Weave Amplifier Card · Super Weave Amplifier Card · Advance Planner · TeXTech Manual · Super Orange · Empyrean Holy Judgment
 
 ### Commands
 

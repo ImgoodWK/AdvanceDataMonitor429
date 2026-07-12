@@ -19,8 +19,8 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import com.imgood.textech.webae.icon.IconExportResolver;
-import com.imgood.textech.webae.icon.IconGridExporter;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
+import com.imgood.textech.webae.icon.IconRenderGuard;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconStore;
 
@@ -28,7 +28,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Side-by-side preview of live NEI-slot render vs cached server icon PNG.
+ * Side-by-side preview of live NESQL-style render vs cached server icon PNG.
  */
 @SideOnly(Side.CLIENT)
 public class GuiIconVerifyScreen extends GuiScreen {
@@ -37,7 +37,6 @@ public class GuiIconVerifyScreen extends GuiScreen {
     private final String packName;
     private final IconItemEnumerator.StackTask task;
     private final IconExportResolver resolver = IconExportResolver.createStandalone();
-    private final IconGridExporter exporter = new IconGridExporter(resolver);
     private byte[] livePng;
     private BufferedImage cachedImage;
     private ResourceLocation cachedTexLoc;
@@ -55,10 +54,12 @@ public class GuiIconVerifyScreen extends GuiScreen {
         mc.renderEngine.bindTexture(TextureMap.locationItemsTexture);
         mc.renderEngine.bindTexture(TextureMap.locationBlocksTexture);
         if (task != null && task.stack != null) {
-            java.util.List<IconItemEnumerator.StackTask> one = new java.util.ArrayList<IconItemEnumerator.StackTask>();
-            one.add(task);
-            java.util.Map<String, byte[]> map = exporter.renderPage(mc, one);
-            livePng = map.get(itemId);
+            try {
+                IconExportResolver.ResolveResult result = resolver.resolve(mc, task.stack, task.itemId, null);
+                livePng = result.png;
+            } finally {
+                IconRenderGuard.afterRender(mc);
+            }
         }
         java.io.File cached = IconStore.instance()
             .getIconFile(packName, IconRenderMode.NEI.getId(), itemId);
@@ -72,7 +73,6 @@ public class GuiIconVerifyScreen extends GuiScreen {
                 }
             } catch (Exception ignored) {}
         }
-        exporter.reset();
         resolver.reset();
     }
 
@@ -96,7 +96,7 @@ public class GuiIconVerifyScreen extends GuiScreen {
             0xFFFFFF);
         int y = 48;
         int slot = 64;
-        drawString(fontRendererObj, EnumChatFormatting.YELLOW + "Live NEI-slot render:", 32, y, 0xFFFFFF);
+        drawString(fontRendererObj, EnumChatFormatting.YELLOW + "Live NESQL drawItem:", 32, y, 0xFFFFFF);
         drawString(
             fontRendererObj,
             EnumChatFormatting.YELLOW + "Cached PNG (" + packName + "/nei):",

@@ -14,7 +14,10 @@ import { useAppContext } from '@/context/AppContext';
 import type { TopologyEdgeDto, TopologyNodeDto } from '@/types/dto';
 import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
 import { blockIconIdForNode } from '@/utils/aeCableColors';
-import { buildIconUrl, iconIsMarkedFailed, iconReadyMatchesId, type IconReadyDetail } from '@/utils/icon';
+import { buildIconUrl, iconIsMarkedFailed, iconLookupIds, iconReadyMatchesId, type IconReadyDetail } from '@/utils/icon';
+import { collectIconIdsFromTopology, resolveLocalIconUrls } from '@/utils/iconPrefetch';
+import { SERVER_SYNC_PACK_NAME } from '@/utils/localIconPack';
+import { trackVisibleIcons } from '@/utils/visibleIconRegistry';
 import { branchColorForIndex, computeSpatialPixelLayout } from '@/utils/topologyLayout';
 import { collapseCableEdges, visibleAbstractNodes } from '@/utils/topologyAbstractEdges';
 import { topologyNodeLabel } from '@/utils/topologyDevices';
@@ -100,7 +103,8 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
     const lastFitEpochRef = useRef('');
     const nodeByIdRef = useRef<Map<string, TopologyNodeDto>>(new Map());
     useNonPassiveWheelZoom(containerRef, useCallback(() => {}, []));
-    const { token, iconPack, iconCacheEnabled, iconRenderMode, failedIcons, markIconFailed } = useAppContext();
+    const { token, iconPack, iconCacheEnabled, iconRenderMode, localIconPack, failedIcons } = useAppContext();
+    const [localIconUrls, setLocalIconUrls] = useState<Record<string, string>>({});
     const [iconRefreshEpoch, setIconRefreshEpoch] = useState(0);
 
     const visibleNodes = useMemo(() => visibleAbstractNodes(nodes), [nodes]);
@@ -147,35 +151,18 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
     }, [visibleNodes]);
 
     useEffect(() => {
-      if (!iconCacheEnabled || !token) return;
+      const ids = collectIconIdsFromTopology(visibleNodes);
+      const untrack = trackVisibleIcons(ids);
       let cancelled = false;
-      const ids = visibleNodes.map((node) => blockIconIdForNode(node.type, node.iconItemId));
-      for (const iconId of ids) {
-        if (!iconId || iconIsMarkedFailed(failedIcons, iconId)) continue;
-        const url = buildIconUrl(iconId, iconPack, token, iconCacheEnabled, iconRenderMode);
-        if (!url) continue;
-        void fetch(url, { method: 'GET', cache: 'default' })
-          .then((resp) => {
-            if (cancelled || resp.ok) return;
-            markIconFailed(iconId);
-          })
-          .catch(() => {
-            if (!cancelled) markIconFailed(iconId);
-          });
-      }
+      const pack = localIconPack || SERVER_SYNC_PACK_NAME;
+      void resolveLocalIconUrls(ids, pack).then((map) => {
+        if (!cancelled) setLocalIconUrls(map);
+      });
       return () => {
         cancelled = true;
+        untrack();
       };
-    }, [
-      visibleNodes,
-      iconCacheEnabled,
-      token,
-      iconPack,
-      iconRenderMode,
-      failedIcons,
-      markIconFailed,
-      iconRefreshEpoch,
-    ]);
+    }, [visibleNodes, localIconPack, iconRefreshEpoch]);
 
     const elements = useMemo((): ElementDefinition[] => {
       const out: ElementDefinition[] = [];
@@ -186,11 +173,24 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
       for (const node of visibleNodes) {
         const isHub = node.role === 'hub';
         const iconId = blockIconIdForNode(node.type, node.iconItemId);
-        const iconUrl =
-          iconId && !iconIsMarkedFailed(failedIcons, iconId)
-            ? buildIconUrl(iconId, iconPack, token, iconCacheEnabled, iconRenderMode) +
-              (iconRefreshEpoch ? `&r=${iconRefreshEpoch}` : '')
-            : '';
+        let iconUrl = '';
+        if (iconId && !iconIsMarkedFailed(failedIcons, iconId)) {
+          iconUrl = localIconUrls[iconId] || '';
+          if (!iconUrl) {
+            const candidates = iconLookupIds(undefined, iconId);
+            for (const c of candidates) {
+              if (localIconUrls[c]) {
+                iconUrl = localIconUrls[c];
+                break;
+              }
+            }
+          }
+          if (!iconUrl) {
+            iconUrl =
+              buildIconUrl(iconId, iconPack, token, iconCacheEnabled, iconRenderMode) +
+              (iconRefreshEpoch ? `&r=${iconRefreshEpoch}` : '');
+          }
+        }
         const pos = spatialPoints.get(node.id);
         out.push({
           group: 'nodes',
@@ -245,6 +245,7 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
       iconRenderMode,
       failedIcons,
       iconRefreshEpoch,
+      localIconUrls,
     ]);
 
     const runLayout = useCallback(

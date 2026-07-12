@@ -7,6 +7,7 @@ import { useI18n } from '@/i18n';
 import type { WorldMapMarkerDto } from '@/types/dto';
 import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
 import { blockIconIdForNode } from '@/utils/aeCableColors';
+import { iconItemFromRegistryId } from '@/utils/icon';
 import {
   buildMarkerClusterIndex,
   queryClusters,
@@ -69,7 +70,12 @@ function WorldMapClusterTooltipContent({
         <div className="worldmap-cluster-tooltip-grid">
           {shown.map((group) => (
             <span key={group.iconId} className="worldmap-cluster-tooltip-item" title={group.label}>
-              <Icon id={group.iconId} size={20} linkToWiki={false} alt={group.label} />
+              <Icon
+                item={iconItemFromRegistryId(group.iconId, group.label)}
+                size={20}
+                linkToWiki={false}
+                alt={group.label}
+              />
               <span className="worldmap-cluster-tooltip-count">x{group.count}</span>
             </span>
           ))}
@@ -174,9 +180,10 @@ function WorldMapMarkerLayerInner({
 
         const marker = props.marker;
         if (!marker) return null;
-        const iconId = blockIconIdForNode(marker.type, marker.iconItemId);
-        const selected = selectedNodeId === marker.nodeId;
         const label = marker.displayName || marker.type;
+        const iconId = blockIconIdForNode(marker.type, marker.iconItemId);
+        const iconItem = iconItemFromRegistryId(iconId, label);
+        const selected = selectedNodeId === marker.nodeId;
         const category = resolveMarkerAeCategory(marker);
         const categoryColor =
           displaySettings.worldMapAeCategoryColors[category] ??
@@ -207,7 +214,7 @@ function WorldMapMarkerLayerInner({
               }}
             >
               <Icon
-                id={iconId}
+                item={iconItem}
                 size={MARKER_SIZE - 4}
                 alt={label}
                 linkToWiki={false}

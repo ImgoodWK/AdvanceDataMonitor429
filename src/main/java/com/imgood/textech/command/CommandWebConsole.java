@@ -1,5 +1,10 @@
 package com.imgood.textech.command;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,11 +32,12 @@ import com.imgood.textech.webae.snapshot.AeSnapshotCollector;
 import com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStatusDto;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStore;
+import com.imgood.textech.webae.WebUiDefaultsStore;
 
 public class CommandWebConsole extends TeXTechCommandBase {
 
     private static final String[] SUBCOMMANDS = { "issue", "login", "guest", "copy", "revoke", "list", "reload",
-        "recipes", "icons", "refresh", "server", "worldmap", "wm", "help" };
+        "recipes", "icons", "refresh", "server", "worldmap", "wm", "defaults", "help" };
     private static final String[] RECIPES_ACTIONS = { "upload", "export", "status", "clear" };
     private static final String[] RECIPES_UPLOAD_SCOPES = { "snapshot", "deep" };
     private static final String[] ICONS_ACTIONS = { "upload", "render", "verify", "import", "import-nesql", "modes",
@@ -39,7 +45,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
     private static final String[] WORLDMAP_ACTIONS = { "upload", "accept", "status", "help" };
     private static final String[] WM_ACTIONS = { "y", "n", "up", "st", "help" };
     private static final String[] SERVER_ACTIONS = { "status", "restart" };
-    private static final int HELP_LINES = 13;
+    private static final String[] DEFAULTS_ACTIONS = { "status", "install", "clear" };
+    private static final int HELP_LINES = 14;
 
     @Override
     public String getCommandName() {
@@ -95,6 +102,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
             handleWorldMap(sender, args);
         } else if ("wm".equals(sub)) {
             handleWorldMapShort(sender, args);
+        } else if ("defaults".equals(sub)) {
+            handleDefaults(sender, args);
         } else {
             sendUsage(sender);
         }
@@ -488,12 +497,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
         String action = args[1].toLowerCase();
         if ("modes".equals(action)) {
             sendHelpHeader(sender, "adm.command.admweb.icons.modes.title");
-            for (IconRenderMode mode : IconRenderMode.allModes()) {
-                EnumChatFormatting statusColor = mode.isImplemented() ? EnumChatFormatting.GREEN
-                    : (mode.isDeprecated() ? EnumChatFormatting.GRAY : EnumChatFormatting.GRAY);
-                String statusKey = mode.isImplemented() ? "adm.command.admweb.icons.mode.ready"
-                    : (mode.isDeprecated() ? "adm.command.admweb.icons.mode.deprecated"
-                        : "adm.command.admweb.icons.mode.planned");
+            for (IconRenderMode mode : IconRenderMode.implementedModes()) {
+                EnumChatFormatting statusColor = EnumChatFormatting.GREEN;
+                String statusKey = "adm.command.admweb.icons.mode.ready";
                 sendPlain(
                     sender,
                     EnumChatFormatting.WHITE,
@@ -582,11 +588,11 @@ public class CommandWebConsole extends TeXTechCommandBase {
             argIdx = 3;
         }
         String packName = args.length > argIdx ? args[argIdx] : "default";
-        String renderMode = args.length > argIdx + 1 ? args[argIdx + 1] : IconRenderMode.NEI.getId();
-        if (!IconStore.isValidPackName(packName) || !IconRenderMode.isValidModeId(renderMode)) {
+        if (!IconStore.isValidPackName(packName)) {
             sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.icons.invalid");
             return;
         }
+        String renderMode = IconRenderMode.NEI.getId();
         java.util.List<String> itemIds = scope == IconExportScope.SNAPSHOT ? IconSnapshotItemCollector.collectItemIds()
             : new java.util.ArrayList<String>();
         if (scope == IconExportScope.SNAPSHOT && itemIds.isEmpty()) {
@@ -624,7 +630,7 @@ public class CommandWebConsole extends TeXTechCommandBase {
         EntityPlayerMP player = (EntityPlayerMP) sender;
         String itemId = args[2];
         String packName = args.length >= 4 ? args[3] : "default";
-        String renderMode = args.length >= 5 ? args[4] : IconRenderMode.NEI.getId();
+        String renderMode = IconRenderMode.NEI.getId();
         java.util.List<String> ids = new java.util.ArrayList<String>();
         ids.add(itemId);
         IconMissingQueue.instance()
@@ -874,6 +880,90 @@ public class CommandWebConsole extends TeXTechCommandBase {
         sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.wm.unknown");
     }
 
+    private void handleDefaults(ICommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sendFormatted(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.defaults.usage");
+            return;
+        }
+        String action = args[1].toLowerCase();
+        if ("status".equals(action)) {
+            WebUiDefaultsStore.LoadedDefaults loaded = WebUiDefaultsStore.load();
+            File instance = WebUiDefaultsStore.instanceFile();
+            if (loaded.json == null) {
+                sendFormatted(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.defaults.status_none");
+                return;
+            }
+            String sourceKey = loaded.source == WebUiDefaultsStore.Source.INSTANCE
+                ? "adm.command.admweb.defaults.source_instance"
+                : "adm.command.admweb.defaults.source_jar";
+            long bytes = loaded.source == WebUiDefaultsStore.Source.INSTANCE && instance.isFile()
+                ? instance.length()
+                : loaded.json.length();
+            sendFormatted(
+                sender,
+                EnumChatFormatting.GREEN,
+                "adm.command.admweb.defaults.status_ok",
+                translate(sourceKey),
+                String.valueOf(bytes));
+            return;
+        }
+        if ("install".equals(action)) {
+            if (!requireOp(sender)) {
+                return;
+            }
+            if (args.length < 3) {
+                sendFormatted(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.defaults.install_usage");
+                return;
+            }
+            File source = new File(args[2]);
+            if (!source.isFile()) {
+                sendFormatted(sender, EnumChatFormatting.RED, "adm.command.admweb.defaults.install_missing", args[2]);
+                return;
+            }
+            try {
+                String json = new String(Files.readAllBytes(source.toPath()), StandardCharsets.UTF_8);
+                if (json.trim()
+                    .isEmpty() || !json.trim()
+                        .startsWith("{")) {
+                    sendFormatted(sender, EnumChatFormatting.RED, "adm.command.admweb.defaults.install_invalid");
+                    return;
+                }
+                File target = WebUiDefaultsStore.instanceFile();
+                File parent = target.getParentFile();
+                if (parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
+                Files.copy(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                sendFormatted(
+                    sender,
+                    EnumChatFormatting.GREEN,
+                    "adm.command.admweb.defaults.install_ok",
+                    target.getAbsolutePath());
+            } catch (IOException e) {
+                AdvanceDataMonitor.LOG.error("[WebAE] Failed to install ui-defaults.json", e);
+                sendFormatted(sender, EnumChatFormatting.RED, "adm.command.admweb.defaults.install_failed");
+            }
+            return;
+        }
+        if ("clear".equals(action)) {
+            if (!requireOp(sender)) {
+                return;
+            }
+            File target = WebUiDefaultsStore.instanceFile();
+            if (!target.isFile()) {
+                sendFormatted(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.defaults.clear_none");
+                return;
+            }
+            if (!target.delete()) {
+                sendFormatted(sender, EnumChatFormatting.RED, "adm.command.admweb.defaults.clear_failed");
+                return;
+            }
+            sendFormatted(sender, EnumChatFormatting.GREEN, "adm.command.admweb.defaults.clear_ok");
+            return;
+        }
+        sendFormatted(sender, EnumChatFormatting.RED, "adm.command.admweb.defaults.unknown");
+    }
+
     private void sendUsage(ICommandSender sender) {
         sendHelpHeader(sender, "adm.command.admweb.title");
         sendUsageSummary(sender, "adm.command.admweb.usage");
@@ -902,6 +992,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
             if ("wm".equals(sub)) {
                 return filterTabCompletion(args, WM_ACTIONS);
             }
+            if ("defaults".equals(sub)) {
+                return filterTabCompletion(args, DEFAULTS_ACTIONS);
+            }
         }
         if (args.length == 3) {
             String sub = args[0].toLowerCase();
@@ -918,25 +1011,13 @@ public class CommandWebConsole extends TeXTechCommandBase {
                 return filterTabCompletion(args, RECIPES_UPLOAD_SCOPES);
             }
             if ("icons".equals(sub) && "upload".equalsIgnoreCase(args[1])) {
-                List<String> opts = new ArrayList<>();
-                opts.add("snapshot");
-                opts.add("all");
-                for (IconRenderMode mode : IconRenderMode.allModes()) {
-                    opts.add(mode.getId());
-                }
-                return filterTabCompletion(args, opts);
+                // Only scope token; render mode is fixed to nei (no mode tab options).
+                return filterTabCompletion(args, new String[] { "snapshot" });
             }
         }
         if (args.length == 4 && "icons".equalsIgnoreCase(args[0]) && "upload".equalsIgnoreCase(args[1])) {
-            List<String> filtered = new ArrayList<>();
-            filtered.add("all");
-            for (IconRenderMode mode : IconRenderMode.allModes()) {
-                if (mode.getId()
-                    .startsWith(args[3].toLowerCase())) {
-                    filtered.add(mode.getId());
-                }
-            }
-            return filtered.isEmpty() ? null : filtered;
+            // No mode completion; pack name is free text.
+            return null;
         }
         return null;
     }

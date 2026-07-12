@@ -5,15 +5,10 @@ import { Modal, Space, Tag, Typography, Divider, Spin, Button } from 'antd';
 import { getApiClient } from '@/api/client';
 import { Icon } from '@/components/Icon';
 import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
+import { patternEntryIconId } from '@/utils/icon';
 import type { PatternItemEntry, PatternListEntryDto, RecipeDto, RecipeSearchResponse } from '@/types/dto';
 
 const { Text } = Typography;
-
-function entryIconId(entry: PatternItemEntry | null): string | undefined {
-  if (!entry || !entry.registryName) return undefined;
-  if (entry.isFluid) return 'fluid:' + entry.registryName;
-  return entry.meta && entry.meta > 0 ? `${entry.registryName}:${entry.meta}` : entry.registryName;
-}
 
 interface PatternDetailModalProps {
   open: boolean;
@@ -150,7 +145,7 @@ export function PatternDetailModal({
               <div className="pattern-detail-siblings" style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {siblingPatterns.map((sib) => {
                   const out = sib.outputs[0];
-                  const iconId = entryIconId(out);
+                  const iconId = patternEntryIconId(out);
                   return (
                     <button
                       key={sib.patternId}
@@ -192,7 +187,7 @@ export function PatternDetailModal({
                 if (!entry) {
                   return <div key={`in-${idx}`} className="pattern-detail-io-empty" aria-hidden />;
                 }
-                const iconId = entryIconId(entry);
+                const iconId = patternEntryIconId(entry);
                 return (
                   <div key={`in-${idx}`} className="pattern-detail-io-slot" title={entry.displayName}>
                     {iconId && <Icon id={iconId} size={28} alt={entry.displayName} />}
@@ -209,7 +204,7 @@ export function PatternDetailModal({
             <Text strong>{t('patternOutputs')}</Text>
             <Space wrap style={{ marginTop: 8 }}>
               {p.outputs.map((entry, idx) => {
-                const iconId = entryIconId(entry);
+                const iconId = patternEntryIconId(entry);
                 return (
                   <div key={`out-${idx}`} className="pattern-detail-io-slot" title={entry.displayName}>
                     {iconId && <Icon id={iconId} size={32} alt={entry.displayName} />}

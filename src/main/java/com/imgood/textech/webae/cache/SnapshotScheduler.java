@@ -13,12 +13,22 @@ import net.minecraft.server.MinecraftServer;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.textech.webae.api.handler.PatternListHandler;
+import com.imgood.textech.webae.cells.NetworkCellSummaryCollector;
+import com.imgood.textech.webae.cells.NetworkCellSummaryDto;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.dto.GtMachineListDto;
+import com.imgood.textech.webae.monitor.MonitorBindingCollector;
+import com.imgood.textech.webae.monitor.MonitorBindingDto;
 import com.imgood.textech.webae.pattern.PatternBrowseService;
+import com.imgood.textech.webae.perf.WebAePerfProfiler;
+import com.imgood.textech.webae.scanner.LinkScannerBlockDto;
+import com.imgood.textech.webae.scanner.LinkScannerCollector;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector.NetworkInfo;
 import com.imgood.textech.webae.snapshot.GtSnapshotCollector;
+import com.imgood.textech.webae.topology.P2pTunnelDto;
+import com.imgood.textech.webae.topology.P2pTunnelEnumerator;
 
 /**
  * Periodic snapshot scheduler driven by {@link com.imgood.textech.handler.HandlerTick}.
@@ -37,17 +47,36 @@ public class SnapshotScheduler {
 
     public static final String TYPE_STORAGE = "storage";
     public static final String TYPE_GT_MACHINES = "gt_machines";
+    public static final String TYPE_NETWORKS = "networks";
+    public static final String TYPE_P2P = "p2p";
+    public static final String TYPE_CELLS = "cells";
+    public static final String TYPE_MONITOR_BINDINGS = "monitor_bindings";
+    public static final String TYPE_SCANNER = "scanner";
+    public static final String TYPE_PATTERNS_RICH = "patterns_rich";
+
+    /** Owner-scoped cache key uses networkId = -1. */
+    public static final int OWNER_SCOPE_NETWORK_ID = -1;
 
     private static final ConcurrentHashMap<String, Long> lastActiveTime = new ConcurrentHashMap<String, Long>();
     private static final ConcurrentHashMap<String, Long> lastStorageCollectTime = new ConcurrentHashMap<String, Long>();
     private static final ConcurrentHashMap<String, Long> lastGtCollectTime = new ConcurrentHashMap<String, Long>();
     private static final ConcurrentHashMap<String, Long> lastPatternBrowseCollectTime = new ConcurrentHashMap<String, Long>();
+    private static final ConcurrentHashMap<String, Long> lastP2pCollectTime = new ConcurrentHashMap<String, Long>();
+    private static final ConcurrentHashMap<String, Long> lastCellsCollectTime = new ConcurrentHashMap<String, Long>();
+    private static final ConcurrentHashMap<String, Long> lastPatternsRichCollectTime = new ConcurrentHashMap<String, Long>();
+    private static final ConcurrentHashMap<String, Long> lastNetworksCollectTime = new ConcurrentHashMap<String, Long>();
+    private static final ConcurrentHashMap<String, Long> lastMonitorCollectTime = new ConcurrentHashMap<String, Long>();
+    private static final ConcurrentHashMap<String, Long> lastScannerCollectTime = new ConcurrentHashMap<String, Long>();
     private static final long ACTIVE_WINDOW_MS = 120_000L; // 2 minutes
 
     private static SnapshotCache snapshotCache;
     private static int storageCursor = 0;
     private static int gtCursor = 0;
     private static int patternBrowseCursor = 0;
+    private static int p2pCursor = 0;
+    private static int cellsCursor = 0;
+    private static int patternsRichCursor = 0;
+    private static int ownerCursor = 0;
 
     public static void setSnapshotCache(SnapshotCache cache) {
         snapshotCache = cache;
@@ -97,6 +126,162 @@ public class SnapshotScheduler {
         if (patternIntervalMs > 0) {
             tickPatternBrowse(active, patternIntervalMs, now);
         }
+
+        // P2P / cells / rich patterns — slower interval (gt or topology TTL)
+        int slowIntervalMs = Config.webGtRefreshIntervalMs > 0 ? Config.webGtRefreshIntervalMs
+            : Config.webTopologyCacheTtlMs;
+        if (slowIntervalMs <= 0) {
+            slowIntervalMs = 10000;
+        }
+        List<String> networkKeys = filterNetworkScopedKeys(active);
+        if (!networkKeys.isEmpty()) {
+            tickKeyed(networkKeys, slowIntervalMs, now, lastP2pCollectTime, p2pCursor, new KeyedCollect() {
+
+                @Override
+                public void collect(String key, long nowMs) {
+                    enqueueP2pCollect(key);
+                }
+
+                @Override
+                public void setCursor(int c) {
+                    p2pCursor = c;
+                }
+
+                @Override
+                public int getCursor() {
+                    return p2pCursor;
+                }
+            });
+            tickKeyed(networkKeys, slowIntervalMs, now, lastCellsCollectTime, cellsCursor, new KeyedCollect() {
+
+                @Override
+                public void collect(String key, long nowMs) {
+                    enqueueCellsCollect(key);
+                }
+
+                @Override
+                public void setCursor(int c) {
+                    cellsCursor = c;
+                }
+
+                @Override
+                public int getCursor() {
+                    return cellsCursor;
+                }
+            });
+            int richInterval = Config.webPatternCacheTtlMs > 0 ? Config.webPatternCacheTtlMs : slowIntervalMs;
+            tickKeyed(networkKeys, richInterval, now, lastPatternsRichCollectTime, patternsRichCursor, new KeyedCollect() {
+
+                @Override
+                public void collect(String key, long nowMs) {
+                    enqueuePatternsRichCollect(key);
+                }
+
+                @Override
+                public void setCursor(int c) {
+                    patternsRichCursor = c;
+                }
+
+                @Override
+                public int getCursor() {
+                    return patternsRichCursor;
+                }
+            });
+        }
+
+        // Owner-scoped: networks list, monitor bindings, scanner
+        List<String> owners = collectActiveOwners(active);
+        if (!owners.isEmpty()) {
+            int ownerInterval = Config.webPatternCacheTtlMs > 0 ? Config.webPatternCacheTtlMs : slowIntervalMs;
+            tickOwners(owners, ownerInterval, now);
+        }
+    }
+
+    private interface KeyedCollect {
+
+        void collect(String key, long nowMs);
+
+        void setCursor(int c);
+
+        int getCursor();
+    }
+
+    private static void tickKeyed(List<String> active, int intervalMs, long now,
+        ConcurrentHashMap<String, Long> lastMap, int ignoredCursor, KeyedCollect collector) {
+        int n = Math.max(1, intervalMs / 50);
+        int perTick = Math.max(1, (active.size() + n - 1) / n);
+        int size = active.size();
+        int processed = 0;
+        int idx = collector.getCursor() % size;
+        while (processed < perTick) {
+            String key = active.get(idx);
+            Long last = lastMap.get(key);
+            if (last == null || now - last >= intervalMs) {
+                collector.collect(key, now);
+                lastMap.put(key, now);
+            }
+            processed++;
+            idx = (idx + 1) % size;
+            if (processed >= size) break;
+        }
+        collector.setCursor(idx);
+    }
+
+    private static void tickOwners(List<String> owners, int intervalMs, long now) {
+        int n = Math.max(1, intervalMs / 50);
+        int perTick = Math.max(1, (owners.size() + n - 1) / n);
+        int size = owners.size();
+        int processed = 0;
+        int idx = ownerCursor % size;
+        while (processed < perTick) {
+            String owner = owners.get(idx);
+            Long lastN = lastNetworksCollectTime.get(owner);
+            if (lastN == null || now - lastN >= intervalMs) {
+                enqueueNetworksCollect(owner);
+                lastNetworksCollectTime.put(owner, now);
+            }
+            Long lastM = lastMonitorCollectTime.get(owner);
+            if (lastM == null || now - lastM >= intervalMs) {
+                enqueueMonitorCollect(owner);
+                lastMonitorCollectTime.put(owner, now);
+            }
+            Long lastS = lastScannerCollectTime.get(owner);
+            if (lastS == null || now - lastS >= intervalMs) {
+                enqueueScannerCollect(owner);
+                lastScannerCollectTime.put(owner, now);
+            }
+            processed++;
+            idx = (idx + 1) % size;
+            if (processed >= size) break;
+        }
+        ownerCursor = idx;
+    }
+
+    private static List<String> filterNetworkScopedKeys(List<String> active) {
+        List<String> out = new ArrayList<String>();
+        for (String key : active) {
+            int colonIdx = key.lastIndexOf(':');
+            if (colonIdx < 0) continue;
+            try {
+                int nid = Integer.parseInt(key.substring(colonIdx + 1));
+                if (nid >= 0) {
+                    out.add(key);
+                }
+            } catch (NumberFormatException e) {
+                // skip
+            }
+        }
+        return out;
+    }
+
+    private static List<String> collectActiveOwners(List<String> active) {
+        Set<String> owners = new HashSet<String>();
+        for (String key : active) {
+            int colonIdx = key.lastIndexOf(':');
+            if (colonIdx < 0) continue;
+            owners.add(key.substring(0, colonIdx));
+        }
+        return new ArrayList<String>(owners);
     }
 
     private static void tickStorage(List<String> active, int intervalMs, long now) {
@@ -194,11 +379,17 @@ public class SnapshotScheduler {
 
             @Override
             public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
                 try {
                     PatternBrowseService.buildAndStoreCache(playerUuid, networkId);
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG
                         .error("[WebAE] Pattern browse periodic collection failed for key={}", key, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect("pattern_browse", ms);
                 }
             }
         });
@@ -220,6 +411,8 @@ public class SnapshotScheduler {
 
             @Override
             public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
                 try {
                     List<NetworkInfo> networks = AeSnapshotCollector.findNetworks(playerUuid);
                     if (networkId < 0 || networkId >= networks.size()) return;
@@ -231,6 +424,175 @@ public class SnapshotScheduler {
                     }
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG.error("[WebAE] GT periodic collection failed for key={}", key, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect(TYPE_GT_MACHINES, ms);
+                }
+            }
+        });
+    }
+
+    private static void enqueueP2pCollect(final String key) {
+        final int colonIdx = key.lastIndexOf(':');
+        if (colonIdx < 0) return;
+        final String playerUuid = key.substring(0, colonIdx);
+        final int networkId;
+        try {
+            networkId = Integer.parseInt(key.substring(colonIdx + 1));
+        } catch (NumberFormatException e) {
+            return;
+        }
+        HandlerTickEnqueue.enqueue(new Runnable() {
+
+            @Override
+            public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
+                try {
+                    if (!Config.webTopologyEnabled) {
+                        return;
+                    }
+                    List<P2pTunnelDto> tunnels = P2pTunnelEnumerator.enumerate(playerUuid, networkId);
+                    if (tunnels != null) {
+                        snapshotCache.put(playerUuid, networkId, TYPE_P2P, tunnels);
+                    }
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] P2P periodic collection failed for key={}", key, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect(TYPE_P2P, ms);
+                }
+            }
+        });
+    }
+
+    private static void enqueueCellsCollect(final String key) {
+        final int colonIdx = key.lastIndexOf(':');
+        if (colonIdx < 0) return;
+        final String playerUuid = key.substring(0, colonIdx);
+        final int networkId;
+        try {
+            networkId = Integer.parseInt(key.substring(colonIdx + 1));
+        } catch (NumberFormatException e) {
+            return;
+        }
+        HandlerTickEnqueue.enqueue(new Runnable() {
+
+            @Override
+            public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
+                try {
+                    NetworkCellSummaryDto dto = NetworkCellSummaryCollector.collect(playerUuid, networkId);
+                    if (dto != null) {
+                        snapshotCache.put(playerUuid, networkId, TYPE_CELLS, dto);
+                    }
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] Cells periodic collection failed for key={}", key, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect(TYPE_CELLS, ms);
+                }
+            }
+        });
+    }
+
+    private static void enqueuePatternsRichCollect(final String key) {
+        final int colonIdx = key.lastIndexOf(':');
+        if (colonIdx < 0) return;
+        final String playerUuid = key.substring(0, colonIdx);
+        final int networkId;
+        try {
+            networkId = Integer.parseInt(key.substring(colonIdx + 1));
+        } catch (NumberFormatException e) {
+            return;
+        }
+        HandlerTickEnqueue.enqueue(new Runnable() {
+
+            @Override
+            public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
+                try {
+                    PatternListHandler.buildAndStoreCache(playerUuid, networkId);
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] Patterns-rich periodic collection failed for key={}", key, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect(TYPE_PATTERNS_RICH, ms);
+                }
+            }
+        });
+    }
+
+    private static void enqueueNetworksCollect(final String ownerUuid) {
+        HandlerTickEnqueue.enqueue(new Runnable() {
+
+            @Override
+            public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
+                try {
+                    List<NetworkInfo> networks = AeSnapshotCollector.findNetworks(ownerUuid, false);
+                    if (networks != null) {
+                        snapshotCache.put(ownerUuid, OWNER_SCOPE_NETWORK_ID, TYPE_NETWORKS, networks);
+                    }
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] Networks periodic collection failed for owner={}", ownerUuid, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect(TYPE_NETWORKS, ms);
+                }
+            }
+        });
+    }
+
+    private static void enqueueMonitorCollect(final String ownerUuid) {
+        HandlerTickEnqueue.enqueue(new Runnable() {
+
+            @Override
+            public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
+                try {
+                    List<MonitorBindingDto> list = MonitorBindingCollector.collect(ownerUuid);
+                    if (list != null) {
+                        snapshotCache.put(ownerUuid, OWNER_SCOPE_NETWORK_ID, TYPE_MONITOR_BINDINGS, list);
+                    }
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] Monitor bindings collection failed for owner={}", ownerUuid, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect(TYPE_MONITOR_BINDINGS, ms);
+                }
+            }
+        });
+    }
+
+    private static void enqueueScannerCollect(final String ownerUuid) {
+        HandlerTickEnqueue.enqueue(new Runnable() {
+
+            @Override
+            public void run() {
+                long t0 = WebAePerfProfiler.instance()
+                    .begin();
+                try {
+                    List<LinkScannerBlockDto> list = LinkScannerCollector.collect(ownerUuid, null, null);
+                    if (list != null) {
+                        snapshotCache.put(ownerUuid, OWNER_SCOPE_NETWORK_ID, TYPE_SCANNER, list);
+                    }
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] Scanner collection failed for owner={}", ownerUuid, t);
+                } finally {
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    WebAePerfProfiler.instance()
+                        .recordCollect(TYPE_SCANNER, ms);
                 }
             }
         });
@@ -262,8 +624,49 @@ public class SnapshotScheduler {
                 lastStorageCollectTime.remove(key);
                 lastGtCollectTime.remove(key);
                 lastPatternBrowseCollectTime.remove(key);
+                lastP2pCollectTime.remove(key);
+                lastCellsCollectTime.remove(key);
+                lastPatternsRichCollectTime.remove(key);
+                int colonIdx = key.lastIndexOf(':');
+                if (colonIdx > 0) {
+                    String owner = key.substring(0, colonIdx);
+                    lastNetworksCollectTime.remove(owner);
+                    lastMonitorCollectTime.remove(owner);
+                    lastScannerCollectTime.remove(owner);
+                }
             }
         }
+    }
+
+    /**
+     * Force-collect networks list for an owner (async, main thread).
+     */
+    public static void forceCollectNetworks(final String ownerUuid) {
+        if (snapshotCache == null || ownerUuid == null) return;
+        markActive(ownerUuid, OWNER_SCOPE_NETWORK_ID);
+        enqueueNetworksCollect(ownerUuid);
+        lastNetworksCollectTime.put(ownerUuid, System.currentTimeMillis());
+    }
+
+    public static void forceCollectP2p(String playerUuid, int networkId) {
+        if (snapshotCache == null) return;
+        markActive(playerUuid, networkId);
+        enqueueP2pCollect(playerUuid + ":" + networkId);
+        lastP2pCollectTime.put(playerUuid + ":" + networkId, System.currentTimeMillis());
+    }
+
+    public static void forceCollectCells(String playerUuid, int networkId) {
+        if (snapshotCache == null) return;
+        markActive(playerUuid, networkId);
+        enqueueCellsCollect(playerUuid + ":" + networkId);
+        lastCellsCollectTime.put(playerUuid + ":" + networkId, System.currentTimeMillis());
+    }
+
+    public static void forceCollectPatternsRich(String playerUuid, int networkId) {
+        if (snapshotCache == null) return;
+        markActive(playerUuid, networkId);
+        enqueuePatternsRichCollect(playerUuid + ":" + networkId);
+        lastPatternsRichCollectTime.put(playerUuid + ":" + networkId, System.currentTimeMillis());
     }
 
     /**

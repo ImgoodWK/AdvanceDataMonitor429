@@ -4,6 +4,7 @@ import { SaveOutlined, DeleteOutlined, CopyOutlined, ImportOutlined } from '@ant
 import { useI18n } from '@/i18n';
 import type { DashboardSettings, DashboardWidgetConfig } from '@/utils/presets';
 import { exportWidgetsJson, parseWidgetsImport } from '@/utils/widgetGridActions';
+import { SettingRow } from '@/components/common/SettingRow';
 import { AlignmentGrid } from './AlignmentGrid';
 import { ColorField } from './ColorField';
 
@@ -214,55 +215,45 @@ export function DashboardSettingsDrawer({
             label: t('dashCfgTabLayout'),
             children: (
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                <div>
-                  <Text strong>{t('dashCfgMargin')}</Text>
+                <SettingRow label={t('dashCfgMargin')}>
                   <InputNumber
                     min={0}
                     max={30}
                     value={draft.margin}
                     onChange={(v) => patch({ margin: v ?? undefined })}
-                    style={{ width: '100%', marginTop: 4 }}
+                    style={{ width: '100%' }}
                   />
-                </div>
-                <div>
-                  <Text strong>{t('dashCfgWidgetGap')}</Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgWidgetGap')}>
                   <InputNumber
                     min={0}
                     max={48}
                     value={draft.widgetGap ?? 12}
                     onChange={(v) => patch({ widgetGap: v ?? undefined })}
-                    style={{ width: '100%', marginTop: 4 }}
+                    style={{ width: '100%' }}
                   />
-                </div>
-                <div>
-                  <Text strong>{t('dashCfgContentInset')}</Text>
-                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
-                    {t('dashCfgContentInsetHint')}
-                  </Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgContentInset')} hint={t('dashCfgContentInsetHint')}>
                   <InputNumber
                     min={0}
                     max={24}
                     value={draft.contentInset ?? 0}
                     onChange={(v) => patch({ contentInset: v ?? undefined })}
-                    style={{ width: '100%', marginTop: 4 }}
+                    style={{ width: '100%' }}
                   />
-                </div>
-                <div>
-                  <Text strong>{t('dashCfgBorderWidth')}</Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgBorderWidth')}>
                   <InputNumber
                     min={0}
                     max={6}
                     value={draft.borderWidth}
                     onChange={(v) => patch({ borderWidth: v ?? undefined })}
-                    style={{ width: '100%', marginTop: 4 }}
+                    style={{ width: '100%' }}
                   />
-                </div>
-                <div>
-                  <Text strong>{t('dashCfgAlignment')}</Text>
-                  <div style={{ marginTop: 8 }}>
-                    <AlignmentGrid value={draft.defaultAlignment} onChange={(v) => patch({ defaultAlignment: v })} />
-                  </div>
-                </div>
+                </SettingRow>
+                <SettingRow label={t('dashCfgAlignment')}>
+                  <AlignmentGrid value={draft.defaultAlignment} onChange={(v) => patch({ defaultAlignment: v })} />
+                </SettingRow>
               </Space>
             ),
           },
@@ -270,33 +261,30 @@ export function DashboardSettingsDrawer({
             key: 'chart',
             label: t('dashCfgTabChart'),
             children: (
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                <div>
-                  <Text strong>{t('dashCfgFontSize')}</Text>
+              <Space direction="vertical" className="webae-full-width" size="middle">
+                <SettingRow label={t('dashCfgFontSize')}>
                   <InputNumber
                     min={10}
                     max={24}
                     value={draft.fontSize}
                     onChange={(v) => patch({ fontSize: v ?? undefined })}
-                    style={{ width: '100%', marginTop: 4 }}
+                    className="webae-full-width"
                     addonAfter="px"
                   />
-                </div>
-                <div>
-                  <Text strong>{t('dashCfgChartSize')}</Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgChartSize')}>
                   <InputNumber
                     min={0}
                     max={100}
                     value={draft.chartSize}
                     onChange={(v) => patch({ chartSize: v ?? undefined })}
-                    style={{ width: '100%', marginTop: 4 }}
+                    className="webae-full-width"
                     addonAfter="%"
                   />
-                </div>
-                <div>
-                  <Text strong>{t('dashCfgChartStretchMode')}</Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgChartStretchMode')}>
                   <Select
-                    style={{ width: '100%', marginTop: 4 }}
+                    className="webae-full-width"
                     value={draft.chartStretchMode ?? 'stretchX'}
                     onChange={(v) => patch({ chartStretchMode: v })}
                     options={[
@@ -305,19 +293,16 @@ export function DashboardSettingsDrawer({
                       { label: t('dashCfgStretchFill'), value: 'fill' },
                     ]}
                   />
-                </div>
-                <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <Text strong>{t('dashCfgChartValueAxis')}</Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgChartValueAxis')}>
                   <Switch checked={draft.chartShowValueAxis ?? false} onChange={(c) => patch({ chartShowValueAxis: c })} />
-                </Space>
-                <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <Text strong>{t('dashCfgChartTimeAxis')}</Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgChartTimeAxis')}>
                   <Switch checked={draft.chartShowTimeAxis ?? false} onChange={(c) => patch({ chartShowTimeAxis: c })} />
-                </Space>
-                <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <Text strong>{t('dashCfgShowLastUpdated')}</Text>
+                </SettingRow>
+                <SettingRow label={t('dashCfgShowLastUpdated')}>
                   <Switch checked={draft.showLastUpdated ?? false} onChange={(c) => patch({ showLastUpdated: c })} />
-                </Space>
+                </SettingRow>
               </Space>
             ),
           },

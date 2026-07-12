@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Input, Modal, Space, Tooltip, Typography } from 'antd';
+import { Button, Modal, Space, Tooltip, Typography } from 'antd';
 import { Icon } from '@/components/Icon';
+import { ColorField } from '@/components/dashboard/ColorField';
 import { useI18n } from '@/i18n';
 import type { WorldMapAePlacementDto } from '@/types/dto';
 import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
@@ -170,21 +171,11 @@ export function WorldMapAeColorModal({
                   </div>
                 )}
 
-                <Space wrap>
-                  <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => patchCategoryColor(catId, e.target.value)}
-                    aria-label={t(`worldMapAeCategory_${catId}`)}
-                    style={{ width: 36, height: 28, padding: 0, border: 'none', cursor: 'pointer' }}
-                  />
-                  <Input
-                    size="small"
-                    style={{ width: 96 }}
-                    value={color}
-                    onChange={(e) => patchCategoryColor(catId, e.target.value)}
-                  />
-                </Space>
+                <ColorField
+                  label={t(`worldMapAeCategory_${catId}`)}
+                  value={color}
+                  onChange={(hex) => patchCategoryColor(catId, hex)}
+                />
               </div>
             </div>
           );

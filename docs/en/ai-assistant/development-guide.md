@@ -173,7 +173,7 @@ Main flow highlights:
   - Server execution layer. Handles AE2 crafting candidates, recipe summary, storage summary, submit craft, batch submit, cancel jobs, plan query.
   - Added `queryStorageCandidates()` — returns storage candidate list with thumbnails (supports items/fluids scope).
   - Added `bytesSummary()` — queries byte usage/capacity/percentage and detects AE2Things infinite storage cells. Internally uses `scanNetworkCellsForInfinite()` + `classifyCell()` (via `compat/ae/AeCompat.cells()`).
-  - Searches for `TileEntityAdvanceCraftingLink` / `TileEntityAdvanceStorageLink` within default 32 blocks of the player (configurable via `assistant.linkSearchRadius`, range 4–128).
+  - Searches for `TileEntityAdvanceNetworkLink` (unified linker) within default 32 blocks of the player (configurable via `assistant.linkSearchRadius`, range 4–128).
 
 ### Formatting, Helpers, Storage, and Lexicon
 
@@ -256,7 +256,7 @@ Current parser rules:
 - Multiple `ORDER_ITEM` tasks become `AssistantIntent.orderBatch()`, then request batch candidates.
 - Explicit `storageScope` on `QUERY_STORAGE` is written to the packet payload via `PacketAssistantAction.query(..., storageScope)`; the server enters `AssistantServerServices.queryStorageCandidates()` and returns a thumbnail candidate list (`STORAGE_CANDIDATES` session).
 - `QUERY_BYTES` is sent via `requestServerQuery()`; the server calls `bytesSummary()` and returns formatted text including byte usage/capacity/percentage and infinite storage cell detection.
-- Single `WITHDRAW_ITEM` task: calls `requestWithdrawCandidates()`; the server searches the AE2 storage network via `AssistantServerServices.withdrawCandidates()` (depends on `TileEntityAdvanceStorageLink` within default 32 blocks, configurable via `assistant.linkSearchRadius`, range 4–128). After candidates return, `confirmOption()` proceeds to `submitWithdraw()`.
+  - Single `WITHDRAW_ITEM` task: calls `requestWithdrawCandidates()`; the server searches the AE2 storage network via `AssistantServerServices.withdrawCandidates()` (depends on `TileEntityAdvanceNetworkLink` within default 32 blocks, configurable via `assistant.linkSearchRadius`, range 4–128). After candidates return, `confirmOption()` proceeds to `submitWithdraw()`.
 - Multiple `WITHDRAW_ITEM` tasks: aggregated into `WITHDRAW_BATCH`, calls `requestBatchWithdrawCandidates()`; server `AssistantServerServices.batchWithdrawCandidates()` searches candidates line by line. After confirmation, `submitBatchWithdraw()` executes withdrawal line by line into player inventory.
 - When inventory space is insufficient for the full quantity during withdrawal, the server returns `WithdrawSubmitOutcome(PARTIAL_CONFIRM, ...)`; the client enters `WITHDRAW_PARTIAL_CONFIRM` session. User confirmation submits partial withdrawal.
 - During batch withdrawal, if one line has insufficient space, the entire batch operation pauses and prompts the user to confirm that line individually first.
@@ -322,8 +322,7 @@ Key server behaviors:
 - `QUERY_BYTES` goes through the standard query flow; handler routes to `AssistantServerServices.query()` → `bytesSummary()`, returning a text message.
 - `QUERY_RECIPE` with empty target returns recipe candidates, i.e. `AssistantSessionKind.RECIPE_CANDIDATES`, letting the user confirm a candidate to view details.
 - `AssistantServerServices` searches within default 32 blocks (configurable via `assistant.linkSearchRadius`, range 4–128):
-  - crafting: `TileEntityAdvanceCraftingLink`
-  - storage: `TileEntityAdvanceStorageLink`
+  - crafting / storage / network stats: unified `TileEntityAdvanceNetworkLink`
 - Server service currently covers:
   - AE2 crafting candidates
   - recipe summary / pattern details
@@ -358,15 +357,15 @@ Configuration entry points:
 
 ## A10. Testing and Verification Status
 
-- Test entry point: `src/test/java/test/AssistantIntentParserSuite.java`.
-- Coverage:
+- Historical test entry `src/test/java/test/AssistantIntentParserSuite.java` is **no longer in the repo**; use temporary stubs under `.workspace/assistant-parser-suite/` (not committed) or restore regression tests when dependencies are available.
+- Suggested coverage (if tests are restored):
   - Legacy rule parser: storage, recipe, power, order, confirm, cancel, batch order, plan, chat fallback.
   - AI JSON parser: single/multiple tasks, multiple `ORDER_ITEM` for batch order, confirm, chat, empty recipe target, empty order target invalid, low confidence invalid, invalid storageScope, max 8 tasks.
 - Current attempt to run `./gradlew.bat test`: Gradle wrapper starts but does not complete full tests; `compileClasspath` dependency resolution fails, missing:
   - `com.github.GTNewHorizons:Avaritiaddons:1.7.1-GTNH`
   - `com.github.GTNewHorizons:Eternal-Singularity:1.2.1`
   - `com.github.GTNewHorizons:Universal-Singularities:8.7.0`
-- After fixing dependency sources or local cache, agents should re-run `./gradlew.bat test` and confirm parser suite results from output.
+- After fixing dependency sources or local cache, agents should re-run `./gradlew.bat test` and confirm parser regression results from output.
 
 ## A11. Known Limitations and Suggested Follow-ups
 
@@ -506,9 +505,7 @@ Required files:
 Key files:
 ├─ AssistantServerServices.java      ← all AE2 query/action entry points
 ├─ AssistantCraftJobManager.java     ← craft job management (async + timeout)
-├─ TileEntityAdvanceCraftingLink.java ← crafting network link
-├─ TileEntityAdvanceStorageLink.java  ← storage network link
-└─ TileEntityAdvanceNetworkLink.java  ← full-network stats link
+└─ TileEntityAdvanceNetworkLink.java ← unified Advanced Network Linker (stats / storage / crafting)
 ```
 
 ### Modify voice recognition

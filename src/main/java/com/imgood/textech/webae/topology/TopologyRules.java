@@ -172,7 +172,8 @@ public final class TopologyRules {
             return SUB_DRIVE;
         }
 
-        if (containsAny(simple, "CraftingCPU", "CraftingMonitor", "CraftingUnit", "MolecularAssembler")) {
+        if (containsAny(simple, "CraftingCPU", "CraftingMonitor", "CraftingUnit", "CraftingTile",
+            "TileCraftingTile", "MolecularAssembler")) {
             return SUB_CPU;
         }
 
@@ -212,9 +213,23 @@ public final class TopologyRules {
                 if (lower.contains("p2p")) {
                     return classifyP2pSubtype(reg, representation);
                 }
+                if (isCraftingCpuRegistryId(lower)) {
+                    return SUB_CPU;
+                }
             }
         }
         return SUB_MISC;
+    }
+
+    private static boolean isCraftingCpuRegistryId(String lower) {
+        if (lower == null || lower.isEmpty()) {
+            return false;
+        }
+        return lower.contains("blockcrafting")
+            || lower.contains("craftingstorage")
+            || lower.contains("craftingcoprocessor")
+            || lower.contains("craftingmonitor")
+            || lower.contains("craftingunit");
     }
 
     private static String classifyP2pSubtype(String hint, ItemStack representation) {
@@ -463,6 +478,17 @@ public final class TopologyRules {
             default:
                 return "Other Devices";
         }
+    }
+
+    /** GTNH AE2 crafting multiblock part icons (item registry names from {@code getMachineRepresentation}). */
+    public static String iconItemIdForCraftingComponent(boolean storage, boolean accelerator, boolean monitor) {
+        if (monitor) {
+            return "appeng:tile.BlockCraftingMonitor";
+        }
+        if (accelerator) {
+            return "appeng:tile.BlockCraftingAccelerator";
+        }
+        return "appeng:tile.BlockCraftingUnit";
     }
 
     public static String iconItemIdFor(TopologyNodeType type) {

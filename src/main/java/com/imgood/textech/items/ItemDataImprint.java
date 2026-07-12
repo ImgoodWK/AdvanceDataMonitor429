@@ -11,7 +11,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -34,12 +34,17 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * Lang keys: item.dataImprint.name
  *
  * Captures TileEntity NBT snapshots and binds them to Data Monitors.
- * Phase 3: GT machine coordinate recording and batch binding.
+ * Block imprint (boundPos) and GT machine list (gtMachineList) are mutually exclusive.
  */
 public class ItemDataImprint extends Item {
 
     private static final String TAG_GT_LIST = "gtMachineList";
     private static final String TAG_SCAN_RADIUS = "scanRadius";
+    private static final String TAG_BOUND_POS = "boundPos";
+    private static final String TAG_BOUND_BLOCK = "boundBlock";
+    private static final String TAG_BOUND_META = "boundMeta";
+    private static final String TAG_BOUND_TE = "boundTE";
+    private static final String TAG_M_NAME = "mName";
     private static final int DEFAULT_SCAN_RADIUS = 16;
     private static final int[] SCAN_RADII = { 8, 16, 32, 64 };
 
@@ -53,12 +58,27 @@ public class ItemDataImprint extends Item {
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("adm.tooltip.data_imprint.story"));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("adm.tooltip.data_imprint.note"));
-        int radius = getScanRadius(stack);
-        list.add(EnumChatFormatting.GOLD + "GT Scan Radius: " + radius);
-        NBTTagList gtList = getGtMachineList(stack);
-        if (gtList != null && gtList.tagCount() > 0) {
-            list.add(EnumChatFormatting.GREEN + "GT Machines recorded: " + gtList.tagCount());
+        list.add(
+            EnumChatFormatting.GOLD + StatCollector
+                .translateToLocalFormatted("adm.tooltip.data_imprint.scan_radius", getScanRadius(stack)));
+        if (hasGtMachines(stack)) {
+            list.add(
+                EnumChatFormatting.GREEN + StatCollector.translateToLocalFormatted(
+                    "adm.tooltip.data_imprint.gt_count",
+                    Integer.valueOf(getGtMachineList(stack).tagCount())));
+        } else if (hasBlockImprint(stack)) {
+            NBTTagCompound pos = stack.getTagCompound()
+                .getCompoundTag(TAG_BOUND_POS);
+            list.add(
+                EnumChatFormatting.GREEN + StatCollector.translateToLocalFormatted(
+                    "adm.tooltip.data_imprint.block_bound",
+                    Integer.valueOf(pos.getInteger("x")),
+                    Integer.valueOf(pos.getInteger("y")),
+                    Integer.valueOf(pos.getInteger("z"))));
+        } else {
+            list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.tooltip.data_imprint.empty"));
         }
+        list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("adm.tooltip.data_imprint.exclusive"));
     }
 
     @Override
@@ -84,18 +104,7 @@ public class ItemDataImprint extends Item {
                 if (te instanceof IGregTechTileEntity) {
                     recordGtMachine(stack, world, x, y, z, player);
                 } else if (te instanceof TileEntityAdvanceDataMonitor) {
-                    NBTTagList gtList = getGtMachineList(stack);
-                    if (gtList != null && gtList.tagCount() > 0) {
-                        bindBatchToMonitor(stack, player, (TileEntityAdvanceDataMonitor) te);
-                    } else if (stack.hasTagCompound() && stack.getTagCompound()
-                        .hasKey("boundPos")) {
-                            saveBlockData(stack, world, x, y, z, player);
-                        } else {
-                            player.addChatMessage(
-                                new ChatComponentText(
-                                    EnumChatFormatting.RED
-                                        + "映录器中没有记录数据。请先 shift+右键一个方块记录其坐标，或 shift+右键 GT 机器记录机器坐标。"));
-                        }
+                    bindToMonitor(stack, world, x, y, z, player, (TileEntityAdvanceDataMonitor) te);
                 } else {
                     saveBlockData(stack, world, x, y, z, player);
                 }
@@ -105,10 +114,101 @@ public class ItemDataImprint extends Item {
         return false;
     }
 
+    // ======================== Mutual exclusivity ========================
+
+    public static boolean hasBlockImprint(ItemStack stack) {
+        return stack != null && stack.hasTagCompound() && stack.getTagCompound()
+            .hasKey(TAG_BOUND_POS);
+    }
+
+    public static boolean hasGtMachines(ItemStack stack) {
+        NBTTagList list = getGtMachineList(stack);
+        return list != null && list.tagCount() > 0;
+    }
+
+    public static boolean hasAnyPayload(ItemStack stack) {
+        return hasBlockImprint(stack) || hasGtMachines(stack);
+    }
+
+    private static void clearBlockImprint(ItemStack stack) {
+        if (stack == null || !stack.hasTagCompound()) {
+            return;
+        }
+        NBTTagCompound nbt = stack.getTagCompound();
+        nbt.removeTag(TAG_BOUND_POS);
+        nbt.removeTag(TAG_BOUND_BLOCK);
+        nbt.removeTag(TAG_BOUND_META);
+        nbt.removeTag(TAG_BOUND_TE);
+        nbt.removeTag(TAG_M_NAME);
+    }
+
+    private static void clearGtList(ItemStack stack) {
+        if (stack == null || !stack.hasTagCompound()) {
+            return;
+        }
+        stack.getTagCompound()
+            .removeTag(TAG_GT_LIST);
+    }
+
+    private void clearNBTData(ItemStack stack) {
+        clearBlockImprint(stack);
+        clearGtList(stack);
+    }
+
+    /** Before writing a block imprint: drop GT list if present. */
+    private void ensureExclusiveForBlock(ItemStack stack, EntityPlayer player) {
+        if (hasGtMachines(stack)) {
+            clearGtList(stack);
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.cleared_gt_for_block"));
+        }
+    }
+
+    /** Before writing GT machines: drop block imprint if present. */
+    private void ensureExclusiveForGt(ItemStack stack, EntityPlayer player) {
+        if (hasBlockImprint(stack)) {
+            clearBlockImprint(stack);
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.cleared_block_for_gt"));
+        }
+    }
+
+    /**
+     * Legacy items may hold both payloads. Prefer GT list, clear block imprint, notify once.
+     *
+     * @return true if a conflicting block imprint was removed
+     */
+    private boolean normalizeLegacyDualPayload(ItemStack stack, EntityPlayer player) {
+        if (hasGtMachines(stack) && hasBlockImprint(stack)) {
+            clearBlockImprint(stack);
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.legacy_cleared_block"));
+            return true;
+        }
+        return false;
+    }
+
+    private void bindToMonitor(ItemStack stack, World world, int x, int y, int z, EntityPlayer player,
+        TileEntityAdvanceDataMonitor monitor) {
+        normalizeLegacyDualPayload(stack, player);
+        if (hasGtMachines(stack)) {
+            bindBatchToMonitor(stack, player, monitor);
+        } else if (hasBlockImprint(stack)) {
+            saveBlockData(stack, world, x, y, z, player);
+        } else {
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.no_payload"));
+        }
+    }
+
     // ======================== Shift+RightClick in air ========================
 
     private void handleShiftRightClick(ItemStack stack, World world, EntityPlayer player) {
-        // Shift+right-click in air: batch scan GT machines
+        if (hasAnyPayload(stack)) {
+            clearNBTData(stack);
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.cleared"));
+            return;
+        }
+        scanGtMachines(stack, world, player);
+    }
+
+    private void scanGtMachines(ItemStack stack, World world, EntityPlayer player) {
         int radius = getScanRadius(stack);
         int px = (int) Math.floor(player.posX);
         int py = (int) Math.floor(player.posY);
@@ -129,9 +229,7 @@ public class ItemDataImprint extends Item {
                     TileEntity te = world.getTileEntity(tx, ty, tz);
                     if (te instanceof IGregTechTileEntity) {
                         IGregTechTileEntity gt = (IGregTechTileEntity) te;
-                        // Only record "host" machines (not GT pipe/cable covers)
                         if (gt.getMetaTileEntity() != null) {
-                            // Check if not duplicate
                             boolean duplicate = false;
                             if (existingList != null) {
                                 for (int i = 0; i < existingList.tagCount(); i++) {
@@ -161,39 +259,35 @@ public class ItemDataImprint extends Item {
             }
         }
 
-        // Merge into NBT
         if (scanned.isEmpty()) {
             player.addChatMessage(
-                new ChatComponentText(
-                    "\u00a7e\u672a\u5728\u534a\u5f84 " + radius + " \u683c\u5185\u53d1\u73b0GT\u673a\u5668\u3002"));
+                new ChatComponentTranslation("adm.data_imprint.scan_none", Integer.valueOf(radius)));
             return;
         }
 
-        mergeGtMachines(stack, dim, scanned);
+        mergeGtMachines(stack, dim, scanned, player);
         player.addChatMessage(
-            new ChatComponentText(
-                "\u00a7a\u5df2\u626b\u63cf\u5e76\u8bb0\u5f55 " + scanned.size()
-                    + " \u53f0GT\u673a\u5668 (\u534a\u5f84 "
-                    + radius
-                    + " \u683c)\u3002"));
+            new ChatComponentTranslation(
+                "adm.data_imprint.scan_done",
+                Integer.valueOf(scanned.size()),
+                Integer.valueOf(radius)));
     }
 
     // ======================== GT Machine Recording ========================
 
     private void recordGtMachine(ItemStack stack, World world, int x, int y, int z, EntityPlayer player) {
+        ensureExclusiveForGt(stack, player);
+
         int dim = world.provider.dimensionId;
         NBTTagList list = getGtMachineList(stack);
 
-        // Check duplicate
         if (list != null) {
             for (int i = 0; i < list.tagCount(); i++) {
                 NBTTagCompound entry = list.getCompoundTagAt(i);
                 if (entry.getInteger("dim") == dim && entry.getInteger("x") == x
                     && entry.getInteger("y") == y
                     && entry.getInteger("z") == z) {
-                    player.addChatMessage(
-                        new ChatComponentText(
-                            "\u00a7c\u8be5GT\u673a\u5668\u5df2\u5728\u8bb0\u5f55\u5217\u8868\u4e2d\u3002"));
+                    player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.gt_duplicate"));
                     return;
                 }
             }
@@ -219,8 +313,12 @@ public class ItemDataImprint extends Item {
         } catch (Throwable ignored) {}
 
         player.addChatMessage(
-            new ChatComponentText(
-                "\u00a7a\u5df2\u8bb0\u5f55GT\u673a\u5668: " + name + " @ (" + x + "," + y + "," + z + ")"));
+            new ChatComponentTranslation(
+                "adm.data_imprint.gt_recorded",
+                name,
+                Integer.valueOf(x),
+                Integer.valueOf(y),
+                Integer.valueOf(z)));
     }
 
     // ======================== Batch Bind to Monitor ========================
@@ -228,9 +326,7 @@ public class ItemDataImprint extends Item {
     private void bindBatchToMonitor(ItemStack stack, EntityPlayer player, TileEntityAdvanceDataMonitor monitor) {
         NBTTagList gtList = getGtMachineList(stack);
         if (gtList == null || gtList.tagCount() == 0) {
-            player.addChatMessage(
-                new ChatComponentText(
-                    "\u00a7c\u6570\u636e\u6620\u5f55\u5668\u4e2d\u6ca1\u6709\u8bb0\u5f55GT\u673a\u5668\u5750\u6807\u3002\u8bf7\u5148shift+\u53f3\u952eGT\u673a\u5668\u6216shift+\u53f3\u952e\u7a7a\u6c14\u626b\u63cf\u3002"));
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.no_gt"));
             return;
         }
 
@@ -238,24 +334,19 @@ public class ItemDataImprint extends Item {
         List<BlockPos> positions = new ArrayList<BlockPos>();
         for (int i = 0; i < gtList.tagCount(); i++) {
             NBTTagCompound entry = gtList.getCompoundTagAt(i);
-            // Only bind machines in the same dimension
             if (entry.getInteger("dim") == dim) {
                 positions.add(new BlockPos(entry.getInteger("x"), entry.getInteger("y"), entry.getInteger("z")));
             }
         }
 
         if (positions.isEmpty()) {
-            player.addChatMessage(
-                new ChatComponentText(
-                    "\u00a7c\u6620\u5f55\u5668\u4e2d\u7684GT\u673a\u5668\u4e0e\u663e\u793a\u5668\u4e0d\u5728\u540c\u4e00\u7ef4\u5ea6\u3002"));
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.gt_wrong_dim"));
             return;
         }
 
         GtMachineBinding.addMachinesBatch(monitor, dim, positions);
         player.addChatMessage(
-            new ChatComponentText(
-                "\u00a7a\u5df2\u5c06 " + positions.size()
-                    + " \u53f0GT\u673a\u5668\u7ed1\u5b9a\u5230\u6570\u636e\u663e\u793a\u5668\u3002"));
+            new ChatComponentTranslation("adm.data_imprint.gt_bound", Integer.valueOf(positions.size())));
     }
 
     // ======================== NBT Helpers ========================
@@ -294,7 +385,8 @@ public class ItemDataImprint extends Item {
         ensureNbt(stack).setInteger(TAG_SCAN_RADIUS, radius);
     }
 
-    private static void mergeGtMachines(ItemStack stack, int dim, List<BlockPos> newPositions) {
+    private void mergeGtMachines(ItemStack stack, int dim, List<BlockPos> newPositions, EntityPlayer player) {
+        ensureExclusiveForGt(stack, player);
         NBTTagList list = getGtMachineList(stack);
         if (list == null) {
             list = new NBTTagList();
@@ -331,8 +423,8 @@ public class ItemDataImprint extends Item {
         TileEntity te = world.getTileEntity(x, y, z);
 
         if (te instanceof TileEntityAdvanceDataMonitor) {
-            if (nbt != null && nbt.hasKey("boundPos")) {
-                NBTTagCompound boundPosTag = nbt.getCompoundTag("boundPos");
+            if (nbt != null && nbt.hasKey(TAG_BOUND_POS)) {
+                NBTTagCompound boundPosTag = nbt.getCompoundTag(TAG_BOUND_POS);
                 int boundX = boundPosTag.getInteger("x");
                 int boundY = boundPosTag.getInteger("y");
                 int boundZ = boundPosTag.getInteger("z");
@@ -355,9 +447,7 @@ public class ItemDataImprint extends Item {
 
                 if (duplicate) {
                     player.addChatMessage(
-                        new ChatComponentText(
-                            "\u00a7c\u8be5\u5750\u6807 (" + newCoordStr
-                                + ") \u5df2\u5b58\u5728\u4e8e\u6570\u636e\u663e\u793a\u5668\u7684\u6570\u636e\u4e2d\uff0c\u8df3\u8fc7\u6dfb\u52a0\u3002"));
+                        new ChatComponentTranslation("adm.data_imprint.error.coord_duplicate", newCoordStr));
                     return;
                 }
 
@@ -371,16 +461,15 @@ public class ItemDataImprint extends Item {
                     }
                 }
                 if (!found) {
-                    player.addChatMessage(
-                        new ChatComponentText(
-                            "\u00a7c\u9ad8\u7ea7\u6570\u636e\u76d1\u89c6\u5668\u7ed1\u5b9a\u69fd\u4f4d\u5df2\u6ee1\uff08\u6700\u591a36\u6761\uff09\uff0c\u65e0\u6cd5\u6dfb\u52a0\u65b0\u6570\u636e\u3002"));
+                    player.addChatMessage(new ChatComponentTranslation("adm.error.data_bindings_full", Integer.valueOf(
+                        TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS)));
                     return;
                 }
 
                 NBTTagCompound newData = new NBTTagCompound();
                 newData.setString("XYZ", newCoordStr);
                 newData.setInteger("interval", 20);
-                String blockName = nbt.hasKey("boundBlock") ? formatBlockName(nbt.getString("boundBlock"))
+                String blockName = nbt.hasKey(TAG_BOUND_BLOCK) ? formatBlockName(nbt.getString(TAG_BOUND_BLOCK))
                     : "Bound Block";
                 newData.setString("displayName", blockName + " @ " + newCoordStr);
                 newData.setString("lineColor", "00FFFF");
@@ -413,26 +502,26 @@ public class ItemDataImprint extends Item {
 
                 monitor.setDisplayData(nextIndex, newData);
                 player.addChatMessage(
-                    new ChatComponentText(
-                        "\u00a7a\u5df2\u5c06\u5750\u6807 (" + newCoordStr
-                            + ") \u6dfb\u52a0\u5230\u9ad8\u7ea7\u6570\u636e\u663e\u793a\u5668\uff08\u7d22\u5f15 "
-                            + nextIndex
-                            + "\uff09"));
+                    new ChatComponentTranslation(
+                        "adm.data_imprint.block_bound_monitor",
+                        newCoordStr,
+                        Integer.valueOf(nextIndex)));
                 return;
             } else {
-                player.addChatMessage(
-                    new ChatComponentText(
-                        "\u00a7c\u6570\u636e\u6620\u5f55\u5668\u5c1a\u672a\u6620\u5f55\u4efb\u4f55\u5750\u6807\u3002\u8bf7\u5148 shift+\u53f3\u952e \u4e00\u4e2a\u65b9\u5757\u6620\u5f55\u5176\u6570\u636e\uff0c\u518d shift+\u53f3\u952e \u9ad8\u7ea7\u6570\u636e\u663e\u793a\u5668\u6765\u6dfb\u52a0\u3002"));
+                player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.no_block"));
                 return;
             }
         }
 
-        if (nbt != null && nbt.hasKey("mName")) {
-            nbt.removeTag("mName");
+        ensureExclusiveForBlock(stack, player);
+
+        nbt = stack.getTagCompound();
+        if (nbt != null && nbt.hasKey(TAG_M_NAME)) {
+            nbt.removeTag(TAG_M_NAME);
         }
 
         if (nbt != null && te instanceof IGregTechTileEntity) {
-            nbt.setString("mName", ((IGregTechTileEntity) te).getInventoryName());
+            nbt.setString(TAG_M_NAME, ((IGregTechTileEntity) te).getInventoryName());
         }
 
         if (nbt == null) {
@@ -444,21 +533,20 @@ public class ItemDataImprint extends Item {
         posTag.setInteger("x", x);
         posTag.setInteger("y", y);
         posTag.setInteger("z", z);
-        nbt.setTag("boundPos", posTag);
+        nbt.setTag(TAG_BOUND_POS, posTag);
 
-        nbt.setString("boundBlock", Block.blockRegistry.getNameForObject(block));
-        nbt.setInteger("boundMeta", meta);
+        nbt.setString(TAG_BOUND_BLOCK, Block.blockRegistry.getNameForObject(block));
+        nbt.setInteger(TAG_BOUND_META, meta);
 
         if (te != null && !(te instanceof TileEntityAdvanceDataMonitor)) {
             NBTTagCompound teNbt = new NBTTagCompound();
             te.writeToNBT(teNbt);
-            nbt.setTag("boundTE", teNbt);
-            player.addChatMessage(
-                new ChatComponentText("\u00a7a\u5df2\u6210\u529f\u6620\u5f55\u65b9\u5757\u6570\u636e!"));
+            nbt.setTag(TAG_BOUND_TE, teNbt);
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.block_imprinted"));
         } else if (te instanceof TileEntityAdvanceDataMonitor) {
-            nbt.removeTag("boundTE");
+            nbt.removeTag(TAG_BOUND_TE);
         } else {
-            nbt.removeTag("boundTE");
+            nbt.removeTag(TAG_BOUND_TE);
         }
     }
 
@@ -484,52 +572,32 @@ public class ItemDataImprint extends Item {
         return sb.toString();
     }
 
-    private void clearNBTData(ItemStack stack) {
-        if (stack.getTagCompound() != null) {
-            stack.getTagCompound()
-                .removeTag("boundPos");
-            stack.getTagCompound()
-                .removeTag("boundBlock");
-            stack.getTagCompound()
-                .removeTag("boundMeta");
-            stack.getTagCompound()
-                .removeTag("boundTE");
-            // Also clear GT list
-            stack.getTagCompound()
-                .removeTag(TAG_GT_LIST);
-        }
-    }
-
     @SideOnly(Side.CLIENT)
     private void openNbtGui(ItemStack stack, EntityPlayer player) {
         if (!stack.hasTagCompound()) {
-            player.addChatMessage(
-                new ChatComponentText("\u00a7c\u7269\u54c1\u672a\u5b58\u50a8\u4efb\u4f55\u6570\u636e!"));
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.no_item_data"));
             return;
         }
 
         NBTTagCompound nbt = stack.getTagCompound();
-        if (!nbt.hasKey("boundPos")) {
-            // If there's no boundPos but there are GT machines, show count
+        if (!nbt.hasKey(TAG_BOUND_POS)) {
             NBTTagList gtList = getGtMachineList(stack);
             if (gtList != null && gtList.tagCount() > 0) {
                 player.addChatMessage(
-                    new ChatComponentText(
-                        "\u00a7b\u5df2\u8bb0\u5f55 " + gtList.tagCount()
-                            + " \u53f0GT\u673a\u5668\u3002shift+\u53f3\u952e\u6570\u636e\u663e\u793a\u5668\u53ef\u6279\u91cf\u7ed1\u5b9a\u3002"));
+                    new ChatComponentTranslation(
+                        "adm.data_imprint.gt_hint_bind",
+                        Integer.valueOf(gtList.tagCount())));
                 return;
             }
-            player
-                .addChatMessage(new ChatComponentText("\u00a7c\u672a\u6620\u5f55\u65b9\u5757\u7684 NBT \u6570\u636e!"));
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.no_block_nbt"));
             return;
         }
 
-        if (nbt.hasKey("boundTE")) {
-            NBTTagCompound tileNBT = nbt.getCompoundTag("boundTE");
+        if (nbt.hasKey(TAG_BOUND_TE)) {
+            NBTTagCompound tileNBT = nbt.getCompoundTag(TAG_BOUND_TE);
             ItemClientGui.openNbtViewerGui(tileNBT);
         } else {
-            player.addChatMessage(
-                new ChatComponentText("\u00a7c\u6620\u5f55\u7684\u65b9\u5757\u6ca1\u6709 NBT \u6570\u636e!"));
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.no_te_nbt"));
         }
     }
 

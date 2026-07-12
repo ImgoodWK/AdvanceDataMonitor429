@@ -6,10 +6,10 @@ import java.util.Map;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 
 /**
- * Debounces {@link TileEntityAdvanceStorageLink#handleItemCountSyncRequest()} onto the server tick thread.
+ * Debounces {@link TileEntityAdvanceNetworkLink#handleItemCountSyncRequest()} onto the server tick thread.
  */
 public final class ItemCountSyncCoordinator {
 
@@ -66,8 +66,8 @@ public final class ItemCountSyncCoordinator {
             return;
         }
         TileEntity te = world.getTileEntity(pending.x, pending.y, pending.z);
-        if (te instanceof TileEntityAdvanceStorageLink) {
-            ((TileEntityAdvanceStorageLink) te).handleItemCountSyncRequest();
+        if (te instanceof TileEntityAdvanceNetworkLink) {
+            ((TileEntityAdvanceNetworkLink) te).handleItemCountSyncRequest();
         }
     }
 

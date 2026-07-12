@@ -40,7 +40,8 @@ public final class WebAeDebugLog {
         CHAT("webae-chat", "chat"),
         DASHBOARD("webae-dashboard", "dashboard"),
         SYNTHESIS("webae-synthesis", "synthesis"),
-        PATTERNS("webae-patterns", "patterns");
+        PATTERNS("webae-patterns", "patterns"),
+        PERF("webae-perf", "perf");
 
         private final String logFileName;
         private final String tag;
@@ -75,9 +76,19 @@ public final class WebAeDebugLog {
                 return Config.webDebugSynthesis;
             case PATTERNS:
                 return Config.webDebugPatterns;
+            case PERF:
+                return Config.webDebugPerf;
             default:
                 return false;
         }
+    }
+
+    /**
+     * Always append a line for hard slow-path events (tick/HTTP thresholds),
+     * even when the feature debug switch is off.
+     */
+    public static void infoAlways(Feature feature, String message, Object... args) {
+        appendLine(feature, "INFO", message, args);
     }
 
     public static String logFilePath(Feature feature) {

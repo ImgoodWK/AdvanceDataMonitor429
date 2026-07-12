@@ -179,6 +179,33 @@ item.superWeaveAmplifier.name=Super Weave Amplifier Card
 
 adm.tooltip.data_imprint.story=Imprints a block's data state as a snapshot for Data Monitor binding.
 adm.tooltip.data_imprint.note=Imprinting observes and records; Data Loom cells weave matter from network data.
+adm.tooltip.data_imprint.scan_radius=GT scan radius: %d blocks (sneak+scroll to change)
+adm.tooltip.data_imprint.gt_count=GT machines recorded: %d
+adm.tooltip.data_imprint.block_bound=Block imprinted: (%d, %d, %d)
+adm.tooltip.data_imprint.empty=No payload (sneak+right-click air on empty tool to scan nearby GT)
+adm.tooltip.data_imprint.exclusive=Block imprint and GT list are mutually exclusive; writing one clears the other.
+
+adm.data_imprint.cleared=Cleared all payload on the Data Imprint Tool.
+adm.data_imprint.cleared_gt_for_block=Cleared GT machine list (exclusive with block imprint).
+adm.data_imprint.cleared_block_for_gt=Cleared block imprint (exclusive with GT machine list).
+adm.data_imprint.legacy_cleared_block=Legacy dual payload detected; cleared conflicting block imprint and kept GT list.
+adm.data_imprint.scan_none=No GT machines found within radius %d.
+adm.data_imprint.scan_done=Scanned and recorded %d GT machine(s) (radius %d).
+adm.data_imprint.scan_radius_set=Scan radius: %d blocks
+adm.data_imprint.gt_duplicate=That GT machine is already in the recorded list.
+adm.data_imprint.gt_recorded=Recorded GT machine: %s @ (%d,%d,%d)
+adm.data_imprint.gt_bound=Bound %d GT machine(s) to the Data Monitor.
+adm.data_imprint.gt_hint_bind=%d GT machine(s) recorded. Sneak+right-click a Data Monitor to batch-bind.
+adm.data_imprint.block_imprinted=Successfully imprinted block data!
+adm.data_imprint.block_bound_monitor=Added coordinate (%s) to Advance Data Monitor (index %d)
+adm.data_imprint.error.no_payload=No data on the tool. Sneak+right-click a block to imprint, or a GT machine / empty air to scan.
+adm.data_imprint.error.no_gt=No GT machine coordinates on the tool. Sneak+right-click a GT machine or scan with empty tool + sneak+air.
+adm.data_imprint.error.gt_wrong_dim=Recorded GT machines are not in the same dimension as the monitor.
+adm.data_imprint.error.coord_duplicate=Coordinate (%s) is already on the Data Monitor; skipped.
+adm.data_imprint.error.no_block=No block imprint yet. Sneak+right-click a block first.
+adm.data_imprint.error.no_item_data=Item has no stored data!
+adm.data_imprint.error.no_block_nbt=No block NBT imprint!
+adm.data_imprint.error.no_te_nbt=Imprinted block has no NBT data!
 adm.tooltip.data_dust_loom.story=Weaves AE network data into matter. Early tech can only reconstruct the simplest form — dust.
 adm.tooltip.data_dust_loom.mark_limit=Mark items with dust ore-dictionary prefixes in Cell Workbench partition slots to generate slowly; AdvanceDataMonitor items cannot be marked.
 adm.tooltip.data_form_loom.story=Fully mastered data weaving — reconstructs any complex item from network data.
@@ -192,7 +219,7 @@ adm.tooltip.data_source_loom.mark_limit=Mark essentia fluids (phials, jars, etc.
 adm.tooltip.data_loom.energy_drain=§7Drains AE network energy (default 999999 AE/t, configurable via [dataLoomCell] energyDrainPerTick).
 adm.tooltip.data_loom.amplifier_only=§7Only Weave Amplifier cards accepted — no AE acceleration cards.
 adm.tooltip.data_loom.sync_interval=§7Output settles every %d seconds ([dataLoomCell] syncIntervalSeconds); see cached rate lines above.
-adm.tooltip.data_loom.storage_link_excluded=§7Items, fluids, or essentia stored inside this cell are excluded from Advanced Storage Linker statistics.
+adm.tooltip.data_loom.storage_link_excluded=§7Items, fluids, or essentia stored inside this cell are excluded from Advanced Network Linker statistics.
 adm.tooltip.data_loom.no_cache=§7Configure markers or amplifier cards in Cell Workbench to show effective output rates.
 adm.tooltip.data_loom.no_markers=§7No targets marked — set partition slots in Cell Workbench.
 adm.tooltip.data_loom.markers=§7Marked §f%d §7target type(s).
@@ -212,12 +239,16 @@ adm.tooltip.super_weave_amplifier.rate=Output rate: %s× per card
 adm.tooltip.super_weave_amplifier.warning_title=§l⚠ Warning
 adm.tooltip.super_weave_amplifier.warning_body=Exponential output surge may instantly flood the AE network! Use with caution.
 tile.advDataMonitor.name=Advance Data Monitor
-tile.NetworkLinkBlock.name=Network Linker
-tile.CraftingMonitorBlock.name=Crafting Linker
-tile.StorageLinkBlock.name=Advanced Storage Linker
+tile.NetworkLinkBlock.name=Advanced Network Linker
+tile.CraftingMonitorBlock.name=Advanced Network Linker
+tile.StorageLinkBlock.name=Advanced Network Linker
 tile.matterBallDecompressor.name=Matter Ball Decompressor
 
-adm.title.storage=§lAdvanced Storage Linker Display Config #%s
+adm.title.link_display_type=Choose Display Type
+adm.button.link_display_network=Network Stats Chart
+adm.button.link_display_storage=Storage Display
+adm.button.link_display_crafting=Crafting Monitor
+adm.title.storage=§lAdvanced Network Linker Storage Display Config #%s
 adm.storage.columns=Columns
 adm.storage.spacing=Spacing
 adm.storage.iconscale=Icon Scale
@@ -448,9 +479,9 @@ adm.scanner.filter_name_all=Name: All
 adm.scanner.filter_name_unnamed=Name: Unnamed
 adm.scanner.filter_name_named=Name: Named
 adm.scanner.type.data_monitor=Monitor
-adm.scanner.type.network_link=Network
-adm.scanner.type.storage_link=Storage
-adm.scanner.type.crafting_link=Craft
+adm.scanner.type.network_link=AE Link
+adm.scanner.type.storage_link=AE Link
+adm.scanner.type.crafting_link=AE Link
 adm.scanner.scan_done=Scan complete: %s block(s) found in loaded chunks
 adm.scanner.teleport_ok=Teleported to target location
 adm.scanner.teleport_failed=Teleport failed: no safe landing spot
@@ -530,21 +561,21 @@ adm.manual.getting_started.welcome_title=Welcome
 adm.manual.getting_started.welcome_text=Welcome to the AdvanceDataMonitor manual!\n\nThis mod brings advanced data visualization and AI-assisted automation to GTNH. You can render live charts in-world from AE2 and TileEntity data, control AE2 crafting with natural language, and manage tasks with the planner.\n\nUse the search bar atop the left sidebar to find chapters and body text (pinyin supported; compatible with NotEnoughCharacters). Scroll the chapter list with the wheel or scrollbar; long pages on the right also scroll with the wheel.
 
 adm.manual.getting_started.core_concepts_title=Four Core Systems
-adm.manual.getting_started.core_concepts_text=1. Advance Data Monitor - renders live charts (line, bar, waterfall, difference) and text in the Minecraft world from TileEntity NBT data. Each face of the monitor can be configured independently.\n\n2. AE2 Integration - three dedicated linker blocks connect to your AE2 network: Crafting Linker monitors CPUs, Advanced Storage Linker shows inventory, Network Linker aggregates full-network statistics.\n\n3. AI Assistant - natural language control via OpenAI-compatible APIs. Order crafting, withdraw items, query power/storage/recipes, teleport via Draconic Evolution gems, and manage planner tasks - all through the chat window (O key).\n\n4. Planner - a persistent task manager stored in NBT on the item. Supports adding, completing, deleting, reordering, merging entries, with an on-screen HUD overlay.
+adm.manual.getting_started.core_concepts_text=1. Advance Data Monitor - renders live charts (line, bar, waterfall, difference) and text in the Minecraft world from TileEntity NBT data. Each face of the monitor can be configured independently.\n\n2. AE2 Integration - the unified Advanced Network Linker connects to your AE2 network: full-network storage statistics, filtered inventory via Advanced Storage Link Cells, and crafting CPU monitoring.\n\n3. AI Assistant - natural language control via OpenAI-compatible APIs. Order crafting, withdraw items, query power/storage/recipes, teleport via Draconic Evolution gems, and manage planner tasks - all through the chat window (O key).\n\n4. Planner - a persistent task manager stored in NBT on the item. Supports adding, completing, deleting, reordering, merging entries, with an on-screen HUD overlay.
 
 adm.manual.getting_started.quick_start_title=Quick Start
-adm.manual.getting_started.quick_start_text=1. Place an Advance Data Monitor block where you want the display.\n2. Place a Crafting/Advanced Storage/Network Linker next to your AE2 network via cable adjacency.\n3. Craft a Data Imprint Tool and sneak+right-click the linker block to imprint its NBT data.\n4. Sneak+right-click the Advance Data Monitor with the imprinted tool to bind the data to a monitor face.\n5. Right-click the Advance Data Monitor to open its GUI and configure chart type, colors, scale, and more.\n6. Press O to open the AI Chat. Configure your API key in the Settings (gear icon).\n7. Press P to open the Planner if you have one in your inventory.\n\nTip: The AI Assistant works even without AE2 - you can query time, weather, position, biome, and inventory space anywhere.
+adm.manual.getting_started.quick_start_text=1. Place an Advance Data Monitor block where you want the display.\n2. Place an Advanced Network Linker next to your AE2 network via cable adjacency.\n3. Craft a Data Imprint Tool and sneak+right-click the linker block to imprint its NBT data.\n4. Sneak+right-click the Advance Data Monitor with the imprinted tool to bind the data to a monitor face.\n5. Right-click the Advance Data Monitor to open its GUI and configure chart type, colors, scale, and more.\n6. Press O to open the AI Chat. Configure your API key in the Settings (gear icon).\n7. Press P to open the Planner if you have one in your inventory.\n\nTip: The AI Assistant works even without AE2 - you can query time, weather, position, biome, and inventory space anywhere.
 
 adm.manual.getting_started.manual_info_title=About This Manual
 adm.manual.getting_started.manual_info_text=You receive this manual once per world when you first join. If you lose it, you can:\n- Get a new one from the Tools tab in Creative mode\n- Craft it (see recipe)\n\nRight-click the manual item to open it. The top search box searches titles and all page text; matches are highlighted (space-separated AND keywords). When many chapters are listed, scroll with the wheel, drag the scrollbar, or click ^ / v beside it to jump to top/bottom. Click a chapter to switch topics; use Prev/Next at the bottom to flip pages. Chapter titles appear at the top of each page.
 
 adm.manual.blocks_items.overview_title=Blocks & Items Overview
-adm.manual.blocks_items.overview_text=AdvanceDataMonitor adds 4 blocks and 10 items. Each block connects to a specific part of your AE2 system and feeds data to the Data Monitor display block. The following pages describe each item in detail with its function, usage tips, and key capabilities.
+adm.manual.blocks_items.overview_text=AdvanceDataMonitor adds monitor blocks and supporting items. The unified Advanced Network Linker feeds AE2 network, storage, and crafting data to the Advance Data Monitor. The following pages describe each item in detail with its function, usage tips, and key capabilities.
 
 adm.manual.blocks_items.data_monitor_title=Advance Data Monitor
-adm.manual.blocks_items.crafting_link_title=Crafting Linker
-adm.manual.blocks_items.storage_link_title=Advanced Storage Linker
-adm.manual.blocks_items.network_link_title=Network Linker
+adm.manual.blocks_items.crafting_link_title=Advanced Network Linker (crafting display)
+adm.manual.blocks_items.storage_link_title=Advanced Network Linker (storage display)
+adm.manual.blocks_items.network_link_title=Advanced Network Linker
 adm.manual.blocks_items.data_imprint_title=Data Imprint Tool
 adm.manual.blocks_items.storage_cell_title=Advanced Storage Link Cell
 adm.manual.blocks_items.planner_title=Advance Planner
@@ -554,7 +585,7 @@ adm.manual.blocks_items.data_flow_cell_title=Data Flow Cell
 adm.manual.blocks_items.data_source_loom_title=Data Source Loom Cell
 adm.manual.blocks_items.weave_amplifier_title=Weave Amplifier Cards
 adm.manual.blocks_items.data_loom_story_title=Data Loom Cells — Lore
-adm.manual.blocks_items.data_loom_story_text=AE digitizes matter into network data. AdvanceDataMonitor researchers reversed this — weaving data back into matter.\n\nEvolution:\n- Data Dust Loom Cell (basic): immature tech, only weaves the simplest form — dusts (GT dust prefix).\n- Data Form Loom Cell (advanced): full mastery, reconstructs any complex item.\n- Data Flow Cell: fluid channel, weaves data into fluids (mB units, default 1000 mB/s = 1 bucket/s).\n- Data Tide Loom Cell (advanced): fluid channel upgrade — tides of data, up to 63 fluid types.\n- Data Source Loom Cell: fluid channel, weaves data into Thaumcraft essentia (aspect fluids, default 1000 mB/s).\n\nUsage: place in ME Drive or ME Chest, mark targets in Cell Workbench, generate slowly over time. Dust/Form/Flow cells cannot mark AdvanceDataMonitor items. Output settles on a configurable interval (default 5 s); effective rates are cached on the item tooltip when markers or amplifier cards change. Weave Amplifier cards multiply output (default 4×/card, Super 16×/card, max 8 cards, multiplicative). Drains AE network energy.\n\nAdvanced Storage Linker note: contents stored inside Data Loom cells are excluded from Advanced Storage Linker statistics.\n\nConfig: [dataDustLoomCell], [dataFormLoomCell], [dataFlowCell], [dataSourceLoomCell], [dataLoomCell] (sync interval, energy drain, amplifier multipliers).
+adm.manual.blocks_items.data_loom_story_text=AE digitizes matter into network data. AdvanceDataMonitor researchers reversed this — weaving data back into matter.\n\nEvolution:\n- Data Dust Loom Cell (basic): immature tech, only weaves the simplest form — dusts (GT dust prefix).\n- Data Form Loom Cell (advanced): full mastery, reconstructs any complex item.\n- Data Flow Cell: fluid channel, weaves data into fluids (mB units, default 1000 mB/s = 1 bucket/s).\n- Data Tide Loom Cell (advanced): fluid channel upgrade — tides of data, up to 63 fluid types.\n- Data Source Loom Cell: fluid channel, weaves data into Thaumcraft essentia (aspect fluids, default 1000 mB/s).\n\nUsage: place in ME Drive or ME Chest, mark targets in Cell Workbench, generate slowly over time. Dust/Form/Flow cells cannot mark AdvanceDataMonitor items. Output settles on a configurable interval (default 5 s); effective rates are cached on the item tooltip when markers or amplifier cards change. Weave Amplifier cards multiply output (default 4×/card, Super 16×/card, max 8 cards, multiplicative). Drains AE network energy.\n\nAdvanced Network Linker note: contents stored inside Data Loom cells are excluded from Advanced Network Linker statistics.\n\nConfig: [dataDustLoomCell], [dataFormLoomCell], [dataFlowCell], [dataSourceLoomCell], [dataLoomCell] (sync interval, energy drain, amplifier multipliers).
 adm.manual.blocks_items.super_orange_title=Super Orange
 adm.manual.blocks_items.grapple_anchor_title=Grapple Anchor
 adm.manual.blocks_items.grapple_hook_title=Grapple Hook
@@ -563,47 +594,47 @@ adm.manual.blocks_items.grapple_story_text=We often spend enormous effort making
 adm.manual.item.grappleAnchor=Face-mountable anchor that forms a grapple route network across your base with the Grapple Hook.\n\nPlacement: attaches to any solid face (wall, ceiling, floor) like a thin plate embedded in your build.\n\nNaming: Shift+Right-click to set display name and selected icon color for long-distance navigation.\n\nSuggested spots: production tour paths, scenic bridges, multi-floor factory shafts, main routes from base entrance to core areas.
 adm.manual.item.grappleHook=Core tool for interacting with grapple anchors. Stack size: 1.\n\nNot attached: on-screen hint within 12 blocks; world-space nav icons within 6 blocks (selected target turns green and enlarges). Right-click to attach.\n\nAttached: shows all reachable nodes; right-click to glide in a straight line to the selected target. Shift to detach.\n\nShift+Right-click: open hook settings — travel speed, show node name/distance toggles.
 adm.manual.blocks_items.data_imprint_usage_title=How to Use Data Imprint
-adm.manual.blocks_items.data_imprint_usage_text=The Data Imprint Tool records block state as a data snapshot and binds it to Data Monitors — it observes and displays, it does not weave matter. Workflow:\n\n1. Sneak + right-click a target TileEntity (e.g. a Crafting Linker) to imprint its NBT snapshot.\n\n2. Sneak + right-click a Data Monitor with the imprinted tool to add the location as a data source.\n\n3. Open the Data Monitor GUI and configure the binding: chart type, NBT path, colors, scale, update interval, etc.\n\n4. Plain right-click (no sneak) opens a JSON NBT viewer for finding the correct NBT path.\n\n5. Sneak + right-click air clears all imprint data from the tool.\n\nHard limit: 36 data bindings per monitor face.
+adm.manual.blocks_items.data_imprint_usage_text=The Data Imprint Tool records block state as a data snapshot and binds it to Data Monitors — it observes and displays, it does not weave matter. Workflow:\n\n1. Sneak + right-click a non-GT TileEntity to imprint its NBT snapshot (coordinates, block name, full NBT).\n\n2. Sneak + right-click a GT machine to append it to the GT list; empty tool + sneak + right-click air scans nearby GT machines at the current radius.\n\n3. Block imprint and GT list are mutually exclusive: writing one clears the other.\n\n4. Sneak + right-click a Data Monitor to bind the current sole payload (block → chart slot; GT list → batch GT bind).\n\n5. Open the Data Monitor GUI and configure the binding: chart type, NBT path, colors, scale, update interval, etc.\n\n6. Plain right-click (no sneak) opens a JSON NBT viewer for finding the correct NBT path.\n\n7. Sneak + right-click air: clears when the tool has payload; scans GT when empty. Sneak + scroll cycles scan radius (8/16/32/64).\n\nHard limit: 36 data bindings per monitor face.
 
 adm.manual.item.advDataMonitor=The core display block of the mod. Renders live data in the Minecraft world from any TileEntity's NBT data.\n\nChart types: Line (continuous tracking), Bar (discrete comparison), 3D Bar (with depth), Waterfall (cumulative flow), Difference (delta between readings).\n\nAE2 text displays: item counts with icons, fluid storage, crafting CPU status with template expressions.\n\nMulti-face: each of the 6 sides can have independent data bindings and configurations.\n\nCustomization per binding: line color, line width, grid settings, axis colors/font, title text, scale, rotation angles, position offsets, update interval (in ticks), data limit (max visible points).\n\nDefault config: cyan (00FFFF), scale 0.3, interval 20 ticks, 100 data points max.\n\nRendering range: 128 blocks around the monitor.\n\nHardness: 2.0, light level: 1 (self-illuminated).
 
-adm.manual.item.advCraftingLink=Connects to your AE2 network's Crafting CPU to monitor crafting activity.\n\nAuto-refresh: every 20 ticks (1 second) it polls CPU data.\n\nReports: total CPUs, busy CPUs, total/used bytes, co-processor count, final output item names, and elapsed time.\n\nSupports template expressions: write custom display text with {variables} and conditional {cond?text:alt} syntax. Example: {br}Crafting Monitor{br}Busy: {busyCpus}/{totalCpus}{br}{busyCpus:CPU#1==1?"CPU#1 working":"CPU#1 idle"}\n\nGlobal variables: totalCpus, busyCpus, cpuTotalBytes, cpuUsedBytes, totalCoProcessors.\n\nPer-CPU variables: busyCpus:Name, coProcessors:Name, usedStorage:Name, finalOutputName:Name, finalOutputAmount:Name, elapsedTime:Name.\n\nTwo scope modes: single CPU or network-wide aggregation.\n\nHardness: 3.0, blast resistance: 10.0.
+#adm.manual.item.advCraftingLink=(merged into advNetworkLinkBlock)
 
-adm.manual.item.advStorageLink=Connects to AE2 storage network to display item and fluid inventories.\n\nShows item icons, names, counts (with K/M/T large number formatting), and I/O delta tracking.\n\nSupports filtering: only show marked items via the Advanced Storage Link Cell.\n\n36 storage cell slots for configuration in the Advanced Storage Linker GUI.\n\nDisplay options: Items/Fluids/Essentia on/off toggles, Count/Delta/Name display switches, sorting by Default/Count/Mod, columns per row (default 4), icon size, item spacing, line spacing, text color.\n\nCan show a specific storage cell by zero-based index, or all cells.\n\nFuzzy and Inverter upgrade card support via Advanced Storage Link Cell.\n\nNote: contents stored inside Data Loom cells (Dust/Form/Flow/Source) are excluded from Advanced Storage Linker statistics.\n\nHardness: 3.0, blast resistance: 10.0.
+#adm.manual.item.advStorageLink=(merged into advNetworkLinkBlock)
 
-adm.manual.item.advNetworkLinkBlock=Aggregates and displays full AE2 network statistics.\n\nAuto-refresh: every 20 ticks it scans all ME Drives and ME Chests in the connected network.\n\nCollects 8 metrics: Items used/total bytes, Items used/total types, Fluids used/total bytes, Fluids used/total types.\n\nRight-click forces immediate refresh and shows stats in chat.\n\nCan be bound to a Data Monitor for continuous in-world display of any of the 8 metrics (selectable via NBT path).\n\nHardness: 3.0, blast resistance: 10.0.
+adm.manual.item.advNetworkLinkBlock=Unified AE2 connector combining network statistics, storage display, and crafting CPU monitoring.\n\nThree-in-one: aggregates item/fluid byte and type usage across ME Drives and ME Chests; 36 Advanced Storage Link Cell slots for filtered storage display; polls crafting CPUs for busy state, storage, co-processors, and active jobs.\n\nAuto-refresh: every 20 ticks for network stats, marked-item counts, and CPU status.\n\nRight-click opens the storage configuration GUI (insert configured Advanced Storage Link Cells).\n\nShift+right-click prints comprehensive status to chat (network bytes/types plus crafting CPU summary).\n\nBind to an Advance Data Monitor and choose display type per binding: network chart (dataType line), storage icons (dataType storage), or crafting text (dataType crafting).\n\nNote: contents stored inside Data Loom cells (Dust/Form/Flow/Source) are excluded from storage statistics.\n\nHardness: 3.0, blast resistance: 10.0.
 
-adm.manual.item.data_imprint=Imprints block data into the tool for Data Monitors to read and display.\n\nFeatures:\n- Imprint: Sneak+right-click any TileEntity to save coordinates, block type, and full NBT snapshot.\n- Bind: Sneak+right-click a Data Monitor to add the imprinted block as a data source.\n- View: Plain right-click opens a JSON tree viewer for finding correct NBT paths.\n- Clear: Sneak+right-click air to reset the tool.\n\nUnlike Data Loom cells (Dust/Form/Flow): the Imprint Tool only observes and records — it does not weave new items or fluids from the AE network.\n\nStack size: 1. Creative tab: Tools.
+adm.manual.item.data_imprint=Imprints block data or records GT machine coordinates for Data Monitors to read and display.\n\nFeatures:\n- Imprint block: Sneak+right-click a non-GT TileEntity to save coordinates, block type, and full NBT snapshot.\n- Record GT: Sneak+right-click a GT machine to append; empty tool + sneak+air scans by radius.\n- Exclusive: block imprint and GT list cannot coexist; writing one clears the other.\n- Bind: Sneak+right-click a Data Monitor to add the current sole payload as a data source.\n- View: Plain right-click opens a JSON tree viewer (requires block imprint).\n- Clear: Sneak+right-click air when the tool has payload to reset.\n\nUnlike Data Loom cells (Dust/Form/Flow): the Imprint Tool only observes and records — it does not weave new items or fluids from the AE network.\n\nStack size: 1. Creative tab: Tools.
 
-adm.manual.item.advance_storage_link_cell=An upgrade component for the Advanced Storage Linker. Implements ICellWorkbenchItem for AE2 Cell Workbench compatibility.\n\nUpgrade slots: 2 (supports Fuzzy and Inverter cards).\n\nConfigurable filters: set which items to display in the Advanced Storage Linker via the cell's partition slots.\n\nOre dictionary filter support: filter by ore dictionary names.\n\nFluid and Essentia markers: mark specific fluids or Thaumcraft essentia types to display.\n\nFuzzy modes: supports AE2's various fuzzy comparison levels.\n\nWorks with standard AE2 storage bus slot configuration.
+adm.manual.item.advance_storage_link_cell=A filter cell for Advanced Network Linker storage display. Implements ICellWorkbenchItem for AE2 Cell Workbench compatibility.\n\nUpgrade slots: 2 (supports Fuzzy and Inverter cards).\n\nConfigurable filters: set which items to display on the Advanced Network Linker via the cell's partition slots.\n\nOre dictionary filter support: filter by ore dictionary names.\n\nFluid and Essentia markers: mark specific fluids or Thaumcraft essentia types to display.\n\nFuzzy modes: supports AE2's various fuzzy comparison levels.\n\nWorks with standard AE2 storage bus slot configuration.
 
 adm.manual.item.advance_planner=A persistent, reusable task manager stored as an item with NBT data.\n\nRight-click: opens the planner GUI where you can add, edit, complete, delete, reorder, and merge entries.\n\nSneak+right-click: toggles the HUD overlay that shows your tasks on screen.\n\nFeatures: auto-numbered entries, creation timestamps, completion status tracking, stats display (Total/Done/Pending), entry reordering (move up / move to top), multiple planner items supported in one inventory, full NBT persistence across logouts.\n\nMerging: combine multiple planners into one. Two modes: By Time (sorts by creation date) or By Index (preserves order, renumbers).\n\nHUD: fully customizable position, scale, width, max display count, and custom title.\n\nStack size: 1. Creative tab: Tools.
 
-adm.manual.item.data_dust_loom_cell=Basic data loom cell. Weaves AE network data into dust items.\n\nRestriction: GT dust prefix items only; cannot mark AdvanceDataMonitor items.\n\nDefault rate: 1 item/s ([dataDustLoomCell] configurable). Tooltip caches effective rate when markers or amplifier cards change.\n\nPlace in ME Drive/Chest, mark dusts in Cell Workbench. Weave Amplifier cards only (default 4×/card, [dataLoomCell] configurable).\n\nAdvanced Storage Linker: internal stored items are excluded from Advanced Storage Linker statistics.
+adm.manual.item.data_dust_loom_cell=Basic data loom cell. Weaves AE network data into dust items.\n\nRestriction: GT dust prefix items only; cannot mark AdvanceDataMonitor items.\n\nDefault rate: 1 item/s ([dataDustLoomCell] configurable). Tooltip caches effective rate when markers or amplifier cards change.\n\nPlace in ME Drive/Chest, mark dusts in Cell Workbench. Weave Amplifier cards only (default 4×/card, [dataLoomCell] configurable).\n\nAdvanced Network Linker: internal stored items are excluded from Advanced Network Linker statistics.
 
-adm.manual.item.data_form_loom_cell=Advanced data loom cell. Full data weaving — any item except this mod.\n\nRestriction: any item except AdvanceDataMonitor items.\n\nDefault rate: 1 item/s ([dataFormLoomCell] configurable).\n\nPlace in ME Drive/Chest, mark items in Cell Workbench. Weave Amplifier cards only.\n\nAdvanced Storage Linker: internal stored items are excluded from Advanced Storage Linker statistics.
+adm.manual.item.data_form_loom_cell=Advanced data loom cell. Full data weaving — any item except this mod.\n\nRestriction: any item except AdvanceDataMonitor items.\n\nDefault rate: 1 item/s ([dataFormLoomCell] configurable).\n\nPlace in ME Drive/Chest, mark items in Cell Workbench. Weave Amplifier cards only.\n\nAdvanced Network Linker: internal stored items are excluded from Advanced Network Linker statistics.
 
-adm.manual.item.data_flow_cell=Fluid data loom cell. Weaves network data into fluids.\n\nRestriction: any fluid marker; AdvanceDataMonitor items cannot be used as markers.\n\nDefault rate: 1000 mB/s = 1 bucket/s ([dataFlowCell] separate config).\n\nPlace in fluid channel of ME Drive/Chest. Weave Amplifier cards only.\n\nAdvanced Storage Linker: internal stored fluids are excluded from Advanced Storage Linker statistics.
+adm.manual.item.data_flow_cell=Fluid data loom cell. Weaves network data into fluids.\n\nRestriction: any fluid marker; AdvanceDataMonitor items cannot be used as markers.\n\nDefault rate: 1000 mB/s = 1 bucket/s ([dataFlowCell] separate config).\n\nPlace in fluid channel of ME Drive/Chest. Weave Amplifier cards only.\n\nAdvanced Network Linker: internal stored fluids are excluded from Advanced Network Linker statistics.
 
-adm.manual.item.data_tide_loom_cell=Advanced fluid loom cell (upgrade of Data Flow Cell). Weaves tides of network data into fluids — up to 63 types (enchanted glint).\n\nRestriction: same as Data Flow Cell.\n\nDefault rate: 1000 mB/s ([dataFlowCell] config).\n\nPlace in fluid channel of ME Drive/Chest. Weave Amplifier cards only.\n\nAdvanced Storage Linker: internal stored fluids are excluded from Advanced Storage Linker statistics.
+adm.manual.item.data_tide_loom_cell=Advanced fluid loom cell (upgrade of Data Flow Cell). Weaves tides of network data into fluids — up to 63 types (enchanted glint).\n\nRestriction: same as Data Flow Cell.\n\nDefault rate: 1000 mB/s ([dataFlowCell] config).\n\nPlace in fluid channel of ME Drive/Chest. Weave Amplifier cards only.\n\nAdvanced Network Linker: internal stored fluids are excluded from Advanced Network Linker statistics.
 
-adm.manual.item.data_source_loom_cell=Essentia data loom cell. Weaves network data into Thaumcraft essentia (stored as aspect fluids in GTNH).\n\nRestriction: essentia fluids / aspect types only.\n\nDefault rate: 1000 mB/s ([dataSourceLoomCell] configurable). Settles every 5 seconds.\n\nPlace in fluid channel of ME Drive/Chest. Weave Amplifier cards only.\n\nAdvanced Storage Linker: internal stored essentia is excluded from Advanced Storage Linker statistics.
+adm.manual.item.data_source_loom_cell=Essentia data loom cell. Weaves network data into Thaumcraft essentia (stored as aspect fluids in GTNH).\n\nRestriction: essentia fluids / aspect types only.\n\nDefault rate: 1000 mB/s ([dataSourceLoomCell] configurable). Settles every 5 seconds.\n\nPlace in fluid channel of ME Drive/Chest. Weave Amplifier cards only.\n\nAdvanced Network Linker: internal stored essentia is excluded from Advanced Network Linker statistics.
 
 adm.manual.item.weave_amplifier=Dedicated amplifier for Data Loom cells. Default 4× output per card (configurable in [dataLoomCell] weaveAmplifierRateMultiplier), max 8 cards — multiplies with other cards.\n\nWorks on Dust/Form/Flow/Source cells.\n\nAE acceleration cards are NOT accepted.
 
 adm.manual.item.super_weave_amplifier=Super Weave Amplifier Card. Default 16× per card (configurable in [dataLoomCell] superWeaveAmplifierRateMultiplier), stacks multiplicatively with normal cards.\n\nWarning: many cards can flood the AE network instantly!
 
 adm.manual.item.superOrange=A legendary item with immense power. When carried in your inventory or held, it grants abilities governed by config/textech/textech.cfg [superOrange] and per-item NBT:\n\nControls:\n- Right-click: toggle drone and projectile immunity (item NBT)\n- Sneak + right-click: open settings GUI (not a toggle)\n- Settings GUI: nameplate text, matter-ball mining toggle, pickup-merge toggle, drop/toss-merge toggle, custom drop multiplier (max from dropMultiplierMax, default x2)\n- Anvil rename: also sets nameplate text\n\n1. Mine Any Block: instantly break any block when held (including GT ores).\n\n2. Head Effects: custom nameplate + rotating halo (OrangeBuff.png). Hidden for yourself in first person; visible in third person and to others. Disable globally with headEffectsEnabled.\n\n3. Matter Ball: the settings GUI controls three merge channels (mining / pickup / toss). When mining is enabled, drops auto-convert to Avaritia matter clusters (merge existing or create new) at the per-item dropMultiplier (new stacks default to dropMultiplier config, default x2). Disable globally with dropMultiplierEnabled.\n\n4. Companion Drone: the body picks a new random point within 3 blocks of you every second (height offset droneFollowHeight), stays near you, and intercepts projectiles (spawns temporary intercept drones per incoming projectile). When hostiles are nearby, combat clones split off to fight; the body never joins combat. Clones deal true armor-bypassing damage. Scan range/damage/rate/max clones are configurable. Right-click toggles drone and projectile immunity.\n\n5. Projectile Immunity: follows the drone toggle (requires projectileImmunityEnabled in config).\n\nAcquisition: 0.1% dungeon/mineshaft chests, 0.05% mob kills.\n\nStack size: 1. Creative tab: Tools.
-adm.manual.item.matterBallDecompressor=AE2 block that decompresses Avaritia matter clusters into individual items.\n\nLayout: left 9 slots accept matter clusters only; right 9x9 buffer; bottom 4 AE acceleration card slots (SPEED / SUPERSPEED).\n\nGUI mode buttons:\n- To Network / To Buffer: output to the AE network or local buffer (network is default); stops when buffer is full\n- Block On/Off (buffer mode): when on, pauses decompression while the buffer holds any item until emptied\n\nRate: [matterBallDecompressor] itemsPerSecond (default 16/s); AE speed cards stack like a molecular assembler (SUPERSPEED x8 per card).\n\nRequires an AE channel; smart-cable connection.\n\nCrafting: UHV Assembly Line (scan Advanced Storage Linker 90s @ UV, 120s @ UHV). Materials: neutronium plate x4, ultimate circuit x2, Advanced Storage Linker x1, Network Linker x1, fluix crystal x4, neutronium screw x8, naquadah fine wire x16 (OreDict wireFineNaquadah), solder 5760 mB + lubricant 2000 mB.
+adm.manual.item.matterBallDecompressor=AE2 block that decompresses Avaritia matter clusters into individual items.\n\nLayout: left 9 slots accept matter clusters only; right 9x9 buffer; bottom 4 AE acceleration card slots (SPEED / SUPERSPEED).\n\nGUI mode buttons:\n- To Network / To Buffer: output to the AE network or local buffer (network is default); stops when buffer is full\n- Block On/Off (buffer mode): when on, pauses decompression while the buffer holds any item until emptied\n\nRate: [matterBallDecompressor] itemsPerSecond (default 16/s); AE speed cards stack like a molecular assembler (SUPERSPEED x8 per card).\n\nRequires an AE channel; smart-cable connection.\n\nCrafting: UHV Assembly Line (scan Advanced Network Linker 90s @ UV, 120s @ UHV). Materials: neutronium plate x4, ultimate circuit x2, Advanced Network Linker x1, fluix crystal x4, neutronium screw x8, naquadah fine wire x16 (OreDict wireFineNaquadah), solder 5760 mB + lubricant 2000 mB.
 
 adm.manual.data_monitor.system_overview_title=System Overview
-adm.manual.data_monitor.system_overview_text=The Data Monitor system visualizes TileEntity NBT data as in-world rendered graphics. The pipeline:\n\nData Source (e.g. AE2 linker block) -> Data Imprint Tool imprints NBT snapshot -> binds to Data Monitor -> Monitor reads NBT value every N ticks -> renders chart/text in world.\n\nFour block types work together: Advance Data Monitor (display), Crafting Linker (CPU data), Advanced Storage Linker (inventory data), Network Linker (aggregate stats).\n\nEach monitor face (6 sides) has independent bindings - you can show different data on each face, or the same data on all faces. Each face holds at most 36 binding entries (`dataLimit` is per-chart point history, default 100, unrelated to this cap).\n\nRendering uses GL11 + Tessellator with 128-block view range.
+adm.manual.data_monitor.system_overview_text=The Data Monitor system visualizes TileEntity NBT data as in-world rendered graphics. The pipeline:\n\nData Source (e.g. AE2 linker block) -> Data Imprint Tool imprints NBT snapshot -> binds to Data Monitor -> Monitor reads NBT value every N ticks -> renders chart/text in world.\n\nMain blocks work together: Advance Data Monitor (display) and the unified Advanced Network Linker (network stats / storage display / crafting CPUs).\n\nEach monitor face (6 sides) has independent bindings - you can show different data on each face, or the same data on all faces. Each face holds at most 36 binding entries (`dataLimit` is per-chart point history, default 100, unrelated to this cap).\n\nRendering uses GL11 + Tessellator with 128-block view range.
 
 adm.manual.data_monitor.setup_title=Network Setup
-adm.manual.data_monitor.setup_text=Step-by-step network setup:\n\n1. Place an Advance Data Monitor where you want the display. It auto-records its position and orientation on placement.\n\n2. Place linker blocks adjacent to AE2 cables in your network. Crafting Linker near CPUs, Advanced Storage Linker near drives, Network Linker anywhere on the network.\n\n3. Linkers auto-detect nearby AE2 networks through cable adjacency. They must receive AE2 power.\n\n4. Linkers have internal tick timers (20 ticks = 1 second) for auto-refresh.\n\n5. Craft a Data Imprint Tool. Sneak+right-click the linker block to imprint its data.\n\n6. Sneak+right-click the Advance Data Monitor to add the imprinted source.\n\n7. Right-click the Advance Data Monitor to open configuration GUI. Configure each binding's display settings.\n\nAll blocks: hardness 2.0-3.0, blast resistance 5.0-10.0, iron block texture, custom TESR rendering.
+adm.manual.data_monitor.setup_text=Step-by-step network setup:\n\n1. Place an Advance Data Monitor where you want the display. It auto-records its position and orientation on placement.\n\n2. Place an Advanced Network Linker adjacent to AE2 cables anywhere on the network (one block provides network stats, storage display, and crafting CPU monitoring).\n\n3. Linkers auto-detect nearby AE2 networks through cable adjacency. They must receive AE2 power.\n\n4. Linkers have internal tick timers (20 ticks = 1 second) for auto-refresh.\n\n5. Craft a Data Imprint Tool. Sneak+right-click the linker block to imprint its data.\n\n6. Sneak+right-click the Advance Data Monitor to add the imprinted source.\n\n7. Right-click the Advance Data Monitor to open configuration GUI. Configure each binding's display settings.\n\nAll blocks: hardness 2.0-3.0, blast resistance 5.0-10.0, iron block texture, custom TESR rendering.
 
 adm.manual.data_monitor.binding_title=Data Imprint Binding Flow
-adm.manual.data_monitor.binding_text=Complete Data Imprint binding flow:\n\n1. Sneak+right-click a target TileEntity with the Data Imprint Tool. It records: XYZ coordinates, block registry name, metadata, full NBT dump. For GregTech machines, also captures mName (machine display name).\n\n2. Sneak+right-click a Data Monitor. If the tool has an imprinted coordinate, it is added to the monitor's data bound list for the current face (auto-deduplication, max 36).\n\n3. Open Data Monitor GUI. Each binding appears as a configurable entry with default settings (cyan color, 0.3 scale, 20 tick interval, 100 data limit).\n\n4. For direct NBT tracking: edit the dataName field in the GUI to set the NBT path (e.g. "Items" for item count).\n\n5. For AE2 linker blocks: the monitor auto-detects the link type (Crafting/Storage/Network) and uses the appropriate data processing method.\n\nThe Imprint Tool only records data; weaving matter from the AE network requires Data Loom cells (Dust/Form/Flow).
+adm.manual.data_monitor.binding_text=Complete Data Imprint binding flow:\n\n1. Sneak+right-click a non-GT TileEntity with the Data Imprint Tool. It records: XYZ coordinates, block registry name, metadata, full NBT dump.\n\n2. Sneak+right-click a GT machine to append coords to the GT list (mutually exclusive with block imprint); empty tool + sneak+air scans nearby GT by radius.\n\n3. Sneak+right-click a Data Monitor: GT list → batch GT bind; block imprint only → chart binding slot (auto-deduplication, max 36).\n\n4. Open Data Monitor GUI. Each binding appears as a configurable entry with default settings (cyan color, 0.3 scale, 20 tick interval, 100 data limit).\n\n5. For direct NBT tracking: edit the dataName field in the GUI to set the NBT path (e.g. "Items" for item count).\n\n6. For AE2 linker blocks: the monitor auto-detects the link type and uses the appropriate data processing method.\n\nThe Imprint Tool only records data; weaving matter from the AE network requires Data Loom cells (Dust/Form/Flow).
 
 adm.manual.data_monitor.data_types_title=Chart & Data Types
 adm.manual.data_monitor.data_types_text=Supported chart types for numerical data:\n\nLine Chart - plots values over time with a continuous line. Best for monitoring trend changes (e.g. power levels, item counts).\nBar Chart - discrete bars for each data point. Good for comparing snapshots.\n3D Bar Chart - same as bar but with depth rendering for visual depth.\nWaterfall - shows cumulative increases/decreases. Useful for resource flow tracking.\nDifference - shows delta (change) between consecutive readings.\n\nAE2 text display types:\nStorage mode - renders item icons with names and counts in a grid (configurable columns, spacing, icon size).\nCrafting mode - renders template-expressions as formatted text with live variable substitution.\nNetwork mode - renders numeric values (bytes, types) as text or bars.\n\nAll chart types support: color customization, axis configuration, grid lines, title display, scaling, opacity control.
@@ -808,12 +839,10 @@ adm.hint.pocket.upgradeLockedWhileStored=Cannot remove upgrade cards while the p
 
 # Manual - new chapter keys (Phase 2)
 adm.manual.monitor_blocks.overview_title=Monitor Blocks Overview
-adm.manual.monitor_blocks.overview_text=TeXTech adds 5 AE2-related blocks: four monitor linkers feed statistics to the Advance Data Monitor display, plus the Matter Ball Decompressor for extracting Avaritia matter clusters.\n\nPlacement: all blocks connect to AE2 via cable adjacency and require AE2 power and a channel (the decompressor also needs a channel).\n\nRight-click linker blocks to see current status in chat. Bind them to a Data Monitor for continuous in-world display.\n\nTips: use a Data Imprint Tool to bind linkers to monitors quickly (sneak+right-click linker, then sneak+right-click monitor).
+adm.manual.monitor_blocks.overview_text=TeXTech adds AE2-related monitor blocks: the Advance Data Monitor display hub, the unified Advanced Network Linker (network stats + storage cells + crafting CPUs), and the Matter Ball Decompressor.\n\nPlacement: AE2 blocks connect via cable adjacency and require AE2 power and a channel (the decompressor also needs a channel).\n\nRight-click the Advanced Network Linker to open the storage GUI; Shift+right-click for comprehensive status in chat. Bind to a Data Monitor for continuous in-world display (choose display type per binding).\n\nTips: use a Data Imprint Tool to bind linkers to monitors quickly (sneak+right-click linker, then sneak+right-click monitor).
 
 adm.manual.monitor_blocks.data_monitor_title=Advanced Data Monitor
-adm.manual.monitor_blocks.crafting_link_title=Crafting Linker
-adm.manual.monitor_blocks.storage_link_title=Advanced Storage Linker
-adm.manual.monitor_blocks.network_link_title=Network Linker
+adm.manual.monitor_blocks.network_link_title=Advanced Network Linker
 adm.manual.monitor_blocks.matter_decompressor_title=Matter Ball Decompressor
 
 adm.manual.monitor_tools.overview_title=Monitor Tools Overview
@@ -822,7 +851,7 @@ adm.manual.monitor_tools.overview_text=These tools support and enhance the Data 
 adm.manual.monitor_tools.data_imprint_title=Data Imprint Tool
 adm.manual.monitor_tools.storage_cell_title=Advanced Storage Link Cell
 adm.manual.monitor_tools.link_scanner_title=Advance Link Scanner
-adm.manual.item.advance_link_scanner=Scans loaded chunks for AdvanceDataMonitor link blocks (monitors, network/storage/crafting linkers).\n\nShift+right-click: scan all loaded chunks. Stores results as an expandable list with owner names, coordinates, aliases, and block types.\n\nRight-click: open scanner GUI — browse entries, filter by owner/name, set custom aliases, and teleport directly to any found block.\n\nFilters: Owner (All/Mine/Others), Name (All/Unnamed/Named).\n\nTeleport: click a row to teleport to that block (same dimension, safe landing check).\n\nStack size: 1. Creative tab: Tools.
+adm.manual.item.advance_link_scanner=Scans loaded chunks for Advance Data Monitor and Advanced Network Linker blocks.\n\nShift+right-click: scan all loaded chunks. Stores results as an expandable list with owner names, coordinates, aliases, and block types.\n\nRight-click: open scanner GUI — browse entries, filter by owner/name, set custom aliases, and teleport directly to any found block.\n\nFilters: Owner (All/Mine/Others), Name (All/Unnamed/Named).\n\nTeleport: click a row to teleport to that block (same dimension, safe landing check).\n\nStack size: 1. Creative tab: Tools.
 
 adm.manual.dimensional_pocket.overview_title=Dimensional Pocket Overview
 adm.manual.dimensional_pocket.overview_text=The Dimensional Pocket is a player-UUID-bound portable storage. All pocket items in your inventory share the same storage space — the item itself carries no data.\n\nStorage persists across sessions in textech/pocket-<uuid>.dat inside the world save directory. Right-click opens the storage GUI; shift+right-click toggles the draggable overlay window.\n\nUpgrades: four types of upgrade cards expand capacity, add pages, multiply stack limits, and unlock infinite stacking. Cards are consumed on installation and cannot be recovered — except cards rejected by prerequisite rules.\n\nCapacity formula: slots per page = min(63, 1 + min(space upgrades, 62)); pages = 1 + min(page upgrades, 8) when space >= 64, else 1.
@@ -846,7 +875,7 @@ adm.manual.item.stack_upgrade_card=Doubles the per-slot stack limit. Base 64, fo
 adm.manual.item.infinite_stack_upgrade_card=Sets per-slot stack limit to Integer.MAX_VALUE for unlimited stacking.\n\nRequires stack upgrades to be full before taking effect. Max 1 card.\n\nWarning: very large stacks may cause rendering lag.\n\nInstall via the Upgrade Config GUI. Card is consumed on installation.\n\nCreative tab: Tools.
 
 adm.manual.data_loom_cells.overview_title=Data Loom Cells — Lore & Overview
-adm.manual.data_loom_cells.overview_text=AE digitizes matter into network data. AdvanceDataMonitor researchers reversed this — weaving data back into matter.\n\nEvolution:\n- Data Dust Loom Cell (basic): immature tech, only weaves the simplest form — dusts (GT dust prefix).\n- Data Form Loom Cell (advanced): full mastery, reconstructs any complex item.\n- Data Flow Cell: fluid channel, weaves data into fluids (mB units, default 1000 mB/s = 1 bucket/s).\n- Data Tide Loom Cell (advanced): fluid channel upgrade — tides of data, up to 63 fluid types.\n- Data Source Loom Cell: fluid channel, weaves data into Thaumcraft essentia (aspect fluids, default 1000 mB/s).\n\nUsage: place in ME Drive or ME Chest, mark targets in Cell Workbench, generate slowly over time. Dust/Form/Flow cells cannot mark AdvanceDataMonitor items. Output settles on a configurable interval (default 5 s); effective rates are cached on the item tooltip when markers or amplifier cards change. Weave Amplifier cards multiply output (default 4×/card, Super 16×/card, max 8 cards, multiplicative). Drains AE network energy.\n\nAdvanced Storage Linker note: contents stored inside Data Loom cells are excluded from Advanced Storage Linker statistics.\n\nConfig: [dataDustLoomCell], [dataFormLoomCell], [dataFlowCell], [dataSourceLoomCell], [dataLoomCell] (sync interval, energy drain, amplifier multipliers).
+adm.manual.data_loom_cells.overview_text=AE digitizes matter into network data. AdvanceDataMonitor researchers reversed this — weaving data back into matter.\n\nEvolution:\n- Data Dust Loom Cell (basic): immature tech, only weaves the simplest form — dusts (GT dust prefix).\n- Data Form Loom Cell (advanced): full mastery, reconstructs any complex item.\n- Data Flow Cell: fluid channel, weaves data into fluids (mB units, default 1000 mB/s = 1 bucket/s).\n- Data Tide Loom Cell (advanced): fluid channel upgrade — tides of data, up to 63 fluid types.\n- Data Source Loom Cell: fluid channel, weaves data into Thaumcraft essentia (aspect fluids, default 1000 mB/s).\n\nUsage: place in ME Drive or ME Chest, mark targets in Cell Workbench, generate slowly over time. Dust/Form/Flow cells cannot mark AdvanceDataMonitor items. Output settles on a configurable interval (default 5 s); effective rates are cached on the item tooltip when markers or amplifier cards change. Weave Amplifier cards multiply output (default 4×/card, Super 16×/card, max 8 cards, multiplicative). Drains AE network energy.\n\nAdvanced Network Linker note: contents stored inside Data Loom cells are excluded from Advanced Network Linker statistics.\n\nConfig: [dataDustLoomCell], [dataFormLoomCell], [dataFlowCell], [dataSourceLoomCell], [dataLoomCell] (sync interval, energy drain, amplifier multipliers).
 
 adm.manual.data_loom_cells.data_dust_loom_title=Data Dust Loom Cell
 adm.manual.data_loom_cells.data_form_loom_title=Data Form Loom Cell
@@ -854,7 +883,7 @@ adm.manual.data_loom_cells.data_flow_cell_title=Data Flow / Tide Loom Cell
 adm.manual.data_loom_cells.data_source_loom_title=Data Source Loom Cell
 adm.manual.data_loom_cells.weave_amplifier_title=Weave Amplifier Cards
 adm.manual.data_loom_cells.usage_title=Usage & Amplifier Installation
-adm.manual.data_loom_cells.usage_text=How to use Data Loom Cells:\n\n1. Craft the desired cell type (Dust/Form/Flow/Tide/Source).\n2. Place the cell in a Cell Workbench. Mark target items/fluids/essentia in the partition slots.\n3. Optionally install Weave Amplifier or Super Weave Amplifier cards (max 8 combined). Only these cards are accepted — AE acceleration cards will not work.\n4. Insert the cell into an ME Drive or ME Chest (item channel for Dust/Form; fluid channel for Flow/Tide/Source).\n5. The cell automatically starts weaving — output settles every [dataLoomCell] syncIntervalSeconds (default 5s).\n\nAmplifier scaling:\n- Normal: 4× per card, multiplicative. 1→4×, 2→16×, 4→256×, 8→65536×.\n- Super: 16× per card, stacks multiplicatively with normal cards.\n- Max 8 cards shared across all types.\n\nEnergy: drains [dataLoomCell] energyDrainPerTick AE/t (default 999999).\n\nExternal access: internal accumulators can be read via storage bus, but are excluded from Advanced Storage Linker statistics.
+adm.manual.data_loom_cells.usage_text=How to use Data Loom Cells:\n\n1. Craft the desired cell type (Dust/Form/Flow/Tide/Source).\n2. Place the cell in a Cell Workbench. Mark target items/fluids/essentia in the partition slots.\n3. Optionally install Weave Amplifier or Super Weave Amplifier cards (max 8 combined). Only these cards are accepted — AE acceleration cards will not work.\n4. Insert the cell into an ME Drive or ME Chest (item channel for Dust/Form; fluid channel for Flow/Tide/Source).\n5. The cell automatically starts weaving — output settles every [dataLoomCell] syncIntervalSeconds (default 5s).\n\nAmplifier scaling:\n- Normal: 4× per card, multiplicative. 1→4×, 2→16×, 4→256×, 8→65536×.\n- Super: 16× per card, stacks multiplicatively with normal cards.\n- Max 8 cards shared across all types.\n\nEnergy: drains [dataLoomCell] energyDrainPerTick AE/t (default 999999).\n\nExternal access: internal accumulators can be read via storage bus, but are excluded from Advanced Network Linker statistics.
 
 adm.manual.grapple_system.overview_title=Grapple System Overview
 adm.manual.grapple_system.overview_text=The Grapple System lets you travel through your beautifully built base with a sense of journey — enjoying the scenery instead of skipping it with teleport or flight.\n\nTwo components work together:\n- Grapple Anchor: face-mountable thin-plate nodes placed along paths.\n- Grapple Hook: handheld tool for attaching to and gliding between anchors.\n\nCore loop: approach anchor → magnetic-select with hook → right-click attach → look at next anchor → right-click glide → Shift to detach. Both hands remain free during travel.\n\nConfig: [grapple] category (hint range, interact distance, travel speed, magnetic angle). See Player Guide §3.7–3.8 for full usage details.
@@ -952,22 +981,8 @@ adm.webconsole.icons.mode_invalid=Invalid icon render mode: {0}
 adm.webconsole.icons.mode_not_implemented=Icon render mode not implemented yet: {0}
 adm.webconsole.icons.cleared=Icon cache cleared ({0} PNG files removed from TeXTech/WebAE/icons/).
 
-adm.iconRenderMode.nei=NEI style (recommended)
-adm.iconRenderMode.nei.tooltip=NEI grid FBO export; matches NEI slot appearance. WebAE default.
-adm.iconRenderMode.hybrid=Hybrid (deprecated)
-adm.iconRenderMode.hybrid.tooltip=Deprecated legacy atlas+GL path. Use nei instead.
-adm.iconRenderMode.atlas=Atlas (deprecated)
-adm.iconRenderMode.atlas.tooltip=Deprecated CPU atlas crop (often wrong). Use nei instead.
-adm.iconRenderMode.inventory_gl=Inventory 3D (GL)
-adm.iconRenderMode.inventory_gl.tooltip=OpenGL inventory-style render with depth and lighting.
-adm.iconRenderMode.inventory_flat=Inventory flat (GL)
-adm.iconRenderMode.inventory_flat.tooltip=Deprecated.
-adm.iconRenderMode.entity=Entity view
-adm.iconRenderMode.entity.tooltip=Deprecated.
-adm.iconRenderMode.block=Block view
-adm.iconRenderMode.block.tooltip=Deprecated.
-adm.iconRenderMode.first_person=First person
-adm.iconRenderMode.first_person.tooltip=Deprecated.
+adm.iconRenderMode.nei=NESQL / NEI drawItem
+adm.iconRenderMode.nei.tooltip=NESQL-style single-icon FBO via GuiContainerManager.drawItem. Fluids use mod specials.
 adm.webconsole.server.restarted=WebAE HTTP server restarted on {0}:{1}
 adm.webconsole.server.restart_failed=Failed to restart WebAE HTTP server — see logs/latest.log
 
@@ -1006,7 +1021,7 @@ adm.manual.web_console.refresh_multi_title=Refresh & Multi-network
 adm.manual.web_console.refresh_multi_text=Phase 1 introduced a throttled refresh model and multi-network display.\n\nRefresh model:\n- The server collects snapshots every refreshIntervalMs (default 1000 ms), spread across ticks so each tick only enqueues a bounded number of collection tasks (only networks active in the last 2 minutes are collected).\n- GT machines are collected every gtRefreshIntervalMs (default 10000 ms) on the same scheduler.\n- Power (EU/steam) keeps its 5-second sampling window; reads always go through the cache.\n- The browser only reads the cache (GET /api/storage, /api/power, /api/gt/machines). When the cache is empty it returns the last snapshot with cached:false until the scheduler catches up.\n- Auto-refresh polls at refreshIntervalMs and covers the current tab's data (storage/power/gt/orders).\n- Manual force-refresh is admin-only: POST /api/refresh (returns 403 for non-OP) or /admweb refresh [network] in-game.\n- A public /api/config endpoint returns refreshIntervalMs / gtRefreshIntervalMs / maxNetworksDisplayed / tokenLifetimeHours / themePresets so the frontend can adapt.\n\nMulti-network display:\n- The top bar network selector is a multi-select dropdown capped at maxNetworksDisplayed (default 5).\n- Split mode: each selected network renders its own cards/tables.\n- Merged mode: item amounts, fluids, essentia, bytes, EU/steam and machine counts are summed across selected networks (aggregation done in the browser).\n- Batch endpoints: GET /api/storage/batch?networks=0,1,2, POST /api/refresh/batch (admin), and equivalent /api/power/batch, /api/gt/machines/batch.
 adm.manual.chapter.web_console=Web Console
 adm.manual.web_console.brief_overview_title=WebAE Console
-adm.manual.web_console.brief_overview_text=WebAE is TeXTech's embedded browser management panel. View AE2 storage and power, GT machines, NEI recipes and AE patterns, submit crafting orders, and chat with in-game players — all from a web browser.\n\nDisabled by default. A server admin must enable the [webConsole] section in config/textech/textech.cfg. Defaults to localhost only (127.0.0.1:8090) with token authentication.
+adm.manual.web_console.brief_overview_text=WebAE is TeXTech's embedded browser management panel. View AE2 storage and power, GT machines, NEI recipes and AE patterns, Quest Book, submit crafting orders, and chat with in-game players — all from a web browser.\n\nDisabled by default. A server admin must enable the [webConsole] section in config/textech/textech.cfg. Defaults to localhost only (127.0.0.1:8090) with token authentication.
 adm.manual.web_console.brief_start_title=Quick Start
 adm.manual.web_console.brief_start_text=1. Admin enables [webConsole] enabled=true and restarts the server.\n2. Run /admweb issue in-game to get a token (shown only once).\n3. Open http://127.0.0.1:8090 in a browser and paste the token.\n\nCommon commands: /admweb issue · /admweb revoke · /admweb help\nOP uploads: /admweb recipes upload snapshot (daily) · /admweb recipes upload (full) · /admweb icons upload · /admweb icons import-nesql
 adm.manual.web_console.brief_docs_title=Full Documentation
@@ -1156,7 +1171,7 @@ adm.manual.web_console.order_templates_text=On the Orders page (Query & Order ta
 adm.manual.web_console.extensions_title=Extended Features (Phase 6–12)
 adm.manual.web_console.extensions_text=Recent WebAE extensions:\n\n- **Craft tree (Phase 6)**: Orders page → Craft Tree tab; GET /api/craft/tree expands NEI recipes and compares storage gaps.\n- **SSE alerts (Phase 9)**: GET /api/events/stream pushes alerts in real time (15s heartbeat); useEventStream complements 10s polling.\n- **P2P channel map (Phase 10)**: Topology page → P2P channels view; GET /api/network/p2p groups tunnels by frequency.\n- **Monitor preview (Phase 11)**: Monitor Bindings → Preview per slot; GET /api/monitor/preview returns line-chart values.\n- **PWA & mobile (Phase 12)**: manifest.webmanifest + responsive CSS for narrow screens; add to home screen on phones.\n- **CSV export (Phase 13)**: Storage / GT / Topology pages export tables via client-side Blob download.
 adm.manual.web_console.phase3_title=Phase 3 Integration & Alerts
-adm.manual.web_console.phase3_text=Phase 3 adds cross-system read-only pages and automation alerts.\n\nIntegration pages (sidebar):\n- Link Scanner mirror: GET /api/scanner/blocks — loaded-chunk link blocks; teleport stays in-game.\n- Monitor bindings: GET /api/monitor/bindings — chart slots and GT machine coords; Preview per slot calls GET /api/monitor/preview for a line chart Drawer.\n- Planner: GET /api/planner/plans — read-only list from TeXTech/Assistant/plans.json.\n- AI Assistant: POST /api/assistant/query — rule-based server queries (2s rate limit; no AI keys on server).\n- Topology cell summary: GET /api/network/cells — infinite cell / byte stats on the topology page.\n- Pocket overview: GET /api/pocket/overview — OP-only minimal stats (no stored items).\n\nAutomation (A1–A5): TeXTech/WebAE/web-alerts.json drives WebAlertEngine; GET /api/alerts returns active alerts; OP can edit rules in Settings; useWebAlerts Toast + browser notifications; useEventStream via GET /api/events/stream SSE (15s heartbeat; pauses when tab hidden).
+adm.manual.web_console.phase3_text=Phase 3 adds cross-system read-only pages and automation alerts.\n\nIntegration pages (sidebar):\n- Link Scanner mirror: GET /api/scanner/blocks — loaded-chunk Advanced Network Linker / monitor blocks; teleport stays in-game.\n- Monitor bindings: GET /api/monitor/bindings — chart slots and GT machine coords; Preview per slot calls GET /api/monitor/preview for a line chart Drawer.\n- Planner: GET /api/planner/plans — read-only list from TeXTech/Assistant/plans.json.\n- AI Assistant: POST /api/assistant/query — rule-based server queries (2s rate limit; no AI keys on server).\n- Topology cell summary: GET /api/network/cells — infinite cell / byte stats on the topology page.\n- Pocket overview: GET /api/pocket/overview — OP-only minimal stats (no stored items).\n\nAutomation (A1–A5): TeXTech/WebAE/web-alerts.json drives WebAlertEngine; GET /api/alerts returns active alerts; OP can edit rules in Settings; useWebAlerts Toast + browser notifications; useEventStream via GET /api/events/stream SSE (15s heartbeat; pauses when tab hidden).
 
 # ===== TeXTech Commands (in-game /textech help) =====
 adm.command.common.op_required=You need operator permission for this action.
@@ -1265,6 +1280,21 @@ adm.command.admweb.help.10=/admweb icons …  —  icon packs (upload/import/sta
 adm.command.admweb.help.11=/admweb worldmap …  —  world map snapshot  [see /admweb worldmap]
 adm.command.admweb.help.12=/admweb server status|restart  —  HTTP server control
 adm.command.admweb.help.13=Port restart note: enabled/port/bindAddress may need server restart after reload.
+adm.command.admweb.help.14=/admweb defaults status|install|clear  —  WebAE UI default layout JSON  [OP for install/clear]
+adm.command.admweb.defaults.usage=/admweb defaults status|install <path>|clear
+adm.command.admweb.defaults.install_usage=/admweb defaults install <path-to-json>
+adm.command.admweb.defaults.status_none=No ui-defaults.json found (instance or mod jar).
+adm.command.admweb.defaults.status_ok=UI defaults active (%s, %s bytes).
+adm.command.admweb.defaults.source_instance=instance TeXTech/WebAE/ui-defaults.json
+adm.command.admweb.defaults.source_jar=mod jar assets/textech/webae/ui-defaults.json
+adm.command.admweb.defaults.install_missing=File not found: %s
+adm.command.admweb.defaults.install_invalid=Invalid JSON file (expected object).
+adm.command.admweb.defaults.install_ok=Installed ui-defaults.json to %s
+adm.command.admweb.defaults.install_failed=Failed to install ui-defaults.json
+adm.command.admweb.defaults.clear_none=No instance ui-defaults.json to remove.
+adm.command.admweb.defaults.clear_ok=Removed instance ui-defaults.json (falls back to jar or code defaults).
+adm.command.admweb.defaults.clear_failed=Failed to delete ui-defaults.json
+adm.command.admweb.defaults.unknown=Unknown defaults action. Use status, install, or clear.
 
 adm.command.admweb.recipes.title==== /admweb recipes ===
 adm.command.admweb.recipes.help.1=/admweb recipes upload [snapshot|deep]  —  collect & upload NEI recipes  [OP][Client]
@@ -1286,9 +1316,9 @@ adm.command.admweb.recipes.status.disk_none=  Disk cache: not yet saved
 adm.command.admweb.recipes.unknown=Unknown recipes subcommand. Use: upload, export, status, clear
 
 adm.command.admweb.icons.title==== /admweb icons ===
-adm.command.admweb.icons.help.1=/admweb icons upload [pack] [mode|all|snapshot]
-adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack] [mode]
-adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack] [mode]  [OP][Client]
+adm.command.admweb.icons.help.1=/admweb icons upload [pack] [snapshot]
+adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack]
+adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack]  [OP][Client]
 adm.command.admweb.icons.help.4=/admweb icons verify <itemId> [pack]  [Client]
 adm.command.admweb.icons.help.5=/admweb icons import <folder> [pack]  [OP]
 adm.command.admweb.icons.help.6=/admweb icons import-nesql [pack] [subpath]  [OP]
@@ -1306,7 +1336,7 @@ adm.command.admweb.icons.disabled=Icon cache/upload disabled.
 adm.command.admweb.icons.invalid=Invalid pack or mode.
 adm.command.admweb.icons.no_snapshot=No cached AE storage snapshots yet.
 adm.command.admweb.icons.upload_started=Icon upload started: pack={0} mode={1} scope={2}
-adm.command.admweb.icons.render_usage=Usage: /admweb icons render <itemId> [pack] [mode]
+adm.command.admweb.icons.render_usage=Usage: /admweb icons render <itemId> [pack]
 adm.command.admweb.icons.rendering=Rendering {0}
 adm.command.admweb.icons.verify_usage=Usage: /admweb icons verify <itemId> [pack]
 adm.command.admweb.icons.verify_open=Opening verify GUI for {0}
@@ -1317,8 +1347,6 @@ adm.command.admweb.icons.import_nesql_invalid=Invalid pack name.
 adm.command.admweb.icons.import_nesql_done=NESQL import: {0} icons → {1}/nei/ (from {2})
 adm.command.admweb.icons.unknown=Unknown icons subcommand. Use: upload, render, verify, import, import-nesql, modes, status, clear
 adm.command.admweb.icons.mode.ready=ready
-adm.command.admweb.icons.mode.deprecated=deprecated
-adm.command.admweb.icons.mode.planned=planned
 
 adm.command.admweb.worldmap.title==== /admweb worldmap ===
 adm.command.admweb.worldmap.help.1=/admweb worldmap upload [networkId]  —  upload map snapshot  [Player][Client]
@@ -1370,3 +1398,14 @@ adm.command.admweb.refresh.usage=Refresh must be triggered by a player, or speci
 adm.command.admweb.guest.token_preview=Guest token: {0}...
 adm.command.admweb.reload.failed=Configuration reload failed — see server log for details.
 adm.command.admweb.reload.note=Note: some settings (e.g. web console port/bind address) only take effect after a server restart.
+
+adm.quest.task.retrieval=Retrieval task: extract items from AE, then detect in-game
+adm.quest.task.retrieval_fluid=Fluid retrieval: complete in-game
+adm.quest.task.submit_item=Item submit via WebAE
+adm.quest.task.submit_fluid=Fluid submit via WebAE
+adm.quest.task.crafting=Crafting task: complete in-game
+adm.quest.task.in_game=Complete this step in-game
+adm.quest.task.unsupported=This task type is not supported on WebAE
+adm.quest.submit.disabled=Web quest submit is disabled
+adm.quest.submit.guest=Guest tokens cannot submit quests
+adm.quest.mod.missing=BetterQuesting is not loaded

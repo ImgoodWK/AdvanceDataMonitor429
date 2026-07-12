@@ -56,6 +56,8 @@ public final class IconTileResolver {
             return null;
         }
 
+        classAndMeta = normalizeClassName(classAndMeta);
+
         Block block = findBlock(modId, classAndMeta);
         if (block == null) {
             AdvanceDataMonitor.LOG.debug("[WebAE] Tile icon resolve: block not found for {}", candidate);
@@ -188,9 +190,29 @@ public final class IconTileResolver {
         return null;
     }
 
-    private static String[] aeFieldNamesFor(String className) {
+    /** Legacy pseudo tile ids → GTNH AE2 block class names. */
+    private static String normalizeClassName(String className) {
         if ("BlockCraftingUnit".equals(className)) {
-            return new String[] { "craftingUnit", "blockCraftingUnit", "CraftingUnit" };
+            return "BlockCraftingStorage";
+        }
+        if ("BlockCraftingTerminal".equals(className)) {
+            return "BlockCraftingMonitor";
+        }
+        return className;
+    }
+
+    private static String[] aeFieldNamesFor(String className) {
+        if ("BlockCraftingStorage".equals(className)) {
+            return new String[] { "craftingStorage", "blockCraftingStorage", "CraftingStorage" };
+        }
+        if ("BlockCraftingMonitor".equals(className)) {
+            return new String[] { "craftingMonitor", "blockCraftingMonitor", "CraftingMonitor" };
+        }
+        if ("BlockCraftingAccelerator".equals(className)) {
+            return new String[] { "craftingAccelerator", "blockCraftingAccelerator", "CraftingAccelerator" };
+        }
+        if ("BlockCraftingUnit".equals(className)) {
+            return new String[] { "craftingStorage", "blockCraftingStorage", "CraftingStorage" };
         }
         if ("BlockController".equals(className)) {
             return new String[] { "controller", "blockController", "Controller" };

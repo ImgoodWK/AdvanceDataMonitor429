@@ -5,13 +5,19 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.recipe.RecipeItemEntries;
 
 import appeng.api.networking.IGrid;
+import appeng.api.networking.IGridBlock;
 import appeng.api.networking.IGridHost;
+import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
@@ -129,6 +135,12 @@ public final class CraftingCpuTopologyCollector {
                         if (unit.storage) storageUnits++;
                         if (unit.accelerator) acceleratorUnits++;
                         if (unit.monitor) monitorUnits++;
+                        unit.iconItemId = resolveUnitIconItemId(ct, te);
+                    } else {
+                        unit.iconItemId = TopologyRules.iconItemIdForCraftingComponent(
+                            unit.storage,
+                            unit.accelerator,
+                            unit.monitor);
                     }
                     facility.units.add(unit);
                     unitCount++;
@@ -151,6 +163,62 @@ public final class CraftingCpuTopologyCollector {
             facility.dim = first.dim;
         }
         return facility;
+    }
+
+    private static String resolveUnitIconItemId(TileCraftingTile ct, TileEntity te) {
+        ItemStack stack = representationStack(ct);
+        if (stack != null && stack.getItem() != null) {
+            return stackItemId(stack);
+        }
+        boolean storage = false;
+        boolean accelerator = false;
+        boolean monitor = false;
+        try {
+            storage = ct.isStorage();
+        } catch (Exception ignored) {}
+        try {
+            accelerator = ct.isAccelerator();
+        } catch (Exception ignored) {}
+        try {
+            monitor = ct.isStatus();
+        } catch (Exception ignored) {}
+        return TopologyRules.iconItemIdForCraftingComponent(storage, accelerator, monitor);
+    }
+
+    private static ItemStack representationStack(TileCraftingTile ct) {
+        if (!(ct instanceof IGridHost)) {
+            return null;
+        }
+        try {
+            IGridNode node = ((IGridHost) ct).getGridNode(ForgeDirection.UNKNOWN);
+            if (node == null) {
+                return null;
+            }
+            IGridBlock block = node.getGridBlock();
+            if (block == null) {
+                return null;
+            }
+            ItemStack rep = block.getMachineRepresentation();
+            if (rep != null && rep.getItem() != null) {
+                return rep;
+            }
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.debug("[WebAE] Topology: crafting unit representation failed", e);
+        }
+        return null;
+    }
+
+    private static String stackItemId(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            return "";
+        }
+        String registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+        if (registryName == null || registryName.isEmpty()) {
+            return "";
+        }
+        int meta = stack.getItemDamage();
+        if (meta == Short.MAX_VALUE) meta = 0;
+        return RecipeItemEntries.buildItemId(registryName, meta);
     }
 
     /** One aggregated crafting CPU (multi-block cluster) ready to become a topology node. */
@@ -181,6 +249,7 @@ public final class CraftingCpuTopologyCollector {
             public boolean storage;
             public boolean accelerator;
             public boolean monitor;
+            public String iconItemId = "";
         }
     }
 }

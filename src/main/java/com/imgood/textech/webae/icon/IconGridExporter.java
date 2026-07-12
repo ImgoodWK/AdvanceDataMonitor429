@@ -27,9 +27,16 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * NEI-style grid batch renderer: draws many inventory slots into one FBO readback,
- * then crops each cell to a 32×32 PNG. Matches {@code GuiItemIconDumper} spacing.
+ * Archived NEI-style grid batch renderer (16×8 slots per FBO page).
+ *
+ * <p>
+ * Active WebAE icon export uses {@link IconNesqlStyleRenderer} / {@link IconExportResolver} instead.
+ * Kept for reference and {@link IconExportResolver#resolveLegacy} experiments; do not call from command/upload paths.
+ * </p>
+ *
+ * @deprecated use NESQL-style per-icon path via {@link IconExportResolver#resolve}
  */
+@Deprecated
 @SideOnly(Side.CLIENT)
 public final class IconGridExporter {
 

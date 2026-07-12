@@ -18,6 +18,7 @@ import com.imgood.textech.items.ItemDataImprint;
 import com.imgood.textech.items.ItemSuperOrange;
 import com.imgood.textech.network.packet.PacketAssistantResponse;
 import com.imgood.textech.utils.BlockPos;
+import com.imgood.textech.webae.perf.WebAePerfProfiler;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -38,7 +39,14 @@ public class HandlerTick {
     public static void enqueueServerTask(Runnable task) {
         if (task != null) {
             SERVER_TASKS.offer(task);
+            WebAePerfProfiler.instance()
+                .onTaskEnqueued();
         }
+    }
+
+    public static int getServerTaskQueueDepth() {
+        return WebAePerfProfiler.instance()
+            .getQueueDepth();
     }
 
     @SubscribeEvent
@@ -46,35 +54,67 @@ public class HandlerTick {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        WebAePerfProfiler perf = WebAePerfProfiler.instance();
         long now = System.currentTimeMillis();
+
+        long t0 = perf.begin();
         Runnable task;
         int processed = 0;
         while ((task = SERVER_TASKS.poll()) != null && processed++ < 64) {
+            perf.onTaskDequeued();
             task.run();
         }
+        perf.setLastTasksProcessed(processed);
+        perf.endPhase(WebAePerfProfiler.PHASE_SERVER_TASKS, t0);
+
+        long tMisc = perf.begin();
         scanPlanReminders();
         AssistantCraftJobManager.instance()
             .tickPendingJobs();
         com.imgood.textech.items.cell.DataLoomWeaveScheduler.onServerTick();
-        com.imgood.textech.webae.cache.SnapshotScheduler.onServerTick();
-        com.imgood.textech.webae.power.PowerSampler.getInstance()
-            .onServerTick();
-        com.imgood.textech.webae.metric.NetworkMetricSampler.getInstance()
-            .onServerTick();
         com.imgood.textech.handler.HandlerWebPlayerTracker.onServerTick(now);
         com.imgood.textech.webae.health.ServerHealthSampler.instance()
-            .onServerTick();
-        com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
-        com.imgood.textech.webae.icon.IconMissingQueue.instance()
-            .onServerTick();
-        com.imgood.textech.webae.worldmap.WorldMapTileQueue.instance()
-            .onServerTick();
-        com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator.instance()
             .onServerTick();
         com.imgood.textech.webae.events.EventStreamHub.instance()
             .tickHeartbeats();
         com.imgood.textech.webae.chat.ChatMessageStore.instance()
             .tickSave(now);
+        perf.endPhase(WebAePerfProfiler.PHASE_MISC, tMisc);
+
+        long t1 = perf.begin();
+        com.imgood.textech.webae.cache.SnapshotScheduler.onServerTick();
+        perf.endPhase(WebAePerfProfiler.PHASE_SNAPSHOT_SCHEDULER, t1);
+
+        long t2 = perf.begin();
+        com.imgood.textech.webae.power.PowerSampler.getInstance()
+            .onServerTick();
+        perf.endPhase(WebAePerfProfiler.PHASE_POWER_SAMPLER, t2);
+
+        long t3 = perf.begin();
+        com.imgood.textech.webae.metric.NetworkMetricSampler.getInstance()
+            .onServerTick();
+        perf.endPhase(WebAePerfProfiler.PHASE_METRIC_SAMPLER, t3);
+
+        long t4 = perf.begin();
+        com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
+        perf.endPhase(WebAePerfProfiler.PHASE_ALERT_ENGINE, t4);
+
+        long t5 = perf.begin();
+        com.imgood.textech.webae.icon.IconMissingQueue.instance()
+            .onServerTick();
+        perf.endPhase(WebAePerfProfiler.PHASE_ICON_QUEUE, t5);
+
+        long t6 = perf.begin();
+        com.imgood.textech.webae.worldmap.WorldMapTileQueue.instance()
+            .onServerTick();
+        perf.endPhase(WebAePerfProfiler.PHASE_WORLD_MAP_TILE, t6);
+
+        long t7 = perf.begin();
+        com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator.instance()
+            .onServerTick();
+        perf.endPhase(WebAePerfProfiler.PHASE_WORLD_MAP_CAPTURE, t7);
+
+        perf.onTickEnd();
     }
 
     private void scanPlanReminders() {

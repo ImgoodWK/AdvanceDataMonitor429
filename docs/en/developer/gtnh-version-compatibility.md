@@ -43,11 +43,11 @@ These features work on **both 2.8.x and 2.9.0-beta+**, with different adapters u
 
 | Feature | Legacy (2.8.x) | Native (2.9.0+) |
 |---------|----------------|-----------------|
-| Network Link — byte/type stats | GlodBlock fluid handler reflection | `StorageChannel.FLUIDS` + `ICellInventory` |
+| Advanced Network Linker — byte/type stats | GlodBlock fluid handler reflection | `StorageChannel.FLUIDS` + `ICellInventory` |
 | AI — `QUERY_BYTES`, infinite cell detection | Legacy cell stats adapter | Native cell stats adapter |
 | AI — pattern fluid details | AE2FC reflection | AE2 official API when available |
 | Data loom fluid cells — markers & Workbench | `DataLoomFluidCellConfig` | `NativeDataLoomFluidCellConfig` |
-| Monitor / Storage Link — fluid stack stats | Same as above | Same as above |
+| Monitor / Advanced Network Linker — fluid stack stats | Same as above | Same as above |
 
 **Not affected by AE compat** (work the same on all supported packs): grapple system, advance planner, voice assistant, Super Orange, Starry Cosmos sword, monitor charts/UI, etc.
 
@@ -85,9 +85,9 @@ These features work on **both 2.8.x and 2.9.0-beta+**, with different adapters u
 
 First release is intentionally incomplete:
 
-- **Recipes**: many items/blocks have no GTNH crafting recipes yet; use NEI / creative.
+- **Recipes**: core monitor / Advanced Network Linker / imprint / storage link cell / planner / scanner / dimensional pocket (+ some upgrade cards) / matter ball decompressor already have GT Assembler or UHV Assembly Line recipes (see player guide §2.4). Grapple, loom cells, stack upgrade cards, combat specials still need NEI / creative / pack scripts.
 - **Textures**: some items use procedural placeholder art — see [temporary-textures.md](temporary-textures.md).
-- **Rendering**: Crafting Link / Storage Link TESRs may still use placeholder cubes (`USE_PLACEHOLDER_CUBE`) until OBJ models are wired in.
+- **Rendering**: Advanced Network Linker TESRs may still use placeholder cubes (`USE_PLACEHOLDER_CUBE`) until OBJ models are finished.
 
 ---
 

@@ -31,7 +31,12 @@ alwaysApply: false
 | JourneyMap (Modrinth) | 5.2.18 | 旅行地图（`devOnlyNonPublishable`，仅 dev 运行；WebAE 快照地形源） |
 | GTNH-Web-Map (GWM) | 0.4-beta-1 | GTNH Dynmap 分支（`devOnlyNonPublishable`，仅 dev 运行；WebAE Dynmap 三源采集 / `dynmap/web/tiles`） |
 | ModularUI2 | 2.2.18-1.7.10 | dev 运行锁定（与 GT5 5.09.51.470 对齐；避免 Web-Map 传递 2.3.x） |
+| BetterQuesting | 3.8.70-GTNH | 任务书（`devOnlyNonPublishable`；含 `bq_standard`；要求 gtnhlib≥0.10.7） |
+| GTNHLib | 0.10.7 | dev 锁定（满足 BQ 最低版本；**勿用 0.11.9**——需 ModularUI2 2.3.x，与 GT5 5.09.51 冲突） |
+| ModularUI2 | 2.2.18-1.7.10 | dev 锁定（与 GT5 5.09.51.470 对齐） |
 | PinIn (shadow) | 1.6.0 (libs/PinIn-1.6.0.jar) | 手册拼音搜索（`ManualSearchUtil`）；运行时可选对接 NotEnoughCharacters |
+
+**Dev 任务数据（非 Maven）**：`dev-fixtures/betterquesting/` 为 GTNH 整合包 `config/betterquesting` 快照；`addon.gradle` 的 `syncDevBetterQuesting` 在 `runClient`/`runServer` 前复制到 `run/config/betterquesting/`。
 
 ### 本地 Jar 依赖（需要放在 `libs/` 下）
 这些在 `dependencies.gradle` 中通过 `implementation files('libs/xxx.jar')` 声明：
@@ -67,4 +72,5 @@ Shell 权限与 `git clone` 参考仓库的默认行为见 **`agent-execution-pe
 - **GregTech 5 相关**：`gregtech.api.*`（GT5-Unofficial 包含）
 - **NEI 相关**：`codechicken.nei.*`（NotEnoughItems 包含）
 - **Thaumcraft 相关**：`thaumcraft.api.aspects.*`（Thaumcraft 包含，`compileOnly` 作用域）
+- **BetterQuesting 相关**：`betterquesting.api.*` / `bq_standard.*`（WebAE 任务书；运行时反射探测；dev 运行已通过 `dependencies.gradle` 的 `devOnlyNonPublishable` 引入 3.8.70-GTNH）
 - **原版/Forge**：`net.minecraft.*`、`cpw.mods.fml.*`

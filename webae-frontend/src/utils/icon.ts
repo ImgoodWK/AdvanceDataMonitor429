@@ -40,16 +40,9 @@ export function buildIconUrl(
   return '/api/icon?' + params.toString();
 }
 
-/** Server-side 404 fallback chain: selected mode → nei → inventory_gl. */
-export function iconModeFallbackChain(selectedMode: string): string[] {
-  const out: string[] = [];
-  const push = (m: string) => {
-    if (m && !out.includes(m)) out.push(m);
-  };
-  push(selectedMode || 'nei');
-  push('nei');
-  push('inventory_gl');
-  return out;
+/** Active icon mode is always nei (NESQL-style); ignore legacy selected modes. */
+export function iconModeFallbackChain(_selectedMode: string): string[] {
+  return ['nei'];
 }
 
 /**
@@ -112,7 +105,45 @@ function pushMetaLookupVariants(itemId: string, push: (v: string) => void) {
   }
 }
 
-/** Primary lookup id for an item or raw id string. */
+export type IconItemRef = {
+  itemId?: string;
+  registryName?: string;
+  displayName?: string;
+  meta?: number;
+};
+
+/**
+ * Recipe-compatible item ref from a raw icon cache id
+ * (mirrors {@link RecipeItemEntries#buildItemId} / recipe page {@code Icon item={entry}}).
+ */
+export function iconItemFromRegistryId(
+  rawId: string | undefined | null,
+  displayName?: string,
+  metaOverride?: number
+): IconItemRef | undefined {
+  if (!rawId) return undefined;
+  const colon = rawId.lastIndexOf(':');
+  let registryName = rawId;
+  let meta = metaOverride ?? 0;
+  if (colon > 0) {
+    const suffix = rawId.substring(colon + 1);
+    if (/^\d+$/.test(suffix)) {
+      registryName = rawId.substring(0, colon);
+      if (metaOverride == null) meta = parseInt(suffix, 10);
+    }
+  }
+  const itemId = meta > 0 ? `${registryName}:${meta}` : registryName;
+  return {
+    itemId,
+    registryName,
+    displayName: displayName ?? registryName,
+    meta,
+  };
+}
+
+/**
+ * Primary lookup id for an item or raw id string.
+ */
 export function primaryIconId(
   item?: { itemId?: string; registryName?: string; meta?: number } | null,
   id?: string | null
@@ -162,6 +193,15 @@ export function itemAbbrev(
  */
 export function fluidIconId(fluidName: string): string {
   return FLUID_ID_PREFIX + fluidName;
+}
+
+/** Icon cache id for a pattern slot entry (fluid prefix + meta suffix). */
+export function patternEntryIconId(
+  entry: { registryName: string; meta?: number; isFluid?: boolean } | null | undefined
+): string | undefined {
+  if (!entry?.registryName) return undefined;
+  if (entry.isFluid) return FLUID_ID_PREFIX + entry.registryName;
+  return entry.meta && entry.meta > 0 ? `${entry.registryName}:${entry.meta}` : entry.registryName;
 }
 
 export interface IconReadyDetail {

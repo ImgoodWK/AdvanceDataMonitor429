@@ -312,17 +312,8 @@ public class KeyBindings {
             notifyStatic(mc, "Invalid pack name: " + packName);
             return;
         }
-        if (!IconRenderMode.isValidModeId(renderModeId)) {
-            notifyStatic(mc, "Invalid render mode: " + renderModeId);
-            return;
-        }
-        if (!IconRenderMode.isAllToken(renderModeId)) {
-            IconRenderMode parsed = IconRenderMode.fromId(renderModeId);
-            if (parsed != null && !parsed.isImplemented()) {
-                notifyStatic(mc, "Render mode not implemented yet: " + renderModeId);
-                return;
-            }
-        }
+        // Active path is nei-only; renderModeId arg ignored (kept for packet/API signature).
+        String effectiveMode = IconRenderMode.NEI.getId();
         String playerUuid = mc.thePlayer.getUniqueID()
             .toString();
         IconExportScope effectiveScope = scope != null ? scope : pendingIconExportScope;
@@ -331,12 +322,12 @@ public class KeyBindings {
         AdvanceDataMonitor.LOG.info(
             "[WebAE] Icon upload triggered: pack='{}' mode='{}' scope='{}' ids={}",
             packName,
-            renderModeId,
+            effectiveMode,
             effectiveScope.getId(),
             effectiveIds.size());
-        notifyStatic(mc, I18n.format("adm.webconsole.icons.uploading_started_mode", packName, renderModeId));
+        notifyStatic(mc, I18n.format("adm.webconsole.icons.uploading_started_mode", packName, effectiveMode));
         IconRenderer.instance()
-            .start(packName, playerUuid, renderModeId, effectiveScope, effectiveIds);
+            .start(packName, playerUuid, effectiveMode, effectiveScope, effectiveIds);
         pendingIconExportScope = IconExportScope.ALL;
         pendingIconExportItemIds.clear();
     }

@@ -6,14 +6,14 @@ import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 
 public class ContainerAdvanceStorageLink extends Container {
 
     private static final int TILE_SLOTS_COUNT = 36;
-    private final TileEntityAdvanceStorageLink tileEntity;
+    private final TileEntityAdvanceNetworkLink tileEntity;
 
-    public ContainerAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceStorageLink tileEntity) {
+    public ContainerAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceNetworkLink tileEntity) {
         this.tileEntity = tileEntity;
 
         for (int row = 0; row < 4; ++row) {

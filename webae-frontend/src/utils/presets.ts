@@ -103,6 +103,40 @@ export interface DashboardWidgetConfig {
   showDelta?: boolean;
   /** statCard: significant digits for large number format. */
   significantDigits?: number;
+  /**
+   * Content scale multiplier (0.5–2). Applied to text/chart sizing inside the widget.
+   * Default 1 when omitted.
+   */
+  contentScale?: number;
+  /** dataTable visible column keys (order = display order). Empty/undefined = defaults. */
+  columns?: string[];
+  /** Pinned rows / series / scalar targets (items, fluids, CPUs, etc.). */
+  pins?: DashboardPin[];
+  /** When true, dataTable shows only pins (no Top-N fill). */
+  pinsOnly?: boolean;
+  /** gauge: custom max when pinning an absolute amount (0 = auto). */
+  gaugeThreshold?: number;
+}
+
+/** Kind of a dashboard pin target. */
+export type DashboardPinKind =
+  | 'item'
+  | 'fluid'
+  | 'essentia'
+  | 'scalar'
+  | 'power'
+  | 'cpu'
+  | 'gt'
+  | 'balance';
+
+export interface DashboardPin {
+  kind: DashboardPinKind;
+  /** Stable id: itemId, fluidName, aspect, dataSource key, cpu:name, gt:dim:x:y:z, balance resource key. */
+  id: string;
+  /** Optional display label override. */
+  label?: string;
+  /** Optional metric field for cpu/gt (e.g. craftingProgress, progressPercent). */
+  metricField?: string;
 }
 
 export interface DashboardSettings {
@@ -634,6 +668,16 @@ export function migrateDashboardWidgets(widgets: DashboardWidgetConfig[]): Dashb
         type: 'lineChart',
         chartStretchMode: next.chartStretchMode || 'fit',
       };
+    }
+    if (next.contentScale == null) {
+      next = { ...next, contentScale: 1 };
+    } else if (next.contentScale < 0.5) {
+      next = { ...next, contentScale: 0.5 };
+    } else if (next.contentScale > 2) {
+      next = { ...next, contentScale: 2 };
+    }
+    if (!next.pins) {
+      next = { ...next, pins: [] };
     }
     const colors = next.colors;
     if (colors && !colors.inheritDefault) {

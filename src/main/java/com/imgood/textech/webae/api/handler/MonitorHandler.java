@@ -1,62 +1,63 @@
 package com.imgood.textech.webae.api.handler;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.imgood.textech.handler.HandlerTick;
-import com.imgood.textech.webae.monitor.MonitorBindingCollector;
+import com.imgood.textech.webae.cache.SnapshotCache;
+import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.monitor.MonitorBindingDto;
 
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * GET /api/monitor/bindings — read-only monitor Link/GT binding view.
+ * GET /api/monitor/bindings — read-only monitor Link/GT binding view (cache read).
  */
 public final class MonitorHandler {
 
     private static final Gson GSON = new GsonBuilder().serializeNulls()
         .create();
-    private static final long TIMEOUT_MS = 10_000L;
 
     private MonitorHandler() {}
 
     public static NanoHTTPD.Response handle(Map<String, String> params, String ownerUuid) {
-        final List<MonitorBindingDto>[] holder = new List[1];
-        final CountDownLatch latch = new CountDownLatch(1);
+        SnapshotScheduler.markActive(ownerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID);
 
-        HandlerTick.enqueueServerTask(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    holder[0] = MonitorBindingCollector.collect(ownerUuid);
-                } finally {
-                    latch.countDown();
-                }
-            }
-        });
-
-        try {
-            if (!latch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                return json(
-                    NanoHTTPD.Response.Status.INTERNAL_ERROR,
-                    "{\"success\":false,\"message\":\"Monitor binding scan timed out\"}");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread()
-                .interrupt();
-            return json(NanoHTTPD.Response.Status.INTERNAL_ERROR, "{\"success\":false,\"message\":\"Interrupted\"}");
+        @SuppressWarnings("unchecked")
+        List<MonitorBindingDto> fresh = SnapshotCache.instance()
+            .get(ownerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_MONITOR_BINDINGS);
+        long ts = SnapshotCache.instance()
+            .timestampOf(ownerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_MONITOR_BINDINGS);
+        if (fresh != null) {
+            return json(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"count\":" + fresh.size()
+                    + ",\"monitors\":"
+                    + GSON.toJson(fresh)
+                    + ",\"cached\":true,\"timestamp\":"
+                    + ts
+                    + "}");
         }
-
-        List<MonitorBindingDto> monitors = holder[0] != null ? holder[0]
-            : java.util.Collections.<MonitorBindingDto>emptyList();
+        @SuppressWarnings("unchecked")
+        List<MonitorBindingDto> stale = SnapshotCache.instance()
+            .getStale(ownerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_MONITOR_BINDINGS);
+        if (stale != null) {
+            return json(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"count\":" + stale.size()
+                    + ",\"monitors\":"
+                    + GSON.toJson(stale)
+                    + ",\"cached\":false,\"timestamp\":"
+                    + ts
+                    + "}");
+        }
+        List<MonitorBindingDto> empty = Collections.emptyList();
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":" + monitors.size() + ",\"monitors\":" + GSON.toJson(monitors) + "}");
+            "{\"success\":true,\"count\":0,\"monitors\":" + GSON.toJson(empty)
+                + ",\"cached\":false,\"timestamp\":0}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

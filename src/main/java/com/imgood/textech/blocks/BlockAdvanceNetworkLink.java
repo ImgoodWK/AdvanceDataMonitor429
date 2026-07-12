@@ -1,33 +1,39 @@
 package com.imgood.textech.blocks;
 
+import java.util.ArrayList;
 import java.util.Random;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.gui.handler.GuiHandler;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
+import com.imgood.textech.utils.AeSecurityCheck;
 import com.imgood.textech.webae.onboarding.WebConsoleOnboarding;
 
 /**
  * Display names / 显示名称:
- * - EN: Network Linker
- * - ZH: 网络链接器
+ * - EN: Advanced Network Linker (unified AE link)
+ * - ZH: 高级网络链接器（统一 AE 链接器）
  * Lang keys: tile.NetworkLinkBlock.name, adm.title.data_config_ae_network
  */
 public class BlockAdvanceNetworkLink extends BlockContainer {
 
-    // 更新间隔（tick），1 = 每tick，20 = 每秒。建议根据网络大小调整，避免性能问题。
-    private static final int UPDATE_INTERVAL = 20; // 可改为 20 或更高
+    private static final int UPDATE_INTERVAL = 20;
 
     public BlockAdvanceNetworkLink() {
         super(Material.iron);
@@ -37,7 +43,7 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         this.setCreativeTab(CreativeTabs.tabRedstone);
         this.setBlockName("NetworkLinkBlock");
         this.setBlockTextureName(AdvanceDataMonitor.MODID + ":adv_network_link");
-        this.setTickRandomly(true); // 允许接收计划刻
+        this.setTickRandomly(true);
     }
 
     @Override
@@ -54,29 +60,13 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             link.facing = direction;
             link.setOwnerFromPlacer(placer);
         }
+        String denial = StatCollector.translateToLocal("adm.ae.no_build_permission");
+        AeSecurityCheck.rejectIfUnauthorized(world, x, y, z, this, placer, denial);
         if (!world.isRemote && placer instanceof EntityPlayerMP) {
             WebConsoleOnboarding.notifyOwnerOnNetworkLinkPlaced((EntityPlayerMP) placer);
         }
     }
 
-    private int determineFacing(World world, int x, int y, int z, EntityLivingBase placer) {
-        // 玩家面对的方向就是方块的前面
-        int facing = MathHelper.floor_double((placer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
-        switch (facing) {
-            case 0:
-                return 2; // 北
-            case 1:
-                return 5; // 东
-            case 2:
-                return 3; // 南
-            case 3:
-                return 4; // 西
-            default:
-                return 2;
-        }
-    }
-
-    // ---------- 定时刷新（计划刻） ----------
     @Override
     public void onBlockAdded(World world, int x, int y, int z) {
         super.onBlockAdded(world, x, y, z);
@@ -90,26 +80,27 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
         if (!world.isRemote) {
             TileEntity te = world.getTileEntity(x, y, z);
             if (te instanceof TileEntityAdvanceNetworkLink) {
-                ((TileEntityAdvanceNetworkLink) te).updateNetworkCache();
+                TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) te;
+                link.updateNetworkCache();
+                link.updateCraftingStats();
             }
-            // 重新调度，形成循环
             world.scheduleBlockUpdate(x, y, z, this, UPDATE_INTERVAL);
         }
     }
 
-    // ---------- 右键交互（保留原有逐条显示逻辑） ----------
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
         float hitY, float hitZ) {
-        if (!world.isRemote) {
-            TileEntity te = world.getTileEntity(x, y, z);
-            if (te instanceof TileEntityAdvanceNetworkLink) {
-                TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) te;
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (!(te instanceof TileEntityAdvanceNetworkLink)) {
+            return false;
+        }
+        TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) te;
 
-                // 手动强制刷新一次
+        if (player.isSneaking()) {
+            if (!world.isRemote) {
                 link.updateNetworkCache();
-
-                // 显示网络信息（保持原有格式）
+                link.updateCraftingStats();
                 player.addChatMessage(new ChatComponentText("AE2 Network Status"));
                 player.addChatMessage(
                     new ChatComponentText(
@@ -122,11 +113,69 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
                 player.addChatMessage(
                     new ChatComponentText(
                         "Fluid Types: " + link.getFluidUsedTypes() + "/" + link.getFluidTotalTypes()));
+                String craftingInfo = link.getCraftingStatsInfo();
+                if (craftingInfo != null && !craftingInfo.isEmpty()) {
+                    String[] lines = craftingInfo.split("\\n");
+                    for (int i = 0; i < lines.length; i++) {
+                        player.addChatMessage(new ChatComponentText(lines[i]));
+                    }
+                }
+            }
+            return true;
+        }
 
-                return true;
+        if (!world.isRemote) {
+            link.handleRightClick(player);
+        }
+        player.openGui(AdvanceDataMonitor.instance, GuiHandler.ADM_STORAGELINK_ID, world, x, y, z);
+        return true;
+    }
+
+    @Override
+    public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileEntityAdvanceNetworkLink) {
+            TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) te;
+            for (int i = 0; i < link.getSizeInventory(); i++) {
+                ItemStack stack = link.getStackInSlot(i);
+                if (stack != null) {
+                    dropStack(world, x, y, z, stack);
+                    link.setInventorySlotContents(i, null);
+                }
             }
         }
-        return false;
+        super.breakBlock(world, x, y, z, block, meta);
+    }
+
+    private static void dropStack(World world, int x, int y, int z, ItemStack stack) {
+        if (world.isRemote) {
+            return;
+        }
+        float ox = world.rand.nextFloat() * 0.8F + 0.1F;
+        float oy = world.rand.nextFloat() * 0.8F + 0.1F;
+        float oz = world.rand.nextFloat() * 0.8F + 0.1F;
+        while (stack.stackSize > 0) {
+            int drop = world.rand.nextInt(21) + 10;
+            if (drop > stack.stackSize) {
+                drop = stack.stackSize;
+            }
+            stack.stackSize -= drop;
+            ItemStack dropStack = new ItemStack(stack.getItem(), drop, stack.getItemDamage());
+            if (stack.hasTagCompound()) {
+                dropStack.setTagCompound((NBTTagCompound) stack.getTagCompound().copy());
+            }
+            EntityItem entity = new EntityItem(world, x + ox, y + oy, z + oz, dropStack);
+            entity.motionX = world.rand.nextGaussian() * 0.05;
+            entity.motionY = 0.2 + world.rand.nextGaussian() * 0.05;
+            entity.motionZ = world.rand.nextGaussian() * 0.05;
+            world.spawnEntityInWorld(entity);
+        }
+    }
+
+    @Override
+    public ArrayList<ItemStack> getDrops(World world, int x, int y, int z, int metadata, int fortune) {
+        ArrayList<ItemStack> drops = super.getDrops(world, x, y, z, metadata, fortune);
+        return drops;
     }
 
     @Override

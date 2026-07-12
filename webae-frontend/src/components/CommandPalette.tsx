@@ -5,7 +5,7 @@ import { useAppContext, type PageId } from '@/context/AppContext';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useI18n } from '@/i18n';
-import { ALL_PAGES } from '@/components/Layout/AppLayout';
+import { ALL_PAGES } from '@/components/Layout/navConfig';
 import type { GlobalSearchResultDto } from '@/types/dto';
 
 interface CommandPaletteProps {
@@ -33,6 +33,7 @@ const TAG_COLORS: Record<PaletteKind, string> = {
   recipe: 'orange',
   gt: 'purple',
   pattern: 'cyan',
+  quest: 'geekblue',
 };
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
@@ -159,6 +160,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           setPageSearchPrefill({ page: 'pattern', query: result.label, networkId: result.networkId });
           setActivePage('pattern');
           break;
+        case 'quest':
+          setPageSearchPrefill({ page: 'quests', query: result.label });
+          setActivePage('quests');
+          break;
         default:
           break;
       }
@@ -182,6 +187,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           return t('commandPaletteGt');
         case 'pattern':
           return t('commandPalettePattern');
+        case 'quest':
+          return t('questsPage');
         default:
           return kind;
       }

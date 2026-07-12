@@ -3,8 +3,10 @@ package com.imgood.textech.webae.icon;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -327,6 +331,111 @@ public class IconStore {
         Map<String, File> icons = entry.iconsForMode(modeId);
         if (icons == null || icons.isEmpty()) return Collections.emptyList();
         return new ArrayList<String>(icons.keySet());
+    }
+
+    /**
+     * Build sync metadata for browser bulk download of a pack/mode directory.
+     */
+    public SyncManifest buildSyncManifest(String packName, String modeId) {
+        String mode = normalizeModeId(modeId);
+        if (!isValidPackName(packName)) {
+            return SyncManifest.empty(packName, mode);
+        }
+        ensureIndexed();
+        PackEntry entry = packIndex.get(packName);
+        if (entry == null) {
+            return SyncManifest.empty(packName, mode);
+        }
+        Map<String, File> icons = entry.iconsForMode(mode);
+        if (icons == null || icons.isEmpty()) {
+            return SyncManifest.empty(packName, mode);
+        }
+        List<String> ids = new ArrayList<String>(icons.keySet());
+        Collections.sort(ids);
+        long maxMtime = 0L;
+        for (File f : icons.values()) {
+            if (f != null && f.lastModified() > maxMtime) {
+                maxMtime = f.lastModified();
+            }
+        }
+        StringBuilder idJoin = new StringBuilder();
+        for (int i = 0; i < ids.size(); i++) {
+            if (i > 0) idJoin.append('\n');
+            idJoin.append(ids.get(i));
+        }
+        String idsHash = Integer.toHexString(idJoin.toString().hashCode());
+        String uploadedAt = readManifestUploadedAt(packName);
+        String version = packName + "|" + mode + "|" + ids.size() + "|" + maxMtime + "|" + idsHash;
+        return new SyncManifest(packName, mode, ids.size(), version, uploadedAt, idsHash);
+    }
+
+    /**
+     * Stream a zip of {@code mode/*.png} for browser IndexedDB import.
+     */
+    public void writeModeZip(String packName, String modeId, OutputStream out) throws java.io.IOException {
+        String mode = normalizeModeId(modeId);
+        if (!isValidPackName(packName) || out == null) return;
+        ensureIndexed();
+        PackEntry entry = packIndex.get(packName);
+        if (entry == null) return;
+        Map<String, File> icons = entry.iconsForMode(mode);
+        if (icons == null || icons.isEmpty()) return;
+        ZipOutputStream zos = new ZipOutputStream(out);
+        byte[] buf = new byte[8192];
+        try {
+            for (Map.Entry<String, File> e : icons.entrySet()) {
+                File file = e.getValue();
+                if (file == null || !file.isFile()) continue;
+                String entryName = mode + "/" + file.getName();
+                zos.putNextEntry(new ZipEntry(entryName));
+                java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                try {
+                    int n;
+                    while ((n = fis.read(buf)) > 0) {
+                        zos.write(buf, 0, n);
+                    }
+                } finally {
+                    fis.close();
+                }
+                zos.closeEntry();
+            }
+        } finally {
+            zos.finish();
+            zos.close();
+        }
+    }
+
+    /** Write a rendered PNG to disk and refresh the in-memory index. */
+    public boolean writeIconPng(String packName, String modeId, String itemId, byte[] png) {
+        if (png == null || png.length == 0) return false;
+        File target = resolveWriteTarget(packName, modeId, itemId);
+        if (target == null) return false;
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(target);
+            fos.write(png);
+            refreshPack(packName);
+            return true;
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to write icon {} to pack {}", itemId, packName, e);
+            return false;
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private String readManifestUploadedAt(String packName) {
+        File manifestFile = new File(new File(baseDir, packName), MANIFEST_FILE);
+        JsonObject root = readManifestJson(manifestFile);
+        if (root.has("uploadedAt")) {
+            return root.get("uploadedAt")
+                .getAsString();
+        }
+        return "";
     }
 
     /**
@@ -657,6 +766,31 @@ public class IconStore {
 
         static IconResolveResult miss(String requestedId, String resolvedId, String modeId) {
             return new IconResolveResult(null, requestedId, resolvedId, modeId, false);
+        }
+    }
+
+    /** DTO for GET /api/icon/sync/manifest. */
+    public static final class SyncManifest {
+
+        public String pack;
+        public String mode;
+        public int iconCount;
+        public String version;
+        public String uploadedAt;
+        public String idsHash;
+
+        public SyncManifest(String pack, String mode, int iconCount, String version, String uploadedAt,
+            String idsHash) {
+            this.pack = pack;
+            this.mode = mode;
+            this.iconCount = iconCount;
+            this.version = version;
+            this.uploadedAt = uploadedAt;
+            this.idsHash = idsHash;
+        }
+
+        static SyncManifest empty(String pack, String mode) {
+            return new SyncManifest(pack, mode, 0, pack + "|" + mode + "|0|0|0", "", "0");
         }
     }
 }

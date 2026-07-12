@@ -1,0 +1,325 @@
+package com.imgood.textech.webae.quest;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import net.minecraft.entity.player.EntityPlayerMP;
+
+import com.imgood.textech.Config;
+import com.imgood.textech.assistant.AssistantServerServices;
+import com.imgood.textech.assistant.CraftingCandidate;
+import com.imgood.textech.compat.bq.BqQuestingIdentity;
+import com.imgood.textech.webae.craft.WebAeCraftService;
+import com.imgood.textech.webae.dto.QuestAnalysisDto;
+import com.imgood.textech.webae.dto.QuestAnalysisStepDto;
+import com.imgood.textech.webae.dto.QuestChainPlanDto;
+import com.imgood.textech.webae.dto.QuestChainStepDto;
+import com.imgood.textech.webae.dto.QuestChainStepResultDto;
+import com.imgood.textech.webae.dto.QuestChainSubmitResultDto;
+import com.imgood.textech.webae.dto.QuestDetailDto;
+import com.imgood.textech.webae.dto.QuestSubmitResultDto;
+
+/**
+ * Async chain submit that crafts missing items per quest then submits in topological order.
+ */
+public final class QuestChainOrchestrator {
+
+    private static final ConcurrentHashMap<String, ChainJob> JOBS = new ConcurrentHashMap<String, ChainJob>();
+
+    private QuestChainOrchestrator() {}
+
+    public static QuestChainSubmitResultDto start(String ownerUuid, int networkId, String targetQuestId,
+        boolean skipMissing, String cpuName, long waitTimeoutMs) {
+        QuestChainSubmitResultDto dto = new QuestChainSubmitResultDto();
+        dto.targetQuestId = targetQuestId;
+        dto.dryRun = false;
+        dto.jobId = UUID.randomUUID()
+            .toString()
+            .substring(0, 12);
+        dto.complete = false;
+        dto.phase = "crafting";
+        dto.success = false;
+
+        if (!Config.webQuestChainSubmitEnabled) {
+            dto.complete = true;
+            dto.phase = "done";
+            dto.message = "Chain submit disabled";
+            return dto;
+        }
+
+        EntityPlayerMP player = BqQuestingIdentity.resolvePlayer(ownerUuid);
+        if (player == null) {
+            dto.complete = true;
+            dto.phase = "done";
+            dto.message = "Player unavailable";
+            return dto;
+        }
+
+        QuestChainPlanDto plan = QuestChainService.buildPlan(ownerUuid, networkId, targetQuestId);
+        ChainJob job = new ChainJob();
+        job.jobId = dto.jobId;
+        job.ownerUuid = ownerUuid;
+        job.networkId = networkId;
+        job.targetQuestId = targetQuestId;
+        job.skipMissing = skipMissing;
+        job.cpuName = cpuName;
+        job.deadlineMs = System.currentTimeMillis()
+            + (waitTimeoutMs > 0 ? waitTimeoutMs : Config.webQuestCraftWaitTimeoutMs);
+
+        for (QuestChainStepDto planned : plan.steps) {
+            ChainQuestTrack track = new ChainQuestTrack();
+            track.questId = planned.questId;
+            track.name = planned.name;
+            track.skipped = planned.skipped;
+            track.skipReason = planned.skipReason;
+            track.fullySatisfied = planned.fullySatisfied;
+            if (planned.skipped) {
+                track.done = true;
+                track.action = "skipped";
+                track.message = planned.skipReason;
+            } else if (planned.fullySatisfied) {
+                // Will submit on poll without crafting.
+                track.phase = "ready_submit";
+            } else {
+                track.phase = "need_craft";
+                seedCraftOrders(job, track, ownerUuid, networkId, planned.questId, cpuName);
+                if (track.orders.isEmpty()) {
+                    if (skipMissing) {
+                        track.done = true;
+                        track.action = "skipped";
+                        track.message = "missing_items";
+                    } else {
+                        track.done = true;
+                        track.action = "failed";
+                        track.message = "missing_items_uncraftable";
+                        job.aborted = true;
+                        job.abortMessage = "Cannot craft missing items for " + planned.name;
+                    }
+                }
+            }
+            job.queue.add(track);
+        }
+
+        JOBS.put(job.jobId, job);
+        dto.message = "Chain craft started";
+        dto.steps = snapshotSteps(job);
+        return dto;
+    }
+
+    public static QuestChainSubmitResultDto poll(String jobId) {
+        QuestChainSubmitResultDto dto = new QuestChainSubmitResultDto();
+        dto.jobId = jobId;
+        ChainJob job = JOBS.get(jobId);
+        if (job == null) {
+            dto.complete = true;
+            dto.phase = "done";
+            dto.message = "Job not found";
+            return dto;
+        }
+        dto.targetQuestId = job.targetQuestId;
+        dto.dryRun = false;
+
+        if (job.aborted) {
+            dto.complete = true;
+            dto.success = false;
+            dto.phase = "done";
+            dto.message = job.abortMessage;
+            dto.steps = snapshotSteps(job);
+            JOBS.remove(jobId);
+            return dto;
+        }
+
+        if (System.currentTimeMillis() > job.deadlineMs) {
+            dto.complete = true;
+            dto.success = false;
+            dto.phase = "timeout";
+            dto.message = "Chain craft wait timeout";
+            dto.steps = snapshotSteps(job);
+            JOBS.remove(jobId);
+            return dto;
+        }
+
+        EntityPlayerMP player = BqQuestingIdentity.resolvePlayer(job.ownerUuid);
+
+        for (ChainQuestTrack track : job.queue) {
+            if (track.done) {
+                continue;
+            }
+
+            if ("need_craft".equals(track.phase)) {
+                int doneOrders = 0;
+                for (OrderTrack order : track.orders) {
+                    if (order.completed) {
+                        doneOrders++;
+                        continue;
+                    }
+                    if (player != null) {
+                        AssistantServerServices.OrderProgressResult progress = AssistantServerServices
+                            .resolveOrderProgress(player, job.cpuName, order.itemName, order.submittedAt);
+                        if (progress != null && progress.completed) {
+                            order.completed = true;
+                            doneOrders++;
+                        }
+                    }
+                }
+                if (doneOrders < track.orders.size()) {
+                    dto.phase = "crafting";
+                    dto.complete = false;
+                    dto.message = "Crafting " + track.name + " (" + doneOrders + "/" + track.orders.size() + ")";
+                    dto.steps = snapshotSteps(job);
+                    return dto;
+                }
+                track.phase = "ready_submit";
+            }
+
+            if ("ready_submit".equals(track.phase)) {
+                QuestSubmitResultDto submit = QuestSubmitService.submit(
+                    job.ownerUuid,
+                    job.networkId,
+                    track.questId,
+                    false,
+                    null);
+                track.submitResult = submit;
+                if (submit != null && submit.success) {
+                    track.done = true;
+                    track.action = "submitted";
+                    track.message = submit.message != null ? submit.message : "ok";
+                } else {
+                    track.done = true;
+                    track.action = "failed";
+                    track.message = submit != null ? submit.message : "submit_failed";
+                    if (!job.skipMissing) {
+                        job.aborted = true;
+                        job.abortMessage = track.message;
+                        dto.complete = true;
+                        dto.success = false;
+                        dto.phase = "done";
+                        dto.message = job.abortMessage;
+                        dto.steps = snapshotSteps(job);
+                        JOBS.remove(jobId);
+                        return dto;
+                    }
+                }
+            }
+        }
+
+        boolean allDone = true;
+        boolean allOk = true;
+        for (ChainQuestTrack track : job.queue) {
+            if (!track.done) {
+                allDone = false;
+            }
+            if ("failed".equals(track.action)) {
+                allOk = false;
+            }
+        }
+        if (!allDone) {
+            dto.complete = false;
+            dto.phase = "submitting";
+            dto.message = "Submitting chain";
+            dto.steps = snapshotSteps(job);
+            return dto;
+        }
+
+        dto.complete = true;
+        dto.success = allOk;
+        dto.phase = "done";
+        dto.message = allOk ? "Chain complete" : "Chain finished with failures";
+        dto.steps = snapshotSteps(job);
+        JOBS.remove(jobId);
+        return dto;
+    }
+
+    private static void seedCraftOrders(ChainJob job, ChainQuestTrack track, String ownerUuid, int networkId,
+        String questId, String cpuName) {
+        EntityPlayerMP player = BqQuestingIdentity.resolvePlayer(ownerUuid);
+        if (player == null) {
+            return;
+        }
+        QuestDetailDto detail = QuestDataCollector.collectQuestDetail(questId, player);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail);
+        for (QuestAnalysisStepDto step : analysis.steps) {
+            if (step.complete || !step.webCapable || step.missing <= 0) {
+                continue;
+            }
+            if (step.registryName == null || step.registryName.isEmpty()) {
+                continue;
+            }
+            List<CraftingCandidate> candidates = WebAeCraftService.craftingCandidates(
+                ownerUuid,
+                networkId,
+                step.registryName,
+                step.registryName,
+                step.missing);
+            if (candidates == null || candidates.isEmpty()) {
+                continue;
+            }
+            CraftingCandidate candidate = candidates.get(0);
+            String craftResult = WebAeCraftService.submitCraft(
+                ownerUuid,
+                networkId,
+                candidate,
+                step.missing,
+                step.registryName,
+                "en_US",
+                cpuName);
+            OrderTrack order = new OrderTrack();
+            order.itemName = candidate.displayName != null ? candidate.displayName : step.registryName;
+            order.amount = step.missing;
+            order.craftMessage = craftResult;
+            order.submittedAt = System.currentTimeMillis();
+            track.orders.add(order);
+        }
+    }
+
+    private static List<QuestChainStepResultDto> snapshotSteps(ChainJob job) {
+        List<QuestChainStepResultDto> list = new ArrayList<QuestChainStepResultDto>();
+        for (ChainQuestTrack track : job.queue) {
+            QuestChainStepResultDto s = new QuestChainStepResultDto();
+            s.questId = track.questId;
+            s.name = track.name;
+            s.action = track.action != null ? track.action : "pending";
+            s.message = track.message != null ? track.message : "";
+            s.submitResult = track.submitResult;
+            list.add(s);
+        }
+        return list;
+    }
+
+    private static final class ChainJob {
+        String jobId;
+        String ownerUuid;
+        int networkId;
+        String targetQuestId;
+        boolean skipMissing;
+        String cpuName;
+        long deadlineMs;
+        boolean aborted;
+        String abortMessage = "";
+        List<ChainQuestTrack> queue = new ArrayList<ChainQuestTrack>();
+    }
+
+    private static final class ChainQuestTrack {
+        String questId;
+        String name;
+        boolean skipped;
+        String skipReason;
+        boolean fullySatisfied;
+        String phase = "pending";
+        boolean done;
+        String action = "pending";
+        String message = "";
+        QuestSubmitResultDto submitResult;
+        List<OrderTrack> orders = new ArrayList<OrderTrack>();
+    }
+
+    private static final class OrderTrack {
+        String itemName;
+        long amount;
+        String craftMessage;
+        long submittedAt;
+        boolean completed;
+    }
+}

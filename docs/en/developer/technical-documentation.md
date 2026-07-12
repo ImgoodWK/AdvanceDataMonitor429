@@ -14,9 +14,7 @@
 - [5. Blocks, Items, and TileEntities](#5-blocks-items-and-tileentities)
   - [5.1 Advance Data Monitor](#51-advance-data-monitor)
   - [5.2 Data Imprint Tool](#52-data-imprint-tool)
-  - [5.3 Network Linker](#53-network-linker)
-  - [5.4 Advanced Storage Linker](#54-advanced-storage-linker)
-  - [5.5 Crafting Linker](#55-crafting-linker)
+  - [5.3 Advanced Network Linker](#53-advanced-network-linker)
   - [5.6 Super Orange](#56-super-orange)
   - [5.7 Grapple System](#57-grapple-system)
   - [5.8 Data Loom Cells](#58-data-loom-cells)
@@ -44,7 +42,7 @@
 `铽丝科技` is a utility mod for Minecraft `1.7.10` / Forge `10.13.4.1614` in the GTNH environment. Mod id: `textech`. Core capabilities fall into three layers:
 
 - In-world monitors: `TileEntityAdvanceDataMonitor` samples target TileEntities / AE2 linker data; client TESR renders charts, text, crafting status, or storage item lists.
-- AE2 linker blocks: Network Linker, Advanced Storage Linker, and Crafting Linker connect to the AE2 network, providing storage capacity, marked-item counts, crafting CPU status, and auto-crafting support.
+- AE2 linker block: former Network / Storage / Crafting link blocks merged into unified `BlockAdvanceNetworkLink` / `TileEntityAdvanceNetworkLink` for storage capacity, marked-item counts, crafting CPU status, and auto-crafting support.
 - AI / voice assistant: the client parses natural language into structured intents, then uses Forge packets on the server to query AE2, submit crafting jobs, withdraw items to inventory, or manage plans; the voice entry runs STT first, then reuses the text assistant pipeline.
 
 The project still largely follows the GTNH ExampleMod build skeleton, but business code is concentrated under `com.imgood.textech`.
@@ -79,7 +77,7 @@ Main directories:
 - `src/main/java/com/imgood/textech/`: mod entry, proxy, config, and business packages.
 - `blocks/`: five block implementations (including grapple node `BlockGrappleAnchor`); creates TileEntities, opens GUIs, placement facing, basic interaction.
 - `items/`: `ItemDataImprint`, `ItemAdvanceStorageLinkCell`, `ItemAdvancePlanner`, `ItemManual`, `ItemSuperOrange`, `ItemGrappleHook`, `ItemStarryCosmosSword`, `ItemDimensionalPocket` (+ `ItemSpaceUpgradeCard` / `ItemPageUpgradeCard` / `ItemStackUpgradeCard` / `ItemInfiniteStackUpgradeCard`); Data Loom cells live in `items/cell/` (items also in `items/cell/`, unlike handler/manual items/ pattern).
-- `tileentity/`: monitor, three AE2 Linkers, and grapple node server state, NBT persistence, AE2 network access, and sync logic.
+- `tileentity/`: monitor, unified AE2 Network Linker, and grapple node server state, NBT persistence, AE2 network access, and sync logic.
 - `gui/`: Forge GUI handler (`GuiHandler`, includes `GRAPPLE_HOOK_GUI_ID`), containers, custom GUI widgets, and all client config screens.
 - `renders/`: TESR, item rendering, monitor content renderers, HUD, manual page rendering (`ManualPageRenderer`).
 - `network/`: SimpleNetworkWrapper packets and handlers.
@@ -117,7 +115,7 @@ Entry class: `铽丝科技`:
 
 Centralized loader classes:
 
-- `LoaderBlock` registers `advDataMonitor`, `advNetworkLinkBlock`, `advStorageLink`, `advCraftingLink`, `grappleAnchor`.
+- `LoaderBlock` registers `advDataMonitor`, `advNetworkLinkBlock`, `grappleAnchor`, `matterBallDecompressor` (and optional `uiFrameworkDebug`).
 - `LoaderItem` registers `data_imprint`, `advance_storage_link_cell`, Data Loom cells, `grapple_hook`, etc., and declares the Advanced Storage Link Cell as supporting AE2 `FUZZY`, `INVERTER`, and `ORE_FILTER` upgrades.
 - `LoaderTileEntity` registers five TileEntities (including `TileEntityGrappleAnchor`).
 - `LoaderRender` binds TESR / item renderers and registers `line`, `crafting`, `storage` content renderers in `RenderController`.
@@ -135,9 +133,7 @@ In-game display names below come from `assets/textech/lang/` (Chinese / English)
 | Class (primary) | Chinese | English | lang key |
 |-----------------|---------|---------|----------|
 | `BlockAdvanceDataMonitor` | 高级数据监视器 | Advance Data Monitor | `tile.advDataMonitor.name` |
-| `BlockAdvanceCraftingLink` | 合成链接器 | Crafting Linker | `tile.CraftingMonitorBlock.name` |
-| `BlockAdvanceStorageLink` | 高级存储链接器 | Advanced Storage Linker | `tile.StorageLinkBlock.name` |
-| `BlockAdvanceNetworkLink` | 网络链接器 | Network Linker | `tile.NetworkLinkBlock.name` |
+| `BlockAdvanceNetworkLink` | 高级网络链接器 | Advanced Network Linker | `tile.NetworkLinkBlock.name` |
 | `BlockMatterBallDecompressor` | 物质球解压器 | Matter Ball Decompressor | `tile.matterBallDecompressor.name` |
 | `BlockGrappleAnchor` | 挂索节点 | Grapple Anchor | `tile.grappleAnchor.name` |
 | `ItemDataImprint` | 数据映录器 | Data Imprint Tool | `item.dataImprint.name` |
@@ -176,9 +172,9 @@ Key classes:
 
 1. Resolve bound coordinates.
 2. Find target TileEntity.
-3. If target is Crafting Linker, write `lines` or `networkLines` and set `dataType=crafting`.
-4. If target is Advanced Storage Linker, write `storageItems` and set `dataType=storage`.
-5. If target is Network Linker, read AE2 network stats by field; optionally convert to percentage.
+3. If target is unified Advanced Network Linker with `dataType=crafting`, write `lines` or `networkLines`.
+4. If target is unified Advanced Network Linker with `dataType=storage`, write `storageItems`.
+5. If target is unified Advanced Network Linker with `dataType=line` (default network chart), read AE2 network stats by field; optionally convert to percentage.
 6. For ordinary TileEntities, read the specified numeric field from target NBT.
 7. Update local data and sync to client rendering via `syncData()` / `PacketSynTileEntity` / vanilla description packet.
 
@@ -193,44 +189,29 @@ Client rendering dispatches by display entry `dataType` or renderer type to `Lin
 
 Key classes: `ItemDataImprint`, `GuiHandler`, `GuiNbtViewer`, NBT utility classes.
 
-`ItemDataImprint` imprints target blocks and saves TileEntity NBT snapshots, then binds them to the Advance Data Monitor. Sneak + right-click on a monitor allocates a slot via `TileEntityAdvanceDataMonitor.findLowestFreeBindingIndex()`; at `MAX_DATA_BINDINGS` (36) the action is rejected with `adm.error.data_bindings_full`. Unlike Data Loom cells (Data Dust/Form/Flow), the imprint tool only observes and records — it does not weave matter from the AE network. GUI handler `NBT_VIEWER_GUI_ID` reads `boundTE` on the held item, converts via `NBTJsonParserHelper`, and opens the NBT viewer.
+`ItemDataImprint` imprints target blocks and saves TileEntity NBT snapshots, then binds them to the Advance Data Monitor; it can also record GT machine coordinates for batch binding (`GtMachineBinding`). **Block imprint** (`boundPos` / `boundTE`) and **GT machine list** (`gtMachineList`) are mutually exclusive: writing one clears the other. Sneak + right-click air clears when the tool has payload, otherwise scans nearby GT machines at `scanRadius` (sneak+scroll: 8/16/32/64). Sneak + right-click a monitor binds the current sole payload; legacy dual-payload items keep the GT list and drop the conflicting block imprint on bind. Block binding allocates a slot via `TileEntityAdvanceDataMonitor.findLowestFreeBindingIndex()`; at `MAX_DATA_BINDINGS` (36) the action is rejected with `adm.error.data_bindings_full`. Unlike Data Loom cells (Data Dust/Form/Flow), the imprint tool only observes and records — it does not weave matter from the AE network. GUI handler `NBT_VIEWER_GUI_ID` reads `boundTE` on the held item, converts via `NBTJsonParserHelper`, and opens the NBT viewer.
 
-### 5.3 Network Linker
+### 5.3 Advanced Network Linker
 
-Key classes: `BlockAdvanceNetworkLink`, `TileEntityAdvanceNetworkLink`.
+Key classes: `BlockAdvanceNetworkLink`, `TileEntityAdvanceNetworkLink`, `ContainerAdvanceStorageLink`, `GuiAdvanceStorageLink`, `GuiSubLinkDisplayTypeSelect`, `GuiSubAEAdvanceNetworkLink`, `GuiSubAEAdvanceCraftingLink`, `GuiSubAEAdvanceStorageLink`, `ItemAdvanceStorageLinkCell`, `AssistantServerServices`.
 
-`TileEntityAdvanceNetworkLink` extends AE2 `AENetworkTile`, requires a channel, connection type `SMART`. It traverses the AE2 grid over `TileDrive` / `TileChest` and similar storage devices, counting:
+> Former `BlockAdvanceCraftingLink` / `BlockAdvanceStorageLink` and separate stat TEs merged into `TileEntityAdvanceNetworkLink`. `LoaderTileEntity` legacy mappings redirect old TE IDs to the unified class.
 
-- Item total bytes, used bytes, total types, used types.
-- Fluid total bytes, used bytes, total types, used types.
+`TileEntityAdvanceNetworkLink` extends AE2 `AENetworkTile`, implements `IInventory` and `IOwnableTile`, requires a channel, connection type `SMART`. Single TE integrates three capabilities:
 
-It subscribes to `MENetworkCellArrayUpdate` and `MENetworkStorageEvent` to refresh cache, syncs via NBT / description packet. When bound to a monitor, these fields can display as charts or percentages.
+**Network storage stats**: traverses `TileDrive` / `TileChest`, counts item/fluid bytes and types; subscribes to `MENetworkCellArrayUpdate` and `MENetworkStorageEvent`.
 
-### 5.4 Advanced Storage Linker
+**Storage display** (36 slots, `ItemAdvanceStorageLinkCell` only): partition-marked AE network counts (exact / Fuzzy / Inverter / Ore Filter / fluid markers). `createStorageItemsSnapshot()` builds `NBTTagList` for `StorageInfoRenderer`; `sampleStorageDeltasIfNeeded()` samples deltas every 20 ticks.
 
-Key classes: `BlockAdvanceStorageLink`, `TileEntityAdvanceStorageLink`, `ContainerAdvanceStorageLink`, `GuiAdvanceStorageLink`, `ItemAdvanceStorageLinkCell`.
+> **Difference from Data Loom cells**: storage stats count only AE network aggregates for **Advanced Storage Link Cell** partitions. Internal `dataLoomItemAccum` / `dataLoomFluidAccum` are excluded.
 
-`TileEntityAdvanceStorageLink` is also an AE2 `AENetworkTile` implementing `IInventory`. It has 36 slots accepting only `ItemAdvanceStorageLinkCell`. Each cell stores a set of AE2 partition-marked items, optionally with Fuzzy / Inverter / Ore Filter upgrades, plus NBT fluid markers:
+**Crafting CPU monitoring**: crafting grid access, CPU/busy/storage/co-processor snapshots; subscribes to `MENetworkCraftingCpuChange`. Monitor `dataType=crafting` reads summary or templates.
 
-> **Difference from Data Loom cells**: Advanced Storage Linker counts only aggregated quantities in the AE network for items/fluids/essentia marked by **Advanced Storage Link Cell** partitions. Internal `dataLoomItemAccum` / `dataLoomFluidAccum` in Data Loom cells (Data Dust/Form/Flow/Data Source) are **not** included in Advanced Storage Linker statistics and do not appear as separate entries in the Advanced Storage Linker GUI or monitor storage display.
+**Interaction**: right-click → `GuiAdvanceStorageLink` (`ADM_STORAGELINK_ID`); Shift+right-click → comprehensive chat status; monitor bindings use `GuiSubLinkDisplayTypeSelect` (`adm.button.link_display_*`).
 
-- Normal mode: exact-match count of marked items on the AE2 network (`isItemEqual`, avoids AE2FC droplet confusion).
-- Fuzzy mode: AE2 fuzzy rules (`FuzzyMode.PERCENT_25`, etc.) via `findFuzzy()`.
-- Inverter mode: iterate network items, exclude partition matches.
-- Ore Filter mode: match all ores by dictionary name via `OreDictionary.getOres()`.
-- Fluid Marker mode: read `fluidMarkers` from NBT, query fluid stock via `IStorageGrid.getFluidInventory()` (exact ID match).
+AI assistant server execution depends on a nearby Advanced Network Linker (default 32 blocks, `[assistant] linkSearchRadius` 4–128): craft queries, pattern details, submit/cancel jobs, and withdraw all enter the AE2 network through this TE.
 
-`createStorageItemsSnapshot()` assembles each slot's matches, counts, display names, and item NBT into `NBTTagList` by priority (Ore > Fluid > normal/Fuzzy/Inverter) for monitor `StorageInfoRenderer`. `sampleStorageDeltasIfNeeded()` samples every 20 ticks and computes deltas (`countDelta`); rendering sorts by `itemCountOrder` / `itemDeltaOrder` / `itemNameOrder`, enabled entries first.
-
-### 5.5 Crafting Linker
-
-Key classes: `BlockAdvanceCraftingLink`, `TileEntityAdvanceCraftingLink`, `GuiSubAEAdvanceCraftingLink`, `AssistantServerServices`.
-
-`TileEntityAdvanceCraftingLink` connects to the AE2 crafting grid, counting CPUs, busy CPUs, total/used storage, co-processors, and per-CPU snapshots. Subscribes to `MENetworkCraftingCpuChange`. The main monitor can show network summary or per-CPU/template crafting status.
-
-AI assistant server execution also depends on a nearby Crafting Linker (default search radius 32 blocks, configurable via `[assistant] linkSearchRadius`, range 4–128): query craftable candidates, pattern details, submit crafting, batch submit, and cancel server jobs all enter the AE2 network from here. Withdraw operations depend on a nearby Advanced Storage Linker, searching and extracting via `IStorageGrid`.
-
-### 5.6 Super Orange
+### 5.4 Super Orange
 
 Key classes: `ItemSuperOrange`, `GuiSuperOrangeConfig`, `PacketSuperOrangeConfig`, `EntitySuperOrangeDrone`, `HandlerSuperOrange`, `HandlerTick`, `HandlerLoot`.
 
@@ -298,12 +279,12 @@ Key classes: `cell/ItemDataDustLoomCell.java`, `cell/ItemDataFormLoomCell.java`,
 
 - No durability bar; capacity/type lines still read NBT live.
 - Amplifier info and effective output rate stored in `dataLoomTooltip` NBT, refreshed only when workbench **markers change** or **amplifier cards added/removed** (`DataLoomCellConfig` / `FlowLoomCellConfig` / `DataLoomCellUpgrades.markDirty`).
-- Common tooltip notes: internal `dataLoomItemAccum` / `dataLoomFluidAccum` **excluded** from Advanced Storage Linker (`TileEntityAdvanceStorageLink`) monitoring.
+- Common tooltip notes: internal `dataLoomItemAccum` / `dataLoomFluidAccum` **excluded** from Advanced Network Linker (`TileEntityAdvanceNetworkLink`) storage monitoring.
 
-**Relationship to Advanced Storage Linker**:
+**Relationship to Advanced Network Linker**:
 
-- Advanced Storage Linker counts network stock via `IStorageGrid` using Advanced Storage Link Cell partition markers.
-- Data Loom internal accumulation is independent; monitors bound to Advanced Storage Linker do not reflect fill level inside loom cells.
+- Advanced Network Linker counts network stock via `IStorageGrid` using Advanced Storage Link Cell partition markers.
+- Data Loom internal accumulation is independent; monitors bound with `dataType=storage` do not reflect fill level inside loom cells.
 
 **Energy**: shared `[dataLoomCell] energyDrainPerTick` (default 999999 AE/t).
 
@@ -1158,7 +1139,7 @@ Key classes: `BlockMatterBallDecompressor`, `TileEntityMatterBallDecompressor`, 
 
 **Crafting**
 
-- `LoaderRecipe.registerAssemblyLineRecipes()`: UHV Assembly Line, scan Advanced Storage Linker 90s @ UV, 120s @ UHV; materials in [Player Guide §3.14](../player/player-guide.md#314-matter-ball-decompressor).
+- `LoaderRecipe.registerAssemblyLineRecipes()`: UHV Assembly Line, scan Advanced Network Linker 90s @ UV, 120s @ UHV; materials in [Player Guide §3.12](../player/player-guide.md#312-matter-ball-decompressor).
 
 **Config**: `[matterBallDecompressor] itemsPerSecond` (`ConfigMatterBallDecompressorLoader`).
 
@@ -1172,7 +1153,7 @@ Key classes: `BlockMatterBallDecompressor`, `TileEntityMatterBallDecompressor`, 
 
 - `0` (`NBT_VIEWER_GUI_ID`): NBT Viewer — client only.
 - `1` (`ADM_MAIN_GUI_ID`): main monitor GUI.
-- `2` (`ADM_STORAGELINK_ID`): Advanced Storage Linker GUI — server returns `ContainerAdvanceStorageLink`, client returns `GuiAdvanceStorageLink`.
+- `2` (`ADM_STORAGELINK_ID`): unified Advanced Network Linker storage GUI — server returns `ContainerAdvanceStorageLink`, client returns `GuiAdvanceStorageLink`.
 - `3` (`MANUAL_GUI_ID`): mod manual `GuiManual`.
 - `4` (`GRAPPLE_ANCHOR_GUI_ID`): grapple anchor config `GuiGrappleAnchorConfig`.
 - `5` (`GRAPPLE_HOOK_GUI_ID`): grapple hook config `GuiGrappleHookConfig`.
@@ -1184,7 +1165,7 @@ Key classes: `BlockMatterBallDecompressor`, `TileEntityMatterBallDecompressor`, 
 
 **Container UI framework** (9-slice atlas, `UiTheme`; Matter Ball Decompressor is the first in-game verification target): see [ui-framework.md](ui-framework.md).
 
-Main monitor GUI entry is `GuiMainAdvanceDataMonitor`; sub-pages configure bind targets, AE2 Network Linker, Crafting Linker, Advanced Storage Linker, colors, and display transforms. AI chat and AI settings are separate `GuiScreen`s opened from main UI buttons, commands, or voice hotkey.
+Main monitor GUI entry is `GuiMainAdvanceDataMonitor`; sub-pages configure bind targets, unified Advanced Network Linker (`GuiSubLinkDisplayTypeSelect` for network/storage/crafting display types), colors, and display transforms. AI chat and AI settings are separate `GuiScreen`s opened from main UI buttons, commands, or voice hotkey.
 
 When GUIs modify TileEntities, respect side: client edits UI and sends packets; server applies trusted state and calls `markDirty()` / `markBlockForUpdate()`. Do not modify client-only TileEntity state — it will be lost on world reload or server sync.
 
@@ -1278,7 +1259,7 @@ Two rendering categories:
 
 Main persistence locations:
 
-- TileEntity NBT: monitor display entries, AE2 linker cache, Advanced Storage Linker inventory.
+- TileEntity NBT: monitor display entries, unified AE2 linker cache and 36-slot inventory.
 - ItemStack NBT: Data Imprint snapshots, Advanced Storage Link Cell partitions and upgrade info.
 - Forge config: AI, voice, assistant settings.
 - Assistant data files: `AssistantDataFiles` locates paths; `OrderMemoryStore` / `PlanStore` save preferences and plans.
@@ -1303,9 +1284,7 @@ If IDE/Gradle does not run the main suite automatically, run `test.AssistantInte
 Suggested manual verification by module:
 
 - Monitor: place Advance Data Monitor, bind ordinary TileEntity fields, confirm GUI save, world reload, client rendering.
-- Network Linker: connect AE2 network, insert/remove storage cells, confirm capacity and percentage refresh.
-- Advanced Storage Linker: configure partitions, Fuzzy, Inverter; confirm monitor counts match AE2 network.
-- Crafting Linker: trigger AE2 auto-crafting; confirm CPU status and monitor text refresh.
+- Advanced Network Linker: connect AE2 network, insert/remove storage cells, Shift+right-click comprehensive status; verify monitor bindings for all three `dataType` modes (line / storage / crafting).
 - AI assistant: no-key fallback, valid-key JSON plan, candidate confirm, batch order, batch withdraw, partial withdraw confirm, cancel, general chat routing.
 - Voice assistant: local Vosk and HTTP STT — hotkey, privacy confirm, transcription submit.
 

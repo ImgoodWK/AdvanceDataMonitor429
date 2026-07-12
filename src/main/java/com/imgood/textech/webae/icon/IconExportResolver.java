@@ -7,8 +7,12 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Unified multi-stage fallback for icon export: grid crop → GL custom → GL vanilla → atlas →
- * ItemBlock/entity → placeholder. Shared by bulk grid export and lazy single-icon upload.
+ * Unified icon export resolver. Active path: fluid specials → NESQL-style drawItem → placeholder.
+ *
+ * <p>
+ * Legacy multi-stage fallback (grid crop → GL variants → atlas → block → entity) is retained in
+ * {@link #resolveLegacy} for archival / comparison; active callers must not use it.
+ * </p>
  */
 @SideOnly(Side.CLIENT)
 public final class IconExportResolver {
@@ -22,6 +26,7 @@ public final class IconExportResolver {
         ATLAS,
         BLOCK,
         ENTITY,
+        NESQL,
         PLACEHOLDER
     }
 
@@ -38,6 +43,7 @@ public final class IconExportResolver {
 
     private final IconAtlasSampler atlasSampler;
     private final IconGlFallback glFallback;
+    private final IconNesqlStyleRenderer nesqlRenderer;
 
     private int gridCount;
     private int glCount;
@@ -45,11 +51,13 @@ public final class IconExportResolver {
     private int atlasCount;
     private int blockCount;
     private int entityCount;
+    private int nesqlCount;
     private int placeholderCount;
 
     public IconExportResolver(IconAtlasSampler atlasSampler, IconGlFallback glFallback) {
         this.atlasSampler = atlasSampler;
         this.glFallback = glFallback;
+        this.nesqlRenderer = new IconNesqlStyleRenderer();
     }
 
     /** Standalone resolver for verify/preview screens outside {@link IconRenderer} session. */
@@ -60,6 +68,7 @@ public final class IconExportResolver {
     public void reset() {
         atlasSampler.reset();
         glFallback.reset();
+        nesqlRenderer.reset();
         resetCounts();
     }
 
@@ -70,6 +79,7 @@ public final class IconExportResolver {
         atlasCount = 0;
         blockCount = 0;
         entityCount = 0;
+        nesqlCount = 0;
         placeholderCount = 0;
     }
 
@@ -97,14 +107,47 @@ public final class IconExportResolver {
         return entityCount;
     }
 
+    public int getNesqlCount() {
+        return nesqlCount;
+    }
+
     public int getPlaceholderCount() {
         return placeholderCount;
     }
 
     /**
-     * @param gridCropPng optional pre-cropped grid cell; may be null or blank
+     * Active resolve: fluid-aware GL → NESQL drawItem FBO → placeholder.
+     *
+     * @param gridCropPng ignored on the active path (kept for call-site compatibility)
      */
     public ResolveResult resolve(Minecraft mc, ItemStack stack, String itemId, byte[] gridCropPng) {
+        if (stack == null) {
+            return placeholder(itemId);
+        }
+
+        if (IconFluidRenderer.needsInGameItemRender(stack)) {
+            byte[] png = glFallback.renderFluidAwareSlotIcon(mc, stack);
+            if (!IconAtlasSampler.isPngBlank(png)) {
+                glCount++;
+                return new ResolveResult(png, Source.GL_NEI);
+            }
+        }
+
+        byte[] png = nesqlRenderer.renderItem(mc, stack);
+        if (!IconAtlasSampler.isPngBlank(png)) {
+            nesqlCount++;
+            return new ResolveResult(png, Source.NESQL);
+        }
+
+        return placeholder(itemId);
+    }
+
+    /**
+     * Archived multi-stage fallback used before NESQL-style became the sole active path.
+     * Not called by bulk/lazy/direct export.
+     */
+    @Deprecated
+    public ResolveResult resolveLegacy(Minecraft mc, ItemStack stack, String itemId, byte[] gridCropPng) {
         if (stack == null) {
             return placeholder(itemId);
         }

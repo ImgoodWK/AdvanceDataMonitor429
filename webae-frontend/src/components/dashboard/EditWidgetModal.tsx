@@ -1,4 +1,4 @@
-import { Modal, Select, Input, InputNumber, Space, Typography, Switch, Tabs, Button } from 'antd';
+import { Modal, Select, Input, InputNumber, Space, Typography, Switch, Tabs, Button, Slider } from 'antd';
 import type { ReactNode } from 'react';
 import { useI18n } from '@/i18n';
 import {
@@ -9,7 +9,10 @@ import {
 } from '@/utils/presets';
 import { AlignmentGrid } from './AlignmentGrid';
 import { WidgetColorSection } from './WidgetColorSection';
+import { WidgetPinEditor } from './WidgetPinEditor';
 import { getValidChartTypes } from '@/utils/dataSourceChartMap';
+import { clampContentScale } from '@/utils/dashboardColumns';
+import type { StorageDto, GtMachineDto } from '@/types/dto';
 
 const { Text } = Typography;
 
@@ -22,6 +25,15 @@ interface EditWidgetModalProps {
   onCancel: () => void;
   allowedDataSources?: string[];
   allowedWidgetTypes?: DashboardWidgetConfig['type'][];
+  storage?: StorageDto | null;
+  gtMachines?: GtMachineDto[] | null;
+  balanceSuggestions?: Array<{
+    itemId?: string;
+    displayName: string;
+    transferable: number;
+    needyAmount: number;
+    resourceType?: string;
+  }> | null;
 }
 
 const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
@@ -35,7 +47,8 @@ const DATA_SOURCES = [
   'activeCpu', 'busyCpu', 'cpuBusyRatio', 'gtMachineCount', 'gtActiveCount',
   'itemTotal', 'fluidTotal', 'topItems', 'cpuList', 'gtMachineList',
   'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
-  'playerOnlineCount', 'playerOnlineTrend',
+  'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
+  'customPins',
 ];
 
 const STRETCH_OPTIONS = [
@@ -53,6 +66,9 @@ export function EditWidgetModal({
   onCancel,
   allowedDataSources,
   allowedWidgetTypes,
+  storage,
+  gtMachines,
+  balanceSuggestions,
 }: EditWidgetModalProps) {
   const { t } = useI18n();
   if (!widget) return null;
@@ -93,11 +109,13 @@ export function EditWidgetModal({
   const patchColors = (p: Partial<NonNullable<DashboardWidgetConfig['colors']>>) =>
     patch({ colors: { ...ensureColors(), ...p } });
 
-  const validTypesForDs = getValidChartTypes(widget.dataSource);
+  const hasPins = (widget.pins?.length ?? 0) > 0;
+  const validTypesForDs = hasPins && widget.dataSource === 'customPins'
+    ? getValidChartTypes('customPins')
+    : getValidChartTypes(widget.dataSource);
   const availableWidgetTypes = allWidgetTypes.filter((tp) => validTypesForDs.includes(tp));
-  const availableDataSources = allDataSources.filter((ds) =>
-    getValidChartTypes(ds).includes(widget.type)
-  );
+  // Data-first: show all data sources; chart type list is filtered by selected data
+  const availableDataSources = allDataSources;
 
   const colorsInherit = ensureColors().inheritDefault;
   const isChartType =
@@ -127,6 +145,15 @@ export function EditWidgetModal({
     </div>
   );
 
+  const onDataSourceChange = (v: string) => {
+    const valid = getValidChartTypes(v);
+    const typeOk = valid.includes(widget.type);
+    patch({
+      dataSource: v,
+      type: typeOk ? widget.type : valid.find((tp) => allWidgetTypes.includes(tp)) ?? widget.type,
+    });
+  };
+
   return (
     <Modal
       title={t('editWidget')}
@@ -135,7 +162,7 @@ export function EditWidgetModal({
       onCancel={onCancel}
       okText={t('apply')}
       cancelText={t('cancel')}
-      width={560}
+      width={620}
       destroyOnClose
     >
       <Tabs
@@ -147,29 +174,46 @@ export function EditWidgetModal({
             children: (
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
                 <div>
-                  <Text strong>{t('editWidget_type')}</Text>
-                  <Select
-                    style={{ width: '100%', marginTop: 4 }}
-                    value={widget.type}
-                    onChange={(v) => {
-                      const newValid = getValidChartTypes(widget.dataSource).includes(v);
-                      patch({
-                        type: v,
-                        dataSource: newValid ? widget.dataSource : availableDataSources[0] ?? widget.dataSource,
-                      });
-                    }}
-                    options={availableWidgetTypes.map((tp) => ({ label: t('widgetType_' + tp), value: tp }))}
-                  />
-                </div>
-                <div>
                   <Text strong>{t('dataSource')}</Text>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
+                    {t('dashDataFirstHint')}
+                  </Text>
                   <Select
                     style={{ width: '100%', marginTop: 4 }}
                     value={widget.dataSource}
-                    onChange={(v) => patch({ dataSource: v })}
+                    onChange={onDataSourceChange}
                     options={availableDataSources.map((ds) => ({ label: t('dataSource_' + ds), value: ds }))}
+                    showSearch
+                    optionFilterProp="label"
                   />
                 </div>
+
+                <WidgetPinEditor
+                  widget={widget}
+                  onChange={patch}
+                  storage={storage}
+                  gtMachines={gtMachines}
+                  balanceSuggestions={balanceSuggestions}
+                  scalarDataSources={allDataSources.filter(
+                    (ds) =>
+                      !['topItems', 'cpuList', 'gtMachineList', 'networkBalance', 'storageByCategory',
+                        'machineByStatus', 'networkCompare', 'customPins', 'powerHistory', 'playerOnlineTrend'].includes(ds)
+                  )}
+                />
+
+                <div>
+                  <Text strong>{t('editWidget_type')}</Text>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
+                    {t('dashChartTypeAfterDataHint')}
+                  </Text>
+                  <Select
+                    style={{ width: '100%', marginTop: 4 }}
+                    value={widget.type}
+                    onChange={(v) => patch({ type: v })}
+                    options={availableWidgetTypes.map((tp) => ({ label: t('widgetType_' + tp), value: tp }))}
+                  />
+                </div>
+
                 <div>
                   <Text strong>{t('editWidget_title')}</Text>
                   <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
@@ -183,6 +227,19 @@ export function EditWidgetModal({
                     allowClear
                   />
                 </div>
+
+                {widget.type === 'gauge' && (
+                  <div>
+                    <Text strong>{t('dashGaugeThreshold')}</Text>
+                    <InputNumber
+                      style={{ width: '100%', marginTop: 4 }}
+                      min={0}
+                      value={widget.gaugeThreshold ?? 0}
+                      onChange={(v) => patch({ gaugeThreshold: v ?? 0 })}
+                    />
+                  </div>
+                )}
+
                 {widget.type === 'radarChart' && (
                   <div>
                     <Text strong>{t('dashCfgRadarAxes')}</Text>
@@ -251,7 +308,7 @@ export function EditWidgetModal({
                     <Text strong>{t('width')}</Text>
                     <InputNumber
                       style={{ marginTop: 4, display: 'block' }}
-                      min={2}
+                      min={1}
                       max={12}
                       value={widget.width}
                       onChange={(v) => patch({ width: v ?? 3 })}
@@ -261,13 +318,29 @@ export function EditWidgetModal({
                     <Text strong>{t('height')}</Text>
                     <InputNumber
                       style={{ marginTop: 4, display: 'block' }}
-                      min={2}
+                      min={1}
                       max={10}
                       value={widget.height}
                       onChange={(v) => patch({ height: v ?? 2 })}
                     />
                   </div>
                 </Space>
+
+                <div>
+                  <Text strong>{t('dashContentScale')}</Text>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
+                    {t('dashContentScaleHint')}
+                  </Text>
+                  <Slider
+                    style={{ marginTop: 8 }}
+                    min={50}
+                    max={200}
+                    step={5}
+                    value={Math.round(clampContentScale(widget.contentScale) * 100)}
+                    onChange={(v) => patch({ contentScale: (v as number) / 100 })}
+                    tooltip={{ formatter: (v) => `${v}%` }}
+                  />
+                </div>
 
                 {inheritSwitch(
                   t('editWidget_contentInset'),

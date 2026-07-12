@@ -1,3 +1,4 @@
+import { CpuComponentIconGrid } from '@/components/topology/CpuComponentIconGrid';
 import { Button, Descriptions, Drawer, Table, Tabs, Typography } from 'antd';
 
 import { useI18n } from '@/i18n';
@@ -79,7 +80,7 @@ export function CpuRuntimeDetailPanel({ node }: { node: TopologyNodeDto }) {
         {summary.availableStorage}
       </Descriptions.Item>
       <Descriptions.Item label={t('topologyCpuStatus')}>
-        {summary.busy ? t('topologyCpuBusy') : t('topologyCpuIdle')}
+        {summary.busy ? t('busy') : t('topologyCpuIdle')}
       </Descriptions.Item>
       <Descriptions.Item label={t('topologyCpuUnitCount')}>{summary.unitCount}</Descriptions.Item>
       {summary.storageUnits > 0 && (
@@ -135,6 +136,10 @@ export function CpuDetailContent({
     <>
       <BaseMeta node={node} />
       <CpuRuntimeDetailPanel node={node} />
+      <Title level={5} style={{ marginTop: 0 }}>
+        {t('topologyCpuComposition')}
+      </Title>
+      <CpuComponentIconGrid node={node} />
       {(node.devices?.length ?? 0) > 0 && (
         <>
           <Title level={5} style={{ marginTop: 0 }}>

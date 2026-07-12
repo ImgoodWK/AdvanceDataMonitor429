@@ -175,19 +175,45 @@ public class StorageHandler {
     }
 
     private static NanoHTTPD.Response handleNetworks(String playerUuid, Map<String, String> params) {
+        SnapshotScheduler.markActive(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID);
         boolean forceRefresh = params != null
             && ("1".equals(params.get("refresh")) || "true".equalsIgnoreCase(params.get("refresh")));
         if (forceRefresh) {
             AeSnapshotCollector.invalidateConnectors(playerUuid);
+            SnapshotCache.instance()
+                .invalidateType(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_NETWORKS);
+            SnapshotScheduler.forceCollectNetworks(playerUuid);
         }
-        List<NetworkInfo> networks = AeSnapshotCollector
-            .findNetworksBlocking(playerUuid, COLLECT_TIMEOUT_MS, forceRefresh);
-        if (networks == null) {
-            networks = java.util.Collections.emptyList();
+
+        @SuppressWarnings("unchecked")
+        List<NetworkInfo> fresh = SnapshotCache.instance()
+            .get(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_NETWORKS);
+        long ts = SnapshotCache.instance()
+            .timestampOf(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_NETWORKS);
+        if (fresh != null) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"networks\":" + GSON.toJson(fresh)
+                    + ",\"cached\":true,\"timestamp\":"
+                    + ts
+                    + "}");
         }
+        @SuppressWarnings("unchecked")
+        List<NetworkInfo> stale = SnapshotCache.instance()
+            .getStale(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_NETWORKS);
+        if (stale != null) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"networks\":" + GSON.toJson(stale)
+                    + ",\"cached\":false,\"timestamp\":"
+                    + ts
+                    + "}");
+        }
+        // Kick async collect; do not block HTTP on main-thread findNetworks
+        SnapshotScheduler.forceCollectNetworks(playerUuid);
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"networks\":" + GSON.toJson(networks) + "}");
+            "{\"success\":true,\"networks\":[],\"cached\":false,\"timestamp\":0}");
     }
 
     // ---- helpers ----

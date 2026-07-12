@@ -43,6 +43,15 @@ export function nodeById(index: Map<string, TopologyNodeDto>, nodeId: string): T
   return index.get(nodeId) ?? null;
 }
 
+function isMultiblockMarker(marker: WorldMapMarkerDto): boolean {
+  return (
+    marker.type === 'cpu' ||
+    marker.subtype === 'cpu' ||
+    marker.type === 'controller' ||
+    marker.subtype === 'controller'
+  );
+}
+
 function cpuAnchorPriority(marker: WorldMapMarkerDto): number {
   const hay = `${marker.displayName ?? ''} ${marker.subtype ?? ''} ${marker.type ?? ''}`.toLowerCase();
   if (hay.includes('monitor')) return 0;
@@ -51,26 +60,46 @@ function cpuAnchorPriority(marker: WorldMapMarkerDto): number {
   return 3;
 }
 
-/** Merge multi-block crafting CPU markers into one icon per node (monitor > coprocessor > storage > first). */
-export function consolidateCpuMarkers(markers: WorldMapMarkerDto[]): WorldMapMarkerDto[] {
-  const cpuGroups = new Map<string, WorldMapMarkerDto[]>();
+function controllerAnchorCompare(a: WorldMapMarkerDto, b: WorldMapMarkerDto): number {
+  if (a.y !== b.y) return a.y - b.y;
+  if (a.x !== b.x) return a.x - b.x;
+  return a.z - b.z;
+}
+
+function pickMultiblockAnchor(group: WorldMapMarkerDto[]): WorldMapMarkerDto {
+  const first = group[0];
+  const isController =
+    first.type === 'controller' ||
+    first.subtype === 'controller';
+  if (isController) {
+    return group.slice().sort(controllerAnchorCompare)[0];
+  }
+  return group.slice().sort((a, b) => cpuAnchorPriority(a) - cpuAnchorPriority(b))[0];
+}
+
+/** Merge multi-block CPU/controller markers into one icon per node. */
+export function consolidateMultiblockMarkers(markers: WorldMapMarkerDto[]): WorldMapMarkerDto[] {
+  const groups = new Map<string, WorldMapMarkerDto[]>();
   const out: WorldMapMarkerDto[] = [];
   for (const marker of markers) {
-    const isCpu = marker.type === 'cpu' || marker.subtype === 'cpu';
-    if (!isCpu) {
+    if (!isMultiblockMarker(marker)) {
       out.push(marker);
       continue;
     }
-    const list = cpuGroups.get(marker.nodeId) ?? [];
+    const list = groups.get(marker.nodeId) ?? [];
     list.push(marker);
-    cpuGroups.set(marker.nodeId, list);
+    groups.set(marker.nodeId, list);
   }
-  for (const group of cpuGroups.values()) {
+  for (const group of groups.values()) {
     if (group.length === 0) continue;
-    const best = group.slice().sort((a, b) => cpuAnchorPriority(a) - cpuAnchorPriority(b))[0];
-    out.push(best);
+    out.push(pickMultiblockAnchor(group));
   }
   return out;
+}
+
+/** @deprecated Use {@link consolidateMultiblockMarkers} */
+export function consolidateCpuMarkers(markers: WorldMapMarkerDto[]): WorldMapMarkerDto[] {
+  return consolidateMultiblockMarkers(markers);
 }
 
 export function filterMarkersByCategoryVisibility(
@@ -83,31 +112,47 @@ export function filterMarkersByCategoryVisibility(
   });
 }
 
+function isMultiblockNode(node: TopologyNodeDto): boolean {
+  return (
+    node.type === 'cpu' ||
+    node.subtype === 'cpu' ||
+    node.type === 'controller' ||
+    node.subtype === 'controller'
+  );
+}
+
 /** Client-side fallback flatten when markers API is unavailable. */
 export function flattenMarkersFromSnapshot(snapshot: TopologySnapshotDto): WorldMapMarkerDto[] {
   const raw: WorldMapMarkerDto[] = [];
   for (const node of snapshot.nodes ?? []) {
-    const isCpu = node.type === 'cpu' || node.subtype === 'cpu';
     const devices = node.devices ?? [];
-    if (isCpu && devices.length > 0) {
-      const anchor = devices
-        .map((device) => ({
-          device,
-          priority: cpuAnchorPriority({
-            id: '',
-            nodeId: node.id,
-            type: node.type,
-            subtype: node.subtype,
-            displayName: device.displayName || node.displayName || node.type,
-            iconItemId: device.iconItemId || node.iconItemId || '',
-            x: device.x,
-            y: device.y,
-            z: device.z,
-            dim: device.dim,
-            channelCost: device.channelCost ?? node.channelCost ?? 0,
-          }),
-        }))
-        .sort((a, b) => a.priority - b.priority)[0]?.device;
+    if (isMultiblockNode(node) && devices.length > 0) {
+      const isController = node.type === 'controller' || node.subtype === 'controller';
+      const anchor = isController
+        ? devices
+            .map((device) => ({
+              device,
+              priority: device.y * 1_000_000 + device.x * 1_000 + device.z,
+            }))
+            .sort((a, b) => a.priority - b.priority)[0]?.device
+        : devices
+            .map((device) => ({
+              device,
+              priority: cpuAnchorPriority({
+                id: '',
+                nodeId: node.id,
+                type: node.type,
+                subtype: node.subtype,
+                displayName: device.displayName || node.displayName || node.type,
+                iconItemId: device.iconItemId || node.iconItemId || '',
+                x: device.x,
+                y: device.y,
+                z: device.z,
+                dim: device.dim,
+                channelCost: device.channelCost ?? node.channelCost ?? 0,
+              }),
+            }))
+            .sort((a, b) => a.priority - b.priority)[0]?.device;
       const device = anchor ?? devices[0];
       raw.push({
         id: `${device.dim}:${device.x}:${device.y}:${device.z}`,

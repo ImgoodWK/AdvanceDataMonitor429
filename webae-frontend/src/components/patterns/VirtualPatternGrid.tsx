@@ -14,14 +14,12 @@ function patternEntryKey(p: PatternListEntryDto): string {
 
 interface VirtualPatternGridProps {
   patterns: PatternListEntryDto[];
-  selectedIds: Set<string>;
   t: (k: string) => string;
   hasMore: boolean;
   loadingMore: boolean;
   onScrollEnd: () => void;
-  onToggle: (id: string) => void;
   onInfo: (p: PatternListEntryDto) => void;
-  onAddToBatch: (p: PatternListEntryDto) => void;
+  onOrder: (p: PatternListEntryDto) => void;
 }
 
 /**
@@ -30,14 +28,12 @@ interface VirtualPatternGridProps {
  */
 export function VirtualPatternGrid({
   patterns,
-  selectedIds,
   t,
   hasMore,
   loadingMore,
   onScrollEnd,
-  onToggle,
   onInfo,
-  onAddToBatch,
+  onOrder,
 }: VirtualPatternGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [columnCount, setColumnCount] = useState(4);
@@ -137,11 +133,9 @@ export function VirtualPatternGrid({
                   <PatternOrderCard
                     key={key}
                     pattern={p}
-                    selected={selectedIds.has(key)}
                     t={t}
-                    onToggle={() => onToggle(key)}
                     onInfo={() => onInfo(p)}
-                    onAddToBatch={() => onAddToBatch(p)}
+                    onOrder={() => onOrder(p)}
                   />
                 );
               })}

@@ -15,46 +15,23 @@ import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.dto.GtMachineDto;
 import com.imgood.textech.webae.dto.GtMachineListDto;
+import com.imgood.textech.webae.dto.NetworkMetricEntityHistoryDto;
 import com.imgood.textech.webae.dto.NetworkMetricFluidHistoryDto;
 import com.imgood.textech.webae.dto.NetworkMetricHistoryDto;
+import com.imgood.textech.webae.dto.NetworkMetricItemHistoryDto;
 import com.imgood.textech.webae.dto.StorageDto;
+import com.imgood.textech.webae.dto.StorageDto.CpuEntry;
 import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
+import com.imgood.textech.webae.dto.StorageDto.ItemEntry;
 
 /**
- * Network-wide scalar metric sampler for the WebAE dashboard trend charts.
- *
- * <p>
- * Singleton modeled after {@link com.imgood.textech.webae.power.PowerSampler} and
- * {@link com.imgood.textech.webae.player.PlayerOnlineSampler}. Hooked into
- * {@link com.imgood.textech.handler.HandlerTick#onServerTick} (called after
- * {@code PowerSampler}).
- * </p>
- *
- * <p>
- * Unlike {@code PowerSampler}, this sampler does <em>not</em> query AE directly.
- * Instead it reads already-collected {@link StorageDto} / {@link GtMachineListDto}
- * snapshots from {@link SnapshotCache} (kept fresh by {@code SnapshotScheduler}) and
- * extracts scalar metrics (item/fluid/essentia counts, bytes usage, CPU busy ratio,
- * GT machine active count) into a sliding window per (player, network).
- * </p>
- *
- * <p>
- * Sampling cadence: {@link Config#webMetricSampleIntervalMs} (default 10s).
- * Rolling window: {@link Config#webMetricSampleWindowSeconds} (default 300s, 60–3600s).
- * Idle cleanup: records untouched for 120s are evicted (same policy as PowerSampler).
- * </p>
- *
- * <p>
- * Thread safety: sampling runs on the server thread; HTTP reads run on worker
- * threads. Per-record {@link Deque} is wrapped with synchronized blocks; the
- * records map is a {@link ConcurrentHashMap}.
- * </p>
+ * Network-wide scalar metric sampler for the WebAE dashboard trend charts,
+ * plus optional per-item / per-fluid / per-entity (CPU/GT) pinned tracks.
  */
 public class NetworkMetricSampler {
 
     private static final NetworkMetricSampler INSTANCE = new NetworkMetricSampler();
     private static final long IDLE_EVICT_MS = 120_000L;
-    private static final int MAX_TRACKED_FLUIDS = 10;
 
     private final ConcurrentHashMap<String, NetworkMetricRecord> records = new ConcurrentHashMap<String, NetworkMetricRecord>();
     private SnapshotCache snapshotCache;
@@ -70,10 +47,6 @@ public class NetworkMetricSampler {
         this.snapshotCache = cache;
     }
 
-    /**
-     * Called from HandlerTick (main thread) every server tick.
-     * Periodically samples all active records from the snapshot cache.
-     */
     public void onServerTick() {
         long now = System.currentTimeMillis();
         long interval = Config.webMetricSampleIntervalMs > 0 ? Config.webMetricSampleIntervalMs : 10_000L;
@@ -111,10 +84,6 @@ public class NetworkMetricSampler {
         }
     }
 
-    /**
-     * Read the latest cached storage + GT snapshots and append a scalar sample.
-     * Missing snapshots are skipped (no point recorded) to keep trend lines honest.
-     */
     private void sampleFromCache(String playerUuid, int networkId, NetworkMetricRecord record, long now) {
         StorageDto storage = snapshotCache.getStale(playerUuid, networkId, SnapshotScheduler.TYPE_STORAGE);
         GtMachineListDto machines = snapshotCache.getStale(playerUuid, networkId, SnapshotScheduler.TYPE_GT_MACHINES);
@@ -192,14 +161,9 @@ public class NetworkMetricSampler {
                 gtMachineCount,
                 gtActiveCount));
 
-        if (storage != null && storage.fluids != null) {
-            record.sampleTrackedFluids(storage, now);
-        }
+        record.sampleTrackedPins(storage, machines, now);
     }
 
-    /**
-     * Mark a (player, network) as actively viewed so the sampler keeps sampling it.
-     */
     public void markActive(String playerUuid, int networkId) {
         String key = playerUuid + ":" + networkId;
         NetworkMetricRecord record = records.get(key);
@@ -212,10 +176,6 @@ public class NetworkMetricSampler {
         record.lastAccessTime = System.currentTimeMillis();
     }
 
-    /**
-     * @return history for the given (player, network), or {@code null} if no record yet.
-     *         The returned DTO is a snapshot copy safe to serialize on a worker thread.
-     */
     public NetworkMetricHistoryDto getHistory(String playerUuid, int networkId) {
         String key = playerUuid + ":" + networkId;
         NetworkMetricRecord record = records.get(key);
@@ -225,29 +185,22 @@ public class NetworkMetricSampler {
     }
 
     /**
-     * Register up to {@link #MAX_TRACKED_FLUIDS} fluid names for per-fluid trend sampling.
+     * @return error message when over limit, or {@code null} on success.
      */
-    public void registerTrackedFluids(String playerUuid, int networkId, List<String> fluidNames) {
+    public String registerTrackedFluids(String playerUuid, int networkId, List<String> fluidNames) {
         if (fluidNames == null || fluidNames.isEmpty()) {
-            return;
+            return null;
         }
-        String key = playerUuid + ":" + networkId;
-        NetworkMetricRecord record = records.get(key);
+        ensureRecord(playerUuid, networkId);
+        NetworkMetricRecord record = records.get(playerUuid + ":" + networkId);
         if (record == null) {
-            markActive(playerUuid, networkId);
-            record = records.get(key);
+            return "Sampler record unavailable";
         }
-        if (record != null) {
-            record.registerFluids(fluidNames);
-        }
+        return record.registerFluids(fluidNames, countTracksForPlayer(playerUuid), maxFluidTracks(), maxGlobalTracks());
     }
 
-    /**
-     * @return per-fluid history snapshot, or {@code null} when no record exists yet.
-     */
     public NetworkMetricFluidHistoryDto getFluidHistory(String playerUuid, int networkId) {
-        String key = playerUuid + ":" + networkId;
-        NetworkMetricRecord record = records.get(key);
+        NetworkMetricRecord record = records.get(playerUuid + ":" + networkId);
         if (record == null) {
             return null;
         }
@@ -255,11 +208,91 @@ public class NetworkMetricSampler {
         return record.toFluidDto(networkId);
     }
 
-    // ---- inner types ----
+    /**
+     * @return error message when over limit, or {@code null} on success.
+     */
+    public String registerTrackedItems(String playerUuid, int networkId, List<String> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return null;
+        }
+        ensureRecord(playerUuid, networkId);
+        NetworkMetricRecord record = records.get(playerUuid + ":" + networkId);
+        if (record == null) {
+            return "Sampler record unavailable";
+        }
+        return record.registerItems(itemIds, countTracksForPlayer(playerUuid), maxItemTracks(), maxGlobalTracks());
+    }
+
+    public NetworkMetricItemHistoryDto getItemHistory(String playerUuid, int networkId) {
+        NetworkMetricRecord record = records.get(playerUuid + ":" + networkId);
+        if (record == null) {
+            return null;
+        }
+        record.lastAccessTime = System.currentTimeMillis();
+        return record.toItemDto(networkId);
+    }
 
     /**
-     * A single scalar sampling point for a network.
+     * @param fieldByEntity entityKey → optional metric field (null = default)
+     * @return error message when over limit, or {@code null} on success.
      */
+    public String registerTrackedEntities(String playerUuid, int networkId, Map<String, String> fieldByEntity) {
+        if (fieldByEntity == null || fieldByEntity.isEmpty()) {
+            return null;
+        }
+        ensureRecord(playerUuid, networkId);
+        NetworkMetricRecord record = records.get(playerUuid + ":" + networkId);
+        if (record == null) {
+            return "Sampler record unavailable";
+        }
+        return record
+            .registerEntities(fieldByEntity, countTracksForPlayer(playerUuid), maxEntityTracks(), maxGlobalTracks());
+    }
+
+    public NetworkMetricEntityHistoryDto getEntityHistory(String playerUuid, int networkId) {
+        NetworkMetricRecord record = records.get(playerUuid + ":" + networkId);
+        if (record == null) {
+            return null;
+        }
+        record.lastAccessTime = System.currentTimeMillis();
+        return record.toEntityDto(networkId);
+    }
+
+    private void ensureRecord(String playerUuid, int networkId) {
+        markActive(playerUuid, networkId);
+    }
+
+    private int countTracksForPlayer(String playerUuid) {
+        int total = 0;
+        String prefix = playerUuid + ":";
+        for (java.util.Map.Entry<String, NetworkMetricRecord> entry : records.entrySet()) {
+            if (entry.getKey()
+                .startsWith(prefix)) {
+                total += entry.getValue()
+                    .trackedCount();
+            }
+        }
+        return total;
+    }
+
+    private static int maxItemTracks() {
+        return Config.webDashboardMaxItemTracks > 0 ? Config.webDashboardMaxItemTracks : 16;
+    }
+
+    private static int maxFluidTracks() {
+        return Config.webDashboardMaxFluidTracks > 0 ? Config.webDashboardMaxFluidTracks : 16;
+    }
+
+    private static int maxEntityTracks() {
+        return Config.webDashboardMaxEntityTracks > 0 ? Config.webDashboardMaxEntityTracks : 16;
+    }
+
+    private static int maxGlobalTracks() {
+        return Config.webDashboardMaxTracksGlobal > 0 ? Config.webDashboardMaxTracksGlobal : 32;
+    }
+
+    // ---- inner types ----
+
     public static final class NetworkMetricSample {
 
         public final long ts;
@@ -297,14 +330,16 @@ public class NetworkMetricSampler {
         }
     }
 
-    /**
-     * Per-(player, network) sliding window of scalar samples.
-     */
     public static final class NetworkMetricRecord {
 
         private final Deque<NetworkMetricSample> samples = new ArrayDeque<NetworkMetricSample>();
-        private final Map<String, Deque<FluidSamplePoint>> fluidSamples = new HashMap<String, Deque<FluidSamplePoint>>();
+        private final Map<String, Deque<LongSamplePoint>> fluidSamples = new HashMap<String, Deque<LongSamplePoint>>();
         private final LinkedHashSet<String> trackedFluidKeys = new LinkedHashSet<String>();
+        private final Map<String, Deque<LongSamplePoint>> itemSamples = new HashMap<String, Deque<LongSamplePoint>>();
+        private final LinkedHashSet<String> trackedItemKeys = new LinkedHashSet<String>();
+        private final Map<String, Deque<DoubleSamplePoint>> entitySamples = new HashMap<String, Deque<DoubleSamplePoint>>();
+        private final Map<String, String> entityFields = new HashMap<String, String>();
+        private final LinkedHashSet<String> trackedEntityKeys = new LinkedHashSet<String>();
         private final long windowMs;
         private volatile long lastAccessTime;
 
@@ -313,46 +348,188 @@ public class NetworkMetricSampler {
             this.lastAccessTime = System.currentTimeMillis();
         }
 
-        public synchronized void registerFluids(List<String> fluidNames) {
+        public synchronized int trackedCount() {
+            return trackedFluidKeys.size() + trackedItemKeys.size() + trackedEntityKeys.size();
+        }
+
+        public synchronized String registerFluids(List<String> fluidNames, int playerTrackCount, int maxCategory,
+            int maxGlobal) {
             for (String name : fluidNames) {
                 if (name == null) {
                     continue;
                 }
                 String key = name.trim()
                     .toLowerCase();
-                if (key.isEmpty()) {
+                if (key.isEmpty() || trackedFluidKeys.contains(key)) {
                     continue;
                 }
-                if (trackedFluidKeys.contains(key)) {
-                    continue;
+                if (trackedFluidKeys.size() >= maxCategory) {
+                    return "Fluid track limit reached (" + maxCategory
+                        + "). Raise webConsole.dashboardMaxFluidTracks or remove pins.";
                 }
-                if (trackedFluidKeys.size() >= MAX_TRACKED_FLUIDS) {
-                    break;
+                if (playerTrackCount + 1 > maxGlobal) {
+                    return "Global track limit reached (" + maxGlobal
+                        + "). Raise webConsole.dashboardMaxTracksGlobal or remove pins.";
                 }
                 trackedFluidKeys.add(key);
+                playerTrackCount++;
                 if (!fluidSamples.containsKey(key)) {
-                    fluidSamples.put(key, new ArrayDeque<FluidSamplePoint>());
+                    fluidSamples.put(key, new ArrayDeque<LongSamplePoint>());
+                }
+            }
+            return null;
+        }
+
+        public synchronized String registerItems(List<String> itemIds, int playerTrackCount, int maxCategory,
+            int maxGlobal) {
+            for (String raw : itemIds) {
+                if (raw == null) {
+                    continue;
+                }
+                String key = normalizeItemKey(raw);
+                if (key.isEmpty() || trackedItemKeys.contains(key)) {
+                    continue;
+                }
+                if (trackedItemKeys.size() >= maxCategory) {
+                    return "Item track limit reached (" + maxCategory
+                        + "). Raise webConsole.dashboardMaxItemTracks or remove pins.";
+                }
+                if (playerTrackCount + 1 > maxGlobal) {
+                    return "Global track limit reached (" + maxGlobal
+                        + "). Raise webConsole.dashboardMaxTracksGlobal or remove pins.";
+                }
+                trackedItemKeys.add(key);
+                playerTrackCount++;
+                if (!itemSamples.containsKey(key)) {
+                    itemSamples.put(key, new ArrayDeque<LongSamplePoint>());
+                }
+            }
+            return null;
+        }
+
+        public synchronized String registerEntities(Map<String, String> fieldByEntity, int playerTrackCount,
+            int maxCategory, int maxGlobal) {
+            for (Map.Entry<String, String> e : fieldByEntity.entrySet()) {
+                if (e.getKey() == null) {
+                    continue;
+                }
+                String key = e.getKey()
+                    .trim();
+                if (key.isEmpty() || trackedEntityKeys.contains(key)) {
+                    if (!key.isEmpty() && e.getValue() != null && !e.getValue()
+                        .isEmpty()) {
+                        entityFields.put(key, e.getValue()
+                            .trim());
+                    }
+                    continue;
+                }
+                if (!key.startsWith("cpu:") && !key.startsWith("gt:")) {
+                    continue;
+                }
+                if (trackedEntityKeys.size() >= maxCategory) {
+                    return "Entity track limit reached (" + maxCategory
+                        + "). Raise webConsole.dashboardMaxEntityTracks or remove pins.";
+                }
+                if (playerTrackCount + 1 > maxGlobal) {
+                    return "Global track limit reached (" + maxGlobal
+                        + "). Raise webConsole.dashboardMaxTracksGlobal or remove pins.";
+                }
+                trackedEntityKeys.add(key);
+                playerTrackCount++;
+                String field = e.getValue();
+                if (field == null || field.trim()
+                    .isEmpty()) {
+                    field = key.startsWith("cpu:") ? "craftingProgress" : "progressPercent";
+                } else {
+                    field = field.trim();
+                }
+                entityFields.put(key, field);
+                if (!entitySamples.containsKey(key)) {
+                    entitySamples.put(key, new ArrayDeque<DoubleSamplePoint>());
+                }
+            }
+            return null;
+        }
+
+        public synchronized void sampleTrackedPins(StorageDto storage, GtMachineListDto machines, long now) {
+            long cutoff = now - windowMs;
+            if (!trackedFluidKeys.isEmpty() && storage != null) {
+                for (String fluidKey : trackedFluidKeys) {
+                    Deque<LongSamplePoint> deque = ensureLongDeque(fluidSamples, fluidKey);
+                    deque.addLast(new LongSamplePoint(now, findFluidAmount(storage, fluidKey)));
+                    trimLong(deque, cutoff);
+                }
+            }
+            if (!trackedItemKeys.isEmpty()) {
+                Map<String, Long> amountById = buildItemAmountMap(storage);
+                for (String itemKey : trackedItemKeys) {
+                    Deque<LongSamplePoint> deque = ensureLongDeque(itemSamples, itemKey);
+                    Long amt = amountById.get(itemKey);
+                    deque.addLast(new LongSamplePoint(now, amt != null ? amt.longValue() : 0L));
+                    trimLong(deque, cutoff);
+                }
+            }
+            if (!trackedEntityKeys.isEmpty()) {
+                for (String entityKey : trackedEntityKeys) {
+                    Deque<DoubleSamplePoint> deque = entitySamples.get(entityKey);
+                    if (deque == null) {
+                        deque = new ArrayDeque<DoubleSamplePoint>();
+                        entitySamples.put(entityKey, deque);
+                    }
+                    String field = entityFields.get(entityKey);
+                    double value = resolveEntityValue(entityKey, field, storage, machines);
+                    deque.addLast(new DoubleSamplePoint(now, value));
+                    while (!deque.isEmpty() && deque.peekFirst().ts < cutoff) {
+                        deque.pollFirst();
+                    }
                 }
             }
         }
 
-        public synchronized void sampleTrackedFluids(StorageDto storage, long now) {
-            if (trackedFluidKeys.isEmpty()) {
-                return;
+        private static Deque<LongSamplePoint> ensureLongDeque(Map<String, Deque<LongSamplePoint>> map, String key) {
+            Deque<LongSamplePoint> deque = map.get(key);
+            if (deque == null) {
+                deque = new ArrayDeque<LongSamplePoint>();
+                map.put(key, deque);
             }
-            long cutoff = now - windowMs;
-            for (String fluidKey : trackedFluidKeys) {
-                Deque<FluidSamplePoint> deque = fluidSamples.get(fluidKey);
-                if (deque == null) {
-                    deque = new ArrayDeque<FluidSamplePoint>();
-                    fluidSamples.put(fluidKey, deque);
+            return deque;
+        }
+
+        private static void trimLong(Deque<LongSamplePoint> deque, long cutoff) {
+            while (!deque.isEmpty() && deque.peekFirst().ts < cutoff) {
+                deque.pollFirst();
+            }
+        }
+
+        private static String normalizeItemKey(String raw) {
+            return raw.trim();
+        }
+
+        private static Map<String, Long> buildItemAmountMap(StorageDto storage) {
+            Map<String, Long> map = new HashMap<String, Long>();
+            if (storage == null || storage.items == null) {
+                return map;
+            }
+            for (ItemEntry item : storage.items) {
+                if (item == null) {
+                    continue;
                 }
-                long amount = findFluidAmount(storage, fluidKey);
-                deque.addLast(new FluidSamplePoint(now, amount));
-                while (!deque.isEmpty() && deque.peekFirst().ts < cutoff) {
-                    deque.pollFirst();
+                if (item.itemId != null && !item.itemId.isEmpty()) {
+                    Long prev = map.get(item.itemId);
+                    map.put(item.itemId, Long.valueOf((prev != null ? prev.longValue() : 0L) + item.amount));
+                }
+                if (item.registryName != null && !item.registryName.isEmpty()) {
+                    String regKey = item.meta > 0 ? item.registryName + ":" + item.meta : item.registryName;
+                    Long prev = map.get(regKey);
+                    map.put(regKey, Long.valueOf((prev != null ? prev.longValue() : 0L) + item.amount));
+                    if (item.meta == 0) {
+                        String withZero = item.registryName + ":0";
+                        Long prev0 = map.get(withZero);
+                        map.put(withZero, Long.valueOf((prev0 != null ? prev0.longValue() : 0L) + item.amount));
+                    }
                 }
             }
+            return map;
         }
 
         private static long findFluidAmount(StorageDto storage, String needle) {
@@ -365,27 +542,180 @@ public class NetworkMetricSampler {
                     continue;
                 }
                 if (fluid.fluidName.toLowerCase()
-                    .contains(needle)) {
+                    .contains(needle) || fluid.fluidName.equalsIgnoreCase(needle)) {
                     total += fluid.amount;
                 }
             }
             return total;
         }
 
+        private static double resolveEntityValue(String entityKey, String field, StorageDto storage,
+            GtMachineListDto machines) {
+            if (entityKey.startsWith("cpu:")) {
+                String name = entityKey.substring(4);
+                CpuEntry cpu = findCpu(storage, name);
+                if (cpu == null) {
+                    return 0.0;
+                }
+                return readCpuField(cpu, field);
+            }
+            if (entityKey.startsWith("gt:")) {
+                GtMachineDto m = findGt(machines, entityKey.substring(3));
+                if (m == null) {
+                    return 0.0;
+                }
+                return readGtField(m, field);
+            }
+            return 0.0;
+        }
+
+        private static CpuEntry findCpu(StorageDto storage, String name) {
+            if (storage == null || storage.cpus == null || name == null) {
+                return null;
+            }
+            for (CpuEntry cpu : storage.cpus) {
+                if (cpu != null && name.equals(cpu.name)) {
+                    return cpu;
+                }
+            }
+            return null;
+        }
+
+        private static GtMachineDto findGt(GtMachineListDto machines, String coordKey) {
+            if (machines == null || machines.machines == null || coordKey == null) {
+                return null;
+            }
+            // coordKey = dim:x:y:z
+            String[] parts = coordKey.split(":");
+            if (parts.length != 4) {
+                return null;
+            }
+            try {
+                int dim = Integer.parseInt(parts[0]);
+                int x = Integer.parseInt(parts[1]);
+                int y = Integer.parseInt(parts[2]);
+                int z = Integer.parseInt(parts[3]);
+                for (GtMachineDto m : machines.machines) {
+                    if (m != null && m.dim == dim && m.x == x && m.y == y && m.z == z) {
+                        return m;
+                    }
+                }
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+            return null;
+        }
+
+        private static double readCpuField(CpuEntry cpu, String field) {
+            if (field == null) {
+                return cpu.craftingProgress;
+            }
+            if ("craftingProgress".equals(field) || "progress".equals(field)) {
+                return cpu.craftingProgress;
+            }
+            if ("storedItems".equals(field)) {
+                return (double) cpu.storedItems;
+            }
+            if ("maxItems".equals(field)) {
+                return (double) cpu.maxItems;
+            }
+            if ("usedStorage".equals(field)) {
+                return (double) cpu.usedStorage;
+            }
+            if ("availableStorage".equals(field)) {
+                return (double) cpu.availableStorage;
+            }
+            if ("coProcessors".equals(field)) {
+                return (double) cpu.coProcessors;
+            }
+            if ("elapsedTime".equals(field)) {
+                return (double) cpu.elapsedTime;
+            }
+            if ("isBusy".equals(field)) {
+                return cpu.isBusy ? 1.0 : 0.0;
+            }
+            if ("finalOutputAmount".equals(field)) {
+                return (double) cpu.finalOutputAmount;
+            }
+            return cpu.craftingProgress;
+        }
+
+        private static double readGtField(GtMachineDto m, String field) {
+            if (field == null || "progressPercent".equals(field) || "progress".equals(field)) {
+                return m.progressPercent;
+            }
+            if ("storedEU".equals(field)) {
+                return (double) m.storedEU;
+            }
+            if ("euCapacity".equals(field)) {
+                return (double) m.euCapacity;
+            }
+            if ("isActive".equals(field)) {
+                return m.isActive ? 1.0 : 0.0;
+            }
+            if ("parallelCount".equals(field)) {
+                return (double) m.parallelCount;
+            }
+            if ("progressTime".equals(field)) {
+                return (double) m.progressTime;
+            }
+            if ("maxProgressTime".equals(field)) {
+                return (double) m.maxProgressTime;
+            }
+            return m.progressPercent;
+        }
+
         public synchronized NetworkMetricFluidHistoryDto toFluidDto(int networkId) {
             NetworkMetricFluidHistoryDto dto = new NetworkMetricFluidHistoryDto();
             dto.networkId = networkId;
             for (String fluidKey : trackedFluidKeys) {
-                Deque<FluidSamplePoint> deque = fluidSamples.get(fluidKey);
+                Deque<LongSamplePoint> deque = fluidSamples.get(fluidKey);
                 if (deque == null || deque.isEmpty()) {
                     continue;
                 }
                 NetworkMetricFluidHistoryDto.FluidSeries series = new NetworkMetricFluidHistoryDto.FluidSeries();
-                for (FluidSamplePoint p : deque) {
-                    series.timestamps.add(p.ts);
-                    series.amounts.add(p.amount);
+                for (LongSamplePoint p : deque) {
+                    series.timestamps.add(Long.valueOf(p.ts));
+                    series.amounts.add(Long.valueOf(p.amount));
                 }
                 dto.fluids.put(fluidKey, series);
+            }
+            return dto;
+        }
+
+        public synchronized NetworkMetricItemHistoryDto toItemDto(int networkId) {
+            NetworkMetricItemHistoryDto dto = new NetworkMetricItemHistoryDto();
+            dto.networkId = networkId;
+            for (String itemKey : trackedItemKeys) {
+                Deque<LongSamplePoint> deque = itemSamples.get(itemKey);
+                if (deque == null || deque.isEmpty()) {
+                    continue;
+                }
+                NetworkMetricItemHistoryDto.ItemSeries series = new NetworkMetricItemHistoryDto.ItemSeries();
+                for (LongSamplePoint p : deque) {
+                    series.timestamps.add(Long.valueOf(p.ts));
+                    series.amounts.add(Long.valueOf(p.amount));
+                }
+                dto.items.put(itemKey, series);
+            }
+            return dto;
+        }
+
+        public synchronized NetworkMetricEntityHistoryDto toEntityDto(int networkId) {
+            NetworkMetricEntityHistoryDto dto = new NetworkMetricEntityHistoryDto();
+            dto.networkId = networkId;
+            for (String entityKey : trackedEntityKeys) {
+                Deque<DoubleSamplePoint> deque = entitySamples.get(entityKey);
+                if (deque == null || deque.isEmpty()) {
+                    continue;
+                }
+                NetworkMetricEntityHistoryDto.EntitySeries series = new NetworkMetricEntityHistoryDto.EntitySeries();
+                series.field = entityFields.get(entityKey);
+                for (DoubleSamplePoint p : deque) {
+                    series.timestamps.add(Long.valueOf(p.ts));
+                    series.values.add(Double.valueOf(p.value));
+                }
+                dto.entities.put(entityKey, series);
             }
             return dto;
         }
@@ -417,20 +747,20 @@ public class NetworkMetricSampler {
             List<Integer> gtMachineCount = new ArrayList<Integer>(n);
             List<Integer> gtActiveCount = new ArrayList<Integer>(n);
             for (NetworkMetricSample s : samples) {
-                ts.add(s.ts);
-                itemCount.add(s.itemCount);
-                fluidCount.add(s.fluidCount);
-                essentiaCount.add(s.essentiaCount);
-                bytesUsed.add(s.bytesUsed);
-                bytesMax.add(s.bytesMax);
-                bytesPercent.add(s.bytesPercent);
-                itemTotal.add(s.itemTotal);
-                fluidTotal.add(s.fluidTotal);
-                activeCpu.add(s.activeCpu);
-                busyCpu.add(s.busyCpu);
-                cpuBusyRatio.add(s.cpuBusyRatio);
-                gtMachineCount.add(s.gtMachineCount);
-                gtActiveCount.add(s.gtActiveCount);
+                ts.add(Long.valueOf(s.ts));
+                itemCount.add(Integer.valueOf(s.itemCount));
+                fluidCount.add(Integer.valueOf(s.fluidCount));
+                essentiaCount.add(Integer.valueOf(s.essentiaCount));
+                bytesUsed.add(Long.valueOf(s.bytesUsed));
+                bytesMax.add(Long.valueOf(s.bytesMax));
+                bytesPercent.add(Double.valueOf(s.bytesPercent));
+                itemTotal.add(Long.valueOf(s.itemTotal));
+                fluidTotal.add(Long.valueOf(s.fluidTotal));
+                activeCpu.add(Integer.valueOf(s.activeCpu));
+                busyCpu.add(Integer.valueOf(s.busyCpu));
+                cpuBusyRatio.add(Double.valueOf(s.cpuBusyRatio));
+                gtMachineCount.add(Integer.valueOf(s.gtMachineCount));
+                gtActiveCount.add(Integer.valueOf(s.gtActiveCount));
             }
             dto.timestamps = ts;
             dto.itemCountHistory = itemCount;
@@ -450,14 +780,25 @@ public class NetworkMetricSampler {
         }
     }
 
-    static final class FluidSamplePoint {
+    static final class LongSamplePoint {
 
         final long ts;
         final long amount;
 
-        FluidSamplePoint(long ts, long amount) {
+        LongSamplePoint(long ts, long amount) {
             this.ts = ts;
             this.amount = amount;
+        }
+    }
+
+    static final class DoubleSamplePoint {
+
+        final long ts;
+        final double value;
+
+        DoubleSamplePoint(long ts, double value) {
+            this.ts = ts;
+            this.value = value;
         }
     }
 }

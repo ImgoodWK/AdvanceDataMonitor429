@@ -147,6 +147,16 @@ public class Config {
     public static int webMetricSampleIntervalMs = 10000;
     /** Network metric rolling window in seconds. Default 300, range 60-3600. */
     public static int webMetricSampleWindowSeconds = 300;
+    /** Max pins/series per dashboard widget. Default 10, range 1-50. */
+    public static int webDashboardMaxTracksPerWidget = 10;
+    /** Max active tracks per player across all dashboard widgets. Default 32, range 1-256. */
+    public static int webDashboardMaxTracksGlobal = 32;
+    /** Max item amount history tracks per (player, network). Default 16, range 1-64. */
+    public static int webDashboardMaxItemTracks = 16;
+    /** Max fluid amount history tracks per (player, network). Default 16, range 1-64. */
+    public static int webDashboardMaxFluidTracks = 16;
+    /** Max CPU/GT entity history tracks per (player, network). Default 16, range 1-64. */
+    public static int webDashboardMaxEntityTracks = 16;
     /** Unified refresh interval (ms) for server collection and frontend polling. Default 1000, range 1000-60000. */
     public static int webRefreshIntervalMs = 1000;
     /** GT machine collection interval (ms). Default 10000, range 1000-60000. */
@@ -169,6 +179,12 @@ public class Config {
     public static int webIconUploadChunksPerTick = 4;
     /** Minimum interval (ms) between in-game chat progress messages during icon export. Default 3000. */
     public static int webIconProgressChatIntervalMs = 3000;
+    /** Whether missing icons may be rendered synchronously by an online MC client (HTTP 404 path). Default false (async queue + SSE). */
+    public static boolean webIconDirectRenderEnabled = false;
+    /** Max wait (ms) for a direct icon render before falling back to async lazy queue. Default 3000. */
+    public static int webIconDirectRenderTimeoutMs = 3000;
+    /** Direct icon renders processed per client tick. Default 4. */
+    public static int webIconDirectRenderPerTick = 4;
     /** Default page size for GET /api/patterns/browse. Default 80, range 20-200. */
     public static int webPatternBrowsePageSize = 80;
     /** Maximum total patterns returned by browse API before truncation. Default 20000. */
@@ -306,6 +322,21 @@ public class Config {
     public static boolean webDebugSynthesis = false;
     /** Pattern list/encode/inject logging (PatternListHandler, PatternEncoder, PatternInjector). */
     public static boolean webDebugPatterns = false;
+    /** Verbose WebAE perf profiler summaries → logs/textech/webae-perf.log */
+    public static boolean webDebugPerf = false;
+
+    /** Enable WebAE quest book (BetterQuesting). Default true; ineffective when BQ mod absent. */
+    public static boolean webQuestEnabled = true;
+    /** Allow Web quest item/fluid submission. Default true. */
+    public static boolean webQuestSubmitEnabled = true;
+    /** Allow Web chain submit (prerequisites then target). Default true. */
+    public static boolean webQuestChainSubmitEnabled = true;
+    /** Max distinct item stacks per quest submit action. Default 64. */
+    public static int webQuestSubmitMaxStacks = 64;
+    /** Craft-then-submit wait timeout in ms. Default 120000. */
+    public static long webQuestCraftWaitTimeoutMs = 120_000L;
+    /** Quest definition cache TTL in seconds. Default 300. */
+    public static int webQuestCacheTtlSec = 300;
 
     // --- grapple ---
     public static int grappleHintRange = 24;

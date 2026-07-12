@@ -14,7 +14,8 @@ public enum WorldMapAeCategory {
     ENERGY(7),
     P2P(8),
     BUS(9),
-    OTHER(10);
+    OTHER(10),
+    CPU(11);
 
     public final int id;
 
@@ -51,6 +52,10 @@ public enum WorldMapAeCategory {
         }
         if (containsAny(hay, "me_drive", "iodrive", "drive")) {
             return DRIVE;
+        }
+        if (containsAny(hay, "craftingcpu", "craftingtile", "blockcrafting", "crafting co-processor",
+            "crafting storage", "crafting monitor", "crafting unit", "coprocessor", "accelerator")) {
+            return CPU;
         }
         if (containsAny(hay, "cell", "storage", "chest")) {
             return CELL;

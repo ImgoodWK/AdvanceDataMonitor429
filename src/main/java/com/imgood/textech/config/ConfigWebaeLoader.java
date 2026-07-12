@@ -105,6 +105,41 @@ public final class ConfigWebaeLoader {
             60,
             3600,
             ConfigDescriptions.get("webConsole", "metricSampleWindowSeconds"));
+        Config.webDashboardMaxTracksPerWidget = configuration.getInt(
+            "dashboardMaxTracksPerWidget",
+            "webConsole",
+            Config.webDashboardMaxTracksPerWidget,
+            1,
+            50,
+            ConfigDescriptions.get("webConsole", "dashboardMaxTracksPerWidget"));
+        Config.webDashboardMaxTracksGlobal = configuration.getInt(
+            "dashboardMaxTracksGlobal",
+            "webConsole",
+            Config.webDashboardMaxTracksGlobal,
+            1,
+            256,
+            ConfigDescriptions.get("webConsole", "dashboardMaxTracksGlobal"));
+        Config.webDashboardMaxItemTracks = configuration.getInt(
+            "dashboardMaxItemTracks",
+            "webConsole",
+            Config.webDashboardMaxItemTracks,
+            1,
+            64,
+            ConfigDescriptions.get("webConsole", "dashboardMaxItemTracks"));
+        Config.webDashboardMaxFluidTracks = configuration.getInt(
+            "dashboardMaxFluidTracks",
+            "webConsole",
+            Config.webDashboardMaxFluidTracks,
+            1,
+            64,
+            ConfigDescriptions.get("webConsole", "dashboardMaxFluidTracks"));
+        Config.webDashboardMaxEntityTracks = configuration.getInt(
+            "dashboardMaxEntityTracks",
+            "webConsole",
+            Config.webDashboardMaxEntityTracks,
+            1,
+            64,
+            ConfigDescriptions.get("webConsole", "dashboardMaxEntityTracks"));
         Config.webGtDefaultScanRadius = configuration.getInt(
             "gtDefaultScanRadius",
             "webConsole",
@@ -183,6 +218,25 @@ public final class ConfigWebaeLoader {
             500,
             60000,
             ConfigDescriptions.get("webConsole", "iconProgressChatIntervalMs"));
+        Config.webIconDirectRenderEnabled = configuration.getBoolean(
+            "iconDirectRenderEnabled",
+            "webConsole",
+            Config.webIconDirectRenderEnabled,
+            ConfigDescriptions.get("webConsole", "iconDirectRenderEnabled"));
+        Config.webIconDirectRenderTimeoutMs = configuration.getInt(
+            "iconDirectRenderTimeoutMs",
+            "webConsole",
+            Config.webIconDirectRenderTimeoutMs,
+            500,
+            15000,
+            ConfigDescriptions.get("webConsole", "iconDirectRenderTimeoutMs"));
+        Config.webIconDirectRenderPerTick = configuration.getInt(
+            "iconDirectRenderPerTick",
+            "webConsole",
+            Config.webIconDirectRenderPerTick,
+            1,
+            32,
+            ConfigDescriptions.get("webConsole", "iconDirectRenderPerTick"));
         Config.webPatternBrowsePageSize = configuration.getInt(
             "patternBrowsePageSize",
             "webConsole",
@@ -556,6 +610,42 @@ public final class ConfigWebaeLoader {
             Config.worldMapAePartWidthBlocks,
             0.0D,
             1.0D);
+        Config.webQuestEnabled = configuration.getBoolean(
+            "questEnabled",
+            "webConsole",
+            Config.webQuestEnabled,
+            ConfigDescriptions.get("webConsole", "questEnabled"));
+        Config.webQuestSubmitEnabled = configuration.getBoolean(
+            "questSubmitEnabled",
+            "webConsole",
+            Config.webQuestSubmitEnabled,
+            ConfigDescriptions.get("webConsole", "questSubmitEnabled"));
+        Config.webQuestChainSubmitEnabled = configuration.getBoolean(
+            "questChainSubmitEnabled",
+            "webConsole",
+            Config.webQuestChainSubmitEnabled,
+            ConfigDescriptions.get("webConsole", "questChainSubmitEnabled"));
+        Config.webQuestSubmitMaxStacks = configuration.getInt(
+            "questSubmitMaxStacks",
+            "webConsole",
+            Config.webQuestSubmitMaxStacks,
+            1,
+            512,
+            ConfigDescriptions.get("webConsole", "questSubmitMaxStacks"));
+        Config.webQuestCraftWaitTimeoutMs = configuration.getInt(
+            "questCraftWaitTimeoutMs",
+            "webConsole",
+            (int) Config.webQuestCraftWaitTimeoutMs,
+            5000,
+            600000,
+            ConfigDescriptions.get("webConsole", "questCraftWaitTimeoutMs"));
+        Config.webQuestCacheTtlSec = configuration.getInt(
+            "questCacheTtlSec",
+            "webConsole",
+            Config.webQuestCacheTtlSec,
+            30,
+            3600,
+            ConfigDescriptions.get("webConsole", "questCacheTtlSec"));
     }
 
     private static double parseDoubleClamped(String raw, double defaultValue, double min, double max) {

@@ -158,6 +158,28 @@ export function gtStatusTagColor(statusText: string): string {
   return map[statusText] || 'default';
 }
 
+/** Map server GT statusText to i18n key; unknown values return null. */
+export function gtStatusI18nKey(statusText: string): string | null {
+  const map: Record<string, string> = {
+    Running: 'running',
+    Idle: 'idle',
+    Error: 'error',
+    Problem: 'problem',
+    Maintenance: 'maintenance',
+  };
+  return map[statusText] || null;
+}
+
+/** Localized GT status label; falls back to raw statusText. */
+export function gtStatusLabel(
+  statusText: string,
+  t: (key: string) => string,
+): string {
+  if (!statusText) return '-';
+  const key = gtStatusI18nKey(statusText);
+  return key ? t(key) : statusText;
+}
+
 export function aggregateCpuStats(cpus: StorageCpu[]) {
   const total = cpus.length;
   const active = cpus.filter((c) => c.isBusy).length;

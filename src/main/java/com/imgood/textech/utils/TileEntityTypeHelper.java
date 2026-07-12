@@ -3,9 +3,7 @@ package com.imgood.textech.utils;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 
 import appeng.helpers.AEMultiTile;
 
@@ -15,19 +13,19 @@ public class TileEntityTypeHelper {
         AE,
         NOMAL,
         ADV_NETWORKLINK,
+        /** @deprecated merged into ADV_NETWORKLINK; kept for switch compatibility */
+        @Deprecated
         ADV_CRAFTINGLINK,
+        /** @deprecated merged into ADV_NETWORKLINK; kept for switch compatibility */
+        @Deprecated
         ADV_STORAGELINK
     }
 
     public static TileEntityType getTileEntityType(TileEntity te) {
         if (te instanceof AEMultiTile) {
             return TileEntityType.AE;
-        } else if (te instanceof TileEntityAdvanceCraftingLink) {
-            return TileEntityType.ADV_CRAFTINGLINK;
         } else if (te instanceof TileEntityAdvanceNetworkLink) {
             return TileEntityType.ADV_NETWORKLINK;
-        } else if (te instanceof TileEntityAdvanceStorageLink) {
-            return TileEntityType.ADV_STORAGELINK;
         }
         return TileEntityType.NOMAL;
     }
@@ -38,18 +36,22 @@ public class TileEntityTypeHelper {
         int z = blockPos.getZ();
         World world = blockPos.getWorld();
         TileEntity te = world.getTileEntity(x, y, z);
-        switch (getTileEntityType(te)) {
-            case AE:
-                return TileEntityType.AE;
-            case ADV_NETWORKLINK:
-                return TileEntityType.ADV_NETWORKLINK;
-            case ADV_CRAFTINGLINK:
-                return TileEntityType.ADV_CRAFTINGLINK;
-            case ADV_STORAGELINK:
-                return TileEntityType.ADV_STORAGELINK;
-            case NOMAL:
-            default:
-                return TileEntityType.NOMAL;
+        return getTileEntityType(te);
+    }
+
+    /**
+     * Route monitor sub-GUI / tick collection by binding dataType when target is the unified AE link.
+     */
+    public static String resolveLinkDisplayMode(String dataType) {
+        if (dataType == null) {
+            return "network";
         }
+        if ("crafting".equals(dataType)) {
+            return "crafting";
+        }
+        if ("storage".equals(dataType)) {
+            return "storage";
+        }
+        return "network";
     }
 }

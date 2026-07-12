@@ -16,8 +16,10 @@ const VALID_PAGES: PageId[] = [
   'linkscanner',
   'monitorbindings',
   'planner',
+  'quests',
   'assistant',
   'alertshistory',
+  'diagnostics',
   'settings',
 ];
 

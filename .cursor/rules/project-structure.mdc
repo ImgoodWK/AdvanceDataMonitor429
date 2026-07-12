@@ -29,22 +29,22 @@ alwaysApply: true
 |----|--------|------|
 | 根包 | 7 | `@Mod` 主类、`Config` 门面、`TeXTechDataDir` + `TeXTechDataMigration` 运行时数据路径与启动迁移、`ClientProxy` / `CommonProxy` |
 | `config/` | 15 | 配置分节加载（debug / compat / ai / voice / assistant / plannerHud / dataLoom / superOrange / matterBallDecompressor / grapple / webConsole + `ConfigWebaeDebugLoader` WebAE 分功能 debug 开关 + `ConfigWebAlertsLoader` 加载 `web-alerts.json` + `ConfigWebOrderTemplatesLoader` 加载 `web-order-templates.json`） |
-| `compat/` | 22 | GTNH / AE2 版本兼容（`ae/` 门面 + `legacy/` + `native_/`）+ `gt/` GT 兼容 |
-| `assistant/` | 45 | AI 助手核心（意图解析 / AE2 查询 / 合成下单 / 内置联网搜索 / 计划 / 菜单状态缓存），详见 `ai-assistant.mdc` |
+| `compat/` | 25 | GTNH / AE2 版本兼容（`ae/` 门面 + `legacy/` + `native_/`）+ `gt/` GT 兼容 + `bq/` BetterQuesting 反射桥（可选模组） |
+| `assistant/` | 46 | AI 助手核心（意图解析 / AE2 查询 / 合成下单 / 内置联网搜索 / 计划 / 菜单状态缓存），详见 `ai-assistant.mdc` |
 | `items/` | 55 | 物品（含 `items/cell/` 33 文件；`AbstractPocketUpgradeCard` 口袋升级卡基类） |
-| `blocks/` | 7 | 自定义方块（含可选调试方块 `BlockUiFrameworkDebug`） |
-| `tileentity/` | 9 | TileEntity + 接口 + 辅助（含 `IOwnableTile`、`MatterBallDecompressorUpgrades`） |
-| `gui/` | 61 | GUI 组件与界面（根 2 + `framework/` 15 + `custom/` 7 + `guiscreen/` 25 + `manual/` 6 + `container/` 5 + `handler/` 1），详见 `gui-guidelines.mdc` |
+| `blocks/` | 5 | 自定义方块（含可选调试方块 `BlockUiFrameworkDebug`；原网络/存储/合成三类 Link 已合并为 `BlockAdvanceNetworkLink`） |
+| `tileentity/` | 7 | TileEntity + 接口 + 辅助（含 `IOwnableTile`、`MatterBallDecompressorUpgrades`；统一 `TileEntityAdvanceNetworkLink`） |
+| `gui/` | 64 | GUI 组件与界面（根 2 + `framework/` 15 + `custom/` 7 + `guiscreen/` 28 + `manual/` 6 + `container/` 5 + `handler/` 1），详见 `gui-guidelines.mdc` |
 | `handler/` | 38 | 事件处理器与服务端逻辑（挂索 / 星空剑 / 口袋 / 扫描器 / 编织元件 / AE 连接器性能调度 / StorageLink 按需刷新 / ItemCount 去抖 / WebAE 服务生命周期 / WebAE 玩家追踪 / WebAE 聊天收集） |
 | `entity/` | 8 | 实体类 only（不含 Render） |
-| `renders/` | 35 | 全部客户端渲染（TESR / 实体 Render / 物品 Render / HUD / 语音助手 HUD / 手册页面 / 解压器 GUI） |
+| `renders/` | 33 | 全部客户端渲染（TESR / 实体 Render / 物品 Render / HUD / 语音助手 HUD / 手册页面 / 解压器 GUI） |
 | `network/` | 28 | 网络通信（24 packet + 6 handler，含 `PacketHandlers`；WebAE 专用包见 `webae/network/` 13 文件），详见 `network-packets.mdc` |
 | `voice/` | 9 | 语音识别（Vosk / HTTP STT / 音频处理） |
 | `loader/` | 10 | 注册加载器（Block / Item / TE / Entity / Handler / Gui / Render / Network / Recipe）+ `ModMigrationHandler` |
-| `client/` | 29 | 客户端事件与缓存（挂索 / 口袋 / AI / 按键 / 语音 / 星空剑 / WebAE token 剪贴板 / `client/worldmap/` 三源采集、consent offer 缓存、`WorldMapCaptureClientState`、SP 直读 Worker、HD 瓦片 Worker + 探索预热捕获）；图标/配方上传仅 `/admweb`（`KeyBindings.triggerIconUpload`/`uploadNeiRecipes`） |
+| `client/` | 30 | 客户端事件与缓存（挂索 / 口袋 / AI / 按键 / 语音 / 星空剑 / WebAE token 剪贴板 / `client/worldmap/` 三源采集、consent offer 缓存、`WorldMapCaptureClientState`、SP 直读 Worker、HD 瓦片 Worker + 探索预热捕获 / `client/icon/IconDirectCaptureClientWorker` 图标直渲）；图标/配方上传仅 `/admweb`（`KeyBindings.triggerIconUpload`/`uploadNeiRecipes`） |
 | `command/` | 6 | 命令（`/textech`、`/admassistant`、`/admai`、`/admweb`；共享 `TeXTechCommandBase` + lang `adm.command.*`） |
 | `utils/` | 14 | 工具类（NBT / JSON / `BlockPos` / 物质团簇 / 解压器容量与速度 / AE 加速倍率 / AE 安全检查 / `ModLogFiles` 日志路径等） |
-| `webae/` | 268 | WebAE 嵌入式 HTTP 控制台（…）。`webae/worldmap/` 含三源采集链、`WorldMapDirectTileResolver` SP 直读；`webae/worldmap/engine/` 为 Dynmap 级 UV/光线追踪/patch/atlas 渲染核心；`webae/worldmap/dynmap/` 为 GWM/Dynmap 外部瓦片桥接 + chunk 裁剪 fallback。
+| `webae/` | 280+ | WebAE 嵌入式 HTTP 控制台（…）。`webae/perf/WebAePerfProfiler` + `GET /api/server/diagnostics`；`SnapshotScheduler` 扩展 networks/p2p/cells/monitor/scanner/patterns_rich 缓存直读。`webae/quest/` BetterQuesting 任务书 API/提交；`webae/worldmap/` 含三源采集链、`WorldMapDirectTileResolver` SP 直读；`webae/worldmap/engine/` 为 Dynmap 级 UV/光线追踪/patch/atlas 渲染核心；`webae/worldmap/dynmap/` 为 GWM/Dynmap 外部瓦片桥接 + chunk 裁剪 fallback；`webae/icon/IconNesqlStyleRenderer` NESQL 同款图标直渲 + `IconDirectCaptureBridge` HTTP 直渲桥接。
 | `mixin/` | 7 | Mixin 注入（仅客户端：GUI / NEI 兼容 / tooltip Invoker / 口袋角标） |
 
 ## 资源文件 (src/main/resources/)
@@ -76,7 +76,7 @@ assets/textech/
 
 ## WebAE 前端 (`webae-frontend/`)
 
-React 18 + TS + antd 5 + Vite 5 + cytoscape.js；`npm run build` → `assets/textech/webae/`。规范见 `webae-frontend.mdc`；页面/组件/hooks 索引见 `docs/zh/webae/开发者手册.md` §6。拓扑世界地图：`TopologyWorldMapView` + `WorldMapClusterPopup`/`WorldMapLegendRail`/`TopologyNodeDetailDrawer` + `useWorldMapTileLoader`/`useWorldMapProgress`/`useNonPassiveWheelZoom` + `WorldMapChunkStatusOverlay`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`。
+React 18 + TS + antd 5 + Vite 5 + cytoscape.js；`npm run build` → `assets/textech/webae/`。规范见 `webae-frontend.mdc` / `webae-icon-performance.mdc`；页面/组件/hooks 索引见 `docs/zh/webae/开发者手册.md` §6。`pages/Diagnostics.tsx` + `useServerDiagnostics` 轮询 `/api/server/diagnostics`。`useIconPackAutoSync` 默认关闭（仅用户开启或设置页「同步整包」才 bulk）；`iconPrefetch.ts` 仅本地 IndexedDB 预热 + `fillMissingIconsFromServer` 可见补缺；图标 mode 活跃仅 `nei`（`iconModeFallbackChain`）。拓扑世界地图：`TopologyWorldMapView` + `WorldMapClusterPopup`/`WorldMapLegendRail`/`TopologyNodeDetailDrawer` + `useWorldMapTileLoader`/`useWorldMapProgress`/`useNonPassiveWheelZoom` + `WorldMapChunkStatusOverlay`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`。
 
 ## 修改指南：改动某种功能时应该看哪些文件
 
@@ -99,7 +99,7 @@ React 18 + TS + antd 5 + Vite 5 + cytoscape.js；`npm run build` → `assets/tex
 | 修改/新增手册 GUI（搜索、滚动、高亮） | `gui/guiscreen/GuiManual.java` → `gui/manual/ManualSearch*.java` / `ManualTextHighlighter.java` → `renders/ManualPageRenderer.java` → `getting_started` lang 文案 → `docs/` §3.12 / §5.10 |
 | 新增手册内容 | `assets/textech/manual/` JSON (12 章: `getting_started` / `monitor_blocks` / `monitor_tools` / `data_monitor` / `dimensional_pocket` / `data_loom_cells` / `grapple_system` / `combat_special` / `ai_assistant` / `planner` / `config_reference` / `web_console`) → `gui/guiscreen/GuiManual.java` → `renders/ManualPageRenderer.java` → `assets/textech/lang/en_US.lang` + `zh_CN.lang` → 本规则 |
 | 新增 AE2 存储元件 | `items/cell/` → `loader/LoaderItem.java` → `TeXTech.java` (postInit) → `assets/textech/lang/en_US.lang` + `zh_CN.lang` → 手册 JSON |
-| 修改/新增 Web 控制台功能 | `webae-frontend/`（React+antd 前端源码，`npm run build` 输出到 `assets/textech/webae/`）→ `webae/WebConsoleServer.java` → `webae/api/WebApiRouter.java` → `webae/auth/`（`WebAuthMiddleware` 支持 header + query token）→ `config/ConfigWebaeLoader.java` → `command/CommandWebConsole.java` → `handler/WebAeServerHandler.java` → `assets/textech/webae/`（构建产物）→ lang → 手册 JSON → `docs/zh/webae/` + `docs/en/webae/` |
+| 修改/新增 Web 控制台功能 | `webae-frontend/`（React+antd 前端源码，`npm run build` 输出到 `assets/textech/webae/`）→ `webae/WebConsoleServer.java` → `webae/api/WebApiRouter.java` → `webae/api/handler/QuestHandler.java`（BetterQuesting 任务书）→ `webae/quest/` + `compat/bq/` → `webae/auth/`（`WebAuthMiddleware` 支持 header + query token）→ `config/ConfigWebaeLoader.java` → `command/CommandWebConsole.java` → `handler/WebAeServerHandler.java` → `assets/textech/webae/`（构建产物）→ lang → 手册 JSON → `docs/zh/webae/` + `docs/en/webae/`。**新增 `/api/*` 必须接入性能诊断**（见 `webae-perf-diagnostics.mdc`：经 `WebApiRouter` 自动 `recordHttp`；主线程采集补 `recordCollect`；可在「性能诊断」页验证） |
 
 ## 本规则同步维护要求
 

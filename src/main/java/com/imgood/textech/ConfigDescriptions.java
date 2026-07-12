@@ -399,6 +399,21 @@ public final class ConfigDescriptions {
             "IconMissingQueue 懒加载图标请求每 tick 派发数。默认 8，范围 1-64。");
         put(
             "webConsole",
+            "iconDirectRenderEnabled",
+            "When true, missing icons may be rendered synchronously by an online MC client on HTTP 404 (blocks up to iconDirectRenderTimeoutMs). Default false; prefer async IconMissingQueue + SSE icon-ready.",
+            "为 true 时，HTTP 404 缺图可由在线 MC 客户端同步渲染（最多阻塞 iconDirectRenderTimeoutMs）。默认 false；日常请用异步 IconMissingQueue + SSE icon-ready。");
+        put(
+            "webConsole",
+            "iconDirectRenderTimeoutMs",
+            "Max wait (ms) for a direct icon render before falling back to async lazy queue. Default 3000.",
+            "直渲图标最大等待毫秒数，超时后回退异步懒加载队列。默认 3000。");
+        put(
+            "webConsole",
+            "iconDirectRenderPerTick",
+            "Direct icon renders processed per client tick. Default 4, range 1-32.",
+            "客户端每 tick 处理的直渲图标数。默认 4，范围 1-32。");
+        put(
+            "webConsole",
             "powerSampleWindowSeconds",
             "Sliding window duration in seconds for power/steam rate calculation. Longer windows give smoother rates. Default 60.",
             "电力/蒸汽速率计算的滑动窗口时长（秒）。窗口越长速率越平滑。默认 60 秒。");
@@ -412,6 +427,31 @@ public final class ConfigDescriptions {
             "metricSampleWindowSeconds",
             "Rolling window duration in seconds for network metric history. Longer windows retain more trend history at the cost of memory. Valid values: 60-3600. Default 300.",
             "网络指标历史的滚动窗口时长（秒）。窗口越长保留的趋势历史越多，但内存占用更高。有效值：60-3600。默认 300。");
+        put(
+            "webConsole",
+            "dashboardMaxTracksPerWidget",
+            "Maximum pins/series allowed on a single dashboard widget. Valid values: 1-50. Default 10.",
+            "单个仪表盘组件允许的钉选/序列上限。有效值：1-50。默认 10。");
+        put(
+            "webConsole",
+            "dashboardMaxTracksGlobal",
+            "Maximum active item/fluid/entity tracks per player across all dashboard widgets. Valid values: 1-256. Default 32.",
+            "同一玩家在所有仪表盘组件上同时活跃的物品/流体/实体跟踪总数上限。有效值：1-256。默认 32。");
+        put(
+            "webConsole",
+            "dashboardMaxItemTracks",
+            "Maximum per-item amount history tracks per (player, network). Valid values: 1-64. Default 16.",
+            "每个（玩家, 网络）的物品存量历史跟踪上限。有效值：1-64。默认 16。");
+        put(
+            "webConsole",
+            "dashboardMaxFluidTracks",
+            "Maximum per-fluid amount history tracks per (player, network). Valid values: 1-64. Default 16.",
+            "每个（玩家, 网络）的流体存量历史跟踪上限。有效值：1-64。默认 16。");
+        put(
+            "webConsole",
+            "dashboardMaxEntityTracks",
+            "Maximum CPU/GT entity history tracks per (player, network). Valid values: 1-64. Default 16.",
+            "每个（玩家, 网络）的 CPU/GT 实体历史跟踪上限。有效值：1-64。默认 16。");
         put(
             "webConsole",
             "gtDefaultScanRadius",
@@ -812,6 +852,41 @@ public final class ConfigDescriptions {
             "webaePatterns",
             "Enable verbose WebAE pattern list/encode/inject logging to logs/textech/webae-patterns.log. Default false.",
             "启用 WebAE 样板列表/编码/注入详细日志，写入 logs/textech/webae-patterns.log。默认关闭。");
+        put(
+            "debug",
+            "webaePerf",
+            "Enable periodic WebAE performance profiler summaries to logs/textech/webae-perf.log (slow tick/HTTP still logged regardless). Default false.",
+            "启用 WebAE 性能诊断周期性摘要，写入 logs/textech/webae-perf.log（慢 tick/HTTP 仍会无条件记录）。默认关闭。");
+        put(
+            "webConsole",
+            "questEnabled",
+            "Enable WebAE BetterQuesting quest book page and read APIs. Default true.",
+            "启用 WebAE BetterQuesting 任务书页面与只读 API。默认开启。");
+        put(
+            "webConsole",
+            "questSubmitEnabled",
+            "Allow Web quest item/fluid submission from AE network. Default true.",
+            "允许从 AE 网络在 Web 端提交任务物品/流体。默认开启。");
+        put(
+            "webConsole",
+            "questChainSubmitEnabled",
+            "Allow one-click chain submit that walks prerequisites in order (craft/submit). Default true.",
+            "允许一键链式提交：按拓扑顺序完成前置任务（可合成后提交）。默认开启。");
+        put(
+            "webConsole",
+            "questSubmitMaxStacks",
+            "Max distinct item stacks per quest submit action. Default 64.",
+            "单次任务提交的最大物品种类数。默认 64。");
+        put(
+            "webConsole",
+            "questCraftWaitTimeoutMs",
+            "Craft-then-submit orchestration timeout in milliseconds. Default 120000.",
+            "合成后提交编排的超时时间（毫秒）。默认 120000。");
+        put(
+            "webConsole",
+            "questCacheTtlSec",
+            "Quest definition cache TTL in seconds. Default 300.",
+            "任务定义缓存 TTL（秒）。默认 300。");
     }
 
     private ConfigDescriptions() {}

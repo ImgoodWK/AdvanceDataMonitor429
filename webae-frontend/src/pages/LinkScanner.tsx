@@ -10,8 +10,6 @@ const TYPE_OPTIONS = [
   { value: '', labelKey: 'scannerAllTypes' },
   { value: 'data_monitor', labelKey: 'scannerTypeDataMonitor' },
   { value: 'network_link', labelKey: 'scannerTypeNetworkLink' },
-  { value: 'storage_link', labelKey: 'scannerTypeStorageLink' },
-  { value: 'crafting_link', labelKey: 'scannerTypeCraftingLink' },
 ];
 
 export function LinkScannerPage() {

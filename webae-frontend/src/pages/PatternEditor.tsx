@@ -1,42 +1,37 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Card,
-  Input,
-  InputNumber,
   Button,
-  Select,
-  Switch,
   Space,
-  Empty,
   Tag,
-  Tooltip,
   Checkbox,
   Row,
   Col,
-  Divider,
-  AutoComplete,
   Spin,
   Modal,
   Typography,
 } from 'antd';
 import {
-  SearchOutlined,
   PlusOutlined,
   DeleteOutlined,
-  ThunderboltOutlined,
   DownloadOutlined,
-  RollbackOutlined,
   SaveOutlined,
   ReloadOutlined,
-  InfoCircleOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { getApiClient } from '@/api/client';
 import { Icon } from '@/components/Icon';
-import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
-import { groupByPrimaryOutput, resolveIconItemId } from '@/utils/recipe';
-import { VirtualPatternList } from '@/components/patterns/VirtualPatternList';
+import { groupByPrimaryOutput } from '@/utils/recipe';
+import { SelectableListRow } from '@/components/common/SelectableListRow';
+import { PageShell } from '@/components/Layout/PageShell';
+import { PatternListSidebar } from '@/components/patterns/PatternListSidebar';
+import { PatternInjectPanel } from '@/components/patterns/PatternInjectPanel';
+import { PatternEditorForm } from '@/components/patterns/PatternEditorForm';
+import type {
+  PatternEditorInputSlot,
+  PatternEditorOutputRow,
+} from '@/components/patterns/patternEditorTypes';
 import type {
   PatternListEntryDto,
   PatternListResponse,
@@ -54,33 +49,7 @@ import type {
 
 const { Text } = Typography;
 
-interface InputSlot {
-  registryName: string;
-  displayName: string;
-  meta: number;
-  stackSize: number;
-  isFluid: boolean;
-}
-
-interface OutputRow {
-  key: string;
-  registryName: string;
-  displayName: string;
-  stackSize: number;
-  /** Original recipe output amount — multiplier cannot go below this. */
-  originalStackSize: number;
-  isFluid: boolean;
-}
-
-const MULTIPLIERS = [2, 4, 8, 16, 32, 64] as const;
-
-/** 由 PatternItemEntry 生成图标 id（兼容流体前缀）。 */
-function entryIconId(entry: { registryName: string; meta?: number; isFluid?: boolean } | null): string | undefined {
-  if (!entry || !entry.registryName) return undefined;
-  if (entry.isFluid) return 'fluid:' + entry.registryName;
-  return entry.meta && entry.meta > 0 ? `${entry.registryName}:${entry.meta}` : entry.registryName;
-}
-
+import { patternEntryIconId } from '@/utils/icon';
 /** 从 patternId 解析坐标与槽位（与后端格式一致：`<x>:<y>:<z>:<dim>#<slot>`）。 */
 function parsePatternId(id: string): { x: number; y: number; z: number; dim: number; slot: number } | null {
   const hashIdx = id.indexOf('#');
@@ -116,8 +85,8 @@ export function PatternEditorPage() {
   const [substitute, setSubstitute] = useState(false);
   const [beSubstitute, setBeSubstitute] = useState(false);
   const [author, setAuthor] = useState('');
-  const [inputs, setInputs] = useState<(InputSlot | null)[]>(new Array(27).fill(null));
-  const [outputs, setOutputs] = useState<OutputRow[]>([
+  const [inputs, setInputs] = useState<(PatternEditorInputSlot | null)[]>(new Array(27).fill(null));
+  const [outputs, setOutputs] = useState<PatternEditorOutputRow[]>([
     {
       key: '1',
       registryName: '',
@@ -263,7 +232,7 @@ export function PatternEditorPage() {
     setSubstitute(p.substitute);
     setBeSubstitute(p.beSubstitute);
     setAuthor(p.author || '');
-    const newInputs = new Array(27).fill(null) as (InputSlot | null)[];
+    const newInputs = new Array(27).fill(null) as (PatternEditorInputSlot | null)[];
     (p.inputs || []).forEach((inp, i) => {
       if (i < 27 && inp && inp.registryName) {
         newInputs[i] = {
@@ -459,7 +428,7 @@ export function PatternEditorPage() {
     async (consumeBlank: boolean) => {
       const validOutputs = outputs.filter((o) => o.registryName.trim());
       if (validOutputs.length === 0) {
-        notify(t('patternEncoded'), 'error');
+        notify(t('patternEncodeFailed'), 'error');
         return;
       }
       try {
@@ -478,7 +447,7 @@ export function PatternEditorPage() {
           setBlankConsumedOnEncode(consumeBlank);
           notify(t('patternEncoded'), 'success');
         } else if (!data.success) {
-          notify(data.message || t('patternEncoded'), 'error');
+          notify(data.message || t('patternEncodeFailed'), 'error');
         }
       } catch (e) {
         notify((e as Error).message, 'error');
@@ -579,7 +548,7 @@ export function PatternEditorPage() {
   };
 
   const useRecipe = (recipe: RecipeDto) => {
-    const newInputs = new Array(27).fill(null) as (InputSlot | null)[];
+    const newInputs = new Array(27).fill(null) as (PatternEditorInputSlot | null)[];
     recipe.inputs.forEach((inp, i) => {
       if (i < 27 && inp.registryName) {
         newInputs[i] = {
@@ -639,124 +608,142 @@ export function PatternEditorPage() {
 
   const markDirty = () => setDirty(true);
 
+  const handleSuggestSelect = useCallback(
+    (entry: RecipeSuggestEntry) => {
+      setItemSearch(entry.registryName);
+      if (pickTarget?.kind === 'slot') {
+        fillSlotFromEntry(pickTarget.slot, entry);
+        setPickTarget(null);
+      } else if (pickTarget?.kind === 'output') {
+        const next = [...outputs];
+        next[next.length - 1] = {
+          ...next[next.length - 1],
+          registryName: entry.registryName,
+          displayName: entry.displayName || entry.registryName,
+          originalStackSize: next[next.length - 1].originalStackSize || 1,
+        };
+        setOutputs(next);
+        markDirty();
+        setPickTarget(null);
+      }
+      searchRecipes(entry.registryName);
+    },
+    [pickTarget, outputs, searchRecipes]
+  );
+
+  const handleSlotClick = useCallback(
+    (slot: number) => {
+      setPickTarget({ kind: 'slot', slot });
+      setItemSearch(inputs[slot]?.registryName || '');
+    },
+    [inputs]
+  );
+
+  const handleOutputChange = useCallback((index: number, row: PatternEditorOutputRow) => {
+    const next = [...outputs];
+    next[index] = row;
+    setOutputs(next);
+    markDirty();
+  }, [outputs]);
+
+  const handleAddOutput = useCallback(() => {
+    outputKeySeq.current += 1;
+    setOutputs([
+      ...outputs,
+      {
+        key: String(outputKeySeq.current),
+        registryName: '',
+        displayName: '',
+        stackSize: 1,
+        originalStackSize: 1,
+        isFluid: false,
+      },
+    ]);
+    markDirty();
+  }, [outputs]);
+
   // ---- 渲染样板列表项 ----
   const renderPatternItem = (p: PatternListEntryDto) => {
     const isSelected = selectedIds.has(p.patternId);
     const isActive = currentPattern?.patternId === p.patternId;
     const primaryOutput = p.outputs[0];
-    const iconId = entryIconId(primaryOutput);
-    const inputCount = (p.inputs || []).filter((i) => i && i.registryName).length;
+    const iconId = patternEntryIconId(primaryOutput);
     return (
-      <div
+      <SelectableListRow
+        variant="card"
+        as="div"
+        active={isActive}
         onClick={() => loadDetail(p)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 8px',
-          cursor: 'pointer',
-          border: isActive ? '1px solid var(--accent)' : '1px solid var(--border)',
-          borderRadius: 4,
-          background: isActive ? 'var(--accent-dim)' : 'var(--bg-secondary)',
-          marginBottom: 4,
-          height: '100%',
-          boxSizing: 'border-box',
-        }}
+        leading={
+          <>
+            <Checkbox
+              checked={isSelected}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSelect(p.patternId);
+              }}
+              onChange={() => {}}
+            />
+            {iconId ? <Icon id={iconId} size={28} alt={primaryOutput?.displayName || ''} /> : null}
+          </>
+        }
+        trailing={
+          <Space size={4}>
+            {p.crafting && <Tag color="blue" style={{ fontSize: '0.65rem' }}>{t('crafting')}</Tag>}
+            {p.substitute && <Tag color="orange" style={{ fontSize: '0.65rem' }}>S</Tag>}
+            {p.beSubstitute && <Tag color="purple" style={{ fontSize: '0.65rem' }}>B</Tag>}
+          </Space>
+        }
       >
-        <Checkbox
-          checked={isSelected}
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSelect(p.patternId);
-          }}
-          onChange={() => {}}
-        />
-        {iconId && <Icon id={iconId} size={28} alt={primaryOutput?.displayName || ''} />}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {primaryOutput?.displayName || primaryOutput?.registryName || `#${p.slotIndex}`}
-            {primaryOutput && primaryOutput.stackSize > 1 ? ` ×${primaryOutput.stackSize}` : ''}
-          </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {p.sourceInterfaceName} · {t('patternSlot')} {p.slotIndex}
-            {p.author ? ` · ${p.author}` : ''}
-          </div>
+        <div className="webae-list-row-title">
+          {primaryOutput?.displayName || primaryOutput?.registryName || `#${p.slotIndex}`}
+          {primaryOutput && primaryOutput.stackSize > 1 ? ` ×${primaryOutput.stackSize}` : ''}
         </div>
-        <Space size={4}>
-          {p.crafting && <Tag color="blue" style={{ fontSize: '0.65rem' }}>{t('crafting')}</Tag>}
-          {p.substitute && <Tag color="orange" style={{ fontSize: '0.65rem' }}>S</Tag>}
-          {p.beSubstitute && <Tag color="purple" style={{ fontSize: '0.65rem' }}>B</Tag>}
-        </Space>
-      </div>
+        <div className="webae-text-2xs webae-list-row-subtitle">
+          {p.sourceInterfaceName} · {t('patternSlot')} {p.slotIndex}
+          {p.author ? ` · ${p.author}` : ''}
+        </div>
+      </SelectableListRow>
     );
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--layout-card-gap, 14px)' }}>
-      <Card
-        title={t('patternEditor')}
-        extra={
-          <Space>
-            <Button icon={<ReloadOutlined />} size="small" onClick={fetchPatterns} loading={loadingList}>
-              {t('patternRefresh')}
-            </Button>
-            <Button icon={<PlusOutlined />} size="small" type="primary" onClick={newPattern}>
-              {t('patternNew')}
-            </Button>
-          </Space>
-        }
-      >
+    <PageShell
+      title={t('patternEditor')}
+      actions={
+        <Space>
+          <Button icon={<ReloadOutlined />} size="small" onClick={fetchPatterns} loading={loadingList}>
+            {t('patternRefresh')}
+          </Button>
+          <Button icon={<PlusOutlined />} size="small" type="primary" onClick={newPattern}>
+            {t('patternNew')}
+          </Button>
+        </Space>
+      }
+    >
+      <Card>
         <Row gutter={16}>
           {/* 左侧：样板总览列表 */}
           <Col xs={24} lg={9}>
-            <Space style={{ marginBottom: 8, width: '100%' }} direction="vertical" size={8}>
-              <Input
-                prefix={<SearchOutlined />}
-                placeholder={t('patternSearchPlaceholder')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                allowClear
-              />
-              <Space size={4} wrap>
-                <Button size="small" onClick={selectAll} disabled={filteredPatterns.length === 0}>
-                  {t('patternSelectAll')}
-                </Button>
-                <Button size="small" onClick={clearSelection} disabled={selectedIds.size === 0}>
-                  {t('patternClearSelection')}
-                </Button>
-                <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-                  {t('patternSelected').replace('{n}', String(selectedIds.size))}
-                </Text>
-              </Space>
-              {selectedIds.size > 0 && (
-                <Space size={4}>
-                  <Button size="small" danger icon={<DeleteOutlined />} onClick={batchDelete}>
-                    {t('patternBatchDelete')}
-                  </Button>
-                  <Button size="small" icon={<DownloadOutlined />} onClick={batchExport}>
-                    {t('patternBatchExport')}
-                  </Button>
-                </Space>
-              )}
-            </Space>
-            <div style={{ maxHeight: 'calc(100vh - 320px)', minHeight: 240, overflow: 'auto', paddingRight: 4 }}>
-              {loadingList ? (
-                <div style={{ textAlign: 'center', padding: 24 }}>
-                  <Spin tip={t('patternLoadingList')} />
-                </div>
-              ) : filteredPatterns.length === 0 ? (
-                <Empty description={t('patternListEmpty')} />
-              ) : (
-                <VirtualPatternList patterns={filteredPatterns} renderItem={renderPatternItem} />
-              )}
-            </div>
+            <PatternListSidebar
+              search={search}
+              onSearchChange={setSearch}
+              selectedCount={selectedIds.size}
+              onSelectAll={selectAll}
+              onClearSelection={clearSelection}
+              onBatchDelete={batchDelete}
+              onBatchExport={batchExport}
+              loadingList={loadingList}
+              patterns={filteredPatterns}
+              renderItem={renderPatternItem}
+            />
           </Col>
 
           {/* 右侧：详情/编辑面板 */}
           <Col xs={24} lg={15}>
             <Spin spinning={loadingDetail}>
               {currentPattern ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="webae-pattern-detail-header">
                   <Space wrap>
                     <Text strong>{t('patternDetailTitle')}</Text>
                     <Tag>{t('patternSourceInterface')}: {currentPattern.sourceInterfaceName}</Tag>
@@ -785,477 +772,71 @@ export function PatternEditorPage() {
                   </Space>
                 </div>
               ) : (
-                <div style={{ marginBottom: 8 }}>
+                <div className="webae-pattern-no-selection">
                   <Text type="secondary">{t('patternNoSelection')}</Text>
                 </div>
               )}
 
-              {/* 开关 + 作者 */}
-              <Space style={{ marginTop: 12, marginBottom: 12 }} wrap>
-                <span>{t('theme')}:</span>
-                <Switch
-                  checkedChildren={t('crafting')}
-                  unCheckedChildren={t('processing')}
-                  checked={crafting}
-                  onChange={(v) => { setCrafting(v); markDirty(); }}
-                />
-                <Switch
-                  checkedChildren={t('substitute')}
-                  checked={substitute}
-                  onChange={(v) => { setSubstitute(v); markDirty(); }}
-                />
-                <Switch
-                  checkedChildren={t('beSubstitute')}
-                  checked={beSubstitute}
-                  onChange={(v) => { setBeSubstitute(v); markDirty(); }}
-                />
-                <Input
-                  placeholder={t('author')}
-                  value={author}
-                  onChange={(e) => { setAuthor(e.target.value); markDirty(); }}
-                  style={{ width: 120 }}
-                />
-              </Space>
-
-              <Divider>{t('patternInputs')}</Divider>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(9, 1fr)',
-                  gap: 4,
-                  maxWidth: 500,
-                }}
-              >
-                {inputs.map((slot, idx) => (
-                  <Tooltip
-                    key={idx}
-                    title={
-                      slot
-                        ? `${slot.displayName || slot.registryName} ×${slot.stackSize}`
-                        : `${t('selectedSlot')} ${idx}`
-                    }
-                  >
-                    <div
-                      onClick={() => {
-                        setPickTarget({ kind: 'slot', slot: idx });
-                        setItemSearch(slot?.registryName || '');
-                      }}
-                      style={{
-                        aspectRatio: '1',
-                        border:
-                          pickTarget?.kind === 'slot' && pickTarget.slot === idx
-                            ? '2px solid var(--accent)'
-                            : '1px solid var(--border)',
-                        borderRadius: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        background: 'var(--bg-secondary)',
-                        position: 'relative',
-                      }}
-                    >
-                      {slot && (
-                        <>
-                          <Icon
-                            id={resolveIconItemId(slot)}
-                            size={28}
-                            alt={slot.displayName || slot.registryName}
-                          />
-                          {slot.stackSize > 1 && (
-                            <span
-                              style={{
-                                position: 'absolute',
-                                bottom: 2,
-                                right: 2,
-                                fontSize: '0.6rem',
-                                fontWeight: 600,
-                                color: 'var(--text-primary)',
-                                background: 'var(--bg-primary)',
-                                borderRadius: 2,
-                                padding: '0 2px',
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              {slot.stackSize}
-                            </span>
-                          )}
-                        </>
-                      )}
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: 1,
-                          left: 2,
-                          fontSize: '0.5rem',
-                          color: 'var(--text-dim)',
-                        }}
-                      >
-                        {idx}
-                      </span>
-                    </div>
-                  </Tooltip>
-                ))}
-              </div>
-              <Space style={{ marginTop: 8 }} size={8}>
-                <Button size="small" onClick={() => { setInputs(new Array(27).fill(null)); markDirty(); }}>
-                  {t('clearInputs')}
-                </Button>
-                <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-                  {t('patternInputsCount').replace('{n}', String(inputs.filter((i) => i).length))}
-                </Text>
-              </Space>
-
-              <Divider>{t('patternOutputs')}</Divider>
-              <Space wrap style={{ marginBottom: 8 }} align="center">
-                <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-                  {t('patternMultiplier')}:
-                </Text>
-                {currentMultiplier > 1 && <Tag color="blue">×{currentMultiplier}</Tag>}
-                {MULTIPLIERS.map((m) => (
-                  <Button key={m} size="small" onClick={() => applyMultiplier(m)} aria-label={`×${m}`}>
-                    ×{m}
-                  </Button>
-                ))}
-                <Tooltip title={t('patternMultiplierDivide')}>
-                  <Button size="small" onClick={divideMultiplier} aria-label={t('patternMultiplierDivide')}>
-                    {t('patternMultiplierDivide')}
-                  </Button>
-                </Tooltip>
-              </Space>
-              {outputs.map((out, idx) => (
-                <Space key={out.key} style={{ marginBottom: 8 }} align="center">
-                  {out.registryName ? (
-                    <Icon
-                      id={resolveIconItemId(out)}
-                      size={32}
-                      alt={out.displayName || out.registryName}
-                    />
-                  ) : (
-                    <div style={{ width: 32, height: 32 }} />
-                  )}
-                  <Input
-                    placeholder={t('itemSearchPlaceholder')}
-                    value={out.registryName}
-                    onChange={(e) => {
-                      const next = [...outputs];
-                      next[idx] = {
-                        ...out,
-                        registryName: e.target.value,
-                        displayName: e.target.value,
-                        originalStackSize: out.originalStackSize || 1,
-                      };
-                      setOutputs(next);
-                      markDirty();
-                    }}
-                    style={{ width: 220 }}
-                  />
-                  <InputNumber
-                    min={out.originalStackSize}
-                    value={out.stackSize}
-                    onChange={(v) => {
-                      const next = [...outputs];
-                      const qty = v || out.originalStackSize;
-                      next[idx] = {
-                        ...out,
-                        stackSize: Math.max(out.originalStackSize, qty),
-                      };
-                      setOutputs(next);
-                      markDirty();
-                    }}
-                  />
-                  <Button
-                    icon={<DeleteOutlined />}
-                    danger
-                    onClick={() => {
-                      setOutputs(outputs.filter((o) => o.key !== out.key));
-                      markDirty();
-                    }}
-                    disabled={outputs.length === 1}
-                    aria-label={t('patternBatchDelete')}
-                  />
-                </Space>
-              ))}
-              <Button
-                icon={<PlusOutlined />}
-                size="small"
-                style={{ marginTop: 4 }}
-                onClick={() => {
-                  outputKeySeq.current += 1;
-                  setOutputs([
-                    ...outputs,
-                    {
-                      key: String(outputKeySeq.current),
-                      registryName: '',
-                      displayName: '',
-                      stackSize: 1,
-                      originalStackSize: 1,
-                      isFluid: false,
-                    },
-                  ]);
+              <PatternEditorForm
+                t={t}
+                crafting={crafting}
+                onCraftingChange={(v) => { setCrafting(v); markDirty(); }}
+                substitute={substitute}
+                onSubstituteChange={(v) => { setSubstitute(v); markDirty(); }}
+                beSubstitute={beSubstitute}
+                onBeSubstituteChange={(v) => { setBeSubstitute(v); markDirty(); }}
+                author={author}
+                onAuthorChange={(v) => { setAuthor(v); markDirty(); }}
+                inputs={inputs}
+                onClearInputs={() => { setInputs(new Array(27).fill(null)); markDirty(); }}
+                onSlotClick={handleSlotClick}
+                outputs={outputs}
+                onOutputChange={handleOutputChange}
+                onRemoveOutput={(key) => {
+                  setOutputs(outputs.filter((o) => o.key !== key));
                   markDirty();
                 }}
-              >
-                {t('addOutput')}
-              </Button>
-              <Text type="secondary" style={{ fontSize: '0.75rem', marginLeft: 8 }}>
-                {t('patternOutputsCount').replace('{n}', String(outputs.filter((o) => o.registryName).length))}
-              </Text>
-
-              {/* 物品搜索 + 配方查找 */}
-              <Divider>{t('itemSearchPlaceholder')}</Divider>
-              <Space style={{ marginBottom: 8, width: '100%' }}>
-                <AutoComplete
-                  style={{ width: '100%' }}
-                  options={suggestOptions}
-                  value={itemSearch}
-                  onChange={setItemSearch}
-                  onSelect={(_, opt) => {
-                    if (opt && 'entry' in opt && opt.entry) {
-                      const entry = opt.entry as RecipeSuggestEntry;
-                      setItemSearch(entry.registryName);
-                      // 直接填入当前选中目标
-                      if (pickTarget?.kind === 'slot') {
-                        fillSlotFromEntry(pickTarget.slot, entry);
-                        setPickTarget(null);
-                      } else if (pickTarget?.kind === 'output') {
-                        const next = [...outputs];
-                        next[next.length - 1] = {
-                          ...next[next.length - 1],
-                          registryName: entry.registryName,
-                          displayName: entry.displayName || entry.registryName,
-                          originalStackSize: next[next.length - 1].originalStackSize || 1,
-                        };
-                        setOutputs(next);
-                        markDirty();
-                        setPickTarget(null);
-                      }
-                      searchRecipes(entry.registryName);
-                    }
-                  }}
-                >
-                  <Input
-                    placeholder={t('itemSearchPlaceholder')}
-                    prefix={<SearchOutlined />}
-                    onPressEnter={() => searchRecipes()}
-                  />
-                </AutoComplete>
-              </Space>
-              <Space style={{ marginBottom: 8 }} size={8}>
-                <Button size="small" onClick={() => searchRecipes()}>{t('findRecipes')}</Button>
-                {pickTarget?.kind === 'slot' && (
-                  <Button size="small" type="primary" onClick={() => setSlot(pickTarget.slot)} disabled={!itemSearch.trim()}>
-                    {t('setSlot')} {pickTarget.slot}
-                  </Button>
-                )}
-                {pickTarget && (
-                  <Button size="small" onClick={() => setPickTarget(null)}>
-                    <RollbackOutlined /> {t('patternBackToList')}
-                  </Button>
-                )}
-              </Space>
-              {mergedRecipeGroups.length > 0 && (
-                <div
-                  style={{
-                    maxHeight: 280,
-                    overflow: 'auto',
-                    border: '1px solid var(--border)',
-                    borderRadius: 4,
-                    padding: 4,
-                  }}
-                >
-                  {mergedRecipeGroups.map((group) => {
-                    const main = group.primaryOutput;
-                    return (
-                      <div
-                        key={group.primaryOutputKey}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          padding: '6px 8px',
-                          borderBottom: '1px solid var(--border-light)',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => useRecipe(group.recipes[0])}
-                      >
-                        <Icon item={main} size={36} alt={main.displayName || main.registryName} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{
-                              fontSize: '0.85rem',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {main.displayName || main.registryName}
-                          </div>
-                          <Text type="secondary" style={{ fontSize: '0.7rem' }}>
-                            {group.recipes.length} {t('recipeTypes')}
-                          </Text>
-                        </div>
-                        <Space size={4} onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="small"
-                            type="primary"
-                            onClick={() => useRecipe(group.recipes[0])}
-                          >
-                            {t('patternRecipeAdd')}
-                          </Button>
-                          <Tooltip title={t('patternRecipeDetail')}>
-                            <Button
-                              size="small"
-                              icon={<InfoCircleOutlined />}
-                              aria-label={t('patternRecipeDetail')}
-                              onClick={() => {
-                                setRecipeModalRecipes(group.recipes);
-                                setRecipeModalOpen(true);
-                              }}
-                            />
-                          </Tooltip>
-                        </Space>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <RecipeDetailModal
-                open={recipeModalOpen}
-                recipes={recipeModalRecipes}
-                onClose={() => setRecipeModalOpen(false)}
-                onApplyRecipe={useRecipe}
-                applyLabel={t('useRecipe')}
-                t={t}
+                onAddOutput={handleAddOutput}
+                currentMultiplier={currentMultiplier}
+                onApplyMultiplier={applyMultiplier}
+                onDivideMultiplier={divideMultiplier}
+                itemSearch={itemSearch}
+                onItemSearchChange={setItemSearch}
+                suggestOptions={suggestOptions}
+                onSuggestSelect={handleSuggestSelect}
+                pickTarget={pickTarget}
+                onPickTargetClear={() => setPickTarget(null)}
+                onSearchRecipes={() => searchRecipes()}
+                onSetSlot={setSlot}
+                mergedRecipeGroups={mergedRecipeGroups}
+                onUseRecipe={useRecipe}
+                onOpenRecipeDetail={(recipes) => {
+                  setRecipeModalRecipes(recipes);
+                  setRecipeModalOpen(true);
+                }}
+                recipeModalOpen={recipeModalOpen}
+                recipeModalRecipes={recipeModalRecipes}
+                onRecipeModalClose={() => setRecipeModalOpen(false)}
+                encodedNbt={encodedNbt}
+                onEncode={encode}
+                onSavePattern={savePattern}
+                canSave={Boolean(currentPattern && encodedNbt)}
               />
 
-              <Divider />
-              <Space wrap>
-                <Button type="primary" icon={<ThunderboltOutlined />} onClick={() => encode(true)}>
-                  {t('patternEncodeEditor')}
-                </Button>
-                <Button icon={<SaveOutlined />} onClick={savePattern} disabled={!currentPattern || !encodedNbt}>
-                  {t('patternSaveSuccess').replace('已保存', '保存')}
-                </Button>
-                {encodedNbt && (
-                  <Tag color="success" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    NBT: {encodedNbt.substring(0, 40)}...
-                  </Tag>
-                )}
-              </Space>
-
-              {/* 注入到接口槽位（保留：把当前编辑的样板注入到指定接口槽位，用于新建/移动） */}
-              <Divider>{t('selectInterface')}</Divider>
-              <Space style={{ marginBottom: 16 }} wrap direction="vertical" size={8}>
-                <Select
-                  placeholder={t('selectMEInterface')}
-                  value={selectedInterface || undefined}
-                  onChange={setSelectedInterface}
-                  style={{ width: '100%', maxWidth: 480 }}
-                  options={interfaces.map((iface) => {
-                    const patternCount = iface.existingPatterns?.length
-                      ?? iface.slots?.filter((s) => s.occupied).length
-                      ?? 0;
-                    const recipeType =
-                      iface.machineRecipeType
-                      || iface.targetRecipePool
-                      || iface.targetMachineName
-                      || '';
-                    const coord = `(${iface.x},${iface.y},${iface.z})`;
-                    const suffix = [
-                      coord,
-                      t('patternInterfacePatternCount').replace('{n}', String(patternCount)),
-                      recipeType,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ');
-                    return {
-                      label: `${iface.name} — ${suffix}`,
-                      value: `${iface.x}_${iface.y}_${iface.z}_${iface.dim}`,
-                    };
-                  })}
-                />
-                {selectedIface && (
-                  <div style={{ width: '100%', maxWidth: 480 }}>
-                    {selectedIface.machineRecipeType || selectedIface.targetRecipePool ? (
-                      <Text type="secondary" style={{ fontSize: '0.8rem', display: 'block', marginBottom: 4 }}>
-                        {t('patternInterfaceRecipeType')}:{' '}
-                        {selectedIface.machineRecipeType
-                          || `${selectedIface.targetMachineName} / ${selectedIface.targetRecipePool}`}
-                      </Text>
-                    ) : null}
-                    {(selectedIface.existingPatterns?.length ?? 0) > 0 && (
-                      <>
-                        <Text strong style={{ fontSize: '0.8rem' }}>
-                          {t('patternInterfacePatterns')}
-                        </Text>
-                        <div
-                          style={{
-                            maxHeight: 160,
-                            overflow: 'auto',
-                            marginTop: 4,
-                            border: '1px solid var(--border)',
-                            borderRadius: 4,
-                            padding: 4,
-                          }}
-                        >
-                          {selectedIface.existingPatterns!.map((pat) => {
-                            const out = pat.outputs[0];
-                            return (
-                              <div
-                                key={pat.patternId}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  padding: '4px 6px',
-                                  fontSize: '0.75rem',
-                                }}
-                              >
-                                <Tag style={{ margin: 0 }}>{t('patternSlot')} {pat.slotIndex}</Tag>
-                                {out && (
-                                  <Icon item={out} size={20} alt={out.displayName || out.registryName} />
-                                )}
-                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {out?.displayName || out?.registryName || pat.patternId}
-                                  {out && out.stackSize > 1 ? ` ×${out.stackSize}` : ''}
-                                </span>
-                                {pat.crafting ? (
-                                  <Tag color="blue" style={{ margin: 0, fontSize: '0.65rem' }}>
-                                    {t('crafting')}
-                                  </Tag>
-                                ) : (
-                                  <Tag style={{ margin: 0, fontSize: '0.65rem' }}>{t('processing')}</Tag>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-                <Space wrap>
-                <Select
-                  value={injectSlot}
-                  onChange={setInjectSlot}
-                  style={{ width: 120 }}
-                  options={Array.from({ length: 36 }, (_, i) => ({ label: `${t('selectedSlot')} ${i}`, value: i }))}
-                />
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={injectPattern}
-                  disabled={!encodedNbt || !selectedInterface}
-                >
-                  {t('injectPattern')}
-                </Button>
-                </Space>
-              </Space>
+              <PatternInjectPanel
+                interfaces={interfaces}
+                selectedInterface={selectedInterface}
+                onSelectedInterfaceChange={setSelectedInterface}
+                selectedIface={selectedIface}
+                injectSlot={injectSlot}
+                onInjectSlotChange={setInjectSlot}
+                encodedNbt={encodedNbt}
+                onInject={injectPattern}
+              />
             </Spin>
           </Col>
         </Row>
       </Card>
-    </div>
+    </PageShell>
   );
 }

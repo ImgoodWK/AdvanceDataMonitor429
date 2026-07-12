@@ -127,7 +127,10 @@ public class WebConfigHandler {
             .append(Config.webDebugSynthesis)
             .append(',');
         sb.append("\"patterns\":")
-            .append(Config.webDebugPatterns);
+            .append(Config.webDebugPatterns)
+            .append(',');
+        sb.append("\"perf\":")
+            .append(Config.webDebugPerf);
         sb.append("},");
         sb.append("\"topologyEnabled\":")
             .append(Config.webTopologyEnabled)
@@ -171,7 +174,31 @@ public class WebConfigHandler {
             .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().pollIntervalSeconds)
             .append(',');
         sb.append("\"dynmapBaseUrl\":")
-            .append(GSON.toJson(Config.webDynmapBaseUrl != null ? Config.webDynmapBaseUrl : ""));
+            .append(GSON.toJson(Config.webDynmapBaseUrl != null ? Config.webDynmapBaseUrl : ""))
+            .append(',');
+        sb.append("\"questEnabled\":")
+            .append(Config.webQuestEnabled && com.imgood.textech.compat.bq.BqCompat.isModLoaded())
+            .append(',');
+        sb.append("\"questSubmitEnabled\":")
+            .append(Config.webQuestSubmitEnabled)
+            .append(',');
+        sb.append("\"questChainSubmitEnabled\":")
+            .append(Config.webQuestChainSubmitEnabled)
+            .append(',');
+        sb.append("\"dashboardMaxTracksPerWidget\":")
+            .append(Config.webDashboardMaxTracksPerWidget)
+            .append(',');
+        sb.append("\"dashboardMaxTracksGlobal\":")
+            .append(Config.webDashboardMaxTracksGlobal)
+            .append(',');
+        sb.append("\"dashboardMaxItemTracks\":")
+            .append(Config.webDashboardMaxItemTracks)
+            .append(',');
+        sb.append("\"dashboardMaxFluidTracks\":")
+            .append(Config.webDashboardMaxFluidTracks)
+            .append(',');
+        sb.append("\"dashboardMaxEntityTracks\":")
+            .append(Config.webDashboardMaxEntityTracks);
         sb.append("}}");
         return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
     }
@@ -182,12 +209,6 @@ public class WebConfigHandler {
             if (!first) sb.append(',');
             first = false;
             appendModeJson(sb, mode, true);
-        }
-        for (IconRenderMode mode : IconRenderMode.allModes()) {
-            if (mode.isImplemented()) continue;
-            if (!first) sb.append(',');
-            first = false;
-            appendModeJson(sb, mode, false);
         }
     }
 

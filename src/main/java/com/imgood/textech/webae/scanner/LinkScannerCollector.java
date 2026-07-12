@@ -80,6 +80,36 @@ public final class LinkScannerCollector {
         return found;
     }
 
+    /**
+     * Filter a previously collected full list on any thread (HTTP-safe).
+     */
+    public static List<LinkScannerBlockDto> filterCached(List<LinkScannerBlockDto> base, String typeFilter,
+        String query) {
+        if (base == null || base.isEmpty()) {
+            return Collections.emptyList();
+        }
+        LinkScanBlockType typeEnum = typeFilter != null && !typeFilter.isEmpty()
+            ? LinkScanBlockType.fromId(typeFilter.trim())
+            : null;
+        String q = query != null ? query.trim()
+            .toLowerCase() : "";
+        if (typeEnum == null && q.isEmpty()) {
+            return base;
+        }
+        List<LinkScannerBlockDto> out = new ArrayList<LinkScannerBlockDto>();
+        for (LinkScannerBlockDto dto : base) {
+            if (typeEnum != null && !typeEnum.getId()
+                .equals(dto.blockTypeId)) {
+                continue;
+            }
+            if (!q.isEmpty() && !matchesQuery(dto, q)) {
+                continue;
+            }
+            out.add(dto);
+        }
+        return out;
+    }
+
     private static boolean matchesQuery(LinkScannerBlockDto dto, String q) {
         if (dto.locationKey.contains(q)) {
             return true;

@@ -1,0 +1,8 @@
+{
+  "upstream": "GTNewHorizons/GT-New-Horizons-Modpack",
+  "upstreamPath": "config/betterquesting",
+  "commit": "c02f00422cf27070546d8a412f1929b3c549d87a",
+  "betterQuestingVersion": "3.8.70-GTNH",
+  "syncedAt": "2026-07-11",
+  "notes": "Dev-only quest data for runClient/runServer. Refresh with tools/dev/sync-betterquesting-from-gtnh.ps1"
+}

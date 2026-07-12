@@ -165,64 +165,62 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         TileEntity target = worldObj.getTileEntity(targetX, targetY, targetZ);
         if (target == null) return;
 
-        // ========== 合成监控分支 ==========
-        if (getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.ADV_CRAFTINGLINK) {
-            TileEntityAdvanceCraftingLink craftingLink = (TileEntityAdvanceCraftingLink) target;
+        // ========== 统一 AE 连接器分支（按 binding dataType 区分）==========
+        if (getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.ADV_NETWORKLINK) {
+            TileEntityAdvanceNetworkLink networkLink = (TileEntityAdvanceNetworkLink) target;
+            String dataType = nbt.hasKey("dataType") ? nbt.getString("dataType") : "";
 
-            // 每次轮询时主动刷新合成统计（否则依赖AE事件可能长时间不更新）
-            craftingLink.updateCraftingStats();
+            if ("crafting".equals(dataType)) {
+                networkLink.updateCraftingStats();
 
-            boolean monitorNetworkWide = nbt.getBoolean("monitorNetworkWide");
-            String template = nbt.getString("craftingTemplate");
-            NBTTagList lineList = new NBTTagList();
+                boolean monitorNetworkWide = nbt.getBoolean("monitorNetworkWide");
+                String template = nbt.getString("craftingTemplate");
+                NBTTagList lineList = new NBTTagList();
 
-            if (monitorNetworkWide) {
-                // 全网络模式：忽略模板，直接使用 getStatsInfo()
-                String info = craftingLink.getStatsInfo();
-                String[] lines = info.split("\\n");
-                for (String line : lines) {
-                    lineList.appendTag(new NBTTagString(line));
-                }
-                nbt.setTag("networkLines", lineList);
-                nbt.removeTag("lines"); // 移除可能残留的单 CPU 数据
-            } else {
-                // 单 CPU / 模板模式
-                String[] lines;
-                if (template != null && !template.isEmpty()) {
-                    lines = parseTemplateWithLink(template, craftingLink);
+                if (monitorNetworkWide) {
+                    String info = networkLink.getCraftingStatsInfo();
+                    String[] lines = info.split("\\n");
+                    for (String line : lines) {
+                        lineList.appendTag(new NBTTagString(line));
+                    }
+                    nbt.setTag("networkLines", lineList);
+                    nbt.removeTag("lines");
                 } else {
-                    // 回退到旧的硬编码格式（向后兼容）
-                    String info = craftingLink.getStatsInfo();
-                    lines = info.split("\\n");
+                    String[] lines;
+                    if (template != null && !template.isEmpty()) {
+                        lines = parseTemplateWithLink(template, networkLink);
+                    } else {
+                        String info = networkLink.getCraftingStatsInfo();
+                        lines = info.split("\\n");
+                    }
+                    for (String line : lines) {
+                        lineList.appendTag(new NBTTagString(line));
+                    }
+                    nbt.setTag("lines", lineList);
+                    nbt.removeTag("networkLines");
                 }
-                for (String line : lines) {
-                    lineList.appendTag(new NBTTagString(line));
+
+                if (!nbt.hasKey("dataType")) {
+                    nbt.setString("dataType", "crafting");
                 }
-                nbt.setTag("lines", lineList);
-                nbt.removeTag("networkLines"); // 移除可能残留的全网络数据
+
+                markDirty();
+                tickSyncPending = true;
+                return;
             }
 
-            // 确保数据类型被标记为 crafting
-            if (!nbt.hasKey("dataType")) {
-                nbt.setString("dataType", "crafting");
+            if ("storage".equals(dataType)) {
+                nbt.removeTag("storageStatisticsInterval");
+                nbt.setTag("storageItems", networkLink.createStorageItemsSnapshot());
+                nbt.setString("dataType", "storage");
+                markDirty();
+                tickSyncPending = true;
+                return;
             }
-
-            markDirty();
-            tickSyncPending = true;
-            return;
         }
         // =============================================
 
         // --- 原有其他类型的处理（保持不变）---
-        if (getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.ADV_STORAGELINK) {
-            TileEntityAdvanceStorageLink storageLink = (TileEntityAdvanceStorageLink) target;
-            nbt.removeTag("storageStatisticsInterval");
-            nbt.setTag("storageItems", storageLink.createStorageItemsSnapshot());
-            nbt.setString("dataType", "storage");
-            markDirty();
-            tickSyncPending = true;
-            return;
-        }
 
         String dataName = getSafeString(nbt, "name", "null");
         double value = 0;
@@ -1385,7 +1383,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         markDirty();
     }
 
-    private String[] parseTemplateWithLink(String template, final TileEntityAdvanceCraftingLink link) {
+    private String[] parseTemplateWithLink(String template, final TileEntityAdvanceNetworkLink link) {
         CraftingTemplateParser.DataProvider provider = new CraftingTemplateParser.DataProvider() {
 
             @Override
@@ -1409,7 +1407,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             @Override
             public Object getValue(String variable, String argument) {
                 // argument 即 CPU 名称（如 "CPU#1"）
-                TileEntityAdvanceCraftingLink.CraftingCpuSnapshot snap = link.getCpuSnapshotByName(argument);
+                TileEntityAdvanceNetworkLink.CraftingCpuSnapshot snap = link.getCpuSnapshotByName(argument);
                 if (snap == null) return null;
 
                 switch (variable) {

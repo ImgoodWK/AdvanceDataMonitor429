@@ -16,8 +16,10 @@ import com.imgood.textech.webae.api.handler.IconHandler;
 import com.imgood.textech.webae.api.handler.MonitorHandler;
 import com.imgood.textech.webae.api.handler.MonitorPreviewHandler;
 import com.imgood.textech.webae.api.handler.NetworkBalanceHandler;
+import com.imgood.textech.webae.api.handler.NetworkMetricEntityHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricFluidHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricHandler;
+import com.imgood.textech.webae.api.handler.NetworkMetricItemHandler;
 import com.imgood.textech.webae.api.handler.OcSummaryHandler;
 import com.imgood.textech.webae.api.handler.OrderHandler;
 import com.imgood.textech.webae.api.handler.OrderTemplatesHandler;
@@ -30,9 +32,11 @@ import com.imgood.textech.webae.api.handler.PlannerHandler;
 import com.imgood.textech.webae.api.handler.PlayerHandler;
 import com.imgood.textech.webae.api.handler.PocketHandler;
 import com.imgood.textech.webae.api.handler.PowerHandler;
+import com.imgood.textech.webae.api.handler.QuestHandler;
 import com.imgood.textech.webae.api.handler.RecipeHandler;
 import com.imgood.textech.webae.api.handler.ScannerHandler;
 import com.imgood.textech.webae.api.handler.SearchHandler;
+import com.imgood.textech.webae.api.handler.ServerDiagnosticsHandler;
 import com.imgood.textech.webae.api.handler.ServerHealthHandler;
 import com.imgood.textech.webae.api.handler.StorageHandler;
 import com.imgood.textech.webae.api.handler.StoragePagedHandler;
@@ -41,6 +45,7 @@ import com.imgood.textech.webae.api.handler.WebConfigHandler;
 import com.imgood.textech.webae.worldmap.WorldMapHandler;
 import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.perf.WebAePerfProfiler;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -53,6 +58,32 @@ import fi.iki.elonen.NanoHTTPD;
 public class WebApiRouter {
 
     public NanoHTTPD.Response route(NanoHTTPD.IHTTPSession session, WebAuthSession auth) {
+        String uri = session.getUri();
+        long start = WebAePerfProfiler.instance()
+            .begin();
+        NanoHTTPD.Response response = null;
+        try {
+            response = routeInner(session, auth);
+        } finally {
+            long ms = (System.nanoTime() - start) / 1_000_000L;
+            WebAePerfProfiler.instance()
+                .recordHttp(normalizeRoute(uri), ms);
+        }
+        return response;
+    }
+
+    private static String normalizeRoute(String uri) {
+        if (uri == null || uri.isEmpty()) {
+            return "?";
+        }
+        int q = uri.indexOf('?');
+        if (q >= 0) {
+            uri = uri.substring(0, q);
+        }
+        return uri;
+    }
+
+    private NanoHTTPD.Response routeInner(NanoHTTPD.IHTTPSession session, WebAuthSession auth) {
 
         String ownerUuid = auth.ownerUuid;
 
@@ -267,6 +298,24 @@ public class WebApiRouter {
 
         }
 
+        if ("/api/server/diagnostics".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/server/diagnostics\"}");
+
+            }
+
+            return ServerDiagnosticsHandler.handle();
+
+        }
+
         if ("/api/oc/summary".equals(uri)) {
 
             if (method != NanoHTTPD.Method.GET) {
@@ -294,6 +343,18 @@ public class WebApiRouter {
         if ("/api/network/metrics/fluids".equals(uri)) {
 
             return NetworkMetricFluidHandler.handle(params, ownerUuid);
+
+        }
+
+        if ("/api/network/metrics/items".equals(uri)) {
+
+            return NetworkMetricItemHandler.handle(params, ownerUuid);
+
+        }
+
+        if ("/api/network/metrics/entities".equals(uri)) {
+
+            return NetworkMetricEntityHandler.handle(params, ownerUuid);
 
         }
 
@@ -792,6 +853,14 @@ public class WebApiRouter {
             }
 
             return P2pHandler.handle(params, ownerUuid);
+
+        }
+
+        if (uri.startsWith("/api/quests")) {
+
+            String body = method == NanoHTTPD.Method.POST ? readBody(session) : null;
+
+            return QuestHandler.handle(uri, method, params, body, ownerUuid, auth.isGuest());
 
         }
 

@@ -18,6 +18,7 @@ import {
   getOverviewDataSourceValue,
   getStorageCategoryBreakdown,
   gtStatusTagColor,
+  gtStatusLabel,
   type ChartCategory,
 } from '@/utils/overviewDataSources';
 import { ChartTrendSvg, type ChartTrendPoint } from '@/components/dashboard/ChartTrendSvg';
@@ -277,7 +278,7 @@ export function WidgetContent({
           <>
             {labelText(label)}
             <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
-              {machines.map((m, i) => renderGtMachineRow(m, i, rowAltBg, chartColor, fmtNum))}
+              {machines.map((m, i) => renderGtMachineRow(m, i, rowAltBg, chartColor, fmtNum, t))}
             </div>
           </>
         );
@@ -415,7 +416,8 @@ function renderGtMachineRow(
   index: number,
   rowAltBg: string | undefined,
   chartColor: string,
-  fmtNum: (n: number) => string
+  fmtNum: (n: number) => string,
+  t: (key: string) => string,
 ): ReactNode {
   return (
     <div
@@ -442,7 +444,7 @@ function renderGtMachineRow(
           {machine.recipeMapName || machine.machineMode || '-'}
         </span>
         <Tag color={gtStatusTagColor(machine.statusText)} style={{ margin: 0, fontSize: '0.65rem' }}>
-          {machine.statusText || '-'}
+          {gtStatusLabel(machine.statusText, t)}
         </Tag>
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 2, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>

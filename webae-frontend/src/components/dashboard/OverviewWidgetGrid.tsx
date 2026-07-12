@@ -151,7 +151,7 @@ export function OverviewWidgetGrid({
     if (!grid) return;
     try {
       grid.compact('compact');
-      notify(t('autoArrange'), 'success');
+      notify(t('autoArrangeDone'), 'success');
     } catch (e) {
       notify((e as Error).message, 'error');
     }

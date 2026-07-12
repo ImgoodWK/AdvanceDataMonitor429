@@ -1,17 +1,11 @@
-import { Modal, Space, Tag, Typography, Divider, Button, InputNumber, Table, Tooltip } from 'antd';
-import { ShoppingCartOutlined, PlusOutlined } from '@ant-design/icons';
+import { Modal, Space, Tag, Typography, Divider, Button, InputNumber, Table } from 'antd';
+import { ShoppingCartOutlined } from '@ant-design/icons';
 
 import { Icon } from '@/components/Icon';
-import type { PatternItemEntry } from '@/types/dto';
+import { patternEntryIconId } from '@/utils/icon';
 import type { PatternProductGroup } from '@/utils/patternGroup';
 
 const { Text } = Typography;
-
-function entryIconId(entry: PatternItemEntry | null): string | undefined {
-  if (!entry || !entry.registryName) return undefined;
-  if (entry.isFluid) return 'fluid:' + entry.registryName;
-  return entry.meta && entry.meta > 0 ? `${entry.registryName}:${entry.meta}` : entry.registryName;
-}
 
 interface PatternProductModalProps {
   open: boolean;
@@ -19,7 +13,6 @@ interface PatternProductModalProps {
   t: (k: string, arg?: string | number) => string;
   onClose: () => void;
   onOrderSingle?: (patternId: string, amount: number) => void;
-  onAddToBatch?: (patternId: string, label: string) => void;
 }
 
 export function PatternProductModal({
@@ -28,12 +21,11 @@ export function PatternProductModal({
   t,
   onClose,
   onOrderSingle,
-  onAddToBatch,
 }: PatternProductModalProps) {
   if (!group) return null;
 
   const title = group.primaryOutput.displayName || group.primaryOutput.registryName || t('orderProductTitle');
-  const iconId = entryIconId(group.primaryOutput);
+  const iconId = patternEntryIconId(group.primaryOutput);
 
   const columns = [
     {
@@ -59,7 +51,7 @@ export function PatternProductModal({
       render: (_: unknown, p: (typeof group.patterns)[number]) => (
         <Space wrap size={4}>
           {(p.inputs || []).filter(Boolean).map((entry, idx) => {
-            const id = entryIconId(entry);
+            const id = patternEntryIconId(entry);
             return (
               <span
                 key={`in-${idx}`}
@@ -80,7 +72,7 @@ export function PatternProductModal({
       render: (_: unknown, p: (typeof group.patterns)[number]) => (
         <Space wrap size={4}>
           {p.outputs.map((entry, idx) => {
-            const id = entryIconId(entry);
+            const id = patternEntryIconId(entry);
             return (
               <span
                 key={`out-${idx}`}
@@ -108,8 +100,6 @@ export function PatternProductModal({
       key: 'actions',
       width: 180,
       render: (_: unknown, p: (typeof group.patterns)[number]) => {
-        const label =
-          p.outputs[0]?.displayName || p.outputs[0]?.registryName || p.patternId;
         return (
           <Space size={4} wrap>
             <InputNumber
@@ -132,15 +122,6 @@ export function PatternProductModal({
             >
               {t('placeOrder')}
             </Button>
-            {onAddToBatch && (
-              <Tooltip title={t('orderPatternAddToBatch')}>
-                <Button
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() => onAddToBatch?.(p.patternId, label)}
-                />
-              </Tooltip>
-            )}
           </Space>
         );
       },

@@ -28,7 +28,7 @@ import com.imgood.textech.items.ItemDataImprint;
 import com.imgood.textech.items.ItemGrappleHook;
 import com.imgood.textech.items.ItemSuperOrange;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.textech.tileentity.TileEntityGrappleAnchor;
 import com.imgood.textech.tileentity.TileEntityMatterBallDecompressor;
 import com.imgood.textech.utils.NBTJsonParserHelper;
@@ -60,8 +60,8 @@ public class GuiHandler implements IGuiHandler {
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
         if (ID == ADM_STORAGELINK_ID) {
             TileEntity tileEntity = world.getTileEntity(x, y, z);
-            if (tileEntity instanceof TileEntityAdvanceStorageLink) {
-                return new ContainerAdvanceStorageLink(player.inventory, (TileEntityAdvanceStorageLink) tileEntity);
+            if (tileEntity instanceof TileEntityAdvanceNetworkLink) {
+                return new ContainerAdvanceStorageLink(player.inventory, (TileEntityAdvanceNetworkLink) tileEntity);
             }
         } else if (ID == POCKET_CONFIG_GUI_ID) {
             return new ContainerDimensionalPocket(player);
@@ -105,10 +105,10 @@ public class GuiHandler implements IGuiHandler {
                 return null;
             case ADM_STORAGELINK_ID:
                 TileEntity tileEntityAdvanceStorageLink = world.getTileEntity(x, y, z);
-                if (tileEntityAdvanceStorageLink instanceof TileEntityAdvanceStorageLink) {
+                if (tileEntityAdvanceStorageLink instanceof TileEntityAdvanceNetworkLink) {
                     return new GuiAdvanceStorageLink(
                         player.inventory,
-                        (TileEntityAdvanceStorageLink) tileEntityAdvanceStorageLink);
+                        (TileEntityAdvanceNetworkLink) tileEntityAdvanceStorageLink);
                 }
                 return null;
             case MANUAL_GUI_ID:

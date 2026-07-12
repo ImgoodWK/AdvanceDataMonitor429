@@ -2,28 +2,24 @@ package com.imgood.textech.webae.api.handler;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
-import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.webae.cache.SnapshotCache;
+import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.topology.P2pMapSnapshot;
 import com.imgood.textech.webae.topology.P2pTunnelDto;
-import com.imgood.textech.webae.topology.P2pTunnelEnumerator;
 
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * GET /api/network/p2p — P2P frequency map (Phase 10).
+ * GET /api/network/p2p — P2P frequency map (cache read; scheduler pre-collect).
  */
 public final class P2pHandler {
 
     private static final Gson GSON = new GsonBuilder().serializeNulls()
         .create();
-    private static final long TIMEOUT_MS = 15_000L;
 
     private P2pHandler() {}
 
@@ -48,44 +44,44 @@ public final class P2pHandler {
                 "{\"success\":false,\"message\":\"Invalid 'network' parameter\"}");
         }
 
-        final List<P2pTunnelDto>[] holder = new List[1];
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        HandlerTick.enqueueServerTask(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    holder[0] = P2pTunnelEnumerator.enumerate(ownerUuid, networkId);
-                } catch (Throwable t) {
-                    AdvanceDataMonitor.LOG.error("[WebAE] P2P map failed", t);
-                    holder[0] = null;
-                } finally {
-                    latch.countDown();
-                }
-            }
-        });
-
-        try {
-            if (!latch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                return json(
-                    NanoHTTPD.Response.Status.INTERNAL_ERROR,
-                    "{\"success\":false,\"message\":\"P2P enumeration timed out\"}");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread()
-                .interrupt();
-            return json(NanoHTTPD.Response.Status.INTERNAL_ERROR, "{\"success\":false,\"message\":\"Interrupted\"}");
+        SnapshotScheduler.markActive(ownerUuid, networkId);
+        boolean force = "1".equals(params.get("refresh")) || "true".equalsIgnoreCase(params.get("refresh"));
+        if (force) {
+            SnapshotCache.instance()
+                .invalidateType(ownerUuid, networkId, SnapshotScheduler.TYPE_P2P);
+            SnapshotScheduler.forceCollectP2p(ownerUuid, networkId);
         }
 
-        List<P2pTunnelDto> tunnels = holder[0];
-        if (tunnels == null) {
+        @SuppressWarnings("unchecked")
+        List<P2pTunnelDto> fresh = SnapshotCache.instance()
+            .get(ownerUuid, networkId, SnapshotScheduler.TYPE_P2P);
+        long ts = SnapshotCache.instance()
+            .timestampOf(ownerUuid, networkId, SnapshotScheduler.TYPE_P2P);
+        if (fresh != null) {
+            P2pMapSnapshot snap = P2pMapSnapshot.fromTunnels(networkId, fresh);
             return json(
-                NanoHTTPD.Response.Status.INTERNAL_ERROR,
-                "{\"success\":false,\"message\":\"Failed to enumerate P2P tunnels\"}");
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"data\":" + GSON.toJson(snap)
+                    + ",\"cached\":true,\"timestamp\":"
+                    + ts
+                    + "}");
         }
-        P2pMapSnapshot snap = P2pMapSnapshot.fromTunnels(networkId, tunnels);
-        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"data\":" + GSON.toJson(snap) + "}");
+        @SuppressWarnings("unchecked")
+        List<P2pTunnelDto> stale = SnapshotCache.instance()
+            .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_P2P);
+        if (stale != null) {
+            P2pMapSnapshot snap = P2pMapSnapshot.fromTunnels(networkId, stale);
+            return json(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"data\":" + GSON.toJson(snap)
+                    + ",\"cached\":false,\"timestamp\":"
+                    + ts
+                    + "}");
+        }
+        return json(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"data\":" + GSON.toJson(P2pMapSnapshot.fromTunnels(networkId, java.util.Collections.<P2pTunnelDto>emptyList()))
+                + ",\"cached\":false,\"timestamp\":0}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

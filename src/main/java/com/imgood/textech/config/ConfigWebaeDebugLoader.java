@@ -35,5 +35,10 @@ public final class ConfigWebaeDebugLoader {
             "debug",
             Config.webDebugPatterns,
             ConfigDescriptions.get("debug", "webaePatterns"));
+        Config.webDebugPerf = configuration.getBoolean(
+            "webaePerf",
+            "debug",
+            Config.webDebugPerf,
+            ConfigDescriptions.get("debug", "webaePerf"));
     }
 }

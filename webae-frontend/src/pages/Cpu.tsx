@@ -111,7 +111,7 @@ function CpuDetailDrawer({
         <Descriptions.Item label={t('network')}>{networkLabel}</Descriptions.Item>
         <Descriptions.Item label={t('status')}>
           {cpu.isBusy ? (
-            <Tag color="processing">{t('crafting')}</Tag>
+            <Tag color="processing">{t('busy')}</Tag>
           ) : (
             <Tag>{t('idle')}</Tag>
           )}

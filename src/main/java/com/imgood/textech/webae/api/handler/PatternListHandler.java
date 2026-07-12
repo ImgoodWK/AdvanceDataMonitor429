@@ -25,6 +25,9 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.utils.NBTJsonParser;
 import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.cache.SnapshotCache;
+import com.imgood.textech.webae.cache.SnapshotScheduler;
+import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.dto.PatternDto;
 import com.imgood.textech.webae.dto.PatternListEntryDto;
 import com.imgood.textech.webae.pattern.InterfaceLocator;
@@ -119,45 +122,63 @@ public class PatternListHandler {
                 "{\"success\":false,\"message\":\"Invalid 'network' parameter\"}");
         }
 
-        final List<PatternListEntryDto>[] holder = new List[1];
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        HandlerTick.enqueueServerTask(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    EntityPlayerMP player = WebAuthOpCheck.findPlayer(playerUuid);
-                    if (player == null) {
-                        holder[0] = new ArrayList<PatternListEntryDto>();
-                        return;
-                    }
-                    holder[0] = collectAllPatterns(player, networkId);
-                } catch (Throwable t) {
-                    AdvanceDataMonitor.LOG.error("[WebAE] Pattern list enumeration failed", t);
-                    holder[0] = new ArrayList<PatternListEntryDto>();
-                } finally {
-                    latch.countDown();
-                }
-            }
-        });
-
-        try {
-            if (latch.await(MAIN_THREAD_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                return json(
-                    NanoHTTPD.Response.Status.OK,
-                    "{\"success\":true,\"patterns\":" + GSON.toJson(holder[0])
-                        + ",\"count\":"
-                        + holder[0].size()
-                        + "}");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread()
-                .interrupt();
+        SnapshotScheduler.markActive(playerUuid, networkId);
+        boolean force = "1".equals(params.get("refresh")) || "true".equalsIgnoreCase(params.get("refresh"));
+        if (force) {
+            SnapshotCache.instance()
+                .invalidateType(playerUuid, networkId, SnapshotScheduler.TYPE_PATTERNS_RICH);
+            SnapshotScheduler.forceCollectPatternsRich(playerUuid, networkId);
         }
+
+        @SuppressWarnings("unchecked")
+        List<PatternListEntryDto> fresh = SnapshotCache.instance()
+            .get(playerUuid, networkId, SnapshotScheduler.TYPE_PATTERNS_RICH);
+        long ts = SnapshotCache.instance()
+            .timestampOf(playerUuid, networkId, SnapshotScheduler.TYPE_PATTERNS_RICH);
+        if (fresh != null) {
+            return json(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"patterns\":" + GSON.toJson(fresh)
+                    + ",\"count\":"
+                    + fresh.size()
+                    + ",\"cached\":true,\"timestamp\":"
+                    + ts
+                    + "}");
+        }
+        @SuppressWarnings("unchecked")
+        List<PatternListEntryDto> stale = SnapshotCache.instance()
+            .getStale(playerUuid, networkId, SnapshotScheduler.TYPE_PATTERNS_RICH);
+        if (stale != null) {
+            return json(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"patterns\":" + GSON.toJson(stale)
+                    + ",\"count\":"
+                    + stale.size()
+                    + ",\"cached\":false,\"timestamp\":"
+                    + ts
+                    + "}");
+        }
+        SnapshotScheduler.forceCollectPatternsRich(playerUuid, networkId);
         return json(
-            NanoHTTPD.Response.Status.INTERNAL_ERROR,
-            "{\"success\":false,\"message\":\"Pattern enumeration timed out\"}");
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"patterns\":[],\"count\":0,\"cached\":false,\"timestamp\":0}");
+    }
+
+    /**
+     * Build rich pattern list and store in {@link SnapshotCache}. Must run on server thread.
+     */
+    public static void buildAndStoreCache(String ownerUuid, int networkId) {
+        EntityPlayerMP player = WebAeOwnerContext.getOwnerPlayerOrFake(ownerUuid);
+        if (player == null) {
+            return;
+        }
+        WebAeOwnerContext.NetworkGroup group = WebAeOwnerContext.getNetworkGroup(ownerUuid, networkId);
+        if (group != null) {
+            WebAeOwnerContext.positionPlayerAtMonitor(player, group);
+        }
+        List<PatternListEntryDto> list = collectAllPatterns(player, networkId);
+        SnapshotCache.instance()
+            .put(ownerUuid, networkId, SnapshotScheduler.TYPE_PATTERNS_RICH, list);
     }
 
     /**

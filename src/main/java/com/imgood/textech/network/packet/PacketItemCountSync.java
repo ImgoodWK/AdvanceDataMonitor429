@@ -6,7 +6,7 @@ import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.tileentity.TileEntity;
 
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -65,8 +65,8 @@ public class PacketItemCountSync implements IMessage {
         @Override
         public IMessage onMessage(PacketItemCountSync message, MessageContext ctx) {
             TileEntity te = Minecraft.getMinecraft().theWorld.getTileEntity(message.x, message.y, message.z);
-            if (te instanceof TileEntityAdvanceStorageLink) {
-                ((TileEntityAdvanceStorageLink) te).updateClientCache(message.cacheData);
+            if (te instanceof TileEntityAdvanceNetworkLink) {
+                ((TileEntityAdvanceNetworkLink) te).updateClientCache(message.cacheData);
             }
             return null;
         }

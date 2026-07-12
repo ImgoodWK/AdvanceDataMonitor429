@@ -12,6 +12,7 @@ export type WorldMapAeCategoryId =
   | 'energy'
   | 'p2p'
   | 'bus'
+  | 'cpu'
   | 'other';
 
 export const WORLD_MAP_AE_CATEGORY_IDS: WorldMapAeCategoryId[] = [
@@ -24,6 +25,7 @@ export const WORLD_MAP_AE_CATEGORY_IDS: WorldMapAeCategoryId[] = [
   'energy',
   'p2p',
   'bus',
+  'cpu',
   'other',
 ];
 
@@ -39,19 +41,21 @@ export const WORLD_MAP_AE_CATEGORY_ID_BY_BYTE: Record<number, WorldMapAeCategory
   8: 'p2p',
   9: 'bus',
   10: 'other',
+  11: 'cpu',
 };
 
 /** Representative item/block icon per category (settings UI preview). */
 export const WORLD_MAP_AE_CATEGORY_ICON_IDS: Record<WorldMapAeCategoryId, string> = {
   controller: AE_BLOCK_ICON_IDS.controller,
   drive: AE_BLOCK_ICON_IDS.drive,
-  cell: 'appeng:item.ItemBasicStorageCell.16384',
+  cell: 'appeng:item.ItemBasicStorageCell:16384',
   interface: AE_BLOCK_ICON_IDS.interface,
-  terminal: 'appeng:tile.BlockCraftingMonitor',
+  terminal: 'appeng:item.ItemCraftingTerminal',
   cable: AE_BLOCK_ICON_IDS.cable_smart,
   energy: 'appeng:tile.BlockEnergyAcceptor',
   p2p: AE_BLOCK_ICON_IDS.p2p,
   bus: 'appeng:item.ItemMultiPart:220',
+  cpu: 'appliedenergistics2:tile.BlockCraftingUnit',
   other: 'appeng:item.ItemMultiMaterial',
 };
 
@@ -65,6 +69,7 @@ export const DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS: Record<WorldMapAeCategoryId, 
   energy: '#446644',
   p2p: '#6a4a7a',
   bus: '#555566',
+  cpu: '#6a5a44',
   other: '#8899aa',
 };
 
@@ -96,6 +101,21 @@ export function resolveWorldMapAeCategory(placement: Pick<
 
   if (containsAny(hay, ['controller'])) return 'controller';
   if (containsAny(hay, ['me_drive', 'iodrive', 'drive'])) return 'drive';
+  if (
+    containsAny(hay, [
+      'craftingcpu',
+      'craftingtile',
+      'blockcrafting',
+      'crafting co-processor',
+      'crafting storage',
+      'crafting monitor',
+      'crafting unit',
+      'coprocessor',
+      'accelerator',
+    ])
+  ) {
+    return 'cpu';
+  }
   if (containsAny(hay, ['cell', 'storage', 'chest'])) return 'cell';
   if (containsAny(hay, ['interface'])) return 'interface';
   if (containsAny(hay, ['terminal', 'monitor', 'pattern'])) return 'terminal';
@@ -111,6 +131,9 @@ export function resolveMarkerAeCategory(
   marker: Pick<WorldMapMarkerDto, 'type' | 'subtype' | 'iconItemId' | 'displayName'>
 ): WorldMapAeCategoryId {
   const type = (marker.type ?? '').toLowerCase();
+  if (type === 'cpu' || (marker.subtype ?? '').toLowerCase() === 'cpu') {
+    return 'cpu';
+  }
   if (type.includes('cable')) {
     return 'cable';
   }

@@ -19,6 +19,11 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useServerHealth } from '@/hooks/useServerHealth';
 import { useNetworkMetrics } from '@/hooks/useNetworkMetrics';
 import { useDebouncedLocalStorageSaver } from '@/hooks/useDebouncedLocalStorageSaver';
+import { useDashboardPinMetrics, lookupPinSeries } from '@/hooks/useDashboardPinMetrics';
+import { useNetworkBalance } from '@/hooks/useNetworkBalance';
+import { resolvePins } from '@/utils/dashboardPins';
+import { resolveColumns } from '@/utils/dashboardColumns';
+import { getValidChartTypes } from '@/utils/dataSourceChartMap';
 import {
   isHistoryDataSource,
   isPlayerHistoryDataSource,
@@ -54,6 +59,7 @@ import {
   getGtMachinesForTable,
   getGtStatusBreakdown,
   getStorageCategoryBreakdown,
+  gtStatusLabel,
 } from '@/utils/overviewDataSources';
 import {
   renderCategoricalBarChart,
@@ -73,6 +79,7 @@ const DATA_SOURCES = [
   'itemTotal', 'fluidTotal', 'topItems', 'cpuList', 'gtMachineList',
   'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
   'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
+  'customPins',
 ];
 
 export function Dashboard() {
@@ -95,6 +102,8 @@ export function Dashboard() {
     title: '',
     width: 3,
     height: 2,
+    contentScale: 1,
+    pins: [],
   });
 
   // GridStack 实例与 DOM 引用（提前声明以便 handleAutoArrange 等回调引用）
@@ -117,6 +126,12 @@ export function Dashboard() {
   const storage = storageMap[currentNet];
   const power = powerMap[currentNet];
   const gt = gtMap[currentNet];
+  const widgets = settings.widgets.length > 0 ? settings.widgets : DEFAULT_DASHBOARD_WIDGETS;
+  const pinMetrics = useDashboardPinMetrics(currentNet, widgets, 10_000);
+  const { suggestions: balanceSuggestions } = useNetworkBalance(
+    selectedNetworks,
+    selectedNetworks.length >= 2
+  );
 
   // Compute data source values
   const dataSourceValue = useCallback(
@@ -168,6 +183,17 @@ export function Dashboard() {
     [storage, power, gt, playerOnlineCount, playerOnlineHistory, serverHealth.health]
   );
 
+  const pinCtx = useMemo(
+    () => ({
+      storage,
+      power,
+      gtMachines: gt?.machines ?? null,
+      balanceSuggestions,
+      scalarValue: dataSourceValue,
+    }),
+    [storage, power, gt, balanceSuggestions, dataSourceValue]
+  );
+
   const dataSourceLabel = (ds: string): string => {
     const map: Record<string, string> = {};
     const keys = [
@@ -176,7 +202,7 @@ export function Dashboard() {
       'activeCpu', 'busyCpu', 'cpuBusyRatio', 'gtMachineCount', 'gtActiveCount',
       'itemTotal', 'fluidTotal', 'topItems', 'cpuList', 'gtMachineList',
       'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
-      'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
+      'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt', 'customPins',
     ];
     for (const k of keys) map[k] = t('dataSource_' + k);
     return map[ds] || ds;
@@ -236,8 +262,23 @@ export function Dashboard() {
 
     switch (widget.type) {
       case 'statCard': {
+        const pinned = resolvePins(widget.pins, pinCtx);
         const showDelta = widget.showDelta ?? false;
         const sigDigits = widget.significantDigits ?? 5;
+        if (pinned.length > 0) {
+          const p = pinned[0];
+          return wrap(
+            <>
+              {labelText(p.label || label)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                {p.iconItem && <Icon item={p.iconItem} size={28} />}
+                <div className="stat-card-value" style={valueStyle(widget)}>
+                  {fmtNum(p.value)}
+                </div>
+              </div>
+            </>
+          );
+        }
         let mainText = isBytes ? formatBytes(value) : isPercent ? value.toFixed(1) + '%' : fmtNum(value);
         let deltaEl: ReactNode = null;
         if (showDelta) {
@@ -279,17 +320,31 @@ export function Dashboard() {
       }
 
       case 'progressBar': {
+        const pinned = resolvePins(widget.pins, pinCtx);
+        const pin0 = pinned[0];
         const fillColor = colors.progressFillColor || colors.chartColor || 'var(--accent)';
         const trackColor = colors.progressTrackColor || undefined;
+        let pct = Math.min(100, isPercent ? value : 0);
+        let fmt = isPercent ? value.toFixed(1) + '%' : fmtNum(value);
+        if (pin0) {
+          if (pin0.max && pin0.max > 0) {
+            pct = Math.min(100, (pin0.value / pin0.max) * 100);
+          } else if (pin0.value <= 1) {
+            pct = Math.min(100, pin0.value * 100);
+          } else if (pin0.value <= 100) {
+            pct = Math.min(100, pin0.value);
+          }
+          fmt = fmtNum(pin0.value);
+        }
         return wrap(
           <>
-            {labelText(label)}
+            {labelText(pin0?.label || label)}
             <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
               <Progress
-                percent={Math.min(100, isPercent ? value : 0)}
+                percent={pct}
                 type={widget.style === 'circular' ? 'circle' : 'line'}
                 strokeColor={trackColor ? { color: fillColor, trailColor: trackColor } : fillColor}
-                format={() => (isPercent ? value.toFixed(1) + '%' : fmtNum(value))}
+                format={() => fmt}
                 style={{ width: '100%' }}
               />
             </div>
@@ -298,17 +353,30 @@ export function Dashboard() {
       }
 
       case 'gauge': {
+        const pinned = resolvePins(widget.pins, pinCtx);
+        const pin0 = pinned[0];
         const strokeColor = colors.gaugeStrokeColor || colors.chartColor || 'var(--accent)';
         const trackColor = colors.gaugeTrackColor || undefined;
+        let pct = Math.min(100, isPercent ? value : (power?.euMax ? (value / power.euMax) * 100 : 0));
+        let fmt = isPercent ? value.toFixed(0) + '%' : fmtNum(value);
+        if (pin0) {
+          const thr = widget.gaugeThreshold && widget.gaugeThreshold > 0
+            ? widget.gaugeThreshold
+            : pin0.max && pin0.max > 0
+              ? pin0.max
+              : 100;
+          pct = Math.min(100, (pin0.value / thr) * 100);
+          fmt = fmtNum(pin0.value);
+        }
         return wrap(
           <>
-            {labelText(label)}
+            {labelText(pin0?.label || label)}
             <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
               <Progress
                 type="circle"
-                percent={Math.min(100, isPercent ? value : (power?.euMax ? (value / power.euMax) * 100 : 0))}
+                percent={pct}
                 strokeColor={trackColor ? { color: strokeColor, trailColor: trackColor } : strokeColor}
-                format={() => (isPercent ? value.toFixed(0) + '%' : fmtNum(value))}
+                format={() => fmt}
               />
             </div>
           </>
@@ -319,6 +387,8 @@ export function Dashboard() {
         const ds = widget.dataSource;
         const lineColor = colors.chartLineColor || chartColor;
         const areaColor = colors.chartAreaColor || (colors.chartColor ? `${colors.chartColor}33` : 'var(--accent-dim)');
+        const secondaryLine = colors.chartSecondaryLineColor || 'var(--warning, #faad14)';
+        const secondaryArea = colors.chartSecondaryAreaColor || undefined;
         const notEnoughData = (
           <>
             {labelText(label)}
@@ -328,162 +398,111 @@ export function Dashboard() {
           </>
         );
 
-        // 1) Player online history (usePlayers)
-        if (isPlayerHistoryDataSource(ds)) {
-          const hist = playerOnlineHistory;
-          if (hist.length < 2) {
-            return wrap(notEnoughData);
+        type TrendSeries = {
+          id: string;
+          label: string;
+          points: { ts?: number; value: number }[];
+          lineColor: string;
+          areaColor?: string;
+        };
+        const merged: TrendSeries[] = [];
+        const pinPalette = [lineColor, secondaryLine, chartColor, 'var(--success, #52c41a)', 'var(--info, #1677ff)'];
+
+        // Built-in history series (when dataSource is not customPins-only)
+        if (ds !== 'customPins') {
+          if (isPlayerHistoryDataSource(ds)) {
+            const hist = playerOnlineHistory;
+            if (hist.length >= 2) {
+              merged.push({
+                id: 'players',
+                label: t('dataSource_playerOnlineCount'),
+                points: hist.map((p) => ({ value: p.count, ts: p.ts })),
+                lineColor,
+                areaColor,
+              });
+            }
+          } else if (isServerHealthHistoryDataSource(ds)) {
+            const points =
+              ds === 'serverMspt' ? serverHealth.getMsptHistory() : serverHealth.getTpsHistory();
+            if (points.length >= 2) {
+              merged.push({ id: ds, label, points, lineColor, areaColor });
+            }
+          } else if (isPowerHistoryDataSource(ds)) {
+            const history = power?.euHistory || [];
+            const historyTs = power?.euHistoryTimestamps || [];
+            if (history.length >= 2) {
+              merged.push({
+                id: 'eu',
+                label: t('euStored'),
+                points: history.map((v, i) => ({ value: v, ts: historyTs[i] })),
+                lineColor,
+                areaColor,
+              });
+            }
+          } else if (isHistoryDataSource(ds)) {
+            const points = networkMetrics.getHistory(currentNet, ds);
+            if (points.length >= 2) {
+              merged.push({ id: ds, label, points, lineColor, areaColor });
+            }
           }
-          return wrap(
-            <>
-              {labelText(label)}
-              <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%`, minHeight: 80 }}>
-                <ChartTrendSvg
-                  series={[
-                    {
-                      id: 'players',
-                      label: t('dataSource_playerOnlineCount'),
-                      points: hist.map((p) => ({ value: p.count, ts: p.ts })),
-                      lineColor,
-                      areaColor,
-                    },
-                  ]}
-                  formatValue={(v) => String(Math.round(v))}
-                  formatTime={(ts) => formatTime(ts)}
-                  showValueAxis={settings.chartShowValueAxis}
-                  showTimeAxis={settings.chartShowTimeAxis}
-                  stretchMode={chartStretch}
-                  colors={{
-                    gridColor: colors.chartGridColor || 'var(--border-light)',
-                    pointColor: colors.chartPointColor || lineColor,
-                    axisTextColor: colors.axisTextColor || undefined,
-                  }}
-                />
-              </div>
-            </>
-          );
         }
 
-        // 1b) Server TPS / MSPT (GET /api/server/health)
-        if (isServerHealthHistoryDataSource(ds)) {
-          const points =
-            ds === 'serverMspt'
-              ? serverHealth.getMsptHistory()
-              : serverHealth.getTpsHistory();
-          if (points.length < 2) {
-            return wrap(notEnoughData);
+        // Pin history series (union with built-in)
+        (widget.pins || []).forEach((p, idx) => {
+          const pts = lookupPinSeries(p, pinMetrics);
+          if (pts.length < 2) return;
+          const color = pinPalette[idx % pinPalette.length];
+          merged.push({
+            id: `${p.kind}:${p.id}`,
+            label: p.label || p.id,
+            points: pts,
+            lineColor: color,
+            areaColor: idx === 0 ? areaColor : secondaryArea,
+          });
+        });
+
+        if (merged.length === 0) {
+          if (
+            ds !== 'customPins' &&
+            !isHistoryDataSource(ds) &&
+            !isPlayerHistoryDataSource(ds) &&
+            !isPowerHistoryDataSource(ds) &&
+            !isServerHealthHistoryDataSource(ds) &&
+            !(widget.pins && widget.pins.length > 0)
+          ) {
+            return wrap(
+              <>
+                {labelText(label)}
+                <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
+                  <span style={{ color: 'var(--text-dim)' }}>{t('trendNotSupported')}</span>
+                </div>
+              </>
+            );
           }
-          const isMspt = ds === 'serverMspt';
-          return wrap(
-            <>
-              {labelText(label)}
-              <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%`, minHeight: 80 }}>
-                <ChartTrendSvg
-                  series={[
-                    {
-                      id: ds,
-                      label,
-                      points,
-                      lineColor,
-                      areaColor,
-                    },
-                  ]}
-                  formatValue={(v) => (isMspt ? v.toFixed(1) + ' ms' : v.toFixed(1))}
-                  formatTime={(ts) => formatTime(ts)}
-                  showValueAxis={settings.chartShowValueAxis}
-                  showTimeAxis={settings.chartShowTimeAxis}
-                  stretchMode={chartStretch}
-                  colors={{
-                    gridColor: colors.chartGridColor || 'var(--border-light)',
-                    pointColor: colors.chartPointColor || lineColor,
-                    axisTextColor: colors.axisTextColor || undefined,
-                  }}
-                />
-              </div>
-            </>
-          );
+          return wrap(notEnoughData);
         }
 
-        // 2) Power history (PowerSampler: euHistory / steamHistory)
-        if (isPowerHistoryDataSource(ds)) {
-          const history = power?.euHistory || [];
-          const historyTs = power?.euHistoryTimestamps || [];
-          if (history.length < 2) {
-            return wrap(notEnoughData);
-          }
-          return wrap(
-            <>
-              {labelText(label)}
-              <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%`, minHeight: 80 }}>
-                <ChartTrendSvg
-                  series={[
-                    {
-                      id: 'eu',
-                      label: t('euStored'),
-                      points: history.map((v, i) => ({ value: v, ts: historyTs[i] })),
-                      lineColor,
-                      areaColor,
-                    },
-                  ]}
-                  formatValue={(v) => fmtNum(v)}
-                  formatTime={(ts) => formatTime(ts)}
-                  showValueAxis={settings.chartShowValueAxis}
-                  showTimeAxis={settings.chartShowTimeAxis}
-                  stretchMode={chartStretch}
-                  colors={{
-                    gridColor: colors.chartGridColor || 'var(--border-light)',
-                    pointColor: colors.chartPointColor || lineColor,
-                    axisTextColor: colors.axisTextColor || undefined,
-                  }}
-                />
-              </div>
-            </>
-          );
-        }
-
-        // 3) Network metric history (NetworkMetricSampler: itemCount, bytesUsed, ...)
-        if (isHistoryDataSource(ds)) {
-          const points = networkMetrics.getHistory(currentNet, ds);
-          if (points.length < 2) {
-            return wrap(notEnoughData);
-          }
-          const isPct = ds.includes('Percent') || ds === 'cpuBusyRatio';
-          return wrap(
-            <>
-              {labelText(label)}
-              <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%`, minHeight: 80 }}>
-                <ChartTrendSvg
-                  series={[
-                    {
-                      id: ds,
-                      label,
-                      points,
-                      lineColor,
-                      areaColor,
-                    },
-                  ]}
-                  formatValue={(v) => (isPct ? v.toFixed(1) + '%' : fmtNum(v))}
-                  formatTime={(ts) => formatTime(ts)}
-                  showValueAxis={settings.chartShowValueAxis}
-                  showTimeAxis={settings.chartShowTimeAxis}
-                  stretchMode={chartStretch}
-                  colors={{
-                    gridColor: colors.chartGridColor || 'var(--border-light)',
-                    pointColor: colors.chartPointColor || lineColor,
-                    axisTextColor: colors.axisTextColor || undefined,
-                  }}
-                />
-              </div>
-            </>
-          );
-        }
-
-        // 4) Data source has no history sequence
+        const isPct = ds.includes('Percent') || ds === 'cpuBusyRatio';
+        const isMspt = ds === 'serverMspt';
         return wrap(
           <>
             {labelText(label)}
-            <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
-              <span style={{ color: 'var(--text-dim)' }}>{t('trendNotSupported')}</span>
+            <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%`, minHeight: 80 }}>
+              <ChartTrendSvg
+                series={merged}
+                formatValue={(v) =>
+                  isMspt ? v.toFixed(1) + ' ms' : isPct ? v.toFixed(1) + '%' : fmtNum(v)
+                }
+                formatTime={(ts) => formatTime(ts)}
+                showValueAxis={settings.chartShowValueAxis}
+                showTimeAxis={settings.chartShowTimeAxis}
+                stretchMode={chartStretch}
+                colors={{
+                  gridColor: colors.chartGridColor || 'var(--border-light)',
+                  pointColor: colors.chartPointColor || lineColor,
+                  axisTextColor: colors.axisTextColor || undefined,
+                }}
+              />
             </div>
           </>
         );
@@ -491,13 +510,87 @@ export function Dashboard() {
 
       case 'dataTable': {
         const rowAltBg = colors.dataTableRowAltColor || undefined;
-        if (widget.dataSource === 'topItems' && storage?.items) {
-          const top = [...storage.items].sort((a, b) => b.amount - a.amount).slice(0, widget.maxRows || 10);
+        const cols = resolveColumns(widget);
+        const pinnedRows = resolvePins(widget.pins, pinCtx);
+
+        if (widget.dataSource === 'customPins') {
           return wrap(
             <>
               {labelText(label)}
               <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
-                {top.map((item, i) => (
+                {pinnedRows.length === 0 ? (
+                  <Empty description={t('dashPinEmpty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : (
+                  pinnedRows.map((row, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        margin: '2px 0',
+                        fontSize: '0.75rem',
+                        padding: '2px 4px',
+                        borderRadius: 4,
+                        background: i % 2 === 1 ? rowAltBg : undefined,
+                      }}
+                    >
+                      {(!cols.length || cols.includes('icon')) && row.iconItem && <Icon item={row.iconItem} size={20} />}
+                      {(!cols.length || cols.includes('name')) && (
+                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {row.label}
+                        </span>
+                      )}
+                      {cols.includes('kind') && (
+                        <Tag style={{ margin: 0, fontSize: '0.65rem' }}>{row.pin.kind}</Tag>
+                      )}
+                      {(!cols.length || cols.includes('amount')) && (
+                        <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          );
+        }
+
+        if (widget.dataSource === 'topItems' && storage?.items) {
+          const top = widget.pinsOnly
+            ? []
+            : [...storage.items].sort((a, b) => b.amount - a.amount).slice(0, widget.maxRows || 10);
+          const pinIds = new Set(pinnedRows.filter((p) => p.pin.kind === 'item').map((p) => p.pin.id));
+          return wrap(
+            <>
+              {labelText(label)}
+              <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
+                {pinnedRows.map((row, i) => (
+                  <div
+                    key={'pin-' + i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      margin: '2px 0',
+                      fontSize: '0.75rem',
+                      padding: '2px 4px',
+                      borderRadius: 4,
+                      background: 'var(--accent-dim, rgba(64,158,255,0.12))',
+                    }}
+                  >
+                    {row.iconItem && <Icon item={row.iconItem} size={20} />}
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {row.label}
+                    </span>
+                    <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>
+                  </div>
+                ))}
+                {top
+                  .filter((item) => {
+                    const id = item.itemId || item.registryName;
+                    return !id || !pinIds.has(id);
+                  })
+                  .map((item, i) => (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 4, margin: '2px 0',
                     fontSize: '0.75rem', padding: '2px 4px', borderRadius: 4,
@@ -611,7 +704,7 @@ export function Dashboard() {
                           {m.recipeMapName || m.machineMode || '-'}
                         </span>
                         <Tag color={statusColorMap[m.statusText] || 'default'} style={{ margin: 0, fontSize: '0.65rem' }}>
-                          {m.statusText || '-'}
+                          {gtStatusLabel(m.statusText, t)}
                         </Tag>
                       </div>
                       <div style={{ display: 'flex', gap: 8, marginTop: 2, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
@@ -632,6 +725,59 @@ export function Dashboard() {
           );
         }
         if (widget.dataSource === 'networkBalance') {
+          const balPins = pinnedRows.filter((p) => p.pin.kind === 'balance');
+          if (balPins.length > 0 || widget.pinsOnly) {
+            const rows = widget.pinsOnly
+              ? balPins
+              : [
+                  ...balPins,
+                  ...resolvePins(
+                    (balanceSuggestions || [])
+                      .filter((s) => {
+                        const id = s.itemId || s.displayName;
+                        return !balPins.some((p) => p.pin.id === id);
+                      })
+                      .slice(0, widget.maxRows || 10)
+                      .map((s) => ({
+                        kind: 'balance' as const,
+                        id: s.itemId || s.displayName,
+                        label: s.displayName,
+                      })),
+                    pinCtx
+                  ),
+                ];
+            return wrap(
+              <>
+                {labelText(label)}
+                <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
+                  {rows.map((row, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        margin: '2px 0',
+                        fontSize: '0.75rem',
+                        padding: '2px 4px',
+                        borderRadius: 4,
+                        background: i % 2 === 1 ? rowAltBg : undefined,
+                      }}
+                    >
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {row.label}
+                      </span>
+                      {row.secondary && <Tag style={{ margin: 0, fontSize: '0.65rem' }}>{row.secondary}</Tag>}
+                      <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>
+                    </div>
+                  ))}
+                  {rows.length === 0 && (
+                    <Empty description={t('dashPinEmpty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  )}
+                </div>
+              </>
+            );
+          }
           return wrap(
             <>
               {labelText(label)}
@@ -645,6 +791,20 @@ export function Dashboard() {
       }
 
       case 'barChart': {
+        if (widget.dataSource === 'customPins') {
+          const pinned = resolvePins(widget.pins, pinCtx);
+          return renderCategoricalBarChart(
+            pinned.map((p) => ({ label: p.label, value: p.value })),
+            widget,
+            settings,
+            chartSize,
+            chartColor,
+            fmtNum,
+            labelText,
+            label,
+            wrap
+          );
+        }
         if (widget.dataSource === 'machineByStatus') {
           return renderCategoricalBarChart(
             getGtStatusBreakdown(gt?.machines, t),
@@ -698,6 +858,20 @@ export function Dashboard() {
       }
 
       case 'pieChart': {
+        if (widget.dataSource === 'customPins') {
+          const pinned = resolvePins(widget.pins, pinCtx);
+          return renderCategoricalPieChart(
+            pinned.map((p) => ({ label: p.label, value: p.value })),
+            widget,
+            settings,
+            chartSize,
+            chartColor,
+            fmtNum,
+            labelText,
+            label,
+            wrap
+          );
+        }
         if (widget.dataSource === 'machineByStatus') {
           return renderCategoricalPieChart(
             getGtStatusBreakdown(gt?.machines, t),
@@ -737,12 +911,31 @@ export function Dashboard() {
       }
 
       case 'radarChart': {
+        const pinned = resolvePins(widget.pins, pinCtx);
+        const pinAxisValues =
+          pinned.length >= 3
+            ? pinned.slice(0, 8).map((p) => ({ label: p.label, value: p.value }))
+            : pinned.length > 0
+              ? [
+                  ...pinned.map((p) => ({ label: p.label, value: p.value })),
+                  ...resolveRadarAxes(widget)
+                    .slice(0, Math.max(0, 3 - pinned.length))
+                    .map((a) => ({
+                      label: a.label?.trim() || dataSourceLabel(a.dataSource),
+                      value: dataSourceValue(a.dataSource),
+                    })),
+                ]
+              : undefined;
+        // Need at least 3 axes for a readable radar
+        const axisValues =
+          pinAxisValues && pinAxisValues.length >= 3 ? pinAxisValues : undefined;
         return wrap(
           <>
             {labelText(label)}
             <RadarChartWidget
               widget={widget}
               axes={resolveRadarAxes(widget)}
+              axisValues={axisValues}
               chartSize={chartSize}
               chartColor={chartColor}
               radarAxisColor={colors.radarAxisColor || 'var(--border)'}
@@ -800,13 +993,11 @@ export function Dashboard() {
       // GridStack compact：'compact' 模式会尽量消除空隙、将 widget 紧凑排列到顶部。
       grid.compact('compact');
       // compact 会触发 change 事件，由 onChange 防抖写回 localStorage
-      notify(t('autoArrange'), 'success');
+      notify(t('autoArrangeDone'), 'success');
     } catch (e) {
       notify((e as Error).message, 'error');
     }
   }, [notify, t]);
-
-  const widgets = settings.widgets.length > 0 ? settings.widgets : DEFAULT_DASHBOARD_WIDGETS;
 
   // 重建 GridStack 的依赖：widget id 列表 + 每个 widget 的宽高（Edit Modal
   // 改宽高后需重建以应用新尺寸）+ editMode + 网络 + margin。
@@ -928,8 +1119,8 @@ export function Dashboard() {
             gs-y={widget.y}
             gs-w={widget.width}
             gs-h={widget.height}
-            gs-min-w={2}
-            gs-min-h={2}
+            gs-min-w={1}
+            gs-min-h={1}
           >
             <WidgetShell
               widget={widget}
@@ -992,23 +1183,44 @@ export function Dashboard() {
         cancelText={t('cancel')}
       >
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Select
-            style={{ width: '100%' }}
-            value={newWidget.type}
-            onChange={(v) => setNewWidget({ ...newWidget, type: v })}
-            options={WIDGET_TYPES.map((tp) => ({ label: t('widgetType_' + tp), value: tp }))}
-          />
-          <Select
-            style={{ width: '100%' }}
-            value={newWidget.dataSource}
-            onChange={(v) => setNewWidget({ ...newWidget, dataSource: v })}
-            options={DATA_SOURCES.map((ds) => ({ label: t('dataSource_' + ds), value: ds }))}
-          />
+          <div>
+            <span>{t('dataSource')}</span>
+            <Select
+              style={{ width: '100%', marginTop: 4 }}
+              value={newWidget.dataSource}
+              onChange={(v) => {
+                const valid = getValidChartTypes(v);
+                const typeOk = newWidget.type && valid.includes(newWidget.type);
+                setNewWidget({
+                  ...newWidget,
+                  dataSource: v,
+                  type: typeOk ? newWidget.type : valid[0] || 'statCard',
+                });
+              }}
+              options={DATA_SOURCES.map((ds) => ({ label: t('dataSource_' + ds), value: ds }))}
+              showSearch
+              optionFilterProp="label"
+            />
+          </div>
+          <div>
+            <span>{t('editWidget_type')}</span>
+            <Select
+              style={{ width: '100%', marginTop: 4 }}
+              value={newWidget.type}
+              onChange={(v) => setNewWidget({ ...newWidget, type: v })}
+              options={(newWidget.dataSource
+                ? getValidChartTypes(newWidget.dataSource)
+                : WIDGET_TYPES
+              )
+                .filter((tp) => WIDGET_TYPES.includes(tp))
+                .map((tp) => ({ label: t('widgetType_' + tp), value: tp }))}
+            />
+          </div>
           <Space>
             <span>{t('width')}:</span>
-            <InputNumber min={2} max={12} value={newWidget.width} onChange={(v) => setNewWidget({ ...newWidget, width: v || 3 })} />
+            <InputNumber min={1} max={12} value={newWidget.width} onChange={(v) => setNewWidget({ ...newWidget, width: v || 3 })} />
             <span>{t('height')}:</span>
-            <InputNumber min={2} max={10} value={newWidget.height} onChange={(v) => setNewWidget({ ...newWidget, height: v || 2 })} />
+            <InputNumber min={1} max={10} value={newWidget.height} onChange={(v) => setNewWidget({ ...newWidget, height: v || 2 })} />
           </Space>
         </Space>
       </Modal>
@@ -1017,6 +1229,9 @@ export function Dashboard() {
         open={!!editWidgetTarget}
         widget={editWidgetTarget}
         settings={settings}
+        storage={storage}
+        gtMachines={gt?.machines ?? null}
+        balanceSuggestions={balanceSuggestions}
         onWidgetChange={(w) => setEditWidgetTarget(w)}
         onOk={() => {
           if (editWidgetTarget) {

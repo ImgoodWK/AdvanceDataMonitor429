@@ -25,8 +25,10 @@ import { useWorldMapTileLoader } from '@/hooks/useWorldMapTileLoader';
 import type { TopologyNodeDto, WorldMapMarkerDto, WorldMapMetaDto, WorldMapViewDto } from '@/types/dto';
 import type { TopologyDisplaySettings, WorldMapObliqueDirection } from '@/types/topologyDisplay';
 import { filterNodesWithDetailPage } from '@/utils/topologyDevices';
+import { collectIconIdsFromMarkers } from '@/utils/iconPrefetch';
+import { trackVisibleIcons } from '@/utils/visibleIconRegistry';
 import {
-  consolidateCpuMarkers,
+  consolidateMultiblockMarkers,
   filterMarkersByCategoryVisibility,
   filterMarkersByDim,
   uniqueNodesFromMarkers,
@@ -156,7 +158,7 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
     const legendMarkers = useMemo(() => {
       const byDim = filterMarkersByDim(markers, activeDim);
-      return consolidateCpuMarkers(byDim);
+      return consolidateMultiblockMarkers(byDim);
     }, [markers, activeDim]);
 
     const visibleDimMarkers = useMemo(
@@ -167,6 +169,12 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
         ),
       [legendMarkers, displaySettings.worldMapAeCategoryVisibility]
     );
+
+    useEffect(() => {
+      if (visibleDimMarkers.length === 0) return;
+      const ids = collectIconIdsFromMarkers(visibleDimMarkers);
+      return trackVisibleIcons(ids);
+    }, [visibleDimMarkers]);
 
     const chunkScope: ChunkScope | null = useMemo(() => {
       if (!dimInfo) return null;

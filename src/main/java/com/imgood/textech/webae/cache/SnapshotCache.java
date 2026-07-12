@@ -115,6 +115,19 @@ public class SnapshotCache {
         cache.remove(buildKey(playerUuid, networkId, dataType));
     }
 
+    /** Remove all entries whose key ends with {@code :dataType}. */
+    public void invalidateTypeSuffix(String dataType) {
+        if (dataType == null || dataType.isEmpty()) {
+            return;
+        }
+        String suffix = ":" + dataType;
+        for (String key : cache.keySet()) {
+            if (key != null && key.endsWith(suffix)) {
+                cache.remove(key);
+            }
+        }
+    }
+
     public int size() {
         return cache.size();
     }

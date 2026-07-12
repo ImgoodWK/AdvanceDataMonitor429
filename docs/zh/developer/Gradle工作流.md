@@ -177,6 +177,15 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1
 
 本项目在 `dependencies.gradle` 中显式 `devOnlyNonPublishable` 锁定 `ModularUI2:2.2.18-1.7.10`，并对 Web-Map 排除 `ModularUI2` 传递。若需与整合包最新 GT / Web-Map 对齐，可一并升级 `GT5-Unofficial` 至 `5.09.52.x` 并使用 `ModularUI2:2.3.73+`。
 
+### BetterQuesting / WebAE 任务书调试
+
+- **模组依赖**：`BetterQuesting` `3.8.70-GTNH` + `GTNHLib` **`0.10.7`**（BQ 要求 ≥0.10.7；**不要用 0.11.9**，其 preInit 依赖 ModularUI2 2.3.x 的 `TextFieldTheme`，与 GT5 5.09.51 + MUI2 2.2.18 冲突）。`addon.gradle` force 覆盖 GT5 传递的 0.9.54。
+- **与整合包差异**：正式整合包为 GT5 5.09.52 + GTNHLib 0.11.9 + ModularUI2 2.3.73；本仓库 compile 仍锁定 GT5 5.09.51.470，任务书 dev 在 0.10.7 栈上调试即可。
+- **任务数据**：整合包任务快照已提交在 `dev-fixtures/betterquesting/`（来源见 `SOURCE.json`）。`runClient` / `runServer` 启动前会自动执行 `syncDevBetterQuesting`，复制到 `run/config/betterquesting/`。
+- **手动同步**：`.\gradlew.bat syncDevBetterQuesting`
+- **进游戏加载**：OP 执行 `/bq_admin default load`；WebAE 侧栏 `?page=quests` 或游戏内任务书验证。
+- **更新快照**：`powershell -ExecutionPolicy Bypass -File tools/dev/sync-betterquesting-from-gtnh.ps1`，然后提交 `dev-fixtures/betterquesting/`。
+
 ### NBTEdit `NoSuchFieldError: field_71412_D`
 
 `run/mods/ForgeNBTEdit-universal-1.0.0.test.jar` 为旧版 In-game NBTEdit，与 Java 17 / lwjgl3ify 运行时不兼容（访问 `Minecraft.mcDataDir` 的 SRG 字段名失效）。该 jar **不是** Gradle 依赖，多为历史手动放入。

@@ -1,0 +1,23 @@
+// TeXTech dev-only: sync GTNH BetterQuesting fixtures into run/config before local MC runs.
+
+// BetterQuesting 3.8.70-GTNH requires gtnhlib@[0.10.7,). Use 0.10.7 with GT5 5.09.51 + ModularUI2 2.2.18 (0.11.9 needs MUI2 2.3.x).
+configurations.configureEach {
+    resolutionStrategy.force 'com.github.GTNewHorizons:GTNHLib:0.10.7'
+    resolutionStrategy.force 'com.github.GTNewHorizons:ModularUI2:2.2.18-1.7.10'
+}
+
+tasks.register('syncDevBetterQuesting', Copy) {
+    group = 'Modded Minecraft'
+    description = 'Copy dev-fixtures/betterquesting into run/config/betterquesting for dev runs'
+    from('dev-fixtures/betterquesting') {
+        exclude 'SOURCE.json'
+        exclude 'README-dev.md'
+    }
+    into('run/config/betterquesting')
+}
+
+['runClient', 'runServer', 'runClient17', 'runServer17'].each { taskName ->
+    tasks.matching { it.name == taskName }.configureEach {
+        dependsOn 'syncDevBetterQuesting'
+    }
+}

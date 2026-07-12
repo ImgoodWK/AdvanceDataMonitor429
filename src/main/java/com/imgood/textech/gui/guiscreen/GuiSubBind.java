@@ -182,11 +182,7 @@ public class GuiSubBind extends ADM_GuiScreen {
                 switch (type) {
                     case AE -> mc.displayGuiScreen(new GuiSubAdvanceDataMonitor(player, world, tileEntity, newIndex));
                     case ADV_NETWORKLINK -> mc
-                        .displayGuiScreen(new GuiSubAEAdvanceNetworkLink(player, world, tileEntity, newIndex));
-                    case ADV_CRAFTINGLINK -> mc
-                        .displayGuiScreen(new GuiSubAEAdvanceCraftingLink(player, world, tileEntity, newIndex));
-                    case ADV_STORAGELINK -> mc
-                        .displayGuiScreen(new GuiSubAEAdvanceStorageLink(player, world, tileEntity, newIndex));
+                        .displayGuiScreen(new GuiSubLinkDisplayTypeSelect(player, world, tileEntity, newIndex));
                     default -> mc.displayGuiScreen(new GuiSubAdvanceDataMonitor(player, world, tileEntity, newIndex));
                 }
             }

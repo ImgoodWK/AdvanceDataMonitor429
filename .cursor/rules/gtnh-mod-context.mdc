@@ -31,7 +31,7 @@ alwaysApply: true
 
 ### DEBUG 模式
 - 所有调试开关在 `config/textech/textech.cfg` 中配置（客户端 AI/语音密钥另存 `config/textech/ai-client-local.cfg`），**默认均为 `false`**。
-- 分节加载见 `config/` 包（`ConfigDebugLoader` / `ConfigAiLoader` / `ConfigDataLoomLoader` / `ConfigWebaeDebugLoader` 等）；字段名与 cfg key 对照见 `ConfigDescriptions.java`。WebAE 分功能 debug 开关（`webaeIcons`/`webaeChat`/`webaeDashboard`/`webaeSynthesis`/`webaePatterns`）gate `logs/textech/webae-<feature>.log`，由 `webae/debug/WebAeDebugLog.java` 写入。
+- 分节加载见 `config/` 包（`ConfigDebugLoader` / `ConfigAiLoader` / `ConfigDataLoomLoader` / `ConfigWebaeDebugLoader` 等）；字段名与 cfg key 对照见 `ConfigDescriptions.java`。WebAE 分功能 debug 开关（`webaeIcons`/`webaeChat`/`webaeDashboard`/`webaeSynthesis`/`webaePatterns`/`webaePerf`）gate `logs/textech/webae-<feature>.log`，由 `webae/debug/WebAeDebugLog.java` 写入。
 
 ### 运行时配置与数据路径
 
@@ -42,6 +42,8 @@ alwaysApply: true
 | `<实例根>/TeXTech/WebAE/web-alerts.json` | WebAE 自动化告警规则 |
 | `<实例根>/TeXTech/WebAE/web-favorites.json` | WebAE 配方/样板/物品收藏（按 ownerUuid） |
 | `<实例根>/TeXTech/WebAE/web-order-templates.json` | WebAE 批量下单模板（按 ownerUuid 隔离） |
+| `<实例根>/TeXTech/WebAE/ui-defaults.json` | WebAE 默认 UI 布局（整合包作者覆盖；优先于 jar 内置） |
+| `assets/textech/webae/ui-defaults.json` | 模组内置 WebAE 默认 UI（新玩家首次打开自动应用） |
 | `<实例根>/TeXTech/WebAE/web-recipes.json.gz` | WebAE NEI 配方缓存（服务端 + 客户端 `/admweb recipes upload*` 导出） |
 | `<实例根>/TeXTech/WebAE/icons/` | WebAE 物品图标材质包（`<pack>/<mode>/<itemId>.png`） |
 | `<实例根>/TeXTech/WebAE/map-tiles/` | WebAE 世界地图瓦片缓存 |

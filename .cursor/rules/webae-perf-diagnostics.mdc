@@ -1,0 +1,99 @@
+---
+description: 新增/修改 WebAE HTTP 路由时必须接入性能诊断（WebAePerfProfiler / diagnostics 页）
+globs: src/main/java/com/imgood/textech/webae/**/*.java,src/main/java/com/imgood/textech/handler/HandlerTick.java,src/main/java/com/imgood/textech/handler/WebAe*.java,webae-frontend/src/pages/Diagnostics.tsx,webae-frontend/src/hooks/useServerDiagnostics.ts,docs/**/webae/**
+alwaysApply: false
+---
+
+# WebAE HTTP 路由 ↔ 性能诊断强制约定
+
+凡**新增或改动** WebAE HTTP API（`/api/*`），必须保证能在性能诊断工具中观察到该路由的耗时，不得留下「黑盒」端点。
+
+诊断入口：
+
+| 通道 | 位置 |
+|------|------|
+| API | `GET /api/server/diagnostics`（`ServerDiagnosticsHandler`） |
+| 网页 | WebAE 侧栏「性能诊断」→ `pages/Diagnostics.tsx`（`topRoutes` / `slowHttp` / tick 分段 / `collects`） |
+| 日志 | `[debug] webaePerf` → `logs/textech/webae-perf.log`；慢 tick≥5ms / 慢 HTTP≥200ms 经 `WebAeDebugLog.infoAlways(PERF, …)` |
+
+实现核心：`webae/perf/WebAePerfProfiler.java`。
+
+## 强制清单（新增路由时逐项满足）
+
+### 1. 必须经 Router 统一计时（默认路径）
+
+- 新端点**必须**注册在 [`WebApiRouter.routeInner`](src/main/java/com/imgood/textech/webae/api/WebApiRouter.java)，由外层 `route()` 的 `recordHttp(normalizeRoute(uri), ms)` 自动计入 **HTTP 路由 Top / 慢请求**。
+- **禁止**在 `WebConsoleServer.handleApi`（或其它入口）绕过 `WebApiRouter.route` 直接返回业务 JSON，除非同时手动：
+
+```java
+long t0 = WebAePerfProfiler.instance().begin();
+try {
+    // … handle …
+} finally {
+    long ms = (System.nanoTime() - t0) / 1_000_000L;
+    WebAePerfProfiler.instance().recordHttp("/api/your/path", ms);
+}
+```
+
+- `recordHttp` 的 route 使用**稳定路径**（去掉 query），与现有 `normalizeRoute` 一致，例如 `/api/storage` 而非带 `?network=` 的完整 URI。
+
+### 2. 主线程采集必须记入 `collects`
+
+若新路由依赖主线程扫 AE/世界（`HandlerTick.enqueueServerTask`、`SnapshotScheduler` 预采集、Collector）：
+
+- 在采集 `run()` 内用 `begin()` / `recordCollect("<dataType>", ms)`（参考 `SnapshotScheduler` 对 `p2p`/`cells`/`storage` 等）。
+- `dataType` 命名简短稳定（与 `SnapshotScheduler.TYPE_*` 或明确字符串一致），以便诊断页「快照采集耗时」表出现对应行。
+
+高频读优先走 **缓存直读**（`SnapshotCache` + `markActive`），避免每次 HTTP latch；写操作可保持 live，但仍须有 HTTP `recordHttp`（经 Router 即可）。
+
+### 3. 新的 HandlerTick 阶段必须分段计时
+
+若在 [`HandlerTick.onServerTick`](src/main/java/com/imgood/textech/handler/HandlerTick.java) 增加周期性工作：
+
+- 用 `WebAePerfProfiler.begin()` + `endPhase("<phaseName>", t0)` 包住；
+- 阶段名加入 `WebAePerfProfiler` 常量（或文档化字符串），保证诊断页「Tick 阶段耗时」可见，**禁止**往 `PHASE_MISC` 里无差别堆重大逻辑却不单独计时。
+
+### 4. 文档与可见性
+
+- 在 `docs/zh/webae/开发者手册.md` 与 `docs/en/webae/developer-guide.md` 的端点表中登记新路由，并标明 **缓存直读 / 主线程 live / 上传**。
+- 自测：登录 WebAE → 打开性能诊断 → 打几次新接口 → `topRoutes` 或 `slowHttp` 中应出现该 path（或 `webae-perf.log` 有对应慢 HTTP）。
+
+## 完成定义（Definition of Done）
+
+新增 HTTP 路由的 PR / 任务在宣称完成前须同时满足：
+
+1. 路径挂在 `WebApiRouter`（或已手动 `recordHttp`）；
+2. 若有主线程采集 → 有 `recordCollect`；
+3. 若有新 tick 阶段 → 有 `endPhase`；
+4. 中英开发者手册端点表已更新；
+5. 能在「性能诊断」页或 `webae-perf.log` 中看到该路由/采集的耗时信号。
+
+**未接入诊断 = 未完成。** 不要只加 handler 就结束。
+
+## 图标相关路由（性能解读）
+
+| 路径 | 常见慢因 | 期望 |
+|------|----------|------|
+| `GET /api/icon` | 旧配置下 HTTP 同步直渲（最多约 3s）；大量并发 miss | 磁盘命中快返回；miss **立刻 404** + `IconMissingQueue`（`iconDirectRenderEnabled` 默认 false） |
+| `GET /api/icon/sync/manifest` | 超大 pack 全量 sort/hash | 仅手动整包/自动同步时调用 |
+| `GET /api/icon/sync/bulk` | 整包 zip 进内存 | **禁止**登录默认触发；仅 Settings 整包或用户开启 auto-sync |
+
+Tick 阶段 `iconMissingQueue`（`PHASE_ICON_QUEUE`）：异步向在线客户端派发缺图渲染；短暂升高正常。图标性能产品标准见 **`webae-icon-performance.mdc`**。
+
+## 禁止事项
+
+- 禁止复制一套旁路 HTTP 入口却不打点。
+- 禁止用带动态段的完整 URI 作为 `recordHttp` key 导致 Top 表爆炸（应用规范化 path；path 参数可保留模板化路径如 `/api/quests` 前缀路由已有的固定 uri 匹配方式）。
+- 禁止删除或绕过 `WebApiRouter.route` 外层的 `recordHttp` finally 块。
+
+## 相关文件速查
+
+| 用途 | 文件 |
+|------|------|
+| HTTP 计时入口 | `webae/api/WebApiRouter.java` |
+| Profiler | `webae/perf/WebAePerfProfiler.java` |
+| 诊断 API | `webae/api/handler/ServerDiagnosticsHandler.java` |
+| 调度采集打点 | `webae/cache/SnapshotScheduler.java` |
+| Tick 分段 | `handler/HandlerTick.java` |
+| 前端页 | `webae-frontend/src/pages/Diagnostics.tsx` |
+| Debug 开关 | `Config.webDebugPerf` / `ConfigWebaeDebugLoader` / `webaePerf` |

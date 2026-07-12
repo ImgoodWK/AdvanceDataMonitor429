@@ -4,8 +4,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
-import com.imgood.textech.utils.TileEntityTypeHelper;
+import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 
 /**
  * Keeps {@link StorageLinkWatchRegistry} aligned with data monitor storage bindings.
@@ -39,6 +38,10 @@ public final class StorageLinkWatchSync {
         if (world == null || binding == null || !binding.hasKey("XYZ")) {
             return null;
         }
+        String dataType = binding.hasKey("dataType") ? binding.getString("dataType") : "";
+        if (!"storage".equals(dataType)) {
+            return null;
+        }
         String xyz = binding.getString("XYZ");
         if (xyz == null || xyz.isEmpty()) {
             return null;
@@ -55,12 +58,7 @@ public final class StorageLinkWatchSync {
                 return null;
             }
             TileEntity target = world.getTileEntity(x, y, z);
-            if (target == null) {
-                return null;
-            }
-            if (TileEntityTypeHelper.getTileEntityType(target)
-                != TileEntityTypeHelper.TileEntityType.ADV_STORAGELINK
-                && !(target instanceof TileEntityAdvanceStorageLink)) {
+            if (!(target instanceof TileEntityAdvanceNetworkLink)) {
                 return null;
             }
             return new int[] { world.provider.dimensionId, x, y, z };

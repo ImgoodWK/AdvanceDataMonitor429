@@ -36,6 +36,18 @@ import {
   PRESETS_STORAGE_KEY,
   type AppPreset,
 } from '@/utils/presets';
+import {
+  applyBundledDefaultsIfNeeded,
+  applyUiSettingsBundle,
+  attachServerSettingsToBundle,
+  collectUiSettingsBundle,
+  downloadUiSettingsBundle,
+  fetchUiDefaults,
+  markUiInitialized,
+  parseUiSettingsBundle,
+  type GlobalSettingsSetters,
+  type UiSettingsSection,
+} from '@/utils/uiSettingsBundle';
 import { parseUrlNavigation, syncUrlNavigation } from '@/utils/urlNavigation';
 import type {
   ConfigResponse,
@@ -45,6 +57,17 @@ import type {
   NetworksResponse,
   ServerConfig,
 } from '@/types/dto';
+
+/** One-time: previous default was auto-sync on; force off after icon perf change. */
+const ICON_AUTO_SYNC_MIGRATE_KEY = 'webae_icon_auto_sync_migrated_default_off';
+try {
+  if (typeof localStorage !== 'undefined' && !localStorage.getItem(ICON_AUTO_SYNC_MIGRATE_KEY)) {
+    localStorage.setItem('webae_icon_auto_sync', JSON.stringify(false));
+    localStorage.setItem(ICON_AUTO_SYNC_MIGRATE_KEY, '1');
+  }
+} catch {
+  /* ignore */
+}
 
 export type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
 export type DisplayMode = 'split' | 'merged';
@@ -64,8 +87,10 @@ export type PageId =
   | 'linkscanner'
   | 'monitorbindings'
   | 'planner'
+  | 'quests'
   | 'assistant'
   | 'alertshistory'
+  | 'diagnostics'
   | 'settings';
 
 export interface OrderNavigationState {
@@ -143,6 +168,8 @@ interface AppContextValue {
   localIconPacks: LocalIconPackMeta[];
   refreshLocalIconPacks: () => Promise<void>;
   iconCacheEnabled: boolean;
+  iconAutoSyncEnabled: boolean;
+  setIconAutoSyncEnabled: (v: boolean) => void;
   // Number format
   numberFormat: NumberFormat;
   setNumberFormat: (f: NumberFormat) => void;
@@ -206,6 +233,29 @@ interface AppContextValue {
   overwritePreset: (id: string) => void;
   exportPreset: (id: string) => void;
   importPreset: (file: File) => Promise<void>;
+
+  // Full UI settings backup / restore
+  exportUiSettingsBundle: (opts: {
+    name?: string;
+    note?: string;
+    includePresets?: boolean;
+    includeServer?: boolean;
+    includeAlerts?: boolean;
+  }) => Promise<void>;
+  importUiSettingsBundle: (
+    file: File,
+    opts: {
+      merge?: boolean;
+      sections?: UiSettingsSection[];
+      importServer?: {
+        alerts?: boolean;
+        favorites?: boolean;
+        orderTemplates?: boolean;
+        canEditAlerts?: boolean;
+      };
+    }
+  ) => Promise<boolean>;
+  restorePackUiDefaults: () => Promise<boolean>;
 
   // Notification helper
   notify: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
@@ -317,6 +367,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ---- Icons ----
   const [iconPack, setIconPackState] = useLocalStorageString('webae_icon_pack', 'default');
   const [iconRenderMode, setIconRenderModeState] = useLocalStorageString('webae_icon_render_mode', 'nei');
+  const [iconAutoSyncEnabled, setIconAutoSyncEnabled] = useLocalStorage<boolean>('webae_icon_auto_sync', false);
   const [iconPacks, setIconPacks] = useState<IconPackInfo[]>([]);
   const [localIconPack, setLocalIconPackState] = useState(getActiveLocalPack);
   const [localIconPacks, setLocalIconPacks] = useState<LocalIconPackMeta[]>([]);
@@ -337,7 +388,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setIconRenderMode = useCallback(
     (m: string) => {
-      setIconRenderModeState(m || 'hybrid');
+      setIconRenderModeState(m || 'nei');
       bumpIconVersion();
       setFailedIcons({});
     },
@@ -776,6 +827,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const globalSettingsSetters = useMemo<GlobalSettingsSetters>(
+    () => ({
+      setThemeColor,
+      setThemeLayout,
+      setEffectsLevel,
+      setLang,
+      setDisplayMode,
+      setNumberFormat,
+      setIconPack,
+      setIconRenderMode,
+      setLocalIconPack,
+      setSidebarMode,
+      setIconAutoSyncEnabled,
+      setIconWikiEnabled,
+      setAutoRefresh,
+      setPauseRefreshWhenHidden,
+      setPresets,
+    }),
+    [
+      setThemeColor,
+      setThemeLayout,
+      setEffectsLevel,
+      setLang,
+      setDisplayMode,
+      setNumberFormat,
+      setIconPack,
+      setIconRenderMode,
+      setLocalIconPack,
+      setSidebarMode,
+      setIconAutoSyncEnabled,
+      setIconWikiEnabled,
+      setAutoRefresh,
+      setPauseRefreshWhenHidden,
+      setPresets,
+    ]
+  );
+
+  // Apply pack/mod ui-defaults.json on first visit (before login).
+  useEffect(() => {
+    void applyBundledDefaultsIfNeeded(globalSettingsSetters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ---- Preset operations ----
   const getCurrentSettings = useCallback((): AppPreset['settings'] => {
     const dashRaw = localStorage.getItem('webae_dashboard_config');
@@ -910,6 +1004,119 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setPresets, notify]
   );
 
+  const exportUiSettingsBundleFn = useCallback(
+    async (opts: {
+      name?: string;
+      note?: string;
+      includePresets?: boolean;
+      includeServer?: boolean;
+      includeAlerts?: boolean;
+    }) => {
+      let bundle = collectUiSettingsBundle({
+        meta: { name: opts.name, note: opts.note },
+        includePresets: opts.includePresets,
+        global: {
+          themeColor,
+          themeLayout,
+          effectsLevel: resolvedEffectsLevel,
+          lang: lang || 'en',
+          displayMode: (displayMode || 'split') as DisplayMode,
+          numberFormat: (numberFormat || 'thousands') as NumberFormat,
+          iconPack,
+          iconRenderMode: iconRenderMode || 'nei',
+          localIconPack,
+          sidebarMode: (sidebarMode || 'expanded') as SidebarMode,
+          iconAutoSyncEnabled,
+          iconWikiEnabled,
+        },
+      });
+      if (opts.includeServer && isLoggedIn) {
+        bundle = await attachServerSettingsToBundle(bundle, {
+          includeAlerts: opts.includeAlerts,
+        });
+      }
+      downloadUiSettingsBundle(bundle);
+      notify('uiBundleExported', 'success');
+    },
+    [
+      themeColor,
+      themeLayout,
+      resolvedEffectsLevel,
+      lang,
+      displayMode,
+      numberFormat,
+      iconPack,
+      iconRenderMode,
+      localIconPack,
+      sidebarMode,
+      iconAutoSyncEnabled,
+      iconWikiEnabled,
+      isLoggedIn,
+      notify,
+    ]
+  );
+
+  const importUiSettingsBundleFn = useCallback(
+    async (
+      file: File,
+      opts: {
+        merge?: boolean;
+        sections?: UiSettingsSection[];
+        importServer?: {
+          alerts?: boolean;
+          favorites?: boolean;
+          orderTemplates?: boolean;
+          canEditAlerts?: boolean;
+        };
+      }
+    ): Promise<boolean> => {
+      try {
+        const text = await file.text();
+        const { bundle, sections } = parseUiSettingsBundle(JSON.parse(text));
+        await applyUiSettingsBundle(bundle, {
+          merge: opts.merge,
+          sections: opts.sections ?? sections,
+          globalSetters: globalSettingsSetters,
+          importServer: opts.importServer
+            ? {
+                alerts: opts.importServer.alerts,
+                favorites: opts.importServer.favorites,
+                orderTemplates: opts.importServer.orderTemplates,
+                canEditAlerts: !!opts.importServer.canEditAlerts,
+                tokenType,
+              }
+            : undefined,
+        });
+        notify('uiBundleImported', 'success');
+        return true;
+      } catch {
+        notify('uiBundleImportFailed', 'error');
+        return false;
+      }
+    },
+    [globalSettingsSetters, notify, tokenType]
+  );
+
+  const restorePackUiDefaults = useCallback(async (): Promise<boolean> => {
+    try {
+      const defaults = await fetchUiDefaults();
+      if (!defaults) {
+        notify('uiBundleNoDefaults', 'warning');
+        return false;
+      }
+      await applyUiSettingsBundle(defaults, {
+        merge: false,
+        globalSetters: globalSettingsSetters,
+        markInitialized: true,
+      });
+      notify('uiBundleDefaultsRestored', 'success');
+      return true;
+    } catch {
+      notify('uiBundleImportFailed', 'error');
+      return false;
+    }
+  }, [globalSettingsSetters, notify]);
+
   const value: AppContextValue = {
     token,
     setToken,
@@ -944,7 +1151,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDisplayMode,
     iconPack,
     setIconPack,
-    iconRenderMode: iconRenderMode || 'hybrid',
+    iconRenderMode: iconRenderMode || 'nei',
     setIconRenderMode,
     iconPacks,
     localIconPack,
@@ -952,6 +1159,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localIconPacks,
     refreshLocalIconPacks,
     iconCacheEnabled,
+    iconAutoSyncEnabled,
+    setIconAutoSyncEnabled,
     iconUploadEnabled,
     iconPackEnabled,
     failedIcons,
@@ -989,6 +1198,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     overwritePreset,
     exportPreset,
     importPreset,
+    exportUiSettingsBundle: exportUiSettingsBundleFn,
+    importUiSettingsBundle: importUiSettingsBundleFn,
+    restorePackUiDefaults,
     notify,
     fmtNum,
   };

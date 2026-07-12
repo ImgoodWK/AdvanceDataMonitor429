@@ -59,6 +59,11 @@ public final class AssistantCraftJobManager {
 
     public synchronized void register(EntityPlayerMP player, Future<ICraftingJob> future, String displayName,
         long amount, Runnable onTimeout) {
+        register(player, future, displayName, amount, null, onTimeout);
+    }
+
+    public synchronized void register(EntityPlayerMP player, Future<ICraftingJob> future, String displayName,
+        long amount, String trackingKey, Runnable onTimeout) {
         pruneFinished();
         if (future == null) {
             return;
@@ -69,6 +74,7 @@ public final class AssistantCraftJobManager {
         job.future = future;
         job.displayName = displayName == null ? "" : displayName;
         job.amount = amount;
+        job.trackingKey = trackingKey == null ? "" : trackingKey;
         job.createdAt = System.currentTimeMillis();
         job.onTimeout = onTimeout;
         jobs.add(job);
@@ -168,6 +174,26 @@ public final class AssistantCraftJobManager {
         return false;
     }
 
+    /** WebAE: match pending calculation by trackingKey (order jobId). */
+    public synchronized boolean isCalculatingByKey(UUID owner, String trackingKey) {
+        pruneFinished();
+        if (owner == null || trackingKey == null || trackingKey.isEmpty()) {
+            return false;
+        }
+        for (PendingJob job : jobs) {
+            if (!job.owner.equals(owner)) {
+                continue;
+            }
+            if (job.future == null || job.future.isDone() || job.future.isCancelled()) {
+                continue;
+            }
+            if (trackingKey.equals(job.trackingKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * 合成计算阶段的进度（0–25），基于已等待时间与配置超时。
      */
@@ -186,6 +212,28 @@ public final class AssistantCraftJobManager {
                 continue;
             }
             if (displayName.equals(job.displayName)) {
+                long elapsed = Math.max(0L, now - job.createdAt);
+                return Math.min(25, (int) (elapsed * 25 / timeoutMs));
+            }
+        }
+        return 0;
+    }
+
+    public synchronized int getCalculationProgressPercentByKey(UUID owner, String trackingKey) {
+        pruneFinished();
+        if (owner == null || trackingKey == null || trackingKey.isEmpty()) {
+            return 0;
+        }
+        long timeoutMs = Math.max(1, Config.assistantCraftJobTimeoutSeconds) * 1000L;
+        long now = System.currentTimeMillis();
+        for (PendingJob job : jobs) {
+            if (!job.owner.equals(owner)) {
+                continue;
+            }
+            if (job.future == null || job.future.isDone() || job.future.isCancelled()) {
+                continue;
+            }
+            if (trackingKey.equals(job.trackingKey)) {
                 long elapsed = Math.max(0L, now - job.createdAt);
                 return Math.min(25, (int) (elapsed * 25 / timeoutMs));
             }
@@ -243,6 +291,7 @@ public final class AssistantCraftJobManager {
         private String playerName;
         private Future<ICraftingJob> future;
         private String displayName;
+        private String trackingKey;
         private long amount;
         private long createdAt;
         private Runnable onTimeout;

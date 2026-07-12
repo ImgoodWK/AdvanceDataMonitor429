@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Divider, Drawer, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
 import { useI18n } from '@/i18n';
+import { SettingRow } from '@/components/common/SettingRow';
 import {
   DEFAULT_TOPOLOGY_DISPLAY,
   type TopologyDisplaySettings,
@@ -151,16 +152,7 @@ export function TopologySettingsDrawer({
     value: c.id,
     label: (
       <Space size={6}>
-        <span
-          style={{
-            display: 'inline-block',
-            width: 14,
-            height: 14,
-            borderRadius: 2,
-            background: c.hex,
-            border: '1px solid var(--border)',
-          }}
-        />
+        <span className="webae-color-swatch" style={{ background: c.hex }} />
         {t(`topologyAeColor_${c.id}`)}
       </Space>
     ),
@@ -193,7 +185,7 @@ export function TopologySettingsDrawer({
           </Divider>
           {/* Terrain source indicator */}
           {terrainSource && (
-            <div style={{ marginBottom: 16 }}>
+            <div className="webae-setting-row">
               <Text type="secondary">
                 {t('worldMapTerrainSource') || '地形来源'}:{' '}
               </Text>
@@ -209,13 +201,13 @@ export function TopologySettingsDrawer({
             </div>
           )}
           {snapshotSourcePriority && snapshotSourcePriority.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
+            <div className="webae-setting-row">
               <Text type="secondary">{t('worldMapSnapshotPriority') || '采集优先级'}: </Text>
               <Text strong>{snapshotSourcePriority.join(' → ')}</Text>
             </div>
           )}
           {snapshotSourceStats && Object.keys(snapshotSourceStats).length > 0 && (
-            <div style={{ marginBottom: 16 }}>
+            <div className="webae-setting-row">
               <Text type="secondary">{t('worldMapSnapshotSourceStats') || '上次快照源统计'}: </Text>
               <Text>
                 {Object.entries(snapshotSourceStats)
@@ -231,7 +223,7 @@ export function TopologySettingsDrawer({
             </div>
           )}
           {clientCaptureMode && clientCaptureMode !== 'off' && (
-            <div style={{ marginBottom: 16 }}>
+            <div className="webae-setting-row">
               <Text type="secondary">{t('worldMapClientCaptureMode')}: </Text>
               <Text strong>
                 {t(`worldMapClientCaptureMode_${clientCaptureMode}` as 'worldMapClientCaptureMode_when_online')}
@@ -246,9 +238,8 @@ export function TopologySettingsDrawer({
               )}
             </div>
           )}
-          {/* Open in Dynmap button */}
           {dynmapBaseUrl && (
-            <div style={{ marginBottom: 16 }}>
+            <div className="webae-setting-row">
               <Button
                 type="primary"
                 ghost
@@ -260,82 +251,70 @@ export function TopologySettingsDrawer({
               </Button>
             </div>
           )}
-          <Text type="secondary">{t('worldMapObliqueDirection')}</Text>
-          <Select
-            style={{ width: '100%', marginTop: 8, marginBottom: 16 }}
-            value={draft.worldMapObliqueDirection}
-            onChange={(v) => patch({ worldMapObliqueDirection: v as WorldMapObliqueDirection })}
-            options={obliqueOptions}
-          />
-          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-            {t('worldMapObliqueDirectionHint')}
-          </Text>
-          <Text type="secondary">{t('worldMapQuality')}</Text>
-          <Segmented
-            style={{ width: '100%', marginTop: 8, marginBottom: 8 }}
-            value={draft.worldMapQuality}
-            onChange={(v) => patch({ worldMapQuality: v as WorldMapQualityTierId })}
-            options={qualityOptions}
-            block
-          />
-          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-            {t('worldMapQualityHint')}
-          </Text>
+          <SettingRow label={t('worldMapObliqueDirection')} hint={t('worldMapObliqueDirectionHint')}>
+            <Select
+              className="webae-full-width"
+              value={draft.worldMapObliqueDirection}
+              onChange={(v) => patch({ worldMapObliqueDirection: v as WorldMapObliqueDirection })}
+              options={obliqueOptions}
+            />
+          </SettingRow>
+          <SettingRow label={t('worldMapQuality')} hint={t('worldMapQualityHint')}>
+            <Segmented
+              className="webae-full-width"
+              value={draft.worldMapQuality}
+              onChange={(v) => patch({ worldMapQuality: v as WorldMapQualityTierId })}
+              options={qualityOptions}
+              block
+            />
+          </SettingRow>
           <Divider orientation="left" plain>
             {t('worldMapLayerSettingsTitle')}
           </Divider>
-          <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }}>
-            <Space>
-              <Switch checked={draft.showWorldMapTerrain} onChange={(v) => patch({ showWorldMapTerrain: v })} />
-              <Text>{t('worldMapLayerTerrain')}</Text>
-            </Space>
-            <Space>
-              <Switch checked={draft.showWorldMapAeOverlay} onChange={(v) => patch({ showWorldMapAeOverlay: v })} />
-              <Text>{t('worldMapLayerAeOverlay')}</Text>
-            </Space>
-            <Space>
-              <Switch
-                checked={draft.showWorldMapDeviceIcons}
-                onChange={(v) => patch({ showWorldMapDeviceIcons: v })}
-              />
-              <Text>{t('worldMapLayerDeviceIcons')}</Text>
-            </Space>
-          </Space>
+          <SettingRow label={t('worldMapLayerTerrain')}>
+            <Switch checked={draft.showWorldMapTerrain} onChange={(v) => patch({ showWorldMapTerrain: v })} />
+          </SettingRow>
+          <SettingRow label={t('worldMapLayerAeOverlay')}>
+            <Switch checked={draft.showWorldMapAeOverlay} onChange={(v) => patch({ showWorldMapAeOverlay: v })} />
+          </SettingRow>
+          <SettingRow label={t('worldMapLayerDeviceIcons')}>
+            <Switch
+              checked={draft.showWorldMapDeviceIcons}
+              onChange={(v) => patch({ showWorldMapDeviceIcons: v })}
+            />
+          </SettingRow>
           {draft.showWorldMapAeOverlay && (
-            <div style={{ marginBottom: 16 }}>
-              <Text>{t('worldMapAeOverlayOpacity')}</Text>
+            <SettingRow label={t('worldMapAeOverlayOpacity')}>
               <InputNumber
                 min={0}
                 max={1}
                 step={0.01}
                 value={draft.worldMapAeOverlayOpacity}
                 onChange={(v) => patch({ worldMapAeOverlayOpacity: v ?? DEFAULT_TOPOLOGY_DISPLAY.worldMapAeOverlayOpacity })}
-                style={{ width: '100%', marginTop: 4 }}
+                className="webae-full-width"
               />
-            </div>
+            </SettingRow>
           )}
         </>
       )}
 
       {showRenderMode && (
         <>
-          <Text type="secondary">{t('topologyRenderMode')}</Text>
-          <Segmented
-            block
-            style={{ marginTop: 8, marginBottom: 16 }}
-            value={draft.renderMode}
-            onChange={(v) => patch({ renderMode: v as TopologyRenderMode })}
-            options={[
-              { value: 'abstract', label: t('topologyRenderMode_abstract') },
-              { value: 'simulated', label: t('topologyRenderMode_simulated') },
-            ]}
-          />
+          <SettingRow label={t('topologyRenderMode')}>
+            <Segmented
+              block
+              value={draft.renderMode}
+              onChange={(v) => patch({ renderMode: v as TopologyRenderMode })}
+              options={[
+                { value: 'abstract', label: t('topologyRenderMode_abstract') },
+                { value: 'simulated', label: t('topologyRenderMode_simulated') },
+              ]}
+            />
+          </SettingRow>
           {(draft.renderMode === 'abstract' || draft.renderMode === 'simulated') && (
-            <>
-              <Text type="secondary">{t('topologyAbstractLayout')}</Text>
+            <SettingRow label={t('topologyAbstractLayout')}>
               <Segmented
                 block
-                style={{ marginTop: 8, marginBottom: 16 }}
                 value={draft.abstractLayout}
                 onChange={(v) => patch({ abstractLayout: v as 'tree' | 'star' })}
                 options={[
@@ -343,52 +322,47 @@ export function TopologySettingsDrawer({
                   { value: 'star', label: t('topologyLayout_star') },
                 ]}
               />
-            </>
+            </SettingRow>
           )}
         </>
       )}
 
       {!showWorldMapSettings && (
         <>
-      <Text type="secondary">{t('topologyLayoutDirection')}</Text>
-      <Segmented
-        block
-        style={{ marginTop: 8, marginBottom: 16 }}
-        value={draft.layoutDirection}
-        onChange={(v) => patch({ layoutDirection: v as TopologyLayoutDirection })}
-        options={[
-          { value: 'LR', label: t('topologyLayout_LR') },
-          { value: 'TB', label: t('topologyLayout_TB') },
-        ]}
-      />
+      <SettingRow label={t('topologyLayoutDirection')}>
+        <Segmented
+          block
+          value={draft.layoutDirection}
+          onChange={(v) => patch({ layoutDirection: v as TopologyLayoutDirection })}
+          options={[
+            { value: 'LR', label: t('topologyLayout_LR') },
+            { value: 'TB', label: t('topologyLayout_TB') },
+          ]}
+        />
+      </SettingRow>
 
       <Divider orientation="left" plain>
         {t('topologySettingsSpacing')}
       </Divider>
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
-        <div>
-          <Text>{t('topologyDepthGap')}</Text>
-          <InputNumber min={80} max={240} value={draft.depthGap} onChange={(v) => patch({ depthGap: v ?? DEFAULT_TOPOLOGY_DISPLAY.depthGap })} style={{ width: '100%', marginTop: 4 }} />
-        </div>
-        <div>
-          <Text>{t('topologySiblingGap')}</Text>
-          <InputNumber min={48} max={160} value={draft.siblingGap} onChange={(v) => patch({ siblingGap: v ?? DEFAULT_TOPOLOGY_DISPLAY.siblingGap })} style={{ width: '100%', marginTop: 4 }} />
-        </div>
-        <div>
-          <Text>{t('topologyNodeRadius')}</Text>
-          <InputNumber min={12} max={32} value={draft.nodeRadius} onChange={(v) => patch({ nodeRadius: v ?? DEFAULT_TOPOLOGY_DISPLAY.nodeRadius })} style={{ width: '100%', marginTop: 4 }} />
-        </div>
-        <div>
-          <Text>{t('topologyCableCellPx')}</Text>
-          <InputNumber min={16} max={40} value={draft.cableCellPx} onChange={(v) => patch({ cableCellPx: v ?? DEFAULT_TOPOLOGY_DISPLAY.cableCellPx })} style={{ width: '100%', marginTop: 4 }} />
-        </div>
+        <SettingRow label={t('topologyDepthGap')}>
+          <InputNumber min={80} max={240} value={draft.depthGap} onChange={(v) => patch({ depthGap: v ?? DEFAULT_TOPOLOGY_DISPLAY.depthGap })} style={{ width: '100%' }} />
+        </SettingRow>
+        <SettingRow label={t('topologySiblingGap')}>
+          <InputNumber min={48} max={160} value={draft.siblingGap} onChange={(v) => patch({ siblingGap: v ?? DEFAULT_TOPOLOGY_DISPLAY.siblingGap })} style={{ width: '100%' }} />
+        </SettingRow>
+        <SettingRow label={t('topologyNodeRadius')}>
+          <InputNumber min={12} max={32} value={draft.nodeRadius} onChange={(v) => patch({ nodeRadius: v ?? DEFAULT_TOPOLOGY_DISPLAY.nodeRadius })} style={{ width: '100%' }} />
+        </SettingRow>
+        <SettingRow label={t('topologyCableCellPx')}>
+          <InputNumber min={16} max={40} value={draft.cableCellPx} onChange={(v) => patch({ cableCellPx: v ?? DEFAULT_TOPOLOGY_DISPLAY.cableCellPx })} style={{ width: '100%' }} />
+        </SettingRow>
       </Space>
 
       <Divider orientation="left" plain>
         {t('topologySettingsLabels')}
       </Divider>
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <Text>{t('topologyLabelStrategy')}</Text>
+      <SettingRow label={t('topologyLabelStrategy')}>
         <Segmented
           block
           value={draft.labelStrategy}
@@ -399,39 +373,33 @@ export function TopologySettingsDrawer({
             { value: 'hover', label: t('topologyLabel_hover') },
           ]}
         />
-        <Space>
-          <Switch checked={draft.showCountLabels} onChange={(v) => patch({ showCountLabels: v })} />
-          <Text>{t('topologyShowCountLabels')}</Text>
-        </Space>
-        <Space>
-          <Switch checked={draft.showEdgeChannelLabels} onChange={(v) => patch({ showEdgeChannelLabels: v })} />
-          <Text>{t('topologyShowEdgeLabels')}</Text>
-        </Space>
-        <Space>
-          <Switch checked={draft.hideCableNodes} onChange={(v) => patch({ hideCableNodes: v })} />
-          <Text>{t('topologyHideCableNodes')}</Text>
-        </Space>
-      </Space>
+      </SettingRow>
+      <SettingRow label={t('topologyShowCountLabels')}>
+        <Switch checked={draft.showCountLabels} onChange={(v) => patch({ showCountLabels: v })} />
+      </SettingRow>
+      <SettingRow label={t('topologyShowEdgeLabels')}>
+        <Switch checked={draft.showEdgeChannelLabels} onChange={(v) => patch({ showEdgeChannelLabels: v })} />
+      </SettingRow>
+      <SettingRow label={t('topologyHideCableNodes')}>
+        <Switch checked={draft.hideCableNodes} onChange={(v) => patch({ hideCableNodes: v })} />
+      </SettingRow>
 
       <Divider orientation="left" plain>
         {t('topologySettingsColors')}
       </Divider>
-      <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+      <Text type="secondary" className="webae-setting-row-hint">
         {t('topologyAeColorHint')}
       </Text>
-      <Space direction="vertical" style={{ width: '100%' }} size="middle">
-        {(['smart', 'covered', 'dense'] as const).map((key) => (
-          <div key={key}>
-            <Text style={{ display: 'block', marginBottom: 4 }}>{t(`topologyCable_${key}`)}</Text>
-            <Select
-              style={{ width: '100%' }}
-              value={draft.cableColorPreset[key]}
-              onChange={(v) => patchCablePreset(key, v as AeCableColorId)}
-              options={colorOptions}
-            />
-          </div>
-        ))}
-      </Space>
+      {(['smart', 'covered', 'dense'] as const).map((key) => (
+        <SettingRow key={key} label={t(`topologyCable_${key}`)}>
+          <Select
+            className="webae-full-width"
+            value={draft.cableColorPreset[key]}
+            onChange={(v) => patchCablePreset(key, v as AeCableColorId)}
+            options={colorOptions}
+          />
+        </SettingRow>
+      ))}
         </>
       )}
     </Drawer>

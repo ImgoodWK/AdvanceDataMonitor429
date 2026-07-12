@@ -14,7 +14,8 @@ export type DataSourceCategory =
   | 'timeseries'
   | 'list'
   | 'categorical'
-  | 'multiAxis';
+  | 'multiAxis'
+  | 'pinned';
 
 /**
  * Which chart types make sense for each category. Used by
@@ -33,6 +34,7 @@ export const VALID_CHART_TYPES_FOR_CATEGORY: Record<
   list: ['dataTable'],
   categorical: ['barChart', 'pieChart', 'radarChart'],
   multiAxis: ['lineChart', 'barChart'],
+  pinned: ['statCard', 'progressBar', 'gauge', 'lineChart', 'barChart', 'pieChart', 'dataTable', 'radarChart'],
 };
 
 const DATA_SOURCE_CATEGORY_MAP: Record<string, DataSourceCategory> = {
@@ -75,6 +77,8 @@ const DATA_SOURCE_CATEGORY_MAP: Record<string, DataSourceCategory> = {
   // Multi-axis comparison
   networkCompare: 'multiAxis',
   networkBalance: 'list',
+  // Custom pin bundle (items/fluids/CPUs/…)
+  customPins: 'pinned',
 };
 
 /**

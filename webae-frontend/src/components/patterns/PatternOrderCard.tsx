@@ -1,26 +1,20 @@
 import { memo } from 'react';
 
-import { Card, Checkbox, Tag, Tooltip, Typography, Space } from 'antd';
-import { InfoCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Tag, Tooltip, Typography, Space } from 'antd';
+import { InfoCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 
 import { Icon } from '@/components/Icon';
+import { SelectableCard } from '@/components/common/SelectableCard';
+import { patternEntryIconId } from '@/utils/icon';
 import type { PatternListEntryDto } from '@/types/dto';
 
 const { Text } = Typography;
 
-function entryIconId(entry: { registryName: string; meta?: number; isFluid?: boolean } | null): string | undefined {
-  if (!entry || !entry.registryName) return undefined;
-  if (entry.isFluid) return 'fluid:' + entry.registryName;
-  return entry.meta && entry.meta > 0 ? `${entry.registryName}:${entry.meta}` : entry.registryName;
-}
-
 interface PatternOrderCardProps {
   pattern: PatternListEntryDto;
-  selected: boolean;
   t: (k: string) => string;
-  onToggle: () => void;
   onInfo: () => void;
-  onAddToBatch?: () => void;
+  onOrder?: () => void;
 }
 
 function sourceTagLabel(source: string | undefined, t: (k: string) => string): string | null {
@@ -31,24 +25,22 @@ function sourceTagLabel(source: string | undefined, t: (k: string) => string): s
 
 export const PatternOrderCard = memo(function PatternOrderCard({
   pattern,
-  selected,
   t,
-  onToggle,
   onInfo,
-  onAddToBatch,
+  onOrder,
 }: PatternOrderCardProps) {
   const primaryOutput = pattern.outputs[0];
-  const iconId = entryIconId(primaryOutput);
+  const iconId = patternEntryIconId(primaryOutput);
   const recipeType = pattern.crafting ? t('crafting') : t('processing');
   const sourceLabel = sourceTagLabel(pattern.source, t);
 
   return (
-    <Card
-      size="small"
+    <SelectableCard
+      selected={false}
       hoverable
-      onClick={onToggle}
-      className={`recipe-thumbnail-card pattern-order-card${selected ? ' pattern-order-card-selected' : ''}`}
-      styles={{
+      onClick={onInfo}
+      className="pattern-order-card"
+      cardStyles={{
         body: {
           padding: 8,
           display: 'flex',
@@ -59,23 +51,7 @@ export const PatternOrderCard = memo(function PatternOrderCard({
           position: 'relative',
         },
       }}
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onToggle();
-        }
-      }}
     >
-      <Checkbox
-        checked={selected}
-        onClick={(e) => e.stopPropagation()}
-        onChange={onToggle}
-        style={{ position: 'absolute', top: 4, left: 4, zIndex: 1 }}
-        aria-label={t('orderPatternSelected').replace('{n}', selected ? '1' : '0')}
-      />
       <Tooltip title={t('orderPatternDetail')}>
         <button
           type="button"
@@ -89,18 +65,18 @@ export const PatternOrderCard = memo(function PatternOrderCard({
           <InfoCircleOutlined />
         </button>
       </Tooltip>
-      {onAddToBatch && (
-        <Tooltip title={t('orderPatternAddToBatch')}>
+      {onOrder && (
+        <Tooltip title={t('placeOrder')}>
           <button
             type="button"
             className="pattern-order-add-btn"
             onClick={(e) => {
               e.stopPropagation();
-              onAddToBatch();
+              onOrder();
             }}
-            aria-label={t('orderPatternAddToBatch')}
+            aria-label={t('placeOrder')}
           >
-            <PlusOutlined />
+            <ShoppingCartOutlined />
           </button>
         </Tooltip>
       )}
@@ -130,6 +106,6 @@ export const PatternOrderCard = memo(function PatternOrderCard({
         <Tag className={`recipe-thumbnail-tag ${pattern.crafting ? 'pattern-tag-crafting' : 'pattern-tag-processing'}`}>{recipeType}</Tag>
         {sourceLabel && <Tag color={pattern.source === 'grid' ? 'blue' : 'green'}>{sourceLabel}</Tag>}
       </Space>
-    </Card>
+    </SelectableCard>
   );
 });

@@ -21,14 +21,16 @@ import { NetworkTopologyPage } from '@/pages/NetworkTopology';
 import { LinkScannerPage } from '@/pages/LinkScanner';
 import { MonitorBindingsPage } from '@/pages/MonitorBindings';
 import { PlannerPage } from '@/pages/Planner';
+import { QuestBookPage } from '@/pages/QuestBook';
 import { AssistantPage } from '@/pages/Assistant';
 import { AlertsHistoryPage } from '@/pages/AlertsHistory';
+import { DiagnosticsPage } from '@/pages/Diagnostics';
 import { CommandPalette, useCommandPaletteShortcut } from '@/components/CommandPalette';
 import { useWebAlerts } from '@/hooks/useWebAlerts';
 import { useEventStream } from '@/hooks/useEventStream';
 import { LAYOUT_PRESETS } from '@/theme/layouts';
 import { useI18n } from '@/i18n';
-import type { PageId } from '@/context/AppContext';
+import { NAV_PAGES } from './navConfig';
 
 const { Sider, Header, Content } = Layout;
 
@@ -178,10 +180,14 @@ export function AppLayout() {
         return <MonitorBindingsPage />;
       case 'planner':
         return <PlannerPage />;
+      case 'quests':
+        return <QuestBookPage />;
       case 'assistant':
         return <AssistantPage />;
       case 'alertshistory':
         return <AlertsHistoryPage />;
+      case 'diagnostics':
+        return <DiagnosticsPage />;
       case 'settings':
         return <SettingsPage />;
       default:
@@ -194,7 +200,7 @@ export function AppLayout() {
     return (
       <Layout className="webae-layout" style={{ height: '100vh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
-          <TopBar topnavMode pages={ALL_PAGES} activePage={activePage} setActivePage={setActivePage} />
+          <TopBar topnavMode pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
         <Content
           id="main-content"
@@ -253,7 +259,7 @@ export function AppLayout() {
       />
       <Layout>
         <Header style={{ padding: 0, height: 'auto', lineHeight: 'normal' }}>
-          <TopBar pages={ALL_PAGES} activePage={activePage} setActivePage={setActivePage} />
+          <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
         <Content
           id="main-content"
@@ -272,23 +278,4 @@ export function AppLayout() {
   );
 }
 
-export const ALL_PAGES: Array<{ id: PageId; icon: string; labelKey: string }> = [
-  { id: 'dashboard', icon: 'DashboardOutlined', labelKey: 'dashboard' },
-  { id: 'storage', icon: 'DatabaseOutlined', labelKey: 'storage' },
-  { id: 'fluids', icon: 'BgColorsOutlined', labelKey: 'fluidsPage' },
-  { id: 'essentia', icon: 'ExperimentOutlined', labelKey: 'essentiaPage' },
-  { id: 'cpu', icon: 'HddOutlined', labelKey: 'cpuPage' },
-  { id: 'power', icon: 'ThunderboltOutlined', labelKey: 'power' },
-  { id: 'topology', icon: 'ApartmentOutlined', labelKey: 'topology' },
-  { id: 'gtmachines', icon: 'SettingOutlined', labelKey: 'gtMachines' },
-  { id: 'recipes', icon: 'BookOutlined', labelKey: 'recipes' },
-  { id: 'pattern', icon: 'FormOutlined', labelKey: 'patternEditor' },
-  { id: 'order', icon: 'ShoppingCartOutlined', labelKey: 'aeOrdering' },
-  { id: 'chat', icon: 'MessageOutlined', labelKey: 'chat' },
-  { id: 'linkscanner', icon: 'ScanOutlined', labelKey: 'linkScanner' },
-  { id: 'monitorbindings', icon: 'EyeOutlined', labelKey: 'monitorBindings' },
-  { id: 'planner', icon: 'CalendarOutlined', labelKey: 'plannerPage' },
-  { id: 'assistant', icon: 'RobotOutlined', labelKey: 'assistantPage' },
-  { id: 'alertshistory', icon: 'BellOutlined', labelKey: 'alertsHistoryPage' },
-  { id: 'settings', icon: 'SettingOutlined', labelKey: 'settings' },
-];
+export { ALL_PAGES, NAV_PAGES } from './navConfig';

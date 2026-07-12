@@ -133,11 +133,16 @@ public final class PatternBrowseService {
 
     public static void invalidateCache(String ownerUuid, int networkId) {
         cache.remove(cacheKey(ownerUuid, networkId));
+        com.imgood.textech.webae.cache.SnapshotCache.instance()
+            .invalidateType(ownerUuid, networkId, com.imgood.textech.webae.cache.SnapshotScheduler.TYPE_PATTERNS_RICH);
     }
 
     /** Drop all browse caches (e.g. after pattern mutation anywhere on the network). */
     public static void invalidateAll() {
         cache.clear();
+        // Rich list shares invalidation with browse mutations
+        com.imgood.textech.webae.cache.SnapshotCache.instance()
+            .invalidateTypeSuffix(com.imgood.textech.webae.cache.SnapshotScheduler.TYPE_PATTERNS_RICH);
     }
 
     /** Drop browse caches for every player viewing the given network id. */

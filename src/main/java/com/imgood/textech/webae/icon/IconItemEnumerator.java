@@ -107,8 +107,15 @@ public final class IconItemEnumerator {
      */
     private static StackTask resolveItemStackCandidate(String candidate) {
         if (candidate == null || candidate.isEmpty()) return null;
+        // Prefer item registry (same path as recipe icons) before pseudo-tile block lookup.
+        StackTask registryTask = resolveFromItemRegistry(candidate);
+        if (registryTask != null) return registryTask;
         StackTask tileTask = IconTileResolver.resolve(candidate);
         if (tileTask != null) return tileTask;
+        return null;
+    }
+
+    private static StackTask resolveFromItemRegistry(String candidate) {
         String registry = candidate;
         int meta = 0;
         int colon = candidate.lastIndexOf(':');

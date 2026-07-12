@@ -12,7 +12,7 @@ TeXTech is a GTNH community mod that extends AE2 monitoring, data weaving, AI as
 ./gradlew build
 ```
 
-Output JAR: `build/libs/`. Run a dev client with `./gradlew runClient` (requires a GTNH instance setup per [Gradle workflow](docs/zh/developer/Gradle工作流.md)).
+Output JAR: `build/libs/`. Run a dev client with `./gradlew runClient` (GTNH dev setup: [Gradle workflow](docs/zh/developer/Gradle工作流.md); BetterQuesting quest fixtures sync automatically from `dev-fixtures/betterquesting/`).
 
 ---
 

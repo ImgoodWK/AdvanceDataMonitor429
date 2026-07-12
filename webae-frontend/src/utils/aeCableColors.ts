@@ -91,13 +91,24 @@ export const AE_BLOCK_ICON_IDS: Record<string, string> = {
   controller: 'appeng:tile.BlockController',
   drive: 'appeng:tile.BlockDrive',
   interface: 'appeng:tile.BlockInterface',
-  cpu: 'appeng:tile.BlockCraftingUnit',
+  cpu: 'appliedenergistics2:tile.BlockCraftingUnit',
   p2p: 'appeng:item.ItemMultiPart',
   quantum: 'appeng:tile.BlockQuantumLinkChamber',
   cable_dense: 'appeng:tile.BlockCableBus',
   cable_smart: 'appeng:tile.BlockCableBus',
   cable_covered: 'appeng:tile.BlockCableBus',
 };
+
+/** Crafting CPU multiblock part icons (GTNH AE2 item registry names / NESQL cache). */
+export const AE_CPU_COMPONENT_ICON_IDS = {
+  storage: 'appliedenergistics2:tile.BlockCraftingUnit',
+  monitor: 'appliedenergistics2:tile.BlockCraftingMonitor',
+  accelerator: 'appliedenergistics2:tile.BlockCraftingAccelerator',
+  /** Generic crafting block when type is unknown. */
+  unit: 'appliedenergistics2:tile.BlockCraftingUnit',
+} as const;
+
+export type AeCpuComponentKind = keyof typeof AE_CPU_COMPONENT_ICON_IDS;
 
 export function blockIconIdForNode(nodeType: string, iconItemId?: string): string {
   if (iconItemId) return iconItemId;

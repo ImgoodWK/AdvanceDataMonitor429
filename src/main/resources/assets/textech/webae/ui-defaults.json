@@ -1,0 +1,548 @@
+{
+  "format": "textech-webae-ui-settings",
+  "version": 1,
+  "exportedAt": 1783783033518,
+  "meta": {
+    "name": "TeXTech default UI",
+    "note": "Mod bundled default — applied automatically on first WebAE visit."
+  },
+  "client": {
+    "global": {
+      "themeColor": "quantum",
+      "themeLayout": "standard",
+      "effectsLevel": "full",
+      "lang": "zh",
+      "displayMode": "split",
+      "numberFormat": "ae",
+      "iconPack": "default",
+      "iconRenderMode": "nei",
+      "localIconPack": "webae-server-sync",
+      "sidebarMode": "expanded",
+      "iconAutoSyncEnabled": false,
+      "iconWikiEnabled": true
+    },
+    "pages": {
+      "dashboard": {
+        "margin": 12,
+        "widgetGap": 12,
+        "contentInset": 0,
+        "borderWidth": 1,
+        "chartStretchMode": "stretchX",
+        "fontSize": 14,
+        "chartSize": 70,
+        "chartShowValueAxis": true,
+        "chartShowTimeAxis": true,
+        "showLastUpdated": false,
+        "defaultAlignment": "center",
+        "defaultColors": {
+          "titleColor": "",
+          "chartColor": "",
+          "iconColor": "",
+          "backgroundColor": "",
+          "borderColor": ""
+        },
+        "colorPresets": [],
+        "widgets": [
+          {
+            "id": "w-itemTypes",
+            "type": "statCard",
+            "dataSource": "itemCount",
+            "scope": "perNetwork",
+            "title": "itemTypes",
+            "width": 2,
+            "height": 2,
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "w-fluidTypes",
+            "type": "statCard",
+            "dataSource": "fluidCount",
+            "scope": "perNetwork",
+            "title": "fluidTypes",
+            "width": 2,
+            "height": 2,
+            "x": 0,
+            "y": 2
+          },
+          {
+            "id": "w-bytesPercent",
+            "type": "progressBar",
+            "dataSource": "bytesPercent",
+            "scope": "perNetwork",
+            "title": "storageUsage",
+            "style": "horizontal",
+            "width": 4,
+            "height": 2,
+            "x": 2,
+            "y": 4
+          },
+          {
+            "id": "w-playerOnlineTrend",
+            "type": "lineChart",
+            "dataSource": "playerOnlineTrend",
+            "scope": "global",
+            "title": "dataSource_playerOnlineTrend",
+            "chartStretchMode": "fit",
+            "width": 4,
+            "height": 3,
+            "x": 0,
+            "y": 6
+          },
+          {
+            "id": "w-1783779795667",
+            "type": "lineChart",
+            "dataSource": "serverTps",
+            "scope": "perNetwork",
+            "title": "",
+            "width": 5,
+            "height": 4,
+            "x": 2,
+            "y": 0
+          },
+          {
+            "id": "w-1783781899195",
+            "type": "statCard",
+            "dataSource": "essentiaCount",
+            "scope": "perNetwork",
+            "title": "",
+            "width": 2,
+            "height": 2,
+            "x": 0,
+            "y": 4
+          },
+          {
+            "id": "w-1783781976058",
+            "type": "barChart",
+            "dataSource": "storageByCategory",
+            "scope": "perNetwork",
+            "title": "",
+            "width": 2,
+            "height": 6,
+            "x": 10,
+            "y": 6
+          },
+          {
+            "id": "w-1783782119185",
+            "type": "pieChart",
+            "dataSource": "machineByStatus",
+            "scope": "perNetwork",
+            "title": "",
+            "width": 3,
+            "height": 4,
+            "x": 4,
+            "y": 6
+          },
+          {
+            "id": "w-1783782324675",
+            "type": "dataTable",
+            "dataSource": "topItems",
+            "scope": "perNetwork",
+            "title": "",
+            "width": 5,
+            "height": 6,
+            "x": 7,
+            "y": 0
+          },
+          {
+            "id": "w-1783782382784",
+            "type": "dataTable",
+            "dataSource": "cpuList",
+            "scope": "perNetwork",
+            "title": "",
+            "width": 3,
+            "height": 6,
+            "x": 7,
+            "y": 6
+          }
+        ]
+      },
+      "storageOverview": {
+        "margin": 12,
+        "widgetGap": 12,
+        "contentInset": 0,
+        "borderWidth": 1,
+        "chartStretchMode": "stretchX",
+        "fontSize": 14,
+        "chartSize": 50,
+        "chartShowValueAxis": false,
+        "chartShowTimeAxis": false,
+        "defaultAlignment": "center",
+        "defaultColors": {
+          "titleColor": "",
+          "chartColor": "",
+          "iconColor": "",
+          "backgroundColor": "",
+          "borderColor": ""
+        },
+        "colorPresets": [],
+        "widgets": [
+          {
+            "id": "so-itemTypes",
+            "type": "statCard",
+            "dataSource": "itemCount",
+            "scope": "perNetwork",
+            "title": "itemTypes",
+            "width": 3,
+            "height": 2,
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "so-fluidTypes",
+            "type": "statCard",
+            "dataSource": "fluidCount",
+            "scope": "perNetwork",
+            "title": "fluidTypes",
+            "width": 3,
+            "height": 2,
+            "x": 3,
+            "y": 0
+          },
+          {
+            "id": "so-bytesUsed",
+            "type": "progressBar",
+            "dataSource": "bytesPercent",
+            "scope": "perNetwork",
+            "title": "bytesUsed",
+            "style": "horizontal",
+            "width": 3,
+            "height": 2,
+            "x": 6,
+            "y": 0
+          },
+          {
+            "id": "so-activeCpu",
+            "type": "statCard",
+            "dataSource": "activeCpu",
+            "scope": "perNetwork",
+            "title": "activeCpus",
+            "width": 3,
+            "height": 2,
+            "x": 9,
+            "y": 0
+          }
+        ]
+      },
+      "cpuOverview": {
+        "margin": 12,
+        "widgetGap": 12,
+        "contentInset": 0,
+        "borderWidth": 1,
+        "chartStretchMode": "stretchX",
+        "fontSize": 14,
+        "chartSize": 50,
+        "chartShowValueAxis": false,
+        "chartShowTimeAxis": false,
+        "defaultAlignment": "center",
+        "defaultColors": {
+          "titleColor": "",
+          "chartColor": "",
+          "iconColor": "",
+          "backgroundColor": "",
+          "borderColor": ""
+        },
+        "colorPresets": [],
+        "widgets": [
+          {
+            "id": "co-activeTotal",
+            "type": "statCard",
+            "dataSource": "cpuActiveTotal",
+            "scope": "perNetwork",
+            "title": "cpuActiveTotal",
+            "width": 3,
+            "height": 2,
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "co-storageUsage",
+            "type": "progressBar",
+            "dataSource": "totalCpuStoragePercent",
+            "scope": "perNetwork",
+            "title": "totalCpuStorageUsage",
+            "width": 3,
+            "height": 2,
+            "x": 3,
+            "y": 0
+          },
+          {
+            "id": "co-coprocessors",
+            "type": "statCard",
+            "dataSource": "totalCoProcessors",
+            "scope": "perNetwork",
+            "title": "totalCoProcessors",
+            "width": 3,
+            "height": 2,
+            "x": 6,
+            "y": 0
+          },
+          {
+            "id": "co-parallel",
+            "type": "statCard",
+            "dataSource": "parallelCrafting",
+            "scope": "perNetwork",
+            "title": "parallelCrafting",
+            "width": 3,
+            "height": 2,
+            "x": 9,
+            "y": 0
+          }
+        ]
+      },
+      "power": {
+        "margin": 12,
+        "widgetGap": 12,
+        "contentInset": 0,
+        "borderWidth": 1,
+        "chartStretchMode": "stretchX",
+        "fontSize": 14,
+        "chartSize": 75,
+        "chartShowValueAxis": false,
+        "chartShowTimeAxis": false,
+        "defaultAlignment": "center",
+        "defaultColors": {
+          "titleColor": "",
+          "chartColor": "",
+          "iconColor": "",
+          "backgroundColor": "",
+          "borderColor": ""
+        },
+        "colorPresets": [],
+        "widgets": [
+          {
+            "id": "pw-euGauge",
+            "type": "gauge",
+            "dataSource": "euPercent",
+            "scope": "perNetwork",
+            "title": "euStored",
+            "width": 3,
+            "height": 2,
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "pw-euIn",
+            "type": "statCard",
+            "dataSource": "euInRate",
+            "scope": "perNetwork",
+            "title": "euInRate",
+            "width": 3,
+            "height": 2,
+            "x": 3,
+            "y": 0
+          },
+          {
+            "id": "pw-euOut",
+            "type": "statCard",
+            "dataSource": "euOutRate",
+            "scope": "perNetwork",
+            "title": "euOutRate",
+            "width": 3,
+            "height": 2,
+            "x": 6,
+            "y": 0
+          },
+          {
+            "id": "pw-steam",
+            "type": "progressBar",
+            "dataSource": "steamPercent",
+            "scope": "perNetwork",
+            "title": "steamStored",
+            "style": "horizontal",
+            "width": 3,
+            "height": 2,
+            "x": 9,
+            "y": 0
+          },
+          {
+            "id": "pw-trend",
+            "type": "lineChart",
+            "dataSource": "powerHistory",
+            "scope": "perNetwork",
+            "title": "trend",
+            "width": 12,
+            "height": 4,
+            "x": 0,
+            "y": 2
+          },
+          {
+            "id": "pw-steamIn",
+            "type": "statCard",
+            "dataSource": "steamInRate",
+            "scope": "perNetwork",
+            "title": "steamIn",
+            "width": 3,
+            "height": 2,
+            "x": 0,
+            "y": 6
+          },
+          {
+            "id": "pw-steamOut",
+            "type": "statCard",
+            "dataSource": "steamOutRate",
+            "scope": "perNetwork",
+            "title": "steamOut",
+            "width": 3,
+            "height": 2,
+            "x": 3,
+            "y": 6
+          }
+        ]
+      },
+      "topology": {
+        "renderMode": "simulated",
+        "abstractLayout": "tree",
+        "layoutDirection": "LR",
+        "depthGap": 140,
+        "siblingGap": 72,
+        "labelMargin": 24,
+        "nodeRadius": 18,
+        "labelStrategy": "external",
+        "showCountLabels": true,
+        "showEdgeChannelLabels": true,
+        "hideCableNodes": true,
+        "cableCellPx": 24,
+        "nodeBlockPx": 32,
+        "colors": {
+          "smart": "#8b5cf6",
+          "covered": "#8b5cf6",
+          "dense": "#8b5cf6",
+          "nodeStroke": "#334155",
+          "nodeFill": "#1a2332",
+          "label": "#e6edf3",
+          "labelDim": "#8b949e"
+        },
+        "cableColorPreset": {
+          "smart": "fluix",
+          "covered": "fluix",
+          "dense": "fluix"
+        },
+        "worldMapObliqueDirection": "se",
+        "worldMapQuality": "medium",
+        "showWorldMapTerrain": true,
+        "showWorldMapAeOverlay": false,
+        "showWorldMapDeviceIcons": true,
+        "worldMapAeOverlayOpacity": 0.85,
+        "worldMapAeCategoryColors": {
+          "controller": "#3a4a6a",
+          "drive": "#2a3344",
+          "cell": "#334455",
+          "interface": "#445566",
+          "terminal": "#556677",
+          "cable": "#6688aa",
+          "energy": "#446644",
+          "p2p": "#6a4a7a",
+          "bus": "#555566",
+          "cpu": "#6a5a44",
+          "other": "#8899aa"
+        },
+        "worldMapAeCategoryVisibility": {
+          "controller": true,
+          "drive": true,
+          "cell": true,
+          "interface": true,
+          "terminal": true,
+          "cable": true,
+          "energy": true,
+          "p2p": true,
+          "bus": true,
+          "cpu": true,
+          "other": true
+        },
+        "worldMapLegendLocked": false,
+        "worldMapMarkerTintEnabled": true,
+        "worldMapAeItemColorOverrides": {}
+      },
+      "quest": {
+        "coordScale": 2.3,
+        "nodeSizeScale": 1.1,
+        "minNodeSize": 56,
+        "labelFontSize": 16,
+        "labelMaxWidth": 220,
+        "showLabels": false,
+        "iconFillPercent": 82,
+        "edgeWidth": 5,
+        "showGhostNodes": true,
+        "linePanelWidth": 200,
+        "detailPanelWidth": 410,
+        "linePanelIconSize": 34,
+        "linePanelFontSize": 14,
+        "fitPadding": 64,
+        "centerMinZoom": 1.4,
+        "autoFitOnSettingsChange": true,
+        "hideCompleted": false
+      },
+      "recipe": {
+        "layout": "grid",
+        "displayMode": "compact"
+      },
+      "chat": {
+        "showAvatars": true,
+        "showPlayerInfo": true,
+        "chatMode": "bubble",
+        "playersCollapsed": false
+      },
+      "refresh": {
+        "autoRefresh": true,
+        "pauseRefreshWhenHidden": true
+      }
+    },
+    "presets": [
+      {
+        "id": "builtin-default",
+        "name": "Default",
+        "createdAt": 0,
+        "settings": {
+          "themeColor": "dark",
+          "themeLayout": "standard",
+          "lang": "zh",
+          "displayMode": "split",
+          "numberFormat": "thousands",
+          "iconPack": "default",
+          "iconRenderMode": "nei",
+          "localIconPack": "",
+          "sidebarMode": "expanded",
+          "effectsLevel": "full",
+          "dashboard": null
+        }
+      },
+      {
+        "id": "builtin-dark-focus",
+        "name": "Dark Focus",
+        "createdAt": 0,
+        "settings": {
+          "themeColor": "midnight",
+          "themeLayout": "wide",
+          "lang": "zh",
+          "displayMode": "merged",
+          "numberFormat": "short",
+          "iconPack": "default",
+          "iconRenderMode": "nei",
+          "localIconPack": "",
+          "sidebarMode": "collapsed",
+          "effectsLevel": "full",
+          "dashboard": null
+        }
+      },
+      {
+        "id": "builtin-data-monitor",
+        "name": "Data Monitor",
+        "createdAt": 0,
+        "settings": {
+          "themeColor": "gtnh-blue",
+          "themeLayout": "wide",
+          "lang": "en",
+          "displayMode": "split",
+          "numberFormat": "ae",
+          "iconPack": "default",
+          "iconRenderMode": "nei",
+          "localIconPack": "",
+          "sidebarMode": "expanded",
+          "effectsLevel": "subtle",
+          "dashboard": null
+        }
+      }
+    ]
+  }
+}

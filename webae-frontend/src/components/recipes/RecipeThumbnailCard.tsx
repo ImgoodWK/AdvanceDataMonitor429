@@ -1,7 +1,8 @@
 import { memo } from 'react';
 
-import { Card, Tag, Typography } from 'antd';
+import { Tag, Typography } from 'antd';
 
+import { SelectableCard } from '@/components/common/SelectableCard';
 import { Icon } from '@/components/Icon';
 import type { RecipeDto } from '@/types/dto';
 import { primaryOutput } from '@/utils/recipe';
@@ -22,34 +23,7 @@ export const RecipeThumbnailCard = memo(function RecipeThumbnailCard({
   const main = primaryOutput(recipe);
 
   return (
-    <Card
-      size="small"
-      hoverable={Boolean(onClick)}
-      onClick={onClick}
-      className="recipe-thumbnail-card"
-      styles={{
-        body: {
-          padding: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: '100%',
-        },
-      }}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-    >
+    <SelectableCard onClick={onClick}>
       <div className="recipe-thumbnail-icon">
         {main ? (
           <Icon item={main} size={48} alt={main.displayName} />
@@ -61,6 +35,6 @@ export const RecipeThumbnailCard = memo(function RecipeThumbnailCard({
         {main?.displayName || main?.registryName || t('output')}
       </Text>
       <Tag className="recipe-thumbnail-tag">{recipe.handlerName}</Tag>
-    </Card>
+    </SelectableCard>
   );
 });

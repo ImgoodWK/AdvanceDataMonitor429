@@ -177,6 +177,15 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1
 
 This project pins `ModularUI2:2.2.18-1.7.10` via `devOnlyNonPublishable` and excludes `ModularUI2` from Web-Map transitives. To align with the latest pack GT / Web-Map stack, upgrade `GT5-Unofficial` to `5.09.52.x` and use `ModularUI2:2.3.73+`.
 
+### BetterQuesting / WebAE quest book debugging
+
+- **Mod deps**: `BetterQuesting` `3.8.70-GTNH` + `GTNHLib` **`0.10.7`** (BQ requires ≥0.10.7; **do not use 0.11.9** — its preInit needs ModularUI2 2.3.x `TextFieldTheme`, incompatible with GT5 5.09.51 + MUI2 2.2.18). `addon.gradle` forces over GT5 transitives 0.9.54.
+- **Pack delta**: the live pack uses GT5 5.09.52 + GTNHLib 0.11.9 + ModularUI2 2.3.73; this repo still compiles against GT5 5.09.51.470 — quest book dev runs on the 0.10.7 stack.
+- **Quest data**: GTNH pack quest snapshot lives in `dev-fixtures/betterquesting/` (see `SOURCE.json`). `runClient` / `runServer` depend on `syncDevBetterQuesting`, which copies into `run/config/betterquesting/`.
+- **Manual sync**: `.\gradlew.bat syncDevBetterQuesting`
+- **In-game load**: as OP run `/bq_admin default load`; verify WebAE `?page=quests` or the in-game quest book.
+- **Refresh snapshot**: `powershell -ExecutionPolicy Bypass -File tools/dev/sync-betterquesting-from-gtnh.ps1`, then commit `dev-fixtures/betterquesting/`.
+
 ### NBTEdit `NoSuchFieldError: field_71412_D`
 
 `run/mods/ForgeNBTEdit-universal-1.0.0.test.jar` is legacy In-game NBTEdit and breaks on Java 17 / lwjgl3ify (stale SRG field access for `Minecraft.mcDataDir`). It is **not** a Gradle dependency—usually left over from a manual drop into `run/mods`.

@@ -14,7 +14,7 @@ import org.lwjgl.opengl.GL11;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.container.ContainerAdvanceStorageLink;
 import com.imgood.textech.network.packet.PacketRequestItemCountSync;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 
 /**
  * Display names / 显示名称:
@@ -28,10 +28,10 @@ public class GuiAdvanceStorageLink extends GuiContainer {
         AdvanceDataMonitor.MODID,
         "textures/gui/advance_storage_link.png");
 
-    private final TileEntityAdvanceStorageLink tile;
+    private final TileEntityAdvanceNetworkLink tile;
     private int requestTick;
 
-    public GuiAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceStorageLink tile) {
+    public GuiAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceNetworkLink tile) {
         super(new ContainerAdvanceStorageLink(playerInventory, tile));
         this.tile = tile;
         this.xSize = 176;

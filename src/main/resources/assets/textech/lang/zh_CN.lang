@@ -180,6 +180,33 @@ item.superWeaveAmplifier.name=超级编织增幅卡
 
 adm.tooltip.data_imprint.story=将方块状态映录为数据快照，供数据监视器绑定显示。
 adm.tooltip.data_imprint.note=映录是观测与记录；数据编织元件才是从网络数据中重构物质。
+adm.tooltip.data_imprint.scan_radius=GT 扫描半径: %d 格（潜行+滚轮切换）
+adm.tooltip.data_imprint.gt_count=已记录 GT 机器: %d 台
+adm.tooltip.data_imprint.block_bound=已映录方块: (%d, %d, %d)
+adm.tooltip.data_imprint.empty=当前无载荷（空工具潜行+右键空气可扫描附近 GT）
+adm.tooltip.data_imprint.exclusive=方块映录与 GT 列表互斥，写入一侧会清除另一侧。
+
+adm.data_imprint.cleared=已清除映录器上的全部载荷。
+adm.data_imprint.cleared_gt_for_block=已清除 GT 机器列表（与方块映录互斥）。
+adm.data_imprint.cleared_block_for_gt=已清除方块映录（与 GT 机器列表互斥）。
+adm.data_imprint.legacy_cleared_block=检测到旧版双载荷，已清除冲突的方块映录并保留 GT 列表。
+adm.data_imprint.scan_none=未在半径 %d 格内发现 GT 机器。
+adm.data_imprint.scan_done=已扫描并记录 %d 台 GT 机器（半径 %d 格）。
+adm.data_imprint.scan_radius_set=扫描半径: %d 格
+adm.data_imprint.gt_duplicate=该 GT 机器已在记录列表中。
+adm.data_imprint.gt_recorded=已记录 GT 机器: %s @ (%d,%d,%d)
+adm.data_imprint.gt_bound=已将 %d 台 GT 机器绑定到数据显示器。
+adm.data_imprint.gt_hint_bind=已记录 %d 台 GT 机器。潜行+右键数据显示器可批量绑定。
+adm.data_imprint.block_imprinted=已成功映录方块数据!
+adm.data_imprint.block_bound_monitor=已将坐标 (%s) 添加到高级数据显示器（索引 %d）
+adm.data_imprint.error.no_payload=映录器中没有记录数据。请先潜行+右键方块映录，或潜行+右键 GT 机器/空工具潜行+右键空气扫描。
+adm.data_imprint.error.no_gt=数据映录器中没有记录 GT 机器坐标。请先潜行+右键 GT 机器或空工具潜行+右键空气扫描。
+adm.data_imprint.error.gt_wrong_dim=映录器中的 GT 机器与显示器不在同一维度。
+adm.data_imprint.error.coord_duplicate=该坐标 (%s) 已存在于数据显示器的数据中，跳过添加。
+adm.data_imprint.error.no_block=数据映录器尚未映录任何坐标。请先潜行+右键一个方块映录其数据。
+adm.data_imprint.error.no_item_data=物品未存储任何数据!
+adm.data_imprint.error.no_block_nbt=未映录方块的 NBT 数据!
+adm.data_imprint.error.no_te_nbt=映录的方块没有 NBT 数据!
 adm.tooltip.data_dust_loom.story=将 AE 网络中的数据编织为物质。技术尚未成熟，只能重构最简形态——粉末。
 adm.tooltip.data_dust_loom.mark_limit=在元件工作台分区槽中标记矿辞 dust 前缀的粉类后随时间缓慢产出；不可标记本模组物品。
 adm.tooltip.data_form_loom.story=已完全掌握数据编织技术，可将网络数据重构为任意复杂物品。
@@ -193,7 +220,7 @@ adm.tooltip.data_source_loom.mark_limit=在元件工作台标记源质流体（�
 adm.tooltip.data_loom.energy_drain=§7消耗 AE 网络能量（默认 999999 AE/t，可在 [dataLoomCell] energyDrainPerTick 中配置）。
 adm.tooltip.data_loom.amplifier_only=§7仅可安装编织增幅卡，不接受 AE 加速卡等其他升级。
 adm.tooltip.data_loom.sync_interval=§7产出每 %d 秒结算一次（[dataLoomCell] syncIntervalSeconds 可配置）；有效速率见上方缓存行。
-adm.tooltip.data_loom.storage_link_excluded=§7元件内已存储的物品/流体/源质不会被 高级存储链接器纳入统计。
+adm.tooltip.data_loom.storage_link_excluded=§7元件内已存储的物品/流体/源质不会被高级网络链接器纳入统计。
 adm.tooltip.data_loom.no_cache=§7在元件工作台标记目标或安装增幅卡后显示有效产出速率。
 adm.tooltip.data_loom.no_markers=§7未标记目标 — 在元件工作台分区槽中设置。
 adm.tooltip.data_loom.markers=§7已标记 §f%d §7种目标。
@@ -213,12 +240,16 @@ adm.tooltip.super_weave_amplifier.rate=产出速率：%s× / 张
 adm.tooltip.super_weave_amplifier.warning_title=§l⚠ 警告
 adm.tooltip.super_weave_amplifier.warning_body=产出指数级暴增，AE 网络可能瞬间爆满！请谨慎使用。
 tile.advDataMonitor.name=高级数据监视器
-tile.NetworkLinkBlock.name=网络链接器
-tile.CraftingMonitorBlock.name=合成链接器
-tile.StorageLinkBlock.name=高级存储链接器
+tile.NetworkLinkBlock.name=高级网络链接器
+tile.CraftingMonitorBlock.name=高级网络链接器
+tile.StorageLinkBlock.name=高级网络链接器
 tile.matterBallDecompressor.name=物质球解压器
 
-adm.title.storage=§l高级存储链接器显示配置 #%s
+adm.title.link_display_type=选择显示类型
+adm.button.link_display_network=网络统计图表
+adm.button.link_display_storage=存储显示
+adm.button.link_display_crafting=合成监控
+adm.title.storage=§l高级网络链接器存储显示配置 #%s
 adm.storage.columns=列数
 adm.storage.spacing=间距
 adm.storage.iconscale=图标缩放
@@ -449,9 +480,9 @@ adm.scanner.filter_name_all=命名: 全部
 adm.scanner.filter_name_unnamed=命名: 仅未命名
 adm.scanner.filter_name_named=命名: 仅已命名
 adm.scanner.type.data_monitor=监视器
-adm.scanner.type.network_link=网络
-adm.scanner.type.storage_link=存储
-adm.scanner.type.crafting_link=合成
+adm.scanner.type.network_link=AE链接
+adm.scanner.type.storage_link=AE链接
+adm.scanner.type.crafting_link=AE链接
 adm.scanner.scan_done=扫描完成：在已加载区块中找到 %s 个方块
 adm.scanner.teleport_ok=已传送到目标位置
 adm.scanner.teleport_failed=传送失败：找不到安全落点
@@ -531,21 +562,21 @@ adm.manual.getting_started.welcome_title=欢迎
 adm.manual.getting_started.welcome_text=欢迎使用高级数据监视器手册！\n\n本模组为 GTNH 带来高级数据可视化和 AI 辅助自动化。你可以在世界中实时渲染 AE2 和 TileEntity 数据的图表,用自然语言控制 AE2 合成,并通过计划器管理任务。\n\n左侧顶栏可搜索章节与正文（支持拼音，与 NEI 拼音搜索模组兼容）。章节列表可滚轮或滚动条浏览；右侧长页同样支持滚轮。
 
 adm.manual.getting_started.core_concepts_title=四大核心系统
-adm.manual.getting_started.core_concepts_text=1. 高级数据监视器 - 在 Minecraft 世界中根据 TileEntity NBT 数据实时渲染图表（折线图、柱状图、瀑布图、势差图）和文字。每个面可独立配置。\n\n2. AE2 集成 - 三个专用链接器方块连接至 AE2 网络：合成链接器监控处理器、高级存储链接器显示库存、网络链接器汇总全网统计。\n\n3. AI 助手 - 通过兼容 OpenAI 的 API 实现自然语言控制。下单合成、取出物品、查询电量/存储/配方、通过龙之进化宝石传送、管理计划器任务 - 全部通过对话窗口完成（O 键）。\n\n4. 计划器 - 一件持久化任务管理器,以 NBT 形式存储在物品中。支持添加、完成、删除、排序、合并条目,带屏幕 HUD 悬浮显示。
+adm.manual.getting_started.core_concepts_text=1. 高级数据监视器 - 在 Minecraft 世界中根据 TileEntity NBT 数据实时渲染图表（折线图、柱状图、瀑布图、势差图）和文字。每个面可独立配置。\n\n2. AE2 集成 - 三合一高级网络链接器连接至 AE2 网络：汇总全网存储统计、按高级存储链接元件显示库存、监控合成 CPU。\n\n3. AI 助手 - 通过兼容 OpenAI 的 API 实现自然语言控制。下单合成、取出物品、查询电量/存储/配方、通过龙之进化宝石传送、管理计划器任务 - 全部通过对话窗口完成（O 键）。\n\n4. 计划器 - 一件持久化任务管理器,以 NBT 形式存储在物品中。支持添加、完成、删除、排序、合并条目,带屏幕 HUD 悬浮显示。
 
 adm.manual.getting_started.quick_start_title=快速上手
-adm.manual.getting_started.quick_start_text=1. 在想要显示的位置放置高级数据监视器方块。\n2. 通过线缆邻接在 AE2 网络旁放置合成/高级存储/网络链接器方块。\n3. 合成数据映录器,潜行右键链接器方块映录其 NBT 数据。\n4. 手持已映录的数据映录器,潜行右键高级数据监视器,将数据源添加到监视器面。\n5. 右键高级数据监视器打开配置 GUI,设置图表类型、颜色、缩放等。\n6. 按 O 打开 AI 对话,在设置中配置 API Key（齿轮图标）。\n7. 按 P 打开计划器（背包中需有计划器物品）。\n\n提示：AI 助手即使没有 AE2 也能使用 - 可以随时随地查询时间、天气、位置、群系和背包空间。
+adm.manual.getting_started.quick_start_text=1. 在想要显示的位置放置高级数据监视器方块。\n2. 通过线缆邻接在 AE2 网络旁放置高级网络链接器方块。\n3. 合成数据映录器,潜行右键链接器方块映录其 NBT 数据。\n4. 手持已映录的数据映录器,潜行右键高级数据监视器,将数据源添加到监视器面。\n5. 右键高级数据监视器打开配置 GUI,设置图表类型、颜色、缩放等。\n6. 按 O 打开 AI 对话,在设置中配置 API Key（齿轮图标）。\n7. 按 P 打开计划器（背包中需有计划器物品）。\n\n提示：AI 助手即使没有 AE2 也能使用 - 可以随时随地查询时间、天气、位置、群系和背包空间。
 
 adm.manual.getting_started.manual_info_title=关于本手册
 adm.manual.getting_started.manual_info_text=每位玩家每个世界首次进入时都会获赠一本手册。如果丢失,可以：\n- 从创造模式工具标签页获取新手册\n- 通过合成获取\n\n右键手册物品即可打开。左侧顶部搜索框可检索标题与全部正文,匹配词会高亮；多词用空格分隔。章节列表过多时可滚轮、拖拽滚动条,或点滚动条旁的 ^ / v 跳到顶/底。点击章节切换主题,用底部上/下一页翻页,页顶显示当前章节标题。
 
 adm.manual.blocks_items.overview_title=方块与物品总览
-adm.manual.blocks_items.overview_text=AdvanceDataMonitor 添加了 4 个方块和 10 个物品。每个方块连接 AE2 系统的特定部分,将数据输入到高级数据监视器显示方块。后续页面详细介绍每个物品的功能、使用技巧和关键特性。
+adm.manual.blocks_items.overview_text=AdvanceDataMonitor 添加了监视器方块与配套物品。三合一高级网络链接器将 AE2 网络统计、存储显示与合成 CPU 数据输入高级数据监视器。后续页面详细介绍每个物品的功能、使用技巧和关键特性。
 
 adm.manual.blocks_items.data_monitor_title=高级数据监视器
-adm.manual.blocks_items.crafting_link_title=合成链接器
-adm.manual.blocks_items.storage_link_title=高级存储链接器
-adm.manual.blocks_items.network_link_title=网络链接器
+adm.manual.blocks_items.crafting_link_title=高级网络链接器（合成显示）
+adm.manual.blocks_items.storage_link_title=高级网络链接器（存储显示）
+adm.manual.blocks_items.network_link_title=高级网络链接器
 adm.manual.blocks_items.data_imprint_title=数据映录器
 adm.manual.blocks_items.storage_cell_title=高级存储链接元件
 adm.manual.blocks_items.planner_title=高级计划器
@@ -555,7 +586,7 @@ adm.manual.blocks_items.data_flow_cell_title=数据涌流元件
 adm.manual.blocks_items.data_source_loom_title=数据织源元件
 adm.manual.blocks_items.weave_amplifier_title=编织增幅卡
 adm.manual.blocks_items.data_loom_story_title=数据编织元件 — 背景故事
-adm.manual.blocks_items.data_loom_story_text=AE 的本质是将物质数字化存入网络。AdvanceDataMonitor 的研究者逆向掌握了这一过程的奥秘——从网络数据中「编织」出物质。\n\n技术演进：\n- 数据织尘元件（初级）：技术尚未成熟,只能将数据编织为最简形态——粉末（GregTech 粉类）。\n- 数据织形元件（高级）：完全掌握编织技术,可重构任意复杂物品。\n- 数据涌流元件：专用于流体通道,将数据编织为流体（mB 单位,默认 1000 mB/s = 1 桶/秒）。\n- 数据织潮元件（高级）：涌流升级,网络数据如潮汐般编织,最多 63 种流体。\n- 数据织源元件：专用于流体通道,将数据编织为神秘时代源质（aspect 流体,默认 1000 mB/s）。\n\n使用方式：放入 ME 驱动器或 ME 箱子,在元件工作台标记目标后随时间缓慢产出。织尘/织形/涌流元件不可标记本模组物品。产出按可配置间隔结算（默认 5 秒）；标记或更换增幅卡后,有效速率写入元件 tooltip 缓存。编织增幅卡默认每张 4×,超级编织增幅卡 16×,最多 8 张且倍率相乘。消耗 AE 网络能量。\n\n高级存储链接器说明：四种编织元件内部已存储的物品/流体/源质不会被 高级存储链接器纳入统计。\n\n配置分类：[dataDustLoomCell]、[dataFormLoomCell]、[dataFlowCell]、[dataSourceLoomCell]、[dataLoomCell]（同步间隔、能耗、增幅倍率）。
+adm.manual.blocks_items.data_loom_story_text=AE 的本质是将物质数字化存入网络。AdvanceDataMonitor 的研究者逆向掌握了这一过程的奥秘——从网络数据中「编织」出物质。\n\n技术演进：\n- 数据织尘元件（初级）：技术尚未成熟,只能将数据编织为最简形态——粉末（GregTech 粉类）。\n- 数据织形元件（高级）：完全掌握编织技术,可重构任意复杂物品。\n- 数据涌流元件：专用于流体通道,将数据编织为流体（mB 单位,默认 1000 mB/s = 1 桶/秒）。\n- 数据织潮元件（高级）：涌流升级,网络数据如潮汐般编织,最多 63 种流体。\n- 数据织源元件：专用于流体通道,将数据编织为神秘时代源质（aspect 流体,默认 1000 mB/s）。\n\n使用方式：放入 ME 驱动器或 ME 箱子,在元件工作台标记目标后随时间缓慢产出。织尘/织形/涌流元件不可标记本模组物品。产出按可配置间隔结算（默认 5 秒）；标记或更换增幅卡后,有效速率写入元件 tooltip 缓存。编织增幅卡默认每张 4×,超级编织增幅卡 16×,最多 8 张且倍率相乘。消耗 AE 网络能量。\n\n高级网络链接器说明：四种编织元件内部已存储的物品/流体/源质不会被高级网络链接器纳入统计。\n\n配置分类：[dataDustLoomCell]、[dataFormLoomCell]、[dataFlowCell]、[dataSourceLoomCell]、[dataLoomCell]（同步间隔、能耗、增幅倍率）。
 adm.manual.blocks_items.super_orange_title=超能砂糖桔
 adm.manual.blocks_items.grapple_anchor_title=挂索节点
 adm.manual.blocks_items.grapple_hook_title=挂索器
@@ -564,47 +595,47 @@ adm.manual.blocks_items.grapple_story_text=我们往往花大量心思把建筑�
 adm.manual.item.grappleAnchor=贴面放置的挂索锚点，与挂索器配合构成基地内的索道路网。\n\n放置：可贴在任意 solid 面的墙/顶/地，像薄板一样嵌入建筑。\n\n命名：Shift+右键打开配置，设置节点显示名称与选中图标颜色，便于在长距离导航中识别。\n\n建议布点：产线参观动线、景观连桥、多层工厂竖向通道、基地大门到核心区域的主路径。
 adm.manual.item.grappleHook=与挂索节点互动的核心工具，堆叠数 1。\n\n未挂接：12 格内有节点时屏幕提示；6 格内显示世界空间导航图标（磁吸选中变绿放大），右键挂接。\n\n已挂接：显示当前位置可达的所有节点，磁吸选中后右键沿直线平滑滑行；Shift 取消挂接。\n\nShift+右键：打开挂索器设置，可调整滑行速度、是否显示节点名称与距离。
 adm.manual.blocks_items.data_imprint_usage_title=数据映录器用法详解
-adm.manual.blocks_items.data_imprint_usage_text=数据映录器将方块状态映录为数据快照，并绑定到数据监视器——只记录与显示，不会编织物质。完整流程：\n\n1. 潜行 + 右键目标 TileEntity（如合成链接器）映录其 NBT 快照。工具保存坐标、方块名称和完整 NBT。\n\n2. 手持已映录的数据映录器,潜行 + 右键数据监视器,将位置添加为当前面的数据源。\n\n3. 打开数据监视器 GUI,配置绑定：图表类型、NBT 路径、颜色、缩放、更新间隔等。\n\n4. 普通右键（不潜行）打开 JSON NBT 查看器,用于查找正确的 NBT 路径。\n\n5. 潜行 + 右键空气清除工具上的映录数据。\n\n硬限制：每个监视器面最多 36 个数据绑定。
+adm.manual.blocks_items.data_imprint_usage_text=数据映录器将方块状态映录为数据快照，并绑定到数据监视器——只记录与显示，不会编织物质。完整流程：\n\n1. 潜行 + 右键目标 TileEntity（非 GT）映录其 NBT 快照。工具保存坐标、方块名称和完整 NBT。\n\n2. 潜行 + 右键 GT 机器可将坐标加入 GT 列表；空工具潜行 + 右键空气按扫描半径批量扫描附近 GT。\n\n3. 方块映录与 GT 列表互斥：写入一侧会清除另一侧。\n\n4. 手持已映录的数据映录器，潜行 + 右键数据监视器，按当前唯一载荷绑定（方块 → 图表槽；GT 列表 → 批量绑 GT）。\n\n5. 打开数据监视器 GUI，配置绑定：图表类型、NBT 路径、颜色、缩放、更新间隔等。\n\n6. 普通右键（不潜行）打开 JSON NBT 查看器，用于查找正确的 NBT 路径。\n\n7. 潜行 + 右键空气：有载荷时清除；无载荷时扫描 GT。潜行 + 滚轮切换扫描半径（8/16/32/64）。\n\n硬限制：每个监视器面最多 36 个数据绑定。
 
 adm.manual.item.advDataMonitor=本模组的核心显示方块。根据任意 TileEntity 的 NBT 数据在 Minecraft 世界中实时渲染数据。\n\n图表类型：折线图（连续追踪）、柱状图（离散对比）、3D 柱状图（带深度）、瀑布图（累积流动）、势差图（读数间差值）。\n\nAE2 文字显示：物品图标+数量、流体存储、带模板表达式的合成处理器状态。\n\n多面支持：6 个面各可独立配置数据绑定。\n\n每绑定可自定义：线条颜色、线宽、网格设置、坐标轴颜色/字体、标题文字、缩放、旋转角度、位置偏移、更新间隔（tick）、数据上限（最大可见点数）。\n\n默认配置：青色（00FFFF）、缩放 0.3、间隔 20 tick、100 数据点上限。\n\n渲染范围：监视器周围 128 格。\n\n硬度：2.0,光照等级：1（自发光）。
 
-adm.manual.item.advCraftingLink=连接到 AE2 网络的合成处理器,监控合成活动。\n\n自动刷新：每 20 tick（1 秒）轮询处理器数据。\n\n报告内容：处理器总数、忙碌数、总/已用字节、协处理器数量、最终产物名称、耗时。\n\n支持模板表达式：编写自定义显示文字,支持 {变量} 和条件 {条件?文字:备选} 语法。示例：{br}合成监控{br}忙碌：{busyCpus}/{totalCpus}{br}{busyCpus:CPU#1==1?"CPU#1 工作中":"CPU#1 空闲"}\n\n全局变量：totalCpus、busyCpus、cpuTotalBytes、cpuUsedBytes、totalCoProcessors。\n\n单处理器变量：busyCpus:名称、coProcessors:名称、usedStorage:名称、finalOutputName:名称、finalOutputAmount:名称、elapsedTime:名称。\n\n两种范围模式：单处理器 或 全网聚合。\n\n硬度：3.0,抗爆：10.0。
+#adm.manual.item.advCraftingLink=（已合并至 advNetworkLinkBlock）
 
-adm.manual.item.advStorageLink=连接 AE2 存储网络,显示物品和流体库存。\n\n显示物品图标、名称、数量（K/M/T 大数格式）和进出吞吐量追踪。\n\n支持过滤：通过高级存储链接元件仅显示标记的物品。\n\n36 个存储元件配置槽。\n\n显示选项：物品/流体/源质开关、数量/进出/名称显示开关、排序方式（默认/数量/模组）、每行列数（默认 4）、图标大小、物品间距、行间距、文字颜色。\n\n可按从零开始的索引显示特定存储元件,或显示全部。\n\n通过高级存储链接元件支持模糊卡和反相卡。\n\n注意：数据编织元件（织尘/织形/涌流/织源）内部已存储的物品/流体/源质不计入高级存储链接器统计。\n\n硬度：3.0,抗爆：10.0。
+#adm.manual.item.advStorageLink=（已合并至 advNetworkLinkBlock）
 
-adm.manual.item.advNetworkLinkBlock=汇总并显示全网 AE2 统计数据。\n\n自动刷新：每 20 tick 扫描连接网络中的所有 ME 驱动器和 ME 箱子。\n\n采集 8 项指标：物品已用/总字节、物品已用/总种类、流体已用/总字节、流体已用/总种类。\n\n右键强制立即刷新并在聊天栏显示统计数据。\n\n可绑定到数据监视器,在世界中持续显示 8 项指标中的任意一项（通过 NBT 路径选择）。\n\n硬度：3.0,抗爆：10.0。
+adm.manual.item.advNetworkLinkBlock=三合一高级 AE2 链接器：网络统计 + 存储元件槽（36 槽）+ 合成 CPU 监控。\n\n汇总 ME 驱动器与 ME 箱子中的物品/流体字节与类型占用；36 个高级存储链接元件槽用于按分区过滤显示库存；轮询合成 CPU 的忙碌状态、存储、协处理器与当前任务。\n\n自动刷新：每 20 tick 更新网络统计、标记物品数量与 CPU 状态。\n\n右键打开存储配置 GUI（放入已配置的高级存储链接元件）。\n\nShift+右键在聊天栏输出综合状态（网络字节/类型 + 合成 CPU 摘要）。\n\n绑定到高级数据监视器后，按 dataType 选择显示类型：网络图表（line）、存储图标（storage）或合成文字（crafting）。\n\n注意：数据编织元件（织尘/织形/涌流/织源）内部已存储的物品/流体/源质不计入存储统计。\n\n硬度：3.0，抗爆：10.0。
 
-adm.manual.item.data_imprint=将方块数据映录到工具中，供数据监视器读取显示。\n\n功能：\n- 映录：潜行+右键任意 TileEntity,保存坐标、方块类型和完整 NBT 快照。\n- 绑定：潜行+右键数据监视器,将映录的方块添加为数据源。\n- 查看：普通右键打开 JSON 树形查看器,用于寻找正确 NBT 路径。\n- 清除：潜行+右键空气重置工具。\n\n与数据编织元件（织尘/织形/涌流）不同：映录器只观测记录,不会从 AE 网络编织出新物品或流体。\n\n堆叠数：1。创造模式标签页：工具。
+adm.manual.item.data_imprint=将方块数据映录到工具中，或记录 GT 机器坐标，供数据监视器读取显示。\n\n功能：\n- 映录方块：潜行+右键非 GT TileEntity，保存坐标、方块类型和完整 NBT 快照。\n- 记录 GT：潜行+右键 GT 机器加入列表；空工具潜行+右键空气按半径扫描。\n- 互斥：方块映录与 GT 列表不能同时存在，写入一侧清除另一侧。\n- 绑定：潜行+右键数据监视器，按当前唯一载荷添加数据源。\n- 查看：普通右键打开 JSON 树形查看器（需方块映录）。\n- 清除：有载荷时潜行+右键空气重置工具。\n\n与数据编织元件（织尘/织形/涌流）不同：映录器只观测记录,不会从 AE 网络编织出新物品或流体。\n\n堆叠数：1。创造模式标签页：工具。
 
-adm.manual.item.advance_storage_link_cell=高级存储链接器的升级组件。实现 ICellWorkbenchItem 接口,兼容 AE2 元件工作台。\n\n升级槽：2 个（支持模糊卡和反相卡）。\n\n可配置过滤器：通过元件的分区槽设置高级存储链接器显示哪些物品。\n\n矿典过滤支持：可按矿典名称过滤。\n\n流体和源质标记：标记特定流体或神秘时代源质类型进行显示。\n\n模糊模式：支持 AE2 的多种模糊比较级别。\n\n兼容标准 AE2 存储总线槽位配置。
+adm.manual.item.advance_storage_link_cell=高级网络链接器存储显示用的元件。实现 ICellWorkbenchItem 接口,兼容 AE2 元件工作台。\n\n升级槽：2 个（支持模糊卡和反相卡）。\n\n可配置过滤器：通过元件的分区槽设置高级网络链接器显示哪些物品。\n\n矿典过滤支持：可按矿典名称过滤。\n\n流体和源质标记：标记特定流体或神秘时代源质类型进行显示。\n\n模糊模式：支持 AE2 的多种模糊比较级别。\n\n兼容标准 AE2 存储总线槽位配置。
 
 adm.manual.item.advance_planner=以 NBT 数据存储在物品中的持久化可复用任务管理器。\n\n右键：打开计划器 GUI,可添加、编辑、完成、删除、排序和合并条目。\n\n潜行+右键：切换屏幕 HUD 悬浮显示。\n\n功能：自动编号条目、创建时间戳、完成状态追踪、统计显示（总计/已完成/未完成）、条目排序（上移/移至顶部）、支持背包中多个计划器物品、跨登出完整 NBT 持久化。\n\n合并：将多个计划器合为一个。两种模式：按时间（按创建日期排序）或按序号（保留顺序,重新编号）。\n\nHUD：完全自定义位置、缩放、宽度、最大显示数和标题。\n\n堆叠数：1。创造模式标签页：工具。
 
-adm.manual.item.data_dust_loom_cell=初级数据编织元件。将 AE 网络数据编织为粉类物品。\n\n限制：仅支持 GregTech 粉类（dust 前缀）标记；不可标记本模组物品。\n\n默认速率：1 个/秒（[dataDustLoomCell] 可配置）。标记或更换增幅卡后 tooltip 显示缓存的有效速率。\n\n放入 ME 驱动器/箱子,元件工作台标记粉类后缓慢产出。仅接受编织增幅卡（默认 4×/张,[dataLoomCell] 可配置）。\n\n高级存储链接器：元件内已存储物品不计入高级存储链接器统计。
+adm.manual.item.data_dust_loom_cell=初级数据编织元件。将 AE 网络数据编织为粉类物品。\n\n限制：仅支持 GregTech 粉类（dust 前缀）标记；不可标记本模组物品。\n\n默认速率：1 个/秒（[dataDustLoomCell] 可配置）。标记或更换增幅卡后 tooltip 显示缓存的有效速率。\n\n放入 ME 驱动器/箱子,元件工作台标记粉类后缓慢产出。仅接受编织增幅卡（默认 4×/张,[dataLoomCell] 可配置）。\n\n高级网络链接器：元件内已存储物品不计入高级网络链接器统计。
 
-adm.manual.item.data_form_loom_cell=高级数据编织元件。完全掌握数据编织,可重构任意物品。\n\n限制：可标记任意物品,但不可标记本模组物品。\n\n默认速率：1 个/秒（[dataFormLoomCell] 可配置）。\n\n放入 ME 驱动器/箱子,元件工作台标记物品后缓慢产出。仅接受编织增幅卡。\n\n高级存储链接器：元件内已存储物品不计入高级存储链接器统计。
+adm.manual.item.data_form_loom_cell=高级数据编织元件。完全掌握数据编织,可重构任意物品。\n\n限制：可标记任意物品,但不可标记本模组物品。\n\n默认速率：1 个/秒（[dataFormLoomCell] 可配置）。\n\n放入 ME 驱动器/箱子,元件工作台标记物品后缓慢产出。仅接受编织增幅卡。\n\n高级网络链接器：元件内已存储物品不计入高级网络链接器统计。
 
-adm.manual.item.data_flow_cell=流体数据编织元件。将网络数据编织为流体。\n\n限制：可标记任意流体；不可使用本模组物品作为标记。\n\n默认速率：1000 mB/秒 = 1 桶/秒（[dataFlowCell] 独立配置）。\n\n放入 ME 驱动器/箱子的流体通道槽位。仅接受编织增幅卡。\n\n高级存储链接器：元件内已存储流体不计入高级存储链接器统计。
+adm.manual.item.data_flow_cell=流体数据编织元件。将网络数据编织为流体。\n\n限制：可标记任意流体；不可使用本模组物品作为标记。\n\n默认速率：1000 mB/秒 = 1 桶/秒（[dataFlowCell] 独立配置）。\n\n放入 ME 驱动器/箱子的流体通道槽位。仅接受编织增幅卡。\n\n高级网络链接器：元件内已存储流体不计入高级网络链接器统计。
 
-adm.manual.item.data_tide_loom_cell=高级流体编织元件（数据涌流元件升级）。将网络数据如潮汐般编织为流体，最多 63 种类（附魔光效）。\n\n限制：与数据涌流元件相同。\n\n默认速率：1000 mB/秒（[dataFlowCell] 配置）。\n\n放入 ME 驱动器/箱子的流体通道槽位。仅接受编织增幅卡。\n\n高级存储链接器：元件内已存储流体不计入高级存储链接器统计。
+adm.manual.item.data_tide_loom_cell=高级流体编织元件（数据涌流元件升级）。将网络数据如潮汐般编织为流体，最多 63 种类（附魔光效）。\n\n限制：与数据涌流元件相同。\n\n默认速率：1000 mB/秒（[dataFlowCell] 配置）。\n\n放入 ME 驱动器/箱子的流体通道槽位。仅接受编织增幅卡。\n\n高级网络链接器：元件内已存储流体不计入高级网络链接器统计。
 
-adm.manual.item.data_source_loom_cell=源质数据编织元件。将网络数据编织为神秘时代源质（GTNH 中以 aspect 流体存储）。\n\n限制：仅可标记源质流体/源质类型。\n\n默认速率：1000 mB/秒（[dataSourceLoomCell] 可配置）。每 5 秒结算一次。\n\n放入 ME 驱动器/箱子的流体通道槽位。仅接受编织增幅卡。\n\n高级存储链接器：元件内已存储源质不计入高级存储链接器统计。
+adm.manual.item.data_source_loom_cell=源质数据编织元件。将网络数据编织为神秘时代源质（GTNH 中以 aspect 流体存储）。\n\n限制：仅可标记源质流体/源质类型。\n\n默认速率：1000 mB/秒（[dataSourceLoomCell] 可配置）。每 5 秒结算一次。\n\n放入 ME 驱动器/箱子的流体通道槽位。仅接受编织增幅卡。\n\n高级网络链接器：元件内已存储源质不计入高级网络链接器统计。
 
 adm.manual.item.weave_amplifier=数据编织元件专用增幅卡。默认每张 4× 产出（[dataLoomCell] weaveAmplifierRateMultiplier 可配置）,最多 8 张,与其他卡片倍率相乘。\n\n织尘/织形/涌流/织源元件通用。\n\n不接受 AE 加速卡 — 仅本卡有效。
 
 adm.manual.item.super_weave_amplifier=超级编织增幅卡。默认每张 16×（[dataLoomCell] superWeaveAmplifierRateMultiplier 可配置）,与普通编织增幅卡倍率相乘。\n\n警告：多张叠加可能导致 AE 网络瞬间爆满！
 
 adm.manual.item.superOrange=拥有巨大力量的传奇物品。在背包中携带或手持时,赋予以下能力（具体数值与开关受 config/textech/textech.cfg 的 [superOrange] 分类及物品 NBT 影响）：\n\n操作：\n- 右键：开关无人机与投掷物免疫（物品 NBT）\n- 潜行+右键：打开设置 GUI（非切换开关）\n- 设置 GUI：铭牌文字、挖掘物质球开关、拾取合并开关、丢弃合并开关、自定义掉落倍率（上限见 dropMultiplierMax,默认 ×2）\n- 铁砧重命名：亦可设置铭牌文字\n\n1. 任意方块挖掘：手持时可瞬间挖掘任意方块（含 GT 矿石）。\n\n2. 头顶效果：自定义铭牌 + 旋转光环（OrangeBuff.png）。第一人称隐藏自身效果,第三人称与他人可见。可通过 headEffectsEnabled 配置关闭。\n\n3. 物质球：设置 GUI 分别控制挖掘/拾取/丢弃三条物质团簇合并通道。挖掘开启后,掉落自动转为无尽贪婪物质团簇（背包有则合并,无则生成）,倍率由 per-item dropMultiplier 决定（新物品默认 dropMultiplier 配置值,默认 ×2）。可通过 dropMultiplierEnabled 全局关闭。\n\n4. 伴随无人机：本体在玩家周围 3 格内每秒随机选点漂浮（高度 droneFollowHeight）,始终留在玩家身边并拦截投掷物（为每个来袭投掷物生成临时拦截无人机）。附近有敌对生物时分身出击,本体不参与战斗。分身对目标造成真实伤害（无视护甲）,伤害/频率/扫描范围/最大分身数均可配置。右键可关闭无人机与投掷物免疫。\n\n5. 投掷物免疫：随无人机开关生效（需 projectileImmunityEnabled 配置允许）。\n\n获取途径：地牢和废弃矿井宝箱 0.1%,生物击杀 0.05%。\n\n堆叠数：1。创造模式标签页：工具。
-adm.manual.item.matterBallDecompressor=AE2 方块,将无尽贪婪物质团簇逐项解压为物品。\n\n布局：左侧 9 槽仅接受物质团簇；右侧 9×9 缓存；底部 4 个 AE 加速卡槽（SPEED / SUPERSPEED）。\n\nGUI 模式按钮：\n- 进网络 / 进缓存：产物送入 AE 网络或本地缓存（默认进网络）；缓存满则停止\n- 阻塞开/关（缓存模式）：开启时缓存中有任意物品则暂停解压,直至清空\n\n速率：[matterBallDecompressor] itemsPerSecond（默认 16 个/秒）,AE 加速卡按分子装配室倍率叠乘（SUPERSPEED 每张 ×8）。\n\n需 AE 频道；智能线缆连接。\n\n合成：UHV 装配线（扫描高级存储链接器 90 秒 @ UV,120 秒 @ UHV）。材料：中子素板 ×4、终极电路 ×2、高级存储链接器 ×1、网络链接器 ×1、Fluix 水晶 ×4、中子素螺丝 ×8、硅岩细线 ×16（OreDict wireFineNaquadah）、焊锡 5760 mB + 润滑油 2000 mB。
+adm.manual.item.matterBallDecompressor=AE2 方块,将无尽贪婪物质团簇逐项解压为物品。\n\n布局：左侧 9 槽仅接受物质团簇；右侧 9×9 缓存；底部 4 个 AE 加速卡槽（SPEED / SUPERSPEED）。\n\nGUI 模式按钮：\n- 进网络 / 进缓存：产物送入 AE 网络或本地缓存（默认进网络）；缓存满则停止\n- 阻塞开/关（缓存模式）：开启时缓存中有任意物品则暂停解压,直至清空\n\n速率：[matterBallDecompressor] itemsPerSecond（默认 16 个/秒）,AE 加速卡按分子装配室倍率叠乘（SUPERSPEED 每张 ×8）。\n\n需 AE 频道；智能线缆连接。\n\n合成：UHV 装配线（扫描高级网络链接器 90 秒 @ UV,120 秒 @ UHV）。材料：中子素板 ×4、终极电路 ×2、高级网络链接器 ×1、Fluix 水晶 ×4、中子素螺丝 ×8、硅岩细线 ×16（OreDict wireFineNaquadah）、焊锡 5760 mB + 润滑油 2000 mB。
 
 adm.manual.data_monitor.system_overview_title=系统总览
-adm.manual.data_monitor.system_overview_text=高级数据监视器系统将 TileEntity NBT 数据可视化为世界内渲染图形。数据流程：\n\n数据源（如 AE2 链接器方块）-> 数据映录器映录 NBT 快照 -> 绑定到高级数据监视器 -> 监视器每 N tick 读取 NBT 值 -> 在世界上渲染图表/文字。\n\n四种方块协同工作：高级数据监视器（显示）、合成链接器（处理器数据）、高级存储链接器（库存数据）、网络链接器（汇总统计）。\n\n每个监视器面（6 面）有独立的绑定 - 可在不同面显示不同数据,或所有面显示相同数据。每面最多 36 条绑定条目（`dataLimit` 为单条图表数据点数,默认 100,与此上限无关）。\n\n渲染使用 GL11 + Tessellator,128 格视距。
+adm.manual.data_monitor.system_overview_text=高级数据监视器系统将 TileEntity NBT 数据可视化为世界内渲染图形。数据流程：\n\n数据源（如 AE2 链接器方块）-> 数据映录器映录 NBT 快照 -> 绑定到高级数据监视器 -> 监视器每 N tick 读取 NBT 值 -> 在世界上渲染图表/文字。\n\n主要方块协同工作：高级数据监视器（显示）、三合一高级网络链接器（网络统计 / 存储显示 / 合成 CPU）。\n\n每个监视器面（6 面）有独立的绑定 - 可在不同面显示不同数据,或所有面显示相同数据。每面最多 36 条绑定条目（`dataLimit` 为单条图表数据点数,默认 100,与此上限无关）。\n\n渲染使用 GL11 + Tessellator,128 格视距。
 
 adm.manual.data_monitor.setup_title=网络搭建
-adm.manual.data_monitor.setup_text=网络搭建分步指南：\n\n1. 在想要显示的位置放置高级数据监视器。放置时自动记录位置和朝向。\n\n2. 在 AE2 线缆旁放置链接器方块。合成链接器靠近处理器,高级存储链接器靠近驱动器,网络链接器放在网络任意位置。\n\n3. 链接器方块通过线缆邻接自动检测附近 AE2 网络。需由 AE2 能量供电。\n\n4. 链接器方块有内部 tick 计时器（20 tick = 1 秒）用于自动刷新。\n\n5. 合成数据映录器。潜行+右键链接器方块映录其数据。\n\n6. 潜行+右键高级数据监视器,将映录器中的数据源添加到监视器。\n\n7. 右键高级数据监视器打开配置 GUI。配置每个绑定的显示设置。\n\n所有方块：硬度 2.0-3.0,抗爆 5.0-10.0,铁块材质,自定义 TESR 渲染。
+adm.manual.data_monitor.setup_text=网络搭建分步指南：\n\n1. 在想要显示的位置放置高级数据监视器。放置时自动记录位置和朝向。\n\n2. 在 AE2 线缆旁放置高级网络链接器（网络任意位置即可；一台即可同时提供网络统计、存储显示与合成 CPU 监控）。\n\n3. 链接器方块通过线缆邻接自动检测附近 AE2 网络。需由 AE2 能量供电。\n\n4. 链接器方块有内部 tick 计时器（20 tick = 1 秒）用于自动刷新。\n\n5. 合成数据映录器。潜行+右键链接器方块映录其数据。\n\n6. 潜行+右键高级数据监视器,将映录器中的数据源添加到监视器。\n\n7. 右键高级数据监视器打开配置 GUI。配置每个绑定的显示设置。\n\n所有方块：硬度 2.0-3.0,抗爆 5.0-10.0,铁块材质,自定义 TESR 渲染。
 
 adm.manual.data_monitor.binding_title=数据映录器绑定流程
-adm.manual.data_monitor.binding_text=完整数据映录器绑定流程：\n\n1. 用数据映录器潜行+右键目标 TileEntity。工具映录：XYZ 坐标、方块注册名、meta 值、完整 NBT。对 GregTech 机器额外映录 mName（机器显示名）。\n\n2. 潜行+右键高级数据监视器。若工具已映录坐标,坐标被添加到监视器当前面的数据绑定列表（自动去重,最多 36 条）。\n\n3. 打开高级数据监视器 GUI。每个绑定作为可配置条目显示,带有预设默认值（青色、0.3 缩放、20 tick 间隔、100 数据上限）。\n\n4. 对于直接 NBT 追踪：在 GUI 中编辑 dataName 字段设置 NBT 路径（如"Items"表示物品数量）。\n\n5. 对于 AE2 链接器方块：监视器自动检测链接类型（合成链接器/高级存储链接器/网络链接器）并使用相应数据处理方法。\n\n映录器只记录数据；从 AE 网络编织物质需使用数据织尘/织形/涌流元件。
+adm.manual.data_monitor.binding_text=完整数据映录器绑定流程：\n\n1. 用数据映录器潜行+右键非 GT 的 TileEntity。工具映录：XYZ 坐标、方块注册名、meta 值、完整 NBT。\n\n2. 潜行+右键 GT 机器将坐标加入 GT 列表（与方块映录互斥）；空工具潜行+右键空气可按半径扫描附近 GT。\n\n3. 潜行+右键高级数据监视器：有 GT 列表则批量绑 GT；仅有方块映录则添加图表绑定槽（自动去重,最多 36 条）。\n\n4. 打开高级数据监视器 GUI。每个绑定作为可配置条目显示,带有预设默认值（青色、0.3 缩放、20 tick 间隔、100 数据上限）。\n\n5. 对于直接 NBT 追踪：在 GUI 中编辑 dataName 字段设置 NBT 路径（如"Items"表示物品数量）。\n\n6. 对于 AE2 链接器方块：监视器自动检测链接类型并使用相应数据处理方法。\n\n映录器只记录数据；从 AE 网络编织物质需使用数据织尘/织形/涌流元件。
 
 adm.manual.data_monitor.data_types_title=图表与数据类型
 adm.manual.data_monitor.data_types_text=数值数据支持的图表类型：\n\n折线图 - 以连续线条绘制随时间变化的值。最适合监控趋势变化（如电量、物品数量）。\n柱状图 - 每个数据点显示离散柱形。适合快照对比。\n3D 柱状图 - 同柱状图但带深度渲染。\n瀑布图 - 显示累积增减。适用于资源流动追踪。\n势差图 - 显示连续读数间的差值变化。\n\nAE2 文字显示类型：\n存储模式 - 以网格形式渲染物品图标及名称和数量（可配置列数、间距、图标大小）。\n合成模式 - 将模板表达式渲染为格式化文字,带实时变量替换。\n网络模式 - 将数值（字节、种类数）渲染为文字或柱状。\n\n所有图表类型支持：颜色自定义、坐标轴配置、网格线、标题显示、缩放、透明度控制。
@@ -809,12 +840,10 @@ adm.hint.pocket.upgradeLockedWhileStored=口袋内存有物品，无法拆下升
 
 # 手册 - 新章节键 (Phase 2)
 adm.manual.monitor_blocks.overview_title=数据监视器方块概述
-adm.manual.monitor_blocks.overview_text=TeXTech 添加了 5 个 AE2 相关方块：4 个监视器链接器向数据监视器提供统计，以及物质球解压器用于解压无尽贪婪物质团簇。\n\n放置方式：所有方块通过线缆邻接连接 AE2 网络，需 AE2 能量与频道（解压器亦需频道）。\n\n右键点击链接器方块可在聊天中查看当前状态。将其绑定到数据监视器可在世界中持续显示。\n\n提示：使用数据映录器快速绑定链接器到监视器（潜行+右键链接器，然后潜行+右键监视器）。
+adm.manual.monitor_blocks.overview_text=TeXTech 添加了 AE2 相关监视方块：高级数据监视器、三合一高级网络链接器（网络统计 + 存储元件槽 + 合成 CPU）以及物质球解压器。\n\n放置方式：AE2 方块通过线缆邻接连接网络，需 AE2 能量与频道（解压器亦需频道）。\n\n右键高级网络链接器打开存储 GUI；Shift+右键在聊天中查看综合状态。绑定到数据监视器可在世界中持续显示（按绑定选择显示类型）。\n\n提示：使用数据映录器快速绑定链接器到监视器（潜行+右键链接器，然后潜行+右键监视器）。
 
 adm.manual.monitor_blocks.data_monitor_title=高级数据监视器
-adm.manual.monitor_blocks.crafting_link_title=合成链接器
-adm.manual.monitor_blocks.storage_link_title=高级存储链接器
-adm.manual.monitor_blocks.network_link_title=网络链接器
+adm.manual.monitor_blocks.network_link_title=高级网络链接器
 adm.manual.monitor_blocks.matter_decompressor_title=物质球解压器
 
 adm.manual.monitor_tools.overview_title=监视器配套工具概述
@@ -823,7 +852,7 @@ adm.manual.monitor_tools.overview_text=这些工具支持和增强数据监视�
 adm.manual.monitor_tools.data_imprint_title=数据映录器
 adm.manual.monitor_tools.storage_cell_title=高级存储链接元件
 adm.manual.monitor_tools.link_scanner_title=高级链接扫描器
-adm.manual.item.advance_link_scanner=扫描已加载区块中的高级数据监视器链接方块（监视器、网络/存储/合成链接器）。\n\nShift+右键：扫描所有已加载区块。结果以可展开列表存储，包含所有者名称、坐标、别名和方块类型。\n\n右键：打开扫描器 GUI——浏览条目，按所有者/名称过滤，设置自定义别名，直接传送到任意找到的方块。\n\n过滤器：所有者（全部/我的/他人）、名称（全部/未命名/已命名）。\n\n传送：点击行条目传送到对应方块（同维度，安全检查落地位置）。\n\n堆叠数：1。创造模式标签页：工具。
+adm.manual.item.advance_link_scanner=扫描已加载区块中的高级数据监视器与高级网络链接器方块。\n\nShift+右键：扫描所有已加载区块。结果以可展开列表存储，包含所有者名称、坐标、别名和方块类型。\n\n右键：打开扫描器 GUI——浏览条目，按所有者/名称过滤，设置自定义别名，直接传送到任意找到的方块。\n\n过滤器：所有者（全部/我的/他人）、名称（全部/未命名/已命名）。\n\n传送：点击行条目传送到对应方块（同维度，安全检查落地位置）。\n\n堆叠数：1。创造模式标签页：工具。
 
 adm.manual.dimensional_pocket.overview_title=次元口袋概述
 adm.manual.dimensional_pocket.overview_text=次元口袋是绑定玩家 UUID 的便携式存储。背包中所有口袋物品共享同一个存储空间——物品本身不携带数据。\n\n存储数据跨会话持久化在世界存档目录下的 textech/pocket-<uuid>.dat 中。右键打开存储 GUI；Shift+右键切换可拖动的悬浮窗。\n\n升级系统：四种升级卡分别扩展容量、增加页数、倍增堆叠上限和解锁无限堆叠。升级卡安装后消耗不可回收——仅被前置条件拒绝的卡片会返还。\n\n容量公式：每页槽位数 = min(63, 1 + min(空间升级数, 62))；页数 = 1 + min(翻页升级数, 8)（当空间升级>=64时），否则为 1。
@@ -847,7 +876,7 @@ adm.manual.item.stack_upgrade_card=倍增单格堆叠上限。基础 64，公式
 adm.manual.item.infinite_stack_upgrade_card=将单格堆叠上限设为 Integer.MAX_VALUE，实现无限堆叠。\n\n需堆叠升级满才能生效。最多 1 张。\n\n警告：大量堆叠物品可能导致渲染卡顿。\n\n通过升级配置 GUI 安装。安装后消耗。\n\n创造模式标签页：工具。
 
 adm.manual.data_loom_cells.overview_title=数据编织元件 — 背景与技术
-adm.manual.data_loom_cells.overview_text=AE 将物质数字化为网络数据。高级数据监视器的研究者反其道而行之——将数据重新编织为物质。\n\n演进历程：\n- 数据织尘元件（基础）：技术不成熟，仅能编织最简单的形态——粉（GT 粉尘前缀）。\n- 数据织形元件（高级）：完全掌握，可重构任意复杂物品。\n- 数据涌流元件：流体通道，将数据编织为流体（mB 单位，默认 1000 mB/秒 = 1 桶/秒）。\n- 数据织潮元件（高级）：流体通道升级——数据如潮汐，最多 63 种流体。\n- 数据织源元件：流体通道，将数据编织为神秘时代源质（aspect 流体，默认 1000 mB/秒）。\n\n使用方式：放入 ME 驱动器或箱子，在工作台标记目标物品/流体/源质，随时间缓慢生成。织尘/织形/涌流元件不可标记本模组物品。每 5 秒结算一次（可配）；有效速率在标记或增幅卡变化时缓存到物品 tooltip。编织增幅卡倍增产出（普通 4×/张、超级 16×/张，最多 8 张，倍率相乘）。消耗 AE 网络能量。\n\n高级存储链接器说明：数据编织元件内部存储内容不计入高级存储链接器统计。\n\n配置文件：[dataDustLoomCell]、[dataFormLoomCell]、[dataFlowCell]、[dataSourceLoomCell]、[dataLoomCell]（同步间隔、能量消耗、增幅倍率）。
+adm.manual.data_loom_cells.overview_text=AE 将物质数字化为网络数据。高级数据监视器的研究者反其道而行之——将数据重新编织为物质。\n\n演进历程：\n- 数据织尘元件（基础）：技术不成熟，仅能编织最简单的形态——粉（GT 粉尘前缀）。\n- 数据织形元件（高级）：完全掌握，可重构任意复杂物品。\n- 数据涌流元件：流体通道，将数据编织为流体（mB 单位，默认 1000 mB/秒 = 1 桶/秒）。\n- 数据织潮元件（高级）：流体通道升级——数据如潮汐，最多 63 种流体。\n- 数据织源元件：流体通道，将数据编织为神秘时代源质（aspect 流体，默认 1000 mB/秒）。\n\n使用方式：放入 ME 驱动器或箱子，在工作台标记目标物品/流体/源质，随时间缓慢生成。织尘/织形/涌流元件不可标记本模组物品。每 5 秒结算一次（可配）；有效速率在标记或增幅卡变化时缓存到物品 tooltip。编织增幅卡倍增产出（普通 4×/张、超级 16×/张，最多 8 张，倍率相乘）。消耗 AE 网络能量。\n\n高级网络链接器说明：数据编织元件内部存储内容不计入高级网络链接器统计。\n\n配置文件：[dataDustLoomCell]、[dataFormLoomCell]、[dataFlowCell]、[dataSourceLoomCell]、[dataLoomCell]（同步间隔、能量消耗、增幅倍率）。
 
 adm.manual.data_loom_cells.data_dust_loom_title=数据织尘元件
 adm.manual.data_loom_cells.data_form_loom_title=数据织形元件
@@ -855,7 +884,7 @@ adm.manual.data_loom_cells.data_flow_cell_title=数据涌流/织潮元件
 adm.manual.data_loom_cells.data_source_loom_title=数据织源元件
 adm.manual.data_loom_cells.weave_amplifier_title=编织增幅卡
 adm.manual.data_loom_cells.usage_title=使用说明与增幅卡安装
-adm.manual.data_loom_cells.usage_text=数据编织元件使用步骤：\n\n1. 合成所需元件类型（织尘/织形/涌流/织潮/织源）。\n2. 将元件放入元件工作台。在分区槽中标记目标物品/流体/源质。\n3. 可选安装编织增幅卡或超级编织增幅卡（总计最多 8 张）。仅接受此卡——AE 加速卡无法使用。\n4. 将元件插入 ME 驱动器或箱子（织尘/织形走物品通道；涌流/织潮/织源走流体通道）。\n5. 元件自动开始编织——每 [dataLoomCell] syncIntervalSeconds 结算一次（默认 5 秒）。\n\n增幅卡倍率：\n- 普通卡：每张 4×，倍率相乘。1→4×、2→16×、4→256×、8→65536×。\n- 超级卡：每张 16×，与普通卡倍率相乘。\n- 总计最多 8 张，所有类型共用。\n\n能量：消耗 [dataLoomCell] energyDrainPerTick AE/t（默认 999999）。\n\n外部访问：内部存储可通过存储总线读取，但不计入高级存储链接器统计。
+adm.manual.data_loom_cells.usage_text=数据编织元件使用步骤：\n\n1. 合成所需元件类型（织尘/织形/涌流/织潮/织源）。\n2. 将元件放入元件工作台。在分区槽中标记目标物品/流体/源质。\n3. 可选安装编织增幅卡或超级编织增幅卡（总计最多 8 张）。仅接受此卡——AE 加速卡无法使用。\n4. 将元件插入 ME 驱动器或箱子（织尘/织形走物品通道；涌流/织潮/织源走流体通道）。\n5. 元件自动开始编织——每 [dataLoomCell] syncIntervalSeconds 结算一次（默认 5 秒）。\n\n增幅卡倍率：\n- 普通卡：每张 4×，倍率相乘。1→4×、2→16×、4→256×、8→65536×。\n- 超级卡：每张 16×，与普通卡倍率相乘。\n- 总计最多 8 张，所有类型共用。\n\n能量：消耗 [dataLoomCell] energyDrainPerTick AE/t（默认 999999）。\n\n外部访问：内部存储可通过存储总线读取，但不计入高级网络链接器统计。
 
 adm.manual.grapple_system.overview_title=挂索系统概述
 adm.manual.grapple_system.overview_text=挂索系统让你在精心建造的基地中旅行时拥有旅程感——欣赏沿途风景，而不是一闪而过的传送或飞行。\n\n两部分协同工作：\n- 挂索节点：可贴面放置的薄板节点，沿路径布置。\n- 挂索器：手持工具，用于挂接到节点并在节点间滑行。\n\n核心循环：靠近节点 → 用挂索器磁吸选中 → 右键挂接 → 看向下一节点 → 右键滑行 → Shift 取消。过程解放双手。\n\n配置文件：[grapple] 分类（提示范围、交互距离、滑行速度、磁吸角度）。详见用户手册 §3.7–3.8。
@@ -987,17 +1016,13 @@ adm.webconsole.icons.mode_invalid=无效的图标渲染模式：{0}
 adm.webconsole.icons.mode_not_implemented=图标渲染模式尚未实现：{0}
 adm.webconsole.icons.cleared=图标缓存已清空（已从 TeXTech/WebAE/icons/ 删除 {0} 个 PNG 文件）。
 
-adm.iconRenderMode.nei=NEI 风格（推荐）
-adm.iconRenderMode.nei.tooltip=NEI 网格 FBO 导出，与 NEI 槽位一致。WebAE 默认。
-adm.iconRenderMode.hybrid=自动混合（已弃用）
-adm.iconRenderMode.hybrid.tooltip=已弃用：旧版图集+GL 混合路径，请改用 nei。
-adm.iconRenderMode.atlas=图集裁剪（已弃用）
-adm.iconRenderMode.atlas.tooltip=已弃用：CPU 图集裁剪易出错，请改用 nei。
+adm.iconRenderMode.nei=NESQL / NEI drawItem
+adm.iconRenderMode.nei.tooltip=NESQL 同款单图标 FBO（GuiContainerManager.drawItem）。流体走模组特殊路径。
 adm.webconsole.server.restarted=WebAE HTTP 服务已重启：{0}:{1}
 adm.webconsole.server.restart_failed=WebAE HTTP 服务重启失败 — 请查看 logs/latest.log
 adm.manual.chapter.web_console=Web 控制台
 adm.manual.web_console.brief_overview_title=WebAE 控制台
-adm.manual.web_console.brief_overview_text=WebAE 是 TeXTech 内嵌的浏览器管理面板。可在网页中查看 AE2 存储与电力、GT 机器、NEI 配方与 AE 样板，并提交合成订单或与游戏内聊天互通。\n\n默认关闭，需服管在 config/textech/textech.cfg 的 [webConsole] 节启用。默认仅本机访问（127.0.0.1:8090），使用 Token 认证。
+adm.manual.web_console.brief_overview_text=WebAE 是 TeXTech 内嵌的浏览器管理面板。可在网页中查看 AE2 存储与电力、GT 机器、NEI 配方与 AE 样板、BetterQuesting 任务书，并提交合成订单或与游戏内聊天互通。\n\n默认关闭，需服管在 config/textech/textech.cfg 的 [webConsole] 节启用。默认仅本机访问（127.0.0.1:8090），使用 Token 认证。
 adm.manual.web_console.brief_start_title=快速开始
 adm.manual.web_console.brief_start_text=1. 服管启用 [webConsole] enabled=true 并重启服务端。\n2. 游戏内执行 /admweb issue 获取 Token（完整值仅显示一次）。\n3. 浏览器打开 http://127.0.0.1:8090，粘贴 Token 登录。\n\n常用命令：/admweb issue · /admweb revoke · /admweb help\nOP 上传：/admweb recipes upload snapshot（日常）· /admweb recipes upload（全量）· /admweb icons upload · /admweb icons import-nesql
 adm.manual.web_console.brief_docs_title=详细文档
@@ -1009,9 +1034,9 @@ adm.manual.web_console.setup_text=Web 控制台默认关闭。在 config/textech
 adm.manual.web_console.auth_title=认证与访问
 adm.manual.web_console.auth_text=Web 控制台使用 Token 认证，无需 Minecraft 登录凭据。\n\n获取 Token：\n/admweb issue - 生成新 Token（仅显示一次，请立即保存）\n/admweb list - 列出所有已签发的 Token（仅 OP，仅显示前缀）\n/admweb revoke [玩家] - 撤销 Token（OP 可撤销他人）\n/admweb refresh [网络] - 管理员强制重采集快照（阶段 1.2）\n\n浏览器访问：\n1. 启动服务端并启用 webConsole。\n2. 浏览器打开 http://127.0.0.1:8090（或你的服务器地址）。\n3. 在登录页输入 /admweb issue 获取的 Token。\n4. Token 存储在浏览器 localStorage（webae_token）。开启自动登录（默认开启）后，下次访问会自动重连。\n5. 若 Token 过期或被撤销，登录页会提示「Token 已过期」/「Token 无效」并清除本地 Token，请重新签发。\n6. 需要更换 Token 时，在设置页输入新 Token，会立即重连。\n\nToken 有效期：配置项 tokenLifetimeHours（0=永不过期，>0 时按签发时间 + TTL 校验）。Token 持久化到 TeXTech/WebAE/web-tokens.json（每位玩家一个，重新签发会替换旧的）。\n\n如不想自动登录，可在设置页关闭「自动登录」开关。
 adm.manual.web_console.storage_title=存储监控
-adm.manual.web_console.storage_text=存储页面提供 AE2 网络存储的实时概览。\n\n顶部总览（Phase 3）：可配置 widget 行，复用仪表盘属性继承（图表类型 statCard/progressBar/gauge、数据源、9 宫格对齐、颜色覆盖）。默认显示物品种类、流体种类、字节占用率、活跃 CPU 数；点击「编辑总览」可拖拽/添加/删除组件，配置持久化 localStorage.webae_storage_overview_config。所有总览卡片固定 112px 等高。\n\n子表：物品 / 流体 / 源质（CPU 已移至独立「合成 CPU」菜单）。每个子表支持列头排序与搜索过滤。\n\n刷新机制（阶段 1.2）：服务端每 refreshIntervalMs 毫秒采集一次快照，并分摊到多个 tick。浏览器只读缓存（GET /api/storage）；手动强制刷新为管理员专用（POST /api/refresh 或 /admweb refresh）。\n\n多网络（阶段 1.4）：顶栏选择多个网络；「分开」/「综合」模式汇总物品/流体/源质/字节。
-adm.manual.web_console.cpu_title=合成 CPU
-adm.manual.web_console.cpu_text=独立「合成 CPU」菜单（侧边栏 Hdd 图标）集中展示 AE2 合成 CPU 状态。\n\n顶部总览（Phase 3）：4 个可配置 statCard/progressBar——活跃/总数、总存储使用率、总协同处理器数、并行合成数；配置持久化 localStorage.webae_cpu_overview_config。\n\nCPU 列表：名称、状态、协同、进度、已存储、产物、合成存储、已用时；点击行打开详情 Drawer（坐标、所属网络、存储图表、当前任务与预计剩余）。历史合成记录暂无后端支持时显示「暂无历史」。\n\n多网络：「综合」模式合并所有 CPU；「分开」且选中多个网络时用 Tabs 切换。\n\n后端 CpuEntry 含合成链接坐标、监视器坐标、remainingItems/startItems 等字段，由 AeSnapshotCollector 采集。
+adm.manual.web_console.storage_text=存储页面提供 AE2 网络存储的实时概览。\n\n顶部总览（Phase 3）：可配置 widget 行，复用仪表盘属性继承（图表类型 statCard/progressBar/gauge、数据源、9 宫格对齐、颜色覆盖）。默认显示物品种类、流体种类、字节占用率、活跃 CPU 数；点击「编辑总览」可拖拽/添加/删除组件，配置持久化 localStorage.webae_storage_overview_config。所有总览卡片固定 112px 等高。\n\n子表：物品 / 流体 / 源质（CPU 已移至独立「合成处理器」菜单）。每个子表支持列头排序与搜索过滤。\n\n刷新机制（阶段 1.2）：服务端每 refreshIntervalMs 毫秒采集一次快照，并分摊到多个 tick。浏览器只读缓存（GET /api/storage）；手动强制刷新为管理员专用（POST /api/refresh 或 /admweb refresh）。\n\n多网络（阶段 1.4）：顶栏选择多个网络；「分开」/「合并」模式汇总物品/流体/源质/字节。
+adm.manual.web_console.cpu_title=合成处理器
+adm.manual.web_console.cpu_text=独立「合成处理器」菜单（侧边栏 Hdd 图标）集中展示 AE2 合成处理器状态。\n\n顶部总览（Phase 3）：4 个可配置 statCard/progressBar——活跃/总数、总存储使用率、总并行处理器数、并行合成数；配置持久化 localStorage.webae_cpu_overview_config。\n\nCPU 列表：名称、状态、并行处理器、进度、已存储、产物、合成存储、已用时；点击行打开详情 Drawer（坐标、所属网络、存储图表、当前任务与预计剩余）。历史合成记录暂无后端支持时显示「暂无历史」。\n\n多网络：「合并」模式合并所有 CPU；「分开」且选中多个网络时用 Tabs 切换。\n\n后端 CpuEntry 含合成链接坐标、监视器坐标、remainingItems/startItems 等字段，由 AeSnapshotCollector 采集。
 adm.manual.web_console.power_title=电力监控
 adm.manual.web_console.power_text=电力页面以可配置 GridStack 布局（Phase 4）显示无线能源网络的 EU 与蒸汽数据。\n\n默认组件：\n- EU 仪表：当前电量与容量占用率。\n- EU 入/出速率 statCard：能量流速（EU/t），由滑动窗口采样计算。\n- 蒸汽进度条：蒸汽存量与容量。\n- 电力趋势折线图：EU + 蒸汽双序列 SVG 趋势（约最近 60 个采样点）。\n- 蒸汽入/出 statCard：蒸汽流速。\n\n点击「编辑布局」可拖拽、添加/删除组件并切换图表类型与数据源；布局持久化在浏览器（`webae_power_config`）。「电力布局设置」可调整全局间距、颜色与对齐。\n\n多网络「分开」模式用 Tabs 切换各网络快照；自动刷新时趋势图保持显示、不再闪烁。\n\n数据采用与存储相同的 SnapshotScheduler + 缓存模式；PowerSampler 滑动窗口计算速率，读数平滑稳定。
 adm.manual.web_console.gt_machines_title=GT 机器监控
@@ -1021,7 +1046,7 @@ adm.manual.web_console.recipes_text=配方页面支持模糊搜索、物品补�
 adm.manual.web_console.patterns_title=样板管理
 adm.manual.web_console.patterns_text=样板页面通过浏览器提供完整的 AE2 样板管理界面（仿增广样板终端）。\n\n功能：\n- 样板总览：列出当前网络所有 ME 接口槽位上的已有样板，支持搜索、多选、批量删除/导出。\n- 编辑面板：9×3 输入网格与输出行显示物品图标和数量；输出支持 ×2/×4/×8/×16/×32/×64 倍率与 ÷2（不低于配方原始数量）。\n- 配方搜索：按主产物合并显示，点击添加默认配方，或通过「详情」弹窗选择具体配方类型。\n- 编码样板：PatternEncoder 生成 AE2 NBT；启用 consumeBlank 时从 AE 网络扣除 1 个空白样板（BlankPatternHelper），不足返回 NO_BLANK_PATTERN。\n- 注入样板：PatternInjector 将编码样板写入目标 ME 接口；接口列表显示坐标、已有样板数、机器配方类型及已有样板详情。\n\n所有修改 AE2 网络的操作使用 CountDownLatch 在主线程执行（5 秒超时）。
 adm.manual.web_console.orders_title=AE 合成下单
-adm.manual.web_console.orders_text=下单页面让你直接从浏览器提交 AE2 合成任务。\n\nCPU 选择：\n- 顶部下拉框列出网络所有合成 CPU（名称、容量、并行数、忙碌/空闲）。\n- 留空「自动分配」由 AE2 选择 CPU；指定名称时任务提交到该 CPU。\n\n按样板下单（Tab）：\n- GET /api/patterns/browse 双源分页（Grid + Interface），debounce 搜索，滚动触底加载更多。\n- 视图切换：「按产物」虚拟滚动卡片或「按样板」虚拟滚动列表（大量样板时更流畅）。\n- Grid/Interface 标签区分来源；详情弹窗 Grid 源 lazy 拉取完整 inputs/outputs。\n- 多选样板 + 设置数量 + 批量提交到 /api/order/batch。\n\n按物品下单（Tab）：\n- 搜索 AE 存储中的物品，输入数量提交 /api/order。\n- 或添加多行批量列表，一次提交 /api/order/batch。\n\n材料树（Tab）：\n- 输入物品 registry 名与数量，GET /api/craft/tree 递归展开 NEI 配方链。\n- 表格显示每层需要/库存/缺口；叶子节点为无配方原材料。\n\n订单追踪：\n- 活跃订单与历史订单均从 GET /api/order/list 获取（history 字段）。\n- 每 3 秒自动刷新；进度采用混合方案：AE2 合成计算阶段 → CPU 真实进度 → 时间估算兜底。\n- 完成后自动移入历史（进度 100%）；历史表显示所用 CPU，悬停查看协同/存储/并行详情。\n- 「全部取消」调用 POST /api/order/cancel。\n\n后端：AssistantServerServices.submitCraft 接受 cpuName；OrderHandler 维护内存 historyOrders（最多 200 条，重启清空）。\n\n注意：订单提交会阻塞 HTTP 线程直到主线程处理完成（CountDownLatch，15 秒超时）。
+adm.manual.web_console.orders_text=下单页面让你直接从浏览器提交 AE2 合成任务。\n\nCPU 选择：\n- 顶部下拉框列出网络所有合成处理器（名称、容量、并行数、忙碌/空闲）。\n- 留空「自动分配」由 AE2 选择 CPU；指定名称时任务提交到该 CPU。\n\n按样板下单（Tab）：\n- GET /api/patterns/browse 双源分页（Grid + Interface），debounce 搜索，滚动触底加载更多。\n- 视图切换：「按产物」虚拟滚动卡片或「按样板」虚拟滚动列表（大量样板时更流畅）。\n- Grid/Interface 标签区分来源；详情弹窗 Grid 源 lazy 拉取完整 inputs/outputs。\n- 多选样板 + 设置数量 + 批量提交到 /api/order/batch。\n\n按物品下单（Tab）：\n- 搜索 AE 存储中的物品，输入数量提交 /api/order。\n- 或添加多行批量列表，一次提交 /api/order/batch。\n\n材料树（Tab）：\n- 输入物品 registry 名与数量，GET /api/craft/tree 递归展开 NEI 配方链。\n- 表格显示每层需要/库存/缺口；叶子节点为无配方原材料。\n\n订单追踪：\n- 活跃订单与历史订单均从 GET /api/order/list 获取（history 字段）。\n- 每 3 秒自动刷新；进度采用混合方案：AE2 合成计算阶段 → CPU 真实进度 → 时间估算兜底。\n- 完成后自动移入历史（进度 100%）；历史表显示所用 CPU，悬停查看并行处理器/存储/并行详情。\n- 「全部取消」调用 POST /api/order/cancel。\n\n后端：AssistantServerServices.submitCraft 接受 cpuName；OrderHandler 维护内存 historyOrders（最多 200 条，重启清空）。\n\n注意：订单提交会阻塞 HTTP 线程直到主线程处理完成（CountDownLatch，15 秒超时）。
 adm.manual.web_console.theme_dashboard_title=主题与仪表盘自定义
 adm.manual.web_console.theme_dashboard_text=阶段二加入了完整的主题系统与可拖拽自定义的仪表盘。\n\n主题系统：\n- 主题 = 配色方案 × 布局预设，在设置页中独立选择。\n- 配色方案（24 套）：经典 19 套 + 科技风 5 套（hologram/plasma/neon-pulse/quantum/crystal）。每套重新定义背景、强调色、文字与状态颜色。\n- 布局预设（5 套）：standard（标准）、compact（紧凑，信息密度更高）、wide（宽屏，间距与字号更大）、sidebar-right（侧栏移到右侧）、topnav（隐藏侧栏，导航移到顶栏横向排列）。\n- 选择持久化在浏览器（localStorage webae_theme，格式 "color|layout"）；旧的 dark/light 选择会自动迁移。\n- 切换主题时图表会自动重新配色。\n\n仪表盘自定义：\n- 仪表盘标签页是一个 GridStack.js 网格，可进入编辑模式后拖拽组件手柄移动、从右下角缩放。\n- 「添加组件」打开组件库：统计卡、进度条（横向/竖向/环形）、折线图、柱状图、饼图、数据表、仪表。\n- 每个组件绑定一个数据源（物品种类、流体种类、EU 存储、字节占用率、电力历史、Top 物品、网络对比等）和一个作用域：global（跨选中网络聚合）或 perNetwork（绑定单网络；分开模式下每个网络重复一组）。\n- 编辑组件可修改类型、数据源、作用域、样式（进度条方向、时间窗口、最大行数）和尺寸。\n- 布局持久化在 localStorage.webae_dashboard_config。「重置布局」恢复默认组件集。\n- 全局样式与 JSON 导入导出详见「仪表盘设置」章节。\n- 在分开多网络模式下，global 组件显示在顶部「总览」网格，perNetwork 组件在每个网络的分区下重复渲染。
 adm.manual.web_console.topology_title=网络拓扑图
@@ -1143,11 +1168,11 @@ adm.manual.web_console.essentia_text=侧栏「源质」页（?page=essentia）�
 adm.manual.web_console.alerts_edit_title=自动化告警规则
 adm.manual.web_console.alerts_edit_text=WebAE 可监控库存阈值、CPU 卡住、GT 异常、下单完成与频道超载（TeXTech/WebAE/web-alerts.json）。\n\n在 Settings → 自动化告警 中，游戏内 OP（等级 2+）可在浏览器编辑并保存规则；非 OP 仅只读查看。\n\n库存规则须填写 itemId 或 fluidName、最小数量，可选网络过滤（-1 表示全部网络）。
 adm.manual.web_console.order_templates_title=批量下单模板
-adm.manual.web_console.order_templates_text=在 Orders（查询下单）页的批量面板中，可保存与加载常用补货预设。\n\n保存为模板：将当前批量行、所选合成 CPU 与网络 ID 写入 TeXTech/WebAE/web-order-templates.json（按 WebAE owner UUID 隔离）。\n\n模板：加载预设到批量表单、重命名或删除。「缺口补货」对比模板目标数量与 AE 存储，仅写入缺口行。\n\n加载后照常点击「全部下单」（/api/order/batch）。模板在刷新浏览器与服务端重启后仍保留。
+adm.manual.web_console.order_templates_text=在 Orders（查询下单）页的批量面板中，可保存与加载常用补货预设。\n\n保存为模板：将当前批量行、所选合成处理器与网络 ID 写入 TeXTech/WebAE/web-order-templates.json（按 WebAE owner UUID 隔离）。\n\n模板：加载预设到批量表单、重命名或删除。「缺口补货」对比模板目标数量与 AE 存储，仅写入缺口行。\n\n加载后照常点击「全部下单」（/api/order/batch）。模板在刷新浏览器与服务端重启后仍保留。
 adm.manual.web_console.extensions_title=扩展功能（Phase 6–12）
 adm.manual.web_console.extensions_text=WebAE 近期扩展：\n\n- **材料树（Phase 6）**：下单页 → 材料树 Tab；GET /api/craft/tree 递归展开 NEI 配方并对比存储缺口。\n- **SSE 告警（Phase 9）**：GET /api/events/stream 实时推送告警（15 秒心跳）；useEventStream 与 10 秒轮询互补。\n- **P2P 频道地图（Phase 10）**：拓扑页 → P2P 频道视图；GET /api/network/p2p 按 frequency 分组隧道。\n- **监视器预览（Phase 11）**：监视器绑定 → 每槽「预览」；GET /api/monitor/preview 返回折线数据 Drawer。\n- **PWA 与移动端（Phase 12）**：manifest.webmanifest + 窄屏响应式 CSS；手机可添加到主屏幕。\n- **CSV 导出（Phase 13）**：存储 / GT / 拓扑页通过客户端 Blob 导出表格。
 adm.manual.web_console.phase3_title=Phase 3 集成与告警
-adm.manual.web_console.phase3_text=Phase 3 新增跨系统只读页面与自动化告警。\n\n集成页面（侧栏）：\n- 链接扫描器镜像：GET /api/scanner/blocks — 已加载区块 Link 方块；传送仍在游戏内。\n- 监视器绑定：GET /api/monitor/bindings — 图表槽位与 GT 机器坐标；每槽「预览」调用 GET /api/monitor/preview 在 Drawer 中显示折线。\n- 计划器：GET /api/planner/plans — 只读列表，来自 TeXTech/Assistant/plans.json。\n- AI 助手：POST /api/assistant/query — 服务端规则查询（2 秒限流；密钥不上服务端）。\n- 拓扑元件摘要：GET /api/network/cells — 拓扑页显示无限元件/字节统计。\n- 口袋概览：GET /api/pocket/overview — 仅 OP 最小统计（不含存储物品）。\n\n自动化（A1–A5）：TeXTech/WebAE/web-alerts.json 驱动 WebAlertEngine；GET /api/alerts 返回活跃告警；设置页可编辑规则（OP）；useWebAlerts Toast + 浏览器通知；useEventStream 经 GET /api/events/stream SSE 实时推送（15s 心跳，标签页隐藏时暂停）。
+adm.manual.web_console.phase3_text=Phase 3 新增跨系统只读页面与自动化告警。\n\n集成页面（侧栏）：\n- 链接扫描器镜像：GET /api/scanner/blocks — 已加载区块高级网络链接器/监视器；传送仍在游戏内。\n- 监视器绑定：GET /api/monitor/bindings — 图表槽位与 GT 机器坐标；每槽「预览」调用 GET /api/monitor/preview 在 Drawer 中显示折线。\n- 计划器：GET /api/planner/plans — 只读列表，来自 TeXTech/Assistant/plans.json。\n- AI 助手：POST /api/assistant/query — 服务端规则查询（2 秒限流；密钥不上服务端）。\n- 拓扑元件摘要：GET /api/network/cells — 拓扑页显示无限元件/字节统计。\n- 口袋概览：GET /api/pocket/overview — 仅 OP 最小统计（不含存储物品）。\n\n自动化（A1–A5）：TeXTech/WebAE/web-alerts.json 驱动 WebAlertEngine；GET /api/alerts 返回活跃告警；设置页可编辑规则（OP）；useWebAlerts Toast + 浏览器通知；useEventStream 经 GET /api/events/stream SSE 实时推送（15s 心跳，标签页隐藏时暂停）。
 
 # ===== TeXTech 游戏内命令 (/textech help) =====
 adm.command.common.op_required=此操作需要管理员（OP）权限。
@@ -1256,6 +1281,21 @@ adm.command.admweb.help.10=/admweb icons …  —  图标材质包（upload/impo
 adm.command.admweb.help.11=/admweb worldmap …  —  世界地图快照  [见 /admweb worldmap]
 adm.command.admweb.help.12=/admweb server status|restart  —  HTTP 服务控制
 adm.command.admweb.help.13=reload 后 enabled/port/bindAddress 等可能仍需重启服务端。
+adm.command.admweb.help.14=/admweb defaults status|install|clear  —  WebAE 默认 UI 布局 JSON  [install/clear 需 OP]
+adm.command.admweb.defaults.usage=/admweb defaults status|install <路径>|clear
+adm.command.admweb.defaults.install_usage=/admweb defaults install <json文件路径>
+adm.command.admweb.defaults.status_none=未找到 ui-defaults.json（实例目录或模组 jar 均无有效文件）。
+adm.command.admweb.defaults.status_ok=UI 默认布局已生效（%s，%s 字节）。
+adm.command.admweb.defaults.source_instance=实例 TeXTech/WebAE/ui-defaults.json
+adm.command.admweb.defaults.source_jar=模组 jar assets/textech/webae/ui-defaults.json
+adm.command.admweb.defaults.install_missing=文件不存在：%s
+adm.command.admweb.defaults.install_invalid=无效的 JSON 文件（需要 JSON 对象）。
+adm.command.admweb.defaults.install_ok=已安装 ui-defaults.json 到 %s
+adm.command.admweb.defaults.install_failed=安装 ui-defaults.json 失败
+adm.command.admweb.defaults.clear_none=实例目录中没有 ui-defaults.json 可删除。
+adm.command.admweb.defaults.clear_ok=已删除实例 ui-defaults.json（将回退到 jar 或代码默认）。
+adm.command.admweb.defaults.clear_failed=删除 ui-defaults.json 失败
+adm.command.admweb.defaults.unknown=未知的 defaults 子命令。可用：status、install、clear。
 
 adm.command.admweb.recipes.title==== /admweb recipes ===
 adm.command.admweb.recipes.help.1=/admweb recipes upload [snapshot|deep]  —  采集并上传 NEI 配方  [OP][客户端]
@@ -1277,9 +1317,9 @@ adm.command.admweb.recipes.status.disk_none=  磁盘缓存：尚未保存
 adm.command.admweb.recipes.unknown=未知 recipes 子命令。可用：upload、export、status、clear
 
 adm.command.admweb.icons.title==== /admweb icons ===
-adm.command.admweb.icons.help.1=/admweb icons upload [pack] [mode|all|snapshot]
-adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack] [mode]
-adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack] [mode]  [OP][客户端]
+adm.command.admweb.icons.help.1=/admweb icons upload [pack] [snapshot]
+adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack]
+adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack]  [OP][客户端]
 adm.command.admweb.icons.help.4=/admweb icons verify <itemId> [pack]  [客户端]
 adm.command.admweb.icons.help.5=/admweb icons import <folder> [pack]  [OP]
 adm.command.admweb.icons.help.6=/admweb icons import-nesql [pack] [subpath]  [OP]
@@ -1297,7 +1337,7 @@ adm.command.admweb.icons.disabled=图标缓存/上传已禁用。
 adm.command.admweb.icons.invalid=无效的材质包或渲染模式。
 adm.command.admweb.icons.no_snapshot=尚无 AE 存储快照缓存。
 adm.command.admweb.icons.upload_started=图标上传已开始：pack={0} mode={1} scope={2}
-adm.command.admweb.icons.render_usage=用法：/admweb icons render <itemId> [pack] [mode]
+adm.command.admweb.icons.render_usage=用法：/admweb icons render <itemId> [pack]
 adm.command.admweb.icons.rendering=正在渲染 {0}
 adm.command.admweb.icons.verify_usage=用法：/admweb icons verify <itemId> [pack]
 adm.command.admweb.icons.verify_open=正在打开 {0} 的验证 GUI
@@ -1308,8 +1348,6 @@ adm.command.admweb.icons.import_nesql_invalid=无效的材质包名称。
 adm.command.admweb.icons.import_nesql_done=NESQL 导入：{0} 个图标 → {1}/nei/（来源 {2}）
 adm.command.admweb.icons.unknown=未知 icons 子命令。可用：upload、render、verify、import、import-nesql、modes、status、clear
 adm.command.admweb.icons.mode.ready=可用
-adm.command.admweb.icons.mode.deprecated=已弃用
-adm.command.admweb.icons.mode.planned=计划中
 
 adm.command.admweb.worldmap.title==== /admweb worldmap ===
 adm.command.admweb.worldmap.help.1=/admweb worldmap upload [networkId]  —  上传地图快照  [玩家][客户端]
@@ -1361,3 +1399,14 @@ adm.command.admweb.refresh.usage=须由玩家触发，或指定：/admweb refres
 adm.command.admweb.guest.token_preview=访客 Token：{0}...
 adm.command.admweb.reload.failed=配置重载失败 — 请查看服务端日志。
 adm.command.admweb.reload.note=提示：部分设置（如 Web 控制台 port/bindAddress）须重启服务端后生效。
+
+adm.quest.task.retrieval=持有检测：从 AE 提取到背包后 detect
+adm.quest.task.retrieval_fluid=流体持有检测：请在游戏内完成
+adm.quest.task.submit_item=可通过 WebAE 提交物品
+adm.quest.task.submit_fluid=可通过 WebAE 提交流体
+adm.quest.task.crafting=合成任务：请在游戏内完成
+adm.quest.task.in_game=此步骤需在游戏内完成
+adm.quest.task.unsupported=此任务类型暂不支持 Web 提交
+adm.quest.submit.disabled=Web 任务提交已禁用
+adm.quest.submit.guest=访客 Token 无法提交任务
+adm.quest.mod.missing=BetterQuesting 未加载

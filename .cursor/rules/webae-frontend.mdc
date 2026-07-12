@@ -26,6 +26,11 @@ alwaysApply: false
 - 三处 GridStack（主仪表盘 / 存储总览 / 电力页）统一用 `WidgetShell` 外壳；组件配置见 `utils/presets.ts` + `utils/dashboardResolve.ts`；复制/JSON 见 `utils/widgetGridActions.ts`
 - 长列表虚拟滚动使用 `@tanstack/react-virtual`（如 AE 下单 `VirtualPatternGrid` / `VirtualProductGrid`）
 - 页面容器统一使用 `components/Layout/PageShell.tsx`
+- 导航页表单一处定义：`components/Layout/navConfig.ts`（`NAV_PAGES` / `ALL_PAGES`），`Sidebar` / `TopBar` / `CommandPalette` 共用
+- 跨页展示组件：`components/common/SettingRow.tsx`、`SelectableListRow.tsx`、`SelectableCard.tsx`；样式类见 `global.css`（`.webae-nav-item`、`.webae-list-row`、`.webae-setting-row`、`.webae-pattern-slot`、`.webae-scroll-panel`、`.webae-selectable-card` 等）
+- 物品图标 ID：`utils/icon.ts` 的 `patternEntryIconId`；DOM 场景统一 `<Icon>`；Cytoscape 须先 `resolveLocalIconUrls`，未命中再 `buildIconUrl`（禁止批量服务端 prefetch）
+- 图标性能标准见 **`webae-icon-performance.mdc`**（默认不 auto-sync、不 HTTP 同步直渲）
+- AE 下单子模块：`components/ordering/*`；样板编辑：`PatternListSidebar` / `PatternEditorForm` / `PatternInjectPanel`（类型见 `patternEditorTypes.ts`）
 
 ## 页面结构
 
@@ -44,12 +49,17 @@ alwaysApply: false
 - 连接状态、刷新倒计时等动态区域使用 `aria-live="polite"`
 - 尊重 `prefers-reduced-motion`
 
-## 图标双轨
+## 图标双轨与加载策略
 
-1. **服务器材质包**（OP 游戏内 upload，全员只读选择）— `AppContext.iconPack` + `/api/icon/packs`
-2. **浏览器本地材质包**（IndexedDB，`utils/localIconPack.ts`）— 仅本浏览器可见
+1. **浏览器本地材质包**（IndexedDB，`utils/localIconPack.ts`）— 优先
+2. **服务器磁盘材质包**（OP `/admweb icons upload`，全员只读选择）— `AppContext.iconPack` + `/api/icon`
+3. **磁盘 miss** — 异步 `IconMissingQueue` + SSE `icon-ready`（非默认同步直渲）
 
-`Icon.tsx` 解析顺序：本地 pack → 服务器 pack → 缩写 fallback
+- `Icon.tsx` 解析顺序：本地 pack → 服务器 → 缩写 fallback
+- `webae_icon_auto_sync` **默认 false**；Settings 提供「同步整包」与「补当前可见缺失」
+- 禁止登录默认 `sync/bulk`、禁止拓扑/地图向服务端批量 prefetch
+
+详见 `webae-icon-performance.mdc`。
 
 ## i18n
 
@@ -61,10 +71,13 @@ alwaysApply: false
 - 拓扑页：`pages/NetworkTopology.tsx` + `components/topology/*`（cytoscape/SVG/模拟视图）
 - 世界地图：`TopologyWorldMapView`、`WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay`；hooks `useWorldMapData`/`useWorldMapTileLoader`/`useWorldMapProgress`；utils `worldMapTerrain.ts`/`worldMapViews.ts`
 
-## 构建
+## 构建（强制）
+
+改完 `webae-frontend/` 后**必须**执行构建，否则游戏内仍是旧产物。细则见 `webae-frontend-build.mdc`。
 
 ```bash
-cd webae-frontend && npm run build
+cd webae-frontend
+npm run build
 ```
 
 详见 `webae-frontend/README.md` 与 `docs/zh/webae/开发者手册.md` §6。

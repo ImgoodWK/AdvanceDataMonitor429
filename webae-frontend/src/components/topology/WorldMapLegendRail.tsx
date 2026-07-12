@@ -6,6 +6,8 @@ import { Icon } from '@/components/Icon';
 import { useI18n } from '@/i18n';
 import type { WorldMapMarkerDto } from '@/types/dto';
 import type { TopologyDisplaySettings } from '@/types/topologyDisplay';
+import { blockIconIdForNode } from '@/utils/aeCableColors';
+import { iconItemFromRegistryId } from '@/utils/icon';
 import {
   DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS,
   resolveMarkerAeCategory,
@@ -20,11 +22,24 @@ export interface WorldMapLegendRailProps {
   onChange: (patch: Partial<TopologyDisplaySettings>) => void;
 }
 
+/** Same icon resolution as WorldMapMarkerLayer device markers. */
+function legendIconIdForCategory(
+  catId: WorldMapAeCategoryId,
+  markers: WorldMapMarkerDto[],
+): string | null {
+  if (catId === 'other') return null;
+  for (const marker of markers) {
+    if (resolveMarkerAeCategory(marker) !== catId) continue;
+    return blockIconIdForNode(marker.type, marker.iconItemId);
+  }
+  return WORLD_MAP_AE_CATEGORY_ICON_IDS[catId] ?? null;
+}
+
 export function WorldMapLegendRail({ markers, displaySettings, onChange }: WorldMapLegendRailProps) {
   const { t } = useI18n();
   const [hovered, setHovered] = useState(false);
   const locked = displaySettings.worldMapLegendLocked;
-  const expanded = hovered || locked;
+  const expanded = hovered;
 
   const activeCategories = useMemo(() => {
     const set = new Set<WorldMapAeCategoryId>();
@@ -33,6 +48,15 @@ export function WorldMapLegendRail({ markers, displaySettings, onChange }: World
     }
     return WORLD_MAP_AE_CATEGORY_IDS.filter((id) => set.has(id));
   }, [markers]);
+
+  const categoryIconIds = useMemo(() => {
+    const map: Partial<Record<WorldMapAeCategoryId, string>> = {};
+    for (const catId of activeCategories) {
+      const iconId = legendIconIdForCategory(catId, markers);
+      if (iconId) map[catId] = iconId;
+    }
+    return map;
+  }, [activeCategories, markers]);
 
   const patchCategoryColor = (categoryId: WorldMapAeCategoryId, hex: string) => {
     if (locked) return;
@@ -87,7 +111,10 @@ export function WorldMapLegendRail({ markers, displaySettings, onChange }: World
             displaySettings.worldMapAeCategoryColors[catId] ??
             DEFAULT_WORLD_MAP_AE_CATEGORY_COLORS[catId];
           const visible = displaySettings.worldMapAeCategoryVisibility[catId] !== false;
-          const iconId = WORLD_MAP_AE_CATEGORY_ICON_IDS[catId];
+          const iconId = categoryIconIds[catId];
+          const iconItem = iconId
+            ? iconItemFromRegistryId(iconId, t(`worldMapAeCategory_${catId}`))
+            : null;
           return (
             <li
               key={catId}
@@ -98,7 +125,9 @@ export function WorldMapLegendRail({ markers, displaySettings, onChange }: World
                 style={{ background: color }}
                 title={color}
               >
-                <Icon id={iconId} size={expanded ? 20 : 16} linkToWiki={false} alt="" />
+                {iconItem && (
+                  <Icon item={iconItem} size={expanded ? 20 : 16} linkToWiki={false} alt="" />
+                )}
               </span>
               {expanded && (
                 <>

@@ -8,7 +8,7 @@ import com.imgood.textech.webae.topology.TopologySnapshot;
 
 /**
  * Flattens a logical topology snapshot into per-block world map markers.
- * Crafting CPU multiblocks emit a single marker (monitor &gt; coprocessor &gt; storage &gt; first unit).
+ * Crafting CPU and ME controller multiblocks emit a single anchor marker each.
  */
 public final class WorldMapMarkerBuilder {
 
@@ -25,6 +25,13 @@ public final class WorldMapMarkerBuilder {
             }
             if (isCpuNode(node)) {
                 TopologyNode.DeviceRecord anchor = pickCpuAnchor(node.devices);
+                if (anchor != null) {
+                    out.add(toMarker(node, anchor));
+                }
+                continue;
+            }
+            if (isControllerNode(node)) {
+                TopologyNode.DeviceRecord anchor = pickControllerAnchor(node.devices);
                 if (anchor != null) {
                     out.add(toMarker(node, anchor));
                 }
@@ -54,6 +61,16 @@ public final class WorldMapMarkerBuilder {
         return node.subtype != null && "cpu".equalsIgnoreCase(node.subtype);
     }
 
+    private static boolean isControllerNode(TopologyNode node) {
+        if (node == null) {
+            return false;
+        }
+        if ("controller".equalsIgnoreCase(node.type)) {
+            return true;
+        }
+        return node.subtype != null && "controller".equalsIgnoreCase(node.subtype);
+    }
+
     private static TopologyNode.DeviceRecord pickCpuAnchor(List<TopologyNode.DeviceRecord> devices) {
         TopologyNode.DeviceRecord best = null;
         int bestPriority = Integer.MAX_VALUE;
@@ -68,6 +85,30 @@ public final class WorldMapMarkerBuilder {
             }
         }
         return best;
+    }
+
+    /** Lowest Y, then smallest x/z for stable tie-break. */
+    private static TopologyNode.DeviceRecord pickControllerAnchor(List<TopologyNode.DeviceRecord> devices) {
+        TopologyNode.DeviceRecord best = null;
+        for (TopologyNode.DeviceRecord device : devices) {
+            if (device == null) {
+                continue;
+            }
+            if (best == null || controllerAnchorCompare(device, best) < 0) {
+                best = device;
+            }
+        }
+        return best;
+    }
+
+    private static int controllerAnchorCompare(TopologyNode.DeviceRecord a, TopologyNode.DeviceRecord b) {
+        if (a.y != b.y) {
+            return Integer.compare(a.y, b.y);
+        }
+        if (a.x != b.x) {
+            return Integer.compare(a.x, b.x);
+        }
+        return Integer.compare(a.z, b.z);
     }
 
     /** Lower = higher priority: monitor, coprocessor/accelerator, storage, other. */

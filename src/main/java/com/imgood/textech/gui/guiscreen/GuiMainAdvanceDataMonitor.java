@@ -436,18 +436,27 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     private void openSubMenu(int index) {
         BlockPos pos = new BlockPos(tileEntityAdvanceDataMonitor.getXYZ(index), this.world);
         TileEntityTypeHelper.TileEntityType type = TileEntityTypeHelper.getTileEntityType(pos);
-        switch (type) {
-            case AE -> mc
-                .displayGuiScreen(new GuiSubAdvanceDataMonitor(player, world, tileEntityAdvanceDataMonitor, index));
-            case ADV_NETWORKLINK -> mc
-                .displayGuiScreen(new GuiSubAEAdvanceNetworkLink(player, world, tileEntityAdvanceDataMonitor, index));
-            case ADV_CRAFTINGLINK -> mc
-                .displayGuiScreen(new GuiSubAEAdvanceCraftingLink(player, world, tileEntityAdvanceDataMonitor, index));
-            case ADV_STORAGELINK -> mc
-                .displayGuiScreen(new GuiSubAEAdvanceStorageLink(player, world, tileEntityAdvanceDataMonitor, index));
-            default -> mc
-                .displayGuiScreen(new GuiSubAdvanceDataMonitor(player, world, tileEntityAdvanceDataMonitor, index));
+        if (type == TileEntityTypeHelper.TileEntityType.AE) {
+            mc.displayGuiScreen(new GuiSubAdvanceDataMonitor(player, world, tileEntityAdvanceDataMonitor, index));
+            return;
         }
+        if (type == TileEntityTypeHelper.TileEntityType.ADV_NETWORKLINK) {
+            String dataType = tileEntityAdvanceDataMonitor.getDataBound(index)
+                .getString("dataType");
+            String mode = TileEntityTypeHelper.resolveLinkDisplayMode(dataType);
+            if ("crafting".equals(mode)) {
+                mc.displayGuiScreen(
+                    new GuiSubAEAdvanceCraftingLink(player, world, tileEntityAdvanceDataMonitor, index));
+            } else if ("storage".equals(mode)) {
+                mc.displayGuiScreen(
+                    new GuiSubAEAdvanceStorageLink(player, world, tileEntityAdvanceDataMonitor, index));
+            } else {
+                mc.displayGuiScreen(
+                    new GuiSubAEAdvanceNetworkLink(player, world, tileEntityAdvanceDataMonitor, index));
+            }
+            return;
+        }
+        mc.displayGuiScreen(new GuiSubAdvanceDataMonitor(player, world, tileEntityAdvanceDataMonitor, index));
     }
 
     private void openSubColorConfigMenu(int index) {

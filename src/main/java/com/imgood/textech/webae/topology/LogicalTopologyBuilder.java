@@ -279,7 +279,8 @@ public final class LogicalTopologyBuilder {
             record.className = "appeng.tile.crafting.TileCraftingTile";
             record.displayName = unit.accelerator ? "Crafting Co-Processor"
                 : unit.storage ? "Crafting Storage Unit" : unit.monitor ? "Crafting Monitor" : "Crafting Unit";
-            record.iconItemId = TopologyRules.iconItemIdFor(TopologyNodeType.CPU);
+            record.iconItemId = unit.iconItemId != null && !unit.iconItemId.isEmpty() ? unit.iconItemId
+                : TopologyRules.iconItemIdForCraftingComponent(unit.storage, unit.accelerator, unit.monitor);
             record.x = unit.x;
             record.y = unit.y;
             record.z = unit.z;

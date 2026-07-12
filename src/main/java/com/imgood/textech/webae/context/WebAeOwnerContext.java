@@ -17,10 +17,8 @@ import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
 import com.imgood.textech.webae.player.PlayerInfoStore;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector.NetworkInfo;
 import com.mojang.authlib.GameProfile;
@@ -48,8 +46,8 @@ public final class WebAeOwnerContext {
         public int monitorY;
         public int monitorZ;
         public int monitorDim;
-        public TileEntityAdvanceStorageLink storageLink;
-        public TileEntityAdvanceCraftingLink craftingLink;
+        public TileEntityAdvanceNetworkLink storageLink;
+        public TileEntityAdvanceNetworkLink craftingLink;
         public TileEntityAdvanceNetworkLink networkLink;
     }
 
@@ -344,17 +342,18 @@ public final class WebAeOwnerContext {
                     if (boundTe == null) {
                         continue;
                     }
-                    if (boundTe instanceof TileEntityAdvanceStorageLink && group.storageLink == null) {
+                    if (boundTe instanceof TileEntityAdvanceNetworkLink) {
                         if (hasAeAccess(boundTe)) {
-                            group.storageLink = (TileEntityAdvanceStorageLink) boundTe;
-                        }
-                    } else if (boundTe instanceof TileEntityAdvanceCraftingLink && group.craftingLink == null) {
-                        if (hasAeAccess(boundTe)) {
-                            group.craftingLink = (TileEntityAdvanceCraftingLink) boundTe;
-                        }
-                    } else if (boundTe instanceof TileEntityAdvanceNetworkLink && group.networkLink == null) {
-                        if (hasAeAccess(boundTe)) {
-                            group.networkLink = (TileEntityAdvanceNetworkLink) boundTe;
+                            TileEntityAdvanceNetworkLink link = (TileEntityAdvanceNetworkLink) boundTe;
+                            if (group.networkLink == null) {
+                                group.networkLink = link;
+                            }
+                            if (group.storageLink == null) {
+                                group.storageLink = link;
+                            }
+                            if (group.craftingLink == null) {
+                                group.craftingLink = link;
+                            }
                         }
                     }
                 }

@@ -19,10 +19,10 @@ import {
 } from '@ant-design/icons';
 import { useAppContext, type PageId } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
-import { ALL_PAGES } from './AppLayout';
+import type { NavPageEntry } from './navConfig';
 
 interface TopBarProps {
-  pages?: Array<{ id: PageId; icon: string; labelKey: string }>;
+  pages?: NavPageEntry[];
   activePage: PageId;
   setActivePage: (p: PageId) => void;
   topnavMode?: boolean;

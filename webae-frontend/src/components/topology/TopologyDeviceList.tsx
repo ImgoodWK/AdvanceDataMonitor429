@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Badge, Collapse, Input, Tag, Tabs, Typography } from 'antd';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Icon } from '@/components/Icon';
+import { SelectableListRow } from '@/components/common/SelectableListRow';
 import { useI18n } from '@/i18n';
 import type { TopologyNodeDto } from '@/types/dto';
 import { blockIconIdForNode } from '@/utils/aeCableColors';
@@ -271,10 +272,10 @@ export function TopologyDeviceList({
     const iconId = blockIconIdForNode(row.nodeType, row.device.iconItemId);
     const node = nodes.find((n) => n.id === row.nodeId);
     return (
-      <div
-        className={`topology-device-list-row${selected ? ' topology-device-list-row--selected' : ''}${hovered ? ' topology-device-list-row--hover' : ''}`}
-        role="button"
-        tabIndex={0}
+      <SelectableListRow
+        as="div"
+        selected={selected}
+        hovered={hovered}
         onClick={() => {
           onSelectDevice?.(row.nodeId);
           if (node) onSelectNode(node);
@@ -287,26 +288,22 @@ export function TopologyDeviceList({
             if (node) onSelectNode(node);
           }
         }}
+        leading={iconId ? <Icon id={iconId} size={24} linkToWiki={false} /> : null}
       >
-        <div className="topology-device-list-row-icon">
-          {iconId ? <Icon id={iconId} size={24} linkToWiki={false} /> : null}
-        </div>
-        <div className="topology-device-list-row-body">
-          <Typography.Text ellipsis>{row.device.displayName || row.nodeDisplayName}</Typography.Text>
-          <Typography.Text type="secondary" className="topology-device-list-row-meta">
-            {row.device.x}, {row.device.y}, {row.device.z}
-            {row.device.channelCost != null && row.device.channelCost > 0 ? ` · ${row.device.channelCost}ch` : ''}
-            {(node?.patternCount ?? 0) > 0 ? (
-              <>
-                {' · '}
-                <Tag className="topology-pattern-tag" bordered={false}>
-                  {t('topologyPatternCount').replace('{count}', String(node!.patternCount!))}
-                </Tag>
-              </>
-            ) : null}
-          </Typography.Text>
-        </div>
-      </div>
+        <Typography.Text ellipsis>{row.device.displayName || row.nodeDisplayName}</Typography.Text>
+        <Typography.Text type="secondary" className="topology-device-list-row-meta">
+          {row.device.x}, {row.device.y}, {row.device.z}
+          {row.device.channelCost != null && row.device.channelCost > 0 ? ` · ${row.device.channelCost}ch` : ''}
+          {(node?.patternCount ?? 0) > 0 ? (
+            <>
+              {' · '}
+              <Tag className="topology-pattern-tag" bordered={false}>
+                {t('topologyPatternCount').replace('{count}', String(node!.patternCount!))}
+              </Tag>
+            </>
+          ) : null}
+        </Typography.Text>
+      </SelectableListRow>
     );
   };
 
@@ -315,37 +312,33 @@ export function TopologyDeviceList({
     const hovered = hoveredNodeId === row.node.id;
     const iconId = blockIconIdForNode(row.node.type, row.node.iconItemId);
     return (
-      <div
-        className={`topology-device-list-row${selected ? ' topology-device-list-row--selected' : ''}${hovered ? ' topology-device-list-row--hover' : ''}`}
-        role="button"
-        tabIndex={0}
+      <SelectableListRow
+        as="div"
+        selected={selected}
+        hovered={hovered}
         onClick={() => onSelectNode(selected ? null : row.node)}
         onMouseEnter={() => onHoverNode?.(row.node.id)}
         onMouseLeave={() => onHoverNode?.(null)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') onSelectNode(selected ? null : row.node);
         }}
+        leading={iconId ? <Icon id={iconId} size={24} linkToWiki={false} /> : null}
       >
-        <div className="topology-device-list-row-icon">
-          {iconId ? <Icon id={iconId} size={24} linkToWiki={false} /> : null}
-        </div>
-        <div className="topology-device-list-row-body">
-          <Typography.Text ellipsis>{topologyNodeLabel(row.node)}</Typography.Text>
-          <Typography.Text type="secondary" className="topology-device-list-row-meta">
-            {row.node.subtype || row.node.type}
-            {(row.node.count ?? 0) > 1 ? ` ×${row.node.count}` : ''}
-            {(row.node.channelCost ?? 0) > 0 ? ` · ${row.node.channelCost}ch` : ''}
-            {(row.node.patternCount ?? 0) > 0 ? (
-              <>
-                {' · '}
-                <Tag className="topology-pattern-tag" bordered={false}>
-                  {t('topologyPatternCount').replace('{count}', String(row.node.patternCount!))}
-                </Tag>
-              </>
-            ) : null}
-          </Typography.Text>
-        </div>
-      </div>
+        <Typography.Text ellipsis>{topologyNodeLabel(row.node)}</Typography.Text>
+        <Typography.Text type="secondary" className="topology-device-list-row-meta">
+          {row.node.subtype || row.node.type}
+          {(row.node.count ?? 0) > 1 ? ` ×${row.node.count}` : ''}
+          {(row.node.channelCost ?? 0) > 0 ? ` · ${row.node.channelCost}ch` : ''}
+          {(row.node.patternCount ?? 0) > 0 ? (
+            <>
+              {' · '}
+              <Tag className="topology-pattern-tag" bordered={false}>
+                {t('topologyPatternCount').replace('{count}', String(row.node.patternCount!))}
+              </Tag>
+            </>
+          ) : null}
+        </Typography.Text>
+      </SelectableListRow>
     );
   };
 

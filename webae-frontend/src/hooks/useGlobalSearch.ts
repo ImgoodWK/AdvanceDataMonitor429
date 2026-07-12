@@ -127,12 +127,28 @@ export function useGlobalSearch(query: string, enabled: boolean) {
     try {
       const networkParam =
         selectedNetworks.length === 1 ? `&network=${selectedNetworks[0]}` : '';
-      const data = await getApiClient().get<GlobalSearchResponse>(
-        `/api/search?q=${encodeURIComponent(q)}&limit=30${networkParam}`
-      );
+      const [data, questData] = await Promise.all([
+        getApiClient().get<GlobalSearchResponse>(
+          `/api/search?q=${encodeURIComponent(q)}&limit=30${networkParam}`
+        ),
+        getApiClient()
+          .get<{ success: boolean; search: Array<{ questId: string; questName: string; lineName: string; state: string }> }>(
+            `/api/quests/search?q=${encodeURIComponent(q)}`
+          )
+          .catch(() => ({ success: false, search: [] as [] })),
+      ]);
       if (requestId !== requestIdRef.current) return;
+      const questHits: GlobalSearchResultDto[] = (questData.search ?? []).map((hit) => ({
+        type: 'quest' as const,
+        id: `quest:${hit.questId}`,
+        label: hit.questName,
+        subtitle: `${hit.lineName} · ${hit.state}`,
+      }));
       if (data.success && data.results) {
-        setApiResults(data.results);
+        setApiResults([...data.results, ...questHits].slice(0, 30));
+        setUsedFallback(false);
+      } else if (questHits.length > 0) {
+        setApiResults(questHits);
         setUsedFallback(false);
       } else {
         setApiResults([]);

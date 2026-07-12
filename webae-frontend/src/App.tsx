@@ -6,9 +6,11 @@ import { buildAntdThemeSync } from '@/theme/antdTheme';
 import { Login } from '@/components/Login';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { useEffect, useRef } from 'react';
+import { useIconPackAutoSync } from '@/hooks/useIconPackAutoSync';
 
 function Inner() {
   const { isLoggedIn, lang, themeColor, themeLayout, notify, online } = useAppContext();
+  useIconPackAutoSync();
   const compact = themeLayout === 'compact';
   const theme = buildAntdThemeSync(themeColor, compact);
   const locale = lang === 'zh' ? zhCN : enUS;

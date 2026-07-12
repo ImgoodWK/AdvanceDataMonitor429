@@ -1,5 +1,6 @@
 package com.imgood.textech.webae.api.handler;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,10 +16,13 @@ import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.events.EventStreamHub;
+import com.imgood.textech.webae.icon.IconDirectCaptureBridge;
 import com.imgood.textech.webae.icon.IconMissingQueue;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconStore;
 import com.imgood.textech.webae.icon.IconStore.PackInfo;
+import com.imgood.textech.webae.icon.IconStore.SyncManifest;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -29,6 +33,10 @@ import fi.iki.elonen.NanoHTTPD;
  * — returns the cached PNG (with ETag + Cache-Control) or 404.
  * GET /api/icon/packs
  * — lists available icon packs with icon counts.
+ * GET /api/icon/sync/manifest?pack=&mode=
+ * — revision metadata for browser IndexedDB bulk sync.
+ * GET /api/icon/sync/bulk?pack=&mode=
+ * — zip stream of mode/*.png for browser IndexedDB import.
  * POST /api/icon/pack?pack=<packName>
  * — admin (OP>=2) uploads a zip of PNG icons; unzipped into web-icons/&lt;packName&gt;/.
  */
@@ -36,8 +44,6 @@ public class IconHandler {
 
     private static final Gson GSON = new GsonBuilder().serializeNulls()
         .create();
-    private static final String PLACEHOLDER_PNG_1X1 = new String(
-        new byte[] { (byte) 0x89, (byte) 0x50, (byte) 0x4E, (byte) 0x47 });
 
     public static NanoHTTPD.Response handle(String uri, NanoHTTPD.IHTTPSession session, String playerUuid) {
         Map<String, String> params = session.getParms();
@@ -45,6 +51,22 @@ public class IconHandler {
 
         if ("/api/icon/packs".equals(uri)) {
             return handleListPacks();
+        }
+        if ("/api/icon/sync/manifest".equals(uri)) {
+            if (method != NanoHTTPD.Method.GET) {
+                return jsonResponse(
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                    "{\"success\":false,\"message\":\"Use GET for sync manifest\"}");
+            }
+            return handleSyncManifest(params);
+        }
+        if ("/api/icon/sync/bulk".equals(uri)) {
+            if (method != NanoHTTPD.Method.GET) {
+                return jsonResponse(
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                    "{\"success\":false,\"message\":\"Use GET for sync bulk zip\"}");
+            }
+            return handleSyncBulk(params);
         }
         if ("/api/icon/pack".equals(uri)) {
             if (method != NanoHTTPD.Method.POST) {
@@ -83,6 +105,66 @@ public class IconHandler {
             "{\"success\":true,\"packs\":" + GSON.toJson(packs) + ",\"defaultPack\":" + defaultPackJson + "}");
     }
 
+    private static NanoHTTPD.Response handleSyncManifest(Map<String, String> params) {
+        if (!Config.webIconCacheEnabled) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.NOT_FOUND,
+                "{\"success\":false,\"message\":\"Icon cache is disabled\"}");
+        }
+        String pack = params.get("pack");
+        String mode = params.get("mode");
+        if (pack == null || pack.isEmpty()) pack = IconStore.instance().getDefaultPack();
+        if (pack == null || pack.isEmpty()) pack = "default";
+        if (mode == null || mode.isEmpty()) mode = IconRenderMode.NEI.getId();
+        SyncManifest manifest = IconStore.instance().buildSyncManifest(pack, mode);
+        return jsonResponse(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"manifest\":" + GSON.toJson(manifest) + "}");
+    }
+
+    private static NanoHTTPD.Response handleSyncBulk(Map<String, String> params) {
+        if (!Config.webIconCacheEnabled) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.NOT_FOUND,
+                "{\"success\":false,\"message\":\"Icon cache is disabled\"}");
+        }
+        String pack = params.get("pack");
+        String mode = params.get("mode");
+        if (pack == null || pack.isEmpty()) pack = IconStore.instance().getDefaultPack();
+        if (pack == null || pack.isEmpty()) pack = "default";
+        if (mode == null || mode.isEmpty()) mode = IconRenderMode.NEI.getId();
+        SyncManifest manifest = IconStore.instance().buildSyncManifest(pack, mode);
+        if (manifest.iconCount <= 0) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.NOT_FOUND,
+                "{\"success\":false,\"message\":\"No icons in pack/mode\"}");
+        }
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            IconStore.instance().writeModeZip(pack, mode, baos);
+            byte[] zipBytes = baos.toByteArray();
+            if (zipBytes.length == 0) {
+                return jsonResponse(
+                    NanoHTTPD.Response.Status.NOT_FOUND,
+                    "{\"success\":false,\"message\":\"Empty icon pack\"}");
+            }
+            InputStream stream = new ByteArrayInputStream(zipBytes);
+            NanoHTTPD.Response resp = NanoHTTPD.newFixedLengthResponse(
+                NanoHTTPD.Response.Status.OK,
+                "application/zip",
+                stream,
+                zipBytes.length);
+            resp.addHeader("Cache-Control", "no-store");
+            resp.addHeader("X-Icon-Sync-Version", manifest.version != null ? manifest.version : "");
+            return resp;
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.error("[WebAE] Failed to stream icon bulk zip {}/{}", pack, mode, e);
+            return jsonResponse(
+                NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                "{\"success\":false,\"message\":\"Failed to build zip\"}");
+        }
+    }
+
     private static NanoHTTPD.Response handleGetIcon(Map<String, String> params) {
         if (!Config.webIconCacheEnabled) {
             return jsonResponse(
@@ -102,6 +184,11 @@ public class IconHandler {
         IconStore.IconResolveResult resolved = resolveWithFallback(pack, mode, itemId);
         File file = resolved.file;
         if (file == null || !file.isFile()) {
+            String captureMode = IconRenderMode.NEI.getId();
+            byte[] direct = tryDirectCapture(pack, captureMode, itemId);
+            if (direct != null && direct.length > 0) {
+                return pngResponse(direct, pack, captureMode, itemId, itemId, true, true);
+            }
             com.imgood.textech.webae.debug.WebAeDebugLog.info(
                 com.imgood.textech.webae.debug.WebAeDebugLog.Feature.ICONS,
                 "icon not found: pack={} itemId={}",
@@ -109,7 +196,7 @@ public class IconHandler {
                 itemId != null ? itemId : "");
             if (Config.webIconUploadEnabled) {
                 IconMissingQueue.instance()
-                    .enqueue(pack, mode, itemId);
+                    .enqueue(pack, captureMode, itemId);
             }
             return NanoHTTPD
                 .newFixedLengthResponse(NanoHTTPD.Response.Status.NOT_FOUND, "text/plain", "404 Icon Not Found");
@@ -137,6 +224,53 @@ public class IconHandler {
                 NanoHTTPD.Response.Status.INTERNAL_ERROR,
                 "{\"success\":false,\"message\":\"Failed to read icon\"}");
         }
+    }
+
+    private static byte[] tryDirectCapture(String pack, String mode, String itemId) {
+        if (!Config.webIconDirectRenderEnabled) return null;
+        byte[] png = IconDirectCaptureBridge.instance()
+            .requestRender(pack, mode, itemId, Config.webIconDirectRenderTimeoutMs);
+        if (png == null || png.length == 0) return null;
+        scheduleAsyncWrite(pack, mode, itemId, png);
+        return png;
+    }
+
+    private static void scheduleAsyncWrite(final String pack, final String mode, final String itemId,
+        final byte[] png) {
+        Thread writer = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                if (IconStore.instance().writeIconPng(pack, mode, itemId, png)) {
+                    EventStreamHub.instance()
+                        .publishIconReady(pack, mode, itemId);
+                    IconMissingQueue.instance()
+                        .acknowledge(pack, mode, itemId);
+                }
+            }
+        }, "WebAE-IconDirectWrite");
+        writer.setDaemon(true);
+        writer.start();
+    }
+
+    private static NanoHTTPD.Response pngResponse(byte[] png, String pack, String mode, String requestedId,
+        String resolvedId, boolean exact, boolean noStore) {
+        InputStream stream = new ByteArrayInputStream(png);
+        NanoHTTPD.Response resp = NanoHTTPD.newFixedLengthResponse(
+            NanoHTTPD.Response.Status.OK,
+            "image/png",
+            stream,
+            png.length);
+        if (noStore) {
+            resp.addHeader("Cache-Control", "no-store");
+        } else {
+            resp.addHeader("Cache-Control", "max-age=86400");
+        }
+        resp.addHeader("X-Icon-Resolved-Id", resolvedId != null ? resolvedId : requestedId);
+        resp.addHeader("X-Icon-Resolved-Mode", mode != null ? mode : IconRenderMode.NEI.getId());
+        resp.addHeader("X-Icon-Exact", exact ? "1" : "0");
+        resp.addHeader("X-Icon-Direct-Capture", "1");
+        return resp;
     }
 
     private static NanoHTTPD.Response handleUploadPack(NanoHTTPD.IHTTPSession session, Map<String, String> params,
@@ -185,7 +319,6 @@ public class IconHandler {
                     zis.closeEntry();
                     continue;
                 }
-                // Zip Slip protection: resolve and verify it stays inside packDir.
                 File outFile = new File(packDir, new File(name).getName());
                 String canonicalPack = packDir.getCanonicalPath();
                 String canonicalOut = outFile.getCanonicalPath();
@@ -194,7 +327,6 @@ public class IconHandler {
                     zis.closeEntry();
                     continue;
                 }
-                // Read entry bytes
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 byte[] buf = new byte[4096];
                 int n;
@@ -241,11 +373,6 @@ public class IconHandler {
         if (!IconRenderMode.NEI.getId()
             .equals(normalized)) {
             resolved = store.resolveIconFile(pack, IconRenderMode.NEI.getId(), itemId);
-            if (resolved.file != null) return resolved;
-        }
-        if (!IconRenderMode.INVENTORY_GL.getId()
-            .equals(normalized)) {
-            resolved = store.resolveIconFile(pack, IconRenderMode.INVENTORY_GL.getId(), itemId);
         }
         return resolved;
     }

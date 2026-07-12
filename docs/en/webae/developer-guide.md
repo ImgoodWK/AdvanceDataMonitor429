@@ -78,8 +78,9 @@ All source code resides under `com.imgood.textech.webae/` (231 files). See `proj
 | `webae/` root | 3 | `WebConsoleServer` + `WebConsoleUrlHelper` + `WebAeLocalDataDir` |
 | `webae/auth/` | 5 | Token/login code/middleware/OP check |
 | `webae/api/` | 1 | `WebApiRouter` REST dispatcher |
-| `webae/api/handler/` | 36 | REST endpoint handlers |
-| `webae/cache/` | 2 | Thread-safe TTL snapshot cache + background scheduler |
+| `webae/api/handler/` | 37+ | REST endpoint handlers (incl. `ServerDiagnosticsHandler`) |
+| `webae/cache/` | 2 | Thread-safe TTL snapshot cache + scheduler (storage/GT/pattern/p2p/cells/networks/monitor/scanner) |
+| `webae/perf/` | 1 | `WebAePerfProfiler` tick/HTTP/snapshot timing diagnostics |
 | `webae/dto/` | 15 | Data transfer objects (Storage/Power/Recipe/Pattern/PatternListEntry/PatternBrowseEntry/NetworkMetricHistory/Order×4/GtMachine×2/Player/ChatMessage) |
 | `webae/power/` | 1 | Power sampler (sliding window rate calculation) |
 | `webae/snapshot/` | 2 | AE2 + GT machine snapshot collectors |
@@ -97,7 +98,7 @@ All source code resides under `com.imgood.textech.webae/` (231 files). See `proj
 | `webae/icon/` | 31 | Icon packs + multi-fallback rendering |
 | `webae/player/` | 4 | Player info store + online-count history sampler + DTO + skin URL resolver |
 | `webae/chat/` | 2 | Chat message store (ring buffer) + DTO |
-| `webae/debug/` | 1 | WebAE per-feature debug logging (`WebAeDebugLog`, gated by `[debug] webaeXxx`) |
+| `webae/debug/` | 1 | WebAE per-feature debug logging (`WebAeDebugLog`, gated by `[debug] webaeXxx`; incl. `webae-perf.log`) |
 
 ## 4. Configuration
 
@@ -117,6 +118,9 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `nesqlRepositoryPath` | string | `` | — | NESQL exporter repository root for `/admweb icons import-nesql`. Empty → `<instance>/TeXTech/WebAE/` (same folder as client recipe export) |
 | `neiDeepScanItemsPerTick` | int | `0` | 0-512 | NEI item-driven deep scan items per client tick (`/admweb recipes upload deep`; 0 = disabled) |
 | `iconMissingDispatchPerTick` | int | `8` | 1-64 | IconMissingQueue lazy-load requests dispatched per server tick |
+| `iconDirectRenderEnabled` | boolean | `false` | — | HTTP 404 sync direct render (blocking); off by default — use async queue + SSE |
+| `iconDirectRenderTimeoutMs` | int | `3000` | — | Max wait ms for sync direct render |
+| `iconDirectRenderPerTick` | int | `4` | — | Sync direct renders per client tick |
 | `powerSampleWindowSeconds` | int | `60` | 10-600 | Sliding window (seconds) for power/steam rate calculation |
 | `gtDefaultScanRadius` | int | `16` | 1-256 | Default GT machine scan radius for the Data Imprint Tool |
 | `refreshIntervalMs` | int | `1000` | 1000-60000 | Unified refresh interval (ms) for server collection and frontend polling |
@@ -164,6 +168,12 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `worldMapRayBudgetPerTick` | int | `1` | 1-32 | Per-tick chunk budget for oblique ray renders |
 | `worldMapMaxRayDepth` | int | `3` | 1-8 | Max transparent layers per ray pixel |
 | `worldMapLowTierObliqueEngine` | string | `legacy` | — | low/medium tier oblique fallback: `legacy` / `ray` |
+| `questEnabled` | boolean | `true` | — | Enable BetterQuesting quest book page and read APIs (no-op without BQ) |
+| `questSubmitEnabled` | boolean | `true` | — | Allow Web item/fluid submit from AE |
+| `questChainSubmitEnabled` | boolean | `true` | — | Allow chain submit (walk prerequisites; optional craft-then-submit) |
+| `questSubmitMaxStacks` | int | `64` | 1-512 | Max distinct item stacks per submit |
+| `questCraftWaitTimeoutMs` | int | `120000` | 5000-600000 | Craft-then-submit / chain craft wait timeout (ms) |
+| `questCacheTtlSec` | int | `300` | 30-3600 | Quest-line definition cache TTL (seconds); progress ~1/10 |
 
 **Security note**: Default binds to `127.0.0.1`. All `/api/` endpoints enforce Bearer authentication (no opt-out). Changing `bindAddress` to `0.0.0.0` exposes the console to the LAN — use a firewall or SSH tunnel. Admin-only endpoints (refresh) additionally require OP level >= 2.
 
@@ -176,7 +186,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | POST | `/api/auth/exchange` | **No** | No | Exchange 6-digit login code for owner token (5 min TTL, single-use; body `{"code":"123456"}`) |
 | GET | `/api/auth/login` | Yes | No | Post-auth info (playerUuid) |
 | GET | `/api/config` | Yes | No | Public client-readable config (refreshIntervalMs, gtRefreshIntervalMs, maxNetworksDisplayed, tokenLifetimeHours, themePresets [legacy, mirrors themeColors], themeColors, themeLayouts) |
-| GET | `/api/networks` | Yes | No | List available AE2 networks for the player |
+| GET | `/api/ui-defaults` | **No** | No | Pack/mod default WebAE UI settings JSON (instance `TeXTech/WebAE/ui-defaults.json` first, else jar `assets/textech/webae/ui-defaults.json`; `defaults:null` when absent) |
+| GET | `/api/networks` | Yes | No | List available AE2 networks; **HTTP cache-only** (`cached`/`timestamp`); owner-scoped `SnapshotScheduler` pre-collect; `?refresh=1` async rebuild |
 | GET | `/api/storage?network=<id>` | Yes | No | Cached storage snapshot (stale fallback with `cached:false`) |
 | GET | `/api/storage/batch?networks=0,1,2` | Yes | No | Batched cached storage read |
 | GET | `/api/storage/items?network=<id>&cursor=&limit=200&sort=amount_desc&search=` | Yes | No | Cursor-paginated items (in-memory slice; `nextCursor`/`totalEstimate`/`snapshotVersion`; stale cursor → 409) |
@@ -200,25 +211,27 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/recipes/search?q=<text>&handler=&offset=&limit=` | Yes | No | Fuzzy search (paginated, response includes `total`) |
 | GET | `/api/recipes/suggest?q=<text>&limit=` | Yes | No | Item autocomplete (registry + display name) |
 | GET | `/api/recipes/{handlerId}/{recipeIndex}` | Yes | No | Get single recipe (includes gridSlots / GT fields) |
-| POST | `/api/order` | Yes | No | Submit single crafting order; body may include optional `cpuName` to target an AE2 crafting CPU |
+| POST | `/api/order` | Yes | No | Submit single crafting order; body may include optional `cpuName` and `patternId` (takes priority over itemName) |
 | POST | `/api/order/batch` | Yes | No | Submit batch crafting orders (items may include `patternId` for pattern-based orders; body may include `cpuName`) |
-| GET | `/api/order/list` | Yes | No | List active + history orders (`{success,orders,history}`; hybrid progress: AssistantCraftJobManager + CPU real progress + time estimate) |
-| GET | `/api/order/status?jobId=<id>` | Yes | No | Query a single order status (includes cpuName/cpuInfo/progressPercent) |
+| GET | `/api/order/list` | Yes | No | List active + history (`{success,orders,history}`; progress via `ICraftingLink` + CPU step counters by networkId; history owner-scoped) |
+| GET | `/api/order/status?jobId=<id>` | Yes | No | Query a single order; unknown jobId → 404 (no forged completed) |
 | POST | `/api/order/cancel` | Yes | No | Cancel all pending/active orders for the current player |
 | GET | `/api/order/templates` | Yes | No | List batch order templates for the current owner (`TeXTech/WebAE/web-order-templates.json`, isolated by ownerUuid) |
 | PUT | `/api/order/templates` | Yes | No | Replace the owner's template list; body `{ "templates": [{ id, name, cpuName?, networkId, items:[{ itemName, amount, patternId? }], updatedAt }] }`; validates non-empty name, items≥1, amount≥1, ≤50 items per template |
 | GET | `/api/interfaces?network=<id>` | Yes | No | Enumerate ME interfaces (coords, slot states, `machineRecipeType`, `existingPatterns` summaries) |
 | POST | `/api/pattern/encode` | Yes | No | Encode a pattern; body may include `networkId` + `consumeBlank` (defaults true when `networkId≥0`); deducts 1 blank pattern from AE network on main thread; returns `code: NO_BLANK_PATTERN` when insufficient |
 | POST | `/api/pattern/inject` | Yes | No | Inject a pattern into an interface; body includes `consumeBlank` (default true; pass false if encode already consumed a blank) |
-| GET | `/api/patterns?network=<id>` | Yes | No | List all ME interface patterns on the network (decoded NBT: inputs/outputs/flags/author/sourceInterface/slot) |
+| GET | `/api/patterns?network=<id>` | Yes | No | List all ME interface patterns (rich NBT); **HTTP cache** `patterns_rich`; invalidated with browse on mutations |
 | GET | `/api/patterns/browse?network=<id>&q=&offset=&limit=&source=both\|grid\|interface` | Yes | No | Paginated Grid + Interface browse; **HTTP cache-only read** (`cached`/`timestamp`); background pre-collect via `SnapshotScheduler` at `webPatternCacheTtlMs`; offline owner uses `WebAeOwnerContext.getOwnerPlayerOrFake`; `PatternBrowseInvalidationGridCache` listens for `MENetworkCraftingPatternChange` + Web PUT/DELETE/inject call `invalidateAll` |
 | POST | `/api/patterns/browse/refresh?network=<id>` | Yes | **Yes (OP)** | Admin force-rebuild browse cache (main-thread collect; GET never blocks) |
 | GET | `/api/patterns/grid/<gridKey>?network=<id>` | Yes | No | Single grid pattern detail (`gridKey`=`grid:<index>`, same ordering as browse); full inputs/outputs |
 | GET | `/api/patterns/<id>` | Yes | No | Single pattern detail (`id` = `<x>:<y>:<z>:<dim>#<slot>`) |
 | DELETE | `/api/patterns/<id>` | Yes | **Yes (OP)** | Delete pattern from interface slot; fires `MENetworkCraftingPatternChange` |
 | PUT | `/api/patterns/<id>` | Yes | **Yes (OP)** | Write back edited pattern NBT to slot |
-| GET | `/api/icon?item=<itemId>&pack=<pack>&meta=<int>&size=<16\|32\|64>` | Yes | No | Get an item/fluid icon PNG (with ETag + Cache-Control) |
+| GET | `/api/icon?item=<itemId>&pack=<pack>&meta=<int>&size=<16\|32\|64>` | Yes | No | Get an item/fluid icon PNG (with ETag + Cache-Control); disk miss returns 404 immediately and enqueues async fill (sync direct render off by default) |
 | GET | `/api/icon/packs` | Yes | No | List installed texture packs; response includes a `defaultPack` field (the most recently uploaded pack, or null) |
+| GET | `/api/icon/sync/manifest?pack=&mode=` | Yes | No | Pack revision metadata (full-pack sync) |
+| GET | `/api/icon/sync/bulk?pack=&mode=` | Yes | No | Full-pack zip (in-memory build; Settings manual / user-enabled auto-sync only — not on login by default) |
 | POST | `/api/icon/pack?pack=<packName>` | Yes | **Yes (OP)** | Upload a texture-pack zip (Zip Slip protected) |
 | GET | `/api/chat/history?limit=<n>&since=<ts>` | Yes | No | Fetch chat history (default limit=200, optional since for incremental) |
 | GET | `/api/chat/since=<ts>` | Yes | No | Incremental fetch of messages since a timestamp |
@@ -229,11 +242,13 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/players/locations` | Yes | No | **Phase6** Online player coordinates `{locations:[{uuid,name,x,y,z,dim,online}]}` |
 | POST | `/api/auth/guest-invite` | Yes | No (owner) | **Phase6** Generate shareable guest token link `{token,url}` |
 | GET | `/api/network/metrics?network=<id>` | Yes | No | AE network metric history (item/fluid/essentia/bytes/CPU busy ratio/GT active count rolling window, `NetworkMetricSampler`) |
-| GET | `/api/network/metrics/fluids?network=<id>&fluids=water,lava` | Yes | No | Pinned fluid amount trends (max 10/network; reference plan Phase 3.1) |
+| GET | `/api/network/metrics/fluids?network=<id>&fluids=water,lava` | Yes | No | Pinned fluid amount trends (limits via `dashboardMaxFluidTracks` / per-request `dashboardMaxTracksPerWidget`) |
+| GET | `/api/network/metrics/items?network=<id>&items=mod:item,...` | Yes | No | Pinned item amount trends (missing in AE → 0; limits via cfg) |
+| GET | `/api/network/metrics/entities?network=<id>&entities=cpu:Name,gt:0:1:2:3&fields=...` | Yes | No | Pinned CPU/GT numeric trends (default `craftingProgress` / `progressPercent`) |
 | GET | `/api/network/topology?network=<id>&mode=logical\|spatial` | Yes | No | AE network topology graph (simulated star fake cables + channels; `logical` groups by device class, `spatial` bins by dimension + 64×64 chunks; TTL via `topologyCacheTtlMs`; returns 503 when `topologyEnabled=false`) |
-| GET | `/api/network/cells?network=<id>` | Yes | No | Network cell byte summary + infinite cell detection (I5) |
+| GET | `/api/network/cells?network=<id>` | Yes | No | Network cell byte summary + infinite cell detection (I5); **HTTP cache-only** |
 | GET | `/api/network/balance?networks=0,1&minSurplus=&minShortage=&limit=` | Yes | No | Cross-network storage balance suggestions (read-only; compares cached snapshots; Phase 8) |
-| GET | `/api/network/p2p?network=<id>` | Yes | No | P2P tunnel map grouped by frequency (Phase 10; requires `topologyEnabled`) |
+| GET | `/api/network/p2p?network=<id>` | Yes | No | P2P tunnel map by frequency (Phase 10; requires `topologyEnabled`); **HTTP cache-only** |
 | GET | `/api/worldmap/progress?network=<id>&view=&dim=&quality=` | Yes | No | Batch tile prefetch progress (per-chunk terrain/ae status) |
 | GET | `/api/worldmap/meta?network=<id>` | Yes | No | World map meta (dimension bboxes, tilePx, qualityTiers[], max/defaultQualityTier, markerCount, `boundsTooLarge`; **Phase A**; requires logical snapshot; 503 when `worldMapEnabled=false` or `topologyEnabled=false`) |
 | GET | `/api/worldmap/markers?network=<id>` | Yes | No | Flattened AE device markers (from logical snapshot; `code:no_logical_snapshot` when missing) |
@@ -247,14 +262,29 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | POST | `/api/planner/export-flow` | Yes | No (guest) | Material tree export (`factory-flow-v1` / `gtnh-flow-v1`; Phase 4.3) |
 | GET | `/api/events/stream?token=` | Yes | No | SSE alert push + 15s heartbeat (Phase 9; Bearer or query token) |
 | GET | `/api/monitor/preview?dim=&x=&y=&z=&slot=` | Yes | No | Monitor slot line-chart preview (Phase 11) |
-| GET | `/api/scanner/blocks?type=&q=` | Yes | No | Link Scanner read-only mirror (loaded chunks; I1) |
-| GET | `/api/monitor/bindings` | Yes | No | Data monitor Link/GT binding read-only view (I2) |
+| GET | `/api/scanner/blocks?type=&q=` | Yes | No | Link Scanner mirror; full list cached, `type`/`q` filtered on HTTP thread |
+| GET | `/api/monitor/bindings` | Yes | No | Data monitor Link/GT binding view; **HTTP cache-only** |
 | POST | `/api/assistant/query` body `{text,locale}` | Yes | No | Web assistant rule intent parsing (2s rate limit; no AI keys; I4) |
 | GET | `/api/pocket/overview` | Yes | **Yes (OP)** | Minimal read-only dimensional pocket overview (no item contents; I6) |
+| GET | `/api/quests/meta` | Yes | No | BQ availability, toggles, version, line count |
+| GET | `/api/quests/lines` | Yes | No | Quest line (chapter) list |
+| GET | `/api/quests/lines/{lineId}` | Yes | No | Line graph nodes+edges (icons, `mainQuest`, cross-line ghosts) |
+| GET | `/api/quests/progress` | Yes | No | Full progress snapshot (includes `updatedAt`) |
+| GET | `/api/quests/search?q=` | Yes | No | Search quests by name (max 50) |
+| GET | `/api/quests/{id}` | Yes | No | Quest detail (`tasks`/`rewards` from BQ int-keyed `DBEntry` TaskStorage/RewardStorage; `requirementQuestIds`; `prerequisites[]`/`dependents[]` with name, lineId, state, requirementType) |
+| GET | `/api/quests/{id}/analysis?network=` | Yes | No | AE stock vs task step analysis |
+| GET | `/api/quests/{id}/chain-plan?network=` | Yes | No | Chain-submit topological plan |
+| POST | `/api/quests/{id}/detect` | Yes | No | Retrieval detect-only (guest 403) |
+| POST | `/api/quests/{id}/submit` | Yes | No | Submit items/fluids; body `{networkId,dryRun,steps?}` (guest 403) |
+| POST | `/api/quests/{id}/submit-craft` | Yes | No | Craft missing then submit; returns job (guest 403) |
+| POST | `/api/quests/{id}/submit-chain` | Yes | No | Chain submit; body `{networkId,dryRun,skipMissing,craftMissing}`; needs `questChainSubmitEnabled` |
+| GET | `/api/quests/submit-jobs/{jobId}` | Yes | No | Poll craft-then-submit job |
+| GET | `/api/quests/chain-jobs/{jobId}` | Yes | No | Poll chain-submit job |
 | GET | `/api/alerts` | Yes | No | Active automation alerts + `web-alerts.json` rules mirror (A1–A5); includes `canEditRules` (OP) |
 | GET | `/api/alerts/rules` | Yes | No | Rules only + `canEditRules` |
 | PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `TeXTech/WebAE/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |
 | GET | `/api/server/health` | Yes | No | Server TPS / MSPT / online players / uptime + 300s rolling history (reference plan Phase 2) |
+| GET | `/api/server/diagnostics` | Yes | No | WebAE perf diagnostics: tick phases, `HandlerTick` queue depth, snapshot collect timings, slow HTTP / top routes, config summary; polled by Diagnostics page |
 | GET | `/api/oc/summary` | Yes | No | OC read-only summary (item types, CPU busy, active orders, TPS; 1 req/s; see [oc-integration.md](oc-integration.md)) |
 | GET | `/api/search?q=&limit=&offset=&types=&network=` | Yes | No | Aggregated read-only search (storage/recipe/gt/pattern; 500ms rate limit; pagination; Phase 4a) |
 
@@ -282,14 +312,18 @@ webae-frontend/               # Frontend source (permanent project part)
     ├── theme/                # 24 color schemes (19 classic + 5 Phase 8 sci-fi) + 5 layout presets + antd theme builder
     ├── hooks/                # useLocalStorage / useInterval / usePageVisibility / useVisibilityAwarePolling / useSnapshotData / usePlayers / useWebAlerts / useNetworkMetrics / useGlobalSearch / useWorldMapData / useWorldMapTileLoader / useWorldMapProgress
     ├── utils/                # formatNumber / icon URL / presets / dashboardResolve / overviewDataSources / powerDataSources / cpuColumns / recipe
-    ├── components/           # Login / Icon / Layout(Sidebar/TopBar/AppLayout) /
+    ├── components/           # Login / Icon / Layout(Sidebar/TopBar/AppLayout/navConfig/PageShell) /
+    │                         # common(SettingRow/SelectableListRow/SelectableCard) /
     │                         # recipes(HandlerCategoryFilter/RecipeToolbar/RecipeResultList/
     │                         # RecipeThumbnailCard/RecipeDetailCard/RecipeMergedCard/RecipeDetailModal/
     │                         # RecipeGrid/ItemRecipePanel; utils/recipe.ts groupByPrimaryOutput) /
-    │                         # patterns(PatternOrderCard/PatternDetailModal/VirtualPatternGrid/
+    │                         # patterns(PatternListSidebar/PatternEditorForm/PatternInjectPanel/
+    │                         # PatternOrderCard/PatternDetailModal/VirtualPatternGrid/
     │                         # VirtualProductGrid — Phase 7 AE order browse + virtual scroll)
+    │                         # ordering(OrderQueryTab/OrderPatternsTab/OrderHistorySection — AE ordering split)
     ├── pages/                # Dashboard / Storage / Cpu / Power / GtMachines / Recipes /
-    │                         # PatternEditor / AeOrdering / Chat / Settings
+    │                         # PatternEditor / AeOrdering / Chat / Settings / QuestBook
+    │                         # components/quest (list/graph/detail/step+chain submit)
     └── styles/global.css     # Base styles + advanced mode effects + GridStack overrides + widget 9-grid alignment
 ```
 
@@ -300,11 +334,17 @@ See `.cursor/rules/webae-frontend.mdc` for frontend conventions.
 Technical notes:
 - **Build tool**: Vite 5 + `@vitejs/plugin-react`; fully offline bundle (antd/react)
 - **UI**: Ant Design 5 only; charts via inline SVG/CSS (`ChartTrendSvg`, `WidgetContent` categorical charts, GT page `GtSummaryCharts`); Dashboard drag/resize via `gridstack` (layout engine exception)
-- **Pages**: wrapped in `PageShell` for consistent spacing/titles
+- **Pages**: all 20 business pages wrapped in `PageShell` (including AE ordering and pattern editor)
+- **Shared UI**: `navConfig.ts` navigation; `common/SettingRow`, `SelectableListRow`, `SelectableCard`; list/nav/pattern-editor CSS utilities in `global.css` (`.webae-pattern-slot`, `.webae-scroll-panel`, etc.); `patternEntryIconId` for pattern icon IDs; all three Settings Drawers use `SettingRow`
 - **Global state**: `AppContext` — token/network/lang/theme/numberFormat/presets/iconPack/localIconPack/sidebarMode/displayMode/autoRefresh/pauseRefreshWhenHidden/refreshPaused/connection
 - **Token stability**: in-memory `WebAuthToken` cache + debounced atomic disk flush; frontend `tokenRef` + silent re-login on 401; heartbeat uses raw fetch
-- **Icon dual-track**: server packs (OP upload, read-only for all) + browser IndexedDB local packs; resolution: local → server → abbreviation
+- **Icon dual-track**: IndexedDB local-first + server disk; miss → async client fill (SSE); `iconAutoSync` default false; Settings full-pack sync + fill-visible; see `.cursor/rules/webae-icon-performance.mdc`; resolution: local → server → abbreviation
+- **Hooks**: `useIconPackAutoSync` (optional bulk), `iconPrefetch.ts` (local warm / `fillMissingIconsFromServer`), `visibleIconRegistry.ts`
 - **Recipe API**: `GET /api/recipes/browse?handler=all|…` (paginated, `total`); `GET /api/recipes/search?q=` (fuzzy, paginated); `GET /api/recipes/suggest?q=` (autocomplete); status field `recipeCount`
+- **Preset system**: quick-switch profiles (theme/layout/lang/number format/icon pack/sidebar/main dashboard); localStorage `webae_presets`
+- **Full backup** (`utils/uiSettingsBundle.ts` + Settings **Backup & Restore** tab): `WebUiSettingsBundle` v1 (`format:textech-webae-ui-settings`) aggregates all localStorage page prefs; optional server favorites/order templates/alert rules (OP); excludes token and IndexedDB icon binaries
+- **Default layout**: `WebUiDefaultsStore` + public `GET /api/ui-defaults`; `/admweb defaults status|install|clear`; `AppContext` auto-applies on first visit when no prior `webae_*` localStorage exists
+- **Pack / Agent workflow**: export JSON from Settings → write `TeXTech/WebAE/ui-defaults.json` or `assets/textech/webae/ui-defaults.json`; optionally sync `presets.ts` `DEFAULT_*` as code fallback
 - **Dashboard**: GridStack 12-column grid; layout persisted as x/y/w/h in `webae_dashboard_config`
 - **WCAG**: skip link, aria-live (connection/countdown), focus-visible, icon button aria-labels
 - **Static serving**: NanoHTTPD maps all `/` paths to static file serving from classpath `assets/textech/webae/`
@@ -335,9 +375,9 @@ Three collection strategies:
 
 | Strategy | Use Case | Blocks HTTP Thread? |
 |----------|----------|--------------------|
-| **Cache Read** | Storage snapshot, power snapshot (`SnapshotScheduler` periodic collection) | No |
-| **Main-Thread Live Query** | Single recipe search, order submission, pattern injection | Yes (≤5s timeout) |
-| **Client Upload** | Recipe data (`PacketWebRecipeUpload` C→S) | Written directly to server cache |
+| **Cache Read** | Storage/power/GT, networks, P2P, cells, monitor bindings, scanner, rich patterns + browse (`SnapshotScheduler`) | No |
+| **Main-thread live** | Order submit, pattern inject/writes, topology POST capture, assistant, etc. | Yes (≤5–15s timeout) |
+| **Client upload** | Recipe data (`PacketWebRecipeUpload` C→S) | Writes server cache directly |
 
 `CountDownLatch` timeout defaults to 5 seconds; HTTP 503 is returned on timeout.
 
@@ -431,7 +471,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 | Power page | §11.15 | Done | Power page |
 | Sci-fi themes | §11.16 | Done | CSS + IconRenderer |
 | **Network topology** | §11.17 | Done | `webae/topology/` |
-| **World map** | §11.26 | Done (Phase C: device focus pending) | `webae/worldmap/` · `TopologyWorldMapView` |
+| **World map** | §11.26 | Done (device-focus enhancements tracked in backlog; not “unimplemented”) | `webae/worldmap/` · `TopologyWorldMapView` |
 | Visibility polling | §11.18 | Done | `usePageVisibility` |
 | GT charts | §11.19 | Done | `GtSummaryCharts` |
 | Alert editor | §11.20 | Done | `webae/alerts/` |
@@ -518,22 +558,25 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Handler**: `OrderHandler.java`
 - **Order interfaces**:
-  - Single `/api/order`: body `{ networkId, itemName, amount, rawText?, locale?, cpuName? }`
-  - Batch `/api/order/batch`: body `{ networkId, cpuName?, items:[{ itemName, amount, patternId? }] }`; `patternId` (`<x>:<y>:<z>:<dim>#<slot>`) takes priority over itemName
-- **CPU selection**: optional `cpuName`; `AssistantServerServices.submitCraft(..., cpuName)` passes `ICraftingCPU` to AE2 `submitJob`; when omitted AE2 auto-assigns; `cpuInfo` snapshot (co-processors/storage/parallelism) stored on `OrderStatus`
-- **Hybrid progress** (`AssistantServerServices.resolveOrderProgress`):
-  1. `AssistantCraftJobManager` calculation phase while Future is pending (0–25%)
-  2. Real CPU craft progress when matched (`remainingItems/startItems`)
-  3. Time-estimate fallback (0–30s→0–30%, 30–120s→30–90%, >120s→100%)
-- **List/history**: `GET /api/order/list` returns `{ success, orders, history }`; completed/cancelled/expired orders move from active to in-memory `historyOrders` (max 200, cleared on restart); `OrderStatus` includes `cpuName`/`cpuInfo`/`finalProgress`
-- **Status/cancel**: `GET /api/order/status?jobId=` for a single job; `POST /api/order/cancel` cancels all orders for the current player
-- **Batch templates (Phase 7)**: `config/ConfigWebOrderTemplatesLoader.java` loads/saves `TeXTech/WebAE/web-order-templates.json` (`webae/order/WebOrderTemplate*.java` + `WebOrderTemplatesValidator`); `OrderTemplatesHandler` exposes `GET/PUT /api/order/templates` (isolated by WebAE owner token ownerUuid; OP and guests can read/write templates for their owner); templates include `cpuName`/`networkId`/items (`itemName` or `patternId`)
-- **Backend**: Reuses AI assistant `AssistantServerServices` + `AssistantCraftJobManager`
-- **Frontend** (`pages/AeOrdering.tsx`, Phase 7):
+  - Single `/api/order`: body `{ networkId, itemName?, amount, rawText?, locale?, cpuName?, patternId? }`; `patternId` takes priority over itemName
+  - Batch `/api/order/batch`: body `{ networkId, cpuName?, items:[{ itemName, amount, patternId? }] }` (API kept for internal/integrations; **Web UI no longer exposes the batch panel**)
+- **CPU selection**: optional `cpuName`; `AssistantServerServices.submitCraft(..., cpuName)` passes `ICraftingCPU` to AE2 `submitJob`; when omitted AE2 auto-assigns; `cpuInfo` snapshot stored on `OrderStatus`
+- **Real progress** (`WebAeOrderProgressService`, resolves by `networkId` — **not** player-proximity Link search):
+  1. Register `jobId` on submit; bind `ICraftingLink` / `craftingId` after `submitJob` succeeds
+  2. Calculation phase: `AssistantCraftJobManager` (keyed by `trackingKey=jobId`) → pending ~1–25%
+  3. Execution: `(startItemCount - remainingItemCount) / startItemCount` (same **craft-tree step progress** as AE2 CPU GUI, not final-output count; capped at 99 until done)
+  4. Complete/cancel: `ICraftingLink.isDone()` / `isCanceled()` (including in-game cancel); Web cancel calls `link.cancel()`
+  5. Per-network short TTL (~50ms) CPU snapshot cache shared across orders; **never** `populatePlan` / full item lists
+- **List/history**: `GET /api/order/list` returns `{ success, orders, history }`; completed/cancelled/failed move to in-memory `historyOrders` (max 200, cleared on restart, **filtered by ownerUuid**); `OrderStatus` includes `cpuName`/`cpuInfo`/`finalProgress`/`itemName`/`amount`/`patternId`/`networkId`/`craftingId`/`startItems`/`remainingItems`/`progressKind=steps`
+- **Status/cancel**: `GET /api/order/status?jobId=` (unknown jobId → 404, no forged completed); `POST /api/order/cancel` cancels all orders for the current player (calc Future + CPU links)
+- **Batch templates API**: `GET/PUT /api/order/templates` still available (`web-order-templates.json`); Web ordering page UI no longer shows the templates panel
+- **Backend**: `WebAeCraftService` + `AssistantServerServices` + `AssistantCraftJobManager` + `WebAeOrderProgressService`
+- **Frontend** (`pages/AeOrdering.tsx`):
   - Top CPU `Select` (name + capacity + parallelism + busy/idle)
-  - "By pattern" tab: `GET /api/patterns/browse` paginated dual-source + debounced search + infinite scroll; view toggle "By product" `VirtualProductGrid` / "By pattern" `VirtualPatternGrid` (`@tanstack/react-virtual` row virtualization); `PatternOrderCard` thumbnail grid + Info opens `PatternDetailModal` (Grid/Interface tags; Grid source lazy-fetches `GET /api/patterns/grid/<gridKey>`)
-  - "By item" tab: storage search + single/batch orders; `OrderBatchPanel` "Save as Template" / "Templates" (`OrderTemplatesModal` + `utils/orderTemplates.ts`); load template fills batchRows/CPU/network; "Fill Gaps" compares `useSnapshotData().storageMap` and writes shortage rows
-  - Active/history tables poll `/api/order/list` (3s); history from `history` field; CPU column Tooltip shows snapshot details
+  - "By pattern" tab: paginated browse + single orders (product quick-add / pattern cart / product modal)
+  - "By item" tab: storage search + single orders
+  - "Craft tree" tab: gap display only (no batch order)
+  - Active/history tables poll `/api/order/list` (3s); progress tooltip explains step progress; history **Reorder** confirms then `POST /api/order`
 
 ### 11.7 Theme System & Dashboard Customization (Phase 2.1 / 2.2)
 
@@ -546,34 +589,37 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - Chart colors follow CSS variables (e.g. `var(--accent)`) and theme tokens; Dashboard/Power trend SVG updates with theme colors; when `effectsLevel=full`, line/area/pie/radar/bar charts get continuous CSS animations (`.chart-flow-line`, etc.); disabled under `prefers-reduced-motion`
   - The backend `/api/config` returns `themeColors` / `themeLayouts` lists for discoverability (the frontend also owns the same catalog)
 - **Dashboard customization**:
-  - GridStack 11.x is pulled in via the npm `gridstack` package (+ `gridstack.min.css`) for drag/resize grids; `pages/Dashboard.tsx` renders a 12-column grid
-  - Widget model (`utils/presets.ts` `DashboardWidgetConfig`): `type` (statCard / progressBar[horizontal|circular] / lineChart / barChart / pieChart / dataTable / gauge / radarChart) + optional `radarAxes?` (up to 8 metric axes) + legacy `sparkline` migrated to `lineChart`+`fit` on load + named category colors for `storageByCategory`
-  - **Phase 2 data sources** (`utils/overviewDataSources.ts` + shared `WidgetContent.tsx` renderers): `gtMachineList` (dataTable, columns aligned with GT page); `machineByStatus` (barChart/pieChart, active/error/idle buckets); `networkCompare` (barChart, multi-network bytes/EU/GT counts via `useSnapshotData` batch API)
-  - **URL deep links**: `?page=order&network=0` or `?networks=0,1` synced via `utils/urlNavigation.ts` + `AppContext` replaceState; **Command palette (Phase 4a)**: `Ctrl+K` opens `CommandPalette.tsx`, prefers `GET /api/search` for storage items/recipes/GT machines/patterns and navigates to the matching page; falls back to local snapshot filtering when the API is unavailable
-  - Layout persistence: `localStorage.webae_dashboard_config` stores the full `DashboardSettings` (including `widgets:[...]`); "Reset Layout" restores `DEFAULT_DASHBOARD_SETTINGS`
-  - Config panel: in edit mode each widget's "Edit" button opens `components/dashboard/EditWidgetModal.tsx` to change type/dataSource/title/size/fontSize/chartSize/alignment/colors; "Add Widget" picks from the widget library; "Delete" removes a widget; changing width/height in the modal rebuilds GridStack via the `layoutSignature` dependency
-  - Data refresh: the `useSnapshotData` hook exposes `storageMap`/`powerMap`/`gtMap` plus `initialLoading` (first fetch with no cached data) / `refreshing` (silent poll updates); `usePlayers` exposes online count & trend; `dataSourceValue(ds)` reads data for the currently selected network; `renderWidget` applies property inheritance via `resolveProp`/`resolveAllColors` before rendering
+  - GridStack 11.x via npm; `pages/Dashboard.tsx` 12-column grid; main dashboard `gs-min-w/h=1` (free sizing)
+  - Widget model (`DashboardWidgetConfig`): types as before + `dataSource` including `customPins` + **`pins?`** / **`columns?`** / **`contentScale?`** (0.5–2) / `pinsOnly?` / `gaugeThreshold?`
+  - **Data-first editor**: pick data source & pins, then compatible chart type (`dataSourceChartMap.ts`, `customPins` → `pinned`)
+  - **Pin history APIs**: `GET /api/network/metrics/items`, extended fluids, `GET /api/network/metrics/entities`; sampler limits in cfg (`dashboardMaxTracksPerWidget` default 10, `dashboardMaxTracksGlobal` 32, item/fluid/entity sub-caps 16) exposed via `/api/config`; line charts merge built-in timeseries ∪ pin histories; radar uses pin current values when ≥3 pins; network-balance rows are searchable pins
+  - **Phase 2 data sources**: `gtMachineList` / `machineByStatus` / `networkCompare` unchanged
+  - Layout persistence: `localStorage.webae_dashboard_config`; Edit Modal width/height rebuilds GridStack via `layoutSignature`
+  - Data refresh: `useSnapshotData` + `useDashboardPinMetrics` (merged pin history) + `usePlayers` / `useNetworkMetrics`
 
 ### 11.8 Item Icon Cache & Texture Packs (Phase 3.1)
 
-- **Server store**: `webae/icon/IconStore.java` singleton manages `TeXTech/WebAE/icons/<packName>/<mode>/<itemId>.png` (legacy flat PNGs auto-migrate to `hybrid/` on first access); `manifest.json` records `modes[]`, `counts{}`, `uploadedAt`, `clientVersion`; path-traversal protection; `listPacks`/`listIcons`/`getIconFile`/`resolveWriteTarget`/`refreshPack`/`recordModeUpload`/`migrateLegacyPackIfNeeded`; `recordDefaultPack`/`getDefaultPack`
+- **Server store**: `webae/icon/IconStore.java` singleton manages `TeXTech/WebAE/icons/<packName>/nei/<itemId>.png` (legacy flat PNGs auto-migrate on first access); `manifest.json` records `modes[]`, `counts{}`, `uploadedAt`, `clientVersion`; path-traversal protection; `listPacks`/`listIcons`/`getIconFile`/`resolveWriteTarget`/`refreshPack`/`recordModeUpload`/`migrateLegacyPackIfNeeded`; `recordDefaultPack`/`getDefaultPack`
 - **REST handler**: `webae/api/handler/IconHandler.java`
-  - `GET /api/icon?item=<itemId>&pack=<pack>&mode=<mode>&meta=<int>&size=<16|32|64>` returns PNG (`mode` defaults to hybrid; 404 falls back to hybrid/atlas); ETag + `Cache-Control: max-age=86400`
+  - `GET /api/icon?item=<itemId>&pack=<pack>&mode=<mode>&meta=<int>&size=<16|32|64>` returns PNG (`mode` defaults to nei; disk may serve legacy modes; **miss defaults to immediate 404** + `IconMissingQueue`; sync direct render only when `iconDirectRenderEnabled=true`)
   - `GET /api/icon/packs` lists packs as JSON (`{success:true, packs:[...], defaultPack:"<name>"|null}`); `defaultPack` comes from `IconStore.getDefaultPack()` so the frontend can pick it on first load
+  - `GET /api/icon/sync/manifest` / `GET /api/icon/sync/bulk` full-pack sync (frontend does not call on login by default; Settings manual or user-enabled auto-sync)
   - `POST /api/icon/pack?pack=<packName>` admin-only (`WebAuthOpCheck.isOp` OP>=2) uploads a zip; the server extracts it with `ZipInputStream` into `web-icons/<packName>/`, applies **Zip Slip protection** (canonical-path check that entries stay inside packDir), accepts only `.png` entries, refreshes the IconStore index, and calls `recordDefaultPack` to remember the most recent pack
+- **vs world map**: both use HTTP; map misses read snapshots/placeholders by default; icons never GL-render on the server. Icon concurrency is high — **do not** default to sync `IconDirectCaptureBridge` (prefer async placeholder + SSE, not map SP sync capture)
 - **Static serving**: `WebConsoleServer.serveStatic()` extended to serve `/icons/<pack>/<itemId>.png` from the external `TeXTech/WebAE/icons/` directory with canonical path-traversal protection + `Cache-Control`
 - **Routing**: `WebApiRouter` dispatches `/api/icon` and the `/api/icon/` prefix to `IconHandler`
-- **Client renderer (Phase 0 — 8 modes)**: `IconRenderer.java` strategy pattern + mode queue; eight `IconRenderMode` values with matching strategies; `IconGlFallback`, `IconBlockRenderer`, `IconNeiStyleRenderer`, `IconUploadProgress`; `start(pack, uuid, mode|all)` queues all 8 modes for `all`; batched RenderTick render + ClientTick chunked upload
+- **Client renderer (NESQL primary path)**: `GuiIconExportScreen` renders `iconRenderPerTick` items per frame; active path is `IconNesqlStyleRenderer` (64×64 FBO + `GuiContainerManager.drawItem`, downscaled to 32×32, matching NESQL exporter) via `IconExportResolver.resolve`; **fluids / fluid-aware stacks** keep `IconFluidRenderer` + `IconGlFallback.renderFluidAwareSlotIcon` / `renderRegistryFluidIcon`; **`nei` only** (commands/KeyBindings/lazy/direct hardcode `nei`; other enum constants `@Deprecated` archival); archived: `IconGridExporter` grid FBO, `resolveLegacy` multi-stage fallback; `IconMissingQueue` + `PacketWebIconRequest` for 404 lazy fill
 - **Production stability (full GTNH pack)**:
   - `IconRenderGuard` — after each off-screen GL/FBO export, force-finish dangling `Tessellator` draws and restore the main framebuffer (prevents `Already tesselating!` crashes from GTNH custom item renderers)
   - `IconLazyRenderQueue` — client-side lazy-load queue, max 2 icon renders per tick; `PacketWebIconRequest` no longer blocks the main thread synchronously; bulk `/admweb icons upload` clears the queue and pauses lazy work
   - `PacketWebIconUploadAck` — suppresses chat spam for single-icon lazy completions (`1 icons stored`); bulk/multi-icon batch completions still notify in chat
-  - **Recommendation**: close the WebAE browser tab before full-pack export; prefer `/admweb icons upload snapshot default nei` or `/admweb icons import-nesql` instead of enumerating 40k+ items at once
-- **Commands**: `/admweb icons upload [pack] [mode|all]`, `/admweb icons upload snapshot [pack] [mode]`, `/admweb icons import-nesql [pack] [subpath]`, `/admweb icons import <folder> [pack]`, `/admweb icons modes`, `/admweb icons status`
+  - **Recommendation**: close the WebAE browser tab before full-pack export; prefer `/admweb icons upload snapshot default` or `/admweb icons import-nesql` instead of enumerating 40k+ items at once
+- **Commands**: `/admweb icons upload [pack]`, `/admweb icons upload snapshot [pack]`, `/admweb icons import-nesql [pack] [subpath]`, `/admweb icons import <folder> [pack]`, `/admweb icons modes`, `/admweb icons status` (export always `nei`; no mode argument)
 - **NESQL import**: `WebAeLocalDataDir` + `NesqlIconImporter` reads pre-rendered PNGs from `nesqlRepositoryPath` (empty → `TeXTech/WebAE/`); incremental, skips existing icons
-- **Lazy-load SSE**: `IconMissingQueue` dispatches `iconMissingDispatchPerTick` requests per tick → client `IconLazyRenderQueue` (2/tick) renders/uploads asynchronously; when an icon is ready the server emits SSE `icon-ready` → frontend `webae-icon-ready` event for live `<Icon>` refresh
-- **Config** (`[webConsole]`): `iconCacheEnabled` / `iconUploadEnabled` / `iconPackEnabled` / `iconRenderPerTick`(64) / `iconRenderPerTickAll`(32) / `iconUploadChunksPerTick`(4) / `iconProgressChatIntervalMs`(3000)
-- **Frontend**: Settings icon render mode dropdown (`localStorage.webae_icon_render_mode`, default hybrid); `Icon.tsx` passes `&mode=`; `/api/config` returns `iconRenderModes[]`
+- **Lazy-load SSE**: `IconMissingQueue` dispatches `iconMissingDispatchPerTick` requests per tick → client `IconLazyRenderQueue` (2/tick) renders/uploads asynchronously; when an icon is ready the server emits SSE `icon-ready` → frontend `webae-icon-ready` event for live `<Icon>` refresh. This is the **default HTTP miss path** (`iconDirectRenderEnabled` default false)
+- **Active resolve chain**: fluid specials → NESQL `drawItem` FBO → placeholder; archived chain in `resolveLegacy`
+- **Config** (`[webConsole]`): `iconCacheEnabled` / `iconUploadEnabled` / `iconPackEnabled` / `iconDirectRenderEnabled`(false) / `iconRenderPerTick`(64) / `iconRenderPerTickAll`(32) / `iconUploadChunksPerTick`(4) / `iconProgressChatIntervalMs`(3000)
+- **Frontend**: Settings fixed to `nei`; `iconModeFallbackChain` → `['nei']`; `iconAutoSync` default false; no topology/world-map server prefetch; Cytoscape prefers `resolveLocalIconUrls`; see `.cursor/rules/webae-icon-performance.mdc`
 - **Icon auth fix (v3.0)**: `WebAuthMiddleware.authenticate()` now falls back to reading the token from the `?token=` or `?access_token=` query parameter when the `Authorization` header is missing; security is preserved (token validity still checked); this fixes `<img src="/api/icon?...">` returning 401 (missing Authorization header) → icon error → text fallback
 - **itemId fix (Phase E)**: `webae/snapshot/AeSnapshotCollector` now builds `itemId` from the registry name (`GameRegistry.findUniqueIdentifierFor(item)`); meta is appended only when `!= 0` (and not wildcard). The old `unlocalizedName:meta` format did not match the registry-name keys used by the icon store, causing icon 404s
 - **Default pack fix (Phase E)**: on first load (no localStorage memory) the frontend uses `/api/icon/packs` response `defaultPack` instead of hardcoded `'default'`; both `PacketWebIconUpload` and `IconHandler` zip upload call `IconStore.recordDefaultPack` to persist the most recent pack
@@ -717,6 +763,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Event types**: `inventory_threshold` / `cpu_stuck` / `gt_error` / `order_complete` / `channel_overload` / `server_tps_below` / `automation_craft`
 - **TPS alert**: `serverTpsBelowEnabled` + `serverTpsThreshold` (default 15) + `serverTpsDurationSeconds` (default 60); evaluated by `WebAlertEngine` via `ServerHealthSampler`
 - **Health sampler**: `webae/health/ServerHealthSampler.java` — MSPT measured each tick, 1s samples in a 300s rolling window; `GET /api/server/health` (`ServerHealthHandler`)
+- **Perf diagnostics**: `webae/perf/WebAePerfProfiler.java` — tick phases / HTTP routes / snapshot collect timings; `GET /api/server/diagnostics`; `[debug] webaePerf` → `logs/textech/webae-perf.log` (slow tick ≥5ms / slow HTTP ≥200ms always logged); frontend `pages/Diagnostics.tsx` + `useServerDiagnostics`. **New `/api/*` routes must be wired into diagnostics** — see `.cursor/rules/webae-perf-diagnostics.mdc`.
 
 ### 11.20b Monitoring Deepening (reference plan Phase 3)
 
@@ -743,7 +790,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Package**: `webae/topology/P2pTunnelEnumerator` — filters P2P classes from `IGrid.getMachinesClasses()`; reflects `getFrequency`/`isOutput`
 - **DTO**: `P2pTunnelDto` + `P2pMapSnapshot.fromTunnels` groups by frequency
-- **REST**: `GET /api/network/p2p?network=<id>` — main thread 15s timeout; requires `topologyEnabled`
+- **REST**: `GET /api/network/p2p?network=<id>` — **cache read** (scheduler pre-collect); requires `topologyEnabled`; `?refresh=1` async rebuild
 - **Frontend**: `NetworkTopology.tsx` view mode `p2p` + `P2pMapPanel.tsx` (card grid layout, per-frequency cards with IN/OUT direction tags + coordinates, search & sort)
 
 ### 11.24 Monitor Line Preview (Phase 11)

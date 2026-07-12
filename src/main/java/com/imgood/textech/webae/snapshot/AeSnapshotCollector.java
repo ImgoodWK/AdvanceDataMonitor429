@@ -13,8 +13,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.handler.HandlerTick;
-import com.imgood.textech.tileentity.TileEntityAdvanceCraftingLink;
-import com.imgood.textech.tileentity.TileEntityAdvanceStorageLink;
+import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.context.WebAeOwnerContext.NetworkGroup;
 import com.imgood.textech.webae.dto.StorageDto;
@@ -74,6 +73,17 @@ public class AeSnapshotCollector {
      * Collect AE storage snapshot for a specific network. Must be called from server thread.
      */
     public static StorageDto collect(String ownerUuid, int networkId) {
+        long t0 = System.nanoTime();
+        try {
+            return collectInner(ownerUuid, networkId);
+        } finally {
+            long ms = (System.nanoTime() - t0) / 1_000_000L;
+            com.imgood.textech.webae.perf.WebAePerfProfiler.instance()
+                .recordCollect("storage", ms);
+        }
+    }
+
+    private static StorageDto collectInner(String ownerUuid, int networkId) {
         if (ownerUuid == null || ownerUuid.isEmpty()) {
             return emptyDto(networkId);
         }
@@ -192,7 +202,7 @@ public class AeSnapshotCollector {
 
     // ---- data collection ----
 
-    private static void collectItems(TileEntityAdvanceStorageLink storageLink, StorageDto dto) {
+    private static void collectItems(TileEntityAdvanceNetworkLink storageLink, StorageDto dto) {
         try {
             IGridNode node = ((IGridHost) storageLink).getGridNode(ForgeDirection.UNKNOWN);
             if (node == null || node.getGrid() == null) return;
@@ -237,7 +247,7 @@ public class AeSnapshotCollector {
         }
     }
 
-    private static void collectFluids(TileEntityAdvanceStorageLink storageLink, StorageDto dto) {
+    private static void collectFluids(TileEntityAdvanceNetworkLink storageLink, StorageDto dto) {
         try {
             IGridNode node = ((IGridHost) storageLink).getGridNode(ForgeDirection.UNKNOWN);
             if (node == null || node.getGrid() == null) return;
@@ -263,7 +273,7 @@ public class AeSnapshotCollector {
         }
     }
 
-    private static void collectEssentia(TileEntityAdvanceStorageLink storageLink, StorageDto dto) {
+    private static void collectEssentia(TileEntityAdvanceNetworkLink storageLink, StorageDto dto) {
         if (KNOWN_ASPECTS.isEmpty()) return;
         try {
             IGridNode node = ((IGridHost) storageLink).getGridNode(ForgeDirection.UNKNOWN);
@@ -295,15 +305,15 @@ public class AeSnapshotCollector {
         }
     }
 
-    private static void collectCpus(TileEntityAdvanceCraftingLink craftingLink, StorageDto dto, NetworkGroup group) {
+    private static void collectCpus(TileEntityAdvanceNetworkLink craftingLink, StorageDto dto, NetworkGroup group) {
         try {
             craftingLink.updateCraftingStats();
-            List<TileEntityAdvanceCraftingLink.CraftingCpuSnapshot> snaps = craftingLink.getCpuSnapshots();
+            List<TileEntityAdvanceNetworkLink.CraftingCpuSnapshot> snaps = craftingLink.getCpuSnapshots();
             List<CpuEntry> entries = new ArrayList<CpuEntry>();
             int linkDim = craftingLink.getWorldObj() != null ? craftingLink.getWorldObj().provider.dimensionId : 0;
             int monitorDim = group.monitorDim;
             for (int i = 0; i < snaps.size(); i++) {
-                TileEntityAdvanceCraftingLink.CraftingCpuSnapshot snap = snaps.get(i);
+                TileEntityAdvanceNetworkLink.CraftingCpuSnapshot snap = snaps.get(i);
                 long maxItems = snap.startItems;
                 long storedItems = Math.max(0, snap.startItems - snap.remainingItems);
                 double progress = 0.0;

@@ -9,6 +9,7 @@ import { PageShell } from '@/components/Layout/PageShell';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { GtSummaryCharts } from '@/components/gt/GtSummaryCharts';
 import { isGtMachineErrorRow } from '@/utils/gtChartData';
+import { gtStatusLabel } from '@/utils/overviewDataSources';
 import type { GtMachineDto } from '@/types/dto';
 
 export function GtMachinesPage() {
@@ -91,12 +92,13 @@ export function GtMachinesPage() {
       title: t('status'),
       dataIndex: 'statusText',
       key: 'statusText',
-      render: (v: string) => <Tag color={statusColor[v] || 'default'}>{v || '-'}</Tag>,
+      render: (v: string) => <Tag color={statusColor[v] || 'default'}>{gtStatusLabel(v, t)}</Tag>,
       filters: [
         { text: t('running'), value: 'Running' },
         { text: t('idle'), value: 'Idle' },
         { text: t('error'), value: 'Error' },
         { text: t('problem'), value: 'Problem' },
+        { text: t('maintenance'), value: 'Maintenance' },
       ],
       onFilter: (value: unknown, record: GtMachineDto) => record.statusText === value,
     },
