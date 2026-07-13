@@ -1,0 +1,115 @@
+---
+description: 从 GitHub 拉取/同步失败时的恢复流程（镜像 fetch、以远程为准）
+alwaysApply: false
+---
+
+# Git 拉取与以 GitHub 为准同步
+
+## 适用场景
+
+用户说「从 GitHub 更新」「以 GitHub 的内容为主」「和远程保持一致」「pull / fetch 失败」时，按本规则执行。权限策略见 **`agent-execution-permissions.mdc`**；推送见 **`git-push-release.mdc`**。
+
+## 标准流程（优先）
+
+```powershell
+git status
+git remote -v
+git fetch origin --prune          # required_permissions: ["all"]
+git log HEAD..origin/master --oneline   # 查看落后提交
+```
+
+**以 GitHub 为准**（覆盖本地提交与未提交改动）：
+
+```powershell
+git reset --hard origin/master
+git status
+git log -1 --oneline
+```
+
+- 工作区须干净或用户已明确接受丢弃本地改动；`reset --hard` 不可恢复未提交内容。
+- 有 `git stash` 时**不要自动 `stash pop`**；仅在用户要求恢复时再应用。
+- **禁止**擅自 `git clean -fd`，除非用户明确要求删除未跟踪文件。
+
+## 直连 GitHub 失败时的恢复（本仓库已验证）
+
+### 典型错误
+
+| 现象 | 含义 |
+|------|------|
+| `Failed to connect to github.com port 443` | 本机直连 GitHub HTTPS 不可用 |
+| `curl: (28) Operation timed out` | 下载/连接超时 |
+| PowerShell `&&` 解析错误 | 用 `;` 串联命令，勿用 `&&` |
+
+### 推荐：镜像 URL 做 `git fetch`（首选）
+
+直连 `git fetch` 失败后，**立即**用 ghproxy 镜像（本环境 2026-07 已验证可用）：
+
+```powershell
+$origin = "https://github.com/ImgoodWK/AdvanceDataMonitor429.git"
+git remote set-url origin "https://ghproxy.net/https://github.com/ImgoodWK/AdvanceDataMonitor429.git"
+git fetch origin --prune    # required_permissions: ["all"]；可能需 2–4 分钟
+git remote set-url origin $origin
+git reset --hard origin/master   # 若用户要求以 GitHub 为准
+```
+
+要点：
+
+1. **fetch 完成后务必恢复** `origin` 为正常 HTTPS URL，避免后续 push 也走镜像。
+2. 镜像仅用于 `fetch`/`clone` 拉对象；恢复 URL 后再 `reset`/`merge`。
+3. 若 `ghproxy.net` 失败，可试 `https://gh-proxy.com/https://github.com/...`（可用性因网络而异，成功后写入下方「经验补充」）。
+
+### 辅助：确认远程最新提交
+
+Shell 无法连 GitHub 时，可用 **WebFetch** 查 API（Agent 侧通道，非本机 curl）：
+
+`https://api.github.com/repos/ImgoodWK/AdvanceDataMonitor429/commits/master`
+
+对比本地 `git rev-parse HEAD` 与 API 返回的 `sha`，判断是否真的落后。
+
+### 不推荐：整包 zip 下载
+
+`archive/refs/heads/master.zip` 经镜像下载易**超时、不完整**（zip 中央目录损坏）。仅当 `git fetch` 与镜像均失败时再考虑，且产物只能放 `.workspace/agent-cache/`，**不得**解压覆盖工作区后手工提交，除非用户明确要求。
+
+## 分支与合并策略
+
+| 用户意图 | 命令 |
+|----------|------|
+| 以 GitHub 为准，丢弃本地分歧 | `git reset --hard origin/<branch>` |
+| 保留本地提交，合入远程 | `git pull origin <branch>` 或 `git merge origin/<branch>` |
+| 仅更新远程引用，不动工作区 | `git fetch` only |
+
+默认「以 GitHub 的内容为主」= **`reset --hard`**，不是 merge。
+
+## Agent 执行清单
+
+1. `git status` + `git branch -vv` + `git stash list`
+2. `git fetch origin`（`["all"]`）
+3. 失败 → 镜像 fetch → 恢复 `remote.url`
+4. 按用户意图 `reset --hard` 或 `merge`
+5. 验证 `HEAD` 与 `origin/master` 的 SHA 一致
+6. 删除 `.workspace/agent-cache/` 下不完整的 `github-*.zip`
+
+## 经验补充（Agent 自动维护）
+
+本节记录**本仓库/本环境**实测的拉取恢复经验。Agent 在同类任务中若发现新的有效路径或失效镜像，**应在同一轮对话内**追加一条（带日期），无需用户再次提醒。
+
+追加格式：
+
+```markdown
+- **YYYY-MM-DD**：<场景> → <做法> → <结果>（可选：命令片段）
+```
+
+已记录：
+
+- **2026-07-13**：Windows 直连 `github.com:443` 超时 → `ghproxy.net` 前缀 URL + `git fetch`（约 3.7 分钟）成功 → `reset --hard origin/master` 对齐 `f823bd4`；zip 镜像下载两次均超时勿作首选。
+
+### 何时写入
+
+- 新的可用/不可用镜像、代理、SSH 方式
+- 新的错误码与对应修复步骤
+- 本仓库 `origin` URL 或默认分支变更
+
+### 何时不写入
+
+- 一次性用户本机代理配置（不写进规则，仅在对话中说明）
+- 与拉取无关的 push/release 流程（写入 `git-push-release.mdc`）

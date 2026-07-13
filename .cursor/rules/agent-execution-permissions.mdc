@@ -70,13 +70,15 @@ alwaysApply: true
 
 1. 输出为 `no exit status` 或空结果 → 对 Git/gh **立即**用 `["all"]` 重试。
 2. 网络超时 / `Could not resolve host` / 403 → 升级为 `["full_network"]` 或 `["all"]` 重试。
-3. 仍失败 → 说明已尝试的权限与错误信息，再向用户汇报阻塞点。
+3. **`git fetch` 连 `github.com:443` 失败** → 按 **`git-pull-sync.mdc`** 用镜像 URL fetch，完成后恢复 `origin` 正常 URL。
+4. 仍失败 → 说明已尝试的权限与错误信息，再向用户汇报阻塞点。
 
 ## 与其他规则的分工
 
 | 规则 | 分工 |
 |------|------|
 | **本规则** | Shell 权限默认策略、clone/下载/反编译的执行态度 |
+| `git-pull-sync.mdc` | 从 GitHub **拉取/同步**、镜像 fetch、以远程为准的 `reset --hard` |
 | `git-push-release.mdc` | 推送、`--force`、Release 命名、README 检查等**工作流** |
 | `external-deps-jars.mdc` | `libs/` 清单、Maven vs 本地 jar、缺 jar 时的询问话术 |
 | `workspace-artifacts.mdc` | 反编译/临时脚本/拉取内容的**目录**约定 |

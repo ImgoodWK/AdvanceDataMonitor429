@@ -7,7 +7,7 @@ alwaysApply: false
 
 ## 适用场景
 
-当用户要求"推送代码到 GitHub"或"发布 Release"时，按以下流程执行。
+当用户要求"推送代码到 GitHub"或"发布 Release"时，按以下流程执行。从 GitHub **拉取/以远程为准同步**见 **`git-pull-sync.mdc`**。
 
 ## 核心经验
 

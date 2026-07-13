@@ -35,6 +35,11 @@ EXCLUDE_LINE_DRIFT = {
     "design/未来开发愿景.md",
 }
 
+LANG_EN = os.path.join(LANG_DIR, "en_US.lang")
+LANG_ZH = os.path.join(LANG_DIR, "zh_CN.lang")
+MANUAL_INDEX = os.path.join(ROOT, "src", "main", "resources", "assets", "textech", "manual", "index.json")
+MANUAL_CHAPTERS = os.path.join(ROOT, "src", "main", "resources", "assets", "textech", "manual", "chapters")
+
 
 def read(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -168,6 +173,83 @@ def check_zh_en_parity():
     return warnings
 
 
+def parse_lang_keys(path):
+    keys = set()
+    if not os.path.isfile(path):
+        return keys
+    for line in read(path).splitlines():
+        s = line.strip()
+        if not s or s.startswith("#") or "=" not in s:
+            continue
+        keys.add(s.split("=", 1)[0].strip())
+    return keys
+
+
+def check_lang_parity():
+    """en_US.lang vs zh_CN.lang key set parity (warnings)."""
+    warnings = []
+    if not os.path.isfile(LANG_EN) or not os.path.isfile(LANG_ZH):
+        warnings.append("Missing lang file(s): en_US=%s zh_CN=%s" % (os.path.isfile(LANG_EN), os.path.isfile(LANG_ZH)))
+        return warnings
+    en = parse_lang_keys(LANG_EN)
+    zh = parse_lang_keys(LANG_ZH)
+    only_en = sorted(en - zh)
+    only_zh = sorted(zh - en)
+    if only_en:
+        sample = ", ".join(only_en[:12])
+        more = "" if len(only_en) <= 12 else " ... (+%d)" % (len(only_en) - 12)
+        warnings.append("Lang keys in en_US but missing in zh_CN (%d): %s%s" % (len(only_en), sample, more))
+    if only_zh:
+        sample = ", ".join(only_zh[:12])
+        more = "" if len(only_zh) <= 12 else " ... (+%d)" % (len(only_zh) - 12)
+        warnings.append("Lang keys in zh_CN but missing in en_US (%d): %s%s" % (len(only_zh), sample, more))
+    return warnings
+
+
+def check_manual_chapters():
+    """manual/index.json chapter ids vs chapters/*.json files."""
+    import json
+
+    warnings = []
+    if not os.path.isfile(MANUAL_INDEX):
+        warnings.append("Missing manual index: %s" % MANUAL_INDEX)
+        return warnings
+    if not os.path.isdir(MANUAL_CHAPTERS):
+        warnings.append("Missing manual chapters dir: %s" % MANUAL_CHAPTERS)
+        return warnings
+    try:
+        data = json.loads(read(MANUAL_INDEX))
+    except ValueError as e:
+        warnings.append("Invalid manual index.json: %s" % e)
+        return warnings
+    chapters = data.get("chapters") or []
+    ids = []
+    for ch in chapters:
+        if isinstance(ch, dict) and ch.get("id"):
+            ids.append(ch["id"])
+    id_set = set(ids)
+    files = set()
+    for name in os.listdir(MANUAL_CHAPTERS):
+        if name.endswith(".json"):
+            files.add(name[:-5])
+    missing_files = sorted(id_set - files)
+    orphans = sorted(files - id_set)
+    if missing_files:
+        warnings.append("index.json chapters missing files: %s" % ", ".join(missing_files))
+    if orphans:
+        warnings.append("chapters/*.json not listed in index.json: %s" % ", ".join(orphans))
+    # duplicate ids
+    seen = set()
+    dups = []
+    for i in ids:
+        if i in seen:
+            dups.append(i)
+        seen.add(i)
+    if dups:
+        warnings.append("Duplicate chapter ids in index.json: %s" % ", ".join(sorted(set(dups))))
+    return warnings
+
+
 def main():
     errors = []
     warnings = []
@@ -178,6 +260,8 @@ def main():
     errors.extend(check_stale_phrases())
     warnings.extend(check_zh_en_parity())
     warnings.extend(check_worldmap_config_docs())
+    warnings.extend(check_lang_parity())
+    warnings.extend(check_manual_chapters())
 
     if warnings:
         print("WARNINGS:")

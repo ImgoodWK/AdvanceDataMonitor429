@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "textech-doc-check": {
+      "command": "py",
+      "args": ["-3", "tools/mcp/doc-check-server/server.py"],
+      "cwd": "${workspaceFolder}"
+    },
+    "textech-webae-api": {
+      "command": "py",
+      "args": ["-3", "tools/mcp/webae-api-server/server.py"],
+      "cwd": "${workspaceFolder}"
+    },
+    "textech-admweb": {
+      "command": "py",
+      "args": ["-3", "tools/mcp/admweb-server/server.py"],
+      "cwd": "${workspaceFolder}"
+    },
+    "textech-build": {
+      "command": "py",
+      "args": ["-3", "tools/mcp/build-server/server.py"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}
