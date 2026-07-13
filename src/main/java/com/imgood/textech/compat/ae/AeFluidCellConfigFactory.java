@@ -1,10 +1,11 @@
 package com.imgood.textech.compat.ae;
 
-import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 
-/** Fluid-channel Cell Workbench partition inventory factory. */
+import appeng.tile.inventory.IAEStackInventory;
+
+/** Fluid-channel Cell Workbench partition inventory factory (AE2 2.9 {@link IAEStackInventory}). */
 public interface AeFluidCellConfigFactory {
 
-    IInventory createConfigInventory(ItemStack cellStack);
+    IAEStackInventory createConfigInventory(ItemStack cellStack);
 }

@@ -1,10 +1,8 @@
 package com.imgood.textech.webae.chat;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -16,6 +14,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.TeXTechDataDir;
+import com.imgood.textech.webae.util.AsyncJsonFileSaver;
 
 /**
  * Server-side ring buffer of recent chat messages for the WebAE
@@ -44,6 +43,9 @@ public class ChatMessageStore {
     private final int capacity;
     private long nextId = 1;
     private boolean loaded;
+
+    /** Async file saver that writes JSON to disk on a background daemon thread. */
+    private static final AsyncJsonFileSaver fileSaver = new AsyncJsonFileSaver("ChatMessages");
 
     private ChatMessageStore() {
         this.capacity = DEFAULT_CAPACITY;
@@ -149,24 +151,10 @@ public class ChatMessageStore {
     }
 
     public synchronized void saveNow() {
-        File parent = storeFile().getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
-        }
-        BufferedWriter writer = null;
-        try {
-            List<ChatMessage> snapshot = new ArrayList<ChatMessage>(buffer);
-            writer = new BufferedWriter(new FileWriter(storeFile(), false));
-            GSON.toJson(snapshot, writer);
-        } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("[WebAE] Failed to save chat message store", e);
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (Exception ignored) {}
-            }
-        }
+        // Snapshot data on the main thread (fast, ~μs) and delegate file I/O
+        // to the background daemon thread to avoid disk write stalls on the tick.
+        List<ChatMessage> snapshot = new ArrayList<ChatMessage>(buffer);
+        fileSaver.schedule(snapshot, storeFile());
     }
 
     private synchronized void ensureLoaded() {

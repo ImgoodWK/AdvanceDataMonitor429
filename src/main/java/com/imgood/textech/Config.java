@@ -131,8 +131,10 @@ public class Config {
     public static int webMaxRecipeCacheMB = 256;
     /** Client recipe upload batches sent per tick. Default 3. */
     public static int webRecipeUploadBatchesPerTick = 3;
-    /** Minimum interval (ms) between fuzzy recipe searches per owner. Default 300. */
-    public static int webRecipeSearchMinIntervalMs = 300;
+    /** Minimum interval (ms) between fuzzy recipe searches per owner. Default 1000. */
+    public static int webRecipeSearchMinIntervalMs = 1000;
+    /** On-disk recipe cache format: {@code json} (plain, fast streaming) or {@code gzip}. Default json. */
+    public static String webRecipeDiskFormat = "json";
     /**
      * NESQL repository path for {@code /admweb icons import-nesql}. Empty = {@code TeXTech/WebAE} under instance root.
      */
@@ -143,24 +145,24 @@ public class Config {
     public static int webIconMissingDispatchPerTick = 8;
     public static int webGtDefaultScanRadius = 8;
     public static int webPowerSampleWindowSeconds = 60;
-    /** Network metric (item/fluid/CPU/GT counts) sample interval in ms. Default 10000, range 1000-60000. */
-    public static int webMetricSampleIntervalMs = 10000;
+    /** Network metric (item/fluid/CPU/GT counts) sample interval in ms. Default 30000, range 1000-60000. */
+    public static int webMetricSampleIntervalMs = 30000;
     /** Network metric rolling window in seconds. Default 300, range 60-3600. */
     public static int webMetricSampleWindowSeconds = 300;
     /** Max pins/series per dashboard widget. Default 10, range 1-50. */
     public static int webDashboardMaxTracksPerWidget = 10;
-    /** Max active tracks per player across all dashboard widgets. Default 32, range 1-256. */
-    public static int webDashboardMaxTracksGlobal = 32;
-    /** Max item amount history tracks per (player, network). Default 16, range 1-64. */
-    public static int webDashboardMaxItemTracks = 16;
+    /** Max active tracks per player across all dashboard widgets. Default 16, range 1-256. */
+    public static int webDashboardMaxTracksGlobal = 16;
+    /** Max item amount history tracks per (player, network). Default 8, range 1-64. */
+    public static int webDashboardMaxItemTracks = 8;
     /** Max fluid amount history tracks per (player, network). Default 16, range 1-64. */
     public static int webDashboardMaxFluidTracks = 16;
     /** Max CPU/GT entity history tracks per (player, network). Default 16, range 1-64. */
     public static int webDashboardMaxEntityTracks = 16;
-    /** Unified refresh interval (ms) for server collection and frontend polling. Default 5000, range 1000-60000. */
-    public static int webRefreshIntervalMs = 5000;
-    /** GT machine collection interval (ms). Default 20000, range 1000-60000. */
-    public static int webGtRefreshIntervalMs = 20000;
+    /** Unified refresh interval (ms) for server collection and frontend polling. Default 10000, range 1000-60000. */
+    public static int webRefreshIntervalMs = 10000;
+    /** GT machine collection interval (ms). Default 30000, range 1000-60000. */
+    public static int webGtRefreshIntervalMs = 30000;
     /** Maximum number of networks displayed simultaneously in the web console. Default 5, range 1-20. */
     public static int webMaxNetworksDisplayed = 5;
     /** Web auth token lifetime in hours. 0 = never expire. Default 0, range 0-8760. */
@@ -189,8 +191,8 @@ public class Config {
     public static int webPatternBrowsePageSize = 80;
     /** Maximum total patterns returned by browse API before truncation. Default 20000. */
     public static int webPatternBrowseMaxTotal = 20000;
-    /** TTL in ms for pattern browse cache per network. Default 60000. */
-    public static int webPatternCacheTtlMs = 60000;
+    /** TTL in ms for pattern browse cache per network. Default 120000. */
+    public static int webPatternCacheTtlMs = 120000;
     /** Whether the network topology API is enabled. Default true. */
     public static boolean webTopologyEnabled = true;
     /** TTL in ms for manual topology snapshot cooldown (logical/spatial). Default 30000 (30 s). */
@@ -203,14 +205,14 @@ public class Config {
     public static boolean webWorldMapEnabled = true;
     /** @deprecated Use {@code worldMapDefaultQualityTier} / {@link com.imgood.textech.webae.worldmap.WorldMapQualityTier}. Kept for legacy cfg migration. */
     public static int webWorldMapTilePx = 128;
-    /** Highest allowed world map quality tier: low, medium, high, ultra. Default ultra. */
-    public static String webWorldMapMaxQualityTier = "ultra";
+    /** Highest allowed world map quality tier: low, medium, high, ultra. Default medium. */
+    public static String webWorldMapMaxQualityTier = "medium";
     /** Default world map quality tier when the client has no preference. Default medium. */
     public static String webWorldMapDefaultQualityTier = "medium";
     /** Extra chunk padding around AE network occupied chunks for world map. Default 1. */
     public static int webWorldMapBoundsPaddingChunks = 1;
-    /** Max chunk tiles rendered per server tick (Phase B). Default 2. */
-    public static int webWorldMapTileBudgetPerTick = 2;
+    /** Max chunk tiles rendered per server tick (Phase B). Default 1. */
+    public static int webWorldMapTileBudgetPerTick = 1;
     /** Max chunk tiles per dimension for world map bounds. Default 512. */
     public static int webWorldMapMaxChunks = 512;
     /** Require network query param and allowed-chunk scope check on tile API. Default true. */
@@ -261,8 +263,8 @@ public class Config {
     public static boolean webWorldMapBlockPatchesEnabled = true;
     /** Bump terrain quality one tier for chunks containing AE devices. Default true. */
     public static boolean webWorldMapAeQualityBoost = false;
-    /** Quality tier for AE overlay tiles (independent from terrain quality). Default ultra. */
-    public static String worldMapAeOverlayQualityTier = "ultra";
+    /** Quality tier for AE overlay tiles (independent from terrain quality). Default medium. */
+    public static String worldMapAeOverlayQualityTier = "medium";
     /** Bake block face textures into a server-side atlas grid. Default true. */
     public static boolean webWorldMapServerAtlasEnabled = true;
     /** Server-side texture atlas edge length in pixels (multiple of 16). Default 2048. */

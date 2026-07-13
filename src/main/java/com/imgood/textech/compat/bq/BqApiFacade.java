@@ -286,6 +286,27 @@ public final class BqApiFacade {
         UUID questingUuid = getQuestingUuid(player);
         dto.questingUuid = questingUuid != null ? questingUuid.toString() : "";
         dto.updatedAt = System.currentTimeMillis();
+
+        // Build questId → lineId map in one pass over lineDb.
+        java.util.HashMap<String, String> questToLine = new java.util.HashMap<String, String>();
+        if (lineDb != null) {
+            for (Map.Entry<UUID, Object> lineEntry : entriesOfDb(lineDb)) {
+                UUID lineId = lineEntry.getKey();
+                Object line = lineEntry.getValue();
+                if (lineId == null || line == null) {
+                    continue;
+                }
+                String lineIdStr = lineId.toString();
+                for (Map.Entry<UUID, Object> questEntry : entriesOfDb(line)) {
+                    UUID questId = questEntry.getKey();
+                    if (questId != null) {
+                        questToLine.put(questId.toString(), lineIdStr);
+                    }
+                }
+            }
+        }
+
+        dto.lineSubmittableCounts = new java.util.HashMap<String, Integer>();
         for (Map.Entry<UUID, Object> entry : entriesOfDb(questDb)) {
             UUID questId = entry.getKey();
             Object quest = entry.getValue();
@@ -297,6 +318,15 @@ public final class BqApiFacade {
             pe.state = readQuestState(quest, player, questingUuid);
             pe.canSubmit = canSubmitQuest(quest, player);
             dto.entries.add(pe);
+
+            // Accumulate per-line submittable quest counts in the same pass.
+            if (pe.canSubmit) {
+                String lineId = questToLine.get(pe.questId);
+                if (lineId != null) {
+                    Integer prev = dto.lineSubmittableCounts.get(lineId);
+                    dto.lineSubmittableCounts.put(lineId, Integer.valueOf(prev == null ? 1 : prev.intValue() + 1));
+                }
+            }
         }
         return dto;
     }

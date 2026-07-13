@@ -9,11 +9,16 @@ import appeng.api.config.IncludeExclude;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
+import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.me.storage.MEInventoryHandler;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEFluidStack;
+import appeng.util.item.AEFluidStackType;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 import appeng.util.prioitylist.FuzzyPriorityList;
 import appeng.util.prioitylist.PrecisePriorityList;
 
@@ -25,8 +30,8 @@ public final class DataLoomCellInventoryHandler extends MEInventoryHandler {
 
     private final ItemStack cellStack;
 
-    private DataLoomCellInventoryHandler(IMEInventoryHandler internal, ItemStack cellStack, StorageChannel channel) {
-        super(internal, channel);
+    private DataLoomCellInventoryHandler(IMEInventoryHandler internal, ItemStack cellStack, IAEStackType stackType) {
+        super(internal, stackType);
         this.cellStack = cellStack;
         applyPartitionFromConfig();
     }
@@ -35,24 +40,24 @@ public final class DataLoomCellInventoryHandler extends MEInventoryHandler {
         return (IMEInventoryHandler) getInternal();
     }
 
-    public static IMEInventoryHandler wrap(IMEInventoryHandler internal, ItemStack cellStack, StorageChannel channel) {
-        if (internal == null || cellStack == null) {
+    public static IMEInventoryHandler wrap(IMEInventoryHandler internal, ItemStack cellStack, IAEStackType stackType) {
+        if (internal == null || cellStack == null || stackType == null) {
             return internal;
         }
-        return new DataLoomCellInventoryHandler(internal, cellStack, channel);
+        return new DataLoomCellInventoryHandler(internal, cellStack, stackType);
     }
 
     private void applyPartitionFromConfig() {
-        IInventory config = null;
+        IAEStackInventory config = null;
         FuzzyMode fuzzyMode = FuzzyMode.IGNORE_ALL;
 
         if (cellStack.getItem() instanceof AbstractDataLoomItemCell) {
             AbstractDataLoomItemCell itemCell = (AbstractDataLoomItemCell) cellStack.getItem();
-            config = itemCell.getConfigInventory(cellStack);
+            config = itemCell.getConfigAEInventory(cellStack);
             fuzzyMode = itemCell.getFuzzyMode(cellStack);
         } else if (cellStack.getItem() instanceof AbstractDataLoomFluidCell) {
             AbstractDataLoomFluidCell fluidCell = (AbstractDataLoomFluidCell) cellStack.getItem();
-            config = fluidCell.getConfigInventory(cellStack);
+            config = fluidCell.getConfigAEInventory(cellStack);
             fuzzyMode = fluidCell.getFuzzyMode(cellStack);
         }
 
@@ -83,14 +88,15 @@ public final class DataLoomCellInventoryHandler extends MEInventoryHandler {
 
         setWhitelist(hasInverter ? IncludeExclude.BLACKLIST : IncludeExclude.WHITELIST);
 
-        if (getChannel() == StorageChannel.ITEMS) {
+        IAEStackType type = getStackType();
+        if (type == AEItemStackType.ITEM_STACK_TYPE) {
             appeng.api.storage.data.IItemList priorityList = AEApi.instance()
                 .storage()
                 .createItemList();
             for (int slot = 0; slot < config.getSizeInventory(); slot++) {
-                ItemStack marker = config.getStackInSlot(slot);
-                if (marker != null) {
-                    priorityList.add(AEItemStack.create(marker));
+                IAEStack aes = config.getAEStackInSlot(slot);
+                if (aes instanceof IAEItemStack) {
+                    priorityList.add(((IAEItemStack) aes).copy());
                 }
             }
             if (!priorityList.isEmpty()) {
@@ -100,18 +106,25 @@ public final class DataLoomCellInventoryHandler extends MEInventoryHandler {
                     setPartitionList(new PrecisePriorityList(priorityList));
                 }
             }
-        } else if (getChannel() == StorageChannel.FLUIDS) {
+        } else if (type == AEFluidStackType.FLUID_STACK_TYPE) {
             appeng.api.storage.data.IItemList priorityList = AEApi.instance()
                 .storage()
                 .createFluidList();
             for (int slot = 0; slot < config.getSizeInventory(); slot++) {
-                ItemStack marker = config.getStackInSlot(slot);
-                if (marker == null) {
+                IAEStack aes = config.getAEStackInSlot(slot);
+                if (aes instanceof IAEFluidStack) {
+                    priorityList.add(((IAEFluidStack) aes).copy());
                     continue;
                 }
-                net.minecraftforge.fluids.FluidStack fluid = DataLoomCellUtil.resolveMarkerFluid(marker);
-                if (fluid != null) {
-                    priorityList.add(AEFluidStack.create(fluid));
+                if (aes instanceof IAEItemStack) {
+                    ItemStack marker = ((IAEItemStack) aes).getItemStack();
+                    if (marker == null) {
+                        continue;
+                    }
+                    net.minecraftforge.fluids.FluidStack fluid = DataLoomCellUtil.resolveMarkerFluid(marker);
+                    if (fluid != null) {
+                        priorityList.add(AEFluidStack.create(fluid));
+                    }
                 }
             }
             if (!priorityList.isEmpty()) {
@@ -127,7 +140,6 @@ public final class DataLoomCellInventoryHandler extends MEInventoryHandler {
     @Override
     public IAEStack injectItems(IAEStack input, appeng.api.config.Actionable mode,
         appeng.api.networking.security.BaseActionSource src) {
-        // Partition whitelist may allow marked types; underlying inventory still rejects all external storage.
         return super.injectItems(input, mode, src);
     }
 }

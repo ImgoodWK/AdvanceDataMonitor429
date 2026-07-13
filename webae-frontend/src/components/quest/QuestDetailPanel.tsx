@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { Alert, Button, Divider, Empty, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Button, Divider, Empty, message, Space, Spin, Tag, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 
 import { getApiClient } from '@/api/client';
@@ -116,8 +116,15 @@ export function QuestDetailPanel({
           steps: [index],
         });
       }
+      message.success(t('quest.stepSubmitted'));
       await load();
       onSubmitted?.();
+    } catch (err) {
+      message.error(
+        t('quest.stepSubmitFailed', {
+          reason: err instanceof Error ? err.message : String(err),
+        })
+      );
     } finally {
       setStepBusy(null);
     }

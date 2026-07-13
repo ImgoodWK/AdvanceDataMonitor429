@@ -2,7 +2,9 @@ package com.imgood.textech.items.cell;
 
 import net.minecraft.item.ItemStack;
 
-/** Cell workbench partition inventory for the Data Flow Cell —rejects this mod's items as markers. */
+import appeng.api.storage.data.IAEStack;
+
+/** Cell workbench partition inventory for flow/tide fluid loom cells. */
 public class FlowLoomCellConfig extends DataLoomFluidCellConfig {
 
     public FlowLoomCellConfig(ItemStack cellStack) {
@@ -10,10 +12,10 @@ public class FlowLoomCellConfig extends DataLoomFluidCellConfig {
     }
 
     @Override
-    public boolean isItemValidForSlot(int slot, ItemStack stack) {
-        if (stack == null || stack.getItem() == null) {
-            return false;
+    public void putAEStackInSlot(final int n, final IAEStack aes) {
+        if (aes != null && DataLoomCellUtil.isForbiddenFluidPartitionStack(aes)) {
+            return;
         }
-        return !DataLoomCellUtil.isModOwnItem(stack);
+        super.putAEStackInSlot(n, aes);
     }
 }

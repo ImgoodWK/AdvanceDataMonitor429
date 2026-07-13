@@ -39,6 +39,11 @@ public class DataLoomFluidInventory implements IMEInventoryHandler {
         return StorageChannel.FLUIDS;
     }
 
+    @Override
+    public appeng.api.storage.data.IAEStackType getStackType() {
+        return appeng.util.item.AEFluidStackType.FLUID_STACK_TYPE;
+    }
+
     public int getCellStatus() {
         ItemStack live = resolveLiveStack();
         DataLoomCellStorage.FluidAccumState state = DataLoomCellStorage.readFluidState(live);

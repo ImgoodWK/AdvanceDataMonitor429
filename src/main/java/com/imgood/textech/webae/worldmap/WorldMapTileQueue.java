@@ -174,18 +174,12 @@ public final class WorldMapTileQueue {
         }
 
         // --- Collect completed render results from worker threads ---
+        // The worker thread already writes valid PNG tiles to disk; the main
+        // thread only updates progress tracking and enqueues zoom pyramid parents.
         PendingResult result;
         while ((result = results.poll()) != null) {
             try {
                 if (WorldMapRenderSupport.isValidTilePng(result.png)) {
-                    WorldMapTileCache.write(
-                        result.view,
-                        result.layer,
-                        result.quality,
-                        result.dim,
-                        result.chunkX,
-                        result.chunkZ,
-                        result.png);
                     WorldMapZoomPyramid.enqueueParents(
                         result.view,
                         result.layer,
@@ -214,6 +208,7 @@ public final class WorldMapTileQueue {
                             result.layer);
                 } else if (!WorldMapTileLayer.isAe(result.layer)
                     && WorldMapRenderSupport.isLoadedEmptyTerrainChunk(result.dim, result.chunkX, result.chunkZ)) {
+                    // writeEmpty is a tiny transparent placeholder — acceptable on main thread
                     WorldMapTileCache.writeEmpty(
                         result.view,
                         result.layer,
@@ -358,6 +353,18 @@ public final class WorldMapTileQueue {
                                 captured.chunkZ,
                                 captured.ownerUuid,
                                 captured.networkId);
+                            // Write valid PNG to disk in the worker thread to avoid
+                            // blocking the main server tick with file I/O.
+                            if (WorldMapRenderSupport.isValidTilePng(png)) {
+                                WorldMapTileCache.write(
+                                    captured.view,
+                                    captured.layer,
+                                    captured.quality,
+                                    captured.dim,
+                                    captured.chunkX,
+                                    captured.chunkZ,
+                                    png);
+                            }
                             results.offer(
                                 new PendingResult(
                                     captured.view,

@@ -37,6 +37,10 @@ public final class WebAlertEngine {
     private static final ConcurrentHashMap<String, Map<String, CpuTrack>> cpuHistory = new ConcurrentHashMap<String, Map<String, CpuTrack>>();
     private static final ConcurrentHashMap<String, Set<String>> seenOrderIds = new ConcurrentHashMap<String, Set<String>>();
 
+    /** Max automation rules to evaluate per tick globally to avoid stalls. */
+    private static final int MAX_AUTOMATION_RULES_PER_TICK = 5;
+    private static int automationRulesEvaluatedThisTick;
+
     private WebAlertEngine() {}
 
     public static void onServerTick(long now) {
@@ -44,6 +48,8 @@ public final class WebAlertEngine {
         if (cfg == null || !cfg.enabled) {
             return;
         }
+        // Reset per-tick budget
+        automationRulesEvaluatedThisTick = 0;
         long intervalMs = Math.max(1000L, (long) cfg.pollIntervalSeconds * 1000L);
         for (String ownerUuid : WebAuthToken.listActiveOwnerUuids()) {
             Long last = lastPollByOwner.get(ownerUuid);
@@ -88,6 +94,10 @@ public final class WebAlertEngine {
         if (storage == null) {
             return;
         }
+        // Build O(1) item amount index once per storage snapshot.
+        java.util.Map<String, Long> itemAmounts = buildItemAmountIndex(storage);
+        java.util.Map<String, Long> fluidAmounts = buildFluidAmountIndex(storage);
+
         for (WebAlertsConfig.InventoryThresholdRule rule : cfg.inventoryThresholds) {
             if (rule == null) {
                 continue;
@@ -98,9 +108,9 @@ public final class WebAlertEngine {
             String sourceKey = "inv:" + networkId + ":" + (rule.itemId != null ? rule.itemId : rule.fluidName);
             long amount = 0L;
             if (rule.itemId != null && !rule.itemId.isEmpty()) {
-                amount = findItemAmount(storage, rule.itemId);
+                amount = findItemAmountIndexed(itemAmounts, rule.itemId);
             } else if (rule.fluidName != null && !rule.fluidName.isEmpty()) {
-                amount = findFluidAmount(storage, rule.fluidName);
+                amount = findFluidAmountIndexed(fluidAmounts, rule.fluidName);
             } else {
                 continue;
             }
@@ -123,38 +133,64 @@ public final class WebAlertEngine {
         }
     }
 
-    private static long findItemAmount(StorageDto storage, String itemId) {
-        if (storage.items == null) {
-            return 0L;
-        }
-        long total = 0L;
-        String needle = itemId.toLowerCase();
+    /** Build itemId→amount HashMap for O(1) lookups (also includes registryName keys). */
+    private static java.util.Map<String, Long> buildItemAmountIndex(StorageDto storage) {
+        java.util.Map<String, Long> map = new HashMap<String, Long>();
+        if (storage.items == null) return map;
         for (StorageDto.ItemEntry item : storage.items) {
-            if (item == null) {
-                continue;
+            if (item == null) continue;
+            if (item.itemId != null) {
+                String key = item.itemId.toLowerCase();
+                Long prev = map.get(key);
+                map.put(key, Long.valueOf(prev != null ? prev.longValue() + item.amount : item.amount));
             }
-            String id = item.itemId != null ? item.itemId.toLowerCase() : "";
-            String reg = item.registryName != null ? item.registryName.toLowerCase() : "";
-            if (id.contains(needle) || reg.contains(needle) || needle.contains(id)) {
-                total += item.amount;
+            if (item.registryName != null && !item.registryName.isEmpty()) {
+                String key = item.registryName.toLowerCase();
+                Long prev = map.get(key);
+                map.put(key, Long.valueOf(prev != null ? prev.longValue() + item.amount : item.amount));
+            }
+        }
+        return map;
+    }
+
+    private static java.util.Map<String, Long> buildFluidAmountIndex(StorageDto storage) {
+        java.util.Map<String, Long> map = new HashMap<String, Long>();
+        if (storage.fluids == null) return map;
+        for (FluidEntry fluid : storage.fluids) {
+            if (fluid == null || fluid.fluidName == null) continue;
+            String key = fluid.fluidName.toLowerCase();
+            Long prev = map.get(key);
+            map.put(key, Long.valueOf(prev != null ? prev.longValue() + fluid.amount : fluid.amount));
+        }
+        return map;
+    }
+
+    /** O(1) lookup using pre-built index with substring fallback. */
+    private static long findItemAmountIndexed(java.util.Map<String, Long> index, String itemId) {
+        if (itemId == null || itemId.isEmpty()) return 0L;
+        String needle = itemId.toLowerCase();
+        Long exact = index.get(needle);
+        if (exact != null) return exact.longValue();
+        // Fallback: partial match for rules using short names
+        long total = 0L;
+        for (java.util.Map.Entry<String, Long> entry : index.entrySet()) {
+            if (entry.getKey().contains(needle) || needle.contains(entry.getKey())) {
+                total += entry.getValue().longValue();
             }
         }
         return total;
     }
 
-    private static long findFluidAmount(StorageDto storage, String fluidName) {
-        if (storage.fluids == null) {
-            return 0L;
-        }
-        long total = 0L;
+    private static long findFluidAmountIndexed(java.util.Map<String, Long> index, String fluidName) {
+        if (fluidName == null || fluidName.isEmpty()) return 0L;
         String needle = fluidName.toLowerCase();
-        for (FluidEntry fluid : storage.fluids) {
-            if (fluid == null || fluid.fluidName == null) {
-                continue;
-            }
-            if (fluid.fluidName.toLowerCase()
-                .contains(needle)) {
-                total += fluid.amount;
+        Long exact = index.get(needle);
+        if (exact != null) return exact.longValue();
+        // Fallback: partial match
+        long total = 0L;
+        for (java.util.Map.Entry<String, Long> entry : index.entrySet()) {
+            if (entry.getKey().contains(needle)) {
+                total += entry.getValue().longValue();
             }
         }
         return total;
@@ -165,11 +201,17 @@ public final class WebAlertEngine {
         if (cfg.automationRules == null || cfg.automationRules.isEmpty()) {
             return;
         }
+        if (automationRulesEvaluatedThisTick >= MAX_AUTOMATION_RULES_PER_TICK) {
+            return; // Budget exhausted; remaining rules evaluated in later ticks
+        }
         StorageDto storage = SnapshotCache.instance()
             .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE);
         if (storage == null) {
             return;
         }
+        // Build O(1) item amount index once per storage snapshot.
+        java.util.Map<String, Long> itemAmounts = buildItemAmountIndex(storage);
+
         for (WebAlertsConfig.AutomationRule rule : cfg.automationRules) {
             if (rule == null || !rule.enabled || !"craft_when_below".equals(rule.type)) {
                 continue;
@@ -187,7 +229,13 @@ public final class WebAlertEngine {
             if (rule.cooldownSeconds < 1) {
                 continue;
             }
-            long amount = findItemAmount(storage, rule.itemId);
+            // Honor per-tick evaluation budget.
+            if (automationRulesEvaluatedThisTick >= MAX_AUTOMATION_RULES_PER_TICK) {
+                return;
+            }
+            automationRulesEvaluatedThisTick++;
+
+            long amount = findItemAmountIndexed(itemAmounts, rule.itemId);
             if (amount >= rule.threshold) {
                 continue;
             }

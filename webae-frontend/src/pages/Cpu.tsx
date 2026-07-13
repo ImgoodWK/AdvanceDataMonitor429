@@ -3,6 +3,7 @@ import { Tabs, Table, Input, Empty, Card, Drawer, Descriptions, Progress, Tag, T
 import { SearchOutlined } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
+import { formatNetworkOptionLabel } from '@/utils/networkHealth';
 import { useSnapshotData } from '@/hooks/useSnapshotData';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { PageShell } from '@/components/Layout/PageShell';
@@ -192,8 +193,11 @@ export function CpuPage() {
     return mergeCpusFromStorages(storages, displayMode, selectedNetworks);
   }, [storageMap, selectedNetworks, displayMode]);
 
-  const networkName = (id: number) =>
-    networks.find((n) => n.networkId === id)?.name ?? `#${id}`;
+  const networkName = (id: number) => {
+    const net = networks.find((n) => n.networkId === id);
+    if (!net) return `#${id}`;
+    return formatNetworkOptionLabel(net, t('networkUnavailable'));
+  };
 
   const filterCpus = (cpus: StorageCpu[]) => {
     if (!search) return cpus;

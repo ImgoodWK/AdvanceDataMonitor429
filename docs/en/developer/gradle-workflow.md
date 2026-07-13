@@ -171,17 +171,31 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1
 
 `repositories.gradle` resolves `com.github.GTNewHorizons` from `nexus.gtnewhorizons.com` before domestic mirrors; artifacts only on mirrors (e.g. `CodeChickenLib`) still fall back to the Tencent mirror.
 
-### GregTech `NoSuchMethodError: UITexture.fullImage(..., boolean)`
+### GregTech / ModularUI2 / AE2 (GTNH 2.9.0-beta-2)
 
-`GT5-Unofficial:5.09.51.470` was built against `ModularUI2:2.2.18` (`fullImage(mod, path, boolean)`). `2.3.x` replaced the boolean overload with `ColorType`. Dev deps such as `GTNH-Web-Map` can pull `ModularUI2:2.3.x` and crash GregTech during `preInit`.
+This repo is **aligned to GTNH pack 2.9.0-beta-2** (no older GT5 5.09.51 / MUI2 2.2 / GTNHLib 0.10 stack):
 
-This project pins `ModularUI2:2.2.18-1.7.10` via `devOnlyNonPublishable` and excludes `ModularUI2` from Web-Map transitives. To align with the latest pack GT / Web-Map stack, upgrade `GT5-Unofficial` to `5.09.52.x` and use `ModularUI2:2.3.73+`.
+| Component | Version |
+|-----------|---------|
+| GT5-Unofficial | `5.09.54.20` |
+| Applied-Energistics-2 | `rv3-beta-1000-GTNH` |
+| AE2FluidCraft-Rework | `1.5.95-gtnh` |
+| ModularUI2 | `2.3.79-1.7.10` |
+| GTNHLib | `0.11.24` |
+| BetterQuesting | `3.8.72-GTNH` |
+| NewHorizonsCoreMod | `2.9.5` |
+| StructureLib | `1.4.42` |
+| NotEnoughItems | `2.8.111-GTNH` |
+
+`addon.gradle` forces those coordinates.
+
+**AE2 optional API stubs**: the published AE2 jar's `TileChest` bytecode implements optional Mekanism / RotaryCraft interfaces from AE2's own `compileOnly` build. The GTNH pack does **not** ship those mods. TeXTech builds `build/ae2-optional-api-stubs.jar` from `tools/ae2-optional-stubs/` as `compileOnly` so javac can resolve the class signatures; stubs are **not** packaged into the mod jar and are not needed at runtime.
 
 ### BetterQuesting / WebAE quest book debugging
 
-- **Mod deps**: `BetterQuesting` `3.8.70-GTNH` + `GTNHLib` **`0.10.7`** (BQ requires ≥0.10.7; **do not use 0.11.9** — its preInit needs ModularUI2 2.3.x `TextFieldTheme`, incompatible with GT5 5.09.51 + MUI2 2.2.18). `addon.gradle` forces over GT5 transitives 0.9.54.
-- **Pack delta**: the live pack uses GT5 5.09.52 + GTNHLib 0.11.9 + ModularUI2 2.3.73; this repo still compiles against GT5 5.09.51.470 — quest book dev runs on the 0.10.7 stack.
-- **Quest data**: GTNH pack quest snapshot lives in `dev-fixtures/betterquesting/` (see `SOURCE.json`). `runClient` / `runServer` depend on `syncDevBetterQuesting`, which copies into `run/config/betterquesting/`.
+- **Mod deps**: `BetterQuesting 3.8.72-GTNH` + `GTNHLib 0.11.24` (title notifications need `TitleAPI.setEffectTier`).
+- **Common crash**: `NoSuchMethodError: TitleAPI.setEffectTier` → stale gtnhlib at runtime; clear `run/mods` and `--refresh-dependencies`.
+- **Quest data**: GTNH pack quest snapshot lives in `dev-fixtures/betterquesting/` (see `SOURCE.json`). `runClient` / `runServer` depend on `syncDevBetterQuesting`.
 - **Manual sync**: `.\gradlew.bat syncDevBetterQuesting`
 - **In-game load**: as OP run `/bq_admin default load`; verify WebAE `?page=quests` or the in-game quest book.
 - **Refresh snapshot**: `powershell -ExecutionPolicy Bypass -File tools/dev/sync-betterquesting-from-gtnh.ps1`, then commit `dev-fixtures/betterquesting/`.

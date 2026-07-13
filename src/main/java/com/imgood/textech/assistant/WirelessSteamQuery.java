@@ -4,7 +4,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -15,6 +18,9 @@ public final class WirelessSteamQuery {
 
     private static final String[] CLASS_NAMES = { "com.science.gtnl.utils.world.steam.SteamWirelessNetworkManager",
         "com.science.gtnl.utils.world.steam.GlobalSteamWorldSavedData" };
+
+    private static final Set<String> LOGGED_MISSING_CLASSES = Collections.synchronizedSet(new HashSet<String>());
+    private static final Set<String> LOGGED_CANDIDATE_CLASSES = Collections.synchronizedSet(new HashSet<String>());
 
     private WirelessSteamQuery() {}
 
@@ -72,7 +78,9 @@ public final class WirelessSteamQuery {
         for (String className : CLASS_NAMES) {
             try {
                 Class<?> clazz = Class.forName(className);
-                AdvanceDataMonitor.LOG.info("[ADM Assistant] Wireless steam: loaded class {}", className);
+                if (LOGGED_CANDIDATE_CLASSES.add("loaded:" + className)) {
+                    AdvanceDataMonitor.LOG.debug("[ADM Assistant] Wireless steam: loaded class {}", className);
+                }
 
                 // Strategy 1: Try calling getUserSteam(UUID) —preferred because it handles
                 // UUID→teamLeader transformation internally
@@ -105,7 +113,9 @@ public final class WirelessSteamQuery {
                 logCandidateApi(clazz);
 
             } catch (ClassNotFoundException e) {
-                AdvanceDataMonitor.LOG.info("[ADM Assistant] Wireless steam: class not found: {}", className);
+                if (LOGGED_MISSING_CLASSES.add(className)) {
+                    AdvanceDataMonitor.LOG.debug("[ADM Assistant] Wireless steam: class not found: {}", className);
+                }
             } catch (Throwable t) {
                 AdvanceDataMonitor.LOG.debug("[ADM Assistant] Wireless steam API probe failed for " + className, t);
             }
@@ -348,13 +358,17 @@ public final class WirelessSteamQuery {
     }
 
     private static void logCandidateApi(Class<?> clazz) {
+        String className = clazz.getName();
+        if (!LOGGED_CANDIDATE_CLASSES.add("candidates:" + className)) {
+            return;
+        }
         for (Method method : clazz.getMethods()) {
             String lower = method.getName()
                 .toLowerCase();
             if (lower.contains("steam") && Modifier.isStatic(method.getModifiers())) {
-                AdvanceDataMonitor.LOG.info(
+                AdvanceDataMonitor.LOG.debug(
                     "[ADM Assistant] Wireless steam API candidate: {}.{} returns {}",
-                    clazz.getName(),
+                    className,
                     method.getName(),
                     method.getReturnType()
                         .getSimpleName());
@@ -364,9 +378,9 @@ public final class WirelessSteamQuery {
             String lower = field.getName()
                 .toLowerCase();
             if (lower.contains("steam") || lower.contains("global")) {
-                AdvanceDataMonitor.LOG.info(
+                AdvanceDataMonitor.LOG.debug(
                     "[ADM Assistant] Wireless steam API candidate field: {}.{} type={}",
-                    clazz.getName(),
+                    className,
                     field.getName(),
                     field.getType()
                         .getSimpleName());

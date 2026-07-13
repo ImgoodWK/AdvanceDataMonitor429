@@ -1,10 +1,11 @@
 package com.imgood.textech.compat.ae.legacy;
 
-import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 
 import com.imgood.textech.compat.ae.AeFluidCellConfigFactory;
 import com.imgood.textech.items.cell.DataLoomFluidCellConfig;
+
+import appeng.tile.inventory.IAEStackInventory;
 
 public final class LegacyAeFluidCellConfigFactory implements AeFluidCellConfigFactory {
 
@@ -13,7 +14,7 @@ public final class LegacyAeFluidCellConfigFactory implements AeFluidCellConfigFa
     private LegacyAeFluidCellConfigFactory() {}
 
     @Override
-    public IInventory createConfigInventory(ItemStack cellStack) {
+    public IAEStackInventory createConfigInventory(ItemStack cellStack) {
         return new DataLoomFluidCellConfig(cellStack);
     }
 }

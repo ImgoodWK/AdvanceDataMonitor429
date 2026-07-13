@@ -24,7 +24,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class ItemDataDustLoomCell extends AbstractDataLoomItemCell {
 
     @Override
-    public IInventory getConfigInventory(ItemStack is) {
+    public appeng.tile.inventory.IAEStackInventory getConfigAEInventory(ItemStack is) {
         return new DustLoomCellConfig(is);
     }
 

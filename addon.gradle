@@ -1,9 +1,43 @@
-// TeXTech dev-only: sync GTNH BetterQuesting fixtures into run/config before local MC runs.
+// TeXTech dev-only: GTNH 2.9.0-beta-2 pin + BetterQuesting fixtures sync + AE2 optional API stubs.
 
-// BetterQuesting 3.8.70-GTNH requires gtnhlib@[0.10.7,). Use 0.10.7 with GT5 5.09.51 + ModularUI2 2.2.18 (0.11.9 needs MUI2 2.3.x).
+// Force pack versions so GT5 / AE2 / BQ transitive ranges cannot downgrade the stack.
 configurations.configureEach {
-    resolutionStrategy.force 'com.github.GTNewHorizons:GTNHLib:0.10.7'
-    resolutionStrategy.force 'com.github.GTNewHorizons:ModularUI2:2.2.18-1.7.10'
+    resolutionStrategy {
+        force 'com.github.GTNewHorizons:GTNHLib:0.11.24'
+        force 'com.github.GTNewHorizons:ModularUI2:2.3.79-1.7.10'
+        force 'com.github.GTNewHorizons:GT5-Unofficial:5.09.54.20'
+        force 'com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1000-GTNH'
+        force 'com.github.GTNewHorizons:AE2FluidCraft-Rework:1.5.95-gtnh'
+        force 'com.github.GTNewHorizons:StructureLib:1.4.42'
+        force 'com.github.GTNewHorizons:BetterQuesting:3.8.72-GTNH'
+        force 'com.github.GTNewHorizons:NotEnoughItems:2.8.111-GTNH'
+        force 'com.github.GTNewHorizons:NewHorizonsCoreMod:2.9.5'
+    }
+}
+
+// AE2 publishes TileChest with optional Mek/RotaryCraft interfaces in the class file.
+// Compile-only stub jar (sources under .workspace/ae2-optional-stubs); never shipped in the mod jar.
+tasks.register('buildAe2OptionalApiStubs') {
+    group = 'build'
+    description = 'Build compile-only AE2 optional API stub jar'
+    def stubSrc = file('tools/ae2-optional-stubs/src')
+    def stubClasses = file("$buildDir/ae2-optional-stubs-classes")
+    def stubJar = file("$buildDir/ae2-optional-api-stubs.jar")
+    inputs.dir(stubSrc)
+    outputs.file(stubJar)
+    doLast {
+        if (!stubSrc.exists()) {
+            throw new GradleException("Missing AE2 optional stub sources under ${stubSrc}")
+        }
+        stubClasses.mkdirs()
+        delete fileTree(stubClasses)
+        ant.javac(srcdir: stubSrc, destdir: stubClasses, includeantruntime: false, source: '8', target: '8', encoding: 'UTF-8')
+        ant.jar(destfile: stubJar, basedir: stubClasses)
+    }
+}
+
+tasks.named('compileJava').configure {
+    dependsOn 'buildAe2OptionalApiStubs'
 }
 
 tasks.register('syncDevBetterQuesting', Copy) {

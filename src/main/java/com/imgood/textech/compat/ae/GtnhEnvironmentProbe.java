@@ -37,41 +37,37 @@ public final class GtnhEnvironmentProbe {
     public static ProbeResult probe() {
         AeCompatProfile forced = parseConfigOverride(Config.compatAeProfileOverride);
         if (forced != null) {
+            // legacy override ignored on 2.9.0-beta-2+ targets — always native fluid API
+            if (forced == AeCompatProfile.LEGACY) {
+                return new ProbeResult(
+                    AeCompatProfile.NATIVE_FLUID,
+                    AeCompatDetectionSource.CONFIG_OVERRIDE,
+                    "legacy-override-ignored:" + Config.compatAeProfileOverride);
+            }
             return new ProbeResult(forced, AeCompatDetectionSource.CONFIG_OVERRIDE, Config.compatAeProfileOverride);
         }
 
+        // TeXTech targets GTNH 2.9.0-beta-2 only — always bind native fluid adapters.
         String packVersion = readGtnhVersionFile();
         if (packVersion != null && !packVersion.isEmpty()) {
-            GtnhVersion parsed = GtnhVersion.parse(packVersion);
-            if (parsed.isAtLeast290Beta1()) {
-                return new ProbeResult(
-                    AeCompatProfile.NATIVE_FLUID,
-                    AeCompatDetectionSource.GTNH_VERSION_FILE,
-                    packVersion);
-            }
-            return new ProbeResult(AeCompatProfile.LEGACY, AeCompatDetectionSource.GTNH_VERSION_FILE, packVersion);
+            return new ProbeResult(
+                AeCompatProfile.NATIVE_FLUID,
+                AeCompatDetectionSource.GTNH_VERSION_FILE,
+                packVersion);
         }
 
         String ae2Version = readModVersion("appliedenergistics2");
         if (ae2Version != null && !ae2Version.isEmpty()) {
-            GtnhVersion parsed = GtnhVersion.parse(ae2Version);
-            if (parsed.isAe2NativeFluidCapable()) {
-                return new ProbeResult(
-                    AeCompatProfile.NATIVE_FLUID,
-                    AeCompatDetectionSource.AE2_MOD_VERSION,
-                    ae2Version);
-            }
-            return new ProbeResult(AeCompatProfile.LEGACY, AeCompatDetectionSource.AE2_MOD_VERSION, ae2Version);
-        }
-
-        if (hasNativeFluidCapability()) {
             return new ProbeResult(
                 AeCompatProfile.NATIVE_FLUID,
-                AeCompatDetectionSource.CAPABILITY,
-                NATIVE_FLUID_CELL_CLASS);
+                AeCompatDetectionSource.AE2_MOD_VERSION,
+                ae2Version);
         }
 
-        return new ProbeResult(AeCompatProfile.LEGACY, AeCompatDetectionSource.DEFAULT_LEGACY, "pre-2.9.0-default");
+        return new ProbeResult(
+            AeCompatProfile.NATIVE_FLUID,
+            AeCompatDetectionSource.DEFAULT_LEGACY,
+            "2.9.0-beta-2-native-default");
     }
 
     private static AeCompatProfile parseConfigOverride(String override) {

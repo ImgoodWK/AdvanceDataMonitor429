@@ -14,7 +14,7 @@ import {
   type IconReadyDetail,
   FLUID_ID_PREFIX,
 } from '@/utils/icon';
-import { getLocalIconBlobUrlForCandidates, putLocalIconBlob, SERVER_SYNC_PACK_NAME } from '@/utils/localIconPack';
+import { getLocalIconBlobUrlForCandidates, SERVER_SYNC_PACK_NAME } from '@/utils/localIconPack';
 import { debugLog } from '@/utils/debugLog';
 import { openGtnhWikiSearch } from '@/utils/wiki';
 import { trackVisibleIcon } from '@/utils/visibleIconRegistry';
@@ -32,7 +32,7 @@ interface IconProps {
   onIconClick?: (e: React.MouseEvent) => void;
 }
 
-/** Resolution: local pack → server pack (candidate chain) → abbreviation fallback. */
+/** Resolution: server disk cache (authoritative) → IndexedDB fallback → abbreviation. */
 export const Icon = memo(function Icon({
   id,
   item,
@@ -52,7 +52,11 @@ export const Icon = memo(function Icon({
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [modeIndex, setModeIndex] = useState(0);
   const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [localLookupDone, setLocalLookupDone] = useState(false);
+  const [forceLocal, setForceLocal] = useState(false);
   const [errored, setErrored] = useState(false);
+
+  const effectiveLocalPack = localIconPack || SERVER_SYNC_PACK_NAME;
 
   const [retryGen, setRetryGen] = useState(0);
   const retryAttemptRef = useRef(0);
@@ -72,6 +76,8 @@ export const Icon = memo(function Icon({
     setModeIndex(0);
     setErrored(false);
     setLocalUrl(null);
+    setLocalLookupDone(false);
+    setForceLocal(false);
     retryAttemptRef.current = 0;
     if (retryTimerRef.current != null) {
       window.clearTimeout(retryTimerRef.current);
@@ -103,23 +109,32 @@ export const Icon = memo(function Icon({
   useEffect(() => {
     let cancelled = false;
     setLocalUrl(null);
-    if (!localIconPack || candidates.length === 0) return;
+    setLocalLookupDone(false);
+    if (!iconCacheEnabled || candidates.length === 0) {
+      setLocalLookupDone(true);
+      return;
+    }
 
-    getLocalIconBlobUrlForCandidates(localIconPack, candidates).then((url) => {
-      if (!cancelled) setLocalUrl(url);
+    getLocalIconBlobUrlForCandidates(effectiveLocalPack, candidates).then((url) => {
+      if (!cancelled) {
+        setLocalUrl(url);
+        setLocalLookupDone(true);
+      }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [localIconPack, candidates, retryGen]);
+  }, [effectiveLocalPack, candidates, retryGen, iconCacheEnabled]);
 
   const serverUrl =
-    activeId && !iconIsMarkedFailed(failedIcons, activeId)
+    localLookupDone &&
+    activeId &&
+    !iconIsMarkedFailed(failedIcons, activeId)
       ? buildIconUrl(activeId, iconPack, token, iconCacheEnabled, activeMode) + (retryGen ? `&r=${retryGen}` : '')
       : '';
 
-  const url = localUrl || serverUrl;
+  const url = forceLocal ? localUrl || serverUrl : serverUrl || localUrl;
 
   const wikiEnabled = linkToWiki && iconWikiEnabled && !!(item || id || alt) && !onIconClick;
   const wikiTitle = wikiEnabled ? t('iconWikiHint') : undefined;
@@ -166,26 +181,6 @@ export const Icon = memo(function Icon({
     }
   };
 
-  /** Cache server PNG into IndexedDB without a second HTTP round-trip. */
-  const cacheFromImage = (img: HTMLImageElement) => {
-    if (localUrl || !activeId || !img.naturalWidth) return;
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      canvas.toBlob((blob) => {
-        if (blob && blob.size > 0) {
-          void putLocalIconBlob(SERVER_SYNC_PACK_NAME, activeId, blob);
-        }
-      }, 'image/png');
-    } catch {
-      /* canvas may be tainted; ignore */
-    }
-  };
-
   const boxClass =
     'webae-icon-box' + (isFluid ? ' webae-icon-box-fluid' : '') + (wikiEnabled || onIconClick ? ' webae-icon-wiki-link' : '');
   const imgClass = 'webae-icon' + (isFluid ? ' webae-icon-fluid' : '') + (className ? ' ' + className : '');
@@ -226,12 +221,11 @@ export const Icon = memo(function Icon({
         className={imgClass}
         loading="lazy"
         draggable={false}
-        onLoad={(e) => cacheFromImage(e.currentTarget)}
         onError={() => {
           debugLog(
             'icons',
             'warn',
-            'icon load failed: activeId={} mode={} candidateIndex={}/{} modeIndex={}/{} serverUrl={} hasLocalUrl={}',
+            'icon load failed: activeId={} mode={} candidateIndex={}/{} modeIndex={}/{} serverUrl={} hasLocalUrl={} forceLocal={}',
             activeId,
             activeMode,
             candidateIndex,
@@ -239,8 +233,15 @@ export const Icon = memo(function Icon({
             modeIndex,
             modeChain.length,
             serverUrl?.substring(0, 120),
-            !!localUrl
+            !!localUrl,
+            forceLocal
           );
+
+          if (!forceLocal && localUrl && serverUrl) {
+            setForceLocal(true);
+            setErrored(false);
+            return;
+          }
 
           if (modeIndex + 1 < modeChain.length) {
             setModeIndex((i) => i + 1);

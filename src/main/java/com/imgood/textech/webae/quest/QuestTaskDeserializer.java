@@ -102,14 +102,11 @@ public final class QuestTaskDeserializer {
     }
 
     private static void mergeProgress(QuestTaskDto dto, NBTTagCompound progress, NBTTagCompound config) {
-        long required = config.getLong("required");
-        if (required <= 0) {
-            required = config.getInteger("amount");
+        long configRequired = config.getLong("required");
+        if (configRequired <= 0) {
+            configRequired = config.getInteger("amount");
         }
-        if (required <= 0) {
-            required = 1;
-        }
-        dto.required = required;
+
         dto.progress = progress.getLong("progress");
         if (dto.progress <= 0) {
             dto.progress = progress.getInteger("amount");
@@ -118,20 +115,89 @@ public final class QuestTaskDeserializer {
         readItemFromNbt(dto, config);
         readFluidFromNbt(dto, config);
         readOreDictFromNbt(dto, config);
+        readRequiredItemsFromNbt(dto, config);
+        readRequiredFluidsFromNbt(dto, config);
+
+        dto.acceptAnyMeta = dto.factoryId != null
+            && dto.factoryId.toLowerCase(Locale.ROOT).contains("retrieval")
+            && (config.hasKey("oreDict") || config.hasKey("tag"));
 
         if ((dto.registryName == null || dto.registryName.isEmpty()) && config.hasKey("items")) {
             NBTTagList items = config.getTagList("items", 10);
             if (items.tagCount() > 0) {
                 NBTTagCompound first = items.getCompoundTagAt(0);
                 readItemTag(dto, first);
-                if (dto.required <= 1 && first.hasKey("StackSize")) {
-                    dto.required = first.getInteger("StackSize");
+                long itemCount = itemCountFromNbt(first);
+                if (itemCount > 0) {
+                    dto.required = itemCount;
                 }
                 if (items.tagCount() > 1) {
                     dto.extraItemCount = items.tagCount() - 1;
                 }
             }
         }
+
+        if (configRequired > 0) {
+            dto.required = configRequired;
+        } else if (dto.required <= 0) {
+            dto.required = 1;
+        }
+    }
+
+    private static void readRequiredItemsFromNbt(QuestTaskDto dto, NBTTagCompound config) {
+        if (!config.hasKey("requiredItems")) {
+            return;
+        }
+        NBTTagList items = config.getTagList("requiredItems", 10);
+        if (items.tagCount() <= 0) {
+            return;
+        }
+        NBTTagCompound first = items.getCompoundTagAt(0);
+        if (dto.registryName == null || dto.registryName.isEmpty()) {
+            readItemTag(dto, first);
+        }
+        long count = itemCountFromNbt(first);
+        if (count > 0) {
+            dto.required = count;
+        }
+        if (items.tagCount() > 1) {
+            dto.extraItemCount = items.tagCount() - 1;
+        }
+    }
+
+    private static void readRequiredFluidsFromNbt(QuestTaskDto dto, NBTTagCompound config) {
+        if (!config.hasKey("requiredFluids")) {
+            return;
+        }
+        NBTTagList fluids = config.getTagList("requiredFluids", 10);
+        if (fluids.tagCount() <= 0) {
+            return;
+        }
+        NBTTagCompound first = fluids.getCompoundTagAt(0);
+        if (first != null) {
+            if (dto.fluidName == null || dto.fluidName.isEmpty()) {
+                dto.fluidName = first.getString("FluidName");
+            }
+            if (first.hasKey("Amount")) {
+                dto.fluidRequired = first.getInteger("Amount");
+            }
+        }
+        if (fluids.tagCount() > 1) {
+            dto.extraItemCount = Math.max(dto.extraItemCount, fluids.tagCount() - 1);
+        }
+    }
+
+    private static long itemCountFromNbt(NBTTagCompound tag) {
+        if (tag == null) {
+            return 0L;
+        }
+        if (tag.hasKey("Count")) {
+            return tag.getInteger("Count");
+        }
+        if (tag.hasKey("StackSize")) {
+            return tag.getInteger("StackSize");
+        }
+        return 0L;
     }
 
     private static void readRequirements(QuestTaskDto dto, Object task) {
@@ -148,8 +214,9 @@ public final class QuestTaskDeserializer {
                         ItemStack stack = bigStackToItem(first);
                         if (stack != null) {
                             fillItem(dto, stack);
-                            if (dto.required <= 1) {
-                                dto.required = stack.stackSize;
+                            long amount = bigStackAmount(first);
+                            if (amount > 0) {
+                                dto.required = amount;
                             }
                         }
                         if (count > 1) {
@@ -170,8 +237,11 @@ public final class QuestTaskDeserializer {
             if (required != null) {
                 required.setAccessible(true);
                 Object val = required.get(task);
-                if (val instanceof Number && dto.required <= 1) {
-                    dto.required = ((Number) val).longValue();
+                if (val instanceof Number && (dto.required <= 0 || dto.required == 1)) {
+                    long fieldVal = ((Number) val).longValue();
+                    if (fieldVal > 1) {
+                        dto.required = fieldVal;
+                    }
                 }
             }
         } catch (Throwable ignored) {}
@@ -251,9 +321,6 @@ public final class QuestTaskDeserializer {
         dto.registryName = registryNameForStack(stack);
         dto.itemId = dto.registryName;
         dto.meta = stack.getItemDamage();
-        if (dto.required <= 0) {
-            dto.required = stack.stackSize;
-        }
     }
 
     private static void fillFluid(QuestTaskDto dto, FluidStack fs) {
@@ -281,6 +348,42 @@ public final class QuestTaskDeserializer {
             }
         } catch (Throwable ignored) {}
         return null;
+    }
+
+    /** Reads quantity from BQ {@code BigItemStack} (not {@link ItemStack#stackSize} on the base template). */
+    private static long bigStackAmount(Object bigStack) {
+        if (bigStack == null) {
+            return 0L;
+        }
+        if (bigStack instanceof ItemStack) {
+            return ((ItemStack) bigStack).stackSize;
+        }
+        try {
+            java.lang.reflect.Method m = bigStack.getClass()
+                .getMethod("getStackSize");
+            Object size = m.invoke(bigStack);
+            if (size instanceof Number) {
+                long val = ((Number) size).longValue();
+                if (val > 0) {
+                    return val;
+                }
+            }
+        } catch (Throwable ignored) {}
+        try {
+            Field f = findField(bigStack.getClass(), "stackSize");
+            if (f != null) {
+                f.setAccessible(true);
+                Object val = f.get(bigStack);
+                if (val instanceof Number) {
+                    long fieldVal = ((Number) val).longValue();
+                    if (fieldVal > 0) {
+                        return fieldVal;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        ItemStack stack = bigStackToItem(bigStack);
+        return stack != null && stack.stackSize > 0 ? stack.stackSize : 0L;
     }
 
     private static Field findField(Class<?> type, String name) {

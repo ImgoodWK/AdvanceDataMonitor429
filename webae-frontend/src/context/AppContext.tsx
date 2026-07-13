@@ -53,6 +53,10 @@ import {
   type UiSettingsSection,
 } from '@/utils/uiSettingsBundle';
 import { parseUrlNavigation, syncUrlNavigation } from '@/utils/urlNavigation';
+import {
+  filterHealthyNetworkIds,
+  findFirstHealthyNetworkId,
+} from '@/utils/networkHealth';
 import type {
   ConfigResponse,
   IconPackInfo,
@@ -293,7 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ---- Networks ----
   const [networks, setNetworks] = useState<NetworkInfo[]>([]);
-  const [selectedNetworks, setSelectedNetworks] = useState<number[]>(urlBoot.networks ?? []);
+  const [selectedNetworks, setSelectedNetworksState] = useState<number[]>(urlBoot.networks ?? []);
 
   // ---- i18n ----
   const [lang, setLangState] = useLocalStorageString('webae_lang', '') as [
@@ -517,11 +521,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ---- API client init (tokenRef avoids stale closure; silent re-login on 401) ----
   const tokenRef = useRef(token);
   const iconPackRef = useRef(iconPack);
+  const selectedNetworksRef = useRef(selectedNetworks);
   const authFailureHandling = useRef(false);
 
   useEffect(() => {
     tokenRef.current = token;
   }, [token]);
+  useEffect(() => {
+    selectedNetworksRef.current = selectedNetworks;
+  }, [selectedNetworks]);
   useEffect(() => {
     iconPackRef.current = iconPack;
   }, [iconPack]);
@@ -611,6 +619,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       msgApi[type](msg);
     },
     [msgApi]
+  );
+
+  const setSelectedNetworks = useCallback(
+    (ids: number[]) => {
+      const filtered = filterHealthyNetworkIds(ids, networks);
+      if (filtered.length < ids.length) {
+        const dict = (lang || 'en') === 'zh' ? zhDict : enDict;
+        notify(dict.networkUnavailableSelect ?? enDict.networkUnavailableSelect, 'warning');
+      }
+      setSelectedNetworksState(filtered);
+    },
+    [networks, lang, notify]
   );
 
   const fmtNum = useCallback(
@@ -726,8 +746,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (data.success && data.networks) {
         setNetworks(data.networks);
         setNetworksError(null);
-        if (selectedNetworks.length === 0 && data.networks.length > 0) {
-          setSelectedNetworks([data.networks[0].networkId]);
+        const currentSelected = selectedNetworksRef.current;
+        if (currentSelected.length === 0 && data.networks.length > 0) {
+          const firstHealthy = findFirstHealthyNetworkId(data.networks);
+          if (firstHealthy != null) {
+            setSelectedNetworksState([firstHealthy]);
+          }
+        } else {
+          const filtered = filterHealthyNetworkIds(currentSelected, data.networks);
+          if (filtered.length !== currentSelected.length) {
+            setSelectedNetworksState(filtered);
+            const dict = (lang || 'en') === 'zh' ? zhDict : enDict;
+            notify(
+              dict.networkUnavailableDeselected ?? enDict.networkUnavailableDeselected,
+              'warning'
+            );
+          }
         }
       } else {
         const msg = 'networksFetchFailed';
@@ -739,7 +773,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setNetworksError(msg);
       notify(msg, 'error');
     }
-  }, [token, selectedNetworks.length, notify]);
+  }, [token, lang, notify]);
 
   // ---- Check connection (raw fetch — avoid triggering logout on heartbeat 401) ----
   const checkConnection = useCallback(async () => {

@@ -171,19 +171,33 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1
 
 `repositories.gradle` 已将 `nexus.gtnewhorizons.com` 置于国内镜像之前解析 `com.github.GTNewHorizons` 坐标；部分仅存在于镜像的构件（如 `CodeChickenLib`）仍由腾讯云镜像回退提供。
 
-### GregTech `NoSuchMethodError: UITexture.fullImage(..., boolean)`
+### GregTech / ModularUI2 / AE2（GTNH 2.9.0-beta-2）
 
-`GT5-Unofficial:5.09.51.470` 编译期依赖 `ModularUI2:2.2.18` 的 `fullImage(mod, path, boolean)` API；`2.3.x` 已改为 `ColorType` 参数。若 dev 依赖（如 `GTNH-Web-Map`）传递拉入 `ModularUI2:2.3.x`，会在 GregTech `preInit` 崩溃。
+本仓库 **已对齐 GTNH 整合包 2.9.0-beta-2**（不再兼容 5.09.51 / ModularUI2 2.2 / GTNHLib 0.10 旧栈）：
 
-本项目在 `dependencies.gradle` 中显式 `devOnlyNonPublishable` 锁定 `ModularUI2:2.2.18-1.7.10`，并对 Web-Map 排除 `ModularUI2` 传递。若需与整合包最新 GT / Web-Map 对齐，可一并升级 `GT5-Unofficial` 至 `5.09.52.x` 并使用 `ModularUI2:2.3.73+`。
+| 组件 | 版本 |
+|------|------|
+| GT5-Unofficial | `5.09.54.20` |
+| Applied-Energistics-2 | `rv3-beta-1000-GTNH` |
+| AE2FluidCraft-Rework | `1.5.95-gtnh` |
+| ModularUI2 | `2.3.79-1.7.10` |
+| GTNHLib | `0.11.24` |
+| BetterQuesting | `3.8.72-GTNH` |
+| NewHorizonsCoreMod | `2.9.5` |
+| StructureLib | `1.4.42` |
+| NotEnoughItems | `2.8.111-GTNH` |
+
+`addon.gradle` 对上述坐标做 `resolutionStrategy.force`。
+
+**AE2 可选 API stub**：发布的 AE2 jar 中部分 Tile（如 `TileChest`）字节码 implements 了 Mekanism / RotaryCraft 接口；这是 AE2 用 `compileOnly` 编进去的可选兼容，**GTNH 整合包并不安装这两个模组**。TeXTech 用 `tools/ae2-optional-stubs/` 生成 `build/ae2-optional-api-stubs.jar`（`compileOnly`），仅让 javac 能解析类签名，stub **不打进模组 jar**、游戏也不需要装 Mek/RC。
 
 ### BetterQuesting / WebAE 任务书调试
 
-- **模组依赖**：`BetterQuesting` `3.8.70-GTNH` + `GTNHLib` **`0.10.7`**（BQ 要求 ≥0.10.7；**不要用 0.11.9**，其 preInit 依赖 ModularUI2 2.3.x 的 `TextFieldTheme`，与 GT5 5.09.51 + MUI2 2.2.18 冲突）。`addon.gradle` force 覆盖 GT5 传递的 0.9.54。
-- **与整合包差异**：正式整合包为 GT5 5.09.52 + GTNHLib 0.11.9 + ModularUI2 2.3.73；本仓库 compile 仍锁定 GT5 5.09.51.470，任务书 dev 在 0.10.7 栈上调试即可。
-- **任务数据**：整合包任务快照已提交在 `dev-fixtures/betterquesting/`（来源见 `SOURCE.json`）。`runClient` / `runServer` 启动前会自动执行 `syncDevBetterQuesting`，复制到 `run/config/betterquesting/`。
+- **模组依赖**：`BetterQuesting 3.8.72-GTNH` + `GTNHLib 0.11.24`（任务完成 title 通知依赖 `TitleAPI.setEffectTier`）。
+- **常见崩溃**：`NoSuchMethodError: TitleAPI.setEffectTier` → 运行时 gtnhlib 过旧；清理 `run/mods` 旧 jar 后 `--refresh-dependencies`。
+- **任务数据**：整合包任务快照在 `dev-fixtures/betterquesting/`（见 `SOURCE.json`）。`runClient` / `runServer` 前自动 `syncDevBetterQuesting`。
 - **手动同步**：`.\gradlew.bat syncDevBetterQuesting`
-- **进游戏加载**：OP 执行 `/bq_admin default load`；WebAE 侧栏 `?page=quests` 或游戏内任务书验证。
+- **进游戏加载**：OP 执行 `/bq_admin default load`；WebAE `?page=quests` 或游戏内任务书验证。
 - **更新快照**：`powershell -ExecutionPolicy Bypass -File tools/dev/sync-betterquesting-from-gtnh.ps1`，然后提交 `dev-fixtures/betterquesting/`。
 
 ### NBTEdit `NoSuchFieldError: field_71412_D`

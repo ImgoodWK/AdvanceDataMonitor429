@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
-
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
@@ -21,6 +18,7 @@ import com.imgood.textech.webae.dto.GtMachineListDto;
 import com.imgood.textech.webae.monitor.MonitorBindingCollector;
 import com.imgood.textech.webae.monitor.MonitorBindingDto;
 import com.imgood.textech.webae.pattern.PatternBrowseService;
+import com.imgood.textech.webae.perf.SnapshotWorkerPool;
 import com.imgood.textech.webae.perf.WebAePerfProfiler;
 import com.imgood.textech.webae.scanner.LinkScannerBlockDto;
 import com.imgood.textech.webae.scanner.LinkScannerCollector;
@@ -354,16 +352,21 @@ public class SnapshotScheduler {
         } catch (NumberFormatException e) {
             return;
         }
-        AeSnapshotCollector.enqueueCollect(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
+        SnapshotWorkerPool.submitServerTask("storage:" + key, new Runnable() {
 
             @Override
-            public void onResult(Object dto) {
-                if (dto != null) {
-                    snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
-                } else {
-                    // storage unchanged — keep stale data alive by bumping the timestamp
-                    snapshotCache.markRefresh(playerUuid, networkId, TYPE_STORAGE);
-                }
+            public void run() {
+                AeSnapshotCollector.enqueueCollectOnCurrentThread(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
+
+                    @Override
+                    public void onResult(Object dto) {
+                        if (dto != null) {
+                            snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
+                        } else {
+                            snapshotCache.markRefresh(playerUuid, networkId, TYPE_STORAGE);
+                        }
+                    }
+                });
             }
         });
     }
@@ -378,7 +381,7 @@ public class SnapshotScheduler {
         } catch (NumberFormatException e) {
             return;
         }
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("pattern_browse:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -410,7 +413,7 @@ public class SnapshotScheduler {
         }
         // GT collection runs on the main thread (via HandlerTick task queue) so we
         // can safely look up the player, networks and monitor synchronously here.
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("gt:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -446,7 +449,7 @@ public class SnapshotScheduler {
         } catch (NumberFormatException e) {
             return;
         }
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("p2p:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -481,7 +484,7 @@ public class SnapshotScheduler {
         } catch (NumberFormatException e) {
             return;
         }
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("cells:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -513,7 +516,7 @@ public class SnapshotScheduler {
         } catch (NumberFormatException e) {
             return;
         }
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("patterns_rich:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -533,7 +536,7 @@ public class SnapshotScheduler {
     }
 
     private static void enqueueNetworksCollect(final String ownerUuid) {
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("networks:" + ownerUuid, new Runnable() {
 
             @Override
             public void run() {
@@ -556,7 +559,7 @@ public class SnapshotScheduler {
     }
 
     private static void enqueueMonitorCollect(final String ownerUuid) {
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("monitor_bindings:" + ownerUuid, new Runnable() {
 
             @Override
             public void run() {
@@ -579,7 +582,7 @@ public class SnapshotScheduler {
     }
 
     private static void enqueueScannerCollect(final String ownerUuid) {
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorker("scanner:" + ownerUuid, new Runnable() {
 
             @Override
             public void run() {
@@ -679,14 +682,20 @@ public class SnapshotScheduler {
     public static void forceCollectStorage(String playerUuid, int networkId) {
         if (snapshotCache == null) return;
         final String key = playerUuid + ":" + networkId;
-        AeSnapshotCollector.enqueueCollect(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
+        enqueueWorkerForced("storage:" + key, new Runnable() {
 
             @Override
-            public void onResult(Object dto) {
-                if (dto != null) {
-                    snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
-                    lastStorageCollectTime.put(key, System.currentTimeMillis());
-                }
+            public void run() {
+                AeSnapshotCollector.enqueueCollectOnCurrentThread(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
+
+                    @Override
+                    public void onResult(Object dto) {
+                        if (dto != null) {
+                            snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
+                            lastStorageCollectTime.put(key, System.currentTimeMillis());
+                        }
+                    }
+                });
             }
         });
     }
@@ -699,7 +708,7 @@ public class SnapshotScheduler {
      */
     public static void forceCollectPatternBrowse(final String playerUuid, final int networkId) {
         final String key = playerUuid + ":" + networkId;
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        enqueueWorkerForced("pattern_browse:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -719,7 +728,8 @@ public class SnapshotScheduler {
 
     public static void forceCollectGt(final String playerUuid, final int networkId) {
         if (snapshotCache == null) return;
-        HandlerTickEnqueue.enqueue(new Runnable() {
+        final String key = playerUuid + ":" + networkId;
+        enqueueWorkerForced("gt:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -748,30 +758,14 @@ public class SnapshotScheduler {
         return lastActiveTime.size();
     }
 
-    private static EntityPlayerMP findPlayer(String playerUuid) {
-        MinecraftServer server = MinecraftServer.getServer();
-        if (server == null || server.getConfigurationManager() == null) return null;
-        for (Object obj : server.getConfigurationManager().playerEntityList) {
-            if (obj instanceof EntityPlayerMP) {
-                EntityPlayerMP mp = (EntityPlayerMP) obj;
-                if (mp.getUniqueID()
-                    .toString()
-                    .equals(playerUuid)) {
-                    return mp;
-                }
-            }
-        }
-        return null;
+    /**
+     * Schedule snapshot collection via {@link SnapshotWorkerPool} with backpressure.
+     */
+    private static void enqueueWorker(String label, Runnable serverWork) {
+        SnapshotWorkerPool.submitServerTask(label, serverWork);
     }
 
-    /**
-     * Thin wrapper around {@link com.imgood.textech.handler.HandlerTick#enqueueServerTask}
-     * to keep the cache layer decoupled from the handler package.
-     */
-    private static final class HandlerTickEnqueue {
-
-        static void enqueue(Runnable r) {
-            com.imgood.textech.handler.HandlerTick.enqueueServerTask(r);
-        }
+    private static void enqueueWorkerForced(String label, Runnable serverWork) {
+        SnapshotWorkerPool.submitServerTaskForced(label, serverWork);
     }
 }

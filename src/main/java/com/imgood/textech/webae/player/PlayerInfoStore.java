@@ -1,10 +1,8 @@
 package com.imgood.textech.webae.player;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +15,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.TeXTechDataDir;
+import com.imgood.textech.webae.util.AsyncJsonFileSaver;
 
 /**
  * Server-side in-memory store of per-player metadata for the WebAE
@@ -42,6 +41,9 @@ public class PlayerInfoStore {
 
     /** Debounce window for saves (ms). Saves requested within this window collapse into one. */
     private static final long SAVE_DEBOUNCE_MS = 2000L;
+
+    /** Async file saver that writes JSON to disk on a background daemon thread. */
+    private static final AsyncJsonFileSaver fileSaver = new AsyncJsonFileSaver("PlayerInfo");
 
     private final Map<UUID, PlayerInfo> players = new ConcurrentHashMap<UUID, PlayerInfo>();
     private volatile boolean loaded;
@@ -195,31 +197,13 @@ public class PlayerInfoStore {
 
     /** Force an immediate save (e.g. on server stop). */
     public synchronized void saveNow() {
-        File parent = storeFile().getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
+        // Snapshot data on the main thread and delegate file I/O to the
+        // background daemon thread to avoid disk write stalls on the tick.
+        Map<String, PlayerInfo> snapshot = new HashMap<String, PlayerInfo>();
+        for (Map.Entry<UUID, PlayerInfo> e : players.entrySet()) {
+            snapshot.put(e.getKey().toString(), e.getValue());
         }
-        BufferedWriter writer = null;
-        try {
-            // Convert to a plain HashMap for stable JSON serialization order.
-            Map<String, PlayerInfo> snapshot = new HashMap<String, PlayerInfo>();
-            for (Map.Entry<UUID, PlayerInfo> e : players.entrySet()) {
-                snapshot.put(
-                    e.getKey()
-                        .toString(),
-                    e.getValue());
-            }
-            writer = new BufferedWriter(new FileWriter(storeFile(), false));
-            GSON.toJson(snapshot, writer);
-        } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("[WebAE] Failed to save player info store", e);
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (Exception ignored) {}
-            }
-        }
+        fileSaver.schedule(snapshot, storeFile());
     }
 
     private synchronized void ensureLoaded() {

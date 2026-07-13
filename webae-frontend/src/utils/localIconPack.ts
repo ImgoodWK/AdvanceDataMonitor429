@@ -138,6 +138,11 @@ export async function hasLocalIcon(packName: string, itemId: string): Promise<bo
 
 export async function putLocalIconBlob(packName: string, itemId: string, blob: Blob): Promise<void> {
   if (!packName || !itemId || !blob) return;
+  const cacheKey = packName + '::' + itemId;
+  if (blobUrlCache[cacheKey]) {
+    URL.revokeObjectURL(blobUrlCache[cacheKey]);
+    delete blobUrlCache[cacheKey];
+  }
   const db = await openDb();
   const key = packName + '/' + sanitizeItemId(itemId);
   await new Promise<void>((resolve, reject) => {

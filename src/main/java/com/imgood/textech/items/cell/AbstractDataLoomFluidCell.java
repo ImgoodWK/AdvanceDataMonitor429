@@ -16,14 +16,17 @@ import com.imgood.textech.Config;
 import com.imgood.textech.compat.ae.AeCompat;
 
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.core.localization.GuiText;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.util.item.AEFluidStackType;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Shared base for fluid-channel data loom cells. Uses {@link DataLoomFluidCellConfig}
- * so Cell Workbench partition slots accept buckets, fluid packets, and NEI fluid ghosts.
+ * Shared base for fluid-channel data loom cells. Uses AE2 2.9 {@link appeng.items.contents.CellConfig}
+ * via {@link DataLoomFluidCellConfig} / factory for Cell Workbench partitions.
  */
 public abstract class AbstractDataLoomFluidCell extends Item implements IDataLoomFluidCell {
 
@@ -42,7 +45,7 @@ public abstract class AbstractDataLoomFluidCell extends Item implements IDataLoo
     }
 
     @Override
-    public IInventory getConfigInventory(ItemStack is) {
+    public IAEStackInventory getConfigAEInventory(ItemStack is) {
         return AeCompat.fluidCellConfig()
             .createConfigInventory(is);
     }
@@ -56,8 +59,19 @@ public abstract class AbstractDataLoomFluidCell extends Item implements IDataLoo
     public void setFuzzyMode(ItemStack is, FuzzyMode fzMode) {}
 
     @Override
-    public long getBytes(ItemStack is) {
+    public int getBytes(ItemStack is) {
+        long total = DataLoomCellCapacity.FLUID_TOTAL_BYTES;
+        return total > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total;
+    }
+
+    @Override
+    public long getBytesLong(ItemStack is) {
         return DataLoomCellCapacity.FLUID_TOTAL_BYTES;
+    }
+
+    @Override
+    public int BytePerType(ItemStack cell) {
+        return getBytesPerType(cell);
     }
 
     @Override
@@ -66,8 +80,8 @@ public abstract class AbstractDataLoomFluidCell extends Item implements IDataLoo
     }
 
     @Override
-    public boolean isBlackListed(ItemStack is, IAEFluidStack stack) {
-        return false;
+    public boolean isBlackListed(IAEStack requestedAddition) {
+        return DataLoomCellUtil.isForbiddenFluidPartitionStack(requestedAddition);
     }
 
     @Override
@@ -82,8 +96,13 @@ public abstract class AbstractDataLoomFluidCell extends Item implements IDataLoo
     }
 
     @Override
-    public double getIdleDrain(ItemStack is) {
+    public double getIdleDrain() {
         return 0.0D;
+    }
+
+    @Override
+    public IAEStackType getStackType() {
+        return AEFluidStackType.FLUID_STACK_TYPE;
     }
 
     @Override

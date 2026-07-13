@@ -5,14 +5,21 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.glodblock.github.common.storage.IStorageFluidCell;
+import appeng.api.implementations.items.IStorageCell;
+import appeng.api.storage.data.IAEStackType;
+import appeng.util.item.AEFluidStackType;
 
 /**
- * Fluid-channel data loom cells (flow / source essentia).
+ * Fluid-channel data loom cells (flow / source essentia) for AE2 2.9 {@link IStorageCell}.
  */
-public interface IDataLoomFluidCell extends IStorageFluidCell {
+public interface IDataLoomFluidCell extends IStorageCell {
 
     int getFluidRatePerSecond();
 
     List<FluidStack> getMarkedFluids(ItemStack cellStack);
+
+    @Override
+    default IAEStackType getStackType() {
+        return AEFluidStackType.FLUID_STACK_TYPE;
+    }
 }

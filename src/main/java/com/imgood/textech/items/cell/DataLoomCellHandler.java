@@ -76,7 +76,11 @@ public class DataLoomCellHandler implements ICellHandler {
 
         }
 
-        return DataLoomCellInventoryHandler.wrap(internal, is, channel);
+        return DataLoomCellInventoryHandler.wrap(
+            internal,
+            is,
+            channel == StorageChannel.FLUIDS ? appeng.util.item.AEFluidStackType.FLUID_STACK_TYPE
+                : appeng.util.item.AEItemStackType.ITEM_STACK_TYPE);
 
     }
 

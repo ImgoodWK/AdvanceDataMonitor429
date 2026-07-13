@@ -3,6 +3,8 @@
 export interface NetworkInfo {
   networkId: number;
   name: string;
+  /** false when the network is unreachable (chunk unloaded, AE disconnected, etc.). */
+  healthy?: boolean;
 }
 
 export interface StorageItem {
@@ -238,6 +240,8 @@ export interface RecipeCacheStatus {
   lastUpdateTime?: number;
   diskCacheSize: number;
   lastDiskSave: number;
+  diskLoading?: boolean;
+  diskLoadComplete?: boolean;
 }
 
 export interface RecipeBrowseResponse {
@@ -859,11 +863,13 @@ export interface QuestAnalysisStepDto {
   meta?: number;
   required: number;
   available: number;
+  remaining?: number;
   craftable: number;
   missing: number;
   fluidName?: string;
   fluidRequired?: number;
   fluidAvailable?: number;
+  fluidRemaining?: number;
   fluidMissing?: number;
 }
 

@@ -39,7 +39,7 @@ public final class QuestCacheStore {
         if (questingUuid == null || questingUuid.isEmpty()) {
             return loader.load();
         }
-        long ttlMs = Math.min(30_000L, Math.max(5_000L, Config.webQuestCacheTtlSec * 1000L / 10L));
+        long ttlMs = Math.min(60_000L, Math.max(10_000L, Config.webQuestCacheTtlSec * 1000L / 5L));
         CacheEntry<Object> cached = progressCache.get(questingUuid);
         long now = System.currentTimeMillis();
         if (cached != null && now - cached.atMs < ttlMs) {

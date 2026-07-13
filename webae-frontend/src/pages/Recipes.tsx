@@ -300,6 +300,9 @@ export function RecipesPage() {
       {cacheStatus && (
         <Card size="small">
           <Space wrap>
+            {cacheStatus.diskLoading && !cacheStatus.diskLoadComplete && (
+              <Tag color="processing">{t('recipesDiskLoading')}</Tag>
+            )}
             <Tag color={cacheStatus.recipeCount > 0 ? 'blue' : 'red'}>
               {cacheStatus.recipeCount} {t('recipesCached')}
             </Tag>

@@ -175,7 +175,8 @@ alwaysApply: false
 - **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
 - `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
 - `WebAeServerHandler.java` — WebAE HTTP 服务器生命周期管理（FMLServerStartedEvent/FMLServerStoppedEvent）
-- `HandlerWebPlayerTracker.java` — WebAE 玩家登录/登出追踪（`@SubscribeEvent` 监听 `PlayerLoggedInEvent`/`PlayerLoggedOutEvent`，写入 `PlayerInfoStore`；每 tick 调用 `reconcileOnline` + `tickSave`）
+- `HandlerWebPlayerTracker.java` — WebAE 玩家登录/登出追踪（`@SubscribeEvent` 监听 `PlayerLoggedInEvent`/`PlayerLoggedOutEvent`，写入 `PlayerInfoStore`；登录时 `NetworkRegistry.onPlayerLogin`；每 tick 调用 `reconcileOnline` + `tickSave` + `NetworkRegistry.tickHealthCheck`）
+- `HandlerWebTileEntityIndex.java` — WebAE chunk load/unload 同步 `TileEntityIndex` 与 `NetworkRegistry`
 - `HandlerWebChatCollector.java` — WebAE 游戏内聊天收集（`@SubscribeEvent` 监听 `ServerChatEvent`，不取消事件，镜像写入 `ChatMessageStore` 作为 `source=game`）
 - **次元口袋服务端逻辑**：`PocketState.java`（按玩家绑定的口袋状态）/ `PocketStore.java`（per-player NBT 压缩存储单例，`<世界存档>/textech/pocket-<uuid>.dat`）/ `PocketInventory.java`（`IInventory` 实现，动态堆叠上限）/ `PocketSlotInteraction.java`（存储 GUI 与悬浮窗共享的槽位点击逻辑）/ `PocketUpgradeRules.java`（升级拆装校验，含堆叠/无尽堆叠规则）
 
@@ -350,8 +351,12 @@ alwaysApply: false
 - `webae/api/handler/ServerHealthHandler.java` — 服务器健康 REST handler（`GET /api/server/health` TPS/MSPT/在线人数/300s 历史；参考 Phase 2）
 - `webae/api/handler/ServerDiagnosticsHandler.java` — 性能诊断 REST（`GET /api/server/diagnostics`：tick 分段、队列深度、快照采集、慢 HTTP、路由 Top、Config 摘要）
 - `webae/perf/WebAePerfProfiler.java` — HandlerTick 分段计时 + HTTP 路由聚合 + 慢请求环缓；`[debug] webaePerf` → `logs/textech/webae-perf.log`
+- `webae/perf/SnapshotWorkerPool.java` — 单线程 daemon 快照采集调度器（背压 + 500ms 超时；AE API 经 `addScheduledTask` 回主线程）
+- `webae/context/NetworkRegistry.java` — 事件驱动玩家→AE 网络注册表（Link/Monitor/chunk/登录钩子 + 5s 健康检查 + `healthy` 状态）
+- `webae/context/TileEntityIndex.java` — 维度分组 TE 索引（chunk load/unload 增量维护；由 `HandlerWebTileEntityIndex` 驱动）
+- `handler/HandlerWebTileEntityIndex.java` — chunk 事件同步 `TileEntityIndex` + `NetworkRegistry`
 - `webae/cache/SnapshotCache.java` — 线程安全 TTL 快照缓存（TTL = `webRefreshIntervalMs * 3`，含 getStale/timestampOf/invalidateType/invalidateTypeSuffix）
-- `webae/cache/SnapshotScheduler.java` — 定速分摊快照调度器（storage / GT / pattern browse / p2p / cells / patterns_rich / owner 级 networks+monitor+scanner；只采集 2 分钟活跃；含 forceCollect*）
+- `webae/cache/SnapshotScheduler.java` — 定速分摊快照调度器（经 `SnapshotWorkerPool` 异步投递；storage / GT / pattern browse / p2p / cells / patterns_rich / owner 级 networks+monitor+scanner；只采集 2 分钟活跃；含 forceCollect*）
 - `webae/dto/StorageDto.java` — 存储快照 DTO（`CpuEntry` 含 name/进度/存储/协同/产物/坐标 x-y-z-dim/监视器 monitorX-Y-Z-Dim/remainingItems/startItems，Phase 3 扩展）
 - `webae/dto/StoragePagedDto.java` — 存储分页响应 DTO（items/fluids/essentia 切片、nextCursor、totalEstimate、summary 字段）
 - `webae/dto/PowerDto.java` — 电力/蒸汽快照 DTO

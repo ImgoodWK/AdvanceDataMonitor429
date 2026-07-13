@@ -308,6 +308,9 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             for (NBTTagCompound binding : dataBoundList.values()) {
                 StorageLinkWatchSync.acquireIfStorageLink(worldObj, binding);
             }
+            com.imgood.textech.webae.context.NetworkRegistry.refreshBindings(
+                this,
+                worldObj.provider.dimensionId);
         }
     }
 
@@ -354,6 +357,12 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         dataBoundList.put(index, mergedData);
         markDirty();
         syncData();
+
+        if (worldObj != null && !worldObj.isRemote) {
+            com.imgood.textech.webae.context.NetworkRegistry.refreshBindings(
+                this,
+                worldObj.provider.dimensionId);
+        }
 
         // 仅在服务端处理立即采集
         if (worldObj != null && !worldObj.isRemote) {

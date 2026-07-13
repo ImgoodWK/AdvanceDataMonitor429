@@ -37,11 +37,10 @@ public final class MonitorBindingCollector {
                 continue;
             }
             int dim = world.provider.dimensionId;
-            for (Object obj : world.loadedTileEntityList) {
-                if (!(obj instanceof TileEntityAdvanceDataMonitor)) {
-                    continue;
-                }
-                TileEntityAdvanceDataMonitor monitor = (TileEntityAdvanceDataMonitor) obj;
+            // Use the TE index to scan only data monitors in this dimension.
+            List<TileEntityAdvanceDataMonitor> monitors = com.imgood.textech.webae.context.TileEntityIndex.getByType(
+                dim, TileEntityAdvanceDataMonitor.class);
+            for (TileEntityAdvanceDataMonitor monitor : monitors) {
                 if (!ownerName.equals(monitor.getOwnerName())) {
                     continue;
                 }

@@ -8,12 +8,14 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.imageio.ImageIO;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
+import com.imgood.textech.webae.worldmap.WorldMapRenderExecutor;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 import com.imgood.textech.webae.worldmap.WorldMapTileCache;
 
@@ -28,6 +30,8 @@ public final class WorldMapZoomPyramid {
 
     private final Deque<ZoomKey> queue = new ArrayDeque<ZoomKey>();
     private final Set<String> queuedKeys = new LinkedHashSet<String>();
+    /** Results from worker-thread synthesis tasks, collected on the main tick. */
+    private final ConcurrentLinkedQueue<SynthesisTask> synthesisResults = new ConcurrentLinkedQueue<SynthesisTask>();
 
     private WorldMapZoomPyramid() {}
 
@@ -121,6 +125,19 @@ public final class WorldMapZoomPyramid {
         if (budget <= 0) {
             budget = 1;
         }
+
+        // --- Collect completed synthesis results from worker threads ---
+        SynthesisTask synthResult;
+        while ((synthResult = synthesisResults.poll()) != null) {
+            if (synthResult.result == SynthesisResult.NEED_CHILDREN) {
+                enqueueChildDependencies(synthResult.key);
+            }
+            if (synthResult.result != SynthesisResult.DONE) {
+                requeueBack(synthResult.key);
+            }
+        }
+
+        // --- Submit synthesis tasks to the render executor ---
         for (int i = 0; i < budget; i++) {
             ZoomKey next = pollNext();
             if (next == null) {
@@ -130,15 +147,24 @@ public final class WorldMapZoomPyramid {
                 next.zoomLevel)) {
                 continue;
             }
-            SynthesisResult result = trySynthesize(next.view, next.layer, next.quality, next.dim, next.tileX,
-                next.tileZ, next.zoomLevel);
-            if (result == SynthesisResult.DONE) {
-                continue;
-            }
-            if (result == SynthesisResult.NEED_CHILDREN) {
-                enqueueChildDependencies(next);
-            }
-            requeueBack(next);
+            final ZoomKey captured = next;
+            WorldMapRenderExecutor.instance()
+                .submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            SynthesisResult result = trySynthesize(captured.view, captured.layer, captured.quality,
+                                captured.dim, captured.tileX, captured.tileZ, captured.zoomLevel);
+                            synthesisResults.offer(new SynthesisTask(captured, result));
+                        } catch (Throwable t) {
+                            AdvanceDataMonitor.LOG.error(
+                                "[WebAE] World map zoom synthesis failed view={} layer={} tier={} dim={} tile=({}, {}) z={}",
+                                captured.view, captured.layer, captured.quality.id, captured.dim,
+                                captured.tileX, captured.tileZ, captured.zoomLevel, t);
+                            synthesisResults.offer(new SynthesisTask(captured, SynthesisResult.FAILED));
+                        }
+                    }
+                });
         }
     }
 
@@ -323,6 +349,17 @@ public final class WorldMapZoomPyramid {
         DONE,
         NEED_CHILDREN,
         FAILED
+    }
+
+    /** Result container for worker-thread synthesis tasks — collected on the main tick. */
+    private static final class SynthesisTask {
+        final ZoomKey key;
+        final SynthesisResult result;
+
+        SynthesisTask(ZoomKey key, SynthesisResult result) {
+            this.key = key;
+            this.result = result;
+        }
     }
 
     private static final class ZoomKey {

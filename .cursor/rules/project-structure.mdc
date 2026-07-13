@@ -35,7 +35,7 @@ alwaysApply: true
 | `blocks/` | 5 | 自定义方块（含可选调试方块 `BlockUiFrameworkDebug`；原网络/存储/合成三类 Link 已合并为 `BlockAdvanceNetworkLink`） |
 | `tileentity/` | 7 | TileEntity + 接口 + 辅助（含 `IOwnableTile`、`MatterBallDecompressorUpgrades`；统一 `TileEntityAdvanceNetworkLink`） |
 | `gui/` | 64 | GUI 组件与界面（根 2 + `framework/` 15 + `custom/` 7 + `guiscreen/` 28 + `manual/` 6 + `container/` 5 + `handler/` 1），详见 `gui-guidelines.mdc` |
-| `handler/` | 38 | 事件处理器与服务端逻辑（挂索 / 星空剑 / 口袋 / 扫描器 / 编织元件 / AE 连接器性能调度 / StorageLink 按需刷新 / ItemCount 去抖 / WebAE 服务生命周期 / WebAE 玩家追踪 / WebAE 聊天收集） |
+| `handler/` | 39 | 事件处理器与服务端逻辑（挂索 / 星空剑 / 口袋 / 扫描器 / 编织元件 / AE 连接器性能调度 / StorageLink 按需刷新 / ItemCount 去抖 / WebAE 服务生命周期 / WebAE 玩家追踪 / WebAE 聊天收集 / WebAE TE 索引 chunk 同步） |
 | `entity/` | 8 | 实体类 only（不含 Render） |
 | `renders/` | 33 | 全部客户端渲染（TESR / 实体 Render / 物品 Render / HUD / 语音助手 HUD / 手册页面 / 解压器 GUI） |
 | `network/` | 28 | 网络通信（24 packet + 6 handler，含 `PacketHandlers`；WebAE 专用包见 `webae/network/` 13 文件），详见 `network-packets.mdc` |
@@ -44,7 +44,7 @@ alwaysApply: true
 | `client/` | 30 | 客户端事件与缓存（挂索 / 口袋 / AI / 按键 / 语音 / 星空剑 / WebAE token 剪贴板 / `client/worldmap/` 三源采集、consent offer 缓存、`WorldMapCaptureClientState`、SP 直读 Worker、HD 瓦片 Worker + 探索预热捕获 / `client/icon/IconDirectCaptureClientWorker` 图标直渲）；图标/配方上传仅 `/admweb`（`KeyBindings.triggerIconUpload`/`uploadNeiRecipes`） |
 | `command/` | 6 | 命令（`/textech`、`/admassistant`、`/admai`、`/admweb`；共享 `TeXTechCommandBase` + lang `adm.command.*`） |
 | `utils/` | 14 | 工具类（NBT / JSON / `BlockPos` / 物质团簇 / 解压器容量与速度 / AE 加速倍率 / AE 安全检查 / `ModLogFiles` 日志路径等） |
-| `webae/` | 280+ | WebAE 嵌入式 HTTP 控制台（…）。`webae/perf/WebAePerfProfiler` + `GET /api/server/diagnostics`；`SnapshotScheduler` 扩展 networks/p2p/cells/monitor/scanner/patterns_rich 缓存直读。`webae/quest/` BetterQuesting 任务书 API/提交；`webae/worldmap/` 含三源采集链、`WorldMapDirectTileResolver` SP 直读；`webae/worldmap/engine/` 为 Dynmap 级 UV/光线追踪/patch/atlas 渲染核心；`webae/worldmap/dynmap/` 为 GWM/Dynmap 外部瓦片桥接 + chunk 裁剪 fallback；`webae/icon/IconNesqlStyleRenderer` NESQL 同款图标直渲 + `IconDirectCaptureBridge` HTTP 直渲桥接。
+| `webae/` | 280+ | WebAE 嵌入式 HTTP 控制台（…）。`webae/context/NetworkRegistry` 事件驱动玩家→网络注册表 + 健康检查；`webae/perf/SnapshotWorkerPool` 异步快照采集线程池；`webae/perf/WebAePerfProfiler` + `GET /api/server/diagnostics`；`SnapshotScheduler` 扩展 networks/p2p/cells/monitor/scanner/patterns_rich 缓存直读。`webae/quest/` BetterQuesting 任务书 API/提交；`webae/worldmap/` 含三源采集链、`WorldMapDirectTileResolver` SP 直读；`webae/worldmap/engine/` 为 Dynmap 级 UV/光线追踪/patch/atlas 渲染核心；`webae/worldmap/dynmap/` 为 GWM/Dynmap 外部瓦片桥接 + chunk 裁剪 fallback；`webae/icon/IconNesqlStyleRenderer` NESQL 同款图标直渲 + `IconDirectCaptureBridge` HTTP 直渲桥接。
 | `mixin/` | 7 | Mixin 注入（仅客户端：GUI / NEI 兼容 / tooltip Invoker / 口袋角标） |
 
 ## 资源文件 (src/main/resources/)

@@ -94,11 +94,12 @@ public final class QuestSubmitService {
 
             if (QuestTaskDeserializer.WEB_DETECT.equals(step.webAction)) {
                 if (!dryRun) {
-                    if (step.registryName != null && step.missing > 0 && storageGrid != null) {
+                    long pullFromAe = aeExtractAmount(step);
+                    if (step.registryName != null && pullFromAe > 0 && storageGrid != null) {
                         ItemStack proto = stackFromKey(step.registryName, step.meta);
                         if (proto != null) {
-                            long inserted = extractItemToPlayer(player, storageGrid, source, proto, step.missing);
-                            if (inserted < step.missing) {
+                            long inserted = extractItemToPlayer(player, storageGrid, source, proto, pullFromAe);
+                            if (inserted < pullFromAe) {
                                 stepResult.success = false;
                                 stepResult.message = "Insufficient AE stock for retrieval";
                                 allOk = false;
@@ -112,11 +113,9 @@ public final class QuestSubmitService {
                     stepResult.success = true;
                     stepResult.message = "Detect triggered";
                 } else {
-                    stepResult.success = true;
-                    stepResult.message = "Would detect retrieval";
-                    if (step.registryName != null && step.missing > 0) {
-                        stepResult.itemId = step.registryName;
-                        stepResult.amount = step.missing;
+                    applyDryRunOutcome(stepResult, step, "Would detect retrieval");
+                    if (!stepResult.success) {
+                        allOk = false;
                     }
                 }
                 result.steps.add(stepResult);
@@ -124,18 +123,24 @@ public final class QuestSubmitService {
             }
 
             if (QuestTaskDeserializer.WEB_SUBMIT.equals(step.webAction)) {
-                if (step.fluidName != null && !step.fluidName.isEmpty() && step.fluidMissing > 0) {
+                if (step.fluidName != null && !step.fluidName.isEmpty() && step.fluidRemaining > 0) {
                     stepResult.fluidName = step.fluidName;
-                    stepResult.fluidAmount = step.fluidMissing;
+                    stepResult.fluidAmount = step.fluidRemaining;
                     if (dryRun) {
-                        stepResult.success = true;
-                        stepResult.message = "Would submit fluid";
+                        applyDryRunOutcome(stepResult, step, "Would submit fluid");
+                        if (!stepResult.success) {
+                            allOk = false;
+                        }
+                    } else if (step.fluidMissing > 0) {
+                        stepResult.success = false;
+                        stepResult.message = "Insufficient AE stock";
+                        allOk = false;
                     } else if (storageGrid == null) {
                         stepResult.success = false;
                         stepResult.message = "No AE network";
                         allOk = false;
                     } else {
-                        FluidStack fluid = QuestTaskDeserializer.parseFluidStack(step.fluidName, step.fluidMissing);
+                        FluidStack fluid = QuestTaskDeserializer.parseFluidStack(step.fluidName, step.fluidRemaining);
                         Object task = taskAtIndex(quest, step.index);
                         if (fluid != null && task != null && submitFluidFromAe(
                             player,
@@ -157,12 +162,18 @@ public final class QuestSubmitService {
                     continue;
                 }
 
-                if (step.registryName != null && step.missing > 0) {
+                if (step.registryName != null && !step.registryName.isEmpty() && step.remaining > 0) {
                     stepResult.itemId = step.registryName;
-                    stepResult.amount = step.missing;
+                    stepResult.amount = step.remaining;
                     if (dryRun) {
-                        stepResult.success = true;
-                        stepResult.message = "Would submit item";
+                        applyDryRunOutcome(stepResult, step, "Would submit item");
+                        if (!stepResult.success) {
+                            allOk = false;
+                        }
+                    } else if (step.missing > 0) {
+                        stepResult.success = false;
+                        stepResult.message = "Insufficient AE stock";
+                        allOk = false;
                     } else if (storageGrid == null) {
                         stepResult.success = false;
                         stepResult.message = "No AE network";
@@ -177,7 +188,7 @@ public final class QuestSubmitService {
                             questingUuid,
                             task,
                             proto,
-                            step.missing)) {
+                            step.remaining)) {
                             stepResult.success = true;
                             stepResult.message = "Item submitted";
                             stackKinds++;
@@ -244,6 +255,43 @@ public final class QuestSubmitService {
         result.message = "Detect complete";
         result.newState = QuestDataCollector.collectQuestDetail(questId, player).state;
         return result;
+    }
+
+    private static void applyDryRunOutcome(QuestSubmitStepResultDto stepResult, QuestAnalysisStepDto step,
+        String sufficientMessage) {
+        boolean itemShort = step.missing > 0;
+        boolean fluidShort = step.fluidMissing > 0;
+        if (!itemShort && !fluidShort) {
+            stepResult.success = true;
+            stepResult.message = sufficientMessage;
+            return;
+        }
+        if (itemShort && step.registryName != null && !step.registryName.isEmpty()) {
+            stepResult.itemId = step.registryName;
+            stepResult.amount = step.remaining > 0 ? step.remaining : step.missing;
+        }
+        if (fluidShort && step.fluidName != null && !step.fluidName.isEmpty()) {
+            stepResult.fluidName = step.fluidName;
+            stepResult.fluidAmount = step.fluidRemaining > 0 ? step.fluidRemaining : step.fluidMissing;
+        }
+        if (itemShort && step.craftable >= step.missing && step.craftable > 0) {
+            stepResult.success = false;
+            stepResult.message = "Needs craft first";
+            return;
+        }
+        stepResult.success = false;
+        stepResult.message = "Insufficient AE stock";
+    }
+
+    /** Amount to pull from AE for retrieval detect (full remaining when stock is sufficient). */
+    private static long aeExtractAmount(QuestAnalysisStepDto step) {
+        if (step.remaining <= 0) {
+            return 0L;
+        }
+        if (step.missing > 0) {
+            return step.missing;
+        }
+        return step.remaining;
     }
 
     private static Object taskAtIndex(Object quest, int index) {

@@ -427,6 +427,7 @@ export const zh: Record<string, string> = {
 
   // Recipes
   recipesCached: '配方已缓存',
+  recipesDiskLoading: '磁盘索引构建中…',
   handlerTypes: '配方类别',
   lastUpdate: '最后更新',
   searchRecipePlaceholder: '输入物品中/英文名称',
@@ -760,6 +761,9 @@ export const zh: Record<string, string> = {
   tokenChanged: 'Token 已更换',
   authSessionLabel: '当前访问身份',
   networksFetchFailed: '获取 AE 网络列表失败',
+  networkUnavailable: '(不可用)',
+  networkUnavailableSelect: '该网络当前不可用，无法选择',
+  networkUnavailableDeselected: '已断开网络已从选择中移除',
   orderPlaced: '下单成功',
   orderFailed: '下单失败',
   patternEncoded: '样板编码成功',
@@ -1503,7 +1507,7 @@ export const zh: Record<string, string> = {
   'quest.needAmount': '需要 {amount} × {name}',
   'quest.main': '主线',
   'quest.ghost': '外章',
-  'quest.hideCompleted': '隐藏已完成',
+  'quest.previewMode': '任务线预览',
   'quest.lastRefresh': '上次刷新',
   'quest.prerequisites': '前置任务',
   'quest.dependents': '后续任务',
@@ -1523,6 +1527,7 @@ export const zh: Record<string, string> = {
   'quest.chainSubmitAvailable': '仅提交可提交的',
   'quest.chainSubmitAll': '合成并全部提交',
   'quest.craftable': '可合成',
+  'quest.aeStock': 'AE {available}/{required}',
   'quest.missingKinds': '缺 {n} 种物品',
   'quest.ready': '材料充足',
   'quest.settingsTitle': '任务书显示设置',
@@ -1561,4 +1566,36 @@ export const zh: Record<string, string> = {
   'quest.settings.linePanelFontSize': '侧栏字号',
   'quest.settings.centerMinZoom': '选中居中缩放',
   'quest.settings.centerMinZoomHint': '从列表跳转任务时的最小缩放',
+
+  // Preview mode
+  'quest.lineNoSubmittable': '此任务线当前无可提交任务',
+  'quest.previewEmptyHint': '预览模式下仅显示可提交任务及其相邻任务，当前任务线无符合条件节点',
+
+  // Submit feedback - dry run
+  'quest.dryRunAllSufficient': '所有材料可在 AE 网络中找到',
+  'quest.dryRunPartial': '有 {count} 个步骤材料不足，可尝试合成后提交',
+  'quest.dryRunAllInsufficient': '所有步骤材料均不足，无法提交',
+  'quest.dryRunSufficient': '充足',
+  'quest.dryRunNeedCraft': '需合成',
+  'quest.dryRunInsufficient': '不足',
+
+  // Submit feedback - craft then submit
+  'quest.craftAllSufficient': '所有材料已在网络中，建议直接使用一键提交',
+  'quest.craftNoRecipe': '当前缺料均无可合成配方，无法合成后提交',
+  'quest.craftingProgress': '正在合成: {itemName}（{done}/{total}）',
+  'quest.craftSubmitDone': '合成后提交完成',
+  'quest.craftTimeout': '合成等待超时，部分订单可能仍在执行中',
+
+  // Submit feedback - chain submit
+  'quest.chainStats': '共 {total} 个任务，其中 {ready} 个已就绪，{craft} 个需合成，{skip} 个将跳过',
+  'quest.chainDoneAll': '链式提交完成：{count} 个任务全部提交成功',
+  'quest.chainDonePartial': '链式提交部分完成：{done}/{total} 个任务提交成功，{skip} 个跳过',
+  'quest.chainAborted': '链式提交中止：{reason}',
+
+  // Submit feedback - step
+  'quest.stepSubmitted': '步骤已提交',
+  'quest.stepSubmitFailed': '提交失败：{reason}',
+
+  // Submitting
+  'quest.submitting': '正在提交...',
 };

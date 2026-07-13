@@ -9,5 +9,6 @@ public class QuestLineSummaryDto {
     public String iconItemId;
     public int iconMeta;
     public int questCount;
+    public int submittableCount;
     public int order;
 }

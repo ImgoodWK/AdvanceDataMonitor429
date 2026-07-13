@@ -4,7 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -25,11 +26,11 @@ import java.util.zip.GZIPOutputStream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.TeXTechDataDir;
-import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.dto.RecipeDto;
 import com.imgood.textech.webae.dto.RecipeDto.ItemEntry;
 
@@ -44,8 +45,8 @@ public class RecipeCacheStore {
     private static final RecipeCacheStore INSTANCE = new RecipeCacheStore();
 
     private static final int EST_BYTES_PER_ENTRY = 600;
+    private static final String JSON_FILENAME = "web-recipes.json";
     private static final String GZ_FILENAME = "web-recipes.json.gz";
-    private static final String LEGACY_FILENAME = "web-recipes.json";
     private static final String BROWSE_ALL = "all";
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -67,6 +68,8 @@ public class RecipeCacheStore {
     private volatile boolean savePending;
     private volatile boolean uploadSessionActive;
     private volatile boolean indexesDirty;
+    private volatile boolean diskLoading;
+    private volatile boolean diskLoadComplete;
 
     private RecipeCacheStore() {
         final boolean lruMode = isLruMode();
@@ -93,7 +96,20 @@ public class RecipeCacheStore {
         this.savePending = false;
         this.uploadSessionActive = false;
         this.indexesDirty = false;
-        load();
+        this.diskLoading = false;
+        this.diskLoadComplete = false;
+        startDiskLoadAsync();
+    }
+
+    private void startDiskLoadAsync() {
+        Thread loader = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                load();
+            }
+        }, "WebAE-RecipeCache-Load");
+        loader.setDaemon(true);
+        loader.start();
     }
 
     private static boolean isLruMode() {
@@ -716,7 +732,9 @@ public class RecipeCacheStore {
                 totalIngested,
                 lastUpdateTime,
                 lastDiskSave,
-                diskCacheSize);
+                diskCacheSize,
+                diskLoading,
+                diskLoadComplete);
         } finally {
             lock.readLock()
                 .unlock();
@@ -750,8 +768,12 @@ public class RecipeCacheStore {
     }
 
     public void clearDiskCache() {
+        File json = TeXTechDataDir.webAeFile(JSON_FILENAME);
         File gz = TeXTechDataDir.webAeFile(GZ_FILENAME);
         boolean changed = false;
+        if (json.exists()) {
+            changed |= json.delete();
+        }
         if (gz.exists()) {
             changed |= gz.delete();
         }
@@ -765,36 +787,69 @@ public class RecipeCacheStore {
     public void requestSave() {
         if (savePending) return;
         savePending = true;
-        HandlerTick.enqueueServerTask(new Runnable() {
-
+        // Take a snapshot quickly under the read lock, then delegate the heavy
+        // GSON serialization, GZIP compression, and file I/O to a background
+        // thread to avoid blocking the server main tick for 200-800ms.
+        Thread worker = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    save();
+                    saveAsync();
                 } finally {
                     savePending = false;
                 }
             }
-        });
+        }, "WebAE-RecipeCache-Save");
+        worker.setDaemon(true);
+        worker.start();
     }
 
+    /** Synchronous save kept for server-stop scenarios; still blocks, but stop is not performance-critical. */
     public void save() {
         lock.readLock()
             .lock();
         try {
-            File file = TeXTechDataDir.webAeFile(GZ_FILENAME);
+            doSaveIo(doTakeSnapshot());
+        } finally {
+            lock.readLock()
+                .unlock();
+        }
+    }
+
+    /** Snapshot in lock, then release lock and do I/O on the calling thread (background for normal saves). */
+    private void saveAsync() {
+        List<RecipeDto> snapshot;
+        lock.readLock()
+            .lock();
+        try {
+            snapshot = doTakeSnapshot();
+        } finally {
+            lock.readLock()
+                .unlock();
+        }
+        doSaveIo(snapshot);
+    }
+
+    private List<RecipeDto> doTakeSnapshot() {
+        return new ArrayList<RecipeDto>(recipeMap.values());
+    }
+
+    private void doSaveIo(List<RecipeDto> all) {
+        try {
+            boolean gzip = isGzipDiskFormat();
+            String filename = gzip ? GZ_FILENAME : JSON_FILENAME;
+            File file = TeXTechDataDir.webAeFile(filename);
             File parent = file.getParentFile();
             if (parent != null && !parent.exists()) {
                 parent.mkdirs();
             }
-            File tmp = new File(parent, GZ_FILENAME + ".tmp");
+            File tmp = new File(parent, filename + ".tmp");
 
-            List<RecipeDto> all = new ArrayList<RecipeDto>(recipeMap.values());
             RecipeCacheFile cacheFile = new RecipeCacheFile(SAVE_SCHEMA_VERSION, all.size(), all);
             OutputStream fos = new FileOutputStream(tmp);
             try {
-                GZIPOutputStream gz = new GZIPOutputStream(fos);
-                Writer writer = new OutputStreamWriter(gz, "UTF-8");
+                OutputStream out = gzip ? new GZIPOutputStream(fos) : fos;
+                Writer writer = new OutputStreamWriter(out, "UTF-8");
                 try {
                     GSON.toJson(cacheFile, writer);
                 } finally {
@@ -809,50 +864,68 @@ public class RecipeCacheStore {
                 AdvanceDataMonitor.LOG.warn("[WebAE] Failed to rename {} to {}", tmp.getName(), file.getName());
                 return;
             }
+            File alternate = TeXTechDataDir.webAeFile(gzip ? JSON_FILENAME : GZ_FILENAME);
+            if (alternate.exists()) {
+                alternate.delete();
+            }
             diskCacheSize = file.length();
             lastDiskSave = System.currentTimeMillis();
             AdvanceDataMonitor.LOG.info(
-                "[WebAE] Saved {} recipes (gzip, {} bytes) to {}",
+                "[WebAE] Saved {} recipes ({}, {} bytes) to {}",
                 all.size(),
+                gzip ? "gzip" : "json",
                 diskCacheSize,
                 file.getAbsolutePath());
         } catch (IOException e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to save recipes", e);
-        } finally {
-            lock.readLock()
-                .unlock();
         }
     }
 
     public void load() {
-        File gzFile = TeXTechDataDir.webAeFile(GZ_FILENAME);
-        if (gzFile.exists()) {
-            loadFromFile(gzFile, true);
-            return;
+        diskLoading = true;
+        diskLoadComplete = false;
+        try {
+            boolean gzipPreferred = isGzipDiskFormat();
+            File primary = TeXTechDataDir.webAeFile(gzipPreferred ? GZ_FILENAME : JSON_FILENAME);
+            File fallback = TeXTechDataDir.webAeFile(gzipPreferred ? JSON_FILENAME : GZ_FILENAME);
+            if (primary.exists()) {
+                loadFromFile(primary, primary.getName()
+                    .endsWith(".gz"));
+                return;
+            }
+            if (fallback.exists()) {
+                AdvanceDataMonitor.LOG.info(
+                    "[WebAE] Primary recipe file {} missing — falling back to {}",
+                    primary.getName(),
+                    fallback.getName());
+                loadFromFile(fallback, fallback.getName()
+                    .endsWith(".gz"));
+            }
+        } finally {
+            diskLoading = false;
+            diskLoadComplete = true;
         }
-        File legacyFile = TeXTechDataDir.webAeFile(LEGACY_FILENAME);
-        if (legacyFile.exists()) {
-            loadFromFile(legacyFile, false);
-        }
+    }
+
+    private static boolean isGzipDiskFormat() {
+        String fmt = Config.webRecipeDiskFormat;
+        return fmt != null && "gzip".equalsIgnoreCase(fmt.trim());
     }
 
     private void loadFromFile(File file, boolean gzip) {
         try {
-            InputStream fis = new FileInputStream(file);
+            FileInputStream fis = new FileInputStream(file);
             try {
-                InputStream in = gzip ? new GZIPInputStream(fis) : fis;
-                java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
-                byte[] chunk = new byte[8192];
-                int read;
-                while ((read = in.read(chunk)) >= 0) {
-                    buffer.write(chunk, 0, read);
-                }
-                String json = buffer.toString("UTF-8");
-                RecipeDto[] loaded = parseLoadedJson(json);
-                if (loaded != null && loaded.length > 0) {
-                    ingestLoaded(loaded);
-                    AdvanceDataMonitor.LOG
-                        .info("[WebAE] Loaded {} recipes from {}", loaded.length, file.getAbsolutePath());
+                Reader reader = new InputStreamReader(gzip ? new GZIPInputStream(fis) : fis, "UTF-8");
+                JsonReader jsonReader = new JsonReader(reader);
+                int loaded = streamParseRecipes(jsonReader);
+                jsonReader.close();
+                if (loaded > 0) {
+                    AdvanceDataMonitor.LOG.info(
+                        "[WebAE] Loaded {} recipes from {} (streaming{})",
+                        loaded,
+                        file.getAbsolutePath(),
+                        gzip ? ", gzip" : "");
                 }
                 diskCacheSize = file.length();
                 lastDiskSave = file.lastModified();
@@ -864,40 +937,73 @@ public class RecipeCacheStore {
         }
     }
 
-    private void ingestLoaded(RecipeDto[] loaded) {
+    private int streamParseRecipes(JsonReader jsonReader) throws IOException {
+        JsonToken first = jsonReader.peek();
+        if (first == JsonToken.BEGIN_ARRAY) {
+            int count = streamParseRecipeArray(jsonReader);
+            rebuildIndexes();
+            return count;
+        }
+        if (first == JsonToken.BEGIN_OBJECT) {
+            jsonReader.beginObject();
+            int count = 0;
+            while (jsonReader.hasNext()) {
+                String name = jsonReader.nextName();
+                if ("recipes".equals(name)) {
+                    count = streamParseRecipeArray(jsonReader);
+                } else {
+                    jsonReader.skipValue();
+                }
+            }
+            jsonReader.endObject();
+            rebuildIndexes();
+            return count;
+        }
+        AdvanceDataMonitor.LOG.warn("[WebAE] Unexpected recipe cache JSON token: {}", first);
+        return 0;
+    }
+
+    private int streamParseRecipeArray(JsonReader jsonReader) throws IOException {
+        jsonReader.beginArray();
+        int count = 0;
+        while (jsonReader.hasNext()) {
+            RecipeDto dto = GSON.fromJson(jsonReader, RecipeDto.class);
+            if (dto != null) {
+                ingestSingleRecipe(dto);
+                count++;
+                // Yield every 1000 recipes to reduce GC pressure during startup load.
+                if (count % 1000 == 0) {
+                    try {
+                        Thread.sleep(1L);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+        jsonReader.endArray();
+        return count;
+    }
+
+    private void ingestSingleRecipe(RecipeDto dto) {
         lock.writeLock()
             .lock();
         try {
-            for (RecipeDto dto : loaded) {
-                if (dto == null) continue;
-                String key = makeKey(dto.handlerId, dto.recipeIndex);
-                recipeMap.put(key, dto);
-                HandlerInfo info = handlerInfoMap.get(dto.handlerId);
-                if (info == null) {
-                    info = new HandlerInfo(dto.handlerId, dto.handlerName, 0);
-                    handlerInfoMap.put(dto.handlerId, info);
-                }
-                indexRecipe(dto);
-                totalIngested++;
+            String key = makeKey(dto.handlerId, dto.recipeIndex);
+            recipeMap.put(key, dto);
+            HandlerInfo info = handlerInfoMap.get(dto.handlerId);
+            if (info == null) {
+                info = new HandlerInfo(dto.handlerId, dto.handlerName, 0);
+                handlerInfoMap.put(dto.handlerId, info);
             }
+            indexRecipe(dto);
+            totalIngested++;
             lastUpdateTime = System.currentTimeMillis();
         } finally {
             lock.writeLock()
                 .unlock();
         }
-        rebuildIndexes();
-    }
-
-    private RecipeDto[] parseLoadedJson(String json) {
-        if (json == null || json.isEmpty()) return null;
-        String trimmed = json.trim();
-        if (trimmed.startsWith("{")) {
-            RecipeCacheFile wrapper = GSON.fromJson(trimmed, RecipeCacheFile.class);
-            if (wrapper != null && wrapper.recipes != null && !wrapper.recipes.isEmpty()) {
-                return wrapper.recipes.toArray(new RecipeDto[wrapper.recipes.size()]);
-            }
-        }
-        return GSON.fromJson(trimmed, new TypeToken<RecipeDto[]>() {}.getType());
     }
 
     private static String makeKey(String handlerId, int recipeIndex) {
@@ -931,15 +1037,19 @@ public class RecipeCacheStore {
         public long lastUpdateTime;
         public long lastDiskSave;
         public long diskCacheSize;
+        public boolean diskLoading;
+        public boolean diskLoadComplete;
 
         public CacheStatus(int recipeCount, int handlerCount, int totalIngested, long lastUpdateTime, long lastDiskSave,
-            long diskCacheSize) {
+            long diskCacheSize, boolean diskLoading, boolean diskLoadComplete) {
             this.recipeCount = recipeCount;
             this.handlerCount = handlerCount;
             this.totalIngested = totalIngested;
             this.lastUpdateTime = lastUpdateTime;
             this.lastDiskSave = lastDiskSave;
             this.diskCacheSize = diskCacheSize;
+            this.diskLoading = diskLoading;
+            this.diskLoadComplete = diskLoadComplete;
         }
     }
 

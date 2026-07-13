@@ -3,12 +3,13 @@ import { zh } from './zh';
 import { en } from './en';
 
 export type Lang = 'zh' | 'en';
+export type I18nParams = string | number | Record<string, string | number>;
 
 const DICTS: Record<Lang, Record<string, string>> = { zh, en };
 
 interface I18nContextValue {
   lang: Lang;
-  t: (key: string, arg?: string | number) => string;
+  t: (key: string, params?: I18nParams) => string;
 }
 
 const I18nContext = createContext<I18nContextValue>({
@@ -24,15 +25,20 @@ export function I18nProvider({
   children: ReactNode;
 }) {
   const t = useCallback(
-    (key: string, arg?: string | number) => {
+    (key: string, params?: I18nParams) => {
       const dict = DICTS[lang] || DICTS.en;
       let s = dict[key];
       if (s === undefined) {
-        // Fall back to English, then to the key itself
         s = DICTS.en[key] ?? key;
       }
-      if (arg !== undefined && arg !== null) {
-        s = s.replace(/\{n\}/g, String(arg)).replace(/\{name\}/g, String(arg));
+      if (params !== undefined && params !== null) {
+        if (typeof params === 'object') {
+          for (const [k, v] of Object.entries(params)) {
+            s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+          }
+        } else {
+          s = s.replace(/\{n\}/g, String(params)).replace(/\{name\}/g, String(params));
+        }
       }
       return s;
     },

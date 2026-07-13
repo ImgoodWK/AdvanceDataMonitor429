@@ -39,11 +39,9 @@ public final class LinkScannerCollector {
                 continue;
             }
             int dimension = world.provider.dimensionId;
-            for (Object obj : world.loadedTileEntityList) {
-                if (!(obj instanceof TileEntity)) {
-                    continue;
-                }
-                TileEntity tile = (TileEntity) obj;
+            // Use the TE index to scan this dimension's tile entities.
+            List<TileEntity> tiles = com.imgood.textech.webae.context.TileEntityIndex.getAllInDimension(dimension);
+            for (TileEntity tile : tiles) {
                 LinkScanBlockType type = LinkScanBlockType.fromTileEntity(tile);
                 if (type == null) {
                     continue;

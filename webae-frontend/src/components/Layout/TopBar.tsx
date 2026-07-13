@@ -19,6 +19,10 @@ import {
 } from '@ant-design/icons';
 import { useAppContext, type PageId } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
+import {
+  formatNetworkOptionLabel,
+  isNetworkHealthy,
+} from '@/utils/networkHealth';
 import type { NavPageEntry } from './navConfig';
 
 interface TopBarProps {
@@ -128,9 +132,25 @@ export function TopBar({ pages, activePage, setActivePage, topnavMode }: TopBarP
           }
         }}
         options={networks.map((n) => ({
-          label: n.name || `Network ${n.networkId}`,
+          label: formatNetworkOptionLabel(n, t('networkUnavailable')),
           value: n.networkId,
+          disabled: !isNetworkHealthy(n),
         }))}
+        optionRender={(opt) => {
+          const net = networks.find((n) => n.networkId === opt.value);
+          const unhealthy = net != null && !isNetworkHealthy(net);
+          return (
+            <span
+              style={
+                unhealthy
+                  ? { color: 'var(--text-secondary)', opacity: 0.65 }
+                  : undefined
+              }
+            >
+              {opt.label}
+            </span>
+          );
+        }}
         aria-label={t('selectNetwork')}
         size="middle"
       />

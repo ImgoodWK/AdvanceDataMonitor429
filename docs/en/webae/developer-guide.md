@@ -114,7 +114,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `recipeCacheMode` | string | `full` | `lru`/`full` | Recipe cache eviction mode. GTNH recommends `full` (no LRU eviction) |
 | `maxRecipeCacheMB` | int | `256` | 1-2048 | Approximate max memory (MB) for the recipe cache; evicted in `lru` mode when exceeded, warning-only in `full` |
 | `recipeUploadBatchesPerTick` | int | `3` | 1-32 | Recipe upload JSON batches sent per client tick |
-| `recipeSearchMinIntervalMs` | int | `300` | 0-5000 | Minimum interval (ms) between fuzzy recipe searches per owner via `/api/recipes/search?q=` |
+| `recipeSearchMinIntervalMs` | int | `1000` | 0-5000 | Minimum interval (ms) between fuzzy recipe searches per owner via `/api/recipes/search?q=` |
+| `recipeDiskFormat` | string | `json` | `json`/`gzip` | On-disk recipe format: `json` plain (default, fast streaming load) or `gzip` (smaller disk) |
 | `nesqlRepositoryPath` | string | `` | — | NESQL exporter repository root for `/admweb icons import-nesql`. Empty → `<instance>/TeXTech/WebAE/` (same folder as client recipe export) |
 | `neiDeepScanItemsPerTick` | int | `0` | 0-512 | NEI item-driven deep scan items per client tick (`/admweb recipes upload deep`; 0 = disabled) |
 | `iconMissingDispatchPerTick` | int | `8` | 1-64 | IconMissingQueue lazy-load requests dispatched per server tick |
@@ -123,28 +124,28 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `iconDirectRenderPerTick` | int | `4` | — | Sync direct renders per client tick |
 | `powerSampleWindowSeconds` | int | `60` | 10-600 | Sliding window (seconds) for power/steam rate calculation |
 | `gtDefaultScanRadius` | int | `16` | 1-256 | Default GT machine scan radius for the Data Imprint Tool |
-| `refreshIntervalMs` | int | `1000` | 1000-60000 | Unified refresh interval (ms) for server collection and frontend polling |
-| `gtRefreshIntervalMs` | int | `10000` | 1000-60000 | GT machine snapshot collection interval (ms) |
+| `refreshIntervalMs` | int | `10000` | 1000-60000 | Unified refresh interval (ms) for server collection and frontend polling |
+| `gtRefreshIntervalMs` | int | `30000` | 1000-60000 | GT machine snapshot collection interval (ms) |
 | `maxNetworksDisplayed` | int | `5` | 1-20 | Max networks the web console can display simultaneously |
 | `tokenLifetimeHours` | int | `0` | 0-8760 | Web auth token TTL in hours. 0 = never expire; >0 rejects after issuedAt + TTL |
 | `iconCacheEnabled` | boolean | `true` | — | Enable item icon cache and `/api/icon` serving |
 | `iconUploadEnabled` | boolean | `true` | — | Allow OP `/admweb icons upload` client trigger |
 | `iconPackEnabled` | boolean | `true` | — | Allow admin zip pack upload (`POST /api/icon/pack`) |
-| `metricSampleIntervalMs` | int | `10000` | 1000-60000 | AE network metric history sample interval (ms) |
+| `metricSampleIntervalMs` | int | `30000` | 1000-60000 | AE network metric history sample interval (ms) |
 | `metricSampleWindowSeconds` | int | `300` | 60-3600 | Network metric history sliding window (seconds) |
 | `patternBrowsePageSize` | int | `80` | 20-200 | Default pattern browse API page size |
 | `patternBrowseMaxTotal` | int | `20000` | 1000-100000 | Max pattern browse entries per network |
-| `patternCacheTtlMs` | int | `30000` | 5000-300000 | Pattern browse TTL cache duration (ms) |
+| `patternCacheTtlMs` | int | `120000` | 5000-300000 | Pattern browse TTL cache duration (ms) |
 | `topologyEnabled` | boolean | `true` | — | Enable `GET /api/network/topology` network topology API |
 | `topologyCacheTtlMs` | int | `10000` | 1000-3600000 | Manual topology snapshot capture cooldown (ms; default 10 s) |
 | `worldMapSnapshotCooldownMs` | int | `10000` | 1000-3600000 | Manual world map snapshot request cooldown (ms; client capture; default 10 s) |
 | `topologySnapshotPersist` | boolean | `true` | — | Persist snapshots under `TeXTech/WebAE/topology/` |
 | `worldMapEnabled` | boolean | `true` | — | Enable `GET /api/worldmap/*` world map API (requires `topologyEnabled`) |
 | `worldMapTilePx` | int | `128` | — | **Deprecated**: legacy single tile size; non-128 migrates to medium tier |
-| `worldMapMaxQualityTier` | string | `ultra` | — | Server cap for quality tier (low/medium/high/ultra) |
+| `worldMapMaxQualityTier` | string | `medium` | — | Server cap for quality tier (low/medium/high/ultra) |
 | `worldMapDefaultQualityTier` | string | `medium` | — | Default tier when WebAE has no user preference |
 | `worldMapBoundsPaddingChunks` | int | `1` | 0-16 | AE network bbox padding in chunks |
-| `worldMapTileBudgetPerTick` | int | `2` | 1-32 | Max chunk tiles rendered per tick |
+| `worldMapTileBudgetPerTick` | int | `1` | 1-32 | Max chunk tiles rendered per tick |
 | `worldMapMaxChunks` | int | `512` | 16-4096 | Max chunk tiles per dimension (clamp + `boundsTooLarge`) |
 | `worldMapRequireNetworkScope` | boolean | `true` | — | Render tiles only within AE network scope |
 | `worldMapViewsEnabled` | string | `flat` | — | Enabled views (comma-separated) |
@@ -159,7 +160,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `worldMapClientHdTimeoutMs` | int | `5000` | 1000-30000 | Client GL wait before server fallback |
 | `worldMapAeOverlayEnabled` | boolean | `true` | — | Render AE overlay layer |
 | `worldMapAeOverlayIncludeCables` | boolean | `true` | — | Include cables in AE overlay |
-| `worldMapAeOverlayQualityTier` | string | `ultra` | — | AE overlay tile quality (decoupled from terrain quality) |
+| `worldMapAeOverlayQualityTier` | string | `medium` | — | AE overlay tile quality (decoupled from terrain quality) |
 | `worldMapAeQualityBoost` | boolean | `false` | — | +1 terrain tier for AE-device chunks (default off) |
 | `worldMapRenderEngine` | string | `uv` | — | Flat engine: `legacy` (average color) / `uv` (texture UV + biome/lighting) |
 | `worldMapObliqueEngine` | string | `ray` | — | Oblique engine: `legacy` (column painter) / `ray` (per-pixel ray trace) |
@@ -174,6 +175,21 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `questSubmitMaxStacks` | int | `64` | 1-512 | Max distinct item stacks per submit |
 | `questCraftWaitTimeoutMs` | int | `120000` | 5000-600000 | Craft-then-submit / chain craft wait timeout (ms) |
 | `questCacheTtlSec` | int | `300` | 30-3600 | Quest-line definition cache TTL (seconds); progress ~1/10 |
+
+**GTNH / large-pack TPS-friendly defaults** (first-time cfg generation; values below thresholds are overridden in memory at startup with a WARN, not written back to disk):
+
+| Key | Default | Notes |
+|-----|---------|-------|
+| `refreshIntervalMs` | `10000` | Snapshot / polling interval |
+| `gtRefreshIntervalMs` | `30000` | GT machine snapshots |
+| `patternCacheTtlMs` | `120000` | Pattern pre-collection |
+| `metricSampleIntervalMs` | `30000` | Dashboard metric sampling |
+| `worldMapTileBudgetPerTick` | `1` | World map chunk budget per tick |
+| `worldMapMaxQualityTier` / `worldMapAeOverlayQualityTier` | `medium` | Map and AE overlay tiers |
+| `worldMapAeQualityBoost` | `false` | Disable AE chunk quality bump |
+| `dashboardMaxTracksGlobal` / `dashboardMaxItemTracks` | `16` / `8` | Fewer dashboard tracks |
+| `recipeSearchMinIntervalMs` | `1000` | Recipe fuzzy search throttle |
+| `recipeDiskFormat` | `json` | Plain recipes, streaming load; `.gz` fallback on first load, migrated to `.json` on save |
 
 **Security note**: Default binds to `127.0.0.1`. All `/api/` endpoints enforce Bearer authentication (no opt-out). Changing `bindAddress` to `0.0.0.0` exposes the console to the LAN — use a firewall or SSH tunnel. Admin-only endpoints (refresh) additionally require OP level >= 2.
 
@@ -592,7 +608,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - GridStack 11.x via npm; `pages/Dashboard.tsx` 12-column grid; main dashboard `gs-min-w/h=1` (free sizing)
   - Widget model (`DashboardWidgetConfig`): types as before + `dataSource` including `customPins` + **`pins?`** / **`columns?`** / **`contentScale?`** (0.5–2) / `pinsOnly?` / `gaugeThreshold?`
   - **Data-first editor**: pick data source & pins, then compatible chart type (`dataSourceChartMap.ts`, `customPins` → `pinned`)
-  - **Pin history APIs**: `GET /api/network/metrics/items`, extended fluids, `GET /api/network/metrics/entities`; sampler limits in cfg (`dashboardMaxTracksPerWidget` default 10, `dashboardMaxTracksGlobal` 32, item/fluid/entity sub-caps 16) exposed via `/api/config`; line charts merge built-in timeseries ∪ pin histories; radar uses pin current values when ≥3 pins; network-balance rows are searchable pins
+  - **Pin history APIs**: `GET /api/network/metrics/items`, extended fluids, `GET /api/network/metrics/entities`; sampler limits in cfg (`dashboardMaxTracksPerWidget` default 10, `dashboardMaxTracksGlobal` 16, item sub-cap 8, fluid/entity 16) exposed via `/api/config`; line charts merge built-in timeseries ∪ pin histories; radar uses pin current values when ≥3 pins; network-balance rows are searchable pins
   - **Phase 2 data sources**: `gtMachineList` / `machineByStatus` / `networkCompare` unchanged
   - Layout persistence: `localStorage.webae_dashboard_config`; Edit Modal width/height rebuilds GridStack via `layoutSignature`
   - Data refresh: `useSnapshotData` + `useDashboardPinMetrics` (merged pin history) + `usePlayers` / `useNetworkMetrics`

@@ -52,9 +52,11 @@ import { QuestSettingsDrawer } from '@/components/quest/QuestSettingsDrawer';
 
 import {
 
-  QUEST_HIDE_COMPLETED_KEY,
+  QUEST_PREVIEW_MODE_KEY,
 
   QUEST_REFRESH_CD_MS,
+
+  computePreviewVisibleNodes,
 
   orderQuestNodes,
 
@@ -109,6 +111,7 @@ export function QuestBookPage() {
   const [progressMap, setProgressMap] = useState<Record<string, QuestProgressEntryDto>>({});
 
   const [progressUpdatedAt, setProgressUpdatedAt] = useState<number | null>(null);
+  const [lineSubmittableCounts, setLineSubmittableCounts] = useState<Record<string, number>>({});
 
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
 
@@ -130,15 +133,15 @@ export function QuestBookPage() {
 
   const [displaySettings, setDisplaySettings, resetDisplaySettings] = useQuestDisplay();
 
-  const [hideCompleted, setHideCompleted] = useState(() => {
+  const [previewMode, setPreviewMode] = useState(() => {
 
     try {
 
-      return localStorage.getItem(QUEST_HIDE_COMPLETED_KEY) === '1';
+      return localStorage.getItem(QUEST_PREVIEW_MODE_KEY) !== '0';
 
     } catch {
 
-      return false;
+      return true;
 
     }
 
@@ -192,7 +195,7 @@ export function QuestBookPage() {
 
       success: boolean;
 
-      progress: { entries: QuestProgressEntryDto[]; updatedAt?: number };
+      progress: { entries: QuestProgressEntryDto[]; updatedAt?: number; lineSubmittableCounts?: Record<string, number> };
 
     }>('/api/quests/progress');
 
@@ -207,6 +210,8 @@ export function QuestBookPage() {
     setProgressMap(map);
 
     setProgressUpdatedAt(res.progress?.updatedAt ?? Date.now());
+
+    setLineSubmittableCounts(res.progress?.lineSubmittableCounts ?? {});
 
   }, []);
 
@@ -380,7 +385,7 @@ export function QuestBookPage() {
 
     try {
 
-      localStorage.setItem(QUEST_HIDE_COMPLETED_KEY, hideCompleted ? '1' : '0');
+      localStorage.setItem(QUEST_PREVIEW_MODE_KEY, previewMode ? '1' : '0');
 
     } catch {
 
@@ -388,7 +393,7 @@ export function QuestBookPage() {
 
     }
 
-  }, [hideCompleted]);
+  }, [previewMode]);
 
 
 
@@ -427,11 +432,16 @@ export function QuestBookPage() {
 
     const q = search.trim().toLowerCase();
 
-    return enrichedNodes.filter((n) => {
+    let result = enrichedNodes;
+    if (!displaySettings.showGhostNodes) {
+      result = result.filter((n) => !n.ghost);
+    }
+    if (!previewMode) {
+      const visibleIds = computePreviewVisibleNodes(enrichedNodes, graph?.edges ?? []);
+      result = result.filter((n) => visibleIds.has(n.questId));
+    }
 
-      if (!displaySettings.showGhostNodes && n.ghost) return false;
-
-      if (hideCompleted && n.state === 'COMPLETED' && !n.ghost) return false;
+    return result.filter((n) => {
 
       if (filter === 'submit') return !!n.canSubmit;
 
@@ -448,7 +458,7 @@ export function QuestBookPage() {
 
     });
 
-  }, [enrichedNodes, filter, search, hideCompleted, displaySettings.showGhostNodes]);
+  }, [enrichedNodes, filter, search, previewMode, displaySettings.showGhostNodes, graph?.edges]);
 
 
 
@@ -654,9 +664,9 @@ export function QuestBookPage() {
 
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
 
-            <Switch checked={hideCompleted} onChange={setHideCompleted} size="small" />
+            <Switch checked={previewMode} onChange={setPreviewMode} size="small" />
 
-            <Text type="secondary">{t('quest.hideCompleted')}</Text>
+            <Text type="secondary">{t('quest.previewMode')}</Text>
 
           </span>
 
@@ -719,6 +729,10 @@ export function QuestBookPage() {
             collapsed={linePanelCollapsed}
 
             onToggleCollapsed={() => setLinePanelCollapsed((v) => !v)}
+
+            previewMode={previewMode}
+
+            lineSubmittableCounts={lineSubmittableCounts}
 
           />
 

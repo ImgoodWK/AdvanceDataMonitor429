@@ -11,6 +11,7 @@ import com.imgood.textech.handler.HandlerStarryCosmosSword;
 import com.imgood.textech.handler.HandlerSuperOrange;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.handler.HandlerWebChatCollector;
+import com.imgood.textech.handler.HandlerWebTileEntityIndex;
 import com.imgood.textech.handler.HandlerWebPlayerTracker;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -34,6 +35,7 @@ public class LoaderHandler {
         MinecraftForge.EVENT_BUS.register(new HandlerStarryCosmosSword());
         MinecraftForge.EVENT_BUS.register(new HandlerGrapple());
         MinecraftForge.EVENT_BUS.register(new HandlerDataLoomCell());
+        MinecraftForge.EVENT_BUS.register(new HandlerWebTileEntityIndex());
         MinecraftForge.EVENT_BUS.register(new HandlerPocketWorldLoad());
         // HandlerWebPlayerTracker listens to FML PlayerLoggedIn/LoggedOut events → register on FML bus.
         FMLCommonHandler.instance()

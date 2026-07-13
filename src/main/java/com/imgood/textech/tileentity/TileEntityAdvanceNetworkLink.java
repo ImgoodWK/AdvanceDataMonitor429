@@ -116,6 +116,26 @@ public class TileEntityAdvanceNetworkLink extends AENetworkTile implements IOwna
             .setFlags(new GridFlags[] { GridFlags.REQUIRE_CHANNEL });
     }
 
+    @Override
+    public void validate() {
+        super.validate();
+        if (worldObj != null && !worldObj.isRemote) {
+            com.imgood.textech.webae.context.NetworkRegistry.onLinkPlaced(
+                this,
+                worldObj.provider.dimensionId);
+        }
+    }
+
+    @Override
+    public void invalidate() {
+        if (worldObj != null && !worldObj.isRemote) {
+            com.imgood.textech.webae.context.NetworkRegistry.onLinkRemoved(
+                this,
+                worldObj.provider.dimensionId);
+        }
+        super.invalidate();
+    }
+
     // ================= IOwnableTile =================
 
     @Override

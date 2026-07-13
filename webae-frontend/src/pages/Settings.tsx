@@ -44,6 +44,7 @@ import { useI18n } from '@/i18n';
 import { getApiClient } from '@/api/client';
 import { importLocalIconPackZip, SERVER_SYNC_PACK_NAME, setActiveLocalPack, syncServerIconPack } from '@/utils/localIconPack';
 import { fillMissingIconsFromServer } from '@/utils/iconPrefetch';
+import { bumpIconVersion } from '@/utils/icon';
 import { getVisibleIconIds } from '@/utils/visibleIconRegistry';
 import {
   getLocalDebugFlag,
@@ -203,6 +204,7 @@ export function SettingsPage() {
       });
       setActiveLocalPack(SERVER_SYNC_PACK_NAME);
       setLocalIconPack(SERVER_SYNC_PACK_NAME);
+      bumpIconVersion();
       await refreshLocalIconPacks();
       notify(
         t('iconSyncPackDone')

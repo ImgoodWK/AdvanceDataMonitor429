@@ -9,7 +9,7 @@ GTNH 整合包任务数据快照，供本地 `runClient` / `runServer` 与 WebAE
 | 上游仓库 | [GT-New-Horizons-Modpack](https://github.com/GTNewHorizons/GT-New-Horizons-Modpack) |
 | 路径 | `config/betterquesting/` |
 | 快照 commit | 见 `SOURCE.json` |
-| BQ 模组版本 | `3.8.70-GTNH` + `GTNHLib 0.10.7`（dev；勿用 0.11.9，见 Gradle 工作流 FAQ） |
+| BQ 模组版本 | `3.8.72-GTNH` + `GTNHLib 0.11.24` + `ModularUI2 2.3.79` + `GT5 5.09.54.20`（GTNH 2.9.0-beta-2） |
 
 ## 自动同步
 

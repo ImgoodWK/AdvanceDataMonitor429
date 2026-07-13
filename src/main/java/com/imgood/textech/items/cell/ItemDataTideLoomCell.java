@@ -29,7 +29,7 @@ public class ItemDataTideLoomCell extends AbstractDataLoomFluidCell {
     }
 
     @Override
-    public IInventory getConfigInventory(ItemStack is) {
+    public appeng.tile.inventory.IAEStackInventory getConfigAEInventory(ItemStack is) {
         return new FlowLoomCellConfig(is);
     }
 

@@ -50,7 +50,7 @@ public class ItemAdvanceStorageLinkCell extends Item implements ICellWorkbenchIt
     }
 
     @Override
-    public IInventory getConfigInventory(ItemStack is) {
+    public appeng.tile.inventory.IAEStackInventory getConfigAEInventory(ItemStack is) {
         return new CellConfig(is);
     }
 
@@ -210,9 +210,13 @@ public class ItemAdvanceStorageLinkCell extends Item implements ICellWorkbenchIt
         List<ItemStack> markedItems = new ArrayList<>();
         if (cellStack == null || cellStack.getItem() != this) return markedItems;
 
-        IInventory config = getConfigInventory(cellStack);
+        appeng.tile.inventory.IAEStackInventory config = getConfigAEInventory(cellStack);
         for (int slot = 0; slot < config.getSizeInventory(); slot++) {
-            ItemStack marked = config.getStackInSlot(slot);
+            appeng.api.storage.data.IAEStack aes = config.getAEStackInSlot(slot);
+            ItemStack marked = null;
+            if (aes instanceof appeng.api.storage.data.IAEItemStack) {
+                marked = ((appeng.api.storage.data.IAEItemStack) aes).getItemStack();
+            }
             if (marked != null && marked.getItem() != null) {
                 ItemStack copy = marked.copy();
                 copy.stackSize = 1;

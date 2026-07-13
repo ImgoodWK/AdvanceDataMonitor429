@@ -39,6 +39,11 @@ public class DataLoomItemInventory implements IMEInventoryHandler {
         return StorageChannel.ITEMS;
     }
 
+    @Override
+    public appeng.api.storage.data.IAEStackType getStackType() {
+        return appeng.util.item.AEItemStackType.ITEM_STACK_TYPE;
+    }
+
     public int getCellStatus() {
         ItemStack live = resolveLiveStack();
         DataLoomCellStorage.ItemAccumState state = DataLoomCellStorage.readItemState(live);

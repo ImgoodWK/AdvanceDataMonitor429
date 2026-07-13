@@ -2,10 +2,12 @@ package com.imgood.textech.items.cell;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.items.contents.CellConfig;
 
 /**
- * Cell Workbench partition inventory shared by item-channel loom cells.
+ * Cell Workbench partition inventory shared by item-channel loom cells (AE2 2.9 {@link CellConfig}).
  * Refreshes {@link DataLoomCellTooltipCache} when markers change.
  */
 public abstract class DataLoomCellConfig extends CellConfig {
@@ -18,14 +20,20 @@ public abstract class DataLoomCellConfig extends CellConfig {
     }
 
     @Override
-    public boolean isItemValidForSlot(int slot, ItemStack stack) {
-        if (stack == null || stack.getItem() == null) {
-            return false;
+    public void putAEStackInSlot(final int n, final IAEStack aes) {
+        if (aes != null) {
+            if (!(aes instanceof IAEItemStack)) {
+                return;
+            }
+            ItemStack stack = ((IAEItemStack) aes).getItemStack();
+            if (stack == null || stack.getItem() == null) {
+                return;
+            }
+            if (DataLoomCellUtil.isModOwnItem(stack) || !isMarkerItemAllowed(stack)) {
+                return;
+            }
         }
-        if (DataLoomCellUtil.isModOwnItem(stack)) {
-            return false;
-        }
-        return isMarkerItemAllowed(stack);
+        super.putAEStackInSlot(n, aes);
     }
 
     protected abstract boolean isMarkerItemAllowed(ItemStack stack);

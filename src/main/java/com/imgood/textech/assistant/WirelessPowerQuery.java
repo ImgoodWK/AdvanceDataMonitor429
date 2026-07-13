@@ -3,6 +3,9 @@ package com.imgood.textech.assistant;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -20,6 +23,10 @@ public final class WirelessPowerQuery {
         "getUserEnergy", "getEnergy" };
 
     private static final String[] CAPACITY_METHODS = { "getUserMaxEU", "getMaxEU", "getCapacity", "getWirelessMaxEU" };
+
+    /** Log candidate method names at most once per class (PowerSampler polls every 5s). */
+    private static final Set<String> LOGGED_CANDIDATE_CLASSES = Collections
+        .synchronizedSet(new HashSet<String>());
 
     private WirelessPowerQuery() {}
 
@@ -156,12 +163,15 @@ public final class WirelessPowerQuery {
     }
 
     private static void logCandidateMethods(Class<?> clazz) {
+        String className = clazz.getName();
+        if (!LOGGED_CANDIDATE_CLASSES.add(className)) {
+            return;
+        }
         for (Method method : clazz.getMethods()) {
             String lower = method.getName()
                 .toLowerCase();
             if (lower.contains("eu") || lower.contains("energy") || lower.contains("wireless")) {
-                AdvanceDataMonitor.LOG
-                    .info("[ADM Assistant] Wireless API candidate: {}.{}", clazz.getName(), method.getName());
+                AdvanceDataMonitor.LOG.debug("[ADM Assistant] Wireless API candidate: {}.{}", className, method.getName());
             }
         }
     }

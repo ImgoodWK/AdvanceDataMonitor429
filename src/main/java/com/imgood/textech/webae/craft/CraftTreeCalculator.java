@@ -167,4 +167,44 @@ public final class CraftTreeCalculator {
         }
         return total;
     }
+
+    /**
+     * Returns how many of the tree root shortfall can be satisfied via AE stock + patterns.
+     * Zero when any intermediate step lacks a pattern or leaf materials are insufficient.
+     */
+    public static long computeCraftableAmount(CraftTreeNodeDto tree) {
+        if (tree == null || tree.missing <= 0) {
+            return 0L;
+        }
+        if (canFullyCraft(tree, tree.missing)) {
+            return tree.missing;
+        }
+        return 0L;
+    }
+
+    private static boolean canFullyCraft(CraftTreeNodeDto node, long amount) {
+        if (node == null || amount <= 0) {
+            return true;
+        }
+        long fromStock = Math.min(node.available, amount);
+        long needCraft = amount - fromStock;
+        if (needCraft <= 0) {
+            return true;
+        }
+        if (node.leaf || node.children == null || node.children.isEmpty()) {
+            return node.patternId != null && !node.patternId.isEmpty();
+        }
+        if (node.patternId == null || node.patternId.isEmpty()) {
+            return false;
+        }
+        for (CraftTreeNodeDto child : node.children) {
+            if (child == null) {
+                continue;
+            }
+            if (!canFullyCraft(child, child.required)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

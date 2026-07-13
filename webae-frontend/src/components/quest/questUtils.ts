@@ -65,5 +65,26 @@ export function orderQuestNodes(
   return ordered;
 }
 
-export const QUEST_HIDE_COMPLETED_KEY = 'webae.quest.hideCompleted';
+export const QUEST_PREVIEW_MODE_KEY = 'webae.quest.previewMode';
 export const QUEST_REFRESH_CD_MS = 30_000;
+
+/**
+ * Compute the set of questIds visible in preview mode:
+ * all canSubmit nodes and any node directly connected to a canSubmit node by an edge.
+ */
+export function computePreviewVisibleNodes(
+  nodes: QuestLineNodeDto[],
+  edges: QuestLineEdgeDto[]
+): Set<string> {
+  const canSubmitIds = new Set(nodes.filter((n) => n.canSubmit).map((n) => n.questId));
+  const visible = new Set(canSubmitIds);
+  for (const edge of edges) {
+    const fromIn = canSubmitIds.has(edge.fromQuestId);
+    const toIn = canSubmitIds.has(edge.toQuestId);
+    if (fromIn || toIn) {
+      visible.add(edge.fromQuestId);
+      visible.add(edge.toQuestId);
+    }
+  }
+  return visible;
+}

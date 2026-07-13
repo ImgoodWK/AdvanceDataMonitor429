@@ -17,7 +17,6 @@ import net.minecraftforge.fluids.FluidStack;
 
 import org.lwjgl.opengl.GL11;
 
-import com.glodblock.github.common.item.ItemFluidDrop;
 import com.imgood.textech.items.cell.IDataLoomFluidCell;
 
 import appeng.api.AEApi;
@@ -39,7 +38,25 @@ public final class IconFluidRenderer {
 
     private static volatile Boolean ae2fcFluidCellPresent;
 
+    private static final String ITEM_FLUID_DROP_CLASS = "com.glodblock.github.common.item.ItemFluidDrop";
+    private static volatile Class<?> itemFluidDropClass;
+
     private IconFluidRenderer() {}
+
+    private static Class<?> fluidDropClass() {
+        Class<?> cached = itemFluidDropClass;
+        if (cached != null) {
+            return cached == Void.class ? null : cached;
+        }
+        try {
+            cached = Class.forName(ITEM_FLUID_DROP_CLASS);
+            itemFluidDropClass = cached;
+            return cached;
+        } catch (Throwable ignored) {
+            itemFluidDropClass = Void.class;
+            return null;
+        }
+    }
 
     /** Item stacks that must not use grid/atlas shortcuts (fluid cells, fluid drops, …). */
     public static boolean needsInGameItemRender(ItemStack stack) {
@@ -62,7 +79,8 @@ public final class IconFluidRenderer {
         if (item == null) {
             return false;
         }
-        if (item instanceof ItemFluidDrop) {
+        Class<?> dropCls = fluidDropClass();
+        if (dropCls != null && dropCls.isInstance(item)) {
             return true;
         }
         try {
@@ -77,10 +95,16 @@ public final class IconFluidRenderer {
         if (stack == null || stack.getItem() == null) {
             return false;
         }
+        Class<?> dropCls = fluidDropClass();
+        if (dropCls == null) {
+            return isFluidDropItem(stack.getItem());
+        }
         try {
-            return ItemFluidDrop.isFluidStack(stack);
+            Object result = dropCls.getMethod("isFluidStack", ItemStack.class)
+                .invoke(null, stack);
+            return Boolean.TRUE.equals(result);
         } catch (Throwable ignored) {
-            return false;
+            return isFluidDropItem(stack.getItem());
         }
     }
 
@@ -88,11 +112,17 @@ public final class IconFluidRenderer {
         if (stack == null) {
             return null;
         }
-        try {
-            return ItemFluidDrop.getFluidStack(stack);
-        } catch (Throwable ignored) {
-            return null;
+        Class<?> dropCls = fluidDropClass();
+        if (dropCls != null) {
+            try {
+                Object result = dropCls.getMethod("getFluidStack", ItemStack.class)
+                    .invoke(null, stack);
+                if (result instanceof FluidStack) {
+                    return (FluidStack) result;
+                }
+            } catch (Throwable ignored) {}
         }
+        return null;
     }
 
     public static boolean isFluidStorageCell(ItemStack stack) {
@@ -118,12 +148,15 @@ public final class IconFluidRenderer {
     }
 
     private static boolean isAe2fcFluidCellItem(Item item) {
-        try {
-            Class<?> iface = Class.forName("com.glodblock.github.common.storage.IStorageFluidCell");
-            return iface.isInstance(item);
-        } catch (Throwable ignored) {
-            return false;
+        if (item instanceof appeng.api.implementations.items.IStorageCell) {
+            try {
+                return ((appeng.api.implementations.items.IStorageCell) item)
+                    .getStackType() == appeng.util.item.AEFluidStackType.FLUID_STACK_TYPE;
+            } catch (Throwable ignored) {
+                return false;
+            }
         }
+        return false;
     }
 
     private static boolean hasForgeFluidTag(ItemStack stack) {
@@ -249,11 +282,12 @@ public final class IconFluidRenderer {
             return null;
         }
         try {
-            if (stack.getItem() instanceof ItemFluidDrop) {
-                ItemFluidDrop drop = (ItemFluidDrop) stack.getItem();
-                IIcon shape = drop.shape;
-                if (shape != null) {
-                    return shape;
+            Class<?> dropCls = fluidDropClass();
+            if (dropCls != null && dropCls.isInstance(stack.getItem())) {
+                Field shapeField = dropCls.getField("shape");
+                Object shape = shapeField.get(stack.getItem());
+                if (shape instanceof IIcon) {
+                    return (IIcon) shape;
                 }
             }
         } catch (Throwable ignored) {}
@@ -314,7 +348,7 @@ public final class IconFluidRenderer {
     private static boolean isAe2fcFluidCellPresent() {
         if (ae2fcFluidCellPresent == null) {
             try {
-                Class.forName("com.glodblock.github.common.storage.IStorageFluidCell");
+                Class.forName("appeng.util.item.AEFluidStackType");
                 ae2fcFluidCellPresent = Boolean.TRUE;
             } catch (Throwable ignored) {
                 ae2fcFluidCellPresent = Boolean.FALSE;

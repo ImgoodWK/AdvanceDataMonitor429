@@ -1,15 +1,14 @@
 package com.imgood.textech.compat.ae.native_;
 
-import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 
 import com.imgood.textech.compat.ae.AeFluidCellConfigFactory;
-import com.imgood.textech.compat.ae.legacy.LegacyAeFluidCellConfigFactory;
 import com.imgood.textech.items.cell.NativeDataLoomFluidCellConfig;
 
+import appeng.tile.inventory.IAEStackInventory;
+
 /**
- * Native AE2 fluid Cell Workbench config. Falls back to AE2FC {@link LegacyAeFluidCellConfigFactory} when
- * {@link NativeDataLoomFluidCellConfig} cannot be used.
+ * Native AE2 fluid Cell Workbench config (GTNH 2.9+).
  */
 public final class NativeAeFluidCellConfigFactory implements AeFluidCellConfigFactory {
 
@@ -18,10 +17,7 @@ public final class NativeAeFluidCellConfigFactory implements AeFluidCellConfigFa
     private NativeAeFluidCellConfigFactory() {}
 
     @Override
-    public IInventory createConfigInventory(ItemStack cellStack) {
-        if (NativeDataLoomFluidCellConfig.isSupported()) {
-            return new NativeDataLoomFluidCellConfig(cellStack);
-        }
-        return LegacyAeFluidCellConfigFactory.INSTANCE.createConfigInventory(cellStack);
+    public IAEStackInventory createConfigInventory(ItemStack cellStack) {
+        return new NativeDataLoomFluidCellConfig(cellStack);
     }
 }

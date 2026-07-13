@@ -2,13 +2,16 @@ package com.imgood.textech.compat.ae.legacy;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidContainerItem;
 
-import com.glodblock.github.common.item.ItemFluidPacket;
-import com.glodblock.github.util.Util;
 import com.imgood.textech.compat.ae.AeFluidMarkerAdapter;
 
-/** AE2FC / GlodBlock Cell Workbench fluid marker resolution. */
+/**
+ * Fluid marker resolution without compile-time ae2fc types (GTNH 2.9.0-beta-2+).
+ * Uses NBT + Forge fluid containers; optional reflective hooks for remaining ae2fc helpers.
+ */
 public final class LegacyAeFluidMarkerAdapter implements AeFluidMarkerAdapter {
 
     public static final LegacyAeFluidMarkerAdapter INSTANCE = new LegacyAeFluidMarkerAdapter();
@@ -26,30 +29,31 @@ public final class LegacyAeFluidMarkerAdapter implements AeFluidMarkerAdapter {
             return fromNbt;
         }
 
-        if (markerItem.getItem() instanceof ItemFluidPacket) {
-            FluidStack packetFluid = ItemFluidPacket.getFluidStack(markerItem);
-            if (packetFluid != null && packetFluid.getFluid() != null) {
-                return normalizeMarkerFluid(packetFluid);
+        FluidStack fromPacket = resolveViaAe2fcPacketReflect(markerItem);
+        if (fromPacket != null) {
+            return fromPacket;
+        }
+
+        FluidStack fromVirtual = resolveViaAe2fcUtilReflect(markerItem, "getFluidFromVirtual");
+        if (fromVirtual != null) {
+            return fromVirtual;
+        }
+
+        FluidStack fromItem = resolveViaAe2fcUtilReflect(markerItem, "getFluidFromItem");
+        if (fromItem != null) {
+            return fromItem;
+        }
+
+        if (markerItem.getItem() instanceof IFluidContainerItem) {
+            FluidStack drained = ((IFluidContainerItem) markerItem.getItem()).getFluid(markerItem);
+            if (drained != null && drained.getFluid() != null) {
+                return normalizeMarkerFluid(drained);
             }
         }
 
-        FluidStack fluid = Util.getFluidFromVirtual(markerItem);
-        if (fluid != null && fluid.getFluid() != null) {
-            return normalizeMarkerFluid(fluid);
-        }
-
-        fluid = Util.getFluidFromItem(markerItem);
-        if (fluid != null && fluid.getFluid() != null) {
-            return normalizeMarkerFluid(fluid);
-        }
-
-        try {
-            appeng.api.storage.data.IAEFluidStack aeFluid = Util.loadFluidStackFromNBT(markerItem.getTagCompound());
-            if (aeFluid != null && aeFluid.getFluid() != null) {
-                return normalizeMarkerFluid(aeFluid.getFluidStack());
-            }
-        } catch (Throwable ignored) {
-            // AE2FC util optional path
+        FluidStack container = FluidContainerRegistry.getFluidForFilledItem(markerItem);
+        if (container != null && container.getFluid() != null) {
+            return normalizeMarkerFluid(container);
         }
 
         return null;
@@ -86,5 +90,32 @@ public final class LegacyAeFluidMarkerAdapter implements AeFluidMarkerAdapter {
             copy.amount = 1000;
         }
         return copy;
+    }
+
+    private static FluidStack resolveViaAe2fcPacketReflect(ItemStack markerItem) {
+        try {
+            Class<?> packetClass = Class.forName("com.glodblock.github.common.item.ItemFluidPacket");
+            if (!packetClass.isInstance(markerItem.getItem())) {
+                return null;
+            }
+            Object fluid = packetClass.getMethod("getFluidStack", ItemStack.class)
+                .invoke(null, markerItem);
+            if (fluid instanceof FluidStack) {
+                return normalizeMarkerFluid((FluidStack) fluid);
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private static FluidStack resolveViaAe2fcUtilReflect(ItemStack markerItem, String methodName) {
+        try {
+            Class<?> utilClass = Class.forName("com.glodblock.github.util.Util");
+            Object fluid = utilClass.getMethod(methodName, ItemStack.class)
+                .invoke(null, markerItem);
+            if (fluid instanceof FluidStack) {
+                return normalizeMarkerFluid((FluidStack) fluid);
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 }

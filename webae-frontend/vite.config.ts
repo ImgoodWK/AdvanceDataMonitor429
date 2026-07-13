@@ -10,7 +10,7 @@ export default defineConfig({
   base: './',
   build: {
     outDir: resolve(__dirname, '../src/main/resources/assets/textech/webae'),
-    emptyOutDir: false,
+    emptyOutDir: true,
     assetsDir: 'assets',
     cssCodeSplit: true,
     sourcemap: false,

@@ -380,8 +380,13 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "recipeSearchMinIntervalMs",
-            "Minimum interval (ms) between fuzzy recipe searches per owner via /api/recipes/search?q=. Default 300.",
-            "每位 owner 模糊配方搜索 /api/recipes/search?q= 的最小间隔（毫秒）。默认 300。");
+            "Minimum interval (ms) between fuzzy recipe searches per owner via /api/recipes/search?q=. Default 1000.",
+            "每位 owner 模糊配方搜索 /api/recipes/search?q= 的最小间隔（毫秒）。默认 1000。");
+        put(
+            "webConsole",
+            "recipeDiskFormat",
+            "On-disk recipe cache format: json (plain, fast streaming load; default) or gzip (smaller disk, decompression on load).",
+            "配方磁盘格式：json（未压缩，流式加载快；默认）或 gzip（省磁盘，加载时需解压）。");
         put(
             "webConsole",
             "nesqlRepositoryPath",
@@ -420,8 +425,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "metricSampleIntervalMs",
-            "Sampling interval in milliseconds for network-wide scalar metrics (item/fluid/CPU/GT counts) used by dashboard trend charts. Valid values: 1000-60000. Default 10000.",
-            "网络级标量指标（物品/流体/CPU/GT 计数）的采样间隔（毫秒），用于仪表盘趋势图。有效值：1000-60000。默认 10000。");
+            "Sampling interval in milliseconds for network-wide scalar metrics (item/fluid/CPU/GT counts) used by dashboard trend charts. Valid values: 1000-60000. Default 30000.",
+            "网络级标量指标（物品/流体/CPU/GT 计数）的采样间隔（毫秒），用于仪表盘趋势图。有效值：1000-60000。默认 30000。");
         put(
             "webConsole",
             "metricSampleWindowSeconds",
@@ -435,13 +440,13 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "dashboardMaxTracksGlobal",
-            "Maximum active item/fluid/entity tracks per player across all dashboard widgets. Valid values: 1-256. Default 32.",
-            "同一玩家在所有仪表盘组件上同时活跃的物品/流体/实体跟踪总数上限。有效值：1-256。默认 32。");
+            "Maximum active item/fluid/entity tracks per player across all dashboard widgets. Valid values: 1-256. Default 16.",
+            "同一玩家在所有仪表盘组件上同时活跃的物品/流体/实体跟踪总数上限。有效值：1-256。默认 16。");
         put(
             "webConsole",
             "dashboardMaxItemTracks",
-            "Maximum per-item amount history tracks per (player, network). Valid values: 1-64. Default 16.",
-            "每个（玩家, 网络）的物品存量历史跟踪上限。有效值：1-64。默认 16。");
+            "Maximum per-item amount history tracks per (player, network). Valid values: 1-64. Default 8.",
+            "每个（玩家, 网络）的物品存量历史跟踪上限。有效值：1-64。默认 8。");
         put(
             "webConsole",
             "dashboardMaxFluidTracks",
@@ -460,13 +465,13 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "refreshIntervalMs",
-            "Unified refresh interval in milliseconds for server snapshot collection and frontend polling. Lower values give fresher data but cost more main-thread time. Valid values: 1000-60000. Default 1000.",
-            "服务端快照采集与前端轮询的统一刷新间隔（毫秒）。值越小数据越新鲜但占主线程时间越多。有效值：1000-60000。默认 1000。");
+            "Unified refresh interval in milliseconds for server snapshot collection and frontend polling. Lower values give fresher data but cost more main-thread time. Valid values: 1000-60000. Default 10000.",
+            "服务端快照采集与前端轮询的统一刷新间隔（毫秒）。值越小数据越新鲜但占主线程时间越多。有效值：1000-60000。默认 10000。");
         put(
             "webConsole",
             "gtRefreshIntervalMs",
-            "GT machine snapshot collection interval in milliseconds. GT machines change slowly so this can be larger than refreshIntervalMs. Valid values: 1000-60000. Default 10000.",
-            "GT 机器快照采集间隔（毫秒）。GT 机器状态变化较慢，可大于 refreshIntervalMs。有效值：1000-60000。默认 10000。");
+            "GT machine snapshot collection interval in milliseconds. GT machines change slowly so this can be larger than refreshIntervalMs. Valid values: 1000-60000. Default 30000.",
+            "GT 机器快照采集间隔（毫秒）。GT 机器状态变化较慢，可大于 refreshIntervalMs。有效值：1000-60000。默认 30000。");
         put(
             "webConsole",
             "maxNetworksDisplayed",
@@ -525,8 +530,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "patternCacheTtlMs",
-            "TTL in milliseconds for per-network pattern browse cache. Default 30000.",
-            "按网络缓存样板 browse 结果的 TTL（毫秒）。默认 30000。");
+            "TTL in milliseconds for per-network pattern browse cache. Default 120000.",
+            "按网络缓存样板 browse 结果的 TTL（毫秒）。默认 120000。");
         put(
             "webConsole",
             "topologyEnabled",
@@ -560,8 +565,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "worldMapMaxQualityTier",
-            "Highest world map quality tier allowed on this server: low, medium, high, ultra. Default ultra.",
-            "服务端允许的世界地图最高清晰度档位：low / medium / high / ultra。默认 ultra。");
+            "Highest world map quality tier allowed on this server: low, medium, high, ultra. Default medium.",
+            "服务端允许的世界地图最高清晰度档位：low / medium / high / ultra。默认 medium。");
         put(
             "webConsole",
             "worldMapDefaultQualityTier",
@@ -575,8 +580,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "worldMapTileBudgetPerTick",
-            "Max chunk tiles rendered per server tick for world map (Phase B). Default 2.",
-            "世界地图每 tick 最多渲染的 chunk 瓦片数（Phase B）。默认 2。");
+            "Max chunk tiles rendered per server tick for world map (Phase B). Default 1.",
+            "世界地图每 tick 最多渲染的 chunk 瓦片数（Phase B）。默认 1。");
         put(
             "webConsole",
             "worldMapMaxChunks",
@@ -680,8 +685,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "worldMapAeOverlayQualityTier",
-            "Quality tier for AE overlay tiles (low/medium/high/ultra), independent from terrain quality. Default ultra.",
-            "AE 叠加层瓦片清晰度（low/medium/high/ultra），与地形 quality 解耦。默认 ultra。");
+            "Quality tier for AE overlay tiles (low/medium/high/ultra), independent from terrain quality. Default medium.",
+            "AE 叠加层瓦片清晰度（low/medium/high/ultra），与地形 quality 解耦。默认 medium。");
         put(
             "webConsole",
             "worldMapServerAtlasEnabled",

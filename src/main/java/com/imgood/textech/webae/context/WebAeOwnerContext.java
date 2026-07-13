@@ -122,8 +122,23 @@ public final class WebAeOwnerContext {
                 return cached.groups;
             }
         }
-        List<NetworkGroup> groups = scanMonitors(ownerUuid);
+        List<NetworkGroup> groups = NetworkRegistry.getNetworks(ownerUuid);
+        if (groups.isEmpty()) {
+            groups = bootstrapScanMonitors(ownerUuid);
+        }
         connectorCache.put(ownerUuid, new CachedConnectors(groups, System.currentTimeMillis()));
+        return groups;
+    }
+
+    /**
+     * One-time bootstrap scan used when the event-driven registry has no entries yet
+     * (server startup or first access before chunk events fire).
+     */
+    public static List<NetworkGroup> bootstrapScanMonitors(String ownerUuid) {
+        List<NetworkGroup> groups = scanMonitors(ownerUuid);
+        if (!groups.isEmpty()) {
+            NetworkRegistry.seedFromGroups(ownerUuid, groups);
+        }
         return groups;
     }
 
@@ -145,6 +160,7 @@ public final class WebAeOwnerContext {
             info.hasStorage = group.storageLink != null;
             info.hasCrafting = group.craftingLink != null;
             info.hasNetworkLink = group.networkLink != null;
+            info.healthy = NetworkRegistry.isHealthy(ownerUuid, i);
             result.add(info);
         }
         return result;
@@ -193,6 +209,10 @@ public final class WebAeOwnerContext {
     }
 
     public static IGrid getGrid(String ownerUuid, int networkId) {
+        IGrid cached = NetworkRegistry.getCachedGrid(ownerUuid, networkId);
+        if (cached != null) {
+            return cached;
+        }
         NetworkGroup group = getNetworkGroup(ownerUuid, networkId);
         if (group == null) {
             return null;
@@ -204,8 +224,11 @@ public final class WebAeOwnerContext {
         }
         try {
             IGridNode node = ((IGridHost) link).getGridNode(ForgeDirection.UNKNOWN);
-            return node != null ? node.getGrid() : null;
+            IGrid grid = node != null ? node.getGrid() : null;
+            NetworkRegistry.updateCachedGrid(ownerUuid, networkId, grid);
+            return grid;
         } catch (Exception e) {
+            NetworkRegistry.updateCachedGrid(ownerUuid, networkId, null);
             return null;
         }
     }
@@ -277,6 +300,13 @@ public final class WebAeOwnerContext {
     public static void invalidateConnectors(String ownerUuid) {
         if (ownerUuid != null) {
             connectorCache.remove(ownerUuid);
+            NetworkRegistry.refreshHealth(ownerUuid);
+        }
+    }
+
+    static void invalidateConnectorCache(String ownerUuid) {
+        if (ownerUuid != null) {
+            connectorCache.remove(ownerUuid);
         }
     }
 
@@ -314,11 +344,11 @@ public final class WebAeOwnerContext {
             if (world == null) {
                 continue;
             }
-            for (Object obj : world.loadedTileEntityList) {
-                if (!(obj instanceof TileEntityAdvanceDataMonitor)) {
-                    continue;
-                }
-                TileEntityAdvanceDataMonitor monitor = (TileEntityAdvanceDataMonitor) obj;
+            int dim = world.provider.dimensionId;
+            // Use the TE index to scan only this dimension's monitors, avoiding a
+            // full per-dimension loadedTileEntityList traversal for other TE types.
+            List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex.getByType(dim, TileEntityAdvanceDataMonitor.class);
+            for (TileEntityAdvanceDataMonitor monitor : monitors) {
                 if (!ownerName.equals(monitor.getOwnerName())) {
                     continue;
                 }
@@ -327,7 +357,7 @@ public final class WebAeOwnerContext {
                 group.monitorX = monitor.xCoord;
                 group.monitorY = monitor.yCoord;
                 group.monitorZ = monitor.zCoord;
-                group.monitorDim = world.provider.dimensionId;
+                group.monitorDim = dim;
 
                 int count = monitor.getDataBoundCount();
                 for (int i = 0; i < count; i++) {
@@ -407,22 +437,9 @@ public final class WebAeOwnerContext {
         return dx * dx + dy * dy + dz * dz;
     }
 
+    /** O(1) player lookup via the shared online-player index. */
     public static EntityPlayerMP findOnlinePlayer(String ownerUuid) {
-        MinecraftServer server = MinecraftServer.getServer();
-        if (server == null || server.getConfigurationManager() == null) {
-            return null;
-        }
-        for (Object obj : server.getConfigurationManager().playerEntityList) {
-            if (obj instanceof EntityPlayerMP) {
-                EntityPlayerMP mp = (EntityPlayerMP) obj;
-                if (mp.getUniqueID()
-                    .toString()
-                    .equals(ownerUuid)) {
-                    return mp;
-                }
-            }
-        }
-        return null;
+        return com.imgood.textech.handler.HandlerWebPlayerTracker.findOnlinePlayer(ownerUuid);
     }
 
     private static final class CachedConnectors {

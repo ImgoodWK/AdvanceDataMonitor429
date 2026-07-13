@@ -6,7 +6,6 @@ import com.imgood.textech.compat.ae.AeCellStats;
 import com.imgood.textech.compat.ae.AeCellStatsAdapter;
 import com.imgood.textech.compat.ae.AeStorageStatsAccumulator;
 import com.imgood.textech.compat.ae.AeTypeCounts;
-import com.imgood.textech.compat.ae.legacy.LegacyAeCellStatsAdapter;
 
 import appeng.api.AEApi;
 import appeng.api.storage.ICellInventory;
@@ -105,6 +104,20 @@ public final class NativeAeCellStatsAdapter implements AeCellStatsAdapter {
         out.usedBytes = cell.getUsedBytes();
         out.totalTypes = AeTypeCounts.toInt(cell.getTotalItemTypes());
         out.usedTypes = AeTypeCounts.toInt(cell.getStoredItemTypes());
-        out.infinite = LegacyAeCellStatsAdapter.isInfiniteCell(cell);
+        out.infinite = isInfiniteCell(cell);
+    }
+
+    public static boolean isInfiniteCell(ICellInventory cell) {
+        if (cell == null) {
+            return false;
+        }
+        String className = cell.getClass()
+            .getName()
+            .toLowerCase();
+        if (className.contains("infinity") || className.contains("infinite") || className.contains("creative")) {
+            return true;
+        }
+        long totalBytes = cell.getTotalBytes();
+        return totalBytes > 10_000_000_000_000L || totalBytes == Long.MAX_VALUE || totalBytes >= Long.MAX_VALUE / 2L;
     }
 }

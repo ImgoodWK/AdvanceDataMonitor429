@@ -2,7 +2,7 @@
 // Covers all localStorage-backed preferences plus optional server-side data.
 
 import { getApiClient } from '@/api/client';
-import { QUEST_HIDE_COMPLETED_KEY } from '@/components/quest/questUtils';
+import { QUEST_PREVIEW_MODE_KEY, QUEST_REFRESH_CD_MS } from '@/components/quest/questUtils';
 import {
   getLocalDebugFlag,
   setLocalDebugFlag,
@@ -104,7 +104,7 @@ export interface UiSettingsPages {
   cpuOverview?: CpuOverviewSettings;
   power?: PowerSettings;
   topology?: TopologyDisplaySettings;
-  quest?: QuestDisplaySettings & { hideCompleted?: boolean };
+  quest?: QuestDisplaySettings & { previewMode?: boolean };
   recipe?: { layout: string; displayMode: string };
   chat?: {
     showAvatars: boolean;
@@ -276,7 +276,7 @@ export function collectUiSettingsBundle(opts: CollectUiSettingsOptions = {}): We
   const power = loadOverviewSettingsFromStorage(POWER_CONFIG_KEY, DEFAULT_POWER_SETTINGS);
   const topology = mergeTopologyDisplay(readJson<Partial<TopologyDisplaySettings>>(TOPOLOGY_DISPLAY_STORAGE_KEY));
   const questDisplay = mergeQuestDisplay(readJson<Partial<QuestDisplaySettings>>(QUEST_DISPLAY_STORAGE_KEY));
-  const hideCompleted = readString(QUEST_HIDE_COMPLETED_KEY) === '1';
+  const previewMode = readString(QUEST_PREVIEW_MODE_KEY) !== '0';
 
   const pinned = collectPinnedFluids();
   const pages: UiSettingsPages = {
@@ -285,7 +285,7 @@ export function collectUiSettingsBundle(opts: CollectUiSettingsOptions = {}): We
     cpuOverview,
     power,
     topology,
-    quest: { ...questDisplay, hideCompleted },
+    quest: { ...questDisplay, previewMode },
     recipe: {
       layout: readString(RECIPE_LAYOUT_KEY, 'grid'),
       displayMode: readString(RECIPE_DISPLAY_MODE_KEY, 'compact'),
@@ -546,10 +546,10 @@ export async function applyUiSettingsBundle(
     writeJson(TOPOLOGY_DISPLAY_STORAGE_KEY, mergeTopologyDisplay(pages.topology));
   }
   if (sectionEnabled(sections, 'quest') && pages.quest) {
-    const { hideCompleted, ...questDisplay } = pages.quest;
+    const { previewMode: pm, ...questDisplay } = pages.quest;
     writeJson(QUEST_DISPLAY_STORAGE_KEY, mergeQuestDisplay(questDisplay));
-    if (hideCompleted !== undefined) {
-      localStorage.setItem(QUEST_HIDE_COMPLETED_KEY, hideCompleted ? '1' : '0');
+    if (pm !== undefined) {
+      localStorage.setItem(QUEST_PREVIEW_MODE_KEY, pm ? '1' : '0');
     }
   }
   if (sectionEnabled(sections, 'recipe') && pages.recipe) {

@@ -17,6 +17,7 @@ import com.imgood.textech.TeXTechDataDir;
  */
 public final class WebAeLocalDataDir {
 
+    public static final String RECIPE_JSON_FILENAME = "web-recipes.json";
     public static final String RECIPE_GZ_FILENAME = "web-recipes.json.gz";
 
     private WebAeLocalDataDir() {}
@@ -50,6 +51,8 @@ public final class WebAeLocalDataDir {
     }
 
     public static File serverRecipeExportFile() {
-        return TeXTechDataDir.webAeFile(RECIPE_GZ_FILENAME);
+        String fmt = Config.webRecipeDiskFormat;
+        boolean gzip = fmt != null && "gzip".equalsIgnoreCase(fmt.trim());
+        return TeXTechDataDir.webAeFile(gzip ? RECIPE_GZ_FILENAME : RECIPE_JSON_FILENAME);
     }
 }

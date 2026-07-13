@@ -69,6 +69,7 @@ public final class QuestRequirementAnalyzer {
 
         if (task.complete) {
             step.available = task.required;
+            step.remaining = 0;
             step.missing = 0;
             return step;
         }
@@ -79,13 +80,15 @@ public final class QuestRequirementAnalyzer {
 
         if (task.fluidName != null && !task.fluidName.isEmpty()) {
             step.fluidAvailable = findFluidAvailable(storage, task.fluidName);
-            step.fluidMissing = Math.max(0L, task.fluidRequired - step.fluidAvailable);
+            step.fluidRemaining = Math.max(0L, task.fluidRequired - task.fluidProgress);
+            step.fluidMissing = Math.max(0L, step.fluidRemaining - step.fluidAvailable);
             return step;
         }
 
         if (task.registryName != null && !task.registryName.isEmpty()) {
-            step.available = findItemAvailable(storage, task.registryName, task.meta);
-            step.missing = Math.max(0L, task.required - step.available);
+            step.available = findItemAvailable(storage, task.registryName, task.meta, task.acceptAnyMeta);
+            step.remaining = Math.max(0L, task.required - task.progress);
+            step.missing = Math.max(0L, step.remaining - step.available);
             if (step.missing > 0 && ownerUuid != null && !ownerUuid.isEmpty()) {
                 CraftTreeNodeDto tree = CraftTreeCalculator.build(
                     ownerUuid,
@@ -94,7 +97,7 @@ public final class QuestRequirementAnalyzer {
                     step.missing,
                     6);
                 if (tree != null) {
-                    step.craftable = Math.max(0L, tree.available + tree.toCraft);
+                    step.craftable = CraftTreeCalculator.computeCraftableAmount(tree);
                     if (step.craftable > step.missing) {
                         step.craftable = step.missing;
                     }
@@ -104,7 +107,7 @@ public final class QuestRequirementAnalyzer {
         return step;
     }
 
-    private static long findItemAvailable(StorageDto storage, String registryName, int meta) {
+    private static long findItemAvailable(StorageDto storage, String registryName, int meta, boolean acceptAnyMeta) {
         if (storage == null || storage.items == null || registryName == null) {
             return 0L;
         }
@@ -114,8 +117,12 @@ public final class QuestRequirementAnalyzer {
                 continue;
             }
             if (registryName.equals(item.registryName) || registryName.equals(item.itemId)) {
-                if (meta <= 0 || item.meta == meta) {
+                if (acceptAnyMeta) {
                     total += item.amount;
+                } else {
+                    if (meta <= 0 || item.meta == meta) {
+                        total += item.amount;
+                    }
                 }
             }
         }

@@ -18,6 +18,8 @@ interface QuestLinePanelProps {
   lineFontSize?: number;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  previewMode?: boolean;
+  lineSubmittableCounts?: Record<string, number>;
 }
 
 export function QuestLinePanel({
@@ -29,6 +31,8 @@ export function QuestLinePanel({
   lineFontSize = 14,
   collapsed = false,
   onToggleCollapsed,
+  previewMode = true,
+  lineSubmittableCounts = {},
 }: QuestLinePanelProps) {
   const { t } = useI18n();
   const toggleLabel = collapsed ? t('quest.expandLines') : t('quest.collapseLines');
@@ -83,7 +87,9 @@ export function QuestLinePanel({
         ) : (
           lines.map((line) => {
             const selected = line.lineId === activeLineId;
-            return (
+            const submittableCount = lineSubmittableCounts[line.lineId] ?? 0;
+            const isDimmed = !previewMode && submittableCount === 0;
+            const row = (
               <SelectableListRow
                 key={line.lineId}
                 selected={selected}
@@ -97,10 +103,11 @@ export function QuestLinePanel({
                     <span style={{ width: lineIconSize, height: lineIconSize, flexShrink: 0 }} />
                   )
                 }
+                style={isDimmed ? { opacity: 0.4, color: '#64748b' } : undefined}
               >
                 <Text
                   ellipsis
-                  style={{ display: 'block', fontSize: lineFontSize }}
+                  style={{ display: 'block', fontSize: lineFontSize, ...(isDimmed ? { color: '#64748b' } : {}) }}
                   title={stripMcFormatting(line.name)}
                 >
                   <McFormattedText text={line.name} ellipsis />
@@ -112,6 +119,14 @@ export function QuestLinePanel({
                 ) : null}
               </SelectableListRow>
             );
+            if (isDimmed) {
+              return (
+                <Tooltip key={line.lineId} title={t('quest.lineNoSubmittable')} placement="right">
+                  {row}
+                </Tooltip>
+              );
+            }
+            return row;
           })
         )}
       </div>

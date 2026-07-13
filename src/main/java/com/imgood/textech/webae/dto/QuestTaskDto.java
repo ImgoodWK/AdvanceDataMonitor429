@@ -22,4 +22,6 @@ public class QuestTaskDto {
     public long fluidProgress;
     /** Additional required item variants beyond the first (multi-item tasks). */
     public int extraItemCount;
+    /** True if this task accepts items of any meta (e.g. retrieval tasks with oreDict wildcard). */
+    public boolean acceptAnyMeta;
 }

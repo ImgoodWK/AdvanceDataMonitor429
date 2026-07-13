@@ -427,6 +427,7 @@ export const en: Record<string, string> = {
 
   // Recipes
   recipesCached: 'recipes cached',
+  recipesDiskLoading: 'Building disk index…',
   handlerTypes: 'handler types',
   lastUpdate: 'Last update',
   searchRecipePlaceholder: 'Enter item name (EN/ZH) or registry id',
@@ -760,6 +761,9 @@ export const en: Record<string, string> = {
   tokenChanged: 'Token changed',
   authSessionLabel: 'Signed in as',
   networksFetchFailed: 'Failed to load AE network list',
+  networkUnavailable: '(Unavailable)',
+  networkUnavailableSelect: 'This network is currently unavailable and cannot be selected',
+  networkUnavailableDeselected: 'Disconnected network(s) removed from selection',
   orderPlaced: 'Order placed successfully',
   orderFailed: 'Order failed',
   patternEncoded: 'Pattern encoded successfully',
@@ -1507,7 +1511,7 @@ export const en: Record<string, string> = {
   'quest.needAmount': 'Need {amount} × {name}',
   'quest.main': 'Main',
   'quest.ghost': 'Other chapter',
-  'quest.hideCompleted': 'Hide completed',
+  'quest.previewMode': 'Quest line preview',
   'quest.lastRefresh': 'Last refresh',
   'quest.prerequisites': 'Prerequisites',
   'quest.dependents': 'Unlocks',
@@ -1528,6 +1532,7 @@ export const en: Record<string, string> = {
   'quest.chainSubmitAvailable': 'Submit available only',
   'quest.chainSubmitAll': 'Craft and submit all',
   'quest.craftable': 'Craftable',
+  'quest.aeStock': 'AE {available}/{required}',
   'quest.missingKinds': 'Missing {n} item types',
   'quest.ready': 'Materials ready',
   'quest.settingsTitle': 'Quest book display',
@@ -1566,4 +1571,36 @@ export const en: Record<string, string> = {
   'quest.settings.linePanelFontSize': 'Sidebar font size',
   'quest.settings.centerMinZoom': 'Center-on-select zoom',
   'quest.settings.centerMinZoomHint': 'Minimum zoom when jumping to a quest from the list',
+
+  // Preview mode
+  'quest.lineNoSubmittable': 'No submittable quests in this line',
+  'quest.previewEmptyHint': 'Preview mode shows submittable quests and their adjacent quests only. No matching nodes in this quest line.',
+
+  // Submit feedback - dry run
+  'quest.dryRunAllSufficient': 'All materials available in AE network',
+  'quest.dryRunPartial': '{count} steps have insufficient materials, try crafting first',
+  'quest.dryRunAllInsufficient': 'All steps have insufficient materials, cannot submit',
+  'quest.dryRunSufficient': 'Sufficient',
+  'quest.dryRunNeedCraft': 'Needs crafting',
+  'quest.dryRunInsufficient': 'Insufficient',
+
+  // Submit feedback - craft then submit
+  'quest.craftAllSufficient': 'All materials already in network, consider using direct submit',
+  'quest.craftNoRecipe': 'No craftable recipes for missing materials',
+  'quest.craftingProgress': 'Crafting: {itemName} ({done}/{total})',
+  'quest.craftSubmitDone': 'Craft & submit completed',
+  'quest.craftTimeout': 'Crafting wait timeout, some orders may still be running',
+
+  // Submit feedback - chain submit
+  'quest.chainStats': '{total} quests: {ready} ready, {craft} need crafting, {skip} skipped',
+  'quest.chainDoneAll': 'Chain submit completed: all {count} quests submitted successfully',
+  'quest.chainDonePartial': 'Chain submit partially completed: {done}/{total} submitted, {skip} skipped',
+  'quest.chainAborted': 'Chain submit aborted: {reason}',
+
+  // Submit feedback - step
+  'quest.stepSubmitted': 'Step submitted',
+  'quest.stepSubmitFailed': 'Submit failed: {reason}',
+
+  // Submitting
+  'quest.submitting': 'Submitting...',
 };

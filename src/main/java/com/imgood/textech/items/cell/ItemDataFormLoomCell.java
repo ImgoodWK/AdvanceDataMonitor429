@@ -24,7 +24,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class ItemDataFormLoomCell extends AbstractDataLoomItemCell {
 
     @Override
-    public IInventory getConfigInventory(ItemStack is) {
+    public appeng.tile.inventory.IAEStackInventory getConfigAEInventory(ItemStack is) {
         return new FormLoomCellConfig(is);
     }
 

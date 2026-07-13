@@ -34,9 +34,24 @@ public final class DataLoomCellUtil {
     public static final String NBT_NEXT_WEAVE_TICK = "dataLoomNextWeaveTick";
     /** Stable per-stack identity for multi-cell ME drives (AE may not keep the same ItemStack reference). */
     public static final String NBT_INSTANCE_ID = "dataLoomInstanceId";
-    /** AE2 / AE2FC Cell Workbench partition list (CellConfig / FluidCellConfig). */
+    /** AE2 Cell Workbench partition list NBT key ({@code CellConfig}). */
     public static final String NBT_CONFIG_LIST = "list";
     private static final int CONFIG_SLOT_COUNT = 63;
+
+    /** Reject this mod's own items and null stacks as fluid partition markers. */
+    public static boolean isForbiddenFluidPartitionStack(appeng.api.storage.data.IAEStack aes) {
+        if (aes == null) {
+            return true;
+        }
+        if (aes instanceof appeng.api.storage.data.IAEFluidStack) {
+            return false;
+        }
+        if (!(aes instanceof appeng.api.storage.data.IAEItemStack)) {
+            return true;
+        }
+        ItemStack stack = ((appeng.api.storage.data.IAEItemStack) aes).getItemStack();
+        return stack == null || stack.getItem() == null || isModOwnItem(stack);
+    }
 
     public static int getSyncIntervalTicks() {
         int seconds = Config.dataLoomCellSyncIntervalSeconds;
@@ -304,7 +319,7 @@ public final class DataLoomCellUtil {
 
         Set<String> seen = new HashSet<>();
         AbstractDataLoomItemCell cellItem = (AbstractDataLoomItemCell) cellStack.getItem();
-        appendPartitionItemMarkers(items, seen, cellItem.getConfigInventory(cellStack));
+        appendPartitionItemMarkersFromAe(items, seen, cellItem.getConfigAEInventory(cellStack));
         appendPartitionItemMarkersFromNbt(items, seen, cellStack);
         if (cellItem instanceof ItemDataDustLoomCell) {
             return filterDustLoomMarkers(items);
@@ -343,15 +358,15 @@ public final class DataLoomCellUtil {
 
         Set<String> seen = new HashSet<>();
         AbstractDataLoomFluidCell fluidCell = (AbstractDataLoomFluidCell) item;
-        IInventory config = fluidCell.getConfigInventory(cellStack);
-        appendPartitionFluidMarkers(fluids, seen, config);
+        appeng.tile.inventory.IAEStackInventory config = fluidCell.getConfigAEInventory(cellStack);
+        appendPartitionFluidMarkersFromAe(fluids, seen, config);
         appendPartitionFluidMarkersFromNbt(fluids, seen, cellStack);
 
         if (DataLoomDebugLog.isEnabled() && fluids.isEmpty()) {
             DataLoomDebugLog.warn(
                 "resolveMarkedFluids empty for {} —configSlots={} nbtListSlots={} hasTag={}",
                 DataLoomDebugLog.describeCell(cellStack),
-                countConfigInventorySlots(config),
+                config == null ? 0 : config.getSizeInventory(),
                 countConfigListSlots(cellStack),
                 cellStack.hasTagCompound());
             logUnresolvedPartitionSlots(config, cellStack);
@@ -367,15 +382,15 @@ public final class DataLoomCellUtil {
         return DataLoomDebugLog.countConfigListSlots(cellStack);
     }
 
-    private static void logUnresolvedPartitionSlots(IInventory config, ItemStack cellStack) {
+    private static void logUnresolvedPartitionSlots(appeng.tile.inventory.IAEStackInventory config,
+        ItemStack cellStack) {
         if (config != null) {
             for (int slot = 0; slot < Math.min(config.getSizeInventory(), 8); slot++) {
-                ItemStack marker = config.getStackInSlot(slot);
-                if (marker == null) {
+                appeng.api.storage.data.IAEStack aes = config.getAEStackInSlot(slot);
+                if (aes == null) {
                     continue;
                 }
-                DataLoomDebugLog
-                    .warn("  config#{} marker {} -> fluid unresolved", slot, DataLoomDebugLog.describeCell(marker));
+                DataLoomDebugLog.warn("  config#{} marker {} -> fluid unresolved", slot, aes);
             }
         }
         if (cellStack != null && cellStack.hasTagCompound()
@@ -387,16 +402,30 @@ public final class DataLoomCellUtil {
                 if (!listTag.hasKey("#" + slot, 10)) {
                     continue;
                 }
-                ItemStack marker = ItemStack.loadItemStackFromNBT(listTag.getCompoundTag("#" + slot));
-                if (marker == null) {
-                    continue;
-                }
-                FluidStack resolved = resolveMarkerFluid(marker);
+                FluidStack resolved = resolveFluidFromConfigNbt(listTag.getCompoundTag("#" + slot));
                 DataLoomDebugLog.warn(
-                    "  nbt#{} marker {} -> {}",
+                    "  nbt#{} -> {}",
                     slot,
-                    DataLoomDebugLog.describeCell(marker),
                     resolved == null ? "unresolved" : DataLoomDebugLog.describeFluid(resolved));
+            }
+        }
+    }
+
+    private static void appendPartitionFluidMarkersFromAe(List<FluidStack> out, Set<String> seen,
+        appeng.tile.inventory.IAEStackInventory config) {
+        if (config == null) {
+            return;
+        }
+        for (int slot = 0; slot < config.getSizeInventory(); slot++) {
+            appeng.api.storage.data.IAEStack aes = config.getAEStackInSlot(slot);
+            FluidStack fluid = fluidFromAeStack(aes);
+            if (fluid == null || fluid.getFluid() == null) {
+                continue;
+            }
+            String key = fluid.getFluid()
+                .getName();
+            if (seen.add(key)) {
+                out.add(new FluidStack(fluid.getFluid(), 1000));
             }
         }
     }
@@ -437,11 +466,7 @@ public final class DataLoomCellUtil {
             if (!listTag.hasKey("#" + slot, 10)) {
                 continue;
             }
-            ItemStack markerItem = ItemStack.loadItemStackFromNBT(listTag.getCompoundTag("#" + slot));
-            if (markerItem == null || markerItem.getItem() == null) {
-                continue;
-            }
-            FluidStack fluid = resolveMarkerFluid(markerItem);
+            FluidStack fluid = resolveFluidFromConfigNbt(listTag.getCompoundTag("#" + slot));
             if (fluid == null || fluid.getFluid() == null) {
                 continue;
             }
@@ -449,6 +474,29 @@ public final class DataLoomCellUtil {
                 .getName();
             if (seen.add(key)) {
                 out.add(new FluidStack(fluid.getFluid(), 1000));
+            }
+        }
+    }
+
+    private static void appendPartitionItemMarkersFromAe(List<ItemStack> out, Set<String> seen,
+        appeng.tile.inventory.IAEStackInventory config) {
+        if (config == null) {
+            return;
+        }
+        for (int slot = 0; slot < config.getSizeInventory(); slot++) {
+            appeng.api.storage.data.IAEStack aes = config.getAEStackInSlot(slot);
+            ItemStack marked = null;
+            if (aes instanceof appeng.api.storage.data.IAEItemStack) {
+                marked = ((appeng.api.storage.data.IAEItemStack) aes).getItemStack();
+            }
+            if (marked == null || marked.getItem() == null) {
+                continue;
+            }
+            ItemStack copy = marked.copy();
+            copy.stackSize = 1;
+            String key = DataLoomCellStorage.itemKey(copy);
+            if (seen.add(key)) {
+                out.add(copy);
             }
         }
     }
@@ -469,6 +517,32 @@ public final class DataLoomCellUtil {
                 out.add(copy);
             }
         }
+    }
+
+    private static FluidStack fluidFromAeStack(appeng.api.storage.data.IAEStack aes) {
+        if (aes instanceof appeng.api.storage.data.IAEFluidStack) {
+            return ((appeng.api.storage.data.IAEFluidStack) aes).getFluidStack();
+        }
+        if (!(aes instanceof appeng.api.storage.data.IAEItemStack)) {
+            return null;
+        }
+        ItemStack marker = ((appeng.api.storage.data.IAEItemStack) aes).getItemStack();
+        return marker == null ? null : resolveMarkerFluid(marker);
+    }
+
+    private static FluidStack resolveFluidFromConfigNbt(NBTTagCompound slotTag) {
+        if (slotTag == null) {
+            return null;
+        }
+        try {
+            appeng.api.storage.data.IAEStack aes = appeng.util.Platform.readStackNBT(slotTag, false);
+            FluidStack fromAe = fluidFromAeStack(aes);
+            if (fromAe != null) {
+                return fromAe;
+            }
+        } catch (Throwable ignored) {}
+        ItemStack markerItem = ItemStack.loadItemStackFromNBT(slotTag);
+        return markerItem == null ? null : resolveMarkerFluid(markerItem);
     }
 
     /** Fallback: read AE2 {@code list} partition slots directly from cell NBT. */

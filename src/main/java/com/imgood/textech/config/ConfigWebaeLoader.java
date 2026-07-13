@@ -66,6 +66,23 @@ public final class ConfigWebaeLoader {
             0,
             5000,
             ConfigDescriptions.get("webConsole", "recipeSearchMinIntervalMs"));
+        Config.webRecipeDiskFormat = configuration.getString(
+            "recipeDiskFormat",
+            "webConsole",
+            Config.webRecipeDiskFormat,
+            ConfigDescriptions.get("webConsole", "recipeDiskFormat"));
+        String recipeDiskFormat = Config.webRecipeDiskFormat;
+        if (recipeDiskFormat == null
+            || (!"json".equalsIgnoreCase(recipeDiskFormat.trim()) && !"gzip".equalsIgnoreCase(recipeDiskFormat.trim()))) {
+            if (recipeDiskFormat != null && !recipeDiskFormat.trim()
+                .isEmpty()) {
+                AdvanceDataMonitor.LOG.warn("[WebAE] Invalid recipeDiskFormat={} — using json", recipeDiskFormat);
+            }
+            Config.webRecipeDiskFormat = "json";
+        } else {
+            Config.webRecipeDiskFormat = recipeDiskFormat.trim()
+                .toLowerCase();
+        }
         Config.webNesqlRepositoryPath = configuration.getString(
             "nesqlRepositoryPath",
             "webConsole",
@@ -99,6 +116,13 @@ public final class ConfigWebaeLoader {
             1000,
             60000,
             ConfigDescriptions.get("webConsole", "metricSampleIntervalMs"));
+        if (Config.webMetricSampleIntervalMs < 30000) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] metricSampleIntervalMs={} is too low for stable TPS — overriding to 30000 ms. "
+                    + "Update your config to avoid this warning.",
+                Config.webMetricSampleIntervalMs);
+            Config.webMetricSampleIntervalMs = 30000;
+        }
         Config.webMetricSampleWindowSeconds = configuration.getInt(
             "metricSampleWindowSeconds",
             "webConsole",
@@ -161,12 +185,12 @@ public final class ConfigWebaeLoader {
             60000,
             ConfigDescriptions.get("webConsole", "refreshIntervalMs"));
         // Auto-migrate dangerously fast defaults to TPS-safe values
-        if (Config.webRefreshIntervalMs < 2000) {
+        if (Config.webRefreshIntervalMs < 10000) {
             AdvanceDataMonitor.LOG.warn(
-                "[WebAE] refreshIntervalMs={} is too low for stable TPS — overriding to 5000 ms. "
+                "[WebAE] refreshIntervalMs={} is too low for stable TPS — overriding to 10000 ms. "
                     + "Update your config to avoid this warning.",
                 Config.webRefreshIntervalMs);
-            Config.webRefreshIntervalMs = 5000;
+            Config.webRefreshIntervalMs = 10000;
         }
         Config.webGtRefreshIntervalMs = configuration.getInt(
             "gtRefreshIntervalMs",
@@ -175,11 +199,11 @@ public final class ConfigWebaeLoader {
             1000,
             60000,
             ConfigDescriptions.get("webConsole", "gtRefreshIntervalMs"));
-        if (Config.webGtRefreshIntervalMs < 5000) {
+        if (Config.webGtRefreshIntervalMs < 30000) {
             AdvanceDataMonitor.LOG.warn(
-                "[WebAE] gtRefreshIntervalMs={} is too low for stable TPS — overriding to 20000 ms.",
+                "[WebAE] gtRefreshIntervalMs={} is too low for stable TPS — overriding to 30000 ms.",
                 Config.webGtRefreshIntervalMs);
-            Config.webGtRefreshIntervalMs = 20000;
+            Config.webGtRefreshIntervalMs = 30000;
         }
         Config.webMaxNetworksDisplayed = configuration.getInt(
             "maxNetworksDisplayed",
@@ -278,11 +302,11 @@ public final class ConfigWebaeLoader {
             5000,
             300000,
             ConfigDescriptions.get("webConsole", "patternCacheTtlMs"));
-        if (Config.webPatternCacheTtlMs < 15000) {
+        if (Config.webPatternCacheTtlMs < 120000) {
             AdvanceDataMonitor.LOG.warn(
-                "[WebAE] patternCacheTtlMs={} is too low — overriding to 60000 ms.",
+                "[WebAE] patternCacheTtlMs={} is too low — overriding to 120000 ms.",
                 Config.webPatternCacheTtlMs);
-            Config.webPatternCacheTtlMs = 60000;
+            Config.webPatternCacheTtlMs = 120000;
         }
         Config.webTopologyEnabled = configuration.getBoolean(
             "topologyEnabled",

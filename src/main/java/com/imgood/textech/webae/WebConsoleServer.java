@@ -47,7 +47,7 @@ public class WebConsoleServer extends NanoHTTPD {
      * daemon thread per request, wasting memory and adding GC pressure.
      */
     private void initThreadPool() {
-        final int poolSize = Math.max(4, Runtime.getRuntime().availableProcessors());
+        final int poolSize = Math.max(16, Runtime.getRuntime().availableProcessors() * 2);
         final AtomicInteger counter = new AtomicInteger(0);
         httpExecutor = Executors.newFixedThreadPool(poolSize, new java.util.concurrent.ThreadFactory() {
             @Override

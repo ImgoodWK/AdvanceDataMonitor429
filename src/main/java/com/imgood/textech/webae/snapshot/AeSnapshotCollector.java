@@ -22,6 +22,9 @@ import com.imgood.textech.webae.dto.StorageDto.EssentiaEntry;
 import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
 import com.imgood.textech.webae.dto.StorageDto.ItemEntry;
 
+import net.minecraft.item.Item;
+import com.imgood.textech.webae.recipe.RecipeItemEntries;
+
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.storage.IStorageGrid;
@@ -218,21 +221,52 @@ public class AeSnapshotCollector {
 
             @Override
             public void run() {
-                try {
-                    callback.onResult(collect(ownerUuid, networkId));
-                } catch (Throwable t) {
-                    AdvanceDataMonitor.LOG.error("[WebAE] Snapshot collection failed", t);
-                    callback.onResult(null);
-                }
+                enqueueCollectOnCurrentThread(ownerUuid, networkId, callback);
             }
         });
     }
+
+    /** Run collect on the current (server) thread — used by {@link com.imgood.textech.webae.cache.SnapshotScheduler}. */
+    public static void enqueueCollectOnCurrentThread(String ownerUuid, int networkId, SnapshotCallback callback) {
+        try {
+            callback.onResult(collect(ownerUuid, networkId));
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.error("[WebAE] Snapshot collection failed", t);
+            callback.onResult(null);
+        }
+    }
+
+    /** Default short timeout for cache-first HTTP handlers (ms). */
+    public static final long SHORT_TIMEOUT_MS = 500L;
+    /** Default long timeout for force-refresh HTTP handlers (ms). */
+    public static final long LONG_TIMEOUT_MS = 10_000L;
 
     /**
      * Blocking collect for HTTP handlers. Enqueues on server thread and waits up to timeoutMs.
      * Returns stale cached data when the storage fingerprint is unchanged.
      */
     public static StorageDto collectBlocking(String ownerUuid, int networkId, long timeoutMs) {
+        return collectBlockingInternal(ownerUuid, networkId, timeoutMs, false);
+    }
+
+    /**
+     * Cache-first blocking collect: returns stale cache immediately when available,
+     * otherwise waits up to {@link #SHORT_TIMEOUT_MS} for fresh data.
+     * Use this in GET handlers to avoid HTTP thread pool exhaustion.
+     */
+    public static StorageDto collectBlockingCachedFirst(String ownerUuid, int networkId) {
+        // Return stale data immediately if available.
+        StorageDto stale = com.imgood.textech.webae.cache.SnapshotCache.instance()
+            .getStale(ownerUuid, networkId, "storage");
+        if (stale != null) {
+            return stale;
+        }
+        // No stale data — try a short blocking collect.
+        return collectBlockingInternal(ownerUuid, networkId, SHORT_TIMEOUT_MS, false);
+    }
+
+    private static StorageDto collectBlockingInternal(String ownerUuid, int networkId, long timeoutMs,
+        boolean forceFresh) {
         final StorageDto[] holder = new StorageDto[1];
         final CountDownLatch latch = new CountDownLatch(1);
         HandlerTick.enqueueServerTask(new Runnable() {
@@ -262,6 +296,16 @@ public class AeSnapshotCollector {
         } catch (InterruptedException e) {
             Thread.currentThread()
                 .interrupt();
+        }
+        if (!forceFresh) {
+            // On timeout, try stale as last resort.
+            StorageDto fallback = com.imgood.textech.webae.cache.SnapshotCache.instance()
+                .getStale(ownerUuid, networkId, "storage");
+            if (fallback != null) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] Snapshot timed out, returning stale owner={} network={}",
+                    ownerUuid, networkId);
+                return fallback;
+            }
         }
         AdvanceDataMonitor.LOG.warn("[WebAE] Snapshot collection timed out owner={} network={}", ownerUuid, networkId);
         return null;
@@ -323,11 +367,16 @@ public class AeSnapshotCollector {
                 ItemStack stack = stored.getItemStack();
                 if (stack == null || stack.getItem() == null) continue;
 
-                String regName = "";
-                try {
-                    Object nameObj = net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem());
-                    regName = nameObj != null ? nameObj.toString() : "";
-                } catch (Throwable ignored) {}
+                // Deferred displayName: avoid expensive I18n lookup on the main tick.
+                // The frontend resolves display names from its own NEI/icon cache.
+                String displayName = "";
+
+                int meta = stack.getItemDamage();
+                if (meta == Short.MAX_VALUE) meta = 0;
+                String registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+                if (registryName == null || registryName.isEmpty()) registryName = "unknown";
+                String regName = registryName;
+                String itemId = RecipeItemEntries.buildItemId(registryName, meta);
 
                 String nbtHash = "";
                 if (stack.hasTagCompound()) {
@@ -336,16 +385,7 @@ public class AeSnapshotCollector {
                             .hashCode());
                 }
 
-                int meta = stack.getItemDamage();
-                if (meta == Short.MAX_VALUE) meta = 0;
-                String itemId = com.imgood.textech.webae.recipe.RecipeItemEntries.buildItemId(regName, meta);
-                if (itemId == null || itemId.isEmpty()) {
-                    itemId = stack.getItem()
-                        .getUnlocalizedName() + ":"
-                        + meta;
-                }
-
-                items.add(new ItemEntry(itemId, stack.getDisplayName(), regName, meta, stored.getStackSize(), nbtHash));
+                items.add(new ItemEntry(itemId, displayName, regName, meta, stored.getStackSize(), nbtHash));
             }
             dto.items = items;
             // Pre-sort by amount descending so paginated reads can skip re-sorting.
@@ -354,8 +394,8 @@ public class AeSnapshotCollector {
                 public int compare(ItemEntry a, ItemEntry b) {
                     int c = Long.compare(b.amount, a.amount);
                     if (c != 0) return c;
-                    String na = a.displayName != null ? a.displayName : "";
-                    String nb = b.displayName != null ? b.displayName : "";
+                    String na = a.itemId != null ? a.itemId : "";
+                    String nb = b.itemId != null ? b.itemId : "";
                     return na.compareToIgnoreCase(nb);
                 }
             });
@@ -518,6 +558,8 @@ public class AeSnapshotCollector {
         public boolean hasStorage;
         public boolean hasCrafting;
         public boolean hasNetworkLink;
+        /** Whether the AE grid is currently reachable (chunk loaded + grid node active). */
+        public boolean healthy;
     }
 
     public interface SnapshotCallback {
