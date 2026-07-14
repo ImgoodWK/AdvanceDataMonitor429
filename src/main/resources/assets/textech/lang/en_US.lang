@@ -1399,8 +1399,8 @@ adm.command.admweb.guest.token_preview=Guest token: {0}...
 adm.command.admweb.reload.failed=Configuration reload failed — see server log for details.
 adm.command.admweb.reload.note=Note: some settings (e.g. web console port/bind address) only take effect after a server restart.
 
-adm.quest.task.retrieval=Retrieval task: extract items from AE, then detect in-game
-adm.quest.task.retrieval_fluid=Fluid retrieval: complete in-game
+adm.quest.task.retrieval=Retrieval hold: AE stock counts as held (escrow lock then complete offline)
+adm.quest.task.retrieval_fluid=Fluid hold detect: AE stock counts as held (no cell fill into inventory)
 adm.quest.task.submit_item=Item submit via WebAE
 adm.quest.task.submit_fluid=Fluid submit via WebAE
 adm.quest.task.crafting=Crafting task: complete in-game

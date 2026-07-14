@@ -399,19 +399,45 @@ public final class BqApiFacade {
     }
 
     public static boolean submitItemTask(Object task, EntityPlayerMP player, UUID questingUuid, ItemStack stack) {
-        if (task == null || player == null || stack == null) {
+        return submitItemTask(task, player, questingUuid, null, null, stack);
+    }
+
+    /**
+     * Submit item into a consume-style BQ task. Prefers BQ 3.8.72
+     * {@code submitItem(UUID, Map.Entry, ItemStack)}; falls back to legacy signatures.
+     */
+    public static boolean submitItemTask(Object task, EntityPlayerMP player, UUID questingUuid, UUID questId,
+        Object quest, ItemStack stack) {
+        if (task == null || stack == null) {
             return false;
+        }
+        UUID owner = questingUuid != null ? questingUuid : (player != null ? getQuestingUuid(player) : null);
+        if (owner == null) {
+            return false;
+        }
+        try {
+            Map.Entry<?, ?> questEntry = questEntryOf(questId, quest);
+            if (questEntry != null) {
+                Method m = findMethod(task.getClass(), "submitItem", UUID.class, Map.Entry.class, ItemStack.class);
+                if (m != null) {
+                    Object leftover = m.invoke(task, owner, questEntry, stack.copy());
+                    return leftover == null
+                        || (leftover instanceof ItemStack && ((ItemStack) leftover).stackSize <= 0);
+                }
+            }
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE Quest] submitItem(UUID,Entry) failed: {}", t.toString());
         }
         try {
             Method m = task.getClass()
                 .getMethod("submitItem", EntityPlayer.class, UUID.class, ItemStack.class);
-            Object result = m.invoke(task, player, questingUuid, stack);
+            Object result = m.invoke(task, player, owner, stack);
             return result instanceof Boolean && ((Boolean) result).booleanValue();
         } catch (NoSuchMethodException e) {
             try {
                 Method alt = task.getClass()
                     .getMethod("submitItem", EntityPlayerMP.class, UUID.class, ItemStack.class);
-                Object result = alt.invoke(task, player, questingUuid, stack);
+                Object result = alt.invoke(task, player, owner, stack);
                 return result instanceof Boolean && ((Boolean) result).booleanValue();
             } catch (Throwable ignored) {
                 return false;
@@ -423,19 +449,45 @@ public final class BqApiFacade {
     }
 
     public static boolean submitFluidTask(Object task, EntityPlayerMP player, UUID questingUuid, FluidStack fluid) {
-        if (task == null || player == null || fluid == null) {
+        return submitFluidTask(task, player, questingUuid, null, null, fluid);
+    }
+
+    /**
+     * Submit fluid into a consume-style BQ task. Prefers BQ 3.8.72
+     * {@code submitFluid(UUID, Map.Entry, FluidStack)}.
+     */
+    public static boolean submitFluidTask(Object task, EntityPlayerMP player, UUID questingUuid, UUID questId,
+        Object quest, FluidStack fluid) {
+        if (task == null || fluid == null) {
             return false;
+        }
+        UUID owner = questingUuid != null ? questingUuid : (player != null ? getQuestingUuid(player) : null);
+        if (owner == null) {
+            return false;
+        }
+        try {
+            Map.Entry<?, ?> questEntry = questEntryOf(questId, quest);
+            if (questEntry != null) {
+                Method m = findMethod(task.getClass(), "submitFluid", UUID.class, Map.Entry.class, FluidStack.class);
+                if (m != null) {
+                    Object leftover = m.invoke(task, owner, questEntry, fluid.copy());
+                    return leftover == null
+                        || (leftover instanceof FluidStack && ((FluidStack) leftover).amount <= 0);
+                }
+            }
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE Quest] submitFluid(UUID,Entry) failed: {}", t.toString());
         }
         try {
             Method m = task.getClass()
                 .getMethod("submitFluid", EntityPlayer.class, UUID.class, FluidStack.class);
-            Object result = m.invoke(task, player, questingUuid, fluid);
+            Object result = m.invoke(task, player, owner, fluid);
             return result instanceof Boolean && ((Boolean) result).booleanValue();
         } catch (NoSuchMethodException e) {
             try {
                 Method alt = task.getClass()
                     .getMethod("submitFluid", EntityPlayerMP.class, UUID.class, FluidStack.class);
-                Object result = alt.invoke(task, player, questingUuid, fluid);
+                Object result = alt.invoke(task, player, owner, fluid);
                 return result instanceof Boolean && ((Boolean) result).booleanValue();
             } catch (Throwable ignored) {
                 return false;
@@ -444,6 +496,270 @@ public final class BqApiFacade {
             AdvanceDataMonitor.LOG.warn("[WebAE Quest] submitFluid failed: {}", t.toString());
             return false;
         }
+    }
+
+    /**
+     * Complete a non-consuming Retrieval / fluid hold task without {@code detect(player)} / QuestCache.
+     * Prefers {@code retrieveItems}/{@code retrieveFluids}; falls back to progress + {@code setComplete}.
+     */
+    public static boolean completeRetrievalTask(Object task, EntityPlayerMP player, UUID questingUuid, UUID questId,
+        Object quest, ItemStack item, FluidStack fluid) {
+        if (task == null || questingUuid == null) {
+            return false;
+        }
+        if (isTaskComplete(task, questingUuid)) {
+            return true;
+        }
+        Map.Entry<?, ?> questEntry = questEntryOf(questId, quest);
+        Object participantInfo = buildParticipantInfo(player);
+        boolean updated = false;
+
+        if (item != null && participantInfo != null && questEntry != null) {
+            try {
+                Method m = findMethod(task.getClass(), "retrieveItems", Class.forName(
+                    "betterquesting.api2.utils.ParticipantInfo"), Map.Entry.class, ItemStack[].class);
+                if (m != null) {
+                    m.invoke(task, participantInfo, questEntry, new ItemStack[] { item.copy() });
+                    updated = true;
+                }
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.warn("[WebAE Quest] retrieveItems failed: {}", t.toString());
+            }
+        }
+
+        if (fluid != null && participantInfo != null && questEntry != null) {
+            try {
+                Method m = findMethod(task.getClass(), "retrieveFluids", Class.forName(
+                    "betterquesting.api2.utils.ParticipantInfo"), Map.Entry.class, FluidStack[].class);
+                if (m != null) {
+                    m.invoke(task, participantInfo, questEntry, new FluidStack[] { fluid.copy() });
+                    updated = true;
+                }
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.warn("[WebAE Quest] retrieveFluids failed: {}", t.toString());
+            }
+        }
+
+        if (isTaskComplete(task, questingUuid)) {
+            return true;
+        }
+
+        // consume=true tasks must use submitItem/submitFluid; never force-complete.
+        if (isTaskConsumeTrue(task)) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE Quest] completeRetrieval refused for consume=true task {}",
+                task.getClass()
+                    .getSimpleName());
+            return false;
+        }
+
+        // Fallback: write full progress + setComplete(UUID) without inventory detect.
+        if (!forceCompleteRetrievalProgress(task, questingUuid, item, fluid)) {
+            if (!updated) {
+                AdvanceDataMonitor.LOG.warn(
+                    "[WebAE Quest] completeRetrieval failed for task {}",
+                    task.getClass()
+                        .getSimpleName());
+            }
+            return isTaskComplete(task, questingUuid);
+        }
+        return isTaskComplete(task, questingUuid);
+    }
+
+    /** True when BQ task has {@code consume=true} (item/fluid submit, not hold-detect). */
+    private static boolean isTaskConsumeTrue(Object task) {
+        if (task == null) {
+            return false;
+        }
+        try {
+            Field f = findDeclaredField(task.getClass(), "consume");
+            if (f != null) {
+                f.setAccessible(true);
+                Object val = f.get(task);
+                if (val instanceof Boolean) {
+                    return ((Boolean) val).booleanValue();
+                }
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
+    private static boolean forceCompleteRetrievalProgress(Object task, UUID questingUuid, ItemStack item,
+        FluidStack fluid) {
+        try {
+            Method setComplete = findMethod(task.getClass(), "setComplete", UUID.class);
+            if (setComplete == null) {
+                return false;
+            }
+            try {
+                Method getProgress = findMethod(task.getClass(), "getUsersProgress", UUID.class);
+                Method setProgress = findMethodByName(task.getClass(), "setUserProgress", 2);
+                if (getProgress != null && setProgress != null) {
+                    Object progress = getProgress.invoke(task, questingUuid);
+                    if (progress instanceof int[]) {
+                        int[] arr = (int[]) ((int[]) progress).clone();
+                        int[] required = readRequiredAmounts(task);
+                        for (int i = 0; i < arr.length; i++) {
+                            int need = required != null && i < required.length ? required[i] : Integer.MAX_VALUE / 4;
+                            if (arr[i] < need) {
+                                arr[i] = need;
+                            }
+                        }
+                        setProgress.invoke(task, questingUuid, arr);
+                    }
+                }
+            } catch (Throwable ignored) {}
+            setComplete.invoke(task, questingUuid);
+            return true;
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE Quest] forceCompleteRetrieval failed: {}", t.toString());
+            return false;
+        }
+    }
+
+    private static int[] readRequiredAmounts(Object task) {
+        try {
+            Field requiredItems = findDeclaredField(task.getClass(), "requiredItems");
+            if (requiredItems != null) {
+                requiredItems.setAccessible(true);
+                Object list = requiredItems.get(task);
+                if (list instanceof List) {
+                    List<?> req = (List<?>) list;
+                    int[] amounts = new int[req.size()];
+                    for (int i = 0; i < req.size(); i++) {
+                        Object big = req.get(i);
+                        amounts[i] = bigStackSize(big);
+                    }
+                    return amounts;
+                }
+            }
+            Field requiredFluids = findDeclaredField(task.getClass(), "requiredFluids");
+            if (requiredFluids != null) {
+                requiredFluids.setAccessible(true);
+                Object list = requiredFluids.get(task);
+                if (list instanceof List) {
+                    List<?> req = (List<?>) list;
+                    int[] amounts = new int[req.size()];
+                    for (int i = 0; i < req.size(); i++) {
+                        Object fs = req.get(i);
+                        if (fs instanceof FluidStack) {
+                            amounts[i] = ((FluidStack) fs).amount;
+                        }
+                    }
+                    return amounts;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private static int bigStackSize(Object bigStack) {
+        if (bigStack == null) {
+            return 1;
+        }
+        try {
+            Field f = findDeclaredField(bigStack.getClass(), "stackSize");
+            if (f != null) {
+                f.setAccessible(true);
+                Object val = f.get(bigStack);
+                if (val instanceof Number) {
+                    return Math.max(1, ((Number) val).intValue());
+                }
+            }
+        } catch (Throwable ignored) {}
+        return 1;
+    }
+
+    private static Field findDeclaredField(Class<?> type, String name) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                return current.getDeclaredField(name);
+            } catch (NoSuchFieldException e) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private static Method findMethodByName(Class<?> type, String name, int paramCount) {
+        Class<?> current = type;
+        while (current != null) {
+            Method[] methods = current.getDeclaredMethods();
+            for (int i = 0; i < methods.length; i++) {
+                Method m = methods[i];
+                if (name.equals(m.getName()) && m.getParameterTypes().length == paramCount) {
+                    m.setAccessible(true);
+                    return m;
+                }
+            }
+            current = current.getSuperclass();
+        }
+        for (Method m : type.getMethods()) {
+            if (name.equals(m.getName()) && m.getParameterTypes().length == paramCount) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    private static Object buildParticipantInfo(EntityPlayerMP player) {
+        if (player == null) {
+            return null;
+        }
+        try {
+            Class<?> clazz = Class.forName("betterquesting.api2.utils.ParticipantInfo");
+            return clazz.getConstructor(EntityPlayer.class)
+                .newInstance(player);
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE Quest] ParticipantInfo create failed: {}", t.toString());
+            return null;
+        }
+    }
+
+    private static Map.Entry<?, ?> questEntryOf(UUID questId, Object quest) {
+        if (questId == null || quest == null) {
+            return null;
+        }
+        return new java.util.AbstractMap.SimpleEntry<UUID, Object>(questId, quest);
+    }
+
+    private static Method findMethod(Class<?> type, String name, Class<?>... params) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                Method m = current.getDeclaredMethod(name, params);
+                m.setAccessible(true);
+                return m;
+            } catch (NoSuchMethodException e) {
+                try {
+                    return current.getMethod(name, params);
+                } catch (NoSuchMethodException ignored) {
+                    current = current.getSuperclass();
+                }
+            }
+        }
+        // Interface / overload scan (Map.Entry erasure).
+        for (Method m : type.getMethods()) {
+            if (!name.equals(m.getName()) || m.getParameterTypes().length != params.length) {
+                continue;
+            }
+            boolean match = true;
+            Class<?>[] actual = m.getParameterTypes();
+            for (int i = 0; i < params.length; i++) {
+                if (!actual[i].isAssignableFrom(params[i]) && !params[i].isAssignableFrom(actual[i])) {
+                    // Allow Map.Entry vs concrete entry.
+                    if (!(Map.Entry.class.isAssignableFrom(actual[i]) && Map.Entry.class.isAssignableFrom(params[i]))) {
+                        match = false;
+                        break;
+                    }
+                }
+            }
+            if (match) {
+                return m;
+            }
+        }
+        return null;
     }
 
     /**

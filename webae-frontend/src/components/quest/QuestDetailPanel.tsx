@@ -108,7 +108,9 @@ export function QuestDetailPanel({
     try {
       if (onBeforeSubmit) await onBeforeSubmit();
       if (webAction === 'DETECT') {
-        await getApiClient().post(`/api/quests/${questId}/detect`, {});
+        await getApiClient().post(`/api/quests/${questId}/detect`, {
+          networkId: selectedNetworks[0] ?? 0,
+        });
       } else {
         await getApiClient().post(`/api/quests/${questId}/submit`, {
           networkId: selectedNetworks[0] ?? 0,

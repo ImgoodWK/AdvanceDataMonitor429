@@ -337,6 +337,10 @@ public class Config {
     public static int webQuestSubmitMaxStacks = 64;
     /** Craft-then-submit wait timeout in ms. Default 120000. */
     public static long webQuestCraftWaitTimeoutMs = 120_000L;
+    /** Enable AE virtual escrow for quest submit/detect. Default true. */
+    public static boolean webQuestEscrowEnabled = true;
+    /** Escrow session timeout in ms before auto-release. Default 120000. */
+    public static long webQuestEscrowTimeoutMs = 120_000L;
     /** Quest definition cache TTL in seconds. Default 300. */
     public static int webQuestCacheTtlSec = 300;
 

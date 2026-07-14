@@ -96,14 +96,7 @@ public final class QuestCraftOrchestrator {
         job.ordersTotal = job.orders.size();
         dto.ordersTotal = job.ordersTotal;
         if (job.orders.isEmpty()) {
-            dto.phase = "submitting";
-            QuestSubmitResultDto submit = QuestSubmitService.submit(ownerUuid, networkId, questId, false, null);
-            dto.submitResult = submit;
-            dto.complete = true;
-            dto.success = submit.success;
-            dto.message = submit.message;
-            dto.phase = "done";
-            return dto;
+            return finishWithEscrowSubmit(dto, job);
         }
 
         JOBS.put(job.jobId, job);
@@ -145,6 +138,10 @@ public final class QuestCraftOrchestrator {
         dto.ordersDone = done;
 
         if (System.currentTimeMillis() > job.deadlineMs) {
+            if (job.escrowId != null && !job.escrowId.isEmpty()) {
+                QuestInventoryEscrow.release(job.escrowId);
+                job.escrowId = null;
+            }
             dto.complete = true;
             dto.success = false;
             dto.message = "Craft wait timeout";
@@ -160,19 +157,66 @@ public final class QuestCraftOrchestrator {
             return dto;
         }
 
+        return finishWithEscrowSubmit(dto, job);
+    }
+
+    public static QuestCraftJobDto resolveSubmitJob(String jobId) {
+        return poll(jobId);
+    }
+
+    private static QuestCraftJobDto finishWithEscrowSubmit(QuestCraftJobDto dto, CraftJob job) {
+        dto.phase = "locking";
+        dto.questId = job.questId;
+        dto.ordersTotal = job.ordersTotal;
+        EntityPlayerMP player = com.imgood.textech.compat.bq.BqQuestingIdentity.resolvePlayer(job.ownerUuid);
+        if (player == null) {
+            dto.complete = true;
+            dto.success = false;
+            dto.phase = "escrow_failed";
+            dto.message = "Player unavailable for escrow";
+            JOBS.remove(job.jobId);
+            return dto;
+        }
+
+        QuestDetailDto detail = QuestDataCollector.collectQuestDetail(job.questId, player);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(job.ownerUuid, job.networkId, detail);
+        String escrowId = null;
+        if (Config.webQuestEscrowEnabled) {
+            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
+                job.ownerUuid,
+                job.networkId,
+                player,
+                analysis.steps);
+            if (!lock.success) {
+                dto.complete = true;
+                dto.success = false;
+                dto.phase = "escrow_failed";
+                dto.message = lock.message != null ? lock.message : "Escrow lock failed";
+                JOBS.remove(job.jobId);
+                return dto;
+            }
+            escrowId = lock.escrowId;
+            job.escrowId = escrowId;
+        }
+
         dto.phase = "submitting";
-        QuestSubmitResultDto submit = QuestSubmitService.submit(job.ownerUuid, job.networkId, job.questId, false, null);
+        QuestSubmitResultDto submit;
+        if (escrowId != null && !escrowId.isEmpty()) {
+            submit = QuestSubmitService.submitFromEscrow(job.ownerUuid, job.networkId, job.questId, escrowId, null);
+        } else {
+            submit = QuestSubmitService.submit(job.ownerUuid, job.networkId, job.questId, false, null);
+        }
+        if (!submit.success && escrowId != null && !escrowId.isEmpty()) {
+            QuestInventoryEscrow.release(escrowId);
+        }
+        job.escrowId = null;
         dto.submitResult = submit;
         dto.complete = true;
         dto.success = submit.success;
         dto.message = submit.message;
         dto.phase = "done";
-        JOBS.remove(jobId);
+        JOBS.remove(job.jobId);
         return dto;
-    }
-
-    public static QuestCraftJobDto resolveSubmitJob(String jobId) {
-        return poll(jobId);
     }
 
     private static final class CraftJob {
@@ -184,6 +228,7 @@ public final class QuestCraftOrchestrator {
         long submittedAt;
         long deadlineMs;
         int ordersTotal;
+        String escrowId;
         List<OrderTrack> orders = new ArrayList<OrderTrack>();
     }
 

@@ -292,6 +292,8 @@ export function QuestSubmitPanel({
         if (res.job?.complete) {
           if (res.job.success) {
             message.success(t('quest.craftSubmitDone'));
+          } else if (res.job.phase === 'escrow_failed') {
+            message.error(t('quest.escrowFailed', { reason: res.job.message || '' }));
           } else {
             message.warning(res.job.message || t('quest.craftTimeout'));
           }
@@ -379,24 +381,41 @@ export function QuestSubmitPanel({
       {job && !job.complete ? (
         <div>
           <Text>
-            {t('quest.craftingProgress', {
-              itemName: job.message || questId.slice(0, 8),
-              done: job.ordersDone ?? 0,
-              total: job.ordersTotal ?? 0,
-            })}
+            {job.phase === 'locking'
+              ? t('quest.lockingEscrow')
+              : job.phase === 'escrow_failed'
+                ? t('quest.escrowFailed', { reason: job.message || '' })
+                : t('quest.craftingProgress', {
+                    itemName: job.message || questId.slice(0, 8),
+                    done: job.ordersDone ?? 0,
+                    total: job.ordersTotal ?? 0,
+                  })}
           </Text>
           <Progress
             percent={
-              job.ordersTotal ? Math.round(((job.ordersDone ?? 0) / job.ordersTotal) * 100) : 30
+              job.phase === 'locking'
+                ? 90
+                : job.ordersTotal
+                  ? Math.round(((job.ordersDone ?? 0) / job.ordersTotal) * 100)
+                  : 30
             }
-            status="active"
+            status={job.phase === 'escrow_failed' ? 'exception' : 'active'}
           />
         </div>
       ) : null}
       {chainJob && !chainJob.complete ? (
         <div>
-          <Text>{chainJob.message}</Text>
-          <Progress percent={40} status="active" />
+          <Text>
+            {chainJob.phase === 'locking'
+              ? t('quest.lockingEscrow')
+              : chainJob.phase === 'escrow_failed'
+                ? t('quest.escrowFailed', { reason: chainJob.message || '' })
+                : chainJob.message}
+          </Text>
+          <Progress
+            percent={chainJob.phase === 'locking' ? 90 : 40}
+            status={chainJob.phase === 'escrow_failed' ? 'exception' : 'active'}
+          />
           {chainJob.steps?.map((s) => (
             <div key={s.questId} style={{ marginTop: 4 }}>
               <Text type="secondary" style={{ fontSize: 12 }}>

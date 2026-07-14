@@ -346,7 +346,7 @@ alwaysApply: false
 - `webae/quest/QuestDataCollector.java` — 任务只读采集门面
 - `webae/quest/QuestChainService.java` — 前置拓扑计划 + 同步链式提交（skipMissing）
 - `webae/quest/QuestChainOrchestrator.java` — 异步链式合成后提交 job 轮询
-- `webae/quest/QuestSubmitService.java` / `QuestCraftOrchestrator.java` / `QuestRequirementAnalyzer.java` / `QuestTaskDeserializer.java` / `QuestCacheStore.java` / `QuestSubmitLog.java` — 单任务提交/合成/分析/反序列化/缓存/审计
+- `webae/quest/QuestSubmitService.java` / `QuestCraftOrchestrator.java` / `QuestRequirementAnalyzer.java` / `QuestTaskDeserializer.java` / `QuestCacheStore.java` / `QuestSubmitLog.java` / `QuestInventoryEscrow.java` — 单任务提交/合成/分析/反序列化/缓存/审计/AE 虚拟 escrow（lock/release/commit/超时退回）
 - `webae/dto/Quest*.java` — 任务书 DTO（含 `QuestRelationDto`/`QuestChainPlanDto`/`QuestChainSubmitResultDto`；`QuestDetailDto` 含 `prerequisites[]`/`dependents[]`；图节点含 `iconItemId`/`mainQuest`/`ghost`）
 - `webae/api/handler/ServerHealthHandler.java` — 服务器健康 REST handler（`GET /api/server/health` TPS/MSPT/在线人数/300s 历史；参考 Phase 2）
 - `webae/api/handler/ServerDiagnosticsHandler.java` — 性能诊断 REST（`GET /api/server/diagnostics`：tick 分段、队列深度、快照采集、慢 HTTP、路由 Top、Config 摘要）

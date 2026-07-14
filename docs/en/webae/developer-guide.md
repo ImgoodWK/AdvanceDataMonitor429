@@ -174,6 +174,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `questChainSubmitEnabled` | boolean | `true` | — | Allow chain submit (walk prerequisites; optional craft-then-submit) |
 | `questSubmitMaxStacks` | int | `64` | 1-512 | Max distinct item stacks per submit |
 | `questCraftWaitTimeoutMs` | int | `120000` | 5000-600000 | Craft-then-submit / chain craft wait timeout (ms) |
+| `questEscrowEnabled` | boolean | `true` | — | AE virtual escrow: lock stacks before submit/detect; return on Retrieval success or failure |
+| `questEscrowTimeoutMs` | int | `120000` | 5000-600000 | Escrow session timeout (ms); auto-return locked stacks to AE |
 | `questCacheTtlSec` | int | `300` | 30-3600 | Quest-line definition cache TTL (seconds); progress ~1/10 |
 
 **GTNH / large-pack TPS-friendly defaults** (first-time cfg generation; values below thresholds are overridden in memory at startup with a WARN, not written back to disk):
@@ -290,12 +292,19 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/quests/{id}` | Yes | No | Quest detail (`tasks`/`rewards` from BQ int-keyed `DBEntry` TaskStorage/RewardStorage; `requirementQuestIds`; `prerequisites[]`/`dependents[]` with name, lineId, state, requirementType) |
 | GET | `/api/quests/{id}/analysis?network=` | Yes | No | AE stock vs task step analysis |
 | GET | `/api/quests/{id}/chain-plan?network=` | Yes | No | Chain-submit topological plan |
-| POST | `/api/quests/{id}/detect` | Yes | No | Retrieval detect-only (guest 403) |
-| POST | `/api/quests/{id}/submit` | Yes | No | Submit items/fluids; body `{networkId,dryRun,steps?}` (guest 403) |
-| POST | `/api/quests/{id}/submit-craft` | Yes | No | Craft missing then submit; returns job (guest 403) |
+| POST | `/api/quests/{id}/detect` | Yes | No | Retrieval hold-detect; optional body `{networkId}`; with AE uses escrow + offline completeRetrieval (guest 403) |
+| POST | `/api/quests/{id}/submit` | Yes | No | Submit items/fluids; body `{networkId,dryRun,steps?}`; locks via escrow when enabled (guest 403) |
+| POST | `/api/quests/{id}/submit-craft` | Yes | No | Craft missing then submit; job.phase includes `crafting`/`locking`/`escrow_failed`/`done` (guest 403) |
 | POST | `/api/quests/{id}/submit-chain` | Yes | No | Chain submit; body `{networkId,dryRun,skipMissing,craftMissing}`; needs `questChainSubmitEnabled` |
 | GET | `/api/quests/submit-jobs/{jobId}` | Yes | No | Poll craft-then-submit job |
 | GET | `/api/quests/chain-jobs/{jobId}` | Yes | No | Poll chain-submit job |
+
+Quest submit internals: `webae/quest/QuestInventoryEscrow` (AE virtual lock/release/commit/timeout), `QuestSubmitService` (DETECT via `BqApiFacade.completeRetrievalTask`, no FakePlayer QuestCache), `QuestCraftOrchestrator`/`QuestChainOrchestrator` (after craft, phase=`locking` then `submitFromEscrow`). Progress is written for the Token owner only; party members are not synced.
+
+`QuestTaskDeserializer`: `bq_standard:retrieval` + `consume=true` → web action **SUBMIT** (symmetric to fluid `bq_standard:fluid` + `consume=true`); hold-detect retrieval/fluid use `consume=false` → **DETECT**. `BqApiFacade.completeRetrievalTask` refuses the `forceComplete` fallback when `consume=true`; those tasks must go through `submitItem`/`submitFluid` + escrow commit.
+
+Local WebAE QA: the first BetterQuesting tab from dev fixtures is **WebAE Test Lab** (`dev-fixtures/betterquesting/`, tracked in Git, **not** packed into the mod jar; see that folder’s `README-dev.md`).
+
 | GET | `/api/alerts` | Yes | No | Active automation alerts + `web-alerts.json` rules mirror (A1–A5); includes `canEditRules` (OP) |
 | GET | `/api/alerts/rules` | Yes | No | Rules only + `canEditRules` |
 | PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `TeXTech/WebAE/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |

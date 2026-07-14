@@ -1400,8 +1400,8 @@ adm.command.admweb.guest.token_preview=访客 Token：{0}...
 adm.command.admweb.reload.failed=配置重载失败 — 请查看服务端日志。
 adm.command.admweb.reload.note=提示：部分设置（如 Web 控制台 port/bindAddress）须重启服务端后生效。
 
-adm.quest.task.retrieval=持有检测：从 AE 提取到背包后 detect
-adm.quest.task.retrieval_fluid=流体持有检测：请在游戏内完成
+adm.quest.task.retrieval=持有检测：按 AE 库存视为持有（escrow 锁定后离线完成）
+adm.quest.task.retrieval_fluid=流体持有检测：按 AE 库存视为持有（不装罐进背包）
 adm.quest.task.submit_item=可通过 WebAE 提交物品
 adm.quest.task.submit_fluid=可通过 WebAE 提交流体
 adm.quest.task.crafting=合成任务：请在游戏内完成

@@ -210,10 +210,12 @@ public final class QuestHandler {
             if (guest) {
                 return guestDenied();
             }
+            DetectBody detectReq = parseDetectBody(body);
+            final int detectNetworkId = detectReq.networkId;
             return onMainThread(ownerUuid, new MainThreadTask<QuestSubmitResultDto>() {
                 @Override
                 public QuestSubmitResultDto run(EntityPlayerMP player) {
-                    return QuestSubmitService.detectOnly(ownerUuid, questId);
+                    return QuestSubmitService.detectOnly(ownerUuid, questId, detectNetworkId);
                 }
             }, "detect");
         }
@@ -320,6 +322,21 @@ public final class QuestHandler {
         return json(
             NanoHTTPD.Response.Status.OK,
             "{\"success\":true,\"" + envelopeKey + "\":" + GSON.toJson(holder[0]) + "}");
+    }
+
+    private static DetectBody parseDetectBody(String body) {
+        DetectBody req = new DetectBody();
+        if (body == null || body.trim()
+            .isEmpty()) {
+            return req;
+        }
+        try {
+            JsonObject obj = new JsonParser().parse(body)
+                .getAsJsonObject();
+            req.networkId = obj.has("networkId") ? obj.get("networkId")
+                .getAsInt() : 0;
+        } catch (Exception ignored) {}
+        return req;
     }
 
     private static SubmitBody parseSubmitBody(String body) {
@@ -440,6 +457,10 @@ public final class QuestHandler {
         }
         return raw.replace("\\", "\\\\")
             .replace("\"", "\\\"");
+    }
+
+    private static final class DetectBody {
+        int networkId;
     }
 
     private static final class SubmitBody {

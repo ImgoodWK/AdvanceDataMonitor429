@@ -889,6 +889,16 @@ public final class ConfigDescriptions {
             "合成后提交编排的超时时间（毫秒）。默认 120000。");
         put(
             "webConsole",
+            "questEscrowEnabled",
+            "Enable AE virtual escrow: lock items/fluids before quest submit/detect, release on Retrieval success or failure. Default true.",
+            "启用 AE 虚拟 escrow：提交/持有检测前锁定物品/流体，Retrieval 成功或失败后退回。默认开启。");
+        put(
+            "webConsole",
+            "questEscrowTimeoutMs",
+            "Quest escrow session timeout in milliseconds before auto-returning locked stacks to AE. Default 120000.",
+            "任务 escrow 会话超时（毫秒），超时后自动将锁定物料退回 AE。默认 120000。");
+        put(
+            "webConsole",
             "questCacheTtlSec",
             "Quest definition cache TTL in seconds. Default 300.",
             "任务定义缓存 TTL（秒）。默认 300。");

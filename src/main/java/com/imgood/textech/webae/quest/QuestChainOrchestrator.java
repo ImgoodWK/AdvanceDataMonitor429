@@ -122,6 +122,7 @@ public final class QuestChainOrchestrator {
         dto.dryRun = false;
 
         if (job.aborted) {
+            releaseJobEscrows(job);
             dto.complete = true;
             dto.success = false;
             dto.phase = "done";
@@ -132,6 +133,7 @@ public final class QuestChainOrchestrator {
         }
 
         if (System.currentTimeMillis() > job.deadlineMs) {
+            releaseJobEscrows(job);
             dto.complete = true;
             dto.success = false;
             dto.phase = "timeout";
@@ -175,12 +177,8 @@ public final class QuestChainOrchestrator {
             }
 
             if ("ready_submit".equals(track.phase)) {
-                QuestSubmitResultDto submit = QuestSubmitService.submit(
-                    job.ownerUuid,
-                    job.networkId,
-                    track.questId,
-                    false,
-                    null);
+                dto.phase = "locking";
+                QuestSubmitResultDto submit = submitQuestWithEscrow(job, track, player);
                 track.submitResult = submit;
                 if (submit != null && submit.success) {
                     track.done = true;
@@ -195,7 +193,7 @@ public final class QuestChainOrchestrator {
                         job.abortMessage = track.message;
                         dto.complete = true;
                         dto.success = false;
-                        dto.phase = "done";
+                        dto.phase = "escrow_failed".equals(track.phase) ? "escrow_failed" : "done";
                         dto.message = job.abortMessage;
                         dto.steps = snapshotSteps(job);
                         JOBS.remove(jobId);
@@ -274,6 +272,61 @@ public final class QuestChainOrchestrator {
         }
     }
 
+    private static QuestSubmitResultDto submitQuestWithEscrow(ChainJob job, ChainQuestTrack track,
+        EntityPlayerMP player) {
+        if (player == null) {
+            QuestSubmitResultDto fail = new QuestSubmitResultDto();
+            fail.questId = track.questId;
+            fail.success = false;
+            fail.message = "Player unavailable for escrow";
+            track.phase = "escrow_failed";
+            return fail;
+        }
+        String escrowId = null;
+        if (Config.webQuestEscrowEnabled) {
+            QuestDetailDto detail = QuestDataCollector.collectQuestDetail(track.questId, player);
+            QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(job.ownerUuid, job.networkId, detail);
+            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
+                job.ownerUuid,
+                job.networkId,
+                player,
+                analysis.steps);
+            if (!lock.success) {
+                QuestSubmitResultDto fail = new QuestSubmitResultDto();
+                fail.questId = track.questId;
+                fail.success = false;
+                fail.message = lock.message != null ? lock.message : "Escrow lock failed";
+                track.phase = "escrow_failed";
+                return fail;
+            }
+            escrowId = lock.escrowId;
+            track.escrowId = escrowId;
+        }
+        QuestSubmitResultDto submit;
+        if (escrowId != null && !escrowId.isEmpty()) {
+            submit = QuestSubmitService.submitFromEscrow(job.ownerUuid, job.networkId, track.questId, escrowId, null);
+        } else {
+            submit = QuestSubmitService.submit(job.ownerUuid, job.networkId, track.questId, false, null);
+        }
+        if ((submit == null || !submit.success) && escrowId != null && !escrowId.isEmpty()) {
+            QuestInventoryEscrow.release(escrowId);
+        }
+        track.escrowId = null;
+        return submit;
+    }
+
+    private static void releaseJobEscrows(ChainJob job) {
+        if (job == null) {
+            return;
+        }
+        for (ChainQuestTrack track : job.queue) {
+            if (track != null && track.escrowId != null && !track.escrowId.isEmpty()) {
+                QuestInventoryEscrow.release(track.escrowId);
+                track.escrowId = null;
+            }
+        }
+    }
+
     private static List<QuestChainStepResultDto> snapshotSteps(ChainJob job) {
         List<QuestChainStepResultDto> list = new ArrayList<QuestChainStepResultDto>();
         for (ChainQuestTrack track : job.queue) {
@@ -311,6 +364,7 @@ public final class QuestChainOrchestrator {
         boolean done;
         String action = "pending";
         String message = "";
+        String escrowId;
         QuestSubmitResultDto submitResult;
         List<OrderTrack> orders = new ArrayList<OrderTrack>();
     }

@@ -77,6 +77,7 @@ public class HandlerTick {
         AssistantCraftJobManager.instance()
             .tickPendingJobs();
         com.imgood.textech.items.cell.DataLoomWeaveScheduler.onServerTick();
+        com.imgood.textech.webae.quest.QuestInventoryEscrow.tickCleanup();
         // Player tracker: every 2 ticks; health MSPT tracking every tick, sample collection every 2
         if ((tickCounter & 1) == 0) {
             com.imgood.textech.handler.HandlerWebPlayerTracker.onServerTick(now);

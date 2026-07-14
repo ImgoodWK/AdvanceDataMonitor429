@@ -39,10 +39,60 @@ public final class QuestTaskDeserializer {
         classifyWebAction(dto);
         readProgress(dto, task, questingUuid);
         readRequirements(dto, task);
+        reclassifyFluidHoldDetect(dto, task);
+        reclassifyRetrievalConsume(dto, task);
         if (dto.description == null || dto.description.isEmpty()) {
             dto.description = dto.name;
         }
         return dto;
+    }
+
+    /** TaskFluid with consume=false is AE hold-detect (retrieveFluids), not AE submit. */
+    private static void reclassifyFluidHoldDetect(QuestTaskDto dto, Object task) {
+        if (dto == null || task == null) {
+            return;
+        }
+        String fid = dto.factoryId != null ? dto.factoryId.toLowerCase(Locale.ROOT) : "";
+        if (!fid.contains("fluid") || fid.contains("retrieval")) {
+            return;
+        }
+        if (!readConsumeFlag(task, true)) {
+            dto.webAction = WEB_DETECT;
+            dto.reasonKey = "adm.quest.task.retrieval_fluid";
+        }
+    }
+
+    /**
+     * Item {@code bq_standard:retrieval} with {@code consume=true} is AE submit (submitItem), not DETECT.
+     * BQ's retrieveItems no-ops when consume is set; only submitItem deducts stacks.
+     */
+    private static void reclassifyRetrievalConsume(QuestTaskDto dto, Object task) {
+        if (dto == null || task == null) {
+            return;
+        }
+        String fid = dto.factoryId != null ? dto.factoryId.toLowerCase(Locale.ROOT) : "";
+        if (!fid.contains("retrieval") || fid.contains("fluid")) {
+            return;
+        }
+        if (readConsumeFlag(task, false)) {
+            dto.webAction = WEB_SUBMIT;
+            dto.reasonKey = "adm.quest.task.submit_item";
+        }
+    }
+
+    /** Reads BQ task {@code consume} field; {@code defaultIfMissing} when absent / unreadable. */
+    private static boolean readConsumeFlag(Object task, boolean defaultIfMissing) {
+        try {
+            Field f = findField(task.getClass(), "consume");
+            if (f != null) {
+                f.setAccessible(true);
+                Object val = f.get(task);
+                if (val instanceof Boolean) {
+                    return ((Boolean) val).booleanValue();
+                }
+            }
+        } catch (Throwable ignored) {}
+        return defaultIfMissing;
     }
 
     private static void classifyWebAction(QuestTaskDto dto) {
@@ -63,6 +113,7 @@ public final class QuestTaskDeserializer {
             return;
         }
         if (fid.contains("fluid") && !fid.contains("retrieval")) {
+            // TaskFluid with consume=false is hold/detect (same as item Retrieval); consume=true submits.
             dto.webAction = WEB_SUBMIT;
             dto.reasonKey = "adm.quest.task.submit_fluid";
             return;

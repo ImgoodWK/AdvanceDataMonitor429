@@ -695,6 +695,18 @@ public final class ConfigWebaeLoader {
             5000,
             600000,
             ConfigDescriptions.get("webConsole", "questCraftWaitTimeoutMs"));
+        Config.webQuestEscrowEnabled = configuration.getBoolean(
+            "questEscrowEnabled",
+            "webConsole",
+            Config.webQuestEscrowEnabled,
+            ConfigDescriptions.get("webConsole", "questEscrowEnabled"));
+        Config.webQuestEscrowTimeoutMs = configuration.getInt(
+            "questEscrowTimeoutMs",
+            "webConsole",
+            (int) Config.webQuestEscrowTimeoutMs,
+            5000,
+            600000,
+            ConfigDescriptions.get("webConsole", "questEscrowTimeoutMs"));
         Config.webQuestCacheTtlSec = configuration.getInt(
             "questCacheTtlSec",
             "webConsole",
