@@ -484,6 +484,11 @@ public final class ConfigDescriptions {
             "Web 认证 Token 有效期（小时）。0 表示永不过期；>0 时按签发时间 + TTL 校验。有效值：0-8760。默认 0。");
         put(
             "webConsole",
+            "adminGrantDays",
+            "Admin grant token lifetime in days. 0 means never expire. Valid values: 0-3650. Default 90.",
+            "管理员提权 Token 有效期（天）。0 表示永不过期。有效值：0-3650。默认 90。");
+        put(
+            "webConsole",
             "iconCacheEnabled",
             "Enable the item/fluid icon cache system so the web console can render item icons. Default true.",
             "启用物品/流体图标缓存系统，使网页控制台能够渲染物品图标。默认开启。");

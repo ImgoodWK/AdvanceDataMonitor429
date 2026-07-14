@@ -167,6 +167,8 @@ public class Config {
     public static int webMaxNetworksDisplayed = 5;
     /** Web auth token lifetime in hours. 0 = never expire. Default 0, range 0-8760. */
     public static int webTokenLifetimeHours = 0;
+    /** Admin grant token lifetime in days. 0 = never expire. Default 90, range 1-3650. */
+    public static int webAdminGrantDays = 90;
     /** Whether the item/fluid icon cache system is enabled. Default true. */
     public static boolean webIconCacheEnabled = true;
     /** Whether clients are allowed to upload rendered icons to the server. Default true. */

@@ -14,22 +14,30 @@ export class ApiClientError extends Error {
 
 export interface ApiClientOptions {
   getToken: () => string | null;
+  getAdminToken?: () => string | null;
   onAuthFailure?: (code: string) => void;
+  onAdminRequired?: () => void;
 }
 
 export class ApiClient {
   private getToken: () => string | null;
+  private getAdminToken: () => string | null;
   private onAuthFailure?: (code: string) => void;
+  private onAdminRequired?: () => void;
 
   constructor(opts: ApiClientOptions) {
     this.getToken = opts.getToken;
+    this.getAdminToken = opts.getAdminToken ?? (() => null);
     this.onAuthFailure = opts.onAuthFailure;
+    this.onAdminRequired = opts.onAdminRequired;
   }
 
   private authHeaders(): Record<string, string> {
     const token = this.getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = 'Bearer ' + token;
+    const adminToken = this.getAdminToken();
+    if (adminToken) headers['X-WebAE-Admin'] = adminToken;
     return headers;
   }
 
@@ -59,7 +67,7 @@ export class ApiClient {
       let code = 'auth_failed';
       try {
         const err = (await resp.json()) as ApiError;
-        code = err.code || code;
+        code = err.code || (err as { error?: string }).error || code;
       } catch {
         /* ignore parse error */
       }
@@ -73,8 +81,15 @@ export class ApiClient {
         const err = (await resp.json()) as ApiError;
         if (err.message) message = err.message;
         if (err.code) code = err.code;
+        else if ((err as { error?: string }).error) code = (err as { error?: string }).error!;
       } catch {
         /* ignore */
+      }
+      if (code === 'webae_disabled') {
+        this.onAuthFailure?.(code);
+      }
+      if (code === 'admin_required' || code === 'admin_elevate_denied') {
+        this.onAdminRequired?.();
       }
       throw new ApiClientError(message, code, resp.status);
     }
@@ -110,6 +125,8 @@ export class ApiClient {
     const headers: Record<string, string> = {};
     const token = this.getToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
+    const adminToken = this.getAdminToken();
+    if (adminToken) headers['X-WebAE-Admin'] = adminToken;
     return fetch(url, { method: 'POST', headers, body: file }).then((r) => {
       if (!r.ok) throw new ApiClientError('Upload failed', 'upload_failed', r.status);
       return r.json() as Promise<T>;
@@ -118,7 +135,9 @@ export class ApiClient {
 
   updateOptions(opts: Partial<ApiClientOptions>): void {
     if (opts.getToken) this.getToken = opts.getToken;
+    if (opts.getAdminToken !== undefined) this.getAdminToken = opts.getAdminToken;
     if (opts.onAuthFailure !== undefined) this.onAuthFailure = opts.onAuthFailure;
+    if (opts.onAdminRequired !== undefined) this.onAdminRequired = opts.onAdminRequired;
   }
 }
 

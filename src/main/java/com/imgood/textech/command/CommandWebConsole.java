@@ -18,6 +18,9 @@ import net.minecraft.util.EnumChatFormatting;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.WebAeLocalDataDir;
+import com.imgood.textech.webae.auth.WebAdminBootstrapStore;
+import com.imgood.textech.webae.auth.WebAdminGrantStore;
+import com.imgood.textech.webae.auth.WebAdminGrantStore.GrantEntry;
 import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.auth.WebAuthToken;
 import com.imgood.textech.webae.auth.WebLoginCodeStore;
@@ -37,7 +40,7 @@ import com.imgood.textech.webae.WebUiDefaultsStore;
 public class CommandWebConsole extends TeXTechCommandBase {
 
     private static final String[] SUBCOMMANDS = { "issue", "login", "guest", "copy", "revoke", "list", "reload",
-        "recipes", "icons", "refresh", "server", "worldmap", "wm", "defaults", "help" };
+        "recipes", "icons", "refresh", "server", "worldmap", "wm", "defaults", "help", "admin" };
     private static final String[] RECIPES_ACTIONS = { "upload", "export", "status", "clear" };
     private static final String[] RECIPES_UPLOAD_SCOPES = { "snapshot", "deep" };
     private static final String[] ICONS_ACTIONS = { "upload", "render", "verify", "import", "import-nesql", "modes",
@@ -46,7 +49,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
     private static final String[] WM_ACTIONS = { "y", "n", "up", "st", "help" };
     private static final String[] SERVER_ACTIONS = { "status", "restart" };
     private static final String[] DEFAULTS_ACTIONS = { "status", "install", "clear" };
-    private static final int HELP_LINES = 14;
+    private static final String[] ADMIN_ACTIONS = { "issue", "list", "revoke", "rotate" };
+    private static final int HELP_LINES = 15;
 
     @Override
     public String getCommandName() {
@@ -104,6 +108,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
             handleWorldMapShort(sender, args);
         } else if ("defaults".equals(sub)) {
             handleDefaults(sender, args);
+        } else if ("admin".equals(sub)) {
+            handleAdmin(sender, args);
         } else {
             sendUsage(sender);
         }
@@ -116,6 +122,10 @@ public class CommandWebConsole extends TeXTechCommandBase {
         EntityPlayerMP player = (EntityPlayerMP) sender;
         String uuid = player.getUniqueID()
             .toString();
+        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance().isDisabled(uuid)) {
+            sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.disabled");
+            return;
+        }
         if (WebAeOwnerContext.countMonitors(uuid) <= 0) {
             sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.no_monitor");
             return;
@@ -134,6 +144,10 @@ public class CommandWebConsole extends TeXTechCommandBase {
         String uuid = player.getUniqueID()
             .toString();
         String ownerName = player.getCommandSenderName();
+        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance().isDisabled(uuid)) {
+            sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.disabled");
+            return;
+        }
         if (WebAeOwnerContext.countMonitors(uuid) <= 0) {
             sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.no_monitor");
             return;
@@ -193,6 +207,10 @@ public class CommandWebConsole extends TeXTechCommandBase {
         EntityPlayerMP owner = (EntityPlayerMP) sender;
         String ownerUuid = owner.getUniqueID()
             .toString();
+        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance().isDisabled(ownerUuid)) {
+            sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.disabled");
+            return;
+        }
         if (WebAeOwnerContext.countMonitors(ownerUuid) <= 0) {
             sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.no_monitor");
             return;
@@ -964,6 +982,187 @@ public class CommandWebConsole extends TeXTechCommandBase {
         sendFormatted(sender, EnumChatFormatting.RED, "adm.command.admweb.defaults.unknown");
     }
 
+    private void handleAdmin(ICommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sendHelpHeader(sender, "adm.command.admweb.admin.title");
+            sendHelpLines(sender, "adm.command.admweb.admin.help", 5);
+            return;
+        }
+        String action = args[1].toLowerCase();
+        if ("issue".equals(action)) {
+            handleAdminIssue(sender, args);
+        } else if ("list".equals(action)) {
+            handleAdminList(sender);
+        } else if ("revoke".equals(action)) {
+            handleAdminRevoke(sender, args);
+        } else if ("rotate".equals(action)) {
+            handleAdminRotate(sender);
+        } else {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.admin.unknown");
+        }
+    }
+
+    private void handleAdminIssue(ICommandSender sender, String[] args) {
+        boolean isPlayer = sender instanceof EntityPlayerMP;
+        // Console/RCon can always issue; players need OP or single-player cheat mode
+        if (isPlayer && !canUseOpCommands(sender)) {
+            // Single-player cheat mode check
+            EntityPlayerMP player = (EntityPlayerMP) sender;
+            MinecraftServer server = MinecraftServer.getServer();
+            if (server == null || !server.isSinglePlayer()
+                || !server.worldServers[0].getWorldInfo().areCommandsAllowed()) {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.admin.op_required");
+                return;
+            }
+        }
+
+        boolean allowReuse = false;
+        String label = null;
+        for (int i = 2; i < args.length; i++) {
+            if ("--reuse".equals(args[i])) {
+                allowReuse = true;
+            } else if (label == null) {
+                label = args[i];
+            }
+        }
+
+        String issuedBy = isPlayer ? ((EntityPlayerMP) sender).getCommandSenderName() : "console";
+        String code = WebAdminBootstrapStore.generate(issuedBy, label, allowReuse);
+
+        if (isPlayer) {
+            sendLocalized(
+                sender,
+                EnumChatFormatting.GREEN,
+                "adm.command.admweb.admin.issued_player",
+                code);
+            if (allowReuse) {
+                sendLocalized(sender, EnumChatFormatting.GRAY, "adm.command.admweb.admin.issued_reuse");
+            } else {
+                sendLocalized(sender, EnumChatFormatting.GRAY, "adm.command.admweb.admin.issued_one_shot");
+            }
+        } else {
+            AdvanceDataMonitor.LOG.info(
+                "[WebAE] Admin bootstrap code generated (by={}): {}", issuedBy, code);
+            sendLocalized(
+                sender,
+                EnumChatFormatting.GREEN,
+                "adm.command.admweb.admin.issued_console",
+                code);
+        }
+    }
+
+    private void handleAdminList(ICommandSender sender) {
+        if (!requireOp(sender)) return;
+
+        java.util.List<GrantEntry> grants = WebAdminGrantStore.listAll();
+        if (grants.isEmpty()) {
+            sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.admin.list_empty");
+            return;
+        }
+
+        sendHelpHeader(sender, "adm.command.admweb.admin.list_title");
+        java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
+        for (GrantEntry g : grants) {
+            String expires = g.expiresAt <= 0 ? translate("adm.command.admweb.admin.never")
+                : fmt.format(new java.util.Date(g.expiresAt));
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.admin.list_entry",
+                g.adminToken,
+                g.boundActorName != null && !g.boundActorName.isEmpty() ? g.boundActorName : g.boundActorUuid,
+                g.boundOwnerUuid,
+                g.label,
+                expires);
+        }
+
+        // Also list unused bootstrap codes
+        java.util.List<WebAdminBootstrapStore.BootstrapEntry> bootstraps = WebAdminBootstrapStore.listUnused();
+        if (!bootstraps.isEmpty()) {
+            sendHelpHeader(sender, "adm.command.admweb.admin.list_bootstrap_title");
+            for (WebAdminBootstrapStore.BootstrapEntry b : bootstraps) {
+                String status = b.used ? translate("adm.command.admweb.admin.bootstrap_used")
+                    : (b.allowReuse ? translate("adm.command.admweb.admin.bootstrap_reusable")
+                        : translate("adm.command.admweb.admin.bootstrap_unused"));
+                sendLocalized(
+                    sender,
+                    EnumChatFormatting.WHITE,
+                    "adm.command.admweb.admin.list_bootstrap_entry",
+                    b.code,
+                    b.issuedBy,
+                    status);
+            }
+        }
+    }
+
+    private void handleAdminRevoke(ICommandSender sender, String[] args) {
+        if (!requireOp(sender)) return;
+
+        boolean all = false;
+        String target = null;
+        for (int i = 2; i < args.length; i++) {
+            if ("all".equalsIgnoreCase(args[i]) || "--all".equals(args[i])) {
+                all = true;
+            } else if (target == null) {
+                target = args[i];
+            }
+        }
+
+        if (!all && (target == null || target.isEmpty())) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.admin.revoke_usage");
+            return;
+        }
+
+        if (all) {
+            int count = WebAdminGrantStore.revokeAll();
+            sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.admin.revoke_all", count);
+            return;
+        }
+
+        // Try revoke by owner UUID or actor name
+        boolean removed = WebAdminGrantStore.revokeByToken(target);
+        if (!removed) {
+            // Try as owner UUID or actor name
+            int count = WebAdminGrantStore.revokeByOwner(target);
+            if (count <= 0) {
+                // Try by actor name
+                java.util.List<GrantEntry> allGrants = WebAdminGrantStore.listAll();
+                String foundToken = null;
+                for (GrantEntry g : allGrants) {
+                    if (target.equalsIgnoreCase(g.boundActorName) || target.equals(g.boundActorUuid)) {
+                        foundToken = g.adminToken;
+                        break;
+                    }
+                }
+                if (foundToken != null) {
+                    removed = WebAdminGrantStore.revokeByToken(foundToken);
+                }
+            } else {
+                removed = true;
+            }
+        }
+
+        if (removed) {
+            sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.admin.revoked", target);
+        } else {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.admin.revoke_notfound", target);
+        }
+    }
+
+    private void handleAdminRotate(ICommandSender sender) {
+        if (!requireOp(sender)) return;
+
+        int bootstrapsRevoked = WebAdminBootstrapStore.revokeAllUnused();
+        int grantsRevoked = WebAdminGrantStore.revokeAll();
+
+        sendLocalized(
+            sender,
+            EnumChatFormatting.GREEN,
+            "adm.command.admweb.admin.rotated",
+            bootstrapsRevoked,
+            grantsRevoked);
+    }
+
     private void sendUsage(ICommandSender sender) {
         sendHelpHeader(sender, "adm.command.admweb.title");
         sendUsageSummary(sender, "adm.command.admweb.usage");
@@ -994,6 +1193,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
             }
             if ("defaults".equals(sub)) {
                 return filterTabCompletion(args, DEFAULTS_ACTIONS);
+            }
+            if ("admin".equals(sub)) {
+                return filterTabCompletion(args, ADMIN_ACTIONS);
             }
         }
         if (args.length == 3) {

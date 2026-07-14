@@ -5,7 +5,8 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imgood.textech.Config;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.pattern.PatternBrowseService;
 import com.imgood.textech.webae.pattern.PatternBrowseService.BrowseResult;
@@ -27,7 +28,8 @@ public final class PatternBrowseHandler {
 
     private PatternBrowseHandler() {}
 
-    public static NanoHTTPD.Response handle(Map<String, String> params, String ownerUuid) {
+    public static NanoHTTPD.Response handle(Map<String, String> params, WebAuthSession auth, String adminHeader) {
+        String ownerUuid = auth.ownerUuid;
         String networkStr = params.get("network");
         if (networkStr == null || networkStr.isEmpty()) {
             return json(
@@ -64,8 +66,9 @@ public final class PatternBrowseHandler {
         return buildBrowseResponse(ownerUuid, networkId, query, offset, limit, source);
     }
 
-    public static NanoHTTPD.Response handleRefresh(Map<String, String> params, String ownerUuid) {
-        if (!WebAuthOpCheck.isOp(ownerUuid)) {
+    public static NanoHTTPD.Response handleRefresh(Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Pattern browse refresh is admin-only. Use /admweb refresh in-game.\"}");
@@ -76,6 +79,7 @@ public final class PatternBrowseHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'network' parameter\"}");
         }
+        String ownerUuid = auth.ownerUuid;
         PatternBrowseService.invalidateCache(ownerUuid, networkId);
         SnapshotScheduler.markActive(ownerUuid, networkId);
         SnapshotScheduler.forceCollectPatternBrowse(ownerUuid, networkId);

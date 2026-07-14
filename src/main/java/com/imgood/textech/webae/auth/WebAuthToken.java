@@ -18,6 +18,7 @@ import com.imgood.textech.Config;
 import com.imgood.textech.TeXTechDataDir;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.player.WebAePlayerStateStore;
 
 public class WebAuthToken {
 
@@ -50,6 +51,12 @@ public class WebAuthToken {
     public long issuedAt;
 
     public long lastUsedAt;
+
+    /**
+     * Guest allowlist of stable network keys. {@code null} = legacy all nets;
+     * empty = none; non-empty = allowlist.
+     */
+    public List<String> allowedNetworkKeys;
 
     public WebAuthToken() {}
 
@@ -106,13 +113,26 @@ public class WebAuthToken {
      * Shareable guest invite link (not tied to a specific online player).
      */
     public static WebAuthToken generateShareGuestToken(String ownerUuid, String ownerName) {
+        return generateShareGuestToken(ownerUuid, ownerName, null);
+    }
+
+    /**
+     * @param allowedNetworkKeys null = all nets (legacy); empty = none; otherwise allowlist
+     */
+    public static WebAuthToken generateShareGuestToken(String ownerUuid, String ownerName,
+        List<String> allowedNetworkKeys) {
         String inviteId = UUID.randomUUID()
             .toString();
-        return generateGuestToken(ownerUuid, ownerName, "invite:" + inviteId, "Guest");
+        return generateGuestToken(ownerUuid, ownerName, "invite:" + inviteId, "Guest", allowedNetworkKeys);
     }
 
     public static WebAuthToken generateGuestToken(String ownerUuid, String ownerName, String guestUuid,
         String guestName) {
+        return generateGuestToken(ownerUuid, ownerName, guestUuid, guestName, null);
+    }
+
+    public static WebAuthToken generateGuestToken(String ownerUuid, String ownerName, String guestUuid,
+        String guestName, List<String> allowedNetworkKeys) {
         WebAuthToken authToken = new WebAuthToken(
             ownerUuid,
             guestUuid,
@@ -122,6 +142,7 @@ public class WebAuthToken {
                 .toString(),
             System.currentTimeMillis(),
             System.currentTimeMillis());
+        authToken.allowedNetworkKeys = copyKeys(allowedNetworkKeys);
         WebAeOwnerContext.cacheOwnerName(ownerUuid, ownerName);
 
         List<WebAuthToken> tokens = getTokenList();
@@ -142,6 +163,22 @@ public class WebAuthToken {
     }
 
     public static WebAuthSession validateToken(String tokenValue) {
+        WebAuthToken t = findMatchingToken(tokenValue);
+        if (t == null) {
+            return null;
+        }
+        if (isUuidDisabled(t.ownerUuid) || isUuidDisabled(t.actorUuid)) {
+            return null;
+        }
+        t.lastUsedAt = System.currentTimeMillis();
+        scheduleSave();
+        return new WebAuthSession(t.token, t.type, t.ownerUuid, t.actorUuid, t.actorName, t.allowedNetworkKeys);
+    }
+
+    /**
+     * Look up a non-expired token without disabled checks (for middleware error codes).
+     */
+    public static WebAuthToken findMatchingToken(String tokenValue) {
         if (tokenValue == null || tokenValue.isEmpty()) {
             return null;
         }
@@ -157,13 +194,23 @@ public class WebAuthToken {
                             return null;
                         }
                     }
-                    t.lastUsedAt = System.currentTimeMillis();
-                    scheduleSave();
-                    return new WebAuthSession(t.token, t.type, t.ownerUuid, t.actorUuid, t.actorName);
+                    return t;
                 }
             }
         }
         return null;
+    }
+
+    private static boolean isUuidDisabled(String uuid) {
+        return uuid != null && !uuid.isEmpty() && WebAePlayerStateStore.getInstance()
+            .isDisabled(uuid);
+    }
+
+    private static List<String> copyKeys(List<String> keys) {
+        if (keys == null) {
+            return null;
+        }
+        return new ArrayList<String>(keys);
     }
 
     public static boolean revokeTokenByToken(String tokenValue) {
@@ -205,6 +252,86 @@ public class WebAuthToken {
             return found.token;
         }
         return null;
+    }
+
+    /**
+     * Revoke every token where the given UUID is owner or actor (account ban cleanup).
+     *
+     * @return number of tokens removed
+     */
+    public static int revokeAllForPlayer(String playerUuid) {
+        if (playerUuid == null || playerUuid.isEmpty()) {
+            return 0;
+        }
+        List<WebAuthToken> tokens = getTokenList();
+        int removed = 0;
+        synchronized (tokens) {
+            Iterator<WebAuthToken> iter = tokens.iterator();
+            while (iter.hasNext()) {
+                WebAuthToken t = iter.next();
+                migrateEntry(t);
+                if (playerUuid.equals(t.ownerUuid) || playerUuid.equals(t.actorUuid)) {
+                    iter.remove();
+                    removed++;
+                }
+            }
+        }
+        if (removed > 0) {
+            scheduleSave();
+        }
+        return removed;
+    }
+
+    public static boolean updateGuestAllowlist(String tokenValue, List<String> allowedNetworkKeys) {
+        if (tokenValue == null || tokenValue.isEmpty()) {
+            return false;
+        }
+        List<WebAuthToken> tokens = getTokenList();
+        synchronized (tokens) {
+            for (WebAuthToken t : tokens) {
+                migrateEntry(t);
+                if (tokenValue.equals(t.token) && WebAuthSession.TYPE_GUEST.equals(t.type)) {
+                    t.allowedNetworkKeys = copyKeys(allowedNetworkKeys);
+                    scheduleSave();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static List<WebAuthToken> listGuestTokensForActor(String actorUuid) {
+        List<WebAuthToken> out = new ArrayList<WebAuthToken>();
+        if (actorUuid == null || actorUuid.isEmpty()) {
+            return out;
+        }
+        List<WebAuthToken> tokens = getTokenList();
+        synchronized (tokens) {
+            for (WebAuthToken t : tokens) {
+                migrateEntry(t);
+                if (WebAuthSession.TYPE_GUEST.equals(t.type) && actorUuid.equals(t.actorUuid)) {
+                    out.add(t);
+                }
+            }
+        }
+        return out;
+    }
+
+    public static List<WebAuthToken> listGuestTokensForOwner(String ownerUuid) {
+        List<WebAuthToken> out = new ArrayList<WebAuthToken>();
+        if (ownerUuid == null || ownerUuid.isEmpty()) {
+            return out;
+        }
+        List<WebAuthToken> tokens = getTokenList();
+        synchronized (tokens) {
+            for (WebAuthToken t : tokens) {
+                migrateEntry(t);
+                if (WebAuthSession.TYPE_GUEST.equals(t.type) && ownerUuid.equals(t.ownerUuid)) {
+                    out.add(t);
+                }
+            }
+        }
+        return out;
     }
 
     /** @deprecated use {@link #revokeOwnerToken(String)} */

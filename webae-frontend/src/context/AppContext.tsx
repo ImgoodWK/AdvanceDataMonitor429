@@ -58,6 +58,9 @@ import {
   findFirstHealthyNetworkId,
 } from '@/utils/networkHealth';
 import type {
+  AdminCapabilities,
+  AdminElevateResponse,
+  AdminMeResponse,
   ConfigResponse,
   IconPackInfo,
   IconPacksResponse,
@@ -99,6 +102,7 @@ export type PageId =
   | 'assistant'
   | 'alertshistory'
   | 'diagnostics'
+  | 'admin'
   | 'settings';
 
 export interface OrderNavigationState {
@@ -143,6 +147,15 @@ interface AppContextValue {
   logout: () => void;
   authError: string | null;
   networksError: string | null;
+
+  // Admin
+  adminToken: string;
+  isAdmin: boolean;
+  isOnlineOp: boolean;
+  adminCapabilities: AdminCapabilities | null;
+  elevateAdmin: (code: string, label?: string) => Promise<boolean>;
+  revokeAdmin: () => Promise<boolean>;
+  checkAdminStatus: () => Promise<void>;
 
   // Server config
   serverConfig: ServerConfig | null;
@@ -291,6 +304,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [tokenType, setTokenType] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [networksError, setNetworksError] = useState<string | null>(null);
+
+  // ---- Admin state ----
+  const [adminToken, setAdminTokenState] = useLocalStorageString('webae_admin_token', '');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isOnlineOp, setIsOnlineOp] = useState(false);
+  const [adminCapabilities, setAdminCapabilities] = useState<AdminCapabilities | null>(null);
+  const adminTokenRef = useRef(adminToken);
 
   // ---- Server config ----
   const [serverConfig, setServerConfig] = useState<ServerConfig | null>(null);
@@ -562,6 +582,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (authFailureHandling.current) return;
       authFailureHandling.current = true;
       try {
+        // Account ban: never try silent /api/auth/login recovery
+        if (code === 'webae_disabled') {
+          setTokenState('');
+          tokenRef.current = '';
+          setAuthError(code);
+          setIsLoggedIn(false);
+          return;
+        }
         const tok = tokenRef.current;
         if (tok) {
           try {
@@ -574,18 +602,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 applyLoginResponse(data);
                 return;
               }
+              if (data.status === 'error' && (data as { code?: string }).code === 'webae_disabled') {
+                setTokenState('');
+                tokenRef.current = '';
+                setAuthError('webae_disabled');
+                setIsLoggedIn(false);
+                return;
+              }
+            } else if (resp.status === 401) {
+              try {
+                const err = (await resp.json()) as { code?: string; error?: string };
+                if (err.code === 'webae_disabled' || err.error === 'webae_disabled') {
+                  setTokenState('');
+                  tokenRef.current = '';
+                  setAuthError('webae_disabled');
+                  setIsLoggedIn(false);
+                  return;
+                }
+              } catch {
+                /* ignore */
+              }
             }
           } catch {
             /* silent retry failed */
           }
         }
+        setTokenState('');
+        tokenRef.current = '';
         setAuthError(code);
         setIsLoggedIn(false);
       } finally {
         authFailureHandling.current = false;
       }
     },
-    [applyLoginResponse]
+    [applyLoginResponse, setTokenState]
   );
 
   const setToken = useCallback(
@@ -596,23 +646,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setTokenState]
   );
 
-  const apiInitRef = useRef(false);
-  useEffect(() => {
-    if (apiInitRef.current) {
-      updateApiClientOptions({
-        getToken: () => tokenRef.current,
-        onAuthFailure: handleAuthFailure,
-      });
-      return;
-    }
-    apiInitRef.current = true;
-    initApiClient({
-      getToken: () => tokenRef.current,
-      onAuthFailure: handleAuthFailure,
-    });
-  }, [handleAuthFailure]);
-
-  // ---- Notification helper ----
+  // ---- Notification helper (moved before apiClient init so admin helpers can use it) ----
   const [msgApi, msgHolder] = message.useMessage();
   const notify = useCallback(
     (msg: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
@@ -620,6 +654,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [msgApi]
   );
+
+  // ---- Admin helpers (must precede apiClient init useEffect) ----
+  useEffect(() => {
+    adminTokenRef.current = adminToken;
+  }, [adminToken]);
+
+  const clearAdminState = useCallback(() => {
+    setIsAdmin(false);
+    setIsOnlineOp(false);
+    setAdminCapabilities(null);
+    adminTokenRef.current = '';
+    setAdminTokenState('');
+  }, [setAdminTokenState]);
+
+  const handleAdminRequired = useCallback(() => {
+    clearAdminState();
+    const adminDict = (lang || 'en') === 'zh' ? zhDict : enDict;
+    const hint = (adminDict as Record<string, string>).adminRequiredHint
+      ?? 'This operation requires admin privileges. Redeem an elevation key in Settings.';
+    message.warning(hint);
+  }, [clearAdminState, lang]);
+
+  // ---- API client init (tokenRef avoids stale closure; silent re-login on 401) ----
+  const apiInitRef = useRef(false);
+  useEffect(() => {
+    if (apiInitRef.current) {
+      updateApiClientOptions({
+        getToken: () => tokenRef.current,
+        getAdminToken: () => adminTokenRef.current,
+        onAuthFailure: handleAuthFailure,
+        onAdminRequired: handleAdminRequired,
+      });
+      return;
+    }
+    apiInitRef.current = true;
+    initApiClient({
+      getToken: () => tokenRef.current,
+      getAdminToken: () => adminTokenRef.current,
+      onAuthFailure: handleAuthFailure,
+      onAdminRequired: handleAdminRequired,
+    });
+    }, [handleAuthFailure, handleAdminRequired]);
 
   const setSelectedNetworks = useCallback(
     (ids: number[]) => {
@@ -654,7 +730,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTokenState(tok);
       updateApiClientOptions({
         getToken: () => tokenRef.current,
+        getAdminToken: () => adminTokenRef.current,
         onAuthFailure: handleAuthFailure,
+        onAdminRequired: handleAdminRequired,
       });
       try {
         const resp = await getApiClient().get<LoginResponse>('/api/auth/login');
@@ -662,10 +740,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           applyLoginResponse(resp);
           return true;
         }
-        setAuthError('auth_failed');
+        setAuthError((resp as { code?: string }).code || 'auth_failed');
         return false;
       } catch (e) {
-        setAuthError((e as Error).message || 'auth_failed');
+        const code = (e as { code?: string }).code || (e as Error).message || 'auth_failed';
+        setAuthError(code);
+        if (code === 'webae_disabled') {
+          setTokenState('');
+          tokenRef.current = '';
+        }
         setIsLoggedIn(false);
         setOnline(false);
         return false;
@@ -713,7 +796,84 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTokenState('');
     setOnline(false);
     setNetworksError(null);
-  }, [setTokenState]);
+    clearAdminState();
+  }, [setTokenState, clearAdminState]);
+
+  // ---- Admin functions ----
+  const setAdminToken = useCallback(
+    (t: string) => {
+      setAdminTokenState(t);
+      adminTokenRef.current = t;
+    },
+    [setAdminTokenState]
+  );
+
+  const checkAdminStatus = useCallback(async () => {
+    if (!tokenRef.current) return;
+    try {
+      const data = await getApiClient().get<AdminMeResponse>('/api/auth/admin/me');
+      if (data.status === 'ok') {
+        setIsAdmin(data.isAdmin);
+        setIsOnlineOp(data.isOnlineOp);
+        setAdminCapabilities(data.capabilities);
+      }
+    } catch {
+      setIsAdmin(false);
+      setIsOnlineOp(false);
+      setAdminCapabilities(null);
+    }
+  }, []);
+
+  const elevateAdmin = useCallback(
+    async (code: string, label?: string): Promise<boolean> => {
+      const adminDict = (lang || 'en') === 'zh' ? zhDict : enDict;
+      const d = adminDict as Record<string, string>;
+      if (!tokenRef.current || tokenType === 'guest') {
+        notify(d.adminElevateGuestDenied ?? 'Guest tokens cannot request admin elevation.', 'error');
+        return false;
+      }
+      try {
+        const body: Record<string, string> = { code };
+        if (label) body.label = label;
+        const data = await getApiClient().post<AdminElevateResponse>('/api/auth/admin/elevate', body);
+        if (data.status === 'ok' && data.adminToken) {
+          setAdminToken(data.adminToken);
+          await checkAdminStatus();
+          notify(d.adminElevateSuccess ?? 'Admin elevation successful.', 'success');
+          return true;
+        }
+        notify(data.message || d.adminElevateFailed || 'Elevation failed.', 'error');
+        return false;
+      } catch (e) {
+        const err = e as { code?: string; message?: string; status?: number };
+        if (err.code === 'admin_elevate_denied') {
+          notify(d.adminElevateInvalidCode ?? 'Invalid elevation key.', 'error');
+        } else if (err.status === 429 || err.code === 'rate_limited') {
+          notify(d.adminElevateRateLimited ?? 'Too many attempts.', 'warning');
+        } else {
+          notify(err.message || d.adminElevateFailed || 'Elevation failed.', 'error');
+        }
+        return false;
+      }
+    },
+    [tokenType, lang, notify, setAdminToken, checkAdminStatus]
+  );
+
+  const revokeAdmin = useCallback(async (): Promise<boolean> => {
+    if (!adminTokenRef.current) return false;
+    try {
+      const data = await getApiClient().post<{ status: string; revoked?: boolean }>('/api/auth/admin/revoke-self', {});
+      if (data.status === 'ok' && data.revoked) {
+        clearAdminState();
+        const adminDict = (lang || 'en') === 'zh' ? zhDict : enDict;
+        notify((adminDict as Record<string, string>).adminRevokeSuccess ?? 'Admin elevation revoked.', 'success');
+        return true;
+      }
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }, [lang, notify, clearAdminState]);
 
   // ---- Fetch server config ----
   const fetchServerConfig = useCallback(async () => {
@@ -806,15 +966,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- On login: fetch config, networks, icon packs ----
+  // ---- On login: fetch config, networks, icon packs, admin status ----
   useEffect(() => {
     if (isLoggedIn && token) {
       fetchServerConfig();
       fetchNetworks();
       refreshIconPacks();
       refreshLocalIconPacks();
+      checkAdminStatus();
     }
-  }, [isLoggedIn, token, fetchServerConfig, fetchNetworks, refreshIconPacks, refreshLocalIconPacks]);
+  }, [isLoggedIn, token, fetchServerConfig, fetchNetworks, refreshIconPacks, refreshLocalIconPacks, checkAdminStatus]);
 
   // ---- Periodic connection check (only on pages that show live connection status) ----
   const connectionCheckActive = CONNECTION_CHECK_PAGES.includes(activePage);
@@ -1184,6 +1345,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     logout,
     authError,
     networksError,
+    adminToken,
+    isAdmin,
+    isOnlineOp,
+    adminCapabilities,
+    elevateAdmin,
+    revokeAdmin,
+    checkAdminStatus,
     serverConfig,
     networks,
     selectedNetworks,

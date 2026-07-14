@@ -219,6 +219,13 @@ public final class ConfigWebaeLoader {
             0,
             8760,
             ConfigDescriptions.get("webConsole", "tokenLifetimeHours"));
+        Config.webAdminGrantDays = configuration.getInt(
+            "adminGrantDays",
+            "webConsole",
+            Config.webAdminGrantDays,
+            0,
+            3650,
+            ConfigDescriptions.get("webConsole", "adminGrantDays"));
         Config.webIconCacheEnabled = configuration.getBoolean(
             "iconCacheEnabled",
             "webConsole",

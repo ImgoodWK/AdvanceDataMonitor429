@@ -4,7 +4,8 @@ import net.minecraft.item.ItemStack;
 
 import com.imgood.textech.handler.PocketState;
 import com.imgood.textech.handler.PocketStore;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 
 /**
  * Collects minimal OP-only pocket stats without exposing stored items.
@@ -13,16 +14,17 @@ public final class PocketOverviewCollector {
 
     private PocketOverviewCollector() {}
 
-    public static PocketOverviewDto collect(String actorUuid, String ownerUuid) {
+    public static PocketOverviewDto collect(WebAuthSession auth, String adminHeader) {
         PocketOverviewDto dto = new PocketOverviewDto();
         dto.opRequired = true;
 
-        if (!WebAuthOpCheck.isOp(actorUuid)) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             dto.available = false;
-            dto.message = "OP permission required for pocket overview.";
+            dto.message = "Admin permission required for pocket overview.";
             return dto;
         }
 
+        String ownerUuid = auth.ownerUuid;
         PocketState state = PocketStore.instance()
             .getOrCreate(ownerUuid);
         dto.available = true;

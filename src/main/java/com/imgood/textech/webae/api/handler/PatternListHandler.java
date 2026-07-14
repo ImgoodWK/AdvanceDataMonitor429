@@ -24,7 +24,9 @@ import com.google.gson.JsonParser;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.utils.NBTJsonParser;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
@@ -68,7 +70,8 @@ public class PatternListHandler {
     private static final long MAIN_THREAD_TIMEOUT_MS = 10_000L;
 
     public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, Map<String, String> params,
-        String body, String playerUuid) {
+        String body, WebAuthSession auth, String adminHeader) {
+        String ownerUuid = auth.ownerUuid;
         // GET /api/patterns?network=<id>
         if ("/api/patterns".equals(uri)) {
             if (method != NanoHTTPD.Method.GET) {
@@ -76,7 +79,7 @@ public class PatternListHandler {
                     NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
                     "{\"success\":false,\"message\":\"Use GET /api/patterns\"}");
             }
-            return handleList(params, playerUuid);
+            return handleList(params, ownerUuid);
         }
         // /api/patterns/<id> — GET 详情 / DELETE 删除 / PUT 编辑
         if (uri.startsWith("/api/patterns/")) {
@@ -87,13 +90,13 @@ public class PatternListHandler {
                     "{\"success\":false,\"message\":\"Missing pattern id\"}");
             }
             if (method == NanoHTTPD.Method.GET) {
-                return handleDetail(idPart, playerUuid);
+                return handleDetail(idPart, auth);
             }
             if (method == NanoHTTPD.Method.DELETE) {
-                return handleDelete(idPart, playerUuid);
+                return handleDelete(idPart, auth, adminHeader);
             }
             if (method == NanoHTTPD.Method.PUT) {
-                return handlePut(idPart, body, playerUuid);
+                return handlePut(idPart, body, auth, adminHeader);
             }
             return json(
                 NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
@@ -211,7 +214,7 @@ public class PatternListHandler {
 
     // ---- GET /api/patterns/<id> ----
 
-    private static NanoHTTPD.Response handleDetail(String idPart, String playerUuid) {
+    private static NanoHTTPD.Response handleDetail(String idPart, WebAuthSession auth) {
         final PatternId pid = parsePatternId(idPart);
         if (pid == null) {
             return json(
@@ -228,7 +231,7 @@ public class PatternListHandler {
             @Override
             public void run() {
                 try {
-                    EntityPlayerMP player = WebAuthOpCheck.findPlayer(playerUuid);
+                    EntityPlayerMP player = WebAuthOpCheck.findPlayer(auth.actorUuid);
                     if (player == null) {
                         notFound[0] = true;
                         return;
@@ -281,12 +284,11 @@ public class PatternListHandler {
 
     // ---- DELETE /api/patterns/<id> ----
 
-    private static NanoHTTPD.Response handleDelete(String idPart, String playerUuid) {
-        // OP 权限校验
-        if (!WebAuthOpCheck.isOp(playerUuid)) {
+    private static NanoHTTPD.Response handleDelete(String idPart, WebAuthSession auth, String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,
-                "{\"success\":false,\"message\":\"OP permission required\"}");
+                "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Admin permission required to delete patterns\"}");
         }
         final PatternId pid = parsePatternId(idPart);
         if (pid == null) {
@@ -356,11 +358,12 @@ public class PatternListHandler {
 
     // ---- PUT /api/patterns/<id> ----
 
-    private static NanoHTTPD.Response handlePut(String idPart, String body, String playerUuid) {
-        if (!WebAuthOpCheck.isOp(playerUuid)) {
+    private static NanoHTTPD.Response handlePut(String idPart, String body, WebAuthSession auth,
+        String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,
-                "{\"success\":false,\"message\":\"OP permission required\"}");
+                "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Admin permission required to edit patterns\"}");
         }
         final PatternId pid = parsePatternId(idPart);
         if (pid == null) {

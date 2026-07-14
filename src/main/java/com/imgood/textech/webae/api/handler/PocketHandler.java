@@ -18,8 +18,8 @@ public final class PocketHandler {
 
     private PocketHandler() {}
 
-    public static NanoHTTPD.Response handle(WebAuthSession auth) {
-        PocketOverviewDto dto = PocketOverviewCollector.collect(auth.actorUuid, auth.ownerUuid);
+    public static NanoHTTPD.Response handle(WebAuthSession auth, String adminHeader) {
+        PocketOverviewDto dto = PocketOverviewCollector.collect(auth, adminHeader);
         if (!dto.available && dto.opRequired) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,

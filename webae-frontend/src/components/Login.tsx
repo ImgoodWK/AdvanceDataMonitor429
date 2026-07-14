@@ -139,6 +139,8 @@ export function Login() {
 
     no_monitor: t('loginCodeNoMonitor'),
 
+    webae_disabled: t('webaeDisabled'),
+
   };
 
   const errorMsg = authError ? errorMap[authError] || t('authFailed') : null;

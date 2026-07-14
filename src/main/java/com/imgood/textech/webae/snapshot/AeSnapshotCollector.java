@@ -551,6 +551,8 @@ public class AeSnapshotCollector {
     public static class NetworkInfo {
 
         public int networkId;
+        /** Stable key {@code dim:x:y:z} for ACL / suspend persistence. */
+        public String networkKey;
         public int monitorDim;
         public int monitorX;
         public int monitorY;

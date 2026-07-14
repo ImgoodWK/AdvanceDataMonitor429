@@ -6,7 +6,9 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.dto.StorageDto;
@@ -30,21 +32,23 @@ public class StorageHandler {
         .create();
     private static final long COLLECT_TIMEOUT_MS = 10_000L;
 
-    public static NanoHTTPD.Response handle(String uri, Map<String, String> params, String playerUuid) {
+    public static NanoHTTPD.Response handle(String uri, Map<String, String> params, WebAuthSession auth,
+        String adminHeader, String effectiveOwner) {
+        String ownerUuid = effectiveOwner != null && !effectiveOwner.isEmpty() ? effectiveOwner : auth.ownerUuid;
         if ("/api/storage".equals(uri)) {
-            return handleStorage(params, playerUuid);
+            return handleStorage(params, ownerUuid);
         }
         if ("/api/storage/batch".equals(uri)) {
-            return handleStorageBatch(params, playerUuid);
+            return handleStorageBatch(params, ownerUuid);
         }
         if ("/api/refresh".equals(uri)) {
-            return handleRefresh(params, playerUuid);
+            return handleRefresh(params, auth, adminHeader);
         }
         if ("/api/refresh/batch".equals(uri)) {
-            return handleRefreshBatch(params, playerUuid);
+            return handleRefreshBatch(params, auth, adminHeader);
         }
         if ("/api/networks".equals(uri)) {
-            return handleNetworks(playerUuid, params);
+            return handleNetworks(ownerUuid, params, auth);
         }
         return NanoHTTPD.newFixedLengthResponse(
             NanoHTTPD.Response.Status.NOT_FOUND,
@@ -128,8 +132,9 @@ public class StorageHandler {
         return jsonResponse(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"results\":[" + join(results) + "]}");
     }
 
-    private static NanoHTTPD.Response handleRefresh(Map<String, String> params, String playerUuid) {
-        if (!WebAuthOpCheck.isOp(playerUuid)) {
+    private static NanoHTTPD.Response handleRefresh(Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Refresh is admin-only. Use /admweb refresh in-game.\"}");
@@ -140,18 +145,20 @@ public class StorageHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'network' parameter\"}");
         }
+        String ownerUuid = auth.ownerUuid;
         SnapshotCache.instance()
-            .invalidateAll(playerUuid, networkId);
-        AeSnapshotCollector.invalidateConnectors(playerUuid);
-        SnapshotScheduler.markActive(playerUuid, networkId);
-        SnapshotScheduler.forceCollectStorage(playerUuid, networkId);
+            .invalidateAll(ownerUuid, networkId);
+        AeSnapshotCollector.invalidateConnectors(ownerUuid);
+        SnapshotScheduler.markActive(ownerUuid, networkId);
+        SnapshotScheduler.forceCollectStorage(ownerUuid, networkId);
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
             "{\"success\":true,\"refreshed\":true,\"network\":" + networkId + "}");
     }
 
-    private static NanoHTTPD.Response handleRefreshBatch(Map<String, String> params, String playerUuid) {
-        if (!WebAuthOpCheck.isOp(playerUuid)) {
+    private static NanoHTTPD.Response handleRefreshBatch(Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Batch refresh is admin-only.\"}");
@@ -162,19 +169,21 @@ public class StorageHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'networks' parameter\"}");
         }
-        AeSnapshotCollector.invalidateConnectors(playerUuid);
+        String ownerUuid = auth.ownerUuid;
+        AeSnapshotCollector.invalidateConnectors(ownerUuid);
         for (int networkId : networks) {
             SnapshotCache.instance()
-                .invalidateAll(playerUuid, networkId);
-            SnapshotScheduler.markActive(playerUuid, networkId);
-            SnapshotScheduler.forceCollectStorage(playerUuid, networkId);
+                .invalidateAll(ownerUuid, networkId);
+            SnapshotScheduler.markActive(ownerUuid, networkId);
+            SnapshotScheduler.forceCollectStorage(ownerUuid, networkId);
         }
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
             "{\"success\":true,\"refreshed\":true,\"networks\":[" + joinInts(networks) + "]}");
     }
 
-    private static NanoHTTPD.Response handleNetworks(String playerUuid, Map<String, String> params) {
+    private static NanoHTTPD.Response handleNetworks(String playerUuid, Map<String, String> params,
+        WebAuthSession auth) {
         SnapshotScheduler.markActive(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID);
         boolean forceRefresh = params != null
             && ("1".equals(params.get("refresh")) || "true".equalsIgnoreCase(params.get("refresh")));
@@ -191,9 +200,10 @@ public class StorageHandler {
         long ts = SnapshotCache.instance()
             .timestampOf(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_NETWORKS);
         if (fresh != null) {
+            List<NetworkInfo> visible = WebAeNetworkAccess.filterVisible(auth, playerUuid, fresh);
             return jsonResponse(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"networks\":" + GSON.toJson(fresh)
+                "{\"success\":true,\"networks\":" + GSON.toJson(visible)
                     + ",\"cached\":true,\"timestamp\":"
                     + ts
                     + "}");
@@ -202,9 +212,10 @@ public class StorageHandler {
         List<NetworkInfo> stale = SnapshotCache.instance()
             .getStale(playerUuid, SnapshotScheduler.OWNER_SCOPE_NETWORK_ID, SnapshotScheduler.TYPE_NETWORKS);
         if (stale != null) {
+            List<NetworkInfo> visible = WebAeNetworkAccess.filterVisible(auth, playerUuid, stale);
             return jsonResponse(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"networks\":" + GSON.toJson(stale)
+                "{\"success\":true,\"networks\":" + GSON.toJson(visible)
                     + ",\"cached\":false,\"timestamp\":"
                     + ts
                     + "}");

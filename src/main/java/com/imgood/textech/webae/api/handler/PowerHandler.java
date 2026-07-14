@@ -6,7 +6,8 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.dto.PowerDto;
@@ -28,18 +29,20 @@ public class PowerHandler {
         .create();
     private static final String DATA_TYPE = "power";
 
-    public static NanoHTTPD.Response handle(String uri, Map<String, String> params, String playerUuid) {
+    public static NanoHTTPD.Response handle(String uri, Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        String ownerUuid = auth.ownerUuid;
         if ("/api/power".equals(uri)) {
-            return handlePower(params, playerUuid);
+            return handlePower(params, ownerUuid);
         }
         if ("/api/power/batch".equals(uri)) {
-            return handlePowerBatch(params, playerUuid);
+            return handlePowerBatch(params, ownerUuid);
         }
         if ("/api/power/refresh".equals(uri)) {
-            return handlePowerRefresh(params, playerUuid);
+            return handlePowerRefresh(params, auth, adminHeader);
         }
         if ("/api/power/refresh/batch".equals(uri)) {
-            return handlePowerRefreshBatch(params, playerUuid);
+            return handlePowerRefreshBatch(params, auth, adminHeader);
         }
         return NanoHTTPD.newFixedLengthResponse(
             NanoHTTPD.Response.Status.NOT_FOUND,
@@ -124,8 +127,9 @@ public class PowerHandler {
         return jsonResponse(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"results\":[" + join(results) + "]}");
     }
 
-    private static NanoHTTPD.Response handlePowerRefresh(Map<String, String> params, String playerUuid) {
-        if (!WebAuthOpCheck.isOp(playerUuid)) {
+    private static NanoHTTPD.Response handlePowerRefresh(Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Power refresh is admin-only.\"}");
@@ -136,11 +140,12 @@ public class PowerHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'network' parameter\"}");
         }
+        String ownerUuid = auth.ownerUuid;
         SnapshotCache.instance()
-            .invalidateType(playerUuid, networkId, DATA_TYPE);
-        SnapshotScheduler.markActive(playerUuid, networkId);
+            .invalidateType(ownerUuid, networkId, DATA_TYPE);
+        SnapshotScheduler.markActive(ownerUuid, networkId);
         PowerSampler.getInstance()
-            .markActive(playerUuid, networkId);
+            .markActive(ownerUuid, networkId);
         // Power sampler runs on its own 5s tick; admin refresh just clears cache
         // and lets the next sampler tick repopulate it.
         return jsonResponse(
@@ -148,8 +153,9 @@ public class PowerHandler {
             "{\"success\":true,\"refreshed\":true,\"network\":" + networkId + "}");
     }
 
-    private static NanoHTTPD.Response handlePowerRefreshBatch(Map<String, String> params, String playerUuid) {
-        if (!WebAuthOpCheck.isOp(playerUuid)) {
+    private static NanoHTTPD.Response handlePowerRefreshBatch(Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Batch power refresh is admin-only.\"}");
@@ -160,12 +166,13 @@ public class PowerHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'networks' parameter\"}");
         }
+        String ownerUuid = auth.ownerUuid;
         for (int networkId : networks) {
             SnapshotCache.instance()
-                .invalidateType(playerUuid, networkId, DATA_TYPE);
-            SnapshotScheduler.markActive(playerUuid, networkId);
+                .invalidateType(ownerUuid, networkId, DATA_TYPE);
+            SnapshotScheduler.markActive(ownerUuid, networkId);
             PowerSampler.getInstance()
-                .markActive(playerUuid, networkId);
+                .markActive(ownerUuid, networkId);
         }
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,

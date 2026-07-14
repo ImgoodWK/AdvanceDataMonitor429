@@ -285,6 +285,28 @@ public final class NetworkRegistry {
         healthCheck(ownerUuid);
     }
 
+    /**
+     * Return a snapshot of all known owner UUIDs that have registered networks.
+     */
+    public static List<String> getAllOwnerUuids() {
+        return new ArrayList<String>(playerNetworks.keySet());
+    }
+
+    /**
+     * Return the raw registered network list for one owner (may include unhealthy
+     * entries that {@link #getNetworks(String)} filters out).
+     */
+    public static List<RegisteredNetwork> getRawNetworks(String ownerUuid) {
+        if (ownerUuid == null || ownerUuid.isEmpty()) {
+            return Collections.emptyList();
+        }
+        CopyOnWriteArrayList<RegisteredNetwork> list = playerNetworks.get(ownerUuid);
+        if (list == null || list.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<RegisteredNetwork>(list);
+    }
+
     // ---- internals ----
 
     private static void healthCheck(String ownerUuid) {

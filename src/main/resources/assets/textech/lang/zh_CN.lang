@@ -981,6 +981,7 @@ adm.webconsole.refresh.started_single=已强制重采集网络 {0}。
 adm.webconsole.refresh.started_all=已强制重采集 {0} 个活跃网络。
 adm.webconsole.refresh.no_active=未发现监视器 AE 网络（主人离线或区块未加载）。
 adm.webconsole.token.no_monitor=须至少拥有 1 块高级数据监视器才能签发 Web 令牌。
+adm.webconsole.token.disabled=您的 WebAE 已被管理员禁用，请联系管理员。
 adm.webconsole.login.issued_header=您的 Web 控制台登录码（5 分钟内有效，仅可使用一次）：
 adm.webconsole.login.code=登录码：{0}
 adm.webconsole.login.usage_hint=在浏览器打开下方 URL，或在登录页输入登录码。无需 OP 签发 Token。
@@ -1282,6 +1283,33 @@ adm.command.admweb.help.11=/admweb worldmap …  —  世界地图快照  [见 /
 adm.command.admweb.help.12=/admweb server status|restart  —  HTTP 服务控制
 adm.command.admweb.help.13=reload 后 enabled/port/bindAddress 等可能仍需重启服务端。
 adm.command.admweb.help.14=/admweb defaults status|install|clear  —  WebAE 默认 UI 布局 JSON  [install/clear 需 OP]
+adm.command.admweb.help.15=/admweb admin …  —  管理员提权 Token  [详见 /admweb admin]
+adm.command.admweb.admin.title==== /admweb admin — 管理员提权 Token ===
+adm.command.admweb.admin.help.1=/admweb admin issue [备注] [--reuse]  —  生成一次性提权码  [OP 或单人作弊模式]
+adm.command.admweb.admin.help.2=/admweb admin list  —  列出所有提权授权和未使用的引导码  [OP]
+adm.command.admweb.admin.help.3=/admweb admin revoke <token|uuid|名称|all>  —  吊销指定授权  [OP]
+adm.command.admweb.admin.help.4=/admweb admin rotate  —  紧急轮换：吊销全部授权和未使用引导码  [OP]
+adm.command.admweb.admin.help.5=引导码 (wae-adm-*) 为一次性；在浏览器 设置→管理员 页面兑换为长期 Token。
+adm.command.admweb.admin.op_required=需要 OP>=2 权限或单人作弊模式。
+adm.command.admweb.admin.unknown=未知 admin 子命令。可用: issue, list, revoke, rotate
+adm.command.admweb.admin.issued_player=[WebAE] 管理员引导码: %s
+adm.command.admweb.admin.issued_one_shot=此码仅可使用一次。请在浏览器设置页兑换。
+adm.command.admweb.admin.issued_reuse=此码可多次使用（--reuse）。
+adm.command.admweb.admin.issued_console=[WebAE] 管理员引导码: %s
+adm.command.admweb.admin.list_title==== 活跃的管理员授权 ===
+adm.command.admweb.admin.list_empty=无活跃的管理员授权。
+adm.command.admweb.admin.list_entry=  Token: %s | 操作者: %s | 主人: %s | 备注: %s | 过期: %s
+adm.command.admweb.admin.list_bootstrap_title==== 未使用的引导码 ===
+adm.command.admweb.admin.list_bootstrap_entry=  码: %s | 签发者: %s | 状态: %s
+adm.command.admweb.admin.bootstrap_used=已使用
+adm.command.admweb.admin.bootstrap_unused=未使用
+adm.command.admweb.admin.bootstrap_reusable=可复用
+adm.command.admweb.admin.never=永不过期
+adm.command.admweb.admin.revoke_usage=用法: /admweb admin revoke <token|uuid|名称|all>
+adm.command.admweb.admin.revoke_all=已吊销 %d 个管理员授权。
+adm.command.admweb.admin.revoked=已吊销 %s 的管理员授权。
+adm.command.admweb.admin.revoke_notfound=未找到 %s 的管理员授权。
+adm.command.admweb.admin.rotated=已轮换: %d 个引导码 + %d 个授权被吊销。
 adm.command.admweb.defaults.usage=/admweb defaults status|install <路径>|clear
 adm.command.admweb.defaults.install_usage=/admweb defaults install <json文件路径>
 adm.command.admweb.defaults.status_none=未找到 ui-defaults.json（实例目录或模组 jar 均无有效文件）。

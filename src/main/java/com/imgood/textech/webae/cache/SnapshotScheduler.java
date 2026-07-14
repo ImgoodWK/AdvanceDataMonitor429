@@ -10,10 +10,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.textech.webae.access.WebAeNetworkKeys;
+import com.imgood.textech.webae.access.WebAeNetworkSuspendStore;
 import com.imgood.textech.webae.api.handler.PatternListHandler;
 import com.imgood.textech.webae.cells.NetworkCellSummaryCollector;
 import com.imgood.textech.webae.cells.NetworkCellSummaryDto;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.player.WebAePlayerStateStore;
 import com.imgood.textech.webae.dto.GtMachineListDto;
 import com.imgood.textech.webae.monitor.MonitorBindingCollector;
 import com.imgood.textech.webae.monitor.MonitorBindingDto;
@@ -84,8 +87,33 @@ public class SnapshotScheduler {
      * Mark a (playerUuid, networkId) pair as recently active.
      */
     public static void markActive(String playerUuid, int networkId) {
+        if (playerUuid == null || WebAePlayerStateStore.getInstance().isDisabled(playerUuid)) {
+            return;
+        }
+        if (networkId >= 0) {
+            String networkKey = WebAeNetworkKeys.fromNetworkId(playerUuid, networkId);
+            if (networkKey != null && WebAeNetworkSuspendStore.isSuspended(playerUuid, networkKey)) {
+                return;
+            }
+        }
         String key = playerUuid + ":" + networkId;
         lastActiveTime.put(key, System.currentTimeMillis());
+    }
+
+    /** Drop all activity keys for an owner (e.g. after admin disable). */
+    public static void clearActiveForOwner(String ownerUuid) {
+        if (ownerUuid == null || ownerUuid.isEmpty()) {
+            return;
+        }
+        String prefix = ownerUuid + ":";
+        Iterator<String> iter = lastActiveTime.keySet()
+            .iterator();
+        while (iter.hasNext()) {
+            String key = iter.next();
+            if (key != null && key.startsWith(prefix)) {
+                iter.remove();
+            }
+        }
     }
 
     /**
@@ -614,6 +642,25 @@ public class SnapshotScheduler {
                 lastActiveTime.remove(key);
                 continue;
             }
+            int colonIdx = key.lastIndexOf(':');
+            if (colonIdx <= 0) {
+                continue;
+            }
+            String owner = key.substring(0, colonIdx);
+            if (WebAePlayerStateStore.getInstance().isDisabled(owner)) {
+                lastActiveTime.remove(key);
+                continue;
+            }
+            try {
+                int networkId = Integer.parseInt(key.substring(colonIdx + 1));
+                if (networkId >= 0) {
+                    String networkKey = WebAeNetworkKeys.fromNetworkId(owner, networkId);
+                    if (networkKey != null && WebAeNetworkSuspendStore.isSuspended(owner, networkKey)) {
+                        lastActiveTime.remove(key);
+                        continue;
+                    }
+                }
+            } catch (NumberFormatException ignored) {}
             active.add(key);
         }
         return active;

@@ -38,6 +38,9 @@ import {
   CopyOutlined,
   UserAddOutlined,
   DatabaseOutlined,
+  SafetyCertificateOutlined,
+  CrownOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -96,6 +99,7 @@ export function SettingsPage() {
     setToken,
     authSessionLabel,
     tokenType,
+    networks,
     logout,
     presets,
     savePreset,
@@ -116,11 +120,19 @@ export function SettingsPage() {
     refreshIntervalMs,
     pauseRefreshWhenHidden,
     setPauseRefreshWhenHidden,
+    adminToken,
+    isAdmin,
+    isOnlineOp,
+    adminCapabilities,
+    elevateAdmin,
+    revokeAdmin,
+    checkAdminStatus,
   } = useAppContext();
   const { t } = useI18n();
   const [newToken, setNewToken] = useState('');
   const [guestInviteUrl, setGuestInviteUrl] = useState('');
   const [guestInviteLoading, setGuestInviteLoading] = useState(false);
+  const [guestInviteNetworkKeys, setGuestInviteNetworkKeys] = useState<string[]>([]);
   const [renameTarget, setRenameTarget] = useState<AppPreset | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [savePresetOpen, setSavePresetOpen] = useState(false);
@@ -131,6 +143,11 @@ export function SettingsPage() {
   const debugFeatures: DebugFeature[] = ['icons', 'chat', 'dashboard', 'synthesis', 'patterns'];
   const [debugTick, setDebugTick] = useState(0);
   const serverDebugFlags = serverConfig?.debugFlags ?? getServerDebugFlags();
+
+  // Admin elevate form state
+  const [elevateCode, setElevateCode] = useState('');
+  const [elevateLabel, setElevateLabel] = useState('');
+  const [elevateLoading, setElevateLoading] = useState(false);
 
   // Live "now" tick so the data-freshness indicator updates every second even
   // when auto-refresh is off. Re-render only; no network activity.
@@ -745,6 +762,27 @@ export function SettingsPage() {
                       <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginBottom: 8 }}>
                         {t('inviteGuestHint')}
                       </Text>
+                      <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginBottom: 4 }}>
+                        {t('inviteGuestSelectNetworks')}
+                      </Text>
+                      <Select
+                        mode="multiple"
+                        allowClear
+                        style={{ width: '100%', marginBottom: 8 }}
+                        placeholder={t('inviteGuestSelectNetworks')}
+                        value={guestInviteNetworkKeys}
+                        onChange={(v) => setGuestInviteNetworkKeys(v as string[])}
+                        options={(networks || []).map((n) => {
+                          const key = n.networkKey
+                            || (n.monitorDim != null
+                              ? `${n.monitorDim}:${n.monitorX}:${n.monitorY}:${n.monitorZ}`
+                              : String(n.networkId));
+                          return {
+                            value: key,
+                            label: `#${n.networkId} ${key}${n.healthy === false ? ' (!)' : ''}`,
+                          };
+                        })}
+                      />
                       <Space wrap>
                         <Button
                           type="default"
@@ -753,9 +791,12 @@ export function SettingsPage() {
                           onClick={async () => {
                             setGuestInviteLoading(true);
                             try {
+                              const body = guestInviteNetworkKeys.length > 0
+                                ? { networkKeys: guestInviteNetworkKeys }
+                                : {};
                               const data = await getApiClient().post<{ success: boolean; url?: string; message?: string }>(
                                 '/api/auth/guest-invite',
-                                {}
+                                body
                               );
                               if (data.success && data.url) {
                                 setGuestInviteUrl(data.url);
@@ -804,6 +845,101 @@ export function SettingsPage() {
                   <Switch checked={autoLogin} onChange={setAutoLogin} />
                   <Text>{t('autoLogin')}</Text>
                 </Space>
+                <Divider />
+                {/* Admin elevation section */}
+                <div>
+                  <Space align="center" style={{ marginBottom: 12 }}>
+                    <SafetyCertificateOutlined style={{ fontSize: 18, color: 'var(--accent)' }} />
+                    <Text strong>{t('adminSectionTitle')}</Text>
+                    {isAdmin && <Tag color="gold">{t('adminActive')}</Tag>}
+                    {isOnlineOp && !isAdmin && (
+                      <Tag color="blue">{t('adminOnlineOp')}</Tag>
+                    )}
+                  </Space>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginBottom: 16 }}>
+                    {t('adminSectionHint')}
+                  </Text>
+
+                  {!isAdmin ? (
+                    <Space direction="vertical" style={{ width: '100%' }} size="small">
+                      {tokenType === 'guest' ? (
+                        <Alert
+                          type="warning"
+                          message={t('adminGuestDenied')}
+                          showIcon
+                        />
+                      ) : (
+                        <>
+                          <Input.Password
+                            placeholder={t('adminElevateCodePlaceholder')}
+                            value={elevateCode}
+                            onChange={(e) => setElevateCode(e.target.value)}
+                            disabled={elevateLoading}
+                          />
+                          <Input
+                            placeholder={t('adminElevateLabelPlaceholder')}
+                            value={elevateLabel}
+                            onChange={(e) => setElevateLabel(e.target.value)}
+                            disabled={elevateLoading}
+                            maxLength={64}
+                          />
+                          <Button
+                            type="primary"
+                            icon={<CrownOutlined />}
+                            loading={elevateLoading}
+                            disabled={!elevateCode.trim()}
+                            onClick={async () => {
+                              setElevateLoading(true);
+                              try {
+                                await elevateAdmin(elevateCode.trim(), elevateLabel.trim() || undefined);
+                                setElevateCode('');
+                                setElevateLabel('');
+                              } finally {
+                                setElevateLoading(false);
+                              }
+                            }}
+                          >
+                            {t('adminElevateButton')}
+                          </Button>
+                        </>
+                      )}
+                    </Space>
+                  ) : (
+                    <Space direction="vertical" style={{ width: '100%' }} size="small">
+                      <Alert
+                        type="success"
+                        message={t('adminStatusActive')}
+                        description={
+                          adminCapabilities
+                            ? `${t('adminCanForceSnapshot')}: ${adminCapabilities.canForceSnapshot ? '✓' : '✗'} · ${t('adminCanEditRules')}: ${adminCapabilities.canEditRules ? '✓' : '✗'} · ${t('adminCanUploadPacks')}: ${adminCapabilities.canUploadPacks ? '✓' : '✗'}`
+                            : undefined
+                        }
+                        showIcon
+                      />
+                      <Space>
+                        <Button
+                          icon={<ReloadOutlined />}
+                          size="small"
+                          onClick={() => { void checkAdminStatus(); }}
+                        >
+                          {t('adminRefreshStatus')}
+                        </Button>
+                        <Popconfirm
+                          title={t('adminRevokeConfirm')}
+                          onConfirm={() => { void revokeAdmin(); }}
+                        >
+                          <Button
+                            danger
+                            size="small"
+                            icon={<CloseCircleOutlined />}
+                          >
+                            {t('adminRevokeButton')}
+                          </Button>
+                        </Popconfirm>
+                      </Space>
+                    </Space>
+                  )}
+                </div>
                 <Divider />
                 <Button danger onClick={logout}>
                   {t('logout')}

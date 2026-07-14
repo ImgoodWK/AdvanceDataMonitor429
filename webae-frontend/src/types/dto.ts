@@ -2,7 +2,13 @@
 
 export interface NetworkInfo {
   networkId: number;
-  name: string;
+  name?: string;
+  /** Stable key dim:x:y:z for ACL / guest invite. */
+  networkKey?: string;
+  monitorDim?: number;
+  monitorX?: number;
+  monitorY?: number;
+  monitorZ?: number;
   /** false when the network is unreachable (chunk unloaded, AE disconnected, etc.). */
   healthy?: boolean;
 }
@@ -1659,6 +1665,66 @@ export interface P2pMapResponse {
   message?: string;
 }
 
+/** Admin capabilities returned by GET /api/auth/admin/me. */
+export interface AdminCapabilities {
+  admin: boolean;
+  canForceSnapshot: boolean;
+  canEditRules: boolean;
+  canManageTokens: boolean;
+  canUploadPacks: boolean;
+  canViewPocketOverview: boolean;
+  canInvalidateWorldMap: boolean;
+  isGuest: boolean;
+}
+
+/** GET /api/auth/admin/me response. */
+export interface AdminMeResponse {
+  status: string;
+  ownerUuid: string;
+  actorUuid: string;
+  actorName: string;
+  tokenType: string;
+  isAdmin: boolean;
+  isOnlineOp: boolean;
+  capabilities: AdminCapabilities;
+}
+
+/** POST /api/auth/admin/elevate response. */
+export interface AdminElevateResponse {
+  status: string;
+  adminToken: string;
+  expiresAt: number;
+  issuedAt: number;
+  boundActorUuid: string;
+  code?: string;
+  message?: string;
+}
+
+/** POST /api/auth/admin/revoke-self response. */
+export interface AdminRevokeResponse {
+  status: string;
+  revoked?: boolean;
+  code?: string;
+  message?: string;
+}
+
+/** GET /api/auth/admin/grants response entry. */
+export interface AdminGrantEntry {
+  adminToken: string;
+  boundOwnerUuid: string;
+  boundActorUuid: string;
+  boundActorName: string;
+  issuedAt: number;
+  expiresAt: number;
+  label: string;
+}
+
+/** GET /api/auth/admin/grants response. */
+export interface AdminGrantsResponse {
+  status: string;
+  grants: AdminGrantEntry[];
+}
+
 /** GET /api/monitor/preview (Phase 11). */
 export interface MonitorPreviewDto {
   monitorDim: number;
@@ -1679,5 +1745,72 @@ export interface MonitorPreviewDto {
 export interface MonitorPreviewResponse {
   success: boolean;
   preview?: MonitorPreviewDto;
+  message?: string;
+}
+
+/** Admin player summary returned by GET /api/admin/players. */
+export interface AdminPlayerSummary {
+  uuid: string;
+  name: string;
+  online: boolean;
+  lastActiveAt: number;
+  networkCount: number;
+  disabled: boolean;
+  disabledReason?: string;
+  requestCount: number;
+  avgResponseMs: number;
+  totalItems: number;
+  totalFluids: number;
+}
+
+/** GET /api/admin/players response. */
+export interface AdminPlayersResponse {
+  success: boolean;
+  players: AdminPlayerSummary[];
+}
+
+/** Owned network row in GET /api/admin/players/:uuid/access. */
+export interface AdminOwnedNetwork {
+  networkId: number;
+  networkKey: string;
+  monitorDim: number;
+  monitorX: number;
+  monitorY: number;
+  monitorZ: number;
+  healthy: boolean;
+  suspended: boolean;
+  suspendReason?: string;
+  suspendedAt?: number;
+}
+
+export interface AdminGuestNetworkRow {
+  networkKey: string;
+  networkId: number;
+  inAllowlist: boolean;
+  deniedByAcl: boolean;
+  suspended: boolean;
+}
+
+export interface AdminGuestAccessEntry {
+  ownerUuid: string;
+  ownerName: string;
+  token: string;
+  tokenPrefix: string;
+  allowedNetworkKeys: string[] | null;
+  networks: AdminGuestNetworkRow[];
+}
+
+/** GET /api/admin/players/:uuid/access */
+export interface AdminPlayerAccessResponse {
+  success: boolean;
+  uuid: string;
+  ownedNetworks: AdminOwnedNetwork[];
+  guestAccess: AdminGuestAccessEntry[];
+}
+
+/** Generic admin action result. */
+export interface AdminActionResponse {
+  success: boolean;
+  code?: string;
   message?: string;
 }

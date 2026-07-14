@@ -157,6 +157,7 @@ public final class WebAeOwnerContext {
             info.monitorX = group.monitorX;
             info.monitorY = group.monitorY;
             info.monitorZ = group.monitorZ;
+            info.networkKey = group.monitorDim + ":" + group.monitorX + ":" + group.monitorY + ":" + group.monitorZ;
             info.hasStorage = group.storageLink != null;
             info.hasCrafting = group.craftingLink != null;
             info.hasNetworkLink = group.networkLink != null;

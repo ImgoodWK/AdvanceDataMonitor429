@@ -6,9 +6,14 @@ import { NAV_PAGES } from './navConfig';
 const { Text } = Typography;
 
 export function Sidebar({ mode }: { mode: SidebarMode }) {
-  const { activePage, setActivePage } = useAppContext();
+  const { activePage, setActivePage, isAdmin, isOnlineOp } = useAppContext();
   const { t } = useI18n();
   const collapsed = mode === 'collapsed';
+
+  const visiblePages = NAV_PAGES.filter((item) => {
+    if (item.id === 'admin') return isAdmin || isOnlineOp;
+    return true;
+  });
 
   return (
     <div
@@ -32,7 +37,7 @@ export function Sidebar({ mode }: { mode: SidebarMode }) {
       </div>
 
       <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }} aria-label="Main navigation">
-        {NAV_PAGES.map((item) => {
+        {visiblePages.map((item) => {
           const IconComp = item.Icon;
           const isActive = activePage === item.id;
           const navClass =

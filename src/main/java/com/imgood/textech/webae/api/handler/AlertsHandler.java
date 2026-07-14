@@ -13,7 +13,8 @@ import com.imgood.textech.webae.alerts.WebAlertStore;
 import com.imgood.textech.webae.alerts.WebAlertsConfig;
 import com.imgood.textech.webae.alerts.WebAlertsConfigValidator;
 import com.imgood.textech.webae.alerts.WebhookDispatcher;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -49,11 +50,12 @@ public final class AlertsHandler {
                 + "}");
     }
 
-    public static NanoHTTPD.Response handle(Map<String, String> params, String ownerUuid, String actorUuid) {
+    public static NanoHTTPD.Response handle(Map<String, String> params, WebAuthSession auth, String adminHeader) {
+        String ownerUuid = auth.ownerUuid;
         List<WebAlertDto> alerts = WebAlertStore.instance()
             .getAlerts(ownerUuid);
         WebAlertsConfig rules = ConfigWebAlertsLoader.get();
-        boolean canEdit = WebAuthOpCheck.isOp(actorUuid);
+        boolean canEdit = WebAuthAdminCheck.isAdmin(auth, adminHeader);
         WebAlertsConfig clientRules = WebhookDispatcher.sanitizeForClient(rules);
         return json(
             NanoHTTPD.Response.Status.OK,
@@ -67,20 +69,20 @@ public final class AlertsHandler {
                 + "}");
     }
 
-    public static NanoHTTPD.Response handleGetRules(String actorUuid) {
+    public static NanoHTTPD.Response handleGetRules(WebAuthSession auth, String adminHeader) {
         WebAlertsConfig rules = ConfigWebAlertsLoader.get();
-        boolean canEdit = WebAuthOpCheck.isOp(actorUuid);
+        boolean canEdit = WebAuthAdminCheck.isAdmin(auth, adminHeader);
         WebAlertsConfig clientRules = WebhookDispatcher.sanitizeForClient(rules);
         return json(
             NanoHTTPD.Response.Status.OK,
             "{\"success\":true,\"canEditRules\":" + canEdit + ",\"rules\":" + GSON.toJson(clientRules) + "}");
     }
 
-    public static NanoHTTPD.Response handlePutRules(String body, String actorUuid) {
-        if (!WebAuthOpCheck.isOp(actorUuid)) {
+    public static NanoHTTPD.Response handlePutRules(String body, WebAuthSession auth, String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,
-                "{\"success\":false,\"message\":\"OP permission required to edit alert rules\",\"code\":\"op_required\"}");
+                "{\"success\":false,\"message\":\"Admin permission required to edit alert rules\",\"code\":\"admin_required\"}");
         }
         if (body == null || body.trim()
             .isEmpty()) {

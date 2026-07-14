@@ -3,6 +3,7 @@ package com.imgood.textech.webae.auth;
 import java.util.Map;
 
 import com.imgood.textech.Config;
+import com.imgood.textech.webae.player.WebAePlayerStateStore;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -36,6 +37,17 @@ public class WebAuthMiddleware {
             return AuthResult.failure(
                 "{\"status\":\"error\",\"code\":\"missing_token\",\"message\":\"Missing Authorization header. Use: Authorization: Bearer <token> or ?token=<token>\"}");
         }
+        WebAuthToken matched = WebAuthToken.findMatchingToken(token);
+        if (matched == null) {
+            String code = isTokenLifetimeEnabled() ? "token_expired" : "invalid_token";
+            return AuthResult
+                .failure("{\"status\":\"error\",\"code\":\"" + code + "\",\"message\":\"Invalid or expired token.\"}");
+        }
+        if (isDisabled(matched.ownerUuid) || isDisabled(matched.actorUuid)) {
+            return AuthResult.failure(
+                "{\"status\":\"error\",\"code\":\"webae_disabled\",\"error\":\"webae_disabled\","
+                    + "\"message\":\"WebAE has been disabled for this player. Contact an administrator.\"}");
+        }
         WebAuthSession sessionInfo = WebAuthToken.validateToken(token);
         if (sessionInfo == null) {
             String code = isTokenLifetimeEnabled() ? "token_expired" : "invalid_token";
@@ -43,6 +55,11 @@ public class WebAuthMiddleware {
                 .failure("{\"status\":\"error\",\"code\":\"" + code + "\",\"message\":\"Invalid or expired token.\"}");
         }
         return AuthResult.success(sessionInfo);
+    }
+
+    private static boolean isDisabled(String uuid) {
+        return uuid != null && !uuid.isEmpty() && WebAePlayerStateStore.getInstance()
+            .isDisabled(uuid);
     }
 
     private static boolean isTokenLifetimeEnabled() {

@@ -3,8 +3,10 @@ package com.imgood.textech.webae.api;
 import java.io.DataInputStream;
 import java.util.Map;
 
+import com.imgood.textech.webae.api.handler.AdminPlayerHandler;
 import com.imgood.textech.webae.api.handler.AlertsHandler;
 import com.imgood.textech.webae.api.handler.AssistantHandler;
+import com.imgood.textech.webae.api.handler.AuthAdminElevateHandler;
 import com.imgood.textech.webae.api.handler.AuthGuestInviteHandler;
 import com.imgood.textech.webae.api.handler.CellSummaryHandler;
 import com.imgood.textech.webae.api.handler.ChatHandler;
@@ -43,9 +45,11 @@ import com.imgood.textech.webae.api.handler.StoragePagedHandler;
 import com.imgood.textech.webae.api.handler.TopologyHandler;
 import com.imgood.textech.webae.api.handler.WebConfigHandler;
 import com.imgood.textech.webae.worldmap.WorldMapHandler;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.perf.WebAePerfProfiler;
+import com.imgood.textech.webae.player.WebAePlayerStateStore;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -68,6 +72,10 @@ public class WebApiRouter {
             long ms = (System.nanoTime() - start) / 1_000_000L;
             WebAePerfProfiler.instance()
                 .recordHttp(normalizeRoute(uri), ms);
+            // Record per-player request stats
+            if (auth != null && auth.ownerUuid != null) {
+                WebAePlayerStateStore.getInstance().touchRequest(auth.ownerUuid, ms);
+            }
         }
         return response;
     }
@@ -85,53 +93,92 @@ public class WebApiRouter {
 
     private NanoHTTPD.Response routeInner(NanoHTTPD.IHTTPSession session, WebAuthSession auth) {
 
-        String ownerUuid = auth.ownerUuid;
-
         String uri = session.getUri();
 
         Map<String, String> params = session.getParms();
 
+        Map<String, String> headers = session.getHeaders();
+
+        String adminHeader = headers.get("x-webae-admin");
+        if (adminHeader == null || adminHeader.isEmpty()) {
+            adminHeader = headers.get("X-WebAE-Admin");
+        }
+
+        String ownerUuid = auth.ownerUuid;
+
         NanoHTTPD.Method method = session.getMethod();
 
+        // ---- Cross-player query: admin can override owner via ?owner= param (GET only) ----
+        String effectiveOwner = ownerUuid;
+        if (adminHeader != null && !adminHeader.isEmpty()
+            && WebAuthAdminCheck.isAdmin(auth, adminHeader)
+            && method == NanoHTTPD.Method.GET) {
+            String overrideOwner = params.get("owner");
+            if (overrideOwner != null && !overrideOwner.isEmpty()) {
+                effectiveOwner = overrideOwner;
+            }
+        }
+
+        // ---- Disable interception: reject disabled owner/actor (401 so SPA returns to login) ----
+        if (!uri.startsWith("/api/auth/admin/") && !uri.startsWith("/api/admin/")) {
+            if (WebAePlayerStateStore.getInstance().isDisabled(ownerUuid)
+                || WebAePlayerStateStore.getInstance().isDisabled(auth.actorUuid)) {
+                return disabledResponse();
+            }
+        }
+
         if ("/api/auth/login".equals(uri)) {
-
             return handleLogin(auth);
+        }
 
+        // ---- Network ACL / suspend gate for ?network= ----
+        if (!uri.startsWith("/api/admin/")) {
+            String networkParam = params.get("network");
+            if (networkParam != null && !networkParam.isEmpty()) {
+                try {
+                    int nid = Integer.parseInt(networkParam.trim());
+                    NanoHTTPD.Response denied = com.imgood.textech.webae.access.WebAeNetworkAccess
+                        .assertCanAccess(auth, effectiveOwner, nid);
+                    if (denied != null) {
+                        return denied;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
         }
 
         if ("/api/config".equals(uri)) {
 
-            return WebConfigHandler.handle(uri, params, ownerUuid);
+            return WebConfigHandler.handle(uri, params, effectiveOwner);
 
         }
 
         if (isStoragePagedUri(uri)) {
 
-            return StoragePagedHandler.handle(uri, params, ownerUuid);
+            return StoragePagedHandler.handle(uri, params, effectiveOwner);
 
         }
 
         if (isStorageUri(uri)) {
 
-            return StorageHandler.handle(uri, params, ownerUuid);
+            return StorageHandler.handle(uri, params, auth, adminHeader, effectiveOwner);
 
         }
 
         if (uri.startsWith("/api/recipes")) {
 
-            return RecipeHandler.handle(uri, params, ownerUuid);
+            return RecipeHandler.handle(uri, params, effectiveOwner);
 
         }
 
         if (isPowerUri(uri)) {
 
-            return PowerHandler.handle(uri, params, ownerUuid);
+            return PowerHandler.handle(uri, params, auth, adminHeader);
 
         }
 
         if (isGtUri(uri)) {
 
-            return GtMachineHandler.handle(uri, params, ownerUuid);
+            return GtMachineHandler.handle(uri, params, auth, adminHeader);
 
         }
 
@@ -141,7 +188,7 @@ public class WebApiRouter {
 
             if (method == NanoHTTPD.Method.GET) {
 
-                return OrderTemplatesHandler.handleGet(ownerUuid);
+                return OrderTemplatesHandler.handleGet(effectiveOwner);
 
             }
 
@@ -165,13 +212,13 @@ public class WebApiRouter {
 
             String body = readBody(session);
 
-            return OrderHandler.handle(uri, params, body, ownerUuid);
+            return OrderHandler.handle(uri, params, body, effectiveOwner);
 
         }
 
         if ("/api/interfaces".equals(uri) || uri.startsWith("/api/pattern/")) {
 
-            return PatternHandler.handle(uri, session, ownerUuid);
+            return PatternHandler.handle(uri, session, effectiveOwner);
 
         }
 
@@ -189,7 +236,7 @@ public class WebApiRouter {
 
             }
 
-            return PatternBrowseHandler.handleRefresh(params, ownerUuid);
+            return PatternBrowseHandler.handleRefresh(params, auth, adminHeader);
 
         }
 
@@ -207,7 +254,7 @@ public class WebApiRouter {
 
             }
 
-            return PatternBrowseHandler.handle(params, ownerUuid);
+            return PatternBrowseHandler.handle(params, auth, adminHeader);
 
         }
 
@@ -239,7 +286,7 @@ public class WebApiRouter {
 
             }
 
-            return PatternGridDetailHandler.handle(gridKeyPart, params, ownerUuid);
+            return PatternGridDetailHandler.handle(gridKeyPart, params, effectiveOwner);
 
         }
 
@@ -247,13 +294,13 @@ public class WebApiRouter {
 
             String body = readBody(session);
 
-            return PatternListHandler.handle(uri, method, params, body, ownerUuid);
+            return PatternListHandler.handle(uri, method, params, body, auth, adminHeader);
 
         }
 
         if ("/api/icon".equals(uri) || uri.startsWith("/api/icon/")) {
 
-            return IconHandler.handle(uri, session, ownerUuid);
+            return IconHandler.handle(uri, session, auth, adminHeader);
 
         }
 
@@ -270,13 +317,87 @@ public class WebApiRouter {
             || "/api/players/online/history".equals(uri)
             || "/api/players/locations".equals(uri)) {
 
-            return PlayerHandler.handle(uri, method, params, ownerUuid);
+            return PlayerHandler.handle(uri, method, params, effectiveOwner);
 
         }
 
         if ("/api/auth/guest-invite".equals(uri)) {
 
             return AuthGuestInviteHandler.handle(session, auth);
+
+        }
+
+        // ---- Admin elevation APIs ----
+
+        if ("/api/auth/admin/elevate".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/auth/admin/elevate\"}");
+
+            }
+
+            return AuthAdminElevateHandler.handle(session, auth);
+
+        }
+
+        if ("/api/auth/admin/me".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/auth/admin/me\"}");
+
+            }
+
+            return AuthAdminElevateHandler.handleMe(session, auth);
+
+        }
+
+        if ("/api/auth/admin/grants".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/auth/admin/grants\"}");
+
+            }
+
+            return AuthAdminElevateHandler.handleListGrants(session, auth);
+
+        }
+
+        if ("/api/auth/admin/revoke-self".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/auth/admin/revoke-self\"}");
+
+            }
+
+            return AuthAdminElevateHandler.handleRevokeSelf(session, auth);
 
         }
 
@@ -316,6 +437,14 @@ public class WebApiRouter {
 
         }
 
+        // ---- Admin player management ----
+
+        if (uri.startsWith("/api/admin/players")) {
+            String adminBody = (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT)
+                ? readBody(session) : null;
+            return AdminPlayerHandler.handle(uri, params, method, auth, adminHeader, adminBody);
+        }
+
         if ("/api/oc/summary".equals(uri)) {
 
             if (method != NanoHTTPD.Method.GET) {
@@ -330,31 +459,31 @@ public class WebApiRouter {
 
             }
 
-            return OcSummaryHandler.handle(ownerUuid);
+            return OcSummaryHandler.handle(effectiveOwner);
 
         }
 
         if ("/api/network/metrics".equals(uri)) {
 
-            return NetworkMetricHandler.handle(uri, params, ownerUuid);
+            return NetworkMetricHandler.handle(uri, params, effectiveOwner);
 
         }
 
         if ("/api/network/metrics/fluids".equals(uri)) {
 
-            return NetworkMetricFluidHandler.handle(params, ownerUuid);
+            return NetworkMetricFluidHandler.handle(params, effectiveOwner);
 
         }
 
         if ("/api/network/metrics/items".equals(uri)) {
 
-            return NetworkMetricItemHandler.handle(params, ownerUuid);
+            return NetworkMetricItemHandler.handle(params, effectiveOwner);
 
         }
 
         if ("/api/network/metrics/entities".equals(uri)) {
 
-            return NetworkMetricEntityHandler.handle(params, ownerUuid);
+            return NetworkMetricEntityHandler.handle(params, effectiveOwner);
 
         }
 
@@ -372,7 +501,7 @@ public class WebApiRouter {
 
             }
 
-            return TopologyHandler.handleSnapshot(params, ownerUuid, auth.actorUuid);
+            return TopologyHandler.handleSnapshot(params, auth, adminHeader);
 
         }
 
@@ -390,7 +519,7 @@ public class WebApiRouter {
 
             }
 
-            return TopologyHandler.handle(params, ownerUuid, auth.actorUuid);
+            return TopologyHandler.handle(params, auth, adminHeader);
 
         }
 
@@ -408,7 +537,7 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleMeta(params, ownerUuid, auth.actorUuid);
+            return WorldMapHandler.handleMeta(params, effectiveOwner, auth.actorUuid);
 
         }
 
@@ -426,7 +555,7 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleMarkers(params, ownerUuid);
+            return WorldMapHandler.handleMarkers(params, effectiveOwner);
 
         }
 
@@ -444,7 +573,7 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleInvalidate(params, ownerUuid);
+            return WorldMapHandler.handleInvalidate(params, auth, adminHeader);
 
         }
 
@@ -480,7 +609,7 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleSnapshotManifest(params, ownerUuid);
+            return WorldMapHandler.handleSnapshotManifest(params, effectiveOwner);
 
         }
 
@@ -498,7 +627,7 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleSnapshotStatus(params, ownerUuid);
+            return WorldMapHandler.handleSnapshotStatus(params, effectiveOwner);
 
         }
 
@@ -516,7 +645,7 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleSnapshotRequest(params, ownerUuid, auth.actorUuid, auth.actorName);
+            return WorldMapHandler.handleSnapshotRequest(params, effectiveOwner, auth.actorUuid, auth.actorName);
 
         }
 
@@ -534,7 +663,7 @@ public class WebApiRouter {
 
             }
 
-            return WorldMapHandler.handleTile(uri, params, ownerUuid, auth.actorUuid);
+            return WorldMapHandler.handleTile(uri, params, effectiveOwner, auth.actorUuid);
 
         }
 
@@ -570,7 +699,7 @@ public class WebApiRouter {
 
             }
 
-            return CellSummaryHandler.handle(params, ownerUuid);
+            return CellSummaryHandler.handle(params, effectiveOwner);
 
         }
 
@@ -588,7 +717,7 @@ public class WebApiRouter {
 
             }
 
-            return NetworkBalanceHandler.handle(params, ownerUuid);
+            return NetworkBalanceHandler.handle(params, effectiveOwner);
 
         }
 
@@ -606,7 +735,7 @@ public class WebApiRouter {
 
             }
 
-            return ScannerHandler.handle(params, ownerUuid);
+            return ScannerHandler.handle(params, effectiveOwner);
 
         }
 
@@ -624,7 +753,7 @@ public class WebApiRouter {
 
             }
 
-            return MonitorHandler.handle(params, ownerUuid);
+            return MonitorHandler.handle(params, effectiveOwner);
 
         }
 
@@ -642,7 +771,7 @@ public class WebApiRouter {
 
             }
 
-            return MonitorPreviewHandler.handle(params, ownerUuid);
+            return MonitorPreviewHandler.handle(params, effectiveOwner);
 
         }
 
@@ -653,7 +782,7 @@ public class WebApiRouter {
                 }
             }
             if (method == NanoHTTPD.Method.GET) {
-                return FavoritesHandler.handleGet(ownerUuid);
+                return FavoritesHandler.handleGet(effectiveOwner);
             }
             if (method == NanoHTTPD.Method.PUT) {
                 return FavoritesHandler.handlePut(readBody(session), ownerUuid);
@@ -674,7 +803,7 @@ public class WebApiRouter {
         if (uri.startsWith("/api/planner/plans")) {
             if ("/api/planner/plans".equals(uri)) {
                 if (method == NanoHTTPD.Method.GET) {
-                    return PlannerHandler.handleList(ownerUuid);
+                    return PlannerHandler.handleList(effectiveOwner);
                 }
                 if (method == NanoHTTPD.Method.POST) {
                     if (auth.isGuest()) {
@@ -718,7 +847,7 @@ public class WebApiRouter {
 
             String body = readBody(session);
 
-            return AssistantHandler.handle(body, ownerUuid);
+            return AssistantHandler.handle(body, effectiveOwner);
 
         }
 
@@ -736,7 +865,7 @@ public class WebApiRouter {
 
             }
 
-            return PocketHandler.handle(auth);
+            return PocketHandler.handle(auth, adminHeader);
 
         }
 
@@ -744,7 +873,7 @@ public class WebApiRouter {
 
             if (method == NanoHTTPD.Method.GET) {
 
-                return AlertsHandler.handleGetRules(auth.actorUuid);
+                return AlertsHandler.handleGetRules(auth, adminHeader);
 
             }
 
@@ -752,7 +881,7 @@ public class WebApiRouter {
 
                 String body = readBody(session);
 
-                return AlertsHandler.handlePutRules(body, auth.actorUuid);
+                return AlertsHandler.handlePutRules(body, auth, adminHeader);
 
             }
 
@@ -780,7 +909,7 @@ public class WebApiRouter {
 
             }
 
-            return AlertsHandler.handleHistory(params, ownerUuid);
+            return AlertsHandler.handleHistory(params, effectiveOwner);
 
         }
 
@@ -798,7 +927,7 @@ public class WebApiRouter {
 
             }
 
-            return AlertsHandler.handle(params, ownerUuid, auth.actorUuid);
+            return AlertsHandler.handle(params, auth, adminHeader);
 
         }
 
@@ -816,7 +945,7 @@ public class WebApiRouter {
 
             }
 
-            return CraftTreeHandler.handle(params, ownerUuid);
+            return CraftTreeHandler.handle(params, effectiveOwner);
 
         }
 
@@ -834,7 +963,7 @@ public class WebApiRouter {
 
             }
 
-            return EventStreamHandler.handle(ownerUuid);
+            return EventStreamHandler.handle(effectiveOwner);
 
         }
 
@@ -852,7 +981,7 @@ public class WebApiRouter {
 
             }
 
-            return P2pHandler.handle(params, ownerUuid);
+            return P2pHandler.handle(params, effectiveOwner);
 
         }
 
@@ -860,7 +989,7 @@ public class WebApiRouter {
 
             String body = method == NanoHTTPD.Method.POST ? readBody(session) : null;
 
-            return QuestHandler.handle(uri, method, params, body, ownerUuid, auth.isGuest());
+            return QuestHandler.handle(uri, method, params, body, effectiveOwner, auth.isGuest());
 
         }
 
@@ -878,7 +1007,7 @@ public class WebApiRouter {
 
             }
 
-            return SearchHandler.handle(params, ownerUuid);
+            return SearchHandler.handle(params, effectiveOwner);
 
         }
 
@@ -933,55 +1062,45 @@ public class WebApiRouter {
     }
 
     private NanoHTTPD.Response handleLogin(WebAuthSession auth) {
+        if (WebAePlayerStateStore.getInstance().isDisabled(auth.ownerUuid)
+            || WebAePlayerStateStore.getInstance().isDisabled(auth.actorUuid)) {
+            return disabledResponse();
+        }
 
         String ownerName = WebAeOwnerContext.resolveOwnerName(auth.ownerUuid);
 
         String response = "{"
-
             + "\"status\":\"ok\","
-
             + "\"message\":\"Authenticated successfully.\","
-
             + "\"playerUuid\":\""
-
             + escapeJson(auth.ownerUuid)
-
             + "\","
-
             + "\"ownerUuid\":\""
-
             + escapeJson(auth.ownerUuid)
-
             + "\","
-
             + "\"ownerName\":\""
-
             + escapeJson(ownerName)
-
             + "\","
-
             + "\"actorUuid\":\""
-
             + escapeJson(auth.actorUuid)
-
             + "\","
-
             + "\"actorName\":\""
-
             + escapeJson(auth.actorName)
-
             + "\","
-
             + "\"tokenType\":\""
-
             + escapeJson(auth.type)
-
             + "\""
-
             + "}";
 
         return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", response);
+    }
 
+    private static NanoHTTPD.Response disabledResponse() {
+        return NanoHTTPD.newFixedLengthResponse(
+            NanoHTTPD.Response.Status.UNAUTHORIZED,
+            "application/json",
+            "{\"success\":false,\"status\":\"error\",\"code\":\"webae_disabled\",\"error\":\"webae_disabled\","
+                + "\"message\":\"WebAE has been disabled for this player. Contact an administrator.\"}");
     }
 
     private static String escapeJson(String value) {

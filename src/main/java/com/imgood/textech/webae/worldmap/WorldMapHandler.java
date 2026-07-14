@@ -10,6 +10,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.topology.TopologySnapshot;
 import com.imgood.textech.webae.topology.TopologySnapshotStore;
 import com.imgood.textech.webae.worldmap.dynmap.WorldMapDynmapCoordMapper;
@@ -279,7 +281,13 @@ public final class WorldMapHandler {
         return json(NanoHTTPD.Response.Status.OK, body);
     }
 
-    public static NanoHTTPD.Response handleInvalidate(Map<String, String> params, String ownerUuid) {
+    public static NanoHTTPD.Response handleInvalidate(Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
+            return json(
+                NanoHTTPD.Response.Status.FORBIDDEN,
+                "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Admin permission required to invalidate worldmap tiles\"}");
+        }
         NanoHTTPD.Response disabled = checkEnabled();
         if (disabled != null) {
             return disabled;
@@ -289,6 +297,7 @@ public final class WorldMapHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Use POST /api/worldmap/snapshot/request for manual snapshot updates\"}");
         }
+        String ownerUuid = auth.ownerUuid;
         int networkId = parseNetworkId(params);
         if (networkId < 0) {
             return parseNetworkError(networkId);

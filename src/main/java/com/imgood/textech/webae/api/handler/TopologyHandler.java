@@ -9,7 +9,8 @@ import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.handler.HandlerTick;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.topology.TopologyCache;
 import com.imgood.textech.webae.topology.TopologyCache.CachedResult;
 import com.imgood.textech.webae.topology.TopologyCache.CaptureResult;
@@ -29,7 +30,8 @@ public final class TopologyHandler {
 
     private TopologyHandler() {}
 
-    public static NanoHTTPD.Response handle(Map<String, String> params, String ownerUuid, String actorUuid) {
+    public static NanoHTTPD.Response handle(Map<String, String> params, WebAuthSession auth, String adminHeader) {
+        String ownerUuid = auth.ownerUuid;
         if (!Config.webTopologyEnabled) {
             return json(
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
@@ -46,7 +48,7 @@ public final class TopologyHandler {
             .getCached(ownerUuid, networkId, mode);
         long cooldownRemainingMs = TopologyCache.instance()
             .remainingCooldownMs(ownerUuid, networkId);
-        boolean canForceSnapshot = WebAuthOpCheck.isOp(actorUuid);
+        boolean canForceSnapshot = WebAuthAdminCheck.isAdmin(auth, adminHeader);
         if (warm != null) {
             return buildSuccess(
                 warm.snapshot,
@@ -66,7 +68,9 @@ public final class TopologyHandler {
                 + ",\"message\":\"No topology snapshot yet. Capture one manually.\"}");
     }
 
-    public static NanoHTTPD.Response handleSnapshot(Map<String, String> params, String ownerUuid, String actorUuid) {
+    public static NanoHTTPD.Response handleSnapshot(Map<String, String> params, WebAuthSession auth,
+        String adminHeader) {
+        String ownerUuid = auth.ownerUuid;
         if (!Config.webTopologyEnabled) {
             return json(
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
@@ -80,10 +84,10 @@ public final class TopologyHandler {
         final String mode = params.get("mode") != null ? params.get("mode") : "logical";
         final boolean force = "1".equals(params.get("force")) || "true".equalsIgnoreCase(params.get("force"));
 
-        if (force && !WebAuthOpCheck.isOp(actorUuid)) {
+        if (force && !WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,
-                "{\"success\":false,\"code\":\"forbidden\",\"message\":\"Operator permission required for force refresh\"}");
+                "{\"success\":false,\"code\":\"forbidden\",\"message\":\"Admin permission required for force refresh\"}");
         }
 
         final CaptureResult[] holder = new CaptureResult[1];
@@ -129,7 +133,7 @@ public final class TopologyHandler {
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
                 "{\"success\":false,\"message\":\"Network topology API is disabled\",\"code\":\"topology_disabled\"}");
         }
-        boolean canForceSnapshot = WebAuthOpCheck.isOp(actorUuid);
+        boolean canForceSnapshot = WebAuthAdminCheck.isAdmin(auth, adminHeader);
         if (result.cooldown) {
             long remaining = TopologyCache.instance()
                 .remainingCooldownMs(ownerUuid, networkId);

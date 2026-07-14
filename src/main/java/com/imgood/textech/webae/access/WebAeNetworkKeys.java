@@ -1,0 +1,102 @@
+package com.imgood.textech.webae.access;
+
+import java.util.List;
+
+import com.imgood.textech.webae.context.NetworkRegistry;
+import com.imgood.textech.webae.context.NetworkRegistry.RegisteredNetwork;
+import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.context.WebAeOwnerContext.NetworkGroup;
+import com.imgood.textech.webae.snapshot.AeSnapshotCollector.NetworkInfo;
+
+/**
+ * Stable WebAE network identity: {@code "{dim}:{x}:{y}:{z}"} from the data monitor.
+ * Runtime {@code networkId} is a sorted index and must not be persisted in ACL.
+ */
+public final class WebAeNetworkKeys {
+
+    private WebAeNetworkKeys() {}
+
+    public static String toKey(int dim, int x, int y, int z) {
+        return dim + ":" + x + ":" + y + ":" + z;
+    }
+
+    public static String fromGroup(NetworkGroup group) {
+        if (group == null) {
+            return null;
+        }
+        return toKey(group.monitorDim, group.monitorX, group.monitorY, group.monitorZ);
+    }
+
+    public static String fromRegistered(RegisteredNetwork entry) {
+        if (entry == null) {
+            return null;
+        }
+        return toKey(entry.monitorDim, entry.monitorX, entry.monitorY, entry.monitorZ);
+    }
+
+    public static String fromNetworkInfo(NetworkInfo info) {
+        if (info == null) {
+            return null;
+        }
+        if (info.networkKey != null && !info.networkKey.isEmpty()) {
+            return info.networkKey;
+        }
+        return toKey(info.monitorDim, info.monitorX, info.monitorY, info.monitorZ);
+    }
+
+    /** Resolve stable key for a runtime networkId (same index as API {@code ?network=}). */
+    public static String fromNetworkId(String ownerUuid, int networkId) {
+        if (ownerUuid == null || ownerUuid.isEmpty() || networkId < 0) {
+            return null;
+        }
+        List<NetworkGroup> groups = WebAeOwnerContext.findNetworkGroups(ownerUuid);
+        if (groups == null || networkId >= groups.size()) {
+            return null;
+        }
+        return fromGroup(groups.get(networkId));
+    }
+
+    /** Map a stable key back to the current runtime networkId, or null if not registered. */
+    public static Integer toNetworkId(String ownerUuid, String networkKey) {
+        if (ownerUuid == null || networkKey == null || networkKey.isEmpty()) {
+            return null;
+        }
+        List<NetworkGroup> groups = WebAeOwnerContext.findNetworkGroups(ownerUuid);
+        if (groups == null) {
+            return null;
+        }
+        for (int i = 0; i < groups.size(); i++) {
+            if (networkKey.equals(fromGroup(groups.get(i)))) {
+                return Integer.valueOf(i);
+            }
+        }
+        return null;
+    }
+
+    public static boolean isValidKeyFormat(String networkKey) {
+        if (networkKey == null || networkKey.isEmpty()) {
+            return false;
+        }
+        String[] parts = networkKey.split(":");
+        if (parts.length != 4) {
+            return false;
+        }
+        for (int i = 0; i < 4; i++) {
+            try {
+                Integer.parseInt(parts[i]);
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Best-effort key from raw registry when groups are empty (admin metadata). */
+    public static String fromRawIndex(String ownerUuid, int rawIndex) {
+        List<RegisteredNetwork> raw = NetworkRegistry.getRawNetworks(ownerUuid);
+        if (raw == null || rawIndex < 0 || rawIndex >= raw.size()) {
+            return null;
+        }
+        return fromRegistered(raw.get(rawIndex));
+    }
+}

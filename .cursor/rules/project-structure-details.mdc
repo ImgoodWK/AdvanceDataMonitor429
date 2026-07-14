@@ -301,12 +301,19 @@ alwaysApply: false
 ### manual/ — （已迁入 gui/manual/）
 - 页面渲染见 `renders/ManualPageRenderer.java`；GUI 入口 `gui/guiscreen/GuiManual.java`
 
-### webae/ — WebAE 嵌入式 HTTP 控制台 (231 文件)
+### webae/ — WebAE 嵌入式 HTTP 控制台 (285+ 文件，含 access/ ACL)
 - `webae/WebConsoleServer.java` — NanoHTTPD 服务生命周期 + 静态资源托管（classpath `assets/textech/webae/` + 阶段 3.1 扩展托管外部 `TeXTech/WebAE/icons/` 经 `/icons/<pack>/<itemId>.png`，含路径穿越防护）
-- `webae/auth/WebAuthSession.java` — 认证会话 DTO（`ownerUuid` 网络归属 + `actorUuid`/`actorName` 聊天身份 + `type` owner/guest）
-- `webae/auth/WebAuthToken.java` — Token 生成/校验/持久化（主人 Token 每 owner 一条；访客 Token 按 owner+guest；旧 JSON 自动迁移；含可选 TTL：`webTokenLifetimeHours`）
-- `webae/auth/WebAuthMiddleware.java` — HTTP 请求认证中间件（返回 `WebAuthSession`；401 响应带 `code` 字段区分过期/无效）
+- `webae/auth/WebAuthSession.java` — 认证会话 DTO（`ownerUuid` 网络归属 + `actorUuid`/`actorName` 聊天身份 + `type` owner/guest + 可选 `allowedNetworkKeys`）
+- `webae/auth/WebAuthToken.java` — Token 生成/校验/持久化（主人 Token 每 owner 一条；访客 Token 按 owner+guest；可选 `allowedNetworkKeys`；禁用玩家校验；`revokeAllForPlayer`；含可选 TTL：`webTokenLifetimeHours`）
+- `webae/auth/WebAuthMiddleware.java` — HTTP 请求认证中间件（返回 `WebAuthSession`；401 响应带 `code`：过期/无效/`webae_disabled`）
+- `webae/access/WebAeNetworkKeys.java` — 稳定网络键 `{dim}:{x}:{y}:{z}` ↔ runtime `networkId` 映射
+- `webae/access/WebAeNetworkSuspendStore.java` — 网络级 WebAE 停用（`web-network-suspends.json`，含网主）
+- `webae/access/WebAeNetworkAclStore.java` — actor 级 deny 覆盖（`web-network-acl.json`）
+- `webae/access/WebAeNetworkAccess.java` — 统一可见网/访问校验（suspend → guest allowlist → ACL deny）
 - `webae/auth/WebAuthOpCheck.java` — OP 等级校验工具（管理员刷新端点用，按 playerUuid 查在线玩家并校验 OP>=2）
+- `webae/auth/WebAuthAdminCheck.java` — 统一管理员校验：grant 有效且 actorUuid 匹配 或 在线 OP≥2
+- `webae/auth/WebAdminBootstrapStore.java` — 一次性 bootstrap 码存储（`wae-adm-` 前缀，支持 --reuse）
+- `webae/auth/WebAdminGrantStore.java` — 设备 adminToken 长期授权存储（绑定 ownerUuid/actorUuid）
 - `webae/auth/WebLoginCodeStore.java` — 6 位登录码生成/兑换（5 分钟 TTL、单次使用；`/admweb login` + `POST /api/auth/exchange`）
 - `webae/oc/OcSummaryRateLimiter.java` — OC summary API 每 owner 1 req/s 限流
 - `webae/craft/WebAeCraftService.java` — 按 ownerUuid+networkId 从 `NetworkGroup.craftingLink` 查候选/下单（`submitCraftTracked` 支持 jobId + `CraftSubmitHooks` 绑定 `ICraftingLink`）
@@ -316,6 +323,7 @@ alwaysApply: false
 - `webae/order/WebOrderTemplate.java` / `WebOrderTemplateItem.java` / `WebOrderTemplatesStore.java` / `WebOrderTemplatesValidator.java` — 批量下单模板
 - `webae/api/WebApiRouter.java` — REST 路由（认证/OC/存储/电力/配方/样板/GT/下单/配置/图标/聊天/玩家/集成/搜索/材料树/SSE/P2P/拓扑/世界地图 meta·markers·progress·tiles·invalidate）
 - `webae/api/handler/AuthExchangeHandler.java` — `POST /api/auth/exchange` 登录码 → owner Token
+- `webae/api/handler/AuthAdminElevateHandler.java` — `POST /api/auth/admin/elevate` 一次性码兑换长期 adminToken；`GET /me` 当前管理状态与能力位；`GET /grants` 列出本 owner 授权设备；`POST /revoke-self` 撤销本设备提权
 - `webae/api/handler/OcSummaryHandler.java` — `GET /api/oc/summary` OC Internet Card 只读轮询（1 req/s）
 - `webae/api/handler/StorageHandler.java` — AE 存储快照 REST handler（只读缓存 + 管理员刷新 + 批量）
 - `webae/api/handler/StoragePagedHandler.java` — 存储 cursor 分页（`GET /api/storage/items|fluids|essentia`；内存切片 + snapshotVersion cursor）
@@ -340,7 +348,8 @@ alwaysApply: false
 - `webae/api/handler/IconHandler.java` — 图标 REST handler（`GET /api/icon` 返回 PNG+ETag+Cache-Control、404 直渲桥接、`GET /api/icon/packs` 含 `defaultPack`、`GET /api/icon/sync/manifest` + `GET /api/icon/sync/bulk` 浏览器 bulk 同步、`POST /api/icon/pack` zip 上传含 Zip Slip 防护）
 - `webae/api/handler/ChatHandler.java` — 聊天 REST handler（`GET /api/chat/history?limit=&since=`、`POST /api/chat/send` body `{content}` 存入 ChatMessageStore 并广播 `[Web] <name>: <content>` 到游戏内、`GET /api/chat/since=<ts>` 增量）
 - `webae/api/handler/PlayerHandler.java` — 玩家 REST handler（`GET /api/players` 返回 `{online:[...],offline:[...]}` 每项含 uuid/name/online/onlineMs/lastLogin/lastLogout/skinUrl、`GET /api/players/since=<ts>` 增量、`GET /api/players/online/history` 在线人数趋势 `[{"ts":,"count":}]`、**Phase6** `GET /api/players/locations` 在线玩家坐标）
-- `webae/api/handler/AuthGuestInviteHandler.java` — **Phase6** `POST /api/auth/guest-invite` 主人生成可分享访客 Token 链接
+- `webae/api/handler/AuthGuestInviteHandler.java` — `POST /api/auth/guest-invite` 主人生成可分享访客 Token（可选 body `networkKeys` 限定网络；owner 禁用拒绝签发）
+- `webae/api/handler/AdminPlayerHandler.java` — 管理端玩家：列表/禁用启用/清缓存；`GET .../access`；网络 suspend/resume；guest ACL deny/allow；撤销 guest token
 - `webae/api/handler/SearchHandler.java` — 聚合搜索 REST handler（`GET /api/search?q=&limit=&offset=&types=storage,recipe,gt,pattern&network=`；500ms 限流；pattern 类型读 browse 缓存，HTTP 线程无阻塞；Phase 4a）
 - `webae/api/handler/QuestHandler.java` — BetterQuesting 任务书 REST（meta/lines/progress/search/detail/analysis/detect/submit/submit-craft/chain-plan/submit-chain/chain-jobs）
 - `webae/quest/QuestDataCollector.java` — 任务只读采集门面
@@ -448,6 +457,8 @@ alwaysApply: false
 - `webae/player/PlayerInfoStore.java` — 服务端玩家信息存储单例（内存 Map<UUID,PlayerInfo>，touchLogin/touchLogout/reconcileOnline/getOnlinePlayers/getAllPlayers/effectiveOnlineMs，防抖保存到 `TeXTech/WebAE/web-players.json`）
 - `webae/player/PlayerOnlineSampler.java` — 在线人数历史采样单例（每 30s 采样一次 `MinecraftServer.getConfigurationManager().playerEntityList.size()`，维护最近 120 个采样点的滑动窗口，供 `GET /api/players/online/history` 趋势组件使用；由 `HandlerWebPlayerTracker.onServerTick` 触发）
 - `webae/player/SkinUrlResolver.java` — 从 GameProfile textures property 取 base64 解码 JSON 取 `textures.SKIN.url`，离线玩家返回 null
+- `webae/player/WebAePlayerState.java` — 每玩家 WebAE 管理状态 DTO（disabled / lastActive / request 计数）
+- `webae/player/WebAePlayerStateStore.java` — `web-player-states.json`；`isDisabled` / setDisabled / setEnabled / touchRequest
 - `webae/chat/ChatMessage.java` — 聊天消息 DTO（id/senderUuid/senderName/content/timestamp/source=web|game|system）
 - `webae/chat/ChatMessageStore.java` — 服务端聊天消息环形缓冲单例（Deque<ChatMessage> 默认 200 条，append/getSince/getRecent/latestTimestamp，可选持久化 `TeXTech/WebAE/web-chat.json`，防抖保存）
 - `webae/pattern/CraftingGridPatternQuery.java` — ICraftingGrid 全量样板枚举（不按产物去重；`getByIndex` 供 grid 详情 API；供 browse API 与助手共用逻辑）

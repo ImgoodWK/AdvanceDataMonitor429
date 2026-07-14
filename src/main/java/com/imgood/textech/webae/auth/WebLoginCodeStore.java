@@ -58,7 +58,11 @@ public final class WebLoginCodeStore {
         return ExchangeResult.success(entry.ownerUuid, entry.ownerName);
     }
 
-    private static void invalidateCodesForOwner(String ownerUuid) {
+    /** Invalidate all pending login codes for an owner (e.g. admin disable). */
+    public static void invalidateCodesForOwner(String ownerUuid) {
+        if (ownerUuid == null || ownerUuid.isEmpty()) {
+            return;
+        }
         Iterator<Map.Entry<String, LoginCodeEntry>> iter = CODES.entrySet()
             .iterator();
         while (iter.hasNext()) {

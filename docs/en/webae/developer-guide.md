@@ -258,7 +258,16 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/players/since=<ts>` | Yes | No | Incremental fetch of player online-state changes |
 | GET | `/api/players/online/history` | Yes | No | Online player count trend `[{"ts":,"count":}]` (~60 min, 30s samples, for dashboard widgets) |
 | GET | `/api/players/locations` | Yes | No | **Phase6** Online player coordinates `{locations:[{uuid,name,x,y,z,dim,online}]}` |
-| POST | `/api/auth/guest-invite` | Yes | No (owner) | **Phase6** Generate shareable guest token link `{token,url}` |
+| POST | `/api/auth/guest-invite` | Yes | No (owner) | Shareable guest token `{token,url}`; optional body `networkKeys:string[]` (omit = all nets); disabled owner → `401 webae_disabled` |
+| GET | `/api/admin/players` | Yes | **Yes (admin grant/OP)** | Player summaries (disabled, networkCount, cache stats) |
+| GET | `/api/admin/players/:uuid/access` | Yes | **Yes** | Owned nets (`networkKey`/suspended) + guest-token ACL detail |
+| POST | `/api/admin/players/:uuid/disable` | Yes | **Yes** | Account ban: revoke all tokens/login codes, clear cache, stop scheduling; client gets `401 webae_disabled` |
+| POST | `/api/admin/players/:uuid/enable` | Yes | **Yes** | Re-enable account |
+| POST | `/api/admin/players/:uuid/clear-cache` | Yes | **Yes** | Clear snapshot/topology/map caches for player |
+| POST | `/api/admin/players/:ownerUuid/networks/:networkKey/suspend` | Yes | **Yes** | Suspend one net for everyone incl. owner (stable key `dim:x:y:z`); APIs return `403 network_suspended` |
+| POST | `/api/admin/players/:ownerUuid/networks/:networkKey/resume` | Yes | **Yes** | Resume network |
+| POST | `/api/admin/players/:actorUuid/acl` | Yes | **Yes** | body `{ownerUuid,networkKey,effect:deny\|allow}` actor-level deny overlay |
+| POST | `/api/admin/players/:actorUuid/guest-tokens/revoke` | Yes | **Yes** | body `{token}` revoke guest token |
 | GET | `/api/network/metrics?network=<id>` | Yes | No | AE network metric history (item/fluid/essentia/bytes/CPU busy ratio/GT active count rolling window, `NetworkMetricSampler`) |
 | GET | `/api/network/metrics/fluids?network=<id>&fluids=water,lava` | Yes | No | Pinned fluid amount trends (limits via `dashboardMaxFluidTracks` / per-request `dashboardMaxTracksPerWidget`) |
 | GET | `/api/network/metrics/items?network=<id>&items=mod:item,...` | Yes | No | Pinned item amount trends (missing in AE → 0; limits via cfg) |
@@ -315,7 +324,9 @@ Local WebAE QA: the first BetterQuesting tab from dev fixtures is **WebAE Test L
 
 Authentication: `Authorization: Bearer <token>` header. All `/api/` endpoints require it; admin-only endpoints additionally check the player's OP level (>= 2) via `WebAuthOpCheck`.
 
-401 responses include a `code` field: `missing_token`, `invalid_format`, `empty_token`, `token_expired` (only when `tokenLifetimeHours > 0`), or `invalid_token`.
+401 responses include a `code` field: `missing_token`, `invalid_format`, `empty_token`, `token_expired` (only when `tokenLifetimeHours > 0`), `invalid_token`, or `webae_disabled` on account ban (also mirrors `error`; SPA clears token and returns to login).
+
+Network denials: `403` + `code:network_suspended` (includes owner) or `network_access_denied` (guest allowlist/ACL). Stable network key is monitor coords `dim:x:y:z` (not runtime `networkId`). Stores: `web-network-suspends.json`, `web-network-acl.json`; checks in `webae/access/WebAeNetworkAccess`.
 
 ## 6. Frontend Architecture
 

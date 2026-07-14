@@ -276,7 +276,8 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 
 - **Localhost only by default**: `bindAddress=127.0.0.1` restricts access to the local machine
 - **LAN access risk**: `0.0.0.0` exposes the console to the LAN — use a firewall or SSH tunnel
-- **Mandatory auth**: all `/api/` endpoints require a token; admin force-refresh requires OP
+- **Mandatory auth**: all `/api/` endpoints require a token; force-refresh needs OP/admin grant
+- **Layered access**: admins can ban a player account (kick to login), suspend one AE network for everyone including the owner (in-game AE unaffected), or limit guest tokens to selected networks
 - **Token security**: tokens grant storage view and crafting submit — store securely
 - **Recipe upload required**: OP runs `/admweb recipes upload` before recipe search works
 - **Icon upload**: OP runs `/admweb icons upload [packName]`; frontend auto-selects the server's most recent pack on first load

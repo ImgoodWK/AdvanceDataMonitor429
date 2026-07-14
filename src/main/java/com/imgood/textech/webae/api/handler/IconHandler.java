@@ -15,7 +15,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.events.EventStreamHub;
 import com.imgood.textech.webae.icon.IconDirectCaptureBridge;
 import com.imgood.textech.webae.icon.IconMissingQueue;
@@ -45,7 +46,8 @@ public class IconHandler {
     private static final Gson GSON = new GsonBuilder().serializeNulls()
         .create();
 
-    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.IHTTPSession session, String playerUuid) {
+    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.IHTTPSession session, WebAuthSession auth,
+        String adminHeader) {
         Map<String, String> params = session.getParms();
         NanoHTTPD.Method method = session.getMethod();
 
@@ -74,7 +76,7 @@ public class IconHandler {
                     NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
                     "{\"success\":false,\"message\":\"Use POST to upload a pack zip\"}");
             }
-            return handleUploadPack(session, params, playerUuid);
+            return handleUploadPack(session, params, auth, adminHeader);
         }
         if ("/api/icon".equals(uri)) {
             if (method != NanoHTTPD.Method.GET) {
@@ -274,16 +276,16 @@ public class IconHandler {
     }
 
     private static NanoHTTPD.Response handleUploadPack(NanoHTTPD.IHTTPSession session, Map<String, String> params,
-        String playerUuid) {
+        WebAuthSession auth, String adminHeader) {
         if (!Config.webIconPackEnabled) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"message\":\"Icon pack upload/switch is disabled\"}");
         }
-        if (!WebAuthOpCheck.isOp(playerUuid)) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.FORBIDDEN,
-                "{\"success\":false,\"message\":\"Admin (OP>=2) required to upload icon packs\"}");
+                "{\"success\":false,\"message\":\"Admin permission required to upload icon packs\"}");
         }
         String packName = params.get("pack");
         if (!IconStore.isValidPackName(packName)) {
@@ -359,7 +361,7 @@ public class IconHandler {
         IconStore.instance()
             .recordDefaultPack(packName);
         AdvanceDataMonitor.LOG
-            .info("[WebAE] Icon pack '{}' uploaded by {}: {} icons extracted", packName, playerUuid, extracted);
+            .info("[WebAE] Icon pack '{}' uploaded by {}: {} icons extracted", packName, auth.actorUuid, extracted);
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
             "{\"success\":true,\"pack\":\"" + packName + "\",\"extracted\":" + extracted + "}");

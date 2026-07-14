@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import com.imgood.textech.webae.auth.WebAuthToken;
 import com.imgood.textech.webae.auth.WebLoginCodeStore;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.player.WebAePlayerStateStore;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -38,6 +39,11 @@ public final class AuthExchangeHandler {
                 || "invalid_code".equals(result.errorCode) ? NanoHTTPD.Response.Status.UNAUTHORIZED
                     : NanoHTTPD.Response.Status.BAD_REQUEST;
             return json(status, error(result.errorCode, describeError(result.errorCode)));
+        }
+        if (WebAePlayerStateStore.getInstance().isDisabled(result.ownerUuid)) {
+            return json(
+                NanoHTTPD.Response.Status.UNAUTHORIZED,
+                error("webae_disabled", "WebAE has been disabled for this player. Contact an administrator."));
         }
         if (WebAeOwnerContext.countMonitors(result.ownerUuid) <= 0) {
             return json(
@@ -113,6 +119,7 @@ public final class AuthExchangeHandler {
 
     private static String error(String code, String message) {
         return "{\"status\":\"error\",\"code\":\"" + escapeJson(code)
+            + "\",\"error\":\"" + escapeJson(code)
             + "\",\"message\":\""
             + escapeJson(message)
             + "\"}";

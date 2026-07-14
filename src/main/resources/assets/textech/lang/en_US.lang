@@ -1004,6 +1004,7 @@ adm.webconsole.refresh.started_single=Force refresh enqueued for network {0}.
 adm.webconsole.refresh.started_all=Force refresh enqueued for {0} active network(s).
 adm.webconsole.refresh.no_active=No monitor AE networks found (owner offline or chunks unloaded).
 adm.webconsole.token.no_monitor=You must own at least one Advance Data Monitor to issue a Web token.
+adm.webconsole.token.disabled=WebAE has been disabled for your account. Contact an administrator.
 adm.webconsole.login.issued_header=Your Web Console login code (valid 5 minutes, single use):
 adm.webconsole.login.code=Login code: {0}
 adm.webconsole.login.usage_hint=Open the URL in your browser or enter the code on the login page. No OP token required.
@@ -1281,6 +1282,33 @@ adm.command.admweb.help.11=/admweb worldmap …  —  world map snapshot  [see /
 adm.command.admweb.help.12=/admweb server status|restart  —  HTTP server control
 adm.command.admweb.help.13=Port restart note: enabled/port/bindAddress may need server restart after reload.
 adm.command.admweb.help.14=/admweb defaults status|install|clear  —  WebAE UI default layout JSON  [OP for install/clear]
+adm.command.admweb.help.15=/admweb admin …  —  admin elevation tokens  [see /admweb admin]
+adm.command.admweb.admin.title==== /admweb admin — Admin Elevation Tokens ===
+adm.command.admweb.admin.help.1=/admweb admin issue [label] [--reuse]  —  generate bootstrap code  [OP or SP cheat]
+adm.command.admweb.admin.help.2=/admweb admin list  —  list grants & unused bootstraps  [OP]
+adm.command.admweb.admin.help.3=/admweb admin revoke <token|uuid|name|all>  —  revoke grant or bootstraps  [OP]
+adm.command.admweb.admin.help.4=/admweb admin rotate  —  revoke all grants + unused bootstraps (emergency)  [OP]
+adm.command.admweb.admin.help.5=Bootstrap codes (wae-adm-*) are one-time; exchange them in browser Settings → Admin tab.
+adm.command.admweb.admin.op_required=Operator (OP>=2) or single-player with cheats required.
+adm.command.admweb.admin.unknown=Unknown admin subcommand. Use: issue, list, revoke, rotate
+adm.command.admweb.admin.issued_player=[WebAE] Admin bootstrap code: %s
+adm.command.admweb.admin.issued_one_shot=This code is one-time only. Exchange it in the browser Settings page.
+adm.command.admweb.admin.issued_reuse=This code can be used multiple times (--reuse).
+adm.command.admweb.admin.issued_console=[WebAE] Admin bootstrap code: %s
+adm.command.admweb.admin.list_title==== Active Admin Grants ===
+adm.command.admweb.admin.list_empty=No active admin grants.
+adm.command.admweb.admin.list_entry=  Token: %s | Actor: %s | Owner: %s | Label: %s | Expires: %s
+adm.command.admweb.admin.list_bootstrap_title==== Unused Bootstrap Codes ===
+adm.command.admweb.admin.list_bootstrap_entry=  Code: %s | Issued by: %s | Status: %s
+adm.command.admweb.admin.bootstrap_used=used
+adm.command.admweb.admin.bootstrap_unused=unused
+adm.command.admweb.admin.bootstrap_reusable=reusable
+adm.command.admweb.admin.never=never
+adm.command.admweb.admin.revoke_usage=Usage: /admweb admin revoke <token|uuid|name|all>
+adm.command.admweb.admin.revoke_all=Revoked %d admin grants.
+adm.command.admweb.admin.revoked=Revoked admin grant for %s.
+adm.command.admweb.admin.revoke_notfound=No admin grant found for %s.
+adm.command.admweb.admin.rotated=Rotated: %d bootstrap codes + %d grants revoked.
 adm.command.admweb.defaults.usage=/admweb defaults status|install <path>|clear
 adm.command.admweb.defaults.install_usage=/admweb defaults install <path-to-json>
 adm.command.admweb.defaults.status_none=No ui-defaults.json found (instance or mod jar).
