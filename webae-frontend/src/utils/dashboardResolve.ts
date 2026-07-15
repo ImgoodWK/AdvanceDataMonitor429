@@ -11,6 +11,13 @@ import type {
   DashboardWidgetColorOverrides,
   DashboardWidgetConfig,
 } from '@/utils/presets';
+import type { ChartStyle, ChartStyleRecipe, PageStyle } from '@/theme/pageStyles';
+import {
+  chartStyleFromPageStyle,
+  getChartStyleRecipe,
+  isChartStyle,
+  resolvePageStyle,
+} from '@/theme/pageStyles';
 
 type BaseColorKey = 'titleColor' | 'chartColor' | 'iconColor' | 'backgroundColor' | 'borderColor';
 
@@ -265,6 +272,32 @@ export function resolveChartStretchMode(
   return 'fit';
 }
 
+/**
+ * Resolve concrete chart drawing recipe.
+ * Order: widget.chartStyle → settings.defaultChartStyle → pageStyle default → classic.
+ */
+export function resolveChartStyleId(
+  widget: DashboardWidgetConfig | null | undefined,
+  settings: DashboardSettings | null | undefined,
+  pageStyle: PageStyle | string = 'classic'
+): Exclude<ChartStyle, 'inherit'> {
+  const page = resolvePageStyle(pageStyle);
+  const candidates = [widget?.chartStyle, settings?.defaultChartStyle];
+  for (const c of candidates) {
+    if (!c || c === 'inherit' || !isChartStyle(c)) continue;
+    return c;
+  }
+  return chartStyleFromPageStyle(page);
+}
+
+export function resolveChartStyleRecipe(
+  widget: DashboardWidgetConfig | null | undefined,
+  settings: DashboardSettings | null | undefined,
+  pageStyle: PageStyle | string = 'classic'
+): ChartStyleRecipe {
+  return getChartStyleRecipe(resolveChartStyleId(widget, settings, pageStyle));
+}
+
 /** Inline style + CSS variables for `.grid-stack-item-content` shell. */
 export function applyWidgetShellStyle(
   widget: DashboardWidgetConfig,
@@ -292,6 +325,6 @@ export function applyWidgetShellStyle(
   } else {
     style.border = 'none';
   }
-  style.borderRadius = '8px';
+  style.borderRadius = 'var(--style-radius, 8px)';
   return style;
 }

@@ -1,9 +1,11 @@
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { buildIconUrl } from '@/utils/icon';
 
 interface SimTextureImageProps {
-  iconId: string;
+  iconId?: string;
+  /** When set, used instead of icon-pack `/api/icon` (e.g. AE2 cable classpath textures). */
+  href?: string | null;
   x: number;
   y: number;
   size: number;
@@ -12,9 +14,10 @@ interface SimTextureImageProps {
   renderMode?: string;
 }
 
-/** SVG <image> tile using AE icon cache textures. */
+/** SVG <image> tile using AE icon cache textures or an explicit URL. */
 export const SimTextureImage = memo(function SimTextureImage({
   iconId,
+  href: hrefOverride,
   x,
   y,
   size,
@@ -23,9 +26,18 @@ export const SimTextureImage = memo(function SimTextureImage({
 }: SimTextureImageProps) {
   const { token, iconPack, iconCacheEnabled, iconRenderMode } = useAppContext();
   const mode = renderMode ?? iconRenderMode;
-  const href = buildIconUrl(iconId, iconPack, token, iconCacheEnabled, mode);
+  const fromIcon =
+    hrefOverride == null || hrefOverride === ''
+      ? buildIconUrl(iconId, iconPack, token, iconCacheEnabled, mode)
+      : '';
+  const href = hrefOverride || fromIcon;
+  const [failed, setFailed] = useState(false);
 
-  if (!href) {
+  useEffect(() => {
+    setFailed(false);
+  }, [href]);
+
+  if (!href || failed) {
     return <rect x={x} y={y} width={size} height={size} fill={fallbackColor} rx={1} />;
   }
 
@@ -38,6 +50,7 @@ export const SimTextureImage = memo(function SimTextureImage({
       height={size}
       preserveAspectRatio="xMidYMid meet"
       className="topology-sim-texture"
+      onError={() => setFailed(true)}
     />
   );
 });

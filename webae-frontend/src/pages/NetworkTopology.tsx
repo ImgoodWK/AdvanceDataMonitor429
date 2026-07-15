@@ -192,6 +192,8 @@ export function NetworkTopologyPage() {
 
   const topologyEnabled = serverConfig?.topologyEnabled !== false;
 
+  const topologySimulatedEnabled = serverConfig?.topologySimulatedEnabled === true;
+
   const worldMapEnabled = serverConfig?.worldMapEnabled !== false && topologyEnabled;
 
   const dynmapBaseUrl = (serverConfig?.dynmapBaseUrl ?? '').trim();
@@ -258,9 +260,13 @@ export function NetworkTopologyPage() {
 
   const showSimulated =
 
-    viewMode === 'logical' && displaySettings.renderMode === 'simulated';
+    topologySimulatedEnabled && viewMode === 'logical' && displaySettings.renderMode === 'simulated';
 
-
+  useEffect(() => {
+    if (!topologySimulatedEnabled && displaySettings.renderMode === 'simulated') {
+      setDisplaySettings({ renderMode: 'abstract' });
+    }
+  }, [topologySimulatedEnabled, displaySettings.renderMode, setDisplaySettings]);
 
   const applyResponse = useCallback((data: TopologyResponse, fromCache: boolean) => {
 
@@ -882,7 +888,7 @@ export function NetworkTopologyPage() {
 
           <Space wrap>
 
-            {viewMode === 'logical' && (
+            {viewMode === 'logical' && topologySimulatedEnabled && (
 
               <Segmented
 
@@ -1476,6 +1482,8 @@ export function NetworkTopologyPage() {
         onReset={resetDisplaySettings}
 
         showRenderMode={viewMode === 'logical'}
+
+        topologySimulatedEnabled={topologySimulatedEnabled}
 
         showWorldMapSettings={viewMode === 'worldMap'}
 

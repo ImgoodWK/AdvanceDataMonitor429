@@ -7,7 +7,8 @@ import com.imgood.textech.webae.health.ServerHealthSampler;
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * GET /api/server/health — read-only TPS / MSPT / uptime snapshot.
+ * GET /api/server/health — read-only TPS / MSPT / uptime snapshot
+ * (Forge Overall / {@code tickTimeArray} mean via {@link ServerHealthSampler}).
  */
 public final class ServerHealthHandler {
 

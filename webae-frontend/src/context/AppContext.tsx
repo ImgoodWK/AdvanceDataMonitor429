@@ -27,6 +27,7 @@ import { en as enDict } from '@/i18n/en';
 import { applyCssVars } from '@/theme/antdTheme';
 import { COLOR_SCHEMES, type ThemeColor, type EffectsLevel } from '@/theme/colors';
 import { LAYOUT_PRESETS, type ThemeLayout } from '@/theme/layouts';
+import { resolvePageStyle, type PageStyle } from '@/theme/pageStyles';
 import { formatNumber, type NumberFormat } from '@/utils/format';
 import { bumpIconVersion, iconLookupIds } from '@/utils/icon';
 import {
@@ -174,6 +175,9 @@ interface AppContextValue {
   setThemeColor: (c: ThemeColor) => void;
   themeLayout: ThemeLayout;
   setThemeLayout: (l: ThemeLayout) => void;
+  /** Orthogonal page chrome/material style (classic | linear | …). */
+  pageStyle: PageStyle;
+  setPageStyle: (s: PageStyle) => void;
   // Effects intensity (gates glassmorphism/animation via data-effects-level)
   effectsLevel: EffectsLevel;
   setEffectsLevel: (e: EffectsLevel) => void;
@@ -355,6 +359,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     'webae_effects_level',
     ''
   ) as [EffectsLevel, (e: EffectsLevel) => void];
+  const [pageStyle, setPageStyleState] = useLocalStorageString(
+    'webae_page_style',
+    'classic'
+  ) as [PageStyle, (s: PageStyle) => void];
+  const resolvedPageStyle = resolvePageStyle(pageStyle);
   // Resolve the effective effects level: explicit user choice, else the
   // current theme's default (so switching themes without a saved preference
   // picks a sensible intensity).
@@ -365,23 +374,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (c: ThemeColor) => {
       setThemeColorState(c);
       const level = effectsLevel || COLOR_SCHEMES[c].effectsLevel;
-      applyCssVars(c, themeLayout, level);
+      applyCssVars(c, themeLayout, level, resolvedPageStyle);
     },
-    [setThemeColorState, themeLayout, effectsLevel]
+    [setThemeColorState, themeLayout, effectsLevel, resolvedPageStyle]
   );
   const setThemeLayout = useCallback(
     (l: ThemeLayout) => {
       setThemeLayoutState(l);
-      applyCssVars(themeColor, l, resolvedEffectsLevel);
+      applyCssVars(themeColor, l, resolvedEffectsLevel, resolvedPageStyle);
     },
-    [setThemeLayoutState, themeColor, resolvedEffectsLevel]
+    [setThemeLayoutState, themeColor, resolvedEffectsLevel, resolvedPageStyle]
+  );
+  const setPageStyle = useCallback(
+    (s: PageStyle) => {
+      const next = resolvePageStyle(s);
+      setPageStyleState(next);
+      applyCssVars(themeColor, themeLayout, resolvedEffectsLevel, next);
+    },
+    [setPageStyleState, themeColor, themeLayout, resolvedEffectsLevel]
   );
   const setEffectsLevel = useCallback(
     (e: EffectsLevel) => {
       setEffectsLevelState(e);
-      applyCssVars(themeColor, themeLayout, e);
+      applyCssVars(themeColor, themeLayout, e, resolvedPageStyle);
     },
-    [setEffectsLevelState, themeColor, themeLayout]
+    [setEffectsLevelState, themeColor, themeLayout, resolvedPageStyle]
   );
 
   // ---- Number format ----
@@ -714,10 +731,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [numberFormat]
   );
 
-  // ---- Apply CSS vars on mount and when theme/effects change ----
+  // ---- Apply CSS vars on mount and when theme/effects/pageStyle change ----
   useEffect(() => {
-    applyCssVars(themeColor, themeLayout, resolvedEffectsLevel);
-  }, [themeColor, themeLayout, resolvedEffectsLevel]);
+    applyCssVars(themeColor, themeLayout, resolvedEffectsLevel, resolvedPageStyle);
+  }, [themeColor, themeLayout, resolvedEffectsLevel, resolvedPageStyle]);
 
   // ---- Login ----
   const login = useCallback(
@@ -1029,13 +1046,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     prevPageVisibleRef.current = isPageVisible;
   }, [isPageVisible, pauseRefreshWhenHidden, autoRefresh, isLoggedIn, refreshIntervalMs]);
 
-  // ---- Initialize built-in presets on first launch ----
+  // ---- Initialize / merge built-in presets (incl. new style packs) ----
   useEffect(() => {
-    if (presets.length === 0) {
+    setPresets((prev) => {
       const dict = lang === 'zh' ? zhDict : enDict;
       const builtins = builtinPresets((k: string) => dict[k] || k);
-      setPresets(builtins);
-    }
+      if (prev.length === 0) return builtins;
+      const existing = new Set(prev.map((p) => p.id));
+      const missing = builtins.filter((b) => !existing.has(b.id));
+      return missing.length > 0 ? [...prev, ...missing] : prev;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1043,6 +1063,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       setThemeColor,
       setThemeLayout,
+      setPageStyle,
       setEffectsLevel,
       setLang,
       setDisplayMode,
@@ -1060,6 +1081,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [
       setThemeColor,
       setThemeLayout,
+      setPageStyle,
       setEffectsLevel,
       setLang,
       setDisplayMode,
@@ -1096,6 +1118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return {
       themeColor,
       themeLayout,
+      pageStyle: resolvedPageStyle,
       lang,
       displayMode,
       numberFormat,
@@ -1106,7 +1129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       effectsLevel: resolvedEffectsLevel,
       dashboard,
     };
-  }, [themeColor, themeLayout, lang, displayMode, numberFormat, iconPack, iconRenderMode, localIconPack, sidebarMode, resolvedEffectsLevel]);
+  }, [themeColor, themeLayout, resolvedPageStyle, lang, displayMode, numberFormat, iconPack, iconRenderMode, localIconPack, sidebarMode, resolvedEffectsLevel]);
 
   const savePreset = useCallback(
     (name: string) => {
@@ -1129,6 +1152,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const s = preset.settings;
       setThemeColorState(s.themeColor as ThemeColor);
       setThemeLayoutState(s.themeLayout as ThemeLayout);
+      const presetPageStyle = resolvePageStyle(s.pageStyle);
+      setPageStyleState(presetPageStyle);
       setLangState(s.lang as Lang);
       setDisplayMode(s.displayMode as DisplayMode);
       setNumberFormat(s.numberFormat as NumberFormat);
@@ -1149,10 +1174,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           /* ignore */
         }
       }
-      applyCssVars(s.themeColor as ThemeColor, s.themeLayout as ThemeLayout, presetLevel);
+      applyCssVars(
+        s.themeColor as ThemeColor,
+        s.themeLayout as ThemeLayout,
+        presetLevel,
+        presetPageStyle
+      );
       notify('presetApplied', 'success');
     },
-    [presets, setThemeColorState, setThemeLayoutState, setLangState, setDisplayMode, setNumberFormat, setIconPackState, setIconRenderModeState, setSidebarMode, setEffectsLevelState, notify]
+    [presets, setThemeColorState, setThemeLayoutState, setPageStyleState, setLangState, setDisplayMode, setNumberFormat, setIconPackState, setIconRenderModeState, setSidebarMode, setEffectsLevelState, notify]
   );
 
   const deletePreset = useCallback(
@@ -1230,6 +1260,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         global: {
           themeColor,
           themeLayout,
+          pageStyle: resolvedPageStyle,
           effectsLevel: resolvedEffectsLevel,
           lang: lang || 'en',
           displayMode: (displayMode || 'split') as DisplayMode,
@@ -1362,6 +1393,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setThemeColor,
     themeLayout: (themeLayout || 'standard') as ThemeLayout,
     setThemeLayout,
+    pageStyle: resolvedPageStyle,
+    setPageStyle,
     effectsLevel: resolvedEffectsLevel,
     setEffectsLevel,
     numberFormat: (numberFormat || 'thousands') as NumberFormat,

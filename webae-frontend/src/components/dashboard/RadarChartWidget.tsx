@@ -1,5 +1,7 @@
 import { Tag } from 'antd';
 import type { DashboardWidgetConfig } from '@/utils/presets';
+import type { ChartStyleRecipe } from '@/theme/pageStyles';
+import { CHART_STYLE_RECIPES } from '@/theme/pageStyles';
 
 export interface RadarAxisConfig {
   dataSource: string;
@@ -23,6 +25,7 @@ interface RadarChartWidgetProps {
   getValue: (dataSource: string) => number;
   getLabel: (dataSource: string) => string;
   fmtNum: (v: number) => string;
+  recipe?: ChartStyleRecipe;
 }
 
 const DEFAULT_RADAR_AXES: RadarAxisConfig[] = [
@@ -50,6 +53,7 @@ export function RadarChartWidget({
   getValue,
   getLabel,
   fmtNum,
+  recipe = CHART_STYLE_RECIPES.classic,
 }: RadarChartWidgetProps) {
   const fromPins = axisValues && axisValues.length >= 3 ? axisValues.slice(0, 8) : null;
   const resolved = axes.length >= 3 ? axes : DEFAULT_RADAR_AXES;
@@ -77,14 +81,27 @@ export function RadarChartWidget({
     return `${center + Math.cos(angle) * radius},${center + Math.sin(angle) * radius}`;
   });
 
-  const fillColor = chartColor ? `${chartColor}33` : 'var(--accent-dim)';
+  const opacityHex = Math.round(Math.max(0, Math.min(1, recipe.radarFillOpacity)) * 255)
+    .toString(16)
+    .padStart(2, '0');
+  const fillColor =
+    recipe.radarFillOpacity <= 0
+      ? 'transparent'
+      : chartColor
+        ? `${chartColor}${opacityHex}`
+        : 'var(--accent-dim)';
 
   return (
     <>
       <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" className="chart-svg">
-          <polygon points={axisPoints.join(' ')} fill="none" stroke={radarAxisColor} strokeWidth="0.5" />
-          {[0.25, 0.5, 0.75, 1].map((scale) => {
+          <polygon
+            points={axisPoints.join(' ')}
+            fill="none"
+            stroke={radarAxisColor}
+            strokeWidth={recipe.radarStrokeWidth * 0.5}
+          />
+          {recipe.radarRingScales.map((scale) => {
             const ring = normalized.map((_, i) => {
               const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
               const r = radius * scale;
@@ -96,7 +113,7 @@ export function RadarChartWidget({
                 points={ring.join(' ')}
                 fill="none"
                 stroke={radarAxisColor}
-                strokeWidth="0.3"
+                strokeWidth={0.3}
                 opacity={0.5}
               />
             );
@@ -106,7 +123,7 @@ export function RadarChartWidget({
             points={dataPoints.join(' ')}
             fill={fillColor}
             stroke={chartColor}
-            strokeWidth="1"
+            strokeWidth={recipe.radarStrokeWidth}
           />
         </svg>
       </div>

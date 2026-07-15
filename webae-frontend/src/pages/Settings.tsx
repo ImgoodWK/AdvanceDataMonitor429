@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   Tabs,
@@ -9,7 +9,6 @@ import {
   Space,
   Input,
   Upload,
-  List,
   Tag,
   Modal,
   Popconfirm,
@@ -55,13 +54,16 @@ import {
   getServerDebugFlags,
   type DebugFeature,
 } from '@/utils/debugLog';
-import { THEME_COLORS } from '@/theme/colors';
-import { THEME_LAYOUTS } from '@/theme/layouts';
+import { THEME_COLORS, type ThemeColor } from '@/theme/colors';
+import { THEME_LAYOUTS, type ThemeLayout } from '@/theme/layouts';
+import { PAGE_STYLES, type PageStyle } from '@/theme/pageStyles';
 import { formatNumber, formatTime, formatDuration, type NumberFormat } from '@/utils/format';
 import { PageShell } from '@/components/Layout/PageShell';
 import type { AppPreset } from '@/utils/presets';
 import { AlertsRulesEditor } from '@/components/settings/AlertsRulesEditor';
 import { SettingsBackupPanel } from '@/components/settings/SettingsBackupPanel';
+import { ThemeOptionGrid } from '@/components/theme/ThemeOptionGrid';
+import { ThemePreviewMini } from '@/components/theme/ThemePreviewMini';
 
 const { Text, Title } = Typography;
 
@@ -71,6 +73,8 @@ export function SettingsPage() {
     setThemeColor,
     themeLayout,
     setThemeLayout,
+    pageStyle,
+    setPageStyle,
     effectsLevel,
     setEffectsLevel,
     lang,
@@ -177,14 +181,54 @@ export function SettingsPage() {
   const lastUpdateDiffText =
     lastUpdateTime == null ? t('dataFreshness_never') : formatDuration(now - lastUpdateTime);
 
-  const colorOptions = THEME_COLORS.map((c) => ({
-    label: t('themeColor_' + c),
-    value: c,
-  }));
-  const layoutOptions = THEME_LAYOUTS.map((l) => ({
-    label: t('themeLayout_' + l),
-    value: l,
-  }));
+  const colorGridItems = useMemo(
+    () =>
+      THEME_COLORS.map((c) => ({
+        id: c,
+        label: t('themeColor_' + c),
+        themeColor: c,
+        themeLayout: themeLayout as ThemeLayout,
+        pageStyle,
+        effectsLevel,
+        emphasize: 'color' as const,
+      })),
+    [t, themeLayout, pageStyle, effectsLevel]
+  );
+  const layoutGridItems = useMemo(
+    () =>
+      THEME_LAYOUTS.map((l) => ({
+        id: l,
+        label: t('themeLayout_' + l),
+        themeColor: themeColor as ThemeColor,
+        themeLayout: l,
+        pageStyle,
+        effectsLevel,
+        emphasize: 'layout' as const,
+      })),
+    [t, themeColor, pageStyle, effectsLevel]
+  );
+  const pageStyleGridItems = useMemo(
+    () =>
+      PAGE_STYLES.map((s) => ({
+        id: s,
+        label: t('pageStyle_' + s),
+        themeColor: themeColor as ThemeColor,
+        themeLayout: themeLayout as ThemeLayout,
+        pageStyle: s,
+        effectsLevel,
+        emphasize: 'style' as const,
+      })),
+    [t, themeColor, themeLayout, effectsLevel]
+  );
+  const [presetFilter, setPresetFilter] = useState('');
+  const filteredPresets = useMemo(() => {
+    const q = presetFilter.trim().toLowerCase();
+    if (!q) return presets;
+    return presets.filter((p) => {
+      const hay = `${p.name} ${p.id} ${p.settings.themeColor} ${p.settings.pageStyle}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [presets, presetFilter]);
   const numberFormatOptions: Array<{ label: string; value: NumberFormat }> = [
     { label: t('numberFormat_full'), value: 'full' },
     { label: t('numberFormat_thousands'), value: 'thousands' },
@@ -396,21 +440,42 @@ export function SettingsPage() {
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
                 <div>
                   <Text strong>{t('themeColor')}</Text>
-                  <Select
-                    style={{ width: '100%', marginTop: 8 }}
-                    value={themeColor}
-                    onChange={setThemeColor}
-                    options={colorOptions}
-                  />
+                  <div style={{ marginTop: 8 }}>
+                    <ThemeOptionGrid
+                      items={colorGridItems}
+                      value={themeColor as ThemeColor}
+                      onChange={(id) => setThemeColor(id)}
+                      searchPlaceholder={t('themeOptionSearch')}
+                      maxHeight={360}
+                    />
+                  </div>
                 </div>
                 <div>
                   <Text strong>{t('themeLayout')}</Text>
-                  <Select
-                    style={{ width: '100%', marginTop: 8 }}
-                    value={themeLayout}
-                    onChange={setThemeLayout}
-                    options={layoutOptions}
-                  />
+                  <div style={{ marginTop: 8 }}>
+                    <ThemeOptionGrid
+                      items={layoutGridItems}
+                      value={themeLayout as ThemeLayout}
+                      onChange={(id) => setThemeLayout(id)}
+                      searchPlaceholder={t('themeOptionSearch')}
+                      maxHeight={280}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Text strong>{t('pageStyle')}</Text>
+                  <div style={{ marginTop: 8 }}>
+                    <ThemeOptionGrid
+                      items={pageStyleGridItems}
+                      value={pageStyle as PageStyle}
+                      onChange={(id) => setPageStyle(id)}
+                      searchPlaceholder={t('themeOptionSearch')}
+                      maxHeight={420}
+                    />
+                  </div>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginTop: 6 }}>
+                    {t('pageStyle_hint')}
+                  </Text>
                 </div>
                 <div>
                   <Text strong>{t('effectsLevel')}</Text>
@@ -618,7 +683,7 @@ export function SettingsPage() {
             ),
             children: (
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                <Space>
+                <Space wrap>
                   <Button icon={<SaveOutlined />} onClick={() => setSavePresetOpen(true)}>
                     {t('presetSave')}
                   </Button>
@@ -633,26 +698,65 @@ export function SettingsPage() {
                     <Button icon={<UploadOutlined />}>{t('presetImport')}</Button>
                   </Upload>
                 </Space>
+                <Input
+                  allowClear
+                  size="small"
+                  value={presetFilter}
+                  onChange={(e) => setPresetFilter(e.target.value)}
+                  placeholder={t('themeOptionSearch')}
+                  style={{ maxWidth: 360 }}
+                />
                 {presets.length === 0 ? (
                   <Text type="secondary">{t('presetEmpty')}</Text>
+                ) : filteredPresets.length === 0 ? (
+                  <Text type="secondary">—</Text>
                 ) : (
-                  <List
-                    dataSource={presets}
-                    renderItem={(preset) => (
-                      <List.Item
-                        actions={[
-                          <Button key="apply" size="small" type="primary" icon={<CheckOutlined />} onClick={() => applyPreset(preset.id)}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                      gap: 12,
+                    }}
+                  >
+                    {filteredPresets.map((preset) => (
+                      <div
+                        key={preset.id}
+                        style={{
+                          border: '1px solid var(--border)',
+                          borderRadius: 10,
+                          padding: 10,
+                          background: 'var(--bg-card)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8,
+                        }}
+                      >
+                        <ThemePreviewMini
+                          themeColor={(preset.settings.themeColor || 'dark') as ThemeColor}
+                          themeLayout={(preset.settings.themeLayout || 'standard') as ThemeLayout}
+                          pageStyle={(preset.settings.pageStyle || 'classic') as PageStyle}
+                          effectsLevel={preset.settings.effectsLevel || 'subtle'}
+                          title={preset.name}
+                        />
+                        <Space wrap size={4}>
+                          <Text strong style={{ fontSize: 13 }}>{preset.name}</Text>
+                          {preset.id.startsWith('builtin') && <Tag color="blue">Built-in</Tag>}
+                        </Space>
+                        <Text type="secondary" style={{ fontSize: 11, lineHeight: 1.4 }}>
+                          {t('themeColor_' + preset.settings.themeColor)} · {t('pageStyle_' + preset.settings.pageStyle)} ·{' '}
+                          {t('themeLayout_' + (preset.settings.themeLayout || 'standard'))}
+                        </Text>
+                        <Space wrap size={4}>
+                          <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => applyPreset(preset.id)}>
                             {t('presetApply')}
-                          </Button>,
+                          </Button>
                           <Popconfirm
-                            key="overwrite"
                             title={t('presetConfirmOverwrite').replace('{name}', preset.name)}
                             onConfirm={() => overwritePreset(preset.id)}
                           >
                             <Button size="small" icon={<SaveOutlined />}>{t('presetOverwrite')}</Button>
-                          </Popconfirm>,
+                          </Popconfirm>
                           <Button
-                            key="rename"
                             size="small"
                             icon={<EditOutlined />}
                             onClick={() => {
@@ -661,45 +765,22 @@ export function SettingsPage() {
                             }}
                           >
                             {t('presetRename')}
-                          </Button>,
-                          <Button
-                            key="export"
-                            size="small"
-                            icon={<DownloadOutlined />}
-                            onClick={() => exportPreset(preset.id)}
-                          >
+                          </Button>
+                          <Button size="small" icon={<DownloadOutlined />} onClick={() => exportPreset(preset.id)}>
                             {t('presetExport')}
-                          </Button>,
+                          </Button>
                           <Popconfirm
-                            key="delete"
                             title={t('presetConfirmDelete').replace('{name}', preset.name)}
                             onConfirm={() => deletePreset(preset.id)}
                           >
                             <Button size="small" danger icon={<DeleteOutlined />}>
                               {t('presetDelete')}
                             </Button>
-                          </Popconfirm>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          title={
-                            <Space>
-                              <Text strong>{preset.name}</Text>
-                              {preset.id.startsWith('builtin') && <Tag color="blue">Built-in</Tag>}
-                            </Space>
-                          }
-                          description={
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                              {t('themeColor')}: {t('themeColor_' + preset.settings.themeColor)} |{' '}
-                              {t('iconPack')}: {preset.settings.iconPack} |{' '}
-                              {t('numberFormat')}: {t('numberFormat_' + preset.settings.numberFormat)} |{' '}
-                              {t('language')}: {preset.settings.lang}
-                            </span>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                  />
+                          </Popconfirm>
+                        </Space>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </Space>
             ),

@@ -17,6 +17,7 @@ export function Sidebar({ mode }: { mode: SidebarMode }) {
 
   return (
     <div
+      className="webae-sidebar"
       style={{
         height: '100%',
         display: 'flex',
@@ -25,6 +26,7 @@ export function Sidebar({ mode }: { mode: SidebarMode }) {
       }}
     >
       <div
+        className="webae-sidebar-brand"
         style={{
           padding: collapsed ? '14px 8px' : '16px 16px',
           borderBottom: '1px solid var(--border)',
@@ -36,7 +38,11 @@ export function Sidebar({ mode }: { mode: SidebarMode }) {
         </Text>
       </div>
 
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }} aria-label="Main navigation">
+      <nav
+        className="webae-sidebar-nav"
+        style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}
+        aria-label="Main navigation"
+      >
         {visiblePages.map((item) => {
           const IconComp = item.Icon;
           const isActive = activePage === item.id;

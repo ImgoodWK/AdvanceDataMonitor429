@@ -9,10 +9,10 @@ import { useEffect, useRef } from 'react';
 import { useIconPackAutoSync } from '@/hooks/useIconPackAutoSync';
 
 function Inner() {
-  const { isLoggedIn, lang, themeColor, themeLayout, notify, online } = useAppContext();
+  const { isLoggedIn, lang, themeColor, themeLayout, pageStyle, notify, online } = useAppContext();
   useIconPackAutoSync();
   const compact = themeLayout === 'compact';
-  const theme = buildAntdThemeSync(themeColor, compact);
+  const theme = buildAntdThemeSync(themeColor, compact, pageStyle);
   const locale = lang === 'zh' ? zhCN : enUS;
 
   // aria-live region for connection status (WCAG)

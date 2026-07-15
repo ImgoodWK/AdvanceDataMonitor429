@@ -37,7 +37,7 @@ Authorization: Bearer <owner_token>   # 二选一
 | `storageItemCount` | 各网络缓存快照中物品种类数之和（非 AE 总堆叠） |
 | `cpuBusy` | 任一 CPU 当前 `isBusy` |
 | `activeOrders` | 该 owner 进行中的 Web 下单数 |
-| `tps` | 服务端 TPS（`ServerHealthSampler`） |
+| `tps` | 服务端 TPS（`ServerHealthSampler`，与 `/forge tps` Overall 同口径） |
 
 无 Token 或无效 Token → `401`。
 

@@ -338,6 +338,11 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.webTopologySnapshotPersist,
             ConfigDescriptions.get("webConsole", "topologySnapshotPersist"));
+        Config.webTopologySimulatedEnabled = configuration.getBoolean(
+            "topologySimulatedEnabled",
+            "webConsole",
+            Config.webTopologySimulatedEnabled,
+            ConfigDescriptions.get("webConsole", "topologySimulatedEnabled"));
         Config.webDynmapBaseUrl = configuration.getString(
             "dynmapBaseUrl",
             "webConsole",

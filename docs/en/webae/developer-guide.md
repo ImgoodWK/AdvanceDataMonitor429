@@ -140,6 +140,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `topologyCacheTtlMs` | int | `10000` | 1000-3600000 | Manual topology snapshot capture cooldown (ms; default 10 s) |
 | `worldMapSnapshotCooldownMs` | int | `10000` | 1000-3600000 | Manual world map snapshot request cooldown (ms; client capture; default 10 s) |
 | `topologySnapshotPersist` | boolean | `true` | — | Persist snapshots under `TeXTech/WebAE/topology/` |
+| `topologySimulatedEnabled` | boolean | `false` | — | **Deprecated**: cable-simulation render mode + `GET /api/ae2/cable-texture`; default off |
 | `worldMapEnabled` | boolean | `true` | — | Enable `GET /api/worldmap/*` world map API (requires `topologyEnabled`) |
 | `worldMapTilePx` | int | `128` | — | **Deprecated**: legacy single tile size; non-128 migrates to medium tier |
 | `worldMapMaxQualityTier` | string | `medium` | — | Server cap for quality tier (low/medium/high/ultra) |
@@ -203,7 +204,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 |--------|------|------|--------|-------------|
 | POST | `/api/auth/exchange` | **No** | No | Exchange 6-digit login code for owner token (5 min TTL, single-use; body `{"code":"123456"}`) |
 | GET | `/api/auth/login` | Yes | No | Post-auth info (playerUuid) |
-| GET | `/api/config` | Yes | No | Public client-readable config (refreshIntervalMs, gtRefreshIntervalMs, maxNetworksDisplayed, tokenLifetimeHours, themePresets [legacy, mirrors themeColors], themeColors, themeLayouts) |
+| GET | `/api/config` | Yes | No | Public client-readable config (refreshIntervalMs, gtRefreshIntervalMs, maxNetworksDisplayed, tokenLifetimeHours, themePresets [legacy, mirrors themeColors], themeColors, themeLayouts, pageStyles) |
 | GET | `/api/ui-defaults` | **No** | No | Pack/mod default WebAE UI settings JSON (instance `TeXTech/WebAE/ui-defaults.json` first, else jar `assets/textech/webae/ui-defaults.json`; `defaults:null` when absent) |
 | GET | `/api/networks` | Yes | No | List available AE2 networks; **HTTP cache-only** (`cached`/`timestamp`); owner-scoped `SnapshotScheduler` pre-collect; `?refresh=1` async rebuild |
 | GET | `/api/storage?network=<id>` | Yes | No | Cached storage snapshot (stale fallback with `cached:false`) |
@@ -247,6 +248,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | DELETE | `/api/patterns/<id>` | Yes | **Yes (OP)** | Delete pattern from interface slot; fires `MENetworkCraftingPatternChange` |
 | PUT | `/api/patterns/<id>` | Yes | **Yes (OP)** | Write back edited pattern NBT to slot |
 | GET | `/api/icon?item=<itemId>&pack=<pack>&meta=<int>&size=<16\|32\|64>` | Yes | No | Get an item/fluid icon PNG (with ETag + Cache-Control); disk miss returns 404 immediately and enqueues async fill (sync direct render off by default) |
+| GET | `/api/ae2/cable-texture?type=smart\|covered\|dense` | Yes | No | **Deprecated** (requires `topologySimulatedEnabled=true`): Fluix cable PNGs for cable simulation; 503 when disabled |
 | GET | `/api/icon/packs` | Yes | No | List installed texture packs; response includes a `defaultPack` field (the most recently uploaded pack, or null) |
 | GET | `/api/icon/sync/manifest?pack=&mode=` | Yes | No | Pack revision metadata (full-pack sync) |
 | GET | `/api/icon/sync/bulk?pack=&mode=` | Yes | No | Full-pack zip (in-memory build; Settings manual / user-enabled auto-sync only — not on login by default) |
@@ -317,7 +319,7 @@ Local WebAE QA: the first BetterQuesting tab from dev fixtures is **WebAE Test L
 | GET | `/api/alerts` | Yes | No | Active automation alerts + `web-alerts.json` rules mirror (A1–A5); includes `canEditRules` (OP) |
 | GET | `/api/alerts/rules` | Yes | No | Rules only + `canEditRules` |
 | PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `TeXTech/WebAE/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |
-| GET | `/api/server/health` | Yes | No | Server TPS / MSPT / online players / uptime + 300s rolling history (reference plan Phase 2) |
+| GET | `/api/server/health` | Yes | No | Server TPS / MSPT (same as `/forge tps` Overall) / online players / uptime + 300s rolling history |
 | GET | `/api/server/diagnostics` | Yes | No | WebAE perf diagnostics: tick phases, `HandlerTick` queue depth, snapshot collect timings, slow HTTP / top routes, config summary; polled by Diagnostics page |
 | GET | `/api/oc/summary` | Yes | No | OC read-only summary (item types, CPU busy, active orders, TPS; 1 req/s; see [oc-integration.md](oc-integration.md)) |
 | GET | `/api/search?q=&limit=&offset=&types=&network=` | Yes | No | Aggregated read-only search (storage/recipe/gt/pattern; 500ms rate limit; pagination; Phase 4a) |
@@ -345,7 +347,7 @@ webae-frontend/               # Frontend source (permanent project part)
     ├── types/dto.ts          # TypeScript interfaces mirroring Java DTOs
     ├── i18n/                 # zh + en dictionaries + I18nProvider hook
     ├── context/AppContext.tsx  # Global state (auth/theme/settings/presets/connection/refresh)
-    ├── theme/                # 24 color schemes (19 classic + 5 Phase 8 sci-fi) + 5 layout presets + antd theme builder
+    ├── theme/                # 61 color schemes + 8 layouts + 59 page styles (7 chrome + 12 composition + 20 bold + 20 batch2) + antd theme builder + preview var helper
     ├── hooks/                # useLocalStorage / useInterval / usePageVisibility / useVisibilityAwarePolling / useSnapshotData / usePlayers / useWebAlerts / useNetworkMetrics / useGlobalSearch / useWorldMapData / useWorldMapTileLoader / useWorldMapProgress
     ├── utils/                # formatNumber / icon URL / presets / dashboardResolve / overviewDataSources / powerDataSources / cpuColumns / recipe
     ├── components/           # Login / Icon / Layout(Sidebar/TopBar/AppLayout/navConfig/PageShell) /
@@ -617,21 +619,25 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 ### 11.7 Theme System & Dashboard Customization (Phase 2.1 / 2.2)
 
 - **Theme system**:
-  - Theme = color scheme × layout preset, chosen independently
-  - Color schemes (`[data-theme-color]`): 24 total — 19 classic (dark / light / nord / solarized / gtnh-blue / midnight / dracula / cyberpunk / aurora / matrix / sunset / ocean / forest / lavender / rose / carbon / tokyonight / catppuccin-mocha / gruvbox) plus 5 Phase 8 sci-fi themes (hologram / plasma / neon-pulse / quantum / crystal); each defines `--bg-*` / `--accent` / `--text-*` / `--success` / `--warning` / `--danger` CSS variables; sci-fi themes add scan-line / particle / breathing-border / grid / prismatic effects in `global.css` when `effectsLevel=full`
-  - Layout presets (`[data-theme-layout]`): standard / compact / wide / sidebar-right / topnav (5 total); override sidebar width, card gaps, font sizes, and sidebar placement (topnav hides the sidebar and moves nav into the top bar)
-  - Persistence: `localStorage.webae_theme` stores `color|layout` (e.g. `nord|compact`); legacy `dark`/`light` auto-migrates to `xxx|standard`
-  - Settings panel: color scheme cards (3-segment swatch preview) + layout preset cards (thumbnail preview), applied live on click
+  - Theme = color scheme × layout preset × **page style**, chosen independently
+  - Color schemes (`[data-theme-color]`): 61 total — 19 classic + 5 Phase 8 sci-fi + 4 composition companions + 13 bold-batch + **20 batch2** (ember-crimson / frost-ice / noir-silver / emerald-teal / desert-sand / lunar-grey / reef-coral / kraft-brown / tokyo-neon / parchment-gold / bio-green / stardust-violet / copper-rust / lab-white / abyss-deep / candy-pastel / mil-olive / crt-green / clay-terra / prism-spectrum)
+  - **Page styles** (`[data-page-style]`, `theme/pageStyles.ts`): 59 total — 7 chrome + 12 composition + 20 bold packs + **20 batch2** (emberforge / frostglass / noirfilm / emerald-circuit / desert-terminal / lunar / coral-reef / papercraft / neon-tokyo / medieval / biotank / stardust / coppersteam / cleanlab / abyss / candypop / military / retrocrit / terracotta / prism); visuals in `styles/bold-styles.css` + `bold-styles-batch2.css`. **Hexcell / arc-reactor** use decorative accents/rings without heavy content `clip-path`; gated by `effectsLevel` + `prefers-reduced-motion`
+  - Layout presets (`[data-theme-layout]`): 8 total — standard / compact / wide / sidebar-right / topnav / **bottomnav** / **floating** / **split-chrome**
+  - **Settings appearance / presets**: `ThemePreviewMini` (iframe-isolated real CSS) + `ThemeOptionGrid` thumbnail tiles for color / layout / style / preset picking
+  - Settings panel: color + layout + **page style** + effects intensity; dashboard widget editor can override chart style
   - Chart colors follow CSS variables (e.g. `var(--accent)`) and theme tokens; Dashboard/Power trend SVG updates with theme colors; when `effectsLevel=full`, line/area/pie/radar/bar charts get continuous CSS animations (`.chart-flow-line`, etc.); disabled under `prefers-reduced-motion`
-  - The backend `/api/config` returns `themeColors` / `themeLayouts` lists for discoverability (the frontend also owns the same catalog)
+  - The backend `/api/config` returns `themeColors` / `themeLayouts` / `pageStyles` lists for discoverability (the frontend also owns the same catalog)
 - **Dashboard customization**:
   - GridStack 11.x via npm; `pages/Dashboard.tsx` 12-column grid; main dashboard `gs-min-w/h=1` (free sizing)
-  - Widget model (`DashboardWidgetConfig`): types as before + `dataSource` including `customPins` + **`pins?`** / **`columns?`** / **`contentScale?`** (0.5–2) / `pinsOnly?` / `gaugeThreshold?`
-  - **Data-first editor**: pick data source & pins, then compatible chart type (`dataSourceChartMap.ts`, `customPins` → `pinned`)
+  - Widget model (`DashboardWidgetConfig`): chart types as before plus **`group` / `textNote` / `spacer` / `alertsSummary` / `craftingQueue`**; data sources include `customPins` / `none` / `alertsActive` / `craftingBusy`; optional **`children?`**, **`noteText?`**, **`locked?`/`noMove?`/`noResize?`/`sizeToContent?`**, **`alertThreshold?`**, plus existing `pins?` / `columns?` / `contentScale?` / `pinsOnly?` / `gaugeThreshold?`
+  - **Nested groups**: `type:'group'` hosts an inner GridStack (`GroupWidget.tsx`, `column:'auto'`); tree helpers in `utils/dashboardTree.ts`; migrate/import/export recurse `children`
+  - **Edit UX**: palette for one-click add; `.dashboard-trash` + GridStack `removable`; add-to-group from group header; pin metrics use `flattenWidgets`
+  - **Layout/feed widgets**: `SpecialWidgets.tsx` + `useDashboardAlerts`
+  - **Data-first editor**: pick data source & pins, then compatible chart type (`dataSourceChartMap.ts`; layout/feed categories for `none` / alerts / crafting)
   - **Pin history APIs**: `GET /api/network/metrics/items`, extended fluids, `GET /api/network/metrics/entities`; sampler limits in cfg (`dashboardMaxTracksPerWidget` default 10, `dashboardMaxTracksGlobal` 16, item sub-cap 8, fluid/entity 16) exposed via `/api/config`; line charts merge built-in timeseries ∪ pin histories; radar uses pin current values when ≥3 pins; network-balance rows are searchable pins
   - **Phase 2 data sources**: `gtMachineList` / `machineByStatus` / `networkCompare` unchanged
-  - Layout persistence: `localStorage.webae_dashboard_config`; Edit Modal width/height rebuilds GridStack via `layoutSignature`
-  - Data refresh: `useSnapshotData` + `useDashboardPinMetrics` (merged pin history) + `usePlayers` / `useNetworkMetrics`
+  - Layout persistence: `localStorage.webae_dashboard_config`; Edit Modal width/height rebuilds GridStack via `widgetLayoutSignature`
+  - Data refresh: `useSnapshotData` + `useDashboardPinMetrics` (merged pin history) + `usePlayers` / `useNetworkMetrics` / `useDashboardAlerts`
 
 ### 11.8 Item Icon Cache & Texture Packs (Phase 3.1)
 
@@ -739,7 +745,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - `neon-pulse` — fluorescent accent + breathing card borders
   - `quantum` — deep blue + drifting grid background
   - `crystal` — prismatic gradient text shimmer
-  - Backend `/api/config` `themeColors` lists all 24; Settings page i18n `themeColor_*` keys
+  - Backend `/api/config` `themeColors` / `pageStyles` match the frontend catalog (61 / 59); Settings i18n `themeColor_*` / `pageStyle_*`; thumbnail previews via `ThemePreviewMini`
 - **Continuous chart animations** (gated by `data-effects-level=full`):
   - Dashboard SVG: `.chart-flow-line` (stroke-dash flow), `.chart-svg-area` (area pulse), `.chart-pie-group` (slow spin), `.chart-radar-data` (radar pulse), `.chart-bar-segment` (bar brightness pulse)
   - Power trend: inline SVG in `PowerWidgetContent.tsx` reuses the same CSS classes
@@ -760,7 +766,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Node DTO**: `subtype`, `patternCount`, `patternSlots[]`, `branchIndex`, `layoutSector`; drive icon badge for pattern count
 - **Frontend**: `TopologyCytoscapeGraph` (cytoscape.js tree/star/spatial; legacy `TopologyGraphSvg` fallback); `TopologySimulatedView`/`TopologyDeviceList`/`TopologySettingsDrawer`; 4th view `worldMap`: `TopologyWorldMapView` + `WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay` (`useWorldMapTileLoader`/`useWorldMapProgress`)
 - **REST**: `GET /api/network/topology` (read disk/memory snapshot, no auto-rebuild); `POST /api/network/topology/snapshot?force=1` (OP forced capture)
-- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **10000**), `worldMapSnapshotCooldownMs` (default **10000**, world map client snapshot request cooldown), `topologySnapshotPersist` (default true); world map — see §11.26
+- **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **10000**), `worldMapSnapshotCooldownMs` (default **10000**, world map client snapshot request cooldown), `topologySnapshotPersist` (default true), `topologySimulatedEnabled` (default **false**, cable simulation deprecated); world map — see §11.26
 
 ### 11.18 Page Visibility Polling (Phase 4b)
 
@@ -798,7 +804,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Webhooks** (AE2 Web Integration style): extend `web-alerts.json` with `webhooks[]` (`id`/`url`/`enabled`/`events`/`mention`); `WebhookDispatcher.java` single-thread `BlockingQueue` async POST (Discord embed or generic JSON); queue cap 1000; 5s HTTP timeout; enqueued on `WebAlertStore.recordNew`; URLs server-only, API responses masked via `sanitizeForClient`
 - **Event types**: `inventory_threshold` / `cpu_stuck` / `gt_error` / `order_complete` / `channel_overload` / `server_tps_below` / `automation_craft`
 - **TPS alert**: `serverTpsBelowEnabled` + `serverTpsThreshold` (default 15) + `serverTpsDurationSeconds` (default 60); evaluated by `WebAlertEngine` via `ServerHealthSampler`
-- **Health sampler**: `webae/health/ServerHealthSampler.java` — MSPT measured each tick, 1s samples in a 300s rolling window; `GET /api/server/health` (`ServerHealthHandler`)
+- **Health sampler**: `webae/health/ServerHealthSampler.java` — mean of `MinecraftServer.tickTimeArray` (last 100 ticks; same formula as `/forge tps` Overall: `mspt = mean(ns)×1e-6`, `tps = min(20, 1000/mspt)`); refreshed every tick via `HandlerTick`, ~1s samples into a 300s rolling window; `GET /api/server/health` (`ServerHealthHandler`); Diagnostics page TPS/MSPT use the same source
 - **Perf diagnostics**: `webae/perf/WebAePerfProfiler.java` — tick phases / HTTP routes / snapshot collect timings; `GET /api/server/diagnostics`; `[debug] webaePerf` → `logs/textech/webae-perf.log` (slow tick ≥5ms / slow HTTP ≥200ms always logged); frontend `pages/Diagnostics.tsx` + `useServerDiagnostics`. **New `/api/*` routes must be wired into diagnostics** — see `.cursor/rules/webae-perf-diagnostics.mdc`.
 
 ### 11.20b Monitoring Deepening (reference plan Phase 3)

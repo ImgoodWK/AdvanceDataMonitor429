@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   AlignLeftOutlined,
   ControlOutlined,
+  DeleteFilled,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -21,6 +22,7 @@ import { useNetworkMetrics } from '@/hooks/useNetworkMetrics';
 import { useDebouncedLocalStorageSaver } from '@/hooks/useDebouncedLocalStorageSaver';
 import { useDashboardPinMetrics, lookupPinSeries } from '@/hooks/useDashboardPinMetrics';
 import { useNetworkBalance } from '@/hooks/useNetworkBalance';
+import { useDashboardAlerts } from '@/hooks/useDashboardAlerts';
 import { resolvePins } from '@/utils/dashboardPins';
 import { resolveColumns } from '@/utils/dashboardColumns';
 import { getValidChartTypes } from '@/utils/dataSourceChartMap';
@@ -30,6 +32,15 @@ import {
   isPowerHistoryDataSource,
   isServerHealthHistoryDataSource,
 } from '@/utils/dataSourceChartMap';
+import {
+  addChildToGroup,
+  applyOuterNodePositions,
+  flattenWidgets,
+  isLayoutOrFeedType,
+  removeWidgetById,
+  updateWidgetById,
+  widgetLayoutSignature,
+} from '@/utils/dashboardTree';
 
 import {
   DEFAULT_DASHBOARD_SETTINGS,
@@ -43,6 +54,7 @@ import {
   resolveProp,
   resolveAllColors,
   resolveChartStretchMode,
+  resolveChartStyleRecipe,
 } from '@/utils/dashboardResolve';
 import { formatBytes, formatDuration, formatTime, formatLargeWithDelta, formatSignificant } from '@/utils/format';
 import { Icon } from '@/components/Icon';
@@ -53,6 +65,13 @@ import { ChartTrendSvg } from '@/components/dashboard/ChartTrendSvg';
 import { NetworkBalanceTable } from '@/components/dashboard/NetworkBalanceTable';
 import { RadarChartWidget, resolveRadarAxes } from '@/components/dashboard/RadarChartWidget';
 import { WidgetShell } from '@/components/dashboard/WidgetShell';
+import { GroupWidget } from '@/components/dashboard/GroupWidget';
+import {
+  AlertsSummaryWidget,
+  CraftingQueueWidget,
+  SpacerWidget,
+  TextNoteWidget,
+} from '@/components/dashboard/SpecialWidgets';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
 import {
   buildNetworkCompareRows,
@@ -70,6 +89,7 @@ import {
 const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
   'statCard', 'progressBar', 'lineChart', 'barChart', 'pieChart',
   'dataTable', 'gauge', 'radarChart',
+  'group', 'textNote', 'spacer', 'alertsSummary', 'craftingQueue',
 ];
 
 const DATA_SOURCES = [
@@ -80,10 +100,23 @@ const DATA_SOURCES = [
   'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
   'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
   'customPins',
+  'none', 'alertsActive', 'craftingBusy',
+];
+
+const PALETTE_PRESETS: Array<{ type: DashboardWidgetConfig['type']; dataSource: string; w: number; h: number }> = [
+  { type: 'statCard', dataSource: 'itemCount', w: 3, h: 2 },
+  { type: 'gauge', dataSource: 'bytesPercent', w: 3, h: 3 },
+  { type: 'lineChart', dataSource: 'itemCount', w: 6, h: 3 },
+  { type: 'dataTable', dataSource: 'topItems', w: 6, h: 4 },
+  { type: 'group', dataSource: 'none', w: 6, h: 4 },
+  { type: 'alertsSummary', dataSource: 'alertsActive', w: 4, h: 3 },
+  { type: 'craftingQueue', dataSource: 'craftingBusy', w: 4, h: 3 },
+  { type: 'textNote', dataSource: 'none', w: 3, h: 2 },
+  { type: 'spacer', dataSource: 'none', w: 12, h: 1 },
 ];
 
 export function Dashboard() {
-  const { selectedNetworks, notify, lastUpdateTime } = useAppContext();
+  const { selectedNetworks, notify, lastUpdateTime, pageStyle } = useAppContext();
   const { t } = useI18n();
   const { storageMap, powerMap, gtMap, loading } = useSnapshotData();
   const fmtNum = useNumberFormat();
@@ -94,6 +127,8 @@ export function Dashboard() {
   const [settings, setSettings] = useState<DashboardSettings>(loadDashboardSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addWidgetOpen, setAddWidgetOpen] = useState(false);
+  /** When set, new widgets are inserted into this group instead of the root grid. */
+  const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null);
   const [editWidgetTarget, setEditWidgetTarget] = useState<DashboardWidgetConfig | null>(null);
   const [newWidget, setNewWidget] = useState<Partial<DashboardWidgetConfig>>({
     type: 'statCard',
@@ -132,6 +167,11 @@ export function Dashboard() {
     selectedNetworks,
     selectedNetworks.length >= 2
   );
+  const needsAlerts = useMemo(
+    () => flattenWidgets(widgets).some((w) => w.type === 'alertsSummary'),
+    [widgets]
+  );
+  const { alerts: activeAlerts, loading: alertsLoading } = useDashboardAlerts(needsAlerts);
 
   // Compute data source values
   const dataSourceValue = useCallback(
@@ -203,6 +243,7 @@ export function Dashboard() {
       'itemTotal', 'fluidTotal', 'topItems', 'cpuList', 'gtMachineList',
       'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
       'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt', 'customPins',
+      'none', 'alertsActive', 'craftingBusy',
     ];
     for (const k of keys) map[k] = t('dataSource_' + k);
     return map[ds] || ds;
@@ -226,16 +267,23 @@ export function Dashboard() {
   };
 
   const renderWidget = (widget: DashboardWidgetConfig) => {
+    if (widget.type === 'group') {
+      // Group content is rendered by GroupWidget (nested grid); shell still calls renderWidget for safety.
+      return null;
+    }
+
     const value = dataSourceValue(widget.dataSource);
     const isPercent = widget.dataSource.includes('Percent') || widget.dataSource === 'cpuBusyRatio';
     const isBytes = widget.dataSource === 'bytesUsed' || widget.dataSource === 'bytesMax';
     const colors = resolveAllColors(widget, settings);
     const chartSize = resolveProp(widget, settings, 'chartSize');
     const chartColor = colors.chartColor || 'var(--accent)';
+    const threshold = widget.alertThreshold ?? 0;
+    const overThreshold = threshold > 0 && value >= threshold;
 
     const wrap = (children: React.ReactNode) => (
       <div
-        className="widget-align dashboard-widget-inner"
+        className={`widget-align dashboard-widget-inner${overThreshold ? ' widget-alert-threshold' : ''}`}
         data-align={resolveProp(widget, settings, 'alignment')}
         style={{
           fontSize: resolveProp(widget, settings, 'fontSize'),
@@ -253,6 +301,34 @@ export function Dashboard() {
     );
 
     const chartStretch = resolveChartStretchMode(widget, settings, widget.type);
+    const chartRecipe = resolveChartStyleRecipe(widget, settings, pageStyle);
+
+    if (widget.type === 'textNote') {
+      return <TextNoteWidget widget={widget} titleColor={colors.titleColor} />;
+    }
+    if (widget.type === 'spacer') {
+      return <SpacerWidget widget={widget} />;
+    }
+    if (widget.type === 'alertsSummary') {
+      return (
+        <AlertsSummaryWidget
+          widget={widget}
+          alerts={activeAlerts}
+          loading={alertsLoading}
+          titleColor={colors.titleColor}
+        />
+      );
+    }
+    if (widget.type === 'craftingQueue') {
+      return (
+        <CraftingQueueWidget
+          widget={widget}
+          cpus={storage?.cpus}
+          titleColor={colors.titleColor}
+          formatNumber={fmtNum}
+        />
+      );
+    }
 
     if (loading && !storage && !power && !gt) {
       return wrap(
@@ -484,6 +560,7 @@ export function Dashboard() {
 
         const isPct = ds.includes('Percent') || ds === 'cpuBusyRatio';
         const isMspt = ds === 'serverMspt';
+        const isTps = ds === 'serverTps';
         return wrap(
           <>
             {labelText(label)}
@@ -491,12 +568,20 @@ export function Dashboard() {
               <ChartTrendSvg
                 series={merged}
                 formatValue={(v) =>
-                  isMspt ? v.toFixed(1) + ' ms' : isPct ? v.toFixed(1) + '%' : fmtNum(v)
+                  isMspt
+                    ? v.toFixed(1) + ' ms'
+                    : isTps
+                      ? v.toFixed(1)
+                      : isPct
+                        ? v.toFixed(1) + '%'
+                        : fmtNum(v)
                 }
                 formatTime={(ts) => formatTime(ts)}
                 showValueAxis={settings.chartShowValueAxis}
                 showTimeAxis={settings.chartShowTimeAxis}
                 stretchMode={chartStretch}
+                yDomain={isTps ? [0, 20] : undefined}
+                recipe={chartRecipe}
                 colors={{
                   gridColor: colors.chartGridColor || 'var(--border-light)',
                   pointColor: colors.chartPointColor || lineColor,
@@ -802,7 +887,8 @@ export function Dashboard() {
             fmtNum,
             labelText,
             label,
-            wrap
+            wrap,
+            chartRecipe
           );
         }
         if (widget.dataSource === 'machineByStatus') {
@@ -815,7 +901,8 @@ export function Dashboard() {
             fmtNum,
             labelText,
             label,
-            wrap
+            wrap,
+            chartRecipe
           );
         }
         if (widget.dataSource === 'networkCompare') {
@@ -853,7 +940,8 @@ export function Dashboard() {
           fmtNum,
           labelText,
           label,
-          wrap
+          wrap,
+          chartRecipe
         );
       }
 
@@ -869,7 +957,8 @@ export function Dashboard() {
             fmtNum,
             labelText,
             label,
-            wrap
+            wrap,
+            chartRecipe
           );
         }
         if (widget.dataSource === 'machineByStatus') {
@@ -882,7 +971,8 @@ export function Dashboard() {
             fmtNum,
             labelText,
             label,
-            wrap
+            wrap,
+            chartRecipe
           );
         }
         return renderCategoricalPieChart(
@@ -906,7 +996,8 @@ export function Dashboard() {
           fmtNum,
           labelText,
           label,
-          wrap
+          wrap,
+          chartRecipe
         );
       }
 
@@ -942,6 +1033,7 @@ export function Dashboard() {
               getValue={dataSourceValue}
               getLabel={dataSourceLabel}
               fmtNum={fmtNum}
+              recipe={chartRecipe}
             />
           </>
         );
@@ -953,29 +1045,72 @@ export function Dashboard() {
   };
 
   const handleAddWidget = () => {
+    const type = (newWidget.type || 'statCard') as DashboardWidgetConfig['type'];
     const widget: DashboardWidgetConfig = {
       id: 'w-' + Date.now(),
-      type: (newWidget.type || 'statCard') as DashboardWidgetConfig['type'],
-      dataSource: newWidget.dataSource || 'itemCount',
+      type,
+      dataSource: isLayoutOrFeedType(type)
+        ? (type === 'alertsSummary' ? 'alertsActive' : type === 'craftingQueue' ? 'craftingBusy' : 'none')
+        : (newWidget.dataSource || 'itemCount'),
       scope: (newWidget.scope || 'perNetwork') as 'global' | 'perNetwork',
       title: newWidget.title || '',
-      width: newWidget.width || 3,
-      height: newWidget.height || 2,
+      width: newWidget.width || (type === 'group' ? 6 : 3),
+      height: newWidget.height || (type === 'group' ? 4 : 2),
       x: 0,
       y: 0,
+      contentScale: 1,
+      pins: [],
+      children: type === 'group' ? [] : undefined,
+      noteText: type === 'textNote' ? '' : undefined,
     };
-    saveSettings({ ...settings, widgets: [...settings.widgets, widget] });
+    if (addTargetGroupId) {
+      saveSettings({
+        ...settings,
+        widgets: addChildToGroup(settings.widgets, addTargetGroupId, widget),
+      });
+    } else {
+      saveSettings({ ...settings, widgets: [...settings.widgets, widget] });
+    }
     setAddWidgetOpen(false);
+    setAddTargetGroupId(null);
     setNewWidget({ type: 'statCard', dataSource: 'itemCount', scope: 'perNetwork', title: '', width: 3, height: 2 });
   };
 
+  const handleAddFromPalette = (preset: (typeof PALETTE_PRESETS)[number]) => {
+    const widget: DashboardWidgetConfig = {
+      id: 'w-' + Date.now(),
+      type: preset.type,
+      dataSource: preset.dataSource,
+      scope: 'perNetwork',
+      title: '',
+      width: preset.w,
+      height: preset.h,
+      x: 0,
+      y: 0,
+      contentScale: 1,
+      pins: [],
+      children: preset.type === 'group' ? [] : undefined,
+    };
+    saveSettings({ ...settings, widgets: [...settings.widgets, widget] });
+  };
+
   const handleDeleteWidget = (id: string) => {
-    saveSettings({ ...settings, widgets: settings.widgets.filter((w) => w.id !== id) });
+    saveSettings({ ...settings, widgets: removeWidgetById(settings.widgets, id) });
   };
 
   const handleCopyWidget = (widget: DashboardWidgetConfig) => {
     const copy = copyWidgetConfig(widget, 'w-');
+    // If copying a child, we append to root; GroupWidget copy appends inside group via callback.
     saveSettings({ ...settings, widgets: [...settings.widgets, copy] });
+    notify(t('widgetCopied'), 'success');
+  };
+
+  const handleCopyChildIntoGroup = (groupId: string, child: DashboardWidgetConfig) => {
+    const copy = copyWidgetConfig(child, 'w-');
+    saveSettings({
+      ...settings,
+      widgets: addChildToGroup(settings.widgets, groupId, copy),
+    });
     notify(t('widgetCopied'), 'success');
   };
 
@@ -999,10 +1134,9 @@ export function Dashboard() {
     }
   }, [notify, t]);
 
-  // 重建 GridStack 的依赖：widget id 列表 + 每个 widget 的宽高（Edit Modal
-  // 改宽高后需重建以应用新尺寸）+ editMode + 网络 + margin。
+  // 重建 GridStack 的依赖：widget id 列表 + 每个 widget 的宽高（含嵌套）+ 锁标志
   const layoutSignature = useMemo(
-    () => widgets.map((w) => `${w.id}_${w.width}_${w.height}`).join(','),
+    () => widgetLayoutSignature(widgets),
     [widgets]
   );
 
@@ -1022,6 +1156,9 @@ export function Dashboard() {
         // init 完成后立即 grid.float(false) 恢复拖拽下落行为，仅设置标志不重排已有节点。
         float: true,
         animate: true,
+        acceptWidgets: false,
+        removable: editMode ? '.dashboard-trash' : false,
+        removableOptions: { accept: '.grid-stack-item' },
       },
       gridRef.current
     );
@@ -1032,29 +1169,35 @@ export function Dashboard() {
       const nodes = grid.engine.nodes;
       if (!nodes.length) return;
       setSettings((prev) => {
-        const nextWidgets = prev.widgets.map((w) => {
-          const node = nodes.find((n) => n.id === w.id);
-          if (!node) return w;
-          return {
-            ...w,
-            x: node.x ?? w.x,
-            y: node.y ?? w.y,
-            width: node.w ?? w.width,
-            height: node.h ?? w.height,
-          };
-        });
+        const nextWidgets = applyOuterNodePositions(prev.widgets, nodes);
+        const next = { ...prev, widgets: nextWidgets };
+        scheduleLayoutSave(next);
+        return next;
+      });
+    };
+    const onRemoved = (_ev: Event, items: Array<{ id?: string | number }>) => {
+      if (!items?.length) return;
+      setSettings((prev) => {
+        let nextWidgets = prev.widgets;
+        for (const item of items) {
+          if (item.id != null) {
+            nextWidgets = removeWidgetById(nextWidgets, String(item.id));
+          }
+        }
         const next = { ...prev, widgets: nextWidgets };
         scheduleLayoutSave(next);
         return next;
       });
     };
     grid.on('change', onChange);
+    grid.on('removed', onRemoved);
     grid.on('dragstop', flushLayoutSave);
     grid.on('resizestop', flushLayoutSave);
 
     return () => {
       flushLayoutSave();
       grid.off('change');
+      grid.off('removed');
       grid.off('dragstop');
       grid.off('resizestop');
       grid.destroy(false);
@@ -1091,7 +1234,14 @@ export function Dashboard() {
           >
             {editMode ? t('done') : t('editDashboard')}
           </Button>
-          <Button icon={<PlusOutlined />} onClick={() => setAddWidgetOpen(true)} disabled={!editMode}>
+          <Button
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setAddTargetGroupId(null);
+              setAddWidgetOpen(true);
+            }}
+            disabled={!editMode}
+          >
             {t('addWidget')}
           </Button>
           <Tooltip title={t('autoArrangeHint')}>
@@ -1109,59 +1259,113 @@ export function Dashboard() {
         </Space>
       }
     >
-      <div className="grid-stack" ref={gridRef} style={{ padding: settings.margin }}>
-        {widgets.map((widget) => (
-          <div
-            key={widget.id}
-            className="grid-stack-item"
-            gs-id={widget.id}
-            gs-x={widget.x}
-            gs-y={widget.y}
-            gs-w={widget.width}
-            gs-h={widget.height}
-            gs-min-w={1}
-            gs-min-h={1}
-          >
-            <WidgetShell
-              widget={widget}
-              settings={settings}
-              lastUpdateTime={lastUpdateTime}
-              editOverlay={
-                editMode ? (
-                  <div className="dashboard-grid-edit-actions" style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}>
-                    <Tooltip title={t('editWidget')}>
-                      <Button
-                        size="small"
-                        icon={<SettingOutlined />}
-                        onClick={() => setEditWidgetTarget(widget)}
-                        aria-label={t('editWidget')}
-                      />
-                    </Tooltip>
-                    <Tooltip title={t('copyWidget')}>
-                      <Button
-                        size="small"
-                        icon={<PlusOutlined />}
-                        onClick={() => handleCopyWidget(widget)}
-                        aria-label={t('copyWidget')}
-                      />
-                    </Tooltip>
-                    <Tooltip title={t('deleteWidget')}>
-                      <Button
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDeleteWidget(widget.id)}
-                        aria-label={t('deleteWidget')}
-                      />
-                    </Tooltip>
-                  </div>
-                ) : undefined
-              }
-            >
-              {renderWidget(widget)}
-            </WidgetShell>
+      <div className="dashboard-grid-wrap">
+        {editMode && (
+          <div className="dashboard-palette" aria-label={t('widgetPalette')}>
+            <span className="dashboard-palette-label">{t('widgetPalette')}</span>
+            <Space wrap size={[6, 6]}>
+              {PALETTE_PRESETS.map((p) => (
+                <Button
+                  key={p.type + p.dataSource}
+                  size="small"
+                  onClick={() => handleAddFromPalette(p)}
+                >
+                  {t('widgetType_' + p.type)}
+                </Button>
+              ))}
+            </Space>
           </div>
-        ))}
+        )}
+        <div className="grid-stack" ref={gridRef} style={{ padding: settings.margin }}>
+          {widgets.map((widget) => (
+            <div
+              key={widget.id}
+              className="grid-stack-item"
+              gs-id={widget.id}
+              gs-x={widget.x}
+              gs-y={widget.y}
+              gs-w={widget.width}
+              gs-h={widget.height}
+              gs-min-w={1}
+              gs-min-h={1}
+              {...(widget.locked ? { 'gs-locked': 'yes' } : {})}
+              {...(widget.noMove ? { 'gs-no-move': 'yes' } : {})}
+              {...(widget.noResize ? { 'gs-no-resize': 'yes' } : {})}
+              {...(widget.sizeToContent ? { 'gs-size-to-content': 'true' } : {})}
+            >
+              <WidgetShell
+                widget={widget}
+                settings={settings}
+                lastUpdateTime={lastUpdateTime}
+                className={widget.type === 'group' ? 'widget-shell--group' : undefined}
+                editOverlay={
+                  editMode && widget.type !== 'group' ? (
+                    <div className="dashboard-grid-edit-actions" style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}>
+                      <Tooltip title={t('editWidget')}>
+                        <Button
+                          size="small"
+                          icon={<SettingOutlined />}
+                          onClick={() => setEditWidgetTarget(widget)}
+                          aria-label={t('editWidget')}
+                        />
+                      </Tooltip>
+                      <Tooltip title={t('copyWidget')}>
+                        <Button
+                          size="small"
+                          icon={<PlusOutlined />}
+                          onClick={() => handleCopyWidget(widget)}
+                          aria-label={t('copyWidget')}
+                        />
+                      </Tooltip>
+                      <Tooltip title={t('deleteWidget')}>
+                        <Button
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleDeleteWidget(widget.id)}
+                          aria-label={t('deleteWidget')}
+                        />
+                      </Tooltip>
+                    </div>
+                  ) : undefined
+                }
+              >
+                {widget.type === 'group' ? (
+                  <GroupWidget
+                    widget={widget}
+                    settings={settings}
+                    editMode={editMode}
+                    lastUpdateTime={lastUpdateTime}
+                    renderChild={renderWidget}
+                    flushLayoutSave={flushLayoutSave}
+                    onChildrenChange={(children) => {
+                      saveSettings({
+                        ...settings,
+                        widgets: updateWidgetById(settings.widgets, widget.id, (g) => ({ ...g, children })),
+                      });
+                    }}
+                    onEditGroup={() => setEditWidgetTarget(widget)}
+                    onEditChild={(child) => setEditWidgetTarget(child)}
+                    onCopyChild={(child) => handleCopyChildIntoGroup(widget.id, child)}
+                    onDeleteChild={(childId) => handleDeleteWidget(childId)}
+                    onAddChild={() => {
+                      setAddTargetGroupId(widget.id);
+                      setAddWidgetOpen(true);
+                    }}
+                  />
+                ) : (
+                  renderWidget(widget)
+                )}
+              </WidgetShell>
+            </div>
+          ))}
+        </div>
+        {editMode && (
+          <div className="dashboard-trash" title={t('dashboardTrashHint')}>
+            <DeleteFilled />
+            <span>{t('dashboardTrash')}</span>
+          </div>
+        )}
       </div>
 
       <DashboardSettingsDrawer
@@ -1175,43 +1379,66 @@ export function Dashboard() {
 
       {/* Add Widget Modal */}
       <Modal
-        title={t('addWidget')}
+        title={addTargetGroupId ? t('addWidgetToGroup') : t('addWidget')}
         open={addWidgetOpen}
         onOk={handleAddWidget}
-        onCancel={() => setAddWidgetOpen(false)}
+        onCancel={() => {
+          setAddWidgetOpen(false);
+          setAddTargetGroupId(null);
+        }}
         okText={t('ok')}
         cancelText={t('cancel')}
       >
         <Space direction="vertical" style={{ width: '100%' }}>
-          <div>
-            <span>{t('dataSource')}</span>
-            <Select
-              style={{ width: '100%', marginTop: 4 }}
-              value={newWidget.dataSource}
-              onChange={(v) => {
-                const valid = getValidChartTypes(v);
-                const typeOk = newWidget.type && valid.includes(newWidget.type);
-                setNewWidget({
-                  ...newWidget,
-                  dataSource: v,
-                  type: typeOk ? newWidget.type : valid[0] || 'statCard',
-                });
-              }}
-              options={DATA_SOURCES.map((ds) => ({ label: t('dataSource_' + ds), value: ds }))}
-              showSearch
-              optionFilterProp="label"
-            />
-          </div>
+          {!isLayoutOrFeedType((newWidget.type || 'statCard') as DashboardWidgetConfig['type']) && (
+            <div>
+              <span>{t('dataSource')}</span>
+              <Select
+                style={{ width: '100%', marginTop: 4 }}
+                value={newWidget.dataSource}
+                onChange={(v) => {
+                  const valid = getValidChartTypes(v);
+                  const typeOk = newWidget.type && valid.includes(newWidget.type);
+                  setNewWidget({
+                    ...newWidget,
+                    dataSource: v,
+                    type: typeOk ? newWidget.type : valid[0] || 'statCard',
+                  });
+                }}
+                options={DATA_SOURCES.filter((ds) => !['none', 'alertsActive', 'craftingBusy'].includes(ds)).map((ds) => ({
+                  label: t('dataSource_' + ds),
+                  value: ds,
+                }))}
+                showSearch
+                optionFilterProp="label"
+              />
+            </div>
+          )}
           <div>
             <span>{t('editWidget_type')}</span>
             <Select
               style={{ width: '100%', marginTop: 4 }}
               value={newWidget.type}
-              onChange={(v) => setNewWidget({ ...newWidget, type: v })}
-              options={(newWidget.dataSource
+              onChange={(v) => {
+                const type = v as DashboardWidgetConfig['type'];
+                setNewWidget({
+                  ...newWidget,
+                  type,
+                  dataSource: isLayoutOrFeedType(type)
+                    ? (type === 'alertsSummary' ? 'alertsActive' : type === 'craftingQueue' ? 'craftingBusy' : 'none')
+                    : (newWidget.dataSource && !['none', 'alertsActive', 'craftingBusy'].includes(newWidget.dataSource)
+                      ? newWidget.dataSource
+                      : 'itemCount'),
+                  width: type === 'group' ? 6 : newWidget.width || 3,
+                  height: type === 'group' ? 4 : newWidget.height || 2,
+                });
+              }}
+              options={(newWidget.dataSource && !isLayoutOrFeedType((newWidget.type || 'statCard') as DashboardWidgetConfig['type'])
                 ? getValidChartTypes(newWidget.dataSource)
                 : WIDGET_TYPES
               )
+                .concat(WIDGET_TYPES.filter(isLayoutOrFeedType))
+                .filter((tp, i, arr) => arr.indexOf(tp) === i)
                 .filter((tp) => WIDGET_TYPES.includes(tp))
                 .map((tp) => ({ label: t('widgetType_' + tp), value: tp }))}
             />
@@ -1237,7 +1464,7 @@ export function Dashboard() {
           if (editWidgetTarget) {
             saveSettings({
               ...settings,
-              widgets: settings.widgets.map((w) => (w.id === editWidgetTarget.id ? editWidgetTarget : w)),
+              widgets: updateWidgetById(settings.widgets, editWidgetTarget.id, () => editWidgetTarget),
             });
           }
           setEditWidgetTarget(null);

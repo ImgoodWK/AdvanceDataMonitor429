@@ -15,7 +15,10 @@ export type DataSourceCategory =
   | 'list'
   | 'categorical'
   | 'multiAxis'
-  | 'pinned';
+  | 'pinned'
+  | 'layout'
+  | 'alertsFeed'
+  | 'craftingFeed';
 
 /**
  * Which chart types make sense for each category. Used by
@@ -35,6 +38,9 @@ export const VALID_CHART_TYPES_FOR_CATEGORY: Record<
   categorical: ['barChart', 'pieChart', 'radarChart'],
   multiAxis: ['lineChart', 'barChart'],
   pinned: ['statCard', 'progressBar', 'gauge', 'lineChart', 'barChart', 'pieChart', 'dataTable', 'radarChart'],
+  layout: ['group', 'textNote', 'spacer'],
+  alertsFeed: ['alertsSummary'],
+  craftingFeed: ['craftingQueue'],
 };
 
 const DATA_SOURCE_CATEGORY_MAP: Record<string, DataSourceCategory> = {
@@ -79,6 +85,10 @@ const DATA_SOURCE_CATEGORY_MAP: Record<string, DataSourceCategory> = {
   networkBalance: 'list',
   // Custom pin bundle (items/fluids/CPUs/…)
   customPins: 'pinned',
+  // Layout / feed widgets (no AE scalar)
+  none: 'layout',
+  alertsActive: 'alertsFeed',
+  craftingBusy: 'craftingFeed',
 };
 
 /**

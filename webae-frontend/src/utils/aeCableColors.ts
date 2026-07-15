@@ -3,6 +3,8 @@
  * Icon meta values follow GTNH AE2 ItemMultiPart damage for covered/smart/dense parts.
  */
 
+import { getIconVersion } from '@/utils/icon';
+
 export type AeCableColorId =
   | 'fluix'
   | 'iron'
@@ -84,6 +86,23 @@ export function aeCableBlockIconId(
     cableType === 'dense' ? preset.denseMeta : cableType === 'smart' ? preset.smartMeta : preset.coveredMeta;
   // BlockCableBus uses the same ItemBlock damage values for cable colors
   return `appeng:tile.BlockCableBus:${meta}`;
+}
+
+/**
+ * Direct AE2 classpath cable PNG (default Fluix ItemPart.Cable*).
+ * Independent of icon pack / BlockCableBus render — used by simulated topology.
+ */
+export function buildAeCableTextureUrl(
+  cableType: 'smart' | 'covered' | 'dense',
+  token: string
+): string {
+  const params = new URLSearchParams();
+  params.set('type', cableType);
+  if (token) {
+    params.set('token', token);
+  }
+  params.set('v', String(getIconVersion()));
+  return '/api/ae2/cable-texture?' + params.toString();
 }
 
 /** Block texture icon ids for simulated topology devices. */

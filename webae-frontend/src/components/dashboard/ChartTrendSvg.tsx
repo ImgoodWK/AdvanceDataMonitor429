@@ -1,90 +1,53 @@
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
-
-
+import type { ChartStyleRecipe } from '@/theme/pageStyles';
+import { CHART_STYLE_RECIPES } from '@/theme/pageStyles';
 
 export interface ChartTrendPoint {
-
   value: number;
-
   ts?: number;
-
   label?: string;
-
 }
-
-
 
 export interface ChartTrendSeries {
-
   id: string;
-
   label: string;
-
   points: ChartTrendPoint[];
-
   lineColor: string;
-
   areaColor?: string;
-
   dashed?: boolean;
-
 }
-
-
 
 export interface ChartTrendColors {
-
   gridColor?: string;
-
   pointColor?: string;
-
   /** 坐标轴文字色（空=继承 CSS 默认） */
   axisTextColor?: string;
-
 }
-
-
 
 interface ChartTrendSvgProps {
-
   series: ChartTrendSeries[];
-
   formatValue: (v: number, seriesId: string) => string;
-
   formatTime?: (ts: number) => string;
-
   colors?: ChartTrendColors;
-
   className?: string;
-
   /** 显示左侧 Y 轴数值刻度 */
-
   showValueAxis?: boolean;
-
   /** 显示底部时间戳刻度 */
-
   showTimeAxis?: boolean;
-
   /** fit=保持比例；stretchX=横向铺满；fill=横向铺满+撑满高度 */
   stretchMode?: 'fit' | 'stretchX' | 'fill';
-
+  /** Fixed Y-axis domain (e.g. TPS [0, 20]). When set, disables auto-scaling. */
+  yDomain?: [number, number];
+  /** Visual recipe (pageStyle / widget chartStyle). Defaults to classic. */
+  recipe?: ChartStyleRecipe;
 }
-
-
 
 interface HoverInfo {
-
   x: number;
-
   y: number;
-
   index: number;
-
   lines: Array<{ seriesId: string; label: string; valueText: string; timeText: string; color: string }>;
-
 }
-
-
 
 function normalizeSeries(
   points: ChartTrendPoint[],
@@ -100,42 +63,25 @@ function normalizeSeries(
   }));
 }
 
-
-
 function computeValueRange(series: ChartTrendSeries[]): { min: number; max: number } {
-
   const values = series.flatMap((s) => s.points.map((p) => p.value));
-
   if (values.length === 0) return { min: 0, max: 1 };
-
   const min = Math.min(...values);
-
   const max = Math.max(...values, 1);
-
   return { min, max: max === min ? max + 1 : max };
-
 }
 
-
-
 export function ChartTrendSvg({
-
   series,
-
   formatValue,
-
   formatTime,
-
   colors,
-
   className,
-
   showValueAxis = false,
-
   showTimeAxis = false,
-
   stretchMode = 'fit',
-
+  yDomain,
+  recipe = CHART_STYLE_RECIPES.classic,
 }: ChartTrendSvgProps) {
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -154,7 +100,12 @@ export function ChartTrendSvg({
 
   );
 
-  const valueRange = useMemo(() => computeValueRange(filteredSeries), [filteredSeries]);
+  const valueRange = useMemo(() => {
+    if (yDomain && yDomain.length === 2 && yDomain[1] > yDomain[0]) {
+      return { min: yDomain[0], max: yDomain[1] };
+    }
+    return computeValueRange(filteredSeries);
+  }, [filteredSeries, yDomain]);
 
   const normalized = useMemo(
 
@@ -354,110 +305,60 @@ export function ChartTrendSvg({
 
       </defs>
 
-      {[20, 40, 60, 80].map((y) => (
-
+      {[...recipe.gridYs].map((y) => (
         <line
-
           key={`grid-${y}`}
-
           x1={0}
-
           y1={y}
-
           x2={100}
-
           y2={y}
-
           stroke={gridColor}
-
-          strokeWidth={0.3}
-
+          strokeWidth={recipe.gridStrokeWidth}
           vectorEffect="non-scaling-stroke"
-
-          opacity={0.5}
-
+          opacity={recipe.gridOpacity}
         />
-
       ))}
 
       <g clipPath={`url(#${clipId})`}>
-
         {normalized.map((s) => (
-
           <g key={s.id}>
-
-            {s.areaColor && (
-
+            {recipe.showArea && s.areaColor && (
               <polygon
-
                 className="chart-svg-area"
-
                 points={`0,100 ${s.poly} 100,100`}
-
                 fill={s.areaColor}
-
-                opacity={0.3}
-
+                opacity={recipe.areaOpacity}
               />
-
             )}
-
             <polyline
-
               className="chart-svg-line chart-flow-line"
-
               points={s.poly}
-
               fill="none"
-
               stroke={s.lineColor}
-
-              strokeWidth={1.5}
-
+              strokeWidth={recipe.strokeWidth}
               vectorEffect="non-scaling-stroke"
-
               strokeDasharray={s.dashed ? '4 2' : undefined}
-
             />
-
           </g>
-
         ))}
-
       </g>
 
-      {hover != null && stretchMode === 'fit' &&
-
+      {hover != null && stretchMode === 'fit' && recipe.pointRadius > 0 &&
         normalized.map((s) => {
-
           const n = s.norm[hover.index];
-
           if (!n) return null;
-
           return (
-
             <circle
-
               key={`pt-${s.id}`}
-
               cx={n.x}
-
               cy={n.y}
-
-              r={1.8}
-
+              r={recipe.pointRadius}
               fill={pointColor}
-
               stroke={s.lineColor}
-
               strokeWidth={0.6}
-
               vectorEffect="non-scaling-stroke"
-
             />
-
           );
-
         })}
 
       {hover != null && stretchMode === 'fit' && (
@@ -563,49 +464,28 @@ export function ChartTrendSvg({
               />
 
               {normalized.map((s) => {
-
                 const n = s.norm[hover.index];
-
-                if (!n) return null;
-
+                if (!n || recipe.pointRadius <= 0) return null;
                 const rect = svgRef.current!.getBoundingClientRect();
-
                 const left = (n.x / 100) * rect.width;
-
                 const top = (n.y / 100) * rect.height;
-
+                const pr = Math.max(4, recipe.pointRadius * 2);
                 return (
-
                   <div
-
                     key={`hover-pt-${s.id}`}
-
                     style={{
-
                       position: 'absolute',
-
-                      left: left - 4,
-
-                      top: top - 4,
-
-                      width: 8,
-
-                      height: 8,
-
+                      left: left - pr / 2,
+                      top: top - pr / 2,
+                      width: pr,
+                      height: pr,
                       borderRadius: '50%',
-
                       background: pointColor,
-
                       border: `1.5px solid ${s.lineColor}`,
-
                       boxSizing: 'border-box',
-
                     }}
-
                   />
-
                 );
-
               })}
 
             </div>

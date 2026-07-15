@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.util.Map;
 
 import com.imgood.textech.webae.api.handler.AdminPlayerHandler;
+import com.imgood.textech.webae.api.handler.AeCableTextureHandler;
 import com.imgood.textech.webae.api.handler.AlertsHandler;
 import com.imgood.textech.webae.api.handler.AssistantHandler;
 import com.imgood.textech.webae.api.handler.AuthAdminElevateHandler;
@@ -301,6 +302,12 @@ public class WebApiRouter {
         if ("/api/icon".equals(uri) || uri.startsWith("/api/icon/")) {
 
             return IconHandler.handle(uri, session, auth, adminHeader);
+
+        }
+
+        if ("/api/ae2/cable-texture".equals(uri)) {
+
+            return AeCableTextureHandler.handle(session);
 
         }
 

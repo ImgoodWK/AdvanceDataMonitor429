@@ -10,6 +10,7 @@ import type {
 } from '@/types/dto';
 import type { DashboardPin, DashboardWidgetConfig } from '@/utils/presets';
 import { entityApiKey } from '@/utils/dashboardPins';
+import { flattenWidgets } from '@/utils/dashboardTree';
 
 export interface PinSeriesMap {
   items: Record<string, ChartTrendPoint[]>;
@@ -21,7 +22,7 @@ export interface PinSeriesMap {
 function collectPins(widgets: DashboardWidgetConfig[]): DashboardPin[] {
   const out: DashboardPin[] = [];
   const seen = new Set<string>();
-  for (const w of widgets) {
+  for (const w of flattenWidgets(widgets)) {
     for (const p of w.pins || []) {
       const k = `${p.kind}:${p.id}:${p.metricField || ''}`;
       if (seen.has(k)) continue;

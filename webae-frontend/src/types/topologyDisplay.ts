@@ -14,6 +14,7 @@ function defaultCategoryVisibility(): Record<WorldMapAeCategoryId, boolean> {
 }
 
 export type TopologyLayoutDirection = 'LR' | 'TB';
+/** @deprecated `simulated` is gated by server `topologySimulatedEnabled` (default off). */
 export type TopologyRenderMode = 'abstract' | 'simulated';
 export type TopologyAbstractLayout = 'tree' | 'star';
 export type TopologyLabelStrategy = 'external' | 'below' | 'hover';

@@ -1,7 +1,13 @@
 import { Empty, Progress, Skeleton, Tag } from 'antd';
 import type { CSSProperties, ReactNode } from 'react';
 import type { DashboardSettings, DashboardWidgetConfig } from '@/utils/presets';
-import { resolveProp, resolveAllColors, resolveChartStretchMode, resolveColorArray } from '@/utils/dashboardResolve';
+import {
+  resolveProp,
+  resolveAllColors,
+  resolveChartStretchMode,
+  resolveColorArray,
+  resolveChartStyleRecipe,
+} from '@/utils/dashboardResolve';
 import { formatBytes, formatTime, formatLargeWithDelta, formatSignificant } from '@/utils/format';
 import type {
   GtMachineDto,
@@ -27,6 +33,9 @@ import {
   isHistoryDataSource,
   isPowerHistoryDataSource,
 } from '@/utils/dataSourceChartMap';
+import { useAppContext } from '@/context/AppContext';
+import type { ChartStyleRecipe } from '@/theme/pageStyles';
+import { CHART_STYLE_RECIPES } from '@/theme/pageStyles';
 
 export interface WidgetContentProps {
   widget: DashboardWidgetConfig;
@@ -63,6 +72,8 @@ export function WidgetContent({
   gtMap,
   selectedNetworks,
 }: WidgetContentProps) {
+  const { pageStyle } = useAppContext();
+  const chartRecipe = resolveChartStyleRecipe(widget, settings, pageStyle);
   const value = getOverviewDataSourceValue(widget.dataSource, snapshot);
   const isPercent =
     widget.dataSource.includes('Percent') ||
@@ -243,6 +254,7 @@ export function WidgetContent({
                 showValueAxis={settings.chartShowValueAxis}
                 showTimeAxis={settings.chartShowTimeAxis}
                 stretchMode={resolveChartStretchMode(widget, settings, widget.type)}
+                recipe={chartRecipe}
                 colors={{
                   gridColor: colors.chartGridColor || 'var(--border-light)',
                   pointColor: colors.chartPointColor || lineColor,
@@ -311,7 +323,8 @@ export function WidgetContent({
           fmtNum,
           labelText,
           label,
-          wrap
+          wrap,
+          chartRecipe
         );
       }
       if (widget.dataSource === 'networkCompare' && storageMap && powerMap && gtMap && selectedNetworks) {
@@ -338,7 +351,8 @@ export function WidgetContent({
           fmtNum,
           labelText,
           label,
-          wrap
+          wrap,
+          chartRecipe
         );
       }
       return wrap(
@@ -359,7 +373,8 @@ export function WidgetContent({
           fmtNum,
           labelText,
           label,
-          wrap
+          wrap,
+          chartRecipe
         );
       }
       if (widget.dataSource === 'storageByCategory') {
@@ -372,7 +387,8 @@ export function WidgetContent({
           fmtNum,
           labelText,
           label,
-          wrap
+          wrap,
+          chartRecipe
         );
       }
       return wrap(
@@ -474,10 +490,12 @@ export function renderCategoricalBarChart(
   fmtNum: (n: number) => string,
   labelText: (text: string) => ReactNode,
   label: string,
-  wrap: (children: ReactNode) => ReactNode
+  wrap: (children: ReactNode) => ReactNode,
+  recipe: ChartStyleRecipe = CHART_STYLE_RECIPES.classic
 ): ReactNode {
   const maxVal = Math.max(...categories.map((c) => c.value), 1);
   const barPalette = resolveColorArray(widget, settings, 'barSegmentColors');
+  const r = recipe.barTopRadius;
   return wrap(
     <>
       {labelText(label)}
@@ -502,7 +520,7 @@ export function renderCategoricalBarChart(
               style={{
                 height: `${(cat.value / maxVal) * 100}%`,
                 background: resolveCategoryColor(cat, i, widget, settings, chartColor, 'barSegmentColors'),
-                borderRadius: '4px 4px 0 0',
+                borderRadius: r > 0 ? `${r}px ${r}px 0 0` : 0,
                 minHeight: 2,
                 transition: 'height 0.3s',
               }}
@@ -525,7 +543,8 @@ export function renderCategoricalPieChart(
   fmtNum: (n: number) => string,
   labelText: (text: string) => ReactNode,
   label: string,
-  wrap: (children: ReactNode) => ReactNode
+  wrap: (children: ReactNode) => ReactNode,
+  recipe: ChartStyleRecipe = CHART_STYLE_RECIPES.classic
 ): ReactNode {
   const piePalette = resolveColorArray(widget, settings, 'pieSliceColors');
   const palette = categories.map((cat, i) =>
@@ -533,12 +552,14 @@ export function renderCategoricalPieChart(
   );
   let offset = 0;
   const total = categories.reduce((s, c) => s + c.value, 0) || 1;
+  const pr = recipe.pieRadius;
+  const psw = recipe.pieStrokeWidth;
   return wrap(
     <>
       {labelText(label)}
       <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
         <svg viewBox="0 0 42 42" preserveAspectRatio="xMidYMid meet" className="chart-svg">
-          <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--bg-secondary)" strokeWidth="6" />
+          <circle cx="21" cy="21" r={pr} fill="transparent" stroke="var(--bg-secondary)" strokeWidth={psw} />
           <g className="chart-pie-group">
             {categories.map((cat, i) => {
               const dash = (cat.value / total) * 100;
@@ -547,10 +568,10 @@ export function renderCategoricalPieChart(
                   key={cat.label}
                   cx="21"
                   cy="21"
-                  r="15.9"
+                  r={pr}
                   fill="transparent"
                   stroke={palette[i % palette.length]}
-                  strokeWidth="6"
+                  strokeWidth={psw}
                   strokeDasharray={`${dash} ${100 - dash}`}
                   strokeDashoffset={-offset}
                 />

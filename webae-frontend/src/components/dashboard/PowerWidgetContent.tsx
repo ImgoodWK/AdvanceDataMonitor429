@@ -1,7 +1,12 @@
 import { Progress, Spin, Skeleton } from 'antd';
 import type { CSSProperties, ReactNode } from 'react';
 import type { DashboardSettings, DashboardWidgetConfig } from '@/utils/presets';
-import { resolveProp, resolveAllColors, resolveChartStretchMode } from '@/utils/dashboardResolve';
+import {
+  resolveProp,
+  resolveAllColors,
+  resolveChartStretchMode,
+  resolveChartStyleRecipe,
+} from '@/utils/dashboardResolve';
 import type { PowerSnapshot } from '@/utils/powerDataSources';
 import { getPowerDataSourceValue } from '@/utils/powerDataSources';
 import { ChartTrendSvg, type ChartTrendPoint } from '@/components/dashboard/ChartTrendSvg';
@@ -10,6 +15,7 @@ import {
   isHistoryDataSource,
   isPowerHistoryDataSource,
 } from '@/utils/dataSourceChartMap';
+import { useAppContext } from '@/context/AppContext';
 
 export interface PowerWidgetContentProps {
   widget: DashboardWidgetConfig;
@@ -48,6 +54,8 @@ export function PowerWidgetContent({
   networkId,
   getHistory,
 }: PowerWidgetContentProps) {
+  const { pageStyle } = useAppContext();
+  const chartRecipe = resolveChartStyleRecipe(widget, settings, pageStyle);
   const value = getPowerDataSourceValue(widget.dataSource, snapshot);
   const isPercent =
     widget.dataSource.includes('Percent') || widget.dataSource === 'euPercent';
@@ -242,6 +250,7 @@ export function PowerWidgetContent({
                 showValueAxis={settings.chartShowValueAxis}
                 showTimeAxis={settings.chartShowTimeAxis}
                 stretchMode={chartStretch}
+                recipe={chartRecipe}
                 colors={{
                   gridColor: colors.chartGridColor || 'var(--border-light)',
                   pointColor: colors.chartPointColor || lineColor,
@@ -300,6 +309,7 @@ export function PowerWidgetContent({
                 showValueAxis={settings.chartShowValueAxis}
                 showTimeAxis={settings.chartShowTimeAxis}
                 stretchMode={chartStretch}
+                recipe={chartRecipe}
                 colors={{
                   gridColor: colors.chartGridColor || 'var(--border-light)',
                   pointColor: colors.chartPointColor || lineColor,

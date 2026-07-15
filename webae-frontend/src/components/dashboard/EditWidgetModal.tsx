@@ -12,7 +12,9 @@ import { WidgetColorSection } from './WidgetColorSection';
 import { WidgetPinEditor } from './WidgetPinEditor';
 import { getValidChartTypes } from '@/utils/dataSourceChartMap';
 import { clampContentScale } from '@/utils/dashboardColumns';
+import { isLayoutOrFeedType } from '@/utils/dashboardTree';
 import type { StorageDto, GtMachineDto } from '@/types/dto';
+import { CHART_STYLES } from '@/theme/pageStyles';
 
 const { Text } = Typography;
 
@@ -39,6 +41,7 @@ interface EditWidgetModalProps {
 const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
   'statCard', 'progressBar', 'lineChart', 'barChart', 'pieChart',
   'dataTable', 'gauge', 'radarChart',
+  'group', 'textNote', 'spacer', 'alertsSummary', 'craftingQueue',
 ];
 
 const DATA_SOURCES = [
@@ -49,6 +52,7 @@ const DATA_SOURCES = [
   'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
   'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
   'customPins',
+  'none', 'alertsActive', 'craftingBusy',
 ];
 
 const STRETCH_OPTIONS = [
@@ -110,11 +114,22 @@ export function EditWidgetModal({
     patch({ colors: { ...ensureColors(), ...p } });
 
   const hasPins = (widget.pins?.length ?? 0) > 0;
-  const validTypesForDs = hasPins && widget.dataSource === 'customPins'
-    ? getValidChartTypes('customPins')
-    : getValidChartTypes(widget.dataSource);
-  const availableWidgetTypes = allWidgetTypes.filter((tp) => validTypesForDs.includes(tp));
-  // Data-first: show all data sources; chart type list is filtered by selected data
+  const layoutOrFeed = isLayoutOrFeedType(widget.type);
+  const validTypesForDs = layoutOrFeed
+    ? getValidChartTypes(
+        widget.type === 'alertsSummary'
+          ? 'alertsActive'
+          : widget.type === 'craftingQueue'
+            ? 'craftingBusy'
+            : 'none'
+      )
+    : hasPins && widget.dataSource === 'customPins'
+      ? getValidChartTypes('customPins')
+      : getValidChartTypes(widget.dataSource);
+  const availableWidgetTypes = allWidgetTypes.filter((tp) => {
+    if (layoutOrFeed) return isLayoutOrFeedType(tp) || validTypesForDs.includes(tp);
+    return validTypesForDs.includes(tp);
+  });
   const availableDataSources = allDataSources;
 
   const colorsInherit = ensureColors().inheritDefault;
@@ -173,6 +188,8 @@ export function EditWidgetModal({
             label: t('editWidgetSection_basic'),
             children: (
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                {!layoutOrFeed && (
+                  <>
                 <div>
                   <Text strong>{t('dataSource')}</Text>
                   <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
@@ -197,9 +214,12 @@ export function EditWidgetModal({
                   scalarDataSources={allDataSources.filter(
                     (ds) =>
                       !['topItems', 'cpuList', 'gtMachineList', 'networkBalance', 'storageByCategory',
-                        'machineByStatus', 'networkCompare', 'customPins', 'powerHistory', 'playerOnlineTrend'].includes(ds)
+                        'machineByStatus', 'networkCompare', 'customPins', 'powerHistory', 'playerOnlineTrend',
+                        'none', 'alertsActive', 'craftingBusy'].includes(ds)
                   )}
                 />
+                  </>
+                )}
 
                 <div>
                   <Text strong>{t('editWidget_type')}</Text>
@@ -209,7 +229,22 @@ export function EditWidgetModal({
                   <Select
                     style={{ width: '100%', marginTop: 4 }}
                     value={widget.type}
-                    onChange={(v) => patch({ type: v })}
+                    onChange={(v) => {
+                      const nextType = v as DashboardWidgetConfig['type'];
+                      const patchExtra: Partial<DashboardWidgetConfig> = { type: nextType };
+                      if (isLayoutOrFeedType(nextType)) {
+                        patchExtra.dataSource =
+                          nextType === 'alertsSummary'
+                            ? 'alertsActive'
+                            : nextType === 'craftingQueue'
+                              ? 'craftingBusy'
+                              : 'none';
+                        if (nextType === 'group' && !widget.children) {
+                          patchExtra.children = [];
+                        }
+                      }
+                      patch(patchExtra);
+                    }}
                     options={availableWidgetTypes.map((tp) => ({ label: t('widgetType_' + tp), value: tp }))}
                   />
                 </div>
@@ -228,6 +263,32 @@ export function EditWidgetModal({
                   />
                 </div>
 
+                {widget.type === 'textNote' && (
+                  <div>
+                    <Text strong>{t('editWidget_noteText')}</Text>
+                    <Input.TextArea
+                      style={{ marginTop: 4 }}
+                      rows={4}
+                      value={widget.noteText || ''}
+                      onChange={(e) => patch({ noteText: e.target.value })}
+                      placeholder={t('editWidget_noteTextHint')}
+                    />
+                  </div>
+                )}
+
+                {(widget.type === 'alertsSummary' || widget.type === 'craftingQueue' || widget.type === 'dataTable') && (
+                  <div>
+                    <Text strong>{t('editWidget_maxRows')}</Text>
+                    <InputNumber
+                      style={{ width: '100%', marginTop: 4 }}
+                      min={1}
+                      max={50}
+                      value={widget.maxRows ?? (widget.type === 'dataTable' ? 10 : 5)}
+                      onChange={(v) => patch({ maxRows: v ?? 5 })}
+                    />
+                  </div>
+                )}
+
                 {widget.type === 'gauge' && (
                   <div>
                     <Text strong>{t('dashGaugeThreshold')}</Text>
@@ -236,6 +297,21 @@ export function EditWidgetModal({
                       min={0}
                       value={widget.gaugeThreshold ?? 0}
                       onChange={(v) => patch({ gaugeThreshold: v ?? 0 })}
+                    />
+                  </div>
+                )}
+
+                {(widget.type === 'statCard' || widget.type === 'gauge' || widget.type === 'progressBar') && (
+                  <div>
+                    <Text strong>{t('editWidget_alertThreshold')}</Text>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
+                      {t('editWidget_alertThresholdHint')}
+                    </Text>
+                    <InputNumber
+                      style={{ width: '100%', marginTop: 4 }}
+                      min={0}
+                      value={widget.alertThreshold ?? 0}
+                      onChange={(v) => patch({ alertThreshold: v ?? 0 })}
                     />
                   </div>
                 )}
@@ -327,6 +403,54 @@ export function EditWidgetModal({
                 </Space>
 
                 <div>
+                  <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Text strong>{t('editWidget_locked')}</Text>
+                    <Switch
+                      checked={!!widget.locked}
+                      onChange={(checked) => patch({ locked: checked || undefined })}
+                    />
+                  </Space>
+                  <Text type="secondary" style={{ fontSize: '0.75rem' }}>
+                    {t('editWidget_lockedHint')}
+                  </Text>
+                </div>
+                <div>
+                  <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Text strong>{t('editWidget_noMove')}</Text>
+                    <Switch
+                      checked={!!widget.noMove}
+                      onChange={(checked) => patch({ noMove: checked || undefined })}
+                    />
+                  </Space>
+                </div>
+                <div>
+                  <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Text strong>{t('editWidget_noResize')}</Text>
+                    <Switch
+                      checked={!!widget.noResize}
+                      onChange={(checked) => patch({ noResize: checked || undefined })}
+                    />
+                  </Space>
+                </div>
+                {(widget.type === 'dataTable'
+                  || widget.type === 'textNote'
+                  || widget.type === 'alertsSummary'
+                  || widget.type === 'craftingQueue') && (
+                  <div>
+                    <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+                      <Text strong>{t('editWidget_sizeToContent')}</Text>
+                      <Switch
+                        checked={!!widget.sizeToContent}
+                        onChange={(checked) => patch({ sizeToContent: checked || undefined })}
+                      />
+                    </Space>
+                    <Text type="secondary" style={{ fontSize: '0.75rem' }}>
+                      {t('editWidget_sizeToContentHint')}
+                    </Text>
+                  </div>
+                )}
+
+                <div>
                   <Text strong>{t('dashContentScale')}</Text>
                   <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem' }}>
                     {t('dashContentScaleHint')}
@@ -401,6 +525,24 @@ export function EditWidgetModal({
                       options={STRETCH_OPTIONS.map((o) => ({ label: t(o.labelKey), value: o.value }))}
                     />
                   )}
+
+                {isChartType && (
+                  <div>
+                    <Text strong>{t('chartStyle')}</Text>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '0.72rem' }}>
+                      {t('chartStyle_hint')}
+                    </Text>
+                    <Select
+                      style={{ width: '100%', marginTop: 4 }}
+                      value={widget.chartStyle ?? settings.defaultChartStyle ?? 'inherit'}
+                      onChange={(v) => patch({ chartStyle: v })}
+                      options={CHART_STYLES.map((id) => ({
+                        label: t('chartStyle_' + id),
+                        value: id,
+                      }))}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>

@@ -48,6 +48,8 @@ import type { Lang } from '@/i18n';
 import type { NumberFormat } from '@/utils/format';
 import type { ThemeColor } from '@/theme/colors';
 import type { ThemeLayout } from '@/theme/layouts';
+import type { PageStyle } from '@/theme/pageStyles';
+import { resolvePageStyle } from '@/theme/pageStyles';
 
 export const UI_SETTINGS_FORMAT = 'textech-webae-ui-settings' as const;
 export const UI_SETTINGS_VERSION = 1 as const;
@@ -86,6 +88,7 @@ export type UiSettingsSection =
 export interface UiSettingsGlobal {
   themeColor: string;
   themeLayout: string;
+  pageStyle: string;
   effectsLevel: EffectsLevel;
   lang: string;
   displayMode: DisplayMode;
@@ -145,6 +148,7 @@ export interface CollectUiSettingsOptions {
 export interface GlobalSettingsSetters {
   setThemeColor: (c: ThemeColor) => void;
   setThemeLayout: (l: ThemeLayout) => void;
+  setPageStyle: (s: PageStyle) => void;
   setEffectsLevel: (e: EffectsLevel) => void;
   setLang: (l: Lang) => void;
   setDisplayMode: (m: DisplayMode) => void;
@@ -249,6 +253,7 @@ export function readGlobalSettingsFromStorage(overrides?: Partial<UiSettingsGlob
   return {
     themeColor: overrides?.themeColor ?? readString('webae_theme_color', 'dark'),
     themeLayout: overrides?.themeLayout ?? readString('webae_theme_layout', 'standard'),
+    pageStyle: overrides?.pageStyle ?? readString('webae_page_style', 'classic'),
     effectsLevel: (overrides?.effectsLevel ?? readString('webae_effects_level', '')) as EffectsLevel,
     lang: overrides?.lang ?? readString('webae_lang', ''),
     displayMode: (overrides?.displayMode ?? readString('webae_display_mode', 'split')) as DisplayMode,
@@ -374,6 +379,7 @@ function migrateLegacyPreset(raw: Record<string, unknown>): WebUiSettingsBundle 
   const global: UiSettingsGlobal = {
     themeColor: String(settings.themeColor ?? 'dark'),
     themeLayout: String(settings.themeLayout ?? 'standard'),
+    pageStyle: String(settings.pageStyle ?? 'classic'),
     effectsLevel: (settings.effectsLevel ?? '') as EffectsLevel,
     lang: String(settings.lang ?? ''),
     displayMode: (settings.displayMode ?? 'split') as DisplayMode,
@@ -483,6 +489,7 @@ function applyOverviewSettings<T extends StorageOverviewSettings>(
 function applyGlobalToStorage(global: UiSettingsGlobal): void {
   localStorage.setItem('webae_theme_color', global.themeColor);
   localStorage.setItem('webae_theme_layout', global.themeLayout);
+  localStorage.setItem('webae_page_style', resolvePageStyle(global.pageStyle));
   localStorage.setItem('webae_effects_level', global.effectsLevel || '');
   if (global.lang) localStorage.setItem('webae_lang', global.lang);
   localStorage.setItem('webae_display_mode', global.displayMode);
@@ -502,6 +509,7 @@ function applyGlobalToStorage(global: UiSettingsGlobal): void {
 function applyGlobalToReact(global: UiSettingsGlobal, setters: GlobalSettingsSetters): void {
   setters.setThemeColor(global.themeColor as ThemeColor);
   setters.setThemeLayout(global.themeLayout as ThemeLayout);
+  setters.setPageStyle(resolvePageStyle(global.pageStyle));
   setters.setEffectsLevel(global.effectsLevel);
   if (global.lang) setters.setLang(global.lang as Lang);
   setters.setDisplayMode(global.displayMode);

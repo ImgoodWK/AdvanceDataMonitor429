@@ -12,7 +12,10 @@ import com.imgood.textech.webae.topology.LogicalTopologyBuilder.BuildResult;
 /**
  * Assigns grid coordinates for the simulated view with Manhattan cable routing.
  * Generates intermediate cable graph nodes between devices following tree/star semantics.
+ *
+ * @deprecated Only applied when {@code Config.webTopologySimulatedEnabled} is true.
  */
+@Deprecated
 public final class SimulatedLayoutBuilder {
 
     private static final int ORIGIN_X = 12;

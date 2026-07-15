@@ -22,7 +22,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 
 | Feature | Description |
 |---------|-------------|
-| Dashboard | 24 color schemes × 5 layout presets, draggable widget grid |
+| Dashboard | 61 color schemes × 8 layout presets × 59 page styles (bold + batch2), thumbnail preview tiles in Settings; draggable widget grid |
 | Storage / Fluids / Essentia | Dedicated sidebar pages; Storage also has item/fluid/essentia sub-tables |
 | Crafting CPUs | Standalone menu for AE2 crafting CPU status and details |
 | Power Monitor | Configurable EU/steam gauges, in/out rates, dual-series trend chart |
@@ -30,7 +30,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Recipe Search | Fuzzy NEI search with merged/compact/detailed layouts |
 | Pattern Manager | View, create, edit, and inject AE2 patterns into ME Interfaces |
 | AE Orders | Pattern/item/**craft tree** single orders with optional CPU selection and real AE2 progress |
-| Network Topology | Logical / spatial / **P2P channel** / **world map** views; simulated cables; CSV export |
+| Network Topology | Logical / spatial / **P2P channel** / **world map** views; abstract tree/star layouts; CSV export |
 | Quest Book | BetterQuesting lines/graph/submit assist (requires BQ) |
 | Link Scanner | Browse in-game scanner results, aliases, and coords |
 | Monitor Bindings | Read-only chart slots; per-slot **line preview** Drawer |
@@ -205,7 +205,7 @@ Optional CPU selector at top. **By pattern** tab: paginated Grid + Interface bro
 
 ### Network Topology
 
-Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channels**, and **world map** views. Logical/spatial use simulated star fake cables (not real AE routing); P2P view lists tunnel endpoints grouped by frequency. CSV export supported.
+Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channels**, and **world map** views. Logical/spatial use abstract tree or double-ring layouts (not real AE routing). The former cable-simulation view is deprecated (`topologySimulatedEnabled`, default off). P2P view lists tunnel endpoints grouped by frequency. CSV export supported.
 
 #### World Map View
 
@@ -222,7 +222,7 @@ Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channe
 6. **Left AE legend rail**: A narrow color strip on the left edge; hover to expand category names, visibility checkboxes, and color pickers (tints both AE overlay and marker icon borders). **Unchecking a category keeps the legend row** (shown dimmed) and hides only the matching device icons on the map. Lock makes controls read-only (hover-out still collapses); category swatches use the same icon IDs as map device markers (first device in that category), while **Other** shows a configured color swatch only. The toolbar **palette** button was removed.
 7. **Local cache**: Browser IndexedDB tile cache; client also syncs snapshots to `TeXTech/WebAE/map-cache/` when logging in from another device.
 8. **AE overlay**: Toggle in topology settings; **opacity** slider (0.5–1.0) affects AE tint pixels only, not terrain.
-9. **Wheel isolation**: Wheel over world map, tree graph, or simulated cable view zooms the view instead of scrolling the page.
+9. **Wheel isolation**: Wheel over world map or tree graph zooms the view instead of scrolling the page.
 10. **Refresh & invalidation**: Tiles auto-invalidate when switching networks or capturing a new snapshot; OP can POST `/api/worldmap/invalidate` to force rebuild.
 11. **Config**: `[webConsole] worldMapEnabled`, `worldMapTerrainSource` (`auto`/`dynmap`/`self`), `dynmapTileRoot`, `worldMapClientCaptureMode` (`off`/`ultra_only`/`when_online`), `worldMapClientCaptureRadius`, `worldMapProgressiveFallback`, `worldMapMaxQualityTier` (default ultra), `worldMapDefaultQualityTier` (default medium), `worldMapBoundsPaddingChunks` (default 1). See [Developer Guide §4](developer-guide.md#4-configuration) and [§11.26](developer-guide.md#1126-world-map-view-phase-ab--ae-overlay).
 
@@ -260,7 +260,10 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 
 ### Dashboard, Chat & Settings
 
-- **Dashboard**: GridStack drag layout, 24 themes + 5 layouts; edit flow is **data/pins first, then chart type**; pin items/fluids/CPUs/GT (recipe-catalog search, need not exist in AE); data-table column picker; per-widget content scale and free cell sizes; settings drawer for spacing/colors/charts.
+- **Dashboard**: GridStack drag layout, 61 color schemes + 8 layouts (incl. bottom nav / floating sider / split chrome) + **59 page styles** (incl. restrained hexcell / arc-reactor without content clipping, plus batch2 packs such as emberforge / frostglass / CRT / prism; Settings uses near-real thumbnail tiles for color / layout / style / presets); chart style overrides unchanged.
+  - **Group containers (nested grids)**: add a **Group** widget to nest children in one cell and move them together; use **+** on the group header to add children while editing.
+  - **Layout / feed widgets**: text note, spacer, alerts summary, crafting queue; use the edit-mode palette for quick add, or drag to the trash zone to delete.
+  - **Lock & size-to-content**: per-widget lock / no-move / no-resize and optional size-to-content; soft alert threshold tint on stats/gauges.
 - **Chat**: 💬 icon in sidebar; web messages broadcast in-game as `[Web] <name>: content`.
 - **Sidebar**: edge button cycles Expanded → Collapsed → Hidden.
 - **Top bar**: fixed-width refresh countdown/status next to connection dot.

@@ -11,7 +11,7 @@ export interface ServerHealthPoint {
 }
 
 /**
- * Polls GET /api/server/health for TPS / MSPT trends (Phase 2).
+ * Polls GET /api/server/health for TPS / MSPT trends (Forge Overall / tickTimeArray mean).
  */
 export function useServerHealth(pollMs = 5000) {
   const { pauseRefreshWhenHidden } = useAppContext();

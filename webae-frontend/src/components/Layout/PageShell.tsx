@@ -12,6 +12,7 @@ interface PageShellProps {
 
 /**
  * Unified page container — consistent padding, title row, and action slot.
+ * CSS hooks (page-shell__*) let pageStyle compose chrome without forking pages.
  */
 export function PageShell({ title, description, actions, children }: PageShellProps) {
   return (
@@ -27,27 +28,23 @@ export function PageShell({ title, description, actions, children }: PageShellPr
       }}
     >
       {(title || actions) && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 16,
-            flexWrap: 'wrap',
-          }}
-        >
-          <Space direction="vertical" size={2}>
+        <div className="page-shell__header">
+          <Space className="page-shell__titles" direction="vertical" size={2}>
             {title && (
-              <Title level={4} style={{ margin: 0 }}>
+              <Title level={4} className="page-shell__title" style={{ margin: 0 }}>
                 {title}
               </Title>
             )}
-            {description && <Text type="secondary">{description}</Text>}
+            {description && (
+              <Text className="page-shell__desc" type="secondary">
+                {description}
+              </Text>
+            )}
           </Space>
-          {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
+          {actions && <div className="page-shell__actions">{actions}</div>}
         </div>
       )}
-      {children}
+      <div className="page-shell__body">{children}</div>
     </div>
   );
 }

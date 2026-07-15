@@ -480,12 +480,28 @@ export function AdminPage() {
       >
         {health ? (
           <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
-            <Descriptions.Item label="TPS">
+            <Descriptions.Item
+              label={
+                <Tooltip title={t('serverHealthForgeTip')}>
+                  <span>
+                    TPS <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+                  </span>
+                </Tooltip>
+              }
+            >
               <Tag color={health.tps >= 18 ? 'green' : health.tps >= 15 ? 'orange' : 'red'}>
                 {health.tps.toFixed(1)}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="MSPT">
+            <Descriptions.Item
+              label={
+                <Tooltip title={t('serverHealthForgeTip')}>
+                  <span>
+                    MSPT <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+                  </span>
+                </Tooltip>
+              }
+            >
               <Tag color={health.mspt <= 40 ? 'green' : health.mspt <= 50 ? 'orange' : 'red'}>
                 {health.mspt.toFixed(1)}ms
               </Tag>
@@ -518,12 +534,30 @@ export function AdminPage() {
 
         <Row gutter={[16, 16]}>
           <Col xs={12} sm={8} md={4}>
-            <Card size="small" title="TPS">
+            <Card
+              size="small"
+              title={
+                <Tooltip title={t('serverHealthForgeTip')}>
+                  <span>
+                    TPS <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+                  </span>
+                </Tooltip>
+              }
+            >
               <Text strong style={{ fontSize: 22 }}>{diagData ? diagData.tps.toFixed(1) : '—'}</Text>
             </Card>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <Card size="small" title="MSPT">
+            <Card
+              size="small"
+              title={
+                <Tooltip title={t('serverHealthForgeTip')}>
+                  <span>
+                    MSPT <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+                  </span>
+                </Tooltip>
+              }
+            >
               <Text strong style={{ fontSize: 22 }}>{diagData ? diagData.mspt.toFixed(1) : '—'}</Text>
             </Card>
           </Col>

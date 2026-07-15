@@ -41,6 +41,7 @@ function sampleBundle(): WebUiSettingsBundle {
       global: {
         themeColor: 'midnight',
         themeLayout: 'compact',
+        pageStyle: 'classic',
         effectsLevel: 'full',
         lang: 'en',
         displayMode: 'merged',

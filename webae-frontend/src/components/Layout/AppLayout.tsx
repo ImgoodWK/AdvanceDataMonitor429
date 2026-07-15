@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Button, Tooltip } from 'antd';
+import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
+import { Button, Tooltip, Space } from 'antd';
 import { LeftOutlined, MenuUnfoldOutlined, RightOutlined } from '@ant-design/icons';
 import { Layout } from 'antd';
-import { useAppContext, type SidebarMode } from '@/context/AppContext';
+import { useAppContext, type SidebarMode, type PageId } from '@/context/AppContext';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { Dashboard } from '@/pages/Dashboard';
@@ -33,12 +33,10 @@ import { LAYOUT_PRESETS } from '@/theme/layouts';
 import { useI18n } from '@/i18n';
 import { NAV_PAGES } from './navConfig';
 
-const { Sider, Header, Content } = Layout;
+const { Sider, Header, Content, Footer } = Layout;
 
 /**
  * Floating side tab that cycles the sidebar through expanded ↔ collapsed ↔ hidden.
- * Always visible (even when the sidebar is hidden), attached to the screen edge
- * on the sidebar's side, vertically centered. Renders nothing in topnav layout.
  */
 function SidebarToggleTab({
   sidebarMode,
@@ -67,26 +65,12 @@ function SidebarToggleTab({
         ? t('sidebarMode_collapsed')
         : t('sidebarMode_hidden');
 
-  // Hidden sidebar → tab hugs the screen edge; otherwise sits at the sidebar's
-  // outer edge so it visually attaches to the sidebar.
   const offset = sidebarMode === 'hidden' ? 0 : siderWidth;
   const sideProp = siderSide === 'right' ? 'right' : 'left';
-
-  // Icon semantics:
-  //   expanded  → arrow pointing toward the sidebar (collapse)
-  //   collapsed → arrow pointing toward the sidebar (hide)
-  //   hidden    → MenuUnfold (expand)
-  // For a left sidebar the arrow points left (LeftOutlined); for a right
-  // sidebar it points right (RightOutlined).
   const arrowIcon = siderSide === 'right' ? <RightOutlined /> : <LeftOutlined />;
   const icon = sidebarMode === 'hidden' ? <MenuUnfoldOutlined /> : arrowIcon;
-
-  // Rounded corners only on the screen-facing side so the tab looks like it
-  // "peeks out" from behind the sidebar / off the screen edge.
   const borderRadius =
-    siderSide === 'right'
-      ? '6px 0 0 6px' // right side: rounded on the left (free edge)
-      : '0 6px 6px 0'; // left side: rounded on the right (free edge)
+    siderSide === 'right' ? '6px 0 0 6px' : '0 6px 6px 0';
 
   return (
     <Tooltip title={modeLabel} placement={siderSide === 'right' ? 'left' : 'right'}>
@@ -129,6 +113,53 @@ function SidebarToggleTab({
   );
 }
 
+function BottomNav({
+  activePage,
+  setActivePage,
+}: {
+  activePage: PageId;
+  setActivePage: (p: PageId) => void;
+}) {
+  const { t } = useI18n();
+  const { isAdmin, isOnlineOp } = useAppContext();
+  const visible = NAV_PAGES.filter((item) => {
+    if (item.id === 'admin') return isAdmin || isOnlineOp;
+    return true;
+  });
+
+  return (
+    <nav className="webae-bottom-nav" aria-label="Main navigation">
+      <Space size={4} wrap style={{ justifyContent: 'center', width: '100%' }}>
+        {visible.map((item) => {
+          const IconComp = item.Icon;
+          const active = activePage === item.id;
+          return (
+            <Button
+              key={item.id}
+              type={active ? 'primary' : 'text'}
+              size="small"
+              className={'webae-bottom-nav-item' + (active ? ' webae-bottom-nav-item--active' : '')}
+              icon={<IconComp />}
+              onClick={() => setActivePage(item.id)}
+              aria-current={active ? 'page' : undefined}
+            >
+              {t(item.labelKey)}
+            </Button>
+          );
+        })}
+      </Space>
+    </nav>
+  );
+}
+
+function PageTransition({ pageKey, children }: { pageKey: string; children: ReactNode }) {
+  return (
+    <div key={pageKey} className="page-transition">
+      {children}
+    </div>
+  );
+}
+
 export function AppLayout() {
   const { activePage, setActivePage, themeLayout, sidebarMode, setSidebarMode } = useAppContext();
   const [commandOpen, setCommandOpen] = useState(false);
@@ -136,7 +167,7 @@ export function AppLayout() {
   useCommandPaletteShortcut(openCommand);
   useEventStream(true);
   useWebAlerts(true);
-  const preset = LAYOUT_PRESETS[themeLayout];
+  const preset = LAYOUT_PRESETS[themeLayout] || LAYOUT_PRESETS.standard;
   const siderSide = preset.sidebarSide;
   const [layoutTransitionDisabled, setLayoutTransitionDisabled] = useState(false);
   const prevThemeLayout = useRef(themeLayout);
@@ -196,10 +227,51 @@ export function AppLayout() {
     }
   };
 
-  // topnav layout: no sidebar, navigation in the top bar
+  const contentPad =
+    themeLayout === 'split-chrome'
+      ? 'var(--layout-page-pad-y) var(--layout-page-pad-x-end, var(--layout-page-pad-x)) var(--layout-page-pad-y) var(--layout-page-pad-x)'
+      : 'var(--layout-page-pad-y) var(--layout-page-pad-x)';
+
+  const pageBody = (
+    <>
+      <PageStaleBanner />
+      <PageTransition pageKey={activePage}>{renderPage()}</PageTransition>
+    </>
+  );
+
+  const layoutClass = `webae-layout webae-layout--${themeLayout}`;
+
+  // bottomnav: top chrome (no page nav) + content + bottom nav
+  if (themeLayout === 'bottomnav') {
+    return (
+      <Layout className={layoutClass} style={{ height: '100vh' }}>
+        <Header style={{ padding: 0, height: 'auto' }}>
+          <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
+        </Header>
+        <Content
+          id="main-content"
+          className="app-content"
+          style={{
+            padding: contentPad,
+            overflow: 'auto',
+            position: 'relative',
+            paddingBottom: 'calc(var(--layout-page-pad-y) + var(--layout-bottom-nav-height, 56px))',
+          }}
+        >
+          {pageBody}
+        </Content>
+        <Footer className="webae-bottom-nav-footer" style={{ padding: 0, height: 'auto' }}>
+          <BottomNav activePage={activePage} setActivePage={setActivePage} />
+        </Footer>
+        <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
+      </Layout>
+    );
+  }
+
+  // topnav (and any other none-sider with top chrome)
   if (siderSide === 'none') {
     return (
-      <Layout className="webae-layout" style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100vh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
           <TopBar topnavMode pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -207,13 +279,12 @@ export function AppLayout() {
           id="main-content"
           className="app-content"
           style={{
-            padding: 'var(--layout-page-pad-y) var(--layout-page-pad-x)',
+            padding: contentPad,
             overflow: 'auto',
             position: 'relative',
           }}
         >
-          <PageStaleBanner />
-          {renderPage()}
+          {pageBody}
         </Content>
         <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
       </Layout>
@@ -221,15 +292,20 @@ export function AppLayout() {
   }
 
   const siderWidth =
-    sidebarMode === 'collapsed' ? 60 : sidebarMode === 'hidden' ? 0 : parseInt(preset.cssVars['--layout-sidebar-width'] || '240');
+    sidebarMode === 'collapsed'
+      ? 60
+      : sidebarMode === 'hidden'
+        ? 0
+        : parseInt(preset.cssVars['--layout-sidebar-width'] || '240', 10);
   const siderVisible = sidebarMode !== 'hidden';
-
   const siderTransition = layoutTransitionDisabled ? 'none' : 'all 0.3s ease';
+  const floating = themeLayout === 'floating';
 
   const sider = siderVisible && (
     <Sider
       width={siderWidth}
       trigger={null}
+      className={floating ? 'webae-sider--floating' : undefined}
       style={{
         order: siderSide === 'right' ? 2 : 0,
         overflow: 'hidden',
@@ -237,6 +313,14 @@ export function AppLayout() {
         flex: `0 0 ${siderWidth}px`,
         maxWidth: siderWidth,
         minWidth: siderWidth,
+        ...(floating
+          ? {
+              margin: 'var(--layout-sider-margin, 14px)',
+              borderRadius: 'var(--layout-sider-radius, 20px)',
+              height: 'calc(100vh - 2 * var(--layout-sider-margin, 14px))',
+              alignSelf: 'center',
+            }
+          : {}),
       }}
     >
       <Sidebar mode={sidebarMode} />
@@ -245,7 +329,7 @@ export function AppLayout() {
 
   return (
     <Layout
-      className="webae-layout"
+      className={layoutClass}
       style={{
         height: '100vh',
         flexDirection: siderSide === 'right' ? 'row-reverse' : 'row',
@@ -267,13 +351,12 @@ export function AppLayout() {
           id="main-content"
           className="app-content"
           style={{
-            padding: 'var(--layout-page-pad-y) var(--layout-page-pad-x)',
+            padding: contentPad,
             overflow: 'auto',
             position: 'relative',
           }}
         >
-          <PageStaleBanner />
-          {renderPage()}
+          {pageBody}
         </Content>
         <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
       </Layout>

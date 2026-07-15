@@ -724,6 +724,11 @@ export interface ServerConfig {
   /** Phase 1 topology API gate + cache TTL mirror from [webConsole]. */
   topologyEnabled?: boolean;
   topologyCacheTtlMs?: number;
+  /**
+   * Cable-simulation render mode + `/api/ae2/cable-texture` (deprecated; default false).
+   * When false/absent, UI forces abstract tree and hides simulated controls.
+   */
+  topologySimulatedEnabled?: boolean;
   worldMapSnapshotCooldownMs?: number;
   alertsEnabled?: boolean;
   alertsPollIntervalSeconds?: number;

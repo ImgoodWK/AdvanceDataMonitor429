@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.Config;
 import com.imgood.textech.webae.topology.FakeChannelAllocator.ChannelProbeResult;
 import com.imgood.textech.webae.topology.LogicalTopologyBuilder.BuildResult;
 import com.imgood.textech.webae.topology.NetworkStatusEnumerator.NetworkFacility;
@@ -61,7 +62,9 @@ public final class TopologySnapshot {
             BuildResult tree = LogicalTopologyBuilder.buildTree(facilities, probe, cpuClusters);
             snapshot.nodes = tree.nodes;
             snapshot.edges = tree.edges;
-            SimulatedLayoutBuilder.apply(tree, TopologyRules.LAYOUT_TREE);
+            if (Config.webTopologySimulatedEnabled) {
+                SimulatedLayoutBuilder.apply(tree, TopologyRules.LAYOUT_TREE);
+            }
             LogicalTopologyBuilder.applyChannelTotals(snapshot.meta, tree, probe);
             snapshot.meta.renderLayout = "tree_branches";
             snapshot.meta.channelTierHint = "dense_smart_branches";

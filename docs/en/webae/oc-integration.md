@@ -37,7 +37,7 @@ Authorization: Bearer <owner_token>   # either form
 | `storageItemCount` | Sum of distinct item types across cached storage snapshots |
 | `cpuBusy` | Any CPU currently `isBusy` |
 | `activeOrders` | In-flight Web craft orders for this owner |
-| `tps` | Server TPS from `ServerHealthSampler` |
+| `tps` | Server TPS from `ServerHealthSampler` (same as `/forge tps` Overall) |
 
 Missing or invalid token → `401`.
 

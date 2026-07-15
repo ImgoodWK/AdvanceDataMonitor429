@@ -9,7 +9,10 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 
 /**
- * Server-wide TPS / MSPT sampler (opencomputer-monitor style).
+ * Server-wide TPS / MSPT sampler aligned with {@code /forge tps} Overall.
+ * Uses {@link MinecraftServer#tickTimeArray} mean (last 100 ticks, nanoTime
+ * duration of the server tick loop — excludes idle sleep). Same formula as
+ * Forge's displayTPS: {@code mspt = mean(ns) * 1e-6}, {@code tps = min(20, 1000/mspt)}.
  * Runs on the server thread via {@link com.imgood.textech.handler.HandlerTick}.
  */
 public final class ServerHealthSampler {
@@ -34,7 +37,6 @@ public final class ServerHealthSampler {
 
     private final Deque<SamplePoint> samples = new ArrayDeque<SamplePoint>();
     private long serverStartMs;
-    private long lastTickMs;
     private long lastSampleMs;
     private double latestTps = 20.0;
     private double latestMspt = 50.0;
@@ -52,14 +54,16 @@ public final class ServerHealthSampler {
         if (serverStartMs == 0L) {
             serverStartMs = now;
         }
-        if (lastTickMs > 0L) {
-            long delta = now - lastTickMs;
-            if (delta > 0L) {
-                latestMspt = (double) delta;
-                latestTps = Math.min(20.0, 1000.0 / (double) delta);
-            }
+        MinecraftServer server = MinecraftServer.getServer();
+        if (server == null || server.tickTimeArray == null || server.tickTimeArray.length == 0) {
+            return;
         }
-        lastTickMs = now;
+        double meanNs = mean(server.tickTimeArray);
+        if (meanNs <= 0.0) {
+            return;
+        }
+        latestMspt = meanNs * 1.0E-6D;
+        latestTps = Math.min(20.0, 1000.0 / latestMspt);
     }
 
     /**
@@ -132,6 +136,15 @@ public final class ServerHealthSampler {
             snap.msptHistory.add(p.mspt);
         }
         return snap;
+    }
+
+    /** Same as ForgeCommand.mean — average of long[] tick durations in nanoseconds. */
+    private static double mean(long[] values) {
+        long sum = 0L;
+        for (int i = 0; i < values.length; i++) {
+            sum += values[i];
+        }
+        return (double) sum / (double) values.length;
     }
 
     private static int countOnlinePlayers() {

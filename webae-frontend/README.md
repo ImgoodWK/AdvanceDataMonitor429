@@ -34,7 +34,7 @@ server with the mod loaded to test against the live backend.
 - **@ant-design/icons** — icon set
 - **Vite 5** — build tool / dev server
 - **Inline SVG charts** — Dashboard/Power trend (`ChartTrendSvg`); bar/pie/radar widgets use CSS/SVG (no chart.js)
-- **GridStack** — dashboard / storage / CPU / power drag-and-drop grids（三处 Grid 共用 `WidgetShell` + `widgetGridActions` 复制/JSON 导入导出）
+- **GridStack** — dashboard / storage / CPU / power drag-and-drop grids（三处 Grid 共用 `WidgetShell` + `widgetGridActions` 复制/JSON 导入导出）；主仪表盘支持 **nested group**、组件库、垃圾桶删除、锁定与 sizeToContent
 - **@tanstack/react-virtual** — AE 下单页按产物/按样板虚拟滚动（`VirtualProductGrid` / `VirtualPatternGrid`）
 
 ## Features

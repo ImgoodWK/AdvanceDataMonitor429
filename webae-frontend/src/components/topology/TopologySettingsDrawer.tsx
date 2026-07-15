@@ -25,6 +25,8 @@ interface TopologySettingsDrawerProps {
   onReset: () => void;
   /** Whether render mode toggle is shown (logical view only). */
   showRenderMode?: boolean;
+  /** When false, hide deprecated cable-simulation option and related spacing/color controls. */
+  topologySimulatedEnabled?: boolean;
   /** World map oblique direction (world map mode only). */
   showWorldMapSettings?: boolean;
   obliqueDirectionOptions?: WorldMapViewDto[];
@@ -80,6 +82,7 @@ export function TopologySettingsDrawer({
   onChange,
   onReset,
   showRenderMode = true,
+  topologySimulatedEnabled = false,
   showWorldMapSettings = false,
   obliqueDirectionOptions,
   qualityTierOptions,
@@ -300,30 +303,34 @@ export function TopologySettingsDrawer({
 
       {showRenderMode && (
         <>
-          <SettingRow label={t('topologyRenderMode')}>
-            <Segmented
-              block
-              value={draft.renderMode}
-              onChange={(v) => patch({ renderMode: v as TopologyRenderMode })}
-              options={[
-                { value: 'abstract', label: t('topologyRenderMode_abstract') },
-                { value: 'simulated', label: t('topologyRenderMode_simulated') },
-              ]}
-            />
-          </SettingRow>
-          {(draft.renderMode === 'abstract' || draft.renderMode === 'simulated') && (
-            <SettingRow label={t('topologyAbstractLayout')}>
+          {topologySimulatedEnabled ? (
+            <SettingRow label={t('topologyRenderMode')}>
               <Segmented
                 block
-                value={draft.abstractLayout}
-                onChange={(v) => patch({ abstractLayout: v as 'tree' | 'star' })}
+                value={draft.renderMode}
+                onChange={(v) => patch({ renderMode: v as TopologyRenderMode })}
                 options={[
-                  { value: 'tree', label: t('topologyLayout_tree') },
-                  { value: 'star', label: t('topologyLayout_star') },
+                  { value: 'abstract', label: t('topologyRenderMode_abstract') },
+                  { value: 'simulated', label: t('topologyRenderMode_simulated') },
                 ]}
               />
             </SettingRow>
+          ) : (
+            <SettingRow label={t('topologyRenderMode')}>
+              <Text type="secondary">{t('topologyRenderMode_abstract')}</Text>
+            </SettingRow>
           )}
+          <SettingRow label={t('topologyAbstractLayout')}>
+            <Segmented
+              block
+              value={draft.abstractLayout}
+              onChange={(v) => patch({ abstractLayout: v as 'tree' | 'star' })}
+              options={[
+                { value: 'tree', label: t('topologyLayout_tree') },
+                { value: 'star', label: t('topologyLayout_star') },
+              ]}
+            />
+          </SettingRow>
         </>
       )}
 
@@ -354,9 +361,11 @@ export function TopologySettingsDrawer({
         <SettingRow label={t('topologyNodeRadius')}>
           <InputNumber min={12} max={32} value={draft.nodeRadius} onChange={(v) => patch({ nodeRadius: v ?? DEFAULT_TOPOLOGY_DISPLAY.nodeRadius })} style={{ width: '100%' }} />
         </SettingRow>
-        <SettingRow label={t('topologyCableCellPx')}>
-          <InputNumber min={16} max={40} value={draft.cableCellPx} onChange={(v) => patch({ cableCellPx: v ?? DEFAULT_TOPOLOGY_DISPLAY.cableCellPx })} style={{ width: '100%' }} />
-        </SettingRow>
+        {topologySimulatedEnabled && (
+          <SettingRow label={t('topologyCableCellPx')}>
+            <InputNumber min={16} max={40} value={draft.cableCellPx} onChange={(v) => patch({ cableCellPx: v ?? DEFAULT_TOPOLOGY_DISPLAY.cableCellPx })} style={{ width: '100%' }} />
+          </SettingRow>
+        )}
       </Space>
 
       <Divider orientation="left" plain>
@@ -380,26 +389,32 @@ export function TopologySettingsDrawer({
       <SettingRow label={t('topologyShowEdgeLabels')}>
         <Switch checked={draft.showEdgeChannelLabels} onChange={(v) => patch({ showEdgeChannelLabels: v })} />
       </SettingRow>
-      <SettingRow label={t('topologyHideCableNodes')}>
-        <Switch checked={draft.hideCableNodes} onChange={(v) => patch({ hideCableNodes: v })} />
-      </SettingRow>
-
-      <Divider orientation="left" plain>
-        {t('topologySettingsColors')}
-      </Divider>
-      <Text type="secondary" className="webae-setting-row-hint">
-        {t('topologyAeColorHint')}
-      </Text>
-      {(['smart', 'covered', 'dense'] as const).map((key) => (
-        <SettingRow key={key} label={t(`topologyCable_${key}`)}>
-          <Select
-            className="webae-full-width"
-            value={draft.cableColorPreset[key]}
-            onChange={(v) => patchCablePreset(key, v as AeCableColorId)}
-            options={colorOptions}
-          />
+      {topologySimulatedEnabled && (
+        <SettingRow label={t('topologyHideCableNodes')}>
+          <Switch checked={draft.hideCableNodes} onChange={(v) => patch({ hideCableNodes: v })} />
         </SettingRow>
-      ))}
+      )}
+
+      {topologySimulatedEnabled && (
+        <>
+          <Divider orientation="left" plain>
+            {t('topologySettingsColors')}
+          </Divider>
+          <Text type="secondary" className="webae-setting-row-hint">
+            {t('topologyAeColorHint')}
+          </Text>
+          {(['smart', 'covered', 'dense'] as const).map((key) => (
+            <SettingRow key={key} label={t(`topologyCable_${key}`)}>
+              <Select
+                className="webae-full-width"
+                value={draft.cableColorPreset[key]}
+                onChange={(v) => patchCablePreset(key, v as AeCableColorId)}
+                options={colorOptions}
+              />
+            </SettingRow>
+          ))}
+        </>
+      )}
         </>
       )}
     </Drawer>

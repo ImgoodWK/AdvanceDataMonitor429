@@ -554,6 +554,11 @@ public final class ConfigDescriptions {
             "将拓扑快照持久化到 TeXTech/WebAE/topology/，服务端重启后仍可读取。默认开启。");
         put(
             "webConsole",
+            "topologySimulatedEnabled",
+            "DEPRECATED: Enable topology cable-simulation render mode and GET /api/ae2/cable-texture. Default false.",
+            "已弃用：启用拓扑「线缆模拟」渲染模式与 GET /api/ae2/cable-texture。默认关闭。");
+        put(
+            "webConsole",
             "dynmapBaseUrl",
             "Optional Dynmap base URL (e.g. http://host:8123) for WebAE player location deep links. Empty disables the button.",
             "可选 Dynmap 基础 URL（如 http://host:8123），供 WebAE 玩家坐标外链使用。留空则隐藏按钮。");

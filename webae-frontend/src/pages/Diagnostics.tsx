@@ -137,14 +137,32 @@ export function DiagnosticsPage() {
 
         <Row gutter={[16, 16]}>
           <Col xs={12} sm={8} md={4}>
-            <Card size="small" title="TPS">
+            <Card
+              size="small"
+              title={
+                <Tooltip title={t('serverHealthForgeTip')}>
+                  <span>
+                    TPS <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+                  </span>
+                </Tooltip>
+              }
+            >
               <Text strong style={{ fontSize: 22 }}>
                 {data ? data.tps.toFixed(1) : '—'}
               </Text>
             </Card>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <Card size="small" title="MSPT">
+            <Card
+              size="small"
+              title={
+                <Tooltip title={t('serverHealthForgeTip')}>
+                  <span>
+                    MSPT <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.65 }} />
+                  </span>
+                </Tooltip>
+              }
+            >
               <Text strong style={{ fontSize: 22 }}>
                 {data ? data.mspt.toFixed(1) : '—'}
               </Text>

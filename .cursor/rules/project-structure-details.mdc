@@ -346,6 +346,8 @@ alwaysApply: false
 - `webae/WebUiDefaultsStore.java` — 读取实例/jar `ui-defaults.json` 默认 UI 布局
 - `webae/api/handler/WebUiDefaultsHandler.java` — 公开 `GET /api/ui-defaults`（WebConsoleServer 免认证路由）
 - `webae/api/handler/IconHandler.java` — 图标 REST handler（`GET /api/icon` 返回 PNG+ETag+Cache-Control、404 直渲桥接、`GET /api/icon/packs` 含 `defaultPack`、`GET /api/icon/sync/manifest` + `GET /api/icon/sync/bulk` 浏览器 bulk 同步、`POST /api/icon/pack` zip 上传含 Zip Slip 防护）
+- `webae/api/handler/AeCableTextureHandler.java` — `GET /api/ae2/cable-texture`（**已弃用**；需 `topologySimulatedEnabled`）
+- `webae/topology/AeCableTextureLoader.java` — AE2 Fluix 线缆 part classpath 加载（线缆模拟；默认关闭）
 - `webae/api/handler/ChatHandler.java` — 聊天 REST handler（`GET /api/chat/history?limit=&since=`、`POST /api/chat/send` body `{content}` 存入 ChatMessageStore 并广播 `[Web] <name>: <content>` 到游戏内、`GET /api/chat/since=<ts>` 增量）
 - `webae/api/handler/PlayerHandler.java` — 玩家 REST handler（`GET /api/players` 返回 `{online:[...],offline:[...]}` 每项含 uuid/name/online/onlineMs/lastLogin/lastLogout/skinUrl、`GET /api/players/since=<ts>` 增量、`GET /api/players/online/history` 在线人数趋势 `[{"ts":,"count":}]`、**Phase6** `GET /api/players/locations` 在线玩家坐标）
 - `webae/api/handler/AuthGuestInviteHandler.java` — `POST /api/auth/guest-invite` 主人生成可分享访客 Token（可选 body `networkKeys` 限定网络；owner 禁用拒绝签发）
@@ -474,6 +476,7 @@ alwaysApply: false
 - `webae/topology/TopologyNode.java` — 拓扑节点 DTO（subtype、patternCount、branchIndex、layoutSector、layout 坐标、simGrid、cellSlots[]、patternSlots[]、devices、cpuSummary）
 - `webae/topology/CraftingCpuTopologyCollector.java` — 通过 `ICraftingGrid.getCpus()` 聚合 `CraftingCPUCluster` 为单节点设施（协处理器/存储/构成方块坐标）
 - `webae/topology/TopologyEdge.java` — 假线缆边 DTO（cableType + branchIndex + emptyBranch + channelsSimulated/channelsReal + pathPoints[]）
+- `webae/topology/AeCableTextureLoader.java` — AE2 默认 Fluix 线缆 part 材质 classpath 加载（拓扑线缆模拟；**已弃用**，`topologySimulatedEnabled` 默认关）
 - `webae/topology/TopologyRules.java` — 细粒度 subtype 分类（含 `level_maintainer`）+ 频道 cost + tree/star 布局常量 + 64×64 spatial bin
 - `webae/topology/NetworkStatusEnumerator.java` — 与游戏内网络工具相同：`getMachinesClasses()` + `getMachineRepresentation()`；subtype 分类；驱动器槽位元件/样板计数
 - `webae/topology/TopologyFacilityGrouper.java` — 按 `subtype|representationItemId` 聚合（网络工具 merge-by-item parity）
@@ -481,7 +484,7 @@ alwaysApply: false
 - `webae/topology/LogicalTopologyBuilder.java` — 树状拓扑（dense trunk + 4 smart branch + 终端上方/存储下方）+ `buildStar()` 双环语义坐标
 - `webae/topology/TopologySnapshotStore.java` — 磁盘持久化 `TeXTech/WebAE/topology/<owner>-<network>.json`（logical/spatial 分字段 + lastCaptureAt）
 - `webae/topology/NetworkDeviceEnumerator.java` — （legacy）`IGrid.getMachinesClasses()` 设备枚举
-- `webae/topology/SimulatedLayoutBuilder.java` — tree/star 模拟网格 + Manhattan pathPoints
+- `webae/topology/SimulatedLayoutBuilder.java` — tree/star 模拟网格 + Manhattan pathPoints（仅 `topologySimulatedEnabled`）
 - `webae/topology/FakeChannelAllocator.java` — spatial 星形假线缆
 - `webae/topology/TopologySnapshot.java` — 拓扑图构建器（logical=树状 + network tool 数据源；spatial=空间 bin + 星形）
 - `webae/topology/TopologyCache.java` — 手动快照内存缓存 + 冷启动磁盘加载 + `topologyCacheTtlMs` 采集冷却（默认 10 秒）

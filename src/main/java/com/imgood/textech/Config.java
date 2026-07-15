@@ -201,6 +201,11 @@ public class Config {
     public static int webTopologyCacheTtlMs = 30000;
     /** Persist topology snapshots to TeXTech/WebAE/topology/. Default true. */
     public static boolean webTopologySnapshotPersist = true;
+    /**
+     * @deprecated Cable-simulation render mode (TopologySimulatedView + /api/ae2/cable-texture).
+     * Default false — feature retained for emergency re-enable only.
+     */
+    public static boolean webTopologySimulatedEnabled = false;
     /** Optional Dynmap base URL for player location deep links (Phase 6.1). Empty = disabled. */
     public static String webDynmapBaseUrl = "";
     /** Whether the world map overlay API is enabled (requires topologyEnabled). Default true. */
