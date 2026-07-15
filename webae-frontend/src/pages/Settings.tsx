@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   Tabs,
@@ -57,10 +57,11 @@ import {
 import { THEME_COLORS, type ThemeColor } from '@/theme/colors';
 import { THEME_LAYOUTS, type ThemeLayout } from '@/theme/layouts';
 import { PAGE_STYLES, type PageStyle } from '@/theme/pageStyles';
-import { formatNumber, formatTime, formatDuration, type NumberFormat } from '@/utils/format';
+import { formatNumber, type NumberFormat } from '@/utils/format';
 import { PageShell } from '@/components/Layout/PageShell';
 import type { AppPreset } from '@/utils/presets';
 import { AlertsRulesEditor } from '@/components/settings/AlertsRulesEditor';
+import { DataFreshnessPanel } from '@/components/settings/DataFreshnessPanel';
 import { SettingsBackupPanel } from '@/components/settings/SettingsBackupPanel';
 import { ThemeOptionGrid } from '@/components/theme/ThemeOptionGrid';
 import { ThemePreviewMini } from '@/components/theme/ThemePreviewMini';
@@ -153,33 +154,7 @@ export function SettingsPage() {
   const [elevateLabel, setElevateLabel] = useState('');
   const [elevateLoading, setElevateLoading] = useState(false);
 
-  // Live "now" tick so the data-freshness indicator updates every second even
-  // when auto-refresh is off. Re-render only; no network activity.
-  const [nowTick, setNowTick] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const now = nowTick;
-
-  // Freshness: green = <5s, yellow = 5-30s, red = >30s or no data or offline.
-  const freshness = (() => {
-    if (!online) return { level: 'red' as const, label: t('dataFreshness_offline') };
-    if (lastUpdateTime == null)
-      return { level: 'red' as const, label: t('dataFreshness_never') };
-    const diffMs = now - lastUpdateTime;
-    if (diffMs < 5000) return { level: 'green' as const, label: t('dataFreshness_fresh') };
-    if (diffMs < 30000) return { level: 'yellow' as const, label: t('dataFreshness_stale') };
-    return { level: 'red' as const, label: t('dataFreshness_outdated') };
-  })();
-  const freshnessColor =
-    freshness.level === 'green'
-      ? 'var(--success)'
-      : freshness.level === 'yellow'
-        ? 'var(--warning, #faad14)'
-        : 'var(--danger)';
-  const lastUpdateDiffText =
-    lastUpdateTime == null ? t('dataFreshness_never') : formatDuration(now - lastUpdateTime);
+  const [settingsTab, setSettingsTab] = useState('data-freshness');
 
   const colorGridItems = useMemo(
     () =>
@@ -327,6 +302,9 @@ export function SettingsPage() {
     <PageShell title={t('settings')}>
     <Card>
       <Tabs
+        activeKey={settingsTab}
+        onChange={setSettingsTab}
+        destroyInactiveTabPane
         items={[
           {
             key: 'data-freshness',
@@ -336,97 +314,16 @@ export function SettingsPage() {
               </span>
             ),
             children: (
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                <Alert
-                  type="info"
-                  message={t('dataFreshnessHint')}
-                  showIcon
-                />
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 16px',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: 6,
-                    background: 'var(--bg-secondary)',
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      background: freshnessColor,
-                      flexShrink: 0,
-                      boxShadow: `0 0 6px ${freshnessColor}`,
-                    }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text strong>{freshness.label}</Text>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>
-                      <span style={{ marginRight: 12 }}>
-                        {t('dataFreshnessLastUpdate')}:{' '}
-                        {lastUpdateTime == null ? '--' : formatTime(lastUpdateTime, lang)}
-                      </span>
-                      <span>
-                        {t('dataFreshnessAge')}: {lastUpdateDiffText}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <Space wrap>
-                  <Button
-                    type="primary"
-                    icon={<ReloadOutlined />}
-                    onClick={triggerRefresh}
-                  >
-                    {t('dataFreshnessRefreshNow')}
-                  </Button>
-                  <Text type="secondary" style={{ fontSize: '0.75rem' }}>
-                    {t('dataFreshnessAutoRefresh')}: {autoRefresh ? t('on') : t('off')}
-                    {' · '}
-                    {t('dataFreshnessInterval')}: {Math.round(refreshIntervalMs / 1000)}s
-                  </Text>
-                </Space>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    padding: '10px 12px',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: 6,
-                  }}
-                >
-                  <div>
-                    <Text strong>{t('pauseRefreshWhenHidden')}</Text>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>
-                      {t('pauseRefreshWhenHiddenHint')}
-                    </div>
-                  </div>
-                  <Switch
-                    checked={pauseRefreshWhenHidden}
-                    onChange={setPauseRefreshWhenHidden}
-                    aria-label={t('pauseRefreshWhenHidden')}
-                  />
-                </div>
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: 6,
-                    fontSize: '0.75rem',
-                    color: 'var(--text-dim)',
-                  }}
-                  aria-live="polite"
-                >
-                  {t('dataFreshnessLegend')}
-                </div>
-              </Space>
+              <DataFreshnessPanel
+                online={online}
+                lastUpdateTime={lastUpdateTime}
+                lang={lang}
+                autoRefresh={autoRefresh}
+                refreshIntervalMs={refreshIntervalMs}
+                pauseRefreshWhenHidden={pauseRefreshWhenHidden}
+                setPauseRefreshWhenHidden={setPauseRefreshWhenHidden}
+                triggerRefresh={triggerRefresh}
+              />
             ),
           },
           {
@@ -716,6 +613,9 @@ export function SettingsPage() {
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
                       gap: 12,
+                      maxHeight: 560,
+                      overflowY: 'auto',
+                      paddingBottom: 4,
                     }}
                   >
                     {filteredPresets.map((preset) => (

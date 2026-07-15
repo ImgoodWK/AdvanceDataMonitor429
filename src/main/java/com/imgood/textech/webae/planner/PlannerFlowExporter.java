@@ -200,6 +200,8 @@ public final class PlannerFlowExporter {
         if (handlerId == null || handlerId.isEmpty() || recipeIndex < 0) {
             return null;
         }
+        RecipeCacheStore.instance()
+            .ensureLoaded();
         return RecipeCacheStore.instance()
             .getRecipe(handlerId, recipeIndex);
     }

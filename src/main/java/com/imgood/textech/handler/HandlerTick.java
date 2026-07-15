@@ -33,10 +33,19 @@ public class HandlerTick {
 
     private static final Queue<Runnable> SERVER_TASKS = new ConcurrentLinkedQueue<Runnable>();
 
+    /** Server tick thread; used by WebAE to avoid off-thread World access. */
+    private static volatile Thread serverTickThread;
+
     private long lastOutput = 0;
     private long lastReminderScan = 0;
     /** Rotating tick counter for subsystem staggering. */
     private int tickCounter;
+
+    /** True when the current thread is the Minecraft server tick thread. */
+    public static boolean isServerThread() {
+        Thread known = serverTickThread;
+        return known != null && Thread.currentThread() == known;
+    }
 
     public static void enqueueServerTask(Runnable task) {
         if (task != null) {
@@ -56,6 +65,7 @@ public class HandlerTick {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        serverTickThread = Thread.currentThread();
         tickCounter++;
         WebAePerfProfiler perf = WebAePerfProfiler.instance();
         long now = System.currentTimeMillis();

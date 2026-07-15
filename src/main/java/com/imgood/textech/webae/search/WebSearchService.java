@@ -263,6 +263,8 @@ public final class WebSearchService {
     }
 
     private static List<SearchResultDto> searchRecipes(String query, String qLower) {
+        RecipeCacheStore.instance()
+            .ensureLoaded();
         QuerySearchResult result = RecipeCacheStore.instance()
             .searchByQuery(query, null, "all", 0, PER_TYPE_CAP);
         List<SearchResultDto> hits = new ArrayList<SearchResultDto>();

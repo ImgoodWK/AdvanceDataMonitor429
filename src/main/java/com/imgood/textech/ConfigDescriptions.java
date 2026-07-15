@@ -384,9 +384,14 @@ public final class ConfigDescriptions {
             "每位 owner 模糊配方搜索 /api/recipes/search?q= 的最小间隔（毫秒）。默认 1000。");
         put(
             "webConsole",
-            "recipeDiskFormat",
-            "On-disk recipe cache format: json (plain, fast streaming load; default) or gzip (smaller disk, decompression on load).",
-            "配方磁盘格式：json（未压缩，流式加载快；默认）或 gzip（省磁盘，加载时需解压）。");
+            "recipeKeepMemoryAfterUpload",
+            "Keep the full recipe cache in server memory after upload/save. Default false — clear heap and let browsers sync chunks; server reloads lazily for craft-tree / API.",
+            "上传并写盘后是否保留服务端内存中的全量配方。默认 false（清堆，由浏览器分块同步；材料树/兜底 API 按需懒加载）。");
+        put(
+            "webConsole",
+            "recipeSyncChunkSize",
+            "Recipes per browser-sync chunk file and GET /api/recipes/sync/chunk. Default 400.",
+            "浏览器同步每个分块文件 / GET /api/recipes/sync/chunk 的配方条数。默认 400。");
         put(
             "webConsole",
             "nesqlRepositoryPath",

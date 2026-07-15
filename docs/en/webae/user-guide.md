@@ -27,7 +27,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Crafting CPUs | Standalone menu for AE2 crafting CPU status and details |
 | Power Monitor | Configurable EU/steam gauges, in/out rates, dual-series trend chart |
 | GT Machines | Online GT machine status, progress, and recipes |
-| Recipe Search | Fuzzy NEI search with merged/compact/detailed layouts |
+| Recipe Search | After OP upload, click **Fetch recipes** to sync into browser IndexedDB; local fuzzy search with merged/compact/detailed layouts |
 | Pattern Manager | View, create, edit, and inject AE2 patterns into ME Interfaces |
 | AE Orders | Pattern/item/**craft tree** single orders with optional CPU selection and real AE2 progress |
 | Network Topology | Logical / spatial / **P2P channel** / **world map** views; abstract tree/star layouts; CSV export |
@@ -60,7 +60,9 @@ tokenLifetimeHours=0
 maxRecipeCacheMB=256
 recipeCacheMode=full
 recipeUploadBatchesPerTick=3
-recipeSearchMinIntervalMs=300
+recipeSearchMinIntervalMs=1000
+recipeKeepMemoryAfterUpload=false
+recipeSyncChunkSize=400
 nesqlRepositoryPath=
 neiDeepScanItemsPerTick=0
 iconMissingDispatchPerTick=8
@@ -81,7 +83,9 @@ iconPackEnabled=true
 - `gtRefreshIntervalMs`: GT machine collection interval (ms), default 10000.
 - `maxNetworksDisplayed`: max AE2 networks shown at once (1–20, default 5).
 - `tokenLifetimeHours`: token TTL in hours; 0 = never expire.
-- `recipeCacheMode`: `full` (GTNH default, no LRU eviction) or `lru` (evict when `maxRecipeCacheMB` exceeded).
+- `recipeCacheMode`: `full` (GTNH default, no LRU eviction) or `lru` (evict when `maxRecipeCacheMB` exceeded; only while server memory is loaded).
+- `recipeKeepMemoryAfterUpload`: keep full recipes in server heap after upload/save; default `false` (clear heap; browsers sync via **Fetch recipes**).
+- `recipeSyncChunkSize`: recipes per browser-sync chunk (default 400).
 - `nesqlRepositoryPath`: NESQL repo root for `/admweb icons import-nesql`. **When empty**, defaults to `<instance>/TeXTech/WebAE/` (`.minecraft/TeXTech/WebAE/` on client; same folder name under server root on dedicated servers; same as client recipe export).
 - `bindAddress=127.0.0.1` is localhost only; set `0.0.0.0` for LAN (use a firewall).
 
@@ -107,7 +111,7 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 | `/admweb refresh [network]` | Admin force re-collect snapshots (OP only) |
 | `/admweb server status` | Show WebAE HTTP server state |
 | `/admweb server restart` | Restart HTTP server (OP only) |
-| `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload; also writes `<instance>/TeXTech/WebAE/web-recipes.json.gz` on the client; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
+| `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload to server disk; also writes `<instance>/TeXTech/WebAE/web-recipes.json` on the client; web UI still needs **Fetch recipes**; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
 | `/admweb recipes status` | Show recipe cache status (incl. disk size) |
 | `/admweb recipes clear` | Clear recipe memory + disk cache (OP only) |
 | `/admweb icons upload [pack]` / `upload snapshot [pack]` | **OP** triggers client icon render/upload (always nei) |
@@ -173,7 +177,11 @@ Lists online machines with name, progress, recipe, and input/output slots. Filte
 
 ### Recipe Search
 
-Auto-loads recipe overview on open; fuzzy search, category multi-select, Full/Merged and Compact/Detailed layouts. OP must run `/admweb recipes upload snapshot` (recommended) or `upload` (full) before search works. Collection also writes `.minecraft/TeXTech/WebAE/web-recipes.json.gz` on the client for offline backup or external tools.
+Recipes are not kept in server heap for the browser to query continuously. Flow: **OP uploads in-game → server writes disk → player clicks Fetch recipes on the Recipes page → chunks land in this browser’s IndexedDB → local browse/search**.
+
+- On the Recipes page, click toolbar **Fetch recipes** when a new server revision is available (progress bar; cancellable). Then use fuzzy search, category multi-select, Full/Merged and Compact/Detailed layouts against the local store; no automatic re-download while revision is unchanged.
+- OP must run `/admweb recipes upload snapshot` (recommended) or `upload` (full) first; collection also writes `.minecraft/TeXTech/WebAE/web-recipes.json` on the client (plain JSON backup).
+- Changing browsers or clearing site data requires Fetch again. Server `/admweb recipes clear` does not wipe browser IndexedDB.
 
 ### Item Icons & Texture Packs
 
@@ -190,7 +198,8 @@ Real game icons in tables and recipes; abbreviation fallback on failure. Loading
 
 | Path | Purpose |
 |------|---------|
-| Client `.minecraft/TeXTech/WebAE/web-recipes.json.gz` | NEI recipe gzip cache written after `/admweb recipes upload*` |
+| Client `.minecraft/TeXTech/WebAE/web-recipes.json` | NEI recipe JSON written after `/admweb recipes upload*` |
+| Server `TeXTech/WebAE/web-recipes.json` + `.meta.json` + `recipe-chunks/` | Server authoritative cache; browsers pull chunks via **Fetch recipes** |
 | Server `<instance>/TeXTech/WebAE/` (or configured `nesqlRepositoryPath`) | NESQL pre-rendered PNGs for `/admweb icons import-nesql` (often under `images/`) |
 
 The folder is created automatically on first use.
@@ -282,7 +291,7 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 - **Mandatory auth**: all `/api/` endpoints require a token; force-refresh needs OP/admin grant
 - **Layered access**: admins can ban a player account (kick to login), suspend one AE network for everyone including the owner (in-game AE unaffected), or limit guest tokens to selected networks
 - **Token security**: tokens grant storage view and crafting submit — store securely
-- **Recipe upload required**: OP runs `/admweb recipes upload` before recipe search works
+- **Recipes need upload + Fetch**: after OP `/admweb recipes upload`, each player clicks **Fetch recipes** on the Recipes page to sync into browser IndexedDB
 - **Icon upload**: OP runs `/admweb icons upload [packName]`; frontend auto-selects the server's most recent pack on first load
 - **reload limits**: `/admweb reload` does not rebind the web server; tokens and runtime data files are unaffected
 

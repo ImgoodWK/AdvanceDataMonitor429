@@ -66,23 +66,18 @@ public final class ConfigWebaeLoader {
             0,
             5000,
             ConfigDescriptions.get("webConsole", "recipeSearchMinIntervalMs"));
-        Config.webRecipeDiskFormat = configuration.getString(
-            "recipeDiskFormat",
+        Config.webRecipeKeepMemoryAfterUpload = configuration.getBoolean(
+            "recipeKeepMemoryAfterUpload",
             "webConsole",
-            Config.webRecipeDiskFormat,
-            ConfigDescriptions.get("webConsole", "recipeDiskFormat"));
-        String recipeDiskFormat = Config.webRecipeDiskFormat;
-        if (recipeDiskFormat == null
-            || (!"json".equalsIgnoreCase(recipeDiskFormat.trim()) && !"gzip".equalsIgnoreCase(recipeDiskFormat.trim()))) {
-            if (recipeDiskFormat != null && !recipeDiskFormat.trim()
-                .isEmpty()) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] Invalid recipeDiskFormat={} — using json", recipeDiskFormat);
-            }
-            Config.webRecipeDiskFormat = "json";
-        } else {
-            Config.webRecipeDiskFormat = recipeDiskFormat.trim()
-                .toLowerCase();
-        }
+            Config.webRecipeKeepMemoryAfterUpload,
+            ConfigDescriptions.get("webConsole", "recipeKeepMemoryAfterUpload"));
+        Config.webRecipeSyncChunkSize = configuration.getInt(
+            "recipeSyncChunkSize",
+            "webConsole",
+            Config.webRecipeSyncChunkSize,
+            50,
+            2000,
+            ConfigDescriptions.get("webConsole", "recipeSyncChunkSize"));
         Config.webNesqlRepositoryPath = configuration.getString(
             "nesqlRepositoryPath",
             "webConsole",

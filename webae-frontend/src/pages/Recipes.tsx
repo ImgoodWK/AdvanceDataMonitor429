@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
-import { Card, Space, Spin, Tag, Typography } from 'antd';
+import { Button, Card, Progress, Space, Spin, Tag, Typography, message } from 'antd';
+import { CloudDownloadOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
 
-import { getApiClient } from '@/api/client';
 import { HandlerCategoryFilter } from '@/components/recipes/HandlerCategoryFilter';
 import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
 import {
@@ -18,44 +18,28 @@ import {
 import { RecipeResultList } from '@/components/recipes/RecipeResultList';
 import { PageShell } from '@/components/Layout/PageShell';
 import { useAppContext } from '@/context/AppContext';
+import { useRecipeSync } from '@/hooks/useRecipeSync';
 import { useI18n } from '@/i18n';
-import { debugLog } from '@/utils/debugLog';
 import { groupByPrimaryOutput } from '@/utils/recipe';
+import { formatBytes } from '@/utils/recipeLocalStore';
 import { openGtnhWikiSearch } from '@/utils/wiki';
-import type {
-  RecipeBrowseResponse,
-  RecipeCacheStatus,
-  RecipeDto,
-  RecipeHandlerInfo,
-  RecipeHandlersResponse,
-  RecipeItemEntry,
-  RecipeSearchResponse,
-  RecipeStatusResponse,
-  RecipeSuggestEntry,
-} from '@/types/dto';
+import type { RecipeDto, RecipeItemEntry, RecipeSuggestEntry } from '@/types/dto';
 
 const BROWSE_PAGE_SIZE = 24;
-const BROWSE_ALL = 'all';
-
-function resolveHandlersParam(browseHandlers: string[]): string | undefined {
-  if (browseHandlers.length === 0) return undefined;
-  return browseHandlers.join(',');
-}
 
 export function RecipesPage() {
-  const { refreshTick, consumePageSearchPrefill } = useAppContext();
+  const { consumePageSearchPrefill } = useAppContext();
   const { t } = useI18n();
+  const sync = useRecipeSync();
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<RecipeSearchMode>('query');
   const [browseHandlers, setBrowseHandlers] = useState<string[]>([]);
   const [layoutMode, setLayoutMode] = useState<RecipeLayoutMode>(loadRecipeLayoutMode);
   const [displayMode, setDisplayMode] = useState<RecipeDisplayMode>(loadRecipeDisplayMode);
-  const [handlers, setHandlers] = useState<RecipeHandlerInfo[]>([]);
   const [rawResults, setRawResults] = useState<RecipeDto[]>([]);
   const [resultTotal, setResultTotal] = useState(0);
   const [searching, setSearching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [cacheStatus, setCacheStatus] = useState<RecipeCacheStatus | null>(null);
   const [searched, setSearched] = useState(false);
   const [browsePage, setBrowsePage] = useState(1);
   const [isBrowseMode, setIsBrowseMode] = useState(true);
@@ -65,138 +49,79 @@ export function RecipesPage() {
   const autoLoadedRef = useRef(false);
   const [, startDisplayTransition] = useTransition();
 
-  const results = rawResults;
+  const handlers = useMemo(() => {
+    if (sync.localMeta?.handlers?.length) return sync.localMeta.handlers;
+    return sync.serverManifest?.handlers || [];
+  }, [sync.localMeta, sync.serverManifest]);
 
+  const results = rawResults;
   const mergedGroups = useMemo(() => groupByPrimaryOutput(results), [results]);
 
-  const fetchHandlers = useCallback(async () => {
-    try {
-      const data = await getApiClient().get<RecipeHandlersResponse>('/api/recipes/handlers');
-      if (data.success) setHandlers(data.handlers || []);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const fetchStatus = useCallback(async () => {
-    try {
-      const data = await getApiClient().get<RecipeStatusResponse>('/api/recipes/status');
-      if (data.success && data.status) setCacheStatus(data.status);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchHandlers();
-    fetchStatus();
-  }, [fetchHandlers, fetchStatus, refreshTick]);
+  const hasLocalData = sync.recipes.length > 0;
 
   const browseHandlerRecipes = useCallback(
-    async (page: number, append = false, handlerIds = browseHandlers) => {
+    (page: number, append = false, handlerIds = browseHandlers) => {
+      if (!hasLocalData) return;
       if (append) setLoadingMore(true);
       else setSearching(true);
       setSearched(true);
       setIsBrowseMode(true);
       setBrowsePage(page);
-      const handlerParam = resolveHandlersParam(handlerIds);
-      try {
-        const offset = (page - 1) * BROWSE_PAGE_SIZE;
-        const params = new URLSearchParams();
-        params.set('offset', String(offset));
-        params.set('limit', String(BROWSE_PAGE_SIZE));
-        if (handlerParam) {
-          params.set('handlers', handlerParam);
-        } else {
-          params.set('handler', BROWSE_ALL);
-        }
-        const data = await getApiClient().get<RecipeBrowseResponse>(
-          `/api/recipes/browse?${params.toString()}`
-        );
-        if (data.success) {
-          const batch = data.results || [];
-          setRawResults((prev) => (append ? [...prev, ...batch] : batch));
-          setResultTotal(data.total ?? data.count ?? 0);
-        }
-      } catch {
-        if (!append) {
-          setRawResults([]);
-          setResultTotal(0);
-        }
-      } finally {
-        setSearching(false);
-        setLoadingMore(false);
-      }
+      const offset = (page - 1) * BROWSE_PAGE_SIZE;
+      const { results: batch, total } = sync.browseLocal(handlerIds, offset, BROWSE_PAGE_SIZE);
+      setRawResults((prev) => (append ? [...prev, ...batch] : batch));
+      setResultTotal(total);
+      setSearching(false);
+      setLoadingMore(false);
     },
-    [browseHandlers]
+    [browseHandlers, hasLocalData, sync]
   );
 
   const doSearch = useCallback(
-    async (page = 1, append = false, handlerIds = browseHandlers, queryOverride?: string) => {
+    (page = 1, append = false, handlerIds = browseHandlers, queryOverride?: string) => {
       const term = (queryOverride ?? search).trim();
-      if (!term) return;
+      if (!term || !hasLocalData) return;
       if (append) setLoadingMore(true);
       else setSearching(true);
       setSearched(true);
       setIsBrowseMode(false);
       setBrowsePage(page);
-      try {
-        const params = new URLSearchParams();
-        const offset = (page - 1) * BROWSE_PAGE_SIZE;
-
-        params.set('q', term);
-        params.set('offset', String(offset));
-        params.set('limit', String(BROWSE_PAGE_SIZE));
-        if (searchMode === 'output') {
-          params.set('scope', 'output');
-        } else if (searchMode === 'input') {
-          params.set('scope', 'input');
-        } else {
-          params.set('scope', 'all');
-        }
-        const handlerParam = resolveHandlersParam(handlerIds);
-        if (handlerParam) params.set('handlers', handlerParam);
-
-        const data = await getApiClient().get<RecipeSearchResponse>(
-          `/api/recipes/search?${params.toString()}`
-        );
-        if (data.success) {
-          const batch = data.results || [];
-          debugLog(
-            'patterns',
-            'debug',
-            'recipe search response: query={} mode={} handlers={} total={} returned={} offset={}',
-            term,
-            searchMode,
-            handlerIds.join(','),
-            data.total ?? data.count ?? 0,
-            batch.length,
-            offset
-          );
-          setRawResults((prev) => (append ? [...prev, ...batch] : batch));
-          setResultTotal(data.total ?? data.count ?? 0);
-        }
-      } catch {
-        if (!append) {
-          setRawResults([]);
-          setResultTotal(0);
-        }
-      } finally {
-        setSearching(false);
-        setLoadingMore(false);
-      }
+      const scope = searchMode === 'output' ? 'output' : searchMode === 'input' ? 'input' : 'all';
+      const offset = (page - 1) * BROWSE_PAGE_SIZE;
+      const { results: batch, total } = sync.searchLocal(
+        term,
+        scope,
+        handlerIds,
+        offset,
+        BROWSE_PAGE_SIZE
+      );
+      setRawResults((prev) => (append ? [...prev, ...batch] : batch));
+      setResultTotal(total);
+      setSearching(false);
+      setLoadingMore(false);
     },
-    [search, searchMode, browseHandlers]
+    [browseHandlers, hasLocalData, search, searchMode, sync]
   );
 
   useEffect(() => {
     const prefill = consumePageSearchPrefill('recipes');
-    if (prefill?.query) {
+    if (prefill?.query && hasLocalData) {
       setSearch(prefill.query);
       setSearchMode('query');
-      void doSearch(1, false, browseHandlers, prefill.query);
+      doSearch(1, false, browseHandlers, prefill.query);
     }
-  }, [consumePageSearchPrefill, doSearch, browseHandlers]);
+  }, [consumePageSearchPrefill, doSearch, browseHandlers, hasLocalData]);
+
+  // Progressive browse while syncing / when ready — refresh when local recipe count grows
+  useEffect(() => {
+    if (!hasLocalData) return;
+    if (sync.phase !== 'ready' && sync.phase !== 'syncing') return;
+    if (!searched || isBrowseMode) {
+      autoLoadedRef.current = true;
+      browseHandlerRecipes(1, false, browseHandlers);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only on recipe count / phase
+  }, [hasLocalData, sync.phase, sync.recipes.length]);
 
   const handleSelectSuggest = useCallback(
     (entry: RecipeSuggestEntry) => {
@@ -207,33 +132,32 @@ export function RecipesPage() {
       setSearched(true);
       setIsBrowseMode(false);
       setBrowsePage(1);
-      const params = new URLSearchParams();
-      params.set('output', entry.registryName);
-      params.set('limit', String(BROWSE_PAGE_SIZE));
-      const handlerParam = resolveHandlersParam(browseHandlers);
-      if (handlerParam) params.set('handlers', handlerParam);
-      getApiClient()
-        .get<RecipeSearchResponse>(`/api/recipes/search?${params.toString()}`)
-        .then((data) => {
-          if (data.success) {
-            setRawResults(data.results || []);
-            setResultTotal(data.total ?? data.count ?? 0);
-          }
-        })
-        .catch(() => {
-          setRawResults([]);
-          setResultTotal(0);
-        })
-        .finally(() => setSearching(false));
+      const { results: batch, total } = sync.searchExactLocal(
+        entry.registryName,
+        'output',
+        browseHandlers,
+        BROWSE_PAGE_SIZE
+      );
+      setRawResults(batch);
+      setResultTotal(total);
+      setSearching(false);
     },
-    [browseHandlers]
+    [browseHandlers, sync]
   );
 
-  useEffect(() => {
-    if (autoLoadedRef.current || !cacheStatus || cacheStatus.recipeCount <= 0) return;
-    autoLoadedRef.current = true;
-    browseHandlerRecipes(1, false, []);
-  }, [cacheStatus, browseHandlerRecipes]);
+  const handleFetchClick = async (forceFull = false) => {
+    const result = await sync.startSync(forceFull);
+    if (result.reason === 'uptodate') {
+      message.success(t('recipesSyncUpToDate'));
+    } else if (result.reason === 'synced') {
+      message.success(t('recipesSyncDone'));
+      autoLoadedRef.current = false;
+    } else if (result.reason === 'empty') {
+      message.warning(t('recipesEmptyHint'));
+    } else if (result.reason === 'cancelled') {
+      message.info(t('recipesSyncCancelled'));
+    }
+  };
 
   const handleLayoutChange = (mode: RecipeLayoutMode) => {
     startDisplayTransition(() => {
@@ -295,38 +219,107 @@ export function RecipesPage() {
     searching,
   ]);
 
+  const pct =
+    sync.progressTotal > 0 ? Math.round((sync.progressDone / sync.progressTotal) * 100) : 0;
+
+  const serverCount = sync.serverManifest?.recipeCount ?? 0;
+  const localCount = sync.localMeta?.complete
+    ? sync.localMeta.recipeCount
+    : sync.recipes.length;
+
   return (
     <PageShell title={t('recipes')} description={t('uploadRecipesHint')}>
-      {cacheStatus && (
-        <Card size="small">
-          <Space wrap>
-            {cacheStatus.diskLoading && !cacheStatus.diskLoadComplete && (
-              <Tag color="processing">{t('recipesDiskLoading')}</Tag>
-            )}
-            <Tag color={cacheStatus.recipeCount > 0 ? 'blue' : 'red'}>
-              {cacheStatus.recipeCount} {t('recipesCached')}
-            </Tag>
-            <Tag>
-              {cacheStatus.handlerCount} {t('handlerTypes')}
-            </Tag>
-            {cacheStatus.lastDiskSave > 0 && (
-              <Tag>
-                {t('lastDiskSave')}: {new Date(cacheStatus.lastDiskSave).toLocaleString()}
-              </Tag>
-            )}
-          </Space>
-          {cacheStatus.recipeCount === 0 && (
-            <Typography.Paragraph type="warning" style={{ marginTop: 12, marginBottom: 0 }}>
-              {t('recipesEmptyHint')}
-              <br />
-              {t('recipesSnapshotHint')}
-            </Typography.Paragraph>
+      <Card size="small">
+        <Space wrap style={{ width: '100%' }}>
+          {sync.phase === 'syncing' && (
+            <Tag color="processing">{t('recipesSyncing')}</Tag>
           )}
-        </Card>
-      )}
+          {sync.updateAvailable && <Tag color="warning">{t('recipesUpdateAvailable')}</Tag>}
+          {sync.ready && <Tag color="success">{t('recipesLocalReady')}</Tag>}
+          <Tag color={localCount > 0 ? 'blue' : 'default'}>
+            {localCount} {t('recipesLocalCached')}
+          </Tag>
+          {serverCount > 0 && (
+            <Tag>
+              {serverCount} {t('recipesServerAvailable')}
+            </Tag>
+          )}
+          {handlers.length > 0 && (
+            <Tag>
+              {handlers.length} {t('handlerTypes')}
+            </Tag>
+          )}
+          {sync.serverManifest?.estimatedBytes ? (
+            <Tag>
+              {t('recipesSyncSize')}: {formatBytes(sync.serverManifest.estimatedBytes)}
+            </Tag>
+          ) : null}
+        </Space>
+
+        {sync.phase === 'syncing' && (
+          <div style={{ marginTop: 12 }}>
+            <Progress
+              percent={pct}
+              status="active"
+              format={() =>
+                t('recipesSyncProgress')
+                  .replace('{done}', String(sync.progressDone))
+                  .replace('{total}', String(sync.progressTotal))
+              }
+            />
+            <Button icon={<StopOutlined />} onClick={() => sync.cancelSync()} size="small">
+              {t('recipesSyncCancel')}
+            </Button>
+          </div>
+        )}
+
+        <Space wrap style={{ marginTop: 12 }}>
+          {sync.needsFetch && sync.phase !== 'syncing' && (
+            <Button
+              type="primary"
+              icon={<CloudDownloadOutlined />}
+              onClick={() => void handleFetchClick(false)}
+              loading={sync.phase === 'checking'}
+            >
+              {sync.localMeta && !sync.localMeta.complete && sync.localMeta.nextChunkIndex > 0
+                ? t('recipesSyncResume')
+                : t('recipesFetch')}
+            </Button>
+          )}
+          {sync.ready && sync.phase !== 'syncing' && (
+            <Button icon={<ReloadOutlined />} onClick={() => void handleFetchClick(false)}>
+              {t('recipesCheckUpdate')}
+            </Button>
+          )}
+          {sync.ready && sync.phase !== 'syncing' && (
+            <Button onClick={() => void handleFetchClick(true)}>{t('recipesRefetch')}</Button>
+          )}
+          {!sync.serverManifest && sync.phase !== 'checking' && (
+            <Typography.Text type="secondary">{t('recipesEmptyHint')}</Typography.Text>
+          )}
+        </Space>
+
+        {!hasLocalData && sync.phase !== 'syncing' && serverCount > 0 && (
+          <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+            {t('recipesFetchHint')}
+          </Typography.Paragraph>
+        )}
+        {serverCount === 0 && sync.phase !== 'checking' && (
+          <Typography.Paragraph type="warning" style={{ marginTop: 12, marginBottom: 0 }}>
+            {t('recipesEmptyHint')}
+            <br />
+            {t('recipesSnapshotHint')}
+          </Typography.Paragraph>
+        )}
+        {sync.error && sync.error !== 'empty' && (
+          <Typography.Paragraph type="danger" style={{ marginTop: 8, marginBottom: 0 }}>
+            {t('recipesSyncError')}: {sync.error}
+          </Typography.Paragraph>
+        )}
+      </Card>
 
       <Card>
-        {handlers.length > 0 && (
+        {handlers.length > 0 && hasLocalData && (
           <HandlerCategoryFilter
             handlers={handlers}
             browseHandlers={browseHandlers}
@@ -336,26 +329,29 @@ export function RecipesPage() {
           />
         )}
 
-        <RecipeToolbar
-          search={search}
-          onSearchChange={setSearch}
-          searchMode={searchMode}
-          onSearchModeChange={setSearchMode}
-          layoutMode={layoutMode}
-          onLayoutModeChange={handleLayoutChange}
-          displayMode={displayMode}
-          onDisplayModeChange={handleDisplayModeChange}
-          searching={searching}
-          onSearch={() => doSearch(1, false)}
-          onSelectSuggest={handleSelectSuggest}
-          t={t}
-        />
+        {hasLocalData && (
+          <RecipeToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchMode={searchMode}
+            onSearchModeChange={setSearchMode}
+            layoutMode={layoutMode}
+            onLayoutModeChange={handleLayoutChange}
+            displayMode={displayMode}
+            onDisplayModeChange={handleDisplayModeChange}
+            searching={searching}
+            onSearch={() => doSearch(1, false)}
+            onSelectSuggest={handleSelectSuggest}
+            localSuggest={sync.suggestLocal}
+            t={t}
+          />
+        )}
 
-        {!searched && searching ? (
+        {!hasLocalData && sync.phase === 'syncing' ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
-            <Spin tip={t('searching')} />
+            <Spin tip={t('recipesSyncing')} />
           </div>
-        ) : searched ? (
+        ) : searched && hasLocalData ? (
           <RecipeResultList
             results={results}
             mergedGroups={mergedGroups}
@@ -370,11 +366,11 @@ export function RecipesPage() {
             onRecipeClick={handleRecipeClick}
             t={t}
           />
-        ) : (
+        ) : hasLocalData ? (
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             {t('recipeBrowseHint')}
           </Typography.Paragraph>
-        )}
+        ) : null}
       </Card>
 
       <RecipeDetailModal

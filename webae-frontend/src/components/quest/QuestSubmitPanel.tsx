@@ -12,7 +12,7 @@ import type {
   QuestSubmitResultDto,
   QuestSubmitStepResultDto,
 } from '@/types/dto';
-import { fluidIconId } from '@/utils/icon';
+import { questIconProps, questMaterialLabel } from './questUtils';
 
 const { Text } = Typography;
 
@@ -24,6 +24,24 @@ function stepCraftableEnough(step: QuestAnalysisStepDto): boolean {
   }
   const craftable = step.craftable ?? 0;
   return missing > 0 && craftable > 0 && craftable >= missing;
+}
+
+function DryRunStepIcon({
+  step,
+  analysisStep,
+}: {
+  step: QuestSubmitStepResultDto;
+  analysisStep?: QuestAnalysisStepDto;
+}) {
+  const props = questIconProps({
+    iconItemId: analysisStep?.iconItemId,
+    fluidName: step.fluidName || analysisStep?.fluidName,
+    itemId: step.itemId || analysisStep?.itemId,
+    registryName: analysisStep?.registryName,
+    meta: analysisStep?.meta,
+    displayName: analysisStep?.displayName,
+  });
+  return props ? <Icon {...props} size={24} /> : null;
 }
 
 function formatAeStock(
@@ -47,7 +65,12 @@ function formatDryRunStepLabel(
   analysisStep: QuestAnalysisStepDto | undefined,
   t: (key: string, params?: Record<string, string | number>) => string
 ): string {
-  const name = step.itemId || step.fluidName || step.message || '';
+  const name =
+    questMaterialLabel(analysisStep, '') ||
+    step.itemId ||
+    step.fluidName ||
+    step.message ||
+    '';
   if (analysisStep) {
     return `${name} (${formatAeStock(analysisStep, t)})`;
   }
@@ -349,31 +372,23 @@ export function QuestSubmitPanel({
           message={t('quest.missingMaterials', missingSteps.length)}
           description={
             <div>
-              {missingSteps.map((s) => (
+              {missingSteps.map((s) => {
+                const iconProps = questIconProps(s);
+                return (
                 <div
                   key={s.index}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}
                 >
-                  {s.registryName ? (
-                    <Icon
-                      item={{
-                        itemId: s.itemId ?? s.registryName,
-                        registryName: s.registryName,
-                        meta: s.meta,
-                      }}
-                      size={20}
-                    />
-                  ) : s.fluidName ? (
-                    <Icon id={fluidIconId(s.fluidName)} size={20} />
-                  ) : null}
+                  {iconProps ? <Icon {...iconProps} size={20} /> : null}
                   <Text type="secondary">
-                    {s.registryName || s.fluidName} {formatAeStock(s, t)}
+                    {questMaterialLabel(s)} {formatAeStock(s, t)}
                     {stepCraftableEnough(s)
                       ? ` (${t('quest.craftable')}: ${s.craftable})`
                       : ''}
                   </Text>
                 </div>
-              ))}
+                );
+              })}
             </div>
           }
         />
@@ -467,21 +482,21 @@ export function QuestSubmitPanel({
         )}
         {dryRunCats.sufficient.map((s) => (
           <div key={s.index} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            {s.itemId ? <Icon item={{ itemId: s.itemId }} size={24} /> : null}
+            <DryRunStepIcon step={s} analysisStep={dryRunCats.analysisByIndex.get(s.index)} />
             <Text>{formatDryRunStepLabel(s, dryRunCats.analysisByIndex.get(s.index), t)}</Text>
             <Tag color="green" style={{ marginLeft: 'auto' }}>{t('quest.dryRunSufficient')}</Tag>
           </div>
         ))}
         {dryRunCats.needCraft.map((s) => (
           <div key={s.index} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            {s.itemId ? <Icon item={{ itemId: s.itemId }} size={24} /> : null}
+            <DryRunStepIcon step={s} analysisStep={dryRunCats.analysisByIndex.get(s.index)} />
             <Text>{formatDryRunStepLabel(s, dryRunCats.analysisByIndex.get(s.index), t)}</Text>
             <Tag color="gold" style={{ marginLeft: 'auto' }}>{t('quest.dryRunNeedCraft')}</Tag>
           </div>
         ))}
         {dryRunCats.insufficient.map((s) => (
           <div key={s.index} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            {s.itemId ? <Icon item={{ itemId: s.itemId }} size={24} /> : null}
+            <DryRunStepIcon step={s} analysisStep={dryRunCats.analysisByIndex.get(s.index)} />
             <Text>{formatDryRunStepLabel(s, dryRunCats.analysisByIndex.get(s.index), t)}</Text>
             <Tag color="red" style={{ marginLeft: 'auto' }}>{t('quest.dryRunInsufficient')}</Tag>
           </div>
@@ -578,26 +593,20 @@ export function QuestSubmitPanel({
               </Space>
               {s.analysis?.steps
                 ?.filter((st) => st.webCapable && !st.complete && (st.missing > 0 || (st.fluidMissing ?? 0) > 0))
-                .map((st) => (
+                .map((st) => {
+                  const iconProps = questIconProps(st);
+                  return (
                   <div
                     key={st.index}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginLeft: 8 }}
                   >
-                    {st.registryName ? (
-                      <Icon
-                        item={{
-                          itemId: st.itemId ?? st.registryName,
-                          registryName: st.registryName,
-                          meta: st.meta,
-                        }}
-                        size={18}
-                      />
-                    ) : null}
+                    {iconProps ? <Icon {...iconProps} size={18} /> : null}
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      {st.registryName || st.fluidName} {formatAeStock(st, t)}
+                      {questMaterialLabel(st)} {formatAeStock(st, t)}
                     </Text>
                   </div>
-                ))}
+                  );
+                })}
             </div>
           );
         })}

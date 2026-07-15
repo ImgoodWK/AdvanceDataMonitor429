@@ -17,6 +17,7 @@ import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.textech.webae.player.PlayerInfoStore;
@@ -116,17 +117,24 @@ public final class WebAeOwnerContext {
         if (ownerUuid == null || ownerUuid.isEmpty()) {
             return Collections.emptyList();
         }
-        if (!forceRefresh) {
-            CachedConnectors cached = connectorCache.get(ownerUuid);
-            if (cached != null && System.currentTimeMillis() - cached.cachedAt < CONNECTOR_CACHE_TTL_MS) {
+        CachedConnectors cached = connectorCache.get(ownerUuid);
+        long now = System.currentTimeMillis();
+        if (!forceRefresh && cached != null && now - cached.cachedAt < CONNECTOR_CACHE_TTL_MS) {
+            return cached.groups;
+        }
+        // HTTP / off-thread: never rebuild via World. Prefer stale cache, else coord-only registry index.
+        if (!HandlerTick.isServerThread()) {
+            if (cached != null) {
                 return cached.groups;
             }
+            return NetworkRegistry.getIndexGroupsNoWorld(ownerUuid);
         }
         List<NetworkGroup> groups = NetworkRegistry.getNetworks(ownerUuid);
         if (groups.isEmpty()) {
             groups = bootstrapScanMonitors(ownerUuid);
         }
-        connectorCache.put(ownerUuid, new CachedConnectors(groups, System.currentTimeMillis()));
+        connectorCache.put(ownerUuid, new CachedConnectors(groups, now));
+        NetworkRegistry.publishNetworkIdKeysFromGroups(ownerUuid, groups);
         return groups;
     }
 
@@ -299,9 +307,21 @@ public final class WebAeOwnerContext {
     }
 
     public static void invalidateConnectors(String ownerUuid) {
-        if (ownerUuid != null) {
-            connectorCache.remove(ownerUuid);
+        if (ownerUuid == null) {
+            return;
+        }
+        connectorCache.remove(ownerUuid);
+        if (HandlerTick.isServerThread()) {
             NetworkRegistry.refreshHealth(ownerUuid);
+        } else {
+            final String uuid = ownerUuid;
+            HandlerTick.enqueueServerTask(new Runnable() {
+
+                @Override
+                public void run() {
+                    NetworkRegistry.refreshHealth(uuid);
+                }
+            });
         }
     }
 

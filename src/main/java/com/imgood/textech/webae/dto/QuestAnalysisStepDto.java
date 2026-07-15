@@ -11,6 +11,10 @@ public class QuestAnalysisStepDto {
     public String itemId;
     public String registryName;
     public int meta;
+    /** Localized item/fluid label copied from {@link QuestTaskDto#displayName}. */
+    public String displayName;
+    /** Display-only icon id copied from {@link QuestTaskDto#iconItemId}. */
+    public String iconItemId;
     public long required;
     public long available;
     /** Still needed for quest completion (required minus progress). */

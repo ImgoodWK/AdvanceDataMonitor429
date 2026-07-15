@@ -248,6 +248,34 @@ export interface RecipeCacheStatus {
   lastDiskSave: number;
   diskLoading?: boolean;
   diskLoadComplete?: boolean;
+  memoryLoaded?: boolean;
+  lazyLoading?: boolean;
+  revision?: string;
+}
+
+export interface RecipeSyncManifest {
+  schemaVersion: number;
+  revision: string;
+  recipeCount: number;
+  chunkSize: number;
+  chunkCount: number;
+  estimatedBytes: number;
+  savedAt: number;
+  handlers: RecipeHandlerInfo[];
+}
+
+export interface RecipeSyncManifestResponse {
+  success: boolean;
+  manifest: RecipeSyncManifest | null;
+  message?: string;
+}
+
+export interface RecipeSyncChunkResponse {
+  success: boolean;
+  index: number;
+  recipes: RecipeDto[];
+  count: number;
+  message?: string;
 }
 
 export interface RecipeBrowseResponse {
@@ -809,6 +837,10 @@ export interface QuestTaskDto {
   itemId?: string;
   registryName?: string;
   meta?: number;
+  /** Localized item/fluid name (e.g. GT filled cell); prefer for UI labels. */
+  displayName?: string;
+  /** Display-only icon id (e.g. fluid:lava); does not affect submit matching. */
+  iconItemId?: string;
   required: number;
   progress: number;
   fluidName?: string;
@@ -872,6 +904,10 @@ export interface QuestAnalysisStepDto {
   itemId?: string;
   registryName?: string;
   meta?: number;
+  /** Localized item/fluid label from the task. */
+  displayName?: string;
+  /** Display-only icon id copied from the task. */
+  iconItemId?: string;
   required: number;
   available: number;
   remaining?: number;

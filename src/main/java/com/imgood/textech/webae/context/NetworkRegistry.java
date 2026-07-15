@@ -39,6 +39,14 @@ public final class NetworkRegistry {
     private static final ConcurrentHashMap<String, CopyOnWriteArrayList<RegisteredNetwork>> playerNetworks =
         new ConcurrentHashMap<String, CopyOnWriteArrayList<RegisteredNetwork>>();
 
+    /**
+     * ownerUuid → stable monitor keys in the same order as API {@code networkId}.
+     * Updated when {@link #getNetworks} / group seeding runs on the server thread — never rebuilt via World
+     * from HTTP workers.
+     */
+    private static final ConcurrentHashMap<String, CopyOnWriteArrayList<String>> networkIdKeys =
+        new ConcurrentHashMap<String, CopyOnWriteArrayList<String>>();
+
     private static volatile long lastGlobalHealthCheckMs;
 
     private NetworkRegistry() {}
@@ -79,6 +87,7 @@ public final class NetworkRegistry {
         }
         CopyOnWriteArrayList<RegisteredNetwork> entries = playerNetworks.get(ownerUuid);
         if (entries == null || entries.isEmpty()) {
+            publishNetworkIdKeys(ownerUuid, Collections.<String>emptyList());
             return Collections.emptyList();
         }
         List<NetworkGroup> groups = new ArrayList<NetworkGroup>();
@@ -89,7 +98,98 @@ public final class NetworkRegistry {
             }
         }
         sortGroups(groups, ownerUuid);
+        publishNetworkIdKeysFromGroups(ownerUuid, groups);
         return groups;
+    }
+
+    /**
+     * Resolve stable {@code dim:x:y:z} for a runtime networkId without touching {@link World}.
+     * Safe to call from WebAE HTTP threads.
+     */
+    public static String keyForNetworkId(String ownerUuid, int networkId) {
+        if (ownerUuid == null || ownerUuid.isEmpty() || networkId < 0) {
+            return null;
+        }
+        CopyOnWriteArrayList<String> keys = networkIdKeys.get(ownerUuid);
+        if (keys != null && networkId < keys.size()) {
+            return keys.get(networkId);
+        }
+        List<RegisteredNetwork> sorted = listSortedRegistered(ownerUuid);
+        if (networkId >= sorted.size()) {
+            return null;
+        }
+        return sorted.get(networkId).monitorKey();
+    }
+
+    /**
+     * Map stable key back to runtime networkId without touching {@link World}.
+     * Safe to call from WebAE HTTP threads.
+     */
+    public static Integer networkIdForKey(String ownerUuid, String networkKey) {
+        if (ownerUuid == null || networkKey == null || networkKey.isEmpty()) {
+            return null;
+        }
+        CopyOnWriteArrayList<String> keys = networkIdKeys.get(ownerUuid);
+        if (keys != null) {
+            for (int i = 0; i < keys.size(); i++) {
+                if (networkKey.equals(keys.get(i))) {
+                    return Integer.valueOf(i);
+                }
+            }
+        }
+        List<RegisteredNetwork> sorted = listSortedRegistered(ownerUuid);
+        for (int i = 0; i < sorted.size(); i++) {
+            if (networkKey.equals(sorted.get(i).monitorKey())) {
+                return Integer.valueOf(i);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Coord-only NetworkGroups (no TileEntity links) for HTTP/index fallbacks. Does not touch World.
+     */
+    public static List<NetworkGroup> getIndexGroupsNoWorld(String ownerUuid) {
+        List<RegisteredNetwork> sorted = listSortedRegistered(ownerUuid);
+        List<NetworkGroup> groups = new ArrayList<NetworkGroup>(sorted.size());
+        for (int i = 0; i < sorted.size(); i++) {
+            RegisteredNetwork entry = sorted.get(i);
+            NetworkGroup group = new NetworkGroup();
+            group.monitorDim = entry.monitorDim;
+            group.monitorX = entry.monitorX;
+            group.monitorY = entry.monitorY;
+            group.monitorZ = entry.monitorZ;
+            groups.add(group);
+        }
+        if (!sorted.isEmpty() && networkIdKeys.get(ownerUuid) == null) {
+            publishNetworkIdKeysFromGroups(ownerUuid, groups);
+        }
+        return groups;
+    }
+
+    /** Publish networkId→key order from an already-built group list (e.g. connector cache refresh). */
+    public static void publishNetworkIdKeysFromGroups(String ownerUuid, List<NetworkGroup> groups) {
+        if (ownerUuid == null || ownerUuid.isEmpty()) {
+            return;
+        }
+        List<String> keys = new ArrayList<String>();
+        if (groups != null) {
+            for (int i = 0; i < groups.size(); i++) {
+                NetworkGroup g = groups.get(i);
+                if (g != null) {
+                    keys.add(g.monitorDim + ":" + g.monitorX + ":" + g.monitorY + ":" + g.monitorZ);
+                }
+            }
+        }
+        publishNetworkIdKeys(ownerUuid, keys);
+    }
+
+    private static void publishNetworkIdKeys(String ownerUuid, List<String> keys) {
+        if (keys == null || keys.isEmpty()) {
+            networkIdKeys.remove(ownerUuid);
+        } else {
+            networkIdKeys.put(ownerUuid, new CopyOnWriteArrayList<String>(keys));
+        }
     }
 
     public static boolean isHealthy(String ownerUuid, int networkId) {
@@ -265,8 +365,10 @@ public final class NetworkRegistry {
         }
         if (list.isEmpty()) {
             playerNetworks.remove(ownerUuid);
+            networkIdKeys.remove(ownerUuid);
         } else {
             playerNetworks.put(ownerUuid, list);
+            publishNetworkIdKeysFromGroups(ownerUuid, groups);
         }
     }
 
@@ -351,17 +453,66 @@ public final class NetworkRegistry {
     }
 
     private static RegisteredNetwork getEntryByNetworkId(String ownerUuid, int networkId) {
-        List<NetworkGroup> groups = getNetworks(ownerUuid);
-        if (networkId < 0 || networkId >= groups.size()) {
+        String key = keyForNetworkId(ownerUuid, networkId);
+        if (key == null) {
             return null;
         }
-        NetworkGroup group = groups.get(networkId);
         CopyOnWriteArrayList<RegisteredNetwork> list = playerNetworks.get(ownerUuid);
         if (list == null) {
             return null;
         }
-        String key = group.monitorDim + ":" + group.monitorX + ":" + group.monitorY + ":" + group.monitorZ;
         return findByMonitorKey(list, key);
+    }
+
+    /**
+     * Registered networks sorted like {@link #sortGroups} — coordinate order only, no World access.
+     */
+    private static List<RegisteredNetwork> listSortedRegistered(String ownerUuid) {
+        CopyOnWriteArrayList<RegisteredNetwork> list = playerNetworks.get(ownerUuid);
+        if (list == null || list.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<RegisteredNetwork> sorted = new ArrayList<RegisteredNetwork>(list);
+        sortRegistered(sorted, ownerUuid);
+        return sorted;
+    }
+
+    private static void sortRegistered(List<RegisteredNetwork> entries, final String ownerUuid) {
+        final EntityPlayerMP online = HandlerWebPlayerTracker.findOnlinePlayer(ownerUuid);
+        final double sortX;
+        final double sortY;
+        final double sortZ;
+        if (online != null) {
+            sortX = online.posX;
+            sortY = online.posY;
+            sortZ = online.posZ;
+        } else {
+            sortX = 0;
+            sortY = 0;
+            sortZ = 0;
+        }
+        Collections.sort(entries, new Comparator<RegisteredNetwork>() {
+
+            @Override
+            public int compare(RegisteredNetwork a, RegisteredNetwork b) {
+                if (online != null) {
+                    double dA = distSq(sortX, sortY, sortZ, a.monitorX, a.monitorY, a.monitorZ);
+                    double dB = distSq(sortX, sortY, sortZ, b.monitorX, b.monitorY, b.monitorZ);
+                    return Double.compare(dA, dB);
+                }
+                int dimCmp = Integer.compare(a.monitorDim, b.monitorDim);
+                if (dimCmp != 0) {
+                    return dimCmp;
+                }
+                if (a.monitorX != b.monitorX) {
+                    return Integer.compare(a.monitorX, b.monitorX);
+                }
+                if (a.monitorY != b.monitorY) {
+                    return Integer.compare(a.monitorY, b.monitorY);
+                }
+                return Integer.compare(a.monitorZ, b.monitorZ);
+            }
+        });
     }
 
     private static RegisteredNetwork findByMonitorKey(CopyOnWriteArrayList<RegisteredNetwork> list, String key) {

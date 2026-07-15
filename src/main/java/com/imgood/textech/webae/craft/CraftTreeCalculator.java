@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.dto.RecipeDto;
@@ -57,14 +58,23 @@ public final class CraftTreeCalculator {
             return node;
         }
 
-        List<RecipeDto> recipes = RecipeCacheStore.instance()
-            .searchByOutput(itemKey, null);
-        if (recipes == null || recipes.isEmpty()) {
+        RecipeCacheStore recipes = RecipeCacheStore.instance();
+        // Never expand craft tree via sync full-catalog parse on the server tick thread.
+        if (!recipes.isMemoryLoaded()) {
+            if (HandlerTick.isServerThread()) {
+                recipes.ensureLoaded(); // kicks background load only
+                node.leaf = true;
+                return node;
+            }
+            recipes.ensureLoaded();
+        }
+        List<RecipeDto> recipeList = recipes.searchByOutput(itemKey, null);
+        if (recipeList == null || recipeList.isEmpty()) {
             node.leaf = true;
             return node;
         }
 
-        RecipeDto recipe = pickRecipe(recipes);
+        RecipeDto recipe = pickRecipe(recipeList);
         if (recipe == null || recipe.outputs == null || recipe.outputs.isEmpty()) {
             node.leaf = true;
             return node;

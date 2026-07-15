@@ -133,8 +133,13 @@ public class Config {
     public static int webRecipeUploadBatchesPerTick = 3;
     /** Minimum interval (ms) between fuzzy recipe searches per owner. Default 1000. */
     public static int webRecipeSearchMinIntervalMs = 1000;
-    /** On-disk recipe cache format: {@code json} (plain, fast streaming) or {@code gzip}. Default json. */
-    public static String webRecipeDiskFormat = "json";
+    /**
+     * Keep recipes in server heap after upload save. Default false (clear memory; browser sync +
+     * lazy {@code ensureLoaded} for craft-tree / API fallback).
+     */
+    public static boolean webRecipeKeepMemoryAfterUpload = false;
+    /** Recipes per sync chunk file / API page. Default 400, range 50–2000. */
+    public static int webRecipeSyncChunkSize = 400;
     /**
      * NESQL repository path for {@code /admweb icons import-nesql}. Empty = {@code TeXTech/WebAE} under instance root.
      */

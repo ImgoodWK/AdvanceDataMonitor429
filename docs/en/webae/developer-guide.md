@@ -87,7 +87,7 @@ All source code resides under `com.imgood.textech.webae/` (231 files). See `proj
 | `webae/gt/` | 2 | GT machine state reader + binding data structure |
 | `webae/metric/` | 2 | Network metrics + downsample util |
 | `webae/network/` | 13 | Recipe/icon/world-map HD packets + upload throttle |
-| `webae/recipe/` | 8+ | NEI/vanilla/GT recipe collect + cache |
+| `webae/recipe/` | 9+ | NEI/vanilla/GT recipe collect, disk meta/chunks, lazy cache |
 | `webae/pattern/` | 8+ | Pattern encode/inject/browse cache |
 | `webae/topology/` | 20 | Network topology + P2P map |
 | `webae/worldmap/` | 27 | World map meta/markers/tiles/AE overlay/quality tiers/prefetch progress |
@@ -115,7 +115,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `maxRecipeCacheMB` | int | `256` | 1-2048 | Approximate max memory (MB) for the recipe cache; evicted in `lru` mode when exceeded, warning-only in `full` |
 | `recipeUploadBatchesPerTick` | int | `3` | 1-32 | Recipe upload JSON batches sent per client tick |
 | `recipeSearchMinIntervalMs` | int | `1000` | 0-5000 | Minimum interval (ms) between fuzzy recipe searches per owner via `/api/recipes/search?q=` |
-| `recipeDiskFormat` | string | `json` | `json`/`gzip` | On-disk recipe format: `json` plain (default, fast streaming load) or `gzip` (smaller disk) |
+| `recipeKeepMemoryAfterUpload` | boolean | `false` | — | Keep full recipe cache in server heap after upload/save; default `false` (clear heap; browsers sync chunks; craft-tree / fallback APIs use `ensureLoaded`) |
+| `recipeSyncChunkSize` | int | `400` | 50-2000 | Recipes per browser-sync chunk file / `GET /api/recipes/sync/chunk` |
 | `nesqlRepositoryPath` | string | `` | — | NESQL exporter repository root for `/admweb icons import-nesql`. Empty → `<instance>/TeXTech/WebAE/` (same folder as client recipe export) |
 | `neiDeepScanItemsPerTick` | int | `0` | 0-512 | NEI item-driven deep scan items per client tick (`/admweb recipes upload deep`; 0 = disabled) |
 | `iconMissingDispatchPerTick` | int | `8` | 1-64 | IconMissingQueue lazy-load requests dispatched per server tick |
@@ -192,7 +193,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `worldMapAeQualityBoost` | `false` | Disable AE chunk quality bump |
 | `dashboardMaxTracksGlobal` / `dashboardMaxItemTracks` | `16` / `8` | Fewer dashboard tracks |
 | `recipeSearchMinIntervalMs` | `1000` | Recipe fuzzy search throttle |
-| `recipeDiskFormat` | `json` | Plain recipes, streaming load; `.gz` fallback on first load, migrated to `.json` on save |
+| `recipeKeepMemoryAfterUpload` | `false` | Clear heap after save; browsers Fetch chunks into IndexedDB |
+| `recipeSyncChunkSize` | `400` | Sync chunk size |
 
 **Security note**: Default binds to `127.0.0.1`. All `/api/` endpoints enforce Bearer authentication (no opt-out). Changing `bindAddress` to `0.0.0.0` exposes the console to the LAN — use a firewall or SSH tunnel. Admin-only endpoints (refresh) additionally require OP level >= 2.
 
@@ -222,14 +224,16 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/gt/machines/batch?networks=0,1,2` | Yes | No | Batched cached GT read |
 | POST | `/api/gt/machines/refresh?network=<id>` | Yes | **Yes (OP)** | Force GT re-collect |
 | POST | `/api/gt/machines/refresh/batch?networks=0,1,2` | Yes | **Yes (OP)** | Batched GT re-collect |
-| GET | `/api/recipes/handlers` | Yes | No | List recipe handler types with counts |
-| GET | `/api/recipes/status` | Yes | No | Recipe cache status |
-| GET | `/api/recipes/browse?handler=<id\|all>&offset=&limit=` | Yes | No | Paginated browse (response includes `total`) |
-| GET | `/api/recipes/search?output=<name>&handler=<id>` | Yes | No | Exact search by output registry name |
-| GET | `/api/recipes/search?input=<name>&handler=<id>` | Yes | No | Exact search by input registry name |
-| GET | `/api/recipes/search?q=<text>&handler=&offset=&limit=` | Yes | No | Fuzzy search (paginated, response includes `total`) |
-| GET | `/api/recipes/suggest?q=<text>&limit=` | Yes | No | Item autocomplete (registry + display name) |
-| GET | `/api/recipes/{handlerId}/{recipeIndex}` | Yes | No | Get single recipe (includes gridSlots / GT fields) |
+| GET | `/api/recipes/sync/manifest` | Yes | No | Recipe disk catalog metadata (revision/chunkCount/handlers; no full in-memory load) |
+| GET | `/api/recipes/sync/chunk?index=N` | Yes | No | Read `recipe-chunks/chunk-NNNN.json` (browser IndexedDB sync) |
+| GET | `/api/recipes/handlers` | Yes | No | List recipe handler types with counts (memory or meta) |
+| GET | `/api/recipes/status` | Yes | No | Recipe cache status (disk/memory/lazy) |
+| GET | `/api/recipes/browse?handler=<id\|all>&offset=&limit=` | Yes | No | Server paginated browse fallback (`ensureLoaded`; response includes `total`) |
+| GET | `/api/recipes/search?output=<name>&handler=<id>` | Yes | No | Exact search by output registry name (server fallback) |
+| GET | `/api/recipes/search?input=<name>&handler=<id>` | Yes | No | Exact search by input registry name (server fallback) |
+| GET | `/api/recipes/search?q=<text>&handler=&offset=&limit=` | Yes | No | Fuzzy search (server fallback; paginated, response includes `total`) |
+| GET | `/api/recipes/suggest?q=<text>&limit=` | Yes | No | Item autocomplete (server fallback; registry + display name) |
+| GET | `/api/recipes/{handlerId}/{recipeIndex}` | Yes | No | Get single recipe (includes gridSlots / GT fields; server fallback) |
 | POST | `/api/order` | Yes | No | Submit single crafting order; body may include optional `cpuName` and `patternId` (takes priority over itemName) |
 | POST | `/api/order/batch` | Yes | No | Submit batch crafting orders (items may include `patternId` for pattern-based orders; body may include `cpuName`) |
 | GET | `/api/order/list` | Yes | No | List active + history (`{success,orders,history}`; progress via `ICraftingLink` + CPU step counters by networkId; history owner-scoped) |
@@ -314,13 +318,15 @@ Quest submit internals: `webae/quest/QuestInventoryEscrow` (AE virtual lock/rele
 
 `QuestTaskDeserializer`: `bq_standard:retrieval` + `consume=true` → web action **SUBMIT** (symmetric to fluid `bq_standard:fluid` + `consume=true`); hold-detect retrieval/fluid use `consume=false` → **DETECT**. `BqApiFacade.completeRetrievalTask` refuses the `forceComplete` fallback when `consume=true`; those tasks must go through `submitItem`/`submitFluid` + escrow commit.
 
+Fluid-cell display (`iconItemId` + `displayName` — does **not** change submit matching): `QuestFluidIconResolver` tries LegacyAe → FCR → GT `GregTech_FluidDisplay` (damage = FluidRegistry ID) → optional `GTUtility.getFluidForFilledItem`, then sets `iconItemId=fluid:<name>` (same path as the recipe page). Tasks/analysis steps also get `displayName` from `ItemStack.getDisplayName()` / `FluidStack.getLocalizedName()` (e.g. GT filled cell “Oxygen Cell”); frontend `questMaterialLabel` prefers it for submit-condition and AE-stock text so rows are not only `gregtech:gt.metaitem.01`. Covers the two common GTNH forms — `IC2:itemCellEmpty`+Damage filled cells and `gregtech:gt.GregTech_FluidDisplay`. `BqApiFacade.fillIcon` (line/node/detail header icons) uses the same resolver; non-fluids keep meta via `RecipeItemEntries.buildItemId`. True `requiredFluids` tasks set both `fluidName` and `iconItemId`. Frontend `questIconProps` prefers `iconItemId`.
+
 Local WebAE QA: the first BetterQuesting tab from dev fixtures is **WebAE Test Lab** (`dev-fixtures/betterquesting/`, tracked in Git, **not** packed into the mod jar; see that folder’s `README-dev.md`).
 
 | GET | `/api/alerts` | Yes | No | Active automation alerts + `web-alerts.json` rules mirror (A1–A5); includes `canEditRules` (OP) |
 | GET | `/api/alerts/rules` | Yes | No | Rules only + `canEditRules` |
 | PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `TeXTech/WebAE/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |
 | GET | `/api/server/health` | Yes | No | Server TPS / MSPT (same as `/forge tps` Overall) / online players / uptime + 300s rolling history |
-| GET | `/api/server/diagnostics` | Yes | No | WebAE perf diagnostics: tick phases, `HandlerTick` queue depth, snapshot collect timings, slow HTTP / top routes, config summary; polled by Diagnostics page |
+| GET | `/api/server/diagnostics` | Yes | No | WebAE perf diagnostics: tick phases, `HandlerTick` queue depth, snapshot collect timings, `snapshotWorkerBusy` / `snapshotTimeouts` / `snapshotSkippedBusy` / `snapshotSkippedQueue`, slow HTTP / top routes, config summary; polled by Diagnostics page |
 | GET | `/api/oc/summary` | Yes | No | OC read-only summary (item types, CPU busy, active orders, TPS; 1 req/s; see [oc-integration.md](oc-integration.md)) |
 | GET | `/api/search?q=&limit=&offset=&types=&network=` | Yes | No | Aggregated read-only search (storage/recipe/gt/pattern; 500ms rate limit; pagination; Phase 4a) |
 
@@ -328,7 +334,7 @@ Authentication: `Authorization: Bearer <token>` header. All `/api/` endpoints re
 
 401 responses include a `code` field: `missing_token`, `invalid_format`, `empty_token`, `token_expired` (only when `tokenLifetimeHours > 0`), `invalid_token`, or `webae_disabled` on account ban (also mirrors `error`; SPA clears token and returns to login).
 
-Network denials: `403` + `code:network_suspended` (includes owner) or `network_access_denied` (guest allowlist/ACL). Stable network key is monitor coords `dim:x:y:z` (not runtime `networkId`). Stores: `web-network-suspends.json`, `web-network-acl.json`; checks in `webae/access/WebAeNetworkAccess`.
+Network denials: `403` + `code:network_suspended` (includes owner) or `network_access_denied` (guest allowlist/ACL). Stable network key is monitor coords `dim:x:y:z` (not runtime `networkId`). Stores: `web-network-suspends.json`, `web-network-acl.json`; checks in `webae/access/WebAeNetworkAccess`. `WebAeNetworkKeys.fromNetworkId` / `toNetworkId` and HTTP-side `findNetworkGroups` must **not** touch `World` (registry coordinate keys / stale connector cache only); world freshness is maintained on the server thread via `getNetworks` / `refreshHealth`.
 
 ## 6. Frontend Architecture
 
@@ -378,7 +384,8 @@ Technical notes:
 - **Token stability**: in-memory `WebAuthToken` cache + debounced atomic disk flush; frontend `tokenRef` + silent re-login on 401; heartbeat uses raw fetch
 - **Icon dual-track**: IndexedDB local-first + server disk; miss → async client fill (SSE); `iconAutoSync` default false; Settings full-pack sync + fill-visible; see `.cursor/rules/webae-icon-performance.mdc`; resolution: local → server → abbreviation
 - **Hooks**: `useIconPackAutoSync` (optional bulk), `iconPrefetch.ts` (local warm / `fillMissingIconsFromServer`), `visibleIconRegistry.ts`
-- **Recipe API**: `GET /api/recipes/browse?handler=all|…` (paginated, `total`); `GET /api/recipes/search?q=` (fuzzy, paginated); `GET /api/recipes/suggest?q=` (autocomplete); status field `recipeCount`
+- **Recipe local-first**: OP upload → server disk (`web-recipes.json` + meta + chunks) → player clicks **Fetch recipes** on Recipes page → browser IndexedDB → local browse/search; `useRecipeSync` + `recipeLocalStore`; server browse/search is fallback (`ensureLoaded`)
+- **Recipe sync API**: `GET /api/recipes/sync/manifest`, `GET /api/recipes/sync/chunk?index=`; browse/search/suggest remain as fallbacks
 - **Preset system**: quick-switch profiles (theme/layout/lang/number format/icon pack/sidebar/main dashboard); localStorage `webae_presets`
 - **Full backup** (`utils/uiSettingsBundle.ts` + Settings **Backup & Restore** tab): `WebUiSettingsBundle` v1 (`format:textech-webae-ui-settings`) aggregates all localStorage page prefs; optional server favorites/order templates/alert rules (OP); excludes token and IndexedDB icon binaries
 - **Default layout**: `WebUiDefaultsStore` + public `GET /api/ui-defaults`; `/admweb defaults status|install|clear`; `AppContext` auto-applies on first visit when no prior `webae_*` localStorage exists
@@ -449,9 +456,9 @@ Recipe upload flow:
 1. Client `KeyBindings.uploadNeiRecipes(scope, snapshotItemIds)` hybrid collect: `NeiRecipeCollector` (main thread; `deep` enables item-driven scan) or `RecipeSnapshotCollector` (`snapshot` scope) + `GameRecipeCollector` (background), deduped with NEI winning into a **single session**
 2. First batch `isStart`: `RecipeUploadSession.onStart()` decides whether to `clearMemoryOnly()` (only the first active session per player; overlapping uploads ignored)
 3. Batches throttled client-side by `RecipeUploadThrottler` (`recipeUploadBatchesPerTick` per tick); `RecipeUploadBatcher` splits under the FML 32KB cap (JSON ≤ ~32KB−512B; oversized recipes trim grid/rawJson)
-4. Server `RecipeCacheStore.ingest()` + final `rebuildHandlerCounts()`; debounced gzip save to `web-recipes.json.gz`
-5. Client `RecipeLocalExporter` writes the same gzip schema to `<instance>/TeXTech/WebAE/web-recipes.json.gz`
-6. On completion, `PacketWebRecipeUploadAck` confirms delivery
+4. Server `RecipeCacheStore.ingest()` + final `rebuildHandlerCounts()`; debounced save to `web-recipes.json` + `web-recipes.meta.json` + `recipe-chunks/chunk-NNNN.json`; default `recipeKeepMemoryAfterUpload=false` clears heap after save
+5. Client `RecipeLocalExporter` writes `<instance>/TeXTech/WebAE/web-recipes.json` (plain JSON only, no gzip)
+6. On completion, `PacketWebRecipeUploadAck` confirms delivery; browsers must click **Fetch recipes** on the Recipes page to pull sync chunks into IndexedDB
 
 Icon upload flow:
 1. Client `IconRenderer` (@SideOnly CLIENT) renders several items per frame into 32×32 PNGs offscreen
@@ -477,7 +484,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 | `/admweb revoke [player]` | Self / OP | Revoke your own token, or another player's token (OP only) |
 | `/admweb list` | OP | List all active tokens (prefix + issue time only) |
 | `/admweb reload` | OP | Actually reloads the TeXTech configuration: calls `Config.reloadConfiguration()` to re-read the active config file and re-run every section loader (debug/compat/ai/voice/assistant/plannerHud/dataLoom/superOrange/matterBallDecompressor/grapple/webConsole); some options (e.g. `enabled`/`port`/`bindAddress` for the web server itself) still need a server restart, and the response notes this; token and runtime data files (web-tokens.json/web-players.json/web-chat.json/web-icons/) are not affected |
-| `/admweb recipes upload [snapshot\|deep]` | **OP** | Client merged NEI+Game single upload; also writes client `TeXTech/WebAE/web-recipes.json.gz`; `snapshot` collects recipes for AE storage snapshot items only; `deep` enables full NEI item scan (slow) |
+| `/admweb recipes upload [snapshot\|deep]` | **OP** | Client merged NEI+Game single upload; writes server disk and client `TeXTech/WebAE/web-recipes.json`; browsers must still **Fetch recipes** on the Recipes page; `snapshot` collects recipes for AE storage snapshot items only; `deep` enables full NEI item scan (slow) |
 | `/admweb icons import-nesql [pack] [subpath]` | **OP** | Import pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/` when empty; incremental; does not overwrite existing) |
 | `/admweb recipes export` | **OP** | Alias of upload, emphasizing the export-to-cache semantics |
 | `/admweb recipes status` | Any | Show server recipe cache status (including disk cache size and last-save time) |
@@ -552,30 +559,26 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 ### 11.4 Recipe Search
 
-- **Handler**: `RecipeHandler.java`
+- **Data flow**: OP `/admweb recipes upload*` → server disk is authoritative (no startup full load) → player clicks **Fetch recipes** → IndexedDB local browse/search
+- **Handler**: `RecipeHandler.java` (sync manifest/chunk + server browse/search fallback)
 - **Hybrid collection (client)**: `KeyBindings.uploadNeiRecipes(scope, …)` runs `NeiRecipeCollector.collectAll(deepScan)` or `RecipeSnapshotCollector.collectForItems()` on the client main thread, then `GameRecipeCollector.collectAll()` on a background thread; dedup by `handlerId:recipeIndex` with NEI winning; merged into one upload session via `RecipeUploadThrottler`
 - **Upload session**: `RecipeUploadSession` ensures only the first `isStart` batch per player clears memory; concurrent overlapping uploads are ignored
 - **NEI parsing**: `NeiRecipeCollector.extractRecipe()` reflects `PositionedStack`; `handlerName` formatted via `RecipeDisplayNames` as `Localized (langKey)`; `itemId` includes meta (`registry:meta`)
 - **Game collection**: `GameRecipeCollector` writes grids for `ShapedRecipes` and EU/duration for GT RecipeMap entries; handler labels same as NEI
 - **Upload**: chunked C→S via `PacketWebRecipeUpload`; `rebuildHandlerCounts()` on last batch
-- **Cache**: `RecipeCacheStore` with `recipeCacheMode` (`full` default for GTNH; `lru` evicts when `maxRecipeCacheMB` exceeded) + `outputIndex`/`inputIndex` + `handlerRecipeKeys`/`suggestPrefixIndex` + gzip persistence; fuzzy search rate-limited by `RecipeSearchRateLimiter` (`recipeSearchMinIntervalMs`)
-- **API**:
-  - `GET /api/recipes/browse?handler=all|…` — paginated browse with `total`
-  - `GET /api/recipes/search?q=` — fuzzy search with `handler`/`offset`/`limit`, response `total`
-  - `GET /api/recipes/suggest?q=` — item autocomplete
-  - `GET /api/recipes/search?output=` / `?input=` — exact registry search
+- **Cache / disk**: `RecipeCacheStore` — no startup full load; `ensureLoaded()` lazy (blocking on HTTP workers; on the **server tick thread** only starts `WebAE-RecipeCache-Load` and returns immediately — never sync-parses the full catalog); quest analysis/submit prefetch `ensureLoaded` on the HTTP thread; craft-tree skips expand on the main thread when memory is not loaded; save writes `web-recipes.json` + `web-recipes.meta.json` (`RecipeDiskMeta`) + `recipe-chunks/chunk-NNNN.json` (`recipeSyncChunkSize`); default `recipeKeepMemoryAfterUpload=false` clears heap after save; `recipeCacheMode` (`full` default) applies only when memory is loaded; fallback fuzzy search rate-limited by `RecipeSearchRateLimiter`
+- **Sync API** (primary; does not require full heap load):
+  - `GET /api/recipes/sync/manifest` — revision / chunkCount / handlers
+  - `GET /api/recipes/sync/chunk?index=N` — one chunk of recipes
+- **Server fallback API** (craft tree etc.; `ensureLoaded`):
+  - `GET /api/recipes/browse|search|suggest|…`
 - **DTO**: `RecipeDto` adds `gridSlots`, `gridWidth/Height`, `euPerTick`, `durationTicks`, `voltageTier`, `recipeType`
-- **Frontend** (`webae-frontend/src/pages/Recipes.tsx` + `components/recipes/`, Phase 5):
-  - Default fuzzy search + AutoComplete suggestions; toolbar Segmented for search scope, **Full/Merged** display mode, and Compact/Detailed layout
-  - Auto-loads “All” recipe overview on page open; **infinite scroll** lazy load (IntersectionObserver + `offset/limit`, 24 per batch)
-  - **Category filter** (`HandlerCategoryFilter`): multi-select Tags (`browseHandlers`), handler-name search, collapse/expand + selected-count badge; client-side `filterByHandlers()`
-  - **Compact layout**: square cards (icon / output name / handler Tag); click opens `RecipeDetailModal` with full inputs/outputs/grid
-  - **Merged mode**: `groupByPrimaryOutput()` groups by primary output registryName; `RecipeMergedCard` shows recipe-type count badge; modal Tabs switch handlers for the same output
-  - **Detailed layout**: independent CSS Grid columns (`grid-auto-flow: column dense; align-items: start`) so column heights do not stretch each other
-  - Layout switch uses CSS show/hide + `React.memo` (cards and `Icon`) to reduce re-renders; persisted in `localStorage.webae-recipe-layout` / `webae-recipe-display-mode`
-  - Detailed view: crafting grid, fluid sections, GT tags; click item → Drawer (craft / usage tabs, NEI U/R equivalent)
-  - Icon `itemId` includes meta; `IconStore` falls back to base id when meta-specific PNG missing
-- **Disk persistence**: `TeXTech/WebAE/web-recipes.json.gz`; `/admweb recipes clear` wipes memory + disk
+- **Frontend** (`webae-frontend/src/pages/Recipes.tsx` + `hooks/useRecipeSync.ts` + `utils/recipeLocalStore.ts` + `components/recipes/`):
+  - Toolbar **Fetch recipes**: compare manifest revision, download chunks into IndexedDB with progress / cancel; unchanged revision does not auto re-download
+  - After fetch, **local** browse / fuzzy search / suggest; category filter, Full/Merged, Compact/Detailed layouts as before
+  - Infinite scroll over local store; compact/merged cards + `RecipeDetailModal`; detailed craft grid / fluids / GT tags
+  - Layout switch CSS show/hide + `React.memo`; persisted `localStorage.webae-recipe-layout` / `webae-recipe-display-mode`
+- **Clear**: `/admweb recipes clear` wipes server memory + disk (meta/chunks included); browser IndexedDB must be cleared per-origin or overwritten by Fetch
 
 ### 11.5 Pattern Management
 
@@ -805,7 +808,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Event types**: `inventory_threshold` / `cpu_stuck` / `gt_error` / `order_complete` / `channel_overload` / `server_tps_below` / `automation_craft`
 - **TPS alert**: `serverTpsBelowEnabled` + `serverTpsThreshold` (default 15) + `serverTpsDurationSeconds` (default 60); evaluated by `WebAlertEngine` via `ServerHealthSampler`
 - **Health sampler**: `webae/health/ServerHealthSampler.java` — mean of `MinecraftServer.tickTimeArray` (last 100 ticks; same formula as `/forge tps` Overall: `mspt = mean(ns)×1e-6`, `tps = min(20, 1000/mspt)`); refreshed every tick via `HandlerTick`, ~1s samples into a 300s rolling window; `GET /api/server/health` (`ServerHealthHandler`); Diagnostics page TPS/MSPT use the same source
-- **Perf diagnostics**: `webae/perf/WebAePerfProfiler.java` — tick phases / HTTP routes / snapshot collect timings; `GET /api/server/diagnostics`; `[debug] webaePerf` → `logs/textech/webae-perf.log` (slow tick ≥5ms / slow HTTP ≥200ms always logged); frontend `pages/Diagnostics.tsx` + `useServerDiagnostics`. **New `/api/*` routes must be wired into diagnostics** — see `.cursor/rules/webae-perf-diagnostics.mdc`.
+- **Perf diagnostics**: `webae/perf/WebAePerfProfiler.java` + `SnapshotWorkerPool` — tick phases / HTTP routes / snapshot collect timings; single-flight + reject when `queueDepth≥48`; 500ms soft timeout warns only and keeps `inFlight` until the server task finishes (hard wait cap 30s); `GET /api/server/diagnostics` (includes `snapshotWorkerBusy` / timeouts / skips); `[debug] webaePerf` → `logs/textech/webae-perf.log` (slow tick ≥5ms / slow HTTP ≥200ms always logged); frontend `pages/Diagnostics.tsx` + `useServerDiagnostics`. **New `/api/*` routes must be wired into diagnostics** — see `.cursor/rules/webae-perf-diagnostics.mdc`.
 
 ### 11.20b Monitoring Deepening (reference plan Phase 3)
 
@@ -903,7 +906,7 @@ Total gzip size ~450KB, fully offline-packaged (no CDN dependencies). Build comm
 | Refresh returns 403 | Non-OP trying admin refresh | Use `/admweb refresh` in-game instead |
 | Storage/power shows empty briefly | Cache cold-starting | Wait one `refreshIntervalMs` cycle; the scheduler only collects active networks |
 | Storage/power persistently empty | AE2 network not connected or no active network | Open the web console / select a network so `SnapshotScheduler.markActive` runs |
-| Recipe search returns no results | Not uploaded / exact search on displayName / empty cache | Run `/admweb recipes clear` then `/admweb recipes upload snapshot` (daily) or `upload` (full NEI+Game); Web UI defaults to fuzzy search; enable `[debug] debugWebae=true` for NEI collection logs |
+| Recipe search returns no results | Not uploaded / did not Fetch recipes / empty IndexedDB / exact search on displayName | OP `/admweb recipes upload snapshot` (or `upload`), then **Fetch recipes** on the Recipes page; enable `[debug] debugWebae=true` for NEI collection logs |
 | Icons show as text abbreviations | Auth failure / pack-name mismatch / itemId format mismatch | v3.0 fixed: `WebAuthMiddleware` supports `?token=` query parameter fallback, frontend Icon component auto-appends token; confirm `AeSnapshotCollector` uses registry names; check `TeXTech/WebAE/icons/default-pack.txt` |
 | Chat messages don't appear | Not uploaded or token has no playerUuid | Confirm `ChatMessageStore` persisted `web-chat.json`; check `/api/chat/since` response; in-game messages require `sendChatMsg` broadcast |
 | Player avatars fall back to initials | Offline mode or GameProfile has no textures | `SkinUrlResolver` returning null for offline players is expected; for online players check the GameProfile textures property |

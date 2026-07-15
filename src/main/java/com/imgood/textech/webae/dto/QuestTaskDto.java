@@ -15,6 +15,16 @@ public class QuestTaskDto {
     public String itemId;
     public String registryName;
     public int meta;
+    /**
+     * Localized item/fluid name for UI (e.g. GT filled cell {@code Oxygen Cell} / {@code 氧气单元}).
+     * Prefer over {@link #registryName} in frontend labels; does not affect AE matching.
+     */
+    public String displayName;
+    /**
+     * Display-only icon cache id (e.g. {@code fluid:lava} for filled fluid cells).
+     * Does not affect AE item/fluid matching or submit semantics.
+     */
+    public String iconItemId;
     public long required;
     public long progress;
     public String fluidName;

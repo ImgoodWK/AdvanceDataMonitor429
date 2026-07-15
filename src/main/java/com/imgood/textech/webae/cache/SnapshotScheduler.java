@@ -138,34 +138,34 @@ public class SnapshotScheduler {
             return;
         }
 
-        // Storage collection (intervalMs)
-        tickStorage(active, intervalMs, now);
-
-        // GT collection (gtRefreshIntervalMs) — only keys with bound GT machines are collected
-        int gtIntervalMs = Config.webGtRefreshIntervalMs;
-        if (gtIntervalMs > 0) {
-            tickGt(active, gtIntervalMs, now);
-        }
-
-        // Pattern browse pre-collection (webPatternCacheTtlMs)
-        int patternIntervalMs = Config.webPatternCacheTtlMs;
-        if (patternIntervalMs > 0) {
-            tickPatternBrowse(active, patternIntervalMs, now);
-        }
-
-        // P2P / cells / rich patterns — slower interval (gt or topology TTL)
-        int slowIntervalMs = Config.webGtRefreshIntervalMs > 0 ? Config.webGtRefreshIntervalMs
-            : Config.webTopologyCacheTtlMs;
-        if (slowIntervalMs <= 0) {
-            slowIntervalMs = 10000;
-        }
+        // Network-scoped collections (storage / GT / patterns / p2p / cells)
         List<String> networkKeys = filterNetworkScopedKeys(active);
         if (!networkKeys.isEmpty()) {
+            tickStorage(networkKeys, intervalMs, now);
+
+            // GT collection (gtRefreshIntervalMs)
+            int gtIntervalMs = Config.webGtRefreshIntervalMs;
+            if (gtIntervalMs > 0) {
+                tickGt(networkKeys, gtIntervalMs, now);
+            }
+
+            // Pattern browse pre-collection (webPatternCacheTtlMs)
+            int patternIntervalMs = Config.webPatternCacheTtlMs;
+            if (patternIntervalMs > 0) {
+                tickPatternBrowse(networkKeys, patternIntervalMs, now);
+            }
+
+            // P2P / cells / rich patterns — slower interval (gt or topology TTL)
+            int slowIntervalMs = Config.webGtRefreshIntervalMs > 0 ? Config.webGtRefreshIntervalMs
+                : Config.webTopologyCacheTtlMs;
+            if (slowIntervalMs <= 0) {
+                slowIntervalMs = 10000;
+            }
             tickKeyed(networkKeys, slowIntervalMs, now, lastP2pCollectTime, p2pCursor, new KeyedCollect() {
 
                 @Override
-                public void collect(String key, long nowMs) {
-                    enqueueP2pCollect(key);
+                public boolean collect(String key, long nowMs) {
+                    return enqueueP2pCollect(key);
                 }
 
                 @Override
@@ -181,8 +181,8 @@ public class SnapshotScheduler {
             tickKeyed(networkKeys, slowIntervalMs, now, lastCellsCollectTime, cellsCursor, new KeyedCollect() {
 
                 @Override
-                public void collect(String key, long nowMs) {
-                    enqueueCellsCollect(key);
+                public boolean collect(String key, long nowMs) {
+                    return enqueueCellsCollect(key);
                 }
 
                 @Override
@@ -199,8 +199,8 @@ public class SnapshotScheduler {
             tickKeyed(networkKeys, richInterval, now, lastPatternsRichCollectTime, patternsRichCursor, new KeyedCollect() {
 
                 @Override
-                public void collect(String key, long nowMs) {
-                    enqueuePatternsRichCollect(key);
+                public boolean collect(String key, long nowMs) {
+                    return enqueuePatternsRichCollect(key);
                 }
 
                 @Override
@@ -218,6 +218,11 @@ public class SnapshotScheduler {
         // Owner-scoped: networks list, monitor bindings, scanner
         List<String> owners = collectActiveOwners(active);
         if (!owners.isEmpty()) {
+            int slowIntervalMs = Config.webGtRefreshIntervalMs > 0 ? Config.webGtRefreshIntervalMs
+                : Config.webTopologyCacheTtlMs;
+            if (slowIntervalMs <= 0) {
+                slowIntervalMs = 10000;
+            }
             int ownerInterval = Config.webPatternCacheTtlMs > 0 ? Config.webPatternCacheTtlMs : slowIntervalMs;
             tickOwners(owners, ownerInterval, now);
         }
@@ -225,7 +230,8 @@ public class SnapshotScheduler {
 
     private interface KeyedCollect {
 
-        void collect(String key, long nowMs);
+        /** @return true when the job was accepted by the worker pool */
+        boolean collect(String key, long nowMs);
 
         void setCursor(int c);
 
@@ -243,8 +249,9 @@ public class SnapshotScheduler {
             String key = active.get(idx);
             Long last = lastMap.get(key);
             if (last == null || now - last >= intervalMs) {
-                collector.collect(key, now);
-                lastMap.put(key, now);
+                if (collector.collect(key, now)) {
+                    lastMap.put(key, now);
+                }
             }
             processed++;
             idx = (idx + 1) % size;
@@ -263,18 +270,21 @@ public class SnapshotScheduler {
             String owner = owners.get(idx);
             Long lastN = lastNetworksCollectTime.get(owner);
             if (lastN == null || now - lastN >= intervalMs) {
-                enqueueNetworksCollect(owner);
-                lastNetworksCollectTime.put(owner, now);
+                if (enqueueNetworksCollect(owner)) {
+                    lastNetworksCollectTime.put(owner, now);
+                }
             }
             Long lastM = lastMonitorCollectTime.get(owner);
             if (lastM == null || now - lastM >= intervalMs) {
-                enqueueMonitorCollect(owner);
-                lastMonitorCollectTime.put(owner, now);
+                if (enqueueMonitorCollect(owner)) {
+                    lastMonitorCollectTime.put(owner, now);
+                }
             }
             Long lastS = lastScannerCollectTime.get(owner);
             if (lastS == null || now - lastS >= intervalMs) {
-                enqueueScannerCollect(owner);
-                lastScannerCollectTime.put(owner, now);
+                if (enqueueScannerCollect(owner)) {
+                    lastScannerCollectTime.put(owner, now);
+                }
             }
             processed++;
             idx = (idx + 1) % size;
@@ -320,8 +330,9 @@ public class SnapshotScheduler {
             String key = active.get(idx);
             Long last = lastStorageCollectTime.get(key);
             if (last == null || now - last >= intervalMs) {
-                enqueueStorageCollect(key, now);
-                lastStorageCollectTime.put(key, now);
+                if (enqueueStorageCollect(key, now)) {
+                    lastStorageCollectTime.put(key, now);
+                }
             }
             processed++;
             idx = (idx + 1) % size;
@@ -340,8 +351,9 @@ public class SnapshotScheduler {
             String key = active.get(idx);
             Long last = lastPatternBrowseCollectTime.get(key);
             if (last == null || now - last >= intervalMs) {
-                enqueuePatternBrowseCollect(key, now);
-                lastPatternBrowseCollectTime.put(key, now);
+                if (enqueuePatternBrowseCollect(key, now)) {
+                    lastPatternBrowseCollectTime.put(key, now);
+                }
             }
             processed++;
             idx = (idx + 1) % size;
@@ -360,8 +372,9 @@ public class SnapshotScheduler {
             String key = active.get(idx);
             Long last = lastGtCollectTime.get(key);
             if (last == null || now - last >= intervalMs) {
-                enqueueGtCollect(key, now);
-                lastGtCollectTime.put(key, now);
+                if (enqueueGtCollect(key, now)) {
+                    lastGtCollectTime.put(key, now);
+                }
             }
             processed++;
             idx = (idx + 1) % size;
@@ -370,17 +383,22 @@ public class SnapshotScheduler {
         gtCursor = idx;
     }
 
-    private static void enqueueStorageCollect(final String key, final long now) {
+    private static boolean enqueueStorageCollect(final String key, final long now) {
         final int colonIdx = key.lastIndexOf(':');
-        if (colonIdx < 0) return;
+        if (colonIdx < 0) {
+            return false;
+        }
         final String playerUuid = key.substring(0, colonIdx);
         final int networkId;
         try {
             networkId = Integer.parseInt(key.substring(colonIdx + 1));
         } catch (NumberFormatException e) {
-            return;
+            return false;
         }
-        SnapshotWorkerPool.submitServerTask("storage:" + key, new Runnable() {
+        if (networkId < 0) {
+            return false;
+        }
+        return SnapshotWorkerPool.submitServerTask("storage:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -399,17 +417,22 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueuePatternBrowseCollect(final String key, final long now) {
+    private static boolean enqueuePatternBrowseCollect(final String key, final long now) {
         final int colonIdx = key.lastIndexOf(':');
-        if (colonIdx < 0) return;
+        if (colonIdx < 0) {
+            return false;
+        }
         final String playerUuid = key.substring(0, colonIdx);
         final int networkId;
         try {
             networkId = Integer.parseInt(key.substring(colonIdx + 1));
         } catch (NumberFormatException e) {
-            return;
+            return false;
         }
-        enqueueWorker("pattern_browse:" + key, new Runnable() {
+        if (networkId < 0) {
+            return false;
+        }
+        return enqueueWorker("pattern_browse:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -429,19 +452,24 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueueGtCollect(final String key, final long now) {
+    private static boolean enqueueGtCollect(final String key, final long now) {
         final int colonIdx = key.lastIndexOf(':');
-        if (colonIdx < 0) return;
+        if (colonIdx < 0) {
+            return false;
+        }
         final String playerUuid = key.substring(0, colonIdx);
         final int networkId;
         try {
             networkId = Integer.parseInt(key.substring(colonIdx + 1));
         } catch (NumberFormatException e) {
-            return;
+            return false;
+        }
+        if (networkId < 0) {
+            return false;
         }
         // GT collection runs on the main thread (via HandlerTick task queue) so we
         // can safely look up the player, networks and monitor synchronously here.
-        enqueueWorker("gt:" + key, new Runnable() {
+        return enqueueWorker("gt:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -467,17 +495,22 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueueP2pCollect(final String key) {
+    private static boolean enqueueP2pCollect(final String key) {
         final int colonIdx = key.lastIndexOf(':');
-        if (colonIdx < 0) return;
+        if (colonIdx < 0) {
+            return false;
+        }
         final String playerUuid = key.substring(0, colonIdx);
         final int networkId;
         try {
             networkId = Integer.parseInt(key.substring(colonIdx + 1));
         } catch (NumberFormatException e) {
-            return;
+            return false;
         }
-        enqueueWorker("p2p:" + key, new Runnable() {
+        if (networkId < 0) {
+            return false;
+        }
+        return enqueueWorker("p2p:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -502,17 +535,22 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueueCellsCollect(final String key) {
+    private static boolean enqueueCellsCollect(final String key) {
         final int colonIdx = key.lastIndexOf(':');
-        if (colonIdx < 0) return;
+        if (colonIdx < 0) {
+            return false;
+        }
         final String playerUuid = key.substring(0, colonIdx);
         final int networkId;
         try {
             networkId = Integer.parseInt(key.substring(colonIdx + 1));
         } catch (NumberFormatException e) {
-            return;
+            return false;
         }
-        enqueueWorker("cells:" + key, new Runnable() {
+        if (networkId < 0) {
+            return false;
+        }
+        return enqueueWorker("cells:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -534,17 +572,22 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueuePatternsRichCollect(final String key) {
+    private static boolean enqueuePatternsRichCollect(final String key) {
         final int colonIdx = key.lastIndexOf(':');
-        if (colonIdx < 0) return;
+        if (colonIdx < 0) {
+            return false;
+        }
         final String playerUuid = key.substring(0, colonIdx);
         final int networkId;
         try {
             networkId = Integer.parseInt(key.substring(colonIdx + 1));
         } catch (NumberFormatException e) {
-            return;
+            return false;
         }
-        enqueueWorker("patterns_rich:" + key, new Runnable() {
+        if (networkId < 0) {
+            return false;
+        }
+        return enqueueWorker("patterns_rich:" + key, new Runnable() {
 
             @Override
             public void run() {
@@ -563,8 +606,8 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueueNetworksCollect(final String ownerUuid) {
-        enqueueWorker("networks:" + ownerUuid, new Runnable() {
+    private static boolean enqueueNetworksCollect(final String ownerUuid) {
+        return enqueueWorker("networks:" + ownerUuid, new Runnable() {
 
             @Override
             public void run() {
@@ -586,8 +629,8 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueueMonitorCollect(final String ownerUuid) {
-        enqueueWorker("monitor_bindings:" + ownerUuid, new Runnable() {
+    private static boolean enqueueMonitorCollect(final String ownerUuid) {
+        return enqueueWorker("monitor_bindings:" + ownerUuid, new Runnable() {
 
             @Override
             public void run() {
@@ -609,8 +652,8 @@ public class SnapshotScheduler {
         });
     }
 
-    private static void enqueueScannerCollect(final String ownerUuid) {
-        enqueueWorker("scanner:" + ownerUuid, new Runnable() {
+    private static boolean enqueueScannerCollect(final String ownerUuid) {
+        return enqueueWorker("scanner:" + ownerUuid, new Runnable() {
 
             @Override
             public void run() {
@@ -807,9 +850,11 @@ public class SnapshotScheduler {
 
     /**
      * Schedule snapshot collection via {@link SnapshotWorkerPool} with backpressure.
+     *
+     * @return true when accepted
      */
-    private static void enqueueWorker(String label, Runnable serverWork) {
-        SnapshotWorkerPool.submitServerTask(label, serverWork);
+    private static boolean enqueueWorker(String label, Runnable serverWork) {
+        return SnapshotWorkerPool.submitServerTask(label, serverWork);
     }
 
     private static void enqueueWorkerForced(String label, Runnable serverWork) {

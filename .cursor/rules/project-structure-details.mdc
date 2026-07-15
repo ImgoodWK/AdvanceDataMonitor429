@@ -328,7 +328,7 @@ alwaysApply: false
 - `webae/api/handler/StorageHandler.java` — AE 存储快照 REST handler（只读缓存 + 管理员刷新 + 批量）
 - `webae/api/handler/StoragePagedHandler.java` — 存储 cursor 分页（`GET /api/storage/items|fluids|essentia`；内存切片 + snapshotVersion cursor）
 - `webae/api/handler/PowerHandler.java` — 无线电力/蒸汽 REST handler（只读缓存 + 管理员刷新 + 批量）
-- `webae/api/handler/RecipeHandler.java` — 配方 REST（browse/search/suggest/status/handlers/单条详情）
+- `webae/api/handler/RecipeHandler.java` — 配方 REST（sync manifest/chunk + browse/search/suggest/status/handlers/单条详情；兜底经 `ensureLoaded`）
 - `webae/api/handler/PatternHandler.java` — 样板编码/注入/接口枚举 REST handler
 - `webae/api/handler/PatternListHandler.java` — 样板总览 REST handler（`GET /api/patterns?network=` 列出当前网络所有 ME 接口样板、`GET /api/patterns/<id>` 详情、`DELETE /api/patterns/<id>` OP>=2 删除、`PUT /api/patterns/<id>` OP>=2 编辑回写；复用 `InterfaceLocator` 反射访问接口槽位 + `PatternEncoder.decode` 解码样板 NBT；触发 `MENetworkCraftingPatternChange` 通知合成 CPU 重载）
 - `webae/api/handler/PatternBrowseHandler.java` — 样板 browse REST handler（`GET /api/patterns/browse` HTTP 只读缓存 + `cached`/`timestamp`；`POST /api/patterns/browse/refresh` OP 强制重建；后台 `SnapshotScheduler` 按 `patternCacheTtlMs` 预采集；owner 离线经 `getOwnerPlayerOrFake`；配置项 `patternBrowsePageSize`/`patternBrowseMaxTotal`/`patternCacheTtlMs`）
@@ -357,17 +357,17 @@ alwaysApply: false
 - `webae/quest/QuestDataCollector.java` — 任务只读采集门面
 - `webae/quest/QuestChainService.java` — 前置拓扑计划 + 同步链式提交（skipMissing）
 - `webae/quest/QuestChainOrchestrator.java` — 异步链式合成后提交 job 轮询
-- `webae/quest/QuestSubmitService.java` / `QuestCraftOrchestrator.java` / `QuestRequirementAnalyzer.java` / `QuestTaskDeserializer.java` / `QuestCacheStore.java` / `QuestSubmitLog.java` / `QuestInventoryEscrow.java` — 单任务提交/合成/分析/反序列化/缓存/审计/AE 虚拟 escrow（lock/release/commit/超时退回）
+- `webae/quest/QuestSubmitService.java` / `QuestCraftOrchestrator.java` / `QuestRequirementAnalyzer.java` / `QuestTaskDeserializer.java` / `QuestFluidIconResolver.java` / `QuestCacheStore.java` / `QuestSubmitLog.java` / `QuestInventoryEscrow.java` — 单任务提交/合成/分析/反序列化/流体单元展示图标解析（LegacyAe+FCR+GT FluidDisplay）/缓存/审计/AE 虚拟 escrow（lock/release/commit/超时退回）
 - `webae/dto/Quest*.java` — 任务书 DTO（含 `QuestRelationDto`/`QuestChainPlanDto`/`QuestChainSubmitResultDto`；`QuestDetailDto` 含 `prerequisites[]`/`dependents[]`；图节点含 `iconItemId`/`mainQuest`/`ghost`）
 - `webae/api/handler/ServerHealthHandler.java` — 服务器健康 REST handler（`GET /api/server/health` TPS/MSPT/在线人数/300s 历史；参考 Phase 2）
 - `webae/api/handler/ServerDiagnosticsHandler.java` — 性能诊断 REST（`GET /api/server/diagnostics`：tick 分段、队列深度、快照采集、慢 HTTP、路由 Top、Config 摘要）
 - `webae/perf/WebAePerfProfiler.java` — HandlerTick 分段计时 + HTTP 路由聚合 + 慢请求环缓；`[debug] webaePerf` → `logs/textech/webae-perf.log`
-- `webae/perf/SnapshotWorkerPool.java` — 单线程 daemon 快照采集调度器（背压 + 500ms 超时；AE API 经 `addScheduledTask` 回主线程）
+- `webae/perf/SnapshotWorkerPool.java` — 单线程 daemon 快照调度（single-flight `inFlight`；500ms 软超时仅告警、最多再等 30s 才释放闸门；`HandlerTick` queueDepth≥48 拒收非 forced；diagnostics 暴露 busy/timeouts/skips；AE API 经主线程任务队列）
 - `webae/context/NetworkRegistry.java` — 事件驱动玩家→AE 网络注册表（Link/Monitor/chunk/登录钩子 + 5s 健康检查 + `healthy` 状态）
 - `webae/context/TileEntityIndex.java` — 维度分组 TE 索引（chunk load/unload 增量维护；由 `HandlerWebTileEntityIndex` 驱动）
 - `handler/HandlerWebTileEntityIndex.java` — chunk 事件同步 `TileEntityIndex` + `NetworkRegistry`
 - `webae/cache/SnapshotCache.java` — 线程安全 TTL 快照缓存（TTL = `webRefreshIntervalMs * 3`，含 getStale/timestampOf/invalidateType/invalidateTypeSuffix）
-- `webae/cache/SnapshotScheduler.java` — 定速分摊快照调度器（经 `SnapshotWorkerPool` 异步投递；storage / GT / pattern browse / p2p / cells / patterns_rich / owner 级 networks+monitor+scanner；只采集 2 分钟活跃；含 forceCollect*）
+- `webae/cache/SnapshotScheduler.java` — 定速分摊快照调度器（经 `SnapshotWorkerPool` 异步投递；storage/GT/pattern/p2p/cells/patterns_rich 仅 `networkId>=0`；owner 级 networks+monitor+scanner；只采集 2 分钟活跃；submit 成功才记 lastCollect；含 forceCollect*）
 - `webae/dto/StorageDto.java` — 存储快照 DTO（`CpuEntry` 含 name/进度/存储/协同/产物/坐标 x-y-z-dim/监视器 monitorX-Y-Z-Dim/remainingItems/startItems，Phase 3 扩展）
 - `webae/dto/StoragePagedDto.java` — 存储分页响应 DTO（items/fluids/essentia 切片、nextCursor、totalEstimate、summary 字段）
 - `webae/dto/PowerDto.java` — 电力/蒸汽快照 DTO
@@ -402,11 +402,12 @@ alwaysApply: false
 - `webae/recipe/GameRecipeCollector.java` — vanilla/GT RecipeMap 采集（补充路径；ShapedRecipes grid、GT EU/流体；handlerName 本地化）
 - `webae/recipe/RecipeDisplayNames.java` — 客户端 handler 显示名本地化（`合金炉 (gt.recipe.alloysmelter)` 格式）
 - `webae/recipe/RecipeItemEntries.java` — ItemStack → RecipeDto.ItemEntry（itemId 对齐 AE：`registry:meta`）
-- `webae/recipe/RecipeCacheStore.java` — 服务端配方缓存（full/lru 模式 + handlerRecipeKeys/suggestPrefixIndex 二级索引 + gzip schema 持久化；browse/search 分页；UploadSession 期间暂停 save）
+- `webae/recipe/RecipeCacheStore.java` — 服务端配方缓存（无启动全量加载；`ensureLoaded` 懒加载；**禁止**在 Server tick 线程同步全量解析，改走 `WebAE-RecipeCache-Load`；HTTP 线程可阻塞等待；写盘 `web-recipes.json` + meta + chunks；默认上传后清堆；full/lru 仅内存已加载时生效）
+- `webae/recipe/RecipeDiskMeta.java` — 磁盘配方目录元数据 DTO（revision/chunkCount/handlers；供 sync manifest，不入全量堆）
 - `webae/recipe/RecipeUploadSession.java` — 上传会话跟踪（仅首个 isStart 清缓存）
 - `webae/recipe/RecipeSnapshotCollector.java` — 客户端 snapshot 范围配方采集
 - `webae/WebAeLocalDataDir.java` — 实例根目录下 `TeXTech/WebAE/` 本地数据目录（NESQL 导入默认路径 + 客户端配方导出；旧 `TeXTechWebAE/` 由 `TeXTechDataMigration` 迁移）
-- `webae/recipe/RecipeLocalExporter.java` — 客户端 NEI 配方导出至 `TeXTech/WebAE/web-recipes.json.gz`
+- `webae/recipe/RecipeLocalExporter.java` — 客户端 NEI 配方导出至 `TeXTech/WebAE/web-recipes.json`（纯 JSON）
 - `webae/network/RecipeUploadBatcher.java` — 配方上传分批（FML 32767B 上限）
 - `webae/network/RecipeUploadThrottler.java` — 客户端 tick 节流上传（`webRecipeUploadBatchesPerTick`）
 - `webae/network/PacketWebRecipeUpload.java` — C→S 分批配方上传（packet ID 26；UploadSession + ingest 结束 rebuildIndexes）

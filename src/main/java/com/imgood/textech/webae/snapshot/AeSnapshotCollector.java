@@ -101,8 +101,11 @@ public class AeSnapshotCollector {
         if (ownerUuid == null || ownerUuid.isEmpty()) {
             return emptyDto(networkId);
         }
+        if (networkId < 0) {
+            return emptyDto(networkId);
+        }
         List<NetworkGroup> groups = WebAeOwnerContext.findNetworkGroups(ownerUuid);
-        if (networkId < 0 || networkId >= groups.size()) {
+        if (networkId >= groups.size()) {
             return emptyDto(networkId);
         }
         NetworkGroup group = groups.get(networkId);

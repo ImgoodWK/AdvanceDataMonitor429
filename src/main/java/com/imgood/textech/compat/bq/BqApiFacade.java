@@ -30,6 +30,9 @@ import com.imgood.textech.webae.dto.QuestProgressEntryDto;
 import com.imgood.textech.webae.dto.QuestRewardDto;
 import com.imgood.textech.webae.dto.QuestSearchHitDto;
 import com.imgood.textech.webae.dto.QuestTaskDto;
+import com.imgood.textech.webae.icon.IconItemId;
+import com.imgood.textech.webae.quest.QuestFluidIconResolver;
+import com.imgood.textech.webae.recipe.RecipeItemEntries;
 
 /**
  * Reflection bridge to BetterQuesting GTNH fork. All BQ types stay optional at compile time.
@@ -1051,25 +1054,42 @@ public final class BqApiFacade {
     private static void fillIcon(QuestLineSummaryDto dto, Object bigStack) {
         ItemStack stack = bigStackToItem(bigStack);
         if (stack != null) {
-            dto.iconItemId = registryNameForStack(stack);
-            dto.iconMeta = stack.getItemDamage();
+            dto.iconItemId = resolveDisplayIconItemId(stack);
+            dto.iconMeta = normalizeMeta(stack.getItemDamage());
         }
     }
 
     private static void fillIcon(QuestLineNodeDto dto, Object bigStack) {
         ItemStack stack = bigStackToItem(bigStack);
         if (stack != null) {
-            dto.iconItemId = registryNameForStack(stack);
-            dto.iconMeta = stack.getItemDamage();
+            dto.iconItemId = resolveDisplayIconItemId(stack);
+            dto.iconMeta = normalizeMeta(stack.getItemDamage());
         }
     }
 
     private static void fillIcon(QuestDetailDto dto, Object bigStack) {
         ItemStack stack = bigStackToItem(bigStack);
         if (stack != null) {
-            dto.iconItemId = registryNameForStack(stack);
-            dto.iconMeta = stack.getItemDamage();
+            dto.iconItemId = resolveDisplayIconItemId(stack);
+            dto.iconMeta = normalizeMeta(stack.getItemDamage());
         }
+    }
+
+    /**
+     * Display icon for quest trees / detail headers: fluid cells → {@code fluid:name}
+     * (same as recipe page); otherwise {@code mod:id[:meta]} so damage is not dropped.
+     */
+    private static String resolveDisplayIconItemId(ItemStack stack) {
+        String fluidName = QuestFluidIconResolver.resolveFluidName(stack);
+        if (fluidName != null && !fluidName.isEmpty()) {
+            return IconItemId.FLUID_PREFIX + fluidName;
+        }
+        String registry = registryNameForStack(stack);
+        return RecipeItemEntries.buildItemId(registry, normalizeMeta(stack.getItemDamage()));
+    }
+
+    private static int normalizeMeta(int meta) {
+        return meta == Short.MAX_VALUE ? 0 : meta;
     }
 
     private static QuestRelationDto buildQuestRelation(

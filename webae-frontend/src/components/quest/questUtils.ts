@@ -1,4 +1,5 @@
 import type { QuestLineEdgeDto, QuestLineNodeDto } from '@/types/dto';
+import { fluidIconId } from '@/utils/icon';
 
 const STATE_COLORS: Record<string, string> = {
   LOCKED: '#64748b',
@@ -10,6 +11,59 @@ const STATE_COLORS: Record<string, string> = {
 
 export function questStateColor(state?: string): string {
   return STATE_COLORS[state || 'LOCKED'] ?? STATE_COLORS.LOCKED;
+}
+
+/** Fields used to resolve a quest step / analysis icon. */
+export type QuestIconSource = {
+  iconItemId?: string | null;
+  fluidName?: string | null;
+  itemId?: string | null;
+  registryName?: string | null;
+  meta?: number | null;
+  displayName?: string | null;
+};
+
+/**
+ * Human-readable material label for submit conditions / AE stock rows.
+ * Prefer localized {@code displayName} (e.g. GT fluid cell) over raw registry ids.
+ */
+export function questMaterialLabel(
+  src: QuestIconSource | null | undefined,
+  fallback = ''
+): string {
+  if (!src) return fallback;
+  if (src.displayName) return src.displayName;
+  if (src.fluidName) return src.fluidName;
+  if (src.iconItemId?.startsWith('fluid:')) {
+    return src.iconItemId.slice('fluid:'.length);
+  }
+  return src.registryName || src.itemId || fallback;
+}
+
+/**
+ * Icon props for quest UI: prefer display {@code iconItemId} (fluid: for cells),
+ * then true fluid tasks, then item registry.
+ */
+export function questIconProps(
+  src: QuestIconSource | null | undefined
+): { id: string } | { item: { itemId?: string; registryName?: string; meta?: number } } | null {
+  if (!src) return null;
+  if (src.iconItemId) {
+    return { id: src.iconItemId };
+  }
+  if (src.fluidName) {
+    return { id: fluidIconId(src.fluidName) };
+  }
+  const registryName = src.registryName || undefined;
+  const itemId = src.itemId || registryName;
+  if (!itemId && !registryName) return null;
+  return {
+    item: {
+      itemId: itemId || undefined,
+      registryName,
+      meta: src.meta ?? undefined,
+    },
+  };
 }
 
 /** Topological order of nodes in a line (prereqs first); tie-break by y then x. */

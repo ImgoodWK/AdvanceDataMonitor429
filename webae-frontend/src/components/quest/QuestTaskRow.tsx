@@ -3,8 +3,8 @@ import { McFormattedText } from '@/components/McFormattedText';
 import { Icon } from '@/components/Icon';
 import { useI18n } from '@/i18n';
 import type { QuestTaskDto } from '@/types/dto';
-import { fluidIconId } from '@/utils/icon';
 import { stripMcFormatting } from '@/utils/mcFormatting';
+import { questIconProps, questMaterialLabel } from './questUtils';
 
 const { Text } = Typography;
 
@@ -28,7 +28,8 @@ export function QuestTaskRow({
   busy,
 }: QuestTaskRowProps) {
   const { t } = useI18n();
-  const displayName = task.name || task.registryName || `#${task.index + 1}`;
+  const materialLabel = questMaterialLabel(task);
+  const displayName = materialLabel || task.name || task.registryName || `#${task.index + 1}`;
   const plainName = stripMcFormatting(displayName);
   const webTag =
     task.webAction === 'SUBMIT' || task.webAction === 'DETECT' ? (
@@ -37,19 +38,8 @@ export function QuestTaskRow({
       <Tag>{t('quest.inGameOnly')}</Tag>
     );
 
-  const icon =
-    task.registryName != null && task.registryName !== '' ? (
-      <Icon
-        item={{
-          itemId: task.itemId ?? task.registryName,
-          registryName: task.registryName,
-          meta: task.meta,
-        }}
-        size={40}
-      />
-    ) : task.fluidName ? (
-      <Icon id={fluidIconId(task.fluidName)} size={40} alt={task.fluidName} />
-    ) : null;
+  const iconProps = questIconProps(task);
+  const icon = iconProps ? <Icon {...iconProps} size={40} alt={task.fluidName || plainName} /> : null;
 
   const iconSlot = icon ?? (
     <span
@@ -92,7 +82,7 @@ export function QuestTaskRow({
           </Text>
           {task.complete ? <Tag color="success">{t('quest.taskComplete')}</Tag> : webTag}
         </Space>
-        {task.description && task.description !== task.name ? (
+        {task.description && task.description !== task.name && task.description !== displayName ? (
           <Text type="secondary" style={{ display: 'block', marginTop: 2 }}>
             <McFormattedText text={task.description} preWrap />
           </Text>
@@ -122,7 +112,11 @@ export function QuestTaskRow({
         {task.fluidName ? (
           <div style={{ marginTop: 4 }}>
             <Text>
-              {formatNeedAmount(t('quest.needAmount'), task.fluidRequired ?? 0, task.fluidName)}
+              {formatNeedAmount(
+                t('quest.needAmount'),
+                task.fluidRequired ?? 0,
+                materialLabel || task.fluidName
+              )}
             </Text>
             <div>
               <Text type="secondary">

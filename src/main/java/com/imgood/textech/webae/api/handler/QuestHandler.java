@@ -32,6 +32,7 @@ import com.imgood.textech.webae.quest.QuestCraftOrchestrator;
 import com.imgood.textech.webae.quest.QuestDataCollector;
 import com.imgood.textech.webae.quest.QuestRequirementAnalyzer;
 import com.imgood.textech.webae.quest.QuestSubmitService;
+import com.imgood.textech.webae.recipe.RecipeCacheStore;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -144,6 +145,7 @@ public final class QuestHandler {
                 return methodNotAllowed("GET");
             }
             int networkId = parseInt(params.get("network"), 0);
+            prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestChainPlanDto>() {
                 @Override
                 public QuestChainPlanDto run(EntityPlayerMP player) {
@@ -171,6 +173,7 @@ public final class QuestHandler {
             final boolean craftMissing = req.craftMissing;
             final String cpuName = req.cpuName;
             final long timeout = req.waitTimeoutMs;
+            prefetchRecipesForCraftTree();
             if (craftMissing && !dryRun) {
                 QuestChainSubmitResultDto chainJob = QuestChainOrchestrator.start(
                     ownerUuid,
@@ -194,6 +197,7 @@ public final class QuestHandler {
                 return methodNotAllowed("GET");
             }
             int networkId = parseInt(params.get("network"), 0);
+            prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestAnalysisDto>() {
                 @Override
                 public QuestAnalysisDto run(EntityPlayerMP player) {
@@ -212,6 +216,7 @@ public final class QuestHandler {
             }
             DetectBody detectReq = parseDetectBody(body);
             final int detectNetworkId = detectReq.networkId;
+            prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestSubmitResultDto>() {
                 @Override
                 public QuestSubmitResultDto run(EntityPlayerMP player) {
@@ -231,6 +236,7 @@ public final class QuestHandler {
             int networkId = req != null ? req.networkId : 0;
             boolean dryRun = req == null || req.dryRun;
             List<Integer> steps = req != null ? req.steps : null;
+            prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestSubmitResultDto>() {
                 @Override
                 public QuestSubmitResultDto run(EntityPlayerMP player) {
@@ -250,6 +256,7 @@ public final class QuestHandler {
             int networkId = req != null ? req.networkId : 0;
             String cpuName = req != null ? req.cpuName : null;
             long timeout = req != null ? req.waitTimeoutMs : 0L;
+            prefetchRecipesForCraftTree();
             QuestCraftJobDto job = QuestCraftOrchestrator.start(ownerUuid, networkId, questId, cpuName, timeout);
             return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"job\":" + GSON.toJson(job) + "}");
         }
@@ -283,6 +290,12 @@ public final class QuestHandler {
 
     private interface MainThreadTask<T> {
         T run(EntityPlayerMP player);
+    }
+
+    /** Block on HTTP thread so craft-tree analyze never sync-parses recipes on the server tick. */
+    private static void prefetchRecipesForCraftTree() {
+        RecipeCacheStore.instance()
+            .ensureLoaded();
     }
 
     private static <T> NanoHTTPD.Response onMainThread(String ownerUuid, MainThreadTask<T> task, String envelopeKey) {

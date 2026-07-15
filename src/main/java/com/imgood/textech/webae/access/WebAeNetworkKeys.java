@@ -4,13 +4,16 @@ import java.util.List;
 
 import com.imgood.textech.webae.context.NetworkRegistry;
 import com.imgood.textech.webae.context.NetworkRegistry.RegisteredNetwork;
-import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.context.WebAeOwnerContext.NetworkGroup;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector.NetworkInfo;
 
 /**
  * Stable WebAE network identity: {@code "{dim}:{x}:{y}:{z}"} from the data monitor.
  * Runtime {@code networkId} is a sorted index and must not be persisted in ACL.
+ *
+ * <p>{@link #fromNetworkId} / {@link #toNetworkId} resolve via the registry key index only and must
+ * never touch {@link net.minecraft.world.World} (WebAE HTTP threads call them on every
+ * {@code ?network=} request).</p>
  */
 public final class WebAeNetworkKeys {
 
@@ -46,31 +49,12 @@ public final class WebAeNetworkKeys {
 
     /** Resolve stable key for a runtime networkId (same index as API {@code ?network=}). */
     public static String fromNetworkId(String ownerUuid, int networkId) {
-        if (ownerUuid == null || ownerUuid.isEmpty() || networkId < 0) {
-            return null;
-        }
-        List<NetworkGroup> groups = WebAeOwnerContext.findNetworkGroups(ownerUuid);
-        if (groups == null || networkId >= groups.size()) {
-            return null;
-        }
-        return fromGroup(groups.get(networkId));
+        return NetworkRegistry.keyForNetworkId(ownerUuid, networkId);
     }
 
     /** Map a stable key back to the current runtime networkId, or null if not registered. */
     public static Integer toNetworkId(String ownerUuid, String networkKey) {
-        if (ownerUuid == null || networkKey == null || networkKey.isEmpty()) {
-            return null;
-        }
-        List<NetworkGroup> groups = WebAeOwnerContext.findNetworkGroups(ownerUuid);
-        if (groups == null) {
-            return null;
-        }
-        for (int i = 0; i < groups.size(); i++) {
-            if (networkKey.equals(fromGroup(groups.get(i)))) {
-                return Integer.valueOf(i);
-            }
-        }
-        return null;
+        return NetworkRegistry.networkIdForKey(ownerUuid, networkKey);
     }
 
     public static boolean isValidKeyFormat(String networkKey) {

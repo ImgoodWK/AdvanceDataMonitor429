@@ -45,6 +45,10 @@ public final class ServerDiagnosticsHandler {
         json.tasksProcessedThisTick = snap.tasksProcessedThisTick;
         json.activeNetworks = snap.activeNetworks;
         json.snapshotCacheSize = snap.snapshotCacheSize;
+        json.snapshotWorkerBusy = snap.snapshotWorkerBusy;
+        json.snapshotTimeouts = snap.snapshotTimeouts;
+        json.snapshotSkippedBusy = snap.snapshotSkippedBusy;
+        json.snapshotSkippedQueue = snap.snapshotSkippedQueue;
         json.phases = snap.phases;
         json.collects = snap.collects;
         json.topRoutes = snap.topRoutes;
@@ -82,6 +86,10 @@ public final class ServerDiagnosticsHandler {
         int tasksProcessedThisTick;
         int activeNetworks;
         int snapshotCacheSize;
+        boolean snapshotWorkerBusy;
+        long snapshotTimeouts;
+        long snapshotSkippedBusy;
+        long snapshotSkippedQueue;
         Map<String, PhaseView> phases;
         Map<String, PhaseView> collects;
         List<RouteView> topRoutes;

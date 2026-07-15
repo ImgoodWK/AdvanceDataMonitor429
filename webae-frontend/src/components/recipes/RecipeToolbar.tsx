@@ -25,6 +25,8 @@ interface RecipeToolbarProps {
   searching: boolean;
   onSearch: () => void;
   onSelectSuggest: (entry: RecipeSuggestEntry) => void;
+  /** When set, autocomplete uses local IndexedDB instead of server suggest API. */
+  localSuggest?: (q: string, limit?: number) => RecipeSuggestEntry[];
   t: (k: string) => string;
 }
 
@@ -76,34 +78,49 @@ export function RecipeToolbar({
   searching,
   onSearch,
   onSelectSuggest,
+  localSuggest,
   t,
 }: RecipeToolbarProps) {
   const [options, setOptions] = useState<Array<{ value: string; label: string; entry: RecipeSuggestEntry }>>(
     []
   );
 
-  const fetchSuggest = useCallback(async (q: string) => {
-    if (!q.trim()) {
-      setOptions([]);
-      return;
-    }
-    try {
-      const data = await getApiClient().get<RecipeSuggestResponse>(
-        `/api/recipes/suggest?q=${encodeURIComponent(q.trim())}&limit=20`
-      );
-      if (data.success && data.suggestions) {
-        setOptions(
-          data.suggestions.map((s) => ({
-            value: s.registryName,
-            label: `${s.displayName || s.registryName} (${s.registryName})`,
-            entry: s,
-          }))
-        );
+  const fetchSuggest = useCallback(
+    async (q: string) => {
+      if (!q.trim()) {
+        setOptions([]);
+        return;
       }
-    } catch {
-      setOptions([]);
-    }
-  }, []);
+      try {
+        if (localSuggest) {
+          const suggestions = localSuggest(q.trim(), 20);
+          setOptions(
+            suggestions.map((s) => ({
+              value: s.registryName,
+              label: `${s.displayName || s.registryName} (${s.registryName})`,
+              entry: s,
+            }))
+          );
+          return;
+        }
+        const data = await getApiClient().get<RecipeSuggestResponse>(
+          `/api/recipes/suggest?q=${encodeURIComponent(q.trim())}&limit=20`
+        );
+        if (data.success && data.suggestions) {
+          setOptions(
+            data.suggestions.map((s) => ({
+              value: s.registryName,
+              label: `${s.displayName || s.registryName} (${s.registryName})`,
+              entry: s,
+            }))
+          );
+        }
+      } catch {
+        setOptions([]);
+      }
+    },
+    [localSuggest]
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {

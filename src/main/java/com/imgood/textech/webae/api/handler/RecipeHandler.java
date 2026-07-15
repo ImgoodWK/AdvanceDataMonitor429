@@ -12,12 +12,13 @@ import com.imgood.textech.webae.recipe.RecipeCacheStore.CacheStatus;
 import com.imgood.textech.webae.recipe.RecipeCacheStore.HandlerInfo;
 import com.imgood.textech.webae.recipe.RecipeCacheStore.ItemSuggest;
 import com.imgood.textech.webae.recipe.RecipeCacheStore.QuerySearchResult;
+import com.imgood.textech.webae.recipe.RecipeDiskMeta;
 import com.imgood.textech.webae.search.RecipeSearchRateLimiter;
 
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * REST handler for recipe cache queries.
+ * REST handler for recipe cache queries and browser chunk sync.
  */
 public class RecipeHandler {
 
@@ -25,6 +26,12 @@ public class RecipeHandler {
         .create();
 
     public static NanoHTTPD.Response handle(String uri, java.util.Map<String, String> params, String playerUuid) {
+        if ("/api/recipes/sync/manifest".equals(uri)) {
+            return handleSyncManifest();
+        }
+        if ("/api/recipes/sync/chunk".equals(uri)) {
+            return handleSyncChunk(params);
+        }
         if ("/api/recipes/handlers".equals(uri)) {
             return handleHandlers();
         }
@@ -45,12 +52,54 @@ public class RecipeHandler {
             }
             return handleSearch(params);
         }
-        if (uri.startsWith("/api/recipes/") && countPathSegments(uri) == 4) {
+        if (uri.startsWith("/api/recipes/") && countPathSegments(uri) == 4
+            && !uri.startsWith("/api/recipes/sync")) {
             return handleGetRecipe(uri);
         }
         return jsonResponse(
             NanoHTTPD.Response.Status.NOT_FOUND,
             "{\"success\":false,\"message\":\"Unknown recipe endpoint: " + uri + "\"}");
+    }
+
+    private static NanoHTTPD.Response handleSyncManifest() {
+        RecipeDiskMeta meta = RecipeCacheStore.instance()
+            .getOrBuildDiskMeta();
+        if (meta == null || meta.recipeCount <= 0) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"manifest\":null,\"message\":\"No recipes on disk\"}");
+        }
+        return jsonResponse(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"manifest\":" + GSON.toJson(meta) + "}");
+    }
+
+    private static NanoHTTPD.Response handleSyncChunk(java.util.Map<String, String> params) {
+        int index = parseIntParam(params.get("index"), -1);
+        if (index < 0) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "{\"success\":false,\"message\":\"Missing or invalid 'index'\"}");
+        }
+        RecipeCacheStore.SyncChunkResult chunk = RecipeCacheStore.instance()
+            .readSyncChunk(index);
+        if (!chunk.success) {
+            return jsonResponse(
+                NanoHTTPD.Response.Status.NOT_FOUND,
+                "{\"success\":false,\"message\":\"" + esc(chunk.error) + "\",\"index\":" + index + "}");
+        }
+        return jsonResponse(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"index\":" + chunk.index + ",\"recipes\":" + GSON.toJson(chunk.recipes)
+                + ",\"count\":"
+                + chunk.recipes.size()
+                + "}");
+    }
+
+    private static String esc(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+            .replace("\"", "\\\"");
     }
 
     private static NanoHTTPD.Response handleHandlers() {
@@ -68,6 +117,8 @@ public class RecipeHandler {
     }
 
     private static NanoHTTPD.Response handleBrowse(java.util.Map<String, String> params) {
+        RecipeCacheStore.instance()
+            .ensureLoaded();
         List<String> handlers = parseHandlersParam(params);
         String handler = handlers.isEmpty() ? params.get("handler") : joinHandlers(handlers);
         if (handler == null || handler.isEmpty()) {
@@ -96,6 +147,8 @@ public class RecipeHandler {
     }
 
     private static NanoHTTPD.Response handleSuggest(java.util.Map<String, String> params) {
+        RecipeCacheStore.instance()
+            .ensureLoaded();
         String q = params.get("q");
         if (q == null || q.isEmpty()) {
             return jsonResponse(
@@ -111,6 +164,8 @@ public class RecipeHandler {
     }
 
     private static NanoHTTPD.Response handleQuerySearch(java.util.Map<String, String> params, String ownerUuid) {
+        RecipeCacheStore.instance()
+            .ensureLoaded();
         if (!RecipeSearchRateLimiter.tryAcquire(ownerUuid)) {
             long wait = RecipeSearchRateLimiter.remainingCooldownMs(ownerUuid);
             return jsonResponse(
@@ -149,6 +204,8 @@ public class RecipeHandler {
     }
 
     private static NanoHTTPD.Response handleSearch(java.util.Map<String, String> params) {
+        RecipeCacheStore.instance()
+            .ensureLoaded();
         String output = params.get("output");
         String input = params.get("input");
         if ((output == null || output.isEmpty()) && (input == null || input.isEmpty())) {
@@ -216,6 +273,8 @@ public class RecipeHandler {
     }
 
     private static NanoHTTPD.Response handleGetRecipe(String uri) {
+        RecipeCacheStore.instance()
+            .ensureLoaded();
         String[] parts = uri.split("/");
         if (parts.length < 5) {
             return jsonResponse(

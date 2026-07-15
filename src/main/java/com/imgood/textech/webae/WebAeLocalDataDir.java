@@ -51,8 +51,6 @@ public final class WebAeLocalDataDir {
     }
 
     public static File serverRecipeExportFile() {
-        String fmt = Config.webRecipeDiskFormat;
-        boolean gzip = fmt != null && "gzip".equalsIgnoreCase(fmt.trim());
-        return TeXTechDataDir.webAeFile(gzip ? RECIPE_GZ_FILENAME : RECIPE_JSON_FILENAME);
+        return TeXTechDataDir.webAeFile(RECIPE_JSON_FILENAME);
     }
 }

@@ -14,6 +14,8 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.imgood.textech.compat.bq.BqApiFacade;
 import com.imgood.textech.webae.dto.QuestTaskDto;
+import com.imgood.textech.webae.icon.IconItemId;
+import com.imgood.textech.webae.recipe.RecipeItemEntries;
 
 /**
  * Maps bq_standard task types to unified {@link QuestTaskDto} with Web action hints.
@@ -232,6 +234,13 @@ public final class QuestTaskDeserializer {
             if (first.hasKey("Amount")) {
                 dto.fluidRequired = first.getInteger("Amount");
             }
+            if (dto.fluidName != null && !dto.fluidName.isEmpty()) {
+                FluidStack fs = parseFluidStack(dto.fluidName, Math.max(1L, dto.fluidRequired));
+                if (fs != null) {
+                    applyFluidDisplayName(dto, fs);
+                }
+            }
+            applyFluidIconName(dto, dto.fluidName);
         }
         if (fluids.tagCount() > 1) {
             dto.extraItemCount = Math.max(dto.extraItemCount, fluids.tagCount() - 1);
@@ -358,20 +367,38 @@ public final class QuestTaskDeserializer {
             dto.fluidName = tag.getString("FluidName");
             dto.fluidRequired = tag.getInteger("Amount");
             dto.fluidProgress = tag.getInteger("progress");
+            FluidStack named = parseFluidStack(dto.fluidName, Math.max(1L, dto.fluidRequired));
+            if (named != null) {
+                applyFluidDisplayName(dto, named);
+            }
+            applyFluidIconName(dto, dto.fluidName);
         }
         if (tag.hasKey("targetFluid")) {
             NBTTagCompound fluidTag = tag.getCompoundTag("targetFluid");
             if (fluidTag != null) {
                 dto.fluidName = fluidTag.getString("FluidName");
                 dto.fluidRequired = fluidTag.getInteger("Amount");
+                FluidStack named = parseFluidStack(dto.fluidName, Math.max(1L, dto.fluidRequired));
+                if (named != null) {
+                    applyFluidDisplayName(dto, named);
+                }
+                applyFluidIconName(dto, dto.fluidName);
             }
         }
     }
 
     private static void fillItem(QuestTaskDto dto, ItemStack stack) {
         dto.registryName = registryNameForStack(stack);
-        dto.itemId = dto.registryName;
-        dto.meta = stack.getItemDamage();
+        int meta = stack.getItemDamage();
+        if (meta == Short.MAX_VALUE) {
+            meta = 0;
+        }
+        dto.meta = meta;
+        dto.itemId = RecipeItemEntries.buildItemId(dto.registryName, meta);
+        applyItemDisplayName(dto, stack);
+        // Display only: filled fluid cells → fluid:xxx (same as recipe page). Do NOT set
+        // fluidName here — analyzer would treat the step as AE fluid inventory matching.
+        applyFluidIconFromStack(dto, stack);
     }
 
     private static void fillFluid(QuestTaskDto dto, FluidStack fs) {
@@ -381,6 +408,49 @@ public final class QuestTaskDeserializer {
         dto.fluidName = fs.getFluid()
             .getName();
         dto.fluidRequired = fs.amount;
+        applyFluidDisplayName(dto, fs);
+        applyFluidIconName(dto, dto.fluidName);
+    }
+
+    private static void applyItemDisplayName(QuestTaskDto dto, ItemStack stack) {
+        if (dto == null || stack == null) {
+            return;
+        }
+        try {
+            String name = stack.getDisplayName();
+            if (name != null && !name.isEmpty()) {
+                dto.displayName = name;
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private static void applyFluidDisplayName(QuestTaskDto dto, FluidStack fs) {
+        if (dto == null || fs == null || fs.getFluid() == null) {
+            return;
+        }
+        try {
+            String name = fs.getLocalizedName();
+            if (name != null && !name.isEmpty()) {
+                dto.displayName = name;
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    /** Prefer recipe-style {@code fluid:} icon when the item stack carries a fluid. */
+    private static void applyFluidIconFromStack(QuestTaskDto dto, ItemStack stack) {
+        if (dto == null || stack == null) {
+            return;
+        }
+        applyFluidIconName(dto, QuestFluidIconResolver.resolveFluidName(stack));
+    }
+
+    private static void applyFluidIconName(QuestTaskDto dto, String fluidName) {
+        if (dto == null || fluidName == null || fluidName.isEmpty()) {
+            return;
+        }
+        if (dto.iconItemId == null || dto.iconItemId.isEmpty()) {
+            dto.iconItemId = IconItemId.FLUID_PREFIX + fluidName;
+        }
     }
 
     private static ItemStack bigStackToItem(Object bigStack) {

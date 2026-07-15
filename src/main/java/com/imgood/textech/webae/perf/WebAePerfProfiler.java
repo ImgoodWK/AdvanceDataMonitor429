@@ -243,6 +243,10 @@ public final class WebAePerfProfiler {
         out.activeNetworks = SnapshotScheduler.activeNetworkCount();
         out.snapshotCacheSize = SnapshotCache.instance()
             .size();
+        out.snapshotWorkerBusy = SnapshotWorkerPool.isBusy();
+        out.snapshotTimeouts = SnapshotWorkerPool.getTimeoutCount();
+        out.snapshotSkippedBusy = SnapshotWorkerPool.getSkipBusyCount();
+        out.snapshotSkippedQueue = SnapshotWorkerPool.getSkipQueueCount();
 
         out.phases = new LinkedHashMap<String, PhaseView>();
         for (Map.Entry<String, PhaseStats> e : phases.entrySet()) {
@@ -497,6 +501,10 @@ public final class WebAePerfProfiler {
         public int tasksProcessedThisTick;
         public int activeNetworks;
         public int snapshotCacheSize;
+        public boolean snapshotWorkerBusy;
+        public long snapshotTimeouts;
+        public long snapshotSkippedBusy;
+        public long snapshotSkippedQueue;
         public Map<String, PhaseView> phases = new HashMap<String, PhaseView>();
         public Map<String, PhaseView> collects = new HashMap<String, PhaseView>();
         public List<RouteView> topRoutes = new ArrayList<RouteView>();

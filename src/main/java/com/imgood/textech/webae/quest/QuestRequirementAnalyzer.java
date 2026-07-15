@@ -63,6 +63,8 @@ public final class QuestRequirementAnalyzer {
         step.itemId = task.itemId;
         step.registryName = task.registryName;
         step.meta = task.meta;
+        step.displayName = task.displayName;
+        step.iconItemId = task.iconItemId;
         step.required = task.required;
         step.fluidName = task.fluidName;
         step.fluidRequired = task.fluidRequired;
