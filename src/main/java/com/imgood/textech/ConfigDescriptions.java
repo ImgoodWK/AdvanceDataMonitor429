@@ -410,8 +410,8 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "iconDirectRenderEnabled",
-            "When true, missing icons may be rendered synchronously by an online MC client on HTTP 404 (blocks up to iconDirectRenderTimeoutMs). Default false; prefer async IconMissingQueue + SSE icon-ready.",
-            "为 true 时，HTTP 404 缺图可由在线 MC 客户端同步渲染（最多阻塞 iconDirectRenderTimeoutMs）。默认 false；日常请用异步 IconMissingQueue + SSE icon-ready。");
+            "When true, missing icons may be rendered synchronously by an online MC client on HTTP 404 (blocks up to iconDirectRenderTimeoutMs). Default false. Lazy async capture is separate (iconLazyCaptureEnabled, also default false).",
+            "为 true 时，HTTP 404 缺图可由在线 MC 客户端同步渲染（最多阻塞 iconDirectRenderTimeoutMs）。默认 false。异步懒加载为独立开关 iconLazyCaptureEnabled（亦默认 false）。");
         put(
             "webConsole",
             "iconDirectRenderTimeoutMs",
@@ -500,8 +500,18 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "iconUploadEnabled",
-            "Allow clients to upload rendered item icons to the server via /admweb icons upload command. Phase 2 removed the in-game keybind. Default true.",
-            "允许客户端通过 /admweb icons upload 命令上传渲染好的物品图标到服务器。Phase 2 起移除了游戏内快捷键。默认开启。");
+            "Allow clients to upload rendered item icons to the server via explicit /admweb icons upload (or import). Does not enable HTTP 404 lazy capture. Default true.",
+            "允许客户端通过显式 /admweb icons upload（或 import）上传渲染好的物品图标。不开启 HTTP 404 懒加载补渲。默认开启。");
+        put(
+            "webConsole",
+            "iconLazyCaptureEnabled",
+            "When true, missing icons on GET /api/icon enqueue IconMissingQueue for client render+upload after chat consent. Default false — prefer /admweb icons upload|local.",
+            "为 true 时，GET /api/icon 缺图会入队 IconMissingQueue，在聊天同意后由客户端渲染并上传。默认 false — 请用 /admweb icons upload|local。");
+        put(
+            "webConsole",
+            "iconLazyPreferOpOnly",
+            "When iconLazyCaptureEnabled is true, only offer consent to OP players as icon providers. Default true.",
+            "当 iconLazyCaptureEnabled 开启时，仅向 OP 玩家发起图标提供方同意请求。默认 true。");
         put(
             "webConsole",
             "iconPackEnabled",

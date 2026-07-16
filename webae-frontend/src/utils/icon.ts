@@ -46,8 +46,10 @@ export function iconModeFallbackChain(_selectedMode: string): string[] {
 }
 
 /**
- * Ordered icon cache lookup ids — exact itemId first, then registry-only fallback,
- * or {@code mod:id:0} when no numeric meta suffix (mirrors server IconItemId.lookupCandidates).
+ * Ordered icon cache lookup ids — exact itemId first, then registry-only fallback
+ * only for meta 0 / missing meta ({@code mod:id} ↔ {@code mod:id:0}).
+ * Non-zero meta (e.g. gregtech:gt.metaitem.01:2305) stays exact-only so a miss
+ * cannot fall back to bare registry and poison sibling metas via failedIcons.
  */
 export function iconLookupIds(
   item?: { itemId?: string; registryName?: string; meta?: number } | null,
@@ -88,7 +90,7 @@ export function iconLookupIds(
   return out;
 }
 
-/** mod:id:meta → mod:id ; mod:id → mod:id:0 (matches IconItemId.lookupCandidates). */
+/** mod:id ↔ mod:id:0 only. Do NOT strip non-zero meta (GT metaitems would poison siblings). */
 function pushMetaLookupVariants(itemId: string, push: (v: string) => void) {
   if (itemId.startsWith(FLUID_ID_PREFIX)) return;
   const colon = itemId.lastIndexOf(':');
@@ -97,12 +99,13 @@ function pushMetaLookupVariants(itemId: string, push: (v: string) => void) {
     return;
   }
   const suffix = itemId.substring(colon + 1);
-  if (/^\d+$/.test(suffix)) {
+  if (suffix === '0') {
     const base = itemId.substring(0, colon);
     if (base) push(base);
-  } else {
+  } else if (!/^\d+$/.test(suffix)) {
     push(`${itemId}:0`);
   }
+  // numeric meta > 0: exact id only — never fall back to bare registry name
 }
 
 export type IconItemRef = {
@@ -210,17 +213,45 @@ export interface IconReadyDetail {
   itemId?: string;
 }
 
-/** True when an SSE icon-ready payload applies to a displayed icon id. */
+/**
+ * Equivalence class for icon-ready matching: exact id plus {@code mod:id} ↔ {@code mod:id:0}
+ * only. Does NOT treat bare {@code mod:id} as matching every meta (avoids wiping sibling metas).
+ */
+function zeroMetaEquivalents(itemId: string): string[] {
+  if (!itemId) return [];
+  const out: string[] = [itemId];
+  if (itemId.startsWith(FLUID_ID_PREFIX)) return out;
+  const colon = itemId.lastIndexOf(':');
+  if (colon <= 0) {
+    out.push(`${itemId}:0`);
+    return out;
+  }
+  const suffix = itemId.substring(colon + 1);
+  if (suffix === '0') {
+    const base = itemId.substring(0, colon);
+    if (base) out.push(base);
+  } else if (!/^\d+$/.test(suffix)) {
+    out.push(`${itemId}:0`);
+  }
+  return out;
+}
+
+/** True when an SSE icon-ready payload applies to a displayed icon id (strict :0 equivalence). */
 export function iconReadyMatchesId(detail: IconReadyDetail | undefined, id: string): boolean {
   if (!detail?.itemId || !id) return false;
   if (detail.itemId === id) return true;
-  const lhs = iconLookupIds(undefined, detail.itemId);
-  const rhs = iconLookupIds(undefined, id);
+  const lhs = zeroMetaEquivalents(detail.itemId);
+  const rhs = zeroMetaEquivalents(id);
   return lhs.some((candidate) => rhs.includes(candidate));
 }
 
 export function iconIsMarkedFailed(failedIcons: Record<string, boolean>, id: string): boolean {
   if (!id) return false;
-  if (failedIcons[id]) return true;
-  return iconLookupIds(undefined, id).some((candidate) => failedIcons[candidate]);
+  // Only exact / :0 equivalence — never treat bare mod:id as failed for every meta.
+  return zeroMetaEquivalents(id).some((candidate) => !!failedIcons[candidate]);
+}
+
+/** Ids to mark when an icon permanently fails — same :0 equivalence, no meta strip. */
+export function iconFailureMarkIds(id: string): string[] {
+  return zeroMetaEquivalents(id);
 }

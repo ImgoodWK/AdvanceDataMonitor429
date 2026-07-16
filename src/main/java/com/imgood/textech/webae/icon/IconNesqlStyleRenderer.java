@@ -29,7 +29,14 @@ import cpw.mods.fml.relauncher.SideOnly;
  *
  * <p>
  * Matches {@code com.github.dcysteine.nesql.exporter.render.Renderer} (ortho 1/16 scale, GUI
- * lighting, glReadPixels + vertical flip). Output is downscaled to {@link IconRenderer#ICON_SIZE}.
+ * lighting, glReadPixels + vertical flip). Output size matches FBO ({@link #FBO_SIZE}, same as
+ * NESQL default {@code icon_dimension}=64) — no bilinear downscale.
+ * </p>
+ *
+ * <p>
+ * Per-icon {@code glPushAttrib}/{@code glPopAttrib} and COLOR|DEPTH|STENCIL clear isolate
+ * custom {@code IItemRenderer} state (AE terminals etc.) so batch export does not punch holes
+ * into the next PNG.
  * </p>
  */
 @SideOnly(Side.CLIENT)
@@ -44,6 +51,7 @@ public final class IconNesqlStyleRenderer {
 
     private Framebuffer fbo;
     private boolean prevScissorEnabled;
+    private boolean attribPushed;
 
     public void reset() {
         if (fbo != null) {
@@ -53,7 +61,7 @@ public final class IconNesqlStyleRenderer {
     }
 
     /**
-     * Render one item stack to a 32×32 PNG using NESQL's drawItem + FBO path.
+     * Render one item stack to a PNG using NESQL's drawItem + FBO path (native FBO size).
      *
      * @return PNG bytes, or null on failure / blank
      */
@@ -108,41 +116,71 @@ public final class IconNesqlStyleRenderer {
 
     private void beginFboRender() {
         prevScissorEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
+        attribPushed = false;
+        try {
+            GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+            attribPushed = true;
+        } catch (Throwable ignored) {}
+
         fbo.bindFramebuffer(true);
-        GL11.glClearColor(0f, 0f, 0f, 0f);
-        GL11.glClearDepth(1D);
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        IconRenderGuard.clearFboBuffers();
+        IconRenderGuard.resetGlState();
+
         GL11.glViewport(0, 0, FBO_SIZE, FBO_SIZE);
-        if (!prevScissorEnabled) {
-            GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        }
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(0, 0, FBO_SIZE, FBO_SIZE);
     }
 
-    /** Same matrix / lighting setup as NESQL {@code Renderer.setupRenderState}. */
+    /** Same matrix / lighting setup as NESQL {@code Renderer.setupRenderState}, plus blend. */
     private void setupRenderState() {
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);
-        GL11.glLoadIdentity();
         GL11.glMatrixMode(GL11.GL_PROJECTION);
+        GL11.glPushMatrix();
         GL11.glLoadIdentity();
         GL11.glOrtho(0.0, 1.0, 1.0, 0.0, -100.0, 100.0);
         double scaleFactor = 1.0 / 16.0;
         GL11.glScaled(scaleFactor, scaleFactor, scaleFactor);
+
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glPushMatrix();
+        GL11.glLoadIdentity();
+
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
         RenderHelper.enableGUIStandardItemLighting();
         GL11.glEnable(GL12.GL_RESCALE_NORMAL);
     }
 
     private void finishFboRender(Minecraft mc) {
-        RenderHelper.disableStandardItemLighting();
-        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+        try {
+            RenderHelper.disableStandardItemLighting();
+        } catch (Throwable ignored) {}
+        try {
+            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+        } catch (Throwable ignored) {}
+        try {
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+            GL11.glPopMatrix();
+            GL11.glMatrixMode(GL11.GL_PROJECTION);
+            GL11.glPopMatrix();
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        } catch (Throwable ignored) {}
         if (!prevScissorEnabled) {
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            try {
+                GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            } catch (Throwable ignored) {}
+        }
+        if (attribPushed) {
+            try {
+                GL11.glPopAttrib();
+            } catch (Throwable ignored) {}
+            attribPushed = false;
         }
         if (mc != null && mc.getFramebuffer() != null) {
-            mc.getFramebuffer()
-                .bindFramebuffer(true);
+            try {
+                mc.getFramebuffer()
+                    .bindFramebuffer(true);
+            } catch (Throwable ignored) {}
         }
     }
 
@@ -166,14 +204,20 @@ public final class IconNesqlStyleRenderer {
         BufferedImage high = new BufferedImage(FBO_SIZE, FBO_SIZE, BufferedImage.TYPE_INT_ARGB);
         high.setRGB(0, 0, FBO_SIZE, FBO_SIZE, flipped, 0, FBO_SIZE);
 
-        BufferedImage img = new BufferedImage(
-            IconRenderer.ICON_SIZE,
-            IconRenderer.ICON_SIZE,
-            BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = img.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.drawImage(high, 0, 0, IconRenderer.ICON_SIZE, IconRenderer.ICON_SIZE, null);
-        g.dispose();
+        // Match NESQL: keep FBO native resolution (no bilinear downscale blur).
+        // Frontend scales via CSS; 64px PNGs stay sharp at common display sizes.
+        BufferedImage img = high;
+        if (IconRenderer.ICON_SIZE != FBO_SIZE && IconRenderer.ICON_SIZE > 0) {
+            img = new BufferedImage(
+                IconRenderer.ICON_SIZE,
+                IconRenderer.ICON_SIZE,
+                BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = img.createGraphics();
+            // Pixel-art icons: nearest neighbor avoids blur from 64→32 bilinear.
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g.drawImage(high, 0, 0, IconRenderer.ICON_SIZE, IconRenderer.ICON_SIZE, null);
+            g.dispose();
+        }
 
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream(2048);

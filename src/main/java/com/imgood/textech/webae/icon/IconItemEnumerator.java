@@ -164,15 +164,10 @@ public final class IconItemEnumerator {
         int meta = stack.getItemDamage();
         if (meta == Short.MAX_VALUE) meta = 0;
         String itemId = RecipeItemEntries.buildItemId(registryName, meta);
-        boolean exportable = false;
-        try {
-            exportable = stack.getItem()
-                .getIconIndex(stack) != null;
-        } catch (Throwable ignored) {}
-        if (!exportable) {
-            exportable = IconGlFallback.needsGlFallback(stack) || IconFluidRenderer.needsInGameItemRender(stack);
-        }
-        if (!exportable) return false;
+        // Do NOT gate on getIconIndex: GT++ / GTNH material items (e.g. miscutils:itemIngot*)
+        // often return null iconIndex and rely on IItemRenderer / NESQL drawItem. The old
+        // getIconIndex check dropped those stacks from full-pack upload while dusts with
+        // atlas icons were kept — AE storage then 404s for the missing PNG keys.
         if (byId.containsKey(itemId)) {
             if (!IconFluidRenderer.isFluidDropItem(stack.getItem())) {
                 return false;

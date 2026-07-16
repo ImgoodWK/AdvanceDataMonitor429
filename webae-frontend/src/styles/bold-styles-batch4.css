@@ -1,0 +1,404 @@
+/* Batch-4 Printstream (CS community aesthetic) — black/white geometry,
+   Pantone-style pearl gradients, ASCII dashed streams.
+   Decorative only: no widget content clip-path. Gated by data-effects-level. */
+
+/* Shared title treatment */
+[data-page-style^='printstream'] .page-shell__title {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700 !important;
+  position: relative;
+}
+
+[data-page-style^='printstream'] .widget-shell,
+[data-page-style^='printstream'] .stat-card {
+  border-radius: var(--style-radius, 2px) !important;
+  border: 2px solid var(--text-primary) !important;
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--text-primary) 35%, transparent) !important;
+  background: var(--bg-card) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Corner accent chip (does not clip content) */
+[data-page-style^='printstream'] .widget-shell::before,
+[data-page-style^='printstream'] .stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    135deg,
+    transparent 50%,
+    var(--accent) 50%
+  );
+  opacity: 0.85;
+}
+
+[data-page-style^='printstream'] .webae-nav-item--active {
+  border: 2px solid var(--text-primary) !important;
+  background: var(--accent-dim) !important;
+  box-shadow: 2px 2px 0 var(--text-primary);
+}
+
+/* --- Shared SVG cross tile (black on light / inverted via opacity) --- */
+[data-page-style='printstream-panel'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-panel'][data-effects-level='full'] .app-content::before,
+[data-page-style='printstream-cross'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-cross'][data-effects-level='full'] .app-content::before,
+[data-page-style='printstream-mono'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-mono'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath fill='none' stroke='%23111111' stroke-width='2' d='M24 6v36M6 24h36'/%3E%3Crect x='20' y='20' width='8' height='8' fill='%23111111'/%3E%3C/svg%3E");
+  background-size: 48px 48px;
+}
+
+/* Pearl / spectrum rainbow wash (full only animates via effects-motion) */
+[data-page-style='printstream-panel'][data-effects-level='full'] .app-content::after,
+[data-page-style='printstream-pearl'][data-effects-level='subtle'] .app-content::after,
+[data-page-style='printstream-pearl'][data-effects-level='full'] .app-content::after,
+[data-page-style='printstream-spectrum'][data-effects-level='subtle'] .app-content::after,
+[data-page-style='printstream-spectrum'][data-effects-level='full'] .app-content::after,
+[data-page-style='printstream-gloss'][data-effects-level='subtle'] .app-content::after,
+[data-page-style='printstream-gloss'][data-effects-level='full'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.14;
+  background: linear-gradient(
+    110deg,
+    #ff2d95 0%,
+    #c45cff 18%,
+    #00e5ff 36%,
+    #39ff14 54%,
+    #ff6b00 72%,
+    #ff2d95 100%
+  );
+  background-size: 220% 220%;
+  mix-blend-mode: soft-light;
+}
+
+/* --- printstream-panel: classic white + black blocks + pearl --- */
+[data-page-style='printstream-panel'] .page-shell__title::after {
+  content: 'PrintStream';
+  display: block;
+  margin-top: 4px;
+  font-size: 0.55em;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+  border-top: 1px dashed var(--text-primary);
+  padding-top: 4px;
+  width: fit-content;
+}
+
+/* --- printstream-void: inverted geometry --- */
+[data-page-style='printstream-void'] .widget-shell,
+[data-page-style='printstream-void'] .stat-card {
+  border-color: #f0f0f0 !important;
+  box-shadow: 4px 4px 0 rgba(240, 240, 240, 0.25) !important;
+}
+[data-page-style='printstream-void'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-void'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath fill='none' stroke='%23f0f0f0' stroke-width='2' d='M24 6v36M6 24h36'/%3E%3Crect x='18' y='18' width='12' height='12' fill='none' stroke='%23f0f0f0' stroke-width='2'/%3E%3C/svg%3E");
+  background-size: 48px 48px;
+}
+
+/* --- printstream-pearl: pink-purple pearl --- */
+[data-page-style='printstream-pearl'] .widget-shell,
+[data-page-style='printstream-pearl'] .stat-card {
+  border-color: var(--accent) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #00e5ff 40%, transparent),
+    4px 4px 0 color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+[data-page-style='printstream-pearl'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-pearl'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Crect x='4' y='4' width='20' height='14' fill='%23c45cff' opacity='.35'/%3E%3Crect x='32' y='28' width='20' height='14' fill='%2300e5ff' opacity='.3'/%3E%3C/svg%3E");
+  background-size: 56px 56px;
+}
+
+/* --- printstream-cyan: Pantone cyan/magenta bars --- */
+[data-page-style='printstream-cyan'] .widget-shell,
+[data-page-style='printstream-cyan'] .stat-card {
+  border-image: linear-gradient(90deg, #00e5ff, #ff2d95) 1 !important;
+  border-width: 3px !important;
+  border-style: solid !important;
+  box-shadow: none !important;
+}
+[data-page-style='printstream-cyan'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-cyan'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.16;
+  background: repeating-linear-gradient(
+    90deg,
+    #00e5ff 0 12px,
+    #ff2d95 12px 24px,
+    transparent 24px 40px
+  );
+}
+
+/* --- printstream-magenta: magenta/cyan blocks --- */
+[data-page-style='printstream-magenta'] .page-shell__header {
+  border-bottom: 4px solid #ff2d95;
+  box-shadow: 0 4px 0 #00e5ff;
+}
+[data-page-style='printstream-magenta'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-magenta'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='28' height='28' fill='%23ff2d95'/%3E%3Crect x='36' y='36' width='28' height='28' fill='%2300e5ff'/%3E%3C/svg%3E");
+  background-size: 64px 64px;
+}
+
+/* --- printstream-spectrum: multi-color ribbon --- */
+[data-page-style='printstream-spectrum'] .page-shell__title {
+  background: linear-gradient(90deg, #ff2d95, #c45cff, #00e5ff, #39ff14, #ff6b00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+}
+[data-page-style='printstream-spectrum'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-spectrum'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(90deg, #ff2d95, #c45cff, #00e5ff, #39ff14, #ff6b00, #ff2d95);
+  background-size: 200% 100%;
+}
+
+/* --- printstream-ascii: dashed ASCII stream --- */
+[data-page-style='printstream-ascii'] .page-shell__title::after {
+  content: '>>> PrintStream.flush() //////////';
+  display: block;
+  margin-top: 6px;
+  font-size: 0.5em;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  color: var(--accent);
+  opacity: 0.7;
+  letter-spacing: 0.12em;
+}
+[data-page-style='printstream-ascii'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-ascii'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.09;
+  background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 11px,
+      color-mix(in srgb, var(--accent) 35%, transparent) 11px,
+      color-mix(in srgb, var(--accent) 35%, transparent) 12px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 7px,
+      color-mix(in srgb, var(--accent) 20%, transparent) 7px,
+      color-mix(in srgb, var(--accent) 20%, transparent) 8px
+    );
+  font-family: ui-monospace, monospace;
+}
+[data-page-style='printstream-ascii'][data-effects-level='full'] .app-content::after {
+  content: '01  PrintStream  //  23  AE2  ::  45  GTNH  --  67  WEB  \\  89';
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 0;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  color: var(--accent);
+  opacity: 0.18;
+  white-space: nowrap;
+  overflow: hidden;
+  border-top: 1px dashed var(--accent);
+  padding-top: 6px;
+}
+
+/* --- printstream-cross: NFS / loading cross --- */
+[data-page-style='printstream-cross'] .page-shell__title::before {
+  content: '+';
+  display: inline-block;
+  margin-right: 8px;
+  width: 1.1em;
+  height: 1.1em;
+  line-height: 1em;
+  text-align: center;
+  border: 2px solid var(--text-primary);
+  vertical-align: middle;
+  font-weight: 900;
+}
+
+/* --- printstream-rect: thick rectangle collage --- */
+[data-page-style='printstream-rect'] .widget-shell,
+[data-page-style='printstream-rect'] .stat-card {
+  border-radius: 0 !important;
+  border-width: 3px !important;
+  box-shadow:
+    -6px -6px 0 color-mix(in srgb, var(--accent) 25%, transparent),
+    6px 6px 0 color-mix(in srgb, #00e5ff 20%, transparent) !important;
+}
+[data-page-style='printstream-rect'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-rect'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect x='4' y='8' width='36' height='24' fill='none' stroke='%231a1a1a' stroke-width='3'/%3E%3Crect x='40' y='40' width='28' height='28' fill='%231a1a1a' opacity='.25'/%3E%3Crect x='12' y='48' width='16' height='16' fill='none' stroke='%2300e5ff' stroke-width='2'/%3E%3C/svg%3E");
+  background-size: 80px 80px;
+}
+
+/* --- printstream-neon: neon edge + B&W core --- */
+[data-page-style='printstream-neon'] .widget-shell,
+[data-page-style='printstream-neon'] .stat-card {
+  border-color: var(--accent) !important;
+  box-shadow:
+    0 0 8px var(--accent-glow),
+    0 0 1px var(--accent),
+    3px 3px 0 #000 !important;
+}
+[data-page-style='printstream-neon'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+  color: var(--accent) !important;
+}
+[data-page-style='printstream-neon'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-neon'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.08;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath fill='none' stroke='%2300ffcc' stroke-width='1.5' d='M20 4v32M4 20h32'/%3E%3C/svg%3E");
+  background-size: 40px 40px;
+}
+
+/* --- printstream-mono: pure B&W minimal --- */
+[data-page-style='printstream-mono'] .widget-shell,
+[data-page-style='printstream-mono'] .stat-card {
+  border-width: 1px !important;
+  box-shadow: none !important;
+}
+[data-page-style='printstream-mono'] .widget-shell::before,
+[data-page-style='printstream-mono'] .stat-card::before {
+  display: none;
+}
+[data-page-style='printstream-mono'] .page-shell__title {
+  letter-spacing: 0.2em;
+}
+
+/* --- printstream-gloss: lacquer + iridescent edge --- */
+[data-page-style='printstream-gloss'] .widget-shell,
+[data-page-style='printstream-gloss'] .stat-card {
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, #a8e6ff, #c45cff, #ff2d95, #00e5ff) border-box !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+[data-page-style='printstream-gloss'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='printstream-gloss'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.08;
+  background: radial-gradient(ellipse at 30% 20%, #a8e6ff, transparent 45%),
+    radial-gradient(ellipse at 80% 70%, #c45cff, transparent 40%);
+}
+
+/* Page enter mappings (Printstream) */
+[data-effects-level='full'][data-page-style='printstream-panel'] .page-transition,
+[data-effects-level='subtle'][data-page-style='printstream-panel'] .page-transition,
+[data-effects-level='full'][data-page-style='printstream-ascii'] .page-transition,
+[data-effects-level='subtle'][data-page-style='printstream-ascii'] .page-transition {
+  animation-name: pageEnterAsciiWipe;
+}
+[data-effects-level='full'][data-page-style='printstream-pearl'] .page-transition,
+[data-effects-level='subtle'][data-page-style='printstream-pearl'] .page-transition,
+[data-effects-level='full'][data-page-style='printstream-cyan'] .page-transition,
+[data-effects-level='subtle'][data-page-style='printstream-cyan'] .page-transition,
+[data-effects-level='full'][data-page-style='printstream-gloss'] .page-transition,
+[data-effects-level='subtle'][data-page-style='printstream-gloss'] .page-transition {
+  animation-name: pageEnterPearlFade;
+  animation-duration: 0.55s;
+}
+[data-effects-level='full'][data-page-style='printstream-void'] .page-transition,
+[data-effects-level='full'][data-page-style='printstream-cross'] .page-transition,
+[data-effects-level='full'][data-page-style='printstream-mono'] .page-transition {
+  animation-name: pageEnterHardcut;
+}
+[data-effects-level='full'][data-page-style='printstream-magenta'] .page-transition {
+  animation-name: pageEnterSlash;
+}
+[data-effects-level='full'][data-page-style='printstream-spectrum'] .page-transition {
+  animation-name: pageEnterWarp;
+  animation-duration: 0.55s;
+}
+[data-effects-level='full'][data-page-style='printstream-rect'] .page-transition {
+  animation-name: pageEnterTiles;
+}
+[data-effects-level='full'][data-page-style='printstream-neon'] .page-transition {
+  animation-name: pageEnterGlitch;
+  animation-duration: 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-page-style^='printstream'] .app-content::after,
+  [data-page-style^='printstream'] .app-content::before {
+    animation: none !important;
+  }
+  [data-page-style^='printstream'] .widget-shell,
+  [data-page-style^='printstream'] .stat-card {
+    transition: none !important;
+  }
+}

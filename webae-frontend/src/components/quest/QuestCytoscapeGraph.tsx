@@ -249,32 +249,6 @@ export const QuestCytoscapeGraph = forwardRef<QuestGraphHandle, QuestCytoscapeGr
           meta: node.iconMeta,
         });
         const iconId = ids[0];
-        // #region agent log
-        if (
-          node.iconItemId?.startsWith('fluid:') ||
-          (node.iconMeta != null && node.iconMeta >= 30000) ||
-          (node.iconItemId && /cell|fluid|metaitem\.01/i.test(node.iconItemId))
-        ) {
-          fetch('http://127.0.0.1:7665/ingest/a3d1b8cf-d88c-4478-ad0e-1e3322a7890c', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'fe62d6' },
-            body: JSON.stringify({
-              sessionId: 'fe62d6',
-              hypothesisId: 'H1',
-              location: 'QuestCytoscapeGraph.tsx:elements',
-              message: 'cytoscapeIconPick',
-              data: {
-                questId: node.questId,
-                iconItemId: node.iconItemId,
-                iconMeta: node.iconMeta,
-                ids0: iconId,
-                ids,
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-        }
-        // #endregion
         const iconUrl =
           iconId && token
             ? buildIconUrl(iconId, iconPack, token, iconCacheEnabled, iconRenderMode)

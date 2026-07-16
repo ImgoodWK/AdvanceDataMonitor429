@@ -30,6 +30,7 @@ import com.imgood.textech.network.packet.PacketSuperOrangeConfig;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
 import com.imgood.textech.webae.network.PacketWebIconExportScope;
+import com.imgood.textech.webae.network.PacketWebIconPullZip;
 import com.imgood.textech.webae.network.PacketWebIconResolveNack;
 import com.imgood.textech.webae.network.PacketWebIconRequest;
 import com.imgood.textech.webae.network.PacketWebIconUpload;
@@ -320,6 +321,11 @@ public class LoaderNetwork {
                 PacketIconDirectCaptureRequest.Handler.class,
                 PacketIconDirectCaptureRequest.class,
                 47,
+                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketWebIconPullZip.Handler.class,
+                PacketWebIconPullZip.class,
+                49,
                 Side.CLIENT);
         }
     }

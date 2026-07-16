@@ -1,0 +1,360 @@
+/* Batch-5 Auraeco — inspired by Aura landing (voxel/edge glow) + portfolio
+   ecosystem (tendril/particle themes). Decorative only: no widget content
+   clip-path. Gated by data-effects-level. CSS-only, no WebGL/CDN fonts. */
+
+/* ===== Shared Aura chrome ===== */
+[data-page-style^='aura'] .page-shell__title {
+  font-family: Georgia, 'Times New Roman', 'Songti SC', 'SimSun', serif;
+  font-style: italic;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em;
+  position: relative;
+}
+
+[data-page-style^='aura'] .page-shell__subtitle,
+[data-page-style^='aura'] .section-label,
+[data-page-style^='aura'] .status-tag {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+[data-page-style^='aura'] .widget-shell,
+[data-page-style^='aura'] .stat-card {
+  border-radius: var(--style-radius, 20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent) !important;
+  box-shadow: var(--style-shadow) !important;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.35s cubic-bezier(0.165, 0.84, 0.44, 1),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+[data-page-style^='aura'][data-effects-level='subtle'] .widget-shell,
+[data-page-style^='aura'][data-effects-level='full'] .widget-shell,
+[data-page-style^='aura'][data-effects-level='subtle'] .stat-card,
+[data-page-style^='aura'][data-effects-level='full'] .stat-card {
+  backdrop-filter: blur(var(--style-card-blur, 16px));
+  -webkit-backdrop-filter: blur(var(--style-card-blur, 16px));
+}
+
+[data-page-style^='aura'][data-effects-level='full'] .widget-shell:hover,
+[data-page-style^='aura'][data-effects-level='full'] .stat-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  box-shadow: var(--style-shadow-hover) !important;
+}
+
+[data-page-style^='aura'] .webae-nav-item--active {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent) !important;
+  background: var(--accent-dim) !important;
+  box-shadow: 0 0 16px var(--accent-glow);
+  border-radius: 50px !important;
+}
+
+[data-page-style='aura-sparks'] .page-shell__title {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Soft edge glow frame on content (shared) */
+[data-page-style^='aura'][data-effects-level='subtle'] .app-content,
+[data-page-style^='aura'][data-effects-level='full'] .app-content {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-page-style^='aura'][data-effects-level='subtle'] .app-content::after,
+[data-page-style^='aura'][data-effects-level='full'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: inset 0 0 80px color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 4px;
+}
+
+/* ===== aura-voxel: grid + expanding ring ===== */
+[data-page-style='aura-voxel'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='aura-voxel'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect x='14' y='14' width='12' height='12' rx='2' fill='none' stroke='%2300e5ff' stroke-opacity='0.25' stroke-width='1'/%3E%3C/svg%3E"),
+    radial-gradient(
+      circle at 45% 55%,
+      color-mix(in srgb, var(--accent) 28%, transparent) 0%,
+      transparent 42%
+    );
+  background-size:
+    80px 80px,
+    80px 80px,
+    40px 40px,
+    180% 180%;
+  background-position:
+    0 0,
+    0 0,
+    0 0,
+    50% 50%;
+}
+
+[data-page-style='aura-voxel'][data-effects-level='full'] .app-content::before {
+  animation: auraVoxelPulse 8s ease-in-out infinite;
+}
+
+@keyframes auraVoxelPulse {
+  0% {
+    background-size:
+      80px 80px,
+      80px 80px,
+      40px 40px,
+      140% 140%;
+    opacity: 0.4;
+  }
+  50% {
+    background-size:
+      80px 80px,
+      80px 80px,
+      40px 40px,
+      220% 220%;
+    opacity: 0.7;
+  }
+  100% {
+    background-size:
+      80px 80px,
+      80px 80px,
+      40px 40px,
+      140% 140%;
+    opacity: 0.4;
+  }
+}
+
+/* ===== aura-spore: thin tendrils + spores ===== */
+[data-page-style='aura-spore'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='aura-spore'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.45;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='200' viewBox='0 0 120 200'%3E%3Cpath d='M60 200 C55 160 70 120 50 80 C40 50 65 30 60 0' fill='none' stroke='%2300ffcc' stroke-opacity='0.35' stroke-width='1.2'/%3E%3Ccircle cx='60' cy='8' r='2.5' fill='%2300ffcc' fill-opacity='0.55'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent) 40%, transparent) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 70% 55%, color-mix(in srgb, var(--accent) 35%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--accent) 30%, transparent) 0 1.2px, transparent 2px);
+  background-size:
+    120px 200px,
+    90px 90px,
+    110px 110px,
+    70px 70px;
+  background-repeat: repeat, repeat, repeat, repeat;
+  background-position:
+    0 100%,
+    0 0,
+    20px 40px,
+    10px 0;
+}
+
+[data-page-style='aura-spore'][data-effects-level='full'] .app-content::before {
+  animation: auraSporeDrift 24s linear infinite;
+}
+
+@keyframes auraSporeDrift {
+  from {
+    background-position:
+      0 100%,
+      0 0,
+      20px 40px,
+      10px 0;
+  }
+  to {
+    background-position:
+      12px 100%,
+      0 60px,
+      20px 100px,
+      10px 50px;
+  }
+}
+
+/* ===== aura-dome: purple dome glow + thin tendrils ===== */
+[data-page-style='aura-dome'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='aura-dome'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(
+      ellipse 70% 45% at 50% 100%,
+      color-mix(in srgb, var(--accent) 35%, transparent) 0%,
+      rgba(255, 100, 200, 0.08) 35%,
+      transparent 70%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='180' viewBox='0 0 100 180'%3E%3Cpath d='M50 180 C48 140 58 100 42 60 C35 35 55 20 50 0' fill='none' stroke='%23cc66ff' stroke-opacity='0.3' stroke-width='1'/%3E%3C/svg%3E");
+  background-size:
+    100% 100%,
+    100px 180px;
+  background-position:
+    center bottom,
+    0 100%;
+  background-repeat: no-repeat, repeat-x;
+}
+
+[data-page-style='aura-dome'][data-effects-level='full'] .app-content::before {
+  animation: auraDomeBreathe 10s ease-in-out infinite;
+}
+
+@keyframes auraDomeBreathe {
+  0%,
+  100% {
+    opacity: 0.38;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
+
+/* ===== aura-sparks: straight tendrils + wind sparks + scanlines ===== */
+[data-page-style='aura-sparks'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='aura-sparks'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.42;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 102, 0.03) 2px,
+      rgba(0, 255, 102, 0.03) 4px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='160' viewBox='0 0 80 160'%3E%3Cpath d='M40 160 L40 0' fill='none' stroke='%2300ff66' stroke-opacity='0.28' stroke-width='1'/%3E%3C/svg%3E"),
+    linear-gradient(
+      125deg,
+      transparent 40%,
+      color-mix(in srgb, var(--accent) 45%, transparent) 41%,
+      transparent 42%
+    );
+  background-size:
+    100% 100%,
+    80px 160px,
+    180px 90px;
+  background-repeat: no-repeat, repeat-x, repeat;
+  background-position:
+    0 0,
+    0 100%,
+    0 0;
+}
+
+[data-page-style='aura-sparks'][data-effects-level='full'] .app-content::before {
+  animation: auraSparkSlash 6s linear infinite;
+}
+
+@keyframes auraSparkSlash {
+  from {
+    background-position:
+      0 0,
+      0 100%,
+      0 0;
+  }
+  to {
+    background-position:
+      0 0,
+      0 100%,
+      180px -90px;
+  }
+}
+
+/* HUD corner accents for sparks (matrix-like) */
+[data-page-style='aura-sparks'][data-effects-level='subtle'] .widget-shell::after,
+[data-page-style='aura-sparks'][data-effects-level='full'] .widget-shell::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ===== aura-bubble: thick tendrils + bubbles + water band ===== */
+[data-page-style='aura-bubble'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='aura-bubble'][data-effects-level='full'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.48;
+  background-image:
+    linear-gradient(
+      to top,
+      color-mix(in srgb, var(--accent) 25%, transparent) 0%,
+      transparent 28px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='220' viewBox='0 0 140 220'%3E%3Cpath d='M70 220 C60 170 90 130 55 90 C40 60 85 40 70 0' fill='none' stroke='%230099ff' stroke-opacity='0.4' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='70' cy='10' r='4' fill='%230099ff' fill-opacity='0.45'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 25% 70%, transparent 4px, color-mix(in srgb, var(--accent) 40%, transparent) 5px, transparent 7px),
+    radial-gradient(circle at 65% 40%, transparent 3px, color-mix(in srgb, var(--accent) 35%, transparent) 4px, transparent 6px),
+    radial-gradient(circle at 80% 75%, transparent 5px, color-mix(in srgb, var(--accent) 30%, transparent) 6px, transparent 8px);
+  background-size:
+    100% 100%,
+    140px 220px,
+    100px 100px,
+    120px 120px,
+    80px 80px;
+  background-position:
+    0 100%,
+    0 100%,
+    0 0,
+    30px 20px,
+    10px 40px;
+  background-repeat: no-repeat, repeat-x, repeat, repeat, repeat;
+}
+
+[data-page-style='aura-bubble'][data-effects-level='full'] .app-content::before {
+  animation: auraBubbleRise 18s linear infinite;
+}
+
+@keyframes auraBubbleRise {
+  from {
+    background-position:
+      0 100%,
+      0 100%,
+      0 40px,
+      30px 60px,
+      10px 80px;
+  }
+  to {
+    background-position:
+      0 100%,
+      8px 100%,
+      0 -60px,
+      30px -40px,
+      10px -20px;
+  }
+}

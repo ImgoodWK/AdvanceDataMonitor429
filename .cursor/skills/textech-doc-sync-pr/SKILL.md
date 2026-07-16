@@ -1,25 +1,23 @@
 ---
 name: textech-doc-sync-pr
 description: >-
-  Syncs TeXTech docs, lang, manual JSON, and project-structure rules after code
-  changes; runs tools/doc-check/doc-consistency-check.py and reports gaps.
-  Use when editing src/main/java, assets/textech/lang, docs/, manual/,
-  .cursor/rules/project-structure*.mdc, or when the user mentions PR prep,
-  documentation sync, doc-check, or bilingual lang updates.
+  Runs TeXTech doc/lang/manual/structure sync and doc-consistency-check.
+  Use when the user asks for PR prep, documentation sync, doc-check, bilingual
+  doc publish, or after adding/removing/renaming Java packages or lang keys.
+  Do not auto-invoke for routine single-file bugfixes with no public behavior change.
 ---
 
 # TeXTech Doc Sync / PR Prep
 
 文档与规则同步工作流。规则兜底见 `.cursor/rules/docs-sync.mdc`；地图见 `docs/zh/developer/documentation-map.md`。
 
-## 何时自动走本 Skill
+## 何时走本 Skill
 
-- 新增 / 删除 / 重命名 Java 源文件或 lang 键
-- 修改 `docs/`、`manual/`、`Config` 对外行为
-- 用户说：提 PR、检查文档、文档是否漏改
-- **任务主工作完成时**自动跑 doc-check（不必等用户提醒）
+- 用户说：提 PR、检查文档、文档是否漏改、双语发版同步
+- 新增 / 删除 / 重命名 **包或公开 API**、或大量 lang 键
+- 修改 `docs/`、`manual/`、Config **对外行为** 后需要核对
 
-复杂 PR 仍建议用户 `@textech-doc-sync-pr` 点名一次更稳。
+常规单文件 bugfix（无对外行为/结构变化）**不要**自动拉起。复杂 PR 建议 `@textech-doc-sync-pr`。
 
 ## 清单
 

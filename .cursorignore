@@ -1,0 +1,8 @@
+# Low-value Agent context — keep searchable via Glob when needed, reduce accidental bulk reads.
+# Do not ignore source, lang, L1/L2 docs, or .cursor/rules.
+
+.cursor/plans/
+.cursor/debug*.log
+docs/zh/design/
+docs/en/design/
+docs/zh/archive/

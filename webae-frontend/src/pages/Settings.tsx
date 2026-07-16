@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   Tabs,
@@ -40,11 +40,24 @@ import {
   SafetyCertificateOutlined,
   CrownOutlined,
   CloseCircleOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { getApiClient } from '@/api/client';
 import { importLocalIconPackZip, SERVER_SYNC_PACK_NAME, setActiveLocalPack, syncServerIconPack } from '@/utils/localIconPack';
+import {
+  canUseDirectoryPicker,
+  clearLocalIconDirectory,
+  getLocalIconDirMeta,
+  isSecureContextForDirectoryPicker,
+  localIconDirNeedsPermission,
+  LOCAL_ICON_DIR_STATUS_EVENT,
+  pickLocalIconDirectory,
+  refreshLocalIconDirectoryIndex,
+  setLocalIconDirectoryEnabled,
+  type LocalIconDirMeta,
+} from '@/utils/localIconDirectory';
 import { fillMissingIconsFromServer } from '@/utils/iconPrefetch';
 import { bumpIconVersion } from '@/utils/icon';
 import { getVisibleIconIds } from '@/utils/visibleIconRegistry';
@@ -144,6 +157,19 @@ export function SettingsPage() {
   const [presetName, setPresetName] = useState('');
   const [iconSyncLoading, setIconSyncLoading] = useState(false);
   const [iconFillLoading, setIconFillLoading] = useState(false);
+  const [localIconDirMeta, setLocalIconDirMetaState] = useState<LocalIconDirMeta | null>(() => getLocalIconDirMeta());
+  const [localIconDirBusy, setLocalIconDirBusy] = useState(false);
+  const [localIconDirNeedsPerm, setLocalIconDirNeedsPerm] = useState(() => localIconDirNeedsPermission());
+
+  useEffect(() => {
+    const onStatus = () => {
+      setLocalIconDirMetaState(getLocalIconDirMeta());
+      setLocalIconDirNeedsPerm(localIconDirNeedsPermission());
+    };
+    window.addEventListener(LOCAL_ICON_DIR_STATUS_EVENT, onStatus);
+    return () => window.removeEventListener(LOCAL_ICON_DIR_STATUS_EVENT, onStatus);
+  }, []);
+
   // Debug flags: local override snapshot (re-read on each render via getLocalDebugFlag)
   const debugFeatures: DebugFeature[] = ['icons', 'chat', 'dashboard', 'synthesis', 'patterns'];
   const [debugTick, setDebugTick] = useState(0);
@@ -155,6 +181,10 @@ export function SettingsPage() {
   const [elevateLoading, setElevateLoading] = useState(false);
 
   const [settingsTab, setSettingsTab] = useState('data-freshness');
+
+  useEffect(() => {
+    setLocalIconDirMetaState(getLocalIconDirMeta());
+  }, [settingsTab]);
 
   const colorGridItems = useMemo(
     () =>
@@ -223,6 +253,56 @@ export function SettingsPage() {
       notify((e as Error).message || t('localIconPackImportFailed'), 'error');
     }
     return false;
+  };
+
+  const handlePickLocalIconDir = async () => {
+    if (!canUseDirectoryPicker()) {
+      notify(t('localIconDirUnavailable'), 'warning');
+      return;
+    }
+    setLocalIconDirBusy(true);
+    try {
+      const meta = await pickLocalIconDirectory();
+      setLocalIconDirMetaState(meta);
+      notify(
+        t('localIconDirPicked').replace('{name}', meta.name).replace('{count}', String(meta.fileCount)),
+        'success'
+      );
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') {
+        notify((e as Error).message || t('localIconDirPickFailed'), 'error');
+      }
+    } finally {
+      setLocalIconDirBusy(false);
+    }
+  };
+
+  const handleRefreshLocalIconDir = async () => {
+    setLocalIconDirBusy(true);
+    try {
+      const meta = await refreshLocalIconDirectoryIndex();
+      setLocalIconDirMetaState(meta);
+      if (meta) {
+        notify(
+          t('localIconDirPicked').replace('{name}', meta.name).replace('{count}', String(meta.fileCount)),
+          'success'
+        );
+      }
+    } catch (e) {
+      notify((e as Error).message || t('localIconDirPickFailed'), 'error');
+    } finally {
+      setLocalIconDirBusy(false);
+    }
+  };
+
+  const handleClearLocalIconDir = async () => {
+    setLocalIconDirBusy(true);
+    try {
+      await clearLocalIconDirectory();
+      setLocalIconDirMetaState(null);
+    } finally {
+      setLocalIconDirBusy(false);
+    }
   };
 
   const handleSyncServerIconPack = async () => {
@@ -548,6 +628,55 @@ export function SettingsPage() {
                 </div>
                 <Divider />
                 <div>
+                  <Text strong>{t('localIconDir')}</Text>
+                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginBottom: 8 }}>
+                    {t('localIconDirHint')}
+                  </Text>
+                  {!isSecureContextForDirectoryPicker() && (
+                    <Alert type="warning" showIcon style={{ marginBottom: 8 }} message={t('localIconDirSecureHint')} />
+                  )}
+                  {localIconDirMeta && localIconDirNeedsPerm && (
+                    <Alert type="warning" showIcon style={{ marginBottom: 8 }} message={t('localIconDirPermissionHint')} />
+                  )}
+                  {localIconDirMeta && (
+                    <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text type="secondary">
+                        {localIconDirMeta.name} ({localIconDirMeta.fileCount})
+                      </Text>
+                      <Switch
+                        checked={localIconDirMeta.enabled}
+                        onChange={(v) => {
+                          setLocalIconDirectoryEnabled(v);
+                          setLocalIconDirMetaState(getLocalIconDirMeta());
+                        }}
+                        checkedChildren={t('localIconDirEnable')}
+                      />
+                    </Space>
+                  )}
+                  <Space wrap>
+                    <Button
+                      icon={<FolderOpenOutlined />}
+                      loading={localIconDirBusy}
+                      disabled={!canUseDirectoryPicker()}
+                      onClick={() => void handlePickLocalIconDir()}
+                    >
+                      {t('localIconDirPick')}
+                    </Button>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      loading={localIconDirBusy}
+                      disabled={!localIconDirMeta}
+                      onClick={() => void handleRefreshLocalIconDir()}
+                    >
+                      {t('localIconDirRefresh')}
+                    </Button>
+                    <Button danger loading={localIconDirBusy} disabled={!localIconDirMeta} onClick={() => void handleClearLocalIconDir()}>
+                      {t('localIconDirClear')}
+                    </Button>
+                  </Space>
+                </div>
+                <Divider />
+                <div>
                   <Text strong>{t('localIconPack')}</Text>
                   <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginBottom: 8 }}>
                     {t('localIconPackHint')}
@@ -568,6 +697,9 @@ export function SettingsPage() {
                   </Upload>
                 </div>
                 <Alert type="info" message={t('iconUploadHint')} showIcon />
+                {serverConfig?.iconLazyCaptureEnabled && (
+                  <Alert type="warning" showIcon message={t('iconLazyCaptureHint')} />
+                )}
               </Space>
             ),
           },

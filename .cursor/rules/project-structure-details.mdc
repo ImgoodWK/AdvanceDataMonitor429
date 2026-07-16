@@ -1,12 +1,11 @@
 ---
-description: 各包逐文件清单、lang 键、游戏内名称（project-structure 核心索引的详细附录）
-globs: **/src/main/java/**
+description: 各包逐文件清单、lang 键、游戏内名称（project-structure 核心索引的详细附录；按需 Read，不自动注入）
 alwaysApply: false
 ---
 
 # 项目结构详细清单
 
-本文件是 `project-structure.mdc`（核心索引）的详细附录，列出每个包的逐文件清单、lang 键与游戏内名称。编辑模组 Java 源文件时自动加载；纯问答/文档/配置场景时按需 Read。
+本文件是 `project-structure.mdc`（核心索引）的详细附录，列出每个包的逐文件清单、lang 键与游戏内名称。**不自动注入**；新增/删改/重命名类，或需要逐文件定位时，再 Read 本文件对应包章节。
 
 ## 包结构 (src/main/java/com/imgood/textech/)
 
@@ -238,7 +237,7 @@ alwaysApply: false
 
 ### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (23 文件)
 - `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
-- `KeyBindings.java` — O/P/H 快捷键（AI聊天/计划器/HUD切换）；`uploadNeiRecipes()` 混合采集（NeiRecipeCollector 主线程 + GameRecipeCollector 补充去重）+ 异步分批上传；`triggerIconUpload(packName)` Phase 2 从已删除的 `HandlerWebIconUpload` 迁入的图标上传入口（供 `PacketWebUploadTrigger` 调用）
+- `KeyBindings.java` — O/P/H 快捷键（AI聊天/计划器/HUD切换）；`uploadNeiRecipes()`；`triggerIconUpload` / `triggerIconPull`（供 `PacketWebUploadTrigger`：upload / local / pull）
 - `HandlerGrappleClient.java` — 挂索 Shift 取消 / 右键移动（客户端输入）
 - `GrappleClientCache.java` — 挂索客户端状态缓存（接收 `PacketGrappleSync`）
 - `GrappleSelectionUtil.java` — 挂索节点磁吸选点、路径预览坐标
@@ -414,8 +413,11 @@ alwaysApply: false
 - `webae/network/PacketWebRecipeUploadAck.java` — S→C 配方上传确认（packet ID 27）
 - `webae/search/RecipeSearchRateLimiter.java` — 配方模糊搜索 per-owner 限流（`webRecipeSearchMinIntervalMs`）
 - `webae/icon/NesqlIconImporter.java` — NESQL 预渲染图标导入（`/admweb icons import-nesql`）
-- `webae/icon/IconNesqlStyleRenderer.java` — **活跃** NESQL 同款单图标 FBO（`GuiContainerManager.drawItem`，64→32 PNG）
-- `webae/network/PacketWebUploadTrigger.java` — S→C 服务端触发客户端 recipes/icons/icon_verify（packet ID 30）
+- `webae/icon/IconNesqlStyleRenderer.java` — **活跃** NESQL 同款单图标 FBO（`GuiContainerManager.drawItem`，64×64 PNG 输出）
+- `webae/icon/IconLocalStore.java` — 本机 `icons-local/` 写盘 + pull zip 解压
+- `webae/icon/IconLazyConsentChat.java` — 懒加载补渲聊天同意（材质包知情）
+- `webae/network/PacketWebUploadTrigger.java` — S→C 触发 recipes/icons/icons_local/icons_pull/icon_verify（packet ID 30）
+- `webae/network/PacketWebIconPullZip.java` — S→C pull zip 分片（packet ID 49）
 - `webae/network/PacketWebConsoleTokenNotify.java` — S→C WebAE token 下发与剪贴板复制（packet ID 31）
 - `webae/network/PacketWebIconExportScope.java` — S→C 图标导出范围 all/snapshot/list + itemId JSON（packet ID 32）
 - `webae/network/PacketWebIconRequest.java` — S→C 按需懒加载单图标渲染请求（packet ID 33；客户端入队 IconLazyRenderQueue，bulk 导出运行中忽略）
@@ -430,7 +432,7 @@ alwaysApply: false
 - `webae/network/PacketWebIconResolveNack.java` — C→S 图标懒加载解析失败回执（packet ID 36；itemId + reason）
 - `webae/icon/IconExportScope.java` — 导出范围枚举（all/snapshot/list）
 - `webae/icon/IconSnapshotItemCollector.java` — 从 SnapshotCache 存储快照收集 itemId（服务端）
-- `webae/icon/IconMissingQueue.java` — 404 缺失图标队列 + 向 icon-provider 客户端派发 PacketWebIconRequest；mode 强制 `nei`；`resolveProviderPlayer()` 供直渲桥接选用在线玩家
+- `webae/icon/IconMissingQueue.java` — 404 缺失图标队列（仅 `iconLazyCaptureEnabled`）；聊天同意后向 provider 派发 `PacketWebIconRequest`；mode 强制 `nei`
 - `webae/icon/IconDirectCaptureBridge.java` — HTTP 404 同步直渲桥接（latch 等待 PacketIconDirectCaptureResponse；mode 强制 `nei`）
 - `webae/icon/IconLazyRenderQueue.java` — 客户端懒加载渲染队列（每 tick 最多 2 个；bulk 导出运行时暂停；`ClientProxy` FML bus 注册）
 - `webae/icon/IconRenderGuard.java` — 离屏图标导出后复位 Tessellator/GL/Framebuffer（防止 GTNH 自定义渲染器遗留 `Already tesselating!`）

@@ -509,7 +509,7 @@ public class CommandWebConsole extends TeXTechCommandBase {
     private void handleIcons(ICommandSender sender, String[] args) {
         if (args.length < 2) {
             sendHelpHeader(sender, "adm.command.admweb.icons.title");
-            sendHelpLines(sender, "adm.command.admweb.icons.help", 7);
+            sendHelpLines(sender, "adm.command.admweb.icons.help", 11);
             return;
         }
         String action = args[1].toLowerCase();
@@ -532,8 +532,31 @@ public class CommandWebConsole extends TeXTechCommandBase {
             }
             return;
         }
+        if ("y".equals(action) || "yes".equals(action)) {
+            if (!requirePlayer(sender)) return;
+            EntityPlayerMP player = (EntityPlayerMP) sender;
+            if (IconMissingQueue.instance()
+                .acceptConsent(player)) {
+                sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.icons.consent.accepted");
+            } else {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.icons.consent.failed");
+            }
+            return;
+        }
+        if ("n".equals(action) || "no".equals(action)) {
+            if (!requirePlayer(sender)) return;
+            EntityPlayerMP player = (EntityPlayerMP) sender;
+            IconMissingQueue.instance()
+                .rejectConsent(player);
+            sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.icons.consent.rejected");
+            return;
+        }
         if ("upload".equals(action)) {
             handleIconsUpload(sender, args);
+        } else if ("local".equals(action)) {
+            handleIconsLocal(sender, args);
+        } else if ("pull".equals(action)) {
+            handleIconsPull(sender, args);
         } else if ("render".equals(action)) {
             handleIconsRender(sender, args);
         } else if ("verify".equals(action)) {
@@ -569,6 +592,11 @@ public class CommandWebConsole extends TeXTechCommandBase {
             }
             sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.icons.status.cache", Config.webIconCacheEnabled);
             sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.icons.status.upload", Config.webIconUploadEnabled);
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.icons.status.lazy",
+                Config.webIconLazyCaptureEnabled);
             sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.icons.status.pack_enabled", Config.webIconPackEnabled);
             sendLocalized(
                 sender,
@@ -576,18 +604,123 @@ public class CommandWebConsole extends TeXTechCommandBase {
                 "adm.command.admweb.icons.status.queue",
                 IconMissingQueue.instance()
                     .pendingCount());
+            String providerName = IconMissingQueue.instance()
+                .getProviderName();
+            if (providerName != null && !providerName.isEmpty()) {
+                sendLocalized(
+                    sender,
+                    EnumChatFormatting.WHITE,
+                    "adm.command.admweb.icons.status.provider",
+                    providerName,
+                    IconMissingQueue.instance()
+                        .isCapturedWithClientTextures());
+            }
         } else if ("clear".equals(action)) {
             if (!requireOp(sender)) {
                 return;
             }
-            int removed = IconStore.instance()
-                .clearAll();
+            final ICommandSender notifySender = sender;
+            boolean started = IconStore.instance()
+                .clearAllAsync(new IconStore.ClearCallback() {
+
+                    @Override
+                    public void onComplete(final int removed) {
+                        scheduleOnServerThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                if (notifySender instanceof EntityPlayerMP) {
+                                    EntityPlayerMP player = (EntityPlayerMP) notifySender;
+                                    if (player.playerNetServerHandler == null) {
+                                        AdvanceDataMonitor.LOG.info(
+                                            "[WebAE] Icon clear done ({} PNGs); requesting player offline",
+                                            removed);
+                                        return;
+                                    }
+                                }
+                                sendFormatted(
+                                    notifySender,
+                                    EnumChatFormatting.GREEN,
+                                    "adm.webconsole.icons.cleared",
+                                    removed);
+                            }
+                        });
+                    }
+                });
+            if (!started) {
+                sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.webconsole.icons.clear_busy");
+                return;
+            }
             IconMissingQueue.instance()
                 .clear();
-            sendFormatted(sender, EnumChatFormatting.GREEN, "adm.webconsole.icons.cleared", removed);
+            sendFormatted(sender, EnumChatFormatting.YELLOW, "adm.webconsole.icons.clearing_started");
         } else {
             sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.icons.unknown");
         }
+    }
+
+    private void handleIconsLocal(ICommandSender sender, String[] args) {
+        if (!requirePlayer(sender)) {
+            return;
+        }
+        if (!Config.webIconCacheEnabled) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.icons.disabled");
+            return;
+        }
+        EntityPlayerMP player = (EntityPlayerMP) sender;
+        int argIdx = 2;
+        IconExportScope scope = IconExportScope.ALL;
+        if (args.length >= 3 && "snapshot".equalsIgnoreCase(args[2])) {
+            scope = IconExportScope.SNAPSHOT;
+            argIdx = 3;
+        }
+        String packName = args.length > argIdx ? args[argIdx] : "default";
+        if (!IconStore.isValidPackName(packName)) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.icons.invalid");
+            return;
+        }
+        String renderMode = IconRenderMode.NEI.getId();
+        java.util.List<String> itemIds = scope == IconExportScope.SNAPSHOT ? IconSnapshotItemCollector.collectItemIds()
+            : new java.util.ArrayList<String>();
+        if (scope == IconExportScope.SNAPSHOT && itemIds.isEmpty()) {
+            sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.icons.no_snapshot");
+            return;
+        }
+        AdvanceDataMonitor.ADMCHANEL.sendTo(
+            new com.imgood.textech.webae.network.PacketWebUploadTrigger(
+                com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS_LOCAL,
+                packName,
+                renderMode,
+                scope,
+                itemIds),
+            player);
+        sendLocalized(
+            sender,
+            EnumChatFormatting.GREEN,
+            "adm.command.admweb.icons.local_started",
+            packName,
+            renderMode,
+            scope.getId());
+    }
+
+    private void handleIconsPull(ICommandSender sender, String[] args) {
+        if (!requirePlayer(sender)) {
+            return;
+        }
+        EntityPlayerMP player = (EntityPlayerMP) sender;
+        String packName = args.length >= 3 ? args[2] : "default";
+        if (!IconStore.isValidPackName(packName)) {
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.icons.invalid");
+            return;
+        }
+        // Tell client to try local copy first; also stream zip from server.
+        AdvanceDataMonitor.ADMCHANEL.sendTo(
+            new com.imgood.textech.webae.network.PacketWebUploadTrigger(
+                com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS_PULL,
+                packName),
+            player);
+        com.imgood.textech.webae.icon.IconLocalStore.sendPackZipToPlayer(player, packName);
+        sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.icons.pull_started", packName);
     }
 
     private void handleIconsUpload(ICommandSender sender, String[] args) {
@@ -1232,6 +1365,21 @@ public class CommandWebConsole extends TeXTechCommandBase {
     @Override
     public boolean canCommandSenderUseCommand(ICommandSender sender) {
         return true;
+    }
+
+    private static void scheduleOnServerThread(Runnable runnable) {
+        try {
+            MinecraftServer server = MinecraftServer.getServer();
+            if (server == null) {
+                runnable.run();
+                return;
+            }
+            server.getClass()
+                .getMethod("func_152344_a", Runnable.class)
+                .invoke(server, runnable);
+        } catch (Exception e) {
+            runnable.run();
+        }
     }
 
     private void sendFormatted(ICommandSender sender, EnumChatFormatting color, String key, Object... args) {

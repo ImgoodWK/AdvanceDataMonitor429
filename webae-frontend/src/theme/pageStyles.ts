@@ -112,7 +112,24 @@ export type PageStyle =
   | 'bocchi-stage'
   | 'meshi-feast'
   | 'nvidia-greenroom'
-  | 'linear-opsdesk';
+  | 'linear-opsdesk'
+  | 'printstream-panel'
+  | 'printstream-void'
+  | 'printstream-pearl'
+  | 'printstream-cyan'
+  | 'printstream-magenta'
+  | 'printstream-spectrum'
+  | 'printstream-ascii'
+  | 'printstream-cross'
+  | 'printstream-rect'
+  | 'printstream-neon'
+  | 'printstream-mono'
+  | 'printstream-gloss'
+  | 'aura-voxel'
+  | 'aura-spore'
+  | 'aura-dome'
+  | 'aura-sparks'
+  | 'aura-bubble';
 
 /** Per-widget / resolved chart drawing recipe ids (7 options). */
 export type ChartStyle =
@@ -263,6 +280,23 @@ export const PAGE_STYLES: PageStyle[] = [
   'meshi-feast',
   'nvidia-greenroom',
   'linear-opsdesk',
+  'printstream-panel',
+  'printstream-void',
+  'printstream-pearl',
+  'printstream-cyan',
+  'printstream-magenta',
+  'printstream-spectrum',
+  'printstream-ascii',
+  'printstream-cross',
+  'printstream-rect',
+  'printstream-neon',
+  'printstream-mono',
+  'printstream-gloss',
+  'aura-voxel',
+  'aura-spore',
+  'aura-dome',
+  'aura-sparks',
+  'aura-bubble',
 ];
 
 export const CHART_STYLES: ChartStyle[] = [
@@ -280,6 +314,9 @@ const DEFAULT_FONT =
 
 const MONO_FONT =
   "'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', 'Microsoft YaHei Mono', monospace";
+
+const AURA_SERIF_FONT =
+  "Georgia, 'Times New Roman', 'Songti SC', 'SimSun', serif";
 
 export const PAGE_STYLE_PRESETS: Record<PageStyle, PageStylePreset> = {
   classic: {
@@ -2564,6 +2601,365 @@ export const PAGE_STYLE_PRESETS: Record<PageStyle, PageStylePreset> = {
       '--style-enter': 'slide',
     },
   },
+  'printstream-panel': {
+    id: 'printstream-panel',
+    borderRadius: 2,
+    defaultChartStyle: 'outlined',
+    cssVars: {
+      '--style-radius': '2px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.0',
+      '--style-enter': 'ascii-wipe',
+    },
+  },
+  'printstream-void': {
+    id: 'printstream-void',
+    borderRadius: 0,
+    defaultChartStyle: 'minimal',
+    cssVars: {
+      '--style-radius': '0px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '0.9',
+      '--style-enter': 'hardcut',
+    },
+  },
+  'printstream-pearl': {
+    id: 'printstream-pearl',
+    borderRadius: 4,
+    defaultChartStyle: 'filled',
+    cssVars: {
+      '--style-radius': '4px',
+      '--style-radius-sm': '2px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.05',
+      '--style-enter': 'pearl-fade',
+    },
+  },
+  'printstream-cyan': {
+    id: 'printstream-cyan',
+    borderRadius: 2,
+    defaultChartStyle: 'viz',
+    cssVars: {
+      '--style-radius': '2px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.0',
+      '--style-enter': 'pearl-fade',
+    },
+  },
+  'printstream-magenta': {
+    id: 'printstream-magenta',
+    borderRadius: 2,
+    defaultChartStyle: 'filled',
+    cssVars: {
+      '--style-radius': '2px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '0.95',
+      '--style-enter': 'slash',
+    },
+  },
+  'printstream-spectrum': {
+    id: 'printstream-spectrum',
+    borderRadius: 4,
+    defaultChartStyle: 'spark',
+    cssVars: {
+      '--style-radius': '4px',
+      '--style-radius-sm': '2px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.0',
+      '--style-enter': 'warp',
+    },
+  },
+  'printstream-ascii': {
+    id: 'printstream-ascii',
+    borderRadius: 0,
+    defaultChartStyle: 'outlined',
+    cssVars: {
+      '--style-radius': '0px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '0.9',
+      '--style-enter': 'ascii-wipe',
+    },
+  },
+  'printstream-cross': {
+    id: 'printstream-cross',
+    borderRadius: 0,
+    defaultChartStyle: 'classic',
+    cssVars: {
+      '--style-radius': '0px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.0',
+      '--style-enter': 'hardcut',
+    },
+  },
+  'printstream-rect': {
+    id: 'printstream-rect',
+    borderRadius: 0,
+    defaultChartStyle: 'outlined',
+    cssVars: {
+      '--style-radius': '0px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '0.95',
+      '--style-enter': 'tiles',
+    },
+  },
+  'printstream-neon': {
+    id: 'printstream-neon',
+    borderRadius: 2,
+    defaultChartStyle: 'viz',
+    cssVars: {
+      '--style-radius': '2px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.0',
+      '--style-enter': 'glitch',
+    },
+  },
+  'printstream-mono': {
+    id: 'printstream-mono',
+    borderRadius: 0,
+    defaultChartStyle: 'minimal',
+    cssVars: {
+      '--style-radius': '0px',
+      '--style-radius-sm': '0px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.0',
+      '--style-enter': 'hardcut',
+    },
+  },
+  'printstream-gloss': {
+    id: 'printstream-gloss',
+    borderRadius: 6,
+    defaultChartStyle: 'filled',
+    cssVars: {
+      '--style-radius': '6px',
+      '--style-radius-sm': '4px',
+      '--style-shadow': '0 4px 16px var(--accent-glow)',
+      '--style-shadow-hover': '0 6px 22px var(--accent-glow)',
+      '--style-border-width': '2px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.96',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '700',
+      '--style-card-blur': '0px',
+      '--style-content-gap-scale': '1.05',
+      '--style-enter': 'pearl-fade',
+    },
+  },
+  'aura-voxel': {
+    id: 'aura-voxel',
+    borderRadius: 20,
+    fontFamily: AURA_SERIF_FONT,
+    defaultChartStyle: 'viz',
+    cssVars: {
+      '--style-radius': '20px',
+      '--style-radius-sm': '12px',
+      '--style-shadow': '0 10px 40px rgba(0, 0, 0, 0.45)',
+      '--style-shadow-hover': '0 14px 48px var(--accent-glow)',
+      '--style-border-width': '1px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.85',
+      '--style-chrome-border': 'rgba(255, 255, 255, 0.08)',
+      '--style-nav-pad': '10px 16px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '400',
+      '--style-card-blur': '20px',
+      '--style-content-gap-scale': '1.05',
+      '--style-enter': 'voxel-rise',
+    },
+  },
+  'aura-spore': {
+    id: 'aura-spore',
+    borderRadius: 16,
+    defaultChartStyle: 'filled',
+    cssVars: {
+      '--style-radius': '16px',
+      '--style-radius-sm': '10px',
+      '--style-shadow': '0 8px 32px rgba(0, 0, 0, 0.4)',
+      '--style-shadow-hover': '0 12px 40px var(--accent-glow)',
+      '--style-border-width': '1px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.82',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '10px 16px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '500',
+      '--style-card-blur': '16px',
+      '--style-content-gap-scale': '1.0',
+      '--style-enter': 'spore-drift',
+    },
+  },
+  'aura-dome': {
+    id: 'aura-dome',
+    borderRadius: 18,
+    defaultChartStyle: 'viz',
+    cssVars: {
+      '--style-radius': '18px',
+      '--style-radius-sm': '12px',
+      '--style-shadow': '0 8px 36px rgba(0, 0, 0, 0.42)',
+      '--style-shadow-hover': '0 12px 44px var(--accent-glow)',
+      '--style-border-width': '1px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.82',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '10px 16px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '500',
+      '--style-card-blur': '18px',
+      '--style-content-gap-scale': '1.05',
+      '--style-enter': 'dome-fade',
+    },
+  },
+  'aura-sparks': {
+    id: 'aura-sparks',
+    borderRadius: 8,
+    fontFamily: MONO_FONT,
+    defaultChartStyle: 'outlined',
+    cssVars: {
+      '--style-radius': '8px',
+      '--style-radius-sm': '4px',
+      '--style-shadow': '0 0 24px var(--accent-glow)',
+      '--style-shadow-hover': '0 0 36px var(--accent-glow)',
+      '--style-border-width': '1px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.88',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '8px 14px',
+      '--style-font-ui': MONO_FONT,
+      '--style-title-weight': '600',
+      '--style-card-blur': '8px',
+      '--style-content-gap-scale': '0.95',
+      '--style-enter': 'spark-slash',
+    },
+  },
+  'aura-bubble': {
+    id: 'aura-bubble',
+    borderRadius: 20,
+    defaultChartStyle: 'filled',
+    cssVars: {
+      '--style-radius': '20px',
+      '--style-radius-sm': '14px',
+      '--style-shadow': '0 10px 36px rgba(0, 0, 0, 0.4)',
+      '--style-shadow-hover': '0 14px 48px var(--accent-glow)',
+      '--style-border-width': '1px',
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': '0.8',
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '10px 16px',
+      '--style-font-ui': DEFAULT_FONT,
+      '--style-title-weight': '500',
+      '--style-card-blur': '20px',
+      '--style-content-gap-scale': '1.05',
+      '--style-enter': 'bubble-rise',
+    },
+  },
 };
 
 export const CHART_STYLE_RECIPES: Record<Exclude<ChartStyle, 'inherit'>, ChartStyleRecipe> = {
@@ -2667,8 +3063,25 @@ export function isChartStyle(value: string | null | undefined): value is ChartSt
   return !!value && (CHART_STYLES as string[]).includes(value);
 }
 
+const LEGACY_PAGE_STYLE_ALIASES: Record<string, PageStyle> = {
+  'qinghua-porcelain': 'printstream-panel',
+  'yunjin-brocade': 'printstream-void',
+  'batik-resist': 'printstream-pearl',
+  'shibori-tie': 'printstream-cyan',
+  'seigaiha-waves': 'printstream-magenta',
+  'asanoha-hemp': 'printstream-spectrum',
+  'ichimatsu-check': 'printstream-ascii',
+  'paisley-vine': 'printstream-cross',
+  'damask-court': 'printstream-rect',
+  'liberty-floral': 'printstream-neon',
+  'kente-rhythm': 'printstream-mono',
+  'uroko-scale': 'printstream-gloss'
+};
+
 export function resolvePageStyle(value: string | null | undefined): PageStyle {
-  return isPageStyle(value) ? value : 'classic';
+  if (isPageStyle(value)) return value;
+  if (value && LEGACY_PAGE_STYLE_ALIASES[value]) return LEGACY_PAGE_STYLE_ALIASES[value];
+  return 'classic';
 }
 
 /**

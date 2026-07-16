@@ -737,6 +737,9 @@ export interface ServerConfig {
   themeLayouts: string[];
   iconCacheEnabled: boolean;
   iconUploadEnabled: boolean;
+  iconLazyCaptureEnabled?: boolean;
+  iconLazyProviderName?: string;
+  iconCapturedWithClientTextures?: boolean;
   iconPackEnabled: boolean;
   iconRenderModes?: IconRenderModeInfo[];
   iconRenderPerTick?: number;

@@ -16,6 +16,13 @@
 | L2 玩家/服管 | `docs/zh/player/`、`docs/zh/webae/用户手册.md`、`assets/textech/manual/` | 教程与操作说明 |
 | L3 愿景/设计 | `docs/zh/design/` | **非实现规格**，不参与 CI 校验 |
 
+## Agent 读文档策略（减 token）
+
+- **默认单语**：中文任务只读 `docs/zh/`；不要同时全量读 `docs/en/`（成对发版同步时再改英文）。
+- **禁止默认读 L3 / 归档**：除非用户点名愿景、品牌设计或归档移植，禁止 Read `docs/*/design/`、`docs/*/archive/`。
+- **L0 长附录按需**：`project-structure-details.mdc`、完整 AI 架构（`docs/*/ai-assistant/`）不自动灌入；需要逐文件或架构细节时再 Read。
+- AI 架构权威：`docs/zh/ai-assistant/开发指南.md`；`.cursor/rules/ai-assistant.mdc` 仅硬约束摘要。
+
 ---
 
 ## 按功能域：改代码应更新哪些文件
@@ -40,7 +47,8 @@
 | 内容 | 权威文档 | 其他位置 |
 |------|----------|----------|
 | 网络包 ID 表 | `network-packets.mdc` | 技术文档 §7 仅摘要 + 链接 |
-| AI 架构细节 | `ai-assistant/开发指南.md` | 技术文档 §8 概览 + 链接 |
+| AI 架构细节 | `ai-assistant/开发指南.md` | 技术文档 §8 概览；`ai-assistant.mdc` 仅硬约束 |
+| 包逐文件清单 | `project-structure-details.mdc`（按需） | `project-structure.mdc` 短索引 |
 | WebAE REST API | `webae/开发者手册.md` §5 | 用户手册仅操作步骤 |
 | worldMap* 配置 | `ConfigDescriptions` + WebAE §4 | 用户手册/WebAE 用户手册摘要 |
 | Implementation status | WebAE dev guide §11 subsystem index | Remove stale outdated phase wording |

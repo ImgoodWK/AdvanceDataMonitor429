@@ -1,44 +1,23 @@
 ---
 description: WebAE 前端改动后必须 npm run build，否则游戏内无效果
-alwaysApply: true
+globs: webae-frontend/**
+alwaysApply: false
 ---
 
 # WebAE 前端改完必须构建
 
-游戏内 / WebAE 页面加载的是 `src/main/resources/assets/textech/webae/` 下的**构建产物**，不是 `webae-frontend/src` 源码。
+游戏内加载的是 `src/main/resources/assets/textech/webae/` 构建产物，不是 `webae-frontend/src`。
 
-**仅改源码、只重启游戏、不 build → 用户看不到任何前端变化。**
+**仅改源码、不 build → 游戏内无变化。**
 
-## 强制要求（完成定义）
-
-凡本轮对话中修改了 `webae-frontend/`（TS/TSX、CSS、i18n、`vite.config`、`index.html` 等），在宣称「前端已修好 / 可验证」之前，**必须已成功执行**：
+凡本轮改了 `webae-frontend/`，宣称可验证前必须成功：
 
 ```bash
-cd webae-frontend
-npm run build
+cd webae-frontend && npm run build
 ```
 
-Windows PowerShell：
+PowerShell：`Set-Location webae-frontend; npm run build`
 
-```powershell
-Set-Location webae-frontend; npm run build
-```
+检查 `assets/textech/webae/index.html` 的 `js/index-*.js` 哈希已更新；总结写明已 build；提醒重启游戏后浏览器 Ctrl+F5。
 
-构建成功后检查 `src/main/resources/assets/textech/webae/index.html` 引用的 `js/index-*.js` 哈希已更新。向用户总结时写明「已 `npm run build`」；并提醒**重启游戏**后浏览器 **Ctrl+F5**（避免缓存旧 JS）。
-
-**禁止**只改 `webae-frontend/` 源码就结束任务。
-
-## 何时不必构建
-
-- 本轮**未**改动 `webae-frontend/`（例如只改 `webae/` Java、文档、Cursor 规则）
-- 用户明确说「先别 build / 我自己 build」
-
-## 失败处理
-
-- 依赖缺失：先 `npm install`，再 `npm run build`
-- 构建报错：修好后重新 build，不要留下过期产物
-- 网络权限按 `agent-execution-permissions.mdc`
-
-## 产物路径
-
-`npm run build` → `src/main/resources/assets/textech/webae/`（勿手改该目录里的打包文件；以前端源码 + build 为准）
+用户说「先别 build」或本轮未改 `webae-frontend/` 时可跳过。失败则先 `npm install` 再 build。勿手改产物目录。

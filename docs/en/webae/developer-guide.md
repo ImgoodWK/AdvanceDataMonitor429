@@ -130,7 +130,9 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `maxNetworksDisplayed` | int | `5` | 1-20 | Max networks the web console can display simultaneously |
 | `tokenLifetimeHours` | int | `0` | 0-8760 | Web auth token TTL in hours. 0 = never expire; >0 rejects after issuedAt + TTL |
 | `iconCacheEnabled` | boolean | `true` | — | Enable item icon cache and `/api/icon` serving |
-| `iconUploadEnabled` | boolean | `true` | — | Allow OP `/admweb icons upload` client trigger |
+| `iconUploadEnabled` | boolean | `true` | — | Allow explicit C→S upload (`/admweb icons upload` / import); does **not** enable HTTP 404 lazy capture |
+| `iconLazyCaptureEnabled` | boolean | `false` | — | When true, GET `/api/icon` miss enqueues `IconMissingQueue` (dispatch only after chat consent) |
+| `iconLazyPreferOpOnly` | boolean | `true` | — | Lazy-capture consent offered to OP players only |
 | `iconPackEnabled` | boolean | `true` | — | Allow admin zip pack upload (`POST /api/icon/pack`) |
 | `metricSampleIntervalMs` | int | `30000` | 1000-60000 | AE network metric history sample interval (ms) |
 | `metricSampleWindowSeconds` | int | `300` | 60-3600 | Network metric history sliding window (seconds) |
@@ -353,7 +355,7 @@ webae-frontend/               # Frontend source (permanent project part)
     ├── types/dto.ts          # TypeScript interfaces mirroring Java DTOs
     ├── i18n/                 # zh + en dictionaries + I18nProvider hook
     ├── context/AppContext.tsx  # Global state (auth/theme/settings/presets/connection/refresh)
-    ├── theme/                # 111 colors + 30 layouts + 109 page styles (7 chrome + 12 composition + 20 bold + 20 batch2 + 50 batch3) + antd theme builder + preview var helper
+    ├── theme/                # 128 colors + 30 layouts + 126 page styles (7 chrome + 12 composition + 20 bold + 20 batch2 + 50 batch3 + 12 Printstream batch4 + 5 Auraeco batch5) + antd theme builder + preview var helper
     ├── hooks/                # useLocalStorage / useInterval / usePageVisibility / useVisibilityAwarePolling / useSnapshotData / usePlayers / useWebAlerts / useNetworkMetrics / useGlobalSearch / useWorldMapData / useWorldMapTileLoader / useWorldMapProgress
     ├── utils/                # formatNumber / icon URL / presets / dashboardResolve / overviewDataSources / powerDataSources / cpuColumns / recipe
     ├── components/           # Login / Icon / Layout(Sidebar/TopBar/AppLayout/navConfig/PageShell) /
@@ -491,6 +493,7 @@ The `/admweb` command manages Web Console access tokens and admin actions. The b
 | `/admweb recipes clear` | OP | Clear memory and disk recipe cache |
 | `/admweb icons upload [packName]` | **OP** | Checks OP + player identity, then sends `PacketWebUploadTrigger` to make your own client render and upload item icons (Phase 2 removed the in-game keybind; upload is command-only) |
 | `/admweb icons status` | Any | List installed texture packs and config state |
+| `/admweb icons clear` | **OP** | Async wipe of all packs under `TeXTech/WebAE/icons/` (resets index immediately; disk delete on background thread; chat notifies when done) |
 | `/admweb refresh [network]` | OP | Force snapshot re-collect for one network or all active networks (Phase 1.2) |
 | `/admweb help` | Any | Show usage |
 
@@ -623,10 +626,10 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Theme system**:
   - Theme = color scheme × layout preset × **page style**, chosen independently
-  - Color schemes (`[data-theme-color]`): **111** total — 19 classic + 5 Phase 8 sci-fi + 4 composition companions + 13 bold-batch + 20 batch2 + **50 batch3** (product / game / anime homage palettes such as notion-warm / figma-violet / sheikah-cyan / nerv-purple / edgerunner-yellow)
-  - **Page styles** (`[data-page-style]`, `theme/pageStyles.ts`): **109** total — 7 chrome + 12 composition + 20 bold + 20 batch2 + **50 batch3** (notion-paper / figma-canvas / zelda-sheikah / evangelion-nerv / cyberpunk-edge, etc.); visuals in `styles/bold-styles.css` + `bold-styles-batch2.css` + `bold-styles-batch3.css`. **Hexcell / arc-reactor** use decorative accents/rings without heavy content `clip-path`; gated by `effectsLevel` + `prefers-reduced-motion`
+  - Color schemes (`[data-theme-color]`): **128** total — 19 classic + 5 Phase 8 sci-fi + 4 composition companions + 13 bold-batch + 20 batch2 + 50 batch3 + 12 Printstream batch4 + **5 Auraeco batch5** (`aura` / `aura-front` / `aura-design` / `aura-sys` / `aura-interact`: voxel cyan / front cyan / design violet / system green / interact blue)
+  - **Page styles** (`[data-page-style]`, `theme/pageStyles.ts`): **126** total — 7 chrome + 12 composition + 20 bold + 20 batch2 + 50 batch3 + 12 Printstream batch4 + **5 Auraeco batch5** (`aura-voxel` / `aura-spore` / `aura-dome` / `aura-sparks` / `aura-bubble`); visuals in `styles/bold-styles.css` + `bold-styles-batch2.css` + `bold-styles-batch3.css` + `bold-styles-batch4.css` + `bold-styles-batch5.css` + `effects-motion.css`. Printstream uses B/W geometry + Pantone pearl gradients + ASCII dashed streams (CS community homage); Auraeco approximates voxel waves / tendril particles in CSS (no Three.js); neither uses content `clip-path`; gated by `effectsLevel` + `prefers-reduced-motion`
   - Layout presets (`[data-theme-layout]`): **30** total — classic 8 (standard / compact / wide / sidebar-right / topnav / bottomnav / floating / split-chrome) + **22 batch3 structural** layouts via `chromeKind` (dual-rail / rail-only / dock / island / theater / dense-ops / magazine / split-pane / top-tabs / zen / command / tri-chrome / card-stack / hud-frame / pipeline / hero-header / status-strip / drawer-peek / corner-hub / widescreen / right-drawer / frame; see `layout-batch3.css` + `AppLayout`)
-  - **Settings appearance / presets**: `ThemePreviewMini` (in-DOM structural thumbnails) + `ThemeOptionGrid` thumbnail tiles for color / layout / style / preset picking; ~**105** builtin AppPresets (including 50 batch3 `builtin-style-*`)
+  - **Settings appearance / presets**: `ThemePreviewMini` (in-DOM structural thumbnails) + `ThemeOptionGrid` thumbnail tiles for color / layout / style / preset picking; ~**121** builtin AppPresets (including batch3 + Printstream batch4 + Auraeco batch5 `builtin-style-*` and flagship `builtin-printstream` / `builtin-aura`)
   - Settings panel: color + layout + **page style** + effects intensity; dashboard widget editor can override chart style
   - Chart colors follow CSS variables (e.g. `var(--accent)`) and theme tokens; Dashboard/Power trend SVG updates with theme colors; when `effectsLevel=full`, line/area/pie/radar/bar charts get continuous CSS animations (`.chart-flow-line`, etc.); disabled under `prefers-reduced-motion`
   - The backend `/api/config` returns `themeColors` / `themeLayouts` / `pageStyles` lists for discoverability (the frontend also owns the same catalog)
@@ -646,23 +649,25 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Server store**: `webae/icon/IconStore.java` singleton manages `TeXTech/WebAE/icons/<packName>/nei/<itemId>.png` (legacy flat PNGs auto-migrate on first access); `manifest.json` records `modes[]`, `counts{}`, `uploadedAt`, `clientVersion`; path-traversal protection; `listPacks`/`listIcons`/`getIconFile`/`resolveWriteTarget`/`refreshPack`/`recordModeUpload`/`migrateLegacyPackIfNeeded`; `recordDefaultPack`/`getDefaultPack`
 - **REST handler**: `webae/api/handler/IconHandler.java`
-  - `GET /api/icon?item=<itemId>&pack=<pack>&mode=<mode>&meta=<int>&size=<16|32|64>` returns PNG (`mode` defaults to nei; disk may serve legacy modes; **miss defaults to immediate 404** + `IconMissingQueue`; sync direct render only when `iconDirectRenderEnabled=true`)
+  - `GET /api/icon?item=<itemId>&pack=<pack>&mode=<mode>&meta=<int>&size=<16|32|64>` returns PNG (`mode` defaults to nei; disk may serve legacy modes; **miss is immediate 404**; enqueue `IconMissingQueue` only when `iconLazyCaptureEnabled=true`; sync direct render only when `iconDirectRenderEnabled=true`)
   - `GET /api/icon/packs` lists packs as JSON (`{success:true, packs:[...], defaultPack:"<name>"|null}`); `defaultPack` comes from `IconStore.getDefaultPack()` so the frontend can pick it on first load
   - `GET /api/icon/sync/manifest` / `GET /api/icon/sync/bulk` full-pack sync (frontend does not call on login by default; Settings manual or user-enabled auto-sync)
   - `POST /api/icon/pack?pack=<packName>` admin-only (`WebAuthOpCheck.isOp` OP>=2) uploads a zip; the server extracts it with `ZipInputStream` into `web-icons/<packName>/`, applies **Zip Slip protection** (canonical-path check that entries stay inside packDir), accepts only `.png` entries, refreshes the IconStore index, and calls `recordDefaultPack` to remember the most recent pack
 - **vs world map**: both use HTTP; map misses read snapshots/placeholders by default; icons never GL-render on the server. Icon concurrency is high — **do not** default to sync `IconDirectCaptureBridge` (prefer async placeholder + SSE, not map SP sync capture)
 - **Static serving**: `WebConsoleServer.serveStatic()` extended to serve `/icons/<pack>/<itemId>.png` from the external `TeXTech/WebAE/icons/` directory with canonical path-traversal protection + `Cache-Control`
 - **Routing**: `WebApiRouter` dispatches `/api/icon` and the `/api/icon/` prefix to `IconHandler`
-- **Client renderer (NESQL primary path)**: `GuiIconExportScreen` renders `iconRenderPerTick` items per frame; active path is `IconNesqlStyleRenderer` (64×64 FBO + `GuiContainerManager.drawItem`, downscaled to 32×32, matching NESQL exporter) via `IconExportResolver.resolve`; **fluids / fluid-aware stacks** keep `IconFluidRenderer` + `IconGlFallback.renderFluidAwareSlotIcon` / `renderRegistryFluidIcon`; **`nei` only** (commands/KeyBindings/lazy/direct hardcode `nei`; other enum constants `@Deprecated` archival); archived: `IconGridExporter` grid FBO, `resolveLegacy` multi-stage fallback; `IconMissingQueue` + `PacketWebIconRequest` for 404 lazy fill
+- **Client renderer (NESQL primary path)**: `GuiIconExportScreen` renders `iconRenderPerTick` items per frame; active path is `IconNesqlStyleRenderer` (64×64 FBO + `GuiContainerManager.drawItem`, **output 64×64**, matching NESQL exporter) via `IconExportResolver.resolve`; **fluids / fluid-aware stacks** keep `IconFluidRenderer` + `IconGlFallback.renderFluidAwareSlotIcon` / `renderRegistryFluidIcon`; **`nei` only**; `/admweb icons local` writes `icons-local/`; `PacketWebIconPullZip` (49) for pull
 - **Production stability (full GTNH pack)**:
-  - `IconRenderGuard` — after each off-screen GL/FBO export, force-finish dangling `Tessellator` draws and restore the main framebuffer (prevents `Already tesselating!` crashes from GTNH custom item renderers)
+  - `IconRenderGuard` — after each off-screen GL/FBO export: finish dangling `Tessellator` draws, reset stencil/depth/blend pollution, restore the main framebuffer (prevents `Already tesselating!` and square / AE-terminal-shaped holes in batch-exported PNGs)
+  - `IconNesqlStyleRenderer` — per-icon `glPushAttrib` + `clearFboBuffers` (COLOR|DEPTH|STENCIL) to isolate custom `IItemRenderer` state
   - `IconLazyRenderQueue` — client-side lazy-load queue, max 2 icon renders per tick; `PacketWebIconRequest` no longer blocks the main thread synchronously; bulk `/admweb icons upload` clears the queue and pauses lazy work
   - `PacketWebIconUploadAck` — suppresses chat spam for single-icon lazy completions (`1 icons stored`); bulk/multi-icon batch completions still notify in chat
   - **Recommendation**: close the WebAE browser tab before full-pack export; prefer `/admweb icons upload snapshot default` or `/admweb icons import-nesql` instead of enumerating 40k+ items at once
-- **Commands**: `/admweb icons upload [pack]`, `/admweb icons upload snapshot [pack]`, `/admweb icons import-nesql [pack] [subpath]`, `/admweb icons import <folder> [pack]`, `/admweb icons modes`, `/admweb icons status` (export always `nei`; no mode argument)
+- **Commands**: `/admweb icons upload [pack]`, `/admweb icons upload snapshot [pack]`, `/admweb icons import-nesql [pack] [subpath]`, `/admweb icons import <folder> [pack]`, `/admweb icons modes`, `/admweb icons status`, `/admweb icons clear` (async; does not block the server thread)
 - **NESQL import**: `WebAeLocalDataDir` + `NesqlIconImporter` reads pre-rendered PNGs from `nesqlRepositoryPath` (empty → `TeXTech/WebAE/`); incremental, skips existing icons
-- **Lazy-load SSE**: `IconMissingQueue` dispatches `iconMissingDispatchPerTick` requests per tick → client `IconLazyRenderQueue` (2/tick) renders/uploads asynchronously; when an icon is ready the server emits SSE `icon-ready` → frontend `webae-icon-ready` event for live `<Icon>` refresh. This is the **default HTTP miss path** (`iconDirectRenderEnabled` default false)
+- **Lazy-load SSE**: **opt-in** via `iconLazyCaptureEnabled` (default false) + chat consent (resource-pack notice) → `IconMissingQueue` dispatches → `IconLazyRenderQueue` → SSE `icon-ready`. Not the default HTTP miss path.
 - **Active resolve chain**: fluid specials → NESQL `drawItem` FBO → placeholder; archived chain in `resolveLegacy`
+- **itemId lookup**: exact id first (`IconItemId.lookupCandidates` / frontend `iconLookupIds`). `GET /api/icon` always uses `Cache-Control: max-age=86400`; `X-Icon-Exact` is diagnostic only. SSE `icon-ready` only bumps the icon URL version and reloads — **does not** delete IndexedDB/directory caches (NESQL-style long-lived static cache).
 - **Config** (`[webConsole]`): `iconCacheEnabled` / `iconUploadEnabled` / `iconPackEnabled` / `iconDirectRenderEnabled`(false) / `iconRenderPerTick`(64) / `iconRenderPerTickAll`(32) / `iconUploadChunksPerTick`(4) / `iconProgressChatIntervalMs`(3000)
 - **Frontend**: Settings fixed to `nei`; `iconModeFallbackChain` → `['nei']`; `iconAutoSync` default false; no topology/world-map server prefetch; Cytoscape prefers `resolveLocalIconUrls`; see `.cursor/rules/webae-icon-performance.mdc`
 - **Icon auth fix (v3.0)**: `WebAuthMiddleware.authenticate()` now falls back to reading the token from the `?token=` or `?access_token=` query parameter when the `Authorization` header is missing; security is preserved (token validity still checked); this fixes `<img src="/api/icon?...">` returning 401 (missing Authorization header) → icon error → text fallback
@@ -748,7 +753,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - `neon-pulse` — fluorescent accent + breathing card borders
   - `quantum` — deep blue + drifting grid background
   - `crystal` — prismatic gradient text shimmer
-  - Backend `/api/config` `themeColors` / `themeLayouts` / `pageStyles` match the frontend catalog (111 / 30 / 109); Settings i18n `themeColor_*` / `themeLayout_*` / `pageStyle_*`; thumbnail previews via `ThemePreviewMini`
+  - Backend `/api/config` `themeColors` / `themeLayouts` / `pageStyles` match the frontend catalog (128 / 30 / 126); Settings i18n `themeColor_*` / `themeLayout_*` / `pageStyle_*`; thumbnail previews via `ThemePreviewMini`
 - **Continuous chart animations** (gated by `data-effects-level=full`):
   - Dashboard SVG: `.chart-flow-line` (stroke-dash flow), `.chart-svg-area` (area pulse), `.chart-pie-group` (slow spin), `.chart-radar-data` (radar pulse), `.chart-bar-segment` (bar brightness pulse)
   - Power trend: inline SVG in `PowerWidgetContent.tsx` reuses the same CSS classes

@@ -113,6 +113,10 @@ export async function getLocalIconBlobUrl(packName: string, itemId: string): Pro
   return url;
 }
 
+/**
+ * Resolve local IDB icon. Candidates are ordered exact-first ({@link iconLookupIds});
+ * returns the first hit so meta fallback only applies when the exact id is missing.
+ */
 export async function getLocalIconBlobUrlForCandidates(
   packName: string,
   candidates: string[]

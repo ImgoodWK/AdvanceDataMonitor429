@@ -1,0 +1,406 @@
+/* Global motion enhancements — page enter, atmosphere, chrome hover, charts.
+   Zero animation libraries. Gated by data-effects-level + prefers-reduced-motion. */
+
+/* ========== 1) Page enter keyframes ========== */
+@keyframes pageEnterHardcut {
+  0% { opacity: 0; }
+  40% { opacity: 1; }
+  55% { opacity: 0.65; }
+  100% { opacity: 1; }
+}
+@keyframes pageEnterAsciiWipe {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: contrast(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes pageEnterPearlFade {
+  from {
+    opacity: 0;
+    filter: hue-rotate(-25deg) brightness(1.15);
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+@keyframes pageEnterVoxelRise {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+    filter: brightness(1.25) saturate(1.2);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes pageEnterSporeDrift {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes pageEnterDomeFade {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: brightness(1.2);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes pageEnterSparkSlash {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) skewX(-2deg);
+    filter: contrast(1.3);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes pageEnterBubbleRise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Map --style-enter tokens (via data-style-enter) for batch2/batch3 + Printstream */
+[data-effects-level='full'][data-style-enter='hardcut'] .page-transition {
+  animation-name: pageEnterHardcut;
+  animation-duration: 0.22s;
+}
+[data-effects-level='full'][data-style-enter='fade'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='fade'] .page-transition {
+  animation-name: pageEnterFade;
+}
+[data-effects-level='full'][data-style-enter='radial'] .page-transition {
+  animation-name: pageEnterRadial;
+}
+[data-effects-level='full'][data-style-enter='glitch'] .page-transition {
+  animation-name: pageEnterGlitch;
+  animation-duration: 0.5s;
+}
+[data-effects-level='full'][data-style-enter='fold'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='fold'] .page-transition {
+  animation-name: pageEnterFold;
+}
+[data-effects-level='full'][data-style-enter='stagger'] .page-transition {
+  animation-name: pageEnterStagger;
+}
+[data-effects-level='full'][data-style-enter='float'] .page-transition {
+  animation-name: pageEnterFloat;
+  animation-duration: 0.65s;
+}
+[data-effects-level='full'][data-style-enter='curtain'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='curtain'] .page-transition {
+  animation-name: pageEnterCurtain;
+}
+[data-effects-level='full'][data-style-enter='boot'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='boot'] .page-transition {
+  animation-name: pageEnterBoot;
+}
+[data-effects-level='full'][data-style-enter='unblur'] .page-transition {
+  animation-name: pageEnterUnblur;
+  animation-duration: 0.5s;
+}
+[data-effects-level='full'][data-style-enter='draw'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='draw'] .page-transition {
+  animation-name: pageEnterDraw;
+}
+[data-effects-level='full'][data-style-enter='slash'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='slash'] .page-transition {
+  animation-name: pageEnterSlash;
+}
+[data-effects-level='full'][data-style-enter='coin'] .page-transition {
+  animation-name: pageEnterCoin;
+}
+[data-effects-level='full'][data-style-enter='tiles'] .page-transition {
+  animation-name: pageEnterTiles;
+}
+[data-effects-level='full'][data-style-enter='slide'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='slide'] .page-transition {
+  animation-name: pageEnterSlide;
+}
+[data-effects-level='full'][data-style-enter='rise'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='rise'] .page-transition {
+  animation-name: pageEnterRise;
+}
+[data-effects-level='full'][data-style-enter='slam'] .page-transition {
+  animation-name: pageEnterSlam;
+}
+[data-effects-level='full'][data-style-enter='softfade'] .page-transition {
+  animation-name: pageEnterSoftfade;
+  animation-duration: 0.55s;
+}
+[data-effects-level='full'][data-style-enter='trace'] .page-transition {
+  animation-name: pageEnterTrace;
+}
+[data-effects-level='full'][data-style-enter='drop'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='drop'] .page-transition {
+  animation-name: pageEnterDrop;
+}
+[data-effects-level='full'][data-style-enter='warp'] .page-transition {
+  animation-name: pageEnterWarp;
+  animation-duration: 0.55s;
+}
+[data-effects-level='full'][data-style-enter='ascii-wipe'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='ascii-wipe'] .page-transition {
+  animation-name: pageEnterAsciiWipe;
+  animation-duration: 0.45s;
+}
+[data-effects-level='full'][data-style-enter='pearl-fade'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='pearl-fade'] .page-transition {
+  animation-name: pageEnterPearlFade;
+  animation-duration: 0.55s;
+}
+[data-effects-level='full'][data-style-enter='voxel-rise'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='voxel-rise'] .page-transition {
+  animation-name: pageEnterVoxelRise;
+  animation-duration: 0.55s;
+}
+[data-effects-level='full'][data-style-enter='spore-drift'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='spore-drift'] .page-transition {
+  animation-name: pageEnterSporeDrift;
+  animation-duration: 0.5s;
+}
+[data-effects-level='full'][data-style-enter='dome-fade'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='dome-fade'] .page-transition {
+  animation-name: pageEnterDomeFade;
+  animation-duration: 0.5s;
+}
+[data-effects-level='full'][data-style-enter='spark-slash'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='spark-slash'] .page-transition {
+  animation-name: pageEnterSparkSlash;
+  animation-duration: 0.4s;
+}
+[data-effects-level='full'][data-style-enter='bubble-rise'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='bubble-rise'] .page-transition {
+  animation-name: pageEnterBubbleRise;
+  animation-duration: 0.55s;
+}
+
+/* ========== 2) Background atmosphere ========== */
+@keyframes pearlSweep {
+  0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+  50% { background-position: 100% 50%; filter: hue-rotate(20deg); }
+  100% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+}
+@keyframes asciiScroll {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 48px, 32px 0; }
+}
+@keyframes spectrumRibbon {
+  from { background-position: 0% 0%; }
+  to { background-position: 200% 0%; }
+}
+@keyframes crossTileDrift {
+  from { background-position: 0 0; }
+  to { background-position: 24px 24px; }
+}
+@keyframes bgDriftStrong {
+  0% { background-position: 0% 0%, 100% 100%; opacity: 0.85; }
+  100% { background-position: 35% 25%, 65% 75%; opacity: 1; }
+}
+
+/* Strengthen global orb drift on full */
+[data-effects-level='full'] .app-content::before {
+  animation-name: bgDriftStrong;
+  animation-duration: 28s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+/* Printstream pearl wash */
+[data-effects-level='full'][data-page-style='printstream-panel'] .app-content::after,
+[data-effects-level='full'][data-page-style='printstream-pearl'] .app-content::after,
+[data-effects-level='full'][data-page-style='printstream-spectrum'] .app-content::after,
+[data-effects-level='full'][data-page-style='printstream-gloss'] .app-content::after {
+  animation: pearlSweep 18s ease-in-out infinite;
+}
+[data-effects-level='full'][data-page-style='printstream-spectrum'] .app-content::before {
+  animation: spectrumRibbon 14s linear infinite;
+}
+[data-effects-level='full'][data-page-style='printstream-ascii'] .app-content::before {
+  animation: asciiScroll 22s linear infinite;
+}
+[data-effects-level='full'][data-page-style='printstream-panel'] .app-content::before,
+[data-effects-level='full'][data-page-style='printstream-cross'] .app-content::before,
+[data-effects-level='full'][data-page-style='printstream-void'] .app-content::before,
+[data-effects-level='full'][data-page-style='printstream-neon'] .app-content::before {
+  animation: crossTileDrift 30s linear infinite;
+}
+
+/* Light grid/stardust drift for a few non-Printstream families that already paint ::before */
+[data-effects-level='full'][data-page-style='mesh'] .app-content::before,
+[data-effects-level='full'][data-page-style='stardust'] .app-content::before,
+[data-effects-level='full'][data-page-style='pcb'] .app-content::before,
+[data-effects-level='full'][data-page-style='blueprint'] .app-content::before {
+  animation: crossTileDrift 36s linear infinite;
+}
+
+/* subtle: atmosphere stays static (no continuous anim on decorative layers) */
+[data-effects-level='subtle'][data-page-style^='printstream'] .app-content::before,
+[data-effects-level='subtle'][data-page-style^='printstream'] .app-content::after {
+  animation: none;
+}
+
+/* ========== 3) Shell micro-interactions ========== */
+.webae-nav-item {
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.22s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+[data-effects-level='subtle'] .webae-nav-item:hover,
+[data-effects-level='full'] .webae-nav-item:hover {
+  transform: translateX(2px);
+}
+[data-effects-level='full'] .webae-nav-item:hover {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+[data-effects-level='full'] .webae-nav-item--active {
+  box-shadow:
+    inset 0 -2px 0 var(--accent),
+    0 0 12px var(--accent-glow);
+}
+
+.widget-shell,
+.stat-card {
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s ease,
+    filter 0.2s ease;
+}
+[data-effects-level='subtle'] .widget-shell:hover,
+[data-effects-level='subtle'] .stat-card:hover,
+[data-effects-level='full'] .widget-shell:hover,
+[data-effects-level='full'] .stat-card:hover {
+  transform: translateY(-2px);
+}
+[data-effects-level='full'] .widget-shell:hover,
+[data-effects-level='full'] .stat-card:hover {
+  box-shadow: var(--style-shadow-hover, 0 8px 24px var(--accent-glow));
+}
+
+.ant-btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.22s ease,
+    filter 0.2s ease;
+}
+[data-effects-level='full'] .ant-btn-primary:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 14px var(--accent-glow);
+}
+[data-effects-level='full'] .ant-btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+  transition: transform 0.45s ease;
+}
+[data-effects-level='full'] .ant-btn-primary:hover::after {
+  transform: translateX(120%);
+}
+
+/* ========== 4) Chart continuous motion tweaks ========== */
+@keyframes chartFlowDashSoft {
+  to { stroke-dashoffset: -20; }
+}
+
+[data-effects-level='full'] .chart-flow-line {
+  stroke-dasharray: 5 6;
+  opacity: 0.92;
+  animation: chartFlowDashSoft 2.8s linear infinite;
+}
+[data-effects-level='full'] .chart-svg-area {
+  animation-duration: 4s;
+}
+[data-effects-level='full'] .chart-bar-segment {
+  animation-duration: 2.6s;
+}
+
+/* Ensure number roll on overview values too */
+[data-effects-level='full'] .overview-stat-value.stat-card-value {
+  animation: numberRoll 0.4s ease;
+}
+
+/* ========== Reduced motion ========== */
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  [data-effects-level='full'] .app-content::before,
+  [data-effects-level='full'] .app-content::after,
+  [data-page-style^='printstream'] .app-content::before,
+  [data-page-style^='printstream'] .app-content::after,
+  [data-page-style^='aura'] .app-content::before,
+  [data-page-style^='aura'] .app-content::after,
+  [data-effects-level='full'] .chart-flow-line,
+  [data-effects-level='full'] .chart-svg-area,
+  [data-effects-level='full'] .chart-pie-group,
+  [data-effects-level='full'] .chart-radar-data,
+  [data-effects-level='full'] .chart-bar-segment,
+  [data-effects-level='full'] .stat-card-value,
+  [data-effects-level='full'] .ant-btn-primary::after {
+    animation: none !important;
+  }
+  .webae-nav-item,
+  .widget-shell,
+  .stat-card,
+  .ant-btn-primary {
+    transition: none !important;
+  }
+  .webae-nav-item:hover,
+  .widget-shell:hover,
+  .stat-card:hover {
+    transform: none !important;
+  }
+}
+
+[data-effects-level='none'] .webae-nav-item:hover,
+[data-effects-level='none'] .widget-shell:hover,
+[data-effects-level='none'] .stat-card:hover {
+  transform: none;
+}
+[data-effects-level='none'] .ant-btn-primary::after {
+  display: none;
+}

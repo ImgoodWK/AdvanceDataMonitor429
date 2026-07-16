@@ -1,90 +1,30 @@
 ---
-description: GTNH 社区模组开发的核心约束和上下文
+description: GTNH 模组硬约束（JVM/Forge/注册/lang/路径）
 alwaysApply: true
 ---
 
-# GTNH 社区模组开发上下文
+# GTNH 模组开发硬约束
 
-## 基本信息
+- **项目**：TeXTech · modid `textech`（旧 `advancedatamonitor`）· 根包 `com.imgood.textech`
+- **平台**：MC 1.7.10 / Forge 10.13.4.1614 / MCP stable_12 · Gradle + GTNH Convention
 
-- **项目名**: TeXTech (modid: `textech`，旧 modid: `advancedatamonitor`)
-- **根包名**: `com.imgood.textech`（部分类仍引用 `com.imgood.advancedatamonitor` 旧包名，实际源码根包为 `textech`）
-- **定位**: GTNH (GregTech: New Horizons) 社区模组
-- **平台**: Minecraft 1.7.10 / Forge 10.13.4.1614 / MCP stable_12
-- **构建**: Gradle Kotlin DSL + GTNH Convention Plugin (`com.gtnewhorizons.gtnhconvention`)
+## API / 运行时
 
-## 核心约束
+- **禁止** Java 8+ 标准库类（无 `stream`/`Optional` 等）；Jabel 仅语法糖
+- Forge：`cpw.mods.fml.common.*`；**禁止** 1.8+ `net.minecraftforge.*` API
+- 渲染：`Tessellator.instance`；OpenGL：`GL11`
+- 侧：`@SidedProxy`；客户端代码放 `client/` / `renders/` / `gui/`，服务端勿加载客户端类
+- 日志：`AdvanceDataMonitor.LOG`
+- Debug：`config/textech/textech.cfg`（及 `ai-client-local.cfg` 密钥），**默认 false**；WebAE 分功能 debug 经 `ConfigWebaeDebugLoader` → `WebAeDebugLog`
 
-### API 使用限制
-- **禁止使用 Java 8+ 标准库 API**（运行时目标为 JVM 8）。Jabel 仅提供语法糖（如 lambda），不能依赖 `java.util.stream`、`Optional` 等 Java 8 新增类。
-- 使用 `cpw.mods.fml.common.*` 的 Forge API，**禁止使用** 1.8+ 版本的 `net.minecraftforge.*` API。
-- 使用 `net.minecraft.client.renderer.Tessellator`（Tessellator 单例模式 `Tessellator.instance`，**不是** 1.8+ 的 `WorldRenderer`/`BufferBuilder`）。
-- OpenGL 使用 `GL11` (`org.lwjgl.opengl.GL11`) 而非更高版本。
+## 注册与 lang
 
-### 客户端/服务端分离
-- 通过 `@SidedProxy` 区分 `ClientProxy` / `CommonProxy`。
-- 客户端独有代码必须在 `proxy.isClientSide()` 检查后再执行，或在 `ClientProxy` 中覆写。
-- 渲染、GUI、按键绑定等放在 `client/`、`renders/`、`gui/` 包下，确保服务端加载时不会触发 `ClassNotFoundException`。
+- 注册只走 `loader/`（Block/Item/TE/Handler/Render/Gui/Network 等），勿在构造函数分散注册
+- 网络包 ID 权威：`network-packets.mdc`（`LoaderNetwork` postInit）
+- lang：**同时**改 `assets/textech/lang/en_US.lang` + `zh_CN.lang`；key 前缀 `adm.`
 
-### 日志
-- 使用 `AdvanceDataMonitor.LOG` (`org.apache.logging.log4j.Logger`) 统一日志输出。
+## 运行时数据路径（摘要）
 
-### DEBUG 模式
-- 所有调试开关在 `config/textech/textech.cfg` 中配置（客户端 AI/语音密钥另存 `config/textech/ai-client-local.cfg`），**默认均为 `false`**。
-- 分节加载见 `config/` 包（`ConfigDebugLoader` / `ConfigAiLoader` / `ConfigDataLoomLoader` / `ConfigWebaeDebugLoader` 等）；字段名与 cfg key 对照见 `ConfigDescriptions.java`。WebAE 分功能 debug 开关（`webaeIcons`/`webaeChat`/`webaeDashboard`/`webaeSynthesis`/`webaePatterns`/`webaePerf`）gate `logs/textech/webae-<feature>.log`，由 `webae/debug/WebAeDebugLog.java` 写入。
-
-### 运行时配置与数据路径
-
-| 路径 | 用途 |
-|------|------|
-| `config/textech/textech.cfg` | 主配置（服务端共享 + 非密钥项） |
-| `config/textech/ai-client-local.cfg` | 客户端 AI/语音密钥与偏好（**分享整合包前请删除或清空**；可用 `DEEPSEEK_API_KEY` 环境变量） |
-| `<实例根>/TeXTech/WebAE/web-alerts.json` | WebAE 自动化告警规则 |
-| `<实例根>/TeXTech/WebAE/web-favorites.json` | WebAE 配方/样板/物品收藏（按 ownerUuid） |
-| `<实例根>/TeXTech/WebAE/web-order-templates.json` | WebAE 批量下单模板（按 ownerUuid 隔离） |
-| `<实例根>/TeXTech/WebAE/ui-defaults.json` | WebAE 默认 UI 布局（整合包作者覆盖；优先于 jar 内置） |
-| `assets/textech/webae/ui-defaults.json` | 模组内置 WebAE 默认 UI（新玩家首次打开自动应用） |
-| `<实例根>/TeXTech/WebAE/web-recipes.json` | WebAE NEI 配方权威缓存（另有 `web-recipes.meta.json` + `recipe-chunks/`；浏览器 Fetch 同步；客户端 upload 亦导出同名 JSON） |
-| `<实例根>/TeXTech/WebAE/icons/` | WebAE 物品图标材质包（`<pack>/<mode>/<itemId>.png`） |
-| `<实例根>/TeXTech/WebAE/map-tiles/` | WebAE 世界地图瓦片缓存 |
-| `<实例根>/TeXTech/WebAE/topology/` | WebAE 拓扑快照 |
-| `<实例根>/TeXTech/WebAE/web-tokens.json` 等 | WebAE Token、聊天、玩家信息等 |
-| `<实例根>/TeXTech/Assistant/plans.json` 等 | 助手计划、功能开关、词库、下单记忆 |
-| `<实例根>/TeXTech/Grapple/grapple-paths.json` | 挂索路径持久化 |
-| `logs/textech/data-loom-debug.log` | 编织元件 debug 日志 |
-| `<世界存档>/textech/pocket-<uuid>.dat` | 次元口袋 NBT 数据 |
-
-旧路径 `config/textech/` 下 JSON/目录、`config/advancedatamonitor/` 与 `<实例根>/TeXTechWebAE/` 在 **preInit 启动时** 由 `TeXTechDataMigration` **移动**到 `TeXTech/`（`config/textech/` 仅保留 `.cfg`）；路径解析见 `TeXTechDataDir`、`AssistantDataFiles`、`WebAeLocalDataDir`。
-
-## 注册规范
-
-所有注册通过 `loader/` 包下的 Loader 类统一管理，**不要**在 Block/Item 构造函数或其他地方分散注册：
-
-| Loader | 注册内容 | 调用时机 |
-|--------|---------|---------|
-| `LoaderBlock` | Block 实例 | preInit |
-| `LoaderItem` | Item 实例 | preInit |
-| `LoaderTileEntity` | TileEntity (GameRegistry) | preInit |
-| `LoaderHandler` | Event handler、Tick handler | preInit |
-| `LoaderRender` | ISimpleBlockRenderingHandler、Item render | preInit (仅客户端) |
-| `LoaderGui` | IGuiHandler + GuiScreen 映射 | init |
-| `LoaderNetwork` | SimpleNetworkWrapper 包注册（固定ID，详见`network-packets.mdc`） | postInit |
-| `ModMigrationHandler` | 存档迁移兼容处理（旧 modid `advancedatamonitor` → `textech`） | preInit |
-
-## 多语言支持
-
-- 项目支持双语：`en_US.lang` + `zh_CN.lang`，位于 `assets/textech/lang/`（**唯一** lang 目录）。
-- **每次新增/修改文本时必须同时更新上述两个 lang 文件**。
-- 代码中使用 `I18n.format("adm.xxx")` 引用本地化 key。
-- Key 命名空间为 `adm.`，分层规则：
-  - `adm.error.xxx` — 错误提示
-  - `adm.label.xxx` — 标签文本
-  - `adm.button.xxx` — 按钮文本
-  - `adm.hint.xxx` — 输入框提示
-  - `adm.tooltip.xxx` — 悬浮提示
-  - `adm.ai.xxx` — AI 助手相关
-  - `adm.planner.xxx` — 计划器相关
-  - `adm.title.xxx` — 标题文本
-  - `adm.datatype.xxx` — 数据类型
-  - `adm.property.xxx` — 属性说明
-
+- cfg：`config/textech/textech.cfg`；客户端密钥：`ai-client-local.cfg`
+- 数据根：`<实例>/TeXTech/WebAE|Assistant|Grapple/`（见 `TeXTechDataDir`；启动迁移 `TeXTechDataMigration`）
+- 详细路径表与 Loader 时机：技术文档 / 原长表已收敛；缺路径时查 `TeXTechDataDir` 或 documentation-map

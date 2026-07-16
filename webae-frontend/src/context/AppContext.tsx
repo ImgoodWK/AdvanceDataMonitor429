@@ -25,17 +25,18 @@ import { I18nProvider, type Lang } from '@/i18n';
 import { zh as zhDict } from '@/i18n/zh';
 import { en as enDict } from '@/i18n/en';
 import { applyCssVars } from '@/theme/antdTheme';
-import { COLOR_SCHEMES, type ThemeColor, type EffectsLevel } from '@/theme/colors';
+import { COLOR_SCHEMES, resolveThemeColor, type ThemeColor, type EffectsLevel } from '@/theme/colors';
 import { LAYOUT_PRESETS, type ThemeLayout } from '@/theme/layouts';
 import { resolvePageStyle, type PageStyle } from '@/theme/pageStyles';
 import { formatNumber, type NumberFormat } from '@/utils/format';
-import { bumpIconVersion, iconLookupIds } from '@/utils/icon';
+import { bumpIconVersion, iconFailureMarkIds } from '@/utils/icon';
 import {
   getActiveLocalPack,
   listLocalIconPacks,
   setActiveLocalPack,
   type LocalIconPackMeta,
 } from '@/utils/localIconPack';
+import { armLocalIconDirectoryPermissionResume } from '@/utils/localIconDirectory';
 import {
   builtinPresets,
   PRESETS_STORAGE_KEY,
@@ -347,10 +348,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // ---- Theme ----
-  const [themeColor, setThemeColorState] = useLocalStorageString(
+  const [themeColorRaw, setThemeColorState] = useLocalStorageString(
     'webae_theme_color',
     'dark'
-  ) as [ThemeColor, (c: ThemeColor) => void];
+  ) as [string, (c: ThemeColor) => void];
   const [themeLayout, setThemeLayoutState] = useLocalStorageString(
     'webae_theme_layout',
     'standard'
@@ -363,12 +364,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     'webae_page_style',
     'classic'
   ) as [PageStyle, (s: PageStyle) => void];
+  const themeColor = resolveThemeColor(themeColorRaw);
   const resolvedPageStyle = resolvePageStyle(pageStyle);
   // Resolve the effective effects level: explicit user choice, else the
   // current theme's default (so switching themes without a saved preference
   // picks a sensible intensity).
   const resolvedEffectsLevel: EffectsLevel =
-    effectsLevel || COLOR_SCHEMES[themeColor || 'dark'].effectsLevel;
+    effectsLevel || COLOR_SCHEMES[themeColor].effectsLevel;
 
   const setThemeColor = useCallback(
     (c: ThemeColor) => {
@@ -464,7 +466,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFailedIcons((prev) => {
       const next = { ...prev };
       let changed = false;
-      for (const candidate of iconLookupIds(undefined, id)) {
+      for (const candidate of iconFailureMarkIds(id)) {
         if (!next[candidate]) {
           next[candidate] = true;
           changed = true;
@@ -991,6 +993,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       refreshIconPacks();
       refreshLocalIconPacks();
       checkAdminStatus();
+      armLocalIconDirectoryPermissionResume();
     }
   }, [isLoggedIn, token, fetchServerConfig, fetchNetworks, refreshIconPacks, refreshLocalIconPacks, checkAdminStatus]);
 
@@ -1150,7 +1153,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const preset = presets.find((p) => p.id === id);
       if (!preset) return;
       const s = preset.settings;
-      setThemeColorState(s.themeColor as ThemeColor);
+      const presetColor = resolveThemeColor(s.themeColor);
+      setThemeColorState(presetColor);
       setThemeLayoutState(s.themeLayout as ThemeLayout);
       const presetPageStyle = resolvePageStyle(s.pageStyle);
       setPageStyleState(presetPageStyle);
@@ -1165,7 +1169,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       setSidebarMode(s.sidebarMode);
       const presetLevel: EffectsLevel =
-        s.effectsLevel || COLOR_SCHEMES[s.themeColor as ThemeColor].effectsLevel;
+        s.effectsLevel || COLOR_SCHEMES[presetColor].effectsLevel;
       setEffectsLevelState(presetLevel);
       if (s.dashboard) {
         try {
@@ -1175,7 +1179,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
       applyCssVars(
-        s.themeColor as ThemeColor,
+        presetColor,
         s.themeLayout as ThemeLayout,
         presetLevel,
         presetPageStyle

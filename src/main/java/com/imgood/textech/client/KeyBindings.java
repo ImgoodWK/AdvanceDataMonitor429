@@ -29,6 +29,7 @@ import com.imgood.textech.network.packet.PacketMonitorRecord;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.webae.dto.RecipeDto;
 import com.imgood.textech.webae.icon.IconExportScope;
+import com.imgood.textech.webae.icon.IconLocalStore;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconRenderer;
 import com.imgood.textech.webae.icon.IconStore;
@@ -289,6 +290,11 @@ public class KeyBindings {
 
     public static void triggerIconUpload(String packName, String renderModeId, IconExportScope scope,
         List<String> itemIds) {
+        triggerIconUpload(packName, renderModeId, scope, itemIds, false);
+    }
+
+    public static void triggerIconUpload(String packName, String renderModeId, IconExportScope scope,
+        List<String> itemIds, boolean localOnly) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null) return;
         if (!Config.webConsoleEnabled) {
@@ -299,7 +305,7 @@ public class KeyBindings {
             notifyStatic(mc, "Item icon cache is disabled in config.");
             return;
         }
-        if (!Config.webIconUploadEnabled) {
+        if (!localOnly && !Config.webIconUploadEnabled) {
             notifyStatic(mc, "Icon upload is disabled in config.");
             return;
         }
@@ -320,16 +326,40 @@ public class KeyBindings {
         List<String> effectiveIds = itemIds != null ? new ArrayList<String>(itemIds)
             : new ArrayList<String>(pendingIconExportItemIds);
         AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon upload triggered: pack='{}' mode='{}' scope='{}' ids={}",
+            "[WebAE] Icon {} triggered: pack='{}' mode='{}' scope='{}' ids={}",
+            localOnly ? "local export" : "upload",
             packName,
             effectiveMode,
             effectiveScope.getId(),
             effectiveIds.size());
-        notifyStatic(mc, I18n.format("adm.webconsole.icons.uploading_started_mode", packName, effectiveMode));
+        if (localOnly) {
+            notifyStatic(mc, I18n.format("adm.webconsole.icons.local_started", packName));
+        } else {
+            notifyStatic(mc, I18n.format("adm.webconsole.icons.uploading_started_mode", packName, effectiveMode));
+        }
         IconRenderer.instance()
-            .start(packName, playerUuid, effectiveMode, effectiveScope, effectiveIds);
+            .start(packName, playerUuid, effectiveMode, effectiveScope, effectiveIds, localOnly);
         pendingIconExportScope = IconExportScope.ALL;
         pendingIconExportItemIds.clear();
+    }
+
+    /** Pull server icons into {@code TeXTech/WebAE/icons-local/} (copy if local, else wait for zip packets). */
+    public static void triggerIconPull(String packName) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) return;
+        if (!IconStore.isValidPackName(packName)) {
+            notifyStatic(mc, "Invalid pack name: " + packName);
+            return;
+        }
+        int copied = IconLocalStore.tryCopyFromLocalServerIcons(mc.mcDataDir, packName);
+        if (copied >= 0) {
+            java.io.File dest = IconLocalStore.packModeDir(mc.mcDataDir, packName);
+            notifyStatic(
+                mc,
+                I18n.format("adm.webconsole.icons.pull_local_done", Integer.valueOf(copied), dest.getAbsolutePath()));
+            return;
+        }
+        notifyStatic(mc, I18n.format("adm.webconsole.icons.pull_waiting", packName));
     }
 
     public static void openIconVerify(String packName, String itemId) {

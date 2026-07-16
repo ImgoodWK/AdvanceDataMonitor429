@@ -16,6 +16,7 @@ The project root [`README.md`](../README.md) keeps only a short intro and build 
 | L2 Player / admin | Tutorials | `docs/*/player/`, `docs/*/webae/user-guide.md`, `assets/textech/manual/` |
 | L3 Vision / design | **Not implementation spec** | `docs/*/design/` |
 
+Agent: prefer one language tree; do not default-read L3/archive (see documentation-map).  
 Maintenance map: [zh](zh/developer/documentation-map.md) · [en](en/developer/documentation-map.md)
 
 ---

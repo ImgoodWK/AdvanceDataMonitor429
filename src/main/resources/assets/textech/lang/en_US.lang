@@ -980,6 +980,8 @@ adm.webconsole.icons.pack_invalid=Invalid icon pack name: {0}
 adm.webconsole.icons.mode_invalid=Invalid icon render mode: {0}
 adm.webconsole.icons.mode_not_implemented=Icon render mode not implemented yet: {0}
 adm.webconsole.icons.cleared=Icon cache cleared ({0} PNG files removed from TeXTech/WebAE/icons/).
+adm.webconsole.icons.clearing_started=Clearing icon cache in the background (does not freeze the game). You will be notified when finished.
+adm.webconsole.icons.clear_busy=Icon cache clear is already in progress. Please wait.
 
 adm.iconRenderMode.nei=NESQL / NEI drawItem
 adm.iconRenderMode.nei.tooltip=NESQL-style single-icon FBO via GuiContainerManager.drawItem. Fluids use mod specials.
@@ -1344,26 +1346,34 @@ adm.command.admweb.recipes.status.disk_none=  Disk cache: not yet saved
 adm.command.admweb.recipes.unknown=Unknown recipes subcommand. Use: upload, export, status, clear
 
 adm.command.admweb.icons.title==== /admweb icons ===
-adm.command.admweb.icons.help.1=/admweb icons upload [pack] [snapshot]
-adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack]
-adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack]  [OP][Client]
-adm.command.admweb.icons.help.4=/admweb icons verify <itemId> [pack]  [Client]
-adm.command.admweb.icons.help.5=/admweb icons import <folder> [pack]  [OP]
-adm.command.admweb.icons.help.6=/admweb icons import-nesql [pack] [subpath]  [OP]
-adm.command.admweb.icons.help.7=/admweb icons modes | status | clear  [OP for clear]
+adm.command.admweb.icons.help.1=/admweb icons upload [pack] [snapshot]  [OP]
+adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack]  [OP]
+adm.command.admweb.icons.help.3=/admweb icons local [pack]  — render to this PC (no upload)
+adm.command.admweb.icons.help.4=/admweb icons local snapshot [pack]
+adm.command.admweb.icons.help.5=/admweb icons pull [pack]  — download server icons to icons-local/
+adm.command.admweb.icons.help.6=/admweb icons render <itemId> [pack]  [OP][Client]
+adm.command.admweb.icons.help.7=/admweb icons verify <itemId> [pack]  [Client]
+adm.command.admweb.icons.help.8=/admweb icons import <folder> [pack]  [OP]
+adm.command.admweb.icons.help.9=/admweb icons import-nesql [pack] [subpath]  [OP]
+adm.command.admweb.icons.help.10=/admweb icons modes | status | clear  [OP for clear]
+adm.command.admweb.icons.help.11=/admweb icons y|n  — lazy-capture consent (resource pack note)
 adm.command.admweb.icons.modes.title==== WebAE Icon Render Modes ===
 adm.command.admweb.icons.status.title==== Icon Pack Status ===
 adm.command.admweb.icons.status.empty=  No icon packs installed in TeXTech/WebAE/icons/.
 adm.command.admweb.icons.status.pack=  {0} — {1} icons
 adm.command.admweb.icons.status.cache=  iconCacheEnabled: {0}
 adm.command.admweb.icons.status.upload=  iconUploadEnabled: {0}
+adm.command.admweb.icons.status.lazy=  iconLazyCaptureEnabled: {0}
 adm.command.admweb.icons.status.pack_enabled=  iconPackEnabled: {0}
 adm.command.admweb.icons.status.queue=  missingIconQueue: {0}
+adm.command.admweb.icons.status.provider=  lazyProvider: {0} (clientTextures={1})
 adm.command.admweb.icons.op_player=OP player required.
 adm.command.admweb.icons.disabled=Icon cache/upload disabled.
 adm.command.admweb.icons.invalid=Invalid pack or mode.
 adm.command.admweb.icons.no_snapshot=No cached AE storage snapshots yet.
 adm.command.admweb.icons.upload_started=Icon upload started: pack={0} mode={1} scope={2}
+adm.command.admweb.icons.local_started=Local icon render started: pack={0} mode={1} scope={2} (icons-local/)
+adm.command.admweb.icons.pull_started=Pulling server icons to this PC: pack={0}
 adm.command.admweb.icons.render_usage=Usage: /admweb icons render <itemId> [pack]
 adm.command.admweb.icons.rendering=Rendering {0}
 adm.command.admweb.icons.verify_usage=Usage: /admweb icons verify <itemId> [pack]
@@ -1373,8 +1383,21 @@ adm.command.admweb.icons.import_invalid=Invalid pack or folder.
 adm.command.admweb.icons.import_done=Imported {0} PNGs to {1}/nei/
 adm.command.admweb.icons.import_nesql_invalid=Invalid pack name.
 adm.command.admweb.icons.import_nesql_done=NESQL import: {0} icons → {1}/nei/ (from {2})
-adm.command.admweb.icons.unknown=Unknown icons subcommand. Use: upload, render, verify, import, import-nesql, modes, status, clear
+adm.command.admweb.icons.unknown=Unknown icons subcommand. Use: upload, local, pull, render, verify, import, import-nesql, modes, status, clear, y, n
 adm.command.admweb.icons.mode.ready=ready
+adm.command.admweb.icons.consent.header=WebAE needs {0} missing icon(s) rendered. Will you provide them?
+adm.command.admweb.icons.consent.texture_note=Your currently loaded resource packs will be used. Other players will see those textures on the web console.
+adm.command.admweb.icons.consent.accept=Accept
+adm.command.admweb.icons.consent.reject=Decline
+adm.command.admweb.icons.consent.accept_hover=Become the icon provider for this session (~30 min)
+adm.command.admweb.icons.consent.reject_hover=Decline; another player may be asked
+adm.command.admweb.icons.consent.hint=Or type /admweb icons y  /  /admweb icons n
+adm.command.admweb.icons.consent.accepted=You are now the WebAE icon provider for this session.
+adm.command.admweb.icons.consent.rejected=Declined WebAE icon provider request.
+adm.command.admweb.icons.consent.failed=Could not accept icon provider consent.
+adm.webconsole.icons.local_started=Local icon export started for pack {0}
+adm.webconsole.icons.pull_local_done=Copied {0} icons to {1}
+adm.webconsole.icons.pull_waiting=Waiting for server icon pack zip: {0}
 
 adm.command.admweb.worldmap.title==== /admweb worldmap ===
 adm.command.admweb.worldmap.help.1=/admweb worldmap upload [networkId]  —  upload map snapshot  [Player][Client]

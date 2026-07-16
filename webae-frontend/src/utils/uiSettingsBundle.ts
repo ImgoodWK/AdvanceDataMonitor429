@@ -47,6 +47,7 @@ import type { DisplayMode, SidebarMode } from '@/context/AppContext';
 import type { Lang } from '@/i18n';
 import type { NumberFormat } from '@/utils/format';
 import type { ThemeColor } from '@/theme/colors';
+import { resolveThemeColor } from '@/theme/colors';
 import type { ThemeLayout } from '@/theme/layouts';
 import type { PageStyle } from '@/theme/pageStyles';
 import { resolvePageStyle } from '@/theme/pageStyles';
@@ -487,7 +488,7 @@ function applyOverviewSettings<T extends StorageOverviewSettings>(
 }
 
 function applyGlobalToStorage(global: UiSettingsGlobal): void {
-  localStorage.setItem('webae_theme_color', global.themeColor);
+  localStorage.setItem('webae_theme_color', resolveThemeColor(global.themeColor));
   localStorage.setItem('webae_theme_layout', global.themeLayout);
   localStorage.setItem('webae_page_style', resolvePageStyle(global.pageStyle));
   localStorage.setItem('webae_effects_level', global.effectsLevel || '');
@@ -507,7 +508,7 @@ function applyGlobalToStorage(global: UiSettingsGlobal): void {
 }
 
 function applyGlobalToReact(global: UiSettingsGlobal, setters: GlobalSettingsSetters): void {
-  setters.setThemeColor(global.themeColor as ThemeColor);
+  setters.setThemeColor(resolveThemeColor(global.themeColor));
   setters.setThemeLayout(global.themeLayout as ThemeLayout);
   setters.setPageStyle(resolvePageStyle(global.pageStyle));
   setters.setEffectsLevel(global.effectsLevel);

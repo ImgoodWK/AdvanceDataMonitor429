@@ -13,8 +13,8 @@ alwaysApply: false
 - **仅允许** Ant Design 5（`antd`）+ `@ant-design/icons`
 - **禁止** MUI、Chakra、Tailwind 组件库、Bootstrap 等第三方 UI 框架
 - 自定义样式以 antd `ConfigProvider` theme token + 项目 CSS 变量（`theme/antdTheme.ts`、`theme/layouts.ts`、`theme/pageStyles.ts`、`theme/colors.ts`、`styles/global.css`）为主
-- 外观四轴正交：`themeColor` × `themeLayout` × `pageStyle` × `effectsLevel`；`pageStyle` 含 7 chrome + 52 构图级（含大胆 / batch2；蜂窝与反应堆用装饰层不裁切内容）；`themeLayout` 含 bottomnav / floating / split-chrome；构图靠 `[data-page-style]` + `PageShell`/`Sidebar` CSS 钩子 + `styles/bold-styles.css` + `bold-styles-batch2.css`，**禁止**为风格 fork 业务页 JSX；设置页用 `ThemePreviewMini` / `ThemeOptionGrid` 缩略预览块选择
-- **禁止**新增第三方 CSS 框架
+- 外观四轴正交：`themeColor` × `themeLayout` × `pageStyle` × `effectsLevel`；`pageStyle` 含 chrome + 构图级（大胆 / batch2 / batch3 / Printstream batch4 / **Auraeco batch5**；蜂窝与反应堆用装饰层不裁切内容）；`themeLayout` 含 bottomnav / floating / split-chrome 及 batch3 结构变体；构图靠 `[data-page-style]` + `PageShell`/`Sidebar` CSS 钩子 + `styles/bold-styles.css` + `bold-styles-batch2.css` + `bold-styles-batch3.css` + `bold-styles-batch4.css` + `bold-styles-batch5.css` + `effects-motion.css`，**禁止**为风格 fork 业务页 JSX；设置页用 `ThemePreviewMini` / `ThemeOptionGrid` 缩略预览块选择；当前目录约 **128 配色 × 30 布局 × 126 页面样式**
+- **禁止**新增第三方 CSS 框架；主题氛围 **禁止**引入 Three.js / GSAP / CDN 字体（离线嵌入式）
 
 ## 图表
 

@@ -1,123 +1,43 @@
 ---
-description: 文档与规则同步：变更时强制同步相关文档；任务结尾已改过则简要提醒、未改且可能遗漏则提示缺口
+description: 文档与规则同步：变更时强制同步；任务结尾陈述已改/缺口，不追问
 alwaysApply: true
 ---
 
 # 文档与规则同步
 
-本规则合并两类要求：(1) 代码变更时**必须**同步更新受影响的文档与 Cursor 规则；(2) 任务结尾**简要说明**文档同步情况——**已改过则只提醒，不询问是否再改**。
+## Agent 读文档策略（减 token）
+
+- **默认单语**：中文任务只读 `docs/zh/`；英文任务只读 `docs/en/`。不要同时全量读双语。
+- **禁止默认读 L3 / 归档**：除非用户点名愿景/设计/归档，禁止 Read `docs/*/design/`、`docs/*/archive/`。
+- 功能域应对文件见 `docs/zh/developer/documentation-map.md`（或 en 同名）；详细核对用 skill `textech-doc-sync-pr`。
 
 ## 变更时强制同步
 
-当 Agent 进行以下类型的代码变更时，**必须同步更新相关文档与 Cursor 规则**，不得遗漏：
+| 变更类型 | 必须更新 |
+|---------|---------|
+| 新增/删除/重命名 Java 源文件或包 | `project-structure.mdc`（包计数/一句话）+ `project-structure-details.mdc`（逐文件；按需 Read 后更新） |
+| 渲染类迁移 | `project-structure-details.mdc` 的 `renders/` / `entity/` |
+| Config 增删改 | `Config.java`、`config/Config*Loader.java`、`ConfigDescriptions.java`；影响手册则改 `manual/` |
+| 调试开关变更 | `gtnh-mod-context.mdc`；必要时技术文档 §16 |
+| AI 助手功能变更 | 另遵循 `ai-assistant-docs-sync.mdc` |
 
-### 触发条件
+约定：`entity/` 仅 Entity；`renders/` 放全部客户端渲染；Config 门面在 `Config.java`，分节在 `config/`；debug 默认 `false`。
 
-| 变更类型 | 必须更新的文件 |
-|---------|---------------|
-| 新增/删除/重命名 Java 源文件或包 | `project-structure.mdc`（核心索引，包概览文件计数）与 `project-structure-details.mdc`（详细清单，逐文件列表与 lang 键） |
-| 渲染类迁移或渲染包结构调整 | `project-structure-details.mdc` 的 `renders/` 与 `entity/` 章节 |
-| 新增/修改/删除 Config 配置项 | `Config.java`、`config/Config*Loader.java`、`ConfigDescriptions.java`；若影响手册则更新 `manual/` JSON |
-| 移除遗留/重复文件 | 从 `project-structure.mdc`（核心）/ `project-structure-details.mdc`（详细）与开发者文档中删除对应条目 |
-| 调试开关或日志行为变更 | `gtnh-mod-context.mdc` 的 DEBUG 说明（指向 `config/` 包）；必要时更新 `docs/zh/developer/技术文档.md` / `docs/en/developer/technical-documentation.md` |
-| AI 助手相关功能变更 | 同时遵循 `ai-assistant-docs-sync.mdc` |
+## 任务结尾提醒（不询问）
 
-### 渲染层约定（写入 project-structure 时需保持一致）
+总结时用 **1～2 句陈述**已同步路径，或缺口建议路径；**不要**问「要不要再改文档」。
 
-- **`entity/`**：仅放 Entity 类，不放 Render 类。
-- **`renders/`**：所有客户端渲染（TESR、实体 Render、物品 Render、HUD、工具 RenderUtil）。
-- 注册入口：`loader/LoaderRender.java`（客户端）+ `ClientProxy`（Forge 事件 HUD）。
+**触发**：增删类/lang/manual、行为或配置变更、结构规则变更。  
+**不触发**：纯注释/格式化/纯问答，或用户说「不用动文档」。
 
-### 配置约定
+仅用户明确要求全量核对时再扫 docs/manual/lang/rules。
 
-- 公共字段门面：`Config.java`
-- 分节加载逻辑：`config/Config*Loader.java`
-- 所有 debug 开关默认 `false`；分节见 `[debug]`、`[ai]`、`[dataLoomCell]` 等。
+## PR 前校验
 
-## 任务结尾文档提醒（不询问）
-
-在本轮对话**完成主要工作后、给出最终总结时**，按文档是否已在本次任务中更新，**直接陈述**即可；**不要**用「是否需要我检查/更新文档？」之类问句让用户二次确认。
-
-### 可能涉及文档的判定（用于决定要不要写提醒）
-
-- 新增/删除/重命名 Java 源文件、包或资源（含 `manual/` JSON、`lang`）
-- 修改功能行为、配置项、调试开关、网络包、GUI、渲染或子系统逻辑（挂索、计划器、编织元件、AI 助手等）
-- 调整项目结构、目录约定或 Cursor 规则索引（`project-structure.mdc` 等）
-- 用户明确要求改代码但未提及文档，且改动范围超出纯内部重构（无对外行为/结构变化）
-
-**不触发**：仅改注释、格式化、纯问答无代码改动、或用户已明确说「不用动文档」。
-
-### 已同步文档时（默认路径）
-
-若本次任务中**已按上表完成**必要的文档/规则更新，在总结末尾用 **1～2 句**列出已改路径即可，例如：
-
-> 文档已同步：`docs/zh/webae/用户手册.md`、`docs/en/webae/user-guide.md`（世界地图加载进度说明）。
-
-- **只提醒，不追问**：不要问「是否还要检查其他文档」。
-- **一次即可**：同一轮对话总结里提一次；不要每轮结尾重复同一清单。
-- **与 todo 一致**：若任务计划或执行中已包含文档同步且已完成，总结里写明即可，**无需**再单独发起「全局一致性核对」询问。
-
-### 未同步但可能遗漏时
-
-若触发条件满足、但本次**未能**完成应做的文档/规则更新（时间不够、范围不明、用户说先不改等），在总结中用**陈述句**点出缺口与建议路径，例如：
-
-> 本次未改 `project-structure.mdc`；若合并前需要结构索引一致，可再说一声我补全。
-
-同样**不要**用问句让用户选「要不要现在改」——除非用户主动要求全量核对或某份文档尚未写清阻塞点。
-
-### 可选的全局一致性核对
-
-仅当**用户明确要求**检查 `docs/`、手册 JSON、lang、Cursor 规则与代码是否全面一致时，再执行下表范围的全量或针对性核对；**不要**在每次任务结尾默认发起。
-
-| 类型 | 优先检查 |
-|------|----------|
-| 通用 / 结构 | `docs/zh/`、`docs/en/`、`README.md`、`project-structure.mdc`（核心）/ `project-structure-details.mdc`（详细） |
-| AI 助手 | `docs/zh/ai-assistant/`、`assistant-features.json`、`ai-assistant.mdc` |
-| 玩家向 | `docs/zh/player/`、`manual/chapters/`、`lang` |
-| 配置 | `ConfigDescriptions.java`、手册 `config_reference`、开发者文档配置章节 |
-
-发现不一致时：简要列出差异并更新，或说明未改原因；更新后在总结中列出改了哪些文件。
-
-## 执行时机
-
-- 变更时强制同步：在完成代码修改的**同一轮对话内**检查并更新，不要等用户提醒。
-- 任务结尾提醒：在给出最终总结时一并写出（已改清单或遗漏说明），不单独插一轮询问。
-- 若仅修改 `project-structure.mdc` / `project-structure-details.mdc` 本身（无代码变更），无需额外更新其他文档。
-
-## 目的
-
-避免 Agent 与贡献者依据过期的包结构、文件计数或调试说明定位错误文件；同时避免文档与代码长期脱节，并减少「已同步仍反复询问」的干扰。
-
-## PR 前文档校验（建议）
-
-提交涉及 Config、网络包、WebAE、lang 或 `docs/` 的 PR 前，建议运行：
+涉及 Config、网络包、WebAE、lang 或 `docs/` 时：
 
 ```bash
 python tools/doc-check/doc-consistency-check.py
 ```
 
-脚本会检查：
-
-- `LoaderNetwork.java` 与 `network-packets.mdc` ID 表一致
-- `docs/` 与 lang 中无 `Phase B 待实现` / `pending Phase B` 等过时短语
-- `docs/zh` 与 `docs/en` 同名 md 行数偏差 >30% 时告警（`design/` 愿景文档除外）
-- `Config.java` 的 `worldMap*` 字段在 WebAE 开发者手册 §4 中有提及
-
-当前为 **warn-only**，不阻断 Gradle build；CI 可选接入。
-
-## PR 前文档校验（建议）
-
-提交涉及 Config、网络包、WebAE、lang 或 `docs/` 的 PR 前，建议运行：
-
-```bash
-python tools/doc-check/doc-consistency-check.py
-```
-
-脚本会检查：
-
-- `LoaderNetwork.java` 与 `network-packets.mdc` ID 表一致
-- `docs/` 与 lang 中无 `Phase B 待实现` / `pending Phase B` 等过时短语
-- `docs/zh` 与 `docs/en` 同名 md 行数偏差 >30% 时告警（`design/` 愿景文档除外）
-- `Config.java` 的 `worldMap*` 字段在 WebAE 开发者手册 §4 中有提及
-
-当前为 **warn-only**，不阻断 Gradle build；CI 可选接入。
+warn-only；不阻断 Gradle。

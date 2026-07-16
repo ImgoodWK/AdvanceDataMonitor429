@@ -96,6 +96,7 @@ export function applyCssVars(
   root.setAttribute('data-theme-color', color);
   root.setAttribute('data-theme-layout', layout);
   root.setAttribute('data-page-style', styleId);
+  root.setAttribute('data-style-enter', stylePreset.cssVars['--style-enter'] || 'fade');
   root.setAttribute('data-ui-mode', 'advanced');
   root.setAttribute('data-effects-level', effectsLevel);
   root.setAttribute('data-color-scheme', scheme.isDark ? 'dark' : 'light');

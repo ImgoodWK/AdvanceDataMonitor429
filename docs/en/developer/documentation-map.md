@@ -16,6 +16,13 @@ When you change a feature area, use this map to update the right docs and rules 
 | L2 Player / server admin | `docs/en/player/`, WebAE user guide, `assets/textech/manual/` | Tutorials and how-tos |
 | L3 Vision / design | `docs/en/design/` | **Not implementation spec**; excluded from CI checks |
 
+## Agent reading policy (token savings)
+
+- **One language by default**: English tasks read `docs/en/` only; do not bulk-read `docs/zh/` unless bilingual publish sync is required.
+- **Do not default-read L3 / archive**: Unless the user asks for vision, brand design, or archive notes, do not Read `docs/*/design/` or `docs/*/archive/`.
+- **L0 long appendices on demand**: `project-structure-details.mdc` and full AI architecture docs are not auto-injected; Read when you need per-file lists or architecture detail.
+- AI architecture authority: `docs/en/ai-assistant/development-guide.md`; `.cursor/rules/ai-assistant.mdc` is hard-constraints only.
+
 ---
 
 ## By feature: what to update
@@ -40,7 +47,8 @@ When you change a feature area, use this map to update the right docs and rules 
 | Content | Authoritative doc | Elsewhere |
 |---------|-------------------|-----------|
 | Packet ID table | `network-packets.mdc` | Technical doc §7 summary + link only |
-| AI architecture | `ai-assistant/development-guide.md` | Technical doc §8 overview + link |
+| AI architecture | `ai-assistant/development-guide.md` | Technical doc §8 overview; `ai-assistant.mdc` hard-constraints only |
+| Per-file package inventory | `project-structure-details.mdc` (on demand) | `project-structure.mdc` short index |
 | WebAE REST API | WebAE developer guide §5 | User guide: operations only |
 | worldMap* config | `ConfigDescriptions` + WebAE §4 | User guides: short summary |
 | Implementation status | WebAE dev guide §11 subsystem index | Remove stale "Phase B pending" wording |

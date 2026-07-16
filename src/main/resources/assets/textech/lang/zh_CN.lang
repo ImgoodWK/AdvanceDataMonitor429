@@ -1016,6 +1016,8 @@ adm.webconsole.icons.pack_invalid=无效的材质包名称：{0}
 adm.webconsole.icons.mode_invalid=无效的图标渲染模式：{0}
 adm.webconsole.icons.mode_not_implemented=图标渲染模式尚未实现：{0}
 adm.webconsole.icons.cleared=图标缓存已清空（已从 TeXTech/WebAE/icons/ 删除 {0} 个 PNG 文件）。
+adm.webconsole.icons.clearing_started=正在后台清空图标缓存（不会卡住游戏），完成后将另行通知。
+adm.webconsole.icons.clear_busy=图标缓存清空已在进行中，请稍候。
 
 adm.iconRenderMode.nei=NESQL / NEI drawItem
 adm.iconRenderMode.nei.tooltip=NESQL 同款单图标 FBO（GuiContainerManager.drawItem）。流体走模组特殊路径。
@@ -1345,26 +1347,34 @@ adm.command.admweb.recipes.status.disk_none=  磁盘缓存：尚未保存
 adm.command.admweb.recipes.unknown=未知 recipes 子命令。可用：upload、export、status、clear
 
 adm.command.admweb.icons.title==== /admweb icons ===
-adm.command.admweb.icons.help.1=/admweb icons upload [pack] [snapshot]
-adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack]
-adm.command.admweb.icons.help.3=/admweb icons render <itemId> [pack]  [OP][客户端]
-adm.command.admweb.icons.help.4=/admweb icons verify <itemId> [pack]  [客户端]
-adm.command.admweb.icons.help.5=/admweb icons import <folder> [pack]  [OP]
-adm.command.admweb.icons.help.6=/admweb icons import-nesql [pack] [subpath]  [OP]
-adm.command.admweb.icons.help.7=/admweb icons modes | status | clear  [clear 需 OP]
+adm.command.admweb.icons.help.1=/admweb icons upload [pack] [snapshot]  [需 OP]
+adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack]  [需 OP]
+adm.command.admweb.icons.help.3=/admweb icons local [pack]  — 渲到本机（不上传）
+adm.command.admweb.icons.help.4=/admweb icons local snapshot [pack]
+adm.command.admweb.icons.help.5=/admweb icons pull [pack]  — 从服务端下载到 icons-local/
+adm.command.admweb.icons.help.6=/admweb icons render <itemId> [pack]  [OP][客户端]
+adm.command.admweb.icons.help.7=/admweb icons verify <itemId> [pack]  [客户端]
+adm.command.admweb.icons.help.8=/admweb icons import <folder> [pack]  [OP]
+adm.command.admweb.icons.help.9=/admweb icons import-nesql [pack] [subpath]  [OP]
+adm.command.admweb.icons.help.10=/admweb icons modes | status | clear  [clear 需 OP]
+adm.command.admweb.icons.help.11=/admweb icons y|n  — 懒加载补渲同意（含材质包说明）
 adm.command.admweb.icons.modes.title==== WebAE 图标渲染模式 ===
 adm.command.admweb.icons.status.title==== 图标材质包状态 ===
 adm.command.admweb.icons.status.empty=  TeXTech/WebAE/icons/ 中尚未安装材质包。
 adm.command.admweb.icons.status.pack=  {0} — {1} 个图标
 adm.command.admweb.icons.status.cache=  iconCacheEnabled：{0}
 adm.command.admweb.icons.status.upload=  iconUploadEnabled：{0}
+adm.command.admweb.icons.status.lazy=  iconLazyCaptureEnabled：{0}
 adm.command.admweb.icons.status.pack_enabled=  iconPackEnabled：{0}
 adm.command.admweb.icons.status.queue=  missingIconQueue：{0}
+adm.command.admweb.icons.status.provider=  懒加载提供方：{0}（客户端材质={1}）
 adm.command.admweb.icons.op_player=需要 OP 玩家执行。
 adm.command.admweb.icons.disabled=图标缓存/上传已禁用。
 adm.command.admweb.icons.invalid=无效的材质包或渲染模式。
 adm.command.admweb.icons.no_snapshot=尚无 AE 存储快照缓存。
 adm.command.admweb.icons.upload_started=图标上传已开始：pack={0} mode={1} scope={2}
+adm.command.admweb.icons.local_started=本机图标渲染已开始：pack={0} mode={1} scope={2}（icons-local/）
+adm.command.admweb.icons.pull_started=正在将服务端图标拉取到本机：pack={0}
 adm.command.admweb.icons.render_usage=用法：/admweb icons render <itemId> [pack]
 adm.command.admweb.icons.rendering=正在渲染 {0}
 adm.command.admweb.icons.verify_usage=用法：/admweb icons verify <itemId> [pack]
@@ -1374,8 +1384,21 @@ adm.command.admweb.icons.import_invalid=无效的材质包或文件夹。
 adm.command.admweb.icons.import_done=已导入 {0} 个 PNG 到 {1}/nei/
 adm.command.admweb.icons.import_nesql_invalid=无效的材质包名称。
 adm.command.admweb.icons.import_nesql_done=NESQL 导入：{0} 个图标 → {1}/nei/（来源 {2}）
-adm.command.admweb.icons.unknown=未知 icons 子命令。可用：upload、render、verify、import、import-nesql、modes、status、clear
+adm.command.admweb.icons.unknown=未知 icons 子命令。可用：upload、local、pull、render、verify、import、import-nesql、modes、status、clear、y、n
 adm.command.admweb.icons.mode.ready=可用
+adm.command.admweb.icons.consent.header=WebAE 需要渲染 {0} 个缺失图标，是否由你提供？
+adm.command.admweb.icons.consent.texture_note=将使用你当前已加载的材质包/资源包外观；其他玩家在网页上也会看到这套外观。
+adm.command.admweb.icons.consent.accept=同意
+adm.command.admweb.icons.consent.reject=拒绝
+adm.command.admweb.icons.consent.accept_hover=成为本会话图标提供方（约 30 分钟）
+adm.command.admweb.icons.consent.reject_hover=拒绝；可能会询问其他玩家
+adm.command.admweb.icons.consent.hint=或输入 /admweb icons y  /  /admweb icons n
+adm.command.admweb.icons.consent.accepted=你已成为本会话的 WebAE 图标提供方。
+adm.command.admweb.icons.consent.rejected=已拒绝 WebAE 图标提供方请求。
+adm.command.admweb.icons.consent.failed=无法接受图标提供方同意。
+adm.webconsole.icons.local_started=本机图标导出已开始：材质包 {0}
+adm.webconsole.icons.pull_local_done=已复制 {0} 个图标到 {1}
+adm.webconsole.icons.pull_waiting=正在等待服务端图标包：{0}
 
 adm.command.admweb.worldmap.title==== /admweb worldmap ===
 adm.command.admweb.worldmap.help.1=/admweb worldmap upload [networkId]  —  上传地图快照  [玩家][客户端]

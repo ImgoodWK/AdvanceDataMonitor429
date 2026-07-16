@@ -44,7 +44,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class IconRenderer {
 
-    public static final int ICON_SIZE = 32;
+    public static final int ICON_SIZE = 64;
     /** @deprecated use {@link IconItemId#FLUID_PREFIX} */
     public static final String FLUID_ID_PREFIX = IconItemId.FLUID_PREFIX;
 
@@ -79,6 +79,8 @@ public class IconRenderer {
     private int skippedNoIcon = 0;
     private IconExportScope exportScope = IconExportScope.ALL;
     private List<String> scopedItemIds = new ArrayList<String>();
+    /** When true, write PNGs to {@code icons-local/} instead of uploading to the server. */
+    private boolean localOnly = false;
 
     private List<byte[]> uploadChunks = new ArrayList<byte[]>();
     private int uploadChunkIndex = 0;
@@ -171,6 +173,11 @@ public class IconRenderer {
 
     public void start(String packName, String playerUuid, String renderModeId, IconExportScope scope,
         List<String> explicitItemIds) {
+        start(packName, playerUuid, renderModeId, scope, explicitItemIds, false);
+    }
+
+    public void start(String packName, String playerUuid, String renderModeId, IconExportScope scope,
+        List<String> explicitItemIds, boolean localOnly) {
         if (phase != Phase.IDLE) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Icon render already in progress");
             return;
@@ -181,6 +188,7 @@ public class IconRenderer {
         this.playerUuid = playerUuid != null ? playerUuid : "";
         this.exportScope = scope != null ? scope : IconExportScope.ALL;
         this.scopedItemIds = explicitItemIds != null ? new ArrayList<String>(explicitItemIds) : new ArrayList<String>();
+        this.localOnly = localOnly;
         this.modeQueue.clear();
         this.modeQueueIndex = 0;
         this.uploadAllModes = false;
@@ -197,10 +205,11 @@ public class IconRenderer {
         this.phase = Phase.RENDERING_GUI;
         progress.onModeStart(this.packName, this.renderMode, modeQueueIndex + 1, modeQueue.size(), pending.size());
         AdvanceDataMonitor.LOG.info(
-            "[WebAE] Icon render started: pack='{}' mode='{}' scope='{}' queue={}/{} ({} tasks, {} skipped fluids)",
+            "[WebAE] Icon render started: pack='{}' mode='{}' scope='{}' localOnly={} queue={}/{} ({} tasks, {} skipped fluids)",
             this.packName,
             this.renderMode.getId(),
             exportScope.getId(),
+            this.localOnly,
             modeQueueIndex + 1,
             modeQueue.size(),
             pending.size(),
@@ -406,6 +415,10 @@ public class IconRenderer {
             onModeFinished(false);
             return;
         }
+        if (localOnly) {
+            finishLocalSave();
+            return;
+        }
         com.google.gson.Gson gson = new com.google.gson.GsonBuilder().create();
         String json = gson.toJson(bundle);
         byte[] full = json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -427,6 +440,27 @@ public class IconRenderer {
             renderMode.getId(),
             full.length,
             uploadTotalChunks);
+    }
+
+    private void finishLocalSave() {
+        Minecraft mc = Minecraft.getMinecraft();
+        java.io.File root = mc != null ? mc.mcDataDir : null;
+        int written = IconLocalStore.writeBundleBase64(root, packName, bundle);
+        lastModeIconCount = written;
+        java.io.File dest = IconLocalStore.packModeDir(root, packName);
+        AdvanceDataMonitor.LOG.info(
+            "[WebAE] Local icon save complete mode={}: {} icons → {}",
+            renderMode.getId(),
+            written,
+            dest.getAbsolutePath());
+        if (mc != null && mc.thePlayer != null) {
+            mc.thePlayer.addChatMessage(
+                new net.minecraft.util.ChatComponentText(
+                    net.minecraft.util.EnumChatFormatting.GREEN + "[WebAE] Local icons: " + written + " → "
+                        + dest.getAbsolutePath()));
+        }
+        bundle.clear();
+        onModeFinished(true);
     }
 
     private void uploadBatch() {
@@ -498,6 +532,7 @@ public class IconRenderer {
         modeQueue.clear();
         modeQueueIndex = 0;
         uploadAllModes = false;
+        localOnly = false;
         exportScope = IconExportScope.ALL;
         scopedItemIds.clear();
         glFallback.reset();

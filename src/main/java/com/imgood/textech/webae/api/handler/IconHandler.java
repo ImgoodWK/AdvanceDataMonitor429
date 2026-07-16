@@ -196,7 +196,7 @@ public class IconHandler {
                 "icon not found: pack={} itemId={}",
                 pack != null ? pack : "",
                 itemId != null ? itemId : "");
-            if (Config.webIconUploadEnabled) {
+            if (Config.webIconLazyCaptureEnabled) {
                 IconMissingQueue.instance()
                     .enqueue(pack, captureMode, itemId);
             }

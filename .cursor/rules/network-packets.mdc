@@ -65,6 +65,7 @@ alwaysApply: false
 | 46 | `PacketWorldMapDirectCaptureResponse` | `PacketWorldMapDirectCaptureResponse.Handler` | C→S | SP 直读：客户端 GL 捕获 PNG 回传 |
 | 47 | `PacketIconDirectCaptureRequest` | `PacketIconDirectCaptureRequest.Handler` | S→C | 图标直渲：请求客户端 GL 渲染单张图标 |
 | 48 | `PacketIconDirectCaptureResponse` | `PacketIconDirectCaptureResponse.Handler` | C→S | 图标直渲：客户端 PNG 回传 |
+| 49 | `PacketWebIconPullZip` | `PacketWebIconPullZip.Handler` | S→C | `/admweb icons pull`：服务端 icon pack zip 分片下发到客户端 `icons-local/` |
 
 **下一个可用 ID = 49**
 

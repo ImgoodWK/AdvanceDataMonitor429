@@ -16,9 +16,9 @@ import fi.iki.elonen.NanoHTTPD;
  * GET /api/config — returns refreshIntervalMs / gtRefreshIntervalMs /
  * maxNetworksDisplayed / tokenLifetimeHours /
  * themePresets (legacy, mirrors themeColors) /
- * themeColors (111: classic + Phase 8 + composition + bold + batch2 + batch3) /
+ * themeColors (128: classic + Phase 8 + composition + bold + batch2 + batch3 + Printstream batch4 + Auraeco batch5) /
  * themeLayouts (30 presets: classic 8 + batch3 structural 22) /
- * pageStyles (109: chrome + composition + bold + batch2 + batch3) /
+ * pageStyles (126: chrome + composition + bold + batch2 + batch3 + Printstream batch4 + Auraeco batch5) /
  * debugFlags (Phase 3.3: per-feature server debug switches, read-only).
  *
  * Although the endpoint is "public" (no OP requirement), it still goes through
@@ -152,6 +152,23 @@ public class WebConfigHandler {
         themeColors.add("meshi-amber");
         themeColors.add("nvidia-green");
         themeColors.add("linear-indigo");
+        themeColors.add("printstream");
+        themeColors.add("printstream-void");
+        themeColors.add("printstream-pearl");
+        themeColors.add("printstream-cyan");
+        themeColors.add("printstream-magenta");
+        themeColors.add("printstream-spectrum");
+        themeColors.add("printstream-ascii");
+        themeColors.add("printstream-cross");
+        themeColors.add("printstream-rect");
+        themeColors.add("printstream-neon");
+        themeColors.add("printstream-mono");
+        themeColors.add("printstream-gloss");
+        themeColors.add("aura");
+        themeColors.add("aura-front");
+        themeColors.add("aura-design");
+        themeColors.add("aura-sys");
+        themeColors.add("aura-interact");
         List<String> themeLayouts = new ArrayList<String>();
         themeLayouts.add("standard");
         themeLayouts.add("compact");
@@ -293,6 +310,23 @@ public class WebConfigHandler {
         pageStyles.add("meshi-feast");
         pageStyles.add("nvidia-greenroom");
         pageStyles.add("linear-opsdesk");
+        pageStyles.add("printstream-panel");
+        pageStyles.add("printstream-void");
+        pageStyles.add("printstream-pearl");
+        pageStyles.add("printstream-cyan");
+        pageStyles.add("printstream-magenta");
+        pageStyles.add("printstream-spectrum");
+        pageStyles.add("printstream-ascii");
+        pageStyles.add("printstream-cross");
+        pageStyles.add("printstream-rect");
+        pageStyles.add("printstream-neon");
+        pageStyles.add("printstream-mono");
+        pageStyles.add("printstream-gloss");
+        pageStyles.add("aura-voxel");
+        pageStyles.add("aura-spore");
+        pageStyles.add("aura-dome");
+        pageStyles.add("aura-sparks");
+        pageStyles.add("aura-bubble");
         StringBuilder sb = new StringBuilder();
         sb.append("{\"success\":true,\"config\":{");
         sb.append("\"refreshIntervalMs\":")
@@ -326,9 +360,24 @@ public class WebConfigHandler {
         sb.append("\"iconUploadEnabled\":")
             .append(Config.webIconUploadEnabled)
             .append(',');
+        sb.append("\"iconLazyCaptureEnabled\":")
+            .append(Config.webIconLazyCaptureEnabled)
+            .append(',');
         sb.append("\"iconPackEnabled\":")
             .append(Config.webIconPackEnabled)
             .append(',');
+        String lazyProvider = com.imgood.textech.webae.icon.IconMissingQueue.instance()
+            .getProviderName();
+        if (lazyProvider != null && !lazyProvider.isEmpty()) {
+            sb.append("\"iconLazyProviderName\":")
+                .append(GSON.toJson(lazyProvider))
+                .append(',');
+            sb.append("\"iconCapturedWithClientTextures\":")
+                .append(
+                    com.imgood.textech.webae.icon.IconMissingQueue.instance()
+                        .isCapturedWithClientTextures())
+                .append(',');
+        }
         sb.append("\"iconRenderModes\":[");
         appendIconRenderModes(sb);
         sb.append("],");

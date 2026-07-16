@@ -36,7 +36,9 @@ public class PacketWebUploadTrigger implements IMessage {
 
     public static final String TYPE_RECIPES = "recipes";
     public static final String TYPE_ICONS = "icons";
+    public static final String TYPE_ICONS_LOCAL = "icons_local";
     public static final String TYPE_ICON_VERIFY = "icon_verify";
+    public static final String TYPE_ICONS_PULL = "icons_pull";
 
     public String uploadType;
     public String packName;
@@ -147,7 +149,8 @@ public class PacketWebUploadTrigger implements IMessage {
                         : "full";
                     List<String> snapshotIds = parseSnapshotItemIds(message.packName);
                     KeyBindings.uploadNeiRecipes(scope, snapshotIds);
-                } else if (TYPE_ICONS.equalsIgnoreCase(message.uploadType)) {
+                } else if (TYPE_ICONS.equalsIgnoreCase(message.uploadType)
+                    || TYPE_ICONS_LOCAL.equalsIgnoreCase(message.uploadType)) {
                     String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
                         : "default";
                     String mode = (message.renderMode != null && !message.renderMode.isEmpty()) ? message.renderMode
@@ -158,7 +161,12 @@ public class PacketWebUploadTrigger implements IMessage {
                         scope = IconExportScope.fromId(message.exportScope);
                         itemIds = PacketWebIconExportScope.parseItemIds(message.itemIdsJson);
                     }
-                    KeyBindings.triggerIconUpload(pack, mode, scope, itemIds);
+                    boolean localOnly = TYPE_ICONS_LOCAL.equalsIgnoreCase(message.uploadType);
+                    KeyBindings.triggerIconUpload(pack, mode, scope, itemIds, localOnly);
+                } else if (TYPE_ICONS_PULL.equalsIgnoreCase(message.uploadType)) {
+                    String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
+                        : "default";
+                    KeyBindings.triggerIconPull(pack);
                 } else if (TYPE_ICON_VERIFY.equalsIgnoreCase(message.uploadType)) {
                     String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
                         : "default";

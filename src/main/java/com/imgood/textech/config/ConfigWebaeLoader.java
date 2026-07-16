@@ -231,6 +231,16 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.webIconUploadEnabled,
             ConfigDescriptions.get("webConsole", "iconUploadEnabled"));
+        Config.webIconLazyCaptureEnabled = configuration.getBoolean(
+            "iconLazyCaptureEnabled",
+            "webConsole",
+            Config.webIconLazyCaptureEnabled,
+            ConfigDescriptions.get("webConsole", "iconLazyCaptureEnabled"));
+        Config.webIconLazyPreferOpOnly = configuration.getBoolean(
+            "iconLazyPreferOpOnly",
+            "webConsole",
+            Config.webIconLazyPreferOpOnly,
+            ConfigDescriptions.get("webConsole", "iconLazyPreferOpOnly"));
         Config.webIconPackEnabled = configuration.getBoolean(
             "iconPackEnabled",
             "webConsole",

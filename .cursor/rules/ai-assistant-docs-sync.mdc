@@ -12,11 +12,11 @@ alwaysApply: false
 ## 必须同步的文件清单
 
 ### 1. Cursor 规则文件
-- `.cursor/rules/ai-assistant.mdc` — 更新意图枚举、会话类型、文件速查表、查询分发列表
-- `.cursor/rules/project-structure.mdc`（核心索引）— 如果 `assistant/`、`ai/`、`voice/` 包中有文件新增/删除/重命名，更新顶层包概览与文件计数
-- `.cursor/rules/project-structure-details.mdc`（详细清单）— 同步更新 `assistant/` 段的逐文件清单、文件计数（如 `25 文件` → `26 文件`）和关键文件列表
+- `.cursor/rules/ai-assistant.mdc` — 仅硬约束/包边界/必改摘要有变时更新（完整架构以 docs 为准）
+- `.cursor/rules/project-structure.mdc` — `assistant/` / `voice/` 等有增删重命名时更新包计数
+- `.cursor/rules/project-structure-details.mdc` — 同步 `assistant/` 段逐文件清单（按需 Read 后改）
 
-### 2. 项目 Markdown 文档（`docs/` 目录）
+### 2. 项目 Markdown 文档（权威架构；默认只改任务语言一份，成对发布时双语都改）
 
 | 文件 | 更新内容 |
 |------|---------|

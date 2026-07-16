@@ -176,8 +176,17 @@ public class Config {
     public static int webAdminGrantDays = 90;
     /** Whether the item/fluid icon cache system is enabled. Default true. */
     public static boolean webIconCacheEnabled = true;
-    /** Whether clients are allowed to upload rendered icons to the server. Default true. */
+    /** Whether clients are allowed to upload rendered icons to the server (explicit OP upload/import). Default true. */
     public static boolean webIconUploadEnabled = true;
+    /**
+     * When true, HTTP 404 missing icons enqueue {@code IconMissingQueue} for async client render+upload.
+     * Default false — icons are only rendered via explicit commands unless opted in.
+     */
+    public static boolean webIconLazyCaptureEnabled = false;
+    /**
+     * When lazy capture is on, only ask OP players to consent as icon providers. Default true.
+     */
+    public static boolean webIconLazyPreferOpOnly = true;
     /** Whether the web console may switch/upload icon texture packs. Default true. */
     public static boolean webIconPackEnabled = true;
     /** Icons rendered per client tick for a single mode upload. Default 64. */
@@ -188,7 +197,7 @@ public class Config {
     public static int webIconUploadChunksPerTick = 4;
     /** Minimum interval (ms) between in-game chat progress messages during icon export. Default 3000. */
     public static int webIconProgressChatIntervalMs = 3000;
-    /** Whether missing icons may be rendered synchronously by an online MC client (HTTP 404 path). Default false (async queue + SSE). */
+    /** Whether missing icons may be rendered synchronously by an online MC client (HTTP 404 path). Default false. */
     public static boolean webIconDirectRenderEnabled = false;
     /** Max wait (ms) for a direct icon render before falling back to async lazy queue. Default 3000. */
     public static int webIconDirectRenderTimeoutMs = 3000;

@@ -15,6 +15,11 @@ import {
   FLUID_ID_PREFIX,
 } from '@/utils/icon';
 import { getLocalIconBlobUrlForCandidates, SERVER_SYNC_PACK_NAME } from '@/utils/localIconPack';
+import {
+  getDirectoryIconBlobUrlForCandidates,
+  getLocalIconDirMeta,
+  LOCAL_ICON_DIR_READY_EVENT,
+} from '@/utils/localIconDirectory';
 import { debugLog } from '@/utils/debugLog';
 import { openGtnhWikiSearch } from '@/utils/wiki';
 import { trackVisibleIcon } from '@/utils/visibleIconRegistry';
@@ -32,7 +37,7 @@ interface IconProps {
   onIconClick?: (e: React.MouseEvent) => void;
 }
 
-/** Resolution: server disk cache (authoritative) → IndexedDB fallback → abbreviation. */
+/** Resolution: local folder → IndexedDB pack → server /api/icon → abbreviation. */
 export const Icon = memo(function Icon({
   id,
   item,
@@ -51,6 +56,8 @@ export const Icon = memo(function Icon({
   const modeChain = useMemo(() => iconModeFallbackChain(iconRenderMode), [iconRenderMode]);
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [modeIndex, setModeIndex] = useState(0);
+  const [dirUrl, setDirUrl] = useState<string | null>(null);
+  const [dirLookupDone, setDirLookupDone] = useState(false);
   const [localUrl, setLocalUrl] = useState<string | null>(null);
   const [localLookupDone, setLocalLookupDone] = useState(false);
   const [forceLocal, setForceLocal] = useState(false);
@@ -75,6 +82,8 @@ export const Icon = memo(function Icon({
     setCandidateIndex(0);
     setModeIndex(0);
     setErrored(false);
+    setDirUrl(null);
+    setDirLookupDone(false);
     setLocalUrl(null);
     setLocalLookupDone(false);
     setForceLocal(false);
@@ -88,16 +97,35 @@ export const Icon = memo(function Icon({
   useEffect(() => {
     const onReady = (ev: Event) => {
       const detail = (ev as CustomEvent<IconReadyDetail>).detail;
-      const matches = candidates.some((candidate) => iconReadyMatchesId(detail, candidate));
-      if (!matches) return;
+      // With detail: only refresh when this icon matches (strict :0 equivalence).
+      // Without detail: bump version for all mounted icons (no local data deletion).
+      if (detail?.itemId) {
+        const matches = candidates.some((candidate) => iconReadyMatchesId(detail, candidate));
+        if (!matches) return;
+      }
       retryAttemptRef.current = 0;
       setErrored(false);
       setCandidateIndex(0);
       setModeIndex(0);
+      bumpIconVersion();
+      setRetryGen((g) => g + 1);
+    };
+    const onLocalDirReady = () => {
+      retryAttemptRef.current = 0;
+      setErrored(false);
+      setCandidateIndex(0);
+      setModeIndex(0);
+      setDirUrl(null);
+      setDirLookupDone(false);
+      bumpIconVersion();
       setRetryGen((g) => g + 1);
     };
     window.addEventListener('webae-icon-ready', onReady);
-    return () => window.removeEventListener('webae-icon-ready', onReady);
+    window.addEventListener(LOCAL_ICON_DIR_READY_EVENT, onLocalDirReady);
+    return () => {
+      window.removeEventListener('webae-icon-ready', onReady);
+      window.removeEventListener(LOCAL_ICON_DIR_READY_EVENT, onLocalDirReady);
+    };
   }, [candidates]);
 
   useEffect(() => {
@@ -105,6 +133,26 @@ export const Icon = memo(function Icon({
       if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDirUrl(null);
+    setDirLookupDone(false);
+    const meta = getLocalIconDirMeta();
+    if (!iconCacheEnabled || !meta?.enabled || candidates.length === 0) {
+      setDirLookupDone(true);
+      return;
+    }
+    getDirectoryIconBlobUrlForCandidates(candidates).then((url) => {
+      if (!cancelled) {
+        setDirUrl(url);
+        setDirLookupDone(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [candidates, retryGen, iconCacheEnabled]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,14 +175,17 @@ export const Icon = memo(function Icon({
     };
   }, [effectiveLocalPack, candidates, retryGen, iconCacheEnabled]);
 
+  const lookupsReady = dirLookupDone && localLookupDone;
   const serverUrl =
-    localLookupDone &&
+    lookupsReady &&
     activeId &&
-    !iconIsMarkedFailed(failedIcons, activeId)
+    !iconIsMarkedFailed(failedIcons, activeId) &&
+    !dirUrl
       ? buildIconUrl(activeId, iconPack, token, iconCacheEnabled, activeMode) + (retryGen ? `&r=${retryGen}` : '')
       : '';
 
-  const url = forceLocal ? localUrl || serverUrl : serverUrl || localUrl;
+  // Prefer: directory → IndexedDB → server
+  const url = dirUrl || (forceLocal ? localUrl || serverUrl : localUrl || serverUrl);
 
   const wikiEnabled = linkToWiki && iconWikiEnabled && !!(item || id || alt) && !onIconClick;
   const wikiTitle = wikiEnabled ? t('iconWikiHint') : undefined;
@@ -237,7 +288,7 @@ export const Icon = memo(function Icon({
             forceLocal
           );
 
-          if (!forceLocal && localUrl && serverUrl) {
+          if (!forceLocal && localUrl && (serverUrl || dirUrl)) {
             setForceLocal(true);
             setErrored(false);
             return;
@@ -256,7 +307,7 @@ export const Icon = memo(function Icon({
 
           setErrored(true);
 
-          if (activeId && !localUrl && !failedIcons[activeId]) markIconFailed(activeId);
+          if (activeId && !localUrl && !dirUrl && !failedIcons[activeId]) markIconFailed(activeId);
 
           if (iconIsMarkedFailed(failedIcons, activeId)) return;
 

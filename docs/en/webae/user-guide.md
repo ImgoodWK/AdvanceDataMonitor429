@@ -22,7 +22,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 
 | Feature | Description |
 |---------|-------------|
-| Dashboard | 111 color schemes × 30 layout presets × 109 page styles (bold + batch2 + batch3, including 22 structural layouts), thumbnail preview tiles in Settings; draggable widget grid |
+| Dashboard | 128 color schemes × 30 layout presets × 126 page styles (bold + batch2 + batch3 + Printstream batch4 + Auraeco batch5, including 22 structural layouts), thumbnail preview tiles in Settings; draggable widget grid |
 | Storage / Fluids / Essentia | Dedicated sidebar pages; Storage also has item/fluid/essentia sub-tables |
 | Crafting CPUs | Standalone menu for AE2 crafting CPU status and details |
 | Power Monitor | Configurable EU/steam gauges, in/out rates, dual-series trend chart |
@@ -114,14 +114,17 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 | `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload to server disk; also writes `<instance>/TeXTech/WebAE/web-recipes.json` on the client; web UI still needs **Fetch recipes**; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
 | `/admweb recipes status` | Show recipe cache status (incl. disk size) |
 | `/admweb recipes clear` | Clear recipe memory + disk cache (OP only) |
-| `/admweb icons upload [pack]` / `upload snapshot [pack]` | **OP** triggers client icon render/upload (always nei) |
+| `/admweb icons upload [pack]` / `upload snapshot [pack]` | **OP** triggers client render/upload to the server |
+| `/admweb icons local [pack]` / `local snapshot [pack]` | Any online player: render to this PC `TeXTech/WebAE/icons-local/` (no upload) |
+| `/admweb icons pull [pack]` | Any online player: download server PNGs into `icons-local/` |
+| `/admweb icons y` / `n` | Lazy-capture consent (only when `iconLazyCaptureEnabled=true`) |
 | `/admweb icons render <itemId> [pack]` | **OP** render and upload a single item icon |
 | `/admweb icons verify <itemId> [pack]` | Open icon verify GUI |
 | `/admweb icons import <folder> [pack]` | **OP** import PNGs from a local folder |
 | `/admweb icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/`; incremental) |
 | `/admweb icons modes` | List icon render mode (nei only) |
 | `/admweb icons status` | List installed icon packs and config state |
-| `/admweb icons clear` | Delete all icon packs (OP only) |
+| `/admweb icons clear` | Delete all icon packs (OP only; async, does not freeze the game; chat notifies when done) |
 | `/admweb worldmap upload [networkId]` | Upload world map snapshot (must be near AE network; client capture) |
 | `/admweb worldmap accept <requestId>` | Accept a guest/web map upload request (legacy) |
 | `/admweb wm y [id]` | **Recommended** accept upload; id optional; same as clicking Accept in chat |
@@ -185,14 +188,17 @@ Recipes are not kept in server heap for the browser to query continuously. Flow:
 
 ### Item Icons & Texture Packs
 
-Real game icons in tables and recipes; abbreviation fallback on failure. Loading uses three tiers: **browser IndexedDB → server disk cache → async client fill on miss (SSE refresh)**.
+Real game icons in tables and recipes; abbreviation fallback on failure. Resolution order: **local folder → IndexedDB → server disk → abbreviation** (lazy capture off by default).
 
-- **Local first**: IndexedDB / local pack hits never need the server; in-game `/admweb icons upload` or import fills server disk for on-demand requests.
-- **Auto-sync (off by default)**: Settings → “Auto-sync server icon pack” bulk-downloads into IndexedDB when the pack revision changes (for admin custom packs; not needed for normal browsing).
-- **Manual fetch**: Settings → **Sync full pack** downloads the server pack; **Fill visible missing** requests only icons currently on screen that are missing locally. Local ZIP import (browser-only) remains available.
-- **Server cache**: OP runs `/admweb icons upload [packName]` or `/admweb icons import-nesql` (defaults to `TeXTech/WebAE/`; override with `nesqlRepositoryPath`); Settings switches packs; admins can upload zip. Render mode is fixed to **`nei`** (NESQL-style `GuiContainerManager.drawItem` single-icon FBO; fluids use mod specials); other modes remain in code as `@Deprecated` archival only — commands no longer take a mode argument.
-- **Async fill (default)**: Disk miss returns immediately and enqueues the lazy queue (`iconUploadEnabled`); client render/upload then SSE `icon-ready` so abbreviations upgrade to icons. Synchronous direct render (`iconDirectRenderEnabled`, default **false**) is for debugging only.
-- **Multiplayer tip**: Run `/admweb icons upload snapshot` once after startup; players rely on local/on-demand loads and may manually sync a full pack in Settings when needed.
+- **Local folder**: Settings → pick `TeXTech/WebAE/icons-local/` (Chrome/Edge; https or localhost; on LAN http://IP use ZIP import). Any player: `/admweb icons local` or `/admweb icons pull`.
+- **Local first**: Directory/IndexedDB hits skip the server; OP `/admweb icons upload` or import fills server disk.
+- **Auto-sync (off by default)**: Settings bulk-download into IndexedDB when the pack revision changes.
+- **Manual fetch**: Sync full pack; Fill visible missing only requests existing PNGs (does not imply in-game render).
+- **Server cache**: OP upload / import-nesql; render mode fixed to **`nei`** (64×64 NESQL FBO). If PNGs on disk show square/odd-shaped holes, re-run upload with a fixed mod build to overwrite; for intermittent wrong icons in the browser, **Ctrl+F5** or clear IndexedDB / re-pick the local icon folder.
+- **GT++ (miscutils) missing ingot/plate/rod icons**: Older full-pack uploads skipped stacks with `getIconIndex==null` (dusts kept, metal forms dropped). On-disk `itemDustMix*` is the special "Mix" dust, **not** a misnamed ingot. Re-run `/admweb icons upload snapshot` (preferred) or a full `upload` on a current build, then Ctrl+F5.
+- **Whole GT meta series showing abbreviations**: the frontend used to mark bare `gregtech:gt.metaitem.01` failed when one meta id failed, blocking sibling metas. Current builds only mark `:0` equivalents; hard-refresh to clear poisoned state.
+- **Async fill (opt-in)**: `iconLazyCaptureEnabled` default **false**. When on, miss enqueues after chat consent (resource-pack notice). Direct render still default **false**.
+- **Multiplayer tip**: OP `/admweb icons upload snapshot` once; players use local/folder/ZIP.
 
 ### Local data folder `TeXTech/WebAE/`
 
@@ -269,7 +275,7 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 
 ### Dashboard, Chat & Settings
 
-- **Dashboard**: GridStack drag layout, **111** color schemes + **30** layouts (incl. bottom nav / floating sider / split chrome, plus batch3 dual-rail / dock / theater / HUD / corner-hub structural variants) + **109** page styles (restrained hexcell / arc-reactor without content clipping, plus batch2 / batch3 packs; Settings uses near-real thumbnail tiles for color / layout / style / presets); chart style overrides unchanged.
+- **Dashboard**: GridStack drag layout, **128** color schemes + **30** layouts (incl. bottom nav / floating sider / split chrome, plus batch3 dual-rail / dock / theater / HUD / corner-hub structural variants) + **126** page styles (restrained hexcell / arc-reactor without content clipping, plus batch2 / batch3 / **Printstream batch4** packs with B/W geometry, pearl gradients, and ASCII dashed streams, plus **Auraeco batch5** voxel-wave / tendril / dome / sparks / bubble atmospheres; Settings uses near-real thumbnail tiles for color / layout / style / presets — search “Aura” or “Auraeco”); chart style overrides unchanged.
   - **Group containers (nested grids)**: add a **Group** widget to nest children in one cell and move them together; use **+** on the group header to add children while editing.
   - **Layout / feed widgets**: text note, spacer, alerts summary, crafting queue; use the edit-mode palette for quick add, or drag to the trash zone to delete.
   - **Lock & size-to-content**: per-widget lock / no-move / no-resize and optional size-to-content; soft alert threshold tint on stats/gauges.

@@ -56,6 +56,14 @@ public class IconStore {
     private volatile boolean indexed;
     /** Cached default pack name (loaded lazily, refreshed by {@link #recordDefaultPack}). */
     private volatile String cachedDefaultPack;
+    /** True while a clear (sync or async) is deleting pack files from disk. */
+    private volatile boolean clearInProgress;
+
+    /** Invoked after disk deletion finishes (may run on a background thread). */
+    public interface ClearCallback {
+
+        void onComplete(int pngRemoved);
+    }
 
     private IconStore() {
         this.baseDir = TeXTechDataDir.webAeDir("icons");
@@ -63,6 +71,7 @@ public class IconStore {
         this.packIndex = new ConcurrentHashMap<String, PackEntry>();
         this.indexed = false;
         this.cachedDefaultPack = null;
+        this.clearInProgress = false;
     }
 
     public static IconStore instance() {
@@ -612,29 +621,96 @@ public class IconStore {
         return null;
     }
 
+    public boolean isClearInProgress() {
+        return clearInProgress;
+    }
+
     /**
      * Delete every icon pack under {@link #baseDir} and reset the in-memory index.
+     * Blocks the calling thread for disk I/O — prefer {@link #clearAllAsync} from commands.
      *
-     * @return number of PNG files removed
+     * @return number of PNG files removed, or {@code -1} if a clear is already running
      */
-    public synchronized int clearAll() {
-        int pngRemoved = 0;
-        if (baseDir.exists()) {
-            File[] children = baseDir.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    if (child.isDirectory() && isValidPackName(child.getName())) {
-                        pngRemoved += deletePackTree(child);
-                    } else if (child.isFile() && "default-pack.txt".equals(child.getName())) {
-                        child.delete();
+    public int clearAll() {
+        if (!beginClear()) {
+            return -1;
+        }
+        try {
+            int pngRemoved = deleteAllPackFilesFromDisk();
+            AdvanceDataMonitor.LOG.info("[WebAE] Cleared all icon packs ({} PNG files)", pngRemoved);
+            return pngRemoved;
+        } finally {
+            clearInProgress = false;
+        }
+    }
+
+    /**
+     * Reset the in-memory index immediately, then delete pack files on a background thread.
+     * Does not block the caller for disk I/O.
+     *
+     * @param callback invoked when deletion finishes (on the background thread); may be null
+     * @return {@code false} if a clear is already in progress
+     */
+    public boolean clearAllAsync(final ClearCallback callback) {
+        if (!beginClear()) {
+            return false;
+        }
+        Thread worker = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                int pngRemoved = 0;
+                try {
+                    pngRemoved = deleteAllPackFilesFromDisk();
+                    AdvanceDataMonitor.LOG.info("[WebAE] Cleared all icon packs ({} PNG files)", pngRemoved);
+                } catch (Throwable t) {
+                    AdvanceDataMonitor.LOG.error("[WebAE] Icon pack clear failed", t);
+                } finally {
+                    clearInProgress = false;
+                    if (callback != null) {
+                        try {
+                            callback.onComplete(pngRemoved);
+                        } catch (Throwable t) {
+                            AdvanceDataMonitor.LOG.warn("[WebAE] Icon clear callback failed: {}", t.getMessage());
+                        }
                     }
                 }
             }
+        }, "WebAE-IconClear");
+        worker.setDaemon(true);
+        worker.start();
+        return true;
+    }
+
+    /** Clears the index under lock and marks clear-in-progress. */
+    private synchronized boolean beginClear() {
+        if (clearInProgress) {
+            return false;
         }
+        clearInProgress = true;
         cachedDefaultPack = null;
         packIndex.clear();
         indexed = true;
-        AdvanceDataMonitor.LOG.info("[WebAE] Cleared all icon packs ({} PNG files)", pngRemoved);
+        return true;
+    }
+
+    /** Disk I/O only — call after {@link #beginClear()} has reset the index. */
+    private int deleteAllPackFilesFromDisk() {
+        int pngRemoved = 0;
+        if (!baseDir.exists()) {
+            return 0;
+        }
+        File[] children = baseDir.listFiles();
+        if (children == null) {
+            return 0;
+        }
+        for (File child : children) {
+            if (child.isDirectory() && isValidPackName(child.getName())) {
+                pngRemoved += deletePackTree(child);
+            } else if (child.isFile() && "default-pack.txt".equals(child.getName())) {
+                child.delete();
+            }
+        }
         return pngRemoved;
     }
 

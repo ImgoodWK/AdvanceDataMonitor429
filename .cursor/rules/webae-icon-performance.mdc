@@ -6,15 +6,16 @@ alwaysApply: false
 
 # WebAE 物品图标性能标准
 
-避免 `/api/icon` 成为性能诊断里最慢路由。设计目标：**本地优先、按需补图、客户端异步渲染**，不要把服务端当日常图源狂刷。
+避免 `/api/icon` 成为性能诊断里最慢路由。设计目标：**本地优先、按需补图、命令触发渲染**，不要把服务端当日常图源狂刷，也不要默认让在线客户端偷偷渲图。
 
-与世界地图对比：前端都会打 HTTP；区别在于缺资源时地图 `client_only` 读快照/占位，图标**从不在服务端 GL 画图**，只服务磁盘 + 调度客户端。图标并发远高于瓦片，**禁止**把 HTTP 线程同步等客户端直渲当作默认路径。
+与世界地图对比：前端都会打 HTTP；区别在于缺资源时地图 `client_only` 读快照/占位，图标**从不在服务端 GL 画图**，只服务磁盘 +（可选）调度客户端。图标并发远高于瓦片，**禁止**把 HTTP 线程同步等客户端直渲当作默认路径。
 
 ## 解析分层（必须遵守）
 
-1. **浏览器 IndexedDB / 本地材质包**（`localIconPack`、`utils/localIconPack.ts`）
-2. **服务端磁盘** `GET /api/icon`（`IconStore`，已导出/已上传的 PNG）
-3. **磁盘 miss** → 立刻 404 + `IconMissingQueue` 异步派发 → 客户端 `IconLazyRenderQueue` 渲染上传 → SSE `icon-ready` → 前端刷新并写入 IDB
+1. **本机目录**（设置页 `showDirectoryPicker` → `utils/localIconDirectory.ts`，对应游戏 `TeXTech/WebAE/icons-local/`）
+2. **浏览器 IndexedDB / 本地材质包**（`localIconPack`、`utils/localIconPack.ts`；含 ZIP 导入降级）
+3. **服务端磁盘** `GET /api/icon`（`IconStore`，已导出/已上传的 PNG）
+4. **磁盘 miss** → **立刻 404**（默认）。仅当 `iconLazyCaptureEnabled=true` 时才入队 `IconMissingQueue`，且须聊天同意后才派发客户端渲染上传 → SSE `icon-ready`
 
 占位：`<Icon>` 在失败/等待时显示缩写；图标就绪后自动出现。
 
@@ -24,6 +25,7 @@ alwaysApply: false
 |------|------|
 | 登录默认整包 `GET /api/icon/sync/bulk` | 大包内存打 zip，诊断 `totalMs`/`maxMs` 爆炸；`iconAutoSync` **默认 false** |
 | HTTP 404 路径默认同步 `IconDirectCaptureBridge` | 单请求可阻塞至 `iconDirectRenderTimeoutMs`（默认 3s）；`iconDirectRenderEnabled` **默认 false** |
+| HTTP 404 **默认**异步懒加载补渲 | `iconLazyCaptureEnabled` **默认 false**；日常用 `/admweb icons upload` 或 `/admweb icons local` |
 | 拓扑/世界地图对服务端做 N 路并发 prefetch | 与「仅缺缓存才请求」冲突；`prefetchIcons` 仅可查 IndexedDB，不得批量 `fetch('/api/icon')` |
 | `<img onLoad>` 再 `fetch` 同一 URL 写 IDB | 成功路径双倍 HTTP；用 canvas/`blob` 单次缓存或一次 fetch |
 | Cytoscape / 自定义画布裸 `buildIconUrl` 且忽略本地包 | 已同步仍打服务端；须先 `resolveLocalIconUrls` / 与 `<Icon>` 同序 |
@@ -33,32 +35,30 @@ alwaysApply: false
 
 | 场景 | API / 行为 |
 |------|------------|
-| 页面按需渲染且本地未命中 | 单次 `GET /api/icon`（触发异步补图） |
+| 页面按需渲染且本地未命中 | 单次 `GET /api/icon`（命中磁盘则返回；miss 默认仅 404） |
 | 设置「同步整包」或用户打开自动同步 | `manifest` + `sync/bulk` |
-| 设置「补当前可见缺失」 | `fillMissingIconsFromServer` + `visibleIconRegistry` |
-| OP `/admweb icons upload*` / import | 写服务端磁盘，供日后命中 |
+| 设置「补当前可见缺失」 | `fillMissingIconsFromServer`（只取已有 PNG，不暗示会触发渲图） |
+| 设置「选择本机图标目录」 | File System Access API（需 https/localhost；局域网 IP 用 ZIP 降级） |
+| OP `/admweb icons upload*` / import | 写服务端磁盘 |
+| 任意玩家 `/admweb icons local*` | 写本机 `icons-local/`（不上传） |
+| `/admweb icons pull` | 服务端 PNG → 本机 `icons-local/` |
 
-## 配置默认值
+## 配置对照
 
-| Key | 默认 | 说明 |
-|-----|------|------|
-| `iconDirectRenderEnabled` | `false` | 仅调试/特殊场景再开同步直渲 |
-| `iconUploadEnabled` | `true` | 异步 miss 队列总开关 |
-| 前端 `webae_icon_auto_sync` | `false` | 登录不默认 bulk |
-| `ui-defaults.json` → `iconAutoSyncEnabled` | `false` | 与上一致 |
+| 配置 | 默认 | 作用 |
+|------|------|------|
+| `iconUploadEnabled` | true | 允许显式 C→S 上传（upload/import） |
+| `iconLazyCaptureEnabled` | **false** | 404 → 队列 → 同意后客户端补渲 |
+| `iconLazyPreferOpOnly` | true | 懒加载只问 OP |
+| `iconDirectRenderEnabled` | false | HTTP 同步直渲（调试） |
 
-## 前端要点
+## 安全上下文
 
-- `useIconPackAutoSync`：仅 `iconAutoSyncEnabled === true` 时 bulk
-- `iconPrefetch.ts`：`prefetchIcons` = 本地计数/预热；网络补缺用 `fillMissingIconsFromServer`
-- `visibleIconRegistry.ts`：Settings「补可见」数据源；`<Icon>` / 拓扑须 `trackVisibleIcon(s)`
-- Cytoscape：`localIconUrls` 优先，否则再 `buildIconUrl`（按需单次，非批量预热）
+`showDirectoryPicker` 需要 `https://` 或 `http://localhost` / `127.0.0.1`。局域网 `http://192.168.x.x` **无法选目录** → UI 说明 + ZIP 导入 IndexedDB。
 
-## 诊断解读
+## 渲染与缓存稳定性（缺块 / 刷新偶发）
 
-- `/api/icon` **count 高**：多张按需加载时正常（query 被 normalize 掉）
-- `/api/icon` **maxMs ≈ 3000**：同步直渲仍开启或旧配置，应确认 `iconDirectRenderEnabled=false`
-- `/api/icon/sync/bulk` 突出：有人开了自动同步或点了整包按钮
-- tick phase `iconMissingQueue` 短暂升高：异步补图在忙，属预期
-
-详见 `webae-perf-diagnostics.mdc`（HTTP/tick 打点）与开发者手册 §11.8。
+| 现象 | 处理 |
+|------|------|
+| upload 写出的 PNG 方形/AE 终端形缺块 | 客户端 `IconNesqlStyleRenderer` 每图标清 COLOR\|DEPTH\|STENCIL + `glPushAttrib`；`IconRenderGuard` 复位 stencil/blend/depth。需**重跑** `/admweb icons upload` 覆盖旧坏图 |
+| 浏览器刷新偶发错图 | SSE `icon-ready` 仅 bump 版本重拉，**不删** IDB/目录；HTTP 统一 `max-age=86400`；`X-Icon-Exact` 仅诊断 |
