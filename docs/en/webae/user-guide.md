@@ -22,7 +22,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 
 | Feature | Description |
 |---------|-------------|
-| Dashboard | 61 color schemes × 8 layout presets × 59 page styles (bold + batch2), thumbnail preview tiles in Settings; draggable widget grid |
+| Dashboard | 111 color schemes × 30 layout presets × 109 page styles (bold + batch2 + batch3, including 22 structural layouts), thumbnail preview tiles in Settings; draggable widget grid |
 | Storage / Fluids / Essentia | Dedicated sidebar pages; Storage also has item/fluid/essentia sub-tables |
 | Crafting CPUs | Standalone menu for AE2 crafting CPU status and details |
 | Power Monitor | Configurable EU/steam gauges, in/out rates, dual-series trend chart |
@@ -269,7 +269,7 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 
 ### Dashboard, Chat & Settings
 
-- **Dashboard**: GridStack drag layout, 61 color schemes + 8 layouts (incl. bottom nav / floating sider / split chrome) + **59 page styles** (incl. restrained hexcell / arc-reactor without content clipping, plus batch2 packs such as emberforge / frostglass / CRT / prism; Settings uses near-real thumbnail tiles for color / layout / style / presets); chart style overrides unchanged.
+- **Dashboard**: GridStack drag layout, **111** color schemes + **30** layouts (incl. bottom nav / floating sider / split chrome, plus batch3 dual-rail / dock / theater / HUD / corner-hub structural variants) + **109** page styles (restrained hexcell / arc-reactor without content clipping, plus batch2 / batch3 packs; Settings uses near-real thumbnail tiles for color / layout / style / presets); chart style overrides unchanged.
   - **Group containers (nested grids)**: add a **Group** widget to nest children in one cell and move them together; use **+** on the group header to add children while editing.
   - **Layout / feed widgets**: text note, spacer, alerts summary, crafting queue; use the edit-mode palette for quick add, or drag to the trash zone to delete.
   - **Lock & size-to-content**: per-widget lock / no-move / no-resize and optional size-to-content; soft alert threshold tint on stats/gauges.

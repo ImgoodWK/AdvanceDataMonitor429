@@ -353,7 +353,7 @@ webae-frontend/               # Frontend source (permanent project part)
     ├── types/dto.ts          # TypeScript interfaces mirroring Java DTOs
     ├── i18n/                 # zh + en dictionaries + I18nProvider hook
     ├── context/AppContext.tsx  # Global state (auth/theme/settings/presets/connection/refresh)
-    ├── theme/                # 61 color schemes + 8 layouts + 59 page styles (7 chrome + 12 composition + 20 bold + 20 batch2) + antd theme builder + preview var helper
+    ├── theme/                # 111 colors + 30 layouts + 109 page styles (7 chrome + 12 composition + 20 bold + 20 batch2 + 50 batch3) + antd theme builder + preview var helper
     ├── hooks/                # useLocalStorage / useInterval / usePageVisibility / useVisibilityAwarePolling / useSnapshotData / usePlayers / useWebAlerts / useNetworkMetrics / useGlobalSearch / useWorldMapData / useWorldMapTileLoader / useWorldMapProgress
     ├── utils/                # formatNumber / icon URL / presets / dashboardResolve / overviewDataSources / powerDataSources / cpuColumns / recipe
     ├── components/           # Login / Icon / Layout(Sidebar/TopBar/AppLayout/navConfig/PageShell) /
@@ -623,10 +623,10 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Theme system**:
   - Theme = color scheme × layout preset × **page style**, chosen independently
-  - Color schemes (`[data-theme-color]`): 61 total — 19 classic + 5 Phase 8 sci-fi + 4 composition companions + 13 bold-batch + **20 batch2** (ember-crimson / frost-ice / noir-silver / emerald-teal / desert-sand / lunar-grey / reef-coral / kraft-brown / tokyo-neon / parchment-gold / bio-green / stardust-violet / copper-rust / lab-white / abyss-deep / candy-pastel / mil-olive / crt-green / clay-terra / prism-spectrum)
-  - **Page styles** (`[data-page-style]`, `theme/pageStyles.ts`): 59 total — 7 chrome + 12 composition + 20 bold packs + **20 batch2** (emberforge / frostglass / noirfilm / emerald-circuit / desert-terminal / lunar / coral-reef / papercraft / neon-tokyo / medieval / biotank / stardust / coppersteam / cleanlab / abyss / candypop / military / retrocrit / terracotta / prism); visuals in `styles/bold-styles.css` + `bold-styles-batch2.css`. **Hexcell / arc-reactor** use decorative accents/rings without heavy content `clip-path`; gated by `effectsLevel` + `prefers-reduced-motion`
-  - Layout presets (`[data-theme-layout]`): 8 total — standard / compact / wide / sidebar-right / topnav / **bottomnav** / **floating** / **split-chrome**
-  - **Settings appearance / presets**: `ThemePreviewMini` (iframe-isolated real CSS) + `ThemeOptionGrid` thumbnail tiles for color / layout / style / preset picking
+  - Color schemes (`[data-theme-color]`): **111** total — 19 classic + 5 Phase 8 sci-fi + 4 composition companions + 13 bold-batch + 20 batch2 + **50 batch3** (product / game / anime homage palettes such as notion-warm / figma-violet / sheikah-cyan / nerv-purple / edgerunner-yellow)
+  - **Page styles** (`[data-page-style]`, `theme/pageStyles.ts`): **109** total — 7 chrome + 12 composition + 20 bold + 20 batch2 + **50 batch3** (notion-paper / figma-canvas / zelda-sheikah / evangelion-nerv / cyberpunk-edge, etc.); visuals in `styles/bold-styles.css` + `bold-styles-batch2.css` + `bold-styles-batch3.css`. **Hexcell / arc-reactor** use decorative accents/rings without heavy content `clip-path`; gated by `effectsLevel` + `prefers-reduced-motion`
+  - Layout presets (`[data-theme-layout]`): **30** total — classic 8 (standard / compact / wide / sidebar-right / topnav / bottomnav / floating / split-chrome) + **22 batch3 structural** layouts via `chromeKind` (dual-rail / rail-only / dock / island / theater / dense-ops / magazine / split-pane / top-tabs / zen / command / tri-chrome / card-stack / hud-frame / pipeline / hero-header / status-strip / drawer-peek / corner-hub / widescreen / right-drawer / frame; see `layout-batch3.css` + `AppLayout`)
+  - **Settings appearance / presets**: `ThemePreviewMini` (in-DOM structural thumbnails) + `ThemeOptionGrid` thumbnail tiles for color / layout / style / preset picking; ~**105** builtin AppPresets (including 50 batch3 `builtin-style-*`)
   - Settings panel: color + layout + **page style** + effects intensity; dashboard widget editor can override chart style
   - Chart colors follow CSS variables (e.g. `var(--accent)`) and theme tokens; Dashboard/Power trend SVG updates with theme colors; when `effectsLevel=full`, line/area/pie/radar/bar charts get continuous CSS animations (`.chart-flow-line`, etc.); disabled under `prefers-reduced-motion`
   - The backend `/api/config` returns `themeColors` / `themeLayouts` / `pageStyles` lists for discoverability (the frontend also owns the same catalog)
@@ -748,7 +748,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - `neon-pulse` — fluorescent accent + breathing card borders
   - `quantum` — deep blue + drifting grid background
   - `crystal` — prismatic gradient text shimmer
-  - Backend `/api/config` `themeColors` / `pageStyles` match the frontend catalog (61 / 59); Settings i18n `themeColor_*` / `pageStyle_*`; thumbnail previews via `ThemePreviewMini`
+  - Backend `/api/config` `themeColors` / `themeLayouts` / `pageStyles` match the frontend catalog (111 / 30 / 109); Settings i18n `themeColor_*` / `themeLayout_*` / `pageStyle_*`; thumbnail previews via `ThemePreviewMini`
 - **Continuous chart animations** (gated by `data-effects-level=full`):
   - Dashboard SVG: `.chart-flow-line` (stroke-dash flow), `.chart-svg-area` (area pulse), `.chart-pie-group` (slow spin), `.chart-radar-data` (radar pulse), `.chart-bar-segment` (bar brightness pulse)
   - Power trend: inline SVG in `PowerWidgetContent.tsx` reuses the same CSS classes

@@ -1,0 +1,675 @@
+/* Batch-3 page styles — decorative chrome, no widget content clip-path */
+
+/* --- notion-paper --- */
+[data-page-style='notion-paper'] .widget-shell,
+[data-page-style='notion-paper'] .stat-card {
+  border-radius: 4px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='notion-paper'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='notion-paper'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- figma-canvas --- */
+[data-page-style='figma-canvas'] .widget-shell,
+[data-page-style='figma-canvas'] .stat-card {
+  border-radius: 8px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='figma-canvas'] .webae-nav-item--active {
+  border-radius: 6px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- spotify-now --- */
+[data-page-style='spotify-now'] .widget-shell,
+[data-page-style='spotify-now'] .stat-card {
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='spotify-now'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='spotify-now'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='spotify-now'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- discord-guild --- */
+[data-page-style='discord-guild'] .widget-shell,
+[data-page-style='discord-guild'] .stat-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='discord-guild'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- netflix-stage --- */
+[data-page-style='netflix-stage'] .widget-shell,
+[data-page-style='netflix-stage'] .stat-card {
+  border-radius: 14px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='netflix-stage'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='netflix-stage'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- github-primer --- */
+[data-page-style='github-primer'] .widget-shell,
+[data-page-style='github-primer'] .stat-card {
+  border-radius: 2px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='github-primer'] .webae-nav-item--active {
+  border-radius: 0px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- stripe-ledger --- */
+[data-page-style='stripe-ledger'] .widget-shell,
+[data-page-style='stripe-ledger'] .stat-card {
+  border-radius: 0px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='stripe-ledger'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='stripe-ledger'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='stripe-ledger'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- openai-atelier --- */
+[data-page-style='openai-atelier'] .widget-shell,
+[data-page-style='openai-atelier'] .stat-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='openai-atelier'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- tesla-cockpit --- */
+[data-page-style='tesla-cockpit'] .widget-shell,
+[data-page-style='tesla-cockpit'] .stat-card {
+  border-radius: 4px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='tesla-cockpit'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='tesla-cockpit'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- uber-dispatch --- */
+[data-page-style='uber-dispatch'] .widget-shell,
+[data-page-style='uber-dispatch'] .stat-card {
+  border-radius: 8px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='uber-dispatch'] .webae-nav-item--active {
+  border-radius: 6px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- adobe-spectrum --- */
+[data-page-style='adobe-spectrum'] .widget-shell,
+[data-page-style='adobe-spectrum'] .stat-card {
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='adobe-spectrum'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='adobe-spectrum'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='adobe-spectrum'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- airbnb-stay --- */
+[data-page-style='airbnb-stay'] .widget-shell,
+[data-page-style='airbnb-stay'] .stat-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='airbnb-stay'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- nintendo-switch --- */
+[data-page-style='nintendo-switch'] .widget-shell,
+[data-page-style='nintendo-switch'] .stat-card {
+  border-radius: 14px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='nintendo-switch'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='nintendo-switch'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- portal-chamber --- */
+[data-page-style='portal-chamber'] .widget-shell,
+[data-page-style='portal-chamber'] .stat-card {
+  border-radius: 2px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='portal-chamber'] .webae-nav-item--active {
+  border-radius: 0px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- zelda-sheikah --- */
+[data-page-style='zelda-sheikah'] .widget-shell,
+[data-page-style='zelda-sheikah'] .stat-card {
+  border-radius: 0px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='zelda-sheikah'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='zelda-sheikah'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='zelda-sheikah'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- valorant-spike --- */
+[data-page-style='valorant-spike'] .widget-shell,
+[data-page-style='valorant-spike'] .stat-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='valorant-spike'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- persona-velvet --- */
+[data-page-style='persona-velvet'] .widget-shell,
+[data-page-style='persona-velvet'] .stat-card {
+  border-radius: 4px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='persona-velvet'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='persona-velvet'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- genshin-teyvat --- */
+[data-page-style='genshin-teyvat'] .widget-shell,
+[data-page-style='genshin-teyvat'] .stat-card {
+  border-radius: 8px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='genshin-teyvat'] .webae-nav-item--active {
+  border-radius: 6px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- evangelion-nerv --- */
+[data-page-style='evangelion-nerv'] .widget-shell,
+[data-page-style='evangelion-nerv'] .stat-card {
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='evangelion-nerv'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='evangelion-nerv'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='evangelion-nerv'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- ghost-shell --- */
+[data-page-style='ghost-shell'] .widget-shell,
+[data-page-style='ghost-shell'] .stat-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='ghost-shell'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- hades-styx --- */
+[data-page-style='hades-styx'] .widget-shell,
+[data-page-style='hades-styx'] .stat-card {
+  border-radius: 14px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='hades-styx'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='hades-styx'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- cyberpunk-edge --- */
+[data-page-style='cyberpunk-edge'] .widget-shell,
+[data-page-style='cyberpunk-edge'] .stat-card {
+  border-radius: 2px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='cyberpunk-edge'] .webae-nav-item--active {
+  border-radius: 0px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- hollow-knight --- */
+[data-page-style='hollow-knight'] .widget-shell,
+[data-page-style='hollow-knight'] .stat-card {
+  border-radius: 0px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='hollow-knight'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='hollow-knight'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='hollow-knight'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- celeste-summit --- */
+[data-page-style='celeste-summit'] .widget-shell,
+[data-page-style='celeste-summit'] .stat-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='celeste-summit'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- lol-rift --- */
+[data-page-style='lol-rift'] .widget-shell,
+[data-page-style='lol-rift'] .stat-card {
+  border-radius: 4px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='lol-rift'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='lol-rift'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- minecraft-craft --- */
+[data-page-style='minecraft-craft'] .widget-shell,
+[data-page-style='minecraft-craft'] .stat-card {
+  border-radius: 8px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='minecraft-craft'] .webae-nav-item--active {
+  border-radius: 6px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- ff14-scion --- */
+[data-page-style='ff14-scion'] .widget-shell,
+[data-page-style='ff14-scion'] .stat-card {
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='ff14-scion'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='ff14-scion'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='ff14-scion'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- witcher-path --- */
+[data-page-style='witcher-path'] .widget-shell,
+[data-page-style='witcher-path'] .stat-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='witcher-path'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- destiny-light --- */
+[data-page-style='destiny-light'] .widget-shell,
+[data-page-style='destiny-light'] .stat-card {
+  border-radius: 14px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='destiny-light'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='destiny-light'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- overwatch-wp --- */
+[data-page-style='overwatch-wp'] .widget-shell,
+[data-page-style='overwatch-wp'] .stat-card {
+  border-radius: 2px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='overwatch-wp'] .webae-nav-item--active {
+  border-radius: 0px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- acnh-horizon --- */
+[data-page-style='acnh-horizon'] .widget-shell,
+[data-page-style='acnh-horizon'] .stat-card {
+  border-radius: 0px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='acnh-horizon'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='acnh-horizon'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='acnh-horizon'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- stardew-farm --- */
+[data-page-style='stardew-farm'] .widget-shell,
+[data-page-style='stardew-farm'] .stat-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='stardew-farm'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- elden-grace --- */
+[data-page-style='elden-grace'] .widget-shell,
+[data-page-style='elden-grace'] .stat-card {
+  border-radius: 4px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='elden-grace'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='elden-grace'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- metroid-suit --- */
+[data-page-style='metroid-suit'] .widget-shell,
+[data-page-style='metroid-suit'] .stat-card {
+  border-radius: 8px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='metroid-suit'] .webae-nav-item--active {
+  border-radius: 6px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- smash-blast --- */
+[data-page-style='smash-blast'] .widget-shell,
+[data-page-style='smash-blast'] .stat-card {
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='smash-blast'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='smash-blast'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='smash-blast'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- terraria-torch --- */
+[data-page-style='terraria-torch'] .widget-shell,
+[data-page-style='terraria-torch'] .stat-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='terraria-torch'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- ghibli-sky --- */
+[data-page-style='ghibli-sky'] .widget-shell,
+[data-page-style='ghibli-sky'] .stat-card {
+  border-radius: 14px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='ghibli-sky'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='ghibli-sky'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- hashira-blade --- */
+[data-page-style='hashira-blade'] .widget-shell,
+[data-page-style='hashira-blade'] .stat-card {
+  border-radius: 2px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='hashira-blade'] .webae-nav-item--active {
+  border-radius: 0px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- jjk-domain --- */
+[data-page-style='jjk-domain'] .widget-shell,
+[data-page-style='jjk-domain'] .stat-card {
+  border-radius: 0px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='jjk-domain'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='jjk-domain'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='jjk-domain'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- onepiece-log --- */
+[data-page-style='onepiece-log'] .widget-shell,
+[data-page-style='onepiece-log'] .stat-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='onepiece-log'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- sxf-forger --- */
+[data-page-style='sxf-forger'] .widget-shell,
+[data-page-style='sxf-forger'] .stat-card {
+  border-radius: 4px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='sxf-forger'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='sxf-forger'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- aot-survey --- */
+[data-page-style='aot-survey'] .widget-shell,
+[data-page-style='aot-survey'] .stat-card {
+  border-radius: 8px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='aot-survey'] .webae-nav-item--active {
+  border-radius: 6px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- sailor-crystal --- */
+[data-page-style='sailor-crystal'] .widget-shell,
+[data-page-style='sailor-crystal'] .stat-card {
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='sailor-crystal'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='sailor-crystal'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='sailor-crystal'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- monogatari-pop --- */
+[data-page-style='monogatari-pop'] .widget-shell,
+[data-page-style='monogatari-pop'] .stat-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='monogatari-pop'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- bebop-jazz --- */
+[data-page-style='bebop-jazz'] .widget-shell,
+[data-page-style='bebop-jazz'] .stat-card {
+  border-radius: 14px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='bebop-jazz'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='bebop-jazz'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- frieren-journey --- */
+[data-page-style='frieren-journey'] .widget-shell,
+[data-page-style='frieren-journey'] .stat-card {
+  border-radius: 2px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='frieren-journey'] .webae-nav-item--active {
+  border-radius: 0px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* --- bocchi-stage --- */
+[data-page-style='bocchi-stage'] .widget-shell,
+[data-page-style='bocchi-stage'] .stat-card {
+  border-radius: 0px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(6px);
+}
+[data-page-style='bocchi-stage'] .page-shell__title {
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+[data-page-style='bocchi-stage'][data-effects-level='subtle'] .app-content::before,
+[data-page-style='bocchi-stage'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+  background-image: linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* --- meshi-feast --- */
+[data-page-style='meshi-feast'] .widget-shell,
+[data-page-style='meshi-feast'] .stat-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: inset 0 -3px 0 var(--accent), 0 0 12px var(--accent-glow) !important;
+}
+[data-page-style='meshi-feast'] .widget-shell::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 1px; opacity: 0.7; pointer-events: none;
+}
+/* --- nvidia-greenroom --- */
+[data-page-style='nvidia-greenroom'] .widget-shell,
+[data-page-style='nvidia-greenroom'] .stat-card {
+  border-radius: 4px !important;
+  border: 1px solid var(--accent-dim) !important;
+  box-shadow: 0 4px 16px var(--accent-glow) !important;
+}
+[data-page-style='nvidia-greenroom'] .page-shell__title {
+  letter-spacing: 0.04em;
+}
+[data-page-style='nvidia-greenroom'][data-effects-level='full'] .app-content::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.12;
+  background: radial-gradient(ellipse at 15% 0%, var(--accent-glow), transparent 55%);
+}
+/* --- linear-opsdesk --- */
+[data-page-style='linear-opsdesk'] .widget-shell,
+[data-page-style='linear-opsdesk'] .stat-card {
+  border-radius: 8px !important;
+  border: 2px solid var(--border) !important;
+  box-shadow: 3px 3px 0 var(--accent-dim) !important;
+}
+[data-page-style='linear-opsdesk'] .webae-nav-item--active {
+  border-radius: 6px !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}

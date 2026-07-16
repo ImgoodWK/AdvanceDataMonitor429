@@ -76,7 +76,7 @@ assets/textech/
 
 ## WebAE 前端 (`webae-frontend/`)
 
-React 18 + TS + antd 5 + Vite 5 + cytoscape.js；`npm run build` → `assets/textech/webae/`。规范见 `webae-frontend.mdc` / `webae-icon-performance.mdc`；页面/组件/hooks 索引见 `docs/zh/webae/开发者手册.md` §6。`pages/Diagnostics.tsx` + `useServerDiagnostics` 轮询 `/api/server/diagnostics`。设置外观/预设：`components/theme/ThemePreviewMini` + `ThemeOptionGrid`（iframe 缩略预览；61 配色 × 8 布局 × 59 页面样式）。`useIconPackAutoSync` 默认关闭（仅用户开启或设置页「同步整包」才 bulk）；`iconPrefetch.ts` 仅本地 IndexedDB 预热 + `fillMissingIconsFromServer` 可见补缺；图标 mode 活跃仅 `nei`（`iconModeFallbackChain`）。拓扑世界地图：`TopologyWorldMapView` + `WorldMapClusterPopup`/`WorldMapLegendRail`/`TopologyNodeDetailDrawer` + `useWorldMapTileLoader`/`useWorldMapProgress`/`useNonPassiveWheelZoom` + `WorldMapChunkStatusOverlay`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`。
+React 18 + TS + antd 5 + Vite 5 + cytoscape.js；`npm run build` → `assets/textech/webae/`。规范见 `webae-frontend.mdc` / `webae-icon-performance.mdc`；页面/组件/hooks 索引见 `docs/zh/webae/开发者手册.md` §6。`pages/Diagnostics.tsx` + `useServerDiagnostics` 轮询 `/api/server/diagnostics`。设置外观/预设：`components/theme/ThemePreviewMini` + `ThemeOptionGrid`（缩略预览；111 配色 × 30 布局 × 109 页面样式，含 batch3）。`useIconPackAutoSync` 默认关闭（仅用户开启或设置页「同步整包」才 bulk）；`iconPrefetch.ts` 仅本地 IndexedDB 预热 + `fillMissingIconsFromServer` 可见补缺；图标 mode 活跃仅 `nei`（`iconModeFallbackChain`）。拓扑世界地图：`TopologyWorldMapView` + `WorldMapClusterPopup`/`WorldMapLegendRail`/`TopologyNodeDetailDrawer` + `useWorldMapTileLoader`/`useWorldMapProgress`/`useNonPassiveWheelZoom` + `WorldMapChunkStatusOverlay`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`。
 
 ## 修改指南：改动某种功能时应该看哪些文件
 

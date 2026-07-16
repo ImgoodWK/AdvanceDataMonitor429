@@ -16,9 +16,9 @@ import fi.iki.elonen.NanoHTTPD;
  * GET /api/config — returns refreshIntervalMs / gtRefreshIntervalMs /
  * maxNetworksDisplayed / tokenLifetimeHours /
  * themePresets (legacy, mirrors themeColors) /
- * themeColors (classic + Phase 8 + composition companions + bold batch) /
- * themeLayouts (8 presets: standard/compact/wide/sidebar-right/topnav/bottomnav/floating/split-chrome) /
- * pageStyles (7 chrome + 12 + 20 bold + 20 batch2 composition styles) /
+ * themeColors (111: classic + Phase 8 + composition + bold + batch2 + batch3) /
+ * themeLayouts (30 presets: classic 8 + batch3 structural 22) /
+ * pageStyles (109: chrome + composition + bold + batch2 + batch3) /
  * debugFlags (Phase 3.3: per-feature server debug switches, read-only).
  *
  * Although the endpoint is "public" (no OP requirement), it still goes through
@@ -102,6 +102,56 @@ public class WebConfigHandler {
         themeColors.add("crt-green");
         themeColors.add("clay-terra");
         themeColors.add("prism-spectrum");
+        themeColors.add("notion-warm");
+        themeColors.add("figma-violet");
+        themeColors.add("spotify-green");
+        themeColors.add("discord-blurple");
+        themeColors.add("netflix-red");
+        themeColors.add("github-canvas");
+        themeColors.add("stripe-violet");
+        themeColors.add("openai-sage");
+        themeColors.add("tesla-crimson");
+        themeColors.add("uber-carbon");
+        themeColors.add("adobe-red");
+        themeColors.add("airbnb-rausch");
+        themeColors.add("switch-neon");
+        themeColors.add("aperture-orange");
+        themeColors.add("sheikah-cyan");
+        themeColors.add("valorant-red");
+        themeColors.add("persona-duo");
+        themeColors.add("teyvat-gold");
+        themeColors.add("nerv-purple");
+        themeColors.add("shell-teal");
+        themeColors.add("styx-laurel");
+        themeColors.add("edgerunner-yellow");
+        themeColors.add("hallownest-bone");
+        themeColors.add("celeste-dash");
+        themeColors.add("hextech-blue");
+        themeColors.add("mc-grass");
+        themeColors.add("eorzea-gold");
+        themeColors.add("kaer-morhen");
+        themeColors.add("engram-violet");
+        themeColors.add("ow-orange");
+        themeColors.add("acnh-leaf");
+        themeColors.add("stardew-spring");
+        themeColors.add("elden-gold");
+        themeColors.add("metroid-orange");
+        themeColors.add("smash-impact");
+        themeColors.add("terraria-night");
+        themeColors.add("ghibli-soft");
+        themeColors.add("nichirin-orange");
+        themeColors.add("jjk-navy");
+        themeColors.add("op-wanted");
+        themeColors.add("sxf-pastel");
+        themeColors.add("aot-green");
+        themeColors.add("sailor-pastel");
+        themeColors.add("monogatari-yellow");
+        themeColors.add("bebop-noir");
+        themeColors.add("frieren-mint");
+        themeColors.add("bocchi-pink");
+        themeColors.add("meshi-amber");
+        themeColors.add("nvidia-green");
+        themeColors.add("linear-indigo");
         List<String> themeLayouts = new ArrayList<String>();
         themeLayouts.add("standard");
         themeLayouts.add("compact");
@@ -111,6 +161,28 @@ public class WebConfigHandler {
         themeLayouts.add("bottomnav");
         themeLayouts.add("floating");
         themeLayouts.add("split-chrome");
+        themeLayouts.add("dual-rail");
+        themeLayouts.add("rail-only");
+        themeLayouts.add("dock");
+        themeLayouts.add("island");
+        themeLayouts.add("theater");
+        themeLayouts.add("dense-ops");
+        themeLayouts.add("magazine");
+        themeLayouts.add("split-pane");
+        themeLayouts.add("top-tabs");
+        themeLayouts.add("zen");
+        themeLayouts.add("command");
+        themeLayouts.add("tri-chrome");
+        themeLayouts.add("card-stack");
+        themeLayouts.add("hud-frame");
+        themeLayouts.add("pipeline");
+        themeLayouts.add("hero-header");
+        themeLayouts.add("status-strip");
+        themeLayouts.add("drawer-peek");
+        themeLayouts.add("corner-hub");
+        themeLayouts.add("widescreen");
+        themeLayouts.add("right-drawer");
+        themeLayouts.add("frame");
         List<String> pageStyles = new ArrayList<String>();
         pageStyles.add("classic");
         pageStyles.add("linear");
@@ -171,6 +243,56 @@ public class WebConfigHandler {
         pageStyles.add("retrocrit");
         pageStyles.add("terracotta");
         pageStyles.add("prism");
+        pageStyles.add("notion-paper");
+        pageStyles.add("figma-canvas");
+        pageStyles.add("spotify-now");
+        pageStyles.add("discord-guild");
+        pageStyles.add("netflix-stage");
+        pageStyles.add("github-primer");
+        pageStyles.add("stripe-ledger");
+        pageStyles.add("openai-atelier");
+        pageStyles.add("tesla-cockpit");
+        pageStyles.add("uber-dispatch");
+        pageStyles.add("adobe-spectrum");
+        pageStyles.add("airbnb-stay");
+        pageStyles.add("nintendo-switch");
+        pageStyles.add("portal-chamber");
+        pageStyles.add("zelda-sheikah");
+        pageStyles.add("valorant-spike");
+        pageStyles.add("persona-velvet");
+        pageStyles.add("genshin-teyvat");
+        pageStyles.add("evangelion-nerv");
+        pageStyles.add("ghost-shell");
+        pageStyles.add("hades-styx");
+        pageStyles.add("cyberpunk-edge");
+        pageStyles.add("hollow-knight");
+        pageStyles.add("celeste-summit");
+        pageStyles.add("lol-rift");
+        pageStyles.add("minecraft-craft");
+        pageStyles.add("ff14-scion");
+        pageStyles.add("witcher-path");
+        pageStyles.add("destiny-light");
+        pageStyles.add("overwatch-wp");
+        pageStyles.add("acnh-horizon");
+        pageStyles.add("stardew-farm");
+        pageStyles.add("elden-grace");
+        pageStyles.add("metroid-suit");
+        pageStyles.add("smash-blast");
+        pageStyles.add("terraria-torch");
+        pageStyles.add("ghibli-sky");
+        pageStyles.add("hashira-blade");
+        pageStyles.add("jjk-domain");
+        pageStyles.add("onepiece-log");
+        pageStyles.add("sxf-forger");
+        pageStyles.add("aot-survey");
+        pageStyles.add("sailor-crystal");
+        pageStyles.add("monogatari-pop");
+        pageStyles.add("bebop-jazz");
+        pageStyles.add("frieren-journey");
+        pageStyles.add("bocchi-stage");
+        pageStyles.add("meshi-feast");
+        pageStyles.add("nvidia-greenroom");
+        pageStyles.add("linear-opsdesk");
         StringBuilder sb = new StringBuilder();
         sb.append("{\"success\":true,\"config\":{");
         sb.append("\"refreshIntervalMs\":")
