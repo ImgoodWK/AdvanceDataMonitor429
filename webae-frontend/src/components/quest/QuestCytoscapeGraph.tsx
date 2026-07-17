@@ -14,9 +14,9 @@ import { useNonPassiveWheelZoom } from '@/hooks/useNonPassiveWheelZoom';
 import { TOPOLOGY_ZOOM_FACTOR, type TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
 import type { QuestLineEdgeDto, QuestLineNodeDto } from '@/types/dto';
 import type { QuestDisplaySettings } from '@/types/questDisplay';
-import { buildIconUrl, iconLookupIds } from '@/utils/icon';
+import { buildIconUrl, primaryIconId } from '@/utils/icon';
 import { getMcPrimaryColor, stripMcFormatting } from '@/utils/mcFormatting';
-import { questStateColor } from '@/components/quest/questUtils';
+import { questIconProps, questStateColor } from '@/components/quest/questUtils';
 
 const QUEST_MIN_ZOOM = 0.12;
 const QUEST_MAX_ZOOM = 6;
@@ -243,12 +243,11 @@ export const QuestCytoscapeGraph = forwardRef<QuestGraphHandle, QuestCytoscapeGr
         if (!node.questId || nodeIds.has(node.questId)) continue;
         nodeIds.add(node.questId);
         const color = questStateColor(node.state);
-        const ids = iconLookupIds({
-          itemId: node.iconItemId,
-          registryName: node.iconItemId,
+        const iconProps = questIconProps({
+          iconItemId: node.iconItemId,
           meta: node.iconMeta,
         });
-        const iconId = ids[0];
+        const iconId = iconProps ? primaryIconId(iconProps.item, iconProps.id) : '';
         const iconUrl =
           iconId && token
             ? buildIconUrl(iconId, iconPack, token, iconCacheEnabled, iconRenderMode)
@@ -513,8 +512,8 @@ export const QuestCytoscapeGraph = forwardRef<QuestGraphHandle, QuestCytoscapeGr
             height: '100%',
             minHeight: 360,
             borderRadius: 8,
-            border: '1px solid var(--border-color, #334155)',
-            background: 'var(--layout-canvas-bg, #0f172a)',
+            border: '1px solid var(--border, var(--border-color, rgba(128,128,128,0.25)))',
+            background: 'var(--layout-canvas-bg, var(--bg-primary))',
             touchAction: 'none',
             overscrollBehavior: 'contain',
           }}
@@ -530,13 +529,13 @@ export const QuestCytoscapeGraph = forwardRef<QuestGraphHandle, QuestCytoscapeGr
               maxWidth: 280,
               padding: '4px 8px',
               borderRadius: 6,
-              background: 'rgba(15, 23, 42, 0.92)',
-              border: '1px solid rgba(148, 163, 184, 0.45)',
-              color: '#e2e8f0',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border, rgba(128,128,128,0.35))',
+              color: 'var(--text-primary)',
               fontSize: 12,
               lineHeight: 1.35,
               pointerEvents: 'none',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',

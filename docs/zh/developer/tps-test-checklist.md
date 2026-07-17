@@ -8,7 +8,7 @@
 - [ ] **T-002** Mod 迁移：旧 `advancedatamonitor` 存档自动迁移
 - [ ] **T-003** 首次加入：新玩家获得铽丝科技手册
 - [ ] **T-004** 双语：zh/en lang 无缺失
-- [ ] **T-005** 命令：`/admai` `/admassistant` `/admweb` 正常
+- [ ] **T-005** 命令：`/textech` `/textech ai` `/textech assistant` `/textech web`（及旧别名 `/admai` `/admassistant` `/admweb`）正常
 
 ## 5.2 AE 监控链路（P0）
 

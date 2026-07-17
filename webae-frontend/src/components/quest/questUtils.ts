@@ -1,5 +1,5 @@
 import type { QuestLineEdgeDto, QuestLineNodeDto } from '@/types/dto';
-import { fluidIconId } from '@/utils/icon';
+import { FLUID_ID_PREFIX, fluidIconId } from '@/utils/icon';
 
 const STATE_COLORS: Record<string, string> = {
   LOCKED: '#64748b',
@@ -23,6 +23,30 @@ export type QuestIconSource = {
   displayName?: string | null;
 };
 
+function isFluidId(id?: string | null): boolean {
+  return Boolean(id?.startsWith(FLUID_ID_PREFIX));
+}
+
+function isGtFluidDisplay(registryName?: string | null): boolean {
+  return Boolean(registryName && registryName.indexOf('GregTech_FluidDisplay') >= 0);
+}
+
+/** Bake meta into itemId like RecipeItemEntries.buildItemId (recipe NEI path). */
+function buildItemIconId(
+  itemId?: string | null,
+  registryName?: string | null,
+  meta?: number | null
+): string | undefined {
+  const reg = (registryName || itemId || '').trim();
+  if (!reg || isFluidId(reg)) return undefined;
+  if (itemId && !isFluidId(itemId) && /:\d+$/.test(itemId)) {
+    return itemId;
+  }
+  const m = meta ?? 0;
+  if (m > 0) return `${reg}:${m}`;
+  return reg;
+}
+
 /**
  * Human-readable material label for submit conditions / AE stock rows.
  * Prefer localized {@code displayName} (e.g. GT fluid cell) over raw registry ids.
@@ -34,36 +58,57 @@ export function questMaterialLabel(
   if (!src) return fallback;
   if (src.displayName) return src.displayName;
   if (src.fluidName) return src.fluidName;
-  if (src.iconItemId?.startsWith('fluid:')) {
-    return src.iconItemId.slice('fluid:'.length);
+  if (src.iconItemId?.startsWith(FLUID_ID_PREFIX)) {
+    return src.iconItemId.slice(FLUID_ID_PREFIX.length);
   }
   return src.registryName || src.itemId || fallback;
 }
 
 /**
- * Icon props for quest UI: prefer display {@code iconItemId} (fluid: for cells),
- * then true fluid tasks, then item registry.
+ * Icon props for quest UI.
+ * <p>
+ * Node icons work via {@code { id: iconItemId }} — submit/detect rows must use the
+ * same primary path. Passing {@code item={registryName, meta}} alone can put bare
+ * {@code mod:id} first in {@code iconLookupIds} and show the wrong GT meta icon.
  */
 export function questIconProps(
   src: QuestIconSource | null | undefined
-): { id: string } | { item: { itemId?: string; registryName?: string; meta?: number } } | null {
+): { id?: string; item?: { itemId?: string; registryName?: string; meta?: number; displayName?: string } } | null {
   if (!src) return null;
-  if (src.iconItemId) {
+
+  const registryName = src.registryName || undefined;
+  const bakedItemId = buildItemIconId(src.itemId, registryName, src.meta);
+  const hasItemStack = Boolean(bakedItemId);
+  const fluidDisplay = isGtFluidDisplay(registryName);
+  const legacyFluidOnCell =
+    isFluidId(src.iconItemId) && hasItemStack && !fluidDisplay && !src.fluidName;
+
+  // Same as working node/header icons: prefer explicit cache id.
+  if (src.iconItemId && !legacyFluidOnCell) {
     return { id: src.iconItemId };
   }
+
+  if (src.fluidName && (!hasItemStack || fluidDisplay)) {
+    return { id: fluidIconId(src.fluidName) };
+  }
+
+  // Filled cell / item fallback (incl. ignoring legacy fluid: rewrite on cells)
+  if (bakedItemId) {
+    return {
+      id: bakedItemId,
+      item: {
+        itemId: bakedItemId,
+        registryName: registryName && !isFluidId(registryName) ? registryName : undefined,
+        meta: src.meta ?? undefined,
+        displayName: src.displayName ?? undefined,
+      },
+    };
+  }
+
   if (src.fluidName) {
     return { id: fluidIconId(src.fluidName) };
   }
-  const registryName = src.registryName || undefined;
-  const itemId = src.itemId || registryName;
-  if (!itemId && !registryName) return null;
-  return {
-    item: {
-      itemId: itemId || undefined,
-      registryName,
-      meta: src.meta ?? undefined,
-    },
-  };
+  return null;
 }
 
 /** Topological order of nodes in a line (prereqs first); tie-break by y then x. */

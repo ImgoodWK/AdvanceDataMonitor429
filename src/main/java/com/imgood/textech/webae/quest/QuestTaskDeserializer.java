@@ -324,11 +324,39 @@ public final class QuestTaskDeserializer {
             return;
         }
         try {
-            ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
+            ItemStack stack = loadStackFromBqOrVanillaNbt(tag);
             if (stack != null) {
                 fillItem(dto, stack);
             }
         } catch (Throwable ignored) {}
+    }
+
+    /**
+     * BQ stores string registry ids in NBT ({@code id: "mod:item"}); vanilla
+     * {@link ItemStack#loadItemStackFromNBT} expects a numeric id. Prefer BQ
+     * {@code BigItemStack.loadItemStackFromNBT} so Damage/meta survives.
+     */
+    private static ItemStack loadStackFromBqOrVanillaNbt(NBTTagCompound tag) {
+        if (tag == null) {
+            return null;
+        }
+        try {
+            Class<?> bigCls = Class.forName("betterquesting.api.utils.BigItemStack");
+            java.lang.reflect.Method load = bigCls.getMethod("loadItemStackFromNBT", NBTTagCompound.class);
+            Object big = load.invoke(null, tag);
+            if (big != null) {
+                Object stack = bigCls.getMethod("getBaseStack")
+                    .invoke(big);
+                if (stack instanceof ItemStack) {
+                    return (ItemStack) stack;
+                }
+            }
+        } catch (Throwable ignored) {}
+        try {
+            return ItemStack.loadItemStackFromNBT(tag);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     private static void readOreDictFromNbt(QuestTaskDto dto, NBTTagCompound tag) {
@@ -396,9 +424,12 @@ public final class QuestTaskDeserializer {
         dto.meta = meta;
         dto.itemId = RecipeItemEntries.buildItemId(dto.registryName, meta);
         applyItemDisplayName(dto, stack);
-        // Display only: filled fluid cells → fluid:xxx (same as recipe page). Do NOT set
-        // fluidName here — analyzer would treat the step as AE fluid inventory matching.
+        // FluidDisplay → fluid:xxx. Filled cells keep item silhouette (recipe NEI path).
         applyFluidIconFromStack(dto, stack);
+        // Always expose a display id for the frontend (same as node fillIcon).
+        if (dto.iconItemId == null || dto.iconItemId.isEmpty()) {
+            dto.iconItemId = dto.itemId;
+        }
     }
 
     private static void fillFluid(QuestTaskDto dto, FluidStack fs) {
@@ -436,12 +467,12 @@ public final class QuestTaskDeserializer {
         } catch (Throwable ignored) {}
     }
 
-    /** Prefer recipe-style {@code fluid:} icon when the item stack carries a fluid. */
+    /** Prefer {@code fluid:} only for GT FluidDisplay; cells keep {@code mod:id:meta}. */
     private static void applyFluidIconFromStack(QuestTaskDto dto, ItemStack stack) {
         if (dto == null || stack == null) {
             return;
         }
-        applyFluidIconName(dto, QuestFluidIconResolver.resolveFluidName(stack));
+        applyFluidIconName(dto, QuestFluidIconResolver.resolveFluidDisplayIconName(stack));
     }
 
     private static void applyFluidIconName(QuestTaskDto dto, String fluidName) {

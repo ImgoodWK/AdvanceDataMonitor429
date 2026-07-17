@@ -18,8 +18,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class CommandAIConfig extends TeXTechCommandBase {
 
-    private static final String[] ACTIONS = { "key", "model", "base", "provider", "network", "search", "searchkey",
-        "searchbase", "debug", "stream", "status", "clearkey", "help" };
+    private static final String[] ACTIONS = { "key", "model", "base", "provider", "network", "search", "search-key",
+        "searchKey", "search-base", "searchBase", "debug", "stream", "status", "clear-key", "clearKey", "help" };
     private static final String[] NETWORK_OPTIONS = { "on", "off", "toggle", "true", "false" };
     private static final String[] SEARCH_OPTIONS = { "on", "off", "toggle", "true", "false", "auto", "tavily_keyless",
         "duckduckgo", "tavily", "brave", "serper", "searxng" };
@@ -66,12 +66,13 @@ public class CommandAIConfig extends TeXTechCommandBase {
             return;
         }
 
-        String action = args[0].toLowerCase();
+        String action = normalizeAction(args[0]);
         switch (action) {
             case "key":
                 setKey(sender, args);
                 break;
             case "clearkey":
+            case "clear-key":
                 Config.setAiApiKey("");
                 sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admai.key_cleared");
                 break;
@@ -91,9 +92,11 @@ public class CommandAIConfig extends TeXTechCommandBase {
                 setWebSearch(sender, args);
                 break;
             case "searchkey":
+            case "search-key":
                 setSearchKey(sender, args);
                 break;
             case "searchbase":
+            case "search-base":
                 setSearchBase(sender, args);
                 break;
             case "debug":
@@ -111,26 +114,34 @@ public class CommandAIConfig extends TeXTechCommandBase {
         }
     }
 
+    /** Lowercase; map camelCase leftovers already covered by toLowerCase. */
+    private static String normalizeAction(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return raw.toLowerCase();
+    }
+
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (args.length == 1) {
             return getListOfStringsMatchingLastWord(args, ACTIONS);
         }
         if (args.length == 2) {
-            if ("model".equalsIgnoreCase(args[0])) {
+            String action = args[0].toLowerCase();
+            if ("model".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, MODELS);
             }
-            if ("base".equalsIgnoreCase(args[0])) {
+            if ("base".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, BASE_URLS);
             }
-            if ("provider".equalsIgnoreCase(args[0])) {
+            if ("provider".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, PROVIDERS);
             }
-            if ("network".equalsIgnoreCase(args[0]) || "debug".equalsIgnoreCase(args[0])
-                || "stream".equalsIgnoreCase(args[0])) {
+            if ("network".equals(action) || "debug".equals(action) || "stream".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, TOGGLE_OPTIONS);
             }
-            if ("search".equalsIgnoreCase(args[0])) {
+            if ("search".equals(action)) {
                 return getListOfStringsMatchingLastWord(args, SEARCH_OPTIONS);
             }
         }
@@ -187,7 +198,7 @@ public class CommandAIConfig extends TeXTechCommandBase {
             EnumChatFormatting.GREEN,
             "adm.command.admai.provider_search",
             Config.aiWebSearchMode,
-            Config.aiWebSearchEnabled ? " enabled" : " disabled");
+            Config.aiWebSearchEnabled ? statusEnabled() : statusDisabled());
     }
 
     private void setNetworkEnabled(ICommandSender sender, String[] args) {

@@ -12,7 +12,7 @@ import {
   filterNodeRows,
   flattenDevices,
   groupRowsByDeviceType,
-  resolveGroupType,
+  groupRowsByPodKind,
   topologyNodeLabel,
   type DeviceListNodeRow,
   type FlatDeviceRow,
@@ -60,6 +60,15 @@ const GROUP_I18N_KEYS: Record<string, string> = {
   quantum: 'topologyGroup_quantum',
   misc: 'topologyGroup_misc',
   spatial_bin: 'topologyGroup_spatial_bin',
+  access: 'topologyPod_access',
+  io: 'topologyPod_io',
+  craft: 'topologyPod_craft',
+  sense: 'topologyPod_sense',
+  tunnel: 'topologyPod_tunnel',
+  storage0: 'topologyPod_storage0',
+  craft0: 'topologyPod_craft0',
+  link0: 'topologyPod_link0',
+  power0: 'topologyPod_power0',
 };
 
 interface TopologyDeviceListProps {
@@ -241,16 +250,7 @@ export function TopologyDeviceList({
   );
 
   const deviceGroups = useMemo(() => groupRowsByDeviceType(deviceRows), [deviceRows]);
-  const nodeGroups = useMemo(
-    () =>
-      groupRowsByDeviceType(
-        nodeRows.map((row) => ({
-          ...row,
-          nodeType: resolveGroupType(row.node),
-        }))
-      ),
-    [nodeRows]
-  );
+  const nodeGroups = useMemo(() => groupRowsByPodKind(nodeRows), [nodeRows]);
 
   const scrollHeight = height - 88;
   const groupHeight = Math.max(120, Math.floor(scrollHeight / Math.max(1, Math.min(4, tab === 'devices' ? deviceGroups.length : nodeGroups.length))));

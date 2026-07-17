@@ -43,14 +43,14 @@ public class CommandWebConsole extends TeXTechCommandBase {
         "recipes", "icons", "refresh", "server", "worldmap", "wm", "defaults", "help", "admin" };
     private static final String[] RECIPES_ACTIONS = { "upload", "export", "status", "clear" };
     private static final String[] RECIPES_UPLOAD_SCOPES = { "snapshot", "deep" };
-    private static final String[] ICONS_ACTIONS = { "upload", "render", "verify", "import", "import-nesql", "modes",
-        "status", "clear" };
+    private static final String[] ICONS_ACTIONS = { "upload", "local", "pull", "render", "verify", "import",
+        "import-nesql", "modes", "status", "clear", "y", "n" };
     private static final String[] WORLDMAP_ACTIONS = { "upload", "accept", "status", "help" };
     private static final String[] WM_ACTIONS = { "y", "n", "up", "st", "help" };
     private static final String[] SERVER_ACTIONS = { "status", "restart" };
     private static final String[] DEFAULTS_ACTIONS = { "status", "install", "clear" };
     private static final String[] ADMIN_ACTIONS = { "issue", "list", "revoke", "rotate" };
-    private static final int HELP_LINES = 15;
+    private static final int HELP_LINES = 16;
 
     @Override
     public String getCommandName() {
@@ -1345,7 +1345,7 @@ public class CommandWebConsole extends TeXTechCommandBase {
             if ("recipes".equals(sub) && ("upload".equalsIgnoreCase(args[1]) || "export".equalsIgnoreCase(args[1]))) {
                 return filterTabCompletion(args, RECIPES_UPLOAD_SCOPES);
             }
-            if ("icons".equals(sub) && "upload".equalsIgnoreCase(args[1])) {
+            if ("icons".equals(sub) && ("upload".equalsIgnoreCase(args[1]) || "local".equalsIgnoreCase(args[1]))) {
                 // Only scope token; render mode is fixed to nei (no mode tab options).
                 return filterTabCompletion(args, new String[] { "snapshot" });
             }

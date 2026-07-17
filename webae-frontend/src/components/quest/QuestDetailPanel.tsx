@@ -9,6 +9,7 @@ import { McFormattedText } from '@/components/McFormattedText';
 import { QuestRelationList } from '@/components/quest/QuestRelationList';
 import { QuestSubmitPanel } from '@/components/quest/QuestSubmitPanel';
 import { QuestTaskRow } from '@/components/quest/QuestTaskRow';
+import { questIconProps } from '@/components/quest/questUtils';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import type { QuestDetailDto, QuestProgressEntryDto } from '@/types/dto';
@@ -154,9 +155,13 @@ export function QuestDetailPanel({
   ) : (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <Space align="start">
-        {detail.iconItemId ? (
-          <Icon item={{ itemId: detail.iconItemId, meta: detail.iconMeta }} size={40} />
-        ) : null}
+        {(() => {
+          const iconProps = questIconProps({
+            iconItemId: detail.iconItemId,
+            meta: detail.iconMeta,
+          });
+          return iconProps ? <Icon {...iconProps} size={40} /> : null;
+        })()}
         <div>
           <Tag color="blue">{detail.state}</Tag>
           {detail.mainQuest ? <Tag color="gold">{t('quest.main')}</Tag> : null}
@@ -222,20 +227,20 @@ export function QuestDetailPanel({
       </Title>
       {detail.rewards?.length ? (
         <div>
-          {detail.rewards.map((r) => (
+          {detail.rewards.map((r) => {
+            const rewardIcon = questIconProps({
+              iconItemId: r.iconItemId,
+              itemId: r.itemId,
+              registryName: r.registryName,
+              meta: r.meta,
+            });
+            return (
             <div
               key={r.rewardId ?? r.index}
               style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}
             >
-              {r.registryName ? (
-                <Icon
-                  item={{
-                    itemId: r.itemId ?? r.registryName,
-                    registryName: r.registryName,
-                    meta: r.meta,
-                  }}
-                  size={36}
-                />
+              {rewardIcon ? (
+                <Icon {...rewardIcon} size={36} />
               ) : (
                 <span
                   style={{
@@ -266,7 +271,8 @@ export function QuestDetailPanel({
                 ) : null}
               </div>
             </div>
-          ))}
+            );
+          })}
           <Text type="secondary" style={{ fontSize: 12 }}>
             {t('quest.claimInGame')}
           </Text>
@@ -303,8 +309,8 @@ export function QuestDetailPanel({
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderLeft: '1px solid var(--border-color, #334155)',
-        background: 'var(--layout-panel-bg, rgba(15,23,42,0.6))',
+        borderLeft: '1px solid var(--border, var(--border-color, rgba(128,128,128,0.25)))',
+        background: 'var(--layout-panel-bg, var(--bg-card))',
       }}
     >
       <div
@@ -314,7 +320,7 @@ export function QuestDetailPanel({
           justifyContent: 'space-between',
           gap: 8,
           padding: '10px 12px',
-          borderBottom: '1px solid var(--border-color, #334155)',
+          borderBottom: '1px solid var(--border, var(--border-color, rgba(128,128,128,0.25)))',
           flexShrink: 0,
         }}
       >

@@ -231,8 +231,8 @@ alwaysApply: false
 - `StandaloneVoskTranscriber.java` — Vosk 独立转录器
 - `PcmAudioUtil.java` / `WavEncoder.java` — 音频格式处理
 
-### loader/ — 注册加载器 (10 文件)
-- `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java`
+### loader/ — 注册加载器 (11 文件)
+- `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java` / `LoaderCommand.java`（服务端/客户端聊天命令：`/textech` 域分发 + 旧 `/adm*` 别名；Proxy 委托）
 - `ModMigrationHandler.java` — 存档迁移兼容处理（旧 modid `advancedatamonitor` → `textech`）
 
 ### client/ — 客户端事件与挂索/次元口袋客户端逻辑 (23 文件)
@@ -268,12 +268,12 @@ alwaysApply: false
 - `worldmap/WorldMapOrthoCamera.java` — **Phase 4** 正交/look-at 相机预设（flat + mineshot 风格 oblique 四向 orbit）
 
 ### command/ — 命令 (6 文件)
-- `TeXTechCommandBase.java` — 命令共享基类（i18n 发送、help 行渲染、OP/玩家校验、tab 过滤）
-- `CommandTeXTech.java` — `/textech help` 总索引（别名 `/adm`、`/txt`；服务端注册）
-- `CommandTeXTechClient.java` — 客户端版总索引（标注 `/admai` 可用）
-- `CommandAssistant.java` — `/admassistant` 词库热重载（服务端 + 客户端）
-- `CommandAIConfig.java` — `/admai` AI 本地配置（仅客户端；含 searchKey/searchBase/debug/stream）
-- `CommandWebConsole.java` — `/admweb` WebAE 令牌/配方/图标/世界地图/HTTP 服务；help 与 tab 补全经 lang `adm.command.admweb.*`；action 反馈复用 `adm.webconsole.*`
+- `TeXTechCommandBase.java` — 命令共享基类（i18n 发送、help 行渲染、OP/玩家校验、tab 过滤、`sliceArgs`）
+- `CommandTeXTech.java` — `/textech` 服务端分发（`web`/`assistant`/`help`；别名 `/adm`、`/txt`）
+- `CommandTeXTechClient.java` — 客户端分发（`ai`/`assistant`；`web` 提示服务端）
+- `CommandAssistant.java` — `/admassistant` 与 `/textech assistant` 词库热重载（`reload` / `reload-lexicon`）
+- `CommandAIConfig.java` — `/admai` 与 `/textech ai` AI 本地配置（仅客户端；kebab 别名 clear-key/search-key/search-base）
+- `CommandWebConsole.java` — `/admweb` 与 `/textech web` WebAE 令牌/配方/图标/世界地图/HTTP；help/tab 经 `adm.command.admweb.*`
 
 ### utils/ — 工具类 (14 文件)
 - `NBTDataHelper.java` / `NBTJsonParser.java` / `NBTJsonParserHelper.java` — NBT 与 JSON 互转
@@ -356,7 +356,7 @@ alwaysApply: false
 - `webae/quest/QuestDataCollector.java` — 任务只读采集门面
 - `webae/quest/QuestChainService.java` — 前置拓扑计划 + 同步链式提交（skipMissing）
 - `webae/quest/QuestChainOrchestrator.java` — 异步链式合成后提交 job 轮询
-- `webae/quest/QuestSubmitService.java` / `QuestCraftOrchestrator.java` / `QuestRequirementAnalyzer.java` / `QuestTaskDeserializer.java` / `QuestFluidIconResolver.java` / `QuestCacheStore.java` / `QuestSubmitLog.java` / `QuestInventoryEscrow.java` — 单任务提交/合成/分析/反序列化/流体单元展示图标解析（LegacyAe+FCR+GT FluidDisplay）/缓存/审计/AE 虚拟 escrow（lock/release/commit/超时退回）
+- `webae/quest/QuestSubmitService.java` / `QuestCraftOrchestrator.java` / `QuestRequirementAnalyzer.java` / `QuestTaskDeserializer.java` / `QuestFluidIconResolver.java` / `QuestFluidEquivalence.java` / `QuestCacheStore.java` / `QuestSubmitLog.java` / `QuestInventoryEscrow.java` — 单任务提交/合成/分析/反序列化/流体单元展示图标解析（LegacyAe+FCR+GT FluidDisplay）/流体↔单元等价（DETECT 加总、SUBMIT 空单元装填、真流体 partial drain）/缓存/审计/AE 虚拟 escrow（lock/lockPartial/appendLock/release/commit/超时退回；合成期预锁）
 - `webae/dto/Quest*.java` — 任务书 DTO（含 `QuestRelationDto`/`QuestChainPlanDto`/`QuestChainSubmitResultDto`；`QuestDetailDto` 含 `prerequisites[]`/`dependents[]`；图节点含 `iconItemId`/`mainQuest`/`ghost`）
 - `webae/api/handler/ServerHealthHandler.java` — 服务器健康 REST handler（`GET /api/server/health` TPS/MSPT/在线人数/300s 历史；参考 Phase 2）
 - `webae/api/handler/ServerDiagnosticsHandler.java` — 性能诊断 REST（`GET /api/server/diagnostics`：tick 分段、队列深度、快照采集、慢 HTTP、路由 Top、Config 摘要）
@@ -483,8 +483,8 @@ alwaysApply: false
 - `webae/topology/TopologyRules.java` — 细粒度 subtype 分类（含 `level_maintainer`）+ 频道 cost + tree/star 布局常量 + 64×64 spatial bin
 - `webae/topology/NetworkStatusEnumerator.java` — 与游戏内网络工具相同：`getMachinesClasses()` + `getMachineRepresentation()`；subtype 分类；驱动器槽位元件/样板计数
 - `webae/topology/TopologyFacilityGrouper.java` — 按 `subtype|representationItemId` 聚合（网络工具 merge-by-item parity）
-- `webae/topology/ChannelBranchAllocator.java` — 4×8 频道 smart 分支分配（同 subtype 优先同 branch）
-- `webae/topology/LogicalTopologyBuilder.java` — 树状拓扑（dense trunk + 4 smart branch + 终端上方/存储下方）+ `buildStar()` 双环语义坐标
+- `webae/topology/ChannelBranchAllocator.java` — 4×8 智能车道分配（podKind 偏好车道 + 同 subtype 优先；溢出标记 overflow）
+- `webae/topology/LogicalTopologyBuilder.java` — ae_budget_v2 频道预算树（dense 32 → 4×lane 8 → 角色舱 → 设备；零频道 hub orbit）+ `buildStar()` 双环摘要
 - `webae/topology/TopologySnapshotStore.java` — 磁盘持久化 `TeXTech/WebAE/topology/<owner>-<network>.json`（logical/spatial 分字段 + lastCaptureAt）
 - `webae/topology/NetworkDeviceEnumerator.java` — （legacy）`IGrid.getMachinesClasses()` 设备枚举
 - `webae/topology/SimulatedLayoutBuilder.java` — tree/star 模拟网格 + Manhattan pathPoints（仅 `topologySimulatedEnabled`）

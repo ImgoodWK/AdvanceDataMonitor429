@@ -772,6 +772,8 @@ export interface ServerConfig {
   questEnabled?: boolean;
   questSubmitEnabled?: boolean;
   questChainSubmitEnabled?: boolean;
+  /** When true, quest UI may count buckets/cans toward fluid/cell equivalence. */
+  questFluidAllContainersOption?: boolean;
   dashboardMaxTracksPerWidget?: number;
   dashboardMaxTracksGlobal?: number;
   dashboardMaxItemTracks?: number;
@@ -784,6 +786,7 @@ export interface QuestMetaDto {
   questEnabled: boolean;
   questSubmitEnabled: boolean;
   questChainSubmitEnabled?: boolean;
+  questFluidAllContainersOption?: boolean;
   modVersion: string;
   lineCount: number;
   standardExpansionLoaded: boolean;
@@ -842,7 +845,7 @@ export interface QuestTaskDto {
   meta?: number;
   /** Localized item/fluid name (e.g. GT filled cell); prefer for UI labels. */
   displayName?: string;
-  /** Display-only icon id (e.g. fluid:lava); does not affect submit matching. */
+  /** Display-only icon id (fluid: for FluidDisplay/true fluids; mod:id:meta for cells). */
   iconItemId?: string;
   required: number;
   progress: number;
@@ -861,6 +864,8 @@ export interface QuestRewardDto {
   itemId?: string;
   registryName?: string;
   meta?: number;
+  /** Display-only icon id (fluid: for FluidDisplay; mod:id:meta for cells). */
+  iconItemId?: string;
   amount: number;
 }
 
@@ -921,6 +926,11 @@ export interface QuestAnalysisStepDto {
   fluidAvailable?: number;
   fluidRemaining?: number;
   fluidMissing?: number;
+  fluidFromFreeMb?: number;
+  fluidFromCellsMb?: number;
+  fluidCellTask?: boolean;
+  emptyCellAvailable?: number;
+  fluidCellCapacityMb?: number;
 }
 
 export interface QuestAnalysisDto {
@@ -1078,6 +1088,17 @@ export interface TopologyMetaDto {
   renderLayout?: string;
   channelTierHint?: string;
   layoutUnitPx?: number;
+  channelModel?: string;
+  lanes?: TopologyLaneInfoDto[];
+  orbitCounts?: Record<string, number>;
+}
+
+export interface TopologyLaneInfoDto {
+  index: number;
+  used: number;
+  max: number;
+  overflow?: boolean;
+  primaryPodKinds?: string[];
 }
 
 export interface TopologyChannelInfoDto {
@@ -1099,6 +1120,10 @@ export interface TopologyNodeDto {
   layoutY: number;
   layoutSector?: string;
   branchIndex?: number;
+  /** ae_budget_v2: hub | trunk | lane | pod | device | orbit */
+  layer?: string;
+  podKind?: string;
+  parentId?: string;
   patternCount?: number;
   simGridX?: number;
   simGridY?: number;
@@ -1154,8 +1179,11 @@ export interface TopologyEdgeDto {
   from: string;
   to: string;
   cableType?: 'smart' | 'covered' | 'dense' | string;
+  /** capacity_trunk | capacity_lane | pod_uplink | device_link | orbit_link */
+  kind?: string;
   branchIndex?: number;
   emptyBranch?: boolean;
+  overflow?: boolean;
   channelsSimulated?: TopologyChannelInfoDto;
   channelsReal?: TopologyChannelInfoDto;
   pathPoints?: { x: number; y: number }[];

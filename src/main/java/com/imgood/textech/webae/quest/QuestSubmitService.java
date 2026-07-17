@@ -37,7 +37,12 @@ public final class QuestSubmitService {
 
     public static QuestSubmitResultDto submit(String ownerUuid, int networkId, String questId, boolean dryRun,
         List<Integer> stepFilter) {
-        return submitInternal(ownerUuid, networkId, questId, dryRun, stepFilter, null);
+        return submit(ownerUuid, networkId, questId, dryRun, stepFilter, false);
+    }
+
+    public static QuestSubmitResultDto submit(String ownerUuid, int networkId, String questId, boolean dryRun,
+        List<Integer> stepFilter, boolean includeAllFluidContainers) {
+        return submitInternal(ownerUuid, networkId, questId, dryRun, stepFilter, null, includeAllFluidContainers);
     }
 
     /**
@@ -47,11 +52,16 @@ public final class QuestSubmitService {
      */
     public static QuestSubmitResultDto submitFromEscrow(String ownerUuid, int networkId, String questId,
         String escrowId, List<Integer> stepFilter) {
-        return submitInternal(ownerUuid, networkId, questId, false, stepFilter, escrowId);
+        return submitFromEscrow(ownerUuid, networkId, questId, escrowId, stepFilter, false);
+    }
+
+    public static QuestSubmitResultDto submitFromEscrow(String ownerUuid, int networkId, String questId,
+        String escrowId, List<Integer> stepFilter, boolean includeAllFluidContainers) {
+        return submitInternal(ownerUuid, networkId, questId, false, stepFilter, escrowId, includeAllFluidContainers);
     }
 
     private static QuestSubmitResultDto submitInternal(String ownerUuid, int networkId, String questId, boolean dryRun,
-        List<Integer> stepFilter, String escrowId) {
+        List<Integer> stepFilter, String escrowId, boolean includeAllFluidContainers) {
         QuestSubmitResultDto result = new QuestSubmitResultDto();
         result.questId = questId;
         result.dryRun = dryRun;
@@ -86,8 +96,9 @@ public final class QuestSubmitService {
             return result;
         }
 
+        boolean includeAll = QuestFluidEquivalence.resolveIncludeAll(includeAllFluidContainers);
         QuestDetailDto detail = QuestDataCollector.collectQuestDetail(questId, player);
-        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail, includeAll);
         UUID questingUuid = BqQuestingIdentity.resolveQuestingUuid(player);
         IGrid grid = WebAeOwnerContext.getGrid(ownerUuid, networkId);
         IStorageGrid storageGrid = grid != null ? grid.getCache(IStorageGrid.class) : null;
@@ -101,7 +112,12 @@ public final class QuestSubmitService {
         // Scenario C / B: lock DETECT+SUBMIT remaining into escrow when enabled and not dry-run.
         if (!dryRun && escrow == null && Config.webQuestEscrowEnabled && hasLockableSteps(analysis, stepFilter)) {
             List<QuestAnalysisStepDto> lockSteps = filterSteps(analysis.steps, stepFilter);
-            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(ownerUuid, networkId, player, lockSteps);
+            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
+                ownerUuid,
+                networkId,
+                player,
+                lockSteps,
+                includeAll);
             if (!lock.success) {
                 result.success = false;
                 result.message = lock.message != null ? lock.message : "Escrow lock failed";
@@ -184,13 +200,21 @@ public final class QuestSubmitService {
                         boolean ok;
                         if (escrow != null) {
                             FluidStack fromEscrow = takeFluidFromEscrow(escrow, step.fluidName, step.fluidRemaining);
-                            ok = fromEscrow != null && task != null && BqApiFacade.submitFluidTask(
-                                task,
-                                player,
-                                questingUuid,
-                                qUuid,
-                                quest,
-                                fromEscrow);
+                            if (fromEscrow == null || task == null) {
+                                ok = false;
+                            } else {
+                                FluidStack leftover = BqApiFacade.submitFluidTaskLeftover(
+                                    task,
+                                    player,
+                                    questingUuid,
+                                    qUuid,
+                                    quest,
+                                    fromEscrow);
+                                if (leftover != null && leftover.amount > 0) {
+                                    returnFluidToEscrow(escrow, leftover);
+                                }
+                                ok = leftover == null || leftover.amount <= 0;
+                            }
                         } else {
                             ok = fluid != null && task != null && submitFluidFromAe(
                                 player,
@@ -239,13 +263,21 @@ public final class QuestSubmitService {
                         if (escrow != null) {
                             ItemStack fromEscrow = takeItemFromEscrow(escrow, step.registryName, step.meta,
                                 step.remaining);
-                            ok = fromEscrow != null && task != null && BqApiFacade.submitItemTask(
-                                task,
-                                player,
-                                questingUuid,
-                                qUuid,
-                                quest,
-                                fromEscrow);
+                            if (fromEscrow == null || task == null) {
+                                ok = false;
+                            } else {
+                                ItemStack leftover = BqApiFacade.submitItemTaskLeftover(
+                                    task,
+                                    player,
+                                    questingUuid,
+                                    qUuid,
+                                    quest,
+                                    fromEscrow);
+                                if (leftover != null && leftover.stackSize > 0) {
+                                    returnItemToEscrow(escrow, leftover);
+                                }
+                                ok = leftover == null || leftover.stackSize <= 0;
+                            }
                         } else {
                             ok = proto != null && task != null && submitItemFromAe(
                                 player,
@@ -317,14 +349,19 @@ public final class QuestSubmitService {
     }
 
     public static QuestSubmitResultDto detectOnly(String ownerUuid, String questId) {
-        return detectOnly(ownerUuid, questId, 0);
+        return detectOnly(ownerUuid, questId, 0, false);
+    }
+
+    public static QuestSubmitResultDto detectOnly(String ownerUuid, String questId, int networkId) {
+        return detectOnly(ownerUuid, questId, networkId, false);
     }
 
     /**
      * DETECT-only path. When {@code networkId} resolves and escrow is enabled, completes Retrieval via AE
      * hold (lock → completeRetrieval → release). Otherwise falls back to legacy {@code detect(player)}.
      */
-    public static QuestSubmitResultDto detectOnly(String ownerUuid, String questId, int networkId) {
+    public static QuestSubmitResultDto detectOnly(String ownerUuid, String questId, int networkId,
+        boolean includeAllFluidContainers) {
         QuestSubmitResultDto result = new QuestSubmitResultDto();
         result.questId = questId;
         result.dryRun = false;
@@ -349,7 +386,8 @@ public final class QuestSubmitService {
         if (Config.webQuestEscrowEnabled && WebAeOwnerContext.getGrid(ownerUuid, networkId) != null) {
             List<Integer> detectSteps = detectStepFilter(questId, player);
             if (!detectSteps.isEmpty()) {
-                return submitInternal(ownerUuid, networkId, questId, false, detectSteps, null);
+                return submitInternal(ownerUuid, networkId, questId, false, detectSteps, null,
+                    includeAllFluidContainers);
             }
         }
 
@@ -385,6 +423,35 @@ public final class QuestSubmitService {
         if (task == null) {
             return false;
         }
+        // Item / fluid-cell DETECT first (cell tasks may also carry fluidName for display — prefer item path).
+        if (step.registryName != null && !step.registryName.isEmpty()) {
+            if (step.missing > 0 && escrow == null) {
+                return false;
+            }
+            ItemStack proto = stackFromKey(step.registryName, step.meta);
+            if (proto == null) {
+                return false;
+            }
+            long amount = step.remaining > 0 ? step.remaining : Math.max(1L, step.required);
+            if (step.fluidCellTask && escrow != null) {
+                long fromItems = QuestInventoryEscrow.countItemInSession(escrow, step.registryName, step.meta);
+                int cap = step.fluidCellCapacityMb > 0 ? step.fluidCellCapacityMb : 1000;
+                String fluidName = QuestFluidIconResolver.resolveFluidName(proto);
+                long fromFluid = 0L;
+                if (fluidName != null) {
+                    fromFluid = QuestInventoryEscrow.countFluidInSession(escrow, fluidName) / cap;
+                }
+                long equiv = fromItems + fromFluid;
+                if (equiv < amount) {
+                    return false;
+                }
+                // BQ retrieveItems needs an ItemStack; use real+synthetic filled cells for the full amount.
+                proto.stackSize = (int) Math.min(Integer.MAX_VALUE, Math.max(1L, amount));
+                return BqApiFacade.completeRetrievalTask(task, player, questingUuid, questId, quest, proto, null);
+            }
+            proto.stackSize = (int) Math.min(Integer.MAX_VALUE, Math.max(1L, amount));
+            return BqApiFacade.completeRetrievalTask(task, player, questingUuid, questId, quest, proto, null);
+        }
         if (step.fluidName != null && !step.fluidName.isEmpty()) {
             if (step.fluidMissing > 0 && escrow == null) {
                 return false;
@@ -395,18 +462,6 @@ public final class QuestSubmitService {
                 return false;
             }
             return BqApiFacade.completeRetrievalTask(task, player, questingUuid, questId, quest, null, fluid);
-        }
-        if (step.registryName != null && !step.registryName.isEmpty()) {
-            if (step.missing > 0 && escrow == null) {
-                return false;
-            }
-            ItemStack proto = stackFromKey(step.registryName, step.meta);
-            if (proto == null) {
-                return false;
-            }
-            long amount = step.remaining > 0 ? step.remaining : Math.max(1L, step.required);
-            proto.stackSize = (int) Math.min(Integer.MAX_VALUE, Math.max(1L, amount));
-            return BqApiFacade.completeRetrievalTask(task, player, questingUuid, questId, quest, proto, null);
         }
         // Checkbox / empty retrieval — complete by UUID.
         return BqApiFacade.completeRetrievalTask(task, player, questingUuid, questId, quest, null, null);
@@ -462,7 +517,7 @@ public final class QuestSubmitService {
             if (!registryName.equals(name)) {
                 continue;
             }
-            if (meta > 0 && held.getItemDamage() != meta) {
+            if (held.getItemDamage() != meta) {
                 continue;
             }
             int take = (int) Math.min(need, held.stackSize);
@@ -479,6 +534,20 @@ public final class QuestSubmitService {
             }
         }
         return need <= 0 ? collected : null;
+    }
+
+    private static void returnItemToEscrow(QuestInventoryEscrow.Session escrow, ItemStack stack) {
+        if (escrow == null || stack == null || stack.stackSize <= 0) {
+            return;
+        }
+        for (ItemStack held : escrow.items) {
+            if (held != null && held.getItem() == stack.getItem() && held.getItemDamage() == stack.getItemDamage()
+                && ItemStack.areItemStackTagsEqual(held, stack)) {
+                held.stackSize += stack.stackSize;
+                return;
+            }
+        }
+        escrow.items.add(stack.copy());
     }
 
     private static FluidStack takeFluidFromEscrow(QuestInventoryEscrow.Session escrow, String fluidName, long amount) {
@@ -510,6 +579,19 @@ public final class QuestSubmitService {
             }
         }
         return need <= 0 ? collected : null;
+    }
+
+    private static void returnFluidToEscrow(QuestInventoryEscrow.Session escrow, FluidStack fluid) {
+        if (escrow == null || fluid == null || fluid.amount <= 0) {
+            return;
+        }
+        for (FluidStack held : escrow.fluids) {
+            if (held != null && held.isFluidEqual(fluid)) {
+                held.amount += fluid.amount;
+                return;
+            }
+        }
+        escrow.fluids.add(fluid.copy());
     }
 
     private static void applyDryRunOutcome(QuestSubmitStepResultDto stepResult, QuestAnalysisStepDto step,
@@ -564,7 +646,18 @@ public final class QuestSubmitService {
         if (stack == null) {
             return false;
         }
-        return BqApiFacade.submitItemTask(task, player, questingUuid, questId, quest, stack);
+        ItemStack leftover = BqApiFacade.submitItemTaskLeftover(task, player, questingUuid, questId, quest, stack);
+        if (leftover != null && leftover.stackSize > 0) {
+            IAEItemStack back = AEApi.instance()
+                .storage()
+                .createItemStack(leftover);
+            if (back != null) {
+                storageGrid.getItemInventory()
+                    .injectItems(back, Actionable.MODULATE, source);
+            }
+            return false;
+        }
+        return true;
     }
 
     private static boolean submitFluidFromAe(EntityPlayerMP player, IStorageGrid storageGrid, PlayerSource source,
@@ -584,7 +677,18 @@ public final class QuestSubmitService {
         if (fs == null) {
             return false;
         }
-        return BqApiFacade.submitFluidTask(task, player, questingUuid, questId, quest, fs);
+        FluidStack leftover = BqApiFacade.submitFluidTaskLeftover(task, player, questingUuid, questId, quest, fs);
+        if (leftover != null && leftover.amount > 0) {
+            IAEFluidStack back = AEApi.instance()
+                .storage()
+                .createFluidStack(leftover);
+            if (back != null) {
+                storageGrid.getFluidInventory()
+                    .injectItems(back, Actionable.MODULATE, source);
+            }
+            return false;
+        }
+        return true;
     }
 
     private static ItemStack stackFromKey(String registryName, int meta) {

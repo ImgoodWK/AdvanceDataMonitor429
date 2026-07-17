@@ -34,7 +34,7 @@
   - [11.14 Configurable Storage Overview & Standalone CPU Page (Phase 3)](#1114-configurable-storage-overview--standalone-cpu-page-phase-3)
   - [11.15 Configurable Power Page & Anti-Flicker (Phase 4)](#1115-configurable-power-page--anti-flicker-phase-4)
   - [11.16 Sci-Fi Themes + Chart Animations + Icon Rendering (Phase 8)](#1116-sci-fi-themes--chart-animations--icon-rendering-phase-8)
-  - [11.17 Network Topology](#1117-network-topology-treedouble-ring--disk-persistence)
+  - [11.17 Network Topology](#1117-network-topology-channel-lanes-ae_budget_v2--disk-persistence)
   - [11.18 Page Visibility Polling (Phase 4b)](#1118-page-visibility-polling-phase-4b)
   - [11.26 World Map View](#1126-world-map-view-phase-ab--ae-overlay)
 - [12. Frontend Resources](#12-frontend-resources)
@@ -171,15 +171,21 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `worldMapChunkPadding` | int | `1` | 0-4 | Chunk padding for cross-boundary snapshots (1 = 3×3) |
 | `worldMapTextureCacheMax` | int | `2048` | 256-8192 | UV/ray block texture LRU cap |
 | `worldMapRayBudgetPerTick` | int | `1` | 1-32 | Per-tick chunk budget for oblique ray renders |
+| `worldMapRenderThreads` | int | `0` | 0-32 | Background tile render threads; `0` = auto (CPU cores / 2, min 1) |
 | `worldMapMaxRayDepth` | int | `3` | 1-8 | Max transparent layers per ray pixel |
 | `worldMapLowTierObliqueEngine` | string | `legacy` | — | low/medium tier oblique fallback: `legacy` / `ray` |
+| `worldMapZoomBudgetPerTick` | int | `4` | 1-64 | Max parent zoom tile syntheses per server tick |
+| `worldMapBlockPatchesEnabled` | boolean | `true` | — | Enable JSON/built-in block patches for oblique ray (stairs, slabs, GT) |
+| `worldMapServerAtlasEnabled` | boolean | `true` | — | Bake server block-face textures into one atlas grid |
+| `worldMapServerAtlasPx` | int | `2048` | 256-4096 | Server atlas edge length in px (multiple of 16) |
 | `questEnabled` | boolean | `true` | — | Enable BetterQuesting quest book page and read APIs (no-op without BQ) |
 | `questSubmitEnabled` | boolean | `true` | — | Allow Web item/fluid submit from AE |
 | `questChainSubmitEnabled` | boolean | `true` | — | Allow chain submit (walk prerequisites; optional craft-then-submit) |
 | `questSubmitMaxStacks` | int | `64` | 1-512 | Max distinct item stacks per submit |
 | `questCraftWaitTimeoutMs` | int | `120000` | 5000-600000 | Craft-then-submit / chain craft wait timeout (ms) |
-| `questEscrowEnabled` | boolean | `true` | — | AE virtual escrow: lock stacks before submit/detect; return on Retrieval success or failure |
+| `questEscrowEnabled` | boolean | `true` | — | AE virtual escrow: lock before submit/detect; craft path pre-locks available and appendLocks on craft complete |
 | `questEscrowTimeoutMs` | int | `120000` | 5000-600000 | Escrow session timeout (ms); auto-return locked stacks to AE |
+| `questFluidAllContainersOption` | boolean | `false` | — | When true, Web UI may count all fluid containers toward equivalence; when false, only GT/IC2 cells |
 | `questCacheTtlSec` | int | `300` | 30-3600 | Quest-line definition cache TTL (seconds); progress ~1/10 |
 
 **GTNH / large-pack TPS-friendly defaults** (first-time cfg generation; values below thresholds are overridden in memory at startup with a WARN, not written back to disk):
@@ -280,7 +286,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/network/metrics/fluids?network=<id>&fluids=water,lava` | Yes | No | Pinned fluid amount trends (limits via `dashboardMaxFluidTracks` / per-request `dashboardMaxTracksPerWidget`) |
 | GET | `/api/network/metrics/items?network=<id>&items=mod:item,...` | Yes | No | Pinned item amount trends (missing in AE → 0; limits via cfg) |
 | GET | `/api/network/metrics/entities?network=<id>&entities=cpu:Name,gt:0:1:2:3&fields=...` | Yes | No | Pinned CPU/GT numeric trends (default `craftingProgress` / `progressPercent`) |
-| GET | `/api/network/topology?network=<id>&mode=logical\|spatial` | Yes | No | AE network topology graph (simulated star fake cables + channels; `logical` groups by device class, `spatial` bins by dimension + 64×64 chunks; TTL via `topologyCacheTtlMs`; returns 503 when `topologyEnabled=false`) |
+| GET | `/api/network/topology?network=<id>&mode=logical\|spatial` | Yes | No | AE network topology graph (logical=`ae_budget_v2` channel budget: dense 32→4×smart 8 + role pods; spatial=spatial bins; not real cabling; TTL via `topologyCacheTtlMs`; 503 when `topologyEnabled=false`) |
 | GET | `/api/network/cells?network=<id>` | Yes | No | Network cell byte summary + infinite cell detection (I5); **HTTP cache-only** |
 | GET | `/api/network/balance?networks=0,1&minSurplus=&minShortage=&limit=` | Yes | No | Cross-network storage balance suggestions (read-only; compares cached snapshots; Phase 8) |
 | GET | `/api/network/p2p?network=<id>` | Yes | No | P2P tunnel map by frequency (Phase 10; requires `topologyEnabled`); **HTTP cache-only** |
@@ -307,20 +313,25 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/quests/progress` | Yes | No | Full progress snapshot (includes `updatedAt`) |
 | GET | `/api/quests/search?q=` | Yes | No | Search quests by name (max 50) |
 | GET | `/api/quests/{id}` | Yes | No | Quest detail (`tasks`/`rewards` from BQ int-keyed `DBEntry` TaskStorage/RewardStorage; `requirementQuestIds`; `prerequisites[]`/`dependents[]` with name, lineId, state, requirementType) |
-| GET | `/api/quests/{id}/analysis?network=` | Yes | No | AE stock vs task step analysis |
-| GET | `/api/quests/{id}/chain-plan?network=` | Yes | No | Chain-submit topological plan |
-| POST | `/api/quests/{id}/detect` | Yes | No | Retrieval hold-detect; optional body `{networkId}`; with AE uses escrow + offline completeRetrieval (guest 403) |
-| POST | `/api/quests/{id}/submit` | Yes | No | Submit items/fluids; body `{networkId,dryRun,steps?}`; locks via escrow when enabled (guest 403) |
-| POST | `/api/quests/{id}/submit-craft` | Yes | No | Craft missing then submit; job.phase includes `crafting`/`locking`/`escrow_failed`/`done` (guest 403) |
-| POST | `/api/quests/{id}/submit-chain` | Yes | No | Chain submit; body `{networkId,dryRun,skipMissing,craftMissing}`; needs `questChainSubmitEnabled` |
+| GET | `/api/quests/{id}/analysis?network=` | Yes | No | AE stock vs task step analysis; optional `includeAllFluidContainers=true` |
+| GET | `/api/quests/{id}/chain-plan?network=` | Yes | No | Chain-submit topological plan; optional `includeAllFluidContainers` |
+| POST | `/api/quests/{id}/detect` | Yes | No | Retrieval hold-detect; optional body `{networkId,includeAllFluidContainers}`; with AE uses escrow + offline completeRetrieval (guest 403) |
+| POST | `/api/quests/{id}/submit` | Yes | No | Submit items/fluids; body `{networkId,dryRun,steps?,includeAllFluidContainers?}`; locks via escrow when enabled (guest 403) |
+| POST | `/api/quests/{id}/submit-craft` | Yes | No | Craft missing then submit; pre-lock then appendLock; job.phase includes `crafting`/`locking`/`escrow_failed`/`done` (guest 403) |
+| POST | `/api/quests/{id}/submit-chain` | Yes | No | Chain submit; body `{networkId,dryRun,skipMissing,craftMissing,includeAllFluidContainers?}`; needs `questChainSubmitEnabled` |
 | GET | `/api/quests/submit-jobs/{jobId}` | Yes | No | Poll craft-then-submit job |
 | GET | `/api/quests/chain-jobs/{jobId}` | Yes | No | Poll chain-submit job |
 
-Quest submit internals: `webae/quest/QuestInventoryEscrow` (AE virtual lock/release/commit/timeout), `QuestSubmitService` (DETECT via `BqApiFacade.completeRetrievalTask`, no FakePlayer QuestCache), `QuestCraftOrchestrator`/`QuestChainOrchestrator` (after craft, phase=`locking` then `submitFromEscrow`). Progress is written for the Token owner only; party members are not synced.
+Quest submit internals: `QuestFluidEquivalence` (fluid↔cell equivalence), `QuestInventoryEscrow` (lock/lockPartial/appendLock/release/commit/timeout), `QuestSubmitService` (DETECT via `completeRetrievalTask`; cell DETECT may use synthetic stacks from free fluid), `QuestCraftOrchestrator`/`QuestChainOrchestrator` (pre-lock → appendLock → `submitFromEscrow`). Progress is written for the Token owner only; party members are not synced.
 
 `QuestTaskDeserializer`: `bq_standard:retrieval` + `consume=true` → web action **SUBMIT** (symmetric to fluid `bq_standard:fluid` + `consume=true`); hold-detect retrieval/fluid use `consume=false` → **DETECT**. `BqApiFacade.completeRetrievalTask` refuses the `forceComplete` fallback when `consume=true`; those tasks must go through `submitItem`/`submitFluid` + escrow commit.
 
-Fluid-cell display (`iconItemId` + `displayName` — does **not** change submit matching): `QuestFluidIconResolver` tries LegacyAe → FCR → GT `GregTech_FluidDisplay` (damage = FluidRegistry ID) → optional `GTUtility.getFluidForFilledItem`, then sets `iconItemId=fluid:<name>` (same path as the recipe page). Tasks/analysis steps also get `displayName` from `ItemStack.getDisplayName()` / `FluidStack.getLocalizedName()` (e.g. GT filled cell “Oxygen Cell”); frontend `questMaterialLabel` prefers it for submit-condition and AE-stock text so rows are not only `gregtech:gt.metaitem.01`. Covers the two common GTNH forms — `IC2:itemCellEmpty`+Damage filled cells and `gregtech:gt.GregTech_FluidDisplay`. `BqApiFacade.fillIcon` (line/node/detail header icons) uses the same resolver; non-fluids keep meta via `RecipeItemEntries.buildItemId`. True `requiredFluids` tasks set both `fluidName` and `iconItemId`. Frontend `questIconProps` prefers `iconItemId`.
+Fluid/cell equivalence (`QuestFluidEquivalence`; GT/IC2 by default; `questFluidAllContainersOption` + request flag expands to all FCR containers):
+- **DETECT (item cell)**: filled cells + `floor(free mB / capacity)`; escrow real cells + fluid; BQ gets synthetic filled stacks.
+- **SUBMIT (item cell)**: prefer filled cells; else empty + fluid fill; free fluid alone is not enough.
+- **True fluid tasks**: available = free + cell mB; drain needed mB from cells first; return empty cell + remainder fluid.
+
+Fluid-cell display (`iconItemId` + `displayName`): filled cells keep `mod:id:meta`. Only FluidDisplay and true `requiredFluids` set `iconItemId=fluid:<name>`.
 
 Local WebAE QA: the first BetterQuesting tab from dev fixtures is **WebAE Test Lab** (`dev-fixtures/betterquesting/`, tracked in Git, **not** packed into the mod jar; see that folder’s `README-dev.md`).
 
@@ -767,13 +778,20 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - F: when NEI unavailable, enumerate meta variants via `Item.getSubItems`
   - G: `IconRenderGuard` resets Tessellator after each slot/page/GL fallback; `IconLazyRenderQueue` throttles lazy load to 2/tick
 
-### 11.17 Network Topology (tree/double-ring + disk persistence)
+### 11.17 Network Topology (channel lanes ae_budget_v2 + disk persistence)
 
-- **Package**: `webae/topology/` — `NetworkStatusEnumerator` (network-tool parity + subtype classification + drive pattern counts), `TopologyRules` (fine-grained subtypes), `TopologyFacilityGrouper` (`subtype|itemId` groups), `ChannelBranchAllocator` (4×8 smart branches), `LogicalTopologyBuilder` (tree dense→smart fork + `buildStar()` double-ring semantics), `TopologySnapshotStore` (`TeXTech/WebAE/topology/<owner>-<network>.json`), `CraftingCpuTopologyCollector`, `SimulatedLayoutBuilder` (Manhattan `pathPoints`), `TopologySnapshot`, `TopologyCache` (cold-start disk load + cooldown survives restart)
-- **Logical layout**: Controller hub; terminals/WAP/security above; Energy Cell/Acceptor west/east; dense trunk (32ch) → 4× smart branches (8ch each); Drive/Chest/IO/CPU/Quantum direct to controller (0 channels); edges carry `branchIndex` for coloring
-- **Node DTO**: `subtype`, `patternCount`, `patternSlots[]`, `branchIndex`, `layoutSector`; drive icon badge for pattern count
-- **Frontend**: `TopologyCytoscapeGraph` (cytoscape.js tree/star/spatial; legacy `TopologyGraphSvg` fallback); `TopologySimulatedView`/`TopologyDeviceList`/`TopologySettingsDrawer`; 4th view `worldMap`: `TopologyWorldMapView` + `WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay` (`useWorldMapTileLoader`/`useWorldMapProgress`)
-- **REST**: `GET /api/network/topology` (read disk/memory snapshot, no auto-rebuild); `POST /api/network/topology/snapshot?force=1` (OP forced capture)
+- **Package**: `webae/topology/` — `NetworkStatusEnumerator` (network-tool parity + subtype classification + drive pattern counts), `TopologyRules` (fine subtypes + `podKind`/`layer`), `TopologyFacilityGrouper` (`subtype|itemId` groups), `ChannelBranchAllocator` (4×8 smart lanes; subtype/podKind preference; overflow marked), `LogicalTopologyBuilder` (**ae_budget_v2** channel-budget tree: dense trunk 32 → 4× smart lane 8 → role pods → devices; zero-channel hub orbit; `buildStar()` double-ring summary still available), `TopologySnapshotStore` (`TeXTech/WebAE/topology/<owner>-<network>.json`), `CraftingCpuTopologyCollector`, `SimulatedLayoutBuilder` (deprecated Manhattan `pathPoints`), `TopologySnapshot`, `TopologyCache`
+- **Intent**: **Channel capacity planning diagram**, not real AE cable/path simulation. Mental model: one controller capacity ≈ dense trunk 32 → up to four smart lanes of 8
+- **Logical layout (ae_budget_v2)**:
+  - Controller hub; Energy Cell/Acceptor on left/right orbit (0 channels)
+  - Dense trunk (32ch) → always-visible 4× smart lanes (8ch each, including empty lanes)
+  - Channel-consuming devices (terminals/buses/interfaces/monitors/P2P/…) allocated by `ChannelBranchAllocator`, then grouped into role pods by `podKind` (access/io/craft/sense/tunnel/…)
+  - Drive/Chest/IO/CPU/Quantum on controller **zero-channel orbit** (not on the four lanes)
+  - Edge `kind`: `capacity_trunk` / `capacity_lane` / `pod_uplink` / `device_link` / `orbit_link`; capacity edges show ribbon `used/max` and `overflow`
+  - `meta.channelModel=ae_budget_v2`; `meta.lanes[]`; `meta.orbitCounts`
+- **Node DTO**: `subtype`, `layer`, `podKind`, `parentId`, `patternCount`, `patternSlots[]`, `branchIndex`, `layoutSector`
+- **Frontend**: `TopologyCytoscapeGraph` (**preset channel-lane layout**; trunk/lanes no longer collapsed); `topologyLaneLayout.ts`; capacity-spine edges; device list grouped by pod; settings for empty lanes / collapse pods / hide spine
+- **REST**: `GET /api/network/topology` (read disk/memory snapshot, no auto-rebuild; logical = channel budget map); `POST /api/network/topology/snapshot?force=1` (OP forced capture)
 - **Config**: `[webConsole] topologyEnabled` (default true), `topologyCacheTtlMs` (default **10000**), `worldMapSnapshotCooldownMs` (default **10000**, world map client snapshot request cooldown), `topologySnapshotPersist` (default true), `topologySimulatedEnabled` (default **false**, cable simulation deprecated); world map — see §11.26
 
 ### 11.18 Page Visibility Polling (Phase 4b)

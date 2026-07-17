@@ -10,6 +10,7 @@ public class QuestMetaDto {
     public boolean questEnabled;
     public boolean questSubmitEnabled;
     public boolean questChainSubmitEnabled;
+    public boolean questFluidAllContainersOption;
     public String modVersion = "";
     public int lineCount;
     public boolean standardExpansionLoaded;

@@ -308,7 +308,7 @@ adm.ai.assistant=AI
 adm.ai.error=Error: %s
 adm.ai.input_hint=Type a message, Enter to send
 adm.ai.network_disabled=AI network requests are disabled
-adm.ai.network_disabled_detail=AI network requests are currently disabled. Use /admai network on before chatting.
+adm.ai.network_disabled_detail=AI network requests are currently disabled. Use /textech ai network on before chatting.
 adm.ai.search_on=Search: On
 adm.ai.search_off=Search: Off
 adm.ai.settings=Settings
@@ -649,7 +649,7 @@ adm.manual.ai_assistant.overview_title=AI Assistant Overview
 adm.manual.ai_assistant.overview_text=The AI Assistant leverages OpenAI-compatible LLM APIs to control your AE2 systems with natural language. Press O (default) to open the 600x450 chat window.\n\nCore capabilities:\n- Crafting: order single or batch AE2 crafting jobs. Supports up to 8 tasks per prompt. Multi-step confirmation with candidate selection.\n- Withdrawal: extract items/fluids from AE2 storage into your inventory. Batch withdraw support. Partial withdrawal when inventory is full.\n- Queries: check storage overview (items+fluids with icons), wireless power/steam levels, AE2 recipes/patterns, detailed item counts, byte usage with infinite cell detection.\n- World info: current weather, time (ticks + day count), player position/coordinates/facing, biome name/temperature/rainfall, inventory space.\n- Teleport: scan Draconic Evolution Advanced Dislocator (TeleporterMKII) in inventory, display saved destinations, execute cross-dimension teleport with fuzzy name matching.\n- Planner: add/list/complete/delete/modify planner entries via text commands.\n- Cancel: abort pending operations and cancel queued AE2 crafting jobs at any time.
 
 adm.manual.ai_assistant.setup_title=API Configuration
-adm.manual.ai_assistant.setup_text=The AI Assistant uses OpenAI-compatible APIs. Default provider is DeepSeek (free tier available).\n\nSettings window (gear icon in chat) or /admai command:\n\nAPI Key: your provider key. Can also set DEEPSEEK_API_KEY environment variable. Supports DeepSeek, OpenAI, OpenRouter, Anthropic Claude, Google Gemini, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, ByteDance Doubao, SiliconFlow, Mistral, Groq, MiniMax, Volcengine, and more.\n\nBase URL: provider endpoint (default https://api.deepseek.com). Pre-configured URLs for 13+ providers via /admai provider <name>.\n\nModel: model name (default deepseek-chat). Supports tab-completion for common models.\n\nAdvanced: timeout (5-300s), maxTokens (1-8192), temperature (0.0-2.0), streaming mode, web search toggle, debug logging.\n\nPrivacy: first use requires privacy confirmation (data sent to provider). One-time per player.\n\nServer-wide options live in config/textech/textech.cfg. API keys and other client-only AI/voice settings are stored in config/textech/ai-client-local.cfg.
+adm.manual.ai_assistant.setup_text=The AI Assistant uses OpenAI-compatible APIs. Default provider is DeepSeek (free tier available).\n\nSettings window (gear icon in chat) or /textech ai command:\n\nAPI Key: your provider key. Can also set DEEPSEEK_API_KEY environment variable. Supports DeepSeek, OpenAI, OpenRouter, Anthropic Claude, Google Gemini, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, ByteDance Doubao, SiliconFlow, Mistral, Groq, MiniMax, Volcengine, and more.\n\nBase URL: provider endpoint (default https://api.deepseek.com). Pre-configured URLs for 13+ providers via /textech ai provider <name>.\n\nModel: model name (default deepseek-chat). Supports tab-completion for common models.\n\nAdvanced: timeout (5-300s), maxTokens (1-8192), temperature (0.0-2.0), streaming mode, web search toggle, debug logging.\n\nPrivacy: first use requires privacy confirmation (data sent to provider). One-time per player.\n\nServer-wide options live in config/textech/textech.cfg. API keys and other client-only AI/voice settings are stored in config/textech/ai-client-local.cfg.
 
 adm.manual.ai_assistant.usage_title=Chat Interface & Workflow
 adm.manual.ai_assistant.usage_text=Chat window layout (600x450): message history (top, scrollable), input field (bottom), action buttons (Send, Clear, Close, Settings, Menu, Search toggle, Cancel).\n\nBasic workflow:\n1. Type a request, e.g. "Order 64 iron ingots". Press Enter or Send.\n2. If intent is clear, the assistant searches AE2 network for matching items and shows numbered candidates.\n3. Type the number to confirm (e.g. "1"). The order is submitted.\n4. For batch orders: "Order 64 iron and 32 gold". Confirm line by line, then "confirm" to submit all.\n5. For queries: "Show my storage" returns item/fluid list with icons. "How much power?" shows EU/t and capacity.\n6. Menu button lists all 22+ features with numbers. Type a number to invoke directly.\n\nMulti-task: AI can return up to 8 tasks per prompt. Order tasks execute first, then withdrawal tasks.\n\nCancel any time by typing "cancel". This clears the session and cancels pending AE2 craft jobs.\n\nMarkdown rendering: chat responses support headers (# ## ###), bold (**), code blocks (```), lists, and inline code.
@@ -658,7 +658,7 @@ adm.manual.ai_assistant.intents_title=Intent Types Reference
 adm.manual.ai_assistant.intents_text=The assistant recognizes 24 intent types. Here's what each does:\n\nAE2 COMMANDS:\nORDER_ITEM - submit a single craft order. Returns numbered candidates from AE2 pattern list.\nORDER_BATCH - submit multiple craft orders at once. Line-by-line confirmation, then batch submission.\nWITHDRAW_ITEM - extract items from AE2 storage to inventory. Shows current stock as candidates.\nWITHDRAW_BATCH - batch withdraw multiple items. Supports partial withdraw when inventory full.\nQUERY_RECIPE - search AE2 patterns by name. Returns recipe details (inputs, outputs).\nQUERY_STORAGE - full storage overview: items (by count), fluids, with icons and K/M/T formatting.\nQUERY_JOBS - list pending AE2 crafting jobs.\nQUERY_ITEM_COUNT - detailed item/fluid counts from storage network.\nQUERY_BYTES - byte usage breakdown with infinite cell detection (AE2Things).\nCANCEL - abort session and cancel queued AE2 craft jobs.\n\nENERGY QUERIES:\nQUERY_POWER - wireless energy network power level and capacity.\nQUERY_STEAM - wireless steam network steam amount and status.\n\nWORLD QUERIES:\nQUERY_WEATHER - dimension, rain/thunder state, sky visibility.\nQUERY_TIME - world time (ticks), day count, day/night status, time until dawn/dusk.\nQUERY_POSITION - player XYZ, chunk coords, facing direction (N/S/E/W).\nQUERY_BIOME - biome name, temperature, rainfall, humidity.\nQUERY_INVENTORY - free/used/total inventory slots.\n\nTELEPORT (requires DE Advanced Dislocator):\nTELEPORT - scan dislocator, show destinations, teleport by name/number.\nTELEPORT_LIST - list all saved destinations on dislocator.\n\nPLANNER:\nPLAN_ADD/CREATE/LIST/COMPLETE/DELETE/MODIFY - full planner CRUD operations via AI.\n\nSYSTEM:\nCLARIFY - prompts user for clarification when intent is ambiguous.\nCHAT - normal conversation, no action triggered.
 
 adm.manual.ai_assistant.commands_title=In-Game Commands
-adm.manual.ai_assistant.commands_text=/textech help (aliases /adm help) — TeXTech command index.\n\n/admassistant - AI Assistant management:\n  /admassistant help - show help\n  /admassistant lexicon - show lexicon config file path\n  /admassistant reloadLexicon - reload lexicon (OP required)\n\n/admai - AI configuration (client-only):\n  /admai key <api_key> - set API key\n  /admai clearKey - remove saved key\n  /admai model <name> - set model (tab-completes common models)\n  /admai base <url> - set API base URL (tab-completes known providers)\n  /admai provider <name> - preset for deepseek/openai/openrouter/anthropic/gemini/qwen/glm/kimi/doubao/siliconflow/mistral/groq/minimax/volcengine\n  /admai network on|off|toggle - enable/disable network requests\n  /admai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng - web search control\n  /admai searchKey <key> - search API key\n  /admai searchBase <url> - SearXNG URL\n  /admai debug on|off|toggle - debug logging\n  /admai stream on|off|toggle - streaming responses\n  /admai status - show current config\n\n/admweb help - full Web console commands (token, recipes/icons, world map, etc.).\n\nNo OP required for admai/admassistant except reloadLexicon and some admweb OP subcommands.
+adm.manual.ai_assistant.commands_text=/textech help (aliases /adm help) — TeXTech command index.\n\n/textech assistant - AI assistant lexicon:\n  /textech assistant help - show help\n  /textech assistant lexicon - show lexicon config file path\n  /textech assistant reload - reload lexicon (OP; compat reload-lexicon / reloadLexicon)\n\n/textech ai - AI configuration (client-only):\n  /textech ai key <api_key> - set API key\n  /textech ai clear-key - remove saved key (compat clearKey)\n  /textech ai model <name> - set model (tab-completes common models)\n  /textech ai base <url> - set API base URL (tab-completes known providers)\n  /textech ai provider <name> - preset for deepseek/openai/openrouter/anthropic/gemini/qwen/glm/kimi/doubao/siliconflow/mistral/groq/minimax/volcengine\n  /textech ai network on|off|toggle - enable/disable network requests\n  /textech ai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng - web search control\n  /textech ai search-key <key> - search API key (compat searchKey)\n  /textech ai search-base <url> - SearXNG URL (compat searchBase)\n  /textech ai debug on|off|toggle - debug logging\n  /textech ai stream on|off|toggle - streaming replies\n  /textech ai status - show current config\n\n/textech web help - full Web console commands (token, recipes/icons, world map, …).\n\nLegacy root aliases still work: /admai, /admassistant, /admweb. No OP required for ai/assistant except reload and some web OP subcommands.
 
 adm.manual.ai_assistant.examples_title=Conversation Examples
 adm.manual.ai_assistant.examples_text=Try these prompts to get started:\n\nSingle crafting: "Order 256 copper wire"\nBatch crafting: "Order 64 iron plates, 32 gold plates, and 128 redstone"\nWithdraw items: "Withdraw 64 iron ingots"\nStorage query: "Show me my storage overview"\nFluid query: "How much pyrotheum do I have?"\nPower check: "How much power do I have?"\nSteam check: "What's my steam level?"\nRecipe lookup: "What recipes do I have for HV circuits?"\nByte check: "How many bytes are free in my AE2 network?"\nWeather: "What's the weather like?"\nTime: "What time is it?" or "How long until dawn?"\nPosition: "Where am I?"\nBiome: "What biome is this?"\nInventory: "How much inventory space do I have?"\nTeleport: "Teleport me to my base" or "List my teleport points"\nPlanner: "Add a plan: build fusion reactor" then "List my plans" then "Complete plan 1"\n\nChain commands: "Order 64 iron, withdraw 32 gold, and show my storage"\n\nUse the Menu button if you're unsure what to ask. Type "cancel" anytime to abort.
@@ -682,7 +682,7 @@ adm.manual.planner_teleport.teleport_title=Teleport System
 adm.manual.planner_teleport.teleport_text=The AI Assistant integrates with Draconic Evolution's Advanced Dislocator (com.brandon3055.draconicevolution.common.items.tools.TeleporterMKII) for teleportation.\n\nRequirements:\n- An Advanced Dislocator (TeleporterMKII) in your inventory.\n- At least one saved destination on the gem (added via DE's own interface).\n\nHow it works:\n1. The assistant scans your inventory for TeleporterMKII items.\n2. Reads the "Locations" NBT tag list from each gem.\n3. Each location has: X, Y, Z, Dimension, Name.\n4. Displays destinations as a numbered list with dimension info.\n5. Confirm by number or fuzzy name match.\n\nExecution:\n- Same dimension: setPositionAndUpdate() for instant teleport.\n- Cross-dimension: uses configurationManager.transferPlayerToDimension() with a custom Teleporter instance.\n\nDimensions are resolved by stored DimentionName (DE uses this typo internally), standard names (Nether/Overworld/The End), or custom dimension IDs.\n\nName matching: exact match preferred, falls back to substring matching if no exact match found.\n\nExample AI prompts: "Teleport me to my base", "List my teleport points", "Take me to the mining dimension".
 
 adm.manual.config_reference.intro_title=Configuration Reference
-adm.manual.config_reference.intro_text=This chapter documents all configuration options in the mod's .cfg file (config/textech/textech.cfg). The file is auto-generated on first run with default values.\n\nOrganization: 37 options across 4 categories:\n  ai.* (17 options) - API endpoint, key, model, network, search, search engine key/URL/max results/fallback, streaming, debug, privacy, timeout, tokens, temperature.\n  voice.* (7 options) - Voice assistant enable, privacy, STT mode (embedded-vosk/http), base URL, API key, model, timeout.\n  assistant.* (7 options) - Max order amount, max withdraw amount, craft job timeout, max concurrent craft jobs, link search radius, query candidate batch size, max query candidates.\n  plannerHudLimits.* (10 options) - Min/Max bounds for HUD display count, position X/Y, scale, and width.\n\nConfiguration can also be changed in-game via:\n- AI Settings GUI (gear icon in AI Chat)\n- /admai command\n- /admassistant reloadLexicon command\n\nScroll this page with your mouse wheel to browse long config entries.
+adm.manual.config_reference.intro_text=This chapter documents all configuration options in the mod's .cfg file (config/textech/textech.cfg). The file is auto-generated on first run with default values.\n\nOrganization: 37 options across 4 categories:\n  ai.* (17 options) - API endpoint, key, model, network, search, search engine key/URL/max results/fallback, streaming, debug, privacy, timeout, tokens, temperature.\n  voice.* (7 options) - Voice assistant enable, privacy, STT mode (embedded-vosk/http), base URL, API key, model, timeout.\n  assistant.* (7 options) - Max order amount, max withdraw amount, craft job timeout, max concurrent craft jobs, link search radius, query candidate batch size, max query candidates.\n  plannerHudLimits.* (10 options) - Min/Max bounds for HUD display count, position X/Y, scale, and width.\n\nConfiguration can also be changed in-game via:\n- AI Settings GUI (gear icon in AI Chat)\n- /textech ai command\n- /textech assistant reload command\n\nScroll this page with your mouse wheel to browse long config entries.
 
 adm.manual.config_reference.ai_category_title=AI Category (ai.*)
 adm.manual.config_reference.voice_category_title=Voice Category (voice.*)
@@ -1012,31 +1012,31 @@ adm.webconsole.login.code=Login code: {0}
 adm.webconsole.login.usage_hint=Open the URL in your browser or enter the code on the login page. No OP token required.
 adm.webconsole.login.failed=Could not generate login code — try again in a moment.
 adm.webconsole.onboarding.header=Network Link placed — WebAE console is available:
-adm.webconsole.onboarding.login_hint=Run /admweb login in chat for a one-time login code (no OP token needed).
+adm.webconsole.onboarding.login_hint=Run /textech web login in chat for a one-time login code (no OP token needed).
 adm.webconsole.onboarding.usage_hint=Place an Advance Data Monitor and bind AE networks to use the full console.
-adm.webconsole.guest.usage=Usage: /admweb guest <playerName>
+adm.webconsole.guest.usage=Usage: /textech web guest <playerName>
 adm.webconsole.guest.not_online=Guest player '{0}' is not online.
 adm.webconsole.guest.issued_to_guest=You received a guest WebAE token for {0}'s AE networks. Keep it private:
 adm.webconsole.guest.issued_to_owner=Guest token issued to {0}.
 adm.webconsole.guest.revoked=Guest token revoked for {0}.
-adm.webconsole.refresh.admin_only=Refresh is admin-only. Run /admweb refresh in-game.
+adm.webconsole.refresh.admin_only=Refresh is admin-only. Run /textech web refresh in-game.
 adm.manual.web_console.refresh_multi_title=Refresh & Multi-network
-adm.manual.web_console.refresh_multi_text=Phase 1 introduced a throttled refresh model and multi-network display.\n\nRefresh model:\n- The server collects snapshots every refreshIntervalMs (default 1000 ms), spread across ticks so each tick only enqueues a bounded number of collection tasks (only networks active in the last 2 minutes are collected).\n- GT machines are collected every gtRefreshIntervalMs (default 10000 ms) on the same scheduler.\n- Power (EU/steam) keeps its 5-second sampling window; reads always go through the cache.\n- The browser only reads the cache (GET /api/storage, /api/power, /api/gt/machines). When the cache is empty it returns the last snapshot with cached:false until the scheduler catches up.\n- Auto-refresh polls at refreshIntervalMs and covers the current tab's data (storage/power/gt/orders).\n- Manual force-refresh is admin-only: POST /api/refresh (returns 403 for non-OP) or /admweb refresh [network] in-game.\n- A public /api/config endpoint returns refreshIntervalMs / gtRefreshIntervalMs / maxNetworksDisplayed / tokenLifetimeHours / themePresets so the frontend can adapt.\n\nMulti-network display:\n- The top bar network selector is a multi-select dropdown capped at maxNetworksDisplayed (default 5).\n- Split mode: each selected network renders its own cards/tables.\n- Merged mode: item amounts, fluids, essentia, bytes, EU/steam and machine counts are summed across selected networks (aggregation done in the browser).\n- Batch endpoints: GET /api/storage/batch?networks=0,1,2, POST /api/refresh/batch (admin), and equivalent /api/power/batch, /api/gt/machines/batch.
+adm.manual.web_console.refresh_multi_text=Phase 1 introduced a throttled refresh model and multi-network display.\n\nRefresh model:\n- The server collects snapshots every refreshIntervalMs (default 1000 ms), spread across ticks so each tick only enqueues a bounded number of collection tasks (only networks active in the last 2 minutes are collected).\n- GT machines are collected every gtRefreshIntervalMs (default 10000 ms) on the same scheduler.\n- Power (EU/steam) keeps its 5-second sampling window; reads always go through the cache.\n- The browser only reads the cache (GET /api/storage, /api/power, /api/gt/machines). When the cache is empty it returns the last snapshot with cached:false until the scheduler catches up.\n- Auto-refresh polls at refreshIntervalMs and covers the current tab's data (storage/power/gt/orders).\n- Manual force-refresh is admin-only: POST /api/refresh (returns 403 for non-OP) or /textech web refresh [network] in-game.\n- A public /api/config endpoint returns refreshIntervalMs / gtRefreshIntervalMs / maxNetworksDisplayed / tokenLifetimeHours / themePresets so the frontend can adapt.\n\nMulti-network display:\n- The top bar network selector is a multi-select dropdown capped at maxNetworksDisplayed (default 5).\n- Split mode: each selected network renders its own cards/tables.\n- Merged mode: item amounts, fluids, essentia, bytes, EU/steam and machine counts are summed across selected networks (aggregation done in the browser).\n- Batch endpoints: GET /api/storage/batch?networks=0,1,2, POST /api/refresh/batch (admin), and equivalent /api/power/batch, /api/gt/machines/batch.
 adm.manual.chapter.web_console=Web Console
 adm.manual.web_console.brief_overview_title=WebAE Console
 adm.manual.web_console.brief_overview_text=WebAE is TeXTech's embedded browser management panel. View AE2 storage and power, GT machines, NEI recipes and AE patterns, Quest Book, submit crafting orders, and chat with in-game players — all from a web browser.\n\nDisabled by default. A server admin must enable the [webConsole] section in config/textech/textech.cfg. Defaults to localhost only (127.0.0.1:8090) with token authentication.
 adm.manual.web_console.brief_start_title=Quick Start
-adm.manual.web_console.brief_start_text=1. Admin enables [webConsole] enabled=true and restarts the server.\n2. Run /admweb issue in-game to get a token (shown only once).\n3. Open http://127.0.0.1:8090 in a browser and paste the token.\n\nCommon commands: /admweb issue · /admweb revoke · /admweb help\nOP uploads: /admweb recipes upload snapshot (daily) · /admweb recipes upload (full) · /admweb icons upload · /admweb icons import-nesql
+adm.manual.web_console.brief_start_text=1. Admin enables [webConsole] enabled=true and restarts the server.\n2. Run /textech web issue in-game to get a token (shown only once).\n3. Open http://127.0.0.1:8090 in a browser and paste the token.\n\nCommon commands: /textech web issue · /textech web revoke · /textech web help\nOP uploads: /textech web recipes upload snapshot (daily) · /textech web recipes upload (full) · /textech web icons upload · /textech web icons import-nesql
 adm.manual.web_console.brief_docs_title=Full Documentation
 adm.manual.web_console.brief_docs_text=This in-game chapter is a brief introduction only. For the complete user guide (all pages, commands, and security notes), see docs/en/webae/user-guide.md in the mod repository.\n\nAdmins and developers should also see docs/en/webae/developer-guide.md (REST API, network packets, frontend architecture).
 adm.manual.web_console.overview_title=Web Console Overview
-adm.manual.web_console.overview_text=The WebAE Console is a browser-accessible HTTP management panel embedded in TeXTech. Access at http://127.0.0.1:8090 (by default) using a token obtained via /admweb issue.\n\nCore features:\n- Storage Monitor: real-time AE2 item/fluid type counts, byte usage, and free space.\n- Power Monitor: wireless power/steam levels with input/output rate line charts.\n- GT Machines: online GT machine status, progress bars, and recipe details.\n- Recipe Search: NEI recipe search by output OR input item name with full input/output breakdown.\n- Pattern Manager: view/edit/inject AE2 patterns on ME Interfaces.\n- AE Orders: single or batch crafting orders with real-time progress tracking.\n- Auto-login: stored token reconnects automatically on the next visit.\n- Multi-network: select up to maxNetworksDisplayed networks and toggle Split (per-network cards) / Merged (aggregated totals) display modes.\n- Throttled refresh: the server collects snapshots at refreshIntervalMs (spread across ticks) and the browser polls cache-only; manual refresh is admin-only via /admweb refresh.\n\nRequires the [webConsole] section in config to be enabled. Defaults to localhost-only with token authentication for security.\n\nSee the player guide for detailed usage instructions.
+adm.manual.web_console.overview_text=The WebAE Console is a browser-accessible HTTP management panel embedded in TeXTech. Access at http://127.0.0.1:8090 (by default) using a token obtained via /textech web issue.\n\nCore features:\n- Storage Monitor: real-time AE2 item/fluid type counts, byte usage, and free space.\n- Power Monitor: wireless power/steam levels with input/output rate line charts.\n- GT Machines: online GT machine status, progress bars, and recipe details.\n- Recipe Search: NEI recipe search by output OR input item name with full input/output breakdown.\n- Pattern Manager: view/edit/inject AE2 patterns on ME Interfaces.\n- AE Orders: single or batch crafting orders with real-time progress tracking.\n- Auto-login: stored token reconnects automatically on the next visit.\n- Multi-network: select up to maxNetworksDisplayed networks and toggle Split (per-network cards) / Merged (aggregated totals) display modes.\n- Throttled refresh: the server collects snapshots at refreshIntervalMs (spread across ticks) and the browser polls cache-only; manual refresh is admin-only via /textech web refresh.\n\nRequires the [webConsole] section in config to be enabled. Defaults to localhost-only with token authentication for security.\n\nSee the player guide for detailed usage instructions.
 adm.manual.web_console.setup_title=Enable & Configure
 adm.manual.web_console.setup_text=The Web Console is disabled by default. To enable, edit config/textech/textech.cfg:\n\n[webConsole]\nenabled=true\nport=8090\nbindAddress=127.0.0.1\nsnapshotIntervalSeconds=30\nrefreshIntervalMs=1000\ngtRefreshIntervalMs=10000\nmaxNetworksDisplayed=5\ntokenLifetimeHours=0\nmaxRecipeCacheMB=64\npowerSampleWindowSeconds=60\ngtDefaultScanRadius=16\nrecipeUploadEnabled=true\n\nRestart the server for changes to take effect.\n\nImportant:\n- bindAddress=127.0.0.1 restricts access to localhost only. Set to 0.0.0.0 for LAN access (use a firewall or SSH tunnel).\n- refreshIntervalMs is the unified refresh interval (ms) for server collection and frontend polling (min 1000, max 60000, default 1000).\n- gtRefreshIntervalMs is the GT machine collection interval (ms, default 10000).\n- maxNetworksDisplayed caps how many AE2 networks the web console can show at once (1-20, default 5).\n- tokenLifetimeHours=0 means tokens never expire; set >0 to enable TTL-based expiry (max 8760).\n- snapshotIntervalSeconds is a legacy fallback used only when refreshIntervalMs is unavailable.
 adm.manual.web_console.auth_title=Authentication & Access
-adm.manual.web_console.auth_text=The Web Console uses token-based authentication. No Minecraft login credentials are needed.\n\nGetting a token:\n/admweb issue - generates a new token (shown only once — save it immediately)\n/admweb list - lists all issued tokens (OP only, prefix only)\n/admweb revoke [player] - revokes a token (OP can revoke others)\n/adweb refresh [network] - admin-only force snapshot re-collect (Phase 1.2)\n\nBrowser access:\n1. Start the server with webConsole enabled.\n2. Open http://127.0.0.1:8090 (or your server's address) in a browser.\n3. Enter the token from /admweb issue on the login page.\n4. The token is stored in the browser's localStorage (webae_token). With auto-login enabled (default), the console reconnects automatically on your next visit.\n5. If a token is expired or revoked, the login page shows a "token expired" / "token invalid" message and the stored token is cleared so you can re-issue.\n6. To switch tokens later, open Settings → enter a new token → it reconnects immediately.\n\nToken TTL: config tokenLifetimeHours (0 = never expire, >0 = reject after issuedAt + TTL). Tokens persist to TeXTech/WebAE/web-tokens.json (one per player, replaced on re-issue).\n\nAuto-login can be turned off in Settings if you prefer to enter the token manually each visit.
+adm.manual.web_console.auth_text=The Web Console uses token-based authentication. No Minecraft login credentials are needed.\n\nGetting a token:\n/textech web issue - generates a new token (shown only once — save it immediately)\n/textech web list - lists all issued tokens (OP only, prefix only)\n/textech web revoke [player] - revokes a token (OP can revoke others)\n/adweb refresh [network] - admin-only force snapshot re-collect (Phase 1.2)\n\nBrowser access:\n1. Start the server with webConsole enabled.\n2. Open http://127.0.0.1:8090 (or your server's address) in a browser.\n3. Enter the token from /textech web issue on the login page.\n4. The token is stored in the browser's localStorage (webae_token). With auto-login enabled (default), the console reconnects automatically on your next visit.\n5. If a token is expired or revoked, the login page shows a "token expired" / "token invalid" message and the stored token is cleared so you can re-issue.\n6. To switch tokens later, open Settings → enter a new token → it reconnects immediately.\n\nToken TTL: config tokenLifetimeHours (0 = never expire, >0 = reject after issuedAt + TTL). Tokens persist to TeXTech/WebAE/web-tokens.json (one per player, replaced on re-issue).\n\nAuto-login can be turned off in Settings if you prefer to enter the token manually each visit.
 adm.manual.web_console.storage_title=Storage Monitoring
-adm.manual.web_console.storage_text=The Storage page provides a real-time overview of your AE2 network storage.\n\nTop overview (Phase 3): configurable widget row reusing the dashboard inheritance system (statCard/progressBar/gauge, data sources, 9-grid alignment, color overrides). Defaults: item types, fluid types, byte usage %, active CPUs. Click Edit overview to drag/add/remove widgets; persisted in localStorage.webae_storage_overview_config. All overview cards are fixed 112px height.\n\nSub-tables: items / fluids / essentia (CPUs moved to the dedicated Crafting CPUs menu). Each sub-table supports column sort and search.\n\nRefresh (Phase 1.2): server collects snapshots every refreshIntervalMs ms, spread across ticks. Browser reads cache only (GET /api/storage); admin force-refresh via POST /api/refresh or /admweb refresh.\n\nMulti-network (Phase 1.4): select networks in the top bar; Split/Merged modes aggregate items/fluids/essentia/bytes.
+adm.manual.web_console.storage_text=The Storage page provides a real-time overview of your AE2 network storage.\n\nTop overview (Phase 3): configurable widget row reusing the dashboard inheritance system (statCard/progressBar/gauge, data sources, 9-grid alignment, color overrides). Defaults: item types, fluid types, byte usage %, active CPUs. Click Edit overview to drag/add/remove widgets; persisted in localStorage.webae_storage_overview_config. All overview cards are fixed 112px height.\n\nSub-tables: items / fluids / essentia (CPUs moved to the dedicated Crafting CPUs menu). Each sub-table supports column sort and search.\n\nRefresh (Phase 1.2): server collects snapshots every refreshIntervalMs ms, spread across ticks. Browser reads cache only (GET /api/storage); admin force-refresh via POST /api/refresh or /textech web refresh.\n\nMulti-network (Phase 1.4): select networks in the top bar; Split/Merged modes aggregate items/fluids/essentia/bytes.
 adm.manual.web_console.cpu_title=Crafting CPUs
 adm.manual.web_console.cpu_text=The dedicated Crafting CPUs menu (Hdd icon in sidebar) shows AE2 crafting CPU status.\n\nTop overview (Phase 3): four configurable statCards/progressBars — active/total, total storage usage, total co-processors, parallel crafts; persisted in localStorage.webae_cpu_overview_config.\n\nCPU table: name, status, co-processors, progress, stored items, output, crafting storage, elapsed time. Click a row for a detail Drawer (coordinates, network, storage chart, current task and estimated remaining). Craft history shows \"No history\" until backend support is added.\n\nMulti-network: Merged mode combines all CPUs; Split with multiple networks uses Tabs.\n\nBackend CpuEntry includes crafting-link coordinates, monitor coordinates, remainingItems/startItems, collected by AeSnapshotCollector.
 adm.manual.web_console.power_title=Power Monitoring
@@ -1044,7 +1044,7 @@ adm.manual.web_console.power_text=The Power page displays wireless energy networ
 adm.manual.web_console.gt_machines_title=GT Machine Monitoring
 adm.manual.web_console.gt_machines_text=The GT Machines page lists all online GregTech machines with their current operational status.\n\nDisplayed per machine:\n- Machine name and type.\n- Current work progress (percentage bar).\n- Active recipe (if any).\n- Power consumption.\n- Input slot items: items currently being consumed.\n- Output slot items: items produced so far.\n\nProgress bars update in real-time during each snapshot interval (gtSnapshotIntervalSeconds).\n\nData is collected via GtMachineStateReader, which accesses GT machine internals through the GtCompat compatibility layer. Requires GTNH GregTech to be installed; the page shows empty otherwise.
 adm.manual.web_console.recipes_title=Recipe Search
-adm.manual.web_console.recipes_text=The Recipe page supports fuzzy search, item autocomplete, infinite-scroll recipe overview, compact/detailed layouts, and full/merged display mode (Phase 5).\n\nCollection & upload:\n1. Client hybrid collect: NeiRecipeCollector (main thread, NEI/AE2, etc.) + GameRecipeCollector (vanilla/GT supplement).\n2. Handler labels are localized on the client, e.g. Alloy Smelter (gt.recipe.alloysmelter); item itemId includes meta for icon cache alignment.\n3. Merged single-session upload via PacketWebRecipeUpload; RecipeUploadSession ensures only the first isStart clears server memory.\n4. Server RecipeCacheStore keeps output/input indexes plus handlerRecipeKeys/suggestPrefixIndex; gzip persistence to TeXTech/WebAE/web-recipes.json.gz.\n5. Client RecipeLocalExporter also writes .minecraft/TeXTech/WebAE//web-recipes.json.gz (same gzip schema).\n\nUsage:\n- Overview loads automatically; scroll down to fetch more (24 per batch).\n- Default fuzzy search by item name; picking a suggestion searches by output registry.\n- Category area: multi-select handler Tags, search handler names, collapse/expand; compact cards are square and open a detail modal on click.\n- Merged mode groups by primary output; multiple recipe types for the same item switch via modal Tabs.\n- Detailed layout uses independent CSS Grid columns; click an item for Craft / Usage tabs.\n\nAn OP must run /admweb recipes upload snapshot (daily) or upload (full) in-game before the web UI has data (Phase 2 removed the in-game keybind; upload is command-only); re-upload after handler label or itemId changes.
+adm.manual.web_console.recipes_text=The Recipe page supports fuzzy search, item autocomplete, infinite-scroll recipe overview, compact/detailed layouts, and full/merged display mode (Phase 5).\n\nCollection & upload:\n1. Client hybrid collect: NeiRecipeCollector (main thread, NEI/AE2, etc.) + GameRecipeCollector (vanilla/GT supplement).\n2. Handler labels are localized on the client, e.g. Alloy Smelter (gt.recipe.alloysmelter); item itemId includes meta for icon cache alignment.\n3. Merged single-session upload via PacketWebRecipeUpload; RecipeUploadSession ensures only the first isStart clears server memory.\n4. Server RecipeCacheStore keeps output/input indexes plus handlerRecipeKeys/suggestPrefixIndex; gzip persistence to TeXTech/WebAE/web-recipes.json.gz.\n5. Client RecipeLocalExporter also writes .minecraft/TeXTech/WebAE//web-recipes.json.gz (same gzip schema).\n\nUsage:\n- Overview loads automatically; scroll down to fetch more (24 per batch).\n- Default fuzzy search by item name; picking a suggestion searches by output registry.\n- Category area: multi-select handler Tags, search handler names, collapse/expand; compact cards are square and open a detail modal on click.\n- Merged mode groups by primary output; multiple recipe types for the same item switch via modal Tabs.\n- Detailed layout uses independent CSS Grid columns; click an item for Craft / Usage tabs.\n\nAn OP must run /textech web recipes upload snapshot (daily) or upload (full) in-game before the web UI has data (Phase 2 removed the in-game keybind; upload is command-only); re-upload after handler label or itemId changes.
 adm.manual.web_console.patterns_title=Pattern Management
 adm.manual.web_console.patterns_text=The Pattern page provides a full AE2 pattern management interface through the browser (Extended Pattern Terminal style).\n\nFeatures:\n- Pattern overview: lists all patterns on ME Interface slots across the network; search, multi-select, batch delete/export.\n- Editor: 9×3 input grid and output rows show item icons and stack sizes; outputs support ×2/×4/×8/×16/×32/×64 scaling and ÷2 (never below original recipe amount).\n- Recipe search: merged by primary output; click to add the default recipe or open Details to pick a recipe type.\n- Encode: PatternEncoder builds AE2 NBT; with consumeBlank, BlankPatternHelper deducts 1 blank pattern from the AE network (NO_BLANK_PATTERN when insufficient).\n- Inject: PatternInjector writes the encoded pattern to a target ME Interface; interface list shows coords, pattern count, machine recipe type, and existing pattern details.\n\nAll network-modifying operations run on the main thread via CountDownLatch (5s timeout).
 adm.manual.web_console.orders_title=AE Crafting Orders
@@ -1052,7 +1052,7 @@ adm.manual.web_console.orders_text=The Orders page lets you submit AE2 crafting 
 adm.manual.web_console.theme_dashboard_title=Themes & Dashboard Customization
 adm.manual.web_console.theme_dashboard_text=Phase 2 added a full theme system and a customizable drag-and-drop dashboard.\n\nTheme system:\n- Theme = color scheme x layout preset, chosen independently in Settings.\n- Color schemes (24): 19 classic + 5 Phase 8 sci-fi themes (hologram/plasma/neon-pulse/quantum/crystal). Each recolors the background, accent, text, and status colors.\n- Layout presets (5): standard, compact (denser, smaller fonts), wide (larger gaps, bigger fonts), sidebar-right (sidebar on the right), topnav (sidebar hidden, navigation moved into the top bar).\n- Your choice persists in the browser (localStorage webae_theme as "color|layout"); legacy dark/light choices auto-migrate.\n- Charts recolor automatically when you switch themes.\n\nDashboard customization:\n- The Dashboard tab is a GridStack.js grid you can edit: drag widgets by their handle, resize from the corner, and use the toolbar to toggle Edit mode.\n- Add Widget opens a library of widget types: stat card, progress bar (horizontal/vertical/circular), line chart, bar chart, pie chart, data table, gauge.\n- Each widget binds to a data source (item types, fluid types, EU stored, bytes usage %, power history, top items, network compare, etc.) and a scope: global (aggregated across all selected networks) or per-network (bound to one network; in split mode each network gets its own copy).\n- Edit a widget to change its type, data source, scope, style (progress orientation, time window, max rows), and size.\n- Layout persists in localStorage.webae_dashboard_config. "Reset Layout" restores the default widget set.\n- Global style defaults and widgets JSON import/export are covered in the Dashboard Settings chapter.\n- In split multi-network mode, global widgets appear in a top "Overview" grid and per-network widgets repeat under each network's section.
 adm.manual.web_console.topology_title=Network Topology
-adm.manual.web_console.topology_text=Web console includes a Network Topology page (sidebar: Network Topology) backed by a simulated AE API.\n\nFeatures:\n- Does not reflect real AE cable routing; devices are grouped by fine-grained subtype rules.\n- Logical view: tree layout (controller → dense trunk 32ch → 4× smart branches 8ch); settings can switch to double-ring star abstract layout.\n- Terminals/WAP/security above; Energy Cell/Acceptor left/right of controller; Drive/Chest/IO/CPU direct below (0 channels).\n- Drive icon badge shows pattern count; device list supports graph↔table hover linkage.\n- Spatial view: dimension + 64×64 chunk bins; P2P view groups by frequency.\n- World map view: shows AE devices on a real-world coordinate grid; requires a logical topology snapshot first. Use toolbar **Update map snapshot** for manual consent once (/admweb wm y or click Accept in chat); device list opens in a modal from the map corner.\n- Snapshots persist under TeXTech/WebAE/topology/ and survive server restart (GET never auto-rebuilds).\n- Abstract vs cable-simulation render modes; SVG pan/zoom; CSV export.\n\nAPI: GET /api/network/topology; POST /api/network/topology/snapshot (manual capture + cooldown); GET /api/network/p2p; GET /api/worldmap/meta, /api/worldmap/markers, /api/worldmap/progress, and /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png.\n\nConfig ([webConsole]): topologyEnabled, topologyCacheTtlMs (default 10000 ms / 10 s), worldMapSnapshotCooldownMs (default 10000 ms / 10 s), topologySnapshotPersist (default true); worldMapEnabled, worldMapMaxQualityTier, worldMapDefaultQualityTier, worldMapBoundsPaddingChunks (default 1), worldMapTileBudgetPerTick, worldMapMaxChunks, worldMapAeOverlayEnabled.
+adm.manual.web_console.topology_text=Web console includes a Network Topology page (sidebar: Network Topology) backed by a simulated AE API.\n\nFeatures:\n- Does not reflect real AE cable routing; devices are grouped by fine-grained subtype rules.\n- Logical view: tree layout (controller → dense trunk 32ch → 4× smart branches 8ch); settings can switch to double-ring star abstract layout.\n- Terminals/WAP/security above; Energy Cell/Acceptor left/right of controller; Drive/Chest/IO/CPU direct below (0 channels).\n- Drive icon badge shows pattern count; device list supports graph↔table hover linkage.\n- Spatial view: dimension + 64×64 chunk bins; P2P view groups by frequency.\n- World map view: shows AE devices on a real-world coordinate grid; requires a logical topology snapshot first. Use toolbar **Update map snapshot** for manual consent once (/textech web wm y or click Accept in chat); device list opens in a modal from the map corner.\n- Snapshots persist under TeXTech/WebAE/topology/ and survive server restart (GET never auto-rebuilds).\n- Abstract vs cable-simulation render modes; SVG pan/zoom; CSV export.\n\nAPI: GET /api/network/topology; POST /api/network/topology/snapshot (manual capture + cooldown); GET /api/network/p2p; GET /api/worldmap/meta, /api/worldmap/markers, /api/worldmap/progress, and /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png.\n\nConfig ([webConsole]): topologyEnabled, topologyCacheTtlMs (default 10000 ms / 10 s), worldMapSnapshotCooldownMs (default 10000 ms / 10 s), topologySnapshotPersist (default true); worldMapEnabled, worldMapMaxQualityTier, worldMapDefaultQualityTier, worldMapBoundsPaddingChunks (default 1), worldMapTileBudgetPerTick, worldMapMaxChunks, worldMapAeOverlayEnabled.
 adm.webae.topology.title=Network Topology
 adm.webae.topology.mode.logical=Logical grouping
 adm.webae.topology.mode.spatial=Spatial bins
@@ -1086,15 +1086,15 @@ adm.webae.topology.cable.smart=Smart cable
 adm.webae.topology.cable.covered=Covered cable
 adm.webae.topology.cable.dense=Dense cable
 adm.manual.web_console.icon_cache_title=Item Icons & Texture Packs
-adm.manual.web_console.icon_cache_text=Phase 3 added an item/fluid icon cache so the web console shows real game icons instead of plain text.\n\nWorkflow:\n1. An OP runs /admweb icons upload [packName] in-game to trigger rendering (Phase 2 removed the in-game keybind; upload is command-only now).\n2. The client IconRenderer (@SideOnly CLIENT) iterates Item.itemRegistry, renders each item to a 32x32 PNG with RenderItem + an offscreen Framebuffer, a few items per frame to avoid lag.\n3. Finished icons are packed into an IconBundle (itemId -> base64 PNG) and uploaded in chunks via PacketWebIconUpload (network ID 28).\n4. The server decodes each entry and writes it to TeXTech/WebAE/icons/<packName>/<itemId>.png, then refreshes the IconStore index.\n5. Progress is acknowledged via PacketWebIconUploadAck (network ID 29).\n\nWeb usage:\n- Item tables and recipe inputs/outputs show real icons; failed icons fall back to a name abbreviation.\n- Settings page has a texture-pack selector (persisted in localStorage webae_icon_pack); switching reloads every icon with a ?v=<timestamp> cache-buster.\n- Admins (OP>=2) can upload a texture-pack zip in Settings (POST /api/icon/pack?pack=<name>); the server extracts it with Zip Slip path-traversal protection.\n- You can also fetch icons directly via /icons/<pack>/<itemId>.png (WebConsoleServer serves the external TeXTech/WebAE/icons/ directory).\n\nConfig ([webConsole] section): iconCacheEnabled, iconUploadEnabled, iconPackEnabled, nesqlRepositoryPath (import-nesql; empty = TeXTech/WebAE/), iconMissingDispatchPerTick. /api/config returns the boolean flags.\n\nCommands: /admweb icons upload [packName], /admweb icons import-nesql [pack] [subpath] (defaults to TeXTech/WebAE/), /admweb icons status.\n\nLazy-load: 404 icons enqueue IconMissingQueue; when ready the server emits SSE icon-ready and the frontend refreshes icons via webae-icon-ready.
+adm.manual.web_console.icon_cache_text=Phase 3 added an item/fluid icon cache so the web console shows real game icons instead of plain text.\n\nWorkflow:\n1. An OP runs /textech web icons upload [packName] in-game to trigger rendering (Phase 2 removed the in-game keybind; upload is command-only now).\n2. The client IconRenderer (@SideOnly CLIENT) iterates Item.itemRegistry, renders each item to a 32x32 PNG with RenderItem + an offscreen Framebuffer, a few items per frame to avoid lag.\n3. Finished icons are packed into an IconBundle (itemId -> base64 PNG) and uploaded in chunks via PacketWebIconUpload (network ID 28).\n4. The server decodes each entry and writes it to TeXTech/WebAE/icons/<packName>/<itemId>.png, then refreshes the IconStore index.\n5. Progress is acknowledged via PacketWebIconUploadAck (network ID 29).\n\nWeb usage:\n- Item tables and recipe inputs/outputs show real icons; failed icons fall back to a name abbreviation.\n- Settings page has a texture-pack selector (persisted in localStorage webae_icon_pack); switching reloads every icon with a ?v=<timestamp> cache-buster.\n- Admins (OP>=2) can upload a texture-pack zip in Settings (POST /api/icon/pack?pack=<name>); the server extracts it with Zip Slip path-traversal protection.\n- You can also fetch icons directly via /icons/<pack>/<itemId>.png (WebConsoleServer serves the external TeXTech/WebAE/icons/ directory).\n\nConfig ([webConsole] section): iconCacheEnabled, iconUploadEnabled, iconPackEnabled, nesqlRepositoryPath (import-nesql; empty = TeXTech/WebAE/), iconMissingDispatchPerTick. /api/config returns the boolean flags.\n\nCommands: /textech web icons upload [packName], /textech web icons import-nesql [pack] [subpath] (defaults to TeXTech/WebAE/), /textech web icons status.\n\nLazy-load: 404 icons enqueue IconMissingQueue; when ready the server emits SSE icon-ready and the frontend refreshes icons via webae-icon-ready.
 adm.manual.web_console.recipe_cache_title=Recipe Cache Optimization
-adm.manual.web_console.recipe_cache_text=Phase 3 made incremental improvements to the recipe cache (search and inverted indexes were already done in Phase 1 and are not redone here). NEI performance Phase 0–4 added handlerRecipeKeys/suggestPrefixIndex, recipeCacheMode=full (GTNH default; lru evicts when maxRecipeCacheMB exceeded), RecipeUploadThrottler (recipeUploadBatchesPerTick), and RecipeSearchRateLimiter (recipeSearchMinIntervalMs).\n\nDisk persistence:\n- RecipeCacheStore.ingest() now auto-saves to disk asynchronously via HandlerTick.enqueueServerTask (debounced: only one save is queued at a time, so not every batch triggers a write).\n- The save format is now gzip-compressed: TeXTech/WebAE/web-recipes.json.gz, which is much smaller. On load the gzip file is preferred; if an old uncompressed web-recipes.json exists it is read first and migrated to gzip on the next save.\n- Client local copy: .minecraft/TeXTech/WebAE//web-recipes.json.gz (RecipeLocalExporter; written with upload commands).\n- lastDiskSave (last save timestamp) and diskCacheSize (gzip file size in bytes) are tracked for status queries.\n\nStatus:\n- /api/recipes/status now includes diskCacheSize and lastDiskSave.\n- The frontend Recipes tab shows disk cache size and last-save time, with a "re-export" hint.\n- /admweb recipes status prints the same disk-cache information.\n\nCommands:\n- /admweb recipes upload [snapshot|deep] — upload NEI recipes (snapshot = storage items only; deep = full item scan); also writes client TeXTech/WebAE//web-recipes.json.gz.\n- /admweb recipes export — alias of upload.\n- /admweb recipes status — view cache status (including disk cache).\n- /admweb recipes clear — clear memory and disk cache (OP only).
+adm.manual.web_console.recipe_cache_text=Phase 3 made incremental improvements to the recipe cache (search and inverted indexes were already done in Phase 1 and are not redone here). NEI performance Phase 0–4 added handlerRecipeKeys/suggestPrefixIndex, recipeCacheMode=full (GTNH default; lru evicts when maxRecipeCacheMB exceeded), RecipeUploadThrottler (recipeUploadBatchesPerTick), and RecipeSearchRateLimiter (recipeSearchMinIntervalMs).\n\nDisk persistence:\n- RecipeCacheStore.ingest() now auto-saves to disk asynchronously via HandlerTick.enqueueServerTask (debounced: only one save is queued at a time, so not every batch triggers a write).\n- The save format is now gzip-compressed: TeXTech/WebAE/web-recipes.json.gz, which is much smaller. On load the gzip file is preferred; if an old uncompressed web-recipes.json exists it is read first and migrated to gzip on the next save.\n- Client local copy: .minecraft/TeXTech/WebAE//web-recipes.json.gz (RecipeLocalExporter; written with upload commands).\n- lastDiskSave (last save timestamp) and diskCacheSize (gzip file size in bytes) are tracked for status queries.\n\nStatus:\n- /api/recipes/status now includes diskCacheSize and lastDiskSave.\n- The frontend Recipes tab shows disk cache size and last-save time, with a "re-export" hint.\n- /textech web recipes status prints the same disk-cache information.\n\nCommands:\n- /textech web recipes upload [snapshot|deep] — upload NEI recipes (snapshot = storage items only; deep = full item scan); also writes client TeXTech/WebAE//web-recipes.json.gz.\n- /textech web recipes export — alias of upload.\n- /textech web recipes status — view cache status (including disk cache).\n- /textech web recipes clear — clear memory and disk cache (OP only).
 adm.manual.web_console.safety_title=Security & Safety
-adm.manual.web_console.safety_text=The Web Console is a powerful tool — treat its access credentials with care.\n\nSecurity features:\n- Token authentication (random UUID per player, persisted to TeXTech/WebAE/web-tokens.json; re-issue replaces the previous token).\n- All /api/ endpoints enforce Bearer authentication (no opt-out config).\n- Admin-only endpoints (POST /api/refresh, /api/refresh/batch, /api/power/refresh, /api/gt/machines/refresh) additionally require OP level >= 2.\n- Default localhost-only binding (127.0.0.1).\n- No TLS — NanoHTTPD does not support HTTPS.\n\nSafety recommendations:\n- Never set bindAddress=0.0.0.0 on a public-facing server without a firewall or reverse proxy.\n- Use SSH tunneling (ssh -L 8090:localhost:8090 user@server) for remote access instead of opening the port.\n- For LAN parties, share tokens only with trusted players.\n- Revoke tokens (/admweb revoke) immediately if compromised.\n- Tokens grant full read/write access to AE2 storage and crafting — guard them like server passwords.\n\nConfiguration validation:\n- enabled is false by default (opt-in).\n- bindAddress defaults to 127.0.0.1 (not 0.0.0.0).\n- tokenLifetimeHours defaults to 0 (never expire); set >0 to enable TTL-based expiry.\n- refreshIntervalMs / gtRefreshIntervalMs are clamped to 1000-60000 ms.\n- maxNetworksDisplayed is clamped to 1-20.
+adm.manual.web_console.safety_text=The Web Console is a powerful tool — treat its access credentials with care.\n\nSecurity features:\n- Token authentication (random UUID per player, persisted to TeXTech/WebAE/web-tokens.json; re-issue replaces the previous token).\n- All /api/ endpoints enforce Bearer authentication (no opt-out config).\n- Admin-only endpoints (POST /api/refresh, /api/refresh/batch, /api/power/refresh, /api/gt/machines/refresh) additionally require OP level >= 2.\n- Default localhost-only binding (127.0.0.1).\n- No TLS — NanoHTTPD does not support HTTPS.\n\nSafety recommendations:\n- Never set bindAddress=0.0.0.0 on a public-facing server without a firewall or reverse proxy.\n- Use SSH tunneling (ssh -L 8090:localhost:8090 user@server) for remote access instead of opening the port.\n- For LAN parties, share tokens only with trusted players.\n- Revoke tokens (/textech web revoke) immediately if compromised.\n- Tokens grant full read/write access to AE2 storage and crafting — guard them like server passwords.\n\nConfiguration validation:\n- enabled is false by default (opt-in).\n- bindAddress defaults to 127.0.0.1 (not 0.0.0.0).\n- tokenLifetimeHours defaults to 0 (never expire); set >0 to enable TTL-based expiry.\n- refreshIntervalMs / gtRefreshIntervalMs are clamped to 1000-60000 ms.\n- maxNetworksDisplayed is clamped to 1-20.
 
 # ===== Web Console Manual: New Pages (Phase E + upgrades) =====
 adm.manual.web_console.command_upload_title=Command-Triggered Upload
-adm.manual.web_console.command_upload_text=OP players trigger recipe and icon uploads via chat commands (Phase 2 removed the in-game keybind, so upload is command-only).\n\nIndex: /textech help (alias /adm help). Web console: /admweb help; groups: /admweb recipes, /admweb icons, /admweb worldmap, /admweb server.\n\nCommands:\n- /admweb recipes upload [snapshot|deep] — upload NEI recipes (snapshot = storage items only; deep = full item scan); also writes client TeXTech/WebAE/web-recipes.json.gz.\n- /admweb icons upload [pack] [mode] — client renders item icons and uploads via PacketWebIconUpload.\n- /admweb icons import-nesql [pack] [subpath] — import pre-rendered PNGs from nesqlRepositoryPath (empty = TeXTech/WebAE/; incremental).\n- /admweb worldmap upload|accept|status — client world map snapshots.\n\nBoth upload sub-commands require OP (canUseOpCommands); base /admweb permission level stays 0.\n\nClient collection runs on the main thread (Minecraft.addScheduledTask) because NEI APIs are not thread-safe; RecipeUploadThrottler sends recipeUploadBatchesPerTick batches per tick.\n\nDebug logging: set [debug] debugWebae=true to print handler counts, total numRecipes, and filtered recipe counts during collection.
+adm.manual.web_console.command_upload_text=OP players trigger recipe and icon uploads via chat commands (Phase 2 removed the in-game keybind, so upload is command-only).\n\nIndex: /textech help (alias /adm help). Web console: /textech web help; groups: /textech web recipes, /textech web icons, /textech web worldmap, /textech web server.\n\nCommands:\n- /textech web recipes upload [snapshot|deep] — upload NEI recipes (snapshot = storage items only; deep = full item scan); also writes client TeXTech/WebAE/web-recipes.json.gz.\n- /textech web icons upload [pack] [mode] — client renders item icons and uploads via PacketWebIconUpload.\n- /textech web icons import-nesql [pack] [subpath] — import pre-rendered PNGs from nesqlRepositoryPath (empty = TeXTech/WebAE/; incremental).\n- /textech web worldmap upload|accept|status — client world map snapshots.\n\nBoth upload sub-commands require OP (canUseOpCommands); base /textech web permission level stays 0.\n\nClient collection runs on the main thread (Minecraft.addScheduledTask) because NEI APIs are not thread-safe; RecipeUploadThrottler sends recipeUploadBatchesPerTick batches per tick.\n\nDebug logging: set [debug] debugWebae=true to print handler counts, total numRecipes, and filtered recipe counts during collection.
 adm.manual.web_console.refresh_status_title=Top Bar Refresh Status
 adm.manual.web_console.refresh_status_text=The auto-refresh countdown no longer toggles a separate text element on and off (which caused the top bar to shift width).\n\n- A fixed-width status span (min-width 90px) sits next to the green connection dot and is always rendered.\n- The status text follows a small state machine: "Idle" / "Ns until refresh" / "Refreshing...".\n- The refresh button's spinner is absolutely positioned as an overlay so the button width never changes during loading.\n\nThis removes the flex reflow jitter that used to happen every refresh cycle.
 adm.manual.web_console.dashboard_settings_title=Dashboard Settings Panel
@@ -1104,7 +1104,7 @@ adm.manual.web_console.sidebar_modes_text=The sidebar collapse button at the bot
 adm.manual.web_console.chat_title=Web Chat
 adm.manual.web_console.chat_text=The web console has a Chat tab (the message icon in the sidebar and topnav) that bridges browser and in-game chat.\n\nLayout:\n- Left: player list with avatar, name, online duration, and last-seen time. Online players are listed first.\n- Right: bubble-style message area with avatar, sender name, source tag (Web/Game/System), timestamp, and content. Messages from the web are shown on the right, others on the left (heuristic by source==='web'). System messages render as centered yellow pills.\n- Bottom: input box (Enter to send).\n\nSending: POST /api/chat/send with {content} reads your playerUuid from the token, appends a source=web message to ChatMessageStore, and broadcasts it in-game as "[Web] <name>: content". Banned players and empty/over-long content are rejected.\n\nPolling: while the Chat tab is active, the client polls GET /api/chat/since=<ts> every 2.5s and refreshes the player list via GET /api/players every 10s.\n\nAvatars: the server resolves each player's skin URL from their GameProfile textures property (base64-decoded) and returns it as skinUrl. The browser loads https://textures.minecraft.net/<hash> at 32x32; offline players or failed loads fall back to a circular first-letter placeholder.\n\nHistory: GET /api/chat/history?limit=200&since=<ts> returns recent messages; the store keeps a 200-entry ring buffer and persists to TeXTech/WebAE/web-chat.json (debounced) so history survives restarts.\n\nSettings: showAvatars / showPlayerInfo toggles persist in localStorage (webae_chat_settings).
 adm.manual.web_console.reload_command_title=Reload Command
-adm.manual.web_console.reload_command_text=/admweb reload now actually reloads the TeXTech configuration instead of only printing a hint.\n\nIt calls Config.reloadConfiguration(), which re-reads the active config file (config/textech/textech.cfg) and re-runs every section loader (debug, compat, ai, voice, assistant, plannerHud, dataLoom, superOrange, matterBallDecompressor, grapple, webConsole).\n\nNotes:\n- Some options still need a server restart to take effect (for example enabled, port, bindAddress for the web server itself). The command response lists this caveat.\n- Token and runtime data files (TeXTech/WebAE/web-tokens.json, web-players.json, web-chat.json, icons/) are not touched by reload.
+adm.manual.web_console.reload_command_text=/textech web reload now actually reloads the TeXTech configuration instead of only printing a hint.\n\nIt calls Config.reloadConfiguration(), which re-reads the active config file (config/textech/textech.cfg) and re-runs every section loader (debug, compat, ai, voice, assistant, plannerHud, dataLoom, superOrange, matterBallDecompressor, grapple, webConsole).\n\nNotes:\n- Some options still need a server restart to take effect (for example enabled, port, bindAddress for the web server itself). The command response lists this caveat.\n- Token and runtime data files (TeXTech/WebAE/web-tokens.json, web-players.json, web-chat.json, icons/) are not touched by reload.
 
 # ===== Web Console Chat (Phase E) =====
 adm.webconsole.chat.title=Chat
@@ -1184,52 +1184,54 @@ adm.command.common.usage_invalid=Invalid usage. See help below.
 
 adm.command.hub.title==== TeXTech Commands ===
 adm.command.hub.usage=/textech help  —  show this command index
-adm.command.hub.1=[Server]  /admweb help       Web console (token, recipes/icons, world map…)
-adm.command.hub.2=[Client]  /admai help        AI API config (key, model, web search…)
-adm.command.hub.3=[Both]    /admassistant help AI assistant lexicon reload
-adm.command.hub.4=Type /xxx help for full subcommands. [OP] = operator required.
-adm.command.hub.client.1=[Server]  /admweb help       Web console (token, recipes/icons, world map…)
-adm.command.hub.client.2=[Client]  /admai help        AI API config — available on this client
-adm.command.hub.client.3=[Both]    /admassistant help AI assistant lexicon reload
-adm.command.hub.client.4=Aliases: /adm help, /txt help
-adm.command.hub.client.5=Type /xxx help for full subcommands. [OP] = operator required.
-adm.command.hub.footer=Also try /textech help (aliases: /adm, /txt).
-
-adm.command.admassistant.usage=/admassistant <reloadLexicon|lexicon|help>
-adm.command.admassistant.title==== /admassistant — AI Assistant Lexicon ===
-adm.command.admassistant.help.1=/admassistant lexicon  —  show lexicon config file path
-adm.command.admassistant.help.2=/admassistant reloadLexicon  —  reload lexicon after editing  [OP]
-adm.command.admassistant.help.3=Aliases: reload (same as reloadLexicon)
+adm.command.hub.1=[Server]  /textech web help        Web console (token, recipes/icons, world map…)
+adm.command.hub.2=[Client]  /textech ai help         AI API config (key, model, web search…)
+adm.command.hub.3=[Both]    /textech assistant help  AI assistant lexicon reload
+adm.command.hub.4=Aliases: /admweb, /admai, /textech assistant (and adm-*/aicfg/webconsole/admast) still work.
+adm.command.hub.5=Type /textech <domain> help for subcommands. [OP]=operator; [Player]=player required.
+adm.command.hub.client.1=[Client]  /textech ai help         AI API config — available on this client
+adm.command.hub.client.2=[Both]    /textech assistant help  AI assistant lexicon reload
+adm.command.hub.client.3=[Server]  /textech web …           run on the dedicated/server side (not on this client)
+adm.command.hub.client.4=Aliases: /adm help, /txt help; legacy /admai, /admassistant still work.
+adm.command.hub.client.5=Type /textech <domain> help for subcommands. [OP]=operator; [Player]=player required.
+adm.command.hub.footer=Hub: /textech help (aliases: /adm, /txt).
+adm.command.hub.ai_client_only=AI config is client-only. Use /textech ai … (alias /admai).
+adm.command.hub.web_server_only=Web console is server-only. Run /textech web … on the server (alias /admweb).
+adm.command.admassistant.usage=/textech assistant <reload|lexicon|help> (alias /admassistant)
+adm.command.admassistant.title==== /textech assistant — AI Assistant Lexicon ===
+adm.command.admassistant.help.1=/textech assistant lexicon  —  show lexicon config file path
+adm.command.admassistant.help.2=/textech assistant reload  —  reload lexicon after editing  [OP]
+adm.command.admassistant.help.3=Compat: reload-lexicon, reloadLexicon (same as reload)
+adm.command.admassistant.help.4=Root aliases: /admassistant, /adm-assistant, /admast
 adm.command.admassistant.op_required=You need operator permission to reload assistant lexicon config.
 adm.command.admassistant.reload_ok={0}
 adm.command.admassistant.lexicon_path=Assistant lexicon file: {0}
-adm.command.admassistant.lexicon_hint=Use /admassistant reloadLexicon after editing it.
-
-adm.command.admai.usage=/admai <key|model|base|provider|network|search|searchKey|searchBase|debug|stream|status|clearKey|help> [value]
-adm.command.admai.title==== /admai — AI Client Config ===
-adm.command.admai.help.1=/admai key <apiKey>  —  set OpenAI-compatible API key
-adm.command.admai.help.2=/admai clearKey  —  clear saved API key
-adm.command.admai.help.3=/admai model <name>  —  set model (tab completion)
-adm.command.admai.help.4=/admai base <url>  —  set API base URL (tab completion)
-adm.command.admai.help.5=/admai provider <id>  —  apply provider preset (deepseek/openai/openrouter/…)
-adm.command.admai.help.6=/admai network on|off|toggle  —  allow or block AI network requests
-adm.command.admai.help.7=/admai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng
-adm.command.admai.help.8=/admai searchKey <key>  —  Tavily/Brave/Serper search API key
-adm.command.admai.help.9=/admai searchBase <url>  —  SearXNG instance URL
-adm.command.admai.help.10=/admai debug on|off|toggle  —  AI debug logging
-adm.command.admai.help.11=/admai stream on|off|toggle  —  streaming responses
-adm.command.admai.help.12=/admai status  —  show current AI config
-adm.command.admai.help.13=Client-only command. No OP required (except none). Keys saved locally.
-adm.command.admai.usage_key=Usage: /admai key <apiKey>
-adm.command.admai.usage_model=Usage: /admai model <modelName>
-adm.command.admai.usage_base=Usage: /admai base <apiBaseUrl>
-adm.command.admai.usage_provider=Usage: /admai provider <deepseek|openai|openrouter|…>
-adm.command.admai.usage_network=Usage: /admai network <on|off|toggle>
-adm.command.admai.usage_search=Usage: /admai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>
-adm.command.admai.usage_searchkey=Usage: /admai searchKey <apiKey>
-adm.command.admai.usage_searchbase=Usage: /admai searchBase <url>
-adm.command.admai.usage_debug=Usage: /admai debug <on|off|toggle>
-adm.command.admai.usage_stream=Usage: /admai stream <on|off|toggle>
+adm.command.admassistant.lexicon_hint=Use /textech assistant reload after editing it.
+adm.command.admai.usage=/textech ai <key|model|base|provider|network|search|search-key|search-base|debug|stream|status|clear-key|help> [value] (alias /admai)
+adm.command.admai.title==== /textech ai — AI Client Config ===
+adm.command.admai.help.1=/textech ai key <apiKey>  —  set OpenAI-compatible API key
+adm.command.admai.help.2=/textech ai clear-key  —  clear saved API key (compat clearKey)
+adm.command.admai.help.3=/textech ai model <name>  —  set model (tab completion)
+adm.command.admai.help.4=/textech ai base <url>  —  set API base URL (tab completion)
+adm.command.admai.help.5=/textech ai provider <id>  —  apply provider preset (deepseek/openai/openrouter/…)
+adm.command.admai.help.6=/textech ai network on|off|toggle  —  allow or block AI network requests
+adm.command.admai.help.7=/textech ai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng
+adm.command.admai.help.8=/textech ai search-key <key>  —  Tavily/Brave/Serper search API key (compat searchKey)
+adm.command.admai.help.9=/textech ai search-base <url>  —  SearXNG instance URL (compat searchBase)
+adm.command.admai.help.10=/textech ai debug on|off|toggle  —  AI debug logging
+adm.command.admai.help.11=/textech ai stream on|off|toggle  —  streaming responses
+adm.command.admai.help.12=/textech ai status  —  show current AI config
+adm.command.admai.help.13=Client-only. [Player] no OP required (keys saved locally). Aliases: /admai, /adm-ai, /aicfg
+adm.command.admai.usage_key=Usage: /textech ai key <apiKey>
+adm.command.admai.usage_model=Usage: /textech ai model <modelName>
+adm.command.admai.usage_base=Usage: /textech ai base <apiBaseUrl>
+adm.command.admai.usage_provider=Usage: /textech ai provider <deepseek|openai|openrouter|…>
+adm.command.admai.usage_network=Usage: /textech ai network <on|off|toggle>
+adm.command.admai.usage_search=Usage: /textech ai search <on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng>
+adm.command.admai.usage_searchkey=Usage: /textech ai search-key <apiKey>
+adm.command.admai.usage_searchbase=Usage: /textech ai search-base <url>
+adm.command.admai.usage_debug=Usage: /textech ai debug <on|off|toggle>
+adm.command.admai.usage_stream=Usage: /textech ai stream <on|off|toggle>
 adm.command.admai.key_saved=AI API key saved. Current key: {0}
 adm.command.admai.key_cleared=AI API key cleared.
 adm.command.admai.model_set=AI model set to: {0}
@@ -1238,7 +1240,7 @@ adm.command.admai.provider_unknown=Unknown AI provider: {0}
 adm.command.admai.provider_set=AI provider set to: {0}
 adm.command.admai.provider_base=Base URL: {0}
 adm.command.admai.provider_model=Model: {0}
-adm.command.admai.provider_search=Web search mode: {0}{1}
+adm.command.admai.provider_search=Web search mode: {0} ({1})
 adm.command.admai.network_enabled=AI network requests: enabled
 adm.command.admai.network_disabled=AI network requests: disabled
 adm.command.admai.search_status=AI web search: {0}, engine: {1}
@@ -1268,69 +1270,70 @@ adm.command.admai.status.no=no
 adm.command.admai.status.enabled=enabled
 adm.command.admai.status.disabled=disabled
 
-adm.command.admweb.usage=/admweb help  —  Web console commands (see /admweb help)
-adm.command.admweb.title==== /admweb — Web Console ===
-adm.command.admweb.help.1=/admweb issue  —  generate owner access token  [Player]
-adm.command.admweb.help.2=/admweb login  —  6-digit browser login code  [Player]
-adm.command.admweb.help.3=/admweb guest <player>  —  issue guest token to online player  [Player]
-adm.command.admweb.help.4=/admweb copy  —  copy your active token to clipboard  [Player]
-adm.command.admweb.help.5=/admweb revoke [guestName|player]  —  revoke token  [Player/OP]
-adm.command.admweb.help.6=/admweb list  —  list all active tokens  [OP]
-adm.command.admweb.help.7=/admweb reload  —  reload TeXTech config  [OP]
-adm.command.admweb.help.8=/admweb refresh [networkId]  —  force snapshot re-collect  [OP]
-adm.command.admweb.help.9=/admweb recipes …  —  recipe cache (upload/status/clear)  [see /admweb recipes]
-adm.command.admweb.help.10=/admweb icons …  —  icon packs (upload/import/status)  [see /admweb icons]
-adm.command.admweb.help.11=/admweb worldmap …  —  world map snapshot  [see /admweb worldmap]
-adm.command.admweb.help.12=/admweb server status|restart  —  HTTP server control
+adm.command.admweb.usage=/textech web help  —  Web console commands (alias /admweb)
+adm.command.admweb.title==== /textech web — Web Console ===
+adm.command.admweb.help.1=/textech web issue  —  generate owner access token  [Player]
+adm.command.admweb.help.2=/textech web login  —  6-digit browser login code  [Player]
+adm.command.admweb.help.3=/textech web guest <player>  —  issue guest token to online player  [Player]
+adm.command.admweb.help.4=/textech web copy  —  copy your active token to clipboard  [Player]
+adm.command.admweb.help.5=/textech web revoke [guestName|player]  —  revoke token  [Player/OP]
+adm.command.admweb.help.6=/textech web list  —  list all active tokens  [OP]
+adm.command.admweb.help.7=/textech web reload  —  reload TeXTech config  [OP]
+adm.command.admweb.help.8=/textech web refresh [networkId]  —  force snapshot re-collect  [OP]
+adm.command.admweb.help.9=/textech web recipes …  —  recipe cache (upload/status/clear)  [see /textech web recipes]
+adm.command.admweb.help.10=/textech web icons …  —  icon packs (upload/import/status)  [see /textech web icons]
+adm.command.admweb.help.11=/textech web worldmap …  —  world map snapshot  [see /textech web worldmap]
+adm.command.admweb.help.12=/textech web server status|restart  —  HTTP server control
 adm.command.admweb.help.13=Port restart note: enabled/port/bindAddress may need server restart after reload.
-adm.command.admweb.help.14=/admweb defaults status|install|clear  —  WebAE UI default layout JSON  [OP for install/clear]
-adm.command.admweb.help.15=/admweb admin …  —  admin elevation tokens  [see /admweb admin]
-adm.command.admweb.admin.title==== /admweb admin — Admin Elevation Tokens ===
-adm.command.admweb.admin.help.1=/admweb admin issue [label] [--reuse]  —  generate bootstrap code  [OP or SP cheat]
-adm.command.admweb.admin.help.2=/admweb admin list  —  list grants & unused bootstraps  [OP]
-adm.command.admweb.admin.help.3=/admweb admin revoke <token|uuid|name|all>  —  revoke grant or bootstraps  [OP]
-adm.command.admweb.admin.help.4=/admweb admin rotate  —  revoke all grants + unused bootstraps (emergency)  [OP]
+adm.command.admweb.help.14=/textech web defaults status|install|clear  —  WebAE UI default layout JSON  [OP for install/clear]
+adm.command.admweb.help.15=/textech web admin …  —  admin elevation tokens  [see /textech web admin]
+adm.command.admweb.help.16=Root aliases: /admweb, /adm-web, /webconsole
+adm.command.admweb.admin.title==== /textech web admin — Admin Elevation Tokens ===
+adm.command.admweb.admin.help.1=/textech web admin issue [label] [--reuse]  —  generate bootstrap code  [OP or SP cheat]
+adm.command.admweb.admin.help.2=/textech web admin list  —  list grants & unused bootstraps  [OP]
+adm.command.admweb.admin.help.3=/textech web admin revoke <token|uuid|name|all>  —  revoke grant or bootstraps  [OP]
+adm.command.admweb.admin.help.4=/textech web admin rotate  —  revoke all grants + unused bootstraps (emergency)  [OP]
 adm.command.admweb.admin.help.5=Bootstrap codes (wae-adm-*) are one-time; exchange them in browser Settings → Admin tab.
 adm.command.admweb.admin.op_required=Operator (OP>=2) or single-player with cheats required.
 adm.command.admweb.admin.unknown=Unknown admin subcommand. Use: issue, list, revoke, rotate
-adm.command.admweb.admin.issued_player=[WebAE] Admin bootstrap code: %s
+adm.command.admweb.admin.issued_player=[WebAE] Admin bootstrap code: {0}
 adm.command.admweb.admin.issued_one_shot=This code is one-time only. Exchange it in the browser Settings page.
 adm.command.admweb.admin.issued_reuse=This code can be used multiple times (--reuse).
-adm.command.admweb.admin.issued_console=[WebAE] Admin bootstrap code: %s
+adm.command.admweb.admin.issued_console=[WebAE] Admin bootstrap code: {0}
 adm.command.admweb.admin.list_title==== Active Admin Grants ===
 adm.command.admweb.admin.list_empty=No active admin grants.
-adm.command.admweb.admin.list_entry=  Token: %s | Actor: %s | Owner: %s | Label: %s | Expires: %s
+adm.command.admweb.admin.list_entry=  Token: {0} | Actor: {1} | Owner: {2} | Label: {3} | Expires: {4}
 adm.command.admweb.admin.list_bootstrap_title==== Unused Bootstrap Codes ===
-adm.command.admweb.admin.list_bootstrap_entry=  Code: %s | Issued by: %s | Status: %s
+adm.command.admweb.admin.list_bootstrap_entry=  Code: {0} | Issued by: {1} | Status: {2}
 adm.command.admweb.admin.bootstrap_used=used
 adm.command.admweb.admin.bootstrap_unused=unused
 adm.command.admweb.admin.bootstrap_reusable=reusable
 adm.command.admweb.admin.never=never
-adm.command.admweb.admin.revoke_usage=Usage: /admweb admin revoke <token|uuid|name|all>
-adm.command.admweb.admin.revoke_all=Revoked %d admin grants.
-adm.command.admweb.admin.revoked=Revoked admin grant for %s.
-adm.command.admweb.admin.revoke_notfound=No admin grant found for %s.
-adm.command.admweb.admin.rotated=Rotated: %d bootstrap codes + %d grants revoked.
-adm.command.admweb.defaults.usage=/admweb defaults status|install <path>|clear
-adm.command.admweb.defaults.install_usage=/admweb defaults install <path-to-json>
+adm.command.admweb.admin.revoke_usage=Usage: /textech web admin revoke <token|uuid|name|all>
+adm.command.admweb.admin.revoke_all=Revoked {0} admin grants.
+adm.command.admweb.admin.revoked=Revoked admin grant for {0}.
+adm.command.admweb.admin.revoke_notfound=No admin grant found for {0}.
+adm.command.admweb.admin.rotated=Rotated: {0} bootstrap codes + {1} grants revoked.
+adm.command.admweb.defaults.usage=/textech web defaults status|install <path>|clear
+adm.command.admweb.defaults.install_usage=/textech web defaults install <path-to-json>
 adm.command.admweb.defaults.status_none=No ui-defaults.json found (instance or mod jar).
-adm.command.admweb.defaults.status_ok=UI defaults active (%s, %s bytes).
+adm.command.admweb.defaults.status_ok=UI defaults active ({0}, {1} bytes).
 adm.command.admweb.defaults.source_instance=instance TeXTech/WebAE/ui-defaults.json
 adm.command.admweb.defaults.source_jar=mod jar assets/textech/webae/ui-defaults.json
-adm.command.admweb.defaults.install_missing=File not found: %s
+adm.command.admweb.defaults.install_missing=File not found: {0}
 adm.command.admweb.defaults.install_invalid=Invalid JSON file (expected object).
-adm.command.admweb.defaults.install_ok=Installed ui-defaults.json to %s
+adm.command.admweb.defaults.install_ok=Installed ui-defaults.json to {0}
 adm.command.admweb.defaults.install_failed=Failed to install ui-defaults.json
 adm.command.admweb.defaults.clear_none=No instance ui-defaults.json to remove.
 adm.command.admweb.defaults.clear_ok=Removed instance ui-defaults.json (falls back to jar or code defaults).
 adm.command.admweb.defaults.clear_failed=Failed to delete ui-defaults.json
 adm.command.admweb.defaults.unknown=Unknown defaults action. Use status, install, or clear.
 
-adm.command.admweb.recipes.title==== /admweb recipes ===
-adm.command.admweb.recipes.help.1=/admweb recipes upload [snapshot|deep]  —  collect & upload NEI recipes  [OP][Client]
-adm.command.admweb.recipes.help.2=/admweb recipes export  —  alias of upload (export to disk cache)
-adm.command.admweb.recipes.help.3=/admweb recipes status  —  show server recipe cache status
-adm.command.admweb.recipes.help.4=/admweb recipes clear  —  clear memory + disk cache  [OP]
+adm.command.admweb.recipes.title==== /textech web recipes ===
+adm.command.admweb.recipes.help.1=/textech web recipes upload [snapshot|deep]  —  collect & upload NEI recipes  [OP][Client]
+adm.command.admweb.recipes.help.2=/textech web recipes export  —  alias of upload (export to disk cache)
+adm.command.admweb.recipes.help.3=/textech web recipes status  —  show server recipe cache status
+adm.command.admweb.recipes.help.4=/textech web recipes clear  —  clear memory + disk cache  [OP]
 adm.command.admweb.recipes.upload_disabled=Recipe upload is disabled in config.
 adm.command.admweb.recipes.snapshot_info=Snapshot upload: {0} storage items → related recipes
 adm.command.admweb.recipes.deep_info=Deep NEI item scan — may take several minutes.
@@ -1345,18 +1348,18 @@ adm.command.admweb.recipes.status.disk_save=  Last disk save: {0}
 adm.command.admweb.recipes.status.disk_none=  Disk cache: not yet saved
 adm.command.admweb.recipes.unknown=Unknown recipes subcommand. Use: upload, export, status, clear
 
-adm.command.admweb.icons.title==== /admweb icons ===
-adm.command.admweb.icons.help.1=/admweb icons upload [pack] [snapshot]  [OP]
-adm.command.admweb.icons.help.2=/admweb icons upload snapshot [pack]  [OP]
-adm.command.admweb.icons.help.3=/admweb icons local [pack]  — render to this PC (no upload)
-adm.command.admweb.icons.help.4=/admweb icons local snapshot [pack]
-adm.command.admweb.icons.help.5=/admweb icons pull [pack]  — download server icons to icons-local/
-adm.command.admweb.icons.help.6=/admweb icons render <itemId> [pack]  [OP][Client]
-adm.command.admweb.icons.help.7=/admweb icons verify <itemId> [pack]  [Client]
-adm.command.admweb.icons.help.8=/admweb icons import <folder> [pack]  [OP]
-adm.command.admweb.icons.help.9=/admweb icons import-nesql [pack] [subpath]  [OP]
-adm.command.admweb.icons.help.10=/admweb icons modes | status | clear  [OP for clear]
-adm.command.admweb.icons.help.11=/admweb icons y|n  — lazy-capture consent (resource pack note)
+adm.command.admweb.icons.title==== /textech web icons ===
+adm.command.admweb.icons.help.1=/textech web icons upload [pack]  —  full upload  [OP]
+adm.command.admweb.icons.help.2=/textech web icons upload snapshot [pack]  —  snapshot items only  [OP]
+adm.command.admweb.icons.help.3=/textech web icons local [pack]  — render to this PC (no upload)
+adm.command.admweb.icons.help.4=/textech web icons local snapshot [pack]
+adm.command.admweb.icons.help.5=/textech web icons pull [pack]  — download server icons to icons-local/
+adm.command.admweb.icons.help.6=/textech web icons render <itemId> [pack]  [OP][Client]
+adm.command.admweb.icons.help.7=/textech web icons verify <itemId> [pack]  [Client]
+adm.command.admweb.icons.help.8=/textech web icons import <folder> [pack]  [OP]
+adm.command.admweb.icons.help.9=/textech web icons import-nesql [pack] [subpath]  [OP]
+adm.command.admweb.icons.help.10=/textech web icons modes | status | clear  [OP for clear]
+adm.command.admweb.icons.help.11=/textech web icons y|n  — lazy-capture consent (resource pack note)
 adm.command.admweb.icons.modes.title==== WebAE Icon Render Modes ===
 adm.command.admweb.icons.status.title==== Icon Pack Status ===
 adm.command.admweb.icons.status.empty=  No icon packs installed in TeXTech/WebAE/icons/.
@@ -1374,11 +1377,11 @@ adm.command.admweb.icons.no_snapshot=No cached AE storage snapshots yet.
 adm.command.admweb.icons.upload_started=Icon upload started: pack={0} mode={1} scope={2}
 adm.command.admweb.icons.local_started=Local icon render started: pack={0} mode={1} scope={2} (icons-local/)
 adm.command.admweb.icons.pull_started=Pulling server icons to this PC: pack={0}
-adm.command.admweb.icons.render_usage=Usage: /admweb icons render <itemId> [pack]
+adm.command.admweb.icons.render_usage=Usage: /textech web icons render <itemId> [pack]
 adm.command.admweb.icons.rendering=Rendering {0}
-adm.command.admweb.icons.verify_usage=Usage: /admweb icons verify <itemId> [pack]
+adm.command.admweb.icons.verify_usage=Usage: /textech web icons verify <itemId> [pack]
 adm.command.admweb.icons.verify_open=Opening verify GUI for {0}
-adm.command.admweb.icons.import_usage=Usage: /admweb icons import <folder> [pack]
+adm.command.admweb.icons.import_usage=Usage: /textech web icons import <folder> [pack]
 adm.command.admweb.icons.import_invalid=Invalid pack or folder.
 adm.command.admweb.icons.import_done=Imported {0} PNGs to {1}/nei/
 adm.command.admweb.icons.import_nesql_invalid=Invalid pack name.
@@ -1391,7 +1394,7 @@ adm.command.admweb.icons.consent.accept=Accept
 adm.command.admweb.icons.consent.reject=Decline
 adm.command.admweb.icons.consent.accept_hover=Become the icon provider for this session (~30 min)
 adm.command.admweb.icons.consent.reject_hover=Decline; another player may be asked
-adm.command.admweb.icons.consent.hint=Or type /admweb icons y  /  /admweb icons n
+adm.command.admweb.icons.consent.hint=Or type /textech web icons y  /  /textech web icons n
 adm.command.admweb.icons.consent.accepted=You are now the WebAE icon provider for this session.
 adm.command.admweb.icons.consent.rejected=Declined WebAE icon provider request.
 adm.command.admweb.icons.consent.failed=Could not accept icon provider consent.
@@ -1399,38 +1402,38 @@ adm.webconsole.icons.local_started=Local icon export started for pack {0}
 adm.webconsole.icons.pull_local_done=Copied {0} icons to {1}
 adm.webconsole.icons.pull_waiting=Waiting for server icon pack zip: {0}
 
-adm.command.admweb.worldmap.title==== /admweb worldmap ===
-adm.command.admweb.worldmap.help.1=/admweb worldmap upload [networkId]  —  upload map snapshot  [Player][Client]
-adm.command.admweb.worldmap.help.2=/admweb worldmap accept <requestId>  —  accept upload request  [Player]
-adm.command.admweb.worldmap.help.3=/admweb worldmap status [networkId]  —  snapshot status
-adm.command.admweb.worldmap.accept_usage=Usage: /admweb worldmap accept <requestId>
+adm.command.admweb.worldmap.title==== /textech web worldmap ===
+adm.command.admweb.worldmap.help.1=/textech web worldmap upload [networkId]  —  upload map snapshot  [Player][Client]
+adm.command.admweb.worldmap.help.2=/textech web worldmap accept <requestId>  —  accept upload request  [Player]
+adm.command.admweb.worldmap.help.3=/textech web worldmap status [networkId]  —  snapshot status
+adm.command.admweb.worldmap.accept_usage=Usage: /textech web worldmap accept <requestId>
 adm.command.admweb.worldmap.start_failed=[WebAE] Could not start snapshot (cooldown, no topology, or not near network).
 adm.command.admweb.worldmap.start_ok=[WebAE] Snapshot capture started or consent sent (id/version: {0}).
 adm.command.admweb.worldmap.accept_failed=[WebAE] Request expired, not found, or you are too far from the network.
 adm.command.admweb.worldmap.status=[WebAE] World map snapshot v{0} state={1}{2}
 adm.command.admweb.worldmap.progress= progress={0}/{1}
-adm.command.admweb.worldmap.unknown=Unknown worldmap subcommand. Use /admweb worldmap help
+adm.command.admweb.worldmap.unknown=Unknown worldmap subcommand. Use /textech web worldmap help
 
-adm.command.admweb.wm.title==== /admweb wm (world map shortcuts) ===
-adm.command.admweb.wm.help.1=/admweb wm y [id]  —  accept upload (id optional)
-adm.command.admweb.wm.help.2=/admweb wm n [id]  —  decline upload
-adm.command.admweb.wm.help.3=/admweb wm up [networkId]  —  request snapshot upload
-adm.command.admweb.wm.help.4=/admweb wm st [networkId]  —  snapshot status
+adm.command.admweb.wm.title==== /textech web wm (world map shortcuts) ===
+adm.command.admweb.wm.help.1=/textech web wm y [id]  —  accept upload (id optional)
+adm.command.admweb.wm.help.2=/textech web wm n [id]  —  decline upload
+adm.command.admweb.wm.help.3=/textech web wm up [networkId]  —  request snapshot upload
+adm.command.admweb.wm.help.4=/textech web wm st [networkId]  —  snapshot status
 adm.command.admweb.wm.no_pending=[WebAE] No pending world map upload request.
 adm.command.admweb.wm.accept_ok=[WebAE] Accepted — map snapshot upload started.
-adm.command.admweb.wm.unknown=Unknown wm subcommand. Use /admweb wm help
+adm.command.admweb.wm.unknown=Unknown wm subcommand. Use /textech web wm help
 
 adm.worldmap.consent.header=[WebAE] {0} requests a world map upload for network {1} ({2} chunks)
 adm.worldmap.consent.accept=Accept
 adm.worldmap.consent.reject=Decline
-adm.worldmap.consent.accept_hover=Click to accept (/admweb wm y {0})
+adm.worldmap.consent.accept_hover=Click to accept (/textech web wm y {0})
 adm.worldmap.consent.reject_hover=Click to decline
-adm.worldmap.consent.hint=Or run /admweb wm y {0}
+adm.worldmap.consent.hint=Or run /textech web wm y {0}
 adm.worldmap.consent.rejected=[WebAE] World map upload request declined.
 
-adm.command.admweb.server.title==== /admweb server ===
-adm.command.admweb.server.help.1=/admweb server status  —  show WebAE HTTP server state
-adm.command.admweb.server.help.2=/admweb server restart  —  restart HTTP server  [OP]
+adm.command.admweb.server.title==== /textech web server ===
+adm.command.admweb.server.help.1=/textech web server status  —  show WebAE HTTP server state
+adm.command.admweb.server.help.2=/textech web server restart  —  restart HTTP server  [OP]
 adm.command.admweb.server.status.title==== WebAE HTTP Server ===
 adm.command.admweb.server.status.enabled=  Config enabled: {0}
 adm.command.admweb.server.status.running=  Running: {0}
@@ -1443,9 +1446,9 @@ adm.command.admweb.list.empty=No active tokens.
 adm.command.admweb.list.entry=  [{0}] owner={1} actor={2} | Token: {3}... | Issued: {4}
 adm.command.admweb.list.type.guest=guest
 adm.command.admweb.list.type.owner=owner
-adm.command.admweb.revoke.usage=Usage: /admweb revoke [player|guestName]
+adm.command.admweb.revoke.usage=Usage: /textech web revoke [player|guestName]
 adm.command.admweb.revoke.other_op=You need operator permission to revoke other players' tokens.
-adm.command.admweb.refresh.usage=Refresh must be triggered by a player, or specify: /admweb refresh [network] <ownerUuid>
+adm.command.admweb.refresh.usage=Refresh must be triggered by a player, or specify: /textech web refresh [network] <ownerUuid>
 adm.command.admweb.guest.token_preview=Guest token: {0}...
 adm.command.admweb.reload.failed=Configuration reload failed — see server log for details.
 adm.command.admweb.reload.note=Note: some settings (e.g. web console port/bind address) only take effect after a server restart.

@@ -6,6 +6,7 @@ import { SelectableListRow } from '@/components/common/SelectableListRow';
 import { useI18n } from '@/i18n';
 import type { QuestLineSummaryDto } from '@/types/dto';
 import { stripMcFormatting } from '@/utils/mcFormatting';
+import { questIconProps } from '@/components/quest/questUtils';
 
 const { Text } = Typography;
 
@@ -20,6 +21,7 @@ interface QuestLinePanelProps {
   onToggleCollapsed?: () => void;
   previewMode?: boolean;
   lineSubmittableCounts?: Record<string, number>;
+  lineCompletedCounts?: Record<string, number>;
 }
 
 export function QuestLinePanel({
@@ -33,6 +35,7 @@ export function QuestLinePanel({
   onToggleCollapsed,
   previewMode = true,
   lineSubmittableCounts = {},
+  lineCompletedCounts = {},
 }: QuestLinePanelProps) {
   const { t } = useI18n();
   const toggleLabel = collapsed ? t('quest.expandLines') : t('quest.collapseLines');
@@ -88,7 +91,9 @@ export function QuestLinePanel({
           lines.map((line) => {
             const selected = line.lineId === activeLineId;
             const submittableCount = lineSubmittableCounts[line.lineId] ?? 0;
+            const completedCount = lineCompletedCounts[line.lineId] ?? 0;
             const isDimmed = !previewMode && submittableCount === 0;
+            const allDone = line.questCount > 0 && completedCount >= line.questCount;
             const row = (
               <SelectableListRow
                 key={line.lineId}
@@ -97,24 +102,45 @@ export function QuestLinePanel({
                 ariaLabel={stripMcFormatting(line.name)}
                 ariaCurrent={selected}
                 leading={
-                  line.iconItemId ? (
-                    <Icon item={{ itemId: line.iconItemId, meta: line.iconMeta }} size={lineIconSize} alt={line.name} />
-                  ) : (
-                    <span style={{ width: lineIconSize, height: lineIconSize, flexShrink: 0 }} />
-                  )
+                  (() => {
+                    const iconProps = questIconProps({
+                      iconItemId: line.iconItemId,
+                      meta: line.iconMeta,
+                    });
+                    return iconProps ? (
+                      <Icon {...iconProps} size={lineIconSize} alt={line.name} />
+                    ) : (
+                      <span style={{ width: lineIconSize, height: lineIconSize, flexShrink: 0 }} />
+                    );
+                  })()
                 }
-                style={isDimmed ? { opacity: 0.4, color: '#64748b' } : undefined}
+                style={
+                  isDimmed
+                    ? { opacity: 0.4, color: 'var(--text-secondary)' }
+                    : undefined
+                }
               >
                 <Text
                   ellipsis
-                  style={{ display: 'block', fontSize: lineFontSize, ...(isDimmed ? { color: '#64748b' } : {}) }}
+                  style={{
+                    display: 'block',
+                    fontSize: lineFontSize,
+                    ...(isDimmed ? { color: 'var(--text-secondary)' } : {}),
+                  }}
                   title={stripMcFormatting(line.name)}
                 >
                   <McFormattedText text={line.name} ellipsis />
                 </Text>
                 {line.questCount > 0 ? (
-                  <Text type="secondary" style={{ fontSize: Math.max(11, lineFontSize - 2) }}>
-                    {line.questCount}
+                  <Text
+                    type="secondary"
+                    style={{
+                      fontSize: Math.max(11, lineFontSize - 2),
+                      flexShrink: 0,
+                      color: allDone ? 'var(--success)' : undefined,
+                    }}
+                  >
+                    {completedCount}/{line.questCount}
                   </Text>
                 ) : null}
               </SelectableListRow>

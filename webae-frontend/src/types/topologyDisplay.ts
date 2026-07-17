@@ -36,6 +36,10 @@ export interface TopologyDisplaySettings {
   showCountLabels: boolean;
   showEdgeChannelLabels: boolean;
   hideCableNodes: boolean;
+  /** Show empty smart lanes (0/8) in channel-lane topology. Default true. */
+  showEmptyLanes: boolean;
+  /** Collapse role-pod compound children into the pod node. */
+  collapsePods: boolean;
   /** Simulated view grid cell size (px). */
   cableCellPx: number;
   nodeBlockPx: number;
@@ -83,7 +87,7 @@ export const TOPOLOGY_DISPLAY_STORAGE_KEY = 'webae_topology_display';
 export const DEFAULT_TOPOLOGY_DISPLAY: TopologyDisplaySettings = {
   renderMode: 'abstract',
   abstractLayout: 'tree',
-  layoutDirection: 'LR',
+  layoutDirection: 'TB',
   depthGap: 140,
   siblingGap: 72,
   labelMargin: 24,
@@ -91,7 +95,9 @@ export const DEFAULT_TOPOLOGY_DISPLAY: TopologyDisplaySettings = {
   labelStrategy: 'external',
   showCountLabels: true,
   showEdgeChannelLabels: true,
-  hideCableNodes: true,
+  hideCableNodes: false,
+  showEmptyLanes: true,
+  collapsePods: false,
   cableCellPx: 24,
   nodeBlockPx: 32,
   colors: {

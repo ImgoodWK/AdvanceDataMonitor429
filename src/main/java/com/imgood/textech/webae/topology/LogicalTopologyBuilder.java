@@ -1,7 +1,10 @@
 package com.imgood.textech.webae.topology;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.imgood.textech.webae.topology.ChannelBranchAllocator.Allocation;
 import com.imgood.textech.webae.topology.ChannelBranchAllocator.Result;
@@ -9,9 +12,12 @@ import com.imgood.textech.webae.topology.FakeChannelAllocator.ChannelProbeResult
 import com.imgood.textech.webae.topology.NetworkStatusEnumerator.NetworkFacility;
 import com.imgood.textech.webae.topology.NetworkStatusEnumerator.NetworkFacility.CellSlot;
 import com.imgood.textech.webae.topology.TopologyFacilityGrouper.AggregatedGroup;
+import com.imgood.textech.webae.topology.TopologySnapshot.LaneInfo;
 
 /**
- * Builds logical AE topology graphs: tree layout with dense/smart branches, or double-ring star semantics.
+ * Builds logical AE channel-budget topology (ae_budget_v2):
+ * controller → dense trunk (32) → 4× smart lanes (8) → role pods → devices.
+ * Zero-channel devices hang on a hub orbit. Not real AE cable routing.
  */
 public final class LogicalTopologyBuilder {
 
@@ -27,6 +33,10 @@ public final class LogicalTopologyBuilder {
         public int channelDeviceCount;
         public int controllerCapacity;
         public int facilityCount;
+        public int[] laneUsed = new int[ChannelBranchAllocator.BRANCH_COUNT];
+        public boolean[] laneOverflow = new boolean[ChannelBranchAllocator.BRANCH_COUNT];
+        public Map<String, Integer> orbitCounts = new HashMap<String, Integer>();
+        public List<LaneInfo> laneInfos = new ArrayList<LaneInfo>();
     }
 
     public static BuildResult build(List<NetworkFacility> facilities, ChannelProbeResult probe,
@@ -67,95 +77,161 @@ public final class LogicalTopologyBuilder {
         result.controllerCapacity = estimateControllerCapacity(controllers, probe);
 
         List<AggregatedGroup> allGroups = TopologyFacilityGrouper.group(forGrouping);
-        List<AggregatedGroup> topGroups = new ArrayList<AggregatedGroup>();
         List<AggregatedGroup> channelGroups = new ArrayList<AggregatedGroup>();
         List<AggregatedGroup> zeroGroups = new ArrayList<AggregatedGroup>();
 
         for (AggregatedGroup group : allGroups) {
             if (group.channelCostSum <= 0 || TopologyRules.isZeroChannelSubtype(group.subtype)) {
                 zeroGroups.add(group);
-            } else if (TopologyRules.isTopTierSubtype(group.subtype)) {
-                topGroups.add(group);
             } else {
+                // Access (terminals) and all other channel devices share the 4×8 lane budget.
                 channelGroups.add(group);
             }
         }
 
         appendEnergyGroups(result, root.id, energyFacilities);
-        appendTopTierGroups(result, root.id, topGroups);
 
         TopologyNode denseTrunk = createVirtualCableNode(
             DENSE_TRUNK_ID,
             TopologyNodeType.CABLE_DENSE,
             "Dense Trunk (32ch)",
+            TopologyRules.LAYER_TRUNK,
             1,
             0,
             "south");
         result.nodes.add(denseTrunk);
-        result.edges.add(
-            edge(
-                root.id,
-                denseTrunk.id,
-                result.channelDeviceCount,
-                TopologyRules.CABLE_COVERED_MAX,
-                "dense",
-                -1,
-                false));
 
         TopologyNode[] branches = new TopologyNode[ChannelBranchAllocator.BRANCH_COUNT];
         for (int i = 0; i < ChannelBranchAllocator.BRANCH_COUNT; i++) {
             branches[i] = createVirtualCableNode(
                 branchId(i),
                 TopologyNodeType.CABLE_SMART,
-                "Smart Branch " + i + " (8ch)",
+                "Smart Lane " + i + " (8ch)",
+                TopologyRules.LAYER_LANE,
                 2,
                 i,
                 "branch" + i);
+            branches[i].branchIndex = i;
             result.nodes.add(branches[i]);
+        }
+
+        Result allocation = ChannelBranchAllocator.allocate(channelGroups);
+        System.arraycopy(allocation.branchUsed, 0, result.laneUsed, 0, ChannelBranchAllocator.BRANCH_COUNT);
+        System.arraycopy(allocation.branchOverflow, 0, result.laneOverflow, 0, ChannelBranchAllocator.BRANCH_COUNT);
+
+        int trunkUsed = 0;
+        for (int i = 0; i < ChannelBranchAllocator.BRANCH_COUNT; i++) {
+            trunkUsed += allocation.branchUsed[i];
+        }
+        boolean trunkOverflow = trunkUsed > TopologyRules.CABLE_COVERED_MAX;
+
+        result.edges.add(
+            edge(
+                root.id,
+                denseTrunk.id,
+                trunkUsed,
+                TopologyRules.CABLE_COVERED_MAX,
+                "dense",
+                -1,
+                false,
+                trunkOverflow,
+                TopologyRules.EDGE_CAPACITY_TRUNK));
+
+        for (int i = 0; i < ChannelBranchAllocator.BRANCH_COUNT; i++) {
             result.edges.add(
                 edge(
                     denseTrunk.id,
                     branches[i].id,
-                    ChannelBranchAllocator.CHANNELS_PER_BRANCH,
+                    allocation.branchUsed[i],
                     ChannelBranchAllocator.CHANNELS_PER_BRANCH,
                     "smart",
                     i,
-                    false));
+                    allocation.branchGroupCount[i] == 0,
+                    allocation.branchOverflow[i],
+                    TopologyRules.EDGE_CAPACITY_LANE));
         }
 
-        Result allocation = ChannelBranchAllocator.allocate(channelGroups);
+        // Group allocated devices by (lane, podKind) → compound pods.
+        Map<String, List<AggregatedGroup>> podBuckets = new LinkedHashMap<String, List<AggregatedGroup>>();
+        Map<String, Integer> podLane = new HashMap<String, Integer>();
+        Map<String, String> podKindByKey = new HashMap<String, String>();
+
         for (AggregatedGroup group : channelGroups) {
             Allocation alloc = allocation.byGroupKey.get(group.groupKey);
             int branchIndex = alloc != null ? alloc.branchIndex : 0;
-            int slotIndex = alloc != null ? alloc.slotIndex : 0;
-            TopologyNode node = createAggregatedNode(group, branchIndex, slotIndex);
-            result.nodes.add(node);
+            String podKind = TopologyRules.podKindForSubtype(group.subtype);
+            String podKey = branchIndex + "|" + podKind;
+            List<AggregatedGroup> bucket = podBuckets.get(podKey);
+            if (bucket == null) {
+                bucket = new ArrayList<AggregatedGroup>();
+                podBuckets.put(podKey, bucket);
+                podLane.put(podKey, Integer.valueOf(branchIndex));
+                podKindByKey.put(podKey, podKind);
+            }
+            bucket.add(group);
+        }
+
+        Map<Integer, List<String>> lanePodKinds = new HashMap<Integer, List<String>>();
+        for (int i = 0; i < ChannelBranchAllocator.BRANCH_COUNT; i++) {
+            lanePodKinds.put(Integer.valueOf(i), new ArrayList<String>());
+        }
+
+        int podSlot = 0;
+        for (Map.Entry<String, List<AggregatedGroup>> entry : podBuckets.entrySet()) {
+            String podKey = entry.getKey();
+            int branchIndex = podLane.get(podKey).intValue();
+            String podKind = podKindByKey.get(podKey);
+            List<AggregatedGroup> members = entry.getValue();
+
+            String podId = "pod:" + branchIndex + ":" + podKind;
+            TopologyNode pod = createPodNode(podId, podKind, branchIndex, podSlot++);
+            result.nodes.add(pod);
             result.edges.add(
                 edge(
                     branches[branchIndex].id,
-                    node.id,
-                    group.channelCostSum,
+                    pod.id,
+                    sumChannelCost(members),
                     ChannelBranchAllocator.CHANNELS_PER_BRANCH,
                     "smart",
                     branchIndex,
-                    false));
+                    false,
+                    allocation.branchOverflow[branchIndex],
+                    TopologyRules.EDGE_POD_UPLINK));
+
+            List<String> kinds = lanePodKinds.get(Integer.valueOf(branchIndex));
+            if (kinds != null && !kinds.contains(podKind)) {
+                kinds.add(podKind);
+            }
+
+            int deviceSlot = 0;
+            for (AggregatedGroup group : members) {
+                Allocation alloc = allocation.byGroupKey.get(group.groupKey);
+                int slotIndex = alloc != null ? alloc.slotIndex : deviceSlot;
+                TopologyNode node = createAggregatedNode(group, branchIndex, slotIndex, podKind, podId);
+                result.nodes.add(node);
+                result.edges.add(
+                    edge(
+                        pod.id,
+                        node.id,
+                        group.channelCostSum,
+                        ChannelBranchAllocator.CHANNELS_PER_BRANCH,
+                        "smart",
+                        branchIndex,
+                        false,
+                        alloc != null && alloc.overflow,
+                        TopologyRules.EDGE_DEVICE_LINK));
+                deviceSlot++;
+            }
         }
 
         for (int i = 0; i < ChannelBranchAllocator.BRANCH_COUNT; i++) {
-            if (allocation.branchGroupCount[i] == 0) {
-                String emptyId = branchId(i) + ":empty";
-                TopologyNode placeholder = createEmptyBranchPlaceholder(emptyId, i);
-                result.nodes.add(placeholder);
-                TopologyEdge emptyEdge = edge(
-                    branches[i].id,
-                    emptyId,
-                    0,
-                    ChannelBranchAllocator.CHANNELS_PER_BRANCH,
-                    "smart",
-                    i,
-                    true);
-                result.edges.add(emptyEdge);
-            }
+            LaneInfo info = new LaneInfo();
+            info.index = i;
+            info.used = allocation.branchUsed[i];
+            info.max = ChannelBranchAllocator.CHANNELS_PER_BRANCH;
+            info.overflow = allocation.branchOverflow[i];
+            info.primaryPodKinds = lanePodKinds.get(Integer.valueOf(i));
+            result.laneInfos.add(info);
         }
 
         appendZeroChannelGroups(result, root.id, zeroGroups);
@@ -180,6 +256,9 @@ public final class LogicalTopologyBuilder {
         meta.channelsSimulated.max = Math.max(tree.controllerCapacity, TopologyRules.CABLE_COVERED_MAX);
         meta.channelsSimulated.available = true;
         meta.facilityCount = tree.facilityCount;
+        meta.channelModel = TopologyRules.CHANNEL_MODEL_V2;
+        meta.lanes = tree.laneInfos;
+        meta.orbitCounts = tree.orbitCounts;
 
         if (probe != null && probe.available) {
             if (meta.channelsReal == null) {
@@ -194,6 +273,16 @@ public final class LogicalTopologyBuilder {
         }
     }
 
+    private static int sumChannelCost(List<AggregatedGroup> groups) {
+        int sum = 0;
+        for (AggregatedGroup group : groups) {
+            if (group != null) {
+                sum += group.channelCostSum;
+            }
+        }
+        return sum;
+    }
+
     private static void appendEnergyGroups(BuildResult result, String rootId, List<NetworkFacility> energyFacilities) {
         if (energyFacilities.isEmpty()) {
             return;
@@ -204,32 +293,29 @@ public final class LogicalTopologyBuilder {
         for (AggregatedGroup group : groups) {
             String sector = westIndex <= eastIndex ? "west" : "east";
             int slot = "west".equals(sector) ? westIndex++ : eastIndex++;
-            TopologyNode node = createAggregatedNode(group, -1, slot);
+            TopologyNode node = createAggregatedNode(group, -1, slot, TopologyRules.POD_POWER0, "");
             node.layoutSector = sector;
-            node.role = "hub";
+            node.role = "orbit";
+            node.layer = TopologyRules.LAYER_ORBIT;
             result.nodes.add(node);
-            result.edges.add(edge(rootId, node.id, 0, 0, "smart", -1, false));
-        }
-    }
-
-    private static void appendTopTierGroups(BuildResult result, String rootId, List<AggregatedGroup> topGroups) {
-        int index = 0;
-        for (AggregatedGroup group : topGroups) {
-            TopologyNode node = createAggregatedNode(group, -1, index++);
-            node.layoutSector = "north";
-            result.nodes.add(node);
-            result.edges
-                .add(edge(rootId, node.id, group.channelCostSum, TopologyRules.CABLE_SMART_MAX, "smart", -1, false));
+            bumpOrbit(result, TopologyRules.POD_POWER0, group.count);
+            result.edges.add(
+                edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
         }
     }
 
     private static void appendZeroChannelGroups(BuildResult result, String rootId, List<AggregatedGroup> zeroGroups) {
         int index = 0;
         for (AggregatedGroup group : zeroGroups) {
-            TopologyNode node = createAggregatedNode(group, -1, index++);
+            String podKind = TopologyRules.podKindForSubtype(group.subtype);
+            TopologyNode node = createAggregatedNode(group, -1, index++, podKind, "");
             node.layoutSector = "south";
+            node.role = "orbit";
+            node.layer = TopologyRules.LAYER_ORBIT;
             result.nodes.add(node);
-            result.edges.add(edge(rootId, node.id, 0, 0, "smart", -1, false));
+            bumpOrbit(result, podKind, group.count);
+            result.edges.add(
+                edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
         }
     }
 
@@ -242,9 +328,19 @@ public final class LogicalTopologyBuilder {
         for (CraftingCpuTopologyCollector.CpuClusterFacility cluster : cpuClusters) {
             TopologyNode node = createCpuClusterNode(cluster, index++);
             node.layoutSector = "south";
+            node.role = "orbit";
+            node.layer = TopologyRules.LAYER_ORBIT;
+            node.podKind = TopologyRules.POD_CRAFT0;
             result.nodes.add(node);
-            result.edges.add(edge(rootId, node.id, 0, 0, "smart", -1, false));
+            bumpOrbit(result, TopologyRules.POD_CRAFT0, cluster.unitCount);
+            result.edges.add(
+                edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
         }
+    }
+
+    private static void bumpOrbit(BuildResult result, String podKind, int count) {
+        Integer prev = result.orbitCounts.get(podKind);
+        result.orbitCounts.put(podKind, Integer.valueOf((prev == null ? 0 : prev.intValue()) + count));
     }
 
     private static TopologyNode createCpuClusterNode(CraftingCpuTopologyCollector.CpuClusterFacility cluster,
@@ -257,7 +353,9 @@ public final class LogicalTopologyBuilder {
         node.count = cluster.unitCount;
         node.channelCost = 0;
         node.iconItemId = TopologyRules.iconItemIdFor(TopologyNodeType.CPU);
-        node.role = "branch";
+        node.role = "orbit";
+        node.layer = TopologyRules.LAYER_ORBIT;
+        node.podKind = TopologyRules.POD_CRAFT0;
         node.dim = cluster.dim;
         node.binX = cluster.x;
         node.binZ = cluster.z;
@@ -301,6 +399,7 @@ public final class LogicalTopologyBuilder {
         node.channelCost = 0;
         node.iconItemId = TopologyRules.iconItemIdFor(TopologyNodeType.CONTROLLER);
         node.role = "hub";
+        node.layer = TopologyRules.LAYER_HUB;
         node.layoutSector = "center";
         for (NetworkFacility controller : controllers) {
             node.devices.add(toRecord(controller));
@@ -308,24 +407,26 @@ public final class LogicalTopologyBuilder {
         return node;
     }
 
-    private static TopologyNode createEmptyBranchPlaceholder(String id, int branchIndex) {
+    private static TopologyNode createPodNode(String id, String podKind, int branchIndex, int slotIndex) {
         TopologyNode node = new TopologyNode();
         node.id = id;
-        node.type = TopologyNodeType.MISC.id;
-        node.subtype = "branch_empty";
-        node.displayName = "Empty branch";
-        node.count = 0;
+        node.type = "pod";
+        node.subtype = podKind;
+        node.displayName = TopologyRules.displayNameForPodKind(podKind);
+        node.count = 1;
         node.channelCost = 0;
-        node.role = "empty_branch";
+        node.role = "pod";
+        node.layer = TopologyRules.LAYER_POD;
+        node.podKind = podKind;
         node.branchIndex = branchIndex;
         node.layoutX = 3;
-        node.layoutY = 0;
+        node.layoutY = slotIndex;
         node.layoutSector = "branch" + branchIndex;
         return node;
     }
 
-    private static TopologyNode createVirtualCableNode(String id, TopologyNodeType type, String name, int depth,
-        int sibling, String sector) {
+    private static TopologyNode createVirtualCableNode(String id, TopologyNodeType type, String name, String layer,
+        int depth, int sibling, String sector) {
         TopologyNode node = new TopologyNode();
         node.id = id;
         node.type = type.id;
@@ -334,7 +435,8 @@ public final class LogicalTopologyBuilder {
         node.count = 1;
         node.channelCost = 0;
         node.iconItemId = TopologyRules.iconItemIdFor(type);
-        node.role = "branch";
+        node.role = TopologyRules.LAYER_TRUNK.equals(layer) ? "trunk" : "lane";
+        node.layer = layer;
         node.layoutX = depth;
         node.layoutY = sibling;
         node.layoutSector = sector;
@@ -342,7 +444,8 @@ public final class LogicalTopologyBuilder {
         return node;
     }
 
-    private static TopologyNode createAggregatedNode(AggregatedGroup group, int branchIndex, int slotIndex) {
+    private static TopologyNode createAggregatedNode(AggregatedGroup group, int branchIndex, int slotIndex,
+        String podKind, String parentId) {
         TopologyNode node = new TopologyNode();
         String safeKey = group.groupKey.replace('|', '_')
             .replace(':', '_');
@@ -355,8 +458,11 @@ public final class LogicalTopologyBuilder {
         node.patternCount = group.patternCountSum;
         node.iconItemId = preferredIconItemId(group.type, group.iconItemId);
         node.role = "branch";
+        node.layer = TopologyRules.LAYER_DEVICE;
+        node.podKind = podKind == null ? TopologyRules.podKindForSubtype(group.subtype) : podKind;
+        node.parentId = parentId == null ? "" : parentId;
         node.branchIndex = branchIndex;
-        node.layoutX = branchIndex >= 0 ? 3 : (TopologyRules.isTopTierSubtype(group.subtype) ? -1 : 1);
+        node.layoutX = branchIndex >= 0 ? 4 : 1;
         node.layoutY = slotIndex;
         if (branchIndex >= 0) {
             node.layoutSector = "branch" + branchIndex;
@@ -415,13 +521,15 @@ public final class LogicalTopologyBuilder {
     }
 
     private static TopologyEdge edge(String from, String to, int used, int max, String cableType, int branchIndex,
-        boolean emptyBranch) {
+        boolean emptyBranch, boolean overflow, String kind) {
         TopologyEdge edge = new TopologyEdge();
         edge.from = from;
         edge.to = to;
         edge.cableType = cableType;
         edge.branchIndex = branchIndex;
         edge.emptyBranch = emptyBranch;
+        edge.overflow = overflow;
+        edge.kind = kind == null ? "" : kind;
         edge.channelsSimulated.used = used;
         edge.channelsSimulated.max = max;
         edge.channelsSimulated.available = max > 0;
@@ -475,17 +583,24 @@ public final class LogicalTopologyBuilder {
             if (TopologyNodeType.CELL.id.equals(node.type)) {
                 continue;
             }
-            if ("west".equals(node.layoutSector)) {
+            if (TopologyRules.LAYER_TRUNK.equals(node.layer)) {
+                node.layoutX = 1;
+                node.layoutY = 0;
+            } else if (TopologyRules.LAYER_LANE.equals(node.layer)) {
+                node.layoutX = 2;
+                node.layoutY = node.branchIndex >= 0 ? node.branchIndex : node.layoutY;
+            } else if (TopologyRules.LAYER_POD.equals(node.layer)) {
+                node.layoutX = 3;
+            } else if (TopologyRules.LAYER_DEVICE.equals(node.layer) && node.branchIndex >= 0) {
+                node.layoutX = 4;
+            } else if ("west".equals(node.layoutSector)) {
                 node.layoutX = 0;
-                node.layoutY = -1 - node.layoutY;
+                node.layoutY = -1 - Math.abs(node.layoutY);
             } else if ("east".equals(node.layoutSector)) {
                 node.layoutX = 0;
-                node.layoutY = node.layoutY + 1;
-            } else if ("north".equals(node.layoutSector)) {
-                node.layoutX = -1;
-                node.layoutY = node.layoutY;
-            } else if ("south".equals(node.layoutSector) && node.branchIndex < 0 && node.layoutX <= 1) {
-                node.layoutX = 1;
+                node.layoutY = Math.abs(node.layoutY) + 1;
+            } else if (TopologyRules.LAYER_ORBIT.equals(node.layer)) {
+                node.layoutX = 0.5;
             }
         }
     }
@@ -506,7 +621,7 @@ public final class LogicalTopologyBuilder {
                 root = node;
                 continue;
             }
-            if (isVirtualCableNode(node)) {
+            if (isVirtualCableNode(node) || TopologyRules.LAYER_POD.equals(node.layer)) {
                 continue;
             }
             if (node.channelCost > 0) {
@@ -529,11 +644,7 @@ public final class LogicalTopologyBuilder {
             TopologyNode node = inner.get(i);
             node.layoutX = 1;
             node.layoutY = i;
-            if (TopologyRules.isTopTierSubtype(node.subtype)) {
-                node.layoutSector = "north";
-            } else {
-                node.layoutSector = "south";
-            }
+            node.layoutSector = "south";
         }
         for (int i = 0; i < outer.size(); i++) {
             TopologyNode node = outer.get(i);

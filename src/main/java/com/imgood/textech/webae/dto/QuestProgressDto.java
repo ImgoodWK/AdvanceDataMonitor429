@@ -12,4 +12,6 @@ public class QuestProgressDto {
     public long updatedAt;
     public List<QuestProgressEntryDto> entries = new ArrayList<QuestProgressEntryDto>();
     public Map<String, Integer> lineSubmittableCounts = new HashMap<String, Integer>();
+    /** Per-line count of quests in COMPLETED or UNCLAIMED state. */
+    public Map<String, Integer> lineCompletedCounts = new HashMap<String, Integer>();
 }

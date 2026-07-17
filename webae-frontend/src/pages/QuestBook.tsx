@@ -112,6 +112,7 @@ export function QuestBookPage() {
 
   const [progressUpdatedAt, setProgressUpdatedAt] = useState<number | null>(null);
   const [lineSubmittableCounts, setLineSubmittableCounts] = useState<Record<string, number>>({});
+  const [lineCompletedCounts, setLineCompletedCounts] = useState<Record<string, number>>({});
 
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
 
@@ -195,7 +196,12 @@ export function QuestBookPage() {
 
       success: boolean;
 
-      progress: { entries: QuestProgressEntryDto[]; updatedAt?: number; lineSubmittableCounts?: Record<string, number> };
+      progress: {
+        entries: QuestProgressEntryDto[];
+        updatedAt?: number;
+        lineSubmittableCounts?: Record<string, number>;
+        lineCompletedCounts?: Record<string, number>;
+      };
 
     }>('/api/quests/progress');
 
@@ -212,6 +218,8 @@ export function QuestBookPage() {
     setProgressUpdatedAt(res.progress?.updatedAt ?? Date.now());
 
     setLineSubmittableCounts(res.progress?.lineSubmittableCounts ?? {});
+
+    setLineCompletedCounts(res.progress?.lineCompletedCounts ?? {});
 
   }, []);
 
@@ -706,7 +714,9 @@ export function QuestBookPage() {
 
             overflow: 'hidden',
 
-            border: '1px solid var(--border-color, #334155)',
+            border: '1px solid var(--border, var(--border-color, rgba(128,128,128,0.25)))',
+
+            background: 'var(--bg-card)',
 
           }}
 
@@ -733,6 +743,8 @@ export function QuestBookPage() {
             previewMode={previewMode}
 
             lineSubmittableCounts={lineSubmittableCounts}
+
+            lineCompletedCounts={lineCompletedCounts}
 
           />
 

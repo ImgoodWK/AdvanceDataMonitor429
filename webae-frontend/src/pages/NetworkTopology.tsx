@@ -1108,11 +1108,11 @@ export function NetworkTopologyPage() {
 
                   ? t('topologyLayout_star')
 
-                  : t('topologyLayout_tree')
+                  : t('topologyLayout_channelLanes')
 
                 : meta.layout === 'tree'
 
-                  ? t('topologyLayout_tree')
+                  ? t('topologyLayout_channelLanes')
 
                   : meta.layout === 'star'
 
@@ -1121,6 +1121,16 @@ export function NetworkTopologyPage() {
                     : meta.layout}
 
             </Descriptions.Item>
+
+            {meta.channelModel && (
+
+              <Descriptions.Item label={t('topologyChannelModel')}>
+
+                {meta.channelModel}
+
+              </Descriptions.Item>
+
+            )}
 
             <Descriptions.Item label={t('topologySimChannels')}>
 
@@ -1137,6 +1147,44 @@ export function NetworkTopologyPage() {
               </div>
 
             </Descriptions.Item>
+
+            {viewMode === 'logical' && meta.lanes && meta.lanes.length > 0 && (
+
+              <Descriptions.Item label={t('topologyLanes')}>
+
+                <Space size={4} wrap>
+
+                  {meta.lanes.map((lane) => (
+
+                    <Tag key={lane.index} color={lane.overflow ? 'error' : undefined}>
+
+                      L{lane.index}: {lane.used}/{lane.max}
+
+                      {lane.overflow ? ` ${t('topologyLaneOverflow')}` : ''}
+
+                    </Tag>
+
+                  ))}
+
+                </Space>
+
+              </Descriptions.Item>
+
+            )}
+
+            {viewMode === 'logical' && meta.orbitCounts && Object.keys(meta.orbitCounts).length > 0 && (
+
+              <Descriptions.Item label={t('topologyOrbit')}>
+
+                {Object.entries(meta.orbitCounts)
+
+                  .map(([k, v]) => `${k}:${v}`)
+
+                  .join(' · ')}
+
+              </Descriptions.Item>
+
+            )}
 
             <Descriptions.Item label={t('topologyRealChannels')}>
 

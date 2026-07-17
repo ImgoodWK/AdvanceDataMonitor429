@@ -26,6 +26,7 @@ public final class QuestDataCollector {
         meta.questEnabled = com.imgood.textech.Config.webQuestEnabled;
         meta.questSubmitEnabled = com.imgood.textech.Config.webQuestSubmitEnabled;
         meta.questChainSubmitEnabled = com.imgood.textech.Config.webQuestChainSubmitEnabled;
+        meta.questFluidAllContainersOption = com.imgood.textech.Config.webQuestFluidAllContainersOption;
         meta.questsAvailable = BqCompat.isFeatureEnabled();
         meta.standardExpansionLoaded = BqCompat.isStandardExpansionLoaded();
         meta.modVersion = BqCompat.readModVersion();

@@ -23,6 +23,15 @@ public class TopologyNode {
     public String layoutSector = "center";
     /** Smart branch index (0-3) for channel-consuming groups. */
     public int branchIndex = -1;
+    /**
+     * Channel-lane layer: hub | trunk | lane | pod | device | orbit.
+     * Used by ae_budget_v2 abstract topology (not physical AE cabling).
+     */
+    public String layer = "";
+    /** Role-pod kind (access | io | craft | sense | tunnel | storage0 | …). */
+    public String podKind = "";
+    /** Parent node id for compound pods (device → pod). */
+    public String parentId = "";
     /** Pattern count badge for drive/chest aggregated nodes. */
     public int patternCount;
 

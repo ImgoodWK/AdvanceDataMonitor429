@@ -21,6 +21,67 @@ export interface DeviceTypeGroup<T> {
 
 const CABLE_TYPES = new Set(['cable_smart', 'cable_dense', 'cable_covered']);
 
+/** Role-pod kinds for ae_budget_v2 channel-lane topology. */
+export const POD_KIND_ORDER = [
+  'access',
+  'io',
+  'craft',
+  'sense',
+  'tunnel',
+  'storage0',
+  'craft0',
+  'link0',
+  'power0',
+  'misc',
+] as const;
+
+export type PodKindId = (typeof POD_KIND_ORDER)[number];
+
+export const POD_KIND_LABEL_KEYS: Record<PodKindId, string> = {
+  access: 'topologyPod_access',
+  io: 'topologyPod_io',
+  craft: 'topologyPod_craft',
+  sense: 'topologyPod_sense',
+  tunnel: 'topologyPod_tunnel',
+  storage0: 'topologyPod_storage0',
+  craft0: 'topologyPod_craft0',
+  link0: 'topologyPod_link0',
+  power0: 'topologyPod_power0',
+  misc: 'topologyPod_misc',
+};
+
+export function resolvePodKind(node: Pick<TopologyNodeDto, 'podKind' | 'subtype' | 'type'>): string {
+  if (node.podKind) return node.podKind;
+  const subtype = node.subtype || node.type || '';
+  if (subtype.startsWith('terminal_') || subtype === 'wireless_access_point' || subtype === 'security_terminal') {
+    return 'access';
+  }
+  if (subtype.startsWith('bus_') || subtype === 'level_maintainer') return 'io';
+  if (subtype === 'interface' || subtype === 'pattern_provider') return 'craft';
+  if (subtype.startsWith('monitor_') || subtype.startsWith('emitter_')) return 'sense';
+  if (subtype.startsWith('p2p_')) return 'tunnel';
+  if (subtype === 'drive' || subtype === 'chest' || subtype === 'io_port') return 'storage0';
+  if (subtype === 'cpu') return 'craft0';
+  if (subtype === 'quantum') return 'link0';
+  if (subtype === 'energy_cell' || subtype === 'energy_acceptor' || subtype === 'energy') return 'power0';
+  return 'misc';
+}
+
+export function isSpineNode(node: TopologyNodeDto): boolean {
+  const layer = node.layer ?? '';
+  return (
+    layer === 'trunk' ||
+    layer === 'lane' ||
+    layer === 'pod' ||
+    node.type === 'cable_dense' ||
+    node.type === 'cable_smart' ||
+    node.type === 'pod' ||
+    node.role === 'trunk' ||
+    node.role === 'lane' ||
+    node.role === 'pod'
+  );
+}
+
 /** Fixed display order for device-type collapse groups. */
 export const DEVICE_TYPE_ORDER = [
   'controller',
@@ -184,12 +245,36 @@ export function filterNodeRows(rows: DeviceListNodeRow[], query: string, _hideCa
 
 export function buildNodeListRows(nodes: TopologyNodeDto[]): DeviceListNodeRow[] {
   return nodes
-    .filter((node) => !isCableNode(node) && !isCellNode(node))
+    .filter((node) => !isCableNode(node) && !isCellNode(node) && node.type !== 'pod' && node.role !== 'pod')
     .map((node) => ({
       key: node.id,
       node,
       isCable: false,
     }));
+}
+
+export function groupRowsByPodKind<T extends { node?: TopologyNodeDto; nodeType?: string }>(
+  rows: T[]
+): DeviceTypeGroup<T>[] {
+  const buckets = new Map<string, T[]>();
+  for (const row of rows) {
+    const kind = row.node ? resolvePodKind(row.node) : 'misc';
+    const list = buckets.get(kind) ?? [];
+    list.push(row);
+    buckets.set(kind, list);
+  }
+  const ordered: DeviceTypeGroup<T>[] = [];
+  for (const type of POD_KIND_ORDER) {
+    const list = buckets.get(type);
+    if (list && list.length > 0) {
+      ordered.push({ type, rows: list });
+      buckets.delete(type);
+    }
+  }
+  for (const [type, list] of buckets) {
+    if (list.length > 0) ordered.push({ type, rows: list });
+  }
+  return ordered;
 }
 
 export function resolveGroupType(node: TopologyNodeDto): string {

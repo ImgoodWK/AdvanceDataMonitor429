@@ -18,7 +18,8 @@ import com.imgood.textech.webae.dto.QuestDetailDto;
 import com.imgood.textech.webae.dto.QuestSubmitResultDto;
 
 /**
- * Orchestrates AE craft orders then quest submission (Phase C).
+ * Orchestrates AE craft orders then quest submission.
+ * Locks already-available materials before craft; appends lock as craft products arrive.
  */
 public final class QuestCraftOrchestrator {
 
@@ -28,6 +29,11 @@ public final class QuestCraftOrchestrator {
 
     public static QuestCraftJobDto start(String ownerUuid, int networkId, String questId, String cpuName,
         long waitTimeoutMs) {
+        return start(ownerUuid, networkId, questId, cpuName, waitTimeoutMs, false);
+    }
+
+    public static QuestCraftJobDto start(String ownerUuid, int networkId, String questId, String cpuName,
+        long waitTimeoutMs, boolean includeAllFluidContainers) {
         QuestCraftJobDto dto = new QuestCraftJobDto();
         dto.questId = questId;
         dto.jobId = UUID.randomUUID()
@@ -44,8 +50,9 @@ public final class QuestCraftOrchestrator {
             return dto;
         }
 
+        boolean includeAll = QuestFluidEquivalence.resolveIncludeAll(includeAllFluidContainers);
         QuestDetailDto detail = QuestDataCollector.collectQuestDetail(questId, player);
-        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail, includeAll);
 
         CraftJob job = new CraftJob();
         job.jobId = dto.jobId;
@@ -53,8 +60,24 @@ public final class QuestCraftOrchestrator {
         job.networkId = networkId;
         job.questId = questId;
         job.cpuName = cpuName;
-        job.deadlineMs = System.currentTimeMillis() + (waitTimeoutMs > 0 ? waitTimeoutMs : Config.webQuestCraftWaitTimeoutMs);
+        job.includeAllFluidContainers = includeAll;
+        job.deadlineMs = System.currentTimeMillis()
+            + (waitTimeoutMs > 0 ? waitTimeoutMs : Config.webQuestCraftWaitTimeoutMs);
         job.submittedAt = System.currentTimeMillis();
+
+        // Pre-lock currently available materials so they cannot be exported during craft wait.
+        if (Config.webQuestEscrowEnabled) {
+            QuestInventoryEscrow.LockResult pre = QuestInventoryEscrow.lockPartial(
+                ownerUuid,
+                networkId,
+                player,
+                analysis.steps,
+                includeAll,
+                null);
+            if (pre.success && pre.escrowId != null && !pre.escrowId.isEmpty()) {
+                job.escrowId = pre.escrowId;
+            }
+        }
 
         for (QuestAnalysisStepDto step : analysis.steps) {
             if (step.complete || !step.webCapable || step.missing <= 0) {
@@ -90,6 +113,7 @@ public final class QuestCraftOrchestrator {
             track.amount = step.missing;
             track.craftMessage = craftResult;
             track.submittedAt = System.currentTimeMillis();
+            track.stepIndex = step.index;
             job.orders.add(track);
         }
 
@@ -118,6 +142,7 @@ public final class QuestCraftOrchestrator {
 
         EntityPlayerMP player = com.imgood.textech.compat.bq.BqQuestingIdentity.resolvePlayer(job.ownerUuid);
         int done = 0;
+        boolean anyNewlyCompleted = false;
         for (OrderTrack track : job.orders) {
             if (track.completed) {
                 done++;
@@ -132,6 +157,7 @@ public final class QuestCraftOrchestrator {
                 if (progress != null && progress.completed) {
                     track.completed = true;
                     done++;
+                    anyNewlyCompleted = true;
                 }
             }
         }
@@ -150,6 +176,11 @@ public final class QuestCraftOrchestrator {
             return dto;
         }
 
+        // As soon as any craft finishes, append-lock newly available materials.
+        if (anyNewlyCompleted && player != null && Config.webQuestEscrowEnabled) {
+            appendAvailable(job, player);
+        }
+
         if (done < job.ordersTotal) {
             dto.phase = "crafting";
             dto.complete = false;
@@ -164,12 +195,44 @@ public final class QuestCraftOrchestrator {
         return poll(jobId);
     }
 
+    private static void appendAvailable(CraftJob job, EntityPlayerMP player) {
+        QuestDetailDto detail = QuestDataCollector.collectQuestDetail(job.questId, player);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(
+            job.ownerUuid,
+            job.networkId,
+            detail,
+            job.includeAllFluidContainers);
+        if (job.escrowId != null && !job.escrowId.isEmpty()) {
+            QuestInventoryEscrow.appendLock(
+                job.escrowId,
+                job.ownerUuid,
+                job.networkId,
+                player,
+                analysis.steps,
+                job.includeAllFluidContainers);
+        } else {
+            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lockPartial(
+                job.ownerUuid,
+                job.networkId,
+                player,
+                analysis.steps,
+                job.includeAllFluidContainers,
+                null);
+            if (lock.success && lock.escrowId != null && !lock.escrowId.isEmpty()) {
+                job.escrowId = lock.escrowId;
+            }
+        }
+    }
+
     private static QuestCraftJobDto finishWithEscrowSubmit(QuestCraftJobDto dto, CraftJob job) {
         dto.phase = "locking";
         dto.questId = job.questId;
         dto.ordersTotal = job.ordersTotal;
         EntityPlayerMP player = com.imgood.textech.compat.bq.BqQuestingIdentity.resolvePlayer(job.ownerUuid);
         if (player == null) {
+            if (job.escrowId != null && !job.escrowId.isEmpty()) {
+                QuestInventoryEscrow.release(job.escrowId);
+            }
             dto.complete = true;
             dto.success = false;
             dto.phase = "escrow_failed";
@@ -179,32 +242,78 @@ public final class QuestCraftOrchestrator {
         }
 
         QuestDetailDto detail = QuestDataCollector.collectQuestDetail(job.questId, player);
-        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(job.ownerUuid, job.networkId, detail);
-        String escrowId = null;
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(
+            job.ownerUuid,
+            job.networkId,
+            detail,
+            job.includeAllFluidContainers);
+        String escrowId = job.escrowId;
         if (Config.webQuestEscrowEnabled) {
-            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
-                job.ownerUuid,
-                job.networkId,
-                player,
-                analysis.steps);
-            if (!lock.success) {
-                dto.complete = true;
-                dto.success = false;
-                dto.phase = "escrow_failed";
-                dto.message = lock.message != null ? lock.message : "Escrow lock failed";
-                JOBS.remove(job.jobId);
-                return dto;
+            if (escrowId != null && !escrowId.isEmpty()) {
+                QuestInventoryEscrow.LockResult append = QuestInventoryEscrow.appendLock(
+                    escrowId,
+                    job.ownerUuid,
+                    job.networkId,
+                    player,
+                    analysis.steps,
+                    job.includeAllFluidContainers);
+                if (!append.success) {
+                    QuestInventoryEscrow.release(escrowId);
+                    dto.complete = true;
+                    dto.success = false;
+                    dto.phase = "escrow_failed";
+                    dto.message = append.message != null ? append.message : "Escrow append failed";
+                    JOBS.remove(job.jobId);
+                    return dto;
+                }
+                QuestInventoryEscrow.Session session = QuestInventoryEscrow.get(escrowId);
+                if (!QuestInventoryEscrow.allStepsCovered(analysis.steps, session)) {
+                    QuestInventoryEscrow.release(escrowId);
+                    dto.complete = true;
+                    dto.success = false;
+                    dto.phase = "escrow_failed";
+                    dto.message = "Insufficient AE stock after craft for escrow";
+                    JOBS.remove(job.jobId);
+                    return dto;
+                }
+            } else {
+                QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
+                    job.ownerUuid,
+                    job.networkId,
+                    player,
+                    analysis.steps,
+                    job.includeAllFluidContainers);
+                if (!lock.success) {
+                    dto.complete = true;
+                    dto.success = false;
+                    dto.phase = "escrow_failed";
+                    dto.message = lock.message != null ? lock.message : "Escrow lock failed";
+                    JOBS.remove(job.jobId);
+                    return dto;
+                }
+                escrowId = lock.escrowId;
+                job.escrowId = escrowId;
             }
-            escrowId = lock.escrowId;
-            job.escrowId = escrowId;
         }
 
         dto.phase = "submitting";
         QuestSubmitResultDto submit;
         if (escrowId != null && !escrowId.isEmpty()) {
-            submit = QuestSubmitService.submitFromEscrow(job.ownerUuid, job.networkId, job.questId, escrowId, null);
+            submit = QuestSubmitService.submitFromEscrow(
+                job.ownerUuid,
+                job.networkId,
+                job.questId,
+                escrowId,
+                null,
+                job.includeAllFluidContainers);
         } else {
-            submit = QuestSubmitService.submit(job.ownerUuid, job.networkId, job.questId, false, null);
+            submit = QuestSubmitService.submit(
+                job.ownerUuid,
+                job.networkId,
+                job.questId,
+                false,
+                null,
+                job.includeAllFluidContainers);
         }
         if (!submit.success && escrowId != null && !escrowId.isEmpty()) {
             QuestInventoryEscrow.release(escrowId);
@@ -229,6 +338,7 @@ public final class QuestCraftOrchestrator {
         long deadlineMs;
         int ordersTotal;
         String escrowId;
+        boolean includeAllFluidContainers;
         List<OrderTrack> orders = new ArrayList<OrderTrack>();
     }
 
@@ -239,5 +349,6 @@ public final class QuestCraftOrchestrator {
         String craftMessage;
         long submittedAt;
         boolean completed;
+        int stepIndex;
     }
 }

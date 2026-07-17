@@ -10,8 +10,8 @@ import com.imgood.textech.assistant.AssistantLexicon;
 
 public class CommandAssistant extends TeXTechCommandBase {
 
-    private static final String[] ACTIONS = { "reloadLexicon", "reload", "lexicon", "help" };
-    private static final int HELP_LINES = 3;
+    private static final String[] ACTIONS = { "reload", "reload-lexicon", "reloadLexicon", "lexicon", "help" };
+    private static final int HELP_LINES = 4;
 
     @Override
     public String getCommandName() {
@@ -35,7 +35,7 @@ public class CommandAssistant extends TeXTechCommandBase {
             return;
         }
         String action = args[0].toLowerCase();
-        if ("reloadlexicon".equals(action) || "reload".equals(action)) {
+        if ("reloadlexicon".equals(action) || "reload-lexicon".equals(action) || "reload".equals(action)) {
             if (!canUseOpCommands(sender)) {
                 sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admassistant.op_required");
                 return;

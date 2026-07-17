@@ -463,6 +463,9 @@ public class WebConfigHandler {
         sb.append("\"questChainSubmitEnabled\":")
             .append(Config.webQuestChainSubmitEnabled)
             .append(',');
+        sb.append("\"questFluidAllContainersOption\":")
+            .append(Config.webQuestFluidAllContainersOption)
+            .append(',');
         sb.append("\"dashboardMaxTracksPerWidget\":")
             .append(Config.webDashboardMaxTracksPerWidget)
             .append(',');

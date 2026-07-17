@@ -35,11 +35,11 @@ alwaysApply: true
 | `renders/` | 33 | 全部客户端渲染 |
 | `network/` | 28 | 网络包（ID 表见 `network-packets.mdc`） |
 | `voice/` | 9 | 语音 |
-| `loader/` | 10 | 统一注册 |
+| `loader/` | 11 | 统一注册（含 `LoaderCommand`） |
 | `client/` | 30 | 客户端事件/缓存/世界地图采集等 |
-| `command/` | 6 | `/textech` `/adm*` |
+| `command/` | 6 | `/textech <域>` 分发；旧 `/adm*` 兼容别名 |
 | `utils/` | 14 | 工具 |
-| `webae/` | 291+ | Web 控制台（前端：`webae-frontend/` → build 到 `assets/textech/webae/`） |
+| `webae/` | 292+ | Web 控制台（前端：`webae-frontend/` → build 到 `assets/textech/webae/`） |
 | `mixin/` | 7 | 客户端 Mixin |
 
 资源：`assets/textech/`（lang 双语、`manual/`、textures、voice 等）。

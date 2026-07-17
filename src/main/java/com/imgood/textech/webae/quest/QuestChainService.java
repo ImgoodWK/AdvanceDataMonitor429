@@ -31,6 +31,11 @@ public final class QuestChainService {
     private QuestChainService() {}
 
     public static QuestChainPlanDto buildPlan(String ownerUuid, int networkId, String targetQuestId) {
+        return buildPlan(ownerUuid, networkId, targetQuestId, false);
+    }
+
+    public static QuestChainPlanDto buildPlan(String ownerUuid, int networkId, String targetQuestId,
+        boolean includeAllFluidContainers) {
         QuestChainPlanDto plan = new QuestChainPlanDto();
         plan.targetQuestId = targetQuestId;
         plan.networkId = networkId;
@@ -45,6 +50,7 @@ public final class QuestChainService {
             return plan;
         }
 
+        boolean includeAll = QuestFluidEquivalence.resolveIncludeAll(includeAllFluidContainers);
         List<String> ordered = topologicalPrereqsThenTarget(targetQuestId, player);
         for (String questId : ordered) {
             QuestDetailDto detail = QuestDataCollector.collectQuestDetail(questId, player);
@@ -75,7 +81,7 @@ public final class QuestChainService {
                 }
             }
 
-            QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail);
+            QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail, includeAll);
             step.analysis = analysis;
             int missingKinds = 0;
             boolean anyWeb = false;
@@ -121,6 +127,11 @@ public final class QuestChainService {
      */
     public static QuestChainSubmitResultDto submitSync(String ownerUuid, int networkId, String targetQuestId,
         boolean dryRun, boolean skipMissing) {
+        return submitSync(ownerUuid, networkId, targetQuestId, dryRun, skipMissing, false);
+    }
+
+    public static QuestChainSubmitResultDto submitSync(String ownerUuid, int networkId, String targetQuestId,
+        boolean dryRun, boolean skipMissing, boolean includeAllFluidContainers) {
         QuestChainSubmitResultDto result = new QuestChainSubmitResultDto();
         result.targetQuestId = targetQuestId;
         result.dryRun = dryRun;
@@ -136,7 +147,8 @@ public final class QuestChainService {
             return result;
         }
 
-        QuestChainPlanDto plan = buildPlan(ownerUuid, networkId, targetQuestId);
+        boolean includeAll = QuestFluidEquivalence.resolveIncludeAll(includeAllFluidContainers);
+        QuestChainPlanDto plan = buildPlan(ownerUuid, networkId, targetQuestId, includeAll);
         boolean allOk = true;
 
         for (QuestChainStepDto planned : plan.steps) {
@@ -174,7 +186,13 @@ public final class QuestChainService {
                 continue;
             }
 
-            QuestSubmitResultDto submit = QuestSubmitService.submit(ownerUuid, networkId, planned.questId, false, null);
+            QuestSubmitResultDto submit = QuestSubmitService.submit(
+                ownerUuid,
+                networkId,
+                planned.questId,
+                false,
+                null,
+                includeAll);
             stepResult.submitResult = submit;
             if (submit != null && submit.success) {
                 stepResult.action = "submitted";

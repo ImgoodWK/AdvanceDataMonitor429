@@ -10,7 +10,8 @@ import com.imgood.textech.webae.topology.TopologyFacilityGrouper.AggregatedGroup
 
 /**
  * Assigns channel-consuming device groups to four smart branches (8 channels each).
- * Same subtype prefers the same branch; overflow moves to the next branch.
+ * Same subtype prefers the same branch; podKind preferred lane is tried first (ae_budget_v2).
+ * Overflow still places on the least-loaded branch and marks {@link Allocation#overflow}.
  */
 public final class ChannelBranchAllocator {
 
@@ -23,6 +24,7 @@ public final class ChannelBranchAllocator {
 
         public int branchIndex;
         public int slotIndex;
+        public boolean overflow;
     }
 
     public static final class Result {
@@ -30,6 +32,7 @@ public final class ChannelBranchAllocator {
         public final Map<String, Allocation> byGroupKey = new LinkedHashMap<String, Allocation>();
         public final int[] branchUsed = new int[BRANCH_COUNT];
         public final int[] branchGroupCount = new int[BRANCH_COUNT];
+        public final boolean[] branchOverflow = new boolean[BRANCH_COUNT];
     }
 
     public static Result allocate(List<AggregatedGroup> groups) {
@@ -56,6 +59,10 @@ public final class ChannelBranchAllocator {
             result.byGroupKey.put(group.groupKey, alloc);
             result.branchUsed[branch] += cost;
             result.branchGroupCount[branch]++;
+            if (result.branchUsed[branch] > CHANNELS_PER_BRANCH) {
+                alloc.overflow = true;
+                result.branchOverflow[branch] = true;
+            }
             if (!branchPrimarySubtype.containsKey(branch)) {
                 branchPrimarySubtype.put(branch, group.subtype);
             }
@@ -66,6 +73,16 @@ public final class ChannelBranchAllocator {
     private static int pickBranch(AggregatedGroup group, int[] branchUsed, Map<Integer, String> branchPrimarySubtype,
         int cost) {
         String subtype = group.subtype == null ? "" : group.subtype;
+        String podKind = TopologyRules.podKindForSubtype(subtype);
+        int preferred = TopologyRules.preferredLaneForPodKind(podKind);
+
+        if (preferred >= 0 && preferred < BRANCH_COUNT
+            && branchUsed[preferred] + cost <= CHANNELS_PER_BRANCH) {
+            String primary = branchPrimarySubtype.get(preferred);
+            if (primary == null || primary.equals(subtype) || branchUsed[preferred] == 0) {
+                return preferred;
+            }
+        }
 
         for (int i = 0; i < BRANCH_COUNT; i++) {
             String primary = branchPrimarySubtype.get(i);

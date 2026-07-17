@@ -21,7 +21,8 @@ public class QuestTaskDto {
      */
     public String displayName;
     /**
-     * Display-only icon cache id (e.g. {@code fluid:lava} for filled fluid cells).
+     * Display-only icon cache id (e.g. {@code fluid:lava} for FluidDisplay / true fluids;
+     * filled cells keep {@code mod:id:meta} like recipe NEI).
      * Does not affect AE item/fluid matching or submit semantics.
      */
     public String iconItemId;

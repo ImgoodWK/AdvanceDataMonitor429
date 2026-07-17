@@ -310,6 +310,7 @@ public final class BqApiFacade {
         }
 
         dto.lineSubmittableCounts = new java.util.HashMap<String, Integer>();
+        dto.lineCompletedCounts = new java.util.HashMap<String, Integer>();
         for (Map.Entry<UUID, Object> entry : entriesOfDb(questDb)) {
             UUID questId = entry.getKey();
             Object quest = entry.getValue();
@@ -322,13 +323,19 @@ public final class BqApiFacade {
             pe.canSubmit = canSubmitQuest(quest, player);
             dto.entries.add(pe);
 
+            String lineId = questToLine.get(pe.questId);
+            if (lineId == null) {
+                continue;
+            }
             // Accumulate per-line submittable quest counts in the same pass.
             if (pe.canSubmit) {
-                String lineId = questToLine.get(pe.questId);
-                if (lineId != null) {
-                    Integer prev = dto.lineSubmittableCounts.get(lineId);
-                    dto.lineSubmittableCounts.put(lineId, Integer.valueOf(prev == null ? 1 : prev.intValue() + 1));
-                }
+                Integer prev = dto.lineSubmittableCounts.get(lineId);
+                dto.lineSubmittableCounts.put(lineId, Integer.valueOf(prev == null ? 1 : prev.intValue() + 1));
+            }
+            // COMPLETED + UNCLAIMED both count as finished objectives.
+            if ("COMPLETED".equals(pe.state) || "UNCLAIMED".equals(pe.state)) {
+                Integer prevDone = dto.lineCompletedCounts.get(lineId);
+                dto.lineCompletedCounts.put(lineId, Integer.valueOf(prevDone == null ? 1 : prevDone.intValue() + 1));
             }
         }
         return dto;
@@ -408,15 +415,27 @@ public final class BqApiFacade {
     /**
      * Submit item into a consume-style BQ task. Prefers BQ 3.8.72
      * {@code submitItem(UUID, Map.Entry, ItemStack)}; falls back to legacy signatures.
+     * On full consume, also {@link #finalizeConsumeTaskIfReady} (BQ submitItem updates progress
+     * but does not always mark the task complete until inventory detect).
      */
     public static boolean submitItemTask(Object task, EntityPlayerMP player, UUID questingUuid, UUID questId,
         Object quest, ItemStack stack) {
+        ItemStack leftover = submitItemTaskLeftover(task, player, questingUuid, questId, quest, stack);
+        return leftover == null || leftover.stackSize <= 0;
+    }
+
+    /**
+     * Same as {@link #submitItemTask} but returns BQ leftover (null = fully consumed).
+     * Callers that removed the stack from escrow/AE must reinject any leftover.
+     */
+    public static ItemStack submitItemTaskLeftover(Object task, EntityPlayerMP player, UUID questingUuid,
+        UUID questId, Object quest, ItemStack stack) {
         if (task == null || stack == null) {
-            return false;
+            return stack;
         }
         UUID owner = questingUuid != null ? questingUuid : (player != null ? getQuestingUuid(player) : null);
         if (owner == null) {
-            return false;
+            return stack;
         }
         try {
             Map.Entry<?, ?> questEntry = questEntryOf(questId, quest);
@@ -424,8 +443,12 @@ public final class BqApiFacade {
                 Method m = findMethod(task.getClass(), "submitItem", UUID.class, Map.Entry.class, ItemStack.class);
                 if (m != null) {
                     Object leftover = m.invoke(task, owner, questEntry, stack.copy());
-                    return leftover == null
-                        || (leftover instanceof ItemStack && ((ItemStack) leftover).stackSize <= 0);
+                    ItemStack left = leftover instanceof ItemStack ? (ItemStack) leftover : null;
+                    if (left == null || left.stackSize <= 0) {
+                        finalizeConsumeTaskIfReady(task, owner);
+                        return null;
+                    }
+                    return left;
                 }
             }
         } catch (Throwable t) {
@@ -435,19 +458,64 @@ public final class BqApiFacade {
             Method m = task.getClass()
                 .getMethod("submitItem", EntityPlayer.class, UUID.class, ItemStack.class);
             Object result = m.invoke(task, player, owner, stack);
-            return result instanceof Boolean && ((Boolean) result).booleanValue();
+            if (result instanceof Boolean && ((Boolean) result).booleanValue()) {
+                finalizeConsumeTaskIfReady(task, owner);
+                return null;
+            }
+            return stack.copy();
         } catch (NoSuchMethodException e) {
             try {
                 Method alt = task.getClass()
                     .getMethod("submitItem", EntityPlayerMP.class, UUID.class, ItemStack.class);
                 Object result = alt.invoke(task, player, owner, stack);
-                return result instanceof Boolean && ((Boolean) result).booleanValue();
+                if (result instanceof Boolean && ((Boolean) result).booleanValue()) {
+                    finalizeConsumeTaskIfReady(task, owner);
+                    return null;
+                }
+                return stack.copy();
             } catch (Throwable ignored) {
-                return false;
+                return stack.copy();
             }
         } catch (Throwable t) {
             AdvanceDataMonitor.LOG.warn("[WebAE Quest] submitItem failed: {}", t.toString());
-            return false;
+            return stack.copy();
+        }
+    }
+
+    /**
+     * After consume submit updated progress, mark complete when all required amounts are met.
+     * BQ's {@code submitItem}/{@code submitFluid} often only bump progress arrays.
+     */
+    public static void finalizeConsumeTaskIfReady(Object task, UUID questingUuid) {
+        if (task == null || questingUuid == null || isTaskComplete(task, questingUuid)) {
+            return;
+        }
+        try {
+            Method getProgress = findMethod(task.getClass(), "getUsersProgress", UUID.class);
+            if (getProgress == null) {
+                return;
+            }
+            Object progress = getProgress.invoke(task, questingUuid);
+            if (!(progress instanceof int[])) {
+                return;
+            }
+            int[] arr = (int[]) progress;
+            int[] required = readRequiredAmounts(task);
+            if (required == null || required.length == 0) {
+                return;
+            }
+            for (int i = 0; i < required.length; i++) {
+                int have = i < arr.length ? arr[i] : 0;
+                if (have < required[i]) {
+                    return;
+                }
+            }
+            Method setComplete = findMethod(task.getClass(), "setComplete", UUID.class);
+            if (setComplete != null) {
+                setComplete.invoke(task, questingUuid);
+            }
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE Quest] finalizeConsumeTaskIfReady failed: {}", t.toString());
         }
     }
 
@@ -461,12 +529,21 @@ public final class BqApiFacade {
      */
     public static boolean submitFluidTask(Object task, EntityPlayerMP player, UUID questingUuid, UUID questId,
         Object quest, FluidStack fluid) {
+        FluidStack leftover = submitFluidTaskLeftover(task, player, questingUuid, questId, quest, fluid);
+        return leftover == null || leftover.amount <= 0;
+    }
+
+    /**
+     * Same as {@link #submitFluidTask} but returns BQ leftover (null = fully consumed).
+     */
+    public static FluidStack submitFluidTaskLeftover(Object task, EntityPlayerMP player, UUID questingUuid,
+        UUID questId, Object quest, FluidStack fluid) {
         if (task == null || fluid == null) {
-            return false;
+            return fluid;
         }
         UUID owner = questingUuid != null ? questingUuid : (player != null ? getQuestingUuid(player) : null);
         if (owner == null) {
-            return false;
+            return fluid;
         }
         try {
             Map.Entry<?, ?> questEntry = questEntryOf(questId, quest);
@@ -474,8 +551,12 @@ public final class BqApiFacade {
                 Method m = findMethod(task.getClass(), "submitFluid", UUID.class, Map.Entry.class, FluidStack.class);
                 if (m != null) {
                     Object leftover = m.invoke(task, owner, questEntry, fluid.copy());
-                    return leftover == null
-                        || (leftover instanceof FluidStack && ((FluidStack) leftover).amount <= 0);
+                    FluidStack left = leftover instanceof FluidStack ? (FluidStack) leftover : null;
+                    if (left == null || left.amount <= 0) {
+                        finalizeConsumeTaskIfReady(task, owner);
+                        return null;
+                    }
+                    return left;
                 }
             }
         } catch (Throwable t) {
@@ -485,19 +566,27 @@ public final class BqApiFacade {
             Method m = task.getClass()
                 .getMethod("submitFluid", EntityPlayer.class, UUID.class, FluidStack.class);
             Object result = m.invoke(task, player, owner, fluid);
-            return result instanceof Boolean && ((Boolean) result).booleanValue();
+            if (result instanceof Boolean && ((Boolean) result).booleanValue()) {
+                finalizeConsumeTaskIfReady(task, owner);
+                return null;
+            }
+            return fluid.copy();
         } catch (NoSuchMethodException e) {
             try {
                 Method alt = task.getClass()
                     .getMethod("submitFluid", EntityPlayerMP.class, UUID.class, FluidStack.class);
                 Object result = alt.invoke(task, player, owner, fluid);
-                return result instanceof Boolean && ((Boolean) result).booleanValue();
+                if (result instanceof Boolean && ((Boolean) result).booleanValue()) {
+                    finalizeConsumeTaskIfReady(task, owner);
+                    return null;
+                }
+                return fluid.copy();
             } catch (Throwable ignored) {
-                return false;
+                return fluid.copy();
             }
         } catch (Throwable t) {
             AdvanceDataMonitor.LOG.warn("[WebAE Quest] submitFluid failed: {}", t.toString());
-            return false;
+            return fluid.copy();
         }
     }
 
@@ -1054,38 +1143,59 @@ public final class BqApiFacade {
     private static void fillIcon(QuestLineSummaryDto dto, Object bigStack) {
         ItemStack stack = bigStackToItem(bigStack);
         if (stack != null) {
-            dto.iconItemId = resolveDisplayIconItemId(stack);
-            dto.iconMeta = normalizeMeta(stack.getItemDamage());
+            applyDisplayIcon(dto, stack);
         }
     }
 
     private static void fillIcon(QuestLineNodeDto dto, Object bigStack) {
         ItemStack stack = bigStackToItem(bigStack);
         if (stack != null) {
-            dto.iconItemId = resolveDisplayIconItemId(stack);
-            dto.iconMeta = normalizeMeta(stack.getItemDamage());
+            applyDisplayIcon(dto, stack);
         }
     }
 
     private static void fillIcon(QuestDetailDto dto, Object bigStack) {
         ItemStack stack = bigStackToItem(bigStack);
         if (stack != null) {
-            dto.iconItemId = resolveDisplayIconItemId(stack);
-            dto.iconMeta = normalizeMeta(stack.getItemDamage());
+            applyDisplayIcon(dto, stack);
         }
     }
 
+    private static void applyDisplayIcon(QuestLineSummaryDto dto, ItemStack stack) {
+        dto.iconItemId = resolveDisplayIconItemId(stack);
+        dto.iconMeta = iconMetaForDisplayId(dto.iconItemId, stack);
+    }
+
+    private static void applyDisplayIcon(QuestLineNodeDto dto, ItemStack stack) {
+        dto.iconItemId = resolveDisplayIconItemId(stack);
+        dto.iconMeta = iconMetaForDisplayId(dto.iconItemId, stack);
+    }
+
+    private static void applyDisplayIcon(QuestDetailDto dto, ItemStack stack) {
+        dto.iconItemId = resolveDisplayIconItemId(stack);
+        dto.iconMeta = iconMetaForDisplayId(dto.iconItemId, stack);
+    }
+
     /**
-     * Display icon for quest trees / detail headers: fluid cells → {@code fluid:name}
-     * (same as recipe page); otherwise {@code mod:id[:meta]} so damage is not dropped.
+     * Display icon for quest trees / detail headers / rewards.
+     * Filled fluid cells keep {@code mod:id[:meta]} (recipe NEI path).
+     * Only {@code GregTech_FluidDisplay} becomes {@code fluid:name}.
      */
     private static String resolveDisplayIconItemId(ItemStack stack) {
-        String fluidName = QuestFluidIconResolver.resolveFluidName(stack);
+        String fluidName = QuestFluidIconResolver.resolveFluidDisplayIconName(stack);
         if (fluidName != null && !fluidName.isEmpty()) {
             return IconItemId.FLUID_PREFIX + fluidName;
         }
         String registry = registryNameForStack(stack);
         return RecipeItemEntries.buildItemId(registry, normalizeMeta(stack.getItemDamage()));
+    }
+
+    /** {@code fluid:} ids must not carry cell damage as iconMeta. */
+    private static int iconMetaForDisplayId(String iconItemId, ItemStack stack) {
+        if (iconItemId != null && iconItemId.startsWith(IconItemId.FLUID_PREFIX)) {
+            return 0;
+        }
+        return normalizeMeta(stack.getItemDamage());
     }
 
     private static int normalizeMeta(int meta) {
@@ -1241,9 +1351,11 @@ public final class BqApiFacade {
             dto.name = name;
             dto.description = description;
             if (stack != null) {
+                int meta = normalizeMeta(stack.getItemDamage());
                 dto.registryName = registryNameForStack(stack);
-                dto.itemId = dto.registryName;
-                dto.meta = stack.getItemDamage();
+                dto.itemId = RecipeItemEntries.buildItemId(dto.registryName, meta);
+                dto.meta = meta;
+                dto.iconItemId = resolveDisplayIconItemId(stack);
                 dto.amount = stack.stackSize;
                 String display = stack.getDisplayName();
                 if (display != null && !display.isEmpty()) {

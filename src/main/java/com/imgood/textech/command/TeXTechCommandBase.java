@@ -105,6 +105,20 @@ public abstract class TeXTechCommandBase extends CommandBase {
             .trim();
     }
 
+    /** Slice args from {@code start} (exclusive end = length). Empty if out of range. */
+    protected static String[] sliceArgs(String[] args, int start) {
+        if (args == null || args.length <= start) {
+            return new String[0];
+        }
+        String[] rest = new String[args.length - start];
+        System.arraycopy(args, start, rest, 0, rest.length);
+        return rest;
+    }
+
+    protected static String translateKey(String key) {
+        return net.minecraft.util.StatCollector.translateToLocal(key);
+    }
+
     protected String maskKey(String key) {
         if (key == null || key.length() <= 8) {
             return "********";

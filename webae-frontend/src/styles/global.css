@@ -112,7 +112,8 @@ body {
 
 .webae-list-panel {
   overflow: auto;
-  border-right: 1px solid var(--border-color, #334155);
+  border-right: 1px solid var(--border, var(--border-color, rgba(128,128,128,0.25)));
+  background: var(--bg-card);
 }
 .webae-list-panel--embedded {
   border-right: none;
@@ -123,9 +124,9 @@ body {
   justify-content: space-between;
   gap: 4px;
   padding: 4px 4px 4px 10px;
-  border-bottom: 1px solid var(--border-color, #1e293b);
+  border-bottom: 1px solid var(--border, var(--border-color, rgba(128,128,128,0.2)));
   font-size: 12px;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary);
   min-height: 32px;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -155,7 +156,7 @@ body {
   text-align: left;
   padding: 8px 10px;
   border: none;
-  border-bottom: 1px solid var(--border-color, #1e293b);
+  border-bottom: 1px solid var(--border, var(--border-color, rgba(128,128,128,0.2)));
   background: transparent;
   cursor: pointer;
   color: inherit;
@@ -176,7 +177,7 @@ div.webae-list-row:focus-visible {
   background: var(--sidebar-hover, rgba(255, 255, 255, 0.04));
 }
 .webae-list-row--selected {
-  background: rgba(59, 130, 246, 0.18);
+  background: var(--accent-dim, rgba(59, 130, 246, 0.18));
 }
 .webae-list-row--active.webae-list-row--card {
   border-color: var(--accent);

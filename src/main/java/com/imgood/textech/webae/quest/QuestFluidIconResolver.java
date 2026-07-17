@@ -12,11 +12,18 @@ import net.minecraftforge.fluids.FluidStack;
 import com.imgood.textech.compat.ae.legacy.LegacyAeFluidMarkerAdapter;
 
 /**
- * Resolves a display-only FluidRegistry name for quest / node icons.
+ * Resolves FluidRegistry names for quest display / matching helpers.
  * <p>
- * Covers GTNH representations that {@link LegacyAeFluidMarkerAdapter} alone misses:
- * IC2 filled cells (via FCR), and {@code gregtech:gt.GregTech_FluidDisplay} whose damage is a fluid ID.
- * Callers must set {@code iconItemId = fluid:<name>} only — never write {@code fluidName} on item-submit tasks.
+ * <b>Icon policy</b> (align with WebAE recipe NEI item path): filled fluid cells
+ * ({@code IC2:itemCellEmpty}, {@code gregtech:gt.metaitem.01}, …) keep
+ * {@code mod:id:meta} — do <em>not</em> rewrite to {@code fluid:}. Only
+ * {@code gregtech:gt.GregTech_FluidDisplay} (damage = FluidRegistry ID) should
+ * use {@link #resolveFluidDisplayIconName} → {@code fluid:<name>}. True
+ * {@code FluidStack} / {@code requiredFluids} tasks set {@code fluid:} via
+ * {@code fillFluid} / NBT {@code FluidName}, not this class.
+ * <p>
+ * {@link #resolveFluidName} still covers cells + FluidDisplay for callers that
+ * need the fluid content name without changing the item icon id.
  */
 public final class QuestFluidIconResolver {
 
@@ -26,6 +33,9 @@ public final class QuestFluidIconResolver {
     private QuestFluidIconResolver() {}
 
     /**
+     * FluidRegistry name for any known fluid representation (cells, FCR, FluidDisplay, GT utility).
+     * Prefer {@link #resolveFluidDisplayIconName} when choosing an icon cache id.
+     *
      * @return FluidRegistry name, or {@code null} if the stack is not a known fluid representation
      */
     public static String resolveFluidName(ItemStack stack) {
@@ -49,6 +59,23 @@ public final class QuestFluidIconResolver {
             }
 
             return resolveGtUtility(stack);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * Display-only: {@code fluid:} icon id only for GT FluidDisplay items.
+     * Filled cells must keep their item id (same as recipe NEI ingredients).
+     *
+     * @return FluidRegistry name, or {@code null} if not a FluidDisplay stack
+     */
+    public static String resolveFluidDisplayIconName(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            return null;
+        }
+        try {
+            return resolveGtFluidDisplay(stack);
         } catch (Throwable ignored) {
             return null;
         }

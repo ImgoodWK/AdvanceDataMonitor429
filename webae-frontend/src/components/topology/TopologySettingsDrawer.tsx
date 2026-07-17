@@ -326,7 +326,7 @@ export function TopologySettingsDrawer({
               value={draft.abstractLayout}
               onChange={(v) => patch({ abstractLayout: v as 'tree' | 'star' })}
               options={[
-                { value: 'tree', label: t('topologyLayout_tree') },
+                { value: 'tree', label: t('topologyLayout_channelLanes') },
                 { value: 'star', label: t('topologyLayout_star') },
               ]}
             />
@@ -342,8 +342,8 @@ export function TopologySettingsDrawer({
           value={draft.layoutDirection}
           onChange={(v) => patch({ layoutDirection: v as TopologyLayoutDirection })}
           options={[
-            { value: 'LR', label: t('topologyLayout_LR') },
             { value: 'TB', label: t('topologyLayout_TB') },
+            { value: 'LR', label: t('topologyLayout_LR') },
           ]}
         />
       </SettingRow>
@@ -389,11 +389,15 @@ export function TopologySettingsDrawer({
       <SettingRow label={t('topologyShowEdgeLabels')}>
         <Switch checked={draft.showEdgeChannelLabels} onChange={(v) => patch({ showEdgeChannelLabels: v })} />
       </SettingRow>
-      {topologySimulatedEnabled && (
-        <SettingRow label={t('topologyHideCableNodes')}>
-          <Switch checked={draft.hideCableNodes} onChange={(v) => patch({ hideCableNodes: v })} />
-        </SettingRow>
-      )}
+      <SettingRow label={t('topologyShowEmptyLanes')}>
+        <Switch checked={draft.showEmptyLanes} onChange={(v) => patch({ showEmptyLanes: v })} />
+      </SettingRow>
+      <SettingRow label={t('topologyCollapsePods')}>
+        <Switch checked={draft.collapsePods} onChange={(v) => patch({ collapsePods: v })} />
+      </SettingRow>
+      <SettingRow label={t('topologyHideCableNodes')}>
+        <Switch checked={draft.hideCableNodes} onChange={(v) => patch({ hideCableNodes: v })} />
+      </SettingRow>
 
       {topologySimulatedEnabled && (
         <>

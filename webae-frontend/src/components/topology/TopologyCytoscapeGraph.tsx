@@ -19,8 +19,9 @@ import { collectIconIdsFromTopology, resolveLocalIconUrls } from '@/utils/iconPr
 import { SERVER_SYNC_PACK_NAME } from '@/utils/localIconPack';
 import { trackVisibleIcons } from '@/utils/visibleIconRegistry';
 import { branchColorForIndex, computeSpatialPixelLayout } from '@/utils/topologyLayout';
-import { collapseCableEdges, visibleAbstractNodes } from '@/utils/topologyAbstractEdges';
-import { topologyNodeLabel } from '@/utils/topologyDevices';
+import { capacitySpineEdges, visibleAbstractNodes } from '@/utils/topologyAbstractEdges';
+import { computeChannelLanePresetLayout } from '@/utils/topologyLaneLayout';
+import { isSpineNode, topologyNodeLabel } from '@/utils/topologyDevices';
 import { useNonPassiveWheelZoom } from '@/hooks/useNonPassiveWheelZoom';
 import {
   TOPOLOGY_MAX_ZOOM,
@@ -45,10 +46,9 @@ interface TopologyCytoscapeGraphProps {
   layoutEpoch?: string;
 }
 
-function edgeColor(
-  edge: TopologyEdgeDto,
-  colors: TopologyDisplaySettings['colors']
-): string {
+function edgeColor(edge: TopologyEdgeDto, colors: TopologyDisplaySettings['colors']): string {
+  if (edge.overflow) return '#f85149';
+  if (edge.kind === 'orbit_link') return colors.labelDim;
   if (edge.branchIndex != null && edge.branchIndex >= 0) {
     return branchColorForIndex(edge.branchIndex);
   }
@@ -56,10 +56,19 @@ function edgeColor(
   return colors[cableKey as keyof typeof colors] || colors.covered;
 }
 
-function edgeWidth(cableType?: string): number {
-  if (cableType === 'dense') return 4;
-  if (cableType === 'smart') return 2.5;
-  return 3;
+/** Ribbon width from capacity max + fill ratio. */
+function ribbonWidth(edge: TopologyEdgeDto): number {
+  const ch = edge.channelsSimulated;
+  const max = ch?.max ?? 0;
+  if (edge.kind === 'orbit_link' || max <= 0) return 1.5;
+  if (edge.kind === 'capacity_trunk' || edge.cableType === 'dense') {
+    return 5 + Math.min(8, (ch?.used ?? 0) / Math.max(1, max) * 4);
+  }
+  if (edge.kind === 'capacity_lane' || edge.cableType === 'smart') {
+    return 3 + Math.min(5, (ch?.used ?? 0) / Math.max(1, max) * 3);
+  }
+  if (edge.kind === 'pod_uplink') return 2.5;
+  return 2;
 }
 
 function buildLabel(node: TopologyNodeDto, showCount: boolean): string {
@@ -79,6 +88,21 @@ function nodeBorderColor(
     return branchColorForIndex(node.branchIndex);
   }
   return branchColors.get(node.id) ?? colors.nodeStroke;
+}
+
+function isCompoundPod(node: TopologyNodeDto): boolean {
+  return node.layer === 'pod' || node.type === 'pod' || node.role === 'pod';
+}
+
+function isLaneOrTrunk(node: TopologyNodeDto): boolean {
+  return (
+    node.layer === 'lane' ||
+    node.layer === 'trunk' ||
+    node.role === 'lane' ||
+    node.role === 'trunk' ||
+    node.type === 'cable_smart' ||
+    node.type === 'cable_dense'
+  );
 }
 
 export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCytoscapeGraphProps>(
@@ -107,19 +131,54 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
     const [localIconUrls, setLocalIconUrls] = useState<Record<string, string>>({});
     const [iconRefreshEpoch, setIconRefreshEpoch] = useState(0);
 
-    const visibleNodes = useMemo(() => visibleAbstractNodes(nodes), [nodes]);
+    const collapsedPodIds = useMemo(() => {
+      if (!displaySettings.collapsePods) return undefined;
+      return new Set(
+        nodes.filter((n) => isCompoundPod(n)).map((n) => n.id)
+      );
+    }, [nodes, displaySettings.collapsePods]);
+
+    const visibleNodes = useMemo(
+      () =>
+        visibleAbstractNodes(nodes, {
+          showEmptyLanes: displaySettings.showEmptyLanes,
+          collapsedPodIds,
+          hideSpine: displaySettings.hideCableNodes,
+        }).filter((n) => {
+          if (!displaySettings.showEmptyLanes && (n.layer === 'lane' || n.role === 'lane')) {
+            const laneEdges = edges.filter(
+              (e) => (e.to === n.id || e.from === n.id) && e.kind === 'capacity_lane'
+            );
+            const used = laneEdges[0]?.channelsSimulated?.used ?? 0;
+            if (used <= 0) return false;
+          }
+          return true;
+        }),
+      [nodes, edges, displaySettings.showEmptyLanes, displaySettings.hideCableNodes, collapsedPodIds]
+    );
     const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes]);
-    const displayEdges = useMemo(() => collapseCableEdges(nodes, edges), [nodes, edges]);
+    const displayEdges = useMemo(
+      () => capacitySpineEdges(visibleNodes, edges),
+      [visibleNodes, edges]
+    );
 
     const abstractLayout =
       mode === 'logical'
         ? displaySettings.abstractLayout ?? (layout === 'star' ? 'star' : 'tree')
         : 'tree';
 
+    const useChannelLane =
+      mode === 'logical' && abstractLayout !== 'star';
+
     const spatialPoints = useMemo(() => {
       if (mode !== 'spatial') return new Map<string, { x: number; y: number }>();
       return computeSpatialPixelLayout(nodes, displaySettings).points;
     }, [nodes, mode, displaySettings]);
+
+    const lanePoints = useMemo(() => {
+      if (!useChannelLane) return new Map<string, { x: number; y: number }>();
+      return computeChannelLanePresetLayout(visibleNodes, displaySettings);
+    }, [visibleNodes, useChannelLane, displaySettings]);
 
     const hubId = useMemo(
       () => visibleNodes.find((n) => n.id === 'controller' || n.type === 'controller')?.id,
@@ -168,13 +227,18 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
       const out: ElementDefinition[] = [];
       const colors = displaySettings.colors;
       const r = displaySettings.nodeRadius;
-      const nodeSize = (isHub: boolean) => (isHub ? (r + 2) * 2 : r * 2);
+      const nodeSize = (node: TopologyNodeDto) => {
+        if (node.role === 'hub') return (r + 4) * 2;
+        if (isCompoundPod(node)) return (r + 6) * 2;
+        if (isLaneOrTrunk(node)) return (r + 2) * 2;
+        return r * 2;
+      };
 
       for (const node of visibleNodes) {
-        const isHub = node.role === 'hub';
+        const isHub = node.role === 'hub' || node.layer === 'hub';
         const iconId = blockIconIdForNode(node.type, node.iconItemId);
         let iconUrl = '';
-        if (iconId && !iconIsMarkedFailed(failedIcons, iconId)) {
+        if (iconId && !iconIsMarkedFailed(failedIcons, iconId) && !isCompoundPod(node)) {
           iconUrl = localIconUrls[iconId] || '';
           if (!iconUrl) {
             const candidates = iconLookupIds(undefined, iconId);
@@ -191,7 +255,11 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
               (iconRefreshEpoch ? `&r=${iconRefreshEpoch}` : '');
           }
         }
-        const pos = spatialPoints.get(node.id);
+        const pos =
+          mode === 'spatial' ? spatialPoints.get(node.id) : useChannelLane ? lanePoints.get(node.id) : undefined;
+
+        // Pods are visual role groups (edges + styling), not Cytoscape compounds —
+        // compound parents would break absolute preset coordinates.
         out.push({
           group: 'nodes',
           data: {
@@ -199,11 +267,15 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
             label: buildLabel(node, displaySettings.showCountLabels),
             iconUrl,
             role: node.role ?? '',
+            layer: node.layer ?? '',
             channelCost: node.channelCost ?? 0,
             branchIndex: node.branchIndex ?? -1,
             borderColor: nodeBorderColor(node, colors, branchColors),
-            nodeSize: nodeSize(isHub),
+            nodeSize: nodeSize(node),
             isHub,
+            isPod: isCompoundPod(node),
+            isSpine: isSpineNode(node),
+            isOrbit: node.layer === 'orbit' || node.role === 'orbit',
           },
           ...(pos ? { position: { x: pos.x, y: pos.y } } : {}),
         });
@@ -214,20 +286,26 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
           continue;
         }
         const ch = edge.channelsSimulated;
-        const channelLabel =
-          displaySettings.showEdgeChannelLabels && ch?.available && !edge.emptyBranch
-            ? `${ch.used}/${ch.max}`
-            : '';
+        const real = edge.channelsReal;
+        let channelLabel = '';
+        if (displaySettings.showEdgeChannelLabels && ch?.available && !edge.emptyBranch) {
+          channelLabel = `${ch.used}/${ch.max}`;
+          if (edge.overflow) channelLabel += '!';
+          if (real?.available) channelLabel += ` ·${real.used}`;
+        }
         out.push({
           group: 'edges',
           data: {
-            id: `${edge.from}-${edge.to}-${edge.emptyBranch ? 'empty' : 'link'}`,
+            id: `${edge.from}-${edge.to}-${edge.kind || 'link'}-${edge.emptyBranch ? 'empty' : 'c'}`,
             source: edge.from,
             target: edge.to,
             label: channelLabel,
             color: edgeColor(edge, colors),
-            width: edgeWidth(edge.cableType),
+            width: ribbonWidth(edge),
             emptyBranch: !!edge.emptyBranch,
+            overflow: !!edge.overflow,
+            isOrbit: edge.kind === 'orbit_link',
+            isCapacity: edge.kind === 'capacity_trunk' || edge.kind === 'capacity_lane',
           },
         });
       }
@@ -238,6 +316,7 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
       displayEdges,
       displaySettings,
       spatialPoints,
+      lanePoints,
       branchColors,
       iconPack,
       token,
@@ -246,11 +325,12 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
       failedIcons,
       iconRefreshEpoch,
       localIconUrls,
+      mode,
+      useChannelLane,
     ]);
 
     const runLayout = useCallback(
       (cy: Core) => {
-        const spacingFactor = Math.max(0.5, displaySettings.depthGap / 100);
         const siblingGap = Math.max(24, displaySettings.siblingGap);
 
         if (mode === 'spatial') {
@@ -271,6 +351,17 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
           return;
         }
 
+        if (useChannelLane) {
+          // Positions already set via preset; only fit.
+          cy.layout({
+            name: 'preset',
+            animate: false,
+            fit: true,
+            padding: displaySettings.labelMargin + displaySettings.nodeRadius,
+          } as cytoscape.LayoutOptions).run();
+          return;
+        }
+
         if (abstractLayout === 'star') {
           cy.layout({
             name: 'concentric',
@@ -283,33 +374,24 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
             },
             levelWidth: () => 1,
             minNodeSpacing: siblingGap,
-            spacingFactor,
+            spacingFactor: Math.max(0.5, displaySettings.depthGap / 100),
           } as cytoscape.LayoutOptions).run();
           return;
         }
 
         const roots = hubId ? `#${hubId.replace(/[^a-zA-Z0-9_-]/g, '\\$&')}` : undefined;
-
-        const lr = displaySettings.layoutDirection === 'LR';
         cy.layout({
           name: 'breadthfirst',
           animate: false,
           directed: true,
           fit: true,
           padding: displaySettings.labelMargin + displaySettings.nodeRadius,
-          spacingFactor,
+          spacingFactor: Math.max(0.5, displaySettings.depthGap / 100),
           nodeDimensionsIncludeLabels: true,
           ...(roots ? { roots } : {}),
         } as cytoscape.LayoutOptions).run();
-
-        if (lr) {
-          cy.nodes().forEach((node) => {
-            const p = node.position();
-            node.position({ x: p.y, y: p.x });
-          });
-        }
       },
-      [mode, abstractLayout, displaySettings, hubId]
+      [mode, abstractLayout, useChannelLane, displaySettings, hubId]
     );
 
     const fitView = useCallback(() => {
@@ -378,7 +460,7 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
               'text-outline-width': 2,
               'text-wrap': 'ellipsis',
               'text-max-width': '120px',
-              'text-valign': displaySettings.labelStrategy === 'external' ? 'bottom' : 'bottom',
+              'text-valign': 'bottom',
               'text-halign': 'center',
               'text-margin-y': 6,
               'overlay-opacity': 0,
@@ -387,8 +469,37 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
           {
             selector: 'node[?isHub]',
             style: {
-              'border-width': 2.5,
+              'border-width': 3,
               'border-color': colors.dense,
+              shape: 'round-rectangle',
+            },
+          },
+          {
+            selector: 'node[?isPod]',
+            style: {
+              shape: 'round-rectangle',
+              'background-opacity': 0.35,
+              'border-width': 2,
+              'border-style': 'dashed',
+              'text-valign': 'top',
+              'text-margin-y': -4,
+              'font-size': 10,
+              'text-max-width': '140px',
+            },
+          },
+          {
+            selector: 'node[?isSpine]',
+            style: {
+              shape: 'round-rectangle',
+              'background-opacity': 0.85,
+            },
+          },
+          {
+            selector: 'node[?isOrbit]',
+            style: {
+              'border-style': 'dotted',
+              'border-width': 1.5,
+              opacity: 0.92,
             },
           },
           {
@@ -413,7 +524,7 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
               'line-color': 'data(color)',
               'target-arrow-shape': 'none',
               'curve-style': 'bezier',
-              opacity: 0.85,
+              opacity: 0.88,
               label: 'data(label)',
               'font-size': 10,
               color: colors.labelDim,
@@ -424,11 +535,36 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
             },
           },
           {
-            selector: 'edge[emptyBranch]',
+            selector: 'edge[?isCapacity]',
+            style: {
+              'curve-style': 'haystack',
+              'haystack-radius': 0,
+              opacity: 0.95,
+            },
+          },
+          {
+            selector: 'edge[?isOrbit]',
+            style: {
+              'line-style': 'dashed',
+              'line-dash-pattern': [4, 4],
+              opacity: 0.5,
+              width: 1.5,
+            },
+          },
+          {
+            selector: 'edge[?emptyBranch]',
             style: {
               'line-style': 'dashed',
               'line-dash-pattern': [6, 4],
-              opacity: 0.45,
+              opacity: 0.4,
+            },
+          },
+          {
+            selector: 'edge[?overflow]',
+            style: {
+              'line-color': '#f85149',
+              'border-width': 1,
+              opacity: 1,
             },
           },
         ] as cytoscape.StylesheetStyle[],
@@ -491,7 +627,7 @@ export const TopologyCytoscapeGraph = forwardRef<TopologyGraphHandle, TopologyCy
         className="topology-graph-host topology-cytoscape-host"
         style={{ height, overscrollBehavior: 'contain', touchAction: 'none' }}
         role="img"
-        aria-label="Network topology graph"
+        aria-label="AE channel budget topology"
       />
     );
   }

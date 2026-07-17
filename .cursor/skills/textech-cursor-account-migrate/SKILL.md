@@ -59,7 +59,7 @@ Migrate restore:
 
 若缺失：检查 `mcp.json` 是否在磁盘上 → Cursor Settings → MCP → 启用项目服务器 → Reload。
 
-本机依赖：`py -3`、（build 用）JDK + Node。Windows 上命令是 `py` 不是 `python`。
+本机依赖：`tools/mcp/run-server.cmd`（优先本机 CPython，其次 `py -3` / `python`）、（build 用）JDK + Node。`.cursor/mcp.json` 经 `cmd.exe /c run-server.cmd` 启动四个服务器。
 
 ### 项目 Skill（应自动可 @）
 

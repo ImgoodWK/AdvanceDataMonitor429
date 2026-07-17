@@ -2,9 +2,7 @@ package com.imgood.textech;
 
 import java.io.File;
 
-import com.imgood.textech.command.CommandAssistant;
-import com.imgood.textech.command.CommandTeXTech;
-import com.imgood.textech.command.CommandWebConsole;
+import com.imgood.textech.loader.LoaderCommand;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -64,10 +62,7 @@ public class CommonProxy {
     // postInit "Handle interaction with other mods, complete your setup based on this." (Remove if not needed)
     public void postInit(FMLPostInitializationEvent event) {}
 
-    // register server commands in this event handler (Remove if not needed)
     public void serverStarting(FMLServerStartingEvent event) {
-        event.registerServerCommand(new CommandTeXTech());
-        event.registerServerCommand(new CommandAssistant());
-        event.registerServerCommand(new CommandWebConsole());
+        LoaderCommand.registerServer(event);
     }
 }

@@ -50,7 +50,7 @@ powershell -ExecutionPolicy Bypass -File tools/dev/sync-betterquesting-from-gtnh
 
 ## WebAE Test Lab（本仓库自定义章）
 
-首 Tab **WebAE Test Lab**（`QuestLinesOrder.txt` 第一行）覆盖 WebAE 任务书 DETECT / SUBMIT（物品 + 流体）、直接/选择奖励、勾选框与仅游戏内合成（`IN_GAME_ONLY`）对照。
+首 Tab **WebAE Test Lab**（`QuestLinesOrder.txt` 第一行）覆盖 WebAE 任务书 DETECT / SUBMIT（物品 + 流体，含 UU-Matter Cell 检测+提交组合）、直接/选择奖励、勾选框与仅游戏内合成（`IN_GAME_ONLY`）对照。
 
 | 存放位置 | `dev-fixtures/betterquesting/DefaultQuests/`（`Quests/` + `QuestLines/` + `QuestLinesOrder.txt`） |
 |----------|--------------------------------------------------------------------------------------------------|
@@ -63,3 +63,8 @@ powershell -ExecutionPolicy Bypass -File tools/dev/sync-betterquesting-from-gtnh
 从上游 `sync-betterquesting-from-gtnh.ps1` 刷新快照会覆盖 `DefaultQuests/`：请**保留**本仓 `WebAETestLab-*` 目录，并保证 `QuestLinesOrder.txt` **第一行**仍是 `WebAE Test Lab`（可用 Git 对比后手工重合并）。
 
 消耗型物品任务写法为 `bq_standard:retrieval` + `consume:1`；WebAE 将该组合标为 **SUBMIT**（勿再用 DETECT/`completeRetrieval` 误完成）。
+
+流体单元联调要点（UU-Matter Cell 组合等）：
+- **DETECT**：网内仅有游离流体、或仅有装满单元、或两者加总均应可通过；无需空单元。
+- **SUBMIT**：优先扣装满单元；仅有流体无空单元应失败；空单元+等量流体应可装填提交。
+- **真流体任务**（若有）：从单元 drain 只取所需 mB，余量退回 AE。

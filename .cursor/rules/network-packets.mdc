@@ -67,7 +67,7 @@ alwaysApply: false
 | 48 | `PacketIconDirectCaptureResponse` | `PacketIconDirectCaptureResponse.Handler` | C→S | 图标直渲：客户端 PNG 回传 |
 | 49 | `PacketWebIconPullZip` | `PacketWebIconPullZip.Handler` | S→C | `/admweb icons pull`：服务端 icon pack zip 分片下发到客户端 `icons-local/` |
 
-**下一个可用 ID = 49**
+**下一个可用 ID = 50**
 
 ## 新增 Packet 接入步骤
 

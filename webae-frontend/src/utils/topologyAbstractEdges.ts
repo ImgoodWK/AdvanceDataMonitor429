@@ -1,106 +1,111 @@
 import type { TopologyEdgeDto, TopologyNodeDto } from '@/types/dto';
-import { isCableNode, isCellNode } from '@/utils/topologyDevices';
+import { isCellNode } from '@/utils/topologyDevices';
 
-const CABLE_TIER_RANK: Record<string, number> = {
-  smart: 1,
-  covered: 2,
-  dense: 3,
-};
+/** Structural spine layers that must stay visible in channel-lane topology. */
+const SPINE_LAYERS = new Set(['hub', 'trunk', 'lane', 'pod']);
 
-/** Nodes that should never appear as clickable device circles in the abstract tree. */
-export function visibleAbstractNodes(nodes: TopologyNodeDto[]): TopologyNodeDto[] {
-  return nodes.filter(
-    (n) =>
-      !!n.id &&
-      !isCableNode(n) &&
-      !isCellNode(n) &&
-      n.simKind !== 'junction' &&
-      !n.simKind?.startsWith('cable') &&
-      n.role !== 'empty_branch'
+function isSpineStructural(node: TopologyNodeDto): boolean {
+  const layer = node.layer ?? '';
+  return (
+    layer === 'trunk' ||
+    layer === 'lane' ||
+    node.role === 'trunk' ||
+    node.role === 'lane' ||
+    node.type === 'cable_dense' ||
+    node.type === 'cable_smart'
   );
 }
 
-function isCableLikeNode(node: TopologyNodeDto | undefined): boolean {
-  if (!node) return false;
-  return isCableNode(node) || node.simKind === 'junction' || !!node.simKind?.startsWith('cable');
-}
+/**
+ * Nodes shown in the ae_budget_v2 abstract graph.
+ * Trunk / lane / pod stay visible by default; cells stay hidden.
+ */
+export function visibleAbstractNodes(
+  nodes: TopologyNodeDto[],
+  options?: { showEmptyLanes?: boolean; collapsedPodIds?: Set<string>; hideSpine?: boolean }
+): TopologyNodeDto[] {
+  const collapsedPods = options?.collapsedPodIds;
+  const hideSpine = options?.hideSpine === true;
 
-function pickHigherTier(a: string | undefined, b: string | undefined): string {
-  const rankA = CABLE_TIER_RANK[a ?? ''] ?? 0;
-  const rankB = CABLE_TIER_RANK[b ?? ''] ?? 0;
-  return rankA >= rankB ? (a ?? b ?? 'covered') : (b ?? a ?? 'covered');
+  return nodes.filter((n) => {
+    if (!n.id || isCellNode(n)) return false;
+    if (n.role === 'empty_branch') return false;
+    if (hideSpine && isSpineStructural(n)) return false;
+
+    const layer = n.layer ?? '';
+    if (layer === 'lane' || n.role === 'lane' || n.type === 'cable_smart') {
+      return true;
+    }
+    if (layer === 'trunk' || n.role === 'trunk' || n.type === 'cable_dense') {
+      return true;
+    }
+    if (layer === 'pod' || n.type === 'pod' || n.role === 'pod') {
+      return true;
+    }
+    if (collapsedPods && n.parentId && collapsedPods.has(n.parentId)) {
+      return false;
+    }
+    if (SPINE_LAYERS.has(layer)) return true;
+    return true;
+  });
 }
 
 /**
- * Collapse edges that pass through synthetic cable nodes so the abstract tree
- * draws direct lines between real devices while preserving cable tier coloring.
+ * Keep capacity-spine edges intact when spine nodes are visible.
+ * When spine is hidden, walk through trunk/lane so pods/devices stay connected to the hub.
  */
-export function collapseCableEdges(nodes: TopologyNodeDto[], edges: TopologyEdgeDto[]): TopologyEdgeDto[] {
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const children = new Map<string, { to: string; cableType?: string }[]>();
-
+export function capacitySpineEdges(nodes: TopologyNodeDto[], edges: TopologyEdgeDto[]): TopologyEdgeDto[] {
+  const visibleIds = new Set(nodes.map((n) => n.id));
+  const children = new Map<string, TopologyEdgeDto[]>();
   for (const edge of edges) {
     const list = children.get(edge.from) ?? [];
-    list.push({ to: edge.to, cableType: edge.cableType });
+    list.push(edge);
     children.set(edge.from, list);
   }
 
-  const visibleIds = new Set(visibleAbstractNodes(nodes).map((n) => n.id));
-  const collapsed = new Map<string, TopologyEdgeDto>();
+  const out = new Map<string, TopologyEdgeDto>();
 
-  function walk(fromId: string, startId: string, tier: string | undefined, visited: Set<string>) {
+  function walk(fromId: string, startId: string, inherited: TopologyEdgeDto | null, visited: Set<string>) {
     const outs = children.get(fromId);
     if (!outs) return;
-    for (const { to, cableType } of outs) {
-      if (visited.has(to)) continue;
-      const nextTier = pickHigherTier(tier, cableType);
-      const target = byId.get(to);
-      if (!target) continue;
-      if (visibleIds.has(to)) {
-        const key = `${startId}->${to}`;
-        const existing = collapsed.get(key);
-        if (existing) {
-          existing.cableType = pickHigherTier(existing.cableType, nextTier);
-        } else {
-          const orig = edges.find((e) => e.from === fromId && e.to === to);
-          collapsed.set(key, {
+    for (const edge of outs) {
+      if (visited.has(edge.to)) continue;
+      const nextVisited = new Set(visited);
+      nextVisited.add(edge.to);
+      if (visibleIds.has(edge.to)) {
+        const key = `${startId}->${edge.to}`;
+        if (!out.has(key)) {
+          out.set(key, {
+            ...edge,
             from: startId,
-            to,
-            cableType: nextTier,
-            channelsSimulated: orig?.channelsSimulated,
-            channelsReal: orig?.channelsReal,
-            pathPoints: orig?.pathPoints,
+            to: edge.to,
+            kind: edge.kind || inherited?.kind,
+            branchIndex: edge.branchIndex ?? inherited?.branchIndex,
+            overflow: !!(edge.overflow || inherited?.overflow),
+            channelsSimulated: edge.channelsSimulated ?? inherited?.channelsSimulated,
           });
         }
-      } else if (isCableLikeNode(target)) {
-        const nextVisited = new Set(visited);
-        nextVisited.add(to);
-        walk(to, startId, nextTier, nextVisited);
+      } else {
+        // Continue through hidden spine nodes (trunk/lane when hideSpine).
+        walk(edge.to, startId, edge, nextVisited);
       }
     }
   }
 
   for (const id of visibleIds) {
-    walk(id, id, undefined, new Set([id]));
+    walk(id, id, null, new Set([id]));
   }
 
-  // Also keep direct edges between two visible nodes (e.g. controller → drive).
   for (const edge of edges) {
     if (!visibleIds.has(edge.from) || !visibleIds.has(edge.to)) continue;
     const key = `${edge.from}->${edge.to}`;
-    if (!collapsed.has(key)) {
-      collapsed.set(key, { ...edge });
-    }
+    if (!out.has(key)) out.set(key, { ...edge });
   }
 
-  // Preserve empty smart-branch placeholder edges (dashed lines in abstract view).
-  for (const edge of edges) {
-    if (!edge.emptyBranch) continue;
-    const key = `empty:${edge.from}->${edge.to}`;
-    if (!collapsed.has(key)) {
-      collapsed.set(key, { ...edge });
-    }
-  }
+  return Array.from(out.values());
+}
 
-  return Array.from(collapsed.values());
+/** @deprecated Alias kept for TopologyGraphSvg. */
+export function collapseCableEdges(nodes: TopologyNodeDto[], edges: TopologyEdgeDto[]): TopologyEdgeDto[] {
+  return capacitySpineEdges(visibleAbstractNodes(nodes), edges);
 }

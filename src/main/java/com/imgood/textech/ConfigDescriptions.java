@@ -924,6 +924,11 @@ public final class ConfigDescriptions {
             "任务 escrow 会话超时（毫秒），超时后自动将锁定物料退回 AE。默认 120000。");
         put(
             "webConsole",
+            "questFluidAllContainersOption",
+            "Allow WebAE quest UI checkbox to count all fluid containers (buckets/cans) toward fluid/cell equivalence. When false, only GT/IC2 cells are used. Default false.",
+            "允许 WebAE 任务书勾选将桶/罐等全部流体容器计入流体/单元等价。关闭时仅 GT/IC2 流体单元。默认关闭。");
+        put(
+            "webConsole",
             "questCacheTtlSec",
             "Quest definition cache TTL in seconds. Default 300.",
             "任务定义缓存 TTL（秒）。默认 300。");

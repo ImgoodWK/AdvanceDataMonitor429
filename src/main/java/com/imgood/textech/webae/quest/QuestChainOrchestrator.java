@@ -32,6 +32,11 @@ public final class QuestChainOrchestrator {
 
     public static QuestChainSubmitResultDto start(String ownerUuid, int networkId, String targetQuestId,
         boolean skipMissing, String cpuName, long waitTimeoutMs) {
+        return start(ownerUuid, networkId, targetQuestId, skipMissing, cpuName, waitTimeoutMs, false);
+    }
+
+    public static QuestChainSubmitResultDto start(String ownerUuid, int networkId, String targetQuestId,
+        boolean skipMissing, String cpuName, long waitTimeoutMs, boolean includeAllFluidContainers) {
         QuestChainSubmitResultDto dto = new QuestChainSubmitResultDto();
         dto.targetQuestId = targetQuestId;
         dto.dryRun = false;
@@ -57,7 +62,8 @@ public final class QuestChainOrchestrator {
             return dto;
         }
 
-        QuestChainPlanDto plan = QuestChainService.buildPlan(ownerUuid, networkId, targetQuestId);
+        boolean includeAll = QuestFluidEquivalence.resolveIncludeAll(includeAllFluidContainers);
+        QuestChainPlanDto plan = QuestChainService.buildPlan(ownerUuid, networkId, targetQuestId, includeAll);
         ChainJob job = new ChainJob();
         job.jobId = dto.jobId;
         job.ownerUuid = ownerUuid;
@@ -65,6 +71,7 @@ public final class QuestChainOrchestrator {
         job.targetQuestId = targetQuestId;
         job.skipMissing = skipMissing;
         job.cpuName = cpuName;
+        job.includeAllFluidContainers = includeAll;
         job.deadlineMs = System.currentTimeMillis()
             + (waitTimeoutMs > 0 ? waitTimeoutMs : Config.webQuestCraftWaitTimeoutMs);
 
@@ -80,17 +87,31 @@ public final class QuestChainOrchestrator {
                 track.action = "skipped";
                 track.message = planned.skipReason;
             } else if (planned.fullySatisfied) {
-                // Will submit on poll without crafting.
+                // Pre-lock available materials immediately.
+                if (Config.webQuestEscrowEnabled && player != null) {
+                    prelockTrack(job, track, player);
+                }
                 track.phase = "ready_submit";
             } else {
                 track.phase = "need_craft";
+                if (Config.webQuestEscrowEnabled && player != null) {
+                    prelockTrack(job, track, player);
+                }
                 seedCraftOrders(job, track, ownerUuid, networkId, planned.questId, cpuName);
                 if (track.orders.isEmpty()) {
                     if (skipMissing) {
+                        if (track.escrowId != null) {
+                            QuestInventoryEscrow.release(track.escrowId);
+                            track.escrowId = null;
+                        }
                         track.done = true;
                         track.action = "skipped";
                         track.message = "missing_items";
                     } else {
+                        if (track.escrowId != null) {
+                            QuestInventoryEscrow.release(track.escrowId);
+                            track.escrowId = null;
+                        }
                         track.done = true;
                         track.action = "failed";
                         track.message = "missing_items_uncraftable";
@@ -152,6 +173,7 @@ public final class QuestChainOrchestrator {
 
             if ("need_craft".equals(track.phase)) {
                 int doneOrders = 0;
+                boolean anyNew = false;
                 for (OrderTrack order : track.orders) {
                     if (order.completed) {
                         doneOrders++;
@@ -163,8 +185,12 @@ public final class QuestChainOrchestrator {
                         if (progress != null && progress.completed) {
                             order.completed = true;
                             doneOrders++;
+                            anyNew = true;
                         }
                     }
+                }
+                if (anyNew && player != null && Config.webQuestEscrowEnabled) {
+                    appendTrackLock(job, track, player);
                 }
                 if (doneOrders < track.orders.size()) {
                     dto.phase = "crafting";
@@ -230,6 +256,45 @@ public final class QuestChainOrchestrator {
         return dto;
     }
 
+    private static void prelockTrack(ChainJob job, ChainQuestTrack track, EntityPlayerMP player) {
+        QuestDetailDto detail = QuestDataCollector.collectQuestDetail(track.questId, player);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(
+            job.ownerUuid,
+            job.networkId,
+            detail,
+            job.includeAllFluidContainers);
+        QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lockPartial(
+            job.ownerUuid,
+            job.networkId,
+            player,
+            analysis.steps,
+            job.includeAllFluidContainers,
+            null);
+        if (lock.success && lock.escrowId != null && !lock.escrowId.isEmpty()) {
+            track.escrowId = lock.escrowId;
+        }
+    }
+
+    private static void appendTrackLock(ChainJob job, ChainQuestTrack track, EntityPlayerMP player) {
+        QuestDetailDto detail = QuestDataCollector.collectQuestDetail(track.questId, player);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(
+            job.ownerUuid,
+            job.networkId,
+            detail,
+            job.includeAllFluidContainers);
+        if (track.escrowId != null && !track.escrowId.isEmpty()) {
+            QuestInventoryEscrow.appendLock(
+                track.escrowId,
+                job.ownerUuid,
+                job.networkId,
+                player,
+                analysis.steps,
+                job.includeAllFluidContainers);
+        } else {
+            prelockTrack(job, track, player);
+        }
+    }
+
     private static void seedCraftOrders(ChainJob job, ChainQuestTrack track, String ownerUuid, int networkId,
         String questId, String cpuName) {
         EntityPlayerMP player = BqQuestingIdentity.resolvePlayer(ownerUuid);
@@ -237,7 +302,11 @@ public final class QuestChainOrchestrator {
             return;
         }
         QuestDetailDto detail = QuestDataCollector.collectQuestDetail(questId, player);
-        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(
+            ownerUuid,
+            networkId,
+            detail,
+            job.includeAllFluidContainers);
         for (QuestAnalysisStepDto step : analysis.steps) {
             if (step.complete || !step.webCapable || step.missing <= 0) {
                 continue;
@@ -282,31 +351,78 @@ public final class QuestChainOrchestrator {
             track.phase = "escrow_failed";
             return fail;
         }
-        String escrowId = null;
+        String escrowId = track.escrowId;
+        QuestDetailDto detail = QuestDataCollector.collectQuestDetail(track.questId, player);
+        QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(
+            job.ownerUuid,
+            job.networkId,
+            detail,
+            job.includeAllFluidContainers);
         if (Config.webQuestEscrowEnabled) {
-            QuestDetailDto detail = QuestDataCollector.collectQuestDetail(track.questId, player);
-            QuestAnalysisDto analysis = QuestRequirementAnalyzer.analyze(job.ownerUuid, job.networkId, detail);
-            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
-                job.ownerUuid,
-                job.networkId,
-                player,
-                analysis.steps);
-            if (!lock.success) {
-                QuestSubmitResultDto fail = new QuestSubmitResultDto();
-                fail.questId = track.questId;
-                fail.success = false;
-                fail.message = lock.message != null ? lock.message : "Escrow lock failed";
-                track.phase = "escrow_failed";
-                return fail;
+            if (escrowId != null && !escrowId.isEmpty()) {
+                QuestInventoryEscrow.LockResult append = QuestInventoryEscrow.appendLock(
+                    escrowId,
+                    job.ownerUuid,
+                    job.networkId,
+                    player,
+                    analysis.steps,
+                    job.includeAllFluidContainers);
+                if (!append.success) {
+                    QuestInventoryEscrow.release(escrowId);
+                    QuestSubmitResultDto fail = new QuestSubmitResultDto();
+                    fail.questId = track.questId;
+                    fail.success = false;
+                    fail.message = append.message != null ? append.message : "Escrow append failed";
+                    track.phase = "escrow_failed";
+                    track.escrowId = null;
+                    return fail;
+                }
+                if (!QuestInventoryEscrow.allStepsCovered(analysis.steps, QuestInventoryEscrow.get(escrowId))) {
+                    QuestInventoryEscrow.release(escrowId);
+                    QuestSubmitResultDto fail = new QuestSubmitResultDto();
+                    fail.questId = track.questId;
+                    fail.success = false;
+                    fail.message = "Insufficient AE stock for escrow";
+                    track.phase = "escrow_failed";
+                    track.escrowId = null;
+                    return fail;
+                }
+            } else {
+                QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
+                    job.ownerUuid,
+                    job.networkId,
+                    player,
+                    analysis.steps,
+                    job.includeAllFluidContainers);
+                if (!lock.success) {
+                    QuestSubmitResultDto fail = new QuestSubmitResultDto();
+                    fail.questId = track.questId;
+                    fail.success = false;
+                    fail.message = lock.message != null ? lock.message : "Escrow lock failed";
+                    track.phase = "escrow_failed";
+                    return fail;
+                }
+                escrowId = lock.escrowId;
+                track.escrowId = escrowId;
             }
-            escrowId = lock.escrowId;
-            track.escrowId = escrowId;
         }
         QuestSubmitResultDto submit;
         if (escrowId != null && !escrowId.isEmpty()) {
-            submit = QuestSubmitService.submitFromEscrow(job.ownerUuid, job.networkId, track.questId, escrowId, null);
+            submit = QuestSubmitService.submitFromEscrow(
+                job.ownerUuid,
+                job.networkId,
+                track.questId,
+                escrowId,
+                null,
+                job.includeAllFluidContainers);
         } else {
-            submit = QuestSubmitService.submit(job.ownerUuid, job.networkId, track.questId, false, null);
+            submit = QuestSubmitService.submit(
+                job.ownerUuid,
+                job.networkId,
+                track.questId,
+                false,
+                null,
+                job.includeAllFluidContainers);
         }
         if ((submit == null || !submit.success) && escrowId != null && !escrowId.isEmpty()) {
             QuestInventoryEscrow.release(escrowId);
@@ -351,6 +467,7 @@ public final class QuestChainOrchestrator {
         long deadlineMs;
         boolean aborted;
         String abortMessage = "";
+        boolean includeAllFluidContainers;
         List<ChainQuestTrack> queue = new ArrayList<ChainQuestTrack>();
     }
 

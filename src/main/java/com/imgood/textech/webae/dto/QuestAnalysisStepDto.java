@@ -27,4 +27,14 @@ public class QuestAnalysisStepDto {
     /** Fluid still needed for quest completion (fluidRequired minus fluidProgress). */
     public long fluidRemaining;
     public long fluidMissing;
+    /** Free AE fluid mB contributing to availability (true fluid or cell DETECT). */
+    public long fluidFromFreeMb;
+    /** Fluid mB inside cells/containers contributing to availability. */
+    public long fluidFromCellsMb;
+    /** True when this item step is a filled fluid cell (equivalence applies). */
+    public boolean fluidCellTask;
+    /** Empty cells available for SUBMIT fill-from-fluid. */
+    public long emptyCellAvailable;
+    /** Cell capacity mB used for free-fluid equivalence. */
+    public int fluidCellCapacityMb;
 }

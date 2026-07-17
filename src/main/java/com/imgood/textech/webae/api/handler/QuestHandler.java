@@ -119,20 +119,34 @@ public final class QuestHandler {
             }
             String jobId = uri.substring("/api/quests/submit-jobs/".length());
             if (jobId.startsWith("chain-")) {
-                QuestChainSubmitResultDto chainJob = QuestChainOrchestrator.poll(jobId.substring("chain-".length()));
-                return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"chain\":" + GSON.toJson(chainJob) + "}");
+                final String chainId = jobId.substring("chain-".length());
+                return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
+                    @Override
+                    public QuestChainSubmitResultDto run(EntityPlayerMP player) {
+                        return QuestChainOrchestrator.poll(chainId);
+                    }
+                }, "chain");
             }
-            QuestCraftJobDto job = QuestCraftOrchestrator.resolveSubmitJob(jobId);
-            return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"job\":" + GSON.toJson(job) + "}");
+            final String craftJobId = jobId;
+            return onMainThread(ownerUuid, new MainThreadTask<QuestCraftJobDto>() {
+                @Override
+                public QuestCraftJobDto run(EntityPlayerMP player) {
+                    return QuestCraftOrchestrator.resolveSubmitJob(craftJobId);
+                }
+            }, "job");
         }
 
         if (uri.startsWith("/api/quests/chain-jobs/")) {
             if (method != NanoHTTPD.Method.GET) {
                 return methodNotAllowed("GET");
             }
-            String jobId = uri.substring("/api/quests/chain-jobs/".length());
-            QuestChainSubmitResultDto chainJob = QuestChainOrchestrator.poll(jobId);
-            return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"chain\":" + GSON.toJson(chainJob) + "}");
+            final String jobId = uri.substring("/api/quests/chain-jobs/".length());
+            return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
+                @Override
+                public QuestChainSubmitResultDto run(EntityPlayerMP player) {
+                    return QuestChainOrchestrator.poll(jobId);
+                }
+            }, "chain");
         }
 
         String questId = parseQuestId(uri);
@@ -145,11 +159,12 @@ public final class QuestHandler {
                 return methodNotAllowed("GET");
             }
             int networkId = parseInt(params.get("network"), 0);
+            final boolean includeAll = parseBool(params.get("includeAllFluidContainers"), false);
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestChainPlanDto>() {
                 @Override
                 public QuestChainPlanDto run(EntityPlayerMP player) {
-                    return QuestChainService.buildPlan(ownerUuid, networkId, questId);
+                    return QuestChainService.buildPlan(ownerUuid, networkId, questId, includeAll);
                 }
             }, "plan");
         }
@@ -173,21 +188,27 @@ public final class QuestHandler {
             final boolean craftMissing = req.craftMissing;
             final String cpuName = req.cpuName;
             final long timeout = req.waitTimeoutMs;
+            final boolean includeAll = req.includeAllFluidContainers;
             prefetchRecipesForCraftTree();
             if (craftMissing && !dryRun) {
-                QuestChainSubmitResultDto chainJob = QuestChainOrchestrator.start(
-                    ownerUuid,
-                    networkId,
-                    questId,
-                    skipMissing,
-                    cpuName,
-                    timeout);
-                return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"chain\":" + GSON.toJson(chainJob) + "}");
+                return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
+                    @Override
+                    public QuestChainSubmitResultDto run(EntityPlayerMP player) {
+                        return QuestChainOrchestrator.start(
+                            ownerUuid,
+                            networkId,
+                            questId,
+                            skipMissing,
+                            cpuName,
+                            timeout,
+                            includeAll);
+                    }
+                }, "chain");
             }
             return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
                 @Override
                 public QuestChainSubmitResultDto run(EntityPlayerMP player) {
-                    return QuestChainService.submitSync(ownerUuid, networkId, questId, dryRun, skipMissing);
+                    return QuestChainService.submitSync(ownerUuid, networkId, questId, dryRun, skipMissing, includeAll);
                 }
             }, "chain");
         }
@@ -197,12 +218,13 @@ public final class QuestHandler {
                 return methodNotAllowed("GET");
             }
             int networkId = parseInt(params.get("network"), 0);
+            final boolean includeAll = parseBool(params.get("includeAllFluidContainers"), false);
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestAnalysisDto>() {
                 @Override
                 public QuestAnalysisDto run(EntityPlayerMP player) {
                     QuestDetailDto detail = QuestDataCollector.collectQuestDetail(questId, player);
-                    return QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail);
+                    return QuestRequirementAnalyzer.analyze(ownerUuid, networkId, detail, includeAll);
                 }
             }, "analysis");
         }
@@ -216,11 +238,12 @@ public final class QuestHandler {
             }
             DetectBody detectReq = parseDetectBody(body);
             final int detectNetworkId = detectReq.networkId;
+            final boolean includeAll = detectReq.includeAllFluidContainers;
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestSubmitResultDto>() {
                 @Override
                 public QuestSubmitResultDto run(EntityPlayerMP player) {
-                    return QuestSubmitService.detectOnly(ownerUuid, questId, detectNetworkId);
+                    return QuestSubmitService.detectOnly(ownerUuid, questId, detectNetworkId, includeAll);
                 }
             }, "detect");
         }
@@ -236,11 +259,12 @@ public final class QuestHandler {
             int networkId = req != null ? req.networkId : 0;
             boolean dryRun = req == null || req.dryRun;
             List<Integer> steps = req != null ? req.steps : null;
+            final boolean includeAll = req != null && req.includeAllFluidContainers;
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestSubmitResultDto>() {
                 @Override
                 public QuestSubmitResultDto run(EntityPlayerMP player) {
-                    return QuestSubmitService.submit(ownerUuid, networkId, questId, dryRun, steps);
+                    return QuestSubmitService.submit(ownerUuid, networkId, questId, dryRun, steps, includeAll);
                 }
             }, "submit");
         }
@@ -253,12 +277,23 @@ public final class QuestHandler {
                 return guestDenied();
             }
             SubmitCraftBody req = parseSubmitCraftBody(body);
-            int networkId = req != null ? req.networkId : 0;
-            String cpuName = req != null ? req.cpuName : null;
-            long timeout = req != null ? req.waitTimeoutMs : 0L;
+            final int networkId = req != null ? req.networkId : 0;
+            final String cpuName = req != null ? req.cpuName : null;
+            final long timeout = req != null ? req.waitTimeoutMs : 0L;
+            final boolean includeAll = req != null && req.includeAllFluidContainers;
             prefetchRecipesForCraftTree();
-            QuestCraftJobDto job = QuestCraftOrchestrator.start(ownerUuid, networkId, questId, cpuName, timeout);
-            return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"job\":" + GSON.toJson(job) + "}");
+            return onMainThread(ownerUuid, new MainThreadTask<QuestCraftJobDto>() {
+                @Override
+                public QuestCraftJobDto run(EntityPlayerMP player) {
+                    return QuestCraftOrchestrator.start(
+                        ownerUuid,
+                        networkId,
+                        questId,
+                        cpuName,
+                        timeout,
+                        includeAll);
+                }
+            }, "job");
         }
 
         if (method != NanoHTTPD.Method.GET) {
@@ -348,6 +383,9 @@ public final class QuestHandler {
                 .getAsJsonObject();
             req.networkId = obj.has("networkId") ? obj.get("networkId")
                 .getAsInt() : 0;
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
+                && obj.get("includeAllFluidContainers")
+                    .getAsBoolean();
         } catch (Exception ignored) {}
         return req;
     }
@@ -367,6 +405,9 @@ public final class QuestHandler {
                 .getAsInt() : 0;
             req.dryRun = !obj.has("dryRun") || obj.get("dryRun")
                 .getAsBoolean();
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
+                && obj.get("includeAllFluidContainers")
+                    .getAsBoolean();
             if (obj.has("steps") && obj.get("steps")
                 .isJsonArray()) {
                 req.steps = new ArrayList<Integer>();
@@ -403,6 +444,9 @@ public final class QuestHandler {
                 req.waitTimeoutMs = obj.get("waitTimeoutMs")
                     .getAsLong();
             }
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
+                && obj.get("includeAllFluidContainers")
+                    .getAsBoolean();
         } catch (Exception ignored) {}
         return req;
     }
@@ -433,6 +477,9 @@ public final class QuestHandler {
                 req.waitTimeoutMs = obj.get("waitTimeoutMs")
                     .getAsLong();
             }
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
+                && obj.get("includeAllFluidContainers")
+                    .getAsBoolean();
         } catch (Exception ignored) {}
         return req;
     }
@@ -446,6 +493,13 @@ public final class QuestHandler {
         } catch (NumberFormatException e) {
             return def;
         }
+    }
+
+    private static boolean parseBool(String raw, boolean def) {
+        if (raw == null || raw.isEmpty()) {
+            return def;
+        }
+        return "1".equals(raw) || "true".equalsIgnoreCase(raw.trim());
     }
 
     private static NanoHTTPD.Response guestDenied() {
@@ -474,18 +528,21 @@ public final class QuestHandler {
 
     private static final class DetectBody {
         int networkId;
+        boolean includeAllFluidContainers;
     }
 
     private static final class SubmitBody {
         int networkId;
         boolean dryRun = true;
         List<Integer> steps;
+        boolean includeAllFluidContainers;
     }
 
     private static final class SubmitCraftBody {
         int networkId;
         String cpuName;
         long waitTimeoutMs;
+        boolean includeAllFluidContainers;
     }
 
     private static final class ChainSubmitBody {
@@ -495,5 +552,6 @@ public final class QuestHandler {
         boolean craftMissing;
         String cpuName;
         long waitTimeoutMs;
+        boolean includeAllFluidContainers;
     }
 }

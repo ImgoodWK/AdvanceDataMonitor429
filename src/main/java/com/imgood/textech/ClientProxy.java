@@ -2,7 +2,6 @@ package com.imgood.textech;
 
 import java.io.File;
 
-import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.config.Configuration;
 
 import com.imgood.textech.client.AiClientPreferences;
@@ -13,9 +12,7 @@ import com.imgood.textech.client.KeyBindings;
 import com.imgood.textech.client.PocketOverlayHandler;
 import com.imgood.textech.client.StarryCosmosClientWarmup;
 import com.imgood.textech.client.VoiceAssistantKeyHandler;
-import com.imgood.textech.command.CommandAIConfig;
-import com.imgood.textech.command.CommandAssistant;
-import com.imgood.textech.command.CommandTeXTechClient;
+import com.imgood.textech.loader.LoaderCommand;
 import com.imgood.textech.renders.GrappleHudRenderer;
 import com.imgood.textech.renders.GrappleTravelLineRenderer;
 import com.imgood.textech.renders.OrangeNameplateRenderer;
@@ -47,9 +44,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void init(FMLInitializationEvent event) {
         super.init(event);
-        ClientCommandHandler.instance.registerCommand(new CommandAIConfig());
-        ClientCommandHandler.instance.registerCommand(new CommandAssistant());
-        ClientCommandHandler.instance.registerCommand(new CommandTeXTechClient());
+        LoaderCommand.registerClient();
         this.voiceAssistantKeyHandler.register();
         this.keyBindings.register();
         FMLCommonHandler.instance()

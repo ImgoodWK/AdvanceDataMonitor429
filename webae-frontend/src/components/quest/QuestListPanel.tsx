@@ -5,7 +5,7 @@ import { SelectableListRow } from '@/components/common/SelectableListRow';
 import { useI18n } from '@/i18n';
 import type { QuestLineNodeDto } from '@/types/dto';
 import { stripMcFormatting } from '@/utils/mcFormatting';
-import { questStateColor } from '@/components/quest/questUtils';
+import { questIconProps, questStateColor } from '@/components/quest/questUtils';
 
 const { Text } = Typography;
 
@@ -61,11 +61,17 @@ export function QuestListPanel({
                     boxShadow: n.canSubmit ? '0 0 0 2px #fbbf24' : undefined,
                   }}
                 />
-                {n.iconItemId ? (
-                  <Icon item={{ itemId: n.iconItemId, meta: n.iconMeta }} size={28} alt={n.name} />
-                ) : (
-                  <span style={{ width: 28, height: 28, flexShrink: 0 }} />
-                )}
+                {(() => {
+                  const iconProps = questIconProps({
+                    iconItemId: n.iconItemId,
+                    meta: n.iconMeta,
+                  });
+                  return iconProps ? (
+                    <Icon {...iconProps} size={28} alt={n.name} />
+                  ) : (
+                    <span style={{ width: 28, height: 28, flexShrink: 0 }} />
+                  );
+                })()}
               </>
             }
           >

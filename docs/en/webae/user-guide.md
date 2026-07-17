@@ -30,7 +30,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Recipe Search | After OP upload, click **Fetch recipes** to sync into browser IndexedDB; local fuzzy search with merged/compact/detailed layouts |
 | Pattern Manager | View, create, edit, and inject AE2 patterns into ME Interfaces |
 | AE Orders | Pattern/item/**craft tree** single orders with optional CPU selection and real AE2 progress |
-| Network Topology | Logical / spatial / **P2P channel** / **world map** views; abstract tree/star layouts; CSV export |
+| Network Topology | Logical / spatial / **P2P channel** / **world map** views; channel-budget lanes (dense 32→4×smart 8) + role pods; CSV export |
 | Quest Book | BetterQuesting lines/graph/submit assist (requires BQ) |
 | Link Scanner | Browse in-game scanner results, aliases, and coords |
 | Monitor Bindings | Read-only chart slots; per-slot **line preview** Drawer |
@@ -220,7 +220,7 @@ Optional CPU selector at top. **By pattern** tab: paginated Grid + Interface bro
 
 ### Network Topology
 
-Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channels**, and **world map** views. Logical/spatial use abstract tree or double-ring layouts (not real AE routing). The former cable-simulation view is deprecated (`topologySimulatedEnabled`, default off). P2P view lists tunnel endpoints grouped by frequency. CSV export supported.
+Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channels**, and **world map** views. The logical view is a **channel budget planning map** (`ae_budget_v2`): controller → dense trunk 32 → four smart lanes of 8 → role pods (terminals/buses/interfaces/…) → devices; zero-channel storage/CPU hang on the hub orbit. This is not real AE cabling. A double-ring summary mode remains available. The former cable-simulation view is deprecated (`topologySimulatedEnabled`, default off). P2P view lists tunnel endpoints grouped by frequency. CSV export supported.
 
 #### World Map View
 
@@ -250,10 +250,10 @@ Requires the **BetterQuesting** mod. Sidebar **Quest Book** (`?page=quests`) use
 - **Quest detail**: clicking a node opens a **fixed right sidebar** (no extra drawer on desktop). Sections appear in order: **related quests** (prerequisites / unlocks), requirements (from BetterQuesting `tasks`), and reward preview (from `rewards`, one row per item when a reward grants multiple stacks). Clicking a prerequisite or follow-up quest switches quest lines when needed and centers the node; implicit/hidden prerequisites show tags. Rewards must still be claimed in-game. Panel width is configurable in Settings (default 380px).
 - **Refresh**: load once on enter / chapter switch into local cache; **no background polling**. Manual refresh has a **30s cooldown**; progress is force-refreshed before submit actions.
 - **Read-only for guests**: browse lines and party progress; **rewards cannot be claimed on Web** (UNCLAIMED prompts in-game claim).
-- **Web-assisted steps**: item/fluid submit and Retrieval / fluid hold-detect (completed from AE stock; **does not** put items/fluids into the player inventory). Submit and craft-then-submit use an **AE virtual escrow** to lock required stacks before submit/detect; failure or timeout returns them to the network. Click a single step to submit; **Chain submit** walks prerequisites in topological order (configurable). The submit panel shows AE stock vs requirement; **Craftable** appears only when a matching AE pattern exists and the material chain can be satisfied.
-- **Offline**: works when the owner is offline via Token + FakePlayer (progress is written to the **Token owner** questing UUID). Requires a running server and a resolvable AE network (Link / loaded chunks), same as other WebAE AE actions.
-- **Parties**: Web submit **does not** complete teammates' quests—only the Token owner is updated. BQ forces FakePlayer to solo; TeXTech does not wire PartyManager / SyncPartyQuests.
-- **Config**: `[webConsole] questEnabled`, `questSubmitEnabled`, `questChainSubmitEnabled` (default true), `questSubmitMaxStacks`, `questCraftWaitTimeoutMs`, `questEscrowEnabled` (default true), `questEscrowTimeoutMs` (default 120000), `questCacheTtlSec` in `textech.cfg`.
+- **Web-assisted steps**: item/fluid submit and Retrieval / fluid hold-detect (completed from AE stock; **does not** put items/fluids into the player inventory). **Fluid-cell tasks**: DETECT sums free fluid + filled cells (GT/IC2 by default); SUBMIT prefers filled cells, else empty cell + fluid fill (free fluid alone is not enough). True fluid tasks may drain needed mB from cells (remainder returned). Submit and craft-then-submit use **AE virtual escrow** (pre-lock available materials before craft; append-lock when craft products arrive). Click a single step to submit; **Chain submit** walks prerequisites in topological order (configurable). The submit panel shows AE stock vs requirement; **Craftable** appears only when a matching AE pattern exists and the material chain can be satisfied. When `questFluidAllContainersOption=true`, the panel can opt into counting buckets/cans.
+- **Offline**: Token + FakePlayer still works when the owner is offline (progress writes to the **Token owner's** questing UUID); the server must be running and the AE network resolvable (Link / chunks loaded), same as other WebAE AE ops.
+- **Party**: Web submit does **not** sync party members; only the Token owner is updated. BQ forces single-player for FakePlayer; this mod does not wire PartyManager / SyncPartyQuests.
+- **Config**: `[webConsole] questEnabled`, `questSubmitEnabled`, `questChainSubmitEnabled` (default true), `questSubmitMaxStacks`, `questCraftWaitTimeoutMs`, `questEscrowEnabled` (default true), `questEscrowTimeoutMs` (default 120000), `questFluidAllContainersOption` (default false), `questCacheTtlSec` in `textech.cfg`.
 
 ### Monitor Bindings & Preview
 

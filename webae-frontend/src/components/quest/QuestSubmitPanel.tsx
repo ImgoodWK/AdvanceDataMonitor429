@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, message, Modal, Progress, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Checkbox, message, Modal, Progress, Space, Tag, Typography } from 'antd';
 import { getApiClient } from '@/api/client';
 import { Icon } from '@/components/Icon';
+import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import type {
   QuestAnalysisDto,
@@ -98,6 +99,7 @@ export function QuestSubmitPanel({
   onSubmitted,
 }: QuestSubmitPanelProps) {
   const { t } = useI18n();
+  const { serverConfig } = useAppContext();
   const [analysis, setAnalysis] = useState<QuestAnalysisDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [job, setJob] = useState<QuestCraftJobDto | null>(null);
@@ -107,18 +109,25 @@ export function QuestSubmitPanel({
   const [chainPlanOpen, setChainPlanOpen] = useState(false);
   const [chainPlan, setChainPlan] = useState<QuestChainPlanDto | null>(null);
   const [craftConfirmOpen, setCraftConfirmOpen] = useState(false);
+  const [includeAllContainers, setIncludeAllContainers] = useState(false);
+
+  const allContainersOption = serverConfig?.questFluidAllContainersOption === true;
+  const includeFlag = allContainersOption && includeAllContainers;
+
+  const analysisQuery = useCallback(() => {
+    const base = `/api/quests/${questId}/analysis?network=${networkId}`;
+    return includeFlag ? `${base}&includeAllFluidContainers=true` : base;
+  }, [questId, networkId, includeFlag]);
 
   const loadAnalysis = useCallback(async () => {
     try {
       if (onBeforeSubmit) await onBeforeSubmit();
-      const res = await getApiClient().get<{ success: boolean; analysis: QuestAnalysisDto }>(
-        `/api/quests/${questId}/analysis?network=${networkId}`
-      );
+      const res = await getApiClient().get<{ success: boolean; analysis: QuestAnalysisDto }>(analysisQuery());
       setAnalysis(res.analysis ?? null);
     } catch {
       setAnalysis(null);
     }
-  }, [questId, networkId, onBeforeSubmit]);
+  }, [analysisQuery, onBeforeSubmit]);
 
   useEffect(() => {
     void loadAnalysis();
@@ -164,7 +173,7 @@ export function QuestSubmitPanel({
       if (onBeforeSubmit) await onBeforeSubmit();
       const res = await getApiClient().post<{ success: boolean; submit: QuestSubmitResultDto }>(
         `/api/quests/${questId}/submit`,
-        { networkId, dryRun: true }
+        { networkId, dryRun: true, includeAllFluidContainers: includeFlag }
       );
       setDryRunResult(res.submit ?? null);
       setConfirmOpen(true);
@@ -177,7 +186,11 @@ export function QuestSubmitPanel({
     setLoading(true);
     setConfirmOpen(false);
     try {
-      await getApiClient().post(`/api/quests/${questId}/submit`, { networkId, dryRun: false });
+      await getApiClient().post(`/api/quests/${questId}/submit`, {
+        networkId,
+        dryRun: false,
+        includeAllFluidContainers: includeFlag,
+      });
       message.success(t('quest.stepSubmitted'));
       onSubmitted?.();
       await loadAnalysis();
@@ -197,7 +210,7 @@ export function QuestSubmitPanel({
       let ana = analysis;
       if (!ana) {
         const anaRes = await getApiClient().get<{ success: boolean; analysis: QuestAnalysisDto }>(
-          `/api/quests/${questId}/analysis?network=${networkId}`
+          analysisQuery()
         );
         ana = anaRes.analysis ?? null;
         setAnalysis(ana);
@@ -223,7 +236,7 @@ export function QuestSubmitPanel({
       // Proceed with craft
       const res = await getApiClient().post<{ success: boolean; job: QuestCraftJobDto }>(
         `/api/quests/${questId}/submit-craft`,
-        { networkId }
+        { networkId, includeAllFluidContainers: includeFlag }
       );
       setJob(res.job ?? null);
     } catch {
@@ -239,7 +252,7 @@ export function QuestSubmitPanel({
     try {
       const res = await getApiClient().post<{ success: boolean; job: QuestCraftJobDto }>(
         `/api/quests/${questId}/submit-craft`,
-        { networkId }
+        { networkId, includeAllFluidContainers: includeFlag }
       );
       setJob(res.job ?? null);
     } catch {
@@ -254,7 +267,9 @@ export function QuestSubmitPanel({
     try {
       if (onBeforeSubmit) await onBeforeSubmit();
       const res = await getApiClient().get<{ success: boolean; plan: QuestChainPlanDto }>(
-        `/api/quests/${questId}/chain-plan?network=${networkId}`
+        `/api/quests/${questId}/chain-plan?network=${networkId}${
+          includeFlag ? '&includeAllFluidContainers=true' : ''
+        }`
       );
       setChainPlan(res.plan ?? null);
       setChainPlanOpen(true);
@@ -280,7 +295,7 @@ export function QuestSubmitPanel({
       if (onBeforeSubmit) await onBeforeSubmit();
       const res = await getApiClient().post<{ success: boolean; chain: QuestChainSubmitResultDto }>(
         `/api/quests/${questId}/submit-chain`,
-        { networkId, dryRun: false, skipMissing, craftMissing }
+        { networkId, dryRun: false, skipMissing, craftMissing, includeAllFluidContainers: includeFlag }
       );
       const chain = res.chain;
       if (chain?.jobId && !chain.complete) {
@@ -440,6 +455,18 @@ export function QuestSubmitPanel({
           ))}
         </div>
       ) : null}
+      {allContainersOption ? (
+        <Checkbox
+          checked={includeAllContainers}
+          onChange={(e) => setIncludeAllContainers(e.target.checked)}
+          disabled={isBusy}
+        >
+          {t('quest.includeAllFluidContainers')}
+        </Checkbox>
+      ) : null}
+      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+        {t('quest.fluidCellHint')}
+      </Text>
       <Space wrap>
         {canSubmit ? (
           <>
@@ -569,7 +596,7 @@ export function QuestSubmitPanel({
                 marginBottom: 8,
                 padding: 8,
                 borderRadius: 6,
-                border: '1px solid var(--border-color, #334155)',
+                border: '1px solid var(--border, var(--border-color, rgba(128,128,128,0.25)))',
                 borderLeft: `3px solid ${borderColor}`,
                 opacity: s.skipped ? 0.6 : 1,
               }}

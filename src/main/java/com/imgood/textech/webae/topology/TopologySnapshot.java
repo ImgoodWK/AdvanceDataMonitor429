@@ -66,10 +66,11 @@ public final class TopologySnapshot {
                 SimulatedLayoutBuilder.apply(tree, TopologyRules.LAYOUT_TREE);
             }
             LogicalTopologyBuilder.applyChannelTotals(snapshot.meta, tree, probe);
-            snapshot.meta.renderLayout = "tree_branches";
-            snapshot.meta.channelTierHint = "dense_smart_branches";
+            snapshot.meta.renderLayout = "channel_lanes";
+            snapshot.meta.channelTierHint = "dense_32_to_4x_smart_8";
             snapshot.meta.layoutUnitPx = 72;
             snapshot.meta.facilityCount = tree.facilityCount;
+            snapshot.meta.channelModel = TopologyRules.CHANNEL_MODEL_V2;
         }
 
         if ("logical".equals(snapshot.mode)) {
@@ -270,5 +271,21 @@ public final class TopologySnapshot {
         public String renderLayout;
         public String channelTierHint;
         public int layoutUnitPx;
+        /** Channel budget model id, e.g. ae_budget_v2. */
+        public String channelModel = "";
+        /** Per-lane planned channel usage (logical ae_budget_v2). */
+        public List<LaneInfo> lanes = new ArrayList<LaneInfo>();
+        /** Zero-channel orbit device counts by podKind. */
+        public Map<String, Integer> orbitCounts = new HashMap<String, Integer>();
+    }
+
+    /** One smart-lane capacity row for channel-budget meta. */
+    public static final class LaneInfo {
+
+        public int index;
+        public int used;
+        public int max;
+        public boolean overflow;
+        public List<String> primaryPodKinds = new ArrayList<String>();
     }
 }

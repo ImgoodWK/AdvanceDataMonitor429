@@ -40,4 +40,15 @@ public class TopologyRulesTest {
             TopologyRules.SUB_MISC,
             TopologyRules.classifySubtype("appeng.tile.networking.TileCableBus", null));
     }
+
+    @Test
+    public void podKindMapsAccessAndIoAndOrbit() {
+        Assert.assertEquals(TopologyRules.POD_ACCESS, TopologyRules.podKindForSubtype(TopologyRules.SUB_TERMINAL_ME));
+        Assert.assertEquals(TopologyRules.POD_IO, TopologyRules.podKindForSubtype(TopologyRules.SUB_BUS_IMPORT));
+        Assert.assertEquals(TopologyRules.POD_CRAFT, TopologyRules.podKindForSubtype(TopologyRules.SUB_INTERFACE));
+        Assert.assertEquals(TopologyRules.POD_STORAGE0, TopologyRules.podKindForSubtype(TopologyRules.SUB_DRIVE));
+        Assert.assertEquals(0, TopologyRules.preferredLaneForPodKind(TopologyRules.POD_ACCESS));
+        Assert.assertEquals(1, TopologyRules.preferredLaneForPodKind(TopologyRules.POD_CRAFT));
+        Assert.assertEquals(3, TopologyRules.preferredLaneForPodKind(TopologyRules.POD_TUNNEL));
+    }
 }

@@ -362,6 +362,12 @@ public class Config {
     public static boolean webQuestEscrowEnabled = true;
     /** Escrow session timeout in ms before auto-release. Default 120000. */
     public static long webQuestEscrowTimeoutMs = 120_000L;
+    /**
+     * When true, WebAE quest submit UI may opt into counting all FluidContainerRegistry containers
+     * (buckets, cans, …) toward fluid/cell equivalence. When false, only GT/IC2 cells are used.
+     * Default false.
+     */
+    public static boolean webQuestFluidAllContainersOption = false;
     /** Quest definition cache TTL in seconds. Default 300. */
     public static int webQuestCacheTtlSec = 300;
 

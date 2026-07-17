@@ -1173,7 +1173,7 @@ When GUIs modify TileEntities, respect side: client edits UI and sends packets; 
 
 All packets share `TeXTech.ADMCHANEL`, registered in `LoaderNetwork.registerNetWorks()` (postInit).
 
-**Full ID table (0–36) and add-packet checklist**: see [`.cursor/rules/network-packets.mdc`](../../.cursor/rules/network-packets.mdc) (kept in sync with source; next available ID = 37).
+**Full ID table and add-packet checklist**: see [`.cursor/rules/network-packets.mdc`](../../.cursor/rules/network-packets.mdc) (kept in sync with source; next available ID = 50).
 
 Summary:
 

@@ -11,5 +11,10 @@ public class QuestRewardDto {
     public String itemId;
     public String registryName;
     public int meta;
+    /**
+     * Display-only icon cache id (e.g. {@code fluid:lava} for FluidDisplay,
+     * or {@code mod:id:meta} for filled cells — same rules as quest node icons).
+     */
+    public String iconItemId;
     public long amount;
 }

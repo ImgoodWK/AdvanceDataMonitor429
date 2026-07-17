@@ -724,6 +724,11 @@ public final class ConfigWebaeLoader {
             5000,
             600000,
             ConfigDescriptions.get("webConsole", "questEscrowTimeoutMs"));
+        Config.webQuestFluidAllContainersOption = configuration.getBoolean(
+            "questFluidAllContainersOption",
+            "webConsole",
+            Config.webQuestFluidAllContainersOption,
+            ConfigDescriptions.get("webConsole", "questFluidAllContainersOption"));
         Config.webQuestCacheTtlSec = configuration.getInt(
             "questCacheTtlSec",
             "webConsole",

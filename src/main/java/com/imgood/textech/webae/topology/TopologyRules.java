@@ -58,6 +58,34 @@ public final class TopologyRules {
     public static final String SUB_QUANTUM = "quantum";
     public static final String SUB_MISC = "misc";
 
+    // --- role-pod kinds (ae_budget_v2) ---
+    public static final String POD_ACCESS = "access";
+    public static final String POD_IO = "io";
+    public static final String POD_CRAFT = "craft";
+    public static final String POD_SENSE = "sense";
+    public static final String POD_TUNNEL = "tunnel";
+    public static final String POD_STORAGE0 = "storage0";
+    public static final String POD_CRAFT0 = "craft0";
+    public static final String POD_LINK0 = "link0";
+    public static final String POD_POWER0 = "power0";
+    public static final String POD_MISC = "misc";
+
+    // --- channel-lane layers ---
+    public static final String LAYER_HUB = "hub";
+    public static final String LAYER_TRUNK = "trunk";
+    public static final String LAYER_LANE = "lane";
+    public static final String LAYER_POD = "pod";
+    public static final String LAYER_DEVICE = "device";
+    public static final String LAYER_ORBIT = "orbit";
+
+    public static final String EDGE_CAPACITY_TRUNK = "capacity_trunk";
+    public static final String EDGE_CAPACITY_LANE = "capacity_lane";
+    public static final String EDGE_POD_UPLINK = "pod_uplink";
+    public static final String EDGE_DEVICE_LINK = "device_link";
+    public static final String EDGE_ORBIT_LINK = "orbit_link";
+
+    public static final String CHANNEL_MODEL_V2 = "ae_budget_v2";
+
     private static final String[] BRANCH_ORDER = { SUB_CONTROLLER, SUB_ENERGY_CELL, SUB_ENERGY_ACCEPTOR, SUB_DRIVE,
         SUB_CHEST, SUB_IO_PORT, SUB_TERMINAL_ME, SUB_TERMINAL_CRAFTING, SUB_TERMINAL_PATTERN_ENCODING,
         SUB_TERMINAL_PATTERN_ACCESS, SUB_TERMINAL_WIRELESS, SUB_WIRELESS_ACCESS_POINT, SUB_SECURITY_TERMINAL,
@@ -367,6 +395,99 @@ public final class TopologyRules {
 
     public static boolean isEnergySubtype(String subtype) {
         return SUB_ENERGY_CELL.equals(subtype) || SUB_ENERGY_ACCEPTOR.equals(subtype);
+    }
+
+    /**
+     * Maps a fine subtype to a role-pod kind for channel-lane topology grouping.
+     */
+    public static String podKindForSubtype(String subtype) {
+        if (subtype == null || subtype.isEmpty()) {
+            return POD_MISC;
+        }
+        if (isTopTierSubtype(subtype)) {
+            return POD_ACCESS;
+        }
+        if (subtype.startsWith("bus_") || SUB_LEVEL_MAINTAINER.equals(subtype)) {
+            return POD_IO;
+        }
+        if (SUB_INTERFACE.equals(subtype) || SUB_PATTERN_PROVIDER.equals(subtype)) {
+            return POD_CRAFT;
+        }
+        if (subtype.startsWith("monitor_") || subtype.startsWith("emitter_")) {
+            return POD_SENSE;
+        }
+        if (subtype.startsWith("p2p_")) {
+            return POD_TUNNEL;
+        }
+        if (SUB_DRIVE.equals(subtype) || SUB_CHEST.equals(subtype) || SUB_IO_PORT.equals(subtype)) {
+            return POD_STORAGE0;
+        }
+        if (SUB_CPU.equals(subtype)) {
+            return POD_CRAFT0;
+        }
+        if (SUB_QUANTUM.equals(subtype)) {
+            return POD_LINK0;
+        }
+        if (isEnergySubtype(subtype)) {
+            return POD_POWER0;
+        }
+        return POD_MISC;
+    }
+
+    /**
+     * Preferred smart-lane index for a channel-consuming pod kind (Phase C allocator hint).
+     * Access→0, I/O→0, Craft→1, Sense→2, Tunnel→3, Misc→0.
+     */
+    public static int preferredLaneForPodKind(String podKind) {
+        if (POD_ACCESS.equals(podKind) || POD_IO.equals(podKind)) {
+            return 0;
+        }
+        if (POD_CRAFT.equals(podKind)) {
+            return 1;
+        }
+        if (POD_SENSE.equals(podKind)) {
+            return 2;
+        }
+        if (POD_TUNNEL.equals(podKind)) {
+            return 3;
+        }
+        return 0;
+    }
+
+    public static String displayNameForPodKind(String podKind) {
+        if (POD_ACCESS.equals(podKind)) {
+            return "Access";
+        }
+        if (POD_IO.equals(podKind)) {
+            return "I/O Buses";
+        }
+        if (POD_CRAFT.equals(podKind)) {
+            return "Craft / Interface";
+        }
+        if (POD_SENSE.equals(podKind)) {
+            return "Monitors / Emitters";
+        }
+        if (POD_TUNNEL.equals(podKind)) {
+            return "P2P Tunnels";
+        }
+        if (POD_STORAGE0.equals(podKind)) {
+            return "Storage (0ch)";
+        }
+        if (POD_CRAFT0.equals(podKind)) {
+            return "Crafting CPU (0ch)";
+        }
+        if (POD_LINK0.equals(podKind)) {
+            return "Quantum (0ch)";
+        }
+        if (POD_POWER0.equals(podKind)) {
+            return "Power (0ch)";
+        }
+        return "Other";
+    }
+
+    public static boolean isOrbitPodKind(String podKind) {
+        return POD_STORAGE0.equals(podKind) || POD_CRAFT0.equals(podKind) || POD_LINK0.equals(podKind)
+            || POD_POWER0.equals(podKind);
     }
 
     public static String displayNameFor(TopologyNodeType type) {
