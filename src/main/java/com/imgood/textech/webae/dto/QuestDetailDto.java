@@ -13,6 +13,13 @@ public class QuestDetailDto {
     public boolean canSubmit;
     public boolean canClaim;
     public boolean hasClaimed;
+    /**
+     * True when WebAE can claim this quest into AE after any choice selections
+     * (all rewards are deterministic item/choice factories and state is UNCLAIMED).
+     */
+    public boolean webClaimable;
+    /** Empty when {@link #webClaimable}; otherwise a stable reason code for the UI. */
+    public String claimBlockReason = "";
     public boolean mainQuest;
     public boolean silent;
     public boolean repeatable;

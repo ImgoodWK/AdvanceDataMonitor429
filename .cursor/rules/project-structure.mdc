@@ -39,10 +39,12 @@ alwaysApply: true
 | `client/` | 30 | 客户端事件/缓存/世界地图采集等 |
 | `command/` | 6 | `/textech <域>` 分发；旧 `/adm*` 兼容别名 |
 | `utils/` | 14 | 工具 |
-| `webae/` | 292+ | Web 控制台（前端：`webae-frontend/` → build 到 `assets/textech/webae/`） |
+| `webae/` | 294+ | Web 控制台（前端：`webae-frontend/` → build 到 `assets/textech/webae/`） |
 | `mixin/` | 7 | 客户端 Mixin |
 
 资源：`assets/textech/`（lang 双语、`manual/`、textures、voice 等）。
+
+WebAE 仪表盘组件设置改动需联查 `EditWidgetModal.tsx`、`WidgetPinEditor.tsx`、`utils/dashboardColumns.ts` 与所有渲染入口（主 `Dashboard.tsx`、共享 `WidgetContent.tsx`、专用表组件）。数据表 `columns` 约定：`undefined`=默认列，空数组=明确隐藏全部列；禁止用 `columns?.length` 回退默认值。新增列或钉选行为须同步中英文 i18n、用户/开发文档及回归测试。
 
 ## 同步维护
 

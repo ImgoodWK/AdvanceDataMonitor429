@@ -1,9 +1,9 @@
 # TeXTech 文档维护地图
 
-> 受众：贡献者 / Cursor Agent · 最后同步：2026-07  
+> 受众：贡献者 / Codex / Cursor Agent · 最后同步：2026-07  
 > English: [documentation-map.md](../../en/developer/documentation-map.md)
 
-当你修改某类功能时，按本表更新对应文档与规则，避免三套体系（`docs/`、游戏内 `manual/`、`.cursor/rules/`）脱节。
+当你修改某类功能时，按本表更新对应文档与规则，避免四套体系（`AGENTS.md`、`docs/`、游戏内 `manual/`、`.cursor/rules/`）脱节。
 
 ---
 
@@ -11,7 +11,7 @@
 
 | 层级 | 路径 | 角色 |
 |------|------|------|
-| L0 机器可读 | `ConfigDescriptions.java`、`LoaderNetwork.java`、`.cursor/rules/*.mdc` | Agent / CI 单一事实源 |
+| L0 机器可读 | `AGENTS.md`、`ConfigDescriptions.java`、`LoaderNetwork.java`、`.cursor/rules/*.mdc` | Codex / Cursor / CI 单一事实源 |
 | L1 开发者规格 | `docs/zh/developer/`、`docs/zh/webae/开发者手册.md`、`docs/zh/ai-assistant/` | 贡献者详细设计 |
 | L2 玩家/服管 | `docs/zh/player/`、`docs/zh/webae/用户手册.md`、`assets/textech/manual/` | 教程与操作说明 |
 | L3 愿景/设计 | `docs/zh/design/` | **非实现规格**，不参与 CI 校验 |
@@ -69,4 +69,5 @@ python tools/doc-check/doc-consistency-check.py
 
 - [docs/zh/README.md](../README.md) — 中文文档树  
 - [docs/README.md](../../README.md) — 双语总索引  
-- [docs-sync.mdc](../../../.cursor/rules/docs-sync.mdc) — Agent 同步规则  
+- [AGENTS.md](../../../AGENTS.md) — Codex 项目入口
+- [docs-sync.mdc](../../../.cursor/rules/docs-sync.mdc) — Codex / Cursor 共享同步规则  

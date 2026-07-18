@@ -50,6 +50,8 @@ export function TopBar({ pages, activePage, setActivePage, topnavMode }: TopBarP
     applyPreset,
     savePreset,
     serverConfig,
+    isAdmin,
+    isOnlineOp,
     notify,
   } = useAppContext();
   const { t } = useI18n();
@@ -88,9 +90,15 @@ export function TopBar({ pages, activePage, setActivePage, topnavMode }: TopBarP
   };
 
   // In topnav mode, show horizontal page navigation
-  const navButtons = topnavMode && pages ? (
+  const visiblePages = pages?.filter((item) => {
+    if (item.id === 'admin') return isAdmin || isOnlineOp;
+    if (item.id === 'spark') return !!serverConfig?.sparkEnabled;
+    return true;
+  });
+
+  const navButtons = topnavMode && visiblePages ? (
     <Space size="small" wrap>
-      {pages.map((item) => (
+      {visiblePages.map((item) => (
         <Button
           key={item.id}
           type={activePage === item.id ? 'primary' : 'text'}

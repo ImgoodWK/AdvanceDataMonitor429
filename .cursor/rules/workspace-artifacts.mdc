@@ -3,11 +3,28 @@ description: Agent 与开发临时产物统一存放规则
 alwaysApply: true
 ---
 
-# 工作区临时产物（`.workspace/`）
+# 工作区临时产物（`.workspace/` + `D:\dev-agent-cache`）
 
-## 统一目录
+## 双目录约定
 
-所有 **Agent 临时文件、反编译产物、从其他模组/仓库拉取的参考代码、工具脚本缓存、本地测试编译输出** 等，**必须**放在项目根目录下的 `.workspace/` 中。
+| 路径 | 用途 |
+|------|------|
+| **项目内** `.workspace/` | 仅与**本仓库**强相关的临时产物（反编译本仓库依赖、本项目本地测试桩、本仓库对照资源） |
+| **D 盘** `D:\dev-agent-cache\` | **非本项目** / 可跨仓库复用的 Agent 与工具产物，避免占满 C 盘 |
+
+`D:\dev-agent-cache` 已在用户级 `~\.cursor\sandbox.json` 的 `additionalReadwritePaths` 中放行。
+
+### `D:\dev-agent-cache` 子目录
+
+| 子目录 | 用途 |
+|--------|------|
+| `external/` | 从其他仓库 clone 的参考代码、跨项目反编译片段、一次性外部对照文件 |
+| `gradle/` | `GRADLE_USER_HOME`（IDEA / Agent / CLI 共用；用户环境变量已指向此处） |
+| `tmp/` | Agent 会话临时文件（优先于此，不要写到 `C:\Users\...\AppData\Local\Temp`） |
+
+## 项目内 `.workspace/`（本仓库专用）
+
+所有 **与本仓库直接相关** 的 Agent 临时文件、反编译产物、工具脚本缓存、本地测试编译输出等，放在项目根目录下的 `.workspace/` 中。
 
 **禁止**放在：
 - 项目根目录（除本规则允许的 Gradle/模组标准结构外）
@@ -16,30 +33,33 @@ alwaysApply: true
 
 该目录已加入 `.gitignore`，**不得提交到 Git**。
 
-## 推荐子目录结构
+### 推荐子目录结构
 
 | 子目录 | 用途 |
 |--------|------|
-| `decompiled/` | 从 jar 反编译得到的 `.class` 或零散字节码（按模组分包，如 `appeng/`、`com/`） |
-| `ae2_decomp/`、`ae2_sources/` | AE2 等外部模组参考源码/反编译片段 |
-| `external-snippets/` | 从其他仓库复制的 Java 片段（可选；已有 `appeng/`、`com/` 等顶层子目录时可沿用） |
+| `decompiled/` | 从本仓库 `libs/` jar 反编译得到的 `.class` 或零散字节码 |
+| `ae2_decomp/`、`ae2_sources/` | AE2 等本项目依赖的参考源码/反编译片段 |
+| `external-snippets/` | 仅当片段明确服务本仓库且体积较小时；**跨项目复用优先** `D:\dev-agent-cache\external\` |
 | `assistant-parser-suite/` | 本地解析器/测试桩与编译 class |
-| `agent-cache/` | Blowdryer 缓存、IBM attach、hsperfdata 等工具运行时产物 |
-| `assets/` | 临时拉取的外部 lang/资源，用于对照 |
+| `agent-cache/` | 本仓库工具运行时产物 |
+| `assets/` | 临时拉取的外部 lang/资源，用于本仓库对照 |
 | 根级 `.py` / `.java` / 预览 PNG | 一次性生成脚本与中间图，用完可删 |
-
-命名新子目录时保持**简短、按来源或用途分组**，避免在 `.workspace/` 外再建平行目录。
 
 ## Agent 执行要求
 
 Shell / 网络 / Git 权限默认策略见 **`agent-execution-permissions.mdc`**。
 
-1. 需要反编译、解压 jar、下载参考文件时，输出路径一律在 `.workspace/` 下。
+1. 需要反编译、解压 jar、下载参考文件时：
+   - **本仓库依赖** → `.workspace/` 下对应子目录
+   - **非本项目 / 跨仓库参考 clone** → `D:\dev-agent-cache\external\<repo-or-topic>\`
 2. 若发现根目录或 `src/` 下已有误放的 `.class`、`.zip` 备份、临时 Java/Python，**移入** `.workspace/` 对应子目录，不要留在原处。
 3. 不要修改 `.workspace/` 内已有内容的语义结构，除非用户明确要求整理。
 4. 查阅外部模组类时：优先 `libs/` jar → 反编译结果写入 `.workspace/decompiled/` 或 `ae2_sources/`，见 `external-deps-jars.mdc`。
+5. **Gradle**：使用用户环境变量 `GRADLE_USER_HOME=D:\dev-agent-cache\gradle`。Agent 跑 `gradlew` 时若沙箱把缓存指到 C 盘 Temp，应显式设置该环境变量，或带 `["all"]` 以使用真实用户 Gradle Home。
+6. **禁止**把 Agent 大体积产物写到 `C:\Users\...` 下（含默认 Temp）；临时文件优先 `D:\dev-agent-cache\tmp`。
 
 ## 与 Git 的关系
 
 - `.workspace/` 与旧名 `.tmp/` 均在 `.gitignore` 中；推送前无需也不应 `git add` 该目录。
+- `D:\dev-agent-cache` **不在本仓库内**，永不提交。
 - 若历史上误将 zip、class 等加入暂存区，使用 `git rm --cached` 移除追踪，文件保留在 `.workspace/` 即可。

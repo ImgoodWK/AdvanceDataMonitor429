@@ -12,6 +12,11 @@ import {
   applyChildNodePositions,
   widgetLayoutSignature,
 } from '@/utils/dashboardTree';
+import {
+  GRID_DRAG_CANCEL_SELECTOR,
+  GRID_EDIT_NO_DRAG_CLASS,
+  stopGridDragPointer,
+} from '@/utils/gridStackEditGuard';
 import { useI18n } from '@/i18n';
 
 const { Text } = Typography;
@@ -73,24 +78,27 @@ export function GroupWidget({
         animate: true,
         sizeToContent: false,
         acceptWidgets: false,
+        draggable: { cancel: GRID_DRAG_CANCEL_SELECTOR },
       },
       gridRef.current
     );
     gridInstanceRef.current = grid;
     grid.float(false);
 
-    const onChange = () => {
+    const commitChildren = () => {
       const nodes = grid.engine.nodes;
       if (!nodes.length) return;
       onChildrenChangeRef.current(applyChildNodePositions(childrenRef.current, nodes));
     };
-    grid.on('change', onChange);
-    grid.on('dragstop', flushLayoutSave);
-    grid.on('resizestop', flushLayoutSave);
+    const onDragOrResizeStop = () => {
+      commitChildren();
+      flushLayoutSave();
+    };
+    grid.on('dragstop', onDragOrResizeStop);
+    grid.on('resizestop', onDragOrResizeStop);
 
     return () => {
       flushLayoutSave();
-      grid.off('change');
       grid.off('dragstop');
       grid.off('resizestop');
       grid.destroy(false);
@@ -101,12 +109,16 @@ export function GroupWidget({
 
   return (
     <div className="widget-group">
-      <div className="widget-group-header">
+      <div
+        className={`widget-group-header ${GRID_EDIT_NO_DRAG_CLASS}`}
+        onMouseDown={stopGridDragPointer}
+        onPointerDown={stopGridDragPointer}
+      >
         <Text strong className="widget-group-title">
           {title}
         </Text>
         {editMode && (
-          <div className="widget-group-header-actions">
+          <div className={`widget-group-header-actions ${GRID_EDIT_NO_DRAG_CLASS}`}>
             <Tooltip title={t('addWidgetToGroup')}>
               <Button size="small" icon={<PlusOutlined />} onClick={onAddChild} aria-label={t('addWidgetToGroup')} />
             </Tooltip>
@@ -139,7 +151,12 @@ export function GroupWidget({
               lastUpdateTime={lastUpdateTime}
               editOverlay={
                 editMode ? (
-                  <div className="dashboard-grid-edit-actions" style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}>
+                  <div
+                    className={`dashboard-grid-edit-actions ${GRID_EDIT_NO_DRAG_CLASS}`}
+                    style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}
+                    onMouseDown={stopGridDragPointer}
+                    onPointerDown={stopGridDragPointer}
+                  >
                     <Tooltip title={t('editWidget')}>
                       <Button
                         size="small"

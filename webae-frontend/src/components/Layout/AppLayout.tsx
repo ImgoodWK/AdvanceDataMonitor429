@@ -24,6 +24,7 @@ import { PlannerPage } from '@/pages/Planner';
 import { QuestBookPage } from '@/pages/QuestBook';
 import { AssistantPage } from '@/pages/Assistant';
 import { AlertsHistoryPage } from '@/pages/AlertsHistory';
+import { SparkPage } from '@/pages/Spark';
 import { AdminPage } from '@/pages/Admin';
 import { PageStaleBanner } from '@/components/Layout/PageStaleBanner';
 import { CommandPalette, useCommandPaletteShortcut } from '@/components/CommandPalette';
@@ -123,9 +124,10 @@ function BottomNav({
   className?: string;
 }) {
   const { t } = useI18n();
-  const { isAdmin, isOnlineOp } = useAppContext();
+  const { isAdmin, isOnlineOp, serverConfig } = useAppContext();
   const visible = NAV_PAGES.filter((item) => {
     if (item.id === 'admin') return isAdmin || isOnlineOp;
+    if (item.id === 'spark') return !!serverConfig?.sparkEnabled;
     return true;
   });
 
@@ -242,6 +244,8 @@ export function AppLayout() {
         return <AssistantPage />;
       case 'alertshistory':
         return <AlertsHistoryPage />;
+      case 'spark':
+        return <SparkPage />;
       case 'admin':
         return <AdminPage />;
       case 'settings':

@@ -1,6 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Alert, Button, Divider, Empty, message, Space, Spin, Tag, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Divider,
+  Empty,
+  Modal,
+  Radio,
+  Space,
+  Spin,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 
 import { getApiClient } from '@/api/client';
@@ -12,7 +24,12 @@ import { QuestTaskRow } from '@/components/quest/QuestTaskRow';
 import { questIconProps } from '@/components/quest/questUtils';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
-import type { QuestDetailDto, QuestProgressEntryDto } from '@/types/dto';
+import type {
+  QuestClaimResultDto,
+  QuestDetailDto,
+  QuestProgressEntryDto,
+  QuestRewardDto,
+} from '@/types/dto';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -29,8 +46,86 @@ export interface QuestDetailPanelProps {
   onSubmitted?: () => void;
 }
 
-function rewardLabel(r: QuestDetailDto['rewards'][number]): string {
+function rewardLabel(r: QuestRewardDto): string {
   return r.name || r.description || r.registryName || r.factoryId || `#${r.index + 1}`;
+}
+
+type RewardGroup =
+  | { type: 'item'; rewardId: string; rows: QuestRewardDto[] }
+  | { type: 'choice'; rewardId: string; rows: QuestRewardDto[]; title: string }
+  | { type: 'unsupported'; rewardId: string; rows: QuestRewardDto[] };
+
+function groupRewards(rewards: QuestRewardDto[] | undefined): RewardGroup[] {
+  if (!rewards?.length) return [];
+  const groups: RewardGroup[] = [];
+  const indexById = new Map<string, number>();
+
+  for (const row of rewards) {
+    const id = row.rewardId || `idx-${row.index}`;
+    const existing = indexById.get(id);
+    if (existing != null) {
+      groups[existing]!.rows.push(row);
+      continue;
+    }
+    indexById.set(id, groups.length);
+    if (row.choiceOption || row.kind === 'choice') {
+      groups.push({
+        type: 'choice',
+        rewardId: id,
+        rows: [row],
+        title: row.description || row.factoryId || id,
+      });
+    } else if (row.kind === 'unsupported' || row.webClaimable === false) {
+      groups.push({ type: 'unsupported', rewardId: id, rows: [row] });
+    } else {
+      groups.push({ type: 'item', rewardId: id, rows: [row] });
+    }
+  }
+  return groups;
+}
+
+function RewardRow({ reward }: { reward: QuestRewardDto }) {
+  const rewardIcon = questIconProps({
+    iconItemId: reward.iconItemId,
+    itemId: reward.itemId,
+    registryName: reward.registryName,
+    meta: reward.meta,
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      {rewardIcon ? (
+        <Icon {...rewardIcon} size={36} />
+      ) : (
+        <span
+          style={{
+            width: 36,
+            height: 36,
+            flexShrink: 0,
+            borderRadius: 6,
+            background: 'rgba(148,163,184,0.15)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 10,
+            color: 'var(--text-secondary, #94a3b8)',
+          }}
+        >
+          {reward.factoryId ? reward.factoryId.slice(0, 3) : '?'}
+        </span>
+      )}
+      <div style={{ minWidth: 0 }}>
+        <Text>
+          <McFormattedText text={rewardLabel(reward)} />
+          {reward.amount != null ? ` x${reward.amount}` : ''}
+        </Text>
+        {reward.description && reward.description !== reward.name ? (
+          <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+            <McFormattedText text={reward.description} />
+          </Text>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 export function QuestDetailPanel({
@@ -51,6 +146,8 @@ export function QuestDetailPanel({
   const [detail, setDetail] = useState<QuestDetailDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [stepBusy, setStepBusy] = useState<number | null>(null);
+  const [choiceSelections, setChoiceSelections] = useState<Record<string, number>>({});
+  const [claimBusy, setClaimBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!questId) return;
@@ -61,6 +158,7 @@ export function QuestDetailPanel({
         `/api/quests/${questId}`
       );
       setDetail(res.quest ?? null);
+      setChoiceSelections({});
       if (!res.quest) {
         setLoadError(t('quest.notFound'));
       }
@@ -77,11 +175,13 @@ export function QuestDetailPanel({
       setDetail(null);
       setLoadError(null);
       setLoading(false);
+      setChoiceSelections({});
       return;
     }
     setDetail(null);
     setLoadError(null);
     setLoading(true);
+    setChoiceSelections({});
     void load();
   }, [questId, load]);
 
@@ -102,6 +202,23 @@ export function QuestDetailPanel({
     detail != null &&
     detail.state !== 'COMPLETED' &&
     detail.state !== 'UNCLAIMED';
+
+  const rewardGroups = useMemo(() => groupRewards(detail?.rewards), [detail?.rewards]);
+
+  const choiceGroups = useMemo(
+    () => rewardGroups.filter((g): g is Extract<RewardGroup, { type: 'choice' }> => g.type === 'choice'),
+    [rewardGroups]
+  );
+
+  const choicesComplete = choiceGroups.every((g) => choiceSelections[g.rewardId] != null);
+
+  const canClaimWeb =
+    serverConfig?.questClaimEnabled !== false &&
+    tokenType !== 'guest' &&
+    !!detail?.webClaimable &&
+    (detail.state === 'UNCLAIMED' || !!detail.canClaim);
+
+  const claimBlockedReason = detail?.claimBlockReason;
 
   const submitStep = async (index: number, webAction: string) => {
     if (!questId) return;
@@ -131,6 +248,81 @@ export function QuestDetailPanel({
     } finally {
       setStepBusy(null);
     }
+  };
+
+  const claimErrorMessage = (code?: string, fallback?: string) => {
+    switch (code) {
+      case 'ae_full':
+        return t('quest.claimError.aeFull');
+      case 'inventory_full':
+        return t('quest.claimError.inventoryFull');
+      case 'choice_required':
+        return t('quest.claimError.choiceRequired');
+      case 'non_item_reward':
+        return t('quest.claimError.nonItem');
+      case 'claim_disabled':
+        return t('quest.claimError.disabled');
+      case 'no_network':
+      case 'no_storage':
+        return t('quest.claimError.noNetwork');
+      case 'not_unclaimed':
+        return t('quest.claimError.notUnclaimed');
+      case 'guest_readonly':
+        return t('quest.claimError.guest');
+      default:
+        return fallback || t('quest.claimFailed');
+    }
+  };
+
+  const doClaim = async () => {
+    if (!questId || !canClaimWeb) return;
+    if (!choicesComplete) {
+      message.warning(t('quest.claimError.choiceRequired'));
+      return;
+    }
+    const networkId = selectedNetworks[0] ?? 0;
+    setClaimBusy(true);
+    try {
+      if (onBeforeSubmit) await onBeforeSubmit();
+      const res = await getApiClient().post<{ success: boolean; claim: QuestClaimResultDto }>(
+        `/api/quests/${questId}/claim`,
+        {
+          networkId,
+          choices: choiceSelections,
+        }
+      );
+      const claim = res.claim;
+      if (!claim?.success) {
+        message.error(claimErrorMessage(claim?.code, claim?.message));
+        return;
+      }
+      if (claim.code === 'partial_ae') {
+        message.warning(t('quest.claimPartialAe'));
+      } else {
+        message.success(t('quest.claimSuccess'));
+      }
+      await load();
+      onSubmitted?.();
+    } catch (err) {
+      message.error(
+        t('quest.claimFailedDetail', {
+          reason: err instanceof Error ? err.message : String(err),
+        })
+      );
+    } finally {
+      setClaimBusy(false);
+    }
+  };
+
+  const confirmClaim = () => {
+    const networkId = selectedNetworks[0] ?? 0;
+    Modal.confirm({
+      title: t('quest.confirmClaimTitle'),
+      content: t('quest.confirmClaimBody', { network: String(networkId) }),
+      okText: t('quest.claimToAe'),
+      cancelText: t('quest.cancel'),
+      onOk: () => doClaim(),
+    });
   };
 
   const prerequisites =
@@ -166,6 +358,7 @@ export function QuestDetailPanel({
           <Tag color="blue">{detail.state}</Tag>
           {detail.mainQuest ? <Tag color="gold">{t('quest.main')}</Tag> : null}
           {detail.canSubmit ? <Tag color="gold">{t('quest.canSubmit')}</Tag> : null}
+          {detail.webClaimable ? <Tag color="green">{t('quest.canClaimWeb')}</Tag> : null}
         </div>
       </Space>
 
@@ -173,8 +366,24 @@ export function QuestDetailPanel({
         <McFormattedText text={detail.description || ''} preWrap />
       </Paragraph>
 
-      {detail.state === 'UNCLAIMED' ? (
-        <Alert type="info" showIcon message={t('quest.claimInGame')} />
+      {detail.state === 'UNCLAIMED' && !canClaimWeb ? (
+        <Alert
+          type="info"
+          showIcon
+          message={
+            claimBlockedReason === 'non_item_reward'
+              ? t('quest.claimInGameNonItem')
+              : t('quest.claimInGame')
+          }
+        />
+      ) : null}
+
+      {canClaimWeb ? (
+        <Alert
+          type="success"
+          showIcon
+          message={t('quest.claimToAeHint', { network: String(selectedNetworks[0] ?? 0) })}
+        />
       ) : null}
 
       <Divider style={{ margin: '8px 0' }} />
@@ -225,57 +434,79 @@ export function QuestDetailPanel({
       <Title level={5} style={{ margin: 0 }}>
         {t('quest.rewardsSection')}
       </Title>
-      {detail.rewards?.length ? (
+      {rewardGroups.length ? (
         <div>
-          {detail.rewards.map((r) => {
-            const rewardIcon = questIconProps({
-              iconItemId: r.iconItemId,
-              itemId: r.itemId,
-              registryName: r.registryName,
-              meta: r.meta,
-            });
+          {rewardGroups.map((group) => {
+            if (group.type === 'choice') {
+              return (
+                <div key={`choice-${group.rewardId}`} style={{ marginBottom: 14 }}>
+                  <Text strong style={{ display: 'block', marginBottom: 6 }}>
+                    {t('quest.choiceReward')}
+                  </Text>
+                  <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 8 }}>
+                    {t('quest.choiceRewardHint')}
+                  </Text>
+                  <Radio.Group
+                    value={choiceSelections[group.rewardId]}
+                    onChange={(e) =>
+                      setChoiceSelections((prev) => ({
+                        ...prev,
+                        [group.rewardId]: e.target.value as number,
+                      }))
+                    }
+                    style={{ width: '100%' }}
+                  >
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      {group.rows.map((row) => (
+                        <Radio key={`${group.rewardId}-${row.choiceIndex}`} value={row.choiceIndex}>
+                          <RewardRow reward={row} />
+                        </Radio>
+                      ))}
+                    </Space>
+                  </Radio.Group>
+                </div>
+              );
+            }
             return (
-            <div
-              key={r.rewardId ?? r.index}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}
-            >
-              {rewardIcon ? (
-                <Icon {...rewardIcon} size={36} />
-              ) : (
-                <span
-                  style={{
-                    width: 36,
-                    height: 36,
-                    flexShrink: 0,
-                    borderRadius: 6,
-                    background: 'rgba(148,163,184,0.15)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 10,
-                    color: 'var(--text-secondary, #94a3b8)',
-                  }}
-                >
-                  {r.factoryId ? r.factoryId.slice(0, 3) : '?'}
-                </span>
-              )}
-              <div style={{ minWidth: 0 }}>
-                <Text>
-                  <McFormattedText text={rewardLabel(r)} />
-                  {r.amount != null ? ` x${r.amount}` : ''}
-                </Text>
-                {r.description && r.description !== r.name ? (
-                  <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
-                    <McFormattedText text={r.description} />
+              <div key={`${group.type}-${group.rewardId}`} style={{ marginBottom: 8 }}>
+                {group.type === 'unsupported' ? (
+                  <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>
+                    {t('quest.rewardInGameOnly')}
                   </Text>
                 ) : null}
+                {group.rows.map((row) => (
+                  <RewardRow key={row.index} reward={row} />
+                ))}
               </div>
-            </div>
             );
           })}
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {t('quest.claimInGame')}
-          </Text>
+
+          {canClaimWeb ? (
+            <Space direction="vertical" style={{ width: '100%', marginTop: 8 }}>
+              {!choicesComplete ? (
+                <Text type="warning" style={{ fontSize: 12 }}>
+                  {t('quest.claimSelectChoices')}
+                </Text>
+              ) : null}
+              <Button
+                type="primary"
+                block
+                loading={claimBusy}
+                disabled={!choicesComplete || claimBusy}
+                onClick={confirmClaim}
+              >
+                {t('quest.claimToAe')}
+              </Button>
+            </Space>
+          ) : (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {detail.state === 'UNCLAIMED'
+                ? claimBlockedReason === 'non_item_reward'
+                  ? t('quest.claimInGameNonItem')
+                  : t('quest.claimInGame')
+                : null}
+            </Text>
+          )}
         </div>
       ) : (
         <Empty description={t('quest.noRewards')} image={Empty.PRESENTED_IMAGE_SIMPLE} />

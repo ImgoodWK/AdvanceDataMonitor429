@@ -11,6 +11,8 @@ import {
   AlignLeftOutlined,
   ControlOutlined,
   DeleteFilled,
+  UndoOutlined,
+  RedoOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -20,6 +22,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useServerHealth } from '@/hooks/useServerHealth';
 import { useNetworkMetrics } from '@/hooks/useNetworkMetrics';
 import { useDebouncedLocalStorageSaver } from '@/hooks/useDebouncedLocalStorageSaver';
+import { useEditorHistory, useUndoRedoHotkeys } from '@/hooks/useEditorHistory';
 import { useDashboardPinMetrics, lookupPinSeries } from '@/hooks/useDashboardPinMetrics';
 import { useNetworkBalance } from '@/hooks/useNetworkBalance';
 import { useDashboardAlerts } from '@/hooks/useDashboardAlerts';
@@ -73,6 +76,12 @@ import {
   TextNoteWidget,
 } from '@/components/dashboard/SpecialWidgets';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
+import { createWidgetId } from '@/utils/widgetId';
+import {
+  GRID_DRAG_CANCEL_SELECTOR,
+  GRID_EDIT_NO_DRAG_CLASS,
+  stopGridDragPointer,
+} from '@/utils/gridStackEditGuard';
 import {
   buildNetworkCompareRows,
   getGtMachinesForTable,
@@ -85,7 +94,6 @@ import {
   renderCategoricalPieChart,
   renderNetworkCompareChart,
 } from '@/components/dashboard/WidgetContent';
-
 const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
   'statCard', 'progressBar', 'lineChart', 'barChart', 'pieChart',
   'dataTable', 'gauge', 'radarChart',
@@ -124,7 +132,14 @@ export function Dashboard() {
   const serverHealth = useServerHealth();
   const networkMetrics = useNetworkMetrics();
   const [editMode, setEditMode] = useState(false);
-  const [settings, setSettings] = useState<DashboardSettings>(loadDashboardSettings);
+  const {
+    present: settings,
+    commit: commitSettings,
+    undo: undoSettings,
+    redo: redoSettings,
+    canUndo,
+    canRedo,
+  } = useEditorHistory<DashboardSettings>(loadDashboardSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addWidgetOpen, setAddWidgetOpen] = useState(false);
   /** When set, new widgets are inserted into this group instead of the root grid. */
@@ -144,12 +159,10 @@ export function Dashboard() {
   // GridStack 实例与 DOM 引用（提前声明以便 handleAutoArrange 等回调引用）
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
-  const { schedule: scheduleLayoutSave, flush: flushLayoutSave } =
+  const { schedule: scheduleLayoutSave, flush: flushLayoutSave, cancel: cancelLayoutSave } =
     useDebouncedLocalStorageSaver<DashboardSettings>(DASHBOARD_CONFIG_KEY);
 
-  // Save dashboard config to localStorage
-  const saveSettings = useCallback((s: DashboardSettings) => {
-    setSettings(s);
+  const persistSettings = useCallback((s: DashboardSettings) => {
     try {
       localStorage.setItem(DASHBOARD_CONFIG_KEY, JSON.stringify(s));
     } catch {
@@ -157,11 +170,41 @@ export function Dashboard() {
     }
   }, []);
 
+  /** Immediate save with functional updater; cancels pending debounced layout writes. */
+  const saveSettings = useCallback(
+    (s: DashboardSettings | ((prev: DashboardSettings) => DashboardSettings)) => {
+      cancelLayoutSave();
+      commitSettings((prev) => {
+        const next = typeof s === 'function' ? s(prev) : s;
+        persistSettings(next);
+        return next;
+      });
+    },
+    [cancelLayoutSave, commitSettings, persistSettings]
+  );
+
+  const handleUndo = useCallback(() => {
+    const restored = undoSettings();
+    if (!restored) return;
+    cancelLayoutSave();
+    persistSettings(restored);
+  }, [undoSettings, cancelLayoutSave, persistSettings]);
+
+  const handleRedo = useCallback(() => {
+    const restored = redoSettings();
+    if (!restored) return;
+    cancelLayoutSave();
+    persistSettings(restored);
+  }, [redoSettings, cancelLayoutSave, persistSettings]);
+
+  useUndoRedoHotkeys(handleUndo, handleRedo, editMode);
+
   const currentNet = selectedNetworks[0] ?? 0;
   const storage = storageMap[currentNet];
   const power = powerMap[currentNet];
   const gt = gtMap[currentNet];
-  const widgets = settings.widgets.length > 0 ? settings.widgets : DEFAULT_DASHBOARD_WIDGETS;
+  // Do not fall back to defaults when the user cleared the layout (empty array).
+  const widgets = settings.widgets;
   const pinMetrics = useDashboardPinMetrics(currentNet, widgets, 10_000);
   const { suggestions: balanceSuggestions } = useNetworkBalance(
     selectedNetworks,
@@ -620,8 +663,8 @@ export function Dashboard() {
                         background: i % 2 === 1 ? rowAltBg : undefined,
                       }}
                     >
-                      {(!cols.length || cols.includes('icon')) && row.iconItem && <Icon item={row.iconItem} size={20} />}
-                      {(!cols.length || cols.includes('name')) && (
+                      {cols.includes('icon') && row.iconItem && <Icon item={row.iconItem} size={20} />}
+                      {cols.includes('name') && (
                         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {row.label}
                         </span>
@@ -629,7 +672,7 @@ export function Dashboard() {
                       {cols.includes('kind') && (
                         <Tag style={{ margin: 0, fontSize: '0.65rem' }}>{row.pin.kind}</Tag>
                       )}
-                      {(!cols.length || cols.includes('amount')) && (
+                      {cols.includes('amount') && (
                         <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>
                       )}
                     </div>
@@ -663,11 +706,16 @@ export function Dashboard() {
                       background: 'var(--accent-dim, rgba(64,158,255,0.12))',
                     }}
                   >
-                    {row.iconItem && <Icon item={row.iconItem} size={20} />}
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {row.label}
-                    </span>
-                    <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>
+                    {cols.includes('icon') && row.iconItem && <Icon item={row.iconItem} size={20} />}
+                    {cols.includes('name') && (
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {row.iconItem?.displayName || row.label}
+                      </span>
+                    )}
+                    {cols.includes('registryName') && (
+                      <code style={{ flex: cols.includes('name') ? undefined : 1, fontSize: '0.65rem' }}>{row.pin.id}</code>
+                    )}
+                    {cols.includes('amount') && <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>}
                   </div>
                 ))}
                 {top
@@ -681,11 +729,18 @@ export function Dashboard() {
                     fontSize: '0.75rem', padding: '2px 4px', borderRadius: 4,
                     background: i % 2 === 1 ? rowAltBg : undefined,
                   }}>
-                    <Icon item={item} size={20} />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.displayName || item.registryName}
-                    </span>
-                    <strong style={{ color: chartColor }}>{fmtNum(item.amount)}</strong>
+                    {cols.includes('icon') && <Icon item={item} size={20} />}
+                    {cols.includes('name') && (
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.displayName || item.registryName}
+                      </span>
+                    )}
+                    {cols.includes('registryName') && (
+                      <code style={{ flex: cols.includes('name') ? undefined : 1, fontSize: '0.65rem' }}>
+                        {item.registryName || item.itemId || '-'}
+                      </code>
+                    )}
+                    {cols.includes('amount') && <strong style={{ color: chartColor }}>{fmtNum(item.amount)}</strong>}
                   </div>
                 ))}
               </div>
@@ -715,31 +770,36 @@ export function Dashboard() {
                         border: '1px solid var(--border-light)',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {(cols.includes('name') || cols.includes('status')) && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {cols.includes('name') && (
                         <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {cpu.name}
                         </span>
+                        )}
+                        {cols.includes('status') && (
                         <Tag color={cpu.isBusy ? 'processing' : 'default'} style={{ margin: 0, fontSize: '0.65rem' }}>
                           {cpu.isBusy ? t('busy') : t('idle')}
                         </Tag>
+                        )}
                       </div>
+                      }
                       <div style={{ display: 'flex', gap: 8, marginTop: 2, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-                        {cpu.coProcessors > 0 && (
+                        {cols.includes('coProcessors') && cpu.coProcessors > 0 && (
                           <span title={t('coprocessors')}>×{cpu.coProcessors}</span>
                         )}
-                        {storageTotal > 0 && (
+                        {cols.includes('storage') && storageTotal > 0 && (
                           <Tooltip title={`${formatBytes(cpu.usedStorage)} / ${formatBytes(storageTotal)}`}>
                             <span>{t('cpuStorage')}: {storagePct}%</span>
                           </Tooltip>
                         )}
-                        {cpu.maxItems > 0 && (
+                        {cols.includes('items') && cpu.maxItems > 0 && (
                           <span>{t('stored')}: {fmtNum(cpu.storedItems)}/{fmtNum(cpu.maxItems)} ({itemPct}%)</span>
                         )}
-                        {cpu.isBusy && cpu.elapsedTime > 0 && (
+                        {cols.includes('elapsedTime') && cpu.isBusy && cpu.elapsedTime > 0 && (
                           <span>{t('elapsedTime')}: {formatDuration(cpu.elapsedTime)}</span>
                         )}
                       </div>
-                      {cpu.isBusy && cpu.finalOutputName && (
+                      {cols.includes('finalOutput') && cpu.isBusy && cpu.finalOutputName && (
                         <div style={{ marginTop: 2, color: chartColor, fontSize: '0.68rem' }}>
                           {cpu.finalOutputName} ×{fmtNum(cpu.finalOutputAmount)}
                         </div>
@@ -784,22 +844,27 @@ export function Dashboard() {
                         border: '1px solid var(--border-light)',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                      {(cols.includes('recipe') || cols.includes('status')) && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                        {cols.includes('recipe') && (
                         <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                           {m.recipeMapName || m.machineMode || '-'}
                         </span>
+                        )}
+                        {cols.includes('status') && (
                         <Tag color={statusColorMap[m.statusText] || 'default'} style={{ margin: 0, fontSize: '0.65rem' }}>
                           {gtStatusLabel(m.statusText, t)}
                         </Tag>
+                        )}
                       </div>
+                      }
                       <div style={{ display: 'flex', gap: 8, marginTop: 2, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-                        <code style={{ fontSize: '0.65rem' }}>{m.x},{m.y},{m.z}</code>
-                        {m.maxProgressTime > 0 && (
+                        {cols.includes('coords') && <code style={{ fontSize: '0.65rem' }}>{m.x},{m.y},{m.z}</code>}
+                        {cols.includes('progress') && m.maxProgressTime > 0 && (
                           <span>{Math.round(m.progressPercent)}% ({m.progressTime}/{m.maxProgressTime}t)</span>
                         )}
-                        {m.parallelCount > 1 && <Tag color="blue">×{m.parallelCount}</Tag>}
+                        {cols.includes('parallel') && m.parallelCount > 1 && <Tag color="blue">×{m.parallelCount}</Tag>}
                       </div>
-                      {m.currentOutput && (
+                      {cols.includes('output') && m.currentOutput && (
                         <div style={{ marginTop: 2, color: chartColor, fontSize: '0.68rem' }}>{m.currentOutput}</div>
                       )}
                     </div>
@@ -849,11 +914,15 @@ export function Dashboard() {
                         background: i % 2 === 1 ? rowAltBg : undefined,
                       }}
                     >
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {row.label}
-                      </span>
-                      {row.secondary && <Tag style={{ margin: 0, fontSize: '0.65rem' }}>{row.secondary}</Tag>}
-                      <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>
+                      {cols.includes('resource') && (
+                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {row.label}
+                        </span>
+                      )}
+                      {cols.includes('type') && row.secondary && <Tag style={{ margin: 0, fontSize: '0.65rem' }}>{row.secondary}</Tag>}
+                      {(cols.includes('gap') || cols.includes('needy') || cols.includes('surplus')) && (
+                        <strong style={{ color: chartColor }}>{fmtNum(row.value)}</strong>
+                      )}
                     </div>
                   ))}
                   {rows.length === 0 && (
@@ -867,7 +936,7 @@ export function Dashboard() {
             <>
               {labelText(label)}
               <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
-                <NetworkBalanceTable networkIds={selectedNetworks} compact />
+                <NetworkBalanceTable networkIds={selectedNetworks} compact visibleColumns={cols} />
               </div>
             </>
           );
@@ -1047,7 +1116,7 @@ export function Dashboard() {
   const handleAddWidget = () => {
     const type = (newWidget.type || 'statCard') as DashboardWidgetConfig['type'];
     const widget: DashboardWidgetConfig = {
-      id: 'w-' + Date.now(),
+      id: createWidgetId('w-'),
       type,
       dataSource: isLayoutOrFeedType(type)
         ? (type === 'alertsSummary' ? 'alertsActive' : type === 'craftingQueue' ? 'craftingBusy' : 'none')
@@ -1064,12 +1133,13 @@ export function Dashboard() {
       noteText: type === 'textNote' ? '' : undefined,
     };
     if (addTargetGroupId) {
-      saveSettings({
-        ...settings,
-        widgets: addChildToGroup(settings.widgets, addTargetGroupId, widget),
-      });
+      const groupId = addTargetGroupId;
+      saveSettings((prev) => ({
+        ...prev,
+        widgets: addChildToGroup(prev.widgets, groupId, widget),
+      }));
     } else {
-      saveSettings({ ...settings, widgets: [...settings.widgets, widget] });
+      saveSettings((prev) => ({ ...prev, widgets: [...prev.widgets, widget] }));
     }
     setAddWidgetOpen(false);
     setAddTargetGroupId(null);
@@ -1078,7 +1148,7 @@ export function Dashboard() {
 
   const handleAddFromPalette = (preset: (typeof PALETTE_PRESETS)[number]) => {
     const widget: DashboardWidgetConfig = {
-      id: 'w-' + Date.now(),
+      id: createWidgetId('w-'),
       type: preset.type,
       dataSource: preset.dataSource,
       scope: 'perNetwork',
@@ -1091,26 +1161,26 @@ export function Dashboard() {
       pins: [],
       children: preset.type === 'group' ? [] : undefined,
     };
-    saveSettings({ ...settings, widgets: [...settings.widgets, widget] });
+    saveSettings((prev) => ({ ...prev, widgets: [...prev.widgets, widget] }));
   };
 
   const handleDeleteWidget = (id: string) => {
-    saveSettings({ ...settings, widgets: removeWidgetById(settings.widgets, id) });
+    saveSettings((prev) => ({ ...prev, widgets: removeWidgetById(prev.widgets, id) }));
   };
 
   const handleCopyWidget = (widget: DashboardWidgetConfig) => {
     const copy = copyWidgetConfig(widget, 'w-');
     // If copying a child, we append to root; GroupWidget copy appends inside group via callback.
-    saveSettings({ ...settings, widgets: [...settings.widgets, copy] });
+    saveSettings((prev) => ({ ...prev, widgets: [...prev.widgets, copy] }));
     notify(t('widgetCopied'), 'success');
   };
 
   const handleCopyChildIntoGroup = (groupId: string, child: DashboardWidgetConfig) => {
     const copy = copyWidgetConfig(child, 'w-');
-    saveSettings({
-      ...settings,
-      widgets: addChildToGroup(settings.widgets, groupId, copy),
-    });
+    saveSettings((prev) => ({
+      ...prev,
+      widgets: addChildToGroup(prev.widgets, groupId, copy),
+    }));
     notify(t('widgetCopied'), 'success');
   };
 
@@ -1118,6 +1188,18 @@ export function Dashboard() {
     saveSettings({ ...DEFAULT_DASHBOARD_SETTINGS, widgets: DEFAULT_DASHBOARD_WIDGETS });
     notify(t('layoutReset'), 'info');
   };
+
+  const commitOuterLayoutFromGrid = useCallback(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid?.engine.nodes.length) return;
+    const nodes = grid.engine.nodes;
+    cancelLayoutSave();
+    commitSettings((prev) => {
+      const next = { ...prev, widgets: applyOuterNodePositions(prev.widgets, nodes) };
+      scheduleLayoutSave(next);
+      return next;
+    });
+  }, [cancelLayoutSave, commitSettings, scheduleLayoutSave]);
 
   // 自动排列：调用 GridStack.compact() 将所有 widget 紧凑排列到顶部。
   // 仅在编辑模式下可用（grid 处于非 static 状态时 compact 才会真正重排）。
@@ -1127,13 +1209,13 @@ export function Dashboard() {
     try {
       // GridStack compact：'compact' 模式会尽量消除空隙、将 widget 紧凑排列到顶部。
       grid.compact('compact');
-      // compact 会触发 change 事件，由 onChange 防抖写回 localStorage
+      commitOuterLayoutFromGrid();
+      flushLayoutSave();
       notify(t('autoArrangeDone'), 'success');
     } catch (e) {
       notify((e as Error).message, 'error');
     }
-  }, [notify, t]);
-
+  }, [notify, t, commitOuterLayoutFromGrid, flushLayoutSave]);
   // 重建 GridStack 的依赖：widget id 列表 + 每个 widget 的宽高（含嵌套）+ 锁标志
   const layoutSignature = useMemo(
     () => widgetLayoutSignature(widgets),
@@ -1159,25 +1241,17 @@ export function Dashboard() {
         acceptWidgets: false,
         removable: editMode ? '.dashboard-trash' : false,
         removableOptions: { accept: '.grid-stack-item' },
+        draggable: { cancel: GRID_DRAG_CANCEL_SELECTOR },
       },
       gridRef.current
     );
     gridInstanceRef.current = grid;
     grid.float(false);
 
-    const onChange = () => {
-      const nodes = grid.engine.nodes;
-      if (!nodes.length) return;
-      setSettings((prev) => {
-        const nextWidgets = applyOuterNodePositions(prev.widgets, nodes);
-        const next = { ...prev, widgets: nextWidgets };
-        scheduleLayoutSave(next);
-        return next;
-      });
-    };
     const onRemoved = (_ev: Event, items: Array<{ id?: string | number }>) => {
       if (!items?.length) return;
-      setSettings((prev) => {
+      cancelLayoutSave();
+      commitSettings((prev) => {
         let nextWidgets = prev.widgets;
         for (const item of items) {
           if (item.id != null) {
@@ -1185,18 +1259,20 @@ export function Dashboard() {
           }
         }
         const next = { ...prev, widgets: nextWidgets };
-        scheduleLayoutSave(next);
+        persistSettings(next);
         return next;
       });
     };
-    grid.on('change', onChange);
+    const onDragOrResizeStop = () => {
+      commitOuterLayoutFromGrid();
+      flushLayoutSave();
+    };
     grid.on('removed', onRemoved);
-    grid.on('dragstop', flushLayoutSave);
-    grid.on('resizestop', flushLayoutSave);
+    grid.on('dragstop', onDragOrResizeStop);
+    grid.on('resizestop', onDragOrResizeStop);
 
     return () => {
       flushLayoutSave();
-      grid.off('change');
       grid.off('removed');
       grid.off('dragstop');
       grid.off('resizestop');
@@ -1234,6 +1310,16 @@ export function Dashboard() {
           >
             {editMode ? t('done') : t('editDashboard')}
           </Button>
+          <Tooltip title={t('editorUndoHint')}>
+            <Button icon={<UndoOutlined />} onClick={handleUndo} disabled={!editMode || !canUndo}>
+              {t('editorUndo')}
+            </Button>
+          </Tooltip>
+          <Tooltip title={t('editorRedoHint')}>
+            <Button icon={<RedoOutlined />} onClick={handleRedo} disabled={!editMode || !canRedo}>
+              {t('editorRedo')}
+            </Button>
+          </Tooltip>
           <Button
             icon={<PlusOutlined />}
             onClick={() => {
@@ -1300,7 +1386,12 @@ export function Dashboard() {
                 className={widget.type === 'group' ? 'widget-shell--group' : undefined}
                 editOverlay={
                   editMode && widget.type !== 'group' ? (
-                    <div className="dashboard-grid-edit-actions" style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}>
+                    <div
+                      className={`dashboard-grid-edit-actions ${GRID_EDIT_NO_DRAG_CLASS}`}
+                      style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}
+                      onMouseDown={stopGridDragPointer}
+                      onPointerDown={stopGridDragPointer}
+                    >
                       <Tooltip title={t('editWidget')}>
                         <Button
                           size="small"
@@ -1339,10 +1430,10 @@ export function Dashboard() {
                     renderChild={renderWidget}
                     flushLayoutSave={flushLayoutSave}
                     onChildrenChange={(children) => {
-                      saveSettings({
-                        ...settings,
-                        widgets: updateWidgetById(settings.widgets, widget.id, (g) => ({ ...g, children })),
-                      });
+                      saveSettings((prev) => ({
+                        ...prev,
+                        widgets: updateWidgetById(prev.widgets, widget.id, (g) => ({ ...g, children })),
+                      }));
                     }}
                     onEditGroup={() => setEditWidgetTarget(widget)}
                     onEditChild={(child) => setEditWidgetTarget(child)}
@@ -1374,7 +1465,7 @@ export function Dashboard() {
         settings={settings}
         onChange={saveSettings}
         widgets={widgets}
-        onWidgetsChange={(w) => saveSettings({ ...settings, widgets: w })}
+        onWidgetsChange={(w) => saveSettings((prev) => ({ ...prev, widgets: w }))}
       />
 
       {/* Add Widget Modal */}
@@ -1462,10 +1553,11 @@ export function Dashboard() {
         onWidgetChange={(w) => setEditWidgetTarget(w)}
         onOk={() => {
           if (editWidgetTarget) {
-            saveSettings({
-              ...settings,
-              widgets: updateWidgetById(settings.widgets, editWidgetTarget.id, () => editWidgetTarget),
-            });
+            const target = editWidgetTarget;
+            saveSettings((prev) => ({
+              ...prev,
+              widgets: updateWidgetById(prev.widgets, target.id, () => target),
+            }));
           }
           setEditWidgetTarget(null);
         }}

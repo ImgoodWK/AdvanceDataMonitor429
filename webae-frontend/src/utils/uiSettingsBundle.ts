@@ -457,17 +457,20 @@ function sectionEnabled(sections: UiSettingsSection[] | undefined, id: UiSetting
 }
 
 function applyDashboardSettings(settings: DashboardSettings, merge: boolean): void {
+  const widgetsSource = Array.isArray(settings.widgets)
+    ? settings.widgets
+    : DEFAULT_DASHBOARD_SETTINGS.widgets;
   const next = merge
     ? {
         ...DEFAULT_DASHBOARD_SETTINGS,
         ...readJson<Partial<DashboardSettings>>(DASHBOARD_CONFIG_KEY),
         ...settings,
-        widgets: migrateDashboardWidgets(settings.widgets ?? DEFAULT_DASHBOARD_SETTINGS.widgets),
+        widgets: migrateDashboardWidgets(widgetsSource),
       }
     : {
         ...DEFAULT_DASHBOARD_SETTINGS,
         ...settings,
-        widgets: migrateDashboardWidgets(settings.widgets ?? DEFAULT_DASHBOARD_SETTINGS.widgets),
+        widgets: migrateDashboardWidgets(widgetsSource),
       };
   writeJson(DASHBOARD_CONFIG_KEY, next);
 }

@@ -9,6 +9,7 @@ public class QuestMetaDto {
     public boolean questsAvailable;
     public boolean questEnabled;
     public boolean questSubmitEnabled;
+    public boolean questClaimEnabled;
     public boolean questChainSubmitEnabled;
     public boolean questFluidAllContainersOption;
     public String modVersion = "";

@@ -21,9 +21,10 @@ alwaysApply: true
 | 任意 `git` / `gh` 命令（含只读 `status`/`log`/`diff`） | `["all"]` | Sandbox 默认禁止 Git 读取，不加会返回 `no exit status` 静默失败 |
 | `git clone` / `git fetch` / `git pull` / `git push` / `git submodule` | `["all"]` | 同上；含从 GitHub 拉取参考仓库分析 |
 | `gh repo clone` / `gh api` / 其他 `gh` 读远程仓库 | `["all"]` | GitHub CLI 与 Git 同等对待，参考分析也须 `all` |
-| `npm` / `yarn` / `pnpm` / `gradle` / `gradlew` 构建与依赖解析 | 先试默认 Sandbox；失败则 `["full_network"]`，仍失败则 `["all"]` | 包管理器域名在 Sandbox 白名单内，多数情况无需额外权限 |
+| `npm` / `yarn` / `pnpm` 构建与依赖解析 | 先试默认 Sandbox；失败则 `["full_network"]`，仍失败则 `["all"]` | 包管理器域名在 Sandbox 白名单内，多数情况无需额外权限 |
+| `gradle` / `gradlew` 构建与依赖解析 | 优先 `["all"]`，或命令内显式 `$env:GRADLE_USER_HOME='D:\dev-agent-cache\gradle'` | 避免 Cursor 沙箱把缓存指到 C 盘 Temp；真实 Home 在 D 盘 |
 | `curl` / `wget` / 访问非包管理器 URL、`WebFetch` 类下载 | `["full_network"]`；失败则 `["all"]` | 拉取文档、Release 资产、自定义 API |
-| 反编译 / 解压 jar / 读写 `.workspace/` 临时文件 | 通常默认 Sandbox 即可 | 输出路径见 `workspace-artifacts.mdc` |
+| 反编译 / 解压 jar / 读写 `.workspace/` 或 `D:\dev-agent-cache\` | 通常默认 Sandbox 即可（后者已在用户 `sandbox.json` 放行） | 路径约定见 `workspace-artifacts.mdc` |
 | 写 `.git/`、改 git 索引、`git commit` / `git add` | `["all"]` 或 `["git_write"]`；Git 相关统一用 `["all"]` 更稳妥 | 与只读 Git 策略一致 |
 | 系统级操作（全局安装、改 git config、访问被 ignore 的敏感路径） | `["all"]` | 且须遵守 user rules：不擅自 `git config`、不 force push main 除非用户明确要求 |
 
@@ -32,10 +33,10 @@ alwaysApply: true
 ```json
 { "command": "git status", "required_permissions": ["all"] }
 { "command": "gh pr create ...", "required_permissions": ["all"] }
-{ "command": "git clone https://github.com/org/repo .workspace/external-snippets/repo", "required_permissions": ["all"] }
-{ "command": "gh repo clone org/repo .workspace/external-snippets/repo", "required_permissions": ["all"] }
-{ "command": "git -C .workspace/external-snippets/repo fetch --depth=1 origin main", "required_permissions": ["all"] }
-{ "command": "curl -fsSL https://example.com/file.json -o .workspace/assets/file.json", "required_permissions": ["full_network"] }
+{ "command": "git clone https://github.com/org/repo D:/dev-agent-cache/external/repo", "required_permissions": ["all"] }
+{ "command": "gh repo clone org/repo D:/dev-agent-cache/external/repo", "required_permissions": ["all"] }
+{ "command": "git -C D:/dev-agent-cache/external/repo fetch --depth=1 origin main", "required_permissions": ["all"] }
+{ "command": "curl -fsSL https://example.com/file.json -o D:/dev-agent-cache/tmp/file.json", "required_permissions": ["full_network"] }
 ```
 
 ## 获取外部代码 / 仓库内容
@@ -45,16 +46,16 @@ alwaysApply: true
 | 来源 | 行为 |
 |------|------|
 | `libs/*.jar` 已存在 | 直接列表/反编译到 `.workspace/decompiled/` 等，**不要再次询问**（`external-deps-jars.mdc`） |
-| Maven / Gradle 已声明依赖 | 用 `./gradlew` 或读本地 `~/.gradle/caches`；构建命令按上表带网络权限 |
-| 工作区内已有源码（含 `.workspace/` 缓存） | 直接读取 |
+| Maven / Gradle 已声明依赖 | 用 `./gradlew`（`GRADLE_USER_HOME=D:\dev-agent-cache\gradle`）或读该目录下 `caches`；构建优先 `["all"]` |
+| 工作区内已有源码（含 `.workspace/` / `D:\dev-agent-cache\external\`） | 直接读取 |
 
 ### 需要联网拉取时
 
 | 操作 | 默认行为 |
 |------|----------|
-| 从 **GitHub**（或其他 Git 远程）`clone` / `fetch` / `pull` 参考仓库，用于对照实现、读 API、抄片段 | **直接执行**，**首次 Shell 调用即 `required_permissions: ["all"]`**；目标目录必须在 `.workspace/`（推荐 `.workspace/external-snippets/<repo>`），不得 clone 到 `src/` 或覆盖项目根；拉完后只读分析，不写入本仓库 Git 索引 |
+| 从 **GitHub**（或其他 Git 远程）`clone` / `fetch` / `pull` 参考仓库，用于对照实现、读 API、抄片段 | **直接执行**，**首次 Shell 调用即 `required_permissions: ["all"]`**；目标目录优先 `D:\dev-agent-cache\external\<repo>`（跨项目）；仅本仓库专用小片段才用 `.workspace/`；不得 clone 到 `src/` 或覆盖项目根；拉完后只读分析，不写入本仓库 Git 索引 |
 | `gh repo clone` / `gh api` 获取 PR、Release、文件树等 GitHub 元数据 | 同上，**一律 `["all"]`** |
-| 下载单个文件 / API JSON / lang 对照（非 Git 仓库） | 写入 `.workspace/assets/` 等，带 `full_network`；若与 Git 操作组合（如 sparse checkout），整体仍用 `["all"]` |
+| 下载单个文件 / API JSON / lang 对照（非 Git 仓库） | 跨项目写入 `D:\dev-agent-cache\tmp\` 或 `external\`；本仓库对照写入 `.workspace/assets/`；带 `full_network`；与 Git 组合时用 `["all"]` |
 | `libs/` 缺少某模组 jar 且无法从 Maven 解析 | **询问用户**是否手动添加 jar 或跳过（`external-deps-jars.mdc`） |
 
 **GitHub 参考拉取要点**：需要用户点 Allow 时属正常流程；Agent 应预判并一次性申请足量权限，避免「无权限 → 失败 → 再申请」的来回。浅克隆（`--depth=1`）、指定分支/tag、sparse checkout 均适用同一策略。

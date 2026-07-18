@@ -35,6 +35,35 @@ public final class ConfigWebaeLoader {
             0,
             3600,
             ConfigDescriptions.get("webConsole", "snapshotIntervalSeconds"));
+        Config.webSparkEnabled = configuration.getBoolean(
+            "sparkEnabled",
+            "webConsole",
+            Config.webSparkEnabled,
+            ConfigDescriptions.get("webConsole", "sparkEnabled"));
+        Config.webSparkMaxHistory = configuration.getInt(
+            "sparkMaxHistory",
+            "webConsole",
+            Config.webSparkMaxHistory,
+            1,
+            500,
+            ConfigDescriptions.get("webConsole", "sparkMaxHistory"));
+        Config.webSparkDefaultDurationSeconds = configuration.getInt(
+            "sparkDefaultDurationSeconds",
+            "webConsole",
+            Config.webSparkDefaultDurationSeconds,
+            5,
+            600,
+            ConfigDescriptions.get("webConsole", "sparkDefaultDurationSeconds"));
+        Config.webSparkMaxDurationSeconds = configuration.getInt(
+            "sparkMaxDurationSeconds",
+            "webConsole",
+            Config.webSparkMaxDurationSeconds,
+            5,
+            600,
+            ConfigDescriptions.get("webConsole", "sparkMaxDurationSeconds"));
+        if (Config.webSparkDefaultDurationSeconds > Config.webSparkMaxDurationSeconds) {
+            Config.webSparkDefaultDurationSeconds = Config.webSparkMaxDurationSeconds;
+        }
         Config.webRecipeUploadEnabled = configuration.getBoolean(
             "recipeUploadEnabled",
             "webConsole",
@@ -693,6 +722,11 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.webQuestSubmitEnabled,
             ConfigDescriptions.get("webConsole", "questSubmitEnabled"));
+        Config.webQuestClaimEnabled = configuration.getBoolean(
+            "questClaimEnabled",
+            "webConsole",
+            Config.webQuestClaimEnabled,
+            ConfigDescriptions.get("webConsole", "questClaimEnabled"));
         Config.webQuestChainSubmitEnabled = configuration.getBoolean(
             "questChainSubmitEnabled",
             "webConsole",

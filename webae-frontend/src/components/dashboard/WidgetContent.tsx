@@ -36,6 +36,7 @@ import {
 import { useAppContext } from '@/context/AppContext';
 import type { ChartStyleRecipe } from '@/theme/pageStyles';
 import { CHART_STYLE_RECIPES } from '@/theme/pageStyles';
+import { resolveColumns } from '@/utils/dashboardColumns';
 
 export interface WidgetContentProps {
   widget: DashboardWidgetConfig;
@@ -277,6 +278,7 @@ export function WidgetContent({
 
     case 'dataTable': {
       const rowAltBg = colors.dataTableRowAltColor || undefined;
+      const cols = resolveColumns(widget);
       if (widget.dataSource === 'gtMachineList') {
         const machines = getGtMachinesForTable(gt, widget.maxRows || 10);
         if (machines.length === 0) {
@@ -290,7 +292,7 @@ export function WidgetContent({
           <>
             {labelText(label)}
             <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
-              {machines.map((m, i) => renderGtMachineRow(m, i, rowAltBg, chartColor, fmtNum, t))}
+              {machines.map((m, i) => renderGtMachineRow(m, i, rowAltBg, chartColor, fmtNum, t, cols))}
             </div>
           </>
         );
@@ -300,7 +302,7 @@ export function WidgetContent({
           <>
             {labelText(label)}
             <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
-              <NetworkBalanceTable networkIds={selectedNetworks} compact />
+              <NetworkBalanceTable networkIds={selectedNetworks} compact visibleColumns={cols} />
             </div>
           </>
         );
@@ -434,6 +436,7 @@ function renderGtMachineRow(
   chartColor: string,
   fmtNum: (n: number) => string,
   t: (key: string) => string,
+  cols: string[],
 ): ReactNode {
   return (
     <div
@@ -447,7 +450,8 @@ function renderGtMachineRow(
         border: '1px solid var(--border-light)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+      {(cols.includes('recipe') || cols.includes('status')) && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+        {cols.includes('recipe') && (
         <span
           style={{
             fontWeight: 600,
@@ -459,22 +463,28 @@ function renderGtMachineRow(
         >
           {machine.recipeMapName || machine.machineMode || '-'}
         </span>
+        )}
+        {cols.includes('status') && (
         <Tag color={gtStatusTagColor(machine.statusText)} style={{ margin: 0, fontSize: '0.65rem' }}>
           {gtStatusLabel(machine.statusText, t)}
         </Tag>
+        )}
       </div>
+      }
       <div style={{ display: 'flex', gap: 8, marginTop: 2, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+        {cols.includes('coords') && (
         <code style={{ fontSize: '0.65rem' }}>
           {machine.x},{machine.y},{machine.z}
         </code>
-        {machine.maxProgressTime > 0 && (
+        )}
+        {cols.includes('progress') && machine.maxProgressTime > 0 && (
           <span>
             {Math.round(machine.progressPercent)}% ({machine.progressTime}/{machine.maxProgressTime}t)
           </span>
         )}
-        {machine.parallelCount > 1 && <Tag color="blue">×{machine.parallelCount}</Tag>}
+        {cols.includes('parallel') && machine.parallelCount > 1 && <Tag color="blue">×{machine.parallelCount}</Tag>}
       </div>
-      {machine.currentOutput && (
+      {cols.includes('output') && machine.currentOutput && (
         <div style={{ marginTop: 2, color: chartColor, fontSize: '0.68rem' }}>{machine.currentOutput}</div>
       )}
     </div>

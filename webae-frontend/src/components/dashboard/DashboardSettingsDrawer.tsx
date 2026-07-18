@@ -90,7 +90,7 @@ export function DashboardSettingsDrawer({
   };
 
   const handleExportWidgets = async () => {
-    if (!widgets?.length) {
+    if (!widgets) {
       void message.warning(t('dashCfgExportWidgetsEmpty'));
       return;
     }
@@ -109,8 +109,11 @@ export function DashboardSettingsDrawer({
       setImportOpen(false);
       setImportText('');
       void message.success(t('dashCfgImportWidgetsDone'));
-    } catch {
-      void message.error(t('dashCfgImportWidgetsFailed'));
+    } catch (e) {
+      const detail = e instanceof Error && e.message ? e.message : '';
+      void message.error(
+        detail ? `${t('dashCfgImportWidgetsFailed')}: ${detail}` : t('dashCfgImportWidgetsFailed')
+      );
     }
   };
 
@@ -119,7 +122,7 @@ export function DashboardSettingsDrawer({
       <>
         <Divider orientation="left">{t('dashCfgWidgetsIo')}</Divider>
         <Space wrap>
-          <Button icon={<CopyOutlined />} onClick={handleExportWidgets} disabled={!widgets.length}>
+          <Button icon={<CopyOutlined />} onClick={handleExportWidgets}>
             {t('dashCfgExportWidgets')}
           </Button>
           <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>

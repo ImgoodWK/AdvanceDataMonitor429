@@ -37,6 +37,7 @@
   - [11.17 Network Topology](#1117-network-topology-channel-lanes-ae_budget_v2--disk-persistence)
   - [11.18 Page Visibility Polling (Phase 4b)](#1118-page-visibility-polling-phase-4b)
   - [11.26 World Map View](#1126-world-map-view-phase-ab--ae-overlay)
+  - [11.27 Spark Profiler Integration](#1127-spark-profiler-integration)
 - [12. Frontend Resources](#12-frontend-resources)
 - [13. Debugging and Troubleshooting](#13-debugging-and-troubleshooting)
 
@@ -180,6 +181,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `worldMapServerAtlasPx` | int | `2048` | 256-4096 | Server atlas edge length in px (multiple of 16) |
 | `questEnabled` | boolean | `true` | — | Enable BetterQuesting quest book page and read APIs (no-op without BQ) |
 | `questSubmitEnabled` | boolean | `true` | — | Allow Web item/fluid submit from AE |
+| `questClaimEnabled` | boolean | `true` | — | Allow claiming pure item/choice rewards into the selected AE network; mixed/non-item rewards stay in-game only |
 | `questChainSubmitEnabled` | boolean | `true` | — | Allow chain submit (walk prerequisites; optional craft-then-submit) |
 | `questSubmitMaxStacks` | int | `64` | 1-512 | Max distinct item stacks per submit |
 | `questCraftWaitTimeoutMs` | int | `120000` | 5000-600000 | Craft-then-submit / chain craft wait timeout (ms) |
@@ -187,6 +189,10 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `questEscrowTimeoutMs` | int | `120000` | 5000-600000 | Escrow session timeout (ms); auto-return locked stacks to AE |
 | `questFluidAllContainersOption` | boolean | `false` | — | When true, Web UI may count all fluid containers toward equivalence; when false, only GT/IC2 cells |
 | `questCacheTtlSec` | int | `300` | 30-3600 | Quest-line definition cache TTL (seconds); progress ~1/10 |
+| `sparkEnabled` | boolean | `true` | — | Enable the WebAE Spark page/API when the Spark mod is installed; force unavailable when absent |
+| `sparkMaxHistory` | int | `50` | 1-500 | Number of Spark run records retained in `TeXTech/WebAE/spark-history.json` |
+| `sparkDefaultDurationSeconds` | int | `30` | 5-600 | Default Spark profiler duration requested by the WebAE page (seconds) |
+| `sparkMaxDurationSeconds` | int | `300` | 5-600 | Hard maximum duration for a Spark profiler run started from WebAE (seconds) |
 
 **GTNH / large-pack TPS-friendly defaults** (first-time cfg generation; values below thresholds are overridden in memory at startup with a WARN, not written back to disk):
 
@@ -215,6 +221,11 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | POST | `/api/auth/exchange` | **No** | No | Exchange 6-digit login code for owner token (5 min TTL, single-use; body `{"code":"123456"}`) |
 | GET | `/api/auth/login` | Yes | No | Post-auth info (playerUuid) |
 | GET | `/api/config` | Yes | No | Public client-readable config (refreshIntervalMs, gtRefreshIntervalMs, maxNetworksDisplayed, tokenLifetimeHours, themePresets [legacy, mirrors themeColors], themeColors, themeLayouts, pageStyles) |
+| GET | `/api/spark` | Yes | No | Spark availability, current run, and history summaries; 503 when Spark is absent or `sparkEnabled=false` |
+| GET | `/api/spark/history/{id}` | Yes | No | Full output summary and Viewer URL for one Spark history record |
+| POST | `/api/spark/profile` | Yes | **Admin** | Body `{durationSeconds}`; invokes Spark `profiler start --timeout`; only one active run is allowed |
+| POST | `/api/spark/stop` | Yes | **Admin** | Requests profiler stop and waits for Spark's final output |
+| DELETE | `/api/spark/history/{id}` | Yes | **Admin** | Deletes retained Spark metadata; does not delete the remote Spark Viewer result |
 | GET | `/api/ui-defaults` | **No** | No | Pack/mod default WebAE UI settings JSON (instance `TeXTech/WebAE/ui-defaults.json` first, else jar `assets/textech/webae/ui-defaults.json`; `defaults:null` when absent) |
 | GET | `/api/networks` | Yes | No | List available AE2 networks; **HTTP cache-only** (`cached`/`timestamp`); owner-scoped `SnapshotScheduler` pre-collect; `?refresh=1` async rebuild |
 | GET | `/api/storage?network=<id>` | Yes | No | Cached storage snapshot (stale fallback with `cached:false`) |
@@ -312,11 +323,12 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/quests/lines/{lineId}` | Yes | No | Line graph nodes+edges (icons, `mainQuest`, cross-line ghosts) |
 | GET | `/api/quests/progress` | Yes | No | Full progress snapshot (includes `updatedAt`) |
 | GET | `/api/quests/search?q=` | Yes | No | Search quests by name (max 50) |
-| GET | `/api/quests/{id}` | Yes | No | Quest detail (`tasks`/`rewards` from BQ int-keyed `DBEntry` TaskStorage/RewardStorage; `requirementQuestIds`; `prerequisites[]`/`dependents[]` with name, lineId, state, requirementType) |
+| GET | `/api/quests/{id}` | Yes | No | Quest detail (`tasks`/`rewards` from BQ int-keyed `DBEntry` TaskStorage/RewardStorage; `requirementQuestIds`; `prerequisites[]`/`dependents[]`; `webClaimable`/`claimBlockReason`; choice rewards expanded per option) |
 | GET | `/api/quests/{id}/analysis?network=` | Yes | No | AE stock vs task step analysis; optional `includeAllFluidContainers=true` |
 | GET | `/api/quests/{id}/chain-plan?network=` | Yes | No | Chain-submit topological plan; optional `includeAllFluidContainers` |
 | POST | `/api/quests/{id}/detect` | Yes | No | Retrieval hold-detect; optional body `{networkId,includeAllFluidContainers}`; with AE uses escrow + offline completeRetrieval (guest 403) |
 | POST | `/api/quests/{id}/submit` | Yes | No | Submit items/fluids; body `{networkId,dryRun,steps?,includeAllFluidContainers?}`; locks via escrow when enabled (guest 403) |
+| POST | `/api/quests/{id}/claim` | Yes | No | Claim pure item/choice rewards into AE; body `{networkId,choices:{rewardId:choiceIndex}}`; AE capacity precheck keeps UNCLAIMED on failure; needs `questClaimEnabled` (guest 403) |
 | POST | `/api/quests/{id}/submit-craft` | Yes | No | Craft missing then submit; pre-lock then appendLock; job.phase includes `crafting`/`locking`/`escrow_failed`/`done` (guest 403) |
 | POST | `/api/quests/{id}/submit-chain` | Yes | No | Chain submit; body `{networkId,dryRun,skipMissing,craftMissing,includeAllFluidContainers?}`; needs `questChainSubmitEnabled` |
 | GET | `/api/quests/submit-jobs/{jobId}` | Yes | No | Poll craft-then-submit job |
@@ -379,7 +391,7 @@ webae-frontend/               # Frontend source (permanent project part)
     │                         # VirtualProductGrid — Phase 7 AE order browse + virtual scroll)
     │                         # ordering(OrderQueryTab/OrderPatternsTab/OrderHistorySection — AE ordering split)
     ├── pages/                # Dashboard / Storage / Cpu / Power / GtMachines / Recipes /
-    │                         # PatternEditor / AeOrdering / Chat / Settings / QuestBook
+    │                         # PatternEditor / AeOrdering / Chat / Settings / Spark / QuestBook
     │                         # components/quest (list/graph/detail/step+chain submit)
     └── styles/global.css     # Base styles + advanced mode effects + GridStack overrides + widget 9-grid alignment
 ```
@@ -652,6 +664,8 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - **Layout/feed widgets**: `SpecialWidgets.tsx` + `useDashboardAlerts`
   - **Data-first editor**: pick data source & pins, then compatible chart type (`dataSourceChartMap.ts`; layout/feed categories for `none` / alerts / crafting)
   - **Pin history APIs**: `GET /api/network/metrics/items`, extended fluids, `GET /api/network/metrics/entities`; sampler limits in cfg (`dashboardMaxTracksPerWidget` default 10, `dashboardMaxTracksGlobal` 16, item sub-cap 8, fluid/entity 16) exposed via `/api/config`; line charts merge built-in timeseries ∪ pin histories; radar uses pin current values when ≥3 pins; network-balance rows are searchable pins
+  - **Data-table column contract**: `utils/dashboardColumns.ts` owns per-source column definitions. `columns === undefined` means defaults, while `columns: []` is an explicit hide-all selection and must not be replaced through truthy/length fallbacks. For `topItems`, the `name` column consumes the storage snapshot's `displayName`, and `registryName` consumes the registry identifier; they must not substitute for one another. `Dashboard.tsx`, shared `WidgetContent.tsx`, and `NetworkBalanceTable.tsx` must consume the same selection; clear `columns` when changing `dataSource` so stale source-specific keys do not leak. Regression coverage: `utils/dashboardColumns.test.ts`
+  - **Pin editor**: `WidgetPinEditor.tsx` local inventory search matches display name, registry name, and item ID; focusing an empty search offers current Top inventory candidates. Recipe suggestion IDs must preserve `meta=0`; the per-widget cap comes from `/api/config.dashboardMaxTracksPerWidget`
   - **Phase 2 data sources**: `gtMachineList` / `machineByStatus` / `networkCompare` unchanged
   - Layout persistence: `localStorage.webae_dashboard_config`; Edit Modal width/height rebuilds GridStack via `widgetLayoutSignature`
   - Data refresh: `useSnapshotData` + `useDashboardPinMetrics` (merged pin history) + `usePlayers` / `useNetworkMetrics` / `useDashboardAlerts`
@@ -882,6 +896,14 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Tile compositing (frontend)**: `chunkTileScreenRect` anchors chunk **north-west** corner; `WORLD_MAP_TILE_FLIP_Y` (`scaleY(-1)`) aligns PNG row 0 (north) with `worldToScreen`; tests in `worldMapTerrain.test.ts`.
 - **Frontend**: unified `TopologyWorldMapView` snapshot chunks; Leaflet Dynmap terrain view removed (external Dynmap link kept).
 - **Dev deps**: `dependencies.gradle` includes `devOnlyNonPublishable` JourneyMap 5.2.18 and **GTNH-Web-Map (GWM) 0.4-beta-1** for local `runClient`/`runServer` only; not bundled in release jars.
+
+### 11.27 Spark Profiler Integration
+
+- **Optional dependency**: `dependencies.gradle` uses the Curse Maven Spark Forge 1.7.10 file (`curse.maven:spark-361579:3577247`) as `compileOnly` plus dev-only runtime. TeXTech never bundles Spark; the pack must install `spark-forge1710.jar` separately.
+- **Runtime gate**: `SparkService.isEnabled()` requires both `[webConsole] sparkEnabled=true` and Forge modid `spark` loaded. When either is false, `/api/config` exposes `sparkEnabled=false`, navigation hides the page, and direct Spark API calls return 503.
+- **Command bridge**: Admin requests run `spark profiler start --timeout N` / `spark profiler stop` on the server thread and capture asynchronous Spark output through a reflective `ICommandSender` proxy. This avoids linking Spark private implementation classes and tolerates 1.7.10 patch builds.
+- **Persistence**: `SparkProfileStore` keeps bounded JSON metadata in `TeXTech/WebAE/spark-history.json`, including status, start time, duration, initiator, captured output, and Spark Viewer URL. Active records are marked `interrupted` after a server restart.
+- **REST/frontend**: `SparkHandler` provides status, detail, start, stop, and delete endpoints. `pages/Spark.tsx` provides duration input, current status, history table, Viewer links, output details, and two-run metadata comparison. The call tree/flame view remains in the official Spark Viewer rather than being copied into the mod.
 - **Package**: `webae/worldmap/` + `webae/worldmap/engine/` (Dynmap-grade UV/ray core) — see `project-structure-details.mdc`; frontend overlay is `WorldMapAeOverlayLayer.tsx` (not a Java class)
 - **Render engines**: `WorldMapRenderSupport.renderForView` dispatches flat+`uv` → `WorldMapFlatUvRenderer`; oblique+`ray` → `WorldMapIsoRayRenderer` (`WorldMapObliqueProjection` ortho rays + voxel DDA + `WorldMapFaceRasterizer` UV/biome/lighting); `legacy` painters kept as fallback; meta exposes `flatRenderEngine` / `obliqueRenderEngine`
 - **REST**: `GET /api/worldmap/meta?network=<id>&quality=` (includes `zoomLevels[]`, `dynmapMaxZoom`); terrain/AE tile URLs fixed at z0; AE tiles are category ID maps (R=categoryId); cache under `{view}/ae-id/`

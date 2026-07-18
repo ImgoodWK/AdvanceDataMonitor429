@@ -460,11 +460,26 @@ public class WebConfigHandler {
         sb.append("\"questSubmitEnabled\":")
             .append(Config.webQuestSubmitEnabled)
             .append(',');
+        sb.append("\"questClaimEnabled\":")
+            .append(Config.webQuestClaimEnabled)
+            .append(',');
         sb.append("\"questChainSubmitEnabled\":")
             .append(Config.webQuestChainSubmitEnabled)
             .append(',');
         sb.append("\"questFluidAllContainersOption\":")
             .append(Config.webQuestFluidAllContainersOption)
+            .append(',');
+        sb.append("\"sparkEnabled\":")
+            .append(com.imgood.textech.webae.spark.SparkService.isEnabled())
+            .append(',');
+        sb.append("\"sparkAvailable\":")
+            .append(com.imgood.textech.webae.spark.SparkService.isAvailable())
+            .append(',');
+        sb.append("\"sparkDefaultDurationSeconds\":")
+            .append(Config.webSparkDefaultDurationSeconds)
+            .append(',');
+        sb.append("\"sparkMaxDurationSeconds\":")
+            .append(Config.webSparkMaxDurationSeconds)
             .append(',');
         sb.append("\"dashboardMaxTracksPerWidget\":")
             .append(Config.webDashboardMaxTracksPerWidget)

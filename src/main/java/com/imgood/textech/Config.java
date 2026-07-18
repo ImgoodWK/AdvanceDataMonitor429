@@ -125,6 +125,14 @@ public class Config {
     public static int webConsolePort = 8090;
     public static String webConsoleBindAddress = "127.0.0.1";
     public static int webConsoleSnapshotIntervalSeconds = 30;
+    /** Enables the optional WebAE Spark page when the Spark mod is installed. */
+    public static boolean webSparkEnabled = true;
+    /** Maximum number of persisted Spark runs retained on the server. */
+    public static int webSparkMaxHistory = 50;
+    /** Default profiler duration exposed by the WebAE Spark page. */
+    public static int webSparkDefaultDurationSeconds = 30;
+    /** Hard upper bound for profiler duration requested through WebAE. */
+    public static int webSparkMaxDurationSeconds = 300;
     public static boolean webRecipeUploadEnabled = true;
     /** Recipe cache eviction: {@code lru} (small packs) or {@code full} (GTNH-scale, no LRU eviction). */
     public static String webRecipeCacheMode = "full";
@@ -352,6 +360,8 @@ public class Config {
     public static boolean webQuestEnabled = true;
     /** Allow Web quest item/fluid submission. Default true. */
     public static boolean webQuestSubmitEnabled = true;
+    /** Allow WebAE claim of pure item/choice rewards into AE. Default true. */
+    public static boolean webQuestClaimEnabled = true;
     /** Allow Web chain submit (prerequisites then target). Default true. */
     public static boolean webQuestChainSubmitEnabled = true;
     /** Max distinct item stacks per quest submit action. Default 64. */

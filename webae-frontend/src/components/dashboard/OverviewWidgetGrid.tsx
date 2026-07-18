@@ -10,12 +10,15 @@ import {
   SettingOutlined,
   AlignLeftOutlined,
   ControlOutlined,
+  UndoOutlined,
+  RedoOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { useNetworkMetrics } from '@/hooks/useNetworkMetrics';
 import { useDebouncedLocalStorageSaver } from '@/hooks/useDebouncedLocalStorageSaver';
+import { useEditorHistory, useUndoRedoHotkeys } from '@/hooks/useEditorHistory';
 import {
   overviewAsDashboardSettings,
   loadOverviewSettingsFromStorage,
@@ -29,6 +32,17 @@ import { WidgetContent } from '@/components/dashboard/WidgetContent';
 import { WidgetShell } from '@/components/dashboard/WidgetShell';
 import type { OverviewSnapshot } from '@/utils/overviewDataSources';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
+import { createWidgetId } from '@/utils/widgetId';
+import { widgetLayoutSignature } from '@/utils/dashboardTree';
+import {
+  GRID_DRAG_CANCEL_SELECTOR,
+  GRID_EDIT_NO_DRAG_CLASS,
+  stopGridDragPointer,
+} from '@/utils/gridStackEditGuard';
+
+/** Overview cards are fixed to 2 rows in GridStack; keep editor in sync. */
+export const OVERVIEW_WIDGET_HEIGHT = 2;
+export const OVERVIEW_WIDGET_MIN_WIDTH = 2;
 
 const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
   'statCard',
@@ -62,7 +76,14 @@ export function OverviewWidgetGrid({
   const networkMetrics = useNetworkMetrics();
   const primaryNetworkId = selectedNetworks[0] ?? 0;
   const [editMode, setEditMode] = useState(false);
-  const [settings, setSettings] = useState<StorageOverviewSettings>(() =>
+  const {
+    present: settings,
+    commit: commitSettings,
+    undo: undoSettings,
+    redo: redoSettings,
+    canUndo,
+    canRedo,
+  } = useEditorHistory<StorageOverviewSettings>(() =>
     loadOverviewSettingsFromStorage(storageKey, defaultSettings)
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -74,17 +95,16 @@ export function OverviewWidgetGrid({
     scope: 'perNetwork',
     title: '',
     width: 3,
-    height: 2,
+    height: OVERVIEW_WIDGET_HEIGHT,
   });
 
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
-  const { schedule: scheduleLayoutSave, flush: flushLayoutSave } =
+  const { schedule: scheduleLayoutSave, flush: flushLayoutSave, cancel: cancelLayoutSave } =
     useDebouncedLocalStorageSaver<StorageOverviewSettings>(storageKey);
 
-  const saveSettings = useCallback(
+  const persistSettings = useCallback(
     (s: StorageOverviewSettings) => {
-      setSettings(s);
       try {
         localStorage.setItem(storageKey, JSON.stringify(s));
       } catch {
@@ -94,9 +114,36 @@ export function OverviewWidgetGrid({
     [storageKey]
   );
 
+  const saveSettings = useCallback(
+    (s: StorageOverviewSettings | ((prev: StorageOverviewSettings) => StorageOverviewSettings)) => {
+      cancelLayoutSave();
+      commitSettings((prev) => {
+        const next = typeof s === 'function' ? s(prev) : s;
+        persistSettings(next);
+        return next;
+      });
+    },
+    [cancelLayoutSave, commitSettings, persistSettings]
+  );
+
+  const handleUndo = useCallback(() => {
+    const restored = undoSettings();
+    if (!restored) return;
+    cancelLayoutSave();
+    persistSettings(restored);
+  }, [undoSettings, cancelLayoutSave, persistSettings]);
+
+  const handleRedo = useCallback(() => {
+    const restored = redoSettings();
+    if (!restored) return;
+    cancelLayoutSave();
+    persistSettings(restored);
+  }, [redoSettings, cancelLayoutSave, persistSettings]);
+
+  useUndoRedoHotkeys(handleUndo, handleRedo, editMode && !disabled);
+
   const dashboardSettings = useMemo(() => overviewAsDashboardSettings(settings), [settings]);
-  const widgets =
-    settings.widgets.length > 0 ? settings.widgets : defaultSettings.widgets;
+  const widgets = settings.widgets;
 
   const dataSourceLabel = useCallback(
     (ds: string) => {
@@ -109,17 +156,17 @@ export function OverviewWidgetGrid({
 
   const handleAddWidget = () => {
     const widget: DashboardWidgetConfig = {
-      id: 'w-' + Date.now(),
+      id: createWidgetId('w-'),
       type: (newWidget.type || 'statCard') as DashboardWidgetConfig['type'],
       dataSource: newWidget.dataSource || dataSources[0],
       scope: 'perNetwork',
       title: newWidget.title || '',
       width: newWidget.width || 3,
-      height: newWidget.height || 2,
+      height: OVERVIEW_WIDGET_HEIGHT,
       x: 0,
       y: 0,
     };
-    saveSettings({ ...settings, widgets: [...settings.widgets, widget] });
+    saveSettings((prev) => ({ ...prev, widgets: [...prev.widgets, widget] }));
     setAddWidgetOpen(false);
     setNewWidget({
       type: 'statCard',
@@ -127,17 +174,18 @@ export function OverviewWidgetGrid({
       scope: 'perNetwork',
       title: '',
       width: 3,
-      height: 2,
+      height: OVERVIEW_WIDGET_HEIGHT,
     });
   };
 
   const handleDeleteWidget = (id: string) => {
-    saveSettings({ ...settings, widgets: settings.widgets.filter((w) => w.id !== id) });
+    saveSettings((prev) => ({ ...prev, widgets: prev.widgets.filter((w) => w.id !== id) }));
   };
 
   const handleCopyWidget = (widget: DashboardWidgetConfig) => {
     const copy = copyWidgetConfig(widget, 'w-');
-    saveSettings({ ...settings, widgets: [...settings.widgets, copy] });
+    copy.height = OVERVIEW_WIDGET_HEIGHT;
+    saveSettings((prev) => ({ ...prev, widgets: [...prev.widgets, copy] }));
     notify(t('widgetCopied'), 'success');
   };
 
@@ -146,21 +194,43 @@ export function OverviewWidgetGrid({
     notify(t('layoutReset'), 'info');
   };
 
+  const commitLayoutFromGrid = useCallback(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid?.engine.nodes.length) return;
+    const nodes = grid.engine.nodes;
+    cancelLayoutSave();
+    commitSettings((prev) => {
+      const nextWidgets = prev.widgets.map((w) => {
+        const node = nodes.find((n) => String(n.id) === w.id);
+        if (!node) return w;
+        return {
+          ...w,
+          x: node.x ?? w.x,
+          y: node.y ?? w.y,
+          width: node.w ?? w.width,
+          height: OVERVIEW_WIDGET_HEIGHT,
+        };
+      });
+      const next = { ...prev, widgets: nextWidgets };
+      scheduleLayoutSave(next);
+      return next;
+    });
+  }, [cancelLayoutSave, commitSettings, scheduleLayoutSave]);
+
   const handleAutoArrange = useCallback(() => {
     const grid = gridInstanceRef.current;
     if (!grid) return;
     try {
       grid.compact('compact');
+      commitLayoutFromGrid();
+      flushLayoutSave();
       notify(t('autoArrangeDone'), 'success');
     } catch (e) {
       notify((e as Error).message, 'error');
     }
-  }, [notify, t]);
+  }, [notify, t, commitLayoutFromGrid, flushLayoutSave]);
 
-  const layoutSignature = useMemo(
-    () => widgets.map((w) => `${w.id}_${w.width}_${w.height}`).join(','),
-    [widgets]
-  );
+  const layoutSignature = useMemo(() => widgetLayoutSignature(widgets), [widgets]);
 
   useEffect(() => {
     if (!gridRef.current || disabled) return;
@@ -171,43 +241,24 @@ export function OverviewWidgetGrid({
         cellHeight: 56,
         margin: settings.widgetGap ?? 12,
         staticGrid: !editMode,
-        // float:true —— 重建时严格尊重 gs-x/gs-y，避免间距变化触发吸附重排。
-        // init 完成后立即 grid.float(false) 恢复拖拽下落行为，仅设置标志不重排已有节点。
         float: true,
         animate: true,
+        draggable: { cancel: GRID_DRAG_CANCEL_SELECTOR },
       },
       gridRef.current
     );
     gridInstanceRef.current = grid;
     grid.float(false);
 
-    const onChange = () => {
-      const nodes = grid.engine.nodes;
-      if (!nodes.length) return;
-      setSettings((prev) => {
-        const nextWidgets = prev.widgets.map((w) => {
-          const node = nodes.find((n) => n.id === w.id);
-          if (!node) return w;
-          return {
-            ...w,
-            x: node.x ?? w.x,
-            y: node.y ?? w.y,
-            width: node.w ?? w.width,
-            height: node.h ?? w.height,
-          };
-        });
-        const next = { ...prev, widgets: nextWidgets };
-        scheduleLayoutSave(next);
-        return next;
-      });
+    const onDragOrResizeStop = () => {
+      commitLayoutFromGrid();
+      flushLayoutSave();
     };
-    grid.on('change', onChange);
-    grid.on('dragstop', flushLayoutSave);
-    grid.on('resizestop', flushLayoutSave);
+    grid.on('dragstop', onDragOrResizeStop);
+    grid.on('resizestop', onDragOrResizeStop);
 
     return () => {
       flushLayoutSave();
-      grid.off('change');
       grid.off('dragstop');
       grid.off('resizestop');
       grid.destroy(false);
@@ -257,6 +308,22 @@ export function OverviewWidgetGrid({
           >
             {editMode ? t('done') : t('editOverview')}
           </Button>
+          <Tooltip title={t('editorUndoHint')}>
+            <Button
+              icon={<UndoOutlined />}
+              size="small"
+              onClick={handleUndo}
+              disabled={!editMode || !canUndo}
+            />
+          </Tooltip>
+          <Tooltip title={t('editorRedoHint')}>
+            <Button
+              icon={<RedoOutlined />}
+              size="small"
+              onClick={handleRedo}
+              disabled={!editMode || !canRedo}
+            />
+          </Tooltip>
           <Button
             icon={<PlusOutlined />}
             size="small"
@@ -299,10 +366,10 @@ export function OverviewWidgetGrid({
             gs-x={widget.x}
             gs-y={widget.y}
             gs-w={widget.width}
-            gs-h={widget.height}
-            gs-min-w={2}
-            gs-min-h={2}
-            gs-max-h={2}
+            gs-h={OVERVIEW_WIDGET_HEIGHT}
+            gs-min-w={OVERVIEW_WIDGET_MIN_WIDTH}
+            gs-min-h={OVERVIEW_WIDGET_HEIGHT}
+            gs-max-h={OVERVIEW_WIDGET_HEIGHT}
           >
             <WidgetShell
               widget={widget}
@@ -311,7 +378,11 @@ export function OverviewWidgetGrid({
               lastUpdateTime={lastUpdateTime}
               editOverlay={
                 editMode ? (
-                  <div className="overview-grid-edit-actions">
+                  <div
+                    className={`overview-grid-edit-actions ${GRID_EDIT_NO_DRAG_CLASS}`}
+                    onMouseDown={stopGridDragPointer}
+                    onPointerDown={stopGridDragPointer}
+                  >
                     <Tooltip title={t('editWidget')}>
                       <Button
                         size="small"
@@ -362,7 +433,7 @@ export function OverviewWidgetGrid({
         settings={dashboardSettings}
         onChange={handleSettingsChange}
         widgets={widgets}
-        onWidgetsChange={(w) => saveSettings({ ...settings, widgets: w })}
+        onWidgetsChange={(w) => saveSettings((prev) => ({ ...prev, widgets: w }))}
       />
 
       <Modal
@@ -389,17 +460,17 @@ export function OverviewWidgetGrid({
           <Space>
             <span>{t('width')}:</span>
             <InputNumber
-              min={2}
+              min={OVERVIEW_WIDGET_MIN_WIDTH}
               max={12}
               value={newWidget.width}
               onChange={(v) => setNewWidget({ ...newWidget, width: v || 3 })}
             />
             <span>{t('height')}:</span>
             <InputNumber
-              min={2}
-              max={2}
-              value={newWidget.height}
-              onChange={(v) => setNewWidget({ ...newWidget, height: v || 2 })}
+              min={OVERVIEW_WIDGET_HEIGHT}
+              max={OVERVIEW_WIDGET_HEIGHT}
+              value={OVERVIEW_WIDGET_HEIGHT}
+              disabled
             />
           </Space>
         </Space>
@@ -409,21 +480,23 @@ export function OverviewWidgetGrid({
         open={!!editWidgetTarget}
         widget={editWidgetTarget}
         settings={dashboardSettings}
-        onWidgetChange={(w) => setEditWidgetTarget(w)}
+        onWidgetChange={(w) => setEditWidgetTarget({ ...w, height: OVERVIEW_WIDGET_HEIGHT })}
         onOk={() => {
           if (editWidgetTarget) {
-            saveSettings({
-              ...settings,
-              widgets: settings.widgets.map((w) =>
-                w.id === editWidgetTarget.id ? editWidgetTarget : w
-              ),
-            });
+            const target = { ...editWidgetTarget, height: OVERVIEW_WIDGET_HEIGHT };
+            saveSettings((prev) => ({
+              ...prev,
+              widgets: prev.widgets.map((w) => (w.id === target.id ? target : w)),
+            }));
           }
           setEditWidgetTarget(null);
         }}
         onCancel={() => setEditWidgetTarget(null)}
         allowedDataSources={dataSources}
         allowedWidgetTypes={WIDGET_TYPES}
+        widthMin={OVERVIEW_WIDGET_MIN_WIDTH}
+        heightMin={OVERVIEW_WIDGET_HEIGHT}
+        heightMax={OVERVIEW_WIDGET_HEIGHT}
       />
     </div>
   );

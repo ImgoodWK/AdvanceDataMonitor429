@@ -41,6 +41,7 @@ import com.imgood.textech.webae.api.handler.ScannerHandler;
 import com.imgood.textech.webae.api.handler.SearchHandler;
 import com.imgood.textech.webae.api.handler.ServerDiagnosticsHandler;
 import com.imgood.textech.webae.api.handler.ServerHealthHandler;
+import com.imgood.textech.webae.api.handler.SparkHandler;
 import com.imgood.textech.webae.api.handler.StorageHandler;
 import com.imgood.textech.webae.api.handler.StoragePagedHandler;
 import com.imgood.textech.webae.api.handler.TopologyHandler;
@@ -442,6 +443,13 @@ public class WebApiRouter {
 
             return ServerDiagnosticsHandler.handle();
 
+        }
+
+        if ("/api/spark".equals(uri) || "/api/spark/profile".equals(uri)
+            || "/api/spark/stop".equals(uri) || "/api/spark/history".equals(uri)
+            || uri.startsWith("/api/spark/history/")) {
+            String body = method == NanoHTTPD.Method.POST ? readBody(session) : null;
+            return SparkHandler.handle(uri, method, body, auth, adminHeader);
         }
 
         // ---- Admin player management ----

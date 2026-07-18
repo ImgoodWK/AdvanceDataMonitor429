@@ -27,6 +27,11 @@ interface EditWidgetModalProps {
   onCancel: () => void;
   allowedDataSources?: string[];
   allowedWidgetTypes?: DashboardWidgetConfig['type'][];
+  /** Optional size clamps (Overview fixes height to 2). */
+  widthMin?: number;
+  widthMax?: number;
+  heightMin?: number;
+  heightMax?: number;
   storage?: StorageDto | null;
   gtMachines?: GtMachineDto[] | null;
   balanceSuggestions?: Array<{
@@ -70,6 +75,10 @@ export function EditWidgetModal({
   onCancel,
   allowedDataSources,
   allowedWidgetTypes,
+  widthMin = 1,
+  widthMax = 12,
+  heightMin = 1,
+  heightMax = 10,
   storage,
   gtMachines,
   balanceSuggestions,
@@ -166,6 +175,8 @@ export function EditWidgetModal({
     patch({
       dataSource: v,
       type: typeOk ? widget.type : valid.find((tp) => allWidgetTypes.includes(tp)) ?? widget.type,
+      // Column keys are data-source specific; let the new source choose its defaults.
+      columns: undefined,
     });
   };
 
@@ -384,20 +395,21 @@ export function EditWidgetModal({
                     <Text strong>{t('width')}</Text>
                     <InputNumber
                       style={{ marginTop: 4, display: 'block' }}
-                      min={1}
-                      max={12}
+                      min={widthMin}
+                      max={widthMax}
                       value={widget.width}
-                      onChange={(v) => patch({ width: v ?? 3 })}
+                      onChange={(v) => patch({ width: v ?? widthMin })}
                     />
                   </div>
                   <div>
                     <Text strong>{t('height')}</Text>
                     <InputNumber
                       style={{ marginTop: 4, display: 'block' }}
-                      min={1}
-                      max={10}
+                      min={heightMin}
+                      max={heightMax}
                       value={widget.height}
-                      onChange={(v) => patch({ height: v ?? 2 })}
+                      onChange={(v) => patch({ height: v ?? heightMin })}
+                      disabled={heightMin === heightMax}
                     />
                   </div>
                 </Space>

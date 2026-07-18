@@ -81,8 +81,11 @@ export function addChildToGroup(
   });
 }
 
-/** Signature covering ids + geometry at every nesting level (rebuild GridStack). */
-export function widgetLayoutSignature(widgets: DashboardWidgetConfig[]): string {
+/**
+ * Structure-only signature (ids, size, type, flags, nesting) — no x/y.
+ * Used inside groups so outer grids do not remount when children are dragged.
+ */
+export function widgetStructureSignature(widgets: DashboardWidgetConfig[]): string {
   return widgets
     .map((w) => {
       const flags = [
@@ -93,7 +96,34 @@ export function widgetLayoutSignature(widgets: DashboardWidgetConfig[]): string 
       ].join('');
       const base = `${w.id}_${w.width}_${w.height}_${w.type}_${flags}`;
       if (w.type === 'group') {
-        return `${base}{${widgetLayoutSignature(w.children || [])}}`;
+        return `${base}{${widgetStructureSignature(w.children || [])}}`;
+      }
+      return base;
+    })
+    .join(',');
+}
+
+/**
+ * Signature covering ids + geometry at every nesting level for a single grid.
+ * Includes x/y so import or external coordinate replacement remounts that grid.
+ * Nested group children use structure-only signatures so outer grids do not
+ * remount when an inner grid commits positions.
+ *
+ * Callers must not write x/y into React state on every GridStack `change` —
+ * only on dragstop/resizestop/compact — or remount jitter will occur.
+ */
+export function widgetLayoutSignature(widgets: DashboardWidgetConfig[]): string {
+  return widgets
+    .map((w) => {
+      const flags = [
+        w.locked ? 'L' : '',
+        w.noMove ? 'M' : '',
+        w.noResize ? 'R' : '',
+        w.sizeToContent ? 'S' : '',
+      ].join('');
+      const base = `${w.id}_${w.x ?? 0}_${w.y ?? 0}_${w.width}_${w.height}_${w.type}_${flags}`;
+      if (w.type === 'group') {
+        return `${base}{${widgetStructureSignature(w.children || [])}}`;
       }
       return base;
     })

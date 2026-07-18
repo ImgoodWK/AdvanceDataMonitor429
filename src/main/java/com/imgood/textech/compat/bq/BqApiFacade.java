@@ -19,6 +19,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.Config;
 import com.imgood.textech.webae.dto.QuestDetailDto;
 import com.imgood.textech.webae.dto.QuestRelationDto;
 import com.imgood.textech.webae.dto.QuestLineEdgeDto;
@@ -278,7 +279,234 @@ public final class BqApiFacade {
                 appendRewardDtos(dto.rewards, rewardEntry.id, rewardEntry.value);
             }
         }
+        fillWebClaimFlags(dto);
         return dto;
+    }
+
+    /**
+     * Marks {@link QuestDetailDto#webClaimable} when the quest is unclaimed and every reward is a
+     * deterministic item or choice factory.
+     */
+    private static void fillWebClaimFlags(QuestDetailDto dto) {
+        if (dto == null) {
+            return;
+        }
+        dto.webClaimable = false;
+        dto.claimBlockReason = "";
+        if (!Config.webQuestClaimEnabled) {
+            dto.claimBlockReason = "claim_disabled";
+            return;
+        }
+        boolean unclaimed = "UNCLAIMED".equals(dto.state) || dto.canClaim;
+        if (!unclaimed || dto.hasClaimed) {
+            dto.claimBlockReason = "not_unclaimed";
+            return;
+        }
+        if (dto.rewards == null || dto.rewards.isEmpty()) {
+            // No rewards → BQ treats as already claimed; nothing for WebAE to deliver.
+            dto.claimBlockReason = "no_rewards";
+            return;
+        }
+        boolean anyUnsupported = false;
+        boolean anyEmptyItem = false;
+        for (QuestRewardDto reward : dto.rewards) {
+            if (reward == null) {
+                continue;
+            }
+            if (!reward.webClaimable || "unsupported".equals(reward.kind)) {
+                anyUnsupported = true;
+                break;
+            }
+            if (("item".equals(reward.kind) || reward.choiceOption)
+                && (reward.registryName == null || reward.registryName.isEmpty() || reward.amount <= 0)) {
+                anyEmptyItem = true;
+            }
+        }
+        if (anyUnsupported) {
+            dto.claimBlockReason = "non_item_reward";
+            return;
+        }
+        if (anyEmptyItem) {
+            dto.claimBlockReason = "empty_item";
+            return;
+        }
+        dto.webClaimable = true;
+    }
+
+    public static Object getQuest(UUID questId) {
+        if (questId == null || !ensureInit()) {
+            return null;
+        }
+        return getFromDb(questDb, questId);
+    }
+
+    public static boolean canClaimQuest(Object quest, EntityPlayerMP player) {
+        if (quest == null || player == null) {
+            return false;
+        }
+        try {
+            Method m = quest.getClass()
+                .getMethod("canClaim", EntityPlayer.class, boolean.class);
+            Object result = m.invoke(quest, player, Boolean.FALSE);
+            return result instanceof Boolean && ((Boolean) result).booleanValue();
+        } catch (Throwable ignored) {}
+        return invokeBoolean(quest, "canClaimBasically", player);
+    }
+
+    public static boolean claimQuestRewards(Object quest, EntityPlayerMP player) {
+        if (quest == null || player == null) {
+            return false;
+        }
+        try {
+            Method m = quest.getClass()
+                .getMethod("claimReward", EntityPlayer.class, boolean.class);
+            m.invoke(quest, player, Boolean.FALSE);
+            return true;
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE Quest] claimReward failed: {}", t.toString());
+            return false;
+        }
+    }
+
+    /**
+     * Applies choice selections via {@code RewardChoice#setSelection(UUID, int)}.
+     *
+     * @return false if any listed reward id is missing or not a choice reward
+     */
+    public static boolean applyChoiceSelections(Object quest, UUID questingUuid, Map<String, Integer> selections) {
+        if (quest == null || questingUuid == null) {
+            return false;
+        }
+        if (selections == null || selections.isEmpty()) {
+            return true;
+        }
+        Object rewardsDb = invoke(quest, "getRewards");
+        if (rewardsDb == null) {
+            return false;
+        }
+        for (Map.Entry<String, Integer> entry : selections.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                return false;
+            }
+            int rewardId;
+            try {
+                rewardId = Integer.parseInt(entry.getKey());
+            } catch (NumberFormatException e) {
+                return false;
+            }
+            Object reward = getRewardValue(rewardsDb, rewardId);
+            if (reward == null || !isChoiceFactory(readFactoryId(reward))) {
+                return false;
+            }
+            if (!setChoiceSelection(reward, questingUuid, entry.getValue()
+                .intValue())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Expected item stacks after choice selections are applied. Returns {@code null} if any reward is
+     * not a supported item/choice factory.
+     */
+    public static List<ItemStack> collectExpectedClaimStacks(Object quest, UUID questingUuid) {
+        List<ItemStack> out = new ArrayList<ItemStack>();
+        if (quest == null) {
+            return null;
+        }
+        Object rewardsDb = invoke(quest, "getRewards");
+        if (rewardsDb == null) {
+            return out;
+        }
+        for (IndexedEntry entry : entriesOfIndexedDb(rewardsDb)) {
+            Object reward = entry.value;
+            if (reward == null) {
+                continue;
+            }
+            String factoryId = readFactoryId(reward);
+            if (isItemFactory(factoryId)) {
+                List<ItemStack> stacks = extractRewardItemStacks(reward, "items");
+                if (stacks.isEmpty()) {
+                    stacks = extractRewardItemStacks(reward, "rewards");
+                }
+                if (stacks.isEmpty()) {
+                    return null;
+                }
+                out.addAll(stacks);
+            } else if (isChoiceFactory(factoryId)) {
+                int selected = getChoiceSelection(reward, questingUuid);
+                List<ItemStack> choices = extractRewardItemStacks(reward, "choices");
+                if (selected < 0 || selected >= choices.size()) {
+                    return null;
+                }
+                ItemStack picked = choices.get(selected);
+                if (picked == null) {
+                    return null;
+                }
+                out.add(picked.copy());
+            } else {
+                return null;
+            }
+        }
+        return out;
+    }
+
+    private static Object getRewardValue(Object rewardsDb, int rewardId) {
+        if (rewardsDb == null) {
+            return null;
+        }
+        try {
+            Method getValue = rewardsDb.getClass()
+                .getMethod("getValue", int.class);
+            return getValue.invoke(rewardsDb, Integer.valueOf(rewardId));
+        } catch (Throwable ignored) {}
+        for (IndexedEntry entry : entriesOfIndexedDb(rewardsDb)) {
+            if (entry.id != null && entry.id.equals(String.valueOf(rewardId))) {
+                return entry.value;
+            }
+        }
+        return null;
+    }
+
+    private static boolean setChoiceSelection(Object reward, UUID questingUuid, int index) {
+        try {
+            Method m = reward.getClass()
+                .getMethod("setSelection", UUID.class, int.class);
+            m.invoke(reward, questingUuid, Integer.valueOf(index));
+            return true;
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE Quest] setSelection failed: {}", t.toString());
+            return false;
+        }
+    }
+
+    private static int getChoiceSelection(Object reward, UUID questingUuid) {
+        try {
+            Method m = reward.getClass()
+                .getMethod("getSelecton", UUID.class);
+            Object result = m.invoke(reward, questingUuid);
+            if (result instanceof Number) {
+                return ((Number) result).intValue();
+            }
+        } catch (Throwable ignored) {}
+        try {
+            Method m = reward.getClass()
+                .getMethod("getSelection", UUID.class);
+            Object result = m.invoke(reward, questingUuid);
+            if (result instanceof Number) {
+                return ((Number) result).intValue();
+            }
+        } catch (Throwable ignored) {}
+        return -1;
+    }
+
+    private static boolean isItemFactory(String factoryId) {
+        return "bq_standard:item".equals(factoryId);
+    }
+
+    private static boolean isChoiceFactory(String factoryId) {
+        return "bq_standard:choice".equals(factoryId);
     }
 
     public static QuestProgressDto collectProgress(EntityPlayerMP player) {
@@ -385,13 +613,6 @@ public final class BqApiFacade {
             }
         }
         return hits;
-    }
-
-    public static Object getQuest(UUID questId) {
-        if (questId == null || !ensureInit()) {
-            return null;
-        }
-        return getFromDb(questDb, questId);
     }
 
     public static void detectQuest(Object quest, EntityPlayerMP player) {
@@ -1330,39 +1551,95 @@ public final class BqApiFacade {
         String factoryId = readFactoryId(reward);
         String name = localize(invokeString(reward, "getUnlocalisedName"));
         String description = readRewardText(reward);
-        List<ItemStack> stacks = extractAllRewardStacks(reward);
-        if (stacks.isEmpty()) {
-            QuestRewardDto dto = new QuestRewardDto();
-            dto.index = out.size();
-            dto.rewardId = rewardId != null ? rewardId : "";
-            dto.factoryId = factoryId;
-            dto.name = name;
-            dto.description = description;
+        String id = rewardId != null ? rewardId : "";
+
+        if (isChoiceFactory(factoryId)) {
+            List<ItemStack> choices = extractRewardItemStacks(reward, "choices");
+            if (choices.isEmpty()) {
+                QuestRewardDto dto = baseRewardDto(out.size(), id, factoryId, name, description);
+                dto.kind = "unsupported";
+                dto.webClaimable = false;
+                out.add(dto);
+                return;
+            }
+            for (int i = 0; i < choices.size(); i++) {
+                QuestRewardDto dto = baseRewardDto(out.size(), id, factoryId, name, description);
+                dto.kind = "choice";
+                dto.choiceOption = true;
+                dto.choiceIndex = i;
+                dto.webClaimable = true;
+                fillRewardItemFields(dto, choices.get(i));
+                out.add(dto);
+            }
+            return;
+        }
+
+        if (isItemFactory(factoryId)) {
+            List<ItemStack> stacks = extractRewardItemStacks(reward, "items");
+            if (stacks.isEmpty()) {
+                stacks = extractRewardItemStacks(reward, "rewards");
+            }
+            if (stacks.isEmpty()) {
+                QuestRewardDto dto = baseRewardDto(out.size(), id, factoryId, name, description);
+                dto.kind = "unsupported";
+                dto.webClaimable = false;
+                out.add(dto);
+                return;
+            }
+            for (int i = 0; i < stacks.size(); i++) {
+                QuestRewardDto dto = baseRewardDto(out.size(), id, factoryId, name, description);
+                dto.kind = "item";
+                dto.choiceOption = false;
+                dto.choiceIndex = -1;
+                dto.webClaimable = true;
+                fillRewardItemFields(dto, stacks.get(i));
+                out.add(dto);
+            }
+            return;
+        }
+
+        // Unsupported / non-item: still emit a preview row when possible.
+        List<ItemStack> preview = extractAllRewardStacks(reward);
+        if (preview.isEmpty()) {
+            QuestRewardDto dto = baseRewardDto(out.size(), id, factoryId, name, description);
+            dto.kind = "unsupported";
+            dto.webClaimable = false;
             out.add(dto);
             return;
         }
-        for (int i = 0; i < stacks.size(); i++) {
-            ItemStack stack = stacks.get(i);
-            QuestRewardDto dto = new QuestRewardDto();
-            dto.index = out.size();
-            dto.rewardId = stacks.size() == 1 ? (rewardId != null ? rewardId : "")
-                : ((rewardId != null ? rewardId : "") + ":" + i);
-            dto.factoryId = factoryId;
-            dto.name = name;
-            dto.description = description;
-            if (stack != null) {
-                int meta = normalizeMeta(stack.getItemDamage());
-                dto.registryName = registryNameForStack(stack);
-                dto.itemId = RecipeItemEntries.buildItemId(dto.registryName, meta);
-                dto.meta = meta;
-                dto.iconItemId = resolveDisplayIconItemId(stack);
-                dto.amount = stack.stackSize;
-                String display = stack.getDisplayName();
-                if (display != null && !display.isEmpty()) {
-                    dto.name = display;
-                }
-            }
+        for (int i = 0; i < preview.size(); i++) {
+            QuestRewardDto dto = baseRewardDto(out.size(), id, factoryId, name, description);
+            dto.kind = "unsupported";
+            dto.webClaimable = false;
+            fillRewardItemFields(dto, preview.get(i));
             out.add(dto);
+        }
+    }
+
+    private static QuestRewardDto baseRewardDto(int index, String rewardId, String factoryId, String name,
+        String description) {
+        QuestRewardDto dto = new QuestRewardDto();
+        dto.index = index;
+        dto.rewardId = rewardId != null ? rewardId : "";
+        dto.factoryId = factoryId;
+        dto.name = name;
+        dto.description = description;
+        return dto;
+    }
+
+    private static void fillRewardItemFields(QuestRewardDto dto, ItemStack stack) {
+        if (dto == null || stack == null) {
+            return;
+        }
+        int meta = normalizeMeta(stack.getItemDamage());
+        dto.registryName = registryNameForStack(stack);
+        dto.itemId = RecipeItemEntries.buildItemId(dto.registryName, meta);
+        dto.meta = meta;
+        dto.iconItemId = resolveDisplayIconItemId(stack);
+        dto.amount = stack.stackSize;
+        String display = stack.getDisplayName();
+        if (display != null && !display.isEmpty()) {
+            dto.name = display;
         }
     }
 
@@ -1373,7 +1650,7 @@ public final class BqApiFacade {
         }
         String[] fields = new String[] { "items", "choices", "rewards", "reward", "item" };
         for (int i = 0; i < fields.length; i++) {
-            List<ItemStack> fromField = extractRewardStacksFromField(reward, fields[i]);
+            List<ItemStack> fromField = extractRewardItemStacks(reward, fields[i]);
             if (!fromField.isEmpty()) {
                 return fromField;
             }
@@ -1381,7 +1658,10 @@ public final class BqApiFacade {
         return out;
     }
 
-    private static List<ItemStack> extractRewardStacksFromField(Object reward, String fieldName) {
+    /**
+     * Reads BigItemStack / ItemStack lists from a reward field, preserving {@code BigItemStack.stackSize}.
+     */
+    private static List<ItemStack> extractRewardItemStacks(Object reward, String fieldName) {
         List<ItemStack> out = new ArrayList<ItemStack>();
         try {
             Field f = findField(reward.getClass(), fieldName);
@@ -1411,12 +1691,61 @@ public final class BqApiFacade {
         return out;
     }
 
+    private static List<ItemStack> extractRewardStacksFromField(Object reward, String fieldName) {
+        return extractRewardItemStacks(reward, fieldName);
+    }
+
     private static ItemStack stackFromRewardValue(Object val) {
-        ItemStack stack = bigStackToItem(val);
+        ItemStack stack = bigStackToItemWithCount(val);
         if (stack == null && val instanceof ItemStack) {
-            stack = (ItemStack) val;
+            stack = ((ItemStack) val).copy();
         }
         return stack;
+    }
+
+    /** Prefer BigItemStack count; fall back to base stack. */
+    private static ItemStack bigStackToItemWithCount(Object bigStack) {
+        ItemStack base = bigStackToItem(bigStack);
+        if (base == null) {
+            return null;
+        }
+        ItemStack copy = base.copy();
+        int count = readBigStackSize(bigStack);
+        if (count > 0) {
+            copy.stackSize = count;
+        } else if (copy.stackSize <= 0) {
+            copy.stackSize = 1;
+        }
+        return copy;
+    }
+
+    private static int readBigStackSize(Object bigStack) {
+        if (bigStack == null) {
+            return -1;
+        }
+        try {
+            Field f = bigStack.getClass()
+                .getField("stackSize");
+            Object val = f.get(bigStack);
+            if (val instanceof Number) {
+                return ((Number) val).intValue();
+            }
+        } catch (Throwable ignored) {}
+        try {
+            Method m = bigStack.getClass()
+                .getMethod("getCombinedStacks");
+            Object list = m.invoke(bigStack);
+            if (list instanceof List) {
+                int total = 0;
+                for (Object o : (List<?>) list) {
+                    if (o instanceof ItemStack) {
+                        total += ((ItemStack) o).stackSize;
+                    }
+                }
+                return total;
+            }
+        } catch (Throwable ignored) {}
+        return -1;
     }
 
     private static Field findField(Class<?> type, String name) {

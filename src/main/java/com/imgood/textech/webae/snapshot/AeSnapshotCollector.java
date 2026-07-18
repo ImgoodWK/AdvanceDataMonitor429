@@ -370,9 +370,17 @@ public class AeSnapshotCollector {
                 ItemStack stack = stored.getItemStack();
                 if (stack == null || stack.getItem() == null) continue;
 
-                // Deferred displayName: avoid expensive I18n lookup on the main tick.
-                // The frontend resolves display names from its own NEI/icon cache.
+                // The dashboard's name column uses this field; keep the registry name
+                // separate so users can opt into either representation.
                 String displayName = "";
+                try {
+                    String resolvedName = stack.getDisplayName();
+                    if (resolvedName != null) {
+                        displayName = resolvedName;
+                    }
+                } catch (Throwable ignored) {
+                    // Keep the registry name as the frontend fallback.
+                }
 
                 int meta = stack.getItemDamage();
                 if (meta == Short.MAX_VALUE) meta = 0;

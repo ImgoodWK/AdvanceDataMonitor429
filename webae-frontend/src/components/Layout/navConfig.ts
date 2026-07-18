@@ -19,6 +19,7 @@ import {
   RobotOutlined,
   BellOutlined,
   CrownOutlined,
+  LineChartOutlined,
 } from '@ant-design/icons';
 import type { PageId } from '@/context/AppContext';
 
@@ -49,6 +50,7 @@ export const NAV_PAGES: NavPageEntry[] = [
   { id: 'quests', iconKey: 'ReadOutlined', Icon: ReadOutlined, labelKey: 'questsPage' },
   { id: 'assistant', iconKey: 'RobotOutlined', Icon: RobotOutlined, labelKey: 'assistantPage' },
   { id: 'alertshistory', iconKey: 'BellOutlined', Icon: BellOutlined, labelKey: 'alertsHistoryPage' },
+  { id: 'spark', iconKey: 'LineChartOutlined', Icon: LineChartOutlined, labelKey: 'sparkPage' },
   { id: 'admin', iconKey: 'CrownOutlined', Icon: CrownOutlined, labelKey: 'adminPage' },
   { id: 'settings', iconKey: 'SettingOutlined', Icon: SettingOutlined, labelKey: 'settings' },
 ];

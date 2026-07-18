@@ -5,6 +5,10 @@ alwaysApply: true
 
 # 文档与规则同步
 
+Codex 的项目入口是根目录 `AGENTS.md`；本文件保留为 Cursor / Codex 共用的
+详细同步规则。涉及行为、配置、手册、lang 或结构规则的任务，必须同时检查
+`AGENTS.md` 中的路由表，必要时更新对应条目。
+
 ## Agent 读文档策略（减 token）
 
 - **默认单语**：中文任务只读 `docs/zh/`；英文任务只读 `docs/en/`。不要同时全量读双语。

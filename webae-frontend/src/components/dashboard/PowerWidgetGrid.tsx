@@ -10,12 +10,15 @@ import {
   SettingOutlined,
   AlignLeftOutlined,
   ControlOutlined,
+  UndoOutlined,
+  RedoOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { useNetworkMetrics } from '@/hooks/useNetworkMetrics';
 import { useDebouncedLocalStorageSaver } from '@/hooks/useDebouncedLocalStorageSaver';
+import { useEditorHistory, useUndoRedoHotkeys } from '@/hooks/useEditorHistory';
 import {
   overviewAsDashboardSettings,
   DEFAULT_POWER_SETTINGS,
@@ -30,6 +33,13 @@ import { EditWidgetModal } from '@/components/dashboard/EditWidgetModal';
 import { PowerWidgetContent } from '@/components/dashboard/PowerWidgetContent';
 import { WidgetShell } from '@/components/dashboard/WidgetShell';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
+import { createWidgetId } from '@/utils/widgetId';
+import { widgetLayoutSignature } from '@/utils/dashboardTree';
+import {
+  GRID_DRAG_CANCEL_SELECTOR,
+  GRID_EDIT_NO_DRAG_CLASS,
+  stopGridDragPointer,
+} from '@/utils/gridStackEditGuard';
 import { POWER_DATA_SOURCES, type PowerSnapshot } from '@/utils/powerDataSources';
 
 const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
@@ -56,7 +66,14 @@ export function PowerWidgetGrid({
   const networkMetrics = useNetworkMetrics();
   const primaryNetworkId = selectedNetworks[0] ?? 0;
   const [editMode, setEditMode] = useState(false);
-  const [settings, setSettings] = useState<PowerSettings>(() =>
+  const {
+    present: settings,
+    commit: commitSettings,
+    undo: undoSettings,
+    redo: redoSettings,
+    canUndo,
+    canRedo,
+  } = useEditorHistory<PowerSettings>(() =>
     loadOverviewSettingsFromStorage(POWER_CONFIG_KEY, DEFAULT_POWER_SETTINGS)
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -73,11 +90,10 @@ export function PowerWidgetGrid({
 
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
-  const { schedule: scheduleLayoutSave, flush: flushLayoutSave } =
+  const { schedule: scheduleLayoutSave, flush: flushLayoutSave, cancel: cancelLayoutSave } =
     useDebouncedLocalStorageSaver<PowerSettings>(POWER_CONFIG_KEY);
 
-  const saveSettings = useCallback((s: PowerSettings) => {
-    setSettings(s);
+  const persistSettings = useCallback((s: PowerSettings) => {
     try {
       localStorage.setItem(POWER_CONFIG_KEY, JSON.stringify(s));
     } catch {
@@ -85,8 +101,36 @@ export function PowerWidgetGrid({
     }
   }, []);
 
+  const saveSettings = useCallback(
+    (s: PowerSettings | ((prev: PowerSettings) => PowerSettings)) => {
+      cancelLayoutSave();
+      commitSettings((prev) => {
+        const next = typeof s === 'function' ? s(prev) : s;
+        persistSettings(next);
+        return next;
+      });
+    },
+    [cancelLayoutSave, commitSettings, persistSettings]
+  );
+
+  const handleUndo = useCallback(() => {
+    const restored = undoSettings();
+    if (!restored) return;
+    cancelLayoutSave();
+    persistSettings(restored);
+  }, [undoSettings, cancelLayoutSave, persistSettings]);
+
+  const handleRedo = useCallback(() => {
+    const restored = redoSettings();
+    if (!restored) return;
+    cancelLayoutSave();
+    persistSettings(restored);
+  }, [redoSettings, cancelLayoutSave, persistSettings]);
+
+  useUndoRedoHotkeys(handleUndo, handleRedo, editMode && !disabled);
+
   const dashboardSettings = useMemo(() => overviewAsDashboardSettings(settings), [settings]);
-  const widgets = settings.widgets.length > 0 ? settings.widgets : DEFAULT_POWER_SETTINGS.widgets;
+  const widgets = settings.widgets;
 
   const dataSourceLabel = useCallback(
     (ds: string) => {
@@ -99,7 +143,7 @@ export function PowerWidgetGrid({
 
   const handleAddWidget = () => {
     const widget: DashboardWidgetConfig = {
-      id: 'pw-' + Date.now(),
+      id: createWidgetId('pw-'),
       type: (newWidget.type || 'statCard') as DashboardWidgetConfig['type'],
       dataSource: newWidget.dataSource || POWER_DATA_SOURCES[0],
       scope: 'perNetwork',
@@ -109,7 +153,7 @@ export function PowerWidgetGrid({
       x: 0,
       y: 0,
     };
-    saveSettings({ ...settings, widgets: [...settings.widgets, widget] });
+    saveSettings((prev) => ({ ...prev, widgets: [...prev.widgets, widget] }));
     setAddWidgetOpen(false);
     setNewWidget({
       type: 'statCard',
@@ -122,12 +166,12 @@ export function PowerWidgetGrid({
   };
 
   const handleDeleteWidget = (id: string) => {
-    saveSettings({ ...settings, widgets: settings.widgets.filter((w) => w.id !== id) });
+    saveSettings((prev) => ({ ...prev, widgets: prev.widgets.filter((w) => w.id !== id) }));
   };
 
   const handleCopyWidget = (widget: DashboardWidgetConfig) => {
     const copy = copyWidgetConfig(widget, 'pw-');
-    saveSettings({ ...settings, widgets: [...settings.widgets, copy] });
+    saveSettings((prev) => ({ ...prev, widgets: [...prev.widgets, copy] }));
     notify(t('widgetCopied'), 'success');
   };
 
@@ -136,21 +180,43 @@ export function PowerWidgetGrid({
     notify(t('layoutReset'), 'info');
   };
 
+  const commitLayoutFromGrid = useCallback(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid?.engine.nodes.length) return;
+    const nodes = grid.engine.nodes;
+    cancelLayoutSave();
+    commitSettings((prev) => {
+      const nextWidgets = prev.widgets.map((w) => {
+        const node = nodes.find((n) => String(n.id) === w.id);
+        if (!node) return w;
+        return {
+          ...w,
+          x: node.x ?? w.x,
+          y: node.y ?? w.y,
+          width: node.w ?? w.width,
+          height: node.h ?? w.height,
+        };
+      });
+      const next = { ...prev, widgets: nextWidgets };
+      scheduleLayoutSave(next);
+      return next;
+    });
+  }, [cancelLayoutSave, commitSettings, scheduleLayoutSave]);
+
   const handleAutoArrange = useCallback(() => {
     const grid = gridInstanceRef.current;
     if (!grid) return;
     try {
       grid.compact('compact');
+      commitLayoutFromGrid();
+      flushLayoutSave();
       notify(t('autoArrangeDone'), 'success');
     } catch (e) {
       notify((e as Error).message, 'error');
     }
-  }, [notify, t]);
+  }, [notify, t, commitLayoutFromGrid, flushLayoutSave]);
 
-  const layoutSignature = useMemo(
-    () => widgets.map((w) => `${w.id}_${w.width}_${w.height}`).join(','),
-    [widgets]
-  );
+  const layoutSignature = useMemo(() => widgetLayoutSignature(widgets), [widgets]);
 
   useEffect(() => {
     if (!gridRef.current || disabled) return;
@@ -161,43 +227,24 @@ export function PowerWidgetGrid({
         cellHeight: 64,
         margin: settings.widgetGap ?? 12,
         staticGrid: !editMode,
-        // float:true —— 重建时严格尊重 gs-x/gs-y，避免间距变化触发吸附重排。
-        // init 完成后立即 grid.float(false) 恢复拖拽下落行为，仅设置标志不重排已有节点。
         float: true,
         animate: true,
+        draggable: { cancel: GRID_DRAG_CANCEL_SELECTOR },
       },
       gridRef.current
     );
     gridInstanceRef.current = grid;
     grid.float(false);
 
-    const onChange = () => {
-      const nodes = grid.engine.nodes;
-      if (!nodes.length) return;
-      setSettings((prev) => {
-        const nextWidgets = prev.widgets.map((w) => {
-          const node = nodes.find((n) => n.id === w.id);
-          if (!node) return w;
-          return {
-            ...w,
-            x: node.x ?? w.x,
-            y: node.y ?? w.y,
-            width: node.w ?? w.width,
-            height: node.h ?? w.height,
-          };
-        });
-        const next = { ...prev, widgets: nextWidgets };
-        scheduleLayoutSave(next);
-        return next;
-      });
+    const onDragOrResizeStop = () => {
+      commitLayoutFromGrid();
+      flushLayoutSave();
     };
-    grid.on('change', onChange);
-    grid.on('dragstop', flushLayoutSave);
-    grid.on('resizestop', flushLayoutSave);
+    grid.on('dragstop', onDragOrResizeStop);
+    grid.on('resizestop', onDragOrResizeStop);
 
     return () => {
       flushLayoutSave();
-      grid.off('change');
       grid.off('dragstop');
       grid.off('resizestop');
       grid.destroy(false);
@@ -247,6 +294,22 @@ export function PowerWidgetGrid({
           >
             {editMode ? t('done') : t('editPowerLayout')}
           </Button>
+          <Tooltip title={t('editorUndoHint')}>
+            <Button
+              icon={<UndoOutlined />}
+              size="small"
+              onClick={handleUndo}
+              disabled={!editMode || !canUndo}
+            />
+          </Tooltip>
+          <Tooltip title={t('editorRedoHint')}>
+            <Button
+              icon={<RedoOutlined />}
+              size="small"
+              onClick={handleRedo}
+              disabled={!editMode || !canRedo}
+            />
+          </Tooltip>
           <Button
             icon={<PlusOutlined />}
             size="small"
@@ -300,9 +363,18 @@ export function PowerWidgetGrid({
               lastUpdateTime={lastUpdateTime}
               editOverlay={
                 editMode ? (
-                  <div className="power-grid-edit-actions">
+                  <div
+                    className={`power-grid-edit-actions ${GRID_EDIT_NO_DRAG_CLASS}`}
+                    onMouseDown={stopGridDragPointer}
+                    onPointerDown={stopGridDragPointer}
+                  >
                     <Tooltip title={t('editWidget')}>
-                      <Button size="small" icon={<SettingOutlined />} onClick={() => setEditWidgetTarget(widget)} aria-label={t('editWidget')} />
+                      <Button
+                        size="small"
+                        icon={<SettingOutlined />}
+                        onClick={() => setEditWidgetTarget(widget)}
+                        aria-label={t('editWidget')}
+                      />
                     </Tooltip>
                     <Tooltip title={t('copyWidget')}>
                       <Button
@@ -313,7 +385,13 @@ export function PowerWidgetGrid({
                       />
                     </Tooltip>
                     <Tooltip title={t('deleteWidget')}>
-                      <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteWidget(widget.id)} aria-label={t('deleteWidget')} />
+                      <Button
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDeleteWidget(widget.id)}
+                        aria-label={t('deleteWidget')}
+                      />
                     </Tooltip>
                   </div>
                 ) : undefined
@@ -341,7 +419,7 @@ export function PowerWidgetGrid({
         settings={dashboardSettings}
         onChange={handleSettingsChange}
         widgets={widgets}
-        onWidgetsChange={(w) => saveSettings({ ...settings, widgets: w })}
+        onWidgetsChange={(w) => saveSettings((prev) => ({ ...prev, widgets: w }))}
       />
 
       <Modal
@@ -394,18 +472,20 @@ export function PowerWidgetGrid({
         onWidgetChange={(w) => setEditWidgetTarget(w)}
         onOk={() => {
           if (editWidgetTarget) {
-            saveSettings({
-              ...settings,
-              widgets: settings.widgets.map((w) =>
-                w.id === editWidgetTarget.id ? editWidgetTarget : w
-              ),
-            });
+            const target = editWidgetTarget;
+            saveSettings((prev) => ({
+              ...prev,
+              widgets: prev.widgets.map((w) => (w.id === target.id ? target : w)),
+            }));
           }
           setEditWidgetTarget(null);
         }}
         onCancel={() => setEditWidgetTarget(null)}
         allowedDataSources={POWER_DATA_SOURCES}
         allowedWidgetTypes={WIDGET_TYPES}
+        widthMin={2}
+        heightMin={2}
+        heightMax={10}
       />
     </div>
   );

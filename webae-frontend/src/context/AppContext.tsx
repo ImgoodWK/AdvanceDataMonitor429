@@ -103,6 +103,7 @@ export type PageId =
   | 'quests'
   | 'assistant'
   | 'alertshistory'
+  | 'spark'
   | 'diagnostics'
   | 'admin'
   | 'settings';

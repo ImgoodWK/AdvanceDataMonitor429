@@ -71,7 +71,7 @@ export function WidgetPinEditor({
           }>(`/api/recipes/suggest?q=${encodeURIComponent(q.trim())}&limit=15`);
           const list = resp.suggestions || resp.items || [];
           for (const s of list) {
-            const id = s.itemId || (s.registryName ? (s.meta ? `${s.registryName}:${s.meta}` : s.registryName) : '');
+            const id = s.itemId || (s.registryName ? (s.meta != null ? `${s.registryName}:${s.meta}` : s.registryName) : '');
             if (!id) continue;
             hits.push({
               value: `item:${id}`,
@@ -83,7 +83,7 @@ export function WidgetPinEditor({
           /* ignore */
         }
         for (const item of storage?.items || []) {
-          const name = (item.displayName || item.registryName || '').toLowerCase();
+          const name = `${item.displayName || ''} ${item.registryName || ''} ${item.itemId || ''}`.toLowerCase();
           const id = item.itemId || item.registryName;
           if (!id || !name.includes(needle)) continue;
           hits.push({
@@ -203,7 +203,7 @@ export function WidgetPinEditor({
   const selectedCols = resolveColumns(widget);
 
   const topCandidates = useMemo(() => {
-    if (widget.dataSource !== 'topItems' || !storage?.items) return [];
+    if (!storage?.items) return [];
     return [...storage.items].sort((a, b) => b.amount - a.amount).slice(0, 15);
   }, [widget.dataSource, storage]);
 
@@ -235,6 +235,20 @@ export function WidgetPinEditor({
             value={query}
             options={options.map((o) => ({ value: o.value, label: o.label }))}
             onSearch={(v) => void runSearch(v)}
+            onFocus={() => {
+              if (!query && topCandidates.length > 0) {
+                setOptions(
+                  topCandidates.slice(0, 12).flatMap((item) => {
+                    const id = item.itemId || item.registryName;
+                    return id ? [{
+                      value: `item:${id}`,
+                      label: `${item.displayName || id} (${id})`,
+                      pin: { kind: 'item' as const, id, label: item.displayName || id },
+                    }] : [];
+                  })
+                );
+              }
+            }}
             onSelect={(v) => {
               const hit = options.find((o) => o.value === v);
               if (hit) addPin(hit.pin);
@@ -251,6 +265,11 @@ export function WidgetPinEditor({
           {pins.length === 0 && (
             <Text type="secondary" style={{ fontSize: '0.75rem' }}>
               {t('dashPinEmpty')}
+            </Text>
+          )}
+          {pins.length >= maxPins && (
+            <Text type="warning" style={{ display: 'block', fontSize: '0.75rem' }}>
+              {t('dashPinLimitReached', maxPins)}
             </Text>
           )}
         </div>

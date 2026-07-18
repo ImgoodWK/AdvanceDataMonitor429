@@ -47,7 +47,9 @@ export function defaultColumnsFor(dataSource: string): string[] {
 }
 
 export function resolveColumns(widget: DashboardWidgetConfig): string[] {
-  if (widget.columns && widget.columns.length > 0) {
+  // `undefined` means a legacy/new widget which should use the defaults.  An
+  // empty array is a deliberate "show no columns" choice from Checkbox.Group.
+  if (widget.columns !== undefined) {
     return widget.columns;
   }
   return defaultColumnsFor(widget.dataSource);

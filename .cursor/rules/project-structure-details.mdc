@@ -13,7 +13,7 @@ alwaysApply: false
 | 类 | 作用 |
 |----|------|
 | `TeXTech.java` | @Mod 主类，注册调度中心 |
-| `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包。含 `[webConsole]` 节字段（含阶段 3.1 图标三开关 `webIconCacheEnabled`/`webIconUploadEnabled`/`webIconPackEnabled`）+ `[debug]` 节 WebAE 分功能 debug 开关 `webDebugIcons`/`webDebugChat`/`webDebugDashboard`/`webDebugSynthesis`/`webDebugPatterns`（阶段 3.3，默认 false，gate `logs/textech/webae-<feature>.log`）；含 `reloadConfiguration()` 复用 `activeConfigFile` 重新加载所有分节（供 `/admweb reload` 调用） |
+| `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包。含 `[webConsole]` 节字段（含阶段 3.1 图标三开关 `webIconCacheEnabled`/`webIconUploadEnabled`/`webIconPackEnabled`、可选 Spark 开关与时长/历史上限）+ `[debug]` 节 WebAE 分功能 debug 开关 `webDebugIcons`/`webDebugChat`/`webDebugDashboard`/`webDebugSynthesis`/`webDebugPatterns`（阶段 3.3，默认 false，gate `logs/textech/webae-<feature>.log`）；含 `reloadConfiguration()` 复用 `activeConfigFile` 重新加载所有分节（供 `/admweb reload` 调用） |
 | `ConfigDescriptions.java` | 配置项双语说明（英文 / 中文，供 .cfg 注释与手册引用） |
 | `ClientProxy.java` | 客户端代理（按键注册；FML bus 注册 `IconRenderer` + `IconLazyRenderQueue`） |
 | `TeXTechDataDir.java` | 运行时数据目录统一入口（`TeXTech/WebAE|Assistant|Grapple/`） |
@@ -31,7 +31,7 @@ alwaysApply: false
 - `ConfigSuperOrangeLoader.java` — `[superOrange]`
 - `ConfigMatterBallDecompressorLoader.java` — `[matterBallDecompressor]`
 - `ConfigGrappleLoader.java` — `[grapple]`
-- `ConfigWebaeLoader.java` — `[webConsole]`（含阶段 3.1 图标三开关 `iconCacheEnabled`/`iconUploadEnabled`/`iconPackEnabled` + **Phase6** `dynmapBaseUrl`）
+- `ConfigWebaeLoader.java` — `[webConsole]`（含阶段 3.1 图标三开关 `iconCacheEnabled`/`iconUploadEnabled`/`iconPackEnabled`、可选 Spark 配置 + **Phase6** `dynmapBaseUrl`）
 - `ConfigWebaeDebugLoader.java` — `[debug]` 节 WebAE 分功能 debug 开关（阶段 3.3：`webaeIcons`/`webaeChat`/`webaeDashboard`/`webaeSynthesis`/`webaePatterns`，默认 false，gate `WebAeDebugLog`）
 - `ConfigWebAlertsLoader.java` — 加载/保存 `TeXTech/WebAE/web-alerts.json`（WebAE 自动化告警规则）
 - `ConfigWebOrderTemplatesLoader.java` — 加载/保存 `TeXTech/WebAE/web-order-templates.json`（按 ownerUuid 批量下单模板）
@@ -320,7 +320,7 @@ alwaysApply: false
 - `webae/order/WebAeOrderProgressService.java` — 订单进度：`ICraftingLink.isDone/isCanceled` + CPU `startItemCount/remainingItemCount`，按 networkId + 短 TTL 缓存
 - `webae/order/OrderSubmitService.java` — Phase 3.3 告警自动下单
 - `webae/order/WebOrderTemplate.java` / `WebOrderTemplateItem.java` / `WebOrderTemplatesStore.java` / `WebOrderTemplatesValidator.java` — 批量下单模板
-- `webae/api/WebApiRouter.java` — REST 路由（认证/OC/存储/电力/配方/样板/GT/下单/配置/图标/聊天/玩家/集成/搜索/材料树/SSE/P2P/拓扑/世界地图 meta·markers·progress·tiles·invalidate）
+- `webae/api/WebApiRouter.java` — REST 路由（认证/OC/存储/电力/配方/样板/GT/下单/配置/图标/聊天/玩家/集成/搜索/材料树/SSE/P2P/拓扑/世界地图 meta·markers·progress·tiles·invalidate/Spark）
 - `webae/api/handler/AuthExchangeHandler.java` — `POST /api/auth/exchange` 登录码 → owner Token
 - `webae/api/handler/AuthAdminElevateHandler.java` — `POST /api/auth/admin/elevate` 一次性码兑换长期 adminToken；`GET /me` 当前管理状态与能力位；`GET /grants` 列出本 owner 授权设备；`POST /revoke-self` 撤销本设备提权
 - `webae/api/handler/OcSummaryHandler.java` — `GET /api/oc/summary` OC Internet Card 只读轮询（1 req/s）
@@ -352,12 +352,15 @@ alwaysApply: false
 - `webae/api/handler/AuthGuestInviteHandler.java` — `POST /api/auth/guest-invite` 主人生成可分享访客 Token（可选 body `networkKeys` 限定网络；owner 禁用拒绝签发）
 - `webae/api/handler/AdminPlayerHandler.java` — 管理端玩家：列表/禁用启用/清缓存；`GET .../access`；网络 suspend/resume；guest ACL deny/allow；撤销 guest token
 - `webae/api/handler/SearchHandler.java` — 聚合搜索 REST handler（`GET /api/search?q=&limit=&offset=&types=storage,recipe,gt,pattern&network=`；500ms 限流；pattern 类型读 browse 缓存，HTTP 线程无阻塞；Phase 4a）
-- `webae/api/handler/QuestHandler.java` — BetterQuesting 任务书 REST（meta/lines/progress/search/detail/analysis/detect/submit/submit-craft/chain-plan/submit-chain/chain-jobs）
+- `webae/api/handler/QuestHandler.java` — BetterQuesting 任务书 REST（meta/lines/progress/search/detail/analysis/detect/submit/submit-craft/claim/chain-plan/submit-chain/chain-jobs）
+- `webae/api/handler/SparkHandler.java` — 可选 Spark REST（`GET /api/spark` 历史/当前状态、`POST /api/spark/profile` 启动、`POST /api/spark/stop` 停止、历史详情/删除；启动与删除需管理员）
+- `webae/spark/SparkService.java` / `SparkProfile.java` / `SparkProfileStore.java` — Spark 模组检测、Forge 命令桥接、bounded JSON 历史（`TeXTech/WebAE/spark-history.json`）；无 Spark 或配置关闭时不暴露功能
 - `webae/quest/QuestDataCollector.java` — 任务只读采集门面
 - `webae/quest/QuestChainService.java` — 前置拓扑计划 + 同步链式提交（skipMissing）
 - `webae/quest/QuestChainOrchestrator.java` — 异步链式合成后提交 job 轮询
+- `webae/quest/QuestRewardClaimService.java` — 纯物品/多选一奖励领取至选定 AE 网络（选择校验、AE 预检、BQ 官方 claim、背包差量入库）
 - `webae/quest/QuestSubmitService.java` / `QuestCraftOrchestrator.java` / `QuestRequirementAnalyzer.java` / `QuestTaskDeserializer.java` / `QuestFluidIconResolver.java` / `QuestFluidEquivalence.java` / `QuestCacheStore.java` / `QuestSubmitLog.java` / `QuestInventoryEscrow.java` — 单任务提交/合成/分析/反序列化/流体单元展示图标解析（LegacyAe+FCR+GT FluidDisplay）/流体↔单元等价（DETECT 加总、SUBMIT 空单元装填、真流体 partial drain）/缓存/审计/AE 虚拟 escrow（lock/lockPartial/appendLock/release/commit/超时退回；合成期预锁）
-- `webae/dto/Quest*.java` — 任务书 DTO（含 `QuestRelationDto`/`QuestChainPlanDto`/`QuestChainSubmitResultDto`；`QuestDetailDto` 含 `prerequisites[]`/`dependents[]`；图节点含 `iconItemId`/`mainQuest`/`ghost`）
+- `webae/dto/Quest*.java` — 任务书 DTO（含 `QuestRelationDto`/`QuestChainPlanDto`/`QuestChainSubmitResultDto`/`QuestClaimResultDto`；`QuestDetailDto` 含 `prerequisites[]`/`dependents[]`/`webClaimable`；`QuestRewardDto` 含 choice 分组字段；图节点含 `iconItemId`/`mainQuest`/`ghost`）
 - `webae/api/handler/ServerHealthHandler.java` — 服务器健康 REST handler（`GET /api/server/health` TPS/MSPT/在线人数/300s 历史；参考 Phase 2）
 - `webae/api/handler/ServerDiagnosticsHandler.java` — 性能诊断 REST（`GET /api/server/diagnostics`：tick 分段、队列深度、快照采集、慢 HTTP、路由 Top、Config 摘要）
 - `webae/perf/WebAePerfProfiler.java` — HandlerTick 分段计时 + HTTP 路由聚合 + 慢请求环缓；`[debug] webaePerf` → `logs/textech/webae-perf.log`
@@ -566,4 +569,5 @@ alwaysApply: false
 - **Phase 4a 聚合搜索** — `webae/search/WebSearchService.java`（合并 snapshot storage/GT、RecipeCacheStore、PatternBrowseService）；`webae/search/WebSearchRateLimiter.java`（500ms/owner）；`webae/dto/SearchResultDto.java`；`SearchHandler.java`；前端 `hooks/useGlobalSearch.ts` + `CommandPalette.tsx` 扩展（API 优先 + snapshot fallback）
 - **Phase 4b 可见性轮询** — 前端 `hooks/usePageVisibility.ts` + `hooks/useVisibilityAwarePolling.ts`；`AppContext` `pauseRefreshWhenHidden`/`refreshPaused`；Settings 开关 `webae_pause_refresh_when_hidden`；覆盖全局 refresh/连接心跳/告警/指标/Chat/AeOrdering/usePlayers
 - **UI 全量备份/默认布局** — `webae-frontend/src/utils/uiSettingsBundle.ts`（`WebUiSettingsBundle` v1 collect/apply）；`components/settings/SettingsBackupPanel.tsx`；公开 `GET /api/ui-defaults` + `/admweb defaults`；jar/实例 `ui-defaults.json`
+- **WebAE 仪表盘组件设置** — `components/dashboard/EditWidgetModal.tsx`（编辑入口）、`WidgetPinEditor.tsx`（列选择与钉选搜索）、`utils/dashboardColumns.ts`（各数据源列定义与 `undefined`/空数组语义）、`utils/dashboardPins.ts`（钉选当前值解析）；渲染入口为 `pages/Dashboard.tsx`、共享 `WidgetContent.tsx` 与 `NetworkBalanceTable.tsx`。改列契约时必须同步所有入口和 `dashboardColumns.test.ts`，切换数据源需清除旧列 key；物品搜索需覆盖 displayName/registryName/itemId 并保留 meta=0
 - `webae/debug/WebAeDebugLog.java` — WebAE 分功能 debug 日志（阶段 3.3，仿 `DataLoomDebugLog`；`Feature` 枚举 ICONS/CHAT/DASHBOARD/SYNTHESIS/PATTERNS，每功能写独立 `logs/textech/webae-<feature>.log`，gate by `Config.webDebugXxx` 开关；`info`/`warn`/`isEnabled`；关键错误仍走 `AdvanceDataMonitor.LOG` 无条件）

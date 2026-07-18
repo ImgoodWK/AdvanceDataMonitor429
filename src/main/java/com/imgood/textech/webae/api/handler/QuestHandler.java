@@ -31,6 +31,7 @@ import com.imgood.textech.webae.quest.QuestChainService;
 import com.imgood.textech.webae.quest.QuestCraftOrchestrator;
 import com.imgood.textech.webae.quest.QuestDataCollector;
 import com.imgood.textech.webae.quest.QuestRequirementAnalyzer;
+import com.imgood.textech.webae.quest.QuestRewardClaimService;
 import com.imgood.textech.webae.quest.QuestSubmitService;
 import com.imgood.textech.webae.recipe.RecipeCacheStore;
 
@@ -248,6 +249,29 @@ public final class QuestHandler {
             }, "detect");
         }
 
+        if (uri.endsWith("/claim")) {
+            if (method != NanoHTTPD.Method.POST) {
+                return methodNotAllowed("POST");
+            }
+            if (guest) {
+                return guestDenied();
+            }
+            if (!com.imgood.textech.Config.webQuestClaimEnabled) {
+                return json(
+                    NanoHTTPD.Response.Status.FORBIDDEN,
+                    "{\"success\":false,\"code\":\"claim_disabled\",\"message\":\"Quest reward claim disabled\"}");
+            }
+            ClaimBody claimReq = parseClaimBody(body);
+            final int claimNetworkId = claimReq.networkId;
+            final java.util.Map<String, Integer> claimChoices = claimReq.choices;
+            return onMainThread(ownerUuid, new MainThreadTask<com.imgood.textech.webae.dto.QuestClaimResultDto>() {
+                @Override
+                public com.imgood.textech.webae.dto.QuestClaimResultDto run(EntityPlayerMP player) {
+                    return QuestRewardClaimService.claim(ownerUuid, claimNetworkId, questId, claimChoices);
+                }
+            }, "claim");
+        }
+
         if (uri.endsWith("/submit")) {
             if (method != NanoHTTPD.Method.POST) {
                 return methodNotAllowed("POST");
@@ -451,6 +475,56 @@ public final class QuestHandler {
         return req;
     }
 
+    private static ClaimBody parseClaimBody(String body) {
+        ClaimBody req = new ClaimBody();
+        req.choices = new java.util.HashMap<String, Integer>();
+        if (body == null || body.trim()
+            .isEmpty()) {
+            return req;
+        }
+        try {
+            JsonObject obj = new JsonParser().parse(body)
+                .getAsJsonObject();
+            req.networkId = obj.has("networkId") ? obj.get("networkId")
+                .getAsInt() : 0;
+            if (obj.has("choices") && obj.get("choices")
+                .isJsonObject()) {
+                JsonObject choices = obj.getAsJsonObject("choices");
+                for (Map.Entry<String, JsonElement> entry : choices.entrySet()) {
+                    if (entry.getKey() == null || entry.getValue() == null || entry.getValue()
+                        .isJsonNull()) {
+                        continue;
+                    }
+                    try {
+                        req.choices.put(entry.getKey(), Integer.valueOf(entry.getValue()
+                            .getAsInt()));
+                    } catch (Exception ignored) {}
+                }
+            } else if (obj.has("choices") && obj.get("choices")
+                .isJsonArray()) {
+                JsonArray arr = obj.getAsJsonArray("choices");
+                for (JsonElement el : arr) {
+                    if (el == null || !el.isJsonObject()) {
+                        continue;
+                    }
+                    JsonObject row = el.getAsJsonObject();
+                    if (!row.has("rewardId") || !row.has("choiceIndex")) {
+                        continue;
+                    }
+                    try {
+                        req.choices.put(
+                            row.get("rewardId")
+                                .getAsString(),
+                            Integer.valueOf(
+                                row.get("choiceIndex")
+                                    .getAsInt()));
+                    } catch (Exception ignored) {}
+                }
+            }
+        } catch (Exception ignored) {}
+        return req;
+    }
+
     private static ChainSubmitBody parseChainSubmitBody(String body) {
         ChainSubmitBody req = new ChainSubmitBody();
         if (body == null || body.trim()
@@ -529,6 +603,11 @@ public final class QuestHandler {
     private static final class DetectBody {
         int networkId;
         boolean includeAllFluidContainers;
+    }
+
+    private static final class ClaimBody {
+        int networkId;
+        java.util.Map<String, Integer> choices = new java.util.HashMap<String, Integer>();
     }
 
     private static final class SubmitBody {

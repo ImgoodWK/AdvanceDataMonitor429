@@ -37,6 +37,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Planner | Sync Advance Planner entries in the browser |
 | AI Assistant | Web chat entry (same capabilities as in-game assistant) |
 | Alerts History | Browse triggered automation alerts; rules via Settings/alerts editor |
+| Spark Profiler | Requires the Spark mod; OPs can start/stop profiles, while logged-in users can view history, open Viewer, and compare run metadata |
 | Chat | Web-to-in-game chat bridge with online player list |
 | Command Upload | OPs run `/admweb recipes upload` and `/admweb icons upload` (no in-game keybind) |
 
@@ -75,6 +76,10 @@ recipeUploadEnabled=true
 iconCacheEnabled=true
 iconUploadEnabled=true
 iconPackEnabled=true
+sparkEnabled=true
+sparkMaxHistory=50
+sparkDefaultDurationSeconds=30
+sparkMaxDurationSeconds=300
 ```
 
 **Restart the server** after changes. Key options:
@@ -88,6 +93,10 @@ iconPackEnabled=true
 - `recipeSyncChunkSize`: recipes per browser-sync chunk (default 400).
 - `nesqlRepositoryPath`: NESQL repo root for `/admweb icons import-nesql`. **When empty**, defaults to `<instance>/TeXTech/WebAE/` (`.minecraft/TeXTech/WebAE/` on client; same folder name under server root on dedicated servers; same as client recipe export).
 - `bindAddress=127.0.0.1` is localhost only; set `0.0.0.0` for LAN (use a firewall).
+- `sparkEnabled` defaults to true but only takes effect when Spark (Forge 1.7.10) is installed. Without Spark, the page is hidden and the API reports unavailable.
+- `sparkMaxHistory` bounds retained run metadata in `TeXTech/WebAE/spark-history.json`; records include status, initiator, captured output, and the Spark Viewer URL.
+- `sparkDefaultDurationSeconds` and `sparkMaxDurationSeconds` control the page's capture duration. Starting, stopping, and deleting history require WebAE admin privileges to avoid accidental server overhead.
+- The Spark page shows captured output and opens the official Viewer; selecting two records compares status, elapsed time, output lines, and Viewer URLs. Call-tree analysis remains in Spark Viewer.
 
 Full config reference: [Developer Guide §4](developer-guide.md#4-configuration).
 
@@ -247,13 +256,14 @@ Requires the **BetterQuesting** mod. Sidebar **Quest Book** (`?page=quests`) use
 
 - **Graph nodes**: quest item icons; main quests (`isMain`) use diamond frames, normal quests rounded rectangles; hover highlights related nodes/edges and shows a quest-name tooltip (independent of the persistent “Show quest names” label toggle); optional **Hide completed**; cross-chapter prerequisites appear as dashed **ghost** nodes. The toolbar provides **zoom in / zoom out / fit view** and **Settings** (node spacing, node size, labels, sidebar, edges, etc.; stored in browser localStorage); **wheel** zooms at the pointer inside the graph (does not scroll the page); drag to pan. Node names on the graph can be toggled separately; labels show stripped text colored by the first `§` color code.
 - **§ format codes**: quest titles, descriptions, and step names support Minecraft `§` colors and styles (e.g. `§a§l`); the detail panel and lists render full styling; search matches ignore format codes.
-- **Quest detail**: clicking a node opens a **fixed right sidebar** (no extra drawer on desktop). Sections appear in order: **related quests** (prerequisites / unlocks), requirements (from BetterQuesting `tasks`), and reward preview (from `rewards`, one row per item when a reward grants multiple stacks). Clicking a prerequisite or follow-up quest switches quest lines when needed and centers the node; implicit/hidden prerequisites show tags. Rewards must still be claimed in-game. Panel width is configurable in Settings (default 380px).
-- **Refresh**: load once on enter / chapter switch into local cache; **no background polling**. Manual refresh has a **30s cooldown**; progress is force-refreshed before submit actions.
-- **Read-only for guests**: browse lines and party progress; **rewards cannot be claimed on Web** (UNCLAIMED prompts in-game claim).
+- **Quest detail**: clicking a node opens a **fixed right sidebar** (no extra drawer on desktop). Sections appear in order: **related quests** (prerequisites / unlocks), requirements (from BetterQuesting `tasks`), and rewards (from `rewards`; `bq_standard:choice` shows a pick-one group; pure item rewards can be claimed on Web). Clicking a prerequisite or follow-up quest switches quest lines when needed and centers the node; implicit/hidden prerequisites show tags. Panel width is configurable in Settings (default 380px).
+- **Refresh**: load once on enter / chapter switch into local cache; **no background polling**. Manual refresh has a **30s cooldown**; progress is force-refreshed before submit/claim actions.
+- **Reward claim**: when a quest is `UNCLAIMED` and every reward is a resolvable pure item (`bq_standard:item`) or choice (`bq_standard:choice`), select choice options in the sidebar, then confirm **Claim to AE network**. Items go through the official BQ claim path and are moved into the selected network. If AE cannot accept everything, the claim is refused and the quest stays unclaimed. Quests with command/XP/other non-item rewards still prompt in-game claim. Guest tokens cannot claim.
+- **Read-only for guests**: browse lines and party progress; guests cannot submit or claim rewards.
 - **Web-assisted steps**: item/fluid submit and Retrieval / fluid hold-detect (completed from AE stock; **does not** put items/fluids into the player inventory). **Fluid-cell tasks**: DETECT sums free fluid + filled cells (GT/IC2 by default); SUBMIT prefers filled cells, else empty cell + fluid fill (free fluid alone is not enough). True fluid tasks may drain needed mB from cells (remainder returned). Submit and craft-then-submit use **AE virtual escrow** (pre-lock available materials before craft; append-lock when craft products arrive). Click a single step to submit; **Chain submit** walks prerequisites in topological order (configurable). The submit panel shows AE stock vs requirement; **Craftable** appears only when a matching AE pattern exists and the material chain can be satisfied. When `questFluidAllContainersOption=true`, the panel can opt into counting buckets/cans.
 - **Offline**: Token + FakePlayer still works when the owner is offline (progress writes to the **Token owner's** questing UUID); the server must be running and the AE network resolvable (Link / chunks loaded), same as other WebAE AE ops.
 - **Party**: Web submit does **not** sync party members; only the Token owner is updated. BQ forces single-player for FakePlayer; this mod does not wire PartyManager / SyncPartyQuests.
-- **Config**: `[webConsole] questEnabled`, `questSubmitEnabled`, `questChainSubmitEnabled` (default true), `questSubmitMaxStacks`, `questCraftWaitTimeoutMs`, `questEscrowEnabled` (default true), `questEscrowTimeoutMs` (default 120000), `questFluidAllContainersOption` (default false), `questCacheTtlSec` in `textech.cfg`.
+- **Config**: `[webConsole] questEnabled`, `questSubmitEnabled`, `questClaimEnabled` (default true), `questChainSubmitEnabled` (default true), `questSubmitMaxStacks`, `questCraftWaitTimeoutMs`, `questEscrowEnabled` (default true), `questEscrowTimeoutMs` (default 120000), `questFluidAllContainersOption` (default false), `questCacheTtlSec` in `textech.cfg`.
 
 ### Monitor Bindings & Preview
 
@@ -278,7 +288,9 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 - **Dashboard**: GridStack drag layout, **128** color schemes + **30** layouts (incl. bottom nav / floating sider / split chrome, plus batch3 dual-rail / dock / theater / HUD / corner-hub structural variants) + **126** page styles (restrained hexcell / arc-reactor without content clipping, plus batch2 / batch3 / **Printstream batch4** packs with B/W geometry, pearl gradients, and ASCII dashed streams, plus **Auraeco batch5** voxel-wave / tendril / dome / sparks / bubble atmospheres; Settings uses near-real thumbnail tiles for color / layout / style / presets — search “Aura” or “Auraeco”); chart style overrides unchanged.
   - **Group containers (nested grids)**: add a **Group** widget to nest children in one cell and move them together; use **+** on the group header to add children while editing.
   - **Layout / feed widgets**: text note, spacer, alerts summary, crafting queue; use the edit-mode palette for quick add, or drag to the trash zone to delete.
+  - **Edit recovery**: undo/redo in edit mode (toolbar or Ctrl+Z / Ctrl+Y); clearing all widgets stays empty after refresh; Storage/CPU Overview widget height is fixed to 2 rows.
   - **Lock & size-to-content**: per-widget lock / no-move / no-resize and optional size-to-content; soft alert threshold tint on stats/gauges.
+  - **Data-table columns & pins**: the widget editor independently controls icon, name, amount, registry name, and source-specific columns. The **name** column uses the item's display name, while **registry name** is shown separately. An empty selection is preserved; changing the data source selects that source's defaults. Focus the pin search to see current-inventory candidates, or search by display name, registry name, or item ID; remove an existing pin before adding another at the server-provided limit.
 - **Chat**: 💬 icon in sidebar; web messages broadcast in-game as `[Web] <name>: content`.
 - **Sidebar**: edge button cycles Expanded → Collapsed → Hidden.
 - **Top bar**: fixed-width refresh countdown/status next to connection dot.

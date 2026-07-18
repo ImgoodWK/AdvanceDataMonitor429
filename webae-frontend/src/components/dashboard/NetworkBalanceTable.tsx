@@ -8,9 +8,10 @@ import type { NetworkBalanceSuggestionDto } from '@/types/dto';
 interface NetworkBalanceTableProps {
   networkIds: number[];
   compact?: boolean;
+  visibleColumns?: string[];
 }
 
-export function NetworkBalanceTable({ networkIds, compact }: NetworkBalanceTableProps) {
+export function NetworkBalanceTable({ networkIds, compact, visibleColumns }: NetworkBalanceTableProps) {
   const { t } = useI18n();
   const fmtNum = useNumberFormat();
   const { setActivePage, setPageSearchPrefill, setSelectedNetworks } = useAppContext();
@@ -55,7 +56,7 @@ export function NetworkBalanceTable({ networkIds, compact }: NetworkBalanceTable
     );
   }
 
-  const columns = [
+  const allColumns = [
     {
       title: t('networkBalanceResource'),
       dataIndex: 'displayName',
@@ -64,9 +65,15 @@ export function NetworkBalanceTable({ networkIds, compact }: NetworkBalanceTable
       render: (_: unknown, r: NetworkBalanceSuggestionDto) => (
         <span>
           {r.displayName}
-          <Tag style={{ marginLeft: 4 }}>{r.resourceType}</Tag>
         </span>
       ),
+    },
+    {
+      title: t('dashCol_type'),
+      dataIndex: 'resourceType',
+      key: 'resourceType',
+      width: 72,
+      render: (v: string) => <Tag>{v}</Tag>,
     },
     {
       title: t('networkBalanceShort'),
@@ -115,6 +122,17 @@ export function NetworkBalanceTable({ networkIds, compact }: NetworkBalanceTable
           },
         ]),
   ];
+  const keyMap: Record<string, string> = {
+    resource: 'displayName',
+    type: 'resourceType',
+    needy: 'short',
+    surplus: 'surplus',
+    gap: 'transferable',
+  };
+  const allowedKeys = visibleColumns && new Set(visibleColumns.map((key) => keyMap[key] || key));
+  const columns = allowedKeys
+    ? allColumns.filter((column) => allowedKeys.has(String(column.key)) || column.key === 'actions')
+    : allColumns;
 
   return (
     <Table

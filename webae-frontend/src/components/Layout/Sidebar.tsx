@@ -6,12 +6,13 @@ import { NAV_PAGES } from './navConfig';
 const { Text } = Typography;
 
 export function Sidebar({ mode }: { mode: SidebarMode }) {
-  const { activePage, setActivePage, isAdmin, isOnlineOp } = useAppContext();
+  const { activePage, setActivePage, isAdmin, isOnlineOp, serverConfig } = useAppContext();
   const { t } = useI18n();
   const collapsed = mode === 'collapsed';
 
   const visiblePages = NAV_PAGES.filter((item) => {
     if (item.id === 'admin') return isAdmin || isOnlineOp;
+    if (item.id === 'spark') return !!serverConfig?.sparkEnabled;
     return true;
   });
 

@@ -8,4 +8,6 @@ Any mod that references `TileChest` at **compile time** needs those interface `.
 - TeXTech needs them at runtime
 - stubs are packaged into the published `textech` jar
 
+CoFH RF API (`IEnergyReceiver`, etc.) comes from the transitive Curse **CoFH Core** dependency (required at runtime so GT++ can register cryotheum). Do not stub CoFH here — duplicate classes conflict with the real jar.
+
 `addon.gradle` task `buildAe2OptionalApiStubs` jars this directory into `build/ae2-optional-api-stubs.jar` (`compileOnly`).

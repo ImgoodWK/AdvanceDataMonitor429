@@ -126,7 +126,7 @@ export interface DashboardWidgetConfig {
    * Default 1 when omitted.
    */
   contentScale?: number;
-  /** dataTable visible column keys (order = display order). Empty/undefined = defaults. */
+  /** dataTable visible column keys. Undefined = defaults; empty = deliberately hide all. */
   columns?: string[];
   /** Pinned rows / series / scalar targets (items, fluids, CPUs, etc.). */
   pins?: DashboardPin[];
@@ -627,7 +627,8 @@ export function mergeOverviewSettings<T extends StorageOverviewSettings>(
     chartShowTimeAxis: parsed.chartShowTimeAxis ?? defaults.chartShowTimeAxis,
     defaultColors: { ...defaults.defaultColors, ...parsed.defaultColors },
     colorPresets: parsed.colorPresets ?? defaults.colorPresets,
-    widgets: parsed.widgets ?? defaults.widgets,
+    // Preserve explicit empty layouts; only fall back when widgets is missing.
+    widgets: Array.isArray(parsed.widgets) ? parsed.widgets : defaults.widgets,
   };
 }
 
@@ -3072,7 +3073,10 @@ export function loadDashboardSettings(): DashboardSettings {
       chartShowTimeAxis: parsed.chartShowTimeAxis ?? DEFAULT_DASHBOARD_SETTINGS.chartShowTimeAxis,
       defaultColors: { ...DEFAULT_DASHBOARD_SETTINGS.defaultColors, ...parsed.defaultColors },
       colorPresets: parsed.colorPresets ?? [],
-      widgets: migrateDashboardWidgets(parsed.widgets ?? DEFAULT_DASHBOARD_WIDGETS),
+      // Preserve explicit empty layouts; only fall back when widgets is missing.
+      widgets: migrateDashboardWidgets(
+        Array.isArray(parsed.widgets) ? parsed.widgets : DEFAULT_DASHBOARD_WIDGETS
+      ),
     };
   } catch {
     return DEFAULT_DASHBOARD_SETTINGS;

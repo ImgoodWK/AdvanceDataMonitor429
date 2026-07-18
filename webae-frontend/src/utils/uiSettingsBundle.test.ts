@@ -117,6 +117,17 @@ describe('uiSettingsBundle', () => {
     expect(dash.widgetGap).toBe(DEFAULT_DASHBOARD_SETTINGS.widgetGap);
   });
 
+  it('preserves explicit empty dashboard widgets on apply and collect', async () => {
+    const bundle = sampleBundle();
+    bundle.client.pages.dashboard = { ...DEFAULT_DASHBOARD_SETTINGS, widgets: [] };
+    await applyUiSettingsBundle(bundle, { merge: false, sections: ['dashboard'] });
+    const dash = JSON.parse(storage.get(DASHBOARD_CONFIG_KEY) || '{}') as { widgets: unknown[] };
+    expect(dash.widgets).toEqual([]);
+
+    const collected = collectUiSettingsBundle();
+    expect(collected.client.pages.dashboard?.widgets).toEqual([]);
+  });
+
   it('hasExistingUiStorage detects prior webae keys', () => {
     expect(hasExistingUiStorage()).toBe(false);
     storage.set(TOPOLOGY_DISPLAY_STORAGE_KEY, '{}');

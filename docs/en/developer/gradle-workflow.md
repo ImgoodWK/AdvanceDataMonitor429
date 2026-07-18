@@ -189,7 +189,7 @@ This repo is **aligned to GTNH pack 2.9.0-beta-2** (no older GT5 5.09.51 / MUI2 
 
 `addon.gradle` forces those coordinates.
 
-**AE2 optional API stubs**: the published AE2 jar's `TileChest` bytecode implements optional Mekanism / RotaryCraft interfaces from AE2's own `compileOnly` build. The GTNH pack does **not** ship those mods. TeXTech builds `build/ae2-optional-api-stubs.jar` from `tools/ae2-optional-stubs/` as `compileOnly` so javac can resolve the class signatures; stubs are **not** packaged into the mod jar and are not needed at runtime.
+**AE2 optional API stubs**: the published AE2 jar's `TileChest` bytecode implements optional Mekanism / RotaryCraft interfaces. TeXTech builds `build/ae2-optional-api-stubs.jar` from `tools/ae2-optional-stubs/` as `compileOnly`. **CoFH RF** comes from transitive Curse CoFH Core at runtime (GT++ cryotheum needs `Mods.COFHCore`). `runClient*` / `runServer*` run `syncDevCofhMappingsConfig` to set `run/config/CodeChickenLib.cfg` `mappingDir` under `GRADLE_USER_HOME`, so CoFH's coremod works in RFG deobf runs. Do not globally exclude CoFH Core.
 
 ### BetterQuesting / WebAE quest book debugging
 

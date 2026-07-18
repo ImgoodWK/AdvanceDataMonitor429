@@ -1,39 +1,28 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { createDebouncedLocalStorageSaver } from '@/hooks/debouncedLocalStorageSaver';
 
 /**
  * Debounced localStorage writer for GridStack layout changes.
  * Flushes pending data on unmount and page hide so layout is not lost when
  * navigating away or refreshing before the debounce window elapses.
+ *
+ * Immediate writers (saveSettings) must call `cancel()` so a stale pending
+ * layout snapshot cannot overwrite newer widget config after the debounce fires.
  */
 export function useDebouncedLocalStorageSaver<T>(storageKey: string, debounceMs = 400) {
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRef = useRef<T | null>(null);
-
-  const flush = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-    if (pendingRef.current === null) return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(pendingRef.current));
-    } catch {
-      /* ignore */
-    }
-    pendingRef.current = null;
-  }, [storageKey]);
-
-  const schedule = useCallback(
-    (data: T) => {
-      pendingRef.current = data;
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        debounceRef.current = null;
-        flush();
-      }, debounceMs);
-    },
-    [debounceMs, flush]
+  const saver = useMemo(
+    () =>
+      createDebouncedLocalStorageSaver<T>(storageKey, debounceMs, {
+        setItem: (key, value) => localStorage.setItem(key, value),
+        setTimeout,
+        clearTimeout,
+      }),
+    [storageKey, debounceMs]
   );
+
+  const flush = useCallback(() => saver.flush(), [saver]);
+  const cancel = useCallback(() => saver.cancel(), [saver]);
+  const schedule = useCallback((data: T) => saver.schedule(data), [saver]);
 
   useEffect(() => {
     const onPageHide = () => flush();
@@ -44,5 +33,5 @@ export function useDebouncedLocalStorageSaver<T>(storageKey: string, debounceMs 
     };
   }, [flush]);
 
-  return { schedule, flush };
+  return { schedule, flush, cancel };
 }

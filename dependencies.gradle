@@ -50,7 +50,7 @@ dependencies {
     implementation files('libs/IC2NuclearControl-2.7.8-dev.jar')
 
     compileOnly('thaumcraft:Thaumcraft:1.7.10-4.2.3.5:dev')
-    // AE2 TileChest 编译期解析父类可选接口；用本地 stub（不引入 Curse 损坏 jar / 不装游戏模组）
+    // AE2 TileChest 编译期解析 Mek/RotaryCraft 可选接口；CoFH RF 由传递依赖 CoFH Core 提供
     compileOnly files("$buildDir/ae2-optional-api-stubs.jar")
 
     // Dev-only runtime (not published)
@@ -66,4 +66,9 @@ dependencies {
     }
     // BetterQuesting — WebAE quest book; reflection when present at runtime
     devOnlyNonPublishable('com.github.GTNewHorizons:BetterQuesting:3.8.72-GTNH:dev')
+
+    // Spark 1.6.4 for Forge 1.7.10 — optional profiler integration. The mod is
+    // never bundled; WebAE detects modid "spark" before exposing its page/API.
+    compileOnly(rfg.deobf('curse.maven:spark-361579:3577247'))
+    devOnlyNonPublishable(rfg.deobf('curse.maven:spark-361579:3577247'))
 }

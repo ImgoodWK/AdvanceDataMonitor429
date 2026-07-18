@@ -359,6 +359,26 @@ public final class ConfigDescriptions {
             "后台自动存储快照的间隔秒数。设为 0 禁用定期快照。默认 30 秒。");
         put(
             "webConsole",
+            "sparkEnabled",
+            "Enable the WebAE Spark profiler page and API when the optional Spark mod is installed.",
+            "安装可选 Spark 模组时，是否启用 WebAE Spark 性能分析页面和接口。");
+        put(
+            "webConsole",
+            "sparkMaxHistory",
+            "Maximum number of Spark run records retained in TeXTech/WebAE/spark-history.json.",
+            "保存在 TeXTech/WebAE/spark-history.json 中的 Spark 运行记录数量上限。");
+        put(
+            "webConsole",
+            "sparkDefaultDurationSeconds",
+            "Default Spark profiler duration requested from the WebAE page, in seconds.",
+            "WebAE 页面发起 Spark 分析时的默认时长（秒）。");
+        put(
+            "webConsole",
+            "sparkMaxDurationSeconds",
+            "Hard maximum duration for a Spark profiler run started through WebAE, in seconds.",
+            "通过 WebAE 发起的 Spark 分析允许的最大时长（秒）。");
+        put(
+            "webConsole",
             "recipeUploadEnabled",
             "Allow OPs to upload NEI recipes to the server recipe cache via /admweb recipes upload command. Phase 2 removed the in-game keybind. Default true.",
             "允许 OP 通过 /admweb recipes upload 命令上传 NEI 配方到服务器配方缓存。Phase 2 起移除了游戏内快捷键。默认开启。");
@@ -897,6 +917,11 @@ public final class ConfigDescriptions {
             "questSubmitEnabled",
             "Allow Web quest item/fluid submission from AE network. Default true.",
             "允许从 AE 网络在 Web 端提交任务物品/流体。默认开启。");
+        put(
+            "webConsole",
+            "questClaimEnabled",
+            "Allow WebAE to claim pure item/choice quest rewards into the selected AE network. Mixed or non-item rewards stay in-game only. Default true.",
+            "允许 WebAE 将纯物品/多选一任务奖励领取到所选 AE 网络。混合或非物品奖励仍需游戏内领取。默认开启。");
         put(
             "webConsole",
             "questChainSubmitEnabled",

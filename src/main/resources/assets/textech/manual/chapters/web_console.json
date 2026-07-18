@@ -78,6 +78,11 @@
     },
     {
       "type": "text",
+      "titleKey": "adm.manual.web_console.spark_title",
+      "textKey": "adm.manual.web_console.spark_text"
+    },
+    {
+      "type": "text",
       "titleKey": "adm.manual.web_console.extensions_title",
       "textKey": "adm.manual.web_console.extensions_text"
     }

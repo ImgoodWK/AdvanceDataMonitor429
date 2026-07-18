@@ -11,7 +11,7 @@ The project root [`README.md`](../README.md) keeps only a short intro and build 
 
 | Layer | Role | Paths |
 |-------|------|-------|
-| L0 Machine-readable | Agent / CI source of truth | `ConfigDescriptions.java`, `LoaderNetwork.java`, `.cursor/rules/*.mdc` |
+| L0 Machine-readable | Codex / Cursor / CI source of truth | `AGENTS.md`, `ConfigDescriptions.java`, `LoaderNetwork.java`, `.cursor/rules/*.mdc` |
 | L1 Developer specs | Contributor design | `docs/*/developer/`, `docs/*/webae/developer-guide.md`, `docs/*/ai-assistant/` |
 | L2 Player / admin | Tutorials | `docs/*/player/`, `docs/*/webae/user-guide.md`, `assets/textech/manual/` |
 | L3 Vision / design | **Not implementation spec** | `docs/*/design/` |
@@ -69,4 +69,11 @@ Before PRs that touch docs, config, or packets, run:
 python tools/doc-check/doc-consistency-check.py
 ```
 
-Cursor Agent rules under `.cursor/rules/` complement these docs for quick file lookup.
+`AGENTS.md` is the Codex project entry point. Cursor Agent rules under
+`.cursor/rules/` remain the detailed shared routing and constraint references;
+they complement these docs for both agents and CI.
+
+GitHub Actions runs `tools/doc-check/doc-consistency-check.py` on every pull
+request and on pushes to `main` or `master`. For merge protection, require the
+`Doc check and WebAE frontend / doc-check` status check in the repository branch
+rules.

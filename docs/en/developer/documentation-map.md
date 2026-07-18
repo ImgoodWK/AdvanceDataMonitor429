@@ -1,9 +1,9 @@
 # TeXTech Documentation Maintenance Map
 
-> Audience: contributors / Cursor Agent · Last synced: 2026-07  
+> Audience: contributors / Codex / Cursor Agent · Last synced: 2026-07  
 > 中文: [documentation-map.md](../../zh/developer/documentation-map.md)
 
-When you change a feature area, use this map to update the right docs and rules so `docs/`, in-game `manual/`, and `.cursor/rules/` stay aligned.
+When you change a feature area, use this map to update the right docs and rules so `AGENTS.md`, `docs/`, in-game `manual/`, and `.cursor/rules/` stay aligned.
 
 ---
 
@@ -11,7 +11,7 @@ When you change a feature area, use this map to update the right docs and rules 
 
 | Layer | Path | Role |
 |-------|------|------|
-| L0 Machine-readable | `ConfigDescriptions.java`, `LoaderNetwork.java`, `.cursor/rules/*.mdc` | Single source of truth for Agent / CI |
+| L0 Machine-readable | `AGENTS.md`, `ConfigDescriptions.java`, `LoaderNetwork.java`, `.cursor/rules/*.mdc` | Single source of truth for Codex / Cursor / CI |
 | L1 Developer specs | `docs/en/developer/`, WebAE developer guide, AI assistant guide | Contributor design docs |
 | L2 Player / server admin | `docs/en/player/`, WebAE user guide, `assets/textech/manual/` | Tutorials and how-tos |
 | L3 Vision / design | `docs/en/design/` | **Not implementation spec**; excluded from CI checks |
@@ -69,4 +69,5 @@ See `.cursor/rules/docs-sync.mdc` and script output.
 
 - [docs/en/README.md](../README.md) — English doc tree  
 - [docs/README.md](../../README.md) — bilingual overview  
-- [docs-sync.mdc](../../../.cursor/rules/docs-sync.mdc) — Agent sync rules  
+- [AGENTS.md](../../../AGENTS.md) — Codex project entry point
+- [docs-sync.mdc](../../../.cursor/rules/docs-sync.mdc) — Codex / Cursor shared sync rules  

@@ -771,9 +771,15 @@ export interface ServerConfig {
   worldMapDefaultQualityTier?: string;
   questEnabled?: boolean;
   questSubmitEnabled?: boolean;
+  questClaimEnabled?: boolean;
   questChainSubmitEnabled?: boolean;
   /** When true, quest UI may count buckets/cans toward fluid/cell equivalence. */
   questFluidAllContainersOption?: boolean;
+  /** Optional Spark profiler page/API; false when Spark is not installed or disabled. */
+  sparkEnabled?: boolean;
+  sparkAvailable?: boolean;
+  sparkDefaultDurationSeconds?: number;
+  sparkMaxDurationSeconds?: number;
   dashboardMaxTracksPerWidget?: number;
   dashboardMaxTracksGlobal?: number;
   dashboardMaxItemTracks?: number;
@@ -785,6 +791,7 @@ export interface QuestMetaDto {
   questsAvailable: boolean;
   questEnabled: boolean;
   questSubmitEnabled: boolean;
+  questClaimEnabled?: boolean;
   questChainSubmitEnabled?: boolean;
   questFluidAllContainersOption?: boolean;
   modVersion: string;
@@ -867,6 +874,11 @@ export interface QuestRewardDto {
   /** Display-only icon id (fluid: for FluidDisplay; mod:id:meta for cells). */
   iconItemId?: string;
   amount: number;
+  /** item | choice | unsupported */
+  kind?: string;
+  choiceIndex?: number;
+  choiceOption?: boolean;
+  webClaimable?: boolean;
 }
 
 export interface QuestRelationDto {
@@ -885,6 +897,9 @@ export interface QuestDetailDto {
   canSubmit: boolean;
   canClaim?: boolean;
   hasClaimed?: boolean;
+  /** True when WebAE can claim pure item/choice rewards into AE. */
+  webClaimable?: boolean;
+  claimBlockReason?: string;
   mainQuest?: boolean;
   silent?: boolean;
   repeatable?: boolean;
@@ -895,6 +910,16 @@ export interface QuestDetailDto {
   dependents?: QuestRelationDto[];
   tasks: QuestTaskDto[];
   rewards: QuestRewardDto[];
+}
+
+export interface QuestClaimResultDto {
+  success: boolean;
+  code?: string;
+  message?: string;
+  questId?: string;
+  newState?: string;
+  networkId?: number;
+  delivered?: string[];
 }
 
 export interface QuestProgressEntryDto {

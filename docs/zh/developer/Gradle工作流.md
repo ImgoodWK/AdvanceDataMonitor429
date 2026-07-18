@@ -189,7 +189,7 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1
 
 `addon.gradle` 对上述坐标做 `resolutionStrategy.force`。
 
-**AE2 可选 API stub**：发布的 AE2 jar 中部分 Tile（如 `TileChest`）字节码 implements 了 Mekanism / RotaryCraft 接口；这是 AE2 用 `compileOnly` 编进去的可选兼容，**GTNH 整合包并不安装这两个模组**。TeXTech 用 `tools/ae2-optional-stubs/` 生成 `build/ae2-optional-api-stubs.jar`（`compileOnly`），仅让 javac 能解析类签名，stub **不打进模组 jar**、游戏也不需要装 Mek/RC。
+**AE2 可选 API stub**：发布的 AE2 jar 中部分 Tile（如 `TileChest`）字节码 implements 了 Mekanism / RotaryCraft 接口；TeXTech 用 `tools/ae2-optional-stubs/` 生成 `build/ae2-optional-api-stubs.jar`（`compileOnly`）。**CoFH RF** 由 AE2 传递的 Curse CoFH Core 在运行时提供（GT++ cryotheum 依赖 `Mods.COFHCore`）；`runClient*` 前会跑 `syncDevCofhMappingsConfig`，把 `run/config/CodeChickenLib.cfg` 的 `mappingDir` 指到 `GRADLE_USER_HOME` 下的 MCP conf，避免 CoFH coremod 在 RFG 反混淆环境崩溃。
 
 ### BetterQuesting / WebAE 任务书调试
 
@@ -212,6 +212,12 @@ Remove-Item -Force "run\mods\ForgeNBTEdit-universal-1.0.0.test.jar" -ErrorAction
 ```
 
 查看 NBT 请用本模组自带的映录器 GUI（`GuiNbtViewer`）或 NEI。
+
+### CoFH `Failed to select mappings directory` / GT++ null cryotheum
+
+AE2 / WAILA 会传递引入 Curse `cofh-core`。其 coremod 默认在 `~/.gradle/caches/minecraft/.../unpacked/conf` 找 MCP 映射；本仓库常用 `GRADLE_USER_HOME=D:\dev-agent-cache\gradle`。若 mappings 找不到会立刻崩溃；若排除 CoFH，则 GT++ 无法注册 cryotheum，随后在 `MTEIndustrialVacuumFreezerLegacy` 以 `Cannot create a fluidstack from a null fluid` 失败。
+
+`addon.gradle` 的 `syncDevCofhMappingsConfig` 在 `runClient*` / `runServer*` 前写入 `run/config/CodeChickenLib.cfg` 的 `mappingDir`。勿全局 exclude CoFH Core。
 
 ---
 
