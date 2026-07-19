@@ -10,9 +10,9 @@ import {
   SettingOutlined,
   AlignLeftOutlined,
   ControlOutlined,
-  DeleteFilled,
   UndoOutlined,
   RedoOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -38,11 +38,12 @@ import {
 import {
   addChildToGroup,
   applyOuterNodePositions,
+  defaultDataSourceForWidgetType,
   flattenWidgets,
   isLayoutOrFeedType,
   removeWidgetById,
   updateWidgetById,
-  widgetLayoutSignature,
+  widgetRemountSignature,
 } from '@/utils/dashboardTree';
 
 import {
@@ -70,17 +71,30 @@ import { RadarChartWidget, resolveRadarAxes } from '@/components/dashboard/Radar
 import { WidgetShell } from '@/components/dashboard/WidgetShell';
 import { GroupWidget } from '@/components/dashboard/GroupWidget';
 import {
+  ActivityStreamWidget,
   AlertsSummaryWidget,
   CraftingQueueWidget,
+  MachineFleetWidget,
+  NetworkHealthWidget,
+  PlayerPresenceWidget,
+  PowerFlowWidget,
+  ServerVitalsWidget,
   SpacerWidget,
+  StorageMatrixWidget,
   TextNoteWidget,
 } from '@/components/dashboard/SpecialWidgets';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
+import { copyDashboardGameDisplayJson } from '@/utils/dashboardGameDisplayExport';
 import { createWidgetId } from '@/utils/widgetId';
 import {
   GRID_DRAG_CANCEL_SELECTOR,
   GRID_EDIT_NO_DRAG_CLASS,
   stopGridDragPointer,
+  syncWidgetGeometryToGrid,
+  observeGridViewport,
+  scheduleGridLayoutCommit,
+  cancelGridLayoutCommit,
+  type GridWidgetGeometry,
 } from '@/utils/gridStackEditGuard';
 import {
   buildNetworkCompareRows,
@@ -98,6 +112,8 @@ const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
   'statCard', 'progressBar', 'lineChart', 'barChart', 'pieChart',
   'dataTable', 'gauge', 'radarChart',
   'group', 'textNote', 'spacer', 'alertsSummary', 'craftingQueue',
+  'networkHealth', 'powerFlow', 'storageMatrix', 'machineFleet',
+  'playerPresence', 'activityStream', 'serverVitals',
 ];
 
 const DATA_SOURCES = [
@@ -109,7 +125,14 @@ const DATA_SOURCES = [
   'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
   'customPins',
   'none', 'alertsActive', 'craftingBusy',
+  'networkHealth', 'powerFlow', 'storageMatrix', 'machineFleet',
+  'playerPresence', 'activityStream', 'serverVitals',
 ];
+
+const SPECIAL_DATA_SOURCES = new Set([
+  'none', 'alertsActive', 'craftingBusy', 'networkHealth', 'powerFlow',
+  'storageMatrix', 'machineFleet', 'playerPresence', 'activityStream', 'serverVitals',
+]);
 
 const PALETTE_PRESETS: Array<{ type: DashboardWidgetConfig['type']; dataSource: string; w: number; h: number }> = [
   { type: 'statCard', dataSource: 'itemCount', w: 3, h: 2 },
@@ -119,19 +142,32 @@ const PALETTE_PRESETS: Array<{ type: DashboardWidgetConfig['type']; dataSource: 
   { type: 'group', dataSource: 'none', w: 6, h: 4 },
   { type: 'alertsSummary', dataSource: 'alertsActive', w: 4, h: 3 },
   { type: 'craftingQueue', dataSource: 'craftingBusy', w: 4, h: 3 },
+  { type: 'networkHealth', dataSource: 'networkHealth', w: 5, h: 4 },
+  { type: 'powerFlow', dataSource: 'powerFlow', w: 5, h: 3 },
+  { type: 'storageMatrix', dataSource: 'storageMatrix', w: 5, h: 3 },
+  { type: 'machineFleet', dataSource: 'machineFleet', w: 5, h: 4 },
+  { type: 'playerPresence', dataSource: 'playerPresence', w: 4, h: 3 },
+  { type: 'activityStream', dataSource: 'activityStream', w: 5, h: 4 },
+  { type: 'serverVitals', dataSource: 'serverVitals', w: 5, h: 3 },
   { type: 'textNote', dataSource: 'none', w: 3, h: 2 },
   { type: 'spacer', dataSource: 'none', w: 12, h: 1 },
 ];
 
 export function Dashboard() {
-  const { selectedNetworks, notify, lastUpdateTime, pageStyle } = useAppContext();
+  const { selectedNetworks, notify, lastUpdateTime, pageStyle, browsingMode } = useAppContext();
   const { t } = useI18n();
   const { storageMap, powerMap, gtMap, loading } = useSnapshotData();
   const fmtNum = useNumberFormat();
-  const { onlineCount: playerOnlineCount, history: playerOnlineHistory } = usePlayers();
+  const {
+    players,
+    onlineCount: playerOnlineCount,
+    history: playerOnlineHistory,
+    loading: playersLoading,
+  } = usePlayers();
   const serverHealth = useServerHealth();
   const networkMetrics = useNetworkMetrics();
   const [editMode, setEditMode] = useState(false);
+  const effectiveEditMode = editMode && !browsingMode;
   const {
     present: settings,
     commit: commitSettings,
@@ -159,6 +195,7 @@ export function Dashboard() {
   // GridStack 实例与 DOM 引用（提前声明以便 handleAutoArrange 等回调引用）
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
+  const pendingGridCommitRef = useRef<number | null>(null);
   const { schedule: scheduleLayoutSave, flush: flushLayoutSave, cancel: cancelLayoutSave } =
     useDebouncedLocalStorageSaver<DashboardSettings>(DASHBOARD_CONFIG_KEY);
 
@@ -197,7 +234,25 @@ export function Dashboard() {
     persistSettings(restored);
   }, [redoSettings, cancelLayoutSave, persistSettings]);
 
-  useUndoRedoHotkeys(handleUndo, handleRedo, editMode);
+  const handleExportGameDisplay = useCallback(async () => {
+    if (!gridRef.current) return;
+    try {
+      await copyDashboardGameDisplayJson(gridRef.current, t('dashboard'));
+      notify(t('dashboardGameDisplayExportDone'), 'success');
+    } catch {
+      notify(t('dashboardGameDisplayExportFailed'), 'error');
+    }
+  }, [notify, t]);
+
+  useUndoRedoHotkeys(handleUndo, handleRedo, effectiveEditMode);
+
+  useEffect(() => {
+    if (!browsingMode) return;
+    setEditMode(false);
+    setSettingsOpen(false);
+    setAddWidgetOpen(false);
+    setEditWidgetTarget(null);
+  }, [browsingMode]);
 
   const currentNet = selectedNetworks[0] ?? 0;
   const storage = storageMap[currentNet];
@@ -211,7 +266,9 @@ export function Dashboard() {
     selectedNetworks.length >= 2
   );
   const needsAlerts = useMemo(
-    () => flattenWidgets(widgets).some((w) => w.type === 'alertsSummary'),
+    () => flattenWidgets(widgets).some((w) =>
+      w.type === 'alertsSummary' || w.type === 'networkHealth' || w.type === 'activityStream'
+    ),
     [widgets]
   );
   const { alerts: activeAlerts, loading: alertsLoading } = useDashboardAlerts(needsAlerts);
@@ -287,6 +344,8 @@ export function Dashboard() {
       'powerHistory', 'storageByCategory', 'machineByStatus', 'networkCompare', 'networkBalance',
       'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt', 'customPins',
       'none', 'alertsActive', 'craftingBusy',
+      'networkHealth', 'powerFlow', 'storageMatrix', 'machineFleet',
+      'playerPresence', 'activityStream', 'serverVitals',
     ];
     for (const k of keys) map[k] = t('dataSource_' + k);
     return map[ds] || ds;
@@ -369,6 +428,80 @@ export function Dashboard() {
           cpus={storage?.cpus}
           titleColor={colors.titleColor}
           formatNumber={fmtNum}
+        />
+      );
+    }
+    if (widget.type === 'networkHealth') {
+      return (
+        <NetworkHealthWidget
+          widget={widget}
+          storage={storage}
+          power={power}
+          gtMachines={gt?.machines}
+          alerts={activeAlerts}
+          health={serverHealth.health}
+          titleColor={colors.titleColor}
+        />
+      );
+    }
+    if (widget.type === 'powerFlow') {
+      return (
+        <PowerFlowWidget
+          widget={widget}
+          power={power}
+          titleColor={colors.titleColor}
+          formatNumber={fmtNum}
+        />
+      );
+    }
+    if (widget.type === 'storageMatrix') {
+      return (
+        <StorageMatrixWidget
+          widget={widget}
+          storage={storage}
+          titleColor={colors.titleColor}
+          formatNumber={fmtNum}
+        />
+      );
+    }
+    if (widget.type === 'machineFleet') {
+      return (
+        <MachineFleetWidget
+          widget={widget}
+          machines={gt?.machines}
+          titleColor={colors.titleColor}
+          formatNumber={fmtNum}
+        />
+      );
+    }
+    if (widget.type === 'playerPresence') {
+      return (
+        <PlayerPresenceWidget
+          widget={widget}
+          players={players}
+          loading={playersLoading}
+          titleColor={colors.titleColor}
+        />
+      );
+    }
+    if (widget.type === 'activityStream') {
+      return (
+        <ActivityStreamWidget
+          widget={widget}
+          alerts={activeAlerts}
+          cpus={storage?.cpus}
+          titleColor={colors.titleColor}
+          formatNumber={fmtNum}
+        />
+      );
+    }
+    if (widget.type === 'serverVitals') {
+      return (
+        <ServerVitalsWidget
+          widget={widget}
+          health={serverHealth.health}
+          loading={serverHealth.loading}
+          titleColor={colors.titleColor}
         />
       );
     }
@@ -1119,7 +1252,7 @@ export function Dashboard() {
       id: createWidgetId('w-'),
       type,
       dataSource: isLayoutOrFeedType(type)
-        ? (type === 'alertsSummary' ? 'alertsActive' : type === 'craftingQueue' ? 'craftingBusy' : 'none')
+        ? defaultDataSourceForWidgetType(type)
         : (newWidget.dataSource || 'itemCount'),
       scope: (newWidget.scope || 'perNetwork') as 'global' | 'perNetwork',
       title: newWidget.title || '',
@@ -1189,10 +1322,7 @@ export function Dashboard() {
     notify(t('layoutReset'), 'info');
   };
 
-  const commitOuterLayoutFromGrid = useCallback(() => {
-    const grid = gridInstanceRef.current;
-    if (!grid?.engine.nodes.length) return;
-    const nodes = grid.engine.nodes;
+  const commitOuterLayout = useCallback((nodes: GridWidgetGeometry[]) => {
     cancelLayoutSave();
     commitSettings((prev) => {
       const next = { ...prev, widgets: applyOuterNodePositions(prev.widgets, nodes) };
@@ -1200,6 +1330,14 @@ export function Dashboard() {
       return next;
     });
   }, [cancelLayoutSave, commitSettings, scheduleLayoutSave]);
+
+  const scheduleOuterLayoutCommit = useCallback(() => {
+    scheduleGridLayoutCommit(
+      gridInstanceRef.current,
+      pendingGridCommitRef,
+      commitOuterLayout
+    );
+  }, [commitOuterLayout]);
 
   // 自动排列：调用 GridStack.compact() 将所有 widget 紧凑排列到顶部。
   // 仅在编辑模式下可用（grid 处于非 static 状态时 compact 才会真正重排）。
@@ -1209,16 +1347,15 @@ export function Dashboard() {
     try {
       // GridStack compact：'compact' 模式会尽量消除空隙、将 widget 紧凑排列到顶部。
       grid.compact('compact');
-      commitOuterLayoutFromGrid();
-      flushLayoutSave();
+      scheduleOuterLayoutCommit();
       notify(t('autoArrangeDone'), 'success');
     } catch (e) {
       notify((e as Error).message, 'error');
     }
-  }, [notify, t, commitOuterLayoutFromGrid, flushLayoutSave]);
-  // 重建 GridStack 的依赖：widget id 列表 + 每个 widget 的宽高（含嵌套）+ 锁标志
-  const layoutSignature = useMemo(
-    () => widgetLayoutSignature(widgets),
+  }, [notify, t, scheduleOuterLayoutCommit]);
+  // Remount GridStack only on structural changes (ids/type/flags) — not on drag/resize geometry.
+  const remountSignature = useMemo(
+    () => widgetRemountSignature(widgets),
     [widgets]
   );
 
@@ -1232,55 +1369,60 @@ export function Dashboard() {
         column: 12,
         cellHeight: 64,
         margin: settings.widgetGap ?? 12,
-        staticGrid: !editMode,
+        staticGrid: !effectiveEditMode,
         // float:true —— 重建时严格尊重 gs-x/gs-y，避免按旧 margin 排布的 widget
         // 在新间距下被吸附紧凑重排（grid.margin() 不会重排已有节点内联 transform）。
         // init 完成后立即 grid.float(false) 恢复拖拽下落行为，仅设置标志不重排已有节点。
         float: true,
         animate: true,
         acceptWidgets: false,
-        removable: editMode ? '.dashboard-trash' : false,
-        removableOptions: { accept: '.grid-stack-item' },
         draggable: { cancel: GRID_DRAG_CANCEL_SELECTOR },
       },
       gridRef.current
     );
     gridInstanceRef.current = grid;
     grid.float(false);
-
-    const onRemoved = (_ev: Event, items: Array<{ id?: string | number }>) => {
-      if (!items?.length) return;
-      cancelLayoutSave();
-      commitSettings((prev) => {
-        let nextWidgets = prev.widgets;
-        for (const item of items) {
-          if (item.id != null) {
-            nextWidgets = removeWidgetById(nextWidgets, String(item.id));
-          }
-        }
-        const next = { ...prev, widgets: nextWidgets };
-        persistSettings(next);
-        return next;
-      });
-    };
+    const stopViewportObserver = observeGridViewport(grid, 64, 40);
     const onDragOrResizeStop = () => {
-      commitOuterLayoutFromGrid();
-      flushLayoutSave();
+      scheduleOuterLayoutCommit();
     };
-    grid.on('removed', onRemoved);
     grid.on('dragstop', onDragOrResizeStop);
     grid.on('resizestop', onDragOrResizeStop);
 
     return () => {
+      stopViewportObserver();
+      cancelGridLayoutCommit(pendingGridCommitRef);
       flushLayoutSave();
-      grid.off('removed');
-      grid.off('dragstop');
-      grid.off('resizestop');
-      grid.destroy(false);
-      gridInstanceRef.current = null;
+      grid.offAll();
+      if (gridInstanceRef.current === grid) gridInstanceRef.current = null;
+      try {
+        grid.destroy(false);
+      } catch {
+        // StrictMode/navigation may already have released the instance.
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layoutSignature, editMode, selectedNetworks.length, settings.margin, settings.widgetGap]);
+  }, [remountSignature, selectedNetworks.length]);
+
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    try {
+      grid.setStatic(!effectiveEditMode);
+    } catch {
+      /* grid is changing pages */
+    }
+  }, [effectiveEditMode, remountSignature]);
+
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    try {
+      grid.margin(settings.widgetGap ?? 12);
+    } catch {
+      /* grid is changing pages */
+    }
+  }, [settings.widgetGap, remountSignature]);
 
   if (selectedNetworks.length === 0) {
     return (
@@ -1293,60 +1435,69 @@ export function Dashboard() {
   return (
     <PageShell
       title={t('dashboard')}
-      actions={
+      actions={(
         <Space wrap>
-          <Tooltip title={t('dashCfgOpenHint')}>
-            <Button
-              icon={<ControlOutlined />}
-              onClick={() => setSettingsOpen(true)}
-            >
-              {t('dashCfgOpen')}
+          <Tooltip title={t('dashboardGameDisplayExportHint')}>
+            <Button icon={<ExportOutlined />} onClick={handleExportGameDisplay}>
+              {t('dashboardGameDisplayExport')}
             </Button>
           </Tooltip>
-          <Button
-            type={editMode ? 'primary' : 'default'}
-            icon={<EditOutlined />}
-            onClick={() => setEditMode(!editMode)}
-          >
-            {editMode ? t('done') : t('editDashboard')}
-          </Button>
-          <Tooltip title={t('editorUndoHint')}>
-            <Button icon={<UndoOutlined />} onClick={handleUndo} disabled={!editMode || !canUndo}>
-              {t('editorUndo')}
-            </Button>
-          </Tooltip>
-          <Tooltip title={t('editorRedoHint')}>
-            <Button icon={<RedoOutlined />} onClick={handleRedo} disabled={!editMode || !canRedo}>
-              {t('editorRedo')}
-            </Button>
-          </Tooltip>
-          <Button
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setAddTargetGroupId(null);
-              setAddWidgetOpen(true);
-            }}
-            disabled={!editMode}
-          >
-            {t('addWidget')}
-          </Button>
-          <Tooltip title={t('autoArrangeHint')}>
-            <Button
-              icon={<AlignLeftOutlined />}
-              onClick={handleAutoArrange}
-              disabled={!editMode}
-            >
-              {t('autoArrange')}
-            </Button>
-          </Tooltip>
-          <Button icon={<ReloadOutlined />} onClick={handleResetLayout} disabled={!editMode}>
-            {t('resetLayout')}
-          </Button>
+          {!browsingMode && (
+            <>
+              <Tooltip title={t('dashCfgOpenHint')}>
+                <Button
+                  icon={<ControlOutlined />}
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  {t('dashCfgOpen')}
+                </Button>
+              </Tooltip>
+              <Button
+                type={effectiveEditMode ? 'primary' : 'default'}
+                icon={<EditOutlined />}
+                onClick={() => setEditMode(!effectiveEditMode)}
+              >
+                {effectiveEditMode ? t('done') : t('editDashboard')}
+              </Button>
+              <Tooltip title={t('editorUndoHint')}>
+                <Button icon={<UndoOutlined />} onClick={handleUndo} disabled={!effectiveEditMode || !canUndo}>
+                  {t('editorUndo')}
+                </Button>
+              </Tooltip>
+              <Tooltip title={t('editorRedoHint')}>
+                <Button icon={<RedoOutlined />} onClick={handleRedo} disabled={!effectiveEditMode || !canRedo}>
+                  {t('editorRedo')}
+                </Button>
+              </Tooltip>
+              <Button
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setAddTargetGroupId(null);
+                  setAddWidgetOpen(true);
+                }}
+                disabled={!effectiveEditMode}
+              >
+                {t('addWidget')}
+              </Button>
+              <Tooltip title={t('autoArrangeHint')}>
+                <Button
+                  icon={<AlignLeftOutlined />}
+                  onClick={handleAutoArrange}
+                  disabled={!effectiveEditMode}
+                >
+                  {t('autoArrange')}
+                </Button>
+              </Tooltip>
+              <Button icon={<ReloadOutlined />} onClick={handleResetLayout} disabled={!effectiveEditMode}>
+                {t('resetLayout')}
+              </Button>
+            </>
+          )}
         </Space>
-      }
+      )}
     >
       <div className="dashboard-grid-wrap">
-        {editMode && (
+        {effectiveEditMode && (
           <div className="dashboard-palette" aria-label={t('widgetPalette')}>
             <span className="dashboard-palette-label">{t('widgetPalette')}</span>
             <Space wrap size={[6, 6]}>
@@ -1385,7 +1536,7 @@ export function Dashboard() {
                 lastUpdateTime={lastUpdateTime}
                 className={widget.type === 'group' ? 'widget-shell--group' : undefined}
                 editOverlay={
-                  editMode && widget.type !== 'group' ? (
+                  effectiveEditMode && widget.type !== 'group' ? (
                     <div
                       className={`dashboard-grid-edit-actions ${GRID_EDIT_NO_DRAG_CLASS}`}
                       style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}
@@ -1425,7 +1576,7 @@ export function Dashboard() {
                   <GroupWidget
                     widget={widget}
                     settings={settings}
-                    editMode={editMode}
+                    editMode={effectiveEditMode}
                     lastUpdateTime={lastUpdateTime}
                     renderChild={renderWidget}
                     flushLayoutSave={flushLayoutSave}
@@ -1451,12 +1602,6 @@ export function Dashboard() {
             </div>
           ))}
         </div>
-        {editMode && (
-          <div className="dashboard-trash" title={t('dashboardTrashHint')}>
-            <DeleteFilled />
-            <span>{t('dashboardTrash')}</span>
-          </div>
-        )}
       </div>
 
       <DashboardSettingsDrawer
@@ -1496,7 +1641,7 @@ export function Dashboard() {
                     type: typeOk ? newWidget.type : valid[0] || 'statCard',
                   });
                 }}
-                options={DATA_SOURCES.filter((ds) => !['none', 'alertsActive', 'craftingBusy'].includes(ds)).map((ds) => ({
+                options={DATA_SOURCES.filter((ds) => !SPECIAL_DATA_SOURCES.has(ds)).map((ds) => ({
                   label: t('dataSource_' + ds),
                   value: ds,
                 }))}
@@ -1516,8 +1661,8 @@ export function Dashboard() {
                   ...newWidget,
                   type,
                   dataSource: isLayoutOrFeedType(type)
-                    ? (type === 'alertsSummary' ? 'alertsActive' : type === 'craftingQueue' ? 'craftingBusy' : 'none')
-                    : (newWidget.dataSource && !['none', 'alertsActive', 'craftingBusy'].includes(newWidget.dataSource)
+                    ? defaultDataSourceForWidgetType(type)
+                    : (newWidget.dataSource && !SPECIAL_DATA_SOURCES.has(newWidget.dataSource)
                       ? newWidget.dataSource
                       : 'itemCount'),
                   width: type === 'group' ? 6 : newWidget.width || 3,
@@ -1558,6 +1703,10 @@ export function Dashboard() {
               ...prev,
               widgets: updateWidgetById(prev.widgets, target.id, () => target),
             }));
+            // Geometry is excluded from remount signature; update after React closes the modal.
+            window.requestAnimationFrame(() => {
+              if (syncWidgetGeometryToGrid(target)) scheduleOuterLayoutCommit();
+            });
           }
           setEditWidgetTarget(null);
         }}

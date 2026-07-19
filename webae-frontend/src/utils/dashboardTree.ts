@@ -7,10 +7,36 @@ export const LAYOUT_OR_FEED_TYPES: ReadonlyArray<DashboardWidgetConfig['type']> 
   'spacer',
   'alertsSummary',
   'craftingQueue',
+  'networkHealth',
+  'powerFlow',
+  'storageMatrix',
+  'machineFleet',
+  'playerPresence',
+  'activityStream',
+  'serverVitals',
 ];
+
+const SPECIAL_WIDGET_DATA_SOURCES: Partial<Record<DashboardWidgetConfig['type'], string>> = {
+  alertsSummary: 'alertsActive',
+  craftingQueue: 'craftingBusy',
+  networkHealth: 'networkHealth',
+  powerFlow: 'powerFlow',
+  storageMatrix: 'storageMatrix',
+  machineFleet: 'machineFleet',
+  playerPresence: 'playerPresence',
+  activityStream: 'activityStream',
+  serverVitals: 'serverVitals',
+  group: 'none',
+  textNote: 'none',
+  spacer: 'none',
+};
 
 export function isLayoutOrFeedType(type: DashboardWidgetConfig['type']): boolean {
   return (LAYOUT_OR_FEED_TYPES as ReadonlyArray<string>).includes(type);
+}
+
+export function defaultDataSourceForWidgetType(type: DashboardWidgetConfig['type']): string {
+  return SPECIAL_WIDGET_DATA_SOURCES[type] || 'itemCount';
 }
 
 /** Walk the widget tree depth-first (groups include themselves, then children). */
@@ -105,12 +131,12 @@ export function widgetStructureSignature(widgets: DashboardWidgetConfig[]): stri
 
 /**
  * Signature covering ids + geometry at every nesting level for a single grid.
- * Includes x/y so import or external coordinate replacement remounts that grid.
+ * Includes x/y so callers can detect import or external coordinate replacement.
  * Nested group children use structure-only signatures so outer grids do not
- * remount when an inner grid commits positions.
+ * treat inner drag commits as outer geometry changes.
  *
- * Callers must not write x/y into React state on every GridStack `change` —
- * only on dragstop/resizestop/compact — or remount jitter will occur.
+ * Prefer {@link widgetRemountSignature} for GridStack useEffect deps — do not
+ * remount on dragstop/resizestop geometry writes.
  */
 export function widgetLayoutSignature(widgets: DashboardWidgetConfig[]): string {
   return widgets
@@ -124,6 +150,31 @@ export function widgetLayoutSignature(widgets: DashboardWidgetConfig[]): string 
       const base = `${w.id}_${w.x ?? 0}_${w.y ?? 0}_${w.width}_${w.height}_${w.type}_${flags}`;
       if (w.type === 'group') {
         return `${base}{${widgetStructureSignature(w.children || [])}}`;
+      }
+      return base;
+    })
+    .join(',');
+}
+
+/**
+ * Remount signature for GridStack init/destroy: ids, type, constraint flags,
+ * and nested membership — never x/y/width/height.
+ *
+ * Drag/resize persistence must not remount; sync external size edits via
+ * `grid.update` instead.
+ */
+export function widgetRemountSignature(widgets: DashboardWidgetConfig[]): string {
+  return widgets
+    .map((w) => {
+      const flags = [
+        w.locked ? 'L' : '',
+        w.noMove ? 'M' : '',
+        w.noResize ? 'R' : '',
+        w.sizeToContent ? 'S' : '',
+      ].join('');
+      const base = `${w.id}_${w.type}_${flags}`;
+      if (w.type === 'group') {
+        return `${base}{${widgetRemountSignature(w.children || [])}}`;
       }
       return base;
     })

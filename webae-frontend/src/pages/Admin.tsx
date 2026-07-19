@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -38,6 +38,7 @@ import {
   CloseCircleOutlined,
   BookOutlined,
   DashboardOutlined,
+  LineChartOutlined,
   InfoCircleOutlined,
   UserOutlined,
   UserSwitchOutlined,
@@ -45,6 +46,8 @@ import {
   StopOutlined,
   PlayCircleOutlined,
   SearchOutlined,
+  RobotOutlined,
+  CodeOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -52,6 +55,8 @@ import { getApiClient } from '@/api/client';
 import { PageShell } from '@/components/Layout/PageShell';
 import { useServerDiagnostics } from '@/hooks/useServerDiagnostics';
 import { useAdminPlayers } from '@/hooks/useAdminPlayers';
+import { SparkProfilerTab } from '@/pages/Spark';
+import { QqBotPanel } from '@/components/admin/QqBotPanel';
 import { formatTime } from '@/utils/format';
 import type {
   AdminMeResponse,
@@ -68,6 +73,10 @@ import type {
 
 const { Text, Paragraph } = Typography;
 
+const ServerConsolePanel = lazy(() => import('@/components/admin/ServerConsolePanel').then((module) => ({
+  default: module.ServerConsolePanel,
+})));
+
 const DIAGNOSTICS_POLL_MS = 3000;
 
 const PHASE_ORDER = [
@@ -79,6 +88,7 @@ const PHASE_ORDER = [
   'worldMapTileQueue',
   'worldMapCapture',
   'webAlertEngine',
+  'qqBot',
   'misc',
 ];
 
@@ -147,7 +157,7 @@ function phaseRows(phases: Record<string, PerfPhaseView> | undefined): Array<{ k
 }
 
 export function AdminPage() {
-  const { isAdmin, isOnlineOp, adminCapabilities, checkAdminStatus, revokeAdmin, networks, selectedNetworks } = useAppContext();
+  const { isAdmin, isOnlineOp, adminCapabilities, checkAdminStatus, revokeAdmin, networks, selectedNetworks, serverConfig } = useAppContext();
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('status');
   const [loading, setLoading] = useState(false);
@@ -177,7 +187,7 @@ export function AdminPage() {
     resumeNetwork,
     setAcl,
     revokeGuestToken,
-  } = useAdminPlayers();
+  } = useAdminPlayers(activeTab === 'players');
   const [playerSearch, setPlayerSearch] = useState('');
   const [accessDrawerUuid, setAccessDrawerUuid] = useState<string | null>(null);
   const [accessDrawerName, setAccessDrawerName] = useState('');
@@ -1025,6 +1035,25 @@ export function AdminPage() {
       key: 'diagnostics',
       label: <Space size={4}><DashboardOutlined />{t('adminTabDiagnostics')}</Space>,
       children: renderDiagnosticsTab(),
+    },
+    ...(serverConfig?.sparkEnabled ? [{
+      key: 'spark',
+      label: <Space size={4}><LineChartOutlined />{t('adminTabSpark')}</Space>,
+      children: <SparkProfilerTab />,
+    }] : []),
+    {
+      key: 'qqbot',
+      label: <Space size={4}><RobotOutlined />{t('adminTabQqBot')}</Space>,
+      children: <QqBotPanel active={activeTab === 'qqbot'} />,
+    },
+    {
+      key: 'console',
+      label: <Space size={4}><CodeOutlined />{t('adminTabConsole')}</Space>,
+      children: (
+        <Suspense fallback={<Spin spinning />}>
+          <ServerConsolePanel active={activeTab === 'console'} />
+        </Suspense>
+      ),
     },
     {
       key: 'players',

@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   addChildToGroup,
   applyOuterNodePositions,
+  defaultDataSourceForWidgetType,
   findWidgetById,
+  isLayoutOrFeedType,
   removeWidgetById,
   updateWidgetById,
   widgetLayoutSignature,
+  widgetRemountSignature,
   widgetStructureSignature,
 } from './dashboardTree';
 import type { DashboardWidgetConfig } from './presets';
@@ -104,5 +107,57 @@ describe('dashboardTree', () => {
     expect(widgetLayoutSignature([base])).not.toBe(
       widgetLayoutSignature([{ ...base, type: 'gauge' }])
     );
+  });
+
+  it('remount signature ignores geometry but reacts to structure and flags', () => {
+    const base = w({ id: 'a', type: 'statCard', x: 0, y: 0, width: 3, height: 2 });
+    expect(widgetRemountSignature([base])).toBe(
+      widgetRemountSignature([{ ...base, x: 4, y: 5, width: 6, height: 7 }])
+    );
+    expect(widgetRemountSignature([base])).not.toBe(
+      widgetRemountSignature([{ ...base, locked: true }])
+    );
+    expect(widgetRemountSignature([base])).not.toBe(
+      widgetRemountSignature([{ ...base, type: 'gauge' }])
+    );
+    expect(widgetRemountSignature([base])).not.toBe(
+      widgetRemountSignature([base, w({ id: 'b', type: 'statCard' })])
+    );
+
+    const g1 = [
+      w({
+        id: 'g',
+        type: 'group',
+        children: [w({ id: 'c', type: 'statCard', x: 0, y: 0, width: 2, height: 2 })],
+      }),
+    ];
+    const g2 = [
+      w({
+        id: 'g',
+        type: 'group',
+        x: 3,
+        y: 4,
+        width: 8,
+        height: 6,
+        children: [w({ id: 'c', type: 'statCard', x: 5, y: 5, width: 4, height: 3 })],
+      }),
+    ];
+    expect(widgetRemountSignature(g1)).toBe(widgetRemountSignature(g2));
+    expect(widgetRemountSignature(g1)).not.toBe(
+      widgetRemountSignature([
+        w({
+          id: 'g',
+          type: 'group',
+          children: [w({ id: 'c2', type: 'statCard' })],
+        }),
+      ])
+    );
+  });
+
+  it('maps composite widgets to stable special data sources', () => {
+    expect(isLayoutOrFeedType('networkHealth')).toBe(true);
+    expect(defaultDataSourceForWidgetType('networkHealth')).toBe('networkHealth');
+    expect(defaultDataSourceForWidgetType('activityStream')).toBe('activityStream');
+    expect(defaultDataSourceForWidgetType('statCard')).toBe('itemCount');
   });
 });

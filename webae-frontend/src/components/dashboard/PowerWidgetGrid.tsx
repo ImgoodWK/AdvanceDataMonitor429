@@ -12,6 +12,7 @@ import {
   ControlOutlined,
   UndoOutlined,
   RedoOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -32,13 +33,19 @@ import { DashboardSettingsDrawer } from '@/components/dashboard/DashboardSetting
 import { EditWidgetModal } from '@/components/dashboard/EditWidgetModal';
 import { PowerWidgetContent } from '@/components/dashboard/PowerWidgetContent';
 import { WidgetShell } from '@/components/dashboard/WidgetShell';
+import { DataPageSection } from '@/components/Layout/DataPageSection';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
 import { createWidgetId } from '@/utils/widgetId';
-import { widgetLayoutSignature } from '@/utils/dashboardTree';
+import { widgetRemountSignature } from '@/utils/dashboardTree';
 import {
   GRID_DRAG_CANCEL_SELECTOR,
   GRID_EDIT_NO_DRAG_CLASS,
   stopGridDragPointer,
+  syncWidgetGeometryToGrid,
+  observeGridViewport,
+  scheduleGridLayoutCommit,
+  cancelGridLayoutCommit,
+  type GridWidgetGeometry,
 } from '@/utils/gridStackEditGuard';
 import { POWER_DATA_SOURCES, type PowerSnapshot } from '@/utils/powerDataSources';
 
@@ -51,21 +58,24 @@ const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
 
 interface PowerWidgetGridProps {
   snapshot: PowerSnapshot | null;
+  networkId?: number;
   initialLoading?: boolean;
   disabled?: boolean;
 }
 
 export function PowerWidgetGrid({
   snapshot,
+  networkId,
   initialLoading = false,
   disabled = false,
 }: PowerWidgetGridProps) {
-  const { notify, selectedNetworks, lastUpdateTime } = useAppContext();
+  const { notify, selectedNetworks, lastUpdateTime, browsingMode } = useAppContext();
   const { t } = useI18n();
   const fmtNum = useNumberFormat();
   const networkMetrics = useNetworkMetrics();
-  const primaryNetworkId = selectedNetworks[0] ?? 0;
+  const primaryNetworkId = networkId ?? selectedNetworks[0] ?? 0;
   const [editMode, setEditMode] = useState(false);
+  const effectiveEditMode = editMode && !browsingMode && !disabled;
   const {
     present: settings,
     commit: commitSettings,
@@ -90,6 +100,7 @@ export function PowerWidgetGrid({
 
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
+  const pendingGridCommitRef = useRef<number | null>(null);
   const { schedule: scheduleLayoutSave, flush: flushLayoutSave, cancel: cancelLayoutSave } =
     useDebouncedLocalStorageSaver<PowerSettings>(POWER_CONFIG_KEY);
 
@@ -127,7 +138,15 @@ export function PowerWidgetGrid({
     persistSettings(restored);
   }, [redoSettings, cancelLayoutSave, persistSettings]);
 
-  useUndoRedoHotkeys(handleUndo, handleRedo, editMode && !disabled);
+  useUndoRedoHotkeys(handleUndo, handleRedo, effectiveEditMode);
+
+  useEffect(() => {
+    if (!browsingMode) return;
+    setEditMode(false);
+    setSettingsOpen(false);
+    setAddWidgetOpen(false);
+    setEditWidgetTarget(null);
+  }, [browsingMode]);
 
   const dashboardSettings = useMemo(() => overviewAsDashboardSettings(settings), [settings]);
   const widgets = settings.widgets;
@@ -180,10 +199,7 @@ export function PowerWidgetGrid({
     notify(t('layoutReset'), 'info');
   };
 
-  const commitLayoutFromGrid = useCallback(() => {
-    const grid = gridInstanceRef.current;
-    if (!grid?.engine.nodes.length) return;
-    const nodes = grid.engine.nodes;
+  const commitLayout = useCallback((nodes: GridWidgetGeometry[]) => {
     cancelLayoutSave();
     commitSettings((prev) => {
       const nextWidgets = prev.widgets.map((w) => {
@@ -203,20 +219,23 @@ export function PowerWidgetGrid({
     });
   }, [cancelLayoutSave, commitSettings, scheduleLayoutSave]);
 
+  const scheduleLayoutCommit = useCallback(() => {
+    scheduleGridLayoutCommit(gridInstanceRef.current, pendingGridCommitRef, commitLayout);
+  }, [commitLayout]);
+
   const handleAutoArrange = useCallback(() => {
     const grid = gridInstanceRef.current;
     if (!grid) return;
     try {
       grid.compact('compact');
-      commitLayoutFromGrid();
-      flushLayoutSave();
+      scheduleLayoutCommit();
       notify(t('autoArrangeDone'), 'success');
     } catch (e) {
       notify((e as Error).message, 'error');
     }
-  }, [notify, t, commitLayoutFromGrid, flushLayoutSave]);
+  }, [notify, t, scheduleLayoutCommit]);
 
-  const layoutSignature = useMemo(() => widgetLayoutSignature(widgets), [widgets]);
+  const remountSignature = useMemo(() => widgetRemountSignature(widgets), [widgets]);
 
   useEffect(() => {
     if (!gridRef.current || disabled) return;
@@ -226,7 +245,7 @@ export function PowerWidgetGrid({
         column: 12,
         cellHeight: 64,
         margin: settings.widgetGap ?? 12,
-        staticGrid: !editMode,
+        staticGrid: !effectiveEditMode,
         float: true,
         animate: true,
         draggable: { cancel: GRID_DRAG_CANCEL_SELECTOR },
@@ -235,23 +254,48 @@ export function PowerWidgetGrid({
     );
     gridInstanceRef.current = grid;
     grid.float(false);
+    const stopViewportObserver = observeGridViewport(grid, 64, 40);
 
     const onDragOrResizeStop = () => {
-      commitLayoutFromGrid();
-      flushLayoutSave();
+      scheduleLayoutCommit();
     };
     grid.on('dragstop', onDragOrResizeStop);
     grid.on('resizestop', onDragOrResizeStop);
 
     return () => {
+      stopViewportObserver();
+      cancelGridLayoutCommit(pendingGridCommitRef);
       flushLayoutSave();
-      grid.off('dragstop');
-      grid.off('resizestop');
-      grid.destroy(false);
-      gridInstanceRef.current = null;
+      grid.offAll();
+      if (gridInstanceRef.current === grid) gridInstanceRef.current = null;
+      try {
+        grid.destroy(false);
+      } catch {
+        // StrictMode/navigation may already have released the instance.
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layoutSignature, editMode, settings.margin, settings.widgetGap, disabled]);
+  }, [remountSignature, disabled]);
+
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    try {
+      grid.setStatic(!effectiveEditMode);
+    } catch {
+      /* grid is changing pages */
+    }
+  }, [effectiveEditMode, remountSignature]);
+
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    try {
+      grid.margin(settings.widgetGap ?? 12);
+    } catch {
+      /* grid is changing pages */
+    }
+  }, [settings.widgetGap, remountSignature]);
 
   const handleSettingsChange = (s: DashboardSettings) => {
     saveSettings({
@@ -272,8 +316,14 @@ export function PowerWidgetGrid({
   };
 
   return (
-    <div className="power-grid-section">
-      <div className="power-grid-toolbar" style={{ marginBottom: 8 }}>
+    <DataPageSection
+      title={t('powerOverviewTitle')}
+      description={t('powerOverviewDesc')}
+      eyebrow={t('customOverviewEyebrow')}
+      icon={<ThunderboltOutlined />}
+      variant="overview"
+      className={`power-grid-section ${effectiveEditMode ? 'data-page-section--editing' : ''}`}
+      actions={!browsingMode ? (
         <Space wrap>
           <Tooltip title={t('dashCfgOpenHint')}>
             <Button
@@ -286,58 +336,59 @@ export function PowerWidgetGrid({
             </Button>
           </Tooltip>
           <Button
-            type={editMode ? 'primary' : 'default'}
+            type={effectiveEditMode ? 'primary' : 'default'}
             icon={<EditOutlined />}
             size="small"
-            onClick={() => setEditMode(!editMode)}
-            aria-pressed={editMode}
+            onClick={() => setEditMode(!effectiveEditMode)}
+            aria-pressed={effectiveEditMode}
           >
-            {editMode ? t('done') : t('editPowerLayout')}
-          </Button>
-          <Tooltip title={t('editorUndoHint')}>
-            <Button
-              icon={<UndoOutlined />}
-              size="small"
-              onClick={handleUndo}
-              disabled={!editMode || !canUndo}
-            />
-          </Tooltip>
-          <Tooltip title={t('editorRedoHint')}>
-            <Button
-              icon={<RedoOutlined />}
-              size="small"
-              onClick={handleRedo}
-              disabled={!editMode || !canRedo}
-            />
-          </Tooltip>
-          <Button
-            icon={<PlusOutlined />}
-            size="small"
-            onClick={() => setAddWidgetOpen(true)}
-            disabled={!editMode}
-          >
-            {t('addWidget')}
-          </Button>
-          <Tooltip title={t('autoArrangeHint')}>
-            <Button
-              icon={<AlignLeftOutlined />}
-              size="small"
-              onClick={handleAutoArrange}
-              disabled={!editMode}
-            >
-              {t('autoArrange')}
-            </Button>
-          </Tooltip>
-          <Button
-            icon={<ReloadOutlined />}
-            size="small"
-            onClick={handleResetLayout}
-            disabled={!editMode}
-          >
-            {t('resetLayout')}
+            {effectiveEditMode ? t('done') : t('editPowerLayout')}
           </Button>
         </Space>
-      </div>
+      ) : undefined}
+    >
+      {effectiveEditMode && (
+        <div className="dashboard-editor-ribbon" role="status">
+          <div className="dashboard-editor-ribbon__copy">
+            <span className="dashboard-editor-ribbon__pulse" aria-hidden="true" />
+            <div>
+              <strong>{t('overviewEditingTitle')}</strong>
+              <span>{t('overviewEditingDesc')}</span>
+            </div>
+          </div>
+          <Space wrap size={[6, 6]} className="dashboard-editor-ribbon__actions">
+            <Tooltip title={t('editorUndoHint')}>
+              <Button
+                icon={<UndoOutlined />}
+                size="small"
+                onClick={handleUndo}
+                disabled={!canUndo}
+                aria-label={t('editorUndo')}
+              />
+            </Tooltip>
+            <Tooltip title={t('editorRedoHint')}>
+              <Button
+                icon={<RedoOutlined />}
+                size="small"
+                onClick={handleRedo}
+                disabled={!canRedo}
+                aria-label={t('editorRedo')}
+              />
+            </Tooltip>
+            <Button icon={<PlusOutlined />} size="small" onClick={() => setAddWidgetOpen(true)}>
+              {t('addWidget')}
+            </Button>
+            <Tooltip title={t('autoArrangeHint')}>
+              <Button icon={<AlignLeftOutlined />} size="small" onClick={handleAutoArrange}>
+                {t('autoArrange')}
+              </Button>
+            </Tooltip>
+            <Button icon={<ReloadOutlined />} size="small" onClick={handleResetLayout}>
+              {t('resetLayout')}
+            </Button>
+          </Space>
+        </div>
+      )}
 
       <div
         className={`grid-stack power-widget-grid ${disabled ? 'power-grid-disabled' : ''}`}
@@ -362,7 +413,7 @@ export function PowerWidgetGrid({
               className="power-grid-item-content"
               lastUpdateTime={lastUpdateTime}
               editOverlay={
-                editMode ? (
+                effectiveEditMode ? (
                   <div
                     className={`power-grid-edit-actions ${GRID_EDIT_NO_DRAG_CLASS}`}
                     onMouseDown={stopGridDragPointer}
@@ -477,6 +528,9 @@ export function PowerWidgetGrid({
               ...prev,
               widgets: prev.widgets.map((w) => (w.id === target.id ? target : w)),
             }));
+            window.requestAnimationFrame(() => {
+              if (syncWidgetGeometryToGrid(target)) scheduleLayoutCommit();
+            });
           }
           setEditWidgetTarget(null);
         }}
@@ -487,6 +541,6 @@ export function PowerWidgetGrid({
         heightMin={2}
         heightMax={10}
       />
-    </div>
+    </DataPageSection>
   );
 }

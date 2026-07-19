@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.Config;
 import com.imgood.textech.config.ConfigWebAlertsLoader;
 import com.imgood.textech.webae.api.handler.OrderHandler;
 import com.imgood.textech.webae.auth.WebAuthToken;
@@ -21,6 +22,7 @@ import com.imgood.textech.webae.dto.OrderStatus;
 import com.imgood.textech.webae.dto.StorageDto;
 import com.imgood.textech.webae.dto.StorageDto.CpuEntry;
 import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
+import com.imgood.textech.webae.events.EventStreamHub;
 import com.imgood.textech.webae.health.ServerHealthSampler;
 import com.imgood.textech.webae.order.OrderSubmitService;
 import com.imgood.textech.webae.order.OrderSubmitService.AutomationSubmitResult;
@@ -39,29 +41,40 @@ public final class WebAlertEngine {
 
     /** Max automation rules to evaluate per tick globally to avoid stalls. */
     private static final int MAX_AUTOMATION_RULES_PER_TICK = 5;
+    /** Spread owner evaluation over alert ticks instead of creating a multiplayer spike. */
+    private static final int MAX_OWNERS_PER_TICK = 2;
     private static int automationRulesEvaluatedThisTick;
+    private static int ownerCursor;
 
     private WebAlertEngine() {}
 
     public static void onServerTick(long now) {
         WebAlertsConfig cfg = ConfigWebAlertsLoader.get();
-        if (cfg == null || !cfg.enabled) {
+        if (!Config.webAlertsEnabled || cfg == null || !cfg.enabled) {
             return;
         }
-        // Reset per-tick budget
         automationRulesEvaluatedThisTick = 0;
         long intervalMs = Math.max(1000L, (long) cfg.pollIntervalSeconds * 1000L);
-        for (String ownerUuid : WebAuthToken.listActiveOwnerUuids()) {
+        List<String> owners = WebAuthToken.listActiveOwnerUuids();
+        if (owners.isEmpty()) {
+            ownerCursor = 0;
+            return;
+        }
+        int start = ownerCursor % owners.size();
+        int checked = 0;
+        int processed = 0;
+        while (checked < owners.size() && processed < MAX_OWNERS_PER_TICK) {
+            String ownerUuid = owners.get((start + checked) % owners.size());
+            checked++;
             Long last = lastPollByOwner.get(ownerUuid);
             if (last != null && now - last < intervalMs) {
                 continue;
             }
             lastPollByOwner.put(ownerUuid, now);
             evaluateOwner(ownerUuid, cfg, now);
+            processed++;
         }
-        if (cfg.serverTpsBelowEnabled) {
-            checkServerTpsForAllOwners(cfg, now);
-        }
+        ownerCursor = (start + Math.max(1, checked)) % owners.size();
     }
 
     private static void evaluateOwner(String ownerUuid, WebAlertsConfig cfg, long now) {
@@ -70,9 +83,19 @@ public final class WebAlertEngine {
 
         for (NetworkInfo net : networks) {
             int networkId = net.networkId;
-            checkInventoryThresholds(ownerUuid, networkId, cfg, activeSources);
-            checkAutomationRules(ownerUuid, networkId, cfg, now, activeSources);
-            checkCpuStuck(ownerUuid, networkId, cfg, now, activeSources);
+            StorageDto storage = SnapshotCache.instance()
+                .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE);
+            Map<String, Long> itemAmounts = null;
+            Map<String, Long> fluidAmounts = null;
+            if (storage != null && cfg.inventoryThresholds != null && !cfg.inventoryThresholds.isEmpty()) {
+                itemAmounts = buildItemAmountIndex(storage);
+                fluidAmounts = buildFluidAmountIndex(storage);
+            } else if (storage != null && cfg.automationRules != null && !cfg.automationRules.isEmpty()) {
+                itemAmounts = buildItemAmountIndex(storage);
+            }
+            checkInventoryThresholds(ownerUuid, networkId, cfg, storage, itemAmounts, fluidAmounts, activeSources);
+            checkAutomationRules(ownerUuid, networkId, cfg, now, storage, itemAmounts, activeSources);
+            checkCpuStuck(ownerUuid, networkId, cfg, now, storage, activeSources);
             checkGtErrors(ownerUuid, networkId, cfg, activeSources);
             checkChannelOverload(ownerUuid, networkId, cfg, activeSources);
         }
@@ -80,23 +103,22 @@ public final class WebAlertEngine {
         if (cfg.orderCompleteEnabled) {
             checkOrderCompletions(ownerUuid, activeSources, now);
         }
+        checkServerTps(ownerUuid, cfg, now, activeSources);
 
         pruneInactive(ownerUuid, activeSources);
     }
 
     private static void checkInventoryThresholds(String ownerUuid, int networkId, WebAlertsConfig cfg,
+        StorageDto storage, Map<String, Long> itemAmounts, Map<String, Long> fluidAmounts,
         Set<String> activeSources) {
         if (cfg.inventoryThresholds == null || cfg.inventoryThresholds.isEmpty()) {
             return;
         }
-        StorageDto storage = SnapshotCache.instance()
-            .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE);
         if (storage == null) {
             return;
         }
-        // Build O(1) item amount index once per storage snapshot.
-        java.util.Map<String, Long> itemAmounts = buildItemAmountIndex(storage);
-        java.util.Map<String, Long> fluidAmounts = buildFluidAmountIndex(storage);
+        if (itemAmounts == null) itemAmounts = buildItemAmountIndex(storage);
+        if (fluidAmounts == null) fluidAmounts = buildFluidAmountIndex(storage);
 
         for (WebAlertsConfig.InventoryThresholdRule rule : cfg.inventoryThresholds) {
             if (rule == null) {
@@ -197,20 +219,17 @@ public final class WebAlertEngine {
     }
 
     private static void checkAutomationRules(String ownerUuid, int networkId, WebAlertsConfig cfg, long now,
-        Set<String> activeSources) {
+        StorageDto storage, Map<String, Long> itemAmounts, Set<String> activeSources) {
         if (cfg.automationRules == null || cfg.automationRules.isEmpty()) {
             return;
         }
         if (automationRulesEvaluatedThisTick >= MAX_AUTOMATION_RULES_PER_TICK) {
             return; // Budget exhausted; remaining rules evaluated in later ticks
         }
-        StorageDto storage = SnapshotCache.instance()
-            .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE);
         if (storage == null) {
             return;
         }
-        // Build O(1) item amount index once per storage snapshot.
-        java.util.Map<String, Long> itemAmounts = buildItemAmountIndex(storage);
+        if (itemAmounts == null) itemAmounts = buildItemAmountIndex(storage);
 
         for (WebAlertsConfig.AutomationRule rule : cfg.automationRules) {
             if (rule == null || !rule.enabled || !"craft_when_below".equals(rule.type)) {
@@ -277,16 +296,16 @@ public final class WebAlertEngine {
                 .recordNew(ownerUuid, historyEvent);
             WebhookDispatcher.instance()
                 .enqueue(ownerUuid, historyEvent);
+            EventStreamHub.instance()
+                .publishAlert(ownerUuid, historyEvent);
         }
     }
 
     private static void checkCpuStuck(String ownerUuid, int networkId, WebAlertsConfig cfg, long now,
-        Set<String> activeSources) {
+        StorageDto storage, Set<String> activeSources) {
         if (cfg.cpuStuckMinutes <= 0) {
             return;
         }
-        StorageDto storage = SnapshotCache.instance()
-            .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE);
         if (storage == null || storage.cpus == null) {
             return;
         }
@@ -456,32 +475,36 @@ public final class WebAlertEngine {
         }
     }
 
-    private static void checkServerTpsForAllOwners(WebAlertsConfig cfg, long now) {
+    private static void checkServerTps(String ownerUuid, WebAlertsConfig cfg, long now, Set<String> activeSources) {
+        if (!cfg.serverTpsBelowEnabled) {
+            WebAlertStore.instance()
+                .clearSource(ownerUuid, "server:tps");
+            return;
+        }
         ServerHealthSampler sampler = ServerHealthSampler.instance();
         double tps = sampler.getLatestTps();
         boolean low = sampler.isTpsBelowForDuration(cfg.serverTpsThreshold, cfg.serverTpsDurationSeconds);
         String sourceKey = "server:tps";
-        for (String ownerUuid : WebAuthToken.listActiveOwnerUuids()) {
-            if (low) {
-                WebAlertDto alert = new WebAlertDto();
-                alert.type = "server_tps_below";
-                alert.severity = "error";
-                alert.networkId = -1;
-                alert.timestamp = now;
-                alert.sourceKey = sourceKey;
-                alert.title = "Server TPS low";
-                alert.message = "TPS " + String.format("%.1f", tps)
-                    + " below threshold "
-                    + String.format("%.1f", cfg.serverTpsThreshold)
-                    + " for "
-                    + cfg.serverTpsDurationSeconds
-                    + "+ seconds";
-                WebAlertStore.instance()
-                    .upsert(ownerUuid, alert);
-            } else {
-                WebAlertStore.instance()
-                    .clearSource(ownerUuid, sourceKey);
-            }
+        if (low) {
+            WebAlertDto alert = new WebAlertDto();
+            alert.type = "server_tps_below";
+            alert.severity = "error";
+            alert.networkId = -1;
+            alert.timestamp = now;
+            alert.sourceKey = sourceKey;
+            alert.title = "Server TPS low";
+            alert.message = "TPS " + String.format("%.1f", tps)
+                + " below threshold "
+                + String.format("%.1f", cfg.serverTpsThreshold)
+                + " for "
+                + cfg.serverTpsDurationSeconds
+                + "+ seconds";
+            WebAlertStore.instance()
+                .upsert(ownerUuid, alert);
+            activeSources.add(sourceKey);
+        } else {
+            WebAlertStore.instance()
+                .clearSource(ownerUuid, sourceKey);
         }
     }
 

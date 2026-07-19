@@ -32,7 +32,7 @@
   pointer-events: none;
   z-index: 1;
   background: linear-gradient(
-    135deg,
+    45deg,
     transparent 50%,
     var(--accent) 50%
   );

@@ -1,0 +1,658 @@
+/* Batch6 Flagship Systems — Terra tactical, cyber, aerospace and GTNH/GT.
+   Decorative layers never clip business content. Motion is tier-gated. */
+
+/* ===== Shared authored-system chrome ===== */
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .app-content {
+  position: relative;
+  isolation: isolate;
+}
+
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .app-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .page-shell__title {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .page-shell__title::after {
+  color: var(--accent);
+  font: 700 9px/1 var(--style-font-ui, ui-monospace, monospace);
+  letter-spacing: 0.14em;
+  opacity: 0.78;
+}
+
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) :is(.widget-shell, .stat-card, .glass-card, .ant-card) {
+  border-color: var(--style-chrome-border, var(--border)) !important;
+  background: color-mix(
+    in srgb,
+    var(--style-card-bg, var(--bg-card)) 92%,
+    transparent
+  ) !important;
+  box-shadow: var(--style-shadow) !important;
+}
+
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+)[data-effects-level='subtle'] :is(.widget-shell, .stat-card, .glass-card),
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+)[data-effects-level='full'] :is(.widget-shell, .stat-card, .glass-card) {
+  backdrop-filter: blur(var(--style-card-blur, 0));
+  -webkit-backdrop-filter: blur(var(--style-card-blur, 0));
+}
+
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .webae-nav-item {
+  position: relative;
+  border: 1px solid transparent;
+}
+
+:is(
+  [data-page-style^='terra-'],
+  [data-page-style^='cyber-'],
+  [data-page-style='earth-engine'],
+  [data-page-style='lunar-orbit'],
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .webae-nav-item--active {
+  color: var(--text-primary);
+  border-color: var(--accent-dim);
+  background: var(--sidebar-active);
+}
+
+/* ===== Terra tactical family ===== */
+[data-page-style^='terra-'] .webae-sidebar-brand {
+  position: relative;
+  min-height: 72px;
+  background:
+    linear-gradient(135deg, var(--accent) 0 3px, transparent 3px) top left / 28px 28px no-repeat,
+    linear-gradient(315deg, var(--accent) 0 3px, transparent 3px) bottom right / 28px 28px no-repeat;
+}
+
+[data-page-style^='terra-'] .webae-sidebar-brand::before {
+  content: 'R.I.';
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 9px;
+  color: var(--bg-primary);
+  background: var(--accent);
+  font: 950 12px/1 var(--style-font-ui, monospace);
+  transform: skew(-8deg);
+}
+
+[data-page-style^='terra-'] .webae-sidebar-brand::after {
+  content: 'TACTICAL INFORMATION NODE';
+  position: absolute;
+  left: 16px;
+  bottom: 5px;
+  color: var(--text-dim);
+  font: 700 7px/1 var(--style-font-ui, monospace);
+  letter-spacing: 0.12em;
+}
+
+[data-page-style='terra-command'] .page-shell__title::after { content: 'OPS//ACTIVE'; }
+[data-page-style='terra-contract'] .page-shell__title::after { content: 'RISK//LEVEL 18'; }
+[data-page-style='terra-originium'] .page-shell__title::after { content: 'ORIGINIUM//FIELD'; }
+
+[data-page-style^='terra-'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(115deg, transparent 0 72%, color-mix(in srgb, var(--accent) 12%, transparent) 72% 72.4%, transparent 72.4%),
+    linear-gradient(var(--border-light) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+}
+
+[data-page-style='terra-contract'] .app-content::before {
+  opacity: 0.38;
+  background-image:
+    repeating-linear-gradient(135deg, transparent 0 18px, color-mix(in srgb, var(--accent) 11%, transparent) 18px 30px),
+    linear-gradient(var(--border-light) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+  background-size: 220px 220px, 56px 56px, 56px 56px;
+}
+
+[data-page-style='terra-originium'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  background:
+    conic-gradient(from 45deg at 82% 18%, transparent, var(--accent-dim), transparent 22%),
+    radial-gradient(circle at 82% 18%, var(--accent-glow), transparent 27%);
+}
+
+[data-page-style^='terra-'] :is(.widget-shell, .stat-card) {
+  position: relative;
+  background-image: linear-gradient(90deg, var(--accent) 0 34px, transparent 34px) !important;
+  background-size: 100% 2px !important;
+  background-repeat: no-repeat !important;
+}
+
+[data-page-style='terra-contract'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-left: 3px solid var(--accent) !important;
+}
+
+[data-page-style^='terra-'][data-effects-level='full'] .webae-nav-item:hover {
+  transform: translateX(6px) skewX(-2deg);
+}
+
+/* ===== Cyber family ===== */
+[data-page-style^='cyber-'] .page-shell__title {
+  text-shadow: 0 0 18px var(--accent-glow);
+}
+[data-page-style='cyber-grid'] .page-shell__title::after { content: 'NEURAL//GRID'; }
+[data-page-style='cyber-chrome'] .page-shell__title::after { content: 'CHROME//TRACE'; }
+
+[data-page-style^='cyber-'] .webae-sidebar-brand::before {
+  content: 'NC';
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 28px;
+  margin-right: 8px;
+  color: var(--bg-primary);
+  background: var(--accent);
+  font: 950 14px/1 var(--style-font-ui, monospace);
+  clip-path: polygon(0 0, 82% 0, 100% 35%, 90% 100%, 10% 100%, 0 70%);
+}
+
+[data-page-style^='cyber-'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.36;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 3px, color-mix(in srgb, var(--accent) 5%, transparent) 3px 4px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--accent) 10%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 80px 80px, 80px 80px;
+}
+
+[data-page-style='cyber-grid'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--accent) 0 2px, transparent 2px) 18px 18px / 42px 1px no-repeat,
+    linear-gradient(var(--accent) 0 2px, transparent 2px) 18px 18px / 1px 42px no-repeat,
+    radial-gradient(circle at 84% 12%, var(--accent-glow), transparent 28%);
+  opacity: 0.46;
+}
+
+[data-page-style='cyber-chrome'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background:
+    linear-gradient(115deg, transparent 35%, color-mix(in srgb, white 12%, transparent) 49%, transparent 63%),
+    radial-gradient(ellipse at 70% 0%, var(--accent-glow), transparent 46%);
+}
+
+[data-page-style='cyber-grid'] :is(.widget-shell, .stat-card) {
+  border-right: 2px solid var(--accent) !important;
+  background-image:
+    linear-gradient(90deg, var(--accent) 0 28%, transparent 28%),
+    repeating-linear-gradient(90deg, transparent 0 6px, var(--border-light) 6px 7px) !important;
+  background-size: 100% 2px, 100% 100% !important;
+  background-repeat: no-repeat !important;
+}
+
+[data-page-style='cyber-chrome'] :is(.widget-shell, .stat-card, .glass-card) {
+  border-top-color: color-mix(in srgb, white 34%, var(--accent)) !important;
+  background-image: linear-gradient(135deg, color-mix(in srgb, white 7%, transparent), transparent 42%) !important;
+}
+
+[data-page-style^='cyber-'][data-effects-level='full'] :is(.widget-shell, .stat-card):hover {
+  transform: perspective(800px) translateY(-5px) rotateX(1deg);
+  box-shadow: var(--style-shadow-hover) !important;
+}
+
+/* ===== Aerospace family ===== */
+[data-page-style='earth-engine'] .page-shell__title::after { content: 'UEG//ENGINE STATUS'; }
+[data-page-style='lunar-orbit'] .page-shell__title::after { content: 'L4//ORBIT SYNC'; }
+
+:is([data-page-style='earth-engine'], [data-page-style='lunar-orbit']) .webae-sidebar-brand::before {
+  content: '◫';
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: inset 0 0 14px var(--accent-glow);
+  font-size: 18px;
+  transform: rotate(45deg);
+}
+
+:is([data-page-style='earth-engine'], [data-page-style='lunar-orbit']) .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.38;
+  background-image:
+    radial-gradient(circle at 84% 18%, transparent 0 58px, var(--accent-dim) 59px 60px, transparent 61px 76px, var(--border-light) 77px 78px, transparent 79px),
+    linear-gradient(30deg, transparent 49.7%, var(--border-light) 50%, transparent 50.3%),
+    linear-gradient(150deg, transparent 49.7%, var(--border-light) 50%, transparent 50.3%);
+  background-size: 100% 100%, 96px 96px, 96px 96px;
+}
+
+[data-page-style='earth-engine'] .app-content::after {
+  content: '550W // PLANETARY ENGINE GROUP 03';
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
+  z-index: 0;
+  color: var(--accent);
+  font: 800 8px/1 var(--style-font-ui, monospace);
+  letter-spacing: 0.16em;
+  writing-mode: vertical-rl;
+  opacity: 0.46;
+  pointer-events: none;
+}
+
+[data-page-style='lunar-orbit'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background:
+    radial-gradient(ellipse 52% 20% at 50% 100%, transparent 62%, var(--accent-dim) 63% 64%, transparent 65%),
+    radial-gradient(circle at 50% 100%, var(--accent-glow), transparent 38%);
+}
+
+[data-page-style='earth-engine'] :is(.widget-shell, .stat-card) {
+  border-left: 3px solid var(--accent) !important;
+  background-image: repeating-linear-gradient(135deg, transparent 0 8px, var(--border-light) 8px 9px) !important;
+}
+
+[data-page-style='lunar-orbit'] :is(.widget-shell, .stat-card) {
+  border-top-color: color-mix(in srgb, var(--accent) 48%, white) !important;
+}
+
+/* ===== GTNH / GregTech / TecTech family ===== */
+[data-page-style='gtnh-cosmos'] .page-shell__title::after { content: 'GTNH//STARGATE'; }
+[data-page-style='gt-assembly'] .page-shell__title::after { content: 'GT//ASSEMBLY LINE'; }
+[data-page-style='gt-cleanroom'] .page-shell__title::after { content: 'ISO-5//SEALED'; }
+[data-page-style='gt-fusion'] .page-shell__title::after { content: 'FUSION//MK-III'; }
+[data-page-style='textech-quantum'] .page-shell__title::after { content: 'TT//QUANTUM MATRIX'; }
+
+:is(
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .webae-sidebar-brand::before {
+  content: 'GT';
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 30px;
+  margin-right: 8px;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  background: var(--bg-primary);
+  font: 950 13px/1 var(--style-font-ui, monospace);
+  box-shadow: inset 0 0 12px var(--accent-glow), 4px 4px 0 var(--accent-dim);
+}
+
+:is(
+  [data-page-style='gtnh-cosmos'],
+  [data-page-style^='gt-'],
+  [data-page-style='textech-quantum']
+) .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.34;
+  background-image:
+    linear-gradient(var(--border-light) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light) 1px, transparent 1px),
+    radial-gradient(circle at 78% 22%, var(--accent-glow), transparent 26%);
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+}
+
+[data-page-style='gtnh-cosmos'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background:
+    repeating-radial-gradient(circle at 78% 22%, transparent 0 30px, var(--accent-dim) 31px 32px, transparent 33px 48px),
+    conic-gradient(from 0deg at 78% 22%, transparent 0 10%, var(--accent-dim) 10.5% 11%, transparent 11.5% 35%, var(--accent-dim) 35.5% 36%, transparent 36.5%);
+}
+
+[data-page-style='gt-assembly'] .app-content::before {
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 72px, var(--border-light) 72px 74px),
+    repeating-linear-gradient(0deg, transparent 0 22px, var(--border-light) 22px 23px),
+    linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+  background-size: 100% 100%, 100% 100%, 240px 2px;
+  background-repeat: repeat, repeat, repeat-x;
+}
+
+[data-page-style='gt-cleanroom'] .app-content::before {
+  opacity: 0.24;
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+  background-color: color-mix(in srgb, var(--accent) 3%, transparent);
+}
+
+[data-page-style='gt-cleanroom'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid var(--border-light);
+  box-shadow: inset 0 0 80px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+[data-page-style='gt-fusion'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.52;
+  background:
+    radial-gradient(circle at 50% 54%, var(--accent-glow), transparent 16%),
+    repeating-radial-gradient(circle at 50% 54%, transparent 0 52px, var(--accent-dim) 53px 54px, transparent 55px 82px);
+}
+
+[data-page-style='textech-quantum'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(60deg, transparent 49.5%, var(--accent-dim) 50%, transparent 50.5%),
+    linear-gradient(-60deg, transparent 49.5%, var(--accent-dim) 50%, transparent 50.5%),
+    radial-gradient(circle at 50% 50%, var(--accent-glow), transparent 42%);
+  background-size: 80px 140px, 80px 140px, 100% 100%;
+}
+
+[data-page-style='gt-assembly'] :is(.widget-shell, .stat-card) {
+  border-width: 2px !important;
+  border-style: ridge !important;
+  background-image:
+    radial-gradient(circle at 7px 7px, var(--accent) 0 1px, transparent 2px),
+    radial-gradient(circle at calc(100% - 7px) 7px, var(--accent) 0 1px, transparent 2px) !important;
+  background-repeat: no-repeat !important;
+}
+
+[data-page-style='gt-cleanroom'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-top: 2px solid color-mix(in srgb, var(--accent) 50%, white) !important;
+  background-image: linear-gradient(135deg, color-mix(in srgb, white 5%, transparent), transparent 40%) !important;
+}
+
+[data-page-style='gt-fusion'] :is(.widget-shell, .stat-card) {
+  border-color: color-mix(in srgb, var(--accent) 46%, transparent) !important;
+  box-shadow: inset 0 0 24px var(--accent-dim), var(--style-shadow) !important;
+}
+
+[data-page-style='textech-quantum'] :is(.widget-shell, .stat-card, .glass-card) {
+  border-top-color: var(--accent) !important;
+  background-image: linear-gradient(120deg, var(--accent-dim), transparent 22%, transparent 78%, var(--accent-dim)) !important;
+}
+
+/* ===== Full tier continuous effects ===== */
+[data-page-style^='terra-'][data-effects-level='full'] .app-content::before {
+  animation: batch6TacticalDrift 18s linear infinite;
+}
+
+[data-page-style='cyber-grid'][data-effects-level='full'] .app-content::before {
+  animation: batch6CyberScan 8s linear infinite;
+}
+
+[data-page-style='cyber-chrome'][data-effects-level='full'] .app-content::after {
+  animation: batch6ChromeSweep 7s ease-in-out infinite;
+}
+
+:is([data-page-style='earth-engine'], [data-page-style='lunar-orbit'])[data-effects-level='full'] .app-content::before {
+  animation: batch6OrbitSpin 32s linear infinite;
+}
+
+[data-page-style='gtnh-cosmos'][data-effects-level='full'] .app-content::after {
+  animation: batch6Stargate 18s linear infinite;
+}
+
+[data-page-style='gt-assembly'][data-effects-level='full'] .app-content::before {
+  animation: batch6AssemblyFeed 10s linear infinite;
+}
+
+[data-page-style='gt-fusion'][data-effects-level='full'] .app-content::after {
+  animation: batch6FusionPulse 5.5s ease-in-out infinite;
+}
+
+[data-page-style='textech-quantum'][data-effects-level='full'] .app-content::after {
+  animation: batch6QuantumShift 14s linear infinite;
+}
+
+@keyframes batch6TacticalDrift {
+  to { background-position: 0 0, 48px 48px, -48px 48px; }
+}
+
+@keyframes batch6CyberScan {
+  to { background-position: 0 48px, 80px 0, 0 80px; }
+}
+
+@keyframes batch6ChromeSweep {
+  0%, 100% { background-position: -120% 0, 0 0; opacity: 0.2; }
+  50% { background-position: 120% 0, 0 0; opacity: 0.46; }
+}
+
+@keyframes batch6OrbitSpin {
+  to { transform: rotate(0.5deg) scale(1.01); }
+}
+
+@keyframes batch6Stargate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes batch6AssemblyFeed {
+  to { background-position: 74px 0, 0 23px, 240px 0; }
+}
+
+@keyframes batch6FusionPulse {
+  0%, 100% { transform: scale(0.98); opacity: 0.36; }
+  50% { transform: scale(1.035); opacity: 0.62; }
+}
+
+@keyframes batch6QuantumShift {
+  to { background-position: 80px 0, -80px 0, 0 0; filter: hue-rotate(24deg); }
+}
+
+/* ===== Page enter recipes ===== */
+@keyframes batch6EnterLock {
+  from { opacity: 0; transform: translateX(-18px); clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; transform: none; clip-path: inset(0); }
+}
+@keyframes batch6EnterSlice {
+  from { opacity: 0; transform: translateY(12px) skewX(-5deg); filter: contrast(1.6); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterRise {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); filter: saturate(1.5); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterScan {
+  from { opacity: 0; transform: translateY(-8px); filter: brightness(1.6) hue-rotate(25deg); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterFocus {
+  from { opacity: 0; transform: scale(1.025); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterIgnite {
+  from { opacity: 0; transform: translateX(16px); filter: brightness(2); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterOrbit {
+  from { opacity: 0; transform: scale(0.96) rotate(-0.4deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes batch6EnterGate {
+  from { opacity: 0; transform: scale(0.94); filter: saturate(2) brightness(1.4); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterFeed {
+  from { opacity: 0; transform: translateX(-26px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes batch6EnterSeal {
+  from { opacity: 0; transform: scaleY(0.94); filter: brightness(1.25); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterPulse {
+  from { opacity: 0; transform: scale(0.92); filter: hue-rotate(-40deg) brightness(1.5); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes batch6EnterPhase {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(5px) hue-rotate(35deg); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+[data-effects-level='full'][data-style-enter='tactical-lock'] .page-transition { animation: batch6EnterLock 0.42s cubic-bezier(0.16, 1, 0.3, 1); }
+[data-effects-level='full'][data-style-enter='contract-slice'] .page-transition { animation: batch6EnterSlice 0.36s ease-out; }
+[data-effects-level='full'][data-style-enter='originium-rise'] .page-transition { animation: batch6EnterRise 0.52s ease-out; }
+[data-effects-level='full'][data-style-enter='cyber-scan'] .page-transition { animation: batch6EnterScan 0.38s ease-out; }
+[data-effects-level='full'][data-style-enter='chrome-focus'] .page-transition { animation: batch6EnterFocus 0.56s ease-out; }
+[data-effects-level='full'][data-style-enter='engine-ignite'] .page-transition { animation: batch6EnterIgnite 0.44s ease-out; }
+[data-effects-level='full'][data-style-enter='orbit-dock'] .page-transition { animation: batch6EnterOrbit 0.58s ease-out; }
+[data-effects-level='full'][data-style-enter='stargate-open'] .page-transition { animation: batch6EnterGate 0.6s ease-out; }
+[data-effects-level='full'][data-style-enter='assembly-feed'] .page-transition { animation: batch6EnterFeed 0.38s ease-out; }
+[data-effects-level='full'][data-style-enter='cleanroom-seal'] .page-transition { animation: batch6EnterSeal 0.44s ease-out; }
+[data-effects-level='full'][data-style-enter='fusion-pulse'] .page-transition { animation: batch6EnterPulse 0.56s ease-out; }
+[data-effects-level='full'][data-style-enter='quantum-phase'] .page-transition { animation: batch6EnterPhase 0.62s ease-out; }
+
+[data-effects-level='subtle'][data-style-enter='tactical-lock'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='contract-slice'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='cyber-scan'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='engine-ignite'] .page-transition,
+[data-effects-level='subtle'][data-style-enter='assembly-feed'] .page-transition {
+  animation: pageEnterFade 0.24s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    [data-page-style^='terra-'],
+    [data-page-style^='cyber-'],
+    [data-page-style='earth-engine'],
+    [data-page-style='lunar-orbit'],
+    [data-page-style='gtnh-cosmos'],
+    [data-page-style^='gt-'],
+    [data-page-style='textech-quantum']
+  ) :is(.app-content::before, .app-content::after, .page-transition) {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :is(
+    [data-page-style^='terra-'],
+    [data-page-style^='cyber-'],
+    [data-page-style='earth-engine'],
+    [data-page-style='lunar-orbit'],
+    [data-page-style='gtnh-cosmos'],
+    [data-page-style^='gt-'],
+    [data-page-style='textech-quantum']
+  ) .page-shell__title::after {
+    display: none;
+  }
+}

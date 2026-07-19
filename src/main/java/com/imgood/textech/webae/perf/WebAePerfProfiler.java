@@ -30,6 +30,7 @@ public final class WebAePerfProfiler {
     public static final String PHASE_WORLD_MAP_TILE = "worldMapTileQueue";
     public static final String PHASE_WORLD_MAP_CAPTURE = "worldMapCapture";
     public static final String PHASE_ALERT_ENGINE = "webAlertEngine";
+    public static final String PHASE_QQ_BOT = "qqBot";
     public static final String PHASE_MISC = "misc";
 
     private static final WebAePerfProfiler INSTANCE = new WebAePerfProfiler();
@@ -68,6 +69,7 @@ public final class WebAePerfProfiler {
         ensurePhase(PHASE_WORLD_MAP_TILE);
         ensurePhase(PHASE_WORLD_MAP_CAPTURE);
         ensurePhase(PHASE_ALERT_ENGINE);
+        ensurePhase(PHASE_QQ_BOT);
         ensurePhase(PHASE_MISC);
     }
 
@@ -388,7 +390,7 @@ public final class WebAePerfProfiler {
             .append(" activeNets=")
             .append(SnapshotScheduler.activeNetworkCount());
         for (String name : new String[] { PHASE_SERVER_TASKS, PHASE_SNAPSHOT_SCHEDULER, PHASE_WORLD_MAP_TILE,
-            PHASE_MISC }) {
+            PHASE_QQ_BOT, PHASE_MISC }) {
             PhaseStats s = phases.get(name);
             if (s != null) {
                 synchronized (s) {

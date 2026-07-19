@@ -18,6 +18,8 @@ alwaysApply: false
 | 语音 | `voice/` | STT（Vosk / HTTP） |
 | GUI | `GuiAIChat` / `GuiAISettings` | 聊天与设置 |
 | 包 | `PacketAssistantAction` / `PacketAssistantResponse` | C↔S |
+| WebAE | `webae/assistant/` + `AssistantHandler` | 共用意图 schema、服务端工具与确认令牌 |
+| QQ 群聊 | `webae/qqbot/` | 只读快照命令 + 共享 `WebAiCompletionService` 自由对话 + OP 人工文本/有界截图出站；不暴露任意服务端命令 |
 
 入口：`AssistantController.handleUserText`；意图：`AssistantAiIntentService`（AI）或 `AssistantIntentService`（本地 fallback）→ `AssistantIntentPlan`。
 
@@ -28,6 +30,9 @@ alwaysApply: false
 - 网络/TE/`ItemStack`：查前判 null；`stack.getItem() != null`
 - 单例：`AssistantSession.client()`、`AssistantCraftJobManager.instance()`、`OrderMemoryStore` / `PlanStore` / lexicon / feature config 的 `instance()`/`get()`
 - 持久化路径经 `TeXTechDataDir` / Assistant 数据文件，勿写死旧 `config/textech/*.json` 布局
+- WebAE Key 来源由 `[webConsole] aiServerKeyEnabled` / `aiBrowserKeyEnabled` 独立控制；两者都开时由浏览器偏好选择。共享侧仅管理员写入服务端有序多 profile，GET 只返回掩码/状态，落盘必须加密且日志/异常脱敏；个人侧允许每个浏览器把多 profile 存在当前 origin 的 `localStorage` 并直连 Provider，所有 WebAE API 禁止携带该 Key。个人模式 Base URL 禁止指向当前 WebAE origin，并须提示 CORS/XSS 信任边界；联网搜索使用共享配置，个人模式由服务端代搜注入
+- WebAE 修改型意图（合成、取出、传送等）必须二次确认；`ItemStack`/NBT 留在服务端短期会话，浏览器只持有有时限且绑定 actor/owner 的随机令牌
+- QQ 群机器人只复用共享 LLM completion/search，不新增或执行游戏内修改型意图；prompt 仅允许有界只读服务器快照，ClientSecret/AI Key/任意控制台命令不得进入模型或 QQ 消息
 - 新增意图：改 `AssistantIntentType` → AI prompt / 本地解析 → `AssistantServerServices` switch → 必要时 lexicon / features JSON → GUI 能力说明
 
 ## 必改文件速查（摘要）

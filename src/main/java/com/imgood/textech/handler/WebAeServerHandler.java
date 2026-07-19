@@ -46,6 +46,8 @@ public final class WebAeServerHandler {
         registerShutdownHook();
         server.startServer();
         running = true;
+        com.imgood.textech.webae.qqbot.QqBotService.instance()
+            .start();
         AdvanceDataMonitor.LOG.info(
             "[WebAE] Web console ready — open http://{}:{} in your browser (in-game: /admweb issue)",
             Config.webConsoleBindAddress,
@@ -65,6 +67,8 @@ public final class WebAeServerHandler {
         unregisterShutdownHook();
         com.imgood.textech.webae.alerts.WebhookDispatcher.instance()
             .shutdown();
+        com.imgood.textech.webae.qqbot.QqBotService.instance()
+            .shutdown();
     }
 
     /** Stop and start the in-process HTTP server (OP command). */
@@ -75,6 +79,8 @@ public final class WebAeServerHandler {
         }
         AdvanceDataMonitor.LOG.info("[WebAE] Restarting HTTP server...");
         running = false;
+        com.imgood.textech.webae.qqbot.QqBotService.instance()
+            .shutdown();
         if (server != null) {
             try {
                 server.stopServer();
@@ -86,6 +92,8 @@ public final class WebAeServerHandler {
         registerShutdownHook();
         server.startServer();
         running = true;
+        com.imgood.textech.webae.qqbot.QqBotService.instance()
+            .start();
         AdvanceDataMonitor.LOG
             .info("[WebAE] HTTP server restarted on {}:{}", Config.webConsoleBindAddress, Config.webConsolePort);
         return true;

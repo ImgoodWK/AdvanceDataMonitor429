@@ -35,6 +35,109 @@ public final class ConfigWebaeLoader {
             0,
             3600,
             ConfigDescriptions.get("webConsole", "snapshotIntervalSeconds"));
+        Config.webAlertsEnabled = configuration.getBoolean(
+            "alertsEnabled",
+            "webConsole",
+            Config.webAlertsEnabled,
+            ConfigDescriptions.get("webConsole", "alertsEnabled"));
+        Config.webScreenshotEnabled = configuration.getBoolean(
+            "screenshotEnabled",
+            "webConsole",
+            Config.webScreenshotEnabled,
+            ConfigDescriptions.get("webConsole", "screenshotEnabled"));
+        Config.webScreenshotMaxWidth = configuration.getInt(
+            "screenshotMaxWidth",
+            "webConsole",
+            Config.webScreenshotMaxWidth,
+            320,
+            4096,
+            ConfigDescriptions.get("webConsole", "screenshotMaxWidth"));
+        Config.webScreenshotMaxHeight = configuration.getInt(
+            "screenshotMaxHeight",
+            "webConsole",
+            Config.webScreenshotMaxHeight,
+            180,
+            2160,
+            ConfigDescriptions.get("webConsole", "screenshotMaxHeight"));
+        Config.webScreenshotJpegQualityPercent = configuration.getInt(
+            "screenshotJpegQualityPercent",
+            "webConsole",
+            Config.webScreenshotJpegQualityPercent,
+            30,
+            100,
+            ConfigDescriptions.get("webConsole", "screenshotJpegQualityPercent"));
+        Config.webScreenshotMaxUploadKB = configuration.getInt(
+            "screenshotMaxUploadKB",
+            "webConsole",
+            Config.webScreenshotMaxUploadKB,
+            64,
+            8192,
+            ConfigDescriptions.get("webConsole", "screenshotMaxUploadKB"));
+        Config.webScreenshotUploadChunksPerTick = configuration.getInt(
+            "screenshotUploadChunksPerTick",
+            "webConsole",
+            Config.webScreenshotUploadChunksPerTick,
+            1,
+            4,
+            ConfigDescriptions.get("webConsole", "screenshotUploadChunksPerTick"));
+        Config.webScreenshotUploadCooldownSeconds = configuration.getInt(
+            "screenshotUploadCooldownSeconds",
+            "webConsole",
+            Config.webScreenshotUploadCooldownSeconds,
+            0,
+            3600,
+            ConfigDescriptions.get("webConsole", "screenshotUploadCooldownSeconds"));
+        Config.webScreenshotClientHistoryMaxFiles = configuration.getInt(
+            "screenshotClientHistoryMaxFiles",
+            "webConsole",
+            Config.webScreenshotClientHistoryMaxFiles,
+            1,
+            10000,
+            ConfigDescriptions.get("webConsole", "screenshotClientHistoryMaxFiles"));
+        Config.webScreenshotClientHistoryMaxMB = configuration.getInt(
+            "screenshotClientHistoryMaxMB",
+            "webConsole",
+            Config.webScreenshotClientHistoryMaxMB,
+            16,
+            8192,
+            ConfigDescriptions.get("webConsole", "screenshotClientHistoryMaxMB"));
+        Config.webScreenshotServerHistoryMaxFiles = configuration.getInt(
+            "screenshotServerHistoryMaxFiles",
+            "webConsole",
+            Config.webScreenshotServerHistoryMaxFiles,
+            1,
+            10000,
+            ConfigDescriptions.get("webConsole", "screenshotServerHistoryMaxFiles"));
+        Config.webScreenshotServerHistoryMaxMB = configuration.getInt(
+            "screenshotServerHistoryMaxMB",
+            "webConsole",
+            Config.webScreenshotServerHistoryMaxMB,
+            16,
+            8192,
+            ConfigDescriptions.get("webConsole", "screenshotServerHistoryMaxMB"));
+        Config.webScreenshotMaxConcurrentUploads = configuration.getInt(
+            "screenshotMaxConcurrentUploads",
+            "webConsole",
+            Config.webScreenshotMaxConcurrentUploads,
+            1,
+            16,
+            ConfigDescriptions.get("webConsole", "screenshotMaxConcurrentUploads"));
+        Config.webAiKeyMode = normalizeAiKeyMode(configuration.getString(
+            "aiKeyMode",
+            "webConsole",
+            Config.webAiKeyMode,
+            ConfigDescriptions.get("webConsole", "aiKeyMode")));
+        boolean legacyBrowser = "browser".equalsIgnoreCase(Config.webAiKeyMode);
+        Config.webAiServerKeyEnabled = configuration.getBoolean(
+            "aiServerKeyEnabled",
+            "webConsole",
+            !legacyBrowser,
+            ConfigDescriptions.get("webConsole", "aiServerKeyEnabled"));
+        Config.webAiBrowserKeyEnabled = configuration.getBoolean(
+            "aiBrowserKeyEnabled",
+            "webConsole",
+            legacyBrowser,
+            ConfigDescriptions.get("webConsole", "aiBrowserKeyEnabled"));
         Config.webSparkEnabled = configuration.getBoolean(
             "sparkEnabled",
             "webConsole",
@@ -788,5 +891,9 @@ public final class ConfigWebaeLoader {
         } catch (NumberFormatException e) {
             return defaultValue;
         }
+    }
+
+    private static String normalizeAiKeyMode(String value) {
+        return "browser".equalsIgnoreCase(value == null ? "" : value.trim()) ? "browser" : "server";
     }
 }

@@ -44,6 +44,7 @@ public class DataBound {
         line,
         crafting,
         storage,
+        webae_dashboard,
         bar,
         bar3d,
         waterfall,

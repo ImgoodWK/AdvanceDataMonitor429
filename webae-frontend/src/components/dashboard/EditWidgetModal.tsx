@@ -12,7 +12,7 @@ import { WidgetColorSection } from './WidgetColorSection';
 import { WidgetPinEditor } from './WidgetPinEditor';
 import { getValidChartTypes } from '@/utils/dataSourceChartMap';
 import { clampContentScale } from '@/utils/dashboardColumns';
-import { isLayoutOrFeedType } from '@/utils/dashboardTree';
+import { defaultDataSourceForWidgetType, isLayoutOrFeedType } from '@/utils/dashboardTree';
 import type { StorageDto, GtMachineDto } from '@/types/dto';
 import { CHART_STYLES } from '@/theme/pageStyles';
 
@@ -47,6 +47,8 @@ const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
   'statCard', 'progressBar', 'lineChart', 'barChart', 'pieChart',
   'dataTable', 'gauge', 'radarChart',
   'group', 'textNote', 'spacer', 'alertsSummary', 'craftingQueue',
+  'networkHealth', 'powerFlow', 'storageMatrix', 'machineFleet',
+  'playerPresence', 'activityStream', 'serverVitals',
 ];
 
 const DATA_SOURCES = [
@@ -58,6 +60,8 @@ const DATA_SOURCES = [
   'playerOnlineCount', 'playerOnlineTrend', 'serverTps', 'serverMspt',
   'customPins',
   'none', 'alertsActive', 'craftingBusy',
+  'networkHealth', 'powerFlow', 'storageMatrix', 'machineFleet',
+  'playerPresence', 'activityStream', 'serverVitals',
 ];
 
 const STRETCH_OPTIONS = [
@@ -125,19 +129,13 @@ export function EditWidgetModal({
   const hasPins = (widget.pins?.length ?? 0) > 0;
   const layoutOrFeed = isLayoutOrFeedType(widget.type);
   const validTypesForDs = layoutOrFeed
-    ? getValidChartTypes(
-        widget.type === 'alertsSummary'
-          ? 'alertsActive'
-          : widget.type === 'craftingQueue'
-            ? 'craftingBusy'
-            : 'none'
-      )
+    ? getValidChartTypes(defaultDataSourceForWidgetType(widget.type))
     : hasPins && widget.dataSource === 'customPins'
       ? getValidChartTypes('customPins')
       : getValidChartTypes(widget.dataSource);
   const availableWidgetTypes = allWidgetTypes.filter((tp) => {
     if (layoutOrFeed) return isLayoutOrFeedType(tp) || validTypesForDs.includes(tp);
-    return validTypesForDs.includes(tp);
+    return isLayoutOrFeedType(tp) || validTypesForDs.includes(tp);
   });
   const availableDataSources = allDataSources;
 
@@ -226,7 +224,8 @@ export function EditWidgetModal({
                     (ds) =>
                       !['topItems', 'cpuList', 'gtMachineList', 'networkBalance', 'storageByCategory',
                         'machineByStatus', 'networkCompare', 'customPins', 'powerHistory', 'playerOnlineTrend',
-                        'none', 'alertsActive', 'craftingBusy'].includes(ds)
+                        'none', 'alertsActive', 'craftingBusy', 'networkHealth', 'powerFlow',
+                        'storageMatrix', 'machineFleet', 'playerPresence', 'activityStream', 'serverVitals'].includes(ds)
                   )}
                 />
                   </>
@@ -244,12 +243,7 @@ export function EditWidgetModal({
                       const nextType = v as DashboardWidgetConfig['type'];
                       const patchExtra: Partial<DashboardWidgetConfig> = { type: nextType };
                       if (isLayoutOrFeedType(nextType)) {
-                        patchExtra.dataSource =
-                          nextType === 'alertsSummary'
-                            ? 'alertsActive'
-                            : nextType === 'craftingQueue'
-                              ? 'craftingBusy'
-                              : 'none';
+                        patchExtra.dataSource = defaultDataSourceForWidgetType(nextType);
                         if (nextType === 'group' && !widget.children) {
                           patchExtra.children = [];
                         }
@@ -287,7 +281,10 @@ export function EditWidgetModal({
                   </div>
                 )}
 
-                {(widget.type === 'alertsSummary' || widget.type === 'craftingQueue' || widget.type === 'dataTable') && (
+                {([
+                  'alertsSummary', 'craftingQueue', 'dataTable', 'machineFleet',
+                  'playerPresence', 'activityStream',
+                ] as DashboardWidgetConfig['type'][]).includes(widget.type) && (
                   <div>
                     <Text strong>{t('editWidget_maxRows')}</Text>
                     <InputNumber
@@ -447,7 +444,10 @@ export function EditWidgetModal({
                 {(widget.type === 'dataTable'
                   || widget.type === 'textNote'
                   || widget.type === 'alertsSummary'
-                  || widget.type === 'craftingQueue') && (
+                  || widget.type === 'craftingQueue'
+                  || widget.type === 'machineFleet'
+                  || widget.type === 'playerPresence'
+                  || widget.type === 'activityStream') && (
                   <div>
                     <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
                       <Text strong>{t('editWidget_sizeToContent')}</Text>

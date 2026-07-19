@@ -121,6 +121,23 @@ export class ApiClient {
     return this.request<T>(url, 'DELETE');
   }
 
+  async getBlob(url: string): Promise<Blob> {
+    let resp: Response;
+    try {
+      resp = await fetch(url, { method: 'GET', headers: this.authHeaders() });
+    } catch (e) {
+      throw new ApiClientError((e as Error).message || 'Network error', 'network_error', 0);
+    }
+    if (resp.status === 401) {
+      this.onAuthFailure?.('auth_failed');
+      throw new ApiClientError('Authentication failed', 'auth_failed', 401);
+    }
+    if (!resp.ok) {
+      throw new ApiClientError('Attachment request failed', 'http_' + resp.status, resp.status);
+    }
+    return resp.blob();
+  }
+
   postBinary<T>(url: string, file: Blob | File): Promise<T> {
     const headers: Record<string, string> = {};
     const token = this.getToken();

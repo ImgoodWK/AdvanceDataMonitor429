@@ -48,7 +48,7 @@ public class RenderAdvanceDataMonitor extends TileEntitySpecialRenderer {
 
         // 渲染数据条目（保持不变）
         GL11.glTranslated(0, 1.5, 0);
-        renderDataEntries(monitor, x, y, z);
+        renderDataEntries(monitor);
 
         GL11.glPopMatrix();
     }
@@ -95,18 +95,27 @@ public class RenderAdvanceDataMonitor extends TileEntitySpecialRenderer {
         GL11.glEnable(GL11.GL_LIGHTING);
     }
 
-    private void renderDataEntries(TileEntityAdvanceDataMonitor monitor, double x, double y, double z) {
+    private void renderDataEntries(TileEntityAdvanceDataMonitor monitor) {
         for (Map.Entry<Integer, NBTTagCompound> entry : monitor.getDataBoundList()
             .entrySet()) {
             NBTTagCompound nbt = entry.getValue();
             String dataType = nbt.getString("dataType");
+            String renderType = nbt.hasKey("renderType") && !nbt.getString("renderType").isEmpty()
+                ? nbt.getString("renderType")
+                : dataType;
 
             GL11.glPushMatrix();
             applyItemTransforms(nbt, monitor.getFacing());
 
-            IADMRender renderer = RenderController.getRenderer(dataType);
+            IADMRender renderer = RenderController.getRenderer(renderType);
             if (renderer != null) {
-                renderer.render(nbt, 0, 0, 0, monitor.getFacing()); // 传入相对坐标
+                renderer.render(
+                    nbt,
+                    monitor.xCoord,
+                    monitor.yCoord,
+                    monitor.zCoord,
+                    monitor.getFacing(),
+                    entry.getKey());
             }
 
             GL11.glPopMatrix();

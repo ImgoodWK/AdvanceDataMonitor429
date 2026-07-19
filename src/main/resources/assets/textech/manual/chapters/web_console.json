@@ -18,6 +18,26 @@
     },
     {
       "type": "text",
+      "titleKey": "adm.manual.web_console.theme_studio_title",
+      "textKey": "adm.manual.web_console.theme_studio_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.advanced_dashboard_title",
+      "textKey": "adm.manual.web_console.advanced_dashboard_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.game_display_export_title",
+      "textKey": "adm.manual.web_console.game_display_export_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.data_workspaces_title",
+      "textKey": "adm.manual.web_console.data_workspaces_text"
+    },
+    {
+      "type": "text",
       "titleKey": "adm.manual.web_console.topology_title",
       "textKey": "adm.manual.web_console.topology_text"
     },
@@ -78,8 +98,28 @@
     },
     {
       "type": "text",
+      "titleKey": "adm.manual.web_console.ai_key_mode_title",
+      "textKey": "adm.manual.web_console.ai_key_mode_text"
+    },
+    {
+      "type": "text",
       "titleKey": "adm.manual.web_console.spark_title",
       "textKey": "adm.manual.web_console.spark_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.server_console_title",
+      "textKey": "adm.manual.web_console.server_console_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.qq_bot_title",
+      "textKey": "adm.manual.web_console.qq_bot_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.screenshot_title",
+      "textKey": "adm.manual.web_console.screenshot_text"
     },
     {
       "type": "text",

@@ -569,6 +569,12 @@ export interface ChatMessageDto {
   content: string;
   timestamp: number;
   source: 'game' | 'web' | 'system';
+  attachmentId?: string;
+  attachmentName?: string;
+  attachmentMime?: string;
+  attachmentWidth?: number;
+  attachmentHeight?: number;
+  attachmentBytes?: number;
 }
 
 export interface ChatHistoryResponse {
@@ -775,6 +781,14 @@ export interface ServerConfig {
   questChainSubmitEnabled?: boolean;
   /** When true, quest UI may count buckets/cans toward fluid/cell equivalence. */
   questFluidAllContainersOption?: boolean;
+  /** @deprecated Prefer webAiServerKeyEnabled / webAiBrowserKeyEnabled. */
+  webAiKeyMode?: 'server' | 'browser';
+  webAiServerKeyEnabled?: boolean;
+  webAiBrowserKeyEnabled?: boolean;
+  /** Secret-free provider catalog used by per-browser AI settings. */
+  webAiProviders?: WebAiProviderDto[];
+  /** Secret-free shared AI profile/search summary for all authenticated clients. */
+  webAiShared?: WebAiSharedPublicDto;
   /** Optional Spark profiler page/API; false when Spark is not installed or disabled. */
   sparkEnabled?: boolean;
   sparkAvailable?: boolean;
@@ -1462,6 +1476,117 @@ export interface WebAssistantResponse {
   intentType?: string;
   intentTarget?: string;
   cooldownMs?: number;
+  source?: 'ai' | 'ai-chat' | 'rules' | string;
+  aiUsed?: boolean;
+  fallbackReason?: string;
+  tasks?: WebAssistantTaskResult[];
+}
+
+export interface WebAssistantCandidate {
+  optionNumber: number;
+  displayName: string;
+  registryName: string;
+  meta: number;
+  availableAmount: number;
+}
+
+export interface WebAssistantTeleportDestination {
+  optionNumber: number;
+  name: string;
+  dimensionId: number;
+  dimensionName: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface WebAssistantTaskResult {
+  success: boolean;
+  code?: string;
+  message: string;
+  intentType: string;
+  intentTarget?: string;
+  actionKind?: string;
+  actionToken?: string;
+  truncated?: boolean;
+  candidates?: WebAssistantCandidate[];
+  teleportDestinations?: WebAssistantTeleportDestination[];
+}
+
+export interface WebAiProviderDto {
+  id: string;
+  displayName: string;
+  defaultBaseUrl: string;
+  defaultModel: string;
+  protocol: 'openai-compatible' | 'anthropic' | 'gemini';
+  models: string[];
+}
+
+export interface WebAiProfileDto {
+  id: string;
+  name: string;
+  enabled: boolean;
+  order: number;
+  providerId: string;
+  protocol: string;
+  baseUrl: string;
+  model: string;
+  timeoutSeconds: number;
+  temperature: number;
+  maxTokens: number;
+  hasApiKey: boolean;
+  apiKeyHint: string;
+  configured: boolean;
+}
+
+export interface WebAiSearchDto {
+  enabled: boolean;
+  mode: string;
+  hasApiKey: boolean;
+  apiKeyHint: string;
+  baseUrl: string;
+  maxResults: number;
+  fallback: boolean;
+  providers?: string[];
+}
+
+export interface WebAiSharedPublicDto {
+  serverKeyEnabled: boolean;
+  browserKeyEnabled: boolean;
+  configured: boolean;
+  enabledCount: number;
+  profiles: Array<{
+    id: string;
+    name: string;
+    enabled: boolean;
+    order: number;
+    providerId: string;
+    model: string;
+    hasApiKey: boolean;
+    apiKeyHint: string;
+    configured: boolean;
+  }>;
+  search?: WebAiSearchDto;
+}
+
+export interface WebAiSettingsDto {
+  enabled: boolean;
+  configured: boolean;
+  hasApiKey: boolean;
+  apiKeyHint: string;
+  providerId: string;
+  protocol: string;
+  baseUrl: string;
+  model: string;
+  timeoutSeconds: number;
+  temperature: number;
+  maxTokens: number;
+  updatedAt: number;
+  updatedBy: string;
+  secretStorage: string;
+  providers: WebAiProviderDto[];
+  profiles?: WebAiProfileDto[];
+  search?: WebAiSearchDto;
 }
 
 export interface NetworkCellSummaryDto {
@@ -1491,6 +1616,62 @@ export interface WebAlertDto {
   timestamp: number;
   networkId: number;
   sourceKey?: string;
+  browserNotify?: boolean;
+}
+
+export interface AlertNotificationFilterDto {
+  enabled: boolean;
+  events?: string[];
+  severities?: string[];
+}
+
+export interface AlertHudNotificationFilterDto extends AlertNotificationFilterDto {
+  durationSeconds: number;
+  maxVisible: number;
+  position: 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right' | string;
+  soundEnabled: boolean;
+}
+
+export type AlertNotificationTargetType =
+  | 'qq_official'
+  | 'wechat_official'
+  | 'email'
+  | 'wecom_bot'
+  | 'wecom_app';
+
+export interface AlertNotificationTargetDto extends AlertNotificationFilterDto {
+  id: string;
+  type: AlertNotificationTargetType;
+  ownerUuids?: string[];
+  url?: string;
+  urlConfigured?: boolean;
+  appId?: string;
+  appSecret?: string;
+  appSecretConfigured?: boolean;
+  baseUrl?: string;
+  tokenUrl?: string;
+  targetType?: 'group' | 'c2c' | 'channel' | string;
+  targetId?: string;
+  mode?: 'customer_service' | 'template' | string;
+  templateId?: string;
+  templateUrl?: string;
+  corpId?: string;
+  corpSecret?: string;
+  corpSecretConfigured?: boolean;
+  agentId?: number;
+  toUser?: string;
+  toParty?: string;
+  toTag?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecurity?: 'none' | 'starttls' | 'ssl' | string;
+  smtpUsername?: string;
+  smtpPassword?: string;
+  smtpPasswordConfigured?: boolean;
+  mailFrom?: string;
+  mailTo?: string[];
+  mailCc?: string[];
+  subjectPrefix?: string;
 }
 
 export interface WebAlertsConfigDto {
@@ -1505,6 +1686,16 @@ export interface WebAlertsConfigDto {
   serverTpsBelowEnabled?: boolean;
   serverTpsThreshold?: number;
   serverTpsDurationSeconds?: number;
+  browserNotifications?: AlertNotificationFilterDto;
+  playerChat?: AlertNotificationFilterDto;
+  playerHud?: AlertHudNotificationFilterDto;
+  notificationTargets?: AlertNotificationTargetDto[];
+  notificationMaxDeliveriesPerAlert?: number;
+  notificationRetryMaxAttempts?: number;
+  notificationConnectTimeoutMs?: number;
+  notificationReadTimeoutMs?: number;
+  notificationCircuitBreakFailures?: number;
+  notificationCircuitBreakSeconds?: number;
   webhooks?: WebhookRuleDto[];
   inventoryThresholds?: Array<{
     itemId?: string;
@@ -1609,9 +1800,45 @@ export interface ServerDiagnosticsResponse {
 export interface AlertsResponse {
   success: boolean;
   count: number;
+  serverFeatureEnabled?: boolean;
   canEditRules?: boolean;
   alerts: WebAlertDto[];
   rules: WebAlertsConfigDto;
+  deliveryStatus?: AlertDeliveryStatusDto;
+}
+
+export interface AlertDeliveryStatusDto {
+  queueDepth: number;
+  queueCapacity: number;
+  workerCount: number;
+  delivered: number;
+  failed: number;
+  dropped: number;
+  circuitOpenTargets: number;
+}
+
+export interface AlertDeliveryTestResponse {
+  success: boolean;
+  queued: boolean;
+  deliveryStatus?: AlertDeliveryStatusDto;
+}
+
+export interface QqIdDiscoveryDto {
+  kind: 'c2c' | 'group' | 'channel';
+  targetId: string;
+  eventType: string;
+  preview?: string;
+  seenAtMs: number;
+}
+
+export interface QqIdProbeStatusResponse {
+  success: boolean;
+  running: boolean;
+  phase: string;
+  error?: string;
+  startedAtMs: number;
+  expiresAtMs: number;
+  discoveries: QqIdDiscoveryDto[];
 }
 
 export interface AlertHistoryEntryDto {
@@ -1910,4 +2137,182 @@ export interface AdminActionResponse {
   success: boolean;
   code?: string;
   message?: string;
+}
+
+export interface AdminConsolePreset {
+  id: string;
+  label: string;
+  command: string;
+  description: string;
+  createdAt: number;
+  updatedAt: number;
+  updatedBy: string;
+}
+
+export interface AdminConsoleHistoryEntry {
+  id: string;
+  command: string;
+  actorUuid: string;
+  actorName: string;
+  status: 'queued' | 'completed' | 'failed';
+  createdAt: number;
+  startedAt: number;
+  completedAt: number;
+  durationMs: number;
+  affected: number;
+  output?: string[] | null;
+  outputPreview?: string;
+  outputTruncated: boolean;
+  error?: string;
+}
+
+export interface AdminConsolePlayer {
+  uuid: string;
+  name: string;
+  online: boolean;
+  lastLogin: number;
+  lastLogout: number;
+}
+
+export interface AdminConsoleBootstrapResponse {
+  success: boolean;
+  presets: AdminConsolePreset[];
+  history: AdminConsoleHistoryEntry[];
+}
+
+export interface AdminConsolePlayersResponse {
+  success: boolean;
+  players: AdminConsolePlayer[];
+  cachedAt: number;
+}
+
+export interface AdminConsoleExecuteResponse {
+  success: boolean;
+  pending: boolean;
+  entry: AdminConsoleHistoryEntry;
+}
+
+export interface AdminConsolePresetResponse {
+  success: boolean;
+  preset: AdminConsolePreset;
+}
+
+export interface AdminConsoleHistoryResponse {
+  success: boolean;
+  entry: AdminConsoleHistoryEntry;
+}
+
+export interface QqBotSettingsDto {
+  version: number;
+  enabled: boolean;
+  appId: string;
+  appSecret?: string;
+  appSecretConfigured: boolean;
+  appSecretHint?: string;
+  apiBase: string;
+  tokenUrl: string;
+  botName: string;
+  commandPrefix: string;
+  allowGroups: boolean;
+  allowC2c: boolean;
+  allowChannels: boolean;
+  requireMention: boolean;
+  replyUnknownWithHelp: boolean;
+  allowedGroupIds: string[];
+  allowedUserIds: string[];
+  adminUserIds: string[];
+  statusCommandEnabled: boolean;
+  playersCommandEnabled: boolean;
+  playerListCommandEnabled: boolean;
+  tpsCommandEnabled: boolean;
+  memoryCommandEnabled: boolean;
+  uptimeCommandEnabled: boolean;
+  aboutCommandEnabled: boolean;
+  aiEnabled: boolean;
+  aiAutoReply: boolean;
+  aiWebSearch: boolean;
+  aiSystemPrompt: string;
+  maxConversationTurns: number;
+  conversationTtlMinutes: number;
+  userCooldownSeconds: number;
+  aiCooldownSeconds: number;
+  maxInputChars: number;
+  maxReplyChars: number;
+  maxQueuedRequests: number;
+  scheduledReportEnabled: boolean;
+  scheduledReportIntervalMinutes: number;
+  scheduledReportTargets: string[];
+  scheduledReportIncludePlayers: boolean;
+  scheduledReportIncludeMemory: boolean;
+  auditEnabled: boolean;
+  auditMaxEntries: number;
+}
+
+export interface QqBotSnapshotDto {
+  capturedAtMs: number;
+  tps: number;
+  mspt: number;
+  uptimeSeconds: number;
+  onlinePlayers: number;
+  maxPlayers: number;
+  motd: string;
+  usedMemoryMb: number;
+  maxMemoryMb: number;
+  playerNames: string[];
+}
+
+export interface QqBotStatusDto {
+  enabled: boolean;
+  configured: boolean;
+  running: boolean;
+  connected: boolean;
+  phase: string;
+  lastError?: string;
+  lastConnectedAtMs: number;
+  lastMessageAtMs: number;
+  lastReplyAtMs: number;
+  nextReconnectAtMs: number;
+  received: number;
+  replied: number;
+  aiReplies: number;
+  failed: number;
+  dropped: number;
+  rateLimited: number;
+  queueDepth: number;
+  queueCapacity: number;
+  conversationCount: number;
+  lastScheduledReportAtMs: number;
+  nextScheduledReportAtMs: number;
+  configUpdatedAt: number;
+  configUpdatedBy?: string;
+  snapshot?: QqBotSnapshotDto;
+}
+
+export interface QqBotAuditEntryDto {
+  id: string;
+  timestampMs: number;
+  direction: string;
+  targetType: string;
+  targetId: string;
+  senderId: string;
+  command: string;
+  outcome: string;
+  preview: string;
+  latencyMs: number;
+}
+
+export interface QqBotSettingsResponse {
+  success: boolean;
+  settings: QqBotSettingsDto;
+  status: QqBotStatusDto;
+}
+
+export interface QqBotStatusResponse {
+  success: boolean;
+  status: QqBotStatusDto;
+}
+
+export interface QqBotAuditResponse {
+  success: boolean;
+  audit: QqBotAuditEntryDto[];
 }

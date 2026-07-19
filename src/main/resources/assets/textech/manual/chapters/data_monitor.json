@@ -30,6 +30,11 @@
       "type": "text",
       "titleKey": "adm.manual.data_monitor.chart_config_title",
       "textKey": "adm.manual.data_monitor.chart_config_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.web_dashboard_title",
+      "textKey": "adm.manual.data_monitor.web_dashboard_text"
     }
   ]
 }

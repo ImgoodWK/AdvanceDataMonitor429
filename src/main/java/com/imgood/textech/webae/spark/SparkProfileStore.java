@@ -89,11 +89,27 @@ public final class SparkProfileStore {
                 for (SparkProfile profile : loadedProfiles) {
                     if (profile != null && profile.id != null && !profile.id.isEmpty()) {
                         if (profile.messages == null) profile.messages = new ArrayList<String>();
+                        if (profile.baselineMessages == null) profile.baselineMessages = new ArrayList<String>();
+                        if (profile.completionMessages == null) profile.completionMessages = new ArrayList<String>();
+                        if (profile.hotspots == null) profile.hotspots = new ArrayList<SparkProfile.Hotspot>();
+                        if (profile.categories == null) {
+                            profile.categories = new ArrayList<SparkProfile.CategoryImpact>();
+                        }
+                        if (profile.threads == null) profile.threads = new ArrayList<SparkProfile.ThreadImpact>();
+                        if (profile.analysisStatus == null || profile.analysisStatus.isEmpty()) {
+                            profile.analysisStatus = "legacy";
+                        }
+                        if (profile.mode == null || profile.mode.isEmpty()) profile.mode = "server";
+                        if (profile.intervalMillis <= 0) profile.intervalMillis = 4;
                         // A persisted active entry cannot still be sampling after
                         // a server restart; do not block the next run forever.
                         if (profile.isActive()) {
                             profile.status = "interrupted";
+                            profile.samplingStoppedAt = System.currentTimeMillis();
                             profile.completedAt = System.currentTimeMillis();
+                            if ("pending".equals(profile.analysisStatus)) {
+                                profile.analysisStatus = "unavailable";
+                            }
                         }
                         profiles.add(profile);
                     }

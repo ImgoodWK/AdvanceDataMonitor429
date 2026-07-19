@@ -102,14 +102,21 @@ public final class WebSearchService {
     }
 
     public static WebSearchData performWebSearch(String query) throws WebSearchException {
-        if (query == null || query.trim()
-            .isEmpty()) {
+        return performWebSearch(query, SearchRuntime.fromClientConfig());
+    }
+
+    /**
+     * Runs the same multi-engine search chain using an explicit runtime (WebAE shared search settings).
+     */
+    public static WebSearchData performWebSearch(String query, SearchRuntime runtime) throws WebSearchException {
+        if (query == null || query.trim().isEmpty()) {
             throw new WebSearchException("Search query is empty.");
         }
+        SearchRuntime effective = runtime == null ? SearchRuntime.fromClientConfig() : runtime;
         String trimmedQuery = query.trim();
-        String configured = normalizeProvider(Config.aiWebSearchMode);
-        int maxResults = clampMaxResults(Config.aiSearchMaxResults);
-        List<String> chain = buildChain(configured);
+        String configured = normalizeProvider(effective.mode);
+        int maxResults = clampMaxResults(effective.maxResults);
+        List<String> chain = buildChain(configured, effective.fallback);
         if (chain.isEmpty()) {
             throw new WebSearchException("No search engine is configured.");
         }
@@ -117,12 +124,12 @@ public final class WebSearchService {
         WebSearchException lastFailure = null;
         for (int i = 0; i < chain.size(); i++) {
             String provider = chain.get(i);
-            if (!isProviderAvailable(provider)) {
+            if (!isProviderAvailable(provider, effective)) {
                 debug("Skipping unavailable search provider: " + provider);
                 continue;
             }
             try {
-                List<WebSearchResult> results = searchWithProvider(provider, trimmedQuery, maxResults);
+                List<WebSearchResult> results = searchWithProvider(provider, trimmedQuery, maxResults, effective);
                 if (results.isEmpty()) {
                     throw new WebSearchException("Search provider returned no results: " + provider);
                 }
@@ -132,7 +139,7 @@ public final class WebSearchService {
             } catch (WebSearchException failure) {
                 lastFailure = failure;
                 debug("Web search failed via " + provider + ": " + failure.getMessage());
-                if (!Config.aiSearchFallback || i + 1 >= chain.size()) {
+                if (!effective.fallback || i + 1 >= chain.size()) {
                     throw failure;
                 }
             }
@@ -140,12 +147,21 @@ public final class WebSearchService {
         throw lastFailure == null ? new WebSearchException("All search providers failed.") : lastFailure;
     }
 
+    /** Injects search context into a plain user prompt (WebAE / Spark). */
+    public static String injectSearchIntoUserText(String userText, WebSearchData searchData) {
+        if (searchData == null || searchData.context == null || searchData.context.isEmpty()) {
+            return userText == null ? "" : userText;
+        }
+        String original = userText == null ? "" : userText;
+        return searchData.context + "\n\n---\n\n用户问题：\n" + original;
+    }
+
     public static List<DeepSeekChatClient.ChatMessage> injectSearchIntoMessages(
         List<DeepSeekChatClient.ChatMessage> messages, WebSearchData searchData) {
         if (searchData == null || searchData.context.isEmpty()) {
             return messages;
         }
-        List<DeepSeekChatClient.ChatMessage> copy = new ArrayList<>();
+        List<DeepSeekChatClient.ChatMessage> copy = new ArrayList<DeepSeekChatClient.ChatMessage>();
         for (DeepSeekChatClient.ChatMessage message : messages) {
             copy.add(new DeepSeekChatClient.ChatMessage(message.role, message.content));
         }
@@ -180,14 +196,14 @@ public final class WebSearchService {
         if (PROVIDER_AUTO.equals(normalized)) {
             return "Built-in web search: auto (tavily_keyless -> duckduckgo -> tavily -> brave -> serper -> searxng).";
         }
-        if (isProviderAvailable(normalized)) {
+        if (isProviderAvailable(normalized, SearchRuntime.fromClientConfig())) {
             return "Built-in web search: " + normalized + ".";
         }
         return "Built-in web search: " + normalized + " (missing API key or base URL).";
     }
 
-    private static List<String> buildChain(String configured) {
-        List<String> chain = new ArrayList<>();
+    private static List<String> buildChain(String configured, boolean fallback) {
+        List<String> chain = new ArrayList<String>();
         if (PROVIDER_AUTO.equals(configured)) {
             for (String provider : AUTO_CHAIN) {
                 chain.add(provider);
@@ -195,7 +211,7 @@ public final class WebSearchService {
             return chain;
         }
         chain.add(configured);
-        if (Config.aiSearchFallback) {
+        if (fallback) {
             for (String provider : AUTO_CHAIN) {
                 if (!provider.equals(configured)) {
                     chain.add(provider);
@@ -205,21 +221,21 @@ public final class WebSearchService {
         return chain;
     }
 
-    private static boolean isProviderAvailable(String provider) {
+    private static boolean isProviderAvailable(String provider, SearchRuntime runtime) {
         if (PROVIDER_TAVILY_KEYLESS.equals(provider) || PROVIDER_DUCKDUCKGO.equals(provider)) {
             return true;
         }
         if (PROVIDER_TAVILY.equals(provider) || PROVIDER_BRAVE.equals(provider) || PROVIDER_SERPER.equals(provider)) {
-            return !getSearchApiKey().isEmpty();
+            return runtime != null && runtime.apiKey != null && !runtime.apiKey.trim().isEmpty();
         }
         if (PROVIDER_SEARXNG.equals(provider)) {
-            return !getSearchBaseUrl().isEmpty();
+            return runtime != null && runtime.baseUrl != null && !runtime.baseUrl.trim().isEmpty();
         }
         return false;
     }
 
-    private static List<WebSearchResult> searchWithProvider(String provider, String query, int maxResults)
-        throws WebSearchException {
+    private static List<WebSearchResult> searchWithProvider(String provider, String query, int maxResults,
+        SearchRuntime runtime) throws WebSearchException {
         try {
             if (PROVIDER_TAVILY_KEYLESS.equals(provider)) {
                 return searchTavilyKeyless(query, maxResults);
@@ -228,16 +244,16 @@ public final class WebSearchService {
                 return searchDuckDuckGo(query, maxResults);
             }
             if (PROVIDER_TAVILY.equals(provider)) {
-                return searchTavily(query, maxResults);
+                return searchTavily(query, maxResults, runtime);
             }
             if (PROVIDER_BRAVE.equals(provider)) {
-                return searchBrave(query, maxResults);
+                return searchBrave(query, maxResults, runtime);
             }
             if (PROVIDER_SERPER.equals(provider)) {
-                return searchSerper(query, maxResults);
+                return searchSerper(query, maxResults, runtime);
             }
             if (PROVIDER_SEARXNG.equals(provider)) {
-                return searchSearxng(query, maxResults);
+                return searchSearxng(query, maxResults, runtime);
             }
             throw new WebSearchException("Unknown search provider: " + provider);
         } catch (WebSearchException failure) {
@@ -258,9 +274,10 @@ public final class WebSearchService {
         return parseTavilyResults(response, maxResults);
     }
 
-    private static List<WebSearchResult> searchTavily(String query, int maxResults) throws IOException {
+    private static List<WebSearchResult> searchTavily(String query, int maxResults, SearchRuntime runtime)
+        throws IOException {
         JsonObject body = new JsonObject();
-        body.addProperty("api_key", getSearchApiKey());
+        body.addProperty("api_key", safeKey(runtime));
         body.addProperty("query", query);
         body.addProperty("max_results", maxResults);
         String response = postJson(
@@ -316,12 +333,13 @@ public final class WebSearchService {
         return results;
     }
 
-    private static List<WebSearchResult> searchBrave(String query, int maxResults) throws IOException {
+    private static List<WebSearchResult> searchBrave(String query, int maxResults, SearchRuntime runtime)
+        throws IOException {
         String url = "https://api.search.brave.com/res/v1/web/search?q=" + urlEncode(query) + "&count=" + maxResults;
         String response = getJson(
             url,
-            new String[] { "Accept: application/json", "X-Subscription-Token: " + getSearchApiKey() });
-        List<WebSearchResult> results = new ArrayList<>();
+            new String[] { "Accept: application/json", "X-Subscription-Token: " + safeKey(runtime) });
+        List<WebSearchResult> results = new ArrayList<WebSearchResult>();
         JsonObject root = new JsonParser().parse(response)
             .getAsJsonObject();
         JsonObject web = root.getAsJsonObject("web");
@@ -346,15 +364,16 @@ public final class WebSearchService {
         return results;
     }
 
-    private static List<WebSearchResult> searchSerper(String query, int maxResults) throws IOException {
+    private static List<WebSearchResult> searchSerper(String query, int maxResults, SearchRuntime runtime)
+        throws IOException {
         JsonObject body = new JsonObject();
         body.addProperty("q", query);
         body.addProperty("num", maxResults);
         String response = postJson(
             "https://google.serper.dev/search",
             body.toString(),
-            new String[] { "Content-Type: application/json", "X-API-KEY: " + getSearchApiKey() });
-        List<WebSearchResult> results = new ArrayList<>();
+            new String[] { "Content-Type: application/json", "X-API-KEY: " + safeKey(runtime) });
+        List<WebSearchResult> results = new ArrayList<WebSearchResult>();
         JsonObject root = new JsonParser().parse(response)
             .getAsJsonObject();
         JsonArray organic = root.getAsJsonArray("organic");
@@ -375,11 +394,12 @@ public final class WebSearchService {
         return results;
     }
 
-    private static List<WebSearchResult> searchSearxng(String query, int maxResults) throws IOException {
-        String baseUrl = trimTrailingSlash(getSearchBaseUrl());
+    private static List<WebSearchResult> searchSearxng(String query, int maxResults, SearchRuntime runtime)
+        throws IOException {
+        String baseUrl = trimTrailingSlash(safeBaseUrl(runtime));
         String url = baseUrl + "/search?q=" + urlEncode(query) + "&format=json";
         String response = getJson(url, new String[] { "Accept: application/json" });
-        List<WebSearchResult> results = new ArrayList<>();
+        List<WebSearchResult> results = new ArrayList<WebSearchResult>();
         JsonObject root = new JsonParser().parse(response)
             .getAsJsonObject();
         JsonArray items = root.getAsJsonArray("results");
@@ -525,14 +545,12 @@ public final class WebSearchService {
         return element == null || element.isJsonNull() ? "" : element.getAsString();
     }
 
-    private static String getSearchApiKey() {
-        String key = Config.getAiSearchApiKey();
-        return key == null ? "" : key.trim();
+    private static String safeKey(SearchRuntime runtime) {
+        return runtime == null || runtime.apiKey == null ? "" : runtime.apiKey.trim();
     }
 
-    private static String getSearchBaseUrl() {
-        String baseUrl = Config.aiSearchBaseUrl;
-        return baseUrl == null ? "" : baseUrl.trim();
+    private static String safeBaseUrl(SearchRuntime runtime) {
+        return runtime == null || runtime.baseUrl == null ? "" : runtime.baseUrl.trim();
     }
 
     private static int clampMaxResults(int value) {
@@ -543,6 +561,25 @@ public final class WebSearchService {
             return 10;
         }
         return value;
+    }
+
+    /** Explicit search settings so WebAE can use shared encrypted keys without mutating client Config. */
+    public static final class SearchRuntime {
+        public String mode = PROVIDER_AUTO;
+        public String apiKey = "";
+        public String baseUrl = "";
+        public int maxResults = 5;
+        public boolean fallback = true;
+
+        public static SearchRuntime fromClientConfig() {
+            SearchRuntime runtime = new SearchRuntime();
+            runtime.mode = Config.aiWebSearchMode;
+            runtime.apiKey = Config.getAiSearchApiKey();
+            runtime.baseUrl = Config.aiSearchBaseUrl;
+            runtime.maxResults = Config.aiSearchMaxResults;
+            runtime.fallback = Config.aiSearchFallback;
+            return runtime;
+        }
     }
 
     private static String urlEncode(String value) {

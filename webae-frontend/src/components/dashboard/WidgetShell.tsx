@@ -45,7 +45,10 @@ export function WidgetShell({
     if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver((entries) => {
       const cr = entries[0]?.contentRect;
-      if (cr) setCellSize({ w: cr.width, h: cr.height });
+      if (!cr) return;
+      setCellSize((prev) =>
+        prev.w === cr.width && prev.h === cr.height ? prev : { w: cr.width, h: cr.height }
+      );
     });
     ro.observe(el);
     return () => ro.disconnect();

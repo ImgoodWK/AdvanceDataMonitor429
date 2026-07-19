@@ -28,6 +28,7 @@ import com.imgood.textech.renders.RenderStarrySwordSlam;
 import com.imgood.textech.renders.RenderStarrySwordThrown;
 import com.imgood.textech.renders.RenderSuperOrangeDrone;
 import com.imgood.textech.renders.StorageInfoRenderer;
+import com.imgood.textech.renders.WebSurfaceRenderer;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.textech.tileentity.TileEntityGrappleAnchor;
@@ -55,6 +56,7 @@ public class LoaderRender {
         RenderController.registerRenderer("line", new LineChartRenderer());
         RenderController.registerRenderer("crafting", new CraftingInfoRenderer());
         RenderController.registerRenderer("storage", new StorageInfoRenderer());
+        RenderController.registerRenderer("web_surface", new WebSurfaceRenderer());
 
         MinecraftForgeClient.registerItemRenderer(advanceDataMonitorBlockItem, new RenderAdvanceDataMonitorBlockItem());
         MinecraftForgeClient.registerItemRenderer(LoaderItem.dataImprint, new RenderDataImprintItem());

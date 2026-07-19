@@ -14,10 +14,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class CommandTeXTechClient extends CommandTeXTech {
 
-    private static final String[] CLIENT_DOMAINS = { "help", "ai", "assistant", "web" };
+    private static final String[] CLIENT_DOMAINS = { "help", "ai", "assistant", "screenshot", "web" };
     private static final int CLIENT_HUB_LINES = 5;
 
     private final CommandAIConfig aiCmd = new CommandAIConfig();
+    private final CommandScreenshot screenshotCmd = new CommandScreenshot();
 
     @Override
     protected boolean dispatchDomain(ICommandSender sender, String domain, String[] rest) {
@@ -27,6 +28,10 @@ public class CommandTeXTechClient extends CommandTeXTech {
         }
         if ("web".equals(domain)) {
             sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.hub.web_server_only");
+            return true;
+        }
+        if ("screenshot".equals(domain)) {
+            screenshotCmd.processCommand(sender, rest);
             return true;
         }
         return super.dispatchDomain(sender, domain, rest);
@@ -51,6 +56,9 @@ public class CommandTeXTechClient extends CommandTeXTech {
         }
         if ("web".equals(domain)) {
             return null;
+        }
+        if ("screenshot".equals(domain)) {
+            return screenshotCmd.addTabCompletionOptions(sender, rest);
         }
         return super.tabCompleteDomain(sender, domain, rest);
     }

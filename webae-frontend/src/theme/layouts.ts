@@ -30,7 +30,14 @@ export type ThemeLayout =
   | 'corner-hub'
   | 'widescreen'
   | 'right-drawer'
-  | 'frame';
+  | 'frame'
+  // Batch6 authored layout compositions (reuse proven chrome renderers).
+  | 'tactical-grid'
+  | 'mission-control'
+  | 'engine-room'
+  | 'orbital-console'
+  | 'assembly-line'
+  | 'quantum-frame';
 
 /** How AppLayout composes chrome (orthogonal to spacing cssVars). */
 export type ChromeKind =
@@ -111,6 +118,12 @@ export const THEME_LAYOUTS: ThemeLayout[] = [
   'widescreen',
   'right-drawer',
   'frame',
+  'tactical-grid',
+  'mission-control',
+  'engine-room',
+  'orbital-console',
+  'assembly-line',
+  'quantum-frame',
 ];
 
 export const LAYOUT_PRESETS: Record<ThemeLayout, LayoutPreset> = {
@@ -579,6 +592,105 @@ export const LAYOUT_PRESETS: Record<ThemeLayout, LayoutPreset> = {
       '--layout-page-pad-y': '28px',
       '--layout-content-max-width': '1400px',
       '--layout-frame-inset': '16px',
+    },
+  },
+  'tactical-grid': {
+    id: 'tactical-grid',
+    sidebarSide: 'left',
+    chromeKind: 'tri-chrome',
+    cssVars: {
+      '--layout-sidebar-width': '208px',
+      '--layout-card-gap': '10px',
+      '--layout-card-pad': '14px',
+      '--layout-font-base': '0.79rem',
+      '--layout-dash-value': '1.7rem',
+      '--layout-page-pad-x': '18px',
+      '--layout-page-pad-y': '12px',
+      '--layout-content-max-width': 'none',
+      '--layout-bottom-nav-height': '44px',
+    },
+  },
+  'mission-control': {
+    id: 'mission-control',
+    sidebarSide: 'left',
+    chromeKind: 'dual-rail',
+    cssVars: {
+      '--layout-sidebar-width': '196px',
+      '--layout-secondary-rail-width': '42px',
+      '--layout-card-gap': '12px',
+      '--layout-card-pad': '15px',
+      '--layout-font-base': '0.8rem',
+      '--layout-dash-value': '1.8rem',
+      '--layout-page-pad-x': '20px',
+      '--layout-page-pad-y': '14px',
+      '--layout-content-max-width': 'none',
+    },
+  },
+  'engine-room': {
+    id: 'engine-room',
+    sidebarSide: 'left',
+    chromeKind: 'dense-ops',
+    cssVars: {
+      '--layout-sidebar-width': '172px',
+      '--layout-card-gap': '8px',
+      '--layout-card-pad': '11px',
+      '--layout-font-base': '0.76rem',
+      '--layout-dash-value': '1.55rem',
+      '--layout-page-pad-x': '12px',
+      '--layout-page-pad-y': '9px',
+      '--layout-content-max-width': 'none',
+      '--layout-ops-header-height': '46px',
+    },
+  },
+  'orbital-console': {
+    id: 'orbital-console',
+    sidebarSide: 'none',
+    navChrome: 'top',
+    chromeKind: 'hud-frame',
+    cssVars: {
+      '--layout-sidebar-width': '0px',
+      '--layout-card-gap': '16px',
+      '--layout-card-pad': '18px',
+      '--layout-font-base': '0.84rem',
+      '--layout-dash-value': '1.95rem',
+      '--layout-page-pad-x': '28px',
+      '--layout-page-pad-y': '20px',
+      '--layout-content-max-width': '1480px',
+      '--layout-bottom-nav-height': '54px',
+    },
+  },
+  'assembly-line': {
+    id: 'assembly-line',
+    sidebarSide: 'none',
+    navChrome: 'top',
+    chromeKind: 'pipeline',
+    cssVars: {
+      '--layout-sidebar-width': '0px',
+      '--layout-card-gap': '9px',
+      '--layout-card-pad': '12px',
+      '--layout-font-base': '0.78rem',
+      '--layout-dash-value': '1.65rem',
+      '--layout-page-pad-x': '16px',
+      '--layout-page-pad-y': '10px',
+      '--layout-content-max-width': 'none',
+      '--layout-pipeline-height': '50px',
+    },
+  },
+  'quantum-frame': {
+    id: 'quantum-frame',
+    sidebarSide: 'none',
+    navChrome: 'top',
+    chromeKind: 'frame',
+    cssVars: {
+      '--layout-sidebar-width': '0px',
+      '--layout-card-gap': '18px',
+      '--layout-card-pad': '20px',
+      '--layout-font-base': '0.86rem',
+      '--layout-dash-value': '2rem',
+      '--layout-page-pad-x': '40px',
+      '--layout-page-pad-y': '30px',
+      '--layout-content-max-width': '1440px',
+      '--layout-frame-inset': '20px',
     },
   },
 };

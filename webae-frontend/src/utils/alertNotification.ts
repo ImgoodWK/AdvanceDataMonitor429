@@ -52,6 +52,7 @@ type NotifyFn = (message: string, type: 'success' | 'error' | 'warning' | 'info'
  * Returns true if a popup was shown.
  */
 export function notifyAlertOnce(alert: WebAlertDto, notify: NotifyFn): boolean {
+  if (alert.browserNotify === false) return false;
   const key = alertOccurrenceKey(alert);
   const ids = loadNotifiedIds();
   if (ids.has(key)) return false;

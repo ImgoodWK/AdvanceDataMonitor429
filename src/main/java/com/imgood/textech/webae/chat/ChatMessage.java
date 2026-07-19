@@ -14,6 +14,7 @@ package com.imgood.textech.webae.chat;
  * <li>{@code content} — message text</li>
  * <li>{@code timestamp} — epoch ms when the message was recorded</li>
  * <li>{@code source} — "game", "web", or "system"</li>
+ * <li>{@code attachmentId} — optional server-side screenshot attachment id</li>
  * </ul>
  */
 public class ChatMessage {
@@ -28,6 +29,12 @@ public class ChatMessage {
     public String content;
     public long timestamp;
     public String source;
+    public String attachmentId;
+    public String attachmentName;
+    public String attachmentMime;
+    public int attachmentWidth;
+    public int attachmentHeight;
+    public int attachmentBytes;
 
     public ChatMessage() {}
 
@@ -38,5 +45,15 @@ public class ChatMessage {
         this.content = content;
         this.timestamp = timestamp;
         this.source = source;
+    }
+
+    public ChatMessage withAttachment(String id, String name, String mime, int width, int height, int bytes) {
+        this.attachmentId = id;
+        this.attachmentName = name;
+        this.attachmentMime = mime;
+        this.attachmentWidth = width;
+        this.attachmentHeight = height;
+        this.attachmentBytes = bytes;
+        return this;
     }
 }

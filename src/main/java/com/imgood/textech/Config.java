@@ -125,6 +125,41 @@ public class Config {
     public static int webConsolePort = 8090;
     public static String webConsoleBindAddress = "127.0.0.1";
     public static int webConsoleSnapshotIntervalSeconds = 30;
+    /** Global kill switch for WebAE alert evaluation and all notification delivery. Default true. */
+    public static boolean webAlertsEnabled = true;
+    /** Client framebuffer capture/local history and explicit WebAE/QQ sharing. */
+    public static boolean webScreenshotEnabled = true;
+    /** Maximum encoded screenshot width enforced by both client and server. */
+    public static int webScreenshotMaxWidth = 1920;
+    /** Maximum encoded screenshot height enforced by both client and server. */
+    public static int webScreenshotMaxHeight = 1080;
+    /** Client JPEG quality percentage. */
+    public static int webScreenshotJpegQualityPercent = 88;
+    /** Maximum encoded upload size in KiB, independently enforced server-side. */
+    public static int webScreenshotMaxUploadKB = 2048;
+    /** Conservative client upload bandwidth: 24 KiB chunks sent per tick. */
+    public static int webScreenshotUploadChunksPerTick = 1;
+    /** Per-player server upload start cooldown. */
+    public static int webScreenshotUploadCooldownSeconds = 15;
+    /** Maximum local client screenshot files retained. */
+    public static int webScreenshotClientHistoryMaxFiles = 100;
+    /** Maximum local client screenshot history size in MiB. */
+    public static int webScreenshotClientHistoryMaxMB = 256;
+    /** Maximum WebAE chat screenshot files retained server-side. */
+    public static int webScreenshotServerHistoryMaxFiles = 200;
+    /** Maximum WebAE chat screenshot storage size in MiB. */
+    public static int webScreenshotServerHistoryMaxMB = 256;
+    /** Maximum aggregate receiving/processing screenshot uploads. */
+    public static int webScreenshotMaxConcurrentUploads = 4;
+    /**
+     * Legacy mutual AI key mode ({@code server}/{@code browser}). Retained for cfg migration only;
+     * runtime uses {@link #webAiServerKeyEnabled} and {@link #webAiBrowserKeyEnabled}.
+     */
+    public static String webAiKeyMode = "server";
+    /** When true, WebAE may use admin-managed shared AI profiles on the server. */
+    public static boolean webAiServerKeyEnabled = true;
+    /** When true, WebAE may use per-browser personal AI profiles (keys stay in the browser). */
+    public static boolean webAiBrowserKeyEnabled = false;
     /** Enables the optional WebAE Spark page when the Spark mod is installed. */
     public static boolean webSparkEnabled = true;
     /** Maximum number of persisted Spark runs retained on the server. */

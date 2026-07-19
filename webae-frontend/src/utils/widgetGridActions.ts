@@ -16,6 +16,13 @@ const VALID_TYPES: ReadonlySet<string> = new Set([
   'spacer',
   'alertsSummary',
   'craftingQueue',
+  'networkHealth',
+  'powerFlow',
+  'storageMatrix',
+  'machineFleet',
+  'playerPresence',
+  'activityStream',
+  'serverVitals',
 ]);
 
 const MAX_NEST_DEPTH = 4;

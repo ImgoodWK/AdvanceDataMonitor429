@@ -64,8 +64,10 @@ public final class ConfigWebAlertsLoader {
             }
             cached = normalized;
             lastLoadMs = System.currentTimeMillis();
-            AdvanceDataMonitor.LOG
-                .info("[WebAE] Saved web-alerts.json ({} inventory rules)", normalized.inventoryThresholds.size());
+            AdvanceDataMonitor.LOG.info(
+                "[WebAE] Saved web-alerts.json ({} inventory rules, {} external notification targets)",
+                normalized.inventoryThresholds.size(),
+                normalized.notificationTargets.size());
             return true;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to save web-alerts.json", e);
@@ -85,14 +87,19 @@ public final class ConfigWebAlertsLoader {
             if (loaded == null) {
                 return defaultConfig();
             }
-            if (loaded.inventoryThresholds == null) {
-                loaded.inventoryThresholds = new java.util.ArrayList<WebAlertsConfig.InventoryThresholdRule>();
-            }
-            if (loaded.webhooks == null) {
-                loaded.webhooks = new java.util.ArrayList<WebAlertsConfig.WebhookRule>();
-            }
-            if (loaded.automationRules == null) {
-                loaded.automationRules = new java.util.ArrayList<WebAlertsConfig.AutomationRule>();
+            loaded = WebAlertsConfigValidator.normalize(loaded);
+            String err = WebAlertsConfigValidator.validate(loaded);
+            if (err != null) {
+                AdvanceDataMonitor.LOG.warn(
+                    "[WebAE] Invalid external alert configuration; disabling external targets: {}",
+                    err);
+                loaded.webhooks.clear();
+                loaded.notificationTargets.clear();
+                err = WebAlertsConfigValidator.validate(loaded);
+                if (err != null) {
+                    AdvanceDataMonitor.LOG.warn("[WebAE] Invalid web-alerts.json; using safe defaults: {}", err);
+                    return defaultConfig();
+                }
             }
             return loaded;
         } catch (Exception e) {
@@ -103,7 +110,7 @@ public final class ConfigWebAlertsLoader {
 
     private static WebAlertsConfig defaultConfig() {
         WebAlertsConfig cfg = new WebAlertsConfig();
-        cfg.version = 1;
+        cfg.version = 2;
         cfg.enabled = true;
         cfg.pollIntervalSeconds = 10;
         cfg.cpuStuckMinutes = 5;

@@ -25,7 +25,7 @@ public class LineChartRenderer implements IADMRender {
     private Minecraft mc = Minecraft.getMinecraft();
 
     @Override
-    public void render(NBTTagCompound nbt, double x, double y, double z, int facing) {
+    public void render(NBTTagCompound nbt, double x, double y, double z, int facing, int bindingIndex) {
         if (!nbt.getBoolean("enable")) return;
         NBTTagList dataValues = nbt.getTagList("dataValues", 10);
 

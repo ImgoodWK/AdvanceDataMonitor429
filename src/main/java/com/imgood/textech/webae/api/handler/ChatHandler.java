@@ -1,5 +1,7 @@
 package com.imgood.textech.webae.api.handler;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +18,7 @@ import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.chat.ChatMessage;
 import com.imgood.textech.webae.chat.ChatMessageStore;
 import com.imgood.textech.webae.dto.ChatMessageDto;
+import com.imgood.textech.webae.screenshot.ScreenshotAttachmentStore;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import fi.iki.elonen.NanoHTTPD;
@@ -32,6 +35,14 @@ public class ChatHandler {
 
     public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, Map<String, String> params,
         String body, WebAuthSession auth) {
+        if ("/api/chat/attachment".equals(uri)) {
+            if (method != NanoHTTPD.Method.GET) {
+                return json(
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                    "{\"success\":false,\"message\":\"Use GET /api/chat/attachment?id=...\"}");
+            }
+            return handleAttachment(params);
+        }
         if ("/api/chat/history".equals(uri)) {
             if (method != NanoHTTPD.Method.GET) {
                 return json(
@@ -159,7 +170,39 @@ public class ChatHandler {
     }
 
     private static ChatMessageDto toDto(ChatMessage m) {
-        return new ChatMessageDto(m.id, m.senderUuid, m.senderName, m.content, m.timestamp, m.source);
+        return new ChatMessageDto(m.id, m.senderUuid, m.senderName, m.content, m.timestamp, m.source)
+            .withAttachment(
+                m.attachmentId,
+                m.attachmentName,
+                m.attachmentMime,
+                m.attachmentWidth,
+                m.attachmentHeight,
+                m.attachmentBytes);
+    }
+
+    private static NanoHTTPD.Response handleAttachment(Map<String, String> params) {
+        String id = params == null ? null : params.get("id");
+        File file = ScreenshotAttachmentStore.instance().resolve(id);
+        if (file == null) {
+            return json(
+                NanoHTTPD.Response.Status.NOT_FOUND,
+                "{\"success\":false,\"code\":\"attachment_not_found\",\"message\":\"Screenshot attachment not found\"}");
+        }
+        try {
+            NanoHTTPD.Response response = NanoHTTPD.newFixedLengthResponse(
+                NanoHTTPD.Response.Status.OK,
+                "image/jpeg",
+                new FileInputStream(file),
+                file.length());
+            response.addHeader("Cache-Control", "private, max-age=86400");
+            response.addHeader("X-Content-Type-Options", "nosniff");
+            return response;
+        } catch (Exception error) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to read screenshot attachment {}", id, error);
+            return json(
+                NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                "{\"success\":false,\"code\":\"attachment_read_failed\",\"message\":\"Failed to read screenshot attachment\"}");
+        }
     }
 
     private static String extractContent(String body) {

@@ -15,6 +15,7 @@ import {
   Drawer,
   Tooltip,
   Segmented,
+  Image,
 } from 'antd';
 import {
   SendOutlined,
@@ -43,6 +44,7 @@ import type {
   PlayersResponse,
   PlayerDto,
 } from '@/types/dto';
+import { hasScreenshotAttachment, screenshotSizeKiB } from '@/utils/chatAttachments';
 
 const { Text } = Typography;
 
@@ -99,6 +101,55 @@ function PlayerAvatar({
   );
 }
 
+function ScreenshotAttachment({ message }: { message: ChatMessageDto }) {
+  const { t } = useI18n();
+  const [blobUrl, setBlobUrl] = useState('');
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    if (!hasScreenshotAttachment(message)) return undefined;
+    const attachmentId = message.attachmentId as string;
+    setFailed(false);
+    getApiClient()
+      .getBlob(`/api/chat/attachment?id=${encodeURIComponent(attachmentId)}`)
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [message.attachmentId]);
+
+  if (failed) return <Text type="danger">{t('chatScreenshotLoadFailed')}</Text>;
+  if (!blobUrl) return <Spin size="small" />;
+  const sizeKb = screenshotSizeKiB(message);
+  return (
+    <div className="chat-screenshot-attachment">
+      <Image
+        src={blobUrl}
+        alt={message.attachmentName || t('chatScreenshot')}
+        preview={{ mask: t('chatScreenshotPreview') }}
+        style={{ maxWidth: 'min(520px, 100%)', maxHeight: 320, objectFit: 'contain' }}
+      />
+      <Text type="secondary" className="chat-screenshot-meta">
+        {t('chatScreenshotMeta', {
+          width: message.attachmentWidth || 0,
+          height: message.attachmentHeight || 0,
+          size: sizeKb,
+        })}
+      </Text>
+    </div>
+  );
+}
+
 export function ChatPage() {
   const { notify, actorUuid, pauseRefreshWhenHidden } = useAppContext();
   const { t } = useI18n();
@@ -144,9 +195,8 @@ export function ChatPage() {
   }, []);
 
   const pollChat = useCallback(async () => {
-    if (lastId <= 0) return;
     try {
-      const data = await getApiClient().get<ChatSinceResponse>(`/api/chat/since?id=${lastId}`);
+      const data = await getApiClient().get<ChatSinceResponse>(`/api/chat/since?id=${Math.max(0, lastId)}`);
       if (data.success && data.messages && data.messages.length > 0) {
         // 防御性按 msg.id 去重：后端已支持 getAfterId 增量，但客户端可能因
         // 重新挂载/时钟漂移收到重复 id，这里再用 Set 过滤避免气泡重复渲染。
@@ -307,6 +357,12 @@ export function ChatPage() {
   );
 
   const renderMessage = (msg: ChatMessageDto) => {
+    const content = (
+      <>
+        {msg.content ? <div>{msg.content}</div> : hasScreenshotAttachment(msg) ? <div>{t('chatScreenshot')}</div> : null}
+        {hasScreenshotAttachment(msg) ? <ScreenshotAttachment message={msg} /> : null}
+      </>
+    );
     if (chatMode === 'bubble') {
       if (msg.source === 'system') {
         return (
@@ -339,7 +395,7 @@ export function ChatPage() {
               </Tag>
               <span>{formatTime(msg.timestamp)}</span>
             </div>
-            <div className="chat-bubble-content">{msg.content}</div>
+            <div className="chat-bubble-content">{content}</div>
           </div>
         </div>
       );
@@ -373,7 +429,7 @@ export function ChatPage() {
         <div
           style={{ marginTop: 2, marginLeft: showAvatars && msg.source !== 'system' ? 32 : 0 }}
         >
-          {msg.content}
+          {content}
         </div>
       </div>
     );

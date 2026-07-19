@@ -55,6 +55,8 @@ public final class WebAlertStore {
         }
         if (published == null) {
             alert.id = ownerUuid + ":" + alert.sourceKey + ":" + alert.timestamp;
+            alert.browserNotify = WebhookDispatcher.instance()
+                .shouldNotifyBrowser(ownerUuid, alert);
             list.add(0, alert);
             published = alert;
             while (list.size() > MAX_ALERTS_PER_OWNER) {

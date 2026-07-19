@@ -150,6 +150,7 @@ The main display block. Right-click to open the configuration GUI: add data bind
 - Supports multiple display entries per face, each with its own coordinates, field name, chart type, sample interval, and transform.
 - Up to **36** data binding entries per monitor face (`MAX_DATA_BINDINGS`); per-entry chart point cap (`dataLimit`) still defaults to 100.
 - Chart types: line, bar, 3D bar, waterfall, difference, crafting text, storage item grid.
+- Supports a `webae_dashboard` / `web_surface` panel imported from a read-only WebAE visual snapshot, with independent scale, XYZ rotation/offset, opacity, lighting, and texture quality.
 - **AI** button on the main GUI opens the assistant chat window.
 
 **In-game title (lang):** `§lAdvance Data Monitor` (`adm.title.main`)
@@ -489,6 +490,8 @@ Developer detail: [Technical Documentation §5.13](../developer/technical-docume
 
 **Chart types:** `line`, `bar`, `bar3d`, `waterfall`, `diffrence`, `crafting`, `storage`.
 
+**WebAE dashboard panel:** On the WebAE main dashboard, click **Export for in-game display** after data/layout finish rendering. In game, open the monitor, choose **WebAE Panel**, import clipboard JSON, then adjust title, scale, XYZ offsets/rotations, opacity, full-bright/world-light mode, and 256/512/1024px quality. This is a passive visual snapshot: it starts no server browser and performs no continuous WebAE polling. Re-export after dashboard values change. Normal TE sync sends only metadata/hash; nearby clients request missing compressed content once. Limits are 8 web panels and 128 KiB total content per monitor, with an 8-texture client LRU.
+
 **Transforms:** `xOffset`/`yOffset`/`zOffset`, `rotationX`/`Y`/`Z`, `scale`. If invisible, increase `scale` (try `0.5`–`1.0`) and adjust `zOffset`.
 
 **Colors:** 6-digit hex without `#` (e.g. `00FFFF`). Alpha fields `0.0`–`1.0`.
@@ -702,6 +705,10 @@ Providers include `deepseek`, `openai`, `openrouter`, `dashscope`, `zhipu`, `kim
 /admassistant lexicon
 /admassistant reloadLexicon   # op level 2
 ```
+
+### `/admscreenshot` (domain: `/textech screenshot`)
+
+`capture` saves the current Minecraft framebuffer, including any open GUI, under client `TeXTech/Screenshots/`; it never captures the desktop or other windows. Use `list [page]` and `preview [index]` for local history, `send web [index] [caption]` for WebAE Chat, or `send qq <group openid> [index] [caption]` for the official QQ bot (server requires OP). The default key is F10 and can be rebound in Controls.
 
 ---
 

@@ -93,6 +93,7 @@ export interface UiSettingsGlobal {
   effectsLevel: EffectsLevel;
   lang: string;
   displayMode: DisplayMode;
+  browsingMode: boolean;
   numberFormat: NumberFormat;
   iconPack: string;
   iconRenderMode: string;
@@ -153,6 +154,7 @@ export interface GlobalSettingsSetters {
   setEffectsLevel: (e: EffectsLevel) => void;
   setLang: (l: Lang) => void;
   setDisplayMode: (m: DisplayMode) => void;
+  setBrowsingMode: (v: boolean) => void;
   setNumberFormat: (f: NumberFormat) => void;
   setIconPack: (p: string) => void;
   setIconRenderMode: (m: string) => void;
@@ -258,6 +260,7 @@ export function readGlobalSettingsFromStorage(overrides?: Partial<UiSettingsGlob
     effectsLevel: (overrides?.effectsLevel ?? readString('webae_effects_level', '')) as EffectsLevel,
     lang: overrides?.lang ?? readString('webae_lang', ''),
     displayMode: (overrides?.displayMode ?? readString('webae_display_mode', 'split')) as DisplayMode,
+    browsingMode: overrides?.browsingMode ?? readBool('webae_browsing_mode', false),
     numberFormat: (overrides?.numberFormat ?? readString('webae_number_format', 'thousands')) as NumberFormat,
     iconPack: overrides?.iconPack ?? readString('webae_icon_pack', 'default'),
     iconRenderMode: overrides?.iconRenderMode ?? readString('webae_icon_render_mode', 'nei'),
@@ -384,6 +387,7 @@ function migrateLegacyPreset(raw: Record<string, unknown>): WebUiSettingsBundle 
     effectsLevel: (settings.effectsLevel ?? '') as EffectsLevel,
     lang: String(settings.lang ?? ''),
     displayMode: (settings.displayMode ?? 'split') as DisplayMode,
+    browsingMode: settings.browsingMode ?? false,
     numberFormat: (settings.numberFormat ?? 'thousands') as NumberFormat,
     iconPack: String(settings.iconPack ?? 'default'),
     iconRenderMode: String(settings.iconRenderMode ?? 'nei'),
@@ -497,6 +501,7 @@ function applyGlobalToStorage(global: UiSettingsGlobal): void {
   localStorage.setItem('webae_effects_level', global.effectsLevel || '');
   if (global.lang) localStorage.setItem('webae_lang', global.lang);
   localStorage.setItem('webae_display_mode', global.displayMode);
+  localStorage.setItem('webae_browsing_mode', global.browsingMode === true ? 'true' : 'false');
   localStorage.setItem('webae_number_format', global.numberFormat);
   localStorage.setItem('webae_icon_pack', global.iconPack);
   localStorage.setItem('webae_icon_render_mode', global.iconRenderMode);
@@ -517,6 +522,7 @@ function applyGlobalToReact(global: UiSettingsGlobal, setters: GlobalSettingsSet
   setters.setEffectsLevel(global.effectsLevel);
   if (global.lang) setters.setLang(global.lang as Lang);
   setters.setDisplayMode(global.displayMode);
+  setters.setBrowsingMode(global.browsingMode === true);
   setters.setNumberFormat(global.numberFormat);
   setters.setIconPack(global.iconPack);
   setters.setIconRenderMode(global.iconRenderMode);

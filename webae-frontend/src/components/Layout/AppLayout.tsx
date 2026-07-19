@@ -24,9 +24,9 @@ import { PlannerPage } from '@/pages/Planner';
 import { QuestBookPage } from '@/pages/QuestBook';
 import { AssistantPage } from '@/pages/Assistant';
 import { AlertsHistoryPage } from '@/pages/AlertsHistory';
-import { SparkPage } from '@/pages/Spark';
 import { AdminPage } from '@/pages/Admin';
 import { PageStaleBanner } from '@/components/Layout/PageStaleBanner';
+import { PageErrorBoundary } from '@/components/Layout/PageErrorBoundary';
 import { CommandPalette, useCommandPaletteShortcut } from '@/components/CommandPalette';
 import { useWebAlerts } from '@/hooks/useWebAlerts';
 import { useEventStream } from '@/hooks/useEventStream';
@@ -124,10 +124,9 @@ function BottomNav({
   className?: string;
 }) {
   const { t } = useI18n();
-  const { isAdmin, isOnlineOp, serverConfig } = useAppContext();
+  const { isAdmin, isOnlineOp } = useAppContext();
   const visible = NAV_PAGES.filter((item) => {
     if (item.id === 'admin') return isAdmin || isOnlineOp;
-    if (item.id === 'spark') return !!serverConfig?.sparkEnabled;
     return true;
   });
 
@@ -186,7 +185,15 @@ function StatusStrip() {
 }
 
 export function AppLayout() {
-  const { activePage, setActivePage, themeLayout, sidebarMode, setSidebarMode } = useAppContext();
+  const {
+    activePage,
+    setActivePage,
+    themeLayout,
+    sidebarMode,
+    setSidebarMode,
+    browsingMode,
+  } = useAppContext();
+  const { t } = useI18n();
   const [commandOpen, setCommandOpen] = useState(false);
   const openCommand = useCallback(() => setCommandOpen(true), []);
   useCommandPaletteShortcut(openCommand);
@@ -244,8 +251,6 @@ export function AppLayout() {
         return <AssistantPage />;
       case 'alertshistory':
         return <AlertsHistoryPage />;
-      case 'spark':
-        return <SparkPage />;
       case 'admin':
         return <AdminPage />;
       case 'settings':
@@ -263,16 +268,24 @@ export function AppLayout() {
   const pageBody = (
     <>
       <PageStaleBanner />
-      <PageTransition pageKey={activePage}>{renderPage()}</PageTransition>
+      <PageErrorBoundary
+        key={activePage}
+        title={t('pageRenderError')}
+        retryLabel={t('retryPage')}
+      >
+        <PageTransition pageKey={activePage}>{renderPage()}</PageTransition>
+      </PageErrorBoundary>
     </>
   );
 
-  const layoutClass = `webae-layout webae-layout--${themeLayout} webae-chrome--${chromeKind}`;
+  const viewportPage = activePage !== 'admin' && activePage !== 'settings';
+  const layoutClass = `webae-layout webae-layout--${themeLayout} webae-chrome--${chromeKind}${viewportPage ? ' webae-layout--viewport-page' : ''}${browsingMode ? ' webae-browsing-mode' : ''}`;
   const palette = <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />;
 
   const contentStyle = (extra?: CSSProperties): CSSProperties => ({
     padding: contentPad,
-    overflow: 'auto',
+    overflow: viewportPage ? 'hidden' : 'auto',
+    minHeight: 0,
     position: 'relative',
     ...extra,
   });
@@ -325,7 +338,7 @@ export function AppLayout() {
             ? {
                 margin: 'var(--layout-sider-margin, 14px)',
                 borderRadius: 'var(--layout-sider-radius, 20px)',
-                height: 'calc(100vh - 2 * var(--layout-sider-margin, 14px))',
+                height: 'calc(100dvh - 2 * var(--layout-sider-margin, 14px))',
                 alignSelf: 'center',
               }
             : {}),
@@ -335,7 +348,7 @@ export function AppLayout() {
                 right: siderSide === 'right' ? 0 : undefined,
                 left: siderSide === 'left' ? 0 : undefined,
                 top: 0,
-                height: '100vh',
+                height: '100dvh',
                 zIndex: 900,
                 boxShadow: 'var(--shadow-elev, -4px 0 24px rgba(0,0,0,0.35))',
               }
@@ -351,7 +364,7 @@ export function AppLayout() {
 
   if (chromeKind === 'dock') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
           <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -370,7 +383,7 @@ export function AppLayout() {
 
   if (chromeKind === 'island' || chromeKind === 'pipeline' || chromeKind === 'hero-header' || chromeKind === 'widescreen' || chromeKind === 'command' || chromeKind === 'frame' || chromeKind === 'theater') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh' }}>
         <Header
           className={
             chromeKind === 'hero-header'
@@ -399,7 +412,7 @@ export function AppLayout() {
 
   if (chromeKind === 'hud-frame') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
           <TopBar topnavMode pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -418,7 +431,7 @@ export function AppLayout() {
 
   if (chromeKind === 'top-tabs') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
           <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -435,7 +448,7 @@ export function AppLayout() {
 
   if (chromeKind === 'corner-hub') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
           <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -452,7 +465,7 @@ export function AppLayout() {
 
   if (chromeKind === 'dense-ops') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh', flexDirection: 'column' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh', flexDirection: 'column' }}>
         <TickerStrip />
         <Layout style={{ flex: 1, minHeight: 0, flexDirection: 'row' }}>
           {buildSider()}
@@ -479,7 +492,7 @@ export function AppLayout() {
 
   if (chromeKind === 'tri-chrome') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh', flexDirection: 'column' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh', flexDirection: 'column' }}>
         <Header style={{ padding: 0, height: 'auto', lineHeight: 'normal' }}>
           <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -511,7 +524,7 @@ export function AppLayout() {
       <Layout
         className={layoutClass}
         style={{
-          height: '100vh',
+          height: '100dvh',
           flexDirection: 'row',
           transition: layoutTransitionDisabled ? 'none' : undefined,
         }}
@@ -539,7 +552,7 @@ export function AppLayout() {
 
   if (chromeKind === 'right-drawer') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh', flexDirection: 'row' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh', flexDirection: 'row' }}>
         <Layout style={{ flex: 1, minWidth: 0 }}>
           <Header style={{ padding: 0, height: 'auto', lineHeight: 'normal' }}>
             <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
@@ -565,7 +578,7 @@ export function AppLayout() {
   // default path: bottomnav
   if (themeLayout === 'bottomnav') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
           <TopBar pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -589,7 +602,7 @@ export function AppLayout() {
   // topnav (and any other none-sider with top chrome / default)
   if (siderSide === 'none') {
     return (
-      <Layout className={layoutClass} style={{ height: '100vh' }}>
+      <Layout className={layoutClass} style={{ height: '100dvh' }}>
         <Header style={{ padding: 0, height: 'auto' }}>
           <TopBar topnavMode pages={NAV_PAGES} activePage={activePage} setActivePage={setActivePage} />
         </Header>
@@ -623,7 +636,7 @@ export function AppLayout() {
           ? {
               margin: 'var(--layout-sider-margin, 14px)',
               borderRadius: 'var(--layout-sider-radius, 20px)',
-              height: 'calc(100vh - 2 * var(--layout-sider-margin, 14px))',
+              height: 'calc(100dvh - 2 * var(--layout-sider-margin, 14px))',
               alignSelf: 'center',
             }
           : {}),
@@ -637,7 +650,7 @@ export function AppLayout() {
     <Layout
       className={layoutClass}
       style={{
-        height: '100vh',
+        height: '100dvh',
         flexDirection: siderSide === 'right' ? 'row-reverse' : 'row',
         transition: layoutTransitionDisabled ? 'none' : undefined,
       }}

@@ -20,6 +20,7 @@ const PHASE_ORDER = [
   'worldMapTileQueue',
   'worldMapCapture',
   'webAlertEngine',
+  'qqBot',
   'misc',
 ];
 

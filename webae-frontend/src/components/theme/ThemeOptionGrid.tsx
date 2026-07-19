@@ -11,8 +11,8 @@ const { Text } = Typography;
 
 const GRID_GAP = 10;
 const MIN_COL_WIDTH = 168;
-/** Preview 112 + padding/label ≈ 160 */
-const ROW_HEIGHT = 168;
+/** Preview 112 + padding/label + optional Batch badge. */
+const ROW_HEIGHT = 190;
 
 export interface ThemeOptionItem<T extends string = string> {
   id: T;
@@ -136,6 +136,7 @@ export function ThemeOptionGrid<T extends string>({
                       <button
                         key={it.id}
                         type="button"
+                        className={`theme-option-card${selected ? ' theme-option-card--selected' : ''}`}
                         onClick={() => onChange(it.id)}
                         style={{
                           display: 'flex',

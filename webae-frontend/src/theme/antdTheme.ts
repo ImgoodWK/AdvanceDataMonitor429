@@ -85,8 +85,6 @@ export function applyCssVars(
     for (const [k, v] of Object.entries(layoutPreset.cssVars)) {
       root.style.setProperty(k, v);
     }
-    const maxWidth = layout === 'wide' ? 'none' : '1600px';
-    root.style.setProperty('--layout-content-max-width', maxWidth);
   }
 
   for (const [k, v] of Object.entries(stylePreset.cssVars)) {

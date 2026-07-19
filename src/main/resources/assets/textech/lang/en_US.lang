@@ -51,6 +51,7 @@ adm.label.namealpha=§lTitle Alpha
 adm.label.axisalpha=§lAxis Font Alpha
 adm.label.axisfontalpha=§lAxis Font Alpha
 adm.label.datalinealpha=§lData Line Alpha
+adm.label.web_dashboard_opacity=§lWeb opacity
 
 # Buttons
 adm.button.save=Save
@@ -71,6 +72,11 @@ adm.button.dataType.Value=§lValue
 adm.button.dataType.Percent=§lPercent
 adm.button.dataType.Bytes=§lBytes
 adm.button.dataType.Type=§lType
+adm.button.web_dashboard=WebAE Panel
+adm.button.web_dashboard_import=Import clipboard JSON
+adm.button.web_dashboard_copy=Copy current JSON
+adm.button.web_dashboard_bright=Full bright
+adm.button.web_dashboard_lit=World light
 
 # Chart types
 adm.datatype.line=Line
@@ -78,12 +84,15 @@ adm.datatype.bar=Bar
 adm.datatype.bar3d=3D Bar
 adm.datatype.waterfall=Waterfall
 adm.datatype.difference=Difference
+adm.datatype.webae_dashboard=WebAE Dashboard
+adm.rendertype.web_surface=Web Surface
 
 # Title
 adm.title.data_config=§lData Config Of §n%s
 adm.title.data_config_ae=§lAEData Config Of §n%s
 adm.title.data_config_ae_network=§lAENetwork Config Of §n%s
 adm.title.data_config_color=§lColor Config Of §n%s
+adm.title.web_dashboard=§lWebAE Dashboard Display
 
 # Main GUI
 adm.direction.north=North
@@ -95,6 +104,7 @@ adm.button.hide=Hide
 adm.button.show=Show
 adm.button.single=Single
 adm.button.both=Both
+adm.web_dashboard.default_name=WebAE Dashboard
 adm.title.main=§lAdvance Data Monitor
 adm.label.facing=Facing
 adm.label.data=Data
@@ -142,6 +152,8 @@ adm.hint.axisfontcolor=Axis label text color (hexadecimal format e.g. FF00FF)
 adm.hint.linecolor=Chart line color (hexadecimal format e.g. FF00FF)
 adm.hint.linewidth=Chart line thickness (positive number greater than 0)
 adm.hint.scale=Global scaling ratio (positive number greater than 0)
+adm.hint.web_dashboard_opacity=Overall web-surface opacity, from 0.05 to 1.0
+adm.hint.web_dashboard_static=The passive snapshot does not poll WebAE. Export and import again when its content changes. Higher resolution uses more client VRAM.
 adm.hint.axisfontscale=Axis label text scaling (positive number greater than 0)
 adm.hint.gridlinewidth=Set grid line width (number greater than 0, e.g. 1.0 or 2.5)
 adm.hint.axislinewidth=Set axis line width (number greater than 0, e.g. 1.0 or 2.5)
@@ -152,6 +164,17 @@ adm.title.bind_target=Bind Target Block
 adm.error.invalid_coord=Coordinates must be integers!
 adm.error.no_block=There is no block at this position!
 adm.error.data_bindings_full=Data monitor binding list is full (max %d entries).
+adm.error.web_dashboard_limit=Each monitor may contain at most %d WebAE dashboards to bound client VRAM and chunk NBT size.
+adm.error.web_dashboard_clipboard_empty=The clipboard does not contain JSON to import.
+adm.error.web_dashboard_invalid=This is not a valid WebAE in-game display snapshot JSON
+adm.error.web_dashboard_not_loaded=Snapshot content is not loaded yet. Stay near the monitor and try again shortly.
+adm.error.web_dashboard_required=Import snapshot JSON from the clipboard before creating a WebAE dashboard.
+adm.error.web_dashboard_number=Scale, offsets, rotations, and opacity must be valid numbers.
+adm.error.web_dashboard_upload_failed=The server rejected the WebAE dashboard snapshot because of its size, count limit, or edit permission.
+adm.status.web_dashboard_none=No WebAE dashboard snapshot has been imported.
+adm.status.web_dashboard_loading=Requesting snapshot content from the server by hash…
+adm.status.web_dashboard_ready=Ready: %s · %d drawing elements · about %d KiB raw JSON
+adm.status.web_dashboard_copied=Current snapshot JSON copied to the clipboard.
 adm.error.not_tileentity=This block is not a TileEntity!
 adm.title.data_config_ae_crafting=§lCrafting CPU Config
 adm.label.craftingtemplate=§lExpression
@@ -535,6 +558,7 @@ key.textech.open_ai_chat=Open AI Chat
 key.textech.open_planner=Open Planner
 key.textech.toggle_hud=Toggle HUD
 key.textech.open_monitor_ai=Open Nearby Monitor AI Assistant
+key.textech.capture_screenshot=Capture Current Game Window
 key.categories.textech=TeXTech
 adm.error.no_nearby_monitor=No Advance Data Monitor found within 32 blocks.
 
@@ -644,12 +668,14 @@ adm.manual.data_monitor.main_gui_text=Right-click a Data Monitor to open its 470
 
 adm.manual.data_monitor.chart_config_title=Advanced Configuration
 adm.manual.data_monitor.chart_config_text=Every chart binding supports these detailed settings (stored per-binding in NBT):\n\nVisual: lineColor (hex RGB, default 00FFFF), lineWidth (default 3.0), gridLineWidth, axisLineWidth, axisLineColor, axisFontColor, displayNameColor, gridLineAlpha, nameAlpha, axisFontAlpha, dataLineAlpha.\n\nTypography: displayName (title text), displayNameScale, axisFontScale, tickLengthFactor.\n\nData: name (NBT path), dataLimit (max points, 2-9999), yMin, yMax, interval (ticks >= 20), xRange, yRange.\n\nPosition: xOffset, yOffset, zOffset, rotationX, rotationY, rotationZ - all support decimal values and negative numbers.\n\nAE2 craft: craftingTemplate (template expression), monitorNetworkWide (true=all CPUs, false=single), textAlign (0=left/1=center/2=right), textScale, textAlpha.\n\nAE2 storage: storageColumns, storageSpacing, storageIconScale, storageLinespacing, storageColor, showItemCount/Delta/Name toggles, sort modes, items/fluids/essentia filters, storageCellIndex.\n\nAll numeric values accept decimal precision for pixel-perfect tuning.
+adm.manual.data_monitor.web_dashboard_title=WebAE dashboard web surface
+adm.manual.data_monitor.web_dashboard_text=The Advance Data Monitor adds dataType=webae_dashboard and renderType=web_surface.\n\nSteps:\n1. On the WebAE main dashboard, click “Export for in-game display” to copy the visible layout and values as JSON.\n2. Right-click an Advance Data Monitor and choose “WebAE Panel”.\n3. Import clipboard JSON, then adjust title, scale, XYZ offsets, XYZ rotations, opacity, full-bright/world-light mode, and 256/512/1024px texture quality.\n4. After saving, clients request the compressed content once by hash and build the texture on a background worker.\n\nPerformance boundaries: this is a passive snapshot. It starts no browser and performs no WebAE polling on the server. Normal monitor sync carries only hash and dimensions. A snapshot is capped at 24 KiB compressed; one monitor allows at most 8 web panels and 128 KiB total content; clients retain at most 8 textures. Export and import again when the dashboard changes.
 
 adm.manual.ai_assistant.overview_title=AI Assistant Overview
 adm.manual.ai_assistant.overview_text=The AI Assistant leverages OpenAI-compatible LLM APIs to control your AE2 systems with natural language. Press O (default) to open the 600x450 chat window.\n\nCore capabilities:\n- Crafting: order single or batch AE2 crafting jobs. Supports up to 8 tasks per prompt. Multi-step confirmation with candidate selection.\n- Withdrawal: extract items/fluids from AE2 storage into your inventory. Batch withdraw support. Partial withdrawal when inventory is full.\n- Queries: check storage overview (items+fluids with icons), wireless power/steam levels, AE2 recipes/patterns, detailed item counts, byte usage with infinite cell detection.\n- World info: current weather, time (ticks + day count), player position/coordinates/facing, biome name/temperature/rainfall, inventory space.\n- Teleport: scan Draconic Evolution Advanced Dislocator (TeleporterMKII) in inventory, display saved destinations, execute cross-dimension teleport with fuzzy name matching.\n- Planner: add/list/complete/delete/modify planner entries via text commands.\n- Cancel: abort pending operations and cancel queued AE2 crafting jobs at any time.
 
 adm.manual.ai_assistant.setup_title=API Configuration
-adm.manual.ai_assistant.setup_text=The AI Assistant uses OpenAI-compatible APIs. Default provider is DeepSeek (free tier available).\n\nSettings window (gear icon in chat) or /textech ai command:\n\nAPI Key: your provider key. Can also set DEEPSEEK_API_KEY environment variable. Supports DeepSeek, OpenAI, OpenRouter, Anthropic Claude, Google Gemini, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, ByteDance Doubao, SiliconFlow, Mistral, Groq, MiniMax, Volcengine, and more.\n\nBase URL: provider endpoint (default https://api.deepseek.com). Pre-configured URLs for 13+ providers via /textech ai provider <name>.\n\nModel: model name (default deepseek-chat). Supports tab-completion for common models.\n\nAdvanced: timeout (5-300s), maxTokens (1-8192), temperature (0.0-2.0), streaming mode, web search toggle, debug logging.\n\nPrivacy: first use requires privacy confirmation (data sent to provider). One-time per player.\n\nServer-wide options live in config/textech/textech.cfg. API keys and other client-only AI/voice settings are stored in config/textech/ai-client-local.cfg.
+adm.manual.ai_assistant.setup_text=The AI Assistant uses OpenAI-compatible APIs. Default provider is DeepSeek (free tier available).\n\nSettings window (gear icon in chat) or /textech ai command:\n\nAPI Key: your provider key. Can also set DEEPSEEK_API_KEY environment variable. Supports DeepSeek, OpenAI, OpenRouter, Anthropic Claude, Google Gemini, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, ByteDance Doubao, SiliconFlow, Mistral, Groq, MiniMax, Volcengine, and more.\n\nBase URL: provider endpoint (default https://api.deepseek.com). Pre-configured URLs for 13+ providers via /textech ai provider <name>.\n\nModel: model name (default deepseek-chat). Supports tab-completion for common models.\n\nAdvanced: timeout (5-300s), maxTokens (1-8192), temperature (0.0-2.0), streaming mode, web search toggle, debug logging.\n\nPrivacy: first use requires privacy confirmation (data sent to provider). One-time per player.\n\nServer-wide options live in config/textech/textech.cfg. API keys and other client-only AI/voice settings are stored in config/textech/ai-client-local.cfg. WebAE is separately controlled by [webConsole] aiKeyMode: server mode uses an admin-managed shared key encrypted under TeXTech/WebAE; browser mode stores each browser's own key in that site's localStorage and calls the provider directly, so the key is never sent to the WebAE server. Web crafting, withdrawal, and teleport require candidate confirmation; guests are read-only.
 
 adm.manual.ai_assistant.usage_title=Chat Interface & Workflow
 adm.manual.ai_assistant.usage_text=Chat window layout (600x450): message history (top, scrollable), input field (bottom), action buttons (Send, Clear, Close, Settings, Menu, Search toggle, Cancel).\n\nBasic workflow:\n1. Type a request, e.g. "Order 64 iron ingots". Press Enter or Send.\n2. If intent is clear, the assistant searches AE2 network for matching items and shows numbered candidates.\n3. Type the number to confirm (e.g. "1"). The order is submitted.\n4. For batch orders: "Order 64 iron and 32 gold". Confirm line by line, then "confirm" to submit all.\n5. For queries: "Show my storage" returns item/fluid list with icons. "How much power?" shows EU/t and capacity.\n6. Menu button lists all 22+ features with numbers. Type a number to invoke directly.\n\nMulti-task: AI can return up to 8 tasks per prompt. Order tasks execute first, then withdrawal tasks.\n\nCancel any time by typing "cancel". This clears the session and cancels pending AE2 craft jobs.\n\nMarkdown rendering: chat responses support headers (# ## ###), bold (**), code blocks (```), lists, and inline code.
@@ -960,6 +986,8 @@ adm.webconsole.token.click_copy=Click to copy token to clipboard
 adm.webconsole.token.click_open=Click to open in browser
 adm.webconsole.config.reloaded=Web Console configuration reloaded.
 adm.webconsole.disabled=Web Console is disabled. Enable it in config/textech/textech.cfg [webConsole] section.
+adm.webae.alert.chat.message=[WebAE Alert] %s: %s
+adm.webae.alert.hud.title=WebAE Alert
 adm.webconsole.error=Web Console error: {0}
 adm.webconsole.order.title=AE Ordering
 adm.webconsole.order.place=Place Order
@@ -1050,7 +1078,7 @@ adm.manual.web_console.patterns_text=The Pattern page provides a full AE2 patter
 adm.manual.web_console.orders_title=AE Crafting Orders
 adm.manual.web_console.orders_text=The Orders page lets you submit AE2 crafting jobs directly from the browser.\n\nCPU selection:\n- A top dropdown lists all crafting CPUs on the network (name, capacity, parallelism, busy/idle).\n- Leave as "Auto assign" for AE2 to pick a CPU; specify a name to target that CPU.\n\nOrder by pattern (tab):\n- GET /api/patterns/browse paginated dual-source (Grid + Interface), debounced search, infinite scroll on reach bottom.\n- View toggle: virtual-scrolled "By product" cards or "By pattern" list for large networks.\n- Grid/Interface tags show source; detail modal lazy-fetches full I/O for Grid entries.\n- Multi-select patterns, set quantity, batch-submit to /api/order/batch.\n\nOrder by item (tab):\n- Search AE storage, enter quantity, submit to /api/order.\n- Or add multiple rows and submit /api/order/batch at once.\n\nCraft tree (tab):\n- Enter item registry name and quantity; GET /api/craft/tree recursively expands NEI recipe chain.\n- Table shows required / in-storage / missing per level; leaf nodes are raw materials.\n\nOrder tracking:\n- Active and history orders come from GET /api/order/list (history field).\n- Auto-refreshes every 3s; hybrid progress: AE2 calculation phase → real CPU progress → time estimate fallback.\n- Completed jobs move to history at 100%; history shows CPU name with tooltip for co-proc/storage/parallel details.\n- "Cancel all" calls POST /api/order/cancel.\n\nBackend: AssistantServerServices.submitCraft accepts cpuName; OrderHandler keeps in-memory historyOrders (max 200, cleared on restart).\n\nNote: order submission blocks the HTTP thread until the main thread finishes (CountDownLatch, 15s timeout).
 adm.manual.web_console.theme_dashboard_title=Themes & Dashboard Customization
-adm.manual.web_console.theme_dashboard_text=Phase 2 added a full theme system and a customizable drag-and-drop dashboard.\n\nTheme system:\n- Theme = color scheme x layout preset, chosen independently in Settings.\n- Color schemes (24): 19 classic + 5 Phase 8 sci-fi themes (hologram/plasma/neon-pulse/quantum/crystal). Each recolors the background, accent, text, and status colors.\n- Layout presets (5): standard, compact (denser, smaller fonts), wide (larger gaps, bigger fonts), sidebar-right (sidebar on the right), topnav (sidebar hidden, navigation moved into the top bar).\n- Your choice persists in the browser (localStorage webae_theme as "color|layout"); legacy dark/light choices auto-migrate.\n- Charts recolor automatically when you switch themes.\n\nDashboard customization:\n- The Dashboard tab is a GridStack.js grid you can edit: drag widgets by their handle, resize from the corner, and use the toolbar to toggle Edit mode.\n- Add Widget opens a library of widget types: stat card, progress bar (horizontal/vertical/circular), line chart, bar chart, pie chart, data table, gauge.\n- Each widget binds to a data source (item types, fluid types, EU stored, bytes usage %, power history, top items, network compare, etc.) and a scope: global (aggregated across all selected networks) or per-network (bound to one network; in split mode each network gets its own copy).\n- Edit a widget to change its type, data source, scope, style (progress orientation, time window, max rows), and size.\n- Layout persists in localStorage.webae_dashboard_config. "Reset Layout" restores the default widget set.\n- Global style defaults and widgets JSON import/export are covered in the Dashboard Settings chapter.\n- In split multi-network mode, global widgets appear in a top "Overview" grid and per-network widgets repeat under each network's section.
+adm.manual.web_console.theme_dashboard_text=WebAE appearance is the product of palette × layout × page style × effects tier. Theme Studio provides 28 one-click design packs, 141 palettes, 36 layouts, and 138 page styles while preserving free mixing, search, and favorites.\n\nThe main Dashboard is a 12-column GridStack canvas with drag, resize, groups, copy, undo/redo, locking, size-to-content, and widgets JSON import/export. Alongside stats, progress, line/bar/pie/radar charts, tables, and gauges, it provides notes, spacers, alerts, crafting queue, plus network health, power flow, storage matrix, GT fleet, player presence, activity stream, and server vitals composites. The layout is stored in localStorage.webae_dashboard_config; an explicitly empty layout stays empty until Reset Layout restores defaults.
 adm.manual.web_console.topology_title=Network Topology
 adm.manual.web_console.topology_text=Web console includes a Network Topology page (sidebar: Network Topology) backed by a simulated AE API.\n\nFeatures:\n- Does not reflect real AE cable routing; devices are grouped by fine-grained subtype rules.\n- Logical view: tree layout (controller → dense trunk 32ch → 4× smart branches 8ch); settings can switch to double-ring star abstract layout.\n- Terminals/WAP/security above; Energy Cell/Acceptor left/right of controller; Drive/Chest/IO/CPU direct below (0 channels).\n- Drive icon badge shows pattern count; device list supports graph↔table hover linkage.\n- Spatial view: dimension + 64×64 chunk bins; P2P view groups by frequency.\n- World map view: shows AE devices on a real-world coordinate grid; requires a logical topology snapshot first. Use toolbar **Update map snapshot** for manual consent once (/textech web wm y or click Accept in chat); device list opens in a modal from the map corner.\n- Snapshots persist under TeXTech/WebAE/topology/ and survive server restart (GET never auto-rebuilds).\n- Abstract vs cable-simulation render modes; SVG pan/zoom; CSV export.\n\nAPI: GET /api/network/topology; POST /api/network/topology/snapshot (manual capture + cooldown); GET /api/network/p2p; GET /api/worldmap/meta, /api/worldmap/markers, /api/worldmap/progress, and /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png.\n\nConfig ([webConsole]): topologyEnabled, topologyCacheTtlMs (default 10000 ms / 10 s), worldMapSnapshotCooldownMs (default 10000 ms / 10 s), topologySnapshotPersist (default true); worldMapEnabled, worldMapMaxQualityTier, worldMapDefaultQualityTier, worldMapBoundsPaddingChunks (default 1), worldMapTileBudgetPerTick, worldMapMaxChunks, worldMapAeOverlayEnabled.
 adm.webae.topology.title=Network Topology
@@ -1168,15 +1196,29 @@ adm.manual.web_console.gt_charts_text=The GT Machines page shows a summary row a
 adm.manual.web_console.essentia_title=Essentia page
 adm.manual.web_console.essentia_text=The sidebar Essentia page (?page=essentia) shows Thaumcraft essentia (aspect) storage:\n\n- Summary: aspect type count and total amount (merged in multi-network merged mode).\n- Trend chart: essentiaCountHistory from NetworkMetricSampler (aspect type count over time).\n- Table: search by aspect, column sort, pagination.\n\nGlobal search (Ctrl+K) routes essentia hits here with a prefilled search box. Empty state when Thaumcraft is absent or no essentia is stored.
 adm.manual.web_console.alerts_edit_title=Automation Alert Rules
-adm.manual.web_console.alerts_edit_text=WebAE can watch storage thresholds, stuck CPUs, GT errors, order completions, and channel overload (TeXTech/WebAE/web-alerts.json).\n\nIn Settings → Automation Alerts, in-game OP (level 2+) can edit rules and save from the browser. Non-OP users see read-only rules.\n\nInventory rules need an itemId or fluidName, a minimum amount, and optional network filter (-1 = all networks).
+adm.manual.web_console.alerts_edit_text=WebAE watches inventory thresholds, stuck CPUs, GT errors, order completions, channel overload, low TPS, and automatic restock events (TeXTech/WebAE/web-alerts.json). [webConsole] alertsEnabled is the default-on global gate.\n\nSettings → Automation Alerts has a ? guide with platform setup locations, official entry points, and usage steps. Admins can enable WebAE/browser, owner chat, and HUD routes in one click. External targets show recommended required fields first; filters, API overrides, and SMTP extras live in each target's Advanced section. Official QQ bots can use Capture target ID so the server briefly listens on the QQ WebSocket gateway and fills openid/channel IDs (no public callback URL).\n\nSaved routes can send a fixed test; success means queued only. Secrets and full URLs stay server-side and are returned as masks. Platform permissions, interaction windows, rate limits, and final delivery remain third-party responsibilities.
 adm.manual.web_console.order_templates_title=Batch Order Templates
 adm.manual.web_console.order_templates_text=On the Orders page (Query & Order tab), the batch panel can save and load reusable restock presets.\n\nSave as Template: stores current batch rows, selected crafting CPU, and network ID to TeXTech/WebAE/web-order-templates.json (per WebAE owner UUID).\n\nTemplates: load a preset into the batch form, rename, or delete. Fill Gaps compares template target amounts against AE storage and writes shortage rows only.\n\nAfter loading, submit with Place All (/api/order/batch) as usual. Templates persist across browser refresh and server restart.
+adm.manual.web_console.theme_studio_title=WebAE Theme Studio
+adm.manual.web_console.theme_studio_text=Settings → Appearance now provides a complete Theme Studio: 28 one-click design packs + 141 color schemes + 36 structural layouts + 138 page styles. It opens on Top Picks and also supports Rhodes tactical, cyber tech, aerospace hard-surface, Printstream, GTNH / GregTech, game, anime, and cinema filters, search, and favorites. New media flagships use original CSS to interpret Hextech, StarCraft Terran/Protoss, Death Stranding BRIDGES, Evangelion NERV/MAGI, Ghost in the Shell Section 9, NieR YoRHa, and the TRON Grid without bundling franchise images or external fonts. Applying a pack is visual-only and never overwrites language, dashboard widgets, icon packs, or data settings.\n\nPerformance tiers: Low-end Host keeps static composition; Modern Office PC enables micro-interactions and moderate glass; Gaming PC Full FX enables scans, orbits, particles, glow, and chart motion. System reduced-motion always wins. Decorative layers must never obstruct text or clip component content.
+adm.manual.web_console.advanced_dashboard_title=Advanced WebAE Dashboard Widgets
+adm.manual.web_console.advanced_dashboard_text=The main Dashboard palette adds seven composite operations widgets:\n- Network health core: storage headroom, power reserve, crafting headroom, GT fleet reliability, TPS/MSPT, and active alerts.\n- Power flow: EU input, output, net flow, charge percentage, and steam storage.\n- Storage matrix: byte usage plus item, fluid, essentia, and crafting-CPU quadrants.\n- GT machine fleet: active, idle, faults, average progress, and current outputs.\n- Player presence: online roster and current-session duration.\n- Activity stream: combined active alerts and in-progress crafting jobs.\n- Server vitals: TPS, MSPT, online players, uptime, and dual history pulses.\n\nThese widgets can be dragged, resized, copied, nested in groups, and round-tripped through widgets JSON. They reuse existing WebAE snapshots and polling results and add no server-tick work.
+adm.manual.web_console.game_display_export_title=Export for in-game display
+adm.manual.web_console.game_display_export_text=The main-dashboard “Export for in-game display” action reads the already-rendered dashboard DOM and converts card backgrounds, text, progress blocks, and SVG lines into a bounded drawing-list JSON copied to the clipboard.\n\nThe export contains visible dashboard content and visual positions only. It excludes WebAE tokens, AI keys, webhook URLs, and QQ/mail secrets. Output is capped at 600 primitives and about 90 KiB raw JSON; the game validates it again and requires the GZIP payload to stay within 24 KiB.\n\nThis is different from widgets config JSON: widgets JSON migrates an editable browser layout, while in-game display JSON is a read-only visual snapshot with current values.
+adm.manual.web_console.data_workspaces_title=WebAE Data Workspaces
+adm.manual.web_console.data_workspaces_text=Storage, Fluids, Crafting CPUs, and Power use explicit workspace boundaries so customizable overviews, focused trends, and detailed data no longer run together. Normal mode shows Settings and Edit; edit mode expands undo/redo, add, auto-arrange, and reset. Enable Browsing mode in Settings to hide edit, layout-settings, and capture entry points on Dashboard, Storage/CPU Overview, Power, and Topology while retaining view, search, filters, refresh, and export. Every page except Admin and Settings fits a viewport-bound outer shell without a browser-edge scrollbar.\n\nStorage retains item/fluid/essentia search and sorting; Fluids separates totals, pinned trends, and the inventory table; CPU rows open task details; and Power metrics plus history follow the active network after switching. GridStack drag/resize saves safely on the next frame; deletion uses widget buttons.
+adm.manual.web_console.ai_key_mode_title=WebAE AI Key Mode
+adm.manual.web_console.ai_key_mode_text=With [webConsole] aiKeyMode=server (default), an admin manages the shared provider/model/key under Web Settings → AI & API, and the server stores AES-GCM ciphertext.\n\nWith browser, each browser saves its own key in the same panel and calls the provider directly. The key is absent from WebAE APIs and the shared server key is not read. The personal key lives in this site's localStorage; clear site data or use Delete key to remove it. Direct calls require provider CORS support and should be used only on a trusted device and trusted WebAE page.\n\nCrafting, withdrawal, and teleport still require confirmation in either mode. Provider base URLs require HTTPS except for loopback APIs.
 adm.manual.web_console.spark_title=Spark Profiler
-adm.manual.web_console.spark_text=After Spark Forge 1.7.10 is installed, WebAE shows a Spark profiler page in the sidebar (enabled by default with [webConsole] sparkEnabled; hidden automatically when Spark is absent).\n\nAdmins can enter a duration and start/stop a Spark profiler run; regular logged-in users can view history. Each run stores its status, initiator, captured output, and Spark Viewer URL in TeXTech/WebAE/spark-history.json.\n\nThe page supports: viewing the current run and captured output; opening the official Spark call-tree/flame viewer URL; selecting two history records to compare status, elapsed time, output lines, and URLs.\n\nStarting, stopping, and deleting history require WebAE admin privileges. Configure sparkMaxHistory, sparkDefaultDurationSeconds, and sparkMaxDurationSeconds. WebAE does not copy the call tree into the mod; detailed analysis remains in Spark Viewer.
+adm.manual.web_console.spark_text=After Spark Forge 1.7.10 is installed, WebAE shows a Spark Profiler tab in the admin console (enabled by default with [webConsole] sparkEnabled; hidden automatically when Spark is absent).\n\nAdmins can choose server game thread (default, low overhead), slow-tick focus (keeps ticks over a threshold), or all threads (widest view, higher overhead, minimum 10ms interval), then set duration and interval. WebAE stops at the deadline; Viewer upload wait does not extend sampling.\n\nAfter sampling stops, details directly show method self-time hotspots, influence groups, thread shares, and smart performance suggestions. Default suggestions are deterministic local analysis backed by concrete classes/methods. An admin may explicitly request single-run or two-run AI analysis; only bounded aggregates are sent, never the API key, Viewer URL, or raw output. Two-run deltas are always B−A: positive grew, negative improved.\n\nStart/stop Spark TPS context, full output, and the Viewer URL are still retained; Viewer is only an optional collapsed deep flame-graph entry. Legacy records need a new capture for local analysis, while admins can still use Find Viewer again for a missing link. While idle, the tab adds no tick collection, world scan, or activity-log polling. Starting, stopping, link recovery, AI analysis, and deletion require WebAE admin privileges.
+adm.manual.web_console.server_console_title=Server Console Commands
+adm.manual.web_console.server_console_text=WebAE admins can run server commands on demand under Admin Console → Server Console; the leading / is optional. Commands run on the main thread with full console permission, and shutdown, bans, OP, whitelist, and similar high-risk commands require confirmation.\n\nOnly one command runs at a time, with a short cooldown and task-queue depth gate. The player list reads existing metadata only when the tab opens or an admin refreshes it; online, offline, all, and search filtering remain local to the browser, with insertion of player names or UUIDs.\n\nUp to 64 presets are shared by all WebAE admins. Audit retains 40 entries, with full output fetched on demand and only the final 24 lines kept. Background workers coalesce persistence into TeXTech/WebAE/admin-console.json, adding no idle tick work or continuous player polling.
+adm.manual.web_console.qq_bot_title=QQ Group Bot
+adm.manual.web_console.qq_bot_text=WebAE admins can configure an official QQ Open Platform bot under Admin Console → QQ Group Bot. It is disabled by default. After AppID and ClientSecret are saved and enabled, the server opens an outbound QQ Gateway connection with no public callback or third-party OneBot process.\n\nMembers can use /status, /players, /list, /tps, /memory, /uptime, and /ping for read-only server information. /ai <question> reuses WebAE shared server-side AI profiles with optional bounded conversation history and shared web search; /reset clears personal context. QQ cannot execute arbitrary server commands.\n\nAdmins can allowlist group/user openids, set command and AI cooldowns, schedule status reports, send announcements, and bound queue/audit retention. ClientSecret is AES-GCM encrypted and the browser sees only a mask. External networking and AI run on bounded background workers; the tick thread only copies TPS/player/memory state once per second. Target IDs can be captured with the QQ target-ID tool in alert settings.
 adm.manual.web_console.extensions_title=Extended Features (Phase 6–12)
 adm.manual.web_console.extensions_text=Recent WebAE extensions:\n\n- **Craft tree (Phase 6)**: Orders page → Craft Tree tab; GET /api/craft/tree expands NEI recipes and compares storage gaps.\n- **SSE alerts (Phase 9)**: GET /api/events/stream pushes alerts in real time (15s heartbeat); useEventStream complements 10s polling.\n- **P2P channel map (Phase 10)**: Topology page → P2P channels view; GET /api/network/p2p groups tunnels by frequency.\n- **Monitor preview (Phase 11)**: Monitor Bindings → Preview per slot; GET /api/monitor/preview returns line-chart values.\n- **PWA & mobile (Phase 12)**: manifest.webmanifest + responsive CSS for narrow screens; add to home screen on phones.\n- **CSV export (Phase 13)**: Storage / GT / Topology pages export tables via client-side Blob download.
 adm.manual.web_console.phase3_title=Phase 3 Integration & Alerts
-adm.manual.web_console.phase3_text=Phase 3 adds cross-system read-only pages and automation alerts.\n\nIntegration pages (sidebar):\n- Link Scanner mirror: GET /api/scanner/blocks — loaded-chunk Advanced Network Linker / monitor blocks; teleport stays in-game.\n- Monitor bindings: GET /api/monitor/bindings — chart slots and GT machine coords; Preview per slot calls GET /api/monitor/preview for a line chart Drawer.\n- Planner: GET /api/planner/plans — read-only list from TeXTech/Assistant/plans.json.\n- AI Assistant: POST /api/assistant/query — rule-based server queries (2s rate limit; no AI keys on server).\n- Topology cell summary: GET /api/network/cells — infinite cell / byte stats on the topology page.\n- Pocket overview: GET /api/pocket/overview — OP-only minimal stats (no stored items).\n\nAutomation (A1–A5): TeXTech/WebAE/web-alerts.json drives WebAlertEngine; GET /api/alerts returns active alerts; OP can edit rules in Settings; useWebAlerts Toast + browser notifications; useEventStream via GET /api/events/stream SSE (15s heartbeat; pauses when tab hidden).
+adm.manual.web_console.phase3_text=Phase 3 adds cross-system read-only pages and automation alerts.\n\nIntegration pages (sidebar):\n- Link Scanner mirror: GET /api/scanner/blocks — loaded-chunk Advanced Network Linker / monitor blocks; teleport stays in-game.\n- Monitor bindings: GET /api/monitor/bindings — chart slots and GT machine coords; Preview per slot calls GET /api/monitor/preview for a line chart Drawer.\n- Planner: GET /api/planner/plans — read-only list from TeXTech/Assistant/plans.json.\n- AI Assistant: POST /api/assistant/query — shared in-game intent schema and a 2s rate limit; aiKeyMode selects either a shared server key or a personal browser key.\n- Topology cell summary: GET /api/network/cells — infinite cell / byte stats on the topology page.\n- Pocket overview: GET /api/pocket/overview — OP-only minimal stats (no stored items).\n\nAutomation (A1–A5): TeXTech/WebAE/web-alerts.json drives WebAlertEngine; GET /api/alerts returns active alerts; OP can edit rules in Settings; useWebAlerts Toast + browser notifications; useEventStream via GET /api/events/stream SSE (15s heartbeat; pauses when tab hidden).
 
 # ===== TeXTech Commands (in-game /textech help) =====
 adm.command.common.op_required=You need operator permission for this action.
@@ -1189,16 +1231,17 @@ adm.command.hub.usage=/textech help  —  show this command index
 adm.command.hub.1=[Server]  /textech web help        Web console (token, recipes/icons, world map…)
 adm.command.hub.2=[Client]  /textech ai help         AI API config (key, model, web search…)
 adm.command.hub.3=[Both]    /textech assistant help  AI assistant lexicon reload
-adm.command.hub.4=Aliases: /admweb, /admai, /textech assistant (and adm-*/aicfg/webconsole/admast) still work.
+adm.command.hub.4=[Client]  /textech screenshot help  capture, local history, and explicit sharing; legacy aliases remain.
 adm.command.hub.5=Type /textech <domain> help for subcommands. [OP]=operator; [Player]=player required.
 adm.command.hub.client.1=[Client]  /textech ai help         AI API config — available on this client
 adm.command.hub.client.2=[Both]    /textech assistant help  AI assistant lexicon reload
-adm.command.hub.client.3=[Server]  /textech web …           run on the dedicated/server side (not on this client)
-adm.command.hub.client.4=Aliases: /adm help, /txt help; legacy /admai, /admassistant still work.
+adm.command.hub.client.3=[Client]  /textech screenshot help  capture, local history, and explicit sharing
+adm.command.hub.client.4=[Server]  /textech web …           run on the server side; legacy aliases remain.
 adm.command.hub.client.5=Type /textech <domain> help for subcommands. [OP]=operator; [Player]=player required.
 adm.command.hub.footer=Hub: /textech help (aliases: /adm, /txt).
 adm.command.hub.ai_client_only=AI config is client-only. Use /textech ai … (alias /admai).
 adm.command.hub.web_server_only=Web console is server-only. Run /textech web … on the server (alias /admweb).
+adm.command.hub.screenshot_client_only=Screenshots are client-only. Use /textech screenshot … (alias /admscreenshot).
 adm.command.admassistant.usage=/textech assistant <reload|lexicon|help> (alias /admassistant)
 adm.command.admassistant.title==== /textech assistant — AI Assistant Lexicon ===
 adm.command.admassistant.help.1=/textech assistant lexicon  —  show lexicon config file path
@@ -1290,6 +1333,7 @@ adm.command.admweb.help.13=Port restart note: enabled/port/bindAddress may need 
 adm.command.admweb.help.14=/textech web defaults status|install|clear  —  WebAE UI default layout JSON  [OP for install/clear]
 adm.command.admweb.help.15=/textech web admin …  —  admin elevation tokens  [see /textech web admin]
 adm.command.admweb.help.16=Root aliases: /admweb, /adm-web, /webconsole
+adm.command.admweb.help.17=/textech web qq status|send|restart  —  QQ bot status and manual messages  [OP]
 adm.command.admweb.admin.title==== /textech web admin — Admin Elevation Tokens ===
 adm.command.admweb.admin.help.1=/textech web admin issue [label] [--reuse]  —  generate bootstrap code  [OP or SP cheat]
 adm.command.admweb.admin.help.2=/textech web admin list  —  list grants & unused bootstraps  [OP]
@@ -1465,3 +1509,52 @@ adm.quest.task.unsupported=This task type is not supported on WebAE
 adm.quest.submit.disabled=Web quest submit is disabled
 adm.quest.submit.guest=Guest tokens cannot submit quests
 adm.quest.mod.missing=BetterQuesting is not loaded
+adm.command.screenshot.title==== TeXTech Game Screenshots ===
+adm.command.screenshot.usage=/admscreenshot <capture|list|preview|send|status|help> (or /textech screenshot …)
+adm.command.screenshot.help.1=/admscreenshot capture  —  capture the current game window, including an open GUI
+adm.command.screenshot.help.2=/admscreenshot list [page]  —  list local history; click an entry to preview
+adm.command.screenshot.help.3=/admscreenshot preview [index]  —  preview local history in-game (1 is newest)
+adm.command.screenshot.help.4=/admscreenshot send web [index] [caption]  —  publish to WebAE chat
+adm.command.screenshot.help.5=/admscreenshot send qq <group openid> [index] [caption]  —  send through the QQ bot [OP]
+adm.command.screenshot.help.6=/admscreenshot status  —  show local path, clarity, and bandwidth limits
+adm.command.screenshot.list.title==== Local Screenshots Page {0}/{1} ({2} total) ===
+adm.command.screenshot.list.entry=#{0}  {1}  ({2} KiB)  [click to preview]
+adm.command.screenshot.send.usage=Usage: /admscreenshot send web [index] [caption] or send qq <group openid> [index] [caption]
+adm.command.screenshot.send.qq_usage=Usage: /admscreenshot send qq <group openid> [index] [caption] (OP required)
+adm.command.screenshot.status.title==== Screenshot Status ===
+adm.command.screenshot.status.path=Local directory: {0}
+adm.command.screenshot.status.capture=Maximum clarity: {0}×{1}, JPEG quality {2}%
+adm.command.screenshot.status.upload=Upload limit: {0} KiB, {1} × 24 KiB chunk(s)/tick, active: {2}
+adm.screenshot.disabled=Screenshot support is disabled by configuration.
+adm.screenshot.capture.busy=The previous screenshot is still encoding.
+adm.screenshot.capture.failed=Screenshot failed: {0}
+adm.screenshot.capture.saved=Screenshot saved: {0} ({1}×{2}, {3} KiB)
+adm.screenshot.history.empty=No local screenshots. Use the capture key or the capture command first.
+adm.screenshot.history.not_found=Local screenshot #{0} was not found.
+adm.screenshot.history.invalid=Only files from the local TeXTech screenshot history may be sent.
+adm.screenshot.upload.busy=Another screenshot is being prepared or uploaded.
+adm.screenshot.upload.preparing=Reading and preparing in the background: {0}
+adm.screenshot.upload.too_large=The screenshot is {0} KiB, above the {1} KiB limit. Lower its clarity or quality.
+adm.screenshot.upload.started=Started sending {0} in {1} rate-limited chunks.
+adm.screenshot.upload.timeout=Screenshot upload acknowledgement timed out; try again later.
+adm.screenshot.upload.success=Submitted to {0}: {1}
+adm.screenshot.upload.failed=Screenshot delivery failed: {0}
+adm.screenshot.gallery.title=Local Screenshot #{0} / {1}
+adm.screenshot.gallery.previous=Older
+adm.screenshot.gallery.next=Newer
+adm.screenshot.gallery.send_web=Send to WebAE
+adm.screenshot.gallery.load_failed=Could not read screenshot: {0}
+adm.screenshot.gallery.metadata={0} · {1}×{2} · {3} KiB · {4}
+adm.command.admweb.qq.title==== WebAE QQ Bot ===
+adm.command.admweb.qq.help.1=/admweb qq status  —  show connection and bounded queue state [OP]
+adm.command.admweb.qq.help.2=/admweb qq send [group|c2c|channel] <openid> <message>  —  enqueue a message [OP]
+adm.command.admweb.qq.help.3=/admweb qq restart  —  reconnect the QQ gateway [OP]
+adm.command.admweb.qq.status=QQ: enabled={0} connected={1} phase={2} queue={3}/{4}
+adm.command.admweb.qq.last_error=Last error: {0}
+adm.command.admweb.qq.restart_queued=QQ gateway reconnection started.
+adm.command.admweb.qq.send_usage=Usage: /admweb qq send [group|c2c|channel] <openid> <message>
+adm.command.admweb.qq.send_queued=QQ message accepted by the bounded queue (not final platform delivery): {0}
+adm.command.admweb.qq.failed=QQ operation failed: {0}
+adm.command.admweb.qq.unknown=Unknown QQ subcommand. Use: status, send, restart
+adm.manual.web_console.screenshot_title=Window Screenshots and Sharing
+adm.manual.web_console.screenshot_text=Bind “Capture Current Game Window” in Controls (F10 by default). It reads only Minecraft's framebuffer, so any open GUI is included while the desktop and other windows are never captured. Files stay under the client's TeXTech/Screenshots directory. Use /admscreenshot list, preview, send web, or send qq <group openid> for local history and explicit sharing. Uploads default to one 24 KiB chunk per tick; QQ images and /admweb qq send require OP. [webConsole] config controls clarity, JPEG quality, bytes, cooldown, concurrency, and client/server retention.

@@ -4,6 +4,7 @@ import net.minecraftforge.client.ClientCommandHandler;
 
 import com.imgood.textech.command.CommandAIConfig;
 import com.imgood.textech.command.CommandAssistant;
+import com.imgood.textech.command.CommandScreenshot;
 import com.imgood.textech.command.CommandTeXTech;
 import com.imgood.textech.command.CommandTeXTechClient;
 import com.imgood.textech.command.CommandWebConsole;
@@ -31,5 +32,6 @@ public final class LoaderCommand {
         ClientCommandHandler.instance.registerCommand(new CommandAIConfig());
         ClientCommandHandler.instance.registerCommand(new CommandAssistant());
         ClientCommandHandler.instance.registerCommand(new CommandTeXTechClient());
+        ClientCommandHandler.instance.registerCommand(new CommandScreenshot());
     }
 }

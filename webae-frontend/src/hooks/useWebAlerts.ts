@@ -11,12 +11,22 @@ export function useWebAlerts(enabled: boolean) {
   const { isLoggedIn, notify, lang, pauseRefreshWhenHidden } = useAppContext();
   const bootstrappedRef = useRef(false);
   const knownActiveRef = useRef<Set<string>>(new Set());
+  const permissionRequestedRef = useRef(false);
 
   const poll = useCallback(async () => {
     if (!enabled || !isLoggedIn) return;
     try {
       const data = await getApiClient().get<AlertsResponse>('/api/alerts');
       if (!data.success || !data.alerts) return;
+      if (
+        !permissionRequestedRef.current &&
+        data.rules?.browserNotifications?.enabled !== false &&
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'default'
+      ) {
+        permissionRequestedRef.current = true;
+        void Notification.requestPermission();
+      }
 
       if (!bootstrappedRef.current) {
         markAlertsNotified(data.alerts);
@@ -31,7 +41,7 @@ export function useWebAlerts(enabled: boolean) {
       for (const alert of data.alerts) {
         const key = alert.id || `${alert.type}:${alert.sourceKey}`;
         nextActive.add(key);
-        if (!knownActiveRef.current.has(key)) {
+        if (!knownActiveRef.current.has(key) && alert.browserNotify !== false) {
           notifyAlertOnce(alert, notify);
         }
       }
@@ -45,10 +55,8 @@ export function useWebAlerts(enabled: boolean) {
     if (!enabled || !isLoggedIn) {
       bootstrappedRef.current = false;
       knownActiveRef.current.clear();
+      permissionRequestedRef.current = false;
       return;
-    }
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      void Notification.requestPermission();
     }
   }, [enabled, isLoggedIn, lang]);
 

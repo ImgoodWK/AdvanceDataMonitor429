@@ -44,6 +44,7 @@ import com.imgood.textech.webae.recipe.RecipeSnapshotCollector;
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.InputEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
  * Manages all AdvanceDataMonitor key bindings registered in the Controls menu.
@@ -91,11 +92,31 @@ public class KeyBindings {
         Keyboard.KEY_NONE,
         "key.categories.textech");
 
+    public final KeyBinding captureScreenshot = new KeyBinding(
+        "key.textech.capture_screenshot",
+        Keyboard.KEY_F10,
+        "key.categories.textech");
+
+    private boolean screenshotKeyWasDown;
+
     public void register() {
         ClientRegistry.registerKeyBinding(openAiChat);
         ClientRegistry.registerKeyBinding(openPlanner);
         ClientRegistry.registerKeyBinding(toggleHud);
         ClientRegistry.registerKeyBinding(openMonitorAi);
+        ClientRegistry.registerKeyBinding(captureScreenshot);
+    }
+
+    /** Raw edge detection remains active while a GuiScreen owns keyboard input. */
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        int keyCode = captureScreenshot.getKeyCode();
+        boolean down = keyCode > Keyboard.KEY_NONE && Keyboard.isKeyDown(keyCode);
+        if (down && !screenshotKeyWasDown) {
+            com.imgood.textech.client.screenshot.ClientScreenshotService.instance().capture();
+        }
+        screenshotKeyWasDown = down;
     }
 
     @SubscribeEvent

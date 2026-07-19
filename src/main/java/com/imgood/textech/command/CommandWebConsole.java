@@ -31,6 +31,9 @@ import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconSnapshotItemCollector;
 import com.imgood.textech.webae.icon.IconStore;
 import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
+import com.imgood.textech.webae.qqbot.QqBotService;
+import com.imgood.textech.webae.qqbot.QqBotService.ManualSendResult;
+import com.imgood.textech.webae.qqbot.QqBotService.Status;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector;
 import com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStatusDto;
@@ -40,7 +43,7 @@ import com.imgood.textech.webae.WebUiDefaultsStore;
 public class CommandWebConsole extends TeXTechCommandBase {
 
     private static final String[] SUBCOMMANDS = { "issue", "login", "guest", "copy", "revoke", "list", "reload",
-        "recipes", "icons", "refresh", "server", "worldmap", "wm", "defaults", "help", "admin" };
+        "recipes", "icons", "refresh", "server", "worldmap", "wm", "defaults", "qq", "help", "admin" };
     private static final String[] RECIPES_ACTIONS = { "upload", "export", "status", "clear" };
     private static final String[] RECIPES_UPLOAD_SCOPES = { "snapshot", "deep" };
     private static final String[] ICONS_ACTIONS = { "upload", "local", "pull", "render", "verify", "import",
@@ -50,7 +53,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
     private static final String[] SERVER_ACTIONS = { "status", "restart" };
     private static final String[] DEFAULTS_ACTIONS = { "status", "install", "clear" };
     private static final String[] ADMIN_ACTIONS = { "issue", "list", "revoke", "rotate" };
-    private static final int HELP_LINES = 16;
+    private static final String[] QQ_ACTIONS = { "status", "send", "restart" };
+    private static final String[] QQ_TARGET_TYPES = { "group", "c2c", "channel" };
+    private static final int HELP_LINES = 17;
 
     @Override
     public String getCommandName() {
@@ -108,6 +113,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
             handleWorldMapShort(sender, args);
         } else if ("defaults".equals(sub)) {
             handleDefaults(sender, args);
+        } else if ("qq".equals(sub)) {
+            handleQq(sender, args);
         } else if ("admin".equals(sub)) {
             handleAdmin(sender, args);
         } else {
@@ -378,6 +385,71 @@ public class CommandWebConsole extends TeXTechCommandBase {
             return;
         }
         sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.server.unknown");
+    }
+
+    private void handleQq(ICommandSender sender, String[] args) {
+        if (!requireOp(sender)) return;
+        if (args.length < 2) {
+            sendHelpHeader(sender, "adm.command.admweb.qq.title");
+            sendHelpLines(sender, "adm.command.admweb.qq.help", 3);
+            return;
+        }
+        String action = args[1].toLowerCase();
+        if ("status".equals(action)) {
+            Status status = QqBotService.instance().status();
+            sendLocalized(
+                sender,
+                EnumChatFormatting.AQUA,
+                "adm.command.admweb.qq.status",
+                Boolean.valueOf(status.enabled),
+                Boolean.valueOf(status.connected),
+                status.phase,
+                Integer.valueOf(status.queueDepth),
+                Integer.valueOf(status.queueCapacity));
+            if (status.lastError != null && !status.lastError.isEmpty()) {
+                sendLocalized(sender, EnumChatFormatting.GRAY, "adm.command.admweb.qq.last_error", status.lastError);
+            }
+            return;
+        }
+        if ("restart".equals(action)) {
+            ManualSendResult result = QqBotService.instance().restart();
+            sendLocalized(
+                sender,
+                result.success ? EnumChatFormatting.GREEN : EnumChatFormatting.RED,
+                result.success ? "adm.command.admweb.qq.restart_queued" : "adm.command.admweb.qq.failed",
+                result.error);
+            return;
+        }
+        if ("send".equals(action)) {
+            if (args.length < 4) {
+                sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.qq.send_usage");
+                return;
+            }
+            String type = args[2].toLowerCase();
+            String targetId;
+            int contentStart;
+            if ("group".equals(type) || "c2c".equals(type) || "channel".equals(type)) {
+                if (args.length < 5) {
+                    sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.qq.send_usage");
+                    return;
+                }
+                targetId = args[3];
+                contentStart = 4;
+            } else {
+                type = "group";
+                targetId = args[2];
+                contentStart = 3;
+            }
+            String content = joinArgs(args, contentStart);
+            ManualSendResult result = QqBotService.instance().sendManual(type, targetId, content);
+            sendLocalized(
+                sender,
+                result.success ? EnumChatFormatting.GREEN : EnumChatFormatting.RED,
+                result.success ? "adm.command.admweb.qq.send_queued" : "adm.command.admweb.qq.failed",
+                result.success ? type + ":" + targetId : result.error);
+            return;
+        }
+        sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.qq.unknown");
     }
 
     private void handleRefresh(ICommandSender sender, String[] args) {
@@ -1330,6 +1402,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
             if ("admin".equals(sub)) {
                 return filterTabCompletion(args, ADMIN_ACTIONS);
             }
+            if ("qq".equals(sub)) {
+                return filterTabCompletion(args, QQ_ACTIONS);
+            }
         }
         if (args.length == 3) {
             String sub = args[0].toLowerCase();
@@ -1348,6 +1423,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
             if ("icons".equals(sub) && ("upload".equalsIgnoreCase(args[1]) || "local".equalsIgnoreCase(args[1]))) {
                 // Only scope token; render mode is fixed to nei (no mode tab options).
                 return filterTabCompletion(args, new String[] { "snapshot" });
+            }
+            if ("qq".equals(sub) && "send".equalsIgnoreCase(args[1])) {
+                return filterTabCompletion(args, QQ_TARGET_TYPES);
             }
         }
         if (args.length == 4 && "icons".equalsIgnoreCase(args[0]) && "upload".equalsIgnoreCase(args[1])) {

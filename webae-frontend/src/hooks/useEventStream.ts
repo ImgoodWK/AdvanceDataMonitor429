@@ -13,6 +13,7 @@ export function useEventStream(enabled: boolean) {
 
   const handleAlert = useCallback(
     (alert: WebAlertDto) => {
+      if (alert.browserNotify === false) return;
       notifyAlertOnce(alert, notify);
     },
     [notify]
@@ -58,10 +59,4 @@ export function useEventStream(enabled: boolean) {
     };
   }, [enabled, isLoggedIn, token, pauseRefreshWhenHidden, lang, handleAlert]);
 
-  useEffect(() => {
-    if (!enabled || !isLoggedIn) return;
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      void Notification.requestPermission();
-    }
-  }, [enabled, isLoggedIn, lang]);
 }

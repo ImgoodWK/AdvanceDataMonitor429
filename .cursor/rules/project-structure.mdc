@@ -29,22 +29,24 @@ alwaysApply: true
 | `items/` | 55 | 物品（含 `cell/`） |
 | `blocks/` | 5 | 方块 |
 | `tileentity/` | 7 | TE |
-| `gui/` | 64 | GUI（见 `gui-guidelines.mdc`） |
+| `gui/` | 66 | GUI（含本地截图预览、监视器 WebAE 快照配置；见 `gui-guidelines.mdc`） |
 | `handler/` | 39 | 服务端逻辑 / WebAE 生命周期等 |
 | `entity/` | 8 | Entity only |
-| `renders/` | 33 | 全部客户端渲染 |
-| `network/` | 28 | 网络包（ID 表见 `network-packets.mdc`） |
+| `renders/` | 35 | 全部客户端渲染（含 WebAE 告警 HUD、监视器网页表面） |
+| `network/` | 29 | 网络包（ID 表见 `network-packets.mdc`） |
 | `voice/` | 9 | 语音 |
 | `loader/` | 11 | 统一注册（含 `LoaderCommand`） |
-| `client/` | 30 | 客户端事件/缓存/世界地图采集等 |
-| `command/` | 6 | `/textech <域>` 分发；旧 `/adm*` 兼容别名 |
-| `utils/` | 14 | 工具 |
-| `webae/` | 294+ | Web 控制台（前端：`webae-frontend/` → build 到 `assets/textech/webae/`） |
+| `client/` | 36 | 客户端事件/缓存/世界地图采集/窗口截图本地历史/网页表面纹理缓存等 |
+| `command/` | 7 | `/textech <域>` 分发；含客户端 screenshot 域与旧 `/adm*` 兼容别名 |
+| `utils/` | 15 | 工具（含 WebAE 仪表盘快照校验/压缩） |
+| `webae/` | 380+ | Web 控制台（含服务端后台命令、服务端 AI、QQ 群机器人/图片、聊天截图附件、告警多渠道/QQ 目标 ID 探测、Spark AI；前端：`webae-frontend/` → build 到 `assets/textech/webae/`） |
 | `mixin/` | 7 | 客户端 Mixin |
 
 资源：`assets/textech/`（lang 双语、`manual/`、textures、voice 等）。
 
 WebAE 仪表盘组件设置改动需联查 `EditWidgetModal.tsx`、`WidgetPinEditor.tsx`、`utils/dashboardColumns.ts` 与所有渲染入口（主 `Dashboard.tsx`、共享 `WidgetContent.tsx`、专用表组件）。数据表 `columns` 约定：`undefined`=默认列，空数组=明确隐藏全部列；禁止用 `columns?.length` 回退默认值。新增列或钉选行为须同步中英文 i18n、用户/开发文档及回归测试。
+
+WebAE 主仪表盘“导出到游戏显示器”由 `utils/dashboardGameDisplayExport.ts` 生成有界 `textech-webae-display-snapshot`；它是带当前绘制结果的只读视觉快照，不是 `widgetGridActions` 的可编辑 widgets JSON。不得把 Token/密钥写入快照，也不得为导出新增 HTTP 轮询或服务端 Tick 工作。
 
 ## 同步维护
 

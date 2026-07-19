@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Tabs, Input, Empty, Card, Tag, Button, Alert, Select, Spin } from 'antd';
 import type { ColumnType } from 'antd/es/table';
-import { SearchOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, SearchOutlined } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { useSnapshotData } from '@/hooks/useSnapshotData';
@@ -9,6 +9,7 @@ import { useStoragePaged, type StorageSortKey } from '@/hooks/useStoragePaged';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { Icon } from '@/components/Icon';
 import { PageShell } from '@/components/Layout/PageShell';
+import { DataPageSection } from '@/components/Layout/DataPageSection';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { OverviewWidgetGrid } from '@/components/dashboard/OverviewWidgetGrid';
 import { VirtualStorageTable } from '@/components/storage/VirtualStorageTable';
@@ -187,6 +188,7 @@ export function StoragePage() {
   return (
     <PageShell
       title={t('storage')}
+      description={t('storagePageDesc')}
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {(refreshing || hasSelectedStorage) && refreshing && (
@@ -203,112 +205,122 @@ export function StoragePage() {
         </div>
       }
     >
-      {overviewSnapshot && (
-        <OverviewWidgetGrid
-          storageKey={STORAGE_OVERVIEW_CONFIG_KEY}
-          defaultSettings={DEFAULT_STORAGE_OVERVIEW_SETTINGS}
-          snapshot={overviewSnapshot}
-          dataSources={STORAGE_OVERVIEW_DATA_SOURCES}
-          settingsTitleKey="storageOverviewSettings"
-          gridClassName="overview-widget-grid storage-overview-grid"
-        />
-      )}
-
-      <Card style={{ marginTop: 16 }}>
-        {mergeLimited && (
-          <Alert
-            type="warning"
-            showIcon
-            message={t('storageMergeLimit')}
-            style={{ marginBottom: 16 }}
+      <div className="data-page-flow">
+        {overviewSnapshot && (
+          <OverviewWidgetGrid
+            storageKey={STORAGE_OVERVIEW_CONFIG_KEY}
+            defaultSettings={DEFAULT_STORAGE_OVERVIEW_SETTINGS}
+            snapshot={overviewSnapshot}
+            dataSources={STORAGE_OVERVIEW_DATA_SOURCES}
+            settingsTitleKey="storageOverviewSettings"
+            sectionTitleKey="storageOverviewTitle"
+            sectionDescriptionKey="storageOverviewDesc"
+            gridClassName="overview-widget-grid storage-overview-grid"
           />
         )}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <Input
-            placeholder={t('searchPlaceholder')}
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            allowClear
-            style={{ flex: '1 1 200px' }}
-            aria-label={t('searchPlaceholder')}
+
+        <DataPageSection
+          title={t('storageInventoryTitle')}
+          description={t('storageInventoryDesc')}
+          eyebrow={t('dataDetailsEyebrow')}
+          icon={<DatabaseOutlined />}
+          variant="details"
+        >
+          {mergeLimited && (
+            <Alert
+              type="warning"
+              showIcon
+              message={t('storageMergeLimit')}
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          <div className="data-page-toolbar">
+            <Input
+              placeholder={t('searchPlaceholder')}
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              allowClear
+              style={{ flex: '1 1 240px' }}
+              aria-label={t('searchPlaceholder')}
+            />
+            <Select
+              value={sort}
+              onChange={(v) => setSort(v as StorageSortKey)}
+              options={sortOptions}
+              style={{ minWidth: 180 }}
+              aria-label={t('storageSortLabel')}
+            />
+          </div>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={[
+              {
+                key: 'items',
+                label: `${t('items')} (${itemsPaged.totalEstimate})`,
+                children: mergeLimited ? (
+                  <Empty description={t('storageMergeLimit')} />
+                ) : itemsPaged.loading && itemsPaged.rows.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 48 }}>
+                    <Spin aria-label={t('loading')} />
+                  </div>
+                ) : (
+                  <VirtualStorageTable
+                    rows={itemsPaged.rows as StorageItem[]}
+                    columns={itemColumns}
+                    rowKey={(r) => r.itemId || r.registryName}
+                    totalEstimate={itemsPaged.totalEstimate}
+                    loading={itemsPaged.loading}
+                    loadingMore={itemsPaged.loadingMore}
+                    hasMore={itemsPaged.hasMore}
+                    onLoadMore={itemsPaged.loadMore}
+                    emptyText={<Empty description={t('noItems')} />}
+                  />
+                ),
+              },
+              {
+                key: 'fluids',
+                label: `${t('fluids')} (${fluidsPaged.totalEstimate})`,
+                children: mergeLimited ? (
+                  <Empty description={t('storageMergeLimit')} />
+                ) : (
+                  <VirtualStorageTable
+                    rows={fluidsPaged.rows as StorageFluid[]}
+                    columns={fluidColumns}
+                    rowKey={(r) => r.fluidName}
+                    totalEstimate={fluidsPaged.totalEstimate}
+                    loading={fluidsPaged.loading}
+                    loadingMore={fluidsPaged.loadingMore}
+                    hasMore={fluidsPaged.hasMore}
+                    onLoadMore={fluidsPaged.loadMore}
+                    emptyText={<Empty description={t('noFluids')} />}
+                  />
+                ),
+              },
+              {
+                key: 'essentia',
+                label: `${t('essentia')} (${essentiaPaged.totalEstimate})`,
+                children: mergeLimited ? (
+                  <Empty description={t('storageMergeLimit')} />
+                ) : (
+                  <VirtualStorageTable
+                    rows={essentiaPaged.rows as StorageEssentia[]}
+                    columns={essentiaColumns}
+                    rowKey={(r) => r.aspect}
+                    totalEstimate={essentiaPaged.totalEstimate}
+                    loading={essentiaPaged.loading}
+                    loadingMore={essentiaPaged.loadingMore}
+                    hasMore={essentiaPaged.hasMore}
+                    onLoadMore={essentiaPaged.loadMore}
+                    emptyText={<Empty description={t('noEssentia')} />}
+                  />
+                ),
+              },
+            ]}
           />
-          <Select
-            value={sort}
-            onChange={(v) => setSort(v as StorageSortKey)}
-            options={sortOptions}
-            style={{ minWidth: 160 }}
-            aria-label={t('storageSortLabel')}
-          />
-        </div>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={[
-            {
-              key: 'items',
-              label: `${t('items')} (${itemsPaged.totalEstimate})`,
-              children: mergeLimited ? (
-                <Empty description={t('storageMergeLimit')} />
-              ) : itemsPaged.loading && itemsPaged.rows.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 48 }}>
-                  <Spin aria-label={t('loading')} />
-                </div>
-              ) : (
-                <VirtualStorageTable
-                  rows={itemsPaged.rows as StorageItem[]}
-                  columns={itemColumns}
-                  rowKey={(r) => r.itemId || r.registryName}
-                  totalEstimate={itemsPaged.totalEstimate}
-                  loading={itemsPaged.loading}
-                  loadingMore={itemsPaged.loadingMore}
-                  hasMore={itemsPaged.hasMore}
-                  onLoadMore={itemsPaged.loadMore}
-                  emptyText={<Empty description={t('noItems')} />}
-                />
-              ),
-            },
-            {
-              key: 'fluids',
-              label: `${t('fluids')} (${fluidsPaged.totalEstimate})`,
-              children: mergeLimited ? (
-                <Empty description={t('storageMergeLimit')} />
-              ) : (
-                <VirtualStorageTable
-                  rows={fluidsPaged.rows as StorageFluid[]}
-                  columns={fluidColumns}
-                  rowKey={(r) => r.fluidName}
-                  totalEstimate={fluidsPaged.totalEstimate}
-                  loading={fluidsPaged.loading}
-                  loadingMore={fluidsPaged.loadingMore}
-                  hasMore={fluidsPaged.hasMore}
-                  onLoadMore={fluidsPaged.loadMore}
-                  emptyText={<Empty description={t('noFluids')} />}
-                />
-              ),
-            },
-            {
-              key: 'essentia',
-              label: `${t('essentia')} (${essentiaPaged.totalEstimate})`,
-              children: mergeLimited ? (
-                <Empty description={t('storageMergeLimit')} />
-              ) : (
-                <VirtualStorageTable
-                  rows={essentiaPaged.rows as StorageEssentia[]}
-                  columns={essentiaColumns}
-                  rowKey={(r) => r.aspect}
-                  totalEstimate={essentiaPaged.totalEstimate}
-                  loading={essentiaPaged.loading}
-                  loadingMore={essentiaPaged.loadingMore}
-                  hasMore={essentiaPaged.hasMore}
-                  onLoadMore={essentiaPaged.loadMore}
-                  emptyText={<Empty description={t('noEssentia')} />}
-                />
-              ),
-            },
-          ]}
-        />
-      </Card>
+        </DataPageSection>
+      </div>
     </PageShell>
   );
 }

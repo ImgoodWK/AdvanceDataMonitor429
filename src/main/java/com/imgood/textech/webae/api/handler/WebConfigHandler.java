@@ -16,9 +16,9 @@ import fi.iki.elonen.NanoHTTPD;
  * GET /api/config — returns refreshIntervalMs / gtRefreshIntervalMs /
  * maxNetworksDisplayed / tokenLifetimeHours /
  * themePresets (legacy, mirrors themeColors) /
- * themeColors (128: classic + Phase 8 + composition + bold + batch2 + batch3 + Printstream batch4 + Auraeco batch5) /
- * themeLayouts (30 presets: classic 8 + batch3 structural 22) /
- * pageStyles (126: chrome + composition + bold + batch2 + batch3 + Printstream batch4 + Auraeco batch5) /
+ * themeColors (141: classic through authored media flagship Batch7) /
+ * themeLayouts (36 presets: classic 8 + batch3 structural 22 + flagship Batch6 6) /
+ * pageStyles (138: chrome/composition packs through flagship Batch6) /
  * debugFlags (Phase 3.3: per-feature server debug switches, read-only).
  *
  * Although the endpoint is "public" (no OP requirement), it still goes through
@@ -169,6 +169,19 @@ public class WebConfigHandler {
         themeColors.add("aura-design");
         themeColors.add("aura-sys");
         themeColors.add("aura-interact");
+        themeColors.add("terra-amber");
+        themeColors.add("terra-danger");
+        themeColors.add("cyber-lime");
+        themeColors.add("cyber-redline");
+        themeColors.add("ueg-orange");
+        themeColors.add("lunar-ice");
+        themeColors.add("gtnh-stargate");
+        themeColors.add("gregtech-steel");
+        themeColors.add("gregtech-bronze");
+        themeColors.add("gt-cleanroom");
+        themeColors.add("gt-fusion");
+        themeColors.add("textech-quantum");
+        themeColors.add("bridges-white");
         List<String> themeLayouts = new ArrayList<String>();
         themeLayouts.add("standard");
         themeLayouts.add("compact");
@@ -200,6 +213,12 @@ public class WebConfigHandler {
         themeLayouts.add("widescreen");
         themeLayouts.add("right-drawer");
         themeLayouts.add("frame");
+        themeLayouts.add("tactical-grid");
+        themeLayouts.add("mission-control");
+        themeLayouts.add("engine-room");
+        themeLayouts.add("orbital-console");
+        themeLayouts.add("assembly-line");
+        themeLayouts.add("quantum-frame");
         List<String> pageStyles = new ArrayList<String>();
         pageStyles.add("classic");
         pageStyles.add("linear");
@@ -327,6 +346,18 @@ public class WebConfigHandler {
         pageStyles.add("aura-dome");
         pageStyles.add("aura-sparks");
         pageStyles.add("aura-bubble");
+        pageStyles.add("terra-command");
+        pageStyles.add("terra-contract");
+        pageStyles.add("terra-originium");
+        pageStyles.add("cyber-grid");
+        pageStyles.add("cyber-chrome");
+        pageStyles.add("earth-engine");
+        pageStyles.add("lunar-orbit");
+        pageStyles.add("gtnh-cosmos");
+        pageStyles.add("gt-assembly");
+        pageStyles.add("gt-cleanroom");
+        pageStyles.add("gt-fusion");
+        pageStyles.add("textech-quantum");
         StringBuilder sb = new StringBuilder();
         sb.append("{\"success\":true,\"config\":{");
         sb.append("\"refreshIntervalMs\":")
@@ -446,7 +477,7 @@ public class WebConfigHandler {
             .append(GSON.toJson(Config.worldMapSnapshotSourcePriority != null ? Config.worldMapSnapshotSourcePriority : ""))
             .append(',');
         sb.append("\"alertsEnabled\":")
-            .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)
+            .append(Config.webAlertsEnabled && com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)
             .append(',');
         sb.append("\"alertsPollIntervalSeconds\":")
             .append(com.imgood.textech.config.ConfigWebAlertsLoader.get().pollIntervalSeconds)
@@ -468,6 +499,21 @@ public class WebConfigHandler {
             .append(',');
         sb.append("\"questFluidAllContainersOption\":")
             .append(Config.webQuestFluidAllContainersOption)
+            .append(',');
+        sb.append("\"webAiKeyMode\":")
+            .append(GSON.toJson(legacyWebAiKeyMode()))
+            .append(',');
+        sb.append("\"webAiServerKeyEnabled\":")
+            .append(Config.webAiServerKeyEnabled)
+            .append(',');
+        sb.append("\"webAiBrowserKeyEnabled\":")
+            .append(Config.webAiBrowserKeyEnabled)
+            .append(',');
+        sb.append("\"webAiProviders\":")
+            .append(GSON.toJson(com.imgood.textech.webae.assistant.WebAiConfigStore.publicProviderViews()))
+            .append(',');
+        sb.append("\"webAiShared\":")
+            .append(GSON.toJson(com.imgood.textech.webae.assistant.WebAiConfigStore.instance().publicSharedView()))
             .append(',');
         sb.append("\"sparkEnabled\":")
             .append(com.imgood.textech.webae.spark.SparkService.isEnabled())
@@ -497,6 +543,14 @@ public class WebConfigHandler {
             .append(Config.webDashboardMaxEntityTracks);
         sb.append("}}");
         return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
+    }
+
+    /** Compat field for older frontends: both enabled → browser preference side; else the single enabled side. */
+    private static String legacyWebAiKeyMode() {
+        if (Config.webAiBrowserKeyEnabled && !Config.webAiServerKeyEnabled) return "browser";
+        if (Config.webAiServerKeyEnabled && !Config.webAiBrowserKeyEnabled) return "server";
+        if (Config.webAiBrowserKeyEnabled && Config.webAiServerKeyEnabled) return "browser";
+        return "server";
     }
 
     private static void appendIconRenderModes(StringBuilder sb) {

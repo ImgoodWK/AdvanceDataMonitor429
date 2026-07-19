@@ -13,6 +13,12 @@ public class ChatMessageDto {
     public long timestamp;
     /** "game", "web", or "system". */
     public String source;
+    public String attachmentId;
+    public String attachmentName;
+    public String attachmentMime;
+    public int attachmentWidth;
+    public int attachmentHeight;
+    public int attachmentBytes;
 
     public ChatMessageDto() {}
 
@@ -24,5 +30,16 @@ public class ChatMessageDto {
         this.content = content;
         this.timestamp = timestamp;
         this.source = source;
+    }
+
+    public ChatMessageDto withAttachment(String attachmentId, String attachmentName, String attachmentMime,
+        int attachmentWidth, int attachmentHeight, int attachmentBytes) {
+        this.attachmentId = attachmentId;
+        this.attachmentName = attachmentName;
+        this.attachmentMime = attachmentMime;
+        this.attachmentWidth = attachmentWidth;
+        this.attachmentHeight = attachmentHeight;
+        this.attachmentBytes = attachmentBytes;
+        return this;
     }
 }

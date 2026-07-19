@@ -29,6 +29,7 @@ import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.utils.CraftingTemplateParser;
 import com.imgood.textech.utils.DataBound;
 import com.imgood.textech.utils.TileEntityTypeHelper;
+import com.imgood.textech.utils.WebDashboardSnapshotCodec;
 
 import appeng.api.AEApi;
 import appeng.api.networking.IGrid;
@@ -51,6 +52,12 @@ import cpw.mods.fml.common.Optional;
 public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnableTile {
 
     public static final int MAX_DATA_BINDINGS = 36;
+    public static final int MAX_WEB_DASHBOARD_BINDINGS = 8;
+    public static final int MAX_WEB_DASHBOARD_TOTAL_BYTES = 128 * 1024;
+    public static final String DATA_TYPE_WEBAE_DASHBOARD = "webae_dashboard";
+    public static final String RENDER_TYPE_WEB_SURFACE = "web_surface";
+    public static final String WEB_DASHBOARD_PAYLOAD_KEY = "webDashboardPayload";
+    public static final String WEB_DASHBOARD_HASH_KEY = "webDashboardHash";
 
     private String ownerName = "";
 
@@ -129,6 +136,12 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                     continue;
                 }
 
+                // WebAE dashboard snapshots are passive content. They never poll a target TE or add server-tick work.
+                if (isPassiveDataType(nbt)) {
+                    tickCounters.remove(index);
+                    continue;
+                }
+
                 // 获取interval并确保最小值
                 int interval = Math.max(getSafeInt(nbt, "interval", 20), 1);
                 int currentTick = tickCounters.getOrDefault(index, index % interval);
@@ -156,6 +169,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     }
 
     public void processTileEntityData(int index, NBTTagCompound nbt, String[] xyz) {
+        if (isPassiveDataType(nbt)) return;
         int targetX = parseIntSafe(xyz[0]);
         int targetY = parseIntSafe(xyz[1]);
         int targetZ = parseIntSafe(xyz[2]);
@@ -272,6 +286,24 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         compound.setTag("DisplayDataMap", displayDataNBT);
     }
 
+    /**
+     * Network form of the TE state. Large dashboard payloads are intentionally omitted and fetched by hash on demand.
+     */
+    public void writeSyncNBT(NBTTagCompound compound) {
+        writeToNBT(compound);
+        NBTTagCompound displayDataNBT = compound.getCompoundTag("DisplayDataMap");
+        for (Object key : displayDataNBT.func_150296_c()) {
+            String keyString = String.valueOf(key);
+            NBTTagCompound original = displayDataNBT.getCompoundTag(keyString);
+            NBTTagCompound syncCopy = (NBTTagCompound) original.copy();
+            if (isWebDashboardBinding(syncCopy)) {
+                syncCopy.removeTag(WEB_DASHBOARD_PAYLOAD_KEY);
+            }
+            displayDataNBT.setTag(keyString, syncCopy);
+        }
+        compound.setTag("DisplayDataMap", displayDataNBT);
+    }
+
     @Override
     public void readFromNBT(NBTTagCompound compound) {
         if (worldObj != null && !worldObj.isRemote) {
@@ -367,7 +399,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         // 仅在服务端处理立即采集
         if (worldObj != null && !worldObj.isRemote) {
             // 检查interval是否变化
-            if (oldInterval != newInterval) {
+            if (oldInterval != newInterval && !isPassiveDataType(mergedData)) {
                 // 立即处理一次数据采集
                 processDataImmediately(index, mergedData);
                 // 重置计数器以确保新interval生效
@@ -377,6 +409,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     }
 
     public void processDataImmediately(int index, NBTTagCompound nbt) {
+        if (isPassiveDataType(nbt)) return;
         String[] xyz = parseXYZ(nbt);
         if (xyz != null) {
             try {
@@ -420,7 +453,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     public void syncData() {
         if (worldObj != null && !worldObj.isRemote) {
             NBTTagCompound tag = new NBTTagCompound();
-            writeToNBT(tag);
+            writeSyncNBT(tag);
             PacketSynTileEntity packet = new PacketSynTileEntity(xCoord, yCoord, zCoord, tag);
             AdvanceDataMonitor.ADMCHANEL.sendToDimension(packet, worldObj.provider.dimensionId);
         }
@@ -429,7 +462,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     @Override
     public Packet getDescriptionPacket() {
         NBTTagCompound nbtTag = new NBTTagCompound();
-        writeToNBT(nbtTag);
+        writeSyncNBT(nbtTag);
         return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 1, nbtTag);
     }
 
@@ -641,6 +674,202 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         defaultData.setInteger("storageSortMode", 0);
         defaultData.setTag("storageItems", new NBTTagList());
         return defaultData;
+    }
+
+    public int findLowestFreeBindingIndex() {
+        for (int i = 0; i < MAX_DATA_BINDINGS; i++) {
+            if (!dataBoundList.containsKey(i)) return i;
+        }
+        return -1;
+    }
+
+    public int getWebDashboardBindingCount() {
+        int count = 0;
+        for (NBTTagCompound binding : dataBoundList.values()) {
+            if (isWebDashboardBinding(binding)) count++;
+        }
+        return count;
+    }
+
+    public int getWebDashboardTotalBytes() {
+        int total = 0;
+        for (NBTTagCompound binding : dataBoundList.values()) {
+            if (isWebDashboardBinding(binding) && binding.hasKey(WEB_DASHBOARD_PAYLOAD_KEY)) {
+                total += binding.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY).length;
+            }
+        }
+        return total;
+    }
+
+    public byte[] getWebDashboardPayload(int index, String expectedHash) {
+        NBTTagCompound binding = dataBoundList.get(index);
+        if (!isWebDashboardBinding(binding)) return null;
+        String hash = binding.getString(WEB_DASHBOARD_HASH_KEY);
+        if (expectedHash == null || !expectedHash.equals(hash)) return null;
+        byte[] payload = binding.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY);
+        if (payload.length == 0 || payload.length > WebDashboardSnapshotCodec.MAX_COMPRESSED_BYTES) return null;
+        return payload.clone();
+    }
+
+    /**
+     * Applies one web-dashboard binding without accepting arbitrary TE NBT from the client.
+     */
+    public boolean applyWebDashboardBinding(int index, NBTTagCompound requestedConfig, byte[] uploadedPayload,
+        String requestedHash) {
+        return applyWebDashboardBinding(index, requestedConfig, uploadedPayload, requestedHash, null);
+    }
+
+    public boolean applyWebDashboardBinding(int index, NBTTagCompound requestedConfig, byte[] uploadedPayload,
+        String requestedHash, WebDashboardSnapshotCodec.DecodedSnapshot validatedSnapshot) {
+        if (index < 0 || index >= MAX_DATA_BINDINGS || requestedConfig == null) return false;
+
+        NBTTagCompound old = dataBoundList.get(index);
+        boolean replacingDashboard = isWebDashboardBinding(old);
+        if (!replacingDashboard && getWebDashboardBindingCount() >= MAX_WEB_DASHBOARD_BINDINGS) return false;
+
+        byte[] payload = uploadedPayload;
+        boolean reuseStoredMetadata = payload == null
+            && replacingDashboard
+            && requestedHash != null
+            && requestedHash.equals(old.getString(WEB_DASHBOARD_HASH_KEY));
+        if (payload == null || payload.length == 0) {
+            payload = getWebDashboardPayload(index, requestedHash);
+        }
+        if (payload == null) return false;
+
+        try {
+            WebDashboardSnapshotCodec.DecodedSnapshot decoded = validatedSnapshot;
+            if (decoded == null && !reuseStoredMetadata) decoded = WebDashboardSnapshotCodec.decode(payload);
+            String decodedHash = reuseStoredMetadata ? old.getString(WEB_DASHBOARD_HASH_KEY) : decoded.hash;
+            if (requestedHash == null || !requestedHash.equals(decodedHash)) return false;
+            int oldBytes = replacingDashboard && old.hasKey(WEB_DASHBOARD_PAYLOAD_KEY)
+                ? old.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY).length
+                : 0;
+            if (getWebDashboardTotalBytes() - oldBytes + payload.length > MAX_WEB_DASHBOARD_TOTAL_BYTES) return false;
+
+            String title = reuseStoredMetadata ? old.getString("webDashboardTitle") : decoded.title;
+            int primitiveCount = reuseStoredMetadata ? old.getInteger("webDashboardPrimitiveCount")
+                : decoded.primitives.size();
+            int rawBytes = reuseStoredMetadata ? old.getInteger("webDashboardRawBytes") : decoded.rawBytes;
+            int viewportWidth = reuseStoredMetadata ? old.getInteger("webDashboardViewportWidth") : decoded.width;
+            int viewportHeight = reuseStoredMetadata ? old.getInteger("webDashboardViewportHeight") : decoded.height;
+            primitiveCount = Math.max(0, Math.min(WebDashboardSnapshotCodec.MAX_PRIMITIVES, primitiveCount));
+            rawBytes = Math.max(0, Math.min(WebDashboardSnapshotCodec.MAX_RAW_BYTES, rawBytes));
+            viewportWidth = Math.max(64, Math.min(1600, viewportWidth));
+            viewportHeight = Math.max(64, Math.min(1200, viewportHeight));
+
+            NBTTagCompound safe = createDefaultNBT();
+            safe.setString("dataType", DATA_TYPE_WEBAE_DASHBOARD);
+            safe.setString("renderType", RENDER_TYPE_WEB_SURFACE);
+            safe.setString("webSurfaceMode", "dashboard_snapshot");
+            safe.setString("name", "webDashboardSnapshot");
+            safe.setString("XYZ", xCoord + "," + yCoord + "," + zCoord);
+            safe.setInteger("interval", 20);
+            safe.setBoolean("enable", getBoolean(requestedConfig, "enable", true));
+            safe.setString("displayName", boundedString(requestedConfig.getString("displayName"), title, 64));
+            safe.setFloat("scale", clamp(getFloat(requestedConfig, "scale", 0.3F), 0.02F, 8.0F));
+            safe.setFloat("xOffset", clamp(getFloat(requestedConfig, "xOffset", 0.0F), -32.0F, 32.0F));
+            safe.setFloat("yOffset", clamp(getFloat(requestedConfig, "yOffset", -0.5F), -32.0F, 32.0F));
+            safe.setFloat("zOffset", clamp(getFloat(requestedConfig, "zOffset", -0.48F), -32.0F, 32.0F));
+            safe.setFloat("rotationX", normalizeAngle(getFloat(requestedConfig, "rotationX", 0.0F)));
+            safe.setFloat("rotationY", normalizeAngle(getFloat(requestedConfig, "rotationY", 0.0F)));
+            safe.setFloat("rotationZ", normalizeAngle(getFloat(requestedConfig, "rotationZ", 0.0F)));
+            safe.setFloat("webOpacity", clamp(getFloat(requestedConfig, "webOpacity", 1.0F), 0.05F, 1.0F));
+            safe.setBoolean("webFullBright", getBoolean(requestedConfig, "webFullBright", true));
+            safe.setInteger(
+                "webTextureWidth",
+                normalizeTextureWidth(requestedConfig.hasKey("webTextureWidth") ? requestedConfig.getInteger("webTextureWidth") : 512));
+            safe.setString(WEB_DASHBOARD_HASH_KEY, decodedHash);
+            safe.setByteArray(WEB_DASHBOARD_PAYLOAD_KEY, payload.clone());
+            safe.setString("webDashboardTitle", boundedString(title, "WebAE Dashboard", 96));
+            safe.setInteger("webDashboardPrimitiveCount", primitiveCount);
+            safe.setInteger("webDashboardRawBytes", rawBytes);
+            safe.setInteger("webDashboardCompressedBytes", payload.length);
+            safe.setInteger("webDashboardViewportWidth", viewportWidth);
+            safe.setInteger("webDashboardViewportHeight", viewportHeight);
+            setDisplayData(index, safe);
+            return true;
+        } catch (WebDashboardSnapshotCodec.SnapshotException e) {
+            AdvanceDataMonitor.LOG.warn("Rejected WebAE dashboard snapshot at binding {}: {}", index, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Existing monitor GUIs still send a whole TE config. Preserve server-only web payloads that sync packets omit.
+     */
+    public void applyClientConfiguration(NBTTagCompound compound) {
+        Map<Integer, byte[]> payloads = new HashMap<Integer, byte[]>();
+        Map<Integer, String> hashes = new HashMap<Integer, String>();
+        Set<Integer> dashboardIndices = new HashSet<Integer>();
+        for (Map.Entry<Integer, NBTTagCompound> entry : dataBoundList.entrySet()) {
+            NBTTagCompound binding = entry.getValue();
+            if (isWebDashboardBinding(binding) && binding.hasKey(WEB_DASHBOARD_PAYLOAD_KEY)) {
+                dashboardIndices.add(entry.getKey());
+                payloads.put(entry.getKey(), binding.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY).clone());
+                hashes.put(entry.getKey(), binding.getString(WEB_DASHBOARD_HASH_KEY));
+            }
+        }
+        readFromNBT(compound);
+        List<Integer> unauthorizedDashboards = new ArrayList<Integer>();
+        for (Map.Entry<Integer, NBTTagCompound> entry : dataBoundList.entrySet()) {
+            NBTTagCompound binding = entry.getValue();
+            if (isWebDashboardBinding(binding)) {
+                binding.removeTag(WEB_DASHBOARD_PAYLOAD_KEY);
+                if (!dashboardIndices.contains(entry.getKey())) unauthorizedDashboards.add(entry.getKey());
+            }
+        }
+        for (Integer index : unauthorizedDashboards) dataBoundList.remove(index);
+        for (Map.Entry<Integer, byte[]> entry : payloads.entrySet()) {
+            NBTTagCompound binding = dataBoundList.get(entry.getKey());
+            String oldHash = hashes.get(entry.getKey());
+            if (isWebDashboardBinding(binding) && oldHash != null) {
+                if (!oldHash.equals(binding.getString(WEB_DASHBOARD_HASH_KEY))) {
+                    binding.setString(WEB_DASHBOARD_HASH_KEY, oldHash);
+                }
+                binding.setByteArray(WEB_DASHBOARD_PAYLOAD_KEY, entry.getValue());
+            }
+        }
+        markDirty();
+    }
+
+    public static boolean isWebDashboardBinding(NBTTagCompound nbt) {
+        return nbt != null && DATA_TYPE_WEBAE_DASHBOARD.equals(nbt.getString("dataType"));
+    }
+
+    private static boolean isPassiveDataType(NBTTagCompound nbt) {
+        return isWebDashboardBinding(nbt);
+    }
+
+    private static float getFloat(NBTTagCompound nbt, String key, float fallback) {
+        if (!nbt.hasKey(key)) return fallback;
+        float value = nbt.getFloat(key);
+        return Float.isNaN(value) || Float.isInfinite(value) ? fallback : value;
+    }
+
+    private static boolean getBoolean(NBTTagCompound nbt, String key, boolean fallback) {
+        return nbt.hasKey(key) ? nbt.getBoolean(key) : fallback;
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static float normalizeAngle(float angle) {
+        float value = angle % 360.0F;
+        return value < -180.0F ? value + 360.0F : (value > 180.0F ? value - 360.0F : value);
+    }
+
+    private static int normalizeTextureWidth(int width) {
+        if (width >= 768) return 1024;
+        if (width >= 384) return 512;
+        return 256;
+    }
+
+    private static String boundedString(String value, String fallback, int maxLength) {
+        String result = value == null || value.trim().isEmpty() ? fallback : value.trim();
+        if (result == null) result = "";
+        return result.length() <= maxLength ? result : result.substring(0, maxLength);
     }
 
     // ========================= 属性访问器 =========================//
@@ -1143,6 +1372,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         NBTTagCompound nbt = getDataBound(index);
         if (nbt == null) return false;
 
+        if (isWebDashboardBinding(nbt)) {
+            return nbt.hasKey(WEB_DASHBOARD_HASH_KEY) && !nbt.getString(WEB_DASHBOARD_HASH_KEY).isEmpty();
+        }
+
         String[] xyz = parseXYZ(nbt);
         if (xyz == null) return false;
 
@@ -1183,11 +1416,13 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     }
 
     public int getMinDataInterval() {
-        for (int i = 0; i < getDataBoundCount(); i++) {
-            int interval = getSafeInt(getDataBound(i), "interval", 1);
-            if (interval > 0) return interval;
+        int min = Integer.MAX_VALUE;
+        for (NBTTagCompound binding : dataBoundList.values()) {
+            if (binding == null || isPassiveDataType(binding)) continue;
+            int interval = getSafeInt(binding, "interval", 1);
+            if (interval > 0) min = Math.min(min, interval);
         }
-        return 1;
+        return min == Integer.MAX_VALUE ? 20 : min;
     }
 
     // ========================= AE2 网络支持 =========================//

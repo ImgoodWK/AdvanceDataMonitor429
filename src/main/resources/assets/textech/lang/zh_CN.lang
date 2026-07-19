@@ -51,6 +51,7 @@ adm.label.namealpha=§l数据线透明度
 adm.label.axisalpha=§l轴线透明度
 adm.label.axisfontalpha=§l轴字体透明度
 adm.label.datalinealpha=§l数据线透明度
+adm.label.web_dashboard_opacity=§l网页透明度
 
 
 # 按钮
@@ -72,6 +73,11 @@ adm.button.dataType.Value=§l数值
 adm.button.dataType.Percent=§l百分比
 adm.button.dataType.Bytes=§l字节
 adm.button.dataType.Type=§l种类
+adm.button.web_dashboard=WebAE面板
+adm.button.web_dashboard_import=从剪贴板导入JSON
+adm.button.web_dashboard_copy=复制当前JSON
+adm.button.web_dashboard_bright=全亮
+adm.button.web_dashboard_lit=环境光
 
 # 图表类型
 adm.datatype.line=§l折线图
@@ -79,12 +85,15 @@ adm.datatype.bar=§l柱状图
 adm.datatype.bar3d=§l3D柱状图
 adm.datatype.waterfall=§l数据瀑布流
 adm.datatype.difference=§l势差图
+adm.datatype.webae_dashboard=§lWebAE仪表盘
+adm.rendertype.web_surface=§l网页表面
 
 # 标题
 adm.title.data_config=§l数据配置 §n%s
 adm.title.data_config_ae=§lAE数据配置 §n%s
 adm.title.data_config_ae_network=§lAE网络数据配置 §n%s
 adm.title.data_config_color=§l颜色数据配置 §n%s
+adm.title.web_dashboard=§lWebAE仪表盘显示
 
 # 主界面
 adm.direction.north=北
@@ -96,6 +105,7 @@ adm.button.hide=隐藏
 adm.button.show=显示
 adm.button.single=单面
 adm.button.both=双面
+adm.web_dashboard.default_name=WebAE仪表盘
 adm.title.main=§l高级数据监视器
 adm.label.facing=方向
 adm.label.data=数据
@@ -144,6 +154,8 @@ adm.hint.axisfontcolor=坐标标识文字颜色 (十六进制 如FF00FF)
 adm.hint.linecolor=图表线条颜色 (十六进制 如FF00FF)
 adm.hint.linewidth=表内数据线条粗细 (大于0的正整数或小数)
 adm.hint.scale=整体缩放比例 (大于0的正整数或小数)
+adm.hint.web_dashboard_opacity=网页表面的整体透明度，范围 0.05 到 1.0
+adm.hint.web_dashboard_static=静态快照不轮询 WebAE；内容变化后重新导出并导入即可。分辨率越高，占用的客户端显存越多。
 adm.hint.axisfontscale=x与y轴标识文字缩放 (大于0的正整数或小数)
 adm.hint.gridlinewidth=设置网格线宽度（大于0的数字，如1.0或2.5）
 adm.hint.axislinewidth=设置坐标轴线宽度（大于0的数字，如1.0或2.5）
@@ -156,6 +168,17 @@ adm.title.bind_target=绑定目标方块
 adm.error.invalid_coord=坐标必须为整数！
 adm.error.no_block=该位置没有方块！
 adm.error.data_bindings_full=数据显示器绑定已满（最多 %d 条）。
+adm.error.web_dashboard_limit=每台监视器最多放置 %d 个 WebAE 仪表盘，以限制客户端显存和区块 NBT 体积。
+adm.error.web_dashboard_clipboard_empty=剪贴板中没有可导入的 JSON。
+adm.error.web_dashboard_invalid=不是有效的 WebAE 游戏显示器快照 JSON
+adm.error.web_dashboard_not_loaded=快照正文尚未加载，请靠近监视器稍候再试。
+adm.error.web_dashboard_required=新建 WebAE 仪表盘前必须先从剪贴板导入快照 JSON。
+adm.error.web_dashboard_number=缩放、偏移、旋转和透明度必须填写有效数字。
+adm.error.web_dashboard_upload_failed=服务端拒绝了 WebAE 仪表盘快照：可能超过大小/数量限制或没有编辑权限。
+adm.status.web_dashboard_none=尚未导入 WebAE 仪表盘快照。
+adm.status.web_dashboard_loading=正在按哈希向服务端请求快照正文…
+adm.status.web_dashboard_ready=已就绪：%s · %d 个绘制元素 · 原始 JSON 约 %d KiB
+adm.status.web_dashboard_copied=当前快照 JSON 已复制到剪贴板。
 adm.error.not_tileentity=该方块不是 TileEntity！
 adm.title.data_config_ae_crafting=§l合成处理器配置
 adm.label.textscale=§l字体缩放
@@ -536,6 +559,7 @@ key.textech.open_ai_chat=打开 AI 对话
 key.textech.open_planner=打开计划器
 key.textech.toggle_hud=切换 HUD
 key.textech.open_monitor_ai=打开附近监视器 AI 助手
+key.textech.capture_screenshot=截取当前游戏窗口
 key.categories.textech=铽丝科技
 adm.error.no_nearby_monitor=附近 32 格内未找到高级数据监视器。
 
@@ -645,12 +669,14 @@ adm.manual.data_monitor.main_gui_text=右键高级数据监视器打开 470x270 
 
 adm.manual.data_monitor.chart_config_title=高级配置参数
 adm.manual.data_monitor.chart_config_text=每个图表绑定支持以下详细设置（每个绑定存储在 NBT 中）：\n\n视觉：lineColor（十六进制 RGB,默认 00FFFF）、lineWidth（默认 3.0）、gridLineWidth、axisLineWidth、axisLineColor、axisFontColor、displayNameColor、gridLineAlpha、nameAlpha、axisFontAlpha、dataLineAlpha。\n\n文字：displayName（标题文字）、displayNameScale、axisFontScale、tickLengthFactor。\n\n数据：name（NBT 路径）、dataLimit（最大点数,2-9999）、yMin、yMax、interval（tick >= 20）、xRange、yRange。\n\n位置：xOffset、yOffset、zOffset、rotationX、rotationY、rotationZ - 均支持小数和负数。\n\nAE2 合成：craftingTemplate（模板表达式）、monitorNetworkWide（true=全部处理器,false=单个）、textAlign（0=左/1=居中/2=右对齐）、textScale、textAlpha。\n\nAE2 存储：storageColumns、storageSpacing、storageIconScale、storageLinespacing、storageColor、showItemCount/Delta/Name 开关、排序模式、物品/流体/源质过滤器、storageCellIndex。\n\n所有数值支持小数精度,可进行像素级调整。
+adm.manual.data_monitor.web_dashboard_title=WebAE 仪表盘网页表面
+adm.manual.data_monitor.web_dashboard_text=高级数据监视器新增 WebAE 仪表盘数据类型与 web_surface 渲染类型。\n\n使用步骤：\n1. 在 WebAE 主仪表盘点击“导出到游戏显示器”，把当前可见布局与数据复制为 JSON。\n2. 右键高级数据监视器，点击“WebAE面板”。\n3. 点击“从剪贴板导入JSON”，再调整标题、缩放、XYZ 偏移、XYZ 旋转、透明度、全亮/环境光和 256/512/1024px 纹理清晰度。\n4. 保存后，客户端会按哈希向服务端请求一次压缩正文，并在后台生成纹理。\n\n性能边界：这是静态网页快照，不会在服务端启动浏览器，也不会轮询 WebAE。普通监视器同步只带哈希和尺寸，不重复发送 JSON。单快照压缩后最多 24 KiB；每台监视器最多 8 个网页面板且正文总计最多 128 KiB；客户端最多缓存 8 张纹理。内容变化后在 WebAE 重新导出并导入即可。
 
 adm.manual.ai_assistant.overview_title=AI 助手概述
 adm.manual.ai_assistant.overview_text=AI 助手利用兼容 OpenAI 的大语言模型 API 实现自然语言控制 AE2 系统。按 O（默认键）打开 600x450 对话窗口。\n\n核心功能：\n- 合成：下单单个或批量 AE2 合成任务。每次最多 8 个任务。多步骤确认,含候选物品选择。\n- 取物：从 AE2 存储取出物品/流体到背包。支持批量取出。背包满时支持部分取出。\n- 查询：仓库概览（物品+流体含图标）、无线能源/蒸汽水平、AE2 配方/样板、详细物品数量、字节占用及无限元件检测。\n- 世界信息：当前天气、时间（tick + 天数）、玩家位置/坐标/朝向、群系名称/温度/降雨、背包空间。\n- 传送：扫描背包中龙之进化高级错位宝石（TeleporterMKII）,显示已保存传送点,执行跨维度传送,支持模糊名称匹配。\n- 计划器：通过文字命令添加/列出/完成/删除/修改计划条目。\n- 取消：随时中止待处理操作并取消排队中的 AE2 合成任务。
 
 adm.manual.ai_assistant.setup_title=API 配置
-adm.manual.ai_assistant.setup_text=AI 助手使用兼容 OpenAI 的 API。默认供应商为 DeepSeek（有免费额度）。\n\n设置窗口（对话中的齿轮图标）或 /textech ai 命令：\n\nAPI Key：供应商密钥。也可设置 DEEPSEEK_API_KEY 环境变量。支持 DeepSeek、OpenAI、OpenRouter、Anthropic Claude、Google Gemini、阿里通义千问、智谱 GLM、月之暗面 Kimi、字节豆包、硅基流动、Mistral、Groq、MiniMax、火山引擎等多种供应商。\n\nBase URL：供应商接口地址（默认 https://api.deepseek.com）。通过 /textech ai provider <名称> 预配置 13+ 供应商地址。\n\nModel：模型名称（默认 deepseek-chat）。支持 Tab 补全常见模型。\n\n高级设置：超时（5-300秒）、最大 Token（1-8192）、温度（0.0-2.0）、流式模式、网络搜索开关、调试日志。\n\n隐私：首次使用需确认隐私提示（数据发送至供应商）。每位玩家一次。\n\n服务端共享选项在 config/textech/textech.cfg；API Key 等客户端选项在 config/textech/ai-client-local.cfg。
+adm.manual.ai_assistant.setup_text=AI 助手使用兼容 OpenAI 的 API。默认供应商为 DeepSeek（有免费额度）。\n\n设置窗口（对话中的齿轮图标）或 /textech ai 命令：\n\nAPI Key：供应商密钥。也可设置 DEEPSEEK_API_KEY 环境变量。支持 DeepSeek、OpenAI、OpenRouter、Anthropic Claude、Google Gemini、阿里通义千问、智谱 GLM、月之暗面 Kimi、字节豆包、硅基流动、Mistral、Groq、MiniMax、火山引擎等多种供应商。\n\nBase URL：供应商接口地址（默认 https://api.deepseek.com）。通过 /textech ai provider <名称> 预配置 13+ 供应商地址。\n\nModel：模型名称（默认 deepseek-chat）。支持 Tab 补全常见模型。\n\n高级设置：超时（5-300秒）、最大 Token（1-8192）、温度（0.0-2.0）、流式模式、网络搜索开关、调试日志。\n\n隐私：首次使用需确认隐私提示（数据发送至供应商）。每位玩家一次。\n\n服务端共享选项在 config/textech/textech.cfg；API Key 等客户端选项在 config/textech/ai-client-local.cfg。WebAE 另由 [webConsole] aiKeyMode 控制：server 模式由管理员维护共享 Key，并在 TeXTech/WebAE 中以 AES-GCM 加密；browser 模式让每个浏览器把自己的 Key 存在当前站点 localStorage 并直连 Provider，Key 不发送到 WebAE 服务端。Web 合成、取出、传送均需候选列表二次确认；访客只能查询。
 
 adm.manual.ai_assistant.usage_title=对话界面与工作流
 adm.manual.ai_assistant.usage_text=对话窗口布局（600x450）：消息历史（顶部,可滚动）、输入框（底部）、操作按钮（发送、清空、关闭、设置、菜单、搜索切换、取消）。\n\n基本工作流：\n1. 输入请求,如"下单 64 铁锭"。按回车或点击发送。\n2. 如果意图明确,助手搜索 AE2 网络匹配物品并显示带编号的候选项。\n3. 输入编号确认（如"1"）。订单提交。\n4. 批量订单："下单 64 铁锭和 32 金锭"。逐行确认后输入"确认"全部提交。\n5. 查询："显示我的存储"返回物品/流体列表含图标。"有多少电量？"显示 EU/t 和容量。\n6. 菜单按钮列出全部 22+ 功能及编号。输入编号直接调用对应功能。\n\n多任务：AI 每次最多返回 8 个任务。合成任务优先执行,其次取物任务。\n\n随时输入"取消"中止操作,清除会话并取消排队中的 AE2 合成任务。\n\nMarkdown 渲染：对话回复支持标题（# ## ###）、粗体（**）、代码块（```）、列表和内联代码。
@@ -961,6 +987,8 @@ adm.webconsole.token.click_copy=点击复制 Token 到剪贴板
 adm.webconsole.token.click_open=点击在浏览器中打开
 adm.webconsole.config.reloaded=Web 控制台配置已重载。
 adm.webconsole.disabled=Web 控制台未启用。请在 config/textech/textech.cfg 的 [webConsole] 节中启用。
+adm.webae.alert.chat.message=[WebAE 告警] %s：%s
+adm.webae.alert.hud.title=WebAE 告警
 adm.webconsole.error=Web 控制台错误: {0}
 
 adm.webconsole.pattern.title=样板编辑器
@@ -1051,7 +1079,7 @@ adm.manual.web_console.patterns_text=样板页面通过浏览器提供完整的 
 adm.manual.web_console.orders_title=AE 合成下单
 adm.manual.web_console.orders_text=下单页面让你直接从浏览器提交 AE2 合成任务。\n\nCPU 选择：\n- 顶部下拉框列出网络所有合成处理器（名称、容量、并行数、忙碌/空闲）。\n- 留空「自动分配」由 AE2 选择 CPU；指定名称时任务提交到该 CPU。\n\n按样板下单（Tab）：\n- GET /api/patterns/browse 双源分页（Grid + Interface），debounce 搜索，滚动触底加载更多。\n- 视图切换：「按产物」虚拟滚动卡片或「按样板」虚拟滚动列表（大量样板时更流畅）。\n- Grid/Interface 标签区分来源；详情弹窗 Grid 源 lazy 拉取完整 inputs/outputs。\n- 多选样板 + 设置数量 + 批量提交到 /api/order/batch。\n\n按物品下单（Tab）：\n- 搜索 AE 存储中的物品，输入数量提交 /api/order。\n- 或添加多行批量列表，一次提交 /api/order/batch。\n\n材料树（Tab）：\n- 输入物品 registry 名与数量，GET /api/craft/tree 递归展开 NEI 配方链。\n- 表格显示每层需要/库存/缺口；叶子节点为无配方原材料。\n\n订单追踪：\n- 活跃订单与历史订单均从 GET /api/order/list 获取（history 字段）。\n- 每 3 秒自动刷新；进度采用混合方案：AE2 合成计算阶段 → CPU 真实进度 → 时间估算兜底。\n- 完成后自动移入历史（进度 100%）；历史表显示所用 CPU，悬停查看并行处理器/存储/并行详情。\n- 「全部取消」调用 POST /api/order/cancel。\n\n后端：AssistantServerServices.submitCraft 接受 cpuName；OrderHandler 维护内存 historyOrders（最多 200 条，重启清空）。\n\n注意：订单提交会阻塞 HTTP 线程直到主线程处理完成（CountDownLatch，15 秒超时）。
 adm.manual.web_console.theme_dashboard_title=主题与仪表盘自定义
-adm.manual.web_console.theme_dashboard_text=阶段二加入了完整的主题系统与可拖拽自定义的仪表盘。\n\n主题系统：\n- 主题 = 配色方案 × 布局预设，在设置页中独立选择。\n- 配色方案（24 套）：经典 19 套 + 科技风 5 套（hologram/plasma/neon-pulse/quantum/crystal）。每套重新定义背景、强调色、文字与状态颜色。\n- 布局预设（5 套）：standard（标准）、compact（紧凑，信息密度更高）、wide（宽屏，间距与字号更大）、sidebar-right（侧栏移到右侧）、topnav（隐藏侧栏，导航移到顶栏横向排列）。\n- 选择持久化在浏览器（localStorage webae_theme，格式 "color|layout"）；旧的 dark/light 选择会自动迁移。\n- 切换主题时图表会自动重新配色。\n\n仪表盘自定义：\n- 仪表盘标签页是一个 GridStack.js 网格，可进入编辑模式后拖拽组件手柄移动、从右下角缩放。\n- 「添加组件」打开组件库：统计卡、进度条（横向/竖向/环形）、折线图、柱状图、饼图、数据表、仪表。\n- 每个组件绑定一个数据源（物品种类、流体种类、EU 存储、字节占用率、电力历史、Top 物品、网络对比等）和一个作用域：global（跨选中网络聚合）或 perNetwork（绑定单网络；分开模式下每个网络重复一组）。\n- 编辑组件可修改类型、数据源、作用域、样式（进度条方向、时间窗口、最大行数）和尺寸。\n- 布局持久化在 localStorage.webae_dashboard_config。「重置布局」恢复默认组件集。\n- 全局样式与 JSON 导入导出详见「仪表盘设置」章节。\n- 在分开多网络模式下，global 组件显示在顶部「总览」网格，perNetwork 组件在每个网络的分区下重复渲染。
+adm.manual.web_console.theme_dashboard_text=WebAE 外观由配色 × 布局 × 页面样式 × 动效档四轴组成；主题工作室提供 28 个一键设计包、141 套配色、36 种布局和 138 种页面样式，并保留自由混搭、搜索与收藏。\n\n主仪表盘使用 GridStack 12 列网格，支持拖拽、缩放、分组、复制、撤销/重做、锁定、按内容自适应和 widgets JSON 导入导出。除统计卡、进度、折线/柱/饼/雷达、数据表和仪表外，还提供便签、占位、告警摘要、合成队列，以及网络健康、电力流向、存储矩阵、GT 机群、玩家在线、活动流和服务器生命体征组合组件。布局保存在 localStorage.webae_dashboard_config；清空布局会保持为空，重置布局才恢复默认组件集。
 adm.manual.web_console.topology_title=网络拓扑图
 adm.manual.web_console.topology_text=Web 控制台已提供「网络拓扑」页面（侧栏入口），由模拟 AE 拓扑 API 驱动。\n\n特性：\n- 不反映真实 AE 线缆连接，仅统计网格内设备并按细粒度 subtype 归类。\n- 逻辑视图：树状布局（控制器 → 致密主干 32ch → 4×智能分支 8ch）；设置中可切换双环星形抽象布局。\n- 终端/WAP/安全终端在上方；Energy Cell/Acceptor 在控制器左右；Drive/Chest/IO/CPU 直连下方（0 频道）。\n- 驱动器图标角标显示样板数量；设备列表支持图↔表 hover 联动。\n- 空间视图：按维度 + 64×64 区块粗聚类；P2P 视图按 frequency 分组。\n- 世界地图视图：在真实世界坐标网格上显示 AE 设备；需先采集逻辑拓扑快照；网页「更新地图快照」仅手动触发一次 consent（游戏内 /textech web wm y 或聊天点击接受）；设备清单改为地图右上角弹窗。\n- 快照持久化至 TeXTech/WebAE/topology/，服务端重启后 GET 仍可读取（不自动重建）。\n- 抽象/线缆模拟双渲染模式；SVG 平移/缩放；CSV 导出。\n\nAPI：GET /api/network/topology；POST /api/network/topology/snapshot（手动采集 + 冷却）；GET /api/network/p2p；GET /api/worldmap/meta、/api/worldmap/markers、/api/worldmap/progress 与 /api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png。\n\n配置（[webConsole]）：topologyEnabled、topologyCacheTtlMs（默认 10000 毫秒 / 10 秒）、worldMapSnapshotCooldownMs（默认 10000 毫秒 / 10 秒）、topologySnapshotPersist（默认 true）；worldMapEnabled、worldMapMaxQualityTier、worldMapDefaultQualityTier、worldMapBoundsPaddingChunks（默认 1）、worldMapTileBudgetPerTick、worldMapMaxChunks、worldMapAeOverlayEnabled。
 adm.webae.topology.title=网络拓扑
@@ -1169,15 +1197,29 @@ adm.manual.web_console.gt_charts_text=GT 机器页在表格上方显示摘要图
 adm.manual.web_console.essentia_title=源质专用页
 adm.manual.web_console.essentia_text=侧栏「源质」页（?page=essentia）展示 Thaumcraft 源质（aspect）库存：\n\n- 顶部摘要：源质种类数、总量（多网络综合模式下合并）。\n- 趋势图：NetworkMetricSampler 的 essentiaCountHistory（源质种类数随时间变化）。\n- 表格：按 aspect 搜索、列排序、分页。\n\n全局搜索（Ctrl+K）命中源质时会跳转到本页并预填搜索框。无 Thaumcraft 或未存储源质时显示空状态。
 adm.manual.web_console.alerts_edit_title=自动化告警规则
-adm.manual.web_console.alerts_edit_text=WebAE 可监控库存阈值、CPU 卡住、GT 异常、下单完成与频道超载（TeXTech/WebAE/web-alerts.json）。\n\n在 Settings → 自动化告警 中，游戏内 OP（等级 2+）可在浏览器编辑并保存规则；非 OP 仅只读查看。\n\n库存规则须填写 itemId 或 fluidName、最小数量，可选网络过滤（-1 表示全部网络）。
+adm.manual.web_console.alerts_edit_text=WebAE 可监控库存阈值、CPU 卡住、GT 异常、下单完成、频道超载、低 TPS 与自动补货（TeXTech/WebAE/web-alerts.json）。[webConsole] alertsEnabled 是默认开启的总闸。\n\n设置 → 自动化告警的 ? 帮助窗提供各平台配置位置、官方入口与使用步骤；管理员可一键启用 WebAE/浏览器、玩家聊天和 HUD。外部目标先填写推荐必填项，过滤、API 覆盖、SMTP 扩展等在单项目标高级中修改。QQ 官方机器人可用「获取目标 ID」让服务端短时监听 QQ WebSocket 事件并填入 openid/频道 ID（无需公网回调）。\n\n目标保存后可发送固定测试消息；成功提示只表示已进入服务端有界队列。密钥和完整 URL 仅在服务端保存并以掩码回显；第三方权限、互动时间窗、频率限制与最终送达仍由平台决定。
 adm.manual.web_console.order_templates_title=批量下单模板
 adm.manual.web_console.order_templates_text=在 Orders（查询下单）页的批量面板中，可保存与加载常用补货预设。\n\n保存为模板：将当前批量行、所选合成处理器与网络 ID 写入 TeXTech/WebAE/web-order-templates.json（按 WebAE owner UUID 隔离）。\n\n模板：加载预设到批量表单、重命名或删除。「缺口补货」对比模板目标数量与 AE 存储，仅写入缺口行。\n\n加载后照常点击「全部下单」（/api/order/batch）。模板在刷新浏览器与服务端重启后仍保留。
+adm.manual.web_console.theme_studio_title=WebAE 主题工作室
+adm.manual.web_console.theme_studio_text=设置 → 外观提供完整主题工作室：28 个一键设计包 + 141 套配色 + 36 种结构布局 + 138 套页面样式。默认进入「顶级精选」，也可按罗德岛战术、赛博科技、航天硬表面、Printstream、GTNH / GregTech、游戏、动漫或影视分类搜索与收藏。新增媒体旗舰以原创 CSS 表达海克斯科技、星际争霸人族/神族、死亡搁浅 BRIDGES、EVA NERV/MAGI、攻壳机动队公安九课、尼尔寄叶与 TRON 光网格；不内置作品图片或外部字体。应用设计包只改变视觉，不会覆盖语言、仪表盘组件、图标包或数据设置。\n\n性能档：低性能主机保留静态构图；现代办公电脑启用微交互与适量玻璃；游戏主机·全特效启用扫描、轨道、粒子、辉光与图表动效。系统「减少动态效果」始终优先。所有装饰层均不得遮挡正文或裁切部件内容。
+adm.manual.web_console.advanced_dashboard_title=WebAE 高级仪表盘组件
+adm.manual.web_console.advanced_dashboard_text=主仪表盘组件库新增 7 个组合监控组件：\n- 网络健康核心：综合存储余量、电力储备、合成余量、GT 机群可靠度、服务器 TPS/MSPT 与活跃告警。\n- 电力流向：EU 输入、输出、净流量、储能百分比与蒸汽储量。\n- 存储矩阵：字节占用与物品、流体、源质、合成 CPU 四象限。\n- GT 机群：运行、空闲、故障、平均进度及当前产出。\n- 玩家在线舱：在线名单与本次在线时长。\n- 活动流：合并活跃告警和正在进行的合成任务。\n- 服务器生命体征：TPS、MSPT、在线人数、运行时间及双轨历史脉冲。\n\n这些组件可拖拽、缩放、复制、放入分组、随 widgets JSON 导入导出；只复用现有 WebAE 快照和轮询结果，不增加服务端 Tick 任务。
+adm.manual.web_console.game_display_export_title=导出到游戏显示器
+adm.manual.web_console.game_display_export_text=主仪表盘工具栏的“导出到游戏显示器”会读取当前已经渲染的仪表盘 DOM，把卡片背景、文字、进度块和 SVG 折线转换为有界绘制列表 JSON，并复制到剪贴板。\n\n该导出只包含仪表盘可见内容和颜色/位置，不包含 WebAE Token、AI Key、Webhook、QQ/邮件密钥等设置数据。最多输出 600 个绘制元素和约 90 KiB 原始 JSON，游戏端还会再次校验并要求 GZIP 后不超过 24 KiB。\n\n这与“组件导入导出”的 widgets 配置 JSON 不同：widgets JSON 用于在浏览器之间迁移可编辑布局；游戏显示器 JSON 是带当前数值的只读视觉快照。
+adm.manual.web_console.data_workspaces_title=WebAE 数据页面工作区
+adm.manual.web_console.data_workspaces_text=存储、流体、合成处理器与电力页面使用明确分区：可定制概览、重点趋势和详细数据不再紧贴混排。普通模式下概览显示设置与编辑入口；进入编辑态后才展开撤销/重做、添加、自动排列和重置。设置页启用「浏览模式」后，仪表盘、Storage/CPU 概览、电力和拓扑会隐藏编辑、布局设置与采集入口，保留查看、搜索、筛选、刷新和导出；除管理员与设置页外，页面外层固定适配浏览器视口且不显示网页最右侧滚动条。\n\n存储页下方继续提供物品/流体/源质搜索与排序；独立流体页分开显示总量、钉选趋势和库存表；CPU 表格行可打开任务详情；电力页多网络切换后，指标与趋势历史都跟随当前网络。GridStack 拖拽/缩放会在下一帧安全保存，删除使用组件按钮。
+adm.manual.web_console.ai_key_mode_title=WebAE AI Key 模式
+adm.manual.web_console.ai_key_mode_text=[webConsole] aiKeyMode=server（默认）时，由管理员在网页设置→AI 与 API 中维护共享 Provider/模型/Key，服务端以 AES-GCM 加密保存。\n\n设为 browser 时，每个浏览器在同一设置页保存自己的 Key，并直接调用 Provider；Key 不会进入 WebAE API，服务端共享 Key 也不会被读取。个人 Key 位于当前站点 localStorage，清理站点数据或点「删除密钥」即可移除。直连要求 Provider 支持 CORS；只应在可信设备和可信 WebAE 页面使用。\n\n两种模式下，合成、取出、传送仍须二次确认。Provider Base URL 须为 HTTPS，本机回环 API 可用 HTTP。
 adm.manual.web_console.spark_title=Spark 性能分析
-adm.manual.web_console.spark_text=安装 Spark Forge 1.7.10 后，WebAE 侧栏会显示 Spark 性能分析页（[webConsole] sparkEnabled 默认开启；未安装 Spark 时自动隐藏）。\n\n管理员可输入采样时长并启动/停止 Spark profiler；普通登录用户可以查看历史记录。每次运行的状态、发起者、输出摘要和 Spark Viewer URL 保存到 TeXTech/WebAE/spark-history.json。\n\n页面支持：查看当前运行状态与单次输出；点击 Viewer URL 打开官方 Spark 调用树/火焰图；勾选两条历史对比状态、运行时长、输出行数和链接。\n\n启动、停止与删除历史需要 WebAE 管理员权限。配置项为 sparkMaxHistory、sparkDefaultDurationSeconds、sparkMaxDurationSeconds。Spark 页面不会把调用树复制到模组内，详细分析由 Spark Viewer 提供。
+adm.manual.web_console.spark_text=安装 Spark Forge 1.7.10 后，WebAE 管理控制台会显示「Spark 性能分析」标签（[webConsole] sparkEnabled 默认开启；未安装 Spark 时自动隐藏）。\n\n管理员可选择服务主线程（默认低开销）、慢 Tick 聚焦（仅记录超过阈值的 tick）或全部线程（信息最广、开销较高且最低 10ms 间隔），并设置采样时长/间隔。WebAE 到时显式停止采样；Viewer 上传等待不会延长采样。\n\n采样停止后，详情页直接显示方法自身耗时热点、影响分类、线程占比和智能性能建议。默认建议是有类/方法证据的本地确定性分析；管理员也可显式点击 AI 深度分析，单条或双条对比只发送有界聚合摘要，不发送 API Key、Viewer URL 或原始输出。两条记录统一按 B−A，正数表示影响变大，负数表示改善。\n\n开始/结束两次 Spark TPS 上下文、完整输出和 Viewer URL 仍会保存；Viewer 仅作为折叠区中的可选深层火焰图入口。旧记录没有本地分析时需新建采样；无链接时管理员仍可「重新查找 Viewer」。空闲时不增加 tick 采集、世界扫描或活动日志轮询。启动、停止、链接恢复、AI 分析与删除历史需要 WebAE 管理员权限。
+adm.manual.web_console.server_console_title=服务端后台命令
+adm.manual.web_console.server_console_text=WebAE 管理员可在“管理控制台 → 服务端后台”按需执行服务端命令；开头的 / 可省略。命令以服务端控制台权限在主线程执行，停服、封禁、OP 与白名单等高风险命令必须二次确认。\n\n页面一次只执行一条命令，并有短冷却与队列深度门禁。玩家列表只在进入页面或手动刷新时读取已有元数据；在线、离线、全部筛选和搜索均在浏览器本地完成，可插入玩家名称或 UUID。\n\n常用命令由所有 WebAE 管理员共享，最多 64 条；审计最多 40 条，完整输出按需读取且每条只保留最后 24 行。持久化在后台线程合并写入 TeXTech/WebAE/admin-console.json，不增加空闲 Tick 工作或常驻玩家轮询。
+adm.manual.web_console.qq_bot_title=QQ 群机器人
+adm.manual.web_console.qq_bot_text=WebAE 管理员可在「管理控制台 → QQ 群机器人」配置 QQ 开放平台官方机器人。功能默认关闭；保存 AppID 与 ClientSecret 并启用后，服务端主动连接 QQ Gateway，不需要公网回调或第三方 OneBot。\n\n群成员可使用 /status、/players、/list、/tps、/memory、/uptime、/ping 查询只读服务器信息；/ai <问题> 复用 WebAE 服务端共享 AI Profile，可选短期多轮会话与共享联网搜索，/reset 清空个人上下文。QQ 侧不能执行任意服务器命令。\n\n管理员可限制群/用户 openid、设置命令和 AI 冷却、定时状态播报、手动公告、队列上限与审计条数。ClientSecret 使用 AES-GCM 加密落盘，网页只显示掩码；外部网络与 AI 全在有界后台队列执行，Tick 线程只每秒复制一次 TPS/人数/内存快照。目标 ID 可复用告警设置中的「QQ 获取目标 ID」工具捕获。
 adm.manual.web_console.extensions_title=扩展功能（Phase 6–12）
 adm.manual.web_console.extensions_text=WebAE 近期扩展：\n\n- **材料树（Phase 6）**：下单页 → 材料树 Tab；GET /api/craft/tree 递归展开 NEI 配方并对比存储缺口。\n- **SSE 告警（Phase 9）**：GET /api/events/stream 实时推送告警（15 秒心跳）；useEventStream 与 10 秒轮询互补。\n- **P2P 频道地图（Phase 10）**：拓扑页 → P2P 频道视图；GET /api/network/p2p 按 frequency 分组隧道。\n- **监视器预览（Phase 11）**：监视器绑定 → 每槽「预览」；GET /api/monitor/preview 返回折线数据 Drawer。\n- **PWA 与移动端（Phase 12）**：manifest.webmanifest + 窄屏响应式 CSS；手机可添加到主屏幕。\n- **CSV 导出（Phase 13）**：存储 / GT / 拓扑页通过客户端 Blob 导出表格。
 adm.manual.web_console.phase3_title=Phase 3 集成与告警
-adm.manual.web_console.phase3_text=Phase 3 新增跨系统只读页面与自动化告警。\n\n集成页面（侧栏）：\n- 链接扫描器镜像：GET /api/scanner/blocks — 已加载区块高级网络链接器/监视器；传送仍在游戏内。\n- 监视器绑定：GET /api/monitor/bindings — 图表槽位与 GT 机器坐标；每槽「预览」调用 GET /api/monitor/preview 在 Drawer 中显示折线。\n- 计划器：GET /api/planner/plans — 只读列表，来自 TeXTech/Assistant/plans.json。\n- AI 助手：POST /api/assistant/query — 服务端规则查询（2 秒限流；密钥不上服务端）。\n- 拓扑元件摘要：GET /api/network/cells — 拓扑页显示无限元件/字节统计。\n- 口袋概览：GET /api/pocket/overview — 仅 OP 最小统计（不含存储物品）。\n\n自动化（A1–A5）：TeXTech/WebAE/web-alerts.json 驱动 WebAlertEngine；GET /api/alerts 返回活跃告警；设置页可编辑规则（OP）；useWebAlerts Toast + 浏览器通知；useEventStream 经 GET /api/events/stream SSE 实时推送（15s 心跳，标签页隐藏时暂停）。
+adm.manual.web_console.phase3_text=Phase 3 新增跨系统只读页面与自动化告警。\n\n集成页面（侧栏）：\n- 链接扫描器镜像：GET /api/scanner/blocks — 已加载区块高级网络链接器/监视器；传送仍在游戏内。\n- 监视器绑定：GET /api/monitor/bindings — 图表槽位与 GT 机器坐标；每槽「预览」调用 GET /api/monitor/preview 在 Drawer 中显示折线。\n- 计划器：GET /api/planner/plans — 只读列表，来自 TeXTech/Assistant/plans.json。\n- AI 助手：POST /api/assistant/query — 共用游戏内意图 schema、2 秒限流；AI Key 可按 aiKeyMode 使用服务端共享模式或浏览器个人模式。\n- 拓扑元件摘要：GET /api/network/cells — 拓扑页显示无限元件/字节统计。\n- 口袋概览：GET /api/pocket/overview — 仅 OP 最小统计（不含存储物品）。\n\n自动化（A1–A5）：TeXTech/WebAE/web-alerts.json 驱动 WebAlertEngine；GET /api/alerts 返回活跃告警；设置页可编辑规则（OP）；useWebAlerts Toast + 浏览器通知；useEventStream 经 GET /api/events/stream SSE 实时推送（15s 心跳，标签页隐藏时暂停）。
 
 # ===== TeXTech 游戏内命令 (/textech help) =====
 adm.command.common.op_required=此操作需要管理员（OP）权限。
@@ -1190,16 +1232,17 @@ adm.command.hub.usage=/textech help  —  显示本命令索引
 adm.command.hub.1=[服务端]  /textech web help        Web 控制台（Token、配方/图标、世界地图…）
 adm.command.hub.2=[客户端]  /textech ai help         AI API 配置（Key、模型、联网搜索…）
 adm.command.hub.3=[通用]    /textech assistant help  AI 助手词库热重载
-adm.command.hub.4=别名：/admweb、/admai、/admassistant（及 adm-*/aicfg/webconsole/admast）仍可用。
+adm.command.hub.4=[客户端]  /textech screenshot help 截图、本地历史与按需分享；旧命令别名仍可用。
 adm.command.hub.5=输入 /textech <域> help 查看完整子命令。[OP]=需管理员；[玩家]=须玩家执行。
 adm.command.hub.client.1=[客户端]  /textech ai help         AI API 配置（本客户端可用）
 adm.command.hub.client.2=[通用]    /textech assistant help  AI 助手词库热重载
-adm.command.hub.client.3=[服务端]  /textech web …           请在服务端/专用服执行（本客户端不可用）
-adm.command.hub.client.4=别名：/adm help、/txt help；旧 /admai、/admassistant 仍可用。
+adm.command.hub.client.3=[客户端]  /textech screenshot help 截图、本地历史与按需分享
+adm.command.hub.client.4=[服务端]  /textech web …           请在服务端/专用服执行；旧命令别名仍可用。
 adm.command.hub.client.5=输入 /textech <域> help 查看完整子命令。[OP]=需管理员；[玩家]=须玩家执行。
 adm.command.hub.footer=总入口：/textech help（别名：/adm、/txt）。
 adm.command.hub.ai_client_only=AI 配置仅客户端可用。请使用 /textech ai …（别名 /admai）。
 adm.command.hub.web_server_only=Web 控制台仅服务端可用。请在服务端执行 /textech web …（别名 /admweb）。
+adm.command.hub.screenshot_client_only=截图功能仅游戏客户端可用。请使用 /textech screenshot …（别名 /admscreenshot）。
 adm.command.admassistant.usage=/textech assistant <reload|lexicon|help>（别名 /admassistant）
 adm.command.admassistant.title==== /textech assistant — AI 助手词库 ===
 adm.command.admassistant.help.1=/textech assistant lexicon  —  显示词库配置文件路径
@@ -1291,6 +1334,7 @@ adm.command.admweb.help.13=reload 后 enabled/port/bindAddress 等可能仍需�
 adm.command.admweb.help.14=/textech web defaults status|install|clear  —  WebAE 默认 UI 布局 JSON  [install/clear 需 OP]
 adm.command.admweb.help.15=/textech web admin …  —  管理员提权 Token  [详见 /textech web admin]
 adm.command.admweb.help.16=别名根命令：/admweb、/adm-web、/webconsole
+adm.command.admweb.help.17=/textech web qq status|send|restart  —  QQ 机器人状态与人工消息  [OP]
 adm.command.admweb.admin.title==== /textech web admin — 管理员提权 Token ===
 adm.command.admweb.admin.help.1=/textech web admin issue [备注] [--reuse]  —  生成一次性提权码  [OP 或单人作弊模式]
 adm.command.admweb.admin.help.2=/textech web admin list  —  列出所有提权授权和未使用的引导码  [OP]
@@ -1466,3 +1510,52 @@ adm.quest.task.unsupported=此任务类型暂不支持 Web 提交
 adm.quest.submit.disabled=Web 任务提交已禁用
 adm.quest.submit.guest=访客 Token 无法提交任务
 adm.quest.mod.missing=BetterQuesting 未加载
+adm.command.screenshot.title==== TeXTech 游戏截图 ===
+adm.command.screenshot.usage=/admscreenshot <capture|list|preview|send|status|help>（也可用 /textech screenshot …）
+adm.command.screenshot.help.1=/admscreenshot capture  —  截取当前游戏窗口（包括已打开 GUI）
+adm.command.screenshot.help.2=/admscreenshot list [页码]  —  列出本地历史；点击条目可预览
+adm.command.screenshot.help.3=/admscreenshot preview [序号]  —  在游戏内预览历史截图（1 为最新）
+adm.command.screenshot.help.4=/admscreenshot send web [序号] [说明]  —  发布到 WebAE 聊天
+adm.command.screenshot.help.5=/admscreenshot send qq <群 openid> [序号] [说明]  —  通过 QQ 机器人发图 [需 OP]
+adm.command.screenshot.help.6=/admscreenshot status  —  查看本地路径、清晰度和带宽限制
+adm.command.screenshot.list.title==== 本地截图 {0}/{1} 页（共 {2} 张）===
+adm.command.screenshot.list.entry=#{0}  {1}  ({2} KiB)  [点击预览]
+adm.command.screenshot.send.usage=用法：/admscreenshot send web [序号] [说明] 或 send qq <群 openid> [序号] [说明]
+adm.command.screenshot.send.qq_usage=用法：/admscreenshot send qq <群 openid> [序号] [说明]（需 OP）
+adm.command.screenshot.status.title==== 截图状态 ===
+adm.command.screenshot.status.path=本地目录：{0}
+adm.command.screenshot.status.capture=最大清晰度：{0}×{1}，JPEG 质量 {2}%
+adm.command.screenshot.status.upload=上传上限：{0} KiB，每 tick {1} 个 24 KiB 分片，正在上传：{2}
+adm.screenshot.disabled=截图功能已被配置关闭。
+adm.screenshot.capture.busy=上一张截图仍在编码，请稍候。
+adm.screenshot.capture.failed=截图失败：{0}
+adm.screenshot.capture.saved=截图已保存：{0}（{1}×{2}，{3} KiB）
+adm.screenshot.history.empty=没有本地历史截图。请先按截图快捷键或执行 capture。
+adm.screenshot.history.not_found=找不到第 {0} 张历史截图。
+adm.screenshot.history.invalid=只能发送 TeXTech 本地截图历史目录中的文件。
+adm.screenshot.upload.busy=已有截图正在准备或上传，请等待完成。
+adm.screenshot.upload.preparing=正在后台读取并准备上传：{0}
+adm.screenshot.upload.too_large=截图为 {0} KiB，超过配置上限 {1} KiB；请降低清晰度或质量。
+adm.screenshot.upload.started=开始发送 {0}，共 {1} 个限速分片。
+adm.screenshot.upload.timeout=截图上传等待响应超时；可稍后重试。
+adm.screenshot.upload.success=已提交到 {0}：{1}
+adm.screenshot.upload.failed=截图发送失败：{0}
+adm.screenshot.gallery.title=本地截图 #{0} / {1}
+adm.screenshot.gallery.previous=较旧
+adm.screenshot.gallery.next=较新
+adm.screenshot.gallery.send_web=发送到 WebAE
+adm.screenshot.gallery.load_failed=无法读取截图：{0}
+adm.screenshot.gallery.metadata={0} · {1}×{2} · {3} KiB · {4}
+adm.command.admweb.qq.title==== WebAE QQ 机器人 ===
+adm.command.admweb.qq.help.1=/admweb qq status  —  查看连接和有界队列状态 [OP]
+adm.command.admweb.qq.help.2=/admweb qq send [group|c2c|channel] <openid> <信息>  —  消息入队 [OP]
+adm.command.admweb.qq.help.3=/admweb qq restart  —  重连 QQ 网关 [OP]
+adm.command.admweb.qq.status=QQ：enabled={0} connected={1} phase={2} queue={3}/{4}
+adm.command.admweb.qq.last_error=最近错误：{0}
+adm.command.admweb.qq.restart_queued=QQ 网关已开始重连。
+adm.command.admweb.qq.send_usage=用法：/admweb qq send [group|c2c|channel] <openid> <信息>
+adm.command.admweb.qq.send_queued=QQ 消息已进入有界队列（不代表平台已最终送达）：{0}
+adm.command.admweb.qq.failed=QQ 操作失败：{0}
+adm.command.admweb.qq.unknown=未知 QQ 子命令。可用：status、send、restart
+adm.manual.web_console.screenshot_title=窗口截图与分享
+adm.manual.web_console.screenshot_text=在控制设置中绑定“截取当前游戏窗口”（默认 F10）；它只读取 Minecraft 帧缓冲，因此可包含任意已打开 GUI，但不会读取桌面或其他窗口。截图保存在客户端 TeXTech/Screenshots。使用 /admscreenshot list、preview、send web 或 send qq <群 openid> 管理与按需发送。上传默认每 tick 仅发送一个 24 KiB 分片；QQ 发图和 /admweb qq send 需要 OP。清晰度、JPEG 质量、单图体积、冷却、并发与两端保留量均可在 [webConsole] 配置。

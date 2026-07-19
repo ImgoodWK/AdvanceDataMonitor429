@@ -7,6 +7,7 @@ import {
 } from './widgetGridActions';
 import { resetWidgetIdSeqForTests } from './widgetId';
 import type { DashboardWidgetConfig } from './presets';
+import { migrateDashboardWidgets } from './presets';
 
 function sample(): DashboardWidgetConfig {
   return {
@@ -57,6 +58,20 @@ describe('widgetGridActions', () => {
     expect(round[0].title).toBe('Items');
   });
 
+  it('round-trips advanced composite widget types', () => {
+    const types: DashboardWidgetConfig['type'][] = [
+      'networkHealth', 'powerFlow', 'storageMatrix', 'machineFleet',
+      'playerPresence', 'activityStream', 'serverVitals',
+    ];
+    const widgets = types.map((type, index) => ({
+      ...sample(),
+      id: `advanced-${index}`,
+      type,
+      dataSource: type,
+    }));
+    expect(parseWidgetsImport(exportWidgetsJson(widgets)).map((widget) => widget.type)).toEqual(types);
+  });
+
   it('accepts raw array import and rejects invalid json / duplicate ids', () => {
     expect(() => parseWidgetsImport('not-json')).toThrow(WidgetImportError);
     expect(() => parseWidgetsImport('{}')).toThrow(WidgetImportError);
@@ -88,6 +103,13 @@ describe('widgetGridActions', () => {
     expect(w.height).toBe(1);
     expect(w.x).toBe(0);
     expect(w.y).toBe(2);
+  });
+
+  it('repairs unsafe persisted geometry before GridStack initialization', () => {
+    const [widget] = migrateDashboardWidgets([
+      { ...sample(), x: -9, y: Number.NaN, width: 80, height: 0 },
+    ]);
+    expect(widget).toMatchObject({ x: 0, y: 0, width: 12, height: 1 });
   });
 
   it('rejects excessive nest depth', () => {

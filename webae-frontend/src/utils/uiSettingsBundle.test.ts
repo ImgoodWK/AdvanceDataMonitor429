@@ -45,6 +45,7 @@ function sampleBundle(): WebUiSettingsBundle {
         effectsLevel: 'full',
         lang: 'en',
         displayMode: 'merged',
+        browsingMode: true,
         numberFormat: 'short',
         iconPack: 'default',
         iconRenderMode: 'nei',
@@ -76,6 +77,7 @@ describe('uiSettingsBundle', () => {
 
     expect(storage.get('webae_theme_color')).toBe('midnight');
     expect(storage.get('webae_theme_layout')).toBe('compact');
+    expect(storage.get('webae_browsing_mode')).toBe('true');
     expect(storage.get('webae-recipe-layout')).toBe('list');
     expect(storage.get(UI_INITIALIZED_KEY)).toBe('1');
 

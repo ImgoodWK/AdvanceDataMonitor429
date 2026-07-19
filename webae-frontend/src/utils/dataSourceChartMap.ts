@@ -89,6 +89,13 @@ const DATA_SOURCE_CATEGORY_MAP: Record<string, DataSourceCategory> = {
   none: 'layout',
   alertsActive: 'alertsFeed',
   craftingBusy: 'craftingFeed',
+  networkHealth: 'layout',
+  powerFlow: 'layout',
+  storageMatrix: 'layout',
+  machineFleet: 'layout',
+  playerPresence: 'layout',
+  activityStream: 'layout',
+  serverVitals: 'layout',
 };
 
 /**

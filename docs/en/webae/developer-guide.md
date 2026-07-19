@@ -38,6 +38,10 @@
   - [11.18 Page Visibility Polling (Phase 4b)](#1118-page-visibility-polling-phase-4b)
   - [11.26 World Map View](#1126-world-map-view-phase-ab--ae-overlay)
   - [11.27 Spark Profiler Integration](#1127-spark-profiler-integration)
+  - [11.28 WebAE AI assistant and secret boundary](#1128-webae-ai-assistant-and-secret-boundary)
+  - [11.29 QQ group bot gateway](#1129-qq-group-bot-gateway)
+  - [11.30 Client window screenshots and chat attachments](#1130-client-window-screenshots-and-chat-attachments)
+  - [11.31 Server console commands](#1131-server-console-commands)
 - [12. Frontend Resources](#12-frontend-resources)
 - [13. Debugging and Troubleshooting](#13-debugging-and-troubleshooting)
 
@@ -99,6 +103,7 @@ All source code resides under `com.imgood.textech.webae/` (231 files). See `proj
 | `webae/icon/` | 31 | Icon packs + multi-fallback rendering |
 | `webae/player/` | 4 | Player info store + online-count history sampler + DTO + skin URL resolver |
 | `webae/chat/` | 2 | Chat message store (ring buffer) + DTO |
+| `webae/screenshot/` | 2 | Chunk ingress, background validation, and bounded attachment storage |
 | `webae/debug/` | 1 | WebAE per-feature debug logging (`WebAeDebugLog`, gated by `[debug] webaeXxx`; incl. `webae-perf.log`) |
 
 ## 4. Configuration
@@ -111,6 +116,19 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `port` | int | `8090` | 1024-65535 | HTTP server listening port |
 | `bindAddress` | string | `127.0.0.1` | — | Bind address. Default localhost only; set to `0.0.0.0` for LAN access |
 | `snapshotIntervalSeconds` | int | `30` | 0-3600 | Legacy fallback snapshot interval (seconds). Set 0 to disable. Largely superseded by `refreshIntervalMs` |
+| `alertsEnabled` | boolean | `true` | — | Server-wide gate for WebAE alert evaluation and every delivery route; detailed rules stay in `TeXTech/WebAE/web-alerts.json` |
+| `screenshotEnabled` | boolean | `true` | — | Client framebuffer capture, local history, and explicit WebAE/QQ sharing gate |
+| `screenshotMaxWidth` / `screenshotMaxHeight` | int | `1920` / `1080` | 320-4096 / 180-2160 | Client encode and independent server image-header limits |
+| `screenshotJpegQualityPercent` | int | `88` | 30-100 | Client JPEG quality; server byte limits remain authoritative |
+| `screenshotMaxUploadKB` | int | `2048` | 64-8192 | Encoded image cap, prechecked by clients and enforced by the server |
+| `screenshotUploadChunksPerTick` | int | `1` | 1-4 | 24 KiB chunks sent per client tick |
+| `screenshotUploadCooldownSeconds` | int | `15` | 0-3600 | Per-player server upload-start cooldown |
+| `screenshotClientHistoryMaxFiles` / `screenshotClientHistoryMaxMB` | int | `100` / `256` | — | Local retention, cleaned only after capture |
+| `screenshotServerHistoryMaxFiles` / `screenshotServerHistoryMaxMB` | int | `200` / `256` | — | Server `chat-attachments/` file/byte retention |
+| `screenshotMaxConcurrentUploads` | int | `4` | 1-16 | Aggregate receive/process cap; validation and writes use one worker |
+| `aiKeyMode` | string | `server` | `server`/`browser` | **Deprecated** mutual mode; migration seed only |
+| `aiServerKeyEnabled` | boolean | `true` | — | Allow admin shared ordered AI profiles (server-encrypted); may be enabled with `aiBrowserKeyEnabled` |
+| `aiBrowserKeyEnabled` | boolean | `false` | — | Allow per-browser personal ordered AI profiles (localStorage); may be enabled with `aiServerKeyEnabled` |
 | `recipeUploadEnabled` | boolean | `true` | — | Allow OPs to upload NEI recipes via `/admweb recipes upload` (Phase 2 removed the keybind) |
 | `recipeCacheMode` | string | `full` | `lru`/`full` | Recipe cache eviction mode. GTNH recommends `full` (no LRU eviction) |
 | `maxRecipeCacheMB` | int | `256` | 1-2048 | Approximate max memory (MB) for the recipe cache; evicted in `lru` mode when exceeded, warning-only in `full` |
@@ -189,7 +207,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `questEscrowTimeoutMs` | int | `120000` | 5000-600000 | Escrow session timeout (ms); auto-return locked stacks to AE |
 | `questFluidAllContainersOption` | boolean | `false` | — | When true, Web UI may count all fluid containers toward equivalence; when false, only GT/IC2 cells |
 | `questCacheTtlSec` | int | `300` | 30-3600 | Quest-line definition cache TTL (seconds); progress ~1/10 |
-| `sparkEnabled` | boolean | `true` | — | Enable the WebAE Spark page/API when the Spark mod is installed; force unavailable when absent |
+| `sparkEnabled` | boolean | `true` | — | Enable the WebAE Spark tab in the admin console/API when the Spark mod is installed; force unavailable when absent |
 | `sparkMaxHistory` | int | `50` | 1-500 | Number of Spark run records retained in `TeXTech/WebAE/spark-history.json` |
 | `sparkDefaultDurationSeconds` | int | `30` | 5-600 | Default Spark profiler duration requested by the WebAE page (seconds) |
 | `sparkMaxDurationSeconds` | int | `300` | 5-600 | Hard maximum duration for a Spark profiler run started from WebAE (seconds) |
@@ -220,11 +238,13 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 |--------|------|------|--------|-------------|
 | POST | `/api/auth/exchange` | **No** | No | Exchange 6-digit login code for owner token (5 min TTL, single-use; body `{"code":"123456"}`) |
 | GET | `/api/auth/login` | Yes | No | Post-auth info (playerUuid) |
-| GET | `/api/config` | Yes | No | Public client-readable config (refreshIntervalMs, gtRefreshIntervalMs, maxNetworksDisplayed, tokenLifetimeHours, themePresets [legacy, mirrors themeColors], themeColors, themeLayouts, pageStyles) |
-| GET | `/api/spark` | Yes | No | Spark availability, current run, and history summaries; 503 when Spark is absent or `sparkEnabled=false` |
-| GET | `/api/spark/history/{id}` | Yes | No | Full output summary and Viewer URL for one Spark history record |
-| POST | `/api/spark/profile` | Yes | **Admin** | Body `{durationSeconds}`; invokes Spark `profiler start --timeout`; only one active run is allowed |
-| POST | `/api/spark/stop` | Yes | **Admin** | Requests profiler stop and waits for Spark's final output |
+| GET | `/api/config` | Yes | No | Public client-readable config, including `webAiKeyMode`, the secret-free provider catalog, refresh settings, and theme settings |
+| GET | `/api/spark` | Yes | No | **In-memory read** of Spark availability, current run, effective parameter limits, and history; 503 when Spark is absent or `sparkEnabled=false` |
+| GET | `/api/spark/history/{id}` | Yes | No | On-demand full local analysis (hotspots/categories/threads), context output, and optional Viewer URL for one record |
+| POST | `/api/spark/profile` | Yes | **Admin** | **Main-thread command**; body `{durationSeconds,mode,intervalMillis,onlyTicksOverMillis}` with `server` / `lagSpikes` / `allThreads`; WebAE explicitly stops at the deadline; one active run |
+| POST | `/api/spark/stop` | Yes | **Admin** | **Main-thread command**; stops the profiler, then extracts local analysis from the stopped sampler while Viewer recovery continues for a bounded window |
+| POST | `/api/spark/recover` | Yes | **Admin** | Body `{id}`; on-demand read of Spark ActivityLog to recover a missing Viewer URL; does not scan the world or start sampling |
+| POST | `/api/spark/analyze` | Yes | **Admin** | Body `{profileIds:[id] or [idA,idB],locale}`; server mode calls AI server-side, while browser mode returns secret-free system/user prompts for a direct browser provider call. Both contain bounded aggregates only; comparisons are `B − A`; raw output, Viewer URL, and API key are excluded |
 | DELETE | `/api/spark/history/{id}` | Yes | **Admin** | Deletes retained Spark metadata; does not delete the remote Spark Viewer result |
 | GET | `/api/ui-defaults` | **No** | No | Pack/mod default WebAE UI settings JSON (instance `TeXTech/WebAE/ui-defaults.json` first, else jar `assets/textech/webae/ui-defaults.json`; `defaults:null` when absent) |
 | GET | `/api/networks` | Yes | No | List available AE2 networks; **HTTP cache-only** (`cached`/`timestamp`); owner-scoped `SnapshotScheduler` pre-collect; `?refresh=1` async rebuild |
@@ -277,8 +297,9 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/icon/sync/bulk?pack=&mode=` | Yes | No | Full-pack zip (in-memory build; Settings manual / user-enabled auto-sync only — not on login by default) |
 | POST | `/api/icon/pack?pack=<packName>` | Yes | **Yes (OP)** | Upload a texture-pack zip (Zip Slip protected) |
 | GET | `/api/chat/history?limit=<n>&since=<ts>` | Yes | No | Fetch chat history (default limit=200, optional since for incremental) |
-| GET | `/api/chat/since=<ts>` | Yes | No | Incremental fetch of messages since a timestamp |
+| GET | `/api/chat/since?id=<messageId>` | Yes | No | Incremental fetch by monotonic server message ID; legacy `since=<ts>` remains supported |
 | POST | `/api/chat/send` | Yes | No | Send a chat from the web (body `{content}`; reads playerUuid from token, appends a `source=web` message and broadcasts `[Web] <name>: <content>` in-game; rejects banned/empty/over-long content) |
+| GET | `/api/chat/attachment?id=<32hex>` | Yes | No | **Disk-cache read** of a JPEG chat attachment; server-generated IDs only, private one-day cache, timed by the common Router profiler |
 | GET | `/api/players` | Yes | No | Returns `{online:[...],offline:[...]}`; each entry has uuid/name/online/onlineMs/lastLogin/lastLogout/skinUrl |
 | GET | `/api/players/since=<ts>` | Yes | No | Incremental fetch of player online-state changes |
 | GET | `/api/players/online/history` | Yes | No | Online player count trend `[{"ts":,"count":}]` (~60 min, 30s samples, for dashboard widgets) |
@@ -293,6 +314,13 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | POST | `/api/admin/players/:ownerUuid/networks/:networkKey/resume` | Yes | **Yes** | Resume network |
 | POST | `/api/admin/players/:actorUuid/acl` | Yes | **Yes** | body `{ownerUuid,networkKey,effect:deny\|allow}` actor-level deny overlay |
 | POST | `/api/admin/players/:actorUuid/guest-tokens/revoke` | Yes | **Yes** | body `{token}` revoke guest token |
+| GET | `/api/admin/server-console` | Yes | **Admin** | Read bounded presets and audit summaries; full historical output is omitted |
+| GET | `/api/admin/server-console/players` | Yes | **Admin** | Read a `PlayerInfoStore` metadata snapshot, reused for 3 seconds; no world/AE scan |
+| POST | `/api/admin/server-console/execute` | Yes | **Admin** | Body `{command,confirmed}`; single-flight, 750ms actor cooldown, queue-depth gate, then live main-thread execution through `HandlerTick` with bounded output capture |
+| GET | `/api/admin/server-console/history/{id}` | Yes | **Admin** | Fetch one audit entry's bounded full output on demand (last 24 lines, 256 characters per line) |
+| POST | `/api/admin/server-console/history/clear` | Yes | **Admin** | Clear completed audit entries while retaining queued work |
+| PUT | `/api/admin/server-console/presets` | Yes | **Admin** | Create/update a shared command preset, max 64; coalesced background persistence |
+| DELETE | `/api/admin/server-console/presets/{id}` | Yes | **Admin** | Delete a shared command preset |
 | GET | `/api/network/metrics?network=<id>` | Yes | No | AE network metric history (item/fluid/essentia/bytes/CPU busy ratio/GT active count rolling window, `NetworkMetricSampler`) |
 | GET | `/api/network/metrics/fluids?network=<id>&fluids=water,lava` | Yes | No | Pinned fluid amount trends (limits via `dashboardMaxFluidTracks` / per-request `dashboardMaxTracksPerWidget`) |
 | GET | `/api/network/metrics/items?network=<id>&items=mod:item,...` | Yes | No | Pinned item amount trends (missing in AE → 0; limits via cfg) |
@@ -316,7 +344,19 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/monitor/preview?dim=&x=&y=&z=&slot=` | Yes | No | Monitor slot line-chart preview (Phase 11) |
 | GET | `/api/scanner/blocks?type=&q=` | Yes | No | Link Scanner mirror; full list cached, `type`/`q` filtered on HTTP thread |
 | GET | `/api/monitor/bindings` | Yes | No | Data monitor Link/GT binding view; **HTTP cache-only** |
-| POST | `/api/assistant/query` body `{text,locale}` | Yes | No | Web assistant rule intent parsing (2s rate limit; no AI keys; I4) |
+| POST | `/api/assistant/ai-context` body `{locale}` | Yes | No | Browser mode only; returns the shared intent system prompt and ordinary-chat prompt, with no key, provider credential, or game object |
+| POST | `/api/assistant/query` body `{text,locale,history?,clientAiPlan?,clientAiReply?}` | Yes | No | Reuses the in-game intent schema. Server mode calls AI server-side; browser mode parses the plan/reply produced by the browser's direct provider call. Failures fall back to rules; 2s rate limit and confirmation still apply |
+| POST | `/api/assistant/action` body `{actionToken,optionNumber,amount?}` | Yes | No (guests denied) | Confirms crafting, withdrawal, or teleport; random token is actor+owner-bound and expires after 5 minutes; `ItemStack`/NBT stays server-side |
+| GET/PUT | `/api/admin/ai/settings` | Yes | **Admin** | Server mode only; reads the safe view or saves provider/base/model/key settings. GET returns only a mask/status, never plaintext or ciphertext |
+| POST | `/api/admin/ai/test` | Yes | **Admin** | Server mode only; minimal provider connectivity request supporting OpenAI-compatible, Anthropic Messages, and Gemini GenerateContent |
+| DELETE | `/api/admin/ai/key` | Yes | **Admin** | Server mode only; deletes the server-local WebAE API key |
+| GET/PUT | `/api/admin/qq-bot/settings` | Yes | **Admin** | Read/write `TeXTech/WebAE/qq-bot.json`; GET exposes only ClientSecret mask/state and PUT hot-reconnects the Gateway |
+| DELETE | `/api/admin/qq-bot/secret` | Yes | **Admin** | Delete the encrypted ClientSecret and disable the bot |
+| GET | `/api/admin/qq-bot/status` | Yes | **Admin** | In-memory connection phase, reconnect schedule, receive/reply/AI/failure/drop/rate-limit counters, queue, and read-only server snapshot |
+| GET | `/api/admin/qq-bot/audit` | Yes | **Admin** | Read the bounded in-memory audit ring; no ClientSecret, AI key, or full provider payloads |
+| POST | `/api/admin/qq-bot/restart` | Yes | **Admin** | Asynchronously close and recreate the QQ Gateway connection; the HTTP request does not wait for the external handshake |
+| POST | `/api/admin/qq-bot/send` | Yes | **Admin** | Body `{targetType,targetId,content}`; manual announcement/test is queued on the bounded sender |
+| POST | `/api/admin/qq-bot/conversations/clear` | Yes | **Admin** | Clear all short-lived QQ AI conversations without changing shared AI profiles |
 | GET | `/api/pocket/overview` | Yes | **Yes (OP)** | Minimal read-only dimensional pocket overview (no item contents; I6) |
 | GET | `/api/quests/meta` | Yes | No | BQ availability, toggles, version, line count |
 | GET | `/api/quests/lines` | Yes | No | Quest line (chapter) list |
@@ -347,9 +387,13 @@ Fluid-cell display (`iconItemId` + `displayName`): filled cells keep `mod:id:met
 
 Local WebAE QA: the first BetterQuesting tab from dev fixtures is **WebAE Test Lab** (`dev-fixtures/betterquesting/`, tracked in Git, **not** packed into the mod jar; see that folder’s `README-dev.md`).
 
-| GET | `/api/alerts` | Yes | No | Active automation alerts + `web-alerts.json` rules mirror (A1–A5); includes `canEditRules` (OP) |
-| GET | `/api/alerts/rules` | Yes | No | Rules only + `canEditRules` |
-| PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **OP** | Validate and write `TeXTech/WebAE/web-alerts.json`; `WebAlertEngine` reads on next tick; **webhook URLs masked** (`***` + last 4 chars) |
+| GET | `/api/alerts` | Yes | No | Active alerts + rules mirror; includes `serverFeatureEnabled`, `canEditRules`, masked multi-channel config, and `deliveryStatus` |
+| GET | `/api/alerts/rules` | Yes | No | Global-gate status, rules, edit capability, and delivery status only |
+| PUT | `/api/alerts/rules` body `WebAlertsConfig` | Yes | **Admin** | Validate/write `TeXTech/WebAE/web-alerts.json`; URL/AppSecret/CorpSecret/SMTP passwords are masked and unchanged masks merge by target ID |
+| POST | `/api/alerts/test` body `{kind:"target"|"webhook",id}` | Yes | **Admin** | Queue a fixed bilingual test for a saved route; bypasses route enable/filters but still uses the bounded queue, retries, timeouts, and circuit breaker; no main-thread collection |
+| POST | `/api/alerts/qq-id-probe/start` body `{appId,appSecret?,targetConfigId?,baseUrl?,tokenUrl?}` | Yes | **Admin** | Start a short-lived QQ Gateway WebSocket listen to capture openids/channel IDs; masked secrets merge from disk via `targetConfigId`; no main-thread collection |
+| GET | `/api/alerts/qq-id-probe` | Yes | **Admin** | Probe session status and in-memory `discoveries[]` |
+| POST | `/api/alerts/qq-id-probe/stop` | Yes | **Admin** | Stop the active probe session |
 | GET | `/api/server/health` | Yes | No | Server TPS / MSPT (same as `/forge tps` Overall) / online players / uptime + 300s rolling history |
 | GET | `/api/server/diagnostics` | Yes | No | WebAE perf diagnostics: tick phases, `HandlerTick` queue depth, snapshot collect timings, `snapshotWorkerBusy` / `snapshotTimeouts` / `snapshotSkippedBusy` / `snapshotSkippedQueue`, slow HTTP / top routes, config summary; polled by Diagnostics page |
 | GET | `/api/oc/summary` | Yes | No | OC read-only summary (item types, CPU busy, active orders, TPS; 1 req/s; see [oc-integration.md](oc-integration.md)) |
@@ -378,7 +422,7 @@ webae-frontend/               # Frontend source (permanent project part)
     ├── types/dto.ts          # TypeScript interfaces mirroring Java DTOs
     ├── i18n/                 # zh + en dictionaries + I18nProvider hook
     ├── context/AppContext.tsx  # Global state (auth/theme/settings/presets/connection/refresh)
-    ├── theme/                # 128 colors + 30 layouts + 126 page styles (7 chrome + 12 composition + 20 bold + 20 batch2 + 50 batch3 + 12 Printstream batch4 + 5 Auraeco batch5) + antd theme builder + preview var helper
+    ├── theme/                # 141 colors + 36 layouts + 138 page styles + 28 curated design packs; antd builder and preview variables
     ├── hooks/                # useLocalStorage / useInterval / usePageVisibility / useVisibilityAwarePolling / useSnapshotData / usePlayers / useWebAlerts / useNetworkMetrics / useGlobalSearch / useWorldMapData / useWorldMapTileLoader / useWorldMapProgress
     ├── utils/                # formatNumber / icon URL / presets / dashboardResolve / overviewDataSources / powerDataSources / cpuColumns / recipe
     ├── components/           # Login / Icon / Layout(Sidebar/TopBar/AppLayout/navConfig/PageShell) /
@@ -391,7 +435,7 @@ webae-frontend/               # Frontend source (permanent project part)
     │                         # VirtualProductGrid — Phase 7 AE order browse + virtual scroll)
     │                         # ordering(OrderQueryTab/OrderPatternsTab/OrderHistorySection — AE ordering split)
     ├── pages/                # Dashboard / Storage / Cpu / Power / GtMachines / Recipes /
-    │                         # PatternEditor / AeOrdering / Chat / Settings / Spark / QuestBook
+    │                         # PatternEditor / AeOrdering / Chat / Admin (Diagnostics / Spark) / Settings / QuestBook
     │                         # components/quest (list/graph/detail/step+chain submit)
     └── styles/global.css     # Base styles + advanced mode effects + GridStack overrides + widget 9-grid alignment
 ```
@@ -403,7 +447,7 @@ See `.cursor/rules/webae-frontend.mdc` for frontend conventions.
 Technical notes:
 - **Build tool**: Vite 5 + `@vitejs/plugin-react`; fully offline bundle (antd/react)
 - **UI**: Ant Design 5 only; charts via inline SVG/CSS (`ChartTrendSvg`, `WidgetContent` categorical charts, GT page `GtSummaryCharts`); Dashboard drag/resize via `gridstack` (layout engine exception)
-- **Pages**: all 20 business pages wrapped in `PageShell` (including AE ordering and pattern editor)
+- **Pages**: all 20 business pages wrapped in `PageShell` (including AE ordering and pattern editor); Storage, Fluids, CPU, and Power additionally use `DataPageSection` + `.data-page-flow` to separate editable overview, focused insight, and detail workspaces
 - **Shared UI**: `navConfig.ts` navigation; `common/SettingRow`, `SelectableListRow`, `SelectableCard`; list/nav/pattern-editor CSS utilities in `global.css` (`.webae-pattern-slot`, `.webae-scroll-panel`, etc.); `patternEntryIconId` for pattern icon IDs; all three Settings Drawers use `SettingRow`
 - **Global state**: `AppContext` — token/network/lang/theme/numberFormat/presets/iconPack/localIconPack/sidebarMode/displayMode/autoRefresh/pauseRefreshWhenHidden/refreshPaused/connection
 - **Token stability**: in-memory `WebAuthToken` cache + debounced atomic disk flush; frontend `tokenRef` + silent re-login on 401; heartbeat uses raw fetch
@@ -562,7 +606,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Scheduler (Phase 1.2)**: `SnapshotScheduler` collects every `refreshIntervalMs`, spread across ticks (`ceil(activeKeys / N)` per tick where `N = intervalMs / 50`), only for networks active in the last 2 minutes
 - **Return data**: items / fluids / essentia / bytes used+max / crafting CPUs (`CpuEntry` extended in Phase 3 with coordinates, monitor position, remainingItems/startItems)
 - **Endpoints**: `GET /api/storage` (cache-only, stale fallback), `GET /api/storage/batch`, `GET /api/storage/items|fluids|essentia` (cursor pagination, default limit=200, sort=`amount_desc|amount_asc|name_asc|name_desc`, search filter; 409 `cursor_stale`), `POST /api/refresh` (admin), `POST /api/refresh/batch` (admin)
-- **Frontend**: Storage tabs use `useStoragePaged` + `VirtualStorageTable` (`@tanstack/react-virtual` row virtualization + infinite scroll); 300ms search debounce; sort change resets cursor; merge mode client-merge for ≤3 networks, warning when >3; top `OverviewWidgetGrid` uses paged `totalEstimate`/`totalAmountSum` via `OverviewSnapshot` count overrides; `useSnapshotData` stale-while-revalidate on network switch (per-network cache + `refreshing` indicator). CPUs on standalone menu (see [11.14](#1114-configurable-storage-overview--standalone-cpu-page-phase-3))
+- **Frontend**: Storage tabs use `useStoragePaged` + `VirtualStorageTable` (`@tanstack/react-virtual` row virtualization + infinite scroll); 300ms search debounce; sort change resets cursor; merge mode client-merge for ≤3 networks, warning when >3; top `OverviewWidgetGrid` uses paged `totalEstimate`/`totalAmountSum` via `OverviewSnapshot` count overrides and is visually isolated from the details workspace; the Fluids page similarly separates totals, pinned trends, and its table. `useSnapshotData` stays stale-while-revalidate on network switch (per-network cache + `refreshing` indicator). CPUs on standalone menu (see [11.14](#1114-configurable-storage-overview--standalone-cpu-page-phase-3))
 
 ### 11.2 Power Monitoring
 
@@ -571,7 +615,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Data source**: `WirelessPowerQuery` / `WirelessSteamQuery` (reuses AI assistant power query interface)
 - **Endpoints (Phase 1.2)**: `GET /api/power` (cache-only, stale fallback), `GET /api/power/batch`, `POST /api/power/refresh` (admin, invalidates cache only — next sampler tick repopulates), `POST /api/power/refresh/batch` (admin)
 - **Return data**: Current EU/steam level, in/out rates, EU/steam history arrays
-- **Frontend**: Full-page configurable GridStack on the Power page (`PowerWidgetGrid` + `PowerWidgetContent`, persisted in `webae_power_config`); defaults include EU gauge, in/out statCards, steam progressBar, dual-series SVG trend lineChart, steam in/out statCards; multi-network split uses Tabs per network (see [11.15](#1115-configurable-power-page--anti-flicker-phase-4))
+- **Frontend**: Full-page configurable GridStack on the Power page (`PowerWidgetGrid` + `PowerWidgetContent`, persisted in `webae_power_config`); defaults include EU gauge, in/out statCards, steam progressBar, dual-series SVG trend lineChart, steam in/out statCards. The editor exposes secondary tools only while editing, and `PowerWidgetGrid.networkId` binds history to the active network selected by the responsive switcher (see [11.15](#1115-configurable-power-page--anti-flicker-phase-4))
 
 ### 11.3 GT Machine Monitoring
 
@@ -649,25 +693,26 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Theme system**:
   - Theme = color scheme × layout preset × **page style**, chosen independently
-  - Color schemes (`[data-theme-color]`): **128** total — 19 classic + 5 Phase 8 sci-fi + 4 composition companions + 13 bold-batch + 20 batch2 + 50 batch3 + 12 Printstream batch4 + **5 Auraeco batch5** (`aura` / `aura-front` / `aura-design` / `aura-sys` / `aura-interact`: voxel cyan / front cyan / design violet / system green / interact blue)
-  - **Page styles** (`[data-page-style]`, `theme/pageStyles.ts`): **126** total — 7 chrome + 12 composition + 20 bold + 20 batch2 + 50 batch3 + 12 Printstream batch4 + **5 Auraeco batch5** (`aura-voxel` / `aura-spore` / `aura-dome` / `aura-sparks` / `aura-bubble`); visuals in `styles/bold-styles.css` + `bold-styles-batch2.css` + `bold-styles-batch3.css` + `bold-styles-batch4.css` + `bold-styles-batch5.css` + `effects-motion.css`. Printstream uses B/W geometry + Pantone pearl gradients + ASCII dashed streams (CS community homage); Auraeco approximates voxel waves / tendril particles in CSS (no Three.js); neither uses content `clip-path`; gated by `effectsLevel` + `prefers-reduced-motion`
-  - Layout presets (`[data-theme-layout]`): **30** total — classic 8 (standard / compact / wide / sidebar-right / topnav / bottomnav / floating / split-chrome) + **22 batch3 structural** layouts via `chromeKind` (dual-rail / rail-only / dock / island / theater / dense-ops / magazine / split-pane / top-tabs / zen / command / tri-chrome / card-stack / hud-frame / pipeline / hero-header / status-strip / drawer-peek / corner-hub / widescreen / right-drawer / frame; see `layout-batch3.css` + `AppLayout`)
-  - **Settings appearance / presets**: `ThemePreviewMini` (in-DOM structural thumbnails) + `ThemeOptionGrid` thumbnail tiles for color / layout / style / preset picking; ~**121** builtin AppPresets (including batch3 + Printstream batch4 + Auraeco batch5 `builtin-style-*` and flagship `builtin-printstream` / `builtin-aura`)
-  - Settings panel: color + layout + **page style** + effects intensity; dashboard widget editor can override chart style
+  - Color schemes (`[data-theme-color]`): **140** total. Batch6 adds 12 authored palettes for Rhodes tactical amber/red, cyber lime/redline chrome, UEG orange/lunar ice, GTNH Stargate, GregTech steel/bronze/cleanroom/fusion, and TecTech quantum
+  - **Page styles** (`[data-page-style]`, `theme/pageStyles.ts`): **138** total. Printstream batch4 and Auraeco batch5 remain; `styles/bold-styles-batch6.css` adds 12 complete Terra/cyber/aerospace/GTNH/GregTech/TecTech compositions. Decorative grids, scans, orbits, hard-surface serials, Stargate rings, and factory lines never clip or cover business content
+  - Layout presets (`[data-theme-layout]`): **36** total — classic 8 + batch3 structural 22 + Batch6 `tactical-grid` / `mission-control` / `engine-room` / `orbital-console` / `assembly-line` / `quantum-frame`; the new variants reuse stable `chromeKind` renderers with authored geometry/density tokens
+  - **Theme Studio**: `ThemeStudio` + `theme/designPacks.ts` exposes 28 visual-only one-click packs, now opening on a dedicated Top Picks filter ordered by `featuredRank`; categories also include game / anime / cinema. Batch7 adds eight media flagships through exact appearance-axis selectors in `styles/bold-styles-batch7.css` (Hextech, Terran, Protoss, BRIDGES, NERV/MAGI, Section 9, YoRHa, and TRON). `motif` decorates pack previews and `referenceKey` supplies bilingual reference notes. Packs never change language, dashboards, icons, or data settings
+  - **Performance tiers** retain internal `none / subtle / full` values but display Low-end Host / Modern Office PC / Gaming PC Full FX. Low keeps static composition, middle keeps refined micro-interactions, and full enables complete scans/orbits/glow/chart motion; all respect `prefers-reduced-motion`
   - Chart colors follow CSS variables (e.g. `var(--accent)`) and theme tokens; Dashboard/Power trend SVG updates with theme colors; when `effectsLevel=full`, line/area/pie/radar/bar charts get continuous CSS animations (`.chart-flow-line`, etc.); disabled under `prefers-reduced-motion`
-  - The backend `/api/config` returns `themeColors` / `themeLayouts` / `pageStyles` lists for discoverability (the frontend also owns the same catalog)
+  - The backend `/api/config` returns synchronized `themeColors` / `themeLayouts` / `pageStyles` lists (currently 141 / 36 / 138)
 - **Dashboard customization**:
   - GridStack 11.x via npm; `pages/Dashboard.tsx` 12-column grid; main dashboard `gs-min-w/h=1` (free sizing)
-  - Widget model (`DashboardWidgetConfig`): chart types as before plus **`group` / `textNote` / `spacer` / `alertsSummary` / `craftingQueue`**; data sources include `customPins` / `none` / `alertsActive` / `craftingBusy`; optional **`children?`**, **`noteText?`**, **`locked?`/`noMove?`/`noResize?`/`sizeToContent?`**, **`alertThreshold?`**, plus existing `pins?` / `columns?` / `contentScale?` / `pinsOnly?` / `gaugeThreshold?`
+  - Widget model (`DashboardWidgetConfig`): chart/table types plus `group` / `textNote` / `spacer` / `alertsSummary` / `craftingQueue`, and composite types **`networkHealth` / `powerFlow` / `storageMatrix` / `machineFleet` / `playerPresence` / `activityStream` / `serverVitals`**. `dashboardTree.defaultDataSourceForWidgetType()` owns their stable special-source mapping; existing nested, pins, columns, content-scale, locking, size-to-content, and threshold fields remain compatible
   - **Nested groups**: `type:'group'` hosts an inner GridStack (`GroupWidget.tsx`, `column:'auto'`); tree helpers in `utils/dashboardTree.ts`; migrate/import/export recurse `children`
-  - **Edit UX**: palette for one-click add; `.dashboard-trash` + GridStack `removable`; add-to-group from group header; pin metrics use `flattenWidgets`
-  - **Layout/feed widgets**: `SpecialWidgets.tsx` + `useDashboardAlerts`
+  - **Edit UX**: palette for one-click add; widget-button deletion with React as the sole DOM-removal owner (GridStack `removable` is disabled); add-to-group from group header; pin metrics use `flattenWidgets`
+  - **Layout/feed/composite widgets**: `SpecialWidgets.tsx` plus `dashboard-advanced-widgets.css`; the seven composites reuse results already supplied by `useSnapshotData`, `usePlayers`, `useServerHealth`, and `useDashboardAlerts`, adding no API, background poller, or server-tick work
+  - **In-game display snapshot**: `utils/dashboardGameDisplayExport.ts` reads the currently rendered Dashboard DOM and converts cards/text/progress blocks/SVG lines into a `textech-webae-display-snapshot` v1 drawing list copied to the clipboard. It is capped at 600 primitives and about 90 KiB raw JSON and excludes tokens, AI keys, webhook URLs, and QQ/mail secrets. This format is separate from editable layout JSON produced by `widgetGridActions.exportWidgetsJson()`. It adds no HTTP endpoint, browser poller, or server-tick work
   - **Data-first editor**: pick data source & pins, then compatible chart type (`dataSourceChartMap.ts`; layout/feed categories for `none` / alerts / crafting)
   - **Pin history APIs**: `GET /api/network/metrics/items`, extended fluids, `GET /api/network/metrics/entities`; sampler limits in cfg (`dashboardMaxTracksPerWidget` default 10, `dashboardMaxTracksGlobal` 16, item sub-cap 8, fluid/entity 16) exposed via `/api/config`; line charts merge built-in timeseries ∪ pin histories; radar uses pin current values when ≥3 pins; network-balance rows are searchable pins
   - **Data-table column contract**: `utils/dashboardColumns.ts` owns per-source column definitions. `columns === undefined` means defaults, while `columns: []` is an explicit hide-all selection and must not be replaced through truthy/length fallbacks. For `topItems`, the `name` column consumes the storage snapshot's `displayName`, and `registryName` consumes the registry identifier; they must not substitute for one another. `Dashboard.tsx`, shared `WidgetContent.tsx`, and `NetworkBalanceTable.tsx` must consume the same selection; clear `columns` when changing `dataSource` so stale source-specific keys do not leak. Regression coverage: `utils/dashboardColumns.test.ts`
   - **Pin editor**: `WidgetPinEditor.tsx` local inventory search matches display name, registry name, and item ID; focusing an empty search offers current Top inventory candidates. Recipe suggestion IDs must preserve `meta=0`; the per-widget cap comes from `/api/config.dashboardMaxTracksPerWidget`
   - **Phase 2 data sources**: `gtMachineList` / `machineByStatus` / `networkCompare` unchanged
-  - Layout persistence: `localStorage.webae_dashboard_config`; Edit Modal width/height rebuilds GridStack via `widgetLayoutSignature`
+  - Layout persistence: `localStorage.webae_dashboard_config`; Edit Modal width/height syncs via `syncWidgetGeometryToGrid` (`grid.update`) without remounting on geometry alone
   - Data refresh: `useSnapshotData` + `useDashboardPinMetrics` (merged pin history) + `usePlayers` / `useNetworkMetrics` / `useDashboardAlerts`
 
 ### 11.8 Item Icon Cache & Texture Packs (Phase 3.1)
@@ -744,12 +789,13 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Widget ops**: all three grids support “copy widget” in edit mode; `utils/widgetGridActions.ts` provides `copyWidgetConfig` / `exportWidgetsJson` / `parseWidgetsImport`
 - **Rendering**: `renderWidget` wraps content in a `widget-align` container, applying `resolveProp` font size, `resolveAllColors` colors, and `data-align` alignment; SVG charts use `preserveAspectRatio="xMidYMid meet"` to avoid stretching; the chart area height follows `chartSize%`
 - **Chart palette**: pieChart derives its palette from `[chartColor, iconColor||var(--success), var(--warning)]`; lineChart/barChart/radarChart use chartColor for stroke/fill
-- **GridStack rebuild**: the `useEffect` depends on `layoutSignature` (`widgets.map(w=>id_w_h).join(',')`) so changing width/height in the Edit Modal rebuilds the grid with the new sizes
+- **GridStack lifecycle**: the initialization `useEffect` only depends on `remountSignature` (`widgetRemountSignature`: id/type/constraint flags/nesting, not x/y/w/h); edit state and spacing use `setStatic()` / `margin()` without destroying the instance. Drag/resize stop copies and clamps engine geometry before committing React state in `requestAnimationFrame`; Edit Modal size changes use `syncWidgetGeometryToGrid`. Deletion is React-button-owned so GridStack never removes a DOM node before React does.
 
 ### 11.13 Sidebar Three-State & Top-Bar Refresh Status (Phase E)
 
 - **Sidebar three-state**: the bottom `.sidebar-collapse-btn` is removed; a `.sidebar-mode-toggle` tab button sits on the sidebar edge; `aside.sidebar` gets `:data-mode` (expanded/collapsed/hidden); CSS drives three states: expanded (default), collapsed (60px, icons only), hidden (translateX -100%, only the toggle remains); in the sidebar-right layout the toggle moves to the left edge and the hidden direction reverses; `sidebarCollapsed` boolean is replaced by a `sidebarMode` string, with a new `cycleSidebarMode` action; persists to `localStorage.webae_sidebar_mode`; the mobile `sidebarMobileOpen` stays a separate control
 - **Top-bar refresh status**: fixed-width status text next to connection dot; Settings page shows last data update time and freshness indicator (Phase 2)
+- **Viewport and Browsing mode**: `AppLayout` adds `webae-layout--viewport-page` to every page except Admin/Settings, keeps the outer shell at `100dvh`, and removes the browser-edge scrollbar; `PageShell` body provides a scrollbar-free internal overflow fallback. `AppContext.browsingMode` persists to `localStorage.webae_browsing_mode`, hides edit/settings/capture entry points on Dashboard, Storage/CPU Overview, Power, and Topology, and participates in UI bundles and optional preset fields. `PageErrorBoundary` confines render failures to the active page while preserving navigation.
 
 ### 11.14 Configurable Storage Overview & Standalone CPU Page (Phase 3)
 
@@ -766,7 +812,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 - **Inheritance reuse**: Power page reuses Phase 1 `DashboardWidgetConfig` + `resolveProp`/`resolveAllColors`
 - **Types & defaults** (`utils/presets.ts`): `PowerSettings` + `DEFAULT_POWER_WIDGETS` → `localStorage.webae_power_config`; default widgets: EU gauge, EU in/out statCards, steam progressBar (`steamPercent`), power trend lineChart (`powerHistory`), steam in/out statCards
-- **Shared components**: `PowerWidgetGrid.tsx` (GridStack 12-col, `cellHeight:64`, variable height, edit mode); `PowerWidgetContent.tsx` (statCard/progressBar/gauge/lineChart with inline SVG dual EU+steam series — avoids Plots poll flicker); `utils/powerDataSources.ts` (`PowerSnapshot`, `getPowerDataSourceValue()`, 11 power data sources)
+- **Shared components**: `PowerWidgetGrid.tsx` (GridStack 12-col, base `cellHeight:64`, viewport-adaptive down to 40px, variable height, edit mode); `PowerWidgetContent.tsx` (statCard/progressBar/gauge/lineChart with inline SVG dual EU+steam series — avoids Plots poll flicker); `utils/powerDataSources.ts` (`PowerSnapshot`, `getPowerDataSourceValue()`, 11 power data sources)
 - **Power page** (`Power.tsx`): multi-network Tabs; "Edit layout" toolbar; trend chart stays mounted on poll (no Card loading overlay)
 - **Anti-flicker**: `useSnapshotData` splits `initialLoading` vs `refreshing`; `loading` aliases `initialLoading` for backward compatibility; trend widget shows Spin only when `initialLoading && !snapshot`; empty history keeps container + `.chart-no-data-watermark`; CSS `.power-chart-stable` / `.power-trend-chart`
 
@@ -778,7 +824,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - `neon-pulse` — fluorescent accent + breathing card borders
   - `quantum` — deep blue + drifting grid background
   - `crystal` — prismatic gradient text shimmer
-  - Backend `/api/config` `themeColors` / `themeLayouts` / `pageStyles` match the frontend catalog (128 / 30 / 126); Settings i18n `themeColor_*` / `themeLayout_*` / `pageStyle_*`; thumbnail previews via `ThemePreviewMini`
+  - Backend `/api/config` `themeColors` / `themeLayouts` / `pageStyles` match the frontend catalog (141 / 36 / 138); Settings i18n `themeColor_*` / `themeLayout_*` / `pageStyle_*`; previews use `ThemePreviewMini` and full packs use `ThemeStudio`
 - **Continuous chart animations** (gated by `data-effects-level=full`):
   - Dashboard SVG: `.chart-flow-line` (stroke-dash flow), `.chart-svg-area` (area pulse), `.chart-pie-group` (slow spin), `.chart-radar-data` (radar pulse), `.chart-bar-segment` (bar brightness pulse)
   - Power trend: inline SVG in `PowerWidgetContent.tsx` reuses the same CSS classes
@@ -834,14 +880,21 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 ### 11.20 Alert Rules Web Editor (Phase 4d)
 
-- **Validation**: `webae/alerts/WebAlertsConfigValidator.java` — poll 1–300s, CPU stuck 1–120min, channel thresholds, inventory rules require itemId or fluidName
+- **Validation**: `webae/alerts/WebAlertsConfigValidator.java` — existing thresholds plus local-route filters/HUD bounds, target types, unique IDs, owner UUIDs, required credentials, and SMTP/timeout/retry/circuit-breaker limits
 - **Persistence**: `ConfigWebAlertsLoader.save()` writes `web-alerts.json` and refreshes the 30s memory cache; `WebAlertEngine` reads via `get()` each tick
-- **REST**: `PUT /api/alerts/rules` requires `WebAuthOpCheck.isOp(actorUuid)`; `GET /api/alerts` includes `canEditRules`
-- **Frontend**: `components/settings/AlertsRulesEditor.tsx` — editable Settings alerts tab (toggles/thresholds/inventory CRUD); non-OP sees read-only Descriptions
+- **REST**: `PUT /api/alerts/rules` requires WebAE admin; `GET /api/alerts` includes `serverFeatureEnabled`, `canEditRules`, masked rules, and `deliveryStatus`
+- **Frontend**: `components/settings/AlertsRulesEditor.tsx` + `AlertDeliveryGuideModal.tsx` provide a help dialog with config locations, official platform entry points, and setup steps. One-click built-in setup atomically saves WebAE/browser, player-chat, and HUD routes and requests Notification permission from the user gesture. External targets show recommended required fields first, with filters/API overrides/SMTP extras in per-target advanced sections; non-admin users remain read-only
 
-### 11.20a Outbound Integration: Webhooks + Server Health (reference plan Phase 2)
+### 11.20a Multi-channel Delivery + Server Health
 
-- **Webhooks** (AE2 Web Integration style): extend `web-alerts.json` with `webhooks[]` (`id`/`url`/`enabled`/`events`/`mention`); `WebhookDispatcher.java` single-thread `BlockingQueue` async POST (Discord embed or generic JSON); queue cap 1000; 5s HTTP timeout; enqueued on `WebAlertStore.recordNew`; URLs server-only, API responses masked via `sanitizeForClient`
+- **Local routes**: `browserNotifications`, `playerChat`, and `playerHud` share `events[]` / `severities[]` filters. Chat/HUD use the O(1) owner index; HUD uses `PacketWebAlertNotify` ID 50 plus `WebAlertHudRenderer`
+- **External targets**: `notificationTargets[]` supports `qq_official`, `wechat_official`, `email`, `wecom_bot`, and `wecom_app`, with optional `ownerUuids[]`. Legacy `webhooks[]` remains compatible with Discord embeds and generic JSON
+- **QQ target ID probe**: `QqIdProbeService` + `QqGatewayClient` (shadowed `Java-WebSocket`) starts from admin `POST /api/alerts/qq-id-probe/start`. The server opens an outbound QQ WSS gateway session (no public HTTPS callback), parses `C2C`/`GROUP`/`CHANNEL` events into an in-memory list, supports `GET` polling and `POST .../stop`, and auto-expires after ~10 minutes. Settings UI “Capture target ID” can apply `targetType`/`targetId`
+- **Test delivery**: `POST /api/alerts/test` accepts only a saved route kind and ID. An explicit admin click creates a fixed test alert. It may verify a disabled route, but is rejected when server-wide `[webConsole] alertsEnabled=false`. “Queued” is not a final-delivery guarantee; confirm with counters/circuit state and the real destination
+- **Adapters**: QQ obtains an app access token and sends to group/user v2 or channel endpoints; Official Accounts use `cgi-bin/token` plus customer-service/template messages; WeCom supports group-bot webhooks and custom-app `gettoken` + `message/send`; SMTP supports none/STARTTLS/SSL plus AUTH LOGIN. `baseUrl`/`tokenUrl` overrides handle API versions or proxies
+- **Secret boundary**: URLs, AppSecret, CorpSecret, and SMTP passwords remain in the server JSON. `sanitizeForClient` returns only `***` + last four and `*Configured`; PUT merges unchanged masks by target ID
+- **Async/backpressure**: `WebhookDispatcher` uses a fixed `ArrayBlockingQueue(512)` and two daemon workers. Fan-out defaults to 16 targets per occurrence; 1–5 attempts use `Retry-After`/exponential backoff capped at 30s, followed by a per-target circuit breaker. A full queue drops and counts external jobs without blocking ticks
+- **TPS spreading**: each alert phase evaluates at most two owners and reuses one storage snapshot/item-fluid index per network. Low-TPS alerts follow the same owner rotation instead of scanning every owner every 200ms; `HandlerTick` records `PHASE_ALERT_ENGINE` separately
 - **Event types**: `inventory_threshold` / `cpu_stuck` / `gt_error` / `order_complete` / `channel_overload` / `server_tps_below` / `automation_craft`
 - **TPS alert**: `serverTpsBelowEnabled` + `serverTpsThreshold` (default 15) + `serverTpsDurationSeconds` (default 60); evaluated by `WebAlertEngine` via `ServerHealthSampler`
 - **Health sampler**: `webae/health/ServerHealthSampler.java` — mean of `MinecraftServer.tickTimeArray` (last 100 ticks; same formula as `/forge tps` Overall: `mspt = mean(ns)×1e-6`, `tps = min(20, 1000/mspt)`); refreshed every tick via `HandlerTick`, ~1s samples into a 300s rolling window; `GET /api/server/health` (`ServerHealthHandler`); Diagnostics page TPS/MSPT use the same source
@@ -900,10 +953,32 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 ### 11.27 Spark Profiler Integration
 
 - **Optional dependency**: `dependencies.gradle` uses the Curse Maven Spark Forge 1.7.10 file (`curse.maven:spark-361579:3577247`) as `compileOnly` plus dev-only runtime. TeXTech never bundles Spark; the pack must install `spark-forge1710.jar` separately.
-- **Runtime gate**: `SparkService.isEnabled()` requires both `[webConsole] sparkEnabled=true` and Forge modid `spark` loaded. When either is false, `/api/config` exposes `sparkEnabled=false`, navigation hides the page, and direct Spark API calls return 503.
-- **Command bridge**: Admin requests run `spark profiler start --timeout N` / `spark profiler stop` on the server thread and capture asynchronous Spark output through a reflective `ICommandSender` proxy. This avoids linking Spark private implementation classes and tolerates 1.7.10 patch builds.
-- **Persistence**: `SparkProfileStore` keeps bounded JSON metadata in `TeXTech/WebAE/spark-history.json`, including status, start time, duration, initiator, captured output, and Spark Viewer URL. Active records are marked `interrupted` after a server restart.
-- **REST/frontend**: `SparkHandler` provides status, detail, start, stop, and delete endpoints. `pages/Spark.tsx` provides duration input, current status, history table, Viewer links, output details, and two-run metadata comparison. The call tree/flame view remains in the official Spark Viewer rather than being copied into the mod.
+- **Runtime gate**: `SparkService.isEnabled()` requires both `[webConsole] sparkEnabled=true` and Forge modid `spark` loaded. When either is false, `/api/config` exposes `sparkEnabled=false`, the admin console hides its Spark tab, and direct Spark API calls return 503.
+- **Modes and overhead boundary**: `server` profiles only the server game thread (4ms default); `lagSpikes` uses Spark `--only-ticks-over` and `--order-by-time`; `allThreads` uses `--thread * --not-combined --ignore-sleeping` and is clamped to an interval of at least 10ms. Modes and numeric parameters are allowlisted/bounded server-side with no free-form command text. Before starting, WebAE checks Spark's sampler and refuses to take over a profile started manually in-game; active history cannot be deleted. While idle, ADM registers no new tick phase, performs no world scan, and does not poll ActivityLog. During a run the browser reads in-memory status every 3 seconds; after stopping, a daemon checks ActivityLog every 2 seconds for at most 90 seconds.
+- **Command bridge / Viewer fix**: Spark 1.6.4 requires every profiler option to start with `--` and has **no** `start` subcommand. WebAE therefore calls the server plugin's `processCommand` directly with `spark profiler --interval N ...`, followed by `spark profiler --stop` at the deadline (`--order-by-time` is added for slow-tick mode). The old `spark profiler start/stop` form fails in Spark's `Arguments` parser, so it neither samples nor creates an ActivityLog entry—the root cause of persistently missing Viewer URLs. Result recovery now tries chat text/click events, the server SparkPlatform's in-memory ActivityLog, and finally `config/activity.json`; admins can also use `/api/spark/recover` on demand.
+- **Local call-tree analysis**: before dispatching stop, WebAE retains Spark's `SamplerModule.activeSampler` reference; after the command returns it reflectively reads the Java/async sampler's `dataAggregator.getData()`. It traverses Spark's already-aggregated `ThreadNode` / `StackTraceNode` tree (no separate sampling), calculates method self time as `node total − child totals`, and retains at most 50 methods, 16 thread groups, and stable influence groups (AE2, GregTech, machines/entities, chunks/worldgen, network/I/O, GC/JVM, and so on). Only the bounded summary is persisted. `analysisStatus` distinguishes `pending/ready/empty/unavailable/legacy`, preserving optional-dependency safety when Spark is absent.
+- **Context and persistence**: One lightweight `spark tps` snapshot is captured at both start and stop, retaining Spark's own TPS/MSPT/CPU context without adding a resident metrics collector. `SparkProfileStore` keeps bounded JSON in `TeXTech/WebAE/spark-history.json`, including mode, effective interval, slow-tick threshold, actual stop time, local hotspot/category/thread summaries, context output, and an optional Viewer URL. Active records become `interrupted` after restart; old records become `legacy`.
+- **REST/frontend**: `SparkHandler` provides status, detail, start, stop, Viewer recovery, delete, and explicit AI-analysis endpoints. Frequently-polled `GET /api/spark` removes analysis arrays and returns only status/counts plus lightweight metadata; detail and comparison fetch full records on demand. `pages/Spark.tsx` defaults to deterministic local suggestions backed by exclusive share and a concrete sampled method; admins may explicitly request deeper AI interpretation. `SparkAiAnalysisService` sends at most 20 hotspots, 16 categories, 12 threads, and capture metadata—never raw output, Viewer URLs, initiator identity, or API keys. Two captures always use `B − A`; Viewer remains an optional collapsed flame-graph entry.
+
+### 11.28 WebAE AI assistant and secret boundary
+
+- `WebAssistantService` reuses `AssistantAiIntentService.buildSystemPrompt()` and `AssistantAiIntentJsonParser`, keeping the Web and in-game task schemas aligned. Provider failure, an empty plan, or missing configuration falls back to `AssistantIntentService`. AE/world tools always return to the server thread through `HandlerTick.enqueueServerTask`.
+- Dual flags `aiServerKeyEnabled` / `aiBrowserKeyEnabled`. Shared side: admins manage ordered profiles via `WebAiAdminHandler`; `WebAiConfigStore` stores AES-GCM ciphertext in `TeXTech/WebAE/web-ai-settings.json` with master key `web-ai-master.key`. `WebAiCompletionService` failovers on provider-side errors only.
+- Personal side: `utils/personalAi.ts` stores ordered profiles + preferred source in origin `localStorage` and calls providers with `credentials: omit`. Browser paths receive secret-free prompts that may already include server-proxied shared web-search context.
+- Shared web search reuses `assistant.ai.WebSearchService` (auto / tavily_keyless / duckduckgo / tavily / brave / serper / searxng) for assistant chat, intent, and Spark AI.
+- Crafting, withdrawal, and teleport are never executed directly from natural language. Candidate objects stay on the server and the browser receives only a random actor+owner-bound confirmation token. Personal mode does not weaken this boundary, and guest tools remain read-only.
+- Provider base URLs must use HTTPS. HTTP is accepted only for `localhost`, `127.0.0.1`, or `::1`; userinfo, query strings, fragments, and the current WebAE origin are rejected. Key entry is disabled on non-secure, non-loopback pages. Personal mode also requires provider CORS support; `localStorage` keeps the key away from the server but cannot protect it from malicious same-origin script, so use a trusted device and trusted WebAE page.
+
+### 11.29 QQ group bot gateway
+
+- **Package and entry points**: `webae/qqbot/` is an independent subsystem. `QqBotConfigStore` persists settings, `QqBotGatewayClient` owns the official QQ Gateway/HTTP connection, `QqBotService` manages lifecycle, rate limits, conversations, scheduled reports, and audit, and `QqBotAdminHandler` exposes admin APIs. `WebAeServerHandler` starts/stops the bot together with WebAE.
+- **Credentials/defaults**: disabled by default. `qq-bot.json` stores non-secret settings plus `encryptedAppSecret`; ClientSecret is AES-GCM encrypted with independent `qq-bot-master.key`. APIs expose only `appSecretConfigured` and a suffix mask. Custom API/token endpoints require HTTPS, with HTTP accepted only for loopback development.
+- **Gateway protocol**: the server obtains an app access token, reads `/gateway`, and opens WSS with `GROUP_AND_C2C_EVENT`; enabling channels adds guild/public-message intents. It handles `GROUP_AT_MESSAGE_CREATE`, `C2C_MESSAGE_CREATE`, and channel/direct message events, heartbeats with the latest sequence, and reconnects with exponential backoff from 5 seconds to 5 minutes. Replies reuse inbound `msg_id`; proactive reports use group/user v2 or channel message APIs. Group/C2C screenshots first use `/files`, then send `msg_type=7` with `media.file_info`; channel screenshot delivery is explicitly unsupported.
+- **Commands and AI**: `QqBotCommandRouter` handles status/players/list/tps/memory/uptime/about/ping/reset locally. Unknown natural language can call `WebAiCompletionService`, reusing ordered server profiles and optional shared search. Conversations are isolated by targetType+targetId+senderId and bounded by turns, TTL, and a separate AI cooldown. The QQ AI prompt receives only a bounded read-only snapshot and explicitly forbids command execution, permission changes, or secret disclosure.
+- **Threads/performance**: the `qqBot` diagnostics phase on `HandlerTick` copies TPS, online names, uptime, and JVM memory once per second and checks lightweight scheduling. Gateway, OAuth, QQ HTTP, and AI run on daemon WebSocket/background workers with a hard queue capacity of 512 plus the lower configured limit. Admin endpoints are routed through `WebApiRouter` and therefore appear in `topRoutes`/`slowHttp`; GET is memory/config read and POST only queues work or starts asynchronous reconnect.
+- **Security/backpressure**: group/direct/channel inputs have independent switches; group, user, and bot-admin openids can be allowlisted. Bot-admin identity never maps to Minecraft OP. Messages are deduplicated; normal and AI cooldowns are separate; input/reply length, queued requests, audit entries, scheduled targets, and report cadence are bounded. A full queue increments drop counters and never blocks server ticks. No arbitrary QQ-side server command execution is provided.
+- **Frontend**: `components/admin/QqBotPanel.tsx` is an Admin-only internal tab, not a global navigation page. Its five subtabs cover runtime, credentials, commands/AI, access/schedules, and send/audit. All copy is aligned in `i18n/zh.ts` and `i18n/en.ts`.
+
 - **Package**: `webae/worldmap/` + `webae/worldmap/engine/` (Dynmap-grade UV/ray core) — see `project-structure-details.mdc`; frontend overlay is `WorldMapAeOverlayLayer.tsx` (not a Java class)
 - **Render engines**: `WorldMapRenderSupport.renderForView` dispatches flat+`uv` → `WorldMapFlatUvRenderer`; oblique+`ray` → `WorldMapIsoRayRenderer` (`WorldMapObliqueProjection` ortho rays + voxel DDA + `WorldMapFaceRasterizer` UV/biome/lighting); `legacy` painters kept as fallback; meta exposes `flatRenderEngine` / `obliqueRenderEngine`
 - **REST**: `GET /api/worldmap/meta?network=<id>&quality=` (includes `zoomLevels[]`, `dynmapMaxZoom`); terrain/AE tile URLs fixed at z0; AE tiles are category ID maps (R=categoryId); cache under `{view}/ae-id/`
@@ -925,6 +1000,23 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - **Dynmap bridge**: `dynmapMaxZoom` + `buildDynmapTileUrlAtDisplayZoom` single-resolution fetch
   - **Oblique switch**: `worldMapObliqueEnabled` (AND with `worldMapViewsEnabled`)
   - **Dual-mode UX**: `TopologyWorldMapView` (snapshot/direct); `TopologyDynmapView` deprecated for terrain (external Dynmap link only)
+
+### 11.30 Client window screenshots and chat attachments
+
+- **Privacy boundary**: `KeyBindings` defaults to F10 and uses a ClientTick key edge so capture still works inside any `GuiScreen`. `ClientScreenshotService` reads only Minecraft's `Framebuffer`, never AWT Robot, the desktop, or other windows. GL readback stays on the render thread; resize/JPEG/history cleanup uses one bounded client daemon.
+- **Local first**: files go to client `<instance>/TeXTech/Screenshots/`. Nothing uploads automatically. `list|preview` remains local; only `send web|qq` starts network work. Retention uses file and MiB caps and runs only after capture.
+- **Protocol/backpressure**: packet 51 is sequential 24 KiB C→S chunks, default one per tick; packet 52 is terminal S→C acknowledgement only. The server validates chunk count/order, bytes, dimensions, per-player single session/cooldown, QQ OP permission, and aggregate receive/process capacity. Stale sessions are cleaned lazily on ingress, so no tick phase is added.
+- **Completion**: a single bounded worker reads JPEG headers. Web targets persist under `TeXTech/WebAE/chat-attachments/` and add attachment metadata to `ChatMessage`; QQ targets enter the existing bounded bot queue without long-term server storage. Queue acceptance is not final third-party delivery.
+- **WebAE**: Chat fetches attachment Blobs with Bearer auth, renders an Ant Design image preview, and revokes Object URLs on unmount. Retention-expired files show an error and never trigger reconstruction or main-thread scans.
+
+### 11.31 Server console commands
+
+- **Access and entry point**: every `/api/admin/server-console*` route in `AdminConsoleHandler` uses `WebAuthAdminCheck`, so only an actor-bound admin grant or an online OP may call it. `ServerConsolePanel` remains an internal `AdminPage` tab, is not added to global navigation, and uses `React.lazy` so its separate chunk downloads only when the tab is first opened.
+- **Execution boundary**: `AdminCommandService` strips an optional leading slash and enforces one line/512 characters, a 750ms per-actor cooldown, global single-flight, and rejection when `HandlerTick` queue depth reaches 128. A synthetic `ICommandSender` runs the command in the existing `serverTasks` phase and captures chat output. Shutdown, bans, OP, whitelist, and similar roots require `confirmed=true`. HTTP waits at most eight seconds; timeout means pending and never re-enqueues the command.
+- **Players and bandwidth**: the player endpoint only copies existing `PlayerInfoStore` metadata and reuses it for three seconds. Online/offline/all filtering and search stay in the browser. Bootstrap audit rows include only a 160-character preview, with bounded full output fetched on demand.
+- **Existing admin-summary load reduction**: `useAdminPlayers` polls `/api/admin/players` only while the Players tab is active, with its interval relaxed from 10 to 30 seconds. Switching to Server Console or any other admin tab stops that heavier snapshot aggregation immediately.
+- **Persistence**: `AdminConsoleStore` keeps at most 64 shared presets and 40 audit entries in `TeXTech/WebAE/admin-console.json`, retaining only the final 24×256 output characters per entry. Snapshot copying, Gson serialization, and disk writes run on daemon workers with a 250ms burst-coalescing window; there is no idle tick phase or persistent poller.
+- **Diagnostics**: all routes pass through `WebApiRouter.route()`. Dynamic preset/history IDs normalize to stable paths for diagnostics `topRoutes`/`slowHttp`, while command execution time is also visible in the existing `serverTasks` tick phase.
 
 ## 12. Frontend Resources
 

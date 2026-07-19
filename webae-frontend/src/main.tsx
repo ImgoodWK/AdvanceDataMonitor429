@@ -8,6 +8,10 @@ import './styles/layout-batch3.css';
 import './styles/bold-styles-batch3.css';
 import './styles/bold-styles-batch4.css';
 import './styles/bold-styles-batch5.css';
+import './styles/bold-styles-batch6.css';
+import './styles/bold-styles-batch7.css';
+import './styles/theme-studio.css';
+import './styles/dashboard-advanced-widgets.css';
 import './styles/effects-motion.css';
 
 createRoot(document.getElementById('root')!).render(

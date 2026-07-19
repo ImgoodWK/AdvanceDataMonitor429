@@ -13,7 +13,8 @@ alwaysApply: false
 - **仅允许** Ant Design 5（`antd`）+ `@ant-design/icons`
 - **禁止** MUI、Chakra、Tailwind 组件库、Bootstrap 等第三方 UI 框架
 - 自定义样式以 antd `ConfigProvider` theme token + 项目 CSS 变量（`theme/antdTheme.ts`、`theme/layouts.ts`、`theme/pageStyles.ts`、`theme/colors.ts`、`styles/global.css`）为主
-- 外观四轴正交：`themeColor` × `themeLayout` × `pageStyle` × `effectsLevel`；`pageStyle` 含 chrome + 构图级（大胆 / batch2 / batch3 / Printstream batch4 / **Auraeco batch5**；蜂窝与反应堆用装饰层不裁切内容）；`themeLayout` 含 bottomnav / floating / split-chrome 及 batch3 结构变体；构图靠 `[data-page-style]` + `PageShell`/`Sidebar` CSS 钩子 + `styles/bold-styles.css` + `bold-styles-batch2.css` + `bold-styles-batch3.css` + `bold-styles-batch4.css` + `bold-styles-batch5.css` + `effects-motion.css`，**禁止**为风格 fork 业务页 JSX；设置页用 `ThemePreviewMini` / `ThemeOptionGrid` 缩略预览块选择；当前目录约 **128 配色 × 30 布局 × 126 页面样式**
+- 外观四轴正交：`themeColor` × `themeLayout` × `pageStyle` × `effectsLevel`；`pageStyle` 含 chrome + 构图级（大胆 / batch2 / batch3 / Printstream batch4 / Auraeco batch5 / 旗舰系统 batch6 + 媒体旗舰 batch7；装饰层不得裁切内容）；`themeLayout` 含经典、batch3 结构变体及 batch6 战术/任务控制/发动机/轨道/装配线/量子外框；构图靠 `[data-page-style]` + `PageShell`/`Sidebar` CSS 钩子 + `styles/bold-styles*.css` + `effects-motion.css`，**禁止**为风格 fork 业务页 JSX；设置页 `ThemeStudio` 提供完整设计包、顶级精选/分类/搜索/收藏、`ThemePreviewMini` / `ThemeOptionGrid` 四轴缩略预览；当前目录约 **141 配色 × 36 布局 × 138 页面样式**，另有 28 个视觉专用 `DESIGN_PACKS`
+- `effectsLevel` 三档 UI 语义固定为低性能主机 / 现代办公电脑 / 游戏主机全特效；`none` 保留构图与静态装饰，`subtle` 保留微交互但不运行重型持续背景，`full` 启用完整扫描/轨道/辉光/图表动效；全部尊重 `prefers-reduced-motion`，不得用降低业务可读性换取特效
 - **禁止**新增第三方 CSS 框架；主题氛围 **禁止**引入 Three.js / GSAP / CDN 字体（离线嵌入式）
 
 ## 图表
@@ -24,10 +25,12 @@ alwaysApply: false
 ## 布局引擎例外
 
 - Dashboard 拖拽布局允许使用已依赖的 `gridstack`（**仅**网格布局引擎，非 UI 组件库）
-- 三处 GridStack（主仪表盘 / 存储总览 / 电力页）统一用 `WidgetShell` 外壳；组件配置见 `utils/presets.ts` + `utils/dashboardResolve.ts`；树形分组见 `utils/dashboardTree.ts` + `GroupWidget.tsx`；复制/JSON 见 `utils/widgetGridActions.ts`；资讯组件见 `SpecialWidgets.tsx`
+- 三处 GridStack（主仪表盘 / 存储总览 / 电力页）统一用 `WidgetShell` 外壳；组件配置见 `utils/presets.ts` + `utils/dashboardResolve.ts`；树形分组与特殊数据源映射见 `utils/dashboardTree.ts` + `GroupWidget.tsx`；复制/JSON 见 `utils/widgetGridActions.ts`；资讯与网络健康/电力流向/存储矩阵/GT 机群/玩家在线/活动流/服务器生命体征组合组件见 `SpecialWidgets.tsx` + `dashboard-advanced-widgets.css`，只复用现有 hooks 结果，不得为展示新增轮询或 Tick 工作
+- 主仪表盘游戏显示器导出见 `utils/dashboardGameDisplayExport.ts`：只读取当前 DOM，输出 `textech-webae-display-snapshot` v1（最多 600 个 rect/ellipse/text/polyline、约 90 KiB 原始 JSON）并复制剪贴板；不得包含 Token/AI Key/Webhook/QQ/邮件密钥，不得新增 HTTP 端点/轮询/Tick。它与 `widgetGridActions.exportWidgetsJson()` 的可编辑布局 JSON 是两种格式
 - 长列表虚拟滚动使用 `@tanstack/react-virtual`（如 AE 下单 `VirtualPatternGrid` / `VirtualProductGrid`）
 - 页面容器统一使用 `components/Layout/PageShell.tsx`
 - 导航页表单一处定义：`components/Layout/navConfig.ts`（`NAV_PAGES` / `ALL_PAGES`），`Sidebar` / `TopBar` / `CommandPalette` 共用
+- Spark 性能分析仅作为 `AdminPage` 的管理标签；不得加入 `NAV_PAGES`、侧栏、顶栏或命令面板。采样到时由服务端停止，Viewer 上传状态可短暂保持「停止并上传结果中」。采样参数必须走服务端白名单（`server` / `lagSpikes` / `allThreads`），禁止把自由文本拼成 Spark 命令；全部线程间隔不得低于 10ms。停止后只从 Spark 已聚合的本地 sampler 树生成有界热点/类别/线程摘要，不另开采样器；详情与对比按需加载完整记录，`GET /api/spark` 轮询不得携带热点数组。默认智能建议必须由独占占比和具体类/方法证据驱动，明确为本地确定性分析；外部 AI 诊断只允许管理员显式点击触发，只发送有界聚合摘要，禁止发送 API Key、Viewer URL、原始输出或完整采样树。双记录变化统一为 `B − A`。空闲时不得新增 tick 任务、世界扫描或 ActivityLog 轮询；Viewer 恢复只允许用户按需触发。
 - 跨页展示组件：`components/common/SettingRow.tsx`、`SelectableListRow.tsx`、`SelectableCard.tsx`；样式类见 `global.css`（`.webae-nav-item`、`.webae-list-row`、`.webae-setting-row`、`.webae-pattern-slot`、`.webae-scroll-panel`、`.webae-selectable-card` 等）
 - 物品图标 ID：`utils/icon.ts` 的 `patternEntryIconId`；DOM 场景统一 `<Icon>`；Cytoscape 须先 `resolveLocalIconUrls`，未命中再 `buildIconUrl`（禁止批量服务端 prefetch）
 - 图标性能标准见 **`webae-icon-performance.mdc`**（默认不 auto-sync、不 HTTP 同步直渲）
@@ -36,6 +39,7 @@ alwaysApply: false
 ## 页面结构
 
 - 所有业务页面应包裹 `PageShell`，统一 padding/gap/标题区
+- 存储/流体/CPU/电力等数据密集页用 `components/Layout/DataPageSection.tsx` + `.data-page-flow` 划分可编辑概览、重点趋势与详细数据；编辑工具只在编辑态展开，禁止再用零散 `marginTop` 模拟区块边界
 - Card 内边距使用 `var(--layout-card-pad)`
 - Content 区：`standard` 布局 max-width 1600px 居中，`wide` 全宽（见 `AppLayout` / `global.css`）
 
@@ -67,10 +71,59 @@ alwaysApply: false
 - 文案键定义在 `src/i18n/zh.ts` 与 `en.ts`，禁止硬编码用户可见字符串
 - 模组 lang 文件（`adm.*`）仅用于游戏内；Web 控制台用前端 i18n
 
+## WebAE AI Key 边界
+
+- `[webConsole] aiServerKeyEnabled` / `aiBrowserKeyEnabled` 可独立开关；两者都开时由浏览器 `localStorage` 偏好选择，并在优先侧无可用 profile 时自动落到另一侧
+- 共享（server）：管理员经 AI 设置 API 维护有序多 profile + 共享联网搜索；前端不得读取明文 Key；响应只显示状态/掩码
+- 个人（browser）：统一经 `utils/personalAi.ts` 读写当前 origin 的 `localStorage` 多 profile 并直接 `fetch` Provider；Key 不得放进 `getApiClient()`、WebAE 请求体/URL、日志或导出 JSON
+- 浏览器模式请求必须 `credentials: omit`、`referrerPolicy: no-referrer`，拒绝当前 WebAE origin、远程 HTTP、userinfo/query/fragment；Provider 输出若原样反射 Key，提交 WebAE 前先精确脱敏
+- 故障切换仅针对供应侧错误（超时/HTTP 4xx·5xx/额度）；意图 JSON 解析失败仍回退词库
+- 联网搜索复用 `assistant.ai.WebSearchService`；个人模式由服务端代搜注入无密钥 prompt，不接收个人 search Key
+- 助手仍把 AI plan 交给服务端 parser/tool 层，修改型动作继续二次确认；Spark 只使用服务端生成的有界聚合 prompt。必须向用户说明 Provider CORS 与同源脚本可读取 `localStorage` 的边界
+
+## 告警多渠道边界
+
+- `AlertsRulesEditor.tsx` 的浏览器/玩家聊天/HUD/外部目标必须保留 `events[]` + `severities[]` 空数组=全部的语义；外部目标 `ownerUuids[]` 空数组=全部 owner
+- URL、AppSecret、CorpSecret、SMTP 密码只允许显示 `***` 掩码与 `*Configured`，前端不得缓存明文到 localStorage、日志或导出包；空输入表示保留旧密钥
+- `WebAlertDto.browserNotify=false` 时，`useEventStream`、`useWebAlerts`、`notifyAlertOnce` 三处都不得弹 WebAE Toast/系统通知
+- 设置页必须展示外部投递队列/失败/丢弃/熔断状态，并说明第三方限制；不得在浏览器端直连 QQ/微信/SMTP 或持有这些服务端凭据
+- 告警设置必须保留问号帮助入口、内置 WebAE/聊天/HUD 一键启用（浏览器权限只能由用户手势申请）、外部平台快速必填项与单项目标高级折叠；平台入口只链接官方控制台/文档
+- 外部目标与旧 Webhook 仅在保存后允许 `POST /api/alerts/test` 测试；测试必须由管理员显式触发，复用服务端有界队列/重试/熔断，前端只提交目标种类和 ID，不能提交或读取明文凭据
+- QQ 官方机器人「获取目标 ID」走服务端 `/api/alerts/qq-id-probe/*`（管理员）；前端只展示捕获结果并填入 `targetType`/`targetId`，不得在浏览器建立 QQ WebSocket 或持有 ClientSecret 以外的探测会话状态（密钥仍仅服务端使用）
+
+## QQ 群机器人管理边界
+
+- `components/admin/QqBotPanel.tsx` 仅作为 `AdminPage` 内部标签，不加入 `NAV_PAGES`/侧栏/顶栏/命令面板；全部 API 为 `/api/admin/qq-bot/*` 且要求管理员
+- ClientSecret 输入只随显式保存发送一次；GET 只接收 `appSecretConfigured`/掩码，禁止写入 localStorage、日志、导出包或前端状态持久化；浏览器不得建立 QQ WebSocket 或直连 QQ HTTP API
+- 连接状态每 5 秒内存轮询；手动发送、重连、清会话均需管理员显式点击。QQ 网络/AI/定时播报由服务端有界后台队列执行，前端不得承诺平台最终送达
+- 群/用户/管理员 openid、目标类型、输入/回复/队列/审计/会话/播报参数必须保留服务端限幅；QQ 管理员不等价 Minecraft OP，页面不得提供任意服务端命令文本输入
+- AI 仅复用服务端共享 profile/search；QQ 页面不接收个人浏览器 Key，不展示/发送 AI Key，不绕过服务端只读快照与命令安全边界
+
+## 服务端后台命令边界
+
+- `components/admin/ServerConsolePanel.tsx` 仅作为 `AdminPage` 内部标签并保持 `React.lazy` 按需加载，不加入全局导航；全部 `/api/admin/server-console*` 端点必须经 `WebAuthAdminCheck`，前端和服务端都要对停服/封禁/OP/白名单等高风险命令要求二次确认
+- 命令仅由管理员显式提交；服务端保持单并发、actor 冷却、512 字符单行上限和 `HandlerTick` 队列深度门禁。不得增加空闲 tick 阶段、自动重试或命令轮询；超时必须提示先查审计，禁止自动重复入队
+- 玩家列表只按需拉取 `PlayerInfoStore` 轻量快照；在线/离线/全部和搜索必须在浏览器本地切换，不得因筛选产生请求或扫描世界。插入常用命令/玩家名/UUID 只填编辑器，不得直接执行
+- preset/审计必须有界并后台落盘；bootstrap 只返回历史摘要，完整输出按需取且保持行数/行长上限。新增动态详情路由须在 `WebApiRouter.normalizeRoute` 规范化，确保 diagnostics 不按 ID 爆炸
+- 既有 `useAdminPlayers` 重型汇总只允许在 `AdminPage` 的玩家网络标签活跃时轮询，间隔不低于 30 秒；其他管理标签不得为它保活
+
+## 聊天截图附件边界
+
+- `ChatMessageDto` 的 `attachmentId` 仅接受服务端生成的 32 位小写 hex；前端必须用带 Bearer 的 Blob fetch，禁止把 Token 放入图片 URL query
+- 图片 Object URL 在组件卸载时必须 `URL.revokeObjectURL`；附件过期只显示错误，不自动触发截图重传、世界采集或轮询加速
+- 游戏截图仅由客户端显式命令上传；网页聊天不得读取客户端文件系统。QQ 图片仅 group/C2C 且需 Minecraft OP，成功提示只表示进入有界队列
+
 ## 拓扑与世界地图
 
 - 拓扑页：`pages/NetworkTopology.tsx` + `components/topology/*`（cytoscape/SVG/模拟视图）
 - 世界地图：`TopologyWorldMapView`、`WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay`；hooks `useWorldMapData`/`useWorldMapTileLoader`/`useWorldMapProgress`；utils `worldMapTerrain.ts`/`worldMapViews.ts`
+
+## 视口、浏览模式与 GridStack 所有权
+
+- 除 `AdminPage` / `SettingsPage` 外，`AppLayout` 内容区使用 `webae-layout--viewport-page` + `100dvh` 固定外壳；不得恢复网页最右侧外层滚动条。超长内容用 PageShell body 或表格/列表内部滚动兜底，并保留滚轮、触摸与键盘可访问性。
+- `AppContext.browsingMode`（`localStorage.webae_browsing_mode`）在 Dashboard、Storage/CPU Overview、Power 与 Topology 隐藏编辑、布局设置和采集入口；查看、搜索、筛选、刷新、导出仍可用。新增只读数据页的编辑控件必须接入此状态；UI bundle 与中英 i18n 同步。
+- GridStack 实例不得因编辑开关、margin 或几何写回反复 destroy/re-init；用 `setStatic()` / `margin()` 更新运行态。dragstop/resizestop 必须先复制/限幅 engine 节点，再在下一 animation frame 提交 React。
+- React 是 widget DOM 的唯一删除所有者：禁止配置 GridStack removable 让其先删除 `.grid-stack-item`；删除通过 React 状态动作完成。页面组件必须由 `PageErrorBoundary` 隔离，单页异常不得卸载导航壳。
 
 ## 构建（强制）
 

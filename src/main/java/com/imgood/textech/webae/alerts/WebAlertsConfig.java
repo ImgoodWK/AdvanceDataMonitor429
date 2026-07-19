@@ -8,7 +8,7 @@ import java.util.List;
  */
 public final class WebAlertsConfig {
 
-    public int version = 1;
+    public int version = 2;
     public boolean enabled = true;
     public int pollIntervalSeconds = 10;
     public List<InventoryThresholdRule> inventoryThresholds = new ArrayList<InventoryThresholdRule>();
@@ -24,6 +24,116 @@ public final class WebAlertsConfig {
     public List<AutomationRule> automationRules = new ArrayList<AutomationRule>();
     /** Default max automation triggers per rule per hour when rule omits the field. */
     public int automationMaxTriggersPerHour = 12;
+    /** Existing WebAE toast/browser notification route. */
+    public NotificationFilter browserNotifications = defaultBrowserNotifications();
+    /** Direct message to the alert owner's in-game chat. */
+    public NotificationFilter playerChat = defaultPlayerChat();
+    /** Client HUD route for the alert owner. */
+    public HudNotificationFilter playerHud = defaultPlayerHud();
+    /** QQ official bot, WeChat Official Account, email, and WeCom targets. */
+    public List<NotificationTarget> notificationTargets = new ArrayList<NotificationTarget>();
+    /** Per-alert fan-out budget across external targets. */
+    public int notificationMaxDeliveriesPerAlert = 16;
+    public int notificationRetryMaxAttempts = 3;
+    public int notificationConnectTimeoutMs = 3000;
+    public int notificationReadTimeoutMs = 5000;
+    public int notificationCircuitBreakFailures = 5;
+    public int notificationCircuitBreakSeconds = 60;
+
+    private static NotificationFilter defaultBrowserNotifications() {
+        NotificationFilter filter = new NotificationFilter();
+        filter.enabled = true;
+        return filter;
+    }
+
+    private static NotificationFilter defaultPlayerChat() {
+        NotificationFilter filter = new NotificationFilter();
+        filter.enabled = true;
+        return filter;
+    }
+
+    private static HudNotificationFilter defaultPlayerHud() {
+        HudNotificationFilter filter = new HudNotificationFilter();
+        filter.enabled = true;
+        filter.severities.add("warning");
+        filter.severities.add("error");
+        return filter;
+    }
+
+    public static class NotificationFilter {
+
+        public boolean enabled = true;
+        /** Empty means all known alert event types. */
+        public List<String> events = new ArrayList<String>();
+        /** Empty means all severities. */
+        public List<String> severities = new ArrayList<String>();
+    }
+
+    public static final class HudNotificationFilter extends NotificationFilter {
+
+        public int durationSeconds = 10;
+        public int maxVisible = 3;
+        /** top_left, top_right, bottom_left, or bottom_right. */
+        public String position = "top_right";
+        public boolean soundEnabled = false;
+    }
+
+    /**
+     * External notification destination. Fields are interpreted by {@link #type}; keeping a single
+     * DTO makes the JSON/API forward-compatible while the dispatcher remains transport-pluggable.
+     */
+    public static final class NotificationTarget extends NotificationFilter {
+
+        public String id = "";
+        /** qq_official, wechat_official, email, wecom_bot, or wecom_app. */
+        public String type = "email";
+        /** Empty means alerts for every owner. */
+        public List<String> ownerUuids = new ArrayList<String>();
+
+        /** Webhook endpoint for wecom_bot. Never exposed in full to browsers. */
+        public String url = "";
+        public transient boolean urlConfigured;
+
+        /** QQ/WeChat application identity and secret. */
+        public String appId = "";
+        public String appSecret = "";
+        public transient boolean appSecretConfigured;
+        /** Optional platform API base override; empty selects the official production endpoint. */
+        public String baseUrl = "";
+        /** Optional OAuth/token endpoint override. */
+        public String tokenUrl = "";
+        /** QQ: group, c2c, or channel. */
+        public String targetType = "group";
+        /** QQ group_openid/user openid/channel id, or WeChat Official Account user openid. */
+        public String targetId = "";
+
+        /** WeChat Official Account: customer_service or template. */
+        public String mode = "customer_service";
+        public String templateId = "";
+        public String templateUrl = "";
+
+        /** WeCom application-message credentials and recipients. */
+        public String corpId = "";
+        public String corpSecret = "";
+        public transient boolean corpSecretConfigured;
+        public int agentId;
+        public String toUser = "";
+        public String toParty = "";
+        public String toTag = "";
+
+        /** SMTP destination. */
+        public String smtpHost = "";
+        public int smtpPort = 587;
+        /** none, starttls, or ssl. */
+        public String smtpSecurity = "starttls";
+        public String smtpUsername = "";
+        public String smtpPassword = "";
+        public transient boolean smtpPasswordConfigured;
+        public String mailFrom = "";
+        public List<String> mailTo = new ArrayList<String>();
+        public List<String> mailCc = new ArrayList<String>();
+        public String subjectPrefix = "[WebAE]";
+    }
 
     public static final class AutomationRule {
 

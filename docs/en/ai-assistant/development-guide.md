@@ -207,6 +207,15 @@ Main flow highlights:
 - `src/main/java/com/imgood/textech/command/CommandAIConfig.java`
   - Command-line configuration entry for setting/viewing AI-related configuration.
 
+### WebAE reuse and server-side secrets
+
+- `webae/assistant/WebAssistantService.java` reuses `AssistantAiIntentService.buildSystemPrompt()` and `AssistantAiIntentJsonParser`, so the Web and in-game surfaces share one intent/task schema. Missing, failed, or invalid AI output still falls back to the `AssistantIntentService` lexicon. `[webConsole] aiKeyMode=server` builds plans server-side; `browser` returns a secret-free prompt for a direct provider call and feeds the resulting plan through the same parser.
+- WebAE queries, plans, crafting candidates, withdrawal candidates, and teleport destinations call the same `AssistantServerServices` / `TeleportService` implementations. A model cannot directly execute a mutation: the server issues a random Web actor+owner-bound confirmation token with a five-minute lifetime, while candidate `ItemStack` and NBT data remain server-side.
+- `WebAiConfigStore` remains separate from the game client's `ai-client-local.cfg`. In shared mode, an admin writes the WebAE key and AES-GCM ciphertext plus a separate master key live under `TeXTech/WebAE/`; the safe view exposes status and a last-four mask only. In personal mode, `runtime()` is hard-disabled and `webae-frontend/src/utils/personalAi.ts` keeps the browser key in that site's `localStorage` for direct provider calls; no WebAE API carries it. Guest tools remain read-only, and mutations require server confirmation tokens in either mode.
+- `WebAiHttpClient` adapts OpenAI-compatible `/chat/completions`, Anthropic Messages, and Gemini GenerateContent. Base URLs require HTTPS except for loopback HTTP. Provider compatibility or endpoint changes must be synchronized to both WebAE developer/user language trees.
+- Spark AI analysis is not a new assistant intent. An admin explicitly invokes `SparkAiAnalysisService` from the Spark page, which sends only bounded category/thread/method-hotspot aggregates; raw Spark output, Viewer URLs, identity, and API keys never enter the prompt.
+- QQ group-bot AI is also not a new in-game intent. `webae/qqbot/QqBotService` reuses `WebAiCompletionService` plus optional shared search for free-form chat, while TPS/player list/memory/uptime remain deterministic read-only commands. Conversations are isolated by QQ target and user with bounded turns, TTL, and cooldown; prompts receive only a bounded server snapshot, and QQ cannot trigger crafting, withdrawal, teleport, or arbitrary console commands. Because no `AssistantIntentType` is added, this change intentionally adds no `assistant-features.json` or `assistant-lexicon.json` entry.
+
 ## A4. AI JSON Schema and Parser Behavior
 
 `AssistantAiIntentService` requires the model to return a JSON object with the following schema:

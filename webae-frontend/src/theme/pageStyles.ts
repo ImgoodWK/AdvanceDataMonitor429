@@ -129,7 +129,20 @@ export type PageStyle =
   | 'aura-spore'
   | 'aura-dome'
   | 'aura-sparks'
-  | 'aura-bubble';
+  | 'aura-bubble'
+  // Batch6 flagship authored systems.
+  | 'terra-command'
+  | 'terra-contract'
+  | 'terra-originium'
+  | 'cyber-grid'
+  | 'cyber-chrome'
+  | 'earth-engine'
+  | 'lunar-orbit'
+  | 'gtnh-cosmos'
+  | 'gt-assembly'
+  | 'gt-cleanroom'
+  | 'gt-fusion'
+  | 'textech-quantum';
 
 /** Per-widget / resolved chart drawing recipe ids (7 options). */
 export type ChartStyle =
@@ -297,6 +310,18 @@ export const PAGE_STYLES: PageStyle[] = [
   'aura-dome',
   'aura-sparks',
   'aura-bubble',
+  'terra-command',
+  'terra-contract',
+  'terra-originium',
+  'cyber-grid',
+  'cyber-chrome',
+  'earth-engine',
+  'lunar-orbit',
+  'gtnh-cosmos',
+  'gt-assembly',
+  'gt-cleanroom',
+  'gt-fusion',
+  'textech-quantum',
 ];
 
 export const CHART_STYLES: ChartStyle[] = [
@@ -317,6 +342,48 @@ const MONO_FONT =
 
 const AURA_SERIF_FONT =
   "Georgia, 'Times New Roman', 'Songti SC', 'SimSun', serif";
+
+function createFlagshipPageStyle(
+  id: PageStyle,
+  options: {
+    radius?: number;
+    radiusSm?: number;
+    chart?: Exclude<ChartStyle, 'inherit'>;
+    font?: string;
+    titleWeight?: number;
+    shadow?: string;
+    shadowHover?: string;
+    borderWidth?: number;
+    opacity?: number;
+    blur?: number;
+    gapScale?: number;
+    enter?: string;
+  } = {}
+): PageStylePreset {
+  const radius = options.radius ?? 4;
+  return {
+    id,
+    borderRadius: radius,
+    fontFamily: options.font,
+    defaultChartStyle: options.chart || 'outlined',
+    cssVars: {
+      '--style-radius': `${radius}px`,
+      '--style-radius-sm': `${options.radiusSm ?? Math.max(0, Math.floor(radius / 2))}px`,
+      '--style-shadow': options.shadow || '0 8px 28px rgba(0, 0, 0, 0.36)',
+      '--style-shadow-hover': options.shadowHover || '0 12px 38px var(--accent-glow)',
+      '--style-border-width': `${options.borderWidth ?? 1}px`,
+      '--style-card-bg': 'var(--bg-card)',
+      '--style-card-opacity': String(options.opacity ?? 0.94),
+      '--style-chrome-border': 'var(--accent-dim)',
+      '--style-nav-pad': '9px 14px',
+      '--style-font-ui': options.font || DEFAULT_FONT,
+      '--style-title-weight': String(options.titleWeight ?? 700),
+      '--style-card-blur': `${options.blur ?? 0}px`,
+      '--style-content-gap-scale': String(options.gapScale ?? 1),
+      '--style-enter': options.enter || 'hardcut',
+    },
+  };
+}
 
 export const PAGE_STYLE_PRESETS: Record<PageStyle, PageStylePreset> = {
   classic: {
@@ -2960,6 +3027,121 @@ export const PAGE_STYLE_PRESETS: Record<PageStyle, PageStylePreset> = {
       '--style-enter': 'bubble-rise',
     },
   },
+  'terra-command': createFlagshipPageStyle('terra-command', {
+    radius: 2,
+    radiusSm: 0,
+    chart: 'outlined',
+    font: MONO_FONT,
+    titleWeight: 800,
+    borderWidth: 1,
+    gapScale: 0.92,
+    enter: 'tactical-lock',
+  }),
+  'terra-contract': createFlagshipPageStyle('terra-contract', {
+    radius: 0,
+    chart: 'minimal',
+    font: MONO_FONT,
+    titleWeight: 800,
+    borderWidth: 2,
+    gapScale: 0.86,
+    enter: 'contract-slice',
+  }),
+  'terra-originium': createFlagshipPageStyle('terra-originium', {
+    radius: 6,
+    chart: 'viz',
+    shadow: '0 10px 30px rgba(0, 0, 0, 0.44)',
+    shadowHover: '0 14px 42px var(--accent-glow)',
+    blur: 8,
+    enter: 'originium-rise',
+  }),
+  'cyber-grid': createFlagshipPageStyle('cyber-grid', {
+    radius: 2,
+    radiusSm: 0,
+    chart: 'viz',
+    font: MONO_FONT,
+    borderWidth: 1,
+    gapScale: 0.9,
+    enter: 'cyber-scan',
+  }),
+  'cyber-chrome': createFlagshipPageStyle('cyber-chrome', {
+    radius: 10,
+    chart: 'filled',
+    shadow: '0 12px 36px rgba(0, 0, 0, 0.5)',
+    shadowHover: '0 18px 48px var(--accent-glow)',
+    opacity: 0.86,
+    blur: 18,
+    enter: 'chrome-focus',
+  }),
+  'earth-engine': createFlagshipPageStyle('earth-engine', {
+    radius: 1,
+    radiusSm: 0,
+    chart: 'outlined',
+    font: MONO_FONT,
+    titleWeight: 750,
+    borderWidth: 1,
+    gapScale: 0.9,
+    enter: 'engine-ignite',
+  }),
+  'lunar-orbit': createFlagshipPageStyle('lunar-orbit', {
+    radius: 12,
+    chart: 'viz',
+    shadow: '0 14px 46px rgba(0, 0, 0, 0.46)',
+    shadowHover: '0 18px 56px var(--accent-glow)',
+    opacity: 0.84,
+    blur: 18,
+    gapScale: 1.08,
+    enter: 'orbit-dock',
+  }),
+  'gtnh-cosmos': createFlagshipPageStyle('gtnh-cosmos', {
+    radius: 6,
+    chart: 'filled',
+    font: MONO_FONT,
+    shadow: '0 0 28px color-mix(in srgb, var(--accent) 16%, transparent)',
+    shadowHover: '0 0 44px var(--accent-glow)',
+    blur: 10,
+    enter: 'stargate-open',
+  }),
+  'gt-assembly': createFlagshipPageStyle('gt-assembly', {
+    radius: 1,
+    radiusSm: 0,
+    chart: 'outlined',
+    font: MONO_FONT,
+    titleWeight: 750,
+    borderWidth: 2,
+    gapScale: 0.84,
+    enter: 'assembly-feed',
+  }),
+  'gt-cleanroom': createFlagshipPageStyle('gt-cleanroom', {
+    radius: 3,
+    chart: 'minimal',
+    font: MONO_FONT,
+    titleWeight: 650,
+    shadow: '0 8px 26px rgba(0, 0, 0, 0.32)',
+    shadowHover: '0 12px 34px var(--accent-glow)',
+    blur: 6,
+    gapScale: 0.92,
+    enter: 'cleanroom-seal',
+  }),
+  'gt-fusion': createFlagshipPageStyle('gt-fusion', {
+    radius: 14,
+    chart: 'filled',
+    shadow: '0 0 32px color-mix(in srgb, var(--accent) 20%, transparent)',
+    shadowHover: '0 0 52px var(--accent-glow)',
+    opacity: 0.84,
+    blur: 16,
+    enter: 'fusion-pulse',
+  }),
+  'textech-quantum': createFlagshipPageStyle('textech-quantum', {
+    radius: 8,
+    chart: 'viz',
+    font: MONO_FONT,
+    shadow: '0 10px 38px rgba(0, 0, 0, 0.5)',
+    shadowHover: '0 0 56px var(--accent-glow)',
+    opacity: 0.82,
+    blur: 20,
+    gapScale: 1.04,
+    enter: 'quantum-phase',
+  }),
 };
 
 export const CHART_STYLE_RECIPES: Record<Exclude<ChartStyle, 'inherit'>, ChartStyleRecipe> = {

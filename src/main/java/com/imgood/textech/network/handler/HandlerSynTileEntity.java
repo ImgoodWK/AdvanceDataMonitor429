@@ -15,30 +15,28 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 public class HandlerSynTileEntity implements IMessageHandler<PacketSynTileEntity, IMessage> {
 
     @Override
-    public IMessage onMessage(PacketSynTileEntity message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-        World world = player == null ? null : player.worldObj;
-        if (world == null) {
-            return null;
-        }
-        if (!NetworkValidationUtil.isWithinReach(player, message.getX(), message.getY(), message.getZ())) {
-            return null;
-        }
-        TileEntity tileEntity = world.getTileEntity(message.getX(), message.getY(), message.getZ());
-        if (!(tileEntity instanceof TileEntityAdvanceDataMonitor)) {
-            return null;
-        }
-        if (!NetworkValidationUtil.canEditOwnedTile(player, tileEntity)) {
-            return null;
-        }
-        if (message.getData() == null) {
-            return null;
-        }
-        TileEntityAdvanceDataMonitor tileEntityADM = (TileEntityAdvanceDataMonitor) tileEntity;
-        tileEntityADM.readFromNBT(message.getData());
-        tileEntityADM.markDirty();
-        tileEntityADM.syncData();
-        world.markBlockForUpdate(message.getX(), message.getY(), message.getZ());
-        return null;
+    public IMessage onMessage(final PacketSynTileEntity message, final MessageContext ctx) {
+        if (message == null || message.getData() == null) return null;
+        return PacketHandlers.runOnServer(ctx, new Runnable() {
+
+            @Override
+            public void run() {
+                EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+                World world = player == null ? null : player.worldObj;
+                if (world == null
+                    || !NetworkValidationUtil.isWithinReach(player, message.getX(), message.getY(), message.getZ())) {
+                    return;
+                }
+                TileEntity tileEntity = world.getTileEntity(message.getX(), message.getY(), message.getZ());
+                if (!(tileEntity instanceof TileEntityAdvanceDataMonitor)
+                    || !NetworkValidationUtil.canEditOwnedTile(player, tileEntity)) {
+                    return;
+                }
+                TileEntityAdvanceDataMonitor tileEntityADM = (TileEntityAdvanceDataMonitor) tileEntity;
+                tileEntityADM.applyClientConfiguration(message.getData());
+                tileEntityADM.syncData();
+                world.markBlockForUpdate(message.getX(), message.getY(), message.getZ());
+            }
+        });
     }
 }

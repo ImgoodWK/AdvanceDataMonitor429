@@ -10,12 +10,15 @@ import type { DashboardSettings, DashboardWidgetConfig } from '@/utils/presets';
 import { WidgetShell } from '@/components/dashboard/WidgetShell';
 import {
   applyChildNodePositions,
-  widgetLayoutSignature,
+  widgetRemountSignature,
 } from '@/utils/dashboardTree';
 import {
   GRID_DRAG_CANCEL_SELECTOR,
   GRID_EDIT_NO_DRAG_CLASS,
   stopGridDragPointer,
+  observeGridViewport,
+  scheduleGridLayoutCommit,
+  cancelGridLayoutCommit,
 } from '@/utils/gridStackEditGuard';
 import { useI18n } from '@/i18n';
 
@@ -57,12 +60,13 @@ export function GroupWidget({
   const { t } = useI18n();
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
+  const pendingGridCommitRef = useRef<number | null>(null);
   const children = widget.children || [];
   const childrenRef = useRef(children);
   childrenRef.current = children;
   const onChildrenChangeRef = useRef(onChildrenChange);
   onChildrenChangeRef.current = onChildrenChange;
-  const layoutSig = useMemo(() => widgetLayoutSignature(children), [children]);
+  const remountSig = useMemo(() => widgetRemountSignature(children), [children]);
   const title = widget.title ? t(widget.title) : t('widgetType_group');
 
   useEffect(() => {
@@ -84,28 +88,51 @@ export function GroupWidget({
     );
     gridInstanceRef.current = grid;
     grid.float(false);
+    const stopViewportObserver = observeGridViewport(grid, 48, 32);
 
-    const commitChildren = () => {
-      const nodes = grid.engine.nodes;
-      if (!nodes.length) return;
+    const commitChildren = (nodes: Parameters<typeof applyChildNodePositions>[1]) => {
       onChildrenChangeRef.current(applyChildNodePositions(childrenRef.current, nodes));
     };
     const onDragOrResizeStop = () => {
-      commitChildren();
-      flushLayoutSave();
+      scheduleGridLayoutCommit(grid, pendingGridCommitRef, commitChildren);
     };
     grid.on('dragstop', onDragOrResizeStop);
     grid.on('resizestop', onDragOrResizeStop);
 
     return () => {
+      stopViewportObserver();
+      cancelGridLayoutCommit(pendingGridCommitRef);
       flushLayoutSave();
-      grid.off('dragstop');
-      grid.off('resizestop');
-      grid.destroy(false);
-      gridInstanceRef.current = null;
+      grid.offAll();
+      if (gridInstanceRef.current === grid) gridInstanceRef.current = null;
+      try {
+        grid.destroy(false);
+      } catch {
+        // StrictMode/navigation may already have released the instance.
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layoutSig, editMode, settings.widgetGap]);
+  }, [remountSig]);
+
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    try {
+      grid.setStatic(!editMode);
+    } catch {
+      /* grid is changing pages */
+    }
+  }, [editMode, remountSig]);
+
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    try {
+      grid.margin(Math.max(4, Math.floor((settings.widgetGap ?? 12) / 2)));
+    } catch {
+      /* grid is changing pages */
+    }
+  }, [settings.widgetGap, remountSig]);
 
   return (
     <div className="widget-group">

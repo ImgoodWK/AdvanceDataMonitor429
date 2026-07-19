@@ -37,7 +37,7 @@ const TAG_COLORS: Record<PaletteKind, string> = {
 };
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
-  const { setActivePage, setPageSearchPrefill, setSelectedNetworks, selectedNetworks, serverConfig } =
+  const { setActivePage, setPageSearchPrefill, setSelectedNetworks, selectedNetworks } =
     useAppContext();
   const { t } = useI18n();
   const [query, setQuery] = useState('');
@@ -52,14 +52,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   }, [open]);
 
   const pageItems = useMemo<PaletteItem[]>(() => {
-    return ALL_PAGES.filter((p) => p.id !== 'spark' || !!serverConfig?.sparkEnabled).map((p) => ({
+    return ALL_PAGES.map((p) => ({
       id: 'page:' + p.id,
       kind: 'page' as const,
       pageId: p.id,
       label: t(p.labelKey),
       keywords: `${p.id} ${t(p.labelKey)}`.toLowerCase(),
     }));
-  }, [serverConfig?.sparkEnabled, t]);
+  }, [t]);
 
   const favoriteItems = useMemo<PaletteItem[]>(() => {
     return favoriteRecipeItems().map((fav) => ({

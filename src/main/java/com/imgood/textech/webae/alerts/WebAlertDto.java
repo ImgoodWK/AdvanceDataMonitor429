@@ -14,4 +14,6 @@ public final class WebAlertDto {
     public int networkId = -1;
     public boolean acknowledged;
     public String sourceKey = "";
+    /** Whether WebAE should show its existing toast/browser notification for this occurrence. */
+    public boolean browserNotify = true;
 }

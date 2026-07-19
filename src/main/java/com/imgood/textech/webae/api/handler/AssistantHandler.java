@@ -1,84 +1,71 @@
 package com.imgood.textech.webae.api.handler;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.assistant.WebAssistantService;
+import com.imgood.textech.webae.assistant.WebAssistantService.ClientAiContext;
+import com.imgood.textech.webae.assistant.WebAssistantService.WebAssistantActionRequest;
+import com.imgood.textech.webae.assistant.WebAssistantService.WebAssistantRequest;
 import com.imgood.textech.webae.assistant.WebAssistantService.WebAssistantResult;
+import com.imgood.textech.webae.auth.WebAuthSession;
 
 import fi.iki.elonen.NanoHTTPD;
 
-/**
- * POST /api/assistant/query — Web text → server-side assistant rule parsing.
- */
+/** WebAE assistant query and explicit action-confirmation endpoints. */
 public final class AssistantHandler {
 
-    private static final Gson GSON = new GsonBuilder().serializeNulls()
-        .create();
-    private static final long TIMEOUT_MS = 20_000L;
+    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
     private AssistantHandler() {}
 
-    public static NanoHTTPD.Response handle(String body, String ownerUuid) {
-        String text = "";
-        String locale = "zh_CN";
-        if (body != null && !body.isEmpty()) {
-            try {
-                JsonObject json = new JsonParser().parse(body)
-                    .getAsJsonObject();
-                if (json.has("text")) {
-                    text = json.get("text")
-                        .getAsString();
-                }
-                if (json.has("locale")) {
-                    locale = json.get("locale")
-                        .getAsString();
-                }
-            } catch (Exception ignored) {}
-        }
-
-        final String finalText = text;
-        final String finalLocale = locale;
-        final WebAssistantResult[] holder = new WebAssistantResult[1];
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        HandlerTick.enqueueServerTask(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    holder[0] = WebAssistantService.handleQuery(ownerUuid, finalText, finalLocale);
-                } finally {
-                    latch.countDown();
-                }
-            }
-        });
-
+    public static NanoHTTPD.Response handleClientAiContext(String body) {
         try {
-            if (!latch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                return json(
-                    NanoHTTPD.Response.Status.INTERNAL_ERROR,
-                    "{\"success\":false,\"message\":\"Assistant query timed out\",\"code\":\"timeout\"}");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread()
-                .interrupt();
-            return json(NanoHTTPD.Response.Status.INTERNAL_ERROR, "{\"success\":false,\"message\":\"Interrupted\"}");
+            ClientAiContextRequest request = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body,
+                ClientAiContextRequest.class);
+            ClientAiContext context = WebAssistantService.clientAiContext(
+                request == null ? null : request.locale,
+                request == null ? null : request.text);
+            return json(NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"context\":" + GSON.toJson(context) + "}");
+        } catch (IllegalStateException e) {
+            return error(NanoHTTPD.Response.Status.CONFLICT, "browser_ai_disabled", e.getMessage());
+        } catch (Exception e) {
+            return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_json", "Invalid AI context request body.");
         }
+    }
 
-        WebAssistantResult result = holder[0];
-        if (result == null) {
-            return json(NanoHTTPD.Response.Status.INTERNAL_ERROR, "{\"success\":false,\"message\":\"No result\"}");
+    public static NanoHTTPD.Response handleQuery(String body, WebAuthSession auth) {
+        try {
+            WebAssistantRequest request = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body,
+                WebAssistantRequest.class);
+            WebAssistantResult result = WebAssistantService.handleQuery(auth, request);
+            return json(NanoHTTPD.Response.Status.OK, GSON.toJson(result));
+        } catch (Exception e) {
+            return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_json", "Invalid assistant request body.");
         }
-        return json(NanoHTTPD.Response.Status.OK, GSON.toJson(result));
+    }
+
+    public static NanoHTTPD.Response handleAction(String body, WebAuthSession auth) {
+        try {
+            WebAssistantActionRequest request = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body,
+                WebAssistantActionRequest.class);
+            WebAssistantResult result = WebAssistantService.confirm(auth, request);
+            return json(NanoHTTPD.Response.Status.OK, GSON.toJson(result));
+        } catch (Exception e) {
+            return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_json", "Invalid assistant action body.");
+        }
+    }
+
+    private static NanoHTTPD.Response error(NanoHTTPD.Response.Status status, String code, String message) {
+        return json(status, "{\"success\":false,\"code\":\"" + code + "\",\"message\":\"" + message + "\"}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {
         return NanoHTTPD.newFixedLengthResponse(status, "application/json", body);
+    }
+
+    private static final class ClientAiContextRequest {
+        String locale;
+        String text;
     }
 }

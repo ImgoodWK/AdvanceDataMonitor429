@@ -162,9 +162,9 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 108,
                 this.offsetX + 120,
                 this.offsetY + buttonRowYOffset2,
-                buttonRow1Width,
+                80,
                 20,
-                I18n.format("adm.button.add")).setTexture(AdmGuiTextures.BUTTON)
+                I18n.format("adm.button.web_dashboard")).setTexture(AdmGuiTextures.BUTTON)
                     .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                     .setUseRGBEffect(buttonRow1RGB)
                     .setUseHoverEffect(true)
@@ -361,6 +361,42 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                         nbt));
                 refreshButtons();
             }
+            case 108 -> {
+                int newIndex = tileEntityAdvanceDataMonitor.findLowestFreeBindingIndex();
+                if (newIndex < 0) {
+                    mc.displayGuiScreen(
+                        new GuiScreenMessage(
+                            this.player,
+                            this.world,
+                            GuiScreenMessage.MessageType.WARNING,
+                            I18n.format(
+                                "adm.error.data_bindings_full",
+                                Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS)),
+                            this));
+                    return;
+                }
+                if (tileEntityAdvanceDataMonitor.getWebDashboardBindingCount()
+                    >= TileEntityAdvanceDataMonitor.MAX_WEB_DASHBOARD_BINDINGS) {
+                    mc.displayGuiScreen(
+                        new GuiScreenMessage(
+                            this.player,
+                            this.world,
+                            GuiScreenMessage.MessageType.WARNING,
+                            I18n.format(
+                                "adm.error.web_dashboard_limit",
+                                Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_WEB_DASHBOARD_BINDINGS)),
+                            this));
+                    return;
+                }
+                mc.displayGuiScreen(
+                    new GuiSubWebDashboard(
+                        this.player,
+                        this.world,
+                        this.tileEntityAdvanceDataMonitor,
+                        newIndex,
+                        true));
+                return;
+            }
             case 109 -> {
                 boolean bothSides = !this.tileEntityAdvanceDataMonitor.isRenderBothSides();
                 this.tileEntityAdvanceDataMonitor.setRenderBothSides(bothSides);
@@ -434,6 +470,12 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     }
 
     private void openSubMenu(int index) {
+        NBTTagCompound binding = tileEntityAdvanceDataMonitor.getDataBound(index);
+        if (TileEntityAdvanceDataMonitor.DATA_TYPE_WEBAE_DASHBOARD.equals(binding.getString("dataType"))) {
+            mc.displayGuiScreen(
+                new GuiSubWebDashboard(player, world, tileEntityAdvanceDataMonitor, index, false));
+            return;
+        }
         BlockPos pos = new BlockPos(tileEntityAdvanceDataMonitor.getXYZ(index), this.world);
         TileEntityTypeHelper.TileEntityType type = TileEntityTypeHelper.getTileEntityType(pos);
         if (type == TileEntityTypeHelper.TileEntityType.AE) {
@@ -441,8 +483,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
             return;
         }
         if (type == TileEntityTypeHelper.TileEntityType.ADV_NETWORKLINK) {
-            String dataType = tileEntityAdvanceDataMonitor.getDataBound(index)
-                .getString("dataType");
+            String dataType = binding.getString("dataType");
             String mode = TileEntityTypeHelper.resolveLinkDisplayMode(dataType);
             if ("crafting".equals(mode)) {
                 mc.displayGuiScreen(

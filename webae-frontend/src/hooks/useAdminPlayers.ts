@@ -7,7 +7,7 @@ import type {
   AdminActionResponse,
 } from '@/types/dto';
 
-const POLL_MS = 10_000;
+const POLL_MS = 30_000;
 
 export interface UseAdminPlayersResult {
   players: AdminPlayerSummary[];
@@ -23,7 +23,7 @@ export interface UseAdminPlayersResult {
   revokeGuestToken: (actorUuid: string, token: string) => Promise<boolean>;
 }
 
-export function useAdminPlayers(): UseAdminPlayersResult {
+export function useAdminPlayers(active = true): UseAdminPlayersResult {
   const [players, setPlayers] = useState<AdminPlayerSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
@@ -43,13 +43,18 @@ export function useAdminPlayers(): UseAdminPlayersResult {
 
   useEffect(() => {
     mountedRef.current = true;
+    if (!active) {
+      return () => {
+        mountedRef.current = false;
+      };
+    }
     refresh();
     const timer = setInterval(refresh, POLL_MS);
     return () => {
       mountedRef.current = false;
       clearInterval(timer);
     };
-  }, [refresh]);
+  }, [active, refresh]);
 
   const disablePlayer = useCallback(async (uuid: string) => {
     try {

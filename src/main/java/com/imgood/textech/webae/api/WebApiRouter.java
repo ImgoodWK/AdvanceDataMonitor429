@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.util.Map;
 
 import com.imgood.textech.webae.api.handler.AdminPlayerHandler;
+import com.imgood.textech.webae.api.handler.AdminConsoleHandler;
 import com.imgood.textech.webae.api.handler.AeCableTextureHandler;
 import com.imgood.textech.webae.api.handler.AlertsHandler;
 import com.imgood.textech.webae.api.handler.AssistantHandler;
@@ -35,6 +36,7 @@ import com.imgood.textech.webae.api.handler.PlannerHandler;
 import com.imgood.textech.webae.api.handler.PlayerHandler;
 import com.imgood.textech.webae.api.handler.PocketHandler;
 import com.imgood.textech.webae.api.handler.PowerHandler;
+import com.imgood.textech.webae.api.handler.QqBotAdminHandler;
 import com.imgood.textech.webae.api.handler.QuestHandler;
 import com.imgood.textech.webae.api.handler.RecipeHandler;
 import com.imgood.textech.webae.api.handler.ScannerHandler;
@@ -46,6 +48,7 @@ import com.imgood.textech.webae.api.handler.StorageHandler;
 import com.imgood.textech.webae.api.handler.StoragePagedHandler;
 import com.imgood.textech.webae.api.handler.TopologyHandler;
 import com.imgood.textech.webae.api.handler.WebConfigHandler;
+import com.imgood.textech.webae.api.handler.WebAiAdminHandler;
 import com.imgood.textech.webae.worldmap.WorldMapHandler;
 import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
@@ -89,6 +92,16 @@ public class WebApiRouter {
         int q = uri.indexOf('?');
         if (q >= 0) {
             uri = uri.substring(0, q);
+        }
+        if (uri.startsWith("/api/spark/history/")) {
+            return "/api/spark/history/{id}";
+        }
+        if (uri.startsWith("/api/admin/server-console/presets/")) {
+            return "/api/admin/server-console/presets/{id}";
+        }
+        if (uri.startsWith("/api/admin/server-console/history/")
+            && !"/api/admin/server-console/history/clear".equals(uri)) {
+            return "/api/admin/server-console/history/{id}";
         }
         return uri;
     }
@@ -445,8 +458,28 @@ public class WebApiRouter {
 
         }
 
+        if (uri.startsWith("/api/admin/ai/")) {
+            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT
+                ? readBody(session) : null;
+            return WebAiAdminHandler.handle(uri, method, body, auth, adminHeader);
+        }
+
+        if (uri.startsWith("/api/admin/qq-bot/")) {
+            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT
+                ? readBody(session) : null;
+            return QqBotAdminHandler.handle(uri, method, body, auth, adminHeader);
+        }
+
+        if (uri.startsWith("/api/admin/server-console")) {
+            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT
+                ? readBody(session) : null;
+            return AdminConsoleHandler.handle(uri, method, body, auth, adminHeader);
+        }
+
         if ("/api/spark".equals(uri) || "/api/spark/profile".equals(uri)
-            || "/api/spark/stop".equals(uri) || "/api/spark/history".equals(uri)
+            || "/api/spark/stop".equals(uri) || "/api/spark/recover".equals(uri)
+            || "/api/spark/analyze".equals(uri)
+            || "/api/spark/history".equals(uri)
             || uri.startsWith("/api/spark/history/")) {
             String body = method == NanoHTTPD.Method.POST ? readBody(session) : null;
             return SparkHandler.handle(uri, method, body, auth, adminHeader);
@@ -846,6 +879,24 @@ public class WebApiRouter {
             }
         }
 
+        if ("/api/assistant/ai-context".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/assistant/ai-context\"}");
+
+            }
+
+            return AssistantHandler.handleClientAiContext(readBody(session));
+
+        }
+
         if ("/api/assistant/query".equals(uri)) {
 
             if (method != NanoHTTPD.Method.POST) {
@@ -862,7 +913,25 @@ public class WebApiRouter {
 
             String body = readBody(session);
 
-            return AssistantHandler.handle(body, effectiveOwner);
+            return AssistantHandler.handleQuery(body, auth);
+
+        }
+
+        if ("/api/assistant/action".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/assistant/action\"}");
+
+            }
+
+            return AssistantHandler.handleAction(readBody(session), auth);
 
         }
 
@@ -881,6 +950,78 @@ public class WebApiRouter {
             }
 
             return PocketHandler.handle(auth, adminHeader);
+
+        }
+
+        if ("/api/alerts/test".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/alerts/test\"}");
+
+            }
+
+            return AlertsHandler.handleTest(readBody(session), auth, adminHeader);
+
+        }
+
+        if ("/api/alerts/qq-id-probe/start".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/alerts/qq-id-probe/start\"}");
+
+            }
+
+            return AlertsHandler.handleQqIdProbeStart(readBody(session), auth, adminHeader);
+
+        }
+
+        if ("/api/alerts/qq-id-probe/stop".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.POST) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use POST /api/alerts/qq-id-probe/stop\"}");
+
+            }
+
+            return AlertsHandler.handleQqIdProbeStop(auth, adminHeader);
+
+        }
+
+        if ("/api/alerts/qq-id-probe".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/alerts/qq-id-probe\"}");
+
+            }
+
+            return AlertsHandler.handleQqIdProbeStatus(auth, adminHeader);
 
         }
 

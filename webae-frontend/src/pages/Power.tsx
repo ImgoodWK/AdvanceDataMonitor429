@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, Empty, Tabs, Spin } from 'antd';
+import { ApartmentOutlined } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { useSnapshotData } from '@/hooks/useSnapshotData';
 import { PageShell } from '@/components/Layout/PageShell';
 import { PowerWidgetGrid } from '@/components/dashboard/PowerWidgetGrid';
 import { powerDtoToSnapshot } from '@/utils/powerDataSources';
+import { resolveActiveNetworkId } from '@/utils/networkSelection';
 
 export function PowerPage() {
   const { selectedNetworks } = useAppContext();
@@ -13,8 +15,14 @@ export function PowerPage() {
   const { powerMap, initialLoading, refreshing } = useSnapshotData();
   const [activeNetwork, setActiveNetwork] = useState<number | null>(null);
 
-  const currentNet = activeNetwork ?? selectedNetworks[0] ?? 0;
+  const currentNet = resolveActiveNetworkId(selectedNetworks, activeNetwork);
   const data = powerMap[currentNet];
+
+  useEffect(() => {
+    if (activeNetwork != null && !selectedNetworks.includes(activeNetwork)) {
+      setActiveNetwork(null);
+    }
+  }, [activeNetwork, selectedNetworks]);
 
   const snapshot = useMemo(
     () => (data ? powerDtoToSnapshot(data) : null),
@@ -56,6 +64,7 @@ export function PowerPage() {
   return (
     <PageShell
       title={t('power')}
+      description={t('powerPageDesc')}
       actions={
         refreshing ? (
           <span
@@ -68,19 +77,30 @@ export function PowerPage() {
         ) : undefined
       }
     >
-      {selectedNetworks.length > 1 && (
-        <Tabs
-          activeKey={String(currentNet)}
-          onChange={(k) => setActiveNetwork(Number(k))}
-          items={selectedNetworks.map((nid) => ({
-            key: String(nid),
-            label: `${t('networkId')} ${nid}`,
-          }))}
-          style={{ marginBottom: 8 }}
-        />
-      )}
+      <div className="data-page-flow">
+        {selectedNetworks.length > 1 && (
+          <div className="data-page-network-switcher">
+            <div className="data-page-network-switcher__label">
+              <ApartmentOutlined />
+              <span>{t('viewingNetwork')}</span>
+            </div>
+            <Tabs
+              activeKey={String(currentNet)}
+              onChange={(k) => setActiveNetwork(Number(k))}
+              items={selectedNetworks.map((nid) => ({
+                key: String(nid),
+                label: `${t('networkId')} ${nid}`,
+              }))}
+            />
+          </div>
+        )}
 
-      <PowerWidgetGrid snapshot={snapshot} initialLoading={initialLoading} />
+        <PowerWidgetGrid
+          snapshot={snapshot}
+          networkId={currentNet}
+          initialLoading={initialLoading}
+        />
+      </div>
     </PageShell>
   );
 }

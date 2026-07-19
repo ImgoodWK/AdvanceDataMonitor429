@@ -1,0 +1,451 @@
+/* Batch7 Media Flagships — original CSS/SVG-free interpretations of established
+   game/anime/cinema interface languages. Decorative layers stay below content. */
+
+:is(
+  [data-theme-color='hextech-blue'][data-page-style='lol-rift'],
+  [data-theme-color='doom-steel'][data-page-style='doomhud'],
+  [data-theme-color='eorzea-gold'][data-page-style='destiny-light'],
+  [data-theme-color='bridges-white'][data-page-style='uber-dispatch'],
+  [data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'],
+  [data-theme-color='shell-teal'][data-page-style='ghost-shell'],
+  [data-theme-color='yorha-black'][data-page-style='yorha'],
+  [data-theme-color='reactor-cyan'][data-page-style='arc-reactor']
+) .app-content {
+  position: relative;
+  isolation: isolate;
+}
+
+:is(
+  [data-theme-color='hextech-blue'][data-page-style='lol-rift'],
+  [data-theme-color='doom-steel'][data-page-style='doomhud'],
+  [data-theme-color='eorzea-gold'][data-page-style='destiny-light'],
+  [data-theme-color='bridges-white'][data-page-style='uber-dispatch'],
+  [data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'],
+  [data-theme-color='shell-teal'][data-page-style='ghost-shell'],
+  [data-theme-color='yorha-black'][data-page-style='yorha'],
+  [data-theme-color='reactor-cyan'][data-page-style='arc-reactor']
+) .app-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+:is(
+  [data-theme-color='hextech-blue'][data-page-style='lol-rift'],
+  [data-theme-color='doom-steel'][data-page-style='doomhud'],
+  [data-theme-color='eorzea-gold'][data-page-style='destiny-light'],
+  [data-theme-color='bridges-white'][data-page-style='uber-dispatch'],
+  [data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'],
+  [data-theme-color='shell-teal'][data-page-style='ghost-shell'],
+  [data-theme-color='yorha-black'][data-page-style='yorha'],
+  [data-theme-color='reactor-cyan'][data-page-style='arc-reactor']
+) .page-shell__title {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  letter-spacing: 0.045em;
+}
+
+:is(
+  [data-theme-color='hextech-blue'][data-page-style='lol-rift'],
+  [data-theme-color='doom-steel'][data-page-style='doomhud'],
+  [data-theme-color='eorzea-gold'][data-page-style='destiny-light'],
+  [data-theme-color='bridges-white'][data-page-style='uber-dispatch'],
+  [data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'],
+  [data-theme-color='shell-teal'][data-page-style='ghost-shell'],
+  [data-theme-color='yorha-black'][data-page-style='yorha'],
+  [data-theme-color='reactor-cyan'][data-page-style='arc-reactor']
+) .page-shell__title::after {
+  color: var(--accent);
+  font: 750 9px/1 var(--style-font-ui, ui-monospace, monospace);
+  letter-spacing: 0.14em;
+  opacity: 0.82;
+}
+
+/* ===== Hextech / Piltover ===== */
+[data-theme-color='hextech-blue'][data-page-style='lol-rift'] {
+  --hextech-gold: #c89b3c;
+}
+
+[data-theme-color='hextech-blue'][data-page-style='lol-rift'] .page-shell__title::after {
+  content: 'HEXTECH//CRYSTAL 06';
+  color: var(--hextech-gold);
+}
+
+[data-theme-color='hextech-blue'][data-page-style='lol-rift'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.34;
+  background-image:
+    linear-gradient(30deg, transparent 48%, color-mix(in srgb, var(--hextech-gold) 22%, transparent) 49% 50%, transparent 51%),
+    linear-gradient(-30deg, transparent 48%, color-mix(in srgb, var(--accent) 18%, transparent) 49% 50%, transparent 51%),
+    radial-gradient(circle at 82% 16%, var(--accent-glow), transparent 26%);
+  background-size: 72px 124px, 72px 124px, 100% 100%;
+}
+
+[data-theme-color='hextech-blue'][data-page-style='lol-rift'] .app-content::after {
+  content: '';
+  position: absolute;
+  right: 5%;
+  top: 9%;
+  z-index: 0;
+  width: 146px;
+  aspect-ratio: 1;
+  pointer-events: none;
+  opacity: 0.38;
+  border: 1px solid var(--hextech-gold);
+  transform: rotate(30deg);
+  box-shadow: inset 0 0 34px var(--accent-glow), 0 0 0 12px color-mix(in srgb, var(--hextech-gold) 7%, transparent);
+}
+
+[data-theme-color='hextech-blue'][data-page-style='lol-rift'] :is(.widget-shell, .stat-card, .ant-card) {
+  position: relative;
+  border-color: color-mix(in srgb, var(--hextech-gold) 42%, var(--border)) !important;
+  background-image:
+    linear-gradient(90deg, var(--hextech-gold) 0 30%, transparent 30%),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 42%) !important;
+  background-size: 100% 2px, 100% 100% !important;
+  background-repeat: no-repeat !important;
+  box-shadow: inset 0 0 24px color-mix(in srgb, var(--accent) 5%, transparent), var(--style-shadow) !important;
+}
+
+[data-theme-color='hextech-blue'][data-page-style='lol-rift'] .webae-nav-item--active {
+  border-left: 3px solid var(--hextech-gold);
+  box-shadow: inset 18px 0 24px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* ===== StarCraft Terran ===== */
+[data-theme-color='doom-steel'][data-page-style='doomhud'] .page-shell__title::after {
+  content: 'TERRAN//THREATCON 2';
+}
+
+[data-theme-color='doom-steel'][data-page-style='doomhud'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 96px, var(--border-light) 96px 98px),
+    repeating-linear-gradient(0deg, transparent 0 28px, color-mix(in srgb, var(--danger) 8%, transparent) 28px 29px),
+    radial-gradient(circle at 84% 18%, transparent 0 46px, var(--danger-dim) 47px 49px, transparent 50px 70px, var(--border) 71px 72px, transparent 73px);
+}
+
+[data-theme-color='doom-steel'][data-page-style='doomhud'] .app-content::after {
+  content: 'KOPRULU SECTOR // DOMINION TACTICAL NET';
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  z-index: 0;
+  color: var(--danger);
+  font: 800 8px/1 ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+[data-theme-color='doom-steel'][data-page-style='doomhud'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-width: 2px !important;
+  border-style: ridge !important;
+  background-image:
+    radial-gradient(circle at 7px 7px, #8b8b8b 0 1px, transparent 2px),
+    radial-gradient(circle at calc(100% - 7px) 7px, #8b8b8b 0 1px, transparent 2px),
+    linear-gradient(180deg, color-mix(in srgb, white 4%, transparent), transparent 34%) !important;
+  background-repeat: no-repeat !important;
+}
+
+[data-theme-color='doom-steel'][data-page-style='doomhud'] .webae-nav-item--active {
+  border-right: 4px solid var(--danger);
+  background: repeating-linear-gradient(135deg, var(--danger-dim) 0 8px, transparent 8px 16px);
+}
+
+/* ===== StarCraft Protoss ===== */
+[data-theme-color='eorzea-gold'][data-page-style='destiny-light'] {
+  --khala-blue: #74d9ff;
+}
+
+[data-theme-color='eorzea-gold'][data-page-style='destiny-light'] .page-shell__title::after {
+  content: 'KHALA//NEXUS LINK';
+  color: var(--khala-blue);
+}
+
+[data-theme-color='eorzea-gold'][data-page-style='destiny-light'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.44;
+  background:
+    repeating-radial-gradient(ellipse at 50% 16%, transparent 0 68px, color-mix(in srgb, var(--accent) 18%, transparent) 69px 70px, transparent 71px 98px),
+    radial-gradient(circle at 50% 16%, color-mix(in srgb, var(--khala-blue) 24%, transparent), transparent 26%);
+}
+
+[data-theme-color='eorzea-gold'][data-page-style='destiny-light'] .app-content::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 42px;
+  z-index: 0;
+  width: 72px;
+  height: 118px;
+  pointer-events: none;
+  opacity: 0.32;
+  background: linear-gradient(150deg, transparent 0 38%, var(--khala-blue) 39% 41%, var(--accent) 42% 58%, var(--khala-blue) 59% 61%, transparent 62%);
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 20px var(--khala-blue));
+}
+
+[data-theme-color='eorzea-gold'][data-page-style='destiny-light'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-color: color-mix(in srgb, var(--accent) 54%, var(--khala-blue)) !important;
+  border-radius: 18px 4px 18px 4px !important;
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--khala-blue) 7%, transparent), transparent 34%, color-mix(in srgb, var(--accent) 8%, transparent)) !important;
+  box-shadow: inset 0 0 28px color-mix(in srgb, var(--khala-blue) 7%, transparent), var(--style-shadow) !important;
+}
+
+/* ===== Death Stranding / BRIDGES ===== */
+[data-theme-color='bridges-white'][data-page-style='uber-dispatch'] .page-shell__title {
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+[data-theme-color='bridges-white'][data-page-style='uber-dispatch'] .page-shell__title::after {
+  content: 'BRIDGES//Q-PID CONNECTED';
+}
+
+[data-theme-color='bridges-white'][data-page-style='uber-dispatch'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.44;
+  background-image:
+    linear-gradient(90deg, transparent 0 10%, var(--border-light) 10% 10.2%, transparent 10.2% 88%, var(--border-light) 88% 88.2%, transparent 88.2%),
+    repeating-linear-gradient(105deg, transparent 0 34px, color-mix(in srgb, var(--accent) 7%, transparent) 34px 35px);
+}
+
+[data-theme-color='bridges-white'][data-page-style='uber-dispatch'] .app-content::after {
+  content: 'UCA / UNITED CITIES OF AMERICA / PORTER NETWORK';
+  position: absolute;
+  right: 16px;
+  top: 18%;
+  z-index: 0;
+  color: var(--accent);
+  font: 850 8px/1 ui-monospace, monospace;
+  letter-spacing: 0.18em;
+  writing-mode: vertical-rl;
+  opacity: 0.54;
+  pointer-events: none;
+}
+
+[data-theme-color='bridges-white'][data-page-style='uber-dispatch'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-color: color-mix(in srgb, var(--text-primary) 34%, transparent) !important;
+  border-left: 5px solid var(--accent) !important;
+  border-radius: 0 !important;
+  background-image:
+    repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--text-primary) 4%, transparent) 9px 10px),
+    linear-gradient(90deg, var(--accent) 0 38px, transparent 38px) !important;
+  background-size: 100% 100%, 100% 2px !important;
+  background-repeat: no-repeat !important;
+}
+
+[data-theme-color='bridges-white'][data-page-style='uber-dispatch'] .webae-nav-item--active {
+  color: #fff;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+/* ===== Evangelion NERV / MAGI ===== */
+[data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'] .page-shell__title::after {
+  content: 'MAGI//CASPER·MELCHIOR·BALTHASAR';
+  color: var(--warning);
+}
+
+[data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.38;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 22px, var(--border-light) 22px 23px),
+    linear-gradient(115deg, transparent 0 66%, var(--danger-dim) 66% 75%, transparent 75%),
+    linear-gradient(65deg, transparent 0 72%, var(--warning-dim) 72% 75%, transparent 75%);
+}
+
+[data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-left: 4px solid var(--danger) !important;
+  border-bottom-color: var(--warning) !important;
+  background-image: linear-gradient(120deg, var(--danger-dim), transparent 24%, transparent 76%, var(--warning-dim)) !important;
+}
+
+[data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'] .webae-nav-item--active {
+  color: #fff;
+  border-right: 5px solid var(--warning);
+  background: linear-gradient(105deg, var(--danger) 0 58%, var(--accent) 58%);
+}
+
+/* ===== Ghost in the Shell / Section 9 ===== */
+[data-theme-color='shell-teal'][data-page-style='ghost-shell'] .page-shell__title::after {
+  content: 'SECTION 9//CYBERBRAIN ONLINE';
+}
+
+[data-theme-color='shell-teal'][data-page-style='ghost-shell'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image:
+    linear-gradient(var(--border-light) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light) 1px, transparent 1px),
+    repeating-linear-gradient(90deg, transparent 0 5px, color-mix(in srgb, var(--accent) 4%, transparent) 5px 6px);
+  background-size: 38px 38px, 38px 38px, 100% 100%;
+}
+
+[data-theme-color='shell-teal'][data-page-style='ghost-shell'] .app-content::after {
+  content: 'IDENT 09 / ACCESS LAYER 03 / GHOST DIVE';
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 0;
+  color: var(--accent);
+  font: 760 8px/1 ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+[data-theme-color='shell-teal'][data-page-style='ghost-shell'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-right: 3px solid var(--accent) !important;
+  background-image: linear-gradient(90deg, transparent 0 68%, var(--accent-dim) 68% 68.5%, transparent 68.5%) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* ===== NieR:Automata / YoRHa ===== */
+[data-theme-color='yorha-black'][data-page-style='yorha'] .page-shell__title::after {
+  content: 'YoRHa//BUNKER ARCHIVE';
+}
+
+[data-theme-color='yorha-black'][data-page-style='yorha'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.26;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 17px, var(--border-light) 17px 18px),
+    linear-gradient(45deg, transparent 49%, var(--accent-dim) 49.5% 50.5%, transparent 51%);
+  background-size: 100% 100%, 72px 72px;
+}
+
+[data-theme-color='yorha-black'][data-page-style='yorha'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-radius: 0 !important;
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--border)) !important;
+  background-image:
+    linear-gradient(45deg, transparent 0 12px, var(--accent-dim) 12px 13px, transparent 13px),
+    linear-gradient(180deg, color-mix(in srgb, #e8e4d4 3%, transparent), transparent 34%) !important;
+}
+
+[data-theme-color='yorha-black'][data-page-style='yorha'] .webae-nav-item--active {
+  border: 1px solid var(--accent);
+  transform: translateX(4px);
+}
+
+/* ===== TRON Grid ===== */
+[data-theme-color='reactor-cyan'][data-page-style='arc-reactor'] .page-shell__title::after {
+  content: 'GRID//USER ONLINE';
+  color: var(--warning);
+}
+
+[data-theme-color='reactor-cyan'][data-page-style='arc-reactor'] .app-content::before {
+  content: '';
+  position: absolute;
+  inset: 38% -12% -30%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.36;
+  background-image:
+    linear-gradient(var(--accent-dim) 1px, transparent 1px),
+    linear-gradient(90deg, var(--accent-dim) 1px, transparent 1px);
+  background-size: 54px 28px;
+  transform: perspective(420px) rotateX(58deg);
+  transform-origin: center top;
+}
+
+[data-theme-color='reactor-cyan'][data-page-style='arc-reactor'] .app-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.48;
+  background:
+    linear-gradient(90deg, transparent 49.7%, var(--accent) 49.8% 50.2%, transparent 50.3%),
+    radial-gradient(circle at 50% 18%, var(--accent-glow), transparent 22%);
+}
+
+[data-theme-color='reactor-cyan'][data-page-style='arc-reactor'] :is(.widget-shell, .stat-card, .ant-card) {
+  border-color: var(--accent) !important;
+  background-image: linear-gradient(135deg, var(--accent-dim), transparent 22%, transparent 78%, var(--warning-dim)) !important;
+  box-shadow: inset 0 0 18px var(--accent-dim), 0 0 18px color-mix(in srgb, var(--accent) 18%, transparent) !important;
+}
+
+[data-theme-color='reactor-cyan'][data-page-style='arc-reactor'] .webae-nav-item--active {
+  border-left: 2px solid var(--accent);
+  border-right: 2px solid var(--warning);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+/* Motion is optional and never changes information visibility. */
+[data-theme-color='hextech-blue'][data-page-style='lol-rift'][data-effects-level='full'] .app-content::after {
+  animation: batch7Orbit 22s linear infinite;
+}
+
+[data-theme-color='eorzea-gold'][data-page-style='destiny-light'][data-effects-level='full'] .app-content::after {
+  animation: batch7KhalaPulse 5.6s ease-in-out infinite;
+}
+
+[data-theme-color='doom-steel'][data-page-style='doomhud'][data-effects-level='full'] .app-content::before,
+[data-theme-color='nerv-purple'][data-page-style='evangelion-nerv'][data-effects-level='full'] .app-content::before,
+[data-theme-color='shell-teal'][data-page-style='ghost-shell'][data-effects-level='full'] .app-content::before {
+  animation: batch7Scan 9s linear infinite;
+}
+
+[data-theme-color='reactor-cyan'][data-page-style='arc-reactor'][data-effects-level='full'] .app-content::before {
+  animation: batch7GridDrive 11s linear infinite;
+}
+
+@keyframes batch7Orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes batch7Scan {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to { background-position: 0 72px, 96px 0, 0 0; }
+}
+
+@keyframes batch7KhalaPulse {
+  0%, 100% { opacity: 0.26; filter: drop-shadow(0 0 14px var(--khala-blue)); }
+  50% { opacity: 0.46; filter: drop-shadow(0 0 28px var(--khala-blue)); }
+}
+
+@keyframes batch7GridDrive {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 112px, 108px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme-color][data-page-style] .app-content::before,
+  [data-theme-color][data-page-style] .app-content::after {
+    animation: none !important;
+  }
+}

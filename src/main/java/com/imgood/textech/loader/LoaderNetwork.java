@@ -21,6 +21,7 @@ import com.imgood.textech.network.packet.PacketItemNBT;
 import com.imgood.textech.network.packet.PacketLinkScannerAction;
 import com.imgood.textech.network.packet.PacketMatterBallDecompressorToggle;
 import com.imgood.textech.network.packet.PacketMonitorRecord;
+import com.imgood.textech.network.packet.PacketMonitorWebSurface;
 import com.imgood.textech.network.packet.PacketPlannerMerge;
 import com.imgood.textech.network.packet.PacketPlannerSync;
 import com.imgood.textech.network.packet.PacketPocketAction;
@@ -28,6 +29,9 @@ import com.imgood.textech.network.packet.PacketPocketSync;
 import com.imgood.textech.network.packet.PacketRequestItemCountSync;
 import com.imgood.textech.network.packet.PacketSuperOrangeConfig;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
+import com.imgood.textech.webae.network.PacketWebAlertNotify;
+import com.imgood.textech.webae.network.PacketScreenshotUpload;
+import com.imgood.textech.webae.network.PacketScreenshotUploadAck;
 import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
 import com.imgood.textech.webae.network.PacketWebIconExportScope;
 import com.imgood.textech.webae.network.PacketWebIconPullZip;
@@ -326,6 +330,39 @@ public class LoaderNetwork {
                 PacketWebIconPullZip.Handler.class,
                 PacketWebIconPullZip.class,
                 49,
+                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketWebAlertNotify.Handler.class,
+                PacketWebAlertNotify.class,
+                50,
+                Side.CLIENT);
+        }
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketScreenshotUpload.Handler.class,
+            PacketScreenshotUpload.class,
+            51,
+            Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketScreenshotUploadAck.Handler.class,
+                PacketScreenshotUploadAck.class,
+                52,
+                Side.CLIENT);
+        }
+        AdvanceDataMonitor.ADMCHANEL.registerMessage(
+            PacketMonitorWebSurface.ServerHandler.class,
+            PacketMonitorWebSurface.class,
+            53,
+            Side.SERVER);
+        if (FMLCommonHandler.instance()
+            .getEffectiveSide()
+            .isClient()) {
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketMonitorWebSurface.ClientHandler.class,
+                PacketMonitorWebSurface.class,
+                53,
                 Side.CLIENT);
         }
     }

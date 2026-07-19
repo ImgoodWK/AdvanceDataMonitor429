@@ -21,7 +21,7 @@ public class CraftingInfoRenderer implements IADMRender {
     private final Minecraft mc = Minecraft.getMinecraft();
 
     @Override
-    public void render(NBTTagCompound nbt, double x, double y, double z, int facing) {
+    public void render(NBTTagCompound nbt, double x, double y, double z, int facing, int bindingIndex) {
         if (!nbt.getBoolean("enable")) return;
 
         // 根据 monitorNetworkWide 选择数据源

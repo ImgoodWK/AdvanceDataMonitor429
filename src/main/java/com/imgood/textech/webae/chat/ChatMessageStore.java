@@ -68,6 +68,25 @@ public class ChatMessageStore {
         return msg;
     }
 
+    /** Append a message with one bounded screenshot attachment. */
+    public synchronized ChatMessage appendAttachment(String senderUuid, String senderName, String content,
+        long timestamp, String source, String attachmentId, String attachmentName, String attachmentMime,
+        int attachmentWidth, int attachmentHeight, int attachmentBytes) {
+        ensureLoaded();
+        ChatMessage msg = new ChatMessage(nextId++, senderUuid, senderName, content, timestamp, source)
+            .withAttachment(
+                attachmentId,
+                attachmentName,
+                attachmentMime,
+                attachmentWidth,
+                attachmentHeight,
+                attachmentBytes);
+        buffer.addLast(msg);
+        while (buffer.size() > capacity) buffer.pollFirst();
+        scheduleSave();
+        return msg;
+    }
+
     /** @return up to {@code limit} most recent messages, oldest-first. */
     public synchronized List<ChatMessage> getRecent(int limit) {
         ensureLoaded();

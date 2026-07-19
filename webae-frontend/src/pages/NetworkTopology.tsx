@@ -140,7 +140,7 @@ function formatCooldown(ms: number): string {
 
 export function NetworkTopologyPage() {
 
-  const { selectedNetworks, serverConfig, notify } = useAppContext();
+  const { selectedNetworks, serverConfig, notify, browsingMode } = useAppContext();
 
   const { t } = useI18n();
 
@@ -175,6 +175,10 @@ export function NetworkTopologyPage() {
   const [cellSummary, setCellSummary] = useState<NetworkCellSummaryDto | null>(null);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    if (browsingMode) setSettingsOpen(false);
+  }, [browsingMode]);
 
   const [driveModalNode, setDriveModalNode] = useState<TopologyNodeDto | null>(null);
 
@@ -672,7 +676,7 @@ export function NetworkTopologyPage() {
 
           {cached && snapshot && <Tag color="blue">{t('cached')}</Tag>}
 
-          <Button
+          {!browsingMode && <Button
 
             type="primary"
 
@@ -688,9 +692,9 @@ export function NetworkTopologyPage() {
 
             {t('topologyCaptureSnapshot')}
 
-          </Button>
+          </Button>}
 
-          {canForceSnapshot && (
+          {!browsingMode && canForceSnapshot && (
 
             <Tooltip title={t('topologyForceSnapshotHint')}>
 
@@ -908,9 +912,11 @@ export function NetworkTopologyPage() {
 
             )}
 
-            <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} aria-label={t('topologySettingsTitle')} />
+            {!browsingMode && (
+              <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} aria-label={t('topologySettingsTitle')} />
+            )}
 
-            {viewMode === 'worldMap' && (
+            {viewMode === 'worldMap' && !browsingMode && (
 
               <>
 

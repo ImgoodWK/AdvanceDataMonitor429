@@ -22,7 +22,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 
 | Feature | Description |
 |---------|-------------|
-| Dashboard | 128 color schemes × 30 layout presets × 126 page styles (bold + batch2 + batch3 + Printstream batch4 + Auraeco batch5, including 22 structural layouts), thumbnail preview tiles in Settings; draggable widget grid |
+| Dashboard | 141 color schemes × 36 layouts × 138 page styles, plus 28 searchable/favoritable one-click packs and a dedicated Top Picks entry; draggable widget grid |
 | Storage / Fluids / Essentia | Dedicated sidebar pages; Storage also has item/fluid/essentia sub-tables |
 | Crafting CPUs | Standalone menu for AE2 crafting CPU status and details |
 | Power Monitor | Configurable EU/steam gauges, in/out rates, dual-series trend chart |
@@ -37,7 +37,9 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Planner | Sync Advance Planner entries in the browser |
 | AI Assistant | Web chat entry (same capabilities as in-game assistant) |
 | Alerts History | Browse triggered automation alerts; rules via Settings/alerts editor |
-| Spark Profiler | Requires the Spark mod; OPs can start/stop profiles, while logged-in users can view history, open Viewer, and compare run metadata |
+| Spark Profiler | Requires the Spark mod; directly shows method hotspots, influence groups, smart suggestions, and two-run comparisons in the admin console; Viewer is optional |
+| Server Console | Admins run server commands on demand, save shared presets, filter online/offline/all players, and insert names or UUIDs; includes confirmation and bounded auditing |
+| QQ Group Bot | Configure an official QQ Open Platform bot for player count/TPS/online list/memory/uptime queries, AI chat, scheduled reports, announcements, and audit |
 | Chat | Web-to-in-game chat bridge with online player list |
 | Command Upload | OPs run `/admweb recipes upload` and `/admweb icons upload` (no in-game keybind) |
 
@@ -54,6 +56,8 @@ The Web Console is **disabled by default**. Edit `config/textech/textech.cfg` `[
 enabled=true
 port=8090
 bindAddress=127.0.0.1
+aiServerKeyEnabled=true
+aiBrowserKeyEnabled=false
 refreshIntervalMs=1000
 gtRefreshIntervalMs=10000
 maxNetworksDisplayed=5
@@ -93,10 +97,16 @@ sparkMaxDurationSeconds=300
 - `recipeSyncChunkSize`: recipes per browser-sync chunk (default 400).
 - `nesqlRepositoryPath`: NESQL repo root for `/admweb icons import-nesql`. **When empty**, defaults to `<instance>/TeXTech/WebAE/` (`.minecraft/TeXTech/WebAE/` on client; same folder name under server root on dedicated servers; same as client recipe export).
 - `bindAddress=127.0.0.1` is localhost only; set `0.0.0.0` for LAN (use a firewall).
-- `sparkEnabled` defaults to true but only takes effect when Spark (Forge 1.7.10) is installed. Without Spark, the page is hidden and the API reports unavailable.
-- `sparkMaxHistory` bounds retained run metadata in `TeXTech/WebAE/spark-history.json`; records include status, initiator, captured output, and the Spark Viewer URL.
-- `sparkDefaultDurationSeconds` and `sparkMaxDurationSeconds` control the page's capture duration. Starting, stopping, and deleting history require WebAE admin privileges to avoid accidental server overhead.
-- The Spark page shows captured output and opens the official Viewer; selecting two records compares status, elapsed time, output lines, and Viewer URLs. Call-tree analysis remains in Spark Viewer.
+- `aiServerKeyEnabled`: allow admin-managed shared AI profiles on the server (default true; false when migrating from legacy `aiKeyMode=browser`).
+- `aiBrowserKeyEnabled`: allow per-browser personal AI profiles in localStorage (default false; true when migrating from legacy `aiKeyMode=browser`). Both may be enabled; when both are on, Settings → AI & API chooses the preferred source for this browser.
+- `aiKeyMode`: deprecated mutual mode kept only as a migration seed.
+- `sparkEnabled` defaults to true but only takes effect when Spark (Forge 1.7.10) is installed. Without Spark, the Spark tab in the admin console is hidden and the API reports unavailable.
+- `sparkMaxHistory` bounds retained records in `TeXTech/WebAE/spark-history.json`; each record includes status, initiator, bounded local hotspot/category/thread summaries, context output, and an optional Spark Viewer URL.
+- `sparkDefaultDurationSeconds` and `sparkMaxDurationSeconds` control the admin-console capture duration. WebAE explicitly stops Spark at the deadline; Viewer upload can take longer but does not extend sampling. Starting, stopping, recovering Viewer links, and deleting history require WebAE admin privileges.
+- **Admin Console → Spark Profiler** has three on-demand modes: **server game thread** (default, low overhead), **slow-tick focus** (keeps ticks over a threshold), and **all threads** (widest view, higher overhead, minimum 10ms interval). You can tune the interval and slow-tick threshold; prefer the default and keep all-thread captures short.
+- When sampling stops, WebAE derives method self-time hotspots, influence groups, and thread shares from Spark's stopped local call tree. **Smart performance diagnosis** defaults to deterministic local suggestions backed by a named class/method and exclusive share, without needing Viewer. An admin can explicitly click **Analyze with AI** or **Compare with AI**; only bounded aggregates are sent, never the API key, Viewer link, or raw output, and comparisons always use `B − A`. Start/stop Spark TPS/MSPT/CPU context remains available while the full Viewer stays in a collapsed advanced section.
+- Selecting two records compares category and method shares as `B − A`: positive means the influence grew, negative means it improved. Prefer runs made with the same mode, interval, and reproduction scenario. Legacy records without local analysis can only compare metadata.
+- While idle, the tab adds no tick collection, world scan, or Spark-log polling. The browser refreshes in-memory state every 3 seconds only during a run, followed by a bounded upload wait. The full interactive flame graph remains optionally available in Spark Viewer.
 
 Full config reference: [Developer Guide §4](developer-guide.md#4-configuration).
 
@@ -173,15 +183,15 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 
 ### Storage Monitor
 
-Configurable overview widget row (GridStack edit mode) plus items/fluids/essentia sub-tables. Column sort, search, and multi-network Split/Merged aggregation in the top bar.
+The page separates a **Storage capacity overview** from the **Inventory details** workspace with explicit headings, descriptions, and spacing. The overview remains a configurable GridStack; normal mode shows Settings and Edit, while edit mode expands undo/redo, add, arrange, and reset tools. Browsing mode hides all of those editing entry points. Details retain item/fluid/essentia tabs, sorting, search, and multi-network Split/Merged aggregation. The standalone Fluids page similarly separates totals, pinned trends, and the inventory table.
 
 ### Crafting CPUs
 
-Standalone sidebar menu with configurable overview and CPU table. Click a row for a detail drawer. Multi-network Split mode uses tabs.
+Standalone sidebar menu with separate **CPU health overview** and **Processors and crafting queue** workspaces. Click a row for the detail drawer. Multi-network Split mode uses tabs.
 
 ### Power Monitor
 
-Full-page editable GridStack widget grid (EU gauge, in/out rates, steam bar, dual-series trend chart, etc.). **Edit layout** to drag and add/remove widgets. Split mode uses tabs; auto-refresh keeps the trend chart mounted without flicker.
+The **Power operations overview** contains the full-page GridStack (EU gauge, in/out rates, steam bar, dual-series trend chart, etc.). **Edit layout** expands the complete editor toolbar; Browsing mode hides Edit and Settings. Multi-network mode uses a prominent network switcher, and both snapshot values and trend history follow the active network; auto-refresh keeps charts mounted without flicker.
 
 ### GT Machines
 
@@ -216,6 +226,7 @@ Real game icons in tables and recipes; abbreviation fallback on failure. Resolut
 | Client `.minecraft/TeXTech/WebAE/web-recipes.json` | NEI recipe JSON written after `/admweb recipes upload*` |
 | Server `TeXTech/WebAE/web-recipes.json` + `.meta.json` + `recipe-chunks/` | Server authoritative cache; browsers pull chunks via **Fetch recipes** |
 | Server `<instance>/TeXTech/WebAE/` (or configured `nesqlRepositoryPath`) | NESQL pre-rendered PNGs for `/admweb icons import-nesql` (often under `images/`) |
+| Server `TeXTech/WebAE/qq-bot.json` + `qq-bot-master.key` | Non-secret QQ bot settings plus AES-GCM master key; ClientSecret is stored only as ciphertext and never returned by the API |
 
 The folder is created automatically on first use.
 
@@ -273,11 +284,57 @@ Sidebar **Monitor Bindings** shows read-only chart slots and GT binding coords. 
 
 - **Link Scanner**: browse results from the in-game Advance Link Scanner (owner/name filters and coordinates; teleport remains in-game).
 - **Planner**: sync Advance Planner entries for browsing and progress checks in the browser.
-- **AI Assistant**: web chat entry with the same capabilities as the in-game assistant (requires AI config; AE actions still need a nearby Advanced Network Linker).
+- **AI Assistant**: the Web page shares intent types with the in-game assistant. Shared mode uses ordered admin AI profiles with provider-side failover; personal mode calls the provider from the browser and posts only the plan/reply. When both are enabled, the browser preference wins (with fallback to the other side if unconfigured). Shared multi-engine web search can augment chat, intent, and Spark AI (personal LLM mode uses server-side search proxy). Missing/failed AI falls back to the local lexicon. Crafting, withdrawal, and teleport require a second confirmation; guests remain read-only.
 
 ### Automation Alerts & History
 
-Driven by `TeXTech/WebAE/web-alerts.json` (inventory, stuck CPU, GT errors, order complete, channel overload). Besides 10s polling, the browser connects to SSE (`/api/events/stream`) for real-time alerts; connection pauses when the tab is hidden. Sidebar **Alerts History** lists past triggers.
+`TeXTech/WebAE/web-alerts.json` drives inventory, stuck CPU, GT error, order completion, channel overload, low-TPS, and automatic-restock events. `[webConsole] alertsEnabled=true` in `config/textech/textech.cfg` is the server-wide switch (on by default); JSON and individual routes can still be disabled.
+
+Settings → Automation Alerts can combine these routes with event, severity, and optional owner-UUID filters:
+
+- existing WebAE toast/browser notifications (polling plus real-time SSE);
+- the owning online player's chat and client HUD (position, duration, visible count, and sound);
+- legacy Discord/generic JSON webhooks;
+- official QQ Open Platform bots (group `group_openid`, user `openid`, or channel ID). Settings includes **Capture target ID**: the server opens an outbound QQ WebSocket gateway listen (no public callback URL), then you can apply IDs after private-messaging or @-mentioning the bot; the Open Platform bot must allow WebSocket and matching event intents;
+- WeChat Official Account customer-service text or template messages;
+- SMTP email (none / STARTTLS / SSL, To/Cc);
+- WeCom group-bot webhooks or WeCom custom-application messages.
+
+For first-time setup, select the small `?` button next to the alert description to see where each platform is configured, what to copy, where to paste it, and links to official setup pages. An admin can select **Enable built-in routes** to save WebAE/browser, owner-chat, and HUD routes in one action and request browser system-notification permission from that click. If permission is denied, in-page Toast notifications still work. Use **Configure now** for an external platform, fill the required fields shown on the card, and open that target's **Advanced** section only for event/severity/owner filters, API/token overrides, SMTP Cc/subject, or other special cases.
+
+Browser and player-chat routes default on; HUD defaults to warning/error only. External targets default empty, so an upgrade never starts third-party delivery by itself. Secrets and full webhook URLs stay in the server file and APIs expose masks only. QQ proactive delivery remains subject to bot permissions/rate limits. Official Account customer-service messages normally require a platform interaction window; template mode requires template permission and a template with `first`, `keyword1`–`keyword4`, and `remark` fields. Offline owners are not found by a server-wide scan; their occurrences remain in Web history.
+
+DNS, TLS, OAuth, SMTP, retries, and backoff all run through a fixed-capacity background queue. Save an external target or Discord/generic webhook before selecting **Send test**. A success notice means the test was queued, not that the third party accepted it. Use the queue/delivery/failure/drop/circuit counters together with the real destination; an unavailable third party never blocks the server tick.
+
+### Server Console
+
+WebAE admins can run Minecraft server commands under **Admin Console → Server Console**. The leading `/` is optional. Commands execute with full server-console permission on the main thread, so shutdown, bans, OP/whitelist changes, and similar high-risk commands require explicit confirmation. The page submits one command at a time, while the server also enforces single-flight execution, a short cooldown, and a task-queue depth gate. If waiting for a result times out, the command may still be queued; check audit history before retrying.
+
+- The player panel reads existing player metadata when first opened or manually refreshed. Online/offline/all filtering and search are local to the browser, so changing filters does not create more server requests. **Insert Name** and `UUID` place the selected identity at the command cursor.
+- Presets are shared by all WebAE admins and persist in `TeXTech/WebAE/admin-console.json`, with a maximum of 64. Loading a preset only fills the editor and never runs it immediately.
+- Audit retains at most 40 entries with actor, command, state, duration, and affected count. The table transfers only output previews; full output is fetched on demand and bounded to the last 24 lines of 256 characters each.
+- There is no automatic player polling, world scan, or idle tick task. Player snapshots are briefly reused for three seconds, and preset/audit writes are coalesced on background threads.
+
+### QQ Group Bot Administration
+
+WebAE admins configure the official QQ Open Platform bot under **Admin Console → QQ Group Bot**. It is disabled by default. After AppID and ClientSecret are saved and the feature is enabled, the server opens an outbound Gateway WebSocket connection; no public HTTPS callback or OneBot/NapCat process is required.
+
+- **Read-only commands**: `/status`, `/players`, `/list`, `/tps`, `/memory`, `/uptime`, `/about`, and `/ping`, with several Chinese aliases. The prefix is configurable, and group/direct/channel inputs can be independently disabled.
+- **AI chat**: `/ai <question>` uses the server-side shared AI profiles managed by WebAE. Natural-language auto-reply and shared web search are optional. Conversation history is isolated by target plus QQ user, bounded by turns and TTL, and protected by a separate AI cooldown. `/reset` clears only that user's current session.
+- **Security scope**: allowlist group openids, user openids, and bot-admin user openids. Bot admins receive bot-only management hints; they are never granted Minecraft OP and QQ cannot execute arbitrary server commands. AI receives only a bounded read-only snapshot such as TPS, players, online names, uptime, and JVM memory.
+- **Reports and announcements**: schedule status reports to `group:<openid>`, `c2c:<openid>`, or `channel:<id>` with a minimum five-minute interval, and send manual announcements/tests from the admin console. QQ HTTP, AI, and send work use a bounded background queue and never block server ticks.
+- **In-game manual messages**: OPs can enqueue text with `/admweb qq send [group|c2c|channel] <openid> <message>`, inspect connection/queue state with `/admweb qq status`, and start an asynchronous reconnect with `restart`. Queue acceptance is not final QQ delivery.
+- **Operations**: the runtime tab shows connection phase, reconnect time, receive/reply/AI/failure/drop/rate-limit counters, queue depth, and a short in-memory audit ring. ClientSecret is encrypted server-side and shown only as a mask; deleting it also disables the bot.
+
+Group/user openids and channel IDs can be captured with **Settings → Automation Alerts → QQ official bot → Capture target ID**. The bot still needs matching event permissions in QQ Open Platform; group messages normally require an @ mention and proactive reports remain subject to platform permissions and rate limits.
+
+### Game Window Screenshots and Sharing
+
+- Bind **Capture Current Game Window** under Controls (F10 by default). It reads Minecraft's framebuffer, so the world and any open GUI are included; it never invokes desktop capture or reads other windows.
+- Files stay under client `<instance>/TeXTech/Screenshots/` and never upload automatically. `/admscreenshot list [page]` lists local history; click an entry or use `preview [index]` for an in-game preview. Index 1 is newest.
+- `/admscreenshot send web [index] [caption]` publishes one image to WebAE Chat. The browser fetches it with the current authenticated token and offers click-to-preview.
+- `/admscreenshot send qq <group openid> [index] [caption]` sends through the configured official QQ bot and requires Minecraft OP. Group/C2C image delivery is supported; channel images are not.
+- Defaults are 1920×1080, JPEG 88%, 2048 KiB per image, one 24 KiB chunk per tick, and a 15-second per-player cooldown. `[webConsole] screenshot*` settings control clarity, bandwidth, concurrency, and client/server retention. Server completion uses one bounded worker and adds no idle tick scan.
 
 ### Mobile & PWA
 
@@ -285,17 +342,23 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 
 ### Dashboard, Chat & Settings
 
-- **Dashboard**: GridStack drag layout, **128** color schemes + **30** layouts (incl. bottom nav / floating sider / split chrome, plus batch3 dual-rail / dock / theater / HUD / corner-hub structural variants) + **126** page styles (restrained hexcell / arc-reactor without content clipping, plus batch2 / batch3 / **Printstream batch4** packs with B/W geometry, pearl gradients, and ASCII dashed streams, plus **Auraeco batch5** voxel-wave / tendril / dome / sparks / bubble atmospheres; Settings uses near-real thumbnail tiles for color / layout / style / presets — search “Aura” or “Auraeco”); chart style overrides unchanged.
+- **AI & API**: Settings use separate Server / This browser tabs. Admins manage ordered shared LLM profiles plus shared multi-engine web search (AES-GCM under `TeXTech/WebAE/`). Any logged-in user can keep ordered personal profiles in `localStorage` and call providers directly. When both sources are enabled, choose a preferred source in the UI. Failover follows list order for provider-side errors only. Provider base URLs must be HTTPS except loopback; key entry is disabled outside HTTPS/loopback pages.
+
+- **Dashboard**: GridStack drag layout with **141** color schemes + **36** layouts + **138** page styles. Settings → Appearance now has 28 complete design packs and opens on a dedicated **Top Picks** filter; packs remain searchable/favoritable and all four appearance axes can still be mixed freely. Eight new media-technology flagships interpret League Hextech, StarCraft Terran/Protoss, Death Stranding BRIDGES, Evangelion NERV/MAGI, Ghost in the Shell Section 9, NieR YoRHa, and the TRON Grid through original CSS composition, material, information hierarchy, and motion—without bundling franchise images or external fonts. Existing Rhodes, cyber, aerospace, Printstream, Auraeco, and GTNH/GregTech families remain, and decorative layers never clip business content.
+  - **Effects performance tiers**: Low-end Host keeps static composition while disabling continuous motion/blur; Modern Office PC enables micro-interactions and moderate glass; Gaming PC Full FX enables scans, orbits, particles, glow, and continuous chart motion. Browser reduced-motion preference always disables animation.
   - **Group containers (nested grids)**: add a **Group** widget to nest children in one cell and move them together; use **+** on the group header to add children while editing.
-  - **Layout / feed widgets**: text note, spacer, alerts summary, crafting queue; use the edit-mode palette for quick add, or drag to the trash zone to delete.
+  - **Layout / feed widgets**: text note, spacer, alerts summary, crafting queue; use the edit-mode palette for quick add and the widget delete button to remove. React remains the sole owner of DOM removal instead of letting the grid engine delete page nodes.
+  - **Composite operations widgets**: network health core (storage/power/crafting/GT/server/alerts), power flow, storage matrix, GT machine fleet, player presence, combined alert/crafting activity stream, and server vitals (TPS/MSPT/uptime). They reuse existing WebAE snapshots and polling results and add no server-tick work.
   - **Edit recovery**: undo/redo in edit mode (toolbar or Ctrl+Z / Ctrl+Y); clearing all widgets stays empty after refresh; Storage/CPU Overview widget height is fixed to 2 rows.
   - **Lock & size-to-content**: per-widget lock / no-move / no-resize and optional size-to-content; soft alert threshold tint on stats/gauges.
   - **Data-table columns & pins**: the widget editor independently controls icon, name, amount, registry name, and source-specific columns. The **name** column uses the item's display name, while **registry name** is shown separately. An empty selection is preserved; changing the data source selects that source's defaults. Focus the pin search to see current-inventory candidates, or search by display name, registry name, or item ID; remove an existing pin before adding another at the server-provided limit.
-- **Chat**: 💬 icon in sidebar; web messages broadcast in-game as `[Web] <name>: content`.
+  - **Export for in-game display**: the toolbar action converts the already-rendered dashboard into a read-only visual snapshot JSON and copies it to the clipboard for the Advance Data Monitor's **WebAE Panel**. This differs from editable widgets config JSON: the visual snapshot includes current visible values/rendering, while widgets JSON migrates layout configuration. Tokens, AI keys, webhook URLs, and QQ/mail secrets are excluded.
+- **Chat**: 💬 icon in sidebar; web messages broadcast in-game as `[Web] <name>: content`. Explicit client screenshots appear as image messages with caption, dimensions, and size; retention-expired files show an unavailable attachment state.
 - **Sidebar**: edge button cycles Expanded → Collapsed → Hidden.
 - **Top bar**: fixed-width refresh countdown/status next to connection dot.
+- **Browsing mode** (Settings → **Browsing mode**): hides layout Settings, Edit, and capture controls on read-only Dashboard, Storage/CPU overview, Power, and Topology surfaces while retaining viewing, search, filters, refresh, and export. Every page except Admin and Settings uses a viewport-bound outer container; genuinely long content remains wheel/touch scrollable inside the page without a browser-edge scrollbar. The preference is stored in `localStorage.webae_browsing_mode` and participates in UI backup/restore.
 - **Backup & Restore** (Settings → **Backup & Restore** tab):
-  - **Export JSON**: one-shot backup of theme, per-page layouts (main dashboard, Storage/CPU/Power overviews, topology, quest book, recipes, chat, etc.), refresh and debug preferences; optionally presets and server data (favorites, order templates; alert rules require OP).
+  - **Export JSON**: one-shot backup of theme, Browsing mode, per-page layouts (main dashboard, Storage/CPU/Power overviews, topology, quest book, recipes, chat, etc.), refresh and debug preferences; optionally presets and server data (favorites, order templates; alert rules require OP).
   - **Import JSON**: preview affected sections, optional merge mode; reload the page afterward for GridStack layouts to fully apply.
   - **Restore pack defaults**: re-applies server `ui-defaults.json` (instance `TeXTech/WebAE/ui-defaults.json` first, else mod jar bundled file).
 - **Pack authors**: export JSON from WebAE Settings, place at `TeXTech/WebAE/ui-defaults.json` or have an Agent write `assets/textech/webae/ui-defaults.json`; first-time visitors with no existing browser prefs apply it automatically. OP can also run `/admweb defaults install <path>`.

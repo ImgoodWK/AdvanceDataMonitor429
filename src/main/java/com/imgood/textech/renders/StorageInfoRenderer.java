@@ -30,7 +30,7 @@ public class StorageInfoRenderer implements IADMRender {
     private final Minecraft mc = Minecraft.getMinecraft();
 
     @Override
-    public void render(NBTTagCompound nbt, double x, double y, double z, int facing) {
+    public void render(NBTTagCompound nbt, double x, double y, double z, int facing, int bindingIndex) {
         if (!nbt.getBoolean("enable")) return;
 
         NBTTagList items = nbt.getTagList("storageItems", 10);

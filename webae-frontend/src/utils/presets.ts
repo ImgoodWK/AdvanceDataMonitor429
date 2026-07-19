@@ -88,7 +88,21 @@ export interface DashboardWidgetConfig {
     /** Active WebAE alerts summary. */
     | 'alertsSummary'
     /** Busy crafting CPUs queue. */
-    | 'craftingQueue';
+    | 'craftingQueue'
+    /** Composite operational score across storage, power, crafting, GT, alerts and server health. */
+    | 'networkHealth'
+    /** EU storage with live input/output/net-flow rails. */
+    | 'powerFlow'
+    /** Storage capacity plus item/fluid/essentia matrix. */
+    | 'storageMatrix'
+    /** GT active/idle/fault fleet overview. */
+    | 'machineFleet'
+    /** Online player roster and session duration. */
+    | 'playerPresence'
+    /** Combined alerts and active crafting event stream. */
+    | 'activityStream'
+    /** TPS/MSPT/uptime/player composite with inline pulse history. */
+    | 'serverVitals';
   dataSource: string;
   scope: 'global' | 'perNetwork';
   networkId?: number;
@@ -218,6 +232,7 @@ export interface AppPreset {
     pageStyle?: string;
     lang: string;
     displayMode: string;
+    browsingMode?: boolean;
     numberFormat: string;
     iconPack: string;
     iconRenderMode?: string;
@@ -628,7 +643,9 @@ export function mergeOverviewSettings<T extends StorageOverviewSettings>(
     defaultColors: { ...defaults.defaultColors, ...parsed.defaultColors },
     colorPresets: parsed.colorPresets ?? defaults.colorPresets,
     // Preserve explicit empty layouts; only fall back when widgets is missing.
-    widgets: Array.isArray(parsed.widgets) ? parsed.widgets : defaults.widgets,
+    widgets: migrateDashboardWidgets(
+      Array.isArray(parsed.widgets) ? parsed.widgets : defaults.widgets
+    ),
   };
 }
 
@@ -3003,9 +3020,20 @@ export function builtinPresets(
   ];
 }
 
+function safeWidgetInt(value: unknown, min: number, max: number, fallback: number): number {
+  const parsed = typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
 export function migrateDashboardWidgets(widgets: DashboardWidgetConfig[]): DashboardWidgetConfig[] {
   return widgets.map((w) => {
-    let next: DashboardWidgetConfig = { ...w };
+    let next: DashboardWidgetConfig = {
+      ...w,
+      x: safeWidgetInt(w.x, 0, 11, 0),
+      y: safeWidgetInt(w.y, 0, 500, 0),
+      width: safeWidgetInt(w.width, 1, 12, 3),
+      height: safeWidgetInt(w.height, 1, 20, 2),
+    };
     if ((next.type as string) === 'sparkline') {
       next = {
         ...next,

@@ -133,7 +133,22 @@ export type ThemeColor =
   | 'aura-front'
   | 'aura-design'
   | 'aura-sys'
-  | 'aura-interact';
+  | 'aura-interact'
+  // Batch6 flagship systems: Terra / cyber / aerospace / GTNH & GregTech.
+  | 'terra-amber'
+  | 'terra-danger'
+  | 'cyber-lime'
+  | 'cyber-redline'
+  | 'ueg-orange'
+  | 'lunar-ice'
+  | 'gtnh-stargate'
+  | 'gregtech-steel'
+  | 'gregtech-bronze'
+  | 'gt-cleanroom'
+  | 'gt-fusion'
+  | 'textech-quantum'
+  // Batch7 media-inspired flagship companion palette.
+  | 'bridges-white';
 export interface ColorScheme {
   id: ThemeColor;
   isDark: boolean;
@@ -275,7 +290,82 @@ export const THEME_COLORS: ThemeColor[] = [
   'aura-design',
   'aura-sys',
   'aura-interact',
+  'terra-amber',
+  'terra-danger',
+  'cyber-lime',
+  'cyber-redline',
+  'ueg-orange',
+  'lunar-ice',
+  'gtnh-stargate',
+  'gregtech-steel',
+  'gregtech-bronze',
+  'gt-cleanroom',
+  'gt-fusion',
+  'textech-quantum',
+  'bridges-white',
 ];
+
+/**
+ * Compact factory for the Batch6 dark palettes. Older palettes remain fully
+ * explicit because their hand-tuned variables are part of the compatibility
+ * surface; new flagship families share the same accessible semantic slots.
+ */
+function createFlagshipDarkScheme(
+  id: ThemeColor,
+  accent: string,
+  bgPrimary: string,
+  bgSecondary: string,
+  bgCard: string,
+  options: {
+    textPrimary?: string;
+    textSecondary?: string;
+    textDim?: string;
+    success?: string;
+    warning?: string;
+    danger?: string;
+  } = {}
+): ColorScheme {
+  const textPrimary = options.textPrimary || '#f4f7fb';
+  const textSecondary = options.textSecondary || '#aab5c2';
+  const textDim = options.textDim || '#74808d';
+  const success = options.success || '#46e6a5';
+  const warning = options.warning || '#ffbf3f';
+  const danger = options.danger || '#ff5364';
+  return {
+    id,
+    isDark: true,
+    antdColorPrimary: accent,
+    antdColorBgBase: bgPrimary,
+    effectsLevel: 'full',
+    cssVars: {
+      '--bg-primary': bgPrimary,
+      '--bg-secondary': bgSecondary,
+      '--bg-card': bgCard,
+      '--bg-hover': `color-mix(in srgb, ${accent} 10%, transparent)`,
+      '--text-primary': textPrimary,
+      '--text-secondary': textSecondary,
+      '--text-dim': textDim,
+      '--accent': accent,
+      '--accent-hover': `color-mix(in srgb, ${accent} 84%, white)`,
+      '--accent-dim': `color-mix(in srgb, ${accent} 18%, transparent)`,
+      '--accent-glow': `color-mix(in srgb, ${accent} 34%, transparent)`,
+      '--success': success,
+      '--success-dim': `color-mix(in srgb, ${success} 16%, transparent)`,
+      '--warning': warning,
+      '--warning-dim': `color-mix(in srgb, ${warning} 17%, transparent)`,
+      '--danger': danger,
+      '--danger-dim': `color-mix(in srgb, ${danger} 17%, transparent)`,
+      '--steam': warning,
+      '--border': `color-mix(in srgb, ${accent} 28%, transparent)`,
+      '--border-light': `color-mix(in srgb, ${accent} 12%, transparent)`,
+      '--sidebar-bg': bgPrimary,
+      '--sidebar-hover': `color-mix(in srgb, ${accent} 12%, transparent)`,
+      '--sidebar-active': `color-mix(in srgb, ${accent} 24%, transparent)`,
+      '--input-bg': bgCard,
+      '--input-border': `color-mix(in srgb, ${accent} 30%, transparent)`,
+    },
+  };
+}
 
 export const COLOR_SCHEMES: Record<ThemeColor, ColorScheme> = {
   dark: {
@@ -4628,6 +4718,136 @@ export const COLOR_SCHEMES: Record<ThemeColor, ColorScheme> = {
       '--sidebar-active': 'rgba(0, 153, 255, 0.24)',
       '--input-bg': '#061428',
       '--input-border': 'rgba(0, 153, 255, 0.28)',
+    },
+  },
+  'terra-amber': createFlagshipDarkScheme(
+    'terra-amber',
+    '#f6b73c',
+    '#0b0d0e',
+    '#15191b',
+    '#1d2224',
+    { textPrimary: '#f5f2e9', textSecondary: '#b9b5aa', warning: '#f6b73c' }
+  ),
+  'terra-danger': createFlagshipDarkScheme(
+    'terra-danger',
+    '#ff3d32',
+    '#0c0b0c',
+    '#191315',
+    '#221719',
+    { textPrimary: '#fff1ed', textSecondary: '#c3aaa7', danger: '#ff3d32', warning: '#ffb23e' }
+  ),
+  'cyber-lime': createFlagshipDarkScheme(
+    'cyber-lime',
+    '#d6ff32',
+    '#070908',
+    '#101411',
+    '#171c18',
+    { textPrimary: '#f7ffe0', textSecondary: '#aeb99b', success: '#d6ff32', danger: '#ff3b8d' }
+  ),
+  'cyber-redline': createFlagshipDarkScheme(
+    'cyber-redline',
+    '#ff2b51',
+    '#09070b',
+    '#150d15',
+    '#21111d',
+    { textPrimary: '#fff0f5', textSecondary: '#c0a5b0', danger: '#ff2b51', warning: '#ffd43b' }
+  ),
+  'ueg-orange': createFlagshipDarkScheme(
+    'ueg-orange',
+    '#ff7a1a',
+    '#080d10',
+    '#10191f',
+    '#17242b',
+    { textPrimary: '#edf7fa', textSecondary: '#9fb1b8', warning: '#ff7a1a', success: '#2fe3bb' }
+  ),
+  'lunar-ice': createFlagshipDarkScheme(
+    'lunar-ice',
+    '#8ddcff',
+    '#060a10',
+    '#0d1620',
+    '#13212d',
+    { textPrimary: '#f3fbff', textSecondary: '#a7bac7', warning: '#f4c76b' }
+  ),
+  'gtnh-stargate': createFlagshipDarkScheme(
+    'gtnh-stargate',
+    '#46e6ff',
+    '#050914',
+    '#0a1630',
+    '#102347',
+    { textPrimary: '#eefcff', textSecondary: '#9ab8cf', success: '#4dffb8', warning: '#ffc247' }
+  ),
+  'gregtech-steel': createFlagshipDarkScheme(
+    'gregtech-steel',
+    '#9fb8c8',
+    '#0b0e10',
+    '#151a1e',
+    '#20282d',
+    { textPrimary: '#edf3f5', textSecondary: '#adb9bf', warning: '#ffb13b', danger: '#ff5a47' }
+  ),
+  'gregtech-bronze': createFlagshipDarkScheme(
+    'gregtech-bronze',
+    '#d58a45',
+    '#100b08',
+    '#21150e',
+    '#312017',
+    { textPrimary: '#fff3df', textSecondary: '#c8ad91', success: '#91d45f', warning: '#efa54e' }
+  ),
+  'gt-cleanroom': createFlagshipDarkScheme(
+    'gt-cleanroom',
+    '#52d8ff',
+    '#071015',
+    '#0e1d24',
+    '#152a32',
+    { textPrimary: '#f1fcff', textSecondary: '#a5c0c9', success: '#57f0c1', warning: '#ffe071' }
+  ),
+  'gt-fusion': createFlagshipDarkScheme(
+    'gt-fusion',
+    '#c76cff',
+    '#0c0612',
+    '#190b24',
+    '#261138',
+    { textPrimary: '#fbf1ff', textSecondary: '#c2a6cf', success: '#5affd1', warning: '#ffbf58' }
+  ),
+  'textech-quantum': createFlagshipDarkScheme(
+    'textech-quantum',
+    '#00f0ff',
+    '#02070d',
+    '#061321',
+    '#0a2034',
+    { textPrimary: '#effeff', textSecondary: '#94bac8', success: '#00ff9c', warning: '#ffd84b' }
+  ),
+  'bridges-white': {
+    id: 'bridges-white',
+    isDark: false,
+    antdColorPrimary: '#c94800',
+    antdColorBgBase: '#e9ece8',
+    effectsLevel: 'full',
+    cssVars: {
+      '--bg-primary': '#e9ece8',
+      '--bg-secondary': '#dde2de',
+      '--bg-card': '#f8faf7',
+      '--bg-hover': 'rgba(201, 72, 0, 0.09)',
+      '--text-primary': '#151b20',
+      '--text-secondary': '#53616a',
+      '--text-dim': '#7a878d',
+      '--accent': '#c94800',
+      '--accent-hover': '#a83c00',
+      '--accent-dim': 'rgba(201, 72, 0, 0.16)',
+      '--accent-glow': 'rgba(201, 72, 0, 0.24)',
+      '--success': '#087f5b',
+      '--success-dim': 'rgba(8, 127, 91, 0.14)',
+      '--warning': '#d86a00',
+      '--warning-dim': 'rgba(216, 106, 0, 0.15)',
+      '--danger': '#c92a2a',
+      '--danger-dim': 'rgba(201, 42, 42, 0.14)',
+      '--steam': '#c94800',
+      '--border': 'rgba(21, 27, 32, 0.30)',
+      '--border-light': 'rgba(21, 27, 32, 0.12)',
+      '--sidebar-bg': '#151b20',
+      '--sidebar-hover': 'rgba(255, 255, 255, 0.10)',
+      '--sidebar-active': 'rgba(201, 72, 0, 0.26)',
+      '--input-bg': '#ffffff',
+      '--input-border': 'rgba(21, 27, 32, 0.28)',
     },
   },
 };

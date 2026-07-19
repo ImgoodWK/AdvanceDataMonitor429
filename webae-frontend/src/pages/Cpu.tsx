@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Tabs, Table, Input, Empty, Card, Drawer, Descriptions, Progress, Tag, Typography } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Tabs, Table, Input, Empty, Card, Drawer, Descriptions, Progress, Spin, Tag, Typography } from 'antd';
+import { SearchOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
 import { formatNetworkOptionLabel } from '@/utils/networkHealth';
 import { useSnapshotData } from '@/hooks/useSnapshotData';
 import { useNumberFormat } from '@/hooks/useNumberFormat';
 import { PageShell } from '@/components/Layout/PageShell';
+import { DataPageSection } from '@/components/Layout/DataPageSection';
 import { OverviewWidgetGrid } from '@/components/dashboard/OverviewWidgetGrid';
 import {
   DEFAULT_CPU_OVERVIEW_SETTINGS,
@@ -243,48 +244,63 @@ export function CpuPage() {
   };
 
   return (
-    <PageShell title={t('cpuPage')}>
-      <OverviewWidgetGrid
-        storageKey={CPU_OVERVIEW_CONFIG_KEY}
-        defaultSettings={DEFAULT_CPU_OVERVIEW_SETTINGS}
-        snapshot={merged.snapshot}
-        dataSources={CPU_OVERVIEW_DATA_SOURCES}
-        settingsTitleKey="cpuOverviewSettings"
-        gridClassName="overview-widget-grid cpu-overview-grid"
-      />
-
-      <Card loading={loading && !merged.snapshot.cpus.length} style={{ marginTop: 16 }}>
-        <Input
-          placeholder={t('searchCpuPlaceholder')}
-          prefix={<SearchOutlined />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          allowClear
-          style={{ marginBottom: 16 }}
-          aria-label={t('searchCpuPlaceholder')}
+    <PageShell title={t('cpuPage')} description={t('cpuPageDesc')}>
+      <div className="data-page-flow">
+        <OverviewWidgetGrid
+          storageKey={CPU_OVERVIEW_CONFIG_KEY}
+          defaultSettings={DEFAULT_CPU_OVERVIEW_SETTINGS}
+          snapshot={merged.snapshot}
+          dataSources={CPU_OVERVIEW_DATA_SOURCES}
+          settingsTitleKey="cpuOverviewSettings"
+          sectionTitleKey="cpuOverviewTitle"
+          sectionDescriptionKey="cpuOverviewDesc"
+          gridClassName="overview-widget-grid cpu-overview-grid"
         />
 
-        {showNetworkTabs ? (
-          <Tabs
-            activeKey={activeNetTab}
-            onChange={setActiveNetTab}
-            items={[
-              {
-                key: 'all',
-                label: t('allNetworks'),
-                children: tableForCpus(merged.cpus),
-              },
-              ...merged.perNetwork.map((pn) => ({
-                key: String(pn.id),
-                label: networkName(pn.id),
-                children: tableForCpus(pn.cpus, pn.id),
-              })),
-            ]}
-          />
-        ) : (
-          tableForCpus(merged.cpus)
-        )}
-      </Card>
+        <DataPageSection
+          title={t('cpuQueueTitle')}
+          description={t('cpuQueueDesc')}
+          eyebrow={t('dataDetailsEyebrow')}
+          icon={<UnorderedListOutlined />}
+          variant="details"
+        >
+          <div className="data-page-toolbar">
+            <Input
+              placeholder={t('searchCpuPlaceholder')}
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              allowClear
+              aria-label={t('searchCpuPlaceholder')}
+            />
+          </div>
+
+          {loading && !merged.snapshot.cpus.length ? (
+            <div className="data-page-loading">
+              <Spin aria-label={t('loading')} />
+            </div>
+          ) : showNetworkTabs ? (
+            <Tabs
+              activeKey={activeNetTab}
+              onChange={setActiveNetTab}
+              items={[
+                {
+                  key: 'all',
+                  label: t('allNetworks'),
+                  children: tableForCpus(merged.cpus),
+                },
+                ...merged.perNetwork.map((pn) => ({
+                  key: String(pn.id),
+                  label: networkName(pn.id),
+                  children: tableForCpus(pn.cpus, pn.id),
+                })),
+              ]}
+            />
+          ) : (
+            tableForCpus(merged.cpus)
+          )}
+        </DataPageSection>
+      </div>
 
       <CpuDetailDrawer
         cpu={detailCpu}

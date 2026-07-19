@@ -103,7 +103,6 @@ export type PageId =
   | 'quests'
   | 'assistant'
   | 'alertshistory'
-  | 'spark'
   | 'diagnostics'
   | 'admin'
   | 'settings';
@@ -204,6 +203,8 @@ interface AppContextValue {
   // Display mode
   displayMode: DisplayMode;
   setDisplayMode: (m: DisplayMode) => void;
+  browsingMode: boolean;
+  setBrowsingMode: (v: boolean) => void;
 
   // Icons (continued)
   iconUploadEnabled: boolean;
@@ -415,6 +416,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     'webae_display_mode',
     'split'
   ) as [DisplayMode, (m: DisplayMode) => void];
+  const [browsingMode, setBrowsingMode] = useLocalStorage<boolean>(
+    'webae_browsing_mode',
+    false
+  );
 
   // ---- Icons ----
   const [iconPack, setIconPackState] = useLocalStorageString('webae_icon_pack', 'default');
@@ -1071,6 +1076,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setEffectsLevel,
       setLang,
       setDisplayMode,
+      setBrowsingMode,
       setNumberFormat,
       setIconPack,
       setIconRenderMode,
@@ -1089,6 +1095,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setEffectsLevel,
       setLang,
       setDisplayMode,
+      setBrowsingMode,
       setNumberFormat,
       setIconPack,
       setIconRenderMode,
@@ -1125,6 +1132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pageStyle: resolvedPageStyle,
       lang,
       displayMode,
+      browsingMode,
       numberFormat,
       iconPack,
       iconRenderMode: iconRenderMode || 'nei',
@@ -1133,7 +1141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       effectsLevel: resolvedEffectsLevel,
       dashboard,
     };
-  }, [themeColor, themeLayout, resolvedPageStyle, lang, displayMode, numberFormat, iconPack, iconRenderMode, localIconPack, sidebarMode, resolvedEffectsLevel]);
+  }, [themeColor, themeLayout, resolvedPageStyle, lang, displayMode, browsingMode, numberFormat, iconPack, iconRenderMode, localIconPack, sidebarMode, resolvedEffectsLevel]);
 
   const savePreset = useCallback(
     (name: string) => {
@@ -1161,6 +1169,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPageStyleState(presetPageStyle);
       setLangState(s.lang as Lang);
       setDisplayMode(s.displayMode as DisplayMode);
+      if (s.browsingMode !== undefined) setBrowsingMode(s.browsingMode);
       setNumberFormat(s.numberFormat as NumberFormat);
       setIconPackState(s.iconPack);
       if (s.iconRenderMode) setIconRenderModeState(s.iconRenderMode);
@@ -1187,7 +1196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       );
       notify('presetApplied', 'success');
     },
-    [presets, setThemeColorState, setThemeLayoutState, setPageStyleState, setLangState, setDisplayMode, setNumberFormat, setIconPackState, setIconRenderModeState, setSidebarMode, setEffectsLevelState, notify]
+    [presets, setThemeColorState, setThemeLayoutState, setPageStyleState, setLangState, setDisplayMode, setBrowsingMode, setNumberFormat, setIconPackState, setIconRenderModeState, setSidebarMode, setEffectsLevelState, notify]
   );
 
   const deletePreset = useCallback(
@@ -1269,6 +1278,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           effectsLevel: resolvedEffectsLevel,
           lang: lang || 'en',
           displayMode: (displayMode || 'split') as DisplayMode,
+          browsingMode,
           numberFormat: (numberFormat || 'thousands') as NumberFormat,
           iconPack,
           iconRenderMode: iconRenderMode || 'nei',
@@ -1292,6 +1302,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       resolvedEffectsLevel,
       lang,
       displayMode,
+      browsingMode,
       numberFormat,
       iconPack,
       iconRenderMode,
@@ -1406,6 +1417,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNumberFormat,
     displayMode: (displayMode || 'split') as DisplayMode,
     setDisplayMode,
+    browsingMode,
+    setBrowsingMode,
     iconPack,
     setIconPack,
     iconRenderMode: iconRenderMode || 'nei',

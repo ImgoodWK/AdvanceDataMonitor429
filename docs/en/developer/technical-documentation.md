@@ -89,7 +89,7 @@ Main directories:
 - `assistant/`: AI assistant intent, controller, server execution, formatting, preference memory, and local plan storage.
 - `assistant/ai/`: OpenAI-compatible chat client, request options, provider profiles, stream listener (assistant sub-package).
 - `voice/`: recording, STT, embedded Vosk model.
-- `webae/`: embedded Web Console (NanoHTTPD HTTP server + REST API + frontend SPA); sub-packages `auth/`, `api/handler/`, `cache/`, `dto/`, `power/`, `snapshot/`, `gt/`, `network/`, `recipe/`, `pattern/`, `icon/`, `player/` (player info collection + skin URL resolver), `chat/` (chat message ring buffer); for full architecture, API endpoint table, network packets, and subsystem design see [WebAE Developer Guide](../webae/developer-guide.md).
+- `webae/`: embedded Web Console (NanoHTTPD HTTP server + REST API + frontend SPA), including the `chat/` ring buffer and bounded `screenshot/` attachment ingress/storage; for full architecture, API endpoint table, network packets, and subsystem design see [WebAE Developer Guide](../webae/developer-guide.md).
 - `items/cell/`: Data Loom Cells — implement `ICellWorkbenchItem` + `ICellHandler`; weave marked items/fluids/essentia over time in ME drives/chests; accept only Weave Amplifier cards (default 4×/16× per card, multiplicative); tooltip caches effective rates.
 - `utils/`: NBT parsing, binding data model, TileEntity type detection, network validation, AE2 crafting templates, and other helpers.
 - `mixin/`: client-side Mixins (NEI tooltip/layout, GUI container hooks); config in `mixins.textech.json`.
@@ -178,7 +178,13 @@ Key classes:
 6. For ordinary TileEntities, read the specified numeric field from target NBT.
 7. Update local data and sync to client rendering via `syncData()` / `PacketSynTileEntity` / vanilla description packet.
 
-Client rendering dispatches by display entry `dataType` or renderer type to `LineChartRenderer`, `CraftingInfoRenderer`, `StorageInfoRenderer`. To add a display type, typically:
+`dataType=webae_dashboard` is passive: `updateEntity()` skips it before coordinate parsing, target-TE reads, or interval counters, so it adds no server-tick collection. Its independent `renderType=web_surface` currently uses `webSurfaceMode=dashboard_snapshot`; future web content sources can reuse monitor transforms without changing the data type contract.
+
+WebAE `utils/dashboardGameDisplayExport.ts` converts the already-rendered Dashboard DOM into `textech-webae-display-snapshot` v1: a viewport plus at most 600 bounded `rect` / `ellipse` / `text` / `polyline` primitives, with raw JSON trimmed to roughly 90 KiB. `WebDashboardSnapshotCodec` validates again on client import and server save and requires the GZIP payload to stay within 24 KiB. The full payload persists only in server TE NBT; `writeSyncNBT()` removes it from ordinary TE updates and sends hash/viewport/count/size metadata. Bidirectional packet ID 53 (`PacketMonitorWebSurface`) handles one-binding upload/ack and nearby (64-block) content requests by hash. One monitor permits at most 8 web bindings and 128 KiB total compressed content.
+
+On clients, `WebSurfaceClientCache` uses one low-priority daemon worker to rasterize the drawing list into a 256/512/1024px `DynamicTexture`. GL upload remains on the render thread; an 8-entry/about-6M-pixel LRU bounds VRAM. The stable frame path only binds the texture and draws one quad—no repeated JSON parsing and no WebAE HTTP request.
+
+Client rendering prefers `renderType` and falls back to `dataType`, dispatching to `LineChartRenderer`, `CraftingInfoRenderer`, `StorageInfoRenderer`, or `WebSurfaceRenderer`. To add a display type, typically:
 
 1. Define display entry NBT fields and GUI edit entry.
 2. Write stable data structures in sampling logic.
@@ -1173,7 +1179,7 @@ When GUIs modify TileEntities, respect side: client edits UI and sends packets; 
 
 All packets share `TeXTech.ADMCHANEL`, registered in `LoaderNetwork.registerNetWorks()` (postInit).
 
-**Full ID table and add-packet checklist**: see [`.cursor/rules/network-packets.mdc`](../../.cursor/rules/network-packets.mdc) (kept in sync with source; next available ID = 50).
+**Full ID table and add-packet checklist**: see [`.cursor/rules/network-packets.mdc`](../../.cursor/rules/network-packets.mdc) (kept in sync with source; next available ID = 54).
 
 Summary:
 
@@ -1186,7 +1192,9 @@ Summary:
 | 19–21 | Dimensional pocket |
 | 22–23 | Super Orange / matter ball decompressor |
 | 24–25 | AI assistant menu state |
-| 26–36 | WebAE recipes/icons/token/world-map HD tiles/icon nack |
+| 26–50 | WebAE recipes/icons/token/world-map/alert HUD |
+| 51–52 | Game-window screenshot 24 KiB upload chunks / terminal acknowledgement |
+| 53 | Monitor web-surface hash request, one-binding upload, and acknowledgement (same ID both directions) |
 
 `PacketAssistantAction` currently supports 11 actions (1–7 crafting/query, 8–11 withdraw), carrying parameters in payload NBT.
 
@@ -1251,7 +1259,7 @@ Two rendering categories:
 - Block / item appearance: `RenderAdvanceDataMonitor`, `RenderAdvanceDataMonitorBlockItem`, `RenderAdvanceNetworkLink`, `RenderAdvanceNetworkLinkBlockItem`, item renderers — bound in `LoaderRender`.
 - Monitor content: implement `IADMRender`, dispatched by type via `RenderController`.
 
-`IADMRender.render(NBTTagCompound nbt, double x, double y, double z, int facing)` consumes display entry NBT directly; contract between renderer and sampling is NBT field names. Renaming fields requires syncing GUI defaults, TileEntity sampling, NBT persistence, sync packets, and renderer.
+`IADMRender.render(NBTTagCompound nbt, double x, double y, double z, int facing, int bindingIndex)` consumes display entry NBT directly; `bindingIndex` lets on-demand renderers address one payload. The contract between renderer and sampling remains the NBT field names. Renaming fields requires syncing GUI defaults, TileEntity sampling, NBT persistence, sync packets, and renderer.
 
 1.7.10 TESR is sensitive to GL state pollution. New renderers should push/pop matrix pairs, restore color/texture/lighting/blend, and avoid per-frame heavy allocation or server-only class access.
 

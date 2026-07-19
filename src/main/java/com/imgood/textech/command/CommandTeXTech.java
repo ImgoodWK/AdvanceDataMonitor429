@@ -12,7 +12,7 @@ import net.minecraft.util.EnumChatFormatting;
  */
 public class CommandTeXTech extends TeXTechCommandBase {
 
-    protected static final String[] SERVER_DOMAINS = { "help", "web", "assistant", "ai" };
+    protected static final String[] SERVER_DOMAINS = { "help", "web", "assistant", "ai", "screenshot" };
     protected static final int HUB_LINES = 5;
 
     protected final CommandAssistant assistantCmd = new CommandAssistant();
@@ -61,6 +61,10 @@ public class CommandTeXTech extends TeXTechCommandBase {
         }
         if ("ai".equals(domain)) {
             sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.hub.ai_client_only");
+            return true;
+        }
+        if ("screenshot".equals(domain)) {
+            sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.hub.screenshot_client_only");
             return true;
         }
         return false;

@@ -102,6 +102,11 @@ public class HandlerTick {
             .tickSave(now);
         perf.endPhase(WebAePerfProfiler.PHASE_MISC, tMisc);
 
+        long tQqBot = perf.begin();
+        com.imgood.textech.webae.qqbot.QqBotService.instance()
+            .onServerTick(now);
+        perf.endPhase(WebAePerfProfiler.PHASE_QQ_BOT, tQqBot);
+
         // --- Snapshot scheduler: every tick (internal spread logic) ---
         long t1 = perf.begin();
         com.imgood.textech.webae.cache.SnapshotScheduler.onServerTick();
@@ -109,19 +114,23 @@ public class HandlerTick {
 
         // --- Power / metrics / alerts / icons: every 4 ticks (~250ms spacing) ---
         int phase = tickCounter & 3;
-        long tGroup = perf.begin();
         if (phase == 0) {
+            long tGroup = perf.begin();
             com.imgood.textech.webae.power.PowerSampler.getInstance()
                 .onServerTick();
             com.imgood.textech.webae.metric.NetworkMetricSampler.getInstance()
                 .onServerTick();
+            perf.endPhase(WebAePerfProfiler.PHASE_METRIC_SAMPLER, tGroup);
         }
         if (phase == 2) {
+            long tAlerts = perf.begin();
             com.imgood.textech.webae.alerts.WebAlertEngine.onServerTick(now);
+            perf.endPhase(WebAePerfProfiler.PHASE_ALERT_ENGINE, tAlerts);
+            long tIcons = perf.begin();
             com.imgood.textech.webae.icon.IconMissingQueue.instance()
                 .onServerTick();
+            perf.endPhase(WebAePerfProfiler.PHASE_ICON_QUEUE, tIcons);
         }
-        perf.endPhase(WebAePerfProfiler.PHASE_METRIC_SAMPLER, tGroup);
 
         // --- World map: every 2 ticks ---
         if ((tickCounter & 1) == 0) {

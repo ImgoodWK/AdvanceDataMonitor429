@@ -41,6 +41,8 @@ import {
   CrownOutlined,
   CloseCircleOutlined,
   FolderOpenOutlined,
+  RobotOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { useAppContext } from '@/context/AppContext';
 import { useI18n } from '@/i18n';
@@ -67,17 +69,19 @@ import {
   getServerDebugFlags,
   type DebugFeature,
 } from '@/utils/debugLog';
-import { THEME_COLORS, type ThemeColor } from '@/theme/colors';
-import { THEME_LAYOUTS, type ThemeLayout } from '@/theme/layouts';
-import { PAGE_STYLES, type PageStyle } from '@/theme/pageStyles';
+import type { ThemeColor } from '@/theme/colors';
+import type { ThemeLayout } from '@/theme/layouts';
+import type { PageStyle } from '@/theme/pageStyles';
 import { formatNumber, type NumberFormat } from '@/utils/format';
 import { PageShell } from '@/components/Layout/PageShell';
 import type { AppPreset } from '@/utils/presets';
 import { AlertsRulesEditor } from '@/components/settings/AlertsRulesEditor';
 import { DataFreshnessPanel } from '@/components/settings/DataFreshnessPanel';
 import { SettingsBackupPanel } from '@/components/settings/SettingsBackupPanel';
-import { ThemeOptionGrid } from '@/components/theme/ThemeOptionGrid';
+import { AiSettingsPanel } from '@/components/settings/AiSettingsPanel';
 import { ThemePreviewMini } from '@/components/theme/ThemePreviewMini';
+import { ThemeStudio } from '@/components/theme/ThemeStudio';
+import { SettingRow } from '@/components/common/SettingRow';
 
 const { Text, Title } = Typography;
 
@@ -95,6 +99,8 @@ export function SettingsPage() {
     setLang,
     displayMode,
     setDisplayMode,
+    browsingMode,
+    setBrowsingMode,
     numberFormat,
     setNumberFormat,
     iconPack,
@@ -186,45 +192,6 @@ export function SettingsPage() {
     setLocalIconDirMetaState(getLocalIconDirMeta());
   }, [settingsTab]);
 
-  const colorGridItems = useMemo(
-    () =>
-      THEME_COLORS.map((c) => ({
-        id: c,
-        label: t('themeColor_' + c),
-        themeColor: c,
-        themeLayout: themeLayout as ThemeLayout,
-        pageStyle,
-        effectsLevel,
-        emphasize: 'color' as const,
-      })),
-    [t, themeLayout, pageStyle, effectsLevel]
-  );
-  const layoutGridItems = useMemo(
-    () =>
-      THEME_LAYOUTS.map((l) => ({
-        id: l,
-        label: t('themeLayout_' + l),
-        themeColor: themeColor as ThemeColor,
-        themeLayout: l,
-        pageStyle,
-        effectsLevel,
-        emphasize: 'layout' as const,
-      })),
-    [t, themeColor, pageStyle, effectsLevel]
-  );
-  const pageStyleGridItems = useMemo(
-    () =>
-      PAGE_STYLES.map((s) => ({
-        id: s,
-        label: t('pageStyle_' + s),
-        themeColor: themeColor as ThemeColor,
-        themeLayout: themeLayout as ThemeLayout,
-        pageStyle: s,
-        effectsLevel,
-        emphasize: 'style' as const,
-      })),
-    [t, themeColor, themeLayout, effectsLevel]
-  );
   const [presetFilter, setPresetFilter] = useState('');
   const filteredPresets = useMemo(() => {
     const q = presetFilter.trim().toLowerCase();
@@ -387,6 +354,26 @@ export function SettingsPage() {
         destroyInactiveTabPane
         items={[
           {
+            key: 'browsing',
+            label: (
+              <span>
+                <EyeOutlined /> {t('browsingMode')}
+              </span>
+            ),
+            children: (
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <SettingRow label={t('browsingMode')} hint={t('browsingModeHint')}>
+                  <Switch
+                    checked={browsingMode}
+                    onChange={setBrowsingMode}
+                    aria-label={t('browsingMode')}
+                  />
+                </SettingRow>
+                {browsingMode && <Alert type="success" showIcon message={t('browsingModeActive')} />}
+              </Space>
+            ),
+          },
+          {
             key: 'data-freshness',
             label: (
               <span>
@@ -415,62 +402,18 @@ export function SettingsPage() {
             ),
             children: (
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                <div>
-                  <Text strong>{t('themeColor')}</Text>
-                  <div style={{ marginTop: 8 }}>
-                    <ThemeOptionGrid
-                      items={colorGridItems}
-                      value={themeColor as ThemeColor}
-                      onChange={(id) => setThemeColor(id)}
-                      searchPlaceholder={t('themeOptionSearch')}
-                      maxHeight={360}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Text strong>{t('themeLayout')}</Text>
-                  <div style={{ marginTop: 8 }}>
-                    <ThemeOptionGrid
-                      items={layoutGridItems}
-                      value={themeLayout as ThemeLayout}
-                      onChange={(id) => setThemeLayout(id)}
-                      searchPlaceholder={t('themeOptionSearch')}
-                      maxHeight={280}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Text strong>{t('pageStyle')}</Text>
-                  <div style={{ marginTop: 8 }}>
-                    <ThemeOptionGrid
-                      items={pageStyleGridItems}
-                      value={pageStyle as PageStyle}
-                      onChange={(id) => setPageStyle(id)}
-                      searchPlaceholder={t('themeOptionSearch')}
-                      maxHeight={420}
-                    />
-                  </div>
-                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginTop: 6 }}>
-                    {t('pageStyle_hint')}
-                  </Text>
-                </div>
-                <div>
-                  <Text strong>{t('effectsLevel')}</Text>
-                  <Segmented
-                    block
-                    style={{ marginTop: 8 }}
-                    value={effectsLevel}
-                    onChange={(v) => setEffectsLevel(v as 'none' | 'subtle' | 'full')}
-                    options={[
-                      { label: t('effectsLevel_none'), value: 'none' },
-                      { label: t('effectsLevel_subtle'), value: 'subtle' },
-                      { label: t('effectsLevel_full'), value: 'full' },
-                    ]}
-                  />
-                  <Text type="secondary" style={{ display: 'block', fontSize: '0.75rem', marginTop: 6 }}>
-                    {t('effectsLevel_hint')}
-                  </Text>
-                </div>
+                <ThemeStudio
+                  themeColor={themeColor}
+                  setThemeColor={setThemeColor}
+                  themeLayout={themeLayout}
+                  setThemeLayout={setThemeLayout}
+                  pageStyle={pageStyle}
+                  setPageStyle={setPageStyle}
+                  effectsLevel={effectsLevel}
+                  setEffectsLevel={setEffectsLevel}
+                  t={t}
+                  notify={notify}
+                />
                 <Divider />
                 <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
                   <div>
@@ -1059,6 +1002,15 @@ export function SettingsPage() {
                 </Button>
               </Space>
             ),
+          },
+          {
+            key: 'ai',
+            label: (
+              <span>
+                <RobotOutlined /> {t('aiSettingsTitle')}
+              </span>
+            ),
+            children: <AiSettingsPanel isAdmin={isAdmin} notify={notify} />,
           },
           {
             key: 'alerts',

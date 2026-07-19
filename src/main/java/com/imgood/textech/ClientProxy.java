@@ -19,6 +19,7 @@ import com.imgood.textech.renders.OrangeNameplateRenderer;
 import com.imgood.textech.renders.PlannerHudRenderer;
 import com.imgood.textech.renders.SuperOrangeHaloRenderer;
 import com.imgood.textech.renders.VoiceHudRenderer;
+import com.imgood.textech.renders.WebAlertHudRenderer;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -53,6 +54,9 @@ public class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(this.keyBindings);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(com.imgood.textech.client.screenshot.ClientScreenshotService.instance());
         FMLCommonHandler.instance()
             .bus()
             .register(this.grappleClientHandler);
@@ -94,6 +98,7 @@ public class ClientProxy extends CommonProxy {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new OrangeNameplateRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new SuperOrangeHaloRenderer());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(VoiceHudRenderer.instance());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(WebAlertHudRenderer.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(PocketOverlayHandler.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new DataImprintScrollHandler());
         // TickEvent.ClientTickEvent is an FML bus event, so register there too — otherwise

@@ -301,7 +301,12 @@ public class AssistantAiIntentService {
         return safe;
     }
 
-    private String buildSystemPrompt(String locale) {
+    /**
+     * Shared intent-classification contract used by both the in-game client and
+     * the server-side WebAE assistant bridge. Keeping the prompt here prevents
+     * the two assistant surfaces from drifting to different intent schemas.
+     */
+    public static String buildSystemPrompt(String locale) {
         String effectiveLocale = locale == null || locale.trim()
             .isEmpty() ? "en_US" : locale.trim();
         boolean zh = effectiveLocale.toLowerCase()

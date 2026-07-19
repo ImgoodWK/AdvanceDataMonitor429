@@ -172,7 +172,13 @@ public class GuiSubBind extends ADM_GuiScreen {
                 }
 
                 // 创建新数据条目并保存坐标
-                int newIndex = tileEntity.getDisplayDataSize();
+                int newIndex = tileEntity.findLowestFreeBindingIndex();
+                if (newIndex < 0) {
+                    errorTips = I18n.format(
+                        "adm.error.data_bindings_full",
+                        Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS));
+                    return;
+                }
                 net.minecraft.nbt.NBTTagCompound defaultNbt = tileEntity.getDataBound(newIndex);
                 defaultNbt.setString("XYZ", x + "," + y + "," + z);
                 tileEntity.setDisplayData(newIndex, defaultNbt);
