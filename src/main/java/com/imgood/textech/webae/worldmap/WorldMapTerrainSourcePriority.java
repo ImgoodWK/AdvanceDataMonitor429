@@ -29,7 +29,8 @@ public final class WorldMapTerrainSourcePriority {
     }
 
     public static List<WorldMapTerrainSourceId> parse(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             raw = DEFAULT;
         }
         String[] parts = raw.split(",");

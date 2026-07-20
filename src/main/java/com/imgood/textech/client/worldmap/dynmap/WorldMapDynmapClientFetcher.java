@@ -90,10 +90,12 @@ public final class WorldMapDynmapClientFetcher {
 
     private static String resolveFetchBaseUrl() {
         String override = Config.worldMapDynmapClientFetchUrl;
-        if (override != null && !override.trim().isEmpty()) {
+        if (override != null && !override.trim()
+            .isEmpty()) {
             return trimTrailingSlash(override.trim());
         }
-        if (Config.webDynmapBaseUrl != null && !Config.webDynmapBaseUrl.trim().isEmpty()) {
+        if (Config.webDynmapBaseUrl != null && !Config.webDynmapBaseUrl.trim()
+            .isEmpty()) {
             return trimTrailingSlash(Config.webDynmapBaseUrl.trim());
         }
         return null;
@@ -109,8 +111,17 @@ public final class WorldMapDynmapClientFetcher {
     private static byte[] httpGetTile(String baseUrl, String worldName, String perspective, int zoom, int tileX,
         int tileZ) {
         String zoomPrefix = WorldMapDynmapCoordMapper.zoomPrefix(zoom);
-        String path = baseUrl + "/tiles/" + worldName + "/" + perspective + "/" + zoomPrefix + "/" + tileX + "_"
-            + tileZ + ".png";
+        String path = baseUrl + "/tiles/"
+            + worldName
+            + "/"
+            + perspective
+            + "/"
+            + zoomPrefix
+            + "/"
+            + tileX
+            + "_"
+            + tileZ
+            + ".png";
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) new URL(path).openConnection();
@@ -188,7 +199,9 @@ public final class WorldMapDynmapClientFetcher {
 
     public static boolean isAnyDynmapSourceAvailable() {
         return WorldMapDynmapDetector.isDynmapAvailable()
-            || (Config.webDynmapBaseUrl != null && !Config.webDynmapBaseUrl.trim().isEmpty())
-            || (Config.worldMapDynmapClientFetchUrl != null && !Config.worldMapDynmapClientFetchUrl.trim().isEmpty());
+            || (Config.webDynmapBaseUrl != null && !Config.webDynmapBaseUrl.trim()
+                .isEmpty())
+            || (Config.worldMapDynmapClientFetchUrl != null && !Config.worldMapDynmapClientFetchUrl.trim()
+                .isEmpty());
     }
 }

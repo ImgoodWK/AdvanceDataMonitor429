@@ -33,12 +33,8 @@ public final class MonitorHandler {
         if (fresh != null) {
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"count\":" + fresh.size()
-                    + ",\"monitors\":"
-                    + GSON.toJson(fresh)
-                    + ",\"cached\":true,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"count\":" + fresh
+                    .size() + ",\"monitors\":" + GSON.toJson(fresh) + ",\"cached\":true,\"timestamp\":" + ts + "}");
         }
         @SuppressWarnings("unchecked")
         List<MonitorBindingDto> stale = SnapshotCache.instance()
@@ -46,18 +42,13 @@ public final class MonitorHandler {
         if (stale != null) {
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"count\":" + stale.size()
-                    + ",\"monitors\":"
-                    + GSON.toJson(stale)
-                    + ",\"cached\":false,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"count\":" + stale
+                    .size() + ",\"monitors\":" + GSON.toJson(stale) + ",\"cached\":false,\"timestamp\":" + ts + "}");
         }
         List<MonitorBindingDto> empty = Collections.emptyList();
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"count\":0,\"monitors\":" + GSON.toJson(empty)
-                + ",\"cached\":false,\"timestamp\":0}");
+            "{\"success\":true,\"count\":0,\"monitors\":" + GSON.toJson(empty) + ",\"cached\":false,\"timestamp\":0}");
     }
 
     private static NanoHTTPD.Response json(NanoHTTPD.Response.Status status, String body) {

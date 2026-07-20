@@ -67,7 +67,8 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
             index--;
             loadCurrent();
         } else if (button.id == 3) {
-            ClientScreenshotService.instance().queueUpload("web", "", "", history.get(index), "");
+            ClientScreenshotService.instance()
+                .queueUpload("web", "", "", history.get(index), "");
         } else if (button.id == 4) {
             mc.displayGuiScreen(null);
         }
@@ -124,14 +125,13 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
         }
         drawCenteredString(
             fontRendererObj,
-            EnumChatFormatting.GRAY
-                + I18n.format(
-                    "adm.screenshot.gallery.metadata",
-                    file.getName(),
-                    imageWidth,
-                    imageHeight,
-                    file.length() / 1024L,
-                    timestamp),
+            EnumChatFormatting.GRAY + I18n.format(
+                "adm.screenshot.gallery.metadata",
+                file.getName(),
+                imageWidth,
+                imageHeight,
+                file.length() / 1024L,
+                timestamp),
             width / 2,
             height - 43,
             0xAAAAAA);
@@ -183,7 +183,8 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
             textureLocation = mc.getTextureManager()
                 .getDynamicTextureLocation("textech_screenshot_preview", texture);
         } catch (Throwable error) {
-            loadError = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+            loadError = error.getMessage() == null ? error.getClass()
+                .getSimpleName() : error.getMessage();
         }
     }
 
@@ -192,13 +193,14 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
             GuiButton button = (GuiButton) value;
             if (button.id == 1) button.enabled = index + 1 < history.size();
             if (button.id == 2) button.enabled = index > 0;
-            if (button.id == 3) button.enabled = textureLocation != null
-                && !ClientScreenshotService.instance().isUploadBusy();
+            if (button.id == 3) button.enabled = textureLocation != null && !ClientScreenshotService.instance()
+                .isUploadBusy();
         }
     }
 
     private void drawTexture(int x, int y, int width, int height) {
-        mc.getTextureManager().bindTexture(textureLocation);
+        mc.getTextureManager()
+            .bindTexture(textureLocation);
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
         tessellator.addVertexWithUV(x, y + height, 0.0D, 0.0D, 1.0D);

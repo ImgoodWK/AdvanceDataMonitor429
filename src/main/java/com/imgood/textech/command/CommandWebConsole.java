@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,6 +17,7 @@ import net.minecraft.util.EnumChatFormatting;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.WebAeLocalDataDir;
+import com.imgood.textech.webae.WebUiDefaultsStore;
 import com.imgood.textech.webae.auth.WebAdminBootstrapStore;
 import com.imgood.textech.webae.auth.WebAdminGrantStore;
 import com.imgood.textech.webae.auth.WebAdminGrantStore.GrantEntry;
@@ -38,7 +38,6 @@ import com.imgood.textech.webae.snapshot.AeSnapshotCollector;
 import com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStatusDto;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStore;
-import com.imgood.textech.webae.WebUiDefaultsStore;
 
 public class CommandWebConsole extends TeXTechCommandBase {
 
@@ -129,7 +128,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
         EntityPlayerMP player = (EntityPlayerMP) sender;
         String uuid = player.getUniqueID()
             .toString();
-        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance().isDisabled(uuid)) {
+        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance()
+            .isDisabled(uuid)) {
             sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.disabled");
             return;
         }
@@ -151,7 +151,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
         String uuid = player.getUniqueID()
             .toString();
         String ownerName = player.getCommandSenderName();
-        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance().isDisabled(uuid)) {
+        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance()
+            .isDisabled(uuid)) {
             sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.disabled");
             return;
         }
@@ -214,7 +215,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
         EntityPlayerMP owner = (EntityPlayerMP) sender;
         String ownerUuid = owner.getUniqueID()
             .toString();
-        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance().isDisabled(ownerUuid)) {
+        if (com.imgood.textech.webae.player.WebAePlayerStateStore.getInstance()
+            .isDisabled(ownerUuid)) {
             sendFormatted(sender, EnumChatFormatting.RED, "adm.webconsole.token.disabled");
             return;
         }
@@ -311,7 +313,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
         }
         sendHelpHeader(sender, "adm.command.admweb.list.title");
         for (WebAuthToken t : tokens) {
-            String typeLabel = WebAuthSession.TYPE_GUEST.equals(t.type) ? translate("adm.command.admweb.list.type.guest")
+            String typeLabel = WebAuthSession.TYPE_GUEST.equals(t.type)
+                ? translate("adm.command.admweb.list.type.guest")
                 : translate("adm.command.admweb.list.type.owner");
             String actor = t.actorName != null && !t.actorName.isEmpty() ? t.actorName : t.actorUuid;
             sendLocalized(
@@ -396,7 +399,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
         }
         String action = args[1].toLowerCase();
         if ("status".equals(action)) {
-            Status status = QqBotService.instance().status();
+            Status status = QqBotService.instance()
+                .status();
             sendLocalized(
                 sender,
                 EnumChatFormatting.AQUA,
@@ -412,7 +416,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
             return;
         }
         if ("restart".equals(action)) {
-            ManualSendResult result = QqBotService.instance().restart();
+            ManualSendResult result = QqBotService.instance()
+                .restart();
             sendLocalized(
                 sender,
                 result.success ? EnumChatFormatting.GREEN : EnumChatFormatting.RED,
@@ -441,7 +446,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
                 contentStart = 3;
             }
             String content = joinArgs(args, contentStart);
-            ManualSendResult result = QqBotService.instance().sendManual(type, targetId, content);
+            ManualSendResult result = QqBotService.instance()
+                .sendManual(type, targetId, content);
             sendLocalized(
                 sender,
                 result.success ? EnumChatFormatting.GREEN : EnumChatFormatting.RED,
@@ -557,12 +563,32 @@ public class CommandWebConsole extends TeXTechCommandBase {
                 .instance()
                 .getStatus();
             sendHelpHeader(sender, "adm.command.admweb.recipes.status.title");
-            sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.recipes.status.total", status.recipeCount);
-            sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.recipes.status.handlers", status.handlerCount);
-            sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.recipes.status.updated", formatTime(status.lastUpdateTime));
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.recipes.status.total",
+                status.recipeCount);
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.recipes.status.handlers",
+                status.handlerCount);
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.recipes.status.updated",
+                formatTime(status.lastUpdateTime));
             if (status.lastDiskSave > 0) {
-                sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.recipes.status.disk_size", formatBytes(status.diskCacheSize));
-                sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.recipes.status.disk_save", formatTime(status.lastDiskSave));
+                sendLocalized(
+                    sender,
+                    EnumChatFormatting.WHITE,
+                    "adm.command.admweb.recipes.status.disk_size",
+                    formatBytes(status.diskCacheSize));
+                sendLocalized(
+                    sender,
+                    EnumChatFormatting.WHITE,
+                    "adm.command.admweb.recipes.status.disk_save",
+                    formatTime(status.lastDiskSave));
             } else {
                 sendLocalized(sender, EnumChatFormatting.GRAY, "adm.command.admweb.recipes.status.disk_none");
             }
@@ -593,8 +619,7 @@ public class CommandWebConsole extends TeXTechCommandBase {
                 sendPlain(
                     sender,
                     EnumChatFormatting.WHITE,
-                    "  "
-                        + mode.getId()
+                    "  " + mode.getId()
                         + " "
                         + statusColor
                         + translate(statusKey)
@@ -662,14 +687,26 @@ public class CommandWebConsole extends TeXTechCommandBase {
                     sendPlain(sender, EnumChatFormatting.WHITE, line.toString());
                 }
             }
-            sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.icons.status.cache", Config.webIconCacheEnabled);
-            sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.icons.status.upload", Config.webIconUploadEnabled);
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.icons.status.cache",
+                Config.webIconCacheEnabled);
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.icons.status.upload",
+                Config.webIconUploadEnabled);
             sendLocalized(
                 sender,
                 EnumChatFormatting.WHITE,
                 "adm.command.admweb.icons.status.lazy",
                 Config.webIconLazyCaptureEnabled);
-            sendLocalized(sender, EnumChatFormatting.WHITE, "adm.command.admweb.icons.status.pack_enabled", Config.webIconPackEnabled);
+            sendLocalized(
+                sender,
+                EnumChatFormatting.WHITE,
+                "adm.command.admweb.icons.status.pack_enabled",
+                Config.webIconPackEnabled);
             sendLocalized(
                 sender,
                 EnumChatFormatting.WHITE,
@@ -986,13 +1023,7 @@ public class CommandWebConsole extends TeXTechCommandBase {
             String ownerUuid = player.getUniqueID()
                 .toString();
             String result = WorldMapCaptureCoordinator.instance()
-                .requestSnapshot(
-                    ownerUuid,
-                    networkId,
-                    ownerUuid,
-                    player.getDisplayName(),
-                    true,
-                    true);
+                .requestSnapshot(ownerUuid, networkId, ownerUuid, player.getDisplayName(), true, true);
             if (result == null) {
                 sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.worldmap.start_failed");
             } else {
@@ -1030,7 +1061,10 @@ public class CommandWebConsole extends TeXTechCommandBase {
             int ver = WorldMapSnapshotStore.currentVersion(ownerUuid, networkId);
             String progress = "";
             if (status != null && status.completedChunks > 0) {
-                progress = translate("adm.command.admweb.worldmap.progress", status.completedChunks, status.totalChunks);
+                progress = translate(
+                    "adm.command.admweb.worldmap.progress",
+                    status.completedChunks,
+                    status.totalChunks);
             }
             sendLocalized(
                 sender,
@@ -1056,8 +1090,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
         }
         String action = args[1].toLowerCase();
         if ("y".equals(action) || "yes".equals(action)) {
-            String requestId = args.length >= 3 ? args[2] : WorldMapCaptureCoordinator.instance()
-                .latestPendingForPlayer(player);
+            String requestId = args.length >= 3 ? args[2]
+                : WorldMapCaptureCoordinator.instance()
+                    .latestPendingForPlayer(player);
             if (requestId == null || requestId.isEmpty()) {
                 sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.wm.no_pending");
                 return;
@@ -1072,8 +1107,9 @@ public class CommandWebConsole extends TeXTechCommandBase {
             return;
         }
         if ("n".equals(action) || "no".equals(action)) {
-            String requestId = args.length >= 3 ? args[2] : WorldMapCaptureCoordinator.instance()
-                .latestPendingForPlayer(player);
+            String requestId = args.length >= 3 ? args[2]
+                : WorldMapCaptureCoordinator.instance()
+                    .latestPendingForPlayer(player);
             if (requestId == null || requestId.isEmpty()) {
                 sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.wm.no_pending");
                 return;
@@ -1119,8 +1155,7 @@ public class CommandWebConsole extends TeXTechCommandBase {
             String sourceKey = loaded.source == WebUiDefaultsStore.Source.INSTANCE
                 ? "adm.command.admweb.defaults.source_instance"
                 : "adm.command.admweb.defaults.source_jar";
-            long bytes = loaded.source == WebUiDefaultsStore.Source.INSTANCE && instance.isFile()
-                ? instance.length()
+            long bytes = loaded.source == WebUiDefaultsStore.Source.INSTANCE && instance.isFile() ? instance.length()
                 : loaded.json.length();
             sendFormatted(
                 sender,
@@ -1146,7 +1181,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
             try {
                 String json = new String(Files.readAllBytes(source.toPath()), StandardCharsets.UTF_8);
                 if (json.trim()
-                    .isEmpty() || !json.trim()
+                    .isEmpty()
+                    || !json.trim()
                         .startsWith("{")) {
                     sendFormatted(sender, EnumChatFormatting.RED, "adm.command.admweb.defaults.install_invalid");
                     return;
@@ -1215,7 +1251,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
             EntityPlayerMP player = (EntityPlayerMP) sender;
             MinecraftServer server = MinecraftServer.getServer();
             if (server == null || !server.isSinglePlayer()
-                || !server.worldServers[0].getWorldInfo().areCommandsAllowed()) {
+                || !server.worldServers[0].getWorldInfo()
+                    .areCommandsAllowed()) {
                 sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.admin.op_required");
                 return;
             }
@@ -1235,24 +1272,15 @@ public class CommandWebConsole extends TeXTechCommandBase {
         String code = WebAdminBootstrapStore.generate(issuedBy, label, allowReuse);
 
         if (isPlayer) {
-            sendLocalized(
-                sender,
-                EnumChatFormatting.GREEN,
-                "adm.command.admweb.admin.issued_player",
-                code);
+            sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.admin.issued_player", code);
             if (allowReuse) {
                 sendLocalized(sender, EnumChatFormatting.GRAY, "adm.command.admweb.admin.issued_reuse");
             } else {
                 sendLocalized(sender, EnumChatFormatting.GRAY, "adm.command.admweb.admin.issued_one_shot");
             }
         } else {
-            AdvanceDataMonitor.LOG.info(
-                "[WebAE] Admin bootstrap code generated (by={}): {}", issuedBy, code);
-            sendLocalized(
-                sender,
-                EnumChatFormatting.GREEN,
-                "adm.command.admweb.admin.issued_console",
-                code);
+            AdvanceDataMonitor.LOG.info("[WebAE] Admin bootstrap code generated (by={}): {}", issuedBy, code);
+            sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.admin.issued_console", code);
         }
     }
 

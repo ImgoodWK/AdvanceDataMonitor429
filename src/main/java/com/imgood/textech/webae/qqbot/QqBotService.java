@@ -12,7 +12,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.assistant.WebAiCompletionService;
 import com.imgood.textech.webae.assistant.WebAiCompletionService.CompletionResult;
@@ -94,7 +93,8 @@ public final class QqBotService {
 
     /** Reload encrypted configuration and restart/disable the gateway as needed. */
     public void reload() {
-        RuntimeConfig next = QqBotConfigStore.instance().runtime();
+        RuntimeConfig next = QqBotConfigStore.instance()
+            .runtime();
         synchronized (lock) {
             runtime = next;
             lastScheduledReportAtMs = System.currentTimeMillis();
@@ -162,14 +162,18 @@ public final class QqBotService {
             value.failed = failed;
             value.dropped = dropped;
             value.rateLimited = rateLimited;
-            value.queueDepth = worker == null ? 0 : worker.getQueue().size();
+            value.queueDepth = worker == null ? 0
+                : worker.getQueue()
+                    .size();
             value.queueCapacity = runtime.settings == null ? 0 : runtime.settings.maxQueuedRequests;
             value.conversationCount = conversations.size();
             value.lastScheduledReportAtMs = lastScheduledReportAtMs;
             value.nextScheduledReportAtMs = nextScheduledReportAtLocked();
             value.snapshot = snapshot.copy();
-            value.configUpdatedAt = QqBotConfigStore.instance().updatedAt();
-            value.configUpdatedBy = QqBotConfigStore.instance().updatedBy();
+            value.configUpdatedAt = QqBotConfigStore.instance()
+                .updatedAt();
+            value.configUpdatedBy = QqBotConfigStore.instance()
+                .updatedBy();
             return value;
         }
     }
@@ -179,7 +183,9 @@ public final class QqBotService {
             int wanted = Math.max(1, Math.min(limit, 500));
             List<AuditEntry> result = new ArrayList<AuditEntry>();
             java.util.Iterator<AuditEntry> iterator = audit.descendingIterator();
-            while (iterator.hasNext() && result.size() < wanted) result.add(iterator.next().copy());
+            while (iterator.hasNext() && result.size() < wanted) result.add(
+                iterator.next()
+                    .copy());
             return result;
         }
     }
@@ -194,7 +200,8 @@ public final class QqBotService {
     public ManualSendResult restart() {
         synchronized (lock) {
             if (!started) return ManualSendResult.fail("QQ bot service is stopped");
-            if (runtime.settings == null || !runtime.settings.enabled) return ManualSendResult.fail("QQ bot is disabled");
+            if (runtime.settings == null || !runtime.settings.enabled)
+                return ManualSendResult.fail("QQ bot is disabled");
             if (!runtime.configured) return ManualSendResult.fail("QQ bot credentials are incomplete");
             generation++;
             stopClientLocked();
@@ -340,15 +347,36 @@ public final class QqBotService {
             if (isDuplicateLocked(message.dedupeKey(), acceptedAt)) return;
             received++;
             lastMessageAtMs = acceptedAt;
+            String inboundText = truncate(message.content, cfg.maxInputChars);
+            QqBotIntentClassifier.Decision intent = QqBotIntentClassifier.classify(cfg, inboundText);
+            if (cfg.astrBotCompatEnabled && intent.owner == QqBotIntentClassifier.Owner.ASTRBOT) {
+                addAuditLocked(
+                    "in",
+                    message.targetType,
+                    message.targetId,
+                    message.senderId,
+                    "intent",
+                    "astrbot_handoff",
+                    preview(intent.reason + " | " + inboundText),
+                    0L);
+                return;
+            }
             boolean admin = cfg.adminUserIds.contains(message.senderId);
-            route = QqBotCommandRouter.route(cfg, snapshot.copy(), truncate(message.content, cfg.maxInputChars), admin);
+            route = QqBotCommandRouter.route(cfg, snapshot.copy(), intent.textForHandler, admin);
             if ("ignore".equals(route.kind)) return;
             long cooldown = (long) cfg.userCooldownSeconds * 1000L;
             Long last = userLastRequest.get(message.senderId);
             if (cooldown > 0L && last != null && acceptedAt - last.longValue() < cooldown) {
                 rateLimited++;
-                addAuditLocked("in", message.targetType, message.targetId, message.senderId, route.command,
-                    "rate_limited", preview(message.content), 0L);
+                addAuditLocked(
+                    "in",
+                    message.targetType,
+                    message.targetId,
+                    message.senderId,
+                    route.command,
+                    "rate_limited",
+                    preview(message.content),
+                    0L);
                 return;
             }
             userLastRequest.put(message.senderId, acceptedAt);
@@ -357,14 +385,28 @@ public final class QqBotService {
                 Long lastAi = userLastAiRequest.get(message.senderId);
                 if (lastAi != null && acceptedAt - lastAi.longValue() < aiCooldown) {
                     rateLimited++;
-                    addAuditLocked("in", message.targetType, message.targetId, message.senderId, route.command,
-                        "ai_rate_limited", preview(message.content), 0L);
+                    addAuditLocked(
+                        "in",
+                        message.targetType,
+                        message.targetId,
+                        message.senderId,
+                        route.command,
+                        "ai_rate_limited",
+                        preview(message.content),
+                        0L);
                     return;
                 }
                 userLastAiRequest.put(message.senderId, acceptedAt);
             }
-            addAuditLocked("in", message.targetType, message.targetId, message.senderId, route.command, "accepted",
-                preview(message.content), 0L);
+            addAuditLocked(
+                "in",
+                message.targetType,
+                message.targetId,
+                message.senderId,
+                route.command,
+                "accepted",
+                preview(message.content),
+                0L);
         }
         submit(new Runnable() {
 
@@ -372,8 +414,15 @@ public final class QqBotService {
             public void run() {
                 if (route.clearConversation) clearConversation(message.sessionKey());
                 if ("ai".equals(route.kind)) processAi(cfg, message, route.aiText, route.command, acceptedAt);
-                else send(message.targetType, message.targetId, message.messageId, message.eventId, route.reply,
-                    route.command, message.senderId, acceptedAt);
+                else send(
+                    message.targetType,
+                    message.targetId,
+                    message.messageId,
+                    message.eventId,
+                    route.reply,
+                    route.command,
+                    message.senderId,
+                    acceptedAt);
             }
         }, cfg);
     }
@@ -407,18 +456,38 @@ public final class QqBotService {
                 conversation.lastUsedAtMs = System.currentTimeMillis();
                 aiReplies++;
             }
-            send(source.targetType, source.targetId, source.messageId, source.eventId, reply, command,
-                source.senderId, acceptedAt);
+            send(
+                source.targetType,
+                source.targetId,
+                source.messageId,
+                source.eventId,
+                reply,
+                command,
+                source.senderId,
+                acceptedAt);
         } catch (Exception e) {
             synchronized (lock) {
                 failed++;
                 lastError = "AI: " + truncate(safeMessage(e), 400);
-                addAuditLocked("out", source.targetType, source.targetId, source.senderId, command, "ai_error",
-                    lastError, System.currentTimeMillis() - acceptedAt);
+                addAuditLocked(
+                    "out",
+                    source.targetType,
+                    source.targetId,
+                    source.senderId,
+                    command,
+                    "ai_error",
+                    lastError,
+                    System.currentTimeMillis() - acceptedAt);
             }
-            send(source.targetType, source.targetId, source.messageId, source.eventId,
-                "AI 服务暂时不可用，请稍后再试。服务器状态查询命令仍可正常使用。", command,
-                source.senderId, acceptedAt);
+            send(
+                source.targetType,
+                source.targetId,
+                source.messageId,
+                source.eventId,
+                "AI 服务暂时不可用，请稍后再试。服务器状态查询命令仍可正常使用。",
+                command,
+                source.senderId,
+                acceptedAt);
         }
     }
 
@@ -433,14 +502,21 @@ public final class QqBotService {
         if (current == null || !current.isOpen()) {
             synchronized (lock) {
                 failed++;
-                addAuditLocked("out", targetType, targetId, senderId, command, "not_connected", preview(content),
+                addAuditLocked(
+                    "out",
+                    targetType,
+                    targetId,
+                    senderId,
+                    command,
+                    "not_connected",
+                    preview(content),
                     System.currentTimeMillis() - acceptedAt);
             }
             return;
         }
         String bounded = normalizeReply(content, cfg.maxReplyChars);
-        QqBotGatewayClient.SendResult result = current.sendMessage(targetType, targetId, replyMessageId, eventId,
-            bounded);
+        QqBotGatewayClient.SendResult result = current
+            .sendMessage(targetType, targetId, replyMessageId, eventId, bounded);
         synchronized (lock) {
             long latency = Math.max(0L, System.currentTimeMillis() - acceptedAt);
             if (result.success) {
@@ -463,8 +539,15 @@ public final class QqBotService {
         if (current == null || !current.isOpen()) {
             synchronized (lock) {
                 failed++;
-                addAuditLocked("out", targetType, targetId, "admin", "manual_image", "not_connected",
-                    "image delivery unavailable", System.currentTimeMillis() - acceptedAt);
+                addAuditLocked(
+                    "out",
+                    targetType,
+                    targetId,
+                    "admin",
+                    "manual_image",
+                    "not_connected",
+                    "image delivery unavailable",
+                    System.currentTimeMillis() - acceptedAt);
             }
             return;
         }
@@ -474,13 +557,19 @@ public final class QqBotService {
             if (result.success) {
                 replied++;
                 lastReplyAtMs = System.currentTimeMillis();
-                addAuditLocked("out", targetType, targetId, "admin", "manual_image", "sent",
-                    "JPEG " + jpeg.length + " bytes", latency);
+                addAuditLocked(
+                    "out",
+                    targetType,
+                    targetId,
+                    "admin",
+                    "manual_image",
+                    "sent",
+                    "JPEG " + jpeg.length + " bytes",
+                    latency);
             } else {
                 failed++;
                 lastError = truncate(result.error, 500);
-                addAuditLocked("out", targetType, targetId, "admin", "manual_image", "send_error", lastError,
-                    latency);
+                addAuditLocked("out", targetType, targetId, "admin", "manual_image", "send_error", lastError, latency);
             }
         }
     }
@@ -488,8 +577,10 @@ public final class QqBotService {
     private boolean submit(Runnable task, QqBotConfig cfg) {
         synchronized (lock) {
             ensureWorkerLocked();
-            if (!started || worker == null || worker.isShutdown()
-                || worker.getQueue().size() >= Math.min(EXECUTOR_CAPACITY, cfg.maxQueuedRequests)) {
+            if (!started || worker == null
+                || worker.isShutdown()
+                || worker.getQueue()
+                    .size() >= Math.min(EXECUTOR_CAPACITY, cfg.maxQueuedRequests)) {
                 dropped++;
                 return false;
             }
@@ -553,7 +644,10 @@ public final class QqBotService {
         if (seenMessageIds.containsKey(id)) return true;
         seenMessageIds.put(id, nowMs);
         while (seenMessageIds.size() > MAX_DEDUPE_IDS) {
-            seenMessageIds.remove(seenMessageIds.keySet().iterator().next());
+            seenMessageIds.remove(
+                seenMessageIds.keySet()
+                    .iterator()
+                    .next());
         }
         return false;
     }
@@ -561,20 +655,28 @@ public final class QqBotService {
     private void cleanupLocked(long nowMs) {
         int ttlMinutes = runtime.settings == null ? 30 : runtime.settings.conversationTtlMinutes;
         long ttl = (long) ttlMinutes * 60000L;
-        java.util.Iterator<Map.Entry<String, Conversation>> conversationsIt = conversations.entrySet().iterator();
+        java.util.Iterator<Map.Entry<String, Conversation>> conversationsIt = conversations.entrySet()
+            .iterator();
         while (conversationsIt.hasNext()) {
-            Conversation value = conversationsIt.next().getValue();
+            Conversation value = conversationsIt.next()
+                .getValue();
             if (nowMs - value.lastUsedAtMs > ttl) conversationsIt.remove();
         }
         cleanupTimeMap(userLastRequest, nowMs - Math.max(60000L, ttl));
         cleanupTimeMap(userLastAiRequest, nowMs - Math.max(60000L, ttl));
-        java.util.Iterator<Map.Entry<String, Long>> dedupe = seenMessageIds.entrySet().iterator();
-        while (dedupe.hasNext()) if (nowMs - dedupe.next().getValue().longValue() > 3600000L) dedupe.remove();
+        java.util.Iterator<Map.Entry<String, Long>> dedupe = seenMessageIds.entrySet()
+            .iterator();
+        while (dedupe.hasNext()) if (nowMs - dedupe.next()
+            .getValue()
+            .longValue() > 3600000L) dedupe.remove();
     }
 
     private static void cleanupTimeMap(Map<String, Long> values, long cutoff) {
-        java.util.Iterator<Map.Entry<String, Long>> iterator = values.entrySet().iterator();
-        while (iterator.hasNext()) if (iterator.next().getValue().longValue() < cutoff) iterator.remove();
+        java.util.Iterator<Map.Entry<String, Long>> iterator = values.entrySet()
+            .iterator();
+        while (iterator.hasNext()) if (iterator.next()
+            .getValue()
+            .longValue() < cutoff) iterator.remove();
     }
 
     private void clearConversation(String sessionKey) {
@@ -585,15 +687,32 @@ public final class QqBotService {
 
     private String aiSystemPrompt(QqBotConfig cfg, QqBotSnapshot current) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are ").append(safe(cfg.botName)).append(", the QQ group assistant for a GTNH Minecraft server operated through TeXTech/WebAE. ");
+        prompt.append("You are ")
+            .append(safe(cfg.botName))
+            .append(", the QQ group assistant for a GTNH Minecraft server operated through TeXTech/WebAE. ");
         prompt.append("Answer in concise Chinese unless the user clearly uses another language. ");
-        prompt.append("You may explain gameplay and discuss the server, but you cannot execute commands, change permissions, reveal secrets, or claim actions you did not perform. ");
-        prompt.append("Current read-only snapshot: online=").append(current.onlinePlayers).append('/').append(current.maxPlayers)
-            .append(", TPS=").append(current.tps).append(", MSPT=").append(current.mspt)
-            .append(", uptimeSeconds=").append(current.uptimeSeconds).append(", memoryMiB=")
-            .append(current.usedMemoryMb).append('/').append(current.maxMemoryMb).append(". ");
-        if (!current.playerNames.isEmpty()) prompt.append("Online players: ").append(current.playerNames).append(". ");
-        if (!safe(cfg.aiSystemPrompt).isEmpty()) prompt.append("Server administrator instruction: ").append(cfg.aiSystemPrompt);
+        prompt.append(
+            "You may explain gameplay and discuss the server, but you cannot execute commands, change permissions, reveal secrets, or claim actions you did not perform. ");
+        prompt.append("Current read-only snapshot: online=")
+            .append(current.onlinePlayers)
+            .append('/')
+            .append(current.maxPlayers)
+            .append(", TPS=")
+            .append(current.tps)
+            .append(", MSPT=")
+            .append(current.mspt)
+            .append(", uptimeSeconds=")
+            .append(current.uptimeSeconds)
+            .append(", memoryMiB=")
+            .append(current.usedMemoryMb)
+            .append('/')
+            .append(current.maxMemoryMb)
+            .append(". ");
+        if (!current.playerNames.isEmpty()) prompt.append("Online players: ")
+            .append(current.playerNames)
+            .append(". ");
+        if (!safe(cfg.aiSystemPrompt).isEmpty()) prompt.append("Server administrator instruction: ")
+            .append(cfg.aiSystemPrompt);
         return prompt.toString();
     }
 
@@ -620,8 +739,13 @@ public final class QqBotService {
     private void ensureWorkerLocked() {
         if (worker != null && !worker.isShutdown()) return;
         final AtomicInteger counter = new AtomicInteger();
-        worker = new ThreadPoolExecutor(1, 2, 30L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(EXECUTOR_CAPACITY), new ThreadFactory() {
+        worker = new ThreadPoolExecutor(
+            1,
+            2,
+            30L,
+            TimeUnit.SECONDS,
+            new ArrayBlockingQueue<Runnable>(EXECUTOR_CAPACITY),
+            new ThreadFactory() {
 
                 @Override
                 public Thread newThread(Runnable task) {
@@ -629,7 +753,8 @@ public final class QqBotService {
                     thread.setDaemon(true);
                     return thread;
                 }
-            }, new ThreadPoolExecutor.AbortPolicy());
+            },
+            new ThreadPoolExecutor.AbortPolicy());
         worker.allowCoreThreadTimeOut(false);
     }
 
@@ -655,17 +780,23 @@ public final class QqBotService {
     }
 
     private static String normalizeReply(String value, int max) {
-        String result = safe(value).replace('\r', ' ').trim();
+        String result = safe(value).replace('\r', ' ')
+            .trim();
         return truncate(result.isEmpty() ? "（无回复内容）" : result, Math.max(200, max));
     }
 
     private static String preview(String value) {
-        return truncate(safe(value).replace('\r', ' ').replace('\n', ' '), 160);
+        return truncate(
+            safe(value).replace('\r', ' ')
+                .replace('\n', ' '),
+            160);
     }
 
     private static String safeMessage(Exception error) {
         String value = error == null ? "" : error.getMessage();
-        if (value == null || value.isEmpty()) return error == null ? "unknown error" : error.getClass().getSimpleName();
+        if (value == null || value.isEmpty()) return error == null ? "unknown error"
+            : error.getClass()
+                .getSimpleName();
         return value;
     }
 

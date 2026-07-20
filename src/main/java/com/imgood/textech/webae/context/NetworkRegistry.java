@@ -36,16 +36,14 @@ public final class NetworkRegistry {
     private static final long HEALTH_INTERVAL_MS = 5_000L;
 
     /** ownerUuid → registered monitor/network entries. */
-    private static final ConcurrentHashMap<String, CopyOnWriteArrayList<RegisteredNetwork>> playerNetworks =
-        new ConcurrentHashMap<String, CopyOnWriteArrayList<RegisteredNetwork>>();
+    private static final ConcurrentHashMap<String, CopyOnWriteArrayList<RegisteredNetwork>> playerNetworks = new ConcurrentHashMap<String, CopyOnWriteArrayList<RegisteredNetwork>>();
 
     /**
      * ownerUuid → stable monitor keys in the same order as API {@code networkId}.
      * Updated when {@link #getNetworks} / group seeding runs on the server thread — never rebuilt via World
      * from HTTP workers.
      */
-    private static final ConcurrentHashMap<String, CopyOnWriteArrayList<String>> networkIdKeys =
-        new ConcurrentHashMap<String, CopyOnWriteArrayList<String>>();
+    private static final ConcurrentHashMap<String, CopyOnWriteArrayList<String>> networkIdKeys = new ConcurrentHashMap<String, CopyOnWriteArrayList<String>>();
 
     private static volatile long lastGlobalHealthCheckMs;
 
@@ -118,7 +116,8 @@ public final class NetworkRegistry {
         if (networkId >= sorted.size()) {
             return null;
         }
-        return sorted.get(networkId).monitorKey();
+        return sorted.get(networkId)
+            .monitorKey();
     }
 
     /**
@@ -139,7 +138,9 @@ public final class NetworkRegistry {
         }
         List<RegisteredNetwork> sorted = listSortedRegistered(ownerUuid);
         for (int i = 0; i < sorted.size(); i++) {
-            if (networkKey.equals(sorted.get(i).monitorKey())) {
+            if (networkKey.equals(
+                sorted.get(i)
+                    .monitorKey())) {
                 return Integer.valueOf(i);
             }
         }
@@ -233,9 +234,8 @@ public final class NetworkRegistry {
         if (link == null) {
             return;
         }
-        List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex.getByType(
-            dim,
-            TileEntityAdvanceDataMonitor.class);
+        List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex
+            .getByType(dim, TileEntityAdvanceDataMonitor.class);
         for (TileEntityAdvanceDataMonitor monitor : monitors) {
             if (monitorBindsTo(monitor, link)) {
                 refreshBindings(monitor, dim);
@@ -247,9 +247,8 @@ public final class NetworkRegistry {
         if (link == null) {
             return;
         }
-        List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex.getByType(
-            dim,
-            TileEntityAdvanceDataMonitor.class);
+        List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex
+            .getByType(dim, TileEntityAdvanceDataMonitor.class);
         for (TileEntityAdvanceDataMonitor monitor : monitors) {
             if (monitorBindsTo(monitor, link)) {
                 refreshBindings(monitor, dim);
@@ -550,9 +549,8 @@ public final class NetworkRegistry {
     }
 
     private static void markMonitorEntriesUnhealthyNear(TileEntityAdvanceNetworkLink link, int dim) {
-        List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex.getByType(
-            dim,
-            TileEntityAdvanceDataMonitor.class);
+        List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex
+            .getByType(dim, TileEntityAdvanceDataMonitor.class);
         for (TileEntityAdvanceDataMonitor monitor : monitors) {
             if (monitorBindsTo(monitor, link)) {
                 markEntryUnhealthy(monitor, dim);

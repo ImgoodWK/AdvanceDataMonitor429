@@ -95,8 +95,8 @@ public final class WorldMapSnapshotStore {
             writer = new OutputStreamWriter(new FileOutputStream(currentPointerFile(ownerUuid, networkId)), "UTF-8");
             GSON.toJson(pointer, writer);
         } catch (IOException e) {
-            AdvanceDataMonitor.LOG.error("[WebAE] Failed to write snapshot current pointer owner={} network={}",
-                ownerUuid, networkId, e);
+            AdvanceDataMonitor.LOG
+                .error("[WebAE] Failed to write snapshot current pointer owner={} network={}", ownerUuid, networkId, e);
         } finally {
             closeQuietly(writer);
         }
@@ -179,14 +179,13 @@ public final class WorldMapSnapshotStore {
         }
     }
 
-    public static File getExistingTile(String ownerUuid, int networkId, int version, String layer, int dim,
-        int chunkX, int chunkZ) {
+    public static File getExistingTile(String ownerUuid, int networkId, int version, String layer, int dim, int chunkX,
+        int chunkZ) {
         File file = tileFile(ownerUuid, networkId, version, layer, dim, chunkX, chunkZ);
         return file.isFile() && file.length() > 0 ? file : null;
     }
 
-    public static File getCurrentTile(String ownerUuid, int networkId, String layer, int dim, int chunkX,
-        int chunkZ) {
+    public static File getCurrentTile(String ownerUuid, int networkId, String layer, int dim, int chunkX, int chunkZ) {
         int version = currentVersion(ownerUuid, networkId);
         if (version <= 0) {
             return null;

@@ -142,17 +142,13 @@ public final class TeXTechDataDir {
             }
             copyFile(legacy, target);
             if (!legacy.delete()) {
-                AdvanceDataMonitor.LOG.warn(
-                    "[TeXTech] Copied data but failed to delete legacy file {}",
-                    legacy.getAbsolutePath());
+                AdvanceDataMonitor.LOG
+                    .warn("[TeXTech] Copied data but failed to delete legacy file {}", legacy.getAbsolutePath());
             }
             logMoved(legacy, target);
             return true;
         } catch (IOException e) {
-            AdvanceDataMonitor.LOG.warn(
-                "[TeXTech] Failed to migrate data from {}",
-                legacy.getAbsolutePath(),
-                e);
+            AdvanceDataMonitor.LOG.warn("[TeXTech] Failed to migrate data from {}", legacy.getAbsolutePath(), e);
             return false;
         }
     }
@@ -172,19 +168,15 @@ public final class TeXTechDataDir {
             logMoved(legacyDir, targetDir);
             return true;
         } catch (IOException e) {
-            AdvanceDataMonitor.LOG.warn(
-                "[TeXTech] Failed to migrate data directory from {}",
-                legacyDir.getAbsolutePath(),
-                e);
+            AdvanceDataMonitor.LOG
+                .warn("[TeXTech] Failed to migrate data directory from {}", legacyDir.getAbsolutePath(), e);
             return false;
         }
     }
 
     private static void logMoved(File legacy, File target) {
-        AdvanceDataMonitor.LOG.info(
-            "[TeXTech] Migrated data: {} -> {}",
-            legacy.getAbsolutePath(),
-            target.getAbsolutePath());
+        AdvanceDataMonitor.LOG
+            .info("[TeXTech] Migrated data: {} -> {}", legacy.getAbsolutePath(), target.getAbsolutePath());
     }
 
     private static void deleteDirectory(File dir) throws IOException {

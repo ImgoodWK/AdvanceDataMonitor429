@@ -3,8 +3,8 @@ package com.imgood.textech.webae.api;
 import java.io.DataInputStream;
 import java.util.Map;
 
-import com.imgood.textech.webae.api.handler.AdminPlayerHandler;
 import com.imgood.textech.webae.api.handler.AdminConsoleHandler;
+import com.imgood.textech.webae.api.handler.AdminPlayerHandler;
 import com.imgood.textech.webae.api.handler.AeCableTextureHandler;
 import com.imgood.textech.webae.api.handler.AlertsHandler;
 import com.imgood.textech.webae.api.handler.AssistantHandler;
@@ -48,14 +48,14 @@ import com.imgood.textech.webae.api.handler.SparkHandler;
 import com.imgood.textech.webae.api.handler.StorageHandler;
 import com.imgood.textech.webae.api.handler.StoragePagedHandler;
 import com.imgood.textech.webae.api.handler.TopologyHandler;
-import com.imgood.textech.webae.api.handler.WebConfigHandler;
 import com.imgood.textech.webae.api.handler.WebAiAdminHandler;
-import com.imgood.textech.webae.worldmap.WorldMapHandler;
+import com.imgood.textech.webae.api.handler.WebConfigHandler;
 import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.perf.WebAePerfProfiler;
 import com.imgood.textech.webae.player.WebAePlayerStateStore;
+import com.imgood.textech.webae.worldmap.WorldMapHandler;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -80,7 +80,8 @@ public class WebApiRouter {
                 .recordHttp(normalizeRoute(uri), ms);
             // Record per-player request stats
             if (auth != null && auth.ownerUuid != null) {
-                WebAePlayerStateStore.getInstance().touchRequest(auth.ownerUuid, ms);
+                WebAePlayerStateStore.getInstance()
+                    .touchRequest(auth.ownerUuid, ms);
             }
         }
         return response;
@@ -143,8 +144,10 @@ public class WebApiRouter {
 
         // ---- Disable interception: reject disabled owner/actor (401 so SPA returns to login) ----
         if (!uri.startsWith("/api/auth/admin/") && !uri.startsWith("/api/admin/")) {
-            if (WebAePlayerStateStore.getInstance().isDisabled(ownerUuid)
-                || WebAePlayerStateStore.getInstance().isDisabled(auth.actorUuid)) {
+            if (WebAePlayerStateStore.getInstance()
+                .isDisabled(ownerUuid)
+                || WebAePlayerStateStore.getInstance()
+                    .isDisabled(auth.actorUuid)) {
                 return disabledResponse();
             }
         }
@@ -466,25 +469,23 @@ public class WebApiRouter {
         }
 
         if (uri.startsWith("/api/admin/ai/")) {
-            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT
-                ? readBody(session) : null;
+            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT ? readBody(session) : null;
             return WebAiAdminHandler.handle(uri, method, body, auth, adminHeader);
         }
 
         if (uri.startsWith("/api/admin/qq-bot/")) {
-            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT
-                ? readBody(session) : null;
+            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT ? readBody(session) : null;
             return QqBotAdminHandler.handle(uri, method, body, auth, adminHeader);
         }
 
         if (uri.startsWith("/api/admin/server-console")) {
-            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT
-                ? readBody(session) : null;
+            String body = method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT ? readBody(session) : null;
             return AdminConsoleHandler.handle(uri, method, body, auth, adminHeader);
         }
 
         if ("/api/spark".equals(uri) || "/api/spark/profile".equals(uri)
-            || "/api/spark/stop".equals(uri) || "/api/spark/recover".equals(uri)
+            || "/api/spark/stop".equals(uri)
+            || "/api/spark/recover".equals(uri)
             || "/api/spark/analyze".equals(uri)
             || "/api/spark/history".equals(uri)
             || uri.startsWith("/api/spark/history/")) {
@@ -495,8 +496,8 @@ public class WebApiRouter {
         // ---- Admin player management ----
 
         if (uri.startsWith("/api/admin/players")) {
-            String adminBody = (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT)
-                ? readBody(session) : null;
+            String adminBody = (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT) ? readBody(session)
+                : null;
             return AdminPlayerHandler.handle(uri, params, method, auth, adminHeader, adminBody);
         }
 
@@ -831,10 +832,9 @@ public class WebApiRouter {
         }
 
         if ("/api/display".equals(uri) || uri.startsWith("/api/display/")) {
-            String body = (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT)
-                ? readBody(session)
+            String body = (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT) ? readBody(session)
                 : null;
-            return DisplayHandler.handle(uri, method, params, body, auth);
+            return DisplayHandler.handle(uri, method, params, body, auth, headers);
         }
 
         if ("/api/favorites".equals(uri)) {
@@ -1232,15 +1232,16 @@ public class WebApiRouter {
     }
 
     private NanoHTTPD.Response handleLogin(WebAuthSession auth) {
-        if (WebAePlayerStateStore.getInstance().isDisabled(auth.ownerUuid)
-            || WebAePlayerStateStore.getInstance().isDisabled(auth.actorUuid)) {
+        if (WebAePlayerStateStore.getInstance()
+            .isDisabled(auth.ownerUuid)
+            || WebAePlayerStateStore.getInstance()
+                .isDisabled(auth.actorUuid)) {
             return disabledResponse();
         }
 
         String ownerName = WebAeOwnerContext.resolveOwnerName(auth.ownerUuid);
 
-        String response = "{"
-            + "\"status\":\"ok\","
+        String response = "{" + "\"status\":\"ok\","
             + "\"message\":\"Authenticated successfully.\","
             + "\"playerUuid\":\""
             + escapeJson(auth.ownerUuid)

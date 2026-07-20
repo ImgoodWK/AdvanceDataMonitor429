@@ -13,23 +13,30 @@ import com.imgood.textech.AdvanceDataMonitor;
 /**
  * Generic async JSON file saver for WebAE.
  *
- * <p>The main thread serializes data to JSON and enqueues it into a
+ * <p>
+ * The main thread serializes data to JSON and enqueues it into a
  * {@link LinkedBlockingQueue}. A single daemon worker thread consumes
  * the queue and writes files to disk. This eliminates disk I/O spikes
- * on the server main tick.</p>
+ * on the server main tick.
+ * </p>
  *
- * <p>Usage:
- * <pre>{@code
+ * <p>
+ * Usage:
+ * 
+ * <pre>
+ * {@code
  * private static final AsyncJsonFileSaver saver = new AsyncJsonFileSaver("WebAE-Chat");
  * public void save(Object data, File file) {
  *     saver.schedule(data, file);
  * }
- * }</pre>
+ * }
+ * </pre>
  * </p>
  */
 public final class AsyncJsonFileSaver {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
 
     private final LinkedBlockingQueue<SaveTask> queue;
     private final Thread worker;
@@ -42,6 +49,7 @@ public final class AsyncJsonFileSaver {
         this.queue = new LinkedBlockingQueue<SaveTask>();
         this.started = new AtomicBoolean(false);
         this.worker = new Thread(new Runnable() {
+
             @Override
             public void run() {
                 runLoop();
@@ -56,8 +64,8 @@ public final class AsyncJsonFileSaver {
      * caller's thread; alternatively pass the object and let the worker
      * serialize it.
      *
-     * @param data  the object to serialize (snapshot on caller thread).
-     * @param file  destination file.
+     * @param data the object to serialize (snapshot on caller thread).
+     * @param file destination file.
      */
     public void schedule(Object data, File file) {
         ensureStarted();
@@ -69,7 +77,8 @@ public final class AsyncJsonFileSaver {
         try {
             json = GSON.toJson(data);
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("[WebAE] AsyncJsonFileSaver: JSON serialization failed for {}", file.getAbsolutePath(), e);
+            AdvanceDataMonitor.LOG
+                .error("[WebAE] AsyncJsonFileSaver: JSON serialization failed for {}", file.getAbsolutePath(), e);
             return;
         }
         if (json == null) return;
@@ -83,12 +92,14 @@ public final class AsyncJsonFileSaver {
     }
 
     private void runLoop() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread()
+            .isInterrupted()) {
             SaveTask task = null;
             try {
                 task = queue.take();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                Thread.currentThread()
+                    .interrupt();
                 break;
             }
             if (task == null) continue;
@@ -105,7 +116,8 @@ public final class AsyncJsonFileSaver {
         File parent = task.file.getParentFile();
         if (parent != null && !parent.exists()) {
             if (!parent.mkdirs()) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] AsyncJsonFileSaver: Failed to create dir {}", parent.getAbsolutePath());
+                AdvanceDataMonitor.LOG
+                    .warn("[WebAE] AsyncJsonFileSaver: Failed to create dir {}", parent.getAbsolutePath());
             }
         }
         BufferedWriter writer = null;
@@ -113,7 +125,8 @@ public final class AsyncJsonFileSaver {
             writer = new BufferedWriter(new FileWriter(task.file, false));
             writer.write(task.json);
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error("[WebAE] AsyncJsonFileSaver: Failed to write {}", task.file.getAbsolutePath(), e);
+            AdvanceDataMonitor.LOG
+                .error("[WebAE] AsyncJsonFileSaver: Failed to write {}", task.file.getAbsolutePath(), e);
         } finally {
             if (writer != null) {
                 try {
@@ -124,6 +137,7 @@ public final class AsyncJsonFileSaver {
     }
 
     private static final class SaveTask {
+
         final String json;
         final File file;
 

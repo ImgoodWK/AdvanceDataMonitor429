@@ -16,13 +16,13 @@ public class QqIdProbeParserTest {
 
     @After
     public void tearDown() {
-        QqIdProbeService.instance().resetForTest();
+        QqIdProbeService.instance()
+            .resetForTest();
     }
 
     @Test
     public void parsesC2cOpenidFromMessageEvent() {
-        JsonObject data = obj(
-            "{\"openid\":\"USER_OPENID_1\",\"content\":\"hello probe\"}");
+        JsonObject data = obj("{\"openid\":\"USER_OPENID_1\",\"content\":\"hello probe\"}");
         QqIdDiscovery discovery = QqIdProbeParser.fromDispatch("C2C_MESSAGE_CREATE", data, 1000L);
         assertNotNull(discovery);
         assertEquals("c2c", discovery.kind);
@@ -90,12 +90,14 @@ public class QqIdProbeParserTest {
 
     @Test
     public void startRequiresCredentials() {
-        QqIdProbeService.StartResult result = QqIdProbeService.instance().start("", "secret", null, null, 0L);
+        QqIdProbeService.StartResult result = QqIdProbeService.instance()
+            .start("", "secret", null, null, 0L);
         assertFalse(result.success);
         assertTrue(result.error.contains("appId"));
     }
 
     private static JsonObject obj(String json) {
-        return new JsonParser().parse(json).getAsJsonObject();
+        return new JsonParser().parse(json)
+            .getAsJsonObject();
     }
 }

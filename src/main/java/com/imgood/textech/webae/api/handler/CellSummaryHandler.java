@@ -51,20 +51,14 @@ public final class CellSummaryHandler {
         if (fresh != null) {
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"data\":" + GSON.toJson(fresh)
-                    + ",\"cached\":true,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"data\":" + GSON.toJson(fresh) + ",\"cached\":true,\"timestamp\":" + ts + "}");
         }
         NetworkCellSummaryDto stale = SnapshotCache.instance()
             .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_CELLS);
         if (stale != null) {
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"data\":" + GSON.toJson(stale)
-                    + ",\"cached\":false,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"data\":" + GSON.toJson(stale) + ",\"cached\":false,\"timestamp\":" + ts + "}");
         }
         NetworkCellSummaryDto empty = new NetworkCellSummaryDto();
         empty.networkId = networkId;

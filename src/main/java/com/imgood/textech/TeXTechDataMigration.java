@@ -1,7 +1,6 @@
 package com.imgood.textech;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -15,9 +14,8 @@ public final class TeXTechDataMigration {
     private static final Set<String> CONFIG_WHITELIST = new HashSet<String>(
         Arrays.asList("textech.cfg", "ai-client-local.cfg", "advancedatamonitor.cfg"));
 
-    private static final String[] WEBAE_FILES = { "web-alerts.json", "web-favorites.json",
-        "web-order-templates.json", "web-tokens.json", "web-chat.json", "web-players.json", "web-recipes.json",
-        "web-recipes.json.gz" };
+    private static final String[] WEBAE_FILES = { "web-alerts.json", "web-favorites.json", "web-order-templates.json",
+        "web-tokens.json", "web-chat.json", "web-players.json", "web-recipes.json", "web-recipes.json.gz" };
 
     /** legacyDirName → targetDirName under TeXTech/WebAE/ */
     private static final String[][] WEBAE_DIR_RENAMES = { { "web-icons", "icons" }, { "web-map-tiles", "map-tiles" },

@@ -1,0 +1,42 @@
+{
+  "enabled": {
+    "description": "在调用 LLM 前执行联网搜索并注入结果",
+    "type": "bool",
+    "default": true
+  },
+  "mode": {
+    "description": "搜索引擎",
+    "type": "string",
+    "default": "auto",
+    "options": ["auto", "tavily_keyless", "duckduckgo", "tavily", "brave", "serper", "searxng"],
+    "hint": "auto 按 tavily_keyless → duckduckgo → tavily → brave → serper → searxng 降级。"
+  },
+  "api_key": {
+    "description": "Tavily / Brave / Serper API Key（按所选引擎需要）",
+    "type": "string",
+    "default": "",
+    "hint": "不要提交到 Git；仅写在 AstrBot 插件配置中。"
+  },
+  "base_url": {
+    "description": "SearXNG Base URL",
+    "type": "string",
+    "default": "",
+    "hint": "例如 https://searx.example.com ，不要末尾斜杠。"
+  },
+  "max_results": {
+    "description": "最多注入条数",
+    "type": "int",
+    "default": 5,
+    "hint": "建议 3–8。"
+  },
+  "fallback": {
+    "description": "当前引擎失败时继续降级链",
+    "type": "bool",
+    "default": true
+  },
+  "timeout_seconds": {
+    "description": "单次搜索超时（秒）",
+    "type": "int",
+    "default": 12
+  }
+}

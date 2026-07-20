@@ -1,0 +1,35 @@
+{
+  "enabled": {
+    "description": "启用与 WebAE 的意图互斥（同 Bot 双端时打开）",
+    "type": "bool",
+    "default": true,
+    "hint": "关闭后本插件不拦截任何消息；WebAE 侧也有独立开关 astrBotCompatEnabled。"
+  },
+  "webae_explicit_prefixes": {
+    "description": "WebAE 显式前缀（命中后静默让出）",
+    "type": "list",
+    "default": ["webae", "游戏", "mc", "gtnh", "服务器"],
+    "hint": "与 WebAE 管理控制台「WebAE 显式前缀」保持一致。"
+  },
+  "astrbot_explicit_prefixes": {
+    "description": "AstrBot 显式前缀（强制本端处理）",
+    "type": "list",
+    "default": ["云", "助手", "bot", "astr"],
+    "hint": "与 WebAE 管理控制台「AstrBot 显式前缀」保持一致。"
+  },
+  "webae_intent_keywords": {
+    "description": "WebAE 意图关键词（命中后静默让出）",
+    "type": "list",
+    "default": [
+      "webae", "textech", "gtnh", "tps", "mspt", "仪表盘", "告警", "在线玩家",
+      "服务器状态", "adm", "高级数据", "监视器", "内存", "开服", "谁在线"
+    ],
+    "hint": "可与 WebAE 后台随时改；两边尽量一致以免双回或漏回。"
+  },
+  "command_prefix": {
+    "description": "WebAE 命令前缀（用于识别 /tps 等）",
+    "type": "string",
+    "default": "/",
+    "hint": "通常与 WebAE QQ 机器人 commandPrefix 相同。"
+  }
+}

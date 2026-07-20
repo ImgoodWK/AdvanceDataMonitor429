@@ -15,11 +15,15 @@ import net.minecraft.world.chunk.Chunk;
  * Dimension-grouped TileEntity index to replace O(n) {@code loadedTileEntityList}
  * scans in WebAE collectors.
  *
- * <p>Populated lazily on first access and maintained incrementally via
+ * <p>
+ * Populated lazily on first access and maintained incrementally via
  * {@link #onChunkLoad(Chunk, int)} / {@link #onChunkUnload(Chunk, int)}
- * called from the existing chunk event handler.</p>
+ * called from the existing chunk event handler.
+ * </p>
  *
- * <p>Thread-safety: only accessed from the Minecraft server main thread.</p>
+ * <p>
+ * Thread-safety: only accessed from the Minecraft server main thread.
+ * </p>
  */
 public final class TileEntityIndex {
 

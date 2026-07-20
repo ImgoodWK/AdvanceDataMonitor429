@@ -36,8 +36,34 @@ export function EmbedDashboard() {
     return () => {
       document.body.classList.remove('webae-embed-dashboard');
       document.documentElement.classList.remove('webae-embed-dashboard');
+      document.documentElement.removeAttribute('data-webae-capture-ready');
     };
   }, []);
+
+  // Headless Chrome --screenshot waits on virtual time; mark when layout is painted so
+  // DisplayCaptureService can rely on a settled embed (capture=1 query is advisory).
+  useEffect(() => {
+    if (phase !== 'ready') {
+      document.documentElement.removeAttribute('data-webae-capture-ready');
+      return;
+    }
+    let cancelled = false;
+    const settleMs = /[?&]capture=1(?:&|$)/.test(window.location.search || '') ? 2500 : 800;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!cancelled) {
+            document.documentElement.setAttribute('data-webae-capture-ready', '1');
+          }
+        });
+      });
+    }, settleMs);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [phase]);
 
   useEffect(() => {
     let cancelled = false;

@@ -43,9 +43,7 @@ public final class SparkService {
     private static final Pattern RESULT_URL = Pattern.compile(
         "https?://(?:www\\.)?spark\\.lucko\\.me(?:/|#)[A-Za-z0-9_-]+(?:\\?[^\\s\\]\\)\\\"']*)?",
         Pattern.CASE_INSENSITIVE);
-    private static final Pattern HTTP_URL = Pattern.compile(
-        "https?://[^\\s\\]\\)\\\"']+",
-        Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTTP_URL = Pattern.compile("https?://[^\\s\\]\\)\\\"']+", Pattern.CASE_INSENSITIVE);
     private static final int MAX_MESSAGES = 120;
     private static final int MAX_HOTSPOTS = 50;
     private static final int MAX_THREADS = 16;
@@ -64,8 +62,9 @@ public final class SparkService {
     private static final String OUTPUT_BASELINE = "baseline";
     private static final String OUTPUT_COMPLETION = "completion";
     private static final AtomicLong IDS = new AtomicLong();
-    private static final ScheduledExecutorService WATCHDOG = Executors.newSingleThreadScheduledExecutor(
-        new java.util.concurrent.ThreadFactory() {
+    private static final ScheduledExecutorService WATCHDOG = Executors
+        .newSingleThreadScheduledExecutor(new java.util.concurrent.ThreadFactory() {
+
             @Override
             public Thread newThread(Runnable runnable) {
                 Thread thread = new Thread(runnable, "WebAE-Spark-Watchdog");
@@ -92,7 +91,8 @@ public final class SparkService {
 
     public static synchronized SparkProfile activeProfile() {
         if (active != null && active.isActive()) return active;
-        List<SparkProfile> profiles = SparkProfileStore.instance().all();
+        List<SparkProfile> profiles = SparkProfileStore.instance()
+            .all();
         for (SparkProfile profile : profiles) {
             if (profile.isActive()) {
                 active = profile;
@@ -106,18 +106,16 @@ public final class SparkService {
         return start(requestedDuration, initiatedBy, MODE_SERVER, 0, 0);
     }
 
-    public static SparkProfile start(
-        int requestedDuration,
-        String initiatedBy,
-        String requestedMode,
-        int requestedIntervalMillis,
-        int requestedTickThresholdMillis) throws Exception {
+    public static SparkProfile start(int requestedDuration, String initiatedBy, String requestedMode,
+        int requestedIntervalMillis, int requestedTickThresholdMillis) throws Exception {
         int duration = Math.max(5, Math.min(requestedDuration, Config.webSparkMaxDurationSeconds));
         String mode = normalizeMode(requestedMode);
         int intervalMillis = normalizeInterval(mode, requestedIntervalMillis);
         int tickThresholdMillis = MODE_LAG_SPIKES.equals(mode)
-            ? clamp(requestedTickThresholdMillis <= 0 ? 50 : requestedTickThresholdMillis,
-                MIN_TICK_THRESHOLD_MILLIS, MAX_TICK_THRESHOLD_MILLIS)
+            ? clamp(
+                requestedTickThresholdMillis <= 0 ? 50 : requestedTickThresholdMillis,
+                MIN_TICK_THRESHOLD_MILLIS,
+                MAX_TICK_THRESHOLD_MILLIS)
             : 0;
         SparkProfile profile = new SparkProfile();
         synchronized (SparkService.class) {
@@ -142,7 +140,8 @@ public final class SparkService {
             profile.analysisStatus = "pending";
             profile.analysisVersion = ANALYSIS_VERSION;
             active = profile;
-            SparkProfileStore.instance().upsert(profile);
+            SparkProfileStore.instance()
+                .upsert(profile);
         }
         try {
             executeAuxiliary("spark tps", profile, OUTPUT_BASELINE);
@@ -155,6 +154,7 @@ public final class SparkService {
             throw e;
         }
         WATCHDOG.schedule(new Runnable() {
+
             @Override
             public void run() {
                 stopAtRequestedDuration(profile);
@@ -203,7 +203,8 @@ public final class SparkService {
     private static void markStopping(SparkProfile profile) {
         profile.status = "stopping";
         if (profile.samplingStoppedAt == 0L) profile.samplingStoppedAt = System.currentTimeMillis();
-        SparkProfileStore.instance().upsert(profile);
+        SparkProfileStore.instance()
+            .upsert(profile);
     }
 
     private static void beginResultLookup(SparkProfile profile, String statusWithoutResult) {
@@ -219,6 +220,7 @@ public final class SparkService {
      */
     private static void scheduleViewerResultLookup(final SparkProfile profile) {
         WATCHDOG.schedule(new Runnable() {
+
             @Override
             public void run() {
                 String resultUrl = findActivityResultUrl(profile);
@@ -242,7 +244,8 @@ public final class SparkService {
      * recurring game-side cost.
      */
     public static SparkProfile recoverResult(String id) {
-        SparkProfile profile = SparkProfileStore.instance().find(id);
+        SparkProfile profile = SparkProfileStore.instance()
+            .find(id);
         if (profile == null || (profile.resultUrl != null && !profile.resultUrl.isEmpty())) return profile;
         String resultUrl = findActivityResultUrl(profile);
         if (resultUrl.isEmpty()) return profile;
@@ -251,29 +254,30 @@ public final class SparkService {
             profile.status = "completed";
             if (profile.samplingStoppedAt == 0L) {
                 long expectedStop = profile.startedAt + Math.max(0, profile.durationSeconds) * 1000L;
-                profile.samplingStoppedAt = profile.completedAt > 0L
-                    ? Math.min(expectedStop, profile.completedAt)
+                profile.samplingStoppedAt = profile.completedAt > 0L ? Math.min(expectedStop, profile.completedAt)
                     : expectedStop;
             }
             if (profile.completedAt == 0L) profile.completedAt = System.currentTimeMillis();
-            SparkProfileStore.instance().upsert(profile);
+            SparkProfileStore.instance()
+                .upsert(profile);
         }
         return profile;
     }
 
     private static void scheduleFinalization(final SparkProfile profile, final String statusWithoutResult) {
         WATCHDOG.schedule(new Runnable() {
+
             @Override
             public void run() {
                 synchronized (SparkService.class) {
                     if (!profile.isActive()) return;
-                    profile.status = profile.resultUrl == null || profile.resultUrl.isEmpty()
-                        ? statusWithoutResult
+                    profile.status = profile.resultUrl == null || profile.resultUrl.isEmpty() ? statusWithoutResult
                         : "completed";
                     if (profile.samplingStoppedAt == 0L) profile.samplingStoppedAt = System.currentTimeMillis();
                     if (profile.completedAt == 0L) profile.completedAt = System.currentTimeMillis();
                     if (active == profile) active = null;
-                    SparkProfileStore.instance().upsert(profile);
+                    SparkProfileStore.instance()
+                        .upsert(profile);
                 }
             }
         }, RESULT_GRACE_SECONDS, TimeUnit.SECONDS);
@@ -289,7 +293,8 @@ public final class SparkService {
                 profile.analysisStatus = "unavailable";
             }
             if (active == profile) active = null;
-            SparkProfileStore.instance().upsert(profile);
+            SparkProfileStore.instance()
+                .upsert(profile);
         }
     }
 
@@ -301,13 +306,13 @@ public final class SparkService {
         }
     }
 
-    private static void executeOnMainThread(
-        final String command,
-        final SparkProfile profile,
-        final String outputGroup) throws Exception {
-        final Object server = FMLCommonHandler.instance().getMinecraftServerInstance();
+    private static void executeOnMainThread(final String command, final SparkProfile profile, final String outputGroup)
+        throws Exception {
+        final Object server = FMLCommonHandler.instance()
+            .getMinecraftServerInstance();
         if (server == null) throw new IllegalStateException("Minecraft server is not available");
         Callable<Object> task = new Callable<Object>() {
+
             @Override
             public Object call() throws Exception {
                 Object sender = createCommandSender(server, profile, outputGroup);
@@ -320,11 +325,12 @@ public final class SparkService {
                 }
 
                 // Compatibility fallback for an unknown Spark patch build.
-                AdvanceDataMonitor.LOG.warn(
-                    "[WebAE] Spark server plugin command bridge unavailable; falling back to command manager");
+                AdvanceDataMonitor.LOG
+                    .warn("[WebAE] Spark server plugin command bridge unavailable; falling back to command manager");
                 Object manager = invokeNoArgs(server, "getCommandManager", "func_71187_D");
                 Method execute = null;
-                Method[] methods = manager.getClass().getMethods();
+                Method[] methods = manager.getClass()
+                    .getMethods();
                 for (Method method : methods) {
                     if (("executeCommand".equals(method.getName()) || "func_71556_a".equals(method.getName()))
                         && method.getParameterTypes().length == 2) {
@@ -354,10 +360,12 @@ public final class SparkService {
 
     private static Method findSparkProcessCommand(Object sparkPlugin, Object sender) {
         if (sparkPlugin == null || sender == null) return null;
-        for (Method method : sparkPlugin.getClass().getMethods()) {
+        for (Method method : sparkPlugin.getClass()
+            .getMethods()) {
             Class<?>[] parameters = method.getParameterTypes();
             if (method.getReturnType() == Void.TYPE && parameters.length == 2
-                && parameters[0].isInstance(sender) && parameters[1] == String[].class) {
+                && parameters[0].isInstance(sender)
+                && parameters[1] == String[].class) {
                 return method;
             }
         }
@@ -367,22 +375,20 @@ public final class SparkService {
     /** Spark processCommand receives everything after the root `spark` token. */
     private static String[] sparkCommandArguments(String command) {
         if (command == null) return new String[0];
-        String[] tokens = command.trim().split("\\s+");
+        String[] tokens = command.trim()
+            .split("\\s+");
         if (tokens.length <= 1) return new String[0];
         List<String> arguments = new ArrayList<String>();
         for (int i = 1; i < tokens.length; i++) arguments.add(tokens[i]);
         return arguments.toArray(new String[arguments.size()]);
     }
 
-    private static Object createCommandSender(
-        final Object server,
-        final SparkProfile profile,
-        final String outputGroup) throws Exception {
+    private static Object createCommandSender(final Object server, final SparkProfile profile, final String outputGroup)
+        throws Exception {
         final Class<?> senderType = Class.forName("net.minecraft.command.ICommandSender");
-        return Proxy.newProxyInstance(
-            senderType.getClassLoader(),
-            new Class<?>[] { senderType },
-            new InvocationHandler() {
+        return Proxy
+            .newProxyInstance(senderType.getClassLoader(), new Class<?>[] { senderType }, new InvocationHandler() {
+
                 @Override
                 public Object invoke(Object proxy, Method method, Object[] args) {
                     String name = method.getName();
@@ -396,7 +402,8 @@ public final class SparkService {
                     if ("getCommandSenderName".equals(name) || "func_70005_c_".equals(name)) return "WebAE";
                     if ("getEntityWorld".equals(name) || "func_130014_f_".equals(name)) {
                         try {
-                            Method world = server.getClass().getMethod("worldServerForDimension", int.class);
+                            Method world = server.getClass()
+                                .getMethod("worldServerForDimension", int.class);
                             return world.invoke(server, 0);
                         } catch (Exception ignored) {
                             return null;
@@ -405,7 +412,8 @@ public final class SparkService {
                     if ("getPlayerCoordinates".equals(name) || "func_180425_c".equals(name)) {
                         try {
                             Class<?> coords = Class.forName("net.minecraft.util.ChunkCoordinates");
-                            return coords.getConstructor(int.class, int.class, int.class).newInstance(0, 64, 0);
+                            return coords.getConstructor(int.class, int.class, int.class)
+                                .newInstance(0, 64, 0);
                         } catch (Exception ignored) {
                             return null;
                         }
@@ -417,7 +425,8 @@ public final class SparkService {
 
     private static boolean isChatMessageMethod(String name) {
         return "addChatMessage".equals(name) || "func_145747_a".equals(name)
-            || name.toLowerCase().contains("message");
+            || name.toLowerCase()
+                .contains("message");
     }
 
     private static void capture(SparkProfile profile, Object component, String outputGroup) {
@@ -436,7 +445,8 @@ public final class SparkService {
                     if (profile.baselineMessages == null) profile.baselineMessages = new java.util.ArrayList<String>();
                     profile.baselineMessages.add(clean);
                 } else if (OUTPUT_COMPLETION.equals(outputGroup)) {
-                    if (profile.completionMessages == null) profile.completionMessages = new java.util.ArrayList<String>();
+                    if (profile.completionMessages == null)
+                        profile.completionMessages = new java.util.ArrayList<String>();
                     profile.completionMessages.add(clean);
                 }
             }
@@ -450,27 +460,27 @@ public final class SparkService {
             if (!resultUrl.isEmpty()) {
                 completeWithResult(profile, resultUrl);
             }
-            SparkProfileStore.instance().upsert(profile);
+            SparkProfileStore.instance()
+                .upsert(profile);
         }
     }
 
     private static boolean isProfilerFailureMessage(String message) {
         if (message == null) return false;
         String lower = message.toLowerCase(java.util.Locale.ROOT);
-        return lower.contains("active profiler is already running")
-            || lower.contains("no active profiler")
+        return lower.contains("active profiler is already running") || lower.contains("no active profiler")
             || lower.contains("profiler operation failed unexpectedly");
     }
 
     private static String chatText(Object component) {
         if (component == null) return "";
-        String[] methods = new String[] {
-            "getUnformattedTextForChat", "func_150260_c", "getUnformattedText", "func_150261_e", "getFormattedText",
-            "func_150254_d"
-        };
+        String[] methods = new String[] { "getUnformattedTextForChat", "func_150260_c", "getUnformattedText",
+            "func_150261_e", "getFormattedText", "func_150254_d" };
         for (String methodName : methods) {
             try {
-                Object value = component.getClass().getMethod(methodName).invoke(component);
+                Object value = component.getClass()
+                    .getMethod(methodName)
+                    .invoke(component);
                 if (value != null) return String.valueOf(value);
             } catch (Exception ignored) {}
         }
@@ -585,17 +595,26 @@ public final class SparkService {
             if (!root.isJsonArray()) return "";
             JsonArray activities = root.getAsJsonArray();
             for (int i = activities.size() - 1; i >= 0; i--) {
-                JsonObject activity = activities.get(i).getAsJsonObject();
-                long activityTime = activity.has("time") ? activity.get("time").getAsLong() : 0L;
+                JsonObject activity = activities.get(i)
+                    .getAsJsonObject();
+                long activityTime = activity.has("time") ? activity.get("time")
+                    .getAsLong() : 0L;
                 if (activityTime < lowerBound || activityTime > upperBound) continue;
-                if (!activity.has("type") || !"Profiler".equals(activity.get("type").getAsString())) continue;
-                JsonObject data = activity.has("data") && activity.get("data").isJsonObject()
-                    ? activity.getAsJsonObject("data")
-                    : null;
-                if (data == null || !data.has("type") || !"url".equalsIgnoreCase(data.get("type").getAsString())) {
+                if (!activity.has("type") || !"Profiler".equals(
+                    activity.get("type")
+                        .getAsString()))
+                    continue;
+                JsonObject data = activity.has("data") && activity.get("data")
+                    .isJsonObject() ? activity.getAsJsonObject("data") : null;
+                if (data == null || !data.has("type")
+                    || !"url".equalsIgnoreCase(
+                        data.get("type")
+                            .getAsString())) {
                     continue;
                 }
-                String resultUrl = findUploadUrl(data.has("value") ? data.get("value").getAsString() : "");
+                String resultUrl = findUploadUrl(
+                    data.has("value") ? data.get("value")
+                        .getAsString() : "");
                 if (!resultUrl.isEmpty()) return resultUrl;
             }
         } catch (Throwable error) {
@@ -611,14 +630,12 @@ public final class SparkService {
     }
 
     private static long[] activityWindow(SparkProfile profile) {
-        long lowerBound = profile.samplingStoppedAt > 0L
-            ? profile.samplingStoppedAt - 5000L
-            : profile.startedAt;
-        long upperBound = profile.completedAt > 0L
-            ? profile.completedAt + TimeUnit.MINUTES.toMillis(5L)
+        long lowerBound = profile.samplingStoppedAt > 0L ? profile.samplingStoppedAt - 5000L : profile.startedAt;
+        long upperBound = profile.completedAt > 0L ? profile.completedAt + TimeUnit.MINUTES.toMillis(5L)
             : System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5L);
         // Prevent a missing old run from adopting a later run's URL.
-        for (SparkProfile candidate : SparkProfileStore.instance().all()) {
+        for (SparkProfile candidate : SparkProfileStore.instance()
+            .all()) {
             if (candidate == profile || candidate.startedAt <= profile.startedAt) continue;
             upperBound = Math.min(upperBound, candidate.startedAt - 1L);
         }
@@ -628,7 +645,8 @@ public final class SparkService {
     private static File sparkActivityFile() {
         Object configDirectory = readField(sparkMod(), "configDirectory");
         if (configDirectory instanceof Path) {
-            return ((Path) configDirectory).resolve("activity.json").toFile();
+            return ((Path) configDirectory).resolve("activity.json")
+                .toFile();
         }
         return new File(new File("config"), "activity.json");
     }
@@ -666,11 +684,13 @@ public final class SparkService {
                 thread.timeMillis = threadTime;
                 accumulator.threads.add(thread);
                 Object rawChildren = invokeNoArgs(root, "getChildren");
-                Collection<?> rootChildren = rawChildren instanceof Collection<?>
-                    ? (Collection<?>) rawChildren
+                Collection<?> rootChildren = rawChildren instanceof Collection<?> ? (Collection<?>) rawChildren
                     : Collections.emptyList();
                 if (rootChildren.isEmpty()) continue;
-                AnalysisNodeAccess access = new AnalysisNodeAccess(rootChildren.iterator().next().getClass());
+                AnalysisNodeAccess access = new AnalysisNodeAccess(
+                    rootChildren.iterator()
+                        .next()
+                        .getClass());
                 for (Object child : rootChildren) {
                     accumulateNode(child, threadName, 0, access, accumulator);
                 }
@@ -683,11 +703,7 @@ public final class SparkService {
         }
     }
 
-    private static void accumulateNode(
-        Object node,
-        String threadName,
-        int depth,
-        AnalysisNodeAccess access,
+    private static void accumulateNode(Object node, String threadName, int depth, AnalysisNodeAccess access,
         AnalysisAccumulator accumulator) throws Exception {
         if (node == null || depth >= MAX_ANALYSIS_DEPTH) return;
         accumulator.nodeCount++;
@@ -738,26 +754,19 @@ public final class SparkService {
         }
     }
 
-    private static void finishAnalysis(
-        SparkProfile profile,
-        String status,
-        AnalysisAccumulator accumulator) {
+    private static void finishAnalysis(SparkProfile profile, String status, AnalysisAccumulator accumulator) {
         synchronized (SparkService.class) {
             profile.analysisVersion = ANALYSIS_VERSION;
             profile.analysisStatus = status;
-            profile.hotspots = accumulator == null
-                ? new ArrayList<SparkProfile.Hotspot>()
-                : accumulator.hotspots;
-            profile.categories = accumulator == null
-                ? new ArrayList<SparkProfile.CategoryImpact>()
+            profile.hotspots = accumulator == null ? new ArrayList<SparkProfile.Hotspot>() : accumulator.hotspots;
+            profile.categories = accumulator == null ? new ArrayList<SparkProfile.CategoryImpact>()
                 : accumulator.categoryResults;
-            profile.threads = accumulator == null
-                ? new ArrayList<SparkProfile.ThreadImpact>()
-                : accumulator.threads;
+            profile.threads = accumulator == null ? new ArrayList<SparkProfile.ThreadImpact>() : accumulator.threads;
             profile.sampledTimeMillis = accumulator == null ? 0D : accumulator.totalTimeMillis;
             profile.sampleCount = accumulator == null ? 0 : accumulator.sampleCount;
             profile.analyzedNodeCount = accumulator == null ? 0 : accumulator.nodeCount;
-            SparkProfileStore.instance().upsert(profile);
+            SparkProfileStore.instance()
+                .upsert(profile);
         }
     }
 
@@ -767,27 +776,32 @@ public final class SparkService {
         String threadLower = threadName == null ? "" : threadName.toLowerCase(java.util.Locale.ROOT);
         String combined = classLower + "." + methodLower;
         if (threadLower.contains("gc thread") || threadLower.contains("garbage collector")
-            || combined.contains("garbagecollect") || combined.contains("gc.collector")) return "gc";
+            || combined.contains("garbagecollect")
+            || combined.contains("gc.collector")) return "gc";
         if (classLower.startsWith("appeng.")) return "ae2";
         if (classLower.startsWith("gregtech.") || classLower.startsWith("gtplusplus.")
-            || classLower.startsWith("goodgenerator.") || classLower.startsWith("bartworks.")) return "gregtech";
+            || classLower.startsWith("goodgenerator.")
+            || classLower.startsWith("bartworks.")) return "gregtech";
         if (classLower.startsWith("com.imgood.textech.") || classLower.startsWith("tectech.")) return "textech";
         if (combined.contains("world.gen") || combined.contains("chunkprovidergenerate")
-            || combined.contains("populatechunk") || combined.contains("worldgenerator")) return "worldgen";
+            || combined.contains("populatechunk")
+            || combined.contains("worldgenerator")) return "worldgen";
         if (combined.contains("tileentity")) return "tileEntities";
         if (methodLower.contains("updateentities") || "func_72939_s".equals(methodLower)
             || classLower.startsWith("net.minecraft.entity.")) return "entities";
-        if (combined.contains("chunk") || combined.contains("regionfile")
-            || combined.contains("anvil")) return "chunks";
+        if (combined.contains("chunk") || combined.contains("regionfile") || combined.contains("anvil"))
+            return "chunks";
         if (classLower.startsWith("net.minecraft.network.") || classLower.startsWith("io.netty.")) return "network";
         if (combined.contains("saveall") || classLower.startsWith("java.io.")
-            || classLower.startsWith("java.nio.") || combined.contains("compressedstreamtools")) return "io";
+            || classLower.startsWith("java.nio.")
+            || combined.contains("compressedstreamtools")) return "io";
         if (classLower.startsWith("net.minecraftforge.") || classLower.startsWith("cpw.mods.fml.")) return "forge";
         if (classLower.startsWith("net.minecraft.")) return "minecraft";
         if (classLower.startsWith("java.") || classLower.startsWith("javax.")
-            || classLower.startsWith("sun.") || classLower.startsWith("com.sun.")) return "jvm";
-        if (classLower.startsWith("com.") || classLower.startsWith("org.")
-            || classLower.startsWith("mods.")) return "otherMods";
+            || classLower.startsWith("sun.")
+            || classLower.startsWith("com.sun.")) return "jvm";
+        if (classLower.startsWith("com.") || classLower.startsWith("org.") || classLower.startsWith("mods."))
+            return "otherMods";
         return "other";
     }
 
@@ -859,8 +873,7 @@ public final class SparkService {
         private final Map<String, MethodImpact> methods = new HashMap<String, MethodImpact>();
         private final Map<String, CategoryImpact> categories = new HashMap<String, CategoryImpact>();
         private final List<SparkProfile.Hotspot> hotspots = new ArrayList<SparkProfile.Hotspot>();
-        private final List<SparkProfile.CategoryImpact> categoryResults =
-            new ArrayList<SparkProfile.CategoryImpact>();
+        private final List<SparkProfile.CategoryImpact> categoryResults = new ArrayList<SparkProfile.CategoryImpact>();
         private final List<SparkProfile.ThreadImpact> threads = new ArrayList<SparkProfile.ThreadImpact>();
         private double totalTimeMillis;
         private int sampleCount;
@@ -870,6 +883,7 @@ public final class SparkService {
             final double denominator = Math.max(0.001D, totalTimeMillis);
             List<MethodImpact> methodResults = new ArrayList<MethodImpact>(methods.values());
             Collections.sort(methodResults, new Comparator<MethodImpact>() {
+
                 @Override
                 public int compare(MethodImpact left, MethodImpact right) {
                     return Double.compare(right.selfTimeMillis, left.selfTimeMillis);
@@ -893,6 +907,7 @@ public final class SparkService {
 
             List<CategoryImpact> categoryValues = new ArrayList<CategoryImpact>(categories.values());
             Collections.sort(categoryValues, new Comparator<CategoryImpact>() {
+
                 @Override
                 public int compare(CategoryImpact left, CategoryImpact right) {
                     return Double.compare(right.timeMillis, left.timeMillis);
@@ -909,6 +924,7 @@ public final class SparkService {
             }
 
             Collections.sort(threads, new Comparator<SparkProfile.ThreadImpact>() {
+
                 @Override
                 public int compare(SparkProfile.ThreadImpact left, SparkProfile.ThreadImpact right) {
                     return Double.compare(right.timeMillis, left.timeMillis);
@@ -918,9 +934,7 @@ public final class SparkService {
             for (SparkProfile.ThreadImpact thread : threads) {
                 thread.percent = thread.timeMillis * 100D / denominator;
             }
-            sampleCount = (int) Math.min(
-                Integer.MAX_VALUE,
-                Math.round(totalTimeMillis / Math.max(1, intervalMillis)));
+            sampleCount = (int) Math.min(Integer.MAX_VALUE, Math.round(totalTimeMillis / Math.max(1, intervalMillis)));
         }
     }
 
@@ -934,7 +948,9 @@ public final class SparkService {
             Object modules = readField(sparkPlatform(), "commandModules");
             if (!(modules instanceof Iterable<?>)) return null;
             for (Object module : (Iterable<?>) modules) {
-                if (module == null || !module.getClass().getName().endsWith(".SamplerModule")) continue;
+                if (module == null || !module.getClass()
+                    .getName()
+                    .endsWith(".SamplerModule")) continue;
                 return readField(module, "activeSampler");
             }
         } catch (Throwable ignored) {
@@ -953,7 +969,9 @@ public final class SparkService {
     }
 
     private static Object sparkMod() {
-        Object container = Loader.instance().getIndexedModList().get("spark");
+        Object container = Loader.instance()
+            .getIndexedModList()
+            .get("spark");
         return invokeOptionalNoArgs(container, "getMod");
     }
 
@@ -975,7 +993,8 @@ public final class SparkService {
         if (profile.samplingStoppedAt == 0L) profile.samplingStoppedAt = System.currentTimeMillis();
         profile.completedAt = System.currentTimeMillis();
         if (active == profile) active = null;
-        SparkProfileStore.instance().upsert(profile);
+        SparkProfileStore.instance()
+            .upsert(profile);
         AdvanceDataMonitor.LOG.info("[WebAE] Spark Viewer URL captured for run {}", profile.id);
     }
 
@@ -1001,10 +1020,10 @@ public final class SparkService {
     private static String buildStartCommand(SparkProfile profile) {
         // Spark 1.6.4 has no `start` subcommand. Its Arguments parser requires
         // every token after `profiler` to begin with `--`; no control flag means start.
-        StringBuilder command = new StringBuilder("spark profiler --interval ")
-            .append(profile.intervalMillis);
+        StringBuilder command = new StringBuilder("spark profiler --interval ").append(profile.intervalMillis);
         if (MODE_LAG_SPIKES.equals(profile.mode)) {
-            command.append(" --only-ticks-over ").append(profile.onlyTicksOverMillis);
+            command.append(" --only-ticks-over ")
+                .append(profile.onlyTicksOverMillis);
         } else if (MODE_ALL_THREADS.equals(profile.mode)) {
             command.append(" --thread * --not-combined --ignore-sleeping");
         }
@@ -1012,16 +1031,16 @@ public final class SparkService {
     }
 
     private static String buildStopCommand(SparkProfile profile) {
-        return MODE_LAG_SPIKES.equals(profile.mode)
-            ? "spark profiler --stop --order-by-time"
-            : "spark profiler --stop";
+        return MODE_LAG_SPIKES.equals(profile.mode) ? "spark profiler --stop --order-by-time" : "spark profiler --stop";
     }
 
     private static Object invokeNoArgs(Object target, String... names) throws Exception {
         Exception failure = null;
         for (String name : names) {
             try {
-                return target.getClass().getMethod(name).invoke(target);
+                return target.getClass()
+                    .getMethod(name)
+                    .invoke(target);
             } catch (Exception e) {
                 failure = e;
             }
@@ -1062,6 +1081,7 @@ public final class SparkService {
     private static String safeMessage(Throwable throwable) {
         Throwable cause = throwable;
         while (cause.getCause() != null) cause = cause.getCause();
-        return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
+        return cause.getMessage() == null ? cause.getClass()
+            .getSimpleName() : cause.getMessage();
     }
 }

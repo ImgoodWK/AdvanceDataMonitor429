@@ -7,7 +7,6 @@ import java.util.Comparator;
 import java.util.List;
 
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 
@@ -71,23 +70,21 @@ public final class WorldMapIsoRenderer {
             }
         }
 
-        Collections.sort(
-            columns,
-            new Comparator<Column>() {
+        Collections.sort(columns, new Comparator<Column>() {
 
-                @Override
-                public int compare(Column a, Column b) {
-                    int sumA = a.lx + a.lz;
-                    int sumB = b.lx + b.lz;
-                    if (sumA != sumB) {
-                        return sumB - sumA;
-                    }
-                    if (a.lz != b.lz) {
-                        return b.lz - a.lz;
-                    }
-                    return b.lx - a.lx;
+            @Override
+            public int compare(Column a, Column b) {
+                int sumA = a.lx + a.lz;
+                int sumB = b.lx + b.lz;
+                if (sumA != sumB) {
+                    return sumB - sumA;
                 }
-            });
+                if (a.lz != b.lz) {
+                    return b.lz - a.lz;
+                }
+                return b.lx - a.lx;
+            }
+        });
 
         int minTopY = Integer.MAX_VALUE;
         for (Column col : columns) {
@@ -104,8 +101,21 @@ public final class WorldMapIsoRenderer {
         }
 
         for (Column col : columns) {
-            drawColumn(img, chunk, ctx, col.sampleX, col.sampleZ, col.lx, col.lz, col.topY, minTopY, centerX,
-                centerY, pxPerBlock, baseX, baseZ);
+            drawColumn(
+                img,
+                chunk,
+                ctx,
+                col.sampleX,
+                col.sampleZ,
+                col.lx,
+                col.lz,
+                col.topY,
+                minTopY,
+                centerX,
+                centerY,
+                pxPerBlock,
+                baseX,
+                baseZ);
         }
 
         return WorldMapRenderSupport.toPng(img);

@@ -36,7 +36,10 @@ public final class WorldMapRenderExecutor {
                 if (p == null || p.isShutdown()) {
                     int threads = Config.webWorldMapRenderThreads;
                     if (threads <= 0) {
-                        threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+                        threads = Math.max(
+                            1,
+                            Runtime.getRuntime()
+                                .availableProcessors() / 2);
                     }
                     configuredThreads = threads;
                     final int n = threads;
@@ -80,7 +83,8 @@ public final class WorldMapRenderExecutor {
     public void shutdown() {
         ExecutorService p = pool;
         if (p != null && !p.isShutdown()) {
-            AdvanceDataMonitor.LOG.info("[WebAE] WorldMapRenderExecutor shutting down ({} thread(s))", configuredThreads);
+            AdvanceDataMonitor.LOG
+                .info("[WebAE] WorldMapRenderExecutor shutting down ({} thread(s))", configuredThreads);
             p.shutdown();
         }
     }

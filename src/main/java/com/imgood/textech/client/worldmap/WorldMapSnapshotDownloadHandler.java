@@ -3,8 +3,6 @@ package com.imgood.textech.client.worldmap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-import net.minecraft.client.Minecraft;
-
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotSyncRequest;
@@ -136,11 +134,8 @@ public final class WorldMapSnapshotDownloadHandler {
             message.png);
         if (pullQueue.isEmpty()) {
             WorldMapSnapshotLocalCache.writeLocalVersion(message.ownerUuid, message.networkId, targetVersion);
-            WorldMapSnapshotLocalCache.pruneOldVersions(
-                message.ownerUuid,
-                message.networkId,
-                targetVersion,
-                targetPreviousVersion);
+            WorldMapSnapshotLocalCache
+                .pruneOldVersions(message.ownerUuid, message.networkId, targetVersion, targetPreviousVersion);
         }
     }
 

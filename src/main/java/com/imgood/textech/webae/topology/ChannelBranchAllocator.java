@@ -76,8 +76,7 @@ public final class ChannelBranchAllocator {
         String podKind = TopologyRules.podKindForSubtype(subtype);
         int preferred = TopologyRules.preferredLaneForPodKind(podKind);
 
-        if (preferred >= 0 && preferred < BRANCH_COUNT
-            && branchUsed[preferred] + cost <= CHANNELS_PER_BRANCH) {
+        if (preferred >= 0 && preferred < BRANCH_COUNT && branchUsed[preferred] + cost <= CHANNELS_PER_BRANCH) {
             String primary = branchPrimarySubtype.get(preferred);
             if (primary == null || primary.equals(subtype) || branchUsed[preferred] == 0) {
                 return preferred;

@@ -75,28 +75,23 @@ public class PacketWorldMapSnapshotSyncRequest implements IMessage {
                         return;
                     }
                     int serverVersion = WorldMapSnapshotStore.currentVersion(message.ownerUuid, message.networkId);
-                    WorldMapSnapshotCurrentPointer ptr = WorldMapSnapshotStore.loadCurrent(
-                        message.ownerUuid,
-                        message.networkId);
+                    WorldMapSnapshotCurrentPointer ptr = WorldMapSnapshotStore
+                        .loadCurrent(message.ownerUuid, message.networkId);
                     PacketWorldMapSnapshotSyncResponse resp = new PacketWorldMapSnapshotSyncResponse();
                     resp.ownerUuid = message.ownerUuid;
                     resp.networkId = message.networkId;
                     resp.serverVersion = serverVersion;
                     resp.previousServerVersion = ptr != null ? ptr.previousVersion : 0;
                     if (serverVersion > message.localVersion) {
-                        WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadManifest(
-                            message.ownerUuid,
-                            message.networkId,
-                            serverVersion);
+                        WorldMapSnapshotManifest manifest = WorldMapSnapshotStore
+                            .loadManifest(message.ownerUuid, message.networkId, serverVersion);
                         if (manifest != null && manifest.tiles != null) {
                             for (String key : manifest.tiles.keySet()) {
                                 resp.tileKeys.add(key);
                             }
                         }
                     }
-                    com.imgood.textech.AdvanceDataMonitor.ADMCHANEL.sendTo(
-                        resp,
-                        ctx.getServerHandler().playerEntity);
+                    com.imgood.textech.AdvanceDataMonitor.ADMCHANEL.sendTo(resp, ctx.getServerHandler().playerEntity);
                 }
             });
         }

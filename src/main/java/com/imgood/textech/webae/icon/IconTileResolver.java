@@ -115,16 +115,9 @@ public final class IconTileResolver {
     private static String[] registryNamesFor(String modId, String className) {
         String decap = decapitalize(className);
         String snake = camelToSnake(className);
-        return new String[] {
-            modId + ":tile." + className,
-            modId + ":tile." + decap,
-            modId + ":tile." + snake,
-            modId + ":" + className,
-            modId + ":" + decap,
-            modId + ":" + snake,
-            modId + ":block" + className,
-            modId + ":block" + decap,
-        };
+        return new String[] { modId + ":tile." + className, modId + ":tile." + decap, modId + ":tile." + snake,
+            modId + ":" + className, modId + ":" + decap, modId + ":" + snake, modId + ":block" + className,
+            modId + ":block" + decap, };
     }
 
     /** AE2 rv2/rv3: ApiBlocks static fields or AEApi definitions(). */
@@ -137,11 +130,8 @@ public final class IconTileResolver {
     }
 
     private static Block resolveAeApiBlock(String className) {
-        String[] apiClasses = {
-            "appeng.core.api.definitions.ApiBlocks",
-            "appeng.api.definitions.ApiBlocks",
-            "appeng.core.ApiBlocks",
-        };
+        String[] apiClasses = { "appeng.core.api.definitions.ApiBlocks", "appeng.api.definitions.ApiBlocks",
+            "appeng.core.ApiBlocks", };
         String[] fieldNames = aeFieldNamesFor(className);
         for (String apiClass : apiClasses) {
             try {
@@ -167,7 +157,8 @@ public final class IconTileResolver {
         for (String apiClass : apiClasses) {
             try {
                 Class<?> cls = Class.forName(apiClass);
-                Object api = cls.getMethod("instance").invoke(null);
+                Object api = cls.getMethod("instance")
+                    .invoke(null);
                 Object definitions = api.getClass()
                     .getMethod("definitions")
                     .invoke(api);
@@ -291,7 +282,8 @@ public final class IconTileResolver {
         try {
             Class<?> cls = Class.forName(className);
             try {
-                Object instance = cls.getField("instance").get(null);
+                Object instance = cls.getField("instance")
+                    .get(null);
                 if (instance instanceof Block) {
                     return (Block) instance;
                 }

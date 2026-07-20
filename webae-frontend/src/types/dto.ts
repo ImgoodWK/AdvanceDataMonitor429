@@ -2234,6 +2234,11 @@ export interface QqBotSettingsDto {
   aiSystemPrompt: string;
   maxConversationTurns: number;
   conversationTtlMinutes: number;
+  /** Optional shared-bot intent routing with AstrBot; default false. */
+  astrBotCompatEnabled: boolean;
+  webaeExplicitPrefixes: string[];
+  astrBotExplicitPrefixes: string[];
+  webaeIntentKeywords: string[];
   userCooldownSeconds: number;
   aiCooldownSeconds: number;
   maxInputChars: number;

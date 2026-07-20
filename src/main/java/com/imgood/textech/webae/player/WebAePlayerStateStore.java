@@ -57,8 +57,8 @@ public class WebAePlayerStateStore {
             states.put(playerUuid, state);
         } else if (playerName != null && !playerName.isEmpty()
             && (state.playerName == null || state.playerName.isEmpty())) {
-            state.playerName = playerName;
-        }
+                state.playerName = playerName;
+            }
         return state;
     }
 
@@ -143,7 +143,8 @@ public class WebAePlayerStateStore {
         String json = GSON.toJson(snapshot);
         java.io.FileWriter fw = null;
         try {
-            storeFile().getParentFile().mkdirs();
+            storeFile().getParentFile()
+                .mkdirs();
             java.io.File tmp = new java.io.File(storeFile().getParentFile(), storeFile().getName() + ".tmp");
             fw = new java.io.FileWriter(tmp);
             fw.write(json);

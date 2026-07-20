@@ -474,7 +474,8 @@ public class WebConfigHandler {
             .append(Config.worldMapJourneyMapEnabled)
             .append(',');
         sb.append("\"worldMapSnapshotSourcePriority\":")
-            .append(GSON.toJson(Config.worldMapSnapshotSourcePriority != null ? Config.worldMapSnapshotSourcePriority : ""))
+            .append(
+                GSON.toJson(Config.worldMapSnapshotSourcePriority != null ? Config.worldMapSnapshotSourcePriority : ""))
             .append(',');
         sb.append("\"alertsEnabled\":")
             .append(Config.webAlertsEnabled && com.imgood.textech.config.ConfigWebAlertsLoader.get().enabled)
@@ -513,7 +514,10 @@ public class WebConfigHandler {
             .append(GSON.toJson(com.imgood.textech.webae.assistant.WebAiConfigStore.publicProviderViews()))
             .append(',');
         sb.append("\"webAiShared\":")
-            .append(GSON.toJson(com.imgood.textech.webae.assistant.WebAiConfigStore.instance().publicSharedView()))
+            .append(
+                GSON.toJson(
+                    com.imgood.textech.webae.assistant.WebAiConfigStore.instance()
+                        .publicSharedView()))
             .append(',');
         sb.append("\"sparkEnabled\":")
             .append(com.imgood.textech.webae.spark.SparkService.isEnabled())

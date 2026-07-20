@@ -101,6 +101,8 @@ public class ClientProxy extends CommonProxy {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(WebAlertHudRenderer.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(PocketOverlayHandler.instance());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new DataImprintScrollHandler());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS
+            .register(new com.imgood.textech.client.websurface.McefWebSurfaceSource.UnloadHandler());
         // TickEvent.ClientTickEvent is an FML bus event, so register there too — otherwise
         // the overlay never updates/renders even when enabled.
         FMLCommonHandler.instance()

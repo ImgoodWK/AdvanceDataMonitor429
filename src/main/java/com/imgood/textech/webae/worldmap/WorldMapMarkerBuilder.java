@@ -129,10 +129,12 @@ public final class WorldMapMarkerBuilder {
     private static String deviceHaystack(TopologyNode.DeviceRecord device) {
         StringBuilder sb = new StringBuilder();
         if (device.displayName != null) {
-            sb.append(device.displayName).append(' ');
+            sb.append(device.displayName)
+                .append(' ');
         }
         if (device.className != null) {
-            sb.append(device.className).append(' ');
+            sb.append(device.className)
+                .append(' ');
         }
         if (device.iconItemId != null) {
             sb.append(device.iconItemId);
@@ -141,7 +143,9 @@ public final class WorldMapMarkerBuilder {
     }
 
     private static boolean containsIgnoreCase(String hay, String needle) {
-        return hay != null && needle != null && hay.toLowerCase().contains(needle.toLowerCase());
+        return hay != null && needle != null
+            && hay.toLowerCase()
+                .contains(needle.toLowerCase());
     }
 
     private static WorldMapMarkerDto toMarker(TopologyNode node, TopologyNode.DeviceRecord device) {

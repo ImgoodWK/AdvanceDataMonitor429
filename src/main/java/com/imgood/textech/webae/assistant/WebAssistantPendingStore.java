@@ -11,10 +11,8 @@ import com.imgood.textech.assistant.TeleportDestination;
 final class WebAssistantPendingStore {
 
     private static final long TTL_MS = 5L * 60L * 1000L;
-    private static final ConcurrentHashMap<String, PendingAction> ACTIONS =
-        new ConcurrentHashMap<String, PendingAction>();
-    private static final ConcurrentHashMap<String, String> LATEST_BY_ACTOR =
-        new ConcurrentHashMap<String, String>();
+    private static final ConcurrentHashMap<String, PendingAction> ACTIONS = new ConcurrentHashMap<String, PendingAction>();
+    private static final ConcurrentHashMap<String, String> LATEST_BY_ACTOR = new ConcurrentHashMap<String, String>();
 
     private WebAssistantPendingStore() {}
 
@@ -66,10 +64,12 @@ final class WebAssistantPendingStore {
         }
     }
 
-    private static PendingAction base(String actorUuid, String ownerUuid, String kind, String rawText,
-        String locale, long amount) {
+    private static PendingAction base(String actorUuid, String ownerUuid, String kind, String rawText, String locale,
+        long amount) {
         PendingAction action = new PendingAction();
-        action.token = UUID.randomUUID().toString().replace("-", "");
+        action.token = UUID.randomUUID()
+            .toString()
+            .replace("-", "");
         action.actorUuid = safe(actorUuid);
         action.ownerUuid = safe(ownerUuid);
         action.kind = kind;
@@ -87,7 +87,8 @@ final class WebAssistantPendingStore {
     }
 
     private static boolean matches(PendingAction action, String actorUuid, String ownerUuid) {
-        return action != null && safe(actorUuid).equals(action.actorUuid) && safe(ownerUuid).equals(action.ownerUuid)
+        return action != null && safe(actorUuid).equals(action.actorUuid)
+            && safe(ownerUuid).equals(action.ownerUuid)
             && System.currentTimeMillis() - action.createdAt <= TTL_MS;
     }
 
@@ -108,6 +109,7 @@ final class WebAssistantPendingStore {
     }
 
     static final class PendingAction {
+
         String token;
         String actorUuid;
         String ownerUuid;

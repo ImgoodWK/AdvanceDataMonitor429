@@ -61,10 +61,7 @@ public final class P2pHandler {
             P2pMapSnapshot snap = P2pMapSnapshot.fromTunnels(networkId, fresh);
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"data\":" + GSON.toJson(snap)
-                    + ",\"cached\":true,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"data\":" + GSON.toJson(snap) + ",\"cached\":true,\"timestamp\":" + ts + "}");
         }
         @SuppressWarnings("unchecked")
         List<P2pTunnelDto> stale = SnapshotCache.instance()
@@ -73,14 +70,12 @@ public final class P2pHandler {
             P2pMapSnapshot snap = P2pMapSnapshot.fromTunnels(networkId, stale);
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"data\":" + GSON.toJson(snap)
-                    + ",\"cached\":false,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"data\":" + GSON.toJson(snap) + ",\"cached\":false,\"timestamp\":" + ts + "}");
         }
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"data\":" + GSON.toJson(P2pMapSnapshot.fromTunnels(networkId, java.util.Collections.<P2pTunnelDto>emptyList()))
+            "{\"success\":true,\"data\":"
+                + GSON.toJson(P2pMapSnapshot.fromTunnels(networkId, java.util.Collections.<P2pTunnelDto>emptyList()))
                 + ",\"cached\":false,\"timestamp\":0}");
     }
 

@@ -25,8 +25,7 @@ public final class WirelessPowerQuery {
     private static final String[] CAPACITY_METHODS = { "getUserMaxEU", "getMaxEU", "getCapacity", "getWirelessMaxEU" };
 
     /** Log candidate method names at most once per class (PowerSampler polls every 5s). */
-    private static final Set<String> LOGGED_CANDIDATE_CLASSES = Collections
-        .synchronizedSet(new HashSet<String>());
+    private static final Set<String> LOGGED_CANDIDATE_CLASSES = Collections.synchronizedSet(new HashSet<String>());
 
     private WirelessPowerQuery() {}
 
@@ -171,7 +170,8 @@ public final class WirelessPowerQuery {
             String lower = method.getName()
                 .toLowerCase();
             if (lower.contains("eu") || lower.contains("energy") || lower.contains("wireless")) {
-                AdvanceDataMonitor.LOG.debug("[ADM Assistant] Wireless API candidate: {}.{}", className, method.getName());
+                AdvanceDataMonitor.LOG
+                    .debug("[ADM Assistant] Wireless API candidate: {}.{}", className, method.getName());
             }
         }
     }

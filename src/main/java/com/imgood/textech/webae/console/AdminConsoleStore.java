@@ -30,11 +30,13 @@ public final class AdminConsoleStore {
     public static final int MAX_OUTPUT_LINES = 24;
     public static final int MAX_OUTPUT_LINE_LENGTH = 256;
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
     private static final AdminConsoleStore INSTANCE = new AdminConsoleStore();
     private static final AsyncJsonFileSaver FILE_SAVER = new AsyncJsonFileSaver("AdminConsole");
-    private static final ScheduledExecutorService SAVE_PREPARER = Executors.newSingleThreadScheduledExecutor(
-        new java.util.concurrent.ThreadFactory() {
+    private static final ScheduledExecutorService SAVE_PREPARER = Executors
+        .newSingleThreadScheduledExecutor(new java.util.concurrent.ThreadFactory() {
+
             @Override
             public Thread newThread(Runnable runnable) {
                 Thread thread = new Thread(runnable, "WebAE-AdminConsole-SavePrepare");
@@ -60,6 +62,7 @@ public final class AdminConsoleStore {
         List<CommandPreset> copy = new ArrayList<CommandPreset>(presets.size());
         for (CommandPreset preset : presets) copy.add(copyPreset(preset));
         Collections.sort(copy, new Comparator<CommandPreset>() {
+
             @Override
             public int compare(CommandPreset left, CommandPreset right) {
                 return left.label.compareToIgnoreCase(right.label);
@@ -68,11 +71,7 @@ public final class AdminConsoleStore {
         return copy;
     }
 
-    public synchronized CommandPreset savePreset(
-        String id,
-        String label,
-        String command,
-        String description,
+    public synchronized CommandPreset savePreset(String id, String label, String command, String description,
         String actorName) {
         ensureLoaded();
         String cleanLabel = requireText(label, "Preset name", 64);
@@ -80,9 +79,11 @@ public final class AdminConsoleStore {
         String cleanDescription = safeText(description, 200);
         long now = System.currentTimeMillis();
         CommandPreset target = null;
-        if (id != null && !id.trim().isEmpty()) {
+        if (id != null && !id.trim()
+            .isEmpty()) {
             for (CommandPreset preset : presets) {
-                if (id.trim().equals(preset.id)) {
+                if (id.trim()
+                    .equals(preset.id)) {
                     target = preset;
                     break;
                 }
@@ -93,7 +94,8 @@ public final class AdminConsoleStore {
                 throw new IllegalArgumentException("At most " + MAX_PRESETS + " presets may be saved.");
             }
             target = new CommandPreset();
-            target.id = UUID.randomUUID().toString();
+            target.id = UUID.randomUUID()
+                .toString();
             target.createdAt = now;
             presets.add(target);
         }
@@ -123,7 +125,8 @@ public final class AdminConsoleStore {
     public synchronized CommandAuditEntry createQueued(String command, String actorUuid, String actorName) {
         ensureLoaded();
         CommandAuditEntry entry = new CommandAuditEntry();
-        entry.id = UUID.randomUUID().toString();
+        entry.id = UUID.randomUUID()
+            .toString();
         entry.command = command;
         entry.actorUuid = safeText(actorUuid, 64);
         entry.actorName = safeText(actorName, 64);
@@ -136,14 +139,8 @@ public final class AdminConsoleStore {
         return copyEntry(entry, true);
     }
 
-    public synchronized CommandAuditEntry complete(
-        String id,
-        String status,
-        int affected,
-        long startedAt,
-        long completedAt,
-        List<String> output,
-        String error) {
+    public synchronized CommandAuditEntry complete(String id, String status, int affected, long startedAt,
+        long completedAt, List<String> output, String error) {
         ensureLoaded();
         CommandAuditEntry entry = findEntry(id);
         if (entry == null) return null;
@@ -196,6 +193,7 @@ public final class AdminConsoleStore {
         SAVE_DIRTY.set(true);
         if (!SAVE_QUEUED.compareAndSet(false, true)) return;
         SAVE_PREPARER.schedule(new Runnable() {
+
             @Override
             public void run() {
                 try {
@@ -263,9 +261,12 @@ public final class AdminConsoleStore {
     }
 
     private static boolean isUsablePreset(CommandPreset preset) {
-        return preset != null && preset.id != null && !preset.id.isEmpty()
-            && preset.label != null && !preset.label.isEmpty()
-            && preset.command != null && !preset.command.isEmpty();
+        return preset != null && preset.id != null
+            && !preset.id.isEmpty()
+            && preset.label != null
+            && !preset.label.isEmpty()
+            && preset.command != null
+            && !preset.command.isEmpty();
     }
 
     private static String requireText(String value, String label, int maxLength) {
@@ -276,7 +277,9 @@ public final class AdminConsoleStore {
 
     static String safeText(String value, int maxLength) {
         if (value == null) return "";
-        String clean = value.replace('\r', ' ').replace('\n', ' ').trim();
+        String clean = value.replace('\r', ' ')
+            .replace('\n', ' ')
+            .trim();
         return clean.length() <= maxLength ? clean : clean.substring(0, maxLength);
     }
 
@@ -310,8 +313,8 @@ public final class AdminConsoleStore {
             copy.output = source.output == null ? new ArrayList<String>() : new ArrayList<String>(source.output);
         } else {
             copy.output = null;
-            copy.outputPreview = source.error != null && !source.error.isEmpty()
-                ? source.error : firstOutputLine(source.output);
+            copy.outputPreview = source.error != null && !source.error.isEmpty() ? source.error
+                : firstOutputLine(source.output);
         }
         return copy;
     }
@@ -325,6 +328,7 @@ public final class AdminConsoleStore {
     }
 
     public static final class CommandPreset {
+
         public String id;
         public String label;
         public String command;
@@ -335,6 +339,7 @@ public final class AdminConsoleStore {
     }
 
     public static final class CommandAuditEntry {
+
         public String id;
         public String command;
         public String actorUuid;
@@ -352,6 +357,7 @@ public final class AdminConsoleStore {
     }
 
     private static final class PersistedState {
+
         int version = 1;
         List<CommandPreset> presets;
         List<CommandAuditEntry> history;

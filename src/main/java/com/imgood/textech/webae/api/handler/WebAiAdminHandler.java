@@ -18,58 +18,87 @@ import fi.iki.elonen.NanoHTTPD;
 /** Admin-only API for WebAE AI provider and secret management. */
 public final class WebAiAdminHandler {
 
-    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
+    private static final Gson GSON = new GsonBuilder().serializeNulls()
+        .create();
 
     private WebAiAdminHandler() {}
 
-    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, String body,
-        WebAuthSession auth, String adminHeader) {
+    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, String body, WebAuthSession auth,
+        String adminHeader) {
         if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
-            return error(NanoHTTPD.Response.Status.FORBIDDEN, "admin_required",
+            return error(
+                NanoHTTPD.Response.Status.FORBIDDEN,
+                "admin_required",
                 "Admin permission is required to manage AI settings.");
         }
         if (!WebAiConfigStore.isServerKeyEnabled()) {
-            return error(NanoHTTPD.Response.Status.CONFLICT, "server_ai_disabled",
+            return error(
+                NanoHTTPD.Response.Status.CONFLICT,
+                "server_ai_disabled",
                 "Server-side AI key management is disabled in config (aiServerKeyEnabled=false).");
         }
         try {
             if ("/api/admin/ai/settings".equals(uri) && method == NanoHTTPD.Method.GET) {
-                return ok("settings", WebAiConfigStore.instance().view());
+                return ok(
+                    "settings",
+                    WebAiConfigStore.instance()
+                        .view());
             }
             if ("/api/admin/ai/settings".equals(uri) && method == NanoHTTPD.Method.PUT) {
                 UpdateRequest request = GSON.fromJson(body == null ? "{}" : body, UpdateRequest.class);
-                return ok("settings", WebAiConfigStore.instance().update(request, auth.actorName));
+                return ok(
+                    "settings",
+                    WebAiConfigStore.instance()
+                        .update(request, auth.actorName));
             }
             if ("/api/admin/ai/key".equals(uri) && method == NanoHTTPD.Method.DELETE) {
                 TestRequest deleteBody = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body, TestRequest.class);
-                if (deleteBody != null && deleteBody.profileId != null && !deleteBody.profileId.trim().isEmpty()) {
-                    return ok("settings",
-                        WebAiConfigStore.instance().clearProfileApiKey(deleteBody.profileId, auth.actorName));
+                if (deleteBody != null && deleteBody.profileId != null
+                    && !deleteBody.profileId.trim()
+                        .isEmpty()) {
+                    return ok(
+                        "settings",
+                        WebAiConfigStore.instance()
+                            .clearProfileApiKey(deleteBody.profileId, auth.actorName));
                 }
-                return ok("settings", WebAiConfigStore.instance().clearApiKey(auth.actorName));
+                return ok(
+                    "settings",
+                    WebAiConfigStore.instance()
+                        .clearApiKey(auth.actorName));
             }
             if ("/api/admin/ai/test".equals(uri) && method == NanoHTTPD.Method.POST) {
                 TestRequest request = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body, TestRequest.class);
                 RuntimeConfig runtime = null;
-                if (request != null && request.profileId != null && !request.profileId.trim().isEmpty()) {
-                    runtime = WebAiConfigStore.instance().runtimeById(request.profileId.trim());
+                if (request != null && request.profileId != null
+                    && !request.profileId.trim()
+                        .isEmpty()) {
+                    runtime = WebAiConfigStore.instance()
+                        .runtimeById(request.profileId.trim());
                 } else {
-                    runtime = WebAiConfigStore.instance().runtime();
+                    runtime = WebAiConfigStore.instance()
+                        .runtime();
                 }
                 if (runtime == null) {
-                    return error(NanoHTTPD.Response.Status.BAD_REQUEST, "ai_not_configured",
+                    return error(
+                        NanoHTTPD.Response.Status.BAD_REQUEST,
+                        "ai_not_configured",
                         "Enable AI and save an API key first.");
                 }
-                String reply = new WebAiHttpClient(runtime).complete(Collections.singletonList(
-                    new Message("user", "Reply with exactly: OK")));
+                String reply = new WebAiHttpClient(runtime)
+                    .complete(Collections.singletonList(new Message("user", "Reply with exactly: OK")));
                 JsonObject value = new JsonObject();
                 value.addProperty("profileId", runtime.id);
                 value.addProperty("providerId", runtime.providerId);
                 value.addProperty("model", runtime.model);
-                value.addProperty("accepted", !reply.trim().isEmpty());
+                value.addProperty(
+                    "accepted",
+                    !reply.trim()
+                        .isEmpty());
                 return ok("test", value);
             }
-            return error(NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED, "method_not_allowed",
+            return error(
+                NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                "method_not_allowed",
                 "Unsupported Web AI management endpoint or method.");
         } catch (IllegalArgumentException e) {
             return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_ai_settings", e.getMessage());
@@ -105,6 +134,7 @@ public final class WebAiAdminHandler {
     }
 
     private static final class TestRequest {
+
         String profileId;
     }
 }

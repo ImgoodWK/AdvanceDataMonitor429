@@ -42,7 +42,8 @@ public final class AuthGuestInviteHandler {
                 "{\"success\":false,\"message\":\"Guest tokens cannot invite others.\"}");
         }
         String ownerUuid = auth.ownerUuid;
-        if (WebAePlayerStateStore.getInstance().isDisabled(ownerUuid)) {
+        if (WebAePlayerStateStore.getInstance()
+            .isDisabled(ownerUuid)) {
             return json(
                 NanoHTTPD.Response.Status.UNAUTHORIZED,
                 "{\"success\":false,\"code\":\"webae_disabled\",\"error\":\"webae_disabled\","
@@ -95,8 +96,9 @@ public final class AuthGuestInviteHandler {
             for (int i = 0; i < arr.size(); i++) {
                 if (!arr.get(i)
                     .isJsonNull()) {
-                    out.add(arr.get(i)
-                        .getAsString());
+                    out.add(
+                        arr.get(i)
+                            .getAsString());
                 }
             }
             return out;

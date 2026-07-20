@@ -15,14 +15,17 @@ import fi.iki.elonen.NanoHTTPD;
 /** Admin-only QQ bot configuration, lifecycle, send, and audit APIs. */
 public final class QqBotAdminHandler {
 
-    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
+    private static final Gson GSON = new GsonBuilder().serializeNulls()
+        .create();
 
     private QqBotAdminHandler() {}
 
     public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, String body, WebAuthSession auth,
         String adminHeader) {
         if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
-            return error(NanoHTTPD.Response.Status.FORBIDDEN, "admin_required",
+            return error(
+                NanoHTTPD.Response.Status.FORBIDDEN,
+                "admin_required",
                 "Admin permission required to manage the QQ bot.");
         }
         try {
@@ -30,36 +33,57 @@ public final class QqBotAdminHandler {
                 if (method == NanoHTTPD.Method.GET) return settingsResponse();
                 if (method == NanoHTTPD.Method.PUT) {
                     QqBotConfig request = GSON.fromJson(body == null ? "{}" : body, QqBotConfig.class);
-                    QqBotConfigStore.instance().update(request, auth.actorName);
-                    QqBotService.instance().reload();
+                    QqBotConfigStore.instance()
+                        .update(request, auth.actorName);
+                    QqBotService.instance()
+                        .reload();
                     return settingsResponse();
                 }
             }
             if ("/api/admin/qq-bot/status".equals(uri) && method == NanoHTTPD.Method.GET) {
-                return ok("status", QqBotService.instance().status());
+                return ok(
+                    "status",
+                    QqBotService.instance()
+                        .status());
             }
             if ("/api/admin/qq-bot/audit".equals(uri) && method == NanoHTTPD.Method.GET) {
-                return ok("audit", QqBotService.instance().audit(200));
+                return ok(
+                    "audit",
+                    QqBotService.instance()
+                        .audit(200));
             }
             if ("/api/admin/qq-bot/restart".equals(uri) && method == NanoHTTPD.Method.POST) {
-                return manualResult(QqBotService.instance().restart(), "restart_failed");
+                return manualResult(
+                    QqBotService.instance()
+                        .restart(),
+                    "restart_failed");
             }
             if ("/api/admin/qq-bot/send".equals(uri) && method == NanoHTTPD.Method.POST) {
                 SendRequest request = GSON.fromJson(body == null ? "{}" : body, SendRequest.class);
                 if (request == null) request = new SendRequest();
-                return manualResult(QqBotService.instance().sendManual(request.targetType, request.targetId,
-                    request.content), "send_failed");
+                return manualResult(
+                    QqBotService.instance()
+                        .sendManual(request.targetType, request.targetId, request.content),
+                    "send_failed");
             }
             if ("/api/admin/qq-bot/conversations/clear".equals(uri) && method == NanoHTTPD.Method.POST) {
-                QqBotService.instance().clearConversations();
-                return ok("status", QqBotService.instance().status());
+                QqBotService.instance()
+                    .clearConversations();
+                return ok(
+                    "status",
+                    QqBotService.instance()
+                        .status());
             }
             if ("/api/admin/qq-bot/secret".equals(uri) && method == NanoHTTPD.Method.DELETE) {
-                QqBotConfigStore.instance().clearSecret(auth.actorName);
-                QqBotService.instance().reload();
+                QqBotConfigStore.instance()
+                    .clearSecret(auth.actorName);
+                QqBotService.instance()
+                    .reload();
                 return settingsResponse();
             }
-            return error(NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED, "method_not_allowed",
+            return error(
+                NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                "method_not_allowed",
                 "Unsupported QQ bot management endpoint or method.");
         } catch (IllegalArgumentException e) {
             return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_qq_bot_settings", safe(e.getMessage()));
@@ -73,14 +97,25 @@ public final class QqBotAdminHandler {
     private static NanoHTTPD.Response settingsResponse() {
         JsonObject response = new JsonObject();
         response.addProperty("success", true);
-        response.add("settings", GSON.toJsonTree(QqBotConfigStore.instance().view()));
-        response.add("status", GSON.toJsonTree(QqBotService.instance().status()));
+        response.add(
+            "settings",
+            GSON.toJsonTree(
+                QqBotConfigStore.instance()
+                    .view()));
+        response.add(
+            "status",
+            GSON.toJsonTree(
+                QqBotService.instance()
+                    .status()));
         return json(NanoHTTPD.Response.Status.OK, response.toString());
     }
 
     private static NanoHTTPD.Response manualResult(ManualSendResult result, String code) {
         if (!result.success) return error(NanoHTTPD.Response.Status.CONFLICT, code, result.error);
-        return ok("status", QqBotService.instance().status());
+        return ok(
+            "status",
+            QqBotService.instance()
+                .status());
     }
 
     private static NanoHTTPD.Response ok(String name, Object value) {
@@ -103,7 +138,10 @@ public final class QqBotAdminHandler {
     }
 
     private static String safe(String value) {
-        String result = value == null ? "" : value.replace('\r', ' ').replace('\n', ' ').trim();
+        String result = value == null ? ""
+            : value.replace('\r', ' ')
+                .replace('\n', ' ')
+                .trim();
         return result.length() <= 500 ? result : result.substring(0, 500);
     }
 

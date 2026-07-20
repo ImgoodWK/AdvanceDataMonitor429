@@ -34,9 +34,11 @@ public class ChatMessageStore {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .create();
+
     private static File storeFile() {
         return TeXTechDataDir.webAeFile("web-chat.json");
     }
+
     private static final int DEFAULT_CAPACITY = 200;
 
     private final Deque<ChatMessage> buffer = new ArrayDeque<ChatMessage>();
@@ -73,14 +75,13 @@ public class ChatMessageStore {
         long timestamp, String source, String attachmentId, String attachmentName, String attachmentMime,
         int attachmentWidth, int attachmentHeight, int attachmentBytes) {
         ensureLoaded();
-        ChatMessage msg = new ChatMessage(nextId++, senderUuid, senderName, content, timestamp, source)
-            .withAttachment(
-                attachmentId,
-                attachmentName,
-                attachmentMime,
-                attachmentWidth,
-                attachmentHeight,
-                attachmentBytes);
+        ChatMessage msg = new ChatMessage(nextId++, senderUuid, senderName, content, timestamp, source).withAttachment(
+            attachmentId,
+            attachmentName,
+            attachmentMime,
+            attachmentWidth,
+            attachmentHeight,
+            attachmentBytes);
         buffer.addLast(msg);
         while (buffer.size() > capacity) buffer.pollFirst();
         scheduleSave();

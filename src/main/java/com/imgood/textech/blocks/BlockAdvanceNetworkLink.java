@@ -162,7 +162,9 @@ public class BlockAdvanceNetworkLink extends BlockContainer {
             stack.stackSize -= drop;
             ItemStack dropStack = new ItemStack(stack.getItem(), drop, stack.getItemDamage());
             if (stack.hasTagCompound()) {
-                dropStack.setTagCompound((NBTTagCompound) stack.getTagCompound().copy());
+                dropStack.setTagCompound(
+                    (NBTTagCompound) stack.getTagCompound()
+                        .copy());
             }
             EntityItem entity = new EntityItem(world, x + ox, y + oy, z + oz, dropStack);
             entity.motionX = world.rand.nextGaussian() * 0.05;

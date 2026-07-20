@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import com.imgood.textech.Config;
-import com.imgood.textech.webae.worldmap.WorldMapSnapshotMode;
 import com.imgood.textech.webae.worldmap.dynmap.WorldMapDynmapChunkCropper;
 import com.imgood.textech.webae.worldmap.dynmap.WorldMapDynmapDetector;
 
@@ -50,8 +49,14 @@ public final class WorldMapTerrainFallback {
                     "D",
                     "WorldMapTerrainFallback.find",
                     "lower tier cached fallback",
-                    "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"servedTier\":\"" + lower
-                        + "\",\"requested\":\"" + req + "\"}");
+                    "{\"chunkX\":" + chunkX
+                        + ",\"chunkZ\":"
+                        + chunkZ
+                        + ",\"servedTier\":\""
+                        + lower
+                        + "\",\"requested\":\""
+                        + req
+                        + "\"}");
                 // #endregion
                 return new Result(png, "cached", lower, !lower.equals(req));
             }
@@ -82,10 +87,12 @@ public final class WorldMapTerrainFallback {
             return false;
         }
         String source = Config.worldMapTerrainSource;
-        if (source == null || source.trim().isEmpty()) {
+        if (source == null || source.trim()
+            .isEmpty()) {
             source = "auto";
         }
-        source = source.trim().toLowerCase();
+        source = source.trim()
+            .toLowerCase();
         return "self".equals(source) || "auto".equals(source);
     }
 

@@ -265,8 +265,9 @@ public final class WorldMapJourneyMapTileReader {
             return 0;
         }
         try {
-            return Integer.parseInt(name.replace("z", "")
-                .trim());
+            return Integer.parseInt(
+                name.replace("z", "")
+                    .trim());
         } catch (NumberFormatException e) {
             return 0;
         }
@@ -291,7 +292,9 @@ public final class WorldMapJourneyMapTileReader {
         if (zoomFolder == null) {
             return null;
         }
-        File nested = new File(new File(new File(zoomFolder, String.valueOf(tileX)), String.valueOf(tileZ)), "tile.png");
+        File nested = new File(
+            new File(new File(zoomFolder, String.valueOf(tileX)), String.valueOf(tileZ)),
+            "tile.png");
         if (nested.isFile()) {
             return nested;
         }

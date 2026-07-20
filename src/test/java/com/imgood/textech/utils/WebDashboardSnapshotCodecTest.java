@@ -7,8 +7,7 @@ import org.junit.Test;
 
 public class WebDashboardSnapshotCodecTest {
 
-    private static final String VALID = "{"
-        + "\"format\":\"textech-webae-display-snapshot\","
+    private static final String VALID = "{" + "\"format\":\"textech-webae-display-snapshot\","
         + "\"version\":1,"
         + "\"title\":\"Factory\","
         + "\"viewport\":{\"width\":640,\"height\":360,\"background\":\"#FF08111F\"},"

@@ -73,7 +73,8 @@ public class PacketIconDirectCaptureResponse implements IMessage {
                 return null;
             }
             if (message.png != null && message.png.length > MAX_PNG_BYTES) {
-                IconDirectCaptureBridge.instance().complete(message.requestId, null);
+                IconDirectCaptureBridge.instance()
+                    .complete(message.requestId, null);
                 return null;
             }
             IconDirectCaptureBridge.instance()

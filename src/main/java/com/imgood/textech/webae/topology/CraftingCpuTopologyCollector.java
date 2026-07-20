@@ -137,10 +137,8 @@ public final class CraftingCpuTopologyCollector {
                         if (unit.monitor) monitorUnits++;
                         unit.iconItemId = resolveUnitIconItemId(ct, te);
                     } else {
-                        unit.iconItemId = TopologyRules.iconItemIdForCraftingComponent(
-                            unit.storage,
-                            unit.accelerator,
-                            unit.monitor);
+                        unit.iconItemId = TopologyRules
+                            .iconItemIdForCraftingComponent(unit.storage, unit.accelerator, unit.monitor);
                     }
                     facility.units.add(unit);
                     unitCount++;

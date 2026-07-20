@@ -90,9 +90,8 @@ public final class ConfigWebAlertsLoader {
             loaded = WebAlertsConfigValidator.normalize(loaded);
             String err = WebAlertsConfigValidator.validate(loaded);
             if (err != null) {
-                AdvanceDataMonitor.LOG.warn(
-                    "[WebAE] Invalid external alert configuration; disabling external targets: {}",
-                    err);
+                AdvanceDataMonitor.LOG
+                    .warn("[WebAE] Invalid external alert configuration; disabling external targets: {}", err);
                 loaded.webhooks.clear();
                 loaded.notificationTargets.clear();
                 err = WebAlertsConfigValidator.validate(loaded);

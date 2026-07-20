@@ -3,7 +3,6 @@ package com.imgood.textech.webae.worldmap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.imgood.textech.Config;
-import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 
 import cpw.mods.fml.relauncher.Side;
 
@@ -21,13 +20,7 @@ public final class WorldMapDirectTileResolver {
         return INSTANCE;
     }
 
-    public DirectTileResult resolve(
-        String layer,
-        String ownerUuid,
-        int networkId,
-        int dim,
-        int chunkX,
-        int chunkZ,
+    public DirectTileResult resolve(String layer, String ownerUuid, int networkId, int dim, int chunkX, int chunkZ,
         int tilePx) {
         if (!Config.worldMapSpDirectServe || !WorldMapDirectCaptureBridge.isIntegratedSinglePlayer()) {
             return null;
@@ -49,16 +42,19 @@ public final class WorldMapDirectTileResolver {
             }
             result = new DirectTileResult(png, WorldMapTerrainSourceId.CLIENT_GL.id);
         } else {
-            WorldMapTerrainCaptureResult terrain = WorldMapTerrainCaptureChain.captureTerrain(
-                WorldMapView.FLAT,
-                dim,
-                chunkX,
-                chunkZ,
-                tilePx,
-                Side.SERVER);
+            WorldMapTerrainCaptureResult terrain = WorldMapTerrainCaptureChain
+                .captureTerrain(WorldMapView.FLAT, dim, chunkX, chunkZ, tilePx, Side.SERVER);
             if (terrain == null || !terrain.isValid()) {
                 byte[] gl = WorldMapDirectCaptureBridge.instance()
-                    .requestClientCapture(WorldMapTileLayer.TERRAIN, ownerUuid, networkId, dim, chunkX, chunkZ, tilePx, 0L);
+                    .requestClientCapture(
+                        WorldMapTileLayer.TERRAIN,
+                        ownerUuid,
+                        networkId,
+                        dim,
+                        chunkX,
+                        chunkZ,
+                        tilePx,
+                        0L);
                 if (gl == null || gl.length == 0) {
                     return null;
                 }
@@ -76,13 +72,7 @@ public final class WorldMapDirectTileResolver {
         return result;
     }
 
-    private static String cacheKey(
-        String layer,
-        String ownerUuid,
-        int networkId,
-        int dim,
-        int chunkX,
-        int chunkZ,
+    private static String cacheKey(String layer, String ownerUuid, int networkId, int dim, int chunkX, int chunkZ,
         int tilePx) {
         return layer + "|" + ownerUuid + "|" + networkId + "|" + dim + "|" + chunkX + "|" + chunkZ + "|" + tilePx;
     }

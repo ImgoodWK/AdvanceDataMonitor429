@@ -50,7 +50,8 @@ public final class WorldMapGtPatchResolver {
         }
 
         // Machine blocks (not pipe/cable/frame) - render as full cube with center highlight
-        if (!lower.contains("pipe") && !lower.contains("conduit") && !lower.contains("cable")
+        if (!lower.contains("pipe") && !lower.contains("conduit")
+            && !lower.contains("cable")
             && !lower.contains("wire")) {
             return machinePatches();
         }
@@ -215,14 +216,14 @@ public final class WorldMapGtPatchResolver {
      * Machine blocks: full cube shape (no special patch - default to cube rendering).
      */
     private static List<WorldMapBlockPatch> machinePatches() {
-        return Collections.singletonList(
-            WorldMapBlockPatch.box(0, 0, 0, 1, 1, 1, WorldMapBlockColorResolver.BlockFace.TOP));
+        return Collections
+            .singletonList(WorldMapBlockPatch.box(0, 0, 0, 1, 1, 1, WorldMapBlockColorResolver.BlockFace.TOP));
     }
 
     public static List<WorldMapBlockPatch> centerThinBox(double halfThick) {
         double t = 0.5 - halfThick;
         double b = 0.5 + halfThick;
-        return Collections.singletonList(
-            WorldMapBlockPatch.box(t, t, t, b, b, b, WorldMapBlockColorResolver.BlockFace.SOUTH));
+        return Collections
+            .singletonList(WorldMapBlockPatch.box(t, t, t, b, b, b, WorldMapBlockColorResolver.BlockFace.SOUTH));
     }
 }

@@ -368,7 +368,8 @@ public final class WebAeOwnerContext {
             int dim = world.provider.dimensionId;
             // Use the TE index to scan only this dimension's monitors, avoiding a
             // full per-dimension loadedTileEntityList traversal for other TE types.
-            List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex.getByType(dim, TileEntityAdvanceDataMonitor.class);
+            List<TileEntityAdvanceDataMonitor> monitors = TileEntityIndex
+                .getByType(dim, TileEntityAdvanceDataMonitor.class);
             for (TileEntityAdvanceDataMonitor monitor : monitors) {
                 if (!ownerName.equals(monitor.getOwnerName())) {
                     continue;

@@ -11,9 +11,9 @@ public class WebAePlayerState {
     public boolean disabled;
     public String disabledReason;
     public long disabledAt;
-    public long lastActiveAt;      // last API request timestamp
-    public long requestCount;      // cumulative request count
-    public long totalResponseMs;   // cumulative response time in ms
+    public long lastActiveAt; // last API request timestamp
+    public long requestCount; // cumulative request count
+    public long totalResponseMs; // cumulative response time in ms
     public long createdAt;
 
     public WebAePlayerState() {}

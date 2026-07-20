@@ -12,7 +12,6 @@ import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.network.handler.PacketHandlers;
-import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.NetworkValidationUtil;
 import com.imgood.textech.utils.WebDashboardSnapshotCodec;
@@ -152,7 +151,8 @@ public class PacketMonitorWebSurface implements IMessage {
                 @Override
                 public void run() {
                     World world = player.worldObj;
-                    if (world == null || !NetworkValidationUtil.isWithinReach(player, message.x, message.y, message.z)) {
+                    if (world == null
+                        || !NetworkValidationUtil.isWithinReach(player, message.x, message.y, message.z)) {
                         return;
                     }
                     TileEntity tile = world.getTileEntity(message.x, message.y, message.z);
@@ -163,13 +163,8 @@ public class PacketMonitorWebSurface implements IMessage {
                         byte[] content = monitor.getWebDashboardPayload(message.index, message.hash);
                         if (content != null) {
                             AdvanceDataMonitor.ADMCHANEL.sendTo(
-                                PacketMonitorWebSurface.content(
-                                    message.x,
-                                    message.y,
-                                    message.z,
-                                    message.index,
-                                    message.hash,
-                                    content),
+                                PacketMonitorWebSurface
+                                    .content(message.x, message.y, message.z, message.index, message.hash, content),
                                 player);
                         }
                         return;
@@ -208,20 +203,14 @@ public class PacketMonitorWebSurface implements IMessage {
                         world.markBlockForUpdate(message.x, message.y, message.z);
                     }
                     AdvanceDataMonitor.ADMCHANEL.sendTo(
-                        PacketMonitorWebSurface.ack(
-                            message.x,
-                            message.y,
-                            message.z,
-                            message.index,
-                            message.hash,
-                            accepted),
+                        PacketMonitorWebSurface
+                            .ack(message.x, message.y, message.z, message.index, message.hash, accepted),
                         player);
                     if (!accepted) {
                         NBTTagCompound authoritative = new NBTTagCompound();
                         monitor.writeSyncNBT(authoritative);
-                        AdvanceDataMonitor.ADMCHANEL.sendTo(
-                            new PacketSynTileEntity(message.x, message.y, message.z, authoritative),
-                            player);
+                        AdvanceDataMonitor.ADMCHANEL
+                            .sendTo(new PacketSynTileEntity(message.x, message.y, message.z, authoritative), player);
                     }
                 }
             });
@@ -241,9 +230,11 @@ public class PacketMonitorWebSurface implements IMessage {
             state.tokens -= cost;
 
             if (RATE.size() > 256) {
-                Iterator<Map.Entry<UUID, RateState>> iterator = RATE.entrySet().iterator();
+                Iterator<Map.Entry<UUID, RateState>> iterator = RATE.entrySet()
+                    .iterator();
                 while (iterator.hasNext()) {
-                    if (now - iterator.next().getValue().updatedAt > 120000L) iterator.remove();
+                    if (now - iterator.next()
+                        .getValue().updatedAt > 120000L) iterator.remove();
                 }
             }
             return true;

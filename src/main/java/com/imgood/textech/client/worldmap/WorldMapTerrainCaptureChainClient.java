@@ -23,17 +23,19 @@ public final class WorldMapTerrainCaptureChainClient {
 
     private WorldMapTerrainCaptureChainClient() {}
 
-    public static WorldMapTerrainCaptureResult captureTerrain(
-        Minecraft mc,
-        WorldMapView view,
-        int dim,
-        int chunkX,
-        int chunkZ,
-        int tilePx,
-        WorldMapQualityTier glTier) {
+    public static WorldMapTerrainCaptureResult captureTerrain(Minecraft mc, WorldMapView view, int dim, int chunkX,
+        int chunkZ, int tilePx, WorldMapQualityTier glTier) {
         WorldMapQualityTier tier = glTier != null ? glTier : WorldMapQualityTier.fromTilePx(tilePx);
         for (WorldMapTerrainSourceId sourceId : WorldMapTerrainSourcePriority.resolved()) {
-            WorldMapTerrainCaptureResult result = tryClientSource(mc, sourceId, view, dim, chunkX, chunkZ, tilePx, tier);
+            WorldMapTerrainCaptureResult result = tryClientSource(
+                mc,
+                sourceId,
+                view,
+                dim,
+                chunkX,
+                chunkZ,
+                tilePx,
+                tier);
             if (result != null && result.isValid()) {
                 return result;
             }
@@ -41,17 +43,11 @@ public final class WorldMapTerrainCaptureChainClient {
         return null;
     }
 
-    private static WorldMapTerrainCaptureResult tryClientSource(
-        Minecraft mc,
-        WorldMapTerrainSourceId sourceId,
-        WorldMapView view,
-        int dim,
-        int chunkX,
-        int chunkZ,
-        int tilePx,
-        WorldMapQualityTier glTier) {
+    private static WorldMapTerrainCaptureResult tryClientSource(Minecraft mc, WorldMapTerrainSourceId sourceId,
+        WorldMapView view, int dim, int chunkX, int chunkZ, int tilePx, WorldMapQualityTier glTier) {
         if (sourceId == WorldMapTerrainSourceId.DYNMAP) {
-            return WorldMapDynmapClientFetcher.instance().capture(view, dim, chunkX, chunkZ, tilePx);
+            return WorldMapDynmapClientFetcher.instance()
+                .capture(view, dim, chunkX, chunkZ, tilePx);
         }
         if (sourceId == WorldMapTerrainSourceId.JOURNEYMAP) {
             if (!WorldMapJourneyMapTileReader.isAvailable()) {
@@ -69,7 +65,8 @@ public final class WorldMapTerrainCaptureChainClient {
                 return null;
             }
             WorldMapChunkGlRenderer renderer = new WorldMapChunkGlRenderer();
-            byte[] gl = renderer.renderTerrain(mc, view != null ? view : WorldMapView.FLAT, glTier, dim, chunkX, chunkZ);
+            byte[] gl = renderer
+                .renderTerrain(mc, view != null ? view : WorldMapView.FLAT, glTier, dim, chunkX, chunkZ);
             if (gl != null && gl.length > 0) {
                 return new WorldMapTerrainCaptureResult(gl, WorldMapTerrainSourceId.CLIENT_GL);
             }

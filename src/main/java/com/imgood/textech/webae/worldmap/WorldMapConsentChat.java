@@ -32,17 +32,19 @@ public final class WorldMapConsentChat {
         player.addChatMessage(header);
 
         IChatComponent actions = new ChatComponentText("");
-        actions.appendSibling(clickableAction(
-            StatCollector.translateToLocal("adm.worldmap.consent.accept"),
-            EnumChatFormatting.GREEN,
-            "/admweb wm y " + requestId,
-            StatCollector.translateToLocalFormatted("adm.worldmap.consent.accept_hover", requestId)));
+        actions.appendSibling(
+            clickableAction(
+                StatCollector.translateToLocal("adm.worldmap.consent.accept"),
+                EnumChatFormatting.GREEN,
+                "/admweb wm y " + requestId,
+                StatCollector.translateToLocalFormatted("adm.worldmap.consent.accept_hover", requestId)));
         actions.appendSibling(new ChatComponentText(" "));
-        actions.appendSibling(clickableAction(
-            StatCollector.translateToLocal("adm.worldmap.consent.reject"),
-            EnumChatFormatting.RED,
-            "/admweb wm n " + requestId,
-            StatCollector.translateToLocal("adm.worldmap.consent.reject_hover")));
+        actions.appendSibling(
+            clickableAction(
+                StatCollector.translateToLocal("adm.worldmap.consent.reject"),
+                EnumChatFormatting.RED,
+                "/admweb wm n " + requestId,
+                StatCollector.translateToLocal("adm.worldmap.consent.reject_hover")));
         player.addChatMessage(actions);
 
         IChatComponent hint = new ChatComponentTranslation("adm.worldmap.consent.hint", requestId);

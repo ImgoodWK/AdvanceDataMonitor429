@@ -26,27 +26,35 @@ public final class QqBotMessage {
         message.messageId = first(jsonString(data, "id"), jsonString(data, "message_id"));
         message.content = cleanContent(jsonString(data, "content"));
         JsonObject author = child(data, "author");
-        message.senderName = first(jsonString(author, "username"), jsonString(author, "nick"),
+        message.senderName = first(
+            jsonString(author, "username"),
+            jsonString(author, "nick"),
             jsonString(data, "author_name"));
 
         if ("GROUP_AT_MESSAGE_CREATE".equals(type)) {
             message.targetType = "group";
             message.targetId = first(jsonString(data, "group_openid"), jsonString(data, "group_id"));
-            message.senderId = first(jsonString(author, "member_openid"), jsonString(author, "user_openid"),
-                jsonString(author, "id"), jsonString(data, "openid"));
+            message.senderId = first(
+                jsonString(author, "member_openid"),
+                jsonString(author, "user_openid"),
+                jsonString(author, "id"),
+                jsonString(data, "openid"));
         } else if ("C2C_MESSAGE_CREATE".equals(type)) {
             message.targetType = "c2c";
-            message.senderId = first(jsonString(data, "openid"), jsonString(data, "user_openid"),
-                jsonString(author, "user_openid"), jsonString(author, "id"));
+            message.senderId = first(
+                jsonString(data, "openid"),
+                jsonString(data, "user_openid"),
+                jsonString(author, "user_openid"),
+                jsonString(author, "id"));
             message.targetId = message.senderId;
         } else if ("AT_MESSAGE_CREATE".equals(type) || "MESSAGE_CREATE".equals(type)
             || "DIRECT_MESSAGE_CREATE".equals(type)) {
-            message.targetType = "channel";
-            message.targetId = first(jsonString(data, "channel_id"), jsonString(data, "guild_id"));
-            message.senderId = first(jsonString(author, "id"), jsonString(author, "user_openid"));
-        } else {
-            return null;
-        }
+                message.targetType = "channel";
+                message.targetId = first(jsonString(data, "channel_id"), jsonString(data, "guild_id"));
+                message.senderId = first(jsonString(author, "id"), jsonString(author, "user_openid"));
+            } else {
+                return null;
+            }
         if (message.targetId.isEmpty() || message.senderId.isEmpty() || message.content.isEmpty()) return null;
         return message;
     }
@@ -60,8 +68,12 @@ public final class QqBotMessage {
     }
 
     static String cleanContent(String value) {
-        String result = safe(value).replace('\r', ' ').replace('\n', ' ').trim();
-        result = result.replaceAll("<@!?[A-Za-z0-9_-]+>", " ").replaceAll("\\s+", " ").trim();
+        String result = safe(value).replace('\r', ' ')
+            .replace('\n', ' ')
+            .trim();
+        result = result.replaceAll("<@!?[A-Za-z0-9_-]+>", " ")
+            .replaceAll("\\s+", " ")
+            .trim();
         return result;
     }
 
@@ -76,8 +88,13 @@ public final class QqBotMessage {
 
     private static String jsonString(JsonObject object, String key) {
         try {
-            if (object == null || !object.has(key) || object.get(key).isJsonNull()) return "";
-            return object.get(key).getAsString().trim();
+            if (object == null || !object.has(key)
+                || object.get(key)
+                    .isJsonNull())
+                return "";
+            return object.get(key)
+                .getAsString()
+                .trim();
         } catch (Exception e) {
             return "";
         }
@@ -86,7 +103,8 @@ public final class QqBotMessage {
     private static String first(String... values) {
         if (values != null) {
             for (String value : values) {
-                if (value != null && !value.trim().isEmpty()) return value.trim();
+                if (value != null && !value.trim()
+                    .isEmpty()) return value.trim();
             }
         }
         return "";

@@ -77,6 +77,7 @@ public final class QuestDataCollector {
                         .toString()
                     : "",
                 new QuestCacheStore.ProgressLoader<QuestProgressDto>() {
+
                     @Override
                     public QuestProgressDto load() {
                         return BqApiFacade.collectProgress(p);

@@ -40,11 +40,12 @@ public final class WebAlertHudRenderer {
         prune(now);
         this.maxVisible = Math.max(1, Math.min(8, maxVisible));
         this.position = normalizePosition(position);
-        entries.addFirst(new HudEntry(
-            safe(severity),
-            safe(title),
-            safe(message),
-            now + (long) Math.max(2, Math.min(120, durationSeconds)) * 1000L));
+        entries.addFirst(
+            new HudEntry(
+                safe(severity),
+                safe(title),
+                safe(message),
+                now + (long) Math.max(2, Math.min(120, durationSeconds)) * 1000L));
         while (entries.size() > 8) entries.removeLast();
         if (soundEnabled) {
             Minecraft minecraft = Minecraft.getMinecraft();

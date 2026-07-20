@@ -30,11 +30,8 @@ public final class WorldMapAeOverlayRenderer {
         if (!Config.webWorldMapAeOverlayEnabled) {
             return null;
         }
-        List<WorldMapAePlacementRecord> placements = WorldMapAePlacementSupport.filterChunk(
-            WorldMapAePlacementSupport.loadForNetwork(ownerUuid, networkId),
-            dim,
-            chunkX,
-            chunkZ);
+        List<WorldMapAePlacementRecord> placements = WorldMapAePlacementSupport
+            .filterChunk(WorldMapAePlacementSupport.loadForNetwork(ownerUuid, networkId), dim, chunkX, chunkZ);
         if (placements.isEmpty()) {
             return null;
         }
@@ -63,30 +60,28 @@ public final class WorldMapAeOverlayRenderer {
             return null;
         }
 
-        java.util.Collections.sort(
-            placements,
-            new java.util.Comparator<WorldMapAePlacementRecord>() {
+        java.util.Collections.sort(placements, new java.util.Comparator<WorldMapAePlacementRecord>() {
 
-                @Override
-                public int compare(WorldMapAePlacementRecord a, WorldMapAePlacementRecord b) {
-                    if (a == null && b == null) {
-                        return 0;
-                    }
-                    if (a == null) {
-                        return -1;
-                    }
-                    if (b == null) {
-                        return 1;
-                    }
-                    if (a.y != b.y) {
-                        return a.y - b.y;
-                    }
-                    if (a.z != b.z) {
-                        return a.z - b.z;
-                    }
-                    return a.x - b.x;
+            @Override
+            public int compare(WorldMapAePlacementRecord a, WorldMapAePlacementRecord b) {
+                if (a == null && b == null) {
+                    return 0;
                 }
-            });
+                if (a == null) {
+                    return -1;
+                }
+                if (b == null) {
+                    return 1;
+                }
+                if (a.y != b.y) {
+                    return a.y - b.y;
+                }
+                if (a.z != b.z) {
+                    return a.z - b.z;
+                }
+                return a.x - b.x;
+            }
+        });
 
         BufferedImage img = new BufferedImage(tilePx, tilePx, BufferedImage.TYPE_INT_ARGB);
         int painted = 0;
@@ -222,26 +217,24 @@ public final class WorldMapAeOverlayRenderer {
             return null;
         }
 
-        java.util.Collections.sort(
-            columns,
-            new java.util.Comparator<DrawColumn>() {
+        java.util.Collections.sort(columns, new java.util.Comparator<DrawColumn>() {
 
-                @Override
-                public int compare(DrawColumn a, DrawColumn b) {
-                    int sumA = a.lx + a.lz;
-                    int sumB = b.lx + b.lz;
-                    if (sumA != sumB) {
-                        return sumB - sumA;
-                    }
-                    if (a.lz != b.lz) {
-                        return b.lz - a.lz;
-                    }
-                    if (a.lx != b.lx) {
-                        return b.lx - a.lx;
-                    }
-                    return a.y - b.y;
+            @Override
+            public int compare(DrawColumn a, DrawColumn b) {
+                int sumA = a.lx + a.lz;
+                int sumB = b.lx + b.lz;
+                if (sumA != sumB) {
+                    return sumB - sumA;
                 }
-            });
+                if (a.lz != b.lz) {
+                    return b.lz - a.lz;
+                }
+                if (a.lx != b.lx) {
+                    return b.lx - a.lx;
+                }
+                return a.y - b.y;
+            }
+        });
 
         int minY = Integer.MAX_VALUE;
         for (DrawColumn col : columns) {

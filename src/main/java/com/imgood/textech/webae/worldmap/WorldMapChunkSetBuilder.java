@@ -61,8 +61,7 @@ public final class WorldMapChunkSetBuilder {
         }
     }
 
-    public static Map<Integer, DimensionChunkSet> buildByDimension(List<WorldMapMarkerDto> markers,
-        int paddingChunks) {
+    public static Map<Integer, DimensionChunkSet> buildByDimension(List<WorldMapMarkerDto> markers, int paddingChunks) {
         Map<Integer, Set<String>> occupiedByDim = new HashMap<Integer, Set<String>>();
         if (markers != null) {
             for (WorldMapMarkerDto marker : markers) {
@@ -135,7 +134,8 @@ public final class WorldMapChunkSetBuilder {
         if (info.chunkCount <= 0) {
             return false;
         }
-        return chunkX >= info.minChunkX && chunkX <= info.maxChunkX && chunkZ >= info.minChunkZ
+        return chunkX >= info.minChunkX && chunkX <= info.maxChunkX
+            && chunkZ >= info.minChunkZ
             && chunkZ <= info.maxChunkZ;
     }
 
@@ -173,8 +173,12 @@ public final class WorldMapChunkSetBuilder {
             return null;
         }
         try {
-            return new int[] { Integer.parseInt(key.substring(0, comma).trim()),
-                Integer.parseInt(key.substring(comma + 1).trim()) };
+            return new int[] { Integer.parseInt(
+                key.substring(0, comma)
+                    .trim()),
+                Integer.parseInt(
+                    key.substring(comma + 1)
+                        .trim()) };
         } catch (NumberFormatException e) {
             return null;
         }

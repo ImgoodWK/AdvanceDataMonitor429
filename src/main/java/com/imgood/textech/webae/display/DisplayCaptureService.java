@@ -27,15 +27,28 @@ import com.imgood.textech.Config;
 import com.imgood.textech.TeXTechDataDir;
 
 /**
- * Captures published embed dashboards via system Chromium/Chrome/Edge headless screenshot.
- * Runs off the Minecraft tick thread; shares one capture worker and caches JPEG frames.
+ * Captures published dashboards via system Chromium/Chrome/Edge headless screenshot.
+ * Prefers the real React embed ({@code /embed/dashboard}) so in-game monitors look like
+ * the browser without requiring MCEF. Does <b>not</b> serve the compact {@code render.html}
+ * page as a successful monitor frame (that endpoint remains for debug only).
+ * Runs off the Minecraft tick thread.
  */
 public final class DisplayCaptureService {
 
     private static final DisplayCaptureService INSTANCE = new DisplayCaptureService();
-    private static final int MAX_ACTIVE = 4;
+    private static final int MAX_ACTIVE = 1;
     private static final long STALE_MS = 60_000L;
-    private static final long MIN_INTERVAL_MS = 500L;
+    /** Minimum time between accepted Chrome captures per display (headless is expensive). */
+    private static final long MIN_INTERVAL_MS = 2500L;
+    /** Virtual time for SPA boot + capture=1 settle (~2.5s) + paint. */
+    private static final long SPA_VIRTUAL_TIME_MS = 22_000L;
+    private static final long SPA_WAIT_MS = 55_000L;
+    private static final long SPA_READY_POLL_MS = 28_000L;
+    private static final long SPA_READY_DUMP_BUDGET_MS = 12_000L;
+    private static final long SPA_READY_DUMP_WAIT_MS = 35_000L;
+    private static final int SPA_SCREENSHOT_ATTEMPTS = 2;
+    private static final Object CAPTURE_LOCK = new Object();
+    private static final int BLANK_VARIANCE_MAX = 12;
 
     private final ConcurrentHashMap<String, CachedFrame> frames = new ConcurrentHashMap<String, CachedFrame>();
     private final ConcurrentHashMap<String, Long> lastTouch = new ConcurrentHashMap<String, Long>();
@@ -87,30 +100,59 @@ public final class DisplayCaptureService {
             if (ifNoneMatch != null && ifNoneMatch.equals(cached.etag)) {
                 return FrameResult.notModified(cached.etag);
             }
-            if (System.currentTimeMillis() - cached.capturedAt < Math.max(MIN_INTERVAL_MS, refreshBudgetMs(record.id))) {
+            if (System.currentTimeMillis() - cached.capturedAt
+                < Math.max(MIN_INTERVAL_MS, refreshBudgetMs(record.id))) {
                 return FrameResult.ok(cached.jpeg, cached.etag);
             }
         }
-        scheduleCapture(record, w, true);
+        // Never launch Chrome on the HTTP thread — that raced with the worker and
+        // flooded localhost until headless got ERR_CONNECTION_REFUSED / blank frames.
+        scheduleCapture(record, w, cached == null);
         if (cached != null && cached.jpeg != null && cached.jpeg.length > 0) {
             if (ifNoneMatch != null && ifNoneMatch.equals(cached.etag)) {
                 return FrameResult.notModified(cached.etag);
             }
             return FrameResult.ok(cached.jpeg, cached.etag);
         }
-        // First frame: try synchronous capture with short wait via direct call on worker-less path
-        FrameResult sync = captureNow(record, w);
-        if (sync.jpeg != null) return sync;
-        return FrameResult.error(sync.error != null ? sync.error : (browserError != null ? browserError : "capture_pending"));
+        CachedFrame waited = awaitFrame(record.id, w, 20_000L);
+        if (waited != null && waited.jpeg != null && waited.jpeg.length > 0) {
+            if (ifNoneMatch != null && ifNoneMatch.equals(waited.etag)) {
+                return FrameResult.notModified(waited.etag);
+            }
+            return FrameResult.ok(waited.jpeg, waited.etag);
+        }
+        return FrameResult.error(browserError != null ? browserError : "capture_pending");
+    }
+
+    private CachedFrame awaitFrame(String displayId, int width, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            CachedFrame cached = frames.get(displayId);
+            if (cached != null && cached.width == width && cached.jpeg != null && cached.jpeg.length > 0) {
+                return cached;
+            }
+            if (!inFlight.containsKey(displayId) && activeCaptures.get() == 0) {
+                cached = frames.get(displayId);
+                return cached;
+            }
+            try {
+                Thread.sleep(150L);
+            } catch (InterruptedException e) {
+                Thread.currentThread()
+                    .interrupt();
+                break;
+            }
+        }
+        return frames.get(displayId);
     }
 
     private long refreshBudgetMs(String displayId) {
         Long touch = lastTouch.get(displayId);
         if (touch == null) return 5000L;
         long age = System.currentTimeMillis() - touch.longValue();
-        if (age < 5_000L) return 500L;
-        if (age < 30_000L) return 1000L;
-        return 2500L;
+        if (age < 5_000L) return 2500L;
+        if (age < 30_000L) return 3000L;
+        return 5000L;
     }
 
     private void scheduleCapture(final DisplayRecord record, final int width, boolean force) {
@@ -143,6 +185,12 @@ public final class DisplayCaptureService {
     }
 
     private FrameResult captureNow(DisplayRecord record, int width) {
+        synchronized (CAPTURE_LOCK) {
+            return captureNowLocked(record, width);
+        }
+    }
+
+    private FrameResult captureNowLocked(DisplayRecord record, int width) {
         String browser = resolveBrowser();
         if (browser == null) {
             return FrameResult.error(browserError != null ? browserError : "browser_not_found");
@@ -151,63 +199,283 @@ public final class DisplayCaptureService {
         if (!tmpDir.isDirectory() && !tmpDir.mkdirs()) {
             return FrameResult.error("frame_dir_failed");
         }
-        File pngFile = new File(tmpDir, record.id + "-" + width + ".png");
-        String url = buildEmbedUrl(record);
-        int height = Math.max(64, (int) Math.round(width * (double) record.viewportHeight / Math.max(1, record.viewportWidth)));
-        Process process = null;
-        try {
-            ProcessBuilder pb = new ProcessBuilder(
-                browser,
-                "--headless=new",
-                "--disable-gpu",
-                "--hide-scrollbars",
-                "--no-first-run",
-                "--no-default-browser-check",
-                "--disable-extensions",
-                "--window-size=" + width + "," + height,
-                "--screenshot=" + pngFile.getAbsolutePath(),
-                "--virtual-time-budget=8000",
-                url);
-            pb.redirectErrorStream(true);
-            process = pb.start();
-            drainQuietly(process.getInputStream());
-            boolean finished = waitFor(process, 25_000L);
-            if (!finished) {
-                process.destroy();
-                return FrameResult.error("capture_timeout");
+        int height = Math
+            .max(64, (int) Math.round(width * (double) record.viewportHeight / Math.max(1, record.viewportWidth)));
+
+        String spaUrl = buildSpaCaptureUrl(record);
+        boolean ready = waitForSpaCaptureReady(browser, spaUrl);
+        if (!ready) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] Display {} spa-timeout waiting for data-webae-capture-ready @ {}",
+                record.id,
+                spaUrl);
+        }
+
+        FrameResult last = FrameResult.error("spa-blank");
+        int attempts = ready ? SPA_SCREENSHOT_ATTEMPTS : SPA_SCREENSHOT_ATTEMPTS + 1;
+        for (int i = 0; i < attempts; i++) {
+            long budget = SPA_VIRTUAL_TIME_MS + (long) i * 4_000L;
+            FrameResult spa = captureUrl(browser, record, width, height, tmpDir, spaUrl, budget, SPA_WAIT_MS);
+            if (spa.jpeg != null && spa.jpeg.length > 0) {
+                AdvanceDataMonitor.LOG.info(
+                    "[WebAE] Display {} spa-ok (attempt {}, ready={})",
+                    record.id,
+                    Integer.valueOf(i + 1),
+                    Boolean.valueOf(ready));
+                return spa;
             }
-            if (!pngFile.isFile()) {
+            last = spa;
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] Display {} spa-blank/failed attempt {} ({}): {}",
+                record.id,
+                Integer.valueOf(i + 1),
+                spa.error != null ? spa.error : "blank",
+                spaUrl);
+        }
+
+        // Do not return compact render.html as a "successful" monitor frame — that looks wrong.
+        AdvanceDataMonitor.LOG.warn(
+            "[WebAE] Display {} no-frame after SPA attempts (last={}); render.html not used as monitor frame",
+            record.id,
+            last.error != null ? last.error : "unknown");
+        return FrameResult.error(last.error != null ? last.error : "capture_failed");
+    }
+
+    /**
+     * Poll headless {@code --dump-dom} until the embed marks {@code data-webae-capture-ready=1},
+     * or until the ready budget expires.
+     */
+    private static boolean waitForSpaCaptureReady(String browser, String url) {
+        long deadline = System.currentTimeMillis() + SPA_READY_POLL_MS;
+        long budget = SPA_READY_DUMP_BUDGET_MS;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                String dom = runChromeDumpDom(browser, url, budget, SPA_READY_DUMP_WAIT_MS);
+                if (dom != null && dom.indexOf("data-webae-capture-ready=\"1\"") >= 0) {
+                    return true;
+                }
+                if (dom != null && dom.indexOf("data-webae-capture-ready='1'") >= 0) {
+                    return true;
+                }
+            } catch (Exception e) {
+                AdvanceDataMonitor.LOG.debug("[WebAE] dump-dom ready poll failed: {}", e.toString());
+            }
+            budget = Math.min(budget + 4_000L, SPA_VIRTUAL_TIME_MS);
+            try {
+                Thread.sleep(400L);
+            } catch (InterruptedException e) {
+                Thread.currentThread()
+                    .interrupt();
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private FrameResult captureUrl(String browser, DisplayRecord record, int width, int height, File tmpDir, String url,
+        long virtualTimeBudgetMs, long waitMs) {
+        File pngFile = new File(tmpDir, record.id + "-" + width + "-" + System.nanoTime() + ".png");
+        File latestPng = new File(tmpDir, record.id + "-" + width + ".png");
+        try {
+            ChromeShot shot = runChromeScreenshot(browser, url, pngFile, width, height, virtualTimeBudgetMs, waitMs);
+            if (shot.image == null) {
                 return FrameResult.error("screenshot_missing");
             }
-            BufferedImage image = ImageIO.read(pngFile);
-            if (image == null) return FrameResult.error("screenshot_unreadable");
-            byte[] jpeg = toJpeg(scaleIfNeeded(image, width, height), 0.72F);
+            int variance = sampleLumaVariance(shot.image);
+            copyLatest(pngFile, latestPng);
+            if (variance < BLANK_VARIANCE_MAX) {
+                return FrameResult.error("capture_blank");
+            }
+            byte[] jpeg = toJpeg(scaleIfNeeded(shot.image, width, height), 0.85F);
             if (jpeg == null || jpeg.length == 0) return FrameResult.error("jpeg_failed");
             String etag = "\"" + sha256Hex(jpeg) + "\"";
             frames.put(record.id, new CachedFrame(jpeg, etag, width, System.currentTimeMillis()));
             return FrameResult.ok(jpeg, etag);
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Display capture failed for {}: {}", record.id, e.toString());
+            AdvanceDataMonitor.LOG.warn("[WebAE] Display capture failed for {} @ {}: {}", record.id, url, e.toString());
             return FrameResult.error("capture_failed");
-        } finally {
-            if (process != null) {
-                try {
-                    process.destroy();
-                } catch (Exception ignored) {}
-            }
-            if (pngFile.isFile()) {
-                // keep last png for debug; delete old ones lazily
-            }
         }
     }
 
-    private static String buildEmbedUrl(DisplayRecord record) {
-        String host = Config.webConsoleBindAddress;
-        if (host == null || host.isEmpty() || "0.0.0.0".equals(host)) {
-            host = "127.0.0.1";
+    private static void copyLatest(File from, File to) {
+        if (from == null || to == null || !from.isFile()) return;
+        try {
+            java.nio.file.Files.copy(from.toPath(), to.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception ignored) {}
+    }
+
+    private static ChromeShot runChromeScreenshot(String browser, String url, File pngFile, int width, int height,
+        long virtualTimeBudgetMs, long waitMs) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder(
+            browser,
+            "--headless=new",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--disable-extensions",
+            "--disable-dev-shm-usage",
+            "--run-all-compositor-stages-before-draw",
+            "--window-size=" + width + "," + height,
+            "--screenshot=" + pngFile.getAbsolutePath(),
+            "--virtual-time-budget=" + virtualTimeBudgetMs,
+            url);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        String stderrPreview = "";
+        try {
+            stderrPreview = readPreview(process.getInputStream(), 400);
+            boolean finished = waitFor(process, waitMs);
+            int exit = finished ? process.exitValue() : -1;
+            if (!finished) {
+                process.destroy();
+                return ChromeShot.missing(exit, stderrPreview);
+            }
+            if (!pngFile.isFile()) return ChromeShot.missing(exit, stderrPreview);
+            java.io.FileInputStream in = new java.io.FileInputStream(pngFile);
+            try {
+                BufferedImage image = ImageIO.read(in);
+                return new ChromeShot(image, exit, stderrPreview);
+            } finally {
+                in.close();
+            }
+        } finally {
+            try {
+                process.destroy();
+            } catch (Exception ignored) {}
         }
-        return "http://" + host + ":" + Config.webConsolePort + "/embed/dashboard/" + record.id + "?token="
-            + record.viewToken + "&capture=1";
+    }
+
+    /** Headless dump-dom used to wait for embed {@code data-webae-capture-ready}. */
+    private static String runChromeDumpDom(String browser, String url, long virtualTimeBudgetMs, long waitMs)
+        throws Exception {
+        ProcessBuilder pb = new ProcessBuilder(
+            browser,
+            "--headless=new",
+            "--disable-gpu",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--disable-extensions",
+            "--disable-dev-shm-usage",
+            "--virtual-time-budget=" + virtualTimeBudgetMs,
+            "--dump-dom",
+            url);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        try {
+            String dom = readAllLimited(process.getInputStream(), 2_000_000);
+            boolean finished = waitFor(process, waitMs);
+            if (!finished) {
+                process.destroy();
+            }
+            return dom;
+        } finally {
+            try {
+                process.destroy();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private static String readAllLimited(InputStream in, int maxBytes) {
+        if (in == null) return "";
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int total = 0;
+            int n;
+            while ((n = in.read(buf)) >= 0) {
+                if (total < maxBytes) {
+                    int write = Math.min(n, maxBytes - total);
+                    if (write > 0) {
+                        baos.write(buf, 0, write);
+                        total += write;
+                    }
+                }
+            }
+            return new String(baos.toByteArray(), "UTF-8");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static String readPreview(InputStream in, int max) {
+        try {
+            byte[] buf = new byte[max];
+            int n = in.read(buf);
+            if (n <= 0) return "";
+            // Drain the rest so the process can exit.
+            byte[] sink = new byte[4096];
+            while (in.read(sink) >= 0) {
+                // discard
+            }
+            return new String(buf, 0, n, "UTF-8").replace('\r', ' ')
+                .replace('\n', ' ');
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** Low variance ≈ near-solid fill (blank Login shell / unpainted SPA). */
+    private static int sampleLumaVariance(BufferedImage image) {
+        if (image == null) return 0;
+        int w = image.getWidth();
+        int h = image.getHeight();
+        if (w < 4 || h < 4) return 0;
+        long sum = 0L;
+        long sumSq = 0L;
+        int n = 0;
+        for (int y = h / 8; y < h; y += Math.max(1, h / 16)) {
+            for (int x = w / 8; x < w; x += Math.max(1, w / 16)) {
+                int rgb = image.getRGB(x, y);
+                int r = (rgb >> 16) & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = rgb & 0xFF;
+                int luma = (r * 3 + g * 4 + b) / 8;
+                sum += luma;
+                sumSq += (long) luma * luma;
+                n++;
+            }
+        }
+        if (n < 4) return 0;
+        long mean = sum / n;
+        long var = sumSq / n - mean * mean;
+        return var < 0L ? 0 : (int) Math.min(255L, var);
+    }
+
+    private static final class ChromeShot {
+
+        final BufferedImage image;
+        final int exitCode;
+        final String stderrPreview;
+
+        ChromeShot(BufferedImage image, int exitCode, String stderrPreview) {
+            this.image = image;
+            this.exitCode = exitCode;
+            this.stderrPreview = stderrPreview == null ? "" : stderrPreview;
+        }
+
+        static ChromeShot missing(int exitCode, String stderrPreview) {
+            return new ChromeShot(null, exitCode, stderrPreview);
+        }
+    }
+
+    /** Real SPA URL used for WYSIWYG in-game frames (lazy path; no MCEF). */
+    private static String buildSpaCaptureUrl(DisplayRecord record) {
+        return "http://127.0.0.1:" + Config.webConsolePort
+            + "/embed/dashboard/"
+            + record.id
+            + "?token="
+            + record.viewToken
+            + "&capture=1";
+    }
+
+    /** Compact HTML debug URL (not used as a successful monitor frame). */
+    static String buildFallbackRenderUrl(DisplayRecord record) {
+        return "http://127.0.0.1:" + Config.webConsolePort
+            + "/api/display/"
+            + record.id
+            + "/render.html?token="
+            + record.viewToken;
     }
 
     private String resolveBrowser() {
@@ -229,38 +497,29 @@ public final class DisplayCaptureService {
     }
 
     private static String[] candidateBrowsers() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+        String os = System.getProperty("os.name", "")
+            .toLowerCase(Locale.ROOT);
         if (os.contains("win")) {
             String pf = System.getenv("ProgramFiles");
             String pf86 = System.getenv("ProgramFiles(x86)");
             String local = System.getenv("LOCALAPPDATA");
-            return new String[] {
-                envOr("WEBAE_CHROME_PATH", null),
+            return new String[] { envOr("WEBAE_CHROME_PATH", null),
                 pf != null ? pf + "\\Google\\Chrome\\Application\\chrome.exe" : null,
                 pf86 != null ? pf86 + "\\Google\\Chrome\\Application\\chrome.exe" : null,
                 local != null ? local + "\\Google\\Chrome\\Application\\chrome.exe" : null,
                 pf != null ? pf + "\\Microsoft\\Edge\\Application\\msedge.exe" : null,
                 pf86 != null ? pf86 + "\\Microsoft\\Edge\\Application\\msedge.exe" : null,
                 "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-                "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-            };
+                "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe", };
         }
         if (os.contains("mac")) {
-            return new String[] {
-                envOr("WEBAE_CHROME_PATH", null),
+            return new String[] { envOr("WEBAE_CHROME_PATH", null),
                 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                 "/Applications/Chromium.app/Contents/MacOS/Chromium",
-                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-            };
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", };
         }
-        return new String[] {
-            envOr("WEBAE_CHROME_PATH", null),
-            "/usr/bin/google-chrome",
-            "/usr/bin/google-chrome-stable",
-            "/usr/bin/chromium",
-            "/usr/bin/chromium-browser",
-            "/snap/bin/chromium",
-        };
+        return new String[] { envOr("WEBAE_CHROME_PATH", null), "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/snap/bin/chromium", };
     }
 
     private static String envOr(String key, String fallback) {

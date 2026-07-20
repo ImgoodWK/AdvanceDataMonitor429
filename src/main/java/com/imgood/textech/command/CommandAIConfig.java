@@ -344,7 +344,11 @@ public class CommandAIConfig extends TeXTechCommandBase {
             "adm.command.admai.status.network",
             Config.aiNetworkEnabled ? statusEnabled() : statusDisabled());
         sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admai.status.base", Config.aiApiBaseUrl);
-        sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admai.status.provider", capability.profile.displayName);
+        sendLocalized(
+            sender,
+            EnumChatFormatting.AQUA,
+            "adm.command.admai.status.provider",
+            capability.profile.displayName);
         sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admai.status.model", Config.aiModel);
         sendLocalized(
             sender,
@@ -363,7 +367,8 @@ public class CommandAIConfig extends TeXTechCommandBase {
             sender,
             EnumChatFormatting.AQUA,
             "adm.command.admai.status.search_base",
-            Config.aiSearchBaseUrl == null || Config.aiSearchBaseUrl.isEmpty() ? statusNotSet() : Config.aiSearchBaseUrl);
+            Config.aiSearchBaseUrl == null || Config.aiSearchBaseUrl.isEmpty() ? statusNotSet()
+                : Config.aiSearchBaseUrl);
         sendLocalized(
             sender,
             EnumChatFormatting.AQUA,

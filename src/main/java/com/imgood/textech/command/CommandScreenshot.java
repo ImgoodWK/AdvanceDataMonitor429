@@ -48,11 +48,13 @@ public final class CommandScreenshot extends TeXTechCommandBase {
         }
         String action = args[0].toLowerCase();
         if ("capture".equals(action)) {
-            ClientScreenshotService.instance().capture();
+            ClientScreenshotService.instance()
+                .capture();
         } else if ("list".equals(action)) {
             list(sender, parsePositive(args, 1, 1));
         } else if ("preview".equals(action)) {
-            ClientScreenshotService.instance().openGallery(parseIndex(args, 1));
+            ClientScreenshotService.instance()
+                .openGallery(parseIndex(args, 1));
         } else if ("send".equals(action)) {
             send(sender, args);
         } else if ("status".equals(action)) {
@@ -63,7 +65,8 @@ public final class CommandScreenshot extends TeXTechCommandBase {
     }
 
     private void list(ICommandSender sender, int page) {
-        List<File> history = ClientScreenshotService.instance().listHistory();
+        List<File> history = ClientScreenshotService.instance()
+            .listHistory();
         if (history.isEmpty()) {
             sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.screenshot.history.empty");
             return;
@@ -90,9 +93,8 @@ public final class CommandScreenshot extends TeXTechCommandBase {
                 .setColor(EnumChatFormatting.YELLOW)
                 .setUnderlined(Boolean.TRUE)
                 .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/admscreenshot preview " + (i + 1)))
-                .setChatHoverEvent(new HoverEvent(
-                    HoverEvent.Action.SHOW_TEXT,
-                    new ChatComponentText(file.getAbsolutePath())));
+                .setChatHoverEvent(
+                    new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(file.getAbsolutePath())));
             sender.addChatMessage(line);
         }
     }
@@ -106,7 +108,8 @@ public final class CommandScreenshot extends TeXTechCommandBase {
         if ("web".equals(destination)) {
             int index = parseIndex(args, 2);
             int captionStart = hasIndexAt(args, 2) ? 3 : 2;
-            ClientScreenshotService.instance().queueUpload("web", "", "", index, joinArgs(args, captionStart));
+            ClientScreenshotService.instance()
+                .queueUpload("web", "", "", index, joinArgs(args, captionStart));
             return;
         }
         if ("qq".equals(destination)) {
@@ -131,7 +134,8 @@ public final class CommandScreenshot extends TeXTechCommandBase {
             sender,
             EnumChatFormatting.WHITE,
             "adm.command.screenshot.status.path",
-            service.historyDirectory().getAbsolutePath());
+            service.historyDirectory()
+                .getAbsolutePath());
         sendLocalized(
             sender,
             EnumChatFormatting.WHITE,
@@ -169,8 +173,8 @@ public final class CommandScreenshot extends TeXTechCommandBase {
     }
 
     private static int parsePositive(String[] args, int offset, int fallback) {
-        if (args.length <= offset || "latest".equalsIgnoreCase(args[offset])
-            || "newest".equalsIgnoreCase(args[offset])) return fallback;
+        if (args.length <= offset || "latest".equalsIgnoreCase(args[offset]) || "newest".equalsIgnoreCase(args[offset]))
+            return fallback;
         try {
             return Math.max(1, Integer.parseInt(args[offset]));
         } catch (NumberFormatException ignored) {

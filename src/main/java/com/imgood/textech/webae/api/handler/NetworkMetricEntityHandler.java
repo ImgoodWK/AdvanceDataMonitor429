@@ -14,7 +14,8 @@ import com.imgood.textech.webae.metric.NetworkMetricSampler;
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * GET /api/network/metrics/entities?network=&lt;id&gt;&amp;entities=cpu:Name,gt:0:1:2:3&amp;fields=craftingProgress,progressPercent
+ * GET
+ * /api/network/metrics/entities?network=&lt;id&gt;&amp;entities=cpu:Name,gt:0:1:2:3&amp;fields=craftingProgress,progressPercent
  * <p>
  * Entity keys: {@code cpu:&lt;name&gt;} or {@code gt:&lt;dim&gt;:&lt;x&gt;:&lt;y&gt;:&lt;z&gt;}.
  * Optional {@code fields} is parallel to {@code entities} (same length); omitted fields use defaults.
@@ -54,7 +55,9 @@ public final class NetworkMetricEntityHandler {
         sampler.markActive(playerUuid, networkId);
         String err = sampler.registerTrackedEntities(playerUuid, networkId, fieldByEntity);
         if (err != null) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST, "{\"success\":false,\"message\":" + GSON.toJson(err) + "}");
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "{\"success\":false,\"message\":" + GSON.toJson(err) + "}");
         }
         NetworkMetricEntityHistoryDto history = sampler.getEntityHistory(playerUuid, networkId);
         if (history == null) {

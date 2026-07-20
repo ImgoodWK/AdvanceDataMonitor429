@@ -167,7 +167,16 @@ public final class WorldMapTileRenderWorker {
     }
 
     private static String tileKey(String view, String layer, String quality, int dim, int chunkX, int chunkZ) {
-        return view + ":" + WorldMapTileLayer.normalize(layer) + ":" + quality + ":" + dim + ":" + chunkX + ":" + chunkZ;
+        return view + ":"
+            + WorldMapTileLayer.normalize(layer)
+            + ":"
+            + quality
+            + ":"
+            + dim
+            + ":"
+            + chunkX
+            + ":"
+            + chunkZ;
     }
 
     private static final class PendingJob {

@@ -2,8 +2,6 @@ package com.imgood.textech.webae.network;
 
 import java.nio.charset.StandardCharsets;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-
 import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator;
 

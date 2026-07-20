@@ -170,19 +170,19 @@ public class ChatHandler {
     }
 
     private static ChatMessageDto toDto(ChatMessage m) {
-        return new ChatMessageDto(m.id, m.senderUuid, m.senderName, m.content, m.timestamp, m.source)
-            .withAttachment(
-                m.attachmentId,
-                m.attachmentName,
-                m.attachmentMime,
-                m.attachmentWidth,
-                m.attachmentHeight,
-                m.attachmentBytes);
+        return new ChatMessageDto(m.id, m.senderUuid, m.senderName, m.content, m.timestamp, m.source).withAttachment(
+            m.attachmentId,
+            m.attachmentName,
+            m.attachmentMime,
+            m.attachmentWidth,
+            m.attachmentHeight,
+            m.attachmentBytes);
     }
 
     private static NanoHTTPD.Response handleAttachment(Map<String, String> params) {
         String id = params == null ? null : params.get("id");
-        File file = ScreenshotAttachmentStore.instance().resolve(id);
+        File file = ScreenshotAttachmentStore.instance()
+            .resolve(id);
         if (file == null) {
             return json(
                 NanoHTTPD.Response.Status.NOT_FOUND,

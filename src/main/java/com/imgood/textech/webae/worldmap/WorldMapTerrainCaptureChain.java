@@ -16,13 +16,8 @@ public final class WorldMapTerrainCaptureChain {
 
     private WorldMapTerrainCaptureChain() {}
 
-    public static WorldMapTerrainCaptureResult captureTerrain(
-        WorldMapView view,
-        int dim,
-        int chunkX,
-        int chunkZ,
-        int tilePx,
-        Side side) {
+    public static WorldMapTerrainCaptureResult captureTerrain(WorldMapView view, int dim, int chunkX, int chunkZ,
+        int tilePx, Side side) {
         if (side == Side.CLIENT) {
             return null;
         }
@@ -36,13 +31,8 @@ public final class WorldMapTerrainCaptureChain {
         return null;
     }
 
-    private static WorldMapTerrainCaptureResult tryServerSource(
-        WorldMapTerrainSourceId sourceId,
-        String viewId,
-        int dim,
-        int chunkX,
-        int chunkZ,
-        int tilePx) {
+    private static WorldMapTerrainCaptureResult tryServerSource(WorldMapTerrainSourceId sourceId, String viewId,
+        int dim, int chunkX, int chunkZ, int tilePx) {
         if (sourceId == WorldMapTerrainSourceId.DYNMAP) {
             byte[] dynmap = WorldMapDynmapChunkCropper.cropChunkPng(viewId, dim, chunkX, chunkZ, tilePx);
             if (dynmap != null && dynmap.length > 0) {
@@ -66,7 +56,8 @@ public final class WorldMapTerrainCaptureChain {
     }
 
     private static ServerWorldContext resolveServerWorldContext() {
-        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        MinecraftServer server = FMLCommonHandler.instance()
+            .getMinecraftServerInstance();
         if (server == null) {
             return null;
         }
@@ -74,8 +65,10 @@ public final class WorldMapTerrainCaptureChain {
         String worldName = "world";
         if (server.worldServers != null && server.worldServers.length > 0 && server.worldServers[0] != null) {
             WorldServer overworld = server.worldServers[0];
-            if (overworld.getWorldInfo() != null && overworld.getWorldInfo().getWorldName() != null) {
-                worldName = overworld.getWorldInfo().getWorldName();
+            if (overworld.getWorldInfo() != null && overworld.getWorldInfo()
+                .getWorldName() != null) {
+                worldName = overworld.getWorldInfo()
+                    .getWorldName();
             }
         }
         ServerWorldContext ctx = new ServerWorldContext();

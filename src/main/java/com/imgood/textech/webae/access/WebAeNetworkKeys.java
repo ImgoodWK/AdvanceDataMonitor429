@@ -11,9 +11,11 @@ import com.imgood.textech.webae.snapshot.AeSnapshotCollector.NetworkInfo;
  * Stable WebAE network identity: {@code "{dim}:{x}:{y}:{z}"} from the data monitor.
  * Runtime {@code networkId} is a sorted index and must not be persisted in ACL.
  *
- * <p>{@link #fromNetworkId} / {@link #toNetworkId} resolve via the registry key index only and must
+ * <p>
+ * {@link #fromNetworkId} / {@link #toNetworkId} resolve via the registry key index only and must
  * never touch {@link net.minecraft.world.World} (WebAE HTTP threads call them on every
- * {@code ?network=} request).</p>
+ * {@code ?network=} request).
+ * </p>
  */
 public final class WebAeNetworkKeys {
 

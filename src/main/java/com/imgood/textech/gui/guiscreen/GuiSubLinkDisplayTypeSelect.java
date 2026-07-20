@@ -44,20 +44,35 @@ public class GuiSubLinkDisplayTypeSelect extends ADM_GuiScreen {
         this.setPosition(this.offsetX, this.offsetY);
 
         this.buttonList.add(
-            new ADM_GuiButton(0, this.offsetX + 40, this.offsetY + 40, 200, 20, I18n.format("adm.button.link_display_network"))
-                .setTexture(AdmGuiTextures.BUTTON)
-                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
-                .setUseRGBEffect(false));
+            new ADM_GuiButton(
+                0,
+                this.offsetX + 40,
+                this.offsetY + 40,
+                200,
+                20,
+                I18n.format("adm.button.link_display_network")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
+                    .setUseRGBEffect(false));
         this.buttonList.add(
-            new ADM_GuiButton(1, this.offsetX + 40, this.offsetY + 70, 200, 20, I18n.format("adm.button.link_display_storage"))
-                .setTexture(AdmGuiTextures.BUTTON)
-                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
-                .setUseRGBEffect(false));
+            new ADM_GuiButton(
+                1,
+                this.offsetX + 40,
+                this.offsetY + 70,
+                200,
+                20,
+                I18n.format("adm.button.link_display_storage")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
+                    .setUseRGBEffect(false));
         this.buttonList.add(
-            new ADM_GuiButton(2, this.offsetX + 40, this.offsetY + 100, 200, 20, I18n.format("adm.button.link_display_crafting"))
-                .setTexture(AdmGuiTextures.BUTTON)
-                .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
-                .setUseRGBEffect(false));
+            new ADM_GuiButton(
+                2,
+                this.offsetX + 40,
+                this.offsetY + 100,
+                200,
+                20,
+                I18n.format("adm.button.link_display_crafting")).setTexture(AdmGuiTextures.BUTTON)
+                    .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
+                    .setUseRGBEffect(false));
         this.buttonList.add(
             new ADM_GuiButton(3, this.offsetX + 110, this.offsetY + 130, 60, 20, I18n.format("adm.button.cancel"))
                 .setTexture(AdmGuiTextures.BUTTON)

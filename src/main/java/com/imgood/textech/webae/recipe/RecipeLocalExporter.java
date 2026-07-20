@@ -66,10 +66,8 @@ public final class RecipeLocalExporter {
             if (legacyGz.exists()) {
                 legacyGz.delete();
             }
-            AdvanceDataMonitor.LOG.info(
-                "[WebAE] Exported {} recipes to {} (json)",
-                recipes.size(),
-                file.getAbsolutePath());
+            AdvanceDataMonitor.LOG
+                .info("[WebAE] Exported {} recipes to {} (json)", recipes.size(), file.getAbsolutePath());
             return file;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to export recipes locally", e);

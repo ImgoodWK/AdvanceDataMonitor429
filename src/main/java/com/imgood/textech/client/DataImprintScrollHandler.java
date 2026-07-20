@@ -52,6 +52,7 @@ public class DataImprintScrollHandler {
         int newRadius = radii[currentIdx];
         ItemDataImprint.setScanRadius(held, newRadius);
 
-        player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.scan_radius_set", Integer.valueOf(newRadius)));
+        player.addChatMessage(
+            new ChatComponentTranslation("adm.data_imprint.scan_radius_set", Integer.valueOf(newRadius)));
     }
 }

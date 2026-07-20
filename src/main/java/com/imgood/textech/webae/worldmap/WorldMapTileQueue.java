@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWebMapTileJob;
 import com.imgood.textech.webae.worldmap.engine.WorldMapZoomPyramid;
-
-import net.minecraft.entity.player.EntityPlayerMP;
 
 /**
  * Server-side queue for deferred chunk tile rendering with per-tick budget.
@@ -67,9 +67,8 @@ public final class WorldMapTileQueue {
         if (parsed == null || !WorldMapView.isEnabled(parsed)) {
             return;
         }
-        WorldMapQualityTier tier = WorldMapQualityTier.clamp(
-            quality != null ? quality : WorldMapQualityTier.MEDIUM,
-            WorldMapQualityTier.fromConfigMax());
+        WorldMapQualityTier tier = WorldMapQualityTier
+            .clamp(quality != null ? quality : WorldMapQualityTier.MEDIUM, WorldMapQualityTier.fromConfigMax());
         if (WorldMapTileCache.exists(parsed.id, layer, tier, dim, chunkX, chunkZ)) {
             WorldMapTileProgressTracker.instance()
                 .markDone(networkId, parsed.id, tier, dim, chunkX, chunkZ, layer);
@@ -92,7 +91,16 @@ public final class WorldMapTileQueue {
                     queuedKeys.remove(dropped.key);
                 }
             }
-            TileKey entry = new TileKey(parsed.id, layer, tier, dim, chunkX, chunkZ, ownerUuid, networkId, actorUuid,
+            TileKey entry = new TileKey(
+                parsed.id,
+                layer,
+                tier,
+                dim,
+                chunkX,
+                chunkZ,
+                ownerUuid,
+                networkId,
+                actorUuid,
                 key);
             if (hdDispatched) {
                 entry.hdDispatchTime = System.currentTimeMillis();
@@ -117,15 +125,11 @@ public final class WorldMapTileQueue {
 
     public void enqueueChunkPair(String view, WorldMapQualityTier quality, int dim, int chunkX, int chunkZ,
         String ownerUuid, int networkId, String actorUuid) {
-        List<WorldMapAePlacementRecord> inChunk = WorldMapAePlacementSupport.filterChunk(
-            WorldMapAePlacementSupport.loadForNetwork(ownerUuid, networkId),
-            dim,
-            chunkX,
-            chunkZ);
+        List<WorldMapAePlacementRecord> inChunk = WorldMapAePlacementSupport
+            .filterChunk(WorldMapAePlacementSupport.loadForNetwork(ownerUuid, networkId), dim, chunkX, chunkZ);
         WorldMapView parsed = WorldMapView.fromId(view);
-        WorldMapQualityTier tier = WorldMapQualityTier.clamp(
-            quality != null ? quality : WorldMapQualityTier.MEDIUM,
-            WorldMapQualityTier.fromConfigMax());
+        WorldMapQualityTier tier = WorldMapQualityTier
+            .clamp(quality != null ? quality : WorldMapQualityTier.MEDIUM, WorldMapQualityTier.fromConfigMax());
         boolean aeChunk = !inChunk.isEmpty();
         WorldMapQualityTier terrainTier = WorldMapQualitySupport.effectiveTier(tier, aeChunk);
         enqueue(view, WorldMapTileLayer.TERRAIN, terrainTier, dim, chunkX, chunkZ, ownerUuid, networkId, actorUuid);
@@ -143,17 +147,18 @@ public final class WorldMapTileQueue {
 
     private static void dispatchHdJobIfNeeded(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
         int chunkZ, String ownerUuid, int networkId, String actorUuid) {
-        if (tier == null || !WorldMapClientCaptureMode.shouldUseClientForTier(tier) || !WorldMapHdSupport.isHdEnabled()
-            || ownerUuid == null || ownerUuid.isEmpty()) {
+        if (tier == null || !WorldMapClientCaptureMode.shouldUseClientForTier(tier)
+            || !WorldMapHdSupport.isHdEnabled()
+            || ownerUuid == null
+            || ownerUuid.isEmpty()) {
             return;
         }
         EntityPlayerMP provider = WorldMapHdSupport.resolveHdProvider(ownerUuid, actorUuid, dim);
         if (provider == null) {
             return;
         }
-        AdvanceDataMonitor.ADMCHANEL.sendTo(
-            new PacketWebMapTileJob(view, layer, tier.id, dim, chunkX, chunkZ, networkId),
-            provider);
+        AdvanceDataMonitor.ADMCHANEL
+            .sendTo(new PacketWebMapTileJob(view, layer, tier.id, dim, chunkX, chunkZ, networkId), provider);
     }
 
     /** @deprecated Use {@link #enqueue(String, String, WorldMapQualityTier, int, int, int, String, int)}. */
@@ -208,34 +213,34 @@ public final class WorldMapTileQueue {
                             result.layer);
                 } else if (!WorldMapTileLayer.isAe(result.layer)
                     && WorldMapRenderSupport.isLoadedEmptyTerrainChunk(result.dim, result.chunkX, result.chunkZ)) {
-                    // writeEmpty is a tiny transparent placeholder — acceptable on main thread
-                    WorldMapTileCache.writeEmpty(
-                        result.view,
-                        result.layer,
-                        result.quality,
-                        result.dim,
-                        result.chunkX,
-                        result.chunkZ);
-                    WorldMapTileProgressTracker.instance()
-                        .markEmpty(
-                            result.networkId,
+                        // writeEmpty is a tiny transparent placeholder — acceptable on main thread
+                        WorldMapTileCache.writeEmpty(
                             result.view,
+                            result.layer,
                             result.quality,
                             result.dim,
                             result.chunkX,
-                            result.chunkZ,
-                            result.layer);
-                } else {
-                    WorldMapTileProgressTracker.instance()
-                        .markFailed(
-                            result.networkId,
-                            result.view,
-                            result.quality,
-                            result.dim,
-                            result.chunkX,
-                            result.chunkZ,
-                            result.layer);
-                }
+                            result.chunkZ);
+                        WorldMapTileProgressTracker.instance()
+                            .markEmpty(
+                                result.networkId,
+                                result.view,
+                                result.quality,
+                                result.dim,
+                                result.chunkX,
+                                result.chunkZ,
+                                result.layer);
+                    } else {
+                        WorldMapTileProgressTracker.instance()
+                            .markFailed(
+                                result.networkId,
+                                result.view,
+                                result.quality,
+                                result.dim,
+                                result.chunkX,
+                                result.chunkZ,
+                                result.layer);
+                    }
             } catch (Throwable t) {
                 WorldMapTileProgressTracker.instance()
                     .markFailed(
@@ -317,24 +322,14 @@ public final class WorldMapTileQueue {
                 rayUsed++;
             }
             WorldMapTileProgressTracker.instance()
-                .markRendering(
-                    next.networkId,
-                    next.view,
-                    next.quality,
-                    next.dim,
-                    next.chunkX,
-                    next.chunkZ,
-                    next.layer);
+                .markRendering(next.networkId, next.view, next.quality, next.dim, next.chunkX, next.chunkZ, next.layer);
 
             // Pre-load chunk references for the padded region on the main thread
             // without triggering synchronous chunk loads. Worker threads use
             // chunkIfLoaded() which returns null for unloaded chunks — rendering
             // will produce empty tiles that will be retried when the chunk loads naturally.
-            WorldMapRenderSupport.preloadChunkRegionIfLoaded(
-                next.dim,
-                next.chunkX,
-                next.chunkZ,
-                Config.webWorldMapChunkPadding);
+            WorldMapRenderSupport
+                .preloadChunkRegionIfLoaded(next.dim, next.chunkX, next.chunkZ, Config.webWorldMapChunkPadding);
 
             final TileKey captured = next;
             final WorldMapView capturedView = view;
@@ -444,7 +439,15 @@ public final class WorldMapTileQueue {
 
     private static String tileKey(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
         int chunkZ) {
-        return view + ":" + WorldMapTileLayer.normalize(layer) + ":" + tier.id + ":" + dim + ":" + chunkX + ":"
+        return view + ":"
+            + WorldMapTileLayer.normalize(layer)
+            + ":"
+            + tier.id
+            + ":"
+            + dim
+            + ":"
+            + chunkX
+            + ":"
             + chunkZ;
     }
 

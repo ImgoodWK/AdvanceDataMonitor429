@@ -47,8 +47,7 @@ public final class WorldMapBlockTextureSampler {
         if (block == null) {
             return -1;
         }
-        WorldMapBlockColorResolver.BlockFace sampleFace = face != null
-            ? face
+        WorldMapBlockColorResolver.BlockFace sampleFace = face != null ? face
             : WorldMapBlockColorResolver.BlockFace.TOP;
         String modId = resolveModId(block);
         String baseName = resolveTextureBaseName(block);

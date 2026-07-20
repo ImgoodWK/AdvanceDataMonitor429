@@ -98,8 +98,7 @@ public class PacketWebIconRequest implements IMessage {
             IconItemEnumerator.StackTask task = resolveTask(message.itemId);
             if (task == null) {
                 AdvanceDataMonitor.LOG.debug("[WebAE] Icon request could not resolve stack: {}", message.itemId);
-                AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                    new PacketWebIconResolveNack(pack, mode, message.itemId));
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(new PacketWebIconResolveNack(pack, mode, message.itemId));
                 return;
             }
             IconLazyRenderQueue.instance()

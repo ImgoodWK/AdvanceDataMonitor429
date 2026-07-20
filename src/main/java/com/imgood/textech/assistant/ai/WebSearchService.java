@@ -109,7 +109,8 @@ public final class WebSearchService {
      * Runs the same multi-engine search chain using an explicit runtime (WebAE shared search settings).
      */
     public static WebSearchData performWebSearch(String query, SearchRuntime runtime) throws WebSearchException {
-        if (query == null || query.trim().isEmpty()) {
+        if (query == null || query.trim()
+            .isEmpty()) {
             throw new WebSearchException("Search query is empty.");
         }
         SearchRuntime effective = runtime == null ? SearchRuntime.fromClientConfig() : runtime;
@@ -226,10 +227,14 @@ public final class WebSearchService {
             return true;
         }
         if (PROVIDER_TAVILY.equals(provider) || PROVIDER_BRAVE.equals(provider) || PROVIDER_SERPER.equals(provider)) {
-            return runtime != null && runtime.apiKey != null && !runtime.apiKey.trim().isEmpty();
+            return runtime != null && runtime.apiKey != null
+                && !runtime.apiKey.trim()
+                    .isEmpty();
         }
         if (PROVIDER_SEARXNG.equals(provider)) {
-            return runtime != null && runtime.baseUrl != null && !runtime.baseUrl.trim().isEmpty();
+            return runtime != null && runtime.baseUrl != null
+                && !runtime.baseUrl.trim()
+                    .isEmpty();
         }
         return false;
     }
@@ -565,6 +570,7 @@ public final class WebSearchService {
 
     /** Explicit search settings so WebAE can use shared encrypted keys without mutating client Config. */
     public static final class SearchRuntime {
+
         public String mode = PROVIDER_AUTO;
         public String apiKey = "";
         public String baseUrl = "";

@@ -82,8 +82,7 @@ public final class WebAeCraftService {
 
     private static boolean isFailureMessage(String message) {
         String m = message.toLowerCase();
-        if (m.contains("订单失败") || m.contains("order failed") || m.contains("订单被拒绝")
-            || m.contains("order rejected")) {
+        if (m.contains("订单失败") || m.contains("order failed") || m.contains("订单被拒绝") || m.contains("order rejected")) {
             return true;
         }
         // Success path from trySubmit

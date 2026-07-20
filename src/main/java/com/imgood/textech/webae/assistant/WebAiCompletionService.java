@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.assistant.ai.WebSearchData;
 import com.imgood.textech.assistant.ai.WebSearchService;
 import com.imgood.textech.assistant.ai.WebSearchService.SearchRuntime;
-import com.imgood.textech.assistant.ai.WebSearchData;
 import com.imgood.textech.webae.assistant.WebAiConfigStore.RuntimeConfig;
 import com.imgood.textech.webae.assistant.WebAiHttpClient.Message;
 
@@ -29,7 +29,8 @@ public final class WebAiCompletionService {
     }
 
     public static CompletionResult completeWithFailover(List<Message> messages) throws IOException {
-        List<RuntimeConfig> runtimes = WebAiConfigStore.instance().runtimes();
+        List<RuntimeConfig> runtimes = WebAiConfigStore.instance()
+            .runtimes();
         if (runtimes.isEmpty()) {
             throw new IllegalStateException("Web AI is not configured for server-side use.");
         }
@@ -72,14 +73,16 @@ public final class WebAiCompletionService {
     public static SearchAugmentResult maybeAugmentWithSearch(List<Message> messages, String searchQuery) {
         SearchAugmentResult result = new SearchAugmentResult();
         result.messages = copyMessages(messages);
-        if (!WebAiConfigStore.instance().isSearchEnabled()) {
+        if (!WebAiConfigStore.instance()
+            .isSearchEnabled()) {
             return result;
         }
         String query = searchQuery == null ? "" : searchQuery.trim();
         if (query.isEmpty()) query = lastUserText(messages);
         if (query.isEmpty()) return result;
         try {
-            SearchRuntime runtime = WebAiConfigStore.instance().searchRuntime();
+            SearchRuntime runtime = WebAiConfigStore.instance()
+                .searchRuntime();
             WebSearchData data = WebSearchService.performWebSearch(query, runtime);
             result.messages = injectIntoMessages(result.messages, data);
             result.searchUsed = true;
@@ -93,13 +96,14 @@ public final class WebAiCompletionService {
     }
 
     public static String maybeAugmentUserPrompt(String userPrompt, String searchQuery) {
-        if (!WebAiConfigStore.instance().isSearchEnabled()) return userPrompt == null ? "" : userPrompt;
-        String query = searchQuery == null || searchQuery.trim().isEmpty()
-            ? (userPrompt == null ? "" : userPrompt)
-            : searchQuery.trim();
+        if (!WebAiConfigStore.instance()
+            .isSearchEnabled()) return userPrompt == null ? "" : userPrompt;
+        String query = searchQuery == null || searchQuery.trim()
+            .isEmpty() ? (userPrompt == null ? "" : userPrompt) : searchQuery.trim();
         if (query.isEmpty()) return userPrompt == null ? "" : userPrompt;
         try {
-            SearchRuntime runtime = WebAiConfigStore.instance().searchRuntime();
+            SearchRuntime runtime = WebAiConfigStore.instance()
+                .searchRuntime();
             WebSearchData data = WebSearchService.performWebSearch(query, runtime);
             return WebSearchService.injectSearchIntoUserText(userPrompt, data);
         } catch (Exception e) {
@@ -110,18 +114,28 @@ public final class WebAiCompletionService {
 
     public static boolean isProviderSideFailure(Throwable failure) {
         if (failure == null) return false;
-        String message = failure.getMessage() == null ? "" : failure.getMessage().toLowerCase();
-        if (message.contains("timeout") || message.contains("timed out") || message.contains("connection")
-            || message.contains("unreachable") || message.contains("refused")) {
+        String message = failure.getMessage() == null ? ""
+            : failure.getMessage()
+                .toLowerCase();
+        if (message.contains("timeout") || message.contains("timed out")
+            || message.contains("connection")
+            || message.contains("unreachable")
+            || message.contains("refused")) {
             return true;
         }
-        if (message.contains("http 401") || message.contains("http 403") || message.contains("http 429")
-            || message.contains("http 500") || message.contains("http 502") || message.contains("http 503")
+        if (message.contains("http 401") || message.contains("http 403")
+            || message.contains("http 429")
+            || message.contains("http 500")
+            || message.contains("http 502")
+            || message.contains("http 503")
             || message.contains("http 504")) {
             return true;
         }
-        if (message.contains("quota") || message.contains("rate limit") || message.contains("insufficient")
-            || message.contains("billing") || message.contains("balance") || message.contains("credit")
+        if (message.contains("quota") || message.contains("rate limit")
+            || message.contains("insufficient")
+            || message.contains("billing")
+            || message.contains("balance")
+            || message.contains("credit")
             || message.contains("exceeded")) {
             return true;
         }
@@ -136,8 +150,7 @@ public final class WebAiCompletionService {
         List<Message> copy = copyMessages(messages);
         for (int i = copy.size() - 1; i >= 0; i--) {
             if ("user".equals(copy.get(i).role)) {
-                copy.set(i, new Message("user",
-                    WebSearchService.injectSearchIntoUserText(copy.get(i).content, data)));
+                copy.set(i, new Message("user", WebSearchService.injectSearchIntoUserText(copy.get(i).content, data)));
                 break;
             }
         }
@@ -163,6 +176,7 @@ public final class WebAiCompletionService {
     }
 
     public static final class CompletionResult {
+
         public String content;
         public String providerId;
         public String model;
@@ -172,6 +186,7 @@ public final class WebAiCompletionService {
     }
 
     public static final class SearchAugmentResult {
+
         public List<Message> messages;
         public boolean searchUsed;
         public String searchProvider = "";

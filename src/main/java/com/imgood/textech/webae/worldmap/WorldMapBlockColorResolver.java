@@ -35,8 +35,14 @@ public final class WorldMapBlockColorResolver {
     }
 
     public static String colorStatsJson() {
-        return "{\"texture\":" + statTexture + ",\"palette\":" + statPalette + ",\"opaqueFallback\":"
-            + statOpaqueFallback + ",\"transparentFallback\":" + statTransparentFallback + "}";
+        return "{\"texture\":" + statTexture
+            + ",\"palette\":"
+            + statPalette
+            + ",\"opaqueFallback\":"
+            + statOpaqueFallback
+            + ",\"transparentFallback\":"
+            + statTransparentFallback
+            + "}";
     }
     // #endregion
 

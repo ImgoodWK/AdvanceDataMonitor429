@@ -30,9 +30,11 @@ import com.imgood.textech.webae.network.PacketWebAlertNotify;
 /**
  * Multi-channel WebAE alert dispatcher.
  *
- * <p>Player chat/HUD delivery stays on the server thread and performs no scanning. All DNS, TLS,
+ * <p>
+ * Player chat/HUD delivery stays on the server thread and performs no scanning. All DNS, TLS,
  * HTTP, OAuth, SMTP, retry, and backoff work runs on two daemon workers behind a fixed-capacity
- * queue, so an unavailable third-party service cannot stall the Minecraft tick.</p>
+ * queue, so an unavailable third-party service cannot stall the Minecraft tick.
+ * </p>
  */
 public final class WebhookDispatcher {
 
@@ -105,13 +107,17 @@ public final class WebhookDispatcher {
     /**
      * Queue one explicit administrator test for a saved external route.
      *
-     * <p>The test intentionally bypasses the route's enabled state and event/owner filters so an
+     * <p>
+     * The test intentionally bypasses the route's enabled state and event/owner filters so an
      * administrator can verify credentials before enabling real traffic. It still uses the same
-     * bounded queue, retry policy, timeouts, and circuit breaker as normal alert delivery.</p>
+     * bounded queue, retry policy, timeouts, and circuit breaker as normal alert delivery.
+     * </p>
      */
     public TestEnqueueResult enqueueTest(String ownerUuid, String routeKind, String routeId) {
         if (!Config.webAlertsEnabled) return TestEnqueueResult.FEATURE_DISABLED;
-        if (ownerUuid == null || routeId == null || routeId.trim().isEmpty()) {
+        if (ownerUuid == null || routeId == null
+            || routeId.trim()
+                .isEmpty()) {
             return TestEnqueueResult.NOT_FOUND;
         }
         WebAlertsConfig cfg = ConfigWebAlertsLoader.get();
@@ -129,7 +135,9 @@ public final class WebhookDispatcher {
         DeliveryJob job = null;
         if ("webhook".equals(routeKind) && cfg.webhooks != null) {
             for (WebAlertsConfig.WebhookRule hook : cfg.webhooks) {
-                if (hook != null && routeId.equals(hook.id) && !safe(hook.url).trim().isEmpty()) {
+                if (hook != null && routeId.equals(hook.id)
+                    && !safe(hook.url).trim()
+                        .isEmpty()) {
                     job = DeliveryJob.legacy(ownerUuid, alert, hook, cfg);
                     break;
                 }
@@ -208,11 +216,13 @@ public final class WebhookDispatcher {
     }
 
     private void runWorker() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread()
+            .isInterrupted()) {
             try {
                 deliver(queue.take());
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                Thread.currentThread()
+                    .interrupt();
                 break;
             } catch (Throwable t) {
                 AdvanceDataMonitor.LOG.warn("[WebAE] Alert delivery worker error", t);
@@ -245,11 +255,15 @@ public final class WebhookDispatcher {
                 try {
                     Thread.sleep(waitMs);
                 } catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
+                    Thread.currentThread()
+                        .interrupt();
                     return;
                 }
             } catch (Throwable t) {
-                recordFailure(job, t.getClass().getSimpleName());
+                recordFailure(
+                    job,
+                    t.getClass()
+                        .getSimpleName());
                 return;
             }
         }
@@ -348,7 +362,10 @@ public final class WebhookDispatcher {
     }
 
     private static boolean matches(WebAlertsConfig.WebhookRule hook, WebAlertDto alert) {
-        if (hook == null || !hook.enabled || safe(hook.url).trim().isEmpty()) return false;
+        if (hook == null || !hook.enabled
+            || safe(hook.url).trim()
+                .isEmpty())
+            return false;
         return hook.events == null || hook.events.isEmpty() || hook.events.contains(alert.type);
     }
 
@@ -360,7 +377,8 @@ public final class WebhookDispatcher {
         String url = job.legacyWebhook.url.toLowerCase();
         if (url.contains("discord.com/api/webhooks") || url.contains("discordapp.com/api/webhooks")) {
             JsonObject root = new JsonObject();
-            if (!safe(job.legacyWebhook.mention).trim().isEmpty()) {
+            if (!safe(job.legacyWebhook.mention).trim()
+                .isEmpty()) {
                 root.addProperty("content", job.legacyWebhook.mention.trim());
             }
             JsonObject embed = new JsonObject();
@@ -454,7 +472,8 @@ public final class WebhookDispatcher {
                 WebAlertsConfig.WebhookRule masked = new WebAlertsConfig.WebhookRule();
                 masked.id = hook.id;
                 masked.url = maskSecret(hook.url);
-                masked.urlConfigured = !safe(hook.url).trim().isEmpty();
+                masked.urlConfigured = !safe(hook.url).trim()
+                    .isEmpty();
                 masked.enabled = hook.enabled;
                 masked.events = hook.events;
                 masked.mention = hook.mention;

@@ -16,13 +16,13 @@ import com.imgood.textech.webae.api.handler.PatternListHandler;
 import com.imgood.textech.webae.cells.NetworkCellSummaryCollector;
 import com.imgood.textech.webae.cells.NetworkCellSummaryDto;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
-import com.imgood.textech.webae.player.WebAePlayerStateStore;
 import com.imgood.textech.webae.dto.GtMachineListDto;
 import com.imgood.textech.webae.monitor.MonitorBindingCollector;
 import com.imgood.textech.webae.monitor.MonitorBindingDto;
 import com.imgood.textech.webae.pattern.PatternBrowseService;
 import com.imgood.textech.webae.perf.SnapshotWorkerPool;
 import com.imgood.textech.webae.perf.WebAePerfProfiler;
+import com.imgood.textech.webae.player.WebAePlayerStateStore;
 import com.imgood.textech.webae.scanner.LinkScannerBlockDto;
 import com.imgood.textech.webae.scanner.LinkScannerCollector;
 import com.imgood.textech.webae.snapshot.AeSnapshotCollector;
@@ -87,7 +87,8 @@ public class SnapshotScheduler {
      * Mark a (playerUuid, networkId) pair as recently active.
      */
     public static void markActive(String playerUuid, int networkId) {
-        if (playerUuid == null || WebAePlayerStateStore.getInstance().isDisabled(playerUuid)) {
+        if (playerUuid == null || WebAePlayerStateStore.getInstance()
+            .isDisabled(playerUuid)) {
             return;
         }
         if (networkId >= 0) {
@@ -196,23 +197,29 @@ public class SnapshotScheduler {
                 }
             });
             int richInterval = Config.webPatternCacheTtlMs > 0 ? Config.webPatternCacheTtlMs : slowIntervalMs;
-            tickKeyed(networkKeys, richInterval, now, lastPatternsRichCollectTime, patternsRichCursor, new KeyedCollect() {
+            tickKeyed(
+                networkKeys,
+                richInterval,
+                now,
+                lastPatternsRichCollectTime,
+                patternsRichCursor,
+                new KeyedCollect() {
 
-                @Override
-                public boolean collect(String key, long nowMs) {
-                    return enqueuePatternsRichCollect(key);
-                }
+                    @Override
+                    public boolean collect(String key, long nowMs) {
+                        return enqueuePatternsRichCollect(key);
+                    }
 
-                @Override
-                public void setCursor(int c) {
-                    patternsRichCursor = c;
-                }
+                    @Override
+                    public void setCursor(int c) {
+                        patternsRichCursor = c;
+                    }
 
-                @Override
-                public int getCursor() {
-                    return patternsRichCursor;
-                }
-            });
+                    @Override
+                    public int getCursor() {
+                        return patternsRichCursor;
+                    }
+                });
         }
 
         // Owner-scoped: networks list, monitor bindings, scanner
@@ -402,17 +409,18 @@ public class SnapshotScheduler {
 
             @Override
             public void run() {
-                AeSnapshotCollector.enqueueCollectOnCurrentThread(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
+                AeSnapshotCollector
+                    .enqueueCollectOnCurrentThread(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
 
-                    @Override
-                    public void onResult(Object dto) {
-                        if (dto != null) {
-                            snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
-                        } else {
-                            snapshotCache.markRefresh(playerUuid, networkId, TYPE_STORAGE);
+                        @Override
+                        public void onResult(Object dto) {
+                            if (dto != null) {
+                                snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
+                            } else {
+                                snapshotCache.markRefresh(playerUuid, networkId, TYPE_STORAGE);
+                            }
                         }
-                    }
-                });
+                    });
             }
         });
     }
@@ -619,7 +627,8 @@ public class SnapshotScheduler {
                         snapshotCache.put(ownerUuid, OWNER_SCOPE_NETWORK_ID, TYPE_NETWORKS, networks);
                     }
                 } catch (Throwable t) {
-                    AdvanceDataMonitor.LOG.error("[WebAE] Networks periodic collection failed for owner={}", ownerUuid, t);
+                    AdvanceDataMonitor.LOG
+                        .error("[WebAE] Networks periodic collection failed for owner={}", ownerUuid, t);
                 } finally {
                     long ms = (System.nanoTime() - t0) / 1_000_000L;
                     WebAePerfProfiler.instance()
@@ -642,7 +651,8 @@ public class SnapshotScheduler {
                         snapshotCache.put(ownerUuid, OWNER_SCOPE_NETWORK_ID, TYPE_MONITOR_BINDINGS, list);
                     }
                 } catch (Throwable t) {
-                    AdvanceDataMonitor.LOG.error("[WebAE] Monitor bindings collection failed for owner={}", ownerUuid, t);
+                    AdvanceDataMonitor.LOG
+                        .error("[WebAE] Monitor bindings collection failed for owner={}", ownerUuid, t);
                 } finally {
                     long ms = (System.nanoTime() - t0) / 1_000_000L;
                     WebAePerfProfiler.instance()
@@ -690,7 +700,8 @@ public class SnapshotScheduler {
                 continue;
             }
             String owner = key.substring(0, colonIdx);
-            if (WebAePlayerStateStore.getInstance().isDisabled(owner)) {
+            if (WebAePlayerStateStore.getInstance()
+                .isDisabled(owner)) {
                 lastActiveTime.remove(key);
                 continue;
             }
@@ -776,16 +787,17 @@ public class SnapshotScheduler {
 
             @Override
             public void run() {
-                AeSnapshotCollector.enqueueCollectOnCurrentThread(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
+                AeSnapshotCollector
+                    .enqueueCollectOnCurrentThread(playerUuid, networkId, new AeSnapshotCollector.SnapshotCallback() {
 
-                    @Override
-                    public void onResult(Object dto) {
-                        if (dto != null) {
-                            snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
-                            lastStorageCollectTime.put(key, System.currentTimeMillis());
+                        @Override
+                        public void onResult(Object dto) {
+                            if (dto != null) {
+                                snapshotCache.put(playerUuid, networkId, TYPE_STORAGE, dto);
+                                lastStorageCollectTime.put(key, System.currentTimeMillis());
+                            }
                         }
-                    }
-                });
+                    });
             }
         });
     }

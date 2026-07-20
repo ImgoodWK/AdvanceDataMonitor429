@@ -10,12 +10,10 @@ import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-
-import net.minecraftforge.common.DimensionManager;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.DimensionManager;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.Config;
 import com.imgood.textech.webae.worldmap.engine.WorldMapFlatUvRenderer;
 import com.imgood.textech.webae.worldmap.engine.WorldMapIsoRayRenderer;
 import com.imgood.textech.webae.worldmap.engine.WorldMapRenderEngines;
@@ -93,7 +91,8 @@ public final class WorldMapRenderSupport {
         if (world == null) {
             return null;
         }
-        if (world.getChunkProvider().chunkExists(chunkX, chunkZ)) {
+        if (world.getChunkProvider()
+            .chunkExists(chunkX, chunkZ)) {
             return world.getChunkFromChunkCoords(chunkX, chunkZ);
         }
         return null;
@@ -212,14 +211,28 @@ public final class WorldMapRenderSupport {
     }
 
     public static boolean isSoftBlock(Block block) {
-        return block == Blocks.leaves || block == Blocks.leaves2 || block == Blocks.tallgrass
-            || block == Blocks.deadbush || block == Blocks.yellow_flower || block == Blocks.red_flower
-            || block == Blocks.double_plant || block == Blocks.vine || block == Blocks.waterlily
-            || block == Blocks.snow_layer || block == Blocks.glass || block == Blocks.stained_glass
-            || block == Blocks.sapling || block == Blocks.torch || block == Blocks.redstone_torch
-            || block == Blocks.ladder || block == Blocks.rail || block == Blocks.detector_rail
-            || block == Blocks.golden_rail || block == Blocks.activator_rail || block == Blocks.carpet
-            || block == Blocks.reeds || block == Blocks.flower_pot;
+        return block == Blocks.leaves || block == Blocks.leaves2
+            || block == Blocks.tallgrass
+            || block == Blocks.deadbush
+            || block == Blocks.yellow_flower
+            || block == Blocks.red_flower
+            || block == Blocks.double_plant
+            || block == Blocks.vine
+            || block == Blocks.waterlily
+            || block == Blocks.snow_layer
+            || block == Blocks.glass
+            || block == Blocks.stained_glass
+            || block == Blocks.sapling
+            || block == Blocks.torch
+            || block == Blocks.redstone_torch
+            || block == Blocks.ladder
+            || block == Blocks.rail
+            || block == Blocks.detector_rail
+            || block == Blocks.golden_rail
+            || block == Blocks.activator_rail
+            || block == Blocks.carpet
+            || block == Blocks.reeds
+            || block == Blocks.flower_pot;
     }
 
     public static boolean isMapSolid(Block block) {
@@ -266,7 +279,15 @@ public final class WorldMapRenderSupport {
     }
 
     public static byte[] renderForView(WorldMapView view, int dim, int chunkX, int chunkZ) {
-        return renderForView(view, WorldMapTileLayer.TERRAIN, WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ, null, -1);
+        return renderForView(
+            view,
+            WorldMapTileLayer.TERRAIN,
+            WorldMapQualityTier.MEDIUM,
+            dim,
+            chunkX,
+            chunkZ,
+            null,
+            -1);
     }
 
     public static byte[] renderForView(WorldMapView view, String layer, int dim, int chunkX, int chunkZ,
@@ -293,8 +314,7 @@ public final class WorldMapRenderSupport {
             return WorldMapFlatRenderer.renderTerrain(tier, dim, chunkX, chunkZ);
         }
         if (view.isOblique()) {
-            WorldMapObliqueDirection direction = view.obliqueDirection != null
-                ? view.obliqueDirection
+            WorldMapObliqueDirection direction = view.obliqueDirection != null ? view.obliqueDirection
                 : WorldMapObliqueDirection.SE;
             if (WorldMapRenderEngines.useRayOblique(tier)) {
                 return WorldMapIsoRayRenderer.renderTerrain(tier, dim, chunkX, chunkZ, direction);

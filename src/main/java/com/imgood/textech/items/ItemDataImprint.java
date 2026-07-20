@@ -117,8 +117,9 @@ public class ItemDataImprint extends Item {
     // ======================== Mutual exclusivity ========================
 
     public static boolean hasBlockImprint(ItemStack stack) {
-        return stack != null && stack.hasTagCompound() && stack.getTagCompound()
-            .hasKey(TAG_BOUND_POS);
+        return stack != null && stack.hasTagCompound()
+            && stack.getTagCompound()
+                .hasKey(TAG_BOUND_POS);
     }
 
     public static boolean hasGtMachines(ItemStack stack) {
@@ -260,8 +261,7 @@ public class ItemDataImprint extends Item {
         }
 
         if (scanned.isEmpty()) {
-            player.addChatMessage(
-                new ChatComponentTranslation("adm.data_imprint.scan_none", Integer.valueOf(radius)));
+            player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.scan_none", Integer.valueOf(radius)));
             return;
         }
 
@@ -461,8 +461,10 @@ public class ItemDataImprint extends Item {
                     }
                 }
                 if (!found) {
-                    player.addChatMessage(new ChatComponentTranslation("adm.error.data_bindings_full", Integer.valueOf(
-                        TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS)));
+                    player.addChatMessage(
+                        new ChatComponentTranslation(
+                            "adm.error.data_bindings_full",
+                            Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS)));
                     return;
                 }
 
@@ -584,9 +586,7 @@ public class ItemDataImprint extends Item {
             NBTTagList gtList = getGtMachineList(stack);
             if (gtList != null && gtList.tagCount() > 0) {
                 player.addChatMessage(
-                    new ChatComponentTranslation(
-                        "adm.data_imprint.gt_hint_bind",
-                        Integer.valueOf(gtList.tagCount())));
+                    new ChatComponentTranslation("adm.data_imprint.gt_hint_bind", Integer.valueOf(gtList.tagCount())));
                 return;
             }
             player.addChatMessage(new ChatComponentTranslation("adm.data_imprint.error.no_block_nbt"));

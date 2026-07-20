@@ -9,8 +9,10 @@ import com.imgood.textech.AdvanceDataMonitor;
 /**
  * Reads pre-rendered Dynmap HD PNG tiles from the local tile root.
  *
- * <p>Tile lookup path:
- * {@code <tileRoot>/<worldName>/<perspective>/<zoomPrefix>/<tileX>_<tileZ>.png}</p>
+ * <p>
+ * Tile lookup path:
+ * {@code <tileRoot>/<worldName>/<perspective>/<zoomPrefix>/<tileX>_<tileZ>.png}
+ * </p>
  */
 public final class WorldMapDynmapTileProvider {
 
@@ -34,7 +36,8 @@ public final class WorldMapDynmapTileProvider {
 
         // Try primary zoom prefix (z_)
         String zoomPrefix = WorldMapDynmapCoordMapper.zoomPrefix(zoom);
-        Path tilePath = worldDir.resolve(perspective).resolve(zoomPrefix)
+        Path tilePath = worldDir.resolve(perspective)
+            .resolve(zoomPrefix)
             .resolve(tileX + "_" + tileZ + ".png");
         byte[] data = readFile(tilePath);
         if (data != null) {
@@ -43,7 +46,8 @@ public final class WorldMapDynmapTileProvider {
 
         // Try alternative zoom prefix (zz_)
         String altZoomPrefix = WorldMapDynmapCoordMapper.altZoomPrefix(zoom);
-        Path altTilePath = worldDir.resolve(perspective).resolve(altZoomPrefix)
+        Path altTilePath = worldDir.resolve(perspective)
+            .resolve(altZoomPrefix)
             .resolve(tileX + "_" + tileZ + ".png");
         return readFile(altTilePath);
     }
@@ -57,7 +61,8 @@ public final class WorldMapDynmapTileProvider {
             return false;
         }
         Path perspectiveDir = worldDir.resolve(perspective);
-        return perspectiveDir.toFile().isDirectory();
+        return perspectiveDir.toFile()
+            .isDirectory();
     }
 
     /**
@@ -70,7 +75,9 @@ public final class WorldMapDynmapTileProvider {
         }
         String[] candidates = { "flat", "iso_SE_30_hires" };
         for (String p : candidates) {
-            if (worldDir.resolve(p).toFile().isDirectory()) {
+            if (worldDir.resolve(p)
+                .toFile()
+                .isDirectory()) {
                 return true;
             }
         }

@@ -73,14 +73,15 @@ public final class PacketScreenshotUploadAck implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketScreenshotUploadAck message, MessageContext ctx) {
-            net.minecraft.client.Minecraft.getMinecraft().func_152344_a(new Runnable() {
+            net.minecraft.client.Minecraft.getMinecraft()
+                .func_152344_a(new Runnable() {
 
-                @Override
-                public void run() {
-                    ClientScreenshotService.instance()
-                        .onUploadAck(message.uploadId, message.success, message.message, message.attachmentId);
-                }
-            });
+                    @Override
+                    public void run() {
+                        ClientScreenshotService.instance()
+                            .onUploadAck(message.uploadId, message.success, message.message, message.attachmentId);
+                    }
+                });
             return null;
         }
     }

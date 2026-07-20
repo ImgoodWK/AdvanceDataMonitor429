@@ -84,7 +84,9 @@ public final class AlertsHandler {
                 + ",\"rules\":"
                 + GSON.toJson(clientRules)
                 + ",\"deliveryStatus\":"
-                + GSON.toJson(WebhookDispatcher.instance().getStatus())
+                + GSON.toJson(
+                    WebhookDispatcher.instance()
+                        .getStatus())
                 + "}");
     }
 
@@ -100,7 +102,9 @@ public final class AlertsHandler {
                 + ",\"rules\":"
                 + GSON.toJson(clientRules)
                 + ",\"deliveryStatus\":"
-                + GSON.toJson(WebhookDispatcher.instance().getStatus())
+                + GSON.toJson(
+                    WebhookDispatcher.instance()
+                        .getStatus())
                 + "}");
     }
 
@@ -145,7 +149,9 @@ public final class AlertsHandler {
                 + ",\"canEditRules\":true,\"rules\":"
                 + GSON.toJson(clientRules)
                 + ",\"deliveryStatus\":"
-                + GSON.toJson(WebhookDispatcher.instance().getStatus())
+                + GSON.toJson(
+                    WebhookDispatcher.instance()
+                        .getStatus())
                 + "}");
     }
 
@@ -161,7 +167,9 @@ public final class AlertsHandler {
         } catch (Exception e) {
             request = null;
         }
-        if (request == null || request.id == null || request.id.trim().isEmpty()
+        if (request == null || request.id == null
+            || request.id.trim()
+                .isEmpty()
             || (!"target".equals(request.kind) && !"webhook".equals(request.kind))) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
@@ -192,8 +200,9 @@ public final class AlertsHandler {
         }
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"queued\":true,\"deliveryStatus\":"
-                + GSON.toJson(WebhookDispatcher.instance().getStatus())
+            "{\"success\":true,\"queued\":true,\"deliveryStatus\":" + GSON.toJson(
+                WebhookDispatcher.instance()
+                    .getStatus())
                 + "}");
     }
 
@@ -218,14 +227,16 @@ public final class AlertsHandler {
         if (credentials.error != null) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
-                "{\"success\":false,\"message\":\"" + escapeJson(credentials.error) + "\",\"code\":\"invalid_qq_probe\"}");
+                "{\"success\":false,\"message\":\"" + escapeJson(credentials.error)
+                    + "\",\"code\":\"invalid_qq_probe\"}");
         }
         QqIdProbeService.StartResult started = QqIdProbeService.instance()
             .start(credentials.appId, credentials.appSecret, credentials.baseUrl, credentials.tokenUrl, 0L);
         if (!started.success) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
-                "{\"success\":false,\"message\":\"" + escapeJson(started.error) + "\",\"code\":\"qq_probe_start_failed\"}");
+                "{\"success\":false,\"message\":\"" + escapeJson(started.error)
+                    + "\",\"code\":\"qq_probe_start_failed\"}");
         }
         return qqProbeStatusResponse();
     }
@@ -245,12 +256,14 @@ public final class AlertsHandler {
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"message\":\"Admin permission required to stop QQ ID probe\",\"code\":\"admin_required\"}");
         }
-        QqIdProbeService.instance().stop();
+        QqIdProbeService.instance()
+            .stop();
         return qqProbeStatusResponse();
     }
 
     private static NanoHTTPD.Response qqProbeStatusResponse() {
-        QqIdProbeService.Status status = QqIdProbeService.instance().snapshot();
+        QqIdProbeService.Status status = QqIdProbeService.instance()
+            .snapshot();
         return json(
             NanoHTTPD.Response.Status.OK,
             "{\"success\":true,\"running\":" + status.running

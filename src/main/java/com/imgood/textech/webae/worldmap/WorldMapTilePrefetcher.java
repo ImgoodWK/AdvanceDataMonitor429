@@ -85,8 +85,7 @@ public final class WorldMapTilePrefetcher {
         }
         int max = Math.max(1, Config.webWorldMapMaxChunks);
         int count = 0;
-        outer:
-        for (int cx = dimInfo.minChunkX; cx <= dimInfo.maxChunkX; cx++) {
+        outer: for (int cx = dimInfo.minChunkX; cx <= dimInfo.maxChunkX; cx++) {
             for (int cz = dimInfo.minChunkZ; cz <= dimInfo.maxChunkZ; cz++) {
                 if (count >= max) {
                     break outer;

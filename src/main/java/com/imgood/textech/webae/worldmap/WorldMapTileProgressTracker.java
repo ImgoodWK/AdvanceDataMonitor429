@@ -27,7 +27,9 @@ public final class WorldMapTileProgressTracker {
     private static final WorldMapTileProgressTracker INSTANCE = new WorldMapTileProgressTracker();
 
     /** LRU-ordered session map: key = network|dim|view|quality */
-    private final LinkedHashMap<String, SessionState> sessions = new LinkedHashMap<String, SessionState>(16, 0.75f,
+    private final LinkedHashMap<String, SessionState> sessions = new LinkedHashMap<String, SessionState>(
+        16,
+        0.75f,
         true);
 
     private WorldMapTileProgressTracker() {}
@@ -263,4 +265,3 @@ public final class WorldMapTileProgressTracker {
         final Map<String, ChunkProgress> chunks = new HashMap<String, ChunkProgress>();
     }
 }
-

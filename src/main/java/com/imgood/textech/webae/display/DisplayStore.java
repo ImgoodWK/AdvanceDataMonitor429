@@ -50,7 +50,10 @@ public final class DisplayStore {
         File[] files = dir.listFiles();
         if (files != null) {
             for (File file : files) {
-                if (file == null || !file.isFile() || !file.getName().endsWith(".json")) continue;
+                if (file == null || !file.isFile()
+                    || !file.getName()
+                        .endsWith(".json"))
+                    continue;
                 try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), "UTF-8")) {
                     DisplayRecord record = GSON.fromJson(reader, DisplayRecord.class);
                     if (record == null || record.id == null || record.viewToken == null) continue;
@@ -202,8 +205,9 @@ public final class DisplayStore {
                 .iterator();
             while (it.hasNext()) {
                 Map.Entry<String, JsonElement> entry = it.next();
-                String key = entry.getKey() == null ? "" : entry.getKey()
-                    .toLowerCase();
+                String key = entry.getKey() == null ? ""
+                    : entry.getKey()
+                        .toLowerCase();
                 if (isSecretKey(key)) {
                     it.remove();
                     continue;
@@ -218,10 +222,15 @@ public final class DisplayStore {
     }
 
     private static boolean isSecretKey(String key) {
-        return key.contains("token") || key.contains("apikey") || key.contains("api_key") || key.contains("secret")
-            || key.contains("password") || key.contains("webhook") || key.contains("authorization")
-            || key.equals("bearer") || key.contains("qq") && key.contains("key") || key.contains("mail")
-                && (key.contains("pass") || key.contains("auth"));
+        return key.contains("token") || key.contains("apikey")
+            || key.contains("api_key")
+            || key.contains("secret")
+            || key.contains("password")
+            || key.contains("webhook")
+            || key.contains("authorization")
+            || key.equals("bearer")
+            || key.contains("qq") && key.contains("key")
+            || key.contains("mail") && (key.contains("pass") || key.contains("auth"));
     }
 
     private static JsonObject deepCopyObject(JsonObject src) {

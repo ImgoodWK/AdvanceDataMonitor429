@@ -21,16 +21,24 @@ public final class AgentDebugLog91f018 {
         }
         lineCount++;
         long ts = System.currentTimeMillis();
-        String line = "{\"sessionId\":\"" + SESSION + "\",\"hypothesisId\":\"" + esc(hypothesisId)
-            + "\",\"location\":\"" + esc(location) + "\",\"message\":\"" + esc(message) + "\",\"data\":"
-            + (dataJson != null ? dataJson : "{}") + ",\"timestamp\":" + ts + "}";
+        String line = "{\"sessionId\":\"" + SESSION
+            + "\",\"hypothesisId\":\""
+            + esc(hypothesisId)
+            + "\",\"location\":\""
+            + esc(location)
+            + "\",\"message\":\""
+            + esc(message)
+            + "\",\"data\":"
+            + (dataJson != null ? dataJson : "{}")
+            + ",\"timestamp\":"
+            + ts
+            + "}";
         FileWriter fw = null;
         try {
             fw = new FileWriter(resolveLogFile(), true);
             fw.write(line);
             fw.write('\n');
-        } catch (IOException ignored) {
-        } finally {
+        } catch (IOException ignored) {} finally {
             if (fw != null) {
                 try {
                     fw.close();
@@ -51,6 +59,7 @@ public final class AgentDebugLog91f018 {
         if (s == null) {
             return "";
         }
-        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+        return s.replace("\\", "\\\\")
+            .replace("\"", "\\\"");
     }
 }

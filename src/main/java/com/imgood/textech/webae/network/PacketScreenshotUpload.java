@@ -36,9 +36,8 @@ public final class PacketScreenshotUpload implements IMessage {
 
     public PacketScreenshotUpload() {}
 
-    public PacketScreenshotUpload(String uploadId, int chunkIndex, int totalChunks, int totalBytes,
-        String destination, String targetType, String targetId, String caption, String fileName, int width,
-        int height, byte[] chunk) {
+    public PacketScreenshotUpload(String uploadId, int chunkIndex, int totalChunks, int totalBytes, String destination,
+        String targetType, String targetId, String caption, String fileName, int width, int height, byte[] chunk) {
         this.uploadId = safe(uploadId);
         this.chunkIndex = chunkIndex;
         this.totalChunks = totalChunks;
@@ -132,7 +131,8 @@ public final class PacketScreenshotUpload implements IMessage {
             EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null ? null
                 : ctx.getServerHandler().playerEntity;
             if (player == null) return null;
-            return ScreenshotUploadService.instance().accept(player, message);
+            return ScreenshotUploadService.instance()
+                .accept(player, message);
         }
     }
 }

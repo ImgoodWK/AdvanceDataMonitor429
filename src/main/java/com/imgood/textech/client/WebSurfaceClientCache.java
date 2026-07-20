@@ -121,9 +121,12 @@ public final class WebSurfaceClientCache {
             if (last != null && now - last.longValue() < REQUEST_RETRY_MS) return;
             LAST_REQUEST.put(requestKey, Long.valueOf(now));
             if (LAST_REQUEST.size() > 128) {
-                Iterator<Map.Entry<String, Long>> iterator = LAST_REQUEST.entrySet().iterator();
+                Iterator<Map.Entry<String, Long>> iterator = LAST_REQUEST.entrySet()
+                    .iterator();
                 while (iterator.hasNext()) {
-                    if (now - iterator.next().getValue().longValue() > 30000L) iterator.remove();
+                    if (now - iterator.next()
+                        .getValue()
+                        .longValue() > 30000L) iterator.remove();
                 }
             }
         }
@@ -195,7 +198,8 @@ public final class WebSurfaceClientCache {
         try {
             image = rasterize(WebDashboardSnapshotCodec.decode(payload), width);
         } catch (Throwable t) {
-            error = t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
+            error = t.getMessage() == null ? t.getClass()
+                .getSimpleName() : t.getMessage();
         }
         synchronized (LOCK) {
             PENDING_RASTERS.remove(textureKey);
@@ -282,8 +286,8 @@ public final class WebSurfaceClientCache {
         } else if ("right".equals(primitive.align)) {
             x += Math.max(0.0F, primitive.width - textWidth);
         }
-        float y = primitive.y + Math.max(metrics.getAscent(), (primitive.height - metrics.getHeight()) / 2.0F
-            + metrics.getAscent());
+        float y = primitive.y
+            + Math.max(metrics.getAscent(), (primitive.height - metrics.getHeight()) / 2.0F + metrics.getAscent());
         Shape oldClip = graphics.getClip();
         graphics.clip(new java.awt.geom.Rectangle2D.Float(primitive.x, primitive.y, primitive.width, primitive.height));
         graphics.drawString(primitive.text, x, y);
@@ -308,7 +312,8 @@ public final class WebSurfaceClientCache {
 
     private static void trimContentLocked() {
         while (CONTENT.size() > MAX_CONTENTS) {
-            Iterator<Map.Entry<String, byte[]>> iterator = CONTENT.entrySet().iterator();
+            Iterator<Map.Entry<String, byte[]>> iterator = CONTENT.entrySet()
+                .iterator();
             if (!iterator.hasNext()) break;
             iterator.next();
             iterator.remove();
@@ -318,9 +323,11 @@ public final class WebSurfaceClientCache {
     private static void trimTexturesLocked() {
         long pixels = 0L;
         for (TextureEntry entry : TEXTURES.values()) pixels += entry.pixels;
-        Iterator<Map.Entry<String, TextureEntry>> iterator = TEXTURES.entrySet().iterator();
+        Iterator<Map.Entry<String, TextureEntry>> iterator = TEXTURES.entrySet()
+            .iterator();
         while ((TEXTURES.size() > MAX_TEXTURES || pixels > MAX_TEXTURE_PIXELS) && iterator.hasNext()) {
-            TextureEntry entry = iterator.next().getValue();
+            TextureEntry entry = iterator.next()
+                .getValue();
             pixels -= entry.pixels;
             entry.texture.deleteGlTexture();
             iterator.remove();

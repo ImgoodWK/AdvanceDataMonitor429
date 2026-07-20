@@ -372,7 +372,9 @@ public class IconStore {
             if (i > 0) idJoin.append('\n');
             idJoin.append(ids.get(i));
         }
-        String idsHash = Integer.toHexString(idJoin.toString().hashCode());
+        String idsHash = Integer.toHexString(
+            idJoin.toString()
+                .hashCode());
         String uploadedAt = readManifestUploadedAt(packName);
         String version = packName + "|" + mode + "|" + ids.size() + "|" + maxMtime + "|" + idsHash;
         return new SyncManifest(packName, mode, ids.size(), version, uploadedAt, idsHash);

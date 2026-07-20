@@ -163,7 +163,8 @@ public final class QuestInventoryEscrow {
                     continue;
                 }
 
-                if (step.fluidName != null && !step.fluidName.isEmpty() && step.fluidRemaining > 0
+                if (step.fluidName != null && !step.fluidName.isEmpty()
+                    && step.fluidRemaining > 0
                     && (step.registryName == null || step.registryName.isEmpty() || !step.fluidCellTask)) {
                     long already = countFluidInSession(session, step.fluidName);
                     long need = step.fluidRemaining - already;
@@ -182,8 +183,16 @@ public final class QuestInventoryEscrow {
                         returnedItems,
                         returnedFluids);
                     if (got < 0) {
-                        failLock(storageGrid, source, extractedItems, extractedFluids, returnedItems, returnedFluids,
-                            session, itemsBefore, fluidsBefore);
+                        failLock(
+                            storageGrid,
+                            source,
+                            extractedItems,
+                            extractedFluids,
+                            returnedItems,
+                            returnedFluids,
+                            session,
+                            itemsBefore,
+                            fluidsBefore);
                         result.message = "Failed to escrow fluid: " + step.fluidName;
                         return result;
                     }
@@ -218,8 +227,16 @@ public final class QuestInventoryEscrow {
                             extractedFluids,
                             returnedItems,
                             returnedFluids)) {
-                            failLock(storageGrid, source, extractedItems, extractedFluids, returnedItems, returnedFluids,
-                                session, itemsBefore, fluidsBefore);
+                            failLock(
+                                storageGrid,
+                                source,
+                                extractedItems,
+                                extractedFluids,
+                                returnedItems,
+                                returnedFluids,
+                                session,
+                                itemsBefore,
+                                fluidsBefore);
                             result.message = "Failed to escrow fluid-cell detect: " + step.registryName;
                             return result;
                         }
@@ -235,17 +252,39 @@ public final class QuestInventoryEscrow {
                             extractedFluids,
                             returnedItems,
                             returnedFluids)) {
-                            failLock(storageGrid, source, extractedItems, extractedFluids, returnedItems, returnedFluids,
-                                session, itemsBefore, fluidsBefore);
+                            failLock(
+                                storageGrid,
+                                source,
+                                extractedItems,
+                                extractedFluids,
+                                returnedItems,
+                                returnedFluids,
+                                session,
+                                itemsBefore,
+                                fluidsBefore);
                             result.message = "Failed to escrow fluid-cell submit: " + step.registryName;
                             return result;
                         }
                     } else {
-                        long got = extractItems(storageGrid, source, step.registryName, step.meta, need, session,
+                        long got = extractItems(
+                            storageGrid,
+                            source,
+                            step.registryName,
+                            step.meta,
+                            need,
+                            session,
                             extractedItems);
                         if (got < 0) {
-                            failLock(storageGrid, source, extractedItems, extractedFluids, returnedItems, returnedFluids,
-                                session, itemsBefore, fluidsBefore);
+                            failLock(
+                                storageGrid,
+                                source,
+                                extractedItems,
+                                extractedFluids,
+                                returnedItems,
+                                returnedFluids,
+                                session,
+                                itemsBefore,
+                                fluidsBefore);
                             result.message = "Failed to escrow item: " + step.registryName;
                             return result;
                         }
@@ -253,8 +292,16 @@ public final class QuestInventoryEscrow {
                 }
             }
         } catch (Throwable t) {
-            failLock(storageGrid, source, extractedItems, extractedFluids, returnedItems, returnedFluids, session,
-                itemsBefore, fluidsBefore);
+            failLock(
+                storageGrid,
+                source,
+                extractedItems,
+                extractedFluids,
+                returnedItems,
+                returnedFluids,
+                session,
+                itemsBefore,
+                fluidsBefore);
             result.message = "Escrow lock error: " + t.toString();
             AdvanceDataMonitor.LOG.warn("[WebAE Quest] Escrow lock error", t);
             return result;
@@ -385,8 +432,9 @@ public final class QuestInventoryEscrow {
             if (held == null || held.getFluid() == null) {
                 continue;
             }
-            if (fluidName.equalsIgnoreCase(held.getFluid()
-                .getName())) {
+            if (fluidName.equalsIgnoreCase(
+                held.getFluid()
+                    .getName())) {
                 total += held.amount;
             }
         }
@@ -406,7 +454,8 @@ public final class QuestInventoryEscrow {
             if (!isSubmit && !isDetect) {
                 continue;
             }
-            if (step.fluidName != null && !step.fluidName.isEmpty() && step.fluidRemaining > 0
+            if (step.fluidName != null && !step.fluidName.isEmpty()
+                && step.fluidRemaining > 0
                 && (step.registryName == null || step.registryName.isEmpty() || !step.fluidCellTask)) {
                 long have = countFluidInSession(session, step.fluidName);
                 if (have < step.fluidRemaining) {
@@ -433,9 +482,8 @@ public final class QuestInventoryEscrow {
     }
 
     private static boolean lockCellDetectPartial(IStorageGrid storageGrid, PlayerSource source,
-        QuestAnalysisStepDto step, long need, boolean includeAll, Session session,
-        List<IAEItemStack> extractedItems, List<IAEFluidStack> extractedFluids,
-        List<IAEItemStack> returnedItems, List<IAEFluidStack> returnedFluids) {
+        QuestAnalysisStepDto step, long need, boolean includeAll, Session session, List<IAEItemStack> extractedItems,
+        List<IAEFluidStack> extractedFluids, List<IAEItemStack> returnedItems, List<IAEFluidStack> returnedFluids) {
         long gotItems = extractItems(storageGrid, source, step.registryName, step.meta, need, session, extractedItems);
         if (gotItems < 0) {
             return false;
@@ -466,9 +514,8 @@ public final class QuestInventoryEscrow {
     }
 
     private static boolean lockCellSubmitPartial(IStorageGrid storageGrid, PlayerSource source,
-        QuestAnalysisStepDto step, long need, boolean includeAll, Session session,
-        List<IAEItemStack> extractedItems, List<IAEFluidStack> extractedFluids,
-        List<IAEItemStack> returnedItems, List<IAEFluidStack> returnedFluids) {
+        QuestAnalysisStepDto step, long need, boolean includeAll, Session session, List<IAEItemStack> extractedItems,
+        List<IAEFluidStack> extractedFluids, List<IAEItemStack> returnedItems, List<IAEFluidStack> returnedFluids) {
         long before = countItemInSession(session, step.registryName, step.meta);
         long gotItems = extractItems(storageGrid, source, step.registryName, step.meta, need, session, extractedItems);
         if (gotItems < 0) {
@@ -487,7 +534,8 @@ public final class QuestInventoryEscrow {
         if (fluidName == null || emptyProto == null) {
             return gotItems > 0;
         }
-        int cap = step.fluidCellCapacityMb > 0 ? step.fluidCellCapacityMb : QuestFluidEquivalence.capacityMb(filledProto);
+        int cap = step.fluidCellCapacityMb > 0 ? step.fluidCellCapacityMb
+            : QuestFluidEquivalence.capacityMb(filledProto);
         if (cap <= 0) {
             cap = 1000;
         }
@@ -509,9 +557,10 @@ public final class QuestInventoryEscrow {
             FluidStack needFs = QuestFluidEquivalence.parseFluid(fluidName, cap);
             if (needFs == null) {
                 if (!injectItemOk(storageGrid, source, empty, returnedItems)) {
-                    returnedItems.add(AEApi.instance()
-                        .storage()
-                        .createItemStack(empty));
+                    returnedItems.add(
+                        AEApi.instance()
+                            .storage()
+                            .createItemStack(empty));
                 }
                 break;
             }
@@ -553,8 +602,7 @@ public final class QuestInventoryEscrow {
             }
             FluidStack fillFs = QuestFluidEquivalence.parseFluid(fluidName, (int) Math.min(haveFluid, cap));
             ItemStack filled = QuestFluidEquivalence.fillEmpty(empty, fillFs, filledProto);
-            if (filled == null
-                || filled.getItem() != filledProto.getItem()
+            if (filled == null || filled.getItem() != filledProto.getItem()
                 || filled.getItemDamage() != filledProto.getItemDamage()) {
                 if (!injectItemOk(storageGrid, source, empty, returnedItems)) {
                     IAEItemStack aeEmpty = AEApi.instance()
@@ -643,8 +691,9 @@ public final class QuestInventoryEscrow {
             if (ae == null || ae.getFluid() == null) {
                 continue;
             }
-            if (!fluidName.equalsIgnoreCase(ae.getFluid()
-                .getName())) {
+            if (!fluidName.equalsIgnoreCase(
+                ae.getFluid()
+                    .getName())) {
                 continue;
             }
             long take = Math.min(need, ae.getStackSize());
@@ -828,7 +877,8 @@ public final class QuestInventoryEscrow {
             return;
         }
         for (ItemStack held : session.items) {
-            if (held != null && held.getItem() == stack.getItem() && held.getItemDamage() == stack.getItemDamage()
+            if (held != null && held.getItem() == stack.getItem()
+                && held.getItemDamage() == stack.getItemDamage()
                 && ItemStack.areItemStackTagsEqual(held, stack)) {
                 held.stackSize += stack.stackSize;
                 return;
@@ -926,9 +976,7 @@ public final class QuestInventoryEscrow {
         }
         IStorageGrid storageGrid = grid.getCache(IStorageGrid.class);
         if (storageGrid == null) {
-            AdvanceDataMonitor.LOG.error(
-                "[WebAE Quest] Escrow {} release failed: no storage grid",
-                session.escrowId);
+            AdvanceDataMonitor.LOG.error("[WebAE Quest] Escrow {} release failed: no storage grid", session.escrowId);
             return false;
         }
         PlayerSource source = new PlayerSource(player, null);

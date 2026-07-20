@@ -56,7 +56,8 @@ public final class IconDirectCaptureBridge {
                 return null;
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                .interrupt();
             pending.remove(requestId);
             return null;
         }

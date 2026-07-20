@@ -416,10 +416,13 @@ public class NetworkMetricSampler {
                 String key = e.getKey()
                     .trim();
                 if (key.isEmpty() || trackedEntityKeys.contains(key)) {
-                    if (!key.isEmpty() && e.getValue() != null && !e.getValue()
-                        .isEmpty()) {
-                        entityFields.put(key, e.getValue()
-                            .trim());
+                    if (!key.isEmpty() && e.getValue() != null
+                        && !e.getValue()
+                            .isEmpty()) {
+                        entityFields.put(
+                            key,
+                            e.getValue()
+                                .trim());
                     }
                     continue;
                 }

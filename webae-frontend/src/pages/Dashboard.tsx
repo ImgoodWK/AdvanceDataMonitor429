@@ -85,9 +85,12 @@ import {
 } from '@/components/dashboard/SpecialWidgets';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
 import { copyDashboardGameDisplayJson } from '@/utils/dashboardGameDisplayExport';
-import { publishAndCopyDashboardLiveBinding } from '@/utils/dashboardGameDisplayBinding';
+import {
+  publishAndCopyDashboardLiveBinding,
+  warmupLiveDisplayFrame,
+} from '@/utils/dashboardGameDisplayBinding';
+import { ApiClientError, getApiClient } from '@/api/client';
 import { isEmbedDashboardMode } from '@/pages/EmbedDashboard';
-import { getApiClient } from '@/api/client';
 import { createWidgetId } from '@/utils/widgetId';
 import {
   GRID_DRAG_CANCEL_SELECTOR,
@@ -239,17 +242,27 @@ export function Dashboard() {
 
   const handleExportGameDisplay = useCallback(async () => {
     try {
-      await publishAndCopyDashboardLiveBinding({
+      const binding = await publishAndCopyDashboardLiveBinding({
         title: t('dashboard'),
         layout: settings,
         viewportWidth: Math.max(64, Math.round(gridRef.current?.clientWidth || 960)),
         viewportHeight: Math.max(64, Math.round(gridRef.current?.clientHeight || 720)),
         postJson: (url, body) => getApiClient().post(url, body),
       });
-      notify(t('dashboardGameDisplayExportDone'), 'success');
-    } catch {
-      // Fallback: offline visual snapshot if publish is unavailable.
-      if (!gridRef.current) {
+      const warmed = await warmupLiveDisplayFrame({
+        binding,
+        getBlob: (url) => getApiClient().getBlob(url),
+      });
+      if (warmed) {
+        notify(t('dashboardGameDisplayExportDone'), 'success');
+      } else {
+        notify(t('dashboardGameDisplayExportFramePending'), 'warning');
+      }
+    } catch (err) {
+      // Snapshot only when publish itself is unavailable (offline / auth), never after a live publish.
+      const offline =
+        err instanceof ApiClientError && (err.status === 0 || err.status === 401 || err.status === 403);
+      if (!offline || !gridRef.current) {
         notify(t('dashboardGameDisplayExportFailed'), 'error');
         return;
       }

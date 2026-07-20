@@ -359,6 +359,11 @@ public final class ConfigDescriptions {
             "后台自动存储快照的间隔秒数。设为 0 禁用定期快照。默认 30 秒。");
         put(
             "webConsole",
+            "webSurfaceUseMcef",
+            "When true and montoyo MCEF (1.7.10) is installed, advanced monitors prefer a local off-screen Chromium browser. When false or MCEF is missing, host JPEG capture of the real /embed/dashboard SPA is used (no extra mods required). Default true.",
+            "为 true 且已安装 montoyo MCEF（1.7.10）时，监视器优先用本机离屏浏览器。关闭或未安装 MCEF 时走主机对真实 /embed/dashboard 的 JPEG 截帧（无需额外模组）。默认 true。");
+        put(
+            "webConsole",
             "alertsEnabled",
             "Global switch for WebAE alert evaluation and notification delivery. Default true. Rules and per-channel switches remain in TeXTech/WebAE/web-alerts.json.",
             "WebAE 告警检测与通知投递的总开关，默认开启。规则及各提醒渠道开关仍保存在 TeXTech/WebAE/web-alerts.json。");
@@ -367,27 +372,60 @@ public final class ConfigDescriptions {
             "screenshotEnabled",
             "Enable client framebuffer screenshots, local history, and explicit WebAE/QQ sharing. Capturing never reads the desktop. Default true.",
             "启用客户端游戏帧缓冲截图、本地历史及显式发送到 WebAE/QQ；截图不会读取桌面。默认开启。");
-        put("webConsole", "screenshotMaxWidth", "Maximum screenshot width accepted from clients. Default 1920.",
+        put(
+            "webConsole",
+            "screenshotMaxWidth",
+            "Maximum screenshot width accepted from clients. Default 1920.",
             "客户端截图允许的最大宽度。默认 1920。");
-        put("webConsole", "screenshotMaxHeight", "Maximum screenshot height accepted from clients. Default 1080.",
+        put(
+            "webConsole",
+            "screenshotMaxHeight",
+            "Maximum screenshot height accepted from clients. Default 1080.",
             "客户端截图允许的最大高度。默认 1080。");
-        put("webConsole", "screenshotJpegQualityPercent", "Client JPEG quality percentage (30-100). Default 88.",
+        put(
+            "webConsole",
+            "screenshotJpegQualityPercent",
+            "Client JPEG quality percentage (30-100). Default 88.",
             "客户端 JPEG 编码质量百分比（30-100）。默认 88。");
-        put("webConsole", "screenshotMaxUploadKB", "Maximum encoded screenshot upload size in KiB. The server enforces this independently. Default 2048.",
+        put(
+            "webConsole",
+            "screenshotMaxUploadKB",
+            "Maximum encoded screenshot upload size in KiB. The server enforces this independently. Default 2048.",
             "单张截图上传的最大编码体积（KiB），服务端会独立强制校验。默认 2048。");
-        put("webConsole", "screenshotUploadChunksPerTick", "24 KiB screenshot chunks sent per client tick. Keep at 1 for minimum bandwidth impact. Default 1.",
+        put(
+            "webConsole",
+            "screenshotUploadChunksPerTick",
+            "24 KiB screenshot chunks sent per client tick. Keep at 1 for minimum bandwidth impact. Default 1.",
             "客户端每 tick 发送的 24 KiB 截图分片数；为降低带宽影响建议保持 1。默认 1。");
-        put("webConsole", "screenshotUploadCooldownSeconds", "Server cooldown between screenshot upload starts per player. Default 15 seconds.",
+        put(
+            "webConsole",
+            "screenshotUploadCooldownSeconds",
+            "Server cooldown between screenshot upload starts per player. Default 15 seconds.",
             "服务端限制每位玩家开始两次截图上传之间的冷却。默认 15 秒。");
-        put("webConsole", "screenshotClientHistoryMaxFiles", "Maximum locally retained screenshot files per client. Default 100.",
+        put(
+            "webConsole",
+            "screenshotClientHistoryMaxFiles",
+            "Maximum locally retained screenshot files per client. Default 100.",
             "每个客户端本地保留的截图文件上限。默认 100。");
-        put("webConsole", "screenshotClientHistoryMaxMB", "Maximum local screenshot history size in MiB. Cleanup runs only after a capture. Default 256.",
+        put(
+            "webConsole",
+            "screenshotClientHistoryMaxMB",
+            "Maximum local screenshot history size in MiB. Cleanup runs only after a capture. Default 256.",
             "客户端本地截图历史体积上限（MiB）；仅在截图完成后清理。默认 256。");
-        put("webConsole", "screenshotServerHistoryMaxFiles", "Maximum WebAE chat screenshot files retained on the server. Default 200.",
+        put(
+            "webConsole",
+            "screenshotServerHistoryMaxFiles",
+            "Maximum WebAE chat screenshot files retained on the server. Default 200.",
             "服务端为 WebAE 聊天保留的截图文件上限。默认 200。");
-        put("webConsole", "screenshotServerHistoryMaxMB", "Maximum WebAE chat screenshot storage in MiB. Default 256.",
+        put(
+            "webConsole",
+            "screenshotServerHistoryMaxMB",
+            "Maximum WebAE chat screenshot storage in MiB. Default 256.",
             "服务端 WebAE 聊天截图存储体积上限（MiB）。默认 256。");
-        put("webConsole", "screenshotMaxConcurrentUploads", "Maximum aggregate receiving/processing screenshot uploads. Work uses one bounded background worker. Default 4.",
+        put(
+            "webConsole",
+            "screenshotMaxConcurrentUploads",
+            "Maximum aggregate receiving/processing screenshot uploads. Work uses one bounded background worker. Default 4.",
             "服务端同时接收/处理的截图上传总上限；实际处理使用单个有界后台线程。默认 4。");
         put(
             "webConsole",

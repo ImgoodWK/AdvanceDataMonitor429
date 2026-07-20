@@ -28,8 +28,7 @@ public final class WorldMapFaceLighting {
     /**
      * Standard face shading with single-point skyLight/blockLight.
      */
-    public static int shadeRgb(int rgb, WorldMapBlockColorResolver.BlockFace face, int skyLight,
-        int blockLight) {
+    public static int shadeRgb(int rgb, WorldMapBlockColorResolver.BlockFace face, int skyLight, int blockLight) {
         float faceShade = faceShade(face);
         float light = lightFactor(skyLight, blockLight);
         float factor = faceShade * (AMBIENT + light * (1.0f - AMBIENT));

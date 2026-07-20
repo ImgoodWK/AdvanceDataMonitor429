@@ -109,8 +109,7 @@ public final class WebAlertEngine {
     }
 
     private static void checkInventoryThresholds(String ownerUuid, int networkId, WebAlertsConfig cfg,
-        StorageDto storage, Map<String, Long> itemAmounts, Map<String, Long> fluidAmounts,
-        Set<String> activeSources) {
+        StorageDto storage, Map<String, Long> itemAmounts, Map<String, Long> fluidAmounts, Set<String> activeSources) {
         if (cfg.inventoryThresholds == null || cfg.inventoryThresholds.isEmpty()) {
             return;
         }
@@ -196,8 +195,10 @@ public final class WebAlertEngine {
         // Fallback: partial match for rules using short names
         long total = 0L;
         for (java.util.Map.Entry<String, Long> entry : index.entrySet()) {
-            if (entry.getKey().contains(needle) || needle.contains(entry.getKey())) {
-                total += entry.getValue().longValue();
+            if (entry.getKey()
+                .contains(needle) || needle.contains(entry.getKey())) {
+                total += entry.getValue()
+                    .longValue();
             }
         }
         return total;
@@ -211,8 +212,10 @@ public final class WebAlertEngine {
         // Fallback: partial match
         long total = 0L;
         for (java.util.Map.Entry<String, Long> entry : index.entrySet()) {
-            if (entry.getKey().contains(needle)) {
-                total += entry.getValue().longValue();
+            if (entry.getKey()
+                .contains(needle)) {
+                total += entry.getValue()
+                    .longValue();
             }
         }
         return total;

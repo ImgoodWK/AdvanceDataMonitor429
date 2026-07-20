@@ -29,7 +29,8 @@ import com.imgood.textech.TeXTechDataDir;
  */
 public final class WebAdminBootstrapStore {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
     private static final String PREFIX = "wae-adm-";
     private static final int CODE_LENGTH = 32;
 
@@ -44,13 +45,15 @@ public final class WebAdminBootstrapStore {
     /**
      * Generate a high-entropy one-use bootstrap code.
      *
-     * @param issuedBy     who issued this code (player name or "console")
-     * @param label        optional device label
-     * @param allowReuse   if true the code can be consumed multiple times
+     * @param issuedBy   who issued this code (player name or "console")
+     * @param label      optional device label
+     * @param allowReuse if true the code can be consumed multiple times
      * @return the generated code string (with {@code wae-adm-} prefix)
      */
     public static String generate(String issuedBy, String label, boolean allowReuse) {
-        String code = PREFIX + UUID.randomUUID().toString().replace("-", "");
+        String code = PREFIX + UUID.randomUUID()
+            .toString()
+            .replace("-", "");
         BootstrapEntry entry = new BootstrapEntry();
         entry.code = code;
         entry.issuedBy = issuedBy;
@@ -151,7 +154,9 @@ public final class WebAdminBootstrapStore {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to save admin bootstrap file: {}", e.getMessage());
         } finally {
             if (writer != null) {
-                try { writer.close(); } catch (IOException ignored) {}
+                try {
+                    writer.close();
+                } catch (IOException ignored) {}
             }
         }
     }
@@ -172,12 +177,15 @@ public final class WebAdminBootstrapStore {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to load admin bootstrap file: {}", e.getMessage());
         } finally {
             if (reader != null) {
-                try { reader.close(); } catch (IOException ignored) {}
+                try {
+                    reader.close();
+                } catch (IOException ignored) {}
             }
         }
     }
 
     public static final class BootstrapEntry {
+
         public String code;
         public String issuedBy;
         public String label;

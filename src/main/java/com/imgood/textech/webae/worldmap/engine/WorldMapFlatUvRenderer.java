@@ -64,8 +64,8 @@ public final class WorldMapFlatUvRenderer {
                     Block soft = ctx.blockAt(wx, softY, wz);
                     int softMeta = ctx.blockMeta(wx, softY, wz);
                     if (soft != null && soft != Blocks.air) {
-                        WorldMapFaceRasterizer.rasterizeSoftOverlay(img, lx, lz, pxPerBlock, soft, softMeta, wx, wz,
-                            ctx);
+                        WorldMapFaceRasterizer
+                            .rasterizeSoftOverlay(img, lx, lz, pxPerBlock, soft, softMeta, wx, wz, ctx);
                     }
                 }
             }
@@ -94,10 +94,22 @@ public final class WorldMapFlatUvRenderer {
             "B",
             "WorldMapFlatUvRenderer.renderTerrain",
             "chunk render stats",
-            "{\"chunkX\":" + chunkX + ",\"chunkZ\":" + chunkZ + ",\"painted\":" + painted + ",\"avgR\":"
-                + (sumR / pixels) + ",\"avgG\":" + (sumG / pixels) + ",\"avgB\":" + (sumB / pixels)
-                + ",\"colorStats\":" + WorldMapBlockColorResolver.colorStatsJson() + ",\"centerSkyLight\":"
-                + (centerY >= 0 ? ctx.skyLight(centerWx, centerY, centerWz) : -1) + "}");
+            "{\"chunkX\":" + chunkX
+                + ",\"chunkZ\":"
+                + chunkZ
+                + ",\"painted\":"
+                + painted
+                + ",\"avgR\":"
+                + (sumR / pixels)
+                + ",\"avgG\":"
+                + (sumG / pixels)
+                + ",\"avgB\":"
+                + (sumB / pixels)
+                + ",\"colorStats\":"
+                + WorldMapBlockColorResolver.colorStatsJson()
+                + ",\"centerSkyLight\":"
+                + (centerY >= 0 ? ctx.skyLight(centerWx, centerY, centerWz) : -1)
+                + "}");
         // #endregion
         return WorldMapRenderSupport.toPng(img);
     }

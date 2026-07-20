@@ -48,8 +48,8 @@ public final class QuestHandler {
 
     private QuestHandler() {}
 
-    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, Map<String, String> params, String body,
-        String ownerUuid, boolean guest) {
+    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, Map<String, String> params,
+        String body, String ownerUuid, boolean guest) {
         if (!BqCompat.isFeatureEnabled() && !"/api/quests/meta".equals(uri)) {
             return json(
                 NanoHTTPD.Response.Status.OK,
@@ -69,6 +69,7 @@ public final class QuestHandler {
                 return methodNotAllowed("GET");
             }
             return onMainThread(ownerUuid, new MainThreadTask<Object>() {
+
                 @Override
                 public Object run(EntityPlayerMP player) {
                     return QuestDataCollector.collectLines();
@@ -82,6 +83,7 @@ public final class QuestHandler {
             }
             String lineId = uri.substring("/api/quests/lines/".length());
             return onMainThread(ownerUuid, new MainThreadTask<QuestLineGraphDto>() {
+
                 @Override
                 public QuestLineGraphDto run(EntityPlayerMP player) {
                     return QuestDataCollector.collectLineGraph(lineId, player);
@@ -94,6 +96,7 @@ public final class QuestHandler {
                 return methodNotAllowed("GET");
             }
             return onMainThread(ownerUuid, new MainThreadTask<QuestProgressDto>() {
+
                 @Override
                 public QuestProgressDto run(EntityPlayerMP player) {
                     return QuestDataCollector.collectProgress(player);
@@ -107,6 +110,7 @@ public final class QuestHandler {
             }
             final String q = params.get("q");
             return onMainThread(ownerUuid, new MainThreadTask<Object>() {
+
                 @Override
                 public Object run(EntityPlayerMP player) {
                     return QuestDataCollector.search(q, player);
@@ -122,6 +126,7 @@ public final class QuestHandler {
             if (jobId.startsWith("chain-")) {
                 final String chainId = jobId.substring("chain-".length());
                 return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
+
                     @Override
                     public QuestChainSubmitResultDto run(EntityPlayerMP player) {
                         return QuestChainOrchestrator.poll(chainId);
@@ -130,6 +135,7 @@ public final class QuestHandler {
             }
             final String craftJobId = jobId;
             return onMainThread(ownerUuid, new MainThreadTask<QuestCraftJobDto>() {
+
                 @Override
                 public QuestCraftJobDto run(EntityPlayerMP player) {
                     return QuestCraftOrchestrator.resolveSubmitJob(craftJobId);
@@ -143,6 +149,7 @@ public final class QuestHandler {
             }
             final String jobId = uri.substring("/api/quests/chain-jobs/".length());
             return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
+
                 @Override
                 public QuestChainSubmitResultDto run(EntityPlayerMP player) {
                     return QuestChainOrchestrator.poll(jobId);
@@ -163,6 +170,7 @@ public final class QuestHandler {
             final boolean includeAll = parseBool(params.get("includeAllFluidContainers"), false);
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestChainPlanDto>() {
+
                 @Override
                 public QuestChainPlanDto run(EntityPlayerMP player) {
                     return QuestChainService.buildPlan(ownerUuid, networkId, questId, includeAll);
@@ -193,20 +201,16 @@ public final class QuestHandler {
             prefetchRecipesForCraftTree();
             if (craftMissing && !dryRun) {
                 return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
+
                     @Override
                     public QuestChainSubmitResultDto run(EntityPlayerMP player) {
-                        return QuestChainOrchestrator.start(
-                            ownerUuid,
-                            networkId,
-                            questId,
-                            skipMissing,
-                            cpuName,
-                            timeout,
-                            includeAll);
+                        return QuestChainOrchestrator
+                            .start(ownerUuid, networkId, questId, skipMissing, cpuName, timeout, includeAll);
                     }
                 }, "chain");
             }
             return onMainThread(ownerUuid, new MainThreadTask<QuestChainSubmitResultDto>() {
+
                 @Override
                 public QuestChainSubmitResultDto run(EntityPlayerMP player) {
                     return QuestChainService.submitSync(ownerUuid, networkId, questId, dryRun, skipMissing, includeAll);
@@ -222,6 +226,7 @@ public final class QuestHandler {
             final boolean includeAll = parseBool(params.get("includeAllFluidContainers"), false);
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestAnalysisDto>() {
+
                 @Override
                 public QuestAnalysisDto run(EntityPlayerMP player) {
                     QuestDetailDto detail = QuestDataCollector.collectQuestDetail(questId, player);
@@ -242,6 +247,7 @@ public final class QuestHandler {
             final boolean includeAll = detectReq.includeAllFluidContainers;
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestSubmitResultDto>() {
+
                 @Override
                 public QuestSubmitResultDto run(EntityPlayerMP player) {
                     return QuestSubmitService.detectOnly(ownerUuid, questId, detectNetworkId, includeAll);
@@ -265,6 +271,7 @@ public final class QuestHandler {
             final int claimNetworkId = claimReq.networkId;
             final java.util.Map<String, Integer> claimChoices = claimReq.choices;
             return onMainThread(ownerUuid, new MainThreadTask<com.imgood.textech.webae.dto.QuestClaimResultDto>() {
+
                 @Override
                 public com.imgood.textech.webae.dto.QuestClaimResultDto run(EntityPlayerMP player) {
                     return QuestRewardClaimService.claim(ownerUuid, claimNetworkId, questId, claimChoices);
@@ -286,6 +293,7 @@ public final class QuestHandler {
             final boolean includeAll = req != null && req.includeAllFluidContainers;
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestSubmitResultDto>() {
+
                 @Override
                 public QuestSubmitResultDto run(EntityPlayerMP player) {
                     return QuestSubmitService.submit(ownerUuid, networkId, questId, dryRun, steps, includeAll);
@@ -307,15 +315,10 @@ public final class QuestHandler {
             final boolean includeAll = req != null && req.includeAllFluidContainers;
             prefetchRecipesForCraftTree();
             return onMainThread(ownerUuid, new MainThreadTask<QuestCraftJobDto>() {
+
                 @Override
                 public QuestCraftJobDto run(EntityPlayerMP player) {
-                    return QuestCraftOrchestrator.start(
-                        ownerUuid,
-                        networkId,
-                        questId,
-                        cpuName,
-                        timeout,
-                        includeAll);
+                    return QuestCraftOrchestrator.start(ownerUuid, networkId, questId, cpuName, timeout, includeAll);
                 }
             }, "job");
         }
@@ -324,6 +327,7 @@ public final class QuestHandler {
             return methodNotAllowed("GET");
         }
         return onMainThread(ownerUuid, new MainThreadTask<QuestDetailDto>() {
+
             @Override
             public QuestDetailDto run(EntityPlayerMP player) {
                 return QuestDataCollector.collectQuestDetail(questId, player);
@@ -336,8 +340,12 @@ public final class QuestHandler {
             return null;
         }
         String tail = uri.substring("/api/quests/".length());
-        if (tail.isEmpty() || tail.startsWith("lines") || tail.startsWith("progress") || tail.startsWith("search")
-            || tail.startsWith("meta") || tail.startsWith("submit-jobs") || tail.startsWith("chain-jobs")) {
+        if (tail.isEmpty() || tail.startsWith("lines")
+            || tail.startsWith("progress")
+            || tail.startsWith("search")
+            || tail.startsWith("meta")
+            || tail.startsWith("submit-jobs")
+            || tail.startsWith("chain-jobs")) {
             return null;
         }
         int slash = tail.indexOf('/');
@@ -348,6 +356,7 @@ public final class QuestHandler {
     }
 
     private interface MainThreadTask<T> {
+
         T run(EntityPlayerMP player);
     }
 
@@ -361,6 +370,7 @@ public final class QuestHandler {
         final Object[] holder = new Object[1];
         final CountDownLatch latch = new CountDownLatch(1);
         HandlerTick.enqueueServerTask(new Runnable() {
+
             @Override
             public void run() {
                 try {
@@ -387,9 +397,7 @@ public final class QuestHandler {
         if (holder[0] instanceof Throwable) {
             return json(
                 NanoHTTPD.Response.Status.INTERNAL_ERROR,
-                "{\"success\":false,\"message\":\""
-                    + escape(((Throwable) holder[0]).toString())
-                    + "\"}");
+                "{\"success\":false,\"message\":\"" + escape(((Throwable) holder[0]).toString()) + "\"}");
         }
         return json(
             NanoHTTPD.Response.Status.OK,
@@ -407,9 +415,8 @@ public final class QuestHandler {
                 .getAsJsonObject();
             req.networkId = obj.has("networkId") ? obj.get("networkId")
                 .getAsInt() : 0;
-            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
-                && obj.get("includeAllFluidContainers")
-                    .getAsBoolean();
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers") && obj.get("includeAllFluidContainers")
+                .getAsBoolean();
         } catch (Exception ignored) {}
         return req;
     }
@@ -429,9 +436,8 @@ public final class QuestHandler {
                 .getAsInt() : 0;
             req.dryRun = !obj.has("dryRun") || obj.get("dryRun")
                 .getAsBoolean();
-            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
-                && obj.get("includeAllFluidContainers")
-                    .getAsBoolean();
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers") && obj.get("includeAllFluidContainers")
+                .getAsBoolean();
             if (obj.has("steps") && obj.get("steps")
                 .isJsonArray()) {
                 req.steps = new ArrayList<Integer>();
@@ -468,9 +474,8 @@ public final class QuestHandler {
                 req.waitTimeoutMs = obj.get("waitTimeoutMs")
                     .getAsLong();
             }
-            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
-                && obj.get("includeAllFluidContainers")
-                    .getAsBoolean();
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers") && obj.get("includeAllFluidContainers")
+                .getAsBoolean();
         } catch (Exception ignored) {}
         return req;
     }
@@ -491,36 +496,40 @@ public final class QuestHandler {
                 .isJsonObject()) {
                 JsonObject choices = obj.getAsJsonObject("choices");
                 for (Map.Entry<String, JsonElement> entry : choices.entrySet()) {
-                    if (entry.getKey() == null || entry.getValue() == null || entry.getValue()
-                        .isJsonNull()) {
-                        continue;
-                    }
-                    try {
-                        req.choices.put(entry.getKey(), Integer.valueOf(entry.getValue()
-                            .getAsInt()));
-                    } catch (Exception ignored) {}
-                }
-            } else if (obj.has("choices") && obj.get("choices")
-                .isJsonArray()) {
-                JsonArray arr = obj.getAsJsonArray("choices");
-                for (JsonElement el : arr) {
-                    if (el == null || !el.isJsonObject()) {
-                        continue;
-                    }
-                    JsonObject row = el.getAsJsonObject();
-                    if (!row.has("rewardId") || !row.has("choiceIndex")) {
+                    if (entry.getKey() == null || entry.getValue() == null
+                        || entry.getValue()
+                            .isJsonNull()) {
                         continue;
                     }
                     try {
                         req.choices.put(
-                            row.get("rewardId")
-                                .getAsString(),
+                            entry.getKey(),
                             Integer.valueOf(
-                                row.get("choiceIndex")
+                                entry.getValue()
                                     .getAsInt()));
                     } catch (Exception ignored) {}
                 }
-            }
+            } else if (obj.has("choices") && obj.get("choices")
+                .isJsonArray()) {
+                    JsonArray arr = obj.getAsJsonArray("choices");
+                    for (JsonElement el : arr) {
+                        if (el == null || !el.isJsonObject()) {
+                            continue;
+                        }
+                        JsonObject row = el.getAsJsonObject();
+                        if (!row.has("rewardId") || !row.has("choiceIndex")) {
+                            continue;
+                        }
+                        try {
+                            req.choices.put(
+                                row.get("rewardId")
+                                    .getAsString(),
+                                Integer.valueOf(
+                                    row.get("choiceIndex")
+                                        .getAsInt()));
+                        } catch (Exception ignored) {}
+                    }
+                }
         } catch (Exception ignored) {}
         return req;
     }
@@ -551,9 +560,8 @@ public final class QuestHandler {
                 req.waitTimeoutMs = obj.get("waitTimeoutMs")
                     .getAsLong();
             }
-            req.includeAllFluidContainers = obj.has("includeAllFluidContainers")
-                && obj.get("includeAllFluidContainers")
-                    .getAsBoolean();
+            req.includeAllFluidContainers = obj.has("includeAllFluidContainers") && obj.get("includeAllFluidContainers")
+                .getAsBoolean();
         } catch (Exception ignored) {}
         return req;
     }
@@ -601,16 +609,19 @@ public final class QuestHandler {
     }
 
     private static final class DetectBody {
+
         int networkId;
         boolean includeAllFluidContainers;
     }
 
     private static final class ClaimBody {
+
         int networkId;
         java.util.Map<String, Integer> choices = new java.util.HashMap<String, Integer>();
     }
 
     private static final class SubmitBody {
+
         int networkId;
         boolean dryRun = true;
         List<Integer> steps;
@@ -618,6 +629,7 @@ public final class QuestHandler {
     }
 
     private static final class SubmitCraftBody {
+
         int networkId;
         String cpuName;
         long waitTimeoutMs;
@@ -625,6 +637,7 @@ public final class QuestHandler {
     }
 
     private static final class ChainSubmitBody {
+
         int networkId;
         boolean dryRun;
         boolean skipMissing = true;

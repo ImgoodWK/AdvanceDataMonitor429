@@ -61,7 +61,8 @@ public final class WebAiConfigStore {
     private static final int GCM_TAG_BITS = 128;
     private static final int MAX_KEY_LENGTH = 8192;
     private static final int MAX_PROFILES = 32;
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final WebAiConfigStore INSTANCE = new WebAiConfigStore();
 
@@ -140,7 +141,8 @@ public final class WebAiConfigStore {
             item.model = profile.model;
             item.hasApiKey = profile.encryptedApiKey != null && !profile.encryptedApiKey.isEmpty();
             item.apiKeyHint = item.hasApiKey ? profile.apiKeyHint : "";
-            item.configured = profile.enabled && item.hasApiKey && !safe(profile.baseUrl).isEmpty()
+            item.configured = profile.enabled && item.hasApiKey
+                && !safe(profile.baseUrl).isEmpty()
                 && !safe(profile.model).isEmpty();
             if (item.configured) view.enabledCount++;
             view.profiles.add(item);
@@ -264,7 +266,8 @@ public final class WebAiConfigStore {
             }
             boolean loopback = "localhost".equals(host) || "127.0.0.1".equals(host) || "::1".equals(host);
             if (!"https".equals(scheme) && !("http".equals(scheme) && loopback)) {
-                throw new IllegalArgumentException("AI API base URL must use HTTPS; HTTP is allowed only for loopback.");
+                throw new IllegalArgumentException(
+                    "AI API base URL must use HTTPS; HTTP is allowed only for loopback.");
             }
         } catch (IllegalArgumentException e) {
             throw e;
@@ -312,12 +315,17 @@ public final class WebAiConfigStore {
     }
 
     private StoredConfig parseStored(String json) {
-        JsonObject root = new JsonParser().parse(json).getAsJsonObject();
+        JsonObject root = new JsonParser().parse(json)
+            .getAsJsonObject();
         StoredConfig config = new StoredConfig();
-        config.version = root.has("version") ? root.get("version").getAsInt() : 1;
-        config.updatedAt = root.has("updatedAt") ? root.get("updatedAt").getAsLong() : 0L;
-        config.updatedBy = root.has("updatedBy") ? root.get("updatedBy").getAsString() : "";
-        if (root.has("profiles") && root.get("profiles").isJsonArray()) {
+        config.version = root.has("version") ? root.get("version")
+            .getAsInt() : 1;
+        config.updatedAt = root.has("updatedAt") ? root.get("updatedAt")
+            .getAsLong() : 0L;
+        config.updatedBy = root.has("updatedBy") ? root.get("updatedBy")
+            .getAsString() : "";
+        if (root.has("profiles") && root.get("profiles")
+            .isJsonArray()) {
             config.profiles = new ArrayList<StoredProfile>();
             JsonArray array = root.getAsJsonArray("profiles");
             for (JsonElement element : array) {
@@ -329,21 +337,31 @@ public final class WebAiConfigStore {
             StoredProfile profile = new StoredProfile();
             profile.id = "default";
             profile.name = "Default";
-            profile.enabled = root.has("enabled") ? root.get("enabled").getAsBoolean() : true;
+            profile.enabled = root.has("enabled") ? root.get("enabled")
+                .getAsBoolean() : true;
             profile.order = 0;
-            profile.providerId = root.has("providerId") ? root.get("providerId").getAsString() : "deepseek";
-            profile.baseUrl = root.has("baseUrl") ? root.get("baseUrl").getAsString() : "";
-            profile.model = root.has("model") ? root.get("model").getAsString() : "";
-            profile.encryptedApiKey = root.has("encryptedApiKey") ? root.get("encryptedApiKey").getAsString() : "";
-            profile.apiKeyHint = root.has("apiKeyHint") ? root.get("apiKeyHint").getAsString() : "";
-            profile.timeoutSeconds = root.has("timeoutSeconds") ? root.get("timeoutSeconds").getAsInt() : 45;
-            profile.temperature = root.has("temperature") ? root.get("temperature").getAsDouble() : 0.1D;
-            profile.maxTokens = root.has("maxTokens") ? root.get("maxTokens").getAsInt() : 1200;
+            profile.providerId = root.has("providerId") ? root.get("providerId")
+                .getAsString() : "deepseek";
+            profile.baseUrl = root.has("baseUrl") ? root.get("baseUrl")
+                .getAsString() : "";
+            profile.model = root.has("model") ? root.get("model")
+                .getAsString() : "";
+            profile.encryptedApiKey = root.has("encryptedApiKey") ? root.get("encryptedApiKey")
+                .getAsString() : "";
+            profile.apiKeyHint = root.has("apiKeyHint") ? root.get("apiKeyHint")
+                .getAsString() : "";
+            profile.timeoutSeconds = root.has("timeoutSeconds") ? root.get("timeoutSeconds")
+                .getAsInt() : 45;
+            profile.temperature = root.has("temperature") ? root.get("temperature")
+                .getAsDouble() : 0.1D;
+            profile.maxTokens = root.has("maxTokens") ? root.get("maxTokens")
+                .getAsInt() : 1200;
             config.profiles = new ArrayList<StoredProfile>();
             config.profiles.add(profile);
             config.version = 2;
         }
-        if (root.has("search") && root.get("search").isJsonObject()) {
+        if (root.has("search") && root.get("search")
+            .isJsonObject()) {
             config.search = GSON.fromJson(root.get("search"), StoredSearch.class);
         } else {
             config.search = defaultSearch();
@@ -354,7 +372,8 @@ public final class WebAiConfigStore {
     private void save(StoredConfig config) {
         File target = settingsFile();
         File temp = new File(target.getParentFile(), target.getName() + ".tmp");
-        target.getParentFile().mkdirs();
+        target.getParentFile()
+            .mkdirs();
         try (BufferedWriter writer = new BufferedWriter(
             new OutputStreamWriter(new FileOutputStream(temp, false), StandardCharsets.UTF_8))) {
             GSON.toJson(config, writer);
@@ -364,7 +383,10 @@ public final class WebAiConfigStore {
         restrictOwnerOnly(temp);
         try {
             try {
-                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING,
+                Files.move(
+                    temp.toPath(),
+                    target.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException ignored) {
                 Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -462,14 +484,15 @@ public final class WebAiConfigStore {
             if (Boolean.TRUE.equals(update.clearApiKey)) {
                 profile.encryptedApiKey = "";
                 profile.apiKeyHint = "";
-            } else if (update.apiKey != null && !update.apiKey.trim().isEmpty()) {
-                String apiKey = update.apiKey.trim();
-                if (apiKey.length() > MAX_KEY_LENGTH) {
-                    throw new IllegalArgumentException("API key is too long.");
+            } else if (update.apiKey != null && !update.apiKey.trim()
+                .isEmpty()) {
+                    String apiKey = update.apiKey.trim();
+                    if (apiKey.length() > MAX_KEY_LENGTH) {
+                        throw new IllegalArgumentException("API key is too long.");
+                    }
+                    profile.encryptedApiKey = encryptApiKey(apiKey);
+                    profile.apiKeyHint = mask(apiKey);
                 }
-                profile.encryptedApiKey = encryptApiKey(apiKey);
-                profile.apiKeyHint = mask(apiKey);
-            }
             if (seen.contains(profile.id)) {
                 throw new IllegalArgumentException("Duplicate AI profile id: " + profile.id);
             }
@@ -516,7 +539,8 @@ public final class WebAiConfigStore {
     }
 
     private StoredSearch applySearchUpdate(StoredSearch current, SearchUpdate update) {
-        StoredSearch search = current == null ? defaultSearch() : GSON.fromJson(GSON.toJson(current), StoredSearch.class);
+        StoredSearch search = current == null ? defaultSearch()
+            : GSON.fromJson(GSON.toJson(current), StoredSearch.class);
         if (update.enabled != null) search.enabled = update.enabled.booleanValue();
         if (update.mode != null) search.mode = WebSearchService.normalizeProvider(update.mode);
         if (update.baseUrl != null) {
@@ -528,21 +552,27 @@ public final class WebAiConfigStore {
         if (Boolean.TRUE.equals(update.clearApiKey)) {
             search.encryptedApiKey = "";
             search.apiKeyHint = "";
-        } else if (update.apiKey != null && !update.apiKey.trim().isEmpty()) {
-            String apiKey = update.apiKey.trim();
-            if (apiKey.length() > MAX_KEY_LENGTH) {
-                throw new IllegalArgumentException("Search API key is too long.");
+        } else if (update.apiKey != null && !update.apiKey.trim()
+            .isEmpty()) {
+                String apiKey = update.apiKey.trim();
+                if (apiKey.length() > MAX_KEY_LENGTH) {
+                    throw new IllegalArgumentException("Search API key is too long.");
+                }
+                search.encryptedApiKey = encryptApiKey(apiKey);
+                search.apiKeyHint = mask(apiKey);
             }
-            search.encryptedApiKey = encryptApiKey(apiKey);
-            search.apiKeyHint = mask(apiKey);
-        }
         return search;
     }
 
     private static boolean isLegacySingleUpdate(UpdateRequest update) {
-        return update.enabled != null || update.providerId != null || update.baseUrl != null || update.model != null
-            || update.apiKey != null || update.clearApiKey != null || update.timeoutSeconds != null
-            || update.temperature != null || update.maxTokens != null;
+        return update.enabled != null || update.providerId != null
+            || update.baseUrl != null
+            || update.model != null
+            || update.apiKey != null
+            || update.clearApiKey != null
+            || update.timeoutSeconds != null
+            || update.temperature != null
+            || update.maxTokens != null;
     }
 
     private static void normalize(StoredConfig config) {
@@ -564,8 +594,10 @@ public final class WebAiConfigStore {
             if (!isKnownProvider(profile.providerId)) profile.providerId = defaults.providerId;
             if (safe(profile.baseUrl).isEmpty()) profile.baseUrl = defaults.baseUrl;
             if (safe(profile.model).isEmpty()) profile.model = defaults.model;
-            profile.timeoutSeconds = clamp(profile.timeoutSeconds <= 0 ? defaults.timeoutSeconds : profile.timeoutSeconds,
-                5, 120);
+            profile.timeoutSeconds = clamp(
+                profile.timeoutSeconds <= 0 ? defaults.timeoutSeconds : profile.timeoutSeconds,
+                5,
+                120);
             profile.maxTokens = profile.maxTokens <= 0 ? defaults.maxTokens : clamp(profile.maxTokens, 64, 8192);
             profile.temperature = Math.max(0.0D, Math.min(2.0D, profile.temperature));
             profile.encryptedApiKey = safe(profile.encryptedApiKey);
@@ -595,8 +627,11 @@ public final class WebAiConfigStore {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(GCM_TAG_BITS, iv));
             byte[] encrypted = cipher.doFinal(apiKey.getBytes(StandardCharsets.UTF_8));
-            return CIPHER_PREFIX + Base64.getEncoder().encodeToString(iv) + ":"
-                + Base64.getEncoder().encodeToString(encrypted);
+            return CIPHER_PREFIX + Base64.getEncoder()
+                .encodeToString(iv)
+                + ":"
+                + Base64.getEncoder()
+                    .encodeToString(encrypted);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to encrypt the API key.", e);
         }
@@ -607,12 +642,22 @@ public final class WebAiConfigStore {
         if (encrypted.isEmpty()) return "";
         try {
             if (!encrypted.startsWith(CIPHER_PREFIX)) throw new IllegalStateException("Unknown secret format.");
-            String[] parts = encrypted.substring(CIPHER_PREFIX.length()).split(":", 2);
+            String[] parts = encrypted.substring(CIPHER_PREFIX.length())
+                .split(":", 2);
             if (parts.length != 2) throw new IllegalStateException("Invalid secret format.");
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(masterKey(), "AES"),
-                new GCMParameterSpec(GCM_TAG_BITS, Base64.getDecoder().decode(parts[0])));
-            return new String(cipher.doFinal(Base64.getDecoder().decode(parts[1])), StandardCharsets.UTF_8);
+            cipher.init(
+                Cipher.DECRYPT_MODE,
+                new SecretKeySpec(masterKey(), "AES"),
+                new GCMParameterSpec(
+                    GCM_TAG_BITS,
+                    Base64.getDecoder()
+                        .decode(parts[0])));
+            return new String(
+                cipher.doFinal(
+                    Base64.getDecoder()
+                        .decode(parts[1])),
+                StandardCharsets.UTF_8);
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to decrypt a configured AI API key; re-enter it in Settings.");
             return "";
@@ -623,15 +668,20 @@ public final class WebAiConfigStore {
         File file = masterKeyFile();
         if (file.isFile()) {
             byte[] encoded = Files.readAllBytes(file.toPath());
-            byte[] decoded = Base64.getDecoder().decode(new String(encoded, StandardCharsets.US_ASCII).trim());
+            byte[] decoded = Base64.getDecoder()
+                .decode(new String(encoded, StandardCharsets.US_ASCII).trim());
             if (decoded.length != MASTER_KEY_BYTES) throw new IllegalStateException("Invalid Web AI master key.");
             return decoded;
         }
         byte[] key = new byte[MASTER_KEY_BYTES];
         RANDOM.nextBytes(key);
-        file.getParentFile().mkdirs();
+        file.getParentFile()
+            .mkdirs();
         File temp = new File(file.getParentFile(), file.getName() + ".tmp");
-        Files.write(temp.toPath(), Base64.getEncoder().encode(key));
+        Files.write(
+            temp.toPath(),
+            Base64.getEncoder()
+                .encode(key));
         restrictOwnerOnly(temp);
         try {
             Files.move(temp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE);
@@ -682,7 +732,8 @@ public final class WebAiConfigStore {
             view.maxTokens = profile.maxTokens;
             view.hasApiKey = profile.encryptedApiKey != null && !profile.encryptedApiKey.isEmpty();
             view.apiKeyHint = includeHints && view.hasApiKey ? profile.apiKeyHint : "";
-            view.configured = profile.enabled && view.hasApiKey && !safe(profile.baseUrl).isEmpty()
+            view.configured = profile.enabled && view.hasApiKey
+                && !safe(profile.baseUrl).isEmpty()
                 && !safe(profile.model).isEmpty();
             result.add(view);
         }
@@ -728,8 +779,10 @@ public final class WebAiConfigStore {
 
     private static boolean hasConfiguredEnabledProfile(StoredConfig config) {
         for (StoredProfile profile : orderedProfiles(config)) {
-            if (profile.enabled && profile.encryptedApiKey != null && !profile.encryptedApiKey.isEmpty()
-                && !safe(profile.baseUrl).isEmpty() && !safe(profile.model).isEmpty()) {
+            if (profile.enabled && profile.encryptedApiKey != null
+                && !profile.encryptedApiKey.isEmpty()
+                && !safe(profile.baseUrl).isEmpty()
+                && !safe(profile.model).isEmpty()) {
                 return true;
             }
         }
@@ -740,6 +793,7 @@ public final class WebAiConfigStore {
         List<StoredProfile> list = new ArrayList<StoredProfile>();
         if (config.profiles != null) list.addAll(config.profiles);
         Collections.sort(list, new Comparator<StoredProfile>() {
+
             @Override
             public int compare(StoredProfile a, StoredProfile b) {
                 if (a.order != b.order) return a.order < b.order ? -1 : 1;
@@ -810,7 +864,10 @@ public final class WebAiConfigStore {
     }
 
     private static String newId() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        return UUID.randomUUID()
+            .toString()
+            .replace("-", "")
+            .substring(0, 12);
     }
 
     private static String readAll(BufferedReader reader) throws Exception {
@@ -824,6 +881,7 @@ public final class WebAiConfigStore {
     }
 
     private static final class StoredConfig {
+
         int version = 2;
         List<StoredProfile> profiles;
         StoredSearch search;
@@ -832,6 +890,7 @@ public final class WebAiConfigStore {
     }
 
     private static final class StoredProfile {
+
         String id;
         String name;
         boolean enabled;
@@ -847,6 +906,7 @@ public final class WebAiConfigStore {
     }
 
     private static final class StoredSearch {
+
         boolean enabled;
         String mode;
         String encryptedApiKey;
@@ -857,6 +917,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class UpdateRequest {
+
         public Boolean enabled;
         public String providerId;
         public String baseUrl;
@@ -871,6 +932,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class ProfileUpdate {
+
         public String id;
         public String name;
         public Boolean enabled;
@@ -886,6 +948,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class SearchUpdate {
+
         public Boolean enabled;
         public String mode;
         public String apiKey;
@@ -896,6 +959,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class RuntimeConfig {
+
         public String id;
         public String name;
         public String providerId;
@@ -909,6 +973,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class ConfigView {
+
         public boolean enabled;
         public boolean configured;
         public boolean hasApiKey;
@@ -929,6 +994,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class ProfileView {
+
         public String id;
         public String name;
         public boolean enabled;
@@ -946,6 +1012,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class SearchView {
+
         public boolean enabled;
         public String mode;
         public boolean hasApiKey;
@@ -957,6 +1024,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class PublicSharedView {
+
         public boolean serverKeyEnabled;
         public boolean browserKeyEnabled;
         public boolean configured;
@@ -966,6 +1034,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class PublicProfileView {
+
         public String id;
         public String name;
         public boolean enabled;
@@ -978,6 +1047,7 @@ public final class WebAiConfigStore {
     }
 
     public static final class ProviderView {
+
         public String id;
         public String displayName;
         public String defaultBaseUrl;

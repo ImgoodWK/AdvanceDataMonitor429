@@ -456,7 +456,9 @@ public class IconRenderer {
         if (mc != null && mc.thePlayer != null) {
             mc.thePlayer.addChatMessage(
                 new net.minecraft.util.ChatComponentText(
-                    net.minecraft.util.EnumChatFormatting.GREEN + "[WebAE] Local icons: " + written + " → "
+                    net.minecraft.util.EnumChatFormatting.GREEN + "[WebAE] Local icons: "
+                        + written
+                        + " → "
                         + dest.getAbsolutePath()));
         }
         bundle.clear();

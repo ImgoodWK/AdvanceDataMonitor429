@@ -33,15 +33,15 @@ public final class WorldMapTileCache {
         return tileFile(view, layer, quality, dim, chunkX, chunkZ, 0);
     }
 
-    public static File tileFile(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX,
-        int chunkZ, int zoomLevel) {
+    public static File tileFile(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX, int chunkZ,
+        int zoomLevel) {
         WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.MEDIUM;
         int level = Math.max(0, zoomLevel);
         return tileFileAt(root(), view, layer, tier, dim, chunkX, chunkZ, level);
     }
 
-    private static File tileFileAt(File base, String view, String layer, WorldMapQualityTier tier, int dim,
-        int chunkX, int chunkZ, int zoomLevel) {
+    private static File tileFileAt(File base, String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
+        int chunkZ, int zoomLevel) {
         int level = Math.max(0, zoomLevel);
         String cacheView = WorldMapTileLayer.cacheViewPath(view, layer);
         return new File(
@@ -126,8 +126,7 @@ public final class WorldMapTileCache {
         if (valid != null) {
             return valid;
         }
-        if (level == 0
-            && tier == WorldMapQualityTier.MEDIUM
+        if (level == 0 && tier == WorldMapQualityTier.MEDIUM
             && WorldMapTileLayer.TERRAIN.equals(WorldMapTileLayer.normalize(layer))
             && FLAT_VIEW.equals(normalizeView(view))) {
             return findLegacyMediumTerrain(view, layer, tier, dim, chunkX, chunkZ, level, root());
@@ -199,7 +198,8 @@ public final class WorldMapTileCache {
         return isHd(view, layer, WorldMapQualityTier.MEDIUM, dim, chunkX, chunkZ);
     }
 
-    public static boolean isHd(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX, int chunkZ) {
+    public static boolean isHd(String view, String layer, WorldMapQualityTier quality, int dim, int chunkX,
+        int chunkZ) {
         WorldMapQualityTier tier = quality != null ? quality : WorldMapQualityTier.MEDIUM;
         File marker = hdMarkerFile(view, layer, tier, dim, chunkX, chunkZ, 0);
         return marker.isFile();
@@ -233,8 +233,7 @@ public final class WorldMapTileCache {
             int tileZ = com.imgood.textech.webae.worldmap.engine.WorldMapZoomPyramid.tileIndex(chunkZ, level);
             deleteTier(view, layer, tier, dim, tileX, tileZ, level);
         }
-        if (tier == WorldMapQualityTier.MEDIUM
-            && WorldMapTileLayer.TERRAIN.equals(WorldMapTileLayer.normalize(layer))
+        if (tier == WorldMapQualityTier.MEDIUM && WorldMapTileLayer.TERRAIN.equals(WorldMapTileLayer.normalize(layer))
             && FLAT_VIEW.equals(normalizeView(view))) {
             deleteIfPresent(legacyTierlessFile(view, layer, tier, dim, chunkX, chunkZ));
             deleteIfPresent(hdMarkerFile(view, layer, tier, dim, chunkX, chunkZ, 0));
@@ -308,8 +307,8 @@ public final class WorldMapTileCache {
         return emptyMarkerFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel).isFile();
     }
 
-    private static void deleteTier(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
-        int chunkZ, int zoomLevel) {
+    private static void deleteTier(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX, int chunkZ,
+        int zoomLevel) {
         deleteIfPresent(tileFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel));
         if (zoomLevel == 0) {
             deleteIfPresent(hdMarkerFile(view, layer, tier, dim, chunkX, chunkZ, 0));
@@ -322,7 +321,8 @@ public final class WorldMapTileCache {
         File parent = file.getParentFile();
         if (parent != null && !parent.exists()) {
             if (!parent.mkdirs()) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] Failed to create world map tile dir: {}", parent.getAbsolutePath());
+                AdvanceDataMonitor.LOG
+                    .warn("[WebAE] Failed to create world map tile dir: {}", parent.getAbsolutePath());
             }
         }
         FileOutputStream fos = null;
@@ -351,16 +351,15 @@ public final class WorldMapTileCache {
     private static void deleteIfPresent(File file) {
         if (file.isFile()) {
             if (!file.delete()) {
-                AdvanceDataMonitor.LOG.debug("[WebAE] Could not delete stale world map tile {}", file.getAbsolutePath());
+                AdvanceDataMonitor.LOG
+                    .debug("[WebAE] Could not delete stale world map tile {}", file.getAbsolutePath());
             }
         }
     }
 
     private static File emptyMarkerFile(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
         int chunkZ, int zoomLevel) {
-        return new File(
-            tileFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel).getParentFile(),
-            chunkZ + ".empty");
+        return new File(tileFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel).getParentFile(), chunkZ + ".empty");
     }
 
     private static void markEmpty(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX, int chunkZ,
@@ -369,8 +368,8 @@ public final class WorldMapTileCache {
         File parent = marker.getParentFile();
         if (parent != null && !parent.exists()) {
             if (!parent.mkdirs()) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] Failed to create world map empty marker dir: {}",
-                    parent.getAbsolutePath());
+                AdvanceDataMonitor.LOG
+                    .warn("[WebAE] Failed to create world map empty marker dir: {}", parent.getAbsolutePath());
             }
         }
         FileOutputStream fos = null;
@@ -398,9 +397,7 @@ public final class WorldMapTileCache {
 
     private static File hdMarkerFile(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX,
         int chunkZ, int zoomLevel) {
-        return new File(
-            tileFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel).getParentFile(),
-            chunkZ + ".hd");
+        return new File(tileFile(view, layer, tier, dim, chunkX, chunkZ, zoomLevel).getParentFile(), chunkZ + ".hd");
     }
 
     private static void markHd(String view, String layer, WorldMapQualityTier tier, int dim, int chunkX, int chunkZ) {
@@ -413,7 +410,8 @@ public final class WorldMapTileCache {
         File parent = marker.getParentFile();
         if (parent != null && !parent.exists()) {
             if (!parent.mkdirs()) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] Failed to create world map HD marker dir: {}", parent.getAbsolutePath());
+                AdvanceDataMonitor.LOG
+                    .warn("[WebAE] Failed to create world map HD marker dir: {}", parent.getAbsolutePath());
             }
         }
         FileOutputStream fos = null;

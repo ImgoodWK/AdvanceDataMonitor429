@@ -186,13 +186,8 @@ public final class QuestChainService {
                 continue;
             }
 
-            QuestSubmitResultDto submit = QuestSubmitService.submit(
-                ownerUuid,
-                networkId,
-                planned.questId,
-                false,
-                null,
-                includeAll);
+            QuestSubmitResultDto submit = QuestSubmitService
+                .submit(ownerUuid, networkId, planned.questId, false, null, includeAll);
             stepResult.submitResult = submit;
             if (submit != null && submit.success) {
                 stepResult.action = "submitted";
@@ -249,7 +244,8 @@ public final class QuestChainService {
 
         Queue<String> queue = new LinkedList<String>();
         for (Map.Entry<String, Integer> e : indegree.entrySet()) {
-            if (e.getValue().intValue() == 0) {
+            if (e.getValue()
+                .intValue() == 0) {
                 queue.add(e.getKey());
             }
         }
@@ -257,8 +253,10 @@ public final class QuestChainService {
             String id = queue.poll();
             ordered.add(id);
             for (Map.Entry<String, List<String>> e : deps.entrySet()) {
-                if (e.getValue() != null && e.getValue().contains(id)) {
-                    int next = indegree.get(e.getKey()).intValue() - 1;
+                if (e.getValue() != null && e.getValue()
+                    .contains(id)) {
+                    int next = indegree.get(e.getKey())
+                        .intValue() - 1;
                     indegree.put(e.getKey(), Integer.valueOf(next));
                     if (next == 0) {
                         queue.add(e.getKey());

@@ -229,15 +229,7 @@ public final class WorldMapBlockPatchRegistry {
     private static List<WorldMapBlockPatch> flipPatchesY(List<WorldMapBlockPatch> src) {
         List<WorldMapBlockPatch> out = new ArrayList<WorldMapBlockPatch>(src.size());
         for (WorldMapBlockPatch p : src) {
-            out.add(
-                WorldMapBlockPatch.box(
-                    p.minX,
-                    1.0 - p.maxY,
-                    p.minZ,
-                    p.maxX,
-                    1.0 - p.minY,
-                    p.maxZ,
-                    p.textureFace));
+            out.add(WorldMapBlockPatch.box(p.minX, 1.0 - p.maxY, p.minZ, p.maxX, 1.0 - p.minY, p.maxZ, p.textureFace));
         }
         return out;
     }
@@ -413,8 +405,9 @@ public final class WorldMapBlockPatchRegistry {
             byPrefix.size());
     }
 
-    private static void parseJsonResource(ClassLoader loader, String path, Map<String, List<WorldMapBlockPatch>> byBlock,
-        Map<String, List<WorldMapBlockPatch>> byClass, Map<String, List<WorldMapBlockPatch>> byPrefix) {
+    private static void parseJsonResource(ClassLoader loader, String path,
+        Map<String, List<WorldMapBlockPatch>> byBlock, Map<String, List<WorldMapBlockPatch>> byClass,
+        Map<String, List<WorldMapBlockPatch>> byPrefix) {
         InputStream in = null;
         try {
             in = loader.getResourceAsStream(path);

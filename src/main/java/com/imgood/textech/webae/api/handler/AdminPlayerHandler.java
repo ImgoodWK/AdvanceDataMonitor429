@@ -42,13 +42,13 @@ import fi.iki.elonen.NanoHTTPD;
  * <p>
  * Endpoints:
  * <ul>
- *   <li>{@code GET /api/admin/players} — list player summaries</li>
- *   <li>{@code GET /api/admin/players/:uuid/access} — owned nets + guest access detail</li>
- *   <li>{@code POST /api/admin/players/:uuid/disable|enable|clear-cache}</li>
- *   <li>{@code POST .../networks/:networkKey/suspend|resume}</li>
- *   <li>{@code POST /api/admin/players/:uuid/acl} — deny/allow guest network</li>
- *   <li>{@code POST /api/admin/players/:uuid/guest-tokens/revoke}</li>
- *   <li>{@code POST /api/admin/players/:uuid/guest-tokens/allowlist}</li>
+ * <li>{@code GET /api/admin/players} — list player summaries</li>
+ * <li>{@code GET /api/admin/players/:uuid/access} — owned nets + guest access detail</li>
+ * <li>{@code POST /api/admin/players/:uuid/disable|enable|clear-cache}</li>
+ * <li>{@code POST .../networks/:networkKey/suspend|resume}</li>
+ * <li>{@code POST /api/admin/players/:uuid/acl} — deny/allow guest network</li>
+ * <li>{@code POST /api/admin/players/:uuid/guest-tokens/revoke}</li>
+ * <li>{@code POST /api/admin/players/:uuid/guest-tokens/allowlist}</li>
  * </ul>
  * </p>
  */
@@ -56,13 +56,8 @@ public final class AdminPlayerHandler {
 
     private AdminPlayerHandler() {}
 
-    public static NanoHTTPD.Response handle(
-        String uri,
-        Map<String, String> params,
-        NanoHTTPD.Method method,
-        WebAuthSession auth,
-        String adminHeader,
-        String body) {
+    public static NanoHTTPD.Response handle(String uri, Map<String, String> params, NanoHTTPD.Method method,
+        WebAuthSession auth, String adminHeader, String body) {
 
         if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return json(403, "admin_required", "Admin privileges required.");
@@ -149,7 +144,8 @@ public final class AdminPlayerHandler {
                 allOwners.add(owner);
             }
         }
-        for (PlayerInfo info : PlayerInfoStore.instance().getAllPlayers()) {
+        for (PlayerInfo info : PlayerInfoStore.instance()
+            .getAllPlayers()) {
             if (info != null && info.uuid != null && !info.uuid.isEmpty()) {
                 allOwners.add(info.uuid);
             }
@@ -168,10 +164,12 @@ public final class AdminPlayerHandler {
             if (!first) sb.append(",");
             first = false;
 
-            WebAePlayerState state = WebAePlayerStateStore.getInstance().getState(ownerUuid);
+            WebAePlayerState state = WebAePlayerStateStore.getInstance()
+                .getState(ownerUuid);
             PlayerInfo playerInfo = null;
             try {
-                playerInfo = PlayerInfoStore.instance().getPlayer(java.util.UUID.fromString(ownerUuid));
+                playerInfo = PlayerInfoStore.instance()
+                    .getPlayer(java.util.UUID.fromString(ownerUuid));
             } catch (IllegalArgumentException ignored) {}
 
             String name = "?";
@@ -187,11 +185,11 @@ public final class AdminPlayerHandler {
             List<RegisteredNetwork> networks = NetworkRegistry.getRawNetworks(ownerUuid);
             int networkCount = networks != null ? networks.size() : 0;
 
-            final long[] itemSum = {0L};
-            final long[] fluidSum = {0L};
-            SnapshotCache.instance().forEachStorageSnapshotForOwner(
-                ownerUuid,
-                new StorageSnapshotConsumer() {
+            final long[] itemSum = { 0L };
+            final long[] fluidSum = { 0L };
+            SnapshotCache.instance()
+                .forEachStorageSnapshotForOwner(ownerUuid, new StorageSnapshotConsumer() {
+
                     public void accept(StorageDto dto) {
                         if (dto.items != null) {
                             for (StorageDto.ItemEntry e : dto.items) {
@@ -207,29 +205,49 @@ public final class AdminPlayerHandler {
                 });
 
             sb.append("{");
-            sb.append("\"uuid\":\"").append(escapeJson(ownerUuid)).append("\",");
-            sb.append("\"name\":\"").append(escapeJson(name)).append("\",");
-            sb.append("\"online\":").append(online).append(",");
-            sb.append("\"lastActiveAt\":").append(state != null ? state.lastActiveAt : 0).append(",");
-            sb.append("\"networkCount\":").append(networkCount).append(",");
-            sb.append("\"disabled\":").append(state != null && state.disabled).append(",");
+            sb.append("\"uuid\":\"")
+                .append(escapeJson(ownerUuid))
+                .append("\",");
+            sb.append("\"name\":\"")
+                .append(escapeJson(name))
+                .append("\",");
+            sb.append("\"online\":")
+                .append(online)
+                .append(",");
+            sb.append("\"lastActiveAt\":")
+                .append(state != null ? state.lastActiveAt : 0)
+                .append(",");
+            sb.append("\"networkCount\":")
+                .append(networkCount)
+                .append(",");
+            sb.append("\"disabled\":")
+                .append(state != null && state.disabled)
+                .append(",");
             if (state != null && state.disabled && state.disabledReason != null) {
-                sb.append("\"disabledReason\":\"").append(escapeJson(state.disabledReason)).append("\",");
+                sb.append("\"disabledReason\":\"")
+                    .append(escapeJson(state.disabledReason))
+                    .append("\",");
             }
-            sb.append("\"requestCount\":").append(state != null ? state.requestCount : 0).append(",");
+            sb.append("\"requestCount\":")
+                .append(state != null ? state.requestCount : 0)
+                .append(",");
             long avgMs = 0;
             if (state != null && state.requestCount > 0) {
                 avgMs = state.totalResponseMs / state.requestCount;
             }
-            sb.append("\"avgResponseMs\":").append(avgMs).append(",");
-            sb.append("\"totalItems\":").append(itemSum[0]).append(",");
-            sb.append("\"totalFluids\":").append(fluidSum[0]);
+            sb.append("\"avgResponseMs\":")
+                .append(avgMs)
+                .append(",");
+            sb.append("\"totalItems\":")
+                .append(itemSum[0])
+                .append(",");
+            sb.append("\"totalFluids\":")
+                .append(fluidSum[0]);
             sb.append("}");
         }
 
         sb.append("]}");
-        return NanoHTTPD.newFixedLengthResponse(
-            NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
+        return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
     }
 
     // ---- Access detail ----
@@ -239,7 +257,9 @@ public final class AdminPlayerHandler {
             return json(400, "missing_uuid", "Missing player UUID.");
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("{\"success\":true,\"uuid\":\"").append(escapeJson(targetUuid)).append("\",");
+        sb.append("{\"success\":true,\"uuid\":\"")
+            .append(escapeJson(targetUuid))
+            .append("\",");
 
         // Owned networks (admin metadata — includes suspended)
         sb.append("\"ownedNetworks\":[");
@@ -252,17 +272,35 @@ public final class AdminPlayerHandler {
             if (!first) sb.append(",");
             first = false;
             sb.append("{");
-            sb.append("\"networkId\":").append(n.networkId).append(",");
-            sb.append("\"networkKey\":\"").append(escapeJson(key)).append("\",");
-            sb.append("\"monitorDim\":").append(n.monitorDim).append(",");
-            sb.append("\"monitorX\":").append(n.monitorX).append(",");
-            sb.append("\"monitorY\":").append(n.monitorY).append(",");
-            sb.append("\"monitorZ\":").append(n.monitorZ).append(",");
-            sb.append("\"healthy\":").append(n.healthy).append(",");
-            sb.append("\"suspended\":").append(susp != null);
+            sb.append("\"networkId\":")
+                .append(n.networkId)
+                .append(",");
+            sb.append("\"networkKey\":\"")
+                .append(escapeJson(key))
+                .append("\",");
+            sb.append("\"monitorDim\":")
+                .append(n.monitorDim)
+                .append(",");
+            sb.append("\"monitorX\":")
+                .append(n.monitorX)
+                .append(",");
+            sb.append("\"monitorY\":")
+                .append(n.monitorY)
+                .append(",");
+            sb.append("\"monitorZ\":")
+                .append(n.monitorZ)
+                .append(",");
+            sb.append("\"healthy\":")
+                .append(n.healthy)
+                .append(",");
+            sb.append("\"suspended\":")
+                .append(susp != null);
             if (susp != null) {
-                sb.append(",\"suspendReason\":\"").append(escapeJson(susp.reason != null ? susp.reason : "")).append("\"");
-                sb.append(",\"suspendedAt\":").append(susp.suspendedAt);
+                sb.append(",\"suspendReason\":\"")
+                    .append(escapeJson(susp.reason != null ? susp.reason : ""))
+                    .append("\"");
+                sb.append(",\"suspendedAt\":")
+                    .append(susp.suspendedAt);
             }
             sb.append("}");
         }
@@ -278,18 +316,30 @@ public final class AdminPlayerHandler {
             first = false;
             String ownerName = WebAeOwnerContext.resolveOwnerName(t.ownerUuid);
             sb.append("{");
-            sb.append("\"ownerUuid\":\"").append(escapeJson(t.ownerUuid)).append("\",");
-            sb.append("\"ownerName\":\"").append(escapeJson(ownerName)).append("\",");
-            sb.append("\"token\":\"").append(escapeJson(t.token)).append("\",");
-            sb.append("\"tokenPrefix\":\"").append(escapeJson(t.token != null && t.token.length() >= 8
-                ? t.token.substring(0, 8) : (t.token != null ? t.token : ""))).append("\",");
+            sb.append("\"ownerUuid\":\"")
+                .append(escapeJson(t.ownerUuid))
+                .append("\",");
+            sb.append("\"ownerName\":\"")
+                .append(escapeJson(ownerName))
+                .append("\",");
+            sb.append("\"token\":\"")
+                .append(escapeJson(t.token))
+                .append("\",");
+            sb.append("\"tokenPrefix\":\"")
+                .append(
+                    escapeJson(
+                        t.token != null && t.token.length() >= 8 ? t.token.substring(0, 8)
+                            : (t.token != null ? t.token : "")))
+                .append("\",");
             if (t.allowedNetworkKeys == null) {
                 sb.append("\"allowedNetworkKeys\":null,");
             } else {
                 sb.append("\"allowedNetworkKeys\":[");
                 for (int k = 0; k < t.allowedNetworkKeys.size(); k++) {
                     if (k > 0) sb.append(",");
-                    sb.append("\"").append(escapeJson(t.allowedNetworkKeys.get(k))).append("\"");
+                    sb.append("\"")
+                        .append(escapeJson(t.allowedNetworkKeys.get(k)))
+                        .append("\"");
                 }
                 sb.append("],");
             }
@@ -306,18 +356,26 @@ public final class AdminPlayerHandler {
                 if (!nf) sb.append(",");
                 nf = false;
                 sb.append("{");
-                sb.append("\"networkKey\":\"").append(escapeJson(key)).append("\",");
-                sb.append("\"networkId\":").append(info.networkId).append(",");
-                sb.append("\"inAllowlist\":").append(inAllowlist).append(",");
-                sb.append("\"deniedByAcl\":").append(denied).append(",");
-                sb.append("\"suspended\":").append(suspended);
+                sb.append("\"networkKey\":\"")
+                    .append(escapeJson(key))
+                    .append("\",");
+                sb.append("\"networkId\":")
+                    .append(info.networkId)
+                    .append(",");
+                sb.append("\"inAllowlist\":")
+                    .append(inAllowlist)
+                    .append(",");
+                sb.append("\"deniedByAcl\":")
+                    .append(denied)
+                    .append(",");
+                sb.append("\"suspended\":")
+                    .append(suspended);
                 sb.append("}");
             }
             sb.append("]}");
         }
         sb.append("]}");
-        return NanoHTTPD.newFixedLengthResponse(
-            NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
+        return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
     }
 
     private static boolean containsKey(List<String> keys, String key) {
@@ -339,15 +397,19 @@ public final class AdminPlayerHandler {
         if (reason == null || reason.isEmpty()) {
             reason = "Disabled by admin";
         }
-        WebAePlayerStateStore.getInstance().setDisabled(targetUuid, reason);
+        WebAePlayerStateStore.getInstance()
+            .setDisabled(targetUuid, reason);
         int revoked = WebAuthToken.revokeAllForPlayer(targetUuid);
         WebLoginCodeStore.invalidateCodesForOwner(targetUuid);
-        SnapshotCache.instance().invalidateAll(targetUuid);
+        SnapshotCache.instance()
+            .invalidateAll(targetUuid);
         SnapshotScheduler.clearActiveForOwner(targetUuid);
 
         AdvanceDataMonitor.LOG.info(
             "[WebAE] Admin disabled WebAE for player {} reason={} revokedTokens={}",
-            targetUuid, reason, Integer.valueOf(revoked));
+            targetUuid,
+            reason,
+            Integer.valueOf(revoked));
         return json(200, "{\"success\":true,\"revokedTokens\":" + revoked + "}");
     }
 
@@ -357,7 +419,8 @@ public final class AdminPlayerHandler {
         if (targetUuid == null || targetUuid.isEmpty()) {
             return json(400, "missing_uuid", "Missing player UUID.");
         }
-        WebAePlayerStateStore.getInstance().setEnabled(targetUuid);
+        WebAePlayerStateStore.getInstance()
+            .setEnabled(targetUuid);
 
         AdvanceDataMonitor.LOG.info("[WebAE] Admin enabled WebAE for player {}", targetUuid);
         return json(200, "{\"success\":true}");
@@ -369,9 +432,12 @@ public final class AdminPlayerHandler {
         if (targetUuid == null || targetUuid.isEmpty()) {
             return json(400, "missing_uuid", "Missing player UUID.");
         }
-        int beforeSize = SnapshotCache.instance().size();
-        SnapshotCache.instance().invalidateAll(targetUuid);
-        int snapshotCleared = beforeSize - SnapshotCache.instance().size();
+        int beforeSize = SnapshotCache.instance()
+            .size();
+        SnapshotCache.instance()
+            .invalidateAll(targetUuid);
+        int snapshotCleared = beforeSize - SnapshotCache.instance()
+            .size();
 
         TopologyCache.invalidateOwner(targetUuid);
 
@@ -385,7 +451,9 @@ public final class AdminPlayerHandler {
 
         AdvanceDataMonitor.LOG.info(
             "[WebAE] Admin cleared cache for player {} (snapshots={}, mapTiles={})",
-            targetUuid, Integer.valueOf(snapshotCleared), Integer.valueOf(mapCleared));
+            targetUuid,
+            Integer.valueOf(snapshotCleared),
+            Integer.valueOf(mapCleared));
 
         return json(200, "{\"success\":true}");
     }
@@ -409,10 +477,11 @@ public final class AdminPlayerHandler {
         WebAeNetworkSuspendStore.suspend(ownerUuid, networkKey, reason);
         Integer nid = WebAeNetworkKeys.toNetworkId(ownerUuid, networkKey);
         if (nid != null) {
-            SnapshotCache.instance().invalidateAll(ownerUuid, nid.intValue());
+            SnapshotCache.instance()
+                .invalidateAll(ownerUuid, nid.intValue());
         }
-        AdvanceDataMonitor.LOG.info(
-            "[WebAE] Admin suspended network {} for owner {} reason={}", networkKey, ownerUuid, reason);
+        AdvanceDataMonitor.LOG
+            .info("[WebAE] Admin suspended network {} for owner {} reason={}", networkKey, ownerUuid, reason);
         return json(200, "{\"success\":true}");
     }
 
@@ -424,8 +493,8 @@ public final class AdminPlayerHandler {
         String ownerUuid = parts[0];
         String networkKey = parts[1];
         boolean ok = WebAeNetworkSuspendStore.resume(ownerUuid, networkKey);
-        AdvanceDataMonitor.LOG.info(
-            "[WebAE] Admin resumed network {} for owner {} found={}", networkKey, ownerUuid, Boolean.valueOf(ok));
+        AdvanceDataMonitor.LOG
+            .info("[WebAE] Admin resumed network {} for owner {} found={}", networkKey, ownerUuid, Boolean.valueOf(ok));
         return json(200, "{\"success\":true,\"resumed\":" + ok + "}");
     }
 
@@ -492,8 +561,9 @@ public final class AdminPlayerHandler {
                 for (int i = 0; i < arr.size(); i++) {
                     if (!arr.get(i)
                         .isJsonNull()) {
-                        out.add(arr.get(i)
-                            .getAsString());
+                        out.add(
+                            arr.get(i)
+                                .getAsString());
                     }
                 }
             } catch (Exception ignored) {}
@@ -551,13 +621,18 @@ public final class AdminPlayerHandler {
                     continue;
                 }
                 if (e.getValue()
-                    .isJsonArray() || e.getValue()
+                    .isJsonArray()
+                    || e.getValue()
                         .isJsonObject()) {
-                    merged.put(e.getKey(), e.getValue()
-                        .toString());
+                    merged.put(
+                        e.getKey(),
+                        e.getValue()
+                            .toString());
                 } else {
-                    merged.put(e.getKey(), e.getValue()
-                        .getAsString());
+                    merged.put(
+                        e.getKey(),
+                        e.getValue()
+                            .getAsString());
                 }
             }
         } catch (Exception ignored) {}
@@ -574,19 +649,20 @@ public final class AdminPlayerHandler {
     }
 
     private static NanoHTTPD.Response json(int status, String code, String message) {
-        return json(status, "{\"success\":false,\"code\":\"" + escapeJson(code)
-            + "\",\"error\":\"" + escapeJson(code)
-            + "\",\"message\":\"" + escapeJson(message) + "\"}");
+        return json(
+            status,
+            "{\"success\":false,\"code\":\"" + escapeJson(
+                code) + "\",\"error\":\"" + escapeJson(code) + "\",\"message\":\"" + escapeJson(message) + "\"}");
     }
 
     private static NanoHTTPD.Response json(int status, String body) {
         return NanoHTTPD.newFixedLengthResponse(
             status == 200 ? NanoHTTPD.Response.Status.OK
                 : status == 400 ? NanoHTTPD.Response.Status.BAD_REQUEST
-                : status == 401 ? NanoHTTPD.Response.Status.UNAUTHORIZED
-                : status == 403 ? NanoHTTPD.Response.Status.FORBIDDEN
-                : status == 404 ? NanoHTTPD.Response.Status.NOT_FOUND
-                : NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                    : status == 401 ? NanoHTTPD.Response.Status.UNAUTHORIZED
+                        : status == 403 ? NanoHTTPD.Response.Status.FORBIDDEN
+                            : status == 404 ? NanoHTTPD.Response.Status.NOT_FOUND
+                                : NanoHTTPD.Response.Status.INTERNAL_ERROR,
             "application/json",
             body);
     }
@@ -600,6 +676,7 @@ public final class AdminPlayerHandler {
 
     private static String escapeJson(String value) {
         if (value == null) return "";
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return value.replace("\\", "\\\\")
+            .replace("\"", "\\\"");
     }
 }

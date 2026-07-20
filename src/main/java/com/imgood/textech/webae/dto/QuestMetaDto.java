@@ -1,8 +1,5 @@
 package com.imgood.textech.webae.dto;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /** GET /api/quests/meta */
 public class QuestMetaDto {
 

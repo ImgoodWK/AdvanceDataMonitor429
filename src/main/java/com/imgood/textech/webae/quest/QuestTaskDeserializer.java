@@ -125,9 +125,13 @@ public final class QuestTaskDeserializer {
             dto.reasonKey = "adm.quest.task.crafting";
             return;
         }
-        if (fid.contains("hunt") || fid.contains("kill") || fid.contains("location")
-            || fid.contains("dimension") || fid.contains("meeting") || fid.contains("scoreboard")
-            || fid.contains("advancement") || fid.contains("break")) {
+        if (fid.contains("hunt") || fid.contains("kill")
+            || fid.contains("location")
+            || fid.contains("dimension")
+            || fid.contains("meeting")
+            || fid.contains("scoreboard")
+            || fid.contains("advancement")
+            || fid.contains("break")) {
             dto.webAction = WEB_IN_GAME;
             dto.reasonKey = "adm.quest.task.in_game";
             return;
@@ -171,9 +175,8 @@ public final class QuestTaskDeserializer {
         readRequiredItemsFromNbt(dto, config);
         readRequiredFluidsFromNbt(dto, config);
 
-        dto.acceptAnyMeta = dto.factoryId != null
-            && dto.factoryId.toLowerCase(Locale.ROOT).contains("retrieval")
-            && (config.hasKey("oreDict") || config.hasKey("tag"));
+        dto.acceptAnyMeta = dto.factoryId != null && dto.factoryId.toLowerCase(Locale.ROOT)
+            .contains("retrieval") && (config.hasKey("oreDict") || config.hasKey("tag"));
 
         if ((dto.registryName == null || dto.registryName.isEmpty()) && config.hasKey("items")) {
             NBTTagList items = config.getTagList("items", 10);

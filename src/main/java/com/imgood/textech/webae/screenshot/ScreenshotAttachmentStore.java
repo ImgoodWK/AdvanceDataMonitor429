@@ -27,7 +27,9 @@ public final class ScreenshotAttachmentStore {
     public synchronized StoredAttachment saveJpeg(byte[] bytes, int width, int height, String originalName)
         throws IOException {
         if (bytes == null || bytes.length == 0) throw new IOException("empty screenshot");
-        String id = UUID.randomUUID().toString().replace("-", "");
+        String id = UUID.randomUUID()
+            .toString()
+            .replace("-", "");
         File target = new File(root(), id + ".jpg");
         File temporary = new File(root(), id + ".tmp");
         FileOutputStream output = new FileOutputStream(temporary);
@@ -69,7 +71,8 @@ public final class ScreenshotAttachmentStore {
         File[] values = root().listFiles();
         if (values == null || values.length == 0) return;
         List<File> files = new ArrayList<File>();
-        for (File file : values) if (file.isFile() && file.getName().endsWith(".jpg")) files.add(file);
+        for (File file : values) if (file.isFile() && file.getName()
+            .endsWith(".jpg")) files.add(file);
         Collections.sort(files, NEWEST_FIRST);
         int maxFiles = Math.max(1, Config.webScreenshotServerHistoryMaxFiles);
         long maxBytes = Math.max(16L, Config.webScreenshotServerHistoryMaxMB) * 1024L * 1024L;
@@ -99,7 +102,10 @@ public final class ScreenshotAttachmentStore {
     }
 
     private static String safeName(String value) {
-        String name = value == null ? "screenshot.jpg" : value.replace('\\', '_').replace('/', '_').trim();
+        String name = value == null ? "screenshot.jpg"
+            : value.replace('\\', '_')
+                .replace('/', '_')
+                .trim();
         if (name.isEmpty()) name = "screenshot.jpg";
         return name.length() <= 96 ? name : name.substring(0, 96);
     }
@@ -108,7 +114,8 @@ public final class ScreenshotAttachmentStore {
 
         @Override
         public int compare(File left, File right) {
-            if (left.lastModified() == right.lastModified()) return right.getName().compareTo(left.getName());
+            if (left.lastModified() == right.lastModified()) return right.getName()
+                .compareTo(left.getName());
             return left.lastModified() < right.lastModified() ? 1 : -1;
         }
     };

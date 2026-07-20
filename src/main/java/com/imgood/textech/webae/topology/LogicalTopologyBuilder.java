@@ -179,7 +179,8 @@ public final class LogicalTopologyBuilder {
         int podSlot = 0;
         for (Map.Entry<String, List<AggregatedGroup>> entry : podBuckets.entrySet()) {
             String podKey = entry.getKey();
-            int branchIndex = podLane.get(podKey).intValue();
+            int branchIndex = podLane.get(podKey)
+                .intValue();
             String podKind = podKindByKey.get(podKey);
             List<AggregatedGroup> members = entry.getValue();
 
@@ -299,8 +300,7 @@ public final class LogicalTopologyBuilder {
             node.layer = TopologyRules.LAYER_ORBIT;
             result.nodes.add(node);
             bumpOrbit(result, TopologyRules.POD_POWER0, group.count);
-            result.edges.add(
-                edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
+            result.edges.add(edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
         }
     }
 
@@ -314,8 +314,7 @@ public final class LogicalTopologyBuilder {
             node.layer = TopologyRules.LAYER_ORBIT;
             result.nodes.add(node);
             bumpOrbit(result, podKind, group.count);
-            result.edges.add(
-                edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
+            result.edges.add(edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
         }
     }
 
@@ -333,8 +332,7 @@ public final class LogicalTopologyBuilder {
             node.podKind = TopologyRules.POD_CRAFT0;
             result.nodes.add(node);
             bumpOrbit(result, TopologyRules.POD_CRAFT0, cluster.unitCount);
-            result.edges.add(
-                edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
+            result.edges.add(edge(rootId, node.id, 0, 0, "smart", -1, false, false, TopologyRules.EDGE_ORBIT_LINK));
         }
     }
 

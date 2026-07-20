@@ -84,10 +84,7 @@ public class SparkServiceTest {
     public void stripsRootTokenForDirectSparkPluginInvocation() throws Exception {
         Assert.assertArrayEquals(
             new String[] { "profiler", "--interval", "4" },
-            (String[]) invoke(
-                "sparkCommandArguments",
-                new Class<?>[] { String.class },
-                "spark profiler --interval 4"));
+            (String[]) invoke("sparkCommandArguments", new Class<?>[] { String.class }, "spark profiler --interval 4"));
     }
 
     @Test
@@ -101,7 +98,11 @@ public class SparkServiceTest {
             constructor.newInstance(Arrays.asList("start", "--interval", "4"));
             Assert.fail("Spark 1.6.4 must reject the legacy bare start token");
         } catch (InvocationTargetException expected) {
-            Assert.assertTrue(expected.getCause().getClass().getName().endsWith("Arguments$ParseException"));
+            Assert.assertTrue(
+                expected.getCause()
+                    .getClass()
+                    .getName()
+                    .endsWith("Arguments$ParseException"));
         }
     }
 
@@ -111,8 +112,9 @@ public class SparkServiceTest {
         FileWriter writer = null;
         try {
             writer = new FileWriter(file);
-            writer.write("[{\"time\":2000,\"type\":\"Profiler\","
-                + "\"data\":{\"type\":\"url\",\"value\":\"https://spark.lucko.me/File123\"}}]");
+            writer.write(
+                "[{\"time\":2000,\"type\":\"Profiler\","
+                    + "\"data\":{\"type\":\"url\",\"value\":\"https://spark.lucko.me/File123\"}}]");
             writer.close();
             writer = null;
             Assert.assertEquals(
@@ -143,11 +145,26 @@ public class SparkServiceTest {
         method.setAccessible(true);
         JsonObject summary = (JsonObject) method.invoke(null, profile);
 
-        Assert.assertEquals(2, summary.get("messageCount").getAsInt());
-        Assert.assertEquals(1, summary.get("baselineMessageCount").getAsInt());
-        Assert.assertEquals(1, summary.get("hotspotCount").getAsInt());
-        Assert.assertEquals(1, summary.get("categoryCount").getAsInt());
-        Assert.assertEquals(1, summary.get("threadCount").getAsInt());
+        Assert.assertEquals(
+            2,
+            summary.get("messageCount")
+                .getAsInt());
+        Assert.assertEquals(
+            1,
+            summary.get("baselineMessageCount")
+                .getAsInt());
+        Assert.assertEquals(
+            1,
+            summary.get("hotspotCount")
+                .getAsInt());
+        Assert.assertEquals(
+            1,
+            summary.get("categoryCount")
+                .getAsInt());
+        Assert.assertEquals(
+            1,
+            summary.get("threadCount")
+                .getAsInt());
         Assert.assertFalse(summary.has("messages"));
         Assert.assertFalse(summary.has("baselineMessages"));
         Assert.assertFalse(summary.has("completionMessages"));
@@ -188,22 +205,13 @@ public class SparkServiceTest {
     public void normalizesSparkHistoryIdsForHttpPerformanceMetrics() throws Exception {
         Method method = WebApiRouter.class.getDeclaredMethod("normalizeRoute", String.class);
         method.setAccessible(true);
-        Assert.assertEquals(
-            "/api/spark/history/{id}",
-            method.invoke(null, "/api/spark/history/1723456789-1"));
+        Assert.assertEquals("/api/spark/history/{id}", method.invoke(null, "/api/spark/history/1723456789-1"));
     }
 
     @Test
     public void extractsBoundedHotspotsFromStoppedLocalSamplerTree() throws Exception {
-        FakeNode entity = new FakeNode(
-            "net.minecraft.entity.EntityLiving",
-            "onUpdate",
-            60D);
-        FakeNode ae = new FakeNode(
-            "appeng.me.GridNode",
-            "updateState",
-            100D,
-            entity);
+        FakeNode entity = new FakeNode("net.minecraft.entity.EntityLiving", "onUpdate", 60D);
+        FakeNode ae = new FakeNode("appeng.me.GridNode", "updateState", 100D, entity);
         FakeRoot root = new FakeRoot(100D, ae);
         SparkProfile profile = new SparkProfile();
         profile.intervalMillis = 4;

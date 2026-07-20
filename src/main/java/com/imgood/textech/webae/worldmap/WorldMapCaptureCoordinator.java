@@ -18,7 +18,6 @@ import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureOffer;
 import com.imgood.textech.webae.topology.TopologySnapshot;
 import com.imgood.textech.webae.topology.TopologySnapshotStore;
-import com.imgood.textech.webae.worldmap.WorldMapTerrainSourcePriority;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -133,8 +132,7 @@ public final class WorldMapCaptureCoordinator {
         if (req == null || System.currentTimeMillis() >= req.expiresAtMs) {
             return false;
         }
-        player.addChatMessage(new ChatComponentText(
-            StatCollector.translateToLocal("adm.worldmap.consent.rejected")));
+        player.addChatMessage(new ChatComponentText(StatCollector.translateToLocal("adm.worldmap.consent.rejected")));
         return true;
     }
 
@@ -147,8 +145,9 @@ public final class WorldMapCaptureCoordinator {
             return false;
         }
         if (!isPlayerNearNetwork(player, req.meta)) {
-            player.addChatMessage(new ChatComponentText(
-                EnumChatFormatting.RED + "[WebAE] You are too far from the AE network to upload a map snapshot."));
+            player.addChatMessage(
+                new ChatComponentText(
+                    EnumChatFormatting.RED + "[WebAE] You are too far from the AE network to upload a map snapshot."));
             return false;
         }
         String jobId = startJobDirect(
@@ -214,32 +213,38 @@ public final class WorldMapCaptureCoordinator {
 
     private static java.util.Map<String, Integer> parseSourceStats(String json) {
         java.util.Map<String, Integer> out = new java.util.HashMap<String, Integer>();
-        if (json == null || json.trim().isEmpty() || "{}".equals(json.trim())) {
+        if (json == null || json.trim()
+            .isEmpty() || "{}".equals(json.trim())) {
             return out;
         }
         String trimmed = json.trim();
         if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
             return out;
         }
-        String body = trimmed.substring(1, trimmed.length() - 1).trim();
+        String body = trimmed.substring(1, trimmed.length() - 1)
+            .trim();
         if (body.isEmpty()) {
             return out;
         }
         String[] pairs = body.split(",");
         for (String pair : pairs) {
-            if (pair == null || pair.trim().isEmpty()) {
+            if (pair == null || pair.trim()
+                .isEmpty()) {
                 continue;
             }
             int colon = pair.indexOf(':');
             if (colon <= 0) {
                 continue;
             }
-            String key = pair.substring(0, colon).trim();
+            String key = pair.substring(0, colon)
+                .trim();
             if (key.startsWith("\"") && key.endsWith("\"") && key.length() >= 2) {
                 key = key.substring(1, key.length() - 1);
             }
             try {
-                int value = Integer.parseInt(pair.substring(colon + 1).trim());
+                int value = Integer.parseInt(
+                    pair.substring(colon + 1)
+                        .trim());
                 out.put(key, value);
             } catch (NumberFormatException ignored) {}
         }
@@ -262,8 +267,7 @@ public final class WorldMapCaptureCoordinator {
     public PendingRequest getPendingForNetwork(String ownerUuid, int networkId) {
         long now = System.currentTimeMillis();
         for (PendingRequest req : pending.values()) {
-            if (req != null && ownerUuid.equals(req.ownerUuid) && req.networkId == networkId
-                && now < req.expiresAtMs) {
+            if (req != null && ownerUuid.equals(req.ownerUuid) && req.networkId == networkId && now < req.expiresAtMs) {
                 return req;
             }
         }
@@ -415,8 +419,9 @@ public final class WorldMapCaptureCoordinator {
                 manifest.tilePx);
             captureJob.sourcePriority = Config.worldMapSnapshotSourcePriority;
             AdvanceDataMonitor.ADMCHANEL.sendTo(captureJob, target);
-            target.addChatMessage(new ChatComponentText(
-                EnumChatFormatting.GREEN + "[WebAE] World map snapshot capture started (v" + version + ")."));
+            target.addChatMessage(
+                new ChatComponentText(
+                    EnumChatFormatting.GREEN + "[WebAE] World map snapshot capture started (v" + version + ")."));
         }
         return String.valueOf(version);
     }
@@ -471,7 +476,8 @@ public final class WorldMapCaptureCoordinator {
                 continue;
             }
             if (pcx >= dimInfo.minChunkX - radiusChunks && pcx <= dimInfo.maxChunkX + radiusChunks
-                && pcz >= dimInfo.minChunkZ - radiusChunks && pcz <= dimInfo.maxChunkZ + radiusChunks) {
+                && pcz >= dimInfo.minChunkZ - radiusChunks
+                && pcz <= dimInfo.maxChunkZ + radiusChunks) {
                 return true;
             }
         }
@@ -487,8 +493,9 @@ public final class WorldMapCaptureCoordinator {
             .getMinecraftServerInstance()
             .getConfigurationManager().playerEntityList;
         for (EntityPlayerMP player : players) {
-            if (player != null && uuid.equals(player.getUniqueID()
-                .toString())) {
+            if (player != null && uuid.equals(
+                player.getUniqueID()
+                    .toString())) {
                 return player;
             }
         }
@@ -514,10 +521,10 @@ public final class WorldMapCaptureCoordinator {
         return ownerUuid + ":" + networkId + ":v" + version;
     }
 
-    private static byte[] readTileBytes(String ownerUuid, int networkId, int version, String layer, int dim,
-        int chunkX, int chunkZ) {
-        java.io.File file = WorldMapSnapshotStore.getExistingTile(ownerUuid, networkId, version, layer, dim, chunkX,
-            chunkZ);
+    private static byte[] readTileBytes(String ownerUuid, int networkId, int version, String layer, int dim, int chunkX,
+        int chunkZ) {
+        java.io.File file = WorldMapSnapshotStore
+            .getExistingTile(ownerUuid, networkId, version, layer, dim, chunkX, chunkZ);
         if (file == null) {
             return new byte[0];
         }

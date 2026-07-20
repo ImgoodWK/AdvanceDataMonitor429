@@ -372,19 +372,21 @@ public final class WebAePerfProfiler {
             return;
         }
         lastHardLogMs = now;
-        WebAeDebugLog.infoAlways(
-            WebAeDebugLog.Feature.PERF,
-            "slow http route={} {}ms",
-            route,
-            Long.valueOf(ms));
+        WebAeDebugLog.infoAlways(WebAeDebugLog.Feature.PERF, "slow http route={} {}ms", route, Long.valueOf(ms));
     }
 
     private void logSummary() {
         StringBuilder sb = new StringBuilder(256);
         sb.append("summary tps=")
-            .append(round1(ServerHealthSampler.instance().getLatestTps()))
+            .append(
+                round1(
+                    ServerHealthSampler.instance()
+                        .getLatestTps()))
             .append(" mspt=")
-            .append(round1(ServerHealthSampler.instance().getLatestMspt()))
+            .append(
+                round1(
+                    ServerHealthSampler.instance()
+                        .getLatestMspt()))
             .append(" queue=")
             .append(getQueueDepth())
             .append(" activeNets=")

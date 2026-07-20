@@ -10,13 +10,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 
-import appeng.api.AEApi;
-import appeng.api.config.Actionable;
-import appeng.api.networking.IGrid;
-import appeng.api.networking.security.PlayerSource;
-import appeng.api.networking.storage.IStorageGrid;
-import appeng.api.storage.data.IAEItemStack;
-
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.compat.bq.BqApiFacade;
@@ -26,6 +19,13 @@ import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.dto.QuestClaimResultDto;
 import com.imgood.textech.webae.dto.QuestDetailDto;
 import com.imgood.textech.webae.dto.QuestRewardDto;
+
+import appeng.api.AEApi;
+import appeng.api.config.Actionable;
+import appeng.api.networking.IGrid;
+import appeng.api.networking.security.PlayerSource;
+import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.storage.data.IAEItemStack;
 
 /**
  * Claims BetterQuesting item/choice rewards into the owner's selected AE network.
@@ -126,7 +126,9 @@ public final class QuestRewardClaimService {
             return fail(
                 result,
                 "inventory_full",
-                "Player inventory needs " + neededSlots + " empty slots for temporary claim staging (has " + emptySlots
+                "Player inventory needs " + neededSlots
+                    + " empty slots for temporary claim staging (has "
+                    + emptySlots
                     + ")");
         }
 

@@ -35,6 +35,7 @@ public class PlayerInfoStore {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .create();
+
     private static File storeFile() {
         return TeXTechDataDir.webAeFile("web-players.json");
     }
@@ -201,7 +202,10 @@ public class PlayerInfoStore {
         // background daemon thread to avoid disk write stalls on the tick.
         Map<String, PlayerInfo> snapshot = new HashMap<String, PlayerInfo>();
         for (Map.Entry<UUID, PlayerInfo> e : players.entrySet()) {
-            snapshot.put(e.getKey().toString(), e.getValue());
+            snapshot.put(
+                e.getKey()
+                    .toString(),
+                e.getValue());
         }
         fileSaver.schedule(snapshot, storeFile());
     }

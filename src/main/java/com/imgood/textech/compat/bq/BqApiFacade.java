@@ -21,13 +21,13 @@ import net.minecraftforge.fluids.FluidStack;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.dto.QuestDetailDto;
-import com.imgood.textech.webae.dto.QuestRelationDto;
 import com.imgood.textech.webae.dto.QuestLineEdgeDto;
 import com.imgood.textech.webae.dto.QuestLineGraphDto;
 import com.imgood.textech.webae.dto.QuestLineNodeDto;
 import com.imgood.textech.webae.dto.QuestLineSummaryDto;
 import com.imgood.textech.webae.dto.QuestProgressDto;
 import com.imgood.textech.webae.dto.QuestProgressEntryDto;
+import com.imgood.textech.webae.dto.QuestRelationDto;
 import com.imgood.textech.webae.dto.QuestRewardDto;
 import com.imgood.textech.webae.dto.QuestSearchHitDto;
 import com.imgood.textech.webae.dto.QuestTaskDto;
@@ -161,7 +161,8 @@ public final class BqApiFacade {
         }
         java.util.HashSet<String> ghostAdded = new java.util.HashSet<String>();
         for (QuestLineEdgeDto edge : graph.edges) {
-            if (edge == null || edge.fromQuestId == null || presentIds.contains(edge.fromQuestId)
+            if (edge == null || edge.fromQuestId == null
+                || presentIds.contains(edge.fromQuestId)
                 || ghostAdded.contains(edge.fromQuestId)) {
                 continue;
             }
@@ -262,11 +263,8 @@ public final class BqApiFacade {
         if (tasksDb != null) {
             int idx = 0;
             for (IndexedEntry taskEntry : entriesOfIndexedDb(tasksDb)) {
-                QuestTaskDto task = com.imgood.textech.webae.quest.QuestTaskDeserializer.deserialize(
-                    idx++,
-                    taskEntry.id,
-                    taskEntry.value,
-                    questingUuid);
+                QuestTaskDto task = com.imgood.textech.webae.quest.QuestTaskDeserializer
+                    .deserialize(idx++, taskEntry.id, taskEntry.value, questingUuid);
                 if (task != null) {
                     dto.tasks.add(task);
                 }
@@ -398,8 +396,11 @@ public final class BqApiFacade {
             if (reward == null || !isChoiceFactory(readFactoryId(reward))) {
                 return false;
             }
-            if (!setChoiceSelection(reward, questingUuid, entry.getValue()
-                .intValue())) {
+            if (!setChoiceSelection(
+                reward,
+                questingUuid,
+                entry.getValue()
+                    .intValue())) {
                 return false;
             }
         }
@@ -649,8 +650,8 @@ public final class BqApiFacade {
      * Same as {@link #submitItemTask} but returns BQ leftover (null = fully consumed).
      * Callers that removed the stack from escrow/AE must reinject any leftover.
      */
-    public static ItemStack submitItemTaskLeftover(Object task, EntityPlayerMP player, UUID questingUuid,
-        UUID questId, Object quest, ItemStack stack) {
+    public static ItemStack submitItemTaskLeftover(Object task, EntityPlayerMP player, UUID questingUuid, UUID questId,
+        Object quest, ItemStack stack) {
         if (task == null || stack == null) {
             return stack;
         }
@@ -829,8 +830,12 @@ public final class BqApiFacade {
 
         if (item != null && participantInfo != null && questEntry != null) {
             try {
-                Method m = findMethod(task.getClass(), "retrieveItems", Class.forName(
-                    "betterquesting.api2.utils.ParticipantInfo"), Map.Entry.class, ItemStack[].class);
+                Method m = findMethod(
+                    task.getClass(),
+                    "retrieveItems",
+                    Class.forName("betterquesting.api2.utils.ParticipantInfo"),
+                    Map.Entry.class,
+                    ItemStack[].class);
                 if (m != null) {
                     m.invoke(task, participantInfo, questEntry, new ItemStack[] { item.copy() });
                     updated = true;
@@ -842,8 +847,12 @@ public final class BqApiFacade {
 
         if (fluid != null && participantInfo != null && questEntry != null) {
             try {
-                Method m = findMethod(task.getClass(), "retrieveFluids", Class.forName(
-                    "betterquesting.api2.utils.ParticipantInfo"), Map.Entry.class, FluidStack[].class);
+                Method m = findMethod(
+                    task.getClass(),
+                    "retrieveFluids",
+                    Class.forName("betterquesting.api2.utils.ParticipantInfo"),
+                    Map.Entry.class,
+                    FluidStack[].class);
                 if (m != null) {
                     m.invoke(task, participantInfo, questEntry, new FluidStack[] { fluid.copy() });
                     updated = true;
@@ -1178,8 +1187,11 @@ public final class BqApiFacade {
         } catch (Throwable ignored) {}
         for (Map.Entry<UUID, Object> e : entriesOfDb(db)) {
             if (e.getKey() != null) {
-                out.add(new IndexedEntry(e.getKey()
-                    .toString(), e.getValue()));
+                out.add(
+                    new IndexedEntry(
+                        e.getKey()
+                            .toString(),
+                        e.getValue()));
             }
         }
         return out;
@@ -1345,8 +1357,10 @@ public final class BqApiFacade {
         }
         try {
             Method m = container.getClass()
-                .getMethod("getProperty", prop.getClass()
-                    .getInterfaces()[0]);
+                .getMethod(
+                    "getProperty",
+                    prop.getClass()
+                        .getInterfaces()[0]);
             return m.invoke(container, prop);
         } catch (Throwable t) {
             try {
@@ -1423,12 +1437,8 @@ public final class BqApiFacade {
         return meta == Short.MAX_VALUE ? 0 : meta;
     }
 
-    private static QuestRelationDto buildQuestRelation(
-        UUID relatedId,
-        Object relatedQuest,
-        EntityPlayerMP player,
-        UUID questingUuid,
-        String requirementType) {
+    private static QuestRelationDto buildQuestRelation(UUID relatedId, Object relatedQuest, EntityPlayerMP player,
+        UUID questingUuid, String requirementType) {
         QuestRelationDto rel = new QuestRelationDto();
         rel.questId = relatedId.toString();
         rel.name = relatedQuest != null ? localize(readQuestName(relatedQuest)) : relatedId.toString();
@@ -1873,8 +1883,7 @@ public final class BqApiFacade {
             for (Method m : target.getClass()
                 .getMethods()) {
                 if (m.getName()
-                    .equals(method)
-                    && m.getParameterTypes().length == 1) {
+                    .equals(method) && m.getParameterTypes().length == 1) {
                     m.invoke(target, arg);
                     return;
                 }

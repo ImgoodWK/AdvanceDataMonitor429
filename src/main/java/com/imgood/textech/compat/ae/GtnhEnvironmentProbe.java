@@ -58,10 +58,7 @@ public final class GtnhEnvironmentProbe {
 
         String ae2Version = readModVersion("appliedenergistics2");
         if (ae2Version != null && !ae2Version.isEmpty()) {
-            return new ProbeResult(
-                AeCompatProfile.NATIVE_FLUID,
-                AeCompatDetectionSource.AE2_MOD_VERSION,
-                ae2Version);
+            return new ProbeResult(AeCompatProfile.NATIVE_FLUID, AeCompatDetectionSource.AE2_MOD_VERSION, ae2Version);
         }
 
         return new ProbeResult(

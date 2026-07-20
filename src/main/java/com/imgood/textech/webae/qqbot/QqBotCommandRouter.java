@@ -47,7 +47,8 @@ public final class QqBotCommandRouter {
         }
         if (is(verb, "about", "version", "关于", "版本")) {
             return cfg.aboutCommandEnabled
-                ? RouteResult.reply("about", cfg.botName + " · TeXTech / AdvanceDataMonitor WebAE QQ 群机器人 · 只读状态查询 + 共享 AI 对话")
+                ? RouteResult
+                    .reply("about", cfg.botName + " · TeXTech / AdvanceDataMonitor WebAE QQ 群机器人 · 只读状态查询 + 共享 AI 对话")
                 : RouteResult.disabled("about");
         }
         if (is(verb, "reset", "forget", "clear", "重置对话", "忘记对话", "清空对话")) {
@@ -69,17 +70,31 @@ public final class QqBotCommandRouter {
 
     public static String status(QqBotSnapshot snapshot, QqBotConfig cfg, boolean detailed) {
         StringBuilder text = new StringBuilder();
-        if (!snapshot.motd.isEmpty()) text.append(snapshot.motd).append('\n');
-        text.append("在线：").append(snapshot.onlinePlayers).append('/');
+        if (!snapshot.motd.isEmpty()) text.append(snapshot.motd)
+            .append('\n');
+        text.append("在线：")
+            .append(snapshot.onlinePlayers)
+            .append('/');
         if (snapshot.maxPlayers > 0) text.append(snapshot.maxPlayers);
         else text.append('?');
-        text.append(" · TPS ").append(one(snapshot.tps)).append(" · MSPT ").append(one(snapshot.mspt));
-        text.append('\n').append("运行：").append(duration(snapshot.uptimeSeconds));
+        text.append(" · TPS ")
+            .append(one(snapshot.tps))
+            .append(" · MSPT ")
+            .append(one(snapshot.mspt));
+        text.append('\n')
+            .append("运行：")
+            .append(duration(snapshot.uptimeSeconds));
         if (detailed && cfg.scheduledReportIncludeMemory) {
-            text.append(" · 内存 ").append(snapshot.usedMemoryMb).append('/').append(snapshot.maxMemoryMb).append(" MiB");
+            text.append(" · 内存 ")
+                .append(snapshot.usedMemoryMb)
+                .append('/')
+                .append(snapshot.maxMemoryMb)
+                .append(" MiB");
         }
         if (detailed && cfg.scheduledReportIncludePlayers && !snapshot.playerNames.isEmpty()) {
-            text.append('\n').append("玩家：").append(joinNames(snapshot, 20));
+            text.append('\n')
+                .append("玩家：")
+                .append(joinNames(snapshot, 20));
         }
         return text.toString();
     }
@@ -87,30 +102,52 @@ public final class QqBotCommandRouter {
     private static String help(QqBotConfig cfg, boolean admin) {
         String p = prefix(cfg);
         StringBuilder text = new StringBuilder("可用功能：");
-        if (cfg.statusCommandEnabled) text.append('\n').append(p).append("status - 服务器概况");
-        if (cfg.playersCommandEnabled) text.append('\n').append(p).append("players - 在线人数");
-        if (cfg.playerListCommandEnabled) text.append('\n').append(p).append("list - 在线名单");
-        if (cfg.tpsCommandEnabled) text.append('\n').append(p).append("tps - TPS/MSPT");
-        if (cfg.memoryCommandEnabled) text.append('\n').append(p).append("memory - JVM 内存");
-        if (cfg.uptimeCommandEnabled) text.append('\n').append(p).append("uptime - 运行时间");
+        if (cfg.statusCommandEnabled) text.append('\n')
+            .append(p)
+            .append("status - 服务器概况");
+        if (cfg.playersCommandEnabled) text.append('\n')
+            .append(p)
+            .append("players - 在线人数");
+        if (cfg.playerListCommandEnabled) text.append('\n')
+            .append(p)
+            .append("list - 在线名单");
+        if (cfg.tpsCommandEnabled) text.append('\n')
+            .append(p)
+            .append("tps - TPS/MSPT");
+        if (cfg.memoryCommandEnabled) text.append('\n')
+            .append(p)
+            .append("memory - JVM 内存");
+        if (cfg.uptimeCommandEnabled) text.append('\n')
+            .append(p)
+            .append("uptime - 运行时间");
         if (cfg.aiEnabled) {
-            text.append('\n').append(p).append("ai <问题> - AI 对话");
-            text.append('\n').append(p).append("reset - 清空个人会话");
+            text.append('\n')
+                .append(p)
+                .append("ai <问题> - AI 对话");
+            text.append('\n')
+                .append(p)
+                .append("reset - 清空个人会话");
         }
-        text.append('\n').append(p).append("ping - 连通性测试");
-        if (admin) text.append('\n').append(p).append("botstatus - 机器人管理提示");
+        text.append('\n')
+            .append(p)
+            .append("ping - 连通性测试");
+        if (admin) text.append('\n')
+            .append(p)
+            .append("botstatus - 机器人管理提示");
         return text.toString();
     }
 
     private static String players(QqBotSnapshot snapshot, boolean names) {
-        String result = "当前在线 " + snapshot.onlinePlayers + (snapshot.maxPlayers > 0 ? "/" + snapshot.maxPlayers : "") + " 人";
+        String result = "当前在线 " + snapshot.onlinePlayers
+            + (snapshot.maxPlayers > 0 ? "/" + snapshot.maxPlayers : "")
+            + " 人";
         if (names && !snapshot.playerNames.isEmpty()) result += "\n" + joinNames(snapshot, 30);
         return result;
     }
 
     private static String performance(QqBotSnapshot snapshot) {
-        String level = snapshot.tps >= 19.0D ? "流畅" : snapshot.tps >= 17.0D ? "轻微繁忙"
-            : snapshot.tps >= 14.0D ? "负载较高" : "严重卡顿";
+        String level = snapshot.tps >= 19.0D ? "流畅"
+            : snapshot.tps >= 17.0D ? "轻微繁忙" : snapshot.tps >= 14.0D ? "负载较高" : "严重卡顿";
         return "TPS " + one(snapshot.tps) + " · MSPT " + one(snapshot.mspt) + " ms · " + level;
     }
 
@@ -126,7 +163,9 @@ public final class QqBotCommandRouter {
             if (i > 0) text.append("、");
             text.append(snapshot.playerNames.get(i));
         }
-        if (snapshot.playerNames.size() > limit) text.append(" 等 ").append(snapshot.playerNames.size()).append(" 人");
+        if (snapshot.playerNames.size() > limit) text.append(" 等 ")
+            .append(snapshot.playerNames.size())
+            .append(" 人");
         return text.toString();
     }
 
@@ -135,15 +174,19 @@ public final class QqBotCommandRouter {
         long hours = seconds % 86400L / 3600L;
         long minutes = seconds % 3600L / 60L;
         StringBuilder text = new StringBuilder();
-        if (days > 0L) text.append(days).append("天");
-        if (hours > 0L) text.append(hours).append("小时");
-        if (minutes > 0L || text.length() == 0) text.append(minutes).append("分钟");
+        if (days > 0L) text.append(days)
+            .append("天");
+        if (hours > 0L) text.append(hours)
+            .append("小时");
+        if (minutes > 0L || text.length() == 0) text.append(minutes)
+            .append("分钟");
         return text.toString();
     }
 
     private static String stripPrefix(String text, String prefix) {
         String p = safe(prefix);
-        return !p.isEmpty() && text.startsWith(p) ? text.substring(p.length()).trim() : text;
+        return !p.isEmpty() && text.startsWith(p) ? text.substring(p.length())
+            .trim() : text;
     }
 
     private static String prefix(QqBotConfig cfg) {
@@ -157,7 +200,9 @@ public final class QqBotCommandRouter {
 
     private static String remainder(String value) {
         int space = value.indexOf(' ');
-        return space < 0 ? "" : value.substring(space + 1).trim();
+        return space < 0 ? ""
+            : value.substring(space + 1)
+                .trim();
     }
 
     private static boolean is(String value, String... options) {

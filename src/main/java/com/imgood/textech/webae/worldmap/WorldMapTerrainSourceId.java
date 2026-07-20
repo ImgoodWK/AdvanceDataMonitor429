@@ -16,10 +16,12 @@ public enum WorldMapTerrainSourceId {
     }
 
     public static WorldMapTerrainSourceId fromId(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return null;
         }
-        String id = raw.trim().toLowerCase();
+        String id = raw.trim()
+            .toLowerCase();
         for (WorldMapTerrainSourceId source : values()) {
             if (source.id.equals(id)) {
                 return source;

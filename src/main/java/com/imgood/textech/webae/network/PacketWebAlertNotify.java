@@ -98,18 +98,20 @@ public final class PacketWebAlertNotify implements IMessage {
 
                 @Override
                 public void run() {
-                    WebAlertHudRenderer.instance().push(
-                        message.severity,
-                        message.title,
-                        message.message,
-                        message.durationSeconds,
-                        message.maxVisible,
-                        message.position,
-                        message.soundEnabled);
+                    WebAlertHudRenderer.instance()
+                        .push(
+                            message.severity,
+                            message.title,
+                            message.message,
+                            message.durationSeconds,
+                            message.maxVisible,
+                            message.position,
+                            message.soundEnabled);
                 }
             };
             try {
-                Method method = minecraft.getClass().getMethod("func_152344_a", Runnable.class);
+                Method method = minecraft.getClass()
+                    .getMethod("func_152344_a", Runnable.class);
                 method.invoke(minecraft, task);
             } catch (Exception ignored) {
                 task.run();

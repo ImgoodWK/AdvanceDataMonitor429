@@ -11,8 +11,8 @@ import com.imgood.textech.handler.HandlerStarryCosmosSword;
 import com.imgood.textech.handler.HandlerSuperOrange;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.handler.HandlerWebChatCollector;
-import com.imgood.textech.handler.HandlerWebTileEntityIndex;
 import com.imgood.textech.handler.HandlerWebPlayerTracker;
+import com.imgood.textech.handler.HandlerWebTileEntityIndex;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 

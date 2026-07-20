@@ -14,19 +14,18 @@ import fi.iki.elonen.NanoHTTPD;
 /** WebAE assistant query and explicit action-confirmation endpoints. */
 public final class AssistantHandler {
 
-    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
+    private static final Gson GSON = new GsonBuilder().serializeNulls()
+        .create();
 
     private AssistantHandler() {}
 
     public static NanoHTTPD.Response handleClientAiContext(String body) {
         try {
-            ClientAiContextRequest request = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body,
-                ClientAiContextRequest.class);
-            ClientAiContext context = WebAssistantService.clientAiContext(
-                request == null ? null : request.locale,
-                request == null ? null : request.text);
-            return json(NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"context\":" + GSON.toJson(context) + "}");
+            ClientAiContextRequest request = GSON
+                .fromJson(body == null || body.isEmpty() ? "{}" : body, ClientAiContextRequest.class);
+            ClientAiContext context = WebAssistantService
+                .clientAiContext(request == null ? null : request.locale, request == null ? null : request.text);
+            return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"context\":" + GSON.toJson(context) + "}");
         } catch (IllegalStateException e) {
             return error(NanoHTTPD.Response.Status.CONFLICT, "browser_ai_disabled", e.getMessage());
         } catch (Exception e) {
@@ -36,8 +35,8 @@ public final class AssistantHandler {
 
     public static NanoHTTPD.Response handleQuery(String body, WebAuthSession auth) {
         try {
-            WebAssistantRequest request = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body,
-                WebAssistantRequest.class);
+            WebAssistantRequest request = GSON
+                .fromJson(body == null || body.isEmpty() ? "{}" : body, WebAssistantRequest.class);
             WebAssistantResult result = WebAssistantService.handleQuery(auth, request);
             return json(NanoHTTPD.Response.Status.OK, GSON.toJson(result));
         } catch (Exception e) {
@@ -47,8 +46,8 @@ public final class AssistantHandler {
 
     public static NanoHTTPD.Response handleAction(String body, WebAuthSession auth) {
         try {
-            WebAssistantActionRequest request = GSON.fromJson(body == null || body.isEmpty() ? "{}" : body,
-                WebAssistantActionRequest.class);
+            WebAssistantActionRequest request = GSON
+                .fromJson(body == null || body.isEmpty() ? "{}" : body, WebAssistantActionRequest.class);
             WebAssistantResult result = WebAssistantService.confirm(auth, request);
             return json(NanoHTTPD.Response.Status.OK, GSON.toJson(result));
         } catch (Exception e) {
@@ -65,6 +64,7 @@ public final class AssistantHandler {
     }
 
     private static final class ClientAiContextRequest {
+
         String locale;
         String text;
     }

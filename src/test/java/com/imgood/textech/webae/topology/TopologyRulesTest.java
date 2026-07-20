@@ -29,9 +29,8 @@ public class TopologyRulesTest {
             return;
         }
         ItemStack stack = new ItemStack(item);
-        Assert.assertEquals(
-            TopologyRules.SUB_CPU,
-            TopologyRules.classifySubtype("appeng.tile.misc.UnknownTile", stack));
+        Assert
+            .assertEquals(TopologyRules.SUB_CPU, TopologyRules.classifySubtype("appeng.tile.misc.UnknownTile", stack));
     }
 
     @Test

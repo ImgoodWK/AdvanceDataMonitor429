@@ -128,8 +128,9 @@ public final class WebDisplayBindingCodec {
     }
 
     private static String asString(JsonObject obj, String key) {
-        if (obj == null || !obj.has(key) || obj.get(key)
-            .isJsonNull()) {
+        if (obj == null || !obj.has(key)
+            || obj.get(key)
+                .isJsonNull()) {
             return "";
         }
         try {
@@ -142,8 +143,9 @@ public final class WebDisplayBindingCodec {
     }
 
     private static int asInt(JsonObject obj, String key, int fallback) {
-        if (obj == null || !obj.has(key) || obj.get(key)
-            .isJsonNull()) {
+        if (obj == null || !obj.has(key)
+            || obj.get(key)
+                .isJsonNull()) {
             return fallback;
         }
         try {

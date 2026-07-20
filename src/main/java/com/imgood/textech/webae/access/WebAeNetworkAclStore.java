@@ -45,7 +45,8 @@ public final class WebAeNetworkAclStore {
         synchronized (list) {
             for (AclEntry e : list) {
                 if (ownerUuid.equals(e.ownerUuid) && actorUuid.equals(e.actorUuid)
-                    && networkKey.equals(e.networkKey) && EFFECT_DENY.equals(e.effect)) {
+                    && networkKey.equals(e.networkKey)
+                    && EFFECT_DENY.equals(e.effect)) {
                     return true;
                 }
             }
@@ -92,8 +93,7 @@ public final class WebAeNetworkAclStore {
         List<AclEntry> list = getList();
         synchronized (list) {
             for (AclEntry e : list) {
-                if (ownerUuid.equals(e.ownerUuid) && actorUuid.equals(e.actorUuid)
-                    && networkKey.equals(e.networkKey)) {
+                if (ownerUuid.equals(e.ownerUuid) && actorUuid.equals(e.actorUuid) && networkKey.equals(e.networkKey)) {
                     e.effect = EFFECT_DENY;
                     e.updatedAt = System.currentTimeMillis();
                     scheduleSave();
@@ -122,8 +122,7 @@ public final class WebAeNetworkAclStore {
             Iterator<AclEntry> iter = list.iterator();
             while (iter.hasNext()) {
                 AclEntry e = iter.next();
-                if (ownerUuid.equals(e.ownerUuid) && actorUuid.equals(e.actorUuid)
-                    && networkKey.equals(e.networkKey)) {
+                if (ownerUuid.equals(e.ownerUuid) && actorUuid.equals(e.actorUuid) && networkKey.equals(e.networkKey)) {
                     iter.remove();
                     removed = true;
                 }

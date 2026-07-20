@@ -5,8 +5,8 @@ import com.imgood.textech.webae.auth.WebAdminGrantStore.GrantEntry;
 /**
  * Unified admin check: grants admin access when either
  * <ul>
- *   <li>a valid admin grant token (bound to session actorUuid) is present, OR</li>
- *   <li>the actor is online and has OP level >= 2</li>
+ * <li>a valid admin grant token (bound to session actorUuid) is present, OR</li>
+ * <li>the actor is online and has OP level >= 2</li>
  * </ul>
  *
  * <p>
@@ -33,8 +33,7 @@ public final class WebAuthAdminCheck {
         // Admin grant token check
         if (adminHeader != null && !adminHeader.isEmpty()) {
             GrantEntry grant = WebAdminGrantStore.validate(adminHeader);
-            if (grant != null && grant.boundActorUuid != null
-                && grant.boundActorUuid.equals(session.actorUuid)) {
+            if (grant != null && grant.boundActorUuid != null && grant.boundActorUuid.equals(session.actorUuid)) {
                 return true;
             }
         }

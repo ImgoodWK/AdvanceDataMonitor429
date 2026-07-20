@@ -125,6 +125,11 @@ public class Config {
     public static int webConsolePort = 8090;
     public static String webConsoleBindAddress = "127.0.0.1";
     public static int webConsoleSnapshotIntervalSeconds = 30;
+    /**
+     * When true and montoyo MCEF is installed, in-game web surfaces prefer a local off-screen
+     * Chromium browser (true SPA / live_url). When false or MCEF is absent, HttpFrame JPEG is used.
+     */
+    public static boolean webSurfaceUseMcef = true;
     /** Global kill switch for WebAE alert evaluation and all notification delivery. Default true. */
     public static boolean webAlertsEnabled = true;
     /** Client framebuffer capture/local history and explicit WebAE/QQ sharing. */
@@ -260,14 +265,17 @@ public class Config {
     public static boolean webTopologySnapshotPersist = true;
     /**
      * @deprecated Cable-simulation render mode (TopologySimulatedView + /api/ae2/cable-texture).
-     * Default false — feature retained for emergency re-enable only.
+     *             Default false — feature retained for emergency re-enable only.
      */
     public static boolean webTopologySimulatedEnabled = false;
     /** Optional Dynmap base URL for player location deep links (Phase 6.1). Empty = disabled. */
     public static String webDynmapBaseUrl = "";
     /** Whether the world map overlay API is enabled (requires topologyEnabled). Default true. */
     public static boolean webWorldMapEnabled = true;
-    /** @deprecated Use {@code worldMapDefaultQualityTier} / {@link com.imgood.textech.webae.worldmap.WorldMapQualityTier}. Kept for legacy cfg migration. */
+    /**
+     * @deprecated Use {@code worldMapDefaultQualityTier} /
+     *             {@link com.imgood.textech.webae.worldmap.WorldMapQualityTier}. Kept for legacy cfg migration.
+     */
     public static int webWorldMapTilePx = 128;
     /** Highest allowed world map quality tier: low, medium, high, ultra. Default medium. */
     public static String webWorldMapMaxQualityTier = "medium";
@@ -333,7 +341,10 @@ public class Config {
     public static boolean webWorldMapServerAtlasEnabled = true;
     /** Server-side texture atlas edge length in pixels (multiple of 16). Default 2048. */
     public static int webWorldMapServerAtlasPx = 2048;
-    /** Terrain source for world map tiles: auto (detect Dynmap), dynmap (force Dynmap tiles), or self (self-render). Default auto. */
+    /**
+     * Terrain source for world map tiles: auto (detect Dynmap), dynmap (force Dynmap tiles), or self (self-render).
+     * Default auto.
+     */
     public static String worldMapTerrainSource = "auto";
     /** Local Dynmap tiles root directory. Empty = auto-detect dynmap/web/tiles/ relative to instance root. */
     public static String worldMapDynmapTileRoot = "";
@@ -363,7 +374,10 @@ public class Config {
     /** Comma-separated per-chunk terrain capture priority for snapshots (dynmap,journeymap,client_gl). */
     public static String worldMapSnapshotSourcePriority = "dynmap,journeymap,client_gl";
     public static boolean worldMapDynmapCaptureEnabled = true;
-    /** Alias gate for JourneyMap in snapshot capture chain. Defaults to worldMapJourneyMapEnabled when unset in cfg migration. */
+    /**
+     * Alias gate for JourneyMap in snapshot capture chain. Defaults to worldMapJourneyMapEnabled when unset in cfg
+     * migration.
+     */
     public static boolean worldMapJourneyMapCaptureEnabled = true;
     public static boolean worldMapClientGlCaptureEnabled = true;
     /** Integrated SP: serve missing snapshot tiles via direct FS/GL read. */

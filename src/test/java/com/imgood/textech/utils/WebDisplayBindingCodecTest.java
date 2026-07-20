@@ -7,8 +7,7 @@ public class WebDisplayBindingCodecTest {
 
     @Test
     public void parsesLiveBinding() throws Exception {
-        String json = "{"
-            + "\"format\":\"textech-webae-display-binding\","
+        String json = "{" + "\"format\":\"textech-webae-display-binding\","
             + "\"version\":1,"
             + "\"mode\":\"dashboard_live\","
             + "\"displayId\":\"abc12345deadbeef\","

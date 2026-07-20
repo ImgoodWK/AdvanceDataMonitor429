@@ -9,8 +9,11 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.Config;
 import com.imgood.textech.client.WebSurfaceClientCache;
 import com.imgood.textech.client.websurface.HttpFrameWebSurfaceSource;
+import com.imgood.textech.client.websurface.McefWebSurfaceSource;
+import com.imgood.textech.client.websurface.WebSurfaceSourceRouter;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AbstractMonitorSubGui;
 import com.imgood.textech.network.packet.PacketMonitorWebSurface;
@@ -135,12 +138,13 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             ? existing.getString(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY)
             : HttpFrameWebSurfaceSource.resolveOrigin("");
         String[] values = previousValues != null ? previousValues
-            : new String[] { existing == null ? I18n.format("adm.web_dashboard.default_name") : existing.getString("displayName"),
+            : new String[] {
+                existing == null ? I18n.format("adm.web_dashboard.default_name") : existing.getString("displayName"),
                 String.valueOf(existing == null ? 0.3F : existing.getFloat("scale")),
-                String.valueOf(existing == null || !existing.hasKey("webOpacity") ? 1.0F : existing.getFloat("webOpacity")),
+                String.valueOf(
+                    existing == null || !existing.hasKey("webOpacity") ? 1.0F : existing.getFloat("webOpacity")),
                 String.valueOf(existing == null ? 0.0F : existing.getFloat("xOffset")),
-                String.valueOf(existing == null ? -0.5F : existing.getFloat("yOffset")),
-                defaultOrigin,
+                String.valueOf(existing == null ? -0.5F : existing.getFloat("yOffset")), defaultOrigin,
                 String.valueOf(existing == null ? -0.48F : existing.getFloat("zOffset")),
                 String.valueOf(existing == null ? 0.0F : existing.getFloat("rotationX")),
                 String.valueOf(existing == null ? 0.0F : existing.getFloat("rotationY")),
@@ -157,13 +161,15 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
 
         if (!isInitialized && existing != null) {
             snapshotHash = existing.getString(TileEntityAdvanceDataMonitor.WEB_DASHBOARD_HASH_KEY);
-            textureWidth = normalizeTextureWidth(existing.hasKey("webTextureWidth") ? existing.getInteger("webTextureWidth") : 512);
+            textureWidth = normalizeTextureWidth(
+                existing.hasKey("webTextureWidth") ? existing.getInteger("webTextureWidth") : 512);
             fullBright = !existing.hasKey("webFullBright") || existing.getBoolean("webFullBright");
             isEnabled = !existing.hasKey("enable") || existing.getBoolean("enable");
             surfaceMode = existing.hasKey(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY)
                 ? existing.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY)
                 : TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT;
-            if (TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT.equals(surfaceMode) && snapshotHash.length() == 64) {
+            if (TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT.equals(surfaceMode)
+                && snapshotHash.length() == 64) {
                 byte[] local = WebSurfaceClientCache.getContent(snapshotHash);
                 if (local != null) decodeInfo(local);
                 WebSurfaceClientCache.requestContentIfNeeded(
@@ -178,21 +184,76 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         isInitialized = true;
 
         buttonList.clear();
-        buttonList.add(monitorButton(BUTTON_IMPORT, offsetX + 25, offsetY + 205, 120, 20,
-            I18n.format("adm.button.web_dashboard_import"), textColor, textHoverColor));
-        buttonList.add(monitorButton(BUTTON_COPY, offsetX + 155, offsetY + 205, 110, 20,
-            I18n.format("adm.button.web_dashboard_copy"), textColor, textHoverColor));
-        buttonList.add(monitorButton(BUTTON_QUALITY, offsetX + 275, offsetY + 205, 70, 20,
-            textureWidth + "px", textColor, textHoverColor));
-        buttonList.add(monitorButton(BUTTON_BRIGHT, offsetX + 355, offsetY + 205, 80, 20,
-            I18n.format(fullBright ? "adm.button.web_dashboard_bright" : "adm.button.web_dashboard_lit"), textColor,
-            textHoverColor));
-        buttonList.add(monitorButton(BUTTON_ENABLE, offsetX + 445, offsetY + 205, 65, 20,
-            I18n.format(isEnabled ? "adm.button.disable" : "adm.button.enable"), textColor, textHoverColor));
-        buttonList.add(monitorButton(BUTTON_SAVE, offsetX + 175, offsetY + 275, 80, 20,
-            I18n.format("adm.button.save"), textColor, textHoverColor));
-        buttonList.add(monitorButton(BUTTON_CANCEL, offsetX + 275, offsetY + 275, 80, 20,
-            I18n.format("adm.button.cancel"), textColor, textHoverColor));
+        buttonList.add(
+            monitorButton(
+                BUTTON_IMPORT,
+                offsetX + 25,
+                offsetY + 205,
+                120,
+                20,
+                I18n.format("adm.button.web_dashboard_import"),
+                textColor,
+                textHoverColor));
+        buttonList.add(
+            monitorButton(
+                BUTTON_COPY,
+                offsetX + 155,
+                offsetY + 205,
+                110,
+                20,
+                I18n.format("adm.button.web_dashboard_copy"),
+                textColor,
+                textHoverColor));
+        buttonList.add(
+            monitorButton(
+                BUTTON_QUALITY,
+                offsetX + 275,
+                offsetY + 205,
+                70,
+                20,
+                textureWidth + "px",
+                textColor,
+                textHoverColor));
+        buttonList.add(
+            monitorButton(
+                BUTTON_BRIGHT,
+                offsetX + 355,
+                offsetY + 205,
+                80,
+                20,
+                I18n.format(fullBright ? "adm.button.web_dashboard_bright" : "adm.button.web_dashboard_lit"),
+                textColor,
+                textHoverColor));
+        buttonList.add(
+            monitorButton(
+                BUTTON_ENABLE,
+                offsetX + 445,
+                offsetY + 205,
+                65,
+                20,
+                I18n.format(isEnabled ? "adm.button.disable" : "adm.button.enable"),
+                textColor,
+                textHoverColor));
+        buttonList.add(
+            monitorButton(
+                BUTTON_SAVE,
+                offsetX + 175,
+                offsetY + 275,
+                80,
+                20,
+                I18n.format("adm.button.save"),
+                textColor,
+                textHoverColor));
+        buttonList.add(
+            monitorButton(
+                BUTTON_CANCEL,
+                offsetX + 275,
+                offsetY + 275,
+                80,
+                20,
+                I18n.format("adm.button.cancel"),
+                textColor,
+                textHoverColor));
         fieldHints.clear();
         fieldHints.put(scaleField, "adm.hint.scale");
         fieldHints.put(opacityField, "adm.hint.web_dashboard_opacity");
@@ -255,7 +316,8 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
 
     private void importClipboard() {
         String json = getClipboardString();
-        if (json == null || json.trim().isEmpty()) {
+        if (json == null || json.trim()
+            .isEmpty()) {
             errorTips = I18n.format("adm.error.web_dashboard_clipboard_empty");
             return;
         }
@@ -267,14 +329,22 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
                 snapshotHash = liveBinding.bindingHash;
                 importedPayload = null;
                 snapshotInfo = null;
-                if (originField != null && (originField.getText().trim().isEmpty()
-                    || HttpFrameWebSurfaceSource.resolveOrigin("").equals(originField.getText().trim()))) {
+                if (originField != null && (originField.getText()
+                    .trim()
+                    .isEmpty()
+                    || HttpFrameWebSurfaceSource.resolveOrigin("")
+                        .equals(
+                            originField.getText()
+                                .trim()))) {
                     if (liveBinding.webaeOrigin != null && !liveBinding.webaeOrigin.isEmpty()) {
                         originField.setText(liveBinding.webaeOrigin);
                     }
                 }
-                if (displayNameField.getText().trim().isEmpty()
-                    || I18n.format("adm.web_dashboard.default_name").equals(displayNameField.getText())) {
+                if (displayNameField.getText()
+                    .trim()
+                    .isEmpty()
+                    || I18n.format("adm.web_dashboard.default_name")
+                        .equals(displayNameField.getText())) {
                     displayNameField.setText(liveBinding.title);
                 }
                 errorTips = "";
@@ -294,8 +364,11 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             bindingJson = "";
             surfaceMode = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT;
             WebSurfaceClientCache.acceptContent(snapshotHash, importedPayload);
-            if (displayNameField.getText().trim().isEmpty()
-                || I18n.format("adm.web_dashboard.default_name").equals(displayNameField.getText())) {
+            if (displayNameField.getText()
+                .trim()
+                .isEmpty()
+                || I18n.format("adm.web_dashboard.default_name")
+                    .equals(displayNameField.getText())) {
                 displayNameField.setText(snapshotInfo.title);
             }
             errorTips = "";
@@ -342,27 +415,66 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             config.setString("dataType", TileEntityAdvanceDataMonitor.DATA_TYPE_WEBAE_DASHBOARD);
             config.setString("renderType", TileEntityAdvanceDataMonitor.RENDER_TYPE_WEB_SURFACE);
             config.setString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY, surfaceMode);
-            config.setString("displayName", displayNameField.getText().trim());
-            config.setFloat("scale", Float.parseFloat(scaleField.getText().trim()));
-            config.setFloat("webOpacity", Float.parseFloat(opacityField.getText().trim()));
-            config.setFloat("xOffset", Float.parseFloat(xOffsetField.getText().trim()));
-            config.setFloat("yOffset", Float.parseFloat(yOffsetField.getText().trim()));
-            config.setFloat("zOffset", Float.parseFloat(zOffsetField.getText().trim()));
-            config.setFloat("rotationX", Float.parseFloat(rotationXField.getText().trim()));
-            config.setFloat("rotationY", Float.parseFloat(rotationYField.getText().trim()));
-            config.setFloat("rotationZ", Float.parseFloat(rotationZField.getText().trim()));
+            config.setString(
+                "displayName",
+                displayNameField.getText()
+                    .trim());
+            config.setFloat(
+                "scale",
+                Float.parseFloat(
+                    scaleField.getText()
+                        .trim()));
+            config.setFloat(
+                "webOpacity",
+                Float.parseFloat(
+                    opacityField.getText()
+                        .trim()));
+            config.setFloat(
+                "xOffset",
+                Float.parseFloat(
+                    xOffsetField.getText()
+                        .trim()));
+            config.setFloat(
+                "yOffset",
+                Float.parseFloat(
+                    yOffsetField.getText()
+                        .trim()));
+            config.setFloat(
+                "zOffset",
+                Float.parseFloat(
+                    zOffsetField.getText()
+                        .trim()));
+            config.setFloat(
+                "rotationX",
+                Float.parseFloat(
+                    rotationXField.getText()
+                        .trim()));
+            config.setFloat(
+                "rotationY",
+                Float.parseFloat(
+                    rotationYField.getText()
+                        .trim()));
+            config.setFloat(
+                "rotationZ",
+                Float.parseFloat(
+                    rotationZField.getText()
+                        .trim()));
             config.setInteger("webTextureWidth", textureWidth);
             config.setBoolean("webFullBright", fullBright);
             config.setBoolean("enable", isEnabled);
             config.setString(TileEntityAdvanceDataMonitor.WEB_DASHBOARD_HASH_KEY, snapshotHash);
-            String origin = originField != null ? originField.getText().trim() : "";
+            String origin = originField != null ? originField.getText()
+                .trim() : "";
             config.setString(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY, origin);
 
             if (live && liveBinding != null) {
                 config.setString("webBindingJson", bindingJson);
                 config.setString(TileEntityAdvanceDataMonitor.WEB_DISPLAY_ID_KEY, liveBinding.displayId);
                 config.setString(TileEntityAdvanceDataMonitor.WEB_VIEW_TOKEN_KEY, liveBinding.viewToken);
-                config.setString(TileEntityAdvanceDataMonitor.WEB_LIVE_URL_KEY, liveBinding.url);
+                config.setString(TileEntityAdvanceDataMonitor.WEB_LIVE_URL_KEY, liveBinding.url == null ? "" : liveBinding.url);
+                config.setString(
+                    TileEntityAdvanceDataMonitor.WEB_EMBED_PATH_KEY,
+                    liveBinding.embedPath == null ? "" : liveBinding.embedPath);
                 config.setString("webDashboardTitle", liveBinding.title);
                 config.setInteger("webDashboardViewportWidth", liveBinding.viewportWidth);
                 config.setInteger("webDashboardViewportHeight", liveBinding.viewportHeight);
@@ -402,11 +514,8 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
 
     private void refreshStatus() {
         if (liveBinding != null) {
-            status = I18n.format(
-                "adm.status.web_dashboard_live",
-                liveBinding.title,
-                liveBinding.mode,
-                liveBinding.displayId);
+            status = I18n
+                .format("adm.status.web_dashboard_live", liveBinding.title, liveBinding.mode, liveBinding.displayId);
             return;
         }
         if (snapshotInfo == null) {
@@ -419,6 +528,32 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             snapshotInfo.title,
             Integer.valueOf(snapshotInfo.primitives.size()),
             Integer.valueOf(snapshotInfo.rawBytes / 1024));
+    }
+
+    private String mcefStatusLine() {
+        boolean live = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE.equals(surfaceMode)
+            || TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(surfaceMode);
+        if (!live) return I18n.format("adm.status.web_dashboard_frame_snapshot");
+
+        String source = WebSurfaceSourceRouter.getLastSource();
+        if (WebSurfaceSourceRouter.SOURCE_MCEF.equals(source)) {
+            return I18n.format("adm.status.web_dashboard_frame_mcef");
+        }
+        if (WebSurfaceSourceRouter.SOURCE_SPA_JPEG.equals(source)) {
+            return I18n.format("adm.status.web_dashboard_frame_spa");
+        }
+        if (WebSurfaceSourceRouter.SOURCE_SNAPSHOT.equals(source)) {
+            return I18n.format("adm.status.web_dashboard_frame_snapshot");
+        }
+
+        // No frame yet — show expected path.
+        if (!Config.webSurfaceUseMcef || !McefWebSurfaceSource.isClassPresent()) {
+            return I18n.format("adm.status.web_dashboard_frame_spa_pending");
+        }
+        if (McefWebSurfaceSource.isAvailable()) {
+            return I18n.format("adm.status.web_dashboard_frame_mcef_pending");
+        }
+        return I18n.format("adm.status.web_dashboard_frame_spa_pending");
     }
 
     @Override
@@ -435,9 +570,11 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         autoText(rightLabels, 0, 28, offsetX + 275, offsetY + 45, 0x00FFFF);
         drawTextFieldsWithHover(mouseX, mouseY);
         fontRendererObj.drawStringWithShadow(status, offsetX + 25, offsetY + 240, 0xAAAAAA);
-        fontRendererObj.drawStringWithShadow(I18n.format("adm.hint.web_dashboard_static"), offsetX + 25,
-            offsetY + 255, 0x777777);
-        if (!errorTips.isEmpty()) fontRendererObj.drawStringWithShadow(errorTips, offsetX + 25, offsetY + 290, 0xFF5555);
+        fontRendererObj.drawStringWithShadow(mcefStatusLine(), offsetX + 25, offsetY + 252, 0x88AABB);
+        fontRendererObj
+            .drawStringWithShadow(I18n.format("adm.hint.web_dashboard_static"), offsetX + 25, offsetY + 266, 0x777777);
+        if (!errorTips.isEmpty())
+            fontRendererObj.drawStringWithShadow(errorTips, offsetX + 25, offsetY + 290, 0xFF5555);
         drawFocusedFieldHint(offsetX + 25, offsetY + 310);
     }
 

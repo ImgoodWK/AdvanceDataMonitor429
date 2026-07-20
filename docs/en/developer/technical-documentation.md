@@ -180,11 +180,11 @@ Key classes:
 
 `dataType=webae_dashboard` is passive: `updateEntity()` skips it before coordinate parsing, target-TE reads, or interval counters, so it adds no server-tick collection. Its independent `renderType=web_surface` currently uses `webSurfaceMode=dashboard_snapshot`; future web content sources can reuse monitor transforms without changing the data type contract.
 
-`dataType=webae_dashboard` is a passive data type: `updateEntity()` skips it entirely (no coordinate parse, no target TE read, no server-tick work). Its `renderType=web_surface` is decoupled from the data type. `webSurfaceMode` may be `dashboard_live` (published layout live frames), `dashboard_snapshot` (legacy drawing-list snapshot), or reserved `live_url`.
+`dataType=webae_dashboard` is a passive data type: `updateEntity()` skips it entirely (no coordinate parse, no target TE read, no server-tick work). Its `renderType=web_surface` is decoupled from the data type. `webSurfaceMode` may be `dashboard_live` (published layout live frames), `dashboard_snapshot` (legacy drawing-list snapshot), or `live_url` (arbitrary http(s) URL; requires client MCEF).
 
-Primary path: WebAE **Export for in-game display** publishes the current dashboard layout+settings under `TeXTech/WebAE/displays/` and copies a `textech-webae-display-binding` v1 (`displayId` / `viewToken`). After import, clients refresh by distance from `GET /api/display/{id}/frame.jpg`; the WebAE host captures frames with system Chrome/Edge headless (`DisplayCaptureService`) — never on the MC tick thread. When capture is unavailable, the legacy `textech-webae-display-snapshot` drawing list still works via `WebSurfaceClientCache` AWT rasterization. `writeSyncNBT()` still strips large payloads; packet 53 uploads bindings and on-demand snapshot content. Limits remain 8 web bindings and 128 KiB total snapshot content per monitor.
+Primary path: WebAE **Export for in-game display** publishes under `TeXTech/WebAE/displays/` and copies a binding. Default lazy UX needs **no MCEF**: the host captures the real `/embed/dashboard?...&capture=1` with system Chrome/Edge (`DisplayCaptureService`), falling back to compact `render.html` if blank; clients pull `frame.jpg`. Optional `webSurfaceUseMcef` + montoyo MCEF for local OSR. Publish fills `webaeOrigin` from the browser Origin when possible. Never on the MC tick thread.
 
-Client `WebSurfaceSourceRouter` tries MCEF (soft-dep stub) → local CDP (stub) → HttpFrame → Snapshot. The steady-state frame path only binds a texture and draws one quad.
+Client `WebSurfaceSourceRouter`: optional MCEF → CDP stub → HttpFrame → Snapshot.
 
 Client rendering prefers `renderType`, falling back to `dataType`, dispatching to `LineChartRenderer`, `CraftingInfoRenderer`, `StorageInfoRenderer`, or `WebSurfaceRenderer`. To add a display type, typically:
 

@@ -24,12 +24,17 @@ public final class DisplayHandler {
 
     public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, Map<String, String> params,
         String body, WebAuthSession auth) {
+        return handle(uri, method, params, body, auth, null);
+    }
+
+    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, Map<String, String> params,
+        String body, WebAuthSession auth, Map<String, String> headers) {
         if ("/api/display".equals(uri)) {
             if (method == NanoHTTPD.Method.POST) {
                 if (auth == null || auth.isGuest()) {
                     return forbidden("Guest cannot publish displays");
                 }
-                return handlePublish(body, auth.ownerUuid);
+                return handlePublish(body, auth.ownerUuid, headers);
             }
             return methodNotAllowed("Use POST /api/display");
         }
@@ -72,6 +77,10 @@ public final class DisplayHandler {
         if ("/frame.jpg".equals(suffix) || "/frame".equals(suffix)) {
             if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET /api/display/{id}/frame.jpg");
             return handleFrame(record, params);
+        }
+        if ("/render.html".equals(suffix) || "/render".equals(suffix)) {
+            if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET /api/display/{id}/render.html");
+            return handleRender(record);
         }
         if ("/touch".equals(suffix)) {
             if (method != NanoHTTPD.Method.POST) return methodNotAllowed("Use POST /api/display/{id}/touch");
@@ -129,6 +138,10 @@ public final class DisplayHandler {
             if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET");
             return handleFrame(record, params);
         }
+        if ("/render.html".equals(suffix) || "/render".equals(suffix)) {
+            if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET");
+            return handleRender(record);
+        }
         if ("/touch".equals(suffix) && method == NanoHTTPD.Method.POST) {
             int width = parseInt(params != null ? params.get("width") : null, record.viewportWidth);
             DisplayCaptureService.instance()
@@ -149,18 +162,13 @@ public final class DisplayHandler {
             "display:" + record.id);
     }
 
-    private static NanoHTTPD.Response handlePublish(String body, String ownerUuid) {
+    private static NanoHTTPD.Response handlePublish(String body, String ownerUuid, Map<String, String> headers) {
         PublishBody req = parseBody(body, PublishBody.class);
         if (req == null || req.layout == null) {
             return badRequest("layout required");
         }
-        DisplayRecord record = DisplayStore.publish(
-            ownerUuid,
-            req.title,
-            req.layout,
-            req.viewportWidth,
-            req.viewportHeight,
-            req.id);
+        DisplayRecord record = DisplayStore
+            .publish(ownerUuid, req.title, req.layout, req.viewportWidth, req.viewportHeight, req.id);
         if (record == null) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
@@ -180,12 +188,45 @@ public final class DisplayHandler {
         viewport.addProperty("width", Integer.valueOf(record.viewportWidth));
         viewport.addProperty("height", Integer.valueOf(record.viewportHeight));
         binding.add("viewportHint", viewport);
-        binding.addProperty("webaeOrigin", "");
+        binding.addProperty("webaeOrigin", resolvePublicOrigin(headers));
         binding.addProperty("embedPath", "/embed/dashboard/" + record.id + "?token=" + record.viewToken);
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"display\":" + GSON.toJson(publicMeta(record)) + ",\"binding\":" + GSON.toJson(binding)
+            "{\"success\":true,\"display\":" + GSON.toJson(publicMeta(record))
+                + ",\"binding\":"
+                + GSON.toJson(binding)
                 + "}");
+    }
+
+    /**
+     * Prefer the browser Origin/Host so imported bindings already contain a reachable WebAE address.
+     */
+    private static String resolvePublicOrigin(Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) return "";
+        String origin = header(headers, "origin");
+        if (origin != null && (origin.startsWith("http://") || origin.startsWith("https://"))) {
+            if (origin.endsWith("/")) origin = origin.substring(0, origin.length() - 1);
+            return origin;
+        }
+        String host = header(headers, "host");
+        if (host == null || host.isEmpty()) return "";
+        String proto = header(headers, "x-forwarded-proto");
+        if (proto == null || proto.isEmpty()) proto = "http";
+        return proto + "://" + host;
+    }
+
+    private static String header(Map<String, String> headers, String name) {
+        if (headers == null || name == null) return null;
+        String v = headers.get(name);
+        if (v != null) return v.trim();
+        // NanoHTTPD lowercases header names.
+        v = headers.get(name.toLowerCase(java.util.Locale.ROOT));
+        return v != null ? v.trim() : null;
+    }
+
+    private static NanoHTTPD.Response handleRender(DisplayRecord record) {
+        String html = com.imgood.textech.webae.display.DisplayCapturePage.render(record);
+        return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "text/html; charset=utf-8", html);
     }
 
     private static NanoHTTPD.Response handleFrame(DisplayRecord record, Map<String, String> params) {
@@ -240,14 +281,18 @@ public final class DisplayHandler {
     }
 
     private static NanoHTTPD.Response jsonMeta(DisplayRecord record) {
-        return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"display\":" + GSON.toJson(publicMeta(record)) + "}");
+        return json(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"display\":" + GSON.toJson(publicMeta(record)) + "}");
     }
 
     private static NanoHTTPD.Response jsonLayout(DisplayRecord record) {
         return json(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"display\":" + GSON.toJson(publicMeta(record)) + ",\"layout\":"
-                + GSON.toJson(record.layout) + "}");
+            "{\"success\":true,\"display\":" + GSON.toJson(publicMeta(record))
+                + ",\"layout\":"
+                + GSON.toJson(record.layout)
+                + "}");
     }
 
     private static int parseInt(String raw, int fallback) {

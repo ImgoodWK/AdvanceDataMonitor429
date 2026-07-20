@@ -17,7 +17,6 @@ import appeng.me.storage.MEInventoryHandler;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEFluidStack;
 import appeng.util.item.AEFluidStackType;
-import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 import appeng.util.prioitylist.FuzzyPriorityList;
 import appeng.util.prioitylist.PrecisePriorityList;

@@ -43,11 +43,8 @@ public class PacketRequestItemCountSync implements IMessage {
 
         @Override
         public IMessage onMessage(PacketRequestItemCountSync message, MessageContext ctx) {
-            ItemCountSyncCoordinator.schedule(
-                ctx.getServerHandler().playerEntity.worldObj,
-                message.x,
-                message.y,
-                message.z);
+            ItemCountSyncCoordinator
+                .schedule(ctx.getServerHandler().playerEntity.worldObj, message.x, message.y, message.z);
             return null;
         }
     }

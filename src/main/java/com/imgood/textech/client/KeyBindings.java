@@ -114,7 +114,8 @@ public class KeyBindings {
         int keyCode = captureScreenshot.getKeyCode();
         boolean down = keyCode > Keyboard.KEY_NONE && Keyboard.isKeyDown(keyCode);
         if (down && !screenshotKeyWasDown) {
-            com.imgood.textech.client.screenshot.ClientScreenshotService.instance().capture();
+            com.imgood.textech.client.screenshot.ClientScreenshotService.instance()
+                .capture();
         }
         screenshotKeyWasDown = down;
     }

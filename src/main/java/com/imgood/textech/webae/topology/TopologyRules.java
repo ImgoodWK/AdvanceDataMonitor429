@@ -91,8 +91,8 @@ public final class TopologyRules {
         SUB_TERMINAL_PATTERN_ACCESS, SUB_TERMINAL_WIRELESS, SUB_WIRELESS_ACCESS_POINT, SUB_SECURITY_TERMINAL,
         SUB_TERMINAL_OTHER, SUB_BUS_IMPORT, SUB_BUS_EXPORT, SUB_BUS_STORAGE, SUB_BUS_ORE_FILTER, SUB_INTERFACE,
         SUB_PATTERN_PROVIDER, SUB_MONITOR_STORAGE, SUB_MONITOR_CONVERSION, SUB_EMITTER_LEVEL, SUB_EMITTER_ENERGY,
-        SUB_LEVEL_MAINTAINER, SUB_CPU, SUB_P2P_ME, SUB_P2P_ITEM, SUB_P2P_FLUID, SUB_P2P_POWER, SUB_P2P_LIGHT, SUB_P2P_OTHER, SUB_QUANTUM,
-        SUB_MISC };
+        SUB_LEVEL_MAINTAINER, SUB_CPU, SUB_P2P_ME, SUB_P2P_ITEM, SUB_P2P_FLUID, SUB_P2P_POWER, SUB_P2P_LIGHT,
+        SUB_P2P_OTHER, SUB_QUANTUM, SUB_MISC };
 
     private TopologyRules() {}
 
@@ -200,8 +200,14 @@ public final class TopologyRules {
             return SUB_DRIVE;
         }
 
-        if (containsAny(simple, "CraftingCPU", "CraftingMonitor", "CraftingUnit", "CraftingTile",
-            "TileCraftingTile", "MolecularAssembler")) {
+        if (containsAny(
+            simple,
+            "CraftingCPU",
+            "CraftingMonitor",
+            "CraftingUnit",
+            "CraftingTile",
+            "TileCraftingTile",
+            "MolecularAssembler")) {
             return SUB_CPU;
         }
 
@@ -253,8 +259,7 @@ public final class TopologyRules {
         if (lower == null || lower.isEmpty()) {
             return false;
         }
-        return lower.contains("blockcrafting")
-            || lower.contains("craftingstorage")
+        return lower.contains("blockcrafting") || lower.contains("craftingstorage")
             || lower.contains("craftingcoprocessor")
             || lower.contains("craftingmonitor")
             || lower.contains("craftingunit");
@@ -486,7 +491,8 @@ public final class TopologyRules {
     }
 
     public static boolean isOrbitPodKind(String podKind) {
-        return POD_STORAGE0.equals(podKind) || POD_CRAFT0.equals(podKind) || POD_LINK0.equals(podKind)
+        return POD_STORAGE0.equals(podKind) || POD_CRAFT0.equals(podKind)
+            || POD_LINK0.equals(podKind)
             || POD_POWER0.equals(podKind);
     }
 

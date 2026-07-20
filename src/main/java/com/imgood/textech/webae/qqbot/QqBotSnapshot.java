@@ -25,7 +25,8 @@ public final class QqBotSnapshot {
     public static QqBotSnapshot capture() {
         QqBotSnapshot snapshot = new QqBotSnapshot();
         snapshot.capturedAtMs = System.currentTimeMillis();
-        ServerHealthSampler.HealthSnapshot health = ServerHealthSampler.instance().snapshot();
+        ServerHealthSampler.HealthSnapshot health = ServerHealthSampler.instance()
+            .snapshot();
         snapshot.tps = health.tps;
         snapshot.mspt = health.mspt;
         snapshot.uptimeSeconds = health.uptimeSeconds;
@@ -34,7 +35,8 @@ public final class QqBotSnapshot {
         if (server != null) {
             snapshot.motd = safe(server.getMOTD());
             if (server.getConfigurationManager() != null) {
-                snapshot.maxPlayers = server.getConfigurationManager().getMaxPlayers();
+                snapshot.maxPlayers = server.getConfigurationManager()
+                    .getMaxPlayers();
                 for (Object value : server.getConfigurationManager().playerEntityList) {
                     if (value instanceof EntityPlayerMP) {
                         EntityPlayerMP player = (EntityPlayerMP) value;

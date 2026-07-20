@@ -107,9 +107,7 @@ public class PacketWorldMapSnapshotTilePull implements IMessage {
                     } else {
                         data.png = new byte[0];
                     }
-                    com.imgood.textech.AdvanceDataMonitor.ADMCHANEL.sendTo(
-                        data,
-                        ctx.getServerHandler().playerEntity);
+                    com.imgood.textech.AdvanceDataMonitor.ADMCHANEL.sendTo(data, ctx.getServerHandler().playerEntity);
                 }
             });
         }

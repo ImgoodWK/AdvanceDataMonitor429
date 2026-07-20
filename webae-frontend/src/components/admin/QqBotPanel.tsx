@@ -47,6 +47,29 @@ import { joinQqBotList, qqBotConnectionColor, splitQqBotList } from '@/utils/qqB
 
 const { Text, Paragraph } = Typography;
 
+const DEFAULT_WEBAE_PREFIXES = ['webae', '游戏', 'mc', 'gtnh', '服务器'];
+const DEFAULT_ASTRBOT_PREFIXES = ['云', '助手', 'bot', 'astr'];
+const DEFAULT_WEBAE_KEYWORDS = [
+  'webae', 'textech', 'gtnh', 'tps', 'mspt', '仪表盘', '告警', '在线玩家', '服务器状态',
+  'adm', '高级数据', '监视器', '内存', '开服', '谁在线',
+];
+
+function withIntentDefaults(settings: QqBotSettingsDto): QqBotSettingsDto {
+  return {
+    ...settings,
+    astrBotCompatEnabled: !!settings.astrBotCompatEnabled,
+    webaeExplicitPrefixes: settings.webaeExplicitPrefixes?.length
+      ? settings.webaeExplicitPrefixes
+      : [...DEFAULT_WEBAE_PREFIXES],
+    astrBotExplicitPrefixes: settings.astrBotExplicitPrefixes?.length
+      ? settings.astrBotExplicitPrefixes
+      : [...DEFAULT_ASTRBOT_PREFIXES],
+    webaeIntentKeywords: settings.webaeIntentKeywords?.length
+      ? settings.webaeIntentKeywords
+      : [...DEFAULT_WEBAE_KEYWORDS],
+  };
+}
+
 interface QqBotPanelProps {
   active: boolean;
 }
@@ -78,7 +101,7 @@ export function QqBotPanel({ active }: QqBotPanelProps) {
     try {
       if (withSettings) {
         const response = await getApiClient().get<QqBotSettingsResponse>('/api/admin/qq-bot/settings');
-        setDraft(response.settings);
+        setDraft(withIntentDefaults(response.settings));
         setStatus(response.status);
       } else {
         const response = await getApiClient().get<QqBotStatusResponse>('/api/admin/qq-bot/status');
@@ -112,7 +135,7 @@ export function QqBotPanel({ active }: QqBotPanelProps) {
       if (secretInput.trim()) payload.appSecret = secretInput.trim();
       else delete payload.appSecret;
       const response = await getApiClient().put<QqBotSettingsResponse>('/api/admin/qq-bot/settings', payload);
-      setDraft(response.settings);
+      setDraft(withIntentDefaults(response.settings));
       setStatus(response.status);
       setSecretInput('');
       message.success(t('qqBotSaved'));
@@ -141,7 +164,7 @@ export function QqBotPanel({ active }: QqBotPanelProps) {
     setAction('qqBotClearSecret');
     try {
       const response = await getApiClient().delete<QqBotSettingsResponse>('/api/admin/qq-bot/secret');
-      setDraft(response.settings);
+      setDraft(withIntentDefaults(response.settings));
       setStatus(response.status);
       setSecretInput('');
       message.success(t('qqBotClearSecretOk'));
@@ -321,6 +344,50 @@ export function QqBotPanel({ active }: QqBotPanelProps) {
             <Col xs={12} md={6}><Text>{t('qqBotConversationTtl')}</Text><InputNumber min={5} max={1440} value={draft.conversationTtlMinutes} onChange={(value) => update('conversationTtlMinutes', value || 5)} style={{ width: '100%' }} /></Col>
             <Col xs={12} md={6}><Text>{t('qqBotUserCooldown')}</Text><InputNumber min={0} max={60} value={draft.userCooldownSeconds} onChange={(value) => update('userCooldownSeconds', value || 0)} style={{ width: '100%' }} /></Col>
             <Col xs={12} md={6}><Text>{t('qqBotAiCooldown')}</Text><InputNumber min={1} max={300} value={draft.aiCooldownSeconds} onChange={(value) => update('aiCooldownSeconds', value || 1)} style={{ width: '100%' }} /></Col>
+          </Row>
+        </Space>
+      </Card>
+      <Card title={<Space><RobotOutlined />{t('qqBotIntentTitle')}</Space>}>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Space align="center" wrap>
+            <Text strong>{t('qqBotIntentEnabled')}</Text>
+            <Switch
+              checked={!!draft.astrBotCompatEnabled}
+              onChange={(checked) => update('astrBotCompatEnabled', checked)}
+            />
+          </Space>
+          <Alert type="info" showIcon message={t('qqBotIntentNote')} description={t('qqBotIntentNoteDesc')} />
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={8}>
+              <Text strong>{t('qqBotIntentWebaePrefixes')}</Text>
+              <Input.TextArea
+                rows={6}
+                disabled={!draft.astrBotCompatEnabled}
+                value={joinQqBotList(draft.webaeExplicitPrefixes || [])}
+                onChange={(event) => update('webaeExplicitPrefixes', splitQqBotList(event.target.value))}
+                placeholder={t('qqBotIntentWebaePrefixesPlaceholder')}
+              />
+            </Col>
+            <Col xs={24} lg={8}>
+              <Text strong>{t('qqBotIntentAstrPrefixes')}</Text>
+              <Input.TextArea
+                rows={6}
+                disabled={!draft.astrBotCompatEnabled}
+                value={joinQqBotList(draft.astrBotExplicitPrefixes || [])}
+                onChange={(event) => update('astrBotExplicitPrefixes', splitQqBotList(event.target.value))}
+                placeholder={t('qqBotIntentAstrPrefixesPlaceholder')}
+              />
+            </Col>
+            <Col xs={24} lg={8}>
+              <Text strong>{t('qqBotIntentKeywords')}</Text>
+              <Input.TextArea
+                rows={6}
+                disabled={!draft.astrBotCompatEnabled}
+                value={joinQqBotList(draft.webaeIntentKeywords || [])}
+                onChange={(event) => update('webaeIntentKeywords', splitQqBotList(event.target.value))}
+                placeholder={t('qqBotIntentKeywordsPlaceholder')}
+              />
+            </Col>
           </Row>
         </Space>
       </Card>

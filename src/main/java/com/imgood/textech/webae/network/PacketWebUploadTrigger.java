@@ -151,30 +151,30 @@ public class PacketWebUploadTrigger implements IMessage {
                     KeyBindings.uploadNeiRecipes(scope, snapshotIds);
                 } else if (TYPE_ICONS.equalsIgnoreCase(message.uploadType)
                     || TYPE_ICONS_LOCAL.equalsIgnoreCase(message.uploadType)) {
-                    String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
-                        : "default";
-                    String mode = (message.renderMode != null && !message.renderMode.isEmpty()) ? message.renderMode
-                        : IconRenderMode.NEI.getId();
-                    IconExportScope scope = null;
-                    List<String> itemIds = null;
-                    if (message.exportScope != null && !message.exportScope.isEmpty()) {
-                        scope = IconExportScope.fromId(message.exportScope);
-                        itemIds = PacketWebIconExportScope.parseItemIds(message.itemIdsJson);
+                        String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
+                            : "default";
+                        String mode = (message.renderMode != null && !message.renderMode.isEmpty()) ? message.renderMode
+                            : IconRenderMode.NEI.getId();
+                        IconExportScope scope = null;
+                        List<String> itemIds = null;
+                        if (message.exportScope != null && !message.exportScope.isEmpty()) {
+                            scope = IconExportScope.fromId(message.exportScope);
+                            itemIds = PacketWebIconExportScope.parseItemIds(message.itemIdsJson);
+                        }
+                        boolean localOnly = TYPE_ICONS_LOCAL.equalsIgnoreCase(message.uploadType);
+                        KeyBindings.triggerIconUpload(pack, mode, scope, itemIds, localOnly);
+                    } else if (TYPE_ICONS_PULL.equalsIgnoreCase(message.uploadType)) {
+                        String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
+                            : "default";
+                        KeyBindings.triggerIconPull(pack);
+                    } else if (TYPE_ICON_VERIFY.equalsIgnoreCase(message.uploadType)) {
+                        String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
+                            : "default";
+                        String itemId = message.renderMode != null ? message.renderMode : "";
+                        KeyBindings.openIconVerify(pack, itemId);
+                    } else {
+                        AdvanceDataMonitor.LOG.warn("[WebAE] Unknown upload trigger type: {}", message.uploadType);
                     }
-                    boolean localOnly = TYPE_ICONS_LOCAL.equalsIgnoreCase(message.uploadType);
-                    KeyBindings.triggerIconUpload(pack, mode, scope, itemIds, localOnly);
-                } else if (TYPE_ICONS_PULL.equalsIgnoreCase(message.uploadType)) {
-                    String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
-                        : "default";
-                    KeyBindings.triggerIconPull(pack);
-                } else if (TYPE_ICON_VERIFY.equalsIgnoreCase(message.uploadType)) {
-                    String pack = (message.packName != null && !message.packName.isEmpty()) ? message.packName
-                        : "default";
-                    String itemId = message.renderMode != null ? message.renderMode : "";
-                    KeyBindings.openIconVerify(pack, itemId);
-                } else {
-                    AdvanceDataMonitor.LOG.warn("[WebAE] Unknown upload trigger type: {}", message.uploadType);
-                }
             } catch (Throwable t) {
                 AdvanceDataMonitor.LOG.error("[WebAE] Failed to handle upload trigger packet", t);
             }

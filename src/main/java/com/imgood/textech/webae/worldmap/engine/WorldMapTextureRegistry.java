@@ -43,8 +43,7 @@ public final class WorldMapTextureRegistry {
         if (block == null) {
             return null;
         }
-        WorldMapBlockColorResolver.BlockFace sampleFace = face != null
-            ? face
+        WorldMapBlockColorResolver.BlockFace sampleFace = face != null ? face
             : WorldMapBlockColorResolver.BlockFace.TOP;
         String modId = resolveModId(block);
         String baseName = resolveTextureBaseName(block);
@@ -227,9 +226,8 @@ public final class WorldMapTextureRegistry {
                                 File[] packs = resourcePacksDir.listFiles();
                                 if (packs != null) {
                                     for (File pack : packs) {
-                                        if (pack.isDirectory() || (pack.isFile()
-                                            && pack.getName()
-                                                .endsWith(".zip"))) {
+                                        if (pack.isDirectory() || (pack.isFile() && pack.getName()
+                                            .endsWith(".zip"))) {
                                             roots.add(pack);
                                         }
                                     }

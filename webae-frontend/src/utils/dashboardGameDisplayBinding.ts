@@ -107,3 +107,27 @@ export async function publishAndCopyDashboardLiveBinding(input: {
   await copyText(json);
   return resp.binding;
 }
+
+/**
+ * Warm the host SPA capture once after publish. Returns true when a JPEG frame is available.
+ * Does not fall back to snapshot — callers should warn if false.
+ */
+export async function warmupLiveDisplayFrame(input: {
+  binding: GameDisplayBinding;
+  width?: number;
+  getBlob: (url: string) => Promise<Blob>;
+}): Promise<boolean> {
+  const id = encodeURIComponent(input.binding.displayId);
+  const token = encodeURIComponent(input.binding.viewToken);
+  const width = input.width ?? 512;
+  const url = `/api/display/${id}/frame.jpg?token=${token}&width=${width}`;
+  try {
+    const blob = await input.getBlob(url);
+    if (!blob || blob.size < 256) return false;
+    const type = (blob.type || '').toLowerCase();
+    if (type.includes('json')) return false;
+    return type.includes('jpeg') || type.includes('jpg') || type.includes('image') || blob.size > 1024;
+  } catch {
+    return false;
+  }
+}

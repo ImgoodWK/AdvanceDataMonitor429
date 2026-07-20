@@ -62,7 +62,8 @@ public class PacketIconDirectCaptureRequest implements IMessage {
 
         @Override
         public IMessage onMessage(PacketIconDirectCaptureRequest message, MessageContext ctx) {
-            IconDirectCaptureClientWorker.instance().enqueue(message);
+            IconDirectCaptureClientWorker.instance()
+                .enqueue(message);
             return null;
         }
     }

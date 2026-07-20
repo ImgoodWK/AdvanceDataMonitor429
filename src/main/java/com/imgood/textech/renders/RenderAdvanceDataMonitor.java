@@ -100,22 +100,16 @@ public class RenderAdvanceDataMonitor extends TileEntitySpecialRenderer {
             .entrySet()) {
             NBTTagCompound nbt = entry.getValue();
             String dataType = nbt.getString("dataType");
-            String renderType = nbt.hasKey("renderType") && !nbt.getString("renderType").isEmpty()
-                ? nbt.getString("renderType")
-                : dataType;
+            String renderType = nbt.hasKey("renderType") && !nbt.getString("renderType")
+                .isEmpty() ? nbt.getString("renderType") : dataType;
 
             GL11.glPushMatrix();
             applyItemTransforms(nbt, monitor.getFacing());
 
             IADMRender renderer = RenderController.getRenderer(renderType);
             if (renderer != null) {
-                renderer.render(
-                    nbt,
-                    monitor.xCoord,
-                    monitor.yCoord,
-                    monitor.zCoord,
-                    monitor.getFacing(),
-                    entry.getKey());
+                renderer
+                    .render(nbt, monitor.xCoord, monitor.yCoord, monitor.zCoord, monitor.getFacing(), entry.getKey());
             }
 
             GL11.glPopMatrix();

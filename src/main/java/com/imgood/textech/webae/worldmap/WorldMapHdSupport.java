@@ -13,7 +13,8 @@ public final class WorldMapHdSupport {
     private WorldMapHdSupport() {}
 
     public static boolean isHdEnabled() {
-        return Config.webWorldMapEnabled && Config.webTopologyEnabled && Config.webWorldMapClientHdEnabled
+        return Config.webWorldMapEnabled && Config.webTopologyEnabled
+            && Config.webWorldMapClientHdEnabled
             && WorldMapClientCaptureMode.isEnabled();
     }
 

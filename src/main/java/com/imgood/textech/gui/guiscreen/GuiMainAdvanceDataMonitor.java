@@ -389,12 +389,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                     return;
                 }
                 mc.displayGuiScreen(
-                    new GuiSubWebDashboard(
-                        this.player,
-                        this.world,
-                        this.tileEntityAdvanceDataMonitor,
-                        newIndex,
-                        true));
+                    new GuiSubWebDashboard(this.player, this.world, this.tileEntityAdvanceDataMonitor, newIndex, true));
                 return;
             }
             case 109 -> {
@@ -472,8 +467,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     private void openSubMenu(int index) {
         NBTTagCompound binding = tileEntityAdvanceDataMonitor.getDataBound(index);
         if (TileEntityAdvanceDataMonitor.DATA_TYPE_WEBAE_DASHBOARD.equals(binding.getString("dataType"))) {
-            mc.displayGuiScreen(
-                new GuiSubWebDashboard(player, world, tileEntityAdvanceDataMonitor, index, false));
+            mc.displayGuiScreen(new GuiSubWebDashboard(player, world, tileEntityAdvanceDataMonitor, index, false));
             return;
         }
         BlockPos pos = new BlockPos(tileEntityAdvanceDataMonitor.getXYZ(index), this.world);
@@ -489,11 +483,9 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 mc.displayGuiScreen(
                     new GuiSubAEAdvanceCraftingLink(player, world, tileEntityAdvanceDataMonitor, index));
             } else if ("storage".equals(mode)) {
-                mc.displayGuiScreen(
-                    new GuiSubAEAdvanceStorageLink(player, world, tileEntityAdvanceDataMonitor, index));
+                mc.displayGuiScreen(new GuiSubAEAdvanceStorageLink(player, world, tileEntityAdvanceDataMonitor, index));
             } else {
-                mc.displayGuiScreen(
-                    new GuiSubAEAdvanceNetworkLink(player, world, tileEntityAdvanceDataMonitor, index));
+                mc.displayGuiScreen(new GuiSubAEAdvanceNetworkLink(player, world, tileEntityAdvanceDataMonitor, index));
             }
             return;
         }

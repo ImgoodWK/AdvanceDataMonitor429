@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.Config;
 import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
@@ -126,8 +125,13 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
             }
             if (message.finalizeSnapshot) {
                 WorldMapCaptureCoordinator.instance()
-                    .onSnapshotComplete(message.ownerUuid, message.networkId, message.snapshotVersion, message.source,
-                        message.sourceStatsJson, message.tilePx);
+                    .onSnapshotComplete(
+                        message.ownerUuid,
+                        message.networkId,
+                        message.snapshotVersion,
+                        message.source,
+                        message.sourceStatsJson,
+                        message.tilePx);
                 return;
             }
             if (message.png == null || message.png.length == 0 || message.png.length > MAX_PNG_BYTES) {

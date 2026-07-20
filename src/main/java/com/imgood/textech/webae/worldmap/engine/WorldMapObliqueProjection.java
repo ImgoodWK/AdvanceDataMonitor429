@@ -88,8 +88,23 @@ public final class WorldMapObliqueProjection {
         double orthoBottom = -span;
         double orthoTop = span * 1.25;
 
-        return new WorldMapObliqueProjection(eyeX, eyeY, eyeZ, dirX, dirY, dirZ, rightX, rightY, rightZ, upX, upY,
-            upZ, orthoLeft, orthoRight, orthoBottom, orthoTop);
+        return new WorldMapObliqueProjection(
+            eyeX,
+            eyeY,
+            eyeZ,
+            dirX,
+            dirY,
+            dirZ,
+            rightX,
+            rightY,
+            rightZ,
+            upX,
+            upY,
+            upZ,
+            orthoLeft,
+            orthoRight,
+            orthoBottom,
+            orthoTop);
     }
 
     /**
@@ -144,10 +159,6 @@ public final class WorldMapObliqueProjection {
     }
 
     private static double[] cross(double ax, double ay, double az, double bx, double by, double bz) {
-        return new double[] {
-            ay * bz - az * by,
-            az * bx - ax * bz,
-            ax * by - ay * bx
-        };
+        return new double[] { ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx };
     }
 }

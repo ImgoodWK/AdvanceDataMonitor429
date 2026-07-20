@@ -50,8 +50,8 @@ final class AlertDeliveryTransport {
 
     private final ConcurrentHashMap<String, AccessToken> accessTokens = new ConcurrentHashMap<String, AccessToken>();
 
-    void sendTarget(WebAlertsConfig.NotificationTarget target, String ownerUuid, WebAlertDto alert,
-        WebAlertsConfig cfg) throws DeliveryException {
+    void sendTarget(WebAlertsConfig.NotificationTarget target, String ownerUuid, WebAlertDto alert, WebAlertsConfig cfg)
+        throws DeliveryException {
         String type = safe(target.type).toLowerCase();
         if ("qq_official".equals(type)) {
             sendQqOfficial(target, ownerUuid, alert, cfg);
@@ -84,8 +84,8 @@ final class AlertDeliveryTransport {
                 JsonObject request = new JsonObject();
                 request.addProperty("appId", target.appId);
                 request.addProperty("clientSecret", target.appSecret);
-                HttpResult result = AlertDeliveryTransport.this.request("POST", endpoint, GSON.toJson(request), null,
-                    cfg);
+                HttpResult result = AlertDeliveryTransport.this
+                    .request("POST", endpoint, GSON.toJson(request), null, cfg);
                 requireHttpSuccess(result);
                 JsonObject json = parseObject(result.body, "QQ access token");
                 String value = jsonString(json, "access_token");
@@ -190,7 +190,10 @@ final class AlertDeliveryTransport {
 
     private void sendWecomApp(WebAlertsConfig.NotificationTarget target, String ownerUuid, WebAlertDto alert,
         WebAlertsConfig cfg) throws DeliveryException {
-        final String tokenKey = "wecom|" + target.corpId + "|" + target.agentId + "|"
+        final String tokenKey = "wecom|" + target.corpId
+            + "|"
+            + target.agentId
+            + "|"
             + secretFingerprint(target.corpSecret);
         String token = token(tokenKey, new TokenLoader() {
 
@@ -303,22 +306,35 @@ final class AlertDeliveryTransport {
     }
 
     private String buildMail(WebAlertsConfig.NotificationTarget target, String ownerUuid, WebAlertDto alert) {
-        String subject = sanitizeHeader(target.subjectPrefix) + " [" + safe(alert.severity).toUpperCase() + "] "
+        String subject = sanitizeHeader(target.subjectPrefix) + " ["
+            + safe(alert.severity).toUpperCase()
+            + "] "
             + safe(alert.title);
         String body = formatMessage(ownerUuid, alert);
         String encodedBody = wrapBase64(base64(body.getBytes(StandardCharsets.UTF_8)));
         StringBuilder mail = new StringBuilder();
-        mail.append("Date: ").append(rfc2822(alert.timestamp)).append("\r\n");
-        mail.append("From: ").append(sanitizeHeader(target.mailFrom)).append("\r\n");
-        mail.append("To: ").append(sanitizeHeader(join(target.mailTo, ", "))).append("\r\n");
+        mail.append("Date: ")
+            .append(rfc2822(alert.timestamp))
+            .append("\r\n");
+        mail.append("From: ")
+            .append(sanitizeHeader(target.mailFrom))
+            .append("\r\n");
+        mail.append("To: ")
+            .append(sanitizeHeader(join(target.mailTo, ", ")))
+            .append("\r\n");
         if (target.mailCc != null && !target.mailCc.isEmpty()) {
-            mail.append("Cc: ").append(sanitizeHeader(join(target.mailCc, ", "))).append("\r\n");
+            mail.append("Cc: ")
+                .append(sanitizeHeader(join(target.mailCc, ", ")))
+                .append("\r\n");
         }
-        mail.append("Subject: =?UTF-8?B?").append(base64(subject.getBytes(StandardCharsets.UTF_8))).append("?=\r\n");
+        mail.append("Subject: =?UTF-8?B?")
+            .append(base64(subject.getBytes(StandardCharsets.UTF_8)))
+            .append("?=\r\n");
         mail.append("MIME-Version: 1.0\r\n");
         mail.append("Content-Type: text/plain; charset=UTF-8\r\n");
         mail.append("Content-Transfer-Encoding: base64\r\n\r\n");
-        mail.append(encodedBody).append("\r\n");
+        mail.append(encodedBody)
+            .append("\r\n");
         return mail.toString();
     }
 
@@ -408,23 +424,33 @@ final class AlertDeliveryTransport {
 
     private static String formatMessage(String ownerUuid, WebAlertDto alert) {
         StringBuilder out = new StringBuilder();
-        out.append("[WebAE][").append(safe(alert.severity).toUpperCase()).append("] ")
+        out.append("[WebAE][")
+            .append(safe(alert.severity).toUpperCase())
+            .append("] ")
             .append(safe(alert.title));
         if (!safe(alert.message).isEmpty()) {
-            out.append('\n').append(alert.message);
+            out.append('\n')
+                .append(alert.message);
         }
-        out.append("\nType: ").append(safe(alert.type));
+        out.append("\nType: ")
+            .append(safe(alert.type));
         if (alert.networkId >= 0) {
-            out.append("\nNetwork: ").append(alert.networkId);
+            out.append("\nNetwork: ")
+                .append(alert.networkId);
         }
-        out.append("\nOwner: ").append(safe(ownerUuid));
-        out.append("\nTime: ").append(iso8601(alert.timestamp));
+        out.append("\nOwner: ")
+            .append(safe(ownerUuid));
+        out.append("\nTime: ")
+            .append(iso8601(alert.timestamp));
         return out.toString();
     }
 
     private static String formatWecomMarkdown(String ownerUuid, WebAlertDto alert) {
-        String color = "error".equals(alert.severity) ? "warning" : "warning".equals(alert.severity) ? "warning" : "info";
-        return "### WebAE Alert\n> Severity: <font color=\"" + color + "\">" + escapeMarkdown(alert.severity)
+        String color = "error".equals(alert.severity) ? "warning"
+            : "warning".equals(alert.severity) ? "warning" : "info";
+        return "### WebAE Alert\n> Severity: <font color=\"" + color
+            + "\">"
+            + escapeMarkdown(alert.severity)
             + "</font>\n> "
             + escapeMarkdown(alert.title)
             + "\n> "
@@ -446,7 +472,8 @@ final class AlertDeliveryTransport {
 
     private static void requirePlatformSuccess(String body, String platform, String errorField)
         throws DeliveryException {
-        if (body == null || body.trim().isEmpty()) {
+        if (body == null || body.trim()
+            .isEmpty()) {
             return;
         }
         JsonObject json = parseObject(body, platform + " response");
@@ -462,8 +489,10 @@ final class AlertDeliveryTransport {
         long code = jsonLong(json, "errcode", jsonLong(json, "code", -1L));
         String message = firstNonEmpty(jsonString(json, "errmsg"), jsonString(json, "message"));
         boolean retryable = code == -1L || code == 45009L || code == 45011L || code == 429L || code >= 50000L;
-        return new DeliveryException(platform + " error " + code + (message.isEmpty() ? "" : ": " + message),
-            retryable, 0L);
+        return new DeliveryException(
+            platform + " error " + code + (message.isEmpty() ? "" : ": " + message),
+            retryable,
+            0L);
     }
 
     private static JsonObject parseObject(String json, String label) throws DeliveryException {
@@ -508,7 +537,8 @@ final class AlertDeliveryTransport {
         int start = text.lastIndexOf('<');
         int end = text.lastIndexOf('>');
         if (start >= 0 && end > start) {
-            return text.substring(start + 1, end).trim();
+            return text.substring(start + 1, end)
+                .trim();
         }
         return text;
     }
@@ -567,13 +597,16 @@ final class AlertDeliveryTransport {
     }
 
     private static String firstNonEmpty(String first, String second) {
-        return first != null && !first.trim().isEmpty() ? first.trim() : safe(second).trim();
+        return first != null && !first.trim()
+            .isEmpty() ? first.trim() : safe(second).trim();
     }
 
     private static String jsonString(JsonObject object, String key) {
         try {
-            return object != null && object.has(key) && !object.get(key).isJsonNull() ? object.get(key).getAsString()
-                : "";
+            return object != null && object.has(key)
+                && !object.get(key)
+                    .isJsonNull() ? object.get(key)
+                        .getAsString() : "";
         } catch (Exception e) {
             return "";
         }
@@ -581,8 +614,10 @@ final class AlertDeliveryTransport {
 
     private static long jsonLong(JsonObject object, String key, long fallback) {
         try {
-            return object != null && object.has(key) && !object.get(key).isJsonNull() ? object.get(key).getAsLong()
-                : fallback;
+            return object != null && object.has(key)
+                && !object.get(key)
+                    .isJsonNull() ? object.get(key)
+                        .getAsLong() : fallback;
         } catch (Exception e) {
             return fallback;
         }
@@ -614,12 +649,15 @@ final class AlertDeliveryTransport {
     }
 
     private static String escapeMarkdown(String value) {
-        return safe(value).replace("`", "'").replace("\r", " ").replace("\n", " ");
+        return safe(value).replace("`", "'")
+            .replace("\r", " ")
+            .replace("\n", " ");
     }
 
     private static String safeMessage(Exception error) {
         String message = error == null ? "" : error.getMessage();
-        return message == null || message.isEmpty() ? error.getClass().getSimpleName() : message;
+        return message == null || message.isEmpty() ? error.getClass()
+            .getSimpleName() : message;
     }
 
     private static String safe(String value) {
@@ -627,7 +665,8 @@ final class AlertDeliveryTransport {
     }
 
     private static String sanitizeHeader(String value) {
-        return safe(value).replace("\r", "").replace("\n", "");
+        return safe(value).replace("\r", "")
+            .replace("\n", "");
     }
 
     private static String secretFingerprint(String value) {
@@ -701,7 +740,8 @@ final class AlertDeliveryTransport {
         }
 
         void writeData(String message) throws Exception {
-            String normalized = message.replace("\r\n", "\n").replace('\r', '\n');
+            String normalized = message.replace("\r\n", "\n")
+                .replace('\r', '\n');
             String[] lines = normalized.split("\n", -1);
             for (String line : lines) {
                 if (line.startsWith(".")) writer.write('.');

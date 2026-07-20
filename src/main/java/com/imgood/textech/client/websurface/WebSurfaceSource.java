@@ -1,7 +1,6 @@
 package com.imgood.textech.client.websurface;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
 
 /**
  * Pluggable content source for {@code renderType=web_surface}.
@@ -15,7 +14,8 @@ public interface WebSurfaceSource {
     boolean supports(NBTTagCompound binding);
 
     /**
-     * Returns a ready texture or null while loading. May kick off async work.
+     * Returns a ready frame or null while loading / when this source cannot serve.
+     * May kick off async work. Returning null lets the router try the next source.
      */
-    ResourceLocation getTexture(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView);
+    WebSurfaceFrame getFrame(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView);
 }

@@ -19,19 +19,22 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
  * Server-side event handler that feeds login/logout events into
  * {@link PlayerInfoStore} for the WebAE {@code /api/players} endpoint.
  *
- * <p>Maintains an O(1) UUID→EntityPlayerMP index
+ * <p>
+ * Maintains an O(1) UUID→EntityPlayerMP index
  * ({@link ConcurrentHashMap}) to replace the O(n) player list scan
  * in snapshot collection, owner context resolution, and other
- * frequently called lookups.</p>
+ * frequently called lookups.
+ * </p>
  *
- * <p>Also ticks the store's debounced save from the server tick event so that
- * rapid login/logout bursts do not cause excessive disk writes.</p>
+ * <p>
+ * Also ticks the store's debounced save from the server tick event so that
+ * rapid login/logout bursts do not cause excessive disk writes.
+ * </p>
  */
 public class HandlerWebPlayerTracker {
 
     /** O(1) index: uuid string → online player reference. */
-    private static final ConcurrentHashMap<String, WeakReference<EntityPlayerMP>> onlinePlayerIndex =
-        new ConcurrentHashMap<String, WeakReference<EntityPlayerMP>>();
+    private static final ConcurrentHashMap<String, WeakReference<EntityPlayerMP>> onlinePlayerIndex = new ConcurrentHashMap<String, WeakReference<EntityPlayerMP>>();
 
     /**
      * Look up an online player by UUID string in O(1) time.
@@ -60,7 +63,8 @@ public class HandlerWebPlayerTracker {
             PlayerInfoStore.instance()
                 .touchLogin(uuid, name, System.currentTimeMillis());
             if (event.player instanceof EntityPlayerMP) {
-                onlinePlayerIndex.put(uuid.toString(), new WeakReference<EntityPlayerMP>((EntityPlayerMP) event.player));
+                onlinePlayerIndex
+                    .put(uuid.toString(), new WeakReference<EntityPlayerMP>((EntityPlayerMP) event.player));
             }
             AdvanceDataMonitor.LOG.info("[WebAE] Player logged in: {} ({})", name, uuid);
             com.imgood.textech.webae.context.NetworkRegistry.onPlayerLogin(uuid.toString());
@@ -100,7 +104,8 @@ public class HandlerWebPlayerTracker {
                         online.add(id);
                         // ensure index is up-to-date for any player that may have been missed
                         if (!onlinePlayerIndex.containsKey(id.toString())) {
-                            onlinePlayerIndex.put(id.toString(), new WeakReference<EntityPlayerMP>((EntityPlayerMP) obj));
+                            onlinePlayerIndex
+                                .put(id.toString(), new WeakReference<EntityPlayerMP>((EntityPlayerMP) obj));
                         }
                     }
                 }

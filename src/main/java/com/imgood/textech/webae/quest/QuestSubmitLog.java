@@ -5,14 +5,12 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.assistant.AssistantDataFiles;
 import com.imgood.textech.webae.dto.QuestSubmitResultDto;
-import com.imgood.textech.webae.dto.QuestSubmitStepResultDto;
 
 /**
  * Append-only audit log for Web quest submissions.
@@ -75,10 +73,12 @@ public final class QuestSubmitLog {
     }
 
     private static final class LogFile {
+
         List<Entry> entries;
     }
 
     private static final class Entry {
+
         long atMs;
         String ownerUuid;
         String questId;

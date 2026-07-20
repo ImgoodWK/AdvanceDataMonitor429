@@ -35,7 +35,8 @@ public final class QqBotConfigStore {
     private static final int MASTER_KEY_BYTES = 32;
     private static final int GCM_IV_BYTES = 12;
     private static final int GCM_TAG_BITS = 128;
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final QqBotConfigStore INSTANCE = new QqBotConfigStore();
 
@@ -159,7 +160,10 @@ public final class QqBotConfigStore {
         restrictOwnerOnly(temp);
         try {
             try {
-                Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING,
+                Files.move(
+                    temp.toPath(),
+                    file.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException ignored) {
                 Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -175,11 +179,16 @@ public final class QqBotConfigStore {
             byte[] iv = new byte[GCM_IV_BYTES];
             RANDOM.nextBytes(iv);
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(masterKey(), "AES"),
+            cipher.init(
+                Cipher.ENCRYPT_MODE,
+                new SecretKeySpec(masterKey(), "AES"),
                 new GCMParameterSpec(GCM_TAG_BITS, iv));
             byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
-            return CIPHER_PREFIX + Base64.getEncoder().encodeToString(iv) + ":"
-                + Base64.getEncoder().encodeToString(encrypted);
+            return CIPHER_PREFIX + Base64.getEncoder()
+                .encodeToString(iv)
+                + ":"
+                + Base64.getEncoder()
+                    .encodeToString(encrypted);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to encrypt QQ ClientSecret.", e);
         }
@@ -190,15 +199,25 @@ public final class QqBotConfigStore {
         if (value.isEmpty()) return "";
         try {
             if (!value.startsWith(CIPHER_PREFIX)) throw new IllegalStateException("Unknown secret format.");
-            String[] parts = value.substring(CIPHER_PREFIX.length()).split(":", 2);
+            String[] parts = value.substring(CIPHER_PREFIX.length())
+                .split(":", 2);
             if (parts.length != 2) throw new IllegalStateException("Invalid secret format.");
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(masterKey(), "AES"),
-                new GCMParameterSpec(GCM_TAG_BITS, Base64.getDecoder().decode(parts[0])));
-            return new String(cipher.doFinal(Base64.getDecoder().decode(parts[1])), StandardCharsets.UTF_8);
+            cipher.init(
+                Cipher.DECRYPT_MODE,
+                new SecretKeySpec(masterKey(), "AES"),
+                new GCMParameterSpec(
+                    GCM_TAG_BITS,
+                    Base64.getDecoder()
+                        .decode(parts[0])));
+            return new String(
+                cipher.doFinal(
+                    Base64.getDecoder()
+                        .decode(parts[1])),
+                StandardCharsets.UTF_8);
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.error(
-                "[WebAE/QQBot] Failed to decrypt ClientSecret; re-enter it in the admin console.");
+            AdvanceDataMonitor.LOG
+                .error("[WebAE/QQBot] Failed to decrypt ClientSecret; re-enter it in the admin console.");
             return "";
         }
     }
@@ -206,8 +225,8 @@ public final class QqBotConfigStore {
     private byte[] masterKey() throws Exception {
         File file = masterKeyFile();
         if (file.isFile()) {
-            byte[] decoded = Base64.getDecoder().decode(
-                new String(Files.readAllBytes(file.toPath()), StandardCharsets.US_ASCII).trim());
+            byte[] decoded = Base64.getDecoder()
+                .decode(new String(Files.readAllBytes(file.toPath()), StandardCharsets.US_ASCII).trim());
             if (decoded.length != MASTER_KEY_BYTES) throw new IllegalStateException("Invalid QQ bot master key.");
             return decoded;
         }
@@ -216,7 +235,10 @@ public final class QqBotConfigStore {
         File parent = file.getParentFile();
         if (parent != null) parent.mkdirs();
         File temp = new File(parent, file.getName() + ".tmp");
-        Files.write(temp.toPath(), Base64.getEncoder().encode(key));
+        Files.write(
+            temp.toPath(),
+            Base64.getEncoder()
+                .encode(key));
         restrictOwnerOnly(temp);
         try {
             Files.move(temp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE);

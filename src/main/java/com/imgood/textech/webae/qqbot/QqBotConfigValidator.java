@@ -34,6 +34,21 @@ public final class QqBotConfigValidator {
         cfg.scheduledReportIntervalMinutes = clamp(cfg.scheduledReportIntervalMinutes, 5, 10080);
         cfg.scheduledReportTargets = normalizeTargets(cfg.scheduledReportTargets);
         cfg.auditMaxEntries = clamp(cfg.auditMaxEntries, 20, 1000);
+        cfg.webaeExplicitPrefixes = normalizeTokens(
+            cfg.webaeExplicitPrefixes,
+            QqBotIntentClassifier.DEFAULT_WEBAE_PREFIXES,
+            64,
+            32);
+        cfg.astrBotExplicitPrefixes = normalizeTokens(
+            cfg.astrBotExplicitPrefixes,
+            QqBotIntentClassifier.DEFAULT_ASTRBOT_PREFIXES,
+            64,
+            32);
+        cfg.webaeIntentKeywords = normalizeTokens(
+            cfg.webaeIntentKeywords,
+            QqBotIntentClassifier.DEFAULT_WEBAE_KEYWORDS,
+            128,
+            64);
         return cfg;
     }
 
@@ -88,16 +103,28 @@ public final class QqBotConfigValidator {
         return new ArrayList<String>(result);
     }
 
+    /** Empty configured lists fall back to built-in defaults so UI clears restore defaults. */
+    private static List<String> normalizeTokens(List<String> values, List<String> defaults, int maxEntries,
+        int maxLength) {
+        List<String> normalized = normalizeIds(values, maxEntries, maxLength);
+        if (normalized.isEmpty() && defaults != null && !defaults.isEmpty()) {
+            return new ArrayList<String>(defaults);
+        }
+        return normalized;
+    }
+
     private static String validateEndpoint(String value, String field) {
         if (value == null || value.isEmpty()) return null;
         try {
             URI uri = new URI(value);
-            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
+            String scheme = uri.getScheme() == null ? ""
+                : uri.getScheme()
+                    .toLowerCase();
             if (!"https".equals(scheme) && !isLoopbackHttp(uri, scheme)) {
                 return field + " must use HTTPS (HTTP is allowed only for loopback development endpoints).";
             }
-            if (uri.getHost() == null || uri.getHost().isEmpty() || uri.getUserInfo() != null
-                || uri.getFragment() != null) {
+            if (uri.getHost() == null || uri.getHost()
+                .isEmpty() || uri.getUserInfo() != null || uri.getFragment() != null) {
                 return field + " is not a valid service URL.";
             }
         } catch (Exception e) {
@@ -108,7 +135,9 @@ public final class QqBotConfigValidator {
 
     private static boolean isLoopbackHttp(URI uri, String scheme) {
         if (!"http".equals(scheme)) return false;
-        String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+        String host = uri.getHost() == null ? ""
+            : uri.getHost()
+                .toLowerCase();
         return "127.0.0.1".equals(host) || "localhost".equals(host) || "::1".equals(host);
     }
 

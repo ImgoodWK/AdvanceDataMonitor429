@@ -6,8 +6,8 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -247,8 +247,7 @@ public class RecipeCacheStore {
                 Reader reader = new InputStreamReader(fis, "UTF-8");
                 SyncChunkFile parsed = GSON.fromJson(reader, SyncChunkFile.class);
                 reader.close();
-                List<RecipeDto> recipes = parsed != null && parsed.recipes != null
-                    ? parsed.recipes
+                List<RecipeDto> recipes = parsed != null && parsed.recipes != null ? parsed.recipes
                     : Collections.<RecipeDto>emptyList();
                 return new SyncChunkResult(index, recipes, true, null);
             } finally {
@@ -987,6 +986,7 @@ public class RecipeCacheStore {
         if (savePending) return;
         savePending = true;
         Thread worker = new Thread(new Runnable() {
+
             @Override
             public void run() {
                 try {
@@ -1090,9 +1090,7 @@ public class RecipeCacheStore {
                 return;
             }
             if (gz.exists()) {
-                AdvanceDataMonitor.LOG.info(
-                    "[WebAE] Migrating legacy {} to plain json",
-                    GZ_FILENAME);
+                AdvanceDataMonitor.LOG.info("[WebAE] Migrating legacy {} to plain json", GZ_FILENAME);
                 loadFromFile(gz, true);
                 // Persist as json + chunks after migration
                 List<RecipeDto> snapshot;
@@ -1285,6 +1283,7 @@ public class RecipeCacheStore {
         File dir = chunksDir();
         if (!dir.isDirectory()) return;
         File[] files = dir.listFiles(new FilenameFilter() {
+
             @Override
             public boolean accept(File d, String name) {
                 return name != null && name.startsWith("chunk-") && name.endsWith(".json");
@@ -1353,6 +1352,7 @@ public class RecipeCacheStore {
         meta.revision = RecipeDiskMeta.makeRevision(all.size(), meta.estimatedBytes, savedAt);
         meta.handlers = new ArrayList<HandlerInfo>(handlers.values());
         Collections.sort(meta.handlers, new Comparator<HandlerInfo>() {
+
             @Override
             public int compare(HandlerInfo a, HandlerInfo b) {
                 String an = a.handlerName != null ? a.handlerName : a.handlerId;
@@ -1468,10 +1468,8 @@ public class RecipeCacheStore {
                 diskMeta = meta;
                 diskCacheSize = json.length();
                 lastDiskSave = savedAt;
-                AdvanceDataMonitor.LOG.info(
-                    "[WebAE] Rebuilt {} chunks ({} recipes) for browser sync",
-                    chunkIndex,
-                    total);
+                AdvanceDataMonitor.LOG
+                    .info("[WebAE] Rebuilt {} chunks ({} recipes) for browser sync", chunkIndex, total);
                 return meta;
             } finally {
                 fis.close();

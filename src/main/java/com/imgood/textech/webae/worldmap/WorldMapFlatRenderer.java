@@ -12,7 +12,6 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.Config;
 
 /**
  * Renders a single chunk top-down (flat view) into a PNG byte array (main thread only).
@@ -138,14 +137,28 @@ public final class WorldMapFlatRenderer {
 
     /** Non-opaque blocks that should not define the flat-map surface. */
     private static boolean isSoftBlock(Block block) {
-        return block == Blocks.leaves || block == Blocks.leaves2 || block == Blocks.tallgrass
-            || block == Blocks.deadbush || block == Blocks.yellow_flower || block == Blocks.red_flower
-            || block == Blocks.double_plant || block == Blocks.vine || block == Blocks.waterlily
-            || block == Blocks.snow_layer || block == Blocks.glass || block == Blocks.stained_glass
-            || block == Blocks.sapling || block == Blocks.torch || block == Blocks.redstone_torch
-            || block == Blocks.ladder || block == Blocks.rail || block == Blocks.detector_rail
-            || block == Blocks.golden_rail || block == Blocks.activator_rail || block == Blocks.carpet
-            || block == Blocks.reeds || block == Blocks.flower_pot;
+        return block == Blocks.leaves || block == Blocks.leaves2
+            || block == Blocks.tallgrass
+            || block == Blocks.deadbush
+            || block == Blocks.yellow_flower
+            || block == Blocks.red_flower
+            || block == Blocks.double_plant
+            || block == Blocks.vine
+            || block == Blocks.waterlily
+            || block == Blocks.snow_layer
+            || block == Blocks.glass
+            || block == Blocks.stained_glass
+            || block == Blocks.sapling
+            || block == Blocks.torch
+            || block == Blocks.redstone_torch
+            || block == Blocks.ladder
+            || block == Blocks.rail
+            || block == Blocks.detector_rail
+            || block == Blocks.golden_rail
+            || block == Blocks.activator_rail
+            || block == Blocks.carpet
+            || block == Blocks.reeds
+            || block == Blocks.flower_pot;
     }
 
     private static void fillBlockPixels(BufferedImage img, int blockX, int blockZ, int pxPerBlock, int rgb) {

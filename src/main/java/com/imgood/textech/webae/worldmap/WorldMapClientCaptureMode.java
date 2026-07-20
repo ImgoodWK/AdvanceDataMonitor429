@@ -15,10 +15,12 @@ public final class WorldMapClientCaptureMode {
 
     public static String normalized() {
         String raw = Config.worldMapClientCaptureMode;
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return WHEN_ONLINE;
         }
-        return raw.trim().toLowerCase();
+        return raw.trim()
+            .toLowerCase();
     }
 
     public static boolean isEnabled() {

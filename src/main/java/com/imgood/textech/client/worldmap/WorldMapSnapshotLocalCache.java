@@ -50,8 +50,7 @@ public final class WorldMapSnapshotLocalCache {
         try {
             fos = new FileOutputStream(out);
             fos.write(png);
-        } catch (IOException ignored) {
-        } finally {
+        } catch (IOException ignored) {} finally {
             if (fos != null) {
                 try {
                     fos.close();
@@ -60,8 +59,8 @@ public final class WorldMapSnapshotLocalCache {
         }
     }
 
-    public static File getExistingTile(String ownerUuid, int networkId, int version, String layer, int dim,
-        int chunkX, int chunkZ) {
+    public static File getExistingTile(String ownerUuid, int networkId, int version, String layer, int dim, int chunkX,
+        int chunkZ) {
         File file = tileFile(ownerUuid, networkId, version, layer, dim, chunkX, chunkZ);
         return file.isFile() && file.length() > 0 ? file : null;
     }
@@ -86,7 +85,9 @@ public final class WorldMapSnapshotLocalCache {
             if (end < 0) {
                 end = json.indexOf('}', colon);
             }
-            return Integer.parseInt(json.substring(colon + 1, end).trim());
+            return Integer.parseInt(
+                json.substring(colon + 1, end)
+                    .trim());
         } catch (Exception e) {
             return 0;
         }
@@ -102,8 +103,7 @@ public final class WorldMapSnapshotLocalCache {
         try {
             fos = new FileOutputStream(file);
             fos.write(("{\"version\":" + version + "}").getBytes("UTF-8"));
-        } catch (IOException ignored) {
-        } finally {
+        } catch (IOException ignored) {} finally {
             if (fos != null) {
                 try {
                     fos.close();

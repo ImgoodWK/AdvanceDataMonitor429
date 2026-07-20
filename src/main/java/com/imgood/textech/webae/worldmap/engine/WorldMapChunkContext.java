@@ -21,8 +21,7 @@ public final class WorldMapChunkContext {
     private final int padding;
     private final Chunk[][] chunks;
 
-    private WorldMapChunkContext(WorldServer world, int centerChunkX, int centerChunkZ, int padding,
-        Chunk[][] chunks) {
+    private WorldMapChunkContext(WorldServer world, int centerChunkX, int centerChunkZ, int padding, Chunk[][] chunks) {
         this.world = world;
         this.centerChunkX = centerChunkX;
         this.centerChunkZ = centerChunkZ;
@@ -124,8 +123,18 @@ public final class WorldMapChunkContext {
                 "A",
                 "WorldMapChunkContext.skyLight",
                 "skyLight sample",
-                "{\"rawBrightness\":" + rawBrightness + ",\"truncatedInt\":" + combined + ",\"savedSkyLight\":"
-                    + savedSky + ",\"wx\":" + wx + ",\"y\":" + y + ",\"wz\":" + wz + "}");
+                "{\"rawBrightness\":" + rawBrightness
+                    + ",\"truncatedInt\":"
+                    + combined
+                    + ",\"savedSkyLight\":"
+                    + savedSky
+                    + ",\"wx\":"
+                    + wx
+                    + ",\"y\":"
+                    + y
+                    + ",\"wz\":"
+                    + wz
+                    + "}");
         }
         // #endregion
         if (combined < 0) {

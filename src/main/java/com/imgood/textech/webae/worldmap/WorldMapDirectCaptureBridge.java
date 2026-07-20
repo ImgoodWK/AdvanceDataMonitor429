@@ -11,7 +11,6 @@ import net.minecraft.server.MinecraftServer;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureRequest;
-import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -31,15 +30,8 @@ public final class WorldMapDirectCaptureBridge {
         return INSTANCE;
     }
 
-    public byte[] requestClientCapture(
-        String layer,
-        String ownerUuid,
-        int networkId,
-        int dim,
-        int chunkX,
-        int chunkZ,
-        int tilePx,
-        long timeoutMs) {
+    public byte[] requestClientCapture(String layer, String ownerUuid, int networkId, int dim, int chunkX, int chunkZ,
+        int tilePx, long timeoutMs) {
         EntityPlayerMP player = firstOnlinePlayer();
         if (player == null) {
             return null;
@@ -67,7 +59,8 @@ public final class WorldMapDirectCaptureBridge {
                 return null;
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                .interrupt();
             pending.remove(requestId);
             return null;
         }
@@ -88,12 +81,14 @@ public final class WorldMapDirectCaptureBridge {
     }
 
     public static boolean isIntegratedSinglePlayer() {
-        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        MinecraftServer server = FMLCommonHandler.instance()
+            .getMinecraftServerInstance();
         return server != null && server.isSinglePlayer();
     }
 
     private static EntityPlayerMP firstOnlinePlayer() {
-        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        MinecraftServer server = FMLCommonHandler.instance()
+            .getMinecraftServerInstance();
         if (server == null || server.getConfigurationManager() == null) {
             return null;
         }

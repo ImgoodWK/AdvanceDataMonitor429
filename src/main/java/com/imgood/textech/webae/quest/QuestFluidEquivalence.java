@@ -74,8 +74,7 @@ public final class QuestFluidEquivalence {
             return false;
         }
         if (includeAll) {
-            return QuestFluidIconResolver.resolveFluidName(stack) != null
-                || FluidContainerRegistry.isContainer(stack);
+            return QuestFluidIconResolver.resolveFluidName(stack) != null || FluidContainerRegistry.isContainer(stack);
         }
         return isGtOrIc2Cell(stack);
     }
@@ -195,8 +194,7 @@ public final class QuestFluidEquivalence {
         if (targetFilled == null) {
             return true;
         }
-        return filled.getItem() == targetFilled.getItem()
-            && filled.getItemDamage() == targetFilled.getItemDamage();
+        return filled.getItem() == targetFilled.getItem() && filled.getItemDamage() == targetFilled.getItemDamage();
     }
 
     private static ItemStack materializeTargetCell(ItemStack empty, FluidStack fluid, ItemStack targetFilled) {
@@ -207,8 +205,9 @@ public final class QuestFluidEquivalence {
             return null;
         }
         String want = QuestFluidIconResolver.resolveFluidName(targetFilled);
-        if (want == null || !want.equalsIgnoreCase(fluid.getFluid()
-            .getName())) {
+        if (want == null || !want.equalsIgnoreCase(
+            fluid.getFluid()
+                .getName())) {
             return null;
         }
         int need = capacityMb(targetFilled);
@@ -402,8 +401,8 @@ public final class QuestFluidEquivalence {
             }
             try {
                 Class<?> util = Class.forName("gregtech.api.util.GTUtility");
-                gtFillFluidContainer = util.getMethod("fillFluidContainer", FluidStack.class, ItemStack.class,
-                    boolean.class);
+                gtFillFluidContainer = util
+                    .getMethod("fillFluidContainer", FluidStack.class, ItemStack.class, boolean.class);
             } catch (Throwable ignored) {
                 gtFillFluidContainer = null;
             }

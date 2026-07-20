@@ -48,8 +48,10 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Client-only framebuffer screenshots, local history, and throttled sharing.
  *
- * <p>The capture source is Minecraft's framebuffer, never an operating-system desktop API. Pixel readback must run
- * on the render thread; resize/JPEG encoding, history cleanup, and file reads run on one bounded daemon worker.</p>
+ * <p>
+ * The capture source is Minecraft's framebuffer, never an operating-system desktop API. Pixel readback must run
+ * on the render thread; resize/JPEG encoding, history cleanup, and file reads run on one bounded daemon worker.
+ * </p>
  */
 @SideOnly(Side.CLIENT)
 public final class ClientScreenshotService {
@@ -151,8 +153,11 @@ public final class ClientScreenshotService {
         if (files == null || files.length == 0) return new ArrayList<File>();
         List<File> result = new ArrayList<File>();
         for (File file : files) {
-            if (file.isFile() && file.getName().startsWith("textech_")
-                && file.getName().toLowerCase().endsWith(".jpg")) {
+            if (file.isFile() && file.getName()
+                .startsWith("textech_")
+                && file.getName()
+                    .toLowerCase()
+                    .endsWith(".jpg")) {
                 result.add(file);
             }
         }
@@ -174,14 +179,15 @@ public final class ClientScreenshotService {
             return;
         }
         int index = Math.max(0, Math.min(history.size() - 1, Math.max(1, oneBasedIndex) - 1));
-        Minecraft.getMinecraft().displayGuiScreen(new GuiScreenshotGallery(history, index));
+        Minecraft.getMinecraft()
+            .displayGuiScreen(new GuiScreenshotGallery(history, index));
     }
 
     /**
      * Queue one local screenshot for WebAE chat or QQ delivery. Only one upload may be active per client.
      */
-    public void queueUpload(final String destination, final String targetType, final String targetId,
-        int oneBasedIndex, final String caption) {
+    public void queueUpload(final String destination, final String targetType, final String targetId, int oneBasedIndex,
+        final String caption) {
         File file = resolveHistory(oneBasedIndex);
         if (file == null) {
             notify("adm.screenshot.history.not_found", EnumChatFormatting.RED, Integer.valueOf(oneBasedIndex));
@@ -201,7 +207,9 @@ public final class ClientScreenshotService {
             notify("adm.screenshot.upload.busy", EnumChatFormatting.YELLOW);
             return;
         }
-        if (file == null || !file.isFile() || !file.getParentFile().equals(historyDirectory())) {
+        if (file == null || !file.isFile()
+            || !file.getParentFile()
+                .equals(historyDirectory())) {
             notify("adm.screenshot.history.invalid", EnumChatFormatting.RED);
             return;
         }
@@ -238,19 +246,20 @@ public final class ClientScreenshotService {
             int offset = index * UPLOAD_CHUNK_BYTES;
             int length = Math.min(UPLOAD_CHUNK_BYTES, upload.bytes.length - offset);
             byte[] chunk = Arrays.copyOfRange(upload.bytes, offset, offset + length);
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(new PacketScreenshotUpload(
-                upload.uploadId,
-                index,
-                upload.totalChunks,
-                upload.bytes.length,
-                upload.destination,
-                upload.targetType,
-                upload.targetId,
-                upload.caption,
-                upload.fileName,
-                upload.width,
-                upload.height,
-                chunk));
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                new PacketScreenshotUpload(
+                    upload.uploadId,
+                    index,
+                    upload.totalChunks,
+                    upload.bytes.length,
+                    upload.destination,
+                    upload.targetType,
+                    upload.targetId,
+                    upload.caption,
+                    upload.fileName,
+                    upload.width,
+                    upload.height,
+                    chunk));
         }
     }
 
@@ -313,7 +322,9 @@ public final class ClientScreenshotService {
             byte[] bytes = readFile(file);
             BufferedImage image = ImageIO.read(file);
             if (image == null) throw new IllegalStateException("invalid JPEG");
-            String uploadId = UUID.randomUUID().toString().replace("-", "");
+            String uploadId = UUID.randomUUID()
+                .toString()
+                .replace("-", "");
             int totalChunks = Math.max(1, (bytes.length + UPLOAD_CHUNK_BYTES - 1) / UPLOAD_CHUNK_BYTES);
             pendingUpload = new PendingUpload(
                 uploadId,
@@ -356,21 +367,9 @@ public final class ClientScreenshotService {
         pixelBuffer.clear();
         if (OpenGlHelper.isFramebufferEnabled()) {
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, framebuffer.framebufferTexture);
-            GL11.glGetTexImage(
-                GL11.GL_TEXTURE_2D,
-                0,
-                GL12.GL_BGRA,
-                GL12.GL_UNSIGNED_INT_8_8_8_8_REV,
-                pixelBuffer);
+            GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
         } else {
-            GL11.glReadPixels(
-                0,
-                0,
-                width,
-                height,
-                GL12.GL_BGRA,
-                GL12.GL_UNSIGNED_INT_8_8_8_8_REV,
-                pixelBuffer);
+            GL11.glReadPixels(0, 0, width, height, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
         }
         pixelBuffer.get(pixelValues, 0, pixels);
         TextureUtil.func_147953_a(pixelValues, width, height);
@@ -400,11 +399,13 @@ public final class ClientScreenshotService {
     private static BufferedImage scaleToLimits(BufferedImage source, int maxWidth, int maxHeight) {
         int boundedWidth = Math.max(320, maxWidth);
         int boundedHeight = Math.max(180, maxHeight);
-        double scale = Math.min(1.0D, Math.min((double) boundedWidth / source.getWidth(),
-            (double) boundedHeight / source.getHeight()));
+        double scale = Math.min(
+            1.0D,
+            Math.min((double) boundedWidth / source.getWidth(), (double) boundedHeight / source.getHeight()));
         int width = Math.max(1, (int) Math.round(source.getWidth() * scale));
         int height = Math.max(1, (int) Math.round(source.getHeight() * scale));
-        if (width == source.getWidth() && height == source.getHeight() && source.getType() == BufferedImage.TYPE_INT_RGB) {
+        if (width == source.getWidth() && height == source.getHeight()
+            && source.getType() == BufferedImage.TYPE_INT_RGB) {
             return source;
         }
         BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -492,7 +493,8 @@ public final class ClientScreenshotService {
             public void run() {
                 if (mc.thePlayer == null) return;
                 ChatComponentTranslation text = new ChatComponentTranslation(key, args);
-                text.getChatStyle().setColor(color);
+                text.getChatStyle()
+                    .setColor(color);
                 mc.thePlayer.addChatMessage(text);
             }
         });
@@ -505,15 +507,21 @@ public final class ClientScreenshotService {
 
     private static String safeMessage(Throwable error) {
         String value = error == null ? "" : error.getMessage();
-        if (value == null || value.isEmpty()) return error == null ? "unknown" : error.getClass().getSimpleName();
-        return bounded(value.replace('\r', ' ').replace('\n', ' '), 160);
+        if (value == null || value.isEmpty()) return error == null ? "unknown"
+            : error.getClass()
+                .getSimpleName();
+        return bounded(
+            value.replace('\r', ' ')
+                .replace('\n', ' '),
+            160);
     }
 
     private static final Comparator<File> NEWEST_FIRST = new Comparator<File>() {
 
         @Override
         public int compare(File left, File right) {
-            if (left.lastModified() == right.lastModified()) return right.getName().compareTo(left.getName());
+            if (left.lastModified() == right.lastModified()) return right.getName()
+                .compareTo(left.getName());
             return left.lastModified() < right.lastModified() ? 1 : -1;
         }
     };

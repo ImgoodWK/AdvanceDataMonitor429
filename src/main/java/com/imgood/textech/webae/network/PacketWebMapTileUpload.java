@@ -11,11 +11,11 @@ import com.imgood.textech.webae.worldmap.WorldMapChunkSetBuilder;
 import com.imgood.textech.webae.worldmap.WorldMapClientCaptureMode;
 import com.imgood.textech.webae.worldmap.WorldMapHdSupport;
 import com.imgood.textech.webae.worldmap.WorldMapMetaDto;
-import com.imgood.textech.webae.worldmap.WorldMapTileCache;
-import com.imgood.textech.webae.worldmap.WorldMapTileProgressTracker;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
+import com.imgood.textech.webae.worldmap.WorldMapTileCache;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
+import com.imgood.textech.webae.worldmap.WorldMapTileProgressTracker;
 import com.imgood.textech.webae.worldmap.WorldMapView;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -150,7 +150,8 @@ public class PacketWebMapTileUpload implements IMessage {
                 return;
             }
             if (!WorldMapHdSupport.canUploadForOwner(player, message.ownerUuid)) {
-                AdvanceDataMonitor.LOG.debug("[WebAE] Rejected world map HD upload from non-owner {}", player.getCommandSenderName());
+                AdvanceDataMonitor.LOG
+                    .debug("[WebAE] Rejected world map HD upload from non-owner {}", player.getCommandSenderName());
                 return;
             }
             WorldMapView parsed = WorldMapView.fromId(message.view);
@@ -164,7 +165,12 @@ public class PacketWebMapTileUpload implements IMessage {
                 return;
             }
             if (Config.webWorldMapRequireNetworkScope && message.networkId >= 0) {
-                if (!isChunkAllowed(message.ownerUuid, message.networkId, message.dim, message.chunkX, message.chunkZ)) {
+                if (!isChunkAllowed(
+                    message.ownerUuid,
+                    message.networkId,
+                    message.dim,
+                    message.chunkX,
+                    message.chunkZ)) {
                     return;
                 }
             }
@@ -172,10 +178,17 @@ public class PacketWebMapTileUpload implements IMessage {
             if (!WorldMapClientCaptureMode.shouldUseClientForTier(tier)) {
                 return;
             }
-            WorldMapTileCache.writeHd(parsed.id, message.layer, tier, message.dim, message.chunkX, message.chunkZ,
-                message.png);
+            WorldMapTileCache
+                .writeHd(parsed.id, message.layer, tier, message.dim, message.chunkX, message.chunkZ, message.png);
             WorldMapTileProgressTracker.instance()
-                .markDone(message.networkId, parsed.id, tier, message.dim, message.chunkX, message.chunkZ, message.layer);
+                .markDone(
+                    message.networkId,
+                    parsed.id,
+                    tier,
+                    message.dim,
+                    message.chunkX,
+                    message.chunkZ,
+                    message.layer);
             AdvanceDataMonitor.LOG.debug(
                 "[WebAE] Stored HD world map tile view={} layer={} dim={} cx={} cz={} bytes={}",
                 parsed.id,
@@ -187,7 +200,8 @@ public class PacketWebMapTileUpload implements IMessage {
         }
 
         private static boolean isChunkAllowed(String ownerUuid, int networkId, int dim, int chunkX, int chunkZ) {
-            WorldMapMetaDto meta = com.imgood.textech.webae.worldmap.WorldMapBoundsBuilder.rebuild(ownerUuid, networkId);
+            WorldMapMetaDto meta = com.imgood.textech.webae.worldmap.WorldMapBoundsBuilder
+                .rebuild(ownerUuid, networkId);
             if (meta == null || meta.dimensions == null || meta.dimensions.isEmpty()) {
                 return meta != null && meta.hasLogicalSnapshot;
             }

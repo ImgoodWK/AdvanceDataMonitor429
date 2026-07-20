@@ -466,7 +466,8 @@ public final class WebAlertsConfigValidator {
             }
         }
         String type = trimOrEmpty(target.type).toLowerCase();
-        if (!"qq_official".equals(type) && !"wechat_official".equals(type) && !"email".equals(type)
+        if (!"qq_official".equals(type) && !"wechat_official".equals(type)
+            && !"email".equals(type)
             && !"wecom_bot".equals(type)
             && !"wecom_app".equals(type)) {
             return path + ": unsupported type '" + target.type + "'";
@@ -497,7 +498,8 @@ public final class WebAlertsConfigValidator {
                 return path + ": templateId required for WeChat template mode";
             }
         } else if ("email".equals(type)) {
-            if (trimOrEmpty(target.smtpHost).isEmpty() || target.smtpPort < 1 || target.smtpPort > 65535
+            if (trimOrEmpty(target.smtpHost).isEmpty() || target.smtpPort < 1
+                || target.smtpPort > 65535
                 || trimOrEmpty(target.mailFrom).isEmpty()
                 || target.mailTo == null
                 || target.mailTo.isEmpty()) {

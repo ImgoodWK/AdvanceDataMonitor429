@@ -3723,38 +3723,86 @@ div.webae-list-row:focus-visible {
   }
 }
 
-/* Embed dashboard: hide chrome for in-game capture / kiosk view */
+/* Embed + dashboard presentation: shell-less grid (in-game capture / kiosk) */
 html.webae-embed-dashboard,
-body.webae-embed-dashboard {
-  overflow: auto !important;
-}
-body.webae-embed-dashboard .page-shell__header,
-body.webae-embed-dashboard .skip-link {
-  display: none !important;
-}
-body.webae-embed-dashboard .page-shell {
-  padding: 0 !important;
-  gap: 0 !important;
-  max-width: none !important;
-}
-body.webae-embed-dashboard .dashboard-grid-wrap {
-  min-height: 100vh;
+body.webae-embed-dashboard,
+html.webae-dashboard-present,
+body.webae-dashboard-present {
+  overflow: hidden !important;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-/* Embed dashboard: hide chrome for in-game capture / kiosk view */
-html.webae-embed-dashboard,
-body.webae-embed-dashboard {
-  overflow: auto !important;
-}
 body.webae-embed-dashboard .page-shell__header,
-body.webae-embed-dashboard .skip-link {
+body.webae-embed-dashboard .skip-link,
+body.webae-dashboard-present .page-shell__header,
+body.webae-dashboard-present .skip-link,
+body.webae-dashboard-present .dashboard-palette {
   display: none !important;
 }
-body.webae-embed-dashboard .page-shell {
+
+body.webae-embed-dashboard .page-shell,
+body.webae-dashboard-present .page-shell {
   padding: 0 !important;
   gap: 0 !important;
   max-width: none !important;
+  height: 100% !important;
+  min-height: 100% !important;
 }
-body.webae-embed-dashboard .dashboard-grid-wrap {
-  min-height: 100vh;
+
+body.webae-embed-dashboard .page-shell__body,
+body.webae-dashboard-present .page-shell__body {
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: hidden !important;
+}
+
+body.webae-embed-dashboard .dashboard-grid-wrap,
+body.webae-dashboard-present .dashboard-grid-wrap {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* Presentation mode: hide app chrome; keep only dashboard content */
+html.webae-dashboard-present .ant-layout-sider,
+html.webae-dashboard-present .webae-sidebar,
+html.webae-dashboard-present .webae-sider--floating,
+html.webae-dashboard-present .webae-sider--rail,
+html.webae-dashboard-present .webae-sider--drawer-right,
+html.webae-dashboard-present .webae-bottom-nav,
+html.webae-dashboard-present .webae-bottom-nav-footer,
+html.webae-dashboard-present .webae-dock-wrap,
+html.webae-dashboard-present .webae-top-tabs,
+html.webae-dashboard-present .webae-corner-hub,
+html.webae-dashboard-present .webae-layout-ticker,
+html.webae-dashboard-present .webae-layout-status,
+html.webae-dashboard-present .sidebar-mode-fab,
+html.webae-dashboard-present .webae-topbar {
+  display: none !important;
+}
+
+html.webae-dashboard-present .app-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
+
+html.webae-dashboard-present .webae-layout,
+html.webae-dashboard-present .webae-layout.ant-layout {
+  height: 100dvh !important;
+}
+
+.webae-present-exit {
+  position: fixed !important;
+  top: 12px;
+  right: 12px;
+  z-index: 100000;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }

@@ -38,10 +38,8 @@ public final class QuestRequirementAnalyzer {
             return out;
         }
         boolean includeAll = QuestFluidEquivalence.resolveIncludeAll(includeAllFluidContainers);
-        StorageDto storage = ownerUuid != null && !ownerUuid.isEmpty()
-            ? SnapshotCache.instance()
-                .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE)
-            : null;
+        StorageDto storage = ownerUuid != null && !ownerUuid.isEmpty() ? SnapshotCache.instance()
+            .getStale(ownerUuid, networkId, SnapshotScheduler.TYPE_STORAGE) : null;
         for (QuestTaskDto task : detail.tasks) {
             out.steps.add(analyzeStep(ownerUuid, networkId, task, storage, includeAll));
         }
@@ -91,11 +89,8 @@ public final class QuestRequirementAnalyzer {
             boolean cellTask = QuestFluidEquivalence.isFluidCellTask(task.registryName, task.meta);
             step.fluidCellTask = cellTask;
             if (cellTask) {
-                StockBreakdown stock = QuestFluidEquivalence.analyzeCellItem(
-                    storage,
-                    task.registryName,
-                    task.meta,
-                    includeAll);
+                StockBreakdown stock = QuestFluidEquivalence
+                    .analyzeCellItem(storage, task.registryName, task.meta, includeAll);
                 step.fluidCellCapacityMb = stock.capacityMb;
                 step.emptyCellAvailable = stock.emptyCellCount;
                 step.fluidFromFreeMb = stock.freeMb;
@@ -108,12 +103,8 @@ public final class QuestRequirementAnalyzer {
             step.remaining = Math.max(0L, task.required - task.progress);
             step.missing = Math.max(0L, step.remaining - step.available);
             if (step.missing > 0 && ownerUuid != null && !ownerUuid.isEmpty()) {
-                CraftTreeNodeDto tree = CraftTreeCalculator.build(
-                    ownerUuid,
-                    networkId,
-                    task.registryName,
-                    step.missing,
-                    6);
+                CraftTreeNodeDto tree = CraftTreeCalculator
+                    .build(ownerUuid, networkId, task.registryName, step.missing, 6);
                 if (tree != null) {
                     step.craftable = CraftTreeCalculator.computeCraftableAmount(tree);
                     if (step.craftable > step.missing) {

@@ -40,7 +40,8 @@ public final class AuthExchangeHandler {
                     : NanoHTTPD.Response.Status.BAD_REQUEST;
             return json(status, error(result.errorCode, describeError(result.errorCode)));
         }
-        if (WebAePlayerStateStore.getInstance().isDisabled(result.ownerUuid)) {
+        if (WebAePlayerStateStore.getInstance()
+            .isDisabled(result.ownerUuid)) {
             return json(
                 NanoHTTPD.Response.Status.UNAUTHORIZED,
                 error("webae_disabled", "WebAE has been disabled for this player. Contact an administrator."));
@@ -118,11 +119,8 @@ public final class AuthExchangeHandler {
     }
 
     private static String error(String code, String message) {
-        return "{\"status\":\"error\",\"code\":\"" + escapeJson(code)
-            + "\",\"error\":\"" + escapeJson(code)
-            + "\",\"message\":\""
-            + escapeJson(message)
-            + "\"}";
+        return "{\"status\":\"error\",\"code\":\"" + escapeJson(
+            code) + "\",\"error\":\"" + escapeJson(code) + "\",\"message\":\"" + escapeJson(message) + "\"}";
     }
 
     private static String escapeJson(String value) {

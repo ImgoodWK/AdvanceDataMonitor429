@@ -44,7 +44,8 @@ public final class IconDirectCaptureClientWorker {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        if (IconRenderer.instance().isRunning()) return;
+        if (IconRenderer.instance()
+            .isRunning()) return;
 
         int budget = Config.webIconDirectRenderPerTick;
         if (budget <= 0) budget = 4;
@@ -67,7 +68,8 @@ public final class IconDirectCaptureClientWorker {
         }
         byte[] png = null;
         try {
-            png = IconRenderer.instance().renderPngBytes(request.renderMode, request.itemId);
+            png = IconRenderer.instance()
+                .renderPngBytes(request.renderMode, request.itemId);
         } catch (Throwable t) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Direct icon capture failed for {}", request.itemId, t);
         } finally {

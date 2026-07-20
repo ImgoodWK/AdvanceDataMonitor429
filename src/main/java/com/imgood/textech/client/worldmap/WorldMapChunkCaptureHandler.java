@@ -1,6 +1,5 @@
 package com.imgood.textech.client.worldmap;
 
-import com.imgood.textech.webae.worldmap.WorldMapSnapshotMode;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -14,6 +13,7 @@ import com.imgood.textech.webae.network.PacketWebMapTileUpload;
 import com.imgood.textech.webae.worldmap.WorldMapClientCaptureMode;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
+import com.imgood.textech.webae.worldmap.WorldMapSnapshotMode;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 import com.imgood.textech.webae.worldmap.WorldMapView;
 
@@ -68,7 +68,8 @@ public final class WorldMapChunkCaptureHandler {
         tickCounter++;
         int playerChunkX = mc.thePlayer.chunkCoordX;
         int playerChunkZ = mc.thePlayer.chunkCoordZ;
-        if (playerChunkX != lastPlayerChunkX || playerChunkZ != lastPlayerChunkZ || tickCounter >= CAPTURE_INTERVAL_TICKS) {
+        if (playerChunkX != lastPlayerChunkX || playerChunkZ != lastPlayerChunkZ
+            || tickCounter >= CAPTURE_INTERVAL_TICKS) {
             tickCounter = 0;
             lastPlayerChunkX = playerChunkX;
             lastPlayerChunkZ = playerChunkZ;

@@ -68,7 +68,8 @@ public final class IconNesqlStyleRenderer {
     public byte[] renderItem(Minecraft mc, ItemStack stack) {
         if (mc == null || stack == null) return null;
         if (!ensureDrawItem()) {
-            AdvanceDataMonitor.LOG.debug("[WebAE] NESQL-style render skipped: GuiContainerManager.drawItem unavailable");
+            AdvanceDataMonitor.LOG
+                .debug("[WebAE] NESQL-style render skipped: GuiContainerManager.drawItem unavailable");
             return null;
         }
         try {
@@ -103,7 +104,8 @@ public final class IconNesqlStyleRenderer {
             drawItemAvailable = true;
         } catch (Throwable t) {
             drawItemAvailable = false;
-            AdvanceDataMonitor.LOG.warn("[WebAE] GuiContainerManager.drawItem not found (NEI required for NESQL icons)");
+            AdvanceDataMonitor.LOG
+                .warn("[WebAE] GuiContainerManager.drawItem not found (NEI required for NESQL icons)");
         }
         return drawItemAvailable;
     }
@@ -208,10 +210,7 @@ public final class IconNesqlStyleRenderer {
         // Frontend scales via CSS; 64px PNGs stay sharp at common display sizes.
         BufferedImage img = high;
         if (IconRenderer.ICON_SIZE != FBO_SIZE && IconRenderer.ICON_SIZE > 0) {
-            img = new BufferedImage(
-                IconRenderer.ICON_SIZE,
-                IconRenderer.ICON_SIZE,
-                BufferedImage.TYPE_INT_ARGB);
+            img = new BufferedImage(IconRenderer.ICON_SIZE, IconRenderer.ICON_SIZE, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = img.createGraphics();
             // Pixel-art icons: nearest neighbor avoids blur from 64→32 bilinear.
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);

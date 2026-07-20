@@ -91,8 +91,7 @@ public final class IconLocalStore {
         if (player == null) return;
         String pack = (packName != null && !packName.isEmpty()) ? packName : "default";
         if (!IconStore.isValidPackName(pack)) {
-            player.addChatMessage(
-                new ChatComponentText(EnumChatFormatting.RED + "[WebAE] Invalid icon pack name."));
+            player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "[WebAE] Invalid icon pack name."));
             return;
         }
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -117,9 +116,8 @@ public final class IconLocalStore {
             int len = Math.min(CHUNK_BYTES, full.length - off);
             byte[] chunk = new byte[len];
             System.arraycopy(full, off, chunk, 0, len);
-            AdvanceDataMonitor.ADMCHANEL.sendTo(
-                new PacketWebIconPullZip(i == 0, i == total - 1, i, total, pack, chunk),
-                player);
+            AdvanceDataMonitor.ADMCHANEL
+                .sendTo(new PacketWebIconPullZip(i == 0, i == total - 1, i, total, pack, chunk), player);
         }
         player.addChatMessage(
             new ChatComponentText(
@@ -177,8 +175,10 @@ public final class IconLocalStore {
                 if (mc.thePlayer != null) {
                     mc.thePlayer.addChatMessage(
                         new ChatComponentText(
-                            EnumChatFormatting.GREEN + "[WebAE] Local icons ready: " + written
-                                + " files → " + dest.getAbsolutePath()));
+                            EnumChatFormatting.GREEN + "[WebAE] Local icons ready: "
+                                + written
+                                + " files → "
+                                + dest.getAbsolutePath()));
                 }
             } catch (Exception e) {
                 AdvanceDataMonitor.LOG.warn("[WebAE] Icon pull extract failed: {}", e.getMessage());

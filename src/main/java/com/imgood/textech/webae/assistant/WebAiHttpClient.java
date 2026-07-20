@@ -65,7 +65,9 @@ public final class WebAiHttpClient {
         JsonObject response = post(openAiEndpoint(), body, "Authorization", "Bearer " + config.apiKey, null, null);
         JsonArray choices = response.getAsJsonArray("choices");
         if (choices == null || choices.size() == 0) throw new IOException("AI response did not contain choices.");
-        JsonObject message = choices.get(0).getAsJsonObject().getAsJsonObject("message");
+        JsonObject message = choices.get(0)
+            .getAsJsonObject()
+            .getAsJsonObject("message");
         if (message == null) throw new IOException("AI response did not contain a message.");
         String content = string(message, "content");
         if (content.isEmpty()) content = string(message, "reasoning_content");
@@ -93,8 +95,13 @@ public final class WebAiHttpClient {
         }
         if (system.length() > 0) body.addProperty("system", system.toString());
         body.add("messages", jsonMessages);
-        JsonObject response = post(appendPath(config.baseUrl, "/v1/messages"), body,
-            "x-api-key", config.apiKey, "anthropic-version", "2023-06-01");
+        JsonObject response = post(
+            appendPath(config.baseUrl, "/v1/messages"),
+            body,
+            "x-api-key",
+            config.apiKey,
+            "anthropic-version",
+            "2023-06-01");
         JsonArray content = response.getAsJsonArray("content");
         if (content == null || content.size() == 0) throw new IOException("AI response content was empty.");
         StringBuilder text = new StringBuilder();
@@ -140,12 +147,15 @@ public final class WebAiHttpClient {
         generation.addProperty("temperature", config.temperature);
         generation.addProperty("maxOutputTokens", config.maxTokens);
         body.add("generationConfig", generation);
-        String model = URLEncoder.encode(config.model, "UTF-8").replace("+", "%20");
+        String model = URLEncoder.encode(config.model, "UTF-8")
+            .replace("+", "%20");
         String endpoint = appendPath(config.baseUrl, "/v1beta/models/" + model + ":generateContent");
         JsonObject response = post(endpoint, body, "x-goog-api-key", config.apiKey, null, null);
         JsonArray candidates = response.getAsJsonArray("candidates");
         if (candidates == null || candidates.size() == 0) throw new IOException("AI response had no candidates.");
-        JsonObject content = candidates.get(0).getAsJsonObject().getAsJsonObject("content");
+        JsonObject content = candidates.get(0)
+            .getAsJsonObject()
+            .getAsJsonObject("content");
         JsonArray parts = content == null ? null : content.getAsJsonArray("parts");
         if (parts == null) throw new IOException("AI response content was empty.");
         StringBuilder text = new StringBuilder();
@@ -170,20 +180,22 @@ public final class WebAiHttpClient {
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty(headerName, headerValue);
             if (secondHeaderName != null) connection.setRequestProperty(secondHeaderName, secondHeaderValue);
-            byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = body.toString()
+                .getBytes(StandardCharsets.UTF_8);
             connection.setFixedLengthStreamingMode(bytes.length);
             try (OutputStream output = connection.getOutputStream()) {
                 output.write(bytes);
             }
             int status = connection.getResponseCode();
-            String response = readBounded(status >= 200 && status < 300
-                ? connection.getInputStream() : connection.getErrorStream());
+            String response = readBounded(
+                status >= 200 && status < 300 ? connection.getInputStream() : connection.getErrorStream());
             if (status < 200 || status >= 300) {
-                throw new IOException("AI provider request failed (HTTP " + status + "): "
-                    + safeProviderError(response));
+                throw new IOException(
+                    "AI provider request failed (HTTP " + status + "): " + safeProviderError(response));
             }
             try {
-                return new JsonParser().parse(response).getAsJsonObject();
+                return new JsonParser().parse(response)
+                    .getAsJsonObject();
             } catch (Exception e) {
                 throw new IOException("AI provider returned invalid JSON.");
             }
@@ -207,14 +219,18 @@ public final class WebAiHttpClient {
     private String safeProviderError(String response) {
         String message = "provider rejected the request";
         try {
-            JsonObject root = new JsonParser().parse(response).getAsJsonObject();
+            JsonObject root = new JsonParser().parse(response)
+                .getAsJsonObject();
             JsonElement error = root.get("error");
             if (error != null && error.isJsonObject()) message = string(error.getAsJsonObject(), "message");
             else if (error != null && error.isJsonPrimitive()) message = error.getAsString();
             if (message.isEmpty()) message = string(root, "message");
         } catch (Exception ignored) {}
         if (message == null || message.isEmpty()) message = "provider rejected the request";
-        message = message.replace(config.apiKey, "[REDACTED]").replace('\r', ' ').replace('\n', ' ').trim();
+        message = message.replace(config.apiKey, "[REDACTED]")
+            .replace('\r', ' ')
+            .replace('\n', ' ')
+            .trim();
         return message.length() <= 300 ? message : message.substring(0, 300);
     }
 
@@ -265,6 +281,7 @@ public final class WebAiHttpClient {
     }
 
     public static final class Message {
+
         public final String role;
         public final String content;
 

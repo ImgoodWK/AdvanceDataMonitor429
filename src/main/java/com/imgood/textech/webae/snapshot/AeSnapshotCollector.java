@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -21,8 +22,6 @@ import com.imgood.textech.webae.dto.StorageDto.CpuEntry;
 import com.imgood.textech.webae.dto.StorageDto.EssentiaEntry;
 import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
 import com.imgood.textech.webae.dto.StorageDto.ItemEntry;
-
-import net.minecraft.item.Item;
 import com.imgood.textech.webae.recipe.RecipeItemEntries;
 
 import appeng.api.networking.IGridHost;
@@ -37,20 +36,21 @@ import appeng.api.storage.data.IAEItemStack;
  * HTTP handlers call {@link #collectBlocking(String, int, long)} which enqueues
  * via HandlerTick and waits with timeout for the result.
  *
- * <p>Storage fingerprints are tracked per (ownerUuid:networkId) so that
+ * <p>
+ * Storage fingerprints are tracked per (ownerUuid:networkId) so that
  * unchanged networks skip the expensive DTO-building pass. When the
  * fingerprint matches the previous collection, {@code collect()} returns
  * {@code null} to signal &quot;no change needed&quot; — the scheduler reuses
  * the cached snapshot and only bumps its timestamp via
- * {@link com.imgood.textech.webae.cache.SnapshotCache#markRefresh}.</p>
+ * {@link com.imgood.textech.webae.cache.SnapshotCache#markRefresh}.
+ * </p>
  */
 public class AeSnapshotCollector {
 
     private static final Set<String> KNOWN_ASPECTS = buildKnownAspects();
 
     /** Lightweight content fingerprint per (ownerUuid:networkId). */
-    private static final java.util.concurrent.ConcurrentHashMap<String, Long> storageFingerprints =
-        new java.util.concurrent.ConcurrentHashMap<String, Long>();
+    private static final java.util.concurrent.ConcurrentHashMap<String, Long> storageFingerprints = new java.util.concurrent.ConcurrentHashMap<String, Long>();
 
     private static Set<String> buildKnownAspects() {
         Set<String> set = new HashSet<String>();
@@ -150,13 +150,15 @@ public class AeSnapshotCollector {
             try {
                 IGridNode node = ((IGridHost) group.storageLink).getGridNode(ForgeDirection.UNKNOWN);
                 if (node != null && node.getGrid() != null) {
-                    IStorageGrid sg = node.getGrid().getCache(IStorageGrid.class);
+                    IStorageGrid sg = node.getGrid()
+                        .getCache(IStorageGrid.class);
                     if (sg != null) {
                         // Items fingerprint: count + total amount + hash of first 20 items
                         int itemCount = 0;
                         long itemTotal = 0;
                         long itemHash = 0;
-                        for (IAEItemStack stored : sg.getItemInventory().getStorageList()) {
+                        for (IAEItemStack stored : sg.getItemInventory()
+                            .getStorageList()) {
                             if (stored == null) continue;
                             itemCount++;
                             long amount = stored.getStackSize();
@@ -164,8 +166,8 @@ public class AeSnapshotCollector {
                             if (itemCount <= 20) {
                                 ItemStack stack = stored.getItemStack();
                                 if (stack != null && stack.getItem() != null) {
-                                    itemHash = itemHash * 31
-                                        + (stack.getItem().hashCode() ^ stack.getItemDamage());
+                                    itemHash = itemHash * 31 + (stack.getItem()
+                                        .hashCode() ^ stack.getItemDamage());
                                     itemHash ^= amount;
                                 }
                             }
@@ -176,15 +178,16 @@ public class AeSnapshotCollector {
                         int fluidCount = 0;
                         long fluidTotal = 0;
                         long fluidHash = 0;
-                        for (IAEFluidStack stored : sg.getFluidInventory().getStorageList()) {
+                        for (IAEFluidStack stored : sg.getFluidInventory()
+                            .getStorageList()) {
                             if (stored == null) continue;
                             fluidCount++;
                             fluidTotal += stored.getStackSize();
                             if (fluidCount <= 10) {
                                 net.minecraftforge.fluids.FluidStack fs = stored.getFluidStack();
                                 if (fs != null && fs.getFluid() != null) {
-                                    fluidHash = fluidHash * 31
-                                        + fs.getFluid().hashCode();
+                                    fluidHash = fluidHash * 31 + fs.getFluid()
+                                        .hashCode();
                                     fluidHash ^= stored.getStackSize();
                                 }
                             }
@@ -229,7 +232,9 @@ public class AeSnapshotCollector {
         });
     }
 
-    /** Run collect on the current (server) thread — used by {@link com.imgood.textech.webae.cache.SnapshotScheduler}. */
+    /**
+     * Run collect on the current (server) thread — used by {@link com.imgood.textech.webae.cache.SnapshotScheduler}.
+     */
     public static void enqueueCollectOnCurrentThread(String ownerUuid, int networkId, SnapshotCallback callback) {
         try {
             callback.onResult(collect(ownerUuid, networkId));
@@ -305,8 +310,8 @@ public class AeSnapshotCollector {
             StorageDto fallback = com.imgood.textech.webae.cache.SnapshotCache.instance()
                 .getStale(ownerUuid, networkId, "storage");
             if (fallback != null) {
-                AdvanceDataMonitor.LOG.debug("[WebAE] Snapshot timed out, returning stale owner={} network={}",
-                    ownerUuid, networkId);
+                AdvanceDataMonitor.LOG
+                    .debug("[WebAE] Snapshot timed out, returning stale owner={} network={}", ownerUuid, networkId);
                 return fallback;
             }
         }
@@ -401,6 +406,7 @@ public class AeSnapshotCollector {
             dto.items = items;
             // Pre-sort by amount descending so paginated reads can skip re-sorting.
             java.util.Collections.sort(items, new java.util.Comparator<ItemEntry>() {
+
                 @Override
                 public int compare(ItemEntry a, ItemEntry b) {
                     int c = Long.compare(b.amount, a.amount);
@@ -437,12 +443,14 @@ public class AeSnapshotCollector {
             }
             dto.fluids = fluids;
             java.util.Collections.sort(fluids, new java.util.Comparator<FluidEntry>() {
+
                 @Override
                 public int compare(FluidEntry a, FluidEntry b) {
                     int c = Long.compare(b.amount, a.amount);
                     if (c != 0) return c;
                     return safeStrCmp(a.fluidName, b.fluidName);
                 }
+
                 private int safeStrCmp(String sa, String sb) {
                     if (sa == null) sa = "";
                     if (sb == null) sb = "";
@@ -482,6 +490,7 @@ public class AeSnapshotCollector {
             }
             dto.essentia = essentias;
             java.util.Collections.sort(essentias, new java.util.Comparator<EssentiaEntry>() {
+
                 @Override
                 public int compare(EssentiaEntry a, EssentiaEntry b) {
                     int c = Long.compare(b.amount, a.amount);

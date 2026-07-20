@@ -115,10 +115,12 @@ public class IconHandler {
         }
         String pack = params.get("pack");
         String mode = params.get("mode");
-        if (pack == null || pack.isEmpty()) pack = IconStore.instance().getDefaultPack();
+        if (pack == null || pack.isEmpty()) pack = IconStore.instance()
+            .getDefaultPack();
         if (pack == null || pack.isEmpty()) pack = "default";
         if (mode == null || mode.isEmpty()) mode = IconRenderMode.NEI.getId();
-        SyncManifest manifest = IconStore.instance().buildSyncManifest(pack, mode);
+        SyncManifest manifest = IconStore.instance()
+            .buildSyncManifest(pack, mode);
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
             "{\"success\":true,\"manifest\":" + GSON.toJson(manifest) + "}");
@@ -132,10 +134,12 @@ public class IconHandler {
         }
         String pack = params.get("pack");
         String mode = params.get("mode");
-        if (pack == null || pack.isEmpty()) pack = IconStore.instance().getDefaultPack();
+        if (pack == null || pack.isEmpty()) pack = IconStore.instance()
+            .getDefaultPack();
         if (pack == null || pack.isEmpty()) pack = "default";
         if (mode == null || mode.isEmpty()) mode = IconRenderMode.NEI.getId();
-        SyncManifest manifest = IconStore.instance().buildSyncManifest(pack, mode);
+        SyncManifest manifest = IconStore.instance()
+            .buildSyncManifest(pack, mode);
         if (manifest.iconCount <= 0) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.NOT_FOUND,
@@ -143,7 +147,8 @@ public class IconHandler {
         }
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            IconStore.instance().writeModeZip(pack, mode, baos);
+            IconStore.instance()
+                .writeModeZip(pack, mode, baos);
             byte[] zipBytes = baos.toByteArray();
             if (zipBytes.length == 0) {
                 return jsonResponse(
@@ -151,11 +156,8 @@ public class IconHandler {
                     "{\"success\":false,\"message\":\"Empty icon pack\"}");
             }
             InputStream stream = new ByteArrayInputStream(zipBytes);
-            NanoHTTPD.Response resp = NanoHTTPD.newFixedLengthResponse(
-                NanoHTTPD.Response.Status.OK,
-                "application/zip",
-                stream,
-                zipBytes.length);
+            NanoHTTPD.Response resp = NanoHTTPD
+                .newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/zip", stream, zipBytes.length);
             resp.addHeader("Cache-Control", "no-store");
             resp.addHeader("X-Icon-Sync-Version", manifest.version != null ? manifest.version : "");
             return resp;
@@ -243,7 +245,8 @@ public class IconHandler {
 
             @Override
             public void run() {
-                if (IconStore.instance().writeIconPng(pack, mode, itemId, png)) {
+                if (IconStore.instance()
+                    .writeIconPng(pack, mode, itemId, png)) {
                     EventStreamHub.instance()
                         .publishIconReady(pack, mode, itemId);
                     IconMissingQueue.instance()
@@ -258,11 +261,8 @@ public class IconHandler {
     private static NanoHTTPD.Response pngResponse(byte[] png, String pack, String mode, String requestedId,
         String resolvedId, boolean exact, boolean noStore) {
         InputStream stream = new ByteArrayInputStream(png);
-        NanoHTTPD.Response resp = NanoHTTPD.newFixedLengthResponse(
-            NanoHTTPD.Response.Status.OK,
-            "image/png",
-            stream,
-            png.length);
+        NanoHTTPD.Response resp = NanoHTTPD
+            .newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "image/png", stream, png.length);
         if (noStore) {
             resp.addHeader("Cache-Control", "no-store");
         } else {

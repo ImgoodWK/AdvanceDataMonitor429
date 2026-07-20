@@ -106,8 +106,8 @@ public final class WorldMapFaceRasterizer {
         return a;
     }
 
-    public static void rasterizeFace(BufferedImage tile, int destX, int destZ, int ppb, Block block, int meta,
-        int wx, int wz, WorldMapChunkContext ctx, WorldMapBlockColorResolver.BlockFace face, int alpha) {
+    public static void rasterizeFace(BufferedImage tile, int destX, int destZ, int ppb, Block block, int meta, int wx,
+        int wz, WorldMapChunkContext ctx, WorldMapBlockColorResolver.BlockFace face, int alpha) {
         if (tile == null || block == null || block == Blocks.air || ppb <= 0 || ctx == null) {
             return;
         }

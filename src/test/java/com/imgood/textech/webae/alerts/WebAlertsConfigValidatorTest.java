@@ -50,7 +50,9 @@ public class WebAlertsConfigValidatorTest {
         WebAlertsConfig.NotificationTarget target = qqTarget("qq-main");
         target.ownerUuids.add("not-a-uuid");
         cfg.notificationTargets.add(target);
-        Assert.assertTrue(WebAlertsConfigValidator.validate(cfg).contains("invalid owner UUID"));
+        Assert.assertTrue(
+            WebAlertsConfigValidator.validate(cfg)
+                .contains("invalid owner UUID"));
     }
 
     private static WebAlertsConfig.NotificationTarget qqTarget(String id) {

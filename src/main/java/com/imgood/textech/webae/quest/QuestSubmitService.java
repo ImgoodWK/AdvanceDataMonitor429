@@ -112,12 +112,8 @@ public final class QuestSubmitService {
         // Scenario C / B: lock DETECT+SUBMIT remaining into escrow when enabled and not dry-run.
         if (!dryRun && escrow == null && Config.webQuestEscrowEnabled && hasLockableSteps(analysis, stepFilter)) {
             List<QuestAnalysisStepDto> lockSteps = filterSteps(analysis.steps, stepFilter);
-            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow.lock(
-                ownerUuid,
-                networkId,
-                player,
-                lockSteps,
-                includeAll);
+            QuestInventoryEscrow.LockResult lock = QuestInventoryEscrow
+                .lock(ownerUuid, networkId, player, lockSteps, includeAll);
             if (!lock.success) {
                 result.success = false;
                 result.message = lock.message != null ? lock.message : "Escrow lock failed";
@@ -203,28 +199,24 @@ public final class QuestSubmitService {
                             if (fromEscrow == null || task == null) {
                                 ok = false;
                             } else {
-                                FluidStack leftover = BqApiFacade.submitFluidTaskLeftover(
-                                    task,
-                                    player,
-                                    questingUuid,
-                                    qUuid,
-                                    quest,
-                                    fromEscrow);
+                                FluidStack leftover = BqApiFacade
+                                    .submitFluidTaskLeftover(task, player, questingUuid, qUuid, quest, fromEscrow);
                                 if (leftover != null && leftover.amount > 0) {
                                     returnFluidToEscrow(escrow, leftover);
                                 }
                                 ok = leftover == null || leftover.amount <= 0;
                             }
                         } else {
-                            ok = fluid != null && task != null && submitFluidFromAe(
-                                player,
-                                storageGrid,
-                                source,
-                                questingUuid,
-                                qUuid,
-                                quest,
-                                task,
-                                fluid);
+                            ok = fluid != null && task != null
+                                && submitFluidFromAe(
+                                    player,
+                                    storageGrid,
+                                    source,
+                                    questingUuid,
+                                    qUuid,
+                                    quest,
+                                    task,
+                                    fluid);
                         }
                         if (ok) {
                             stepResult.success = true;
@@ -261,34 +253,33 @@ public final class QuestSubmitService {
                         Object task = taskAtIndex(quest, step.index);
                         boolean ok;
                         if (escrow != null) {
-                            ItemStack fromEscrow = takeItemFromEscrow(escrow, step.registryName, step.meta,
+                            ItemStack fromEscrow = takeItemFromEscrow(
+                                escrow,
+                                step.registryName,
+                                step.meta,
                                 step.remaining);
                             if (fromEscrow == null || task == null) {
                                 ok = false;
                             } else {
-                                ItemStack leftover = BqApiFacade.submitItemTaskLeftover(
-                                    task,
-                                    player,
-                                    questingUuid,
-                                    qUuid,
-                                    quest,
-                                    fromEscrow);
+                                ItemStack leftover = BqApiFacade
+                                    .submitItemTaskLeftover(task, player, questingUuid, qUuid, quest, fromEscrow);
                                 if (leftover != null && leftover.stackSize > 0) {
                                     returnItemToEscrow(escrow, leftover);
                                 }
                                 ok = leftover == null || leftover.stackSize <= 0;
                             }
                         } else {
-                            ok = proto != null && task != null && submitItemFromAe(
-                                player,
-                                storageGrid,
-                                source,
-                                questingUuid,
-                                qUuid,
-                                quest,
-                                task,
-                                proto,
-                                step.remaining);
+                            ok = proto != null && task != null
+                                && submitItemFromAe(
+                                    player,
+                                    storageGrid,
+                                    source,
+                                    questingUuid,
+                                    qUuid,
+                                    quest,
+                                    task,
+                                    proto,
+                                    step.remaining);
                         }
                         if (ok) {
                             stepResult.success = true;
@@ -386,7 +377,13 @@ public final class QuestSubmitService {
         if (Config.webQuestEscrowEnabled && WebAeOwnerContext.getGrid(ownerUuid, networkId) != null) {
             List<Integer> detectSteps = detectStepFilter(questId, player);
             if (!detectSteps.isEmpty()) {
-                return submitInternal(ownerUuid, networkId, questId, false, detectSteps, null,
+                return submitInternal(
+                    ownerUuid,
+                    networkId,
+                    questId,
+                    false,
+                    detectSteps,
+                    null,
                     includeAllFluidContainers);
             }
         }
@@ -409,8 +406,7 @@ public final class QuestSubmitService {
             return indices;
         }
         for (int i = 0; i < detail.tasks.size(); i++) {
-            if (detail.tasks.get(i) != null
-                && QuestTaskDeserializer.WEB_DETECT.equals(detail.tasks.get(i).webAction)
+            if (detail.tasks.get(i) != null && QuestTaskDeserializer.WEB_DETECT.equals(detail.tasks.get(i).webAction)
                 && !detail.tasks.get(i).complete) {
                 indices.add(Integer.valueOf(detail.tasks.get(i).index));
             }
@@ -456,8 +452,8 @@ public final class QuestSubmitService {
             if (step.fluidMissing > 0 && escrow == null) {
                 return false;
             }
-            FluidStack fluid = QuestTaskDeserializer.parseFluidStack(step.fluidName,
-                step.fluidRemaining > 0 ? step.fluidRemaining : step.fluidRequired);
+            FluidStack fluid = QuestTaskDeserializer
+                .parseFluidStack(step.fluidName, step.fluidRemaining > 0 ? step.fluidRemaining : step.fluidRequired);
             if (fluid == null) {
                 return false;
             }
@@ -478,8 +474,7 @@ public final class QuestSubmitService {
             if (step == null || step.complete || !step.webCapable) {
                 continue;
             }
-            if ((step.remaining > 0 && step.missing <= 0)
-                || (step.fluidRemaining > 0 && step.fluidMissing <= 0)) {
+            if ((step.remaining > 0 && step.missing <= 0) || (step.fluidRemaining > 0 && step.fluidMissing <= 0)) {
                 return true;
             }
         }
@@ -541,7 +536,8 @@ public final class QuestSubmitService {
             return;
         }
         for (ItemStack held : escrow.items) {
-            if (held != null && held.getItem() == stack.getItem() && held.getItemDamage() == stack.getItemDamage()
+            if (held != null && held.getItem() == stack.getItem()
+                && held.getItemDamage() == stack.getItemDamage()
                 && ItemStack.areItemStackTagsEqual(held, stack)) {
                 held.stackSize += stack.stackSize;
                 return;
@@ -561,8 +557,9 @@ public final class QuestSubmitService {
             if (held == null || held.getFluid() == null) {
                 continue;
             }
-            if (!fluidName.equalsIgnoreCase(held.getFluid()
-                .getName())) {
+            if (!fluidName.equalsIgnoreCase(
+                held.getFluid()
+                    .getName())) {
                 continue;
             }
             int take = (int) Math.min(need, held.amount);

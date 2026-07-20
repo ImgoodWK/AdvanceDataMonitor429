@@ -150,8 +150,8 @@ public final class IconFluidRenderer {
     private static boolean isAe2fcFluidCellItem(Item item) {
         if (item instanceof appeng.api.implementations.items.IStorageCell) {
             try {
-                return ((appeng.api.implementations.items.IStorageCell) item)
-                    .getStackType() == appeng.util.item.AEFluidStackType.FLUID_STACK_TYPE;
+                return ((appeng.api.implementations.items.IStorageCell) item).getStackType()
+                    == appeng.util.item.AEFluidStackType.FLUID_STACK_TYPE;
             } catch (Throwable ignored) {
                 return false;
             }

@@ -42,7 +42,9 @@ public final class NetworkMetricItemHandler {
         sampler.markActive(playerUuid, networkId);
         String err = sampler.registerTrackedItems(playerUuid, networkId, itemIds);
         if (err != null) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST, "{\"success\":false,\"message\":" + GSON.toJson(err) + "}");
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "{\"success\":false,\"message\":" + GSON.toJson(err) + "}");
         }
         NetworkMetricItemHistoryDto history = sampler.getItemHistory(playerUuid, networkId);
         if (history == null) {

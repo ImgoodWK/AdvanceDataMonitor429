@@ -13,7 +13,8 @@ import com.imgood.textech.webae.assistant.WebAiCompletionService;
 /** Optional external-AI interpretation of bounded, already-aggregated Spark data. */
 public final class SparkAiAnalysisService {
 
-    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
+    private static final Gson GSON = new GsonBuilder().serializeNulls()
+        .create();
     private static final int MAX_HOTSPOTS = 20;
     private static final int MAX_CATEGORIES = 16;
     private static final int MAX_THREADS = 12;
@@ -22,8 +23,8 @@ public final class SparkAiAnalysisService {
 
     public static AnalysisResult analyze(List<String> ids, String locale) throws IOException {
         PreparedRequest prepared = prepare(ids, locale);
-        com.imgood.textech.webae.assistant.WebAiCompletionService.CompletionResult completion =
-            WebAiCompletionService.completeWithFailover(prepared.systemPrompt, prepared.userPrompt);
+        com.imgood.textech.webae.assistant.WebAiCompletionService.CompletionResult completion = WebAiCompletionService
+            .completeWithFailover(prepared.systemPrompt, prepared.userPrompt);
         AnalysisResult result = new AnalysisResult();
         result.analysis = completion.content;
         result.providerId = completion.providerId;
@@ -41,14 +42,16 @@ public final class SparkAiAnalysisService {
         }
         List<SparkProfile> profiles = new ArrayList<SparkProfile>();
         for (String id : ids) {
-            SparkProfile profile = SparkProfileStore.instance().find(id);
+            SparkProfile profile = SparkProfileStore.instance()
+                .find(id);
             if (profile == null) throw new IllegalArgumentException("Spark profile not found: " + id);
             if (!"ready".equals(profile.analysisStatus)) {
                 throw new IllegalArgumentException("Spark profile does not contain ready local analysis: " + id);
             }
             profiles.add(profile);
         }
-        boolean zh = locale == null || !locale.toLowerCase().startsWith("en");
+        boolean zh = locale == null || !locale.toLowerCase()
+            .startsWith("en");
         String system = zh
             ? "你是 Minecraft GTNH 服务器性能诊断专家。只能依据给出的 Spark 聚合数据判断，不得编造未出现的模组、类、方法或因果关系。按证据强弱区分确定事实、可能原因和建议。重点解释哪个类/方法/线程/类别占用性能。若有 A/B 两条记录，所有变化严格按 B-A 解读，正数是占用增加，负数是改善。用简洁中文输出：结论、证据、可能根因、验证步骤、优化建议。"
             : "You are a Minecraft GTNH server performance diagnostician. Use only the supplied aggregated Spark data; never invent mods, classes, methods, or causality. Separate facts, likely causes, and recommendations by evidence strength. Explain which class, method, thread, or category consumes performance. For A/B input, interpret every change as B minus A: positive means more impact and negative means improvement. Respond concisely with conclusion, evidence, likely root cause, validation steps, and recommendations.";
@@ -60,8 +63,7 @@ public final class SparkAiAnalysisService {
         }
         payload.add("profiles", records);
         String userPrompt = GSON.toJson(payload);
-        String searchQuery = zh
-            ? "Minecraft GTNH Spark 性能 " + profiles.get(0).mode + " lag MSPT"
+        String searchQuery = zh ? "Minecraft GTNH Spark 性能 " + profiles.get(0).mode + " lag MSPT"
             : "Minecraft GTNH Spark profiler " + profiles.get(0).mode + " lag MSPT";
         userPrompt = WebAiCompletionService.maybeAugmentUserPrompt(userPrompt, searchQuery);
         PreparedRequest request = new PreparedRequest();
@@ -137,6 +139,7 @@ public final class SparkAiAnalysisService {
     }
 
     public static final class AnalysisResult {
+
         public String analysis;
         public String providerId;
         public String model;
@@ -146,6 +149,7 @@ public final class SparkAiAnalysisService {
     }
 
     public static final class PreparedRequest {
+
         public String systemPrompt;
         public String userPrompt;
         public List<String> profileIds;

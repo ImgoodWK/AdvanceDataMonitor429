@@ -62,6 +62,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     public static final String WEB_DISPLAY_ID_KEY = "webDisplayId";
     public static final String WEB_VIEW_TOKEN_KEY = "webViewToken";
     public static final String WEB_ORIGIN_KEY = "webOrigin";
+    public static final String WEB_EMBED_PATH_KEY = "webEmbedPath";
     public static final String WEB_LIVE_URL_KEY = "webLiveUrl";
     public static final String WEB_SURFACE_MODE_KEY = "webSurfaceMode";
     public static final String MODE_DASHBOARD_SNAPSHOT = "dashboard_snapshot";
@@ -349,9 +350,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             for (NBTTagCompound binding : dataBoundList.values()) {
                 StorageLinkWatchSync.acquireIfStorageLink(worldObj, binding);
             }
-            com.imgood.textech.webae.context.NetworkRegistry.refreshBindings(
-                this,
-                worldObj.provider.dimensionId);
+            com.imgood.textech.webae.context.NetworkRegistry.refreshBindings(this, worldObj.provider.dimensionId);
         }
     }
 
@@ -400,9 +399,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         syncData();
 
         if (worldObj != null && !worldObj.isRemote) {
-            com.imgood.textech.webae.context.NetworkRegistry.refreshBindings(
-                this,
-                worldObj.provider.dimensionId);
+            com.imgood.textech.webae.context.NetworkRegistry.refreshBindings(this, worldObj.provider.dimensionId);
         }
 
         // 仅在服务端处理立即采集
@@ -737,8 +734,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         if (!replacingDashboard && getWebDashboardBindingCount() >= MAX_WEB_DASHBOARD_BINDINGS) return false;
 
         byte[] payload = uploadedPayload;
-        boolean reuseStoredMetadata = payload == null
-            && replacingDashboard
+        boolean reuseStoredMetadata = payload == null && replacingDashboard
             && requestedHash != null
             && requestedHash.equals(old.getString(WEB_DASHBOARD_HASH_KEY));
         if (payload == null || payload.length == 0) {
@@ -787,7 +783,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             safe.setBoolean("webFullBright", getBoolean(requestedConfig, "webFullBright", true));
             safe.setInteger(
                 "webTextureWidth",
-                normalizeTextureWidth(requestedConfig.hasKey("webTextureWidth") ? requestedConfig.getInteger("webTextureWidth") : 512));
+                normalizeTextureWidth(
+                    requestedConfig.hasKey("webTextureWidth") ? requestedConfig.getInteger("webTextureWidth") : 512));
             safe.setString(WEB_DASHBOARD_HASH_KEY, decodedHash);
             safe.setByteArray(WEB_DASHBOARD_PAYLOAD_KEY, payload.clone());
             safe.setString("webDashboardTitle", boundedString(title, "WebAE Dashboard", 96));
@@ -807,7 +804,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     /**
      * Applies a live web-surface binding (dashboard_live / live_url) without a drawing-list payload.
      */
-    public boolean applyWebLiveBinding(int index, NBTTagCompound requestedConfig, WebDisplayBindingCodec.Binding binding) {
+    public boolean applyWebLiveBinding(int index, NBTTagCompound requestedConfig,
+        WebDisplayBindingCodec.Binding binding) {
         if (index < 0 || index >= MAX_DATA_BINDINGS || requestedConfig == null || binding == null) return false;
         NBTTagCompound old = dataBoundList.get(index);
         boolean replacingDashboard = isWebDashboardBinding(old);
@@ -847,7 +845,22 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         safe.setString(WEB_DASHBOARD_HASH_KEY, binding.bindingHash);
         safe.setString(WEB_DISPLAY_ID_KEY, binding.displayId == null ? "" : binding.displayId);
         safe.setString(WEB_VIEW_TOKEN_KEY, binding.viewToken == null ? "" : binding.viewToken);
-        safe.setString(WEB_ORIGIN_KEY, binding.webaeOrigin == null ? "" : binding.webaeOrigin);
+        String originFromConfig = requestedConfig.hasKey(WEB_ORIGIN_KEY) ? requestedConfig.getString(WEB_ORIGIN_KEY)
+            : "";
+        if (originFromConfig == null || originFromConfig.trim()
+            .isEmpty()) {
+            originFromConfig = binding.webaeOrigin == null ? "" : binding.webaeOrigin;
+        }
+        safe.setString(WEB_ORIGIN_KEY, originFromConfig.trim());
+        String embedPath = binding.embedPath == null ? "" : binding.embedPath.trim();
+        if (requestedConfig.hasKey(WEB_EMBED_PATH_KEY)
+            && !requestedConfig.getString(WEB_EMBED_PATH_KEY)
+                .trim()
+                .isEmpty()) {
+            embedPath = requestedConfig.getString(WEB_EMBED_PATH_KEY)
+                .trim();
+        }
+        safe.setString(WEB_EMBED_PATH_KEY, embedPath);
         safe.setString(WEB_LIVE_URL_KEY, binding.url == null ? "" : binding.url);
         safe.setString("webDashboardTitle", boundedString(binding.title, "WebAE Dashboard", 96));
         safe.setInteger("webDashboardPrimitiveCount", 0);
@@ -874,7 +887,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             NBTTagCompound binding = entry.getValue();
             if (isWebDashboardBinding(binding) && binding.hasKey(WEB_DASHBOARD_PAYLOAD_KEY)) {
                 dashboardIndices.add(entry.getKey());
-                payloads.put(entry.getKey(), binding.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY).clone());
+                payloads.put(
+                    entry.getKey(),
+                    binding.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY)
+                        .clone());
                 hashes.put(entry.getKey(), binding.getString(WEB_DASHBOARD_HASH_KEY));
             }
         }
@@ -935,7 +951,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     }
 
     private static String boundedString(String value, String fallback, int maxLength) {
-        String result = value == null || value.trim().isEmpty() ? fallback : value.trim();
+        String result = value == null || value.trim()
+            .isEmpty() ? fallback : value.trim();
         if (result == null) result = "";
         return result.length() <= maxLength ? result : result.substring(0, maxLength);
     }
@@ -1441,7 +1458,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         if (nbt == null) return false;
 
         if (isWebDashboardBinding(nbt)) {
-            return nbt.hasKey(WEB_DASHBOARD_HASH_KEY) && !nbt.getString(WEB_DASHBOARD_HASH_KEY).isEmpty();
+            return nbt.hasKey(WEB_DASHBOARD_HASH_KEY) && !nbt.getString(WEB_DASHBOARD_HASH_KEY)
+                .isEmpty();
         }
 
         String[] xyz = parseXYZ(nbt);

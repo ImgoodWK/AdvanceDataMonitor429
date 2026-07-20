@@ -94,8 +94,7 @@ public enum WorldMapQualityTier {
     }
 
     public static WorldMapQualityTier resolveEffective(String qualityParam) {
-        WorldMapQualityTier requested = qualityParam == null || qualityParam.isEmpty()
-            ? fromConfigDefault()
+        WorldMapQualityTier requested = qualityParam == null || qualityParam.isEmpty() ? fromConfigDefault()
             : fromId(qualityParam);
         return clamp(requested, fromConfigMax());
     }

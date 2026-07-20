@@ -36,8 +36,10 @@ public final class WorldMapBlockCompat {
             if (lower.contains("interface")) {
                 return 0x445566;
             }
-            if (lower.contains("cable") || lower.contains("glass") || lower.contains("covered")
-                || lower.contains("smart") || lower.contains("dense")) {
+            if (lower.contains("cable") || lower.contains("glass")
+                || lower.contains("covered")
+                || lower.contains("smart")
+                || lower.contains("dense")) {
                 return 0x6688aa;
             }
             if (lower.contains("terminal")) {

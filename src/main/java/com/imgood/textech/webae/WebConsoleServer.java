@@ -49,9 +49,13 @@ public class WebConsoleServer extends NanoHTTPD {
      * daemon thread per request, wasting memory and adding GC pressure.
      */
     private void initThreadPool() {
-        final int poolSize = Math.max(16, Runtime.getRuntime().availableProcessors() * 2);
+        final int poolSize = Math.max(
+            16,
+            Runtime.getRuntime()
+                .availableProcessors() * 2);
         final AtomicInteger counter = new AtomicInteger(0);
         httpExecutor = Executors.newFixedThreadPool(poolSize, new java.util.concurrent.ThreadFactory() {
+
             @Override
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r, "WebAE-HTTP-" + counter.getAndIncrement());
@@ -60,6 +64,7 @@ public class WebConsoleServer extends NanoHTTPD {
             }
         });
         setAsyncRunner(new AsyncRunner() {
+
             @Override
             public void closeAll() {
                 httpExecutor.shutdownNow();
@@ -138,9 +143,11 @@ public class WebConsoleServer extends NanoHTTPD {
 
     private static WebAuthSession tryDisplayViewSession(IHTTPSession session) {
         String token = null;
-        String authHeader = session.getHeaders().get("authorization");
+        String authHeader = session.getHeaders()
+            .get("authorization");
         if (authHeader != null && authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
-            token = authHeader.substring(7).trim();
+            token = authHeader.substring(7)
+                .trim();
         }
         if (token == null || token.isEmpty()) {
             java.util.Map<String, String> parms = session.getParms();

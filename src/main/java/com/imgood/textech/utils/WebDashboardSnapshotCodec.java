@@ -97,7 +97,11 @@ public final class WebDashboardSnapshotCodec {
             }
             p.points = new float[points.size()];
             for (int i = 0; i < points.size(); i++) {
-                p.points[i] = finiteFloat(points.get(i).getAsDouble(), -2400.0F, 2400.0F);
+                p.points[i] = finiteFloat(
+                    points.get(i)
+                        .getAsDouble(),
+                    -2400.0F,
+                    2400.0F);
             }
             p.color = parseColor(readString(object, "color", "#FFFFFFFF"));
             p.lineWidth = finiteFloat(readDouble(object, "lineWidth", 1.0D), 0.2F, 16.0F);
@@ -125,8 +129,10 @@ public final class WebDashboardSnapshotCodec {
             return p;
         }
 
-        p.hasFill = object.has("fill") && !object.get("fill").isJsonNull();
-        p.hasStroke = object.has("stroke") && !object.get("stroke").isJsonNull();
+        p.hasFill = object.has("fill") && !object.get("fill")
+            .isJsonNull();
+        p.hasStroke = object.has("stroke") && !object.get("stroke")
+            .isJsonNull();
         if (p.hasFill) p.fill = parseColor(readString(object, "fill", "#00000000"));
         if (p.hasStroke) p.stroke = parseColor(readString(object, "stroke", "#00000000"));
         if (!p.hasFill && !p.hasStroke) throw new SnapshotException("shape_color");

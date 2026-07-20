@@ -25,7 +25,6 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.Config;
 import com.imgood.textech.webae.icon.IconRenderGuard;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
@@ -219,23 +218,21 @@ public final class WorldMapChunkGlRenderer {
                 }
             }
         }
-        Collections.sort(
-            columns,
-            new Comparator<Column>() {
+        Collections.sort(columns, new Comparator<Column>() {
 
-                @Override
-                public int compare(Column a, Column b) {
-                    int sumA = a.lx + a.lz;
-                    int sumB = b.lx + b.lz;
-                    if (sumA != sumB) {
-                        return sumB - sumA;
-                    }
-                    if (a.lz != b.lz) {
-                        return b.lz - a.lz;
-                    }
-                    return b.lx - a.lx;
+            @Override
+            public int compare(Column a, Column b) {
+                int sumA = a.lx + a.lz;
+                int sumB = b.lx + b.lz;
+                if (sumA != sumB) {
+                    return sumB - sumA;
                 }
-            });
+                if (a.lz != b.lz) {
+                    return b.lz - a.lz;
+                }
+                return b.lx - a.lx;
+            }
+        });
 
         for (Column col : columns) {
             int southY = neighborTopAeY(chunk, world, col.sampleX, col.sampleZ + 1, chunkX, chunkZ);
@@ -353,23 +350,21 @@ public final class WorldMapChunkGlRenderer {
                 }
             }
         }
-        Collections.sort(
-            columns,
-            new Comparator<Column>() {
+        Collections.sort(columns, new Comparator<Column>() {
 
-                @Override
-                public int compare(Column a, Column b) {
-                    int sumA = a.lx + a.lz;
-                    int sumB = b.lx + b.lz;
-                    if (sumA != sumB) {
-                        return sumB - sumA;
-                    }
-                    if (a.lz != b.lz) {
-                        return b.lz - a.lz;
-                    }
-                    return b.lx - a.lx;
+            @Override
+            public int compare(Column a, Column b) {
+                int sumA = a.lx + a.lz;
+                int sumB = b.lx + b.lz;
+                if (sumA != sumB) {
+                    return sumB - sumA;
                 }
-            });
+                if (a.lz != b.lz) {
+                    return b.lz - a.lz;
+                }
+                return b.lx - a.lx;
+            }
+        });
 
         for (Column col : columns) {
             int southY = neighborTopY(chunk, col.sampleX, col.sampleZ + 1);

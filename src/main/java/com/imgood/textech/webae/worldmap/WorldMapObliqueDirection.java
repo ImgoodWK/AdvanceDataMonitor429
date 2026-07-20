@@ -1,18 +1,14 @@
 package com.imgood.textech.webae.worldmap;
 
-
-
 /**
-
+ * 
  * Oblique (mineshot-style ortho) camera orbit direction around chunk center.
-
+ * 
  * Default pitch matches mineshot {@code xRot=30}; yaw matches compass orbit.
-
+ * 
  */
 
 public enum WorldMapObliqueDirection {
-
-
 
     SE("se", "adm.webae.worldmap.oblique.se", -45.0F, 30.0F),
 
@@ -21,8 +17,6 @@ public enum WorldMapObliqueDirection {
     NE("ne", "adm.webae.worldmap.oblique.ne", 45.0F, 30.0F),
 
     NW("nw", "adm.webae.worldmap.oblique.nw", 135.0F, 30.0F);
-
-
 
     public final String id;
 
@@ -36,8 +30,6 @@ public enum WorldMapObliqueDirection {
 
     public final float pitchDeg;
 
-
-
     WorldMapObliqueDirection(String id, String labelKey, float yawDeg, float pitchDeg) {
 
         this.id = id;
@@ -49,8 +41,6 @@ public enum WorldMapObliqueDirection {
         this.pitchDeg = pitchDeg;
 
     }
-
-
 
     public static WorldMapObliqueDirection fromId(String id) {
 
@@ -77,8 +67,6 @@ public enum WorldMapObliqueDirection {
         return null;
 
     }
-
-
 
     /** Remap local chunk coords so the SE isometric painter can draw other oblique directions. */
 
@@ -131,5 +119,3 @@ public enum WorldMapObliqueDirection {
     }
 
 }
-
-

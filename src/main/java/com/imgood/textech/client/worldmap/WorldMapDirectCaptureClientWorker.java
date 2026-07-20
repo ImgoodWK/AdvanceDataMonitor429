@@ -6,13 +6,13 @@ import java.util.Deque;
 import net.minecraft.client.Minecraft;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.client.worldmap.dynmap.WorldMapDynmapClientFetcher;
 import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureRequest;
 import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureResponse;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 import com.imgood.textech.webae.worldmap.WorldMapView;
-import com.imgood.textech.client.worldmap.dynmap.WorldMapDynmapClientFetcher;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -48,7 +48,8 @@ public final class WorldMapDirectCaptureClientWorker {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        WorldMapDynmapClientFetcher.instance().onClientTickEnd();
+        WorldMapDynmapClientFetcher.instance()
+            .onClientTickEnd();
         PacketWorldMapDirectCaptureRequest request;
         synchronized (queue) {
             request = queue.pollFirst();
@@ -75,8 +76,8 @@ public final class WorldMapDirectCaptureClientWorker {
             }
         } else {
             WorldMapQualityTier tier = WorldMapQualityTier.fromTilePx(request.tilePx);
-            com.imgood.textech.webae.worldmap.WorldMapTerrainCaptureResult terrain =
-                WorldMapTerrainCaptureChainClient.captureTerrain(
+            com.imgood.textech.webae.worldmap.WorldMapTerrainCaptureResult terrain = WorldMapTerrainCaptureChainClient
+                .captureTerrain(
                     mc,
                     WorldMapView.FLAT,
                     request.dim,

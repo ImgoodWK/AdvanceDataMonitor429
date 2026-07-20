@@ -18,8 +18,9 @@ public class QqBotCoreTest {
 
     @Test
     public void parsesGroupMessageAndCleansMention() {
-        JsonObject data = json("{\"id\":\"m1\",\"group_openid\":\"g1\",\"content\":\"<@!bot> /tps\","
-            + "\"author\":{\"member_openid\":\"u1\",\"username\":\"Alice\"}}");
+        JsonObject data = json(
+            "{\"id\":\"m1\",\"group_openid\":\"g1\",\"content\":\"<@!bot> /tps\","
+                + "\"author\":{\"member_openid\":\"u1\",\"username\":\"Alice\"}}");
         QqBotMessage message = QqBotMessage.fromDispatch("GROUP_AT_MESSAGE_CREATE", data, "e1", 1000L);
         assertNotNull(message);
         assertEquals("group", message.targetType);
@@ -47,9 +48,13 @@ public class QqBotCoreTest {
     public void enabledConfigRequiresCredentials() {
         QqBotConfig cfg = new QqBotConfig();
         cfg.enabled = true;
-        assertTrue(QqBotConfigValidator.validate(cfg, false).contains("AppID"));
+        assertTrue(
+            QqBotConfigValidator.validate(cfg, false)
+                .contains("AppID"));
         cfg.appId = "app";
-        assertTrue(QqBotConfigValidator.validate(cfg, false).contains("ClientSecret"));
+        assertTrue(
+            QqBotConfigValidator.validate(cfg, false)
+                .contains("ClientSecret"));
         assertNull(QqBotConfigValidator.validate(cfg, true));
     }
 
@@ -75,7 +80,56 @@ public class QqBotCoreTest {
         assertTrue(reset.clearConversation);
     }
 
+    @Test
+    public void intentCompatOffKeepsAllOnWebae() {
+        QqBotConfig cfg = new QqBotConfig();
+        cfg.astrBotCompatEnabled = false;
+        QqBotIntentClassifier.Decision decision = QqBotIntentClassifier.classify(cfg, "今天天气怎么样");
+        assertEquals(QqBotIntentClassifier.Owner.WEBAE, decision.owner);
+        assertEquals("compat_off", decision.reason);
+    }
+
+    @Test
+    public void intentExplicitPrefixesAndKeywords() {
+        QqBotConfig cfg = new QqBotConfig();
+        cfg.astrBotCompatEnabled = true;
+
+        QqBotIntentClassifier.Decision webae = QqBotIntentClassifier.classify(cfg, "gtnh 帮我看下卡顿");
+        assertEquals(QqBotIntentClassifier.Owner.WEBAE, webae.owner);
+        assertEquals("帮我看下卡顿", webae.textForHandler);
+
+        QqBotIntentClassifier.Decision astr = QqBotIntentClassifier.classify(cfg, "云：搜一下今天新闻");
+        assertEquals(QqBotIntentClassifier.Owner.ASTRBOT, astr.owner);
+        assertEquals("搜一下今天新闻", astr.textForHandler);
+
+        QqBotIntentClassifier.Decision keyword = QqBotIntentClassifier.classify(cfg, "请查询仪表盘告警");
+        assertEquals(QqBotIntentClassifier.Owner.WEBAE, keyword.owner);
+        assertTrue(keyword.reason.startsWith("webae_keyword:"));
+
+        QqBotIntentClassifier.Decision command = QqBotIntentClassifier.classify(cfg, "/tps");
+        assertEquals(QqBotIntentClassifier.Owner.WEBAE, command.owner);
+        assertTrue(command.reason.startsWith("webae_command:"));
+
+        QqBotIntentClassifier.Decision other = QqBotIntentClassifier.classify(cfg, "讲个笑话");
+        assertEquals(QqBotIntentClassifier.Owner.ASTRBOT, other.owner);
+        assertEquals("default_astrbot", other.reason);
+    }
+
+    @Test
+    public void normalizesEmptyIntentListsToDefaults() {
+        QqBotConfig cfg = new QqBotConfig();
+        cfg.webaeExplicitPrefixes = Arrays.asList();
+        cfg.astrBotExplicitPrefixes = Arrays.asList();
+        cfg.webaeIntentKeywords = Arrays.asList();
+        QqBotConfig normalized = QqBotConfigValidator.normalize(cfg);
+        assertFalse(normalized.webaeExplicitPrefixes.isEmpty());
+        assertFalse(normalized.astrBotExplicitPrefixes.isEmpty());
+        assertFalse(normalized.webaeIntentKeywords.isEmpty());
+        assertTrue(normalized.webaeExplicitPrefixes.contains("gtnh"));
+    }
+
     private static JsonObject json(String value) {
-        return new JsonParser().parse(value).getAsJsonObject();
+        return new JsonParser().parse(value)
+            .getAsJsonObject();
     }
 }

@@ -35,6 +35,11 @@ public final class ConfigWebaeLoader {
             0,
             3600,
             ConfigDescriptions.get("webConsole", "snapshotIntervalSeconds"));
+        Config.webSurfaceUseMcef = configuration.getBoolean(
+            "webSurfaceUseMcef",
+            "webConsole",
+            Config.webSurfaceUseMcef,
+            ConfigDescriptions.get("webConsole", "webSurfaceUseMcef"));
         Config.webAlertsEnabled = configuration.getBoolean(
             "alertsEnabled",
             "webConsole",
@@ -122,11 +127,12 @@ public final class ConfigWebaeLoader {
             1,
             16,
             ConfigDescriptions.get("webConsole", "screenshotMaxConcurrentUploads"));
-        Config.webAiKeyMode = normalizeAiKeyMode(configuration.getString(
-            "aiKeyMode",
-            "webConsole",
-            Config.webAiKeyMode,
-            ConfigDescriptions.get("webConsole", "aiKeyMode")));
+        Config.webAiKeyMode = normalizeAiKeyMode(
+            configuration.getString(
+                "aiKeyMode",
+                "webConsole",
+                Config.webAiKeyMode,
+                ConfigDescriptions.get("webConsole", "aiKeyMode")));
         boolean legacyBrowser = "browser".equalsIgnoreCase(Config.webAiKeyMode);
         Config.webAiServerKeyEnabled = configuration.getBoolean(
             "aiServerKeyEnabled",
@@ -876,7 +882,8 @@ public final class ConfigWebaeLoader {
     }
 
     private static double parseDoubleClamped(String raw, double defaultValue, double min, double max) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return defaultValue;
         }
         try {

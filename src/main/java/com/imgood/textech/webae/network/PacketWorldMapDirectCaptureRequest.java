@@ -76,7 +76,8 @@ public class PacketWorldMapDirectCaptureRequest implements IMessage {
 
         @Override
         public IMessage onMessage(PacketWorldMapDirectCaptureRequest message, MessageContext ctx) {
-            WorldMapDirectCaptureClientWorker.instance().enqueue(message);
+            WorldMapDirectCaptureClientWorker.instance()
+                .enqueue(message);
             return null;
         }
     }

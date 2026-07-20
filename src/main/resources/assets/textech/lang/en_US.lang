@@ -51,7 +51,8 @@ adm.label.namealpha=§lTitle Alpha
 adm.label.axisalpha=§lAxis Font Alpha
 adm.label.axisfontalpha=§lAxis Font Alpha
 adm.label.datalinealpha=§lData Line Alpha
-adm.label.web_dashboard_opacity=§lWeb opacity
+adm.label.web_dashboard_opacity=§lWeb opacity
+
 adm.label.web_dashboard_origin=WebAE origin
 
 # Buttons
@@ -178,6 +179,18 @@ adm.status.web_dashboard_loading=Requesting snapshot content from the server by 
 adm.status.web_dashboard_ready=Ready: %s · %d drawing elements · about %d KiB raw JSON
 adm.status.web_dashboard_live=Live binding: %s · mode %s · id %s
 adm.status.web_dashboard_copied=Current binding/snapshot JSON copied to the clipboard.
+adm.status.web_dashboard_mcef_active=Render: optional MCEF browser (advanced)
+adm.status.web_dashboard_mcef_missing=Render: host captures real dashboard (no extra mods)
+adm.status.web_dashboard_mcef_unavailable=Render: MCEF unavailable — using host SPA capture
+adm.status.web_dashboard_mcef_disabled=Render: host captures real dashboard (no extra mods)
+adm.status.web_dashboard_mcef_snapshot=Render: static snapshot
+adm.status.web_dashboard_host_spa=Render: host captures real dashboard (export web → import in-game; no MCEF)
+adm.status.web_dashboard_frame_mcef=Frame source: mcef (real browser)
+adm.status.web_dashboard_frame_spa=Frame source: spa-jpeg (host captures real fullscreen dashboard)
+adm.status.web_dashboard_frame_snapshot=Frame source: snapshot (static; may not match the web UI)
+adm.status.web_dashboard_frame_mcef_pending=Frame source: waiting for mcef...
+adm.status.web_dashboard_frame_spa_pending=Frame source: waiting for spa-jpeg (host Chrome/Edge capture)...
+
 adm.error.not_tileentity=This block is not a TileEntity!
 adm.title.data_config_ae_crafting=§lCrafting CPU Config
 adm.label.craftingtemplate=§lExpression
@@ -1207,7 +1220,7 @@ adm.manual.web_console.theme_studio_text=Settings → Appearance now provides a 
 adm.manual.web_console.advanced_dashboard_title=Advanced WebAE Dashboard Widgets
 adm.manual.web_console.advanced_dashboard_text=The main Dashboard palette adds seven composite operations widgets:\n- Network health core: storage headroom, power reserve, crafting headroom, GT fleet reliability, TPS/MSPT, and active alerts.\n- Power flow: EU input, output, net flow, charge percentage, and steam storage.\n- Storage matrix: byte usage plus item, fluid, essentia, and crafting-CPU quadrants.\n- GT machine fleet: active, idle, faults, average progress, and current outputs.\n- Player presence: online roster and current-session duration.\n- Activity stream: combined active alerts and in-progress crafting jobs.\n- Server vitals: TPS, MSPT, online players, uptime, and dual history pulses.\n\nThese widgets can be dragged, resized, copied, nested in groups, and round-tripped through widgets JSON. They reuse existing WebAE snapshots and polling results and add no server-tick work.
 adm.manual.web_console.game_display_export_title=Export for in-game display
-adm.manual.web_console.game_display_export_text=The main-dashboard “Export for in-game display” action publishes the current dashboard layout and settings to WebAE and copies a live binding JSON (textech-webae-display-binding) for the Advance Data Monitor.\n\nThe binding carries displayId, viewToken, and viewport hints only. It excludes WebAE tokens, AI keys, webhook URLs, and QQ/mail secrets. In-game the monitor shows a dashboard-only view via WebAE host frame capture; if publish fails it can fall back to the legacy drawing-list snapshot.\n\nThis differs from widgets config JSON, which migrates an editable browser layout.
+adm.manual.web_console.game_display_export_text=The main-dashboard "Export for in-game display" action publishes the current dashboard layout and settings to WebAE and copies a live binding JSON (textech-webae-display-binding) for the Advance Data Monitor.\n\nThe binding carries displayId, viewToken, and viewport hints only. It excludes WebAE tokens, AI keys, webhook URLs, and QQ/mail secrets. In-game the monitor shows a dashboard-only view via host capture of /embed/dashboard (same composition as TopBar dashboard fullscreen). Export warms up the live frame. Only when publish fails due to offline/unsigned-in does it fall back to the legacy drawing-list snapshot (will not match the web UI).\n\nThis differs from widgets config JSON, which migrates an editable browser layout.
 adm.manual.web_console.data_workspaces_title=WebAE Data Workspaces
 adm.manual.web_console.data_workspaces_text=Storage, Fluids, Crafting CPUs, and Power use explicit workspace boundaries so customizable overviews, focused trends, and detailed data no longer run together. Normal mode shows Settings and Edit; edit mode expands undo/redo, add, auto-arrange, and reset. Enable Browsing mode in Settings to hide edit, layout-settings, and capture entry points on Dashboard, Storage/CPU Overview, Power, and Topology while retaining view, search, filters, refresh, and export. Every page except Admin and Settings fits a viewport-bound outer shell without a browser-edge scrollbar.\n\nStorage retains item/fluid/essentia search and sorting; Fluids separates totals, pinned trends, and the inventory table; CPU rows open task details; and Power metrics plus history follow the active network after switching. GridStack drag/resize saves safely on the next frame; deletion uses widget buttons.
 adm.manual.web_console.ai_key_mode_title=WebAE AI Key Mode

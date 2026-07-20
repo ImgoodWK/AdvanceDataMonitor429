@@ -39,7 +39,8 @@ public class WebAuthMiddleware {
         }
         WebAuthToken matched = WebAuthToken.findMatchingToken(token);
         if (matched == null) {
-            WebAuthSession displaySession = com.imgood.textech.webae.api.handler.DisplayHandler.sessionFromViewToken(token);
+            WebAuthSession displaySession = com.imgood.textech.webae.api.handler.DisplayHandler
+                .sessionFromViewToken(token);
             if (displaySession != null) {
                 if (isDisabled(displaySession.ownerUuid) || isDisabled(displaySession.actorUuid)) {
                     return AuthResult.failure(
@@ -67,8 +68,9 @@ public class WebAuthMiddleware {
     }
 
     private static boolean isDisabled(String uuid) {
-        return uuid != null && !uuid.isEmpty() && WebAePlayerStateStore.getInstance()
-            .isDisabled(uuid);
+        return uuid != null && !uuid.isEmpty()
+            && WebAePlayerStateStore.getInstance()
+                .isDisabled(uuid);
     }
 
     private static boolean isTokenLifetimeEnabled() {

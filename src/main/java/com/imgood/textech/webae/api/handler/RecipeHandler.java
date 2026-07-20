@@ -52,8 +52,7 @@ public class RecipeHandler {
             }
             return handleSearch(params);
         }
-        if (uri.startsWith("/api/recipes/") && countPathSegments(uri) == 4
-            && !uri.startsWith("/api/recipes/sync")) {
+        if (uri.startsWith("/api/recipes/") && countPathSegments(uri) == 4 && !uri.startsWith("/api/recipes/sync")) {
             return handleGetRecipe(uri);
         }
         return jsonResponse(
@@ -69,9 +68,7 @@ public class RecipeHandler {
                 NanoHTTPD.Response.Status.OK,
                 "{\"success\":true,\"manifest\":null,\"message\":\"No recipes on disk\"}");
         }
-        return jsonResponse(
-            NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"manifest\":" + GSON.toJson(meta) + "}");
+        return jsonResponse(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"manifest\":" + GSON.toJson(meta) + "}");
     }
 
     private static NanoHTTPD.Response handleSyncChunk(java.util.Map<String, String> params) {
@@ -90,7 +87,9 @@ public class RecipeHandler {
         }
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
-            "{\"success\":true,\"index\":" + chunk.index + ",\"recipes\":" + GSON.toJson(chunk.recipes)
+            "{\"success\":true,\"index\":" + chunk.index
+                + ",\"recipes\":"
+                + GSON.toJson(chunk.recipes)
                 + ",\"count\":"
                 + chunk.recipes.size()
                 + "}");

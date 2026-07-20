@@ -75,7 +75,8 @@ public class PacketWorldMapDirectCaptureResponse implements IMessage {
                 return null;
             }
             if (message.png != null && message.png.length > MAX_PNG_BYTES) {
-                WorldMapDirectCaptureBridge.instance().complete(message.requestId, null);
+                WorldMapDirectCaptureBridge.instance()
+                    .complete(message.requestId, null);
                 return null;
             }
             WorldMapDirectCaptureBridge.instance()

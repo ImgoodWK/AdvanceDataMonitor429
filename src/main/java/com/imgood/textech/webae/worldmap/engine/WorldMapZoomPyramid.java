@@ -95,9 +95,8 @@ public final class WorldMapZoomPyramid {
         if (!Config.webWorldMapEnabled || zoomLevel <= 0 || zoomLevel >= configuredLevels()) {
             return;
         }
-        WorldMapQualityTier tier = WorldMapQualityTier.clamp(
-            quality != null ? quality : WorldMapQualityTier.MEDIUM,
-            WorldMapQualityTier.fromConfigMax());
+        WorldMapQualityTier tier = WorldMapQualityTier
+            .clamp(quality != null ? quality : WorldMapQualityTier.MEDIUM, WorldMapQualityTier.fromConfigMax());
         if (WorldMapTileCache.exists(view, layer, tier, dim, tileX, tileZ, zoomLevel)) {
             return;
         }
@@ -143,24 +142,37 @@ public final class WorldMapZoomPyramid {
             if (next == null) {
                 break;
             }
-            if (WorldMapTileCache.exists(next.view, next.layer, next.quality, next.dim, next.tileX, next.tileZ,
-                next.zoomLevel)) {
+            if (WorldMapTileCache
+                .exists(next.view, next.layer, next.quality, next.dim, next.tileX, next.tileZ, next.zoomLevel)) {
                 continue;
             }
             final ZoomKey captured = next;
             WorldMapRenderExecutor.instance()
                 .submit(new Runnable() {
+
                     @Override
                     public void run() {
                         try {
-                            SynthesisResult result = trySynthesize(captured.view, captured.layer, captured.quality,
-                                captured.dim, captured.tileX, captured.tileZ, captured.zoomLevel);
+                            SynthesisResult result = trySynthesize(
+                                captured.view,
+                                captured.layer,
+                                captured.quality,
+                                captured.dim,
+                                captured.tileX,
+                                captured.tileZ,
+                                captured.zoomLevel);
                             synthesisResults.offer(new SynthesisTask(captured, result));
                         } catch (Throwable t) {
                             AdvanceDataMonitor.LOG.error(
                                 "[WebAE] World map zoom synthesis failed view={} layer={} tier={} dim={} tile=({}, {}) z={}",
-                                captured.view, captured.layer, captured.quality.id, captured.dim,
-                                captured.tileX, captured.tileZ, captured.zoomLevel, t);
+                                captured.view,
+                                captured.layer,
+                                captured.quality.id,
+                                captured.dim,
+                                captured.tileX,
+                                captured.tileZ,
+                                captured.zoomLevel,
+                                t);
                             synthesisResults.offer(new SynthesisTask(captured, SynthesisResult.FAILED));
                         }
                     }
@@ -305,15 +317,15 @@ public final class WorldMapZoomPyramid {
                 int childTileX = key.tileX * 2 + dx;
                 int childTileZ = key.tileZ * 2 + dz;
                 if (childLevel == 0) {
-                    if (!WorldMapTileCache.exists(key.view, key.layer, key.quality, key.dim, childTileX, childTileZ,
-                        0)) {
+                    if (!WorldMapTileCache
+                        .exists(key.view, key.layer, key.quality, key.dim, childTileX, childTileZ, 0)) {
                         com.imgood.textech.webae.worldmap.WorldMapTileQueue.instance()
                             .enqueue(key.view, key.layer, key.quality, key.dim, childTileX, childTileZ, null, -1);
                     }
-                } else if (!WorldMapTileCache.exists(key.view, key.layer, key.quality, key.dim, childTileX,
-                    childTileZ, childLevel)) {
-                    enqueue(key.view, key.layer, key.quality, key.dim, childTileX, childTileZ, childLevel);
-                }
+                } else if (!WorldMapTileCache
+                    .exists(key.view, key.layer, key.quality, key.dim, childTileX, childTileZ, childLevel)) {
+                        enqueue(key.view, key.layer, key.quality, key.dim, childTileX, childTileZ, childLevel);
+                    }
             }
         }
     }
@@ -353,6 +365,7 @@ public final class WorldMapZoomPyramid {
 
     /** Result container for worker-thread synthesis tasks — collected on the main tick. */
     private static final class SynthesisTask {
+
         final ZoomKey key;
         final SynthesisResult result;
 

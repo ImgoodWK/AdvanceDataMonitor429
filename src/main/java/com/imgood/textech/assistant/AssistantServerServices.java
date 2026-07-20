@@ -2488,10 +2488,7 @@ public final class AssistantServerServices {
                     String reason = text(
                         locale,
                         "AE2 合成计算超时：" + stack.getDisplayName() + " x" + amount + "。",
-                        "AE2 crafting calculation timed out for " + stack.getDisplayName()
-                            + " x"
-                            + amount
-                            + ".");
+                        "AE2 crafting calculation timed out for " + stack.getDisplayName() + " x" + amount + ".");
                     AssistantDebugLog.append(
                         "server-submit",
                         "status=FAIL, reason=future-timeout, target='" + safe(stack.getDisplayName())
@@ -2529,8 +2526,10 @@ public final class AssistantServerServices {
             String reason = text(
                 locale,
                 "AE2 只能模拟该合成，可能缺少材料或样板无效：" + stack.getDisplayName() + " x" + amount + "。",
-                "AE2 can only simulate this craft. Missing ingredients or invalid pattern for " + stack
-                    .getDisplayName() + " x" + amount + ".");
+                "AE2 can only simulate this craft. Missing ingredients or invalid pattern for " + stack.getDisplayName()
+                    + " x"
+                    + amount
+                    + ".");
             AssistantDebugLog.append(
                 "server-submit",
                 "status=FAIL, reason=simulation, target='" + safe(

@@ -18,9 +18,20 @@ public final class AgentSessionLog {
         try {
             long ts = System.currentTimeMillis();
             String data = dataJson != null && !dataJson.isEmpty() ? dataJson : "{}";
-            String line = "{\"sessionId\":\"" + SESSION_ID + "\",\"hypothesisId\":\"" + escape(hypothesisId)
-                + "\",\"location\":\"" + escape(location) + "\",\"message\":\"" + escape(message)
-                + "\",\"data\":" + data + ",\"timestamp\":" + ts + ",\"runId\":\"" + RUN_ID + "\"}\n";
+            String line = "{\"sessionId\":\"" + SESSION_ID
+                + "\",\"hypothesisId\":\""
+                + escape(hypothesisId)
+                + "\",\"location\":\""
+                + escape(location)
+                + "\",\"message\":\""
+                + escape(message)
+                + "\",\"data\":"
+                + data
+                + ",\"timestamp\":"
+                + ts
+                + ",\"runId\":\""
+                + RUN_ID
+                + "\"}\n";
             FileWriter fw = new FileWriter(LOG_PATH, true);
             fw.write(line);
             fw.close();

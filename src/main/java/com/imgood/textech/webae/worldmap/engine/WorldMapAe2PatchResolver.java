@@ -1,7 +1,6 @@
 package com.imgood.textech.webae.worldmap.engine;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -42,8 +41,8 @@ public final class WorldMapAe2PatchResolver {
 
         List<WorldMapBlockPatch> patches = generateCablePatches(connections, half, face);
         if (patches.isEmpty()) {
-            patches.add(WorldMapBlockPatch.box(0.5 - half, 0.5 - half, 0.5 - half, 0.5 + half, 0.5 + half, 0.5 + half,
-                face));
+            patches.add(
+                WorldMapBlockPatch.box(0.5 - half, 0.5 - half, 0.5 - half, 0.5 + half, 0.5 + half, 0.5 + half, face));
         }
         return patches;
     }

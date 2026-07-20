@@ -34,7 +34,8 @@ import com.imgood.textech.handler.HandlerTick;
  */
 public final class WebAdminGrantStore {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
     private static final int DEFAULT_GRANT_DAYS = 90;
 
     private static List<GrantEntry> grantCache;
@@ -47,10 +48,10 @@ public final class WebAdminGrantStore {
      * Create a long-lived admin grant token after a successful bootstrap
      * code exchange.
      *
-     * @param ownerUuid  AE network owner UUID (from session)
-     * @param actorUuid  actor UUID (from session)
-     * @param actorName  actor name (from session)
-     * @param label      optional device label
+     * @param ownerUuid AE network owner UUID (from session)
+     * @param actorUuid actor UUID (from session)
+     * @param actorName actor name (from session)
+     * @param label     optional device label
      * @return the generated grant entry (contains the raw token)
      */
     public static GrantEntry createGrant(String ownerUuid, String actorUuid, String actorName, String label) {
@@ -58,7 +59,9 @@ public final class WebAdminGrantStore {
             return null;
         }
         GrantEntry entry = new GrantEntry();
-        entry.adminToken = UUID.randomUUID().toString().replace("-", "");
+        entry.adminToken = UUID.randomUUID()
+            .toString()
+            .replace("-", "");
         entry.boundOwnerUuid = ownerUuid;
         entry.boundActorUuid = actorUuid;
         entry.boundActorName = actorName != null ? actorName : "";
@@ -233,6 +236,7 @@ public final class WebAdminGrantStore {
         }
         savePending = true;
         HandlerTick.enqueueServerTask(new Runnable() {
+
             @Override
             public void run() {
                 try {
@@ -266,7 +270,9 @@ public final class WebAdminGrantStore {
             return new ArrayList<GrantEntry>();
         } finally {
             if (reader != null) {
-                try { reader.close(); } catch (IOException ignored) {}
+                try {
+                    reader.close();
+                } catch (IOException ignored) {}
             }
         }
     }
@@ -295,12 +301,15 @@ public final class WebAdminGrantStore {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to save admin grants file: {}", e.getMessage());
         } finally {
             if (writer != null) {
-                try { writer.close(); } catch (IOException ignored) {}
+                try {
+                    writer.close();
+                } catch (IOException ignored) {}
             }
         }
     }
 
     public static final class GrantEntry {
+
         public String adminToken;
         public String boundOwnerUuid;
         public String boundActorUuid;

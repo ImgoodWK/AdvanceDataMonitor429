@@ -25,8 +25,6 @@ import com.imgood.textech.assistant.TeleportService;
 import com.imgood.textech.assistant.WithdrawSubmitOutcome;
 import com.imgood.textech.assistant.WithdrawSubmitOutcome.Kind;
 import com.imgood.textech.handler.HandlerTick;
-import com.imgood.textech.webae.assistant.WebAiConfigStore;
-import com.imgood.textech.webae.assistant.WebAiCompletionService;
 import com.imgood.textech.webae.assistant.WebAiHttpClient.Message;
 import com.imgood.textech.webae.assistant.WebAssistantPendingStore.PendingAction;
 import com.imgood.textech.webae.auth.WebAuthSession;
@@ -58,10 +56,10 @@ public final class WebAssistantService {
         }
         String clientAiPlan = request == null ? "" : safe(request.clientAiPlan).trim();
         String clientAiReply = request == null ? "" : safe(request.clientAiReply).trim();
-        if (clientAiPlan.length() > MAX_CLIENT_AI_PLAN_LENGTH
-            || clientAiReply.length() > MAX_CLIENT_AI_REPLY_LENGTH) {
-            return failure("client_ai_output_too_long", localized(locale,
-                "浏览器 AI 返回内容过长。", "The browser AI response is too long."));
+        if (clientAiPlan.length() > MAX_CLIENT_AI_PLAN_LENGTH || clientAiReply.length() > MAX_CLIENT_AI_REPLY_LENGTH) {
+            return failure(
+                "client_ai_output_too_long",
+                localized(locale, "浏览器 AI 返回内容过长。", "The browser AI response is too long."));
         }
         String aiSource;
         try {
@@ -84,9 +82,8 @@ public final class WebAssistantService {
         result.aiUsed = parsed.aiUsed;
         result.fallbackReason = parsed.fallbackReason;
 
-        if ((parsed.plan != null && parsed.plan.isChatOnly())
-            || (parsed.plan == null && parsed.fallbackIntent != null
-                && parsed.fallbackIntent.type == AssistantIntentType.CHAT)) {
+        if ((parsed.plan != null && parsed.plan.isChatOnly()) || (parsed.plan == null && parsed.fallbackIntent != null
+            && parsed.fallbackIntent.type == AssistantIntentType.CHAT)) {
             return chat(auth, request, text, locale, result, aiSource);
         }
 
@@ -99,9 +96,9 @@ public final class WebAssistantService {
                 public WebAssistantResult run() {
                     EntityPlayerMP player = WebAeOwnerContext.getOwnerPlayerOrFake(auth.ownerUuid);
                     if (player == null) {
-                        return failure("no_player", localized(locale,
-                            "玩家上下文不可用，无法执行游戏内工具。",
-                            "Player context is unavailable for game tools."));
+                        return failure(
+                            "no_player",
+                            localized(locale, "玩家上下文不可用，无法执行游戏内工具。", "Player context is unavailable for game tools."));
                     }
                     return executePlan(auth, player, text, locale, plan, fallbackIntent);
                 }
@@ -116,7 +113,8 @@ public final class WebAssistantService {
     }
 
     private static String resolveAiSource(String requested, String clientAiPlan, String clientAiReply) {
-        String value = safe(requested).trim().toLowerCase();
+        String value = safe(requested).trim()
+            .toLowerCase();
         if (value.isEmpty()) {
             if (!safe(clientAiPlan).isEmpty() || !safe(clientAiReply).isEmpty()) {
                 return WebAiConfigStore.normalizeAiSource(WebAiConfigStore.SOURCE_BROWSER);
@@ -146,7 +144,9 @@ public final class WebAssistantService {
                 public WebAssistantResult run() {
                     PendingAction pending = WebAssistantPendingStore.take(token, auth.actorUuid, auth.ownerUuid);
                     if (pending == null) {
-                        return failure("action_expired", "Assistant action expired or does not belong to this session.");
+                        return failure(
+                            "action_expired",
+                            "Assistant action expired or does not belong to this session.");
                     }
                     EntityPlayerMP player = WebAeOwnerContext.getOwnerPlayerOrFake(auth.ownerUuid);
                     if (player == null) return failure("no_player", "Player context unavailable.");
@@ -184,7 +184,9 @@ public final class WebAssistantService {
             return parsed;
         }
         if (guest || !WebAiConfigStore.isServerKeyEnabled()
-            || WebAiConfigStore.instance().runtimes().isEmpty()) {
+            || WebAiConfigStore.instance()
+                .runtimes()
+                .isEmpty()) {
             parsed.fallbackReason = guest ? "guest_rule_only" : "ai_not_configured";
             parsed.fallbackIntent = RULES.parse(text);
             parsed.source = "rules";
@@ -192,8 +194,8 @@ public final class WebAssistantService {
         }
         try {
             String userPrompt = WebAiCompletionService.maybeAugmentUserPrompt(text, text);
-            String raw = WebAiCompletionService.completeWithFailover(
-                AssistantAiIntentService.buildSystemPrompt(locale), userPrompt).content;
+            String raw = WebAiCompletionService
+                .completeWithFailover(AssistantAiIntentService.buildSystemPrompt(locale), userPrompt).content;
             AssistantIntentPlan plan = AI_PARSER.parse(raw);
             if (plan != null && !plan.isEmpty()) {
                 parsed.plan = plan;
@@ -210,8 +212,8 @@ public final class WebAssistantService {
         return parsed;
     }
 
-    private static WebAssistantResult chat(WebAuthSession auth, WebAssistantRequest request, String text,
-        String locale, WebAssistantResult base, String aiSource) {
+    private static WebAssistantResult chat(WebAuthSession auth, WebAssistantRequest request, String text, String locale,
+        WebAssistantResult base, String aiSource) {
         boolean browser = WebAiConfigStore.SOURCE_BROWSER.equals(aiSource);
         if (browser) {
             String reply = request == null ? "" : safe(request.clientAiReply).trim();
@@ -224,7 +226,8 @@ public final class WebAssistantService {
                 base.aiUsed = true;
             } else {
                 base.code = "browser_ai_unavailable";
-                base.message = localized(locale,
+                base.message = localized(
+                    locale,
                     "这是一条普通对话。请先在设置中保存当前浏览器自己的 AI API Key；游戏工具查询仍可使用本地意图解析。",
                     "This is ordinary chat. Save this browser's own AI API key in Settings first; game tool queries still use local intent parsing.");
                 base.source = "rules";
@@ -233,11 +236,14 @@ public final class WebAssistantService {
             return base;
         }
         if (auth.isGuest() || !WebAiConfigStore.isServerKeyEnabled()
-            || WebAiConfigStore.instance().runtimes().isEmpty()) {
+            || WebAiConfigStore.instance()
+                .runtimes()
+                .isEmpty()) {
             base.success = true;
             base.code = "chat_ai_unavailable";
             base.intentType = AssistantIntentType.CHAT.name();
-            base.message = localized(locale,
+            base.message = localized(
+                locale,
                 "这是一条普通对话。管理员可在设置中配置 AI API；游戏工具查询仍可使用本地意图解析。",
                 "This is ordinary chat. An admin can configure an AI API in Settings; game tool queries still use local intent parsing.");
             return base;
@@ -247,8 +253,8 @@ public final class WebAssistantService {
             messages.add(new Message("system", chatSystemPrompt(locale)));
             appendHistory(messages, request == null ? null : request.history);
             messages.add(new Message("user", text));
-            WebAiCompletionService.SearchAugmentResult augmented =
-                WebAiCompletionService.maybeAugmentWithSearch(messages, text);
+            WebAiCompletionService.SearchAugmentResult augmented = WebAiCompletionService
+                .maybeAugmentWithSearch(messages, text);
             base.message = WebAiCompletionService.completeWithFailover(augmented.messages).content;
             base.success = true;
             base.code = "ok";
@@ -279,9 +285,11 @@ public final class WebAssistantService {
         List<AssistantIntent> expanded = new ArrayList<AssistantIntent>();
         for (AssistantIntent intent : intents) {
             if ((intent.type == AssistantIntentType.ORDER_BATCH || intent.type == AssistantIntentType.WITHDRAW_BATCH)
-                && intent.orderLines != null && !intent.orderLines.isEmpty()) {
+                && intent.orderLines != null
+                && !intent.orderLines.isEmpty()) {
                 AssistantIntentType itemType = intent.type == AssistantIntentType.ORDER_BATCH
-                    ? AssistantIntentType.ORDER_ITEM : AssistantIntentType.WITHDRAW_ITEM;
+                    ? AssistantIntentType.ORDER_ITEM
+                    : AssistantIntentType.WITHDRAW_ITEM;
                 for (AssistantOrderLine line : intent.orderLines) {
                     if (line != null) {
                         expanded.add(new AssistantIntent(itemType, intent.rawText, line.target, line.amount, -1));
@@ -341,15 +349,20 @@ public final class WebAssistantService {
                     task.message = localized(locale, "没有等待确认的操作。", "No assistant action is awaiting confirmation.");
                     return task;
                 }
-                WebAssistantResult confirmed = executePending(auth, player, pending,
-                    intent.optionNumber > 0 ? intent.optionNumber : 1, intent.amount);
+                WebAssistantResult confirmed = executePending(
+                    auth,
+                    player,
+                    pending,
+                    intent.optionNumber > 0 ? intent.optionNumber : 1,
+                    intent.amount);
                 return confirmed.tasks.isEmpty() ? task : confirmed.tasks.get(0);
             case CANCEL:
                 WebAssistantPendingStore.clearActor(auth.actorUuid);
                 task.message = AssistantServerServices.cancelPendingJobs(player, locale);
                 return task;
             case CLARIFY:
-                task.message = localized(locale,
+                task.message = localized(
+                    locale,
                     "请说明是要从 AE2 存储取出已有物品，还是提交合成任务。",
                     "Please say whether to withdraw an existing item from AE2 storage or submit a crafting job.");
                 return task;
@@ -359,7 +372,8 @@ public final class WebAssistantService {
             case HISTORY_PREV:
             case HISTORY_NEXT:
                 task.code = "web_client_only";
-                task.message = localized(locale,
+                task.message = localized(
+                    locale,
                     "该客户端界面操作仅在游戏内可用。",
                     "That client UI action is available only in game.");
                 return task;
@@ -367,17 +381,18 @@ public final class WebAssistantService {
             case WITHDRAW_BATCH:
                 task.success = false;
                 task.code = "batch_requires_items";
-                task.message = localized(locale,
+                task.message = localized(
+                    locale,
                     "请把批量请求写成多个明确物品；AI 会拆分为多个任务并逐项确认。",
                     "List explicit items in the batch; AI will split them into tasks for confirmation.");
                 return task;
             case QUERY_STORAGE:
-                task.message = AssistantServerServices.queryStorage(player, intent.rawText, intent.target,
-                    intent.storageScope, locale);
+                task.message = AssistantServerServices
+                    .queryStorage(player, intent.rawText, intent.target, intent.storageScope, locale);
                 return task;
             default:
-                task.message = AssistantServerServices.query(player, intent.type, intent.rawText, intent.target,
-                    intent.amount, locale);
+                task.message = AssistantServerServices
+                    .query(player, intent.type, intent.rawText, intent.target, intent.amount, locale);
                 return task;
         }
     }
@@ -402,15 +417,22 @@ public final class WebAssistantService {
             task.message = localized(locale, "没有找到匹配候选项。", "No matching candidates were found.");
             return task;
         }
-        PendingAction pending = WebAssistantPendingStore.createCandidates(auth.actorUuid, auth.ownerUuid,
-            craft ? "craft" : "withdraw", intent.rawText, locale, Math.max(1L, intent.amount), query.candidates);
+        PendingAction pending = WebAssistantPendingStore.createCandidates(
+            auth.actorUuid,
+            auth.ownerUuid,
+            craft ? "craft" : "withdraw",
+            intent.rawText,
+            locale,
+            Math.max(1L, intent.amount),
+            query.candidates);
         task.success = true;
         task.code = "confirmation_required";
         task.actionKind = pending.kind;
         task.actionToken = pending.token;
         task.truncated = query.truncated;
         task.candidates = candidateViews(query.candidates);
-        task.message = localized(locale,
+        task.message = localized(
+            locale,
             craft ? "请选择候选项并确认合成订单。" : "请选择候选项并确认取出到背包。",
             craft ? "Choose a candidate and confirm the crafting order."
                 : "Choose a candidate and confirm withdrawal to inventory.");
@@ -423,8 +445,8 @@ public final class WebAssistantService {
         task.intentType = intent.type.name();
         task.intentTarget = intent.target;
         List<TeleportDestination> all = TeleportService.scanDislocators(player);
-        List<TeleportDestination> filtered = intent.type == AssistantIntentType.TELEPORT_LIST
-            ? all : TeleportService.filterDestinations(all, intent.target);
+        List<TeleportDestination> filtered = intent.type == AssistantIntentType.TELEPORT_LIST ? all
+            : TeleportService.filterDestinations(all, intent.target);
         task.teleportDestinations = teleportViews(filtered);
         if (filtered.isEmpty()) {
             task.success = false;
@@ -444,8 +466,8 @@ public final class WebAssistantService {
             task.message = localized(locale, "访客令牌不能执行传送。", "Guest tokens cannot teleport players.");
             return task;
         }
-        PendingAction pending = WebAssistantPendingStore.createTeleport(auth.actorUuid, auth.ownerUuid,
-            intent.rawText, locale, filtered);
+        PendingAction pending = WebAssistantPendingStore
+            .createTeleport(auth.actorUuid, auth.ownerUuid, intent.rawText, locale, filtered);
         task.code = "confirmation_required";
         task.actionKind = pending.kind;
         task.actionToken = pending.token;
@@ -453,8 +475,8 @@ public final class WebAssistantService {
         return task;
     }
 
-    private static WebAssistantResult executePending(WebAuthSession auth, EntityPlayerMP player,
-        PendingAction pending, int optionNumber, long amountOverride) {
+    private static WebAssistantResult executePending(WebAuthSession auth, EntityPlayerMP player, PendingAction pending,
+        int optionNumber, long amountOverride) {
         WebAssistantResult result = new WebAssistantResult();
         TaskResult task = new TaskResult();
         result.tasks.add(task);
@@ -477,16 +499,21 @@ public final class WebAssistantService {
             CraftingCandidate candidate = pending.candidates.get(index);
             if ("craft".equals(pending.kind)) {
                 task.intentType = AssistantIntentType.ORDER_ITEM.name();
-                task.message = AssistantServerServices.submitCraft(player, candidate, amount,
-                    pending.rawText, pending.locale);
+                task.message = AssistantServerServices
+                    .submitCraft(player, candidate, amount, pending.rawText, pending.locale);
             } else {
                 task.intentType = AssistantIntentType.WITHDRAW_ITEM.name();
-                WithdrawSubmitOutcome outcome = AssistantServerServices.submitWithdraw(player, candidate, amount,
-                    pending.rawText, pending.locale, pending.confirmPartial);
+                WithdrawSubmitOutcome outcome = AssistantServerServices
+                    .submitWithdraw(player, candidate, amount, pending.rawText, pending.locale, pending.confirmPartial);
                 task.message = outcome.message;
                 if (outcome.kind == Kind.PARTIAL_CONFIRM && outcome.candidate != null) {
-                    PendingAction partial = WebAssistantPendingStore.createPartial(auth.actorUuid, auth.ownerUuid,
-                        pending.rawText, pending.locale, outcome.candidate, outcome.fitAmount);
+                    PendingAction partial = WebAssistantPendingStore.createPartial(
+                        auth.actorUuid,
+                        auth.ownerUuid,
+                        pending.rawText,
+                        pending.locale,
+                        outcome.candidate,
+                        outcome.fitAmount);
                     task.code = "partial_confirmation_required";
                     task.actionToken = partial.token;
                     task.actionKind = partial.kind;
@@ -515,11 +542,16 @@ public final class WebAssistantService {
 
     private static boolean isMutating(AssistantIntentType type) {
         return type == AssistantIntentType.ORDER_ITEM || type == AssistantIntentType.ORDER_BATCH
-            || type == AssistantIntentType.WITHDRAW_ITEM || type == AssistantIntentType.WITHDRAW_BATCH
-            || type == AssistantIntentType.TELEPORT || type == AssistantIntentType.CONFIRM_OPTION
-            || type == AssistantIntentType.CANCEL || type == AssistantIntentType.PLAN_ADD
-            || type == AssistantIntentType.PLAN_CREATE || type == AssistantIntentType.PLAN_COMPLETE
-            || type == AssistantIntentType.PLAN_DELETE || type == AssistantIntentType.PLAN_MODIFY;
+            || type == AssistantIntentType.WITHDRAW_ITEM
+            || type == AssistantIntentType.WITHDRAW_BATCH
+            || type == AssistantIntentType.TELEPORT
+            || type == AssistantIntentType.CONFIRM_OPTION
+            || type == AssistantIntentType.CANCEL
+            || type == AssistantIntentType.PLAN_ADD
+            || type == AssistantIntentType.PLAN_CREATE
+            || type == AssistantIntentType.PLAN_COMPLETE
+            || type == AssistantIntentType.PLAN_DELETE
+            || type == AssistantIntentType.PLAN_MODIFY;
     }
 
     private static void appendHistory(List<Message> messages, List<HistoryEntry> history) {
@@ -561,7 +593,8 @@ public final class WebAssistantService {
     }
 
     private static String chatSystemPrompt(String locale) {
-        return localized(locale,
+        return localized(
+            locale,
             "你是 TeXTech WebAE AI 助手。简洁回答普通问题；涉及游戏工具时说明用户可以直接用自然语言查询存储、配方、电力、网络、计划、合成、取出和传送。不要声称执行了未实际执行的操作。",
             "You are the TeXTech WebAE AI assistant. Answer ordinary questions concisely. For game tools, explain that users can ask naturally about storage, recipes, power, networks, plans, crafting, withdrawals, and teleportation. Never claim an action ran unless the tool result says so.");
     }
@@ -646,11 +679,13 @@ public final class WebAssistantService {
     }
 
     private static String normalizeLocale(String locale) {
-        return locale != null && locale.toLowerCase().startsWith("en") ? "en_US" : "zh_CN";
+        return locale != null && locale.toLowerCase()
+            .startsWith("en") ? "en_US" : "zh_CN";
     }
 
     private static String localized(String locale, String zh, String en) {
-        return locale != null && locale.toLowerCase().startsWith("en") ? en : zh;
+        return locale != null && locale.toLowerCase()
+            .startsWith("en") ? en : zh;
     }
 
     private static String safe(String value) {
@@ -658,10 +693,12 @@ public final class WebAssistantService {
     }
 
     private interface ServerCall<T> {
+
         T run();
     }
 
     private static final class ParsedPlan {
+
         AssistantIntentPlan plan;
         AssistantIntent fallbackIntent;
         String source = "rules";
@@ -670,6 +707,7 @@ public final class WebAssistantService {
     }
 
     public static final class WebAssistantRequest {
+
         public String text;
         public String locale;
         public List<HistoryEntry> history;
@@ -682,6 +720,7 @@ public final class WebAssistantService {
     }
 
     public static final class ClientAiContext {
+
         public String keyMode;
         public String aiSource;
         public String intentSystemPrompt;
@@ -694,17 +733,20 @@ public final class WebAssistantService {
     }
 
     public static final class HistoryEntry {
+
         public String role;
         public String content;
     }
 
     public static final class WebAssistantActionRequest {
+
         public String actionToken;
         public int optionNumber = 1;
         public long amount;
     }
 
     public static final class WebAssistantResult {
+
         public boolean success;
         public String message = "";
         public String code = "";
@@ -718,6 +760,7 @@ public final class WebAssistantService {
     }
 
     public static final class TaskResult {
+
         public boolean success;
         public String code = "";
         public String message = "";
@@ -731,6 +774,7 @@ public final class WebAssistantService {
     }
 
     public static final class CandidateView {
+
         public int optionNumber;
         public String displayName;
         public String registryName;
@@ -739,6 +783,7 @@ public final class WebAssistantService {
     }
 
     public static final class TeleportView {
+
         public int optionNumber;
         public String name;
         public int dimensionId;

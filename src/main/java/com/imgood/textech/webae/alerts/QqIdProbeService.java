@@ -47,64 +47,71 @@ public final class QqIdProbeService {
             startedAtMs = System.currentTimeMillis();
             expiresAtMs = startedAtMs + timeout;
             discoveries.clear();
-            final QqGatewayClient next = new QqGatewayClient(id, secret, apiBase, tokenUrl, new QqGatewayClient.Listener() {
+            final QqGatewayClient next = new QqGatewayClient(
+                id,
+                secret,
+                apiBase,
+                tokenUrl,
+                new QqGatewayClient.Listener() {
 
-                @Override
-                public void onPhase(String nextPhase) {
-                    synchronized (lock) {
-                        if (!running) {
-                            return;
-                        }
-                        phase = nextPhase == null ? "" : nextPhase;
-                        maybeExpireLocked();
-                    }
-                }
-
-                @Override
-                public void onDiscovery(QqIdDiscovery discovery) {
-                    synchronized (lock) {
-                        if (!running || discovery == null || trim(discovery.targetId).isEmpty()) {
-                            return;
-                        }
-                        maybeExpireLocked();
-                        if (!running) {
-                            return;
-                        }
-                        String key = discovery.dedupeKey();
-                        discoveries.remove(key);
-                        discoveries.put(key, discovery);
-                        while (discoveries.size() > MAX_DISCOVERIES) {
-                            String oldest = discoveries.keySet().iterator().next();
-                            discoveries.remove(oldest);
+                    @Override
+                    public void onPhase(String nextPhase) {
+                        synchronized (lock) {
+                            if (!running) {
+                                return;
+                            }
+                            phase = nextPhase == null ? "" : nextPhase;
+                            maybeExpireLocked();
                         }
                     }
-                }
 
-                @Override
-                public void onError(String message) {
-                    synchronized (lock) {
-                        if (!running) {
-                            return;
+                    @Override
+                    public void onDiscovery(QqIdDiscovery discovery) {
+                        synchronized (lock) {
+                            if (!running || discovery == null || trim(discovery.targetId).isEmpty()) {
+                                return;
+                            }
+                            maybeExpireLocked();
+                            if (!running) {
+                                return;
+                            }
+                            String key = discovery.dedupeKey();
+                            discoveries.remove(key);
+                            discoveries.put(key, discovery);
+                            while (discoveries.size() > MAX_DISCOVERIES) {
+                                String oldest = discoveries.keySet()
+                                    .iterator()
+                                    .next();
+                                discoveries.remove(oldest);
+                            }
                         }
-                        error = message == null ? "" : message;
                     }
-                }
 
-                @Override
-                public void onClosed(String reason) {
-                    synchronized (lock) {
-                        if (!running) {
-                            return;
+                    @Override
+                    public void onError(String message) {
+                        synchronized (lock) {
+                            if (!running) {
+                                return;
+                            }
+                            error = message == null ? "" : message;
                         }
-                        running = false;
-                        phase = "stopped";
-                        if (error.isEmpty() && reason != null && !"stopped".equals(reason)) {
-                            error = reason;
-                        }
-                        client = null;
                     }
-                }
-            });
+
+                    @Override
+                    public void onClosed(String reason) {
+                        synchronized (lock) {
+                            if (!running) {
+                                return;
+                            }
+                            running = false;
+                            phase = "stopped";
+                            if (error.isEmpty() && reason != null && !"stopped".equals(reason)) {
+                                error = reason;
+                            }
+                            client = null;
+                        }
+                    }
+                });
             client = next;
             next.start();
             scheduleExpiryWatch(timeout);
@@ -165,7 +172,8 @@ public final class QqIdProbeService {
                 try {
                     Thread.sleep(timeout + 250L);
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    Thread.currentThread()
+                        .interrupt();
                     return;
                 }
                 synchronized (lock) {

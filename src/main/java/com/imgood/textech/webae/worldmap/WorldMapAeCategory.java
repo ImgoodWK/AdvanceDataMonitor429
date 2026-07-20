@@ -53,8 +53,17 @@ public enum WorldMapAeCategory {
         if (containsAny(hay, "me_drive", "iodrive", "drive")) {
             return DRIVE;
         }
-        if (containsAny(hay, "craftingcpu", "craftingtile", "blockcrafting", "crafting co-processor",
-            "crafting storage", "crafting monitor", "crafting unit", "coprocessor", "accelerator")) {
+        if (containsAny(
+            hay,
+            "craftingcpu",
+            "craftingtile",
+            "blockcrafting",
+            "crafting co-processor",
+            "crafting storage",
+            "crafting monitor",
+            "crafting unit",
+            "coprocessor",
+            "accelerator")) {
             return CPU;
         }
         if (containsAny(hay, "cell", "storage", "chest")) {

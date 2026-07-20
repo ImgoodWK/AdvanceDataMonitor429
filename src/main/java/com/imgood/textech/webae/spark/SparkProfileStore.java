@@ -16,7 +16,8 @@ import com.imgood.textech.TeXTechDataDir;
 public final class SparkProfileStore {
 
     private static final SparkProfileStore INSTANCE = new SparkProfileStore();
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+        .create();
 
     private final List<SparkProfile> profiles = new ArrayList<SparkProfile>();
     private boolean loaded;

@@ -23,8 +23,10 @@ public final class WorldMapBiomeTint {
         if (block == Blocks.grass || block == Blocks.tallgrass) {
             return biome.getBiomeGrassColor(wx, y, wz) & 0xFFFFFF;
         }
-        if (block == Blocks.leaves || block == Blocks.leaves2 || block == Blocks.vine
-            || block == Blocks.waterlily || block == Blocks.reeds) {
+        if (block == Blocks.leaves || block == Blocks.leaves2
+            || block == Blocks.vine
+            || block == Blocks.waterlily
+            || block == Blocks.reeds) {
             return biome.getBiomeFoliageColor(wx, y, wz) & 0xFFFFFF;
         }
         if (block == Blocks.water || block == Blocks.flowing_water) {
@@ -43,10 +45,16 @@ public final class WorldMapBiomeTint {
         if (block == null) {
             return false;
         }
-        return block == Blocks.grass || block == Blocks.tallgrass || block == Blocks.leaves
-            || block == Blocks.leaves2 || block == Blocks.vine || block == Blocks.waterlily
-            || block == Blocks.reeds || block == Blocks.water || block == Blocks.flowing_water
-            || block == Blocks.sapling || block == Blocks.double_plant;
+        return block == Blocks.grass || block == Blocks.tallgrass
+            || block == Blocks.leaves
+            || block == Blocks.leaves2
+            || block == Blocks.vine
+            || block == Blocks.waterlily
+            || block == Blocks.reeds
+            || block == Blocks.water
+            || block == Blocks.flowing_water
+            || block == Blocks.sapling
+            || block == Blocks.double_plant;
     }
 
     public static int applyTint(int rgb, int tint) {

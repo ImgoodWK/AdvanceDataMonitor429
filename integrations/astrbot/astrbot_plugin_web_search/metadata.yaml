@@ -1,0 +1,5 @@
+name: web_search
+desc: TeXTech-style AI web search — pre-search inject into LLM (Tavily/DDG/Brave/Serper/SearXNG)
+version: 1.0.0
+author: TeXTech
+repo: https://github.com/imgood/AdvanceDataMonitor429

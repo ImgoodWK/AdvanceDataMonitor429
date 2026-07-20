@@ -87,13 +87,15 @@ public final class WorldMapJourneyMapFsReader {
             ImageIO.write(chunk, "png", baos);
             return baos.toByteArray();
         } catch (IOException e) {
-            AdvanceDataMonitor.LOG.debug("[WebAE] JourneyMap FS tile read failed dim={} cx={} cz={}", dim, chunkX, chunkZ);
+            AdvanceDataMonitor.LOG
+                .debug("[WebAE] JourneyMap FS tile read failed dim={} cx={} cz={}", dim, chunkX, chunkZ);
             return null;
         }
     }
 
     public File resolveWorldRoot(boolean multiplayer, String worldName) {
-        if (worldName == null || worldName.trim().isEmpty()) {
+        if (worldName == null || worldName.trim()
+            .isEmpty()) {
             worldName = "world";
         }
         File dataRoot = resolveDataRoot();
@@ -105,7 +107,8 @@ public final class WorldMapJourneyMapFsReader {
     }
 
     public static File resolveDataRoot() {
-        if (Config.worldMapJourneyMapDataRoot != null && !Config.worldMapJourneyMapDataRoot.trim().isEmpty()) {
+        if (Config.worldMapJourneyMapDataRoot != null && !Config.worldMapJourneyMapDataRoot.trim()
+            .isEmpty()) {
             File custom = new File(Config.worldMapJourneyMapDataRoot.trim());
             if (custom.isDirectory()) {
                 return custom;
@@ -224,7 +227,8 @@ public final class WorldMapJourneyMapFsReader {
             return false;
         }
         for (File f : files) {
-            if (f.isFile() && f.getName().endsWith(".png")) {
+            if (f.isFile() && f.getName()
+                .endsWith(".png")) {
                 return true;
             }
         }
@@ -236,7 +240,9 @@ public final class WorldMapJourneyMapFsReader {
             return 0;
         }
         try {
-            return Integer.parseInt(name.replace("z", "").trim());
+            return Integer.parseInt(
+                name.replace("z", "")
+                    .trim());
         } catch (NumberFormatException e) {
             return 0;
         }
@@ -253,7 +259,9 @@ public final class WorldMapJourneyMapFsReader {
         if (zoomFolder == null) {
             return null;
         }
-        File nested = new File(new File(new File(zoomFolder, String.valueOf(tileX)), String.valueOf(tileZ)), "tile.png");
+        File nested = new File(
+            new File(new File(zoomFolder, String.valueOf(tileX)), String.valueOf(tileZ)),
+            "tile.png");
         if (nested.isFile()) {
             return nested;
         }

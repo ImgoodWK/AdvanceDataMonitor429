@@ -77,7 +77,8 @@ public final class WebAeOrderProgressService {
         }
 
         UUID owner = parseUuid(q.ownerUuid);
-        if (q.trackingKey != null && !q.trackingKey.isEmpty() && owner != null
+        if (q.trackingKey != null && !q.trackingKey.isEmpty()
+            && owner != null
             && AssistantCraftJobManager.instance()
                 .isCalculatingByKey(owner, q.trackingKey)) {
             result.status = "pending";
@@ -88,7 +89,8 @@ public final class WebAeOrderProgressService {
             return result;
         }
         // Legacy displayName calc match (quest / old callers without trackingKey)
-        if ((q.trackingKey == null || q.trackingKey.isEmpty()) && q.itemName != null && owner != null
+        if ((q.trackingKey == null || q.trackingKey.isEmpty()) && q.itemName != null
+            && owner != null
             && AssistantCraftJobManager.instance()
                 .isCalculating(owner, q.itemName)) {
             result.status = "pending";

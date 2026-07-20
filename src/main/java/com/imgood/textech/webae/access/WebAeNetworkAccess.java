@@ -51,7 +51,8 @@ public final class WebAeNetworkAccess {
         return assertCanAccessKey(session, ownerUuid, networkKey) == null;
     }
 
-    public static List<NetworkInfo> filterVisible(WebAuthSession session, String ownerUuid, List<NetworkInfo> networks) {
+    public static List<NetworkInfo> filterVisible(WebAuthSession session, String ownerUuid,
+        List<NetworkInfo> networks) {
         List<NetworkInfo> out = new ArrayList<NetworkInfo>();
         if (networks == null) {
             return out;
@@ -93,8 +94,8 @@ public final class WebAeNetworkAccess {
     }
 
     private static NanoHTTPD.Response denial(int status, String code, String message) {
-        String body = "{\"success\":false,\"code\":\"" + escape(code) + "\",\"error\":\"" + escape(code)
-            + "\",\"message\":\"" + escape(message) + "\"}";
+        String body = "{\"success\":false,\"code\":\"" + escape(
+            code) + "\",\"error\":\"" + escape(code) + "\",\"message\":\"" + escape(message) + "\"}";
         NanoHTTPD.Response.Status st = status == 403 ? NanoHTTPD.Response.Status.FORBIDDEN
             : NanoHTTPD.Response.Status.UNAUTHORIZED;
         return NanoHTTPD.newFixedLengthResponse(st, "application/json", body);

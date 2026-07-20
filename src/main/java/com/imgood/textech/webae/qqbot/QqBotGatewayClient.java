@@ -118,8 +118,7 @@ final class QqBotGatewayClient {
                 endpoint = apiBase + "/channels/" + path(id) + "/messages";
                 if (!safe(replyMessageId).isEmpty()) body.addProperty("msg_id", replyMessageId);
             } else if ("c2c".equals(kind) || "group".equals(kind)) {
-                endpoint = apiBase + ("c2c".equals(kind) ? "/v2/users/" : "/v2/groups/") + path(id)
-                    + "/messages";
+                endpoint = apiBase + ("c2c".equals(kind) ? "/v2/users/" : "/v2/groups/") + path(id) + "/messages";
                 body.addProperty("msg_type", 0);
                 body.addProperty("msg_seq", nextSendSeq());
                 if (!safe(replyMessageId).isEmpty()) body.addProperty("msg_id", replyMessageId);
@@ -137,7 +136,8 @@ final class QqBotGatewayClient {
             JsonObject responseJson = parseObjectOrNull(response.body);
             if (responseJson != null && responseJson.has("code")) {
                 long code = jsonLong(responseJson, "code", 0L);
-                if (code != 0L) return SendResult.fail("QQ send code " + code + ": " + safePlatformError(response.body));
+                if (code != 0L)
+                    return SendResult.fail("QQ send code " + code + ": " + safePlatformError(response.body));
             }
             return SendResult.ok();
         } catch (Exception e) {
@@ -166,8 +166,8 @@ final class QqBotGatewayClient {
             HttpResult uploaded = http("POST", root + "/files", GSON.toJson(upload), headers);
             if (uploaded.code == 401) accessToken = null;
             if (uploaded.code < 200 || uploaded.code >= 300) {
-                return SendResult.fail(
-                    "QQ media upload HTTP " + uploaded.code + ": " + safePlatformError(uploaded.body));
+                return SendResult
+                    .fail("QQ media upload HTTP " + uploaded.code + ": " + safePlatformError(uploaded.body));
             }
             JsonObject uploadJson = parseObjectOrNull(uploaded.body);
             String fileInfo = jsonString(uploadJson, "file_info");
@@ -247,9 +247,12 @@ final class QqBotGatewayClient {
         JsonObject payload = parseObjectOrNull(raw);
         if (payload == null) return;
         int op = jsonInt(payload, "op", -1);
-        if (payload.has("s") && !payload.get("s").isJsonNull()) {
+        if (payload.has("s") && !payload.get("s")
+            .isJsonNull()) {
             try {
-                lastSeq.set(payload.get("s").getAsLong());
+                lastSeq.set(
+                    payload.get("s")
+                        .getAsLong());
             } catch (Exception ignored) {}
         }
         if (op == 10) {
@@ -266,8 +269,11 @@ final class QqBotGatewayClient {
                 startHeartbeat();
                 return;
             }
-            QqBotMessage message = QqBotMessage.fromDispatch(eventType, jsonObject(payload, "d"),
-                jsonString(payload, "id"), System.currentTimeMillis());
+            QqBotMessage message = QqBotMessage.fromDispatch(
+                eventType,
+                jsonObject(payload, "d"),
+                jsonString(payload, "id"),
+                System.currentTimeMillis());
             if (message != null) listener.onMessage(message);
             return;
         }
@@ -310,11 +316,13 @@ final class QqBotGatewayClient {
 
             @Override
             public void run() {
-                while (!stopRequested.get() && !Thread.currentThread().isInterrupted()) {
+                while (!stopRequested.get() && !Thread.currentThread()
+                    .isInterrupted()) {
                     try {
                         Thread.sleep(heartbeatIntervalMs);
                     } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                        Thread.currentThread()
+                            .interrupt();
                         return;
                     }
                     WebSocketClient socket = socketRef.get();
@@ -359,7 +367,8 @@ final class QqBotGatewayClient {
             body.addProperty("clientSecret", appSecret);
             HttpResult response = http("POST", tokenUrl, GSON.toJson(body), null);
             if (response.code < 200 || response.code >= 300) {
-                throw new IllegalStateException("QQ token HTTP " + response.code + ": " + safePlatformError(response.body));
+                throw new IllegalStateException(
+                    "QQ token HTTP " + response.code + ": " + safePlatformError(response.body));
             }
             JsonObject json = parseObject(response.body);
             String value = jsonString(json, "access_token");
@@ -376,7 +385,8 @@ final class QqBotGatewayClient {
         headers.put("Authorization", "QQBot " + token);
         HttpResult response = http("GET", apiBase + "/gateway", null, headers);
         if (response.code < 200 || response.code >= 300) {
-            throw new IllegalStateException("QQ gateway HTTP " + response.code + ": " + safePlatformError(response.body));
+            throw new IllegalStateException(
+                "QQ gateway HTTP " + response.code + ": " + safePlatformError(response.body));
         }
         String url = jsonString(parseObject(response.body), "url");
         if (url.isEmpty()) throw new IllegalStateException("QQ gateway URL missing");
@@ -440,7 +450,8 @@ final class QqBotGatewayClient {
     }
 
     private static String path(String value) throws Exception {
-        return java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20");
+        return java.net.URLEncoder.encode(value, "UTF-8")
+            .replace("+", "%20");
     }
 
     private static JsonObject parseObject(String raw) throws Exception {
@@ -469,8 +480,12 @@ final class QqBotGatewayClient {
 
     private static String jsonString(JsonObject object, String key) {
         try {
-            return object == null || !object.has(key) || object.get(key).isJsonNull() ? ""
-                : object.get(key).getAsString().trim();
+            return object == null || !object.has(key)
+                || object.get(key)
+                    .isJsonNull() ? ""
+                        : object.get(key)
+                            .getAsString()
+                            .trim();
         } catch (Exception e) {
             return "";
         }
@@ -478,7 +493,9 @@ final class QqBotGatewayClient {
 
     private static int jsonInt(JsonObject object, String key, int fallback) {
         try {
-            return object == null || !object.has(key) ? fallback : object.get(key).getAsInt();
+            return object == null || !object.has(key) ? fallback
+                : object.get(key)
+                    .getAsInt();
         } catch (Exception e) {
             return fallback;
         }
@@ -486,20 +503,26 @@ final class QqBotGatewayClient {
 
     private static long jsonLong(JsonObject object, String key, long fallback) {
         try {
-            return object == null || !object.has(key) ? fallback : object.get(key).getAsLong();
+            return object == null || !object.has(key) ? fallback
+                : object.get(key)
+                    .getAsLong();
         } catch (Exception e) {
             return fallback;
         }
     }
 
     private static String safePlatformError(String raw) {
-        String value = safe(raw).replace('\r', ' ').replace('\n', ' ').trim();
+        String value = safe(raw).replace('\r', ' ')
+            .replace('\n', ' ')
+            .trim();
         return value.length() <= 300 ? value : value.substring(0, 300);
     }
 
     private static String safeMessage(Exception error) {
         String value = error == null ? "" : error.getMessage();
-        return value == null || value.isEmpty() ? error == null ? "unknown error" : error.getClass().getSimpleName()
+        return value == null || value.isEmpty() ? error == null ? "unknown error"
+            : error.getClass()
+                .getSimpleName()
             : value;
     }
 

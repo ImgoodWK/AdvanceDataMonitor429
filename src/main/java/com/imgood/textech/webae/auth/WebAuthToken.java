@@ -202,8 +202,9 @@ public class WebAuthToken {
     }
 
     private static boolean isUuidDisabled(String uuid) {
-        return uuid != null && !uuid.isEmpty() && WebAePlayerStateStore.getInstance()
-            .isDisabled(uuid);
+        return uuid != null && !uuid.isEmpty()
+            && WebAePlayerStateStore.getInstance()
+                .isDisabled(uuid);
     }
 
     private static List<String> copyKeys(List<String> keys) {
@@ -522,7 +523,8 @@ public class WebAuthToken {
             return result;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to load tokens file: {}", e.getMessage());
-            AdvanceDataMonitor.LOG.warn("[WebAE] The tokens file may be corrupted. It will be overwritten on next save.");
+            AdvanceDataMonitor.LOG
+                .warn("[WebAE] The tokens file may be corrupted. It will be overwritten on next save.");
             return new ArrayList<WebAuthToken>();
         } finally {
             if (reader != null) {

@@ -3,14 +3,23 @@ package com.imgood.textech.webae.worldmap.dynmap;
 /**
  * Maps between Minecraft block coordinates and Dynmap HD tile indices.
  *
- * <p>Dynmap uses a quadtree/zoom scheme where each tile covers 128&times;128 blocks
+ * <p>
+ * Dynmap uses a quadtree/zoom scheme where each tile covers 128&times;128 blocks
  * at zoom level 0. The tile origin is at the Dynmap world border (usually 0,0 in
- * the image, corresponding to world spawn offset).</p>
+ * the image, corresponding to world spawn offset).
+ * </p>
  *
- * <p>Perspective prefix mapping (WebAE view &rarr; GWM perspective):
+ * <p>
+ * Perspective prefix mapping (WebAE view &rarr; GWM perspective):
  * <table>
- *   <tr><td>{@code flat}</td><td>&rarr; {@code flat}</td></tr>
- *   <tr><td>{@code oblique_se}</td><td>&rarr; {@code iso_SE_30_hires}</td></tr>
+ * <tr>
+ * <td>{@code flat}</td>
+ * <td>&rarr; {@code flat}</td>
+ * </tr>
+ * <tr>
+ * <td>{@code oblique_se}</td>
+ * <td>&rarr; {@code iso_SE_30_hires}</td>
+ * </tr>
  * </table>
  * </p>
  */
@@ -30,7 +39,8 @@ public final class WorldMapDynmapCoordMapper {
         if (webaeViewId == null || webaeViewId.isEmpty()) {
             return "flat";
         }
-        switch (webaeViewId.trim().toLowerCase()) {
+        switch (webaeViewId.trim()
+            .toLowerCase()) {
             case "flat":
                 return "flat";
             case "oblique":

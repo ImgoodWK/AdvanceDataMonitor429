@@ -1,26 +1,17 @@
 package com.imgood.textech.webae.worldmap;
 
-
-
 import java.util.ArrayList;
-
 import java.util.List;
-
-
 
 import com.imgood.textech.Config;
 
-
-
 /**
-
+ * 
  * Supported world map tile perspectives: top-down flat + mineshot-style oblique orbit.
-
+ * 
  */
 
 public enum WorldMapView {
-
-
 
     FLAT("flat", "adm.webae.worldmap.view.flat", null),
 
@@ -32,15 +23,11 @@ public enum WorldMapView {
 
     OBLIQUE_NW("oblique_nw", "adm.webae.worldmap.view.oblique", WorldMapObliqueDirection.NW);
 
-
-
     public final String id;
 
     public final String labelKey;
 
     public final WorldMapObliqueDirection obliqueDirection;
-
-
 
     WorldMapView(String id, String labelKey, WorldMapObliqueDirection obliqueDirection) {
 
@@ -52,15 +39,11 @@ public enum WorldMapView {
 
     }
 
-
-
     public boolean isOblique() {
 
         return obliqueDirection != null;
 
     }
-
-
 
     public static WorldMapView fromId(String id) {
 
@@ -108,8 +91,6 @@ public enum WorldMapView {
 
     }
 
-
-
     public static WorldMapView obliqueForDirection(WorldMapObliqueDirection direction) {
 
         if (direction == null) {
@@ -142,8 +123,6 @@ public enum WorldMapView {
 
     }
 
-
-
     public static boolean isEnabled(WorldMapView view) {
 
         if (view == null) {
@@ -165,8 +144,6 @@ public enum WorldMapView {
         return false;
 
     }
-
-
 
     public static List<WorldMapView> enabledViews() {
 
@@ -244,8 +221,6 @@ public enum WorldMapView {
 
     }
 
-
-
     private static void addObliqueDirections(List<WorldMapView> out) {
 
         for (WorldMapView view : values()) {
@@ -259,8 +234,6 @@ public enum WorldMapView {
         }
 
     }
-
-
 
     /** UI tabs: flat + generic oblique reference view. */
 
@@ -307,8 +280,6 @@ public enum WorldMapView {
         return infos;
 
     }
-
-
 
     public static List<WorldMapMetaDto.ViewInfo> enabledObliqueDirectionInfos() {
 
@@ -376,8 +347,6 @@ public enum WorldMapView {
 
     }
 
-
-
     private static boolean hasEnabledOblique() {
 
         if (!Config.webWorldMapObliqueEnabled) {
@@ -400,8 +369,6 @@ public enum WorldMapView {
 
     }
 
-
-
     /** @deprecated Use {@link #uiViewInfos()}. */
 
     public static List<WorldMapMetaDto.ViewInfo> enabledViewInfos() {
@@ -411,5 +378,3 @@ public enum WorldMapView {
     }
 
 }
-
-

@@ -1,5 +1,6 @@
 package com.imgood.textech.client.websurface;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -13,8 +14,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import javax.imageio.ImageIO;
-
-import java.awt.image.BufferedImage;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -80,21 +79,23 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
     }
 
     @Override
-    public ResourceLocation getTexture(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView) {
-        if (!supports(binding) || !inView) return peekTexture(cacheKey(binding), textureWidth);
+    public WebSurfaceFrame getFrame(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView) {
+        if (!supports(binding) || !inView) {
+            return WebSurfaceFrame.ofLocation(peekTexture(cacheKey(binding), textureWidth));
+        }
         String key = cacheKey(binding);
         long interval = refreshIntervalMs(distanceSq);
-        if (interval < 0) return peekTexture(key, textureWidth);
+        if (interval < 0) return WebSurfaceFrame.ofLocation(peekTexture(key, textureWidth));
         maybeFetch(binding, textureWidth, key, interval);
-        return peekTexture(key, textureWidth);
+        return WebSurfaceFrame.ofLocation(peekTexture(key, textureWidth));
     }
 
     private static long refreshIntervalMs(double distanceSq) {
         double dist = Math.sqrt(Math.max(0.0D, distanceSq));
         if (dist > 64.0D) return -1L;
-        if (dist <= 16.0D) return 500L;
-        if (dist <= 32.0D) return 2000L;
-        return 5000L;
+        if (dist <= 16.0D) return 2000L;
+        if (dist <= 32.0D) return 4000L;
+        return 8000L;
     }
 
     private void maybeFetch(final NBTTagCompound binding, final int textureWidth, final String key, long interval) {
@@ -157,20 +158,31 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
                 }
                 return;
             }
-            if (code != 200) return;
+            if (code != 200) {
+                // Back off harder on capture_pending / overload so we do not stampede Chrome.
+                if (code == 503 || code == 429) {
+                    synchronized (LOCK) {
+                        LAST_FETCH.put(key, Long.valueOf(System.currentTimeMillis() + 4000L));
+                    }
+                }
+                return;
+            }
             InputStream in = conn.getInputStream();
             byte[] bytes = readAll(in, 512 * 1024);
-            if (bytes == null || bytes.length < 32) return;
+            if (bytes == null || bytes.length < 32) {
+                return;
+            }
             // JSON not-modified body
-            if (bytes[0] == '{') return;
+            if (bytes[0] == '{') {
+                return;
+            }
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
             if (image == null) return;
             synchronized (LOCK) {
                 READY.put(key, image);
                 if (newEtag != null) ETAGS.put(key, newEtag);
             }
-        } catch (Exception ignored) {
-        } finally {
+        } catch (Exception ignored) {} finally {
             if (conn != null) conn.disconnect();
         }
     }
@@ -178,15 +190,13 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
     private static void touchCapture(String origin, String displayId, String token, int width) {
         HttpURLConnection conn = null;
         try {
-            URL url = new URL(
-                origin + "/api/display/" + displayId + "/touch?token=" + token + "&width=" + width);
+            URL url = new URL(origin + "/api/display/" + displayId + "/touch?token=" + token + "&width=" + width);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(1500);
             conn.setReadTimeout(1500);
             conn.getResponseCode();
-        } catch (Exception ignored) {
-        } finally {
+        } catch (Exception ignored) {} finally {
             if (conn != null) conn.disconnect();
         }
     }

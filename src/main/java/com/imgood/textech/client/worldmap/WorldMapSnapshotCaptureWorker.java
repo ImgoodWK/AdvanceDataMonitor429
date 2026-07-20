@@ -1,10 +1,8 @@
 package com.imgood.textech.client.worldmap;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import net.minecraft.client.Minecraft;
@@ -89,7 +87,8 @@ public final class WorldMapSnapshotCaptureWorker {
         if (event.phase != TickEvent.Phase.END || !active || queue.isEmpty()) {
             return;
         }
-        WorldMapDynmapClientFetcher.instance().onClientTickEnd();
+        WorldMapDynmapClientFetcher.instance()
+            .onClientTickEnd();
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null || mc.thePlayer == null) {
             return;
@@ -116,8 +115,14 @@ public final class WorldMapSnapshotCaptureWorker {
         byte[] terrain = captureTerrain(mc, chunk.dim, chunk.chunkX, chunk.chunkZ);
         if (terrain != null && terrain.length > 0) {
             WorldMapSnapshotLocalCache.writeTile(
-                ownerUuid, networkId, snapshotVersion, WorldMapTileLayer.TERRAIN, chunk.dim, chunk.chunkX,
-                chunk.chunkZ, terrain);
+                ownerUuid,
+                networkId,
+                snapshotVersion,
+                WorldMapTileLayer.TERRAIN,
+                chunk.dim,
+                chunk.chunkX,
+                chunk.chunkZ,
+                terrain);
             sendTile(WorldMapTileLayer.TERRAIN, chunk.dim, chunk.chunkX, chunk.chunkZ, terrain);
         } else {
             sendMissing(chunk.dim, chunk.chunkX, chunk.chunkZ);
@@ -126,7 +131,13 @@ public final class WorldMapSnapshotCaptureWorker {
             byte[] ae = captureAe(mc, chunk.dim, chunk.chunkX, chunk.chunkZ);
             if (ae != null && ae.length > 0) {
                 WorldMapSnapshotLocalCache.writeTile(
-                    ownerUuid, networkId, snapshotVersion, WorldMapTileLayer.AE, chunk.dim, chunk.chunkX, chunk.chunkZ,
+                    ownerUuid,
+                    networkId,
+                    snapshotVersion,
+                    WorldMapTileLayer.AE,
+                    chunk.dim,
+                    chunk.chunkX,
+                    chunk.chunkZ,
                     ae);
                 sendTile(WorldMapTileLayer.AE, chunk.dim, chunk.chunkX, chunk.chunkZ, ae);
             }
@@ -208,9 +219,15 @@ public final class WorldMapSnapshotCaptureWorker {
         AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new ChatComponentText(
-                EnumChatFormatting.GREEN + "[WebAE] World map snapshot v" + snapshotVersion + " uploaded ("
-                    + packet.source + ", " + completedChunks + " chunks)."));
+            mc.thePlayer.addChatMessage(
+                new ChatComponentText(
+                    EnumChatFormatting.GREEN + "[WebAE] World map snapshot v"
+                        + snapshotVersion
+                        + " uploaded ("
+                        + packet.source
+                        + ", "
+                        + completedChunks
+                        + " chunks)."));
         }
     }
 
@@ -226,7 +243,11 @@ public final class WorldMapSnapshotCaptureWorker {
                 sb.append(',');
             }
             first = false;
-            sb.append('"').append(entry.getKey()).append('"').append(':').append(entry.getValue());
+            sb.append('"')
+                .append(entry.getKey())
+                .append('"')
+                .append(':')
+                .append(entry.getValue());
         }
         sb.append('}');
         return sb.toString();
@@ -258,10 +279,10 @@ public final class WorldMapSnapshotCaptureWorker {
             return null;
         }
         try {
-            return new int[] {
-                Integer.parseInt(entry.substring(0, colon).trim()),
-                Integer.parseInt(parts[0].trim()),
-                Integer.parseInt(parts[1].trim()) };
+            return new int[] { Integer.parseInt(
+                entry.substring(0, colon)
+                    .trim()),
+                Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()) };
         } catch (NumberFormatException e) {
             return null;
         }

@@ -43,7 +43,8 @@ import fi.iki.elonen.NanoHTTPD;
 /**
  * REST handler for AE crafting orders.
  *
- * <p>POST /api/order — submit single craft order<br>
+ * <p>
+ * POST /api/order — submit single craft order<br>
  * POST /api/order/batch — batch order<br>
  * GET /api/order/status?jobId=&lt;id&gt; — poll job status<br>
  * POST /api/order/cancel — cancel all pending jobs<br>
@@ -330,8 +331,8 @@ public class OrderHandler {
                         if (item.patternId != null && !item.patternId.isEmpty()) {
                             CraftingCandidate patternCandidate = resolvePatternCandidate(item.patternId, amt);
                             if (patternCandidate == null) {
-                                asyncResults.put(batchJobId,
-                                    GSON.toJson(fail("Cannot decode pattern: " + item.patternId)));
+                                asyncResults
+                                    .put(batchJobId, GSON.toJson(fail("Cannot decode pattern: " + item.patternId)));
                                 return;
                             }
                             candidates = new ArrayList<CraftingCandidate>();
@@ -340,7 +341,8 @@ public class OrderHandler {
                         } else {
                             if (item.itemName == null || item.itemName.trim()
                                 .isEmpty()) {
-                                asyncResults.put(batchJobId,
+                                asyncResults.put(
+                                    batchJobId,
                                     GSON.toJson(fail("Item #" + (i + 1) + " missing itemName and patternId")));
                                 return;
                             }
@@ -426,9 +428,7 @@ public class OrderHandler {
     private static NanoHTTPD.Response handleStatus(Map<String, String> params, String playerUuid) {
         String jobId = params.get("jobId");
         if (jobId == null || jobId.isEmpty()) {
-            return jsonResponse(
-                NanoHTTPD.Response.Status.BAD_REQUEST,
-                GSON.toJson(fail("Missing 'jobId' parameter")));
+            return jsonResponse(NanoHTTPD.Response.Status.BAD_REQUEST, GSON.toJson(fail("Missing 'jobId' parameter")));
         }
 
         // Check async pending pool first (initial submit still on main thread).

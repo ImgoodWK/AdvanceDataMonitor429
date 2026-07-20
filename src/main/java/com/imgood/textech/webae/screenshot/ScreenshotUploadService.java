@@ -70,7 +70,8 @@ public final class ScreenshotUploadService {
         try {
             long now = System.currentTimeMillis();
             cleanup(now);
-            String playerUuid = player.getUniqueID().toString();
+            String playerUuid = player.getUniqueID()
+                .toString();
             String key = playerUuid + ":" + uploadId;
             if (!Config.webScreenshotEnabled || !Config.webConsoleEnabled) {
                 return fail(uploadId, "Screenshot sharing is disabled on this server.");
@@ -79,13 +80,19 @@ public final class ScreenshotUploadService {
                 return fail(uploadId, "Malformed screenshot packet.");
             }
             int maxBytes = Math.max(64, Config.webScreenshotMaxUploadKB) * 1024;
-            int expectedChunks = Math.max(1,
+            int expectedChunks = Math.max(
+                1,
                 (message.totalBytes + PacketScreenshotUpload.MAX_CHUNK_BYTES - 1)
                     / PacketScreenshotUpload.MAX_CHUNK_BYTES);
-            if (message.totalBytes <= 0 || message.totalBytes > maxBytes || message.totalChunks <= 0
-                || message.totalChunks > ABSOLUTE_MAX_CHUNKS || message.totalChunks != expectedChunks
-                || message.chunkIndex < 0 || message.chunkIndex >= message.totalChunks || message.chunk == null
-                || message.chunk.length <= 0 || message.chunk.length > PacketScreenshotUpload.MAX_CHUNK_BYTES) {
+            if (message.totalBytes <= 0 || message.totalBytes > maxBytes
+                || message.totalChunks <= 0
+                || message.totalChunks > ABSOLUTE_MAX_CHUNKS
+                || message.totalChunks != expectedChunks
+                || message.chunkIndex < 0
+                || message.chunkIndex >= message.totalChunks
+                || message.chunk == null
+                || message.chunk.length <= 0
+                || message.chunk.length > PacketScreenshotUpload.MAX_CHUNK_BYTES) {
                 sessions.remove(key);
                 return fail(uploadId, "Screenshot size or chunk metadata exceeds server limits.");
             }
@@ -94,8 +101,7 @@ public final class ScreenshotUploadService {
             if (message.chunkIndex == 0) {
                 if (session != null) sessions.remove(key);
                 if (!validDestination(message.destination)) return fail(uploadId, "Unknown screenshot destination.");
-                if ("qq".equals(message.destination)
-                    && !player.canCommandSenderUseCommand(2, "admweb")) {
+                if ("qq".equals(message.destination) && !player.canCommandSenderUseCommand(2, "admweb")) {
                     return fail(uploadId, "OP permission is required for QQ screenshot delivery.");
                 }
                 if ("qq".equals(message.destination)
@@ -111,7 +117,8 @@ public final class ScreenshotUploadService {
                 if (activeForPlayer(playerUuid) || sessions.size() + processing >= maxConcurrent()) {
                     return fail(uploadId, "Screenshot upload capacity is busy; try again later.");
                 }
-                if (message.width <= 0 || message.height <= 0 || message.width > Config.webScreenshotMaxWidth
+                if (message.width <= 0 || message.height <= 0
+                    || message.width > Config.webScreenshotMaxWidth
                     || message.height > Config.webScreenshotMaxHeight) {
                     return fail(uploadId, "Screenshot dimensions exceed server limits.");
                 }
@@ -143,7 +150,8 @@ public final class ScreenshotUploadService {
             final UploadSession complete = session;
             final byte[] bytes = session.buffer.toByteArray();
             session.buffer = null;
-            if (processing >= maxConcurrent() || worker.getQueue().size() >= maxConcurrent()) {
+            if (processing >= maxConcurrent() || worker.getQueue()
+                .size() >= maxConcurrent()) {
                 return fail(uploadId, "Screenshot processing queue is full.");
             }
             processing++;
@@ -175,7 +183,8 @@ public final class ScreenshotUploadService {
     private void process(UploadSession session, byte[] bytes) {
         try {
             ImageInfo info = inspectJpeg(bytes);
-            if (info.width != session.width || info.height != session.height || info.width > Config.webScreenshotMaxWidth
+            if (info.width != session.width || info.height != session.height
+                || info.width > Config.webScreenshotMaxWidth
                 || info.height > Config.webScreenshotMaxHeight) {
                 throw new IllegalArgumentException("JPEG dimensions do not match the upload metadata");
             }
@@ -184,38 +193,34 @@ public final class ScreenshotUploadService {
                 StoredAttachment stored = ScreenshotAttachmentStore.instance()
                     .saveJpeg(bytes, info.width, info.height, session.fileName);
                 attachmentId = stored.id;
-                ChatMessageStore.instance().appendAttachment(
-                    session.playerUuid,
-                    session.playerName,
-                    session.caption,
-                    System.currentTimeMillis(),
-                    ChatMessage.SOURCE_GAME,
-                    stored.id,
-                    stored.fileName,
-                    stored.mimeType,
-                    stored.width,
-                    stored.height,
-                    stored.bytes);
+                ChatMessageStore.instance()
+                    .appendAttachment(
+                        session.playerUuid,
+                        session.playerName,
+                        session.caption,
+                        System.currentTimeMillis(),
+                        ChatMessage.SOURCE_GAME,
+                        stored.id,
+                        stored.fileName,
+                        stored.mimeType,
+                        stored.width,
+                        stored.height,
+                        stored.bytes);
             } else {
-                ManualSendResult result = QqBotService.instance().sendManualImage(
-                    session.targetType,
-                    session.targetId,
-                    session.caption,
-                    bytes,
-                    session.fileName);
+                ManualSendResult result = QqBotService.instance()
+                    .sendManualImage(session.targetType, session.targetId, session.caption, bytes, session.fileName);
                 if (!result.success) throw new IllegalStateException(result.error);
             }
-            sendAck(session.player, new PacketScreenshotUploadAck(
-                session.uploadId,
-                true,
-                "qq".equals(session.destination) ? "Queued for QQ delivery." : "Published to WebAE chat.",
-                attachmentId));
+            sendAck(
+                session.player,
+                new PacketScreenshotUploadAck(
+                    session.uploadId,
+                    true,
+                    "qq".equals(session.destination) ? "Queued for QQ delivery." : "Published to WebAE chat.",
+                    attachmentId));
         } catch (Throwable error) {
-            AdvanceDataMonitor.LOG.warn(
-                "[Screenshot] Failed to process upload {} from {}",
-                session.uploadId,
-                session.playerName,
-                error);
+            AdvanceDataMonitor.LOG
+                .warn("[Screenshot] Failed to process upload {} from {}", session.uploadId, session.playerName, error);
             sendAck(session.player, new PacketScreenshotUploadAck(session.uploadId, false, safeMessage(error), ""));
         }
     }
@@ -241,14 +246,19 @@ public final class ScreenshotUploadService {
     }
 
     private void cleanup(long now) {
-        Iterator<Map.Entry<String, UploadSession>> iterator = sessions.entrySet().iterator();
+        Iterator<Map.Entry<String, UploadSession>> iterator = sessions.entrySet()
+            .iterator();
         while (iterator.hasNext()) {
-            UploadSession session = iterator.next().getValue();
+            UploadSession session = iterator.next()
+                .getValue();
             if (now - session.lastTouchedMs > SESSION_TTL_MS) iterator.remove();
         }
-        Iterator<Map.Entry<String, Long>> cooldowns = lastStarts.entrySet().iterator();
+        Iterator<Map.Entry<String, Long>> cooldowns = lastStarts.entrySet()
+            .iterator();
         while (cooldowns.hasNext()) {
-            if (now - cooldowns.next().getValue().longValue() > 3600000L) cooldowns.remove();
+            if (now - cooldowns.next()
+                .getValue()
+                .longValue() > 3600000L) cooldowns.remove();
         }
     }
 
@@ -293,8 +303,12 @@ public final class ScreenshotUploadService {
 
     private static String safeMessage(Throwable error) {
         String message = error == null ? "" : error.getMessage();
-        if (message == null || message.isEmpty()) message = error == null ? "unknown" : error.getClass().getSimpleName();
-        message = message.replace('\r', ' ').replace('\n', ' ').trim();
+        if (message == null || message.isEmpty()) message = error == null ? "unknown"
+            : error.getClass()
+                .getSimpleName();
+        message = message.replace('\r', ' ')
+            .replace('\n', ' ')
+            .trim();
         return message.length() <= 240 ? message : message.substring(0, 240);
     }
 
@@ -330,7 +344,8 @@ public final class ScreenshotUploadService {
 
         UploadSession(EntityPlayerMP player, PacketScreenshotUpload message, long now) {
             this.player = player;
-            this.playerUuid = player.getUniqueID().toString();
+            this.playerUuid = player.getUniqueID()
+                .toString();
             this.playerName = player.getCommandSenderName();
             this.uploadId = message.uploadId;
             this.destination = message.destination;

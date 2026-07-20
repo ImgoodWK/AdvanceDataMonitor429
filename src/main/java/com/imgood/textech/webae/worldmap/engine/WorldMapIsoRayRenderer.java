@@ -104,32 +104,11 @@ public final class WorldMapIsoRayRenderer {
             if (block != null && block != Blocks.air) {
                 int meta = ctx.blockMeta(vx, vy, vz);
                 if (WorldMapBlockPatchRegistry.hasPatchModel(block)) {
-                    WorldMapBlockPatchRegistry.PatchHit patchHit = WorldMapBlockPatchRegistry.intersectInVoxel(
-                        ctx,
-                        vx,
-                        vy,
-                        vz,
-                        block,
-                        meta,
-                        ox,
-                        oy,
-                        oz,
-                        dx,
-                        dy,
-                        dz,
-                        tEnter,
-                        tExit);
+                    WorldMapBlockPatchRegistry.PatchHit patchHit = WorldMapBlockPatchRegistry
+                        .intersectInVoxel(ctx, vx, vy, vz, block, meta, ox, oy, oz, dx, dy, dz, tEnter, tExit);
                     if (patchHit != null) {
-                        int rgb = WorldMapFaceRasterizer.sampleFaceRgb(
-                            block,
-                            meta,
-                            patchHit.face,
-                            patchHit.texU,
-                            patchHit.texV,
-                            vx,
-                            vy,
-                            vz,
-                            ctx);
+                        int rgb = WorldMapFaceRasterizer
+                            .sampleFaceRgb(block, meta, patchHit.face, patchHit.texU, patchHit.texV, vx, vy, vz, ctx);
                         if (rgb >= 0) {
                             int alpha = alphaForBlock(block);
                             if (alpha >= 255 || !isRayTransparent(block)) {
@@ -147,16 +126,8 @@ public final class WorldMapIsoRayRenderer {
                     }
                 } else {
                     int[] uv = faceUv(entryFace, ox + dx * tExit, oy + dy * tExit, oz + dz * tExit);
-                    int rgb = WorldMapFaceRasterizer.sampleFaceRgb(
-                        block,
-                        meta,
-                        entryFace,
-                        uv[0],
-                        uv[1],
-                        vx,
-                        vy,
-                        vz,
-                        ctx);
+                    int rgb = WorldMapFaceRasterizer
+                        .sampleFaceRgb(block, meta, entryFace, uv[0], uv[1], vx, vy, vz, ctx);
                     if (rgb >= 0) {
                         int alpha = alphaForBlock(block);
                         if (alpha >= 255 || !isRayTransparent(block)) {
@@ -250,15 +221,12 @@ public final class WorldMapIsoRayRenderer {
         double ay = Math.abs(dy);
         double az = Math.abs(dz);
         if (ax >= ay && ax >= az) {
-            return dx > 0.0 ? WorldMapBlockColorResolver.BlockFace.WEST
-                : WorldMapBlockColorResolver.BlockFace.EAST;
+            return dx > 0.0 ? WorldMapBlockColorResolver.BlockFace.WEST : WorldMapBlockColorResolver.BlockFace.EAST;
         }
         if (ay >= ax && ay >= az) {
-            return dy > 0.0 ? WorldMapBlockColorResolver.BlockFace.BOTTOM
-                : WorldMapBlockColorResolver.BlockFace.TOP;
+            return dy > 0.0 ? WorldMapBlockColorResolver.BlockFace.BOTTOM : WorldMapBlockColorResolver.BlockFace.TOP;
         }
-        return dz > 0.0 ? WorldMapBlockColorResolver.BlockFace.NORTH
-            : WorldMapBlockColorResolver.BlockFace.SOUTH;
+        return dz > 0.0 ? WorldMapBlockColorResolver.BlockFace.NORTH : WorldMapBlockColorResolver.BlockFace.SOUTH;
     }
 
     private static WorldMapBlockColorResolver.BlockFace faceForStep(int stepX, int stepY, int stepZ) {

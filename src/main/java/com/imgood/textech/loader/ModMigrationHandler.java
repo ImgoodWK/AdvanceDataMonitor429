@@ -107,10 +107,8 @@ public class ModMigrationHandler {
             }
         } catch (RuntimeException ex) {
             // Already remapped / incompatible — do not fail the world load.
-            AdvanceDataMonitor.LOG.warn(
-                "[TeXTech] Mapping already handled or remap skipped for {}: {}",
-                mapping.name,
-                ex.getMessage());
+            AdvanceDataMonitor.LOG
+                .warn("[TeXTech] Mapping already handled or remap skipped for {}: {}", mapping.name, ex.getMessage());
             return;
         }
 

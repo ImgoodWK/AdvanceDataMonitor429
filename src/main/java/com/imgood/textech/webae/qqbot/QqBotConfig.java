@@ -49,6 +49,18 @@ public final class QqBotConfig {
     public int maxConversationTurns = 8;
     public int conversationTtlMinutes = 30;
 
+    /**
+     * Optional shared-bot routing with AstrBot. Default off keeps WebAE independent.
+     * When enabled, non-WebAE intents are silently ignored so AstrBot can answer.
+     */
+    public boolean astrBotCompatEnabled;
+    /** Leading tokens that force WebAE ownership (case-insensitive ASCII). */
+    public List<String> webaeExplicitPrefixes = new ArrayList<String>(QqBotIntentClassifier.DEFAULT_WEBAE_PREFIXES);
+    /** Leading tokens that force AstrBot ownership. */
+    public List<String> astrBotExplicitPrefixes = new ArrayList<String>(QqBotIntentClassifier.DEFAULT_ASTRBOT_PREFIXES);
+    /** Substring keywords that classify a message as WebAE-owned when compat is on. */
+    public List<String> webaeIntentKeywords = new ArrayList<String>(QqBotIntentClassifier.DEFAULT_WEBAE_KEYWORDS);
+
     public int userCooldownSeconds = 2;
     public int aiCooldownSeconds = 10;
     public int maxInputChars = 800;

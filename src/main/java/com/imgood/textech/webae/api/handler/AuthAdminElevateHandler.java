@@ -17,9 +17,9 @@ import fi.iki.elonen.NanoHTTPD;
  * <p>
  * Constraints:
  * <ul>
- *   <li>Must be authenticated with a valid owner (non-guest) session.</li>
- *   <li>Rate-limited by IP and owner UUID (5 failures / 10 min).</li>
- *   <li>Bootstrap code is consumed on first use (unless --reuse was set).</li>
+ * <li>Must be authenticated with a valid owner (non-guest) session.</li>
+ * <li>Rate-limited by IP and owner UUID (5 failures / 10 min).</li>
+ * <li>Bootstrap code is consumed on first use (unless --reuse was set).</li>
  * </ul>
  * </p>
  */
@@ -64,11 +64,7 @@ public final class AuthAdminElevateHandler {
         }
 
         // Generate grant
-        GrantEntry grant = WebAdminGrantStore.createGrant(
-            auth.ownerUuid,
-            auth.actorUuid,
-            auth.actorName,
-            label);
+        GrantEntry grant = WebAdminGrantStore.createGrant(auth.ownerUuid, auth.actorUuid, auth.actorName, label);
 
         if (grant == null) {
             return json(500, "internal_error", "Failed to create admin grant.");
@@ -76,15 +72,21 @@ public final class AuthAdminElevateHandler {
 
         AdvanceDataMonitor.LOG.info(
             "[WebAE] Admin grant created: owner={} actor={} label={} from_ip={}",
-            auth.ownerUuid, auth.actorUuid, label != null ? label : "", clientIp);
+            auth.ownerUuid,
+            auth.actorUuid,
+            label != null ? label : "",
+            clientIp);
 
-        return json(200,
+        return json(
+            200,
             "{\"status\":\"ok\",\"adminToken\":\"" + escapeJson(grant.adminToken)
                 + "\",\"expiresAt\":"
                 + grant.expiresAt
                 + ",\"issuedAt\":"
                 + grant.issuedAt
-                + ",\"boundActorUuid\":\"" + escapeJson(grant.boundActorUuid) + "\"}");
+                + ",\"boundActorUuid\":\""
+                + escapeJson(grant.boundActorUuid)
+                + "\"}");
     }
 
     /** GET /api/auth/admin/me — return current admin status and capabilities. */
@@ -96,25 +98,42 @@ public final class AuthAdminElevateHandler {
 
         StringBuilder sb = new StringBuilder();
         sb.append("{\"status\":\"ok\"");
-        sb.append(",\"ownerUuid\":\"").append(escapeJson(auth.ownerUuid)).append("\"");
-        sb.append(",\"actorUuid\":\"").append(escapeJson(auth.actorUuid)).append("\"");
-        sb.append(",\"actorName\":\"").append(escapeJson(auth.actorName)).append("\"");
-        sb.append(",\"tokenType\":\"").append(escapeJson(auth.type)).append("\"");
-        sb.append(",\"isAdmin\":").append(isAdmin);
-        sb.append(",\"isOnlineOp\":").append(isOnlineOp);
+        sb.append(",\"ownerUuid\":\"")
+            .append(escapeJson(auth.ownerUuid))
+            .append("\"");
+        sb.append(",\"actorUuid\":\"")
+            .append(escapeJson(auth.actorUuid))
+            .append("\"");
+        sb.append(",\"actorName\":\"")
+            .append(escapeJson(auth.actorName))
+            .append("\"");
+        sb.append(",\"tokenType\":\"")
+            .append(escapeJson(auth.type))
+            .append("\"");
+        sb.append(",\"isAdmin\":")
+            .append(isAdmin);
+        sb.append(",\"isOnlineOp\":")
+            .append(isOnlineOp);
         sb.append(",\"capabilities\":{");
-        sb.append("\"admin\":").append(isAdmin);
-        sb.append(",\"canForceSnapshot\":").append(isAdmin);
-        sb.append(",\"canEditRules\":").append(isAdmin);
-        sb.append(",\"canManageTokens\":").append(isAdmin);
-        sb.append(",\"canUploadPacks\":").append(isAdmin);
-        sb.append(",\"canViewPocketOverview\":").append(isAdmin);
-        sb.append(",\"canInvalidateWorldMap\":").append(isAdmin);
-        sb.append(",\"isGuest\":").append(auth.isGuest());
+        sb.append("\"admin\":")
+            .append(isAdmin);
+        sb.append(",\"canForceSnapshot\":")
+            .append(isAdmin);
+        sb.append(",\"canEditRules\":")
+            .append(isAdmin);
+        sb.append(",\"canManageTokens\":")
+            .append(isAdmin);
+        sb.append(",\"canUploadPacks\":")
+            .append(isAdmin);
+        sb.append(",\"canViewPocketOverview\":")
+            .append(isAdmin);
+        sb.append(",\"canInvalidateWorldMap\":")
+            .append(isAdmin);
+        sb.append(",\"isGuest\":")
+            .append(auth.isGuest());
         sb.append("}}");
 
-        return NanoHTTPD.newFixedLengthResponse(
-            NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
+        return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
     }
 
     /** GET /api/auth/admin/grants — list admin grants for this owner (self). */
@@ -130,8 +149,7 @@ public final class AuthAdminElevateHandler {
             first = false;
         }
         sb.append("]}");
-        return NanoHTTPD.newFixedLengthResponse(
-            NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
+        return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", sb.toString());
     }
 
     /** POST /api/auth/admin/revoke-self — revoke this device's admin grant. */
@@ -163,7 +181,8 @@ public final class AuthAdminElevateHandler {
         String xff = headers.get("x-forwarded-for");
         if (xff != null && !xff.isEmpty()) {
             int comma = xff.indexOf(',');
-            return comma >= 0 ? xff.substring(0, comma).trim() : xff.trim();
+            return comma >= 0 ? xff.substring(0, comma)
+                .trim() : xff.trim();
         }
         return "unknown";
     }
@@ -216,24 +235,26 @@ public final class AuthAdminElevateHandler {
     }
 
     private static NanoHTTPD.Response json(int status, String code, String message) {
-        return json(status, "{\"status\":\"error\",\"code\":\"" + escapeJson(code)
-            + "\",\"message\":\"" + escapeJson(message) + "\"}");
+        return json(
+            status,
+            "{\"status\":\"error\",\"code\":\"" + escapeJson(code) + "\",\"message\":\"" + escapeJson(message) + "\"}");
     }
 
     private static NanoHTTPD.Response json(int status, String body) {
         return NanoHTTPD.newFixedLengthResponse(
             status == 200 ? NanoHTTPD.Response.Status.OK
                 : status == 400 ? NanoHTTPD.Response.Status.BAD_REQUEST
-                : status == 403 ? NanoHTTPD.Response.Status.FORBIDDEN
-                : status == 404 ? NanoHTTPD.Response.Status.NOT_FOUND
-                : status == 429 ? NanoHTTPD.Response.Status.INTERNAL_ERROR // NanoHTTPD has no 429, fallback
-                : NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                    : status == 403 ? NanoHTTPD.Response.Status.FORBIDDEN
+                        : status == 404 ? NanoHTTPD.Response.Status.NOT_FOUND
+                            : status == 429 ? NanoHTTPD.Response.Status.INTERNAL_ERROR // NanoHTTPD has no 429, fallback
+                                : NanoHTTPD.Response.Status.INTERNAL_ERROR,
             "application/json",
             body);
     }
 
     private static String escapeJson(String value) {
         if (value == null) return "";
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return value.replace("\\", "\\\\")
+            .replace("\"", "\\\"");
     }
 }

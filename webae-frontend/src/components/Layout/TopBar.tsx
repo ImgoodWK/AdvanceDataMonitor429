@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Select,
   Button,
@@ -24,6 +25,13 @@ import {
   isNetworkHealthy,
 } from '@/utils/networkHealth';
 import type { NavPageEntry } from './navConfig';
+
+const PRESENT_CLASS = 'webae-dashboard-present';
+
+function setPresentClass(on: boolean) {
+  document.documentElement.classList.toggle(PRESENT_CLASS, on);
+  document.body.classList.toggle(PRESENT_CLASS, on);
+}
 
 interface TopBarProps {
   pages?: NavPageEntry[];
@@ -60,16 +68,54 @@ export function TopBar({ pages, activePage, setActivePage, topnavMode }: TopBarP
   const [presetName, setPresetName] = useState('');
 
   const maxNetworks = serverConfig?.maxNetworksDisplayed ?? 5;
+  const dashboardPresent = activePage === 'dashboard';
 
-  const handleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.();
-      setIsFullscreen(false);
+  const exitFullscreen = useCallback(() => {
+    setPresentClass(false);
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
     }
-  };
+    setIsFullscreen(false);
+  }, []);
+
+  const handleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      exitFullscreen();
+      return;
+    }
+    if (dashboardPresent) {
+      setPresentClass(true);
+    }
+    document.documentElement.requestFullscreen?.().catch(() => {
+      // Still keep present chrome-hide even if Fullscreen API is denied.
+      if (dashboardPresent) setIsFullscreen(true);
+    });
+    setIsFullscreen(true);
+  }, [dashboardPresent, exitFullscreen]);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const fs = !!document.fullscreenElement;
+      if (!fs) {
+        setPresentClass(false);
+        setIsFullscreen(false);
+      } else {
+        setIsFullscreen(true);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      setPresentClass(false);
+    };
+  }, []);
+
+  // Leaving the dashboard page must drop present chrome-hide.
+  useEffect(() => {
+    if (!dashboardPresent && document.documentElement.classList.contains(PRESENT_CLASS)) {
+      exitFullscreen();
+    }
+  }, [dashboardPresent, exitFullscreen]);
 
   const refreshStatusText = () => {
     if (autoRefresh) return t('auto');
@@ -112,6 +158,7 @@ export function TopBar({ pages, activePage, setActivePage, topnavMode }: TopBarP
 
   return (
     <div
+      className="webae-topbar"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -258,13 +305,13 @@ export function TopBar({ pages, activePage, setActivePage, topnavMode }: TopBarP
         }
       />
 
-      {/* Fullscreen */}
-      <Tooltip title={t('fullscreen')}>
+      {/* Fullscreen — on dashboard: presentation mode (grid only) */}
+      <Tooltip title={dashboardPresent ? t('fullscreenDashboardHint') : t('fullscreen')}>
         <Button
           size="small"
           icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
           onClick={handleFullscreen}
-          aria-label={t('fullscreen')}
+          aria-label={dashboardPresent ? t('fullscreenDashboard') : t('fullscreen')}
         />
       </Tooltip>
 
@@ -285,6 +332,23 @@ export function TopBar({ pages, activePage, setActivePage, topnavMode }: TopBarP
           autoFocus
         />
       </Modal>
+
+      {/* Exit control stays visible while chrome is hidden in present mode */}
+      {isFullscreen &&
+        dashboardPresent &&
+        createPortal(
+          <Button
+            className="webae-present-exit"
+            type="primary"
+            size="small"
+            icon={<FullscreenExitOutlined />}
+            onClick={exitFullscreen}
+            aria-label={t('fullscreenExit')}
+          >
+            {t('fullscreenExit')}
+          </Button>,
+          document.body
+        )}
     </div>
   );
 }

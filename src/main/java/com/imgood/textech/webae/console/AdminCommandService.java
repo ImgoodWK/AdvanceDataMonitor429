@@ -30,11 +30,8 @@ public final class AdminCommandService {
 
     private AdminCommandService() {}
 
-    public static Submission submit(
-        String rawCommand,
-        boolean confirmed,
-        String actorUuid,
-        String actorName) throws InterruptedException {
+    public static Submission submit(String rawCommand, boolean confirmed, String actorUuid, String actorName)
+        throws InterruptedException {
         final String command = normalizeCommand(rawCommand);
         if (isHighRisk(command) && !confirmed) {
             return Submission.rejected("confirmation_required", "This command requires explicit confirmation.");
@@ -49,9 +46,11 @@ public final class AdminCommandService {
             return Submission.rejected("console_busy", "Another WebAE console command is still running.");
         }
 
-        final CommandAuditEntry queued = AdminConsoleStore.instance().createQueued(command, actorUuid, actorName);
+        final CommandAuditEntry queued = AdminConsoleStore.instance()
+            .createQueued(command, actorUuid, actorName);
         final CountDownLatch latch = new CountDownLatch(1);
         HandlerTick.enqueueServerTask(new Runnable() {
+
             @Override
             public void run() {
                 long startedAt = System.currentTimeMillis();
@@ -65,17 +64,11 @@ public final class AdminCommandService {
                     status = "failed";
                     error = safeError(t);
                     output.add(error);
-                    AdvanceDataMonitor.LOG.warn(
-                        "[WebAE] Admin console command failed: actor={} command={}", actorName, command, t);
+                    AdvanceDataMonitor.LOG
+                        .warn("[WebAE] Admin console command failed: actor={} command={}", actorName, command, t);
                 } finally {
-                    AdminConsoleStore.instance().complete(
-                        queued.id,
-                        status,
-                        affected,
-                        startedAt,
-                        System.currentTimeMillis(),
-                        output,
-                        error);
+                    AdminConsoleStore.instance()
+                        .complete(queued.id, status, affected, startedAt, System.currentTimeMillis(), output, error);
                     IN_FLIGHT.set(false);
                     latch.countDown();
                 }
@@ -83,14 +76,16 @@ public final class AdminCommandService {
         });
 
         boolean completed = latch.await(RESPONSE_WAIT_MS, TimeUnit.MILLISECONDS);
-        CommandAuditEntry entry = AdminConsoleStore.instance().historyEntry(queued.id);
+        CommandAuditEntry entry = AdminConsoleStore.instance()
+            .historyEntry(queued.id);
         return Submission.accepted(entry, !completed);
     }
 
     public static String normalizeCommand(String raw) {
         if (raw == null) throw new IllegalArgumentException("Command is required.");
         String command = raw.trim();
-        while (command.startsWith("/")) command = command.substring(1).trim();
+        while (command.startsWith("/")) command = command.substring(1)
+            .trim();
         if (command.isEmpty()) throw new IllegalArgumentException("Command is required.");
         if (command.length() > MAX_COMMAND_LENGTH) {
             throw new IllegalArgumentException("Command exceeds " + MAX_COMMAND_LENGTH + " characters.");
@@ -106,15 +101,24 @@ public final class AdminCommandService {
 
     public static boolean isHighRisk(String command) {
         if (command == null) return false;
-        String normalized = command.trim().toLowerCase(Locale.ROOT);
-        while (normalized.startsWith("/")) normalized = normalized.substring(1).trim();
+        String normalized = command.trim()
+            .toLowerCase(Locale.ROOT);
+        while (normalized.startsWith("/")) normalized = normalized.substring(1)
+            .trim();
         String root = normalized;
         int space = root.indexOf(' ');
         if (space >= 0) root = root.substring(0, space);
-        return "stop".equals(root) || "restart".equals(root) || "save-off".equals(root)
-            || "op".equals(root) || "deop".equals(root) || "ban".equals(root)
-            || "ban-ip".equals(root) || "pardon".equals(root) || "pardon-ip".equals(root)
-            || "kick".equals(root) || "kill".equals(root) || "whitelist".equals(root);
+        return "stop".equals(root) || "restart".equals(root)
+            || "save-off".equals(root)
+            || "op".equals(root)
+            || "deop".equals(root)
+            || "ban".equals(root)
+            || "ban-ip".equals(root)
+            || "pardon".equals(root)
+            || "pardon-ip".equals(root)
+            || "kick".equals(root)
+            || "kill".equals(root)
+            || "whitelist".equals(root);
     }
 
     private static synchronized boolean acquireActorCooldown(String actorUuid) {
@@ -126,7 +130,8 @@ public final class AdminCommandService {
         if (LAST_SUBMIT_BY_ACTOR.size() > 128) {
             List<String> stale = new ArrayList<String>();
             for (Map.Entry<String, Long> entry : LAST_SUBMIT_BY_ACTOR.entrySet()) {
-                if (now - entry.getValue().longValue() > 60000L) stale.add(entry.getKey());
+                if (now - entry.getValue()
+                    .longValue() > 60000L) stale.add(entry.getKey());
             }
             for (String staleKey : stale) LAST_SUBMIT_BY_ACTOR.remove(staleKey);
         }
@@ -138,10 +143,9 @@ public final class AdminCommandService {
         final MinecraftServer server = MinecraftServer.getServer();
         if (server == null) throw new IllegalStateException("Minecraft server is not available.");
         final Class<?> senderType = Class.forName("net.minecraft.command.ICommandSender");
-        Object sender = Proxy.newProxyInstance(
-            senderType.getClassLoader(),
-            new Class<?>[] { senderType },
-            new InvocationHandler() {
+        Object sender = Proxy
+            .newProxyInstance(senderType.getClassLoader(), new Class<?>[] { senderType }, new InvocationHandler() {
+
                 @Override
                 public Object invoke(Object proxy, Method method, Object[] args) throws Exception {
                     String name = method.getName();
@@ -161,11 +165,15 @@ public final class AdminCommandService {
                     }
                     if ("getPlayerCoordinates".equals(name) || "func_180425_c".equals(name)) {
                         Class<?> coords = Class.forName("net.minecraft.util.ChunkCoordinates");
-                        return coords.getConstructor(int.class, int.class, int.class).newInstance(0, 64, 0);
+                        return coords.getConstructor(int.class, int.class, int.class)
+                            .newInstance(0, 64, 0);
                     }
-                    if (method.getReturnType().getName().equals("net.minecraft.util.IChatComponent")) {
+                    if (method.getReturnType()
+                        .getName()
+                        .equals("net.minecraft.util.IChatComponent")) {
                         Class<?> text = Class.forName("net.minecraft.util.ChatComponentText");
-                        return text.getConstructor(String.class).newInstance("WebAE");
+                        return text.getConstructor(String.class)
+                            .newInstance("WebAE");
                     }
                     return defaultValue(method.getReturnType());
                 }
@@ -173,7 +181,8 @@ public final class AdminCommandService {
 
         Object manager = server.getCommandManager();
         Method execute = null;
-        for (Method method : manager.getClass().getMethods()) {
+        for (Method method : manager.getClass()
+            .getMethods()) {
             if (("executeCommand".equals(method.getName()) || "func_71556_a".equals(method.getName()))
                 && method.getParameterTypes().length == 2) {
                 execute = method;
@@ -187,21 +196,25 @@ public final class AdminCommandService {
 
     private static void addOutput(List<String> output, String line) {
         if (line == null) return;
-        String clean = line.replaceAll("\\u00a7.", "").replace('\r', ' ').replace('\n', ' ').trim();
+        String clean = line.replaceAll("\\u00a7.", "")
+            .replace('\r', ' ')
+            .replace('\n', ' ')
+            .trim();
         if (clean.isEmpty()) return;
-        output.add(clean.length() <= AdminConsoleStore.MAX_OUTPUT_LINE_LENGTH
-            ? clean : clean.substring(0, AdminConsoleStore.MAX_OUTPUT_LINE_LENGTH));
+        output.add(
+            clean.length() <= AdminConsoleStore.MAX_OUTPUT_LINE_LENGTH ? clean
+                : clean.substring(0, AdminConsoleStore.MAX_OUTPUT_LINE_LENGTH));
         while (output.size() > AdminConsoleStore.MAX_OUTPUT_LINES + 1) output.remove(0);
     }
 
     private static String chatText(Object component) {
         if (component == null) return "";
-        String[] methods = new String[] {
-            "getUnformattedTextForChat", "func_150260_c", "getUnformattedText", "func_150261_e",
-            "getFormattedText", "func_150254_d"
-        };
+        String[] methods = new String[] { "getUnformattedTextForChat", "func_150260_c", "getUnformattedText",
+            "func_150261_e", "getFormattedText", "func_150254_d" };
         for (String methodName : methods) try {
-            Object value = component.getClass().getMethod(methodName).invoke(component);
+            Object value = component.getClass()
+                .getMethod(methodName)
+                .invoke(component);
             if (value != null) return String.valueOf(value);
         } catch (Exception ignored) {}
         return String.valueOf(component);
@@ -224,11 +237,15 @@ public final class AdminCommandService {
         Throwable root = throwable;
         while (root.getCause() != null && root.getCause() != root) root = root.getCause();
         String message = root.getMessage();
-        if (message == null || message.trim().isEmpty()) message = root.getClass().getSimpleName();
+        if (message == null || message.trim()
+            .isEmpty())
+            message = root.getClass()
+                .getSimpleName();
         return AdminConsoleStore.safeText(message, 500);
     }
 
     public static final class Submission {
+
         public boolean accepted;
         public boolean pending;
         public String code;

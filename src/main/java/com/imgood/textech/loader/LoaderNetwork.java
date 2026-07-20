@@ -29,33 +29,33 @@ import com.imgood.textech.network.packet.PacketPocketSync;
 import com.imgood.textech.network.packet.PacketRequestItemCountSync;
 import com.imgood.textech.network.packet.PacketSuperOrangeConfig;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
-import com.imgood.textech.webae.network.PacketWebAlertNotify;
+import com.imgood.textech.webae.network.PacketIconDirectCaptureRequest;
+import com.imgood.textech.webae.network.PacketIconDirectCaptureResponse;
 import com.imgood.textech.webae.network.PacketScreenshotUpload;
 import com.imgood.textech.webae.network.PacketScreenshotUploadAck;
+import com.imgood.textech.webae.network.PacketWebAlertNotify;
 import com.imgood.textech.webae.network.PacketWebConsoleTokenNotify;
 import com.imgood.textech.webae.network.PacketWebIconExportScope;
 import com.imgood.textech.webae.network.PacketWebIconPullZip;
-import com.imgood.textech.webae.network.PacketWebIconResolveNack;
 import com.imgood.textech.webae.network.PacketWebIconRequest;
+import com.imgood.textech.webae.network.PacketWebIconResolveNack;
 import com.imgood.textech.webae.network.PacketWebIconUpload;
 import com.imgood.textech.webae.network.PacketWebIconUploadAck;
 import com.imgood.textech.webae.network.PacketWebMapTileJob;
 import com.imgood.textech.webae.network.PacketWebMapTileUpload;
+import com.imgood.textech.webae.network.PacketWebRecipeUpload;
+import com.imgood.textech.webae.network.PacketWebRecipeUploadAck;
+import com.imgood.textech.webae.network.PacketWebUploadTrigger;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureAccept;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureOffer;
 import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureRequest;
 import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureResponse;
-import com.imgood.textech.webae.network.PacketIconDirectCaptureRequest;
-import com.imgood.textech.webae.network.PacketIconDirectCaptureResponse;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotSyncRequest;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotSyncResponse;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotTileData;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotTilePull;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotTileUpload;
-import com.imgood.textech.webae.network.PacketWebRecipeUpload;
-import com.imgood.textech.webae.network.PacketWebRecipeUploadAck;
-import com.imgood.textech.webae.network.PacketWebUploadTrigger;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
@@ -248,11 +248,8 @@ public class LoaderNetwork {
                 .registerMessage(PacketWebIconRequest.Handler.class, PacketWebIconRequest.class, 33, Side.CLIENT);
         }
 
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            PacketWebIconResolveNack.Handler.class,
-            PacketWebIconResolveNack.class,
-            36,
-            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketWebIconResolveNack.Handler.class, PacketWebIconResolveNack.class, 36, Side.SERVER);
 
         AdvanceDataMonitor.ADMCHANEL
             .registerMessage(PacketWebMapTileUpload.Handler.class, PacketWebMapTileUpload.class, 35, Side.SERVER);
@@ -326,22 +323,13 @@ public class LoaderNetwork {
                 PacketIconDirectCaptureRequest.class,
                 47,
                 Side.CLIENT);
-            AdvanceDataMonitor.ADMCHANEL.registerMessage(
-                PacketWebIconPullZip.Handler.class,
-                PacketWebIconPullZip.class,
-                49,
-                Side.CLIENT);
-            AdvanceDataMonitor.ADMCHANEL.registerMessage(
-                PacketWebAlertNotify.Handler.class,
-                PacketWebAlertNotify.class,
-                50,
-                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketWebIconPullZip.Handler.class, PacketWebIconPullZip.class, 49, Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL
+                .registerMessage(PacketWebAlertNotify.Handler.class, PacketWebAlertNotify.class, 50, Side.CLIENT);
         }
-        AdvanceDataMonitor.ADMCHANEL.registerMessage(
-            PacketScreenshotUpload.Handler.class,
-            PacketScreenshotUpload.class,
-            51,
-            Side.SERVER);
+        AdvanceDataMonitor.ADMCHANEL
+            .registerMessage(PacketScreenshotUpload.Handler.class, PacketScreenshotUpload.class, 51, Side.SERVER);
         if (FMLCommonHandler.instance()
             .getEffectiveSide()
             .isClient()) {

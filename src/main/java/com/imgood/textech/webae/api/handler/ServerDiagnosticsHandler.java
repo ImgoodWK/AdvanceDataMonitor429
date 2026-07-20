@@ -28,10 +28,8 @@ public final class ServerDiagnosticsHandler {
     public static NanoHTTPD.Response handle() {
         DiagnosticsSnapshot snap = WebAePerfProfiler.instance()
             .snapshot();
-        return NanoHTTPD.newFixedLengthResponse(
-            NanoHTTPD.Response.Status.OK,
-            "application/json",
-            GSON.toJson(toJson(snap)));
+        return NanoHTTPD
+            .newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", GSON.toJson(toJson(snap)));
     }
 
     private static DiagnosticsJson toJson(DiagnosticsSnapshot snap) {

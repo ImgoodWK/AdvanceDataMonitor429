@@ -14,10 +14,12 @@ public final class WorldMapSnapshotMode {
 
     public static String normalized() {
         String raw = Config.worldMapSnapshotMode;
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return CLIENT_ONLY;
         }
-        raw = raw.trim().toLowerCase();
+        raw = raw.trim()
+            .toLowerCase();
         if (LEGACY.equals(raw)) {
             return LEGACY;
         }

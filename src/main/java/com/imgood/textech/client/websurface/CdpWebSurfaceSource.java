@@ -1,7 +1,6 @@
 package com.imgood.textech.client.websurface;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
 
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 
@@ -25,11 +24,10 @@ public final class CdpWebSurfaceSource implements WebSurfaceSource {
 
     @Override
     public boolean supports(NBTTagCompound binding) {
-        return binding != null
-            && (TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE
-                .equals(binding.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY))
-                || TileEntityAdvanceDataMonitor.MODE_LIVE_URL
-                    .equals(binding.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY)));
+        return binding != null && (TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE
+            .equals(binding.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY))
+            || TileEntityAdvanceDataMonitor.MODE_LIVE_URL
+                .equals(binding.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY)));
     }
 
     @Override
@@ -39,7 +37,7 @@ public final class CdpWebSurfaceSource implements WebSurfaceSource {
     }
 
     @Override
-    public ResourceLocation getTexture(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView) {
+    public WebSurfaceFrame getFrame(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView) {
         // Client-local CDP is optional; prefer shared WebAE capture for multiplayer consistency.
         return null;
     }

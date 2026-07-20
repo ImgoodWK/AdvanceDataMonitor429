@@ -17,9 +17,7 @@ public final class WebUiDefaultsHandler {
     public static NanoHTTPD.Response handleGet() {
         LoadedDefaults loaded = WebUiDefaultsStore.load();
         if (loaded.json == null) {
-            return json(
-                NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"defaults\":null,\"source\":null}");
+            return json(NanoHTTPD.Response.Status.OK, "{\"success\":true,\"defaults\":null,\"source\":null}");
         }
         String source = loaded.source == Source.INSTANCE ? "instance" : "jar";
         StringBuilder sb = new StringBuilder();

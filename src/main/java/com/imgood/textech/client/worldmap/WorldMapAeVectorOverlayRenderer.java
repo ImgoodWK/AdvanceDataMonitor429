@@ -35,22 +35,13 @@ public final class WorldMapAeVectorOverlayRenderer {
 
     private WorldMapAeVectorOverlayRenderer() {}
 
-    public static byte[] render(
-        Object worldIgnored,
-        String ownerUuid,
-        int networkId,
-        WorldMapView view,
-        int dim,
-        int chunkX,
-        int chunkZ) {
+    public static byte[] render(Object worldIgnored, String ownerUuid, int networkId, WorldMapView view, int dim,
+        int chunkX, int chunkZ) {
         if (!Config.webWorldMapAeOverlayEnabled || view == null) {
             return null;
         }
-        List<WorldMapAePlacementRecord> placements = WorldMapAePlacementSupport.filterChunk(
-            WorldMapAePlacementSupport.loadForNetwork(ownerUuid, networkId),
-            dim,
-            chunkX,
-            chunkZ);
+        List<WorldMapAePlacementRecord> placements = WorldMapAePlacementSupport
+            .filterChunk(WorldMapAePlacementSupport.loadForNetwork(ownerUuid, networkId), dim, chunkX, chunkZ);
         if (placements.isEmpty()) {
             return null;
         }
@@ -61,11 +52,7 @@ public final class WorldMapAeVectorOverlayRenderer {
         return renderFlat(dim, chunkX, chunkZ, placements, tier);
     }
 
-    private static byte[] renderFlat(
-        int dim,
-        int chunkX,
-        int chunkZ,
-        List<WorldMapAePlacementRecord> placements,
+    private static byte[] renderFlat(int dim, int chunkX, int chunkZ, List<WorldMapAePlacementRecord> placements,
         WorldMapQualityTier quality) {
         int tilePx = quality.isHdEligible() ? quality.hdTilePx() : WorldMapRenderSupport.tilePx(quality);
         int pxPerBlock = quality.isHdEligible() ? quality.pxPerBlock : WorldMapRenderSupport.pxPerBlock(quality);
@@ -81,30 +68,28 @@ public final class WorldMapAeVectorOverlayRenderer {
             ctx = WorldMapChunkContext.create(WorldMapRenderSupport.worldForDim(dim), chunkX, chunkZ);
         }
 
-        Collections.sort(
-            placements,
-            new Comparator<WorldMapAePlacementRecord>() {
+        Collections.sort(placements, new Comparator<WorldMapAePlacementRecord>() {
 
-                @Override
-                public int compare(WorldMapAePlacementRecord a, WorldMapAePlacementRecord b) {
-                    if (a == null && b == null) {
-                        return 0;
-                    }
-                    if (a == null) {
-                        return -1;
-                    }
-                    if (b == null) {
-                        return 1;
-                    }
-                    if (a.y != b.y) {
-                        return a.y - b.y;
-                    }
-                    if (a.z != b.z) {
-                        return a.z - b.z;
-                    }
-                    return a.x - b.x;
+            @Override
+            public int compare(WorldMapAePlacementRecord a, WorldMapAePlacementRecord b) {
+                if (a == null && b == null) {
+                    return 0;
                 }
-            });
+                if (a == null) {
+                    return -1;
+                }
+                if (b == null) {
+                    return 1;
+                }
+                if (a.y != b.y) {
+                    return a.y - b.y;
+                }
+                if (a.z != b.z) {
+                    return a.z - b.z;
+                }
+                return a.x - b.x;
+            }
+        });
 
         Set<String> cableCells = new HashSet<String>();
         for (WorldMapAePlacementRecord placement : placements) {
@@ -127,7 +112,14 @@ public final class WorldMapAeVectorOverlayRenderer {
             }
             int categoryId = WorldMapAeCategory.resolve(placement).id;
             if (isCableOrPart(placement)) {
-                paintCableConnections(g, placement, cableCells, lx, lz, pxPerBlock, categoryId,
+                paintCableConnections(
+                    g,
+                    placement,
+                    cableCells,
+                    lx,
+                    lz,
+                    pxPerBlock,
+                    categoryId,
                     "part".equals(placement.kind) ? partWidthPx : cableWidthPx);
                 painted++;
                 continue;
@@ -146,14 +138,8 @@ public final class WorldMapAeVectorOverlayRenderer {
         return WorldMapRenderSupport.toPng(img);
     }
 
-    private static boolean paintDeviceBlock(
-        BufferedImage img,
-        WorldMapChunkContext ctx,
-        WorldMapAePlacementRecord placement,
-        int lx,
-        int lz,
-        int pxPerBlock,
-        int categoryId) {
+    private static boolean paintDeviceBlock(BufferedImage img, WorldMapChunkContext ctx,
+        WorldMapAePlacementRecord placement, int lx, int lz, int pxPerBlock, int categoryId) {
         if (ctx == null || placement == null) {
             return false;
         }
@@ -176,15 +162,8 @@ public final class WorldMapAeVectorOverlayRenderer {
         return true;
     }
 
-    private static void paintCableConnections(
-        Graphics2D g,
-        WorldMapAePlacementRecord placement,
-        Set<String> cableCells,
-        int lx,
-        int lz,
-        int pxPerBlock,
-        int categoryId,
-        float lineWidthPx) {
+    private static void paintCableConnections(Graphics2D g, WorldMapAePlacementRecord placement, Set<String> cableCells,
+        int lx, int lz, int pxPerBlock, int categoryId, float lineWidthPx) {
         int argb = WorldMapAeCategory.argbForCategory(categoryId, 0xFF);
         if (argb == 0) {
             return;

@@ -13,9 +13,8 @@ public final class WorldMapQualitySupport {
      * Bumps tier by one step when {@code aeChunk} and {@link Config#webWorldMapAeQualityBoost} are enabled.
      */
     public static WorldMapQualityTier effectiveTier(WorldMapQualityTier requested, boolean aeChunk) {
-        WorldMapQualityTier base = WorldMapQualityTier.clamp(
-            requested != null ? requested : WorldMapQualityTier.MEDIUM,
-            WorldMapQualityTier.fromConfigMax());
+        WorldMapQualityTier base = WorldMapQualityTier
+            .clamp(requested != null ? requested : WorldMapQualityTier.MEDIUM, WorldMapQualityTier.fromConfigMax());
         if (!aeChunk || !Config.webWorldMapAeQualityBoost) {
             return base;
         }

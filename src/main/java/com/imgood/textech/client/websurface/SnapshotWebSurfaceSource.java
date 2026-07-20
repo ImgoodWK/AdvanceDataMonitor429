@@ -1,7 +1,6 @@
 package com.imgood.textech.client.websurface;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
 
 import com.imgood.textech.client.WebSurfaceClientCache;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
@@ -36,9 +35,9 @@ public final class SnapshotWebSurfaceSource implements WebSurfaceSource {
     }
 
     @Override
-    public ResourceLocation getTexture(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView) {
+    public WebSurfaceFrame getFrame(NBTTagCompound binding, int textureWidth, double distanceSq, boolean inView) {
         String hash = cacheKey(binding);
         if (hash == null || hash.length() != 64) return null;
-        return WebSurfaceClientCache.getTexture(hash, textureWidth);
+        return WebSurfaceFrame.ofLocation(WebSurfaceClientCache.getTexture(hash, textureWidth));
     }
 }

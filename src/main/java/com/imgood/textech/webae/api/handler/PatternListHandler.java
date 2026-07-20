@@ -141,12 +141,8 @@ public class PatternListHandler {
         if (fresh != null) {
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"patterns\":" + GSON.toJson(fresh)
-                    + ",\"count\":"
-                    + fresh.size()
-                    + ",\"cached\":true,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"patterns\":" + GSON
+                    .toJson(fresh) + ",\"count\":" + fresh.size() + ",\"cached\":true,\"timestamp\":" + ts + "}");
         }
         @SuppressWarnings("unchecked")
         List<PatternListEntryDto> stale = SnapshotCache.instance()
@@ -154,12 +150,8 @@ public class PatternListHandler {
         if (stale != null) {
             return json(
                 NanoHTTPD.Response.Status.OK,
-                "{\"success\":true,\"patterns\":" + GSON.toJson(stale)
-                    + ",\"count\":"
-                    + stale.size()
-                    + ",\"cached\":false,\"timestamp\":"
-                    + ts
-                    + "}");
+                "{\"success\":true,\"patterns\":" + GSON
+                    .toJson(stale) + ",\"count\":" + stale.size() + ",\"cached\":false,\"timestamp\":" + ts + "}");
         }
         SnapshotScheduler.forceCollectPatternsRich(playerUuid, networkId);
         return json(
@@ -358,8 +350,7 @@ public class PatternListHandler {
 
     // ---- PUT /api/patterns/<id> ----
 
-    private static NanoHTTPD.Response handlePut(String idPart, String body, WebAuthSession auth,
-        String adminHeader) {
+    private static NanoHTTPD.Response handlePut(String idPart, String body, WebAuthSession auth, String adminHeader) {
         if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return json(
                 NanoHTTPD.Response.Status.FORBIDDEN,

@@ -1,38 +1,25 @@
 package com.imgood.textech.client.worldmap;
 
-
-
 import org.lwjgl.opengl.GL11;
-
 import org.lwjgl.util.glu.GLU;
 
-
-
 import com.imgood.textech.webae.worldmap.WorldMapObliqueDirection;
-
 import com.imgood.textech.webae.worldmap.WorldMapView;
 
-
-
 import cpw.mods.fml.relauncher.Side;
-
 import cpw.mods.fml.relauncher.SideOnly;
 
-
-
 /**
-
+ * 
  * Orthographic / look-at camera presets for HD world map chunk rendering.
-
+ * 
  * Oblique views follow mineshot defaults ({@code xRot=30}, compass {@code yRot}).
-
+ * 
  */
 
 @SideOnly(Side.CLIENT)
 
 public final class WorldMapOrthoCamera {
-
-
 
     public final float eyeX;
 
@@ -63,8 +50,6 @@ public final class WorldMapOrthoCamera {
     public final float orthoNear;
 
     public final float orthoFar;
-
-
 
     private WorldMapOrthoCamera(float eyeX, float eyeY, float eyeZ, float lookX, float lookY, float lookZ, float upX,
 
@@ -104,8 +89,6 @@ public final class WorldMapOrthoCamera {
 
     }
 
-
-
     public static WorldMapOrthoCamera forView(WorldMapView view, int chunkX, int chunkZ) {
 
         float cx = chunkX * 16.0F + 8.0F;
@@ -115,8 +98,6 @@ public final class WorldMapOrthoCamera {
         float cy = 72.0F;
 
         float span = 14.0F;
-
-
 
         if (view == WorldMapView.FLAT) {
 
@@ -163,8 +144,6 @@ public final class WorldMapOrthoCamera {
         return forView(WorldMapView.FLAT, chunkX, chunkZ);
 
     }
-
-
 
     private static WorldMapOrthoCamera obliqueCamera(float cx, float cy, float cz, float span,
 
@@ -218,8 +197,6 @@ public final class WorldMapOrthoCamera {
 
     }
 
-
-
     public void apply() {
 
         GL11.glMatrixMode(GL11.GL_PROJECTION);
@@ -237,5 +214,3 @@ public final class WorldMapOrthoCamera {
     }
 
 }
-
-

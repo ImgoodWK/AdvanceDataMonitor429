@@ -184,9 +184,12 @@ final class QqGatewayClient {
             return;
         }
         int op = jsonInt(payload, "op", -1);
-        if (payload.has("s") && !payload.get("s").isJsonNull()) {
+        if (payload.has("s") && !payload.get("s")
+            .isJsonNull()) {
             try {
-                lastSeq.set(payload.get("s").getAsLong());
+                lastSeq.set(
+                    payload.get("s")
+                        .getAsLong());
             } catch (Exception ignored) {}
         }
         if (op == 10) {
@@ -255,11 +258,13 @@ final class QqGatewayClient {
 
             @Override
             public void run() {
-                while (!stopRequested.get() && !Thread.currentThread().isInterrupted()) {
+                while (!stopRequested.get() && !Thread.currentThread()
+                    .isInterrupted()) {
                     try {
                         Thread.sleep(heartbeatIntervalMs);
                     } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                        Thread.currentThread()
+                            .interrupt();
                         return;
                     }
                     WebSocketClient client = socketRef.get();
@@ -379,7 +384,8 @@ final class QqGatewayClient {
 
     private static boolean looksLikeIntentError(String detail) {
         String lower = safe(detail).toLowerCase();
-        return lower.contains("intent") || lower.contains("identify") || lower.contains("4014")
+        return lower.contains("intent") || lower.contains("identify")
+            || lower.contains("4014")
             || lower.contains("4013");
     }
 
@@ -393,7 +399,9 @@ final class QqGatewayClient {
 
     private static JsonObject jsonObject(JsonObject object, String key) {
         try {
-            if (object == null || !object.has(key) || object.get(key).isJsonNull()) {
+            if (object == null || !object.has(key)
+                || object.get(key)
+                    .isJsonNull()) {
                 return null;
             }
             JsonElement element = object.get(key);
@@ -405,10 +413,14 @@ final class QqGatewayClient {
 
     private static String jsonString(JsonObject object, String key) {
         try {
-            if (object == null || !object.has(key) || object.get(key).isJsonNull()) {
+            if (object == null || !object.has(key)
+                || object.get(key)
+                    .isJsonNull()) {
                 return "";
             }
-            return object.get(key).getAsString().trim();
+            return object.get(key)
+                .getAsString()
+                .trim();
         } catch (Exception e) {
             return "";
         }
@@ -416,10 +428,13 @@ final class QqGatewayClient {
 
     private static int jsonInt(JsonObject object, String key, int fallback) {
         try {
-            if (object == null || !object.has(key) || object.get(key).isJsonNull()) {
+            if (object == null || !object.has(key)
+                || object.get(key)
+                    .isJsonNull()) {
                 return fallback;
             }
-            return object.get(key).getAsInt();
+            return object.get(key)
+                .getAsInt();
         } catch (Exception e) {
             return fallback;
         }
@@ -427,10 +442,13 @@ final class QqGatewayClient {
 
     private static long jsonLong(JsonObject object, String key, long fallback) {
         try {
-            if (object == null || !object.has(key) || object.get(key).isJsonNull()) {
+            if (object == null || !object.has(key)
+                || object.get(key)
+                    .isJsonNull()) {
                 return fallback;
             }
-            return object.get(key).getAsLong();
+            return object.get(key)
+                .getAsLong();
         } catch (Exception e) {
             return fallback;
         }
@@ -445,7 +463,8 @@ final class QqGatewayClient {
     }
 
     private static String firstNonEmpty(String first, String second) {
-        return first != null && !first.trim().isEmpty() ? first.trim() : safe(second).trim();
+        return first != null && !first.trim()
+            .isEmpty() ? first.trim() : safe(second).trim();
     }
 
     private static String safe(String value) {
@@ -454,8 +473,9 @@ final class QqGatewayClient {
 
     private static String safeMessage(Exception error) {
         String message = error == null ? "" : error.getMessage();
-        return message == null || message.isEmpty()
-            ? (error == null ? "unknown error" : error.getClass().getSimpleName())
+        return message == null || message.isEmpty() ? (error == null ? "unknown error"
+            : error.getClass()
+                .getSimpleName())
             : message;
     }
 

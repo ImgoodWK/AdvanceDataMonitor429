@@ -16,13 +16,17 @@ import com.imgood.textech.handler.HandlerTick;
  * Single-thread daemon executor that schedules AE snapshot work onto the Minecraft
  * server thread with backpressure and per-task timeout protection.
  *
- * <p>AE2 API calls must run on the server thread; this pool only controls
+ * <p>
+ * AE2 API calls must run on the server thread; this pool only controls
  * <em>when</em> tasks are dispatched so {@link com.imgood.textech.webae.cache.SnapshotScheduler}
- * does not flood the server task queue from a single tick.</p>
+ * does not flood the server task queue from a single tick.
+ * </p>
  *
- * <p>Warn timeout ({@link #TASK_TIMEOUT_MS}) only logs; {@code inFlight} stays held until the
+ * <p>
+ * Warn timeout ({@link #TASK_TIMEOUT_MS}) only logs; {@code inFlight} stays held until the
  * server task finishes (or {@link #HARD_WAIT_MS} elapses). Non-forced submits are rejected when
- * {@link HandlerTick#getServerTaskQueueDepth()} is at or above {@link #QUEUE_DEPTH_LIMIT}.</p>
+ * {@link HandlerTick#getServerTaskQueueDepth()} is at or above {@link #QUEUE_DEPTH_LIMIT}.
+ * </p>
  */
 public final class SnapshotWorkerPool {
 

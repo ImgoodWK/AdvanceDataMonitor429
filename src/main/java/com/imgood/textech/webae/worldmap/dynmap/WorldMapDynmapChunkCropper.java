@@ -13,9 +13,11 @@ import com.imgood.textech.AdvanceDataMonitor;
 /**
  * Crops a single 16×16 Minecraft chunk region from a Dynmap/GWM pre-rendered tile PNG.
  *
- * <p>Crop Y follows increasing world +Z (south downward in image), matching self-rendered
+ * <p>
+ * Crop Y follows increasing world +Z (south downward in image), matching self-rendered
  * flat tiles ({@code lz=0} at PNG row 0) and frontend {@code WORLD_MAP_TILE_FLIP_Y} compositing.
- * No extra vertical flip is applied here.</p>
+ * No extra vertical flip is applied here.
+ * </p>
  */
 public final class WorldMapDynmapChunkCropper {
 
@@ -96,12 +98,8 @@ public final class WorldMapDynmapChunkCropper {
             ImageIO.write(cropped, "png", out);
             return out.toByteArray();
         } catch (Exception e) {
-            AdvanceDataMonitor.LOG.debug(
-                "[WebAE] Dynmap chunk crop failed cx={} cz={} zoom={}: {}",
-                tileX,
-                tileZ,
-                zoom,
-                e.getMessage());
+            AdvanceDataMonitor.LOG
+                .debug("[WebAE] Dynmap chunk crop failed cx={} cz={} zoom={}: {}", tileX, tileZ, zoom, e.getMessage());
             return null;
         }
     }

@@ -4,11 +4,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.client.WebSurfaceClientCache;
+import com.imgood.textech.client.websurface.WebSurfaceFrame;
 import com.imgood.textech.client.websurface.WebSurfaceSourceRouter;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 
@@ -36,7 +36,7 @@ public class WebSurfaceRenderer implements IADMRender {
         String hash = nbt.getString(TileEntityAdvanceDataMonitor.WEB_DASHBOARD_HASH_KEY);
 
         if (!live && hash.length() != 64) {
-            renderPlaceholder(nbt, null);
+            renderSurface(nbt, null);
             return;
         }
         if (!live && !WebSurfaceClientCache.hasContent(hash)) {
@@ -49,20 +49,21 @@ public class WebSurfaceRenderer implements IADMRender {
                 hash);
         }
 
-        ResourceLocation texture = WebSurfaceSourceRouter.resolveTexture(
+        WebSurfaceFrame frame = WebSurfaceSourceRouter.resolveFrame(
             nbt,
             nbt.getInteger("webTextureWidth"),
             bindingIndex,
             (int) Math.floor(x),
             (int) Math.floor(y),
             (int) Math.floor(z));
-        if (texture == null && !live && hash.length() == 64) {
-            texture = WebSurfaceClientCache.getTexture(hash, nbt.getInteger("webTextureWidth"));
+        if ((frame == null || !frame.isReady()) && !live && hash.length() == 64) {
+            frame = WebSurfaceFrame.ofLocation(
+                WebSurfaceClientCache.getTexture(hash, nbt.getInteger("webTextureWidth")));
         }
-        renderPlaceholder(nbt, texture);
+        renderSurface(nbt, frame);
     }
 
-    private void renderPlaceholder(NBTTagCompound nbt, ResourceLocation texture) {
+    private void renderSurface(NBTTagCompound nbt, WebSurfaceFrame frame) {
         int viewportWidth = Math.max(64, nbt.getInteger("webDashboardViewportWidth"));
         int viewportHeight = Math.max(64, nbt.getInteger("webDashboardViewportHeight"));
         double width = BASE_WIDTH;
@@ -92,17 +93,21 @@ public class WebSurfaceRenderer implements IADMRender {
                 OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
             }
 
-            if (texture != null) {
+            if (frame != null && frame.isReady()) {
                 GL11.glEnable(GL11.GL_TEXTURE_2D);
-                Minecraft.getMinecraft()
-                    .getTextureManager()
-                    .bindTexture(texture);
+                if (frame.hasGlTexture()) {
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, frame.getGlTextureId());
+                } else {
+                    Minecraft.getMinecraft()
+                        .getTextureManager()
+                        .bindTexture(frame.getLocation());
+                }
                 GL11.glColor4f(1.0F, 1.0F, 1.0F, opacity);
-                drawQuad(width, height, true);
+                drawQuad(width, height, true, frame.isFlipV());
             } else {
                 GL11.glDisable(GL11.GL_TEXTURE_2D);
                 GL11.glColor4f(0.03F, 0.12F, 0.18F, Math.min(0.9F, opacity));
-                drawQuad(width, height, false);
+                drawQuad(width, height, false, false);
                 GL11.glLineWidth(2.0F);
                 GL11.glColor4f(0.0F, 0.85F, 1.0F, opacity);
                 GL11.glBegin(GL11.GL_LINE_LOOP);
@@ -113,23 +118,23 @@ public class WebSurfaceRenderer implements IADMRender {
                 GL11.glEnd();
             }
         } finally {
-            OpenGlHelper.setLightmapTextureCoords(
-                OpenGlHelper.lightmapTexUnit,
-                previousBrightnessX,
-                previousBrightnessY);
+            OpenGlHelper
+                .setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, previousBrightnessX, previousBrightnessY);
             GL11.glPopMatrix();
             GL11.glPopAttrib();
         }
     }
 
-    private void drawQuad(double width, double height, boolean textured) {
+    private void drawQuad(double width, double height, boolean textured, boolean flipV) {
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
         if (textured) {
-            tessellator.addVertexWithUV(-width / 2.0D, -height / 2.0D, 0.0D, 0.0D, 1.0D);
-            tessellator.addVertexWithUV(width / 2.0D, -height / 2.0D, 0.0D, 1.0D, 1.0D);
-            tessellator.addVertexWithUV(width / 2.0D, height / 2.0D, 0.0D, 1.0D, 0.0D);
-            tessellator.addVertexWithUV(-width / 2.0D, height / 2.0D, 0.0D, 0.0D, 0.0D);
+            double t0 = flipV ? 0.0D : 1.0D;
+            double t1 = flipV ? 1.0D : 0.0D;
+            tessellator.addVertexWithUV(-width / 2.0D, -height / 2.0D, 0.0D, 0.0D, t0);
+            tessellator.addVertexWithUV(width / 2.0D, -height / 2.0D, 0.0D, 1.0D, t0);
+            tessellator.addVertexWithUV(width / 2.0D, height / 2.0D, 0.0D, 1.0D, t1);
+            tessellator.addVertexWithUV(-width / 2.0D, height / 2.0D, 0.0D, 0.0D, t1);
         } else {
             tessellator.addVertex(-width / 2.0D, -height / 2.0D, 0.0D);
             tessellator.addVertex(width / 2.0D, -height / 2.0D, 0.0D);

@@ -13,10 +13,8 @@ public final class QuestCacheStore {
 
     private static final QuestCacheStore INSTANCE = new QuestCacheStore();
 
-    private final ConcurrentHashMap<String, CacheEntry<List<QuestLineSummaryDto>>> lineListCache =
-        new ConcurrentHashMap<String, CacheEntry<List<QuestLineSummaryDto>>>();
-    private final ConcurrentHashMap<String, CacheEntry<Object>> progressCache =
-        new ConcurrentHashMap<String, CacheEntry<Object>>();
+    private final ConcurrentHashMap<String, CacheEntry<List<QuestLineSummaryDto>>> lineListCache = new ConcurrentHashMap<String, CacheEntry<List<QuestLineSummaryDto>>>();
+    private final ConcurrentHashMap<String, CacheEntry<Object>> progressCache = new ConcurrentHashMap<String, CacheEntry<Object>>();
 
     public static QuestCacheStore instance() {
         return INSTANCE;
@@ -62,10 +60,12 @@ public final class QuestCacheStore {
     }
 
     public interface ProgressLoader<T> {
+
         T load();
     }
 
     private static final class CacheEntry<T> {
+
         private final T value;
         private final long atMs;
 

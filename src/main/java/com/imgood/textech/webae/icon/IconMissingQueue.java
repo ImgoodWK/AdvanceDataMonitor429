@@ -37,8 +37,7 @@ public final class IconMissingQueue {
     private final Deque<MissingIcon> queue = new ArrayDeque<MissingIcon>();
     private final Set<String> queuedKeys = new LinkedHashSet<String>();
     private final Map<String, DispatchState> dispatchState = new ConcurrentHashMap<String, DispatchState>();
-    private final Set<String> declinedUuids = Collections
-        .newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private final Set<String> declinedUuids = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private volatile String preferredProviderUuid;
     private volatile String consentedProviderUuid;
@@ -67,7 +66,8 @@ public final class IconMissingQueue {
     }
 
     public boolean isCapturedWithClientTextures() {
-        return capturedWithClientTextures && consentedProviderUuid != null && System.currentTimeMillis() < consentedUntilMs;
+        return capturedWithClientTextures && consentedProviderUuid != null
+            && System.currentTimeMillis() < consentedUntilMs;
     }
 
     public boolean acceptConsent(EntityPlayerMP player) {
