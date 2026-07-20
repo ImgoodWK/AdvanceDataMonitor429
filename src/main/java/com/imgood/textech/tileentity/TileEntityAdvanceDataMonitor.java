@@ -30,6 +30,7 @@ import com.imgood.textech.utils.CraftingTemplateParser;
 import com.imgood.textech.utils.DataBound;
 import com.imgood.textech.utils.TileEntityTypeHelper;
 import com.imgood.textech.utils.WebDashboardSnapshotCodec;
+import com.imgood.textech.utils.WebDisplayBindingCodec;
 
 import appeng.api.AEApi;
 import appeng.api.networking.IGrid;
@@ -58,6 +59,14 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     public static final String RENDER_TYPE_WEB_SURFACE = "web_surface";
     public static final String WEB_DASHBOARD_PAYLOAD_KEY = "webDashboardPayload";
     public static final String WEB_DASHBOARD_HASH_KEY = "webDashboardHash";
+    public static final String WEB_DISPLAY_ID_KEY = "webDisplayId";
+    public static final String WEB_VIEW_TOKEN_KEY = "webViewToken";
+    public static final String WEB_ORIGIN_KEY = "webOrigin";
+    public static final String WEB_LIVE_URL_KEY = "webLiveUrl";
+    public static final String WEB_SURFACE_MODE_KEY = "webSurfaceMode";
+    public static final String MODE_DASHBOARD_SNAPSHOT = "dashboard_snapshot";
+    public static final String MODE_DASHBOARD_LIVE = "dashboard_live";
+    public static final String MODE_LIVE_URL = "live_url";
 
     private String ownerName = "";
 
@@ -793,6 +802,65 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             AdvanceDataMonitor.LOG.warn("Rejected WebAE dashboard snapshot at binding {}: {}", index, e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Applies a live web-surface binding (dashboard_live / live_url) without a drawing-list payload.
+     */
+    public boolean applyWebLiveBinding(int index, NBTTagCompound requestedConfig, WebDisplayBindingCodec.Binding binding) {
+        if (index < 0 || index >= MAX_DATA_BINDINGS || requestedConfig == null || binding == null) return false;
+        NBTTagCompound old = dataBoundList.get(index);
+        boolean replacingDashboard = isWebDashboardBinding(old);
+        if (!replacingDashboard && getWebDashboardBindingCount() >= MAX_WEB_DASHBOARD_BINDINGS) return false;
+
+        int oldBytes = replacingDashboard && old.hasKey(WEB_DASHBOARD_PAYLOAD_KEY)
+            ? old.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY).length
+            : 0;
+        // Live bindings may keep an optional snapshot payload for cold-start fallback.
+        byte[] fallbackPayload = null;
+        if (oldBytes > 0 && old != null) {
+            fallbackPayload = old.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY);
+        }
+
+        NBTTagCompound safe = createDefaultNBT();
+        safe.setString("dataType", DATA_TYPE_WEBAE_DASHBOARD);
+        safe.setString("renderType", RENDER_TYPE_WEB_SURFACE);
+        safe.setString(WEB_SURFACE_MODE_KEY, binding.mode);
+        safe.setString("name", "webDashboardLive");
+        safe.setString("XYZ", xCoord + "," + yCoord + "," + zCoord);
+        safe.setInteger("interval", 20);
+        safe.setBoolean("enable", getBoolean(requestedConfig, "enable", true));
+        safe.setString("displayName", boundedString(requestedConfig.getString("displayName"), binding.title, 64));
+        safe.setFloat("scale", clamp(getFloat(requestedConfig, "scale", 0.3F), 0.02F, 8.0F));
+        safe.setFloat("xOffset", clamp(getFloat(requestedConfig, "xOffset", 0.0F), -32.0F, 32.0F));
+        safe.setFloat("yOffset", clamp(getFloat(requestedConfig, "yOffset", -0.5F), -32.0F, 32.0F));
+        safe.setFloat("zOffset", clamp(getFloat(requestedConfig, "zOffset", -0.48F), -32.0F, 32.0F));
+        safe.setFloat("rotationX", normalizeAngle(getFloat(requestedConfig, "rotationX", 0.0F)));
+        safe.setFloat("rotationY", normalizeAngle(getFloat(requestedConfig, "rotationY", 0.0F)));
+        safe.setFloat("rotationZ", normalizeAngle(getFloat(requestedConfig, "rotationZ", 0.0F)));
+        safe.setFloat("webOpacity", clamp(getFloat(requestedConfig, "webOpacity", 1.0F), 0.05F, 1.0F));
+        safe.setBoolean("webFullBright", getBoolean(requestedConfig, "webFullBright", true));
+        safe.setInteger(
+            "webTextureWidth",
+            normalizeTextureWidth(
+                requestedConfig.hasKey("webTextureWidth") ? requestedConfig.getInteger("webTextureWidth") : 512));
+        safe.setString(WEB_DASHBOARD_HASH_KEY, binding.bindingHash);
+        safe.setString(WEB_DISPLAY_ID_KEY, binding.displayId == null ? "" : binding.displayId);
+        safe.setString(WEB_VIEW_TOKEN_KEY, binding.viewToken == null ? "" : binding.viewToken);
+        safe.setString(WEB_ORIGIN_KEY, binding.webaeOrigin == null ? "" : binding.webaeOrigin);
+        safe.setString(WEB_LIVE_URL_KEY, binding.url == null ? "" : binding.url);
+        safe.setString("webDashboardTitle", boundedString(binding.title, "WebAE Dashboard", 96));
+        safe.setInteger("webDashboardPrimitiveCount", 0);
+        safe.setInteger("webDashboardRawBytes", 0);
+        safe.setInteger("webDashboardCompressedBytes", fallbackPayload == null ? 0 : fallbackPayload.length);
+        safe.setInteger("webDashboardViewportWidth", binding.viewportWidth);
+        safe.setInteger("webDashboardViewportHeight", binding.viewportHeight);
+        if (fallbackPayload != null && fallbackPayload.length > 0
+            && getWebDashboardTotalBytes() - oldBytes + fallbackPayload.length <= MAX_WEB_DASHBOARD_TOTAL_BYTES) {
+            safe.setByteArray(WEB_DASHBOARD_PAYLOAD_KEY, fallbackPayload.clone());
+        }
+        setDisplayData(index, safe);
+        return true;
     }
 
     /**

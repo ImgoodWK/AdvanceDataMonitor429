@@ -12,8 +12,10 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.api.WebApiRouter;
 import com.imgood.textech.webae.api.handler.AuthExchangeHandler;
+import com.imgood.textech.webae.api.handler.DisplayHandler;
 import com.imgood.textech.webae.api.handler.WebUiDefaultsHandler;
 import com.imgood.textech.webae.auth.WebAuthMiddleware;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.metric.NetworkMetricSampler;
@@ -110,8 +112,18 @@ public class WebConsoleServer extends NanoHTTPD {
             if ("/api/ui-defaults".equals(uri)) {
                 return WebUiDefaultsHandler.handleGet();
             }
+            // Public display reads (layout / frame) authenticated by viewToken query.
+            Response publicDisplay = DisplayHandler.handlePublic(uri, session.getMethod(), session.getParms());
+            if (publicDisplay != null) {
+                return publicDisplay;
+            }
             WebAuthMiddleware.AuthResult authResult = authMiddleware.authenticate(session);
             if (!authResult.success) {
+                // Allow display viewToken as a read-only guest session for live embed data APIs.
+                WebAuthSession displaySession = tryDisplayViewSession(session);
+                if (displaySession != null) {
+                    return apiRouter.route(session, displaySession);
+                }
                 return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json", authResult.errorBody);
             }
             return apiRouter.route(session, authResult.session);
@@ -124,6 +136,22 @@ public class WebConsoleServer extends NanoHTTPD {
         }
     }
 
+    private static WebAuthSession tryDisplayViewSession(IHTTPSession session) {
+        String token = null;
+        String authHeader = session.getHeaders().get("authorization");
+        if (authHeader != null && authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            token = authHeader.substring(7).trim();
+        }
+        if (token == null || token.isEmpty()) {
+            java.util.Map<String, String> parms = session.getParms();
+            if (parms != null) {
+                token = parms.get("token");
+                if (token == null || token.isEmpty()) token = parms.get("viewToken");
+            }
+        }
+        return DisplayHandler.sessionFromViewToken(token);
+    }
+
     private Response serveStatic(String uri) {
         // External icon pack files (Phase 3.1): /icons/<pack>/<itemId>.png
         // → TeXTech/WebAE/icons/<pack>/<itemId>.png
@@ -133,8 +161,21 @@ public class WebConsoleServer extends NanoHTTPD {
         if ("/".equals(uri) || uri.isEmpty()) {
             uri = "/index.html";
         }
+        // SPA fallback for embed dashboard routes (no react-router on disk).
+        if (uri.startsWith("/embed/")) {
+            uri = "/index.html";
+        }
         String resourcePath = "/assets/textech/webae" + uri;
         InputStream stream = getClass().getResourceAsStream(resourcePath);
+        if (stream == null && !uri.equals("/index.html")) {
+            // Hash-router / deep-link fallback for built assets
+            if (!uri.contains(".") || uri.endsWith("/")) {
+                stream = getClass().getResourceAsStream("/assets/textech/webae/index.html");
+                if (stream != null) {
+                    return newChunkedResponse(Response.Status.OK, "text/html", stream);
+                }
+            }
+        }
         if (stream == null) {
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "404 Not Found");
         }

@@ -26,7 +26,7 @@ alwaysApply: false
 
 - Dashboard 拖拽布局允许使用已依赖的 `gridstack`（**仅**网格布局引擎，非 UI 组件库）
 - 三处 GridStack（主仪表盘 / 存储总览 / 电力页）统一用 `WidgetShell` 外壳；组件配置见 `utils/presets.ts` + `utils/dashboardResolve.ts`；树形分组与特殊数据源映射见 `utils/dashboardTree.ts` + `GroupWidget.tsx`；复制/JSON 见 `utils/widgetGridActions.ts`；资讯与网络健康/电力流向/存储矩阵/GT 机群/玩家在线/活动流/服务器生命体征组合组件见 `SpecialWidgets.tsx` + `dashboard-advanced-widgets.css`，只复用现有 hooks 结果，不得为展示新增轮询或 Tick 工作
-- 主仪表盘游戏显示器导出见 `utils/dashboardGameDisplayExport.ts`：只读取当前 DOM，输出 `textech-webae-display-snapshot` v1（最多 600 个 rect/ellipse/text/polyline、约 90 KiB 原始 JSON）并复制剪贴板；不得包含 Token/AI Key/Webhook/QQ/邮件密钥，不得新增 HTTP 端点/轮询/Tick。它与 `widgetGridActions.exportWidgetsJson()` 的可编辑布局 JSON 是两种格式
+- 主仪表盘游戏显示器导出：默认 `dashboardGameDisplayBinding.ts` 发布布局到 `/api/display` 并复制 `textech-webae-display-binding`；失败时可回退 `dashboardGameDisplayExport.ts` 的 DOM 快照。不得包含 Token/AI Key/Webhook/QQ/邮件密钥。直播帧由 WebAE 截帧 API 提供，不得在 MC Tick 轮询。与 `widgetGridActions.exportWidgetsJson()` 的可编辑布局 JSON 是不同格式
 - 长列表虚拟滚动使用 `@tanstack/react-virtual`（如 AE 下单 `VirtualPatternGrid` / `VirtualProductGrid`）
 - 页面容器统一使用 `components/Layout/PageShell.tsx`
 - 导航页表单一处定义：`components/Layout/navConfig.ts`（`NAV_PAGES` / `ALL_PAGES`），`Sidebar` / `TopBar` / `CommandPalette` 共用

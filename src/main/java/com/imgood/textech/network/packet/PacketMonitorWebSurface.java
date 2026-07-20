@@ -16,6 +16,7 @@ import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.NetworkValidationUtil;
 import com.imgood.textech.utils.WebDashboardSnapshotCodec;
+import com.imgood.textech.utils.WebDisplayBindingCodec;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -177,13 +178,31 @@ public class PacketMonitorWebSurface implements IMessage {
                     if (message.kind != KIND_UPLOAD || !NetworkValidationUtil.canEditOwnedTile(player, monitor)) {
                         return;
                     }
-                    boolean accepted = validatedUploadPayload && message.config != null
-                        && monitor.applyWebDashboardBinding(
-                            message.index,
-                            message.config,
-                            message.payload.length == 0 ? null : message.payload,
-                            message.hash,
-                            validatedSnapshot);
+                    boolean accepted = false;
+                    String mode = message.config == null ? ""
+                        : message.config.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY);
+                    if (TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE.equals(mode)
+                        || TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(mode)) {
+                        try {
+                            String bindingJson = message.config.hasKey("webBindingJson")
+                                ? message.config.getString("webBindingJson")
+                                : "";
+                            WebDisplayBindingCodec.Binding binding = WebDisplayBindingCodec.parse(bindingJson);
+                            if (message.hash.equals(binding.bindingHash)) {
+                                accepted = monitor.applyWebLiveBinding(message.index, message.config, binding);
+                            }
+                        } catch (WebDisplayBindingCodec.BindingException e) {
+                            accepted = false;
+                        }
+                    } else {
+                        accepted = validatedUploadPayload && message.config != null
+                            && monitor.applyWebDashboardBinding(
+                                message.index,
+                                message.config,
+                                message.payload.length == 0 ? null : message.payload,
+                                message.hash,
+                                validatedSnapshot);
+                    }
                     if (accepted) {
                         monitor.markDirty();
                         world.markBlockForUpdate(message.x, message.y, message.z);

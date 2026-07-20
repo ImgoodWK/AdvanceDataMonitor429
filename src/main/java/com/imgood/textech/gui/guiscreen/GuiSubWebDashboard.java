@@ -10,11 +10,13 @@ import org.lwjgl.input.Keyboard;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.client.WebSurfaceClientCache;
+import com.imgood.textech.client.websurface.HttpFrameWebSurfaceSource;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AbstractMonitorSubGui;
 import com.imgood.textech.network.packet.PacketMonitorWebSurface;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.WebDashboardSnapshotCodec;
+import com.imgood.textech.utils.WebDisplayBindingCodec;
 
 /**
  * Clipboard-driven configuration for a passive WebAE dashboard snapshot.
@@ -43,9 +45,13 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
     private String snapshotHash = "";
     private byte[] importedPayload;
     private WebDashboardSnapshotCodec.DecodedSnapshot snapshotInfo;
+    private WebDisplayBindingCodec.Binding liveBinding;
+    private String bindingJson = "";
+    private String surfaceMode = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT;
     private int textureWidth = 512;
     private boolean fullBright = true;
     private String status = "";
+    private ADM_GuiTextField originField;
 
     public GuiSubWebDashboard(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity, int index,
         boolean newBinding) {
@@ -74,6 +80,9 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
                     break;
                 case 4:
                     yOffsetField = field;
+                    break;
+                case 5:
+                    originField = field;
                     break;
                 default:
                     break;
@@ -109,32 +118,41 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         String[] previousValues = null;
         if (isInitialized && displayNameField != null) {
             previousValues = new String[] { displayNameField.getText(), scaleField.getText(), opacityField.getText(),
-                xOffsetField.getText(), yOffsetField.getText(), zOffsetField.getText(), rotationXField.getText(),
-                rotationYField.getText(), rotationZField.getText() };
+                xOffsetField.getText(), yOffsetField.getText(),
+                originField != null ? originField.getText() : HttpFrameWebSurfaceSource.resolveOrigin(""),
+                zOffsetField.getText(), rotationXField.getText(), rotationYField.getText(), rotationZField.getText() };
         }
         layoutMonitorPanel();
         textFieldsLeft.clear();
-        for (int i = 0; i < 5; i++) textFieldsLeft.add(null);
-        autoTextField("Left", textFieldsLeft, 0, 30, offsetX + 125, offsetY + 45, 105, 20);
+        for (int i = 0; i < 6; i++) textFieldsLeft.add(null);
+        autoTextField("Left", textFieldsLeft, 0, 28, offsetX + 125, offsetY + 40, 105, 18);
         textFieldsRight.clear();
         for (int i = 0; i < 4; i++) textFieldsRight.add(null);
-        autoTextField("Right", textFieldsRight, 0, 30, offsetX + 365, offsetY + 45, 105, 20);
+        autoTextField("Right", textFieldsRight, 0, 28, offsetX + 365, offsetY + 40, 105, 18);
 
         NBTTagCompound existing = newBinding ? null : tileEntity.getDataBound(index);
+        String defaultOrigin = existing != null && existing.hasKey(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY)
+            ? existing.getString(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY)
+            : HttpFrameWebSurfaceSource.resolveOrigin("");
         String[] values = previousValues != null ? previousValues
             : new String[] { existing == null ? I18n.format("adm.web_dashboard.default_name") : existing.getString("displayName"),
                 String.valueOf(existing == null ? 0.3F : existing.getFloat("scale")),
                 String.valueOf(existing == null || !existing.hasKey("webOpacity") ? 1.0F : existing.getFloat("webOpacity")),
                 String.valueOf(existing == null ? 0.0F : existing.getFloat("xOffset")),
                 String.valueOf(existing == null ? -0.5F : existing.getFloat("yOffset")),
+                defaultOrigin,
                 String.valueOf(existing == null ? -0.48F : existing.getFloat("zOffset")),
                 String.valueOf(existing == null ? 0.0F : existing.getFloat("rotationX")),
                 String.valueOf(existing == null ? 0.0F : existing.getFloat("rotationY")),
                 String.valueOf(existing == null ? 0.0F : existing.getFloat("rotationZ")) };
         ADM_GuiTextField[] fields = { displayNameField, scaleField, opacityField, xOffsetField, yOffsetField,
-            zOffsetField, rotationXField, rotationYField, rotationZField };
-        for (int i = 0; i < fields.length; i++) fields[i].setText(values[i]);
-        for (ADM_GuiTextField field : textFieldsLeft) field.setMaxStringLength(field == displayNameField ? 64 : 16);
+            originField, zOffsetField, rotationXField, rotationYField, rotationZField };
+        for (int i = 0; i < fields.length; i++) {
+            if (fields[i] != null && i < values.length) fields[i].setText(values[i]);
+        }
+        for (ADM_GuiTextField field : textFieldsLeft) {
+            if (field != null) field.setMaxStringLength(field == displayNameField || field == originField ? 128 : 16);
+        }
         for (ADM_GuiTextField field : textFieldsRight) field.setMaxStringLength(16);
 
         if (!isInitialized && existing != null) {
@@ -142,7 +160,10 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             textureWidth = normalizeTextureWidth(existing.hasKey("webTextureWidth") ? existing.getInteger("webTextureWidth") : 512);
             fullBright = !existing.hasKey("webFullBright") || existing.getBoolean("webFullBright");
             isEnabled = !existing.hasKey("enable") || existing.getBoolean("enable");
-            if (snapshotHash.length() == 64) {
+            surfaceMode = existing.hasKey(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY)
+                ? existing.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY)
+                : TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT;
+            if (TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT.equals(surfaceMode) && snapshotHash.length() == 64) {
                 byte[] local = WebSurfaceClientCache.getContent(snapshotHash);
                 if (local != null) decodeInfo(local);
                 WebSurfaceClientCache.requestContentIfNeeded(
@@ -177,6 +198,7 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         fieldHints.put(opacityField, "adm.hint.web_dashboard_opacity");
         fieldHints.put(xOffsetField, "adm.hint.xoffset");
         fieldHints.put(yOffsetField, "adm.hint.yoffset");
+        if (originField != null) fieldHints.put(originField, "adm.hint.web_dashboard_origin");
         fieldHints.put(zOffsetField, "adm.hint.zoffset");
         fieldHints.put(rotationXField, "adm.hint.rotationx");
         fieldHints.put(rotationYField, "adm.hint.rotationy");
@@ -237,11 +259,40 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             errorTips = I18n.format("adm.error.web_dashboard_clipboard_empty");
             return;
         }
+        if (WebDisplayBindingCodec.looksLikeBinding(json)) {
+            try {
+                liveBinding = WebDisplayBindingCodec.parse(json);
+                bindingJson = json.trim();
+                surfaceMode = liveBinding.mode;
+                snapshotHash = liveBinding.bindingHash;
+                importedPayload = null;
+                snapshotInfo = null;
+                if (originField != null && (originField.getText().trim().isEmpty()
+                    || HttpFrameWebSurfaceSource.resolveOrigin("").equals(originField.getText().trim()))) {
+                    if (liveBinding.webaeOrigin != null && !liveBinding.webaeOrigin.isEmpty()) {
+                        originField.setText(liveBinding.webaeOrigin);
+                    }
+                }
+                if (displayNameField.getText().trim().isEmpty()
+                    || I18n.format("adm.web_dashboard.default_name").equals(displayNameField.getText())) {
+                    displayNameField.setText(liveBinding.title);
+                }
+                errorTips = "";
+                refreshStatus();
+                return;
+            } catch (WebDisplayBindingCodec.BindingException e) {
+                errorTips = I18n.format("adm.error.web_dashboard_invalid") + " (" + e.getMessage() + ")";
+                return;
+            }
+        }
         try {
             WebDashboardSnapshotCodec.EncodedSnapshot encoded = WebDashboardSnapshotCodec.encode(json);
             importedPayload = encoded.compressed;
             snapshotHash = encoded.hash;
             snapshotInfo = encoded.decoded;
+            liveBinding = null;
+            bindingJson = "";
+            surfaceMode = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_SNAPSHOT;
             WebSurfaceClientCache.acceptContent(snapshotHash, importedPayload);
             if (displayNameField.getText().trim().isEmpty()
                 || I18n.format("adm.web_dashboard.default_name").equals(displayNameField.getText())) {
@@ -255,6 +306,12 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
     }
 
     private void copySnapshot() {
+        if (liveBinding != null && bindingJson != null && !bindingJson.isEmpty()) {
+            setClipboardString(bindingJson);
+            status = I18n.format("adm.status.web_dashboard_copied");
+            errorTips = "";
+            return;
+        }
         byte[] payload = importedPayload != null ? importedPayload : WebSurfaceClientCache.getContent(snapshotHash);
         if (payload == null) {
             errorTips = I18n.format("adm.error.web_dashboard_not_loaded");
@@ -270,7 +327,13 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
     }
 
     private void saveDashboard() {
-        if (newBinding && importedPayload == null) {
+        boolean live = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE.equals(surfaceMode)
+            || TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(surfaceMode);
+        if (newBinding && !live && importedPayload == null) {
+            errorTips = I18n.format("adm.error.web_dashboard_required");
+            return;
+        }
+        if (newBinding && live && liveBinding == null) {
             errorTips = I18n.format("adm.error.web_dashboard_required");
             return;
         }
@@ -278,7 +341,7 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             NBTTagCompound config = new NBTTagCompound();
             config.setString("dataType", TileEntityAdvanceDataMonitor.DATA_TYPE_WEBAE_DASHBOARD);
             config.setString("renderType", TileEntityAdvanceDataMonitor.RENDER_TYPE_WEB_SURFACE);
-            config.setString("webSurfaceMode", "dashboard_snapshot");
+            config.setString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY, surfaceMode);
             config.setString("displayName", displayNameField.getText().trim());
             config.setFloat("scale", Float.parseFloat(scaleField.getText().trim()));
             config.setFloat("webOpacity", Float.parseFloat(opacityField.getText().trim()));
@@ -292,7 +355,18 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             config.setBoolean("webFullBright", fullBright);
             config.setBoolean("enable", isEnabled);
             config.setString(TileEntityAdvanceDataMonitor.WEB_DASHBOARD_HASH_KEY, snapshotHash);
-            if (snapshotInfo != null) {
+            String origin = originField != null ? originField.getText().trim() : "";
+            config.setString(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY, origin);
+
+            if (live && liveBinding != null) {
+                config.setString("webBindingJson", bindingJson);
+                config.setString(TileEntityAdvanceDataMonitor.WEB_DISPLAY_ID_KEY, liveBinding.displayId);
+                config.setString(TileEntityAdvanceDataMonitor.WEB_VIEW_TOKEN_KEY, liveBinding.viewToken);
+                config.setString(TileEntityAdvanceDataMonitor.WEB_LIVE_URL_KEY, liveBinding.url);
+                config.setString("webDashboardTitle", liveBinding.title);
+                config.setInteger("webDashboardViewportWidth", liveBinding.viewportWidth);
+                config.setInteger("webDashboardViewportHeight", liveBinding.viewportHeight);
+            } else if (snapshotInfo != null) {
                 config.setString("webDashboardTitle", snapshotInfo.title);
                 config.setInteger("webDashboardPrimitiveCount", snapshotInfo.primitives.size());
                 config.setInteger("webDashboardRawBytes", snapshotInfo.rawBytes);
@@ -310,7 +384,7 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
                     tileEntity.zCoord,
                     index,
                     snapshotHash,
-                    importedPayload,
+                    live ? null : importedPayload,
                     config));
             openMainGui();
         } catch (NumberFormatException e) {
@@ -327,6 +401,14 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
     }
 
     private void refreshStatus() {
+        if (liveBinding != null) {
+            status = I18n.format(
+                "adm.status.web_dashboard_live",
+                liveBinding.title,
+                liveBinding.mode,
+                liveBinding.displayId);
+            return;
+        }
         if (snapshotInfo == null) {
             status = snapshotHash.length() == 64 ? I18n.format("adm.status.web_dashboard_loading")
                 : I18n.format("adm.status.web_dashboard_none");
@@ -346,11 +428,11 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         drawCenteredString(fontRendererObj, I18n.format("adm.title.web_dashboard"), width / 2, offsetY + 8, 0x00FFFF);
         String[] leftLabels = { I18n.format("adm.label.displayname"), I18n.format("adm.label.scaled"),
             I18n.format("adm.label.web_dashboard_opacity"), I18n.format("adm.label.xoffset"),
-            I18n.format("adm.label.yoffset") };
+            I18n.format("adm.label.yoffset"), I18n.format("adm.label.web_dashboard_origin") };
         String[] rightLabels = { I18n.format("adm.label.zoffset"), I18n.format("adm.label.rotationx"),
             I18n.format("adm.label.rotationy"), I18n.format("adm.label.rotationz") };
-        autoText(leftLabels, 0, 30, offsetX + 25, offsetY + 50, 0x00FFFF);
-        autoText(rightLabels, 0, 30, offsetX + 275, offsetY + 50, 0x00FFFF);
+        autoText(leftLabels, 0, 28, offsetX + 25, offsetY + 45, 0x00FFFF);
+        autoText(rightLabels, 0, 28, offsetX + 275, offsetY + 45, 0x00FFFF);
         drawTextFieldsWithHover(mouseX, mouseY);
         fontRendererObj.drawStringWithShadow(status, offsetX + 25, offsetY + 240, 0xAAAAAA);
         fontRendererObj.drawStringWithShadow(I18n.format("adm.hint.web_dashboard_static"), offsetX + 25,

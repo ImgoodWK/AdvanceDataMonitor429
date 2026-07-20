@@ -3722,3 +3722,39 @@ div.webae-list-row:focus-visible {
     transform: none !important;
   }
 }
+
+/* Embed dashboard: hide chrome for in-game capture / kiosk view */
+html.webae-embed-dashboard,
+body.webae-embed-dashboard {
+  overflow: auto !important;
+}
+body.webae-embed-dashboard .page-shell__header,
+body.webae-embed-dashboard .skip-link {
+  display: none !important;
+}
+body.webae-embed-dashboard .page-shell {
+  padding: 0 !important;
+  gap: 0 !important;
+  max-width: none !important;
+}
+body.webae-embed-dashboard .dashboard-grid-wrap {
+  min-height: 100vh;
+}
+
+/* Embed dashboard: hide chrome for in-game capture / kiosk view */
+html.webae-embed-dashboard,
+body.webae-embed-dashboard {
+  overflow: auto !important;
+}
+body.webae-embed-dashboard .page-shell__header,
+body.webae-embed-dashboard .skip-link {
+  display: none !important;
+}
+body.webae-embed-dashboard .page-shell {
+  padding: 0 !important;
+  gap: 0 !important;
+  max-width: none !important;
+}
+body.webae-embed-dashboard .dashboard-grid-wrap {
+  min-height: 100vh;
+}

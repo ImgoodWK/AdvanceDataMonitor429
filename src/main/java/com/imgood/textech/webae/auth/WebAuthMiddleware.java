@@ -39,6 +39,15 @@ public class WebAuthMiddleware {
         }
         WebAuthToken matched = WebAuthToken.findMatchingToken(token);
         if (matched == null) {
+            WebAuthSession displaySession = com.imgood.textech.webae.api.handler.DisplayHandler.sessionFromViewToken(token);
+            if (displaySession != null) {
+                if (isDisabled(displaySession.ownerUuid) || isDisabled(displaySession.actorUuid)) {
+                    return AuthResult.failure(
+                        "{\"status\":\"error\",\"code\":\"webae_disabled\",\"error\":\"webae_disabled\","
+                            + "\"message\":\"WebAE has been disabled for this player. Contact an administrator.\"}");
+                }
+                return AuthResult.success(displaySession);
+            }
             String code = isTokenLifetimeEnabled() ? "token_expired" : "invalid_token";
             return AuthResult
                 .failure("{\"status\":\"error\",\"code\":\"" + code + "\",\"message\":\"Invalid or expired token.\"}");

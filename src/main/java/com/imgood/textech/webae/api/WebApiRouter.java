@@ -13,6 +13,7 @@ import com.imgood.textech.webae.api.handler.AuthGuestInviteHandler;
 import com.imgood.textech.webae.api.handler.CellSummaryHandler;
 import com.imgood.textech.webae.api.handler.ChatHandler;
 import com.imgood.textech.webae.api.handler.CraftTreeHandler;
+import com.imgood.textech.webae.api.handler.DisplayHandler;
 import com.imgood.textech.webae.api.handler.EventStreamHandler;
 import com.imgood.textech.webae.api.handler.FavoritesHandler;
 import com.imgood.textech.webae.api.handler.GtMachineHandler;
@@ -95,6 +96,12 @@ public class WebApiRouter {
         }
         if (uri.startsWith("/api/spark/history/")) {
             return "/api/spark/history/{id}";
+        }
+        if (uri.startsWith("/api/display/")) {
+            if (uri.endsWith("/layout")) return "/api/display/{id}/layout";
+            if (uri.endsWith("/frame.jpg") || uri.endsWith("/frame")) return "/api/display/{id}/frame";
+            if (uri.endsWith("/touch")) return "/api/display/{id}/touch";
+            return "/api/display/{id}";
         }
         if (uri.startsWith("/api/admin/server-console/presets/")) {
             return "/api/admin/server-console/presets/{id}";
@@ -821,6 +828,13 @@ public class WebApiRouter {
 
             return MonitorPreviewHandler.handle(params, effectiveOwner);
 
+        }
+
+        if ("/api/display".equals(uri) || uri.startsWith("/api/display/")) {
+            String body = (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT)
+                ? readBody(session)
+                : null;
+            return DisplayHandler.handle(uri, method, params, body, auth);
         }
 
         if ("/api/favorites".equals(uri)) {

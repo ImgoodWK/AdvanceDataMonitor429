@@ -7,13 +7,23 @@ import { Login } from '@/components/Login';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { useEffect, useRef } from 'react';
 import { useIconPackAutoSync } from '@/hooks/useIconPackAutoSync';
+import { EmbedDashboard } from '@/pages/EmbedDashboard';
+
+function isEmbedPath(): boolean {
+  try {
+    return /\/embed\/dashboard\//.test(window.location.pathname || '');
+  } catch {
+    return false;
+  }
+}
 
 function Inner() {
-  const { isLoggedIn, lang, themeColor, themeLayout, pageStyle, notify, online } = useAppContext();
+  const { isLoggedIn, lang, themeColor, themeLayout, pageStyle, online } = useAppContext();
   useIconPackAutoSync();
   const compact = themeLayout === 'compact';
   const theme = buildAntdThemeSync(themeColor, compact, pageStyle);
   const locale = lang === 'zh' ? zhCN : enUS;
+  const embed = isEmbedPath();
 
   // aria-live region for connection status (WCAG)
   const liveRef = useRef<HTMLDivElement>(null);
@@ -32,7 +42,7 @@ function Inner() {
         </a>
         {/* aria-live region for screen readers */}
         <div ref={liveRef} aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }} />
-        {isLoggedIn ? <AppLayout /> : <Login />}
+        {embed ? <EmbedDashboard /> : isLoggedIn ? <AppLayout /> : <Login />}
       </AntdApp>
     </ConfigProvider>
   );

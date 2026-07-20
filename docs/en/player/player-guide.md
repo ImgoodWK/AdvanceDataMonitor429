@@ -490,7 +490,7 @@ Developer detail: [Technical Documentation §5.13](../developer/technical-docume
 
 **Chart types:** `line`, `bar`, `bar3d`, `waterfall`, `diffrence`, `crafting`, `storage`.
 
-**WebAE dashboard panel:** On the WebAE main dashboard, click **Export for in-game display** after data/layout finish rendering. In game, open the monitor, choose **WebAE Panel**, import clipboard JSON, then adjust title, scale, XYZ offsets/rotations, opacity, full-bright/world-light mode, and 256/512/1024px quality. This is a passive visual snapshot: it starts no server browser and performs no continuous WebAE polling. Re-export after dashboard values change. Normal TE sync sends only metadata/hash; nearby clients request missing compressed content once. Limits are 8 web panels and 128 KiB total content per monitor, with an 8-texture client LRU.
+**WebAE dashboard panel:** On the WebAE main dashboard, click **Export for in-game display** to publish layout/settings and copy a live binding JSON. In game, open the monitor, choose **WebAE Panel**, import clipboard JSON, set the WebAE origin if needed, then adjust title, scale, XYZ offsets/rotations, opacity, full-bright/world-light mode, and 256/512/1024px quality. Live mode refreshes frames by distance from the WebAE host (no MC-tick browser). If capture is unavailable, fall back to a static snapshot import. Normal TE sync sends only metadata/hash for snapshots; nearby clients request missing compressed snapshot content once. Limits are 8 web panels and 128 KiB total snapshot content per monitor, with client texture LRUs.
 
 **Transforms:** `xOffset`/`yOffset`/`zOffset`, `rotationX`/`Y`/`Z`, `scale`. If invisible, increase `scale` (try `0.5`–`1.0`) and adjust `zOffset`.
 

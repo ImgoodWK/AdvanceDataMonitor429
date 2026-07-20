@@ -243,6 +243,7 @@ alwaysApply: false
 - `KeyBindings.java` — O/P/H/F10 快捷键（AI聊天/计划器/HUD/窗口截图）；F10 用 ClientTick 边沿，任意 GuiScreen 内仍可截图；其余含 `uploadNeiRecipes()`、图标 upload/local/pull
 - `client/screenshot/ClientScreenshotService.java` — 只读 Minecraft Framebuffer；本地 `TeXTech/Screenshots/` JPEG 历史、后台编码/双上限清理、24 KiB/tick 受控上传队列
 - `WebSurfaceClientCache.java` — 网页表面压缩正文缓存、按哈希请求、单 daemon 后台 AWT 栅格化、渲染线程 DynamicTexture 上传与 8 项/约 6M 像素 LRU
+- `websurface/` — `WebSurfaceSource` 路由（HttpFrame / Snapshot / MCEF·CDP 软依赖占位）与直播帧拉取
 - `HandlerGrappleClient.java` — 挂索 Shift 取消 / 右键移动（客户端输入）
 - `GrappleClientCache.java` — 挂索客户端状态缓存（接收 `PacketGrappleSync`）
 - `GrappleSelectionUtil.java` — 挂索节点磁吸选点、路径预览坐标
@@ -296,6 +297,7 @@ alwaysApply: false
 - `AeUpgradeSpeedUtil.java` — AE 加速卡倍率（分子装配室档位 + 超级加速）
 - `AeSecurityCheck.java` — AE 安全终端权限检查
 - `WebDashboardSnapshotCodec.java` — `textech-webae-display-snapshot` v1 校验、GZIP（原始 96 KiB / 压缩 24 KiB）、SHA-256 与有界绘制元素 DTO
+- `WebDisplayBindingCodec.java` — `textech-webae-display-binding` v1（dashboard_live / live_url）校验与绑定哈希
 
 ### mixin/ — Mixin 注入 (7 文件，仅客户端)
 - `MixinGuiScreen.java` / `MixinGuiContainer.java` — GUI 输入/容器钩子
@@ -583,6 +585,7 @@ alwaysApply: false
 - `webae/api/handler/FavoritesHandler.java` — **Phase 4.2** `GET/PUT /api/favorites`
 - `webae/events/EventStreamHub.java` — **Phase9** SSE 订阅 hub（告警广播 + 15s 心跳；`HandlerTick` tick）
 - `webae/monitor/MonitorPreviewDto.java` / `MonitorPreviewCollector.java` — **Phase11** 监视器单槽折线预览
+- `webae/display/` — `DisplayStore` / `DisplayRecord` / `DisplayCaptureService`；`api/handler/DisplayHandler.java`（`/api/display` 发布、layout、frame.jpg、touch；viewToken 只读）
 - **Phase 3 集成** — `webae/scanner/LinkScannerCollector.java` + `LinkScannerBlockDto`（I1 已加载区块 Link 镜像）；`webae/monitor/MonitorBindingCollector.java` + DTOs（I2 监视器绑定只读）；`webae/api/handler/ScannerHandler.java`/`MonitorHandler.java`/`MonitorPreviewHandler.java`/`PlannerHandler.java`（I3 读/写 `plans.json` + `POST /api/planner/export-flow`）；`webae/assistant/WebAssistantService.java` + `WebAssistantRateLimiter.java` + `AssistantHandler.java`（I4 规则查询 2s 限流）；`webae/cells/NetworkCellSummaryCollector.java` + `CellSummaryHandler.java`（I5 无限元件/字节摘要）；`webae/pocket/PocketOverviewCollector.java` + `PocketHandler.java`（I6 OP 只读概览，无物品内容）；`CraftTreeHandler.java`/`EventStreamHandler.java`/`P2pHandler.java`（Phase6/9/10 REST）
 - **Phase 3 告警** — `config/ConfigWebAlertsLoader.java` 加载/保存 `TeXTech/WebAE/web-alerts.json`；`webae/alerts/WebAlertsConfig.java`/`WebAlertsConfigValidator.java`/`WebAlertEngine.java`/`WebAlertStore.java`/`WebAlertHistoryStore.java`/`WebAlertHistoryEntry.java`/`WebAlertDto.java`/`WebhookDispatcher.java`/`AlertDeliveryTransport.java`/`QqIdDiscovery.java`/`QqIdProbeParser.java`/`QqGatewayClient.java`/`QqIdProbeService.java`/`AutomationCooldownTracker.java`（浏览器、owner 聊天/HUD、旧 Webhook、QQ 官方机器人含目标 ID 探测、微信公众号、SMTP 邮件、企业微信机器人/自建应用；外部 I/O 固定 512 队列 + 2 daemon worker + 重试/熔断）+ `webae/network/PacketWebAlertNotify.java` / `renders/WebAlertHudRenderer.java` + `webae/order/OrderSubmitService.java`（Phase 3.3 服务端线程提交合成）+ `AlertsHandler.java`（A1–A5 + `server_tps_below` + `automation_craft` 历史 + `PUT /api/alerts/rules` OP 编辑与投递状态 + QQ ID probe）；`HandlerTick` 对告警引擎独立 perf 分段，`WebAlertEngine` 每告警 tick 最多轮转 2 owner 并复用 storage 索引；前端 `AlertsRulesEditor.tsx` / `QqIdProbeModal.tsx` 编辑多渠道目标与 TPS 安全参数
 - **Phase 7 下单模板** — `config/ConfigWebOrderTemplatesLoader.java` + `webae/order/WebOrderTemplate.java`/`WebOrderTemplateItem.java`/`WebOrderTemplatesStore.java`/`WebOrderTemplatesValidator.java` + `OrderTemplatesHandler.java`（`GET/PUT /api/order/templates`）；前端 `utils/orderTemplates.ts` + `components/patterns/OrderTemplatesModal.tsx` + `AeOrdering.tsx`/`OrderBatchPanel.tsx` 保存/加载/重命名/删除/缺口补货
@@ -590,5 +593,5 @@ alwaysApply: false
 - **Phase 4b 可见性轮询** — 前端 `hooks/usePageVisibility.ts` + `hooks/useVisibilityAwarePolling.ts`；`AppContext` `pauseRefreshWhenHidden`/`refreshPaused`；Settings 开关 `webae_pause_refresh_when_hidden`；覆盖全局 refresh/连接心跳/告警/指标/Chat/AeOrdering/usePlayers
 - **UI 全量备份/默认布局** — `webae-frontend/src/utils/uiSettingsBundle.ts`（`WebUiSettingsBundle` v1 collect/apply）；`components/settings/SettingsBackupPanel.tsx`；公开 `GET /api/ui-defaults` + `/admweb defaults`；jar/实例 `ui-defaults.json`
 - **WebAE 仪表盘组件设置** — `components/dashboard/EditWidgetModal.tsx`（编辑入口）、`WidgetPinEditor.tsx`（列选择与钉选搜索）、`utils/dashboardColumns.ts`（各数据源列定义与 `undefined`/空数组语义）、`utils/dashboardPins.ts`（钉选当前值解析）；渲染入口为 `pages/Dashboard.tsx`、共享 `WidgetContent.tsx` 与 `NetworkBalanceTable.tsx`。改列契约时必须同步所有入口和 `dashboardColumns.test.ts`，切换数据源需清除旧列 key；物品搜索需覆盖 displayName/registryName/itemId 并保留 meta=0
-- **WebAE → 游戏显示器快照** — `webae-frontend/src/utils/dashboardGameDisplayExport.ts` 从当前 Dashboard DOM 生成最多 600 个 rect/ellipse/text/polyline 的只读视觉 JSON，原始约 90 KiB 上限并复制剪贴板；游戏端 `WebDashboardSnapshotCodec` 再校验压缩上限。与 widgets 配置 JSON 分离，不新增 HTTP/轮询/Tick
+- **WebAE → 游戏显示器** — 默认发布布局到 `/api/display` 并复制 `textech-webae-display-binding`；可回退 `dashboardGameDisplayExport.ts` 的 DOM 快照。直播帧由 `DisplayCaptureService` + `/api/display/{id}/frame.jpg` 提供；与 widgets 配置 JSON 分离，MC Tick 不跑浏览器
 - `webae/debug/WebAeDebugLog.java` — WebAE 分功能 debug 日志（阶段 3.3，仿 `DataLoomDebugLog`；`Feature` 枚举 ICONS/CHAT/DASHBOARD/SYNTHESIS/PATTERNS，每功能写独立 `logs/textech/webae-<feature>.log`，gate by `Config.webDebugXxx` 开关；`info`/`warn`/`isEnabled`；关键错误仍走 `AdvanceDataMonitor.LOG` 无条件）

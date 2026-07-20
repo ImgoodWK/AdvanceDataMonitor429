@@ -180,11 +180,13 @@ Key classes:
 
 `dataType=webae_dashboard` is passive: `updateEntity()` skips it before coordinate parsing, target-TE reads, or interval counters, so it adds no server-tick collection. Its independent `renderType=web_surface` currently uses `webSurfaceMode=dashboard_snapshot`; future web content sources can reuse monitor transforms without changing the data type contract.
 
-WebAE `utils/dashboardGameDisplayExport.ts` converts the already-rendered Dashboard DOM into `textech-webae-display-snapshot` v1: a viewport plus at most 600 bounded `rect` / `ellipse` / `text` / `polyline` primitives, with raw JSON trimmed to roughly 90 KiB. `WebDashboardSnapshotCodec` validates again on client import and server save and requires the GZIP payload to stay within 24 KiB. The full payload persists only in server TE NBT; `writeSyncNBT()` removes it from ordinary TE updates and sends hash/viewport/count/size metadata. Bidirectional packet ID 53 (`PacketMonitorWebSurface`) handles one-binding upload/ack and nearby (64-block) content requests by hash. One monitor permits at most 8 web bindings and 128 KiB total compressed content.
+`dataType=webae_dashboard` is a passive data type: `updateEntity()` skips it entirely (no coordinate parse, no target TE read, no server-tick work). Its `renderType=web_surface` is decoupled from the data type. `webSurfaceMode` may be `dashboard_live` (published layout live frames), `dashboard_snapshot` (legacy drawing-list snapshot), or reserved `live_url`.
 
-On clients, `WebSurfaceClientCache` uses one low-priority daemon worker to rasterize the drawing list into a 256/512/1024px `DynamicTexture`. GL upload remains on the render thread; an 8-entry/about-6M-pixel LRU bounds VRAM. The stable frame path only binds the texture and draws one quad—no repeated JSON parsing and no WebAE HTTP request.
+Primary path: WebAE **Export for in-game display** publishes the current dashboard layout+settings under `TeXTech/WebAE/displays/` and copies a `textech-webae-display-binding` v1 (`displayId` / `viewToken`). After import, clients refresh by distance from `GET /api/display/{id}/frame.jpg`; the WebAE host captures frames with system Chrome/Edge headless (`DisplayCaptureService`) — never on the MC tick thread. When capture is unavailable, the legacy `textech-webae-display-snapshot` drawing list still works via `WebSurfaceClientCache` AWT rasterization. `writeSyncNBT()` still strips large payloads; packet 53 uploads bindings and on-demand snapshot content. Limits remain 8 web bindings and 128 KiB total snapshot content per monitor.
 
-Client rendering prefers `renderType` and falls back to `dataType`, dispatching to `LineChartRenderer`, `CraftingInfoRenderer`, `StorageInfoRenderer`, or `WebSurfaceRenderer`. To add a display type, typically:
+Client `WebSurfaceSourceRouter` tries MCEF (soft-dep stub) → local CDP (stub) → HttpFrame → Snapshot. The steady-state frame path only binds a texture and draws one quad.
+
+Client rendering prefers `renderType`, falling back to `dataType`, dispatching to `LineChartRenderer`, `CraftingInfoRenderer`, `StorageInfoRenderer`, or `WebSurfaceRenderer`. To add a display type, typically:
 
 1. Define display entry NBT fields and GUI edit entry.
 2. Write stable data structures in sampling logic.

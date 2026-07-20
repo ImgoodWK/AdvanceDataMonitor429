@@ -9,14 +9,15 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.client.WebSurfaceClientCache;
+import com.imgood.textech.client.websurface.WebSurfaceSourceRouter;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Generic textured web-surface renderer. The current source mode is a passive WebAE dashboard snapshot;
- * a future embedded-browser source can reuse the same renderType without changing monitor transforms.
+ * Generic textured web-surface renderer. Supports snapshot and live dashboard/url sources via
+ * {@link WebSurfaceSourceRouter}; monitor transforms stay shared across modes.
  */
 @SideOnly(Side.CLIENT)
 public class WebSurfaceRenderer implements IADMRender {
@@ -28,22 +29,36 @@ public class WebSurfaceRenderer implements IADMRender {
         if (!nbt.getBoolean("enable")) return;
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft.theWorld == null) return;
+
+        String mode = nbt.getString(TileEntityAdvanceDataMonitor.WEB_SURFACE_MODE_KEY);
+        boolean live = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE.equals(mode)
+            || TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(mode);
         String hash = nbt.getString(TileEntityAdvanceDataMonitor.WEB_DASHBOARD_HASH_KEY);
-        if (hash.length() != 64) {
+
+        if (!live && hash.length() != 64) {
             renderPlaceholder(nbt, null);
             return;
         }
-
-        if (!WebSurfaceClientCache.hasContent(hash)) {
+        if (!live && !WebSurfaceClientCache.hasContent(hash)) {
             WebSurfaceClientCache.requestContentIfNeeded(
                 minecraft.theWorld.provider.dimensionId,
-                (int) x,
-                (int) y,
-                (int) z,
+                (int) Math.floor(x),
+                (int) Math.floor(y),
+                (int) Math.floor(z),
                 bindingIndex,
                 hash);
         }
-        ResourceLocation texture = WebSurfaceClientCache.getTexture(hash, nbt.getInteger("webTextureWidth"));
+
+        ResourceLocation texture = WebSurfaceSourceRouter.resolveTexture(
+            nbt,
+            nbt.getInteger("webTextureWidth"),
+            bindingIndex,
+            (int) Math.floor(x),
+            (int) Math.floor(y),
+            (int) Math.floor(z));
+        if (texture == null && !live && hash.length() == 64) {
+            texture = WebSurfaceClientCache.getTexture(hash, nbt.getInteger("webTextureWidth"));
+        }
         renderPlaceholder(nbt, texture);
     }
 

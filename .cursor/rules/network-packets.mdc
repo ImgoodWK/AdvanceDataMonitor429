@@ -69,7 +69,7 @@ alwaysApply: false
 | 50 | `PacketWebAlertNotify` | `PacketWebAlertNotify.Handler` | S→C | WebAE 告警下发所属玩家客户端 HUD（有界标题/正文、显示时长/位置/提示音） |
 | 51 | `PacketScreenshotUpload` | `PacketScreenshotUpload.Handler` | C→S | 游戏窗口 JPEG 按 24 KiB 顺序分片上传；首片含 WebAE/QQ 目标与有界元数据，服务端限流/限并发 |
 | 52 | `PacketScreenshotUploadAck` | `PacketScreenshotUploadAck.Handler` | S→C | 截图后台校验、WebAE 落盘或 QQ 入队后的终态确认（不逐片 ACK） |
-| 53 | `PacketMonitorWebSurface` | `ServerHandler` + `ClientHandler` | C→S + S→C | 高级数据监视器网页表面：按哈希请求 24 KiB 内快照正文、单绑定配置上传与 ACK（同 ID 双向） |
+| 53 | `PacketMonitorWebSurface` | `ServerHandler` + `ClientHandler` | C→S + S→C | 高级数据监视器网页表面：快照正文按哈希请求（24 KiB 内）、单绑定上传（含 `dashboard_live` 绑定元数据）与 ACK；直播帧走 WebAE HTTP，不经本包 |
 
 **下一个可用 ID = 54**
 

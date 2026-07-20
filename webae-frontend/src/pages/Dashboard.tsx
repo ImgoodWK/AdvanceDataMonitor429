@@ -85,6 +85,9 @@ import {
 } from '@/components/dashboard/SpecialWidgets';
 import { copyWidgetConfig } from '@/utils/widgetGridActions';
 import { copyDashboardGameDisplayJson } from '@/utils/dashboardGameDisplayExport';
+import { publishAndCopyDashboardLiveBinding } from '@/utils/dashboardGameDisplayBinding';
+import { isEmbedDashboardMode } from '@/pages/EmbedDashboard';
+import { getApiClient } from '@/api/client';
 import { createWidgetId } from '@/utils/widgetId';
 import {
   GRID_DRAG_CANCEL_SELECTOR,
@@ -235,14 +238,29 @@ export function Dashboard() {
   }, [redoSettings, cancelLayoutSave, persistSettings]);
 
   const handleExportGameDisplay = useCallback(async () => {
-    if (!gridRef.current) return;
     try {
-      await copyDashboardGameDisplayJson(gridRef.current, t('dashboard'));
+      await publishAndCopyDashboardLiveBinding({
+        title: t('dashboard'),
+        layout: settings,
+        viewportWidth: Math.max(64, Math.round(gridRef.current?.clientWidth || 960)),
+        viewportHeight: Math.max(64, Math.round(gridRef.current?.clientHeight || 720)),
+        postJson: (url, body) => getApiClient().post(url, body),
+      });
       notify(t('dashboardGameDisplayExportDone'), 'success');
     } catch {
-      notify(t('dashboardGameDisplayExportFailed'), 'error');
+      // Fallback: offline visual snapshot if publish is unavailable.
+      if (!gridRef.current) {
+        notify(t('dashboardGameDisplayExportFailed'), 'error');
+        return;
+      }
+      try {
+        await copyDashboardGameDisplayJson(gridRef.current, t('dashboard'));
+        notify(t('dashboardGameDisplayExportSnapshotFallback'), 'warning');
+      } catch {
+        notify(t('dashboardGameDisplayExportFailed'), 'error');
+      }
     }
-  }, [notify, t]);
+  }, [notify, settings, t]);
 
   useUndoRedoHotkeys(handleUndo, handleRedo, effectiveEditMode);
 
@@ -253,6 +271,14 @@ export function Dashboard() {
     setAddWidgetOpen(false);
     setEditWidgetTarget(null);
   }, [browsingMode]);
+
+  useEffect(() => {
+    if (!isEmbedDashboardMode()) return;
+    setEditMode(false);
+    setSettingsOpen(false);
+    setAddWidgetOpen(false);
+    setEditWidgetTarget(null);
+  }, []);
 
   const currentNet = selectedNetworks[0] ?? 0;
   const storage = storageMap[currentNet];
@@ -1432,72 +1458,69 @@ export function Dashboard() {
     );
   }
 
+  const embedMode = isEmbedDashboardMode();
+
   return (
     <PageShell
-      title={t('dashboard')}
-      actions={(
-        <Space wrap>
-          <Tooltip title={t('dashboardGameDisplayExportHint')}>
-            <Button icon={<ExportOutlined />} onClick={handleExportGameDisplay}>
-              {t('dashboardGameDisplayExport')}
-            </Button>
-          </Tooltip>
-          {!browsingMode && (
-            <>
-              <Tooltip title={t('dashCfgOpenHint')}>
+      title={embedMode ? undefined : t('dashboard')}
+      actions={
+        embedMode ? undefined : (
+          <Space wrap>
+            <Tooltip title={t('dashboardGameDisplayExportHint')}>
+              <Button icon={<ExportOutlined />} onClick={handleExportGameDisplay}>
+                {t('dashboardGameDisplayExport')}
+              </Button>
+            </Tooltip>
+            {!browsingMode && (
+              <>
+                <Tooltip title={t('dashCfgOpenHint')}>
+                  <Button icon={<ControlOutlined />} onClick={() => setSettingsOpen(true)}>
+                    {t('dashCfgOpen')}
+                  </Button>
+                </Tooltip>
                 <Button
-                  icon={<ControlOutlined />}
-                  onClick={() => setSettingsOpen(true)}
+                  type={effectiveEditMode ? 'primary' : 'default'}
+                  icon={<EditOutlined />}
+                  onClick={() => setEditMode(!effectiveEditMode)}
                 >
-                  {t('dashCfgOpen')}
+                  {effectiveEditMode ? t('done') : t('editDashboard')}
                 </Button>
-              </Tooltip>
-              <Button
-                type={effectiveEditMode ? 'primary' : 'default'}
-                icon={<EditOutlined />}
-                onClick={() => setEditMode(!effectiveEditMode)}
-              >
-                {effectiveEditMode ? t('done') : t('editDashboard')}
-              </Button>
-              <Tooltip title={t('editorUndoHint')}>
-                <Button icon={<UndoOutlined />} onClick={handleUndo} disabled={!effectiveEditMode || !canUndo}>
-                  {t('editorUndo')}
-                </Button>
-              </Tooltip>
-              <Tooltip title={t('editorRedoHint')}>
-                <Button icon={<RedoOutlined />} onClick={handleRedo} disabled={!effectiveEditMode || !canRedo}>
-                  {t('editorRedo')}
-                </Button>
-              </Tooltip>
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  setAddTargetGroupId(null);
-                  setAddWidgetOpen(true);
-                }}
-                disabled={!effectiveEditMode}
-              >
-                {t('addWidget')}
-              </Button>
-              <Tooltip title={t('autoArrangeHint')}>
+                <Tooltip title={t('editorUndoHint')}>
+                  <Button icon={<UndoOutlined />} onClick={handleUndo} disabled={!effectiveEditMode || !canUndo}>
+                    {t('editorUndo')}
+                  </Button>
+                </Tooltip>
+                <Tooltip title={t('editorRedoHint')}>
+                  <Button icon={<RedoOutlined />} onClick={handleRedo} disabled={!effectiveEditMode || !canRedo}>
+                    {t('editorRedo')}
+                  </Button>
+                </Tooltip>
                 <Button
-                  icon={<AlignLeftOutlined />}
-                  onClick={handleAutoArrange}
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setAddTargetGroupId(null);
+                    setAddWidgetOpen(true);
+                  }}
                   disabled={!effectiveEditMode}
                 >
-                  {t('autoArrange')}
+                  {t('addWidget')}
                 </Button>
-              </Tooltip>
-              <Button icon={<ReloadOutlined />} onClick={handleResetLayout} disabled={!effectiveEditMode}>
-                {t('resetLayout')}
-              </Button>
-            </>
-          )}
-        </Space>
-      )}
+                <Tooltip title={t('autoArrangeHint')}>
+                  <Button icon={<AlignLeftOutlined />} onClick={handleAutoArrange} disabled={!effectiveEditMode}>
+                    {t('autoArrange')}
+                  </Button>
+                </Tooltip>
+                <Button icon={<ReloadOutlined />} onClick={handleResetLayout} disabled={!effectiveEditMode}>
+                  {t('resetLayout')}
+                </Button>
+              </>
+            )}
+          </Space>
+        )
+      }
     >
       <div className="dashboard-grid-wrap">
-        {effectiveEditMode && (
+        {effectiveEditMode && !embedMode && (
           <div className="dashboard-palette" aria-label={t('widgetPalette')}>
             <span className="dashboard-palette-label">{t('widgetPalette')}</span>
             <Space wrap size={[6, 6]}>
@@ -1536,7 +1559,7 @@ export function Dashboard() {
                 lastUpdateTime={lastUpdateTime}
                 className={widget.type === 'group' ? 'widget-shell--group' : undefined}
                 editOverlay={
-                  effectiveEditMode && widget.type !== 'group' ? (
+                  effectiveEditMode && !embedMode && widget.type !== 'group' ? (
                     <div
                       className={`dashboard-grid-edit-actions ${GRID_EDIT_NO_DRAG_CLASS}`}
                       style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4, zIndex: 2 }}
@@ -1576,7 +1599,7 @@ export function Dashboard() {
                   <GroupWidget
                     widget={widget}
                     settings={settings}
-                    editMode={effectiveEditMode}
+                    editMode={effectiveEditMode && !embedMode}
                     lastUpdateTime={lastUpdateTime}
                     renderChild={renderWidget}
                     flushLayoutSave={flushLayoutSave}
@@ -1604,14 +1627,16 @@ export function Dashboard() {
         </div>
       </div>
 
-      <DashboardSettingsDrawer
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        settings={settings}
-        onChange={saveSettings}
-        widgets={widgets}
-        onWidgetsChange={(w) => saveSettings((prev) => ({ ...prev, widgets: w }))}
-      />
+      {!embedMode && (
+        <DashboardSettingsDrawer
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          settings={settings}
+          onChange={saveSettings}
+          widgets={widgets}
+          onWidgetsChange={(w) => saveSettings((prev) => ({ ...prev, widgets: w }))}
+        />
+      )}
 
       {/* Add Widget Modal */}
       <Modal
