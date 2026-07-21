@@ -533,9 +533,12 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
     private String mcefStatusLine() {
         boolean live = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE.equals(surfaceMode)
             || TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(surfaceMode);
-        if (!live) return I18n.format("adm.status.web_dashboard_frame_snapshot");
+        if (!live) {
+            return I18n.format("adm.status.web_dashboard_frame_snapshot_not_web");
+        }
 
         String source = WebSurfaceSourceRouter.getLastSource();
+        String detail = WebSurfaceSourceRouter.getLastDetail();
         if (WebSurfaceSourceRouter.SOURCE_MCEF.equals(source)) {
             return I18n.format("adm.status.web_dashboard_frame_mcef");
         }
@@ -543,17 +546,26 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             return I18n.format("adm.status.web_dashboard_frame_spa");
         }
         if (WebSurfaceSourceRouter.SOURCE_SNAPSHOT.equals(source)) {
-            return I18n.format("adm.status.web_dashboard_frame_snapshot");
+            return I18n.format("adm.status.web_dashboard_frame_snapshot_not_web")
+                + (detail.isEmpty() ? "" : " [" + detail + "]");
         }
 
-        // No frame yet — show expected path.
-        if (!Config.webSurfaceUseMcef || !McefWebSurfaceSource.isClassPresent()) {
-            return I18n.format("adm.status.web_dashboard_frame_spa_pending");
+        String pending;
+        if (TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(surfaceMode)) {
+            pending = I18n.format("adm.status.web_dashboard_frame_live_url_need_mcef");
+        } else if (Config.webSurfaceUseMcef && McefWebSurfaceSource.isClassPresent()
+            && McefWebSurfaceSource.isAvailable()) {
+            pending = I18n.format("adm.status.web_dashboard_frame_mcef_pending");
+        } else if (Config.webSurfaceUseMcef && McefWebSurfaceSource.isClassPresent()
+            && !McefWebSurfaceSource.isAvailable()) {
+            pending = I18n.format("adm.status.web_dashboard_frame_mcef_broken");
+        } else {
+            pending = I18n.format("adm.status.web_dashboard_frame_spa_pending");
         }
-        if (McefWebSurfaceSource.isAvailable()) {
-            return I18n.format("adm.status.web_dashboard_frame_mcef_pending");
+        if (detail != null && !detail.isEmpty()) {
+            return pending + " [" + detail + "]";
         }
-        return I18n.format("adm.status.web_dashboard_frame_spa_pending");
+        return pending;
     }
 
     @Override

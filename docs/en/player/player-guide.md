@@ -490,7 +490,7 @@ Developer detail: [Technical Documentation §5.13](../developer/technical-docume
 
 **Chart types:** `line`, `bar`, `bar3d`, `waterfall`, `diffrence`, `crafting`, `storage`.
 
-**WebAE dashboard panel:** On the WebAE main dashboard, click **Export for in-game display** to publish layout/settings and copy a live binding JSON. In game, open the monitor, choose **WebAE Panel**, import clipboard JSON, set the WebAE origin if needed, then adjust title, scale, XYZ offsets/rotations, opacity, full-bright/world-light mode, and 256/512/1024px quality. Live mode refreshes frames by distance from the WebAE host (no MC-tick browser). If capture is unavailable, fall back to a static snapshot import. Normal TE sync sends only metadata/hash for snapshots; nearby clients request missing compressed snapshot content once. Limits are 8 web panels and 128 KiB total snapshot content per monitor, with client texture LRUs.
+**WebAE dashboard panel:** On the WebAE main dashboard, click **Export for in-game display** to publish layout/settings and copy a live binding JSON. In game, open the monitor, choose **WebAE Panel**, import clipboard JSON, set a reachable WebAE origin if needed, then adjust title, scale, XYZ offsets/rotations, opacity, full-bright/world-light mode, and 256/512/1024px quality. Successful live frames are real web content only: host Chrome/Edge capture of `/embed/dashboard` (`spa-jpeg`) or local MCEF (`mcef`). Live mode no longer silently falls back to AWT snapshot fake UI; the panel status line shows frame source and error codes. Static snapshot import is only for offline/publish failure and is not a web page. Limits are 8 web panels per monitor.
 
 **Transforms:** `xOffset`/`yOffset`/`zOffset`, `rotationX`/`Y`/`Z`, `scale`. If invisible, increase `scale` (try `0.5`–`1.0`) and adjust `zOffset`.
 
@@ -677,6 +677,8 @@ Enable `voice.enabled=true`. STT key priority: `voice.sttApiKey` → `VOICE_STT_
 |-----------------|----------|
 | `embedded-vosk` (default) | Offline Chinese model on 64-bit Windows Java; no extra services |
 | `http` | OpenAI-compatible `/v1/audio/transcriptions` (e.g. Whisper) |
+
+The offline Vosk model (~65 MB) is **not** inside the main jar. Download `TeXTech-*-voice.jar` (`modid` `textechvoice`) from the GitHub Release and put it next to TeXTech in `mods/`; it unpacks into the config data directory on first use. Alternatively set `voice.sttModel` to a local unpacked Vosk directory, or use `voice.sttMode=http` (no voice jar needed). Missing models do not crash the game — only offline STT fails with a clear message.
 
 **V** key toggles recording. Transcript opens AI chat if closed. Do not read secrets aloud — audio may leave your machine in HTTP mode.
 

@@ -28,6 +28,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Pulls JPEG frames from WebAE {@code /api/display/{id}/frame.jpg} with distance-based refresh.
+ * Tracks last capture/network error codes for GUI diagnostics.
  */
 @SideOnly(Side.CLIENT)
 public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
@@ -43,6 +44,7 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
     private static final Map<String, String> ETAGS = new HashMap<String, String>();
     private static final Map<String, Long> LAST_FETCH = new HashMap<String, Long>();
     private static final Map<String, Boolean> IN_FLIGHT = new HashMap<String, Boolean>();
+    private static final Map<String, String> LAST_ERROR = new HashMap<String, String>();
 
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(new ThreadFactory() {
 
@@ -59,6 +61,25 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
 
     public static HttpFrameWebSurfaceSource instance() {
         return INSTANCE;
+    }
+
+    /** Last machine-readable error for a cache key (may be empty). */
+    public static String getLastError(String cacheKey) {
+        if (cacheKey == null) return "";
+        synchronized (LOCK) {
+            String err = LAST_ERROR.get(cacheKey);
+            return err != null ? err : "";
+        }
+    }
+
+    private static void setError(String key, String code) {
+        synchronized (LOCK) {
+            if (code == null || code.isEmpty()) {
+                LAST_ERROR.remove(key);
+            } else {
+                LAST_ERROR.put(key, code);
+            }
+        }
     }
 
     @Override
@@ -127,11 +148,19 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
         String origin = resolveOrigin(binding.getString(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY));
         String url;
         if (TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(mode)) {
-            // For generic URLs, ask WebAE capture indirectly is not available; skip.
+            setError(key, "live_url_requires_mcef");
             return;
         }
         String displayId = binding.getString(TileEntityAdvanceDataMonitor.WEB_DISPLAY_ID_KEY);
         String token = binding.getString(TileEntityAdvanceDataMonitor.WEB_VIEW_TOKEN_KEY);
+        if (displayId == null || displayId.isEmpty() || token == null || token.isEmpty()) {
+            setError(key, "missing_display_token");
+            return;
+        }
+        if (origin == null || origin.isEmpty()) {
+            setError(key, "origin_missing");
+            return;
+        }
         int width = textureWidth <= 256 ? 256 : (textureWidth <= 512 ? 512 : 1024);
         url = origin + "/api/display/" + displayId + "/frame.jpg?token=" + token + "&width=" + width;
         String etag;
@@ -150,15 +179,28 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
             int code = conn.getResponseCode();
             String newEtag = conn.getHeaderField("ETag");
             String frameHeader = conn.getHeaderField("X-WebAE-Frame");
+            String captureError = conn.getHeaderField("X-WebAE-Capture-Error");
             if ("not-modified".equals(frameHeader) || code == 304) {
                 if (newEtag != null) {
                     synchronized (LOCK) {
                         ETAGS.put(key, newEtag);
                     }
                 }
+                setError(key, "");
                 return;
             }
             if (code != 200) {
+                String err = captureError;
+                if (err == null || err.isEmpty()) {
+                    err = readJsonErrorCode(conn, code);
+                }
+                if (err == null || err.isEmpty()) {
+                    if (code == 503) err = "capture_pending";
+                    else if (code == 404) err = "display_not_found";
+                    else if (code == 401 || code == 403) err = "token_denied";
+                    else err = "http_" + code;
+                }
+                setError(key, err);
                 // Back off harder on capture_pending / overload so we do not stampede Chrome.
                 if (code == 503 || code == 429) {
                     synchronized (LOCK) {
@@ -170,21 +212,83 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
             InputStream in = conn.getInputStream();
             byte[] bytes = readAll(in, 512 * 1024);
             if (bytes == null || bytes.length < 32) {
+                setError(key, "empty_frame");
                 return;
             }
             // JSON not-modified body
             if (bytes[0] == '{') {
+                setError(key, "json_frame_body");
                 return;
             }
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
-            if (image == null) return;
+            if (image == null) {
+                setError(key, "jpeg_decode_failed");
+                return;
+            }
             synchronized (LOCK) {
                 READY.put(key, image);
                 if (newEtag != null) ETAGS.put(key, newEtag);
             }
-        } catch (Exception ignored) {} finally {
+            setError(key, "");
+        } catch (java.net.UnknownHostException e) {
+            setError(key, "origin_unreachable");
+        } catch (java.net.ConnectException e) {
+            setError(key, "origin_unreachable");
+        } catch (java.net.SocketTimeoutException e) {
+            setError(key, "origin_timeout");
+        } catch (Exception e) {
+            setError(key, "fetch_failed");
+        } finally {
             if (conn != null) conn.disconnect();
         }
+    }
+
+    private static String readJsonErrorCode(HttpURLConnection conn, int httpCode) {
+        InputStream errStream = null;
+        try {
+            errStream = conn.getErrorStream();
+            if (errStream == null && httpCode >= 400) {
+                try {
+                    errStream = conn.getInputStream();
+                } catch (Exception ignored) {}
+            }
+            if (errStream == null) return null;
+            byte[] bytes = readAll(errStream, 4096);
+            if (bytes == null || bytes.length == 0 || bytes[0] != '{') return null;
+            String body = new String(bytes, "UTF-8");
+            // Prefer message field used by DisplayHandler (often the capture error code).
+            String message = extractJsonString(body, "message");
+            if (message != null && !message.isEmpty() && message.indexOf(' ') < 0) {
+                return message;
+            }
+            String code = extractJsonString(body, "code");
+            if ("capture_unavailable".equals(code) && message != null && !message.isEmpty()) {
+                return message.indexOf(' ') < 0 ? message : code;
+            }
+            return code;
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            if (errStream != null) {
+                try {
+                    errStream.close();
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private static String extractJsonString(String json, String key) {
+        if (json == null || key == null) return null;
+        String needle = "\"" + key + "\"";
+        int idx = json.indexOf(needle);
+        if (idx < 0) return null;
+        int colon = json.indexOf(':', idx + needle.length());
+        if (colon < 0) return null;
+        int q1 = json.indexOf('"', colon + 1);
+        if (q1 < 0) return null;
+        int q2 = json.indexOf('"', q1 + 1);
+        if (q2 < 0) return null;
+        return json.substring(q1 + 1, q2);
     }
 
     private static void touchCapture(String origin, String displayId, String token, int width) {

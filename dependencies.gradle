@@ -72,4 +72,16 @@ dependencies {
     // never bundled; WebAE detects modid "spark" before exposing its page/API.
     compileOnly(rfg.deobf('curse.maven:spark-361579:3577247'))
     devOnlyNonPublishable(rfg.deobf('curse.maven:spark-361579:3577247'))
+
+    // MCEF (montoyo) — optional in-game Chromium OSR for web surfaces.
+    // Never published. Place mcef-*-1.7.10.jar in libs/ (download from
+    // https://montoyo.net/wd3/?modid=mcef). Soft-dep remains reflective when absent.
+    def mcefJars = fileTree(dir: 'libs', include: ['mcef*.jar', 'MCEF*.jar'])
+    mcefJars.files.each { File mcefJar ->
+        if (mcefJar.name.toLowerCase().contains('-dev')) {
+            devOnlyNonPublishable(files(mcefJar))
+        } else {
+            devOnlyNonPublishable(rfg.deobf(files(mcefJar)))
+        }
+    }
 }

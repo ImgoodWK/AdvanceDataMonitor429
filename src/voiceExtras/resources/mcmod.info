@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "textechvoice",
+    "name": "TeXTech Voice Extras",
+    "description": "Optional Vosk offline speech model pack for TeXTech. Place beside TeXTech in mods/. Not required for HTTP STT or a local voice.sttModel directory.",
+    "version": "${modVersion}",
+    "mcversion": "${minecraftVersion}",
+    "url": "https://github.com/imgood/AdvanceDataMonitor429",
+    "updateUrl": "",
+    "authorList": ["imgood"],
+    "credits": "Vosk models from alphacephei.com",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": ["textech"]
+  }
+]

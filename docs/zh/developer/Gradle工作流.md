@@ -32,13 +32,23 @@ TeXTech 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/Example
 ### 1.1 常用命令
 
 ```powershell
-.\gradlew.bat build              # 编译打包
+.\gradlew.bat build              # 编译打包（含主 jar + *-voice.jar）
 .\gradlew.bat runClient          # 启动开发客户端
 .\gradlew.bat runServer          # 启动开发服务端
 .\gradlew.bat test               # 运行测试
 .\gradlew.bat clean setupDecompWorkspace   # 重建反编译工作区
+.\gradlew.bat voiceJar           # 仅打可选语音资源包
 ```
 
+`build/libs/` 产物：
+
+| 产物 | 说明 |
+|------|------|
+| 主 jar（无 `voice` classifier） | 发布用本体；**不含** `assets/textech/voice/vosk/**` |
+| `*-voice.jar` | 可选；modid `textechvoice`，含 Vosk 模型；玩家放入 `mods/` |
+| 开发 `runClient` | 仍从源码树加载 Vosk，无需 voice jar |
+
+可选 MCEF：将 montoyo `mcef*-1.7.10.jar` 放入 `libs/` 后，`dependencies.gradle` 会以 `devOnlyNonPublishable` 引入，且 `addon.late.gradle` 添加 ShutdownPatcher JVM 参数。下载：https://montoyo.net/wd3/?modid=mcef 。
 Unix-like shell 下对应使用 `./gradlew`。
 
 ### 1.2 关键文件

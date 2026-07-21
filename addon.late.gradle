@@ -1,0 +1,54 @@
+// Late hooks: exclude Vosk models + voiceextras marker from main jar;
+// build optional *-voice.jar; optional MCEF ShutdownPatcher for runClient.
+
+def voskExclude = 'assets/textech/voice/vosk/**'
+def voiceExtrasClassExclude = 'com/imgood/textech/voiceextras/**'
+
+tasks.named('jar', Jar).configure {
+    exclude voskExclude
+    exclude voiceExtrasClassExclude
+}
+
+tasks.matching { it.name == 'shadowJar' }.configureEach {
+    exclude voskExclude
+    exclude voiceExtrasClassExclude
+}
+
+tasks.register('voiceJar', Jar) {
+    group = 'build'
+    description = 'Optional TeXTech voice extras jar (Vosk models + textechvoice marker mod)'
+    archiveClassifier.set('voice')
+    from(sourceSets.main.output) {
+        include voiceExtrasClassExclude
+    }
+    from('src/main/resources') {
+        include 'assets/textech/voice/vosk/**'
+    }
+    from('src/voiceExtras/resources') {
+        include 'mcmod.info'
+    }
+    filesMatching('mcmod.info') {
+        expand([
+            modVersion      : project.version,
+            minecraftVersion: project.findProperty('minecraftVersion') ?: '1.7.10',
+            modId           : 'textechvoice',
+            modName         : 'TeXTech Voice Extras'
+        ])
+    }
+}
+
+tasks.named('build').configure {
+    dependsOn 'voiceJar'
+}
+
+artifacts {
+    archives tasks.named('voiceJar')
+}
+
+// Optional MCEF ShutdownPatcher so runClient does not hang on exit when MCEF is present.
+def mcefLibs = fileTree(dir: 'libs', include: ['mcef*.jar', 'MCEF*.jar'])
+if (!mcefLibs.isEmpty() && extensions.findByName('minecraft') != null) {
+    minecraft {
+        extraRunJvmArguments.add('-Dfml.coreMods.load=net.montoyo.mcef.coremod.ShutdownPatcher')
+    }
+}

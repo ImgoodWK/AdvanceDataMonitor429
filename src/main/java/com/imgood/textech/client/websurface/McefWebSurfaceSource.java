@@ -18,16 +18,12 @@ import net.minecraftforge.event.world.WorldEvent;
 /**
  * Soft-dep on montoyo MCEF: reflective off-screen browser for {@code dashboard_live} / {@code live_url}.
  * Falls through (returns null) when MCEF is absent, disabled, or the texture is not ready yet.
+ * Pool size and distance limits come from {@link Config}.
  */
 @SideOnly(Side.CLIENT)
 public final class McefWebSurfaceSource implements WebSurfaceSource {
 
     private static final McefWebSurfaceSource INSTANCE = new McefWebSurfaceSource();
-    private static final int MAX_BROWSERS = 2;
-    /** Close browsers beyond this distance so HttpFrame can take over. */
-    private static final double CLOSE_DISTANCE = 32.0D;
-    /** Do not create new browsers beyond this distance. */
-    private static final double CREATE_DISTANCE = 64.0D;
 
     private static final Boolean CLASS_PRESENT;
     private static final LinkedHashMap<String, BrowserEntry> BROWSERS = new LinkedHashMap<String, BrowserEntry>(
@@ -43,6 +39,7 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
     private static Object apiInstance;
     private static boolean reflectionReady;
     private static boolean reflectionFailed;
+    private static volatile String lastFailure = "";
 
     static {
         Boolean found = Boolean.FALSE;
@@ -67,6 +64,29 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
 
     public static boolean isClassPresent() {
         return CLASS_PRESENT.booleanValue();
+    }
+
+    /** Last reflection/create failure code for GUI diagnostics. */
+    public static String getLastFailure() {
+        return lastFailure != null ? lastFailure : "";
+    }
+
+    private static int maxBrowsers() {
+        int n = Config.webSurfaceMcefMaxBrowsers;
+        if (n < 1) n = 1;
+        if (n > 8) n = 8;
+        return n;
+    }
+
+    private static double closeDistance() {
+        double d = Config.webSurfaceMcefCloseDistance;
+        return d < 8.0D ? 8.0D : d;
+    }
+
+    private static double createDistance() {
+        double d = Config.webSurfaceMcefCreateDistance;
+        double close = closeDistance();
+        return d < close ? close : d;
     }
 
     /** Closes every pooled browser (world unload / dimension change). */
@@ -104,11 +124,11 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
         double dist = Math.sqrt(Math.max(0.0D, distanceSq));
         String key = cacheKey(binding);
 
-        if (dist > CLOSE_DISTANCE) {
+        if (dist > closeDistance()) {
             closeBrowser(key);
             return null;
         }
-        if (!inView || dist > CREATE_DISTANCE) {
+        if (!inView || dist > createDistance()) {
             return peekFrame(key);
         }
 
@@ -133,6 +153,7 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
                 entry = new BrowserEntry(browser, url, width, height);
                 BROWSERS.put(key, entry);
                 evictOverflow();
+                lastFailure = "";
             } else if (entry.width != width || entry.height != height) {
                 resizeBrowser(entry.browser, width, height);
                 entry.width = width;
@@ -167,7 +188,8 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
     }
 
     private static void evictOverflow() {
-        while (BROWSERS.size() > MAX_BROWSERS) {
+        int max = maxBrowsers();
+        while (BROWSERS.size() > max) {
             Iterator<Map.Entry<String, BrowserEntry>> it = BROWSERS.entrySet()
                 .iterator();
             if (!it.hasNext()) break;
@@ -234,6 +256,7 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
             getApiMethod = apiClass.getMethod("getAPI");
             Object api = getApiMethod.invoke(null);
             if (api == null) {
+                lastFailure = "mcef_api_null";
                 reflectionFailed = true;
                 return false;
             }
@@ -241,17 +264,23 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
             Class<?> apiType = api.getClass();
             createBrowserMethod = findMethod(apiType, "createBrowser", String.class, boolean.class);
             if (createBrowserMethod == null) {
-                // Some builds expose createBrowser on the API interface.
+                createBrowserMethod = findMethod(apiType, "createBrowser", String.class, boolean.class, boolean.class);
+            }
+            if (createBrowserMethod == null) {
                 for (Class<?> iface : apiType.getInterfaces()) {
                     createBrowserMethod = findMethod(iface, "createBrowser", String.class, boolean.class);
+                    if (createBrowserMethod == null) {
+                        createBrowserMethod = findMethod(iface, "createBrowser", String.class, boolean.class,
+                            boolean.class);
+                    }
                     if (createBrowserMethod != null) break;
                 }
             }
             if (createBrowserMethod == null) {
+                lastFailure = "mcef_no_createBrowser";
                 reflectionFailed = true;
                 return false;
             }
-            // Probe browser methods from a known interface if present.
             Class<?> browserIface = null;
             try {
                 browserIface = Class.forName("net.montoyo.mcef.api.IBrowser");
@@ -260,11 +289,16 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
             if (methodOwner != null) {
                 resizeMethod = findMethod(methodOwner, "resize", int.class, int.class);
                 getTextureIdMethod = findMethod(methodOwner, "getTextureID");
+                if (getTextureIdMethod == null) {
+                    getTextureIdMethod = findMethod(methodOwner, "getTextureId");
+                }
                 closeMethod = findMethod(methodOwner, "close");
             }
+            lastFailure = "";
             reflectionReady = true;
             return true;
         } catch (Throwable t) {
+            lastFailure = "mcef_reflection_failed";
             reflectionFailed = true;
             return false;
         }
@@ -282,20 +316,35 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
     private static Object createBrowser(String url) {
         if (!ensureReflection()) return null;
         try {
-            Object browser = createBrowserMethod.invoke(apiInstance, url, Boolean.FALSE);
-            if (browser == null) return null;
-            // Resolve instance methods if interface probe failed.
+            Object browser;
+            Class<?>[] types = createBrowserMethod.getParameterTypes();
+            if (types.length >= 3) {
+                // Some builds: createBrowser(url, transparent, disableListeners)
+                browser = createBrowserMethod.invoke(apiInstance, url, Boolean.TRUE, Boolean.FALSE);
+            } else {
+                // montoyo default: createBrowser(url, transparent) — transparent true for OSR surfaces
+                browser = createBrowserMethod.invoke(apiInstance, url, Boolean.TRUE);
+            }
+            if (browser == null) {
+                lastFailure = "mcef_create_null";
+                return null;
+            }
             if (resizeMethod == null) {
                 resizeMethod = findMethod(browser.getClass(), "resize", int.class, int.class);
             }
             if (getTextureIdMethod == null) {
                 getTextureIdMethod = findMethod(browser.getClass(), "getTextureID");
+                if (getTextureIdMethod == null) {
+                    getTextureIdMethod = findMethod(browser.getClass(), "getTextureId");
+                }
             }
             if (closeMethod == null) {
                 closeMethod = findMethod(browser.getClass(), "close");
             }
+            lastFailure = "";
             return browser;
         } catch (Throwable t) {
+            lastFailure = "mcef_create_failed";
             return null;
         }
     }

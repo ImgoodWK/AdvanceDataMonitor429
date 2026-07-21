@@ -101,6 +101,7 @@ public class WebApiRouter {
         if (uri.startsWith("/api/display/")) {
             if (uri.endsWith("/layout")) return "/api/display/{id}/layout";
             if (uri.endsWith("/frame.jpg") || uri.endsWith("/frame")) return "/api/display/{id}/frame";
+            if (uri.endsWith("/frame-status") || uri.endsWith("/status")) return "/api/display/{id}/frame-status";
             if (uri.endsWith("/touch")) return "/api/display/{id}/touch";
             return "/api/display/{id}";
         }

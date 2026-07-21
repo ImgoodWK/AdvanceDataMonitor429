@@ -47,6 +47,7 @@ alwaysApply: false
 |-----|------|
 | PinIn-1.6.0.jar | 手册拼音（shadow） |
 | IC2NuclearControl-2.7.8-dev.jar | IC2 核电控制（可选） |
+| `mcef*.jar`（可选） | montoyo MCEF 1.7.10；`devOnlyNonPublishable`，不进发布 jar。下载：https://montoyo.net/wd3/?modid=mcef 。放入后 `addon.late.gradle` 会加 ShutdownPatcher JVM 参数。 |
 
 ## 查阅外部模组类
 

@@ -3,6 +3,7 @@ package com.imgood.textech.client;
 import java.lang.reflect.Method;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.util.ChatComponentText;
 
@@ -121,8 +122,7 @@ public class VoiceAssistantKeyHandler {
                     }
                 });
             } catch (Throwable e) {
-                final String error = e.getMessage() == null ? e.getClass()
-                    .getSimpleName() : e.getMessage();
+                final String error = formatSttError(e);
                 AdvanceDataMonitor.LOG.error("[TeXTech] STT failed", e);
                 runOnClientThread(new Runnable() {
 
@@ -130,14 +130,24 @@ public class VoiceAssistantKeyHandler {
                     public void run() {
                         VoiceHudRenderer.instance()
                             .setTranscribing(false);
-                        notifyPlayer("STT failed: " + error);
-                        GuiAIChat.updateGlobalVoiceStatus("STT failed: " + error);
+                        notifyPlayer(error);
+                        GuiAIChat.updateGlobalVoiceStatus(error);
                     }
                 });
             }
         }, "ADM Speech To Text");
         worker.setDaemon(true);
         worker.start();
+    }
+
+    private String formatSttError(Throwable e) {
+        String message = e.getMessage() == null ? e.getClass()
+            .getSimpleName() : e.getMessage();
+        if (message.contains("with-voice") || message.contains("textechvoice") || message.contains("Vosk model")
+            || message.contains("voice extras")) {
+            return I18n.format("adm.voice.model_missing");
+        }
+        return I18n.format("adm.voice.stt_failed", message);
     }
 
     private void submitText(String text) {

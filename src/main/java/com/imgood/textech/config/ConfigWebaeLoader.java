@@ -40,6 +40,35 @@ public final class ConfigWebaeLoader {
             "webConsole",
             Config.webSurfaceUseMcef,
             ConfigDescriptions.get("webConsole", "webSurfaceUseMcef"));
+        Config.webSurfaceAllowLiveSnapshotFallback = configuration.getBoolean(
+            "webSurfaceAllowLiveSnapshotFallback",
+            "webConsole",
+            Config.webSurfaceAllowLiveSnapshotFallback,
+            ConfigDescriptions.get("webConsole", "webSurfaceAllowLiveSnapshotFallback"));
+        Config.webSurfaceMcefMaxBrowsers = configuration.getInt(
+            "webSurfaceMcefMaxBrowsers",
+            "webConsole",
+            Config.webSurfaceMcefMaxBrowsers,
+            1,
+            8,
+            ConfigDescriptions.get("webConsole", "webSurfaceMcefMaxBrowsers"));
+        Config.webSurfaceMcefCloseDistance = configuration.getFloat(
+            "webSurfaceMcefCloseDistance",
+            "webConsole",
+            (float) Config.webSurfaceMcefCloseDistance,
+            8.0F,
+            128.0F,
+            ConfigDescriptions.get("webConsole", "webSurfaceMcefCloseDistance"));
+        Config.webSurfaceMcefCreateDistance = configuration.getFloat(
+            "webSurfaceMcefCreateDistance",
+            "webConsole",
+            (float) Config.webSurfaceMcefCreateDistance,
+            16.0F,
+            160.0F,
+            ConfigDescriptions.get("webConsole", "webSurfaceMcefCreateDistance"));
+        if (Config.webSurfaceMcefCreateDistance < Config.webSurfaceMcefCloseDistance) {
+            Config.webSurfaceMcefCreateDistance = Config.webSurfaceMcefCloseDistance;
+        }
         Config.webAlertsEnabled = configuration.getBoolean(
             "alertsEnabled",
             "webConsole",

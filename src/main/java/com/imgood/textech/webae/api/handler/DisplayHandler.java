@@ -78,6 +78,10 @@ public final class DisplayHandler {
             if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET /api/display/{id}/frame.jpg");
             return handleFrame(record, params);
         }
+        if ("/frame-status".equals(suffix) || "/status".equals(suffix)) {
+            if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET /api/display/{id}/frame-status");
+            return handleFrameStatus(record);
+        }
         if ("/render.html".equals(suffix) || "/render".equals(suffix)) {
             if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET /api/display/{id}/render.html");
             return handleRender(record);
@@ -137,6 +141,10 @@ public final class DisplayHandler {
         if ("/frame.jpg".equals(suffix) || "/frame".equals(suffix)) {
             if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET");
             return handleFrame(record, params);
+        }
+        if ("/frame-status".equals(suffix) || "/status".equals(suffix)) {
+            if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET");
+            return handleFrameStatus(record);
         }
         if ("/render.html".equals(suffix) || "/render".equals(suffix)) {
             if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET");
@@ -224,6 +232,28 @@ public final class DisplayHandler {
         return v != null ? v.trim() : null;
     }
 
+    private static NanoHTTPD.Response handleFrameStatus(DisplayRecord record) {
+        DisplayCaptureService svc = DisplayCaptureService.instance();
+        boolean hasFrame = svc.hasCachedFrame(record.id);
+        boolean inFlight = svc.isCaptureInFlight(record.id);
+        String err = svc.getLastError(record.id);
+        StringBuilder sb = new StringBuilder(192);
+        sb.append("{\"success\":true,\"displayId\":\"")
+            .append(escapeJson(record.id))
+            .append("\",\"hasFrame\":")
+            .append(hasFrame)
+            .append(",\"inFlight\":")
+            .append(inFlight)
+            .append(",\"error\":\"")
+            .append(escapeJson(err != null ? err : ""))
+            .append("\",\"source\":\"spa-jpeg\"}");
+        NanoHTTPD.Response resp = json(NanoHTTPD.Response.Status.OK, sb.toString());
+        if (err != null && !err.isEmpty()) {
+            resp.addHeader("X-WebAE-Capture-Error", err);
+        }
+        return resp;
+    }
+
     private static NanoHTTPD.Response handleRender(DisplayRecord record) {
         String html = com.imgood.textech.webae.display.DisplayCapturePage.render(record);
         return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "text/html; charset=utf-8", html);
@@ -244,11 +274,15 @@ public final class DisplayHandler {
             return resp;
         }
         if (frame.jpeg == null || frame.jpeg.length == 0) {
-            return json(
+            String err = frame.error != null ? frame.error : "capture_pending";
+            NanoHTTPD.Response resp = json(
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
                 "{\"success\":false,\"code\":\"capture_unavailable\",\"message\":\""
-                    + escapeJson(frame.error != null ? frame.error : "capture unavailable")
+                    + escapeJson(err)
                     + "\"}");
+            resp.addHeader("X-WebAE-Capture-Error", err);
+            resp.addHeader("Cache-Control", "no-store");
+            return resp;
         }
         NanoHTTPD.Response resp = NanoHTTPD.newFixedLengthResponse(
             NanoHTTPD.Response.Status.OK,
@@ -257,6 +291,7 @@ public final class DisplayHandler {
             frame.jpeg.length);
         resp.addHeader("ETag", frame.etag);
         resp.addHeader("Cache-Control", "no-cache");
+        resp.addHeader("X-WebAE-Frame", "spa-jpeg");
         return resp;
     }
 

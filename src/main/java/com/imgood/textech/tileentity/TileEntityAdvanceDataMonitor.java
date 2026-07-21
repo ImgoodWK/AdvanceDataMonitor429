@@ -811,14 +811,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         boolean replacingDashboard = isWebDashboardBinding(old);
         if (!replacingDashboard && getWebDashboardBindingCount() >= MAX_WEB_DASHBOARD_BINDINGS) return false;
 
-        int oldBytes = replacingDashboard && old.hasKey(WEB_DASHBOARD_PAYLOAD_KEY)
-            ? old.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY).length
-            : 0;
-        // Live bindings may keep an optional snapshot payload for cold-start fallback.
-        byte[] fallbackPayload = null;
-        if (oldBytes > 0 && old != null) {
-            fallbackPayload = old.getByteArray(WEB_DASHBOARD_PAYLOAD_KEY);
-        }
+        // Live bindings intentionally drop AWT snapshot payloads — those are not real web frames.
 
         NBTTagCompound safe = createDefaultNBT();
         safe.setString("dataType", DATA_TYPE_WEBAE_DASHBOARD);
@@ -865,13 +858,9 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         safe.setString("webDashboardTitle", boundedString(binding.title, "WebAE Dashboard", 96));
         safe.setInteger("webDashboardPrimitiveCount", 0);
         safe.setInteger("webDashboardRawBytes", 0);
-        safe.setInteger("webDashboardCompressedBytes", fallbackPayload == null ? 0 : fallbackPayload.length);
+        safe.setInteger("webDashboardCompressedBytes", 0);
         safe.setInteger("webDashboardViewportWidth", binding.viewportWidth);
         safe.setInteger("webDashboardViewportHeight", binding.viewportHeight);
-        if (fallbackPayload != null && fallbackPayload.length > 0
-            && getWebDashboardTotalBytes() - oldBytes + fallbackPayload.length <= MAX_WEB_DASHBOARD_TOTAL_BYTES) {
-            safe.setByteArray(WEB_DASHBOARD_PAYLOAD_KEY, fallbackPayload.clone());
-        }
         setDisplayData(index, safe);
         return true;
     }

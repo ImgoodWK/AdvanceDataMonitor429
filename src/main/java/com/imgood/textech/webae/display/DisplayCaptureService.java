@@ -53,6 +53,7 @@ public final class DisplayCaptureService {
     private final ConcurrentHashMap<String, CachedFrame> frames = new ConcurrentHashMap<String, CachedFrame>();
     private final ConcurrentHashMap<String, Long> lastTouch = new ConcurrentHashMap<String, Long>();
     private final ConcurrentHashMap<String, Boolean> inFlight = new ConcurrentHashMap<String, Boolean>();
+    private final ConcurrentHashMap<String, String> lastErrors = new ConcurrentHashMap<String, String>();
     private final AtomicInteger activeCaptures = new AtomicInteger(0);
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor(new ThreadFactory() {
@@ -87,6 +88,26 @@ public final class DisplayCaptureService {
     public void invalidate(String displayId) {
         if (displayId == null) return;
         frames.remove(displayId);
+        lastErrors.remove(displayId);
+    }
+
+    /** Last capture error code for a display (empty if last capture succeeded). */
+    public String getLastError(String displayId) {
+        if (displayId == null) return "";
+        String err = lastErrors.get(displayId);
+        if (err != null && !err.isEmpty()) return err;
+        if (browserError != null && !browserError.isEmpty()) return browserError;
+        return "";
+    }
+
+    public boolean hasCachedFrame(String displayId) {
+        if (displayId == null) return false;
+        CachedFrame cached = frames.get(displayId);
+        return cached != null && cached.jpeg != null && cached.jpeg.length > 0;
+    }
+
+    public boolean isCaptureInFlight(String displayId) {
+        return displayId != null && inFlight.containsKey(displayId);
     }
 
     public FrameResult getOrCapture(DisplayRecord record, int width, String ifNoneMatch) {
@@ -121,7 +142,11 @@ public final class DisplayCaptureService {
             }
             return FrameResult.ok(waited.jpeg, waited.etag);
         }
-        return FrameResult.error(browserError != null ? browserError : "capture_pending");
+        String err = lastErrors.get(record.id);
+        if (err == null || err.isEmpty()) {
+            err = browserError != null ? browserError : "capture_pending";
+        }
+        return FrameResult.error(err);
     }
 
     private CachedFrame awaitFrame(String displayId, int width, long timeoutMs) {
@@ -193,28 +218,40 @@ public final class DisplayCaptureService {
     private FrameResult captureNowLocked(DisplayRecord record, int width) {
         String browser = resolveBrowser();
         if (browser == null) {
-            return FrameResult.error(browserError != null ? browserError : "browser_not_found");
+            String err = browserError != null ? browserError : "browser_not_found";
+            lastErrors.put(record.id, err);
+            return FrameResult.error(err);
         }
         File tmpDir = TeXTechDataDir.webAeDir("display-frames");
         if (!tmpDir.isDirectory() && !tmpDir.mkdirs()) {
+            lastErrors.put(record.id, "frame_dir_failed");
             return FrameResult.error("frame_dir_failed");
         }
         int height = Math
             .max(64, (int) Math.round(width * (double) record.viewportHeight / Math.max(1, record.viewportWidth)));
 
         String spaUrl = buildSpaCaptureUrl(record);
+        if (spaUrl == null || spaUrl.isEmpty()) {
+            lastErrors.put(record.id, "spa_url_invalid");
+            return FrameResult.error("spa_url_invalid");
+        }
         boolean ready = waitForSpaCaptureReady(browser, spaUrl);
         if (!ready) {
             AdvanceDataMonitor.LOG.warn(
                 "[WebAE] Display {} spa-timeout waiting for data-webae-capture-ready @ {}",
                 record.id,
                 spaUrl);
+            lastErrors.put(record.id, "spa_timeout");
         }
 
-        FrameResult last = FrameResult.error("spa-blank");
+        FrameResult last = FrameResult.error(ready ? "spa-blank" : "spa_timeout");
         int attempts = ready ? SPA_SCREENSHOT_ATTEMPTS : SPA_SCREENSHOT_ATTEMPTS + 1;
         for (int i = 0; i < attempts; i++) {
             long budget = SPA_VIRTUAL_TIME_MS + (long) i * 4_000L;
+            // After a ready-timeout, give the final attempt more virtual time to paint.
+            if (!ready && i == attempts - 1) {
+                budget = SPA_VIRTUAL_TIME_MS + 12_000L;
+            }
             FrameResult spa = captureUrl(browser, record, width, height, tmpDir, spaUrl, budget, SPA_WAIT_MS);
             if (spa.jpeg != null && spa.jpeg.length > 0) {
                 AdvanceDataMonitor.LOG.info(
@@ -222,23 +259,37 @@ public final class DisplayCaptureService {
                     record.id,
                     Integer.valueOf(i + 1),
                     Boolean.valueOf(ready));
+                lastErrors.remove(record.id);
                 return spa;
             }
             last = spa;
+            if (spa.error != null && !spa.error.isEmpty()) {
+                lastErrors.put(record.id, spa.error);
+            }
             AdvanceDataMonitor.LOG.warn(
                 "[WebAE] Display {} spa-blank/failed attempt {} ({}): {}",
                 record.id,
                 Integer.valueOf(i + 1),
                 spa.error != null ? spa.error : "blank",
                 spaUrl);
+            // Brief pause before retry so SPA can finish paint.
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException e) {
+                Thread.currentThread()
+                    .interrupt();
+                break;
+            }
         }
 
         // Do not return compact render.html as a "successful" monitor frame — that looks wrong.
+        String finalErr = last.error != null ? last.error : (ready ? "capture_failed" : "spa_timeout");
+        lastErrors.put(record.id, finalErr);
         AdvanceDataMonitor.LOG.warn(
             "[WebAE] Display {} no-frame after SPA attempts (last={}); render.html not used as monitor frame",
             record.id,
-            last.error != null ? last.error : "unknown");
-        return FrameResult.error(last.error != null ? last.error : "capture_failed");
+            finalErr);
+        return FrameResult.error(finalErr);
     }
 
     /**

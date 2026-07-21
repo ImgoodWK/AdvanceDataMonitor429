@@ -130,6 +130,17 @@ public class Config {
      * Chromium browser (true SPA / live_url). When false or MCEF is absent, HttpFrame JPEG is used.
      */
     public static boolean webSurfaceUseMcef = true;
+    /**
+     * When true, live dashboard bindings may fall back to AWT drawing-list snapshot textures.
+     * Default false — that fallback is not real web content and misleads players.
+     */
+    public static boolean webSurfaceAllowLiveSnapshotFallback = false;
+    /** Max concurrent MCEF off-screen browsers for monitor surfaces. Default 4. */
+    public static int webSurfaceMcefMaxBrowsers = 4;
+    /** Close MCEF browsers beyond this distance (blocks); HttpFrame may take over. Default 48. */
+    public static double webSurfaceMcefCloseDistance = 48.0D;
+    /** Do not create new MCEF browsers beyond this distance (blocks). Default 64. */
+    public static double webSurfaceMcefCreateDistance = 64.0D;
     /** Global kill switch for WebAE alert evaluation and all notification delivery. Default true. */
     public static boolean webAlertsEnabled = true;
     /** Client framebuffer capture/local history and explicit WebAE/QQ sharing. */

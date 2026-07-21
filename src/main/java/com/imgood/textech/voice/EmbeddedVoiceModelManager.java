@@ -2,6 +2,7 @@ package com.imgood.textech.voice;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,8 +20,12 @@ import java.util.jar.JarFile;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 
+import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.ModContainer;
+
 public class EmbeddedVoiceModelManager {
 
+    public static final String VOICE_EXTRAS_MODID = "textechvoice";
     private static final String EMBEDDED_RESOURCE_ROOT = "assets/textech/voice/vosk";
     private static final String DEFAULT_MODEL_ID = "zh-small";
     private File cachedModelDirectory;
@@ -46,13 +51,46 @@ public class EmbeddedVoiceModelManager {
         }
         extractEmbeddedModel(modelId, target);
         if (!isUsableModelDirectory(target)) {
-            throw new IOException(
-                "Embedded Vosk model '" + modelId
-                    + "' is missing. Install the with-voice mod package or set voice.sttModel to a local Vosk model directory.");
+            extractFromVoiceExtrasMod(modelId, target);
+        }
+        if (!isUsableModelDirectory(target)) {
+            throw new IOException(missingModelMessage(modelId));
         }
         cachedModelDirectory = target;
         cachedModelKey = modelId;
         return target;
+    }
+
+    /** True when classpath or textechvoice companion can supply an embedded model. */
+    public boolean hasEmbeddedModelAvailable(String configuredModel) {
+        String modelId = normalizeModelId(
+            configuredModel == null || configuredModel.trim()
+                .isEmpty() ? DEFAULT_MODEL_ID : configuredModel.trim());
+        File configuredDirectory = new File(
+            configuredModel == null || configuredModel.trim()
+                .isEmpty() ? DEFAULT_MODEL_ID : configuredModel.trim());
+        if (configuredDirectory.isDirectory() && isUsableModelDirectory(configuredDirectory)) {
+            return true;
+        }
+        File target = new File(Config.getVoiceDataDirectory(), "models/vosk/" + modelId);
+        if (isUsableModelDirectory(target)) {
+            return true;
+        }
+        try {
+            if (!listEmbeddedEntries(EMBEDDED_RESOURCE_ROOT + "/" + modelId + "/").isEmpty()) {
+                return true;
+            }
+        } catch (IOException ignored) {
+            // Fall through to companion check.
+        }
+        return findVoiceExtrasSource() != null;
+    }
+
+    public static String missingModelMessage(String modelId) {
+        return "Embedded Vosk model '" + modelId
+            + "' is missing. Install TeXTech-*-voice.jar (modid textechvoice) into mods/, "
+            + "or set voice.sttModel to a local Vosk model directory, "
+            + "or set voice.sttMode=http for external STT.";
     }
 
     private void ensureSupportedRuntime() throws IOException {
@@ -96,11 +134,69 @@ public class EmbeddedVoiceModelManager {
         String resourcePrefix = EMBEDDED_RESOURCE_ROOT + "/" + modelId + "/";
         List<String> entries = listEmbeddedEntries(resourcePrefix);
         if (entries.isEmpty()) {
-            throw new IOException("No embedded Vosk model resources found for '" + modelId + "'.");
+            return;
         }
-        if (!target.exists() && !target.mkdirs()) {
-            throw new IOException("Could not create voice model cache: " + target.getAbsolutePath());
+        copyEntriesFromClasspath(resourcePrefix, entries, target);
+        AdvanceDataMonitor.LOG
+            .info("[ADM Assistant] Extracted embedded Vosk model '{}' to {}", modelId, target.getAbsolutePath());
+    }
+
+    private void extractFromVoiceExtrasMod(String modelId, File target) throws IOException {
+        File source = findVoiceExtrasSource();
+        if (source == null) {
+            return;
         }
+        String resourcePrefix = EMBEDDED_RESOURCE_ROOT + "/" + modelId + "/";
+        if (source.isDirectory()) {
+            File modelRoot = new File(source, resourcePrefix.replace('/', File.separatorChar));
+            if (!modelRoot.isDirectory()) {
+                return;
+            }
+            List<String> entries = new ArrayList<>();
+            listFileEntries(resourcePrefix, modelRoot, entries);
+            if (entries.isEmpty()) {
+                return;
+            }
+            copyEntriesFromDirectory(source, resourcePrefix, entries, target);
+        } else if (source.isFile()) {
+            List<String> entries = listJarFileEntries(source, resourcePrefix);
+            if (entries.isEmpty()) {
+                entries.addAll(readManifestEntriesFromJar(source, resourcePrefix));
+            }
+            if (entries.isEmpty()) {
+                return;
+            }
+            copyEntriesFromJarFile(source, resourcePrefix, entries, target);
+        } else {
+            return;
+        }
+        AdvanceDataMonitor.LOG.info(
+            "[ADM Assistant] Extracted Vosk model '{}' from voice extras ({}) to {}",
+            modelId,
+            source.getAbsolutePath(),
+            target.getAbsolutePath());
+    }
+
+    private File findVoiceExtrasSource() {
+        if (!Loader.isModLoaded(VOICE_EXTRAS_MODID)) {
+            return null;
+        }
+        ModContainer container = Loader.instance()
+            .getIndexedModList()
+            .get(VOICE_EXTRAS_MODID);
+        if (container == null) {
+            return null;
+        }
+        File source = container.getSource();
+        if (source == null || !source.exists()) {
+            return null;
+        }
+        return source;
+    }
+
+    private void copyEntriesFromClasspath(String resourcePrefix, List<String> entries, File target)
+        throws IOException {
+        ensureTargetDirectory(target);
         ClassLoader loader = EmbeddedVoiceModelManager.class.getClassLoader();
         for (String entry : entries) {
             if (entry.endsWith("/")) {
@@ -108,24 +204,78 @@ public class EmbeddedVoiceModelManager {
             }
             String relative = entry.substring(resourcePrefix.length());
             File output = new File(target, relative.replace('/', File.separatorChar));
-            File parent = output.getParentFile();
-            if (parent != null && !parent.exists() && !parent.mkdirs()) {
-                throw new IOException("Could not create voice model directory: " + parent.getAbsolutePath());
-            }
+            ensureParent(output);
             try (InputStream in = loader.getResourceAsStream(entry);
                 FileOutputStream out = new FileOutputStream(output)) {
                 if (in == null) {
                     throw new IOException("Missing embedded model resource: " + entry);
                 }
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = in.read(buffer)) >= 0) {
-                    out.write(buffer, 0, read);
+                copyStream(in, out);
+            }
+        }
+    }
+
+    private void copyEntriesFromJarFile(File jarFile, String resourcePrefix, List<String> entries, File target)
+        throws IOException {
+        ensureTargetDirectory(target);
+        try (JarFile jar = new JarFile(jarFile)) {
+            for (String entry : entries) {
+                if (entry.endsWith("/")) {
+                    continue;
+                }
+                JarEntry jarEntry = jar.getJarEntry(entry);
+                if (jarEntry == null || jarEntry.isDirectory()) {
+                    continue;
+                }
+                String relative = entry.substring(resourcePrefix.length());
+                File output = new File(target, relative.replace('/', File.separatorChar));
+                ensureParent(output);
+                try (InputStream in = jar.getInputStream(jarEntry); FileOutputStream out = new FileOutputStream(output)) {
+                    copyStream(in, out);
                 }
             }
         }
-        AdvanceDataMonitor.LOG
-            .info("[ADM Assistant] Extracted embedded Vosk model '{}' to {}", modelId, target.getAbsolutePath());
+    }
+
+    private void copyEntriesFromDirectory(File root, String resourcePrefix, List<String> entries, File target)
+        throws IOException {
+        ensureTargetDirectory(target);
+        for (String entry : entries) {
+            if (entry.endsWith("/")) {
+                continue;
+            }
+            File input = new File(root, entry.replace('/', File.separatorChar));
+            if (!input.isFile()) {
+                continue;
+            }
+            String relative = entry.substring(resourcePrefix.length());
+            File output = new File(target, relative.replace('/', File.separatorChar));
+            ensureParent(output);
+            try (InputStream in = new FileInputStream(input); FileOutputStream out = new FileOutputStream(output)) {
+                copyStream(in, out);
+            }
+        }
+    }
+
+    private void ensureTargetDirectory(File target) throws IOException {
+        if (!target.exists() && !target.mkdirs()) {
+            throw new IOException("Could not create voice model cache: " + target.getAbsolutePath());
+        }
+    }
+
+    private void ensureParent(File output) throws IOException {
+        File parent = output.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("Could not create voice model directory: " + parent.getAbsolutePath());
+        }
+    }
+
+    private void copyStream(InputStream in, FileOutputStream out) throws IOException {
+        byte[] buffer = new byte[8192];
+        int read;
+        while ((read = in.read(buffer)) >= 0) {
+            out.write(buffer, 0, read);
+        }
     }
 
     private List<String> listEmbeddedEntries(String resourcePrefix) throws IOException {
@@ -143,6 +293,43 @@ public class EmbeddedVoiceModelManager {
         }
         if (entries.isEmpty()) {
             entries.addAll(readManifestEntries(loader, resourcePrefix));
+        }
+        return entries;
+    }
+
+    private List<String> listJarFileEntries(File jarFile, String resourcePrefix) throws IOException {
+        List<String> entries = new ArrayList<>();
+        try (JarFile jar = new JarFile(jarFile)) {
+            Enumeration<JarEntry> jarEntries = jar.entries();
+            while (jarEntries.hasMoreElements()) {
+                JarEntry entry = jarEntries.nextElement();
+                if (!entry.isDirectory() && entry.getName()
+                    .startsWith(resourcePrefix)) {
+                    entries.add(entry.getName());
+                }
+            }
+        }
+        return entries;
+    }
+
+    private List<String> readManifestEntriesFromJar(File jarFile, String resourcePrefix) throws IOException {
+        List<String> entries = new ArrayList<>();
+        String manifestResource = resourcePrefix + "adm-model-files.txt";
+        try (JarFile jar = new JarFile(jarFile)) {
+            JarEntry manifest = jar.getJarEntry(manifestResource);
+            if (manifest == null) {
+                return entries;
+            }
+            try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(jar.getInputStream(manifest), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+                        entries.add(resourcePrefix + trimmed);
+                    }
+                }
+            }
         }
         return entries;
     }

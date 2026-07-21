@@ -12,7 +12,19 @@ TeXTech is a GTNH community mod that extends AE2 monitoring, data weaving, AI as
 ./gradlew build
 ```
 
-Output JAR: `build/libs/`. Run a dev client with `./gradlew runClient` (GTNH dev setup: [Gradle workflow](docs/zh/developer/Gradle工作流.md); BetterQuesting quest fixtures sync automatically from `dev-fixtures/betterquesting/`).
+Output under `build/libs/`:
+
+| Artifact | Required? | Notes |
+|----------|-----------|--------|
+| `TeXTech-*.jar` (main) | **Yes** | Core mod. Does **not** ship the ~65 MB Vosk offline speech model. |
+| `TeXTech-*-voice.jar` | Optional | Offline Chinese STT (`modid` `textechvoice`). Put next to the main jar in `mods/`. |
+| MCEF (external) | Optional | In-game Chromium for monitor web surfaces. Download [montoyo MCEF 1.7.10](https://montoyo.net/wd3/?modid=mcef). |
+
+Without the voice jar you can still use `voice.sttMode=http` or set `voice.sttModel` to a local Vosk model directory. Without MCEF, WebAE monitor frames fall back to host JPEG capture.
+
+**Development:** Vosk models stay under `src/main/resources` for `runClient` — no voice companion jar needed. For MCEF in-dev, place `mcef*.jar` in `libs/` (see `.cursor/rules/external-deps-jars.mdc`).
+
+Run a dev client with `./gradlew runClient` (GTNH dev setup: [Gradle workflow](docs/zh/developer/Gradle工作流.md); BetterQuesting quest fixtures sync automatically from `dev-fixtures/betterquesting/`).
 
 ---
 

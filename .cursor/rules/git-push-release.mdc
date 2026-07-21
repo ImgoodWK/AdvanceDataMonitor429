@@ -58,8 +58,10 @@ Release notes 建议包含：
 - 🆕 新增功能列表
 - 🔧 技术栈说明
 - 🤖 AI 开发工具链说明（Cursor + Claude Code + GPT-5.5 + DeepSeek V4 Pro）
-- 📦 构建方式
+- 📦 构建方式与下载物：主 jar（必装）+ `*-voice.jar`（可选离线语音）+ 外置 MCEF 说明
 - ⚠️ 已知问题
+
+上传资产时除主 jar 外，务必附带 `build/libs/*-voice.jar`（若 GTNH `release-tags` 未自动上传 classifier，用 `gh release upload` 补传）。
 
 ### Release 命名规范
 

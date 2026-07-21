@@ -360,8 +360,28 @@ public final class ConfigDescriptions {
         put(
             "webConsole",
             "webSurfaceUseMcef",
-            "When true and montoyo MCEF (1.7.10) is installed, advanced monitors prefer a local off-screen Chromium browser. When false or MCEF is missing, host JPEG capture of the real /embed/dashboard SPA is used (no extra mods required). Default true.",
-            "为 true 且已安装 montoyo MCEF（1.7.10）时，监视器优先用本机离屏浏览器。关闭或未安装 MCEF 时走主机对真实 /embed/dashboard 的 JPEG 截帧（无需额外模组）。默认 true。");
+            "When true and montoyo MCEF (1.7.10) is installed, advanced monitors prefer a local off-screen Chromium browser (real HTML). When false or MCEF is missing, host JPEG capture of /embed/dashboard is used. Default true.",
+            "为 true 且已安装 montoyo MCEF（1.7.10）时，监视器优先用本机离屏浏览器渲染真实网页。关闭或未安装时走主机对 /embed/dashboard 的 JPEG 截帧。默认 true。");
+        put(
+            "webConsole",
+            "webSurfaceAllowLiveSnapshotFallback",
+            "When true, live web bindings may fall back to AWT drawing-list snapshots if MCEF/host capture fail. Default false — snapshots are not real web UI.",
+            "为 true 时，直播绑定在 MCEF/主机截帧失败后可回退 AWT 绘制列表快照。默认 false——快照不是真实网页。");
+        put(
+            "webConsole",
+            "webSurfaceMcefMaxBrowsers",
+            "Max concurrent MCEF off-screen browsers for monitor surfaces (1-8). Default 4.",
+            "监视器网页表面同时使用的 MCEF 离屏浏览器上限（1-8）。默认 4。");
+        put(
+            "webConsole",
+            "webSurfaceMcefCloseDistance",
+            "Close MCEF browsers beyond this block distance so host JPEG can take over. Default 48.",
+            "超过该格数距离关闭 MCEF 浏览器，改由主机 JPEG 截帧。默认 48。");
+        put(
+            "webConsole",
+            "webSurfaceMcefCreateDistance",
+            "Do not create new MCEF browsers beyond this block distance. Default 64.",
+            "超过该格数距离不再新建 MCEF 浏览器。默认 64。");
         put(
             "webConsole",
             "alertsEnabled",
