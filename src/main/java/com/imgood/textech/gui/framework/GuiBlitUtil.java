@@ -169,4 +169,22 @@ public final class GuiBlitUtil {
             return false;
         }
     }
+
+    /** Stretch a full texture across {@code width}×{@code height} (UV 0..1). */
+    public static void drawFullTexture(ResourceLocation texture, int x, int y, int width, int height) {
+        if (texture == null || width <= 0 || height <= 0) {
+            return;
+        }
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(texture);
+        Tessellator tessellator = Tessellator.instance;
+        tessellator.startDrawingQuads();
+        tessellator.addVertexWithUV(x, y + height, 0, 0, 1);
+        tessellator.addVertexWithUV(x + width, y + height, 0, 1, 1);
+        tessellator.addVertexWithUV(x + width, y, 0, 1, 0);
+        tessellator.addVertexWithUV(x, y, 0, 0, 0);
+        tessellator.draw();
+    }
 }

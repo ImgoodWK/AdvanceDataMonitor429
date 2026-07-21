@@ -17,12 +17,19 @@ import com.imgood.textech.gui.framework.UiText;
 import com.imgood.textech.gui.framework.UiTextField;
 import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.gui.framework.UiToggleButton;
+import com.imgood.textech.gui.framework.layout.UiMainAlign;
+import com.imgood.textech.gui.framework.style.UiStyle;
+import com.imgood.textech.gui.framework.widget.UiButtonWidget;
+import com.imgood.textech.gui.framework.widget.UiFlex;
+import com.imgood.textech.gui.framework.widget.UiLabel;
+import com.imgood.textech.gui.framework.widget.UiScrollPanel;
+import com.imgood.textech.gui.framework.widget.UiWidget;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Showcase GUI for every {@code gui/framework} widget and {@code adm_ui_atlas.png} region map.
+ * Showcase GUI for every {@code gui/framework} widget, Flex tree demo, and atlas region map.
  */
 @SideOnly(Side.CLIENT)
 public class GuiUiFrameworkDebug extends ADM_UiContainer {
@@ -76,6 +83,42 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             UiFrameworkDebugLayout.FIELD_H).setTheme(UiThemes.ADM)
                 .setHintText(I18n.format("adm.hint.ui_framework.field"))
                 .setMaxStringLength(48);
+
+        setUiRoot(buildFlexDemo());
+    }
+
+    private UiWidget buildFlexDemo() {
+        UiScrollPanel scroll = new UiScrollPanel();
+        scroll.preferredHeight(48)
+            .grow(1f)
+            .style(new UiStyle().padding(2).gap(2).backgroundSolid(0x44000000));
+        for (int i = 1; i <= 8; i++) {
+            scroll.child(UiLabel.of(I18n.format("adm.label.ui_framework.flex_scroll_item", i)).preferredHeight(10));
+        }
+
+        return UiFlex.column()
+            .style(
+                new UiStyle().padding(4)
+                    .gap(4)
+                    .backgroundSolid(0x66002020))
+            .preferredWidth(UiFrameworkDebugLayout.FLEX_W)
+            .preferredHeight(UiFrameworkDebugLayout.FLEX_H)
+            .setAbsolute(UiFrameworkDebugLayout.COL_LEFT, UiFrameworkDebugLayout.ROW_FLEX)
+            .child(UiLabel.of(I18n.format("adm.label.ui_framework.section.flex")).preferredHeight(10))
+            .child(
+                UiFlex.row()
+                    .gap(4)
+                    .preferredHeight(16)
+                    .child(
+                        UiButtonWidget.of(I18n.format("adm.button.ui_framework.flex_a"))
+                            .preferredWidth(48)
+                            .preferredHeight(16))
+                    .child(
+                        UiButtonWidget.of(I18n.format("adm.button.ui_framework.flex_b"))
+                            .grow(1f)
+                            .preferredHeight(16))
+                    .mainAlign(UiMainAlign.START))
+            .child(scroll);
     }
 
     @Override
@@ -135,6 +178,7 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
         if (toggleButton != null) {
             toggleButton.draw(UiThemes.ADM, fontRendererObj, mouseX, mouseY);
         }
+        renderUiTree(mouseX, mouseY);
     }
 
     @Override
@@ -235,7 +279,7 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             fontRendererObj,
             I18n.format("adm.label.ui_framework.edit_hint"),
             UiFrameworkDebugLayout.COL_LEFT,
-            ySize - 14);
+            ySize - 12);
     }
 
     private void drawSectionHeader(String text, int x, int y) {

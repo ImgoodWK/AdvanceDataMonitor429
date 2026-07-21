@@ -6,7 +6,7 @@ package com.imgood.textech.gui;
 public final class UiFrameworkDebugLayout {
 
     public static final int GUI_W = 360;
-    public static final int GUI_H = 280;
+    public static final int GUI_H = 320;
 
     public static final int COL_LEFT = 8;
     public static final int COL_ATLAS = 188;
@@ -37,6 +37,11 @@ public final class UiFrameworkDebugLayout {
     public static final int ROW_FIELD = 170;
     public static final int FIELD_W = 160;
     public static final int FIELD_H = 14;
+
+    /** Flex widget-tree demo strip (absolute within container). */
+    public static final int ROW_FLEX = 198;
+    public static final int FLEX_W = 172;
+    public static final int FLEX_H = 100;
 
     public static final int ROW_ATLAS_START = 44;
     public static final int ATLAS_LINE_H = 10;

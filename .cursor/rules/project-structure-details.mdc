@@ -128,12 +128,12 @@ alwaysApply: false
 
 ### gui/ — GUI 组件和界面 (66 文件)
 - **gui/根** — `MatterBallDecompressorGuiLayout.java`（解压器 GUI 布局）、`UiFrameworkDebugLayout.java`（UI 框架调试 GUI 布局）
-- **gui/framework/** — 通用容器 UI 框架（15 个）：`GuiBlitUtil` / `NineSliceRegion` / `UiTheme` / `AdmUiTheme` / `PocketUiTheme` / `UiThemes` / `UiPanel` / `UiText` / `UiIcon` / `UiButton` / `UiToggleButton` / `UiSlot` / `UiTextField` / `UiLayoutContext` / `UiTooltip`；图集 `textures/gui/adm_ui_atlas.png`；详见 `docs/zh/developer/ui-framework.md`
+- **gui/framework/** — UI 框架（命令式 + Flex 树）：根包 `GuiBlitUtil` / `NineSliceRegion` / `UiTheme` / `AdmUiTheme` / `PocketUiTheme` / `UiThemes` / `UiPanel` / `UiText` / `UiIcon` / `UiButton` / `UiToggleButton` / `UiSlot` / `UiTextField` / `UiLayoutContext` / `UiTooltip`；`layout/` Flex 引擎；`style/` `UiStyle`；`widget/` `UiWidget`/`UiFlex`/`UiLabel`/`UiScrollPanel`/`UiButtonWidget`；`host/` `AdmUiScreen`；图集 `textures/gui/adm_ui_atlas.png`；详见 `docs/zh/developer/ui-framework.md`
 - **gui/custom/** — 自定义 GUI 基础组件（7 个）
   - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
   - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
   - `ADM_GuiTextField.java` — 自定义文本框（背景纹理、hint 提示）
-  - `ADM_UiContainer.java` — 容器 GUI 基类（`UiTheme` + `drawMainPanel`）
+  - `ADM_UiContainer.java` — 容器 GUI 基类（`UiTheme` + `drawMainPanel` + 可选 `setUiRoot` Flex 树）
   - `AdmGuiTextures.java` — 共享 ADM GUI 纹理 `ResourceLocation` 常量
   - `AbstractMonitorSubGui.java` — 数据监视器 per-binding 子界面基类
   - `AdmItemConfigScreen.java` — 小型配置对话框基类（物品/节点 NBT 设置）
@@ -229,10 +229,13 @@ alwaysApply: false
 - `SpeechToTextClient.java` — STT 接口
 - `VoskSpeechToTextClient.java` — Vosk 离线语音识别（嵌入式模型）
 - `HttpSpeechToTextClient.java` — HTTP STT（OpenAI 兼容 API）
-- `EmbeddedVoiceModelManager.java` — Vosk 模型文件管理
+- `EmbeddedVoiceModelManager.java` — Vosk 模型：classpath / `textechvoice` companion jar / 本地目录；发布主 jar 不含模型
 - `VoiceStatusListener.java` — 语音状态回调接口
 - `StandaloneVoskTranscriber.java` — Vosk 独立转录器
 - `PcmAudioUtil.java` / `WavEncoder.java` — 音频格式处理
+
+### voiceextras/ — 可选语音资源包标记 (1 文件)
+- `VoiceExtrasMod.java` — `@Mod(modid=textechvoice)`；主 jar 打包时排除，仅进入 `*-voice.jar`（另含 `src/voiceExtras/resources/mcmod.info` + Vosk 模型）
 
 ### loader/ — 注册加载器 (11 文件)
 - `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java` / `LoaderCommand.java`（服务端/客户端聊天命令：`/textech` 域分发 + 旧 `/adm*` 别名；Proxy 委托）
@@ -585,7 +588,7 @@ alwaysApply: false
 - `webae/api/handler/FavoritesHandler.java` — **Phase 4.2** `GET/PUT /api/favorites`
 - `webae/events/EventStreamHub.java` — **Phase9** SSE 订阅 hub（告警广播 + 15s 心跳；`HandlerTick` tick）
 - `webae/monitor/MonitorPreviewDto.java` / `MonitorPreviewCollector.java` — **Phase11** 监视器单槽折线预览
-- `webae/display/` — `DisplayStore` / `DisplayRecord` / `DisplayCaptureService` / `DisplayCapturePage`；`api/handler/DisplayHandler.java`（`/api/display` 发布、layout、`render.html` 服务端截帧页、frame.jpg、touch；viewToken 只读）
+- `webae/display/` — `DisplayStore` / `DisplayRecord` / `DisplayCaptureService` / `DisplayCapturePage`；`api/handler/DisplayHandler.java`（`/api/display` 发布、layout、`frame.jpg`、`frame-status`、touch；`render.html` 仅调试；viewToken 只读）
 - **Phase 3 集成** — `webae/scanner/LinkScannerCollector.java` + `LinkScannerBlockDto`（I1 已加载区块 Link 镜像）；`webae/monitor/MonitorBindingCollector.java` + DTOs（I2 监视器绑定只读）；`webae/api/handler/ScannerHandler.java`/`MonitorHandler.java`/`MonitorPreviewHandler.java`/`PlannerHandler.java`（I3 读/写 `plans.json` + `POST /api/planner/export-flow`）；`webae/assistant/WebAssistantService.java` + `WebAssistantRateLimiter.java` + `AssistantHandler.java`（I4 规则查询 2s 限流）；`webae/cells/NetworkCellSummaryCollector.java` + `CellSummaryHandler.java`（I5 无限元件/字节摘要）；`webae/pocket/PocketOverviewCollector.java` + `PocketHandler.java`（I6 OP 只读概览，无物品内容）；`CraftTreeHandler.java`/`EventStreamHandler.java`/`P2pHandler.java`（Phase6/9/10 REST）
 - **Phase 3 告警** — `config/ConfigWebAlertsLoader.java` 加载/保存 `TeXTech/WebAE/web-alerts.json`；`webae/alerts/WebAlertsConfig.java`/`WebAlertsConfigValidator.java`/`WebAlertEngine.java`/`WebAlertStore.java`/`WebAlertHistoryStore.java`/`WebAlertHistoryEntry.java`/`WebAlertDto.java`/`WebhookDispatcher.java`/`AlertDeliveryTransport.java`/`QqIdDiscovery.java`/`QqIdProbeParser.java`/`QqGatewayClient.java`/`QqIdProbeService.java`/`AutomationCooldownTracker.java`（浏览器、owner 聊天/HUD、旧 Webhook、QQ 官方机器人含目标 ID 探测、微信公众号、SMTP 邮件、企业微信机器人/自建应用；外部 I/O 固定 512 队列 + 2 daemon worker + 重试/熔断）+ `webae/network/PacketWebAlertNotify.java` / `renders/WebAlertHudRenderer.java` + `webae/order/OrderSubmitService.java`（Phase 3.3 服务端线程提交合成）+ `AlertsHandler.java`（A1–A5 + `server_tps_below` + `automation_craft` 历史 + `PUT /api/alerts/rules` OP 编辑与投递状态 + QQ ID probe）；`HandlerTick` 对告警引擎独立 perf 分段，`WebAlertEngine` 每告警 tick 最多轮转 2 owner 并复用 storage 索引；前端 `AlertsRulesEditor.tsx` / `QqIdProbeModal.tsx` 编辑多渠道目标与 TPS 安全参数
 - **Phase 7 下单模板** — `config/ConfigWebOrderTemplatesLoader.java` + `webae/order/WebOrderTemplate.java`/`WebOrderTemplateItem.java`/`WebOrderTemplatesStore.java`/`WebOrderTemplatesValidator.java` + `OrderTemplatesHandler.java`（`GET/PUT /api/order/templates`）；前端 `utils/orderTemplates.ts` + `components/patterns/OrderTemplatesModal.tsx` + `AeOrdering.tsx`/`OrderBatchPanel.tsx` 保存/加载/重命名/删除/缺口补货
@@ -593,5 +596,5 @@ alwaysApply: false
 - **Phase 4b 可见性轮询** — 前端 `hooks/usePageVisibility.ts` + `hooks/useVisibilityAwarePolling.ts`；`AppContext` `pauseRefreshWhenHidden`/`refreshPaused`；Settings 开关 `webae_pause_refresh_when_hidden`；覆盖全局 refresh/连接心跳/告警/指标/Chat/AeOrdering/usePlayers
 - **UI 全量备份/默认布局** — `webae-frontend/src/utils/uiSettingsBundle.ts`（`WebUiSettingsBundle` v1 collect/apply）；`components/settings/SettingsBackupPanel.tsx`；公开 `GET /api/ui-defaults` + `/admweb defaults`；jar/实例 `ui-defaults.json`
 - **WebAE 仪表盘组件设置** — `components/dashboard/EditWidgetModal.tsx`（编辑入口）、`WidgetPinEditor.tsx`（列选择与钉选搜索）、`utils/dashboardColumns.ts`（各数据源列定义与 `undefined`/空数组语义）、`utils/dashboardPins.ts`（钉选当前值解析）；渲染入口为 `pages/Dashboard.tsx`、共享 `WidgetContent.tsx` 与 `NetworkBalanceTable.tsx`。改列契约时必须同步所有入口和 `dashboardColumns.test.ts`，切换数据源需清除旧列 key；物品搜索需覆盖 displayName/registryName/itemId 并保留 meta=0
-- **WebAE → 游戏显示器** — 默认发布布局到 `/api/display` 并复制 `textech-webae-display-binding`；可回退 `dashboardGameDisplayExport.ts` 的 DOM 快照。直播帧由 `DisplayCaptureService` 截取服务端渲染页 `/api/display/{id}/render.html`（经 `frame.jpg` 下发）；与 widgets 配置 JSON 分离，MC Tick 不跑浏览器
+- **WebAE → 游戏显示器** — 默认发布布局到 `/api/display` 并复制 `textech-webae-display-binding`；可回退 `dashboardGameDisplayExport.ts` 的 DOM 快照（伪 UI）。直播成功帧来自主机截真实 `/embed/dashboard`（`spa-jpeg`）或客户端 MCEF（`mcef`）；直播不静默回退 AWT snapshot。`frame-status` 可查截帧诊断。与 widgets 配置 JSON 分离，MC Tick 不跑浏览器
 - `webae/debug/WebAeDebugLog.java` — WebAE 分功能 debug 日志（阶段 3.3，仿 `DataLoomDebugLog`；`Feature` 枚举 ICONS/CHAT/DASHBOARD/SYNTHESIS/PATTERNS，每功能写独立 `logs/textech/webae-<feature>.log`，gate by `Config.webDebugXxx` 开关；`info`/`warn`/`isEnabled`；关键错误仍走 `AdvanceDataMonitor.LOG` 无条件）

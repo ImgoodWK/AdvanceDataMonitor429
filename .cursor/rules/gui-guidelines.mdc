@@ -21,36 +21,43 @@ alwaysApply: false
 - 纹理使用 `AdmGuiTextures`；同步走基类 `saveAndSync` / `openMainGui`。
 - `GuiSubWebDashboard` 也是 per-binding 子页，但属于无目标坐标的被动快照；正文必须走 `PacketMonitorWebSurface` 单绑定有界上传，不得塞回常规 `PacketSynTileEntity` 全 TE 同步。
 
-### 1c. 其他配置/设置界面 → 继承 `ADM_GuiScreen`
-复杂配置屏（AI 聊天、计划器、扫描器等）仍使用 `ADM_GuiScreen`（位于 `gui.custom` 包）。
+### 1c. 其他配置/设置界面 → 优先 `AdmUiScreen`，旧屏可暂留 `ADM_GuiScreen`
+**新**复杂配置屏优先继承 `AdmUiScreen`（`gui.framework.host`）：Flex 组件树 + `UiStyle`，见 `docs/zh/developer/ui-framework.md`。
+
+尚未迁移的旧屏（AI 聊天、计划器等）仍可用 `ADM_GuiScreen`（`gui.custom`）：
 
 - 提供 `setBackgroundTexture()` / `setPosition()` / `setSize()` / `setStretch()` 链式调用。
 - 背景纹理优先使用 `AdmGuiTextures.BACKGROUND_SUB` 等常量，勿重复定义 `ResourceLocation`。
-- 参考 `GuiAISettings`、`GuiAIChat`、`GuiAdvancePlanner`。
+- 触达时再迁 Flex 树；**禁止**新屏继续堆绝对坐标样板。
+
+### 1d. Flex UI 框架（配置 + 容器统一）
+除**次元口袋**全链路外，统一使用 `gui/framework` 组件树（`UiWidget` / `UiFlex` / `UiStyle`）。权威设计与移植指南：`docs/zh/developer/ui-framework.md`。
 
 ### 2. 容器界面（有物品槽位） → 继承 `ADM_UiContainer`（新界面强制）
 用于需要 `InventoryPlayer` + `Container` 的标准容器界面。
 
-- **新容器 GUI 必须**继承 `ADM_UiContainer` + `UiThemes.ADM`（或 `POCKET`）。
-- 参考 `GuiMatterBallDecompressor.java` + `gui/framework/`（详见 `docs/zh/developer/ui-framework.md`）。
-- 旧界面（`GuiAdvanceStorageLink`、口袋 GUI）触达时再迁移，不必批量重写。
+- **新容器 GUI 必须**继承 `ADM_UiContainer` + `UiThemes.ADM`（口袋主题 stub 不纳入迁移）。
+- 优先挂 `UiWidget` 树；命令式 `UiPanel`/`UiButton` 仅兼容旧代码。
+- 参考 `GuiMatterBallDecompressor.java`、`GuiUiFrameworkDebug.java` + `docs/zh/developer/ui-framework.md`。
+- 旧界面（`GuiAdvanceStorageLink`、口袋 GUI）触达时再迁移；口袋 GUI **排除**本批次。
 - 标准尺寸：`xSize = 176`, `ySize = 184`（固定布局容器）。
 - 重写 `drawGuiContainerBackgroundLayer` 和 `drawGuiContainerForegroundLayer`。
 
-### 2b. 容器 UI 框架（`gui/framework/`）
+### 2b. UI 框架速查（`gui/framework/`）
 
 | 场景 | 使用 |
 |------|------|
-| 9-slice 主面板 | `UiPanel.draw(UiThemes.ADM, absX, absY, w, h)` — 背景层绝对坐标 |
-| 标题/标签 | `UiText.drawCenteredTitle` / `drawLabel` — 前景层 GUI 本地坐标 |
-| 图标 | `UiIcon.drawThemeIcon` / `drawAnchored` |
-| 自定义按钮（非 GuiButton 列表） | `UiButton` + `draw` / `click` |
-| 主题 | `UiThemes.ADM`（默认）、`UiThemes.POCKET`（stub） |
-| 图集 | `assets/textech/textures/gui/adm_ui_atlas.png` |
+| Flex 布局 | `UiFlex.row()` / `column()` + `UiFlexLayoutEngine` |
+| 样式 | `UiStyle`（padding/margin/gap/background） |
+| 配置屏宿主 | `AdmUiScreen` + `buildUi()` |
+| 容器宿主 | `ADM_UiContainer` + 可选 `setUiRoot` |
+| 9-slice 主面板 | `UiPanel.draw` 或 `UiStyle.backgroundNineSlice` |
+| 标题/标签 | `UiLabel` / `UiText` |
+| 按钮 | `UiButtonWidget`（树）或命令式 `UiButton` |
+| 滚动 | `UiScrollPanel` |
+| 主题 / 图集 | `UiThemes.ADM`；`textures/gui/adm_ui_atlas.png` |
 
-配置类界面仍用 `ADM_GuiScreen` + 整图拉伸，不必迁移到本框架。
-
-**调试状态**（2026-07）：已在物质球解压器验证 `UiPanel` / `UiText` / `UiIcon` / `UiButton`；`UiSlot` / `UiTextField` / `UiToggleButton` 已实现未接入。完整表见 `docs/zh/developer/ui-framework.md`。
+**排除**：次元口袋 GUI / Overlay / Mixin。不硬依赖 Qz-UILib / 不整库迁 ModularUI2。
 
 ### 3. 简单消息弹窗 → 继承原版 `GuiScreen`
 仅用于提示/确认对话框。参考 `GuiScreenMessage.java`。
