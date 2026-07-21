@@ -45,6 +45,7 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
     private static final Map<String, Long> LAST_FETCH = new HashMap<String, Long>();
     private static final Map<String, Boolean> IN_FLIGHT = new HashMap<String, Boolean>();
     private static final Map<String, String> LAST_ERROR = new HashMap<String, String>();
+    private static final Map<String, String> LAST_FRAME_SOURCE = new HashMap<String, String>();
 
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(new ThreadFactory() {
 
@@ -72,12 +73,31 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
         }
     }
 
+    /** Last {@code X-WebAE-Frame} source label (browser-jpeg / spa-jpeg / server-html). */
+    public static String getLastFrameSource(String cacheKey) {
+        if (cacheKey == null) return "";
+        synchronized (LOCK) {
+            String src = LAST_FRAME_SOURCE.get(cacheKey);
+            return src != null ? src : "";
+        }
+    }
+
     private static void setError(String key, String code) {
         synchronized (LOCK) {
             if (code == null || code.isEmpty()) {
                 LAST_ERROR.remove(key);
             } else {
                 LAST_ERROR.put(key, code);
+            }
+        }
+    }
+
+    private static void setFrameSource(String key, String source) {
+        synchronized (LOCK) {
+            if (source == null || source.isEmpty()) {
+                LAST_FRAME_SOURCE.remove(key);
+            } else {
+                LAST_FRAME_SOURCE.put(key, source);
             }
         }
     }
@@ -186,6 +206,9 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
                         ETAGS.put(key, newEtag);
                     }
                 }
+                if (frameHeader != null && !"not-modified".equals(frameHeader)) {
+                    setFrameSource(key, frameHeader);
+                }
                 setError(key, "");
                 return;
             }
@@ -228,6 +251,11 @@ public final class HttpFrameWebSurfaceSource implements WebSurfaceSource {
             synchronized (LOCK) {
                 READY.put(key, image);
                 if (newEtag != null) ETAGS.put(key, newEtag);
+            }
+            if (frameHeader != null && !frameHeader.isEmpty() && !"not-modified".equals(frameHeader)) {
+                setFrameSource(key, frameHeader);
+            } else {
+                setFrameSource(key, "spa-jpeg");
             }
             setError(key, "");
         } catch (java.net.UnknownHostException e) {

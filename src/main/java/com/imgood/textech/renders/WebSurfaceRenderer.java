@@ -57,8 +57,8 @@ public class WebSurfaceRenderer implements IADMRender {
             (int) Math.floor(y),
             (int) Math.floor(z));
         if ((frame == null || !frame.isReady()) && !live && hash.length() == 64) {
-            frame = WebSurfaceFrame.ofLocation(
-                WebSurfaceClientCache.getTexture(hash, nbt.getInteger("webTextureWidth")));
+            frame = WebSurfaceFrame
+                .ofLocation(WebSurfaceClientCache.getTexture(hash, nbt.getInteger("webTextureWidth")));
         }
         renderSurface(nbt, frame);
     }

@@ -69,6 +69,16 @@ public final class ConfigWebaeLoader {
         if (Config.webSurfaceMcefCreateDistance < Config.webSurfaceMcefCloseDistance) {
             Config.webSurfaceMcefCreateDistance = Config.webSurfaceMcefCloseDistance;
         }
+        Config.webDisplayChromePath = configuration.getString(
+            "webDisplayChromePath",
+            "webConsole",
+            Config.webDisplayChromePath,
+            ConfigDescriptions.get("webConsole", "webDisplayChromePath"));
+        if (Config.webDisplayChromePath == null) {
+            Config.webDisplayChromePath = "";
+        } else {
+            Config.webDisplayChromePath = Config.webDisplayChromePath.trim();
+        }
         Config.webAlertsEnabled = configuration.getBoolean(
             "alertsEnabled",
             "webConsole",

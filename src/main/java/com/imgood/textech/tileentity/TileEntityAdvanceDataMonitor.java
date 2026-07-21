@@ -846,10 +846,9 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         }
         safe.setString(WEB_ORIGIN_KEY, originFromConfig.trim());
         String embedPath = binding.embedPath == null ? "" : binding.embedPath.trim();
-        if (requestedConfig.hasKey(WEB_EMBED_PATH_KEY)
-            && !requestedConfig.getString(WEB_EMBED_PATH_KEY)
-                .trim()
-                .isEmpty()) {
+        if (requestedConfig.hasKey(WEB_EMBED_PATH_KEY) && !requestedConfig.getString(WEB_EMBED_PATH_KEY)
+            .trim()
+            .isEmpty()) {
             embedPath = requestedConfig.getString(WEB_EMBED_PATH_KEY)
                 .trim();
         }

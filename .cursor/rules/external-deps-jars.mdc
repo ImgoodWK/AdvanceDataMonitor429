@@ -47,7 +47,7 @@ alwaysApply: false
 |-----|------|
 | PinIn-1.6.0.jar | 手册拼音（shadow） |
 | IC2NuclearControl-2.7.8-dev.jar | IC2 核电控制（可选） |
-| `mcef*.jar`（可选） | montoyo MCEF 1.7.10；`devOnlyNonPublishable`，不进发布 jar。下载：https://montoyo.net/wd3/?modid=mcef 。放入后 `addon.late.gradle` 会加 ShutdownPatcher JVM 参数。 |
+| `mcef*.jar`（可选） | montoyo MCEF **1.7.10-0.6**（官网仍提供；GitHub Releases 只有 1.12.2 API）。下载：https://montoyo.net/wd3/?modid=mcef → MC 1.7.10 → 0.6。玩法放入 `mods/`；开发放入 `libs/`（仓库可已有该 jar）。`devOnlyNonPublishable`，不进发布 jar。放入后 `addon.late.gradle` 会加 ShutdownPatcher。运行时还需从 https://montoyo.net/jcef 拉 JCEF 原生库；官方声明 1.10.2 之前可能不兼容新版启动器（GTNH/Prism 上常装了也起不来）。无 MCEF 时监视器主路径为浏览器推帧（`browser-jpeg`），主机 Chrome/Edge 截 embed（`spa-jpeg`）作兜底。 |
 
 ## 查阅外部模组类
 

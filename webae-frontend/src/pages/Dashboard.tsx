@@ -89,6 +89,10 @@ import {
   publishAndCopyDashboardLiveBinding,
   warmupLiveDisplayFrame,
 } from '@/utils/dashboardGameDisplayBinding';
+import {
+  pushBrowserDisplayFrame,
+  startLiveBrowserFramePush,
+} from '@/utils/dashboardGameDisplayCapture';
 import { ApiClientError, getApiClient } from '@/api/client';
 import { isEmbedDashboardMode } from '@/pages/EmbedDashboard';
 import { createWidgetId } from '@/utils/widgetId';
@@ -249,6 +253,25 @@ export function Dashboard() {
         viewportHeight: Math.max(64, Math.round(gridRef.current?.clientHeight || 720)),
         postJson: (url, body) => getApiClient().post(url, body),
       });
+      let pushed = false;
+      try {
+        pushed = await pushBrowserDisplayFrame({
+          binding,
+          preferredRoot: gridRef.current,
+          postBinary: (url, file, contentType) => getApiClient().postBinary(url, file, contentType),
+        });
+      } catch {
+        pushed = false;
+      }
+      if (pushed) {
+        startLiveBrowserFramePush({
+          binding,
+          preferredRoot: gridRef.current,
+          postBinary: (url, file, contentType) => getApiClient().postBinary(url, file, contentType),
+        });
+        notify(t('dashboardGameDisplayExportDone'), 'success');
+        return;
+      }
       const warmed = await warmupLiveDisplayFrame({
         binding,
         getBlob: (url) => getApiClient().getBlob(url),

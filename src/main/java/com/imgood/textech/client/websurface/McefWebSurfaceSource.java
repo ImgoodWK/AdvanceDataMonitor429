@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.event.world.WorldEvent;
 
 import com.imgood.textech.Config;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
@@ -13,7 +14,6 @@ import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraftforge.event.world.WorldEvent;
 
 /**
  * Soft-dep on montoyo MCEF: reflective off-screen browser for {@code dashboard_live} / {@code live_url}.
@@ -209,8 +209,8 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
             if (url.startsWith("http://") || url.startsWith("https://")) return url;
             return null;
         }
-        String origin = HttpFrameWebSurfaceSource.resolveOrigin(
-            binding.getString(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY));
+        String origin = HttpFrameWebSurfaceSource
+            .resolveOrigin(binding.getString(TileEntityAdvanceDataMonitor.WEB_ORIGIN_KEY));
         String embedPath = binding.hasKey(TileEntityAdvanceDataMonitor.WEB_EMBED_PATH_KEY)
             ? binding.getString(TileEntityAdvanceDataMonitor.WEB_EMBED_PATH_KEY)
                 .trim()
@@ -270,7 +270,11 @@ public final class McefWebSurfaceSource implements WebSurfaceSource {
                 for (Class<?> iface : apiType.getInterfaces()) {
                     createBrowserMethod = findMethod(iface, "createBrowser", String.class, boolean.class);
                     if (createBrowserMethod == null) {
-                        createBrowserMethod = findMethod(iface, "createBrowser", String.class, boolean.class,
+                        createBrowserMethod = findMethod(
+                            iface,
+                            "createBrowser",
+                            String.class,
+                            boolean.class,
                             boolean.class);
                     }
                     if (createBrowserMethod != null) break;

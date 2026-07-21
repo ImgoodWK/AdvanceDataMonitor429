@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Empty, Spin } from 'antd';
 import { useAppContext } from '@/context/AppContext';
-import { getApiClient } from '@/api/client';
 import {
   DASHBOARD_CONFIG_KEY,
   DEFAULT_DASHBOARD_SETTINGS,
@@ -43,12 +42,17 @@ export function EmbedDashboard() {
   // Headless Chrome --screenshot waits on virtual time; mark when layout is painted so
   // DisplayCaptureService can rely on a settled embed (capture=1 query is advisory).
   useEffect(() => {
-    if (phase !== 'ready') {
+    if (phase === 'boot') {
       document.documentElement.removeAttribute('data-webae-capture-ready');
       return;
     }
     let cancelled = false;
-    const settleMs = /[?&]capture=1(?:&|$)/.test(window.location.search || '') ? 2500 : 800;
+    // Error UI is still visible content — mark ready so capture is not stuck on dark empty shell.
+    if (phase === 'error') {
+      document.documentElement.setAttribute('data-webae-capture-ready', 'error');
+      return;
+    }
+    const settleMs = /[?&]capture=1(?:&|$)/.test(window.location.search || '') ? 800 : 400;
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       requestAnimationFrame(() => {
@@ -75,24 +79,33 @@ export function EmbedDashboard() {
         return;
       }
       try {
-        const ok = await login(embed.token);
-        if (!ok) throw new Error('auth_failed');
-        const resp = await getApiClient().get<{
-          success: boolean;
-          layout?: Partial<DashboardSettings>;
-        }>(`/api/display/${encodeURIComponent(embed.id)}/layout?token=${encodeURIComponent(embed.token)}`);
+        // Prefer public layout+token path: works even when viewToken is not a WebAuth owner token.
+        // Still call login so Dashboard live APIs can reuse Bearer = viewToken (display guest session).
+        await login(embed.token);
         if (cancelled) return;
-        if (!resp?.success || !resp.layout) throw new Error('layout_missing');
+        const resp = await fetch(
+          `/api/display/${encodeURIComponent(embed.id)}/layout?token=${encodeURIComponent(embed.token)}`
+        );
+        const data = (await resp.json()) as {
+          success?: boolean;
+          layout?: Partial<DashboardSettings>;
+          code?: string;
+          message?: string;
+        };
+        if (cancelled) return;
+        if (!resp.ok || !data?.success || !data.layout) {
+          throw new Error(data?.code || data?.message || 'layout_missing');
+        }
         const next: DashboardSettings = {
           ...DEFAULT_DASHBOARD_SETTINGS,
-          ...resp.layout,
+          ...data.layout,
           defaultColors: {
             ...DEFAULT_DASHBOARD_SETTINGS.defaultColors,
-            ...(resp.layout.defaultColors || {}),
+            ...(data.layout.defaultColors || {}),
           },
-          colorPresets: resp.layout.colorPresets ?? [],
+          colorPresets: data.layout.colorPresets ?? [],
           widgets: migrateDashboardWidgets(
-            Array.isArray(resp.layout.widgets) ? resp.layout.widgets : DEFAULT_DASHBOARD_SETTINGS.widgets
+            Array.isArray(data.layout.widgets) ? data.layout.widgets : DEFAULT_DASHBOARD_SETTINGS.widgets
           ),
         };
         localStorage.setItem(DASHBOARD_CONFIG_KEY, JSON.stringify(next));

@@ -143,7 +143,8 @@ public class VoiceAssistantKeyHandler {
     private String formatSttError(Throwable e) {
         String message = e.getMessage() == null ? e.getClass()
             .getSimpleName() : e.getMessage();
-        if (message.contains("with-voice") || message.contains("textechvoice") || message.contains("Vosk model")
+        if (message.contains("with-voice") || message.contains("textechvoice")
+            || message.contains("Vosk model")
             || message.contains("voice extras")) {
             return I18n.format("adm.voice.model_missing");
         }

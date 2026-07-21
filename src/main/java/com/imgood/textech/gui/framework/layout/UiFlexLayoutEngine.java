@@ -40,8 +40,14 @@ public final class UiFlexLayoutEngine {
                 UiLayoutNode child = children.get(i);
                 UiInsets m = child.margin();
                 UiConstraints childC = UiConstraints.loose(
-                    Math.max(0, width - node.padding().horizontal() - m.horizontal()),
-                    Math.max(0, height - node.padding().vertical() - m.vertical()));
+                    Math.max(
+                        0,
+                        width - node.padding()
+                            .horizontal() - m.horizontal()),
+                    Math.max(
+                        0,
+                        height - node.padding()
+                            .vertical() - m.vertical()));
                 layoutNode(child, childC, node.padding().left + m.left, node.padding().top + m.top);
             }
         }
@@ -88,7 +94,10 @@ public final class UiFlexLayoutEngine {
         int free = mainAvail - fixedMain;
         if (free > 0 && totalGrow > 0f) {
             for (int i = 0; i < childCount; i++) {
-                float g = Math.max(0f, children.get(i).grow());
+                float g = Math.max(
+                    0f,
+                    children.get(i)
+                        .grow());
                 if (g > 0f) {
                     mainSizes[i] += Math.round(free * (g / totalGrow));
                 }
@@ -96,7 +105,10 @@ public final class UiFlexLayoutEngine {
         } else if (free < 0 && totalShrink > 0f) {
             int deficit = -free;
             for (int i = 0; i < childCount; i++) {
-                float s = Math.max(0f, children.get(i).shrink());
+                float s = Math.max(
+                    0f,
+                    children.get(i)
+                        .shrink());
                 if (s > 0f) {
                     int cut = Math.round(deficit * (s / totalShrink));
                     mainSizes[i] = Math.max(0, mainSizes[i] - cut);
@@ -106,7 +118,8 @@ public final class UiFlexLayoutEngine {
 
         int mainContent = totalGap;
         for (int i = 0; i < childCount; i++) {
-            UiInsets m = children.get(i).margin();
+            UiInsets m = children.get(i)
+                .margin();
             mainContent += mainSizes[i] + (row ? m.horizontal() : m.vertical());
         }
         int mainStart = 0;

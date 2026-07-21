@@ -74,8 +74,11 @@ dependencies {
     devOnlyNonPublishable(rfg.deobf('curse.maven:spark-361579:3577247'))
 
     // MCEF (montoyo) — optional in-game Chromium OSR for web surfaces.
-    // Never published. Place mcef-*-1.7.10.jar in libs/ (download from
-    // https://montoyo.net/wd3/?modid=mcef). Soft-dep remains reflective when absent.
+    // Never published. Official 1.7.10 build exists (latest 0.6): download from
+    // https://montoyo.net/wd3/?modid=mcef (pick MC 1.7.10 → 0.6) and place as
+    // libs/mcef-1.7.10-0.6.jar. Soft-dep remains reflective when absent.
+    // Note: MCEF <1.10.2 needs JCEF natives from https://montoyo.net/jcef and
+    // may not work with the modern MC launcher; host spa-jpeg capture does not need MCEF.
     def mcefJars = fileTree(dir: 'libs', include: ['mcef*.jar', 'MCEF*.jar'])
     mcefJars.files.each { File mcefJar ->
         if (mcefJar.name.toLowerCase().contains('-dev')) {

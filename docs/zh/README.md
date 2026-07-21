@@ -25,7 +25,7 @@ English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.m
 |--------|-----------|
 | **新玩家** | [用户手册 §0 快速了解](player/用户手册.md#0-快速了解) |
 | **计划器用户** | [用户手册 §19 高级计划器](player/用户手册.md#19-高级计划器) |
-| **服管 / 整合包作者** | [用户手册 §2 环境与安装](player/用户手册.md#2-环境与安装) · [§11 配置文件](player/用户手册.md#11-配置文件详解) · [WebAE 用户手册](webae/用户手册.md) |
+| **服管 / 整合包作者** | [整合包安装-GTNH-2.9.0](player/整合包安装-GTNH-2.9.0.md) · [用户手册 §2](player/用户手册.md#2-环境与安装) · [§11 配置](player/用户手册.md#11-配置文件详解) · [WebAE 用户手册](webae/用户手册.md) |
 | **新贡献开发者** | [开发者技术文档](developer/技术文档.md) · [Gradle 工作流](developer/Gradle工作流.md) |
 | **改 AI 助手** | [AI 助手开发指南](ai-assistant/开发指南.md) · `.cursor/rules/ai-assistant.mdc` |
 | **改挂索** | [挂索节点系统设计](subsystems/挂索节点系统设计.md) |
@@ -40,6 +40,7 @@ English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.m
 | 文档 | 说明 |
 |------|------|
 | [player/用户手册.md](player/用户手册.md) | 安装、方块物品、监视器/AE2 教程、AI/语音助手、配置、FAQ、高级计划器 |
+| [player/整合包安装-GTNH-2.9.0.md](player/整合包安装-GTNH-2.9.0.md) | 2.9.0 整合包作者：该装哪个 jar、软附属拆分、检查清单 |
 
 ### WebAE 控制台
 

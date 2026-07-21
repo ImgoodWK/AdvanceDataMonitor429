@@ -91,9 +91,14 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
         UiScrollPanel scroll = new UiScrollPanel();
         scroll.preferredHeight(48)
             .grow(1f)
-            .style(new UiStyle().padding(2).gap(2).backgroundSolid(0x44000000));
+            .style(
+                new UiStyle().padding(2)
+                    .gap(2)
+                    .backgroundSolid(0x44000000));
         for (int i = 1; i <= 8; i++) {
-            scroll.child(UiLabel.of(I18n.format("adm.label.ui_framework.flex_scroll_item", i)).preferredHeight(10));
+            scroll.child(
+                UiLabel.of(I18n.format("adm.label.ui_framework.flex_scroll_item", i))
+                    .preferredHeight(10));
         }
 
         return UiFlex.column()
@@ -104,7 +109,9 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             .preferredWidth(UiFrameworkDebugLayout.FLEX_W)
             .preferredHeight(UiFrameworkDebugLayout.FLEX_H)
             .setAbsolute(UiFrameworkDebugLayout.COL_LEFT, UiFrameworkDebugLayout.ROW_FLEX)
-            .child(UiLabel.of(I18n.format("adm.label.ui_framework.section.flex")).preferredHeight(10))
+            .child(
+                UiLabel.of(I18n.format("adm.label.ui_framework.section.flex"))
+                    .preferredHeight(10))
             .child(
                 UiFlex.row()
                     .gap(4)

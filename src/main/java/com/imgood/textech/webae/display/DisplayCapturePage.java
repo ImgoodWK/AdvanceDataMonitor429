@@ -30,7 +30,7 @@ public final class DisplayCapturePage {
         String updated = new SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(new Date());
 
         StringBuilder sb = new StringBuilder(8192);
-        sb.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/>");
+        sb.append("<!DOCTYPE html><html data-webae-capture-ready=\"1\"><head><meta charset=\"UTF-8\"/>");
         sb.append("<title>")
             .append(esc(record.title))
             .append("</title>");

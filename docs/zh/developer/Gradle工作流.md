@@ -48,7 +48,7 @@ TeXTech 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/Example
 | `*-voice.jar` | 可选；modid `textechvoice`，含 Vosk 模型；玩家放入 `mods/` |
 | 开发 `runClient` | 仍从源码树加载 Vosk，无需 voice jar |
 
-可选 MCEF：将 montoyo `mcef*-1.7.10.jar` 放入 `libs/` 后，`dependencies.gradle` 会以 `devOnlyNonPublishable` 引入，且 `addon.late.gradle` 添加 ShutdownPatcher JVM 参数。下载：https://montoyo.net/wd3/?modid=mcef 。
+可选 MCEF：官网仍提供 **1.7.10 / 0.6**（https://montoyo.net/wd3/?modid=mcef ）。将 `mcef-1.7.10-0.6.jar` 放入 `libs/`（开发）或游戏 `mods/`（玩法）后，`dependencies.gradle` 以 `devOnlyNonPublishable` 引入，`addon.late.gradle` 添加 ShutdownPatcher。GitHub Releases 仅有 1.12.2 API，不能替代 1.7.10 整包。运行时还要能访问 https://montoyo.net/jcef 下载原生库；官方警告 1.10.2 之前可能不兼容新版启动器。无 MCEF 时监视器主路径为浏览器推帧（`browser-jpeg`），主机 Chrome/Edge 截 embed（`spa-jpeg`）作兜底。
 Unix-like shell 下对应使用 `./gradlew`。
 
 ### 1.2 关键文件

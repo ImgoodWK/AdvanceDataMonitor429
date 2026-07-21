@@ -18,7 +18,9 @@ public final class WebSurfaceSourceRouter {
 
     public static final String SOURCE_NONE = "none";
     public static final String SOURCE_MCEF = "mcef";
+    public static final String SOURCE_BROWSER_JPEG = "browser-jpeg";
     public static final String SOURCE_SPA_JPEG = "spa-jpeg";
+    public static final String SOURCE_SERVER_HTML = "server-html";
     public static final String SOURCE_SNAPSHOT = "snapshot";
 
     private static volatile String lastSource = SOURCE_NONE;
@@ -74,7 +76,16 @@ public final class WebSurfaceSourceRouter {
             frame = HttpFrameWebSurfaceSource.instance()
                 .getFrame(binding, textureWidth, distanceSq, inView);
             if (frame != null && frame.isReady()) {
-                lastSource = SOURCE_SPA_JPEG;
+                String httpSource = HttpFrameWebSurfaceSource.getLastFrameSource(
+                    HttpFrameWebSurfaceSource.instance()
+                        .cacheKey(binding));
+                if (SOURCE_BROWSER_JPEG.equals(httpSource)) {
+                    lastSource = SOURCE_BROWSER_JPEG;
+                } else if (SOURCE_SERVER_HTML.equals(httpSource)) {
+                    lastSource = SOURCE_SERVER_HTML;
+                } else {
+                    lastSource = SOURCE_SPA_JPEG;
+                }
                 lastDetail = "";
                 return frame;
             }
@@ -86,8 +97,8 @@ public final class WebSurfaceSourceRouter {
                     && com.imgood.textech.client.WebSurfaceClientCache.hasContent(hash)) {
                     lastSource = SOURCE_SNAPSHOT;
                     lastDetail = "legacy_snapshot_fallback";
-                    return WebSurfaceFrame.ofLocation(
-                        com.imgood.textech.client.WebSurfaceClientCache.getTexture(hash, textureWidth));
+                    return WebSurfaceFrame
+                        .ofLocation(com.imgood.textech.client.WebSurfaceClientCache.getTexture(hash, textureWidth));
                 }
             }
 

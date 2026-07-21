@@ -47,7 +47,7 @@ alwaysApply: true
 
 WebAE 仪表盘组件设置改动需联查 `EditWidgetModal.tsx`、`WidgetPinEditor.tsx`、`utils/dashboardColumns.ts` 与所有渲染入口（主 `Dashboard.tsx`、共享 `WidgetContent.tsx`、专用表组件）。数据表 `columns` 约定：`undefined`=默认列，空数组=明确隐藏全部列；禁止用 `columns?.length` 回退默认值。新增列或钉选行为须同步中英文 i18n、用户/开发文档及回归测试。
 
-WebAE 主仪表盘“导出到游戏显示器”默认发布布局+设置并复制 `textech-webae-display-binding`（`dashboard_live`）；可选回退 `dashboardGameDisplayExport.ts` 的 `textech-webae-display-snapshot` 绘制列表。不得把 Token/密钥写入绑定或快照；直播帧走 WebAE HTTP 截帧，不得在 MC `updateEntity` 跑浏览器或 Tick 轮询。
+WebAE 主仪表盘“导出到游戏显示器”默认发布布局+设置、复制 `textech-webae-display-binding`（`dashboard_live`），并推送浏览器当前视口 JPEG（`browser-jpeg`）；可选回退主机截 `/embed/dashboard`（`spa-jpeg`）或 `dashboardGameDisplayExport.ts` 的静态快照。不得把 Token/密钥写入绑定或快照；直播帧不得在 MC `updateEntity` 跑浏览器或 Tick 轮询。
 
 ## 同步维护
 

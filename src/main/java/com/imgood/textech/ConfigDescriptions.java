@@ -384,6 +384,11 @@ public final class ConfigDescriptions {
             "超过该格数距离不再新建 MCEF 浏览器。默认 64。");
         put(
             "webConsole",
+            "webDisplayChromePath",
+            "Optional absolute path to chrome.exe / msedge.exe / Chromium for host dashboard JPEG capture (spa-jpeg). Empty = auto-detect via Program Files, ProgramW6432, registry, PATH, and WEBAE_CHROME_PATH. Not used by in-game MCEF.",
+            "可选：主机仪表盘 JPEG 截帧用的 chrome.exe / msedge.exe / Chromium 绝对路径（spa-jpeg）。留空则自动探测（Program Files、ProgramW6432、注册表、PATH、以及环境变量 WEBAE_CHROME_PATH）。不影响游戏内 MCEF。");
+        put(
+            "webConsole",
             "alertsEnabled",
             "Global switch for WebAE alert evaluation and notification delivery. Default true. Rules and per-channel switches remain in TeXTech/WebAE/web-alerts.json.",
             "WebAE 告警检测与通知投递的总开关，默认开启。规则及各提醒渠道开关仍保存在 TeXTech/WebAE/web-alerts.json。");

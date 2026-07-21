@@ -1,9 +1,9 @@
 package com.imgood.textech.gui.framework.style;
 
+import net.minecraft.util.ResourceLocation;
+
 import com.imgood.textech.gui.framework.NineSliceRegion;
 import com.imgood.textech.gui.framework.layout.UiInsets;
-
-import net.minecraft.util.ResourceLocation;
 
 /**
  * Per-widget style: padding, margin, gap, background, text colors.

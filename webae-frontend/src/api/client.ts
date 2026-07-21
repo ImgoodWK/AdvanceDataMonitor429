@@ -138,15 +138,21 @@ export class ApiClient {
     return resp.blob();
   }
 
-  postBinary<T>(url: string, file: Blob | File): Promise<T> {
+  postBinary<T>(url: string, file: Blob | File, contentType?: string): Promise<T> {
     const headers: Record<string, string> = {};
     const token = this.getToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
     const adminToken = this.getAdminToken();
     if (adminToken) headers['X-WebAE-Admin'] = adminToken;
-    return fetch(url, { method: 'POST', headers, body: file }).then((r) => {
+    const ct = contentType || (file instanceof Blob ? file.type : '') || 'application/octet-stream';
+    if (ct) headers['Content-Type'] = ct;
+    return fetch(url, { method: 'POST', headers, body: file }).then(async (r) => {
       if (!r.ok) throw new ApiClientError('Upload failed', 'upload_failed', r.status);
-      return r.json() as Promise<T>;
+      const type = r.headers.get('content-type') || '';
+      if (type.includes('application/json')) {
+        return r.json() as Promise<T>;
+      }
+      return { success: true } as unknown as T;
     });
   }
 

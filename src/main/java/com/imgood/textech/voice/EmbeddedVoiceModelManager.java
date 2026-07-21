@@ -194,8 +194,7 @@ public class EmbeddedVoiceModelManager {
         return source;
     }
 
-    private void copyEntriesFromClasspath(String resourcePrefix, List<String> entries, File target)
-        throws IOException {
+    private void copyEntriesFromClasspath(String resourcePrefix, List<String> entries, File target) throws IOException {
         ensureTargetDirectory(target);
         ClassLoader loader = EmbeddedVoiceModelManager.class.getClassLoader();
         for (String entry : entries) {
@@ -230,7 +229,8 @@ public class EmbeddedVoiceModelManager {
                 String relative = entry.substring(resourcePrefix.length());
                 File output = new File(target, relative.replace('/', File.separatorChar));
                 ensureParent(output);
-                try (InputStream in = jar.getInputStream(jarEntry); FileOutputStream out = new FileOutputStream(output)) {
+                try (InputStream in = jar.getInputStream(jarEntry);
+                    FileOutputStream out = new FileOutputStream(output)) {
                     copyStream(in, out);
                 }
             }

@@ -83,8 +83,7 @@ public final class UiScrollPanel extends UiWidget {
         }
         int ax = absX();
         int ay = absY();
-        if (mouseX < ax || mouseY < ay || mouseX >= ax + getLayoutBox().width
-            || mouseY >= ay + getLayoutBox().height) {
+        if (mouseX < ax || mouseY < ay || mouseX >= ax + getLayoutBox().width || mouseY >= ay + getLayoutBox().height) {
             return null;
         }
         int contentY = mouseY + scrollY;
@@ -100,12 +99,20 @@ public final class UiScrollPanel extends UiWidget {
     private UiWidget hitChildScrolled(UiWidget child, int mouseX, int contentY, int parentAbsX, int parentAbsY) {
         int cx = parentAbsX + child.getLayoutBox().x;
         int cy = parentAbsY + child.getLayoutBox().y;
-        if (mouseX < cx || contentY < cy || mouseX >= cx + child.getLayoutBox().width
+        if (mouseX < cx || contentY < cy
+            || mouseX >= cx + child.getLayoutBox().width
             || contentY >= cy + child.getLayoutBox().height) {
             return null;
         }
-        for (int i = child.getChildren().size() - 1; i >= 0; i--) {
-            UiWidget hit = hitChildScrolled(child.getChildren().get(i), mouseX, contentY, cx, cy);
+        for (int i = child.getChildren()
+            .size() - 1; i >= 0; i--) {
+            UiWidget hit = hitChildScrolled(
+                child.getChildren()
+                    .get(i),
+                mouseX,
+                contentY,
+                cx,
+                cy);
             if (hit != null) {
                 return hit;
             }

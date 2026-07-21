@@ -73,13 +73,7 @@ public abstract class ADM_UiContainer extends GuiContainer {
         if (uiRoot == null) {
             return;
         }
-        UiRenderContext ctx = new UiRenderContext(
-            fontRendererObj,
-            theme,
-            panelLeft(),
-            panelTop(),
-            mouseX,
-            mouseY);
+        UiRenderContext ctx = new UiRenderContext(fontRendererObj, theme, panelLeft(), panelTop(), mouseX, mouseY);
         uiRoot.render(ctx);
     }
 

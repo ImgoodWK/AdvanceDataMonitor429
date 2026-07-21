@@ -175,7 +175,8 @@ public class UiWidget implements UiLayoutNode {
         drawBackground(context, ax, ay, layoutBox.width, layoutBox.height);
         drawSelf(context.withOrigin(ax, ay));
         for (int i = 0; i < children.size(); i++) {
-            children.get(i).render(context.withOrigin(ax, ay));
+            children.get(i)
+                .render(context.withOrigin(ax, ay));
         }
     }
 
@@ -217,7 +218,8 @@ public class UiWidget implements UiLayoutNode {
             return null;
         }
         for (int i = children.size() - 1; i >= 0; i--) {
-            UiWidget hit = children.get(i).hitTest(mouseX, mouseY);
+            UiWidget hit = children.get(i)
+                .hitTest(mouseX, mouseY);
             if (hit != null) {
                 return hit;
             }
@@ -236,7 +238,8 @@ public class UiWidget implements UiLayoutNode {
 
     public boolean keyTyped(char typedChar, int keyCode) {
         for (int i = 0; i < children.size(); i++) {
-            if (children.get(i).keyTyped(typedChar, keyCode)) {
+            if (children.get(i)
+                .keyTyped(typedChar, keyCode)) {
                 return true;
             }
         }
@@ -265,7 +268,8 @@ public class UiWidget implements UiLayoutNode {
 
     public void tick() {
         for (int i = 0; i < children.size(); i++) {
-            children.get(i).tick();
+            children.get(i)
+                .tick();
         }
         onTick();
     }
@@ -417,7 +421,8 @@ public class UiWidget implements UiLayoutNode {
                 }
                 UiConstraints childC = UiConstraints.loose(constraints.maxWidth, constraints.maxHeight);
                 int w = c.preferredWidth() > 0 ? c.preferredWidth() : c.measureWidth(childC);
-                sum += w + c.margin().horizontal();
+                sum += w + c.margin()
+                    .horizontal();
                 count++;
             }
             if (count > 1) {
@@ -433,7 +438,10 @@ public class UiWidget implements UiLayoutNode {
             }
             UiConstraints childC = UiConstraints.loose(constraints.maxWidth, constraints.maxHeight);
             int w = c.preferredWidth() > 0 ? c.preferredWidth() : c.measureWidth(childC);
-            max = Math.max(max, w + c.margin().horizontal());
+            max = Math.max(
+                max,
+                w + c.margin()
+                    .horizontal());
         }
         return constraints.constrainWidth(max + pad.horizontal());
     }
@@ -455,7 +463,10 @@ public class UiWidget implements UiLayoutNode {
                     : c.measureWidth(UiConstraints.loose(innerW, constraints.maxHeight));
                 int ch = c.preferredHeight() > 0 ? c.preferredHeight()
                     : c.measureHeight(UiConstraints.loose(cw, constraints.maxHeight), cw);
-                max = Math.max(max, ch + c.margin().vertical());
+                max = Math.max(
+                    max,
+                    ch + c.margin()
+                        .vertical());
             }
             return constraints.constrainHeight(max + pad.vertical());
         }
@@ -466,10 +477,14 @@ public class UiWidget implements UiLayoutNode {
             if (!c.isVisible() || c.isAbsolute()) {
                 continue;
             }
-            int avail = Math.max(0, innerW - c.margin().horizontal());
+            int avail = Math.max(
+                0,
+                innerW - c.margin()
+                    .horizontal());
             int ch = c.preferredHeight() > 0 ? c.preferredHeight()
                 : c.measureHeight(UiConstraints.loose(avail, constraints.maxHeight), avail);
-            sum += ch + c.margin().vertical();
+            sum += ch + c.margin()
+                .vertical();
             count++;
         }
         if (count > 1) {

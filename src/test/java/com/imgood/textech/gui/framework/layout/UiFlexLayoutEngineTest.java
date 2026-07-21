@@ -42,8 +42,10 @@ public class UiFlexLayoutEngineTest {
 
     @Test
     public void growSharesExtraMainSpace() {
-        FakeLayoutNode a = FakeLayoutNode.leaf(10, 10).grow(1f);
-        FakeLayoutNode b = FakeLayoutNode.leaf(10, 10).grow(1f);
+        FakeLayoutNode a = FakeLayoutNode.leaf(10, 10)
+            .grow(1f);
+        FakeLayoutNode b = FakeLayoutNode.leaf(10, 10)
+            .grow(1f);
         FakeLayoutNode root = FakeLayoutNode.flexRow()
             .gap(0)
             .child(a)
@@ -83,7 +85,8 @@ public class UiFlexLayoutEngineTest {
 
     @Test
     public void preferredWidthExemptsStretchOnColumnCrossAxis() {
-        FakeLayoutNode a = FakeLayoutNode.leaf(10, 10).preferredWidth(30);
+        FakeLayoutNode a = FakeLayoutNode.leaf(10, 10)
+            .preferredWidth(30);
         FakeLayoutNode root = FakeLayoutNode.flexColumn()
             .crossAlign(UiCrossAlign.STRETCH)
             .child(a);

@@ -471,7 +471,9 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
                 config.setString("webBindingJson", bindingJson);
                 config.setString(TileEntityAdvanceDataMonitor.WEB_DISPLAY_ID_KEY, liveBinding.displayId);
                 config.setString(TileEntityAdvanceDataMonitor.WEB_VIEW_TOKEN_KEY, liveBinding.viewToken);
-                config.setString(TileEntityAdvanceDataMonitor.WEB_LIVE_URL_KEY, liveBinding.url == null ? "" : liveBinding.url);
+                config.setString(
+                    TileEntityAdvanceDataMonitor.WEB_LIVE_URL_KEY,
+                    liveBinding.url == null ? "" : liveBinding.url);
                 config.setString(
                     TileEntityAdvanceDataMonitor.WEB_EMBED_PATH_KEY,
                     liveBinding.embedPath == null ? "" : liveBinding.embedPath);
@@ -542,8 +544,14 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         if (WebSurfaceSourceRouter.SOURCE_MCEF.equals(source)) {
             return I18n.format("adm.status.web_dashboard_frame_mcef");
         }
+        if (WebSurfaceSourceRouter.SOURCE_BROWSER_JPEG.equals(source)) {
+            return I18n.format("adm.status.web_dashboard_frame_browser");
+        }
         if (WebSurfaceSourceRouter.SOURCE_SPA_JPEG.equals(source)) {
             return I18n.format("adm.status.web_dashboard_frame_spa");
+        }
+        if (WebSurfaceSourceRouter.SOURCE_SERVER_HTML.equals(source)) {
+            return I18n.format("adm.status.web_dashboard_frame_server_html");
         }
         if (WebSurfaceSourceRouter.SOURCE_SNAPSHOT.equals(source)) {
             return I18n.format("adm.status.web_dashboard_frame_snapshot_not_web")
@@ -555,13 +563,13 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             pending = I18n.format("adm.status.web_dashboard_frame_live_url_need_mcef");
         } else if (Config.webSurfaceUseMcef && McefWebSurfaceSource.isClassPresent()
             && McefWebSurfaceSource.isAvailable()) {
-            pending = I18n.format("adm.status.web_dashboard_frame_mcef_pending");
-        } else if (Config.webSurfaceUseMcef && McefWebSurfaceSource.isClassPresent()
-            && !McefWebSurfaceSource.isAvailable()) {
-            pending = I18n.format("adm.status.web_dashboard_frame_mcef_broken");
-        } else {
-            pending = I18n.format("adm.status.web_dashboard_frame_spa_pending");
-        }
+                pending = I18n.format("adm.status.web_dashboard_frame_mcef_pending");
+            } else if (Config.webSurfaceUseMcef && McefWebSurfaceSource.isClassPresent()
+                && !McefWebSurfaceSource.isAvailable()) {
+                    pending = I18n.format("adm.status.web_dashboard_frame_mcef_broken");
+                } else {
+                    pending = I18n.format("adm.status.web_dashboard_frame_browser_pending");
+                }
         if (detail != null && !detail.isEmpty()) {
             return pending + " [" + detail + "]";
         }

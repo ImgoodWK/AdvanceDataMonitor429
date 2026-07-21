@@ -75,7 +75,8 @@ public final class DisplayHandler {
             return jsonLayout(record);
         }
         if ("/frame.jpg".equals(suffix) || "/frame".equals(suffix)) {
-            if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET /api/display/{id}/frame.jpg");
+            if (method != NanoHTTPD.Method.GET)
+                return methodNotAllowed("Use GET /api/display/{id}/frame.jpg or POST binary JPEG");
             return handleFrame(record, params);
         }
         if ("/frame-status".equals(suffix) || "/status".equals(suffix)) {
@@ -139,7 +140,8 @@ public final class DisplayHandler {
             return jsonLayout(record);
         }
         if ("/frame.jpg".equals(suffix) || "/frame".equals(suffix)) {
-            if (method != NanoHTTPD.Method.GET) return methodNotAllowed("Use GET");
+            // POST browser-jpeg push needs raw bytes — fall through to WebApiRouter.
+            if (method != NanoHTTPD.Method.GET) return null;
             return handleFrame(record, params);
         }
         if ("/frame-status".equals(suffix) || "/status".equals(suffix)) {
@@ -237,6 +239,10 @@ public final class DisplayHandler {
         boolean hasFrame = svc.hasCachedFrame(record.id);
         boolean inFlight = svc.isCaptureInFlight(record.id);
         String err = svc.getLastError(record.id);
+        String source = svc.getCachedSource(record.id);
+        if (source == null || source.isEmpty()) {
+            source = DisplayCaptureService.SOURCE_SPA_JPEG;
+        }
         StringBuilder sb = new StringBuilder(192);
         sb.append("{\"success\":true,\"displayId\":\"")
             .append(escapeJson(record.id))
@@ -246,12 +252,51 @@ public final class DisplayHandler {
             .append(inFlight)
             .append(",\"error\":\"")
             .append(escapeJson(err != null ? err : ""))
-            .append("\",\"source\":\"spa-jpeg\"}");
+            .append("\",\"source\":\"")
+            .append(escapeJson(source))
+            .append("\"}");
         NanoHTTPD.Response resp = json(NanoHTTPD.Response.Status.OK, sb.toString());
         if (err != null && !err.isEmpty()) {
             resp.addHeader("X-WebAE-Capture-Error", err);
         }
         return resp;
+    }
+
+    /**
+     * Accept a browser-captured JPEG body (WYSIWYG push). Called from {@code WebApiRouter}
+     * with raw bytes so NanoHTTPD string body decoding cannot corrupt the image.
+     */
+    public static NanoHTTPD.Response handleFramePush(String uri, Map<String, String> params, byte[] jpeg,
+        WebAuthSession auth) {
+        if (uri == null || !uri.startsWith("/api/display/")) return notFound();
+        String rest = uri.substring("/api/display/".length());
+        int slash = rest.indexOf('/');
+        if (slash < 0) return notFound();
+        String id = rest.substring(0, slash);
+        String suffix = rest.substring(slash);
+        if (!"/frame".equals(suffix) && !"/frame.jpg".equals(suffix)) return notFound();
+
+        DisplayRecord record = DisplayStore.getById(id);
+        if (record == null) return notFound();
+        if (!authorizeWrite(record, params, auth)) {
+            return NanoHTTPD.newFixedLengthResponse(
+                NanoHTTPD.Response.Status.UNAUTHORIZED,
+                "application/json",
+                "{\"success\":false,\"code\":\"invalid_display_token\",\"message\":\"Invalid display view token\"}");
+        }
+        int width = parseInt(params != null ? params.get("width") : null, record.viewportWidth);
+        DisplayCaptureService.FrameResult result = DisplayCaptureService.instance()
+            .putBrowserFrame(record.id, jpeg, width);
+        if (result.error != null) {
+            return badRequest(result.error);
+        }
+        return json(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"source\":\"browser-jpeg\",\"etag\":\""
+                + escapeJson(result.etag != null ? result.etag : "")
+                + "\",\"bytes\":"
+                + (result.jpeg != null ? result.jpeg.length : 0)
+                + "}");
     }
 
     private static NanoHTTPD.Response handleRender(DisplayRecord record) {
@@ -277,9 +322,7 @@ public final class DisplayHandler {
             String err = frame.error != null ? frame.error : "capture_pending";
             NanoHTTPD.Response resp = json(
                 NanoHTTPD.Response.Status.SERVICE_UNAVAILABLE,
-                "{\"success\":false,\"code\":\"capture_unavailable\",\"message\":\""
-                    + escapeJson(err)
-                    + "\"}");
+                "{\"success\":false,\"code\":\"capture_unavailable\",\"message\":\"" + escapeJson(err) + "\"}");
             resp.addHeader("X-WebAE-Capture-Error", err);
             resp.addHeader("Cache-Control", "no-store");
             return resp;
@@ -291,8 +334,14 @@ public final class DisplayHandler {
             frame.jpeg.length);
         resp.addHeader("ETag", frame.etag);
         resp.addHeader("Cache-Control", "no-cache");
-        resp.addHeader("X-WebAE-Frame", "spa-jpeg");
+        resp.addHeader(
+            "X-WebAE-Frame",
+            frame.source != null && !frame.source.isEmpty() ? frame.source : DisplayCaptureService.SOURCE_SPA_JPEG);
         return resp;
+    }
+
+    private static boolean authorizeWrite(DisplayRecord record, Map<String, String> params, WebAuthSession auth) {
+        return authorizeRead(record, params, auth);
     }
 
     private static boolean authorizeRead(DisplayRecord record, Map<String, String> params, WebAuthSession auth) {

@@ -833,6 +833,10 @@ public class WebApiRouter {
         }
 
         if ("/api/display".equals(uri) || uri.startsWith("/api/display/")) {
+            if (method == NanoHTTPD.Method.POST && (uri.endsWith("/frame") || uri.endsWith("/frame.jpg"))) {
+                byte[] jpeg = readBodyBytes(session);
+                return DisplayHandler.handleFramePush(uri, params, jpeg, auth);
+            }
             String body = (method == NanoHTTPD.Method.POST || method == NanoHTTPD.Method.PUT) ? readBody(session)
                 : null;
             return DisplayHandler.handle(uri, method, params, body, auth, headers);
@@ -1321,6 +1325,25 @@ public class WebApiRouter {
 
         }
 
+    }
+
+    private static byte[] readBodyBytes(NanoHTTPD.IHTTPSession session) {
+        try {
+            int contentLength = 0;
+            String cl = session.getHeaders()
+                .get("content-length");
+            if (cl != null) {
+                contentLength = Integer.parseInt(cl.trim());
+            }
+            if (contentLength <= 0) return new byte[0];
+            if (contentLength > 2_500_000) return new byte[0];
+            byte[] buffer = new byte[contentLength];
+            DataInputStream dis = new DataInputStream(session.getInputStream());
+            dis.readFully(buffer);
+            return buffer;
+        } catch (Exception e) {
+            return new byte[0];
+        }
     }
 
     private static NanoHTTPD.Response guestWriteDenied() {

@@ -141,6 +141,12 @@ public class Config {
     public static double webSurfaceMcefCloseDistance = 48.0D;
     /** Do not create new MCEF browsers beyond this distance (blocks). Default 64. */
     public static double webSurfaceMcefCreateDistance = 64.0D;
+    /**
+     * Optional absolute path to Chrome/Chromium/Edge for host dashboard JPEG capture.
+     * Empty = auto-detect (also checks {@code WEBAE_CHROME_PATH}). Used by
+     * {@code DisplayCaptureService}, not by in-game MCEF.
+     */
+    public static String webDisplayChromePath = "";
     /** Global kill switch for WebAE alert evaluation and all notification delivery. Default true. */
     public static boolean webAlertsEnabled = true;
     /** Client framebuffer capture/local history and explicit WebAE/QQ sharing. */

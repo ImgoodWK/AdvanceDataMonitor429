@@ -186,9 +186,15 @@ adm.status.web_dashboard_mcef_disabled=Render: host captures real dashboard (no 
 adm.status.web_dashboard_mcef_snapshot=Render: static snapshot
 adm.status.web_dashboard_host_spa=Render: host captures real dashboard (export web → import in-game; no MCEF)
 adm.status.web_dashboard_frame_mcef=Frame source: mcef (real browser)
-adm.status.web_dashboard_frame_spa=Frame source: spa-jpeg (host captures real fullscreen dashboard)
+adm.status.web_dashboard_frame_browser=Frame source: browser-jpeg (browser viewport push; matches web UI)
+adm.status.web_dashboard_frame_spa=Frame source: spa-jpeg (host embed capture; fallback)
+adm.status.web_dashboard_frame_server_html=Frame source: server-html (compact HTML fallback; not full web UI)
 adm.status.web_dashboard_frame_snapshot=Frame source: snapshot (static; may not match the web UI)
+adm.status.web_dashboard_frame_snapshot_not_web=Frame source: snapshot (static fake UI; not web)
 adm.status.web_dashboard_frame_mcef_pending=Frame source: waiting for mcef...
+adm.status.web_dashboard_frame_mcef_broken=Frame source: MCEF unavailable
+adm.status.web_dashboard_frame_live_url_need_mcef=Frame source: live_url requires MCEF
+adm.status.web_dashboard_frame_browser_pending=Frame source: waiting for browser-jpeg (export from WebAE and keep the tab open)...
 adm.status.web_dashboard_frame_spa_pending=Frame source: waiting for spa-jpeg (host Chrome/Edge capture)...
 
 adm.error.not_tileentity=This block is not a TileEntity!

@@ -60,25 +60,29 @@ public final class UiLabel extends UiWidget {
             return;
         }
         UiTheme theme = context.theme();
-        int color = style().textColor() >= 0 ? style().textColor()
-            : (title ? theme.textAccent() : theme.textPrimary());
+        int color = style().textColor() >= 0 ? style().textColor() : (title ? theme.textAccent() : theme.textPrimary());
         int x = 0;
         int y = title ? 1 : 0;
         if (title) {
             String drawn = text;
-            int tw = context.font().getStringWidth(drawn);
+            int tw = context.font()
+                .getStringWidth(drawn);
             x = Math.max(0, (getLayoutBox().width - tw) / 2);
             if (shadow) {
-                context.font().drawStringWithShadow(drawn, x, y, color);
+                context.font()
+                    .drawStringWithShadow(drawn, x, y, color);
             } else {
-                context.font().drawString(drawn, x, y, color);
+                context.font()
+                    .drawString(drawn, x, y, color);
             }
             return;
         }
         if (shadow) {
-            context.font().drawStringWithShadow(text, x, y, color);
+            context.font()
+                .drawStringWithShadow(text, x, y, color);
         } else {
-            context.font().drawString(text, x, y, color);
+            context.font()
+                .drawString(text, x, y, color);
         }
     }
 }
