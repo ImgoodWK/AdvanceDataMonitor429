@@ -12,11 +12,12 @@ import net.minecraft.util.EnumChatFormatting;
  */
 public class CommandTeXTech extends TeXTechCommandBase {
 
-    protected static final String[] SERVER_DOMAINS = { "help", "web", "assistant", "ai", "screenshot" };
-    protected static final int HUB_LINES = 5;
+    protected static final String[] SERVER_DOMAINS = { "help", "web", "assistant", "ai", "screenshot", "card" };
+    protected static final int HUB_LINES = 6;
 
     protected final CommandAssistant assistantCmd = new CommandAssistant();
     protected final CommandWebConsole webCmd = new CommandWebConsole();
+    protected final CommandCardBattle cardCmd = new CommandCardBattle();
 
     @Override
     public String getCommandName() {
@@ -59,6 +60,10 @@ public class CommandTeXTech extends TeXTechCommandBase {
             webCmd.processCommand(sender, rest);
             return true;
         }
+        if ("card".equals(domain)) {
+            cardCmd.processCommand(sender, rest);
+            return true;
+        }
         if ("ai".equals(domain)) {
             sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.hub.ai_client_only");
             return true;
@@ -99,6 +104,9 @@ public class CommandTeXTech extends TeXTechCommandBase {
         }
         if ("web".equals(domain)) {
             return webCmd.addTabCompletionOptions(sender, rest);
+        }
+        if ("card".equals(domain)) {
+            return cardCmd.addTabCompletionOptions(sender, rest);
         }
         return null;
     }

@@ -14,6 +14,7 @@ import com.imgood.textech.config.ConfigMatterBallDecompressorLoader;
 import com.imgood.textech.config.ConfigPlannerHudLoader;
 import com.imgood.textech.config.ConfigSuperOrangeLoader;
 import com.imgood.textech.config.ConfigWebaeDebugLoader;
+import com.imgood.textech.config.ConfigCardBattleLoader;
 import com.imgood.textech.config.ConfigWebaeLoader;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -125,6 +126,23 @@ public class Config {
     public static int webConsolePort = 8090;
     public static String webConsoleBindAddress = "127.0.0.1";
     public static int webConsoleSnapshotIntervalSeconds = 30;
+
+    // --- card battle (in-process NanoHTTPD; not on Forge tick) ---
+    /** When true, start Card Battle HTTP on world/server start (incl. singleplayer). */
+    public static boolean cardBattleEnabled = true;
+    public static int cardBattlePort = 8787;
+    public static String cardBattleBindAddress = "127.0.0.1";
+    /**
+     * Optional local-only Bearer bypass ({@code [cardBattle] devToken}). Empty = require a real
+     * WebAE token from {@code web-tokens.json}.
+     */
+    public static String cardBattleDevToken = "local";
+    /** @deprecated Unused — Card Battle is embedded in the mod jar (no Node). Kept for cfg migration. */
+    public static String cardBattleServerDir = "";
+    /** @deprecated Unused — SPA ships in {@code assets/textech/cardbattle/}. */
+    public static String cardBattleFrontendDir = "";
+    /** @deprecated Unused — no external Node process. */
+    public static String cardBattleNodePath = "";
     /**
      * When true and montoyo MCEF is installed, in-game web surfaces prefer a local off-screen
      * Chromium browser (true SPA / live_url). When false or MCEF is absent, HttpFrame JPEG is used.
@@ -473,6 +491,7 @@ public class Config {
         ConfigMatterBallDecompressorLoader.load(configuration);
         ConfigGrappleLoader.load(configuration);
         ConfigWebaeLoader.load(configuration);
+        ConfigCardBattleLoader.load(configuration);
         ConfigWebaeDebugLoader.load(configuration);
 
         if (!FMLCommonHandler.instance()
@@ -515,6 +534,7 @@ public class Config {
             ConfigMatterBallDecompressorLoader.load(configuration);
             ConfigGrappleLoader.load(configuration);
             ConfigWebaeLoader.load(configuration);
+            ConfigCardBattleLoader.load(configuration);
             ConfigWebaeDebugLoader.load(configuration);
             if (!FMLCommonHandler.instance()
                 .getSide()

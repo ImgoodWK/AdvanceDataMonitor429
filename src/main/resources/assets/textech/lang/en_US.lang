@@ -1258,7 +1258,8 @@ adm.command.hub.1=[Server]  /textech web help        Web console (token, recipes
 adm.command.hub.2=[Client]  /textech ai help         AI API config (key, model, web search…)
 adm.command.hub.3=[Both]    /textech assistant help  AI assistant lexicon reload
 adm.command.hub.4=[Client]  /textech screenshot help  capture, local history, and explicit sharing; legacy aliases remain.
-adm.command.hub.5=Type /textech <domain> help for subcommands. [OP]=operator; [Player]=player required.
+adm.command.hub.5=[Server]  /textech card status     Card battle (embedded web UI auto-starts on world load; OP start/stop)
+adm.command.hub.6=Type /textech <domain> help for subcommands. [OP]=operator; [Player]=player required.
 adm.command.hub.client.1=[Client]  /textech ai help         AI API config — available on this client
 adm.command.hub.client.2=[Both]    /textech assistant help  AI assistant lexicon reload
 adm.command.hub.client.3=[Client]  /textech screenshot help  capture, local history, and explicit sharing

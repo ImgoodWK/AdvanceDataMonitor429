@@ -1257,7 +1257,8 @@ adm.command.hub.1=[服务端]  /textech web help        Web 控制台（Token、
 adm.command.hub.2=[客户端]  /textech ai help         AI API 配置（Key、模型、联网搜索…）
 adm.command.hub.3=[通用]    /textech assistant help  AI 助手词库热重载
 adm.command.hub.4=[客户端]  /textech screenshot help 截图、本地历史与按需分享；旧命令别名仍可用。
-adm.command.hub.5=输入 /textech <域> help 查看完整子命令。[OP]=需管理员；[玩家]=须玩家执行。
+adm.command.hub.5=[服务端]  /textech card status     卡牌对战（进档自动启动内嵌网页；OP 可 start/stop）
+adm.command.hub.6=输入 /textech <域> help 查看完整子命令。[OP]=需管理员；[玩家]=须玩家执行。
 adm.command.hub.client.1=[客户端]  /textech ai help         AI API 配置（本客户端可用）
 adm.command.hub.client.2=[通用]    /textech assistant help  AI 助手词库热重载
 adm.command.hub.client.3=[客户端]  /textech screenshot help 截图、本地历史与按需分享

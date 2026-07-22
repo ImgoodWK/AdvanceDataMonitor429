@@ -40,6 +40,7 @@ Use this routing table:
 | AI assistant, voice, or AI command behavior | `.cursor/rules/ai-assistant.mdc`, `.cursor/rules/ai-assistant-docs-sync.mdc`, `docs/*/ai-assistant/`, assistant feature data, lexicon, GUI text, and both language files as applicable |
 | WebAE server/API behavior | `docs/*/webae/developer-guide.md`, `docs/*/webae/user-guide.md`, the matching manual chapter, and `.cursor/rules/webae-*.mdc` |
 | WebAE frontend behavior or UI contract | `webae-frontend/`, built WebAE assets when the build workflow requires them, the WebAE docs/manual, i18n keys, tests, and `.cursor/rules/webae-frontend*.mdc` |
+| Card battle standalone web | `cardbattle-server/`, `cardbattle-frontend/`, `docs/zh/cardbattle/` (incl. `ui-design.md`), `.cursor/skills/textech-card-art/` (does not use GTNH tick; shares WebAE token file) |
 | Player-visible item, block, command, UI, or mechanic | `docs/*/player/`, the matching `src/main/resources/assets/textech/manual/chapters/*.json`, `manual/index.json` if chapter membership changes, and `lang/{zh_CN,en_US}.lang` |
 | Rendering, GUI, or client-only behavior | `.cursor/rules/gui-guidelines.mdc`, relevant `project-structure-details.mdc` section, and player/manual docs when externally visible |
 

@@ -53,6 +53,19 @@ debug-*.log
 webae-frontend/node_modules/
 webae-frontend/dist/
 
+# Card battle standalone (independent of WebAE)
+cardbattle-frontend/node_modules/
+cardbattle-frontend/dist/
+# Accidental Windows Python venv under frontend (do not commit)
+cardbattle-frontend/Lib/
+cardbattle-frontend/Scripts/
+cardbattle-frontend/Include/
+cardbattle-frontend/pyvenv.cfg
+cardbattle-server/node_modules/
+cardbattle-server/dist/
+cardbattle-server/data/runtime/
+cardbattle-server/.env
+
 # 临时压缩包/备份
 repo.zip
 *.bak

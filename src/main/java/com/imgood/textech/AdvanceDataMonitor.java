@@ -105,15 +105,18 @@ public class AdvanceDataMonitor {
         } else {
             LOG.info("[WebAE] Web Console is disabled. Set [webConsole] enabled=true in config to enable.");
         }
+        com.imgood.textech.handler.CardBattleProcessHandler.startIfEnabled();
     }
 
     @Mod.EventHandler
     public void serverStopping(FMLServerStoppingEvent event) {
+        com.imgood.textech.handler.CardBattleProcessHandler.stopServer();
         WebAeServerHandler.stopServer();
     }
 
     @Mod.EventHandler
     public void serverStopped(FMLServerStoppedEvent event) {
+        com.imgood.textech.handler.CardBattleProcessHandler.stopServer();
         WebAeServerHandler.stopServer();
         // Flush any pending WebAE player/chat store writes so data is not lost on shutdown.
         try {

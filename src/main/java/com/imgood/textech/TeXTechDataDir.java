@@ -22,6 +22,7 @@ public final class TeXTechDataDir {
     public static final String WEBAE_DIR = "WebAE";
     public static final String ASSISTANT_DIR = "Assistant";
     public static final String GRAPPEL_DIR = "Grapple";
+    public static final String CARD_BATTLE_DIR = "CardBattle";
 
     /** Pre-merge client/server local folder for NEI export and NESQL import. */
     public static final String LEGACY_WEBAE_DIR = "TeXTechWebAE";
@@ -66,6 +67,11 @@ public final class TeXTechDataDir {
 
     public static File grappleRoot() {
         return subdir(GRAPPEL_DIR);
+    }
+
+    /** {@code <instance>/TeXTech/CardBattle/}. */
+    public static File cardBattleRoot() {
+        return subdir(CARD_BATTLE_DIR);
     }
 
     /** {@code TeXTech/WebAE/<fileName>}. */

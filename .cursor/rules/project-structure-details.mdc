@@ -16,11 +16,11 @@ alwaysApply: false
 | `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包。含 `[webConsole]` 图标、Spark、截图清晰度/带宽/并发/保留上限等字段 + `[debug]` WebAE 分功能开关；`reloadConfiguration()` 复用 `activeConfigFile` 重载分节（供 `/admweb reload`） |
 | `ConfigDescriptions.java` | 配置项双语说明（英文 / 中文，供 .cfg 注释与手册引用） |
 | `ClientProxy.java` | 客户端代理（按键注册；FML bus 注册 `IconRenderer` + `IconLazyRenderQueue`） |
-| `TeXTechDataDir.java` | 运行时数据目录统一入口（`TeXTech/WebAE|Assistant|Grapple/`） |
+| `TeXTechDataDir.java` | 运行时数据目录统一入口（`TeXTech/WebAE|Assistant|Grapple|CardBattle/`） |
 | `TeXTechDataMigration.java` | preInit 启动迁移：`config/textech/`、`config/advancedatamonitor/`、`TeXTechWebAE/` → `TeXTech/`（移动，config 仅保留 `.cfg`） |
 | `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
 
-### config/ — 配置分节加载 (15 文件)
+### config/ — 配置分节加载 (16 文件)
 - `ConfigDebugLoader.java` — `[debug]` 通用/GUI/WebAE 调试开关（含 `debugWebae` 控制 NEI 配方采集器诊断日志）
 - `ConfigCompatLoader.java` — `[compat]` AE 2.9 兼容 profile 覆盖
 - `ConfigAiLoader.java` / `ConfigAiMutators.java` — `[ai]`
@@ -32,6 +32,7 @@ alwaysApply: false
 - `ConfigMatterBallDecompressorLoader.java` — `[matterBallDecompressor]`
 - `ConfigGrappleLoader.java` — `[grapple]`
 - `ConfigWebaeLoader.java` — `[webConsole]`（含 WebAE 告警总闸 `alertsEnabled`、阶段 3.1 图标三开关、可选 Spark 配置 + **Phase6** `dynmapBaseUrl`）
+- `ConfigCardBattleLoader.java` — `[cardBattle]`（进档自动拉起独立 Node 卡牌服）
 - `ConfigWebaeDebugLoader.java` — `[debug]` 节 WebAE 分功能 debug 开关（阶段 3.3：`webaeIcons`/`webaeChat`/`webaeDashboard`/`webaeSynthesis`/`webaePatterns`，默认 false，gate `WebAeDebugLog`）
 - `ConfigWebAlertsLoader.java` — 加载/保存 `TeXTech/WebAE/web-alerts.json`（WebAE 自动化告警规则）
 - `ConfigWebOrderTemplatesLoader.java` — 加载/保存 `TeXTech/WebAE/web-order-templates.json`（按 ownerUuid 批量下单模板）
@@ -157,7 +158,7 @@ alwaysApply: false
 - **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）、`ContainerMatterBallDecompressor.java`（物质球解压器容器，9 输入 + 9×9 缓存 + 4 加速卡槽）、`ContainerUiFrameworkDebug.java`（UI 框架展示，无槽位）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；GUI ID 0–10，含 `UI_FRAMEWORK_DEBUG_GUI_ID=10`）
 
-### handler/ — 事件处理器与物品服务端逻辑 (38 文件)
+### handler/ — 事件处理器与物品服务端逻辑 (40 文件)
 - `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理；世界地图分 tick；`qqBot` 独立 perf 阶段每秒复制只读服务器快照并调度定时播报）
 - `ConnectorTickService.java` — AE 连接器 debounced 刷新调度（网络/合成/存储链接器）+ `[debug] connectorProfile` 统计
 - `NetworkLinkGridStatsCache.java` — 同 AE grid 多网络链接器共享存储统计缓存
@@ -176,6 +177,7 @@ alwaysApply: false
 - **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
 - `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
 - `WebAeServerHandler.java` — WebAE HTTP 服务器生命周期管理（FMLServerStartedEvent/FMLServerStoppedEvent）
+- `CardBattleProcessHandler.java` — 卡牌独立 Node 进程生命周期（进档拉起 / 退档停止；不占 Forge tick）
 - `HandlerWebPlayerTracker.java` — WebAE 玩家登录/登出追踪（`@SubscribeEvent` 监听 `PlayerLoggedInEvent`/`PlayerLoggedOutEvent`，写入 `PlayerInfoStore`；登录时 `NetworkRegistry.onPlayerLogin`；每 tick 调用 `reconcileOnline` + `tickSave` + `NetworkRegistry.tickHealthCheck`）
 - `HandlerWebTileEntityIndex.java` — WebAE chunk load/unload 同步 `TileEntityIndex` 与 `NetworkRegistry`
 - `HandlerWebChatCollector.java` — WebAE 游戏内聊天收集（`@SubscribeEvent` 监听 `ServerChatEvent`，不取消事件，镜像写入 `ChatMessageStore` 作为 `source=game`）

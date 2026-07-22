@@ -346,6 +346,41 @@ public final class ConfigDescriptions {
             "enabled",
             "Enable the WebAE HTTP console for remote AE2 monitoring and control. Default false.",
             "启用 WebAE HTTP 控制台，用于远程 AE2 监控和控制。默认关闭。");
+        put(
+            "cardBattle",
+            "enabled",
+            "Start the embedded Card Battle HTTP UI when entering a world (incl. singleplayer). Default true. No Node.js required.",
+            "进入存档（含单人）时启动内嵌卡牌 HTTP 界面。默认开启。不需要安装 Node.js。");
+        put(
+            "cardBattle",
+            "port",
+            "HTTP port for Card Battle (UI+API). Default 8787.",
+            "卡牌对战 HTTP 端口（页面+API）。默认 8787。");
+        put(
+            "cardBattle",
+            "bindAddress",
+            "Bind address for Card Battle HTTP. Default 127.0.0.1 (local only).",
+            "卡牌 HTTP 绑定地址。默认 127.0.0.1（仅本机）。");
+        put(
+            "cardBattle",
+            "serverDir",
+            "DEPRECATED/ignored. Card Battle runs in-process; no external Node server directory.",
+            "已废弃/忽略。卡牌现已内嵌运行，不再需要外部 Node 目录。");
+        put(
+            "cardBattle",
+            "frontendDir",
+            "DEPRECATED/ignored. SPA is packaged under assets/textech/cardbattle/.",
+            "已废弃/忽略。前端已打进 jar（assets/textech/cardbattle/）。");
+        put(
+            "cardBattle",
+            "nodePath",
+            "DEPRECATED/ignored. No external Node process.",
+            "已废弃/忽略。不再拉起外部 Node 进程。");
+        put(
+            "cardBattle",
+            "devToken",
+            "Optional local-only Bearer bypass for Card Battle. Default local (works on 127.0.0.1 without WebAE token). Clear to require a real WebAE token.",
+            "可选的卡牌本地调试 Bearer。默认 local（本机打开即可玩，无需 WebAE Token）。清空则必须使用真实 WebAE Token。");
         put("webConsole", "port", "HTTP server port for WebAE console. Default 8090.", "WebAE 控制台的 HTTP 服务端口。默认 8090。");
         put(
             "webConsole",
