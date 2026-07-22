@@ -61,6 +61,11 @@ public final class CardBattleSessions {
         public String aiVoltage;
         public double difficulty;
         public String feature;
+        public String kind;
+        public int column;
+        public int lane;
+        public List<String> nextStageIds = new ArrayList<String>();
+        public String skinRewardId;
     }
 
     public static class RewardChoice {
@@ -68,6 +73,12 @@ public final class CardBattleSessions {
         public String labelZh;
         public boolean hard;
         public List<RewardItem> items = new ArrayList<RewardItem>();
+        public List<String> cardIds = new ArrayList<String>();
+        public String powerId;
+        public String skinId;
+        public String rewardKey;
+        public String voltageTier;
+        public String delivery;
     }
 
     public static class RewardItem {
@@ -84,6 +95,34 @@ public final class CardBattleSessions {
         public int armor;
     }
 
+    public static class PowerDef {
+        public String id;
+        public String nameZh;
+        public String descriptionZh;
+        public int nexusHp;
+        public int startSpellMana;
+        public int firstUnitAttack;
+        public int firstUnitHealth;
+        public int firstUnitArmor;
+
+        public PowerDef(String id, String nameZh, String descriptionZh, int nexusHp, int spellMana, int attack,
+            int health, int armor) {
+            this.id = id;
+            this.nameZh = nameZh;
+            this.descriptionZh = descriptionZh;
+            this.nexusHp = nexusHp;
+            this.startSpellMana = spellMana;
+            this.firstUnitAttack = attack;
+            this.firstUnitHealth = health;
+            this.firstUnitArmor = armor;
+        }
+    }
+
+    public static final PowerDef[] POWERS = {
+        new PowerDef("power_reinforced_nexus", "强化主机", "每场战斗 Nexus 最大生命与当前生命 +4。", 4, 0, 0, 0, 0),
+        new PowerDef("power_spell_cache", "法术缓存", "每场战斗以 1 点法术法力开始。", 0, 1, 0, 0, 0),
+        new PowerDef("power_precision_tools", "精密工具", "每场第一名非结构单位获得 +1/+1 与 1 点护甲。", 0, 0, 1, 1, 1) };
+
     public static class RunState {
         public String runId;
         public String ownerUuid;
@@ -94,6 +133,11 @@ public final class CardBattleSessions {
         public EquipStats equipment = new EquipStats();
         public int stageIndex;
         public List<StageDef> stages = new ArrayList<StageDef>();
+        public List<String> availableStageIds = new ArrayList<String>();
+        public List<String> completedStageIds = new ArrayList<String>();
+        public String currentStageId;
+        public List<String> powers = new ArrayList<String>();
+        public List<String> unlockedSkinIds = new ArrayList<String>();
         public List<RewardChoice> pendingChoice;
         public boolean completed;
         public int victories;
@@ -130,7 +174,10 @@ public final class CardBattleSessions {
                 }
             }
         }
-        run.stages = generateStages(seed, voltage, 5);
+        run.stages = generateStages(seed, voltage, 7);
+        run.availableStageIds.add("stage_1a");
+        run.availableStageIds.add("stage_1b");
+        run.unlockedSkinIds.add("gt_factory");
         RUNS.put(run.runId, run);
         return run;
     }
@@ -139,20 +186,18 @@ public final class CardBattleSessions {
         return RUNS.get(runId);
     }
 
-    public static JsonObject beginStage(String runId, String ownerUuid, String playerName, String rewardChoiceId) {
+    public static JsonObject beginStage(String runId, String ownerUuid, String playerName, String stageId) {
         RunState run = RUNS.get(runId);
         if (run == null || !ownerUuid.equals(run.ownerUuid)) throw new IllegalArgumentException("Run not found");
         if (run.completed) throw new IllegalArgumentException("Run completed");
-        if (run.stageIndex >= run.stages.size()) throw new IllegalArgumentException("No stage");
-        StageDef stage = run.stages.get(run.stageIndex);
-        RewardChoice choice = null;
-        if (rewardChoiceId != null && rewardChoiceId.length() > 0) {
-            for (RewardChoice c : rewardChoices(stage, run.voltage)) {
-                if (c.id.equals(rewardChoiceId)) choice = c;
-            }
-            if (choice == null) throw new IllegalArgumentException("Invalid reward choice");
+        if (run.currentStageId != null) throw new IllegalArgumentException("Stage already active");
+        String selectedStageId = stageId != null && stageId.length() > 0 ? stageId
+            : (run.availableStageIds.isEmpty() ? null : run.availableStageIds.get(0));
+        if (selectedStageId == null || !run.availableStageIds.contains(selectedStageId)) {
+            throw new IllegalArgumentException("Stage is not available");
         }
-        boolean hard = choice != null && choice.hard;
+        StageDef stage = findStage(run, selectedStageId);
+        if (stage == null) throw new IllegalArgumentException("No stage");
         JsonObject opts = new JsonObject();
         opts.addProperty("seed", run.seed + run.stageIndex * 17);
         opts.addProperty("playerId", ownerUuid);
@@ -163,28 +208,52 @@ public final class CardBattleSessions {
         opts.add("aiDeck", toArr(buildDeck(stage.aiThemes, stage.aiVoltage, run.seed + run.stageIndex * 99)));
         opts.add("aiThemes", toArr(stage.aiThemes));
         opts.addProperty("aiVoltage", stage.aiVoltage);
-        opts.addProperty("aiName", stage.nameZh + (hard ? " (Hard)" : ""));
+        opts.addProperty("aiName", stage.nameZh);
         boolean dlb = "dlb_force".equals(stage.feature) || run.themes.contains("dlb");
         opts.addProperty("dlbForceEvery", dlb ? 5 : 0);
         BattleState match = BattleEngine.createMatch(opts);
-        match.pendingEquipAtk = run.equipment.attack;
-        match.pendingEquipHp = run.equipment.health;
-        match.pendingEquipArmor = run.equipment.armor;
-        if (hard) {
-            match.players[1].nexusHp += 5;
-            match.players[1].maxNexusHp += 5;
-            match.players[1].maxMana += 1;
-            match.players[1].mana += 1;
+        int powerAttack = 0;
+        int powerHealth = 0;
+        int powerArmor = 0;
+        for (String powerId : run.powers) {
+            PowerDef power = powerById(powerId);
+            if (power == null) continue;
+            match.players[0].maxNexusHp += power.nexusHp;
+            match.players[0].nexusHp += power.nexusHp;
+            match.players[0].spellMana = Math.min(3, match.players[0].spellMana + power.startSpellMana);
+            powerAttack += power.firstUnitAttack;
+            powerHealth += power.firstUnitHealth;
+            powerArmor += power.firstUnitArmor;
+        }
+        match.pendingEquipAtk = run.equipment.attack + powerAttack;
+        match.pendingEquipHp = run.equipment.health + powerHealth;
+        match.pendingEquipArmor = run.equipment.armor + powerArmor;
+        if (!"battle".equals(stage.kind)) {
+            int bonus = "boss".equals(stage.kind) ? 10 : 5;
+            match.players[1].nexusHp += bonus;
+            match.players[1].maxNexusHp += bonus;
+            match.players[1].maxMana += "boss".equals(stage.kind) ? 2 : 1;
+            match.players[1].mana = match.players[1].maxMana;
         }
         MATCHES.put(match.matchId, match);
         MATCH_OWNER.put(match.matchId, ownerUuid);
         run.pendingChoice = null;
+        run.currentStageId = stage.id;
         JsonObject out = new JsonObject();
         out.add("run", GSON.toJsonTree(run));
         out.addProperty("matchId", match.matchId);
         out.add("match", GSON.toJsonTree(BattleEngine.publicView(match)));
-        out.add("selectedReward", choice != null ? GSON.toJsonTree(choice) : null);
         return out;
+    }
+
+    private static StageDef findStage(RunState run, String id) {
+        for (StageDef stage : run.stages) if (stage.id.equals(id)) return stage;
+        return null;
+    }
+
+    private static PowerDef powerById(String id) {
+        for (PowerDef power : POWERS) if (power.id.equals(id)) return power;
+        return null;
     }
 
     public static BattleState getMatch(String matchId, String ownerUuid) {
@@ -215,10 +284,14 @@ public final class CardBattleSessions {
         m.runSettled = true;
         if (m.winner != null && m.winner.intValue() == 0) {
             run.victories += 1;
-            StageDef stage = run.stages.get(Math.min(run.stageIndex, run.stages.size() - 1));
+            StageDef stage = findStage(run, run.currentStageId);
+            if (stage == null) throw new IllegalStateException("Active stage not found");
             run.pendingChoice = rewardChoices(stage, run.voltage);
-            run.stageIndex += 1;
-            if (run.stageIndex >= run.stages.size()) run.completed = true;
+            run.completedStageIds.add(stage.id);
+            run.stageIndex = run.completedStageIds.size();
+            run.availableStageIds = new ArrayList<String>(stage.nextStageIds);
+            run.currentStageId = null;
+            if (stage.nextStageIds.isEmpty()) run.completed = true;
         } else {
             run.completed = true;
         }
@@ -232,12 +305,33 @@ public final class CardBattleSessions {
         RewardChoice choice = null;
         for (RewardChoice c : run.pendingChoice) if (c.id.equals(choiceId)) choice = c;
         if (choice == null) throw new IllegalArgumentException("Invalid choice");
-        StageDef stage = run.stages.get(Math.max(0, run.stageIndex - 1));
-        String entryId = enqueueReward(ownerUuid, choice.items, run.runId, stage.id, choice.labelZh);
+        String stageId = run.completedStageIds.isEmpty() ? "unknown"
+            : run.completedStageIds.get(run.completedStageIds.size() - 1);
+        run.deck.addAll(choice.cardIds);
+        if (choice.powerId != null && !run.powers.contains(choice.powerId)) run.powers.add(choice.powerId);
+        List<String> unlocked = new ArrayList<String>();
+        if (choice.skinId != null && !run.unlockedSkinIds.contains(choice.skinId)) {
+            run.unlockedSkinIds.add(choice.skinId);
+            unlocked.add(choice.skinId);
+        }
+        String entryId = null;
+        if (!choice.items.isEmpty()) {
+            entryId = enqueueReward(
+                ownerUuid,
+                choice.items,
+                run.runId,
+                stageId,
+                choice.labelZh,
+                choice.rewardKey,
+                choice.voltageTier,
+                choice.delivery);
+        }
         run.pendingChoice = null;
         JsonObject out = new JsonObject();
         out.add("run", GSON.toJsonTree(run));
-        out.addProperty("entryId", entryId);
+        if (entryId != null) out.addProperty("entryId", entryId);
+        else out.add("entryId", com.google.gson.JsonNull.INSTANCE);
+        out.add("unlockedSkinIds", GSON.toJsonTree(unlocked));
         return out;
     }
 
@@ -280,26 +374,71 @@ public final class CardBattleSessions {
         Random rng = new Random(seed);
         int base = CardBattleTypes.voltageIndex(playerVoltage);
         List<StageDef> stages = new ArrayList<StageDef>();
-        for (int i = 0; i < count; i++) {
-            String aiTheme = ALL_THEMES[rng.nextInt(ALL_THEMES.length)];
-            int vi = Math.min(CardBattleTypes.VOLTAGE_ORDER.length - 1, base + i / 2);
-            StageDef st = new StageDef();
-            st.id = "stage_" + (i + 1);
-            st.nameZh = "关卡 " + (i + 1) + " · " + aiTheme;
-            st.aiThemes.add(aiTheme);
-            st.aiVoltage = CardBattleTypes.VOLTAGE_ORDER[vi];
-            st.difficulty = 1 + i * 0.35;
-            if ("dlb".equals(aiTheme)) st.feature = "dlb_force";
-            if ("forestry".equals(aiTheme)) st.feature = "hive";
-            stages.add(st);
-        }
+        stages.add(makeStage(rng, base, "stage_1a", 0, 0, "battle", new String[] { "stage_2a", "stage_2b" }));
+        stages.add(makeStage(rng, base, "stage_1b", 0, 1, "battle", new String[] { "stage_2a", "stage_2b" }));
+        stages.add(makeStage(rng, base, "stage_2a", 1, 0, "battle", new String[] { "stage_3a" }));
+        stages.add(makeStage(rng, base, "stage_2b", 1, 1, "battle", new String[] { "stage_3b" }));
+        stages.add(makeStage(rng, base, "stage_3a", 2, 0, "elite", new String[] { "stage_boss" }));
+        stages.add(makeStage(rng, base, "stage_3b", 2, 1, "elite", new String[] { "stage_boss" }));
+        stages.add(makeStage(rng, base, "stage_boss", 3, 0, "boss", new String[0]));
         return stages;
+    }
+
+    private static StageDef makeStage(Random rng, int baseVoltage, String id, int column, int lane, String kind,
+        String[] next) {
+        String aiTheme = ALL_THEMES[rng.nextInt(ALL_THEMES.length)];
+        int extraVoltage = column / 2 + ("boss".equals(kind) ? 1 : 0);
+        int vi = Math.min(CardBattleTypes.VOLTAGE_ORDER.length - 1, baseVoltage + extraVoltage);
+        StageDef stage = new StageDef();
+        stage.id = id;
+        stage.kind = kind;
+        stage.column = column;
+        stage.lane = lane;
+        stage.nameZh = ("boss".equals(kind) ? "终局首领" : "elite".equals(kind) ? "精英节点" : "战斗节点") + " · "
+            + aiTheme;
+        stage.aiThemes.add(aiTheme);
+        stage.aiVoltage = CardBattleTypes.VOLTAGE_ORDER[vi];
+        stage.difficulty = 1 + column * 0.35 + ("elite".equals(kind) ? 0.4 : "boss".equals(kind) ? 0.9 : 0);
+        if ("dlb".equals(aiTheme)) stage.feature = "dlb_force";
+        if ("forestry".equals(aiTheme)) stage.feature = "hive";
+        for (String nextId : next) stage.nextStageIds.add(nextId);
+        if ("boss".equals(kind)) stage.skinRewardId = "overclocked_nexus";
+        return stage;
     }
 
     public static List<RewardChoice> rewardChoices(StageDef stage, String voltage) {
         List<RewardChoice> list = new ArrayList<RewardChoice>();
-        list.add(makeReward("safe", "稳妥奖励（小包泵）", false, voltage, 16));
-        list.add(makeReward("hard", "对标奖励（整组泵，关卡更难）", true, voltage, 64));
+        RewardChoice cards = new RewardChoice();
+        cards.id = "cards";
+        List<CardDef> themeCards = CardCatalog.byTheme(stage.aiThemes.get(0));
+        int cardCount = "boss".equals(stage.kind) ? 3 : 2;
+        cards.labelZh = "扩充卡组（" + cardCount + " 张 " + stage.aiThemes.get(0) + " 卡）";
+        for (int i = 0; i < themeCards.size() && i < cardCount; i++) cards.cardIds.add(themeCards.get(i).id);
+        cards.skinId = stage.skinRewardId;
+        list.add(cards);
+
+        RewardChoice power = new RewardChoice();
+        int powerHash = 0;
+        for (int i = 0; i < stage.id.length(); i++) powerHash += stage.id.charAt(i);
+        PowerDef selectedPower = POWERS[powerHash % POWERS.length];
+        power.id = "power";
+        power.labelZh = "获得能力：" + selectedPower.nameZh;
+        power.powerId = selectedPower.id;
+        power.skinId = stage.skinRewardId;
+        list.add(power);
+
+        int count = "boss".equals(stage.kind) ? 64 : "elite".equals(stage.kind) ? 32 : 16;
+        RewardChoice voltageReward = makeReward(
+            "voltage_cache",
+            voltage + " 电压奖励缓存（待游戏内桥接）",
+            false,
+            voltage,
+            count);
+        voltageReward.rewardKey = "textech.cardbattle.voltage." + voltage.toLowerCase(java.util.Locale.ROOT) + ".cache";
+        voltageReward.voltageTier = voltage;
+        voltageReward.delivery = "pending_bridge";
+        voltageReward.skinId = stage.skinRewardId;
+        list.add(voltageReward);
         return list;
     }
 
@@ -325,7 +464,7 @@ public final class CardBattleSessions {
     }
 
     public static String enqueueReward(String ownerUuid, List<RewardItem> items, String runId, String stageId,
-        String label) {
+        String label, String rewardKey, String voltageTier, String delivery) {
         List<PendingEntry> entries = readPending(ownerUuid);
         PendingEntry e = new PendingEntry();
         e.id = UUID.randomUUID()
@@ -336,6 +475,10 @@ public final class CardBattleSessions {
         e.source.addProperty("runId", runId);
         e.source.addProperty("stageId", stageId);
         e.source.addProperty("label", label);
+        e.source.addProperty("schemaVersion", 2);
+        if (rewardKey != null) e.source.addProperty("rewardKey", rewardKey);
+        if (voltageTier != null) e.source.addProperty("voltageTier", voltageTier);
+        if (delivery != null) e.source.addProperty("delivery", delivery);
         entries.add(e);
         writePending(ownerUuid, entries);
         return e.id;

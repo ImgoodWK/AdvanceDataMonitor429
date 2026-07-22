@@ -32,6 +32,8 @@ public final class CardBattleTypes {
         public String nameZh;
         public String theme;
         public String kind;
+        /** slow, fast, or burst; only meaningful for spells. */
+        public String spellSpeed;
         public int cost;
         public Integer attack;
         public Integer health;
@@ -41,6 +43,7 @@ public final class CardBattleTypes {
         public Integer manaPerTurn;
         public Integer hiveCooldown;
         public String textZh;
+        public String rulesZh;
         public String art;
     }
 
@@ -67,6 +70,8 @@ public final class CardBattleTypes {
         public int maxNexusHp;
         public int mana;
         public int maxMana;
+        /** Reserve mana capped at 3 and spendable by spells only. */
+        public int spellMana;
         public int bankedMana;
         public String voltage;
         public List<String> hand = new ArrayList<String>();
@@ -94,12 +99,36 @@ public final class CardBattleTypes {
         }
     }
 
+    public static class SpellStackItem {
+        public int stackId;
+        public int caster;
+        public String cardId;
+        public String speed;
+        public Integer targetSlot;
+        public Integer targetEnemySlot;
+    }
+
     public static class BattleState {
         public String matchId;
         public int seed;
         public int turn;
         public String phase;
+        /** Player currently holding action priority. */
         public int activePlayer;
+        /** Player owning the attack token for this round. */
+        public int attackTokenPlayer;
+        public boolean attackTokenAvailable;
+        /** Frozen attacker during block/resolve windows; -1 outside combat. */
+        public int combatAttacker = -1;
+        public int consecutivePasses;
+        /** Response-window passes never count toward round end. */
+        public int responsePasses;
+        /** Null outside a main-stack response window. */
+        public Integer responseOriginPlayer;
+        public List<SpellStackItem> spellStack = new ArrayList<SpellStackItem>();
+        public int nextStackId = 1;
+        /** Each player confirms one opening-hand replacement. */
+        public boolean[] mulliganDone = new boolean[2];
         public PlayerState[] players = new PlayerState[2];
         public List<Integer> attackOrder = new ArrayList<Integer>();
         public List<AttackPair> blockPairs = new ArrayList<AttackPair>();

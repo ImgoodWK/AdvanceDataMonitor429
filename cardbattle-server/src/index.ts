@@ -42,11 +42,25 @@ import {
   startRun,
   viewMatch,
 } from './pve/session.js';
-import { listPending, markClaimed, rewardsDataRoot } from './rewards/pending.js';
+import {
+  listPending,
+  markClaimed,
+  rewardDeliveryStatus,
+  rewardsDataRoot,
+} from './rewards/pending.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(cors());
+const allowedOrigins = (process.env.CARDBATTLE_CORS_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: allowedOrigins.length ? allowedOrigins : true,
+    credentials: false,
+  }),
+);
 app.use(express.json({ limit: '1mb' }));
 app.use('/card-art', express.static(path.join(__dirname, '..', 'public', 'card-art')));
 
@@ -69,6 +83,7 @@ app.get('/api/health', (_req, res) => {
     service: 'textech-cardbattle',
     auth: authStatus(),
     dataRoot: rewardsDataRoot(),
+    rewardDelivery: rewardDeliveryStatus(),
   });
 });
 
@@ -133,13 +148,13 @@ app.post('/api/run/:runId/stage', (req, res) => {
   const session = requireAuth(req, res);
   if (!session) return;
   try {
-    const { run, match, choice } = beginStage(
+    const { run, match } = beginStage(
       req.params.runId,
       session.ownerUuid,
       session.actorName,
-      req.body?.rewardChoiceId,
+      req.body?.stageId,
     );
-    res.json({ run, matchId: match.matchId, match, selectedReward: choice ?? null });
+    res.json({ run, matchId: match.matchId, match });
   } catch (e) {
     res.status(400).json({ status: 'error', message: (e as Error).message });
   }
@@ -188,6 +203,19 @@ app.get('/api/rewards/pending', (req, res) => {
 app.post('/api/rewards/:id/mark-claimed', (req, res) => {
   const session = requireAuth(req, res);
   if (!session) return;
+  const bridgeToken = process.env.CARDBATTLE_BRIDGE_TOKEN?.trim();
+  if (!bridgeToken) {
+    res.status(503).json({
+      status: 'error',
+      code: 'bridge_not_configured',
+      message: 'Rewards remain accumulated in the standalone ledger until a Minecraft bridge is configured',
+    });
+    return;
+  }
+  if (req.header('x-cardbattle-bridge-token') !== bridgeToken) {
+    res.status(403).json({ status: 'error', code: 'bridge_forbidden', message: 'Bridge token required' });
+    return;
+  }
   const entry = markClaimed(session.ownerUuid, req.params.id);
   if (!entry) {
     res.status(404).json({ status: 'error', message: 'Not found' });
@@ -195,7 +223,7 @@ app.post('/api/rewards/:id/mark-claimed', (req, res) => {
   }
   res.json({
     entry,
-    note: 'Stub only — Minecraft item grant is not implemented in V1',
+    note: 'Marked claimed by the configured bridge after external delivery',
   });
 });
 
@@ -228,7 +256,9 @@ if (frontendDir) {
 }
 
 const port = Number(process.env.CARDBATTLE_PORT || 8787);
-app.listen(port, () => {
-  console.log(`[cardbattle] listening on http://127.0.0.1:${port}`);
+const host = process.env.CARDBATTLE_HOST?.trim() || '127.0.0.1';
+app.listen(port, host, () => {
+  console.log(`[cardbattle] listening on http://${host}:${port}`);
   console.log(`[cardbattle] auth:`, authStatus());
+  console.log(`[cardbattle] rewards:`, rewardDeliveryStatus());
 });

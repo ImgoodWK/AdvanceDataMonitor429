@@ -24,7 +24,12 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const client = {
-  health: () => api<{ status: string; auth: unknown }>('/api/health'),
+  health: () =>
+    api<{
+      status: string;
+      auth: unknown;
+      rewardDelivery: RewardDeliveryStatus;
+    }>('/api/health'),
   meta: () =>
     api<{
       themes: string[];
@@ -41,10 +46,10 @@ export const client = {
     equipmentIds: string[];
   }) => api<{ run: RunState }>('/api/run', { method: 'POST', body: JSON.stringify(body) }),
   getRun: (runId: string) => api<{ run: RunState }>(`/api/run/${runId}`),
-  beginStage: (runId: string, rewardChoiceId?: string) =>
+  beginStage: (runId: string, stageId?: string) =>
     api<{ run: RunState; matchId: string; match: BattleState }>(`/api/run/${runId}/stage`, {
       method: 'POST',
-      body: JSON.stringify({ rewardChoiceId }),
+      body: JSON.stringify({ stageId }),
     }),
   getMatch: (matchId: string) => api<{ match: BattleState }>(`/api/match/${matchId}`),
   action: (matchId: string, action: unknown, runId?: string) =>
@@ -53,7 +58,7 @@ export const client = {
       body: JSON.stringify({ action, runId }),
     }),
   claimReward: (runId: string, choiceId: string) =>
-    api<{ run: RunState; entryId: string }>(`/api/run/${runId}/claim-reward`, {
+    api<{ run: RunState; entryId: string | null; unlockedSkinIds: string[] }>(`/api/run/${runId}/claim-reward`, {
       method: 'POST',
       body: JSON.stringify({ choiceId }),
     }),
@@ -66,12 +71,17 @@ export interface CardDef {
   nameZh: string;
   theme: string;
   kind: string;
+  spellSpeed?: 'slow' | 'fast' | 'burst';
   cost: number;
   attack?: number;
   health?: number;
   armor?: number;
   keywords?: string[];
+  aspects?: string[];
+  manaPerTurn?: number;
+  hiveCooldown?: number;
   textZh?: string;
+  rulesZh?: string;
   art?: string;
 }
 
@@ -86,6 +96,7 @@ export interface BoardUnit {
   aspects: string[];
   isStructure: boolean;
   untargetable: boolean;
+  hiveTurnsLeft?: number;
 }
 
 export interface PlayerState {
@@ -94,6 +105,7 @@ export interface PlayerState {
   maxNexusHp: number;
   mana: number;
   maxMana: number;
+  spellMana: number;
   bankedMana: number;
   voltage: string;
   hand: string[];
@@ -109,8 +121,24 @@ export interface BattleState {
   turn: number;
   phase: string;
   activePlayer: 0 | 1;
+  attackTokenPlayer: 0 | 1;
+  attackTokenAvailable: boolean;
+  combatAttacker: 0 | 1 | null;
+  consecutivePasses: number;
+  responsePasses: number;
+  responseOriginPlayer: 0 | 1 | null;
+  spellStack: {
+    stackId: number;
+    caster: 0 | 1;
+    cardId: string;
+    speed: 'slow' | 'fast';
+    targetSlot?: number;
+    targetEnemySlot?: number;
+  }[];
+  mulliganDone: [boolean, boolean];
   players: [PlayerState, PlayerState];
   attackOrder: number[];
+  blockPairs: { attackerSlot: number; blockerSlot: number }[];
   winner: 0 | 1 | null;
   log: string[];
 }
@@ -120,8 +148,35 @@ export interface RunState {
   voltage: string;
   themes: string[];
   stageIndex: number;
-  stages: { id: string; nameZh: string; aiThemes: string[]; aiVoltage: string; difficulty: number }[];
-  pendingChoice: { id: string; labelZh: string; hard: boolean; items: { displayName?: string; count: number }[] }[] | null;
+  stages: {
+    id: string;
+    nameZh: string;
+    aiThemes: string[];
+    aiVoltage: string;
+    difficulty: number;
+    kind: 'battle' | 'elite' | 'boss';
+    column: number;
+    lane: 0 | 1;
+    nextStageIds: string[];
+    skinRewardId?: string;
+  }[];
+  availableStageIds: string[];
+  completedStageIds: string[];
+  currentStageId: string | null;
+  powers: string[];
+  unlockedSkinIds: string[];
+  deck: string[];
+  pendingChoice: {
+    id: string;
+    labelZh: string;
+    hard: boolean;
+    items: { displayName?: string; count: number }[];
+    cardIds?: string[];
+    powerId?: string;
+    skinId?: string;
+    rewardKey?: string;
+    voltageTier?: string;
+  }[] | null;
   completed: boolean;
   victories: number;
   equipment: { attack: number; health: number; armor: number };
@@ -129,7 +184,22 @@ export interface RunState {
 
 export interface PendingReward {
   id: string;
+  createdAt: number;
   status: string;
   items: { displayName?: string; modid: string; name: string; count: number }[];
-  source: { runId: string; stageId: string; label?: string };
+  source: {
+    runId: string;
+    stageId: string;
+    label?: string;
+    schemaVersion?: number;
+    rewardKey?: string;
+    voltageTier?: string;
+    delivery?: string;
+  };
+}
+
+export interface RewardDeliveryStatus {
+  mode: 'standalone_accumulation' | 'minecraft_shared_directory';
+  bridgeClaimEnabled: boolean;
+  dataRoot: string;
 }

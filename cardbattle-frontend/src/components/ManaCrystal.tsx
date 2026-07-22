@@ -11,10 +11,13 @@ export function ManaCrystal(props: { filled: boolean; banked?: boolean }) {
   );
 }
 
-export function ManaRow(props: { mana: number; maxMana: number; bankedMana?: number }) {
+export function ManaRow(props: { mana: number; maxMana: number; spellMana?: number; bankedMana?: number }) {
   const crystals = Array.from({ length: Math.max(props.maxMana, 10) }, (_, i) => i < props.mana);
   return (
-    <div className="mana-row" title={`法力 ${props.mana}/${props.maxMana}${props.bankedMana ? ` · 库存 ${props.bankedMana}` : ''}`}>
+    <div
+      className="mana-row"
+      title={`法力 ${props.mana}/${props.maxMana} · 法术储备 ${props.spellMana ?? 0}${props.bankedMana ? ` · 电容库存 ${props.bankedMana}` : ''}`}
+    >
       {crystals.slice(0, props.maxMana).map((filled, i) => (
         <ManaCrystal key={i} filled={filled} />
       ))}
@@ -24,6 +27,7 @@ export function ManaRow(props: { mana: number; maxMana: number; bankedMana?: num
         ))}
       <span className="muted" style={{ marginLeft: 6, fontSize: '0.8rem' }}>
         {props.mana}/{props.maxMana}
+        {props.spellMana ? ` · 法术 ${props.spellMana}` : ''}
         {props.bankedMana ? `+${props.bankedMana}` : ''}
       </span>
     </div>

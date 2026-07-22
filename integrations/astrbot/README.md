@@ -2,6 +2,7 @@
 #
 # - astrbot_plugin_textech_intent  — shared-bot intent handoff (stop when WebAE owns)
 # - astrbot_plugin_web_search      — pre-search inject like WebAE WebSearchService
+# - astrbot_plugin_persona_lib     — persona/private-memory/shared-knowledge library (LLM menu + safe scope)
 #
 # Install: copy each plugin folder into AstrBot's plugins directory, then reload.
 # Keep webaeIntentKeywords / prefixes aligned with WebAE QQ bot admin settings.

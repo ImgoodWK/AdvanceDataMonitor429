@@ -7,6 +7,9 @@ export function CardFrame(props: {
   dragging?: boolean;
   compact?: boolean;
   onClick?: () => void;
+  onPointerEnter?: () => void;
+  onFocus?: () => void;
+  ariaLabel?: string;
   title?: string;
   className?: string;
   style?: CSSProperties;
@@ -19,7 +22,12 @@ export function CardFrame(props: {
       }${props.className ? ` ${props.className}` : ''}`}
       data-theme={props.theme ?? 'vanilla'}
       onClick={props.onClick}
+      onPointerEnter={props.onPointerEnter}
+      onFocus={props.onFocus}
       title={props.title}
+      role="group"
+      tabIndex={0}
+      aria-label={props.ariaLabel}
       style={props.style}
       whileHover={props.dragging ? undefined : { y: -6, scale: 1.04 }}
       transition={{ type: 'spring', stiffness: 420, damping: 28 }}

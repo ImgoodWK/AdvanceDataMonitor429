@@ -6,6 +6,8 @@ import {
   setToken,
   type BattleState,
   type CardDef,
+  type PendingReward,
+  type RewardDeliveryStatus,
   type RunState,
 } from '../api/client';
 import {
@@ -15,12 +17,16 @@ import {
   isSkinUnlocked,
   resolveSkin,
   setSelectedSkinId,
+  unlockRewardSkins,
 } from '../lib/skins';
+import { AdventureMapScreen } from './AdventureMapScreen';
 import { BattleScreen } from './BattleScreen';
 import { LobbyScreen } from './LobbyScreen';
 import { LoginScreen } from './LoginScreen';
 
-type Page = 'login' | 'lobby' | 'battle';
+type Page = 'login' | 'lobby' | 'map' | 'battle';
+const ACTIVE_RUN_KEY = 'textech_cardbattle_active_run';
+const ACTIVE_MATCH_KEY = 'textech_cardbattle_active_match';
 
 export function App() {
   const [page, setPage] = useState<Page>(getToken() ? 'lobby' : 'login');
@@ -38,6 +44,8 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [skinId, setSkinId] = useState(getSelectedSkinId());
   const [victories, setVictories] = useState(getLifetimeVictories());
+  const [pendingRewards, setPendingRewards] = useState<PendingReward[]>([]);
+  const [rewardDelivery, setRewardDelivery] = useState<RewardDeliveryStatus | null>(null);
 
   const cardMap = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
   const skin = resolveSkin(skinId);
@@ -45,6 +53,19 @@ export function App() {
   useEffect(() => {
     document.documentElement.style.setProperty('--skin-tint', skin.frameTint);
   }, [skin.frameTint]);
+
+  useEffect(() => {
+    client
+      .health()
+      .then((health) => setRewardDelivery(health.rewardDelivery))
+      .catch(() => undefined);
+    if (page !== 'login') {
+      client
+        .pendingRewards()
+        .then((result) => setPendingRewards(result.entries))
+        .catch(() => undefined);
+    }
+  }, [page]);
 
   useEffect(() => {
     client.meta().then(setMeta).catch(() => undefined);
@@ -59,9 +80,9 @@ export function App() {
     if (existing) {
       client
         .me()
-        .then((m) => {
+        .then(async (m) => {
           setName(m.actorName);
-          setPage('lobby');
+          if (!(await resumeProgress())) setPage('lobby');
         })
         .catch(() => {
           clearToken();
@@ -69,9 +90,9 @@ export function App() {
           setTokenInput('local');
           client
             .me()
-            .then((m) => {
+            .then(async (m) => {
               setName(m.actorName);
-              setPage('lobby');
+              if (!(await resumeProgress())) setPage('lobby');
             })
             .catch(() => setPage('login'));
         });
@@ -81,9 +102,9 @@ export function App() {
     setTokenInput('local');
     client
       .me()
-      .then((m) => {
+      .then(async (m) => {
         setName(m.actorName);
-        setPage('lobby');
+        if (!(await resumeProgress())) setPage('lobby');
       })
       .catch(() => setPage('login'));
   }, []);
@@ -94,7 +115,7 @@ export function App() {
     try {
       const me = await client.me();
       setName(me.actorName);
-      setPage('lobby');
+      if (!(await resumeProgress())) setPage('lobby');
     } catch (e) {
       clearToken();
       setError((e as Error).message);
@@ -116,10 +137,56 @@ export function App() {
     try {
       const { run: r } = await client.startRun({ themes, voltage, equipmentIds });
       setRun(r);
-      const stage = await client.beginStage(r.runId);
+      localStorage.setItem(ACTIVE_RUN_KEY, r.runId);
+      localStorage.removeItem(ACTIVE_MATCH_KEY);
+      setPage('map');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resumeProgress(): Promise<boolean> {
+    const storedRunId = localStorage.getItem(ACTIVE_RUN_KEY);
+    const storedMatchId = localStorage.getItem(ACTIVE_MATCH_KEY);
+    let restoredRun: RunState | null = null;
+    if (storedRunId) {
+      try {
+        restoredRun = (await client.getRun(storedRunId)).run;
+        setRun(restoredRun);
+      } catch {
+        localStorage.removeItem(ACTIVE_RUN_KEY);
+      }
+    }
+    if (storedMatchId) {
+      try {
+        const restoredMatch = (await client.getMatch(storedMatchId)).match;
+        setMatchId(storedMatchId);
+        setMatch(restoredMatch);
+        setPage('battle');
+        return true;
+      } catch {
+        localStorage.removeItem(ACTIVE_MATCH_KEY);
+      }
+    }
+    if (restoredRun && !restoredRun.completed) {
+      setPage('map');
+      return true;
+    }
+    return false;
+  }
+
+  async function enterStage(stageId: string) {
+    if (!run) return;
+    setBusy(true);
+    setError('');
+    try {
+      const stage = await client.beginStage(run.runId, stageId);
       setRun(stage.run);
       setMatchId(stage.matchId);
       setMatch(stage.match);
+      localStorage.setItem(ACTIVE_MATCH_KEY, stage.matchId);
       setPage('battle');
     } catch (e) {
       setError((e as Error).message);
@@ -152,16 +219,23 @@ export function App() {
     try {
       const claimed = await client.claimReward(run.runId, choiceId);
       setRun(claimed.run);
+      if (claimed.unlockedSkinIds.length) unlockRewardSkins(claimed.unlockedSkinIds);
+      client
+        .pendingRewards()
+        .then((pending) => setPendingRewards(pending.entries))
+        .catch(() => undefined);
       if (claimed.run.completed) {
+        localStorage.removeItem(ACTIVE_RUN_KEY);
+        localStorage.removeItem(ACTIVE_MATCH_KEY);
         setPage('lobby');
         setMatch(null);
         setMatchId(null);
         return;
       }
-      const stage = await client.beginStage(claimed.run.runId, choiceId);
-      setRun(stage.run);
-      setMatchId(stage.matchId);
-      setMatch(stage.match);
+      setMatch(null);
+      setMatchId(null);
+      localStorage.removeItem(ACTIVE_MATCH_KEY);
+      setPage('map');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -177,7 +251,7 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${page === 'battle' ? ' in-battle' : ''}`}>
       <div className="topbar">
         <div className="brand">TeXTech Card Battle</div>
         <div className="row">
@@ -188,6 +262,9 @@ export function App() {
               className="secondary"
               onClick={() => {
                 clearToken();
+                setPendingRewards([]);
+                localStorage.removeItem(ACTIVE_RUN_KEY);
+                localStorage.removeItem(ACTIVE_MATCH_KEY);
                 setPage('login');
               }}
             >
@@ -211,6 +288,8 @@ export function App() {
           equipmentIds={equipmentIds}
           skinId={skinId}
           victories={victories}
+          pendingRewards={pendingRewards}
+          rewardDelivery={rewardDelivery}
           busy={busy}
           onVoltage={setVoltage}
           onToggleTheme={toggleTheme}
@@ -219,6 +298,22 @@ export function App() {
           }
           onSelectSkin={selectSkin}
           onStart={() => void startAdventure()}
+        />
+      )}
+
+      {page === 'map' && run && (
+        <AdventureMapScreen
+          run={run}
+          busy={busy}
+          onEnterStage={(stageId) => void enterStage(stageId)}
+          onAbandon={() => {
+            setRun(null);
+            setMatch(null);
+            setMatchId(null);
+            localStorage.removeItem(ACTIVE_RUN_KEY);
+            localStorage.removeItem(ACTIVE_MATCH_KEY);
+            setPage('lobby');
+          }}
         />
       )}
 
@@ -235,6 +330,8 @@ export function App() {
             setPage('lobby');
             setMatch(null);
             setMatchId(null);
+            localStorage.removeItem(ACTIVE_RUN_KEY);
+            localStorage.removeItem(ACTIVE_MATCH_KEY);
           }}
         />
       )}

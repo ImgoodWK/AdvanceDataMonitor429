@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildPlayAction, canPlayToSlot } from './playLegality';
-import type { CardDef, PlayerState } from '../api/client';
+import type { BoardUnit, CardDef, PlayerState } from '../api/client';
 import { BOARD_SKINS, isSkinUnlocked, resolveSkin } from './skins';
 
 function me(partial: Partial<PlayerState> = {}): PlayerState {
@@ -10,6 +10,7 @@ function me(partial: Partial<PlayerState> = {}): PlayerState {
     maxNexusHp: 20,
     mana: 3,
     maxMana: 3,
+    spellMana: 0,
     bankedMana: 0,
     voltage: 'LV',
     hand: ['gt_worker'],
@@ -18,6 +19,22 @@ function me(partial: Partial<PlayerState> = {}): PlayerState {
     reflectToNexus: false,
     singularitiesPlayed: 0,
     eternalActive: false,
+    ...partial,
+  };
+}
+
+function unit(partial: Partial<BoardUnit> = {}): BoardUnit {
+  return {
+    instanceId: 'x',
+    cardId: 'gt_worker',
+    attack: 2,
+    health: 3,
+    maxHealth: 3,
+    armor: 0,
+    keywords: [],
+    aspects: [],
+    isStructure: false,
+    untargetable: false,
     ...partial,
   };
 }
@@ -43,6 +60,31 @@ const cardMap = new Map<string, CardDef>([
       theme: 'gt',
       kind: 'spell',
       cost: 1,
+      spellSpeed: 'burst',
+    },
+  ],
+  [
+    'van_smite',
+    {
+      id: 'van_smite',
+      name: 'Smite',
+      nameZh: '惩戒',
+      theme: 'vanilla',
+      kind: 'spell',
+      cost: 2,
+      spellSpeed: 'fast',
+    },
+  ],
+  [
+    'van_rally',
+    {
+      id: 'van_rally',
+      name: 'Rally',
+      nameZh: '集结',
+      theme: 'vanilla',
+      kind: 'spell',
+      cost: 3,
+      spellSpeed: 'slow',
     },
   ],
 ]);
@@ -73,21 +115,31 @@ describe('playLegality', () => {
     expect(legal.reason).toBe('mana');
   });
 
+  it('counts spell reserve for spells but not units', () => {
+    const spell = canPlayToSlot({
+      phase: 'main',
+      me: me({ hand: ['gt_overclock'], mana: 0, spellMana: 1 }),
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'enemy',
+    });
+    const unit = canPlayToSlot({
+      phase: 'main',
+      me: me({ mana: 0, spellMana: 3 }),
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'player',
+    });
+    expect(spell.ok).toBe(true);
+    expect(unit.reason).toBe('mana');
+  });
+
   it('rejects occupied slot for units', () => {
     const occupied = me({
       board: [
-        {
-          instanceId: 'x',
-          cardId: 'gt_worker',
-          attack: 2,
-          health: 3,
-          maxHealth: 3,
-          armor: 0,
-          keywords: [],
-          aspects: [],
-          isStructure: false,
-          untargetable: false,
-        },
+        unit(),
         null,
         null,
         null,
@@ -107,6 +159,29 @@ describe('playLegality', () => {
     expect(legal.reason).toBe('slot_full');
   });
 
+  it('requires a legal enemy unit for targeted damage spells', () => {
+    const emptyTarget = canPlayToSlot({
+      phase: 'main',
+      me: me({ hand: ['van_smite'] }),
+      opponent: me(),
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'enemy',
+    });
+    const legalTarget = canPlayToSlot({
+      phase: 'main',
+      me: me({ hand: ['van_smite'] }),
+      opponent: me({ board: [unit(), null, null, null, null, null] }),
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'enemy',
+    });
+    expect(emptyTarget.reason).toBe('missing_target');
+    expect(legalTarget.ok).toBe(true);
+  });
+
   it('builds spell action with enemy target', () => {
     const action = buildPlayAction({
       handIndex: 0,
@@ -120,6 +195,50 @@ describe('playLegality', () => {
       targetSlot: 0,
       targetEnemySlot: 3,
     });
+  });
+
+  it('allows fast and burst responses but rejects slow spells and units', () => {
+    const opponent = me({ board: [unit(), null, null, null, null, null] });
+    const fast = canPlayToSlot({
+      phase: 'combat_response',
+      me: me({ hand: ['van_smite'] }),
+      opponent,
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'enemy',
+    });
+    const burst = canPlayToSlot({
+      phase: 'spell_response',
+      me: me({ hand: ['gt_overclock'] }),
+      opponent,
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'enemy',
+    });
+    const slow = canPlayToSlot({
+      phase: 'spell_response',
+      me: me({ hand: ['van_rally'] }),
+      opponent,
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'enemy',
+    });
+    const unitPlay = canPlayToSlot({
+      phase: 'combat_response',
+      me: me(),
+      opponent,
+      handIndex: 0,
+      targetSlot: 0,
+      cardMap,
+      side: 'player',
+    });
+    expect(fast.ok).toBe(true);
+    expect(burst.ok).toBe(true);
+    expect(slow.reason).toBe('slow_response');
+    expect(unitPlay.reason).toBe('response_spell_only');
   });
 });
 

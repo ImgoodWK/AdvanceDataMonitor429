@@ -1,6 +1,6 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { readJsonFile, runtimeDataRoot, safeFileId, writeJsonAtomic } from '../storage/paths.js';
 
 export interface RewardItem {
   modid: string;
@@ -15,36 +15,27 @@ export interface PendingRewardEntry {
   createdAt: number;
   status: 'pending' | 'claimed' | 'cancelled';
   items: RewardItem[];
-  source: { runId: string; stageId: string; label?: string };
-}
-
-function dataRoot(): string {
-  if (process.env.CARDBATTLE_DATA_DIR?.trim()) return process.env.CARDBATTLE_DATA_DIR.trim();
-  const inst = process.env.TEXTECH_INSTANCE_ROOT?.trim();
-  if (inst) return path.join(inst, 'TeXTech', 'CardBattle');
-  return path.resolve('data', 'runtime');
+  source: {
+    runId: string;
+    stageId: string;
+    label?: string;
+    schemaVersion?: 2;
+    rewardKey?: string;
+    voltageTier?: string;
+    delivery?: 'pending_bridge';
+  };
 }
 
 function rewardsFile(ownerUuid: string): string {
-  const dir = path.join(dataRoot(), 'pending-rewards');
-  fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, `${ownerUuid}.json`);
+  return path.join(runtimeDataRoot(), 'pending-rewards', `${safeFileId(ownerUuid)}.json`);
 }
 
 export function readPending(ownerUuid: string): PendingRewardEntry[] {
-  const file = rewardsFile(ownerUuid);
-  if (!fs.existsSync(file)) return [];
-  try {
-    const data = JSON.parse(fs.readFileSync(file, 'utf8')) as { entries?: PendingRewardEntry[] };
-    return data.entries ?? [];
-  } catch {
-    return [];
-  }
+  return readJsonFile<{ entries?: PendingRewardEntry[] }>(rewardsFile(ownerUuid))?.entries ?? [];
 }
 
 function writePending(ownerUuid: string, entries: PendingRewardEntry[]): void {
-  const file = rewardsFile(ownerUuid);
-  fs.writeFileSync(file, JSON.stringify({ entries }, null, 2), 'utf8');
+  writeJsonAtomic(rewardsFile(ownerUuid), { schemaVersion: 2, entries });
 }
 
 export function enqueueReward(
@@ -80,5 +71,19 @@ export function markClaimed(ownerUuid: string, rewardId: string): PendingRewardE
 }
 
 export function rewardsDataRoot(): string {
-  return dataRoot();
+  return runtimeDataRoot();
+}
+
+export function rewardDeliveryStatus(): {
+  mode: 'standalone_accumulation' | 'minecraft_shared_directory';
+  bridgeClaimEnabled: boolean;
+  dataRoot: string;
+} {
+  const sharedMinecraftDirectory =
+    !process.env.CARDBATTLE_DATA_DIR?.trim() && Boolean(process.env.TEXTECH_INSTANCE_ROOT?.trim());
+  return {
+    mode: sharedMinecraftDirectory ? 'minecraft_shared_directory' : 'standalone_accumulation',
+    bridgeClaimEnabled: Boolean(process.env.CARDBATTLE_BRIDGE_TOKEN?.trim()),
+    dataRoot: runtimeDataRoot(),
+  };
 }

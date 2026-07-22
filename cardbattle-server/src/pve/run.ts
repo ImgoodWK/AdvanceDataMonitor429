@@ -10,7 +10,16 @@ export interface StageRewardChoice {
   hard: boolean;
   items: RewardItem[];
   voltageBonus?: number;
+  cardIds?: string[];
+  powerId?: string;
+  skinId?: string;
+  /** Stable future MC bridge key; do not infer rewards from display text. */
+  rewardKey?: string;
+  voltageTier?: VoltageTier;
+  delivery?: 'pending_bridge';
 }
+
+export type StageKind = 'battle' | 'elite' | 'boss';
 
 export interface StageDef {
   id: string;
@@ -20,6 +29,22 @@ export interface StageDef {
   aiVoltage: VoltageTier;
   difficulty: number;
   feature?: string;
+  kind: StageKind;
+  column: number;
+  lane: 0 | 1;
+  nextStageIds: string[];
+  skinRewardId?: string;
+}
+
+export interface RunPowerDef {
+  id: string;
+  nameZh: string;
+  descriptionZh: string;
+  nexusHp?: number;
+  startSpellMana?: number;
+  firstUnitAttack?: number;
+  firstUnitHealth?: number;
+  firstUnitArmor?: number;
 }
 
 export interface RunState {
@@ -33,6 +58,11 @@ export interface RunState {
   equipment: { attack: number; health: number; armor: number };
   stageIndex: number;
   stages: StageDef[];
+  availableStageIds: string[];
+  completedStageIds: string[];
+  currentStageId: string | null;
+  powers: string[];
+  unlockedSkinIds: string[];
   pendingChoice: StageRewardChoice[] | null;
   completed: boolean;
   victories: number;
@@ -49,6 +79,29 @@ const ALL_THEMES: ThemeId[] = [
   'genetics',
   'ae',
   'dlb',
+];
+
+export const RUN_POWERS: RunPowerDef[] = [
+  {
+    id: 'power_reinforced_nexus',
+    nameZh: '强化主机',
+    descriptionZh: '每场战斗 Nexus 最大生命与当前生命 +4。',
+    nexusHp: 4,
+  },
+  {
+    id: 'power_spell_cache',
+    nameZh: '法术缓存',
+    descriptionZh: '每场战斗以 1 点法术法力开始。',
+    startSpellMana: 1,
+  },
+  {
+    id: 'power_precision_tools',
+    nameZh: '精密工具',
+    descriptionZh: '每场第一名非结构单位获得 +1/+1 与 1 点护甲。',
+    firstUnitAttack: 1,
+    firstUnitHealth: 1,
+    firstUnitArmor: 1,
+  },
 ];
 
 function mulberry32(seed: number): () => number {
@@ -106,7 +159,7 @@ export function validateThemes(themes: ThemeId[], voltage: VoltageTier): string 
   return null;
 }
 
-function pumpReward(tier: VoltageTier, hard: boolean): RewardItem {
+function pumpReward(tier: VoltageTier, count: number): RewardItem {
   const metaByTier: Record<string, number> = {
     ULV: 0,
     LV: 1,
@@ -114,52 +167,92 @@ function pumpReward(tier: VoltageTier, hard: boolean): RewardItem {
     HV: 3,
     EV: 4,
     IV: 5,
+    LuV: 6,
+    ZPM: 7,
+    UV: 8,
+    UHV: 9,
   };
   return {
     modid: 'gregtech',
     name: 'gt.metaitem.01',
     meta: 32610 + (metaByTier[tier] ?? 0),
-    count: hard ? 64 : 16,
-    displayName: `${tier} Pump x${hard ? 64 : 16}`,
+    count,
+    displayName: `${tier} Pump x${count}`,
   };
 }
 
-export function generateStages(seed: number, playerVoltage: VoltageTier, count = 5): StageDef[] {
+export function generateStages(seed: number, playerVoltage: VoltageTier, _count = 6): StageDef[] {
   const rng = mulberry32(seed);
-  const stages: StageDef[] = [];
   const baseIdx = VOLTAGE_ORDER.indexOf(playerVoltage);
-  for (let i = 0; i < count; i++) {
+  const makeStage = (
+    id: string,
+    column: number,
+    lane: 0 | 1,
+    kind: StageKind,
+    nextStageIds: string[],
+  ): StageDef => {
     const aiTheme = pickTheme(rng);
-    const aiVoltage = voltageAt(baseIdx + Math.floor(i / 2));
-    stages.push({
-      id: `stage_${i + 1}`,
-      name: `Stage ${i + 1}`,
-      nameZh: `关卡 ${i + 1} · ${aiTheme}`,
+    const aiVoltage = voltageAt(baseIdx + Math.floor(column / 2) + (kind === 'boss' ? 1 : 0));
+    return {
+      id,
+      name: `${kind} ${column + 1}${lane ? 'B' : 'A'}`,
+      nameZh: `${kind === 'boss' ? '终局首领' : kind === 'elite' ? '精英节点' : '战斗节点'} · ${aiTheme}`,
       aiThemes: [aiTheme],
       aiVoltage,
-      difficulty: 1 + i * 0.35,
+      difficulty: 1 + column * 0.35 + (kind === 'elite' ? 0.4 : kind === 'boss' ? 0.9 : 0),
       feature: aiTheme === 'dlb' ? 'dlb_force' : aiTheme === 'forestry' ? 'hive' : undefined,
-    });
-  }
-  return stages;
+      kind,
+      column,
+      lane,
+      nextStageIds,
+      skinRewardId: kind === 'boss' ? 'overclocked_nexus' : undefined,
+    };
+  };
+  return [
+    makeStage('stage_1a', 0, 0, 'battle', ['stage_2a', 'stage_2b']),
+    makeStage('stage_1b', 0, 1, 'battle', ['stage_2a', 'stage_2b']),
+    makeStage('stage_2a', 1, 0, 'battle', ['stage_3a']),
+    makeStage('stage_2b', 1, 1, 'battle', ['stage_3b']),
+    makeStage('stage_3a', 2, 0, 'elite', ['stage_boss']),
+    makeStage('stage_3b', 2, 1, 'elite', ['stage_boss']),
+    makeStage('stage_boss', 3, 0, 'boss', []),
+  ];
 }
 
 export function rewardChoices(stage: StageDef, playerVoltage: VoltageTier): StageRewardChoice[] {
+  const themeCards = cardsByTheme(stage.aiThemes[0]!).slice(0, stage.kind === 'boss' ? 3 : 2).map((c) => c.id);
+  const power = RUN_POWERS[Math.abs(stage.id.split('').reduce((n, c) => n + c.charCodeAt(0), 0)) % RUN_POWERS.length]!;
+  const count = stage.kind === 'boss' ? 64 : stage.kind === 'elite' ? 32 : 16;
+  const skinId = stage.skinRewardId;
   return [
     {
-      id: 'safe',
-      label: 'Safe reward',
-      labelZh: '稳妥奖励（小包泵）',
+      id: 'cards',
+      label: 'Add cards',
+      labelZh: `扩充卡组（${themeCards.length} 张 ${stage.aiThemes[0]} 卡）`,
       hard: false,
-      items: [pumpReward(playerVoltage, false)],
+      items: [],
+      cardIds: themeCards,
+      skinId,
     },
     {
-      id: 'hard',
-      label: 'Hard reward',
-      labelZh: '对标奖励（整组泵，关卡更难）',
-      hard: true,
-      items: [pumpReward(playerVoltage, true)],
-      voltageBonus: 1,
+      id: 'power',
+      label: 'Run power',
+      labelZh: `获得能力：${power.nameZh}`,
+      hard: false,
+      items: [],
+      powerId: power.id,
+      skinId,
+    },
+    {
+      id: 'voltage_cache',
+      label: 'Voltage cache',
+      labelZh: `${playerVoltage} 电压奖励缓存（待游戏内桥接）`,
+      hard: false,
+      items: [pumpReward(playerVoltage, count)],
+      rewardKey: `textech.cardbattle.voltage.${playerVoltage.toLowerCase()}.cache`,
+      voltageTier: playerVoltage,
+      delivery: 'pending_bridge',
+      skinId,
     },
   ];
 }

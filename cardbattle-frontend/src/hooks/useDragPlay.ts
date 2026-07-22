@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { CardDef, PlayerState } from '../api/client';
-import { buildPlayAction, canPlayToSlot, type DropSide } from '../lib/playLegality';
+import { buildPlayAction, canPlayToSlot, isPlayWindow, type DropSide } from '../lib/playLegality';
 
 export interface DragState {
   handIndex: number | null;
@@ -13,6 +13,7 @@ export interface DragState {
 export function useDragPlay(args: {
   phase: string;
   me: PlayerState | null;
+  opponent: PlayerState | null;
   cardMap: Map<string, CardDef>;
   busy: boolean;
   onPlay: (action: unknown) => void | Promise<void>;
@@ -35,6 +36,7 @@ export function useDragPlay(args: {
       const legal = canPlayToSlot({
         phase: args.phase,
         me: args.me,
+        opponent: args.opponent ?? undefined,
         handIndex,
         targetSlot: slot,
         cardMap: args.cardMap,
@@ -44,12 +46,12 @@ export function useDragPlay(args: {
       if (def?.kind !== 'spell' && side === 'enemy') return 'invalid' as const;
       return 'valid' as const;
     },
-    [args.cardMap, args.me, args.phase],
+    [args.cardMap, args.me, args.opponent, args.phase],
   );
 
   const beginDrag = useCallback(
     (handIndex: number) => {
-      if (args.busy || args.phase !== 'main' || !args.me) return;
+      if (args.busy || !isPlayWindow(args.phase) || !args.me) return;
       setDrag({
         handIndex,
         hoverSlot: null,

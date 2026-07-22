@@ -14,7 +14,10 @@ export function Hud(props: {
   foeVoltage: string;
   mana: number;
   maxMana: number;
+  spellMana: number;
   bankedMana: number;
+  priorityLabel: string;
+  attackTokenLabel: string;
   stageLabel?: string;
   eternal?: boolean;
 }) {
@@ -22,6 +25,8 @@ export function Hud(props: {
     <div className="panel glass hud">
       <span className="tag">回合 {props.turn}</span>
       <span className="tag">{PHASE_ZH[props.phase] ?? props.phase}</span>
+      <span className="tag">行动权：{props.priorityLabel}</span>
+      <span className="tag">攻击标记：{props.attackTokenLabel}</span>
       <span className="tag">
         {props.meName} · {props.voltage} · Nexus {props.meHp}/{props.meMaxHp}
       </span>
@@ -30,7 +35,12 @@ export function Hud(props: {
       </span>
       {props.stageLabel && <span className="tag">{props.stageLabel}</span>}
       {props.eternal && <span className="tag">无尽贪婪已激活</span>}
-      <ManaRow mana={props.mana} maxMana={props.maxMana} bankedMana={props.bankedMana} />
+      <ManaRow
+        mana={props.mana}
+        maxMana={props.maxMana}
+        spellMana={props.spellMana}
+        bankedMana={props.bankedMana}
+      />
     </div>
   );
 }

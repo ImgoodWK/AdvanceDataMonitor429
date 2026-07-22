@@ -131,6 +131,40 @@
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
 }
 
+.card-frame .art img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
+.card-frame .spell-speed {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 3;
+  padding: 0.12rem 0.28rem;
+  border: 1px solid currentColor;
+  background: rgba(6, 10, 16, 0.86);
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.card-frame .spell-speed.slow {
+  color: #d6a84b;
+}
+
+.card-frame .spell-speed.fast {
+  color: #78c9ff;
+}
+
+.card-frame .spell-speed.burst {
+  color: #d697ff;
+}
+
 .card-frame .title {
   margin-top: 1.35rem;
   font-weight: 700;

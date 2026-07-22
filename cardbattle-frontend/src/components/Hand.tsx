@@ -13,6 +13,7 @@ export function Hand(props: {
   onSelect: (index: number) => void;
   onDragStart: (index: number) => void;
   onDragEnd: () => void;
+  onInspect?: (def: CardDef | undefined) => void;
 }) {
   const n = props.hand.filter((id) => id !== '?').length;
   return (
@@ -37,6 +38,7 @@ export function Hand(props: {
               onSelect={() => props.onSelect(i)}
               onDragStart={() => props.onDragStart(i)}
               onDragEnd={props.onDragEnd}
+              onInspect={() => props.onInspect?.(def)}
             />
           );
         })}
@@ -55,6 +57,7 @@ function DraggableHandCard(props: {
   onSelect: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
+  onInspect?: () => void;
 }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -106,8 +109,15 @@ function DraggableHandCard(props: {
             : { scale: 1, y: 0 }
       }
       transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+      onPointerEnter={props.onInspect}
+      onFocus={props.onInspect}
     >
-      <CardView def={props.def} selected={props.selected} dragging={props.dragging} />
+      <CardView
+        def={props.def}
+        selected={props.selected}
+        dragging={props.dragging}
+        onInspect={props.onInspect}
+      />
     </motion.div>
   );
 }

@@ -71,11 +71,13 @@ export function themeOf(id: string | undefined): ThemePalette {
 
 export const PHASE_ZH: Record<string, string> = {
   mulligan: '调度',
-  main: '主阶段',
+  main: '交替行动',
+  spell_response: '法术响应',
   attack_declare: '攻击声明',
   block_declare: '格挡声明',
+  combat_response: '战斗响应',
   swap_extra: '神秘换位',
   resolve: '结算',
-  turn_end: '回合结束',
+  turn_end: '轮次结束',
   game_over: '对局结束',
 };

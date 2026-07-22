@@ -6,7 +6,7 @@ export function Nexus(props: {
 }) {
   const pct = Math.max(0, Math.min(100, (props.hp / Math.max(1, props.maxHp)) * 100));
   return (
-    <div className="nexus-row">
+    <div className="nexus-row" data-nexus-side={props.foe ? 'enemy' : 'player'}>
       <span>{props.label}</span>
       <div className="nexus-track">
         <div className={`nexus-fill${props.foe ? ' foe' : ''}`} style={{ width: `${pct}%` }} />

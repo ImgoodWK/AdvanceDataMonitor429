@@ -53,6 +53,8 @@ export const THEME_SLOTS_BY_VOLTAGE: Record<VoltageTier, number> = {
 
 export type CardKind = 'unit' | 'spell' | 'structure' | 'equipment';
 
+export type SpellSpeed = 'slow' | 'fast' | 'burst';
+
 export type Keyword =
   | 'lifesteal'
   | 'aoe'
@@ -77,6 +79,8 @@ export interface CardDef {
   nameZh: string;
   theme: ThemeId;
   kind: CardKind;
+  /** Slow starts only in main, fast may respond, burst resolves immediately. */
+  spellSpeed?: SpellSpeed;
   cost: number;
   attack?: number;
   health?: number;
@@ -90,6 +94,8 @@ export interface CardDef {
   /** Text blurb */
   text?: string;
   textZh?: string;
+  /** Exact player-facing rules text. Flavor/summary belongs in text/textZh. */
+  rulesZh?: string;
   art?: string;
 }
 
@@ -123,8 +129,10 @@ export interface BoardUnit {
 export type BattlePhase =
   | 'mulligan'
   | 'main'
+  | 'spell_response'
   | 'attack_declare'
   | 'block_declare'
+  | 'combat_response'
   | 'resolve'
   | 'swap_extra'
   | 'turn_end'
@@ -138,6 +146,8 @@ export interface PlayerState {
   maxNexusHp: number;
   mana: number;
   maxMana: number;
+  /** LoR-style reserve: only spells may spend this, capped at 3. */
+  spellMana: number;
   /** GT capacitor bank stored overflow */
   bankedMana: number;
   voltage: VoltageTier;
@@ -163,12 +173,38 @@ export interface AttackPair {
   blockerSlot: number;
 }
 
+export interface SpellStackItem {
+  stackId: number;
+  caster: 0 | 1;
+  cardId: string;
+  speed: Exclude<SpellSpeed, 'burst'>;
+  targetSlot?: number;
+  targetEnemySlot?: number;
+}
+
 export interface BattleState {
   matchId: string;
   seed: number;
   turn: number;
   phase: BattlePhase;
+  /** Player currently holding action priority. */
   activePlayer: 0 | 1;
+  /** Player who owns this round's attack token. */
+  attackTokenPlayer: 0 | 1;
+  attackTokenAvailable: boolean;
+  /** Frozen attacker while block/resolve windows are open. */
+  combatAttacker: 0 | 1 | null;
+  /** Two consecutive priority passes end the round. */
+  consecutivePasses: number;
+  /** Response passes are isolated from main-round passes. */
+  responsePasses: number;
+  /** Bottom spell caster; priority returns to their opponent after main-stack resolution. */
+  responseOriginPlayer: 0 | 1 | null;
+  /** Public LIFO spell stack. Burst spells never enter this zone. */
+  spellStack: SpellStackItem[];
+  nextStackId: number;
+  /** Each player confirms exactly one opening-hand replacement. */
+  mulliganDone: [boolean, boolean];
   players: [PlayerState, PlayerState];
   attackOrder: number[];
   blockPairs: AttackPair[];

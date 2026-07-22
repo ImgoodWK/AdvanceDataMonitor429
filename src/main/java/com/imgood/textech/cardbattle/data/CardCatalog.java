@@ -26,7 +26,7 @@ public final class CardCatalog {
         if (!ALL.isEmpty()) return;
         InputStream in = CardCatalog.class.getResourceAsStream("/assets/textech/cardbattle/cards.json");
         if (in == null) {
-            AdvanceDataMonitor.LOG.error("[CardBattle] Missing cards.json in jar resources");
+            logError("[CardBattle] Missing cards.json in jar resources", null);
             ALL = new ArrayList<CardDef>();
             return;
         }
@@ -41,15 +41,29 @@ public final class CardCatalog {
             }
             ALL = list;
             BY_ID = map;
-            AdvanceDataMonitor.LOG.info("[CardBattle] Loaded {} cards", ALL.size());
+            logInfo("[CardBattle] Loaded {} cards", Integer.valueOf(ALL.size()));
         } catch (Throwable t) {
-            AdvanceDataMonitor.LOG.error("[CardBattle] Failed loading cards.json", t);
+            logError("[CardBattle] Failed loading cards.json", t);
             ALL = new ArrayList<CardDef>();
         } finally {
             try {
                 in.close();
             } catch (Throwable ignored) {}
         }
+    }
+
+    /** Forge logging is unavailable in the plain JVM used by card-engine tests. */
+    private static void logInfo(String message, Object value) {
+        try {
+            AdvanceDataMonitor.LOG.info(message, value);
+        } catch (Throwable ignored) {}
+    }
+
+    private static void logError(String message, Throwable error) {
+        try {
+            if (error == null) AdvanceDataMonitor.LOG.error(message);
+            else AdvanceDataMonitor.LOG.error(message, error);
+        } catch (Throwable ignored) {}
     }
 
     public static CardDef get(String id) {

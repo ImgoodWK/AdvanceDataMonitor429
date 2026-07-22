@@ -169,10 +169,10 @@ public final class CardBattleHttpServer extends NanoHTTPD {
 
             if (uri.startsWith("/api/run/") && uri.endsWith("/stage") && method == Method.POST) {
                 String runId = uri.substring("/api/run/".length(), uri.length() - "/stage".length());
-                String choice = bodyJson.has("rewardChoiceId") ? bodyJson.get("rewardChoiceId")
+                String stageId = bodyJson.has("stageId") ? bodyJson.get("stageId")
                     .getAsString() : null;
                 return json(Response.Status.OK,
-                    CardBattleSessions.beginStage(runId, auth.ownerUuid, auth.actorName, choice));
+                    CardBattleSessions.beginStage(runId, auth.ownerUuid, auth.actorName, stageId));
             }
 
             if (uri.startsWith("/api/run/") && uri.endsWith("/claim-reward") && method == Method.POST) {

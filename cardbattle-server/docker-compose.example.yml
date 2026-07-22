@@ -1,0 +1,18 @@
+services:
+  cardbattle:
+    build:
+      context: ..
+      dockerfile: cardbattle-server/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      CARDBATTLE_DEV_TOKEN: ${CARDBATTLE_DEV_TOKEN:?set CARDBATTLE_DEV_TOKEN in cardbattle-server/.env}
+      CARDBATTLE_DEV_OWNER_NAME: ${CARDBATTLE_DEV_OWNER_NAME:-StandalonePlayer}
+      CARDBATTLE_CORS_ORIGINS: ${CARDBATTLE_CORS_ORIGINS:-}
+      CARDBATTLE_BRIDGE_TOKEN: ${CARDBATTLE_BRIDGE_TOKEN:-}
+    volumes:
+      - cardbattle-data:/data
+
+volumes:
+  cardbattle-data:

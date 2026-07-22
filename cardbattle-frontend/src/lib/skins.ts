@@ -9,6 +9,7 @@ export interface BoardSkin {
   unlockHint: string;
   /** victories required; 0 = default unlocked */
   unlockVictories: number;
+  rewardOnly?: boolean;
 }
 
 export const BOARD_SKINS: BoardSkin[] = [
@@ -42,10 +43,38 @@ export const BOARD_SKINS: BoardSkin[] = [
     unlockHint: '累计胜利 5 场解锁',
     unlockVictories: 5,
   },
+  {
+    id: 'overclocked_nexus',
+    nameZh: '超频主机',
+    frameTint: '#ff9f43',
+    boardBg: 'linear-gradient(180deg, #160b05 0%, #3a1a08 46%, #100804 100%)',
+    boardBgAlt:
+      'repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,159,67,0.08) 19px 21px), radial-gradient(circle at 50% 50%, rgba(255,210,80,0.16), transparent 50%)',
+    unlockHint: '击败一轮 PvE 路线的终局首领',
+    unlockVictories: Number.MAX_SAFE_INTEGER,
+    rewardOnly: true,
+  },
 ];
 
 const SKIN_KEY = 'textech_cardbattle_skin';
 const VICTORIES_KEY = 'textech_cardbattle_victories';
+const REWARD_SKINS_KEY = 'textech_cardbattle_reward_skins';
+
+export function getRewardSkinIds(): string[] {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(REWARD_SKINS_KEY) ?? '[]') as unknown;
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function unlockRewardSkins(ids: string[]): string[] {
+  const next = [...new Set([...getRewardSkinIds(), ...ids])];
+  localStorage.setItem(REWARD_SKINS_KEY, JSON.stringify(next));
+  return next;
+}
 
 export function getSelectedSkinId(): string {
   return localStorage.getItem(SKIN_KEY) ?? 'gt_factory';
@@ -67,7 +96,7 @@ export function addLifetimeVictories(delta: number): number {
 }
 
 export function isSkinUnlocked(skin: BoardSkin, victories = getLifetimeVictories()): boolean {
-  return victories >= skin.unlockVictories;
+  return getRewardSkinIds().includes(skin.id) || (!skin.rewardOnly && victories >= skin.unlockVictories);
 }
 
 export function resolveSkin(id?: string): BoardSkin {

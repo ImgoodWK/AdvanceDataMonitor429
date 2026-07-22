@@ -1,0 +1,1 @@
+# No extra pip dependencies — uses AstrBot stdlib + framework APIs only.

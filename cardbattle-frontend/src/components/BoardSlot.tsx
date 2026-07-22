@@ -13,6 +13,8 @@ export function BoardSlot(props: {
   onClick?: () => void;
   onPointerEnter?: () => void;
   onPointerLeave?: () => void;
+  onInspect?: (def: CardDef | undefined, unit: BoardUnit) => void;
+  combatLabel?: string;
 }) {
   const classes = [
     'slot',
@@ -39,12 +41,16 @@ export function BoardSlot(props: {
       transition={{ type: 'spring', stiffness: 380, damping: 24 }}
     >
       {props.unit && (
-        <CardView
-          def={props.cardMap.get(props.unit.cardId)}
-          unit={props.unit}
-          compact
-          selected={props.selected || props.attackArmed}
-        />
+        <>
+          {props.combatLabel && <span className="combat-role-badge">{props.combatLabel}</span>}
+          <CardView
+            def={props.cardMap.get(props.unit.cardId)}
+            unit={props.unit}
+            compact
+            selected={props.selected || props.attackArmed}
+            onInspect={() => props.onInspect?.(props.cardMap.get(props.unit!.cardId), props.unit!)}
+          />
+        </>
       )}
     </motion.div>
   );

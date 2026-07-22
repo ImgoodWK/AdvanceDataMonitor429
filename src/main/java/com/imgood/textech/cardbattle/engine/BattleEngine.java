@@ -16,6 +16,7 @@ import com.imgood.textech.cardbattle.CardBattleTypes.BattleState;
 import com.imgood.textech.cardbattle.CardBattleTypes.BoardUnit;
 import com.imgood.textech.cardbattle.CardBattleTypes.CardDef;
 import com.imgood.textech.cardbattle.CardBattleTypes.PlayerState;
+import com.imgood.textech.cardbattle.CardBattleTypes.SpellStackItem;
 import com.imgood.textech.cardbattle.data.CardCatalog;
 
 /**
@@ -27,6 +28,7 @@ public final class BattleEngine {
     private static final int BOARD = 6;
     private static final int START_NEXUS = 20;
     private static final int MAX_BANK = 6;
+    private static final int MAX_HAND = 10;
 
     private BattleEngine() {}
 
@@ -61,8 +63,14 @@ public final class BattleEngine {
             .toString();
         s.seed = seed;
         s.turn = 1;
-        s.phase = "main";
+        s.phase = "mulligan";
         s.activePlayer = 0;
+        s.attackTokenPlayer = 0;
+        s.attackTokenAvailable = true;
+        s.combatAttacker = -1;
+        s.consecutivePasses = 0;
+        s.responsePasses = 0;
+        s.responseOriginPlayer = null;
         s.players[0] = p0;
         s.players[1] = p1;
         boolean dlb = p0.themes.contains("dlb") || p1.themes.contains("dlb");
@@ -93,6 +101,7 @@ public final class BattleEngine {
         p.maxNexusHp = START_NEXUS;
         p.mana = 1;
         p.maxMana = 1;
+        p.spellMana = 0;
         p.voltage = voltage;
         p.themes = new ArrayList<String>(themes);
         for (int i = 0; i < 4 && !shuffled.isEmpty(); i++) p.hand.add(shuffled.remove(0));
@@ -134,22 +143,38 @@ public final class BattleEngine {
         return u != null && u.aspects.contains("ordo") && u.aspects.contains("aer");
     }
 
+    private static void addToHand(PlayerState p, String cardId, BattleState s) {
+        if (p.hand.size() >= MAX_HAND) {
+            p.discard.add(cardId);
+            s.log.add(p.name + " burns " + cardId + " (hand full)");
+            return;
+        }
+        p.hand.add(cardId);
+    }
+
     private static void draw(PlayerState p, int n, BattleState s) {
         for (int i = 0; i < n; i++) {
             if (p.deck.isEmpty()) {
-                s.log.add(p.name + " deck empty");
+                s.log.add(p.name + " loses: attempted to draw from an empty deck");
+                p.nexusHp = 0;
+                checkWinner(s);
                 return;
             }
-            p.hand.add(p.deck.remove(0));
+            addToHand(p, p.deck.remove(0), s);
         }
     }
 
-    private static boolean spendMana(PlayerState p, int cost) {
-        if (p.mana + p.bankedMana < cost) return false;
+    private static boolean spendMana(PlayerState p, int cost, boolean spell) {
+        if (p.mana + p.bankedMana + (spell ? p.spellMana : 0) < cost) return false;
         int need = cost;
         int fromMana = Math.min(p.mana, need);
         p.mana -= fromMana;
         need -= fromMana;
+        if (spell) {
+            int fromSpell = Math.min(p.spellMana, need);
+            p.spellMana -= fromSpell;
+            need -= fromSpell;
+        }
         if (need > 0) p.bankedMana -= need;
         return true;
     }
@@ -192,15 +217,17 @@ public final class BattleEngine {
         String type = action.get("type")
             .getAsString();
         Random rng = new Random(s.seed + s.turn * 13L + s.log.size());
-        if ("play_card".equals(type)) {
+        if ("confirm_mulligan".equals(type)) {
+            confirmMulligan(s, actor, action, rng);
+        } else if ("play_card".equals(type)) {
             playCard(s, actor, action, rng);
+        } else if ("pass_priority".equals(type)) {
+            passPriority(s, actor);
+        } else if ("start_attack".equals(type)) {
+            startAttack(s, actor);
         } else if ("end_main".equals(type)) {
-            requirePhase(s, "main");
-            requireActive(s, actor);
-            s.phase = "attack_declare";
-            s.attackOrder.clear();
-            s.blockPairs.clear();
-            s.swapUsedThisCombat = false;
+            if (s.attackTokenAvailable && s.attackTokenPlayer == actor) startAttack(s, actor);
+            else passPriority(s, actor);
         } else if ("declare_attacks".equals(type)) {
             declareAttacks(s, actor, action);
         } else if ("declare_blocks".equals(type)) {
@@ -222,6 +249,8 @@ public final class BattleEngine {
                 .getAsInt(),
                 action.get("b")
                     .getAsInt());
+        } else if ("pass_swap".equals(type)) {
+            passSwap(s, actor);
         } else if ("concede".equals(type)) {
             s.winner = opp(actor);
             s.phase = "game_over";
@@ -258,8 +287,119 @@ public final class BattleEngine {
         if (s.activePlayer != actor) throw new IllegalStateException("Not your turn");
     }
 
+    private static boolean isResponsePhase(String phase) {
+        return "spell_response".equals(phase) || "combat_response".equals(phase);
+    }
+
+    private static String spellSpeed(CardDef def) {
+        return def.spellSpeed != null ? def.spellSpeed : "slow";
+    }
+
+    private static void confirmMulligan(BattleState s, int actor, JsonObject action, Random rng) {
+        requirePhase(s, "mulligan");
+        if (s.mulliganDone[actor]) throw new IllegalStateException("Mulligan already confirmed");
+        PlayerState player = s.players[actor];
+        JsonArray requested = action.has("replaceIndices") ? action.getAsJsonArray("replaceIndices") : new JsonArray();
+        List<Integer> indices = new ArrayList<Integer>();
+        HashSet<Integer> unique = new HashSet<Integer>();
+        for (int i = 0; i < requested.size(); i++) {
+            int index = requested.get(i)
+                .getAsInt();
+            if (index < 0 || index >= player.hand.size() || !unique.add(Integer.valueOf(index))) {
+                throw new IllegalStateException("Invalid mulligan index");
+            }
+            indices.add(Integer.valueOf(index));
+        }
+        Collections.sort(indices);
+        if (indices.size() > player.deck.size()) {
+            throw new IllegalStateException("Not enough cards to replace mulligan");
+        }
+
+        List<String> returned = new ArrayList<String>();
+        for (Integer boxed : indices) {
+            int index = boxed.intValue();
+            returned.add(player.hand.get(index));
+            player.hand.set(index, player.deck.remove(0));
+        }
+        player.deck.addAll(returned);
+        Collections.shuffle(player.deck, rng);
+        s.mulliganDone[actor] = true;
+        s.log.add(player.name + " confirms mulligan (" + indices.size() + ")");
+        if (s.mulliganDone[0] && s.mulliganDone[1]) {
+            draw(s.players[0], 1, s);
+            draw(s.players[1], 1, s);
+            if (s.winner != null) return;
+            s.phase = "main";
+            s.activePlayer = s.attackTokenPlayer;
+            s.log.add("Mulligan complete");
+        }
+    }
+
+    private static BoardUnit targetAt(BoardUnit[] board, int slot, String side) {
+        if (slot < 0 || slot >= BOARD) throw new IllegalStateException("Invalid " + side + " target slot");
+        BoardUnit target = board[slot];
+        if (target == null) throw new IllegalStateException("Missing " + side + " target");
+        return target;
+    }
+
+    private static void validateSpellTarget(BattleState s, int actor, CardDef def, JsonObject action) {
+        PlayerState me = s.players[actor];
+        PlayerState you = s.players[opp(actor)];
+        int enemySlot = action.has("targetEnemySlot") ? action.get("targetEnemySlot")
+            .getAsInt() : 0;
+        int mySlot = action.has("targetSlot") ? action.get("targetSlot")
+            .getAsInt() : 0;
+        String id = def.id;
+
+        if ("van_smite".equals(id) || "ae_annihilation".equals(id) || "th_ignis".equals(id)) {
+            BoardUnit target = targetAt(you.board, enemySlot, "enemy");
+            if (target.untargetable) throw new IllegalStateException("Enemy target is untargetable");
+        } else if ("van_heal".equals(id) || "th_ordo_aer".equals(id) || "th_ward".equals(id)
+            || "ge_mutate".equals(id) || "ge_clone".equals(id)) {
+            BoardUnit target = targetAt(me.board, mySlot, "friendly");
+            if (target.isStructure) throw new IllegalStateException("Friendly target must be a unit");
+            if ("ge_clone".equals(id) && firstEmpty(me.board) < 0) {
+                throw new IllegalStateException("No empty slot for clone");
+            }
+        } else if ("gt_wrench".equals(id)) {
+            BoardUnit target = targetAt(you.board, enemySlot, "enemy");
+            if (!target.isStructure || !hasKw(target, "machine")) {
+                throw new IllegalStateException("Target must be an enemy machine structure");
+            }
+        } else if ("fo_smoke".equals(id)) {
+            BoardUnit target = targetAt(you.board, enemySlot, "enemy");
+            if (!hasKw(target, "stealth")) throw new IllegalStateException("Target must have stealth");
+        } else if ("ee_watch".equals(id)) {
+            BoardUnit target = targetAt(me.board, mySlot, "friendly");
+            if (!target.isStructure || target.hiveTurnsLeft == null) {
+                throw new IllegalStateException("Target must be a structure with cooldown");
+            }
+        } else if ("av_eternal".equals(id) && !me.eternalReady && me.singularitiesPlayed < 3) {
+            throw new IllegalStateException("Eternal Singularity requires 3 singularities");
+        }
+    }
+
+    private static int validatePlayCard(BattleState s, int actor, CardDef def, JsonObject action) {
+        PlayerState me = s.players[actor];
+        int available = me.mana + me.bankedMana + ("spell".equals(def.kind) ? me.spellMana : 0);
+        if (available < def.cost) throw new IllegalStateException("Not enough mana");
+
+        if ("unit".equals(def.kind) || "structure".equals(def.kind)) {
+            int slot = action.has("targetSlot") ? action.get("targetSlot")
+                .getAsInt() : firstEmpty(me.board);
+            if (slot < 0 || slot >= BOARD || me.board[slot] != null) {
+                throw new IllegalStateException("No empty slot");
+            }
+            return slot;
+        }
+        if ("spell".equals(def.kind)) validateSpellTarget(s, actor, def, action);
+        return -1;
+    }
+
     private static void playCard(BattleState s, int actor, JsonObject action, Random rng) {
-        requirePhase(s, "main");
+        if (!"main".equals(s.phase) && !isResponsePhase(s.phase)) {
+            throw new IllegalStateException("Invalid phase " + s.phase);
+        }
         requireActive(s, actor);
         PlayerState me = s.players[actor];
         int handIndex = action.get("handIndex")
@@ -268,21 +408,123 @@ public final class BattleEngine {
         String cardId = me.hand.get(handIndex);
         CardDef def = CardCatalog.get(cardId);
         if (def == null) throw new IllegalArgumentException("Unknown card");
-        if (!spendMana(me, def.cost)) throw new IllegalStateException("Not enough mana");
+        boolean response = isResponsePhase(s.phase);
+        if (response && !"spell".equals(def.kind)) {
+            throw new IllegalStateException("Only spells may be played in a response window");
+        }
+        String speed = "spell".equals(def.kind) ? spellSpeed(def) : null;
+        if (response && "slow".equals(speed)) {
+            throw new IllegalStateException("Slow spells cannot be played in a response window");
+        }
+        int unitSlot = validatePlayCard(s, actor, def, action);
+        if (!spendMana(me, def.cost, "spell".equals(def.kind))) throw new IllegalStateException("Not enough mana");
         me.hand.remove(handIndex);
-        me.discard.add(cardId);
         s.log.add(me.name + " plays " + (def.nameZh != null ? def.nameZh : def.id));
         if ("unit".equals(def.kind) || "structure".equals(def.kind)) {
-            int slot = action.has("targetSlot") ? action.get("targetSlot")
-                .getAsInt() : firstEmpty(me.board);
-            if (slot < 0 || slot >= BOARD || me.board[slot] != null) throw new IllegalStateException("No empty slot");
-            me.board[slot] = makeUnit(def);
-        } else {
+            me.board[unitSlot] = makeUnit(def);
+        } else if ("burst".equals(speed)) {
+            me.discard.add(cardId);
             applySpell(s, actor, def, action, rng);
+        } else {
+            SpellStackItem item = new SpellStackItem();
+            item.stackId = s.nextStackId++;
+            item.caster = actor;
+            item.cardId = cardId;
+            item.speed = speed;
+            if (action.has("targetSlot")) item.targetSlot = Integer.valueOf(action.get("targetSlot")
+                .getAsInt());
+            if (action.has("targetEnemySlot")) item.targetEnemySlot = Integer.valueOf(action.get("targetEnemySlot")
+                .getAsInt());
+            s.spellStack.add(item);
+            if (!response) {
+                s.phase = "spell_response";
+                s.responseOriginPlayer = actor;
+            }
+            s.responsePasses = 0;
+            s.consecutivePasses = 0;
+            s.activePlayer = opp(actor);
+            s.log.add((def.nameZh != null ? def.nameZh : def.id) + " enters the spell stack");
+            return;
         }
         removeDead(s.players[0], s);
         removeDead(s.players[1], s);
         checkWinner(s);
+        if (s.winner == null) {
+            s.consecutivePasses = 0;
+            if (response) s.responsePasses = 0;
+            if (!"burst".equals(speed)) s.activePlayer = opp(actor);
+        }
+    }
+
+    private static JsonObject actionForStackItem(SpellStackItem item) {
+        JsonObject action = new JsonObject();
+        action.addProperty("type", "play_card");
+        action.addProperty("handIndex", -1);
+        if (item.targetSlot != null) action.addProperty("targetSlot", item.targetSlot.intValue());
+        if (item.targetEnemySlot != null) action.addProperty("targetEnemySlot", item.targetEnemySlot.intValue());
+        return action;
+    }
+
+    private static void discardUnresolvedStack(BattleState s) {
+        while (!s.spellStack.isEmpty()) {
+            SpellStackItem item = s.spellStack.remove(s.spellStack.size() - 1);
+            s.players[item.caster].discard.add(item.cardId);
+            s.log.add(item.cardId + " is cancelled because the match ended");
+        }
+    }
+
+    private static void resolveSpellStack(BattleState s) {
+        String responsePhase = s.phase;
+        if (!isResponsePhase(responsePhase)) throw new IllegalStateException("No response window");
+        Integer origin = s.responseOriginPlayer;
+        s.phase = "resolve";
+        while (!s.spellStack.isEmpty()) {
+            SpellStackItem item = s.spellStack.remove(s.spellStack.size() - 1);
+            CardDef def = CardCatalog.get(item.cardId);
+            JsonObject action = actionForStackItem(item);
+            boolean fizzled = def == null;
+            if (def != null) {
+                try {
+                    validateSpellTarget(s, item.caster, def, action);
+                } catch (RuntimeException ignored) {
+                    fizzled = true;
+                }
+            }
+            if (def != null && !fizzled) {
+                applySpell(s, item.caster, def, action, new Random(s.seed + s.turn * 41L + item.stackId));
+                s.log.add((def.nameZh != null ? def.nameZh : def.id) + " resolves from the spell stack");
+            } else {
+                s.log.add(item.cardId + " fizzles because its target is no longer legal");
+            }
+            s.players[item.caster].discard.add(item.cardId);
+            removeDead(s.players[0], s);
+            removeDead(s.players[1], s);
+            checkWinner(s);
+            if (s.winner != null) {
+                discardUnresolvedStack(s);
+                s.responsePasses = 0;
+                s.responseOriginPlayer = null;
+                return;
+            }
+        }
+        s.responsePasses = 0;
+        s.responseOriginPlayer = null;
+        if ("combat_response".equals(responsePhase)) {
+            resolveCombat(s);
+        } else {
+            s.phase = "main";
+            if (origin != null) s.activePlayer = opp(origin.intValue());
+        }
+    }
+
+    private static void openCombatResponse(BattleState s) {
+        if (s.combatAttacker < 0) throw new IllegalStateException("No combat attacker");
+        s.phase = "combat_response";
+        s.activePlayer = s.combatAttacker;
+        s.responsePasses = 0;
+        s.responseOriginPlayer = null;
+        s.spellStack.clear();
+        s.log.add("Combat response window opens");
     }
 
     private static void applySpell(BattleState s, int actor, CardDef def, JsonObject action, Random rng) {
@@ -324,18 +566,17 @@ public final class BattleEngine {
         } else if ("th_ward".equals(id)) {
             BoardUnit u = me.board[mySlot];
             if (u != null) u.armor += 2;
-        } else if ("fo_plugin_speed".equals(id) || "ee_watch".equals(id) || "ee_relay".equals(id)) {
-            int cut = "ee_watch".equals(id) ? 2 : 1;
+        } else if ("fo_plugin_speed".equals(id)) {
             for (BoardUnit u : me.board) {
                 if (u != null && u.hiveTurnsLeft != null) {
-                    u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft.intValue() - cut);
+                    u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft.intValue() - 1);
                 }
             }
-            if ("ee_watch".equals(id) || "ee_relay".equals(id)) {
-                BoardUnit u = me.board[mySlot];
-                if (u != null && u.hiveTurnsLeft != null) {
-                    u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft.intValue() - cut);
-                }
+        } else if ("ee_watch".equals(id) || "ee_relay".equals(id)) {
+            BoardUnit u = me.board[mySlot];
+            if (u != null && u.hiveTurnsLeft != null) {
+                int cut = "ee_watch".equals(id) ? 2 : 1;
+                u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft.intValue() - cut);
             }
         } else if ("fo_plugin_strong".equals(id)) {
             me.nextBeeMutate = true;
@@ -392,6 +633,9 @@ public final class BattleEngine {
                 clone.attack = 1;
                 clone.health = 1;
                 clone.maxHealth = 1;
+                clone.keywords = new ArrayList<String>(src.keywords);
+                clone.aspects = new ArrayList<String>(src.aspects);
+                clone.equipment.clear();
                 me.board[empty] = clone;
             }
         } else if ("ge_swarm".equals(id)) {
@@ -404,15 +648,15 @@ public final class BattleEngine {
             draw(me, 2, s);
         } else if ("ae_craft".equals(id) || "ae_wireless".equals(id)) {
             String pick = pickAe(s, rng);
-            if (pick != null) me.hand.add(pick);
+            if (pick != null) addToHand(me, pick, s);
         } else if ("ae_formation".equals(id)) {
             CardDef ball = CardCatalog.get("ae_matter");
             int empty = firstEmpty(me.board);
             if (empty >= 0 && ball != null) me.board[empty] = makeUnit(ball);
         } else if ("dlb_tantrum".equals(id) || "dlb_scream".equals(id)) {
-            s.activePlayer = opp(s.activePlayer);
-            s.phase = "main";
-            s.log.add("DLB force role swap!");
+            s.attackTokenPlayer = actor;
+            s.attackTokenAvailable = true;
+            s.log.add("DLB steals the attack token!");
             if ("dlb_scream".equals(id)) draw(me, 1, s);
         } else if ("dlb_mood".equals(id)) {
             List<Integer> slots = new ArrayList<Integer>();
@@ -433,9 +677,23 @@ public final class BattleEngine {
         return s.aePool.get(rng.nextInt(s.aePool.size()));
     }
 
+    private static void startAttack(BattleState s, int actor) {
+        requirePhase(s, "main");
+        requireActive(s, actor);
+        if (!s.attackTokenAvailable || s.attackTokenPlayer != actor) {
+            throw new IllegalStateException("No attack token");
+        }
+        s.phase = "attack_declare";
+        s.combatAttacker = actor;
+        s.consecutivePasses = 0;
+        s.attackOrder.clear();
+        s.blockPairs.clear();
+        s.swapUsedThisCombat = false;
+    }
+
     private static void declareAttacks(BattleState s, int actor, JsonObject action) {
         requirePhase(s, "attack_declare");
-        requireActive(s, actor);
+        if (s.combatAttacker != actor) throw new IllegalStateException("Not attacker");
         PlayerState me = s.players[actor];
         JsonArray slots = action.getAsJsonArray("slots");
         HashSet<Integer> unique = new HashSet<Integer>();
@@ -450,11 +708,15 @@ public final class BattleEngine {
                 s.attackOrder.add(slot);
             }
         }
-        s.phase = "block_declare";
         if (s.attackOrder.isEmpty()) {
+            s.phase = "main";
+            s.combatAttacker = -1;
             s.blockPairs.clear();
-            resolveCombat(s);
+            s.log.add(me.name + " cancels the attack declaration");
+            return;
         }
+        s.phase = "block_declare";
+        s.activePlayer = opp(actor);
     }
 
     private static boolean canBlock(BoardUnit atk, BoardUnit blk) {
@@ -465,8 +727,8 @@ public final class BattleEngine {
 
     private static void declareBlocks(BattleState s, int blocker, JsonObject action) {
         requirePhase(s, "block_declare");
-        if (blocker != opp(s.activePlayer)) throw new IllegalStateException("Not defender");
-        PlayerState atkP = s.players[s.activePlayer];
+        if (s.combatAttacker < 0 || blocker != opp(s.combatAttacker)) throw new IllegalStateException("Not defender");
+        PlayerState atkP = s.players[s.combatAttacker];
         PlayerState defP = s.players[blocker];
         Map<Integer, Integer> mapped = new HashMap<Integer, Integer>();
         HashSet<Integer> used = new HashSet<Integer>();
@@ -506,13 +768,13 @@ public final class BattleEngine {
         if (canSwap && !s.swapUsedThisCombat) {
             s.phase = "swap_extra";
         } else {
-            resolveCombat(s);
+            openCombatResponse(s);
         }
     }
 
     private static void swapSlots(BattleState s, int actor, int a, int b) {
         requirePhase(s, "swap_extra");
-        if (actor != opp(s.activePlayer)) throw new IllegalStateException("Only defender");
+        if (s.combatAttacker < 0 || actor != opp(s.combatAttacker)) throw new IllegalStateException("Only defender");
         PlayerState p = s.players[actor];
         boolean ok = false;
         for (BoardUnit u : p.board) if (hasOrdoAer(u)) ok = true;
@@ -522,12 +784,22 @@ public final class BattleEngine {
         p.board[b] = tmp;
         s.swapUsedThisCombat = true;
         s.log.add(p.name + " swapped " + a + "<->" + b);
-        resolveCombat(s);
+        openCombatResponse(s);
+    }
+
+    private static void passSwap(BattleState s, int actor) {
+        requirePhase(s, "swap_extra");
+        if (s.combatAttacker < 0 || actor != opp(s.combatAttacker)) {
+            throw new IllegalStateException("Only defender may skip the swap");
+        }
+        s.log.add(s.players[actor].name + " skips the mystic swap");
+        openCombatResponse(s);
     }
 
     private static void resolveCombat(BattleState s) {
         s.phase = "resolve";
-        int atkIdx = s.activePlayer;
+        int atkIdx = s.combatAttacker;
+        if (atkIdx < 0) throw new IllegalStateException("No combat attacker");
         int defIdx = opp(atkIdx);
         PlayerState atk = s.players[atkIdx];
         PlayerState def = s.players[defIdx];
@@ -550,8 +822,7 @@ public final class BattleEngine {
             }
             BoardUnit blocker = def.board[pair.blockerSlot];
             if (blocker == null) {
-                int dmg = VoltageRules.applyNexusDamage(attacker.attack, atk.voltage, def.voltage, def.damageReductionPct);
-                def.nexusHp -= dmg;
+                s.log.add(attacker.cardId + " remains blocked after its blocker left combat");
                 continue;
             }
             if (atk.eternalActive) {
@@ -578,36 +849,81 @@ public final class BattleEngine {
         removeDead(def, s);
         checkWinner(s);
         if (s.winner != null) return;
-        endTurn(s);
+        s.attackTokenAvailable = false;
+        s.combatAttacker = -1;
+        s.attackOrder.clear();
+        s.blockPairs.clear();
+        s.consecutivePasses = 0;
+        s.responsePasses = 0;
+        s.responseOriginPlayer = null;
+        s.spellStack.clear();
+        s.activePlayer = defIdx;
+        s.phase = "main";
     }
 
-    private static void endTurn(BattleState s) {
+    private static void endRound(BattleState s) {
         s.phase = "turn_end";
-        int actor = s.activePlayer;
-        PlayerState me = s.players[actor];
-        Random rng = new Random(s.seed + s.turn * 17L + actor);
-        processStructures(s, me, rng);
-        bankMana(me, s);
+        for (int i = 0; i < s.players.length; i++) {
+            processStructures(s, s.players[i], new Random(s.seed + s.turn * 17L + i));
+            bankRoundMana(s.players[i], s);
+        }
+        int nextToken = opp(s.attackTokenPlayer);
         if (s.dlbForceEvery > 0 && s.turn - s.lastForcedSwapTurn >= s.dlbForceEvery) {
             s.lastForcedSwapTurn = s.turn;
-            s.log.add("DLB schedule: keep initiative");
-            s.activePlayer = actor;
-            s.turn += 1;
-        } else {
-            s.activePlayer = opp(actor);
-            if (s.activePlayer == 0) s.turn += 1;
+            nextToken = s.attackTokenPlayer;
+            s.log.add("DLB schedule: previous attacker keeps the token");
         }
-        PlayerState next = s.players[s.activePlayer];
-        next.maxMana = Math.min(10, next.maxMana + 1);
-        next.mana = next.maxMana;
-        draw(next, 1, s);
-        for (BoardUnit u : next.board) {
-            if (u != null && "dlb_chaos".equals(u.cardId) && s.dlbForceEvery > 3) s.dlbForceEvery -= 1;
+        s.turn += 1;
+        s.attackTokenPlayer = nextToken;
+        s.attackTokenAvailable = true;
+        s.activePlayer = nextToken;
+        s.combatAttacker = -1;
+        s.consecutivePasses = 0;
+        s.responsePasses = 0;
+        s.responseOriginPlayer = null;
+        s.spellStack.clear();
+        for (PlayerState player : s.players) {
+            player.maxMana = Math.min(10, player.maxMana + 1);
+            player.mana = player.maxMana;
+            for (BoardUnit unit : player.board) {
+                if (unit != null) unit.health = unit.maxHealth;
+            }
+            draw(player, 1, s);
+            if (s.winner != null) return;
         }
+        boolean totem = false;
+        for (PlayerState player : s.players) {
+            for (BoardUnit u : player.board) if (u != null && "dlb_chaos".equals(u.cardId)) totem = true;
+        }
+        if (totem && s.dlbForceEvery > 3) s.dlbForceEvery -= 1;
         s.attackOrder.clear();
         s.blockPairs.clear();
         s.phase = "main";
         checkWinner(s);
+    }
+
+    private static void passPriority(BattleState s, int actor) {
+        if (!"main".equals(s.phase) && !isResponsePhase(s.phase)) {
+            throw new IllegalStateException("Invalid phase " + s.phase);
+        }
+        requireActive(s, actor);
+        if (isResponsePhase(s.phase)) {
+            s.responsePasses += 1;
+            s.log.add(s.players[actor].name + " passes response priority");
+            if (s.responsePasses >= 2) {
+                resolveSpellStack(s);
+            } else {
+                s.activePlayer = opp(actor);
+            }
+            return;
+        }
+        s.consecutivePasses += 1;
+        s.log.add(s.players[actor].name + " passes priority");
+        if (s.consecutivePasses >= 2) {
+            endRound(s);
+        } else {
+            s.activePlayer = opp(actor);
+        }
     }
 
     private static void processStructures(BattleState s, PlayerState p, Random rng) {
@@ -627,7 +943,16 @@ public final class BattleEngine {
             }
             if ("ae_inscriber".equals(u.cardId) || "ae_controller".equals(u.cardId)) {
                 String pick = pickAe(s, rng);
-                if (pick != null && p.hand.size() < 10) p.hand.add(pick);
+                if (pick != null) addToHand(p, pick, s);
+            }
+            if ("ee_relay".equals(u.cardId)) {
+                for (BoardUnit candidate : p.board) {
+                    if (candidate != null && hasKw(candidate, "beehive")
+                        && candidate.hiveTurnsLeft != null && candidate.hiveTurnsLeft.intValue() > 0) {
+                        candidate.hiveTurnsLeft = Integer.valueOf(Math.max(0, candidate.hiveTurnsLeft.intValue() - 1));
+                        break;
+                    }
+                }
             }
             if (hasKw(u, "beehive") && u.hiveTurnsLeft != null) {
                 u.hiveTurnsLeft = Integer.valueOf(u.hiveTurnsLeft.intValue() - 1);
@@ -665,7 +990,10 @@ public final class BattleEngine {
         }
     }
 
-    private static void bankMana(PlayerState p, BattleState s) {
+    private static void bankRoundMana(PlayerState p, BattleState s) {
+        int spellReserve = Math.min(3 - p.spellMana, p.mana);
+        p.spellMana += spellReserve;
+        p.mana -= spellReserve;
         boolean hasCap = false;
         boolean battery = false;
         for (BoardUnit u : p.board) {
@@ -695,45 +1023,35 @@ public final class BattleEngine {
     }
 
     public static void runAi(BattleState s) {
-        for (int n = 0; n < 24; n++) {
+        for (int n = 0; n < 40; n++) {
             if ("game_over".equals(s.phase)) return;
-            int actor = s.activePlayer;
-            PlayerState p = s.players[actor];
-            if ("main".equals(s.phase) && !p.isAi) return;
-            if ("attack_declare".equals(s.phase) && !p.isAi) return;
-            if ("block_declare".equals(s.phase) && !s.players[opp(actor)].isAi) return;
-            if ("swap_extra".equals(s.phase) && !s.players[opp(actor)].isAi) return;
-
-            if ("main".equals(s.phase) && p.isAi) {
-                boolean played = false;
-                for (int i = 0; i < p.hand.size(); i++) {
-                    CardDef def = CardCatalog.get(p.hand.get(i));
-                    if (def == null || p.mana + p.bankedMana < def.cost) continue;
-                    try {
-                        JsonObject act = new JsonObject();
-                        act.addProperty("type", "play_card");
-                        act.addProperty("handIndex", i);
-                        if ("unit".equals(def.kind) || "structure".equals(def.kind)) {
-                            int slot = firstEmpty(p.board);
-                            if (slot < 0) continue;
-                            act.addProperty("targetSlot", slot);
-                        } else {
-                            act.addProperty("targetSlot", 0);
-                            act.addProperty("targetEnemySlot", 0);
-                        }
-                        applyActionNoAi(s, actor, act);
-                        played = true;
+            if ("mulligan".equals(s.phase)) {
+                int actor = -1;
+                for (int i = 0; i < s.players.length; i++) {
+                    if (s.players[i].isAi && !s.mulliganDone[i]) {
+                        actor = i;
                         break;
-                    } catch (Throwable ignored) {}
+                    }
                 }
-                if (!played) {
-                    JsonObject end = new JsonObject();
-                    end.addProperty("type", "end_main");
-                    applyActionNoAi(s, actor, end);
+                if (actor < 0) return;
+                JsonArray indices = new JsonArray();
+                PlayerState player = s.players[actor];
+                for (int i = 0; i < player.hand.size(); i++) {
+                    CardDef def = CardCatalog.get(player.hand.get(i));
+                    if (def != null && def.cost >= 5) {
+                        indices.add(new com.google.gson.JsonPrimitive(i));
+                    }
                 }
+                JsonObject act = new JsonObject();
+                act.addProperty("type", "confirm_mulligan");
+                act.add("replaceIndices", indices);
+                applyActionNoAi(s, actor, act);
                 continue;
             }
-            if ("attack_declare".equals(s.phase) && p.isAi) {
+            if ("attack_declare".equals(s.phase)) {
+                int actor = s.combatAttacker;
+                if (actor < 0 || !s.players[actor].isAi) return;
+                PlayerState p = s.players[actor];
                 JsonArray slots = new JsonArray();
                 for (int i = 0; i < p.board.length; i++) {
                     BoardUnit u = p.board[i];
@@ -746,13 +1064,14 @@ public final class BattleEngine {
                 continue;
             }
             if ("block_declare".equals(s.phase)) {
-                int defender = opp(s.activePlayer);
+                if (s.combatAttacker < 0) return;
+                int defender = opp(s.combatAttacker);
                 if (!s.players[defender].isAi) return;
                 PlayerState defP = s.players[defender];
                 JsonArray pairs = new JsonArray();
                 HashSet<Integer> used = new HashSet<Integer>();
                 for (Integer aSlot : s.attackOrder) {
-                    BoardUnit attacker = s.players[s.activePlayer].board[aSlot.intValue()];
+                    BoardUnit attacker = s.players[s.combatAttacker].board[aSlot.intValue()];
                     int block = -1;
                     for (int i = 0; i < defP.board.length; i++) {
                         BoardUnit bu = defP.board[i];
@@ -775,9 +1094,78 @@ public final class BattleEngine {
                 continue;
             }
             if ("swap_extra".equals(s.phase)) {
-                int defender = opp(s.activePlayer);
-                if (s.players[defender].isAi) resolveCombat(s);
+                if (s.combatAttacker < 0) return;
+                int defender = opp(s.combatAttacker);
+                if (s.players[defender].isAi) passSwap(s, defender);
                 else return;
+                continue;
+            }
+            if (isResponsePhase(s.phase)) {
+                int actor = s.activePlayer;
+                PlayerState p = s.players[actor];
+                if (!p.isAi) return;
+                boolean played = false;
+                for (int i = 0; i < p.hand.size(); i++) {
+                    CardDef def = CardCatalog.get(p.hand.get(i));
+                    if (def == null || !"spell".equals(def.kind) || "slow".equals(spellSpeed(def))) continue;
+                    int available = p.mana + p.bankedMana + p.spellMana;
+                    if (available < def.cost) continue;
+                    try {
+                        JsonObject act = new JsonObject();
+                        act.addProperty("type", "play_card");
+                        act.addProperty("handIndex", i);
+                        act.addProperty("targetSlot", 0);
+                        act.addProperty("targetEnemySlot", 0);
+                        applyActionNoAi(s, actor, act);
+                        played = true;
+                        break;
+                    } catch (Throwable ignored) {}
+                }
+                if (!played) passPriority(s, actor);
+                continue;
+            }
+            if (!"main".equals(s.phase)) return;
+
+            int actor = s.activePlayer;
+            PlayerState p = s.players[actor];
+            if (!p.isAi) return;
+            boolean hasAttacker = false;
+            for (BoardUnit u : p.board) {
+                if (u != null && !u.isStructure && u.attack > 0) {
+                    hasAttacker = true;
+                    break;
+                }
+            }
+            if (s.attackTokenAvailable && s.attackTokenPlayer == actor && hasAttacker) {
+                startAttack(s, actor);
+                continue;
+            }
+
+            boolean played = false;
+            for (int i = 0; i < p.hand.size(); i++) {
+                CardDef def = CardCatalog.get(p.hand.get(i));
+                int available = p.mana + p.bankedMana
+                    + (def != null && "spell".equals(def.kind) ? p.spellMana : 0);
+                if (def == null || available < def.cost) continue;
+                try {
+                    JsonObject act = new JsonObject();
+                    act.addProperty("type", "play_card");
+                    act.addProperty("handIndex", i);
+                    if ("unit".equals(def.kind) || "structure".equals(def.kind)) {
+                        int slot = firstEmpty(p.board);
+                        if (slot < 0) continue;
+                        act.addProperty("targetSlot", slot);
+                    } else {
+                        act.addProperty("targetSlot", 0);
+                        act.addProperty("targetEnemySlot", 0);
+                    }
+                    applyActionNoAi(s, actor, act);
+                    played = true;
+                    break;
+                } catch (Throwable ignored) {}
+            }
+            if (!played) {
+                passPriority(s, actor);
             }
         }
     }
@@ -787,16 +1175,19 @@ public final class BattleEngine {
         String type = action.get("type")
             .getAsString();
         Random rng = new Random(s.seed + s.turn * 13L + s.log.size());
-        if ("play_card".equals(type)) playCard(s, actor, action, rng);
+        if ("confirm_mulligan".equals(type)) confirmMulligan(s, actor, action, rng);
+        else if ("play_card".equals(type)) playCard(s, actor, action, rng);
+        else if ("pass_priority".equals(type)) passPriority(s, actor);
+        else if ("start_attack".equals(type)) startAttack(s, actor);
         else if ("end_main".equals(type)) {
-            requirePhase(s, "main");
-            requireActive(s, actor);
-            s.phase = "attack_declare";
-            s.attackOrder.clear();
-            s.blockPairs.clear();
-            s.swapUsedThisCombat = false;
+            if (s.attackTokenAvailable && s.attackTokenPlayer == actor) startAttack(s, actor);
+            else passPriority(s, actor);
         } else if ("declare_attacks".equals(type)) declareAttacks(s, actor, action);
         else if ("declare_blocks".equals(type)) declareBlocks(s, actor, action);
+        else if ("swap_slots".equals(type)) swapSlots(s, actor, action.get("a")
+            .getAsInt(), action.get("b")
+                .getAsInt());
+        else if ("pass_swap".equals(type)) passSwap(s, actor);
         maybeApplyEquip(s);
     }
 

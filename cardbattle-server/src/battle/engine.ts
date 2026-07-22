@@ -7,6 +7,8 @@ import type {
   BoardUnit,
   CardDef,
   PlayerState,
+  SpellSpeed,
+  SpellStackItem,
   ThemeId,
   VoltageTier,
 } from './types.js';
@@ -15,6 +17,7 @@ import { applyNexusDamage } from './voltage.js';
 const BOARD_SIZE = 6;
 const START_NEXUS = 20;
 const MAX_BANK = 6;
+const MAX_HAND = 10;
 
 function mulberry32(seed: number): () => number {
   let t = seed >>> 0;
@@ -77,6 +80,7 @@ function createPlayer(
     maxNexusHp: START_NEXUS,
     mana: 1,
     maxMana: 1,
+    spellMana: 0,
     bankedMana: 0,
     voltage,
     hand,
@@ -119,8 +123,17 @@ export function createMatch(opts: MatchOptions): BattleState {
     matchId: randomUUID(),
     seed,
     turn: 1,
-    phase: 'main',
+    phase: 'mulligan',
     activePlayer: 0,
+    attackTokenPlayer: 0,
+    attackTokenAvailable: true,
+    combatAttacker: null,
+    consecutivePasses: 0,
+    responsePasses: 0,
+    responseOriginPlayer: null,
+    spellStack: [],
+    nextStackId: 1,
+    mulliganDone: [false, false],
     players: [p0, p1],
     attackOrder: [],
     blockPairs: [],
@@ -137,13 +150,24 @@ function oppIndex(i: 0 | 1): 0 | 1 {
   return i === 0 ? 1 : 0;
 }
 
+function addToHand(p: PlayerState, cardId: string, state: BattleState): void {
+  if (p.hand.length >= MAX_HAND) {
+    p.discard.push(cardId);
+    state.log.push(`${p.name} burns ${cardId} (hand full)`);
+    return;
+  }
+  p.hand.push(cardId);
+}
+
 function draw(p: PlayerState, n: number, state: BattleState): void {
   for (let i = 0; i < n; i++) {
     if (p.deck.length === 0) {
-      state.log.push(`${p.name} deck empty`);
+      state.log.push(`${p.name} loses: attempted to draw from an empty deck`);
+      p.nexusHp = 0;
+      checkWinner(state);
       return;
     }
-    p.hand.push(p.deck.shift()!);
+    addToHand(p, p.deck.shift()!, state);
   }
 }
 
@@ -172,13 +196,18 @@ function removeDead(p: PlayerState, state: BattleState): void {
   }
 }
 
-function spendMana(p: PlayerState, cost: number): boolean {
-  const total = p.mana + p.bankedMana;
+function spendMana(p: PlayerState, cost: number, spell: boolean): boolean {
+  const total = p.mana + p.bankedMana + (spell ? p.spellMana : 0);
   if (total < cost) return false;
   let need = cost;
   const fromMana = Math.min(p.mana, need);
   p.mana -= fromMana;
   need -= fromMana;
+  if (spell) {
+    const fromSpell = Math.min(p.spellMana, need);
+    p.spellMana -= fromSpell;
+    need -= fromSpell;
+  }
   if (need > 0) p.bankedMana -= need;
   return true;
 }
@@ -198,10 +227,14 @@ function hasOrdoAer(unit: BoardUnit): boolean {
 }
 
 export type PlayerAction =
+  | { type: 'confirm_mulligan'; replaceIndices: number[] }
   | { type: 'play_card'; handIndex: number; targetSlot?: number; targetEnemySlot?: number }
+  | { type: 'pass_priority' }
+  | { type: 'start_attack' }
   | { type: 'declare_attacks'; slots: number[] }
   | { type: 'declare_blocks'; pairs: AttackPair[] }
   | { type: 'swap_slots'; a: number; b: number }
+  | { type: 'pass_swap' }
   | { type: 'end_main' }
   | { type: 'pass_block' }
   | { type: 'concede' };
@@ -210,6 +243,132 @@ function ensurePhase(state: BattleState, ...ok: BattlePhase[]): void {
   if (!ok.includes(state.phase)) {
     throw new Error(`Invalid phase ${state.phase}, expected ${ok.join('|')}`);
   }
+}
+
+function spellSpeed(def: CardDef): SpellSpeed {
+  return def.spellSpeed ?? 'slow';
+}
+
+function isResponsePhase(phase: BattlePhase): phase is 'spell_response' | 'combat_response' {
+  return phase === 'spell_response' || phase === 'combat_response';
+}
+
+function confirmMulligan(
+  state: BattleState,
+  actor: 0 | 1,
+  replaceIndices: number[] | undefined,
+  rng: () => number,
+): void {
+  ensurePhase(state, 'mulligan');
+  if (state.mulliganDone[actor]) throw new Error('Mulligan already confirmed');
+  const player = state.players[actor];
+  if (replaceIndices != null && !Array.isArray(replaceIndices)) throw new Error('Invalid mulligan index');
+  const requested = replaceIndices ?? [];
+  const unique = new Set<number>();
+  for (const index of requested) {
+    if (!Number.isInteger(index) || index < 0 || index >= player.hand.length || unique.has(index)) {
+      throw new Error('Invalid mulligan index');
+    }
+    unique.add(index);
+  }
+  const indices = [...unique].sort((a, b) => a - b);
+  if (indices.length > player.deck.length) throw new Error('Not enough cards to replace mulligan');
+
+  const returned = indices.map((index) => player.hand[index]!);
+  for (const index of indices) player.hand[index] = player.deck.shift()!;
+  player.deck.push(...returned);
+  player.deck = shuffle(player.deck, rng);
+  state.mulliganDone[actor] = true;
+  state.log.push(`${player.name} confirms mulligan (${indices.length})`);
+
+  if (state.mulliganDone[0] && state.mulliganDone[1]) {
+    // The opening hand is four cards; round one starts with the normal draw.
+    draw(state.players[0], 1, state);
+    draw(state.players[1], 1, state);
+    if (state.winner != null) return;
+    state.phase = 'main';
+    state.activePlayer = state.attackTokenPlayer;
+    state.log.push('Mulligan complete');
+  }
+}
+
+const ENEMY_UNIT_TARGET_SPELLS = new Set(['van_smite', 'ae_annihilation', 'th_ignis']);
+const FRIENDLY_UNIT_TARGET_SPELLS = new Set(['van_heal', 'th_ordo_aer', 'th_ward', 'ge_mutate', 'ge_clone']);
+
+function targetAt(board: (BoardUnit | null)[], slot: number, side: 'friendly' | 'enemy'): BoardUnit {
+  if (!Number.isInteger(slot) || slot < 0 || slot >= BOARD_SIZE) {
+    throw new Error(`Invalid ${side} target slot`);
+  }
+  const target = board[slot];
+  if (!target) throw new Error(`Missing ${side} target`);
+  return target;
+}
+
+function validateSpellTarget(
+  state: BattleState,
+  actor: 0 | 1,
+  def: CardDef,
+  action: Extract<PlayerAction, { type: 'play_card' }>,
+): void {
+  const me = state.players[actor];
+  const you = state.players[oppIndex(actor)];
+
+  if (ENEMY_UNIT_TARGET_SPELLS.has(def.id)) {
+    const target = targetAt(you.board, action.targetEnemySlot ?? 0, 'enemy');
+    if (target.untargetable) throw new Error('Enemy target is untargetable');
+    return;
+  }
+  if (FRIENDLY_UNIT_TARGET_SPELLS.has(def.id)) {
+    const target = targetAt(me.board, action.targetSlot ?? 0, 'friendly');
+    if (target.isStructure) throw new Error('Friendly target must be a unit');
+    if (def.id === 'ge_clone' && firstEmptySlot(me.board) < 0) {
+      throw new Error('No empty slot for clone');
+    }
+    return;
+  }
+  if (def.id === 'gt_wrench') {
+    const target = targetAt(you.board, action.targetEnemySlot ?? 0, 'enemy');
+    if (!target.isStructure || !target.keywords.includes('machine')) {
+      throw new Error('Target must be an enemy machine structure');
+    }
+    return;
+  }
+  if (def.id === 'fo_smoke') {
+    const target = targetAt(you.board, action.targetEnemySlot ?? 0, 'enemy');
+    if (!target.keywords.includes('stealth')) throw new Error('Target must have stealth');
+    return;
+  }
+  if (def.id === 'ee_watch') {
+    const target = targetAt(me.board, action.targetSlot ?? 0, 'friendly');
+    if (!target.isStructure || target.hiveTurnsLeft == null) {
+      throw new Error('Target must be a structure with cooldown');
+    }
+    return;
+  }
+  if (def.id === 'av_eternal' && !me.eternalReady && me.singularitiesPlayed < 3) {
+    throw new Error('Eternal Singularity requires 3 singularities');
+  }
+}
+
+function validatePlayCard(
+  state: BattleState,
+  actor: 0 | 1,
+  def: CardDef,
+  action: Extract<PlayerAction, { type: 'play_card' }>,
+): number | null {
+  const me = state.players[actor];
+  const available = me.mana + me.bankedMana + (def.kind === 'spell' ? me.spellMana : 0);
+  if (available < def.cost) throw new Error('Not enough mana');
+
+  if (def.kind === 'unit' || def.kind === 'structure') {
+    const slot = action.targetSlot ?? firstEmptySlot(me.board);
+    if (!Number.isInteger(slot) || slot < 0 || slot >= BOARD_SIZE || me.board[slot]) {
+      throw new Error('No empty slot');
+    }
+    return slot;
+  }
+  if (def.kind === 'spell') validateSpellTarget(state, actor, def, action);
+  return null;
 }
 
 function applySpell(
@@ -380,7 +539,16 @@ function applySpell(
       const src = me.board[slot];
       const empty = firstEmptySlot(me.board);
       if (src && empty >= 0) {
-        const clone = { ...src, instanceId: randomUUID(), attack: 1, health: 1, maxHealth: 1, equipment: [] };
+        const clone = {
+          ...src,
+          instanceId: randomUUID(),
+          attack: 1,
+          health: 1,
+          maxHealth: 1,
+          keywords: [...src.keywords],
+          aspects: [...src.aspects],
+          equipment: [],
+        };
         me.board[empty] = clone;
       }
       break;
@@ -399,7 +567,7 @@ function applySpell(
     case 'ae_craft':
     case 'ae_wireless': {
       const id = pickAeCard(state, rng);
-      if (id) me.hand.push(id);
+      if (id) addToHand(me, id, state);
       break;
     }
     case 'ae_cell':
@@ -413,9 +581,9 @@ function applySpell(
     }
     case 'dlb_tantrum':
     case 'dlb_scream':
-      state.activePlayer = oppIndex(state.activePlayer);
-      state.phase = 'main';
-      state.log.push('DLB force role swap!');
+      state.attackTokenPlayer = actor;
+      state.attackTokenAvailable = true;
+      state.log.push('DLB steals the attack token!');
       if (def.id === 'dlb_scream') draw(me, 1, state);
       break;
     case 'dlb_ignore': {
@@ -441,36 +609,144 @@ function applySpell(
 }
 
 function playCard(state: BattleState, actor: 0 | 1, action: Extract<PlayerAction, { type: 'play_card' }>, rng: () => number): void {
-  ensurePhase(state, 'main');
+  ensurePhase(state, 'main', 'spell_response', 'combat_response');
   if (state.activePlayer !== actor) throw new Error('Not your turn');
   const me = state.players[actor];
   const cardId = me.hand[action.handIndex];
   if (!cardId) throw new Error('Invalid hand index');
   const def = getCard(cardId);
   if (!def) throw new Error(`Unknown card ${cardId}`);
-  if (!spendMana(me, def.cost)) throw new Error('Not enough mana');
+  const response = isResponsePhase(state.phase);
+  if (response && def.kind !== 'spell') throw new Error('Only spells may be played in a response window');
+  const speed = def.kind === 'spell' ? spellSpeed(def) : null;
+  if (response && speed === 'slow') throw new Error('Slow spells cannot be played in a response window');
+  const unitSlot = validatePlayCard(state, actor, def, action);
+  if (!spendMana(me, def.cost, def.kind === 'spell')) throw new Error('Not enough mana');
 
   me.hand.splice(action.handIndex, 1);
-  me.discard.push(cardId);
   state.log.push(`${me.name} plays ${def.nameZh}`);
 
   if (def.kind === 'unit' || def.kind === 'structure') {
-    const slot = action.targetSlot ?? firstEmptySlot(me.board);
-    if (slot < 0 || slot >= BOARD_SIZE || me.board[slot]) throw new Error('No empty slot');
     const unit = makeUnit(def);
-    me.board[slot] = unit;
+    me.board[unitSlot!] = unit;
     // Forestry hive occupies a slot — opponent effectively has more combat slots conceptually handled by untargetable
-  } else if (def.kind === 'spell') {
+  } else if (def.kind === 'spell' && speed === 'burst') {
+    me.discard.push(cardId);
     applySpell(state, actor, def, action, rng);
+  } else if (def.kind === 'spell') {
+    const item: SpellStackItem = {
+      stackId: state.nextStackId++,
+      caster: actor,
+      cardId,
+      speed: speed as 'slow' | 'fast',
+      ...(action.targetSlot != null ? { targetSlot: action.targetSlot } : {}),
+      ...(action.targetEnemySlot != null ? { targetEnemySlot: action.targetEnemySlot } : {}),
+    };
+    state.spellStack.push(item);
+    if (!response) {
+      state.phase = 'spell_response';
+      state.responseOriginPlayer = actor;
+    }
+    state.responsePasses = 0;
+    state.consecutivePasses = 0;
+    state.activePlayer = oppIndex(actor);
+    state.log.push(`${def.nameZh} enters the spell stack`);
+    return;
   }
 
   removeDead(state.players[0], state);
   removeDead(state.players[1], state);
   checkWinner(state);
+  if (state.winner == null) {
+    state.consecutivePasses = 0;
+    if (response) state.responsePasses = 0;
+    if (speed !== 'burst') state.activePlayer = oppIndex(actor);
+  }
 }
 
-function startAttackDeclare(state: BattleState): void {
+function actionForStackItem(item: SpellStackItem): Extract<PlayerAction, { type: 'play_card' }> {
+  return {
+    type: 'play_card',
+    handIndex: -1,
+    ...(item.targetSlot != null ? { targetSlot: item.targetSlot } : {}),
+    ...(item.targetEnemySlot != null ? { targetEnemySlot: item.targetEnemySlot } : {}),
+  };
+}
+
+function discardUnresolvedStack(state: BattleState): void {
+  while (state.spellStack.length > 0) {
+    const item = state.spellStack.pop()!;
+    state.players[item.caster].discard.push(item.cardId);
+    state.log.push(`${item.cardId} is cancelled because the match ended`);
+  }
+}
+
+function resolveSpellStack(state: BattleState): void {
+  const responsePhase = state.phase;
+  if (!isResponsePhase(responsePhase)) throw new Error('No response window');
+  const origin = state.responseOriginPlayer;
+  state.phase = 'resolve';
+
+  while (state.spellStack.length > 0) {
+    const item = state.spellStack.pop()!;
+    const caster = state.players[item.caster];
+    const def = getCard(item.cardId);
+    const action = actionForStackItem(item);
+    let fizzled = def == null;
+    if (def) {
+      try {
+        validateSpellTarget(state, item.caster, def, action);
+      } catch {
+        fizzled = true;
+      }
+    }
+    if (def && !fizzled) {
+      applySpell(state, item.caster, def, action, mulberry32(state.seed + state.turn * 41 + item.stackId));
+      state.log.push(`${def.nameZh} resolves from the spell stack`);
+    } else {
+      state.log.push(`${item.cardId} fizzles because its target is no longer legal`);
+    }
+    caster.discard.push(item.cardId);
+    removeDead(state.players[0], state);
+    removeDead(state.players[1], state);
+    checkWinner(state);
+    if (state.winner != null) {
+      discardUnresolvedStack(state);
+      state.responsePasses = 0;
+      state.responseOriginPlayer = null;
+      return;
+    }
+  }
+
+  state.responsePasses = 0;
+  state.responseOriginPlayer = null;
+  if (responsePhase === 'combat_response') {
+    resolveCombat(state);
+  } else {
+    state.phase = 'main';
+    state.activePlayer = origin == null ? state.activePlayer : oppIndex(origin);
+  }
+}
+
+function openCombatResponse(state: BattleState): void {
+  if (state.combatAttacker == null) throw new Error('No combat attacker');
+  state.phase = 'combat_response';
+  state.activePlayer = state.combatAttacker;
+  state.responsePasses = 0;
+  state.responseOriginPlayer = null;
+  state.spellStack = [];
+  state.log.push('Combat response window opens');
+}
+
+function startAttackDeclare(state: BattleState, actor: 0 | 1): void {
+  ensurePhase(state, 'main');
+  if (state.activePlayer !== actor) throw new Error('Not your priority');
+  if (!state.attackTokenAvailable || state.attackTokenPlayer !== actor) {
+    throw new Error('No attack token');
+  }
   state.phase = 'attack_declare';
+  state.combatAttacker = actor;
+  state.consecutivePasses = 0;
   state.attackOrder = [];
   state.blockPairs = [];
   state.swapUsedThisCombat = false;
@@ -478,20 +754,24 @@ function startAttackDeclare(state: BattleState): void {
 
 function declareAttacks(state: BattleState, actor: 0 | 1, slots: number[]): void {
   ensurePhase(state, 'attack_declare');
-  if (state.activePlayer !== actor) throw new Error('Not attacker');
+  if (state.combatAttacker !== actor) throw new Error('Not attacker');
   const me = state.players[actor];
   const unique = [...new Set(slots)];
+  if (unique.length === 0) {
+    state.phase = 'main';
+    state.combatAttacker = null;
+    state.attackOrder = [];
+    state.blockPairs = [];
+    state.log.push(`${me.name} cancels the attack declaration`);
+    return;
+  }
   for (const s of unique) {
     const u = me.board[s];
     if (!u || u.isStructure || u.attack <= 0) throw new Error(`Slot ${s} cannot attack`);
   }
   state.attackOrder = unique;
   state.phase = 'block_declare';
-  // If no attackers, skip to turn end path via resolve empty
-  if (unique.length === 0) {
-    state.blockPairs = [];
-    resolveCombat(state);
-  }
+  state.activePlayer = oppIndex(actor);
 }
 
 function canBlock(attacker: BoardUnit, blocker: BoardUnit): boolean {
@@ -502,8 +782,9 @@ function canBlock(attacker: BoardUnit, blocker: BoardUnit): boolean {
 
 function declareBlocks(state: BattleState, blocker: 0 | 1, pairs: AttackPair[]): void {
   ensurePhase(state, 'block_declare');
-  if (blocker !== oppIndex(state.activePlayer)) throw new Error('Not defender');
-  const atk = state.players[state.activePlayer];
+  const attackerIndex = state.combatAttacker;
+  if (attackerIndex == null || blocker !== oppIndex(attackerIndex)) throw new Error('Not defender');
+  const atk = state.players[attackerIndex];
   const def = state.players[blocker];
   const usedBlockers = new Set<number>();
   const mapped = new Map<number, number>();
@@ -530,13 +811,13 @@ function declareBlocks(state: BattleState, blocker: 0 | 1, pairs: AttackPair[]):
   if (canSwap && !state.swapUsedThisCombat) {
     state.phase = 'swap_extra';
   } else {
-    resolveCombat(state);
+    openCombatResponse(state);
   }
 }
 
 function swapSlots(state: BattleState, actor: 0 | 1, a: number, b: number): void {
   ensurePhase(state, 'swap_extra');
-  if (actor !== oppIndex(state.activePlayer)) throw new Error('Only defender swaps');
+  if (state.combatAttacker == null || actor !== oppIndex(state.combatAttacker)) throw new Error('Only defender swaps');
   const p = state.players[actor];
   if (!p.board.some((u) => u && hasOrdoAer(u))) throw new Error('Need Ordo+Aer');
   const tmp = p.board[a];
@@ -545,12 +826,22 @@ function swapSlots(state: BattleState, actor: 0 | 1, a: number, b: number): void
   state.swapUsedThisCombat = true;
   state.log.push(`${p.name} swapped slots ${a}<->${b}`);
   // Remap block pairs if blocker slots moved
-  resolveCombat(state);
+  openCombatResponse(state);
+}
+
+function passSwap(state: BattleState, actor: 0 | 1): void {
+  ensurePhase(state, 'swap_extra');
+  if (state.combatAttacker == null || actor !== oppIndex(state.combatAttacker)) {
+    throw new Error('Only defender may skip the swap');
+  }
+  state.log.push(`${state.players[actor].name} skips the mystic swap`);
+  openCombatResponse(state);
 }
 
 function resolveCombat(state: BattleState): void {
   state.phase = 'resolve';
-  const atkIdx = state.activePlayer;
+  const atkIdx = state.combatAttacker;
+  if (atkIdx == null) throw new Error('No combat attacker');
   const defIdx = oppIndex(atkIdx);
   const atk = state.players[atkIdx];
   const def = state.players[defIdx];
@@ -575,8 +866,9 @@ function resolveCombat(state: BattleState): void {
 
     const blocker = def.board[pair.blockerSlot];
     if (!blocker) {
-      const dmg = applyNexusDamage(attacker.attack, atk.voltage, def.voltage, def.damageReductionPct);
-      def.nexusHp -= dmg;
+      // A removed blocker leaves a ghost block. Without an Overwhelm-like
+      // keyword this attacker no longer has a Nexus target this combat.
+      state.log.push(`${attacker.cardId} remains blocked after its blocker left combat`);
       continue;
     }
 
@@ -603,7 +895,16 @@ function resolveCombat(state: BattleState): void {
   removeDead(def, state);
   checkWinner(state);
   if (state.winner != null) return;
-  endTurn(state);
+  state.attackTokenAvailable = false;
+  state.combatAttacker = null;
+  state.attackOrder = [];
+  state.blockPairs = [];
+  state.consecutivePasses = 0;
+  state.responsePasses = 0;
+  state.responseOriginPlayer = null;
+  state.spellStack = [];
+  state.activePlayer = defIdx;
+  state.phase = 'main';
 }
 
 function processStructures(state: BattleState, p: PlayerState, rng: () => number): void {
@@ -630,7 +931,16 @@ function processStructures(state: BattleState, p: PlayerState, rng: () => number
     // AE inscriber / controller
     if (u.cardId === 'ae_inscriber' || u.cardId === 'ae_controller') {
       const id = pickAeCard(state, rng);
-      if (id && p.hand.length < 10) p.hand.push(id);
+      if (id) addToHand(p, id, state);
+    }
+
+    if (u.cardId === 'ee_relay') {
+      const cooldownTarget = p.board.find(
+        (candidate) => candidate?.keywords.includes('beehive') && (candidate.hiveTurnsLeft ?? 0) > 0,
+      );
+      if (cooldownTarget?.hiveTurnsLeft != null) {
+        cooldownTarget.hiveTurnsLeft = Math.max(0, cooldownTarget.hiveTurnsLeft - 1);
+      }
     }
 
     // Forestry hive
@@ -666,7 +976,10 @@ function processStructures(state: BattleState, p: PlayerState, rng: () => number
   // GT capacitor banking at end of own turn handled in endTurn
 }
 
-function bankMana(p: PlayerState, state: BattleState): void {
+function bankRoundMana(p: PlayerState, state: BattleState): void {
+  const spellReserve = Math.min(3 - p.spellMana, p.mana);
+  p.spellMana += spellReserve;
+  p.mana -= spellReserve;
   const hasCap = p.board.some((u) => u?.keywords.includes('capacitor'));
   if (!hasCap) {
     p.mana = 0;
@@ -691,45 +1004,68 @@ function bankMana(p: PlayerState, state: BattleState): void {
   }
 }
 
-function endTurn(state: BattleState): void {
+function endRound(state: BattleState): void {
   state.phase = 'turn_end';
-  const actor = state.activePlayer;
-  const me = state.players[actor];
-  const rng = mulberry32(state.seed + state.turn * 17 + actor);
-
-  processStructures(state, me, rng);
-  bankMana(me, state);
-
-  // DLB periodic force swap
-  if (state.dlbForceEvery > 0 && state.turn - state.lastForcedSwapTurn >= state.dlbForceEvery) {
-    state.lastForcedSwapTurn = state.turn;
-    state.log.push('DLB schedule: forced attack role swap');
-    // Keep next active as current attacker again effectively by NOT swapping below — instead flip twice? 
-    // Spec: "强制攻防转换" — next turn the other player becomes attacker (normal) AND we skip so current stays?
-    // Simpler: set activePlayer to current again after normal swap (double flip = same) to steal initiative
-    // Interpretation: after end turn, instead of passing to opponent, pass to same player again (extra attack turn for them)
-    // Actually user said: your attack turn becomes their attack. So when it would be your turn, it becomes theirs.
-    // Implement: next active is opponent (normal), but set a flag... Simplest V1: after endTurn, active stays as opponent of normal — i.e. skip the swap so same player attacks again once.
-    state.activePlayer = actor; // same player keeps initiative once
-    state.turn += 1;
-  } else {
-    state.activePlayer = oppIndex(actor);
-    if (state.activePlayer === 0) state.turn += 1;
+  for (const playerIndex of [0, 1] as const) {
+    const player = state.players[playerIndex];
+    processStructures(state, player, mulberry32(state.seed + state.turn * 17 + playerIndex));
+    bankRoundMana(player, state);
   }
 
-  const next = state.players[state.activePlayer];
-  next.maxMana = Math.min(10, next.maxMana + 1);
-  next.mana = next.maxMana;
-  draw(next, 1, state);
+  let nextToken = oppIndex(state.attackTokenPlayer);
+  if (state.dlbForceEvery > 0 && state.turn - state.lastForcedSwapTurn >= state.dlbForceEvery) {
+    state.lastForcedSwapTurn = state.turn;
+    nextToken = state.attackTokenPlayer;
+    state.log.push('DLB schedule: previous attacker keeps the token');
+  }
+  state.turn += 1;
+  state.attackTokenPlayer = nextToken;
+  state.attackTokenAvailable = true;
+  state.activePlayer = nextToken;
+  state.combatAttacker = null;
+  state.consecutivePasses = 0;
+  state.responsePasses = 0;
+  state.responseOriginPlayer = null;
+  state.spellStack = [];
+  for (const player of state.players) {
+    player.maxMana = Math.min(10, player.maxMana + 1);
+    player.mana = player.maxMana;
+    for (const unit of player.board) {
+      if (unit) unit.health = unit.maxHealth;
+    }
+    draw(player, 1, state);
+    if (state.winner != null) return;
+  }
 
-  // Chaos totem reduces interval
-  const totem = next.board.some((u) => u?.cardId === 'dlb_chaos') || me.board.some((u) => u?.cardId === 'dlb_chaos');
+  const totem = state.players.some((p) => p.board.some((u) => u?.cardId === 'dlb_chaos'));
   if (totem && state.dlbForceEvery > 3) state.dlbForceEvery -= 1;
 
   state.attackOrder = [];
   state.blockPairs = [];
   state.phase = 'main';
   checkWinner(state);
+}
+
+function passPriority(state: BattleState, actor: 0 | 1): void {
+  ensurePhase(state, 'main', 'spell_response', 'combat_response');
+  if (state.activePlayer !== actor) throw new Error('Not your priority');
+  if (isResponsePhase(state.phase)) {
+    state.responsePasses += 1;
+    state.log.push(`${state.players[actor].name} passes response priority`);
+    if (state.responsePasses >= 2) {
+      resolveSpellStack(state);
+    } else {
+      state.activePlayer = oppIndex(actor);
+    }
+    return;
+  }
+  state.consecutivePasses += 1;
+  state.log.push(`${state.players[actor].name} passes priority`);
+  if (state.consecutivePasses >= 2) {
+    endRound(state);
+    return;
+  }
+  state.activePlayer = oppIndex(actor);
 }
 
 function checkWinner(state: BattleState): void {
@@ -750,67 +1086,44 @@ function checkWinner(state: BattleState): void {
   }
 }
 
-/** Simple AI: play cheapest card, then attack with all. */
+/** Priority-aware PvE AI: one action per priority window. */
 export function runAiIfNeeded(state: BattleState): void {
-  const guard = 20;
-  for (let n = 0; n < guard; n++) {
+  for (let n = 0; n < 40; n++) {
     if (state.phase === 'game_over') return;
-    const actor = state.activePlayer;
-    const p = state.players[actor];
-    if (!p.isAi && state.phase === 'main') return;
-    if (!p.isAi && state.phase === 'attack_declare') return;
-    if (p.isAi === false && state.phase === 'block_declare') return;
-    if (p.isAi === false && state.phase === 'swap_extra') {
-      // auto skip swap for human — wait
-      return;
-    }
-
     const rng = mulberry32(state.seed + state.turn * 31 + n);
 
-    if (state.phase === 'main' && p.isAi) {
-      // play affordable cards
-      let played = false;
-      for (let i = 0; i < p.hand.length; i++) {
-        const def = getCard(p.hand[i]!);
-        if (!def) continue;
-        if (p.mana + p.bankedMana < def.cost) continue;
-        try {
-          if (def.kind === 'unit' || def.kind === 'structure') {
-            const slot = firstEmptySlot(p.board);
-            if (slot < 0) continue;
-            applyAction(state, actor, { type: 'play_card', handIndex: i, targetSlot: slot });
-          } else {
-            applyAction(state, actor, { type: 'play_card', handIndex: i, targetSlot: 0, targetEnemySlot: 0 });
-          }
-          played = true;
-          break;
-        } catch {
-          // try next
-        }
-      }
-      if (!played) {
-        applyAction(state, actor, { type: 'end_main' });
-      }
+    if (state.phase === 'mulligan') {
+      const actor = state.players.findIndex((player, index) => player.isAi && !state.mulliganDone[index]);
+      if (actor < 0) return;
+      const replaceIndices = state.players[actor]!.hand
+        .map((id, index) => ({ def: getCard(id), index }))
+        .filter(({ def }) => (def?.cost ?? 0) >= 5)
+        .map(({ index }) => index);
+      confirmMulligan(state, actor as 0 | 1, replaceIndices, rng);
       continue;
     }
 
-    if (state.phase === 'attack_declare' && p.isAi) {
+    if (state.phase === 'attack_declare') {
+      const actor = state.combatAttacker;
+      if (actor == null || !state.players[actor].isAi) return;
+      const p = state.players[actor];
       const slots: number[] = [];
       p.board.forEach((u, i) => {
         if (u && !u.isStructure && u.attack > 0) slots.push(i);
       });
-      applyAction(state, actor, { type: 'declare_attacks', slots });
+      declareAttacks(state, actor, slots);
       continue;
     }
 
     if (state.phase === 'block_declare') {
-      const defender = oppIndex(state.activePlayer);
+      if (state.combatAttacker == null) return;
+      const defender = oppIndex(state.combatAttacker);
       const defP = state.players[defender];
       if (!defP.isAi) return;
       const pairs: AttackPair[] = [];
       const used = new Set<number>();
       for (const aSlot of state.attackOrder) {
-        const attacker = state.players[state.activePlayer].board[aSlot];
+        const attacker = state.players[state.combatAttacker].board[aSlot];
         let block = -1;
         for (let i = 0; i < defP.board.length; i++) {
           const bu = defP.board[i];
@@ -823,17 +1136,76 @@ export function runAiIfNeeded(state: BattleState): void {
         }
         pairs.push({ attackerSlot: aSlot, blockerSlot: block });
       }
-      applyAction(state, defender, { type: 'declare_blocks', pairs });
+      declareBlocks(state, defender, pairs);
       continue;
     }
 
     if (state.phase === 'swap_extra') {
-      const defender = oppIndex(state.activePlayer);
+      if (state.combatAttacker == null) return;
+      const defender = oppIndex(state.combatAttacker);
       if (state.players[defender].isAi) {
-        resolveCombat(state);
+        passSwap(state, defender);
       } else {
         return;
       }
+      continue;
+    }
+
+    if (state.phase === 'spell_response' || state.phase === 'combat_response') {
+      const actor = state.activePlayer;
+      const p = state.players[actor];
+      if (!p.isAi) return;
+      let played = false;
+      for (let i = 0; i < p.hand.length; i++) {
+        const def = getCard(p.hand[i]!);
+        if (!def || def.kind !== 'spell' || spellSpeed(def) === 'slow') continue;
+        const available = p.mana + p.bankedMana + p.spellMana;
+        if (available < def.cost) continue;
+        try {
+          playCard(state, actor, { type: 'play_card', handIndex: i, targetSlot: 0, targetEnemySlot: 0 }, rng);
+          played = true;
+          break;
+        } catch {
+          // Continue to the next response card when its default target is illegal.
+        }
+      }
+      if (!played) passPriority(state, actor);
+      continue;
+    }
+
+    if (state.phase !== 'main') return;
+    const actor = state.activePlayer;
+    const p = state.players[actor];
+    if (!p.isAi) return;
+
+    const attackers = p.board.some((u) => u && !u.isStructure && u.attack > 0);
+    if (state.attackTokenAvailable && state.attackTokenPlayer === actor && attackers) {
+      startAttackDeclare(state, actor);
+      continue;
+    }
+
+    let played = false;
+    for (let i = 0; i < p.hand.length; i++) {
+      const def = getCard(p.hand[i]!);
+      if (!def) continue;
+      const available = p.mana + p.bankedMana + (def.kind === 'spell' ? p.spellMana : 0);
+      if (available < def.cost) continue;
+      try {
+        if (def.kind === 'unit' || def.kind === 'structure') {
+          const slot = firstEmptySlot(p.board);
+          if (slot < 0) continue;
+          playCard(state, actor, { type: 'play_card', handIndex: i, targetSlot: slot }, rng);
+        } else {
+          playCard(state, actor, { type: 'play_card', handIndex: i, targetSlot: 0, targetEnemySlot: 0 }, rng);
+        }
+        played = true;
+        break;
+      } catch {
+        // Try another legal card rather than stalling the match.
+      }
+    }
+    if (!played) {
+      passPriority(state, actor);
     }
   }
 }
@@ -843,13 +1215,24 @@ export function applyAction(state: BattleState, actor: 0 | 1, action: PlayerActi
   const rng = mulberry32(state.seed + state.turn * 13 + state.log.length);
 
   switch (action.type) {
+    case 'confirm_mulligan':
+      confirmMulligan(state, actor, action.replaceIndices, rng);
+      break;
     case 'play_card':
       playCard(state, actor, action, rng);
       break;
+    case 'pass_priority':
+      passPriority(state, actor);
+      break;
+    case 'start_attack':
+      startAttackDeclare(state, actor);
+      break;
     case 'end_main':
-      ensurePhase(state, 'main');
-      if (state.activePlayer !== actor) throw new Error('Not your turn');
-      startAttackDeclare(state);
+      if (state.attackTokenAvailable && state.attackTokenPlayer === actor) {
+        startAttackDeclare(state, actor);
+      } else {
+        passPriority(state, actor);
+      }
       break;
     case 'declare_attacks':
       declareAttacks(state, actor, action.slots);
@@ -866,6 +1249,9 @@ export function applyAction(state: BattleState, actor: 0 | 1, action: PlayerActi
       break;
     case 'swap_slots':
       swapSlots(state, actor, action.a, action.b);
+      break;
+    case 'pass_swap':
+      passSwap(state, actor);
       break;
     case 'concede':
       state.winner = oppIndex(actor);
@@ -889,5 +1275,13 @@ export function publicState(state: BattleState, viewer: 0 | 1): BattleState {
   if (clone.players[opp].isAi) {
     clone.players[opp].hand = clone.players[opp].hand.map(() => '?');
   }
+  const safe = clone as BattleState & {
+    _equip?: unknown;
+    _equipApplied?: boolean;
+    _runSettled?: boolean;
+  };
+  delete safe._equip;
+  delete safe._equipApplied;
+  delete safe._runSettled;
   return clone;
 }

@@ -6,9 +6,14 @@
   "description": "TeXTech Card Battle authoritative server (standalone from WebAE / GTNH tick)",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "build": "tsc --noEmit",
-    "test": "vitest run"
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "art:requirements": "node scripts/card-art-requirements.mjs",
+    "art:generate": "node scripts/generate-card-art.mjs",
+    "art:recover": "python scripts/recover-card-art.py",
+    "catalog:export": "tsx scripts/export-catalog.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

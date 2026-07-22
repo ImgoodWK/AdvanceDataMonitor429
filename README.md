@@ -2,7 +2,7 @@
 
 > Mod ID: `textech` · Minecraft 1.7.10 / GregTech: New Horizons
 
-TeXTech is a GTNH community mod that extends AE2 monitoring, data weaving, AI assistance, grapple traversal, and an embedded WebAE browser console.
+TeXTech is a GTNH community mod that extends AE2 monitoring, data weaving, AI assistance, grapple traversal, an embedded WebAE browser console, and Card Battle (standalone Node server or optional in-mod mirror).
 
 ---
 
@@ -40,6 +40,7 @@ Key docs:
 
 - Player: [zh](docs/zh/player/用户手册.md) · [en](docs/en/player/player-guide.md)
 - WebAE: [zh user](docs/zh/webae/用户手册.md) · [zh dev](docs/zh/webae/开发者手册.md) · [en user](docs/en/webae/user-guide.md) · [en dev](docs/en/webae/developer-guide.md)
+- Card Battle: [zh](docs/zh/cardbattle/README.md) · [en](docs/en/cardbattle/README.md)
 - Developer map: [zh](docs/zh/developer/documentation-map.md) · [en](docs/en/developer/documentation-map.md)
 
 ---

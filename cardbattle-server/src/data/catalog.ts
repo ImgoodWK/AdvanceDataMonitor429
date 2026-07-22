@@ -3,7 +3,7 @@ import type { CardDef } from '../battle/types.js';
 /** Data-driven V1 card catalog — one distinctive hook per theme. */
 export const CARD_CATALOG: CardDef[] = [
   // —— Vanilla: high stats, few keywords ——
-  { id: 'van_grunt', name: 'Grunt', nameZh: '苦力怕民兵', theme: 'vanilla', kind: 'unit', cost: 1, attack: 2, health: 2, textZh: '白板单位，数值扎实。' },
+  { id: 'van_grunt', name: 'Grunt', nameZh: '苦力怕民兵', theme: 'vanilla', kind: 'unit', cost: 1, attack: 2, health: 2, textZh: '白板单位，数值扎实。', art: 'van_grunt.png' },
   { id: 'van_knight', name: 'Iron Knight', nameZh: '铁骑士', theme: 'vanilla', kind: 'unit', cost: 3, attack: 4, health: 4, textZh: '高攻高血白板。' },
   { id: 'van_golem', name: 'Stone Golem', nameZh: '石傀儡', theme: 'vanilla', kind: 'unit', cost: 5, attack: 5, health: 7, textZh: '厚血前线。' },
   { id: 'van_archer', name: 'Archer', nameZh: '弓箭手', theme: 'vanilla', kind: 'unit', cost: 2, attack: 3, health: 2, textZh: '廉价输出。' },
@@ -122,6 +122,110 @@ export const CARD_CATALOG: CardDef[] = [
   { id: 'dlb_scream', name: 'Scream', nameZh: '尖叫', theme: 'dlb', kind: 'spell', cost: 4, textZh: '强制换攻防并抽 1。' },
   { id: 'dlb_guardian', name: 'Nanny', nameZh: '保姆', theme: 'dlb', kind: 'unit', cost: 4, attack: 2, health: 6, textZh: '肉盾。' },
 ];
+
+const FAST_SPELLS = new Set([
+  'van_smite',
+  'van_heal',
+  'th_ignis',
+  'th_ward',
+  'fo_smoke',
+  'as_nova',
+  'ae_annihilation',
+  'dlb_ignore',
+  'dlb_mood',
+]);
+
+const BURST_SPELLS = new Set([
+  'gt_overclock',
+  'th_ordo_aer',
+  'fo_plugin_speed',
+  'fo_plugin_strong',
+  'as_shield',
+  'as_attune',
+  'as_lens',
+  'av_catalyst',
+  'ee_trans',
+  'ee_klein',
+  'ee_catalyst',
+  'ge_mutate',
+  'ge_split',
+  'ae_craft',
+  'ae_p2p',
+  'ae_wireless',
+]);
+
+const EXACT_RULES_ZH: Partial<Record<string, string>> = {
+  van_smite: '对一个可选中的敌方单位造成 3 点伤害。',
+  van_heal: '使一个己方单位恢复 3 点生命，不能超过其最大生命。',
+  van_rally: '所有己方非结构单位永久获得 +1 攻击。',
+  gt_lv_machine: '轮次结束时，为其控制者生成 1 点普通法力。',
+  gt_mv_machine: '轮次结束时，为其控制者生成 2 点普通法力。',
+  gt_hv_turbine: '轮次结束时，为其控制者生成 3 点普通法力。',
+  gt_capacitor: '轮次结束时，在法术法力结算后储存剩余普通法力。储能超过 10 时降至 5，摧毁一台己方机器，并且每点过载对己方 Nexus 造成 2 点伤害。',
+  gt_battery: '允许轮次结束时储存剩余普通法力，但把储能上限设为 4。超过上限时降至 2，摧毁一台己方机器，并且每点过载对己方 Nexus 造成 2 点伤害。',
+  gt_overclock: '立即获得 2 点普通法力。该法力可超过本轮法力上限。',
+  gt_wrench: '摧毁一个敌方机器结构。',
+  th_ordo_aer: '使一个己方单位永久获得秩序与风源质。它的控制者在格挡确认后可进行一次己方槽位换位。',
+  th_ignis: '对一个可选中的敌方单位造成 2 点伤害，并使其永久获得火源质。',
+  th_ward: '使一个己方单位获得 2 点护甲。护甲会优先吸收伤害。',
+  th_node: '轮次结束时，使一个随机己方非结构单位永久获得秩序源质。',
+  fo_hive: '不可被敌方效果选中，不能攻击或格挡。每 3 个轮次结束生成一只 1/1 小蜜蜂；若场上已有基础 1/1 蜜蜂，则改为使其永久 +1/+1。',
+  fo_alveary: '不可被敌方效果选中，不能攻击或格挡。每 2 个轮次结束生成一只 1/1 小蜜蜂；若场上已有基础 1/1 蜜蜂，则改为使其永久 +1/+1。',
+  fo_plugin_speed: '使所有己方蜂箱的当前冷却减少 1，最低为 0。',
+  fo_plugin_strong: '下一只由己方蜂箱生成的蜜蜂随机获得吸血或溅射。',
+  fo_smoke: '移除一个敌方单位的隐秘关键词。',
+  as_shield: '本局己方 Nexus 获得 10% 伤害减免，最多累计至 50%。',
+  as_reflect: '本局己方 Nexus 受到战斗伤害时，对敌方 Nexus 反弹该次伤害的 50%，最低 1 点。',
+  as_crystal: '轮次结束时，使己方 Nexus 恢复 1 点生命。',
+  as_attune: '抽 1 张牌。',
+  as_ritual: '所有己方非结构单位永久获得 +1/+1。',
+  as_nova: '对敌方 Nexus 造成 2 点基础伤害；最终数值受双方电压与目标减伤影响。',
+  as_lens: '立即获得 1 点普通法力。该法力可超过本轮法力上限。',
+  av_singularity: '使本局奇点进度增加 1。',
+  av_singularity_2: '使本局奇点进度增加 1。',
+  av_singularity_3: '使本局奇点进度增加 1。',
+  av_eternal: '仅能在奇点进度达到 3 后打出。本局己方攻击单位会立即消灭其格挡者；未被格挡时至少对 Nexus 造成 999 点伤害。',
+  av_armor: '使己方 Nexus 的最大生命增加 5，并恢复 5 点生命。',
+  av_catalyst: '抽 1 张牌。',
+  ee_relay: '轮次结束时，使第一个仍有冷却的己方蜂箱冷却减少 1。',
+  ee_watch: '使一个具有冷却的己方结构的当前冷却减少 2，最低为 0。',
+  ee_trans: '抽 1 张牌。',
+  ee_furnace: '轮次结束时，为其控制者生成 1 点普通法力。',
+  ee_klein: '立即获得 3 点普通法力。该法力可超过本轮法力上限。',
+  ee_phil: '抽 1 张牌。',
+  ee_catalyst: '使己方 Nexus 恢复 2 点生命，不能超过其最大生命。',
+  ge_mutate: '使一个己方单位永久获得 +1/+1。',
+  ge_clone: '选择一个己方单位，在第一个空槽召唤它的 1/1 复制体；复制关键词与源质，但不复制装备。',
+  ge_swarm: '在前两个空槽各召唤一只 1/1 幼体。',
+  ge_split: '抽 2 张牌。',
+  ae_inscriber: '轮次结束时，随机生成一张不在初始牌组中的非 AE 卡牌到手牌。',
+  ae_craft: '随机生成一张不在初始牌组中的非 AE 卡牌到手牌。',
+  ae_p2p: '抽 1 张牌。',
+  ae_cell: '抽 2 张牌。',
+  ae_annihilation: '对一个可选中的敌方单位造成 2 点伤害。',
+  ae_formation: '在第一个空槽召唤一只 2/2 物质球。',
+  ae_controller: '轮次结束时生成 1 点普通法力，并随机生成一张不在初始牌组中的非 AE 卡牌到手牌。',
+  ae_wireless: '随机生成一张不在初始牌组中的非 AE 卡牌到手牌。',
+  dlb_tantrum: '使己方获得本轮尚未消耗的攻击标记。',
+  dlb_ignore: '对敌方 Nexus 造成 3 点基础伤害；最终数值受双方电压与目标减伤影响。',
+  dlb_chaos: '每个轮次结束时，使 DLB 强制保留攻击标记的间隔减少 1，最低为 3。',
+  dlb_mood: '对一个随机可选中的敌方单位造成 1 点伤害。',
+  dlb_nap: '使敌方当前普通法力减少 1，最低为 0。',
+  dlb_scream: '使己方获得本轮尚未消耗的攻击标记，然后抽 1 张牌。',
+};
+
+for (const card of CARD_CATALOG) {
+  if (card.kind === 'spell') {
+    card.spellSpeed = FAST_SPELLS.has(card.id) ? 'fast' : BURST_SPELLS.has(card.id) ? 'burst' : 'slow';
+  }
+  card.rulesZh =
+    EXACT_RULES_ZH[card.id] ??
+    (card.kind === 'unit'
+      ? `召唤一个 ${card.attack ?? 0}/${card.health ?? 1} 单位。`
+      : card.kind === 'structure'
+        ? `召唤一个具有 ${card.health ?? 1} 点生命的结构。结构不能攻击或格挡。`
+        : card.textZh ?? '无额外效果。');
+}
 
 const byId = new Map(CARD_CATALOG.map((c) => [c.id, c]));
 
