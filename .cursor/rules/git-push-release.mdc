@@ -85,3 +85,14 @@ Release notes 建议包含：
 | CRLF warning 刷屏 | Windows 换行符差异 | 忽略，不影响功能 |
 | 推送显示 "Everything up-to-date" | 本地与远程已同步，无新提交 | 正常情况，无需操作 |
 | 推送前不确定是否有待推送内容 | 未检查本地与远程差异 | `git log origin/master..HEAD --oneline` 查看 |
+| `Failed to connect to github.com port 443`（push） | 本机直连 GitHub 不可用 | 见下方「直连失败时的 push」 |
+
+## 直连失败时的 push（本仓库已验证）
+
+- **2026-07-22**：`github.com:443` 不通、`ghproxy.net` 仅适合 fetch（push 会按镜像域名要凭据并失败）→ 本机 HTTP 代理 `http://127.0.0.1:10809`（Clash/V2Ray 常见端口）可用：
+
+```powershell
+git -c http.proxy=http://127.0.0.1:10809 -c https.proxy=http://127.0.0.1:10809 push origin master
+```
+
+大体积卡面 PNG 等推送可能需数分钟；勿改用 `--force` 除非用户明确要求覆盖远程。
