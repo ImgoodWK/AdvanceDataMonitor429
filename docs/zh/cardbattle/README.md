@@ -7,6 +7,14 @@
 
 独立后端会把冒险、对局和待桥接奖励写入 `CARDBATTLE_DATA_DIR`；浏览器保存当前 `runId` / `matchId`，刷新页面或重启后端后均可继续。
 
+## 账号与 GTNH 绑定
+
+- 卡牌有**独立账号**（注册 / 登录 / 改密），不依赖 GTNH 或 WebAE 在线。
+- 游戏内 `/textech card bind` 生成 8 位绑定码 → 网页「个人设置」填入，实现 **一账号 ↔ 一 MC 角色**。
+- 绑定后可用 WebAE Token 统一落到该卡牌账号；未开服时仍用账号密码登录。
+- 首次：`cd cardbattle-server` → `npm.cmd run auth:bootstrap` 创建超管（写入 gitignore 的 `.env`）。超管可在网页管理后台提权/解绑/换绑。
+- 独立 Node 与模组发码互通：模组 cfg `[cardBattle] externalApiBaseUrl` + `bridgeToken`（= Node `CARDBATTLE_BRIDGE_TOKEN`）。
+
 ## 独立部署
 
 ```powershell
@@ -15,6 +23,7 @@ npm.cmd ci
 npm.cmd run build:standalone
 cd ../cardbattle-server
 npm.cmd ci
+npm.cmd run auth:bootstrap
 npm.cmd run build
 npm.cmd start
 ```
@@ -26,9 +35,10 @@ npm.cmd start
 1. 安装 TeXTech（默认 `[cardBattle] enabled=true`）。
 2. 进入单人档或服务器世界。
 3. 浏览器打开 `http://127.0.0.1:8787/`（日志也会打印）。
-4. 页面会自动用本机 Token `local` 登录；也可改粘贴 WebAE Token。
+4. 注册/登录卡牌账号；或在高级里用本机 Token / WebAE Token。
+5. 绑定角色：`/textech card bind` → 网页个人设置填入绑定码。
 
-游戏内：`/textech card status`。
+游戏内：`/textech card status` / `bind`。
 
 ## 对战体验（精品化 UI）
 
@@ -42,10 +52,13 @@ npm.cmd start
 - **法术法力**：每轮最多储存 3 点未使用法力，只能用于法术；GT 电容库存是独立的模组机制
 - **结算边界**：普通法力优先支付，随后使用法术法力与 GT 储能；存活单位在新轮次恢复至最大生命；已声明的格挡者离场后保留幽灵格挡
 - **像素扁平 GTNH** 统一 UI 壳；棋盘可按胜场或 PvE 首领奖励解锁
-- **拖拽出牌**：主阶段将手牌拖到场面空槽；响应窗口只接受快速/爆发法术；保留点击出牌 fallback
+- **拖拽出牌**：主阶段将手牌拖到己方备战区（自动落位）或法术目标；松手用落点探测，不再依赖槽间隙 hover；响应窗口只接受快速/爆发法术；保留点击 fallback
+- **LoR 双排战场**：备战区最多 6 并自动挤紧；攻击时拖入战场行决定从左到右攻击序；格挡拖到对应攻击位
+- **操作提示**：对战顶栏单行 Coach（设置可关）
 - **完整预览**：悬停、键盘聚焦或点选卡牌可查看服务端权威的精确效果、速度、目标限制、关键词和场上实时数值
 - **逐卡攻击动画**：攻击单位按队列逐张冲向格挡者或 Nexus，播放斩击闪光、伤害数字、回弹与死亡反馈（Framer Motion + GSAP）
 - **分支 PvE 路线**：普通战斗 → 分支 → 精英 → 终局首领；战后选择加卡、冒险能力或电压奖励缓存
+- **卡组**：10 主题各 40 张权威卡表；组牌垫至 ≥40
 - 细节见 [ui-design.md](./ui-design.md)
 
 ## 独立后端环境变量
@@ -75,7 +88,7 @@ npm.cmd start
 - 可选 Java 镜像：`com.imgood.textech.cardbattle.*`
 - 前端：`cardbattle-frontend/`；`build:standalone` 输出独立 SPA，`build` 输出 jar 资源
 - 权威卡表：`cardbattle-server/src/data/catalog.ts`；`npm.cmd run catalog:export` 同步 jar `cards.json`
-- 卡面：`cardbattle-server/public/card-art/`（开发）与 jar `assets/textech/cardbattle/card-art/`
+- 卡面：`cardbattle-server/public/card-art/`（开发）与 jar `assets/textech/cardbattle/card-art/`；体素感截图合同 + `art:requirements` / `art:generate --backend diy|meowa` / `art:ab`（见 `.cursor/skills/textech-card-art/`）
 独立 Node 引擎与可选 Java 镜像必须保持同一 HTTP/状态/奖励契约。交互与规则借鉴交替行动权、攻击标记、法术响应栈和路线冒险等通用结构；角色、卡牌文本、美术与品牌素材均使用 TeXTech 自有设计。
 
 规则 / 奖励 / UI：[rules.md](./rules.md) · [rewards-bridge.md](./rewards-bridge.md) · [ui-design.md](./ui-design.md)

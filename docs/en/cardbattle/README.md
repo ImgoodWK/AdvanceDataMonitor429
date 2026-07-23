@@ -41,7 +41,10 @@ The in-game status command is `/textech card status`.
 - Six board slots, ordered attackers, explicit blocker assignment, stealth restrictions, and Thaumcraft Ordo + Aer repositioning.
 - A branching four-column PvE route with normal battles, elites, and a final boss.
 - Post-battle deck additions, run powers, versioned voltage reward placeholders, and board-skin unlocks.
-- Drag-to-play with a click fallback, contextual action controls, and a three-column battle workspace.
+- Drag-to-play onto the LoR-style bench (auto-seat) or spell targets via `elementFromPoint` drop detection, with a click fallback and contextual action controls.
+- Dual-row board: bench (max 6, packed left) plus battlefield attack order; block by dragging onto attackers.
+- Optional Battle Coach tip line (toggle in settings).
+- Three-column battle workspace and full card inspector.
 - Hover, focus, or select any card to inspect authoritative exact rules, targeting, speed, keywords, aspects, and live board stats.
 - Attackers animate one card at a time toward their blocker or Nexus with strike flashes, damage values, recoil, and death feedback.
 
@@ -73,8 +76,8 @@ The system uses familiar alternating-priority, attack-token, response-stack, and
 - Optional Java mirror: `src/main/java/com/imgood/textech/cardbattle/`
 - Frontend: `build:standalone` creates the standalone SPA; `build` writes jar resources
 - Authoritative card data: `cardbattle-server/src/data/catalog.ts`; `catalog:export` synchronizes jar `cards.json`
-- Art: `cardbattle-server/public/card-art/` and the jar card-art directory
+- Art: `cardbattle-server/public/card-art/` and the jar card-art directory; voxel cinematic contract + `art:requirements` / `art:generate --backend diy|meowa` / `art:ab` (see `.cursor/skills/textech-card-art/`)
 
 Build the frontend with `npm.cmd run build` from `cardbattle-frontend/`. The build writes hashed assets into the jar resource directory without requiring players to install the frontend toolchain.
 
-Meowa credentials must be supplied only through the local `MEOWART_API_KEY` environment variable and must never be committed, passed as a command argument, or logged.
+Image credentials must be supplied only through local env vars (`TEXTECH_IMAGE_*` and/or `MEOWART_API_KEY`) and must never be committed, passed as a command argument, or logged.

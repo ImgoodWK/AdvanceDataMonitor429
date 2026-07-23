@@ -1,6 +1,7 @@
+import type { AuthSession } from '../battle/types.js';
+import { findUserByMcUuid, resolveAccountSession, type AccountUser } from './accounts.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { AuthSession } from '../battle/types.js';
 
 interface TokenRecord {
   token: string;
@@ -9,8 +10,6 @@ interface TokenRecord {
   actorUuid?: string;
   actorName?: string;
   playerUuid?: string;
-  issuedAt?: number;
-  lastUsedAt?: number;
 }
 
 function resolveTokenFile(): string | null {
@@ -34,13 +33,37 @@ function loadTokens(): TokenRecord[] {
   }
 }
 
-/** Validate Bearer token against WebAE web-tokens.json or dev bypass. */
-export function validateBearer(authHeader: string | undefined): AuthSession | null {
+function sessionFromUser(token: string, user: AccountUser, authSource: AuthSession['authSource']): AuthSession {
+  return {
+    token,
+    ownerUuid: user.id,
+    actorUuid: user.mcUuid || user.id,
+    actorName: user.displayName,
+    type: user.role === 'user' ? 'owner' : user.role,
+    accountId: user.id,
+    username: user.username,
+    role: user.role,
+    mcUuid: user.mcUuid,
+    mcName: user.mcName,
+    authSource,
+  };
+}
+
+function extractBearer(authHeader: string | undefined): string | null {
   if (!authHeader) return null;
   const prefix = 'Bearer ';
   if (!authHeader.startsWith(prefix) && !authHeader.startsWith('bearer ')) return null;
   const token = authHeader.slice(prefix.length).trim();
+  return token || null;
+}
+
+/** Validate Bearer: account session → dev → WebAE (bound account or legacy MC identity). */
+export function validateBearer(authHeader: string | undefined): AuthSession | null {
+  const token = extractBearer(authHeader);
   if (!token) return null;
+
+  const accountUser = resolveAccountSession(token);
+  if (accountUser) return sessionFromUser(token, accountUser, 'account');
 
   const devToken = process.env.CARDBATTLE_DEV_TOKEN?.trim();
   if (devToken && token === devToken) {
@@ -50,28 +73,44 @@ export function validateBearer(authHeader: string | undefined): AuthSession | nu
       actorUuid: process.env.CARDBATTLE_DEV_OWNER_UUID || '00000000-0000-0000-0000-000000000001',
       actorName: process.env.CARDBATTLE_DEV_OWNER_NAME || 'DevPlayer',
       type: 'owner',
+      authSource: 'dev',
     };
   }
 
   const tokens = loadTokens();
   const hit = tokens.find((t) => t.token === token);
   if (!hit) return null;
-  const ownerUuid = hit.ownerUuid || hit.playerUuid || hit.actorUuid;
-  if (!ownerUuid) return null;
+  const mcUuid = hit.ownerUuid || hit.playerUuid || hit.actorUuid;
+  if (!mcUuid) return null;
+
+  const bound = findUserByMcUuid(mcUuid);
+  if (bound && !bound.disabled) {
+    return sessionFromUser(token, bound, 'webae');
+  }
+
   return {
     token,
-    ownerUuid,
-    actorUuid: hit.actorUuid || ownerUuid,
+    ownerUuid: mcUuid,
+    actorUuid: hit.actorUuid || mcUuid,
     actorName: hit.actorName || 'Player',
     type: hit.type || 'owner',
+    mcUuid,
+    mcName: hit.actorName || null,
+    authSource: 'webae',
   };
 }
 
-export function authStatus(): { tokenFile: string | null; tokenCount: number; devBypass: boolean } {
+export function authStatus(): {
+  tokenFile: string | null;
+  tokenCount: number;
+  devBypass: boolean;
+  accountsEnabled: boolean;
+} {
   const file = resolveTokenFile();
   return {
     tokenFile: file,
     tokenCount: loadTokens().length,
     devBypass: Boolean(process.env.CARDBATTLE_DEV_TOKEN?.trim()),
+    accountsEnabled: true,
   };
 }

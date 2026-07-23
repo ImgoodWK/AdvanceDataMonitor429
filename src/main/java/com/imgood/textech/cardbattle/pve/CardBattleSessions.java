@@ -345,14 +345,14 @@ public final class CardBattleSessions {
         for (String th : used) {
             List<CardDef> cards = new ArrayList<CardDef>(CardCatalog.byTheme(th));
             CollectionsShuffle(cards, rng);
-            int take = Math.min(10, cards.size());
+            int take = Math.min(40, cards.size());
             for (int i = 0; i < take; i++) {
                 CardDef c = cards.get(i);
                 deck.add(c.id);
                 if ("genetics".equals(th) && "unit".equals(c.kind) && c.cost <= 1) deck.add(c.id);
             }
         }
-        while (deck.size() < 30 && !used.isEmpty()) {
+        while (deck.size() < 40 && !used.isEmpty()) {
             String th = used.get(rng.nextInt(used.size()));
             List<CardDef> cards = CardCatalog.byTheme(th);
             if (cards.isEmpty()) break;

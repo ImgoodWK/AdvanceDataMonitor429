@@ -38,7 +38,54 @@ export const client = {
       equipment: { id: string; nameZh: string; attack: number; health: number; armor: number }[];
       cardCount: number;
     }>('/api/meta'),
-  me: () => api<{ ownerUuid: string; actorName: string }>('/api/me'),
+  me: () =>
+    api<{
+      ownerUuid: string;
+      actorUuid: string;
+      actorName: string;
+      type: string;
+      accountId: string | null;
+      username: string | null;
+      role: string | null;
+      mcUuid: string | null;
+      mcName: string | null;
+      authSource: string | null;
+      binding: { bound: boolean; mcUuid?: string | null; mcName?: string | null };
+    }>('/api/me'),
+  register: (body: { username: string; password: string; displayName?: string }) =>
+    api<{ token: string; user: AccountUser }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  login: (body: { username: string; password: string }) =>
+    api<{ token: string; user: AccountUser }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  logout: () => api<{ status: string }>('/api/auth/logout', { method: 'POST' }),
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    api<{ status: string }>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(body) }),
+  updateProfile: (body: { displayName: string }) =>
+    api<{ user: AccountUser }>('/api/me', { method: 'PATCH', body: JSON.stringify(body) }),
+  bindMc: (code: string) =>
+    api<{ user: AccountUser }>('/api/me/bind', { method: 'POST', body: JSON.stringify({ code }) }),
+  unbindMc: () => api<{ user: AccountUser }>('/api/me/bind', { method: 'DELETE' }),
+  adminUsers: () => api<{ users: AccountUser[] }>('/api/admin/users'),
+  adminPatchUser: (id: string, body: { role?: string; disabled?: boolean; displayName?: string }) =>
+    api<{ user: AccountUser }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  adminResetPassword: (id: string, password: string) =>
+    api<{ status: string }>(`/api/admin/users/${id}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+  adminBindings: () => api<{ bindings: AccountBinding[] }>('/api/admin/bindings'),
+  adminUnbind: (userId: string) =>
+    api<{ user: AccountUser }>(`/api/admin/bindings/${userId}`, { method: 'DELETE' }),
+  adminForceBind: (userId: string, body: { mcUuid: string; mcName?: string }) =>
+    api<{ user: AccountUser }>(`/api/admin/bindings/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   cards: () => api<{ cards: CardDef[] }>('/api/cards'),
   startRun: (body: {
     themes: string[];
@@ -65,6 +112,27 @@ export const client = {
   pendingRewards: () => api<{ entries: PendingReward[] }>('/api/rewards/pending'),
 };
 
+export interface AccountUser {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+  mcUuid: string | null;
+  mcName: string | null;
+  boundAt: number | null;
+  createdAt: number;
+  disabled: boolean;
+}
+
+export interface AccountBinding {
+  userId: string;
+  username: string;
+  displayName: string;
+  mcUuid: string;
+  mcName: string;
+  boundAt: number;
+}
+
 export interface CardDef {
   id: string;
   name: string;
@@ -83,6 +151,16 @@ export interface CardDef {
   textZh?: string;
   rulesZh?: string;
   art?: string;
+  effect?: {
+    id: string;
+    target?: string;
+    amount?: number;
+    amount2?: number;
+    tokenCardId?: string;
+    tokenCount?: number;
+    aspects?: string[];
+    keywordsAdd?: string[];
+  };
 }
 
 export interface BoardUnit {
@@ -138,7 +216,13 @@ export interface BattleState {
   mulliganDone: [boolean, boolean];
   players: [PlayerState, PlayerState];
   attackOrder: number[];
-  blockPairs: { attackerSlot: number; blockerSlot: number }[];
+  attackOrderIds?: string[];
+  blockPairs: {
+    attackerSlot: number;
+    blockerSlot: number;
+    attackerInstanceId?: string;
+    blockerInstanceId?: string | null;
+  }[];
   winner: 0 | 1 | null;
   log: string[];
 }

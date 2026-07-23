@@ -15,7 +15,7 @@ Hands hold at most ten cards. An excess deck draw or AE-generated card is reveal
 3. One main-action pass gives the opponent another action window. Two consecutive main-action passes end the round. Response windows use a separate `responsePasses` counter and cannot end the round.
 4. At round end, up to 3 unused regular mana becomes spell mana. Remaining mana may enter GT capacitor storage when available.
 5. Every card spends regular mana first. Spells then use spell reserve, and GT capacitor storage pays last. Units and structures cannot spend spell mana.
-6. A play validates its cost, board slot, and spell target before committing mana, hand, or board changes. Rejected plays consume nothing and do not pass priority. Units and structures enter discard only when they leave play, never immediately when played. Targeted spells must select the required legal unit, machine structure, stealth unit, or cooldown structure.
+6. A play validates its cost, bench capacity, and spell target before committing mana, hand, or board changes. Rejected plays consume nothing and do not pass priority. Units and structures enter discard only when they leave play, never immediately when played. Targeted spells must select the required legal unit, machine structure, stealth unit, or cooldown structure. The bench auto-packs left after units leave.
 
 ## Spell speeds, stack, and responses
 
@@ -34,7 +34,7 @@ Hands hold at most ten cards. An excess deck draw or AE-generated card is reveal
 
 ## Combat
 
-Only the player with an available attack token can start combat. The attacker orders eligible units; submitting an empty order cancels the declaration and preserves the token. The defender assigns at most one blocker to each attacker. Structures cannot block; stealth attackers require stealth blockers. Ordo + Aer allows one defensive slot swap, while `pass_swap` skips it.
+The board uses a LoR-style dual row: **Bench** (up to 6 units/structures, auto-packed left) and **Battlefield** (combat lineup only). Units and structures play onto the bench without requiring a fixed empty slot. Only the player with an available attack token can start combat. Attackers are ordered left-to-right via `attackOrderIds` (instance ids); submitting an empty order cancels the declaration and preserves the token. The defender assigns at most one blocker to each attacker by dragging from their bench. Structures cannot block; stealth attackers require stealth blockers. Ordo + Aer allows one defensive bench-slot swap, while `pass_swap` skips it.
 
 After blocks and the optional swap, the engine opens `combat_response` with the attacker holding response priority. Both sides may use fast or burst spells. Two response passes resolve the LIFO stack and only then combat damage. A declared blocker removed during this window leaves a ghost block, so the attacker does not redirect to Nexus. `combatAttacker` stays frozen and the attack token remains available throughout the response; the token and combat markers are cleared only after combat actually resolves. The match then returns to the alternating main window.
 
@@ -46,18 +46,20 @@ After blocks and the optional swap, the engine opens `combat_response` with the 
 
 ## Theme hooks
 
-| Theme | Primary mechanic |
-|---|---|
-| Vanilla | Efficient raw stats. |
-| GregTech | Mana machines, capacitors, and overload. |
-| Thaumcraft | Aspects and Ordo + Aer repositioning. |
-| Forestry | Untargetable hives, bee production, and mutation. |
-| Astral Sorcery | Nexus reduction, reflection, and utility. |
-| Avaritia | Singularity progress and an Eternal finisher. |
-| Equivalent Exchange | Structure acceleration. |
-| Genetics | Cheap swarm and cloning. |
-| Applied Energistics | Generate cards from outside the deck. |
-| DLB | Disrupt normal attack-token scheduling. |
+| Theme | Primary mechanic | Pace |
+|---|---|---|
+| Vanilla | Efficient raw stats. | Aggro |
+| GregTech | Mana machines, capacitors, and overload. | Midrange |
+| Thaumcraft | Aspects and Ordo + Aer repositioning. | Midrange |
+| Forestry | Untargetable hives, bee production, and mutation. | Aggro |
+| Astral Sorcery | Nexus reduction, reflection, and utility. | Midrange |
+| Avaritia | Singularity progress and an Eternal finisher. | Control |
+| Equivalent Exchange | Structure acceleration. | Control |
+| Genetics | Cheap swarm and cloning. | Aggro |
+| Applied Energistics | Generate cards from outside the deck. | Midrange |
+| DLB | Disrupt normal attack-token scheduling. | Aggro |
+
+Each theme has **40** catalog cards. Decks take cards from selected themes and pad to at least **40**. Spell resolution prefers the catalog `effect` payload; theme hooks keep special cases. Aggro themes bias cheap units and fast/burst spells; control themes bias cheap transition tools and expensive finishers.
 
 ## PvE route
 

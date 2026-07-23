@@ -7,12 +7,14 @@ The shell uses a cinematic GTNH industrial direction: dark metal, theme glow, a 
 - The opening screen toggles each of four cards between keep and replace, displays the selected count, submits `confirm_mulligan`, and keeps the board locked until both players confirm.
 - The HUD always shows action priority, attack-token ownership, regular mana, spell mana, and GT capacitor storage separately.
 - Hand play is enabled only during the local player's priority window. Main windows accept normal plays; response windows accept fast and burst spells only.
-- Drag and click legality highlights enforce speed timing plus targeted-spell unit, machine, stealth, untargetable, and cooldown constraints before submission; the server repeats the same authoritative validation.
+- Units and structures drop onto the **bench** (auto-seat / optional prefer slot). Spell targeting follows `effect.target`. Drop resolution uses `elementFromPoint` on `[data-drop]`.
+- Drag and click legality highlights enforce speed timing plus targeted-spell constraints before submission; the server repeats the same authoritative validation.
 - Hovering, keyboard-focusing, or selecting a card updates a pinnable dossier with authoritative `rulesZh`, timing, targeting, keyword definitions, aspects, and live attack/health/armor/cooldown values.
+- An optional Battle Coach tip line summarizes legal actions (`localStorage.textech_cb_coach`, default on).
 - `Start attack` is enabled only for the attack-token owner; `Pass priority` ends the round only after a consecutive opposing pass.
-- The contextual action bar renders only decisions legal in the current phase. The attack screen selects ordered attackers; an empty confirmation cancels and preserves the token. The defense screen maps one eligible blocker to each attacker, prevents reuse, and keeps ghost blocks visible in the contract.
+- The contextual action bar renders only decisions legal in the current phase. Attack declaration drags bench units onto the battlefield row (LTR = order via `instanceIds`); empty confirmation cancels and preserves the token. Defense drags bench blockers onto attackers and keeps ghost blocks visible.
 - `spell_response` and `combat_response` render a dedicated stack panel with the top item first, caster and speed on every layer, and an explicit empty-stack combat state. Pass labels distinguish giving up a response from confirming spell-stack or combat resolution.
-- Combat response appears after blocks and optional Thaumcraft repositioning. A `Skip mystic swap` action prevents a defender from becoming stuck when repositioning is available but unwanted.
+- Combat response appears after blocks and optional Thaumcraft repositioning. A `Skip mystic swap` action prevents a defender from becoming stuck when repositioning is available but unwanted; mystic swap picks two bench slots.
 - The adventure map is column based and visually distinguishes available, completed, and disconnected nodes.
 
 ## Animation and implementation
@@ -33,9 +35,9 @@ Skin unlocks are cosmetic and do not affect authoritative match state. Victory m
 
 ## Card art
 
-Card portraits use an HD square Meowa contract: one subject, centered composition, dark vignette, no text, no numbers, and stable theme art direction. The standalone production runtime serves `/card-art/<cardId>.png`; the optional embedded build uses the matching jar asset directory. Missing PNGs must fall back to a theme placeholder instead of an empty card.
+Card portraits use an HD 1:1 **voxel cinematic still** contract (in-game screenshot feel: cubic volumetric forms, hard-edged materials, centered subject, dark vignette)—not low-res pixel sprites. Cost / ATK / HP / keywords remain UI layers. Runtime serves `/card-art/<cardId>.png` (standalone) or the jar asset directory (embedded). Missing PNGs must fall back to a theme placeholder.
 
-The current pilot contains 20 GregTech and Thaumcraft portraits. Run `npm.cmd run art:requirements` in `cardbattle-server/` to export one requirement for each missing portrait into ignored `.workspace/card-art/` storage; the exporter neither reads credentials nor calls the network.
+Generation: `.cursor/skills/textech-card-art/`. Default exploration backend is DIY GPT Image 2 (`TEXTECH_IMAGE_*`); Meowa `image-2-run` (`MEOWART_API_KEY`) is the quality fallback. Optional mod texture indexing (`npm run art:index-refs`) feeds `styleRefs` / `subjectRefs` via `art:requirements`. Compare backends with `npm run art:ab` before locking the mass-produce default.
 
 Theme palettes and phase labels live in `src/lib/themeTokens.ts`; skin definitions and unlock policy live in `src/lib/skins.ts`.
 

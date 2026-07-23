@@ -12,6 +12,8 @@ import com.google.gson.JsonParser;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.TeXTechDataDir;
+import com.imgood.textech.cardbattle.auth.CardBattleAccounts;
+import com.imgood.textech.cardbattle.auth.CardBattleAuthApi;
 import com.imgood.textech.cardbattle.data.CardCatalog;
 import com.imgood.textech.cardbattle.pve.CardBattleSessions;
 import com.imgood.textech.cardbattle.pve.CardBattleSessions.EquipDef;
@@ -110,22 +112,25 @@ public final class CardBattleHttpServer extends NanoHTTPD {
                 return json(Response.Status.OK, o);
             }
 
+            String earlyBody = null;
+            if (method == Method.POST || method == Method.PUT || method == Method.DELETE || method == Method.PATCH) {
+                earlyBody = readBody(session);
+            }
+            CardBattleAuthApi.SimpleFactory authFactory = new CardBattleAuthApi.SimpleFactory();
+            Response authHandled = CardBattleAuthApi.tryHandle(session, uri, method, earlyBody, authFactory);
+            if (authHandled != null) return authHandled;
+
             WebAuthSession auth = requireAuth(session);
             if (auth == null) {
                 return jsonError(Response.Status.UNAUTHORIZED, "unauthorized",
-                    "Use Authorization: Bearer <WebAE token> (or [cardBattle] devToken)");
+                    "请先登录（卡牌账号、WebAE Token 或 [cardBattle] devToken）");
             }
 
             if ("/api/me".equals(uri) && method == Method.GET) {
-                JsonObject o = new JsonObject();
-                o.addProperty("ownerUuid", auth.ownerUuid);
-                o.addProperty("actorUuid", auth.actorUuid);
-                o.addProperty("actorName", auth.actorName);
-                o.addProperty("type", auth.type);
-                return json(Response.Status.OK, o);
+                return json(Response.Status.OK, CardBattleAuthApi.meJson(auth));
             }
 
-            String body = readBody(session);
+            String body = earlyBody != null ? earlyBody : readBody(session);
             JsonObject bodyJson = body != null && body.length() > 0
                 ? new JsonParser().parse(body)
                     .getAsJsonObject()
@@ -243,6 +248,14 @@ public final class CardBattleHttpServer extends NanoHTTPD {
             if (parms != null) token = parms.get("token");
         }
         if (token == null || token.isEmpty()) return null;
+
+        CardBattleAccounts.User account = CardBattleAccounts.resolveSession(token);
+        if (account != null) {
+            String actorUuid = account.mcUuid != null ? account.mcUuid : account.id;
+            return new WebAuthSession(token, account.role != null ? account.role : WebAuthSession.TYPE_OWNER,
+                account.id, actorUuid, account.displayName);
+        }
+
         String dev = Config.cardBattleDevToken;
         if (dev != null && dev.trim()
             .length() > 0 && token.equals(dev.trim())) {
@@ -253,7 +266,15 @@ public final class CardBattleHttpServer extends NanoHTTPD {
                 "00000000-0000-0000-0000-000000000001",
                 "DevPlayer");
         }
-        return WebAuthToken.validateToken(token);
+        WebAuthSession webae = WebAuthToken.validateToken(token);
+        if (webae == null) return null;
+        CardBattleAccounts.User bound = CardBattleAccounts.findByMcUuid(webae.ownerUuid);
+        if (bound != null && !bound.disabled) {
+            String actorUuid = bound.mcUuid != null ? bound.mcUuid : bound.id;
+            return new WebAuthSession(token, bound.role != null ? bound.role : WebAuthSession.TYPE_OWNER, bound.id,
+                actorUuid, bound.displayName);
+        }
+        return webae;
     }
 
     private String readBody(IHTTPSession session) {

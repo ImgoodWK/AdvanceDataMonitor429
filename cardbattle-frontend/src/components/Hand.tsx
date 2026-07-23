@@ -12,7 +12,7 @@ export function Hand(props: {
   disabled?: boolean;
   onSelect: (index: number) => void;
   onDragStart: (index: number) => void;
-  onDragEnd: () => void;
+  onDragEnd: (clientX?: number, clientY?: number) => void;
   onInspect?: (def: CardDef | undefined) => void;
 }) {
   const n = props.hand.filter((id) => id !== '?').length;
@@ -56,7 +56,7 @@ function DraggableHandCard(props: {
   disabled?: boolean;
   onSelect: () => void;
   onDragStart: () => void;
-  onDragEnd: () => void;
+  onDragEnd: (clientX?: number, clientY?: number) => void;
   onInspect?: () => void;
 }) {
   const x = useMotionValue(0);
@@ -75,10 +75,11 @@ function DraggableHandCard(props: {
         x.set(down ? ox : 0);
         y.set(down ? oy : 0);
       },
-      onDragEnd: () => {
+      onDragEnd: ({ event }) => {
         x.set(0);
         y.set(0);
-        props.onDragEnd();
+        const pe = event as PointerEvent;
+        props.onDragEnd(pe.clientX, pe.clientY);
       },
       onClick: () => {
         if (!props.disabled) props.onSelect();

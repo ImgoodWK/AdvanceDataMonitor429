@@ -1,5 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { aeOffDeckPool, getCard } from '../data/catalog.js';
+import {
+  BOARD_SIZE,
+  applyNextBeeMutate,
+  applySpellEffect,
+  compactBoard,
+  dealDamageToUnit,
+  findUnitSlot,
+  firstEmptySlot,
+  resolveTargetKind,
+  validateEffectTarget,
+} from './effects.js';
 import type {
   AttackPair,
   BattlePhase,
@@ -14,7 +25,6 @@ import type {
 } from './types.js';
 import { applyNexusDamage } from './voltage.js';
 
-const BOARD_SIZE = 6;
 const START_NEXUS = 20;
 const MAX_BANK = 6;
 const MAX_HAND = 10;
@@ -136,6 +146,7 @@ export function createMatch(opts: MatchOptions): BattleState {
     mulliganDone: [false, false],
     players: [p0, p1],
     attackOrder: [],
+    attackOrderIds: [],
     blockPairs: [],
     swapUsedThisCombat: false,
     dlbForceEvery: opts.dlbForceEvery ?? (dlb ? 5 : 0),
@@ -171,20 +182,6 @@ function draw(p: PlayerState, n: number, state: BattleState): void {
   }
 }
 
-function firstEmptySlot(board: (BoardUnit | null)[]): number {
-  return board.findIndex((s) => s === null);
-}
-
-function dealDamageToUnit(unit: BoardUnit, raw: number): void {
-  let dmg = raw;
-  if (unit.armor > 0) {
-    const absorbed = Math.min(unit.armor, dmg);
-    unit.armor -= absorbed;
-    dmg -= absorbed;
-  }
-  unit.health -= dmg;
-}
-
 function removeDead(p: PlayerState, state: BattleState): void {
   for (let i = 0; i < p.board.length; i++) {
     const u = p.board[i];
@@ -194,6 +191,35 @@ function removeDead(p: PlayerState, state: BattleState): void {
       p.board[i] = null;
     }
   }
+  compactBoard(p.board);
+  if (state.combatAttacker != null && state.players[state.combatAttacker] === p && state.attackOrderIds.length) {
+    syncAttackOrderFromIds(state, p);
+  }
+  if (state.blockPairs.length) {
+    for (const pair of state.blockPairs) {
+      if (pair.attackerInstanceId) {
+        const slot = findUnitSlot(state.players[state.combatAttacker ?? 0].board, pair.attackerInstanceId);
+        if (slot >= 0) pair.attackerSlot = slot;
+      }
+      if (pair.blockerInstanceId) {
+        const defIdx = state.combatAttacker == null ? 1 : oppIndex(state.combatAttacker);
+        const slot = findUnitSlot(state.players[defIdx].board, pair.blockerInstanceId);
+        pair.blockerSlot = slot >= 0 ? slot : -1;
+      }
+    }
+  }
+}
+
+function unitById(board: (BoardUnit | null)[], instanceId: string | undefined | null): BoardUnit | null {
+  if (!instanceId) return null;
+  const slot = findUnitSlot(board, instanceId);
+  return slot >= 0 ? board[slot] : null;
+}
+
+function syncAttackOrderFromIds(state: BattleState, attacker: PlayerState): void {
+  state.attackOrder = state.attackOrderIds
+    .map((id) => findUnitSlot(attacker.board, id))
+    .filter((slot) => slot >= 0);
 }
 
 function spendMana(p: PlayerState, cost: number, spell: boolean): boolean {
@@ -228,13 +254,20 @@ function hasOrdoAer(unit: BoardUnit): boolean {
 
 export type PlayerAction =
   | { type: 'confirm_mulligan'; replaceIndices: number[] }
-  | { type: 'play_card'; handIndex: number; targetSlot?: number; targetEnemySlot?: number }
+  | {
+      type: 'play_card';
+      handIndex: number;
+      targetSlot?: number;
+      targetEnemySlot?: number;
+      targetInstanceId?: string;
+    }
   | { type: 'pass_priority' }
   | { type: 'start_attack' }
-  | { type: 'declare_attacks'; slots: number[] }
+  | { type: 'declare_attacks'; slots?: number[]; instanceIds?: string[] }
   | { type: 'declare_blocks'; pairs: AttackPair[] }
   | { type: 'swap_slots'; a: number; b: number }
   | { type: 'pass_swap' }
+  | { type: 'reorder_bench'; from: number; to: number }
   | { type: 'end_main' }
   | { type: 'pass_block' }
   | { type: 'concede' };
@@ -292,61 +325,23 @@ function confirmMulligan(
   }
 }
 
-const ENEMY_UNIT_TARGET_SPELLS = new Set(['van_smite', 'ae_annihilation', 'th_ignis']);
-const FRIENDLY_UNIT_TARGET_SPELLS = new Set(['van_heal', 'th_ordo_aer', 'th_ward', 'ge_mutate', 'ge_clone']);
-
-function targetAt(board: (BoardUnit | null)[], slot: number, side: 'friendly' | 'enemy'): BoardUnit {
-  if (!Number.isInteger(slot) || slot < 0 || slot >= BOARD_SIZE) {
-    throw new Error(`Invalid ${side} target slot`);
-  }
-  const target = board[slot];
-  if (!target) throw new Error(`Missing ${side} target`);
-  return target;
-}
-
 function validateSpellTarget(
   state: BattleState,
   actor: 0 | 1,
   def: CardDef,
   action: Extract<PlayerAction, { type: 'play_card' }>,
 ): void {
-  const me = state.players[actor];
-  const you = state.players[oppIndex(actor)];
-
-  if (ENEMY_UNIT_TARGET_SPELLS.has(def.id)) {
-    const target = targetAt(you.board, action.targetEnemySlot ?? 0, 'enemy');
-    if (target.untargetable) throw new Error('Enemy target is untargetable');
-    return;
-  }
-  if (FRIENDLY_UNIT_TARGET_SPELLS.has(def.id)) {
-    const target = targetAt(me.board, action.targetSlot ?? 0, 'friendly');
-    if (target.isStructure) throw new Error('Friendly target must be a unit');
-    if (def.id === 'ge_clone' && firstEmptySlot(me.board) < 0) {
-      throw new Error('No empty slot for clone');
-    }
-    return;
-  }
-  if (def.id === 'gt_wrench') {
-    const target = targetAt(you.board, action.targetEnemySlot ?? 0, 'enemy');
-    if (!target.isStructure || !target.keywords.includes('machine')) {
-      throw new Error('Target must be an enemy machine structure');
-    }
-    return;
-  }
-  if (def.id === 'fo_smoke') {
-    const target = targetAt(you.board, action.targetEnemySlot ?? 0, 'enemy');
-    if (!target.keywords.includes('stealth')) throw new Error('Target must have stealth');
-    return;
-  }
-  if (def.id === 'ee_watch') {
-    const target = targetAt(me.board, action.targetSlot ?? 0, 'friendly');
-    if (!target.isStructure || target.hiveTurnsLeft == null) {
-      throw new Error('Target must be a structure with cooldown');
-    }
-    return;
-  }
-  if (def.id === 'av_eternal' && !me.eternalReady && me.singularitiesPlayed < 3) {
+  if (def.id === 'av_eternal' && !state.players[actor].eternalReady && state.players[actor].singularitiesPlayed < 3) {
     throw new Error('Eternal Singularity requires 3 singularities');
+  }
+  if (def.effect) {
+    validateEffectTarget(state, actor, def, action, { oppIndex });
+    return;
+  }
+  // Fallback for any spell still missing effect metadata.
+  const kind = resolveTargetKind(def);
+  if (kind !== 'none') {
+    validateEffectTarget(state, actor, def, action, { oppIndex });
   }
 }
 
@@ -361,10 +356,13 @@ function validatePlayCard(
   if (available < def.cost) throw new Error('Not enough mana');
 
   if (def.kind === 'unit' || def.kind === 'structure') {
-    const slot = action.targetSlot ?? firstEmptySlot(me.board);
-    if (!Number.isInteger(slot) || slot < 0 || slot >= BOARD_SIZE || me.board[slot]) {
-      throw new Error('No empty slot');
+    compactBoard(me.board);
+    // LoR-style: optional preferSlot, otherwise first empty (auto-pack left).
+    let slot = action.targetSlot;
+    if (slot == null || !Number.isInteger(slot) || slot < 0 || slot >= BOARD_SIZE || me.board[slot]) {
+      slot = firstEmptySlot(me.board);
     }
+    if (slot < 0) throw new Error('No empty slot');
     return slot;
   }
   if (def.kind === 'spell') validateSpellTarget(state, actor, def, action);
@@ -379,243 +377,47 @@ function applySpell(
   rng: () => number,
 ): void {
   const me = state.players[actor];
-  const you = state.players[oppIndex(actor)];
 
-  switch (def.id) {
-    case 'van_smite':
-    case 'ae_annihilation': {
-      const slot = action.targetEnemySlot ?? 0;
-      const u = you.board[slot];
-      if (u && !u.untargetable) {
-        dealDamageToUnit(u, def.id === 'van_smite' ? 3 : 2);
-      }
-      break;
-    }
-    case 'van_heal': {
-      const slot = action.targetSlot ?? 0;
-      const u = me.board[slot];
-      if (u) u.health = Math.min(u.maxHealth, u.health + 3);
-      break;
-    }
-    case 'van_rally':
-      for (const u of me.board) if (u && !u.isStructure) u.attack += 1;
-      break;
-    case 'gt_overclock':
-      addMana(me, 2);
-      break;
-    case 'gt_wrench': {
-      const slot = action.targetEnemySlot ?? 0;
-      const u = you.board[slot];
-      if (u?.keywords.includes('machine')) {
-        you.board[slot] = null;
-        you.discard.push(u.cardId);
-        state.log.push('Machine dismantled');
-      }
-      break;
-    }
-    case 'th_ordo_aer': {
-      const slot = action.targetSlot ?? 0;
-      const u = me.board[slot];
-      if (u) {
-        if (!u.aspects.includes('ordo')) u.aspects.push('ordo');
-        if (!u.aspects.includes('aer')) u.aspects.push('aer');
-      }
-      break;
-    }
-    case 'th_ignis': {
-      const slot = action.targetEnemySlot ?? 0;
-      const u = you.board[slot];
-      if (u && !u.untargetable) {
-        dealDamageToUnit(u, 2);
-        if (!u.aspects.includes('ignis')) u.aspects.push('ignis');
-      }
-      break;
-    }
-    case 'th_ward': {
-      const slot = action.targetSlot ?? 0;
-      const u = me.board[slot];
-      if (u) u.armor += 2;
-      break;
-    }
-    case 'fo_plugin_speed': {
-      for (const u of me.board) {
-        if (u?.keywords.includes('beehive') && u.hiveTurnsLeft != null) {
-          u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft - 1);
-        }
-      }
-      break;
-    }
-    case 'fo_plugin_strong':
-      state.log.push('Next hive bee will mutate (applied on spawn)');
-      (me as PlayerState & { _nextBeeMutate?: boolean })._nextBeeMutate = true;
-      break;
-    case 'fo_smoke': {
-      const slot = action.targetEnemySlot ?? 0;
-      const u = you.board[slot];
-      if (u) u.keywords = u.keywords.filter((k) => k !== 'stealth');
-      break;
-    }
-    case 'as_shield':
-      me.damageReductionPct = Math.min(50, me.damageReductionPct + 10);
-      break;
-    case 'as_reflect':
-      me.reflectToNexus = true;
-      break;
-    case 'as_attune':
-    case 'ae_p2p':
-    case 'ee_trans':
-      draw(me, 1, state);
-      break;
-    case 'as_ritual':
-      for (const u of me.board) {
-        if (u && !u.isStructure) {
-          u.attack += 1;
-          u.health += 1;
-          u.maxHealth += 1;
-        }
-      }
-      break;
-    case 'as_nova': {
-      const dmg = applyNexusDamage(2, me.voltage, you.voltage, you.damageReductionPct);
-      you.nexusHp -= dmg;
-      if (you.reflectToNexus) me.nexusHp -= Math.max(1, Math.floor(dmg / 2));
-      break;
-    }
-    case 'as_lens':
-      addMana(me, 1);
-      break;
-    case 'av_singularity':
-    case 'av_singularity_2':
-    case 'av_singularity_3':
-      me.singularitiesPlayed += 1;
-      if (me.singularitiesPlayed >= 3) me.eternalReady = true;
-      state.log.push(`Singularities ${me.singularitiesPlayed}/3`);
-      break;
-    case 'av_eternal':
-      if (me.eternalReady || me.singularitiesPlayed >= 3) {
-        me.eternalActive = true;
-        state.log.push('Eternal Singularity ACTIVE — units instantly kill blockers');
-      } else {
-        state.log.push('Eternal Singularity fizzled — need 3 singularities');
-      }
-      break;
-    case 'av_armor':
-      me.maxNexusHp += 5;
-      me.nexusHp = Math.min(me.maxNexusHp, me.nexusHp + 5);
-      break;
-    case 'av_catalyst':
-      draw(me, 1, state);
-      break;
-    case 'ee_watch':
-    case 'ee_relay': {
-      const slot = action.targetSlot ?? 0;
-      const u = me.board[slot];
-      if (u?.hiveTurnsLeft != null) {
-        u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft - (def.id === 'ee_watch' ? 2 : 1));
-      }
-      break;
-    }
-    case 'ee_klein':
-      addMana(me, 3);
-      break;
-    case 'ee_phil':
-      draw(me, 1, state);
-      break;
-    case 'ee_catalyst':
-      me.nexusHp = Math.min(me.maxNexusHp, me.nexusHp + 2);
-      break;
-    case 'ge_mutate': {
-      const slot = action.targetSlot ?? 0;
-      const u = me.board[slot];
-      if (u) {
-        u.attack += 1;
-        u.health += 1;
-        u.maxHealth += 1;
-      }
-      break;
-    }
-    case 'ge_clone': {
-      const slot = action.targetSlot ?? 0;
-      const src = me.board[slot];
-      const empty = firstEmptySlot(me.board);
-      if (src && empty >= 0) {
-        const clone = {
-          ...src,
-          instanceId: randomUUID(),
-          attack: 1,
-          health: 1,
-          maxHealth: 1,
-          keywords: [...src.keywords],
-          aspects: [...src.aspects],
-          equipment: [],
-        };
-        me.board[empty] = clone;
-      }
-      break;
-    }
-    case 'ge_swarm': {
-      const bee = getCard('ge_larva')!;
-      for (let n = 0; n < 2; n++) {
-        const empty = firstEmptySlot(me.board);
-        if (empty >= 0) me.board[empty] = makeUnit(bee);
-      }
-      break;
-    }
-    case 'ge_split':
-      draw(me, 2, state);
-      break;
-    case 'ae_craft':
-    case 'ae_wireless': {
-      const id = pickAeCard(state, rng);
-      if (id) addToHand(me, id, state);
-      break;
-    }
-    case 'ae_cell':
-      draw(me, 2, state);
-      break;
-    case 'ae_formation': {
-      const ball = getCard('ae_matter')!;
-      const empty = firstEmptySlot(me.board);
-      if (empty >= 0) me.board[empty] = makeUnit(ball);
-      break;
-    }
-    case 'dlb_tantrum':
-    case 'dlb_scream':
-      state.attackTokenPlayer = actor;
-      state.attackTokenAvailable = true;
-      state.log.push('DLB steals the attack token!');
-      if (def.id === 'dlb_scream') draw(me, 1, state);
-      break;
-    case 'dlb_ignore': {
-      const dmg = applyNexusDamage(3, me.voltage, you.voltage, you.damageReductionPct);
-      you.nexusHp -= dmg;
-      break;
-    }
-    case 'dlb_mood': {
-      const slots = you.board.map((u, i) => (u ? i : -1)).filter((i) => i >= 0);
-      if (slots.length) {
-        const slot = slots[Math.floor(rng() * slots.length)]!;
-        const u = you.board[slot]!;
-        if (!u.untargetable) dealDamageToUnit(u, 1);
-      }
-      break;
-    }
-    case 'dlb_nap':
-      you.mana = Math.max(0, you.mana - 1);
-      break;
-    default:
-      state.log.push(`Spell ${def.id} has no special handler`);
+  // Legacy special: next hive bee mutates.
+  if (def.id === 'fo_plugin_strong') {
+    applyNextBeeMutate(me);
+    state.log.push('Next hive bee will mutate (applied on spawn)');
+    return;
   }
+
+  const handled = applySpellEffect(state, actor, def, action, rng, {
+    oppIndex,
+    draw,
+    addToHand,
+    addMana,
+    pickAeCard,
+    makeUnit,
+  });
+  if (!handled) {
+    state.log.push(`Spell ${def.id} has no special handler`);
+  }
+  compactBoard(me.board);
+  compactBoard(state.players[oppIndex(actor)].board);
 }
 
 function playCard(state: BattleState, actor: 0 | 1, action: Extract<PlayerAction, { type: 'play_card' }>, rng: () => number): void {
   ensurePhase(state, 'main', 'spell_response', 'combat_response');
   if (state.activePlayer !== actor) throw new Error('Not your turn');
   const me = state.players[actor];
+  const you = state.players[oppIndex(actor)];
   const cardId = me.hand[action.handIndex];
   if (!cardId) throw new Error('Invalid hand index');
   const def = getCard(cardId);
   if (!def) throw new Error(`Unknown card ${cardId}`);
+
+  // Resolve targetInstanceId → slot indices before validation.
+  if (action.targetInstanceId) {
+    const friend = findUnitSlot(me.board, action.targetInstanceId);
+    const enemy = findUnitSlot(you.board, action.targetInstanceId);
+    if (friend >= 0) action.targetSlot = friend;
+    else if (enemy >= 0) action.targetEnemySlot = enemy;
+  }
+
   const response = isResponsePhase(state.phase);
   if (response && def.kind !== 'spell') throw new Error('Only spells may be played in a response window');
   const speed = def.kind === 'spell' ? spellSpeed(def) : null;
@@ -629,7 +431,7 @@ function playCard(state: BattleState, actor: 0 | 1, action: Extract<PlayerAction
   if (def.kind === 'unit' || def.kind === 'structure') {
     const unit = makeUnit(def);
     me.board[unitSlot!] = unit;
-    // Forestry hive occupies a slot — opponent effectively has more combat slots conceptually handled by untargetable
+    compactBoard(me.board);
   } else if (def.kind === 'spell' && speed === 'burst') {
     me.discard.push(cardId);
     applySpell(state, actor, def, action, rng);
@@ -641,6 +443,7 @@ function playCard(state: BattleState, actor: 0 | 1, action: Extract<PlayerAction
       speed: speed as 'slow' | 'fast',
       ...(action.targetSlot != null ? { targetSlot: action.targetSlot } : {}),
       ...(action.targetEnemySlot != null ? { targetEnemySlot: action.targetEnemySlot } : {}),
+      ...(action.targetInstanceId != null ? { targetInstanceId: action.targetInstanceId } : {}),
     };
     state.spellStack.push(item);
     if (!response) {
@@ -748,28 +551,49 @@ function startAttackDeclare(state: BattleState, actor: 0 | 1): void {
   state.combatAttacker = actor;
   state.consecutivePasses = 0;
   state.attackOrder = [];
+  state.attackOrderIds = [];
   state.blockPairs = [];
   state.swapUsedThisCombat = false;
 }
 
-function declareAttacks(state: BattleState, actor: 0 | 1, slots: number[]): void {
+function declareAttacks(
+  state: BattleState,
+  actor: 0 | 1,
+  slots: number[] | undefined,
+  instanceIds?: string[],
+): void {
   ensurePhase(state, 'attack_declare');
   if (state.combatAttacker !== actor) throw new Error('Not attacker');
   const me = state.players[actor];
-  const unique = [...new Set(slots)];
-  if (unique.length === 0) {
+
+  let ids: string[] = [];
+  if (instanceIds && instanceIds.length) {
+    ids = [...new Set(instanceIds)];
+  } else if (slots && slots.length) {
+    const unique = [...new Set(slots)];
+    for (const s of unique) {
+      const u = me.board[s];
+      if (!u || u.isStructure || u.attack <= 0) throw new Error(`Slot ${s} cannot attack`);
+      ids.push(u.instanceId);
+    }
+  }
+
+  if (ids.length === 0) {
     state.phase = 'main';
     state.combatAttacker = null;
     state.attackOrder = [];
+    state.attackOrderIds = [];
     state.blockPairs = [];
     state.log.push(`${me.name} cancels the attack declaration`);
     return;
   }
-  for (const s of unique) {
-    const u = me.board[s];
-    if (!u || u.isStructure || u.attack <= 0) throw new Error(`Slot ${s} cannot attack`);
+
+  for (const id of ids) {
+    const u = unitById(me.board, id);
+    if (!u || u.isStructure || u.attack <= 0) throw new Error(`Unit ${id} cannot attack`);
   }
-  state.attackOrder = unique;
+  state.attackOrderIds = ids;
+  syncAttackOrderFromIds(state, me);
   state.phase = 'block_declare';
   state.activePlayer = oppIndex(actor);
 }
@@ -787,32 +611,84 @@ function declareBlocks(state: BattleState, blocker: 0 | 1, pairs: AttackPair[]):
   const atk = state.players[attackerIndex];
   const def = state.players[blocker];
   const usedBlockers = new Set<number>();
-  const mapped = new Map<number, number>();
+  const usedBlockerIds = new Set<string>();
+  const mapped = new Map<number, { slot: number; id: string | null }>();
+
+  syncAttackOrderFromIds(state, atk);
+
   for (const p of pairs) {
-    if (!state.attackOrder.includes(p.attackerSlot)) throw new Error('Invalid attacker');
-    if (p.blockerSlot >= 0) {
-      if (usedBlockers.has(p.blockerSlot)) throw new Error('Blocker reused');
-      const bu = def.board[p.blockerSlot];
-      const au = atk.board[p.attackerSlot];
+    let aSlot = p.attackerSlot;
+    if (p.attackerInstanceId) {
+      const found = findUnitSlot(atk.board, p.attackerInstanceId);
+      if (found < 0) throw new Error('Invalid attacker');
+      aSlot = found;
+    }
+    if (!state.attackOrder.includes(aSlot) && !state.attackOrderIds.includes(p.attackerInstanceId ?? '')) {
+      if (!state.attackOrder.includes(aSlot)) throw new Error('Invalid attacker');
+    }
+    let bSlot = p.blockerSlot;
+    if (p.blockerInstanceId) {
+      bSlot = findUnitSlot(def.board, p.blockerInstanceId);
+      if (bSlot < 0) bSlot = -1;
+    }
+    if (bSlot >= 0) {
+      if (usedBlockers.has(bSlot) || (p.blockerInstanceId && usedBlockerIds.has(p.blockerInstanceId))) {
+        throw new Error('Blocker reused');
+      }
+      const bu = def.board[bSlot];
+      const au = atk.board[aSlot];
       if (!bu || !au) throw new Error('Missing unit');
       if (bu.untargetable) throw new Error('Cannot block with untargetable');
       if (!canBlock(au, bu)) throw new Error('Stealth cannot be blocked');
-      usedBlockers.add(p.blockerSlot);
-      mapped.set(p.attackerSlot, p.blockerSlot);
+      usedBlockers.add(bSlot);
+      usedBlockerIds.add(bu.instanceId);
+      mapped.set(aSlot, { slot: bSlot, id: bu.instanceId });
+    } else {
+      mapped.set(aSlot, { slot: -1, id: null });
     }
   }
-  state.blockPairs = state.attackOrder.map((a) => ({
-    attackerSlot: a,
-    blockerSlot: mapped.get(a) ?? -1,
-  }));
+  state.blockPairs = state.attackOrder.map((a) => {
+    const m = mapped.get(a);
+    const attacker = atk.board[a];
+    return {
+      attackerSlot: a,
+      blockerSlot: m?.slot ?? -1,
+      attackerInstanceId: attacker?.instanceId,
+      blockerInstanceId: m?.id ?? null,
+    };
+  });
 
-  // Thaum swap window if any ordo+aer unit on defender
   const canSwap = def.board.some((u) => u && hasOrdoAer(u));
   if (canSwap && !state.swapUsedThisCombat) {
     state.phase = 'swap_extra';
   } else {
     openCombatResponse(state);
   }
+}
+
+function reorderBench(state: BattleState, actor: 0 | 1, from: number, to: number): void {
+  ensurePhase(state, 'main', 'attack_declare');
+  if (state.phase === 'main' && state.activePlayer !== actor) throw new Error('Not your priority');
+  if (state.phase === 'attack_declare' && state.combatAttacker !== actor) throw new Error('Not attacker');
+  const p = state.players[actor];
+  if (
+    !Number.isInteger(from) ||
+    !Number.isInteger(to) ||
+    from < 0 ||
+    to < 0 ||
+    from >= BOARD_SIZE ||
+    to >= BOARD_SIZE ||
+    !p.board[from]
+  ) {
+    throw new Error('Invalid bench reorder');
+  }
+  const unit = p.board[from];
+  p.board.splice(from, 1);
+  p.board.splice(to, 0, unit);
+  while (p.board.length < BOARD_SIZE) p.board.push(null);
+  p.board.length = BOARD_SIZE;
+  compactBoard(p.board);
+  if (state.combatAttacker === actor) syncAttackOrderFromIds(state, p);
 }
 
 function swapSlots(state: BattleState, actor: 0 | 1, a: number, b: number): void {
@@ -898,6 +774,7 @@ function resolveCombat(state: BattleState): void {
   state.attackTokenAvailable = false;
   state.combatAttacker = null;
   state.attackOrder = [];
+  state.attackOrderIds = [];
   state.blockPairs = [];
   state.consecutivePasses = 0;
   state.responsePasses = 0;
@@ -1041,6 +918,7 @@ function endRound(state: BattleState): void {
   if (totem && state.dlbForceEvery > 3) state.dlbForceEvery -= 1;
 
   state.attackOrder = [];
+  state.attackOrderIds = [];
   state.blockPairs = [];
   state.phase = 'main';
   checkWinner(state);
@@ -1235,7 +1113,7 @@ export function applyAction(state: BattleState, actor: 0 | 1, action: PlayerActi
       }
       break;
     case 'declare_attacks':
-      declareAttacks(state, actor, action.slots);
+      declareAttacks(state, actor, action.slots, action.instanceIds);
       break;
     case 'declare_blocks':
       declareBlocks(state, actor, action.pairs);
@@ -1244,7 +1122,12 @@ export function applyAction(state: BattleState, actor: 0 | 1, action: PlayerActi
       declareBlocks(
         state,
         actor,
-        state.attackOrder.map((s) => ({ attackerSlot: s, blockerSlot: -1 })),
+        state.attackOrder.map((s, i) => ({
+          attackerSlot: s,
+          blockerSlot: -1,
+          attackerInstanceId: state.attackOrderIds[i],
+          blockerInstanceId: null,
+        })),
       );
       break;
     case 'swap_slots':
@@ -1252,6 +1135,9 @@ export function applyAction(state: BattleState, actor: 0 | 1, action: PlayerActi
       break;
     case 'pass_swap':
       passSwap(state, actor);
+      break;
+    case 'reorder_bench':
+      reorderBench(state, actor, action.from, action.to);
       break;
     case 'concede':
       state.winner = oppIndex(actor);

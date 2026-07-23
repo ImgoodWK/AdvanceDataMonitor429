@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildPlayAction, canPlayToSlot } from './playLegality';
+import {
+  buildPlayAction,
+  canPlayDrop,
+  canPlayToBench,
+  canPlayToSlot,
+  needsEnemyTarget,
+  spellTargetKind,
+} from './playLegality';
 import type { BoardUnit, CardDef, PlayerState } from '../api/client';
 import { BOARD_SKINS, isSkinUnlocked, resolveSkin } from './skins';
 
@@ -73,6 +80,7 @@ const cardMap = new Map<string, CardDef>([
       kind: 'spell',
       cost: 2,
       spellSpeed: 'fast',
+      effect: { id: 'damage', target: 'enemy_unit', amount: 3 },
     },
   ],
   [
@@ -102,6 +110,29 @@ describe('playLegality', () => {
     expect(legal.ok).toBe(true);
   });
 
+  it('allows bench zone drop when any slot is empty', () => {
+    const legal = canPlayToBench({
+      phase: 'main',
+      me: me(),
+      handIndex: 0,
+      cardMap,
+    });
+    expect(legal.ok).toBe(true);
+    const drop = canPlayDrop({
+      phase: 'main',
+      me: me(),
+      handIndex: 0,
+      target: { kind: 'bench', side: 'player' },
+      cardMap,
+    });
+    expect(drop.ok).toBe(true);
+  });
+
+  it('uses effect.target for spell targeting', () => {
+    expect(spellTargetKind(cardMap.get('van_smite'))).toBe('enemy_unit');
+    expect(needsEnemyTarget(cardMap.get('van_smite'))).toBe(true);
+  });
+
   it('rejects when mana is insufficient', () => {
     const legal = canPlayToSlot({
       phase: 'main',
@@ -124,7 +155,7 @@ describe('playLegality', () => {
       cardMap,
       side: 'enemy',
     });
-    const unit = canPlayToSlot({
+    const unitPlay = canPlayToSlot({
       phase: 'main',
       me: me({ mana: 0, spellMana: 3 }),
       handIndex: 0,
@@ -133,21 +164,14 @@ describe('playLegality', () => {
       side: 'player',
     });
     expect(spell.ok).toBe(true);
-    expect(unit.reason).toBe('mana');
+    expect(unitPlay.reason).toBe('mana');
   });
 
-  it('rejects occupied slot for units', () => {
+  it('rejects occupied slot for units but bench still ok', () => {
     const occupied = me({
-      board: [
-        unit(),
-        null,
-        null,
-        null,
-        null,
-        null,
-      ],
+      board: [unit(), null, null, null, null, null],
     });
-    const legal = canPlayToSlot({
+    const slot = canPlayToSlot({
       phase: 'main',
       me: occupied,
       handIndex: 0,
@@ -155,8 +179,15 @@ describe('playLegality', () => {
       cardMap,
       side: 'player',
     });
-    expect(legal.ok).toBe(false);
-    expect(legal.reason).toBe('slot_full');
+    const bench = canPlayToBench({
+      phase: 'main',
+      me: occupied,
+      handIndex: 0,
+      cardMap,
+    });
+    expect(slot.ok).toBe(false);
+    expect(slot.reason).toBe('slot_full');
+    expect(bench.ok).toBe(true);
   });
 
   it('requires a legal enemy unit for targeted damage spells', () => {
@@ -194,6 +225,18 @@ describe('playLegality', () => {
       handIndex: 0,
       targetSlot: 0,
       targetEnemySlot: 3,
+    });
+  });
+
+  it('builds unit action without targetSlot for bench zone', () => {
+    const action = buildPlayAction({
+      handIndex: 0,
+      side: 'player',
+      kind: 'unit',
+    });
+    expect(action).toEqual({
+      type: 'play_card',
+      handIndex: 0,
     });
   });
 

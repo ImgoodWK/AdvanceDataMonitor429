@@ -11,6 +11,10 @@ npm.cmd run build
 npm.cmd start
 ```
 
+本地一键开发（Windows）：双击仓库根目录 `start-cardbattle.bat`，或 `cardbattle-server\start-dev.bat`（会自动 `auth:bootstrap` 超管）。
+
+账号：`npm.cmd run auth:bootstrap` → 超管写入 `.env`（`CARDBATTLE_BOOTSTRAP_ADMIN_*`）。绑定：游戏内 `/textech card bind`。
+
 Default: `http://127.0.0.1:8787`  
 Health: `GET /api/health`
 

@@ -16,6 +16,7 @@ import com.imgood.textech.cardbattle.CardBattleTypes.BattleState;
 import com.imgood.textech.cardbattle.CardBattleTypes.BoardUnit;
 import com.imgood.textech.cardbattle.CardBattleTypes.CardDef;
 import com.imgood.textech.cardbattle.CardBattleTypes.PlayerState;
+import com.imgood.textech.cardbattle.CardBattleTypes.SpellEffect;
 import com.imgood.textech.cardbattle.CardBattleTypes.SpellStackItem;
 import com.imgood.textech.cardbattle.data.CardCatalog;
 
@@ -135,6 +136,17 @@ public final class BattleEngine {
         return -1;
     }
 
+    /** Pack occupied slots left, nulls right (LoR-style bench). */
+    private static void compactBoard(BoardUnit[] board) {
+        List<BoardUnit> units = new ArrayList<BoardUnit>();
+        for (int i = 0; i < board.length; i++) {
+            if (board[i] != null) units.add(board[i]);
+        }
+        for (int i = 0; i < board.length; i++) {
+            board[i] = i < units.size() ? units.get(i) : null;
+        }
+    }
+
     private static boolean hasKw(BoardUnit u, String kw) {
         return u != null && u.keywords.contains(kw);
     }
@@ -190,14 +202,17 @@ public final class BattleEngine {
     }
 
     private static void removeDead(PlayerState p, BattleState s) {
+        boolean changed = false;
         for (int i = 0; i < p.board.length; i++) {
             BoardUnit u = p.board[i];
             if (u != null && u.health <= 0) {
                 s.log.add(p.name + " loses " + u.cardId + " at " + i);
                 p.discard.add(u.cardId);
                 p.board[i] = null;
+                changed = true;
             }
         }
+        if (changed) compactBoard(p.board);
     }
 
     private static void checkWinner(BattleState s) {
@@ -388,6 +403,9 @@ public final class BattleEngine {
             int slot = action.has("targetSlot") ? action.get("targetSlot")
                 .getAsInt() : firstEmpty(me.board);
             if (slot < 0 || slot >= BOARD || me.board[slot] != null) {
+                slot = firstEmpty(me.board);
+            }
+            if (slot < 0 || slot >= BOARD || me.board[slot] != null) {
                 throw new IllegalStateException("No empty slot");
             }
             return slot;
@@ -527,6 +545,171 @@ public final class BattleEngine {
         s.log.add("Combat response window opens");
     }
 
+    private static boolean applyDataEffect(BattleState s, int actor, CardDef def, int enemySlot, int mySlot,
+        Random rng) {
+        SpellEffect effect = def.effect;
+        if (effect == null || effect.id == null) return false;
+
+        PlayerState me = s.players[actor];
+        PlayerState you = s.players[opp(actor)];
+        BoardUnit friend = me.board[mySlot];
+        BoardUnit enemy = you.board[enemySlot];
+        int amount = effect.amount != null ? effect.amount.intValue() : 0;
+        int amount2 = effect.amount2 != null ? effect.amount2.intValue() : 0;
+        String eid = effect.id;
+
+        if ("damage_unit".equals(eid)) {
+            if (enemy != null && !enemy.untargetable) dealDmg(enemy, amount);
+        } else if ("heal_unit".equals(eid)) {
+            if (friend != null) friend.health = Math.min(friend.maxHealth, friend.health + amount);
+        } else if ("buff_unit".equals(eid)) {
+            if (friend != null && !friend.isStructure) {
+                friend.attack += amount;
+                friend.health += amount2;
+                friend.maxHealth += amount2;
+                if (effect.keywordsAdd != null) {
+                    for (String kw : effect.keywordsAdd) {
+                        if (!friend.keywords.contains(kw)) friend.keywords.add(kw);
+                    }
+                }
+            }
+        } else if ("buff_all".equals(eid)) {
+            for (BoardUnit u : me.board) {
+                if (u != null && !u.isStructure) {
+                    u.attack += amount;
+                    if (amount2 != 0) {
+                        u.health += amount2;
+                        u.maxHealth += amount2;
+                    }
+                }
+            }
+        } else if ("armor_unit".equals(eid)) {
+            if (friend != null) friend.armor += amount;
+        } else if ("draw".equals(eid)) {
+            draw(me, Math.max(1, amount != 0 ? amount : 1), s);
+        } else if ("gain_mana".equals(eid)) {
+            me.mana += amount;
+        } else if ("nexus_damage".equals(eid)) {
+            int dmg = VoltageRules.applyNexusDamage(amount, me.voltage, you.voltage, you.damageReductionPct);
+            you.nexusHp -= dmg;
+            if (you.reflectToNexus) me.nexusHp -= Math.max(1, dmg / 2);
+        } else if ("nexus_heal".equals(eid)) {
+            me.nexusHp = Math.min(me.maxNexusHp, me.nexusHp + amount);
+        } else if ("nexus_max_heal".equals(eid)) {
+            me.maxNexusHp += amount;
+            me.nexusHp = Math.min(me.maxNexusHp, me.nexusHp + amount);
+        } else if ("summon_token".equals(eid) || "summon_tokens".equals(eid)) {
+            String tokenId = effect.tokenCardId != null ? effect.tokenCardId : "ge_larva";
+            int count = effect.tokenCount != null ? effect.tokenCount.intValue()
+                : ("summon_token".equals(eid) ? 1 : 2);
+            CardDef tokenDef = CardCatalog.get(tokenId);
+            if (tokenDef != null) {
+                for (int n = 0; n < count; n++) {
+                    compactBoard(me.board);
+                    int empty = firstEmpty(me.board);
+                    if (empty >= 0) me.board[empty] = makeUnit(tokenDef);
+                }
+            }
+        } else if ("strip_stealth".equals(eid)) {
+            if (enemy != null) enemy.keywords.remove("stealth");
+        } else if ("destroy_machine".equals(eid)) {
+            if (enemy != null && hasKw(enemy, "machine")) {
+                you.board[enemySlot] = null;
+                you.discard.add(enemy.cardId);
+                compactBoard(you.board);
+                s.log.add("Machine dismantled");
+            }
+        } else if ("hive_cooldown".equals(eid)) {
+            int reduce = Math.max(1, amount != 0 ? amount : 1);
+            if ("friendly_cooldown".equals(effect.target) && friend != null && friend.hiveTurnsLeft != null) {
+                friend.hiveTurnsLeft = Math.max(0, friend.hiveTurnsLeft.intValue() - reduce);
+            } else {
+                for (BoardUnit u : me.board) {
+                    if (u != null && hasKw(u, "beehive") && u.hiveTurnsLeft != null) {
+                        u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft.intValue() - reduce);
+                    }
+                }
+            }
+        } else if ("add_aspects".equals(eid)) {
+            if (friend != null && effect.aspects != null) {
+                for (String a : effect.aspects) {
+                    if (!friend.aspects.contains(a)) friend.aspects.add(a);
+                }
+            }
+        } else if ("damage_and_aspect".equals(eid)) {
+            if (enemy != null && !enemy.untargetable) {
+                dealDmg(enemy, amount);
+                if (effect.aspects != null) {
+                    for (String a : effect.aspects) {
+                        if (!enemy.aspects.contains(a)) enemy.aspects.add(a);
+                    }
+                }
+            }
+        } else if ("singularity".equals(eid)) {
+            me.singularitiesPlayed += 1;
+            if (me.singularitiesPlayed >= 3) me.eternalReady = true;
+            s.log.add("Singularities " + me.singularitiesPlayed + "/3");
+        } else if ("eternal".equals(eid)) {
+            if (me.eternalReady || me.singularitiesPlayed >= 3) {
+                me.eternalActive = true;
+                s.log.add("Eternal Singularity ACTIVE — units instantly kill blockers");
+            } else {
+                s.log.add("Eternal Singularity fizzled — need 3 singularities");
+            }
+        } else if ("ae_generate".equals(eid)) {
+            String pick = pickAe(s, rng);
+            if (pick != null) addToHand(me, pick, s);
+        } else if ("steal_attack_token".equals(eid)) {
+            s.attackTokenPlayer = actor;
+            s.attackTokenAvailable = true;
+            s.log.add("DLB steals the attack token!");
+            if (amount > 0) draw(me, amount, s);
+        } else if ("enemy_lose_mana".equals(eid)) {
+            you.mana = Math.max(0, you.mana - Math.max(1, amount != 0 ? amount : 1));
+        } else if ("random_enemy_damage".equals(eid)) {
+            List<Integer> slots = new ArrayList<Integer>();
+            for (int i = 0; i < you.board.length; i++) {
+                BoardUnit u = you.board[i];
+                if (u != null && !u.untargetable) slots.add(Integer.valueOf(i));
+            }
+            if (!slots.isEmpty()) {
+                int slot = slots.get(rng.nextInt(slots.size()))
+                    .intValue();
+                BoardUnit u = you.board[slot];
+                if (u != null) dealDmg(u, Math.max(1, amount != 0 ? amount : 1));
+            }
+        } else if ("damage_reduction".equals(eid)) {
+            me.damageReductionPct = Math.min(50, me.damageReductionPct + (amount != 0 ? amount : 10));
+        } else if ("reflect".equals(eid)) {
+            me.reflectToNexus = true;
+        } else if ("clone_unit".equals(eid)) {
+            BoardUnit src = friend;
+            compactBoard(me.board);
+            int empty = firstEmpty(me.board);
+            if (src != null && empty >= 0) {
+                BoardUnit clone = new BoardUnit();
+                clone.instanceId = UUID.randomUUID()
+                    .toString();
+                clone.cardId = src.cardId;
+                clone.attack = 1;
+                clone.health = 1;
+                clone.maxHealth = 1;
+                clone.armor = src.armor;
+                clone.keywords = new ArrayList<String>(src.keywords);
+                clone.aspects = new ArrayList<String>(src.aspects);
+                clone.isStructure = src.isStructure;
+                clone.untargetable = src.untargetable;
+                clone.hiveTurnsLeft = src.hiveTurnsLeft;
+                me.board[empty] = clone;
+            }
+        } else if ("reduce_dlb_interval".equals(eid)) {
+            if (s.dlbForceEvery > 3) s.dlbForceEvery -= Math.max(1, amount != 0 ? amount : 1);
+        } else {
+            return false;
+        }
+        return true;
+    }
+
     private static void applySpell(BattleState s, int actor, CardDef def, JsonObject action, Random rng) {
         PlayerState me = s.players[actor];
         PlayerState you = s.players[opp(actor)];
@@ -535,6 +718,13 @@ public final class BattleEngine {
         int mySlot = action.has("targetSlot") ? action.get("targetSlot")
             .getAsInt() : 0;
         String id = def.id;
+        if ("fo_plugin_strong".equals(id)) {
+            me.nextBeeMutate = true;
+            return;
+        }
+        if (def.effect != null && def.effect.id != null && applyDataEffect(s, actor, def, enemySlot, mySlot, rng)) {
+            return;
+        }
         if ("van_smite".equals(id) || "ae_annihilation".equals(id)) {
             BoardUnit u = you.board[enemySlot];
             if (u != null && !u.untargetable) dealDmg(u, "van_smite".equals(id) ? 3 : 2);
@@ -550,6 +740,7 @@ public final class BattleEngine {
             if (u != null && hasKw(u, "machine")) {
                 you.discard.add(u.cardId);
                 you.board[enemySlot] = null;
+                compactBoard(you.board);
             }
         } else if ("th_ordo_aer".equals(id)) {
             BoardUnit u = me.board[mySlot];
@@ -578,8 +769,6 @@ public final class BattleEngine {
                 int cut = "ee_watch".equals(id) ? 2 : 1;
                 u.hiveTurnsLeft = Math.max(0, u.hiveTurnsLeft.intValue() - cut);
             }
-        } else if ("fo_plugin_strong".equals(id)) {
-            me.nextBeeMutate = true;
         } else if ("fo_smoke".equals(id)) {
             BoardUnit u = you.board[enemySlot];
             if (u != null) u.keywords.remove("stealth");
@@ -687,6 +876,7 @@ public final class BattleEngine {
         s.combatAttacker = actor;
         s.consecutivePasses = 0;
         s.attackOrder.clear();
+        s.attackOrderIds.clear();
         s.blockPairs.clear();
         s.swapUsedThisCombat = false;
     }
@@ -698,6 +888,7 @@ public final class BattleEngine {
         JsonArray slots = action.getAsJsonArray("slots");
         HashSet<Integer> unique = new HashSet<Integer>();
         s.attackOrder.clear();
+        s.attackOrderIds.clear();
         if (slots != null) {
             for (int i = 0; i < slots.size(); i++) {
                 int slot = slots.get(i)
@@ -706,6 +897,7 @@ public final class BattleEngine {
                 BoardUnit u = me.board[slot];
                 if (u == null || u.isStructure || u.attack <= 0) throw new IllegalArgumentException("bad attacker");
                 s.attackOrder.add(slot);
+                s.attackOrderIds.add(u.instanceId);
             }
         }
         if (s.attackOrder.isEmpty()) {
@@ -852,6 +1044,7 @@ public final class BattleEngine {
         s.attackTokenAvailable = false;
         s.combatAttacker = -1;
         s.attackOrder.clear();
+        s.attackOrderIds.clear();
         s.blockPairs.clear();
         s.consecutivePasses = 0;
         s.responsePasses = 0;
@@ -897,6 +1090,7 @@ public final class BattleEngine {
         }
         if (totem && s.dlbForceEvery > 3) s.dlbForceEvery -= 1;
         s.attackOrder.clear();
+        s.attackOrderIds.clear();
         s.blockPairs.clear();
         s.phase = "main";
         checkWinner(s);
@@ -1015,6 +1209,7 @@ public final class BattleEngine {
                 if (p.board[i] != null && hasKw(p.board[i], "machine")) {
                     p.discard.add(p.board[i].cardId);
                     p.board[i] = null;
+                    compactBoard(p.board);
                     s.log.add(p.name + " capacitor overload!");
                     break;
                 }

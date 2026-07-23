@@ -132,7 +132,7 @@ export function buildDeck(themes: ThemeId[], voltage: VoltageTier, seed: number)
   for (const th of used) {
     const cards = cardsByTheme(th);
     const shuffled = cards.slice().sort(() => rng() - 0.5);
-    for (const c of shuffled.slice(0, 10)) {
+    for (const c of shuffled.slice(0, 40)) {
       deck.push(c.id);
       // genetics: more units — duplicate cheap units
       if (th === 'genetics' && c.kind === 'unit' && c.cost <= 1) {
@@ -140,8 +140,8 @@ export function buildDeck(themes: ThemeId[], voltage: VoltageTier, seed: number)
       }
     }
   }
-  // pad to ~40
-  while (deck.length < 30) {
+  // pad to 40
+  while (deck.length < 40) {
     const th = used[Math.floor(rng() * used.length)]!;
     const cards = cardsByTheme(th);
     deck.push(cards[Math.floor(rng() * cards.length)]!.id);

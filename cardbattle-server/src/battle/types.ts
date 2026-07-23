@@ -73,6 +73,55 @@ export type Keyword =
 
 export type AspectId = 'ordo' | 'aer' | 'ignis' | 'aqua' | 'terra' | 'perditio';
 
+export type SpellTargetKind =
+  | 'none'
+  | 'enemy_unit'
+  | 'friendly_unit'
+  | 'enemy_machine'
+  | 'enemy_stealth'
+  | 'friendly_cooldown'
+  | 'friendly_unit_clone';
+
+export type SpellEffectId =
+  | 'damage_unit'
+  | 'heal_unit'
+  | 'buff_unit'
+  | 'buff_all'
+  | 'armor_unit'
+  | 'draw'
+  | 'gain_mana'
+  | 'nexus_damage'
+  | 'nexus_heal'
+  | 'nexus_max_heal'
+  | 'summon_token'
+  | 'strip_stealth'
+  | 'destroy_machine'
+  | 'hive_cooldown'
+  | 'add_aspects'
+  | 'damage_and_aspect'
+  | 'singularity'
+  | 'eternal'
+  | 'ae_generate'
+  | 'steal_attack_token'
+  | 'enemy_lose_mana'
+  | 'random_enemy_damage'
+  | 'damage_reduction'
+  | 'reflect'
+  | 'clone_unit'
+  | 'summon_tokens'
+  | 'reduce_dlb_interval';
+
+export interface SpellEffect {
+  id: SpellEffectId;
+  target?: SpellTargetKind;
+  amount?: number;
+  amount2?: number;
+  tokenCardId?: string;
+  tokenCount?: number;
+  aspects?: AspectId[];
+  keywordsAdd?: Keyword[];
+}
+
 export interface CardDef {
   id: string;
   name: string;
@@ -97,6 +146,8 @@ export interface CardDef {
   /** Exact player-facing rules text. Flavor/summary belongs in text/textZh. */
   rulesZh?: string;
   art?: string;
+  /** Data-driven spell resolution payload. */
+  effect?: SpellEffect;
 }
 
 export interface EquipmentMod {
@@ -168,9 +219,13 @@ export interface PlayerState {
 }
 
 export interface AttackPair {
+  /** Bench slot of attacker at declare time (kept for UI/compat). */
   attackerSlot: number;
-  /** -1 = nexus */
+  /** -1 = nexus / unblocked */
   blockerSlot: number;
+  /** Stable identity preferred by LoR-style board UI. */
+  attackerInstanceId?: string;
+  blockerInstanceId?: string | null;
 }
 
 export interface SpellStackItem {
@@ -180,6 +235,7 @@ export interface SpellStackItem {
   speed: Exclude<SpellSpeed, 'burst'>;
   targetSlot?: number;
   targetEnemySlot?: number;
+  targetInstanceId?: string;
 }
 
 export interface BattleState {
@@ -206,7 +262,13 @@ export interface BattleState {
   /** Each player confirms exactly one opening-hand replacement. */
   mulliganDone: [boolean, boolean];
   players: [PlayerState, PlayerState];
+  /**
+   * Attack order left-to-right as bench slot indices at declare time.
+   * Prefer resolving units via attackOrderIds when present.
+   */
   attackOrder: number[];
+  /** LoR battlefield order: attacker instanceIds left → right. */
+  attackOrderIds: string[];
   blockPairs: AttackPair[];
   swapUsedThisCombat: boolean;
   /** DLB: force role swap every N turns */
@@ -224,4 +286,10 @@ export interface AuthSession {
   actorUuid: string;
   actorName: string;
   type: string;
+  accountId?: string;
+  username?: string;
+  role?: string;
+  mcUuid?: string | null;
+  mcName?: string | null;
+  authSource?: 'account' | 'dev' | 'webae';
 }

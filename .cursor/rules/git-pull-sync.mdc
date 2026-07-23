@@ -101,6 +101,7 @@ Shell 无法连 GitHub 时，可用 **WebFetch** 查 API（Agent 侧通道，非
 
 已记录：
 
+- **2026-07-23**：直连 `github.com:443` 失败；`ghproxy.net` fetch 约 4 分钟后 `HTTP/2 stream … INTERNAL_ERROR` / `early EOF` → 改用 `https://gh-proxy.com/https://github.com/ImgoodWK/AdvanceDataMonitor429.git` + `git -c http.version=HTTP/1.1 fetch`（约 16s）成功 → `reset --hard origin/master` 对齐 `c4fed0e`；完成后恢复 origin 正常 URL。
 - **2026-07-13**：Windows 直连 `github.com:443` 超时 → `ghproxy.net` 前缀 URL + `git fetch`（约 3.7 分钟）成功 → `reset --hard origin/master` 对齐 `f823bd4`；zip 镜像下载两次均超时勿作首选。
 
 ### 何时写入

@@ -1,45 +1,53 @@
-import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import readline from 'node:readline';
-import { fileURLToPath } from 'node:url';
+import {
+  repoRoot,
+  loadRequirements,
+  loadState,
+  writeState,
+  runsRootFor,
+  resolveReferencePaths,
+  installFromRun,
+  nextOutputRoot,
+  existingCompletedRun,
+  publicArtDir,
+} from './lib/card-art-common.mjs';
+import { runDiyImage2, diyConfigured } from './backends/gpt-image2.mjs';
+import { runMeowaImage2, meowaCli } from './backends/meowa.mjs';
 
-const serverRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const repoRoot = path.resolve(serverRoot, '..');
-const requirementsPath = path.join(repoRoot, '.workspace', 'card-art', 'meowa-requirements.json');
-const runsRoot = path.join(repoRoot, '.workspace', 'card-art', 'meowa-runs');
-const statePath = path.join(repoRoot, '.workspace', 'card-art', 'meowa-state.json');
-const meowaCli = path.join(repoRoot, '.agents', 'skills', 'game-assets', 'meowart_api.py');
-const defaultReference = path.join(serverRoot, 'public', 'card-art', 'gt_worker.png');
-
-const STYLE_SUFFIX = [
-  'premium painterly game illustration',
-  'dramatic industrial-fantasy lighting',
-  'detailed materials',
-  'subject fills the central 70 percent of the composition',
-  'the reference controls rendering quality, lighting, and centered composition only, never subject identity',
-].join(', ');
+const defaultReference = path.join(publicArtDir, 'gt_worker.png');
 
 function parseArgs(argv) {
   const options = {
+    backend: 'diy',
     concurrency: 1,
     limit: 5,
     quality: 'standard',
-    reference: defaultReference,
+    reference: null,
     ids: null,
     dryRun: false,
     retryUnsubmitted: false,
+    promote: true,
+    force: false,
+    outputRootOverride: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--concurrency') options.concurrency = Number(argv[++i]);
+    if (arg === '--backend') options.backend = argv[++i];
+    else if (arg === '--concurrency') options.concurrency = Number(argv[++i]);
     else if (arg === '--limit') options.limit = Number(argv[++i]);
     else if (arg === '--quality') options.quality = argv[++i];
-    else if (arg === '--reference') options.reference = path.resolve(serverRoot, argv[++i]);
+    else if (arg === '--reference') options.reference = path.resolve(argv[++i]);
     else if (arg === '--ids') options.ids = new Set(argv[++i].split(',').map((id) => id.trim()).filter(Boolean));
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--retry-unsubmitted') options.retryUnsubmitted = true;
+    else if (arg === '--no-promote') options.promote = false;
+    else if (arg === '--force') options.force = true;
+    else if (arg === '--output-root') options.outputRootOverride = path.resolve(argv[++i]);
     else throw new Error(`Unknown argument: ${arg}`);
+  }
+  if (!['diy', 'meowa'].includes(options.backend)) {
+    throw new Error('--backend must be diy or meowa');
   }
   if (!Number.isInteger(options.concurrency) || options.concurrency < 1 || options.concurrency > 4) {
     throw new Error('--concurrency must be an integer from 1 to 4');
@@ -51,260 +59,203 @@ function parseArgs(argv) {
   return options;
 }
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-}
-
-function writeState(state) {
-  fs.mkdirSync(path.dirname(statePath), { recursive: true });
-  const tempPath = `${statePath}.tmp`;
-  fs.writeFileSync(tempPath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
-  fs.renameSync(tempPath, statePath);
-}
-
-function loadState() {
-  if (!fs.existsSync(statePath)) return { schemaVersion: 1, cards: {} };
-  const state = readJson(statePath);
-  state.cards ??= {};
-  return state;
-}
-
-function findManifests(root) {
-  if (!fs.existsSync(root)) return [];
-  const manifests = [];
-  const pending = [root];
-  while (pending.length) {
-    const current = pending.pop();
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isDirectory()) pending.push(entryPath);
-      else if (entry.isFile() && entry.name === 'final_outputs.json') manifests.push(entryPath);
-    }
-  }
-  return manifests;
-}
-
-function readPngSize(filePath) {
-  const header = Buffer.alloc(24);
-  const fd = fs.openSync(filePath, 'r');
-  try {
-    if (fs.readSync(fd, header, 0, header.length, 0) !== header.length) throw new Error('truncated PNG');
-  } finally {
-    fs.closeSync(fd);
-  }
-  if (!header.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
-    throw new Error('file does not have a PNG signature');
-  }
-  return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
-}
-
-function declaredPngFromManifest(manifestPath) {
-  const manifest = readJson(manifestPath);
-  if (manifest.status !== 'success') throw new Error(`manifest status is ${manifest.status}`);
-  const outputs = manifest.outputs?.filter((output) => output.type === 'media' && output.mime_type === 'image/png') ?? [];
-  if (outputs.length !== 1) throw new Error(`expected one declared PNG, found ${outputs.length}`);
-
-  const declaredPath = outputs[0].path;
-  const candidates = [
-    path.resolve(serverRoot, declaredPath),
-    path.join(path.dirname(manifestPath), path.basename(declaredPath)),
-  ];
-  const finalPath = candidates.find((candidate) => fs.existsSync(candidate));
-  if (!finalPath) throw new Error(`declared PNG is missing: ${declaredPath}`);
-  if (path.dirname(finalPath) !== path.dirname(manifestPath)) {
-    throw new Error('declared PNG is outside its sanitized task output directory');
-  }
-  const size = readPngSize(finalPath);
-  if (size.width !== 1024 || size.height !== 1024) {
-    throw new Error(`expected 1024x1024 PNG, received ${size.width}x${size.height}`);
-  }
-  return { finalPath, ...size, jobId: manifest.job_id };
-}
-
-function installFromRun(requirement, outputRoot) {
-  const manifests = findManifests(outputRoot);
-  if (manifests.length !== 1) return null;
-  const output = declaredPngFromManifest(manifests[0]);
-  const runtimePath = path.join(repoRoot, requirement.runtimeFile);
-  fs.mkdirSync(path.dirname(runtimePath), { recursive: true });
-  fs.copyFileSync(output.finalPath, runtimePath);
-  return { ...output, runtimePath, manifestPath: manifests[0] };
-}
-
-function nextOutputRoot(cardId) {
-  for (let attempt = 1; ; attempt += 1) {
-    const candidate = path.join(runsRoot, `${cardId}-v${attempt}`);
-    if (!fs.existsSync(candidate)) return candidate;
-  }
-}
-
-function existingCompletedRun(cardId) {
-  if (!fs.existsSync(runsRoot)) return null;
-  const candidates = fs.readdirSync(runsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name.startsWith(`${cardId}-v`))
-    .map((entry) => path.join(runsRoot, entry.name))
-    .sort();
-  return candidates.find((candidate) => {
-    const manifests = findManifests(candidate);
-    if (manifests.length !== 1) return false;
-    try {
-      declaredPngFromManifest(manifests[0]);
-      return true;
-    } catch {
-      return false;
-    }
-  }) ?? null;
-}
-
-function emitLines(stream, cardId, state, record) {
-  const reader = readline.createInterface({ input: stream });
-  reader.on('line', (line) => {
-    const important = line.startsWith('[INFO] submitted')
-      || line.includes('status=success')
-      || line.startsWith('[WARN]')
-      || /(?:error|exception|insufficient|credit)/i.test(line);
-    if (important) console.log(`[${cardId}] ${line}`);
-    if (/(?:insufficient|not enough).*(?:credit|balance)|(?:credit|balance).*(?:insufficient|not enough)/i.test(line)) {
-      record.creditError = true;
-    }
-    const submitted = line.match(/api_job_id=([A-Za-z0-9_-]+)/);
-    const completed = line.match(/"job_id"\s*:\s*"([A-Za-z0-9_-]+)"/);
-    const jobId = completed?.[1] ?? submitted?.[1];
-    if (jobId && record.jobId !== jobId) {
-      record.jobId = jobId;
-      if (completed?.[1]) record.finalJobId = completed[1];
-      else if (submitted?.[1]) record.submissionJobId = submitted[1];
-      record.status = 'submitted';
-      writeState(state);
-    }
-  });
-}
-
 async function generateOne(requirement, options, state) {
   const runtimePath = path.join(repoRoot, requirement.runtimeFile);
-  if (fs.existsSync(runtimePath)) return { id: requirement.id, status: 'existing' };
+  if (!options.force && options.promote && fs.existsSync(runtimePath)) {
+    return { id: requirement.id, status: 'existing' };
+  }
 
-  const completedRun = existingCompletedRun(requirement.id);
-  if (completedRun) {
-    const installed = installFromRun(requirement, completedRun);
-    const record = {
-      status: 'installed',
-      jobId: installed.jobId,
-      outputRoot: path.relative(repoRoot, completedRun),
-      runtimeFile: requirement.runtimeFile,
-      width: installed.width,
-      height: installed.height,
-      finishedAt: new Date().toISOString(),
-    };
-    state.cards[requirement.id] = record;
-    writeState(state);
-    console.log(`[${requirement.id}] installed existing completed output`);
-    return { id: requirement.id, status: 'installed' };
+  const runsRoot = options.outputRootOverride
+    ? path.join(options.outputRootOverride, options.backend)
+    : runsRootFor(options.backend);
+
+  if (!options.force && !options.outputRootOverride) {
+    const completedRun = existingCompletedRun(runsRoot, requirement.id);
+    if (completedRun) {
+      const installed = installFromRun(requirement, completedRun, { promote: options.promote });
+      const record = {
+        status: options.promote ? 'installed' : 'generated',
+        backend: options.backend,
+        jobId: installed.jobId,
+        outputRoot: path.relative(repoRoot, completedRun),
+        runtimeFile: requirement.runtimeFile,
+        width: installed.width,
+        height: installed.height,
+        finishedAt: new Date().toISOString(),
+      };
+      state.cards[requirement.id] = record;
+      writeState(options.backend, state);
+      console.log(`[${requirement.id}] installed existing completed ${options.backend} output`);
+      return { id: requirement.id, status: record.status };
+    }
   }
 
   const previous = state.cards[requirement.id];
   const mayRetry = options.retryUnsubmitted && previous?.status === 'failed' && !previous.jobId;
-  if (!mayRetry && previous && ['generating', 'submitted', 'failed', 'interrupted', 'failed-validation'].includes(previous.status)) {
-    console.error(`[${requirement.id}] skipped ${previous.status} task${previous.jobId ? ` ${previous.jobId}` : ''}; inspect before retrying`);
+  if (
+    !options.force
+    && !mayRetry
+    && previous
+    && ['generating', 'submitted', 'failed', 'interrupted', 'failed-validation'].includes(previous.status)
+  ) {
+    console.error(
+      `[${requirement.id}] skipped ${previous.status} task${previous.jobId ? ` ${previous.jobId}` : ''}; inspect before retrying`,
+    );
     return { id: requirement.id, status: 'blocked' };
   }
 
-  const outputRoot = nextOutputRoot(requirement.id);
+  const outputRoot = options.outputRootOverride
+    ? path.join(options.outputRootOverride, options.backend, requirement.id)
+    : nextOutputRoot(runsRoot, requirement.id);
+  fs.mkdirSync(outputRoot, { recursive: true });
+
   const record = {
     status: 'generating',
+    backend: options.backend,
     outputRoot: path.relative(repoRoot, outputRoot),
     runtimeFile: requirement.runtimeFile,
     startedAt: new Date().toISOString(),
   };
   state.cards[requirement.id] = record;
-  writeState(state);
+  writeState(options.backend, state);
 
-  const prompt = `${requirement.requirement}, ${STYLE_SUFFIX}`;
-  const args = [
-    meowaCli,
-    'image-2-run',
-    '--prompt', prompt,
-    '--reference-image', options.reference,
-    '--resolution', '1K',
-    '--aspect-ratio', '1:1',
-    '--quality', options.quality,
-    '--output-dir', outputRoot,
-  ];
+  const referencePaths = resolveReferencePaths(requirement, {
+    reference: options.reference,
+    defaultReference: defaultReference,
+  });
+
   if (options.dryRun) {
     record.status = 'dry-run';
-    writeState(state);
-    console.log(`[${requirement.id}] would generate ${path.relative(repoRoot, outputRoot)}`);
+    record.referenceCount = referencePaths.length;
+    writeState(options.backend, state);
+    console.log(
+      `[${requirement.id}] would generate via ${options.backend} → ${path.relative(repoRoot, outputRoot)} (refs=${referencePaths.length})`,
+    );
     return { id: requirement.id, status: 'dry-run' };
   }
 
-  return await new Promise((resolve) => {
-    const child = spawn(process.env.PYTHON || 'python', args, {
-      cwd: serverRoot,
-      env: process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-    });
-    emitLines(child.stdout, requirement.id, state, record);
-    emitLines(child.stderr, requirement.id, state, record);
-    child.on('error', (error) => {
-      record.status = 'failed';
-      record.error = error.message;
-      record.finishedAt = new Date().toISOString();
-      writeState(state);
-      resolve({ id: requirement.id, status: 'failed', error });
-    });
-    child.on('close', (exitCode) => {
-      if (exitCode !== 0) {
-        record.status = record.jobId ? 'interrupted' : 'failed';
-        record.exitCode = exitCode;
+  try {
+    if (options.backend === 'diy') {
+      const result = await runDiyImage2({
+        prompt: requirement.requirement,
+        referencePaths,
+        outputRoot,
+        quality: options.quality,
+        onProgress: (msg) => console.log(`[${requirement.id}] ${msg}`),
+      });
+      record.jobId = result.jobId;
+      record.status = 'submitted';
+      writeState(options.backend, state);
+    } else {
+      const result = await runMeowaImage2({
+        prompt: requirement.requirement,
+        referencePaths,
+        outputRoot,
+        quality: options.quality,
+        cardId: requirement.id,
+        onLine: (line) => {
+          const important =
+            line.startsWith('[INFO] submitted')
+            || line.includes('status=success')
+            || line.startsWith('[WARN]')
+            || /(?:error|exception|insufficient|credit)/i.test(line);
+          if (important) console.log(`[${requirement.id}] ${line}`);
+          if (/(?:insufficient|not enough).*(?:credit|balance)|(?:credit|balance).*(?:insufficient|not enough)/i.test(line)) {
+            record.creditError = true;
+          }
+          const submitted = line.match(/api_job_id=([A-Za-z0-9_-]+)/);
+          const completed = line.match(/"job_id"\s*:\s*"([A-Za-z0-9_-]+)"/);
+          const jobId = completed?.[1] ?? submitted?.[1];
+          if (jobId && record.jobId !== jobId) {
+            record.jobId = jobId;
+            if (completed?.[1]) record.finalJobId = completed[1];
+            else if (submitted?.[1]) record.submissionJobId = submitted[1];
+            record.status = 'submitted';
+            writeState(options.backend, state);
+          }
+        },
+      });
+      if (result.creditError) record.creditError = true;
+      if (!result.ok) {
+        record.status = result.jobId ? 'interrupted' : 'failed';
+        record.exitCode = result.exitCode;
+        record.error = result.error?.message;
         record.finishedAt = new Date().toISOString();
-        writeState(state);
-        resolve({ id: requirement.id, status: record.status, creditError: record.creditError === true, submitted: Boolean(record.jobId) });
-        return;
+        writeState(options.backend, state);
+        return {
+          id: requirement.id,
+          status: record.status,
+          creditError: record.creditError === true,
+          submitted: Boolean(record.jobId),
+        };
       }
-      try {
-        const installed = installFromRun(requirement, outputRoot);
-        if (!installed) throw new Error('successful command did not produce exactly one final_outputs.json');
-        Object.assign(record, {
-          status: 'installed',
-          jobId: installed.jobId ?? record.jobId,
-          finalJobId: installed.jobId ?? record.finalJobId,
-          width: installed.width,
-          height: installed.height,
-          finishedAt: new Date().toISOString(),
-        });
-        writeState(state);
-        console.log(`[${requirement.id}] installed ${path.relative(repoRoot, runtimePath)}`);
-        resolve({ id: requirement.id, status: 'installed' });
-      } catch (error) {
-        record.status = 'failed-validation';
-        record.error = error.message;
-        record.finishedAt = new Date().toISOString();
-        writeState(state);
-        console.error(`[${requirement.id}] validation failed: ${error.message}`);
-        resolve({ id: requirement.id, status: 'failed-validation', error });
-      }
+      if (result.jobId) record.jobId = result.jobId;
+    }
+
+    const installed = installFromRun(requirement, outputRoot, { promote: options.promote });
+    if (!installed) throw new Error('successful command did not produce exactly one final_outputs.json');
+    Object.assign(record, {
+      status: options.promote ? 'installed' : 'generated',
+      jobId: installed.jobId ?? record.jobId,
+      finalJobId: installed.jobId ?? record.finalJobId,
+      width: installed.width,
+      height: installed.height,
+      finishedAt: new Date().toISOString(),
     });
-  });
+    writeState(options.backend, state);
+    console.log(
+      `[${requirement.id}] ${record.status} ${options.promote ? path.relative(repoRoot, runtimePath) : path.relative(repoRoot, outputRoot)}`,
+    );
+    return { id: requirement.id, status: record.status };
+  } catch (error) {
+    record.status = record.jobId ? 'interrupted' : 'failed';
+    if (error.message?.includes('1024x1024') || error.message?.includes('final_outputs')) {
+      record.status = 'failed-validation';
+    }
+    record.error = error.message;
+    record.finishedAt = new Date().toISOString();
+    writeState(options.backend, state);
+    console.error(`[${requirement.id}] ${record.status}: ${error.message}`);
+    return {
+      id: requirement.id,
+      status: record.status,
+      error,
+      creditError: /insufficient|credit|balance/i.test(error.message),
+      submitted: Boolean(record.jobId),
+    };
+  }
 }
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  for (const requiredPath of [requirementsPath, meowaCli, options.reference]) {
-    if (!fs.existsSync(requiredPath)) throw new Error(`Required file is missing: ${requiredPath}`);
+  if (options.backend === 'meowa' && !fs.existsSync(meowaCli)) {
+    throw new Error(`Meowa CLI missing: ${meowaCli}`);
   }
-  const requirements = readJson(requirementsPath).requirements;
-  const state = loadState();
+  if (options.backend === 'diy' && !options.dryRun && !diyConfigured()) {
+    throw new Error('TEXTECH_IMAGE_API_KEY is not set for --backend diy');
+  }
+  if (!fs.existsSync(defaultReference)) {
+    throw new Error(`Default style reference missing: ${defaultReference}`);
+  }
+
+  const requirements = loadRequirements().requirements;
+  const state = loadState(options.backend);
   const selected = requirements
     .filter((requirement) => !options.ids || options.ids.has(requirement.id))
-    .filter((requirement) => !fs.existsSync(path.join(repoRoot, requirement.runtimeFile)))
+    .filter((requirement) => {
+      if (options.force || !options.promote) return true;
+      return !fs.existsSync(path.join(repoRoot, requirement.runtimeFile));
+    })
     .slice(0, options.limit);
 
   if (!selected.length) {
     console.log('No pending card art matched this batch.');
     return;
   }
-  console.log(`Generating or installing ${selected.length} card(s), concurrency=${options.concurrency}, quality=${options.quality}`);
+  console.log(
+    `Generating ${selected.length} card(s), backend=${options.backend}, concurrency=${options.concurrency}, quality=${options.quality}, promote=${options.promote}`,
+  );
+
   const queue = [...selected];
   const results = [];
   let stopRequested = false;
@@ -316,7 +267,7 @@ async function main() {
       results.push(result);
       if (result.creditError) {
         stopRequested = true;
-        console.error('Stopping batch because Meowa reported insufficient credits.');
+        console.error('Stopping batch because the backend reported insufficient credits/balance.');
       } else if (result.status === 'failed' && !result.submitted) {
         consecutiveUnsubmittedFailures += 1;
         if (consecutiveUnsubmittedFailures >= 3) {
@@ -329,12 +280,16 @@ async function main() {
     }
   });
   await Promise.all(workers);
-  const counts = Object.groupBy
-    ? Object.groupBy(results, (result) => result.status)
-    : results.reduce((groups, result) => ({ ...groups, [result.status]: [...(groups[result.status] ?? []), result] }), {});
-  console.log(`Batch result: ${Object.entries(counts).map(([status, items]) => `${status}=${items.length}`).join(', ')}`);
+
+  const counts = results.reduce((groups, result) => {
+    groups[result.status] = (groups[result.status] ?? 0) + 1;
+    return groups;
+  }, {});
+  console.log(`Batch result: ${Object.entries(counts).map(([status, count]) => `${status}=${count}`).join(', ')}`);
   if (queue.length) console.log(`Deferred by safety stop: ${queue.length}`);
-  if (results.some((result) => ['failed', 'interrupted', 'failed-validation'].includes(result.status))) process.exitCode = 1;
+  if (results.some((result) => ['failed', 'interrupted', 'failed-validation'].includes(result.status))) {
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {

@@ -28,6 +28,7 @@ function loadDotEnv(): void {
 loadDotEnv();
 
 import { authStatus, validateBearer } from './auth/validate.js';
+import { maybeBootstrapSuperadmin, mePayload, mountAuthRoutes, requireSession } from './auth/routes.js';
 import { CARD_CATALOG } from './data/catalog.js';
 import { THEME_SLOTS_BY_VOLTAGE, VOLTAGE_ORDER } from './battle/types.js';
 import type { ThemeId, VoltageTier } from './battle/types.js';
@@ -64,17 +65,11 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 app.use('/card-art', express.static(path.join(__dirname, '..', 'public', 'card-art')));
 
+maybeBootstrapSuperadmin();
+mountAuthRoutes(app);
+
 function requireAuth(req: express.Request, res: express.Response): ReturnType<typeof validateBearer> {
-  const session = validateBearer(req.header('authorization') ?? undefined);
-  if (!session) {
-    res.status(401).json({
-      status: 'error',
-      code: 'unauthorized',
-      message: 'Use Authorization: Bearer <WebAE token> (or CARDBATTLE_DEV_TOKEN)',
-    });
-    return null;
-  }
-  return session;
+  return requireSession(req, res);
 }
 
 app.get('/api/health', (_req, res) => {
@@ -104,12 +99,7 @@ app.get('/api/cards', (_req, res) => {
 app.get('/api/me', (req, res) => {
   const session = requireAuth(req, res);
   if (!session) return;
-  res.json({
-    ownerUuid: session.ownerUuid,
-    actorUuid: session.actorUuid,
-    actorName: session.actorName,
-    type: session.type,
-  });
+  res.json(mePayload(session));
 });
 
 app.post('/api/run', (req, res) => {

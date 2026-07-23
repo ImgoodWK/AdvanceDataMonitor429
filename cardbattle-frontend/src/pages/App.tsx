@@ -19,19 +19,27 @@ import {
   setSelectedSkinId,
   unlockRewardSkins,
 } from '../lib/skins';
+import { AdminScreen } from './AdminScreen';
 import { AdventureMapScreen } from './AdventureMapScreen';
 import { BattleScreen } from './BattleScreen';
 import { LobbyScreen } from './LobbyScreen';
 import { LoginScreen } from './LoginScreen';
+import { SettingsScreen } from './SettingsScreen';
 
-type Page = 'login' | 'lobby' | 'map' | 'battle';
+type Page = 'login' | 'lobby' | 'map' | 'battle' | 'settings' | 'admin';
+type LoginMode = 'login' | 'register' | 'token';
 const ACTIVE_RUN_KEY = 'textech_cardbattle_active_run';
 const ACTIVE_MATCH_KEY = 'textech_cardbattle_active_match';
 
 export function App() {
   const [page, setPage] = useState<Page>(getToken() ? 'lobby' : 'login');
+  const [loginMode, setLoginMode] = useState<LoginMode>('login');
   const [tokenInput, setTokenInput] = useState(getToken() ?? '');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [name, setName] = useState('');
+  const [me, setMe] = useState<Awaited<ReturnType<typeof client.me>> | null>(null);
   const [error, setError] = useState('');
   const [meta, setMeta] = useState<Awaited<ReturnType<typeof client.meta>> | null>(null);
   const [cards, setCards] = useState<CardDef[]>([]);
@@ -75,51 +83,85 @@ export function App() {
       .catch(() => undefined);
   }, []);
 
+  async function applyMe(m: Awaited<ReturnType<typeof client.me>>) {
+    setMe(m);
+    setName(m.actorName);
+  }
+
   useEffect(() => {
     const existing = getToken();
-    if (existing) {
-      client
-        .me()
-        .then(async (m) => {
-          setName(m.actorName);
-          if (!(await resumeProgress())) setPage('lobby');
-        })
-        .catch(() => {
-          clearToken();
-          setToken('local');
-          setTokenInput('local');
-          client
-            .me()
-            .then(async (m) => {
-              setName(m.actorName);
-              if (!(await resumeProgress())) setPage('lobby');
-            })
-            .catch(() => setPage('login'));
-        });
+    if (!existing) {
+      setPage('login');
       return;
     }
-    setToken('local');
-    setTokenInput('local');
     client
       .me()
       .then(async (m) => {
-        setName(m.actorName);
+        await applyMe(m);
         if (!(await resumeProgress())) setPage('lobby');
       })
-      .catch(() => setPage('login'));
+      .catch(() => {
+        clearToken();
+        setPage('login');
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function login() {
+  async function enterWithToken(token: string) {
     setError('');
-    setToken(tokenInput.trim());
+    setToken(token.trim());
+    setTokenInput(token.trim());
+    const m = await client.me();
+    await applyMe(m);
+    if (!(await resumeProgress())) setPage('lobby');
+  }
+
+  async function tokenLogin() {
+    setBusy(true);
     try {
-      const me = await client.me();
-      setName(me.actorName);
-      if (!(await resumeProgress())) setPage('lobby');
+      await enterWithToken(tokenInput);
     } catch (e) {
       clearToken();
       setError((e as Error).message);
+    } finally {
+      setBusy(false);
     }
+  }
+
+  async function accountSubmit() {
+    setBusy(true);
+    setError('');
+    try {
+      const result =
+        loginMode === 'register'
+          ? await client.register({
+              username,
+              password,
+              displayName: displayName || undefined,
+            })
+          : await client.login({ username, password });
+      await enterWithToken(result.token);
+      setPassword('');
+    } catch (e) {
+      clearToken();
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function logout() {
+    try {
+      await client.logout();
+    } catch {
+      /* ignore */
+    }
+    clearToken();
+    setMe(null);
+    setPendingRewards([]);
+    localStorage.removeItem(ACTIVE_RUN_KEY);
+    localStorage.removeItem(ACTIVE_MATCH_KEY);
+    setPage('login');
   }
 
   function toggleTheme(t: string) {
@@ -257,17 +299,13 @@ export function App() {
         <div className="row">
           {name && <span className="tag">{name}</span>}
           <span className="tag">{skin.nameZh}</span>
+          {page !== 'login' && page !== 'battle' && (
+            <button className="secondary" type="button" onClick={() => setPage('settings')}>
+              设置
+            </button>
+          )}
           {page !== 'login' && (
-            <button
-              className="secondary"
-              onClick={() => {
-                clearToken();
-                setPendingRewards([]);
-                localStorage.removeItem(ACTIVE_RUN_KEY);
-                localStorage.removeItem(ACTIVE_MATCH_KEY);
-                setPage('login');
-              }}
-            >
+            <button className="secondary" type="button" onClick={() => void logout()}>
               退出
             </button>
           )}
@@ -277,7 +315,94 @@ export function App() {
       {error && <div className="panel error">{error}</div>}
 
       {page === 'login' && (
-        <LoginScreen tokenInput={tokenInput} onTokenChange={setTokenInput} onLogin={() => void login()} />
+        <LoginScreen
+          mode={loginMode}
+          onMode={setLoginMode}
+          username={username}
+          password={password}
+          displayName={displayName}
+          tokenInput={tokenInput}
+          busy={busy}
+          onUsername={setUsername}
+          onPassword={setPassword}
+          onDisplayName={setDisplayName}
+          onTokenChange={setTokenInput}
+          onAccountSubmit={() => void accountSubmit()}
+          onTokenLogin={() => void tokenLogin()}
+        />
+      )}
+
+      {page === 'settings' && me && (
+        <SettingsScreen
+          me={{
+            username: me.username,
+            displayName: me.actorName,
+            role: me.role,
+            accountId: me.accountId,
+            binding: me.binding,
+          }}
+          busy={busy}
+          onBack={() => setPage('lobby')}
+          onOpenAdmin={() => setPage('admin')}
+          onSaveDisplayName={async (value) => {
+            setBusy(true);
+            setError('');
+            try {
+              await client.updateProfile({ displayName: value });
+              await applyMe(await client.me());
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          onChangePassword={async (currentPassword, newPassword) => {
+            setBusy(true);
+            setError('');
+            try {
+              await client.changePassword({ currentPassword, newPassword });
+              await logout();
+              setError('密码已更新，请重新登录');
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          onBind={async (code) => {
+            setBusy(true);
+            setError('');
+            try {
+              await client.bindMc(code);
+              await applyMe(await client.me());
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          onUnbind={async () => {
+            setBusy(true);
+            setError('');
+            try {
+              await client.unbindMc();
+              await applyMe(await client.me());
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
+
+      {page === 'admin' && (
+        <AdminScreen
+          busy={busy}
+          setBusy={setBusy}
+          setError={setError}
+          onBack={() => setPage('settings')}
+        />
       )}
 
       {page === 'lobby' && meta && (

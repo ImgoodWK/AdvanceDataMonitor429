@@ -78,6 +78,44 @@ button.danger {
   color: #1a0808;
 }
 
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-table th {
+  background: color-mix(in srgb, var(--panel) 70%, #000);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.panel input,
+.panel select {
+  background: #0d141c;
+  color: var(--text);
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  padding: 0.45rem 0.6rem;
+}
+
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -190,6 +228,143 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.45rem;
+}
+
+.board-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.35rem 0;
+}
+
+.board-side-enemy {
+  margin-bottom: 0.5rem;
+}
+
+.board-side-player {
+  margin-top: 0.5rem;
+}
+
+.battlefield-row,
+.bench-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.35rem;
+  border-radius: 8px;
+  min-height: 0;
+}
+
+.bench-row {
+  background: rgba(8, 12, 18, 0.35);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+}
+
+.battlefield-row {
+  background: rgba(212, 180, 90, 0.06);
+  border: 1px dashed color-mix(in srgb, var(--gold) 45%, var(--line));
+  min-height: 132px;
+}
+
+.battlefield-cell {
+  position: relative;
+  min-width: 0;
+}
+
+.row-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  margin: 0.15rem 0 0.1rem;
+}
+
+.slot.battlefield-slot {
+  min-height: 128px;
+}
+
+.slot.bench-slot {
+  min-height: 118px;
+}
+
+.slot.dimmed {
+  opacity: 0.35;
+}
+
+.slot-card-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.attack-order-badge {
+  position: absolute;
+  left: 0.35rem;
+  top: 0.35rem;
+  z-index: 14;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1a1206;
+  font-size: 0.72rem;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.blocker-link-badge {
+  position: absolute;
+  bottom: -0.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  color: var(--success);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.battle-coach {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--accent) 8%);
+  box-shadow: var(--pixel-shadow);
+}
+
+.battle-coach-label {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.battle-coach-text {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.battle.unit-dragging .slot-card-wrap {
+  cursor: grabbing;
+}
+
+.bench-row.drop-valid,
+.battlefield-row.drop-valid,
+.slot.drop-valid {
+  border-style: solid;
+  border-color: var(--success);
+  box-shadow: 0 0 0 1px var(--success), inset 0 0 22px rgba(91, 207, 138, 0.18);
+}
+
+.block-panel-minimal {
+  margin-top: 0.5rem;
+}
+
+.block-panel-minimal details {
+  margin-top: 0.35rem;
 }
 
 .slot {
@@ -1155,6 +1330,8 @@ select {
     overflow-x: auto;
   }
   .battle-arena .board-row,
+  .battle-arena .battlefield-row,
+  .battle-arena .bench-row,
   .battle-arena .nexus-bar {
     min-width: 680px;
   }

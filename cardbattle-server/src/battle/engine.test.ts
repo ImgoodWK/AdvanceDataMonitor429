@@ -375,3 +375,38 @@ describe('path adventure', () => {
     expect(reward?.delivery).toBe('pending_bridge');
   });
 });
+
+describe('LoR bench and attack order ids', () => {
+  it('plays units without a preferred slot and declares attacks by instanceId', () => {
+    const deck = buildDeck(['vanilla'], 'LV', 99);
+    expect(deck.length).toBeGreaterThanOrEqual(40);
+    const state = createMatch({
+      seed: 99,
+      playerId: 'p',
+      playerName: 'P',
+      playerDeck: deck,
+      playerThemes: ['vanilla'],
+      playerVoltage: 'LV',
+      aiDeck: buildDeck(['vanilla'], 'ULV', 100),
+      aiThemes: ['vanilla'],
+      aiVoltage: 'ULV',
+    });
+    applyAction(state, 0, { type: 'confirm_mulligan', replaceIndices: [] });
+    state.players[1].isAi = false;
+    state.players[0].mana = 10;
+    state.players[0].hand = ['van_grunt', 'van_scout'];
+    applyAction(state, 0, { type: 'play_card', handIndex: 0 });
+    expect(state.players[0].board[0]?.cardId).toBe('van_grunt');
+    applyAction(state, 1, { type: 'pass_priority' });
+    applyAction(state, 0, { type: 'play_card', handIndex: 0 });
+    expect(state.players[0].board.filter(Boolean)).toHaveLength(2);
+    expect(state.players[0].board[1]?.cardId).toBe('van_scout');
+
+    applyAction(state, 1, { type: 'pass_priority' });
+    applyAction(state, 0, { type: 'start_attack' });
+    const ids = state.players[0].board.filter((u): u is BoardUnit => !!u && !u.isStructure).map((u) => u.instanceId);
+    applyAction(state, 0, { type: 'declare_attacks', instanceIds: ids });
+    expect(state.attackOrderIds).toEqual(ids);
+    expect(state.phase).toBe('block_declare');
+  });
+});

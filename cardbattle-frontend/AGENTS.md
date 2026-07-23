@@ -25,4 +25,4 @@ npm.cmd exec tsc -- --noEmit
 npm.cmd run build
 ```
 
-Do not commit `MEOWART_API_KEY`. Card generation uses `.cursor/skills/textech-card-art/`.
+Do not commit `TEXTECH_IMAGE_API_KEY` or `MEOWART_API_KEY`. Card generation uses `.cursor/skills/textech-card-art/`.

@@ -1,11 +1,16 @@
 import { useCallback, useRef, useState } from 'react';
 import type { CardDef, PlayerState } from '../api/client';
-import { buildPlayAction, canPlayToSlot, isPlayWindow, type DropSide } from '../lib/playLegality';
+import {
+  canPlayDrop,
+  isPlayWindow,
+  parseDropFromElement,
+  resolvePlayFromDrop,
+  type DropTarget,
+} from '../lib/playLegality';
 
 export interface DragState {
   handIndex: number | null;
-  hoverSlot: number | null;
-  hoverSide: DropSide | null;
+  hoverTarget: DropTarget | null;
   dropState: 'none' | 'valid' | 'invalid';
   dragging: boolean;
 }
@@ -20,30 +25,30 @@ export function useDragPlay(args: {
 }) {
   const [drag, setDrag] = useState<DragState>({
     handIndex: null,
-    hoverSlot: null,
-    hoverSide: null,
+    hoverTarget: null,
     dropState: 'none',
     dragging: false,
   });
   const dragRef = useRef(drag);
   dragRef.current = drag;
 
-  const evaluate = useCallback(
-    (handIndex: number, slot: number, side: DropSide) => {
+  const evaluateTarget = useCallback(
+    (handIndex: number, target: DropTarget) => {
       if (!args.me) return 'invalid' as const;
       const cardId = args.me.hand[handIndex];
       const def = cardId && cardId !== '?' ? args.cardMap.get(cardId) : undefined;
-      const legal = canPlayToSlot({
+      const legal = canPlayDrop({
         phase: args.phase,
         me: args.me,
         opponent: args.opponent ?? undefined,
         handIndex,
-        targetSlot: slot,
+        target,
         cardMap: args.cardMap,
-        side,
       });
       if (!legal.ok) return 'invalid' as const;
-      if (def?.kind !== 'spell' && side === 'enemy') return 'invalid' as const;
+      if (def?.kind !== 'spell' && target.kind === 'unit' && target.side === 'enemy') {
+        return 'invalid' as const;
+      }
       return 'valid' as const;
     },
     [args.cardMap, args.me, args.opponent, args.phase],
@@ -54,8 +59,7 @@ export function useDragPlay(args: {
       if (args.busy || !isPlayWindow(args.phase) || !args.me) return;
       setDrag({
         handIndex,
-        hoverSlot: null,
-        hoverSide: null,
+        hoverTarget: null,
         dropState: 'none',
         dragging: true,
       });
@@ -63,47 +67,72 @@ export function useDragPlay(args: {
     [args.busy, args.me, args.phase],
   );
 
-  const hoverSlot = useCallback(
-    (slot: number, side: DropSide) => {
+  const hoverDrop = useCallback(
+    (target: DropTarget) => {
       const cur = dragRef.current;
       if (!cur.dragging || cur.handIndex == null) return;
-      const dropState = evaluate(cur.handIndex, slot, side);
-      setDrag((d) => ({ ...d, hoverSlot: slot, hoverSide: side, dropState }));
+      const dropState = evaluateTarget(cur.handIndex, target);
+      setDrag((d) => ({ ...d, hoverTarget: target, dropState }));
     },
-    [evaluate],
+    [evaluateTarget],
   );
 
-  const leaveSlot = useCallback(() => {
+  const leaveDrop = useCallback(() => {
     setDrag((d) =>
-      d.dragging ? { ...d, hoverSlot: null, hoverSide: null, dropState: 'none' } : d,
+      d.dragging ? { ...d, hoverTarget: null, dropState: 'none' } : d,
     );
   }, []);
 
-  const endDrag = useCallback(async () => {
-    const cur = dragRef.current;
-    if (!cur.dragging || cur.handIndex == null || !args.me) {
-      setDrag({ handIndex: null, hoverSlot: null, hoverSide: null, dropState: 'none', dragging: false });
-      return;
-    }
-    if (cur.hoverSlot != null && cur.hoverSide && cur.dropState === 'valid') {
-      const cardId = args.me.hand[cur.handIndex];
-      const def = cardId && cardId !== '?' ? args.cardMap.get(cardId) : undefined;
-      const action = buildPlayAction({
-        handIndex: cur.handIndex,
-        targetSlot: cur.hoverSlot,
-        side: cur.hoverSide,
-        kind: def?.kind,
-      });
-      setDrag({ handIndex: null, hoverSlot: null, hoverSide: null, dropState: 'none', dragging: false });
-      await args.onPlay(action);
-      return;
-    }
-    setDrag({ handIndex: null, hoverSlot: null, hoverSide: null, dropState: 'none', dragging: false });
-  }, [args]);
+  const endDrag = useCallback(
+    async (clientX?: number, clientY?: number) => {
+      const cur = dragRef.current;
+      if (!cur.dragging || cur.handIndex == null || !args.me) {
+        setDrag({ handIndex: null, hoverTarget: null, dropState: 'none', dragging: false });
+        return;
+      }
+
+      let target = cur.hoverTarget;
+      if (clientX != null && clientY != null) {
+        const el = document.elementFromPoint(clientX, clientY);
+        const fromPoint = parseDropFromElement(el);
+        if (fromPoint) target = fromPoint;
+      }
+
+      if (target && evaluateTarget(cur.handIndex, target) === 'valid') {
+        const cardId = args.me.hand[cur.handIndex];
+        const def = cardId && cardId !== '?' ? args.cardMap.get(cardId) : undefined;
+        const action = resolvePlayFromDrop({
+          handIndex: cur.handIndex,
+          target,
+          me: args.me,
+          kind: def?.kind,
+        });
+        setDrag({ handIndex: null, hoverTarget: null, dropState: 'none', dragging: false });
+        if (action) await args.onPlay(action);
+        return;
+      }
+
+      setDrag({ handIndex: null, hoverTarget: null, dropState: 'none', dragging: false });
+    },
+    [args, evaluateTarget],
+  );
 
   const cancelDrag = useCallback(() => {
-    setDrag({ handIndex: null, hoverSlot: null, hoverSide: null, dropState: 'none', dragging: false });
+    setDrag({ handIndex: null, hoverTarget: null, dropState: 'none', dragging: false });
   }, []);
 
-  return { drag, beginDrag, hoverSlot, leaveSlot, endDrag, cancelDrag, evaluate };
-}
+  const dropStateFor = useCallback(
+    (target: DropTarget) => {
+      if (!drag.dragging || drag.handIndex == null) return 'none' as const;
+      const same =
+        drag.hoverTarget?.kind === target.kind &&
+        drag.hoverTarget?.side === target.side &&
+        drag.hoverTarget?.slot === target.slot &&
+        drag.hoverTarget?.attackerInstanceId === target.attackerInstanceId;
+      return same ? drag.dropState : ('none' as const);
+    },
+    [drag],
+  );
+
+  return { drag, beginDrag, hoverDrop, leaveDrop, endDrag, cancelDrag, dropStateFor };
+};

@@ -381,6 +381,16 @@ public final class ConfigDescriptions {
             "devToken",
             "Optional local-only Bearer bypass for Card Battle. Default local (works on 127.0.0.1 without WebAE token). Clear to require a real WebAE token.",
             "可选的卡牌本地调试 Bearer。默认 local（本机打开即可玩，无需 WebAE Token）。清空则必须使用真实 WebAE Token。");
+        put(
+            "cardBattle",
+            "externalApiBaseUrl",
+            "Optional external Node cardbattle-server base URL for /textech card bind (e.g. http://127.0.0.1:8787). Empty uses local TeXTech/CardBattle/accounts bind-codes.",
+            "可选：独立 Node 卡牌后端地址，供 /textech card bind 发码（如 http://127.0.0.1:8787）。为空则写入本机 TeXTech/CardBattle/accounts。");
+        put(
+            "cardBattle",
+            "bridgeToken",
+            "Shared secret with Node CARDBATTLE_BRIDGE_TOKEN when externalApiBaseUrl is set.",
+            "与 Node 的 CARDBATTLE_BRIDGE_TOKEN 一致；仅在配置了 externalApiBaseUrl 时用于发绑定码。");
         put("webConsole", "port", "HTTP server port for WebAE console. Default 8090.", "WebAE 控制台的 HTTP 服务端口。默认 8090。");
         put(
             "webConsole",

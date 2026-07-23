@@ -32,6 +32,16 @@ public final class ConfigCardBattleLoader {
             "cardBattle",
             Config.cardBattleDevToken,
             ConfigDescriptions.get("cardBattle", "devToken"));
+        Config.cardBattleExternalApiBaseUrl = configuration.getString(
+            "externalApiBaseUrl",
+            "cardBattle",
+            Config.cardBattleExternalApiBaseUrl,
+            ConfigDescriptions.get("cardBattle", "externalApiBaseUrl"));
+        Config.cardBattleBridgeToken = configuration.getString(
+            "bridgeToken",
+            "cardBattle",
+            Config.cardBattleBridgeToken,
+            ConfigDescriptions.get("cardBattle", "bridgeToken"));
         // Legacy keys retained so old cfg files still parse; values ignored at runtime.
         Config.cardBattleServerDir = configuration.getString(
             "serverDir",

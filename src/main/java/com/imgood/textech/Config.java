@@ -137,6 +137,14 @@ public class Config {
      * WebAE token from {@code web-tokens.json}.
      */
     public static String cardBattleDevToken = "local";
+    /**
+     * Optional external Node cardbattle-server base URL for bind-code HTTP bridge
+     * (e.g. {@code http://127.0.0.1:8787}). Empty = write bind codes to local
+     * {@code TeXTech/CardBattle/accounts/}.
+     */
+    public static String cardBattleExternalApiBaseUrl = "";
+    /** Shared secret with Node {@code CARDBATTLE_BRIDGE_TOKEN} when using external bind API. */
+    public static String cardBattleBridgeToken = "";
     /** @deprecated Unused — Card Battle is embedded in the mod jar (no Node). Kept for cfg migration. */
     public static String cardBattleServerDir = "";
     /** @deprecated Unused — SPA ships in {@code assets/textech/cardbattle/}. */

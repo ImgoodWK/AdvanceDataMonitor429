@@ -31,7 +31,7 @@ alwaysApply: true
 | `tileentity/` | 7 | TE |
 | `gui/` | 66+ | GUI（含 Flex UI 框架 `framework/layout|style|widget|host`；见 `gui-guidelines.mdc` + `docs/zh/developer/ui-framework.md`） |
 | `handler/` | 40 | 服务端逻辑 / WebAE 生命周期 / 卡牌内嵌 HTTP 等 |
-| `cardbattle/` | 8+ | 内嵌卡牌对战（引擎 + NanoHTTPD + PvE；前端拖拽/动画/皮肤见 `cardbattle-frontend/`） |
+| `cardbattle/` | 11+ | 内嵌卡牌对战（引擎 + NanoHTTPD + PvE + 账号/绑定；前端见 `cardbattle-frontend/`） |
 | `entity/` | 8 | Entity only |
 | `renders/` | 35 | 全部客户端渲染（含 WebAE 告警 HUD、监视器网页表面） |
 | `network/` | 29 | 网络包（ID 表见 `network-packets.mdc`） |

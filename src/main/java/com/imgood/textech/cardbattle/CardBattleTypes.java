@@ -45,6 +45,19 @@ public final class CardBattleTypes {
         public String textZh;
         public String rulesZh;
         public String art;
+        /** Data-driven spell effect (mirrors TS SpellEffect). */
+        public SpellEffect effect;
+    }
+
+    public static class SpellEffect {
+        public String id;
+        public String target;
+        public Integer amount;
+        public Integer amount2;
+        public String tokenCardId;
+        public Integer tokenCount;
+        public List<String> aspects;
+        public List<String> keywordsAdd;
     }
 
     public static class BoardUnit {
@@ -90,6 +103,8 @@ public final class CardBattleTypes {
     public static class AttackPair {
         public int attackerSlot;
         public int blockerSlot;
+        public String attackerInstanceId;
+        public String blockerInstanceId;
 
         public AttackPair() {}
 
@@ -131,6 +146,8 @@ public final class CardBattleTypes {
         public boolean[] mulliganDone = new boolean[2];
         public PlayerState[] players = new PlayerState[2];
         public List<Integer> attackOrder = new ArrayList<Integer>();
+        /** LoR battlefield order: attacker instanceIds left → right. */
+        public List<String> attackOrderIds = new ArrayList<String>();
         public List<AttackPair> blockPairs = new ArrayList<AttackPair>();
         public boolean swapUsedThisCombat;
         public int dlbForceEvery;

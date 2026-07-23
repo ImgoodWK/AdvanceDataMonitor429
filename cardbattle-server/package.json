@@ -11,9 +11,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "art:requirements": "node scripts/card-art-requirements.mjs",
+    "art:index-refs": "node scripts/index-mod-textures.mjs",
     "art:generate": "node scripts/generate-card-art.mjs",
+    "art:ab": "node scripts/ab-card-art.mjs",
     "art:recover": "python scripts/recover-card-art.py",
-    "catalog:export": "tsx scripts/export-catalog.ts"
+    "catalog:export": "tsx scripts/export-catalog.ts",
+    "auth:bootstrap": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

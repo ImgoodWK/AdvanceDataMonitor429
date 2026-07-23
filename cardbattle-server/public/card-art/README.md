@@ -1,16 +1,28 @@
-﻿# Place Meowa-generated card faces here as `<cardId>.png`.
-# See `.cursor/skills/textech-card-art/SKILL.md`.
-# Pilot (gt + thaum, 20 cards) generated via Meowa `image-2-run` (1K 1:1).
-# Production jar also serves copies from `assets/textech/cardbattle/card-art/`.
-# Run `npm run art:requirements` from `cardbattle-server/` to create one Meowa
-# requirement per missing card under ignored `.workspace/card-art/`.
-# The exporter never reads or writes MEOWART_API_KEY and never calls the network.
-# With MEOWART_API_KEY configured locally, run `npm run art:generate -- --limit 5`
-# to generate a resumable small batch. Successful 1024x1024 PNGs are validated
-# against Meowa `final_outputs.json` before promotion; interrupted jobs are kept
-# in `.workspace/card-art/meowa-state.json` and are never resubmitted implicitly.
-# Keep the default serial execution for reliable downloads. A submission that
-# failed before receiving a job id can be retried explicitly with
-# `--ids <cardId> --retry-unsubmitted`; accepted jobs must be recovered instead.
-# Run `npm run art:recover` only after the generator has stopped to retrieve
-# completed-but-undownloaded media by saved job id without submitting new jobs.
+﻿# Card faces (`<cardId>.png`)
+
+See `.cursor/skills/textech-card-art/SKILL.md`.
+
+## Style
+
+HD 1:1 **voxel cinematic still** (in-game screenshot feel): cubic volumetric forms,
+hard-edged materials, centered subject, dark vignette. No text/numbers/frames.
+Cost / ATK / HP stay in UI.
+
+## Commands (`cardbattle-server/`)
+
+```powershell
+npm.cmd run art:index-refs -- --mods-dir "D:\path\to\GTNH\mods"
+npm.cmd run art:requirements
+npm.cmd run art:generate -- --backend diy --limit 5
+npm.cmd run art:generate -- --backend meowa --limit 5 --quality standard
+npm.cmd run art:ab -- --limit 4
+npm.cmd run art:recover
+```
+
+- Requirements land in ignored `.workspace/card-art/art-requirements.json` (mirrored as `meowa-requirements.json`).
+- DIY needs `TEXTECH_IMAGE_API_KEY` (+ optional `TEXTECH_IMAGE_BASE_URL` / `TEXTECH_IMAGE_MODEL`).
+- Meowa needs `MEOWART_API_KEY`. Never commit keys; exporters never read or write them into the repo.
+- Successful 1024×1024 PNGs are validated via `final_outputs.json` before promotion.
+- Interrupted Meowa jobs stay in `.workspace/card-art/meowa-state.json` and are never resubmitted implicitly.
+- Use `--retry-unsubmitted` only for failures that never received a job id; otherwise `art:recover`.
+- Production jar may also serve copies from `assets/textech/cardbattle/card-art/`.
