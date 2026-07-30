@@ -16,13 +16,13 @@ alwaysApply: false
 | `Config.java` | 配置公共门面（字段 + 保存 API）；分节加载见 `config/` 包。含 `[webConsole]` 图标、Spark、截图清晰度/带宽/并发/保留上限等字段 + `[debug]` WebAE 分功能开关；`reloadConfiguration()` 复用 `activeConfigFile` 重载分节（供 `/admweb reload`） |
 | `ConfigDescriptions.java` | 配置项双语说明（英文 / 中文，供 .cfg 注释与手册引用） |
 | `ClientProxy.java` | 客户端代理（按键注册；FML bus 注册 `IconRenderer` + `IconLazyRenderQueue`） |
-| `TeXTechDataDir.java` | 运行时数据目录统一入口（`TeXTech/WebAE|Assistant|Grapple|CardBattle/`） |
+| `TeXTechDataDir.java` | 运行时数据目录统一入口（`TeXTech/WebAE|Assistant|Grapple/`） |
 | `TeXTechDataMigration.java` | preInit 启动迁移：`config/textech/`、`config/advancedatamonitor/`、`TeXTechWebAE/` → `TeXTech/`（移动，config 仅保留 `.cfg`） |
 | `CommonProxy.java` | 通用代理（空实现或共用逻辑） |
 
 ### config/ — 配置分节加载 (16 文件)
 - `ConfigDebugLoader.java` — `[debug]` 通用/GUI/WebAE 调试开关（含 `debugWebae` 控制 NEI 配方采集器诊断日志）
-- `ConfigCompatLoader.java` — `[compat]` AE 2.9 兼容 profile 覆盖
+- `ConfigCompatLoader.java` — `[compat]` AE profile 旧配置兼容读取；2.0 始终 NativeFluid，`legacy` override 被忽略
 - `ConfigAiLoader.java` / `ConfigAiMutators.java` — `[ai]`
 - `ConfigVoiceLoader.java` — `[voice]`
 - `ConfigAssistantLoader.java` — `[assistant]`
@@ -32,17 +32,18 @@ alwaysApply: false
 - `ConfigMatterBallDecompressorLoader.java` — `[matterBallDecompressor]`
 - `ConfigGrappleLoader.java` — `[grapple]`
 - `ConfigWebaeLoader.java` — `[webConsole]`（含 WebAE 告警总闸 `alertsEnabled`、阶段 3.1 图标三开关、可选 Spark 配置 + **Phase6** `dynmapBaseUrl`）
-- `ConfigCardBattleLoader.java` — `[cardBattle]`（进档自动拉起独立 Node 卡牌服）
+- `ConfigCardBattleLoader.java` — `[cardBattle]`（独立卡牌服务 URL + 私密 Bridge Token；两者为空时关闭）
 - `ConfigWebaeDebugLoader.java` — `[debug]` 节 WebAE 分功能 debug 开关（阶段 3.3：`webaeIcons`/`webaeChat`/`webaeDashboard`/`webaeSynthesis`/`webaePatterns`，默认 false，gate `WebAeDebugLog`）
 - `ConfigWebAlertsLoader.java` — 加载/保存 `TeXTech/WebAE/web-alerts.json`（WebAE 自动化告警规则）
 - `ConfigWebOrderTemplatesLoader.java` — 加载/保存 `TeXTech/WebAE/web-order-templates.json`（按 ownerUuid 批量下单模板）
 
-### compat/ — GTNH / AE2 版本兼容 (22 文件)
+### compat/ — GTNH / AE2 / 可选社区模组兼容 (26 文件)
 - **compat/ae/** — `AeCompat` 门面、`GtnhEnvironmentProbe`、`GtnhVersion`、`AeCellStatsAdapter` 等
-- **compat/ae/legacy/** — 2.9.0 beta-1 之前 GlodBlock / AE2FC 路径
-- **compat/ae/native_/** — 2.9.0 beta-1+ AE2 原生流体路径
+- **compat/ae/legacy/** — Native 适配器仍复用的混合格式/迁移辅助源码；不代表支持旧整合包
+- **compat/ae/native_/** — 2.0 实际绑定的 GTNH 2.9.0-beta-2+ AE2 原生流体路径
 - 详见 `docs/zh/developer/ae-compat-290.md` / `docs/en/developer/ae-compat-290.md`
 - **compat/gt/** — `GtCompat.java`：GT 机器状态读取兼容层
+- **compat/programmablehatches/** — `ProgrammableHatchesCompat.java`：无编译期依赖的 Programmable Hatches V3 编程电路包装/解包
 
 ### assistant/ — AI 助手核心逻辑 (46 文件：根 38 + ai 8)
 - **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理
@@ -127,13 +128,13 @@ alwaysApply: false
 - `TileEntityGrappleAnchor.java` — 挂索节点（贴面放置、悬挂锚点计算）
 - `TileEntityMatterBallDecompressor.java` — 物质球解压器（AE 网络、9 输入 + 81 缓存、4 加速卡槽）
 
-### gui/ — GUI 组件和界面 (66 文件)
-- **gui/根** — `MatterBallDecompressorGuiLayout.java`（解压器 GUI 布局）、`UiFrameworkDebugLayout.java`（UI 框架调试 GUI 布局）
-- **gui/framework/** — UI 框架（命令式 + Flex 树）：根包 `GuiBlitUtil` / `NineSliceRegion` / `UiTheme` / `AdmUiTheme` / `PocketUiTheme` / `UiThemes` / `UiPanel` / `UiText` / `UiIcon` / `UiButton` / `UiToggleButton` / `UiSlot` / `UiTextField` / `UiLayoutContext` / `UiTooltip`；`layout/` Flex 引擎；`style/` `UiStyle`；`widget/` `UiWidget`/`UiFlex`/`UiLabel`/`UiScrollPanel`/`UiButtonWidget`；`host/` `AdmUiScreen`；图集 `textures/gui/adm_ui_atlas.png`；详见 `docs/zh/developer/ui-framework.md`
+### gui/ — GUI 组件和界面 (67 文件)
+- **gui/根** — `GuiResponsiveLayout.java`（固定首选尺寸面板在 scaled viewport 内的纯 Java 居中适配）、`MatterBallDecompressorGuiLayout.java`（解压器 GUI 布局）、`UiFrameworkDebugLayout.java`（UI 框架调试 GUI 布局）
+- **gui/framework/** — UI 框架（命令式 + Flex 树）：根包 `GuiBlitUtil` / `NineSliceRegion` / `UiTheme` / `AdmUiTheme` / `PocketUiTheme` / `UiThemes` / `UiPanel` / `UiText` / `UiIcon` / `UiButton` / `UiToggleButton` / `UiSlot` / `UiTextField` / `UiLayoutContext` / `UiTooltip`；ADM 主题覆盖 Meowa `mainPanel`/`sectionPanel`、四态按钮、输入框、槽位、滚动轨道/滑块、divider、toggle/check 和 16×16 图标网格；`layout/` Flex 引擎；`style/` `UiStyle`；`widget/` `UiWidget`/`UiFlex`/`UiLabel`/`UiScrollPanel`/`UiButtonWidget`；`host/` `AdmUiScreen`；图集 `textures/gui/adm_ui_atlas.png`；`AdmUiAtlasContractTest` 锁定 atlas 哈希/UV/状态，`GuiThemeCoverageTest` 动态约束全部非口袋 GUI 的主题覆盖；详见 `docs/zh/developer/ui-framework.md`
 - **gui/custom/** — 自定义 GUI 基础组件（7 个）
-  - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸）
-  - `ADM_GuiButton.java` — 自定义按钮（链式设置、hover 纹理、RGB 效果）
-  - `ADM_GuiTextField.java` — 自定义文本框（背景纹理、hint 提示）
+  - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸；旧主背景/子面板/输入框常量自动桥接 ADM 主题）
+  - `ADM_GuiButton.java` — 自定义按钮（旧按钮纹理自动桥接 ADM normal/hover/pressed/disabled 四态；链式设置、RGB 效果）
+  - `ADM_GuiTextField.java` — 自定义文本框（旧输入框纹理自动桥接 ADM normal/focused；hint 提示）
   - `ADM_UiContainer.java` — 容器 GUI 基类（`UiTheme` + `drawMainPanel` + 可选 `setUiRoot` Flex 树）
   - `AdmGuiTextures.java` — 共享 ADM GUI 纹理 `ResourceLocation` 常量
   - `AbstractMonitorSubGui.java` — 数据监视器 per-binding 子界面基类
@@ -141,19 +142,19 @@ alwaysApply: false
 - **gui/guiscreen/** — 具体 GUI 界面（30 个），详见 `gui-guidelines.mdc`
   - `GuiManual.java` — 模组手册 GUI（左侧搜索框 + 可滚动章节导航 + 右侧内容区 + 翻页；搜索高亮与拼音匹配）
   - `GuiNbtViewer.java` — NBT 树查看器（映录器用）
-  - `GuiAdvanceLinkScanner.java` — 链接扫描器（列表/筛选/备注/传送）
+  - `GuiAdvanceLinkScanner.java` — 链接扫描器（主题 sectionPanel + 主题滚动条；列表/筛选/备注/传送）
   - `GuiSubLinkDisplayTypeSelect.java` — 统一网络链接器绑定显示类型选择（网络图表 / 存储显示 / 合成监控）
   - `GuiSubWebDashboard.java` — 监视器 WebAE 仪表盘快照配置（剪贴板导入/复制、变换、透明度、光照、256/512/1024px 质量）
   - `GuiDimensionalPocketConfig.java` — 次元口袋配置 GUI（升级插槽：空间/翻页/堆叠/无尽堆叠 + 开关 + 容量统计 + 堆叠倍数显示）
   - `GuiPocketStorage.java` — 次元口袋存储 GUI（原生 Container，口袋格 + 玩家背包 + 翻页/升级配置按钮；右键口袋主入口）
   - `GuiSuperOrangeConfig.java` — 超能砂糖桔设置（铭牌、物质球开关、拾取合并、丢弃合并、倍率）
-  - `GuiMatterBallDecompressor.java` — 物质球解压器（`ADM_UiContainer` + `UiPanel`/`UiText`/`UiIcon`/`UiButton`）
-  - `GuiUiFrameworkDebug.java` — UI 框架组件展示（调试方块右键打开）
+  - `GuiMatterBallDecompressor.java` — 物质球解压器（`ADM_UiContainer` + `UiPanel`/`UiText`/`UiIcon`/`UiButton`；缓存格经 renderer 使用 `UiSlot.drawTheme`）
+  - `GuiUiFrameworkDebug.java` — UI 框架组件展示（Meowa 主题槽位及完整 atlas UV 对照；调试方块右键打开）
   - `GuiGrappleSavePrompt.java` — 挂索路径保存命名弹窗
   - `GuiPlannerHudConfig.java` — 计划器 HUD 配置（显示项目/位置/透明度）
   - `GuiPlannerMergeConfirm.java` — 计划器合并确认弹窗
   - `GuiScreenMessage.java` — 通用消息提示弹窗
-  - `GuiScreenshotGallery.java` — 客户端本地截图历史预览（较新/较旧、发送 WebAE；动态纹理关闭时释放）
+  - `GuiScreenshotGallery.java` — 主题主面板 + sectionPanel 内的客户端本地截图历史预览（较新/较旧、发送 WebAE；动态纹理关闭时释放）
 - **gui/manual/** — 手册数据结构（6 个）：`ManualChapter.java` / `ManualPage.java` / `ManualDataLoader.java` / `ManualSearchUtil.java` / `ManualSearchIndex.java` / `ManualTextHighlighter.java`
 - **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）、`ContainerMatterBallDecompressor.java`（物质球解压器容器，9 输入 + 9×9 缓存 + 4 加速卡槽）、`ContainerUiFrameworkDebug.java`（UI 框架展示，无槽位）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；GUI ID 0–10，含 `UI_FRAMEWORK_DEBUG_GUI_ID=10`）
@@ -177,7 +178,6 @@ alwaysApply: false
 - **星空剑技能逻辑**（原 handler/）：`StarryCosmosSwordUtil.java` / `StarryCosmosSwordConstants.java` / `StarryEntityMotionUtil.java` / `StarryPlayerLookup.java` / `ThrownImpactPoint.java` / `StarryCosmosSounds.java` / `DamageSourceStarryCosmos.java`
 - `LinkScannerService.java` — 链接扫描器已加载区块扫描、NBT 合并、安全传送
 - `WebAeServerHandler.java` — WebAE HTTP 服务器生命周期管理（FMLServerStartedEvent/FMLServerStoppedEvent）
-- `CardBattleProcessHandler.java` — 卡牌独立 Node 进程生命周期（进档拉起 / 退档停止；不占 Forge tick）
 - `HandlerWebPlayerTracker.java` — WebAE 玩家登录/登出追踪（`@SubscribeEvent` 监听 `PlayerLoggedInEvent`/`PlayerLoggedOutEvent`，写入 `PlayerInfoStore`；登录时 `NetworkRegistry.onPlayerLogin`；每 tick 调用 `reconcileOnline` + `tickSave` + `NetworkRegistry.tickHealthCheck`）
 - `HandlerWebTileEntityIndex.java` — WebAE chunk load/unload 同步 `TileEntityIndex` 与 `NetworkRegistry`
 - `HandlerWebChatCollector.java` — WebAE 游戏内聊天收集（`@SubscribeEvent` 监听 `ServerChatEvent`，不取消事件，镜像写入 `ChatMessageStore` 作为 `source=game`）
@@ -200,6 +200,7 @@ alwaysApply: false
 - `RenderAdvanceDataMonitor.java` / `RenderGrappleAnchor.java` / `RenderGrappleSlide.java` — 方块/实体 TESR
 - `RenderAdvanceDataMonitorBlockItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderDataImprintItem.java` / `RenderItem.java` — 物品渲染
 - `RenderMatterBallDecompressor.java` — 物质球解压器 TESR
+- `MatterBallDecompressorGuiRenderer.java` — 解压器 GUI 背景/分隔线/缓存格渲染（ADM 主题面板 + divider + `UiSlot.drawTheme`；AE2 模式按钮/升级列保持原生）
 - `RenderController.java` — 监视器内容渲染器注册（line / crafting / storage / web_surface）
 - `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java` / `AdvanceBlockCubeRenderUtil.java`
 
@@ -314,8 +315,8 @@ alwaysApply: false
 ### manual/ — （已迁入 gui/manual/）
 - 页面渲染见 `renders/ManualPageRenderer.java`；GUI 入口 `gui/guiscreen/GuiManual.java`
 
-### webae/ — WebAE 嵌入式 HTTP 控制台 (380+ 文件，含 access/ACL、服务端后台命令、QQ 群机器人、截图附件)
-- `webae/WebConsoleServer.java` — NanoHTTPD 服务生命周期 + 静态资源托管（classpath `assets/textech/webae/` + 阶段 3.1 扩展托管外部 `TeXTech/WebAE/icons/` 经 `/icons/<pack>/<itemId>.png`，含路径穿越防护）
+### webae/ — WebAE 嵌入式 HTTP 控制台 (394 文件，含 access/ACL、服务端后台命令、QQ 群机器人、截图附件、样板网页缓存)
+- `webae/WebConsoleServer.java` — NanoHTTPD 服务生命周期 + 静态资源托管（优先实例 `TeXTech/WebAE/ui/`，源码开发回退 classpath `assets/textech/webae/`；发布主 JAR 排除 UI，独立 WebAE ZIP 提供；另托管外部 `TeXTech/WebAE/icons/`，所有外部路径含穿越防护）
 - `webae/auth/WebAuthSession.java` — 认证会话 DTO（`ownerUuid` 网络归属 + `actorUuid`/`actorName` 聊天身份 + `type` owner/guest + 可选 `allowedNetworkKeys`）
 - `webae/auth/WebAuthToken.java` — Token 生成/校验/持久化（主人 Token 每 owner 一条；访客 Token 按 owner+guest；可选 `allowedNetworkKeys`；禁用玩家校验；`revokeAllForPlayer`；含可选 TTL：`webTokenLifetimeHours`）
 - `webae/auth/WebAuthMiddleware.java` — HTTP 请求认证中间件（返回 `WebAuthSession`；401 响应带 `code`：过期/无效/`webae_disabled`）
@@ -352,7 +353,7 @@ alwaysApply: false
 - `webae/api/handler/PowerHandler.java` — 无线电力/蒸汽 REST handler（只读缓存 + 管理员刷新 + 批量）
 - `webae/api/handler/RecipeHandler.java` — 配方 REST（sync manifest/chunk + browse/search/suggest/status/handlers/单条详情；兜底经 `ensureLoaded`）
 - `webae/api/handler/PatternHandler.java` — 样板编码/注入/接口枚举 REST handler
-- `webae/api/handler/PatternListHandler.java` — 样板总览 REST handler（`GET /api/patterns?network=` 列出当前网络所有 ME 接口样板、`GET /api/patterns/<id>` 详情、`DELETE /api/patterns/<id>` OP>=2 删除、`PUT /api/patterns/<id>` OP>=2 编辑回写；复用 `InterfaceLocator` 反射访问接口槽位 + `PatternEncoder.decode` 解码样板 NBT；触发 `MENetworkCraftingPatternChange` 通知合成 CPU 重载）
+- `webae/api/handler/PatternListHandler.java` — 样板总览/编辑/物理移动 REST handler（接口与部件 id、管理员 move/swap、网页缓存 take/place；写操作校验 owner network、主线程执行并回滚，触发 `MENetworkCraftingPatternChange`）
 - `webae/api/handler/PatternBrowseHandler.java` — 样板 browse REST handler（`GET /api/patterns/browse` HTTP 只读缓存 + `cached`/`timestamp`；`POST /api/patterns/browse/refresh` OP 强制重建；后台 `SnapshotScheduler` 按 `patternCacheTtlMs` 预采集；owner 离线经 `getOwnerPlayerOrFake`；配置项 `patternBrowsePageSize`/`patternBrowseMaxTotal`/`patternCacheTtlMs`）
 - `webae/api/handler/PatternGridDetailHandler.java` — Grid 单条目详情 REST handler（`GET /api/patterns/grid/<gridKey>?network=`；`gridKey` 为 `grid:<index>`，与 browse 索引一致；返回完整 inputs/outputs）
 - `webae/api/handler/NetworkMetricHandler.java` — AE 网络指标历史 REST handler（`GET /api/network/metrics?network=`）
@@ -500,10 +501,11 @@ alwaysApply: false
 - `webae/pattern/PatternBrowseService.java` — Grid+Interface 双源合并；主线程 `buildAndStoreCache` + HTTP 线程 `paginate`/`browse`（只读 TTL/stale 缓存）；`invalidateAll`/`invalidateNetwork`/`getGridEntry`（ownerUuid）
 - `webae/pattern/PatternBrowseInvalidationGridCache.java` — AE `IGridCache`：监听 `MENetworkCraftingPatternChange` 与 grid split/join，调用 `PatternBrowseService.invalidateAll()`（debug：`webaePatterns`）
 - `webae/pattern/PatternBrowseGridCacheRegistrar.java` — postInit 注册上述 grid cache（`AdvanceDataMonitor.postInit` 在 `AeCompat.init()` 之后调用）
-- `webae/pattern/PatternEncoder.java` — 样板 NBT 编码器
+- `webae/pattern/PatternEncoder.java` — 样板 NBT 编码器（保留 shaped 空槽、meta/item NBT、整数 Count；软反射 AE2FC 流体 drop；可选 PH 未消耗输入包装）
 - `webae/pattern/BlankPatternHelper.java` — Phase 6：从 AE 网络库存扣除空白样板（`materials().blankPattern()`）
-- `webae/pattern/InterfaceLocator.java` — ME 接口定位器/枚举（主线程；`locateViaGridNodes` 沿 grid 机器跨维度枚举；Phase 6 扩展 `existingPatterns`/`machineRecipeType`）
-- `webae/pattern/PatternInjector.java` — 样板注入器（主线程；Phase 6 注入前扣空白样板，`consumeBlank` 可跳过重复扣除）
+- `webae/pattern/InterfaceLocator.java` — 完整方块/线缆部件 ME 接口定位与跨维度枚举；经 `InterfaceDuality.getPatterns()` 读真实槽位，地址 `x:y:z:dim@SIDE`，统一保存/Grid 归属/样板变更事件
+- `webae/pattern/PatternInjector.java` — 样板注入器（主线程；目标/槽位/重复校验后才按 `consumeBlank` 扣空白样板）
+- `webae/pattern/PatternWebBufferStore.java` — owner/network 隔离的网页专用物理样板缓存，最多 54 条，原子持久化 `TeXTech/WebAE/web-pattern-buffer.json`
 - `webae/balance/NetworkBalanceSuggestion.java` — 多网平衡建议 DTO（Phase 8）
 - `webae/balance/NetworkBalanceCollector.java` — 对比缓存 storage snapshot 生成短缺/余量建议
 - `webae/topology/TopologyNode.java` — 拓扑节点 DTO（subtype、patternCount、branchIndex、layoutSector、layout 坐标、simGrid、cellSlots[]、patternSlots[]、devices、cpuSummary）

@@ -6,7 +6,7 @@ alwaysApply: false
 
 # WebAE 前端开发规范
 
-源码目录：`webae-frontend/`（React 18 + TypeScript + Ant Design 5 + Vite 5）。构建产物输出到 `src/main/resources/assets/textech/webae/`。
+源码目录：`webae-frontend/`（React 18 + TypeScript + Ant Design 5 + Vite 5）。构建产物输出到 `src/main/resources/assets/textech/webae/`；发布时进入独立 `textech-*-webae.zip`，主 JAR 排除。运行时优先实例 `TeXTech/WebAE/ui/`，源码开发才回退 classpath。
 
 ## UI 组件
 
@@ -34,7 +34,7 @@ alwaysApply: false
 - 跨页展示组件：`components/common/SettingRow.tsx`、`SelectableListRow.tsx`、`SelectableCard.tsx`；样式类见 `global.css`（`.webae-nav-item`、`.webae-list-row`、`.webae-setting-row`、`.webae-pattern-slot`、`.webae-scroll-panel`、`.webae-selectable-card` 等）
 - 物品图标 ID：`utils/icon.ts` 的 `patternEntryIconId`；DOM 场景统一 `<Icon>`；Cytoscape 须先 `resolveLocalIconUrls`，未命中再 `buildIconUrl`（禁止批量服务端 prefetch）
 - 图标性能标准见 **`webae-icon-performance.mdc`**（默认不 auto-sync、不 HTTP 同步直渲）
-- AE 下单子模块：`components/ordering/*`；样板编辑：`PatternListSidebar` / `PatternEditorForm` / `PatternInjectPanel`（类型见 `patternEditorTypes.ts`）
+- AE 下单子模块：`components/ordering/*`；样板三栏工作台：`PatternRecipeSidebar`（配方搜索/handler 筛选）+ `PatternEditorForm`（3×3/9×3、未消耗与 PH）+ `PatternInterfaceWorkspace`（接口槽、拖放交换、网页缓存），网络样板 Tab 复用 `PatternListSidebar`，映射与 shaped 槽位测试见 `utils/patternEditor.ts` / `.test.ts`
 
 ## 页面结构
 

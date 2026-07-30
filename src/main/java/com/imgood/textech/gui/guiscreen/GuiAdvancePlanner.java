@@ -19,6 +19,10 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.NineSliceRegion;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.items.ItemAdvancePlanner;
 import com.imgood.textech.items.PlannerEntry;
 
@@ -580,6 +584,7 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
 
         // Title label
         this.fontRendererObj.drawString(
@@ -609,8 +614,6 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
         drawListArea(mouseX, mouseY);
         drawBottomEditPanel(mouseX, mouseY);
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
-
         if (editingField != null) {
             editingField.drawTextBox();
         }
@@ -624,11 +627,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
         int panelY = listStartY + visibleAreaHeight + 2;
         int panelHeight = 62;
 
-        // Panel background
-        drawRect(listStartX - 2, panelY, listStartX + listWidth + 2, panelY + panelHeight, 0x80002020);
-
-        // Divider line between list and edit panel
-        drawRect(listStartX - 2, panelY, listStartX + listWidth + 2, panelY + 1, 0xFF00CCCC);
+        UiPanel.drawSection(UiThemes.ADM, listStartX - 2, panelY, listWidth + 4, panelHeight);
+        UiPanel.drawDivider(UiThemes.ADM, listStartX + 4, panelY + 1, listWidth - 8);
 
         // Label
         String label = isAddingNew ? I18n.format("adm.planner.new_entry") : I18n.format("adm.planner.editing_entry");
@@ -675,13 +675,7 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(scissorX, scissorY, scissorW, scissorH);
 
-        // Border
-        drawRect(
-            listStartX - 2,
-            listStartY - 2,
-            listStartX + listWidth + 12,
-            listStartY + visibleAreaHeight + 2,
-            0x80000000);
+        UiPanel.drawSection(UiThemes.ADM, listStartX - 2, listStartY - 2, listWidth + 14, visibleAreaHeight + 4);
 
         int textMaxWidth = listWidth - 135;
         int currentY = listStartY - scrollOffset;
@@ -719,24 +713,13 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
             int checkboxY = currentY + 3;
             boolean isChecked = entry.isCompleted();
 
-            drawRect(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF333333);
-            drawRect(checkboxX + 1, checkboxY + 1, checkboxX + 11, checkboxY + 11, 0xFF000000);
+            drawCheckBox(checkboxX, checkboxY, isChecked);
 
             boolean hoveringCheckbox = mouseX >= checkboxX && mouseX <= checkboxX + 12
                 && mouseY >= checkboxY
                 && mouseY <= checkboxY + 12;
             if (hoveringCheckbox) {
                 drawRect(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0x40FFFFFF);
-            }
-
-            if (isChecked) {
-                String checkSymbol = "x";
-                int checkWidth = this.fontRendererObj.getStringWidth(checkSymbol);
-                this.fontRendererObj.drawStringWithShadow(
-                    checkSymbol,
-                    checkboxX + (12 - checkWidth) / 2,
-                    checkboxY + 2,
-                    completedColor);
             }
 
             // Slot number
@@ -751,11 +734,14 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
             boolean hoveringArrow = mouseX >= arrowX && mouseX <= arrowX + arrowWidth
                 && mouseY >= arrowY
                 && mouseY <= arrowY + arrowHeight;
-            int arrowBgColor = hoveringArrow ? 0x6000CCCC : 0x40004040;
             int arrowTextColor = hoveringArrow ? 0x00FFFF : 0x00AAAA;
 
-            drawRect(arrowX, arrowY, arrowX + arrowWidth, arrowY + arrowHeight, 0xFF333333);
-            drawRect(arrowX + 1, arrowY + 1, arrowX + arrowWidth - 1, arrowY + arrowHeight - 1, arrowBgColor);
+            GuiBlitUtil.drawHorizontalSlice(
+                hoveringArrow ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
+                arrowX,
+                arrowY,
+                arrowWidth,
+                arrowHeight);
             String arrowSymbol = "\u2191";
             int arrowSymWidth = this.fontRendererObj.getStringWidth(arrowSymbol);
             this.fontRendererObj.drawStringWithShadow(
@@ -807,8 +793,7 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
 
                 int chkX = listStartX + 5;
                 int chkY = addRowY + 3;
-                drawRect(chkX, chkY, chkX + 12, chkY + 12, 0xFF333333);
-                drawRect(chkX + 1, chkY + 1, chkX + 11, chkY + 11, 0xFF000000);
+                drawCheckBox(chkX, chkY, false);
 
                 int nextSlot = ItemAdvancePlanner.getNextSlotIndex(plannerStack);
                 String slotNum = String.format("#%-3d", nextSlot);
@@ -831,10 +816,15 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
             int scrollbarHeight = visibleAreaHeight;
 
             int btnTopH = 8;
-            drawRect(scrollbarX, listStartY, scrollbarX + 6, listStartY + btnTopH, 0xFF444444);
             boolean hoveringTopBtn = mouseX >= scrollbarX && mouseX <= scrollbarX + 6
                 && mouseY >= listStartY
                 && mouseY <= listStartY + btnTopH;
+            GuiBlitUtil.drawHorizontalSlice(
+                hoveringTopBtn ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
+                scrollbarX,
+                listStartY,
+                6,
+                btnTopH);
             int topArrowColor = hoveringTopBtn ? 0xFF00FFFF : 0xFF888888;
             drawRect(scrollbarX + 2, listStartY + 2, scrollbarX + 4, listStartY + 3, topArrowColor);
             drawRect(scrollbarX + 1, listStartY + 3, scrollbarX + 5, listStartY + 4, topArrowColor);
@@ -842,23 +832,33 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
 
             int trackTop = listStartY + btnTopH + 1;
             int trackBottom = listStartY + scrollbarHeight - btnTopH - 1;
-            drawRect(scrollbarX, trackTop, scrollbarX + 6, trackBottom, 0xFF333333);
+            GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollTrack(), scrollbarX, trackTop, 6, trackBottom - trackTop, 2);
 
             int trackHeight = trackBottom - trackTop;
             int thumbHeight = Math.max(10, trackHeight * visibleAreaHeight / totalContentHeight);
             int thumbY = trackTop + (maxScroll == 0 ? 0 : (scrollOffset * (trackHeight - thumbHeight)) / maxScroll);
-            drawRect(scrollbarX + 1, thumbY, scrollbarX + 5, thumbY + thumbHeight, 0xFF00CCCC);
+            GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollThumb(), scrollbarX, thumbY, 6, thumbHeight, 2);
 
             int btnBottomY = listStartY + scrollbarHeight - btnTopH;
-            drawRect(scrollbarX, btnBottomY, scrollbarX + 6, btnBottomY + btnTopH, 0xFF444444);
             boolean hoveringBottomBtn = mouseX >= scrollbarX && mouseX <= scrollbarX + 6
                 && mouseY >= btnBottomY
                 && mouseY <= btnBottomY + btnTopH;
+            GuiBlitUtil.drawHorizontalSlice(
+                hoveringBottomBtn ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
+                scrollbarX,
+                btnBottomY,
+                6,
+                btnTopH);
             int bottomArrowColor = hoveringBottomBtn ? 0xFF00FFFF : 0xFF888888;
             drawRect(scrollbarX, btnBottomY + 3, scrollbarX + 6, btnBottomY + 4, bottomArrowColor);
             drawRect(scrollbarX + 1, btnBottomY + 4, scrollbarX + 5, btnBottomY + 5, bottomArrowColor);
             drawRect(scrollbarX + 2, btnBottomY + 5, scrollbarX + 4, btnBottomY + 6, bottomArrowColor);
         }
+    }
+
+    private void drawCheckBox(int x, int y, boolean checked) {
+        NineSliceRegion region = checked ? UiThemes.ADM.checkOn() : UiThemes.ADM.checkOff();
+        GuiBlitUtil.drawNineSlice(region, x, y, 12, 12, 3);
     }
 
     private void drawTooltip(int mouseX, int mouseY) {

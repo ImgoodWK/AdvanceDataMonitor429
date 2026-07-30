@@ -2,6 +2,8 @@ package com.imgood.textech.gui.framework.widget;
 
 import net.minecraft.client.gui.Gui;
 
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.NineSliceRegion;
 import com.imgood.textech.gui.framework.layout.UiCrossAlign;
 import com.imgood.textech.gui.framework.layout.UiFlexDirection;
 
@@ -67,12 +69,20 @@ public final class UiScrollPanel extends UiWidget {
             int barH = Math.max(8, viewH * viewH / contentHeight);
             int maxTravel = viewH - barH;
             int barY = maxTravel == 0 ? 0 : scrollY * maxTravel / Math.max(1, contentHeight - viewH);
-            Gui.drawRect(
-                ax + getLayoutBox().width - 3,
-                ay + barY,
-                ax + getLayoutBox().width - 1,
-                ay + barY + barH,
-                0xAA00FFFF);
+            int trackX = ax + getLayoutBox().width - 6;
+            NineSliceRegion track = context.theme() != null ? context.theme()
+                .scrollTrack() : null;
+            NineSliceRegion thumb = context.theme() != null ? context.theme()
+                .scrollThumb() : null;
+            if (track != null && thumb != null
+                && GuiBlitUtil.hasResource(track.texture())
+                && GuiBlitUtil.hasResource(thumb.texture())) {
+                GuiBlitUtil.drawNineSlice(track, trackX, ay, 6, viewH, 2);
+                GuiBlitUtil.drawNineSlice(thumb, trackX, ay + barY, 6, barH, 2);
+            } else {
+                Gui.drawRect(trackX + 2, ay, trackX + 4, ay + viewH, 0x66005566);
+                Gui.drawRect(trackX, ay + barY, trackX + 5, ay + barY + barH, 0xAA00FFFF);
+            }
         }
     }
 

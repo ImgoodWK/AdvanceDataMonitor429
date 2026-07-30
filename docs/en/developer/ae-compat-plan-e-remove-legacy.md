@@ -1,16 +1,16 @@
 # Plan E — Remove Legacy AE Compatibility (GTNH 2.9.0+ Only)
 
-> **Purpose**: After GTNH 2.9.0 becomes the mod's **minimum supported version**, run this plan in a dedicated Agent session to delete Legacy / GlodBlock branches from the dual-path setup.  
+> **Status (TeXTech 2.0)**: GTNH `2.9.0-beta-2` is now the minimum supported version and runtime selection is fixed to NativeFluid. The remaining plan only removes Legacy sources still reused by native adapters, the old config entry, and obsolete naming.  
 > **Do not** confuse with Plan A–D (dual-path already implemented); this plan is **irreversible** cleanup.  
 > **Opening prompt**: "Continue GTNH 2.9 AE compat — execute Plan E — remove Legacy support"
 
-**Related doc**: [ae-compat-290.md](ae-compat-290.md) (current dual-path description)
+**Related doc**: [ae-compat-290.md](ae-compat-290.md) (current NativeFluid path and legacy-source boundary)
 
 ---
 
 ## Prerequisites (must be met before execution)
 
-- [ ] Mod README / release notes declare minimum GTNH **2.9.0 beta-1+**
+- [x] Mod README / release notes declare minimum GTNH **2.9.0-beta-2+**
 - [ ] Native path regression completed on a **real 2.9.0-beta instance**:
   - Network linker byte/type stats
   - AI: `QUERY_BYTES`, pattern fluid details, `QUERY_STORAGE` fluids

@@ -1,9 +1,0 @@
-**/node_modules
-**/dist
-.git
-.gradle
-build
-logs
-run
-.workspace
-src/main/resources/assets/textech/cardbattle

@@ -5,6 +5,10 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 
+import com.imgood.textech.gui.custom.ADM_GuiButton;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
+
 public class GuiScreenMessage extends GuiScreen {
 
     public enum MessageType {
@@ -34,14 +38,14 @@ public class GuiScreenMessage extends GuiScreen {
 
         switch (messageType) {
             case INFO -> {
-                this.buttonList.add(new GuiButton(0, offsetX, offsetY, 200, 20, "OK"));
+                this.buttonList.add(new ADM_GuiButton(0, offsetX, offsetY, 200, 20, "OK"));
             }
             case WARNING -> {
-                this.buttonList.add(new GuiButton(1, offsetX, offsetY, 200, 20, "Confirm"));
+                this.buttonList.add(new ADM_GuiButton(1, offsetX, offsetY, 200, 20, "Confirm"));
             }
             case CUSTOM -> {
-                this.buttonList.add(new GuiButton(2, offsetX, offsetY, 200, 20, "Proceed"));
-                this.buttonList.add(new GuiButton(3, offsetX, offsetY + 25, 200, 20, "Cancel"));
+                this.buttonList.add(new ADM_GuiButton(2, offsetX, offsetY, 200, 20, "Proceed"));
+                this.buttonList.add(new ADM_GuiButton(3, offsetX, offsetY + 25, 200, 20, "Cancel"));
             }
         }
     }
@@ -56,6 +60,8 @@ public class GuiScreenMessage extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
+        int panelHeight = messageType == MessageType.CUSTOM ? 140 : 112;
+        UiPanel.draw(UiThemes.ADM, this.width / 2 - 120, this.height / 2 - 60, 240, panelHeight);
         super.drawScreen(mouseX, mouseY, partialTicks);
 
         String title = switch (messageType) {

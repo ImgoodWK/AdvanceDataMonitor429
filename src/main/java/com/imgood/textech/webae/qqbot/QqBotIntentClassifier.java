@@ -16,7 +16,7 @@ public final class QqBotIntentClassifier {
     }
 
     public static final List<String> DEFAULT_WEBAE_PREFIXES = Arrays.asList("webae", "游戏", "mc", "gtnh", "服务器");
-    public static final List<String> DEFAULT_ASTRBOT_PREFIXES = Arrays.asList("云", "助手", "bot", "astr");
+    public static final List<String> DEFAULT_ASTRBOT_PREFIXES = Arrays.asList("tt");
     public static final List<String> DEFAULT_WEBAE_KEYWORDS = Arrays.asList(
         "webae",
         "textech",
@@ -53,7 +53,7 @@ public final class QqBotIntentClassifier {
             return decision;
         }
 
-        PrefixHit webaePrefix = matchLeadingToken(raw, cfg.webaeExplicitPrefixes, DEFAULT_WEBAE_PREFIXES);
+        PrefixHit webaePrefix = matchLeadingToken(raw, cfg.webaeExplicitPrefixes, DEFAULT_WEBAE_PREFIXES, false);
         if (webaePrefix.matched) {
             decision.owner = Owner.WEBAE;
             decision.textForHandler = webaePrefix.remainder;
@@ -61,7 +61,7 @@ public final class QqBotIntentClassifier {
             return decision;
         }
 
-        PrefixHit astrPrefix = matchLeadingToken(raw, cfg.astrBotExplicitPrefixes, DEFAULT_ASTRBOT_PREFIXES);
+        PrefixHit astrPrefix = matchLeadingToken(raw, cfg.astrBotExplicitPrefixes, DEFAULT_ASTRBOT_PREFIXES, true);
         if (astrPrefix.matched) {
             decision.owner = Owner.ASTRBOT;
             decision.textForHandler = astrPrefix.remainder;
@@ -96,14 +96,15 @@ public final class QqBotIntentClassifier {
         return classify(cfg, rawText).owner == Owner.WEBAE;
     }
 
-    private static PrefixHit matchLeadingToken(String raw, List<String> configured, List<String> defaults) {
+    private static PrefixHit matchLeadingToken(String raw, List<String> configured, List<String> defaults,
+        boolean allowCompact) {
         List<String> tokens = effectiveTokens(configured, defaults);
         String lowerRaw = raw.toLowerCase(Locale.ROOT);
         PrefixHit best = new PrefixHit();
         for (String token : tokens) {
             if (token.isEmpty()) continue;
             String lowerToken = token.toLowerCase(Locale.ROOT);
-            if (!startsWithToken(raw, lowerRaw, token, lowerToken)) continue;
+            if (!startsWithToken(raw, lowerRaw, token, lowerToken, allowCompact)) continue;
             if (token.length() < best.token.length()) continue;
             PrefixHit hit = new PrefixHit();
             hit.matched = true;
@@ -114,12 +115,18 @@ public final class QqBotIntentClassifier {
         return best;
     }
 
-    private static boolean startsWithToken(String raw, String lowerRaw, String token, String lowerToken) {
+    private static boolean startsWithToken(String raw, String lowerRaw, String token, String lowerToken,
+        boolean allowCompact) {
         if (raw.length() < token.length()) return false;
         if (!lowerRaw.startsWith(lowerToken)) return false;
         if (raw.length() == token.length()) return true;
         char next = raw.charAt(token.length());
-        return Character.isWhitespace(next) || next == ':' || next == '：' || next == '/' || next == '-' || next == '|';
+        return Character.isWhitespace(next) || next == ':'
+            || next == '：'
+            || next == '/'
+            || next == '-'
+            || next == '|'
+            || (allowCompact && next > 0x7f);
     }
 
     private static String stripLeadingToken(String raw, int tokenLength) {

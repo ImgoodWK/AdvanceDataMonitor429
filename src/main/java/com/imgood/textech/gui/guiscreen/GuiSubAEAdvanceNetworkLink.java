@@ -737,6 +737,7 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
         drawImage(AdmGuiTextures.SUB_GUI_TYPE_BOX, offsetX + 165, offsetY + 225, 335, 110);
 
         if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
@@ -796,7 +797,6 @@ public class GuiSubAEAdvanceNetworkLink extends AbstractMonitorSubGui {
         fontRendererObj.drawString(errorTips, offsetX + 230, offsetY + 380, 0xff0000);
         drawTextFieldsWithHover(mouseX, mouseY);
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
         drawFocusedFieldHint(offsetX + 10, offsetY + 280);
     }
 

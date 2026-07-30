@@ -8,6 +8,9 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.UiThemes;
+
 public class ADM_GuiTextField extends GuiTextField {
 
     private static final int TEXT_OFFSET_X = 21;
@@ -39,6 +42,8 @@ public class ADM_GuiTextField extends GuiTextField {
         this.xPosition = x - TEXT_OFFSET_X;
         this.width = width;
         this.height = height;
+        this.backgroundTexture = AdmGuiTextures.TEXTFIELD_8020;
+        this.focusedBackgroundTexture = AdmGuiTextures.TEXTFIELD_HOVER_8020;
     }
 
     @Override
@@ -75,7 +80,21 @@ public class ADM_GuiTextField extends GuiTextField {
             ? this.focusedBackgroundTexture
             : this.backgroundTexture;
         if (textureToDraw != null) {
-            drawTexturedRect(this.xPosition - 1, this.yPosition - 1, this.width + 2, this.height + 2, textureToDraw);
+            if (isLegacyTextFieldTexture(textureToDraw)) {
+                GuiBlitUtil.drawHorizontalSlice(
+                    this.isFocused() ? UiThemes.ADM.textFieldFocused() : UiThemes.ADM.textFieldNormal(),
+                    this.xPosition - 1,
+                    this.yPosition - 1,
+                    this.width + 2,
+                    this.height + 2);
+            } else {
+                drawTexturedRect(
+                    this.xPosition - 1,
+                    this.yPosition - 1,
+                    this.width + 2,
+                    this.height + 2,
+                    textureToDraw);
+            }
         }
 
         if (this.getText()
@@ -136,5 +155,11 @@ public class ADM_GuiTextField extends GuiTextField {
 
     public ResourceLocation getFocusedTextFieldTexture() {
         return this.focusedBackgroundTexture;
+    }
+
+    private static boolean isLegacyTextFieldTexture(ResourceLocation texture) {
+        return AdmGuiTextures.TEXTFIELD_8020.equals(texture) || AdmGuiTextures.TEXTFIELD_HOVER_8020.equals(texture)
+            || AdmGuiTextures.TEXTFIELD_SELECTED.equals(texture)
+            || AdmGuiTextures.TEXTFIELD_SELECTED_ALT.equals(texture);
     }
 }

@@ -194,7 +194,8 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
         int left = panelLeft();
         int top = panelTop();
         UiSlot.drawVanilla(left + UiFrameworkDebugLayout.COL_LEFT, top + UiFrameworkDebugLayout.ROW_SLOT);
-        UiSlot.drawProcedural(
+        UiSlot.drawTheme(
+            UiThemes.ADM,
             left + UiFrameworkDebugLayout.COL_LEFT + UiFrameworkDebugLayout.SLOT_GAP,
             top + UiFrameworkDebugLayout.ROW_SLOT);
     }
@@ -225,7 +226,10 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             UiFrameworkDebugLayout.COL_ATLAS,
             UiFrameworkDebugLayout.ROW_SECTION);
 
-        drawComponentRow("UiPanel", "adm.label.ui_framework.component.ui_panel", UiFrameworkDebugLayout.ROW_TEXT - 12);
+        drawComponentRow(
+            "UiPanel",
+            "adm.label.ui_framework.component.ui_panel",
+            UiFrameworkDebugLayout.ROW_PANEL_LABEL);
         UiText.drawLabel(
             UiThemes.ADM,
             fontRendererObj,
@@ -252,28 +256,13 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
                 iy + UiFrameworkDebugLayout.ICON_SIZE + 1);
         }
 
-        drawComponentRow("UiButton", "adm.label.ui_framework.component.ui_button", UiFrameworkDebugLayout.ROW_BTN - 10);
-        drawComponentRow(
-            "UiButton(disabled)",
-            "adm.label.ui_framework.component.ui_button_disabled",
-            UiFrameworkDebugLayout.ROW_BTN_DISABLED - 10);
-        drawComponentRow(
-            "UiToggleButton",
-            "adm.label.ui_framework.component.ui_toggle",
-            UiFrameworkDebugLayout.ROW_TOGGLE - 10);
-        drawComponentRow("UiSlot", "adm.label.ui_framework.component.ui_slot", UiFrameworkDebugLayout.ROW_SLOT - 10);
-        UiText.drawLabel(
-            UiThemes.ADM,
-            fontRendererObj,
-            I18n.format("adm.label.ui_framework.slot_vanilla"),
-            UiFrameworkDebugLayout.COL_LEFT,
-            UiFrameworkDebugLayout.ROW_SLOT + 18);
-        UiText.drawLabel(
-            UiThemes.ADM,
-            fontRendererObj,
-            I18n.format("adm.label.ui_framework.slot_procedural"),
-            UiFrameworkDebugLayout.COL_LEFT + UiFrameworkDebugLayout.SLOT_GAP,
-            UiFrameworkDebugLayout.ROW_SLOT + 18);
+        drawControlLabel("UiButton", UiFrameworkDebugLayout.ROW_BTN, UiFrameworkDebugLayout.BTN_W);
+        drawControlLabel("disabled", UiFrameworkDebugLayout.ROW_BTN_DISABLED, UiFrameworkDebugLayout.BTN_W);
+        drawControlLabel("toggle", UiFrameworkDebugLayout.ROW_TOGGLE, UiFrameworkDebugLayout.TOGGLE_W);
+        drawControlLabel(
+            "slots",
+            UiFrameworkDebugLayout.ROW_SLOT,
+            UiFrameworkDebugLayout.SLOT_GAP + UiFrameworkDebugLayout.ICON_SIZE);
 
         drawComponentRow(
             "UiTextField",
@@ -281,12 +270,6 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             UiFrameworkDebugLayout.ROW_FIELD - 10);
 
         drawAtlasReference();
-        UiText.drawLabel(
-            UiThemes.ADM,
-            fontRendererObj,
-            I18n.format("adm.label.ui_framework.edit_hint"),
-            UiFrameworkDebugLayout.COL_LEFT,
-            ySize - 12);
     }
 
     private void drawSectionHeader(String text, int x, int y) {
@@ -297,19 +280,43 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
         UiText.drawLabel(UiThemes.ADM, fontRendererObj, className, UiFrameworkDebugLayout.COL_LEFT, y);
         String desc = I18n.format(descKey);
         if (desc != null && !desc.isEmpty() && !desc.equals(descKey)) {
-            UiText.drawLabel(UiThemes.ADM, fontRendererObj, desc, UiFrameworkDebugLayout.COL_LEFT + 72, y);
+            int descX = UiFrameworkDebugLayout.COL_LEFT + 72;
+            int maxWidth = UiFrameworkDebugLayout.LEFT_COLUMN_RIGHT - descX;
+            UiText.drawLabel(
+                UiThemes.ADM,
+                fontRendererObj,
+                fontRendererObj.trimStringToWidth(desc, Math.max(1, maxWidth)),
+                descX,
+                y);
         }
+    }
+
+    private void drawControlLabel(String text, int controlY, int controlWidth) {
+        int x = UiFrameworkDebugLayout.COL_LEFT + controlWidth + 5;
+        int maxWidth = UiFrameworkDebugLayout.LEFT_COLUMN_RIGHT - x;
+        UiText.drawLabel(
+            UiThemes.ADM,
+            fontRendererObj,
+            fontRendererObj.trimStringToWidth(text, Math.max(1, maxWidth)),
+            x,
+            controlY + 4);
     }
 
     private void drawAtlasReference() {
         AdmUiTheme theme = AdmUiTheme.instance();
         int y = UiFrameworkDebugLayout.ROW_ATLAS_START;
         y = drawRegionLine(theme.mainPanel(), "mainPanel", y);
+        y = drawRegionLine(theme.sectionPanel(), "sectionPanel", y);
         y = drawRegionLine(theme.buttonNormal(), "buttonNormal", y);
         y = drawRegionLine(theme.buttonHover(), "buttonHover", y);
+        y = drawRegionLine(theme.buttonPressed(), "buttonPressed", y);
         y = drawRegionLine(theme.buttonDisabled(), "buttonDisabled", y);
         y = drawRegionLine(theme.textFieldNormal(), "textFieldNormal", y);
         y = drawRegionLine(theme.textFieldFocused(), "textFieldFocused", y);
+        y = drawRegionLine(theme.slot(), "slot", y);
+        y = drawRegionLine(theme.scrollTrack(), "scrollTrack", y);
+        y = drawRegionLine(theme.scrollThumb(), "scrollThumb", y);
+        y = drawRegionLine(theme.divider(), "divider", y);
         UiText.drawLabel(
             UiThemes.ADM,
             fontRendererObj,
@@ -319,17 +326,23 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
     }
 
     private int drawRegionLine(NineSliceRegion region, String name, int y) {
-        String line = name + " UV("
+        String line = name + " @"
             + region.u()
             + ","
             + region.v()
-            + ") "
+            + " "
             + region.regionW()
             + "x"
             + region.regionH()
-            + " b"
+            + "/"
             + region.borderPx();
-        UiText.drawLabel(UiThemes.ADM, fontRendererObj, line, UiFrameworkDebugLayout.COL_ATLAS, y);
+        int maxWidth = UiFrameworkDebugLayout.GUI_W - UiFrameworkDebugLayout.COL_ATLAS - 8;
+        UiText.drawLabel(
+            UiThemes.ADM,
+            fontRendererObj,
+            fontRendererObj.trimStringToWidth(line, maxWidth),
+            UiFrameworkDebugLayout.COL_ATLAS,
+            y);
         return y + UiFrameworkDebugLayout.ATLAS_LINE_H;
     }
 }

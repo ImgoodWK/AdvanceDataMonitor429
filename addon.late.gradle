@@ -1,17 +1,20 @@
-// Late hooks: exclude Vosk models + voiceextras marker from main jar;
-// build optional *-voice.jar; optional MCEF ShutdownPatcher for runClient.
+// Late hooks: keep optional payloads out of the main mod jar;
+// build voice and WebAE companion artifacts; optional MCEF ShutdownPatcher for runClient.
 
 def voskExclude = 'assets/textech/voice/vosk/**'
 def voiceExtrasClassExclude = 'com/imgood/textech/voiceextras/**'
+def webAeAssetsExclude = 'assets/textech/webae/**'
 
 tasks.named('jar', Jar).configure {
     exclude voskExclude
     exclude voiceExtrasClassExclude
+    exclude webAeAssetsExclude
 }
 
 tasks.matching { it.name == 'shadowJar' }.configureEach {
     exclude voskExclude
     exclude voiceExtrasClassExclude
+    exclude webAeAssetsExclude
 }
 
 tasks.register('voiceJar', Jar) {
@@ -37,12 +40,31 @@ tasks.register('voiceJar', Jar) {
     }
 }
 
+tasks.register('webaeZip', Zip) {
+    group = 'build'
+    description = 'Optional WebAE static UI bundle; extract into the Minecraft instance root'
+    archiveClassifier.set('webae')
+    destinationDirectory.set(layout.buildDirectory.dir('libs'))
+    from('src/main/resources/assets/textech/webae') {
+        into 'TeXTech/WebAE/ui'
+    }
+    from('packaging/webae/README-WebAE.txt')
+    doFirst {
+        def entry = file('src/main/resources/assets/textech/webae/index.html')
+        if (!entry.isFile()) {
+            throw new GradleException('Missing built WebAE index.html. Run npm run build in webae-frontend first.')
+        }
+    }
+}
+
 tasks.named('build').configure {
     dependsOn 'voiceJar'
+    dependsOn 'webaeZip'
 }
 
 artifacts {
     archives tasks.named('voiceJar')
+    archives tasks.named('webaeZip')
 }
 
 // Optional MCEF ShutdownPatcher so runClient does not hang on exit when MCEF is present.

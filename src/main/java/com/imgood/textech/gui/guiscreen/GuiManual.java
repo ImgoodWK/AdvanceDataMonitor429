@@ -15,6 +15,10 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.imgood.textech.gui.custom.ADM_GuiButton;
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.gui.manual.ManualChapter;
 import com.imgood.textech.gui.manual.ManualDataLoader;
 import com.imgood.textech.gui.manual.ManualPage;
@@ -78,14 +82,14 @@ public class GuiManual extends GuiScreen {
         int buttonY = guiTop + GUI_HEIGHT - 22;
 
         buttonList.clear();
-        prevButton = new GuiButton(
+        prevButton = new ADM_GuiButton(
             0,
             guiLeft + CONTENT_X + 4,
             buttonY,
             buttonWidth,
             buttonHeight,
             I18n.format("adm.manual.prev_page"));
-        nextButton = new GuiButton(
+        nextButton = new ADM_GuiButton(
             1,
             guiLeft + CONTENT_X + CONTENT_WIDTH - buttonWidth - 4,
             buttonY,
@@ -137,17 +141,11 @@ public class GuiManual extends GuiScreen {
     }
 
     private void drawBackground() {
-        // Main background
-        drawRect(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + GUI_HEIGHT, BG_COLOR);
-        // Border
-        drawRect(guiLeft - 1, guiTop - 1, guiLeft + GUI_WIDTH + 1, guiTop, BORDER_COLOR);
-        drawRect(guiLeft - 1, guiTop + GUI_HEIGHT, guiLeft + GUI_WIDTH + 1, guiTop + GUI_HEIGHT + 1, BORDER_COLOR);
-        drawRect(guiLeft - 1, guiTop, guiLeft, guiTop + GUI_HEIGHT, BORDER_COLOR);
-        drawRect(guiLeft + GUI_WIDTH, guiTop, guiLeft + GUI_WIDTH + 1, guiTop + GUI_HEIGHT, BORDER_COLOR);
-        // Sidebar background
-        drawRect(guiLeft, guiTop, guiLeft + SIDEBAR_WIDTH, guiTop + GUI_HEIGHT, SIDEBAR_BG);
-        // Sidebar separator
-        drawRect(guiLeft + SIDEBAR_WIDTH, guiTop, guiLeft + SIDEBAR_WIDTH + 1, guiTop + GUI_HEIGHT, SIDEBAR_SEPARATOR);
+        drawDefaultBackground();
+        UiPanel.draw(UiThemes.ADM, guiLeft, guiTop, GUI_WIDTH, GUI_HEIGHT);
+        UiPanel.drawSection(UiThemes.ADM, guiLeft + 2, guiTop + 2, SIDEBAR_WIDTH - 4, GUI_HEIGHT - 4);
+        GuiBlitUtil
+            .drawNineSlice(UiThemes.ADM.divider(), guiLeft + SIDEBAR_WIDTH - 2, guiTop + 8, 4, GUI_HEIGHT - 16, 1);
     }
 
     private void drawSidebar(int mouseX, int mouseY) {
@@ -161,9 +159,11 @@ public class GuiManual extends GuiScreen {
                 && mouseY < y + SIDEBAR_ITEM_HEIGHT;
 
             if (i == selectedChapter) {
-                drawRect(x, y, x + SIDEBAR_WIDTH - 4, y + SIDEBAR_ITEM_HEIGHT, SELECTED_COLOR);
+                GuiBlitUtil
+                    .drawHorizontalSlice(UiThemes.ADM.buttonPressed(), x, y, SIDEBAR_WIDTH - 4, SIDEBAR_ITEM_HEIGHT);
             } else if (hovered) {
-                drawRect(x, y, x + SIDEBAR_WIDTH - 4, y + SIDEBAR_ITEM_HEIGHT, HOVER_COLOR);
+                GuiBlitUtil
+                    .drawHorizontalSlice(UiThemes.ADM.buttonHover(), x, y, SIDEBAR_WIDTH - 4, SIDEBAR_ITEM_HEIGHT);
             }
 
             // Draw chapter icon (small, 12x12)

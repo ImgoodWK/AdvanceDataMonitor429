@@ -1,14 +1,13 @@
 package com.imgood.textech.renders;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.MatterBallDecompressorGuiLayout;
 import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiSlot;
 import com.imgood.textech.gui.framework.UiThemes;
 
 import cpw.mods.fml.relauncher.Side;
@@ -29,19 +28,6 @@ public final class MatterBallDecompressorGuiRenderer {
         AE_MODID,
         "textures/guis/storagebus.png");
 
-    public static final ResourceLocation SLOT_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/matter_ball_decompressor_slot.png");
-
-    /** Main panel — legacy optional full PNG override (superseded by {@link UiPanel} 9-slice). */
-    public static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/matter_ball_decompressor_bg.png");
-
-    private static final int SLOT_FILL = 0xFF6E6E6E;
-    private static final int SLOT_HIGHLIGHT = 0xFF9A9A9A;
-    private static final int SLOT_SHADOW = 0xFF3A3A3A;
-
     /** AE upgrade column: slot x=187, panel x=177. */
     private static final int AE_UPGRADE_PANEL_U = 177;
     private static final int AE_UPGRADE_PANEL_V = 0;
@@ -61,7 +47,7 @@ public final class MatterBallDecompressorGuiRenderer {
         UiPanel.draw(UiThemes.ADM, panelLeft, guiTop, metrics.mainPanelWidth, metrics.guiHeight);
 
         int splitY = guiTop + metrics.playerInvY - 6;
-        UiPanel.drawDivider(panelLeft + 8, splitY, metrics.mainPanelWidth - 16);
+        UiPanel.drawDivider(UiThemes.ADM, panelLeft + 8, splitY, metrics.mainPanelWidth - 16);
 
         drawAllSlotBackgrounds(guiLeft, guiTop, metrics);
         drawAeUpgradeColumn(guiLeft, guiTop, metrics);
@@ -118,30 +104,7 @@ public final class MatterBallDecompressorGuiRenderer {
     }
 
     public static void drawSlotCell(int x, int y) {
-        if (hasResource(SLOT_TEXTURE)) {
-            Minecraft mc = Minecraft.getMinecraft();
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-            mc.getTextureManager()
-                .bindTexture(SLOT_TEXTURE);
-            mc.ingameGUI.drawTexturedModalRect(
-                x,
-                y,
-                0,
-                0,
-                MatterBallDecompressorGuiLayout.CELL,
-                MatterBallDecompressorGuiLayout.CELL);
-            return;
-        }
-        drawProceduralSlotCell(x, y);
-    }
-
-    private static void drawProceduralSlotCell(int x, int y) {
-        int s = MatterBallDecompressorGuiLayout.CELL;
-        Gui.drawRect(x, y, x + s, y + s, SLOT_FILL);
-        Gui.drawRect(x, y, x + s, y + 1, SLOT_HIGHLIGHT);
-        Gui.drawRect(x, y, x + 1, y + s, SLOT_HIGHLIGHT);
-        Gui.drawRect(x + s - 1, y, x + s, y + s, SLOT_SHADOW);
-        Gui.drawRect(x, y + s - 1, x + s, y + s, SLOT_SHADOW);
+        UiSlot.drawTheme(UiThemes.ADM, x, y, MatterBallDecompressorGuiLayout.CELL);
     }
 
     private static void drawAllSlotBackgrounds(int guiLeft, int guiTop,
@@ -179,13 +142,4 @@ public final class MatterBallDecompressorGuiRenderer {
         }
     }
 
-    private static boolean hasResource(ResourceLocation location) {
-        try {
-            return Minecraft.getMinecraft()
-                .getResourceManager()
-                .getResource(location) != null;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
 }

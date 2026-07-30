@@ -17,6 +17,8 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.renders.RenderAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
@@ -705,8 +707,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         }
 
         this.zLevel = 300.0F;
-        drawRect(tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, 0xaa00ffff);
-        drawRect(tooltipX - 2, tooltipY - 2, tooltipX + tooltipTextWidth + 2, tooltipY + tooltipHeight + 2, 0x80000000);
+        UiPanel.drawSection(UiThemes.ADM, tooltipX - 3, tooltipY - 3, tooltipTextWidth + 6, tooltipHeight + 6);
         this.zLevel = 301.0F;
 
         int currentY = tooltipY;
@@ -794,13 +795,20 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     }
 
     private void renderDataPreview(int x, int y, int width, int height) {
+        UiPanel.drawSection(UiThemes.ADM, x, y, width, height);
+
         // 保存当前OpenGL状态
         GL11.glPushMatrix();
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
 
         // 设置渲染区域
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(x, this.height - y - height, width, height);
+        int frameInset = 3;
+        GL11.glScissor(
+            x + frameInset,
+            this.height - y - height + frameInset,
+            Math.max(0, width - frameInset * 2),
+            Math.max(0, height - frameInset * 2));
 
         // 设置正交投影
         GL11.glMatrixMode(GL11.GL_PROJECTION);
@@ -836,8 +844,6 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         GL11.glPopAttrib();
         GL11.glPopMatrix();
 
-        // 绘制边框
-        drawRect(x, y, x + width, y + height, 0xFF00FFFF);
     }
 
 }

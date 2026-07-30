@@ -43,6 +43,7 @@ alwaysApply: true
 | `assistant-parser-suite/` | 本地解析器/测试桩与编译 class |
 | `agent-cache/` | 本仓库工具运行时产物 |
 | `assets/` | 临时拉取的外部 lang/资源，用于本仓库对照 |
+| `agent-image-thumbs/` | Agent 读图用缩略图（`tools/agent-image-thumb.py`）；禁止把 atlas/大图原图送进模型 |
 | 根级 `.py` / `.java` / 预览 PNG | 一次性生成脚本与中间图，用完可删 |
 
 ## Agent 执行要求

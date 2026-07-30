@@ -93,7 +93,7 @@ All source code resides under `com.imgood.textech.webae/` (231 files). See `proj
 | `webae/metric/` | 2 | Network metrics + downsample util |
 | `webae/network/` | 13 | Recipe/icon/world-map HD packets + upload throttle |
 | `webae/recipe/` | 9+ | NEI/vanilla/GT recipe collect, disk meta/chunks, lazy cache |
-| `webae/pattern/` | 8+ | Pattern encode/inject/browse cache |
+| `webae/pattern/` | 9 | Pattern encode/inject/browse cache plus the Web-only physical pattern buffer |
 | `webae/topology/` | 20 | Network topology + P2P map |
 | `webae/worldmap/` | 27 | World map meta/markers/tiles/AE overlay/quality tiers/prefetch progress |
 | `webae/craft/` | 2 | Material craft tree (NEI recipe recursion + storage gaps + `patternId`; `GET /api/craft/tree`) |
@@ -280,16 +280,21 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | POST | `/api/order/cancel` | Yes | No | Cancel all pending/active orders for the current player |
 | GET | `/api/order/templates` | Yes | No | List batch order templates for the current owner (`TeXTech/WebAE/web-order-templates.json`, isolated by ownerUuid) |
 | PUT | `/api/order/templates` | Yes | No | Replace the owner's template list; body `{ "templates": [{ id, name, cpuName?, networkId, items:[{ itemName, amount, patternId? }], updatedAt }] }`; validates non-empty name, items≥1, amount≥1, ≤50 items per template |
-| GET | `/api/interfaces?network=<id>` | Yes | No | Enumerate ME interfaces (coords, slot states, `machineRecipeType`, `existingPatterns` summaries) |
-| POST | `/api/pattern/encode` | Yes | No | Encode a pattern; body may include `networkId` + `consumeBlank` (defaults true when `networkId≥0`); deducts 1 blank pattern from AE network on main thread; returns `code: NO_BLANK_PATTERN` when insufficient |
-| POST | `/api/pattern/inject` | Yes | No | Inject a pattern into an interface; body includes `consumeBlank` (default true; pass false if encode already consumed a blank) |
+| GET | `/api/interfaces?network=<id>` | Yes | No | Main-thread enumeration of full-block and cable-part ME Interfaces; reads the real `InterfaceDuality.getPatterns()` inventory and returns `interfaceId` (parts use `x:y:z:dim@SIDE`), slots, `machineRecipeType`, and `existingPatterns` |
+| GET | `/api/pattern/compat` | Yes | No | Read-only optional-mod capability response for Programmable Hatches and its programming-circuit registry; no compile-time dependency |
+| POST | `/api/pattern/encode` | Yes | No; admin for `consumeBlank:true` | Encode a pattern; pure preview uses `consumeBlank:false`; compatibility callers may request a main-thread blank deduction and receive `NO_BLANK_PATTERN` when insufficient |
+| POST | `/api/pattern/inject` | Yes | **Yes (admin)** | Main-thread write into an empty interface/full-part slot on the selected network; accepts `interfaceSide` and `consumeBlank`; deducts the blank only after target/slot/duplicate validation |
 | GET | `/api/patterns?network=<id>` | Yes | No | List all ME interface patterns (rich NBT); **HTTP cache** `patterns_rich`; invalidated with browse on mutations |
 | GET | `/api/patterns/browse?network=<id>&q=&offset=&limit=&source=both\|grid\|interface` | Yes | No | Paginated Grid + Interface browse; **HTTP cache-only read** (`cached`/`timestamp`); background pre-collect via `SnapshotScheduler` at `webPatternCacheTtlMs`; offline owner uses `WebAeOwnerContext.getOwnerPlayerOrFake`; `PatternBrowseInvalidationGridCache` listens for `MENetworkCraftingPatternChange` + Web PUT/DELETE/inject call `invalidateAll` |
 | POST | `/api/patterns/browse/refresh?network=<id>` | Yes | **Yes (OP)** | Admin force-rebuild browse cache (main-thread collect; GET never blocks) |
 | GET | `/api/patterns/grid/<gridKey>?network=<id>` | Yes | No | Single grid pattern detail (`gridKey`=`grid:<index>`, same ordering as browse); full inputs/outputs |
-| GET | `/api/patterns/<id>` | Yes | No | Single pattern detail (`id` = `<x>:<y>:<z>:<dim>#<slot>`) |
+| GET | `/api/patterns/<id>` | Yes | No | Single pattern detail; full-block id=`x:y:z:dim#slot`, cable-part id=`x:y:z:dim@SIDE#slot` |
 | DELETE | `/api/patterns/<id>` | Yes | **Yes (OP)** | Delete pattern from interface slot; fires `MENetworkCraftingPatternChange` |
 | PUT | `/api/patterns/<id>` | Yes | **Yes (OP)** | Write back edited pattern NBT to slot |
+| POST | `/api/patterns/move` | Yes | **Yes (admin)** | Main-thread physical move across interface/part slots on the selected network; `swap:true` atomically exchanges an occupied target; rolls back on failure |
+| GET | `/api/pattern-buffer?network=<id>` | Yes | No | Disk-backed read of the Web-only physical pattern buffer (owner/network isolated, 54 entries per network) |
+| POST | `/api/pattern-buffer/take` | Yes | **Yes (admin)** | Persist to `web-pattern-buffer.json` before clearing the source interface slot; rollback on failure; main-thread live write |
+| POST | `/api/pattern-buffer/place` | Yes | **Yes (admin)** | Put one buffered pattern into an empty selected-network interface slot, then persist removal from the buffer; rollback on failure |
 | GET | `/api/icon?item=<itemId>&pack=<pack>&meta=<int>&size=<16\|32\|64>` | Yes | No | Get an item/fluid icon PNG (with ETag + Cache-Control); disk miss returns 404 immediately and enqueues async fill (sync direct render off by default) |
 | GET | `/api/ae2/cable-texture?type=smart\|covered\|dense` | Yes | No | **Deprecated** (requires `topologySimulatedEnabled=true`): Fluix cable PNGs for cable simulation; 503 when disabled |
 | GET | `/api/icon/packs` | Yes | No | List installed texture packs; response includes a `defaultPack` field (the most recently uploaded pack, or null) |
@@ -407,7 +412,7 @@ Network denials: `403` + `code:network_suspended` (includes owner) or `network_a
 
 ## 6. Frontend Architecture
 
-The frontend source lives at `webae-frontend/` in the project root, built with Vite 5 + React 18 + TypeScript + Ant Design 5. The build output goes to `src/main/resources/assets/textech/webae/` and is served by NanoHTTPD.
+The frontend source lives at `webae-frontend/` in the project root, built with Vite 5 + React 18 + TypeScript + Ant Design 5. Vite still writes to `src/main/resources/assets/textech/webae/`, but release builds package those files in the separate `textech-*-webae.zip`; the core mod JAR explicitly excludes that directory.
 
 ```
 webae-frontend/               # Frontend source (permanent project part)
@@ -430,7 +435,7 @@ webae-frontend/               # Frontend source (permanent project part)
     │                         # recipes(HandlerCategoryFilter/RecipeToolbar/RecipeResultList/
     │                         # RecipeThumbnailCard/RecipeDetailCard/RecipeMergedCard/RecipeDetailModal/
     │                         # RecipeGrid/ItemRecipePanel; utils/recipe.ts groupByPrimaryOutput) /
-    │                         # patterns(PatternListSidebar/PatternEditorForm/PatternInjectPanel/
+    │                         # patterns(PatternListSidebar/PatternRecipeSidebar/PatternEditorForm/PatternInterfaceWorkspace/
     │                         # PatternOrderCard/PatternDetailModal/VirtualPatternGrid/
     │                         # VirtualProductGrid — Phase 7 AE order browse + virtual scroll)
     │                         # ordering(OrderQueryTab/OrderPatternsTab/OrderHistorySection — AE ordering split)
@@ -461,7 +466,7 @@ Technical notes:
 - **Pack / Agent workflow**: export JSON from Settings → write `TeXTech/WebAE/ui-defaults.json` or `assets/textech/webae/ui-defaults.json`; optionally sync `presets.ts` `DEFAULT_*` as code fallback
 - **Dashboard**: GridStack 12-column grid; layout persisted as x/y/w/h in `webae_dashboard_config`
 - **WCAG**: skip link, aria-live (connection/countdown), focus-visible, icon button aria-labels
-- **Static serving**: NanoHTTPD maps all `/` paths to static file serving from classpath `assets/textech/webae/`
+- **Static serving**: NanoHTTPD maps `/` paths to static files, preferring the instance directory `TeXTech/WebAE/ui/` and enforcing normalized path containment. Missing resources return an installation notice. Classpath `assets/textech/webae/` is a source-development fallback, not a Release core-JAR resource.
 
 ## 7. Thread Model
 
@@ -652,18 +657,14 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 ### 11.5 Pattern Management
 
-- **Handlers**: `PatternHandler.java` (encode/inject/interface enum), `PatternListHandler.java` (pattern overview/detail/delete/PUT write-back), `PatternBrowseHandler.java` (Grid+Interface dual-source browse pagination), `PatternGridDetailHandler.java` (single Grid entry full I/O)
+- **Handlers**: `PatternHandler.java` (encode/inject/interface enum/optional-mod capability), `PatternListHandler.java` (overview/detail/delete/write-back/move/Web buffer), `PatternBrowseHandler.java` (Grid+Interface dual-source browse pagination), `PatternGridDetailHandler.java` (single Grid entry full I/O)
 - **Browse cache**: `PatternBrowseService.java` splits main-thread `buildAndStoreCache` from HTTP-thread `paginate`; `SnapshotScheduler` pre-collects active networks at `Config.webPatternCacheTtlMs`; GET returns `cached:true/false` + `timestamp` (stale data still served when expired); offline owner browse via `getOwnerPlayerOrFake`; POST `/api/patterns/browse/refresh` (OP) force-rebuild; Web PUT/DELETE/inject and `PatternBrowseInvalidationGridCache` (listens for `MENetworkCraftingPatternChange`, registered at postInit via `PatternBrowseGridCacheRegistrar`) all call `invalidateAll()`
-- **Interface enumeration**: `InterfaceLocator.java` enumerates all ME interface terminals on the main thread; DTO includes `machineRecipeType` (machine name + GT RecipeMap) and `existingPatterns` (slot/patternId/outputs/crafting)
-- **Encoder**: `PatternEncoder.java` encodes item/fluid lists into AE2 pattern NBT; `decode(String)` reverses NBT
-- **Blank pattern**: `BlankPatternHelper.java` extracts 1× `materials().blankPattern()` from AE network `IStorageGrid`; encode (`consumeBlank`) and inject both deduct; insufficient stock returns `NO_BLANK_PATTERN`
-- **Injector**: `PatternInjector.java` writes patterns to a specified interface on the main thread; `consumeBlank: false` skips duplicate deduction after encode
-- **Pattern overview**: `PatternListHandler` scans all interface pattern slots on the network, decodes NBT to `PatternListEntryDto`; DELETE/PUT fires `MENetworkCraftingPatternChange`
-- **Frontend** (`pages/PatternEditor.tsx`, Phase 6):
-  - Left: pattern overview list (icon + primary output + source interface; fuzzy search, multi-select, batch delete/export)
-  - Right editor: 9×3 input grid (icon + stack-size badge) + outputs (icon + quantity + ×2/×4/×8/×16/×32/×64 multiplier and ÷2, floored at original recipe amount)
-  - Recipe search: `groupByPrimaryOutput()` merged thumbnail list; click to add default recipe or open `RecipeDetailModal` with `onApplyRecipe` to pick handler type
-  - Encode preview (consumes blank pattern) + save write-back + inject (interface dropdown shows coords/pattern count/machine recipe type; selected interface lists existing pattern details)
+- **Interface location**: `InterfaceLocator` walks the AE Grid across dimensions for both `TileInterface` and `PartInterface`; the real inventory comes from `getInterfaceDuality().getPatterns()`. Part addresses are `x:y:z:dim@SIDE`. Mutations verify the selected Grid and active slot, persist the host, and notify the correct `ICraftingProvider` with `MENetworkCraftingPatternChange`.
+- **Encoder and recipe DTOs**: `RecipeDto.ItemEntry.nonConsumable` preserves the GT/NEI `stackSize=0` convention; recipe and pattern entries preserve item meta and NBT. `PatternEncoder` keeps shaped empty slots, caps processing at 27 inputs, uses integer `Count`, and soft-reflects AE2FC `ItemFluidDrop.newStack` for `fluid:<name>` entries.
+- **Programmable Hatches soft compatibility**: `ProgrammableHatchesCompat` links no optional classes. When installed it wraps non-consumable items as `programmablehatches:prog_circuit` using upstream V3 `targetCircuit` + `string_id`; decoding unwraps the target and marks `programmableCircuit`.
+- **Physical pattern lifecycle**: A new empty-slot write deducts one blank only after target/slot/duplicate validation. Editing, moving, swapping, and placing from the buffer do not deduct again. `PatternWebBufferStore` atomically persists `TeXTech/WebAE/web-pattern-buffer.json`, bounded to 54 entries per owner/network, while take/place/move mutations include rollback.
+- **Frontend** (`pages/PatternEditor.tsx`) is a three-column workbench: `PatternRecipeSidebar` searches products/ingredients/type and exact handlers, applying one concrete recipe while keeping shaped positions; `PatternEditorForm` renders crafting 3×3 or processing 9×3 plus `∞` non-consumables and the PH switch; `PatternInterfaceWorkspace` exposes installed interface patterns, click-to-edit, drag moves, occupied-slot swaps, the Web buffer, and direct writes to a selected empty slot.
+- **Diagnostics**: All new endpoints remain behind `WebApiRouter`; dynamic IDs normalize to `/api/patterns/{id}` or `/api/patterns/grid/{id}`. Mutations are live main-thread writes and Router records their HTTP latency.
 
 ### 11.6 AE Crafting Orders (Phase 7 enhancements)
 
@@ -1020,7 +1021,9 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 ## 12. Frontend Resources
 
-The frontend source lives at `webae-frontend/` in the project root (React + TypeScript + Ant Design + Vite). The build output goes to `src/main/resources/assets/textech/webae/`, served directly by NanoHTTPD. This directory is not required client-side (no `@SideOnly` requirement) — used only for server-side HTTP serving.
+The frontend source lives at `webae-frontend/` in the project root (React + TypeScript + Ant Design + Vite), and builds into `src/main/resources/assets/textech/webae/`. The `webaeZip` task in `addon.late.gradle` remaps those files under `TeXTech/WebAE/ui/` in a separate ZIP; both `jar` and `shadowJar` exclude `assets/textech/webae/**`, so the core JAR does not carry the browser UI. Runtime serving prefers the instance directory and retains classpath only as a source-development fallback.
+
+Release users extract the matching `textech-*-webae.zip` at the instance root to create `TeXTech/WebAE/ui/index.html`. Without the ZIP, APIs may still start, but the SPA root returns installation guidance.
 
 Build output (Vite bundle, contenthash filenames):
 - `index.html` — SPA entry, references hashed JS/CSS + PWA meta

@@ -1,57 +1,52 @@
-# GTNH 2.9.0 beta-1 AE 原生流体兼容
+# GTNH 2.9.0-beta-2 AE 原生流体集成
 
 ## 概述
 
-TeXTech 在 `compat/ae/` 包中实现 **Legacy**（2.9.0 beta-1 之前）与 **NativeFluid**（2.9.0 beta-1 及以上）双路径 AE 集成。运行时由 `AeCompat.init()`（`postInit`）探测环境并绑定适配器。
+TeXTech 2.0 只支持 GTNH `2.9.0-beta-2+`，`AeCompat.init()` 在 `postInit` 绑定 `NATIVE_FLUID` 适配器。`compat/ae/legacy/` 源码仍为混合数据格式和后续迁移提供内部回退，但运行时不再选择 Legacy profile，也不代表支持旧整合包。
 
-## 版本检测（优先级）
+## 环境探针
 
-1. **配置** `[compat] aeProfileOverride`：`auto` | `legacy` | `native`
-2. **整合包版本文件**：实例根目录 `.gtnh-version` 或 `config/gtnh/version.txt`（首行 semver，如 `2.9.0-beta-1`）
-3. **AE2 模组版本**：`appliedenergistics2` mod 版本；`rv3-beta-900-GTNH` 及以上视为 Native 能力
-4. **能力探测**：classpath 存在 `appeng.items.storage.ItemBasicFluidStorageCell`
-5. **默认**：Legacy
+`GtnhEnvironmentProbe` 可记录配置、整合包版本文件或 AE2 模组版本作为诊断来源，但所有分支最终都选择 NativeFluid：
 
-启动日志示例：`[ADM] AE compat profile=LEGACY (source=DEFAULT_LEGACY, detail=pre-2.9.0-default)`
+1. `[compat] aeProfileOverride=native`：显式 NativeFluid。
+2. `aeProfileOverride=legacy`：请求被忽略，详情为 `legacy-override-ignored:<值>`。
+3. `.gtnh-version` / `config/gtnh/version.txt`：记录版本字符串并选择 NativeFluid。
+4. AE2 模组版本：记录版本字符串并选择 NativeFluid。
+5. 无版本信息：选择 NativeFluid，详情 `2.9.0-beta-2-native-default`。
 
-## 2.9.0-beta 整合包参考版本（modlist）
+正常日志示例：`[ADM] AE compat profile=NATIVE_FLUID (source=GTNH_VERSION_FILE, detail=2.9.0-beta-2)`。
 
-| 模组 | 版本 |
-|------|------|
-| Applied-Energistics-2-Unofficial | rv3-beta-977-GTNH |
-| AE2FluidCraft-Rework | 1.5.88-gtnh |
+## 2.0 编译基线
 
-**编译依赖**仍为 `AE2FluidCraft-Rework:1.3.7-gtnh`（与当前 GTNH 2.8 开发线一致）。2.9.0 dev jar 请放入 `libs/` 并反编译至 `.workspace/ae2_290_sources/` 做 API 对照，**勿**用 `devOnlyNonPublishable` 覆盖 compile classpath（会与 1.3.7 API 冲突）。
+`dependencies.gradle` 固定 GTNH 2.9.0-beta-2 栈，当前关键版本为：
 
-## API 差异摘要
+| 模组 | 编译版本 |
+|------|----------|
+| Applied-Energistics-2-Unofficial | `rv3-beta-1000-GTNH` |
+| AE2FluidCraft-Rework | `1.5.95-gtnh` |
+| GT5-Unofficial | `5.09.54.20` |
 
-| 区域 | Legacy | NativeFluid |
-|------|--------|-------------|
-| 流体 cell 统计 | `FluidCellInventoryHandler` / GlodBlock 优先，再 `ICellInventoryHandler` | 仅 `StorageChannel.FLUIDS` + `ICellInventory` |
-| 样板流体 I/O | 反射 `getCondensedFluidInputs` 等 | 同上 + 优先正式 API（若存在） |
-| Cell Workbench marker | AE2FC `ItemFluidPacket` / `Util` | NBT + AE2 util，回退 AE2FC |
-| 编织元件 config | `DataLoomFluidCellConfig` | `NativeDataLoomFluidCellConfig`（探测原生 cell 类） |
+不要用旧 AE2/AE2FC dev JAR 覆盖编译 classpath，也不要把能加载个别类视为旧 GTNH 版本兼容。
 
-## 关键类
+## 适配器职责
 
-- `AeCompat` — 门面：`cells()` / `fluidMarkers()` / `patternFluids()` / `fluidCellConfig()`
-- `GtnhEnvironmentProbe` — 检测链
-- `legacy/*` — GlodBlock 路径（日后 Plan E 删除）
-- `native_/*` — 2.9.0+ 路径（包名 `native_` 因 `native` 为 Java 关键字）
+| 区域 | TeXTech 2.0 实现 |
+|------|------------------|
+| 流体 cell 统计 | `StorageChannel.FLUIDS` + `ICellInventory` 的 Native 适配器 |
+| 样板流体 I/O | 优先 AE2 正式 API；对混合格式使用内部反射回退 |
+| Cell Workbench marker | Native NBT / AE2 util，兼容读取历史标记 |
+| 编织元件 config | `NativeDataLoomFluidCellConfig` |
 
-## 调用方
+## 关键类与调用方
 
-- `TileEntityAdvanceNetworkLink` / `TileEntityAdvanceDataMonitor` — `AeCompat.cells().accumulateStorageStack`
-- `AssistantServerServices.classifyCell` — `readItemCellStats` / `readFluidCellStats`
-- `PatternDetailFormatter` — `AeCompat.patternFluids()`
-- `AbstractDataLoomFluidCell` / `DataLoomCellUtil` — config 与 marker 适配器
+- `AeCompat`：`cells()` / `fluidMarkers()` / `patternFluids()` / `fluidCellConfig()` 门面。
+- `GtnhEnvironmentProbe`：NativeFluid 诊断来源与旧 override 兼容读取。
+- `native_/*`：TeXTech 2.0 的实际适配器。
+- `legacy/*`：仅供 Native 适配器复用的混合格式/迁移辅助，待后续源码清理。
+- `TileEntityAdvanceNetworkLink`、`TileEntityAdvanceDataMonitor`、`AssistantServerServices`、`PatternDetailFormatter`、`AbstractDataLoomFluidCell` 是主要调用方。
 
-## 本地测试
+## 验证
 
-- **Legacy**：2.8.x 实例或 `aeProfileOverride=legacy`
-- **Native**：2.9.0-beta 实例或 `aeProfileOverride=native`（需真实 2.9.0 AE2 环境验证）
-
-## 移除 Legacy（Plan E）
-
-当 2.9.0 成为最低支持版本后，按独立计划执行：**[ae-compat-plan-e-remove-legacy.md](ae-compat-plan-e-remove-legacy.md)**  
-对话开场：「继续 GTNH 2.9 AE 兼容，执行 Plan E — 移除 Legacy 支持」
+- 在 GTNH `2.9.0-beta-2+` 实例验证存储字节/类型、流体样板、Workbench 分区和 AI 无限元件识别。
+- `aeProfileOverride=legacy` 仅用于确认忽略行为与诊断日志，不能用于旧实例回归。
+- 源码清理计划见 [ae-compat-plan-e-remove-legacy.md](ae-compat-plan-e-remove-legacy.md)；该计划不改变已经生效的 2.0 支持范围。

@@ -43,9 +43,13 @@ $env:MEOWART_API_KEY = "ma_live_xxxxxxxxxxxxxxxxxxxx"
 
 ```dotenv
 MEOWART_API_KEY="ma_live_xxxxxxxxxxxxxxxxxxxx"
+# Optional: used automatically when the primary key has 0 credits.
+MEOWART_API_KEY_FALLBACK="ma_live_yyyyyyyyyyyyyyyyyyyy"
+# Optional: comma-separated key list (checked in order after the primary).
+# MEOWART_API_KEYS="ma_live_aaa,ma_live_bbb"
 ```
 
-确保 `.env` 已被 Git 忽略。环境变量值只填写 `ma_live_...` 本身，不要添加 `Bearer`、字段名或其他前缀。runner 不接受命令行凭据参数。
+确保 `.env` 已被 Git 忽略。环境变量值只填写 `ma_live_...` 本身，不要添加 `Bearer`、字段名或其他前缀。runner 不接受命令行凭据参数。配置了 fallback 时，每次需认证的命令会先查 `credits-balance`，主 key 积分为 0（或查余额失败）则自动改用下一把可用 key。
 
 ## 验证认证
 

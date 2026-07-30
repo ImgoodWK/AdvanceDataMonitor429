@@ -1,0 +1,30 @@
+---
+description: Agent 读图预算：禁止把大图/图集原图直接送入模型，先缩略再看
+alwaysApply: true
+---
+
+# Agent 读图预算（防卡住）
+
+向模型塞整张 atlas / 1K+ 原图会导致上下文暴涨、长时间无响应甚至假死（Codex / Cursor 均适用）。
+
+## 硬性规则
+
+1. **先量尺寸，再决定是否读图**：用脚本或 `Pillow` 取 `width/height/bytes`；不要直接 `view_image` / `Read` 大 PNG。
+2. **视觉核对只用缩略图**：长边 ≤ **512px**；优先 `python tools/agent-image-thumb.py <png>`，输出在 `.workspace/agent-image-thumbs/`。
+3. **禁止原图入模**（任一条即触发）：
+   - 任一边 > 1024px
+   - 文件 > 1.5MB
+   - 名称/路径含 `atlas` / `sheet` / `construction_kit` / `sprite-sheet`
+4. **单回合最多看 2 张缩略图**；需要更多时分多轮，或只读元数据（路径、WxH、字节、SHA）。
+5. **格式/尺寸/哈希校验**用 shell 或脚本，不要为“看一眼”加载原图像素。
+
+## 推荐流程
+
+```powershell
+python tools/agent-image-thumb.py ".workspace/card-art/foo.png"
+# 再对打印出的 thumb 路径做视觉核对
+```
+
+## 例外
+
+仅当用户明确要求“必须看原图像素级细节”，且单边 ≤ 1024 且 < 1.5MB 时，才可直接读原图；否则仍先缩略。

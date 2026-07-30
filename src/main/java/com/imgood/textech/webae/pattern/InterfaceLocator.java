@@ -26,6 +26,8 @@ import appeng.api.config.Upgrades;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.networking.events.MENetworkCraftingPatternChange;
 import appeng.api.util.DimensionalCoord;
 
 /**
@@ -39,56 +41,18 @@ public class InterfaceLocator {
 
     private static final long TIMEOUT_MS = 10_000L;
 
-    /** Reflection cache for getPatterns/getInstalledUpgrades/getLocation/getTermName/saveChanges. */
-    private static java.lang.reflect.Method methodGetPatterns;
-    private static java.lang.reflect.Method methodGetInstalledUpgrades;
-    private static java.lang.reflect.Method methodGetLocation;
-    private static java.lang.reflect.Method methodGetTermName;
-    private static boolean reflectionInitialized = false;
-
-    private static void initReflection() {
-        if (reflectionInitialized) return;
-        reflectionInitialized = true;
-        // These methods exist on TileInterface / PartInterface / DualityInterface
-        // Try common method names with no parameters
-        String[] interfaceClassNames = { "appeng.tile.misc.TileInterface", "appeng.parts.misc.PartInterface" };
-        for (String className : interfaceClassNames) {
-            try {
-                Class<?> clz = Class.forName(className);
-                try {
-                    methodGetPatterns = clz.getMethod("getPatterns");
-                } catch (NoSuchMethodException e) {}
-                try {
-                    methodGetTermName = clz.getMethod("getTermName");
-                } catch (NoSuchMethodException e) {}
-                if (methodGetPatterns != null) break;
-            } catch (ClassNotFoundException ignored) {}
-        }
-        // getInstalledUpgrades takes Upgrades parameter
-        try {
-            Class<?> tileInterface = Class.forName("appeng.tile.misc.TileInterface");
-            try {
-                methodGetInstalledUpgrades = tileInterface.getMethod("getInstalledUpgrades", Upgrades.class);
-            } catch (NoSuchMethodException e) {}
-        } catch (ClassNotFoundException ignored) {}
-        // getLocation returns DimensionalCoord
-        try {
-            Class<?> tileInterface = Class.forName("appeng.tile.misc.TileInterface");
-            try {
-                methodGetLocation = tileInterface.getMethod("getLocation");
-            } catch (NoSuchMethodException e) {}
-        } catch (ClassNotFoundException ignored) {}
-    }
-
     /**
      * Check if a tile entity is an AE2 interface (full block or cable part).
      */
-    public static boolean isInterface(TileEntity te) {
-        if (te == null) return false;
-        String className = te.getClass()
+    public static boolean isInterface(Object target) {
+        if (target == null) return false;
+        String className = target.getClass()
             .getName();
-        return className.contains("TileInterface") || className.contains("PartInterface")
-            || className.contains("PartP2PInterface");
+        return className.contains("TileInterface") || className.contains("PartInterface");
+    }
+
+    public static boolean isInterface(TileEntity te) {
+        return isInterface((Object) te);
     }
 
     /**
@@ -149,7 +113,6 @@ public class InterfaceLocator {
      * by scanning loaded tile entities near the player.
      */
     public static List<InterfaceDto> locate(EntityPlayerMP player, int networkId) {
-        initReflection();
         List<InterfaceDto> result = new ArrayList<InterfaceDto>();
 
         IGrid grid = findGrid(player, networkId);
@@ -166,7 +129,6 @@ public class InterfaceLocator {
 
     private static List<InterfaceDto> locate(EntityPlayerMP player, int networkId,
         WebAeOwnerContext.NetworkGroup group) {
-        initReflection();
         String ownerUuid = player != null ? player.getUniqueID()
             .toString() : "";
         IGrid grid = findGrid(ownerUuid, networkId);
@@ -200,7 +162,7 @@ public class InterfaceLocator {
         List<InterfaceDto> gridNodes = locateViaGridNodes(grid);
         java.util.Set<String> seen = new java.util.HashSet<String>();
         for (InterfaceDto dto : gridNodes) {
-            String key = dto.x + ":" + dto.y + ":" + dto.z + ":" + dto.dim;
+            String key = dto.interfaceId;
             if (seen.add(key)) {
                 result.add(dto);
             }
@@ -230,7 +192,7 @@ public class InterfaceLocator {
 
                     InterfaceDto dto = buildInterfaceDto(te);
                     if (dto != null) {
-                        String key = dto.x + ":" + dto.y + ":" + dto.z + ":" + dto.dim;
+                        String key = dto.interfaceId;
                         if (seen.add(key)) {
                             result.add(dto);
                         }
@@ -251,7 +213,6 @@ public class InterfaceLocator {
         if (grid == null) {
             return result;
         }
-        initReflection();
         try {
             for (Class<? extends IGridHost> clazz : grid.getMachinesClasses()) {
                 if (clazz == null) {
@@ -266,15 +227,11 @@ public class InterfaceLocator {
                         continue;
                     }
                     try {
-                        IGridHost host = node.getMachine();
-                        if (!(host instanceof TileEntity)) {
+                        Object host = node.getMachine();
+                        if (!isInterface(host)) {
                             continue;
                         }
-                        TileEntity te = (TileEntity) host;
-                        if (!isInterface(te)) {
-                            continue;
-                        }
-                        InterfaceDto dto = buildInterfaceDto(te);
+                        InterfaceDto dto = buildInterfaceDto(host);
                         if (dto != null) {
                             result.add(dto);
                         }
@@ -311,34 +268,47 @@ public class InterfaceLocator {
      * Build InterfaceDto from an interface TileEntity using reflection.
      */
     public static InterfaceDto buildInterfaceDto(TileEntity te) {
-        initReflection();
+        return buildInterfaceDto((Object) te);
+    }
+
+    /** Build a DTO for either a full-block TileInterface or a cable-bus PartInterface. */
+    public static InterfaceDto buildInterfaceDto(Object target) {
         InterfaceDto dto = new InterfaceDto();
 
         try {
             // Name
-            dto.name = getTermName(te);
+            dto.name = getTermName(target);
 
             // Location
-            DimensionalCoord loc = getLocation(te);
+            DimensionalCoord loc = getLocation(target);
+            TileEntity tile = getTileEntity(target);
             if (loc != null) {
                 dto.x = loc.x;
                 dto.y = loc.y;
                 dto.z = loc.z;
                 dto.dim = loc.getDimension();
+            } else if (tile != null && tile.getWorldObj() != null) {
+                dto.x = tile.xCoord;
+                dto.y = tile.yCoord;
+                dto.z = tile.zCoord;
+                dto.dim = tile.getWorldObj().provider.dimensionId;
             } else {
-                dto.x = te.xCoord;
-                dto.y = te.yCoord;
-                dto.z = te.zCoord;
-                dto.dim = te.getWorldObj().provider.dimensionId;
+                return null;
             }
 
+            ForgeDirection side = getPartSide(target);
+            dto.part = !(target instanceof TileEntity);
+            dto.partSide = dto.part && side != null && side != ForgeDirection.UNKNOWN ? side.name() : "";
+            dto.interfaceId = address(dto.x, dto.y, dto.z, dto.dim, dto.partSide);
+
             // Capacity upgrades
-            dto.capacityUpgrades = getInstalledUpgrades(te, Upgrades.PATTERN_CAPACITY);
+            dto.capacityUpgrades = getInstalledUpgrades(target, Upgrades.PATTERN_CAPACITY);
             dto.activeSlots = (dto.capacityUpgrades + 1) * 9;
 
             // Slot states + existing pattern details
-            IInventory patterns = getPatterns(te);
+            IInventory patterns = getPatterns(target);
             if (patterns != null) {
+                dto.activeSlots = Math.min(dto.activeSlots, patterns.getSizeInventory());
                 for (int i = 0; i < dto.activeSlots; i++) {
                     ItemStack stack = patterns.getStackInSlot(i);
                     boolean occupied = stack != null && stack.getItem() != null;
@@ -350,6 +320,7 @@ public class InterfaceLocator {
                             dto.y,
                             dto.z,
                             dto.dim,
+                            dto.partSide,
                             i,
                             stack);
                         if (existing != null) {
@@ -361,8 +332,8 @@ public class InterfaceLocator {
             }
 
             // Target machine info
-            dto.targetMachineName = getTargetMachineName(te);
-            dto.targetRecipePool = getTargetRecipePool(te);
+            dto.targetMachineName = getTargetMachineName(target);
+            dto.targetRecipePool = getTargetRecipePool(target);
             dto.machineRecipeType = buildMachineRecipeType(dto.targetMachineName, dto.targetRecipePool);
 
         } catch (Exception e) {
@@ -376,73 +347,84 @@ public class InterfaceLocator {
     // ---- Reflection-based accessors (package-accessible for PatternInjector) ----
 
     public static String getTermName(TileEntity te) {
+        return getTermName((Object) te);
+    }
+
+    public static String getTermName(Object target) {
         try {
-            if (isInterface(te)) {
-                java.lang.reflect.Method m = te.getClass()
-                    .getMethod("getTermName");
-                Object result = m.invoke(te);
-                if (result != null) {
-                    String name = result.toString();
-                    if (!name.isEmpty() && !"Interface".equals(name)) {
-                        return name;
-                    }
+            Object result = invokeNoArg(target, "getTermName");
+            if (result == null) result = invokeNoArg(getDuality(target), "getTermName");
+            if (result != null) {
+                String name = result.toString();
+                if (!name.isEmpty() && !"Interface".equals(name)) {
+                    return name;
                 }
             }
         } catch (Exception ignored) {}
-        // Fallback
-        return "Interface (" + te.xCoord + "," + te.yCoord + "," + te.zCoord + ")";
+        TileEntity tile = getTileEntity(target);
+        ForgeDirection side = getPartSide(target);
+        if (tile != null) {
+            String suffix = side != null && side != ForgeDirection.UNKNOWN ? " " + side.name() : "";
+            return "Interface (" + tile.xCoord + "," + tile.yCoord + "," + tile.zCoord + suffix + ")";
+        }
+        return "Interface";
     }
 
     public static DimensionalCoord getLocation(TileEntity te) {
+        return getLocation((Object) te);
+    }
+
+    public static DimensionalCoord getLocation(Object target) {
         try {
-            if (isInterface(te)) {
-                java.lang.reflect.Method m = te.getClass()
-                    .getMethod("getLocation");
-                Object result = m.invoke(te);
-                if (result instanceof DimensionalCoord) {
-                    return (DimensionalCoord) result;
-                }
+            Object result = invokeNoArg(target, "getLocation");
+            if (result == null) result = invokeNoArg(getDuality(target), "getLocation");
+            if (result instanceof DimensionalCoord) {
+                return (DimensionalCoord) result;
             }
         } catch (Exception ignored) {}
         return null;
     }
 
     public static int getInstalledUpgrades(TileEntity te, Upgrades upgrade) {
+        return getInstalledUpgrades((Object) te, upgrade);
+    }
+
+    public static int getInstalledUpgrades(Object target, Upgrades upgrade) {
         try {
-            if (isInterface(te)) {
-                java.lang.reflect.Method m = te.getClass()
-                    .getMethod("getInstalledUpgrades", Upgrades.class);
-                Object result = m.invoke(te, upgrade);
-                if (result instanceof Integer) {
-                    return (Integer) result;
-                }
+            Object result = invokeUpgrade(target, upgrade);
+            if (result == null) result = invokeUpgrade(getDuality(target), upgrade);
+            if (result instanceof Integer) {
+                return (Integer) result;
             }
         } catch (Exception ignored) {}
         return 0;
     }
 
     public static IInventory getPatterns(TileEntity te) {
+        return getPatterns((Object) te);
+    }
+
+    public static IInventory getPatterns(Object target) {
         try {
-            if (isInterface(te)) {
-                java.lang.reflect.Method m = te.getClass()
-                    .getMethod("getPatterns");
-                Object result = m.invoke(te);
-                if (result instanceof IInventory) {
-                    return (IInventory) result;
-                }
+            Object result = invokeNoArg(target, "getPatterns");
+            if (result == null) result = invokeNoArg(getDuality(target), "getPatterns");
+            if (result instanceof IInventory) {
+                return (IInventory) result;
             }
         } catch (Exception ignored) {}
         return null;
     }
 
     public static void saveChanges(TileEntity te) {
+        saveChanges((Object) te);
+    }
+
+    public static void saveChanges(Object target) {
         try {
-            if (isInterface(te)) {
-                java.lang.reflect.Method m = te.getClass()
-                    .getMethod("saveChanges");
-                m.invoke(te);
-            }
+            if (!invokeVoidNoArg(target, "saveChanges")) invokeVoidNoArg(getDuality(target), "saveChanges");
         } catch (Exception ignored) {}
+        TileEntity tile = getTileEntity(target);
+        if (tile != null) tile.markDirty();
     }
 
     static String buildPatternSummary(ItemStack patternStack) {
@@ -478,13 +460,13 @@ public class InterfaceLocator {
         }
     }
 
-    static ExistingPatternEntry buildExistingPatternEntry(int x, int y, int z, int dim, int slotIndex,
+    static ExistingPatternEntry buildExistingPatternEntry(int x, int y, int z, int dim, String partSide, int slotIndex,
         ItemStack patternStack) {
         if (patternStack == null || patternStack.getTagCompound() == null) return null;
         net.minecraft.nbt.NBTTagCompound tag = patternStack.getTagCompound();
         ExistingPatternEntry entry = new ExistingPatternEntry();
         entry.slotIndex = slotIndex;
-        entry.patternId = x + ":" + y + ":" + z + ":" + dim + "#" + slotIndex;
+        entry.patternId = address(x, y, z, dim, partSide) + "#" + slotIndex;
         entry.crafting = tag.getByte("crafting") != 0;
         net.minecraft.nbt.NBTTagList outList = tag.getTagList("out", 10);
         if (outList != null) {
@@ -520,9 +502,9 @@ public class InterfaceLocator {
         return recipePool != null ? recipePool : "";
     }
 
-    private static String getTargetMachineName(TileEntity te) {
+    private static String getTargetMachineName(Object target) {
         try {
-            TileEntity adjacent = getAdjacentTile(te);
+            TileEntity adjacent = getAdjacentTile(target);
             if (adjacent != null) {
                 try {
                     Class<?> igtteClass = Class.forName("gregtech.api.interfaces.tileentity.IGregTechTileEntity");
@@ -541,9 +523,9 @@ public class InterfaceLocator {
         return "";
     }
 
-    private static String getTargetRecipePool(TileEntity te) {
+    private static String getTargetRecipePool(Object target) {
         try {
-            TileEntity adjacent = getAdjacentTile(te);
+            TileEntity adjacent = getAdjacentTile(target);
             if (adjacent != null) {
                 try {
                     Class<?> igtteClass = Class.forName("gregtech.api.interfaces.tileentity.IGregTechTileEntity");
@@ -563,10 +545,20 @@ public class InterfaceLocator {
         return "";
     }
 
-    private static TileEntity getAdjacentTile(TileEntity te) {
+    private static TileEntity getAdjacentTile(Object target) {
         try {
+            TileEntity te = getTileEntity(target);
+            if (te == null) return null;
             World world = te.getWorldObj();
             if (world == null) return null;
+            ForgeDirection partSide = getPartSide(target);
+            if (partSide != null && partSide != ForgeDirection.UNKNOWN) {
+                TileEntity adjacent = world.getTileEntity(
+                    te.xCoord + partSide.offsetX,
+                    te.yCoord + partSide.offsetY,
+                    te.zCoord + partSide.offsetZ);
+                if (adjacent != null && !isInterface(adjacent)) return adjacent;
+            }
             ForgeDirection[] dirs = ForgeDirection.values();
             for (ForgeDirection dir : dirs) {
                 if (dir == ForgeDirection.UNKNOWN) continue;
@@ -578,6 +570,153 @@ public class InterfaceLocator {
             }
         } catch (Exception ignored) {}
         return null;
+    }
+
+    public static String address(int x, int y, int z, int dim, String partSide) {
+        String base = x + ":" + y + ":" + z + ":" + dim;
+        return partSide != null && !partSide.isEmpty() ? base + "@" + partSide : base;
+    }
+
+    /** Resolve a full-block interface or a specific cable-bus interface part from its WebAE address. */
+    public static Object resolveInterface(int x, int y, int z, int dim, String partSide) {
+        World world = net.minecraftforge.common.DimensionManager.getWorld(dim);
+        if (world == null || !world.blockExists(x, y, z)) return null;
+        TileEntity tile = world.getTileEntity(x, y, z);
+        if (tile == null) return null;
+
+        if (partSide == null || partSide.isEmpty()) {
+            if (isInterface(tile)) return tile;
+            Object only = null;
+            for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+                Object part = getPart(tile, side);
+                if (!isInterface(part)) continue;
+                if (only != null) return null; // Ambiguous legacy address: require @SIDE.
+                only = part;
+            }
+            return only;
+        }
+
+        try {
+            ForgeDirection side = ForgeDirection.valueOf(partSide.toUpperCase(java.util.Locale.ROOT));
+            Object part = getPart(tile, side);
+            return isInterface(part) ? part : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    public static TileEntity getTileEntity(Object target) {
+        if (target instanceof TileEntity) return (TileEntity) target;
+        Object tile = invokeNoArg(target, "getTileEntity");
+        if (!(tile instanceof TileEntity)) tile = invokeNoArg(target, "getTile");
+        return tile instanceof TileEntity ? (TileEntity) tile : null;
+    }
+
+    public static ForgeDirection getPartSide(Object target) {
+        if (target instanceof TileEntity) return ForgeDirection.UNKNOWN;
+        Object side = invokeNoArg(target, "getSide");
+        return side instanceof ForgeDirection ? (ForgeDirection) side : ForgeDirection.UNKNOWN;
+    }
+
+    public static IGridNode getGridNode(Object target) {
+        if (target instanceof IGridHost) {
+            try {
+                IGridNode node = ((IGridHost) target).getGridNode(ForgeDirection.UNKNOWN);
+                if (node != null) return node;
+            } catch (Throwable ignored) {}
+        }
+        Object node = invokeNoArg(target, "getGridNode");
+        return node instanceof IGridNode ? (IGridNode) node : null;
+    }
+
+    public static boolean belongsToGrid(Object target, String ownerUuid, int networkId) {
+        IGrid expected = findGrid(ownerUuid, networkId);
+        IGridNode node = getGridNode(target);
+        try {
+            return expected != null && node != null && node.getGrid() == expected;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /** Verify that a coordinate-addressed target belongs to any network exposed by this WebAE owner. */
+    public static boolean belongsToOwnerGrid(Object target, String ownerUuid) {
+        IGridNode node = getGridNode(target);
+        IGrid actual;
+        try {
+            actual = node != null ? node.getGrid() : null;
+        } catch (Throwable ignored) {
+            return false;
+        }
+        if (actual == null) return false;
+        List<WebAeOwnerContext.NetworkGroup> groups = WebAeOwnerContext.findNetworkGroups(ownerUuid);
+        for (int i = 0; i < groups.size(); i++) {
+            if (findGrid(ownerUuid, i) == actual) return true;
+        }
+        return false;
+    }
+
+    /** Notify AE2 after a pattern inventory mutation. */
+    public static void postPatternChangeEvent(Object target) {
+        try {
+            IGridNode node = getGridNode(target);
+            if (node == null || node.getGrid() == null) return;
+            Object provider = target instanceof ICraftingProvider ? target : getDuality(target);
+            if (provider instanceof ICraftingProvider) {
+                node.getGrid()
+                    .postEvent(new MENetworkCraftingPatternChange((ICraftingProvider) provider, node));
+            }
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to post pattern change event: {}", t.getMessage());
+        }
+    }
+
+    private static Object getPart(TileEntity tile, ForgeDirection side) {
+        try {
+            java.lang.reflect.Method method = tile.getClass()
+                .getMethod("getPart", ForgeDirection.class);
+            return method.invoke(tile, side);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static Object getDuality(Object target) {
+        return invokeNoArg(target, "getInterfaceDuality");
+    }
+
+    private static Object invokeNoArg(Object target, String methodName) {
+        if (target == null) return null;
+        try {
+            java.lang.reflect.Method method = target.getClass()
+                .getMethod(methodName);
+            return method.invoke(target);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static Object invokeUpgrade(Object target, Upgrades upgrade) {
+        if (target == null) return null;
+        try {
+            java.lang.reflect.Method method = target.getClass()
+                .getMethod("getInstalledUpgrades", Upgrades.class);
+            return method.invoke(target, upgrade);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static boolean invokeVoidNoArg(Object target, String methodName) {
+        if (target == null) return false;
+        try {
+            java.lang.reflect.Method method = target.getClass()
+                .getMethod(methodName);
+            method.invoke(target);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static EntityPlayerMP getPlayer(String playerUuid) {

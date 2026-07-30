@@ -8,8 +8,30 @@
     "description": "搜索引擎",
     "type": "string",
     "default": "auto",
-    "options": ["auto", "tavily_keyless", "duckduckgo", "tavily", "brave", "serper", "searxng"],
-    "hint": "auto 按 tavily_keyless → duckduckgo → tavily → brave → serper → searxng 降级。"
+    "options": [
+      "auto",
+      "bing_cn",
+      "bing",
+      "tavily_keyless",
+      "duckduckgo",
+      "tavily",
+      "brave",
+      "serper",
+      "searxng"
+    ],
+    "hint": "auto 优先 bing_cn/bing（国内云主机可达），再降级 tavily_keyless → duckduckgo → 需 Key 的引擎。"
+  },
+  "only_explicit": {
+    "description": "仅在用户明确要求搜索时联网",
+    "type": "bool",
+    "default": true,
+    "hint": "开启后只有出现「搜索/查一下/联网」等意图才检索，避免普通闲聊被搜索结果污染。"
+  },
+  "require_astrbot_prefix": {
+    "description": "搜索功能必须由 AstrBot 显式前缀唤起",
+    "type": "bool",
+    "default": true,
+    "hint": "与 textech_intent 配合时，只有 tt 搜索... / tt联网... 才执行；自动插话不会联网。"
   },
   "api_key": {
     "description": "Tavily / Brave / Serper API Key（按所选引擎需要）",

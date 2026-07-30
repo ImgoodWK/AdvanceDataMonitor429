@@ -98,9 +98,17 @@ public class QqBotCoreTest {
         assertEquals(QqBotIntentClassifier.Owner.WEBAE, webae.owner);
         assertEquals("帮我看下卡顿", webae.textForHandler);
 
-        QqBotIntentClassifier.Decision astr = QqBotIntentClassifier.classify(cfg, "云：搜一下今天新闻");
+        QqBotIntentClassifier.Decision astr = QqBotIntentClassifier.classify(cfg, "tt：搜一下今天新闻");
         assertEquals(QqBotIntentClassifier.Owner.ASTRBOT, astr.owner);
         assertEquals("搜一下今天新闻", astr.textForHandler);
+
+        QqBotIntentClassifier.Decision compact = QqBotIntentClassifier.classify(cfg, "tt生图 狐娘");
+        assertEquals(QqBotIntentClassifier.Owner.ASTRBOT, compact.owner);
+        assertEquals("生图 狐娘", compact.textForHandler);
+
+        QqBotIntentClassifier.Decision notPrefix = QqBotIntentClassifier.classify(cfg, "ttl report");
+        assertEquals(QqBotIntentClassifier.Owner.ASTRBOT, notPrefix.owner);
+        assertEquals("default_astrbot", notPrefix.reason);
 
         QqBotIntentClassifier.Decision keyword = QqBotIntentClassifier.classify(cfg, "请查询仪表盘告警");
         assertEquals(QqBotIntentClassifier.Owner.WEBAE, keyword.owner);

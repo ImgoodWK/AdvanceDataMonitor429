@@ -202,6 +202,9 @@ export interface RecipeItemEntry {
   registryName: string;
   meta: number;
   stackSize: number;
+  nbt?: string;
+  /** GT/NEI stack-size-zero convention: present in the recipe but not consumed. */
+  nonConsumable?: boolean;
 }
 
 export interface RecipeGridSlot {
@@ -318,7 +321,10 @@ export interface PatternItemEntry {
   displayName: string;
   meta: number;
   stackSize: number;
+  nbt?: string;
   isFluid: boolean;
+  nonConsumable?: boolean;
+  programmableCircuit?: boolean;
 }
 
 export interface PatternDto {
@@ -330,6 +336,7 @@ export interface PatternDto {
   inputs: (PatternItemEntry | null)[];
   outputs: PatternItemEntry[];
   encodedNbt: string;
+  programmableHatches?: boolean;
 }
 
 export interface PatternSlotState {
@@ -351,6 +358,9 @@ export interface InterfaceDto {
   y: number;
   z: number;
   dim: number;
+  interfaceId: string;
+  partSide?: string;
+  part?: boolean;
   capacityUpgrades: number;
   activeSlots: number;
   slots: PatternSlotState[];
@@ -391,6 +401,15 @@ export interface PatternInjectResponse {
   message?: string;
 }
 
+export interface PatternCompatResponse {
+  success: boolean;
+  programmableHatches: {
+    installed: boolean;
+    modId: string;
+    programmingCircuit: string;
+  };
+}
+
 /** 网络样板总览条目（GET /api/patterns 返回数组项）。 */
 export interface PatternListEntryDto {
   patternId: string;
@@ -403,6 +422,7 @@ export interface PatternListEntryDto {
   crafting: boolean;
   substitute: boolean;
   beSubstitute: boolean;
+  programmableHatches?: boolean;
   author: string;
   inputs: (PatternItemEntry | null)[];
   outputs: PatternItemEntry[];
@@ -436,6 +456,8 @@ export interface PatternBrowseResponse {
 export interface PatternListResponse {
   success: boolean;
   patterns: PatternListEntryDto[];
+  cached?: boolean;
+  timestamp?: number;
   message?: string;
 }
 
@@ -448,12 +470,6 @@ export interface PatternDetailResponse {
 /** PUT /api/patterns/<id> 编辑回写请求体。 */
 export interface PatternUpdateRequest {
   encodedNbt: string;
-  /** 可选：覆盖来源接口坐标（移动到新槽位/接口）。 */
-  interfaceX?: number;
-  interfaceY?: number;
-  interfaceZ?: number;
-  interfaceDim?: number;
-  slotIndex?: number;
 }
 
 export interface PatternUpdateResponse {
@@ -465,6 +481,30 @@ export interface PatternUpdateResponse {
 export interface PatternDeleteResponse {
   success: boolean;
   message: string;
+}
+
+export interface PatternBufferEntry {
+  id: string;
+  networkId: number;
+  encodedNbt: string;
+  sourceInterfaceName: string;
+  sourceSlot: number;
+  crafting: boolean;
+  createdAt: number;
+  outputs: PatternItemEntry[];
+}
+
+export interface PatternBufferResponse {
+  success: boolean;
+  entries: PatternBufferEntry[];
+  count: number;
+  message?: string;
+}
+
+export interface PatternMutationResponse {
+  success: boolean;
+  message: string;
+  entry?: PatternBufferEntry;
 }
 
 export interface OrderRequest {

@@ -9,7 +9,7 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 
 DEFAULT_WEBAE_PREFIXES = ["webae", "游戏", "mc", "gtnh", "服务器"]
-DEFAULT_ASTRBOT_PREFIXES = ["云", "助手", "bot", "astr"]
+DEFAULT_ASTRBOT_PREFIXES = ["tt"]
 DEFAULT_WEBAE_KEYWORDS = [
     "webae", "textech", "gtnh", "tps", "mspt", "仪表盘", "告警", "在线玩家",
     "服务器状态", "adm", "高级数据", "监视器", "内存", "开服", "谁在线",
@@ -37,7 +37,7 @@ def _tokens(values: Optional[List[str]], defaults: List[str]) -> List[str]:
     return cleaned or list(defaults)
 
 
-def _starts_with_token(raw: str, token: str) -> bool:
+def _starts_with_token(raw: str, token: str, *, allow_compact: bool = False) -> bool:
     if not token or len(raw) < len(token):
         return False
     if not raw.lower().startswith(token.lower()):
@@ -45,7 +45,11 @@ def _starts_with_token(raw: str, token: str) -> bool:
     if len(raw) == len(token):
         return True
     nxt = raw[len(token)]
-    return nxt.isspace() or nxt in ":：/-|"
+    if nxt.isspace() or nxt in ":：/-|":
+        return True
+    # `tt生图` / `tt搜索` are common in QQ.  Do not treat an English word such
+    # as `ttl` as a compact prefix hit.
+    return bool(allow_compact and not nxt.isascii())
 
 
 def _strip_leading_token(raw: str, token_len: int) -> str:
@@ -57,10 +61,15 @@ def _strip_leading_token(raw: str, token_len: int) -> str:
     return rest
 
 
-def _match_leading(raw: str, tokens: List[str]) -> Optional[Tuple[str, str]]:
+def _match_leading(
+    raw: str,
+    tokens: List[str],
+    *,
+    allow_compact: bool = False,
+) -> Optional[Tuple[str, str]]:
     best: Optional[Tuple[str, str]] = None
     for token in tokens:
-        if not _starts_with_token(raw, token):
+        if not _starts_with_token(raw, token, allow_compact=allow_compact):
             continue
         if best is None or len(token) >= len(best[0]):
             best = (token, _strip_leading_token(raw, len(token)))
@@ -79,13 +88,18 @@ def classify(
     astr_prefixes: List[str],
     keywords: List[str],
     command_prefix: str,
+    allow_compact_astrbot_prefix: bool = True,
 ) -> Tuple[str, str, str]:
     """Return (owner, text_for_handler, reason) where owner is webae|astrbot."""
     text = (raw or "").strip()
     hit = _match_leading(text, webae_prefixes)
     if hit:
         return "webae", hit[1], f"explicit_webae:{hit[0]}"
-    hit = _match_leading(text, astr_prefixes)
+    hit = _match_leading(
+        text,
+        astr_prefixes,
+        allow_compact=allow_compact_astrbot_prefix,
+    )
     if hit:
         return "astrbot", hit[1], f"explicit_astrbot:{hit[0]}"
 
@@ -108,7 +122,7 @@ def classify(
     "textech_intent",
     "TeXTech",
     "TeXTech/WebAE shared-bot intent handoff",
-    "1.0.0",
+    "1.1.0",
 )
 class TextechIntentPlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):
@@ -117,6 +131,23 @@ class TextechIntentPlugin(Star):
 
     def _enabled(self) -> bool:
         return bool(self.config.get("enabled", True))
+
+    @staticmethod
+    def _mark_route(event: AstrMessageEvent, owner: str, reason: str, prefix: str = "") -> None:
+        """Expose one routing decision to later LLM hooks without changing AstrBot APIs."""
+        try:
+            setattr(
+                event,
+                "textech_route",
+                {
+                    "owner": owner,
+                    "reason": reason,
+                    "explicit": reason.startswith("explicit_astrbot:"),
+                    "prefix": prefix,
+                },
+            )
+        except Exception:
+            pass
 
     @filter.event_message_type(filter.EventMessageType.ALL, priority=100)
     async def on_message(self, event: AstrMessageEvent):
@@ -131,13 +162,17 @@ class TextechIntentPlugin(Star):
             astr_prefixes=_tokens(self.config.get("astrbot_explicit_prefixes"), DEFAULT_ASTRBOT_PREFIXES),
             keywords=_tokens(self.config.get("webae_intent_keywords"), DEFAULT_WEBAE_KEYWORDS),
             command_prefix=str(self.config.get("command_prefix") or "/"),
+            allow_compact_astrbot_prefix=bool(self.config.get("allow_compact_astrbot_prefix", True)),
         )
         if owner == "webae":
+            self._mark_route(event, owner, reason)
             logger.info(f"[textech_intent] handoff to WebAE ({reason}): {raw[:80]}")
             event.stop_event()
             event.should_call_llm(False)
             return
-        if reason.startswith("explicit_astrbot:") and remainder and remainder != raw:
+        prefix = reason.split(":", 1)[1] if reason.startswith("explicit_astrbot:") else ""
+        self._mark_route(event, owner, reason, prefix)
+        if prefix and remainder and remainder != raw:
             # Prefer stripped text for downstream AstrBot LLM when user used an explicit prefix.
             try:
                 event.message_str = remainder

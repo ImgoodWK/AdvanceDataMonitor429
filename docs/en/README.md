@@ -1,8 +1,10 @@
 # TeXTech Documentation (English)
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-07
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 2.0 · Last synced: 2026-07
 
 中文文档: [docs/zh/README.md](../zh/README.md) · Index: [docs/README.md](../README.md)
+
+TeXTech 2.0 targets GTNH `2.9.0-beta-2+`. Releases provide the required core mod JAR, optional offline-voice JAR, and optional WebAE ZIP separately. To use WebAE, extract its ZIP at the server instance root and verify `TeXTech/WebAE/ui/index.html`; users who do not need WebAE only download the core JAR.
 
 ---
 
@@ -59,8 +61,8 @@ Maintenance map: [documentation-map.md](developer/documentation-map.md)
 | [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | New-feature checklist (base classes, packets, lang sync) |
 | [developer/gradle-workflow.md](developer/gradle-workflow.md) | Build / migration / FAQ |
 | [developer/temporary-textures.md](developer/temporary-textures.md) | Missing/placeholder block & item texture audit; **temporary** procedural art |
-| [developer/gtnh-version-compatibility.md](developer/gtnh-version-compatibility.md) | v1.0.0 GTNH 2.8.x / 2.9.0-beta+ support and planned Legacy removal |
-| [developer/ae-compat-290.md](developer/ae-compat-290.md) | AE dual-path compat technical reference |
+| [developer/gtnh-version-compatibility.md](developer/gtnh-version-compatibility.md) | v2.0.0 requires GTNH 2.9.0-beta-2+; 2.8.x is no longer supported |
+| [developer/ae-compat-290.md](developer/ae-compat-290.md) | GTNH 2.9.0-beta-2 NativeFluid integration and legacy-source boundary |
 
 ### AI assistant
 

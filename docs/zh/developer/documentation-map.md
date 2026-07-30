@@ -35,7 +35,7 @@
 | AI 助手 | `assistant/` | [AI 开发指南](../ai-assistant/开发指南.md) | [用户手册 §8](../player/用户手册.md#8-ai-对话与助手) | `ai-assistant.mdc` · `assistant-features.json` |
 | 挂索 | `handler/Grapple*` | [挂索设计](../subsystems/挂索节点系统设计.md) | [用户手册 §3.7](../player/用户手册.md#37-挂索节点grapple-anchor) | — |
 | WebAE 控制台 | `webae/` · `webae-frontend/` | [WebAE 开发者手册](../webae/开发者手册.md) | [WebAE 用户手册](../webae/用户手册.md) · `manual/web_console.json` | `webae-frontend.mdc` |
-| 卡牌对战网页 | `cardbattle-server/` · `cardbattle-frontend/` · `cardbattle/` Java 包 | [卡牌对战](../cardbattle/README.md) · [规则](../cardbattle/rules.md) · [UI 设计](../cardbattle/ui-design.md) | — | `.cursor/skills/textech-card-art/` · [奖励桥](../cardbattle/rewards-bridge.md) |
+| 独立卡牌服务联动 | `CommandCardBattle.java` · `ConfigCardBattleLoader.java` | [联动概览](../cardbattle/README.md) · [奖励桥](../cardbattle/rewards-bridge.md) | `manual/config_reference.json` | 卡牌游戏本体位于独立仓库；ADM 只保留私密 Bridge 适配器 |
 | 世界地图 | `webae/worldmap/` | WebAE [§11.26](../webae/开发者手册.md#1126-世界地图视图phase-ab--ae-透视层) · §4 worldMap* | WebAE 用户手册 · `topology_text` lang | `project-structure-details.mdc` |
 | 渲染/TESR | `renders/` | [技术文档 §11](技术文档.md#11-渲染系统) | — | `project-structure-details.mdc` renders 章 |
 | GUI / UI 框架 | `gui/framework/` · `gui/custom/` | [ui-framework.md](ui-framework.md) | — | `gui-guidelines.mdc` |

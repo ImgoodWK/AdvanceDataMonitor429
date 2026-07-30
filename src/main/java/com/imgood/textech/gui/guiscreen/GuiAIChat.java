@@ -31,10 +31,14 @@ import com.imgood.textech.assistant.ai.DeepSeekChatClient.ChatMessage;
 import com.imgood.textech.assistant.ai.WebSearchData;
 import com.imgood.textech.assistant.ai.WebSearchService;
 import com.imgood.textech.assistant.ai.WebSearchService.WebSearchException;
+import com.imgood.textech.gui.GuiResponsiveLayout;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.network.packet.PacketAssistantMenuStateQuery;
 import com.imgood.textech.renders.VoiceHudRenderer;
 
@@ -57,14 +61,13 @@ public class GuiAIChat extends ADM_GuiScreen {
     private static final int BUTTON_NEXT_SEARCH = 6;
     private static final int BUTTON_MENU = 7;
     private static final int MAX_CONTEXT_MESSAGES = 16;
-    private static final int PANEL_WIDTH = 600;
-    private static final int PANEL_HEIGHT = 450;
+    private static final int PREFERRED_PANEL_WIDTH = 600;
+    private static final int PREFERRED_PANEL_HEIGHT = 450;
+    private static final int PANEL_MARGIN = 4;
     private static final int CHAT_PANEL_INSET_LEFT = 18;
     private static final int CHAT_PANEL_INSET_RIGHT = 22;
     private static final int INPUT_BOTTOM_MARGIN = 38;
-    private static final int INPUT_LEFT = 42;
-    private static final int MENU_BUTTON_WIDTH = 54;
-    private static final int MENU_BUTTON_GAP = 6;
+    private static final int CONTROL_GAP = 4;
     private static final int SCROLLBAR_WIDTH = 10;
     private static final int SCROLL_BUTTON_HEIGHT = 12;
     private static final int TEXT_COLOR = 0x00FFFF;
@@ -93,12 +96,16 @@ public class GuiAIChat extends ADM_GuiScreen {
     private int scrollOffset;
     private int offsetX;
     private int offsetY;
+    private int panelWidth = PREFERRED_PANEL_WIDTH;
+    private int panelHeight = PREFERRED_PANEL_HEIGHT;
+    private int chatPanelTop = 52;
+    private int chatPanelHeight = PREFERRED_PANEL_HEIGHT - 100;
     private boolean waitingForMenuSelection;
 
     public GuiAIChat(GuiScreen parent) {
         this.parent = parent;
         this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
-        this.setSize(PANEL_WIDTH, PANEL_HEIGHT);
+        this.setSize(PREFERRED_PANEL_WIDTH, PREFERRED_PANEL_HEIGHT);
         this.setStretch(false);
     }
 
@@ -106,63 +113,81 @@ public class GuiAIChat extends ADM_GuiScreen {
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
-        this.offsetX = (this.width - PANEL_WIDTH) / 2;
-        this.offsetY = (this.height - PANEL_HEIGHT) / 2;
+        GuiResponsiveLayout.Panel panel = GuiResponsiveLayout
+            .fitCentered(this.width, this.height, PREFERRED_PANEL_WIDTH, PREFERRED_PANEL_HEIGHT, PANEL_MARGIN);
+        this.offsetX = panel.x();
+        this.offsetY = panel.y();
+        this.panelWidth = panel.width();
+        this.panelHeight = panel.height();
+        this.setSize(this.panelWidth, this.panelHeight);
         this.setPosition(this.offsetX, this.offsetY);
 
-        int inputY = this.offsetY + PANEL_HEIGHT - INPUT_BOTTOM_MARGIN;
-        int sendButtonX = this.offsetX + PANEL_WIDTH - 112;
-        int menuButtonX = sendButtonX - MENU_BUTTON_GAP - MENU_BUTTON_WIDTH;
-        this.inputField = new ADM_GuiTextField(
-            this.fontRendererObj,
-            this.offsetX + INPUT_LEFT,
-            inputY + 8,
-            menuButtonX - (this.offsetX + INPUT_LEFT) - 8,
-            20).setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
-                .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
-                .setHintText(I18n.format("adm.ai.input_hint"));
+        boolean twoHeaderRows = this.panelWidth < 370;
+        int headerButtonY = this.offsetY + 18;
+        int rightHeaderY = headerButtonY + (twoHeaderRows ? 24 : 0);
+        int statusTop = twoHeaderRows ? 65 : 42;
+        this.chatPanelTop = statusTop + 14;
+        int inputY = this.offsetY + this.panelHeight - INPUT_BOTTOM_MARGIN;
+        this.chatPanelHeight = Math.max(44, inputY - (this.offsetY + this.chatPanelTop) - 8);
+
+        int sideInset = 16;
+        int searchWidth = 70;
+        int nextSearchWidth = 82;
+        int headerButtonWidth = 42;
+        int searchButtonX = this.offsetX + sideInset;
+        int nextSearchButtonX = searchButtonX + searchWidth + 6;
+        int closeButtonX = this.offsetX + this.panelWidth - sideInset - headerButtonWidth;
+        int cancelButtonX = closeButtonX - CONTROL_GAP - headerButtonWidth;
+        int settingsButtonX = cancelButtonX - CONTROL_GAP - headerButtonWidth;
+
+        int inputButtonWidth = 42;
+        int menuButtonWidth = 50;
+        int clearButtonX = this.offsetX + this.panelWidth - sideInset - inputButtonWidth;
+        int sendButtonX = clearButtonX - CONTROL_GAP - inputButtonWidth;
+        int menuButtonX = sendButtonX - CONTROL_GAP - menuButtonWidth;
+        int inputX = this.offsetX + 18;
+        int inputWidth = Math.max(48, menuButtonX - inputX - 6);
+        this.inputField = new ADM_GuiTextField(this.fontRendererObj, inputX, inputY + 8, inputWidth, 20)
+            .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
+            .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
+            .setHintText(I18n.format("adm.ai.input_hint"));
         this.inputField.setMaxStringLength(1000);
         this.inputField.setFocused(true);
 
         this.buttonList
-            .add(createButton(BUTTON_SEARCH, this.offsetX + 24, this.offsetY + 12, 78, 20, buildSearchButtonText()));
+            .add(createButton(BUTTON_SEARCH, searchButtonX, headerButtonY, searchWidth, 20, buildSearchButtonText()));
         this.buttonList.add(
             createButton(
                 BUTTON_NEXT_SEARCH,
-                this.offsetX + 108,
-                this.offsetY + 12,
-                92,
+                nextSearchButtonX,
+                headerButtonY,
+                nextSearchWidth,
                 20,
                 buildNextSearchButtonText()));
         this.buttonList.add(
             createButton(
                 BUTTON_SETTINGS,
-                this.offsetX + PANEL_WIDTH - 164,
-                this.offsetY + 12,
-                46,
+                settingsButtonX,
+                rightHeaderY,
+                headerButtonWidth,
                 20,
                 I18n.format("adm.ai.settings")));
         this.buttonList.add(
             createButton(
                 BUTTON_CANCEL,
-                this.offsetX + PANEL_WIDTH - 112,
-                this.offsetY + 12,
-                46,
+                cancelButtonX,
+                rightHeaderY,
+                headerButtonWidth,
                 20,
                 I18n.format("adm.ai.cancel")));
         this.buttonList
-            .add(createButton(BUTTON_MENU, menuButtonX, inputY, MENU_BUTTON_WIDTH, 20, I18n.format("adm.ai.menu")));
-        this.buttonList.add(createButton(BUTTON_SEND, sendButtonX, inputY, 46, 20, I18n.format("adm.ai.send")));
+            .add(createButton(BUTTON_MENU, menuButtonX, inputY, menuButtonWidth, 20, I18n.format("adm.ai.menu")));
+        this.buttonList
+            .add(createButton(BUTTON_SEND, sendButtonX, inputY, inputButtonWidth, 20, I18n.format("adm.ai.send")));
+        this.buttonList
+            .add(createButton(BUTTON_CLEAR, clearButtonX, inputY, inputButtonWidth, 20, I18n.format("adm.ai.clear")));
         this.buttonList.add(
-            createButton(BUTTON_CLEAR, this.offsetX + PANEL_WIDTH - 62, inputY, 46, 20, I18n.format("adm.ai.clear")));
-        this.buttonList.add(
-            createButton(
-                BUTTON_CLOSE,
-                this.offsetX + PANEL_WIDTH - 62,
-                this.offsetY + 12,
-                46,
-                20,
-                I18n.format("adm.ai.close")));
+            createButton(BUTTON_CLOSE, closeButtonX, rightHeaderY, headerButtonWidth, 20, I18n.format("adm.ai.close")));
         this.statusMessage = globalVoiceStatus == null || globalVoiceStatus.isEmpty() ? buildConfigStatus()
             : globalVoiceStatus;
         this.assistantController = new AssistantController(this);
@@ -258,9 +283,9 @@ public class GuiAIChat extends ADM_GuiScreen {
         this.inputField.mouseClicked(mouseX, mouseY, mouseButton);
         if (mouseButton == 0 && isChatScrollbarVisible()) {
             int panelX = this.offsetX + CHAT_PANEL_INSET_LEFT;
-            int panelY = this.offsetY + 52;
-            int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
-            int panelH = PANEL_HEIGHT - 100;
+            int panelY = this.offsetY + this.chatPanelTop;
+            int panelW = this.panelWidth - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
+            int panelH = this.chatPanelHeight;
             int scrollX = panelX + panelW - SCROLLBAR_WIDTH - 3;
             if (mouseX >= scrollX && mouseX <= scrollX + SCROLLBAR_WIDTH) {
                 if (mouseY >= panelY + 3 && mouseY <= panelY + 3 + SCROLL_BUTTON_HEIGHT) {
@@ -290,13 +315,14 @@ public class GuiAIChat extends ADM_GuiScreen {
             this.fontRendererObj,
             I18n.format("adm.ai.title"),
             this.width / 2,
-            this.offsetY + 16,
+            this.offsetY + 6,
             TEXT_COLOR);
+        String status = this.fontRendererObj.trimStringToWidth(this.statusMessage, Math.max(20, this.panelWidth - 48));
         drawString(
             this.fontRendererObj,
-            this.statusMessage,
+            status,
             this.offsetX + 24,
-            this.offsetY + 36,
+            this.offsetY + this.chatPanelTop - 14,
             waitingForResponse ? 0xFFFF55 : 0xAAAAAA);
         drawChatPanel();
         this.inputField.drawTextBox();
@@ -304,11 +330,10 @@ public class GuiAIChat extends ADM_GuiScreen {
 
     private void drawChatPanel() {
         int panelX = this.offsetX + CHAT_PANEL_INSET_LEFT;
-        int panelY = this.offsetY + 52;
-        int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
-        int panelH = PANEL_HEIGHT - 100;
-        drawRect(panelX - 2, panelY - 2, panelX + panelW + 2, panelY + panelH + 2, 0xAA00AAAA);
-        drawRect(panelX, panelY, panelX + panelW, panelY + panelH, 0xB0000000);
+        int panelY = this.offsetY + this.chatPanelTop;
+        int panelW = this.panelWidth - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
+        int panelH = this.chatPanelHeight;
+        UiPanel.drawSection(UiThemes.ADM, panelX - 2, panelY - 2, panelW + 4, panelH + 4);
 
         int y = panelY + 6;
         int contentBottom = panelY + panelH - 6;
@@ -323,7 +348,13 @@ public class GuiAIChat extends ADM_GuiScreen {
                 if (line.candidateCells != null) {
                     drawCandidateCells(panelX + 8, y, line.candidateCells);
                 } else if (line.codeBlock) {
-                    drawRect(panelX + 4, y - 1, panelX + panelW - SCROLLBAR_WIDTH - 8, y + 10, 0x80303030);
+                    GuiBlitUtil.drawNineSlice(
+                        UiThemes.ADM.sectionPanel(),
+                        panelX + 4,
+                        y - 1,
+                        panelW - SCROLLBAR_WIDTH - 12,
+                        11,
+                        2);
                     drawString(this.fontRendererObj, line.text, panelX + 10, y, line.color);
                 } else {
                     drawString(this.fontRendererObj, line.text, panelX + 8 + line.indent, y, line.color);
@@ -1063,7 +1094,7 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     private void addWrappedRenderLine(String text, int color, int indent, boolean codeBlock) {
-        int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
+        int panelW = this.panelWidth - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
         int maxWidth = panelW - 42 - indent;
         List<String> wrapped = this.fontRendererObj.listFormattedStringToWidth(text.isEmpty() ? " " : text, maxWidth);
         for (String line : wrapped) {
@@ -1085,15 +1116,26 @@ public class GuiAIChat extends ADM_GuiScreen {
         int scrollX = panelX + panelW - SCROLLBAR_WIDTH - 3;
         int topButtonY = panelY + 3;
         int bottomButtonY = panelY + panelH - SCROLL_BUTTON_HEIGHT - 3;
-        drawRect(scrollX, topButtonY, scrollX + SCROLLBAR_WIDTH, topButtonY + SCROLL_BUTTON_HEIGHT, 0xFF006060);
+        GuiBlitUtil.drawHorizontalSlice(
+            UiThemes.ADM.buttonNormal(),
+            scrollX,
+            topButtonY,
+            SCROLLBAR_WIDTH,
+            SCROLL_BUTTON_HEIGHT);
         drawCenteredString(this.fontRendererObj, "^", scrollX + SCROLLBAR_WIDTH / 2, topButtonY + 2, 0xFFFFFF);
-        drawRect(scrollX, bottomButtonY, scrollX + SCROLLBAR_WIDTH, bottomButtonY + SCROLL_BUTTON_HEIGHT, 0xFF006060);
+        GuiBlitUtil.drawHorizontalSlice(
+            UiThemes.ADM.buttonNormal(),
+            scrollX,
+            bottomButtonY,
+            SCROLLBAR_WIDTH,
+            SCROLL_BUTTON_HEIGHT);
         drawCenteredString(this.fontRendererObj, "v", scrollX + SCROLLBAR_WIDTH / 2, bottomButtonY + 2, 0xFFFFFF);
 
         int trackTop = topButtonY + SCROLL_BUTTON_HEIGHT + 2;
         int trackBottom = bottomButtonY - 2;
         int trackHeight = Math.max(1, trackBottom - trackTop);
-        drawRect(scrollX + 2, trackTop, scrollX + SCROLLBAR_WIDTH - 2, trackBottom, 0x80303030);
+        GuiBlitUtil
+            .drawNineSlice(UiThemes.ADM.scrollTrack(), scrollX + 2, trackTop, SCROLLBAR_WIDTH - 4, trackHeight, 2);
 
         int maxScroll = maxScrollOffset();
         int totalHeight;
@@ -1103,7 +1145,7 @@ public class GuiAIChat extends ADM_GuiScreen {
         int thumbHeight = Math.max(12, trackHeight * chatContentHeight() / Math.max(chatContentHeight(), totalHeight));
         int thumbTravel = Math.max(0, trackHeight - thumbHeight);
         int thumbY = trackTop + (maxScroll <= 0 ? 0 : this.scrollOffset * thumbTravel / maxScroll);
-        drawRect(scrollX + 1, thumbY, scrollX + SCROLLBAR_WIDTH - 1, thumbY + thumbHeight, 0xFF00AAAA);
+        GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollThumb(), scrollX + 1, thumbY, SCROLLBAR_WIDTH - 2, thumbHeight, 2);
     }
 
     private boolean isChatScrollbarVisible() {
@@ -1141,19 +1183,19 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     private int chatContentHeight() {
-        return PANEL_HEIGHT - 112;
+        return Math.max(1, this.chatPanelHeight - 12);
     }
 
     private void drawCandidateCells(int x, int y, List<CandidateCell> cells) {
         if (cells == null || cells.isEmpty()) {
             return;
         }
-        int panelW = PANEL_WIDTH - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
+        int panelW = this.panelWidth - CHAT_PANEL_INSET_LEFT - CHAT_PANEL_INSET_RIGHT;
         int cellWidth = (panelW - 26) / 3;
         for (int i = 0; i < cells.size(); i++) {
             CandidateCell cell = cells.get(i);
             int cellX = x + i * cellWidth;
-            drawRect(cellX - 2, y - 2, cellX + cellWidth - 4, y + 18, 0x50303030);
+            GuiBlitUtil.drawNineSlice(UiThemes.ADM.sectionPanel(), cellX - 2, y - 2, cellWidth - 2, 20, 3);
             if (cell.stack != null) {
                 RenderHelper.enableGUIStandardItemLighting();
                 this.itemRender.renderItemAndEffectIntoGUI(

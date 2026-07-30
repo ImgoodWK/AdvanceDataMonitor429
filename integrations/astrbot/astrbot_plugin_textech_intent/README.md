@@ -7,4 +7,5 @@
 #   @bot tps          → only WebAE
 #   @bot 讲个笑话      → only AstrBot
 #   @bot webae 解释xx → only WebAE
-#   @bot 云 搜一下xx  → only AstrBot
+#   @bot tt 搜一下xx  → only AstrBot
+#   @bot tt生图 ...   → only AstrBot (compact prefix is supported)

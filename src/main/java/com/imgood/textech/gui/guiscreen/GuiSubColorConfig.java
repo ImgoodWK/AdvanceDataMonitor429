@@ -296,6 +296,7 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
         String[] label1 = { I18n.format("adm.label.displaynamecolor"), I18n.format("adm.label.axislinecolor"),
             I18n.format("adm.label.axisfontcolor"), I18n.format("adm.label.linecolor") };
         autoText(label1, 0, 25, offsetX + 20, offsetY + 10, textColor);
@@ -342,7 +343,6 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
                 Integer.parseInt(textFieldLineColor.getText(), 16));
         }
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
         drawFocusedFieldHint(offsetX + 10, offsetY + 280);
     }
 }

@@ -12,36 +12,30 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
-import net.minecraftforge.common.DimensionManager;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.compat.programmablehatches.ProgrammableHatchesCompat;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.utils.NBTJsonParser;
 import com.imgood.textech.webae.auth.WebAuthAdminCheck;
-import com.imgood.textech.webae.auth.WebAuthOpCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.dto.PatternDto;
+import com.imgood.textech.webae.dto.PatternDto.InterfaceDto;
 import com.imgood.textech.webae.dto.PatternListEntryDto;
 import com.imgood.textech.webae.pattern.InterfaceLocator;
 import com.imgood.textech.webae.pattern.PatternBrowseService;
+import com.imgood.textech.webae.pattern.PatternWebBufferStore;
+import com.imgood.textech.webae.pattern.PatternWebBufferStore.Entry;
 
 import appeng.api.AEApi;
 import appeng.api.config.Upgrades;
-import appeng.api.networking.IGrid;
-import appeng.api.networking.IGridHost;
-import appeng.api.networking.IGridNode;
-import appeng.api.networking.crafting.ICraftingProvider;
-import appeng.api.networking.events.MENetworkCraftingPatternChange;
 import fi.iki.elonen.NanoHTTPD;
 
 /**
@@ -72,6 +66,38 @@ public class PatternListHandler {
     public static NanoHTTPD.Response handle(String uri, NanoHTTPD.Method method, Map<String, String> params,
         String body, WebAuthSession auth, String adminHeader) {
         String ownerUuid = auth.ownerUuid;
+        if ("/api/pattern-buffer".equals(uri)) {
+            if (method != NanoHTTPD.Method.GET) {
+                return json(
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                    "{\"success\":false,\"message\":\"Use GET /api/pattern-buffer\"}");
+            }
+            return handleBufferList(params, ownerUuid);
+        }
+        if ("/api/pattern-buffer/take".equals(uri)) {
+            if (method != NanoHTTPD.Method.POST) {
+                return json(
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                    "{\"success\":false,\"message\":\"Use POST /api/pattern-buffer/take\"}");
+            }
+            return handleBufferTake(body, auth, adminHeader);
+        }
+        if ("/api/pattern-buffer/place".equals(uri)) {
+            if (method != NanoHTTPD.Method.POST) {
+                return json(
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                    "{\"success\":false,\"message\":\"Use POST /api/pattern-buffer/place\"}");
+            }
+            return handleBufferPlace(body, auth, adminHeader);
+        }
+        if ("/api/patterns/move".equals(uri)) {
+            if (method != NanoHTTPD.Method.POST) {
+                return json(
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+                    "{\"success\":false,\"message\":\"Use POST /api/patterns/move\"}");
+            }
+            return handleMove(body, auth, adminHeader);
+        }
         // GET /api/patterns?network=<id>
         if ("/api/patterns".equals(uri)) {
             if (method != NanoHTTPD.Method.GET) {
@@ -105,6 +131,20 @@ public class PatternListHandler {
         return json(
             NanoHTTPD.Response.Status.NOT_FOUND,
             "{\"success\":false,\"message\":\"Unknown pattern list endpoint: " + uri + "\"}");
+    }
+
+    private static NanoHTTPD.Response handleBufferList(Map<String, String> params, String ownerUuid) {
+        int networkId = parseNetworkId(params.get("network"));
+        if (networkId < 0) {
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "{\"success\":false,\"message\":\"Missing or invalid network\"}");
+        }
+        List<Entry> entries = PatternWebBufferStore.instance()
+            .list(ownerUuid, networkId);
+        return json(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"entries\":" + GSON.toJson(entries) + ",\"count\":" + entries.size() + "}");
     }
 
     // ---- GET /api/patterns?network=<id> ----
@@ -187,11 +227,11 @@ public class PatternListHandler {
         if (interfaces == null || interfaces.isEmpty()) return result;
 
         for (PatternDto.InterfaceDto iface : interfaces) {
-            TileEntity te = findTileEntityAt(iface.x, iface.y, iface.z, iface.dim);
-            if (te == null || !InterfaceLocator.isInterface(te)) continue;
-            IInventory patterns = InterfaceLocator.getPatterns(te);
+            Object target = InterfaceLocator.resolveInterface(iface.x, iface.y, iface.z, iface.dim, iface.partSide);
+            if (target == null || !InterfaceLocator.isInterface(target)) continue;
+            IInventory patterns = InterfaceLocator.getPatterns(target);
             if (patterns == null) continue;
-            int activeSlots = (iface.capacityUpgrades + 1) * 9;
+            int activeSlots = Math.min((iface.capacityUpgrades + 1) * 9, patterns.getSizeInventory());
             for (int slot = 0; slot < activeSlots; slot++) {
                 ItemStack stack = patterns.getStackInSlot(slot);
                 if (stack == null || stack.getItem() == null) continue;
@@ -223,18 +263,14 @@ public class PatternListHandler {
             @Override
             public void run() {
                 try {
-                    EntityPlayerMP player = WebAuthOpCheck.findPlayer(auth.actorUuid);
-                    if (player == null) {
+                    Object target = InterfaceLocator.resolveInterface(pid.x, pid.y, pid.z, pid.dim, pid.partSide);
+                    if (target == null || !InterfaceLocator.isInterface(target)
+                        || !InterfaceLocator.belongsToOwnerGrid(target, auth.ownerUuid)) {
                         notFound[0] = true;
                         return;
                     }
-                    TileEntity te = findTileEntityAt(pid.x, pid.y, pid.z, pid.dim);
-                    if (te == null || !InterfaceLocator.isInterface(te)) {
-                        notFound[0] = true;
-                        return;
-                    }
-                    IInventory patterns = InterfaceLocator.getPatterns(te);
-                    if (patterns == null) {
+                    IInventory patterns = InterfaceLocator.getPatterns(target);
+                    if (!validSlot(target, patterns, pid.slot)) {
                         notFound[0] = true;
                         return;
                     }
@@ -243,7 +279,7 @@ public class PatternListHandler {
                         notFound[0] = true;
                         return;
                     }
-                    PatternDto.InterfaceDto iface = InterfaceLocator.buildInterfaceDto(te);
+                    PatternDto.InterfaceDto iface = InterfaceLocator.buildInterfaceDto(target);
                     holder[0] = decodePattern(stack.getTagCompound(), iface, pid.slot);
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG.error("[WebAE] Pattern detail failed", t);
@@ -298,14 +334,15 @@ public class PatternListHandler {
             @Override
             public void run() {
                 try {
-                    TileEntity te = findTileEntityAt(pid.x, pid.y, pid.z, pid.dim);
-                    if (te == null || !InterfaceLocator.isInterface(te)) {
+                    Object target = InterfaceLocator.resolveInterface(pid.x, pid.y, pid.z, pid.dim, pid.partSide);
+                    if (target == null || !InterfaceLocator.isInterface(target)
+                        || !InterfaceLocator.belongsToOwnerGrid(target, auth.ownerUuid)) {
                         errMsg[0] = "Interface not found";
                         return;
                     }
-                    IInventory patterns = InterfaceLocator.getPatterns(te);
-                    if (patterns == null) {
-                        errMsg[0] = "Cannot access pattern inventory";
+                    IInventory patterns = InterfaceLocator.getPatterns(target);
+                    if (!validSlot(target, patterns, pid.slot)) {
+                        errMsg[0] = "Cannot access pattern slot";
                         return;
                     }
                     ItemStack existing = patterns.getStackInSlot(pid.slot);
@@ -314,8 +351,8 @@ public class PatternListHandler {
                         return;
                     }
                     patterns.setInventorySlotContents(pid.slot, null);
-                    InterfaceLocator.saveChanges(te);
-                    postPatternChangeEvent(te);
+                    InterfaceLocator.saveChanges(target);
+                    InterfaceLocator.postPatternChangeEvent(target);
                     PatternBrowseService.invalidateAll();
                     ok[0] = true;
                 } catch (Throwable t) {
@@ -370,6 +407,7 @@ public class PatternListHandler {
         // body: {encodedNbt: "<json>", interfaceX?, interfaceY?, interfaceZ?, interfaceDim?, slotIndex?}
         String encodedNbt;
         int targetX = pid.x, targetY = pid.y, targetZ = pid.z, targetDim = pid.dim, targetSlot = pid.slot;
+        String targetSide = pid.partSide;
         try {
             JsonObject obj = new JsonParser().parse(body)
                 .getAsJsonObject();
@@ -397,6 +435,10 @@ public class PatternListHandler {
                 .isJsonNull())
                 targetDim = obj.get("interfaceDim")
                     .getAsInt();
+            if (obj.has("interfaceSide") && !obj.get("interfaceSide")
+                .isJsonNull())
+                targetSide = obj.get("interfaceSide")
+                    .getAsString();
             if (obj.has("slotIndex") && !obj.get("slotIndex")
                 .isJsonNull())
                 targetSlot = obj.get("slotIndex")
@@ -407,8 +449,17 @@ public class PatternListHandler {
                 "{\"success\":false,\"message\":\"Invalid JSON: " + e.getMessage() + "\"}");
         }
 
+        if (targetX != pid.x || targetY != pid.y
+            || targetZ != pid.z
+            || targetDim != pid.dim
+            || targetSlot != pid.slot
+            || !sameSide(targetSide, pid.partSide)) {
+            return badRequest("PUT edits the original slot; use /api/patterns/move to relocate a physical pattern");
+        }
+
         final String finalEncodedNbt = encodedNbt;
         final int fx = targetX, fy = targetY, fz = targetZ, fdim = targetDim, fslot = targetSlot;
+        final String fside = targetSide;
         final boolean[] ok = new boolean[1];
         final String[] errMsg = new String[1];
         final CountDownLatch latch = new CountDownLatch(1);
@@ -445,27 +496,21 @@ public class PatternListHandler {
                         return;
                     }
                     // 3. 定位目标接口
-                    TileEntity te = findTileEntityAt(fx, fy, fz, fdim);
-                    if (te == null || !InterfaceLocator.isInterface(te)) {
+                    Object target = InterfaceLocator.resolveInterface(fx, fy, fz, fdim, fside);
+                    if (target == null || !InterfaceLocator.isInterface(target)
+                        || !InterfaceLocator.belongsToOwnerGrid(target, auth.ownerUuid)) {
                         errMsg[0] = "Interface not found at (" + fx + "," + fy + "," + fz + " dim " + fdim + ")";
                         return;
                     }
-                    // 4. 槽位校验
-                    int capacityUpgrades = InterfaceLocator.getInstalledUpgrades(te, Upgrades.PATTERN_CAPACITY);
-                    int activeSlots = (capacityUpgrades + 1) * 9;
-                    if (fslot < 0 || fslot >= activeSlots) {
-                        errMsg[0] = "Slot " + fslot + " out of range (0-" + (activeSlots - 1) + ")";
-                        return;
-                    }
-                    IInventory patterns = InterfaceLocator.getPatterns(te);
-                    if (patterns == null) {
-                        errMsg[0] = "Cannot access pattern inventory";
+                    IInventory patterns = InterfaceLocator.getPatterns(target);
+                    if (!validSlot(target, patterns, fslot)) {
+                        errMsg[0] = "Cannot access pattern slot " + fslot;
                         return;
                     }
                     // 5. 写回槽位（覆盖已有样板）
                     patterns.setInventorySlotContents(fslot, patternStack);
-                    InterfaceLocator.saveChanges(te);
-                    postPatternChangeEvent(te);
+                    InterfaceLocator.saveChanges(target);
+                    InterfaceLocator.postPatternChangeEvent(target);
                     PatternBrowseService.invalidateAll();
                     ok[0] = true;
                 } catch (Throwable t) {
@@ -498,13 +543,440 @@ public class PatternListHandler {
             "{\"success\":false,\"message\":\"Pattern put timed out\"}");
     }
 
+    // ---- POST /api/patterns/move ----
+
+    private static NanoHTTPD.Response handleMove(String body, WebAuthSession auth, String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) return adminRequired("move patterns");
+        final JsonObject root = parseBodyObject(body);
+        if (root == null || !root.has("patternId")) return badRequest("Missing patternId");
+        final PatternId source = parsePatternId(
+            root.get("patternId")
+                .getAsString());
+        final TargetAddress target = parseTarget(root);
+        final int networkId = getInt(root, "networkId", -1);
+        final boolean swap = root.has("swap") && root.get("swap")
+            .getAsBoolean();
+        if (source == null || target == null || networkId < 0) return badRequest("Invalid move request");
+
+        final boolean[] ok = new boolean[1];
+        final String[] error = new String[1];
+        final CountDownLatch latch = new CountDownLatch(1);
+        HandlerTick.enqueueServerTask(new Runnable() {
+
+            @Override
+            public void run() {
+                Object sourceTarget = null;
+                Object destinationTarget = null;
+                IInventory sourceInventory = null;
+                IInventory destinationInventory = null;
+                ItemStack sourceBefore = null;
+                ItemStack destinationBefore = null;
+                boolean mutationStarted = false;
+                try {
+                    sourceTarget = InterfaceLocator
+                        .resolveInterface(source.x, source.y, source.z, source.dim, source.partSide);
+                    destinationTarget = InterfaceLocator
+                        .resolveInterface(target.x, target.y, target.z, target.dim, target.partSide);
+                    if (!validNetworkTargets(auth.ownerUuid, networkId, sourceTarget, destinationTarget)) {
+                        error[0] = "Source or target interface is not on the selected AE network";
+                        return;
+                    }
+                    sourceInventory = InterfaceLocator.getPatterns(sourceTarget);
+                    destinationInventory = InterfaceLocator.getPatterns(destinationTarget);
+                    if (!validSlot(sourceTarget, sourceInventory, source.slot)
+                        || !validSlot(destinationTarget, destinationInventory, target.slot)) {
+                        error[0] = "Source or target slot is out of range";
+                        return;
+                    }
+                    if (sourceInventory == destinationInventory && source.slot == target.slot) {
+                        ok[0] = true;
+                        return;
+                    }
+                    ItemStack moving = sourceInventory.getStackInSlot(source.slot);
+                    if (moving == null || moving.getItem() == null) {
+                        error[0] = "Source slot is empty";
+                        return;
+                    }
+                    ItemStack displaced = destinationInventory.getStackInSlot(target.slot);
+                    if (displaced != null && displaced.getItem() != null && !swap) {
+                        error[0] = "Target slot is occupied";
+                        return;
+                    }
+                    sourceBefore = moving.copy();
+                    destinationBefore = displaced != null ? displaced.copy() : null;
+                    mutationStarted = true;
+                    destinationInventory.setInventorySlotContents(target.slot, moving);
+                    sourceInventory.setInventorySlotContents(source.slot, swap ? displaced : null);
+                    InterfaceLocator.saveChanges(sourceTarget);
+                    if (destinationTarget != sourceTarget) InterfaceLocator.saveChanges(destinationTarget);
+                    InterfaceLocator.postPatternChangeEvent(sourceTarget);
+                    if (destinationTarget != sourceTarget) InterfaceLocator.postPatternChangeEvent(destinationTarget);
+                    PatternBrowseService.invalidateAll();
+                    ok[0] = true;
+                } catch (Throwable t) {
+                    if (mutationStarted) {
+                        rollbackMove(
+                            sourceTarget,
+                            sourceInventory,
+                            source.slot,
+                            sourceBefore,
+                            destinationTarget,
+                            destinationInventory,
+                            target.slot,
+                            destinationBefore);
+                    }
+                    AdvanceDataMonitor.LOG.error("[WebAE] Pattern move failed", t);
+                    error[0] = "Move failed: " + t.getMessage();
+                } finally {
+                    latch.countDown();
+                }
+            }
+        });
+        return awaitMutation(latch, ok, error, "Pattern moved", "Pattern move timed out");
+    }
+
+    // ---- Web-only physical pattern buffer ----
+
+    private static NanoHTTPD.Response handleBufferTake(String body, WebAuthSession auth, String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) return adminRequired("buffer patterns");
+        final JsonObject root = parseBodyObject(body);
+        if (root == null || !root.has("patternId")) return badRequest("Missing patternId");
+        final PatternId source = parsePatternId(
+            root.get("patternId")
+                .getAsString());
+        final int networkId = getInt(root, "networkId", -1);
+        if (source == null || networkId < 0) return badRequest("Invalid buffer request");
+
+        final boolean[] ok = new boolean[1];
+        final String[] error = new String[1];
+        final Entry[] added = new Entry[1];
+        final CountDownLatch latch = new CountDownLatch(1);
+        HandlerTick.enqueueServerTask(new Runnable() {
+
+            @Override
+            public void run() {
+                Object sourceTarget = null;
+                IInventory inventory = null;
+                ItemStack sourceBefore = null;
+                boolean sourceCleared = false;
+                try {
+                    sourceTarget = InterfaceLocator
+                        .resolveInterface(source.x, source.y, source.z, source.dim, source.partSide);
+                    if (!validNetworkTargets(auth.ownerUuid, networkId, sourceTarget)) {
+                        error[0] = "Source interface is not on the selected AE network";
+                        return;
+                    }
+                    inventory = InterfaceLocator.getPatterns(sourceTarget);
+                    if (!validSlot(sourceTarget, inventory, source.slot)) {
+                        error[0] = "Source slot is out of range";
+                        return;
+                    }
+                    ItemStack stack = inventory.getStackInSlot(source.slot);
+                    if (stack == null || stack.getItem() == null || stack.getTagCompound() == null) {
+                        error[0] = "Source slot is empty";
+                        return;
+                    }
+                    sourceBefore = stack.copy();
+                    InterfaceDto iface = InterfaceLocator.buildInterfaceDto(sourceTarget);
+                    PatternListEntryDto decoded = decodePattern(stack.getTagCompound(), iface, source.slot);
+                    if (decoded == null) {
+                        error[0] = "Cannot decode source pattern";
+                        return;
+                    }
+                    added[0] = PatternWebBufferStore.instance()
+                        .add(
+                            auth.ownerUuid,
+                            networkId,
+                            decoded.encodedNbt,
+                            decoded.sourceInterfaceName,
+                            source.slot,
+                            decoded.crafting,
+                            decoded.outputs);
+                    if (added[0] == null) {
+                        error[0] = "Web pattern buffer is full or could not be saved";
+                        return;
+                    }
+                    inventory.setInventorySlotContents(source.slot, null);
+                    sourceCleared = true;
+                    InterfaceLocator.saveChanges(sourceTarget);
+                    InterfaceLocator.postPatternChangeEvent(sourceTarget);
+                    PatternBrowseService.invalidateAll();
+                    ok[0] = true;
+                } catch (Throwable t) {
+                    boolean restored = !sourceCleared
+                        || restoreSlot(sourceTarget, inventory, source.slot, sourceBefore, "buffer take");
+                    if (added[0] != null && restored) {
+                        PatternWebBufferStore.instance()
+                            .remove(auth.ownerUuid, networkId, added[0].id);
+                        added[0] = null;
+                    }
+                    AdvanceDataMonitor.LOG.error("[WebAE] Pattern buffer take failed", t);
+                    error[0] = "Buffer failed: " + t.getMessage();
+                } finally {
+                    latch.countDown();
+                }
+            }
+        });
+        NanoHTTPD.Response response = awaitMutation(
+            latch,
+            ok,
+            error,
+            "Pattern moved to Web buffer",
+            "Buffer timed out");
+        if (ok[0] && added[0] != null) {
+            return json(
+                NanoHTTPD.Response.Status.OK,
+                "{\"success\":true,\"message\":\"Pattern moved to Web buffer\",\"entry\":" + GSON.toJson(added[0])
+                    + "}");
+        }
+        return response;
+    }
+
+    private static NanoHTTPD.Response handleBufferPlace(String body, WebAuthSession auth, String adminHeader) {
+        if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) return adminRequired("place buffered patterns");
+        final JsonObject root = parseBodyObject(body);
+        if (root == null || !root.has("bufferId")) return badRequest("Missing bufferId");
+        final String bufferId = root.get("bufferId")
+            .getAsString();
+        final TargetAddress target = parseTarget(root);
+        final int networkId = getInt(root, "networkId", -1);
+        if (bufferId.isEmpty() || target == null || networkId < 0) return badRequest("Invalid place request");
+
+        final boolean[] ok = new boolean[1];
+        final String[] error = new String[1];
+        final CountDownLatch latch = new CountDownLatch(1);
+        HandlerTick.enqueueServerTask(new Runnable() {
+
+            @Override
+            public void run() {
+                Object destinationTarget = null;
+                IInventory inventory = null;
+                boolean placed = false;
+                boolean bufferRemoved = false;
+                try {
+                    Entry entry = PatternWebBufferStore.instance()
+                        .get(auth.ownerUuid, networkId, bufferId);
+                    if (entry == null) {
+                        error[0] = "Buffered pattern not found";
+                        return;
+                    }
+                    destinationTarget = InterfaceLocator
+                        .resolveInterface(target.x, target.y, target.z, target.dim, target.partSide);
+                    if (!validNetworkTargets(auth.ownerUuid, networkId, destinationTarget)) {
+                        error[0] = "Target interface is not on the selected AE network";
+                        return;
+                    }
+                    inventory = InterfaceLocator.getPatterns(destinationTarget);
+                    if (!validSlot(destinationTarget, inventory, target.slot)) {
+                        error[0] = "Target slot is out of range";
+                        return;
+                    }
+                    if (inventory.getStackInSlot(target.slot) != null) {
+                        error[0] = "Target slot is occupied";
+                        return;
+                    }
+                    ItemStack patternStack = createEncodedPatternStack(entry.encodedNbt);
+                    if (patternStack == null) {
+                        error[0] = "Cannot decode buffered pattern";
+                        return;
+                    }
+                    inventory.setInventorySlotContents(target.slot, patternStack);
+                    placed = true;
+                    InterfaceLocator.saveChanges(destinationTarget);
+                    Entry removed = PatternWebBufferStore.instance()
+                        .remove(auth.ownerUuid, networkId, bufferId);
+                    if (removed == null) {
+                        inventory.setInventorySlotContents(target.slot, null);
+                        InterfaceLocator.saveChanges(destinationTarget);
+                        error[0] = "Could not persist Web buffer removal";
+                        return;
+                    }
+                    bufferRemoved = true;
+                    InterfaceLocator.postPatternChangeEvent(destinationTarget);
+                    PatternBrowseService.invalidateAll();
+                    ok[0] = true;
+                } catch (Throwable t) {
+                    if (placed && !bufferRemoved) {
+                        restoreSlot(destinationTarget, inventory, target.slot, null, "buffer place");
+                    }
+                    AdvanceDataMonitor.LOG.error("[WebAE] Pattern buffer place failed", t);
+                    error[0] = "Place failed: " + t.getMessage();
+                } finally {
+                    latch.countDown();
+                }
+            }
+        });
+        return awaitMutation(latch, ok, error, "Buffered pattern placed", "Place timed out");
+    }
+
     // ---- helpers ----
+
+    private static NanoHTTPD.Response awaitMutation(CountDownLatch latch, boolean[] ok, String[] error,
+        String successMessage, String timeoutMessage) {
+        try {
+            if (latch.await(MAIN_THREAD_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                if (ok[0]) {
+                    return json(
+                        NanoHTTPD.Response.Status.OK,
+                        "{\"success\":true,\"message\":" + GSON.toJson(successMessage) + "}");
+                }
+                return json(
+                    NanoHTTPD.Response.Status.BAD_REQUEST,
+                    "{\"success\":false,\"message\":"
+                        + GSON.toJson(error[0] != null ? error[0] : "Pattern mutation failed")
+                        + "}");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread()
+                .interrupt();
+        }
+        return json(
+            NanoHTTPD.Response.Status.INTERNAL_ERROR,
+            "{\"success\":false,\"message\":" + GSON.toJson(timeoutMessage) + "}");
+    }
+
+    private static NanoHTTPD.Response adminRequired(String action) {
+        return json(
+            NanoHTTPD.Response.Status.FORBIDDEN,
+            "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Admin permission required to " + action
+                + "\"}");
+    }
+
+    private static NanoHTTPD.Response badRequest(String message) {
+        return json(
+            NanoHTTPD.Response.Status.BAD_REQUEST,
+            "{\"success\":false,\"message\":" + GSON.toJson(message) + "}");
+    }
+
+    private static JsonObject parseBodyObject(String body) {
+        if (body == null || body.isEmpty()) return null;
+        try {
+            return new JsonParser().parse(body)
+                .getAsJsonObject();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static int getInt(JsonObject root, String name, int fallback) {
+        try {
+            return root != null && root.has(name)
+                && !root.get(name)
+                    .isJsonNull() ? root.get(name)
+                        .getAsInt() : fallback;
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private static TargetAddress parseTarget(JsonObject root) {
+        if (root == null) return null;
+        int x = getInt(root, "interfaceX", Integer.MIN_VALUE);
+        int y = getInt(root, "interfaceY", Integer.MIN_VALUE);
+        int z = getInt(root, "interfaceZ", Integer.MIN_VALUE);
+        int dim = getInt(root, "interfaceDim", Integer.MIN_VALUE);
+        int slot = getInt(root, "slotIndex", -1);
+        if (x == Integer.MIN_VALUE || y == Integer.MIN_VALUE
+            || z == Integer.MIN_VALUE
+            || dim == Integer.MIN_VALUE
+            || slot < 0) return null;
+        String side = "";
+        if (root.has("interfaceSide") && !root.get("interfaceSide")
+            .isJsonNull())
+            side = root.get("interfaceSide")
+                .getAsString();
+        return new TargetAddress(x, y, z, dim, side, slot);
+    }
+
+    private static int parseNetworkId(String raw) {
+        try {
+            return raw != null ? Integer.parseInt(raw) : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    private static boolean sameSide(String a, String b) {
+        String left = a != null ? a : "";
+        String right = b != null ? b : "";
+        return left.equalsIgnoreCase(right);
+    }
+
+    private static boolean validSlot(Object target, IInventory inventory, int slot) {
+        if (inventory == null || slot < 0) return false;
+        int activeSlots = (InterfaceLocator.getInstalledUpgrades(target, Upgrades.PATTERN_CAPACITY) + 1) * 9;
+        return slot < Math.min(activeSlots, inventory.getSizeInventory());
+    }
+
+    private static boolean validNetworkTargets(String ownerUuid, int networkId, Object... targets) {
+        if (targets == null || targets.length == 0) return false;
+        for (Object target : targets) {
+            if (target == null || !InterfaceLocator.isInterface(target)
+                || !InterfaceLocator.belongsToGrid(target, ownerUuid, networkId)) return false;
+        }
+        return true;
+    }
+
+    private static ItemStack createEncodedPatternStack(String encodedNbt) {
+        try {
+            ItemStack patternStack = AEApi.instance()
+                .definitions()
+                .items()
+                .encodedPattern()
+                .maybeStack(1)
+                .get();
+            if (patternStack == null) return null;
+            patternStack.setTagCompound(com.imgood.textech.webae.pattern.PatternEncoder.decode(encodedNbt));
+            return patternStack;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static void rollbackMove(Object sourceTarget, IInventory sourceInventory, int sourceSlot,
+        ItemStack sourceBefore, Object destinationTarget, IInventory destinationInventory, int destinationSlot,
+        ItemStack destinationBefore) {
+        try {
+            if (sourceInventory != null) sourceInventory.setInventorySlotContents(sourceSlot, copyOrNull(sourceBefore));
+            if (destinationInventory != null) {
+                destinationInventory.setInventorySlotContents(destinationSlot, copyOrNull(destinationBefore));
+            }
+            if (sourceTarget != null) InterfaceLocator.saveChanges(sourceTarget);
+            if (destinationTarget != null && destinationTarget != sourceTarget) {
+                InterfaceLocator.saveChanges(destinationTarget);
+            }
+            if (sourceTarget != null) InterfaceLocator.postPatternChangeEvent(sourceTarget);
+            if (destinationTarget != null && destinationTarget != sourceTarget) {
+                InterfaceLocator.postPatternChangeEvent(destinationTarget);
+            }
+        } catch (Throwable rollbackError) {
+            AdvanceDataMonitor.LOG.error("[WebAE] Pattern move rollback failed", rollbackError);
+        }
+    }
+
+    private static boolean restoreSlot(Object target, IInventory inventory, int slot, ItemStack stack, String action) {
+        try {
+            if (target == null || inventory == null) return false;
+            inventory.setInventorySlotContents(slot, copyOrNull(stack));
+            InterfaceLocator.saveChanges(target);
+            InterfaceLocator.postPatternChangeEvent(target);
+            return true;
+        } catch (Throwable rollbackError) {
+            AdvanceDataMonitor.LOG.error("[WebAE] Pattern {} rollback failed", action, rollbackError);
+            return false;
+        }
+    }
+
+    private static ItemStack copyOrNull(ItemStack stack) {
+        return stack != null ? stack.copy() : null;
+    }
 
     /** 解码样板 NBTTagCompound 为 PatternListEntryDto（含 inputs/outputs/flags/author/encodedNbt）。 */
     private static PatternListEntryDto decodePattern(NBTTagCompound nbt, PatternDto.InterfaceDto iface, int slot) {
         if (nbt == null) return null;
         PatternListEntryDto entry = new PatternListEntryDto();
-        entry.sourceInterface = iface.x + ":" + iface.y + ":" + iface.z + ":" + iface.dim;
+        entry.sourceInterface = iface.interfaceId != null ? iface.interfaceId
+            : InterfaceLocator.address(iface.x, iface.y, iface.z, iface.dim, iface.partSide);
         entry.sourceInterfaceName = iface.name != null ? iface.name : entry.sourceInterface;
         entry.slotIndex = slot;
         entry.patternId = entry.sourceInterface + "#" + slot;
@@ -523,6 +995,7 @@ public class PatternListHandler {
                     NBTTagCompound stackTag = inList.getCompoundTagAt(i);
                     PatternDto.PatternItemEntry pe = stackToEntry(stackTag);
                     entry.inputs.add(pe);
+                    if (pe != null && pe.programmableCircuit) entry.programmableHatches = true;
                 } else {
                     entry.inputs.add(null);
                 }
@@ -555,7 +1028,10 @@ public class PatternListHandler {
     private static PatternDto.PatternItemEntry stackToEntry(NBTTagCompound stackTag) {
         if (stackTag == null) return null;
         try {
-            ItemStack stack = ItemStack.loadItemStackFromNBT(stackTag);
+            ItemStack storedStack = ItemStack.loadItemStackFromNBT(stackTag);
+            if (storedStack == null || storedStack.getItem() == null) return null;
+            boolean programmableCircuit = ProgrammableHatchesCompat.isProgrammingCircuit(storedStack);
+            ItemStack stack = programmableCircuit ? ProgrammableHatchesCompat.unwrap(storedStack) : storedStack;
             if (stack == null || stack.getItem() == null) return null;
             String registryName = Item.itemRegistry.getNameForObject(stack.getItem());
             if (registryName == null || registryName.isEmpty()) registryName = "unknown";
@@ -570,7 +1046,21 @@ public class PatternListHandler {
             if (displayName == null || displayName.isEmpty()) displayName = registryName;
             // AE2FC 流体样板用 fluid_drop 物品承载，通过 NBT 中的 FluidName 标识流体
             boolean isFluid = registryName.startsWith("ae2fc:") && registryName.contains("fluid");
-            return new PatternDto.PatternItemEntry(registryName, displayName, meta, stack.stackSize, isFluid);
+            PatternDto.PatternItemEntry entry = new PatternDto.PatternItemEntry(
+                registryName,
+                displayName,
+                meta,
+                Math.max(1, programmableCircuit ? storedStack.stackSize : stack.stackSize),
+                isFluid);
+            entry.nonConsumable = programmableCircuit;
+            entry.programmableCircuit = programmableCircuit;
+            if (stack.getTagCompound() != null) {
+                try {
+                    entry.nbt = NBTJsonParser.parseNBTToJson(stack.getTagCompound())
+                        .toString();
+                } catch (Exception ignored) {}
+            }
+            return entry;
         } catch (Throwable t) {
             return null;
         }
@@ -581,8 +1071,15 @@ public class PatternListHandler {
         if (id == null || id.isEmpty()) return null;
         int hashIdx = id.indexOf('#');
         if (hashIdx < 0) return null;
-        String coords = id.substring(0, hashIdx);
+        String address = id.substring(0, hashIdx);
         String slotStr = id.substring(hashIdx + 1);
+        String partSide = "";
+        int atIdx = address.indexOf('@');
+        if (atIdx >= 0) {
+            partSide = address.substring(atIdx + 1);
+            address = address.substring(0, atIdx);
+        }
+        String coords = address;
         String[] parts = coords.split(":");
         if (parts.length != 4) return null;
         try {
@@ -591,33 +1088,9 @@ public class PatternListHandler {
             int z = Integer.parseInt(parts[2]);
             int dim = Integer.parseInt(parts[3]);
             int slot = Integer.parseInt(slotStr);
-            return new PatternId(x, y, z, dim, slot);
+            return new PatternId(x, y, z, dim, partSide, slot);
         } catch (NumberFormatException e) {
             return null;
-        }
-    }
-
-    private static TileEntity findTileEntityAt(int x, int y, int z, int dim) {
-        World world = DimensionManager.getWorld(dim);
-        if (world == null) return null;
-        if (!world.blockExists(x, y, z)) return null;
-        return world.getTileEntity(x, y, z);
-    }
-
-    /** 触发 AE 网络样板变更事件，让合成 CPU 重新加载样板。 */
-    private static void postPatternChangeEvent(TileEntity te) {
-        try {
-            if (te instanceof IGridHost) {
-                IGridNode node = ((IGridHost) te).getGridNode(ForgeDirection.UNKNOWN);
-                if (node != null) {
-                    IGrid grid = node.getGrid();
-                    if (grid != null && te instanceof ICraftingProvider) {
-                        grid.postEvent(new MENetworkCraftingPatternChange((ICraftingProvider) te, node));
-                    }
-                }
-            }
-        } catch (Throwable t) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to post pattern change event: {}", t.getMessage());
         }
     }
 
@@ -628,12 +1101,29 @@ public class PatternListHandler {
     private static final class PatternId {
 
         final int x, y, z, dim, slot;
+        final String partSide;
 
-        PatternId(int x, int y, int z, int dim, int slot) {
+        PatternId(int x, int y, int z, int dim, String partSide, int slot) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.dim = dim;
+            this.partSide = partSide != null ? partSide : "";
+            this.slot = slot;
+        }
+    }
+
+    private static final class TargetAddress {
+
+        final int x, y, z, dim, slot;
+        final String partSide;
+
+        TargetAddress(int x, int y, int z, int dim, String partSide, int slot) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.dim = dim;
+            this.partSide = partSide != null ? partSide : "";
             this.slot = slot;
         }
     }

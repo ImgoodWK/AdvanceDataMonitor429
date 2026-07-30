@@ -3,6 +3,7 @@ package com.imgood.textech.webae.recipe;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import com.imgood.textech.utils.NBTJsonParser;
 import com.imgood.textech.webae.dto.RecipeDto.ItemEntry;
 
 /**
@@ -19,7 +20,15 @@ public final class RecipeItemEntries {
         int meta = stack.getItemDamage();
         if (meta == Short.MAX_VALUE) meta = 0;
         String itemId = buildItemId(registryName, meta);
-        return new ItemEntry(itemId, stack.getDisplayName(), registryName, meta, stack.stackSize);
+        ItemEntry entry = new ItemEntry(itemId, stack.getDisplayName(), registryName, meta, stack.stackSize);
+        entry.nonConsumable = stack.stackSize <= 0;
+        if (stack.getTagCompound() != null) {
+            try {
+                entry.nbt = NBTJsonParser.parseNBTToJson(stack.getTagCompound())
+                    .toString();
+            } catch (Exception ignored) {}
+        }
+        return entry;
     }
 
     /** Icon cache key: {@code mod:id} or {@code mod:id:meta} when meta &gt; 0. */

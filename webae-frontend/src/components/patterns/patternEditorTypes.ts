@@ -3,14 +3,19 @@ export interface PatternEditorInputSlot {
   displayName: string;
   meta: number;
   stackSize: number;
+  nbt?: string;
   isFluid: boolean;
+  nonConsumable: boolean;
+  programmableCircuit: boolean;
 }
 
 export interface PatternEditorOutputRow {
   key: string;
   registryName: string;
   displayName: string;
+  meta: number;
   stackSize: number;
+  nbt?: string;
   /** Original recipe output amount — multiplier cannot go below this. */
   originalStackSize: number;
   isFluid: boolean;

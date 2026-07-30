@@ -294,11 +294,11 @@ public final class PatternBrowseService {
             return result;
         }
         for (InterfaceDto iface : interfaces) {
-            TileEntity te = findTileEntityAt(iface.x, iface.y, iface.z, iface.dim);
-            if (te == null || !InterfaceLocator.isInterface(te)) {
+            Object target = InterfaceLocator.resolveInterface(iface.x, iface.y, iface.z, iface.dim, iface.partSide);
+            if (target == null || !InterfaceLocator.isInterface(target)) {
                 continue;
             }
-            IInventory patterns = InterfaceLocator.getPatterns(te);
+            IInventory patterns = InterfaceLocator.getPatterns(target);
             if (patterns == null) {
                 continue;
             }
@@ -324,7 +324,8 @@ public final class PatternBrowseService {
     private static PatternBrowseEntryDto decodeInterfacePattern(NBTTagCompound nbt, InterfaceDto iface, int slot) {
         PatternBrowseEntryDto entry = new PatternBrowseEntryDto();
         entry.source = "interface";
-        entry.sourceInterface = iface.x + ":" + iface.y + ":" + iface.z + ":" + iface.dim;
+        entry.sourceInterface = iface.interfaceId != null ? iface.interfaceId
+            : InterfaceLocator.address(iface.x, iface.y, iface.z, iface.dim, iface.partSide);
         entry.sourceInterfaceName = iface.name != null ? iface.name : entry.sourceInterface;
         entry.slotIndex = slot;
         entry.patternId = entry.sourceInterface + "#" + slot;

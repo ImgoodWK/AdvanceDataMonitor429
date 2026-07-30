@@ -21,7 +21,10 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.client.screenshot.ClientScreenshotService;
+import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -50,10 +53,11 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
         Keyboard.enableRepeatEvents(true);
         buttonList.clear();
         int y = height - 28;
-        buttonList.add(new GuiButton(1, width / 2 - 156, y, 72, 20, I18n.format("adm.screenshot.gallery.previous")));
-        buttonList.add(new GuiButton(2, width / 2 - 78, y, 72, 20, I18n.format("adm.screenshot.gallery.next")));
-        buttonList.add(new GuiButton(3, width / 2, y, 96, 20, I18n.format("adm.screenshot.gallery.send_web")));
-        buttonList.add(new GuiButton(4, width / 2 + 102, y, 54, 20, I18n.format("gui.done")));
+        buttonList
+            .add(new ADM_GuiButton(1, width / 2 - 156, y, 72, 20, I18n.format("adm.screenshot.gallery.previous")));
+        buttonList.add(new ADM_GuiButton(2, width / 2 - 78, y, 72, 20, I18n.format("adm.screenshot.gallery.next")));
+        buttonList.add(new ADM_GuiButton(3, width / 2, y, 96, 20, I18n.format("adm.screenshot.gallery.send_web")));
+        buttonList.add(new ADM_GuiButton(4, width / 2 + 102, y, 54, 20, I18n.format("gui.done")));
         loadCurrent();
         updateButtons();
     }
@@ -95,6 +99,7 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        UiPanel.draw(UiThemes.ADM, 8, 4, Math.max(1, width - 16), Math.max(1, height - 8));
         File file = history.get(index);
         drawCenteredString(
             fontRendererObj,
@@ -107,6 +112,7 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
             int areaY = 28;
             int areaWidth = Math.max(1, width - 32);
             int areaHeight = Math.max(1, height - 76);
+            UiPanel.drawSection(UiThemes.ADM, areaX - 2, areaY - 2, areaWidth + 4, areaHeight + 4);
             double scale = Math.min((double) areaWidth / imageWidth, (double) areaHeight / imageHeight);
             int drawWidth = Math.max(1, (int) Math.round(imageWidth * scale));
             int drawHeight = Math.max(1, (int) Math.round(imageHeight * scale));

@@ -6,15 +6,15 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.compat.programmablehatches.ProgrammableHatchesCompat;
 import com.imgood.textech.handler.HandlerTick;
+import com.imgood.textech.webae.auth.WebAuthAdminCheck;
+import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.dto.PatternDto;
 import com.imgood.textech.webae.dto.PatternDto.InterfaceDto;
 import com.imgood.textech.webae.dto.PatternDto.PatternInjectRequest;
@@ -43,16 +43,21 @@ public class PatternHandler {
     /**
      * Handle pattern-related API requests. Accepts the full session for POST body reading.
      */
-    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.IHTTPSession session, String playerUuid) {
+    public static NanoHTTPD.Response handle(String uri, NanoHTTPD.IHTTPSession session, WebAuthSession auth,
+        String adminHeader, String playerUuid) {
         Map<String, String> params = session.getParms();
 
         if ("/api/interfaces".equals(uri)) {
             return handleInterfaces(params, playerUuid);
         }
+        if ("/api/pattern/compat".equals(uri)) {
+            return handleCompat();
+        }
         if ("/api/pattern/encode".equals(uri)) {
-            return handleEncode(session, playerUuid);
+            return handleEncode(session, playerUuid, auth, adminHeader);
         }
         if ("/api/pattern/inject".equals(uri)) {
+            if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) return adminRequired("inject patterns");
             return handleInject(session, playerUuid);
         }
 
@@ -83,7 +88,20 @@ public class PatternHandler {
             "{\"success\":true,\"interfaces\":" + GSON.toJson(interfaces) + ",\"count\":" + interfaces.size() + "}");
     }
 
-    private static NanoHTTPD.Response handleEncode(NanoHTTPD.IHTTPSession session, String playerUuid) {
+    private static NanoHTTPD.Response handleCompat() {
+        boolean installed = ProgrammableHatchesCompat.isInstalled();
+        return jsonResponse(
+            NanoHTTPD.Response.Status.OK,
+            "{\"success\":true,\"programmableHatches\":{\"installed\":" + installed
+                + ",\"modId\":\""
+                + ProgrammableHatchesCompat.MOD_ID
+                + "\",\"programmingCircuit\":\""
+                + ProgrammableHatchesCompat.PROGRAMMING_CIRCUIT_ID
+                + "\"}}");
+    }
+
+    private static NanoHTTPD.Response handleEncode(NanoHTTPD.IHTTPSession session, String playerUuid,
+        WebAuthSession auth, String adminHeader) {
         String body = readBody(session);
         if (body == null || body.isEmpty()) {
             return jsonResponse(
@@ -111,6 +129,7 @@ public class PatternHandler {
             }
 
             if (consumeBlank && networkId >= 0) {
+                if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) return adminRequired("consume blank patterns");
                 final int netId = networkId;
                 final boolean[] consumed = new boolean[1];
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -205,23 +224,14 @@ public class PatternHandler {
         }
     }
 
-    private static EntityPlayerMP findPlayer(String playerUuid) {
-        MinecraftServer server = MinecraftServer.getServer();
-        if (server == null || server.getConfigurationManager() == null) return null;
-        for (Object obj : server.getConfigurationManager().playerEntityList) {
-            if (obj instanceof EntityPlayerMP) {
-                EntityPlayerMP mp = (EntityPlayerMP) obj;
-                if (mp.getUniqueID()
-                    .toString()
-                    .equals(playerUuid)) {
-                    return mp;
-                }
-            }
-        }
-        return null;
-    }
-
     private static NanoHTTPD.Response jsonResponse(NanoHTTPD.Response.Status status, String body) {
         return NanoHTTPD.newFixedLengthResponse(status, "application/json", body);
+    }
+
+    private static NanoHTTPD.Response adminRequired(String action) {
+        return jsonResponse(
+            NanoHTTPD.Response.Status.FORBIDDEN,
+            "{\"success\":false,\"code\":\"admin_required\",\"message\":\"Admin permission required to " + action
+                + "\"}");
     }
 }

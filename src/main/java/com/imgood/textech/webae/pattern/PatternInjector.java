@@ -7,11 +7,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.handler.HandlerTick;
@@ -23,9 +20,7 @@ import com.imgood.textech.webae.dto.PatternDto.PatternInjectResult;
 import appeng.api.AEApi;
 import appeng.api.config.SecurityPermissions;
 import appeng.api.networking.IGrid;
-import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
-import appeng.api.networking.events.MENetworkCraftingPatternChange;
 import appeng.api.networking.security.ISecurityGrid;
 
 /**
@@ -108,11 +103,16 @@ public class PatternInjector {
                 return new PatternInjectResult(false, "Dimension " + request.interfaceDim + " not loaded");
             }
 
-            TileEntity te = world.getTileEntity(request.interfaceX, request.interfaceY, request.interfaceZ);
-            if (te == null) {
+            Object interfaceTarget = InterfaceLocator.resolveInterface(
+                request.interfaceX,
+                request.interfaceY,
+                request.interfaceZ,
+                request.interfaceDim,
+                request.interfaceSide);
+            if (interfaceTarget == null) {
                 return new PatternInjectResult(
                     false,
-                    "No tile entity at (" + request.interfaceX
+                    "No ME Interface at (" + request.interfaceX
                         + ","
                         + request.interfaceY
                         + ","
@@ -121,26 +121,21 @@ public class PatternInjector {
             }
 
             // 4. Verify it's an AE2 interface
-            if (!InterfaceLocator.isInterface(te)) {
+            if (!InterfaceLocator.isInterface(interfaceTarget)) {
                 return new PatternInjectResult(false, "Tile entity is not an ME Interface");
             }
 
             // 5. Permission check (BUILD permission on AE network)
-            if (!hasBuildPermission(te, player)) {
-                return new PatternInjectResult(false, "No BUILD permission on AE network");
+            if (!InterfaceLocator.belongsToGrid(interfaceTarget, ownerUuid, request.networkId)) {
+                return new PatternInjectResult(false, "Target interface is not on the selected AE network");
             }
-
-            // 5b. Consume blank pattern from AE network (unless caller already paid at encode)
-            boolean shouldConsume = request.consumeBlank;
-            if (shouldConsume) {
-                if (!BlankPatternHelper.consumeOne(ownerUuid, request.networkId)) {
-                    return new PatternInjectResult(false, "NO_BLANK_PATTERN:空白样板不足");
-                }
+            if (!hasBuildPermission(interfaceTarget, player)) {
+                return new PatternInjectResult(false, "No BUILD permission on AE network");
             }
 
             // 6. Slot validation
             int capacityUpgrades = InterfaceLocator
-                .getInstalledUpgrades(te, appeng.api.config.Upgrades.PATTERN_CAPACITY);
+                .getInstalledUpgrades(interfaceTarget, appeng.api.config.Upgrades.PATTERN_CAPACITY);
             int activeSlots = (capacityUpgrades + 1) * 9;
             if (request.slotIndex < 0 || request.slotIndex >= activeSlots) {
                 return new PatternInjectResult(
@@ -148,7 +143,7 @@ public class PatternInjector {
                     "Slot index " + request.slotIndex + " out of range (0-" + (activeSlots - 1) + ")");
             }
 
-            IInventory patterns = InterfaceLocator.getPatterns(te);
+            IInventory patterns = InterfaceLocator.getPatterns(interfaceTarget);
             if (patterns == null) {
                 return new PatternInjectResult(false, "Cannot access interface pattern inventory");
             }
@@ -169,42 +164,26 @@ public class PatternInjector {
                 }
             }
 
+            // 7b. Consume the blank pattern only after all failure-prone target checks pass.
+            if (request.consumeBlank && !BlankPatternHelper.consumeOne(ownerUuid, request.networkId)) {
+                return new PatternInjectResult(false, "NO_BLANK_PATTERN:空白样板不足");
+            }
+
             // 8. Inject the pattern
             patterns.setInventorySlotContents(request.slotIndex, patternStack);
 
             // 9. Save changes
-            InterfaceLocator.saveChanges(te);
+            InterfaceLocator.saveChanges(interfaceTarget);
 
             // 10. Fire MENetworkCraftingPatternChange event
             try {
-                if (te instanceof IGridHost) {
-                    IGridNode node = ((IGridHost) te).getGridNode(ForgeDirection.UNKNOWN);
-                    if (node != null) {
-                        IGrid grid = node.getGrid();
-                        if (grid != null) {
-                            // The constructor is MENetworkCraftingPatternChange(ICraftingProvider, IGridNode)
-                            // Interface TEs typically implement ICraftingProvider
-                            try {
-                                if (te instanceof appeng.api.networking.crafting.ICraftingProvider) {
-                                    grid.postEvent(
-                                        new MENetworkCraftingPatternChange(
-                                            (appeng.api.networking.crafting.ICraftingProvider) te,
-                                            node));
-                                }
-                            } catch (Exception e2) {
-                                // Fallback: post with null provider (the event may still trigger interface refresh)
-                                AdvanceDataMonitor.LOG
-                                    .warn("[WebAE] Failed to post pattern change event: {}", e2.getMessage());
-                            }
-                        }
-                    }
-                }
+                InterfaceLocator.postPatternChangeEvent(interfaceTarget);
             } catch (Exception e) {
                 AdvanceDataMonitor.LOG.warn("[WebAE] Failed to post pattern change event: {}", e.getMessage());
             }
 
             // Build updated interface DTO
-            InterfaceDto updatedDto = InterfaceLocator.buildInterfaceDto(te);
+            InterfaceDto updatedDto = InterfaceLocator.buildInterfaceDto(interfaceTarget);
 
             PatternBrowseService.invalidateAll();
 
@@ -216,10 +195,9 @@ public class PatternInjector {
         }
     }
 
-    private static boolean hasBuildPermission(TileEntity te, EntityPlayer player) {
-        if (!(te instanceof IGridHost)) return false;
+    private static boolean hasBuildPermission(Object target, EntityPlayer player) {
         try {
-            IGridNode node = ((IGridHost) te).getGridNode(ForgeDirection.UNKNOWN);
+            IGridNode node = InterfaceLocator.getGridNode(target);
             if (node == null) return false;
             IGrid grid = node.getGrid();
             if (grid == null) return false;
@@ -231,19 +209,4 @@ public class PatternInjector {
         }
     }
 
-    private static EntityPlayerMP getPlayer(String playerUuid) {
-        MinecraftServer server = MinecraftServer.getServer();
-        if (server == null || server.getConfigurationManager() == null) return null;
-        for (Object obj : server.getConfigurationManager().playerEntityList) {
-            if (obj instanceof EntityPlayerMP) {
-                EntityPlayerMP mp = (EntityPlayerMP) obj;
-                if (mp.getUniqueID()
-                    .toString()
-                    .equals(playerUuid)) {
-                    return mp;
-                }
-            }
-        }
-        return null;
-    }
 }

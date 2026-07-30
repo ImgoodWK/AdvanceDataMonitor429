@@ -508,6 +508,7 @@ public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
             I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"), I18n.format("adm.label.xrotation"),
             I18n.format("adm.label.yrotation"), I18n.format("adm.label.zrotation"), I18n.format("adm.label.interval") };
@@ -534,8 +535,6 @@ public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
             textColor);
         fontRendererObj.drawString(errorTips, offsetX + 230, offsetY + 380, 0xff0000);
         drawTextFieldsWithHover(mouseX, mouseY);
-
-        super.drawScreen(mouseX, mouseY, partialTicks);
 
         drawFocusedFieldHint(offsetX + 10, offsetY + 280);
 

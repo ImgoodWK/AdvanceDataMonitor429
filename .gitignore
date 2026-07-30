@@ -48,6 +48,9 @@ debug-*.log
 .workspace/
 .tmp/
 .cursor/plans/
+.codex/
+__pycache__/
+*.py[cod]
 
 # WebAE 前端构建依赖（webae-frontend/ 有独立 .gitignore，此处额外确保）
 webae-frontend/node_modules/

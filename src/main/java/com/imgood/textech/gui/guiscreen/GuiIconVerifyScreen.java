@@ -18,6 +18,8 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.webae.icon.IconExportResolver;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
 import com.imgood.textech.webae.icon.IconRenderGuard;
@@ -88,6 +90,7 @@ public class GuiIconVerifyScreen extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        UiPanel.draw(UiThemes.ADM, 16, 12, Math.max(176, width - 32), Math.max(132, height - 24));
         drawCenteredString(
             fontRendererObj,
             EnumChatFormatting.AQUA + "Icon Verify: " + itemId,

@@ -7,10 +7,15 @@ import java.util.Map;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 
+import org.lwjgl.input.Mouse;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.gui.custom.ADM_GuiButton;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 
 public class GuiNbtViewer extends GuiScreen {
 
@@ -63,7 +68,7 @@ public class GuiNbtViewer extends GuiScreen {
 
     @Override
     protected void mouseClicked(int x, int y, int btn) {
-        int yPos = 20 - scrollY;
+        int yPos = 24 - scrollY;
         for (TreeEntry entry : entries) {
             if (entry.isVisible()) {
                 if (y >= yPos && y < yPos + 10) {
@@ -80,7 +85,9 @@ public class GuiNbtViewer extends GuiScreen {
 
     @Override
     public void initGui() {
-        this.buttonList.add(new GuiButton(0, width - 60, height - 30, 50, 20, "Close"));
+        super.initGui();
+        this.buttonList.clear();
+        this.buttonList.add(new ADM_GuiButton(0, width - 72, height - 34, 56, 20, "Close"));
     }
 
     @Override
@@ -93,7 +100,8 @@ public class GuiNbtViewer extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
-        int yPos = 20 - scrollY;
+        UiPanel.draw(UiThemes.ADM, 12, 12, width - 24, height - 24);
+        int yPos = 24 - scrollY;
 
         for (TreeEntry entry : entries) {
             if (entry.isVisible()) {
@@ -102,12 +110,31 @@ public class GuiNbtViewer extends GuiScreen {
                     displayText += (entry.expanded ? "[-] " : "[+] ");
                 }
                 displayText += entry.getDisplayText();
-                drawString(fontRendererObj, displayText, 20, yPos, 0xFFFFFF);
+                if (yPos >= 20 && yPos < height - 38) {
+                    drawString(fontRendererObj, displayText, 24, yPos, 0xD7F7FF);
+                }
                 yPos += 10;
             }
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    @Override
+    public void handleMouseInput() {
+        super.handleMouseInput();
+        int wheel = Mouse.getEventDWheel();
+        if (wheel == 0) {
+            return;
+        }
+        int visibleEntries = 0;
+        for (TreeEntry entry : entries) {
+            if (entry.isVisible()) {
+                visibleEntries++;
+            }
+        }
+        int maxScroll = Math.max(0, visibleEntries * 10 - Math.max(10, height - 64));
+        scrollY = Math.max(0, Math.min(maxScroll, scrollY - Integer.signum(wheel) * 30));
     }
 
     private String getIndent(int depth) {

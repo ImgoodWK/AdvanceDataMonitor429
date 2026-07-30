@@ -58,6 +58,11 @@
     },
     {
       "type": "text",
+      "titleKey": "adm.manual.web_console.patterns_title",
+      "textKey": "adm.manual.web_console.patterns_text"
+    },
+    {
+      "type": "text",
       "titleKey": "adm.manual.web_console.recipe_cache_title",
       "textKey": "adm.manual.web_console.recipe_cache_text"
     },

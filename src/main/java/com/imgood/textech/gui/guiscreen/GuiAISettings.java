@@ -10,6 +10,7 @@ import com.imgood.textech.Config;
 import com.imgood.textech.assistant.ai.AiProviderProfiles;
 import com.imgood.textech.assistant.ai.AiProviderProfiles.ProviderProfile;
 import com.imgood.textech.assistant.ai.WebSearchService;
+import com.imgood.textech.gui.GuiResponsiveLayout;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
@@ -35,8 +36,9 @@ public class GuiAISettings extends ADM_GuiScreen {
     private static final int BUTTON_VOICE = 19;
     private static final int BUTTON_VOICE_MODE = 20;
     private static final int BUTTON_SEARCH_FALLBACK = 21;
-    private static final int PANEL_WIDTH = 620;
-    private static final int PANEL_HEIGHT = 500;
+    private static final int PREFERRED_PANEL_WIDTH = 620;
+    private static final int PREFERRED_PANEL_HEIGHT = 500;
+    private static final int PANEL_MARGIN = 4;
     private static final int TEXT_COLOR = 0x00FFFF;
     private static final int TEXT_HOVER_COLOR = 0x0055FF;
 
@@ -66,11 +68,14 @@ public class GuiAISettings extends ADM_GuiScreen {
     private String statusMessage = "";
     private int offsetX;
     private int offsetY;
+    private int panelWidth = PREFERRED_PANEL_WIDTH;
+    private int panelHeight = PREFERRED_PANEL_HEIGHT;
+    private boolean compactLayout;
 
     public GuiAISettings(GuiScreen parent) {
         this.parent = parent;
         this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
-        this.setSize(PANEL_WIDTH, PANEL_HEIGHT);
+        this.setSize(PREFERRED_PANEL_WIDTH, PREFERRED_PANEL_HEIGHT);
         this.setStretch(false);
     }
 
@@ -78,8 +83,14 @@ public class GuiAISettings extends ADM_GuiScreen {
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
-        this.offsetX = (this.width - PANEL_WIDTH) / 2;
-        this.offsetY = (this.height - PANEL_HEIGHT) / 2;
+        GuiResponsiveLayout.Panel panel = GuiResponsiveLayout
+            .fitCentered(this.width, this.height, PREFERRED_PANEL_WIDTH, PREFERRED_PANEL_HEIGHT, PANEL_MARGIN);
+        this.offsetX = panel.x();
+        this.offsetY = panel.y();
+        this.panelWidth = panel.width();
+        this.panelHeight = panel.height();
+        this.compactLayout = this.panelWidth < PREFERRED_PANEL_WIDTH || this.panelHeight < PREFERRED_PANEL_HEIGHT;
+        this.setSize(this.panelWidth, this.panelHeight);
         this.setPosition(this.offsetX, this.offsetY);
         this.provider = AiProviderProfiles.detectProfile();
         this.modelIndex = findModelIndex(this.provider, Config.aiModel);
@@ -92,27 +103,47 @@ public class GuiAISettings extends ADM_GuiScreen {
         this.searchMode = WebSearchService.normalizeProvider(Config.aiWebSearchMode);
         this.searchFallback = Config.aiSearchFallback;
 
+        if (this.compactLayout) {
+            initCompactControls();
+        } else {
+            initExpandedControls();
+        }
+        this.focusedField = this.modelField;
+        this.modelField.setFocused(true);
+    }
+
+    private void initExpandedControls() {
         int x = this.offsetX + 170;
         int y = this.offsetY + 64;
         this.apiKeyField = createField(
             x,
-            y,
+            y + 8,
+            240,
             Config.aiApiKey.isEmpty() ? Config.getAiApiKey() : Config.aiApiKey,
             "adm.ai.settings.key_hint");
-        this.baseUrlField = createField(x, y + 32, Config.aiApiBaseUrl, "adm.ai.settings.base_hint");
-        this.modelField = createField(x, y + 64, Config.aiModel, "adm.ai.settings.model_hint");
-        this.timeoutField = createField(x, y + 96, String.valueOf(Config.aiTimeoutSeconds), "");
-        this.maxTokensField = createField(x, y + 128, String.valueOf(Config.aiMaxTokens), "");
-        this.temperatureField = createField(x, y + 160, String.valueOf(Config.aiTemperature), "");
-        this.searchApiKeyField = createField(x, y + 192, Config.getAiSearchApiKey(), "adm.ai.settings.search_key_hint");
-        this.searchBaseUrlField = createField(x, y + 224, Config.aiSearchBaseUrl, "adm.ai.settings.search_base_hint");
+        this.baseUrlField = createField(x, y + 40, 240, Config.aiApiBaseUrl, "adm.ai.settings.base_hint");
+        this.modelField = createField(x, y + 72, 240, Config.aiModel, "adm.ai.settings.model_hint");
+        this.timeoutField = createField(x, y + 104, 240, String.valueOf(Config.aiTimeoutSeconds), "");
+        this.maxTokensField = createField(x, y + 136, 240, String.valueOf(Config.aiMaxTokens), "");
+        this.temperatureField = createField(x, y + 168, 240, String.valueOf(Config.aiTemperature), "");
+        this.searchApiKeyField = createField(
+            x,
+            y + 200,
+            240,
+            Config.getAiSearchApiKey(),
+            "adm.ai.settings.search_key_hint");
+        this.searchBaseUrlField = createField(
+            x,
+            y + 232,
+            240,
+            Config.aiSearchBaseUrl,
+            "adm.ai.settings.search_base_hint");
         this.searchMaxResultsField = createField(
             x,
-            y + 256,
+            y + 264,
+            240,
             String.valueOf(Config.aiSearchMaxResults),
             "adm.ai.settings.search_max_hint");
-        this.focusedField = this.modelField;
-        this.modelField.setFocused(true);
 
         this.buttonList.add(createButton(BUTTON_PROVIDER, this.offsetX + 440, y + 32, 130, 20, providerText()));
         this.buttonList.add(
@@ -159,28 +190,223 @@ public class GuiAISettings extends ADM_GuiScreen {
                 20,
                 boolText("adm.ai.settings.stream", this.streamingEnabled)));
         this.buttonList.add(
-            createButton(BUTTON_VOICE, this.offsetX + 314, y + 320, 120, 20, boolText("Voice", this.voiceEnabled)));
+            createButton(
+                BUTTON_VOICE,
+                this.offsetX + 314,
+                y + 320,
+                120,
+                20,
+                boolText("adm.ai.settings.voice", this.voiceEnabled)));
         this.buttonList.add(createButton(BUTTON_VOICE_MODE, this.offsetX + 444, y + 320, 126, 20, voiceModeText()));
         this.buttonList.add(
             createButton(
                 BUTTON_SAVE,
-                this.offsetX + PANEL_WIDTH - 160,
-                this.offsetY + PANEL_HEIGHT - 34,
+                this.offsetX + this.panelWidth - 160,
+                this.offsetY + this.panelHeight - 34,
                 68,
                 20,
                 I18n.format("adm.button.save")));
         this.buttonList.add(
             createButton(
                 BUTTON_BACK,
-                this.offsetX + PANEL_WIDTH - 84,
-                this.offsetY + PANEL_HEIGHT - 34,
+                this.offsetX + this.panelWidth - 84,
+                this.offsetY + this.panelHeight - 34,
                 68,
                 20,
                 I18n.format("adm.label.back")));
     }
 
-    private ADM_GuiTextField createField(int x, int y, String text, String hintKey) {
-        ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y + 8, 240, 20)
+    private void initCompactControls() {
+        int innerX = this.offsetX + 12;
+        int gap = 6;
+        int columnWidth = Math.max(80, (this.panelWidth - 24 - gap * 2) / 3);
+        int rowHeight = 28;
+        int labelTop = this.offsetY + 22;
+
+        this.apiKeyField = createCompactField(
+            0,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            Config.aiApiKey.isEmpty() ? Config.getAiApiKey() : Config.aiApiKey,
+            "adm.ai.settings.key_hint");
+        this.baseUrlField = createCompactField(
+            1,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            Config.aiApiBaseUrl,
+            "adm.ai.settings.base_hint");
+        this.modelField = createCompactField(
+            2,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            Config.aiModel,
+            "adm.ai.settings.model_hint");
+        this.timeoutField = createCompactField(
+            3,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            String.valueOf(Config.aiTimeoutSeconds),
+            "");
+        this.maxTokensField = createCompactField(
+            4,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            String.valueOf(Config.aiMaxTokens),
+            "");
+        this.temperatureField = createCompactField(
+            5,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            String.valueOf(Config.aiTemperature),
+            "");
+        this.searchApiKeyField = createCompactField(
+            6,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            Config.getAiSearchApiKey(),
+            "adm.ai.settings.search_key_hint");
+        this.searchBaseUrlField = createCompactField(
+            7,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            Config.aiSearchBaseUrl,
+            "adm.ai.settings.search_base_hint");
+        this.searchMaxResultsField = createCompactField(
+            8,
+            innerX,
+            labelTop,
+            columnWidth,
+            gap,
+            rowHeight,
+            String.valueOf(Config.aiSearchMaxResults),
+            "adm.ai.settings.search_max_hint");
+
+        int fullInnerWidth = this.panelWidth - 24;
+        int providerY = this.offsetY + 108;
+        int providerWidth = (fullInnerWidth - gap) / 2;
+        this.buttonList.add(createButton(BUTTON_PROVIDER, innerX, providerY, providerWidth, 18, providerText()));
+        this.buttonList.add(
+            createButton(
+                BUTTON_MODEL,
+                innerX + providerWidth + gap,
+                providerY,
+                fullInnerWidth - providerWidth - gap,
+                18,
+                I18n.format("adm.ai.settings.next_model")));
+
+        int toggleGap = 4;
+        int toggleWidth = (fullInnerWidth - toggleGap * 3) / 4;
+        int rowOneY = this.offsetY + 130;
+        int rowTwoY = this.offsetY + 151;
+        addCompactToggle(
+            BUTTON_NETWORK,
+            0,
+            rowOneY,
+            innerX,
+            toggleWidth,
+            toggleGap,
+            boolText("adm.ai.settings.network", this.networkEnabled));
+        addCompactToggle(
+            BUTTON_SEARCH,
+            1,
+            rowOneY,
+            innerX,
+            toggleWidth,
+            toggleGap,
+            boolText("adm.ai.settings.search", this.webSearchEnabled));
+        addCompactToggle(BUTTON_SEARCH_MODE, 2, rowOneY, innerX, toggleWidth, toggleGap, modeText());
+        addCompactToggle(
+            BUTTON_SEARCH_FALLBACK,
+            3,
+            rowOneY,
+            innerX,
+            toggleWidth,
+            toggleGap,
+            boolText("adm.ai.settings.search_fallback", this.searchFallback));
+        addCompactToggle(
+            BUTTON_DEBUG,
+            0,
+            rowTwoY,
+            innerX,
+            toggleWidth,
+            toggleGap,
+            boolText("adm.ai.settings.debug", this.debugLogging));
+        addCompactToggle(
+            BUTTON_STREAM,
+            1,
+            rowTwoY,
+            innerX,
+            toggleWidth,
+            toggleGap,
+            boolText("adm.ai.settings.stream", this.streamingEnabled));
+        addCompactToggle(
+            BUTTON_VOICE,
+            2,
+            rowTwoY,
+            innerX,
+            toggleWidth,
+            toggleGap,
+            boolText("adm.ai.settings.voice", this.voiceEnabled));
+        addCompactToggle(BUTTON_VOICE_MODE, 3, rowTwoY, innerX, toggleWidth, toggleGap, voiceModeText());
+
+        int actionY = this.offsetY + this.panelHeight - 26;
+        this.buttonList.add(
+            createButton(
+                BUTTON_SAVE,
+                this.offsetX + this.panelWidth - 160,
+                actionY,
+                68,
+                20,
+                I18n.format("adm.button.save")));
+        this.buttonList.add(
+            createButton(
+                BUTTON_BACK,
+                this.offsetX + this.panelWidth - 84,
+                actionY,
+                68,
+                20,
+                I18n.format("adm.label.back")));
+    }
+
+    private ADM_GuiTextField createCompactField(int index, int innerX, int labelTop, int columnWidth, int gap,
+        int rowHeight, String text, String hintKey) {
+        int column = index % 3;
+        int row = index / 3;
+        int x = innerX + column * (columnWidth + gap);
+        int y = labelTop + row * rowHeight + 8;
+        return createField(x, y, columnWidth, text, hintKey);
+    }
+
+    private void addCompactToggle(int id, int column, int y, int innerX, int width, int gap, String text) {
+        this.buttonList.add(createButton(id, innerX + column * (width + gap), y, width, 18, text));
+    }
+
+    private ADM_GuiTextField createField(int x, int y, int width, String text, String hintKey) {
+        ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y, width, this.compactLayout ? 18 : 20)
             .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
             .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
             .setHintText(hintKey.isEmpty() ? "" : I18n.format(hintKey));
@@ -241,7 +467,7 @@ public class GuiAISettings extends ADM_GuiScreen {
                 break;
             case BUTTON_VOICE:
                 this.voiceEnabled = !this.voiceEnabled;
-                button.displayString = boolText("Voice", this.voiceEnabled);
+                button.displayString = boolText("adm.ai.settings.voice", this.voiceEnabled);
                 break;
             case BUTTON_VOICE_MODE:
                 this.voiceMode = Config.VOICE_STT_MODE_HTTP.equalsIgnoreCase(this.voiceMode)
@@ -429,8 +655,17 @@ public class GuiAISettings extends ADM_GuiScreen {
             this.fontRendererObj,
             I18n.format("adm.ai.settings.title"),
             this.width / 2,
-            this.offsetY + 16,
+            this.offsetY + 6,
             TEXT_COLOR);
+        if (this.compactLayout) {
+            drawCompactLabels();
+        } else {
+            drawExpandedLabels();
+        }
+        drawFields();
+    }
+
+    private void drawExpandedLabels() {
         int labelX = this.offsetX + 52;
         int y = this.offsetY + 64;
         drawString(this.fontRendererObj, I18n.format("adm.ai.settings.key"), labelX, y, 0xAAAAAA);
@@ -444,22 +679,55 @@ public class GuiAISettings extends ADM_GuiScreen {
         drawString(this.fontRendererObj, I18n.format("adm.ai.settings.search_max"), labelX, y + 256, 0xAAAAAA);
         drawString(
             this.fontRendererObj,
-            "Voice mode: " + this.voiceMode + " (details are in the voice config section).",
+            I18n.format("adm.ai.settings.voice_detail", this.voiceMode),
             labelX,
             y + 344,
             0xAAAAAA);
         drawString(
             this.fontRendererObj,
-            WebSearchService.capabilityMessage(this.searchMode, this.webSearchEnabled),
+            this.fontRendererObj.trimStringToWidth(
+                WebSearchService.capabilityMessage(this.searchMode, this.webSearchEnabled),
+                this.panelWidth - 104),
             labelX,
             y + 360,
             0xAAAAAA);
         drawString(
             this.fontRendererObj,
-            this.statusMessage,
+            this.fontRendererObj.trimStringToWidth(this.statusMessage, this.panelWidth - 104),
             labelX,
             y + 380,
             this.statusMessage.startsWith("Error") ? 0xFF5555 : 0x55FF55);
+    }
+
+    private void drawCompactLabels() {
+        String[] keys = new String[] { "adm.ai.settings.key", "adm.ai.settings.base", "adm.ai.settings.model",
+            "adm.ai.settings.timeout", "adm.ai.settings.tokens", "adm.ai.settings.temperature",
+            "adm.ai.settings.search_key", "adm.ai.settings.search_base", "adm.ai.settings.search_max" };
+        int innerX = this.offsetX + 12;
+        int gap = 6;
+        int columnWidth = Math.max(80, (this.panelWidth - 24 - gap * 2) / 3);
+        int labelTop = this.offsetY + 22;
+        for (int i = 0; i < keys.length; i++) {
+            int x = innerX + (i % 3) * (columnWidth + gap);
+            int y = labelTop + (i / 3) * 28;
+            String label = this.fontRendererObj.trimStringToWidth(I18n.format(keys[i]), columnWidth);
+            drawString(this.fontRendererObj, label, x, y, 0xAAAAAA);
+        }
+
+        int infoWidth = Math.max(20, this.panelWidth - 184);
+        String capability = this.fontRendererObj
+            .trimStringToWidth(WebSearchService.capabilityMessage(this.searchMode, this.webSearchEnabled), infoWidth);
+        String status = this.fontRendererObj.trimStringToWidth(this.statusMessage, infoWidth);
+        drawString(this.fontRendererObj, capability, innerX, this.offsetY + 174, 0xAAAAAA);
+        drawString(
+            this.fontRendererObj,
+            status,
+            innerX,
+            this.offsetY + 185,
+            this.statusMessage.startsWith("Error") ? 0xFF5555 : 0x55FF55);
+    }
+
+    private void drawFields() {
         this.apiKeyField.drawTextBox();
         this.baseUrlField.drawTextBox();
         this.modelField.drawTextBox();
@@ -480,7 +748,10 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     private String voiceModeText() {
-        return "Voice STT: " + (Config.VOICE_STT_MODE_HTTP.equalsIgnoreCase(this.voiceMode) ? "HTTP" : "Offline");
+        String mode = I18n.format(
+            Config.VOICE_STT_MODE_HTTP.equalsIgnoreCase(this.voiceMode) ? "adm.ai.settings.voice_mode.http"
+                : "adm.ai.settings.voice_mode.offline");
+        return I18n.format("adm.ai.settings.voice_mode", mode);
     }
 
     private String boolText(String key, boolean value) {

@@ -65,6 +65,11 @@
       "type": "config_ref",
       "titleKey": "adm.manual.config_reference.web_console_category_title",
       "category": "webConsole"
+    },
+    {
+      "type": "config_ref",
+      "titleKey": "adm.manual.config_reference.card_battle_category_title",
+      "category": "cardBattle"
     }
   ]
 }

@@ -2,6 +2,8 @@ package com.imgood.textech.gui.framework.widget;
 
 import net.minecraft.client.gui.FontRenderer;
 
+import org.lwjgl.input.Mouse;
+
 import com.imgood.textech.gui.framework.GuiBlitUtil;
 import com.imgood.textech.gui.framework.NineSliceRegion;
 import com.imgood.textech.gui.framework.UiTheme;
@@ -67,9 +69,12 @@ public final class UiButtonWidget extends UiWidget {
         int h = getLayoutBox().height;
         UiTheme theme = context.theme();
         boolean hovered = enabled && containsMouse(context);
+        boolean pressed = hovered && Mouse.isButtonDown(0);
         NineSliceRegion region;
         if (!enabled) {
             region = theme.buttonDisabled();
+        } else if (pressed) {
+            region = theme.buttonPressed();
         } else if (hovered) {
             region = theme.buttonHover();
         } else {

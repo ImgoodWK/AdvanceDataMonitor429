@@ -678,7 +678,7 @@ Enable `voice.enabled=true`. STT key priority: `voice.sttApiKey` → `VOICE_STT_
 | `embedded-vosk` (default) | Offline Chinese model on 64-bit Windows Java; no extra services |
 | `http` | OpenAI-compatible `/v1/audio/transcriptions` (e.g. Whisper) |
 
-The offline Vosk model (~65 MB) is **not** inside the main jar. Download `TeXTech-*-voice.jar` (`modid` `textechvoice`) from the GitHub Release and put it next to TeXTech in `mods/`; it unpacks into the config data directory on first use. Alternatively set `voice.sttModel` to a local unpacked Vosk directory, or use `voice.sttMode=http` (no voice jar needed). Missing models do not crash the game — only offline STT fails with a clear message.
+The offline Vosk model (~65 MB) is **not** inside the main jar. Download `textech-*-voice.jar` (`modid` `textechvoice`) from the GitHub Release and put it next to TeXTech in `mods/`; it unpacks into the config data directory on first use. Alternatively set `voice.sttModel` to a local unpacked Vosk directory, or use `voice.sttMode=http` (no voice jar needed). Missing models do not crash the game — only offline STT fails with a clear message.
 
 **V** key toggles recording. Transcript opens AI chat if closed. Do not read secrets aloud — audio may leave your machine in HTTP mode.
 

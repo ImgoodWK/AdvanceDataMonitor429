@@ -1,16 +1,16 @@
 # Plan E — 移除 Legacy AE 兼容（仅保留 GTNH 2.9.0+）
 
-> **用途**：在 GTNH 2.9.0 成为模组**最低支持版本**后，单独开一轮 Agent 对话执行本计划，删除双路径中的 Legacy / GlodBlock 分支。  
+> **状态（TeXTech 2.0）**：GTNH `2.9.0-beta-2` 已是最低支持版本，运行时已固定 NativeFluid；本计划剩余内容仅用于删除仍被 Native 适配器复用的 Legacy 源码、旧配置入口和命名。  
 > **不要**与 Plan A–D（已实现双路径）混淆；本计划为**不可逆**清理。  
 > **执行开场白**：「继续 GTNH 2.9 AE 兼容，执行 Plan E — 移除 Legacy 支持」
 
-**相关文档**：[ae-compat-290.md](ae-compat-290.md)（当前双路径说明）
+**相关文档**：[ae-compat-290.md](ae-compat-290.md)（当前 NativeFluid 运行路径与遗留源码边界）
 
 ---
 
 ## 前置条件（执行前必须满足）
 
-- [ ] 模组 README / 发布说明已声明最低 GTNH **2.9.0 beta-1+**
+- [x] 模组 README / 发布说明已声明最低 GTNH **2.9.0-beta-2+**
 - [ ] 已在 **2.9.0-beta 真实实例**完成 Native 路径回归：
   - 网络链接器字节/类型统计
   - AI：`QUERY_BYTES`、样板流体详情、`QUERY_STORAGE` 流体

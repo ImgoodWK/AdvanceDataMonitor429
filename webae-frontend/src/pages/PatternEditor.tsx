@@ -1,842 +1,708 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Card, Checkbox, Modal, Space, Spin, Tabs, Tag, Typography } from 'antd';
 import {
-  Card,
-  Button,
-  Space,
-  Tag,
-  Checkbox,
-  Row,
-  Col,
-  Spin,
-  Modal,
-  Typography,
-} from 'antd';
-import {
-  PlusOutlined,
   DeleteOutlined,
   DownloadOutlined,
-  SaveOutlined,
+  PlusOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { useAppContext } from '@/context/AppContext';
-import { useI18n } from '@/i18n';
 import { getApiClient } from '@/api/client';
 import { Icon } from '@/components/Icon';
-import { groupByPrimaryOutput } from '@/utils/recipe';
-import { SelectableListRow } from '@/components/common/SelectableListRow';
 import { PageShell } from '@/components/Layout/PageShell';
-import { PatternListSidebar } from '@/components/patterns/PatternListSidebar';
-import { PatternInjectPanel } from '@/components/patterns/PatternInjectPanel';
+import { SelectableListRow } from '@/components/common/SelectableListRow';
 import { PatternEditorForm } from '@/components/patterns/PatternEditorForm';
+import { PatternInterfaceWorkspace } from '@/components/patterns/PatternInterfaceWorkspace';
+import { PatternListSidebar } from '@/components/patterns/PatternListSidebar';
+import { PatternRecipeSidebar } from '@/components/patterns/PatternRecipeSidebar';
 import type {
   PatternEditorInputSlot,
   PatternEditorOutputRow,
 } from '@/components/patterns/patternEditorTypes';
+import { useAppContext } from '@/context/AppContext';
+import { useI18n } from '@/i18n';
+import { patternEntryIconId } from '@/utils/icon';
+import {
+  interfaceAddress,
+  patternEntryToInput,
+  recipeToPatternDraft,
+} from '@/utils/patternEditor';
 import type {
-  PatternListEntryDto,
-  PatternListResponse,
-  PatternDetailResponse,
-  PatternDeleteResponse,
-  PatternUpdateResponse,
-  PatternEncodeResponse,
-  RecipeDto,
-  RecipeSearchResponse,
-  RecipeSuggestEntry,
-  RecipeSuggestResponse,
   InterfaceDto,
   InterfacesResponse,
+  PatternBufferResponse,
+  PatternCompatResponse,
+  PatternDeleteResponse,
+  PatternDetailResponse,
+  PatternEncodeResponse,
+  PatternInjectResponse,
+  PatternListEntryDto,
+  PatternListResponse,
+  PatternMutationResponse,
+  PatternUpdateResponse,
+  RecipeDto,
+  RecipeSuggestEntry,
+  RecipeSuggestResponse,
 } from '@/types/dto';
 
 const { Text } = Typography;
 
-import { patternEntryIconId } from '@/utils/icon';
-/** 从 patternId 解析坐标与槽位（与后端格式一致：`<x>:<y>:<z>:<dim>#<slot>`）。 */
-function parsePatternId(id: string): { x: number; y: number; z: number; dim: number; slot: number } | null {
-  const hashIdx = id.indexOf('#');
-  if (hashIdx < 0) return null;
-  const coords = id.substring(0, hashIdx);
-  const slotStr = id.substring(hashIdx + 1);
-  const parts = coords.split(':');
-  if (parts.length !== 4) return null;
-  const nums = [...parts, slotStr].map((p) => Number(p));
-  if (nums.some((n) => Number.isNaN(n))) return null;
-  return { x: nums[0], y: nums[1], z: nums[2], dim: nums[3], slot: nums[4] };
+function blankOutput(key = '1'): PatternEditorOutputRow {
+  return {
+    key,
+    registryName: '',
+    displayName: '',
+    meta: 0,
+    stackSize: 1,
+    originalStackSize: 1,
+    isFluid: false,
+  };
 }
 
 export function PatternEditorPage() {
   const { selectedNetworks, notify, consumePageSearchPrefill } = useAppContext();
   const { t } = useI18n();
+  const currentNet = selectedNetworks[0] ?? 0;
 
-  // ---- 样板列表 ----
   const [patterns, setPatterns] = useState<PatternListEntryDto[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPattern, setCurrentPattern] = useState<PatternListEntryDto | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const [crafting, setCrafting] = useState(true);
+  const [substitute, setSubstitute] = useState(false);
+  const [beSubstitute, setBeSubstitute] = useState(false);
+  const [author, setAuthor] = useState('');
+  const [programmableHatches, setProgrammableHatches] = useState(false);
+  const [programmableHatchesInstalled, setProgrammableHatchesInstalled] = useState(false);
+  const [inputs, setInputs] = useState<(PatternEditorInputSlot | null)[]>(new Array(27).fill(null));
+  const [outputs, setOutputs] = useState<PatternEditorOutputRow[]>([blankOutput()]);
+  const [encodedNbt, setEncodedNbt] = useState('');
+  const [currentMultiplier, setCurrentMultiplier] = useState(1);
+  const [dirty, setDirty] = useState(false);
+  const outputKeySeq = useRef(1);
+
+  const [itemSearch, setItemSearch] = useState('');
+  const [suggestOptions, setSuggestOptions] = useState<
+    Array<{ value: string; label: string; entry: RecipeSuggestEntry }>
+  >([]);
+  const [pickTarget, setPickTarget] = useState<{ kind: 'slot'; slot: number } | null>(null);
+
+  const [interfaces, setInterfaces] = useState<InterfaceDto[]>([]);
+  const [bufferEntries, setBufferEntries] = useState<PatternBufferResponse['entries']>([]);
+  const [selectedInterfaceId, setSelectedInterfaceId] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState(0);
+  const [selectedBufferId, setSelectedBufferId] = useState('');
 
   useEffect(() => {
     const prefill = consumePageSearchPrefill('pattern');
     if (prefill?.query) setSearch(prefill.query);
   }, [consumePageSearchPrefill]);
-  const [currentPattern, setCurrentPattern] = useState<PatternListEntryDto | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // ---- 详情编辑面板 ----
-  const [crafting, setCrafting] = useState(true);
-  const [substitute, setSubstitute] = useState(false);
-  const [beSubstitute, setBeSubstitute] = useState(false);
-  const [author, setAuthor] = useState('');
-  const [inputs, setInputs] = useState<(PatternEditorInputSlot | null)[]>(new Array(27).fill(null));
-  const [outputs, setOutputs] = useState<PatternEditorOutputRow[]>([
-    {
-      key: '1',
-      registryName: '',
-      displayName: '',
-      stackSize: 1,
-      originalStackSize: 1,
-      isFluid: false,
-    },
-  ]);
-  const [encodedNbt, setEncodedNbt] = useState('');
-  const [blankConsumedOnEncode, setBlankConsumedOnEncode] = useState(false);
-  const [currentMultiplier, setCurrentMultiplier] = useState(1);
-  const [dirty, setDirty] = useState(false);
+  const markDirty = useCallback(() => {
+    setDirty(true);
+    setEncodedNbt('');
+  }, []);
 
-  // 物品搜索（用于往槽位填物品 / 加输出）
-  const [itemSearch, setItemSearch] = useState('');
-  const [suggestOptions, setSuggestOptions] = useState<
-    Array<{ value: string; label: string; entry: RecipeSuggestEntry }>
-  >([]);
-  const [recipeResults, setRecipeResults] = useState<RecipeDto[]>([]);
-  const [recipeModalRecipes, setRecipeModalRecipes] = useState<RecipeDto[]>([]);
-  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
-  const [pickTarget, setPickTarget] = useState<{ kind: 'slot'; slot: number } | { kind: 'output' } | null>(null);
-
-  // 注入相关（保留：把当前编辑的样板注入到指定接口槽位）
-  const [interfaces, setInterfaces] = useState<InterfaceDto[]>([]);
-  const [selectedInterface, setSelectedInterface] = useState<string>('');
-  const [injectSlot, setInjectSlot] = useState<number>(0);
-
-  const currentNet = selectedNetworks[0] ?? 0;
-  const outputKeySeq = useRef(1);
-
-  // ---- 拉取样板列表 ----
-  const fetchPatterns = useCallback(async () => {
+  const fetchPatterns = useCallback(async (force = false, retry = true) => {
     setLoadingList(true);
     try {
       const data = await getApiClient().get<PatternListResponse>(
-        `/api/patterns?network=${currentNet}`
+        `/api/patterns?network=${currentNet}${force ? '&refresh=1' : ''}`
       );
       if (data.success) {
         setPatterns(data.patterns || []);
-      } else {
-        notify(data.message || t('patternListEmpty'), 'error');
+        if (data.cached === false && retry) {
+          window.setTimeout(() => fetchPatterns(false, false), 650);
+        }
       }
-    } catch (e) {
-      notify((e as Error).message, 'error');
+      else notify(data.message || t('patternListEmpty'), 'error');
+    } catch (error) {
+      notify((error as Error).message, 'error');
     } finally {
       setLoadingList(false);
     }
   }, [currentNet, notify, t]);
 
-  useEffect(() => {
-    fetchPatterns();
-  }, [fetchPatterns]);
-
-  // ---- 拉取接口列表（用于注入） ----
-  const fetchInterfaces = useCallback(async () => {
+  const fetchWorkspace = useCallback(async () => {
     try {
-      const data = await getApiClient().get<InterfacesResponse>(
-        `/api/interfaces?network=${currentNet}`
-      );
-      if (data.success) setInterfaces(data.interfaces || []);
+      const [interfaceData, bufferData] = await Promise.all([
+        getApiClient().get<InterfacesResponse>(`/api/interfaces?network=${currentNet}`),
+        getApiClient().get<PatternBufferResponse>(`/api/pattern-buffer?network=${currentNet}`),
+      ]);
+      const nextInterfaces = interfaceData.success ? interfaceData.interfaces || [] : [];
+      setInterfaces(nextInterfaces);
+      setBufferEntries(bufferData.success ? bufferData.entries || [] : []);
+      setSelectedInterfaceId((previous) => {
+        if (previous && nextInterfaces.some((iface) => interfaceAddress(iface) === previous)) return previous;
+        return nextInterfaces[0] ? interfaceAddress(nextInterfaces[0]) : '';
+      });
+      setSelectedBufferId((previous) => {
+        const entries = bufferData.success ? bufferData.entries || [] : [];
+        return previous && entries.some((entry) => entry.id === previous) ? previous : entries[0]?.id || '';
+      });
     } catch {
-      /* ignore */
+      setInterfaces([]);
     }
   }, [currentNet]);
 
-  useEffect(() => {
-    fetchInterfaces();
-  }, [fetchInterfaces]);
+  const refreshAll = useCallback(async () => {
+    await Promise.all([fetchPatterns(true), fetchWorkspace()]);
+  }, [fetchPatterns, fetchWorkspace]);
 
-  // ---- 物品搜索联想 ----
+  useEffect(() => {
+    fetchPatterns();
+    fetchWorkspace();
+  }, [fetchPatterns, fetchWorkspace]);
+
+  useEffect(() => {
+    getApiClient()
+      .get<PatternCompatResponse>('/api/pattern/compat')
+      .then((data) => setProgrammableHatchesInstalled(Boolean(data.programmableHatches?.installed)))
+      .catch(() => setProgrammableHatchesInstalled(false));
+  }, []);
+
   useEffect(() => {
     if (!itemSearch.trim()) {
       setSuggestOptions([]);
       return;
     }
-    const timer = setTimeout(async () => {
+    const timer = window.setTimeout(async () => {
       try {
         const data = await getApiClient().get<RecipeSuggestResponse>(
           `/api/recipes/suggest?q=${encodeURIComponent(itemSearch.trim())}&limit=15`
         );
-        if (data.success && data.suggestions) {
-          setSuggestOptions(
-            data.suggestions.map((s) => ({
-              value: s.registryName,
-              label: `${s.displayName || s.registryName} (${s.registryName})`,
-              entry: s,
-            }))
-          );
-        }
+        setSuggestOptions(
+          data.success
+            ? (data.suggestions || []).map((entry) => ({
+                value: entry.registryName,
+                label: `${entry.displayName || entry.registryName} (${entry.registryName})`,
+                entry,
+              }))
+            : []
+        );
       } catch {
         setSuggestOptions([]);
       }
-    }, 250);
-    return () => clearTimeout(timer);
+    }, 300);
+    return () => window.clearTimeout(timer);
   }, [itemSearch]);
 
-  const searchRecipes = useCallback(async (registryOverride?: string) => {
-    const term = (registryOverride || itemSearch).trim();
-    if (!term) return;
-    try {
-      let data = await getApiClient().get<RecipeSearchResponse>(
-        `/api/recipes/search?output=${encodeURIComponent(term)}`
-      );
-      if (data.success && (!data.results || data.results.length === 0)) {
-        data = await getApiClient().get<RecipeSearchResponse>(
-          `/api/recipes/search?q=${encodeURIComponent(term)}&limit=30`
-        );
-      }
-      if (data.success) setRecipeResults(data.results || []);
-    } catch {
-      setRecipeResults([]);
-    }
-  }, [itemSearch]);
-
-  // ---- 加载详情 ----
-  const loadDetail = useCallback(
-    async (pattern: PatternListEntryDto) => {
-      setLoadingDetail(true);
-      try {
-        const data = await getApiClient().get<PatternDetailResponse>(
-          `/api/patterns/${encodeURIComponent(pattern.patternId)}`
-        );
-        if (data.success && data.pattern) {
-          applyPatternToEditor(data.pattern);
-          setCurrentPattern(data.pattern);
-          setDirty(false);
-        } else {
-          notify(data.message || t('patternNoSelection'), 'error');
-        }
-      } catch (e) {
-        notify((e as Error).message, 'error');
-      } finally {
-        setLoadingDetail(false);
-      }
-    },
-    [notify, t]
-  );
-
-  const applyPatternToEditor = (p: PatternListEntryDto) => {
-    setCrafting(p.crafting);
-    setSubstitute(p.substitute);
-    setBeSubstitute(p.beSubstitute);
-    setAuthor(p.author || '');
-    const newInputs = new Array(27).fill(null) as (PatternEditorInputSlot | null)[];
-    (p.inputs || []).forEach((inp, i) => {
-      if (i < 27 && inp && inp.registryName) {
-        newInputs[i] = {
-          registryName: inp.registryName,
-          displayName: inp.displayName || inp.registryName,
-          meta: inp.meta ?? 0,
-          stackSize: inp.stackSize > 0 ? inp.stackSize : 1,
-          isFluid: inp.isFluid,
-        };
-      }
-    });
-    setInputs(newInputs);
-    outputKeySeq.current = 1;
-    setOutputs(
-      (p.outputs || []).map((o) => ({
-        key: String(outputKeySeq.current++),
-        registryName: o.registryName,
-        displayName: o.displayName,
-        stackSize: o.stackSize,
-        originalStackSize: o.stackSize > 0 ? o.stackSize : 1,
-        isFluid: o.isFluid,
-      }))
-    );
-    setEncodedNbt(p.encodedNbt || '');
-    setBlankConsumedOnEncode(false);
-    setCurrentMultiplier(1);
-  };
-
-  // ---- 模糊过滤 ----
-  const filteredPatterns = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return patterns;
-    return patterns.filter((p) => {
-      const out = p.outputs
-        .map((o) => `${o.displayName || ''} ${o.registryName || ''}`)
-        .join(' ')
-        .toLowerCase();
-      const src = `${p.sourceInterfaceName || ''} ${p.sourceInterface || ''}`.toLowerCase();
-      const auth = (p.author || '').toLowerCase();
-      return out.includes(q) || src.includes(q) || auth.includes(q);
-    });
-  }, [patterns, search]);
-
-  // ---- 多选 ----
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const selectAll = () => setSelectedIds(new Set(filteredPatterns.map((p) => p.patternId)));
-  const clearSelection = () => setSelectedIds(new Set());
-
-  // ---- 批量删除 ----
-  const batchDelete = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    Modal.confirm({
-      title: t('patternDeleteConfirm').replace('{n}', String(selectedIds.size)),
-      okType: 'danger',
-      okText: t('patternBatchDelete'),
-      cancelText: t('patternBackToList'),
-      onOk: async () => {
-        let ok = 0;
-        let failed = 0;
-        for (const id of selectedIds) {
-          try {
-            const data = await getApiClient().delete<PatternDeleteResponse>(
-              `/api/patterns/${encodeURIComponent(id)}`
-            );
-            if (data.success) ok++;
-            else failed++;
-          } catch {
-            failed++;
-          }
-        }
-        notify(t('patternDeleteSuccess').replace('{n}', String(ok)), 'success');
-        if (failed > 0) notify(`${t('patternDeleteFailed')} (${failed})`, 'error');
-        setSelectedIds(new Set());
-        if (currentPattern && selectedIds.has(currentPattern.patternId)) {
-          setCurrentPattern(null);
-          resetEditor();
-        }
-        fetchPatterns();
-      },
-    });
-  }, [selectedIds, notify, t, currentPattern, fetchPatterns]);
-
-  // ---- 批量导出 ----
-  const batchExport = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    const selected = patterns.filter((p) => selectedIds.has(p.patternId));
-    const blob = new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `patterns_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    notify(t('patternExportSuccess').replace('{n}', String(selected.length)), 'success');
-  }, [selectedIds, patterns, notify, t]);
-
-  // ---- 单个删除（详情面板内） ----
-  const deleteCurrent = useCallback(async () => {
-    if (!currentPattern) return;
-    Modal.confirm({
-      title: t('patternDeleteConfirm').replace('{n}', '1'),
-      okType: 'danger',
-      okText: t('patternBatchDelete'),
-      cancelText: t('patternBackToList'),
-      onOk: async () => {
-        try {
-          const data = await getApiClient().delete<PatternDeleteResponse>(
-            `/api/patterns/${encodeURIComponent(currentPattern.patternId)}`
-          );
-          if (data.success) {
-            notify(t('patternDeleteSuccess').replace('{n}', '1'), 'success');
-            setCurrentPattern(null);
-            resetEditor();
-            fetchPatterns();
-          } else {
-            notify(data.message || t('patternDeleteFailed'), 'error');
-          }
-        } catch (e) {
-          notify((e as Error).message || t('patternDeleteFailed'), 'error');
-        }
-      },
-    });
-  }, [currentPattern, notify, t, fetchPatterns]);
-
-  // ---- 重置编辑器 ----
-  const resetEditor = () => {
+  const resetEditor = useCallback(() => {
     setCrafting(true);
     setSubstitute(false);
     setBeSubstitute(false);
     setAuthor('');
+    setProgrammableHatches(false);
     setInputs(new Array(27).fill(null));
     outputKeySeq.current = 1;
-    setOutputs([
-      {
-        key: '1',
-        registryName: '',
-        displayName: '',
-        stackSize: 1,
-        originalStackSize: 1,
-        isFluid: false,
-      },
-    ]);
+    setOutputs([blankOutput()]);
     setEncodedNbt('');
-    setBlankConsumedOnEncode(false);
     setCurrentMultiplier(1);
     setDirty(false);
-  };
+    setPickTarget(null);
+    setItemSearch('');
+  }, []);
 
-  // ---- 新建样板 ----
-  const newPattern = () => {
-    setCurrentPattern(null);
-    resetEditor();
-  };
+  const applyPatternToEditor = useCallback((pattern: PatternListEntryDto) => {
+    setCrafting(pattern.crafting);
+    setSubstitute(pattern.substitute);
+    setBeSubstitute(pattern.beSubstitute);
+    setAuthor(pattern.author || '');
+    setProgrammableHatches(Boolean(pattern.programmableHatches));
+    const nextInputs = new Array<PatternEditorInputSlot | null>(27).fill(null);
+    (pattern.inputs || []).slice(0, 27).forEach((entry, index) => {
+      if (entry?.registryName) nextInputs[index] = patternEntryToInput(entry);
+    });
+    setInputs(nextInputs);
+    outputKeySeq.current = 0;
+    const nextOutputs = (pattern.outputs || []).map((entry) => {
+      outputKeySeq.current += 1;
+      const amount = Math.max(1, entry.stackSize || 1);
+      return {
+        key: String(outputKeySeq.current),
+        registryName: entry.registryName,
+        displayName: entry.displayName || entry.registryName,
+        meta: entry.meta ?? 0,
+        stackSize: amount,
+        nbt: entry.nbt,
+        originalStackSize: amount,
+        isFluid: Boolean(entry.isFluid),
+      };
+    });
+    setOutputs(nextOutputs.length ? nextOutputs : [blankOutput()]);
+    setEncodedNbt(pattern.encodedNbt || '');
+    setCurrentMultiplier(1);
+    setDirty(false);
+    setPickTarget(null);
+  }, []);
 
-  const buildPatternPayload = useCallback(() => {
-    const validOutputs = outputs.filter((o) => o.registryName.trim());
-    return {
-      patternId: 'web-' + Date.now(),
-      crafting,
-      substitute,
-      beSubstitute,
-      author,
-      inputs: inputs.map((slot) =>
-        slot
-          ? {
-              registryName: slot.registryName,
-              displayName: slot.displayName || slot.registryName,
-              meta: slot.meta,
-              stackSize: slot.stackSize > 0 ? slot.stackSize : 1,
-              isFluid: slot.isFluid,
-            }
-          : null
-      ),
-      outputs: validOutputs.map((o) => ({
-        registryName: o.registryName,
-        displayName: o.displayName,
-        meta: 0,
-        stackSize: o.stackSize,
-        isFluid: o.isFluid,
-      })),
-    };
-  }, [outputs, inputs, crafting, substitute, beSubstitute, author]);
-
-  const encode = useCallback(
-    async (consumeBlank: boolean) => {
-      const validOutputs = outputs.filter((o) => o.registryName.trim());
-      if (validOutputs.length === 0) {
-        notify(t('patternEncodeFailed'), 'error');
-        return;
-      }
-      try {
-        const data = await getApiClient().post<PatternEncodeResponse>('/api/pattern/encode', {
-          ...buildPatternPayload(),
-          networkId: currentNet,
-          consumeBlank,
-        });
-        if (data.code === 'NO_BLANK_PATTERN') {
-          notify(t('patternNoBlankPattern'), 'error');
-          return;
-        }
-        const nbt = data.data?.encodedNbt || data.encodedNbt;
-        if (data.success && nbt) {
-          setEncodedNbt(nbt);
-          setBlankConsumedOnEncode(consumeBlank);
-          notify(t('patternEncoded'), 'success');
-        } else if (!data.success) {
-          notify(data.message || t('patternEncodeFailed'), 'error');
-        }
-      } catch (e) {
-        notify((e as Error).message, 'error');
-      }
-    },
-    [outputs, buildPatternPayload, currentNet, notify, t]
-  );
-
-  // ---- 保存（PUT 回写已存在样板） ----
-  const savePattern = useCallback(async () => {
-    if (!currentPattern) return;
-    if (!encodedNbt) {
-      notify(t('patternSaveFailed'), 'error');
-      return;
-    }
-    const pid = parsePatternId(currentPattern.patternId);
-    if (!pid) {
-      notify(t('patternSaveFailed'), 'error');
-      return;
-    }
+  const loadDetail = useCallback(async (patternId: string) => {
+    setLoadingDetail(true);
     try {
-      const data = await getApiClient().put<PatternUpdateResponse>(
-        `/api/patterns/${encodeURIComponent(currentPattern.patternId)}`,
-        {
-          encodedNbt,
-        }
+      const data = await getApiClient().get<PatternDetailResponse>(
+        `/api/patterns/${encodeURIComponent(patternId)}`
       );
-      if (data.success) {
-        notify(t('patternSaveSuccess'), 'success');
-        setDirty(false);
-        fetchPatterns();
-      } else {
-        notify(data.message || t('patternSaveFailed'), 'error');
-      }
-    } catch (e) {
-      notify((e as Error).message || t('patternSaveFailed'), 'error');
+      if (data.success && data.pattern) {
+        setCurrentPattern(data.pattern);
+        applyPatternToEditor(data.pattern);
+      } else notify(data.message || t('patternNoSelection'), 'error');
+    } catch (error) {
+      notify((error as Error).message, 'error');
+    } finally {
+      setLoadingDetail(false);
     }
-  }, [currentPattern, encodedNbt, notify, t, fetchPatterns]);
+  }, [applyPatternToEditor, notify, t]);
 
-  // ---- 注入到接口槽位（新建到指定接口 / 移动样板） ----
-  const injectPattern = useCallback(async () => {
-    if (!encodedNbt || !selectedInterface) return;
-    const iface = interfaces.find((i) => `${i.x}_${i.y}_${i.z}_${i.dim}` === selectedInterface);
-    if (!iface) return;
-    try {
-      const data = await getApiClient().post<{ success: boolean; result?: { success: boolean; message?: string }; message?: string }>(
-        '/api/pattern/inject',
-        {
-          encodedNbt,
-          interfaceX: iface.x,
-          interfaceY: iface.y,
-          interfaceZ: iface.z,
-          interfaceDim: iface.dim,
-          slotIndex: injectSlot,
-          networkId: currentNet,
-          consumeBlank: !blankConsumedOnEncode,
-        }
-      );
-      const result = data.result;
-      if (data.success && result?.success) {
-        notify(t('patternInjectSuccess'), 'success');
-        setBlankConsumedOnEncode(false);
-        fetchPatterns();
-        fetchInterfaces();
-      } else {
-        const msg = result?.message || data.message || t('patternInjectFailed');
-        if (msg.includes('NO_BLANK_PATTERN')) {
-          notify(t('patternNoBlankPattern'), 'error');
-        } else {
-          notify(msg, 'error');
-        }
-      }
-    } catch (e) {
-      notify((e as Error).message || t('patternInjectFailed'), 'error');
-    }
-  }, [encodedNbt, selectedInterface, interfaces, injectSlot, currentNet, blankConsumedOnEncode, notify, t, fetchPatterns, fetchInterfaces]);
+  const filteredPatterns = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return patterns;
+    return patterns.filter((pattern) => {
+      const output = (pattern.outputs || []).map((entry) => `${entry.displayName} ${entry.registryName}`).join(' ');
+      return `${output} ${pattern.sourceInterfaceName} ${pattern.sourceInterface} ${pattern.author}`.toLowerCase().includes(q);
+    });
+  }, [patterns, search]);
 
-  // ---- 槽位/输出操作 ----
-  const fillSlotFromEntry = (slot: number, entry: RecipeSuggestEntry) => {
-    const next = [...inputs];
-    next[slot] = {
+  const buildPatternPayload = useCallback(() => ({
+    patternId: currentPattern?.patternId || `web-${Date.now()}`,
+    crafting,
+    substitute,
+    beSubstitute,
+    author,
+    programmableHatches,
+    inputs: inputs.map((entry) => entry ? {
       registryName: entry.registryName,
       displayName: entry.displayName || entry.registryName,
-      meta: 0,
-      stackSize: 1,
-      isFluid: false,
-    };
-    setInputs(next);
-    setDirty(true);
-  };
+      meta: entry.meta,
+      stackSize: Math.max(1, entry.stackSize),
+      nbt: entry.nbt,
+      isFluid: entry.isFluid,
+      nonConsumable: entry.nonConsumable,
+      programmableCircuit: entry.programmableCircuit,
+    } : null),
+    outputs: outputs.filter((entry) => entry.registryName.trim()).map((entry) => ({
+      registryName: entry.registryName,
+      displayName: entry.displayName || entry.registryName,
+      meta: entry.meta,
+      stackSize: entry.stackSize,
+      nbt: entry.nbt,
+      isFluid: entry.isFluid,
+    })),
+  }), [author, beSubstitute, crafting, currentPattern, inputs, outputs, programmableHatches, substitute]);
 
-  const setSlot = (slot: number) => {
-    if (!itemSearch.trim()) return;
-    fillSlotFromEntry(slot, {
-      registryName: itemSearch.trim(),
-      displayName: itemSearch.trim(),
+  const requestEncode = useCallback(async (): Promise<string | null> => {
+    if (!outputs.some((entry) => entry.registryName.trim())) {
+      notify(t('patternEncodeFailed'), 'error');
+      return null;
+    }
+    if (programmableHatches && !programmableHatchesInstalled) {
+      notify(t('patternCompatMissing'), 'error');
+      return null;
+    }
+    const data = await getApiClient().post<PatternEncodeResponse>('/api/pattern/encode', {
+      ...buildPatternPayload(),
+      networkId: currentNet,
+      consumeBlank: false,
     });
-  };
+    const nbt = data.data?.encodedNbt || data.encodedNbt || '';
+    if (!data.success || !nbt) {
+      notify(data.message || t('patternEncodeFailed'), 'error');
+      return null;
+    }
+    setEncodedNbt(nbt);
+    return nbt;
+  }, [buildPatternPayload, currentNet, notify, outputs, programmableHatches, programmableHatchesInstalled, t]);
 
-  const useRecipe = (recipe: RecipeDto) => {
-    const newInputs = new Array(27).fill(null) as (PatternEditorInputSlot | null)[];
-    recipe.inputs.forEach((inp, i) => {
-      if (i < 27 && inp.registryName) {
-        newInputs[i] = {
-          registryName: inp.registryName,
-          displayName: inp.displayName || inp.registryName,
-          meta: inp.meta ?? 0,
-          stackSize: inp.stackSize > 0 ? inp.stackSize : 1,
-          isFluid: Boolean(inp.registryName.startsWith('fluid:')),
-        };
+  const previewEncode = useCallback(async () => {
+    setBusy(true);
+    try {
+      if (await requestEncode()) notify(t('patternEncoded'), 'success');
+    } catch (error) {
+      notify((error as Error).message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }, [notify, requestEncode, t]);
+
+  const savePattern = useCallback(async () => {
+    if (!currentPattern) return;
+    setBusy(true);
+    try {
+      const nbt = await requestEncode();
+      if (!nbt) return;
+      const data = await getApiClient().put<PatternUpdateResponse>(
+        `/api/patterns/${encodeURIComponent(currentPattern.patternId)}`,
+        { encodedNbt: nbt }
+      );
+      if (!data.success) throw new Error(data.message || t('patternSaveFailed'));
+      notify(t('patternSaveSuccess'), 'success');
+      setDirty(false);
+      await refreshAll();
+    } catch (error) {
+      notify((error as Error).message || t('patternSaveFailed'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }, [currentPattern, notify, refreshAll, requestEncode, t]);
+
+  const selectedInterface = interfaces.find((iface) => interfaceAddress(iface) === selectedInterfaceId);
+
+  const injectCurrent = useCallback(async () => {
+    if (!selectedInterface) return;
+    setBusy(true);
+    try {
+      const nbt = await requestEncode();
+      if (!nbt) return;
+      const data = await getApiClient().post<PatternInjectResponse>('/api/pattern/inject', {
+        encodedNbt: nbt,
+        interfaceX: selectedInterface.x,
+        interfaceY: selectedInterface.y,
+        interfaceZ: selectedInterface.z,
+        interfaceDim: selectedInterface.dim,
+        interfaceSide: selectedInterface.partSide || '',
+        slotIndex: selectedSlot,
+        networkId: currentNet,
+        consumeBlank: true,
+      });
+      if (!data.success || !data.result?.success) {
+        const message = data.result?.message || data.message || t('patternInjectFailed');
+        throw new Error(message.includes('NO_BLANK_PATTERN') ? t('patternNoBlankPattern') : message);
       }
-    });
-    setInputs(newInputs);
-    outputKeySeq.current = 1;
-    setOutputs(
-      recipe.outputs.map((o) => ({
-        key: String(outputKeySeq.current++),
-        registryName: o.registryName,
-        displayName: o.displayName,
-        stackSize: o.stackSize > 0 ? o.stackSize : 1,
-        originalStackSize: o.stackSize > 0 ? o.stackSize : 1,
-        isFluid: Boolean(o.registryName?.startsWith('fluid:')),
-      }))
-    );
+      notify(t('patternInjectSuccess'), 'success');
+      await refreshAll();
+    } catch (error) {
+      notify((error as Error).message || t('patternInjectFailed'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }, [currentNet, notify, refreshAll, requestEncode, selectedInterface, selectedSlot, t]);
+
+  const mutatePlacement = useCallback(async (path: string, payload: object, successKey: string) => {
+    setBusy(true);
+    try {
+      const data = await getApiClient().post<PatternMutationResponse>(path, payload);
+      if (!data.success) throw new Error(data.message);
+      notify(t(successKey), 'success');
+      setCurrentPattern(null);
+      resetEditor();
+      await refreshAll();
+    } catch (error) {
+      notify((error as Error).message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }, [notify, refreshAll, resetEditor, t]);
+
+  const movePattern = useCallback((patternId: string, iface: InterfaceDto, slot: number, swap: boolean) => {
+    mutatePlacement('/api/patterns/move', {
+      patternId,
+      networkId: currentNet,
+      interfaceX: iface.x,
+      interfaceY: iface.y,
+      interfaceZ: iface.z,
+      interfaceDim: iface.dim,
+      interfaceSide: iface.partSide || '',
+      slotIndex: slot,
+      swap,
+    }, 'patternMoveSuccess');
+  }, [currentNet, mutatePlacement]);
+
+  const takePattern = useCallback((patternId: string) => {
+    mutatePlacement('/api/pattern-buffer/take', { patternId, networkId: currentNet }, 'patternBufferTakeSuccess');
+  }, [currentNet, mutatePlacement]);
+
+  const placeBuffer = useCallback((bufferId: string, iface: InterfaceDto, slot: number) => {
+    mutatePlacement('/api/pattern-buffer/place', {
+      bufferId,
+      networkId: currentNet,
+      interfaceX: iface.x,
+      interfaceY: iface.y,
+      interfaceZ: iface.z,
+      interfaceDim: iface.dim,
+      interfaceSide: iface.partSide || '',
+      slotIndex: slot,
+    }, 'patternBufferPlaceSuccess');
+  }, [currentNet, mutatePlacement]);
+
+  const useRecipe = useCallback((recipe: RecipeDto) => {
+    const draft = recipeToPatternDraft(recipe);
+    setCrafting(draft.crafting);
+    setInputs(draft.inputs);
+    setOutputs(draft.outputs.length ? draft.outputs : [blankOutput()]);
+    outputKeySeq.current = Math.max(1, draft.outputs.length);
+    const hasNonConsumable = draft.inputs.some((entry) => entry?.nonConsumable);
+    if (hasNonConsumable && programmableHatchesInstalled) setProgrammableHatches(true);
     setCurrentMultiplier(1);
-    setBlankConsumedOnEncode(false);
-    setDirty(true);
-  };
-
-  const applyMultiplier = (factor: number) => {
-    setOutputs((prev) =>
-      prev.map((o) => ({
-        ...o,
-        stackSize: Math.max(o.originalStackSize, Math.round(o.stackSize * factor)),
-      }))
-    );
-    setCurrentMultiplier((m) => m * factor);
-    setDirty(true);
-  };
-
-  const divideMultiplier = () => {
-    setOutputs((prev) =>
-      prev.map((o) => ({
-        ...o,
-        stackSize: Math.max(o.originalStackSize, Math.floor(o.stackSize / 2)),
-      }))
-    );
-    setCurrentMultiplier((m) => Math.max(1, Math.floor(m / 2)));
-    setDirty(true);
-  };
-
-  const mergedRecipeGroups = useMemo(() => groupByPrimaryOutput(recipeResults), [recipeResults]);
-
-  const selectedIface = useMemo(
-    () => interfaces.find((i) => `${i.x}_${i.y}_${i.z}_${i.dim}` === selectedInterface),
-    [interfaces, selectedInterface]
-  );
-
-  const markDirty = () => setDirty(true);
-
-  const handleSuggestSelect = useCallback(
-    (entry: RecipeSuggestEntry) => {
-      setItemSearch(entry.registryName);
-      if (pickTarget?.kind === 'slot') {
-        fillSlotFromEntry(pickTarget.slot, entry);
-        setPickTarget(null);
-      } else if (pickTarget?.kind === 'output') {
-        const next = [...outputs];
-        next[next.length - 1] = {
-          ...next[next.length - 1],
-          registryName: entry.registryName,
-          displayName: entry.displayName || entry.registryName,
-          originalStackSize: next[next.length - 1].originalStackSize || 1,
-        };
-        setOutputs(next);
-        markDirty();
-        setPickTarget(null);
-      }
-      searchRecipes(entry.registryName);
-    },
-    [pickTarget, outputs, searchRecipes]
-  );
-
-  const handleSlotClick = useCallback(
-    (slot: number) => {
-      setPickTarget({ kind: 'slot', slot });
-      setItemSearch(inputs[slot]?.registryName || '');
-    },
-    [inputs]
-  );
-
-  const handleOutputChange = useCallback((index: number, row: PatternEditorOutputRow) => {
-    const next = [...outputs];
-    next[index] = row;
-    setOutputs(next);
     markDirty();
-  }, [outputs]);
+  }, [markDirty, programmableHatchesInstalled]);
 
-  const handleAddOutput = useCallback(() => {
-    outputKeySeq.current += 1;
-    setOutputs([
-      ...outputs,
-      {
-        key: String(outputKeySeq.current),
-        registryName: '',
-        displayName: '',
+  const fillSlot = useCallback((slot: number, entry: RecipeSuggestEntry) => {
+    setInputs((previous) => {
+      const next = [...previous];
+      next[slot] = {
+        registryName: entry.registryName,
+        displayName: entry.displayName || entry.registryName,
+        meta: 0,
         stackSize: 1,
-        originalStackSize: 1,
+        nbt: undefined,
         isFluid: false,
-      },
-    ]);
+        nonConsumable: false,
+        programmableCircuit: false,
+      };
+      return next;
+    });
     markDirty();
-  }, [outputs]);
+  }, [markDirty]);
 
-  // ---- 渲染样板列表项 ----
-  const renderPatternItem = (p: PatternListEntryDto) => {
-    const isSelected = selectedIds.has(p.patternId);
-    const isActive = currentPattern?.patternId === p.patternId;
-    const primaryOutput = p.outputs[0];
+  const renderPatternItem = (pattern: PatternListEntryDto) => {
+    const primaryOutput = pattern.outputs?.[0];
     const iconId = patternEntryIconId(primaryOutput);
     return (
       <SelectableListRow
+        key={pattern.patternId}
         variant="card"
         as="div"
-        active={isActive}
-        onClick={() => loadDetail(p)}
+        active={currentPattern?.patternId === pattern.patternId}
+        onClick={() => loadDetail(pattern.patternId)}
         leading={
           <>
             <Checkbox
-              checked={isSelected}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSelect(p.patternId);
-              }}
-              onChange={() => {}}
+              checked={selectedIds.has(pattern.patternId)}
+              onClick={(event) => event.stopPropagation()}
+              onChange={() => setSelectedIds((previous) => {
+                const next = new Set(previous);
+                if (next.has(pattern.patternId)) next.delete(pattern.patternId);
+                else next.add(pattern.patternId);
+                return next;
+              })}
             />
-            {iconId ? <Icon id={iconId} size={28} alt={primaryOutput?.displayName || ''} /> : null}
+            {iconId && <Icon id={iconId} size={28} alt={primaryOutput?.displayName || ''} />}
           </>
         }
-        trailing={
-          <Space size={4}>
-            {p.crafting && <Tag color="blue" style={{ fontSize: '0.65rem' }}>{t('crafting')}</Tag>}
-            {p.substitute && <Tag color="orange" style={{ fontSize: '0.65rem' }}>S</Tag>}
-            {p.beSubstitute && <Tag color="purple" style={{ fontSize: '0.65rem' }}>B</Tag>}
-          </Space>
-        }
+        trailing={pattern.programmableHatches ? <Tag color="purple">PH</Tag> : undefined}
       >
         <div className="webae-list-row-title">
-          {primaryOutput?.displayName || primaryOutput?.registryName || `#${p.slotIndex}`}
-          {primaryOutput && primaryOutput.stackSize > 1 ? ` ×${primaryOutput.stackSize}` : ''}
+          {primaryOutput?.displayName || primaryOutput?.registryName || `#${pattern.slotIndex + 1}`}
         </div>
         <div className="webae-text-2xs webae-list-row-subtitle">
-          {p.sourceInterfaceName} · {t('patternSlot')} {p.slotIndex}
-          {p.author ? ` · ${p.author}` : ''}
+          {pattern.sourceInterfaceName} · {t('patternSlot')} {pattern.slotIndex + 1}
         </div>
       </SelectableListRow>
     );
   };
 
+  const deletePatterns = useCallback((ids: string[]) => {
+    if (!ids.length) return;
+    Modal.confirm({
+      title: t('patternDeleteConfirm').replace('{n}', String(ids.length)),
+      okType: 'danger',
+      onOk: async () => {
+        let deleted = 0;
+        for (const id of ids) {
+          try {
+            const data = await getApiClient().delete<PatternDeleteResponse>(`/api/patterns/${encodeURIComponent(id)}`);
+            if (data.success) deleted += 1;
+          } catch {
+            // Continue deleting the remaining explicit selection.
+          }
+        }
+        notify(t('patternDeleteSuccess').replace('{n}', String(deleted)), 'success');
+        setSelectedIds(new Set());
+        setCurrentPattern(null);
+        resetEditor();
+        await refreshAll();
+      },
+    });
+  }, [notify, refreshAll, resetEditor, t]);
+
+  const deleteSelected = useCallback(() => deletePatterns(Array.from(selectedIds)), [deletePatterns, selectedIds]);
+
+  const exportPatterns = useCallback((ids: string[]) => {
+    const idSet = new Set(ids);
+    const selected = patterns.filter((pattern) => idSet.has(pattern.patternId));
+    if (!selected.length) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `patterns_${Date.now()}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [patterns]);
+
+  const exportSelected = useCallback(() => exportPatterns(Array.from(selectedIds)), [exportPatterns, selectedIds]);
+
+  const leftTabs = [
+    {
+      key: 'recipes',
+      label: t('patternRecipeLibrary'),
+      children: <PatternRecipeSidebar t={t} onUseRecipe={useRecipe} />,
+    },
+    {
+      key: 'patterns',
+      label: `${t('patternListTitle')} (${patterns.length})`,
+      children: (
+        <PatternListSidebar
+          search={search}
+          onSearchChange={setSearch}
+          selectedCount={selectedIds.size}
+          onSelectAll={() => setSelectedIds(new Set(filteredPatterns.map((pattern) => pattern.patternId)))}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onBatchDelete={deleteSelected}
+          onBatchExport={exportSelected}
+          loadingList={loadingList}
+          patterns={filteredPatterns}
+          renderItem={renderPatternItem}
+        />
+      ),
+    },
+  ];
+
   return (
     <PageShell
       title={t('patternEditor')}
+      description={t('patternWorkbenchHint')}
       actions={
         <Space>
-          <Button icon={<ReloadOutlined />} size="small" onClick={fetchPatterns} loading={loadingList}>
+          <Button icon={<ReloadOutlined />} onClick={refreshAll} loading={loadingList || busy}>
             {t('patternRefresh')}
           </Button>
-          <Button icon={<PlusOutlined />} size="small" type="primary" onClick={newPattern}>
+          <Button icon={<PlusOutlined />} type="primary" onClick={() => {
+            setCurrentPattern(null);
+            resetEditor();
+          }}>
             {t('patternNew')}
           </Button>
         </Space>
       }
     >
-      <Card>
-        <Row gutter={16}>
-          {/* 左侧：样板总览列表 */}
-          <Col xs={24} lg={9}>
-            <PatternListSidebar
-              search={search}
-              onSearchChange={setSearch}
-              selectedCount={selectedIds.size}
-              onSelectAll={selectAll}
-              onClearSelection={clearSelection}
-              onBatchDelete={batchDelete}
-              onBatchExport={batchExport}
-              loadingList={loadingList}
-              patterns={filteredPatterns}
-              renderItem={renderPatternItem}
-            />
-          </Col>
+      <div className="webae-pattern-workbench">
+        <Card size="small" className="webae-pattern-workbench-left">
+          <Tabs items={leftTabs} defaultActiveKey="recipes" />
+        </Card>
 
-          {/* 右侧：详情/编辑面板 */}
-          <Col xs={24} lg={15}>
-            <Spin spinning={loadingDetail}>
-              {currentPattern ? (
-                <div className="webae-pattern-detail-header">
-                  <Space wrap>
-                    <Text strong>{t('patternDetailTitle')}</Text>
-                    <Tag>{t('patternSourceInterface')}: {currentPattern.sourceInterfaceName}</Tag>
-                    <Tag>{t('patternSlot')}: {currentPattern.slotIndex}</Tag>
-                    {currentPattern.author && <Tag color="cyan">{currentPattern.author || t('patternAuthorUnknown')}</Tag>}
-                    {dirty && <Tag color="orange">●</Tag>}
-                  </Space>
-                  <Space size={8}>
-                    <Button icon={<SaveOutlined />} type="primary" onClick={savePattern} disabled={!dirty || !encodedNbt}>
-                      {t('patternSaveSuccess').replace('已保存', '保存')}
-                    </Button>
-                    <Button icon={<DeleteOutlined />} danger onClick={deleteCurrent}>
-                      {t('patternBatchDelete')}
-                    </Button>
-                    <Button icon={<DownloadOutlined />} onClick={() => {
-                      const blob = new Blob([JSON.stringify(currentPattern, null, 2)], { type: 'application/json' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `pattern_${currentPattern.slotIndex}_${Date.now()}.json`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}>
-                      {t('patternBatchExport')}
-                    </Button>
-                  </Space>
-                </div>
-              ) : (
-                <div className="webae-pattern-no-selection">
-                  <Text type="secondary">{t('patternNoSelection')}</Text>
-                </div>
+        <Card
+          size="small"
+          className="webae-pattern-workbench-editor"
+          title={currentPattern ? t('patternDetailTitle') : t('patternNew')}
+          extra={
+            <Space>
+              {dirty && <Tag color="warning">{t('patternUnsaved')}</Tag>}
+              {currentPattern && (
+                <>
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => exportPatterns([currentPattern.patternId])}
+                  >
+                    {t('patternBatchExport')}
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => deletePatterns([currentPattern.patternId])}
+                  >
+                    {t('patternBatchDelete')}
+                  </Button>
+                </>
               )}
+            </Space>
+          }
+        >
+          <Spin spinning={loadingDetail}>
+            <PatternEditorForm
+              t={t}
+              crafting={crafting}
+              onCraftingChange={(value) => { setCrafting(value); markDirty(); }}
+              substitute={substitute}
+              onSubstituteChange={(value) => { setSubstitute(value); markDirty(); }}
+              beSubstitute={beSubstitute}
+              onBeSubstituteChange={(value) => { setBeSubstitute(value); markDirty(); }}
+              author={author}
+              onAuthorChange={(value) => { setAuthor(value); markDirty(); }}
+              programmableHatches={programmableHatches}
+              programmableHatchesInstalled={programmableHatchesInstalled}
+              onProgrammableHatchesChange={(value) => { setProgrammableHatches(value); markDirty(); }}
+              inputs={inputs}
+              onClearInputs={() => { setInputs(new Array(27).fill(null)); markDirty(); }}
+              onSlotClick={(slot) => {
+                setPickTarget({ kind: 'slot', slot });
+                setItemSearch(inputs[slot]?.registryName || '');
+              }}
+              onToggleNonConsumable={(slot) => {
+                setInputs((previous) => previous.map((entry, index) =>
+                  index === slot && entry ? { ...entry, nonConsumable: !entry.nonConsumable } : entry
+                ));
+                markDirty();
+              }}
+              outputs={outputs}
+              onOutputChange={(index, output) => {
+                setOutputs((previous) => previous.map((entry, i) => i === index ? output : entry));
+                markDirty();
+              }}
+              onRemoveOutput={(key) => { setOutputs((previous) => previous.filter((entry) => entry.key !== key)); markDirty(); }}
+              onAddOutput={() => {
+                outputKeySeq.current += 1;
+                setOutputs((previous) => [...previous, blankOutput(String(outputKeySeq.current))]);
+                markDirty();
+              }}
+              currentMultiplier={currentMultiplier}
+              onApplyMultiplier={(factor) => {
+                setOutputs((previous) => previous.map((entry) => ({ ...entry, stackSize: entry.stackSize * factor })));
+                setCurrentMultiplier((previous) => previous * factor);
+                markDirty();
+              }}
+              onDivideMultiplier={() => {
+                setOutputs((previous) => previous.map((entry) => ({
+                  ...entry,
+                  stackSize: Math.max(entry.originalStackSize, Math.floor(entry.stackSize / 2)),
+                })));
+                setCurrentMultiplier((previous) => Math.max(1, Math.floor(previous / 2)));
+                markDirty();
+              }}
+              itemSearch={itemSearch}
+              onItemSearchChange={setItemSearch}
+              suggestOptions={suggestOptions}
+              onSuggestSelect={(entry) => {
+                setItemSearch(entry.registryName);
+                if (pickTarget?.kind === 'slot') fillSlot(pickTarget.slot, entry);
+              }}
+              pickTarget={pickTarget}
+              onSetSlot={(slot) => fillSlot(slot, { registryName: itemSearch.trim(), displayName: itemSearch.trim() })}
+              encodedNbt={encodedNbt}
+              onEncode={previewEncode}
+              onSavePattern={savePattern}
+              canSave={Boolean(currentPattern)}
+              busy={busy}
+            />
+          </Spin>
+        </Card>
 
-              <PatternEditorForm
-                t={t}
-                crafting={crafting}
-                onCraftingChange={(v) => { setCrafting(v); markDirty(); }}
-                substitute={substitute}
-                onSubstituteChange={(v) => { setSubstitute(v); markDirty(); }}
-                beSubstitute={beSubstitute}
-                onBeSubstituteChange={(v) => { setBeSubstitute(v); markDirty(); }}
-                author={author}
-                onAuthorChange={(v) => { setAuthor(v); markDirty(); }}
-                inputs={inputs}
-                onClearInputs={() => { setInputs(new Array(27).fill(null)); markDirty(); }}
-                onSlotClick={handleSlotClick}
-                outputs={outputs}
-                onOutputChange={handleOutputChange}
-                onRemoveOutput={(key) => {
-                  setOutputs(outputs.filter((o) => o.key !== key));
-                  markDirty();
-                }}
-                onAddOutput={handleAddOutput}
-                currentMultiplier={currentMultiplier}
-                onApplyMultiplier={applyMultiplier}
-                onDivideMultiplier={divideMultiplier}
-                itemSearch={itemSearch}
-                onItemSearchChange={setItemSearch}
-                suggestOptions={suggestOptions}
-                onSuggestSelect={handleSuggestSelect}
-                pickTarget={pickTarget}
-                onPickTargetClear={() => setPickTarget(null)}
-                onSearchRecipes={() => searchRecipes()}
-                onSetSlot={setSlot}
-                mergedRecipeGroups={mergedRecipeGroups}
-                onUseRecipe={useRecipe}
-                onOpenRecipeDetail={(recipes) => {
-                  setRecipeModalRecipes(recipes);
-                  setRecipeModalOpen(true);
-                }}
-                recipeModalOpen={recipeModalOpen}
-                recipeModalRecipes={recipeModalRecipes}
-                onRecipeModalClose={() => setRecipeModalOpen(false)}
-                encodedNbt={encodedNbt}
-                onEncode={encode}
-                onSavePattern={savePattern}
-                canSave={Boolean(currentPattern && encodedNbt)}
-              />
-
-              <PatternInjectPanel
-                interfaces={interfaces}
-                selectedInterface={selectedInterface}
-                onSelectedInterfaceChange={setSelectedInterface}
-                selectedIface={selectedIface}
-                injectSlot={injectSlot}
-                onInjectSlotChange={setInjectSlot}
-                encodedNbt={encodedNbt}
-                onInject={injectPattern}
-              />
-            </Spin>
-          </Col>
-        </Row>
-      </Card>
+        <Card size="small" className="webae-pattern-workbench-right">
+          <PatternInterfaceWorkspace
+            t={t}
+            interfaces={interfaces}
+            bufferEntries={bufferEntries}
+            currentPattern={currentPattern}
+            selectedInterfaceId={selectedInterfaceId}
+            selectedSlot={selectedSlot}
+            selectedBufferId={selectedBufferId}
+            busy={busy}
+            canInject={outputs.some((entry) => Boolean(entry.registryName.trim()))}
+            onSelectedInterfaceChange={(id) => { setSelectedInterfaceId(id); setSelectedSlot(0); }}
+            onSelectedSlotChange={setSelectedSlot}
+            onSelectedBufferChange={setSelectedBufferId}
+            onEditPattern={loadDetail}
+            onMovePattern={movePattern}
+            onTakePattern={takePattern}
+            onPlaceBuffer={placeBuffer}
+            onInjectCurrent={injectCurrent}
+            onRefresh={refreshAll}
+          />
+        </Card>
+      </div>
     </PageShell>
   );
 }

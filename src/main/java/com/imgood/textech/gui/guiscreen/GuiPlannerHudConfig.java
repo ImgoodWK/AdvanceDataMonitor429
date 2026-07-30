@@ -13,6 +13,9 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.items.ItemAdvancePlanner;
 
 /**
@@ -398,6 +401,7 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
 
         this.drawCenteredString(
             this.fontRendererObj,
@@ -442,17 +446,13 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
             this.drawCenteredString(this.fontRendererObj, errorTips, centerX, centerY + 95, 0xFF5555);
         }
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     private void drawPreviewArea(int mouseX, int mouseY) {
         // Preview area title
         this.fontRendererObj.drawString(I18n.format("adm.planner.hud_preview"), previewX, previewY - 14, textColor);
 
-        // Border
-        drawRect(previewX - 1, previewY - 1, previewX + previewWidth + 1, previewY + previewHeight + 1, 0xFF00AAAA);
-        // Background
-        drawRect(previewX, previewY, previewX + previewWidth, previewY + previewHeight, 0x40000000);
+        UiPanel.drawSection(UiThemes.ADM, previewX - 1, previewY - 1, previewWidth + 2, previewHeight + 2);
 
         // Draw grid lines for visual reference
         int gridColor = 0x20FFFFFF;
@@ -472,26 +472,16 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
         boolean hovering = isMouseOnHudBox(mouseX, mouseY);
         int boxScreenX = previewX + hudPixelX;
         int boxScreenY = previewY + hudPixelY;
-        int boxBorderColor = draggingHudBox || hovering ? 0xFF00FFFF : 0xFF0088CC;
         int boxFillColor = draggingHudBox ? 0x6000AAAA : (hovering ? 0x400088CC : 0x30004466);
 
-        // Box fill
         drawRect(boxScreenX, boxScreenY, boxScreenX + hudBoxWidth, boxScreenY + hudBoxHeight, boxFillColor);
-        // Box border
-        drawRect(boxScreenX, boxScreenY, boxScreenX + hudBoxWidth, boxScreenY + 1, boxBorderColor); // top
-        drawRect(
+        GuiBlitUtil.drawNineSlice(
+            draggingHudBox || hovering ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
             boxScreenX,
-            boxScreenY + hudBoxHeight - 1,
-            boxScreenX + hudBoxWidth,
-            boxScreenY + hudBoxHeight,
-            boxBorderColor); // bottom
-        drawRect(boxScreenX, boxScreenY, boxScreenX + 1, boxScreenY + hudBoxHeight, boxBorderColor); // left
-        drawRect(
-            boxScreenX + hudBoxWidth - 1,
             boxScreenY,
-            boxScreenX + hudBoxWidth,
-            boxScreenY + hudBoxHeight,
-            boxBorderColor); // right
+            hudBoxWidth,
+            hudBoxHeight,
+            3);
 
         // "HUD" label in the box
         String hudBoxLabel = I18n.format("adm.planner.hud_label");

@@ -47,6 +47,10 @@ public class PatternDto {
 
     public String encodedNbt;
 
+    /** Wrap non-consumable inputs as Programmable Hatches programming circuits when the optional mod is loaded. */
+
+    public boolean programmableHatches;
+
     public PatternDto() {
 
         this.inputs = new ArrayList<PatternItemEntry>();
@@ -72,6 +76,18 @@ public class PatternDto {
         public int stackSize;
 
         public boolean isFluid;
+
+        /** Serialized NBTTagCompound of the underlying item stack, excluding id/count/damage. */
+
+        public String nbt;
+
+        /** Input is present in the recipe but is not consumed (mold, lens, catalyst, etc.). */
+
+        public boolean nonConsumable;
+
+        /** Decoded input was already wrapped by Programmable Hatches. */
+
+        public boolean programmableCircuit;
 
         public PatternItemEntry() {}
 
@@ -126,6 +142,16 @@ public class PatternDto {
         /** Dimension ID. */
 
         public int dim;
+
+        /** Stable address: {@code x:y:z:dim} for blocks, {@code x:y:z:dim@SIDE} for cable parts. */
+
+        public String interfaceId;
+
+        /** ForgeDirection name for a cable-bus interface part; empty for a full-block interface. */
+
+        public String partSide;
+
+        public boolean part;
 
         /** Number of PATTERN_CAPACITY upgrade cards (0-3). */
 
@@ -230,6 +256,10 @@ public class PatternDto {
         public int interfaceZ;
 
         public int interfaceDim;
+
+        /** Optional ForgeDirection name when the target is an interface part on a cable bus. */
+
+        public String interfaceSide;
 
         public int slotIndex;
 

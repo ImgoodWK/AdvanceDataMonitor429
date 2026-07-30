@@ -202,7 +202,7 @@ Main flow highlights:
   - In-memory fields, loading, and saving for AI, voice, and assistant configuration.
 
 - `src/main/java/com/imgood/textech/gui/guiscreen/GuiAISettings.java`
-  - In-game AI/voice settings screen.
+  - In-game AI/voice settings screen; switches to a three-column field grid and two toggle rows when the preferred panel exceeds the scaled viewport.
 
 - `src/main/java/com/imgood/textech/command/CommandAIConfig.java`
   - Command-line configuration entry for setting/viewing AI-related configuration.
@@ -301,6 +301,7 @@ Current limitations:
 ## A7. GUI State and Chat History
 
 - `GuiAIChat`'s `history` points to static `sharedHistory`; closing and reopening the GUI multiple times preserves chat history until the player clicks clear.
+- `GuiAIChat` uses `GuiResponsiveLayout` to fit its 600x450 preferred panel into the current scaled viewport. Below 370px wide the header becomes two rows, while chat, scrollbar, input, and wrapping bounds all use the runtime panel size.
 - The clear button empties shared `history`, resets scroll/status, and rebuilds display lines.
 - `scrollToBottomRequested` is set on new user/assistant/server messages, streaming deltas, errors, privacy notice/confirm, etc.; `rebuildDisplayLines()` auto-scrolls to bottom afterward.
 - Normal chat request context is controlled by `MAX_CONTEXT_MESSAGES=16`; only the most recent 16 history entries plus system prompt are sent.
@@ -395,7 +396,7 @@ Known limitations:
 - Insufficient inventory space during withdrawal triggers partial withdrawal confirmation; rule fallback and pending batch confirmation support Chinese and English keywords (e.g. `确认` / confirm / yes / ok).
 - During batch withdrawal, if one line needs partial confirmation, the entire batch pauses; subsequent lines cannot be skipped.
 - Withdrawal depends on AE2 `extractItems` API; fails if storage cells do not support extraction (some special storage).
-- Infinite storage cell detection uses `AeCompat.cells().readItemCellStats()` / `readFluidCellStats()` (Legacy path includes GlodBlock `FluidCellInventoryHandler` reflection); class name keywords and byte threshold logic see `compat/ae/legacy/LegacyAeCellStatsAdapter`. For GTNH 2.9.0+ Native path, see `docs/en/developer/ae-compat-290.md`.
+- Infinite storage cell detection uses `AeCompat.cells().readItemCellStats()` / `readFluidCellStats()`. TeXTech 2.0 always binds NativeFluid adapters; `compat/ae/legacy/LegacyAeCellStatsAdapter` only retains mixed-format/migration helpers and does not imply old-pack support. See `docs/en/developer/ae-compat-290.md`.
 
 Suggested next steps:
 

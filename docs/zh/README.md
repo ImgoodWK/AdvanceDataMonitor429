@@ -1,8 +1,10 @@
 # TeXTech 文档中心（中文）
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · 最后同步：2026-07
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 2.0 · 最后同步：2026-07
 
 English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.md](../README.md)
+
+TeXTech 2.0 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离线语音 JAR 与可选 WebAE ZIP 分开发布；使用 WebAE 时把 ZIP 解压到服务端实例根目录，并确认 `TeXTech/WebAE/ui/index.html` 存在。不使用 WebAE 时只下载主 JAR 即可。
 
 ---
 
@@ -60,8 +62,8 @@ English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.m
 | [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | 新功能开发决策清单（基类选型、网络包、lang 同步） |
 | [developer/Gradle工作流.md](developer/Gradle工作流.md) | ExampleMod 模板、构建迁移、FAQ |
 | [developer/临时材质清单.md](developer/临时材质清单.md) | 缺失/占位方块与物品材质审计；**临时**程序化贴图说明 |
-| [developer/GTNH版本兼容说明.md](developer/GTNH版本兼容说明.md) | v1.0.0 对 2.8.x / 2.9.0-beta+ 的支持范围与下一版移除 Legacy 计划 |
-| [developer/ae-compat-290.md](developer/ae-compat-290.md) | AE 双路径兼容技术细节（开发者） |
+| [developer/GTNH版本兼容说明.md](developer/GTNH版本兼容说明.md) | v2.0.0 以 GTNH 2.9.0-beta-2 为最低目标；2.8.x 已不再支持 |
+| [developer/ae-compat-290.md](developer/ae-compat-290.md) | GTNH 2.9.0-beta-2 NativeFluid 集成与遗留源码边界 |
 
 ### AI 助手专项
 

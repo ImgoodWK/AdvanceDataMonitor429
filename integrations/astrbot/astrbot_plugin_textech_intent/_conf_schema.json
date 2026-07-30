@@ -14,8 +14,14 @@
   "astrbot_explicit_prefixes": {
     "description": "AstrBot 显式前缀（强制本端处理）",
     "type": "list",
-    "default": ["云", "助手", "bot", "astr"],
+    "default": ["tt"],
     "hint": "与 WebAE 管理控制台「AstrBot 显式前缀」保持一致。"
+  },
+  "allow_compact_astrbot_prefix": {
+    "description": "允许 tt生图 / tt搜索 这种无空格写法",
+    "type": "bool",
+    "default": true,
+    "hint": "仅对 AstrBot 显式前缀生效；不会把 ttl 等英文单词当成 tt。"
   },
   "webae_intent_keywords": {
     "description": "WebAE 意图关键词（命中后静默让出）",

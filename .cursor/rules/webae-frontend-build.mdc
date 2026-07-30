@@ -6,7 +6,7 @@ alwaysApply: false
 
 # WebAE 前端改完必须构建
 
-游戏内加载的是 `src/main/resources/assets/textech/webae/` 构建产物，不是 `webae-frontend/src`。
+Vite 构建到 `src/main/resources/assets/textech/webae/`，发布时由 Gradle 打入独立 `textech-*-webae.zip`，主 JAR 排除此目录。服务器优先加载实例 `TeXTech/WebAE/ui/`；源码开发运行才回退 classpath。任何环境都不会直接加载 `webae-frontend/src`。
 
 **仅改源码、不 build → 游戏内无变化。**
 
@@ -18,6 +18,6 @@ cd webae-frontend && npm run build
 
 PowerShell：`Set-Location webae-frontend; npm run build`
 
-检查 `assets/textech/webae/index.html` 的 `js/index-*.js` 哈希已更新；总结写明已 build；提醒重启游戏后浏览器 Ctrl+F5。
+检查 `src/main/resources/assets/textech/webae/index.html` 的 `js/index-*.js` 哈希已更新；发布任务还需确认 WebAE ZIP 内有 `TeXTech/WebAE/ui/index.html` 且主 JAR 无 `assets/textech/webae/`。总结写明已 build；提醒替换实例 UI 目录、重启游戏后浏览器 Ctrl+F5。
 
 用户说「先别 build」或本轮未改 `webae-frontend/` 时可跳过。失败则先 `npm install` 再 build。勿手改产物目录。

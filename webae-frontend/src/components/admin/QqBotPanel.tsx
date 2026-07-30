@@ -48,7 +48,7 @@ import { joinQqBotList, qqBotConnectionColor, splitQqBotList } from '@/utils/qqB
 const { Text, Paragraph } = Typography;
 
 const DEFAULT_WEBAE_PREFIXES = ['webae', '游戏', 'mc', 'gtnh', '服务器'];
-const DEFAULT_ASTRBOT_PREFIXES = ['云', '助手', 'bot', 'astr'];
+const DEFAULT_ASTRBOT_PREFIXES = ['tt'];
 const DEFAULT_WEBAE_KEYWORDS = [
   'webae', 'textech', 'gtnh', 'tps', 'mspt', '仪表盘', '告警', '在线玩家', '服务器状态',
   'adm', '高级数据', '监视器', '内存', '开服', '谁在线',

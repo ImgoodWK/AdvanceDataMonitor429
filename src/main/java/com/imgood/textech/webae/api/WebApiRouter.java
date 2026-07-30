@@ -112,6 +112,13 @@ public class WebApiRouter {
             && !"/api/admin/server-console/history/clear".equals(uri)) {
             return "/api/admin/server-console/history/{id}";
         }
+        if (uri.startsWith("/api/patterns/") && !"/api/patterns/browse".equals(uri)
+            && !"/api/patterns/browse/refresh".equals(uri)
+            && !"/api/patterns/move".equals(uri)
+            && !uri.startsWith("/api/patterns/grid/")) {
+            return "/api/patterns/{id}";
+        }
+        if (uri.startsWith("/api/patterns/grid/")) return "/api/patterns/grid/{id}";
         return uri;
     }
 
@@ -244,7 +251,7 @@ public class WebApiRouter {
 
         if ("/api/interfaces".equals(uri) || uri.startsWith("/api/pattern/")) {
 
-            return PatternHandler.handle(uri, session, effectiveOwner);
+            return PatternHandler.handle(uri, session, auth, adminHeader, effectiveOwner);
 
         }
 
@@ -316,7 +323,9 @@ public class WebApiRouter {
 
         }
 
-        if ("/api/patterns".equals(uri) || uri.startsWith("/api/patterns/")) {
+        if ("/api/patterns".equals(uri) || uri.startsWith("/api/patterns/")
+            || "/api/pattern-buffer".equals(uri)
+            || uri.startsWith("/api/pattern-buffer/")) {
 
             String body = readBody(session);
 

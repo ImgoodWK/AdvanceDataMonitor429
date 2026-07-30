@@ -49,7 +49,15 @@ Default URL: `http://127.0.0.1:8090` (port is configurable).
 
 ## 2. Enable & Configure
 
-The Web Console is **disabled by default**. Edit `config/textech/textech.cfg` `[webConsole]` section:
+WebAE is an optional TeXTech 2.0 download and is not bundled in the core mod JAR. Download the matching `textech-*-webae.zip` from the same GitHub Release and extract it directly at the **server instance root**. A correct installation contains:
+
+```text
+TeXTech/WebAE/ui/index.html
+```
+
+Servers that do not use WebAE do not need this ZIP. Without the UI bundle the configured backend APIs can still start, but `/` returns an installation notice instead of the console. On upgrade, replace the complete `TeXTech/WebAE/ui/` directory with the matching ZIP version.
+
+The Web Console is **disabled by default**. After installing the UI bundle, edit the `config/textech/textech.cfg` `[webConsole]` section:
 
 ```ini
 [webConsole]
@@ -232,7 +240,15 @@ The folder is created automatically on first use.
 
 ### Pattern Manager
 
-Left: pattern list with search and batch delete. Right: 9×3 input grid and outputs with multiplier controls. Encoding consumes a blank pattern from the AE network; inject into ME Interfaces.
+The Patterns page is now a three-column workbench modeled after the in-game Pattern Terminal: recipe/pattern sources on the left, the current editor in the center, and ME Interfaces plus a Web-only buffer on the right.
+
+- **Create from a recipe**: Search products, ingredients, and recipe types, filter by the exact handler, then apply any concrete recipe in one click. Crafting patterns use a shaped 3×3 grid; processing patterns use 9×3. Empty shaped slots, item metadata/NBT, and fluid inputs are preserved.
+- **Edit existing patterns**: Click a network pattern or occupied interface slot, edit it, then save it back to the same slot without consuming another blank. A blank pattern is deducted only when a new pattern is written into an empty interface slot.
+- **Interface workspace**: Full-block interfaces and cable interface parts are both listed with machine recipe type, active slots, and installed patterns. Drag to an empty slot to move; dropping onto an occupied slot offers an atomic swap.
+- **Cross-interface moves**: Move a physical pattern into the Web-only buffer, select another empty interface slot, then place it. The buffer is isolated by owner and AE network, holds at most 54 entries, and persists at `TeXTech/WebAE/web-pattern-buffer.json`. Taking an entry clears its source slot; this is not a copied pattern.
+- **Programmable Hatches compatibility**: When the community Programmable Hatches mod is installed, enable its editor mode to wrap molds, lenses, catalysts, and other `stackSize=0` inputs as `programmablehatches:prog_circuit`. Such inputs show `∞`; a selected input can also be toggled manually. The switch is disabled when the mod is absent.
+
+Writing a new pattern, moving, swapping, buffering, deleting, and write-back require WebAE admin permission. The page refreshes interface and pattern state after mutations; use **Refresh** if the background pattern snapshot is still warming up.
 
 ### Crafting Orders
 

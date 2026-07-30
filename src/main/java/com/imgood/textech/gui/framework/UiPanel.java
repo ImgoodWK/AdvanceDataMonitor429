@@ -32,13 +32,26 @@ public final class UiPanel {
         drawSolidFallback(x, y, width, height);
     }
 
+    public static void drawSection(UiTheme theme, int x, int y, int width, int height) {
+        draw(theme, x, y, width, height, theme != null ? theme.sectionPanel() : null);
+    }
+
     public static void drawSolidFallback(int x, int y, int width, int height) {
         Gui.drawRect(x, y, x + width, y + height, FALLBACK_PANEL_BG);
     }
 
     /** Horizontal separator line inside a panel. */
     public static void drawDivider(int x, int y, int width) {
+        drawDivider(null, x, y, width);
+    }
+
+    public static void drawDivider(UiTheme theme, int x, int y, int width) {
         if (width <= 0) {
+            return;
+        }
+        NineSliceRegion divider = theme != null ? theme.divider() : null;
+        if (divider != null && GuiBlitUtil.hasResource(divider.texture())) {
+            GuiBlitUtil.drawHorizontalSlice(divider, x, y, width, divider.regionH());
             return;
         }
         Gui.drawRect(x, y, x + width, y + 1, FALLBACK_SECTION_LINE);

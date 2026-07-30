@@ -32,6 +32,10 @@ public final class UiTextField {
 
     public UiTextField setTheme(UiTheme theme) {
         this.theme = theme;
+        if (theme != null) {
+            field.setBackgroundTexture(null)
+                .setFocusedBackgroundTexture(null);
+        }
         return this;
     }
 

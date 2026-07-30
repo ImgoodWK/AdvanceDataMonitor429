@@ -11,15 +11,66 @@ public interface UiTheme {
 
     NineSliceRegion mainPanel();
 
+    /** Inset cards, list bodies, and secondary groups. */
+    default NineSliceRegion sectionPanel() {
+        return mainPanel();
+    }
+
     NineSliceRegion buttonNormal();
 
     NineSliceRegion buttonHover();
+
+    /** Mouse-down state. Themes without a dedicated region may reuse hover. */
+    default NineSliceRegion buttonPressed() {
+        return buttonHover();
+    }
 
     NineSliceRegion buttonDisabled();
 
     NineSliceRegion textFieldNormal();
 
     NineSliceRegion textFieldFocused();
+
+    /** Exact-size or 9-slice inventory slot chrome; null keeps the procedural fallback. */
+    default NineSliceRegion slot() {
+        return null;
+    }
+
+    default NineSliceRegion scrollTrack() {
+        return textFieldNormal();
+    }
+
+    default NineSliceRegion scrollThumb() {
+        return buttonHover();
+    }
+
+    default NineSliceRegion divider() {
+        return null;
+    }
+
+    default NineSliceRegion toggleOff() {
+        return buttonNormal();
+    }
+
+    default NineSliceRegion toggleOn() {
+        return buttonHover();
+    }
+
+    default NineSliceRegion toggleDisabled() {
+        return buttonDisabled();
+    }
+
+    default NineSliceRegion checkOff() {
+        return buttonNormal();
+    }
+
+    default NineSliceRegion checkOn() {
+        return buttonHover();
+    }
+
+    default NineSliceRegion checkDisabled() {
+        return buttonDisabled();
+    }
 
     /** Container foreground labels (vanilla-style dark gray). */
     int textPrimary();

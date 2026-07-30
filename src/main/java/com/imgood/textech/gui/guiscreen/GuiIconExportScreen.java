@@ -11,6 +11,8 @@ import net.minecraft.util.EnumChatFormatting;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.Config;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.webae.icon.IconExportResolver;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
 import com.imgood.textech.webae.icon.IconRenderGuard;
@@ -89,6 +91,7 @@ public class GuiIconExportScreen extends GuiScreen {
 
         String modeLabel = session.getCurrentMode() != null ? session.getCurrentMode()
             .getId() : IconRenderMode.NEI.getId();
+        UiPanel.draw(UiThemes.ADM, width / 2 - 160, height / 2 - 44, 320, 88);
         String title = EnumChatFormatting.AQUA + "WebAE Icon Export (" + modeLabel + ")";
         String progress = EnumChatFormatting.WHITE + "Rendered " + Math.min(renderedItems, total) + " / " + total;
         String hint = EnumChatFormatting.GRAY + "Press ESC to cancel";

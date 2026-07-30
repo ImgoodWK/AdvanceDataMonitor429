@@ -3,9 +3,13 @@ package com.imgood.textech.webae.pattern;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.google.gson.JsonObject;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.compat.programmablehatches.ProgrammableHatchesCompat;
 import com.imgood.textech.utils.NBTJsonParser;
 import com.imgood.textech.webae.dto.PatternDto;
 import com.imgood.textech.webae.dto.PatternDto.PatternItemEntry;
@@ -33,21 +37,27 @@ public class PatternEncoder {
 
         NBTTagCompound root = new NBTTagCompound();
 
-        // Encode inputs (max 27 = 9x3 grid)
+        // AE2 writes one compound per logical input slot, including empty compounds. Keeping
+        // those placeholders is required for shaped crafting recipes and extended processing grids.
         NBTTagList inList = new NBTTagList();
-        if (pattern.inputs != null) {
-            int maxInputs = Math.min(pattern.inputs.size(), 27);
-            for (int i = 0; i < maxInputs; i++) {
-                PatternItemEntry entry = pattern.inputs.get(i);
-                if (entry != null && !isEmpty(entry)) {
-                    ItemStack stack = toItemStack(entry);
-                    if (stack != null) {
-                        NBTTagCompound stackTag = new NBTTagCompound();
-                        stack.writeToNBT(stackTag);
-                        inList.appendTag(stackTag);
-                    }
+        int requestedInputs = pattern.inputs != null ? pattern.inputs.size() : 0;
+        int inputSlotCount = pattern.crafting ? 9 : Math.min(27, Math.max(9, requestedInputs));
+        for (int i = 0; i < inputSlotCount; i++) {
+            PatternItemEntry entry = pattern.inputs != null && i < pattern.inputs.size() ? pattern.inputs.get(i) : null;
+            NBTTagCompound stackTag = new NBTTagCompound();
+            if (entry != null && !isEmpty(entry)) {
+                ItemStack stack = toItemStack(entry);
+                if (stack == null) {
+                    throw new IllegalArgumentException("Cannot encode pattern input: " + entry.registryName);
                 }
+                if (pattern.programmableHatches && entry.nonConsumable && !entry.isFluid) {
+                    stack = ProgrammableHatchesCompat.wrap(stack, Math.max(1, entry.stackSize));
+                }
+                stack.writeToNBT(stackTag);
+                // AE2's pattern terminal stores Count as an int so large processing amounts are not truncated.
+                stackTag.setInteger("Count", stack.stackSize);
             }
+            inList.appendTag(stackTag);
         }
         root.setTag("in", inList);
 
@@ -57,11 +67,13 @@ public class PatternEncoder {
             for (PatternItemEntry entry : pattern.outputs) {
                 if (entry != null && !isEmpty(entry)) {
                     ItemStack stack = toItemStack(entry);
-                    if (stack != null) {
-                        NBTTagCompound stackTag = new NBTTagCompound();
-                        stack.writeToNBT(stackTag);
-                        outList.appendTag(stackTag);
+                    if (stack == null) {
+                        throw new IllegalArgumentException("Cannot encode pattern output: " + entry.registryName);
                     }
+                    NBTTagCompound stackTag = new NBTTagCompound();
+                    stack.writeToNBT(stackTag);
+                    stackTag.setInteger("Count", stack.stackSize);
+                    outList.appendTag(stackTag);
                 }
             }
         }
@@ -232,21 +244,45 @@ public class PatternEncoder {
             return null;
         }
         try {
+            ItemStack stack = createFluidDrop(entry);
             Object itemObj = net.minecraft.item.Item.itemRegistry.getObject(entry.registryName);
-            if (itemObj instanceof net.minecraft.item.Item) {
+            if (stack == null && itemObj instanceof net.minecraft.item.Item) {
                 net.minecraft.item.Item item = (net.minecraft.item.Item) itemObj;
-                return new ItemStack(item, Math.max(1, entry.stackSize), entry.meta);
+                stack = new ItemStack(item, Math.max(1, entry.stackSize), entry.meta);
             }
-            String fullName = entry.registryName.contains(":") ? entry.registryName : "minecraft:" + entry.registryName;
-            itemObj = net.minecraft.item.Item.itemRegistry.getObject(fullName);
-            if (itemObj instanceof net.minecraft.item.Item) {
-                net.minecraft.item.Item item = (net.minecraft.item.Item) itemObj;
-                return new ItemStack(item, Math.max(1, entry.stackSize), entry.meta);
+            if (stack == null) {
+                String fullName = entry.registryName.contains(":") ? entry.registryName
+                    : "minecraft:" + entry.registryName;
+                itemObj = net.minecraft.item.Item.itemRegistry.getObject(fullName);
+                if (itemObj instanceof net.minecraft.item.Item) {
+                    net.minecraft.item.Item item = (net.minecraft.item.Item) itemObj;
+                    stack = new ItemStack(item, Math.max(1, entry.stackSize), entry.meta);
+                }
             }
+            if (stack != null && entry.nbt != null && !entry.nbt.isEmpty()) {
+                stack.setTagCompound(decode(entry.nbt));
+            }
+            return stack;
         } catch (Throwable t) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to create ItemStack for pattern input: {}", entry.registryName);
         }
         return null;
+    }
+
+    /** Convert recipe-cache {@code fluid:<registryName>} entries to AE2FC fluid drops without a hard dependency. */
+    private static ItemStack createFluidDrop(PatternItemEntry entry) {
+        if (!entry.isFluid || entry.registryName == null || !entry.registryName.startsWith("fluid:")) return null;
+        try {
+            String fluidName = entry.registryName.substring("fluid:".length());
+            Fluid fluid = FluidRegistry.getFluid(fluidName);
+            if (fluid == null) return null;
+            Class<?> dropClass = Class.forName("com.glodblock.github.common.item.ItemFluidDrop");
+            Object result = dropClass.getMethod("newStack", FluidStack.class)
+                .invoke(null, new FluidStack(fluid, Math.max(1, entry.stackSize)));
+            return result instanceof ItemStack ? (ItemStack) result : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     private static boolean isEmpty(PatternItemEntry entry) {

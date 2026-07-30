@@ -14,8 +14,9 @@
 
 | 文件名特征 | 是否放入整合包 `mods/` | 说明 |
 |------------|------------------------|------|
-| `textech-*.jar` / `TeXTech-*.jar`（**无**下列后缀） | **必装** | 主模组 |
+| `textech-*.jar`（**无**下列后缀） | **必装** | 主模组 |
 | `*-voice.jar` | **可选** | 离线中文语音模型包（独立 modid `textechvoice`） |
+| `*-webae.zip` | **可选，不放 `mods/`** | WebAE 网页资源；解压到服务端实例根目录 |
 | `*-dev.jar` | 否 | 开发反混淆产物 |
 | `*-dev-preshadow.jar` | 否 | Shadow 前中间产物 |
 | `*-sources.jar` | 否 | 源码包 |
@@ -31,9 +32,10 @@
 
 ```
 mods/
-  TeXTech-<version>.jar              # 必装：主模组
-  TeXTech-<version>-voice.jar        # 可选：离线语音（见 §4）
+  textech-<version>.jar              # 必装：主模组
+  textech-<version>-voice.jar        # 可选：离线语音（见 §4）
   mcef-1.7.10-0.6.jar                # 可选：游戏内 Chromium（外置下载，见 §4）
+TeXTech/WebAE/ui/                    # 可选：textech-<version>-webae.zip 解压结果
 ```
 
 不要把 Vosk 模型、MCEF、AstrBot 插件打进主 jar；本仓库发布时已刻意拆开。
@@ -66,8 +68,9 @@ Forge `@Mod` 声明：
 | 产物 | Mod ID | 体积量级 | 作用 | 缺了会怎样 |
 |------|--------|----------|------|------------|
 | `*-voice.jar` | `textechvoice` | ~40–65 MB | 离线 Vosk 中文 STT；首次用会解包到数据目录 | 默认 `embedded-vosk` 不可用；可改 `voice.sttMode=http` 或本地模型路径；其它功能不受影响 |
+| `*-webae.zip` | 无（网页资源） | ~1–3 MB | WebAE React 控制台 | API 可启动，但网页入口只显示资源未安装提示 |
 
-放置：与主 jar **同目录** `mods/`。
+语音 JAR 与主 jar **同目录**放入 `mods/`；WebAE ZIP 解压到服务端实例根目录，并确认 `TeXTech/WebAE/ui/index.html` 存在。
 
 ### 4.2 外置下载（不要当本模组构建产物上传）
 
@@ -110,7 +113,7 @@ Forge `@Mod` 声明：
 
 离线语音：装好 `*-voice.jar` 后保持 `voice.sttMode=embedded-vosk`（Windows 64-bit 推荐）；非 Windows 请改用 `http`。
 
-WebAE：在 cfg 中启用 Web 控制台后，用浏览器访问实例说明中的地址；Token / 安全项见 [WebAE 用户手册](../webae/用户手册.md)。
+WebAE：先安装同版本 `*-webae.zip`，再在 cfg 中启用 Web 控制台；Token / 安全项见 [WebAE 用户手册](../webae/用户手册.md)。
 
 ---
 
@@ -120,6 +123,7 @@ WebAE：在 cfg 中启用 Web 控制台后，用浏览器访问实例说明中�
 - [ ] **未**放入 `-dev` / `-preshadow` / `-sources`  
 - [ ] 目标为 GTNH **2.9.0** 线；包内已有 GregTech、StructureLib、AE2  
 - [ ] 是否随包提供 `*-voice.jar`（体积大，建议标「可选语音」分开放下载）  
+- [ ] 是否随服务端提供匹配版本 `*-webae.zip`，且未把 ZIP 放入 `mods/`  
 - [ ] 是否提及可选 MCEF + 启动器兼容风险；无 MCEF 时说明 browser-jpeg / spa-jpeg 仍可用  
 - [ ] 服管文档提醒：AI Key、隐私确认、WebAE Token 勿写进公开预设  
 - [ ] （可选）AstrBot / QQ 能力单独说明，勿与 MC mods 清单混淆  
@@ -132,9 +136,10 @@ WebAE：在 cfg 中启用 Web 控制台后，用浏览器访问实例说明中�
 
 1. **必传**：主 jar  
 2. **另传**：`*-voice.jar`  
-3. **仅说明链接**：MCEF、AstrBot 插件（不打进 TeXTech Release 也行）  
+3. **另传**：`*-webae.zip`  
+4. **仅说明链接**：MCEF、AstrBot 插件（不打进 TeXTech Release 也行）  
 
-主 jar **不含** `assets/textech/voice/vosk/**`，体积与可选语音刻意分离。
+主 jar **不含** `assets/textech/voice/vosk/**` 或 `assets/textech/webae/**`，离线语音和 WebAE 网页资源均独立发布。
 
 ---
 

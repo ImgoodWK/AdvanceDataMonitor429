@@ -8,6 +8,10 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
+
 public class ADM_GuiScreen extends GuiScreen {
 
     private ResourceLocation backgroundTexture;
@@ -32,6 +36,25 @@ public class ADM_GuiScreen extends GuiScreen {
 
     public void drawImage(ResourceLocation texture, int x, int y, int maxWidth, int maxHeight) {
         if (texture == null) return;
+
+        if (AdmGuiTextures.SUB_GUI_TYPE_BOX.equals(texture)) {
+            UiPanel.drawSection(UiThemes.ADM, x, y, maxWidth, maxHeight);
+            return;
+        }
+        if (isLegacyPanelTexture(texture)) {
+            UiPanel.draw(UiThemes.ADM, x, y, maxWidth, maxHeight);
+            return;
+        }
+        if (isLegacyTextFieldTexture(texture)) {
+            GuiBlitUtil.drawHorizontalSlice(
+                isLegacyFocusedTextFieldTexture(texture) ? UiThemes.ADM.textFieldFocused()
+                    : UiThemes.ADM.textFieldNormal(),
+                x,
+                y,
+                maxWidth,
+                maxHeight);
+            return;
+        }
 
         // 获取纹理的尺寸
         int[] dimensions = getTextureDimensions(texture);
@@ -107,6 +130,10 @@ public class ADM_GuiScreen extends GuiScreen {
         if (this.backgroundTexture == null) {
             return;
         }
+        if (isLegacyPanelTexture(this.backgroundTexture)) {
+            UiPanel.draw(UiThemes.ADM, this.x, this.y, drawWidth, drawHeight);
+            return;
+        }
         this.mc.getTextureManager()
             .bindTexture(this.backgroundTexture);
 
@@ -144,5 +171,20 @@ public class ADM_GuiScreen extends GuiScreen {
     public ADM_GuiScreen setStretch(boolean stretch) {
         this.stretch = stretch;
         return this;
+    }
+
+    private static boolean isLegacyPanelTexture(ResourceLocation texture) {
+        return AdmGuiTextures.BACKGROUND_SUB.equals(texture) || AdmGuiTextures.BACKGROUND_MONITOR_MAIN.equals(texture);
+    }
+
+    private static boolean isLegacyTextFieldTexture(ResourceLocation texture) {
+        return AdmGuiTextures.TEXTFIELD_8020.equals(texture) || AdmGuiTextures.TEXTFIELD_HOVER_8020.equals(texture)
+            || AdmGuiTextures.TEXTFIELD_SELECTED.equals(texture)
+            || AdmGuiTextures.TEXTFIELD_SELECTED_ALT.equals(texture);
+    }
+
+    private static boolean isLegacyFocusedTextFieldTexture(ResourceLocation texture) {
+        return AdmGuiTextures.TEXTFIELD_HOVER_8020.equals(texture) || AdmGuiTextures.TEXTFIELD_SELECTED.equals(texture)
+            || AdmGuiTextures.TEXTFIELD_SELECTED_ALT.equals(texture);
     }
 }

@@ -1,6 +1,6 @@
 # TeXTech UI 框架（Flex 组件树）
 
-TeXTech 自研 GUI 框架位于 `com.imgood.textech.gui.framework`。在既有 **9-slice 主题 / 图集** 之上，提供类 HTML 的 **组件树 + Flexbox 布局 + `UiStyle` 样式**，供除次元口袋外的配置屏与容器屏统一使用。
+TeXTech 自研 GUI 框架位于 `com.imgood.textech.gui.framework`。框架以 Meowa 生成的像素科幻组件母表为视觉来源，在运行时 **9-slice 主题图集**之上提供类 HTML 的 **组件树 + Flexbox 布局 + `UiStyle` 样式**，供除次元口袋外的配置屏与容器屏统一使用。
 
 权威规范路由：`.cursor/rules/gui-guidelines.mdc` §2b / §1d。  
 参考实现（只借鉴、不硬依赖）：[Qz-UILib](https://github.com/QuanhuZeYu/Qz-UILib) Flex、[ModularUI2](https://wiki.gtnewhorizons.com/wiki/ModularUI) Widget/Flow。
@@ -118,7 +118,14 @@ root.child(UiFlex.column()
 
 ## 命令式 API（兼容层）
 
-物质球解压器等已用的 `UiPanel.draw` / `UiButton(x,y,w,h)` **保留**，新代码优先 Widget 树。调试状态见下表。
+物质球解压器等已用的 `UiPanel.draw` / `UiButton(x,y,w,h)` **保留**，新代码优先 Widget 树。命令式组件也必须传入 `UiThemes.ADM`：
+
+- `UiPanel.draw` 绘制主外壳，`drawSection` 绘制列表、预览、tooltip 等内嵌区域，`drawDivider` 绘制分隔线；
+- `UiButton` / `UiButtonWidget` 使用 normal / hover / pressed / disabled 四态；
+- `UiSlot.drawTheme`、`UiScrollPanel` 和手工列表滚动条分别使用主题槽位、轨道和滑块；
+- `ADM_GuiScreen`、`ADM_GuiButton`、`ADM_GuiTextField` 会把 `AdmGuiTextures` 的旧背景、按钮和输入框常量自动桥接到当前主题，避免旧屏继续拉伸历史 PNG；
+- `GuiResponsiveLayout.fitCentered` 把旧屏的首选面板尺寸约束进 scaled viewport；调用方必须让背景、控件、聊天区/滚动区和换行宽度共用返回的运行时 bounds。`ADM_GuiButton` 会在极窄按钮中裁剪标签，避免本地化文本溢出；
+- AE2 `GuiImgButton` 模式按钮和升级卡列保留原生图标与状态语义，不套 ADM 装饰外壳。
 
 ## 图集与主题
 
@@ -126,13 +133,27 @@ root.child(UiFlex.column()
 
 | 区域 | UV 起点 | 尺寸 | border | 用途 |
 |------|---------|------|--------|------|
-| mainPanel | (0, 0) | 64×64 | 16 | 主面板 9-slice |
-| buttonNormal | (0, 64) | 48×20 | 8 | 按钮 3-slice |
-| buttonHover | (0, 84) | 48×20 | 8 | hover |
-| buttonDisabled | (0, 104) | 48×20 | 8 | disabled |
-| textFieldNormal | (64, 64) | 80×20 | 6 | 输入框 |
-| textFieldFocused | (64, 84) | 80×20 | 6 | 聚焦 |
-| icons | (64, 0) | 16×16 网格 | — | 主题小图标 |
+| mainPanel | (0, 0) | 96×108 | 10 | 主面板 9-slice |
+| sectionPanel | (100, 0) | 88×56 | 8 | 内嵌区域 9-slice |
+| buttonNormal | (100, 60) | 48×20 | 8 | 按钮普通态 |
+| buttonHover | (100, 82) | 48×20 | 8 | hover |
+| buttonPressed | (100, 104) | 48×20 | 8 | 按下 |
+| buttonDisabled | (100, 126) | 48×20 | 8 | disabled |
+| textFieldNormal | (152, 60) | 48×20 | 6 | 输入框 |
+| textFieldFocused | (204, 60) | 48×20 | 6 | 聚焦 |
+| slot | (152, 84) | 18×18 | 3 | 物品槽位 |
+| scrollTrack | (174, 84) | 10×42 | 3 | 滚动条轨道 |
+| scrollThumb | (188, 84) | 10×20 | 3 | 滚动滑块 |
+| divider | (204, 84) | 48×4 | 1 | 分隔线 |
+| toggleOff / On / Disabled | (152 / 184 / 216, 108) | 28×14 | 4 | 三态开关 |
+| checkOff / On / Disabled | (152 / 170 / 188, 126) | 14×14 | 3 | 三态复选框 |
+| icons | (0, 160) | 16×16 网格 | — | 主题小图标 |
+
+资产溯源：
+
+- Meowa 母表：`.workspace/meowa/in-game-gui-unified-r1/A_cohesive_pixel-art_game_UI_component_sheet_for_TeXTech_Advance_Data_Monitor_in_Minecraft_GTNH_black_transluc_222abf39/ui_output.png`（1024×1024，SHA-256 `f4a3c419484d2ad955bd53774d9d5856fd2948d2a73d6917778735ef775405cb`）；
+- 运行时图集：`src/main/resources/assets/textech/textures/gui/adm_ui_atlas.png`（SHA-256 `0038210d8ba910b9e93a67b3ed628ecac9d7057962148d8aa510e90886e4f029`）；
+- UV 权威数据：`.workspace/adm_ui_atlas_meowa.layout.json`；构建脚本：`.workspace/build_adm_ui_atlas.py`。
 
 | 主题 | 类 | 状态 |
 |------|-----|------|
@@ -144,15 +165,15 @@ root.child(UiFlex.column()
 | 组件 | 命令式 | Widget 树 | 游戏内调试 |
 |------|--------|-----------|------------|
 | `GuiBlitUtil` / `NineSliceRegion` | 是 | — | 是 |
-| `UiPanel` | 是 | 背景经 `UiStyle` | 是 |
+| `UiPanel` | 是（主面板 / 次级面板 / 分隔线） | 背景经 `UiStyle` | 是 |
 | `UiText` / `UiLabel` | 是 / 树 | 是 | 是 |
 | `UiIcon` | 是 | — | 是 |
-| `UiButton` / `UiButtonWidget` | 是 | 是 | 是 |
+| `UiButton` / `UiButtonWidget` | 是（四态） | 是 | 是 |
 | `UiToggleButton` | 是 | — | 调试 GUI |
-| `UiSlot` | 是 | — | 调试 GUI |
+| `UiSlot` | 是 | — | 解压器、储存链接器、调试 GUI |
 | `UiTextField` | 是 | 可挂树包装 | 调试 GUI |
 | `UiFlex` / `UiFlexLayoutEngine` | — | 是 | 调试 Flex 区 |
-| `UiScrollPanel` | — | 是 | 调试 Flex 区 |
+| `UiScrollPanel` | — | 是 | 调试 Flex 区；计划器/扫描器复用同主题滚动区域 |
 | `AdmUiScreen` | — | 是 | — |
 | `ADM_UiContainer` | 是 | 可选挂树 | 是 |
 | `UiTooltip` | stub | — | 否 |
@@ -178,15 +199,15 @@ root.child(UiFlex.column()
 
 ## 移植指南
 
-### 优先级
+### 当前覆盖
 
-| 优先级 | 界面 | 说明 |
-|--------|------|------|
-| P0 | `GuiUiFrameworkDebug` Flex 演示区 | 验证引擎 |
-| P1 | `AdmItemConfigScreen` 系 | 小窗、保存/取消 |
-| P2 | `AbstractMonitorSubGui` 系 | 双列 → Row/Column 模板 |
-| P3 | 监视器主页 / AI 聊天 / 计划器 | 最复杂 |
-| 排除 | 口袋全链路 | 永久排除本批次 |
+所有非口袋 GUI 均经统一宿主或显式主题组件覆盖：
+
+- `ADM_GuiScreen`、`AdmItemConfigScreen`、`AbstractMonitorSubGui`、`ADM_UiContainer` 提供统一主外壳与旧纹理桥接；
+- 监视器主页/子页、AI Chat、Planner、Link Scanner、手册、NBT Viewer、截图画廊和调试屏使用主题次级面板、控件或滚动区域；
+- 储存链接器与物质球解压器的容器槽位使用 `UiSlot.drawTheme`；
+- 保留的程序色块仅表示选中、hover、交替行、HUD 拖动等瞬时状态，不作为 GUI 装饰外壳；
+- 次元口袋全链路永久排除本批次。
 
 ### 步骤检查清单
 
@@ -206,16 +227,18 @@ root.child(UiFlex.column()
 
 `[debug] uiFrameworkBlock=true` 并重启 → 创造栏 **UI 框架调试方块** → `GuiUiFrameworkDebug`：
 
-- 左侧：命令式组件样例
-- 中/下：Flex 表单 + 滚动演示
-- 右侧：图集 UV 对照
+- 左侧：命令式组件样例（含 Meowa 主题槽位）
+- 右侧：完整图集 UV 对照（含 section、pressed、slot、scroll、divider）
+- 右下：紧凑 Flex 表单 + 滚动演示
+
+展示页固定在 408×228 的安全尺寸内。`GuiLowResolutionLayoutTest` 锁定 427×240 scaled viewport 下的大面板边界、左右列分隔、atlas/Flex 垂直边界；真实客户端 QA 使用原版 framebuffer 截图检查黑屏与裁切。
 
 配置：`Config.debugUiFrameworkBlock`。
 
 ## 参考实现
 
-- 解压器（命令式）：`MatterBallDecompressorGuiLayout`、`GuiMatterBallDecompressor`
+- 解压器（命令式）：`MatterBallDecompressorGuiLayout`、`MatterBallDecompressorGuiRenderer`、`GuiMatterBallDecompressor`
 - Flex 调试：`GuiUiFrameworkDebug`、`UiFrameworkDebugLayout`
 - 布局单测：`src/test/java/com/imgood/textech/gui/framework/layout/UiFlexLayoutEngineTest.java`
-
-生成图集脚本（开发用）：`.workspace/generate_adm_ui_atlas.py`
+- GUI 覆盖守卫：`src/test/java/com/imgood/textech/gui/GuiThemeCoverageTest.java` 动态扫描 `gui/guiscreen/`，要求全部非口袋 GUI 使用 ADM 宿主或显式 ADM 面板，并禁止新增原版按钮与独立旧 GUI PNG；`GuiDimensionalPocketConfig`、`GuiPocketStorage` 是固定排除项。
+- 图集合同：`src/test/java/com/imgood/textech/gui/framework/AdmUiAtlasContractTest.java` 锁定批准的 Meowa atlas SHA-256、256x256 RGBA、全部主题 UV 与边界、14 个图标格，以及按钮、输入框、滚动、toggle/check 的状态差异。

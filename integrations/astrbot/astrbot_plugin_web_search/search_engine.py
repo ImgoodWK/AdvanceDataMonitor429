@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import html
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 import httpx
 
+# Prefer engines reachable from CN cloud hosts; tavily_keyless is quota-limited.
 AUTO_CHAIN = (
+    "bing_cn",
+    "bing",
     "tavily_keyless",
     "duckduckgo",
     "tavily",
@@ -27,8 +31,27 @@ DDG_SNIPPET_RE = re.compile(
     r'class="result__snippet"[^>]*>(.*?)</(?:a|td)>',
     re.IGNORECASE | re.DOTALL,
 )
+BING_BLOCK_RE = re.compile(
+    r'<li[^>]*class="[^"]*b_algo[^"]*"[^>]*>(.*?)</li>',
+    re.IGNORECASE | re.DOTALL,
+)
+BING_LINK_RE = re.compile(
+    r'<h2[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
+    re.IGNORECASE | re.DOTALL,
+)
+BING_SNIPPET_RE = re.compile(
+    r'<(?:p|div)[^>]*class="[^"]*b_caption[^"]*"[^>]*>.*?<p[^>]*>(.*?)</p>|<p[^>]*>(.*?)</p>',
+    re.IGNORECASE | re.DOTALL,
+)
 HTML_TAG_RE = re.compile(r"<[^>]+>")
-USER_AGENT = "Mozilla/5.0 (compatible; TeXTech-AstrBot-WebSearch/1.0)"
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+# Skip tavily_keyless for a while after HTTP 429.
+_tavily_keyless_cooldown_until = 0.0
+_TAVILY_COOLDOWN_SECONDS = 1800
 
 
 @dataclass
@@ -82,6 +105,11 @@ def inject_user_text(user_text: str, data: Optional[SearchData]) -> str:
     return f"{data.context}\n\n---\n\n用户问题：\n{user_text or ''}"
 
 
+def _mark_tavily_keyless_cooldown(seconds: int = _TAVILY_COOLDOWN_SECONDS) -> None:
+    global _tavily_keyless_cooldown_until
+    _tavily_keyless_cooldown_until = time.time() + max(60, int(seconds))
+
+
 async def perform_web_search(
     query: str,
     *,
@@ -98,7 +126,12 @@ async def perform_web_search(
     limit = max(1, min(10, int(max_results or 5)))
     timeout = max(5, int(timeout_seconds or 12))
     last_error: Optional[Exception] = None
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+    errors: List[str] = []
+    async with httpx.AsyncClient(
+        timeout=timeout,
+        follow_redirects=True,
+        headers={"User-Agent": USER_AGENT, "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"},
+    ) as client:
         for provider in build_chain(mode, fallback):
             if not _available(provider, api_key, base_url):
                 continue
@@ -109,16 +142,27 @@ async def perform_web_search(
                 return SearchData(provider=provider, results=results, context=format_context(results))
             except Exception as exc:  # noqa: BLE001 — soft failover like WebAE
                 last_error = exc
+                errors.append(f"{provider}:{type(exc).__name__}:{exc!r}")
+                if provider == "tavily_keyless" and _is_http_status(exc, 429):
+                    _mark_tavily_keyless_cooldown()
                 if not fallback:
                     break
     if last_error:
-        raise last_error
+        detail = " | ".join(errors[-6:])
+        raise RuntimeError(f"web_search failed: {detail}") from last_error
     raise RuntimeError("All search providers failed or unavailable")
 
 
+def _is_http_status(exc: Exception, code: int) -> bool:
+    resp = getattr(exc, "response", None)
+    return bool(resp is not None and getattr(resp, "status_code", None) == code)
+
+
 def _available(provider: str, api_key: str, base_url: str) -> bool:
-    if provider in ("tavily_keyless", "duckduckgo"):
+    if provider in ("bing", "bing_cn", "duckduckgo"):
         return True
+    if provider == "tavily_keyless":
+        return time.time() >= _tavily_keyless_cooldown_until
     if provider in ("tavily", "brave", "serper"):
         return bool((api_key or "").strip())
     if provider == "searxng":
@@ -140,6 +184,10 @@ async def _search_provider(
         return await _tavily(client, query, max_results, api_key=api_key, keyless=False)
     if provider == "duckduckgo":
         return await _duckduckgo(client, query, max_results)
+    if provider == "bing":
+        return await _bing(client, query, max_results, host="www.bing.com")
+    if provider == "bing_cn":
+        return await _bing(client, query, max_results, host="cn.bing.com")
     if provider == "brave":
         return await _brave(client, query, max_results, api_key)
     if provider == "serper":
@@ -201,6 +249,45 @@ async def _duckduckgo(client: httpx.AsyncClient, query: str, max_results: int) -
                 snippet=snippets[i] if i < len(snippets) else "",
             )
         )
+    return results
+
+
+async def _bing(client: httpx.AsyncClient, query: str, max_results: int, *, host: str) -> List[SearchHit]:
+    resp = await client.get(
+        f"https://{host}/search",
+        params={"q": query, "setlang": "zh-hans", "ensearch": "0"},
+    )
+    resp.raise_for_status()
+    page = resp.text
+    results: List[SearchHit] = []
+    for block in BING_BLOCK_RE.finditer(page):
+        if len(results) >= max_results:
+            break
+        chunk = block.group(1)
+        link = BING_LINK_RE.search(chunk)
+        if not link:
+            continue
+        url = html.unescape(link.group(1) or "").strip()
+        title = _strip_html(link.group(2) or "")
+        if not url or url.startswith("javascript:"):
+            continue
+        snippet = ""
+        sn = BING_SNIPPET_RE.search(chunk)
+        if sn:
+            snippet = _strip_html(sn.group(1) or sn.group(2) or "")
+        results.append(SearchHit(title=title or url, url=url, snippet=snippet))
+    if not results:
+        # Fallback looser parse when markup shifts.
+        for link in BING_LINK_RE.finditer(page):
+            if len(results) >= max_results:
+                break
+            url = html.unescape(link.group(1) or "").strip()
+            title = _strip_html(link.group(2) or "")
+            if not url.startswith("http"):
+                continue
+            if any(x in url for x in ("bing.com/search", "microsoft.com", "aka.ms")):
+                continue
+            results.append(SearchHit(title=title or url, url=url, snippet=""))
     return results
 
 

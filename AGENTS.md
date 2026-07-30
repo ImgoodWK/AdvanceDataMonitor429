@@ -7,6 +7,11 @@ working in that area.
 
 ## Working agreement
 
+- **Image / vision budget (always):** read
+  `.cursor/rules/agent-image-budget.mdc` before any `view_image` / image
+  `Read`. Never feed full atlas/sheet/1K+ originals into the model; make a
+  ≤512px thumb with `python tools/agent-image-thumb.py <png>` and inspect
+  that path instead. Large originals have hung Codex on multimodal turns.
 - Start by checking the current diff and preserve existing user changes. Do
   not reset, discard, or reformat unrelated work.
 - Treat the source code and machine-readable data as the implementation
@@ -40,7 +45,7 @@ Use this routing table:
 | AI assistant, voice, or AI command behavior | `.cursor/rules/ai-assistant.mdc`, `.cursor/rules/ai-assistant-docs-sync.mdc`, `docs/*/ai-assistant/`, assistant feature data, lexicon, GUI text, and both language files as applicable |
 | WebAE server/API behavior | `docs/*/webae/developer-guide.md`, `docs/*/webae/user-guide.md`, the matching manual chapter, and `.cursor/rules/webae-*.mdc` |
 | WebAE frontend behavior or UI contract | `webae-frontend/`, built WebAE assets when the build workflow requires them, the WebAE docs/manual, i18n keys, tests, and `.cursor/rules/webae-frontend*.mdc` |
-| Card battle standalone web | `cardbattle-server/`, `cardbattle-frontend/`, `docs/zh/cardbattle/` (incl. `ui-design.md`), `.cursor/skills/textech-card-art/` (does not use GTNH tick; shares WebAE token file) |
+| Card Battle ADM bridge | `CommandCardBattle.java`, `[cardBattle]` config, `docs/*/cardbattle/README.md`, and `rewards-bridge.md`. The game/server/frontend live in a separate repository; do not add their runtime or assets back to ADM. Reward item delivery remains disabled until its whitelist and idempotent world-side ledger are designed. |
 | Player-visible item, block, command, UI, or mechanic | `docs/*/player/`, the matching `src/main/resources/assets/textech/manual/chapters/*.json`, `manual/index.json` if chapter membership changes, and `lang/{zh_CN,en_US}.lang` |
 | Rendering, GUI, or client-only behavior | `.cursor/rules/gui-guidelines.mdc`, relevant `project-structure-details.mdc` section, and player/manual docs when externally visible |
 
@@ -63,6 +68,9 @@ Read only what applies:
 - GTNH lifecycle/config context: `.cursor/rules/gtnh-mod-context.mdc`.
 - GUI changes: `.cursor/rules/gui-guidelines.mdc`.
 - Temporary artifacts and generated files: `.cursor/rules/workspace-artifacts.mdc`.
+- Image QA / atlas review: `.cursor/rules/agent-image-budget.mdc` and
+  `tools/agent-image-thumb.py`.
+- Card Battle bridge behavior: `docs/zh/cardbattle/rewards-bridge.md` and its English counterpart.
 - Repeatable workflows: `.cursor/skills/`; follow the relevant `SKILL.md` when
   its task description matches.
 

@@ -2,17 +2,17 @@ package com.imgood.textech.gui.guiscreen;
 
 import java.util.List;
 
-import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-
-import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.container.ContainerAdvanceStorageLink;
+import com.imgood.textech.gui.custom.ADM_UiContainer;
+import com.imgood.textech.gui.framework.UiSlot;
+import com.imgood.textech.gui.framework.UiText;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.network.packet.PacketRequestItemCountSync;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 
@@ -22,17 +22,13 @@ import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
  * - ZH: 高级存储链接器（容器界面：
  * Lang keys: tile.StorageLinkBlock.name
  */
-public class GuiAdvanceStorageLink extends GuiContainer {
-
-    private static final ResourceLocation TEXTURE = new ResourceLocation(
-        AdvanceDataMonitor.MODID,
-        "textures/gui/advance_storage_link.png");
+public class GuiAdvanceStorageLink extends ADM_UiContainer {
 
     private final TileEntityAdvanceNetworkLink tile;
     private int requestTick;
 
     public GuiAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceNetworkLink tile) {
-        super(new ContainerAdvanceStorageLink(playerInventory, tile));
+        super(new ContainerAdvanceStorageLink(playerInventory, tile), UiThemes.ADM);
         this.tile = tile;
         this.xSize = 176;
         this.ySize = 184;
@@ -49,20 +45,29 @@ public class GuiAdvanceStorageLink extends GuiContainer {
 
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        this.mc.getTextureManager()
-            .bindTexture(TEXTURE);
-        int startX = (this.width - this.xSize) / 2;
-        int startY = (this.height - this.ySize) / 2;
-        this.drawTexturedModalRect(startX, startY, 0, 0, this.xSize, this.ySize);
+        drawMainPanel(0, 0, xSize, ySize);
+        int left = panelLeft();
+        int top = panelTop();
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 9; col++) {
+                UiSlot.drawTheme(theme(), left + 7 + col * 18, top + 17 + row * 18);
+            }
+        }
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                UiSlot.drawTheme(theme(), left + 7 + col * 18, top + 101 + row * 18);
+            }
+        }
+        for (int col = 0; col < 9; col++) {
+            UiSlot.drawTheme(theme(), left + 7 + col * 18, top + 159);
+        }
     }
 
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         String title = I18n.format("tile.StorageLinkBlock.name");
-        this.fontRendererObj
-            .drawString(title, (this.xSize - this.fontRendererObj.getStringWidth(title)) / 2, 6, 0x404040);
-        this.fontRendererObj.drawString(I18n.format("container.inventory"), 8, 90, 0x404040);
+        UiText.drawCenteredTitle(UiThemes.ADM, fontRendererObj, title, xSize / 2, 6);
+        UiText.drawLabel(UiThemes.ADM, fontRendererObj, I18n.format("container.inventory"), 8, 90);
 
         RenderHelper.enableGUIStandardItemLighting();
         for (int slot = 0; slot < 36; slot++) {

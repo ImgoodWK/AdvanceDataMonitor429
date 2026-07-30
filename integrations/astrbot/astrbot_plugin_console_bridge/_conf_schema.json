@@ -1,0 +1,66 @@
+{
+  "enabled": {
+    "description": "启用 Persona Console 文件队列轮询",
+    "type": "bool",
+    "default": true
+  },
+  "send_enabled": {
+    "description": "允许处理经 Console 管理员二次确认的消息投递任务",
+    "type": "bool",
+    "default": true,
+    "hint": "关闭后仍可生成人格草稿，但不会处理发送任务。"
+  },
+  "poll_interval_seconds": {
+    "description": "消息队列轮询间隔（秒）",
+    "type": "float",
+    "default": 1.0
+  },
+  "stale_job_seconds": {
+    "description": "处理中任务的失联判定时间（秒）",
+    "type": "int",
+    "default": 300,
+    "hint": "草稿任务可恢复；发送中任务只会标记 uncertain，绝不自动重发。"
+  },
+  "draft_timeout_seconds": {
+    "description": "人格草稿调用 LLM 的超时（秒）",
+    "type": "int",
+    "default": 60
+  },
+  "draft_total_timeout_seconds": {
+    "description": "\u8349\u7a3f provider \u56de\u9000\u94fe\u603b\u8d85\u65f6\uff08\u79d2\uff09",
+    "type": "int",
+    "default": 180,
+    "hint": "\u5355 provider \u4f9d\u65e7\u53d7 draft_timeout_seconds \u9650\u5236\u3002"
+  },
+  "draft_max_provider_attempts": {
+    "description": "\u8349\u7a3f\u6700\u591a\u5c1d\u8bd5\u7684 provider \u6570",
+    "type": "int",
+    "default": 4,
+    "hint": "\u6309 AstrBot fallback_chat_models \u987a\u5e8f\u56de\u9000\uff1b\u53ea\u5f71\u54cd\u8349\u7a3f\uff0c\u4e0d\u6539\u53d8\u6d88\u606f\u6295\u9012\u7684\u96f6\u91cd\u8bd5\u3002"
+  },
+  "max_draft_chars": {
+    "description": "模型草稿最大字符数",
+    "type": "int",
+    "default": 3000
+  },
+  "max_message_chars": {
+    "description": "人工确认消息的最大字符数",
+    "type": "int",
+    "default": 2000
+  },
+  "send_cooldown_seconds": {
+    "description": "同一目标两次网页投递的最短间隔（秒）",
+    "type": "int",
+    "default": 30
+  },
+  "send_window_seconds": {
+    "description": "网页投递全局限流窗口（秒）",
+    "type": "int",
+    "default": 600
+  },
+  "send_window_limit": {
+    "description": "限流窗口内允许确认投递的最大条数",
+    "type": "int",
+    "default": 5
+  }
+}

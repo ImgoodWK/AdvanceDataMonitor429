@@ -1,57 +1,53 @@
-# Reward Bridge Contract V2
+# ADM ↔ standalone Card Battle Bridge V1
 
-Voltage rewards are queued under:
+This page defines the private server-to-server integration retained by ADM. Browsers and ordinary player clients must never receive the Bridge Token.
 
-`{CARDBATTLE_DATA_DIR|TEXTECH_INSTANCE_ROOT/TeXTech/CardBattle}/pending-rewards/{ownerUuid}.json`
+## Configuration and safe default
 
-Owner IDs are filename-sanitized and the ledger is written through a temporary file plus atomic replacement. Without an MC server or single-player instance path, `CARDBATTLE_DATA_DIR` remains the complete standalone reward ledger and entries continue accumulating across restarts.
+ADM reads only these `[cardBattle]` settings:
 
-The V2 `source` object adds these stable fields:
+- `externalApiBaseUrl`, for example `http://127.0.0.1:8787`.
+- `bridgeToken`, exactly matching the standalone service's `CARDBATTLE_BRIDGE_TOKEN`.
+
+The bridge is disabled when either value is empty. ADM does not start the service and does not fall back to writing bind codes into local files. For cross-host production deployments, use HTTPS or a protected private network and restrict access to the Card Battle port.
+
+Every Bridge request carries:
+
+```http
+X-CardBattle-Bridge-Token: <shared-secret>
+```
+
+## Calls currently made by ADM
+
+| Command | Request | Behavior |
+|---|---|---|
+| `/textech card status` | `GET /api/bridge/v1/status` | Verifies the URL, token, and V1 capability without displaying the token |
+| `/textech card bind` | `POST /api/bridge/v1/bind-codes` | Sends the player's UUID and name and returns a short-lived bind code |
+
+Bind request body:
 
 ```json
 {
-  "schemaVersion": 2,
-  "rewardKey": "textech.cardbattle.voltage.mv.cache",
-  "voltageTier": "MV",
-  "delivery": "pending_bridge",
-  "runId": "...",
-  "stageId": "stage_3a",
-  "label": "display text only"
+  "mcUuid": "player-uuid",
+  "mcName": "PlayerName"
 }
 ```
 
-A complete queue entry retains the V1-compatible envelope:
+## Reward-ledger boundary
 
-```json
-{
-  "id": "uuid",
-  "createdAt": 0,
-  "status": "pending",
-  "items": [
-    { "modid": "gregtech", "name": "gt.metaitem.01", "meta": 32612, "count": 32, "displayName": "MV Pump x32" }
-  ],
-  "source": {
-    "schemaVersion": 2,
-    "rewardKey": "textech.cardbattle.voltage.mv.cache",
-    "voltageTier": "MV",
-    "delivery": "pending_bridge",
-    "runId": "...",
-    "stageId": "stage_3a"
-  }
-}
-```
+The standalone service reserves:
 
-Future Minecraft delivery must dispatch by `rewardKey`, never by parsing `label` or `displayName`. Every voltage tier reserves `textech.cardbattle.voltage.<tier>.cache`. The current item array is a V1-compatible pump placeholder and must be validated against the GTNH registry before real grants are enabled.
+- `GET /api/bridge/v1/rewards?mcUuid=...`
+- `POST /api/bridge/v1/rewards/:rewardId/confirm`
 
-Deck cards, run powers, and board skins update `RunState` directly and do not enter the item queue. Claim responses return `unlockedSkinIds` for the frontend cosmetic inventory.
+Confirmation requires a unique `deliveryId`; a repeated confirmation returns `alreadyConfirmed=true`. ADM currently calls neither endpoint and creates or grants no Minecraft item. Rewards therefore accumulate only in the Card Battle ledger.
 
-## HTTP
+Before delivery can be enabled, ADM must implement and test:
 
-- `GET /api/rewards/pending` lists pending entries for the authenticated owner; the lobby renders this list as the backend reward vault.
-- `POST /api/rewards/:id/mark-claimed` is for a trusted MC bridge only, after external delivery. It requires both owner Bearer authentication and `X-CardBattle-Bridge-Token`.
-- With no `CARDBATTLE_BRIDGE_TOKEN`, mark-claimed returns `503 bridge_not_configured`; a mismatch returns 403. The browser cannot consume a reward.
-- `GET /api/health` reports `standalone_accumulation` or `minecraft_shared_directory` plus bridge availability in `rewardDelivery`.
+1. A server-owned item allowlist and quantity limits that reject arbitrary registry names and NBT.
+2. A persistent world-level `deliveryId` ledger written before granting an item.
+3. A recoverable queue for full inventories, offline players, restarts, and network timeouts.
+4. Confirmation only after successful delivery, with idempotent retries and duplicate responses.
+5. Administrator inspection, manual compensation, and audit logs.
 
-## Future Minecraft bridge
-
-An in-game claim command or login hook should read the queue, validate each `rewardKey` against a server-owned registry, construct the `ItemStack`, grant it to the owner, and only then mark the entry claimed with the private bridge token. Match frames never synchronize with the Minecraft tick; the bridge remains file/HTTP based. With no MC configuration, the standalone game remains fully playable and rewards stay pending.
+Reward redemption remains disabled until every condition is satisfied.

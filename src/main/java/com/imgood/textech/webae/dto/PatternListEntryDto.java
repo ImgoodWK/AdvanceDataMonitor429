@@ -35,6 +35,7 @@ public class PatternListEntryDto {
     public boolean crafting;
     public boolean substitute;
     public boolean beSubstitute;
+    public boolean programmableHatches;
     public String author;
     public List<PatternDto.PatternItemEntry> inputs;
     public List<PatternDto.PatternItemEntry> outputs;

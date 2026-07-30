@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TeXTech 人设 / 记忆库</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="login-view" class="login-wrap hidden">
+      <form id="login-form" class="login-card">
+        <h1>TeXTech</h1>
+        <p class="muted">人设库 · 记忆库 · 权限管理</p>
+        <label>用户名<input id="login-user" autocomplete="username" required /></label>
+        <label>密码<input id="login-pass" type="password" autocomplete="current-password" required /></label>
+        <button type="submit">登录</button>
+        <p id="login-error" class="error"></p>
+      </form>
+    </section>
+
+    <section id="main-view" class="hidden">
+      <aside class="sidebar">
+        <div class="brand">TeXTech</div>
+        <p class="brand-sub muted">记忆 / 人设管理台</p>
+        <nav id="nav">
+          <button data-view="dashboard" data-perm="personas.view,bot_users.view,memories.view">概览</button>
+          <button data-view="personas" data-perm="personas.view">人设库</button>
+          <button data-view="behavior" data-perm="config.view">Bot 行为</button>
+          <button data-view="users" data-perm="bot_users.view">Bot 用户</button>
+          <button data-view="memories" data-perm="memories.view">记忆库</button>
+          <button data-view="messages" data-perm="messages.view">消息中心</button>
+          <button data-view="config" data-perm="config.view">高级配置</button>
+          <button data-view="knowledge" data-perm="knowledge.view">资料站</button>
+          <button data-view="ops" data-perm="ops.view">运维</button>
+          <button data-view="account" data-perm="account.password">我的账号</button>
+          <button data-view="audit" data-perm="audit.view,backups.view">审计与备份</button>
+          <button data-view="console-users" data-perm="console.manage">账号与权限</button>
+        </nav>
+        <div class="sidebar-foot">
+          <div id="whoami" class="muted"></div>
+          <button id="logout-btn" class="ghost">退出</button>
+        </div>
+      </aside>
+      <main class="content">
+        <header class="topbar">
+          <h2 id="view-title">概览</h2>
+          <div id="top-actions"></div>
+        </header>
+        <div id="view-root"></div>
+      </main>
+    </section>
+  </div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>

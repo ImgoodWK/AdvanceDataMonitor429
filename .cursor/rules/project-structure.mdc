@@ -23,15 +23,14 @@ alwaysApply: true
 | 包 | 约数 | 职责 |
 |----|------|------|
 | 根包 | 7 | `@Mod`、`Config`、数据目录迁移、Proxy |
-| `config/` | 16 | 分节 cfg / WebAE JSON 加载 / 卡牌进程 |
-| `compat/` | 25 | AE2 / GT / BQ 兼容 |
+| `config/` | 16 | 分节 cfg / WebAE JSON 加载 / 卡牌外部桥配置 |
+| `compat/` | 26 | AE2 / GT / BQ / Programmable Hatches 软兼容 |
 | `assistant/` | 46 | AI 助手（细节见 `ai-assistant.mdc` + docs） |
 | `items/` | 55 | 物品（含 `cell/`） |
 | `blocks/` | 5 | 方块 |
 | `tileentity/` | 7 | TE |
-| `gui/` | 66+ | GUI（含 Flex UI 框架 `framework/layout|style|widget|host`；见 `gui-guidelines.mdc` + `docs/zh/developer/ui-framework.md`） |
-| `handler/` | 40 | 服务端逻辑 / WebAE 生命周期 / 卡牌内嵌 HTTP 等 |
-| `cardbattle/` | 11+ | 内嵌卡牌对战（引擎 + NanoHTTPD + PvE + 账号/绑定；前端见 `cardbattle-frontend/`） |
+| `gui/` | 67+ | GUI（含低分辨率面板适配、Flex UI 框架 `framework/layout|style|widget|host`；见 `gui-guidelines.mdc` + `docs/zh/developer/ui-framework.md`） |
+| `handler/` | 39 | 服务端逻辑 / WebAE 生命周期等 |
 | `entity/` | 8 | Entity only |
 | `renders/` | 35 | 全部客户端渲染（含 WebAE 告警 HUD、监视器网页表面） |
 | `network/` | 29 | 网络包（ID 表见 `network-packets.mdc`） |
@@ -41,7 +40,7 @@ alwaysApply: true
 | `client/` | 37 | 客户端事件/缓存/世界地图采集/窗口截图本地历史/网页表面（含 MCEF 软依赖 OSR）等 |
 | `command/` | 8 | `/textech <域>` 分发；含 card / screenshot 域与旧 `/adm*` 兼容别名 |
 | `utils/` | 15 | 工具（含 WebAE 仪表盘快照校验/压缩） |
-| `webae/` | 382+ | Web 控制台（含服务端后台命令、服务端 AI、QQ 群机器人/AstrBot 可选意图互斥、聊天截图附件、告警多渠道/QQ 目标 ID 探测、Spark AI；前端：`webae-frontend/` → build 到 `assets/textech/webae/`） |
+| `webae/` | 394 | Web 控制台（含服务端后台命令、服务端 AI、QQ 群机器人/AstrBot 可选意图互斥、聊天截图附件、告警多渠道/QQ 目标 ID 探测、Spark AI、样板网页缓存；前端 build 到 `assets/textech/webae/` 后进入独立 WebAE ZIP，主 JAR 排除） |
 | `mixin/` | 7 | 客户端 Mixin |
 
 资源：`assets/textech/`（lang 双语、`manual/`、textures、voice 等）。

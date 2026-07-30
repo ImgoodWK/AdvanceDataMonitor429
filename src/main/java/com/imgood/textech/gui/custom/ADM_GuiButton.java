@@ -4,7 +4,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.util.ResourceLocation;
 
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
+
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.NineSliceRegion;
+import com.imgood.textech.gui.framework.UiThemes;
 
 public class ADM_GuiButton extends GuiButton {
 
@@ -30,10 +35,11 @@ public class ADM_GuiButton extends GuiButton {
         this.textColor = 0xFFFFFF;
         this.textColorHover = 0xFFFFFF;
         disabledTextColor = 0xA0A0A0;
-        this.useHoverEffect = false;
+        this.useHoverEffect = true;
         this.useRGBEffect = false;
         this.startTime = System.currentTimeMillis();
-        this.texture = DEFAULT_TEXTURE;
+        this.texture = AdmGuiTextures.BUTTON;
+        this.hoverTexture = AdmGuiTextures.BUTTON_HOVER;
     }
 
     public ADM_GuiButton setTextHoverColor(int textColor) {
@@ -58,6 +64,10 @@ public class ADM_GuiButton extends GuiButton {
 
     public ADM_GuiButton setTexture(ResourceLocation texture) {
         this.texture = texture != null ? texture : DEFAULT_TEXTURE;
+        if (!isLegacyButtonTexture(this.texture) && isLegacyButtonTexture(this.hoverTexture)) {
+            this.hoverTexture = null;
+            this.useHoverEffect = false;
+        }
         return this;
     }
 
@@ -105,12 +115,6 @@ public class ADM_GuiButton extends GuiButton {
                 && mouseX < this.xPosition + this.width
                 && mouseY < this.yPosition + this.height;
 
-            ResourceLocation currentTexture = isHovered && this.useHoverEffect && this.hoverTexture != null
-                ? this.hoverTexture
-                : this.texture;
-            mc.getTextureManager()
-                .bindTexture(currentTexture);
-
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -118,32 +122,45 @@ public class ADM_GuiButton extends GuiButton {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
 
             // 根据按钮尺寸缩放纹理坐标
-            float u = 0.0F, v = 0.0F, u1 = 1.0F, v1 = 1.0F;
+            boolean pressed = this.enabled && isHovered && Mouse.isButtonDown(0);
+            if (usesAdmTheme()) {
+                NineSliceRegion region = !this.enabled ? UiThemes.ADM.buttonDisabled()
+                    : pressed ? UiThemes.ADM.buttonPressed()
+                        : isHovered && this.useHoverEffect ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal();
+                GuiBlitUtil.drawHorizontalSlice(region, this.xPosition, this.yPosition, this.width, this.height);
+            } else {
+                ResourceLocation currentTexture = isHovered && this.useHoverEffect && this.hoverTexture != null
+                    ? this.hoverTexture
+                    : this.texture;
+                mc.getTextureManager()
+                    .bindTexture(currentTexture);
+                float u = 0.0F, v = 0.0F, u1 = 1.0F, v1 = 1.0F;
 
-            // 绘制拉伸后的材质
-            this.zLevel = 0.0F;
-            GL11.glBegin(GL11.GL_QUADS);
-            GL11.glTexCoord2f(u, v);
-            GL11.glVertex3f(this.xPosition, this.yPosition, this.zLevel);
-            GL11.glTexCoord2f(u, v1);
-            GL11.glVertex3f(this.xPosition, this.yPosition + this.height, this.zLevel);
-            GL11.glTexCoord2f(u1, v1);
-            GL11.glVertex3f(this.xPosition + this.width, this.yPosition + this.height, this.zLevel);
-            GL11.glTexCoord2f(u1, v);
-            GL11.glVertex3f(this.xPosition + this.width, this.yPosition, this.zLevel);
-            GL11.glEnd();
+                // Draw the custom texture stretched across the requested button bounds.
+                this.zLevel = 0.0F;
+                GL11.glBegin(GL11.GL_QUADS);
+                GL11.glTexCoord2f(u, v);
+                GL11.glVertex3f(this.xPosition, this.yPosition, this.zLevel);
+                GL11.glTexCoord2f(u, v1);
+                GL11.glVertex3f(this.xPosition, this.yPosition + this.height, this.zLevel);
+                GL11.glTexCoord2f(u1, v1);
+                GL11.glVertex3f(this.xPosition + this.width, this.yPosition + this.height, this.zLevel);
+                GL11.glTexCoord2f(u1, v);
+                GL11.glVertex3f(this.xPosition + this.width, this.yPosition, this.zLevel);
+                GL11.glEnd();
+            }
 
             GL11.glEnable(GL11.GL_DEPTH_TEST);
 
             // 绘制左侧装饰 失效
-            if (this.leftDecoration != null) {
+            if (this.leftDecoration != null && !isLegacyButtonTexture(this.leftDecoration)) {
                 mc.getTextureManager()
                     .bindTexture(this.leftDecoration);
                 this.drawTexturedModalRect(this.xPosition, this.yPosition, 0, 10, decorationWidth, this.height);
             }
 
             // 绘制右侧装饰 失效
-            if (this.rightDecoration != null) {
+            if (this.rightDecoration != null && !isLegacyButtonTexture(this.rightDecoration)) {
                 mc.getTextureManager()
                     .bindTexture(this.rightDecoration);
                 this.drawTexturedModalRect(
@@ -158,7 +175,6 @@ public class ADM_GuiButton extends GuiButton {
             // 绘制按钮文本
             int textColor = this.textColor;
             if (!this.enabled) {
-                this.setUseHoverEffect(false);
                 // 不可用状总
                 textColor = disabledTextColor;
             } else if (isHovered) {
@@ -169,14 +185,36 @@ public class ADM_GuiButton extends GuiButton {
                 textColor = getRGBColor();
             }
 
+            String fittedLabel = fitLabel(mc, this.displayString, Math.max(0, this.width - 8));
             this.drawCenteredString(
                 mc.fontRenderer,
-                this.displayString,
+                fittedLabel,
                 this.xPosition + this.width / 2,
                 this.yPosition + (this.height - 8) / 2,
                 textColor);
 
             GL11.glDisable(GL11.GL_BLEND);
         }
+    }
+
+    private static String fitLabel(Minecraft mc, String label, int availableWidth) {
+        String value = label == null ? "" : label;
+        if (mc.fontRenderer.getStringWidth(value) <= availableWidth) {
+            return value;
+        }
+        String suffix = "...";
+        int contentWidth = Math.max(0, availableWidth - mc.fontRenderer.getStringWidth(suffix));
+        String trimmed = mc.fontRenderer.trimStringToWidth(value, contentWidth);
+        return availableWidth >= mc.fontRenderer.getStringWidth(suffix) ? trimmed + suffix : "";
+    }
+
+    private boolean usesAdmTheme() {
+        return isLegacyButtonTexture(texture);
+    }
+
+    private static boolean isLegacyButtonTexture(ResourceLocation resource) {
+        return AdmGuiTextures.BUTTON.equals(resource) || AdmGuiTextures.BUTTON_HOVER.equals(resource)
+            || AdmGuiTextures.BUTTON_2020.equals(resource)
+            || AdmGuiTextures.BUTTON_HOVER_2020.equals(resource);
     }
 }

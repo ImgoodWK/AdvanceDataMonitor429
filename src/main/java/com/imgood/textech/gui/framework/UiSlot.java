@@ -51,6 +51,29 @@ public final class UiSlot {
         mc.ingameGUI.drawTexturedModalRect(x, y, 0, 0, size, size);
     }
 
+    public static void drawTheme(UiTheme theme, int x, int y) {
+        drawTheme(theme, x, y, DEFAULT_CELL);
+    }
+
+    public static void drawTheme(UiTheme theme, int x, int y, int size) {
+        NineSliceRegion region = theme != null ? theme.slot() : null;
+        if (region != null && GuiBlitUtil.hasResource(region.texture())) {
+            GuiBlitUtil.blit(
+                region.texture(),
+                region.atlasSize(),
+                x,
+                y,
+                size,
+                size,
+                region.u(),
+                region.v(),
+                region.regionW(),
+                region.regionH());
+            return;
+        }
+        drawProcedural(x, y, size);
+    }
+
     public static void drawProcedural(int x, int y) {
         drawProcedural(x, y, DEFAULT_CELL);
     }

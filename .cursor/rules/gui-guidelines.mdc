@@ -24,10 +24,11 @@ alwaysApply: false
 ### 1c. 其他配置/设置界面 → 优先 `AdmUiScreen`，旧屏可暂留 `ADM_GuiScreen`
 **新**复杂配置屏优先继承 `AdmUiScreen`（`gui.framework.host`）：Flex 组件树 + `UiStyle`，见 `docs/zh/developer/ui-framework.md`。
 
-尚未迁移的旧屏（AI 聊天、计划器等）仍可用 `ADM_GuiScreen`（`gui.custom`）：
+保留旧布局的屏幕（AI 聊天、计划器等）仍可用 `ADM_GuiScreen`（`gui.custom`）：
 
 - 提供 `setBackgroundTexture()` / `setPosition()` / `setSize()` / `setStretch()` 链式调用。
-- 背景纹理优先使用 `AdmGuiTextures.BACKGROUND_SUB` 等常量，勿重复定义 `ResourceLocation`。
+- 背景纹理使用 `AdmGuiTextures.BACKGROUND_SUB` 等共享常量；基类会把旧主背景、子面板、按钮与输入框常量桥接为 `UiThemes.ADM` 的 Meowa 图集区域，勿重复定义 `ResourceLocation` 或直接拉伸历史 PNG。
+- 仍需固定首选尺寸的旧屏必须用 `GuiResponsiveLayout.fitCentered(...)` 将实际面板约束进 scaled viewport，并让控件、滚动区域、文本换行都引用运行时宽高；不得只移动背景而保留超屏坐标。
 - 触达时再迁 Flex 树；**禁止**新屏继续堆绝对坐标样板。
 
 ### 1d. Flex UI 框架（配置 + 容器统一）
@@ -39,7 +40,7 @@ alwaysApply: false
 - **新容器 GUI 必须**继承 `ADM_UiContainer` + `UiThemes.ADM`（口袋主题 stub 不纳入迁移）。
 - 优先挂 `UiWidget` 树；命令式 `UiPanel`/`UiButton` 仅兼容旧代码。
 - 参考 `GuiMatterBallDecompressor.java`、`GuiUiFrameworkDebug.java` + `docs/zh/developer/ui-framework.md`。
-- 旧界面（`GuiAdvanceStorageLink`、口袋 GUI）触达时再迁移；口袋 GUI **排除**本批次。
+- `GuiAdvanceStorageLink` 等既有容器也必须使用主题面板/槽位；口袋 GUI **永久排除**本批次。
 - 标准尺寸：`xSize = 176`, `ySize = 184`（固定布局容器）。
 - 重写 `drawGuiContainerBackgroundLayer` 和 `drawGuiContainerForegroundLayer`。
 
@@ -52,12 +53,19 @@ alwaysApply: false
 | 配置屏宿主 | `AdmUiScreen` + `buildUi()` |
 | 容器宿主 | `ADM_UiContainer` + 可选 `setUiRoot` |
 | 9-slice 主面板 | `UiPanel.draw` 或 `UiStyle.backgroundNineSlice` |
+| 内嵌列表/预览/tooltip | `UiPanel.drawSection` |
+| 分隔线 | `UiPanel.drawDivider(UiThemes.ADM, ...)` |
 | 标题/标签 | `UiLabel` / `UiText` |
-| 按钮 | `UiButtonWidget`（树）或命令式 `UiButton` |
-| 滚动 | `UiScrollPanel` |
+| 按钮 | `UiButtonWidget`（树）或命令式 `UiButton`；四态含 pressed |
+| 物品槽位 | `UiSlot.drawTheme(UiThemes.ADM, ...)` |
+| 滚动 | `UiScrollPanel`；手工列表使用主题 `scrollTrack` / `scrollThumb` |
 | 主题 / 图集 | `UiThemes.ADM`；`textures/gui/adm_ui_atlas.png` |
 
 **排除**：次元口袋 GUI / Overlay / Mixin。不硬依赖 Qz-UILib / 不整库迁 ModularUI2。
+
+程序色块仅用于选中、hover、交替行、HUD 拖动等瞬时状态；面板外壳必须用 `mainPanel` / `sectionPanel`。AE2 `GuiImgButton` 模式按钮和升级卡列保留原生图标/状态语义。
+
+新增或修改 `gui/guiscreen/` 时必须通过 `GuiThemeCoverageTest`：除 `GuiDimensionalPocketConfig`、`GuiPocketStorage` 两个固定排除项外，界面必须继承 ADM 宿主或显式绘制 `UiThemes.ADM` 面板，禁止实例化原版 `GuiButton`，禁止直接绑定独立旧 GUI PNG。涉及大面板时还必须通过 `GuiLowResolutionLayoutTest` 的 427×240 合同。修改 `adm_ui_atlas.png` 或 `AdmUiTheme` UV 时必须同步批准哈希并通过 `AdmUiAtlasContractTest`。
 
 ### 3. 简单消息弹窗 → 继承原版 `GuiScreen`
 仅用于提示/确认对话框。参考 `GuiScreenMessage.java`。
@@ -94,18 +102,18 @@ public GuiAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceS
 ```java
 @Override
 public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-    // 1. 绘制标签列（左侧标签列起始 x 约 50-60）
+    // 1. 列表、预览、tooltip 等内嵌区域先绘制主题 sectionPanel
+    UiPanel.drawSection(UiThemes.ADM, panelX, panelY, panelW, panelH);
+
+    // 2. 标签颜色从主题取得；仅强调信息使用 textAccent
     fontRendererObj.drawStringWithShadow(
         I18n.format("adm.label.xxx"),
-        leftLabelX, currentY, 0x00FFFF);  // 标签颜色统一用 cyan
+        leftLabelX, currentY, UiThemes.ADM.textPrimary());
 
-    // 2. 绘制右侧标签列（如果存在，起始 x 约为左侧 + ~150）
-    // 同上
-
-    // 3. 绘制数值/百分比标签（alpha 值等，紧跟在文本框后面）
+    // 3. 数值/百分比等强调信息紧跟文本框
     fontRendererObj.drawStringWithShadow(
         currentAlpha + "%",
-        field.xPosition + field.width + 4, field.yPosition + 5, 0x00FFFF);
+        field.xPosition + field.width + 4, field.yPosition + 5, UiThemes.ADM.textAccent());
 
     // 4. 调用 super.drawScreen() 绘制按钮和文本框
     super.drawScreen(mouseX, mouseY, partialTicks);
@@ -117,7 +125,7 @@ public void drawScreen(int mouseX, int mouseY, float partialTicks) {
             String hintKey = entry.getValue();
             // 在屏幕底部绘制提示
             fontRendererObj.drawStringWithShadow(
-                I18n.format(hintKey), leftLabelX, hintY, 0xAAAAAA);
+                I18n.format(hintKey), leftLabelX, hintY, UiThemes.ADM.textDisabled());
         }
     }
 }
@@ -137,22 +145,17 @@ public void initGui() {
     setPosition(guiLeft, guiTop);
     setSize(guiWidth, guiHeight);
 
-    // 2. 初始化文本框
+    // 2. 初始化文本框；默认纹理会自动桥接到 ADM 主题
     fieldName = new ADM_GuiTextField(fontRendererObj, x, y, w, h);
     fieldName.setMaxStringLength(...)
         .setText(currentValue)
-        .setBackgroundTexture(textFieldNormalTex)
-        .setFocusedBackgroundTexture(textFieldFocusedTex)
         .setHintText(I18n.format("adm.hint.xxx"));
     fieldList.add(fieldName);
 
-    // 3. 初始化按钮（使用 ADM_GuiButton 链式调用）
+    // 3. 初始化按钮；默认即使用 ADM 四态主题
     ADM_GuiButton btnSave = new ADM_GuiButton(0, x, y, w, h, I18n.format("adm.button.save"));
-    btnSave.setTexture(buttonTex)
-        .setHoverTexture(buttonHoverTex)
-        .setUseHoverEffect(true)
-        .setTextColor(0x00FFFF)
-        .setTextHoverColor(0x0055FF);
+    btnSave.setTextColor(UiThemes.ADM.textPrimary())
+        .setTextHoverColor(UiThemes.ADM.textAccent());
     buttonList.add(btnSave);
 
     // 4. Alpha +/- 按钮对（如果界面包含 alpha 配置）
@@ -164,20 +167,18 @@ public void initGui() {
 
 | 用途 | 颜色值 | 说明 |
 |------|--------|------|
-| 主文本色 | `0x00FFFF` | Cyan，用于标签、数值、按钮文字 |
-| Hover 文本色 | `0x0055FF` | 蓝色，鼠标悬停时按钮文字变色 |
+| 主文本色 | `UiThemes.ADM.textPrimary()` | 常规标签与按钮文字 |
+| 强调 / Hover | `UiThemes.ADM.textAccent()` | 数值、选中与鼠标悬停强调 |
 | 灰色文本 | `0xAAAAAA` / `0x888888` / `0x666666` | 次要信息、时间戳、提示文字 |
 | 成功/启用 | `0x55FF55` | 绿色，已完成状态、启用状态 |
 | 错误/禁用 | `0xFF5555` | 红色，错误提示、禁用状态 |
-| 禁用文本 | `0xA0A0A0` | 不可用按钮文字 |
-| 编辑区背景 | `0x30004040` / `0x20002020` | 列表交错行背景 |
-| AI 聊天面板 | `0x000000` 背景 + `0x00FFFF` 边框 | 聊天面板外观 |
+| 禁用文本 | `UiThemes.ADM.textDisabled()` | 不可用按钮文字 |
+| 状态叠层 | `0x30004040` / `0x20002020` 等 | 仅列表交错行、选中/hover、HUD 拖动；不得充当面板外壳 |
 
 ## 文本框组件 (ADM_GuiTextField)
 
-- **必须**调用 `setEnableBackgroundDrawing(false)` 关闭原版背景。
-- 通过 `setBackgroundTexture()` 设置自定义背景纹理。
-- 通过 `setFocusedBackgroundTexture()` 设置聚焦时背景。
+- 构造函数会关闭原版背景，并默认使用 `AdmGuiTextures` 的输入框常量；绘制时自动桥接到 ADM normal/focused 主题区域。
+- 仅确有独立功能纹理时才调用 `setBackgroundTexture()` / `setFocusedBackgroundTexture()` 覆盖默认主题。
 - 通过 `setHintText()` 设置失焦时的占位提示。
 - 文本框坐标有偏移：`yPosition = y - 8`, `xPosition = x - 21`（在构造函数中自动处理）。
 
@@ -186,12 +187,11 @@ public void initGui() {
 链式调用模式：
 ```java
 new ADM_GuiButton(id, x, y, w, h, text)
-    .setTexture(tex)          // 普通纹理
-    .setHoverTexture(hoverTex) // hover 纹理（会自动启用 hoverEffect）
-    .setUseHoverEffect(true)
-    .setTextColor(0x00FFFF)
-    .setTextHoverColor(0x0055FF);
+    .setTextColor(UiThemes.ADM.textPrimary())
+    .setTextHoverColor(UiThemes.ADM.textAccent());
 ```
+
+默认 `AdmGuiTextures.BUTTON*` 会自动使用 ADM normal / hover / pressed / disabled 区域。仅功能控件拥有独立美术语义时才设置自定义纹理。
 
 特殊效果：
 - `setUseRGBEffect(true)` — 按钮文字自动循环彩虹色（用于选中/激活状态的按钮）

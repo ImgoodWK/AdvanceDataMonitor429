@@ -66,6 +66,10 @@ public class RecipeDto {
         public String registryName;
         public int meta;
         public int stackSize;
+        /** Serialized item NBT used by exact recipe-to-pattern conversion. */
+        public String nbt;
+        /** GT/NEI convention: an input stack with size 0 is present but not consumed (mold, lens, catalyst, etc.). */
+        public boolean nonConsumable;
 
         public ItemEntry() {}
 
@@ -75,6 +79,7 @@ public class RecipeDto {
             this.registryName = registryName;
             this.meta = meta;
             this.stackSize = stackSize;
+            this.nonConsumable = false;
         }
     }
 

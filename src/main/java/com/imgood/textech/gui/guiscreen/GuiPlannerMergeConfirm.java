@@ -144,6 +144,7 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
 
         int centerX = this.width / 2;
         int centerY = this.height / 2;
@@ -177,7 +178,6 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
                 selectedMode == PlannerMergeMode.BY_TIME ? "adm.planner.merge_by_time" : "adm.planner.merge_by_index");
         this.drawCenteredString(this.fontRendererObj, modeLabel, centerX, centerY + 25, textColor);
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     @Override

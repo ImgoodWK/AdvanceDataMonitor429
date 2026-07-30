@@ -348,49 +348,14 @@ public final class ConfigDescriptions {
             "启用 WebAE HTTP 控制台，用于远程 AE2 监控和控制。默认关闭。");
         put(
             "cardBattle",
-            "enabled",
-            "Start the embedded Card Battle HTTP UI when entering a world (incl. singleplayer). Default true. No Node.js required.",
-            "进入存档（含单人）时启动内嵌卡牌 HTTP 界面。默认开启。不需要安装 Node.js。");
-        put(
-            "cardBattle",
-            "port",
-            "HTTP port for Card Battle (UI+API). Default 8787.",
-            "卡牌对战 HTTP 端口（页面+API）。默认 8787。");
-        put(
-            "cardBattle",
-            "bindAddress",
-            "Bind address for Card Battle HTTP. Default 127.0.0.1 (local only).",
-            "卡牌 HTTP 绑定地址。默认 127.0.0.1（仅本机）。");
-        put(
-            "cardBattle",
-            "serverDir",
-            "DEPRECATED/ignored. Card Battle runs in-process; no external Node server directory.",
-            "已废弃/忽略。卡牌现已内嵌运行，不再需要外部 Node 目录。");
-        put(
-            "cardBattle",
-            "frontendDir",
-            "DEPRECATED/ignored. SPA is packaged under assets/textech/cardbattle/.",
-            "已废弃/忽略。前端已打进 jar（assets/textech/cardbattle/）。");
-        put(
-            "cardBattle",
-            "nodePath",
-            "DEPRECATED/ignored. No external Node process.",
-            "已废弃/忽略。不再拉起外部 Node 进程。");
-        put(
-            "cardBattle",
-            "devToken",
-            "Optional local-only Bearer bypass for Card Battle. Default local (works on 127.0.0.1 without WebAE token). Clear to require a real WebAE token.",
-            "可选的卡牌本地调试 Bearer。默认 local（本机打开即可玩，无需 WebAE Token）。清空则必须使用真实 WebAE Token。");
-        put(
-            "cardBattle",
             "externalApiBaseUrl",
-            "Optional external Node cardbattle-server base URL for /textech card bind (e.g. http://127.0.0.1:8787). Empty uses local TeXTech/CardBattle/accounts bind-codes.",
-            "可选：独立 Node 卡牌后端地址，供 /textech card bind 发码（如 http://127.0.0.1:8787）。为空则写入本机 TeXTech/CardBattle/accounts。");
+            "Standalone Card Battle service base URL for /textech card status|bind (for example http://127.0.0.1:8787). Empty disables the ADM bridge.",
+            "独立卡牌服务地址，供 /textech card status|bind 使用（如 http://127.0.0.1:8787）。为空时 ADM 桥接关闭。");
         put(
             "cardBattle",
             "bridgeToken",
-            "Shared secret with Node CARDBATTLE_BRIDGE_TOKEN when externalApiBaseUrl is set.",
-            "与 Node 的 CARDBATTLE_BRIDGE_TOKEN 一致；仅在配置了 externalApiBaseUrl 时用于发绑定码。");
+            "Shared secret matching the standalone service CARDBATTLE_BRIDGE_TOKEN. Empty disables the ADM bridge. Never expose it to players or browsers.",
+            "与独立服务 CARDBATTLE_BRIDGE_TOKEN 一致的共享密钥。为空时 ADM 桥接关闭；不得暴露给玩家或浏览器。");
         put("webConsole", "port", "HTTP server port for WebAE console. Default 8090.", "WebAE 控制台的 HTTP 服务端口。默认 8090。");
         put(
             "webConsole",

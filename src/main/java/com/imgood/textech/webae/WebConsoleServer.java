@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.TeXTechDataDir;
 import com.imgood.textech.webae.api.WebApiRouter;
 import com.imgood.textech.webae.api.handler.AuthExchangeHandler;
 import com.imgood.textech.webae.api.handler.DisplayHandler;
@@ -24,6 +25,8 @@ import com.imgood.textech.webae.power.PowerSampler;
 import fi.iki.elonen.NanoHTTPD;
 
 public class WebConsoleServer extends NanoHTTPD {
+
+    private static final String UI_DIR_NAME = "ui";
 
     private final String bindAddress;
     private final WebApiRouter apiRouter;
@@ -86,6 +89,13 @@ public class WebConsoleServer extends NanoHTTPD {
         try {
             start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             AdvanceDataMonitor.LOG.info("[WebAE] HTTP server started on {}:{}", bindAddress, Config.webConsolePort);
+            File externalIndex = new File(TeXTechDataDir.webAeDir(UI_DIR_NAME), "index.html");
+            if (externalIndex.isFile()) {
+                AdvanceDataMonitor.LOG.info("[WebAE] UI assets loaded from {}", externalIndex.getParentFile());
+            } else if (getClass().getResource("/assets/textech/webae/index.html") == null) {
+                AdvanceDataMonitor.LOG.warn(
+                    "[WebAE] UI bundle is not installed. Extract the optional *-webae.zip into the instance root.");
+            }
         } catch (IOException e) {
             AdvanceDataMonitor.LOG
                 .error("[WebAE] Failed to start HTTP server on {}:{}", bindAddress, Config.webConsolePort, e);
@@ -165,6 +175,10 @@ public class WebConsoleServer extends NanoHTTPD {
         if (uri.startsWith("/icons/")) {
             return serveIconFile(uri);
         }
+        if (!isSafeUiUri(uri)) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Rejected static UI path traversal: {}", uri);
+            return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "403 Forbidden");
+        }
         if ("/".equals(uri) || uri.isEmpty()) {
             uri = "/index.html";
         }
@@ -172,27 +186,73 @@ public class WebConsoleServer extends NanoHTTPD {
         if (uri.startsWith("/embed/")) {
             uri = "/index.html";
         }
-        String resourcePath = "/assets/textech/webae" + uri;
-        InputStream stream = getClass().getResourceAsStream(resourcePath);
+        InputStream stream = openExternalUiFile(uri);
+        if (stream == null) {
+            stream = getClass().getResourceAsStream("/assets/textech/webae" + uri);
+        }
         if (stream == null && !uri.equals("/index.html")) {
             // Hash-router / deep-link fallback for built assets
             if (!uri.contains(".") || uri.endsWith("/")) {
-                stream = getClass().getResourceAsStream("/assets/textech/webae/index.html");
+                stream = openExternalUiFile("/index.html");
+                if (stream == null) {
+                    stream = getClass().getResourceAsStream("/assets/textech/webae/index.html");
+                }
                 if (stream != null) {
-                    return newChunkedResponse(Response.Status.OK, "text/html", stream);
+                    Response response = newChunkedResponse(Response.Status.OK, "text/html", stream);
+                    response.addHeader("Cache-Control", "no-cache");
+                    return response;
                 }
             }
         }
         if (stream == null) {
-            return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "404 Not Found");
+            String message = "/index.html".equals(uri)
+                ? "WebAE UI bundle is not installed. Extract the optional *-webae.zip into the Minecraft instance root."
+                : "404 Not Found";
+            return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain; charset=utf-8", message);
         }
         String mimeType = getMimeType(uri);
         try {
-            return newChunkedResponse(Response.Status.OK, mimeType, stream);
+            Response response = newChunkedResponse(Response.Status.OK, mimeType, stream);
+            response.addHeader(
+                "Cache-Control",
+                "/index.html".equals(uri) ? "no-cache" : "public, max-age=31536000, immutable");
+            return response;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to serve static file: {}", uri, e);
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "500 Internal Server Error");
         }
+    }
+
+    /** Open an optional UI bundle file from {@code TeXTech/WebAE/ui/}. */
+    private InputStream openExternalUiFile(String uri) {
+        File baseDir = TeXTechDataDir.webAeDir(UI_DIR_NAME);
+        File target = new File(baseDir, uri.startsWith("/") ? uri.substring(1) : uri);
+        try {
+            String canonicalBase = baseDir.getCanonicalPath();
+            String canonicalTarget = target.getCanonicalPath();
+            if (!canonicalTarget.startsWith(canonicalBase + File.separator)) {
+                return null;
+            }
+            return target.isFile() ? new FileInputStream(target) : null;
+        } catch (IOException e) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to open external UI asset {}", uri, e);
+            return null;
+        }
+    }
+
+    private static boolean isSafeUiUri(String uri) {
+        if (uri == null || uri.indexOf('\0') >= 0 || uri.indexOf('\\') >= 0) {
+            return false;
+        }
+        String lower = uri.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("%2e") || lower.contains("%5c")) {
+            return false;
+        }
+        String[] segments = uri.split("/");
+        for (String segment : segments) {
+            if ("..".equals(segment)) return false;
+        }
+        return true;
     }
 
     /**

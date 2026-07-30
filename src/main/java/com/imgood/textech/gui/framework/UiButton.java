@@ -2,6 +2,8 @@ package com.imgood.textech.gui.framework;
 
 import net.minecraft.client.gui.FontRenderer;
 
+import org.lwjgl.input.Mouse;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -74,7 +76,8 @@ public final class UiButton {
 
     public void draw(UiTheme theme, FontRenderer font, int mouseX, int mouseY) {
         boolean hovered = enabled && hitTest(mouseX, mouseY);
-        NineSliceRegion region = pickRegion(theme, hovered);
+        boolean pressed = hovered && Mouse.isButtonDown(0);
+        NineSliceRegion region = pickRegion(theme, hovered, pressed);
         if (region != null && GuiBlitUtil.hasResource(region.texture())) {
             GuiBlitUtil.drawHorizontalSlice(region, x, y, width, height);
         } else {
@@ -112,12 +115,15 @@ public final class UiButton {
         return true;
     }
 
-    private NineSliceRegion pickRegion(UiTheme theme, boolean hovered) {
+    private NineSliceRegion pickRegion(UiTheme theme, boolean hovered, boolean pressed) {
         if (theme == null) {
             return null;
         }
         if (!enabled) {
             return theme.buttonDisabled();
+        }
+        if (pressed) {
+            return theme.buttonPressed();
         }
         if (hovered) {
             return theme.buttonHover();

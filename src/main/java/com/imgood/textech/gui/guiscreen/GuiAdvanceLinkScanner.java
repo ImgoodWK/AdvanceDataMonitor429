@@ -17,6 +17,9 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.items.ItemAdvanceLinkScanner;
 import com.imgood.textech.items.LinkScanEntry;
 import com.imgood.textech.network.packet.PacketLinkScannerAction;
@@ -296,6 +299,7 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
 
         this.fontRendererObj.drawString(
             I18n.format("adm.scanner.title"),
@@ -309,12 +313,7 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         this.fontRendererObj.drawString(stats, listStartX, listStartY - 12, slotNumberColor);
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        drawRect(
-            listStartX - 2,
-            listStartY - 2,
-            listStartX + listWidth + 2,
-            listStartY + visibleAreaHeight + 2,
-            0x80000000);
+        UiPanel.drawSection(UiThemes.ADM, listStartX - 2, listStartY - 2, listWidth + 4, visibleAreaHeight + 4);
 
         for (int i = 0; i < visibleEntries.size(); i++) {
             int rowY = listStartY + i * rowHeight - scrollOffset;
@@ -379,7 +378,6 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
 
         drawScrollbar();
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     private void drawScrollbar() {
@@ -391,8 +389,8 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         int maxScroll = totalHeight - visibleAreaHeight;
         int thumbH = Math.max(12, visibleAreaHeight * visibleAreaHeight / totalHeight);
         int thumbY = listStartY + (maxScroll == 0 ? 0 : scrollOffset * (visibleAreaHeight - thumbH) / maxScroll);
-        drawRect(scrollbarX, listStartY, scrollbarX + 6, listStartY + visibleAreaHeight, 0x40FFFFFF);
-        drawRect(scrollbarX, thumbY, scrollbarX + 6, thumbY + thumbH, 0xFF00AAFF);
+        GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollTrack(), scrollbarX, listStartY, 6, visibleAreaHeight, 2);
+        GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollThumb(), scrollbarX, thumbY, 6, thumbH, 2);
     }
 
     @Override

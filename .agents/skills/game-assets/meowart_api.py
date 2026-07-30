@@ -20,6 +20,8 @@ import requests
 MEOWART_API_CLI_VERSION = "2026.07.21.2"
 DEFAULT_API_BASE = "https://api.meowa.ai"
 DEFAULT_API_KEY_ENV = "MEOWART_API_KEY"
+DEFAULT_API_KEY_FALLBACK_ENV = "MEOWART_API_KEY_FALLBACK"
+DEFAULT_API_KEYS_ENV = "MEOWART_API_KEYS"
 DEFAULT_DEV_KEY_ENV = "DEV_API_KEY"
 _DEV_AUTH_PREFIX = "x-dev-key:"
 DEFAULT_WORK_DIR = "./meowa-output"
@@ -4289,15 +4291,47 @@ def _read_dotenv_value(key: str) -> str:
     return ""
 
 
-def _resolve_auth_token() -> str:
-    env_api_key = os.getenv(DEFAULT_API_KEY_ENV, "").strip()
-    if env_api_key:
-        return env_api_key
+def _append_unique_token(keys: list[str], seen: set[str], value: str) -> None:
+    token = str(value or "").strip().strip("'\"")
+    if not token or token in seen:
+        return
+    seen.add(token)
+    keys.append(token)
 
-    dotenv_api_key = _read_dotenv_value(DEFAULT_API_KEY_ENV).strip()
-    if dotenv_api_key:
-        return dotenv_api_key
 
+def _iter_configured_api_keys() -> list[str]:
+    keys: list[str] = []
+    seen: set[str] = set()
+
+    _append_unique_token(keys, seen, os.getenv(DEFAULT_API_KEY_ENV, ""))
+    _append_unique_token(keys, seen, _read_dotenv_value(DEFAULT_API_KEY_ENV))
+
+    for raw in (
+        os.getenv(DEFAULT_API_KEYS_ENV, ""),
+        _read_dotenv_value(DEFAULT_API_KEYS_ENV),
+    ):
+        for part in str(raw or "").split(","):
+            _append_unique_token(keys, seen, part)
+
+    _append_unique_token(keys, seen, os.getenv(DEFAULT_API_KEY_FALLBACK_ENV, ""))
+    _append_unique_token(keys, seen, _read_dotenv_value(DEFAULT_API_KEY_FALLBACK_ENV))
+    return keys
+
+
+def _credits_total(payload: dict[str, Any]) -> float:
+    total = 0.0
+    for field in ("credits", "trial_credits"):
+        raw = payload.get(field)
+        if raw is None or raw == "":
+            continue
+        try:
+            total += float(raw)
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _resolve_dev_auth_token() -> str:
     env_dev_key = os.getenv(DEFAULT_DEV_KEY_ENV, "").strip()
     if env_dev_key:
         return f"{_DEV_AUTH_PREFIX}{env_dev_key}"
@@ -4305,10 +4339,73 @@ def _resolve_auth_token() -> str:
     dotenv_dev_key = _read_dotenv_value(DEFAULT_DEV_KEY_ENV).strip()
     if dotenv_dev_key:
         return f"{_DEV_AUTH_PREFIX}{dotenv_dev_key}"
+    return ""
 
-    raise ValueError(
-        "Meowa authentication is not configured. Configure credentials outside the command line and retry."
-    )
+
+def _resolve_auth_token(
+    *,
+    api_base: str = DEFAULT_API_BASE,
+    timeout: int = DEFAULT_TIMEOUT,
+    verify: bool = True,
+) -> str:
+    keys = _iter_configured_api_keys()
+    if not keys:
+        dev_token = _resolve_dev_auth_token()
+        if dev_token:
+            return dev_token
+        raise ValueError(
+            "Meowa authentication is not configured. Configure credentials outside the command line and retry."
+        )
+
+    if len(keys) == 1:
+        return keys[0]
+
+    last_error: Exception | None = None
+    zero_credit_indexes: list[int] = []
+    for index, key in enumerate(keys):
+        ordinal = index + 1
+        try:
+            payload = get_credits_balance(
+                api_base=api_base,
+                api_key=key,
+                timeout=timeout,
+                verify=verify,
+            )
+        except Exception as exc:  # noqa: BLE001 - try next configured key
+            last_error = exc
+            print(
+                f"[WARN] Meowa API key #{ordinal} balance check failed; trying next configured key.",
+                file=sys.stderr,
+            )
+            continue
+
+        total = _credits_total(payload if isinstance(payload, dict) else {})
+        if total > 0:
+            if index > 0:
+                print(
+                    f"[INFO] Using Meowa API key #{ordinal} "
+                    f"(earlier key(s) exhausted or unavailable; credits={total:g}).",
+                    file=sys.stderr,
+                )
+            return key
+
+        zero_credit_indexes.append(ordinal)
+        print(
+            f"[INFO] Meowa API key #{ordinal} has 0 credits; trying next configured key.",
+            file=sys.stderr,
+        )
+
+    if zero_credit_indexes and last_error is None:
+        raise ValueError(
+            "All configured Meowa API keys have 0 credits "
+            f"(checked key #{', #'.join(str(i) for i in zero_credit_indexes)})."
+        )
+    if last_error is not None:
+        raise ValueError(
+            "Unable to resolve a usable Meowa API key after checking configured fallbacks."
+        ) from last_error
+
+    return keys[0]
 
 def main() -> int:
     _configure_stdio()
@@ -4326,7 +4423,15 @@ def main() -> int:
             "map-preset-download",
         }
         needs_api_key = args.command not in no_auth_commands
-        args.api_key = _resolve_auth_token() if needs_api_key else ""
+        args.api_key = (
+            _resolve_auth_token(
+                api_base=args.api_base,
+                timeout=args.timeout,
+                verify=verify,
+            )
+            if needs_api_key
+            else ""
+        )
 
         if args.command == "video-prompt-list":
             payload = submit_curated_workflow(

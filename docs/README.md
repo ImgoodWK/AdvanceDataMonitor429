@@ -1,9 +1,15 @@
 # TeXTech Documentation
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · Last synced: 2026-07
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 2.0 · Last synced: 2026-07
 
 Documentation is split by language under `docs/zh/` (简体中文) and `docs/en/` (English).  
 The project root [`README.md`](../README.md) keeps only a short intro and build commands.
+
+Release 2.0 targets GTNH `2.9.0-beta-2+`. The required core mod, optional
+offline-voice companion, and optional WebAE UI are separate Release assets.
+Install the WebAE ZIP by extracting it at the server instance root so that
+`TeXTech/WebAE/ui/index.html` exists; the main mod JAR intentionally does not
+contain the browser UI.
 
 ---
 

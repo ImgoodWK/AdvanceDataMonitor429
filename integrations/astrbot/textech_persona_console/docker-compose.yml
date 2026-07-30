@@ -1,0 +1,32 @@
+services:
+  textech-console:
+    build:
+      context: .
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple}
+    image: textech-console:latest
+    container_name: textech-console
+    restart: unless-stopped
+    ports:
+      - "6186:6186"
+    volumes:
+      - /opt/astrbot/data:/astrbot-data
+      - /opt/textech-console/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/astrbot:/opt/astrbot:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - ASTRBOT_DATA=/astrbot-data
+      - KNOWLEDGE_DIR=/data/knowledge
+      - CONSOLE_DB=/data/console.db
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET must be set in .env}
+      - CONSOLE_BOOTSTRAP_PASSWORD=${CONSOLE_BOOTSTRAP_PASSWORD:?CONSOLE_BOOTSTRAP_PASSWORD must be set in .env}
+      - ASTRBOT_COMPOSE_DIR=/opt/astrbot
+      - ASTRBOT_CONTAINER=astrbot
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:6186/api/ops/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 512m
