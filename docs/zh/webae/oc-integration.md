@@ -7,8 +7,8 @@ TeXTech WebAE 内嵌于 Minecraft 服务端进程，OpenComputers 的 Internet C
 1. 服务端已启用 Web 控制台（`config/textech/textech.cfg` → `[webConsole] enabled=true`）。
 2. 玩家至少绑定一块 **高级数据监视器**（Advance Data Monitor）。
 3. 获取 owner Token 之一：
-   - 游戏内 `/admweb issue`（完整 UUID Token），或
-   - `/admweb login`（6 位登录码 → 浏览器兑换为 Token，见 [用户手册](用户手册.md)）。
+   - 游戏内 `/textech web issue`（完整 UUID Token），或
+   - `/textech web login`（6 位登录码 → 浏览器兑换为 Token，见 [用户手册](用户手册.md)）。
 4. 防火墙放行 Web 控制台端口（默认见配置 `port`）。
 
 ## 只读摘要 API
@@ -89,7 +89,7 @@ end
 
 ## 登录码流程（无 OP 发 Token）
 
-普通玩家可在游戏内执行 `/admweb login`，获得 6 位数字码与带 `?code=` 的 URL。在浏览器打开后自动兑换为 owner Token，**无需 OP 执行 `/admweb issue`**。
+普通玩家可在游戏内执行 `/textech web login`，获得 6 位数字码与带 `?code=` 的 URL。在浏览器打开后自动兑换为 owner Token，**无需 OP 执行 `/textech web issue`**。
 
 ```
 POST /api/auth/exchange
@@ -98,7 +98,7 @@ Content-Type: application/json
 {"code":"123456"}
 ```
 
-成功返回 `token` 字段，与 `/admweb issue` 签发的 owner Token 等价。码 **5 分钟 TTL、单次使用**。
+成功返回 `token` 字段，与 `/textech web issue` 签发的 owner Token 等价。码 **5 分钟 TTL、单次使用**。
 
 ## 安全建议
 
@@ -109,4 +109,4 @@ Content-Type: application/json
 ## 相关文档
 
 - [开发者手册](开发者手册.md) — 完整 REST 列表
-- [用户手册](用户手册.md) — `/admweb login` 与访客 Token
+- [用户手册](用户手册.md) — `/textech web login` 与访客 Token

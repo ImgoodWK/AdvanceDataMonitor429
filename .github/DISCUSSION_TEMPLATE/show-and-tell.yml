@@ -1,0 +1,16 @@
+title: "[Show and tell] "
+labels: [showcase]
+body:
+  - type: markdown
+    attributes:
+      value: "Share a TeXTech setup, dashboard, integration, or modpack use case. Privacy-review every screenshot and log."
+  - type: textarea
+    id: showcase
+    attributes:
+      label: What did you build?
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Versions, configuration, and sanitized media

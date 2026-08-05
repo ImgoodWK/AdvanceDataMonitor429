@@ -1,6 +1,6 @@
 # TeXTech 文档维护地图
 
-> 受众：贡献者 / Codex / Cursor Agent · 最后同步：2026-07  
+> 受众：贡献者 / Codex / Cursor Agent · 最后同步：2026-08<br>
 > English: [documentation-map.md](../../en/developer/documentation-map.md)
 
 当你修改某类功能时，按本表更新对应文档与规则，避免四套体系（`AGENTS.md`、`docs/`、游戏内 `manual/`、`.cursor/rules/`）脱节。
@@ -35,12 +35,15 @@
 | AI 助手 | `assistant/` | [AI 开发指南](../ai-assistant/开发指南.md) | [用户手册 §8](../player/用户手册.md#8-ai-对话与助手) | `ai-assistant.mdc` · `assistant-features.json` |
 | 挂索 | `handler/Grapple*` | [挂索设计](../subsystems/挂索节点系统设计.md) | [用户手册 §3.7](../player/用户手册.md#37-挂索节点grapple-anchor) | — |
 | WebAE 控制台 | `webae/` · `webae-frontend/` | [WebAE 开发者手册](../webae/开发者手册.md) | [WebAE 用户手册](../webae/用户手册.md) · `manual/web_console.json` | `webae-frontend.mdc` |
-| 独立卡牌服务联动 | `CommandCardBattle.java` · `ConfigCardBattleLoader.java` | [联动概览](../cardbattle/README.md) · [奖励桥](../cardbattle/rewards-bridge.md) | `manual/config_reference.json` | 卡牌游戏本体位于独立仓库；ADM 只保留私密 Bridge 适配器 |
+| 独立卡牌服务联动 | `CommandCardBattle.java` · `ConfigCardBattleLoader.java` | [联动概览](../cardbattle/README.md) · [奖励桥](../cardbattle/rewards-bridge.md) | `manual/config_reference.json` | 卡牌游戏本体位于独立仓库；TeXTech-GTNH 只保留私密 Bridge 适配器 |
 | 世界地图 | `webae/worldmap/` | WebAE [§11.26](../webae/开发者手册.md#1126-世界地图视图phase-ab--ae-透视层) · §4 worldMap* | WebAE 用户手册 · `topology_text` lang | `project-structure-details.mdc` |
 | 渲染/TESR | `renders/` | [技术文档 §11](技术文档.md#11-渲染系统) | — | `project-structure-details.mdc` renders 章 |
 | GUI / UI 框架 | `gui/framework/` · `gui/custom/` | [ui-framework.md](ui-framework.md) | — | `gui-guidelines.mdc` |
 | lang 键 | `zh_CN.lang` + `en_US.lang` | — | 用户手册名称一致 | `manual/` JSON titleKey/textKey |
 | 调试开关 | `config/Config*Loader.java` | [技术文档 §16](技术文档.md#161-调试开关) | — | `gtnh-mod-context.mdc` |
+| 构建 / Release | `settings.gradle.kts` · `repositories.gradle` · `addon.late.gradle` | [Gradle 工作流](Gradle工作流.md) | README 安装矩阵 · `CHANGELOG.md` | `.github/workflows/ci.yml` · `release.yml` · Release notes |
+| 仓库治理 / 安全 | — | `CONTRIBUTING.md` · `SECURITY.md` · `SUPPORT.md` | README 支持入口 | Issue/PR/Discussion 模板 · `CODEOWNERS` · Dependabot |
+| 项目历史 / 来源证明 | Git commit / signed Tag / Release SHA | [时间线](../project/timeline.md) · [取证说明](../project/provenance.md) | README 历史摘要 | `NOTICE.md` · `CITATION.cff` · provenance monitor |
 
 ---
 
@@ -54,6 +57,8 @@
 | WebAE REST API | `webae/开发者手册.md` §5 | 用户手册仅操作步骤 |
 | worldMap* 配置 | `ConfigDescriptions` + WebAE §4 | 用户手册/WebAE 用户手册摘要 |
 | Implementation status | WebAE dev guide §11 subsystem index | Remove stale outdated phase wording |
+| Release 资产名 / 验证方式 | `.github/workflows/release.yml` | README、Release notes 与 Gradle 工作流只作同步说明 |
+| 可验证项目时间线 | `git log`、签名 Tag、Release SHA | 双语 timeline、NOTICE、CITATION 使用同一来源证明 ID |
 
 ---
 
@@ -61,15 +66,18 @@
 
 ```bash
 python tools/doc-check/doc-consistency-check.py
+python tools/release/validate_repository.py
+python tools/release/scan_secrets.py
+python -m unittest tools.provenance.test_monitor
 ```
 
-见 `.cursor/rules/docs-sync.mdc` 与脚本输出说明。
+提交后 CI 还会用 `scan_secrets.py --tracked` 重新扫描。见 `.cursor/rules/docs-sync.mdc` 与脚本输出说明。
 
 ---
 
 ## 相关索引
 
-- [docs/zh/README.md](../README.md) — 中文文档树  
-- [docs/README.md](../../README.md) — 双语总索引  
+- [docs/zh/README.md](../README.md) — 中文文档树
+- [docs/README.md](../../README.md) — 双语总索引
 - [AGENTS.md](../../../AGENTS.md) — Codex 项目入口
-- [docs-sync.mdc](../../../.cursor/rules/docs-sync.mdc) — Codex / Cursor 共享同步规则  
+- [docs-sync.mdc](../../../.cursor/rules/docs-sync.mdc) — Codex / Cursor 共享同步规则

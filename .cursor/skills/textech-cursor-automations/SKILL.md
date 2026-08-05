@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 按需 `@textech-cursor-automations`。用 **Automate** / `open_automation` 打开编辑器落稿。
 
-> 本地项目 MCP（`textech-doc-check` / `textech-build` 等）**不能**写入 Automation 的 MCP action。Agent 在云端用 Shell 跑命令；评论用 `prComment`。硬门禁已有 CI：`.github/workflows/doc-check-and-webae.yml`。
+> 本地项目 MCP（`textech-doc-check` / `textech-build` 等）**不能**写入 Automation 的 MCP action。Agent 在云端用 Shell 跑命令；评论用 `prComment`。硬门禁已有 CI：`.github/workflows/ci.yml`。
 
 ## 三条 Automation（预填草稿）
 
@@ -20,7 +20,7 @@ disable-model-invocation: true
 | 项 | 内容 |
 |----|------|
 | 名称 | TeXTech PR 文档门禁 |
-| 触发 | PR 打开 / PR 推送代码 → `ImgoodWK/AdvanceDataMonitor429` |
+| 触发 | PR 打开 / PR 推送代码 → `ImgoodWK/TeXTech-GTNH` |
 | 工具 | 评论 PR |
 | 指令 | 跑 `python tools/doc-check/doc-consistency-check.py`，摘要评论到 PR；errors 标明 FAILED |
 | 编辑器待完成 | 确认 GitHub 连接；可选忽略草稿 PR（已预填） |

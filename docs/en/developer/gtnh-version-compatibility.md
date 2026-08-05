@@ -1,14 +1,14 @@
 # GTNH Version Compatibility
 
-> **Applies to**: TeXTech **v2.0.0**  
-> **Last updated**: 2026-07-30  
+> **Applies to**: TeXTech **v2.0.0** and **v3.0.0-rc.1**
+> **Last updated**: 2026-08-05
 > 中文: [GTNH版本兼容说明.md](../../zh/developer/GTNH版本兼容说明.md)
 
-This page is for pack authors, server admins, and players. Source code and pinned build dependencies are authoritative: TeXTech 2.0 is developed and released against GTNH `2.9.0-beta-2` and no longer provides compatibility with older pack lines.
+This page is for pack authors, server admins, and players. Source code and pinned build dependencies are authoritative: the TeXTech 2 stable line and 3.0 RC line target GTNH `2.9.0-beta-2+` and do not support older pack lines.
 
 ## 1. Support matrix
 
-| GTNH pack | TeXTech 2.0 status | Notes |
+| GTNH pack | TeXTech 2 stable / 3.0 RC status | Notes |
 |-----------|---------------------|-------|
 | **2.9.0-beta-2 and compatible later versions** | ✅ Supported | Uses the AE2 native-fluid (`NATIVE_FLUID`) path. |
 | **2.9.0-beta-1 and earlier** | ❌ Unsupported | Dependencies and runtime behavior are no longer tested against old packs. GTNH 2.8.x users should remain on a TeXTech 1.0.x build made for that environment or upgrade the pack first. |
@@ -17,7 +17,7 @@ This page is for pack authors, server admins, and players. Source code and pinne
 
 ## 2. AE runtime path
 
-`GtnhEnvironmentProbe` always selects `NATIVE_FLUID` in TeXTech 2.0. A normal startup log resembles:
+`GtnhEnvironmentProbe` always selects `NATIVE_FLUID` in the current supported release lines. A normal startup log resembles:
 
 ```text
 [ADM] AE compat profile=NATIVE_FLUID (source=GTNH_VERSION_FILE, detail=2.9.0-beta-2)
@@ -27,7 +27,7 @@ If no version metadata is available, the fallback detail is `2.9.0-beta-2-native
 
 `[compat] aeProfileOverride` remains temporarily readable for existing configurations:
 
-| Value | TeXTech 2.0 behavior |
+| Value | Current behavior |
 |-------|-----------------------|
 | `auto` / empty | Select NativeFluid. |
 | `native` | Explicitly select NativeFluid. |
@@ -37,7 +37,7 @@ Classes still present under `compat/ae/legacy/` may be used by native adapters f
 
 ## 3. Player and pack-author impact
 
-- New installations should pair GTNH `2.9.0-beta-2+` with matching TeXTech `v2.0.0` assets.
+- Stable installations should pair GTNH `2.9.0-beta-2+` with matching `v2.0.0` assets; RC testers must use the complete matching `v3.0.0-rc.1` asset set.
 - Upgrade the GTNH pack before moving from TeXTech 1.0.x; `aeProfileOverride=legacy` cannot restore 2.8.x support.
 - The core JAR, optional voice JAR, and optional WebAE ZIP must come from the same TeXTech Release.
 - The WebAE ZIP only contains browser UI files. Extract it at the instance root so `TeXTech/WebAE/ui/index.html` exists; it does not change GTNH/AE2 compatibility.

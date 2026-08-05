@@ -129,15 +129,15 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `aiKeyMode` | string | `server` | `server`/`browser` | **Deprecated** mutual mode; migration seed only |
 | `aiServerKeyEnabled` | boolean | `true` | — | Allow admin shared ordered AI profiles (server-encrypted); may be enabled with `aiBrowserKeyEnabled` |
 | `aiBrowserKeyEnabled` | boolean | `false` | — | Allow per-browser personal ordered AI profiles (localStorage); may be enabled with `aiServerKeyEnabled` |
-| `recipeUploadEnabled` | boolean | `true` | — | Allow OPs to upload NEI recipes via `/admweb recipes upload` (Phase 2 removed the keybind) |
+| `recipeUploadEnabled` | boolean | `true` | — | Allow OPs to upload NEI recipes via `/textech web recipes upload` (Phase 2 removed the keybind) |
 | `recipeCacheMode` | string | `full` | `lru`/`full` | Recipe cache eviction mode. GTNH recommends `full` (no LRU eviction) |
 | `maxRecipeCacheMB` | int | `256` | 1-2048 | Approximate max memory (MB) for the recipe cache; evicted in `lru` mode when exceeded, warning-only in `full` |
 | `recipeUploadBatchesPerTick` | int | `3` | 1-32 | Recipe upload JSON batches sent per client tick |
 | `recipeSearchMinIntervalMs` | int | `1000` | 0-5000 | Minimum interval (ms) between fuzzy recipe searches per owner via `/api/recipes/search?q=` |
 | `recipeKeepMemoryAfterUpload` | boolean | `false` | — | Keep full recipe cache in server heap after upload/save; default `false` (clear heap; browsers sync chunks; craft-tree / fallback APIs use `ensureLoaded`) |
 | `recipeSyncChunkSize` | int | `400` | 50-2000 | Recipes per browser-sync chunk file / `GET /api/recipes/sync/chunk` |
-| `nesqlRepositoryPath` | string | `` | — | NESQL exporter repository root for `/admweb icons import-nesql`. Empty → `<instance>/TeXTech/WebAE/` (same folder as client recipe export) |
-| `neiDeepScanItemsPerTick` | int | `0` | 0-512 | NEI item-driven deep scan items per client tick (`/admweb recipes upload deep`; 0 = disabled) |
+| `nesqlRepositoryPath` | string | `` | — | NESQL exporter repository root for `/textech web icons import-nesql`. Empty → `<instance>/TeXTech/WebAE/` (same folder as client recipe export) |
+| `neiDeepScanItemsPerTick` | int | `0` | 0-512 | NEI item-driven deep scan items per client tick (`/textech web recipes upload deep`; 0 = disabled) |
 | `iconMissingDispatchPerTick` | int | `8` | 1-64 | IconMissingQueue lazy-load requests dispatched per server tick |
 | `iconDirectRenderEnabled` | boolean | `false` | — | HTTP 404 sync direct render (blocking); off by default — use async queue + SSE |
 | `iconDirectRenderTimeoutMs` | int | `3000` | — | Max wait ms for sync direct render |
@@ -149,7 +149,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | `maxNetworksDisplayed` | int | `5` | 1-20 | Max networks the web console can display simultaneously |
 | `tokenLifetimeHours` | int | `0` | 0-8760 | Web auth token TTL in hours. 0 = never expire; >0 rejects after issuedAt + TTL |
 | `iconCacheEnabled` | boolean | `true` | — | Enable item icon cache and `/api/icon` serving |
-| `iconUploadEnabled` | boolean | `true` | — | Allow explicit C→S upload (`/admweb icons upload` / import); does **not** enable HTTP 404 lazy capture |
+| `iconUploadEnabled` | boolean | `true` | — | Allow explicit C→S upload (`/textech web icons upload` / import); does **not** enable HTTP 404 lazy capture |
 | `iconLazyCaptureEnabled` | boolean | `false` | — | When true, GET `/api/icon` miss enqueues `IconMissingQueue` (dispatch only after chat consent) |
 | `iconLazyPreferOpOnly` | boolean | `true` | — | Lazy-capture consent offered to OP players only |
 | `iconPackEnabled` | boolean | `true` | — | Allow admin zip pack upload (`POST /api/icon/pack`) |
@@ -470,7 +470,7 @@ Technical notes:
 - **Recipe sync API**: `GET /api/recipes/sync/manifest`, `GET /api/recipes/sync/chunk?index=`; browse/search/suggest remain as fallbacks
 - **Preset system**: quick-switch profiles (theme/layout/lang/number format/icon pack/sidebar/main dashboard); localStorage `webae_presets`
 - **Full backup** (`utils/uiSettingsBundle.ts` + Settings **Backup & Restore** tab): `WebUiSettingsBundle` v1 (`format:textech-webae-ui-settings`) aggregates all localStorage page prefs; optional server favorites/order templates/alert rules (OP); excludes token and IndexedDB icon binaries
-- **Default layout**: `WebUiDefaultsStore` + public `GET /api/ui-defaults`; `/admweb defaults status|install|clear`; `AppContext` auto-applies on first visit when no prior `webae_*` localStorage exists
+- **Default layout**: `WebUiDefaultsStore` + public `GET /api/ui-defaults`; `/textech web defaults status|install|clear`; `AppContext` auto-applies on first visit when no prior `webae_*` localStorage exists
 - **Pack / Agent workflow**: export JSON from Settings → write `TeXTech/WebAE/ui-defaults.json` or `assets/textech/webae/ui-defaults.json`; optionally sync `presets.ts` `DEFAULT_*` as code fallback
 - **Dashboard**: GridStack 12-column grid; layout persisted as x/y/w/h in `webae_dashboard_config`
 - **WCAG**: skip link, aria-live (connection/countdown), focus-visible, icon button aria-labels
@@ -519,7 +519,7 @@ Cache/read-only requests may read validated bounded caches directly; live world/
 - **Admin-only endpoints**: `POST /api/refresh`, `/api/refresh/batch`, `/api/power/refresh`, `/api/power/refresh/batch`, `/api/gt/machines/refresh`, `/api/gt/machines/refresh/batch` require OP level >= 2 (checked via `WebAuthOpCheck`); non-OP gets 403 with `code:admin_required`
 - **Default Local Bind**: `bindAddress=127.0.0.1` restricts access to the local machine only
 - **No HTTPS**: NanoHTTPD does not provide TLS. Use SSH tunneling or reverse proxy for encryption on LAN
-- **Token Management**: `/admweb issue` (self), `/admweb revoke [player]` (self/OP), `/admweb list` (OP), `/admweb refresh [network]` (OP, Phase 1.2)
+- **Token Management**: `/textech web issue` (self), `/textech web revoke [player]` (self/OP), `/textech web list` (OP), `/textech web refresh [network]` (OP, Phase 1.2)
 - **No Password Storage**: Users only need a token to access; no Minecraft account verification required
 - **Token tiers**: An owner token may read/write AE networks in its authorized scope; a guest token is read-only. Guests may read networks in the owner's allowlist, but cannot refresh, upload, submit orders, write patterns, or perform other mutations.
 - **Identity separation**: `ownerUuid` (resource owner), `actorUuid` (authenticated initiator), and network scope are independent. HTTP `owner`, `actor`, and `network` parameters are never authorization by themselves; an owner override must also be a canonical UUID.
@@ -539,7 +539,7 @@ The WebAE upload path uses the following five Forge packets; world-map, direct-c
 | 27 | `PacketWebRecipeUploadAck` | S→C | Server recipe upload confirmation (with total progress) |
 | 28 | `PacketWebIconUpload` | C→S | Client item/fluid icon batch upload (itemId → base64PNG, reuses the chunked pattern) |
 | 29 | `PacketWebIconUploadAck` | S→C | Server icon upload confirmation (receivedChunks/totalChunks/success/message) |
-| 30 | `PacketWebUploadTrigger` | S→C | Server command triggers client to start recipes/icons upload (`/admweb recipes upload`, `/admweb icons upload`) |
+| 30 | `PacketWebUploadTrigger` | S→C | Server command triggers client to start recipes/icons upload (`/textech web recipes upload`, `/textech web icons upload`) |
 
 Recipe upload flow:
 1. Client `KeyBindings.uploadNeiRecipes(scope, snapshotItemIds)` hybrid collect: `NeiRecipeCollector` (main thread; `deep` enables item-driven scan) or `RecipeSnapshotCollector` (`snapshot` scope) + `GameRecipeCollector` (background), deduped with NEI winning into a **single session**
@@ -557,7 +557,7 @@ Icon upload flow:
 5. `PacketWebIconUploadAck` reports progress. `IconMissingQueue` acknowledges only item IDs from the fully committed bundle, never rejected or partially written data
 
 Command-triggered upload flow (ID 30):
-1. An OP player runs `/admweb recipes upload` or `/admweb icons upload`
+1. An OP player runs `/textech web recipes upload` or `/textech web icons upload`
 2. `CommandWebConsole` checks OP (`canUseOpCommands`) and that the sender is a player, then sends `PacketWebUploadTrigger` (S→C, fields uploadType=recipes/icons, packName)
 3. The client handler calls the public static entry points `KeyBindings.uploadNeiRecipes()` or `KeyBindings.triggerIconUpload(packName)`
 4. The rest follows the same path as the command flow (IDs 26/28)
@@ -568,24 +568,24 @@ See `network-packets.mdc` for details.
 
 ## 10. Command
 
-The `/admweb` command manages Web Console access tokens and admin actions. The base command `getRequiredPermissionLevel` stays 0 (so issue/list/status remain open to any player), but the `recipes upload`/`icons upload` sub-commands internally check OP via `canUseOpCommands`.
+The `/textech web` command manages Web Console access tokens and admin actions. The base command `getRequiredPermissionLevel` stays 0 (so issue/list/status remain open to any player), but the `recipes upload`/`icons upload` sub-commands internally check OP via `canUseOpCommands`.
 
 | Subcommand | Permission | Description |
 |------------|------------|-------------|
-| `/admweb issue` | Any player | Generate a new token for yourself (full value shown once) |
-| `/admweb revoke [player]` | Self / OP | Revoke your own token, or another player's token (OP only) |
-| `/admweb list` | OP | List all active tokens (prefix + issue time only) |
-| `/admweb reload` | OP | Actually reloads the TeXTech configuration: calls `Config.reloadConfiguration()` to re-read the active config file and re-run every section loader (debug/compat/ai/voice/assistant/plannerHud/dataLoom/superOrange/matterBallDecompressor/grapple/webConsole); some options (e.g. `enabled`/`port`/`bindAddress` for the web server itself) still need a server restart, and the response notes this; token and runtime data files (web-tokens.json/web-players.json/web-chat.json/web-icons/) are not affected |
-| `/admweb recipes upload [snapshot\|deep]` | **OP** | Client merged NEI+Game single upload; writes server disk and client `TeXTech/WebAE/web-recipes.json`; browsers must still **Fetch recipes** on the Recipes page; `snapshot` collects recipes for AE storage snapshot items only; `deep` enables full NEI item scan (slow) |
-| `/admweb icons import-nesql [pack] [subpath]` | **OP** | Import pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/` when empty; incremental; does not overwrite existing) |
-| `/admweb recipes export` | **OP** | Alias of upload, emphasizing the export-to-cache semantics |
-| `/admweb recipes status` | Any | Show server recipe cache status (including disk cache size and last-save time) |
-| `/admweb recipes clear` | OP | Clear memory and disk recipe cache |
-| `/admweb icons upload [packName]` | **OP** | Checks OP + player identity, then sends `PacketWebUploadTrigger` to make your own client render and upload item icons (Phase 2 removed the in-game keybind; upload is command-only) |
-| `/admweb icons status` | Any | List installed texture packs and config state |
-| `/admweb icons clear` | **OP** | Async wipe of all packs under `TeXTech/WebAE/icons/` (resets index immediately; disk delete on background thread; chat notifies when done) |
-| `/admweb refresh [network]` | OP | Force snapshot re-collect for one network or all active networks (Phase 1.2) |
-| `/admweb help` | Any | Show usage |
+| `/textech web issue` | Any player | Generate a new token for yourself (full value shown once) |
+| `/textech web revoke [player]` | Self / OP | Revoke your own token, or another player's token (OP only) |
+| `/textech web list` | OP | List all active tokens (prefix + issue time only) |
+| `/textech web reload` | OP | Actually reloads the TeXTech configuration: calls `Config.reloadConfiguration()` to re-read the active config file and re-run every section loader (debug/compat/ai/voice/assistant/plannerHud/dataLoom/superOrange/matterBallDecompressor/grapple/webConsole); some options (e.g. `enabled`/`port`/`bindAddress` for the web server itself) still need a server restart, and the response notes this; token and runtime data files (web-tokens.json/web-players.json/web-chat.json/web-icons/) are not affected |
+| `/textech web recipes upload [snapshot\|deep]` | **OP** | Client merged NEI+Game single upload; writes server disk and client `TeXTech/WebAE/web-recipes.json`; browsers must still **Fetch recipes** on the Recipes page; `snapshot` collects recipes for AE storage snapshot items only; `deep` enables full NEI item scan (slow) |
+| `/textech web icons import-nesql [pack] [subpath]` | **OP** | Import pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/` when empty; incremental; does not overwrite existing) |
+| `/textech web recipes export` | **OP** | Alias of upload, emphasizing the export-to-cache semantics |
+| `/textech web recipes status` | Any | Show server recipe cache status (including disk cache size and last-save time) |
+| `/textech web recipes clear` | OP | Clear memory and disk recipe cache |
+| `/textech web icons upload [packName]` | **OP** | Checks OP + player identity, then sends `PacketWebUploadTrigger` to make your own client render and upload item icons (Phase 2 removed the in-game keybind; upload is command-only) |
+| `/textech web icons status` | Any | List installed texture packs and config state |
+| `/textech web icons clear` | **OP** | Async wipe of all packs under `TeXTech/WebAE/icons/` (resets index immediately; disk delete on background thread; chat notifies when done) |
+| `/textech web refresh [network]` | OP | Force snapshot re-collect for one network or all active networks (Phase 1.2) |
+| `/textech web help` | Any | Show usage |
 
 ## 11. Subsystem Design Summaries
 
@@ -652,7 +652,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 ### 11.4 Recipe Search
 
-- **Data flow**: OP `/admweb recipes upload*` → server disk is authoritative (no startup full load) → player clicks **Fetch recipes** → IndexedDB local browse/search
+- **Data flow**: OP `/textech web recipes upload*` → server disk is authoritative (no startup full load) → player clicks **Fetch recipes** → IndexedDB local browse/search
 - **Handler**: `RecipeHandler.java` (sync manifest/chunk + server browse/search fallback)
 - **Hybrid collection (client)**: `KeyBindings.uploadNeiRecipes(scope, …)` runs `NeiRecipeCollector.collectAll(deepScan)` or `RecipeSnapshotCollector.collectForItems()` on the client main thread, then `GameRecipeCollector.collectAll()` on a background thread; dedup by `handlerId:recipeIndex` with NEI winning; merged into one upload session via `RecipeUploadThrottler`
 - **Upload session**: `RecipeUploadSession` ensures only the first `isStart` batch per player clears memory; concurrent overlapping uploads are ignored
@@ -671,7 +671,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
   - After fetch, **local** browse / fuzzy search / suggest; category filter, Full/Merged, Compact/Detailed layouts as before
   - Infinite scroll over local store; compact/merged cards + `RecipeDetailModal`; detailed craft grid / fluids / GT tags
   - Layout switch CSS show/hide + `React.memo`; persisted `localStorage.webae-recipe-layout` / `webae-recipe-display-mode`
-- **Clear**: `/admweb recipes clear` wipes server memory + disk (meta/chunks included); browser IndexedDB must be cleared per-origin or overwritten by Fetch
+- **Clear**: `/textech web recipes clear` wipes server memory + disk (meta/chunks included); browser IndexedDB must be cleared per-origin or overwritten by Fetch
 
 ### 11.5 Pattern Management
 
@@ -746,14 +746,14 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **HTTP ZIP upload bounds**: the inbound HTTP body is limited to 32 MiB, with at most 4096 entries; one PNG is at most 512 KiB, total PNG bytes at most 16 MiB, and dimensions at most 2048. Only valid PNGs are accepted, canonical paths must remain inside the target pack directory, and all entries validate before staging is promoted; a failed promotion rolls old files back. This 32 MiB inbound limit is independent of the 8 MiB outbound ZIP limit used by server-to-client `PacketWebIconPullZip` export.
 - **Static serving**: `WebConsoleServer.serveStatic()` serves `/icons/<pack>/<mode>/<sanitizedItemId>.png` from the external `TeXTech/WebAE/icons/` directory with canonical path-traversal protection + `Cache-Control`
 - **Routing**: `WebApiRouter` dispatches `/api/icon` and the `/api/icon/` prefix to `IconHandler`
-- **Client renderer (NESQL primary path)**: `GuiIconExportScreen` renders `iconRenderPerTick` items per frame; active path is `IconNesqlStyleRenderer` (64×64 FBO + `GuiContainerManager.drawItem`, **output 64×64**, matching NESQL exporter) via `IconExportResolver.resolve`; **fluids / fluid-aware stacks** keep `IconFluidRenderer` + `IconGlFallback.renderFluidAwareSlotIcon` / `renderRegistryFluidIcon`; **`nei` only**; `/admweb icons local` writes `icons-local/`; `PacketWebIconPullZip` (49) for pull
+- **Client renderer (NESQL primary path)**: `GuiIconExportScreen` renders `iconRenderPerTick` items per frame; active path is `IconNesqlStyleRenderer` (64×64 FBO + `GuiContainerManager.drawItem`, **output 64×64**, matching NESQL exporter) via `IconExportResolver.resolve`; **fluids / fluid-aware stacks** keep `IconFluidRenderer` + `IconGlFallback.renderFluidAwareSlotIcon` / `renderRegistryFluidIcon`; **`nei` only**; `/textech web icons local` writes `icons-local/`; `PacketWebIconPullZip` (49) for pull
 - **Production stability (full GTNH pack)**:
   - `IconRenderGuard` — after each off-screen GL/FBO export: finish dangling `Tessellator` draws, reset stencil/depth/blend pollution, restore the main framebuffer (prevents `Already tesselating!` and square / AE-terminal-shaped holes in batch-exported PNGs)
   - `IconNesqlStyleRenderer` — per-icon `glPushAttrib` + `clearFboBuffers` (COLOR|DEPTH|STENCIL) to isolate custom `IItemRenderer` state
-  - `IconLazyRenderQueue` — client-side lazy-load queue, max 2 icon renders per tick; `PacketWebIconRequest` no longer blocks the main thread synchronously; bulk `/admweb icons upload` clears the queue and pauses lazy work
+  - `IconLazyRenderQueue` — client-side lazy-load queue, max 2 icon renders per tick; `PacketWebIconRequest` no longer blocks the main thread synchronously; bulk `/textech web icons upload` clears the queue and pauses lazy work
   - `PacketWebIconUploadAck` — suppresses chat spam for single-icon lazy completions (`1 icons stored`); bulk/multi-icon batch completions still notify in chat
-  - **Recommendation**: close the WebAE browser tab before full-pack export; prefer `/admweb icons upload snapshot default` or `/admweb icons import-nesql` instead of enumerating 40k+ items at once
-- **Commands**: `/admweb icons upload [pack]`, `/admweb icons upload snapshot [pack]`, `/admweb icons import-nesql [pack] [subpath]`, `/admweb icons import <folder> [pack]`, `/admweb icons modes`, `/admweb icons status`, `/admweb icons clear` (async; does not block the server thread)
+  - **Recommendation**: close the WebAE browser tab before full-pack export; prefer `/textech web icons upload snapshot default` or `/textech web icons import-nesql` instead of enumerating 40k+ items at once
+- **Commands**: `/textech web icons upload [pack]`, `/textech web icons upload snapshot [pack]`, `/textech web icons import-nesql [pack] [subpath]`, `/textech web icons import <folder> [pack]`, `/textech web icons modes`, `/textech web icons status`, `/textech web icons clear` (async; does not block the server thread)
 - **NESQL import**: `WebAeLocalDataDir` + `NesqlIconImporter` reads pre-rendered PNGs from `nesqlRepositoryPath` (empty → `TeXTech/WebAE/`); incremental, skips existing icons
 - **Lazy-load SSE**: **opt-in** via `iconLazyCaptureEnabled` (default false) + chat consent (resource-pack notice) → `IconMissingQueue` dispatches → `IconLazyRenderQueue` → SSE `icon-ready`. Not the default HTTP miss path.
 - **Active resolve chain**: fluid specials → NESQL `drawItem` FBO → placeholder; archived chain in `resolveLegacy`
@@ -1080,11 +1080,11 @@ Total gzip size ~450KB, fully offline-packaged (no CDN dependencies). Build comm
 |-------|---------------|-------|
 | `localhost:8090` unresponsive after startup | `enabled=false` | Check `config/textech/textech.cfg` `[webConsole] enabled` |
 | Port in use | Another service occupies 8090 | Change `port` config |
-| Authentication failure (401) | Token expired or revoked | Run `/admweb issue` to regenerate; check `code` field (`token_expired` vs `invalid_token`) |
-| Refresh returns 403 | Non-OP trying admin refresh | Use `/admweb refresh` in-game instead |
+| Authentication failure (401) | Token expired or revoked | Run `/textech web issue` to regenerate; check `code` field (`token_expired` vs `invalid_token`) |
+| Refresh returns 403 | Non-OP trying admin refresh | Use `/textech web refresh` in-game instead |
 | Storage/power shows empty briefly | Cache cold-starting | Wait one `refreshIntervalMs` cycle; the scheduler only collects active networks |
 | Storage/power persistently empty | AE2 network not connected or no active network | Open the web console / select a network so `SnapshotScheduler.markActive` runs |
-| Recipe search returns no results | Not uploaded / did not Fetch recipes / empty IndexedDB / exact search on displayName | OP `/admweb recipes upload snapshot` (or `upload`), then **Fetch recipes** on the Recipes page; enable `[debug] debugWebae=true` for NEI collection logs |
+| Recipe search returns no results | Not uploaded / did not Fetch recipes / empty IndexedDB / exact search on displayName | OP `/textech web recipes upload snapshot` (or `upload`), then **Fetch recipes** on the Recipes page; enable `[debug] debugWebae=true` for NEI collection logs |
 | Icons show as text abbreviations | Auth failure / pack-name mismatch / itemId format mismatch | v3.0 fixed: `WebAuthMiddleware` supports `?token=` query parameter fallback, frontend Icon component auto-appends token; confirm `AeSnapshotCollector` uses registry names; check `TeXTech/WebAE/icons/default-pack.txt` |
 | Chat messages don't appear | Not uploaded or token has no playerUuid | Confirm `ChatMessageStore` persisted `web-chat.json`; check `/api/chat/since` response; in-game messages require `sendChatMsg` broadcast |
 | Player avatars fall back to initials | Offline mode or GameProfile has no textures | `SkinUrlResolver` returning null for offline players is expected; for online players check the GameProfile textures property |

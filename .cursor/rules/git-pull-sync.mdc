@@ -45,8 +45,8 @@ git log -1 --oneline
 直连 `git fetch` 失败后，**立即**用 ghproxy 镜像（本环境 2026-07 已验证可用）：
 
 ```powershell
-$origin = "https://github.com/ImgoodWK/AdvanceDataMonitor429.git"
-git remote set-url origin "https://ghproxy.net/https://github.com/ImgoodWK/AdvanceDataMonitor429.git"
+$origin = "https://github.com/ImgoodWK/TeXTech-GTNH.git"
+git remote set-url origin "https://ghproxy.net/https://github.com/ImgoodWK/TeXTech-GTNH.git"
 git fetch origin --prune    # required_permissions: ["all"]；可能需 2–4 分钟
 git remote set-url origin $origin
 git reset --hard origin/master   # 若用户要求以 GitHub 为准
@@ -62,7 +62,7 @@ git reset --hard origin/master   # 若用户要求以 GitHub 为准
 
 Shell 无法连 GitHub 时，可用 **WebFetch** 查 API（Agent 侧通道，非本机 curl）：
 
-`https://api.github.com/repos/ImgoodWK/AdvanceDataMonitor429/commits/master`
+`https://api.github.com/repos/ImgoodWK/TeXTech-GTNH/commits/master`
 
 对比本地 `git rev-parse HEAD` 与 API 返回的 `sha`，判断是否真的落后。
 
@@ -101,7 +101,7 @@ Shell 无法连 GitHub 时，可用 **WebFetch** 查 API（Agent 侧通道，非
 
 已记录：
 
-- **2026-07-23**：直连 `github.com:443` 失败；`ghproxy.net` fetch 约 4 分钟后 `HTTP/2 stream … INTERNAL_ERROR` / `early EOF` → 改用 `https://gh-proxy.com/https://github.com/ImgoodWK/AdvanceDataMonitor429.git` + `git -c http.version=HTTP/1.1 fetch`（约 16s）成功 → `reset --hard origin/master` 对齐 `c4fed0e`；完成后恢复 origin 正常 URL。
+- **2026-07-23**：旧仓库名时期直连 `github.com:443` 失败；`ghproxy.net` fetch 约 4 分钟后 `HTTP/2 stream … INTERNAL_ERROR` / `early EOF` → 改用代理 + `git -c http.version=HTTP/1.1 fetch`（约 16s）成功 → 对齐当时的 `origin/master`；完成后恢复 origin 正常 URL。仓库现已迁移为 `ImgoodWK/TeXTech-GTNH`。
 - **2026-07-13**：Windows 直连 `github.com:443` 超时 → `ghproxy.net` 前缀 URL + `git fetch`（约 3.7 分钟）成功 → `reset --hard origin/master` 对齐 `f823bd4`；zip 镜像下载两次均超时勿作首选。
 
 ### 何时写入

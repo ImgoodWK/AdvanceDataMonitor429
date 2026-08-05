@@ -1,4 +1,4 @@
-# TeXTech / AdvanceDataMonitor429 Agent Guidance
+# TeXTech-GTNH Agent Guidance
 
 This is the Codex entry point for the repository. Keep it short and use the
 existing `.cursor/rules/` files as detailed, shared project knowledge. Cursor
@@ -97,9 +97,8 @@ Before finishing a behavior-changing task, inspect the final diff and confirm
 that code, docs, manual, language keys, and rules are either synchronized or
 explicitly noted as not applicable.
 
-The GitHub gate is `.github/workflows/doc-check-and-webae.yml`. It runs the
-documentation checker for every pull request and for pushes to `main` or
-`master`. Repository administrators should mark
-`Doc check and WebAE frontend / doc-check` as a required status check on the
-protected default branch; this setting cannot be enforced by a repository
-file alone.
+The GitHub gate is `.github/workflows/ci.yml`. It runs the documentation
+checker for every pull request and for pushes to `master`. Repository
+administrators should mark `TeXTech CI / Documentation` as a required status
+check on the protected default branch; this setting cannot be enforced by a
+repository file alone.

@@ -40,4 +40,4 @@ Notes 建议：新增功能、修复、依赖/工具链说明。
 ## 相关
 
 - PR：按用户 creating-pull-requests 规则用 `gh pr create`
-- 文档门禁：先 `@textech-doc-sync-pr` / CI `doc-check-and-webae.yml`
+- 文档门禁：先 `@textech-doc-sync-pr` / CI `ci.yml` 的 `Documentation` Job

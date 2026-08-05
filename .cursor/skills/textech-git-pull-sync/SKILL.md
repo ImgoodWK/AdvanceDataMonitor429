@@ -32,8 +32,8 @@ git log HEAD..origin/master --oneline
 ## 镜像恢复（直连失败）
 
 ```powershell
-$origin = "https://github.com/ImgoodWK/AdvanceDataMonitor429.git"
-git remote set-url origin "https://ghproxy.net/https://github.com/ImgoodWK/AdvanceDataMonitor429.git"
+$origin = "https://github.com/ImgoodWK/TeXTech-GTNH.git"
+git remote set-url origin "https://ghproxy.net/https://github.com/ImgoodWK/TeXTech-GTNH.git"
 git fetch origin --prune
 git remote set-url origin $origin
 # 仅当用户明确「以 GitHub 为准」：
@@ -52,4 +52,4 @@ git remote set-url origin $origin
 
 ## 辅助
 
-无法 curl 时可用 WebFetch：`https://api.github.com/repos/ImgoodWK/AdvanceDataMonitor429/commits/master` 对比本地 `git rev-parse HEAD`。
+无法 curl 时可用 WebFetch：`https://api.github.com/repos/ImgoodWK/TeXTech-GTNH/commits/master` 对比本地 `git rev-parse HEAD`。

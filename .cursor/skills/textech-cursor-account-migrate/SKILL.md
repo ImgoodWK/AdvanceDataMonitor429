@@ -69,11 +69,11 @@ Migrate restore:
 
 旧账号里的 Automation **不会**自动出现在新账号。用 `@textech-cursor-automations` 或按下面名称重开：
 
-1. **TeXTech PR 文档门禁** — PR 打开/推送 → doc-check → PR 评论  
-2. **TeXTech WebAE 前端检查** — PR → `webae-frontend` npm ci/build/test  
-3. **TeXTech Release 提醒** — push `master` → README/发版清单  
+1. **TeXTech PR 文档门禁** — PR 打开/推送 → doc-check → PR 评论
+2. **TeXTech WebAE 前端检查** — PR → `webae-frontend` npm ci/build/test
+3. **TeXTech Release 提醒** — push `master` → README/发版清单
 
-仓库：`ImgoodWK/AdvanceDataMonitor429`，默认分支 `master`。
+仓库：`ImgoodWK/TeXTech-GTNH`，默认分支 `master`。
 
 Agent：一次只 `open_automation` 一条；用户保存后再开下一条。
 
@@ -81,12 +81,12 @@ Agent：一次只 `open_automation` 一条；用户保存后再开下一条。
 
 ## 刻意不迁移
 
-- admweb **RCON**（项目未实现）  
-- 旧账号 Cloud 对话历史（一般不可搬）  
+- admweb **RCON**（项目未实现）
+- 旧账号 Cloud 对话历史（一般不可搬）
 - 本机 `run/TeXTech/WebAE/web-tokens.json`（跟游戏实例，不跟 Cursor 账号）
 
 ## 完成后对用户说
 
-- 项目 MCP / Skill / 规则：已随仓库恢复（或列出仍缺的）  
-- Automation：已重开几条 / 还差几条  
-- Dashboard MCP：还需用户在设置里点的项  
+- 项目 MCP / Skill / 规则：已随仓库恢复（或列出仍缺的）
+- Automation：已重开几条 / 还差几条
+- Dashboard MCP：还需用户在设置里点的项

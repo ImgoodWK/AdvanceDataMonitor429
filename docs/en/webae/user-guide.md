@@ -41,7 +41,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Server Console | Admins run server commands on demand, save shared presets, filter online/offline/all players, and insert names or UUIDs; includes confirmation and bounded auditing |
 | QQ Group Bot | Configure an official QQ Open Platform bot for player count/TPS/online list/memory/uptime queries, AI chat, scheduled reports, announcements, and audit |
 | Chat | Web-to-in-game chat bridge with online player list |
-| Command Upload | OPs run `/admweb recipes upload` and `/admweb icons upload` (no in-game keybind) |
+| Command Upload | OPs run `/textech web recipes upload` and `/textech web icons upload` (no in-game keybind) |
 
 Default URL: `http://127.0.0.1:8090` (port is configurable).
 
@@ -103,7 +103,7 @@ sparkMaxDurationSeconds=300
 - `recipeCacheMode`: `full` (GTNH default, no LRU eviction) or `lru` (evict when `maxRecipeCacheMB` exceeded; only while server memory is loaded).
 - `recipeKeepMemoryAfterUpload`: keep full recipes in server heap after upload/save; default `false` (clear heap; browsers sync via **Fetch recipes**).
 - `recipeSyncChunkSize`: recipes per browser-sync chunk (default 400).
-- `nesqlRepositoryPath`: NESQL repo root for `/admweb icons import-nesql`. **When empty**, defaults to `<instance>/TeXTech/WebAE/` (`.minecraft/TeXTech/WebAE/` on client; same folder name under server root on dedicated servers; same as client recipe export).
+- `nesqlRepositoryPath`: NESQL repo root for `/textech web icons import-nesql`. **When empty**, defaults to `<instance>/TeXTech/WebAE/` (`.minecraft/TeXTech/WebAE/` on client; same folder name under server root on dedicated servers; same as client recipe export).
 - `bindAddress=127.0.0.1` is localhost only; set `0.0.0.0` for LAN (use a firewall).
 - `aiServerKeyEnabled`: allow admin-managed shared AI profiles on the server (default true; false when migrating from legacy `aiKeyMode=browser`).
 - `aiBrowserKeyEnabled`: allow per-browser personal AI profiles in localStorage (default false; true when migrating from legacy `aiKeyMode=browser`). Both may be enabled; when both are on, Settings → AI & API chooses the preferred source for this browser.
@@ -122,50 +122,50 @@ Full config reference: [Developer Guide §4](developer-guide.md#4-configuration)
 
 ## 3. Get an Access Token
 
-**Command index**: run `/textech help` in-game (aliases `/adm help`, `/txt help`) for all TeXTech commands; use `/xxx help` on each command for full usage (follows game language: en/zh).
+**Command index**: run `/textech help` in-game (aliases `/adm`, `/txt`) to list every command domain. The branded Web entry point is `/textech web …`; the legacy roots `/admweb`, `/adm-web`, and `/webconsole` remain available for compatibility.
 
 The Web Console requires token authentication. Use commands in-game (or from server console):
 
 | Command | Description |
 |---------|-------------|
-| `/admweb issue` | Issue an **owner** token (requires at least one Advance Data Monitor you own) |
-| `/admweb login` | Generate a **6-digit browser login code** (5 min TTL, single use; no OP token required) |
-| `/admweb guest <player>` | Monitor owner sends a **read-only guest** token privately to an **online** player (only the owner's allowed AE networks) |
-| `/admweb copy` | Copy your active token to clipboard |
-| `/admweb list` | List tokens with type, owner, actor (OP only) |
-| `/admweb revoke [guestName]` | Revoke your owner token; owners revoke guest tokens; OP can revoke others |
-| `/admweb reload` | Reload TeXTech config; `enabled`/`port`/`bindAddress` still need restart (OP only) |
-| `/admweb refresh [network]` | Admin force re-collect snapshots (OP only) |
-| `/admweb server status` | Show WebAE HTTP server state |
-| `/admweb server restart` | Restart HTTP server (OP only) |
-| `/admweb recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload to server disk; also writes `<instance>/TeXTech/WebAE/web-recipes.json` on the client; web UI still needs **Fetch recipes**; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
-| `/admweb recipes status` | Show recipe cache status (incl. disk size) |
-| `/admweb recipes clear` | Clear recipe memory + disk cache (OP only) |
-| `/admweb icons upload [pack]` / `upload snapshot [pack]` | **OP** triggers client render/upload to the server |
-| `/admweb icons local [pack]` / `local snapshot [pack]` | Any online player: render to this PC `TeXTech/WebAE/icons-local/` (no upload) |
-| `/admweb icons pull [pack]` | Any online player: download server PNGs into `icons-local/` |
-| `/admweb icons y` / `n` | Lazy-capture consent (only when `iconLazyCaptureEnabled=true`) |
-| `/admweb icons render <itemId> [pack]` | **OP** render and upload a single item icon |
-| `/admweb icons verify <itemId> [pack]` | Open icon verify GUI |
-| `/admweb icons import <folder> [pack]` | **OP** import PNGs from a local folder |
-| `/admweb icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/`; incremental) |
-| `/admweb icons modes` | List icon render mode (nei only) |
-| `/admweb icons status` | List installed icon packs and config state |
-| `/admweb icons clear` | Delete all icon packs (OP only; async, does not freeze the game; chat notifies when done) |
-| `/admweb worldmap upload [networkId]` | Upload world map snapshot (must be near AE network; client capture) |
-| `/admweb worldmap accept <requestId>` | Accept a guest/web map upload request (legacy) |
-| `/admweb wm y [id]` | **Recommended** accept upload; id optional; same as clicking Accept in chat |
-| `/admweb wm n [id]` | Decline upload request |
-| `/admweb wm up [networkId]` | Same as `worldmap upload` |
-| `/admweb wm st [networkId]` | Same as `worldmap status` |
-| `/admweb worldmap status [networkId]` | Map snapshot capture status |
-| `/admweb worldmap status [networkId]` | Show map snapshot capture status |
-| `/admweb help` | Show usage (incl. recipes/icons/worldmap/server grouped help) |
+| `/textech web issue` | Issue an **owner** token (requires at least one Advance Data Monitor you own) |
+| `/textech web login` | Generate a **6-digit browser login code** (5 min TTL, single use; no OP token required) |
+| `/textech web guest <player>` | Monitor owner sends a **read-only guest** token privately to an **online** player (only the owner's allowed AE networks) |
+| `/textech web copy` | Copy your active token to clipboard |
+| `/textech web list` | List tokens with type, owner, actor (OP only) |
+| `/textech web revoke [guestName]` | Revoke your owner token; owners revoke guest tokens; OP can revoke others |
+| `/textech web reload` | Reload TeXTech config; `enabled`/`port`/`bindAddress` still need restart (OP only) |
+| `/textech web refresh [network]` | Admin force re-collect snapshots (OP only) |
+| `/textech web server status` | Show WebAE HTTP server state |
+| `/textech web server restart` | Restart HTTP server (OP only) |
+| `/textech web recipes upload [snapshot\|deep]` / `export` | **OP** triggers client NEI collection and upload to server disk; also writes `<instance>/TeXTech/WebAE/web-recipes.json` on the client; web UI still needs **Fetch recipes**; `snapshot` = storage-related items only (recommended daily); `deep` = full NEI item scan (slow) |
+| `/textech web recipes status` | Show recipe cache status (incl. disk size) |
+| `/textech web recipes clear` | Clear recipe memory + disk cache (OP only) |
+| `/textech web icons upload [pack]` / `upload snapshot [pack]` | **OP** triggers client render/upload to the server |
+| `/textech web icons local [pack]` / `local snapshot [pack]` | Any online player: render to this PC `TeXTech/WebAE/icons-local/` (no upload) |
+| `/textech web icons pull [pack]` | Any online player: download server PNGs into `icons-local/` |
+| `/textech web icons y` / `n` | Lazy-capture consent (only when `iconLazyCaptureEnabled=true`) |
+| `/textech web icons render <itemId> [pack]` | **OP** render and upload a single item icon |
+| `/textech web icons verify <itemId> [pack]` | Open icon verify GUI |
+| `/textech web icons import <folder> [pack]` | **OP** import PNGs from a local folder |
+| `/textech web icons import-nesql [pack] [subpath]` | **OP** imports pre-rendered PNGs from `nesqlRepositoryPath` (default `TeXTech/WebAE/`; incremental) |
+| `/textech web icons modes` | List icon render mode (nei only) |
+| `/textech web icons status` | List installed icon packs and config state |
+| `/textech web icons clear` | Delete all icon packs (OP only; async, does not freeze the game; chat notifies when done) |
+| `/textech web worldmap upload [networkId]` | Upload world map snapshot (must be near AE network; client capture) |
+| `/textech web worldmap accept <requestId>` | Accept a guest/web map upload request (legacy) |
+| `/textech web wm y [id]` | **Recommended** accept upload; id optional; same as clicking Accept in chat |
+| `/textech web wm n [id]` | Decline upload request |
+| `/textech web wm up [networkId]` | Same as `worldmap upload` |
+| `/textech web wm st [networkId]` | Same as `worldmap status` |
+| `/textech web worldmap status [networkId]` | Map snapshot capture status |
+| `/textech web worldmap status [networkId]` | Show map snapshot capture status |
+| `/textech web help` | Show usage (incl. recipes/icons/worldmap/server grouped help) |
 
 **Token types**
 
 - **Owner token**: bound to the monitor owner UUID; read/write all AE networks linked to their monitors; **owner need not be online**.
-- **Guest token**: issued via `/admweb guest`; read-only and limited to the owner's network allowlist. Guests cannot refresh, upload, submit orders, write patterns, or perform other mutations; chat still shows the guest name.
+- **Guest token**: issued via `/textech web guest`; read-only and limited to the owner's network allowlist. Guests cannot refresh, upload, submit orders, write patterns, or perform other mutations; chat still shows the guest name.
 - Tokens persist in `TeXTech/WebAE/web-tokens.json`; legacy entries migrate to `type: owner` on load.
 
 **Offline access & chunks**
@@ -179,9 +179,9 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 
 1. Confirm the server is running with `enabled=true`
 2. Open `http://127.0.0.1:8090` (or your configured address/port)
-3. Enter the token from `/admweb issue` on the login page
+3. Enter the token from `/textech web issue` on the login page
 4. The token is stored in browser `localStorage`; **auto-login** (default on) reconnects on next visit
-5. If the token expires or is revoked, the login page clears it — re-issue with `/admweb issue`
+5. If the token expires or is revoked, the login page clears it — re-issue with `/textech web issue`
 6. To switch tokens, enter a new one in Settings for immediate reconnect
 7. Disable auto-login in Settings if preferred
 
@@ -214,30 +214,30 @@ Lists online machines with name, progress, recipe, and input/output slots. Filte
 Recipes are not kept in server heap for the browser to query continuously. Flow: **OP uploads in-game → server writes disk → player clicks Fetch recipes on the Recipes page → chunks land in this browser’s IndexedDB → local browse/search**.
 
 - On the Recipes page, click toolbar **Fetch recipes** when a new server revision is available (progress bar; cancellable). Then use fuzzy search, category multi-select, Full/Merged and Compact/Detailed layouts against the local store; no automatic re-download while revision is unchanged.
-- OP must run `/admweb recipes upload snapshot` (recommended) or `upload` (full) first; collection also writes `.minecraft/TeXTech/WebAE/web-recipes.json` on the client (plain JSON backup).
-- Changing browsers or clearing site data requires Fetch again. Server `/admweb recipes clear` does not wipe browser IndexedDB.
+- OP must run `/textech web recipes upload snapshot` (recommended) or `upload` (full) first; collection also writes `.minecraft/TeXTech/WebAE/web-recipes.json` on the client (plain JSON backup).
+- Changing browsers or clearing site data requires Fetch again. Server `/textech web recipes clear` does not wipe browser IndexedDB.
 
 ### Item Icons & Texture Packs
 
 Real game icons in tables and recipes; abbreviation fallback on failure. Resolution order: **local folder → IndexedDB → server disk → abbreviation** (lazy capture off by default).
 
-- **Local folder**: Settings → pick `TeXTech/WebAE/icons-local/` (Chrome/Edge; https or localhost; on LAN http://IP use ZIP import). Any player: `/admweb icons local` or `/admweb icons pull`.
-- **Local first**: Directory/IndexedDB hits skip the server; OP `/admweb icons upload` or import fills server disk.
+- **Local folder**: Settings → pick `TeXTech/WebAE/icons-local/` (Chrome/Edge; https or localhost; on LAN http://IP use ZIP import). Any player: `/textech web icons local` or `/textech web icons pull`.
+- **Local first**: Directory/IndexedDB hits skip the server; OP `/textech web icons upload` or import fills server disk.
 - **Auto-sync (off by default)**: Settings bulk-download into IndexedDB when the pack revision changes.
 - **Manual fetch**: Sync full pack; Fill visible missing only requests existing PNGs (does not imply in-game render).
 - **Server cache**: OP upload / import-nesql; render mode fixed to **`nei`** (64×64 NESQL FBO). If PNGs on disk show square/odd-shaped holes, re-run upload with a fixed mod build to overwrite; for intermittent wrong icons in the browser, **Ctrl+F5** or clear IndexedDB / re-pick the local icon folder.
-- **GT++ (miscutils) missing ingot/plate/rod icons**: Older full-pack uploads skipped stacks with `getIconIndex==null` (dusts kept, metal forms dropped). On-disk `itemDustMix*` is the special "Mix" dust, **not** a misnamed ingot. Re-run `/admweb icons upload snapshot` (preferred) or a full `upload` on a current build, then Ctrl+F5.
+- **GT++ (miscutils) missing ingot/plate/rod icons**: Older full-pack uploads skipped stacks with `getIconIndex==null` (dusts kept, metal forms dropped). On-disk `itemDustMix*` is the special "Mix" dust, **not** a misnamed ingot. Re-run `/textech web icons upload snapshot` (preferred) or a full `upload` on a current build, then Ctrl+F5.
 - **Whole GT meta series showing abbreviations**: the frontend used to mark bare `gregtech:gt.metaitem.01` failed when one meta id failed, blocking sibling metas. Current builds only mark `:0` equivalents; hard-refresh to clear poisoned state.
 - **Async fill (opt-in)**: `iconLazyCaptureEnabled` default **false**. When on, miss enqueues after chat consent (resource-pack notice). Direct render still default **false**.
-- **Multiplayer tip**: OP `/admweb icons upload snapshot` once; players use local/folder/ZIP.
+- **Multiplayer tip**: OP `/textech web icons upload snapshot` once; players use local/folder/ZIP.
 
 ### Local data folder `TeXTech/WebAE/`
 
 | Path | Purpose |
 |------|---------|
-| Client `.minecraft/TeXTech/WebAE/web-recipes.json` | NEI recipe JSON written after `/admweb recipes upload*` |
+| Client `.minecraft/TeXTech/WebAE/web-recipes.json` | NEI recipe JSON written after `/textech web recipes upload*` |
 | Server `TeXTech/WebAE/web-recipes.json` + `.meta.json` + `recipe-chunks/` | Server authoritative cache; browsers pull chunks via **Fetch recipes** |
-| Server `<instance>/TeXTech/WebAE/` (or configured `nesqlRepositoryPath`) | NESQL pre-rendered PNGs for `/admweb icons import-nesql` (often under `images/`) |
+| Server `<instance>/TeXTech/WebAE/` (or configured `nesqlRepositoryPath`) | NESQL pre-rendered PNGs for `/textech web icons import-nesql` (often under `images/`) |
 | Server `TeXTech/WebAE/qq-bot.json` + `qq-bot-master.key` | Non-secret QQ bot settings plus AES-GCM master key; ClientSecret is stored only as ciphertext and never returned by the API |
 
 The folder is created automatically on first use.
@@ -352,7 +352,7 @@ WebAE admins configure the official QQ Open Platform bot under **Admin Console �
 - **AI chat**: `/ai <question>` uses the server-side shared AI profiles managed by WebAE. Natural-language auto-reply and shared web search are optional. Conversation history is isolated by target plus QQ user, bounded by turns and TTL, and protected by a separate AI cooldown. `/reset` clears only that user's current session.
 - **Security scope**: allowlist group openids, user openids, and bot-admin user openids. Bot admins receive bot-only management hints; they are never granted Minecraft OP and QQ cannot execute arbitrary server commands. AI receives only a bounded read-only snapshot such as TPS, players, online names, uptime, and JVM memory.
 - **Reports and announcements**: schedule status reports to `group:<openid>`, `c2c:<openid>`, or `channel:<id>` with a minimum five-minute interval, and send manual announcements/tests from the admin console. QQ HTTP, AI, and send work use a bounded background queue and never block server ticks.
-- **In-game manual messages**: OPs can enqueue text with `/admweb qq send [group|c2c|channel] <openid> <message>`, inspect connection/queue state with `/admweb qq status`, and start an asynchronous reconnect with `restart`. Queue acceptance is not final QQ delivery.
+- **In-game manual messages**: OPs can enqueue text with `/textech web qq send [group|c2c|channel] <openid> <message>`, inspect connection/queue state with `/textech web qq status`, and start an asynchronous reconnect with `restart`. Queue acceptance is not final QQ delivery.
 - **Operations**: the runtime tab shows connection phase, reconnect time, receive/reply/AI/failure/drop/rate-limit counters, queue depth, and a short in-memory audit ring. ClientSecret is encrypted server-side and shown only as a mask; deleting it also disables the bot.
 
 Group/user openids and channel IDs can be captured with **Settings → Automation Alerts → QQ official bot → Capture target ID**. The bot still needs matching event permissions in QQ Open Platform; group messages normally require an @ mention and proactive reports remain subject to platform permissions and rate limits.
@@ -391,7 +391,7 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
   - **Export JSON**: one-shot backup of theme, Browsing mode, per-page layouts (main dashboard, Storage/CPU/Power overviews, topology, quest book, recipes, chat, etc.), refresh and debug preferences; optionally presets and server data (favorites, order templates; alert rules require OP).
   - **Import JSON**: preview affected sections, optional merge mode; reload the page afterward for GridStack layouts to fully apply.
   - **Restore pack defaults**: re-applies server `ui-defaults.json` (instance `TeXTech/WebAE/ui-defaults.json` first, else mod jar bundled file).
-- **Pack authors**: export JSON from WebAE Settings, place at `TeXTech/WebAE/ui-defaults.json` or have an Agent write `assets/textech/webae/ui-defaults.json`; first-time visitors with no existing browser prefs apply it automatically. OP can also run `/admweb defaults install <path>`.
+- **Pack authors**: export JSON from WebAE Settings, place at `TeXTech/WebAE/ui-defaults.json` or have an Agent write `assets/textech/webae/ui-defaults.json`; first-time visitors with no existing browser prefs apply it automatically. OP can also run `/textech web defaults install <path>`.
 
 ---
 
@@ -402,9 +402,9 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 - **Mandatory auth**: all `/api/` endpoints require a token; force-refresh needs OP/admin grant
 - **Layered access**: admins can ban a player account (kick to login), suspend one AE network for everyone including the owner (in-game AE unaffected), or limit guest tokens to selected networks
 - **Token security**: owner tokens can read/write within their authorized scope; guest tokens are read-only and limited by the network allowlist. Store tokens securely and revoke them immediately if compromised.
-- **Recipes need upload + Fetch**: after OP `/admweb recipes upload`, each player clicks **Fetch recipes** on the Recipes page to sync into browser IndexedDB
-- **Icon upload**: OP runs `/admweb icons upload [packName]`; frontend auto-selects the server's most recent pack on first load
-- **reload limits**: `/admweb reload` does not rebind the web server; tokens and runtime data files are unaffected
+- **Recipes need upload + Fetch**: after OP `/textech web recipes upload`, each player clicks **Fetch recipes** on the Recipes page to sync into browser IndexedDB
+- **Icon upload**: OP runs `/textech web icons upload [packName]`; frontend auto-selects the server's most recent pack on first load
+- **reload limits**: `/textech web reload` does not rebind the web server; tokens and runtime data files are unaffected
 
 ---
 
