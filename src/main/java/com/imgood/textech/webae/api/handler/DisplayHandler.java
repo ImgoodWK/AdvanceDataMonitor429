@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.imgood.textech.webae.auth.WebAuthSession;
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
 import com.imgood.textech.webae.display.DisplayCaptureService;
 import com.imgood.textech.webae.display.DisplayRecord;
 import com.imgood.textech.webae.display.DisplayStore;
@@ -31,9 +32,11 @@ public final class DisplayHandler {
         String body, WebAuthSession auth, Map<String, String> headers) {
         if ("/api/display".equals(uri)) {
             if (method == NanoHTTPD.Method.POST) {
-                if (auth == null || auth.isGuest()) {
+                if (auth == null) {
                     return forbidden("Guest cannot publish displays");
                 }
+                NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+                if (guestDenied != null) return guestDenied;
                 return handlePublish(body, auth.ownerUuid, headers);
             }
             return methodNotAllowed("Use POST /api/display");
@@ -64,6 +67,11 @@ public final class DisplayHandler {
                 NanoHTTPD.Response.Status.UNAUTHORIZED,
                 "application/json",
                 "{\"success\":false,\"code\":\"invalid_display_token\",\"message\":\"Invalid display view token\"}");
+        }
+
+        if (method != NanoHTTPD.Method.GET) {
+            NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+            if (guestDenied != null) return guestDenied;
         }
 
         if (suffix.isEmpty() || "/".equals(suffix)) {
@@ -153,10 +161,7 @@ public final class DisplayHandler {
             return handleRender(record);
         }
         if ("/touch".equals(suffix) && method == NanoHTTPD.Method.POST) {
-            int width = parseInt(params != null ? params.get("width") : null, record.viewportWidth);
-            DisplayCaptureService.instance()
-                .touch(record.id, width);
-            return json(NanoHTTPD.Response.Status.OK, "{\"success\":true}");
+            return guestReadonly();
         }
         return null;
     }
@@ -341,7 +346,7 @@ public final class DisplayHandler {
     }
 
     private static boolean authorizeWrite(DisplayRecord record, Map<String, String> params, WebAuthSession auth) {
-        return authorizeRead(record, params, auth);
+        return auth != null && !auth.isGuest() && auth.ownerUuid != null && auth.ownerUuid.equals(record.ownerUuid);
     }
 
     private static boolean authorizeRead(DisplayRecord record, Map<String, String> params, WebAuthSession auth) {
@@ -351,6 +356,12 @@ public final class DisplayHandler {
             if (params != null) token = params.get("viewToken");
         }
         return token != null && token.equals(record.viewToken);
+    }
+
+    private static NanoHTTPD.Response guestReadonly() {
+        return json(
+            NanoHTTPD.Response.Status.FORBIDDEN,
+            "{\"success\":false,\"code\":\"guest_readonly\",\"message\":\"Guest token is read-only\"}");
     }
 
     private static JsonObject publicMeta(DisplayRecord record) {

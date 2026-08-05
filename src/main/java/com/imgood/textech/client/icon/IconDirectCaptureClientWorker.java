@@ -79,10 +79,6 @@ public final class IconDirectCaptureClientWorker {
     }
 
     private static void sendResponse(String requestId, byte[] png) {
-        PacketIconDirectCaptureResponse response = new PacketIconDirectCaptureResponse();
-        response.requestId = requestId;
-        response.success = png != null && png.length > 0;
-        response.png = png != null ? png : new byte[0];
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(response);
+        PacketIconDirectCaptureResponse.sendToServer(requestId, png);
     }
 }

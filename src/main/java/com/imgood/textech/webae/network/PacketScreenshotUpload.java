@@ -4,6 +4,9 @@ import java.nio.charset.StandardCharsets;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 
+import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.network.handler.PacketHandlers;
+import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.webae.screenshot.ScreenshotUploadService;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -15,7 +18,10 @@ import io.netty.buffer.ByteBuf;
 public final class PacketScreenshotUpload implements IMessage {
 
     public static final int MAX_CHUNK_BYTES = 24 * 1024;
+    public static final int MAX_PACKET_BODY_BYTES = 30000;
     private static final int MAX_ID_BYTES = 64;
+    private static final int MAX_DESTINATION_BYTES = 16;
+    private static final int MAX_TARGET_TYPE_BYTES = 16;
     private static final int MAX_TARGET_BYTES = 192;
     private static final int MAX_CAPTION_BYTES = 768;
     private static final int MAX_FILE_NAME_BYTES = 192;
@@ -54,34 +60,49 @@ public final class PacketScreenshotUpload implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
+        if (chunk == null || chunk.length == 0 || chunk.length > MAX_CHUNK_BYTES) {
+            throw new IllegalArgumentException("Screenshot chunk exceeds packet limit");
+        }
+        int start = buf.writerIndex();
         writeString(buf, uploadId, MAX_ID_BYTES);
         buf.writeInt(chunkIndex);
         buf.writeInt(totalChunks);
         buf.writeInt(totalBytes);
         if (chunkIndex == 0) {
-            writeString(buf, destination, 16);
-            writeString(buf, targetType, 16);
+            writeString(buf, destination, MAX_DESTINATION_BYTES);
+            writeString(buf, targetType, MAX_TARGET_TYPE_BYTES);
             writeString(buf, targetId, MAX_TARGET_BYTES);
             writeString(buf, caption, MAX_CAPTION_BYTES);
             writeString(buf, fileName, MAX_FILE_NAME_BYTES);
             buf.writeInt(width);
             buf.writeInt(height);
         }
-        int length = Math.min(MAX_CHUNK_BYTES, chunk.length);
-        buf.writeInt(length);
-        buf.writeBytes(chunk, 0, length);
+        buf.writeInt(chunk.length);
+        if (chunk.length > 0) buf.writeBytes(chunk);
+        if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
+            throw new IllegalArgumentException("Screenshot packet exceeds FML payload limit");
+        }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
+        malformed = false;
         try {
+            int start = buf.readerIndex();
             uploadId = readString(buf, MAX_ID_BYTES);
             chunkIndex = buf.readInt();
             totalChunks = buf.readInt();
             totalBytes = buf.readInt();
+            destination = "";
+            targetType = "";
+            targetId = "";
+            caption = "";
+            fileName = "";
+            width = 0;
+            height = 0;
             if (chunkIndex == 0) {
-                destination = readString(buf, 16);
-                targetType = readString(buf, 16);
+                destination = readString(buf, MAX_DESTINATION_BYTES);
+                targetType = readString(buf, MAX_TARGET_TYPE_BYTES);
                 targetId = readString(buf, MAX_TARGET_BYTES);
                 caption = readString(buf, MAX_CAPTION_BYTES);
                 fileName = readString(buf, MAX_FILE_NAME_BYTES);
@@ -89,13 +110,14 @@ public final class PacketScreenshotUpload implements IMessage {
                 height = buf.readInt();
             }
             int length = buf.readInt();
-            if (length < 0 || length > MAX_CHUNK_BYTES || length > buf.readableBytes()) {
-                malformed = true;
-                chunk = new byte[0];
-                return;
+            if (length <= 0 || length > MAX_CHUNK_BYTES || length > buf.readableBytes()) {
+                throw new IllegalArgumentException("Invalid screenshot chunk length");
             }
             chunk = new byte[length];
             buf.readBytes(chunk);
+            if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
+                throw new IllegalArgumentException("Screenshot packet has trailing bytes");
+            }
         } catch (RuntimeException error) {
             malformed = true;
             chunk = new byte[0];
@@ -104,20 +126,15 @@ public final class PacketScreenshotUpload implements IMessage {
 
     private static void writeString(ByteBuf buf, String value, int maxBytes) {
         byte[] bytes = safe(value).getBytes(StandardCharsets.UTF_8);
-        int length = Math.min(maxBytes, bytes.length);
-        buf.writeInt(length);
-        buf.writeBytes(bytes, 0, length);
+        if (bytes.length > maxBytes) {
+            throw new IllegalArgumentException("packet string exceeds limit");
+        }
+        buf.writeInt(bytes.length);
+        buf.writeBytes(bytes);
     }
 
     private static String readString(ByteBuf buf, int maxBytes) {
-        int length = buf.readInt();
-        if (length < 0 || length > maxBytes || length > buf.readableBytes()) {
-            throw new IllegalArgumentException("invalid string length");
-        }
-        if (length == 0) return "";
-        byte[] bytes = new byte[length];
-        buf.readBytes(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
+        return NetworkPacketCodec.readUtf8(buf, maxBytes);
     }
 
     private static String safe(String value) {
@@ -127,12 +144,21 @@ public final class PacketScreenshotUpload implements IMessage {
     public static final class Handler implements IMessageHandler<PacketScreenshotUpload, IMessage> {
 
         @Override
-        public IMessage onMessage(PacketScreenshotUpload message, MessageContext ctx) {
-            EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null ? null
+        public IMessage onMessage(final PacketScreenshotUpload message, MessageContext ctx) {
+            final EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null ? null
                 : ctx.getServerHandler().playerEntity;
-            if (player == null) return null;
-            return ScreenshotUploadService.instance()
-                .accept(player, message);
+            if (message == null || message.malformed || player == null || ctx == null) return null;
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
+
+                @Override
+                public void run() {
+                    IMessage ack = ScreenshotUploadService.instance()
+                        .accept(player, message);
+                    if (ack != null) {
+                        AdvanceDataMonitor.ADMCHANEL.sendTo(ack, player);
+                    }
+                }
+            });
         }
     }
 }

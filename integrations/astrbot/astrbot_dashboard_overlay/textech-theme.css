@@ -1,0 +1,56 @@
+:root {
+  color-scheme: dark;
+  --v-theme-background: 6, 16, 18 !important;
+  --v-theme-surface: 12, 27, 31 !important;
+  --v-theme-primary: 184, 242, 78 !important;
+  --v-theme-secondary: 104, 225, 209 !important;
+  --textech-bg: #061012;
+  --textech-panel: #0c1b1f;
+  --textech-panel-2: #102328;
+  --textech-line: #234047;
+  --textech-text: #edf7f5;
+  --textech-muted: #829c9d;
+  --textech-lime: #b8f24e;
+  --textech-cyan: #68e1d1;
+}
+
+html, body, #app, .v-application, .v-main {
+  color: var(--textech-text) !important;
+  background-color: var(--textech-bg) !important;
+}
+
+body {
+  background-image: linear-gradient(rgba(104, 225, 209, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(104, 225, 209, .025) 1px, transparent 1px), radial-gradient(circle at 12% 0, rgba(184, 242, 78, .1), transparent 32rem) !important;
+  background-size: 34px 34px, 34px 34px, auto !important;
+}
+
+.v-navigation-drawer, .v-app-bar, .v-toolbar, .v-card, .v-sheet, .v-menu > .v-overlay__content, .v-dialog > .v-overlay__content > * {
+  background-color: var(--textech-panel) !important;
+  border-color: var(--textech-line) !important;
+}
+
+.v-card, .v-sheet, .v-field, .v-list {
+  border-color: var(--textech-line) !important;
+}
+
+.v-list-item--active, .v-tab--selected {
+  color: var(--textech-lime) !important;
+  background: linear-gradient(90deg, rgba(184, 242, 78, .12), transparent) !important;
+}
+
+.v-btn--variant-elevated.bg-primary, .v-btn.bg-primary {
+  color: #101606 !important;
+  background: var(--textech-lime) !important;
+}
+
+.text-primary, a, .v-icon.text-primary {
+  color: var(--textech-lime) !important;
+}
+
+.text-secondary {
+  color: var(--textech-cyan) !important;
+}
+
+input, textarea, .v-field__input {
+  color: var(--textech-text) !important;
+}

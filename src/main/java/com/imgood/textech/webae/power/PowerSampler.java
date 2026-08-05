@@ -179,6 +179,9 @@ public class PowerSampler {
         long euVal = eu != null ? eu.longValue() : -1L;
         long euMaxVal = euMax != null ? euMax.longValue() : -1L;
         long steamVal = steam != null ? steam.longValue() : -1L;
+        if (steam != null) {
+            record.steamSupported = true;
+        }
 
         if (euVal >= 0 || steamVal >= 0) {
             record.addSample(
@@ -222,6 +225,7 @@ public class PowerSampler {
         volatile long lastEuValue;
         volatile long lastSteamValue;
         volatile long lastEuMax = -1L;
+        volatile boolean steamSupported;
 
         public PowerSnapshotRecord(long windowMs) {
             this.windowMs = windowMs;
@@ -255,6 +259,9 @@ public class PowerSampler {
             dto.euMax = lastEuMax >= 0 ? lastEuMax : 0L;
             dto.steamStored = latest != null ? latest.steamValue : 0L;
             dto.steamMax = 0L;
+            dto.steamSupported = steamSupported;
+            // SNL 0.2.5 exposes stored steam but no authoritative team capacity.
+            dto.steamCapacityKnown = false;
 
             if (latest != null && oldest != null && latest.timestamp > oldest.timestamp) {
                 double deltaSeconds = (latest.timestamp - oldest.timestamp) / 1000.0;

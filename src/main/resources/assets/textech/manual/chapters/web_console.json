@@ -43,8 +43,18 @@
     },
     {
       "type": "text",
+      "titleKey": "adm.manual.web_console.worldmap_versions_title",
+      "textKey": "adm.manual.web_console.worldmap_versions_text"
+    },
+    {
+      "type": "text",
       "titleKey": "adm.manual.web_console.phase3_title",
       "textKey": "adm.manual.web_console.phase3_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.cpu_history_title",
+      "textKey": "adm.manual.web_console.cpu_history_text"
     },
     {
       "type": "text",
@@ -118,6 +128,11 @@
     },
     {
       "type": "text",
+      "titleKey": "adm.manual.web_console.network_health_title",
+      "textKey": "adm.manual.web_console.network_health_text"
+    },
+    {
+      "type": "text",
       "titleKey": "adm.manual.web_console.qq_bot_title",
       "textKey": "adm.manual.web_console.qq_bot_text"
     },
@@ -130,6 +145,16 @@
       "type": "text",
       "titleKey": "adm.manual.web_console.extensions_title",
       "textKey": "adm.manual.web_console.extensions_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.safety_title",
+      "textKey": "adm.manual.web_console.safety_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.web_console.release_title",
+      "textKey": "adm.manual.web_console.release_text"
     }
   ]
 }

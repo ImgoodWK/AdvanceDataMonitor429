@@ -40,6 +40,11 @@ export interface WorldMapMarkerLayerProps {
   selectedNodeId: string | null;
   displaySettings: TopologyDisplaySettings;
   onMarkerClick: (marker: WorldMapMarkerDto, clientX: number, clientY: number) => void;
+  onMarkerContextMenu?: (
+    marker: WorldMapMarkerDto,
+    clientX: number,
+    clientY: number
+  ) => void;
   onClusterClick?: (
     clusterId: number,
     markers: WorldMapMarkerDto[],
@@ -107,6 +112,7 @@ function WorldMapMarkerLayerInner({
   selectedNodeId,
   displaySettings,
   onMarkerClick,
+  onMarkerContextMenu,
   onClusterClick,
 }: WorldMapMarkerLayerProps) {
   const { t } = useI18n();
@@ -211,6 +217,12 @@ function WorldMapMarkerLayerInner({
               onClick={(e) => {
                 e.stopPropagation();
                 onMarkerClick(marker, e.clientX, e.clientY);
+              }}
+              onContextMenu={(e) => {
+                if (!onMarkerContextMenu) return;
+                e.preventDefault();
+                e.stopPropagation();
+                onMarkerContextMenu(marker, e.clientX, e.clientY);
               }}
             >
               <Icon

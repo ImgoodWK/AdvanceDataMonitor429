@@ -2,6 +2,9 @@ package com.imgood.textech.webae.worldmap;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.TeXTechDataDir;
@@ -261,10 +264,7 @@ public final class WorldMapTileCache {
 
     private static File validateExistingFile(File file, String view, String layer, WorldMapQualityTier tier, int dim,
         int chunkX, int chunkZ, int zoomLevel) {
-        if (file.isFile() && file.length() >= WorldMapRenderSupport.MIN_VALID_TILE_BYTES) {
-            return file;
-        }
-        if (file.isFile() && isEmpty(view, layer, tier, dim, chunkX, chunkZ, zoomLevel)) {
+        if (file.isFile() && WorldMapRenderSupport.isValidTilePng(file)) {
             return file;
         }
         if (file.isFile() && file.length() > 0L) {
@@ -325,10 +325,31 @@ public final class WorldMapTileCache {
                     .warn("[WebAE] Failed to create world map tile dir: {}", parent.getAbsolutePath());
             }
         }
+        File temp = null;
         FileOutputStream fos = null;
         try {
-            fos = new FileOutputStream(file);
+            if (!WorldMapRenderSupport.isValidTilePng(png)) {
+                return;
+            }
+            if (parent == null) {
+                return;
+            }
+            temp = File.createTempFile("webae-tile-", ".tmp", parent);
+            fos = new FileOutputStream(temp);
             fos.write(png);
+            fos.flush();
+            fos.close();
+            fos = null;
+            try {
+                Files.move(
+                    temp.toPath(),
+                    file.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            temp = null;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error(
                 "[WebAE] Failed to write world map tile view={} layer={} tier={} dim={} cx={} cz={}",
@@ -344,6 +365,9 @@ public final class WorldMapTileCache {
                 try {
                     fos.close();
                 } catch (Exception ignored) {}
+            }
+            if (temp != null && temp.exists()) {
+                temp.delete();
             }
         }
     }

@@ -121,6 +121,8 @@ export interface PowerDto {
   euOutRate: number;
   steamStored: number;
   steamMax: number;
+  steamSupported: boolean;
+  steamCapacityKnown: boolean;
   steamInRate: number;
   steamOutRate: number;
   euHistory: number[];
@@ -398,6 +400,75 @@ export interface PatternInjectResult {
 export interface PatternInjectResponse {
   success: boolean;
   result?: PatternInjectResult;
+  message?: string;
+}
+
+/** One persisted CPU crafting lifecycle record returned by /api/network/cpu/history. */
+export interface CpuJobHistoryDto {
+  jobId: string;
+  ownerUuid?: string;
+  networkId: number;
+  networkKey?: string;
+  cpuName: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'stuck' | 'unknown' | string;
+  queuedAt: number;
+  startedAt: number;
+  finishedAt: number;
+  durationMs?: number | null;
+  queueMs?: number | null;
+  coProcessors?: number | null;
+  storageUsed?: number | null;
+  storageMax?: number | null;
+  progress?: number | null;
+  recipeKey?: string;
+}
+
+/** One sampled CPU state copied from the server's existing storage snapshot. */
+export interface CpuSnapshotHistoryDto {
+  timestamp: number;
+  cpuName: string;
+  busy: boolean;
+  storageUsed: number;
+  storageMax: number;
+  progress: number;
+  coProcessors: number;
+}
+
+export interface CpuHistoryResponse {
+  success: boolean;
+  schemaVersion?: number;
+  networkId: number;
+  networkKey?: string;
+  from: number;
+  to: number;
+  truncated: boolean;
+  jobs: CpuJobHistoryDto[];
+  snapshots: CpuSnapshotHistoryDto[];
+  message?: string;
+}
+
+export type CpuCapacityWindow = '1h' | '6h' | '24h' | '7d' | '14d';
+
+export interface CpuCapacityResponse {
+  success: boolean;
+  schemaVersion?: number;
+  networkId: number;
+  networkKey?: string;
+  window: CpuCapacityWindow | string;
+  from: number;
+  to: number;
+  currentCpuCount?: number | null;
+  peakConcurrent?: number | null;
+  p50DurationMs?: number | null;
+  p95DurationMs?: number | null;
+  p95QueueMs?: number | null;
+  busyRatio?: number | null;
+  storagePressure?: number | null;
+  stuckCount?: number | null;
+  coProcessorObservedMax?: number | null;
+  requiredCpuCountEstimate?: number | null;
+  bottlenecks: string[];
+  recommendations: string[];
   message?: string;
 }
 
@@ -1151,6 +1222,8 @@ export interface WorldMapAePlacementDto {
   y: number;
   z: number;
   dim: number;
+  /** Compatibility alias used by adapters that normalize `dim`. */
+  dimension?: number;
   kind?: string;
   className?: string;
   iconItemId?: string;
@@ -1417,6 +1490,179 @@ export interface WorldMapMarkersResponse {
   code?: string;
 }
 
+/** A persisted world-map snapshot/version exposed by the version browser. */
+export interface WorldMapVersionDto {
+  version: number;
+  timestamp: number;
+  source: string;
+  tilePx: number;
+  manifestAvailable: boolean;
+  logicalAvailable: boolean;
+}
+
+/** GET /api/worldmap/versions?network=<id>. */
+export interface WorldMapVersionsResponse {
+  success: boolean;
+  status?: string;
+  currentVersion?: number | null;
+  previousVersion?: number | null;
+  versions: WorldMapVersionDto[];
+  message?: string;
+  code?: string;
+}
+
+/** Logical data availability may be reported as one flag or per comparison side. */
+export type WorldMapLogicalAvailability =
+  | boolean
+  | {
+      from?: boolean;
+      to?: boolean;
+      current?: boolean;
+      previous?: boolean;
+    }
+  | null
+  | undefined;
+
+export type WorldMapTileChangeStatus = 'added' | 'removed' | 'changed' | 'unchanged' | string;
+
+export interface WorldMapTileChangeDto {
+  status: WorldMapTileChangeStatus;
+  key: string;
+  layer: string;
+  dimension?: number;
+  /** Older/Java DTOs serialize this field as `dim`. */
+  dim?: number;
+  chunkX: number;
+  chunkZ: number;
+  fromSha256?: string | null;
+  toSha256?: string | null;
+  fromSize?: number;
+  toSize?: number;
+}
+
+/** Marker shape used by the version diff API (dim is retained for old servers). */
+export interface WorldMapDiffMarkerDto {
+  id: string;
+  kind?: string;
+  /** World-map marker DTOs use `type`/`subtype`; diff adapters may use `kind`. */
+  type?: string;
+  subtype?: string;
+  className?: string;
+  iconItemId?: string;
+  displayName?: string;
+  nodeId?: string;
+  channelCost?: number;
+  x?: number;
+  y?: number;
+  z?: number;
+  dimension?: number;
+  dim?: number;
+  [key: string]: unknown;
+}
+
+export type WorldMapMarkerChangeStatus = 'added' | 'removed' | 'changed' | 'moved' | string;
+
+export interface WorldMapMarkerChangeDto {
+  status: WorldMapMarkerChangeStatus;
+  id?: string;
+  source?: string;
+  fromDim?: number;
+  fromX?: number;
+  fromY?: number;
+  fromZ?: number;
+  toDim?: number;
+  toX?: number;
+  toY?: number;
+  toZ?: number;
+  fromKind?: string;
+  toKind?: string;
+  fromClassName?: string;
+  toClassName?: string;
+  fromIconItemId?: string;
+  toIconItemId?: string;
+  from?: WorldMapDiffMarkerDto | null;
+  to?: WorldMapDiffMarkerDto | null;
+  fromPlacement?: WorldMapAePlacementDto | null;
+  toPlacement?: WorldMapAePlacementDto | null;
+}
+
+export interface WorldMapDiffSummaryDto {
+  markersAdded: number;
+  markersRemoved: number;
+  markersChanged: number;
+  markersMoved: number;
+  tilesAdded: number;
+  tilesRemoved: number;
+  tilesChanged: number;
+  tilesUnchanged: number;
+  markerTotal: number;
+  tileTotal: number;
+  total: number;
+}
+
+/** GET /api/worldmap/diff?network=&from=&to=... . */
+export interface WorldMapVersionDiffResponse {
+  success: boolean;
+  status?: string;
+  code?: string;
+  fromVersion: number;
+  toVersion: number;
+  fromTimestamp?: number | null;
+  toTimestamp?: number | null;
+  summary?: WorldMapDiffSummaryDto | null;
+  markerChanges?: WorldMapMarkerChangeDto[] | null;
+  tileChanges?: WorldMapTileChangeDto[] | null;
+  logicalAvailable: WorldMapLogicalAvailability;
+  truncated?: boolean;
+  message?: string;
+}
+
+export interface WorldMapAnnotationDto {
+  id: string;
+  ownerUuid: string;
+  networkId: number;
+  dimension: number;
+  x: number;
+  y: number;
+  z: number;
+  label: string;
+  note: string;
+  color: string;
+  fromVersion?: number | null;
+  toVersion?: number | null;
+  createdAt?: number;
+  updatedAt?: number;
+  createdBy?: string;
+}
+
+/** POST /api/worldmap/annotations and PUT /api/worldmap/annotations/<id>. */
+export interface WorldMapAnnotationInput {
+  networkId: number;
+  dimension: number;
+  x: number;
+  y: number;
+  z: number;
+  label: string;
+  note: string;
+  color: string;
+  fromVersion?: number | null;
+  toVersion?: number | null;
+}
+
+export interface WorldMapAnnotationsResponse {
+  success: boolean;
+  annotations: WorldMapAnnotationDto[];
+  message?: string;
+  code?: string;
+}
+
+export interface WorldMapAnnotationResponse {
+  success: boolean;
+  annotation?: WorldMapAnnotationDto;
+  message?: string;
+  code?: string;
+}
+
 // Phase 3 integration DTOs
 export interface LinkScannerBlockDto {
   dimension: number;
@@ -1439,6 +1685,10 @@ export interface LinkScannerResponse {
 export interface MonitorDataBindingDto {
   slotIndex: number;
   dataType: string;
+  kind: MonitorWidgetKind;
+  sourceKind: MonitorSourceKind;
+  metricKey: string;
+  title: string;
   displayName: string;
   bindDim: number;
   bindX: number;
@@ -1446,6 +1696,8 @@ export interface MonitorDataBindingDto {
   bindZ: number;
   enabled: boolean;
   networkWide?: boolean;
+  targetValue: number;
+  revision: number;
 }
 
 export interface MonitorGtBindingDto {
@@ -1805,6 +2057,49 @@ export interface PerfSlowHttpEntry {
   durationMs: number;
 }
 
+export type NetworkHealthStatus = 'healthy' | 'degraded' | 'failed' | 'unknown' | string;
+
+export interface NetworkHealthIssueDto {
+  code: string;
+  severity: 'info' | 'warning' | 'error' | 'unknown' | string;
+  messageKey?: string;
+  suggestionKey?: string;
+  evidence?: unknown;
+}
+
+export interface NetworkHealthDiagnosticDto {
+  schemaVersion: number;
+  ownerUuid: string;
+  networkId: number;
+  networkKey?: string | null;
+  status: NetworkHealthStatus;
+  checkedAt: number;
+  sampleAgeMs?: number | null;
+  stale: boolean;
+  links: {
+    registered?: boolean | null;
+    loaded?: boolean | null;
+    reachable?: boolean | null;
+  };
+  monitors: {
+    registered?: boolean | null;
+    bound?: boolean | null;
+    valid?: boolean | null;
+  };
+  grid: {
+    present?: boolean | null;
+    storageAvailable?: boolean | null;
+    craftingAvailable?: boolean | null;
+    connectorAvailable?: boolean | null;
+  };
+  channels: {
+    available?: boolean | null;
+    used?: number | null;
+    max?: number | null;
+  };
+  issues: NetworkHealthIssueDto[];
+}
+
 export interface ServerDiagnosticsResponse {
   success: boolean;
   tps: number;
@@ -1819,6 +2114,7 @@ export interface ServerDiagnosticsResponse {
   collects?: Record<string, PerfPhaseView>;
   topRoutes?: PerfRouteView[];
   slowHttp?: PerfSlowHttpEntry[];
+  networkHealth?: NetworkHealthDiagnosticDto[];
   history?: {
     timestamps: number[];
     queueDepth: number[];
@@ -2097,14 +2393,51 @@ export interface MonitorPreviewDto {
   monitorZ: number;
   slotIndex: number;
   dataType: string;
+  kind: MonitorWidgetKind;
+  sourceKind: MonitorSourceKind;
+  metricKey: string;
+  title: string;
   displayName: string;
+  previewType: 'scalar' | 'series' | 'categories' | 'rows';
   enabled: boolean;
+  scalar?: {
+    value: number;
+    max: number;
+    percentage: number;
+    maxKnown: boolean;
+  };
+  series: Array<{ id: string; label: string; values: number[] }>;
+  categories: Array<{ label: string; value: number; color: string }>;
+  rows: Array<{ cells: Record<string, string> }>;
+  /** null/undefined = default columns; [] = explicitly hide all. */
+  columns?: string[] | null;
   values: number[];
   yMin: number;
   yMax: number;
   dataLimit: number;
+  pointBudget: number;
   timestamp: number;
 }
+
+export type MonitorWidgetKind =
+  | 'statCard'
+  | 'progressBar'
+  | 'gauge'
+  | 'lineChart'
+  | 'barChart'
+  | 'pieChart'
+  | 'dataTable'
+  | 'crafting'
+  | 'storage'
+  | 'web_surface';
+
+export type MonitorSourceKind =
+  | 'tile_metric'
+  | 'ae_metric'
+  | 'wireless_eu'
+  | 'wireless_steam'
+  | 'storage_summary'
+  | 'gt_summary';
 
 export interface MonitorPreviewResponse {
   success: boolean;

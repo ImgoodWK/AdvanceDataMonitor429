@@ -7,6 +7,10 @@ public final class MonitorDataBindingDto {
 
     public int slotIndex;
     public String dataType = "";
+    public String kind = "";
+    public String sourceKind = "";
+    public String metricKey = "";
+    public String title = "";
     public String displayName = "";
     public String xyz = "";
     public int bindDim;
@@ -15,4 +19,6 @@ public final class MonitorDataBindingDto {
     public int bindZ;
     public boolean enabled;
     public boolean networkWide;
+    public double targetValue;
+    public int revision;
 }

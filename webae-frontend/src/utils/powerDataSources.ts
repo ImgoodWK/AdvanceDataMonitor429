@@ -8,6 +8,8 @@ export interface PowerSnapshot {
   euOutRate: number;
   steamStored: number;
   steamMax: number;
+  steamSupported: boolean;
+  steamCapacityKnown: boolean;
   steamInRate: number;
   steamOutRate: number;
   euHistory: number[];
@@ -24,6 +26,8 @@ export function powerDtoToSnapshot(d: PowerDto): PowerSnapshot {
     euOutRate: d.euOutRate || 0,
     steamStored: d.steamStored || 0,
     steamMax: d.steamMax || 0,
+    steamSupported: d.steamSupported === true,
+    steamCapacityKnown: d.steamCapacityKnown === true,
     steamInRate: d.steamInRate || 0,
     steamOutRate: d.steamOutRate || 0,
     euHistory: d.euHistory || [],
@@ -51,7 +55,9 @@ export function getPowerDataSourceValue(ds: string, snap: PowerSnapshot | null):
     case 'steamMax':
       return snap.steamMax;
     case 'steamPercent':
-      return snap.steamMax > 0 ? (snap.steamStored / snap.steamMax) * 100 : 0;
+      return snap.steamCapacityKnown && snap.steamMax > 0
+        ? (snap.steamStored / snap.steamMax) * 100
+        : 0;
     case 'steamInRate':
       return snap.steamInRate;
     case 'steamOutRate':

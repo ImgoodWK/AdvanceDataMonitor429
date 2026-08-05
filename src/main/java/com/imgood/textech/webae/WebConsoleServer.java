@@ -4,9 +4,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
@@ -31,7 +37,14 @@ public class WebConsoleServer extends NanoHTTPD {
     private final String bindAddress;
     private final WebApiRouter apiRouter;
     private final WebAuthMiddleware authMiddleware;
-    private ExecutorService httpExecutor;
+    private static final int HTTP_QUEUE_CAPACITY = 128;
+    private static final int HTTP_MAX_THREADS = 32;
+    private final Object lifecycleLock = new Object();
+    private final Set<ClientHandler> activeClients = Collections
+        .newSetFromMap(new ConcurrentHashMap<ClientHandler, Boolean>());
+    private volatile ThreadPoolExecutor httpExecutor;
+    private volatile boolean started;
+    private volatile String startFailure;
 
     public WebConsoleServer() {
         super(Config.webConsoleBindAddress, Config.webConsolePort);
@@ -43,21 +56,78 @@ public class WebConsoleServer extends NanoHTTPD {
             .setSnapshotCache(SnapshotCache.instance());
         NetworkMetricSampler.getInstance()
             .setSnapshotCache(SnapshotCache.instance());
-        initThreadPool();
+        configureAsyncRunner();
     }
 
     /**
      * Replace NanoHTTPD's default per-request thread with a bounded thread pool.
-     * Without this, a burst of concurrent WebAE API requests would create one
-     * daemon thread per request, wasting memory and adding GC pressure.
+     * The queue is deliberately bounded as well as the worker count: a slow
+     * client burst must not turn into an unbounded heap allocation.
      */
-    private void initThreadPool() {
-        final int poolSize = Math.max(
-            16,
-            Runtime.getRuntime()
-                .availableProcessors() * 2);
+    private void configureAsyncRunner() {
+        setAsyncRunner(new AsyncRunner() {
+
+            @Override
+            public void closeAll() {
+                closeActiveClients();
+                shutdownHttpExecutor();
+            }
+
+            @Override
+            public void closed(ClientHandler clientHandler) {
+                activeClients.remove(clientHandler);
+            }
+
+            @Override
+            public void exec(ClientHandler clientHandler) {
+                submitClientHandler(clientHandler);
+            }
+        });
+    }
+
+    private void submitClientHandler(ClientHandler clientHandler) {
+        synchronized (lifecycleLock) {
+            if (!started || httpExecutor == null || httpExecutor.isShutdown()) {
+                clientHandler.close();
+                return;
+            }
+            activeClients.add(clientHandler);
+            try {
+                httpExecutor.execute(clientHandler);
+            } catch (RejectedExecutionException e) {
+                // AbortPolicy keeps admission bounded. Close the socket
+                // explicitly so an overloaded server does not leak a
+                // connection while the caller's accept loop continues.
+                activeClients.remove(clientHandler);
+                clientHandler.close();
+                AdvanceDataMonitor.LOG.warn("[WebAE] HTTP request rejected: worker queue is full");
+            }
+        }
+    }
+
+    private void closeActiveClients() {
+        for (ClientHandler clientHandler : activeClients) {
+            if (clientHandler != null) {
+                clientHandler.close();
+            }
+        }
+        activeClients.clear();
+    }
+
+    private ThreadPoolExecutor ensureHttpExecutor() {
+        synchronized (lifecycleLock) {
+            if (httpExecutor == null || httpExecutor.isShutdown() || httpExecutor.isTerminated()) {
+                httpExecutor = createHttpExecutor();
+            }
+            return httpExecutor;
+        }
+    }
+
+    private ThreadPoolExecutor createHttpExecutor() {
+        final int availableProcessors = Math.max(1, Runtime.getRuntime().availableProcessors());
+        final int poolSize = Math.min(HTTP_MAX_THREADS, Math.max(4, availableProcessors * 2));
         final AtomicInteger counter = new AtomicInteger(0);
-        httpExecutor = Executors.newFixedThreadPool(poolSize, new java.util.concurrent.ThreadFactory() {
+        ThreadFactory threadFactory = new ThreadFactory() {
 
             @Override
             public Thread newThread(Runnable r) {
@@ -65,29 +135,67 @@ public class WebConsoleServer extends NanoHTTPD {
                 t.setDaemon(true);
                 return t;
             }
-        });
-        setAsyncRunner(new AsyncRunner() {
-
-            @Override
-            public void closeAll() {
-                httpExecutor.shutdownNow();
-            }
-
-            @Override
-            public void closed(ClientHandler clientHandler) {
-                // no-op: thread pooling handles cleanup internally
-            }
-
-            @Override
-            public void exec(ClientHandler clientHandler) {
-                httpExecutor.execute(clientHandler);
-            }
-        });
+        };
+        return new ThreadPoolExecutor(
+            poolSize,
+            poolSize,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<Runnable>(HTTP_QUEUE_CAPACITY),
+            threadFactory,
+            new ThreadPoolExecutor.AbortPolicy());
     }
 
-    public void startServer() {
+    private void shutdownHttpExecutor() {
+        ThreadPoolExecutor executor;
+        synchronized (lifecycleLock) {
+            executor = httpExecutor;
+            httpExecutor = null;
+        }
+        if (executor == null) return;
+
+        executor.shutdownNow();
         try {
-            start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+            if (!executor.awaitTermination(2L, TimeUnit.SECONDS)) {
+                AdvanceDataMonitor.LOG.warn("[WebAE] HTTP worker pool did not terminate within 2 seconds");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            AdvanceDataMonitor.LOG.warn("[WebAE] Interrupted while stopping HTTP worker pool");
+        }
+    }
+
+    /**
+     * Start the server and report the actual bind result to the caller.
+     * NanoHTTPD throws on bind failure; do not expose a successful state after
+     * that exception and make the executor reusable for a later retry.
+     */
+    public boolean startServer() {
+        synchronized (lifecycleLock) {
+            if (started) return true;
+            startFailure = null;
+            ensureHttpExecutor();
+            try {
+                start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+                started = true;
+            } catch (IOException | RuntimeException e) {
+                started = false;
+                startFailure = e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage());
+                try {
+                    stop();
+                } catch (Throwable stopFailure) {
+                    AdvanceDataMonitor.LOG.warn("[WebAE] Failed to clean up after HTTP start failure", stopFailure);
+                } finally {
+                    shutdownHttpExecutor();
+                }
+                AdvanceDataMonitor.LOG.error(
+                    "[WebAE] Failed to start HTTP server on {}:{}",
+                    bindAddress,
+                    Config.webConsolePort,
+                    e);
+                return false;
+            }
+
             AdvanceDataMonitor.LOG.info("[WebAE] HTTP server started on {}:{}", bindAddress, Config.webConsolePort);
             File externalIndex = new File(TeXTechDataDir.webAeDir(UI_DIR_NAME), "index.html");
             if (externalIndex.isFile()) {
@@ -96,15 +204,35 @@ public class WebConsoleServer extends NanoHTTPD {
                 AdvanceDataMonitor.LOG.warn(
                     "[WebAE] UI bundle is not installed. Extract the optional *-webae.zip into the instance root.");
             }
-        } catch (IOException e) {
-            AdvanceDataMonitor.LOG
-                .error("[WebAE] Failed to start HTTP server on {}:{}", bindAddress, Config.webConsolePort, e);
+            return true;
         }
     }
 
+    public boolean isStarted() {
+        return started;
+    }
+
+    public String getStartFailure() {
+        return startFailure;
+    }
+
     public void stopServer() {
-        stop();
-        AdvanceDataMonitor.LOG.info("[WebAE] HTTP server stopped.");
+        boolean hadServer;
+        synchronized (lifecycleLock) {
+            hadServer = started;
+            started = false;
+        }
+        try {
+            if (hadServer) stop();
+        } catch (Throwable e) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to stop HTTP server", e);
+        } finally {
+            closeActiveClients();
+            shutdownHttpExecutor();
+        }
+        if (hadServer) {
+            AdvanceDataMonitor.LOG.info("[WebAE] HTTP server stopped.");
+        }
     }
 
     @Override

@@ -380,6 +380,10 @@ public final class NetworkRegistry {
         for (String ownerUuid : playerNetworks.keySet()) {
             healthCheck(ownerUuid);
         }
+        // Reuse the same five-second server-thread health chain for the evidence-rich diagnostic cache. The
+        // provider never calls back into tickHealthCheck(), so this does not create a second refresh path.
+        com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticProvider.instance()
+            .refreshAll(nowMs);
     }
 
     public static void refreshHealth(String ownerUuid) {

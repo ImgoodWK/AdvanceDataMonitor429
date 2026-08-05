@@ -9,12 +9,12 @@ from .auth import require_perm
 from . import db as dbmod
 from .config import settings
 from .db import init_db
-from .routers import auth_routes, bot_users, config_routes, console_users, messages, ops, personas, runtime_profile
-from .services import knowledge as know
+from .routers import auth_routes, bot_users, config_routes, console_users, images, messages, ops, personas, runtime_profile
+from .services import image_gallery
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="TeXTech Console", version="2.3.0")
+app = FastAPI(title="TeXTech Console", version="2.5.0")
 log = logging.getLogger("textech-console")
 
 
@@ -25,11 +25,11 @@ def _audit_action(method: str, path: str) -> str:
         "/api/runtime-profile": "runtime_profile.update",
         "/api/backups/restore": "backups.restore",
         "/api/ops/restart-astrbot": "ops.restart",
-        "/api/knowledge/changelog": "knowledge.changelog",
         "/api/auth/change-password": "account.change_password",
         "/api/auth/token": "account.create_token",
         "/api/messages/draft": "messages.draft",
         "/api/messages/send": "messages.send",
+        "/api/images/rescan": "images.rescan",
     }
     if path in exact:
         return exact[path]
@@ -38,8 +38,8 @@ def _audit_action(method: str, path: str) -> str:
         ("/api/memories", "memories"),
         ("/api/config", "config"),
         ("/api/bot-users", "bot_users"),
-        ("/api/knowledge", "knowledge"),
         ("/api/messages", "messages"),
+        ("/api/images", "images"),
         ("/api/console-users/roles", "roles"),
         ("/api/console-users", "console_users"),
     )
@@ -101,12 +101,12 @@ async def audit_mutating_requests(request: Request, call_next):
 def on_startup():
     if len(settings.session_secret) < 24:
         raise RuntimeError("SESSION_SECRET must contain at least 24 characters")
-    if len(settings.console_bootstrap_password) < 12:
-        raise RuntimeError("CONSOLE_BOOTSTRAP_PASSWORD must contain at least 12 characters")
     settings.console_db.parent.mkdir(parents=True, exist_ok=True)
-    settings.knowledge_dir.mkdir(parents=True, exist_ok=True)
     init_db()
-    know.ensure_knowledge_dir()
+    try:
+        image_gallery.ensure_index(force=True)
+    except Exception as exc:
+        log.warning("image gallery index startup scan failed: %s", exc)
 
 
 app.include_router(auth_routes.router)
@@ -117,18 +117,21 @@ app.include_router(config_routes.router)
 app.include_router(runtime_profile.router)
 app.include_router(ops.router)
 app.include_router(messages.router)
+app.include_router(images.router)
 
 
 @app.get("/api/stats")
-def stats(_user=require_perm("personas.view", "bot_users.view", "memories.view", "knowledge.view")):
+def stats(user=require_perm("personas.view", "bot_users.view", "memories.view", "images.view")):
     from .services import companion, memory, persona_lib, soulmap
 
+    gallery = image_gallery.gallery_stats(user["id"]) if "images.view" in user.get("permissions", []) else {}
     return {
         "companion_users": len(companion.list_user_ids()),
         "soulmap_profiles": len(soulmap.list_profile_ids()),
         "personas": len(persona_lib.list_personas()),
         "memories": len(memory.list_companion_memories()),
-        "knowledge_docs": len(know.list_docs()),
+        "generated_images": gallery.get("total", 0),
+        "favorite_images": gallery.get("favorites", 0),
     }
 
 

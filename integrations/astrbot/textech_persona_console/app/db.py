@@ -155,6 +155,8 @@ def init_db() -> None:
 
         count = conn.execute("SELECT COUNT(*) AS c FROM console_users").fetchone()["c"]
         if count == 0:
+            if len(settings.console_bootstrap_password) < 12:
+                raise RuntimeError("CONSOLE_BOOTSTRAP_PASSWORD must contain at least 12 characters")
             pw = settings.console_bootstrap_password.encode("utf-8")
             hashed = bcrypt.hashpw(pw, bcrypt.gensalt()).decode("utf-8")
             conn.execute(
@@ -211,6 +213,17 @@ def get_user_by_id(user_id: int) -> dict[str, Any] | None:
         row = conn.execute(
             "SELECT id, username, role, grants, denies, created_at, updated_at FROM console_users WHERE id = ?",
             (user_id,),
+        ).fetchone()
+        return _user_row(row)
+
+
+def get_portal_admin() -> dict[str, Any] | None:
+    """Return the existing administrator used by the trusted portal exchange."""
+    with db() as conn:
+        row = conn.execute(
+            """SELECT id, username, role, grants, denies, created_at, updated_at
+            FROM console_users WHERE role = 'admin'
+            ORDER BY CASE WHEN username = 'admin' THEN 0 ELSE 1 END, id LIMIT 1"""
         ).fetchone()
         return _user_row(row)
 

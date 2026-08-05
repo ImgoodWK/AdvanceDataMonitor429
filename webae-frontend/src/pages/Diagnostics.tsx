@@ -1,11 +1,24 @@
-import { Alert, Card, Col, Row, Spin, Table, Tag, Tooltip, Typography } from 'antd';
+import { Alert, Card, Col, Row, Space, Spin, Table, Tag, Tooltip, Typography } from 'antd';
 import { DashboardOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { PageShell } from '@/components/Layout/PageShell';
 import { useServerDiagnostics } from '@/hooks/useServerDiagnostics';
 import { useI18n } from '@/i18n';
 import { formatTime } from '@/utils/format';
-import type { PerfPhaseView, PerfSlowHttpEntry } from '@/types/dto';
+import {
+  formatNetworkHealthEvidence,
+  networkHealthFreshness,
+  networkHealthIssueMessageKey,
+  networkHealthIssueSuggestionKey,
+  networkHealthSeverityTone,
+  networkHealthStatusLabelKey,
+  networkHealthStatusTone,
+} from '@/utils/networkHealthPresentation';
+import type {
+  NetworkHealthDiagnosticDto,
+  PerfPhaseView,
+  PerfSlowHttpEntry,
+} from '@/types/dto';
 
 const { Text, Paragraph } = Typography;
 
@@ -70,6 +83,160 @@ function cumulativeCountTitle(t: (key: string) => string): ReactNode {
   );
 }
 
+function networkHealthStatusTag(status: string | undefined, t: (key: string) => string): ReactNode {
+  return <Tag color={networkHealthStatusTone(status)}>{t(networkHealthStatusLabelKey(status))}</Tag>;
+}
+
+function networkHealthEvidence(value: boolean | null | undefined, t: (key: string) => string): ReactNode {
+  if (value === true) return <Tag color="success">{t('networkHealthYes')}</Tag>;
+  if (value === false) return <Tag color="error">{t('networkHealthNo')}</Tag>;
+  return <Tag color="default">{t('networkHealthUnknown')}</Tag>;
+}
+
+function networkHealthEvidenceField(
+  labelKey: string,
+  value: boolean | null | undefined,
+  t: (key: string) => string,
+): ReactNode {
+  return (
+    <Space size={4} wrap>
+      <Typography.Text type="secondary">{t(labelKey)}</Typography.Text>
+      {networkHealthEvidence(value, t)}
+    </Space>
+  );
+}
+
+function networkHealthRows(
+  health: NetworkHealthDiagnosticDto[],
+  t: (key: string) => string,
+): ReactNode {
+  if (health.length === 0) {
+    return <Typography.Text type="secondary">{t('networkHealthNoData')}</Typography.Text>;
+  }
+
+  return (
+    <Table<NetworkHealthDiagnosticDto>
+      size="small"
+      pagination={false}
+      rowKey={(row) => `${row.ownerUuid}:${row.networkKey || row.networkId}`}
+      dataSource={health}
+      scroll={{ x: 1500 }}
+      columns={[
+        {
+          title: t('networkHealthNetwork'),
+          key: 'network',
+          render: (_: unknown, row: NetworkHealthDiagnosticDto) => (
+            <Space direction="vertical" size={0}>
+              <Typography.Text strong>#{row.networkId}</Typography.Text>
+              <Typography.Text type="secondary">{row.networkKey || '—'}</Typography.Text>
+            </Space>
+          ),
+        },
+        {
+          title: t('networkHealthStatus'),
+          dataIndex: 'status',
+          render: (value: string) => networkHealthStatusTag(value, t),
+        },
+        {
+          title: t('networkHealthLastChecked'),
+          dataIndex: 'checkedAt',
+          render: (value: number) => value > 0 ? formatTime(value) : '—',
+        },
+        {
+          title: t('networkHealthFreshness'),
+          key: 'freshness',
+          render: (_: unknown, row: NetworkHealthDiagnosticDto) => {
+            const freshness = networkHealthFreshness(row);
+            return (
+              <Space direction="vertical" size={0}>
+                <Tag color={freshness.tone}>{t(freshness.labelKey)}</Tag>
+                <Typography.Text type="secondary">
+                  {row.sampleAgeMs == null ? t('networkHealthNoSample') : `${Math.max(0, row.sampleAgeMs)} ms`}
+                </Typography.Text>
+              </Space>
+            );
+          },
+        },
+        {
+          title: t('networkHealthLinks'),
+          key: 'links',
+          render: (_: unknown, row: NetworkHealthDiagnosticDto) => (
+            <Space direction="vertical" size={0}>
+              {networkHealthEvidenceField('networkHealthEvidence_registered', row.links?.registered, t)}
+              {networkHealthEvidenceField('networkHealthEvidence_loaded', row.links?.loaded, t)}
+              {networkHealthEvidenceField('networkHealthEvidence_reachable', row.links?.reachable, t)}
+            </Space>
+          ),
+        },
+        {
+          title: t('networkHealthMonitors'),
+          key: 'monitors',
+          render: (_: unknown, row: NetworkHealthDiagnosticDto) => (
+            <Space direction="vertical" size={0}>
+              {networkHealthEvidenceField('networkHealthEvidence_monitorRegistered', row.monitors?.registered, t)}
+              {networkHealthEvidenceField('networkHealthEvidence_bound', row.monitors?.bound, t)}
+              {networkHealthEvidenceField('networkHealthEvidence_valid', row.monitors?.valid, t)}
+            </Space>
+          ),
+        },
+        {
+          title: t('networkHealthGrid'),
+          key: 'grid',
+          render: (_: unknown, row: NetworkHealthDiagnosticDto) => (
+            <Space direction="vertical" size={0}>
+              {networkHealthEvidenceField('networkHealthEvidence_gridPresent', row.grid?.present, t)}
+              {networkHealthEvidenceField('networkHealthEvidence_storage', row.grid?.storageAvailable, t)}
+              {networkHealthEvidenceField('networkHealthEvidence_crafting', row.grid?.craftingAvailable, t)}
+              {networkHealthEvidenceField('networkHealthEvidence_connector', row.grid?.connectorAvailable, t)}
+            </Space>
+          ),
+        },
+        {
+          title: t('networkHealthChannels'),
+          key: 'channels',
+          render: (_: unknown, row: NetworkHealthDiagnosticDto) => (
+            <Space direction="vertical" size={0}>
+              {networkHealthEvidenceField('networkHealthEvidence_channelAvailable', row.channels?.available, t)}
+              <Typography.Text type="secondary">
+                {row.channels?.used != null && row.channels?.max != null
+                  ? `${t('networkHealthEvidence_channelUsage')}: ${row.channels.used} / ${row.channels.max}`
+                  : t('networkHealthUnknown')}
+              </Typography.Text>
+            </Space>
+          ),
+        },
+        {
+          title: t('networkHealthIssues'),
+          key: 'issues',
+          render: (_: unknown, row: NetworkHealthDiagnosticDto) => {
+            const issues = row.issues || [];
+            if (issues.length === 0) return <Typography.Text type="secondary">—</Typography.Text>;
+            return (
+              <Space direction="vertical" size={2}>
+                {issues.map((issue, index) => (
+                  <Space key={`${issue.code || 'unknown'}-${index}`} direction="vertical" size={0}>
+                    <Tag color={networkHealthSeverityTone(issue.severity)}>
+                      {t(networkHealthIssueMessageKey(issue))}
+                    </Tag>
+                    <Typography.Text type="secondary">
+                      {t(networkHealthIssueSuggestionKey(issue))}
+                    </Typography.Text>
+                    {issue.evidence != null && (
+                      <Typography.Text code type="secondary">
+                        {t('networkHealthEvidenceDetail')}: {formatNetworkHealthEvidence(issue.evidence)}
+                      </Typography.Text>
+                    )}
+                  </Space>
+                ))}
+              </Space>
+            );
+          },
+        },
+      ]}
+    />
+  );
+}
+
 export function DiagnosticsPage() {
   const { t } = useI18n();
   const { data, loading, refresh } = useServerDiagnostics(DIAGNOSTICS_POLL_MS);
@@ -77,6 +244,7 @@ export function DiagnosticsPage() {
   const phaseData = phaseRows(data?.phases);
   const collectData = phaseRows(data?.collects);
   const mspt = data?.mspt ?? 0;
+  const healthData = data?.networkHealth ?? [];
 
   const phaseColumns = [
     { title: t('diagPhase'), dataIndex: 'key' },
@@ -208,6 +376,13 @@ export function DiagnosticsPage() {
             </Text>
           </Card>
         )}
+
+        <Card size="small" title={t('diagNetworkHealth')} style={{ marginTop: 16 }}>
+          <Paragraph type="secondary" style={{ marginTop: 0 }}>
+            {t('diagNetworkHealthHint')}
+          </Paragraph>
+          {networkHealthRows(healthData, t)}
+        </Card>
 
         <Card size="small" title={t('diagTickPhases')} style={{ marginTop: 16 }}>
           <Table

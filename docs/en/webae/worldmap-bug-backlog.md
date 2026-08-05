@@ -3,7 +3,7 @@
 > Last updated: 2026-07  
 > **Bug A / Bug B core paths were fixed in 2026-07** (terrain/AE enqueue decoupling, tier lookup alignment, per-pixel AE alpha, device-level marker tint). Keep the verification checklist and optional follow-ups below.
 
-See also the [Chinese version](../zh/webae/worldmap-bug-backlog.md).
+See also the [Chinese version](../../zh/webae/worldmap-bug-backlog.md).
 
 ---
 

@@ -5,7 +5,6 @@ import java.util.Deque;
 
 import net.minecraft.client.Minecraft;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.client.worldmap.dynmap.WorldMapDynmapClientFetcher;
 import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureRequest;
 import com.imgood.textech.webae.network.PacketWorldMapDirectCaptureResponse;
@@ -96,10 +95,6 @@ public final class WorldMapDirectCaptureClientWorker {
     }
 
     private static void sendResponse(String requestId, byte[] png) {
-        PacketWorldMapDirectCaptureResponse response = new PacketWorldMapDirectCaptureResponse();
-        response.requestId = requestId;
-        response.success = png != null && png.length > 0;
-        response.png = png != null ? png : new byte[0];
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(response);
+        PacketWorldMapDirectCaptureResponse.sendToServer(requestId, png);
     }
 }

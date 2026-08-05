@@ -20,13 +20,17 @@ alwaysApply: false
 ## 图表
 
 - Dashboard 内联 SVG 图表（`ChartTrendSvg`、柱状/饼图/雷达等）为主；GT 页等可按需引入图表库
+- 共享首类组件固定为 `statCard` / `progressBar` / `gauge` / `lineChart` / `barChart` / `pieChart` / `dataTable`；`WidgetContent.tsx` 是统一数据源适配/渲染入口，标量族必须复用 `ScalarWidgetRenderer.tsx` 与 `resolveProgressPercent`，不得在 Dashboard/Power/Overview 重新复制 switch
+- progress/gauge 优先使用真实 max；百分比直接按 0..100；`steamCapacityKnown=false` 等无上限绝对量仅在 `targetValue > 0` 时显示进度，否则降级为纯数值/趋势，禁止伪造 0% 或“已存/上限”
 - 已移除未使用的 `@ant-design/plots` 依赖（2026-07 Phase 2）
 
 ## 布局引擎例外
 
 - Dashboard 拖拽布局允许使用已依赖的 `gridstack`（**仅**网格布局引擎，非 UI 组件库）
 - 三处 GridStack（主仪表盘 / 存储总览 / 电力页）统一用 `WidgetShell` 外壳；组件配置见 `utils/presets.ts` + `utils/dashboardResolve.ts`；树形分组与特殊数据源映射见 `utils/dashboardTree.ts` + `GroupWidget.tsx`；复制/JSON 见 `utils/widgetGridActions.ts`；资讯与网络健康/电力流向/存储矩阵/GT 机群/玩家在线/活动流/服务器生命体征组合组件见 `SpecialWidgets.tsx` + `dashboard-advanced-widgets.css`，只复用现有 hooks 结果，不得为展示新增轮询或 Tick 工作
-- 主仪表盘游戏显示器导出：默认 `dashboardGameDisplayBinding.ts` 发布布局到 `/api/display` 并复制 `textech-webae-display-binding`；失败时可回退 `dashboardGameDisplayExport.ts` 的 DOM 快照。不得包含 Token/AI Key/Webhook/QQ/邮件密钥。直播帧由 WebAE 截帧 API 提供，不得在 MC Tick 轮询。与 `widgetGridActions.exportWidgetsJson()` 的可编辑布局 JSON 是不同格式
+- 主仪表盘游戏显示器导出有两条独立契约：`dashboardGameDisplayBinding.ts` 发布整页到 `/api/display` 并复制 `textech-webae-display-binding`（失败可回退 snapshot）；`utils/monitorWidgetBundle.ts` 导出 `textech-monitor-widget-bundle` v1，仅含七类共享组件、保持 Dashboard 顺序、最多 36 个，并由现有 JSON import 入口重新导入。`radarChart`、网络健康、活动流等 WebAE-only 组件只走整页 surface
+- `columns` 契约必须贯穿 editor/renderer/export/import：`undefined` 或 JSON `null` = 数据源默认列，`[]` = 明确隐藏全部列，任何路径都不得把空数组误补成默认列
+- 两类显示器导出都不得包含 Token/AI Key/Webhook/QQ/邮件密钥，不得为 semantic bundle 新增 `/api/*`、页面轮询或 MC Tick 工作；整页直播帧仍只由 WebAE 截帧 API 提供。它们与 `widgetGridActions.exportWidgetsJson()` 的可编辑布局 JSON 是不同格式
 - 长列表虚拟滚动使用 `@tanstack/react-virtual`（如 AE 下单 `VirtualPatternGrid` / `VirtualProductGrid`）
 - 页面容器统一使用 `components/Layout/PageShell.tsx`
 - 导航页表单一处定义：`components/Layout/navConfig.ts`（`NAV_PAGES` / `ALL_PAGES`），`Sidebar` / `TopBar` / `CommandPalette` 共用
@@ -116,7 +120,10 @@ alwaysApply: false
 ## 拓扑与世界地图
 
 - 拓扑页：`pages/NetworkTopology.tsx` + `components/topology/*`（cytoscape/SVG/模拟视图）
-- 世界地图：`TopologyWorldMapView`、`WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay`；hooks `useWorldMapData`/`useWorldMapTileLoader`/`useWorldMapProgress`；utils `worldMapTerrain.ts`/`worldMapViews.ts`
+- 世界地图：`TopologyWorldMapView`、`WorldMapTerrainLayer`/`WorldMapAeOverlayLayer`/`WorldMapMarkerLayer`/`WorldMapChunkStatusOverlay`、`WorldMapVersionControls`/`WorldMapDiffOverlay`/`WorldMapAnnotationLayer`/`WorldMapAnnotationModal`；hooks `useWorldMapData`/`useWorldMapTileLoader`/`useWorldMapProgress`/`useWorldMapVersionDiff`；utils `worldMapTerrain.ts`/`worldMapViews.ts`/`worldMapVersionDiff.ts`
+- 前端只能发送服务端闭集合中的精确小写 quality（`low|medium|high|ultra`）；快照 job 必须由客户端 assembler 完整重组后再启动采集，缺页/冲突/过期时丢弃，不得拿截断 chunk 列表降级执行
+- 版本比较只允许 current/previous 保留集；地形永远显示 current，previous 只参与 diff overlay。summary 计数必须使用服务端完整值，详情数组仅是最多 1000 条的有界窗口；`unknown`/缺 logical sidecar 与 `partial`/`truncated` 必须独立显示，不得回退为 ready/empty
+- 正式 annotation 只通过服务端 CRUD，不得写入 localStorage/sessionStorage。`NetworkTopology` 必须把 `browsingMode` 作为 `readOnly` 传给地图；guest/browsing mode 可 GET 版本、diff、annotation，但不得出现 mutation 入口。切换 network 时须取消或以 generation/sequence 隔离旧请求
 
 ## 视口、浏览模式与 GridStack 所有权
 
@@ -135,3 +142,9 @@ npm run build
 ```
 
 详见 `webae-frontend/README.md` 与 `docs/zh/webae/开发者手册.md` §6。
+
+## 构建产物与发布边界
+
+- `scripts/build-webae.mjs` 必须遵循 staging → bundle validation → promote：只有 `index.html` 和引用的 JavaScript 均验证成功后，才允许替换正式 bundle。
+- 构建、验证或 promote 失败时必须保留旧的 `src/main/resources/assets/textech/webae/`；不得直接清理或删除该正式目录，清理只针对 `.workspace/webae-build/` staging workspace。
+- 发布 ZIP 使用已经验证并放置在外部 `TeXTech/WebAE/ui/` 的 WebAE 产物；不得从未验证的 staging、源码 `webae-frontend/src` 或半成品目录打包。

@@ -1,6 +1,6 @@
 # TeXTech WebAE Console Developer Documentation
 
-> Audience: Developers · Last synced: 2026-07  
+> Audience: Developers · Last synced: 2026-07<br>
 > Player guide: [User Guide](user-guide.md) · Technical overview: [Technical Documentation](../developer/technical-documentation.md)
 
 ---
@@ -76,7 +76,7 @@ Core data flow:
 
 ## 3. Package Structure
 
-All source code resides under `com.imgood.textech.webae/` (231 files). See `project-structure-details.mdc` for the full per-file listing.
+All source code resides under `com.imgood.textech.webae/` (422 files). See `project-structure-details.mdc` for the full per-file listing.
 
 | Sub-package | Files | Purpose |
 |-------------|-------|---------|
@@ -95,7 +95,7 @@ All source code resides under `com.imgood.textech.webae/` (231 files). See `proj
 | `webae/recipe/` | 9+ | NEI/vanilla/GT recipe collect, disk meta/chunks, lazy cache |
 | `webae/pattern/` | 9 | Pattern encode/inject/browse cache plus the Web-only physical pattern buffer |
 | `webae/topology/` | 20 | Network topology + P2P map |
-| `webae/worldmap/` | 27 | World map meta/markers/tiles/AE overlay/quality tiers/prefetch progress |
+| `webae/worldmap/` | 61 | World map meta/markers/tiles/AE overlay, retained current/previous diff, `logical-index.json` sidecars, and server annotations |
 | `webae/craft/` | 2 | Material craft tree (NEI recipe recursion + storage gaps + `patternId`; `GET /api/craft/tree`) |
 | `webae/favorites/` | 1 | Recipe/pattern favorites (`TeXTech/WebAE/web-favorites.json`; `GET/PUT /api/favorites`) |
 | `webae/planner/` | 1 | Factory Flow / gtnh-flow export interop (`POST /api/planner/export-flow`) |
@@ -327,6 +327,8 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | PUT | `/api/admin/server-console/presets` | Yes | **Admin** | Create/update a shared command preset, max 64; coalesced background persistence |
 | DELETE | `/api/admin/server-console/presets/{id}` | Yes | **Admin** | Delete a shared command preset |
 | GET | `/api/network/metrics?network=<id>` | Yes | No | AE network metric history (item/fluid/essentia/bytes/CPU busy ratio/GT active count rolling window, `NetworkMetricSampler`) |
+| GET | `/api/network/cpu/history?network=<id>&from=<epochMs>&to=<epochMs>&limit=<n>` | Yes | No | Bounded CPU jobs and snapshots; `limit` caps jobs at 500, snapshots are capped at 1,000, and `truncated=true` reports a request/response cap; HTTP reads memory and calls `markActive` only |
+| GET | `/api/network/cpu/capacity?network=<id>&window=1h\|6h\|24h\|7d\|14d` | Yes | No | Read-only capacity summary calculated from bounded in-memory history; HTTP never loads disk or accesses World/TileEntity/AE2 Grid |
 | GET | `/api/network/metrics/fluids?network=<id>&fluids=water,lava` | Yes | No | Pinned fluid amount trends (limits via `dashboardMaxFluidTracks` / per-request `dashboardMaxTracksPerWidget`) |
 | GET | `/api/network/metrics/items?network=<id>&items=mod:item,...` | Yes | No | Pinned item amount trends (missing in AE → 0; limits via cfg) |
 | GET | `/api/network/metrics/entities?network=<id>&entities=cpu:Name,gt:0:1:2:3&fields=...` | Yes | No | Pinned CPU/GT numeric trends (default `craftingProgress` / `progressPercent`) |
@@ -337,6 +339,11 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | GET | `/api/worldmap/progress?network=<id>&view=&dim=&quality=` | Yes | No | Batch tile prefetch progress (per-chunk terrain/ae status) |
 | GET | `/api/worldmap/meta?network=<id>` | Yes | No | World map meta (dimension bboxes, tilePx, qualityTiers[], max/defaultQualityTier, markerCount, `boundsTooLarge`; **Phase A**; requires logical snapshot; 503 when `worldMapEnabled=false` or `topologyEnabled=false`) |
 | GET | `/api/worldmap/markers?network=<id>` | Yes | No | Flattened AE device markers (from logical snapshot; `code:no_logical_snapshot` when missing) |
+| GET | `/api/worldmap/versions?network=<id>` | Yes | No | Lists retained `previous/current` versions, timestamps, and logical-index availability without expanding history retention |
+| GET | `/api/worldmap/diff?network=<id>&from=&to=&dimension=&minX=&maxX=&minZ=&maxZ=&includeTiles=&includeMarkers=` | Yes | No | Defaults to `previous → current`; compares manifest SHA-256 and version-sidecar logical indexes, with a complete summary and at most 1,000 detail rows |
+| GET | `/api/worldmap/annotations?network=<id>&version=<positive>` | Yes | No | Reads server annotations visible at a positive snapshot version; `0` is only the annotation open-bound sentinel |
+| POST | `/api/worldmap/annotations` body `{networkId,dimension,x,y,z,label,note,color,fromVersion,toVersion}` | Yes | No (guest read-only) | Creates an owner/network-scoped server annotation; body is capped at 16 KiB and ID/timestamps/creator are server-generated |
+| PUT/DELETE | `/api/worldmap/annotations/{id}` (DELETE uses `?network=<id>`) | Yes | No (guest read-only) | Updates or deletes a UUID annotation; PUT body network must match an optional query network |
 | GET | `/api/worldmap/tiles/{view}/{dim}/{cx}/{cz}.png?network=&quality=` | Yes | No | Terrain tile PNG (transparent outside scope; enqueues render on miss) |
 | GET | `/api/worldmap/tiles/{view}/ae/{dim}/{cx}/{cz}.png?network=&quality=` | Yes | No | AE overlay tile PNG |
 | POST | `/api/worldmap/invalidate?network=&views=&layer=&quality=` | Yes | No | Invalidate cache and batch-prefetch terrain+ae for allowed chunks |
@@ -346,7 +353,7 @@ All Web Console configuration is managed via the `[webConsole]` section, loaded 
 | PATCH/DELETE | `/api/planner/plans/<id>` | Yes | No (guest) | Edit title / complete / delete plan |
 | POST | `/api/planner/export-flow` | Yes | No (guest) | Material tree export (`factory-flow-v1` / `gtnh-flow-v1`; Phase 4.3) |
 | GET | `/api/events/stream?token=` | Yes | No | SSE alert push + 15s heartbeat (Phase 9; Bearer or query token) |
-| GET | `/api/monitor/preview?dim=&x=&y=&z=&slot=` | Yes | No | Monitor slot line-chart preview (Phase 11) |
+| GET | `/api/monitor/preview?dim=&x=&y=&z=&slot=` | Yes | No | Type-aware read-only monitor preview: `scalar` / `series` / `categories` / `rows` |
 | GET | `/api/scanner/blocks?type=&q=` | Yes | No | Link Scanner mirror; full list cached, `type`/`q` filtered on HTTP thread |
 | GET | `/api/monitor/bindings` | Yes | No | Data monitor Link/GT binding view; **HTTP cache-only** |
 | POST | `/api/assistant/ai-context` body `{locale}` | Yes | No | Browser mode only; returns the shared intent system prompt and ordinary-chat prompt, with no key, provider credential, or game object |
@@ -401,6 +408,7 @@ Local WebAE QA: the first BetterQuesting tab from dev fixtures is **WebAE Test L
 | POST | `/api/alerts/qq-id-probe/stop` | Yes | **Admin** | Stop the active probe session |
 | GET | `/api/server/health` | Yes | No | Server TPS / MSPT (same as `/forge tps` Overall) / online players / uptime + 300s rolling history |
 | GET | `/api/server/diagnostics` | Yes | No | WebAE perf diagnostics: tick phases, `HandlerTick` queue depth, snapshot collect timings, `snapshotWorkerBusy` / `snapshotTimeouts` / `snapshotSkippedBusy` / `snapshotSkippedQueue`, slow HTTP / top routes, config summary; polled by Diagnostics page |
+| GET | `/api/network/health?network=<id>` | Yes | No | Owner/network-scoped read-only health DTO from the server-tick cache; returns `healthy` / `degraded` / `failed` / `unknown`, evidence for links/monitors/Grid/channels, issue codes, and freshness. Missing or invalid `network` is `400`; ACL failures keep the existing `403` JSON format. |
 | GET | `/api/oc/summary` | Yes | No | OC read-only summary (item types, CPU busy, active orders, TPS; 1 req/s; see [oc-integration.md](oc-integration.md)) |
 | GET | `/api/search?q=&limit=&offset=&types=&network=` | Yes | No | Aggregated read-only search (storage/recipe/gt/pattern; 500ms rate limit; pagination; Phase 4a) |
 
@@ -472,6 +480,8 @@ Technical notes:
 
 Core challenge: Minecraft server logic **must execute on the main thread**, but NanoHTTPD handles HTTP requests in separate worker threads.
 
+The HTTP entry point uses a bounded worker pool in `WebConsoleServer`: workers are CPU cores × 2, clamped to 4–32; the queue holds 128 tasks and uses `AbortPolicy`. When the queue is full, the current connection is closed and the rejection is recorded instead of creating unbounded threads or allowing HTTP load to overwhelm the server. `startServer()` reports started only after bind/listen succeeds; a bind failure cleans the executor, server reference, and start-failure state. `stop()`/restart first closes all active client sockets, then stops NanoHTTPD, shuts down the executor, waits for running tasks, and releases the Webhook, QQ bot, and shutdown-hook resources; blocking shutdown work does not hold the lifecycle lock.
+
 Solution: **CountDownLatch main-thread dispatch pattern**
 
 ```java
@@ -500,6 +510,8 @@ Three collection strategies:
 
 `CountDownLatch` timeout defaults to 5 seconds; HTTP 503 is returned on timeout.
 
+Cache/read-only requests may read validated bounded caches directly; live world/AE queries, writes, and uploads must pass the `WebApiRouter` permission gates and a main-thread or controlled-upload path. An HTTP worker is not the Minecraft server thread and must not mutate worlds, TileEntities, or AE grids directly.
+
 ## 8. Security Model
 
 - **Token Authentication**: random UUID per player, persisted to `TeXTech/WebAE/web-tokens.json` (re-issue replaces the previous token). TTL is optional via `tokenLifetimeHours` (0 = never expire)
@@ -509,6 +521,9 @@ Three collection strategies:
 - **No HTTPS**: NanoHTTPD does not provide TLS. Use SSH tunneling or reverse proxy for encryption on LAN
 - **Token Management**: `/admweb issue` (self), `/admweb revoke [player]` (self/OP), `/admweb list` (OP), `/admweb refresh [network]` (OP, Phase 1.2)
 - **No Password Storage**: Users only need a token to access; no Minecraft account verification required
+- **Token tiers**: An owner token may read/write AE networks in its authorized scope; a guest token is read-only. Guests may read networks in the owner's allowlist, but cannot refresh, upload, submit orders, write patterns, or perform other mutations.
+- **Identity separation**: `ownerUuid` (resource owner), `actorUuid` (authenticated initiator), and network scope are independent. HTTP `owner`, `actor`, and `network` parameters are never authorization by themselves; an owner override must also be a canonical UUID.
+- **Routing and thread gates**: All `/api/` requests still go through `WebApiRouter`; handlers that need live world state or mutations return to the server thread, and cache reads must not be treated as writes.
 
 **Security Warning**:
 - `bindAddress=0.0.0.0` exposes the console to all LAN devices; anyone with the token can view storage and submit crafting
@@ -516,7 +531,7 @@ Three collection strategies:
 
 ## 9. Network Packets
 
-WebAE uses 5 Forge network packets covering recipe/icon upload and command-triggered upload:
+The WebAE upload path uses the following five Forge packets; world-map, direct-capture, screenshot, and alert extensions are listed in `network-packets.mdc`:
 
 | ID | Packet Class | Direction | Purpose |
 |----|-------------|-----------|---------|
@@ -528,23 +543,26 @@ WebAE uses 5 Forge network packets covering recipe/icon upload and command-trigg
 
 Recipe upload flow:
 1. Client `KeyBindings.uploadNeiRecipes(scope, snapshotItemIds)` hybrid collect: `NeiRecipeCollector` (main thread; `deep` enables item-driven scan) or `RecipeSnapshotCollector` (`snapshot` scope) + `GameRecipeCollector` (background), deduped with NEI winning into a **single session**
-2. First batch `isStart`: `RecipeUploadSession.onStart()` decides whether to `clearMemoryOnly()` (only the first active session per player; overlapping uploads ignored)
-3. Batches throttled client-side by `RecipeUploadThrottler` (`recipeUploadBatchesPerTick` per tick); `RecipeUploadBatcher` splits under the FML 32KB cap (JSON ≤ ~32KB−512B; oversized recipes trim grid/rawJson)
+2. First batch `isStart`: `RecipeUploadSession.onStart()` decides whether to `clearMemoryOnly()` (only the first active session for the real player clears the cache; overlapping uploads are ignored). The session timestamp advances only for accepted batches and expires lazily after 120 seconds of inactivity, so a disconnect or missing final batch cannot permanently block the next upload
+3. Batches are throttled client-side by `RecipeUploadThrottler` (`recipeUploadBatchesPerTick` per tick); under Forge's 32767-byte hard ceiling, `RecipeUploadBatcher` uses a 30000-byte body budget (JSON ≤ 29488 bytes; oversized recipes trim grid/rawJson)
 4. Server `RecipeCacheStore.ingest()` + final `rebuildHandlerCounts()`; debounced save to `web-recipes.json` + `web-recipes.meta.json` + `recipe-chunks/chunk-NNNN.json`; default `recipeKeepMemoryAfterUpload=false` clears heap after save
 5. Client `RecipeLocalExporter` writes `<instance>/TeXTech/WebAE/web-recipes.json` (plain JSON only, no gzip)
 6. On completion, `PacketWebRecipeUploadAck` confirms delivery; browsers must click **Fetch recipes** on the Recipes page to pull sync chunks into IndexedDB
 
 Icon upload flow:
 1. Client `IconRenderer` (@SideOnly CLIENT) renders several items per frame into 32×32 PNGs offscreen
-2. Packs an IconBundle (itemId → base64PNG) and chunk-uploads via `PacketWebIconUpload`
-3. Server decodes and writes to `TeXTech/WebAE/icons/<packName>/`, then calls `IconStore.recordDefaultPack` to remember the most recent pack
-4. `PacketWebIconUploadAck` reports progress
+2. Packs an IconBundle (itemId → base64PNG) and uploads it through `PacketWebIconUpload` as strictly ordered, non-empty 24 KiB chunks. One bundle is limited to 8 MiB/342 chunks, each real player may hold two sessions, and the server allows at most 16 sessions with 32 MiB of aggregate reserved memory; inactive sessions expire lazily after 120 seconds
+3. The server strictly parses the bundle as a JSON object: at most 4096 unique item IDs; duplicate keys, trailing tokens, invalid UTF-8/Base64/surrogates are rejected. Each PNG is at most 512 KiB and 2048px per dimension, is fully decoded with ImageIO, and all decoded PNG bytes together are limited to 16 MiB
+4. Only after the complete bundle validates does `IconStore` stage and promote every file to `TeXTech/WebAE/icons/<packName>/<mode>/<sanitizedItemId>.png`. A failed promotion rolls the old files back; a complete commit refreshes the index once and records the default pack
+5. `PacketWebIconUploadAck` reports progress. `IconMissingQueue` acknowledges only item IDs from the fully committed bundle, never rejected or partially written data
 
 Command-triggered upload flow (ID 30):
 1. An OP player runs `/admweb recipes upload` or `/admweb icons upload`
 2. `CommandWebConsole` checks OP (`canUseOpCommands`) and that the sender is a player, then sends `PacketWebUploadTrigger` (S→C, fields uploadType=recipes/icons, packName)
 3. The client handler calls the public static entry points `KeyBindings.uploadNeiRecipes()` or `KeyBindings.triggerIconUpload(packName)`
 4. The rest follows the same path as the command flow (IDs 26/28)
+
+These upload packets use a 30000-byte packet-body budget and reject trailing bytes. Byte/string/VarString fields, compressed NBT, JSON text, batch index/totalBatches, and item IDs have hard limits. Recipe JSON must have an array root, while an icon bundle must have an object root; invalid UTF-8, control characters, empty or out-of-order chunks, invalid item IDs, duplicate icon keys, and mismatched batch counts do not update the upload session. The server uses the real player from the message context and does not trust client-reported UUID, owner, or network values.
 
 See `network-packets.mdc` for details.
 
@@ -619,8 +637,8 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Sampler**: `PowerSampler.java` keeps a 5-second sampling window (sliding window for rate calculation, unit: EU/t) and writes each sample into `SnapshotCache`
 - **Data source**: `WirelessPowerQuery` / `WirelessSteamQuery` (reuses AI assistant power query interface)
 - **Endpoints (Phase 1.2)**: `GET /api/power` (cache-only, stale fallback), `GET /api/power/batch`, `POST /api/power/refresh` (admin, invalidates cache only — next sampler tick repopulates), `POST /api/power/refresh/batch` (admin)
-- **Return data**: Current EU/steam level, in/out rates, EU/steam history arrays
-- **Frontend**: Full-page configurable GridStack on the Power page (`PowerWidgetGrid` + `PowerWidgetContent`, persisted in `webae_power_config`); defaults include EU gauge, in/out statCards, steam progressBar, dual-series SVG trend lineChart, steam in/out statCards. The editor exposes secondary tools only while editing, and `PowerWidgetGrid.networkId` binds history to the active network selected by the responsive switcher (see [11.15](#1115-configurable-power-page--anti-flicker-phase-4))
+- **Return data**: Current EU/steam level, in/out rates, and EU/steam history arrays. `PowerDto.steamSupported` says a steam provider is readable; `steamCapacityKnown` says `steamMax` is a real capacity. SNL 0.2.5 defaults to `steamCapacityKnown=false`
+- **Frontend**: Full-page configurable GridStack on the Power page (`PowerWidgetGrid` + `PowerWidgetContent`, persisted in `webae_power_config`); defaults include EU gauge, in/out statCards, steam progressBar, dual-series SVG trend lineChart, steam in/out statCards. Unknown-capacity steam never shows an invented stored/max or 0%; it gains progress semantics only with explicit `targetValue>0`. The editor exposes secondary tools only while editing, and `PowerWidgetGrid.networkId` binds history to the active network selected by the responsive switcher (see [11.15](#1115-configurable-power-page--anti-flicker-phase-4))
 
 ### 11.3 GT Machine Monitoring
 
@@ -718,14 +736,15 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 ### 11.8 Item Icon Cache & Texture Packs (Phase 3.1)
 
-- **Server store**: `webae/icon/IconStore.java` singleton manages `TeXTech/WebAE/icons/<packName>/nei/<itemId>.png` (legacy flat PNGs auto-migrate on first access); `manifest.json` records `modes[]`, `counts{}`, `uploadedAt`, `clientVersion`; path-traversal protection; `listPacks`/`listIcons`/`getIconFile`/`resolveWriteTarget`/`refreshPack`/`recordModeUpload`/`migrateLegacyPackIfNeeded`; `recordDefaultPack`/`getDefaultPack`
+- **Server store**: the `webae/icon/IconStore.java` singleton manages `TeXTech/WebAE/icons/<packName>/<mode>/<sanitizedItemId>.png` (current bulk uploads use `nei`; legacy flat PNGs migrate to `hybrid/` on first access). Pack, mode, and target paths use canonical-containment and symlink checks; a sanitized-name collision rejects the entire bundle. `writeIconPngBatch` performs full prevalidation, staging, promotion, and rollback of old files on failure; `recordDefaultPack`/`getDefaultPack` persist the latest pack
 - **REST handler**: `webae/api/handler/IconHandler.java`
   - `GET /api/icon?item=<itemId>&pack=<pack>&mode=<mode>&meta=<int>&size=<16|32|64>` returns PNG (`mode` defaults to nei; disk may serve legacy modes; **miss is immediate 404**; enqueue `IconMissingQueue` only when `iconLazyCaptureEnabled=true`; sync direct render only when `iconDirectRenderEnabled=true`)
   - `GET /api/icon/packs` lists packs as JSON (`{success:true, packs:[...], defaultPack:"<name>"|null}`); `defaultPack` comes from `IconStore.getDefaultPack()` so the frontend can pick it on first load
   - `GET /api/icon/sync/manifest` / `GET /api/icon/sync/bulk` full-pack sync (frontend does not call on login by default; Settings manual or user-enabled auto-sync)
-  - `POST /api/icon/pack?pack=<packName>` admin-only (`WebAuthOpCheck.isOp` OP>=2) uploads a zip; the server extracts it with `ZipInputStream` into `web-icons/<packName>/`, applies **Zip Slip protection** (canonical-path check that entries stay inside packDir), accepts only `.png` entries, refreshes the IconStore index, and calls `recordDefaultPack` to remember the most recent pack
+  - `POST /api/icon/pack?pack=<packName>` admin-only (`WebAuthAdminCheck`) uploads a zip; the server extracts it with `ZipInputStream` into the controlled `TeXTech/WebAE/icons/<packName>/` directory, checks canonical paths and duplicate targets, accepts only fully decoded `.png` entries, refreshes the IconStore index, and calls `recordDefaultPack` to remember the most recent pack
 - **vs world map**: both use HTTP; map misses read snapshots/placeholders by default; icons never GL-render on the server. Icon concurrency is high — **do not** default to sync `IconDirectCaptureBridge` (prefer async placeholder + SSE, not map SP sync capture)
-- **Static serving**: `WebConsoleServer.serveStatic()` extended to serve `/icons/<pack>/<itemId>.png` from the external `TeXTech/WebAE/icons/` directory with canonical path-traversal protection + `Cache-Control`
+- **HTTP ZIP upload bounds**: the inbound HTTP body is limited to 32 MiB, with at most 4096 entries; one PNG is at most 512 KiB, total PNG bytes at most 16 MiB, and dimensions at most 2048. Only valid PNGs are accepted, canonical paths must remain inside the target pack directory, and all entries validate before staging is promoted; a failed promotion rolls old files back. This 32 MiB inbound limit is independent of the 8 MiB outbound ZIP limit used by server-to-client `PacketWebIconPullZip` export.
+- **Static serving**: `WebConsoleServer.serveStatic()` serves `/icons/<pack>/<mode>/<sanitizedItemId>.png` from the external `TeXTech/WebAE/icons/` directory with canonical path-traversal protection + `Cache-Control`
 - **Routing**: `WebApiRouter` dispatches `/api/icon` and the `/api/icon/` prefix to `IconHandler`
 - **Client renderer (NESQL primary path)**: `GuiIconExportScreen` renders `iconRenderPerTick` items per frame; active path is `IconNesqlStyleRenderer` (64×64 FBO + `GuiContainerManager.drawItem`, **output 64×64**, matching NESQL exporter) via `IconExportResolver.resolve`; **fluids / fluid-aware stacks** keep `IconFluidRenderer` + `IconGlFallback.renderFluidAwareSlotIcon` / `renderRegistryFluidIcon`; **`nei` only**; `/admweb icons local` writes `icons-local/`; `PacketWebIconPullZip` (49) for pull
 - **Production stability (full GTNH pack)**:
@@ -778,6 +797,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Command side**: `CommandWebConsole`'s `recipes upload` / `icons upload` sub-commands now check OP (`canUseOpCommands`) + that the sender is a player, then send the trigger packet; `getRequiredPermissionLevel` stays 0 so other sub-commands are unaffected
 - **Client entry points**: `KeyBindings.uploadNeiRecipes()` and `KeyBindings.triggerIconUpload(packName)` (moved into `KeyBindings` in Phase 2 from the deleted `HandlerWebIconUpload`) are public static entry points the packet handler calls; `uploadNeiRecipes()` now collects on the client main thread (`Minecraft.addScheduledTask`) and uploads asynchronously
 - **Downstream**: follows the same path as the command flow (recipes → IDs 26/27, icons → IDs 28/29)
+- **Strict protocol**: `isStart` is only valid on batch 0, batch indexes must increase strictly, and `isEnd` is only valid on the final batch. `totalBatches`, the JSON `RecipeDto[]` root type, and its item count must agree; the server does not commit session state before validation completes.
 
 ### 11.12 Dashboard Settings Panel & Widget Property Inheritance (Phase E + WebAE Roadmap Phase 1)
 
@@ -805,15 +825,19 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **Shared components**: `OverviewWidgetGrid.tsx`, `WidgetContent.tsx`, `overviewDataSources.ts`, `cpuColumns.tsx`
 - **Storage page** (`Storage.tsx`): CPU tab removed; configurable overview + items/fluids/essentia tables
 - **Essentia page** (`Essentia.tsx`, Phase 5): sidebar `PageId: essentia` (`ExperimentOutlined`); aspect count/total summary + `essentiaCountHistory` trend via `useNetworkMetrics`/`ChartTrendSvg`; searchable/sortable aspect table; multi-network merge; Ctrl+K essentia hits navigate to `?page=essentia` with search prefill
-- **CPU page** (`Cpu.tsx`): sidebar `PageId: cpu` (`HddOutlined`); overview + clickable table + detail Drawer; multi-network Tabs (split) or merged; craft history placeholder
+- **CPU page and Dashboard**: `Cpu.tsx` provides sidebar `PageId: cpu` (`HddOutlined`), an overview, clickable CPU table, and detail Drawer; multi-network mode uses Tabs (split) or merged data. The drawer loads history and capacity concurrently. The main `Dashboard.tsx` also mounts `components/dashboard/CpuHistoryPanel.tsx` for `selectedNetworks[0]`, showing a network-wide busy-rate trend, recent jobs, lifecycle filter, unknown/truncated warnings, and capacity cards. It refreshes at most every 30 seconds while the page is active and does not duplicate the initial request. Both surfaces support `1h/6h/24h/7d/14d` capacity windows.
 - **Backend** (`StorageDto.CpuEntry`): crafting-link x/y/z/dim, monitorX/Y/Z/Dim, remainingItems/startItems via `AeSnapshotCollector.collectCpus`
+- **CPU history and capacity APIs**: `GET /api/network/cpu/history?network=<id>&from=<epochMs>&to=<epochMs>&limit=<n>` returns bounded job lifecycles (queued/running/completed/failed/cancelled/stuck/unknown) and CPU snapshots. `limit` caps jobs at 500, snapshot responses are capped at 1,000, history ranges are capped at 14 days, and `truncated=true` reports a request or response cap. `GET /api/network/cpu/capacity?network=<id>&window=24h` returns current CPU count, peak concurrency, P50/P95 duration, P95 queue time, busy ratio, storage pressure, stuck jobs, observed co-processors, and a read-only estimate.
+- **Sampling, lifecycle, and persistence**: `webae/cpu/` `CpuHistoryService` records order lifecycle events and copies CPU observations from the existing `NetworkMetricSampler`/`StorageDto.cpus` cache. HTTP handlers only read memory and call `markActive`: the first HTTP request itself does not load disk or sample, and a later normal server tick activates, restores, and fills history. A lightweight once-per-second server-tick observer checks already-bound `ICraftingLink.isCanceled()`/`isDone()`, so terminal state does not depend on browser polling; HTTP/tick callbacks are idempotent by job ID and the first trusted terminal result wins. Persisted queued/running jobs recover as unknown after server restart. `CpuHistoryStore` persists to `TeXTech/WebAE/cpu-history/{ownerUuid}/{networkId}.json` and keeps stable `dim:x:y:z` identities across runtime network-id reassignment. If a new identity encounters a numeric slot owned by another stable key, it writes a stable-key SHA-256 sidecar rather than overwriting that history. Each owner/network is bounded to 1,000 jobs, 4,096 snapshots, and 14 days with temp-file atomic replacement.
+- **Capacity semantics**: peak concurrency counts only proven started intervals; P50/P95 use valid terminal durations; busy ratio and storage pressure come from existing snapshots; `requiredCpuCountEstimate = ceil(peakConcurrent / 0.8)`. Bottleneck codes are fixed to `cpu`, `queue`, `storage`, `stuck`, and `insufficient_data`; recommendation codes are fixed to `collect_more_history`, `review_cpu_count`, `review_queueing`, `review_cpu_storage`, and `investigate_stuck_jobs`. Unknown states, missing timestamps, and unknown codes remain conservative and are never treated as idle/completed/healthy.
+- **Security boundary**: both endpoints enforce owner/network ACLs and the stable-key ACL. Persistence stores only a normalized recipe identifier and numeric observations—not free-form text, input lists, or secrets. Planning is read-only: it never creates, splits, or edits CPUs or orders.
 - **CSS**: overview cards fixed 112px height
 
 ### 11.15 Configurable Power Page & Anti-Flicker (Phase 4)
 
 - **Inheritance reuse**: Power page reuses Phase 1 `DashboardWidgetConfig` + `resolveProp`/`resolveAllColors`
 - **Types & defaults** (`utils/presets.ts`): `PowerSettings` + `DEFAULT_POWER_WIDGETS` → `localStorage.webae_power_config`; default widgets: EU gauge, EU in/out statCards, steam progressBar (`steamPercent`), power trend lineChart (`powerHistory`), steam in/out statCards
-- **Shared components**: `PowerWidgetGrid.tsx` (GridStack 12-col, base `cellHeight:64`, viewport-adaptive down to 40px, variable height, edit mode); `PowerWidgetContent.tsx` (statCard/progressBar/gauge/lineChart with inline SVG dual EU+steam series — avoids Plots poll flicker); `utils/powerDataSources.ts` (`PowerSnapshot`, `getPowerDataSourceValue()`, 11 power data sources)
+- **Shared components**: `PowerWidgetGrid.tsx` (GridStack 12-col, base `cellHeight:64`, viewport-adaptive down to 40px, variable height, edit mode); `ScalarWidgetRenderer.tsx` + `resolveProgressPercent()` (Dashboard/Storage/Power shared statCard/progressBar/gauge rendering and real-max/percent/target/unknown-capacity semantics); `PowerWidgetContent.tsx` (reuses scalar rendering and keeps inline SVG dual EU+steam lineChart); `utils/powerDataSources.ts` (`PowerSnapshot`, `getPowerDataSourceValue()`, 11 power data sources)
 - **Power page** (`Power.tsx`): multi-network Tabs; "Edit layout" toolbar; trend chart stays mounted on poll (no Card loading overlay)
 - **Anti-flicker**: `useSnapshotData` splits `initialLoading` vs `refreshing`; `loading` aliases `initialLoading` for backward compatibility; trend widget shows Spin only when `initialLoading && !snapshot`; empty history keeps container + `.chart-no-data-watermark`; CSS `.power-chart-stable` / `.power-trend-chart`
 
@@ -900,6 +924,7 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **TPS alert**: `serverTpsBelowEnabled` + `serverTpsThreshold` (default 15) + `serverTpsDurationSeconds` (default 60); evaluated by `WebAlertEngine` via `ServerHealthSampler`
 - **Health sampler**: `webae/health/ServerHealthSampler.java` — mean of `MinecraftServer.tickTimeArray` (last 100 ticks; same formula as `/forge tps` Overall: `mspt = mean(ns)×1e-6`, `tps = min(20, 1000/mspt)`); refreshed every tick via `HandlerTick`, ~1s samples into a 300s rolling window; `GET /api/server/health` (`ServerHealthHandler`); Diagnostics page TPS/MSPT use the same source
 - **Perf diagnostics**: `webae/perf/WebAePerfProfiler.java` + `SnapshotWorkerPool` — tick phases / HTTP routes / snapshot collect timings; single-flight + reject when `queueDepth≥48`; 500ms soft timeout warns only and keeps `inFlight` until the server task finishes (hard wait cap 30s); `GET /api/server/diagnostics` (includes `snapshotWorkerBusy` / timeouts / skips); `[debug] webaePerf` → `logs/textech/webae-perf.log` (slow tick ≥5ms / slow HTTP ≥200ms always logged); frontend `pages/Diagnostics.tsx` + `useServerDiagnostics`. **New `/api/*` routes must be wired into diagnostics** — see `.cursor/rules/webae-perf-diagnostics.mdc`.
+- **Network health diagnostics**: `webae/diagnostics/NetworkHealthDiagnosticProvider` samples registered owner networks on the server tick at most once per 5 seconds; HTTP handlers and `QUERY_BRIEFING` only read its owner-scoped cache. `GET /api/network/health?network=<id>` returns schema-versioned `NetworkHealthDiagnosticDto` with stable `dim:x:y:z` key, link/monitor/Grid/channel evidence, issue codes, and `sampleAgeMs`/`stale`. Status is explicitly `healthy`, `degraded`, `failed`, or `unknown`; missing evidence is serialized as `null`, and an unavailable channel probe never creates `channel_over_limit`. `/api/server/diagnostics` adds an owner-scoped `networkHealth` array, while the Diagnostics page renders the same evidence with a separate unknown state. No endpoint performs World, TileEntity, or AE Grid scans on the HTTP thread.
 
 ### 11.20b Monitoring Deepening (reference plan Phase 3)
 
@@ -929,11 +954,13 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 - **REST**: `GET /api/network/p2p?network=<id>` — **cache read** (scheduler pre-collect); requires `topologyEnabled`; `?refresh=1` async rebuild
 - **Frontend**: `NetworkTopology.tsx` view mode `p2p` + `P2pMapPanel.tsx` (card grid layout, per-frequency cards with IN/OUT direction tags + coordinates, search & sort)
 
-### 11.24 Monitor Line Preview (Phase 11)
+### 11.24 Type-aware Monitor Preview and Shared Widget Contract (Phase 11)
 
-- **Package**: `webae/monitor/MonitorPreviewCollector` — reads `TileEntityAdvanceDataMonitor.getDoubleValues(slot)`
-- **REST**: `GET /api/monitor/preview?dim=&x=&y=&z=&slot=` — main thread 10s timeout; owner check
-- **Frontend**: `MonitorBindings.tsx` Preview button per slot + Drawer + `ChartTrendSvg`
+- **Backend**: `webae/monitor/MonitorPreviewCollector` builds a read-only DTO by `kind`: `scalar` (stat/progress/gauge), `series[]` (line), `categories[]` (bar/pie), or `rows[]` (table/storage/crafting). History uses `min(history points, visible width, 240)`; `columns=null` means defaults and `[]` hides every column
+- **REST**: `GET /api/monitor/preview?dim=&x=&y=&z=&slot=` — main-thread 10s timeout and owner validation. It continues through existing `WebApiRouter` timing/diagnostics; this refactor adds no route, polling loop, or MC-tick collector
+- **Frontend**: the `MonitorBindings.tsx` Drawer dispatches by preview discriminator and renders cards/progress/line/bar/pie/table instead of line only
+- **Semantic bundle**: `utils/monitorWidgetBundle.ts` defines `textech-monitor-widget-bundle` v1 with `format/version/title/exportedAt/widgets[]`. It exports only `statCard/progressBar/gauge/lineChart/barChart/pieChart/dataTable`, preserves Dashboard order, and caps one bundle at 36. `DashboardSettingsDrawer` exports and re-imports the format while preserving `pins`, `targetValue`, and the three-state `columns` contract
+- **Boundary**: `textech-webae-display-binding` / snapshot still represent whole-page live/snapshot surfaces and do not replace the semantic bundle; `radarChart` and composite widgets remain WebAE-only
 
 ### 11.25 PWA & Mobile (Phase 12)
 
@@ -944,12 +971,23 @@ Index by functional domain (status: **done** / **Phase C pending**). Phase numbe
 
 ### 11.26 World Map View (three-source capture / client snapshot / SP direct)
 
-- **Default** `worldMapSnapshotMode=client_only`: no server terrain/AE render; MP capture runs on consenting **player clients** per-chunk with `worldMapSnapshotSourcePriority` (default `dynmap,journeymap,client_gl`). Manual update cooldown: `worldMapSnapshotCooldownMs` (default 10 s).
+- **Default** `worldMapSnapshotMode=client_only`: no server terrain/AE render; MP capture runs on consenting **player clients** per chunk with `worldMapSnapshotSourcePriority` (default `dynmap,journeymap,client_gl`). Requests are manual and deduplicated. `worldMapSnapshotCooldownMs` (10 s by default) also applies after a successful owner direct capture when `worldMapOwnerSkipConsent` is enabled.
+- **HTTP main-thread boundary**: `POST /api/worldmap/snapshot/request` moves online-player lookup, proximity checks, active-job creation, and Forge sends onto the `HandlerTick` server-task queue. Requests are rejected once queue depth reaches 128, and HTTP waits at most 15 seconds. Busy, timeout, or interruption returns a stable error code; a queued task that has not started is cancelled, and clients must not retry automatically.
 - **SP direct** (`worldMapSpDirectServe`): integrated server serves missing tiles via FS Dynmap/JM or client GL bridge (`PacketWorldMapDirectCaptureRequest/Response` IDs 45/46); headers `X-WorldMap-Tile-Status=direct`, `X-WorldMap-Tile-Source=...`.
 - **AE overlay**: `WorldMapAeVectorOverlayRenderer` on client for snapshot upload and SP direct — **device blocks rasterized** via `WorldMapFaceRasterizer.rasterizeTopFaceCategoryId` (category-ID PNG); cables/parts remain vector; cable width `worldMapAeCableWidthBlocks` (default 0.25 blocks).
 - **Tile compositing (frontend)**: `chunkTileScreenRect` anchors chunk **north-west** corner; `WORLD_MAP_TILE_FLIP_Y` (`scaleY(-1)`) aligns PNG row 0 (north) with `worldToScreen`; tests in `worldMapTerrain.test.ts`.
 - **Frontend**: unified `TopologyWorldMapView` snapshot chunks; Leaflet Dynmap terrain view removed (external Dynmap link kept).
+- **Retention and logical sidecar**: v1 still retains only **current + previous**. Snapshot completion best-effort writes `TeXTech/WebAE/map-snapshots/{ownerUuid}/{networkId}/v{version}/logical-index.json` with that version's markers and AE placements. A sidecar failure does not fail terrain publication; a legacy version without it reports `logicalAvailable=false` and never substitutes current topology.
+- **Version diff**: `WorldMapVersionHandler` reads only the current pointer, the two retained manifests, and their logical sidecars. The default pair is `previous → current`. Tiles use same-key SHA-256 for added/removed/changed; markers add removed/changed and only report moved when kind/className/iconItemId/dimension has one unambiguous match. Summary counts describe the full result before the shared 1,000-row detail cap. `unknown_manifest` conservatively returns HTTP 200 with `status=unknown`; a same-version request returns 409.
+- **Server annotations**: `WorldMapAnnotationHandler`/`WorldMapAnnotationService` atomically persist formal annotations at `TeXTech/WebAE/map-annotations/{ownerUuid}/{networkId}.json`, capped at 500 records and 2 MiB per network. Label/note are limited to 64/512 Unicode code points, control characters and malformed surrogates are rejected, color is exactly `#RRGGBB`, Y is 0–255, and `0` is the open bound for `fromVersion`/`toVersion`. Formal annotations never use browser localStorage/sessionStorage.
+- **Frontend and ACL**: `useWorldMapVersionDiff` keeps versions, diff, and annotations in independent request states and rejects stale responses after network switches. Terrain always remains the current snapshot; previous is only a source for green added, red removed, blue moved, and orange changed overlays. Right-clicking the map or a marker pre-fills an annotation, with Y=64 for empty-map positions. Owners may CRUD; guests and Browsing mode may read versions/diff/annotations but have no mutation controls.
+- **HTTP boundary**: version, diff, and annotation handlers only read/write bounded files and DTO caches, defensively re-run owner/network ACLs, and never access World, TileEntity, or an AE2 Grid from the request thread. POST/PUT require explicit primitive JSON fields so missing values cannot become Gson zero defaults; annotation bodies have a dedicated 16 KiB limit.
 - **Dev deps**: `dependencies.gradle` includes `devOnlyNonPublishable` JourneyMap 5.2.18 and **GTNH-Web-Map (GWM) 0.4-beta-1** for local `runClient`/`runServer` only; not bundled in release jars.
+- **Authorization and file boundaries**: HD/client capture accepts the resource owner, an OP, or a real actor authorized by the active capture job for the current network; owner UUIDs are canonical lowercase. Snapshot manifest/current/tile files have size, structure, coordinate, layer, and SHA-256 checks, and layers are limited to `terrain`/`ae`. SP direct capture is limited to integrated single-player; responses bind to the pending provider/request. Dynmap proxy world, zoom, coordinates, perspective, and real file containment are all validated. Dynmap's separate public proxy path is not equivalent to a WebAE owner network scope.
+- **Paged capture jobs and lifecycle**: each `PacketWorldMapCaptureJob` page stays within the 30000-byte body budget and a complete job is capped at 100000 chunks. The server constructs and validates all metadata/pages before registering an active job. Client `WorldMapCaptureJobAssembler` keeps at most 8 pending jobs for 2 minutes, accepts out-of-order pages, and publishes only after metadata, contiguous offsets, page completeness, and the final chunk count all agree—never from a truncated list. The server allows at most 32 active jobs; jobs expire after 90 minutes idle or 2 hours absolute. Player disconnect, WebAE stop/restart, or any page-send failure releases the job and unpublished version; a finalize write failure keeps the job retryable.
+- **Strict stats, enums, and PNG bounds**: finalize `sourceStatsJson` must be an object with no duplicate/unknown keys and only non-negative base-10 integer values for `dynmap`, `journeymap`, and `client_gl`; each value and the sum are at most 100000, and trailing tokens are rejected. Packet quality is the exact lowercase allowlist `low|medium|high|ultra`, with no configuration fallback for unknown wire values. Uploaded tiles are limited to 1 MiB/2048px and checked for PNG signature, IHDR, and CRC; this packet path deliberately avoids fully inflating images on the server main thread.
+- **JourneyMap and snapshot paths**: `WorldMapJourneyMapFsReader` reads only the exact current-world directory and never falls back to an arbitrary `sp`/`mp` world. Every existing segment from root through mode/world/dimension/day/zoom/tile rejects symlinks; lexical/canonical containment and bounded PNG header checks run before ImageIO, followed by a decoded-dimension recheck. `WorldMapSnapshotStore` likewise rejects the snapshot root and every intermediate symlink below it even when the link still targets the same root, while preserving compatibility with a symlink above the snapshot root in the instance path.
+- **Packet execution boundary**: packets 37–46 use the real player from `MessageContext`; C→S handlers return to the server thread and reject truncation, trailing bytes, and invalid kinds/enums. See `network-packets.mdc`.
 
 ### 11.27 Spark Profiler Integration
 
@@ -1034,7 +1072,7 @@ Build output (Vite bundle, contenthash filenames):
 - `js/react-[hash].js` — React + ReactDOM (chunked on demand)
 - `js/gridstack-[hash].js` — GridStack (tree-shaken)
 
-Total gzip size ~450KB, fully offline-packaged (no CDN dependencies). Build command: `cd webae-frontend && npm install && npm run build`.
+Total gzip size ~450KB, fully offline-packaged (no CDN dependencies). Build command: `cd webae-frontend && npm install && npm run build`. The production build uses `scripts/build-webae.mjs` to write a `.workspace/webae-build/` staging directory, validate `index.html` and hashed JS, and then promote to the external `TeXTech/WebAE/ui/` bundle. `WEBAE_BUILD_VALIDATE_ONLY=1` validates without replacing the production bundle; `npm run build:no-typecheck` is for release flows that already ran type checking, and `npm run clean` only removes staging. A failed build keeps the previous production bundle; it must not directly clean `src/main/resources/assets/textech/webae/`.
 
 ## 13. Debugging and Troubleshooting
 

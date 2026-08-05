@@ -1,23 +1,38 @@
 package com.imgood.textech.webae.icon;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.FileWriter;
 import java.io.OutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import java.util.zip.CRC32;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -47,6 +62,28 @@ public class IconStore {
     private static final String MANIFEST_FILE = "manifest.json";
     private static final String LEGACY_MIGRATED_FLAG = ".legacy-migrated";
 
+    /** Hard upper bound for one icon resource, including client-originated renders. */
+    public static final int MAX_PNG_BYTES = 512 * 1024;
+    /** Hard upper bound for each decoded icon dimension. */
+    public static final int MAX_PNG_DIMENSION = 2048;
+    /** Maximum compressed size of a browser/local icon-pack ZIP. */
+    public static final int MAX_ICON_PACK_ZIP_BYTES = 8 * 1024 * 1024;
+    /** Maximum number of entries accepted by the client-side pull extractor. */
+    public static final int MAX_ICON_PACK_ENTRIES = 4096;
+    /** Maximum sum of decoded PNG bytes accepted in one icon-pack transaction. */
+    public static final int MAX_ICON_PACK_PNG_BYTES = 16 * 1024 * 1024;
+    private static final int MIN_PNG_HEADER_BYTES = 45;
+    private static final byte[] PNG_SIGNATURE = {
+        (byte) 0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a
+    };
+
     /** Base directory for all icon packs. */
     private final File baseDir;
     /** File that records the most recently uploaded pack name (for default pack selection). */
@@ -66,7 +103,12 @@ public class IconStore {
     }
 
     private IconStore() {
-        this.baseDir = TeXTechDataDir.webAeDir("icons");
+        this(TeXTechDataDir.webAeDir("icons"));
+    }
+
+    IconStore(File baseDir) {
+        if (baseDir == null) throw new IllegalArgumentException("baseDir");
+        this.baseDir = baseDir;
         this.defaultPackFile = new File(this.baseDir, "default-pack.txt");
         this.packIndex = new ConcurrentHashMap<String, PackEntry>();
         this.indexed = false;
@@ -391,15 +433,20 @@ public class IconStore {
         if (entry == null) return;
         Map<String, File> icons = entry.iconsForMode(mode);
         if (icons == null || icons.isEmpty()) return;
-        ZipOutputStream zos = new ZipOutputStream(out);
+        ZipOutputStream zos = new ZipOutputStream(new SizeLimitedOutputStream(out, MAX_ICON_PACK_ZIP_BYTES));
         byte[] buf = new byte[8192];
+        int entryCount = 0;
         try {
             for (Map.Entry<String, File> e : icons.entrySet()) {
                 File file = e.getValue();
-                if (file == null || !file.isFile()) continue;
+                if (file == null || !file.isFile() || !isValidPng(file)) continue;
+                entryCount++;
+                if (entryCount > MAX_ICON_PACK_ENTRIES) {
+                    throw new IOException("Icon pack contains too many entries");
+                }
                 String entryName = mode + "/" + file.getName();
                 zos.putNextEntry(new ZipEntry(entryName));
-                java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                FileInputStream fis = new FileInputStream(file);
                 try {
                     int n;
                     while ((n = fis.read(buf)) > 0) {
@@ -418,23 +465,355 @@ public class IconStore {
 
     /** Write a rendered PNG to disk and refresh the in-memory index. */
     public boolean writeIconPng(String packName, String modeId, String itemId, byte[] png) {
-        if (png == null || png.length == 0) return false;
-        File target = resolveWriteTarget(packName, modeId, itemId);
-        if (target == null) return false;
-        FileOutputStream fos = null;
+        Map<String, byte[]> singleton = new LinkedHashMap<String, byte[]>(1);
+        singleton.put(itemId, png);
+        return writeIconPngBatch(packName, modeId, singleton);
+    }
+
+    /**
+     * Validate, stage, and promote a complete icon bundle as one best-effort transaction.
+     * No target is changed until every entry has passed the resource and path checks. If a
+     * promotion fails, already-promoted entries are rolled back before this method returns.
+     */
+    public synchronized boolean writeIconPngBatch(String packName, String modeId, Map<String, byte[]> icons) {
+        if (!isValidPackName(packName) || icons == null || icons.size() > MAX_ICON_PACK_ENTRIES) return false;
+        String mode = normalizeModeId(modeId);
+        if (!isValidModeDirName(mode)) return false;
+        if (icons.isEmpty()) return true;
+
+        List<StagedIconWrite> writes = new ArrayList<StagedIconWrite>(icons.size());
+        Set<String> targetPaths = new HashSet<String>();
+        long totalPngBytes = 0L;
         try {
-            fos = new FileOutputStream(target);
-            fos.write(png);
+            if ((!baseDir.exists() && !baseDir.mkdirs()) || !baseDir.isDirectory()
+                || Files.isSymbolicLink(baseDir.toPath())) {
+                return false;
+            }
+            File canonicalBase = baseDir.getCanonicalFile();
+            File packDir = new File(baseDir, packName);
+            if ((!packDir.exists() && !packDir.mkdir()) || !packDir.isDirectory()
+                || Files.isSymbolicLink(packDir.toPath())) {
+                return false;
+            }
+            File canonicalPack = packDir.getCanonicalFile();
+            if (!isContained(canonicalBase, canonicalPack)) return false;
+
+            File modeDir = new File(packDir, mode);
+            if ((!modeDir.exists() && !modeDir.mkdir()) || !modeDir.isDirectory()
+                || Files.isSymbolicLink(modeDir.toPath())) {
+                return false;
+            }
+            File canonicalMode = modeDir.getCanonicalFile();
+            if (!isContained(canonicalPack, canonicalMode)) return false;
+
+            for (Map.Entry<String, byte[]> entry : icons.entrySet()) {
+                String itemId = entry.getKey();
+                byte[] png = entry.getValue();
+                if (!isValidItemId(itemId) || !isValidPng(png)
+                    || totalPngBytes > MAX_ICON_PACK_PNG_BYTES - png.length) {
+                    return false;
+                }
+                totalPngBytes += png.length;
+                File target = new File(modeDir, sanitizeItemId(itemId) + ".png");
+                File canonicalTarget = target.getCanonicalFile();
+                File canonicalParent = canonicalTarget.getParentFile();
+                if (canonicalParent == null || !canonicalMode.equals(canonicalParent)
+                    || (target.exists() && (!target.isFile() || Files.isSymbolicLink(target.toPath())))) {
+                    return false;
+                }
+                String targetPath = canonicalTarget.getPath();
+                if (!targetPaths.add(targetPath)) return false;
+                writes.add(new StagedIconWrite(canonicalTarget, png));
+            }
+            return promoteIconWrites(packName, writes);
+        } catch (IOException | RuntimeException e) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to prepare icon bundle for pack {}: {}", packName, e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean promoteIconWrites(String packName, List<StagedIconWrite> writes) {
+        boolean promotedAll = false;
+        try {
+            for (StagedIconWrite write : writes) {
+                File parent = write.target.getParentFile();
+                write.staged = File.createTempFile("webae-icon-stage-", ".tmp", parent);
+                FileOutputStream output = null;
+                try {
+                    output = new FileOutputStream(write.staged);
+                    output.write(write.png);
+                    output.flush();
+                } finally {
+                    if (output != null) output.close();
+                }
+            }
+            for (StagedIconWrite write : writes) {
+                File parent = write.target.getParentFile();
+                if (write.target.isFile()) {
+                    write.backup = File.createTempFile("webae-icon-backup-", ".bak", parent);
+                    moveAtomically(write.target, write.backup);
+                }
+                moveAtomically(write.staged, write.target);
+                write.staged = null;
+                write.promoted = true;
+            }
             refreshPack(packName);
+            promotedAll = true;
             return true;
-        } catch (Exception e) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to write icon {} to pack {}", itemId, packName, e);
+        } catch (IOException | RuntimeException e) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to promote icon bundle for pack {}: {}", packName, e.getMessage());
             return false;
         } finally {
-            if (fos != null) {
+            if (!promotedAll) rollbackIconWrites(writes);
+            for (StagedIconWrite write : writes) {
+                deleteQuietly(write.staged);
+                if (promotedAll) deleteQuietly(write.backup);
+            }
+        }
+    }
+
+    private static void rollbackIconWrites(List<StagedIconWrite> writes) {
+        for (int i = writes.size() - 1; i >= 0; i--) {
+            StagedIconWrite write = writes.get(i);
+            if (write.promoted) deleteQuietly(write.target);
+            if (write.backup != null && write.backup.isFile()) {
                 try {
-                    fos.close();
-                } catch (Exception ignored) {}
+                    moveAtomically(write.backup, write.target);
+                    write.backup = null;
+                } catch (IOException e) {
+                    AdvanceDataMonitor.LOG.warn(
+                        "[WebAE] Failed to restore previous icon {}: {}",
+                        write.target.getName(),
+                        e.getMessage());
+                }
+            }
+        }
+    }
+
+    private static boolean isContained(File parent, File child) {
+        if (parent == null || child == null || parent.equals(child)) return false;
+        return child.toPath()
+            .startsWith(parent.toPath());
+    }
+
+    private static void deleteQuietly(File file) {
+        if (file != null && file.exists() && !file.delete()) {
+            AdvanceDataMonitor.LOG.debug("[WebAE] Failed to remove temporary icon {}", file.getAbsolutePath());
+        }
+    }
+
+    /**
+     * Validate an in-memory icon before it can cross the WebAE resource boundary.
+     *
+     * <p>The signature/IHDR check runs before ImageIO so a malformed payload cannot make the
+     * decoder allocate based on an unbounded header. ImageIO then performs a real PNG decode,
+     * which rejects truncated/corrupt data and confirms that the payload is actually PNG rather
+     * than merely a file with a {@code .png} suffix.</p>
+     */
+    public static boolean isValidPng(byte[] png) {
+        if (png == null || png.length < MIN_PNG_HEADER_BYTES || png.length > MAX_PNG_BYTES
+            || !hasValidPngStructure(png)) {
+            return false;
+        }
+
+        ImageInputStream input = null;
+        ImageReader reader = null;
+        try {
+            input = ImageIO.createImageInputStream(new ByteArrayInputStream(png));
+            if (input == null) return false;
+            Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName("png");
+            if (!readers.hasNext()) return false;
+            reader = readers.next();
+            reader.setInput(input, true, true);
+            if (reader.getWidth(0) <= 0 || reader.getHeight(0) <= 0 || reader.getWidth(0) > MAX_PNG_DIMENSION
+                || reader.getHeight(0) > MAX_PNG_DIMENSION) {
+                return false;
+            }
+            BufferedImage decoded = reader.read(0);
+            if (decoded == null || decoded.getWidth() <= 0 || decoded.getHeight() <= 0
+                || decoded.getWidth() > MAX_PNG_DIMENSION || decoded.getHeight() > MAX_PNG_DIMENSION) {
+                return false;
+            }
+            String format = reader.getFormatName();
+            return format != null && "png".equalsIgnoreCase(format);
+        } catch (IOException | RuntimeException e) {
+            return false;
+        } finally {
+            if (reader != null) {
+                reader.dispose();
+            }
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException ignored) {}
+            }
+        }
+    }
+
+    /** Validate a bounded on-disk PNG without reading an arbitrarily large file into memory. */
+    public static boolean isValidPng(File file) {
+        if (file == null || !file.isFile()) return false;
+        long length = file.length();
+        if (length < MIN_PNG_HEADER_BYTES || length > MAX_PNG_BYTES) return false;
+        byte[] png = new byte[(int) length];
+        FileInputStream input = null;
+        try {
+            input = new FileInputStream(file);
+            int offset = 0;
+            while (offset < png.length) {
+                int read = input.read(png, offset, png.length - offset);
+                if (read < 0) return false;
+                if (read == 0) continue;
+                offset += read;
+            }
+            if (input.read() >= 0) return false;
+            return isValidPng(png);
+        } catch (IOException | RuntimeException e) {
+            return false;
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException ignored) {}
+            }
+        }
+    }
+
+    private static boolean hasValidPngStructure(byte[] png) {
+        if (png.length < MIN_PNG_HEADER_BYTES) return false;
+        for (int i = 0; i < PNG_SIGNATURE.length; i++) {
+            if (png[i] != PNG_SIGNATURE[i]) return false;
+        }
+        int offset = PNG_SIGNATURE.length;
+        boolean seenIhdr = false;
+        boolean seenIdat = false;
+        boolean seenIend = false;
+        while (offset <= png.length - 12) {
+            long chunkLength = uint32(png, offset);
+            if (chunkLength > Integer.MAX_VALUE || chunkLength > png.length - offset - 12L) return false;
+            int dataLength = (int) chunkLength;
+            int typeOffset = offset + 4;
+            int dataOffset = offset + 8;
+            int crcOffset = dataOffset + dataLength;
+            if (!isPngChunkType(png, typeOffset)) return false;
+            String type = new String(png, typeOffset, 4, java.nio.charset.StandardCharsets.US_ASCII);
+            CRC32 crc = new CRC32();
+            crc.update(png, typeOffset, 4 + dataLength);
+            if (crc.getValue() != uint32(png, crcOffset)) return false;
+
+            if (!seenIhdr) {
+                if (!"IHDR".equals(type) || dataLength != 13) return false;
+                long width = uint32(png, dataOffset);
+                long height = uint32(png, dataOffset + 4);
+                int bitDepth = png[dataOffset + 8] & 0xff;
+                int colorType = png[dataOffset + 9] & 0xff;
+                int compression = png[dataOffset + 10] & 0xff;
+                int filter = png[dataOffset + 11] & 0xff;
+                int interlace = png[dataOffset + 12] & 0xff;
+                if (width <= 0L || height <= 0L || width > MAX_PNG_DIMENSION || height > MAX_PNG_DIMENSION
+                    || !isValidPngColorFormat(bitDepth, colorType) || compression != 0 || filter != 0
+                    || (interlace != 0 && interlace != 1)) {
+                    return false;
+                }
+                seenIhdr = true;
+            } else if ("IHDR".equals(type)) {
+                return false;
+            }
+
+            if ("IDAT".equals(type)) {
+                if (seenIend) return false;
+                seenIdat = true;
+            } else if ("IEND".equals(type)) {
+                if (dataLength != 0 || seenIend || !seenIdat || offset + 12 != png.length) return false;
+                seenIend = true;
+            } else if (seenIend) {
+                return false;
+            }
+            offset = crcOffset + 4;
+        }
+        return seenIhdr && seenIdat && seenIend && offset == png.length;
+    }
+
+    private static boolean isPngChunkType(byte[] png, int offset) {
+        for (int i = 0; i < 4; i++) {
+            int value = png[offset + i] & 0xff;
+            if (!((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z'))) return false;
+        }
+        return true;
+    }
+
+    private static boolean isValidPngColorFormat(int bitDepth, int colorType) {
+        if (colorType == 0) return bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8 || bitDepth == 16;
+        if (colorType == 2) return bitDepth == 8 || bitDepth == 16;
+        if (colorType == 3) return bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8;
+        if (colorType == 4 || colorType == 6) return bitDepth == 8 || bitDepth == 16;
+        return false;
+    }
+
+    private static long uint32(byte[] bytes, int offset) {
+        return ((long) (bytes[offset] & 0xff) << 24)
+            | ((long) (bytes[offset + 1] & 0xff) << 16)
+            | ((long) (bytes[offset + 2] & 0xff) << 8)
+            | (long) (bytes[offset + 3] & 0xff);
+    }
+
+    private static void moveAtomically(File source, File target) throws IOException {
+        try {
+            Files.move(
+                source.toPath(),
+                target.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (UnsupportedOperationException e) {
+            Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    /** Output guard used while ZIP bytes are produced, before any caller can retain them. */
+    private static final class SizeLimitedOutputStream extends OutputStream {
+
+        private final OutputStream delegate;
+        private final long maxBytes;
+        private long written;
+
+        SizeLimitedOutputStream(OutputStream delegate, long maxBytes) {
+            this.delegate = delegate;
+            this.maxBytes = maxBytes;
+        }
+
+        @Override
+        public void write(int value) throws IOException {
+            ensureCapacity(1L);
+            delegate.write(value);
+            written++;
+        }
+
+        @Override
+        public void write(byte[] bytes, int offset, int length) throws IOException {
+            if (bytes == null) throw new NullPointerException("bytes");
+            if (offset < 0 || length < 0 || offset > bytes.length - length) {
+                throw new IndexOutOfBoundsException();
+            }
+            ensureCapacity(length);
+            delegate.write(bytes, offset, length);
+            written += length;
+        }
+
+        @Override
+        public void flush() throws IOException {
+            delegate.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
+        }
+
+        private void ensureCapacity(long additional) throws IOException {
+            if (additional < 0L || written > maxBytes - additional) {
+                throw new IOException("Icon pack ZIP exceeds " + maxBytes + " bytes");
             }
         }
     }
@@ -746,6 +1125,20 @@ public class IconStore {
 
     private static String stripPng(String filename) {
         return filename.substring(0, filename.length() - 4);
+    }
+
+    private static final class StagedIconWrite {
+
+        final File target;
+        final byte[] png;
+        File staged;
+        File backup;
+        boolean promoted;
+
+        StagedIconWrite(File target, byte[] png) {
+            this.target = target;
+            this.png = png;
+        }
     }
 
     private static final class PackEntry {

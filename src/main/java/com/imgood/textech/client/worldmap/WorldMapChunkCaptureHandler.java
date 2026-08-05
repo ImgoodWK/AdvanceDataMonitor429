@@ -7,7 +7,6 @@ import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWebMapTileUpload;
 import com.imgood.textech.webae.worldmap.WorldMapClientCaptureMode;
@@ -89,18 +88,19 @@ public final class WorldMapChunkCaptureHandler {
             }
             String ownerUuid = mc.thePlayer.getUniqueID()
                 .toString();
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                new PacketWebMapTileUpload(
-                    WorldMapView.FLAT.id,
-                    WorldMapTileLayer.TERRAIN,
-                    tier.id,
-                    target.dim,
-                    target.chunkX,
-                    target.chunkZ,
-                    -1,
-                    ownerUuid,
-                    png));
-            uploadedKeys.add(target.key);
+            boolean sent = PacketWebMapTileUpload.sendToServer(
+                WorldMapView.FLAT.id,
+                WorldMapTileLayer.TERRAIN,
+                tier.id,
+                target.dim,
+                target.chunkX,
+                target.chunkZ,
+                -1,
+                ownerUuid,
+                png);
+            if (sent) {
+                uploadedKeys.add(target.key);
+            }
         }
     }
 

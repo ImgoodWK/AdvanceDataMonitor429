@@ -79,8 +79,13 @@ export function useMapViewport(options: UseMapViewportOptions = {}): UseMapViewp
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
       const target = e.target as HTMLElement;
       if (target.closest('.worldmap-marker-hit')) return;
+      if (target.closest('.worldmap-diff-hit')) return;
+      if (target.closest('.worldmap-annotation-hit')) return;
+      if (target.closest('.worldmap-context-menu')) return;
+      if (target.closest('.worldmap-version-controls')) return;
       if (target.closest('.worldmap-cluster-popup')) return;
       if (target.closest('.worldmap-legend-rail')) return;
       dragRef.current = {

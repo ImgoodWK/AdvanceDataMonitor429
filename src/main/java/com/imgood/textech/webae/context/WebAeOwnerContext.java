@@ -1,9 +1,11 @@
 package com.imgood.textech.webae.context;
 
 import java.util.ArrayList;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -272,6 +274,40 @@ public final class WebAeOwnerContext {
         GameProfile profile = new GameProfile(uuid, name);
         FakePlayer fake = FakePlayerFactory.get(world, profile);
         fakePlayerCache.put(ownerUuid, fake);
+        return fake;
+    }
+
+    public static EntityPlayerMP getOwnerPlayerOrFakeByName(String ownerName) {
+        if (ownerName == null || ownerName.trim()
+            .isEmpty()) {
+            return null;
+        }
+        MinecraftServer server = MinecraftServer.getServer();
+        if (server != null && server.getConfigurationManager() != null) {
+            for (Object obj : server.getConfigurationManager().playerEntityList) {
+                if (obj instanceof EntityPlayerMP) {
+                    EntityPlayerMP player = (EntityPlayerMP) obj;
+                    if (ownerName.equalsIgnoreCase(player.getCommandSenderName())) {
+                        return player;
+                    }
+                }
+            }
+        }
+        String cacheKey = "name:" + ownerName.toLowerCase(Locale.ROOT);
+        EntityPlayerMP cached = fakePlayerCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+        if (server == null) {
+            return null;
+        }
+        WorldServer world = server.worldServers.length > 0 ? server.worldServers[0] : null;
+        if (world == null) {
+            return null;
+        }
+        UUID uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + ownerName).getBytes(Charset.forName("UTF-8")));
+        FakePlayer fake = FakePlayerFactory.get(world, new GameProfile(uuid, ownerName));
+        fakePlayerCache.put(cacheKey, fake);
         return fake;
     }
 

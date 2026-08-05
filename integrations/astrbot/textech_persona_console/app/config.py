@@ -7,15 +7,17 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     astrbot_data: Path = Path("/astrbot-data")
-    knowledge_dir: Path = Path("/data/knowledge")
     console_db: Path = Path("/data/console.db")
+    image_thumbnail_dir: Path = Path("/data/image-thumbnails")
     session_secret: str = ""
     console_bootstrap_password: str = ""
     astrbot_compose_dir: Path = Path("/opt/astrbot")
     astrbot_container: str = "astrbot"
     cookie_name: str = "textech_session"
     session_max_age: int = 60 * 60 * 24 * 7
-    seed_knowledge: Path = Path("/seed/knowledge")
+    cookie_secure: bool = False
+    portal_auth_url: str = "http://meowa-test-controller:8080/auth/check"
+    portal_auth_timeout_seconds: float = 5.0
 
 
 settings = Settings()
@@ -29,6 +31,8 @@ PC_CONFIG = "config/astrbot_plugin_private_companion_config.json"
 CMD_CONFIG = "cmd_config.json"
 PERSONA_LIB = "plugin_data/astrbot_plugin_persona_lib/personas.json"
 PERSONA_LIB_ALT = "plugin_data/persona_lib/personas.json"
+GENERATED_PHOTOS = "plugin_data/astrbot_plugin_private_companion/generated_photos"
+PHOTO_GALLERY_DB = "plugin_data/astrbot_plugin_private_companion/image_gallery.sqlite3"
 
 MEMORY_PLUGIN_DIRS = [
     "plugin_data/astrbot_plugin_memory_companion",
@@ -83,8 +87,6 @@ ALL_PERMISSIONS: dict[str, str] = {
     "config.view": "查看 Bot 配置",
     "config.edit": "编辑 Bot 配置",
     "config.secrets": "查看明文密钥",
-    "knowledge.view": "查看资料站",
-    "knowledge.edit": "编辑资料站",
     "ops.view": "查看运维信息",
     "ops.restart": "重启 AstrBot",
     "audit.view": "查看写操作审计日志",
@@ -95,6 +97,9 @@ ALL_PERMISSIONS: dict[str, str] = {
     "messages.view": "查看网页消息草稿与投递状态",
     "messages.compose": "生成人格消息草稿",
     "messages.send": "确认并投递网页消息",
+    "images.view": "查看 Bot 生成图片与提示词",
+    "images.favorite": "维护自己的图片收藏",
+    "images.manage": "重扫图片图库索引",
 }
 
 VIEWER_PERMS = [
@@ -102,11 +107,12 @@ VIEWER_PERMS = [
     "bot_users.view",
     "memories.view",
     "config.view",
-    "knowledge.view",
     "ops.view",
     "audit.view",
     "backups.view",
     "account.password",
+    "images.view",
+    "images.favorite",
 ]
 
 EDITOR_PERMS = VIEWER_PERMS + [
@@ -114,7 +120,6 @@ EDITOR_PERMS = VIEWER_PERMS + [
     "bot_users.edit",
     "memories.edit",
     "config.edit",
-    "knowledge.edit",
     "messages.view",
     "messages.compose",
 ]

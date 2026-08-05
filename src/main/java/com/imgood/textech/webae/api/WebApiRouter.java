@@ -1,6 +1,8 @@
 package com.imgood.textech.webae.api;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.InputStream;
 import java.util.Map;
 
 import com.imgood.textech.webae.api.handler.AdminConsoleHandler;
@@ -13,6 +15,8 @@ import com.imgood.textech.webae.api.handler.AuthGuestInviteHandler;
 import com.imgood.textech.webae.api.handler.CellSummaryHandler;
 import com.imgood.textech.webae.api.handler.ChatHandler;
 import com.imgood.textech.webae.api.handler.CraftTreeHandler;
+import com.imgood.textech.webae.api.handler.CpuCapacityHandler;
+import com.imgood.textech.webae.api.handler.CpuHistoryHandler;
 import com.imgood.textech.webae.api.handler.DisplayHandler;
 import com.imgood.textech.webae.api.handler.EventStreamHandler;
 import com.imgood.textech.webae.api.handler.FavoritesHandler;
@@ -25,6 +29,7 @@ import com.imgood.textech.webae.api.handler.NetworkMetricEntityHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricFluidHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricItemHandler;
+import com.imgood.textech.webae.api.handler.NetworkHealthHandler;
 import com.imgood.textech.webae.api.handler.OcSummaryHandler;
 import com.imgood.textech.webae.api.handler.OrderHandler;
 import com.imgood.textech.webae.api.handler.OrderTemplatesHandler;
@@ -52,20 +57,26 @@ import com.imgood.textech.webae.api.handler.WebAiAdminHandler;
 import com.imgood.textech.webae.api.handler.WebConfigHandler;
 import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.perf.WebAePerfProfiler;
 import com.imgood.textech.webae.player.WebAePlayerStateStore;
+import com.imgood.textech.webae.worldmap.WorldMapAnnotationHandler;
 import com.imgood.textech.webae.worldmap.WorldMapHandler;
+import com.imgood.textech.webae.worldmap.WorldMapPacketAuthorization;
+import com.imgood.textech.webae.worldmap.WorldMapVersionHandler;
 
 import fi.iki.elonen.NanoHTTPD;
 
 /**
- * 
+ *
  * WebAE API router — dispatches API requests to handlers.
- * 
+ *
  */
 
 public class WebApiRouter {
+
+    private static final int WORLD_MAP_ANNOTATION_BODY_LIMIT = 16 * 1024;
 
     public NanoHTTPD.Response route(NanoHTTPD.IHTTPSession session, WebAuthSession auth) {
         String uri = session.getUri();
@@ -119,6 +130,9 @@ public class WebApiRouter {
             return "/api/patterns/{id}";
         }
         if (uri.startsWith("/api/patterns/grid/")) return "/api/patterns/grid/{id}";
+        if (uri.startsWith("/api/worldmap/annotations/")) {
+            return "/api/worldmap/annotations/{id}";
+        }
         return uri;
     }
 
@@ -146,7 +160,16 @@ public class WebApiRouter {
             && method == NanoHTTPD.Method.GET) {
             String overrideOwner = params.get("owner");
             if (overrideOwner != null && !overrideOwner.isEmpty()) {
-                effectiveOwner = overrideOwner;
+                if (uri.startsWith("/api/worldmap/")
+                    && !WorldMapPacketAuthorization.isValidOwnerUuid(overrideOwner)) {
+                    return NanoHTTPD.newFixedLengthResponse(
+                        NanoHTTPD.Response.Status.BAD_REQUEST,
+                        "application/json",
+                        "{\"success\":false,\"message\":\"Invalid owner parameter\"}");
+                }
+                effectiveOwner = uri.startsWith("/api/worldmap/")
+                    ? WorldMapPacketAuthorization.canonicalOwnerUuid(overrideOwner)
+                    : overrideOwner;
             }
         }
 
@@ -176,6 +199,21 @@ public class WebApiRouter {
                         return denied;
                     }
                 } catch (NumberFormatException ignored) {}
+            }
+        }
+
+        if (requiresWorldMapQueryNetwork(uri, method)
+            && (params.get("network") == null || params.get("network").trim().isEmpty())) {
+            return NanoHTTPD.newFixedLengthResponse(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "application/json",
+                "{\"success\":false,\"message\":\"Missing 'network' parameter\"}");
+        }
+
+        if (isGuestRefreshRoute(uri)) {
+            NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+            if (guestDenied != null) {
+                return guestDenied;
             }
         }
 
@@ -267,6 +305,11 @@ public class WebApiRouter {
 
                     "{\"success\":false,\"message\":\"Use POST /api/patterns/browse/refresh\"}");
 
+            }
+
+            NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+            if (guestDenied != null) {
+                return guestDenied;
             }
 
             return PatternBrowseHandler.handleRefresh(params, auth, adminHeader);
@@ -474,7 +517,7 @@ public class WebApiRouter {
 
             }
 
-            return ServerDiagnosticsHandler.handle();
+            return ServerDiagnosticsHandler.handle(auth, effectiveOwner);
 
         }
 
@@ -535,6 +578,60 @@ public class WebApiRouter {
 
         }
 
+        if ("/api/network/health".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/network/health\"}");
+
+            }
+
+            return NetworkHealthHandler.handle(params, auth, effectiveOwner);
+
+        }
+
+        if ("/api/network/cpu/history".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/network/cpu/history\"}");
+
+            }
+
+            return CpuHistoryHandler.handle(params, auth, effectiveOwner);
+
+        }
+
+        if ("/api/network/cpu/capacity".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+
+                return NanoHTTPD.newFixedLengthResponse(
+
+                    NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
+
+                    "application/json",
+
+                    "{\"success\":false,\"message\":\"Use GET /api/network/cpu/capacity\"}");
+
+            }
+
+            return CpuCapacityHandler.handle(params, auth, effectiveOwner);
+
+        }
+
         if ("/api/network/metrics/fluids".equals(uri)) {
 
             return NetworkMetricFluidHandler.handle(params, effectiveOwner);
@@ -567,6 +664,11 @@ public class WebApiRouter {
 
             }
 
+            NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+            if (guestDenied != null) {
+                return guestDenied;
+            }
+
             return TopologyHandler.handleSnapshot(params, auth, adminHeader);
 
         }
@@ -586,6 +688,64 @@ public class WebApiRouter {
             }
 
             return TopologyHandler.handle(params, auth, adminHeader);
+
+        }
+
+        if ("/api/worldmap/versions".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+                return methodNotAllowed("Use GET /api/worldmap/versions");
+            }
+
+            return WorldMapVersionHandler.handleVersions(params, effectiveOwner, auth);
+
+        }
+
+        if ("/api/worldmap/diff".equals(uri)) {
+
+            if (method != NanoHTTPD.Method.GET) {
+                return methodNotAllowed("Use GET /api/worldmap/diff");
+            }
+
+            return WorldMapVersionHandler.handleDiff(params, effectiveOwner, auth);
+
+        }
+
+        if ("/api/worldmap/annotations".equals(uri)) {
+
+            if (method == NanoHTTPD.Method.GET) {
+                return WorldMapAnnotationHandler.handleList(params, effectiveOwner, auth);
+            }
+
+            if (method == NanoHTTPD.Method.POST) {
+                LimitedBody body = readWorldMapAnnotationBody(session);
+                if (!body.valid) {
+                    return limitedBodyError(body);
+                }
+                return WorldMapAnnotationHandler.handleCreate(params, body.value, effectiveOwner, auth);
+            }
+
+            return methodNotAllowed("Use GET or POST /api/worldmap/annotations");
+
+        }
+
+        if (uri.startsWith("/api/worldmap/annotations/")) {
+
+            String annotationId = uri.substring("/api/worldmap/annotations/".length());
+            if (method == NanoHTTPD.Method.PUT) {
+                LimitedBody body = readWorldMapAnnotationBody(session);
+                if (!body.valid) {
+                    return limitedBodyError(body);
+                }
+                return WorldMapAnnotationHandler
+                    .handleUpdate(annotationId, params, body.value, effectiveOwner, auth);
+            }
+
+            if (method == NanoHTTPD.Method.DELETE) {
+                return WorldMapAnnotationHandler.handleDelete(annotationId, params, effectiveOwner, auth);
+            }
+
+            return methodNotAllowed("Use PUT or DELETE /api/worldmap/annotations/{id}");
 
         }
 
@@ -639,6 +799,11 @@ public class WebApiRouter {
 
             }
 
+            NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+            if (guestDenied != null) {
+                return guestDenied;
+            }
+
             return WorldMapHandler.handleInvalidate(params, auth, adminHeader);
 
         }
@@ -655,6 +820,13 @@ public class WebApiRouter {
 
                     "{\"success\":false,\"message\":\"Use GET /api/worldmap/progress\"}");
 
+            }
+
+            if (params.get("network") == null || params.get("network").trim().isEmpty()) {
+                return NanoHTTPD.newFixedLengthResponse(
+                    NanoHTTPD.Response.Status.BAD_REQUEST,
+                    "application/json",
+                    "{\"success\":false,\"message\":\"Missing 'network' parameter\"}");
             }
 
             return WorldMapHandler.handleProgress(params);
@@ -709,6 +881,11 @@ public class WebApiRouter {
 
                     "{\"success\":false,\"message\":\"Use POST /api/worldmap/snapshot/request\"}");
 
+            }
+
+            NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+            if (guestDenied != null) {
+                return guestDenied;
             }
 
             return WorldMapHandler.handleSnapshotRequest(params, effectiveOwner, auth.actorUuid, auth.actorName);
@@ -1245,6 +1422,30 @@ public class WebApiRouter {
 
     }
 
+    private static boolean isGuestRefreshRoute(String uri) {
+        return "/api/refresh".equals(uri) || "/api/refresh/batch".equals(uri)
+            || "/api/power/refresh".equals(uri) || "/api/power/refresh/batch".equals(uri)
+            || "/api/gt/machines/refresh".equals(uri) || "/api/gt/machines/refresh/batch".equals(uri);
+    }
+
+    private static boolean isWorldMapNetworkRoute(String uri) {
+        if (uri == null || !uri.startsWith("/api/worldmap/")) {
+            return false;
+        }
+        return !uri.startsWith("/api/worldmap/dynmap-tiles/");
+    }
+
+    private static boolean requiresWorldMapQueryNetwork(String uri, NanoHTTPD.Method method) {
+        if (!isWorldMapNetworkRoute(uri)) {
+            return false;
+        }
+        if ("/api/worldmap/annotations".equals(uri) && method == NanoHTTPD.Method.POST) {
+            return false;
+        }
+        return !(uri != null && uri.startsWith("/api/worldmap/annotations/")
+            && method == NanoHTTPD.Method.PUT);
+    }
+
     private NanoHTTPD.Response handleLogin(WebAuthSession auth) {
         if (WebAePlayerStateStore.getInstance()
             .isDisabled(auth.ownerUuid)
@@ -1336,6 +1537,64 @@ public class WebApiRouter {
 
     }
 
+    private static LimitedBody readWorldMapAnnotationBody(NanoHTTPD.IHTTPSession session) {
+        String rawLength = session.getHeaders()
+            .get("content-length");
+        if (rawLength == null) {
+            rawLength = session.getHeaders()
+                .get("Content-Length");
+        }
+        final int declaredLength;
+        try {
+            declaredLength = rawLength == null || rawLength.trim().isEmpty()
+                ? 0
+                : Integer.parseInt(rawLength.trim());
+        } catch (NumberFormatException e) {
+            return LimitedBody.invalid("Invalid Content-Length header");
+        }
+        if (declaredLength < 0) {
+            return LimitedBody.invalid("Invalid Content-Length header");
+        }
+        if (declaredLength > WORLD_MAP_ANNOTATION_BODY_LIMIT) {
+            return LimitedBody.tooLarge();
+        }
+        if (declaredLength == 0) {
+            return LimitedBody.success("");
+        }
+        try {
+            InputStream in = session.getInputStream();
+            ByteArrayOutputStream out = new ByteArrayOutputStream(Math.min(declaredLength, 4096));
+            byte[] buffer = new byte[Math.min(declaredLength, 4096)];
+            int remaining = declaredLength;
+            while (remaining > 0) {
+                int read = in.read(buffer, 0, Math.min(buffer.length, remaining));
+                if (read < 0) {
+                    return LimitedBody.invalid("Request body ended before Content-Length bytes were read");
+                }
+                if (read == 0) {
+                    continue;
+                }
+                out.write(buffer, 0, read);
+                remaining -= read;
+            }
+            return LimitedBody.success(new String(out.toByteArray(), "UTF-8"));
+        } catch (Exception e) {
+            return LimitedBody.invalid("Unable to read request body");
+        }
+    }
+
+    private static NanoHTTPD.Response limitedBodyError(LimitedBody body) {
+        NanoHTTPD.Response.Status status = body.tooLarge
+            ? NanoHTTPD.Response.Status.PAYLOAD_TOO_LARGE
+            : NanoHTTPD.Response.Status.BAD_REQUEST;
+        String code = body.tooLarge ? "payload_too_large" : "invalid_body";
+        return NanoHTTPD.newFixedLengthResponse(
+            status,
+            "application/json",
+            "{\"success\":false,\"status\":\"error\",\"code\":\"" + code
+                + "\",\"message\":\"" + escapeJson(body.message) + "\"}");
+    }
+
     private static byte[] readBodyBytes(NanoHTTPD.IHTTPSession session) {
         try {
             int contentLength = 0;
@@ -1367,6 +1626,37 @@ public class WebApiRouter {
             NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED,
             "application/json",
             "{\"success\":false,\"message\":\"" + escapeJson(message) + "\"}");
+    }
+
+    private static final class LimitedBody {
+
+        private final String value;
+        private final String message;
+        private final boolean valid;
+        private final boolean tooLarge;
+
+        private LimitedBody(String value, String message, boolean valid, boolean tooLarge) {
+            this.value = value;
+            this.message = message;
+            this.valid = valid;
+            this.tooLarge = tooLarge;
+        }
+
+        private static LimitedBody success(String value) {
+            return new LimitedBody(value, "", true, false);
+        }
+
+        private static LimitedBody invalid(String message) {
+            return new LimitedBody("", message, false, false);
+        }
+
+        private static LimitedBody tooLarge() {
+            return new LimitedBody(
+                "",
+                "Annotation request body exceeds " + WORLD_MAP_ANNOTATION_BODY_LIMIT + " bytes",
+                false,
+                true);
+        }
     }
 
 }

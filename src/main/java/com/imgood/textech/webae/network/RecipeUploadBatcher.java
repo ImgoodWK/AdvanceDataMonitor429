@@ -16,14 +16,18 @@ public final class RecipeUploadBatcher {
     /** Hard limit for Minecraft/FML custom payload body. */
     public static final int FML_MAX_PACKET_BYTES = 32767;
 
+    /** Project-level packet-body budget, leaving headroom below Forge's hard ceiling. */
+    public static final int PACKET_BODY_BUDGET_BYTES = 30000;
+
     /**
      * UUID string, batch ints/bools, length prefixes, and FML channel framing.
-     * Keep conservative so {@link PacketWebRecipeUpload} never exceeds {@link #FML_MAX_PACKET_BYTES}.
+     * Keep conservative so {@link PacketWebRecipeUpload} never exceeds the
+     * project-level body budget or Forge's hard ceiling.
      */
     private static final int PACKET_OVERHEAD_BYTES = 512;
 
     /** Maximum UTF-8 JSON bytes for {@code recipeDataJson} per packet. */
-    public static final int MAX_RECIPE_JSON_BYTES = FML_MAX_PACKET_BYTES - PACKET_OVERHEAD_BYTES;
+    public static final int MAX_RECIPE_JSON_BYTES = PACKET_BODY_BUDGET_BYTES - PACKET_OVERHEAD_BYTES;
 
     private RecipeUploadBatcher() {}
 

@@ -1,7 +1,5 @@
 package com.imgood.textech.webae.network;
 
-import java.nio.charset.StandardCharsets;
-
 import net.minecraft.client.Minecraft;
 
 import com.imgood.textech.AdvanceDataMonitor;
@@ -9,6 +7,7 @@ import com.imgood.textech.webae.icon.IconItemEnumerator;
 import com.imgood.textech.webae.icon.IconLazyRenderQueue;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconRenderer;
+import com.imgood.textech.utils.NetworkPacketCodec;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -26,6 +25,12 @@ public class PacketWebIconRequest implements IMessage {
     public String packName;
     public String renderMode;
     public String itemId;
+    private boolean valid = true;
+
+    private static final int MAX_PACK_NAME_BYTES = 128;
+    private static final int MAX_RENDER_MODE_BYTES = 32;
+    private static final int MAX_ITEM_ID_BYTES = 256;
+    private static final int MAX_PACKET_BYTES = 30_000;
 
     public PacketWebIconRequest() {}
 
@@ -37,34 +42,60 @@ public class PacketWebIconRequest implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
-        writeUtf8(buf, packName);
-        writeUtf8(buf, renderMode);
-        writeUtf8(buf, itemId);
+        int start = buf.writerIndex();
+        try {
+            if (!IconRenderMode.isValidModeId(renderMode)) {
+                throw new IllegalArgumentException("Invalid icon request render mode");
+            }
+            writeUtf8(buf, packName, MAX_PACK_NAME_BYTES);
+            writeUtf8(buf, renderMode, MAX_RENDER_MODE_BYTES);
+            writeUtf8(buf, itemId, MAX_ITEM_ID_BYTES);
+            requirePacketBudget(buf, start);
+        } catch (RuntimeException e) {
+            buf.writerIndex(start);
+            throw e;
+        }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        packName = readUtf8(buf);
-        renderMode = readUtf8(buf);
-        itemId = readUtf8(buf);
+        valid = true;
+        try {
+            if (buf == null || buf.readableBytes() > MAX_PACKET_BYTES) {
+                throw new IllegalArgumentException("Icon request exceeds packet budget");
+            }
+            packName = NetworkPacketCodec.readUtf8(buf, MAX_PACK_NAME_BYTES);
+            renderMode = NetworkPacketCodec.readUtf8(buf, MAX_RENDER_MODE_BYTES);
+            if (!IconRenderMode.isValidModeId(renderMode)) {
+                throw new IllegalArgumentException("Invalid icon request render mode");
+            }
+            itemId = NetworkPacketCodec.readUtf8(buf, MAX_ITEM_ID_BYTES);
+            if (buf.isReadable()) {
+                throw new IllegalArgumentException("Icon request has trailing bytes");
+            }
+        } catch (RuntimeException e) {
+            valid = false;
+            itemId = "";
+        }
     }
 
-    private static void writeUtf8(ByteBuf buf, String s) {
+    private static void writeUtf8(ByteBuf buf, String s, int maxBytes) {
         if (s == null) {
             buf.writeInt(0);
             return;
         }
-        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = s.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length > maxBytes) {
+            throw new IllegalArgumentException("Icon request field exceeds packet limit");
+        }
         buf.writeInt(bytes.length);
         buf.writeBytes(bytes);
     }
 
-    private static String readUtf8(ByteBuf buf) {
-        int len = buf.readInt();
-        if (len <= 0) return "";
-        byte[] bytes = new byte[len];
-        buf.readBytes(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
+    private static void requirePacketBudget(ByteBuf buf, int start) {
+        if (buf.writerIndex() - start > MAX_PACKET_BYTES) {
+            throw new IllegalArgumentException("Icon request exceeds packet budget");
+        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -72,6 +103,7 @@ public class PacketWebIconRequest implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketWebIconRequest message, MessageContext ctx) {
+            if (message == null || !message.valid) return null;
             scheduleOnClientThread(new Runnable() {
 
                 @Override

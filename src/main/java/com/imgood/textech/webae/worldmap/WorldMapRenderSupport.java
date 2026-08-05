@@ -2,6 +2,11 @@ package com.imgood.textech.webae.worldmap;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.zip.CRC32;
 
 import javax.imageio.ImageIO;
 
@@ -25,6 +30,13 @@ public final class WorldMapRenderSupport {
 
     /** PNG smaller than this is treated as an empty/failed render and not cached or served. */
     public static final long MIN_VALID_TILE_BYTES = 512L;
+    /** Upper bound shared by server-side tile stores and direct-capture responses. */
+    public static final long MAX_VALID_TILE_BYTES = 1024L * 1024L;
+    private static final int PNG_SIGNATURE_BYTES = 8;
+    private static final int PNG_IHDR_HEADER_BYTES = 8;
+    private static final int PNG_IHDR_DATA_BYTES = 13;
+    private static final int PNG_IHDR_TOTAL_BYTES = PNG_SIGNATURE_BYTES + PNG_IHDR_HEADER_BYTES
+        + PNG_IHDR_DATA_BYTES + 4;
 
     private WorldMapRenderSupport() {}
 
@@ -154,7 +166,118 @@ public final class WorldMapRenderSupport {
     }
 
     public static boolean isValidTilePng(byte[] png) {
-        return png != null && png.length >= MIN_VALID_TILE_BYTES;
+        return isValidBoundedPng(png, MIN_VALID_TILE_BYTES, MAX_VALID_TILE_BYTES, 2048);
+    }
+
+    /**
+     * Validates the bounded PNG header without inflating untrusted image data.
+     * The helper is also used by icon uploads, whose valid minimum is smaller
+     * than the minimum accepted for rendered world-map tiles.
+     */
+    public static boolean isValidBoundedPng(byte[] png, long minBytes, long maxBytes, int maxDimension) {
+        if (png == null || minBytes < 0L || maxBytes < minBytes || maxDimension <= 0 || png.length < minBytes
+            || png.length > maxBytes) {
+            return false;
+        }
+        return hasValidPngHeader(png, png.length, maxDimension);
+    }
+
+    /**
+     * Performs the same bounded header check for a disk tile without asking
+     * ImageIO to inflate untrusted image data.
+     */
+    public static boolean isValidTilePng(File file) {
+        if (file == null || !file.isFile() || Files.isSymbolicLink(file.toPath())) {
+            return false;
+        }
+        long length = file.length();
+        if (length < MIN_VALID_TILE_BYTES || length > MAX_VALID_TILE_BYTES) {
+            return false;
+        }
+        byte[] header = new byte[PNG_IHDR_TOTAL_BYTES];
+        FileInputStream input = null;
+        try {
+            input = new FileInputStream(file);
+            int offset = 0;
+            while (offset < header.length) {
+                int read = input.read(header, offset, header.length - offset);
+                if (read < 0) {
+                    return false;
+                }
+                if (read == 0) {
+                    continue;
+                }
+                offset += read;
+            }
+            return hasValidPngHeader(header, header.length, 2048);
+        } catch (IOException e) {
+            return false;
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException ignored) {}
+            }
+        }
+    }
+
+    private static boolean hasValidPngHeader(byte[] png, int length, int maxDimension) {
+        if (png == null || length < PNG_IHDR_TOTAL_BYTES) {
+            return false;
+        }
+        int[] signature = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
+        for (int i = 0; i < signature.length; i++) {
+            if ((png[i] & 0xff) != signature[i]) {
+                return false;
+            }
+        }
+        long ihdrLength = uint32(png, PNG_SIGNATURE_BYTES);
+        if (ihdrLength != PNG_IHDR_DATA_BYTES || png[12] != 'I' || png[13] != 'H' || png[14] != 'D'
+            || png[15] != 'R') {
+            return false;
+        }
+        long width = uint32(png, 16);
+        long height = uint32(png, 20);
+        if (width <= 0 || height <= 0 || width > maxDimension || height > maxDimension) {
+            return false;
+        }
+
+        int bitDepth = png[24] & 0xff;
+        int colorType = png[25] & 0xff;
+        int compressionMethod = png[26] & 0xff;
+        int filterMethod = png[27] & 0xff;
+        int interlaceMethod = png[28] & 0xff;
+        if (!isValidPngColorDepth(colorType, bitDepth) || compressionMethod != 0 || filterMethod != 0
+            || (interlaceMethod != 0 && interlaceMethod != 1)) {
+            return false;
+        }
+
+        CRC32 crc = new CRC32();
+        crc.update(png, PNG_SIGNATURE_BYTES + 4, 4 + PNG_IHDR_DATA_BYTES);
+        return crc.getValue() == uint32(png, 29);
+    }
+
+    private static boolean isValidPngColorDepth(int colorType, int bitDepth) {
+        switch (colorType) {
+            case 0:
+                return bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8 || bitDepth == 16;
+            case 2:
+                return bitDepth == 8 || bitDepth == 16;
+            case 3:
+                return bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8;
+            case 4:
+            case 6:
+                return bitDepth == 8 || bitDepth == 16;
+            default:
+                return false;
+        }
+    }
+
+    private static long uint32(byte[] bytes, int offset) {
+        return ((long) (bytes[offset] & 0xff) << 24)
+            | ((long) (bytes[offset + 1] & 0xff) << 16)
+            | ((long) (bytes[offset + 2] & 0xff) << 8)
+            | (long) (bytes[offset + 3] & 0xff);
     }
 
     /**

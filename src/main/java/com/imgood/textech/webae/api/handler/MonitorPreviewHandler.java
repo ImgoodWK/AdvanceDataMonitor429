@@ -9,6 +9,7 @@ import com.google.gson.GsonBuilder;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.monitor.MonitorPreviewCollector;
 import com.imgood.textech.webae.monitor.MonitorPreviewDto;
+import com.imgood.textech.webae.perf.WebAePerfProfiler;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -33,6 +34,7 @@ public final class MonitorPreviewHandler {
         int y = parseInt(params.get("y"), Integer.MIN_VALUE);
         int z = parseInt(params.get("z"), Integer.MIN_VALUE);
         int slot = parseInt(params.get("slot"), -1);
+        int width = Math.max(2, Math.min(240, parseInt(params.get("width"), 240)));
         if (dim < 0 || x == Integer.MIN_VALUE || y == Integer.MIN_VALUE || z == Integer.MIN_VALUE || slot < 0) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
@@ -46,9 +48,12 @@ public final class MonitorPreviewHandler {
 
             @Override
             public void run() {
+                long started = System.nanoTime();
                 try {
-                    holder[0] = MonitorPreviewCollector.collect(ownerUuid, dim, x, y, z, slot);
+                    holder[0] = MonitorPreviewCollector.collect(ownerUuid, dim, x, y, z, slot, width);
                 } finally {
+                    WebAePerfProfiler.instance()
+                        .recordCollect("monitor_preview", (System.nanoTime() - started) / 1_000_000L);
                     latch.countDown();
                 }
             }

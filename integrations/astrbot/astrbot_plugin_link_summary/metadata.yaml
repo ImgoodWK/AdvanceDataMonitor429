@@ -1,0 +1,5 @@
+name: link_summary
+desc: 自动总结公开网页与合并转发；B 站视频附带封面、元数据和匿名化热评概览
+version: 1.0.12
+author: TeXTech
+repo: https://github.com/ImgoodWK/TeXTech-GTNH

@@ -24,6 +24,7 @@ import { PlannerPage } from '@/pages/Planner';
 import { QuestBookPage } from '@/pages/QuestBook';
 import { AssistantPage } from '@/pages/Assistant';
 import { AlertsHistoryPage } from '@/pages/AlertsHistory';
+import { DiagnosticsPage } from '@/pages/Diagnostics';
 import { AdminPage } from '@/pages/Admin';
 import { PageStaleBanner } from '@/components/Layout/PageStaleBanner';
 import { PageErrorBoundary } from '@/components/Layout/PageErrorBoundary';
@@ -251,6 +252,8 @@ export function AppLayout() {
         return <AssistantPage />;
       case 'alertshistory':
         return <AlertsHistoryPage />;
+      case 'diagnostics':
+        return <DiagnosticsPage />;
       case 'admin':
         return <AdminPage />;
       case 'settings':

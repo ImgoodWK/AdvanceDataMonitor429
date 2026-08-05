@@ -37,6 +37,10 @@ import { useAppContext } from '@/context/AppContext';
 import type { ChartStyleRecipe } from '@/theme/pageStyles';
 import { CHART_STYLE_RECIPES } from '@/theme/pageStyles';
 import { resolveColumns } from '@/utils/dashboardColumns';
+import {
+  ScalarWidgetRenderer,
+  resolveProgressPercent,
+} from '@/components/dashboard/ScalarWidgetRenderer';
 
 export interface WidgetContentProps {
   widget: DashboardWidgetConfig;
@@ -91,11 +95,6 @@ export function WidgetContent({
   };
   if (colors.titleColor) labelStyle.color = colors.titleColor;
 
-  const valueStyle: CSSProperties = {
-    fontSize: resolveProp(widget, settings, 'fontSize') + 6,
-  };
-  if (colors.chartColor) valueStyle.color = colors.chartColor;
-
   const wrap = (children: ReactNode) => (
     <div
       className="widget-align overview-widget-inner"
@@ -141,7 +140,7 @@ export function WidgetContent({
       const showDelta = widget.showDelta ?? false;
       const sigDigits = widget.significantDigits ?? 5;
       let mainText = formatValue();
-      let deltaEl: ReactNode = null;
+      let delta: { text: string; color: string } | undefined;
       if (showDelta && getHistory && networkId !== undefined) {
         const hist = getHistory(networkId, widget.dataSource);
         const prev = hist.length >= 2 ? hist[hist.length - 2]?.value : undefined;
@@ -154,65 +153,57 @@ export function WidgetContent({
               : formatted.deltaPositive === false
                 ? 'var(--error, #ff4d4f)'
                 : 'var(--text-dim)';
-          deltaEl = (
-            <div className="stat-card-delta" style={{ fontSize: Math.max(9, resolveProp(widget, settings, 'fontSize') - 3), color }}>
-              {formatted.delta}
-            </div>
-          );
+          delta = { text: formatted.delta, color };
         }
       }
-      return wrap(
-        <>
-          {labelText(label)}
-          <div className="stat-card-value overview-stat-value" style={valueStyle}>
-            {mainText}
-          </div>
-          {deltaEl}
-        </>
+      return (
+        <ScalarWidgetRenderer
+          widget={widget}
+          settings={settings}
+          label={label}
+          valueText={mainText}
+          delta={delta}
+        />
       );
     }
 
     case 'progressBar': {
-      const pct = Math.min(100, isPercent ? value : 0);
-      const fillColor = colors.progressFillColor || colors.chartColor || 'var(--accent)';
-      const trackColor = colors.progressTrackColor || undefined;
-      return wrap(
-        <>
-          {labelText(label)}
-          <div
-            className="overview-progress-area"
-            style={{ flex: '0 0 auto', maxHeight: `${chartSize}%`, width: '100%' }}
-          >
-            <Progress
-              percent={Math.round(pct)}
-              type={widget.style === 'circular' ? 'circle' : 'line'}
-              strokeColor={trackColor ? { color: fillColor, trailColor: trackColor } : fillColor}
-              size="small"
-              format={() => formatValue()}
-              style={{ width: '100%', margin: 0 }}
-            />
-          </div>
-        </>
+      const realMaximum = widget.dataSource === 'bytesUsed' && snapshot && snapshot.bytesMax > 0
+        ? snapshot.bytesMax
+        : undefined;
+      return (
+        <ScalarWidgetRenderer
+          widget={widget}
+          settings={settings}
+          label={label}
+          valueText={formatValue()}
+          progressPercent={resolveProgressPercent({
+            value,
+            percentMetric: isPercent,
+            realMaximum,
+            targetValue: widget.targetValue,
+          })}
+        />
       );
     }
 
     case 'gauge': {
-      const strokeColor = colors.gaugeStrokeColor || colors.chartColor || 'var(--accent)';
-      const trackColor = colors.gaugeTrackColor || undefined;
-      const pct = Math.min(100, isPercent ? value : 0);
-      return wrap(
-        <>
-          {labelText(label)}
-          <div className="overview-progress-area" style={{ maxHeight: `${chartSize}%` }}>
-            <Progress
-              type="circle"
-              percent={Math.round(pct)}
-              strokeColor={trackColor ? { color: strokeColor, trailColor: trackColor } : strokeColor}
-              size="small"
-              format={() => formatValue()}
-            />
-          </div>
-        </>
+      const realMaximum = widget.dataSource === 'bytesUsed' && snapshot && snapshot.bytesMax > 0
+        ? snapshot.bytesMax
+        : undefined;
+      return (
+        <ScalarWidgetRenderer
+          widget={widget}
+          settings={settings}
+          label={label}
+          valueText={formatValue()}
+          progressPercent={resolveProgressPercent({
+            value,
+            percentMetric: isPercent,
+            realMaximum,
+            targetValue: widget.targetValue,
+          })}
+        />
       );
     }
 

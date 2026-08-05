@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Collapse, Drawer, Empty, Spin, Table, Tag, Typography } from 'antd';
+import { Button, Card, Collapse, Drawer, Empty, Progress, Spin, Table, Tag, Typography } from 'antd';
 import { LineChartOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getApiClient } from '@/api/client';
 import { PageShell } from '@/components/Layout/PageShell';
@@ -51,6 +51,7 @@ export function MonitorBindingsPage() {
         y: String(monitor.monitorY),
         z: String(monitor.monitorZ),
         slot: String(slot.slotIndex),
+        width: '480',
       });
       const data = await getApiClient().get<MonitorPreviewResponse>(`/api/monitor/preview?${q.toString()}`);
       setPreview(data.preview ?? null);
@@ -64,19 +65,6 @@ export function MonitorBindingsPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  const previewSeries =
-    preview && preview.values.length > 0
-      ? [
-          {
-            id: 'monitor',
-            label: preview.displayName || `#${preview.slotIndex}`,
-            points: preview.values.map((value, i) => ({ value, ts: i })),
-            lineColor: '#00ffff',
-            areaColor: 'rgba(0,255,255,0.12)',
-          },
-        ]
-      : [];
 
   return (
     <PageShell title={t('monitorBindings')} description={t('monitorBindingsDesc')}>
@@ -100,7 +88,7 @@ export function MonitorBindingsPage() {
                       dataSource={m.dataBindings || []}
                       columns={[
                         { title: '#', dataIndex: 'slotIndex', width: 48 },
-                        { title: t('monitorColType'), dataIndex: 'dataType' },
+                        { title: t('monitorColType'), dataIndex: 'kind' },
                         { title: t('monitorColName'), dataIndex: 'displayName', ellipsis: true },
                         {
                           title: t('monitorColTarget'),
@@ -164,13 +152,8 @@ export function MonitorBindingsPage() {
         width={Math.min(560, window.innerWidth - 24)}
       >
         <Spin spinning={previewLoading}>
-          {previewSeries.length > 0 ? (
-            <ChartTrendSvg
-              series={previewSeries}
-              formatValue={(v) => String(v)}
-              showValueAxis
-              className="monitor-preview-chart"
-            />
+          {preview ? (
+            <MonitorPreviewContent preview={preview} emptyLabel={t('monitorPreviewEmpty')} />
           ) : (
             <Empty description={t('monitorPreviewEmpty')} />
           )}
@@ -178,4 +161,104 @@ export function MonitorBindingsPage() {
       </Drawer>
     </PageShell>
   );
+}
+
+function MonitorPreviewContent({ preview, emptyLabel }: { preview: MonitorPreviewDto; emptyLabel: string }) {
+  if (preview.previewType === 'scalar' && preview.scalar) {
+    const scalar = preview.scalar;
+    const progressKind = preview.kind === 'progressBar' || preview.kind === 'gauge';
+    if (progressKind && scalar.maxKnown) {
+      return (
+        <div style={{ display: 'grid', placeItems: 'center', minHeight: 220 }}>
+          <Text strong>{preview.title || preview.displayName}</Text>
+          <Progress
+            type={preview.kind === 'gauge' ? 'dashboard' : 'line'}
+            percent={Math.max(0, Math.min(100, scalar.percentage))}
+            format={() => `${scalar.value} / ${scalar.max}`}
+            style={{ width: '100%' }}
+          />
+        </div>
+      );
+    }
+    return (
+      <Card size="small" title={preview.title || preview.displayName}>
+        <div style={{ color: 'var(--accent)', fontSize: 32, textAlign: 'center' }}>{scalar.value}</div>
+      </Card>
+    );
+  }
+
+  if (preview.previewType === 'series') {
+    const series = (preview.series?.length ? preview.series : [{ id: 'monitor', label: preview.title, values: preview.values }])
+      .filter((entry) => entry.values.length > 0)
+      .map((entry, index) => ({
+        id: entry.id || String(index),
+        label: entry.label || preview.title || `#${preview.slotIndex}`,
+        points: entry.values.map((value, pointIndex) => ({ value, ts: pointIndex })),
+        lineColor: ['#00ffff', '#52c41a', '#faad14'][index % 3],
+        areaColor: ['rgba(0,255,255,0.12)', 'rgba(82,196,26,0.12)', 'rgba(250,173,20,0.12)'][index % 3],
+      }));
+    return series.length > 0 ? (
+      <ChartTrendSvg series={series} formatValue={(v) => String(v)} showValueAxis className="monitor-preview-chart" />
+    ) : <Empty description={emptyLabel} />;
+  }
+
+  if (preview.previewType === 'categories' && preview.categories?.length > 0) {
+    return preview.kind === 'pieChart'
+      ? <CategoryPie categories={preview.categories} />
+      : <CategoryBars categories={preview.categories} />;
+  }
+
+  if (preview.previewType === 'rows' && preview.rows?.length > 0) {
+    if (Array.isArray(preview.columns) && preview.columns.length === 0) {
+      return <Empty description={emptyLabel} />;
+    }
+    const keys = preview.columns ?? Object.keys(preview.rows[0]?.cells || {});
+    return (
+      <Table
+        size="small"
+        pagination={false}
+        rowKey={(_, index) => String(index)}
+        dataSource={preview.rows.map((row) => row.cells)}
+        columns={keys.map((key) => ({ title: key, dataIndex: key, ellipsis: true }))}
+      />
+    );
+  }
+  return <Empty description={emptyLabel} />;
+}
+
+function CategoryBars({ categories }: { categories: MonitorPreviewDto['categories'] }) {
+  const max = Math.max(1, ...categories.map((category) => Math.abs(category.value)));
+  return (
+    <div style={{ display: 'flex', alignItems: 'end', gap: 8, minHeight: 240 }}>
+      {categories.map((category, index) => (
+        <div key={`${category.label}-${index}`} style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ height: 180, display: 'flex', alignItems: 'end' }}>
+            <div style={{ width: '100%', minHeight: 2, height: `${Math.abs(category.value) / max * 100}%`, background: category.color || '#00ffff' }} />
+          </div>
+          <Text type="secondary" ellipsis style={{ display: 'block' }}>{category.label}</Text>
+          <Text>{category.value}</Text>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CategoryPie({ categories }: { categories: MonitorPreviewDto['categories'] }) {
+  const total = categories.reduce((sum, category) => sum + Math.abs(category.value), 0) || 1;
+  let offset = 0;
+  const gradient = categories.map((category, index) => {
+    const start = offset;
+    offset += Math.abs(category.value) / total * 100;
+    return `${category.color || ['#00ffff', '#52c41a', '#faad14', '#a66cff'][index % 4]} ${start}% ${offset}%`;
+  }).join(', ');
+  return (
+    <div style={{ display: 'grid', placeItems: 'center', gap: 12 }}>
+      <div style={{ width: 220, height: 220, borderRadius: '50%', background: `conic-gradient(${gradient})` }} />
+      <SpaceWrap categories={categories} />
+    </div>
+  );
+}
+
+function SpaceWrap({ categories }: { categories: MonitorPreviewDto['categories'] }) {
+  return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>{categories.map((category) => <Tag key={category.label}>{category.label}: {category.value}</Tag>)}</div>;
 }

@@ -353,6 +353,12 @@ public final class WebAlertEngine {
                     + networkId;
                 WebAlertStore.instance()
                     .upsert(ownerUuid, alert);
+                // The alert is the trusted stuck evidence: CPU remains busy
+                // while elapsed time has not advanced for the configured
+                // interval. Store only the structured observation, never the
+                // alert's free-form message.
+                com.imgood.textech.webae.cpu.CpuHistoryService.instance()
+                    .markCpuStuck(ownerUuid, networkId, cpu.name, now);
                 activeSources.add(sourceKey);
             }
         }

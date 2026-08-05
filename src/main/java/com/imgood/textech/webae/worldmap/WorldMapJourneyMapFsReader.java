@@ -5,6 +5,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -33,11 +35,20 @@ public final class WorldMapJourneyMapFsReader {
             return false;
         }
         File root = resolveDataRoot();
-        return root != null && root.isDirectory();
+        return root != null;
     }
 
     public byte[] readChunkTerrain(boolean multiplayer, String worldName, int dim, int chunkX, int chunkZ, int tilePx) {
-        File worldRoot = resolveWorldRoot(multiplayer, worldName);
+        return readChunkTerrain(resolveDataRoot(), multiplayer, worldName, dim, chunkX, chunkZ, tilePx);
+    }
+
+    byte[] readChunkTerrain(File dataRoot, boolean multiplayer, String worldName, int dim, int chunkX, int chunkZ,
+        int tilePx) {
+        if (!WorldMapPacketAuthorization.isValidChunk(dim, chunkX, chunkZ)
+            || !WorldMapPacketAuthorization.isValidTilePx(tilePx)) {
+            return null;
+        }
+        File worldRoot = resolveWorldRoot(dataRoot, multiplayer, worldName);
         if (worldRoot == null) {
             return null;
         }
@@ -45,8 +56,8 @@ public final class WorldMapJourneyMapFsReader {
         if (dimRoot == null || !dimRoot.isDirectory()) {
             return null;
         }
-        File dayRoot = new File(dimRoot, "day");
-        if (!dayRoot.isDirectory()) {
+        File dayRoot = safeDirectory(dimRoot, new File(dimRoot, "day"));
+        if (dayRoot == null) {
             dayRoot = dimRoot;
         }
         ZoomInfo zoom = findHighestZoom(dayRoot);
@@ -62,8 +73,15 @@ public final class WorldMapJourneyMapFsReader {
             return null;
         }
         try {
+            // This is a bounded PNG header check only.  It deliberately runs
+            // before ImageIO is allowed to inflate the local cache file.
+            if (!WorldMapRenderSupport.isValidTilePng(tileFile)) {
+                return null;
+            }
             BufferedImage source = ImageIO.read(tileFile);
-            if (source == null) {
+            if (source == null || source.getWidth() <= 0 || source.getHeight() <= 0
+                || source.getWidth() > WorldMapPacketAuthorization.MAX_TILE_PX
+                || source.getHeight() > WorldMapPacketAuthorization.MAX_TILE_PX) {
                 return null;
             }
             int localBlockX = blockX - tileX * zoom.blocksPerTile;
@@ -84,9 +102,12 @@ public final class WorldMapJourneyMapFsReader {
                 chunk = scaled;
             }
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(chunk, "png", baos);
-            return baos.toByteArray();
-        } catch (IOException e) {
+            if (!ImageIO.write(chunk, "png", baos)) {
+                return null;
+            }
+            byte[] png = baos.toByteArray();
+            return WorldMapRenderSupport.isValidTilePng(png) ? png : null;
+        } catch (IOException | RuntimeException e) {
             AdvanceDataMonitor.LOG
                 .debug("[WebAE] JourneyMap FS tile read failed dim={} cx={} cz={}", dim, chunkX, chunkZ);
             return null;
@@ -94,62 +115,51 @@ public final class WorldMapJourneyMapFsReader {
     }
 
     public File resolveWorldRoot(boolean multiplayer, String worldName) {
-        if (worldName == null || worldName.trim()
-            .isEmpty()) {
-            worldName = "world";
-        }
-        File dataRoot = resolveDataRoot();
+        return resolveWorldRoot(resolveDataRoot(), multiplayer, worldName);
+    }
+
+    static File resolveWorldRoot(File dataRoot, boolean multiplayer, String worldName) {
+        dataRoot = canonicalDataRoot(dataRoot);
         if (dataRoot == null) {
             return null;
         }
-        File modeRoot = new File(dataRoot, multiplayer ? "mp" : "sp");
-        return findWorldFolder(modeRoot, worldName.trim());
+        String exactWorldName = worldName == null ? null : worldName.trim();
+        if (!isSafePathSegment(exactWorldName)) {
+            return null;
+        }
+        File modeRoot = safeDirectory(dataRoot, new File(dataRoot, multiplayer ? "mp" : "sp"));
+        return findWorldFolder(modeRoot, exactWorldName);
     }
 
     public static File resolveDataRoot() {
         if (Config.worldMapJourneyMapDataRoot != null && !Config.worldMapJourneyMapDataRoot.trim()
             .isEmpty()) {
-            File custom = new File(Config.worldMapJourneyMapDataRoot.trim());
-            if (custom.isDirectory()) {
+            File custom = canonicalDataRoot(new File(Config.worldMapJourneyMapDataRoot.trim()));
+            if (custom != null) {
                 return custom;
             }
         }
-        File jm = new File(TeXTechDataDir.instanceRoot(), "journeymap/data");
-        if (jm.isDirectory()) {
-            return jm;
-        }
-        return null;
+        return canonicalDataRoot(new File(TeXTechDataDir.instanceRoot(), "journeymap/data"));
     }
 
     private static File findWorldFolder(File modeRoot, String worldName) {
-        if (modeRoot == null || !modeRoot.isDirectory()) {
+        if (modeRoot == null || !isSafePathSegment(worldName)) {
             return null;
         }
-        File direct = new File(modeRoot, worldName);
-        if (direct.isDirectory()) {
-            return direct;
-        }
-        File[] children = modeRoot.listFiles();
-        if (children == null) {
-            return null;
-        }
-        for (File child : children) {
-            if (child.isDirectory()) {
-                return child;
-            }
-        }
-        return null;
+        // Exact match only.  Falling back to an arbitrary cache directory can
+        // cross worlds and disclose terrain from an unrelated server/save.
+        return safeDirectory(modeRoot, new File(modeRoot, worldName));
     }
 
     private static File resolveDimRoot(File worldRoot, int dim) {
         String[] names = dimNames(dim);
         for (String name : names) {
-            File candidate = new File(worldRoot, name);
-            if (candidate.isDirectory()) {
+            File candidate = safeDirectory(worldRoot, new File(worldRoot, name));
+            if (candidate != null) {
                 return candidate;
             }
         }
-        return new File(worldRoot, names[0]);
+        return null;
     }
 
     private static String[] dimNames(int dim) {
@@ -186,13 +196,14 @@ public final class WorldMapJourneyMapFsReader {
             }
         });
         for (File child : children) {
-            if (!child.isDirectory()) {
+            File safeChild = safeDirectory(dayRoot, child);
+            if (safeChild == null) {
                 continue;
             }
-            if (containsPng(child) || hasNumericSubdirs(child)) {
+            if (containsPng(safeChild) || hasNumericSubdirs(safeChild)) {
                 ZoomInfo info = new ZoomInfo();
-                info.folder = child;
-                info.blocksPerTile = Math.max(16, 512 >> Math.max(0, parseZoomName(child.getName())));
+                info.folder = safeChild;
+                info.blocksPerTile = Math.max(16, 512 >> Math.max(0, parseZoomName(safeChild.getName())));
                 return info;
             }
         }
@@ -211,7 +222,7 @@ public final class WorldMapJourneyMapFsReader {
             return false;
         }
         for (File child : children) {
-            if (child.isDirectory()) {
+            if (safeDirectory(dir, child) != null) {
                 try {
                     Integer.parseInt(child.getName());
                     return true;
@@ -227,7 +238,7 @@ public final class WorldMapJourneyMapFsReader {
             return false;
         }
         for (File f : files) {
-            if (f.isFile() && f.getName()
+            if (safeFile(dir, f) != null && f.getName()
                 .endsWith(".png")) {
                 return true;
             }
@@ -262,22 +273,90 @@ public final class WorldMapJourneyMapFsReader {
         File nested = new File(
             new File(new File(zoomFolder, String.valueOf(tileX)), String.valueOf(tileZ)),
             "tile.png");
-        if (nested.isFile()) {
-            return nested;
+        File safe = safeFile(zoomFolder, nested);
+        if (safe != null) {
+            return safe;
         }
         File flatZ = new File(new File(zoomFolder, String.valueOf(tileX)), tileZ + ".png");
-        if (flatZ.isFile()) {
-            return flatZ;
+        safe = safeFile(zoomFolder, flatZ);
+        if (safe != null) {
+            return safe;
         }
         File underscore = new File(zoomFolder, tileX + "_" + tileZ + ".png");
-        if (underscore.isFile()) {
-            return underscore;
+        safe = safeFile(zoomFolder, underscore);
+        if (safe != null) {
+            return safe;
         }
         File comma = new File(zoomFolder, tileX + "," + tileZ + ".png");
-        if (comma.isFile()) {
-            return comma;
+        safe = safeFile(zoomFolder, comma);
+        if (safe != null) {
+            return safe;
         }
         return null;
+    }
+
+    private static File canonicalDataRoot(File root) {
+        if (root == null || !root.isDirectory() || Files.isSymbolicLink(root.toPath())) {
+            return null;
+        }
+        try {
+            File canonical = root.getCanonicalFile();
+            return canonical.isDirectory() && !Files.isSymbolicLink(canonical.toPath()) ? canonical : null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static File safeDirectory(File anchor, File candidate) {
+        return safeExistingPath(anchor, candidate, true);
+    }
+
+    private static File safeFile(File anchor, File candidate) {
+        return safeExistingPath(anchor, candidate, false);
+    }
+
+    private static File safeExistingPath(File anchor, File candidate, boolean directory) {
+        if (anchor == null || candidate == null) {
+            return null;
+        }
+        try {
+            File canonicalAnchor = anchor.getCanonicalFile();
+            Path root = canonicalAnchor.toPath();
+            Path lexicalCandidate = candidate.getAbsoluteFile()
+                .toPath()
+                .normalize();
+            if (!lexicalCandidate.startsWith(root) || Files.isSymbolicLink(root)) {
+                return null;
+            }
+            Path current = root;
+            Path relative = root.relativize(lexicalCandidate);
+            for (Path part : relative) {
+                current = current.resolve(part);
+                if (Files.isSymbolicLink(current)) {
+                    return null;
+                }
+            }
+            File canonicalCandidate = candidate.getCanonicalFile();
+            Path resolved = canonicalCandidate.toPath();
+            if (!resolved.startsWith(root)) {
+                return null;
+            }
+            if (directory ? !canonicalCandidate.isDirectory() : !canonicalCandidate.isFile()) {
+                return null;
+            }
+            return canonicalCandidate;
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static boolean isSafePathSegment(String value) {
+        if (value == null || value.isEmpty() || ".".equals(value) || "..".equals(value)) {
+            return false;
+        }
+        return value.indexOf('/') < 0 && value.indexOf('\\') < 0 && value.indexOf('\0') < 0
+            && new File(value).getName()
+                .equals(value);
     }
 
     private static final class ZoomInfo {

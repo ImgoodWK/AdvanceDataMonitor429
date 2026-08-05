@@ -82,6 +82,8 @@ public class HandlerWebPlayerTracker {
             onlinePlayerIndex.remove(uuid.toString());
             PlayerInfoStore.instance()
                 .touchLogout(uuid, System.currentTimeMillis());
+            com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator.instance()
+                .clearForPlayer(uuid.toString());
             String name = event.player.getCommandSenderName();
             AdvanceDataMonitor.LOG.info("[WebAE] Player logged out: {} ({})", name, uuid);
         } catch (Throwable t) {

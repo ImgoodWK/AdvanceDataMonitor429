@@ -8,7 +8,7 @@ Bridge 1.2.0 accepts a draft only when the synthetic target is exactly `preview:
 
 Draft generation reuses AstrBot `provider_settings.fallback_chat_models` in configured order. Each provider keeps the bounded `draft_timeout_seconds`, the whole chain is capped by `draft_total_timeout_seconds`, and `draft_max_provider_attempts` limits provider count. This retry is draft-only: confirmed QQ delivery remains single-attempt and becomes `uncertain` after an interrupted send.
 
-Persona Console 2.3 与 AstrBot 之间的受控人格草稿和消息投递桥。插件只消费共享数据卷中的文件队列，不开放额外 HTTP 端口，也不保存新的平台密钥。
+Persona Console 2.4（兼容 2.3）与 AstrBot 之间的受控人格草稿和消息投递桥。插件只消费共享数据卷中的文件队列，不开放额外 HTTP 端口，也不保存新的平台密钥；2.4 图片库不经过消息队列。
 
 ## 数据流
 

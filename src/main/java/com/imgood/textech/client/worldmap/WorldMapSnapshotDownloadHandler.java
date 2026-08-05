@@ -2,6 +2,8 @@ package com.imgood.textech.client.worldmap;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
@@ -25,12 +27,17 @@ public final class WorldMapSnapshotDownloadHandler {
     private static final int SYNC_INTERVAL_TICKS = 200;
 
     private final Deque<TilePull> pullQueue = new ArrayDeque<TilePull>();
+    private final Set<String> pendingTileKeys = new HashSet<String>();
     private String ownerUuid;
     private int networkId;
     private int targetVersion;
     private int targetPreviousVersion;
+    private int syncLocalVersion;
+    private int expectedPageOffset;
+    private int pendingPageOffset = -1;
     private int tickCounter;
     private boolean syncRequested;
+    private boolean manifestPagesComplete;
 
     private WorldMapSnapshotDownloadHandler() {}
 
@@ -38,18 +45,22 @@ public final class WorldMapSnapshotDownloadHandler {
         return INSTANCE;
     }
 
-    public void scheduleSyncForOwner(String ownerUuid, int networkId) {
+    public synchronized void scheduleSyncForOwner(String ownerUuid, int networkId) {
         if (ownerUuid == null || ownerUuid.isEmpty() || networkId < 0) {
             return;
         }
+        boolean scopeChanged = !ownerUuid.equals(this.ownerUuid) || networkId != this.networkId;
         this.ownerUuid = ownerUuid;
         this.networkId = networkId;
         this.syncRequested = true;
         this.tickCounter = SYNC_INTERVAL_TICKS;
+        if (scopeChanged) {
+            resetTransferState();
+        }
     }
 
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
+    public synchronized void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
@@ -59,12 +70,22 @@ public final class WorldMapSnapshotDownloadHandler {
         tickCounter++;
         if (syncRequested && tickCounter >= SYNC_INTERVAL_TICKS) {
             syncRequested = false;
-            int localVersion = WorldMapSnapshotLocalCache.readLocalVersion(ownerUuid, networkId);
+            syncLocalVersion = WorldMapSnapshotLocalCache.readLocalVersion(ownerUuid, networkId);
+            pendingPageOffset = -1;
+            expectedPageOffset = 0;
+            manifestPagesComplete = false;
             PacketWorldMapSnapshotSyncRequest req = new PacketWorldMapSnapshotSyncRequest(
                 ownerUuid,
                 networkId,
-                localVersion);
+                syncLocalVersion,
+                0);
             AdvanceDataMonitor.ADMCHANEL.sendToServer(req);
+        }
+        if (pendingPageOffset >= 0) {
+            int offset = pendingPageOffset;
+            pendingPageOffset = -1;
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(
+                new PacketWorldMapSnapshotSyncRequest(ownerUuid, networkId, syncLocalVersion, offset));
         }
         int budget = Math.max(1, Config.worldMapClientDownloadBudgetPerTick);
         for (int i = 0; i < budget && !pullQueue.isEmpty(); i++) {
@@ -84,20 +105,23 @@ public final class WorldMapSnapshotDownloadHandler {
         }
     }
 
-    public void onSyncResponse(PacketWorldMapSnapshotSyncResponse message) {
-        if (message == null || message.serverVersion <= 0) {
+    public synchronized void onSyncResponse(PacketWorldMapSnapshotSyncResponse message) {
+        if (message == null || message.serverVersion <= 0 || ownerUuid == null
+            || !ownerUuid.equals(message.ownerUuid) || networkId != message.networkId) {
             return;
         }
-        targetVersion = message.serverVersion;
-        targetPreviousVersion = message.previousServerVersion;
-        pullQueue.clear();
-        if (message.tileKeys == null || message.tileKeys.isEmpty()) {
-            WorldMapSnapshotLocalCache.writeLocalVersion(message.ownerUuid, message.networkId, message.serverVersion);
-            WorldMapSnapshotLocalCache.pruneOldVersions(
-                message.ownerUuid,
-                message.networkId,
-                message.serverVersion,
-                message.previousServerVersion);
+        if (message.batchOffset == 0) {
+            resetTransferState();
+            targetVersion = message.serverVersion;
+            targetPreviousVersion = message.previousServerVersion;
+            expectedPageOffset = 0;
+        } else if (message.serverVersion != targetVersion || message.batchOffset != expectedPageOffset) {
+            pendingPageOffset = 0;
+            return;
+        }
+        if (message.batchOffset != expectedPageOffset || message.nextOffset < message.batchOffset
+            || message.tileKeys == null || message.nextOffset - message.batchOffset != message.tileKeys.size()) {
+            pendingPageOffset = 0;
             return;
         }
         for (String key : message.tileKeys) {
@@ -115,12 +139,27 @@ public final class WorldMapSnapshotDownloadHandler {
                 pull.chunkZ) != null) {
                 continue;
             }
-            pullQueue.offerLast(pull);
+            if (pendingTileKeys.add(pull.key)) {
+                pullQueue.offerLast(pull);
+            }
+        }
+        expectedPageOffset = message.nextOffset;
+        manifestPagesComplete = message.complete;
+        if (!message.complete) {
+            pendingPageOffset = message.nextOffset;
+        } else {
+            finishIfComplete(message.ownerUuid, message.networkId);
         }
     }
 
-    public void onTileData(PacketWorldMapSnapshotTileData message) {
-        if (message == null || message.png == null || message.png.length == 0) {
+    public synchronized void onTileData(PacketWorldMapSnapshotTileData message) {
+        if (message == null || message.png == null || message.png.length == 0 || ownerUuid == null
+            || !ownerUuid.equals(message.ownerUuid) || networkId != message.networkId
+            || targetVersion != message.snapshotVersion) {
+            return;
+        }
+        String key = message.layer + ":" + message.dim + ":" + message.chunkX + ":" + message.chunkZ;
+        if (!pendingTileKeys.remove(key)) {
             return;
         }
         WorldMapSnapshotLocalCache.writeTile(
@@ -132,11 +171,26 @@ public final class WorldMapSnapshotDownloadHandler {
             message.chunkX,
             message.chunkZ,
             message.png);
-        if (pullQueue.isEmpty()) {
-            WorldMapSnapshotLocalCache.writeLocalVersion(message.ownerUuid, message.networkId, targetVersion);
-            WorldMapSnapshotLocalCache
-                .pruneOldVersions(message.ownerUuid, message.networkId, targetVersion, targetPreviousVersion);
+        finishIfComplete(message.ownerUuid, message.networkId);
+    }
+
+    private void finishIfComplete(String transferOwnerUuid, int transferNetworkId) {
+        if (!manifestPagesComplete || !pullQueue.isEmpty() || !pendingTileKeys.isEmpty()) {
+            return;
         }
+        WorldMapSnapshotLocalCache.writeLocalVersion(transferOwnerUuid, transferNetworkId, targetVersion);
+        WorldMapSnapshotLocalCache
+            .pruneOldVersions(transferOwnerUuid, transferNetworkId, targetVersion, targetPreviousVersion);
+    }
+
+    private void resetTransferState() {
+        pullQueue.clear();
+        pendingTileKeys.clear();
+        targetVersion = 0;
+        targetPreviousVersion = 0;
+        expectedPageOffset = 0;
+        pendingPageOffset = -1;
+        manifestPagesComplete = false;
     }
 
     private static TilePull parseKey(String ownerUuid, int networkId, int version, String key) {
@@ -156,6 +210,7 @@ public final class WorldMapSnapshotDownloadHandler {
             pull.dim = Integer.parseInt(parts[1]);
             pull.chunkX = Integer.parseInt(parts[2]);
             pull.chunkZ = Integer.parseInt(parts[3]);
+            pull.key = key;
             return pull;
         } catch (NumberFormatException e) {
             return null;
@@ -171,5 +226,6 @@ public final class WorldMapSnapshotDownloadHandler {
         int dim;
         int chunkX;
         int chunkZ;
+        String key;
     }
 }

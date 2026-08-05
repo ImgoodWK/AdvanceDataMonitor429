@@ -2,6 +2,7 @@
 // switching. Stored in localStorage as an array.
 
 import type { EffectsLevel } from '@/theme/colors';
+import type { MonitorSourceKind } from '@/types/dto';
 
 // 9-grid alignment for widget content (horizontal-vertical).
 export type Alignment =
@@ -104,6 +105,10 @@ export interface DashboardWidgetConfig {
     /** TPS/MSPT/uptime/player composite with inline pulse history. */
     | 'serverVitals';
   dataSource: string;
+  /** Shared monitor contract source adapter. Preserved across semantic bundle import/export. */
+  sourceKind?: MonitorSourceKind;
+  /** Shared monitor metric identifier. Defaults to dataSource for legacy dashboard widgets. */
+  metricKey?: string;
   scope: 'global' | 'perNetwork';
   networkId?: number;
   title: string;
@@ -115,7 +120,13 @@ export interface DashboardWidgetConfig {
    */
   chartStyle?: import('@/theme/pageStyles').ChartStyle;
   timeWindow?: number;
+  /** Shared monitor contract: explicit progress/gauge target for absolute values. */
+  targetValue?: number;
   maxRows?: number;
+  /** Shared monitor contract: row/category ordering. */
+  sortMode?: string;
+  /** Shared monitor contract: optional time-series transform. */
+  seriesTransform?: 'difference' | string;
   width: number;
   height: number;
   x: number;

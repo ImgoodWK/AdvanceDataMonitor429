@@ -533,17 +533,16 @@ public class CommandWebConsole extends TeXTechCommandBase {
                 return;
             }
             String scope = "full";
-            String snapshotJson = "";
+            java.util.List<String> snapshotItemIds = null;
             if (args.length >= 3) {
                 if ("snapshot".equalsIgnoreCase(args[2])) {
                     scope = "snapshot";
-                    java.util.List<String> itemIds = IconSnapshotItemCollector.collectItemIds();
-                    snapshotJson = new com.google.gson.Gson().toJson(itemIds);
+                    snapshotItemIds = IconSnapshotItemCollector.collectItemIds();
                     sendLocalized(
                         sender,
                         EnumChatFormatting.AQUA,
                         "adm.command.admweb.recipes.snapshot_info",
-                        itemIds.size());
+                        snapshotItemIds.size());
                 } else if ("deep".equalsIgnoreCase(args[2])) {
                     scope = "deep";
                     sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.recipes.deep_info");
@@ -552,11 +551,16 @@ public class CommandWebConsole extends TeXTechCommandBase {
             if ("export".equals(action)) {
                 sendLocalized(sender, EnumChatFormatting.AQUA, "adm.command.admweb.recipes.exporting");
             }
-            com.imgood.textech.webae.network.PacketWebUploadTrigger trigger = new com.imgood.textech.webae.network.PacketWebUploadTrigger(
+            if (!sendUploadTriggers(
+                sender,
+                player,
                 com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_RECIPES,
-                snapshotJson,
-                scope);
-            AdvanceDataMonitor.ADMCHANEL.sendTo(trigger, player);
+                "",
+                scope,
+                null,
+                snapshotItemIds)) {
+                return;
+            }
             sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.recipes.triggered", scope);
         } else if ("status".equals(action)) {
             com.imgood.textech.webae.recipe.RecipeCacheStore.CacheStatus status = com.imgood.textech.webae.recipe.RecipeCacheStore
@@ -601,6 +605,25 @@ public class CommandWebConsole extends TeXTechCommandBase {
             sendFormatted(sender, EnumChatFormatting.GREEN, "adm.webconsole.recipes.cleared");
         } else {
             sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.recipes.unknown");
+        }
+    }
+
+    /** Send a trigger as one or more complete, FML-safe item-id batches. */
+    private boolean sendUploadTriggers(ICommandSender sender, EntityPlayerMP player, String uploadType,
+        String packName, String renderMode, IconExportScope scope, List<String> itemIds) {
+        try {
+            List<com.imgood.textech.webae.network.PacketWebUploadTrigger> triggers = com.imgood.textech.webae.network.PacketWebUploadTrigger
+                .createItemIdBatches(uploadType, packName, renderMode, scope, itemIds);
+            for (com.imgood.textech.webae.network.PacketWebUploadTrigger trigger : triggers) {
+                AdvanceDataMonitor.ADMCHANEL.sendTo(trigger, player);
+            }
+            return true;
+        } catch (IllegalArgumentException error) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] Refused upload trigger because its item-id list cannot fit safely: {}",
+                error.getMessage());
+            sendLocalized(sender, EnumChatFormatting.RED, "adm.command.admweb.upload_packet_limit");
+            return false;
         }
     }
 
@@ -795,14 +818,16 @@ public class CommandWebConsole extends TeXTechCommandBase {
             sendLocalized(sender, EnumChatFormatting.YELLOW, "adm.command.admweb.icons.no_snapshot");
             return;
         }
-        AdvanceDataMonitor.ADMCHANEL.sendTo(
-            new com.imgood.textech.webae.network.PacketWebUploadTrigger(
-                com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS_LOCAL,
-                packName,
-                renderMode,
-                scope,
-                itemIds),
-            player);
+        if (!sendUploadTriggers(
+            sender,
+            player,
+            com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS_LOCAL,
+            packName,
+            renderMode,
+            scope,
+            itemIds)) {
+            return;
+        }
         sendLocalized(
             sender,
             EnumChatFormatting.GREEN,
@@ -863,14 +888,16 @@ public class CommandWebConsole extends TeXTechCommandBase {
             .setProviderUuid(
                 player.getUniqueID()
                     .toString());
-        AdvanceDataMonitor.ADMCHANEL.sendTo(
-            new com.imgood.textech.webae.network.PacketWebUploadTrigger(
-                com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS,
-                packName,
-                renderMode,
-                scope,
-                itemIds),
-            player);
+        if (!sendUploadTriggers(
+            sender,
+            player,
+            com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS,
+            packName,
+            renderMode,
+            scope,
+            itemIds)) {
+            return;
+        }
         sendLocalized(
             sender,
             EnumChatFormatting.GREEN,
@@ -897,14 +924,16 @@ public class CommandWebConsole extends TeXTechCommandBase {
             .setProviderUuid(
                 player.getUniqueID()
                     .toString());
-        AdvanceDataMonitor.ADMCHANEL.sendTo(
-            new com.imgood.textech.webae.network.PacketWebUploadTrigger(
-                com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS,
-                packName,
-                renderMode,
-                IconExportScope.LIST,
-                ids),
-            player);
+        if (!sendUploadTriggers(
+            sender,
+            player,
+            com.imgood.textech.webae.network.PacketWebUploadTrigger.TYPE_ICONS,
+            packName,
+            renderMode,
+            IconExportScope.LIST,
+            ids)) {
+            return;
+        }
         sendLocalized(sender, EnumChatFormatting.GREEN, "adm.command.admweb.icons.rendering", itemId);
     }
 

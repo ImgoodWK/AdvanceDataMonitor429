@@ -12,6 +12,10 @@ import com.imgood.textech.webae.perf.WebAePerfProfiler.DiagnosticsSnapshot;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.PhaseView;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.RouteView;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.SlowHttpEntry;
+import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticDto;
+import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticProvider;
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
+import com.imgood.textech.webae.auth.WebAuthSession;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -26,13 +30,28 @@ public final class ServerDiagnosticsHandler {
     private ServerDiagnosticsHandler() {}
 
     public static NanoHTTPD.Response handle() {
+        return handle(null, null);
+    }
+
+    /**
+     * Owner-scoped diagnostics response. The legacy no-arg entry point remains
+     * for integrations that only consume profiler data; router callers should
+     * pass the effective owner to prevent cross-owner network health leakage.
+     */
+    public static NanoHTTPD.Response handle(String ownerUuid) {
+        return handle(null, ownerUuid);
+    }
+
+    /** Owner- and network-ACL-scoped diagnostics response for router callers. */
+    public static NanoHTTPD.Response handle(WebAuthSession session, String ownerUuid) {
         DiagnosticsSnapshot snap = WebAePerfProfiler.instance()
             .snapshot();
         return NanoHTTPD
-            .newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", GSON.toJson(toJson(snap)));
+            .newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json",
+                GSON.toJson(toJson(snap, session, ownerUuid)));
     }
 
-    private static DiagnosticsJson toJson(DiagnosticsSnapshot snap) {
+    private static DiagnosticsJson toJson(DiagnosticsSnapshot snap, WebAuthSession session, String ownerUuid) {
         DiagnosticsJson json = new DiagnosticsJson();
         json.success = true;
         json.tps = round1(snap.tps);
@@ -66,7 +85,24 @@ public final class ServerDiagnosticsHandler {
         json.history.serverTasksMs = snap.historyServerTasksMs;
         json.history.snapshotSchedulerMs = snap.historySnapshotSchedulerMs;
         json.config = snap.config;
+        json.networkHealth = visibleNetworkHealth(session, ownerUuid);
         return json;
+    }
+
+    private static List<NetworkHealthDiagnosticDto> visibleNetworkHealth(WebAuthSession session, String ownerUuid) {
+        List<NetworkHealthDiagnosticDto> snapshots = NetworkHealthDiagnosticProvider.instance()
+            .snapshotForOwner(ownerUuid);
+        if (session == null || snapshots.isEmpty()) {
+            return snapshots;
+        }
+        List<NetworkHealthDiagnosticDto> visible = new ArrayList<NetworkHealthDiagnosticDto>();
+        for (NetworkHealthDiagnosticDto snapshot : snapshots) {
+            if (snapshot != null && snapshot.networkKey != null
+                && WebAeNetworkAccess.canAccess(session, ownerUuid, snapshot.networkKey)) {
+                visible.add(snapshot);
+            }
+        }
+        return visible;
     }
 
     private static double round1(double v) {
@@ -94,6 +130,7 @@ public final class ServerDiagnosticsHandler {
         List<SlowHttpJson> slowHttp;
         HistoryJson history;
         ConfigSummary config;
+        List<NetworkHealthDiagnosticDto> networkHealth;
     }
 
     private static final class SlowHttpJson {

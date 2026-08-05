@@ -1,6 +1,6 @@
 # TeXTech WebAE Console User Guide
 
-> Audience: Players & server admins · Last synced: 2026-07  
+> Audience: Players & server admins · Last synced: 2026-07<br>
 > Developer docs: [Developer Guide](developer-guide.md) · Mod overview: [Player Guide](../player/player-guide.md)
 
 ---
@@ -33,7 +33,7 @@ The WebAE Console is a **browser-accessible** HTTP management panel embedded in 
 | Network Topology | Logical / spatial / **P2P channel** / **world map** views; channel-budget lanes (dense 32→4×smart 8) + role pods; CSV export |
 | Quest Book | BetterQuesting lines/graph/submit assist (requires BQ) |
 | Link Scanner | Browse in-game scanner results, aliases, and coords |
-| Monitor Bindings | Read-only chart slots; per-slot **line preview** Drawer |
+| Monitor Bindings | Read-only monitor slots; type-aware scalar/series/category/table preview Drawer |
 | Planner | Sync Advance Planner entries in the browser |
 | AI Assistant | Web chat entry (same capabilities as in-game assistant) |
 | Alerts History | Browse triggered automation alerts; rules via Settings/alerts editor |
@@ -130,7 +130,7 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 |---------|-------------|
 | `/admweb issue` | Issue an **owner** token (requires at least one Advance Data Monitor you own) |
 | `/admweb login` | Generate a **6-digit browser login code** (5 min TTL, single use; no OP token required) |
-| `/admweb guest <player>` | Monitor owner sends a **guest** token privately to an **online** player |
+| `/admweb guest <player>` | Monitor owner sends a **read-only guest** token privately to an **online** player (only the owner's allowed AE networks) |
 | `/admweb copy` | Copy your active token to clipboard |
 | `/admweb list` | List tokens with type, owner, actor (OP only) |
 | `/admweb revoke [guestName]` | Revoke your owner token; owners revoke guest tokens; OP can revoke others |
@@ -165,7 +165,7 @@ The Web Console requires token authentication. Use commands in-game (or from ser
 **Token types**
 
 - **Owner token**: bound to the monitor owner UUID; read/write all AE networks linked to their monitors; **owner need not be online**.
-- **Guest token**: issued via `/admweb guest`; nearly the same AE access (operations still use owner identity); chat shows the guest name.
+- **Guest token**: issued via `/admweb guest`; read-only and limited to the owner's network allowlist. Guests cannot refresh, upload, submit orders, write patterns, or perform other mutations; chat still shows the guest name.
 - Tokens persist in `TeXTech/WebAE/web-tokens.json`; legacy entries migrate to `type: owner` on load.
 
 **Offline access & chunks**
@@ -195,11 +195,15 @@ The page separates a **Storage capacity overview** from the **Inventory details*
 
 ### Crafting CPUs
 
-Standalone sidebar menu with separate **CPU health overview** and **Processors and crafting queue** workspaces. Click a row for the detail drawer. Multi-network Split mode uses tabs.
+Standalone sidebar menu with separate **CPU health overview** and **Processors and crafting queue** workspaces. Click a row for the detail drawer. Multi-network Split mode uses tabs. The drawer shows a network-wide busy-rate trend, bounded job history, and a capacity summary; filter queued/running/completed/failed/cancelled/stuck/unknown jobs. Capacity windows are 1 hour, 6 hours, 24 hours, 7 days, or 14 days, with peak concurrency, P50/P95 duration, queue time, storage pressure, and a read-only CPU estimate.
+
+The main Dashboard also includes a **CPU history and capacity** region for the first selected network, with a network-wide busy-rate trend, recent jobs, lifecycle filter, capacity windows, bottlenecks, and recommendations. It refreshes at most every 30 seconds while the Dashboard is active and follows network selection. Both the Dashboard and CPU detail drawer make unknown and truncated data explicit rather than using a success state.
+
+History is retained for up to 14 days. One response contains at most 500 jobs and 1,000 CPU snapshots; **Results truncated** means a request or response cap was reached. **Unknown** is rendered as a warning and means the lifecycle could not be verified—it is never treated as idle or completed. The first request for a network that has not yet been activated only enables later normal server-tick sampling, so a brief empty view does not prove that the network is idle; in-flight jobs also recover conservatively as unknown after a server restart. History and capacity are planning data only: WebAE never creates, splits, resizes, or edits CPUs and never changes or resubmits orders automatically.
 
 ### Power Monitor
 
-The **Power operations overview** contains the full-page GridStack (EU gauge, in/out rates, steam bar, dual-series trend chart, etc.). **Edit layout** expands the complete editor toolbar; Browsing mode hides Edit and Settings. Multi-network mode uses a prominent network switcher, and both snapshot values and trend history follow the active network; auto-refresh keeps charts mounted without flicker.
+The **Power operations overview** contains the full-page GridStack (EU gauge, in/out rates, steam bar, dual-series trend chart, etc.). **Edit layout** expands the complete editor toolbar; Browsing mode hides Edit and Settings. SNL 0.2.5 exposes stored steam but no real capacity, so the page never fabricates a stored/max ratio or 0%; a progress bar or gauge is shown only after an explicit target is configured. Multi-network mode uses a prominent network switcher, and both snapshot values and trend history follow the active network; auto-refresh keeps charts mounted without flicker.
 
 ### GT Machines
 
@@ -260,22 +264,31 @@ Sidebar **Network Topology** offers logical grouping, spatial bins, **P2P channe
 
 #### World Map View
 
-1. **Prerequisite**: Capture a logical topology snapshot first (POST `/api/network/topology/snapshot` or the in-page **Capture snapshot** button).
-2. **Terrain source dual mode**:
-   - **Self-rendered** (self): Server-side UV/ray-traced tiles; flat (top-down) and oblique views; four quality tiers via Segmented control (low 64px / medium 128px / high 256px / ultra 512px HD). **First open or cold cache is slow**; without GWM/Dynmap (`auto` falls back to self) expect slow renders and mediocre GT textures. Keep `worldMapTerrainSource=auto` on GTNH packs for instant GWM tiles.
-   - **Dynmap terrain** (dynmap): External Dynmap/GWM pre-rendered tiles via Leaflet, plus an **ultra-quality AE chunk tint overlay** (`WorldMapAeOverlayStack`) and optional dot markers; quality controls mainly affect the AE layer in dynmap mode.
-   - **Client GL priority** (`worldMapClientCaptureMode=when_online`, default): When the player is online in the target dimension, all quality tiers prefer client `RenderBlocks` FBO capture; nearby chunks are pre-warmed while exploring (`worldMapClientCaptureRadius`).
-   - **Progressive placeholder** (`worldMapProgressiveFallback=true`, default): While the target tier renders, serve lower cached tiers or a Dynmap 128-block crop preview (`X-WorldMap-Tile-Status: upgrading`) instead of stripe placeholders.
-   - Server auto-detect (`auto`) or force-select via `worldMapTerrainSource`; settings drawer shows terrain source, client capture mode, and online status.
-3. **Loading progress**: Both modes show toolbar progress (`completed/total layer jobs`, scoped to current network·view·quality); each chunk displays loading / ready / error badges (`WorldMapChunkStatusOverlay`); subtle hint text appears in the toolbar and bottom-left of the map while loading.
-4. **Device list FAB**: Top-right **Device list** opens a modal without resizing the map.
-5. **Markers & popup**: Click a device icon or cluster count to open a **device thumbnail list** (detail-page types only: interface, drive, CPU, buses, chest, security terminal, level maintainer, controller, IO port, quantum bridge, energy, P2P, etc.; terminals/monitors/emitters/pattern providers are excluded). Click a row to open the **detail drawer**. Cluster open zooms the map 1.5× temporarily; closing the popup restores scale. Pan/zoom does not dismiss the popup; wheel inside the list scrolls the list only. **Hover a cluster count** to see each device type icon with quantity (xN). **Crafting CPUs and ME controllers** are multiblocks: each structure counts as **one device** in cluster totals (the detail drawer still lists every block coordinate).
-6. **Left AE legend rail**: A narrow color strip on the left edge; hover to expand category names, visibility checkboxes, and color pickers (tints both AE overlay and marker icon borders). **Unchecking a category keeps the legend row** (shown dimmed) and hides only the matching device icons on the map. Lock makes controls read-only (hover-out still collapses); category swatches use the same icon IDs as map device markers (first device in that category), while **Other** shows a configured color swatch only. The toolbar **palette** button was removed.
-7. **Local cache**: Browser IndexedDB tile cache; client also syncs snapshots to `TeXTech/WebAE/map-cache/` when logging in from another device.
-8. **AE overlay**: Toggle in topology settings; **opacity** slider (0.5–1.0) affects AE tint pixels only, not terrain.
-9. **Wheel isolation**: Wheel over world map or tree graph zooms the view instead of scrolling the page.
-10. **Refresh & invalidation**: Tiles auto-invalidate when switching networks or capturing a new snapshot; OP can POST `/api/worldmap/invalidate` to force rebuild.
-11. **Config**: `[webConsole] worldMapEnabled`, `worldMapTerrainSource` (`auto`/`dynmap`/`self`), `dynmapTileRoot`, `worldMapClientCaptureMode` (`off`/`ultra_only`/`when_online`), `worldMapClientCaptureRadius`, `worldMapProgressiveFallback`, `worldMapMaxQualityTier` (default ultra), `worldMapDefaultQualityTier` (default medium), `worldMapBoundsPaddingChunks` (default 1). See [Developer Guide §4](developer-guide.md#4-configuration) and [§11.26](developer-guide.md#1126-world-map-view-phase-ab--ae-overlay).
+The default **client snapshot** mode (`worldMapSnapshotMode=client_only`) captures and uploads map data from an online player client; the server does not render terrain.
+
+1. **First use**: capture a logical topology snapshot, then click **Update map snapshot** in WebAE, or have the network owner run `/textech web wm up` (or `/textech web worldmap upload`) near the AE network.
+2. **JourneyMap**: when JourneyMap is installed, TeXTech first reads the current world's highest-resolution local day tiles (`worldMapJourneyMapEnabled`, including JM 5.x `{x},{z}.png` names). Missing tiles fall back to client GL. Web quality is controlled by the quality selector or `webWorldMapDefaultQualityTier` / `webWorldMapMaxQualityTier` (up to ultra, 512 px/chunk).
+3. **Guest-requested updates**: clicking **Update map snapshot** sends nearby players an Accept/Decline chat prompt. `/textech web wm y` accepts the latest request without requiring its ID. Duplicate pending requests do not spam offers.
+4. **Device list**: the top-right **Device list** button opens a modal without resizing the map.
+5. **Markers and details**: click a device icon or cluster count for a thumbnail list, then open a detail drawer. Crafting CPUs and ME controllers count once per multiblock in cluster totals while details retain all coordinates.
+6. **Left AE legend rail**: hover to expand category visibility and colors. Hidden categories remain listed but dimmed; colors affect the AE overlay and marker borders.
+7. **Local cache**: the browser caches tiles in IndexedDB; the MC client also synchronizes snapshots into `TeXTech/WebAE/map-cache/` after login on another device.
+8. **AE overlay**: captured with terrain; its opacity setting affects AE pixels only.
+9. **Wheel isolation**: the wheel zooms the world map/tree view instead of scrolling the whole page.
+10. **Version comparison**: the version panel defaults to `previous → current`; choose either side separately or click **Compare previous**. Terrain always remains current, with green added, red removed, blue moved, and orange changed overlays. Marker and tile changes can be toggled independently. Counts use the complete server summary; truncation is explicit, and unknown/partial is never presented as “no changes.”
+11. **Server annotations**: right-click empty map space or a device marker to create one; empty-map Y defaults to 64. The editor accepts label, note, color, dimension/XYZ, and an inclusive version range, where `0` means unbounded. Click a pin to view, edit, or confirm deletion. Formal annotations persist on the server across browsers and do not use localStorage.
+12. **Read-only access**: guest tokens and Browsing mode may still read versions, diffs, and annotations, but create/edit/delete controls are hidden. Owner mutations continue to use the selected network's existing ACL.
+13. **Configuration**: `worldMapSnapshotMode`, `worldMapJourneyMapEnabled`, `worldMapConsentRadiusChunks`, `worldMapOwnerSkipConsent`, and related settings are documented in [Developer Guide §11.26](developer-guide.md#1126-world-map-view-three-source-capture--client-snapshot--sp-direct).
+
+Reliability and cleanup: large jobs are paged and fully reassembled before capture starts; a truncated chunk list is never used. A server keeps at most 32 active jobs, expiring them after 90 minutes idle or 2 hours absolute. Player disconnect, WebAE stop/restart, or a job-send failure removes the unpublished snapshot; consent-skipping owner capture still observes the request cooldown. JourneyMap reads only the exact current-world directory, and symlinked/out-of-root paths or oversized/corrupt PNGs are rejected.
+
+World-map authorization and file boundaries: HD/client uploads require the resource owner, an OP, or a real player authorized by the active capture job for the current AE network; owner UUIDs are canonical lowercase. Manifest/current/tile files validate size, structure, coordinates, layer, and SHA-256, with layers limited to `terrain`/`ae` and quality limited to exact lowercase `low|medium|high|ultra`. Integrated-server direct capture is available only in integrated single-player and binds the pending provider/request; Dynmap proxy world names, zoom, coordinates, perspective, and file paths are constrained to allowed values. Dynmap's separate public proxy is not equivalent to WebAE owner-network access.
+
+### Network Health Diagnostics
+
+The **Diagnostics** page includes a Network Health section for each network you are allowed to view. It uses the same owner/network scope as the network selector and shows the runtime network id plus the stable monitor key (`dim:x:y:z`), the last server-side check, sample age, and evidence for Link registration/reachability, monitor binding, AE Grid storage/crafting/connector availability, and channel usage. Issue rows include a short explanation and a suggested next check.
+
+Statuses are intentionally conservative: **healthy** means the required evidence is present, **degraded** means a warning was observed, **failed** means a known required component is unavailable, and **unknown** means the sample is stale or evidence could not be verified. Unknown is not rendered as healthy. Sampling runs on the server tick (about every 5 seconds); opening or refreshing the page only reads the cached result and never scans the world from the browser request. The feature reports problems only—it does not repair bindings, rebuild a Grid, or change channel configuration. The read-only API form is `GET /api/network/health?network=<id>`; it requires the normal WebAE login and network ACL.
 
 ### Quest Book (BetterQuesting)
 
@@ -294,7 +307,7 @@ Requires the **BetterQuesting** mod. Sidebar **Quest Book** (`?page=quests`) use
 
 ### Monitor Bindings & Preview
 
-Sidebar **Monitor Bindings** shows read-only chart slots and GT binding coords. Click **Preview** on a slot to open a line chart Drawer mirroring in-game monitor data (edit remains in-game).
+Sidebar **Monitor Bindings** shows read-only slots, sources, and GT binding coords. Click **Preview** to render the matching scalar/progress, time series, bar/pie categories, or table rows within a 240-point visual budget (edit remains in-game).
 
 ### Link Scanner / Planner / AI Assistant
 
@@ -367,8 +380,9 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
   - **Composite operations widgets**: network health core (storage/power/crafting/GT/server/alerts), power flow, storage matrix, GT machine fleet, player presence, combined alert/crafting activity stream, and server vitals (TPS/MSPT/uptime). They reuse existing WebAE snapshots and polling results and add no server-tick work.
   - **Edit recovery**: undo/redo in edit mode (toolbar or Ctrl+Z / Ctrl+Y); clearing all widgets stays empty after refresh; Storage/CPU Overview widget height is fixed to 2 rows.
   - **Lock & size-to-content**: per-widget lock / no-move / no-resize and optional size-to-content; soft alert threshold tint on stats/gauges.
-  - **Data-table columns & pins**: the widget editor independently controls icon, name, amount, registry name, and source-specific columns. The **name** column uses the item's display name, while **registry name** is shown separately. An empty selection is preserved; changing the data source selects that source's defaults. Focus the pin search to see current-inventory candidates, or search by display name, registry name, or item ID; remove an existing pin before adding another at the server-provided limit.
-  - **Export for in-game display**: publishes the dashboard, copies a live binding, and pushes a JPEG of the **current browser viewport** (`browser-jpeg`, matches what you see). Keep the WebAE tab open for near-live refresh. Fallback: host Chrome/Edge capture of `/embed/dashboard` (`spa-jpeg`; optional `webDisplayChromePath` / `WEBAE_CHROME_PATH`). Optional MCEF 1.7.10-0.6 from https://montoyo.net/wd3/?modid=mcef (`mcef`; may not work on modern launchers before 1.10.2). GUI shows frame source/errors; cyan frame means no JPEG yet. Does **not** silently switch to AWT snapshot. Static snapshot only when publish fails (offline/unauthenticated). `GET /api/display/{id}/frame-status` reports `hasFrame`/`source`/`error`; `POST /api/display/{id}/frame` accepts browser JPEG.
+  - **Data-table columns & pins**: the widget editor independently controls icon, name, amount, registry name, and source-specific columns. The **name** column uses the item's display name, while **registry name** is shown separately. Missing or `null` `columns` means source defaults; `columns=[]` explicitly hides every column and remains empty through render/import/export. Changing the data source clears old source columns and returns to the new source defaults. Focus the pin search to see current-inventory candidates, or search by display name, registry name, or item ID; remove an existing pin before adding another at the server-provided limit.
+  - **Whole-page in-game display export**: publishes the dashboard and copies a `textech-webae-display-binding` live binding, with `textech-webae-display-snapshot` as the static fallback. It also pushes a JPEG of the **current browser viewport** (`browser-jpeg`, matches what you see). Keep the WebAE tab open for near-live refresh. Fallback: host Chrome/Edge capture of `/embed/dashboard` (`spa-jpeg`; optional `webDisplayChromePath` / `WEBAE_CHROME_PATH`). Optional MCEF 1.7.10-0.6 from https://montoyo.net/wd3/?modid=mcef (`mcef`; may not work on modern launchers before 1.10.2). GUI shows frame source/errors; cyan frame means no JPEG yet. It does **not** silently switch to an AWT snapshot. `GET /api/display/{id}/frame-status` reports `hasFrame`/`source`/`error`; `POST /api/display/{id}/frame` accepts browser JPEG.
+  - **Shared semantic widget export**: the widget import/export section copies a `textech-monitor-widget-bundle` v1 in current Dashboard order. It includes at most 36 `statCard`, `progressBar`, `gauge`, `lineChart`, `barChart`, `pieChart`, and `dataTable` widgets, and the same **Import from JSON** entry can import the bundle again. WebAE-only `radarChart` and composites such as network health or activity streams stay out of the semantic bundle; use the whole-page live/snapshot surface to show them in-game.
 - **Chat**: 💬 icon in sidebar; web messages broadcast in-game as `[Web] <name>: content`. Explicit client screenshots appear as image messages with caption, dimensions, and size; retention-expired files show an unavailable attachment state.
 - **Sidebar**: edge button cycles Expanded → Collapsed → Hidden.
 - **Top bar**: fixed-width refresh countdown/status next to connection dot.
@@ -387,7 +401,7 @@ Includes `manifest.webmanifest` and responsive CSS for narrow screens. You can a
 - **LAN access risk**: `0.0.0.0` exposes the console to the LAN — use a firewall or SSH tunnel
 - **Mandatory auth**: all `/api/` endpoints require a token; force-refresh needs OP/admin grant
 - **Layered access**: admins can ban a player account (kick to login), suspend one AE network for everyone including the owner (in-game AE unaffected), or limit guest tokens to selected networks
-- **Token security**: tokens grant storage view and crafting submit — store securely
+- **Token security**: owner tokens can read/write within their authorized scope; guest tokens are read-only and limited by the network allowlist. Store tokens securely and revoke them immediately if compromised.
 - **Recipes need upload + Fetch**: after OP `/admweb recipes upload`, each player clicks **Fetch recipes** on the Recipes page to sync into browser IndexedDB
 - **Icon upload**: OP runs `/admweb icons upload [packName]`; frontend auto-selects the server's most recent pack on first load
 - **reload limits**: `/admweb reload` does not rebind the web server; tokens and runtime data files are unaffected

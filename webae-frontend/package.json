@@ -1,17 +1,16 @@
 {
   "name": "textech-webae-frontend",
-  "version": "3.0.0",
+  "version": "3.0.0-rc.1",
   "private": true,
   "type": "module",
   "description": "TeXTech WebAE Console - React + Ant Design frontend",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "build:no-typecheck": "vite build",
+    "build": "tsc --noEmit && node scripts/build-webae.mjs",
+    "build:no-typecheck": "node scripts/build-webae.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "clean": "node -e \"require('fs').rmSync('../src/main/resources/assets/textech/webae/js',{recursive:true,force:true});require('fs').rmSync('../src/main/resources/assets/textech/webae/assets',{recursive:true,force:true})\"",
-    "prebuild": "npm run clean"
+    "clean": "node -e \"require('fs').rmSync('../.workspace/webae-build',{recursive:true,force:true})\""
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
@@ -36,7 +35,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11",
-    "vitest": "^2.1.8"
+    "vite": "^6.4.3",
+    "vitest": "^3.2.6"
   }
 }

@@ -23,6 +23,7 @@ import com.imgood.textech.webae.dto.StorageDto;
 import com.imgood.textech.webae.dto.StorageDto.CpuEntry;
 import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
 import com.imgood.textech.webae.dto.StorageDto.ItemEntry;
+import com.imgood.textech.webae.cpu.CpuHistoryService;
 
 /**
  * Network-wide scalar metric sampler for the WebAE dashboard trend charts,
@@ -161,6 +162,12 @@ public class NetworkMetricSampler {
                 gtMachineCount,
                 gtActiveCount));
 
+        // CPU history consumes the same DTO cache and server-tick cadence as
+        // the existing metrics. It does not initiate a second AE2 scan.
+        if (storage != null) {
+            CpuHistoryService.instance()
+                .recordCpuSnapshots(playerUuid, networkId, storage.cpus, now);
+        }
         record.sampleTrackedPins(storage, machines, now);
     }
 

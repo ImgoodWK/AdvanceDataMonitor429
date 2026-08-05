@@ -1,10 +1,14 @@
 package com.imgood.textech.webae.worldmap.dynmap;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.webae.worldmap.WorldMapPacketAuthorization;
+import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 
 /**
  * Reads pre-rendered Dynmap HD PNG tiles from the local tile root.
@@ -16,7 +20,19 @@ import com.imgood.textech.AdvanceDataMonitor;
  */
 public final class WorldMapDynmapTileProvider {
 
+    public static final int MAX_DYNMAP_ZOOM = 6;
+    public static final int MAX_TILE_COORDINATE = WorldMapPacketAuthorization.MAX_CHUNK_COORDINATE;
+
     private WorldMapDynmapTileProvider() {}
+
+    public static boolean isValidRequest(String worldName, int zoom, int tileX, int tileZ) {
+        return WorldMapDynmapTileRoot.isValidWorldName(worldName) && zoom >= 0 && zoom <= MAX_DYNMAP_ZOOM
+            && Math.abs((long) tileX) <= MAX_TILE_COORDINATE && Math.abs((long) tileZ) <= MAX_TILE_COORDINATE;
+    }
+
+    public static boolean isValidPerspective(String perspective) {
+        return "flat".equals(perspective) || "iso_SE_30_hires".equals(perspective);
+    }
 
     /**
      * Reads a Dynmap tile PNG from disk.
@@ -29,6 +45,9 @@ public final class WorldMapDynmapTileProvider {
      * @return tile PNG bytes, or {@code null} when no tile exists
      */
     public static byte[] getTile(String worldName, String perspective, int zoom, int tileX, int tileZ) {
+        if (!isValidRequest(worldName, zoom, tileX, tileZ) || !isValidPerspective(perspective)) {
+            return null;
+        }
         Path worldDir = WorldMapDynmapTileRoot.resolveWorldTiles(worldName);
         if (worldDir == null) {
             return null;
@@ -39,7 +58,7 @@ public final class WorldMapDynmapTileProvider {
         Path tilePath = worldDir.resolve(perspective)
             .resolve(zoomPrefix)
             .resolve(tileX + "_" + tileZ + ".png");
-        byte[] data = readFile(tilePath);
+        byte[] data = readFile(tilePath, worldDir);
         if (data != null) {
             return data;
         }
@@ -49,13 +68,16 @@ public final class WorldMapDynmapTileProvider {
         Path altTilePath = worldDir.resolve(perspective)
             .resolve(altZoomPrefix)
             .resolve(tileX + "_" + tileZ + ".png");
-        return readFile(altTilePath);
+        return readFile(altTilePath, worldDir);
     }
 
     /**
      * Checks whether a world has any Dynmap tiles available.
      */
     public static boolean hasTiles(String worldName, String perspective) {
+        if (!WorldMapDynmapTileRoot.isValidWorldName(worldName) || !isValidPerspective(perspective)) {
+            return false;
+        }
         Path worldDir = WorldMapDynmapTileRoot.resolveWorldTiles(worldName);
         if (worldDir == null) {
             return false;
@@ -84,13 +106,55 @@ public final class WorldMapDynmapTileProvider {
         return false;
     }
 
-    private static byte[] readFile(Path path) {
+    private static byte[] readFile(Path path, Path worldDir) {
+        if (path == null || worldDir == null) {
+            return null;
+        }
+        Path normalizedWorld = worldDir.toAbsolutePath()
+            .normalize();
+        Path normalizedPath = path.toAbsolutePath()
+            .normalize();
+        if (!normalizedPath.startsWith(normalizedWorld)) {
+            return null;
+        }
+        InputStream input = null;
         try {
-            if (Files.isRegularFile(path)) {
-                return Files.readAllBytes(path);
+            if (!Files.isRegularFile(normalizedPath, LinkOption.NOFOLLOW_LINKS)) {
+                return null;
             }
+            Path realWorld = normalizedWorld.toRealPath();
+            Path realPath = normalizedPath.toRealPath();
+            if (!realPath.startsWith(realWorld) || !Files.isRegularFile(realPath, LinkOption.NOFOLLOW_LINKS)) {
+                return null;
+            }
+            long size = Files.size(realPath);
+            if (size < WorldMapRenderSupport.MIN_VALID_TILE_BYTES
+                || size > WorldMapRenderSupport.MAX_VALID_TILE_BYTES || size > Integer.MAX_VALUE) {
+                return null;
+            }
+            int expected = (int) size;
+            byte[] data = new byte[expected];
+            input = Files.newInputStream(realPath);
+            int offset = 0;
+            while (offset < expected) {
+                int read = input.read(data, offset, expected - offset);
+                if (read < 0) {
+                    return null;
+                }
+                if (read == 0) {
+                    continue;
+                }
+                offset += read;
+            }
+            return WorldMapRenderSupport.isValidTilePng(data) ? data : null;
         } catch (IOException e) {
-            AdvanceDataMonitor.LOG.debug("[WebAE-WorldMap] Failed to read Dynmap tile: {}", path, e);
+            AdvanceDataMonitor.LOG.debug("[WebAE-WorldMap] Failed to read Dynmap tile: {}", normalizedPath, e);
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException ignored) {}
+            }
         }
         return null;
     }

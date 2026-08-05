@@ -1,0 +1,73 @@
+{
+  "enabled": {
+    "description": "收到链接时自动抓取并总结",
+    "type": "bool",
+    "default": true
+  },
+  "request_timeout_seconds": {
+    "description": "单次网页或 B 站接口请求超时（秒）",
+    "type": "int",
+    "default": 12,
+    "hint": "插件内部限制为 2 至 60 秒。"
+  },
+  "max_redirects": {
+    "description": "最多跟随的 HTTP 重定向次数",
+    "type": "int",
+    "default": 3,
+    "hint": "每一跳都会重新检查域名、端口和全部 DNS 地址。"
+  },
+  "max_download_bytes": {
+    "description": "单个响应允许读取的解压后字节上限",
+    "type": "int",
+    "default": 1048576,
+    "hint": "默认 1 MiB；插件内部最大允许 4 MiB。"
+  },
+  "max_page_chars": {
+    "description": "送入摘要模型的网页标题、描述与清洗正文总字符上限",
+    "type": "int",
+    "default": 8000,
+    "hint": "默认 8000；DOM 噪音清理与重复段落去重后再应用此总预算。"
+  },
+  "max_page_summary_chars": {
+    "description": "网页 LLM 提炼结果的最大字符数",
+    "type": "int",
+    "default": 1200,
+    "hint": "默认 1200；仅限制普通网页和知乎摘要，B 站与合并转发仍使用 max_summary_chars。"
+  },
+  "max_comments": {
+    "description": "最多读取的 B 站去重热评数",
+    "type": "int",
+    "default": 12,
+    "hint": "设为 0 时不请求评论接口。"
+  },
+  "llm_timeout_seconds": {
+    "description": "摘要模型调用超时（秒）",
+    "type": "int",
+    "default": 20
+  },
+  "llm_max_tokens": {
+    "description": "摘要模型最大输出 token",
+    "type": "int",
+    "default": 700
+  },
+  "max_summary_chars": {
+    "description": "模型摘要最大字符数",
+    "type": "int",
+    "default": 2500
+  },
+  "max_reply_chars": {
+    "description": "插件整条文字回复最大字符数",
+    "type": "int",
+    "default": 5000
+  },
+  "max_concurrency": {
+    "description": "同时处理链接的最大消息数",
+    "type": "int",
+    "default": 2
+  },
+  "send_bilibili_cover": {
+    "description": "由插件安全下载 B 站封面并以图片字节发送",
+    "type": "bool",
+    "default": true
+  }
+}
