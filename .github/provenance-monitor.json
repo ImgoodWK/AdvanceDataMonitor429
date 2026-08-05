@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "official_repository": "ImgoodWK/TeXTech-GTNH",
+  "allowlist": [
+    "ImgoodWK/TeXTech-GTNH"
+  ],
+  "queries": [
+    {
+      "id": "provenance-id",
+      "label": "Visible TeXTech provenance ID",
+      "query": "\"TT-GTNH-PROVENANCE-2025-04-29-E04BDE7\""
+    },
+    {
+      "id": "english-slogan",
+      "label": "English brand slogan",
+      "query": "\"Weaving reality from the torrent of data, stitching matter with threads of binary.\""
+    },
+    {
+      "id": "chinese-slogan",
+      "label": "Chinese brand slogan",
+      "query": "\"从数据洪流中编织现实，用二进制之线缝合物与质。\""
+    },
+    {
+      "id": "monitor-diff-combination",
+      "label": "Distinct monitor binding and map diff symbols",
+      "query": "\"PacketMonitorBindingDelta\" \"WorldMapSnapshotDiffService\""
+    },
+    {
+      "id": "webae-diagnostics-combination",
+      "label": "Distinct WebAE diagnostics symbols",
+      "query": "\"CpuCapacityHandler\" \"NetworkHealthHandler\" \"MonitorPreviewCollector\""
+    }
+  ],
+  "limitations": [
+    "GitHub public code search indexing can be delayed or incomplete.",
+    "Private repositories and content unavailable to the public index are outside scope.",
+    "Rewritten, translated, renamed, or AI-transformed material may not match literal queries.",
+    "A search hit is only an investigation lead and is not proof of copying or infringement."
+  ]
+}

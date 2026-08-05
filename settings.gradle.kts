@@ -1,24 +1,34 @@
-
 pluginManagement {
+    // pluginManagement is compiled in an earlier Settings phase, so values
+    // used here must be resolved inside this block rather than through
+    // top-level script variables.
+    val useChinaMirrors = providers.gradleProperty("textech.useChinaMirrors")
+        .orNull
+        ?.equals("true", ignoreCase = true) == true
+    val isCi = providers.environmentVariable("CI")
+        .orNull
+        ?.equals("true", ignoreCase = true) == true
+
     repositories {
-        // 国内镜像优先（阿里云 + 腾讯云），加速 Maven Central / Gradle Plugin Portal 等通用依赖
-        maven {
-            name = "Aliyun Public"
-            url = uri("https://maven.aliyun.com/repository/public")
+        // Domestic mirrors are an explicit local opt-in. Official sources
+        // remain available as fallbacks and are the only remote defaults in CI.
+        if (useChinaMirrors) {
+            maven {
+                name = "Aliyun Gradle Plugin"
+                url = uri("https://maven.aliyun.com/repository/gradle-plugin")
+            }
+            maven {
+                name = "Aliyun Public"
+                url = uri("https://maven.aliyun.com/repository/public")
+            }
+            maven {
+                name = "Tencent Maven Public"
+                url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/")
+            }
         }
-        maven {
-            name = "Aliyun Gradle Plugin"
-            url = uri("https://maven.aliyun.com/repository/gradle-plugin")
-        }
-        maven {
-            name = "Aliyun Google"
-            url = uri("https://maven.aliyun.com/repository/google")
-        }
-        maven {
-            name = "Tencent Maven Public"
-            url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/")
-        }
-        // GTNH 专用构件（gtnhgradle 等）仅官方 Nexus 提供，无国内镜像
+
+        gradlePluginPortal()
+        mavenCentral()
         maven {
             name = "GTNH Maven"
             url = uri("https://nexus.gtnewhorizons.com/repository/public/")
@@ -27,7 +37,12 @@ pluginManagement {
                 includeGroupByRegex("com\\.gtnewhorizons\\..+")
             }
         }
-        mavenLocal()
+
+        // Local publications are useful for development, but must never make
+        // a CI or tagged build depend on state outside the repository.
+        if (!isCi) {
+            mavenLocal()
+        }
     }
 }
 

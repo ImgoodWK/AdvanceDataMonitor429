@@ -1,6 +1,6 @@
 # TeXTech Gradle 工作流
 
-> 受众：开发者 · 构建 / 迁移 / 移植 · 最后同步：2026-06
+> 受众：开发者 · 构建 / 迁移 / 移植 · 最后同步：2026-08
 
 本文档合并 GTNH ExampleMod 模板说明、构建系统迁移、模组移植流程与构建 FAQ。
 
@@ -32,21 +32,29 @@ TeXTech 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/Example
 ### 1.1 常用命令
 
 ```powershell
-.\gradlew.bat build              # 编译打包（含主 jar + *-voice.jar）
+.\gradlew.bat spotlessCheck     # 检查 Java / Gradle 格式
+.\gradlew.bat test               # 运行 Java 测试
+.\gradlew.bat build              # 编译、测试并生成全部发行资产
 .\gradlew.bat runClient          # 启动开发客户端
 .\gradlew.bat runServer          # 启动开发服务端
-.\gradlew.bat test               # 运行测试
-.\gradlew.bat clean setupDecompWorkspace   # 重建反编译工作区
 .\gradlew.bat voiceJar           # 仅打可选语音资源包
+.\gradlew.bat webaeZip           # 仅打已提交的 WebAE 静态资源包
+.\gradlew.bat -Ptextech.useChinaMirrors=true build # 国内网络显式启用镜像
 ```
 
 `build/libs/` 产物：
 
 | 产物 | 说明 |
 |------|------|
-| 主 jar（无 `voice` classifier） | 发布用本体；**不含** `assets/textech/voice/vosk/**` |
-| `*-voice.jar` | 可选；modid `textechvoice`，含 Vosk 模型；玩家放入 `mods/` |
-| 开发 `runClient` | 仍从源码树加载 Vosk，无需 voice jar |
+| `textech-<tag>.jar` | 发布用本体；不含 WebAE 页面与 `assets/textech/voice/vosk/**` |
+| `textech-<tag>-voice.jar` | 可选；modid `textechvoice`，含 Vosk 模型；客户端放入 `mods/` |
+| `textech-<tag>-webae.zip` | 可选；解压到服务端实例根目录，使 `TeXTech/WebAE/ui/index.html` 存在 |
+| `textech-<tag>-sources.jar` | 开发者源码参考，不放入玩家 `mods/` |
+
+Tag `v3.0.0-rc.1` 对应的四个文件名分别为
+`textech-v3.0.0-rc.1.jar`、`textech-v3.0.0-rc.1-voice.jar`、
+`textech-v3.0.0-rc.1-webae.zip` 与 `textech-v3.0.0-rc.1-sources.jar`。
+开发环境的 `runClient` 仍从源码树加载 Vosk，无需先安装 voice JAR。
 
 可选 MCEF：官网仍提供 **1.7.10 / 0.6**（https://montoyo.net/wd3/?modid=mcef ）。将 `mcef-1.7.10-0.6.jar` 放入 `libs/`（开发）或游戏 `mods/`（玩法）后，`dependencies.gradle` 以 `devOnlyNonPublishable` 引入，`addon.late.gradle` 添加 ShutdownPatcher。GitHub Releases 仅有 1.12.2 API，不能替代 1.7.10 整包。运行时还要能访问 https://montoyo.net/jcef 下载原生库；官方警告 1.10.2 之前可能不兼容新版启动器。无 MCEF 时监视器主路径为浏览器推帧（`browser-jpeg`），主机 Chrome/Edge 截 embed（`spa-jpeg`）作兜底。
 Unix-like shell 下对应使用 `./gradlew`。
@@ -55,13 +63,14 @@ Unix-like shell 下对应使用 `./gradlew`。
 
 | 文件 | 作用 |
 |------|------|
+| `settings.gradle.kts` | 插件仓库、官方源默认值和国内镜像显式开关 |
 | `build.gradle.kts` | 应用 GTNH convention 插件；**勿随意修改**，升级时替换模板版本 |
 | `gradle.properties` | modId、版本、MC/Forge/MCP 版本、Jabel、Mixin、Access Transformer 等 |
 | `dependencies.gradle` | 模组依赖声明（GT5、AE2FC、Vosk/JNA/PinIn shadow 等） |
 | `repositories.gradle` | 额外 Maven 仓库 |
 | `libs/` | 本地 dev jar（Chisel、Galacticraft、IC2NuclearControl 等） |
 | `jitpack.yml` | Jitpack CI 配置 |
-| `.github/workflows/` | GitHub CI（构建、发布） |
+| `.github/workflows/` | 仓库自有 CI、CodeQL、Tag Release、Wiki 同步与来源监测 |
 
 ### 1.3 ExampleMod 模板特性
 
@@ -69,15 +78,17 @@ Unix-like shell 下对应使用 `./gradlew`。
 - 可选 API artifact、版本替换、依赖 shadow
 - Mixin 与 Access Transformer 支持
 - Scala 支持（`src/main/scala/`）
-- Git Tags 集成版本号
-- Jitpack / GitHub CI 自动发布
+- Git Tag 集成版本号；TeXTech 使用仓库自有 CI 与 Tag Release 工作流
 
-**从零创建新模组**（参考流程）：
+**从零创建新模组**（仅为上游 ExampleMod 参考流程）：
 
 1. 解压 [project starter](https://github.com/GTNewHorizons/ExampleMod1.7.10/releases/download/master-packages/starter.zip)
 2. 处理 LICENSE，初始化 Git
 3. 修改 `gradle.properties`、包名与类名
 4. 运行 `./gradlew build`
+
+TeXTech 不再从本仓库发布 ExampleMod 的 `starter.zip`、`migration.zip`，也不创建
+`latest-packages` 或 `v*-packages` Tag；这些不是玩家发行资产。
 
 ---
 
@@ -162,9 +173,19 @@ Unix-like shell 下对应使用 `./gradlew`。
 
 若仍无法解决，请在 GitHub 开 issue。
 
-### Could not find CodeChickenLib / 依赖解析失败（仅搜索国内镜像）
+### Could not find CodeChickenLib / 插件或依赖解析失败
 
-常见于 `compileClasspath` 解析 `NewHorizonsCoreMod` 等 GTNH 传递依赖时，Gradle 使用了**过期的模块元数据缓存**，或镜像元数据与官方 Nexus 不一致。
+默认构建与 CI 只使用 Gradle Plugin Portal、Maven Central、GTNH Nexus 和项目明确声明的官方仓库；国内镜像不是隐式唯一来源。`mavenLocal()` 仅在非 CI 环境作为最后来源，Tag 构建不会依赖本机发布物。
+
+国内网络需要镜像时必须显式传入：
+
+```powershell
+.\gradlew.bat -Ptextech.useChinaMirrors=true build
+```
+
+该属性默认 `false`，CI 与 Release 工作流也保持默认值。启用后阿里云/腾讯云镜像会加入仓库列表，官方源仍保留作为回退；若镜像本身返回 5xx，去掉该属性即可恢复官方源优先的可复现路径。
+
+依赖解析问题也可能来自**过期的模块元数据缓存**：
 
 **一次性修复**（在项目根目录执行）：
 
@@ -179,7 +200,7 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1
 .\gradlew.bat compileJava
 ```
 
-`repositories.gradle` 已将 `nexus.gtnewhorizons.com` 置于国内镜像之前解析 `com.github.GTNewHorizons` 坐标；部分仅存在于镜像的构件（如 `CodeChickenLib`）仍由腾讯云镜像回退提供。
+不要为修复单个依赖而把镜像设为 CI 唯一来源；如官方 GTNH 坐标确实缺失，应先核对 `dependencies.gradle` 中的版本与 GTNH Nexus。
 
 ### GregTech / ModularUI2 / AE2（GTNH 2.9.0-beta-2）
 

@@ -1,0 +1,48 @@
+name: Public Provenance Monitor
+
+on:
+  schedule:
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-provenance-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Search disclosed public markers
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Test monitor policy and filtering
+        run: python -m unittest tools.provenance.test_monitor
+      - name: Search GitHub public code index
+        id: search
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/provenance/monitor.py --output-dir provenance-report
+      - name: Upload Markdown and JSON evidence leads
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-provenance-report-${{ github.run_id }}
+          path: provenance-report/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Notify maintainer through failed workflow status
+        if: steps.search.outcome == 'failure'
+        run: |
+          echo "The monitor found an unallowed public match or could not complete safely." >&2
+          echo "Review the uploaded report before drawing any conclusion." >&2
+          exit 1

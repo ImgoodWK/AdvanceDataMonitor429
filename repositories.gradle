@@ -1,34 +1,46 @@
-// Add any additional repositories for your dependencies here.
-// GTNH 官方 Nexus 优先解析 com.github.GTNewHorizons 坐标；国内镜像作通用依赖与国内可达的 GTNH 回退源。
+// Additional dependency repositories for TeXTech.
+//
+// Official repositories are the reproducible default. Developers on domestic
+// networks can opt in to Aliyun/Tencent mirrors with:
+//   ./gradlew -Ptextech.useChinaMirrors=true <task>
+
+def useChinaMirrors = providers.gradleProperty('textech.useChinaMirrors')
+    .map { it.equalsIgnoreCase('true') }
+    .orElse(false)
+    .get()
+def isCi = (System.getenv('CI') ?: '').equalsIgnoreCase('true')
 
 repositories {
-    mavenLocal()
-
-    maven {
-        name = "GTNH Maven"
-        url = uri("https://nexus.gtnewhorizons.com/repository/public/")
-        content {
-            includeGroup("com.github.GTNewHorizons")
+    if (useChinaMirrors) {
+        maven {
+            name = 'Aliyun Public'
+            url = uri('https://maven.aliyun.com/repository/public')
+        }
+        maven {
+            name = 'Aliyun Google'
+            url = uri('https://maven.aliyun.com/repository/google')
+        }
+        maven {
+            name = 'Tencent Maven Public'
+            url = uri('https://mirrors.tencent.com/nexus/repository/maven-public/')
         }
     }
 
+    mavenCentral()
     maven {
-        name = "Aliyun Public"
-        url = uri("https://maven.aliyun.com/repository/public")
-    }
-    maven {
-        name = "Aliyun Google"
-        url = uri("https://maven.aliyun.com/repository/google")
-    }
-    maven {
-        name = "Tencent Maven Public"
-        url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/")
+        name = 'GTNH Maven'
+        url = uri('https://nexus.gtnewhorizons.com/repository/public/')
         content {
-            includeGroup("com.github.GTNewHorizons")
+            includeGroupByRegex('com\\.github\\.GTNewHorizons(?:\\..+)?')
+            includeGroupByRegex('com\\.gtnewhorizons(?:\\..+)?')
         }
     }
     maven {
-        name = "JitPack"
-        url = uri("https://jitpack.io")
+        name = 'JitPack'
+        url = uri('https://jitpack.io')
+    }
+
+    if (!isCi) {
+        mavenLocal()
     }
 }

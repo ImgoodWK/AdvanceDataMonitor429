@@ -1,6 +1,6 @@
 # TeXTech Gradle Workflow
 
-> Audience: Developers · Build / migration / porting · Last synced: 2026-07
+> Audience: Developers · Build / migration / porting · Last synced: 2026-08
 
 This document merges GTNH ExampleMod template notes, build-system migration, mod porting workflow, and build FAQ.
 
@@ -32,26 +32,41 @@ TeXTech is based on the [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizon
 ### 1.1 Common Commands
 
 ```powershell
-.\gradlew.bat build              # Compile and package
+.\gradlew.bat spotlessCheck     # Check Java / Gradle formatting
+.\gradlew.bat test               # Run Java tests
+.\gradlew.bat build              # Compile, test, and create all release artifacts
 .\gradlew.bat runClient          # Launch dev client
 .\gradlew.bat runServer          # Launch dev server
-.\gradlew.bat test               # Run tests
-.\gradlew.bat clean setupDecompWorkspace   # Rebuild decompiled workspace
+.\gradlew.bat voiceJar           # Build only the optional voice companion
+.\gradlew.bat webaeZip           # Package the committed WebAE static bundle
+.\gradlew.bat -Ptextech.useChinaMirrors=true build # Explicit mirror opt-in
 ```
 
 On Unix-like shells use `./gradlew`.
+
+`build/libs/` contains four release-facing artifacts when built from a canonical Tag:
+
+| Artifact | Purpose |
+|----------|---------|
+| `textech-<tag>.jar` | Required core mod; excludes WebAE pages and the large Vosk model |
+| `textech-<tag>-voice.jar` | Optional client-side offline voice model (`textechvoice`) |
+| `textech-<tag>-webae.zip` | Optional server UI; extract at the instance root |
+| `textech-<tag>-sources.jar` | Developer source reference; never install in player `mods/` |
+
+For `v3.0.0-rc.1`, `<tag>` is literally `v3.0.0-rc.1`.
 
 ### 1.2 Key Files
 
 | File | Purpose |
 |------|---------|
+| `settings.gradle.kts` | Plugin repositories, official-source defaults, and the explicit mirror switch |
 | `build.gradle.kts` | Applies GTNH convention plugin; **avoid arbitrary edits** — replace template version on upgrade |
 | `gradle.properties` | modId, version, MC/Forge/MCP versions, Jabel, Mixin, Access Transformer, etc. |
 | `dependencies.gradle` | Mod dependencies (GT5, AE2FC, Vosk/JNA/PinIn shadow, etc.) |
 | `repositories.gradle` | Extra Maven repositories |
 | `libs/` | Local dev jars (Chisel, Galacticraft, IC2NuclearControl, etc.) |
 | `jitpack.yml` | Jitpack CI config |
-| `.github/workflows/` | GitHub CI (build, release) |
+| `.github/workflows/` | Repository-owned CI, CodeQL, Tag Release, Wiki sync, and provenance monitor |
 
 ### 1.3 ExampleMod Template Features
 
@@ -59,15 +74,16 @@ On Unix-like shells use `./gradlew`.
 - Optional API artifact, version replacement, dependency shadowing
 - Mixin and Access Transformer support
 - Scala support (`src/main/scala/`)
-- Git Tags for version numbers
-- Jitpack / GitHub CI auto-release
+- Git Tags for version numbers; TeXTech uses repository-owned CI and Tag Release workflows
 
-**Creating a new mod from scratch** (reference flow):
+**Creating a new mod from scratch** (upstream ExampleMod reference only):
 
 1. Extract [project starter](https://github.com/GTNewHorizons/ExampleMod1.7.10/releases/download/master-packages/starter.zip)
 2. Handle LICENSE, initialize Git
 3. Edit `gradle.properties`, package names, and class names
 4. Run `./gradlew build`
+
+TeXTech does not publish ExampleMod `starter.zip` or `migration.zip` packages from this repository and does not create `latest-packages` or `v*-packages` Tags. Those archives are not player release assets.
 
 ---
 
@@ -152,9 +168,19 @@ An MCP deobfuscator config dialog may appear:
 
 If still unresolved, open a GitHub issue.
 
-### Could not find CodeChickenLib / dependency resolution (mirror-only search)
+### Could not find CodeChickenLib / plugin or dependency resolution
 
-Often appears when resolving GTNH transitive deps (e.g. via `NewHorizonsCoreMod`) if Gradle uses **stale module metadata** or mirror metadata disagrees with the official Nexus.
+Normal local builds and CI use Gradle Plugin Portal, Maven Central, GTNH Nexus, and the project's explicitly declared official repositories. Domestic mirrors are never the implicit sole source. `mavenLocal()` is available only outside CI and is ordered last, so tagged builds cannot depend on local publications.
+
+Developers who need domestic mirrors must opt in explicitly:
+
+```powershell
+.\gradlew.bat -Ptextech.useChinaMirrors=true build
+```
+
+The property defaults to `false`, including in CI and Release workflows. Opting in adds Aliyun and Tencent repositories while retaining the official sources as fallbacks. If a mirror returns a 5xx response, remove the property to return to the reproducible official-source path.
+
+Resolution failures can also be caused by **stale module metadata**:
 
 **One-time fix** (from project root):
 
@@ -169,7 +195,7 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1
 .\gradlew.bat compileJava
 ```
 
-`repositories.gradle` resolves `com.github.GTNewHorizons` from `nexus.gtnewhorizons.com` before domestic mirrors; artifacts only on mirrors (e.g. `CodeChickenLib`) still fall back to the Tencent mirror.
+Do not make a mirror the only CI source to work around one dependency. If an official GTNH coordinate is genuinely unavailable, first verify the pinned version in `dependencies.gradle` against GTNH Nexus.
 
 ### GregTech / ModularUI2 / AE2 (GTNH 2.9.0-beta-2)
 
