@@ -73,9 +73,7 @@ public class PacketGrapplePathSync implements IMessage {
      * used only when that complete legacy snapshot exceeds the body budget.
      */
     public static List<PacketGrapplePathSync> routePackets(List<GrappleRouteEntry> routeList) {
-        List<GrappleRouteEntry> source = routeList == null
-            ? Collections.<GrappleRouteEntry>emptyList()
-            : routeList;
+        List<GrappleRouteEntry> source = routeList == null ? Collections.<GrappleRouteEntry>emptyList() : routeList;
         if (source.size() > MAX_TOTAL_ROUTES) {
             return Collections.emptyList();
         }
@@ -183,8 +181,12 @@ public class PacketGrapplePathSync implements IMessage {
             throw new IllegalArgumentException("Grapple route sync exceeds packet limit");
         }
         if (kind == KIND_ROUTES_BATCH) {
-            if (batchCount < 1 || batchCount > MAX_ROUTE_BATCHES || batchIndex < 0 || batchIndex >= batchCount
-                || routes.isEmpty() || !buffer.isEmpty() || (messageKey != null && !messageKey.isEmpty())) {
+            if (batchCount < 1 || batchCount > MAX_ROUTE_BATCHES
+                || batchIndex < 0
+                || batchIndex >= batchCount
+                || routes.isEmpty()
+                || !buffer.isEmpty()
+                || (messageKey != null && !messageKey.isEmpty())) {
                 throw new IllegalArgumentException("Invalid grapple route batch metadata");
             }
         } else {
@@ -259,9 +261,9 @@ public class PacketGrapplePathSync implements IMessage {
                 }
             }
             int routeCount = buf.readUnsignedShort();
-            if (routeCount > MAX_TOTAL_ROUTES
-                || (kind == KIND_ROUTES_BATCH && routeCount == 0)
-                || (kind == KIND_BUFFER && routeCount != 0) || routeCount > buf.readableBytes() / 18) {
+            if (routeCount > MAX_TOTAL_ROUTES || (kind == KIND_ROUTES_BATCH && routeCount == 0)
+                || (kind == KIND_BUFFER && routeCount != 0)
+                || routeCount > buf.readableBytes() / 18) {
                 throw new IllegalArgumentException("Invalid grapple route count");
             }
             for (int i = 0; i < routeCount; i++) {
@@ -307,7 +309,8 @@ public class PacketGrapplePathSync implements IMessage {
 
     private static void writeString(ByteBuf buf, String value) {
         byte[] bytes = value == null ? new byte[0] : value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        if (value != null && !NetworkPacketCodec.decodeUtf8(bytes).equals(value)) {
+        if (value != null && !NetworkPacketCodec.decodeUtf8(bytes)
+            .equals(value)) {
             throw new IllegalArgumentException("Grapple route text is not valid UTF-8");
         }
         if (bytes.length > MAX_ROUTE_TEXT_BYTES || bytes.length > Short.MAX_VALUE) {

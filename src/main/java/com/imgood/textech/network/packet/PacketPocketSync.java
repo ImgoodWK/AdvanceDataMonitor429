@@ -146,8 +146,7 @@ public class PacketPocketSync implements IMessage {
     }
 
     /** Same as {@link #fullStatePackets(PocketState)} with an authoritative cursor update. */
-    public static List<PacketPocketSync> fullStatePackets(PocketState state, boolean hasCursor,
-        ItemStack cursorStack) {
+    public static List<PacketPocketSync> fullStatePackets(PocketState state, boolean hasCursor, ItemStack cursorStack) {
         if (state == null) {
             return Collections.emptyList();
         }
@@ -244,8 +243,7 @@ public class PacketPocketSync implements IMessage {
         if (kind != KIND_FULL && kind != KIND_SINGLE_PAGE && kind != KIND_METADATA) {
             throw new IllegalArgumentException("Invalid pocket sync kind");
         }
-        if (pageCount < 1 || pageCount > MAX_PAGE_COUNT || slotsPerPage < 1
-            || slotsPerPage > MAX_SLOTS_PER_PAGE) {
+        if (pageCount < 1 || pageCount > MAX_PAGE_COUNT || slotsPerPage < 1 || slotsPerPage > MAX_SLOTS_PER_PAGE) {
             throw new IllegalArgumentException("Invalid pocket sync dimensions");
         }
         if (pages.size() > MAX_PAGE_COUNT) {
@@ -256,8 +254,10 @@ public class PacketPocketSync implements IMessage {
                 throw new IllegalArgumentException("Full pocket sync does not contain every page");
             }
         } else if (kind == KIND_SINGLE_PAGE) {
-            if (pageIndex < 0 || pageIndex >= pageCount || pages.size() != 1
-                || pages.get(0) == null || pages.get(0).pageIndex != pageIndex) {
+            if (pageIndex < 0 || pageIndex >= pageCount
+                || pages.size() != 1
+                || pages.get(0) == null
+                || pages.get(0).pageIndex != pageIndex) {
                 throw new IllegalArgumentException("Invalid single pocket page");
             }
         } else if (!pages.isEmpty() || (pageIndex != 0 && pageIndex != FULL_SNAPSHOT_PAGE_INDEX)) {
@@ -266,8 +266,11 @@ public class PacketPocketSync implements IMessage {
 
         boolean[] seen = new boolean[pageCount];
         for (PagePayload payload : pages) {
-            if (payload == null || payload.pageIndex < 0 || payload.pageIndex >= pageCount
-                || seen[payload.pageIndex] || payload.slots == null || payload.slots.length != slotsPerPage) {
+            if (payload == null || payload.pageIndex < 0
+                || payload.pageIndex >= pageCount
+                || seen[payload.pageIndex]
+                || payload.slots == null
+                || payload.slots.length != slotsPerPage) {
                 throw new IllegalArgumentException("Invalid pocket page payload");
             }
             seen[payload.pageIndex] = true;
@@ -312,16 +315,15 @@ public class PacketPocketSync implements IMessage {
             pageCount = buf.readInt();
             slotsPerPage = buf.readInt();
             pageIndex = buf.readInt();
-            if (pageCount < 1 || pageCount > MAX_PAGE_COUNT || slotsPerPage < 1
-                || slotsPerPage > MAX_SLOTS_PER_PAGE) {
+            if (pageCount < 1 || pageCount > MAX_PAGE_COUNT || slotsPerPage < 1 || slotsPerPage > MAX_SLOTS_PER_PAGE) {
                 throw new IllegalArgumentException("Invalid pocket sync dimensions");
             }
             pages.clear();
             int pagePayloadCount = buf.readUnsignedShort();
-            if ((kind == KIND_METADATA && pagePayloadCount != 0)
-                || (kind == KIND_SINGLE_PAGE && pagePayloadCount != 1)
+            if ((kind == KIND_METADATA && pagePayloadCount != 0) || (kind == KIND_SINGLE_PAGE && pagePayloadCount != 1)
                 || (kind == KIND_FULL && pagePayloadCount != pageCount)
-                || pagePayloadCount > MAX_PAGE_COUNT || pagePayloadCount > buf.readableBytes() / 6) {
+                || pagePayloadCount > MAX_PAGE_COUNT
+                || pagePayloadCount > buf.readableBytes() / 6) {
                 throw new IllegalArgumentException("Invalid pocket page payload count");
             }
             boolean[] seenPages = new boolean[pageCount];
@@ -331,10 +333,7 @@ public class PacketPocketSync implements IMessage {
                     throw new IllegalArgumentException("Invalid pocket page index");
                 }
                 seenPages[pIndex] = true;
-                NBTTagCompound pageTag = NetworkPacketCodec.readTag(
-                    buf,
-                    MAX_NBT_COMPRESSED_BYTES,
-                    MAX_NBT_BYTES);
+                NBTTagCompound pageTag = NetworkPacketCodec.readTag(buf, MAX_NBT_COMPRESSED_BYTES, MAX_NBT_BYTES);
                 PagePayload payload = new PagePayload();
                 payload.pageIndex = pIndex;
                 payload.slots = new ItemStack[slotsPerPage];
@@ -371,10 +370,7 @@ public class PacketPocketSync implements IMessage {
             }
             hasCursor = buf.readBoolean();
             if (hasCursor) {
-                NBTTagCompound cursorTag = NetworkPacketCodec.readTag(
-                    buf,
-                    MAX_NBT_COMPRESSED_BYTES,
-                    MAX_NBT_BYTES);
+                NBTTagCompound cursorTag = NetworkPacketCodec.readTag(buf, MAX_NBT_COMPRESSED_BYTES, MAX_NBT_BYTES);
                 cursorStack = PocketState.readItemStackFromNBT(cursorTag);
             } else {
                 cursorStack = null;

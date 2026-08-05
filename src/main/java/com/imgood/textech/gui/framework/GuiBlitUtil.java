@@ -95,12 +95,7 @@ public final class GuiBlitUtil {
             return;
         }
         int[][] positions = sparseChromePositions(frame, x, y, width, height, scale);
-        AtlasRegion[] pieces = {
-            frame.topLeft(),
-            frame.topRight(),
-            frame.bottomLeft(),
-            frame.bottomRight()
-        };
+        AtlasRegion[] pieces = { frame.topLeft(), frame.topRight(), frame.bottomLeft(), frame.bottomRight() };
 
         pushAlphaBlend();
         try {
@@ -114,8 +109,8 @@ public final class GuiBlitUtil {
     }
 
     /** Draw one complete fixed-aspect button shell. No runtime slicing or tiling is performed. */
-    public static void drawFixedAspectButton(FixedAspectButtonFamily family, FixedAspectButtonFamily.State state,
-        int x, int y, int requestedWidth, int requestedHeight) {
+    public static void drawFixedAspectButton(FixedAspectButtonFamily family, FixedAspectButtonFamily.State state, int x,
+        int y, int requestedWidth, int requestedHeight) {
         if (family == null || state == null || requestedWidth <= 0 || requestedHeight <= 0) {
             return;
         }
@@ -134,8 +129,8 @@ public final class GuiBlitUtil {
     }
 
     /** Draw two side strokes and one centre-cropped bottom stroke, all at one uniform scale. */
-    public static void drawUnderlineField(UnderlineFieldRegion field, UnderlineFieldRegion.State state,
-        int x, int y, int width, int height) {
+    public static void drawUnderlineField(UnderlineFieldRegion field, UnderlineFieldRegion.State state, int x, int y,
+        int width, int height) {
         if (field == null || state == null || width <= 0 || height <= 0) {
             return;
         }
@@ -144,32 +139,61 @@ public final class GuiBlitUtil {
         if (scale <= 0.0F) {
             return;
         }
-        int leftWidth = scaled(style.left().width(), scale);
-        int rightWidth = scaled(style.right().width(), scale);
-        int maximumBottomWidth = scaled(style.bottom().width(), scale);
+        int leftWidth = scaled(
+            style.left()
+                .width(),
+            scale);
+        int rightWidth = scaled(
+            style.right()
+                .width(),
+            scale);
+        int maximumBottomWidth = scaled(
+            style.bottom()
+                .width(),
+            scale);
         int drawWidth = Math.min(width, leftWidth + maximumBottomWidth + rightWidth);
         int drawX = x + (width - drawWidth) / 2;
         int availableBottomWidth = Math.max(1, drawWidth - leftWidth - rightWidth);
-        int sideY = y + height - scaled(style.left().height(), scale);
-        int bottomY = y + height - scaled(style.bottom().height(), scale);
-        double requestedSourceWidth = Math.min(style.bottom().width(), availableBottomWidth / (double) scale);
-        double sourceOffset = (style.bottom().width() - requestedSourceWidth) / 2.0D;
+        int sideY = y + height
+            - scaled(
+                style.left()
+                    .height(),
+                scale);
+        int bottomY = y + height
+            - scaled(
+                style.bottom()
+                    .height(),
+                scale);
+        double requestedSourceWidth = Math.min(
+            style.bottom()
+                .width(),
+            availableBottomWidth / (double) scale);
+        double sourceOffset = (style.bottom()
+            .width() - requestedSourceWidth) / 2.0D;
 
         pushAlphaBlend();
         try {
             blitScaled(style.left(), drawX, sideY, scale);
             blitScaled(style.right(), drawX + drawWidth - rightWidth, sideY, scale);
             blitUv(
-                style.bottom().texture(),
-                style.bottom().atlasSize(),
+                style.bottom()
+                    .texture(),
+                style.bottom()
+                    .atlasSize(),
                 drawX + leftWidth,
                 bottomY,
                 availableBottomWidth,
-                scaled(style.bottom().height(), scale),
-                style.bottom().u() + sourceOffset,
-                style.bottom().v(),
+                scaled(
+                    style.bottom()
+                        .height(),
+                    scale),
+                style.bottom()
+                    .u() + sourceOffset,
+                style.bottom()
+                    .v(),
                 requestedSourceWidth,
-                style.bottom().height());
+                style.bottom()
+                    .height());
         } finally {
             GL11.glPopAttrib();
         }
@@ -202,16 +226,24 @@ public final class GuiBlitUtil {
     }
 
     static int[][] sparseChromePositions(SparseFrameRegion frame, int x, int y, int width, int height, float scale) {
-        int trW = scaled(frame.topRight().width(), scale);
-        int blH = scaled(frame.bottomLeft().height(), scale);
-        int brW = scaled(frame.bottomRight().width(), scale);
-        int brH = scaled(frame.bottomRight().height(), scale);
-        return new int[][] {
-            { x, y },
-            { x + width - trW, y },
-            { x, y + height - blH },
-            { x + width - brW, y + height - brH }
-        };
+        int trW = scaled(
+            frame.topRight()
+                .width(),
+            scale);
+        int blH = scaled(
+            frame.bottomLeft()
+                .height(),
+            scale);
+        int brW = scaled(
+            frame.bottomRight()
+                .width(),
+            scale);
+        int brH = scaled(
+            frame.bottomRight()
+                .height(),
+            scale);
+        return new int[][] { { x, y }, { x + width - trW, y }, { x, y + height - blH },
+            { x + width - brW, y + height - brH } };
     }
 
     /** Tile at native pixel size; the final tile is UV-clipped, never scaled. */
@@ -254,12 +286,26 @@ public final class GuiBlitUtil {
             drawTiledUnchecked(frame.leftEdge(), x, y + top, left, middleHeight);
             drawTiledUnchecked(frame.rightEdge(), x + width - right, y + top, right, middleHeight);
             blitExact(frame.topLeft(), x, y);
-            blitExact(frame.topRight(), x + width - frame.topRight().width(), y);
-            blitExact(frame.bottomLeft(), x, y + height - frame.bottomLeft().height());
+            blitExact(
+                frame.topRight(),
+                x + width
+                    - frame.topRight()
+                        .width(),
+                y);
+            blitExact(
+                frame.bottomLeft(),
+                x,
+                y + height
+                    - frame.bottomLeft()
+                        .height());
             blitExact(
                 frame.bottomRight(),
-                x + width - frame.bottomRight().width(),
-                y + height - frame.bottomRight().height());
+                x + width
+                    - frame.bottomRight()
+                        .width(),
+                y + height
+                    - frame.bottomRight()
+                        .height());
         } finally {
             GL11.glPopAttrib();
         }
@@ -317,63 +363,63 @@ public final class GuiBlitUtil {
         pushAlphaBlend();
         try {
 
-        int atlas = region.atlasSize();
-        ResourceLocation tex = region.texture();
-        int ru = region.u();
-        int rv = region.v();
-        int b = border;
-        int srcBorder = region.borderPx();
-        int srcMidW = region.srcMidW();
-        int srcMidH = region.srcMidH();
-        int midW = width - b * 2;
-        int midH = height - b * 2;
+            int atlas = region.atlasSize();
+            ResourceLocation tex = region.texture();
+            int ru = region.u();
+            int rv = region.v();
+            int b = border;
+            int srcBorder = region.borderPx();
+            int srcMidW = region.srcMidW();
+            int srcMidH = region.srcMidH();
+            int midW = width - b * 2;
+            int midH = height - b * 2;
 
-        blit(tex, atlas, x, y, b, b, ru, rv, srcBorder, srcBorder);
-        blit(tex, atlas, x + width - b, y, b, b, ru + region.regionW() - srcBorder, rv, srcBorder, srcBorder);
-        blit(tex, atlas, x, y + height - b, b, b, ru, rv + region.regionH() - srcBorder, srcBorder, srcBorder);
-        blit(
-            tex,
-            atlas,
-            x + width - b,
-            y + height - b,
-            b,
-            b,
-            ru + region.regionW() - srcBorder,
-            rv + region.regionH() - srcBorder,
-            srcBorder,
-            srcBorder);
-
-        if (midW > 0) {
-            blit(tex, atlas, x + b, y, midW, b, ru + srcBorder, rv, srcMidW, srcBorder);
-            blit(
-                tex,
-                atlas,
-                x + b,
-                y + height - b,
-                midW,
-                b,
-                ru + srcBorder,
-                rv + region.regionH() - srcBorder,
-                srcMidW,
-                srcBorder);
-        }
-        if (midH > 0) {
-            blit(tex, atlas, x, y + b, b, midH, ru, rv + srcBorder, srcBorder, srcMidH);
+            blit(tex, atlas, x, y, b, b, ru, rv, srcBorder, srcBorder);
+            blit(tex, atlas, x + width - b, y, b, b, ru + region.regionW() - srcBorder, rv, srcBorder, srcBorder);
+            blit(tex, atlas, x, y + height - b, b, b, ru, rv + region.regionH() - srcBorder, srcBorder, srcBorder);
             blit(
                 tex,
                 atlas,
                 x + width - b,
-                y + b,
+                y + height - b,
                 b,
-                midH,
+                b,
                 ru + region.regionW() - srcBorder,
-                rv + srcBorder,
+                rv + region.regionH() - srcBorder,
                 srcBorder,
-                srcMidH);
-        }
-        if (midW > 0 && midH > 0) {
-            blit(tex, atlas, x + b, y + b, midW, midH, ru + srcBorder, rv + srcBorder, srcMidW, srcMidH);
-        }
+                srcBorder);
+
+            if (midW > 0) {
+                blit(tex, atlas, x + b, y, midW, b, ru + srcBorder, rv, srcMidW, srcBorder);
+                blit(
+                    tex,
+                    atlas,
+                    x + b,
+                    y + height - b,
+                    midW,
+                    b,
+                    ru + srcBorder,
+                    rv + region.regionH() - srcBorder,
+                    srcMidW,
+                    srcBorder);
+            }
+            if (midH > 0) {
+                blit(tex, atlas, x, y + b, b, midH, ru, rv + srcBorder, srcBorder, srcMidH);
+                blit(
+                    tex,
+                    atlas,
+                    x + width - b,
+                    y + b,
+                    b,
+                    midH,
+                    ru + region.regionW() - srcBorder,
+                    rv + srcBorder,
+                    srcBorder,
+                    srcMidH);
+            }
+            if (midW > 0 && midH > 0) {
+                blit(tex, atlas, x + b, y + b, midW, midH, ru + srcBorder, rv + srcBorder, srcMidW, srcMidH);
+            }
 
         } finally {
             GL11.glPopAttrib();
@@ -399,19 +445,29 @@ public final class GuiBlitUtil {
         pushAlphaBlend();
         try {
 
-        int atlas = region.atlasSize();
-        ResourceLocation tex = region.texture();
-        int ru = region.u();
-        int rv = region.v();
-        int srcCap = region.borderPx();
-        int srcMidW = region.srcMidW();
-        int midW = width - cap * 2;
+            int atlas = region.atlasSize();
+            ResourceLocation tex = region.texture();
+            int ru = region.u();
+            int rv = region.v();
+            int srcCap = region.borderPx();
+            int srcMidW = region.srcMidW();
+            int midW = width - cap * 2;
 
-        blit(tex, atlas, x, y, cap, height, ru, rv, srcCap, region.regionH());
-        if (midW > 0) {
-            blit(tex, atlas, x + cap, y, midW, height, ru + srcCap, rv, srcMidW, region.regionH());
-        }
-        blit(tex, atlas, x + width - cap, y, cap, height, ru + region.regionW() - srcCap, rv, srcCap, region.regionH());
+            blit(tex, atlas, x, y, cap, height, ru, rv, srcCap, region.regionH());
+            if (midW > 0) {
+                blit(tex, atlas, x + cap, y, midW, height, ru + srcCap, rv, srcMidW, region.regionH());
+            }
+            blit(
+                tex,
+                atlas,
+                x + width - cap,
+                y,
+                cap,
+                height,
+                ru + region.regionW() - srcCap,
+                rv,
+                srcCap,
+                region.regionH());
 
         } finally {
             GL11.glPopAttrib();
@@ -551,18 +607,39 @@ public final class GuiBlitUtil {
     private static void drawCoverCroppedUnchecked(AtlasRegion region, int x, int y, int width, int height) {
         double[] crop = coverCrop(region.width(), region.height(), width, height);
         if (crop == null) return;
-        blitUv(region.texture(), region.atlasSize(), x, y, width, height, region.u() + crop[0],
-            region.v() + crop[1], crop[2], crop[3]);
+        blitUv(
+            region.texture(),
+            region.atlasSize(),
+            x,
+            y,
+            width,
+            height,
+            region.u() + crop[0],
+            region.v() + crop[1],
+            crop[2],
+            crop[3]);
     }
 
     private static void blitScaled(AtlasRegion region, int x, int y, float scale) {
-        blit(region.texture(), region.atlasSize(), x, y, scaled(region.width(), scale),
-            scaled(region.height(), scale), region.u(), region.v(), region.width(), region.height());
+        blit(
+            region.texture(),
+            region.atlasSize(),
+            x,
+            y,
+            scaled(region.width(), scale),
+            scaled(region.height(), scale),
+            region.u(),
+            region.v(),
+            region.width(),
+            region.height());
     }
 
-    private static void blitUv(ResourceLocation texture, int atlasSize, int x, int y, int width, int height,
-        double u, double v, double sourceWidth, double sourceHeight) {
-        if (texture == null || atlasSize <= 0 || width <= 0 || height <= 0 || sourceWidth <= 0.0D
+    private static void blitUv(ResourceLocation texture, int atlasSize, int x, int y, int width, int height, double u,
+        double v, double sourceWidth, double sourceHeight) {
+        if (texture == null || atlasSize <= 0
+            || width <= 0
+            || height <= 0
+            || sourceWidth <= 0.0D
             || sourceHeight <= 0.0D) {
             return;
         }

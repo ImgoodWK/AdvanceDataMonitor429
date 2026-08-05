@@ -30,10 +30,8 @@ public class AssistantOperationsBriefingTest {
 
     @Test
     public void nearlyFullBytesRequireAttentionAndStorageRecommendation() {
-        AssistantOperationsBriefing.Section bytes = AssistantOperationsBriefing.section(
-            "bytes",
-            "AE2 bytes",
-            "Usage: 92.1% (nearly full)");
+        AssistantOperationsBriefing.Section bytes = AssistantOperationsBriefing
+            .section("bytes", "AE2 bytes", "Usage: 92.1% (nearly full)");
 
         Assert.assertEquals(AssistantOperationsBriefing.Status.ATTENTION, bytes.status);
         String report = AssistantOperationsBriefing.format("en_US", Arrays.asList(bytes));
@@ -44,18 +42,12 @@ public class AssistantOperationsBriefingTest {
 
     @Test
     public void unavailableByteSectionDoesNotSuppressOtherSections() {
-        AssistantOperationsBriefing.Section bytes = AssistantOperationsBriefing.unavailable(
-            "bytes",
-            "AE2 bytes",
-            "Byte query failed: no nearby Advance Network Link.");
-        AssistantOperationsBriefing.Section jobs = AssistantOperationsBriefing.section(
-            "jobs",
-            "Crafting jobs",
-            "No server-side AE2 crafting calculation is pending.");
-        AssistantOperationsBriefing.Section planner = AssistantOperationsBriefing.section(
-            "planner",
-            "Planner",
-            "No entries in the planner.");
+        AssistantOperationsBriefing.Section bytes = AssistantOperationsBriefing
+            .unavailable("bytes", "AE2 bytes", "Byte query failed: no nearby Advance Network Link.");
+        AssistantOperationsBriefing.Section jobs = AssistantOperationsBriefing
+            .section("jobs", "Crafting jobs", "No server-side AE2 crafting calculation is pending.");
+        AssistantOperationsBriefing.Section planner = AssistantOperationsBriefing
+            .section("planner", "Planner", "No entries in the planner.");
 
         Assert.assertEquals(AssistantOperationsBriefing.Status.UNAVAILABLE, bytes.status);
         String report = AssistantOperationsBriefing.format("en_US", Arrays.asList(bytes, jobs, planner));
@@ -127,14 +119,10 @@ public class AssistantOperationsBriefingTest {
 
     @Test
     public void jobsPendingMarkerIsAttentionButExplicitNoPendingSentenceIsHealthy() {
-        AssistantOperationsBriefing.Section none = AssistantOperationsBriefing.section(
-            "jobs",
-            "Crafting jobs",
-            "No server-side AE2 crafting calculation is pending.");
-        AssistantOperationsBriefing.Section pending = AssistantOperationsBriefing.section(
-            "jobs",
-            "Crafting jobs",
-            "Pending AE2 crafting calculations: 2");
+        AssistantOperationsBriefing.Section none = AssistantOperationsBriefing
+            .section("jobs", "Crafting jobs", "No server-side AE2 crafting calculation is pending.");
+        AssistantOperationsBriefing.Section pending = AssistantOperationsBriefing
+            .section("jobs", "Crafting jobs", "Pending AE2 crafting calculations: 2");
 
         Assert.assertEquals(AssistantOperationsBriefing.Status.HEALTHY, none.status);
         Assert.assertEquals(AssistantOperationsBriefing.Status.ATTENTION, pending.status);
@@ -142,18 +130,12 @@ public class AssistantOperationsBriefingTest {
 
     @Test
     public void plannerEmptyTodoAndMissingPlannerHaveDistinctStatuses() {
-        AssistantOperationsBriefing.Section empty = AssistantOperationsBriefing.section(
-            "planner",
-            "Advanced Planner",
-            "No entries in the planner.");
-        AssistantOperationsBriefing.Section todo = AssistantOperationsBriefing.section(
-            "planner",
-            "Advanced Planner",
-            "[Todo] Review storage priorities");
-        AssistantOperationsBriefing.Section missing = AssistantOperationsBriefing.section(
-            "planner",
-            "Advanced Planner",
-            "You don't have an Advanced Planner.");
+        AssistantOperationsBriefing.Section empty = AssistantOperationsBriefing
+            .section("planner", "Advanced Planner", "No entries in the planner.");
+        AssistantOperationsBriefing.Section todo = AssistantOperationsBriefing
+            .section("planner", "Advanced Planner", "[Todo] Review storage priorities");
+        AssistantOperationsBriefing.Section missing = AssistantOperationsBriefing
+            .section("planner", "Advanced Planner", "You don't have an Advanced Planner.");
 
         Assert.assertEquals(AssistantOperationsBriefing.Status.HEALTHY, empty.status);
         Assert.assertEquals(AssistantOperationsBriefing.Status.ATTENTION, todo.status);
@@ -208,26 +190,29 @@ public class AssistantOperationsBriefingTest {
         List<AssistantOperationsBriefing.Section> sections = healthySections();
 
         Assert.assertTrue(
-            AssistantOperationsBriefing.format(null, sections).contains("基地运维简报（只读）"));
+            AssistantOperationsBriefing.format(null, sections)
+                .contains("基地运维简报（只读）"));
         Assert.assertTrue(
-            AssistantOperationsBriefing.format("", sections).contains("基地运维简报（只读）"));
+            AssistantOperationsBriefing.format("", sections)
+                .contains("基地运维简报（只读）"));
     }
 
     @Test
     public void jsonParserAcceptsQueryBriefingTaskType() {
-        AssistantIntentPlan plan = new AssistantAiIntentJsonParser().parse(
-            "{\"tasks\":[{\"type\":\"QUERY_BRIEFING\",\"confidence\":0.9}]}" );
+        AssistantIntentPlan plan = new AssistantAiIntentJsonParser()
+            .parse("{\"tasks\":[{\"type\":\"QUERY_BRIEFING\",\"confidence\":0.9}]}");
 
         Assert.assertFalse(plan.isEmpty());
         Assert.assertEquals(1, plan.size());
-        Assert.assertEquals(AssistantIntentType.QUERY_BRIEFING, plan.getTasks().get(0).type);
+        Assert.assertEquals(
+            AssistantIntentType.QUERY_BRIEFING,
+            plan.getTasks()
+                .get(0).type);
     }
 
     @Test
     public void queryBriefingIsAppendedAfterEveryLegacyIntent() {
-        Assert.assertEquals(
-            AssistantIntentType.HUD_CLOSE.ordinal() + 1,
-            AssistantIntentType.QUERY_BRIEFING.ordinal());
+        Assert.assertEquals(AssistantIntentType.HUD_CLOSE.ordinal() + 1, AssistantIntentType.QUERY_BRIEFING.ordinal());
         AssistantIntentType[] values = AssistantIntentType.values();
         Assert.assertEquals(AssistantIntentType.QUERY_BRIEFING, values[values.length - 1]);
     }
@@ -257,10 +242,8 @@ public class AssistantOperationsBriefingTest {
     private static List<AssistantOperationsBriefing.Section> healthySections() {
         return Arrays.asList(
             AssistantOperationsBriefing.section("bytes", "AE2 bytes", "Usage: 25.0% (available)"),
-            AssistantOperationsBriefing.section(
-                "jobs",
-                "Crafting jobs",
-                "No server-side AE2 crafting calculation is pending."),
+            AssistantOperationsBriefing
+                .section("jobs", "Crafting jobs", "No server-side AE2 crafting calculation is pending."),
             AssistantOperationsBriefing.section("planner", "Planner", "No entries in the planner."));
     }
 }

@@ -57,8 +57,8 @@ public final class IconLocalStore {
 
     public static boolean writePng(File instanceRoot, String packName, String itemId, byte[] png) {
         String pack = packName != null ? packName : "default";
-        if (!IconStore.isValidPng(png) || !IconStore.isValidItemId(itemId)
-            || !IconStore.isValidPackName(pack)) return false;
+        if (!IconStore.isValidPng(png) || !IconStore.isValidItemId(itemId) || !IconStore.isValidPackName(pack))
+            return false;
         File out = new File(packModeDir(instanceRoot, packName), IconStore.sanitizeItemId(itemId) + ".png");
         try {
             if (!writeAtomically(out, png)) return false;
@@ -133,8 +133,12 @@ public final class IconLocalStore {
     public static void onPullChunk(boolean isStart, boolean isEnd, int index, int total, String packName,
         byte[] chunk) {
         PullSession session = PullSession.INSTANCE;
-        if (!IconStore.isValidPackName(packName) || total < 1 || total > PacketWebIconPullZip.MAX_TOTAL_CHUNKS
-            || index < 0 || index >= total || isStart != (index == 0) || isEnd != (index == total - 1)) {
+        if (!IconStore.isValidPackName(packName) || total < 1
+            || total > PacketWebIconPullZip.MAX_TOTAL_CHUNKS
+            || index < 0
+            || index >= total
+            || isStart != (index == 0)
+            || isEnd != (index == total - 1)) {
             session.reset(null);
             return;
         }
@@ -177,9 +181,13 @@ public final class IconLocalStore {
 
         boolean accept(String pack, int total, int index, byte[] chunk) {
             long now = System.currentTimeMillis();
-            if (packName == null || !packName.equals(pack) || expectedTotal != total
-                || now - lastTouchedMs > WebAeBinaryTransfer.SESSION_TTL_MS || index != nextIndex
-                || chunk == null || chunk.length == 0 || chunk.length > PacketWebIconPullZip.MAX_CHUNK_BYTES
+            if (packName == null || !packName.equals(pack)
+                || expectedTotal != total
+                || now - lastTouchedMs > WebAeBinaryTransfer.SESSION_TTL_MS
+                || index != nextIndex
+                || chunk == null
+                || chunk.length == 0
+                || chunk.length > PacketWebIconPullZip.MAX_CHUNK_BYTES
                 || receivedBytes > PacketWebIconPullZip.MAX_ZIP_BYTES - chunk.length) {
                 return false;
             }
@@ -192,8 +200,11 @@ public final class IconLocalStore {
 
         void finishAndExtract() {
             Minecraft mc = Minecraft.getMinecraft();
-            if (mc == null || mc.mcDataDir == null || expectedTotal < 1 || nextIndex != expectedTotal
-                || receivedBytes <= 0 || receivedBytes > PacketWebIconPullZip.MAX_ZIP_BYTES) {
+            if (mc == null || mc.mcDataDir == null
+                || expectedTotal < 1
+                || nextIndex != expectedTotal
+                || receivedBytes <= 0
+                || receivedBytes > PacketWebIconPullZip.MAX_ZIP_BYTES) {
                 reset(null);
                 return;
             }
@@ -268,8 +279,7 @@ public final class IconLocalStore {
                 int n;
                 while ((n = zis.read(buf)) >= 0) {
                     if (n == 0) continue;
-                    if (entryBytes > IconStore.MAX_PNG_BYTES - n
-                        || extractedBytes > MAX_EXTRACTED_BYTES - n) {
+                    if (entryBytes > IconStore.MAX_PNG_BYTES - n || extractedBytes > MAX_EXTRACTED_BYTES - n) {
                         throw new IOException("Icon zip expands beyond the safe limit");
                     }
                     iconBuffer.write(buf, 0, n);
@@ -306,7 +316,11 @@ public final class IconLocalStore {
                 .toLowerCase()
                 .endsWith(".png")) continue;
             try {
-                String itemId = f.getName().substring(0, f.getName().length() - 4);
+                String itemId = f.getName()
+                    .substring(
+                        0,
+                        f.getName()
+                            .length() - 4);
                 byte[] png = readBoundedFile(f);
                 if (png != null && writePng(instanceRoot, packName, itemId, png)) copied++;
             } catch (Exception ignored) {}

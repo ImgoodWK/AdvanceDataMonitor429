@@ -26,8 +26,10 @@ public final class WorldMapDynmapTileProvider {
     private WorldMapDynmapTileProvider() {}
 
     public static boolean isValidRequest(String worldName, int zoom, int tileX, int tileZ) {
-        return WorldMapDynmapTileRoot.isValidWorldName(worldName) && zoom >= 0 && zoom <= MAX_DYNMAP_ZOOM
-            && Math.abs((long) tileX) <= MAX_TILE_COORDINATE && Math.abs((long) tileZ) <= MAX_TILE_COORDINATE;
+        return WorldMapDynmapTileRoot.isValidWorldName(worldName) && zoom >= 0
+            && zoom <= MAX_DYNMAP_ZOOM
+            && Math.abs((long) tileX) <= MAX_TILE_COORDINATE
+            && Math.abs((long) tileZ) <= MAX_TILE_COORDINATE;
     }
 
     public static boolean isValidPerspective(String perspective) {
@@ -128,8 +130,8 @@ public final class WorldMapDynmapTileProvider {
                 return null;
             }
             long size = Files.size(realPath);
-            if (size < WorldMapRenderSupport.MIN_VALID_TILE_BYTES
-                || size > WorldMapRenderSupport.MAX_VALID_TILE_BYTES || size > Integer.MAX_VALUE) {
+            if (size < WorldMapRenderSupport.MIN_VALID_TILE_BYTES || size > WorldMapRenderSupport.MAX_VALID_TILE_BYTES
+                || size > Integer.MAX_VALUE) {
                 return null;
             }
             int expected = (int) size;

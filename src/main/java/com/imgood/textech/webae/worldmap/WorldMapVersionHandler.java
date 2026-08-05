@@ -15,14 +15,15 @@ public final class WorldMapVersionHandler {
     private static final Gson GSON = new GsonBuilder().serializeNulls()
         .create();
     private static final Backend PRODUCTION_BACKEND = new Backend() {
+
         @Override
         public WorldMapSnapshotVersionsDto listVersions(String ownerUuid, int networkId) {
             return WorldMapSnapshotDiffService.listVersions(ownerUuid, networkId);
         }
 
         @Override
-        public WorldMapSnapshotDiffDto diff(String ownerUuid, int networkId, Integer fromVersion,
-            Integer toVersion, WorldMapSnapshotDiffOptions options) {
+        public WorldMapSnapshotDiffDto diff(String ownerUuid, int networkId, Integer fromVersion, Integer toVersion,
+            WorldMapSnapshotDiffOptions options) {
             return WorldMapSnapshotDiffService.diff(ownerUuid, networkId, fromVersion, toVersion, options);
         }
     };
@@ -41,53 +42,57 @@ public final class WorldMapVersionHandler {
         return handleDiff(params, effectiveOwner, auth, PRODUCTION_BACKEND);
     }
 
-    static NanoHTTPD.Response handleVersions(Map<String, String> params, String effectiveOwner,
-        WebAuthSession auth, Backend backend) {
+    static NanoHTTPD.Response handleVersions(Map<String, String> params, String effectiveOwner, WebAuthSession auth,
+        Backend backend) {
         Integer networkId = parseNetwork(params);
         if (networkId == null) {
-            return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_network",
+            return error(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "invalid_network",
                 "Missing or invalid 'network' parameter");
         }
-        NanoHTTPD.Response denied = WebAeNetworkAccess
-            .assertCanAccess(auth, effectiveOwner, networkId.intValue());
+        NanoHTTPD.Response denied = WebAeNetworkAccess.assertCanAccess(auth, effectiveOwner, networkId.intValue());
         if (denied != null) {
             return denied;
         }
 
         WorldMapSnapshotVersionsDto result = backend.listVersions(effectiveOwner, networkId.intValue());
         if (result == null) {
-            return error(NanoHTTPD.Response.Status.INTERNAL_ERROR, "internal_error",
+            return error(
+                NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                "internal_error",
                 "World map version service returned no result");
         }
         return json(statusForVersions(result), result);
     }
 
-    static NanoHTTPD.Response handleDiff(Map<String, String> params, String effectiveOwner,
-        WebAuthSession auth, Backend backend) {
+    static NanoHTTPD.Response handleDiff(Map<String, String> params, String effectiveOwner, WebAuthSession auth,
+        Backend backend) {
         Integer networkId = parseNetwork(params);
         if (networkId == null) {
-            return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_network",
+            return error(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "invalid_network",
                 "Missing or invalid 'network' parameter");
         }
-        NanoHTTPD.Response denied = WebAeNetworkAccess
-            .assertCanAccess(auth, effectiveOwner, networkId.intValue());
+        NanoHTTPD.Response denied = WebAeNetworkAccess.assertCanAccess(auth, effectiveOwner, networkId.intValue());
         if (denied != null) {
             return denied;
         }
 
         ParsedDiffRequest parsed = parseDiffRequest(params);
         if (parsed == null) {
-            return error(NanoHTTPD.Response.Status.BAD_REQUEST, "invalid_parameter",
+            return error(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
+                "invalid_parameter",
                 "Invalid world map diff parameter");
         }
-        WorldMapSnapshotDiffDto result = backend.diff(
-            effectiveOwner,
-            networkId.intValue(),
-            parsed.fromVersion,
-            parsed.toVersion,
-            parsed.options);
+        WorldMapSnapshotDiffDto result = backend
+            .diff(effectiveOwner, networkId.intValue(), parsed.fromVersion, parsed.toVersion, parsed.options);
         if (result == null) {
-            return error(NanoHTTPD.Response.Status.INTERNAL_ERROR, "internal_error",
+            return error(
+                NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                "internal_error",
                 "World map diff service returned no result");
         }
         return json(statusForDiff(result), result);
@@ -107,7 +112,8 @@ public final class WorldMapVersionHandler {
     }
 
     private static NanoHTTPD.Response.Status statusForDiff(WorldMapSnapshotDiffDto result) {
-        if (result.success || "ok".equals(result.code) || "unknown".equals(result.status)
+        if (result.success || "ok".equals(result.code)
+            || "unknown".equals(result.status)
             || "unknown_manifest".equals(result.code)) {
             return NanoHTTPD.Response.Status.OK;
         }
@@ -178,7 +184,8 @@ public final class WorldMapVersionHandler {
     }
 
     private static Integer parseInteger(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return null;
         }
         try {
@@ -219,6 +226,7 @@ public final class WorldMapVersionHandler {
     }
 
     interface Backend {
+
         WorldMapSnapshotVersionsDto listVersions(String ownerUuid, int networkId);
 
         WorldMapSnapshotDiffDto diff(String ownerUuid, int networkId, Integer fromVersion, Integer toVersion,

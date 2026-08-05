@@ -89,7 +89,9 @@ public final class UiButtonWidget extends UiWidget {
         } else {
             region = theme.buttonNormal();
         }
-        if (family != null && GuiBlitUtil.hasResource(family.region(state, w, h).texture())) {
+        if (family != null && GuiBlitUtil.hasResource(
+            family.region(state, w, h)
+                .texture())) {
             GuiBlitUtil.drawFixedAspectButton(family, state, shellX, shellY, shellW, shellH);
         } else if (region != null && GuiBlitUtil.hasResource(region.texture())) {
             GuiBlitUtil.drawHorizontalSlice(region, 0, 0, w, h);
@@ -126,8 +128,7 @@ public final class UiButtonWidget extends UiWidget {
         int shellH = FixedAspectButtonFamily.normalizedHeightFor(w, h);
         int shellX = absX() + Math.max(0, (w - shellW) / 2);
         int shellY = absY() + Math.max(0, (h - shellH) / 2);
-        return mouseX >= shellX && mouseY >= shellY && mouseX < shellX + shellW && mouseY < shellY + shellH
-            ? this
+        return mouseX >= shellX && mouseY >= shellY && mouseX < shellX + shellW && mouseY < shellY + shellH ? this
             : null;
     }
 

@@ -7,8 +7,8 @@ import net.minecraft.util.ResourceLocation;
 
 import com.imgood.textech.gui.framework.GuiBlitUtil;
 import com.imgood.textech.gui.framework.TiledBarRegion;
-import com.imgood.textech.gui.framework.UnderlineFieldRegion;
 import com.imgood.textech.gui.framework.UiThemes;
+import com.imgood.textech.gui.framework.UnderlineFieldRegion;
 
 public class ADM_GuiTextField extends GuiTextField {
 
@@ -96,12 +96,8 @@ public class ADM_GuiTextField extends GuiTextField {
                         this.width + 2,
                         this.height + 2);
                 } else if (bar != null) {
-                    GuiBlitUtil.drawTiledBar(
-                        bar,
-                        this.xPosition - 1,
-                        this.yPosition - 1,
-                        this.width + 2,
-                        this.height + 2);
+                    GuiBlitUtil
+                        .drawTiledBar(bar, this.xPosition - 1, this.yPosition - 1, this.width + 2, this.height + 2);
                 } else {
                     GuiBlitUtil.drawHorizontalSlice(
                         this.isFocused() ? UiThemes.ADM.textFieldFocused() : UiThemes.ADM.textFieldNormal(),
@@ -197,8 +193,7 @@ public class ADM_GuiTextField extends GuiTextField {
     }
 
     private void notifyTextChanged(String before) {
-        if (!super.getText()
-            .equals(before)) {
+        if (!super.getText().equals(before)) {
             invalid = false;
             if (onTextChanged != null) {
                 onTextChanged.run();

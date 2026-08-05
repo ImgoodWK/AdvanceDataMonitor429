@@ -153,14 +153,15 @@ public class PacketWebRecipeUpload implements IMessage {
                 return false;
             }
             if (message.totalBatches < 1 || message.totalBatches > MAX_TOTAL_BATCHES
-                || message.batchIndex < 0 || message.batchIndex >= message.totalBatches
-                || message.batchCount < 0 || message.batchCount > MAX_RECIPES_PER_BATCH
+                || message.batchIndex < 0
+                || message.batchIndex >= message.totalBatches
+                || message.batchCount < 0
+                || message.batchCount > MAX_RECIPES_PER_BATCH
                 || message.isStart != (message.batchIndex == 0)
                 || message.isEnd != (message.batchIndex == message.totalBatches - 1)) {
                 return false;
             }
-            return message.recipeDataJson != null
-                && message.recipeDataJson.length > 0
+            return message.recipeDataJson != null && message.recipeDataJson.length > 0
                 && message.recipeDataJson.length <= RecipeUploadBatcher.MAX_RECIPE_JSON_BYTES;
         }
 
@@ -176,12 +177,8 @@ public class PacketWebRecipeUpload implements IMessage {
                     return ack(false, message, "Invalid recipe batch.");
                 }
 
-                RecipeUploadSession.BatchDecision decision = RecipeUploadSession.acceptBatch(
-                    actorUuid,
-                    message.batchIndex,
-                    message.totalBatches,
-                    message.isStart,
-                    message.isEnd);
+                RecipeUploadSession.BatchDecision decision = RecipeUploadSession
+                    .acceptBatch(actorUuid, message.batchIndex, message.totalBatches, message.isStart, message.isEnd);
                 if (!decision.accepted) {
                     return ack(false, message, "Recipe upload batch is out of order or the session is not active.");
                 }
@@ -229,9 +226,10 @@ public class PacketWebRecipeUpload implements IMessage {
         }
 
         private static boolean matchesPlayerUuid(String supplied, EntityPlayerMP player) {
-            return supplied == null || supplied.isEmpty() || supplied.equalsIgnoreCase(
-                player.getUniqueID()
-                    .toString());
+            return supplied == null || supplied.isEmpty()
+                || supplied.equalsIgnoreCase(
+                    player.getUniqueID()
+                        .toString());
         }
     }
 }

@@ -61,7 +61,12 @@ public class LineChartRenderer implements IADMRender {
 
             int fontColor = MonitorRenderSupport.color(nbt, "axisFontColor", 0xFFFFFF);
             String title = MonitorWidgetSpec.getTitle(nbt);
-            MonitorRenderSupport.drawTextCentered(title, 0.0D, MonitorRenderSupport.BASE_Y + height + 0.18D, 0.03D, 0.016D,
+            MonitorRenderSupport.drawTextCentered(
+                title,
+                0.0D,
+                MonitorRenderSupport.BASE_Y + height + 0.18D,
+                0.03D,
+                0.016D,
                 MonitorRenderSupport.color(nbt, "displayNameColor", fontColor));
             if (nbt.getBoolean("enableAxisFont")) {
                 MonitorRenderSupport.drawTextCentered(
@@ -93,14 +98,28 @@ public class LineChartRenderer implements IADMRender {
         double height) {
         List<Float> line = new ArrayList<Float>();
         if (values.size() == 1) {
-            add(line, 0.0D, ordinate(values.get(0).doubleValue(), min, max, height), 0.02D);
+            add(
+                line,
+                0.0D,
+                ordinate(
+                    values.get(0)
+                        .doubleValue(),
+                    min,
+                    max,
+                    height),
+                0.02D);
         } else if (values.size() > 1) {
             double step = width / (values.size() - 1.0D);
             for (int i = 0; i < values.size(); i++) {
                 add(
                     line,
                     -width / 2.0D + i * step,
-                    ordinate(values.get(i).doubleValue(), min, max, height),
+                    ordinate(
+                        values.get(i)
+                            .doubleValue(),
+                        min,
+                        max,
+                        height),
                     0.02D);
             }
         }
@@ -165,7 +184,8 @@ public class LineChartRenderer implements IADMRender {
 
     private static float[] array(List<Float> values) {
         float[] result = new float[values.size()];
-        for (int i = 0; i < values.size(); i++) result[i] = values.get(i).floatValue();
+        for (int i = 0; i < values.size(); i++) result[i] = values.get(i)
+            .floatValue();
         return result;
     }
 }

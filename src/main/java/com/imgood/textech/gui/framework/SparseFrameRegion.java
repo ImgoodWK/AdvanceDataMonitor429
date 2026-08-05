@@ -9,8 +9,8 @@ public final class SparseFrameRegion {
     private final AtlasRegion bottomRight;
     private final AtlasRegion background;
 
-    public SparseFrameRegion(AtlasRegion topLeft, AtlasRegion topRight, AtlasRegion bottomLeft,
-        AtlasRegion bottomRight, AtlasRegion background) {
+    public SparseFrameRegion(AtlasRegion topLeft, AtlasRegion topRight, AtlasRegion bottomLeft, AtlasRegion bottomRight,
+        AtlasRegion background) {
         this.topLeft = require(topLeft, "topLeft");
         this.topRight = require(topRight, "topRight");
         this.bottomLeft = require(bottomLeft, "bottomLeft");
@@ -30,12 +30,8 @@ public final class SparseFrameRegion {
         if (width <= 0 || height <= 0) {
             return 0.0F;
         }
-        int horizontalNeed = Math.max(
-            topLeft.width() + topRight.width(),
-            bottomLeft.width() + bottomRight.width());
-        int verticalNeed = Math.max(
-            topLeft.height() + bottomLeft.height(),
-            topRight.height() + bottomRight.height());
+        int horizontalNeed = Math.max(topLeft.width() + topRight.width(), bottomLeft.width() + bottomRight.width());
+        int verticalNeed = Math.max(topLeft.height() + bottomLeft.height(), topRight.height() + bottomRight.height());
         return Math.min(1.0F, Math.min(width / (float) horizontalNeed, height / (float) verticalNeed));
     }
 

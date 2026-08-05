@@ -73,13 +73,14 @@ public final class WorldMapJourneyMapFsReader {
             return null;
         }
         try {
-            // This is a bounded PNG header check only.  It deliberately runs
+            // This is a bounded PNG header check only. It deliberately runs
             // before ImageIO is allowed to inflate the local cache file.
             if (!WorldMapRenderSupport.isValidTilePng(tileFile)) {
                 return null;
             }
             BufferedImage source = ImageIO.read(tileFile);
-            if (source == null || source.getWidth() <= 0 || source.getHeight() <= 0
+            if (source == null || source.getWidth() <= 0
+                || source.getHeight() <= 0
                 || source.getWidth() > WorldMapPacketAuthorization.MAX_TILE_PX
                 || source.getHeight() > WorldMapPacketAuthorization.MAX_TILE_PX) {
                 return null;
@@ -146,7 +147,7 @@ public final class WorldMapJourneyMapFsReader {
         if (modeRoot == null || !isSafePathSegment(worldName)) {
             return null;
         }
-        // Exact match only.  Falling back to an arbitrary cache directory can
+        // Exact match only. Falling back to an arbitrary cache directory can
         // cross worlds and disclose terrain from an unrelated server/save.
         return safeDirectory(modeRoot, new File(modeRoot, worldName));
     }
@@ -354,7 +355,8 @@ public final class WorldMapJourneyMapFsReader {
         if (value == null || value.isEmpty() || ".".equals(value) || "..".equals(value)) {
             return false;
         }
-        return value.indexOf('/') < 0 && value.indexOf('\\') < 0 && value.indexOf('\0') < 0
+        return value.indexOf('/') < 0 && value.indexOf('\\') < 0
+            && value.indexOf('\0') < 0
             && new File(value).getName()
                 .equals(value);
     }

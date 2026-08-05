@@ -44,8 +44,8 @@ public class WorldMapAnnotationServiceTest {
 
     @Test
     public void crudPersistsAndReloadsWithServerMetadata() {
-        WorldMapAnnotationResult<WorldMapAnnotationDto> created = service.create(OWNER, 7, ACTOR,
-            request(" Spawn ", "note", "#aBc123", 0, 4));
+        WorldMapAnnotationResult<WorldMapAnnotationDto> created = service
+            .create(OWNER, 7, ACTOR, request(" Spawn ", "note", "#aBc123", 0, 4));
         assertSuccess(created);
         WorldMapAnnotationDto annotation = created.result;
         Assert.assertEquals("Spawn", annotation.label);
@@ -56,20 +56,26 @@ public class WorldMapAnnotationServiceTest {
         Assert.assertEquals(ACTOR, annotation.createdBy);
         Assert.assertTrue(annotation.createdAt > 0L);
         Assert.assertTrue(annotation.updatedAt >= annotation.createdAt);
-        Assert.assertEquals(root.resolve(OWNER).resolve("7.json").toFile().getAbsolutePath(),
-            store.fileFor(OWNER, 7).getAbsolutePath());
-        Assert.assertTrue(store.fileFor(OWNER, 7).isFile());
+        Assert.assertEquals(
+            root.resolve(OWNER)
+                .resolve("7.json")
+                .toFile()
+                .getAbsolutePath(),
+            store.fileFor(OWNER, 7)
+                .getAbsolutePath());
+        Assert.assertTrue(
+            store.fileFor(OWNER, 7)
+                .isFile());
 
-        WorldMapAnnotationService restarted = new WorldMapAnnotationService(
-            new WorldMapAnnotationStore(root.toFile()));
+        WorldMapAnnotationService restarted = new WorldMapAnnotationService(new WorldMapAnnotationStore(root.toFile()));
         WorldMapAnnotationResult<List<WorldMapAnnotationDto>> loaded = restarted.list(OWNER, 7, 2);
         assertSuccess(loaded);
         Assert.assertEquals(1, loaded.result.size());
         Assert.assertEquals(annotation.id, loaded.result.get(0).id);
 
         WorldMapAnnotationRequest update = request("Updated", "changed", "#00ff00", 2, 0);
-        WorldMapAnnotationResult<WorldMapAnnotationDto> updated = restarted.update(OWNER, 7, annotation.id, ACTOR,
-            update);
+        WorldMapAnnotationResult<WorldMapAnnotationDto> updated = restarted
+            .update(OWNER, 7, annotation.id, ACTOR, update);
         assertSuccess(updated);
         Assert.assertEquals("Updated", updated.result.label);
         Assert.assertEquals("#00FF00", updated.result.color);
@@ -102,8 +108,8 @@ public class WorldMapAnnotationServiceTest {
             records.add(storedRecord(9, "a" + i));
         }
         Assert.assertTrue(store.save(OWNER, 9, records).success);
-        WorldMapAnnotationResult<WorldMapAnnotationDto> overflow = service.create(OWNER, 9, ACTOR,
-            request("overflow", "", "#FFFFFF", 0, 0));
+        WorldMapAnnotationResult<WorldMapAnnotationDto> overflow = service
+            .create(OWNER, 9, ACTOR, request("overflow", "", "#FFFFFF", 0, 0));
         Assert.assertFalse(overflow.success);
         Assert.assertEquals("record_limit", overflow.code);
         Assert.assertEquals(WorldMapAnnotationStore.MAX_RECORDS, service.list(OWNER, 9, 1).result.size());
@@ -126,8 +132,8 @@ public class WorldMapAnnotationServiceTest {
 
     @Test
     public void normalizesAndValidatesColor() {
-        WorldMapAnnotationResult<WorldMapAnnotationDto> result = service.create(OWNER, 13, ACTOR,
-            request("label", "", "#a1B2c3", 0, 0));
+        WorldMapAnnotationResult<WorldMapAnnotationDto> result = service
+            .create(OWNER, 13, ACTOR, request("label", "", "#a1B2c3", 0, 0));
         assertSuccess(result);
         Assert.assertEquals("#A1B2C3", result.result.color);
         Assert.assertFalse(service.create(OWNER, 13, ACTOR, request("x", "", "a1b2c3", 0, 0)).success);
@@ -140,26 +146,38 @@ public class WorldMapAnnotationServiceTest {
         WorldMapAnnotationRequest badDimension = requestAt("x", 0, 0, 64, 0, 0);
         badDimension.dimension = WorldMapPacketAuthorization.MAX_DIMENSION + 1;
         Assert.assertFalse(service.create(OWNER, 14, ACTOR, badDimension).success);
-        Assert.assertFalse(service.create(OWNER, 14, ACTOR,
-            requestAt("x", WorldMapPacketAuthorization.MAX_CHUNK_COORDINATE * 16 + 16, 0, 64, 0, 0)).success);
+        Assert.assertFalse(
+            service.create(
+                OWNER,
+                14,
+                ACTOR,
+                requestAt("x", WorldMapPacketAuthorization.MAX_CHUNK_COORDINATE * 16 + 16, 0, 64, 0, 0)).success);
         Assert.assertFalse(service.create(OWNER, 14, ACTOR, requestAt("x", 0, 0, -1, 0, 0)).success);
-        Assert.assertFalse(service.create(OWNER, 14, ACTOR,
-            requestAt("x", 0, 0, WorldMapAnnotationService.MAX_Y + 1, 0, 0)).success);
+        Assert.assertFalse(
+            service.create(OWNER, 14, ACTOR, requestAt("x", 0, 0, WorldMapAnnotationService.MAX_Y + 1, 0, 0)).success);
         Assert.assertFalse(service.create(OWNER, 14, ACTOR, requestAt("x", 0, 0, 64, 5, 4)).success);
-        Assert.assertFalse(service.create(OWNER, 14, ACTOR,
-            requestAt("x", 0, 0, 64, WorldMapPacketAuthorization.MAX_SNAPSHOT_VERSION + 1, 0)).success);
+        Assert.assertFalse(
+            service.create(
+                OWNER,
+                14,
+                ACTOR,
+                requestAt("x", 0, 0, 64, WorldMapPacketAuthorization.MAX_SNAPSHOT_VERSION + 1, 0)).success);
         Assert.assertFalse(service.create(OWNER, 14, ACTOR, requestAt("x", 0, 0, 64, -1, 0)).success);
-        Assert.assertTrue(service.create(OWNER, 14, ACTOR,
-            requestAt("edge", WorldMapPacketAuthorization.MAX_CHUNK_COORDINATE * 16, 0, 64, 0, 0)).success);
+        Assert.assertTrue(
+            service.create(
+                OWNER,
+                14,
+                ACTOR,
+                requestAt("edge", WorldMapPacketAuthorization.MAX_CHUNK_COORDINATE * 16, 0, 64, 0, 0)).success);
     }
 
     @Test
     public void isolatesOwnerAndNetworkAndRejectsImmutableMutation() {
-        WorldMapAnnotationDto created = service.create(OWNER, 15, ACTOR, request("original", "", "#000000", 0, 0))
-            .result;
+        WorldMapAnnotationDto created = service
+            .create(OWNER, 15, ACTOR, request("original", "", "#000000", 0, 0)).result;
         Assert.assertFalse(service.list(OTHER_OWNER, 15, 1).result.contains(created));
-        Assert.assertFalse(service.update(OTHER_OWNER, 15, created.id, ACTOR,
-            request("x", "", "#FFFFFF", 0, 0)).success);
+        Assert
+            .assertFalse(service.update(OTHER_OWNER, 15, created.id, ACTOR, request("x", "", "#FFFFFF", 0, 0)).success);
         Assert.assertFalse(service.delete(OWNER, 16, created.id).success);
 
         WorldMapAnnotationRequest crossOwner = request("x", "", "#FFFFFF", 0, 0);
@@ -184,7 +202,8 @@ public class WorldMapAnnotationServiceTest {
 
     @Test
     public void rejectsCorruptOversizeAndSymlinkFiles() throws IOException {
-        Path file = store.fileFor(OWNER, 17).toPath();
+        Path file = store.fileFor(OWNER, 17)
+            .toPath();
         Files.createDirectories(file.getParent());
         Files.write(file, "not-json".getBytes(UTF8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         Assert.assertEquals("corrupt_file", service.list(OWNER, 17, 1).code);
@@ -212,18 +231,19 @@ public class WorldMapAnnotationServiceTest {
 
     @Test
     public void failedAtomicWriteLeavesPreviousFileIntact() {
-        WorldMapAnnotationDto created = service.create(OWNER, 18, ACTOR, request("before", "", "#000000", 0, 0))
-            .result;
-        WorldMapAnnotationStore failingStore = new WorldMapAnnotationStore(root.toFile(),
+        WorldMapAnnotationDto created = service.create(OWNER, 18, ACTOR, request("before", "", "#000000", 0, 0)).result;
+        WorldMapAnnotationStore failingStore = new WorldMapAnnotationStore(
+            root.toFile(),
             new WorldMapAnnotationStore.AtomicWriteStrategy() {
+
                 @Override
                 public void write(java.io.File target, byte[] bytes) throws IOException {
                     throw new IOException("injected failure");
                 }
             });
         WorldMapAnnotationService failingService = new WorldMapAnnotationService(failingStore);
-        WorldMapAnnotationResult<WorldMapAnnotationDto> failed = failingService.update(OWNER, 18, created.id, ACTOR,
-            request("after", "", "#FFFFFF", 0, 0));
+        WorldMapAnnotationResult<WorldMapAnnotationDto> failed = failingService
+            .update(OWNER, 18, created.id, ACTOR, request("after", "", "#FFFFFF", 0, 0));
         Assert.assertFalse(failed.success);
         Assert.assertEquals("write_failed", failed.code);
         WorldMapAnnotationDto persisted = service.list(OWNER, 18, 1).result.get(0);
@@ -235,14 +255,15 @@ public class WorldMapAnnotationServiceTest {
     public void idsAreUniqueAndListResultIsDetached() {
         Set<String> ids = new HashSet<String>();
         for (int i = 0; i < 3; i++) {
-            WorldMapAnnotationDto created = service.create(OWNER, 19, ACTOR,
-                request("label" + i, "", "#FFFFFF", 0, 0)).result;
+            WorldMapAnnotationDto created = service
+                .create(OWNER, 19, ACTOR, request("label" + i, "", "#FFFFFF", 0, 0)).result;
             Assert.assertTrue(ids.add(created.id));
         }
         List<WorldMapAnnotationDto> listed = service.list(OWNER, 19, 1).result;
         listed.get(0).label = "caller mutation";
-        Assert.assertFalse("caller mutation must not reach disk", "caller mutation".equals(
-            service.list(OWNER, 19, 1).result.get(0).label));
+        Assert.assertFalse(
+            "caller mutation must not reach disk",
+            "caller mutation".equals(service.list(OWNER, 19, 1).result.get(0).label));
     }
 
     @Test
@@ -273,8 +294,8 @@ public class WorldMapAnnotationServiceTest {
         return requestAt(label, x, z, y, from, to, "", "#FFFFFF");
     }
 
-    private static WorldMapAnnotationRequest requestAt(String label, int x, int z, int y, int from, int to,
-        String note, String color) {
+    private static WorldMapAnnotationRequest requestAt(String label, int x, int z, int y, int from, int to, String note,
+        String color) {
         WorldMapAnnotationRequest request = new WorldMapAnnotationRequest();
         request.dimension = 0;
         request.x = x;
@@ -298,7 +319,8 @@ public class WorldMapAnnotationServiceTest {
 
     private static WorldMapAnnotationDto storedRecord(int networkId, String label) {
         WorldMapAnnotationDto record = new WorldMapAnnotationDto();
-        record.id = UUID.randomUUID().toString();
+        record.id = UUID.randomUUID()
+            .toString();
         record.ownerUuid = OWNER;
         record.networkId = networkId;
         record.dimension = 0;
@@ -319,22 +341,21 @@ public class WorldMapAnnotationServiceTest {
     private static Thread creatingThread(final WorldMapAnnotationService target, final String prefix,
         final CountDownLatch start, final List<String> failures) {
         Thread thread = new Thread(new Runnable() {
+
             @Override
             public void run() {
                 try {
                     start.await();
                     for (int i = 0; i < 10; i++) {
-                        WorldMapAnnotationResult<WorldMapAnnotationDto> result = target.create(
-                            OWNER,
-                            20,
-                            ACTOR,
-                            request(prefix + i, "", "#FFFFFF", 0, 0));
+                        WorldMapAnnotationResult<WorldMapAnnotationDto> result = target
+                            .create(OWNER, 20, ACTOR, request(prefix + i, "", "#FFFFFF", 0, 0));
                         if (!result.success) {
                             failures.add(result.code);
                         }
                     }
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    Thread.currentThread()
+                        .interrupt();
                     failures.add("interrupted");
                 }
             }

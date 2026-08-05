@@ -541,8 +541,8 @@ public class ContainerDimensionalPocket extends Container {
                 || prevPageCount != state.getPageCount();
             java.util.List<com.imgood.textech.network.packet.PacketPocketSync> syncPackets = layoutChanged
                 ? com.imgood.textech.network.packet.PacketPocketSync.fullStatePackets(state)
-                : java.util.Collections.singletonList(
-                    com.imgood.textech.network.packet.PacketPocketSync.metadataState(state));
+                : java.util.Collections
+                    .singletonList(com.imgood.textech.network.packet.PacketPocketSync.metadataState(state));
             for (com.imgood.textech.network.packet.PacketPocketSync sync : syncPackets) {
                 com.imgood.textech.AdvanceDataMonitor.ADMCHANEL
                     .sendTo(sync, (net.minecraft.entity.player.EntityPlayerMP) player);

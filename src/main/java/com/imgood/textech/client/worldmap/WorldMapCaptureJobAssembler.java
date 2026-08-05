@@ -176,8 +176,11 @@ public final class WorldMapCaptureJobAssembler {
 
         boolean matches(PacketWorldMapCaptureJob page) {
             return ownerUuid.equals(page.ownerUuid) && networkId == page.networkId
-                && snapshotVersion == page.snapshotVersion && tilePx == page.tilePx && sourcePriority.equals(
-                    page.sourcePriority) && pageCount == page.pageCount && totalChunks == page.totalChunks;
+                && snapshotVersion == page.snapshotVersion
+                && tilePx == page.tilePx
+                && sourcePriority.equals(page.sourcePriority)
+                && pageCount == page.pageCount
+                && totalChunks == page.totalChunks;
         }
     }
 

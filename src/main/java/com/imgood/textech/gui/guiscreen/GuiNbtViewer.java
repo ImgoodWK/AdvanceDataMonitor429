@@ -117,7 +117,12 @@ public class GuiNbtViewer extends ADM_GuiScreen {
         int contentWidth = panelWidth() - 28;
         int contentHeight = panelHeight() - 72;
         UiPanel.drawSection(UiThemes.ADM, contentX - 3, contentY - 3, contentWidth + 6, contentHeight + 6);
-        drawCenteredString(fontRendererObj, I18n.format("adm.title.nbt_viewer"), panelX() + panelWidth() / 2, panelY() + 10, 0xD7F7FF);
+        drawCenteredString(
+            fontRendererObj,
+            I18n.format("adm.title.nbt_viewer"),
+            panelX() + panelWidth() / 2,
+            panelY() + 10,
+            0xD7F7FF);
         int yPos = contentY + 10 - scrollY;
         TreeEntry hoveredEntry = null;
         boolean hoveredTextWasTrimmed = false;
@@ -132,7 +137,8 @@ public class GuiNbtViewer extends ADM_GuiScreen {
                 if (yPos >= contentY && yPos < contentY + contentHeight) {
                     String renderedText = fontRendererObj.trimStringToWidth(displayText, contentWidth - 8);
                     drawString(fontRendererObj, renderedText, contentX, yPos, 0xD7F7FF);
-                    if (mouseX >= contentX && mouseX < contentX + contentWidth - 4 && mouseY >= yPos
+                    if (mouseX >= contentX && mouseX < contentX + contentWidth - 4
+                        && mouseY >= yPos
                         && mouseY < yPos + 10) {
                         hoveredEntry = entry;
                         hoveredTextWasTrimmed = !renderedText.equals(displayText);

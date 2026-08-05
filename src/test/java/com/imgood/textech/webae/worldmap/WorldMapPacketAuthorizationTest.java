@@ -31,8 +31,8 @@ public class WorldMapPacketAuthorizationTest {
         Assert.assertTrue(WorldMapPacketAuthorization.isValidNetworkId(0));
         Assert.assertTrue(WorldMapPacketAuthorization.isValidNetworkId(WorldMapPacketAuthorization.MAX_NETWORK_ID));
         Assert.assertFalse(WorldMapPacketAuthorization.isValidNetworkId(-1));
-        Assert.assertFalse(
-            WorldMapPacketAuthorization.isValidNetworkId(WorldMapPacketAuthorization.MAX_NETWORK_ID + 1));
+        Assert
+            .assertFalse(WorldMapPacketAuthorization.isValidNetworkId(WorldMapPacketAuthorization.MAX_NETWORK_ID + 1));
 
         Assert.assertTrue(WorldMapPacketAuthorization.isValidSnapshotVersion(1));
         Assert.assertFalse(WorldMapPacketAuthorization.isValidSnapshotVersion(0));
@@ -43,11 +43,8 @@ public class WorldMapPacketAuthorizationTest {
                 WorldMapPacketAuthorization.MAX_DIMENSION,
                 WorldMapPacketAuthorization.MAX_CHUNK_COORDINATE,
                 -WorldMapPacketAuthorization.MAX_CHUNK_COORDINATE));
-        Assert.assertFalse(
-            WorldMapPacketAuthorization.isValidChunk(
-                WorldMapPacketAuthorization.MAX_DIMENSION + 1,
-                0,
-                0));
+        Assert
+            .assertFalse(WorldMapPacketAuthorization.isValidChunk(WorldMapPacketAuthorization.MAX_DIMENSION + 1, 0, 0));
     }
 
     @Test
@@ -76,8 +73,8 @@ public class WorldMapPacketAuthorizationTest {
         File root = temporaryFolder.newFolder("snapshots");
         File normal = new File(root, "owner/network/v1/manifest.json");
         Assert.assertTrue(WorldMapSnapshotStore.isWithinSnapshotsRoot(root, normal));
-        Assert.assertFalse(
-            WorldMapSnapshotStore.isWithinSnapshotsRoot(root, new File(root, "../outside/current.json")));
+        Assert
+            .assertFalse(WorldMapSnapshotStore.isWithinSnapshotsRoot(root, new File(root, "../outside/current.json")));
 
         File target = new File(root, "other-owner");
         Assert.assertTrue(target.mkdir());

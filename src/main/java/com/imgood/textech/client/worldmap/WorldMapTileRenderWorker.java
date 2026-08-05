@@ -123,17 +123,16 @@ public final class WorldMapTileRenderWorker {
             byte[] png = renderer.renderTerrain(mc, view, tier, job.job.dim, job.job.chunkX, job.job.chunkZ);
             String ownerUuid = mc.thePlayer.getUniqueID()
                 .toString();
-            if (WorldMapRenderSupport.isValidTilePng(png)
-                && PacketWebMapTileUpload.sendToServer(
-                    view.id,
-                    job.job.layer,
-                    tier.id,
-                    job.job.dim,
-                    job.job.chunkX,
-                    job.job.chunkZ,
-                    job.job.networkId,
-                    ownerUuid,
-                    png)) {
+            if (WorldMapRenderSupport.isValidTilePng(png) && PacketWebMapTileUpload.sendToServer(
+                view.id,
+                job.job.layer,
+                tier.id,
+                job.job.dim,
+                job.job.chunkX,
+                job.job.chunkZ,
+                job.job.networkId,
+                ownerUuid,
+                png)) {
                 continue;
             } else if (job.retries < MAX_RETRIES) {
                 job.retries++;

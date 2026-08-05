@@ -108,7 +108,8 @@ public abstract class AdmItemConfigScreen extends ADM_GuiScreen {
     }
 
     protected void drawFieldTooltip(ADM_GuiTextField field, int mouseX, int mouseY, String... paragraphs) {
-        if (field == null || mouseX < field.xPosition || mouseX >= field.xPosition + field.width + 2
+        if (field == null || mouseX < field.xPosition
+            || mouseX >= field.xPosition + field.width + 2
             || mouseY < field.yPosition
             || mouseY >= field.yPosition + field.height + 2) {
             return;
@@ -119,7 +120,8 @@ public abstract class AdmItemConfigScreen extends ADM_GuiScreen {
     protected void drawButtonTooltip(int buttonId, int mouseX, int mouseY, String... paragraphs) {
         for (Object obj : buttonList) {
             GuiButton button = (GuiButton) obj;
-            if (button.id == buttonId && button.visible && mouseX >= button.xPosition
+            if (button.id == buttonId && button.visible
+                && mouseX >= button.xPosition
                 && mouseX < button.xPosition + button.width
                 && mouseY >= button.yPosition
                 && mouseY < button.yPosition + button.height) {

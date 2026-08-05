@@ -3,9 +3,11 @@ package com.imgood.textech.webae.cpu;
 /**
  * Persisted, privacy-bounded lifecycle record for one WebAE crafting job.
  *
- * <p>This deliberately contains identifiers and numeric observations only.
+ * <p>
+ * This deliberately contains identifiers and numeric observations only.
  * It never stores a request's free-form input, item display text, or input
- * item list.</p>
+ * item list.
+ * </p>
  */
 public class CpuJobHistoryDto {
 
@@ -73,8 +75,11 @@ public class CpuJobHistoryDto {
     }
 
     public static boolean isKnownStatus(String value) {
-        return STATUS_QUEUED.equals(value) || STATUS_RUNNING.equals(value) || STATUS_COMPLETED.equals(value)
-            || STATUS_FAILED.equals(value) || STATUS_CANCELLED.equals(value) || STATUS_STUCK.equals(value)
+        return STATUS_QUEUED.equals(value) || STATUS_RUNNING.equals(value)
+            || STATUS_COMPLETED.equals(value)
+            || STATUS_FAILED.equals(value)
+            || STATUS_CANCELLED.equals(value)
+            || STATUS_STUCK.equals(value)
             || STATUS_UNKNOWN.equals(value);
     }
 }

@@ -54,17 +54,28 @@ public final class AdmUiTheme implements UiTheme {
 
     private AdmUiTheme() {
         sparseMainFrame = new SparseFrameRegion(
-            region(0, 0, 22, 22), region(24, 0, 22, 22), region(0, 24, 22, 22), region(24, 24, 22, 22),
+            region(0, 0, 22, 22),
+            region(24, 0, 22, 22),
+            region(0, 24, 22, 22),
+            region(24, 24, 22, 22),
             region(264, 0, 64, 64));
         sparseSectionFrame = new SparseFrameRegion(
-            region(0, 66, 14, 14), region(16, 66, 14, 14), region(0, 82, 14, 14), region(16, 82, 14, 14),
+            region(0, 66, 14, 14),
+            region(16, 66, 14, 14),
+            region(0, 82, 14, 14),
+            region(16, 82, 14, 14),
             region(156, 66, 64, 64));
         titleOrnament = region(222, 66, 160, 12);
         footerOrnament = region(222, 80, 160, 8);
         fixedAspectButtons = new FixedAspectButtonFamily(
-            buttonRegions(140), buttonRegions(184), buttonRegions(228), buttonRegions(272));
+            buttonRegions(140),
+            buttonRegions(184),
+            buttonRegions(228),
+            buttonRegions(272));
         underlineField = new UnderlineFieldRegion(
-            underlineStyle(320, 320), underlineStyle(325, 342), underlineStyle(330, 364),
+            underlineStyle(320, 320),
+            underlineStyle(325, 342),
+            underlineStyle(330, 364),
             underlineStyle(335, 386));
 
         // Compatibility descriptors are retained for themes and later-batch pages still using the old interface.
@@ -105,69 +116,258 @@ public final class AdmUiTheme implements UiTheme {
     }
 
     private static NineSliceRegion legacy(AtlasRegion region, int border) {
-        return new NineSliceRegion(region.texture(), region.atlasSize(), region.u(), region.v(), region.width(),
-            region.height(), border);
+        return new NineSliceRegion(
+            region.texture(),
+            region.atlasSize(),
+            region.u(),
+            region.v(),
+            region.width(),
+            region.height(),
+            border);
     }
 
     private static AtlasRegion[] buttonRegions(int blockY) {
-        return new AtlasRegion[] {
-            region(306, blockY + 22, 20, 20), region(252, blockY + 22, 50, 20),
-            region(188, blockY + 22, 60, 20), region(104, blockY + 22, 80, 20),
-            region(0, blockY + 22, 100, 20), region(244, blockY, 200, 20), region(0, blockY, 240, 20)
-        };
+        return new AtlasRegion[] { region(306, blockY + 22, 20, 20), region(252, blockY + 22, 50, 20),
+            region(188, blockY + 22, 60, 20), region(104, blockY + 22, 80, 20), region(0, blockY + 22, 100, 20),
+            region(244, blockY, 200, 20), region(0, blockY, 240, 20) };
     }
 
     private static UnderlineFieldRegion.Style underlineStyle(int bottomV, int sidesV) {
-        return UnderlineFieldRegion.style(
-            region(482, sidesV, 3, 20), region(487, sidesV, 3, 20), region(0, bottomV, 480, 3));
+        return UnderlineFieldRegion
+            .style(region(482, sidesV, 3, 20), region(487, sidesV, 3, 20), region(0, bottomV, 480, 3));
     }
 
-    public static AdmUiTheme instance() { return INSTANCE; }
+    public static AdmUiTheme instance() {
+        return INSTANCE;
+    }
 
-    @Override public String id() { return "adm"; }
-    @Override public NineSliceRegion mainPanel() { return mainPanel; }
-    @Override public SparseFrameRegion sparseMainFrame() { return sparseMainFrame; }
-    @Override public NineSliceRegion sectionPanel() { return sectionPanel; }
-    @Override public SparseFrameRegion sparseSectionFrame() { return sparseSectionFrame; }
-    @Override public AtlasRegion titleOrnament() { return titleOrnament; }
-    @Override public AtlasRegion footerOrnament() { return footerOrnament; }
-    @Override public FixedAspectButtonFamily fixedAspectButtons() { return fixedAspectButtons; }
-    @Override public NineSliceRegion buttonNormal() { return buttonNormal; }
-    @Override public NineSliceRegion buttonHover() { return buttonHover; }
-    @Override public NineSliceRegion buttonPressed() { return buttonPressed; }
-    @Override public NineSliceRegion buttonDisabled() { return buttonDisabled; }
-    @Override public NineSliceRegion textFieldNormal() { return textFieldNormal; }
-    @Override public NineSliceRegion textFieldFocused() { return textFieldFocused; }
-    @Override public NineSliceRegion textFieldInvalid() { return textFieldInvalid; }
-    @Override public NineSliceRegion textFieldDisabled() { return textFieldDisabled; }
-    @Override public UnderlineFieldRegion underlineField() { return underlineField; }
-    @Override public NineSliceRegion slot() { return slot; }
-    @Override public AtlasRegion slotRegion() { return slotRegion; }
-    @Override public NineSliceRegion scrollTrack() { return scrollTrack; }
-    @Override public NineSliceRegion scrollThumb() { return scrollThumb; }
-    @Override public AtlasRegion scrollTrackRegion() { return scrollTrackRegion; }
-    @Override public AtlasRegion scrollThumbRegion() { return scrollThumbRegion; }
-    @Override public NineSliceRegion divider() { return divider; }
-    @Override public AtlasRegion dividerRegion() { return footerOrnament; }
-    @Override public NineSliceRegion toggleOff() { return toggleOff; }
-    @Override public NineSliceRegion toggleOn() { return toggleOn; }
-    @Override public NineSliceRegion toggleDisabled() { return toggleDisabled; }
-    @Override public AtlasRegion toggleOffRegion() { return toggleOffRegion; }
-    @Override public AtlasRegion toggleOnRegion() { return toggleOnRegion; }
-    @Override public AtlasRegion toggleDisabledRegion() { return toggleDisabledRegion; }
-    @Override public NineSliceRegion checkOff() { return checkOff; }
-    @Override public NineSliceRegion checkOn() { return checkOn; }
-    @Override public NineSliceRegion checkDisabled() { return checkDisabled; }
-    @Override public AtlasRegion checkOffRegion() { return checkOffRegion; }
-    @Override public AtlasRegion checkOnRegion() { return checkOnRegion; }
-    @Override public AtlasRegion checkDisabledRegion() { return checkDisabledRegion; }
-    @Override public int textPrimary() { return 0xD7F7FF; }
-    @Override public int textAccent() { return 0x00FFFF; }
-    @Override public int textDisabled() { return 0xA0A0A0; }
-    @Override public ResourceLocation iconAtlas() { return ATLAS; }
-    @Override public int iconAtlasSize() { return ATLAS_SIZE; }
-    @Override public int iconSize() { return ICON_SIZE; }
-    @Override public int iconGridU() { return 0; }
-    @Override public int iconGridV() { return 350; }
-    @Override public int iconHoverGridV() { return 398; }
+    @Override
+    public String id() {
+        return "adm";
+    }
+
+    @Override
+    public NineSliceRegion mainPanel() {
+        return mainPanel;
+    }
+
+    @Override
+    public SparseFrameRegion sparseMainFrame() {
+        return sparseMainFrame;
+    }
+
+    @Override
+    public NineSliceRegion sectionPanel() {
+        return sectionPanel;
+    }
+
+    @Override
+    public SparseFrameRegion sparseSectionFrame() {
+        return sparseSectionFrame;
+    }
+
+    @Override
+    public AtlasRegion titleOrnament() {
+        return titleOrnament;
+    }
+
+    @Override
+    public AtlasRegion footerOrnament() {
+        return footerOrnament;
+    }
+
+    @Override
+    public FixedAspectButtonFamily fixedAspectButtons() {
+        return fixedAspectButtons;
+    }
+
+    @Override
+    public NineSliceRegion buttonNormal() {
+        return buttonNormal;
+    }
+
+    @Override
+    public NineSliceRegion buttonHover() {
+        return buttonHover;
+    }
+
+    @Override
+    public NineSliceRegion buttonPressed() {
+        return buttonPressed;
+    }
+
+    @Override
+    public NineSliceRegion buttonDisabled() {
+        return buttonDisabled;
+    }
+
+    @Override
+    public NineSliceRegion textFieldNormal() {
+        return textFieldNormal;
+    }
+
+    @Override
+    public NineSliceRegion textFieldFocused() {
+        return textFieldFocused;
+    }
+
+    @Override
+    public NineSliceRegion textFieldInvalid() {
+        return textFieldInvalid;
+    }
+
+    @Override
+    public NineSliceRegion textFieldDisabled() {
+        return textFieldDisabled;
+    }
+
+    @Override
+    public UnderlineFieldRegion underlineField() {
+        return underlineField;
+    }
+
+    @Override
+    public NineSliceRegion slot() {
+        return slot;
+    }
+
+    @Override
+    public AtlasRegion slotRegion() {
+        return slotRegion;
+    }
+
+    @Override
+    public NineSliceRegion scrollTrack() {
+        return scrollTrack;
+    }
+
+    @Override
+    public NineSliceRegion scrollThumb() {
+        return scrollThumb;
+    }
+
+    @Override
+    public AtlasRegion scrollTrackRegion() {
+        return scrollTrackRegion;
+    }
+
+    @Override
+    public AtlasRegion scrollThumbRegion() {
+        return scrollThumbRegion;
+    }
+
+    @Override
+    public NineSliceRegion divider() {
+        return divider;
+    }
+
+    @Override
+    public AtlasRegion dividerRegion() {
+        return footerOrnament;
+    }
+
+    @Override
+    public NineSliceRegion toggleOff() {
+        return toggleOff;
+    }
+
+    @Override
+    public NineSliceRegion toggleOn() {
+        return toggleOn;
+    }
+
+    @Override
+    public NineSliceRegion toggleDisabled() {
+        return toggleDisabled;
+    }
+
+    @Override
+    public AtlasRegion toggleOffRegion() {
+        return toggleOffRegion;
+    }
+
+    @Override
+    public AtlasRegion toggleOnRegion() {
+        return toggleOnRegion;
+    }
+
+    @Override
+    public AtlasRegion toggleDisabledRegion() {
+        return toggleDisabledRegion;
+    }
+
+    @Override
+    public NineSliceRegion checkOff() {
+        return checkOff;
+    }
+
+    @Override
+    public NineSliceRegion checkOn() {
+        return checkOn;
+    }
+
+    @Override
+    public NineSliceRegion checkDisabled() {
+        return checkDisabled;
+    }
+
+    @Override
+    public AtlasRegion checkOffRegion() {
+        return checkOffRegion;
+    }
+
+    @Override
+    public AtlasRegion checkOnRegion() {
+        return checkOnRegion;
+    }
+
+    @Override
+    public AtlasRegion checkDisabledRegion() {
+        return checkDisabledRegion;
+    }
+
+    @Override
+    public int textPrimary() {
+        return 0xD7F7FF;
+    }
+
+    @Override
+    public int textAccent() {
+        return 0x00FFFF;
+    }
+
+    @Override
+    public int textDisabled() {
+        return 0xA0A0A0;
+    }
+
+    @Override
+    public ResourceLocation iconAtlas() {
+        return ATLAS;
+    }
+
+    @Override
+    public int iconAtlasSize() {
+        return ATLAS_SIZE;
+    }
+
+    @Override
+    public int iconSize() {
+        return ICON_SIZE;
+    }
+
+    @Override
+    public int iconGridU() {
+        return 0;
+    }
+
+    @Override
+    public int iconGridV() {
+        return 350;
+    }
+
+    @Override
+    public int iconHoverGridV() {
+        return 398;
+    }
 }

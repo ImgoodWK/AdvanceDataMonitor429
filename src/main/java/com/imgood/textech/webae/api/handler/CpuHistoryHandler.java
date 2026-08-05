@@ -29,7 +29,8 @@ public final class CpuHistoryHandler {
     public static NanoHTTPD.Response handle(Map<String, String> params, WebAuthSession session, String ownerUuid) {
         Integer networkId = parseNetwork(params);
         if (networkId == null) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'network' parameter\"}");
         }
         NanoHTTPD.Response denied = WebAeNetworkAccess.assertCanAccess(session, ownerUuid, networkId.intValue());
@@ -46,12 +47,14 @@ public final class CpuHistoryHandler {
 
         TimeRange range = parseRange(params);
         if (range == null) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Invalid CPU history time range (maximum is 14 days)\"}");
         }
         Limit limit = parseLimit(params);
         if (limit == null) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Invalid 'limit' parameter\"}");
         }
 
@@ -69,7 +72,8 @@ public final class CpuHistoryHandler {
 
     static Integer parseNetwork(Map<String, String> params) {
         String raw = params == null ? null : params.get("network");
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return null;
         }
         try {
@@ -101,7 +105,8 @@ public final class CpuHistoryHandler {
     }
 
     private static Long parseEpoch(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return null;
         }
         try {
@@ -114,7 +119,8 @@ public final class CpuHistoryHandler {
 
     private static Limit parseLimit(Map<String, String> params) {
         String raw = params == null ? null : params.get("limit");
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return new Limit(CpuHistoryService.MAX_HISTORY_JOBS_RESPONSE, false);
         }
         try {

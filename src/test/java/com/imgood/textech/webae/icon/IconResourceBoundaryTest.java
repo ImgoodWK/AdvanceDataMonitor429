@@ -45,9 +45,7 @@ public class IconResourceBoundaryTest {
                 // The important contract is that no earlier entry was promoted.
             }
 
-            File destination = new File(
-                new File(new File(root, "TeXTech"), "WebAE"),
-                "icons-local/test-pack/nei");
+            File destination = new File(new File(new File(root, "TeXTech"), "WebAE"), "icons-local/test-pack/nei");
             if (destination.exists()) {
                 Assert.assertTrue(destination.isDirectory());
                 File[] files = destination.listFiles();
@@ -64,10 +62,8 @@ public class IconResourceBoundaryTest {
         File root = Files.createTempDirectory("webae-icon-extract-")
             .toFile();
         try {
-            int written = IconLocalStore.extractZipToLocal(
-                root,
-                "test-pack",
-                zip(new Entry("nei/item.png", png(16, 16))));
+            int written = IconLocalStore
+                .extractZipToLocal(root, "test-pack", zip(new Entry("nei/item.png", png(16, 16))));
 
             Assert.assertEquals(1, written);
             File icon = new File(

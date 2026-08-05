@@ -75,15 +75,26 @@ public final class UnderlineFieldRegion {
         if (destinationHeight <= 0) {
             return 0.0F;
         }
-        return Math.min(1.0F, destinationHeight / (float) style(state).left().height());
+        return Math.min(
+            1.0F,
+            destinationHeight / (float) style(state).left()
+                .height());
     }
 
     public AtlasRegion centeredBottomCrop(State state, int sourceWidth) {
         Style style = style(state);
-        if (sourceWidth <= 0 || sourceWidth > style.bottom().width()) {
+        if (sourceWidth <= 0 || sourceWidth > style.bottom()
+            .width()) {
             throw new IllegalArgumentException("Requested underline exceeds the longest source");
         }
-        int offset = (style.bottom().width() - sourceWidth) / 2;
-        return style.bottom().subRegion(offset, 0, sourceWidth, style.bottom().height());
+        int offset = (style.bottom()
+            .width() - sourceWidth) / 2;
+        return style.bottom()
+            .subRegion(
+                offset,
+                0,
+                sourceWidth,
+                style.bottom()
+                    .height());
     }
 }

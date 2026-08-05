@@ -49,11 +49,12 @@ public class WorldMapVersionHandlerTest {
         params.put("includeTiles", "false");
         params.put("includeMarkers", "TRUE");
 
-        NanoHTTPD.Response response = WorldMapVersionHandler
-            .handleDiff(params, OWNER, ownerSession(), backend);
+        NanoHTTPD.Response response = WorldMapVersionHandler.handleDiff(params, OWNER, ownerSession(), backend);
 
         assertEquals(NanoHTTPD.Response.Status.OK, response.getStatus());
-        assertTrue(json(response).get("success").getAsBoolean());
+        assertTrue(
+            json(response).get("success")
+                .getAsBoolean());
         assertEquals(12, backend.networkId);
         assertEquals(Integer.valueOf(2), backend.fromVersion);
         assertEquals(Integer.valueOf(3), backend.toVersion);
@@ -94,13 +95,16 @@ public class WorldMapVersionHandlerTest {
         Map<String, String> params = params("network", "0");
 
         backend.versionsResult = versionsResult(false, "unknown");
-        assertStatus(NanoHTTPD.Response.Status.OK,
+        assertStatus(
+            NanoHTTPD.Response.Status.OK,
             WorldMapVersionHandler.handleVersions(params, OWNER, ownerSession(), backend));
         backend.versionsResult = versionsResult(false, "no_versions");
-        assertStatus(NanoHTTPD.Response.Status.NOT_FOUND,
+        assertStatus(
+            NanoHTTPD.Response.Status.NOT_FOUND,
             WorldMapVersionHandler.handleVersions(params, OWNER, ownerSession(), backend));
         backend.versionsResult = versionsResult(false, "invalid");
-        assertStatus(NanoHTTPD.Response.Status.BAD_REQUEST,
+        assertStatus(
+            NanoHTTPD.Response.Status.BAD_REQUEST,
             WorldMapVersionHandler.handleVersions(params, OWNER, ownerSession(), backend));
 
         assertDiffStatus(backend, "unknown", "unknown_manifest", NanoHTTPD.Response.Status.OK);
@@ -117,9 +121,12 @@ public class WorldMapVersionHandlerTest {
         backend.versionsResult = versionsResult(true, "ok");
         backend.diffResult = diffResult(true, "ok", "ok");
 
-        assertStatus(NanoHTTPD.Response.Status.BAD_REQUEST, WorldMapVersionHandler.handleVersions(
-            Collections.<String, String>emptyMap(), OWNER, ownerSession(), backend));
-        assertStatus(NanoHTTPD.Response.Status.BAD_REQUEST,
+        assertStatus(
+            NanoHTTPD.Response.Status.BAD_REQUEST,
+            WorldMapVersionHandler
+                .handleVersions(Collections.<String, String>emptyMap(), OWNER, ownerSession(), backend));
+        assertStatus(
+            NanoHTTPD.Response.Status.BAD_REQUEST,
             WorldMapVersionHandler.handleDiff(params("network", "-1"), OWNER, ownerSession(), backend));
         assertFalse(backend.versionCalled);
         assertFalse(backend.diffCalled);
@@ -132,9 +139,11 @@ public class WorldMapVersionHandlerTest {
             "guest-actor",
             "Guest",
             Collections.<String>emptyList());
-        assertStatus(NanoHTTPD.Response.Status.FORBIDDEN,
+        assertStatus(
+            NanoHTTPD.Response.Status.FORBIDDEN,
             WorldMapVersionHandler.handleVersions(params("network", "0"), OWNER, guest, backend));
-        assertStatus(NanoHTTPD.Response.Status.FORBIDDEN,
+        assertStatus(
+            NanoHTTPD.Response.Status.FORBIDDEN,
             WorldMapVersionHandler.handleDiff(params("network", "0"), OWNER, guest, backend));
         assertFalse(backend.versionCalled);
         assertFalse(backend.diffCalled);
@@ -145,8 +154,7 @@ public class WorldMapVersionHandlerTest {
         backend.diffResult = diffResult(true, "ok", "ok");
         Map<String, String> params = params("network", "0");
         params.put(name, value);
-        NanoHTTPD.Response response = WorldMapVersionHandler
-            .handleDiff(params, OWNER, ownerSession(), backend);
+        NanoHTTPD.Response response = WorldMapVersionHandler.handleDiff(params, OWNER, ownerSession(), backend);
         assertEquals(name, NanoHTTPD.Response.Status.BAD_REQUEST, response.getStatus());
         close(response);
         assertFalse(name, backend.diffCalled);
@@ -159,8 +167,14 @@ public class WorldMapVersionHandlerTest {
             .handleDiff(params("network", "0"), OWNER, ownerSession(), backend);
         assertEquals(code, expected, response.getStatus());
         JsonObject json = json(response);
-        assertEquals(code, json.get("code").getAsString());
-        assertEquals(status, json.get("status").getAsString());
+        assertEquals(
+            code,
+            json.get("code")
+                .getAsString());
+        assertEquals(
+            status,
+            json.get("status")
+                .getAsString());
     }
 
     private static void assertStatus(NanoHTTPD.Response.Status expected, NanoHTTPD.Response response) {
@@ -206,7 +220,8 @@ public class WorldMapVersionHandlerTest {
     }
 
     private static JsonObject json(NanoHTTPD.Response response) throws IOException {
-        return new JsonParser().parse(body(response)).getAsJsonObject();
+        return new JsonParser().parse(body(response))
+            .getAsJsonObject();
     }
 
     private static void close(NanoHTTPD.Response response) {
@@ -251,8 +266,8 @@ public class WorldMapVersionHandlerTest {
         }
 
         @Override
-        public WorldMapSnapshotDiffDto diff(String ownerUuid, int networkId, Integer fromVersion,
-            Integer toVersion, WorldMapSnapshotDiffOptions options) {
+        public WorldMapSnapshotDiffDto diff(String ownerUuid, int networkId, Integer fromVersion, Integer toVersion,
+            WorldMapSnapshotDiffOptions options) {
             diffCalled = true;
             this.networkId = networkId;
             this.fromVersion = fromVersion;

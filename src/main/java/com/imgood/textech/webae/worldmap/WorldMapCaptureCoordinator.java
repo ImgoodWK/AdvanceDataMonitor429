@@ -196,10 +196,11 @@ public final class WorldMapCaptureCoordinator {
             return false;
         }
         ActiveJob job = activeJobs.get(jobKey(ownerUuid, networkId, version));
-        return job != null && !isActiveJobExpired(job, System.currentTimeMillis()) && job.playerUuid != null
+        return job != null && !isActiveJobExpired(job, System.currentTimeMillis())
+            && job.playerUuid != null
             && job.playerUuid.equals(
-            player.getUniqueID()
-                .toString());
+                player.getUniqueID()
+                    .toString());
     }
 
     public boolean hasActiveJob(String ownerUuid, int networkId, int version) {
@@ -218,8 +219,10 @@ public final class WorldMapCaptureCoordinator {
             .toString();
         long now = System.currentTimeMillis();
         for (ActiveJob job : activeJobs.values()) {
-            if (job != null && ownerUuid.equals(job.ownerUuid) && job.networkId == networkId
-                && actorUuid.equals(job.playerUuid) && !isActiveJobExpired(job, now)) {
+            if (job != null && ownerUuid.equals(job.ownerUuid)
+                && job.networkId == networkId
+                && actorUuid.equals(job.playerUuid)
+                && !isActiveJobExpired(job, now)) {
                 return true;
             }
         }
@@ -229,8 +232,7 @@ public final class WorldMapCaptureCoordinator {
     public boolean isExpectedTile(String ownerUuid, int networkId, int version, String layer, int dim, int chunkX,
         int chunkZ) {
         ActiveJob job = activeJobs.get(jobKey(ownerUuid, networkId, version));
-        return !isActiveJobExpired(job, System.currentTimeMillis())
-            && isExpectedTile(job, layer, dim, chunkX, chunkZ);
+        return !isActiveJobExpired(job, System.currentTimeMillis()) && isExpectedTile(job, layer, dim, chunkX, chunkZ);
     }
 
     public boolean onTileUploaded(EntityPlayerMP player, String ownerUuid, int networkId, int version, String layer,
@@ -239,7 +241,8 @@ public final class WorldMapCaptureCoordinator {
         ActiveJob job = activeJobs.get(jobKey);
         boolean authorizedActor = player != null && (WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid)
             || isActiveJobPlayer(ownerUuid, networkId, version, player));
-        if (job == null || isActiveJobExpired(job, System.currentTimeMillis()) || !authorizedActor
+        if (job == null || isActiveJobExpired(job, System.currentTimeMillis())
+            || !authorizedActor
             || !isExpectedTile(job, layer, dim, chunkX, chunkZ)) {
             return false;
         }
@@ -262,13 +265,15 @@ public final class WorldMapCaptureCoordinator {
         return true;
     }
 
-    public boolean onSnapshotComplete(EntityPlayerMP player, String ownerUuid, int networkId, int version, String source,
-        String sourceStatsJson, int tilePx) {
+    public boolean onSnapshotComplete(EntityPlayerMP player, String ownerUuid, int networkId, int version,
+        String source, String sourceStatsJson, int tilePx) {
         String jobKey = jobKey(ownerUuid, networkId, version);
         ActiveJob job = activeJobs.get(jobKey);
         boolean authorizedActor = player != null && (WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid)
             || isActiveJobPlayer(ownerUuid, networkId, version, player));
-        if (job == null || !authorizedActor || job.manifest == null || isActiveJobExpired(job, System.currentTimeMillis())
+        if (job == null || !authorizedActor
+            || job.manifest == null
+            || isActiveJobExpired(job, System.currentTimeMillis())
             || !WorldMapPacketAuthorization.isValidSource(source)
             || !WorldMapPacketAuthorization.isValidTilePx(tilePx)) {
             return false;
@@ -278,7 +283,7 @@ public final class WorldMapCaptureCoordinator {
             return false;
         }
         applyFinalizeManifest(job.manifest, source, sourceStats, tilePx);
-        // The logical index is optional metadata.  Its failure must not make
+        // The logical index is optional metadata. Its failure must not make
         // the independently captured terrain snapshot fail to finalize.
         try {
             WorldMapLogicalIndex sidecar = WorldMapLogicalIndex.copyOf(job.logicalIndex);
@@ -306,8 +311,10 @@ public final class WorldMapCaptureCoordinator {
     }
 
     private static boolean isExpectedTile(ActiveJob job, String layer, int dim, int chunkX, int chunkZ) {
-        if (job == null || job.manifest == null || layer == null || layer.trim()
-            .isEmpty()) {
+        if (job == null || job.manifest == null
+            || layer == null
+            || layer.trim()
+                .isEmpty()) {
             return false;
         }
         if (job.manifest.layers != null && !job.manifest.layers.isEmpty()
@@ -364,8 +371,8 @@ public final class WorldMapCaptureCoordinator {
                     return null;
                 }
                 String key = reader.nextName();
-                if (!("dynmap".equals(key) || "journeymap".equals(key) || "client_gl".equals(key))
-                    || !seen.add(key) || reader.peek() != JsonToken.NUMBER) {
+                if (!("dynmap".equals(key) || "journeymap".equals(key) || "client_gl".equals(key)) || !seen.add(key)
+                    || reader.peek() != JsonToken.NUMBER) {
                     return null;
                 }
                 String rawValue = reader.nextString();
@@ -408,7 +415,8 @@ public final class WorldMapCaptureCoordinator {
         }
         long now = System.currentTimeMillis();
         for (ActiveJob job : activeJobs.values()) {
-            if (job != null && ownerUuid.equals(job.ownerUuid) && job.networkId == networkId
+            if (job != null && ownerUuid.equals(job.ownerUuid)
+                && job.networkId == networkId
                 && !isActiveJobExpired(job, now)) {
                 return job;
             }

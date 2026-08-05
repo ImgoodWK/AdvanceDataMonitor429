@@ -46,8 +46,7 @@ public class PacketWorldMapCaptureJobTest {
 
     @Test
     public void decodeRejectsTrailingBytes() {
-        PacketWorldMapCaptureJob page = PacketWorldMapCaptureJob
-            .createPages(OWNER, 7, 11, chunks(2), 128, "dynmap")
+        PacketWorldMapCaptureJob page = PacketWorldMapCaptureJob.createPages(OWNER, 7, 11, chunks(2), 128, "dynmap")
             .get(0);
         ByteBuf buffer = Unpooled.buffer();
         page.toBytes(buffer);
@@ -67,7 +66,9 @@ public class PacketWorldMapCaptureJobTest {
             PacketWorldMapCaptureJob.createPages(OWNER, 7, 11, chunks, 128, "dynmap");
             Assert.fail("Expected invalid chunk list to be rejected");
         } catch (IllegalArgumentException expected) {
-            Assert.assertTrue(expected.getMessage().contains("chunk"));
+            Assert.assertTrue(
+                expected.getMessage()
+                    .contains("chunk"));
         }
     }
 

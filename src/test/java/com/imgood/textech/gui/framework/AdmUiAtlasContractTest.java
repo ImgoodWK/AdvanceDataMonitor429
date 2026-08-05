@@ -30,7 +30,9 @@ public class AdmUiAtlasContractTest {
         assertEquals(APPROVED_SHA256, sha256(bytes));
         assertEquals(AdmUiTheme.ATLAS_SIZE, atlas.getWidth());
         assertEquals(AdmUiTheme.ATLAS_SIZE, atlas.getHeight());
-        assertTrue(atlas.getColorModel().hasAlpha());
+        assertTrue(
+            atlas.getColorModel()
+                .hasAlpha());
     }
 
     @Test
@@ -40,12 +42,9 @@ public class AdmUiAtlasContractTest {
         SparseFrameRegion main = theme.sparseMainFrame();
         SparseFrameRegion section = theme.sparseSectionFrame();
 
-        AtlasRegion[] mainPieces = {
-            main.topLeft(), main.topRight(), main.bottomLeft(), main.bottomRight()
-        };
-        AtlasRegion[] sectionPieces = {
-            section.topLeft(), section.topRight(), section.bottomLeft(), section.bottomRight()
-        };
+        AtlasRegion[] mainPieces = { main.topLeft(), main.topRight(), main.bottomLeft(), main.bottomRight() };
+        AtlasRegion[] sectionPieces = { section.topLeft(), section.topRight(), section.bottomLeft(),
+            section.bottomRight() };
         assertDistinctVisible(atlas, "main sparse chrome", mainPieces);
         assertDistinctVisible(atlas, "section sparse chrome", sectionPieces);
         assertRegion(main.topLeft(), 0, 0, 22, 22);
@@ -70,7 +69,8 @@ public class AdmUiAtlasContractTest {
     @Test
     public void completeButtonFamiliesContainSevenRatiosAndFourDistinctStates() throws Exception {
         BufferedImage atlas = readAtlas(readAtlasBytes());
-        FixedAspectButtonFamily family = AdmUiTheme.instance().fixedAspectButtons();
+        FixedAspectButtonFamily family = AdmUiTheme.instance()
+            .fixedAspectButtons();
         int[] widths = { 20, 50, 60, 80, 100, 200, 240 };
         for (int width : widths) {
             Set<Integer> stateSignatures = new HashSet<Integer>();
@@ -88,15 +88,31 @@ public class AdmUiAtlasContractTest {
     @Test
     public void underlineFieldsContainAllFourStatesAndLongestCenteredCropSource() throws Exception {
         BufferedImage atlas = readAtlas(readAtlasBytes());
-        UnderlineFieldRegion field = AdmUiTheme.instance().underlineField();
+        UnderlineFieldRegion field = AdmUiTheme.instance()
+            .underlineField();
         Set<Integer> bottoms = new HashSet<Integer>();
         for (UnderlineFieldRegion.State state : UnderlineFieldRegion.State.values()) {
             UnderlineFieldRegion.Style style = field.style(state);
-            assertEquals(3, style.left().width());
-            assertEquals(20, style.left().height());
-            assertEquals(3, style.right().width());
-            assertEquals(480, style.bottom().width());
-            assertEquals(3, style.bottom().height());
+            assertEquals(
+                3,
+                style.left()
+                    .width());
+            assertEquals(
+                20,
+                style.left()
+                    .height());
+            assertEquals(
+                3,
+                style.right()
+                    .width());
+            assertEquals(
+                480,
+                style.bottom()
+                    .width());
+            assertEquals(
+                3,
+                style.bottom()
+                    .height());
             assertVisible(atlas, state + ".left", style.left());
             assertVisible(atlas, state + ".right", style.right());
             assertVisible(atlas, state + ".bottom", style.bottom());
@@ -200,7 +216,8 @@ public class AdmUiAtlasContractTest {
     }
 
     private static String sha256(byte[] bytes) throws Exception {
-        byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
+        byte[] digest = MessageDigest.getInstance("SHA-256")
+            .digest(bytes);
         StringBuilder hex = new StringBuilder(digest.length * 2);
         for (byte value : digest) hex.append(String.format("%02x", value & 0xFF));
         return hex.toString();

@@ -89,7 +89,8 @@ public final class FixedAspectButtonFamily {
 
     private static int fittedHeightFor(int familyWidth, int requestedWidth, int requestedHeight) {
         int maxWidth = Math.max(1, requestedWidth);
-        int height = Math.max(1, Math.min(requestedHeight, (int) Math.floor(maxWidth * BASE_HEIGHT / (double) familyWidth)));
+        int height = Math
+            .max(1, Math.min(requestedHeight, (int) Math.floor(maxWidth * BASE_HEIGHT / (double) familyWidth)));
         while (height > 1 && Math.round(familyWidth * (height / (float) BASE_HEIGHT)) > maxWidth) {
             height--;
         }

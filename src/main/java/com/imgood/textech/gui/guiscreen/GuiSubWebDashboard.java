@@ -516,8 +516,9 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
             rotationXField, rotationYField, rotationZField };
         for (ADM_GuiTextField field : fields) {
             try {
-                Float.parseFloat(field.getText()
-                    .trim());
+                Float.parseFloat(
+                    field.getText()
+                        .trim());
             } catch (NumberFormatException e) {
                 return rejectField(field, I18n.format("adm.error.web_dashboard_number"));
             }

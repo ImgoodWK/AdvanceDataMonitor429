@@ -4,8 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.client.resources.I18n;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.EnumChatFormatting;
 
 import org.lwjgl.opengl.GL11;
@@ -96,7 +96,8 @@ public class GuiIconExportScreen extends ADM_GuiScreen {
         String modeLabel = session.getCurrentMode() != null ? session.getCurrentMode()
             .getId() : IconRenderMode.NEI.getId();
         String title = EnumChatFormatting.AQUA + I18n.format("adm.icon_export.title", modeLabel);
-        String progress = EnumChatFormatting.WHITE + I18n.format("adm.icon_export.progress", Math.min(renderedItems, total), total);
+        String progress = EnumChatFormatting.WHITE
+            + I18n.format("adm.icon_export.progress", Math.min(renderedItems, total), total);
         String hint = EnumChatFormatting.GRAY + I18n.format("adm.icon_export.cancel_hint");
         drawCenteredString(fontRendererObj, title, width / 2, height / 2 - 24, 0xFFFFFF);
         drawCenteredString(fontRendererObj, progress, width / 2, height / 2 - 8, 0xFFFFFF);

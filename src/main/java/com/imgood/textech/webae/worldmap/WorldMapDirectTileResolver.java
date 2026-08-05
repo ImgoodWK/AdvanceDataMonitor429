@@ -48,7 +48,16 @@ public final class WorldMapDirectTileResolver {
         DirectTileResult result;
         if (WorldMapTileLayer.isAe(normalizedLayer)) {
             byte[] png = WorldMapDirectCaptureBridge.instance()
-                .requestClientCapture(normalizedLayer, ownerUuid, actorUuid, networkId, dim, chunkX, chunkZ, tilePx, 0L);
+                .requestClientCapture(
+                    normalizedLayer,
+                    ownerUuid,
+                    actorUuid,
+                    networkId,
+                    dim,
+                    chunkX,
+                    chunkZ,
+                    tilePx,
+                    0L);
             if (png == null || png.length == 0) {
                 return null;
             }
@@ -118,10 +127,22 @@ public final class WorldMapDirectTileResolver {
         }
     }
 
-    private static String cacheKey(String layer, String ownerUuid, String actorUuid, int networkId, int dim,
-        int chunkX, int chunkZ, int tilePx) {
-        return layer + "|" + ownerUuid + "|" + actorUuid + "|" + networkId + "|" + dim + "|" + chunkX + "|"
-            + chunkZ + "|" + tilePx;
+    private static String cacheKey(String layer, String ownerUuid, String actorUuid, int networkId, int dim, int chunkX,
+        int chunkZ, int tilePx) {
+        return layer + "|"
+            + ownerUuid
+            + "|"
+            + actorUuid
+            + "|"
+            + networkId
+            + "|"
+            + dim
+            + "|"
+            + chunkX
+            + "|"
+            + chunkZ
+            + "|"
+            + tilePx;
     }
 
     public static final class DirectTileResult {

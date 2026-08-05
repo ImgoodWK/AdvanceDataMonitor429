@@ -3,9 +3,11 @@ package com.imgood.textech.webae.worldmap;
 /**
  * A user-owned annotation shown on a world-map snapshot.
  *
- * <p>The DTO is deliberately a simple mutable data object.  The annotation
+ * <p>
+ * The DTO is deliberately a simple mutable data object. The annotation
  * service is the authority for assigning ids and timestamps; callers should
- * not construct those fields for a create request.</p>
+ * not construct those fields for a create request.
+ * </p>
  */
 public class WorldMapAnnotationDto {
 

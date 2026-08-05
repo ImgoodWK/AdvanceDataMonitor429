@@ -174,9 +174,11 @@ public class GuiSubBind extends ADM_GuiScreen {
                 // 创建新数据条目并保存坐标
                 int newIndex = tileEntity.findLowestFreeBindingIndex();
                 if (newIndex < 0) {
-                    rejectField(null, I18n.format(
-                        "adm.error.data_bindings_full",
-                        Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS)));
+                    rejectField(
+                        null,
+                        I18n.format(
+                            "adm.error.data_bindings_full",
+                            Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS)));
                     return;
                 }
                 net.minecraft.nbt.NBTTagCompound defaultNbt = tileEntity.getDataBound(newIndex);

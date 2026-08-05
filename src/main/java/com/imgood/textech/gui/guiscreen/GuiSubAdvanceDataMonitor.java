@@ -17,8 +17,8 @@ import net.minecraft.world.World;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AbstractMonitorSubGui;
-import com.imgood.textech.monitor.MonitorWidgetSpec;
 import com.imgood.textech.monitor.MonitorThresholdEvaluator;
+import com.imgood.textech.monitor.MonitorWidgetSpec;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.ContentsHelper;
 
@@ -224,7 +224,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         contents.add(MonitorWidgetSpec.getMetricKey(tileEntity.getDataBound(index)));
         contents.add(MonitorWidgetSpec.getSourceKind(tileEntity.getDataBound(index)));
         contents.add(String.valueOf(MonitorWidgetSpec.getTargetValue(tileEntity.getDataBound(index))));
-        NBTTagCompound threshold = tileEntity.getDataBound(index).getCompoundTag(MonitorWidgetSpec.THRESHOLD_KEY);
+        NBTTagCompound threshold = tileEntity.getDataBound(index)
+            .getCompoundTag(MonitorWidgetSpec.THRESHOLD_KEY);
         thresholdEnabled = threshold.getBoolean("enabled");
         thresholdOperator = MonitorThresholdEvaluator.OPERATOR_LTE.equals(threshold.getString("operator"))
             ? MonitorThresholdEvaluator.OPERATOR_LTE
@@ -298,20 +299,19 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
 
         this.buttonList
             .add(button(2, offsetX, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.statCard"));
-        this.buttonList.add(
-            button(3, offsetX + 70, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.progressBar"));
+        this.buttonList
+            .add(button(3, offsetX + 70, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.progressBar"));
         this.buttonList
             .add(button(4, offsetX + 140, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.gauge"));
-        this.buttonList.add(
-            button(5, offsetX + 210, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.lineChart"));
-        this.buttonList.add(
-            button(6, offsetX + 280, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.barChart"));
-        this.buttonList.add(
-            button(7, offsetX + 350, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.pieChart"));
-        this.buttonList.add(
-            button(8, offsetX + 420, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.dataTable"));
-        this.buttonList.add(
-            button(30, offsetX + 490, offsetY + buttonRowYOffset2, 100, 20, "adm.button.sourceKind"));
+        this.buttonList
+            .add(button(5, offsetX + 210, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.lineChart"));
+        this.buttonList
+            .add(button(6, offsetX + 280, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.barChart"));
+        this.buttonList
+            .add(button(7, offsetX + 350, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.pieChart"));
+        this.buttonList
+            .add(button(8, offsetX + 420, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.dataTable"));
+        this.buttonList.add(button(30, offsetX + 490, offsetY + buttonRowYOffset2, 100, 20, "adm.button.sourceKind"));
 
         int configY = buttonRowConfigYoffset1;
         this.buttonList.add(
@@ -375,7 +375,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         ((ADM_GuiButton) getButtonByid(22)).setTextColor(isEnabledAxisFont ? 0x00FFFF : 0xFF0000);
         getButtonByid(40).displayString = I18n
             .format(thresholdEnabled ? "adm.button.threshold_on" : "adm.button.threshold_off");
-        getButtonByid(41).displayString = MonitorThresholdEvaluator.OPERATOR_LTE.equals(thresholdOperator) ? "<=" : ">=";
+        getButtonByid(41).displayString = MonitorThresholdEvaluator.OPERATOR_LTE.equals(thresholdOperator) ? "<="
+            : ">=";
         ((ADM_GuiButton) getButtonByid(40)).setTextColor(thresholdEnabled ? 0x00FFFF : 0xFF0000);
     }
 
@@ -456,7 +457,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
     }
 
     private void cycleSourceKind() {
-        String current = textFieldSourceKind.getText().trim();
+        String current = textFieldSourceKind.getText()
+            .trim();
         int next = 0;
         for (int i = 0; i < SOURCE_KINDS.length; i++) {
             if (SOURCE_KINDS[i].equals(current)) {
@@ -555,7 +557,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         nbt.setTag("dataValues", existingDataValues.copy());
         applyKind(nbt, kind == null ? MonitorWidgetSpec.KIND_LINE_CHART : kind);
 
-        String metricKey = textFieldMetricKey.getText().trim();
+        String metricKey = textFieldMetricKey.getText()
+            .trim();
         if (metricKey.isEmpty()) {
             rejectField(textFieldMetricKey, I18n.format("adm.error.metricKey"));
             return;
@@ -563,7 +566,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         nbt.setString("metricKey", metricKey);
         nbt.setString("name", metricKey);
 
-        String sourceKind = textFieldSourceKind.getText().trim();
+        String sourceKind = textFieldSourceKind.getText()
+            .trim();
         if (!isSupportedSourceKind(sourceKind)) {
             rejectField(textFieldSourceKind, I18n.format("adm.error.sourceKind"));
             return;
@@ -601,9 +605,7 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         threshold.setBoolean("enabled", thresholdEnabled);
         threshold.setString("operator", thresholdOperator);
         threshold.setDouble("value", Double.parseDouble(textFieldThresholdValue.getText()));
-        threshold.setDouble(
-            "hysteresis",
-            Math.max(0.0D, Double.parseDouble(textFieldThresholdHysteresis.getText())));
+        threshold.setDouble("hysteresis", Math.max(0.0D, Double.parseDouble(textFieldThresholdHysteresis.getText())));
         threshold.setDouble("outputMin", Double.parseDouble(textFieldThresholdOutputMin.getText()));
         threshold.setDouble("outputMax", Double.parseDouble(textFieldThresholdOutputMax.getText()));
         nbt.setTag(MonitorWidgetSpec.THRESHOLD_KEY, threshold);

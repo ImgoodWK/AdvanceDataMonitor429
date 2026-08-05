@@ -181,9 +181,7 @@ public class PacketAssistantResponse implements IMessage {
                 }
                 byte[] uncompressedBytes = gunzipBounded(compressedBytes, MAX_NBT_BYTES);
                 DataInputStream dis = new DataInputStream(new ByteArrayInputStream(uncompressedBytes));
-                this.payload = CompressedStreamTools.func_152456_a(
-                    dis,
-                    new NBTSizeTracker(MAX_NBT_BYTES));
+                this.payload = CompressedStreamTools.func_152456_a(dis, new NBTSizeTracker(MAX_NBT_BYTES));
                 if (dis.available() != 0) {
                     throw new IllegalArgumentException("Compressed assistant response has trailing NBT bytes");
                 }
@@ -192,10 +190,7 @@ public class PacketAssistantResponse implements IMessage {
                     this.payload = new NBTTagCompound();
                 }
             } else if (compressedFlag == 0) {
-                this.payload = NetworkPacketCodec.readTag(
-                    buf,
-                    MAX_NBT_COMPRESSED_BYTES,
-                    MAX_NBT_BYTES);
+                this.payload = NetworkPacketCodec.readTag(buf, MAX_NBT_COMPRESSED_BYTES, MAX_NBT_BYTES);
                 if (this.payload == null) {
                     this.payload = new NBTTagCompound();
                 }

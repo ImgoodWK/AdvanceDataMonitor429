@@ -247,10 +247,8 @@ public class PacketAssistantAction implements IMessage {
                 buf,
                 this.candidateNbt == null ? new NBTTagCompound() : this.candidateNbt,
                 MAX_NBT_COMPRESSED_BYTES);
-            NetworkPacketCodec.writeTag(
-                buf,
-                this.payload == null ? new NBTTagCompound() : this.payload,
-                MAX_NBT_COMPRESSED_BYTES);
+            NetworkPacketCodec
+                .writeTag(buf, this.payload == null ? new NBTTagCompound() : this.payload, MAX_NBT_COMPRESSED_BYTES);
             if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
                 throw new IllegalArgumentException("Assistant action exceeds FML packet limit");
             }
@@ -264,8 +262,7 @@ public class PacketAssistantAction implements IMessage {
         if (action < REQUEST_CRAFT_CANDIDATES || action > SUBMIT_TELEPORT) {
             throw new IllegalArgumentException("Invalid assistant action");
         }
-        if (action == QUERY
-            && (intentTypeOrdinal < 0 || intentTypeOrdinal >= AssistantIntentType.values().length)) {
+        if (action == QUERY && (intentTypeOrdinal < 0 || intentTypeOrdinal >= AssistantIntentType.values().length)) {
             throw new IllegalArgumentException("Invalid assistant intent type");
         }
     }

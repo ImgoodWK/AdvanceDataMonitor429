@@ -2,8 +2,8 @@ package com.imgood.textech.webae.network;
 
 import com.imgood.textech.client.worldmap.WorldMapTileRenderWorker;
 import com.imgood.textech.utils.NetworkPacketCodec;
-import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapPacketAuthorization;
+import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 import com.imgood.textech.webae.worldmap.WorldMapView;
 

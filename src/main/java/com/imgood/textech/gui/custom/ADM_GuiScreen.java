@@ -12,10 +12,10 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.gui.framework.GuiBlitUtil;
-import com.imgood.textech.gui.framework.UnderlineFieldRegion;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.gui.framework.UiViewportTransform;
+import com.imgood.textech.gui.framework.UnderlineFieldRegion;
 
 public class ADM_GuiScreen extends GuiScreen {
 
@@ -287,12 +287,8 @@ public class ADM_GuiScreen extends GuiScreen {
 
     private UiViewportTransform refreshViewportTransform() {
         if (!viewportTransformEnabled || bg_width <= 0 || bg_height <= 0 || width <= 0 || height <= 0) {
-            viewportTransform = UiViewportTransform.fitCenteredBounds(
-                Math.max(1, width),
-                Math.max(1, height),
-                Math.max(1, width),
-                Math.max(1, height),
-                0);
+            viewportTransform = UiViewportTransform
+                .fitCenteredBounds(Math.max(1, width), Math.max(1, height), Math.max(1, width), Math.max(1, height), 0);
             return viewportTransform;
         }
         viewportTransform = UiViewportTransform.fitCenteredBounds(width, height, bg_width, bg_height, viewportMargin);

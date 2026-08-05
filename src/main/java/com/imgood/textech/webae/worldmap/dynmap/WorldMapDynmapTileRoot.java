@@ -98,7 +98,8 @@ public final class WorldMapDynmapTileRoot {
             return false;
         }
         String value = worldName.trim();
-        if (value.isEmpty() || ".".equals(value) || "..".equals(value)
+        if (value.isEmpty() || ".".equals(value)
+            || "..".equals(value)
             || value.getBytes(StandardCharsets.UTF_8).length > 128) {
             return false;
         }

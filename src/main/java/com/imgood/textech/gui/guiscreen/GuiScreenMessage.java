@@ -57,8 +57,8 @@ public class GuiScreenMessage extends ADM_GuiScreen {
 
         switch (messageType) {
             case INFO -> {
-                this.buttonList.add(
-                    new ADM_GuiButton(0, offsetX, offsetY, PANEL_WIDTH - 60, 20, I18n.format("adm.button.ok")));
+                this.buttonList
+                    .add(new ADM_GuiButton(0, offsetX, offsetY, PANEL_WIDTH - 60, 20, I18n.format("adm.button.ok")));
             }
             case WARNING -> {
                 this.buttonList.add(
@@ -96,12 +96,7 @@ public class GuiScreenMessage extends ADM_GuiScreen {
             case CUSTOM -> I18n.format("adm.message.custom");
         };
 
-        this.drawCenteredString(
-            this.fontRendererObj,
-            title,
-            panelX() + panelWidth() / 2,
-            panelY() + 14,
-            0xFFFFFF);
+        this.drawCenteredString(this.fontRendererObj, title, panelX() + panelWidth() / 2, panelY() + 14, 0xFFFFFF);
         int textY = panelY() + 38;
         for (String line : messageLines) {
             this.drawCenteredString(this.fontRendererObj, line, panelX() + panelWidth() / 2, textY, 0xFFFFFF);

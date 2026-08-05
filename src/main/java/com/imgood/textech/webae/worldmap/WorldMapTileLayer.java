@@ -46,8 +46,11 @@ public final class WorldMapTileLayer {
         String view = viewId.trim()
             .toLowerCase();
         if (WorldMapView.FLAT.id.equals(view) || WorldMapView.OBLIQUE_SE.id.equals(view)
-            || WorldMapView.OBLIQUE_SW.id.equals(view) || WorldMapView.OBLIQUE_NE.id.equals(view)
-            || WorldMapView.OBLIQUE_NW.id.equals(view) || "oblique".equals(view) || "iso_se".equals(view)) {
+            || WorldMapView.OBLIQUE_SW.id.equals(view)
+            || WorldMapView.OBLIQUE_NE.id.equals(view)
+            || WorldMapView.OBLIQUE_NW.id.equals(view)
+            || "oblique".equals(view)
+            || "iso_se".equals(view)) {
             return view;
         }
         return WorldMapView.FLAT.id;

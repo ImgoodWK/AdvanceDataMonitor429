@@ -39,8 +39,13 @@ public class BarChartRenderer implements IADMRender {
                 int color = palette(i, MonitorRenderSupport.color(nbt, "lineColor", 0x00FFFF));
                 MonitorRenderSupport.drawQuad(left, bottom, right, top, 0.01D, color, 0.9F);
                 if (categories.size() <= 8) {
-                    MonitorRenderSupport.drawTextCentered(category.label, (left + right) / 2.0D, bottom - 0.08D, 0.03D,
-                        0.010D, 0xFFFFFF);
+                    MonitorRenderSupport.drawTextCentered(
+                        category.label,
+                        (left + right) / 2.0D,
+                        bottom - 0.08D,
+                        0.03D,
+                        0.010D,
+                        0xFFFFFF);
                 }
             }
         } finally {

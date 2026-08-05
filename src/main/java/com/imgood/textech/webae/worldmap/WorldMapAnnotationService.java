@@ -9,9 +9,11 @@ import java.util.UUID;
 /**
  * Pure server-side CRUD service for world-map annotations.
  *
- * <p>This class intentionally knows nothing about HTTP, sessions or ACLs.  A
+ * <p>
+ * This class intentionally knows nothing about HTTP, sessions or ACLs. A
  * future handler supplies an already-authenticated actor and maps the explicit
- * result code/message to its wire response.</p>
+ * result code/message to its wire response.
+ * </p>
  */
 public final class WorldMapAnnotationService {
 
@@ -29,6 +31,7 @@ public final class WorldMapAnnotationService {
 
     public WorldMapAnnotationService(WorldMapAnnotationStore store) {
         this(store, new TimeSource() {
+
             @Override
             public long now() {
                 return System.currentTimeMillis();
@@ -40,6 +43,7 @@ public final class WorldMapAnnotationService {
     public WorldMapAnnotationService(WorldMapAnnotationStore store, TimeSource clock) {
         this.store = store == null ? new WorldMapAnnotationStore() : store;
         this.clock = clock == null ? new TimeSource() {
+
             @Override
             public long now() {
                 return System.currentTimeMillis();
@@ -317,8 +321,16 @@ public final class WorldMapAnnotationService {
     }
 
     private static NormalizedContent normalizeContent(WorldMapAnnotationRequest request) {
-        if (!isValidContent(request.label, request.note, request.color, request.fromVersion, request.toVersion,
-            request.dimension, request.x, request.y, request.z)) {
+        if (!isValidContent(
+            request.label,
+            request.note,
+            request.color,
+            request.fromVersion,
+            request.toVersion,
+            request.dimension,
+            request.x,
+            request.y,
+            request.z)) {
             return NormalizedContent.invalid("invalid_request", "annotation content is invalid");
         }
         String label = request.label.trim();
@@ -369,7 +381,8 @@ public final class WorldMapAnnotationService {
 
     private String allocateId(List<WorldMapAnnotationDto> records) {
         for (int attempt = 0; attempt < 10; attempt++) {
-            String id = UUID.randomUUID().toString();
+            String id = UUID.randomUUID()
+                .toString();
             boolean used = false;
             for (WorldMapAnnotationDto record : records) {
                 if (record != null && id.equals(record.id)) {
@@ -416,6 +429,7 @@ public final class WorldMapAnnotationService {
     }
 
     private static final class NormalizedContent {
+
         private final boolean valid;
         private final String code;
         private final String message;
@@ -443,6 +457,7 @@ public final class WorldMapAnnotationService {
 
     /** Small Java 8-compatible time seam. */
     public interface TimeSource {
+
         long now();
     }
 }

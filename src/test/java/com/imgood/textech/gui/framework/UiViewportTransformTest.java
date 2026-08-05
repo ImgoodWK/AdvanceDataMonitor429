@@ -17,12 +17,8 @@ public class UiViewportTransformTest {
 
     private static void assertScenario(int viewportWidth, int viewportHeight, int contentWidth, int contentHeight,
         int margin) {
-        UiViewportTransform transform = UiViewportTransform.fitCenteredBounds(
-            viewportWidth,
-            viewportHeight,
-            contentWidth,
-            contentHeight,
-            margin);
+        UiViewportTransform transform = UiViewportTransform
+            .fitCenteredBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, margin);
         assertTrue(transform.scale() > 0.0F);
         assertTrue(transform.scale() <= 1.0F);
 

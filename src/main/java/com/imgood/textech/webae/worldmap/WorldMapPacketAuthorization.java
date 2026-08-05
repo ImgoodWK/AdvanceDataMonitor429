@@ -7,9 +7,11 @@ import net.minecraft.entity.player.EntityPlayerMP;
 /**
  * Server-side authorization and range checks for world-map packets.
  *
- * <p>Packet fields identify the target WebAE owner/resource; they never identify
- * the actor.  The actor is always taken from the authenticated network context
- * and is checked here before a target field is used for a store lookup.</p>
+ * <p>
+ * Packet fields identify the target WebAE owner/resource; they never identify
+ * the actor. The actor is always taken from the authenticated network context
+ * and is checked here before a target field is used for a store lookup.
+ * </p>
  */
 public final class WorldMapPacketAuthorization {
 
@@ -27,10 +29,11 @@ public final class WorldMapPacketAuthorization {
         }
         try {
             UUID uuid = UUID.fromString(ownerUuid);
-            // UUID.fromString is permissive about some non-canonical forms.  The
+            // UUID.fromString is permissive about some non-canonical forms. The
             // owner id is also a directory key, so only the standard form is
             // safe to accept here.
-            return uuid.toString().equals(ownerUuid);
+            return uuid.toString()
+                .equals(ownerUuid);
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -41,7 +44,8 @@ public final class WorldMapPacketAuthorization {
         if (!isValidOwnerUuid(ownerUuid)) {
             return null;
         }
-        return UUID.fromString(ownerUuid).toString();
+        return UUID.fromString(ownerUuid)
+            .toString();
     }
 
     public static boolean isValidNetworkId(int networkId) {
@@ -53,8 +57,7 @@ public final class WorldMapPacketAuthorization {
     }
 
     public static boolean isValidChunk(int dim, int chunkX, int chunkZ) {
-        return Math.abs((long) dim) <= MAX_DIMENSION
-            && Math.abs((long) chunkX) <= MAX_CHUNK_COORDINATE
+        return Math.abs((long) dim) <= MAX_DIMENSION && Math.abs((long) chunkX) <= MAX_CHUNK_COORDINATE
             && Math.abs((long) chunkZ) <= MAX_CHUNK_COORDINATE;
     }
 
@@ -64,8 +67,7 @@ public final class WorldMapPacketAuthorization {
 
     /** Snapshot/HTTP layers are deliberately a closed set. */
     public static boolean isValidLayer(String layer) {
-        return WorldMapTileLayer.TERRAIN.equalsIgnoreCase(layer)
-            || WorldMapTileLayer.AE.equalsIgnoreCase(layer);
+        return WorldMapTileLayer.TERRAIN.equalsIgnoreCase(layer) || WorldMapTileLayer.AE.equalsIgnoreCase(layer);
     }
 
     /** Owner or server operator may operate the owner's world-map resources. */
@@ -90,12 +92,13 @@ public final class WorldMapPacketAuthorization {
         if (!coordinator.hasActiveJob(ownerUuid, networkId, version)) {
             return false;
         }
-        return canOperateOwner(player, ownerUuid) || coordinator.isActiveJobPlayer(ownerUuid, networkId, version, player);
+        return canOperateOwner(player, ownerUuid)
+            || coordinator.isActiveJobPlayer(ownerUuid, networkId, version, player);
     }
 
     /**
      * Allow snapshot reads only to the owner/operator or the active capture
-     * player for the exact snapshot version.  This prevents a client from
+     * player for the exact snapshot version. This prevents a client from
      * turning a tile-pull request into an arbitrary owner-file read.
      */
     public static boolean canReadSnapshot(EntityPlayerMP player, String ownerUuid, int networkId, int version) {
@@ -121,7 +124,8 @@ public final class WorldMapPacketAuthorization {
     }
 
     public static boolean isValidSource(String source) {
-        return "dynmap".equals(source) || "journeymap".equals(source) || "client_gl".equals(source)
+        return "dynmap".equals(source) || "journeymap".equals(source)
+            || "client_gl".equals(source)
             || "mixed".equals(source);
     }
 

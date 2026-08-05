@@ -95,7 +95,9 @@ public class PacketWorldMapSnapshotSyncResponse implements IMessage {
             }
             long pageLength = (long) nextOffset - batchOffset;
             if (batchOffset < 0 || batchOffset > MAX_TILE_OFFSET
-                || nextOffset < batchOffset || nextOffset > MAX_TILE_OFFSET || pageLength != count) {
+                || nextOffset < batchOffset
+                || nextOffset > MAX_TILE_OFFSET
+                || pageLength != count) {
                 throw new IllegalArgumentException("Invalid snapshot tile page offsets");
             }
             tileKeys = new ArrayList<String>(count);

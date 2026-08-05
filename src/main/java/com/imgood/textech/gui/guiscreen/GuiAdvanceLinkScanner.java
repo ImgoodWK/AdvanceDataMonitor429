@@ -388,12 +388,7 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         int maxScroll = totalHeight - visibleAreaHeight;
         int thumbH = Math.max(12, visibleAreaHeight * visibleAreaHeight / totalHeight);
         int thumbY = listStartY + (maxScroll == 0 ? 0 : scrollOffset * (visibleAreaHeight - thumbH) / maxScroll);
-        GuiBlitUtil.drawCoverCropped(
-            UiThemes.ADM.scrollTrackRegion(),
-            scrollbarX,
-            listStartY,
-            6,
-            visibleAreaHeight);
+        GuiBlitUtil.drawCoverCropped(UiThemes.ADM.scrollTrackRegion(), scrollbarX, listStartY, 6, visibleAreaHeight);
         GuiBlitUtil.drawCoverCropped(UiThemes.ADM.scrollThumbRegion(), scrollbarX, thumbY, 6, thumbH);
     }
 

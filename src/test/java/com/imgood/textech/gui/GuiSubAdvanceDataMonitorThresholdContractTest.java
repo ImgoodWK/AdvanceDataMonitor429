@@ -19,8 +19,7 @@ public class GuiSubAdvanceDataMonitorThresholdContractTest {
     @Test
     public void thresholdControlsAreReachableAndUseTheExistingTileSyncChain() throws IOException {
         assertTrue("Monitor configuration GUI source is missing: " + SOURCE, Files.isRegularFile(SOURCE));
-        String source = new String(Files.readAllBytes(SOURCE), StandardCharsets.UTF_8)
-            .replace("\r\n", "\n");
+        String source = new String(Files.readAllBytes(SOURCE), StandardCharsets.UTF_8).replace("\r\n", "\n");
 
         assertContains(source, "textFieldThresholdValue");
         assertContains(source, "textFieldThresholdHysteresis");

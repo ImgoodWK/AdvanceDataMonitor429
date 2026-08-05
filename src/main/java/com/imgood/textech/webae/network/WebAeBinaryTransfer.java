@@ -5,9 +5,11 @@ import java.io.ByteArrayOutputStream;
 /**
  * Shared bounds for WebAE binary packet transfers.
  *
- * <p>Forge 1.7.10 custom payloads have a 32767 byte ceiling.  Keeping the
+ * <p>
+ * Forge 1.7.10 custom payloads have a 32767 byte ceiling. Keeping the
  * binary portion at 24 KiB leaves room for packet metadata and length
- * framing, including the discriminator added by the network wrapper.</p>
+ * framing, including the discriminator added by the network wrapper.
+ * </p>
  */
 public final class WebAeBinaryTransfer {
 
@@ -39,7 +41,7 @@ public final class WebAeBinaryTransfer {
     }
 
     /**
-     * A single-use, strictly ordered accumulator.  Callers must discard the
+     * A single-use, strictly ordered accumulator. Callers must discard the
      * instance after {@link #accept(int, int, byte[])} returns the final
      * payload or throws.
      */
@@ -64,8 +66,12 @@ public final class WebAeBinaryTransfer {
 
         public synchronized byte[] accept(int index, int total, byte[] chunk) {
             touch();
-            if (total < 1 || total > maxChunks || index < 0 || index >= total
-                || chunk == null || chunk.length == 0 || chunk.length > MAX_PACKET_CHUNK_BYTES) {
+            if (total < 1 || total > maxChunks
+                || index < 0
+                || index >= total
+                || chunk == null
+                || chunk.length == 0
+                || chunk.length > MAX_PACKET_CHUNK_BYTES) {
                 throw new IllegalArgumentException("Invalid binary transfer chunk");
             }
             if (index == 0) {
@@ -75,7 +81,7 @@ public final class WebAeBinaryTransfer {
                 totalChunks = total;
                 nextIndex = 0;
                 receivedBytes = 0;
-                // Do not reserve the peer-declared worst case up front.  The stream
+                // Do not reserve the peer-declared worst case up front. The stream
                 // grows only as validated chunks arrive, keeping many concurrent
                 // first chunks from consuming the full session budget immediately.
                 output = new ByteArrayOutputStream(Math.min(maxTotalBytes, chunk.length));

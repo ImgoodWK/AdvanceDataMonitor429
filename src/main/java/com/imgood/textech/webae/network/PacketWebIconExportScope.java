@@ -69,13 +69,10 @@ public class PacketWebIconExportScope implements IMessage {
         valid = true;
         try {
             int start = buf.readerIndex();
-            exportScope = NetworkPacketCodec.readUtf8(
-                buf,
-                Math.min(MAX_SCOPE_BYTES, MAX_PACKET_BODY_BYTES - 8));
+            exportScope = NetworkPacketCodec.readUtf8(buf, Math.min(MAX_SCOPE_BYTES, MAX_PACKET_BODY_BYTES - 8));
             int consumed = buf.readerIndex() - start;
-            itemIdsJson = NetworkPacketCodec.readUtf8(
-                buf,
-                Math.min(MAX_ITEM_IDS_JSON_BYTES, MAX_PACKET_BODY_BYTES - consumed - 4));
+            itemIdsJson = NetworkPacketCodec
+                .readUtf8(buf, Math.min(MAX_ITEM_IDS_JSON_BYTES, MAX_PACKET_BODY_BYTES - consumed - 4));
             if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
                 throw new IllegalArgumentException("Icon export scope has trailing or oversized payload");
             }
@@ -99,7 +96,9 @@ public class PacketWebIconExportScope implements IMessage {
             if (array.size() > MAX_ITEM_IDS) return invalidItemIdList();
             List<String> ids = new ArrayList<String>(array.size());
             for (JsonElement element : array) {
-                if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                if (element == null || !element.isJsonPrimitive()
+                    || !element.getAsJsonPrimitive()
+                        .isString()) {
                     return invalidItemIdList();
                 }
                 String itemId = element.getAsString();
@@ -127,8 +126,7 @@ public class PacketWebIconExportScope implements IMessage {
                 return false;
             }
         }
-        return IconStore.isValidItemId(itemId)
-            && itemId.getBytes(StandardCharsets.UTF_8).length <= MAX_ITEM_ID_BYTES;
+        return IconStore.isValidItemId(itemId) && itemId.getBytes(StandardCharsets.UTF_8).length <= MAX_ITEM_ID_BYTES;
     }
 
     private static byte[] utf8(String value) {

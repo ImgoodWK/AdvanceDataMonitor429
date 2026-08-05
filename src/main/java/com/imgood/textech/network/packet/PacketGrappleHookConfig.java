@@ -40,7 +40,8 @@ public class PacketGrappleHookConfig implements IMessage {
     public void toBytes(ByteBuf buf) {
         int start = buf.writerIndex();
         try {
-            if (!isFinite(travelSpeed) || GrappleHookMode.fromId(modeId).getId() != modeId) {
+            if (!isFinite(travelSpeed) || GrappleHookMode.fromId(modeId)
+                .getId() != modeId) {
                 throw new IllegalArgumentException("Invalid grapple hook configuration");
             }
             buf.writeDouble(travelSpeed);
@@ -71,8 +72,8 @@ public class PacketGrappleHookConfig implements IMessage {
             if (length == 14) {
                 modeId = buf.readInt();
             }
-            if (!isFinite(travelSpeed) || GrappleHookMode.fromId(modeId).getId() != modeId
-                || buf.isReadable()) {
+            if (!isFinite(travelSpeed) || GrappleHookMode.fromId(modeId)
+                .getId() != modeId || buf.isReadable()) {
                 throw new IllegalArgumentException("Invalid grapple hook configuration");
             }
         } catch (RuntimeException error) {

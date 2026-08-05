@@ -116,8 +116,8 @@ public class PacketWebUploadPacketTest {
             int maxChunks = (8 * 1024 * 1024 + WebAeBinaryTransfer.MAX_PACKET_CHUNK_BYTES - 1)
                 / WebAeBinaryTransfer.MAX_PACKET_CHUNK_BYTES;
             for (int i = 0; i < 4; i++) {
-                Assert.assertNotNull(
-                    PacketWebIconUpload.ChunkSink.get("global-" + i, "pack", "hybrid", maxChunks, true));
+                Assert
+                    .assertNotNull(PacketWebIconUpload.ChunkSink.get("global-" + i, "pack", "hybrid", maxChunks, true));
             }
             Assert.assertNull(PacketWebIconUpload.ChunkSink.get("global-overflow", "pack", "hybrid", maxChunks, true));
         } finally {
@@ -156,14 +156,7 @@ public class PacketWebUploadPacketTest {
 
     @Test
     public void recipeUploadRejectsEmptyPayload() {
-        PacketWebRecipeUpload source = new PacketWebRecipeUpload(
-            true,
-            true,
-            0,
-            1,
-            0,
-            PLAYER_UUID,
-            new byte[0]);
+        PacketWebRecipeUpload source = new PacketWebRecipeUpload(true, true, 0, 1, 0, PLAYER_UUID, new byte[0]);
         try {
             source.toBytes(Unpooled.buffer());
             Assert.fail("empty recipe JSON must be rejected");

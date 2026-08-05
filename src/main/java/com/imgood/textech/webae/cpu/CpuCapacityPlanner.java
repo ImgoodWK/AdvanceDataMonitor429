@@ -95,8 +95,7 @@ public final class CpuCapacityPlanner {
         return plan;
     }
 
-    private static void addConcurrencyInterval(CpuJobHistoryDto job, long from, long to,
-        List<IntervalEvent> events) {
+    private static void addConcurrencyInterval(CpuJobHistoryDto job, long from, long to, List<IntervalEvent> events) {
         if (job.jobId != null && job.jobId.startsWith("local-")) {
             // A CPU-stuck observation with no one-to-one WebAE order cannot
             // masquerade as a known concurrent job.
@@ -114,11 +113,11 @@ public final class CpuCapacityPlanner {
             end = job.finishedAt;
         } else if (CpuJobHistoryDto.STATUS_RUNNING.equals(job.status)
             || CpuJobHistoryDto.STATUS_STUCK.equals(job.status)) {
-            end = to;
-        } else {
-            // queued and unknown records have no proven execution interval.
-            return;
-        }
+                end = to;
+            } else {
+                // queued and unknown records have no proven execution interval.
+                return;
+            }
 
         long startInWindow = Math.max(from, job.startedAt);
         long endInWindow = Math.min(to, end);
@@ -130,8 +129,10 @@ public final class CpuCapacityPlanner {
     }
 
     private static void addTerminalMeasurements(CpuJobHistoryDto job, List<Long> durations, List<Long> queueTimes) {
-        if (!job.isTerminal() || job.startedAt <= 0L || job.finishedAt < job.startedAt
-            || job.durationMs == null || job.durationMs.longValue() < 0L) {
+        if (!job.isTerminal() || job.startedAt <= 0L
+            || job.finishedAt < job.startedAt
+            || job.durationMs == null
+            || job.durationMs.longValue() < 0L) {
             return;
         }
         durations.add(job.durationMs);
@@ -192,8 +193,7 @@ public final class CpuCapacityPlanner {
     }
 
     private static boolean isValidSnapshot(CpuSnapshotHistoryDto snapshot) {
-        return snapshot != null && snapshot.timestamp > 0L && snapshot.cpuName != null
-            && !snapshot.cpuName.isEmpty();
+        return snapshot != null && snapshot.timestamp > 0L && snapshot.cpuName != null && !snapshot.cpuName.isEmpty();
     }
 
     private static boolean intersects(CpuJobHistoryDto job, long from, long to) {

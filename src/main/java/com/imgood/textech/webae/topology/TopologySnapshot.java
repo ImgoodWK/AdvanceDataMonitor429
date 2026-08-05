@@ -160,9 +160,11 @@ public final class TopologySnapshot {
     /**
      * Probe only real AE channel counters for an already-resolved Grid.
      *
-     * <p>This is shared by topology and network-health sampling so both surfaces use the same
+     * <p>
+     * This is shared by topology and network-health sampling so both surfaces use the same
      * conservative reflection fallback. The result is unavailable unless both used and maximum
-     * values can be verified; simulated topology capacity is never returned here.</p>
+     * values can be verified; simulated topology capacity is never returned here.
+     * </p>
      */
     public static ChannelProbeResult probeRealChannels(IGrid grid) {
         ChannelProbeResult result = new ChannelProbeResult();

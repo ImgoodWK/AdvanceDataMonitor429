@@ -16,7 +16,10 @@ public final class AtlasRegion {
         if (texture == null) {
             throw new IllegalArgumentException("texture");
         }
-        if (atlasSize <= 0 || u < 0 || v < 0 || width <= 0 || height <= 0
+        if (atlasSize <= 0 || u < 0
+            || v < 0
+            || width <= 0
+            || height <= 0
             || u + width > atlasSize
             || v + height > atlasSize) {
             throw new IllegalArgumentException("Atlas region is outside the texture");
@@ -54,7 +57,9 @@ public final class AtlasRegion {
     }
 
     public AtlasRegion subRegion(int localU, int localV, int regionWidth, int regionHeight) {
-        if (localU < 0 || localV < 0 || regionWidth <= 0 || regionHeight <= 0
+        if (localU < 0 || localV < 0
+            || regionWidth <= 0
+            || regionHeight <= 0
             || localU + regionWidth > width
             || localV + regionHeight > height) {
             throw new IllegalArgumentException("Sub-region is outside the parent region");

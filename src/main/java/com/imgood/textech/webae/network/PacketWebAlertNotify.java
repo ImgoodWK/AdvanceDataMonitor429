@@ -127,7 +127,8 @@ public final class PacketWebAlertNotify implements IMessage {
     }
 
     private static boolean isValidPosition(String value) {
-        return "top_left".equals(value) || "top_right".equals(value) || "bottom_left".equals(value)
+        return "top_left".equals(value) || "top_right".equals(value)
+            || "bottom_left".equals(value)
             || "bottom_right".equals(value);
     }
 

@@ -36,7 +36,8 @@ public final class WorldMapRenderSupport {
     private static final int PNG_IHDR_HEADER_BYTES = 8;
     private static final int PNG_IHDR_DATA_BYTES = 13;
     private static final int PNG_IHDR_TOTAL_BYTES = PNG_SIGNATURE_BYTES + PNG_IHDR_HEADER_BYTES
-        + PNG_IHDR_DATA_BYTES + 4;
+        + PNG_IHDR_DATA_BYTES
+        + 4;
 
     private WorldMapRenderSupport() {}
 
@@ -175,7 +176,10 @@ public final class WorldMapRenderSupport {
      * than the minimum accepted for rendered world-map tiles.
      */
     public static boolean isValidBoundedPng(byte[] png, long minBytes, long maxBytes, int maxDimension) {
-        if (png == null || minBytes < 0L || maxBytes < minBytes || maxDimension <= 0 || png.length < minBytes
+        if (png == null || minBytes < 0L
+            || maxBytes < minBytes
+            || maxDimension <= 0
+            || png.length < minBytes
             || png.length > maxBytes) {
             return false;
         }
@@ -232,8 +236,7 @@ public final class WorldMapRenderSupport {
             }
         }
         long ihdrLength = uint32(png, PNG_SIGNATURE_BYTES);
-        if (ihdrLength != PNG_IHDR_DATA_BYTES || png[12] != 'I' || png[13] != 'H' || png[14] != 'D'
-            || png[15] != 'R') {
+        if (ihdrLength != PNG_IHDR_DATA_BYTES || png[12] != 'I' || png[13] != 'H' || png[14] != 'D' || png[15] != 'R') {
             return false;
         }
         long width = uint32(png, 16);
@@ -247,7 +250,8 @@ public final class WorldMapRenderSupport {
         int compressionMethod = png[26] & 0xff;
         int filterMethod = png[27] & 0xff;
         int interlaceMethod = png[28] & 0xff;
-        if (!isValidPngColorDepth(colorType, bitDepth) || compressionMethod != 0 || filterMethod != 0
+        if (!isValidPngColorDepth(colorType, bitDepth) || compressionMethod != 0
+            || filterMethod != 0
             || (interlaceMethod != 0 && interlaceMethod != 1)) {
             return false;
         }
@@ -274,8 +278,7 @@ public final class WorldMapRenderSupport {
     }
 
     private static long uint32(byte[] bytes, int offset) {
-        return ((long) (bytes[offset] & 0xff) << 24)
-            | ((long) (bytes[offset + 1] & 0xff) << 16)
+        return ((long) (bytes[offset] & 0xff) << 24) | ((long) (bytes[offset + 1] & 0xff) << 16)
             | ((long) (bytes[offset + 2] & 0xff) << 8)
             | (long) (bytes[offset + 3] & 0xff);
     }

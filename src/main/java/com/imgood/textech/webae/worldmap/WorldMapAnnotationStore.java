@@ -23,8 +23,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.imgood.textech.TeXTechDataDir;
@@ -32,11 +32,13 @@ import com.imgood.textech.TeXTechDataDir;
 /**
  * Disk persistence for world-map annotations.
  *
- * <p>Each owner/network pair is stored in one JSON array at
- * {@code TeXTech/WebAE/map-annotations/{ownerUuid}/{networkId}.json}.  The
- * store does no HTTP or permission checks.  It does enforce path safety,
+ * <p>
+ * Each owner/network pair is stored in one JSON array at
+ * {@code TeXTech/WebAE/map-annotations/{ownerUuid}/{networkId}.json}. The
+ * store does no HTTP or permission checks. It does enforce path safety,
  * record limits and record validation so that a malformed file cannot become
- * an unsafe path or an unbounded allocation.</p>
+ * an unsafe path or an unbounded allocation.
+ * </p>
  */
 public final class WorldMapAnnotationStore {
 
@@ -46,9 +48,11 @@ public final class WorldMapAnnotationStore {
 
     private static final Charset UTF8 = Charset.forName("UTF-8");
     private static final String FILE_SUFFIX = ".json";
-    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
+    private static final Gson GSON = new GsonBuilder().serializeNulls()
+        .create();
     private static final ConcurrentHashMap<String, Object> LOCKS = new ConcurrentHashMap<String, Object>();
     private static final AtomicWriteStrategy DEFAULT_WRITER = new AtomicWriteStrategy() {
+
         @Override
         public void write(File target, byte[] bytes) throws IOException {
             writeAtomically(target, bytes);
@@ -64,7 +68,7 @@ public final class WorldMapAnnotationStore {
     }
 
     /**
-     * Creates a store rooted at an isolated directory.  This constructor is
+     * Creates a store rooted at an isolated directory. This constructor is
      * intentionally public so tests and embedding servers can provide a
      * dedicated data root without changing production global paths.
      */
@@ -73,7 +77,7 @@ public final class WorldMapAnnotationStore {
     }
 
     /**
-     * Creates a store with an injectable atomic writer.  A writer that throws
+     * Creates a store with an injectable atomic writer. A writer that throws
      * is useful for proving failed writes leave the previous file intact.
      */
     WorldMapAnnotationStore(File rootDirectory, AtomicWriteStrategy writer) {
@@ -112,7 +116,7 @@ public final class WorldMapAnnotationStore {
         return raced == null ? created : raced;
     }
 
-    /** Reads one owner/network file.  A missing file is a successful empty list. */
+    /** Reads one owner/network file. A missing file is a successful empty list. */
     public ReadResult load(String ownerUuid, int networkId) {
         String owner = WorldMapPacketAuthorization.canonicalOwnerUuid(ownerUuid);
         if (owner == null || !WorldMapPacketAuthorization.isValidNetworkId(networkId) || rootDirectory == null) {
@@ -161,7 +165,8 @@ public final class WorldMapAnnotationStore {
             }
             copy.add(record.copy());
         }
-        byte[] bytes = GSON.toJson(copy).getBytes(UTF8);
+        byte[] bytes = GSON.toJson(copy)
+            .getBytes(UTF8);
         if (bytes.length > MAX_FILE_BYTES) {
             return WriteResult.failure("oversize_file", "serialized annotation file exceeds the size limit");
         }
@@ -233,8 +238,16 @@ public final class WorldMapAnnotationStore {
         if (record.createdAt <= 0L || record.updatedAt < record.createdAt) {
             return false;
         }
-        if (!WorldMapAnnotationService.isValidContent(record.label, record.note, record.color,
-            record.fromVersion, record.toVersion, record.dimension, record.x, record.y, record.z)) {
+        if (!WorldMapAnnotationService.isValidContent(
+            record.label,
+            record.note,
+            record.color,
+            record.fromVersion,
+            record.toVersion,
+            record.dimension,
+            record.x,
+            record.y,
+            record.z)) {
             return false;
         }
         return true;
@@ -245,7 +258,9 @@ public final class WorldMapAnnotationStore {
             return false;
         }
         try {
-            return UUID.fromString(value).toString().equals(value);
+            return UUID.fromString(value)
+                .toString()
+                .equals(value);
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -316,8 +331,12 @@ public final class WorldMapAnnotationStore {
         if (directory.exists()) {
             return directory.isDirectory() && !Files.isSymbolicLink(directory.toPath());
         }
-        Path root = rootDirectory.getAbsoluteFile().toPath().normalize();
-        Path path = directory.getAbsoluteFile().toPath().normalize();
+        Path root = rootDirectory.getAbsoluteFile()
+            .toPath()
+            .normalize();
+        Path path = directory.getAbsoluteFile()
+            .toPath()
+            .normalize();
         if (!path.equals(root)) {
             File parent = directory.getParentFile();
             if (parent != null && !ensureDirectory(parent)) {
@@ -342,8 +361,12 @@ public final class WorldMapAnnotationStore {
             return false;
         }
         try {
-            Path root = rootDirectory.getAbsoluteFile().toPath().normalize();
-            Path path = candidate.getAbsoluteFile().toPath().normalize();
+            Path root = rootDirectory.getAbsoluteFile()
+                .toPath()
+                .normalize();
+            Path path = candidate.getAbsoluteFile()
+                .toPath()
+                .normalize();
             if (!path.equals(root) && !path.startsWith(root)) {
                 return false;
             }
@@ -369,7 +392,8 @@ public final class WorldMapAnnotationStore {
             throw new IOException("missing annotation target");
         }
         File parent = target.getParentFile();
-        if (parent == null || !parent.isDirectory() || Files.isSymbolicLink(parent.toPath())
+        if (parent == null || !parent.isDirectory()
+            || Files.isSymbolicLink(parent.toPath())
             || (target.exists() && Files.isSymbolicLink(target.toPath()))) {
             throw new IOException("unsafe annotation target");
         }
@@ -379,11 +403,15 @@ public final class WorldMapAnnotationStore {
             output = new FileOutputStream(temporary);
             output.write(bytes);
             output.flush();
-            output.getFD().sync();
+            output.getFD()
+                .sync();
             output.close();
             output = null;
             try {
-                Files.move(temporary.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
+                Files.move(
+                    temporary.toPath(),
+                    target.toPath(),
+                    StandardCopyOption.ATOMIC_MOVE,
                     StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(temporary.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -403,10 +431,12 @@ public final class WorldMapAnnotationStore {
 
     /** Functional seam used by tests to force an atomic-write failure. */
     interface AtomicWriteStrategy {
+
         void write(File target, byte[] bytes) throws IOException;
     }
 
     public static final class ReadResult {
+
         public final boolean success;
         public final String code;
         public final String message;
@@ -429,6 +459,7 @@ public final class WorldMapAnnotationStore {
     }
 
     public static final class WriteResult {
+
         public final boolean success;
         public final String code;
         public final String message;

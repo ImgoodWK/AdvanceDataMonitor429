@@ -24,9 +24,11 @@ import com.imgood.textech.webae.access.WebAeNetworkKeys;
 /**
  * Atomic, owner-isolated JSON persistence for CPU history.
  *
- * <p>Every write is prepared in the target directory and then replaced
+ * <p>
+ * Every write is prepared in the target directory and then replaced
  * atomically where the filesystem supports it. A failed write or move leaves
- * the previous target untouched.</p>
+ * the previous target untouched.
+ * </p>
  */
 public final class CpuHistoryStore {
 
@@ -64,7 +66,8 @@ public final class CpuHistoryStore {
     }
 
     public boolean save(CpuHistoryState state) {
-        if (state == null || !isSafeOwnerUuid(state.ownerUuid) || state.networkId < 0
+        if (state == null || !isSafeOwnerUuid(state.ownerUuid)
+            || state.networkId < 0
             || !WebAeNetworkKeys.isValidKeyFormat(state.networkKey)) {
             return false;
         }
@@ -142,12 +145,14 @@ public final class CpuHistoryStore {
 
             @Override
             public int compare(File a, File b) {
-                return a.getName().compareTo(b.getName());
+                return a.getName()
+                    .compareTo(b.getName());
             }
         });
         for (int i = 0; i < files.length; i++) {
             File candidate = files[i];
-            if (!candidate.isFile() || !candidate.getName().endsWith(".json") || sameFile(candidate, primary)) {
+            if (!candidate.isFile() || !candidate.getName()
+                .endsWith(".json") || sameFile(candidate, primary)) {
                 continue;
             }
             CpuHistoryState state = loadMatching(candidate, ownerUuid, networkKey);
@@ -223,7 +228,8 @@ public final class CpuHistoryStore {
         if (sidecar != null && (!sidecar.isFile() || isOwnedFile(sidecar, state.ownerUuid, state.networkKey))) {
             return sidecar;
         }
-        warn("[WebAE] Refusing to overwrite CPU history owned by another stable network at {}",
+        warn(
+            "[WebAE] Refusing to overwrite CPU history owned by another stable network at {}",
             primary.getAbsolutePath());
         return null;
     }
@@ -247,7 +253,8 @@ public final class CpuHistoryStore {
             File canonicalRoot = root.getCanonicalFile();
             File owner = new File(canonicalRoot, ownerUuid).getCanonicalFile();
             String rootPath = canonicalRoot.getPath();
-            if (!owner.getPath().startsWith(rootPath + File.separator)) {
+            if (!owner.getPath()
+                .startsWith(rootPath + File.separator)) {
                 return null;
             }
             return owner;
@@ -263,7 +270,9 @@ public final class CpuHistoryStore {
             return false;
         }
         try {
-            return candidate.getCanonicalFile().getPath().startsWith(owner.getPath() + File.separator);
+            return candidate.getCanonicalFile()
+                .getPath()
+                .startsWith(owner.getPath() + File.separator);
         } catch (IOException e) {
             return false;
         }
@@ -280,7 +289,8 @@ public final class CpuHistoryStore {
         }
         try {
             File sidecar = new File(owner, networkId + "-" + suffix + ".json").getCanonicalFile();
-            return sidecar.getPath().startsWith(owner.getPath() + File.separator) ? sidecar : null;
+            return sidecar.getPath()
+                .startsWith(owner.getPath() + File.separator) ? sidecar : null;
         } catch (IOException e) {
             warn("[WebAE] Failed to resolve CPU history sidecar path", e);
             return null;
@@ -317,7 +327,8 @@ public final class CpuHistoryStore {
             return false;
         }
         try {
-            return a.getCanonicalFile().equals(b.getCanonicalFile());
+            return a.getCanonicalFile()
+                .equals(b.getCanonicalFile());
         } catch (IOException e) {
             return a.equals(b);
         }

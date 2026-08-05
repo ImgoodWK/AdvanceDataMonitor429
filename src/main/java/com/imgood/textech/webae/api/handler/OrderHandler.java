@@ -28,9 +28,9 @@ import com.imgood.textech.assistant.CraftSubmitHooks;
 import com.imgood.textech.assistant.CraftingCandidate;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.cpu.CpuHistoryService;
 import com.imgood.textech.webae.craft.CraftSubmitResult;
 import com.imgood.textech.webae.craft.WebAeCraftService;
-import com.imgood.textech.webae.cpu.CpuHistoryService;
 import com.imgood.textech.webae.dto.OrderBatchRequest;
 import com.imgood.textech.webae.dto.OrderRequest;
 import com.imgood.textech.webae.dto.OrderResult;
@@ -138,7 +138,8 @@ public class OrderHandler {
         String prefix = batchJobId + "-";
         List<String> jobIds = new ArrayList<String>();
         for (Map.Entry<String, OrderTrackEntry> e : activeOrders.entrySet()) {
-            if (e.getKey() != null && e.getKey().startsWith(prefix)) {
+            if (e.getKey() != null && e.getKey()
+                .startsWith(prefix)) {
                 jobIds.add(e.getKey());
             }
         }
@@ -448,9 +449,8 @@ public class OrderHandler {
                             subJobId,
                             hooks);
                         if (craftResult == null || craftResult.failed || !craftResult.accepted) {
-                            OrderHandler.markFailed(
-                                subJobId,
-                                craftResult != null ? craftResult.message : "submit failed");
+                            OrderHandler
+                                .markFailed(subJobId, craftResult != null ? craftResult.message : "submit failed");
                             or.success = false;
                             or.message = craftResult != null ? craftResult.message : "submit failed";
                             or.craftJobId = "";
@@ -744,7 +744,7 @@ public class OrderHandler {
 
     /**
      * Lightweight server-tick observer for links that have reached a terminal
-     * state.  HTTP status/list requests still resolve full progress, but this
+     * state. HTTP status/list requests still resolve full progress, but this
      * path only asks the already-bound ICraftingLink for done/cancelled so CPU
      * history does not depend on a browser continuing to poll.
      */
@@ -757,7 +757,9 @@ public class OrderHandler {
         lastLinkObserverAt = now;
         for (Map.Entry<String, OrderTrackEntry> mapEntry : activeOrders.entrySet()) {
             OrderTrackEntry entry = mapEntry.getValue();
-            if (entry == null || entry.link == null || entry.jobId == null || entry.failedAt > 0L
+            if (entry == null || entry.link == null
+                || entry.jobId == null
+                || entry.failedAt > 0L
                 || entry.cancelledAt > 0L) {
                 continue;
             }

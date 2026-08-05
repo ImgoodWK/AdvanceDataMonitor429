@@ -107,14 +107,15 @@ public class PacketMonitorWebSurface implements IMessage {
             hash = NetworkPacketCodec.readVarUtf8(buf, MAX_HASH_BYTES);
             success = buf.readBoolean();
             payload = NetworkPacketCodec.readBytes(buf, MAX_PAYLOAD_BYTES);
-            config = buf.readBoolean() ? NetworkPacketCodec.readTag(
-                buf,
-                MAX_CONFIG_NBT_COMPRESSED_BYTES,
-                MAX_CONFIG_NBT_BYTES) : null;
+            config = buf.readBoolean()
+                ? NetworkPacketCodec.readTag(buf, MAX_CONFIG_NBT_COMPRESSED_BYTES, MAX_CONFIG_NBT_BYTES)
+                : null;
             if ((kind != KIND_REQUEST && kind != KIND_CONTENT && kind != KIND_UPLOAD && kind != KIND_ACK)
-                || hash.length() > 64 || index >= TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS
+                || hash.length() > 64
+                || index >= TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS
                 || (config != null && config.hasKey("webBindingJson")
-                    && config.getString("webBindingJson").length() > MAX_BINDING_JSON_CHARS)) {
+                    && config.getString("webBindingJson")
+                        .length() > MAX_BINDING_JSON_CHARS)) {
                 valid = false;
             }
             if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
@@ -280,7 +281,11 @@ public class PacketMonitorWebSurface implements IMessage {
                     if (!accepted) {
                         NBTTagCompound authoritative = new NBTTagCompound();
                         monitor.writeSyncNBT(authoritative);
-                        PacketSynTileEntity sync = new PacketSynTileEntity(message.x, message.y, message.z, authoritative);
+                        PacketSynTileEntity sync = new PacketSynTileEntity(
+                            message.x,
+                            message.y,
+                            message.z,
+                            authoritative);
                         if (sync.fitsPacketBudget()) {
                             AdvanceDataMonitor.ADMCHANEL.sendTo(sync, player);
                         }

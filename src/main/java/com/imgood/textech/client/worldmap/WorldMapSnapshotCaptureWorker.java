@@ -78,7 +78,8 @@ public final class WorldMapSnapshotCaptureWorker {
     }
 
     private void startJob(WorldMapCaptureJobAssembler.AssembledJob job) {
-        if (job == null || job.chunks == null || job.chunks.isEmpty()
+        if (job == null || job.chunks == null
+            || job.chunks.isEmpty()
             || job.chunks.size() > PacketWorldMapCaptureJob.MAX_TOTAL_CHUNKS
             || !WorldMapPacketAuthorization.isValidOwnerUuid(job.ownerUuid)
             || !WorldMapPacketAuthorization.isValidNetworkId(job.networkId)
@@ -249,16 +250,8 @@ public final class WorldMapSnapshotCaptureWorker {
     }
 
     private void sendTile(String layer, int dim, int chunkX, int chunkZ, byte[] png) {
-        PacketWorldMapSnapshotTileUpload.sendToServer(
-            ownerUuid,
-            networkId,
-            snapshotVersion,
-            layer,
-            dim,
-            chunkX,
-            chunkZ,
-            tilePx,
-            png);
+        PacketWorldMapSnapshotTileUpload
+            .sendToServer(ownerUuid, networkId, snapshotVersion, layer, dim, chunkX, chunkZ, tilePx, png);
     }
 
     private void finalizeUpload() {

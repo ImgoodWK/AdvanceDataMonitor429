@@ -16,8 +16,8 @@ import com.imgood.textech.client.GrappleClientRouteCache;
 import com.imgood.textech.client.PocketClientCache;
 import com.imgood.textech.handler.PocketState;
 import com.imgood.textech.items.GrappleHookMode;
-import com.imgood.textech.items.PlannerMergeMode;
 import com.imgood.textech.items.GrappleRouteEntry;
+import com.imgood.textech.items.PlannerMergeMode;
 import com.imgood.textech.utils.BlockPos;
 import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.utils.WebDashboardSnapshotCodec;
@@ -31,8 +31,8 @@ public class PacketCoreBoundaryTest {
 
     @Test
     public void varUtf8RejectsFifthByteIntegerOverflow() {
-        ByteBuf overflow = Unpooled.wrappedBuffer(
-            new byte[] { (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x10 });
+        ByteBuf overflow = Unpooled
+            .wrappedBuffer(new byte[] { (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x10 });
         try {
             NetworkPacketCodec.readVarUtf8(overflow, 32);
             Assert.fail("overflowing VarInt length must be rejected before allocation");
@@ -92,7 +92,10 @@ public class PacketCoreBoundaryTest {
         PacketSynTileEntity decoded = new PacketSynTileEntity();
         decoded.fromBytes(copy(encoded, encoded.readableBytes()));
         Assert.assertFalse(decoded.malformed);
-        Assert.assertEquals("dashboard_snapshot", decoded.getData().getString("mode"));
+        Assert.assertEquals(
+            "dashboard_snapshot",
+            decoded.getData()
+                .getString("mode"));
 
         PacketSynTileEntity truncated = new PacketSynTileEntity();
         truncated.fromBytes(copy(encoded, encoded.readableBytes() - 1));
@@ -125,14 +128,8 @@ public class PacketCoreBoundaryTest {
 
     @Test
     public void monitorWebSurfaceEnforcesWholeBodyBudget() {
-        PacketMonitorWebSurface source = PacketMonitorWebSurface.upload(
-            1,
-            2,
-            3,
-            0,
-            HASH,
-            new byte[WebDashboardSnapshotCodec.MAX_COMPRESSED_BYTES],
-            null);
+        PacketMonitorWebSurface source = PacketMonitorWebSurface
+            .upload(1, 2, 3, 0, HASH, new byte[WebDashboardSnapshotCodec.MAX_COMPRESSED_BYTES], null);
         Assert.assertTrue(source.fitsPacketBudget());
         ByteBuf encoded = Unpooled.buffer();
         source.toBytes(encoded);
@@ -156,14 +153,7 @@ public class PacketCoreBoundaryTest {
 
         NBTTagCompound config = new NBTTagCompound();
         config.setByteArray("random", randomBytes(40000, 13L));
-        PacketMonitorWebSurface oversizedConfig = PacketMonitorWebSurface.upload(
-            1,
-            2,
-            3,
-            0,
-            HASH,
-            null,
-            config);
+        PacketMonitorWebSurface oversizedConfig = PacketMonitorWebSurface.upload(1, 2, 3, 0, HASH, null, config);
         Assert.assertFalse(oversizedConfig.fitsPacketBudget());
         try {
             oversizedConfig.toBytes(Unpooled.buffer());
@@ -200,22 +190,28 @@ public class PacketCoreBoundaryTest {
         }
         Assert.assertEquals(state.getPageCount(), PocketClientCache.getPageCount());
         Assert.assertEquals(state.getSlotsPerPage(), PocketClientCache.getSlotsPerPage());
-        Assert.assertEquals("split full fragments must not navigate", expectedCurrentPage,
+        Assert.assertEquals(
+            "split full fragments must not navigate",
+            expectedCurrentPage,
             PocketClientCache.getCurrentPage());
 
         int ordinaryTargetPage = expectedCurrentPage == 0 ? 1 : 0;
         PocketClientCache.apply(PacketPocketSync.singlePage(state, ordinaryTargetPage));
-        Assert.assertEquals("ordinary single-page sync must still navigate", ordinaryTargetPage,
+        Assert.assertEquals(
+            "ordinary single-page sync must still navigate",
+            ordinaryTargetPage,
             PocketClientCache.getCurrentPage());
 
         PacketPocketSync truncated = new PacketPocketSync();
         ByteBuf metadata = Unpooled.buffer();
-        packets.get(0).toBytes(metadata);
+        packets.get(0)
+            .toBytes(metadata);
         truncated.fromBytes(copy(metadata, metadata.readableBytes() - 1));
         Assert.assertTrue(truncated.malformed);
 
         ByteBuf trailing = Unpooled.buffer();
-        packets.get(0).toBytes(trailing);
+        packets.get(0)
+            .toBytes(trailing);
         trailing.writeByte(1);
         PacketPocketSync trailingDecoded = new PacketPocketSync();
         trailingDecoded.fromBytes(trailing);
@@ -223,7 +219,9 @@ public class PacketCoreBoundaryTest {
 
         PocketState impossible = new PocketState();
         impossible.setStack(0, 0, largeStack(40000, 99L));
-        Assert.assertTrue(PacketPocketSync.fullStatePackets(impossible).isEmpty());
+        Assert.assertTrue(
+            PacketPocketSync.fullStatePackets(impossible)
+                .isEmpty());
     }
 
     @Test
@@ -250,8 +248,7 @@ public class PacketCoreBoundaryTest {
     @Test
     public void grappleRetainsLegacySmallWireAndReassemblesLargeBatches() {
         GrappleRouteEntry smallRoute = route("small", 2, 1L);
-        List<PacketGrapplePathSync> legacy = PacketGrapplePathSync.routePackets(
-            Collections.singletonList(smallRoute));
+        List<PacketGrapplePathSync> legacy = PacketGrapplePathSync.routePackets(Collections.singletonList(smallRoute));
         Assert.assertEquals(1, legacy.size());
         Assert.assertEquals(PacketGrapplePathSync.KIND_ROUTES, legacy.get(0).kind);
 
@@ -272,9 +269,8 @@ public class PacketCoreBoundaryTest {
         PacketGrappleAction maxTravelDecoded = new PacketGrappleAction();
         maxTravelDecoded.fromBytes(encode(maxTravel));
         Assert.assertFalse(maxTravelDecoded.malformed);
-        PacketGrappleAction oversizedTravel = PacketGrappleAction.travelPath(
-            "oversized-travel",
-            route("travel-too-large", 513, 10L).nodes);
+        PacketGrappleAction oversizedTravel = PacketGrappleAction
+            .travelPath("oversized-travel", route("travel-too-large", 513, 10L).nodes);
         Assert.assertFalse("routes above the configured maximum must be rejected", oversizedTravel.fitsPacketBudget());
 
         List<GrappleRouteEntry> manyRoutes = new ArrayList<GrappleRouteEntry>();
@@ -295,18 +291,29 @@ public class PacketCoreBoundaryTest {
             Assert.assertFalse(decoded.malformed);
             GrappleClientRouteCache.apply(decoded);
             if (i == 0) {
-                Assert.assertEquals("incomplete batch must keep live routes", 1,
-                    GrappleClientRouteCache.getRoutes().size());
-                Assert.assertEquals("old-live", GrappleClientRouteCache.getRoutes().get(0).routeId);
+                Assert.assertEquals(
+                    "incomplete batch must keep live routes",
+                    1,
+                    GrappleClientRouteCache.getRoutes()
+                        .size());
+                Assert.assertEquals(
+                    "old-live",
+                    GrappleClientRouteCache.getRoutes()
+                        .get(0).routeId);
             }
         }
-        Assert.assertEquals(manyRoutes.size(), GrappleClientRouteCache.getRoutes().size());
+        Assert.assertEquals(
+            manyRoutes.size(),
+            GrappleClientRouteCache.getRoutes()
+                .size());
 
         List<PacketGrapplePathSync> tooMany = new ArrayList<PacketGrapplePathSync>();
         for (int i = 0; i < PacketGrapplePathSync.MAX_TOTAL_ROUTES + 1; i++) {
             tooMany.add(PacketGrapplePathSync.routes(Collections.singletonList(route("r" + i, 0, i))));
         }
-        Assert.assertTrue(PacketGrapplePathSync.routePackets(flattenRoutes(tooMany)).isEmpty());
+        Assert.assertTrue(
+            PacketGrapplePathSync.routePackets(flattenRoutes(tooMany))
+                .isEmpty());
     }
 
     @Test
@@ -355,37 +362,58 @@ public class PacketCoreBoundaryTest {
         batch.batchIndex = 0;
         batch.batchCount = 2;
         GrappleClientRouteCache.apply(batch);
-        Assert.assertEquals(1, GrappleClientRouteCache.getRoutes().size());
-        Assert.assertEquals("stable", GrappleClientRouteCache.getRoutes().get(0).routeId);
+        Assert.assertEquals(
+            1,
+            GrappleClientRouteCache.getRoutes()
+                .size());
+        Assert.assertEquals(
+            "stable",
+            GrappleClientRouteCache.getRoutes()
+                .get(0).routeId);
 
-        PacketGrapplePathSync conflict = PacketGrapplePathSync.routes(
-            Collections.singletonList(route("replacement-conflict", 0, 4L)));
+        PacketGrapplePathSync conflict = PacketGrapplePathSync
+            .routes(Collections.singletonList(route("replacement-conflict", 0, 4L)));
         conflict.kind = PacketGrapplePathSync.KIND_ROUTES_BATCH;
         conflict.batchIndex = 1;
         conflict.batchCount = 3;
         GrappleClientRouteCache.apply(conflict);
-        Assert.assertEquals(1, GrappleClientRouteCache.getRoutes().size());
-        Assert.assertEquals("stable", GrappleClientRouteCache.getRoutes().get(0).routeId);
+        Assert.assertEquals(
+            1,
+            GrappleClientRouteCache.getRoutes()
+                .size());
+        Assert.assertEquals(
+            "stable",
+            GrappleClientRouteCache.getRoutes()
+                .get(0).routeId);
 
         // A valid complete sequence commits only when its final packet arrives.
         List<PacketGrapplePathSync> valid = new ArrayList<PacketGrapplePathSync>();
-        PacketGrapplePathSync first = PacketGrapplePathSync.routes(
-            Collections.singletonList(route("replacement-a", 0, 2L)));
+        PacketGrapplePathSync first = PacketGrapplePathSync
+            .routes(Collections.singletonList(route("replacement-a", 0, 2L)));
         first.kind = PacketGrapplePathSync.KIND_ROUTES_BATCH;
         first.batchIndex = 0;
         first.batchCount = 2;
-        PacketGrapplePathSync last = PacketGrapplePathSync.routes(
-            Collections.singletonList(route("replacement-b", 0, 3L)));
+        PacketGrapplePathSync last = PacketGrapplePathSync
+            .routes(Collections.singletonList(route("replacement-b", 0, 3L)));
         last.kind = PacketGrapplePathSync.KIND_ROUTES_BATCH;
         last.batchIndex = 1;
         last.batchCount = 2;
         valid.add(first);
         valid.add(last);
         GrappleClientRouteCache.apply(valid.get(0));
-        Assert.assertEquals("stable", GrappleClientRouteCache.getRoutes().get(0).routeId);
+        Assert.assertEquals(
+            "stable",
+            GrappleClientRouteCache.getRoutes()
+                .get(0).routeId);
         GrappleClientRouteCache.apply(valid.get(1));
-        Assert.assertEquals(2, GrappleClientRouteCache.getRoutes().size());
-        Assert.assertEquals("replacement-a", GrappleClientRouteCache.getRoutes().get(0).routeId);
+        Assert.assertEquals(
+            2,
+            GrappleClientRouteCache.getRoutes()
+                .size());
+        Assert.assertEquals(
+            "replacement-a",
+            GrappleClientRouteCache.getRoutes()
+                .get(0).routeId);
     }
 
     @Test
@@ -570,7 +598,8 @@ public class PacketCoreBoundaryTest {
 
     private static void assertStrictPacket(ByteBuf encoded, PacketDecoder decoder) {
         Assert.assertTrue("valid packet must decode", decoder.decode(copy(encoded, encoded.readableBytes())));
-        Assert.assertFalse("truncated packet must be rejected",
+        Assert.assertFalse(
+            "truncated packet must be rejected",
             decoder.decode(copy(encoded, encoded.readableBytes() - 1)));
         ByteBuf trailing = copy(encoded, encoded.readableBytes());
         trailing.writeByte(1);

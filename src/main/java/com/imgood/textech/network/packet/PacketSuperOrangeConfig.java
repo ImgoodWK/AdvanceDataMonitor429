@@ -41,8 +41,7 @@ public class PacketSuperOrangeConfig implements IMessage {
     public void toBytes(ByteBuf buf) {
         int start = buf.writerIndex();
         try {
-            byte[] nameBytes = (customName == null ? "" : customName)
-                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            byte[] nameBytes = (customName == null ? "" : customName).getBytes(java.nio.charset.StandardCharsets.UTF_8);
             if (nameBytes.length > MAX_CUSTOM_NAME_BYTES) {
                 throw new IllegalArgumentException("Super Orange custom name exceeds packet limit");
             }

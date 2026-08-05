@@ -65,7 +65,10 @@ final class MonitorRenderSupport {
         if (data.tagCount() == 0) return Collections.emptyList();
         List<Double> values = new ArrayList<Double>(data.tagCount());
         for (int i = 0; i < data.tagCount(); i++) {
-            values.add(Double.valueOf(data.getCompoundTagAt(i).getDouble("data")));
+            values.add(
+                Double.valueOf(
+                    data.getCompoundTagAt(i)
+                        .getDouble("data")));
         }
         if (MonitorWidgetSpec.SERIES_TRANSFORM_DIFFERENCE.equals(MonitorWidgetSpec.getSeriesTransform(nbt))) {
             values = MonitorDownsampleUtil.difference(values);
@@ -76,7 +79,9 @@ final class MonitorRenderSupport {
 
     static double latest(NBTTagCompound nbt) {
         List<Double> values = values(nbt);
-        return values.isEmpty() ? 0.0D : values.get(values.size() - 1).doubleValue();
+        return values.isEmpty() ? 0.0D
+            : values.get(values.size() - 1)
+                .doubleValue();
     }
 
     static double progressMax(NBTTagCompound nbt, double value) {
@@ -88,7 +93,8 @@ final class MonitorRenderSupport {
             if (capacity > 0.0D) return capacity;
         }
 
-        String metric = MonitorWidgetSpec.getMetricKey(nbt).toLowerCase(Locale.ROOT);
+        String metric = MonitorWidgetSpec.getMetricKey(nbt)
+            .toLowerCase(Locale.ROOT);
         if (!wirelessSteam && (metric.contains("percent") || metric.contains("ratio") || metric.contains("usage"))) {
             return 100.0D;
         }
@@ -102,7 +108,8 @@ final class MonitorRenderSupport {
 
     static int color(NBTTagCompound nbt, String key, int fallback) {
         if (!nbt.hasKey(key)) return fallback;
-        String raw = nbt.getString(key).trim();
+        String raw = nbt.getString(key)
+            .trim();
         if (raw.startsWith("#")) raw = raw.substring(1);
         try {
             return Integer.parseInt(raw, 16) & 0xFFFFFF;
@@ -174,7 +181,11 @@ final class MonitorRenderSupport {
         List<Double> values = values(nbt);
         int start = Math.max(0, values.size() - limit);
         for (int i = start; i < values.size(); i++) {
-            result.add(new Category(String.valueOf(i + 1), values.get(i).doubleValue()));
+            result.add(
+                new Category(
+                    String.valueOf(i + 1),
+                    values.get(i)
+                        .doubleValue()));
         }
         return result;
     }

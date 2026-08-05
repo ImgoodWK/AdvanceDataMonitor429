@@ -145,13 +145,8 @@ public class ADM_GuiButton extends GuiButton {
                     : pressed ? UiThemes.ADM.buttonPressed()
                         : isHovered && this.useHoverEffect ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal();
                 if (family != null) {
-                    GuiBlitUtil.drawFixedAspectButton(
-                        family,
-                        state,
-                        this.xPosition,
-                        this.yPosition,
-                        this.width,
-                        this.height);
+                    GuiBlitUtil
+                        .drawFixedAspectButton(family, state, this.xPosition, this.yPosition, this.width, this.height);
                 } else if (bar != null) {
                     GuiBlitUtil.drawTiledBar(bar, this.xPosition, this.yPosition, this.width, this.height);
                 } else {

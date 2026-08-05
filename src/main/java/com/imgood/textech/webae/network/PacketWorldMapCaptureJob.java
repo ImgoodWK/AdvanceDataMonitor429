@@ -61,7 +61,9 @@ public class PacketWorldMapCaptureJob implements IMessage {
         if (!WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)
             || !WorldMapPacketAuthorization.isValidNetworkId(networkId)
             || !WorldMapPacketAuthorization.isValidSnapshotVersion(snapshotVersion)
-            || !WorldMapPacketAuthorization.isValidTilePx(tilePx) || chunks == null || chunks.isEmpty()
+            || !WorldMapPacketAuthorization.isValidTilePx(tilePx)
+            || chunks == null
+            || chunks.isEmpty()
             || chunks.size() > MAX_TOTAL_CHUNKS) {
             throw new IllegalArgumentException("Invalid world map capture job metadata");
         }
@@ -206,7 +208,9 @@ public class PacketWorldMapCaptureJob implements IMessage {
         }
         int colon = entry.indexOf(':');
         int comma = entry.indexOf(',', colon + 1);
-        if (colon <= 0 || comma <= colon + 1 || comma >= entry.length() - 1 || entry.indexOf(':', colon + 1) >= 0
+        if (colon <= 0 || comma <= colon + 1
+            || comma >= entry.length() - 1
+            || entry.indexOf(':', colon + 1) >= 0
             || entry.indexOf(',', comma + 1) >= 0) {
             return null;
         }
@@ -214,8 +218,7 @@ public class PacketWorldMapCaptureJob implements IMessage {
             int dim = parseCanonicalInt(entry.substring(0, colon));
             int chunkX = parseCanonicalInt(entry.substring(colon + 1, comma));
             int chunkZ = parseCanonicalInt(entry.substring(comma + 1));
-            return WorldMapPacketAuthorization.isValidChunk(dim, chunkX, chunkZ)
-                ? new int[] { dim, chunkX, chunkZ }
+            return WorldMapPacketAuthorization.isValidChunk(dim, chunkX, chunkZ) ? new int[] { dim, chunkX, chunkZ }
                 : null;
         } catch (IllegalArgumentException e) {
             return null;
@@ -226,10 +229,20 @@ public class PacketWorldMapCaptureJob implements IMessage {
         if (!WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)
             || !WorldMapPacketAuthorization.isValidNetworkId(networkId)
             || !WorldMapPacketAuthorization.isValidSnapshotVersion(snapshotVersion)
-            || !WorldMapPacketAuthorization.isValidTilePx(tilePx) || pageCount < 1 || pageCount > MAX_TOTAL_CHUNKS
-            || pageIndex < 0 || pageIndex >= pageCount || totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
-            || pageCount > totalChunks || chunks == null || chunks.isEmpty() || chunks.size() > totalChunks
-            || chunkOffset < 0 || chunkOffset > totalChunks - chunks.size() || sourcePriority == null) {
+            || !WorldMapPacketAuthorization.isValidTilePx(tilePx)
+            || pageCount < 1
+            || pageCount > MAX_TOTAL_CHUNKS
+            || pageIndex < 0
+            || pageIndex >= pageCount
+            || totalChunks < 1
+            || totalChunks > MAX_TOTAL_CHUNKS
+            || pageCount > totalChunks
+            || chunks == null
+            || chunks.isEmpty()
+            || chunks.size() > totalChunks
+            || chunkOffset < 0
+            || chunkOffset > totalChunks - chunks.size()
+            || sourcePriority == null) {
             return false;
         }
         if ((pageIndex == 0 && chunkOffset != 0)
@@ -252,7 +265,8 @@ public class PacketWorldMapCaptureJob implements IMessage {
 
     private static int parseCanonicalInt(String value) {
         int parsed = Integer.parseInt(value);
-        if (!String.valueOf(parsed).equals(value)) {
+        if (!String.valueOf(parsed)
+            .equals(value)) {
             throw new IllegalArgumentException("Non-canonical integer");
         }
         return parsed;

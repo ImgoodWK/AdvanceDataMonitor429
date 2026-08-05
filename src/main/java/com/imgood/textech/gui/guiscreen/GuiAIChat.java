@@ -349,12 +349,7 @@ public class GuiAIChat extends ADM_GuiScreen {
                 if (line.candidateCells != null) {
                     drawCandidateCells(panelX + 8, y, line.candidateCells);
                 } else if (line.codeBlock) {
-                    UiPanel.drawSection(
-                        UiThemes.ADM,
-                        panelX + 4,
-                        y - 1,
-                        panelW - SCROLLBAR_WIDTH - 12,
-                        11);
+                    UiPanel.drawSection(UiThemes.ADM, panelX + 4, y - 1, panelW - SCROLLBAR_WIDTH - 12, 11);
                     drawString(this.fontRendererObj, line.text, panelX + 10, y, line.color);
                 } else {
                     drawString(this.fontRendererObj, line.text, panelX + 8 + line.indent, y, line.color);
@@ -1151,12 +1146,8 @@ public class GuiAIChat extends ADM_GuiScreen {
         int thumbHeight = Math.max(12, trackHeight * chatContentHeight() / Math.max(chatContentHeight(), totalHeight));
         int thumbTravel = Math.max(0, trackHeight - thumbHeight);
         int thumbY = trackTop + (maxScroll <= 0 ? 0 : this.scrollOffset * thumbTravel / maxScroll);
-        GuiBlitUtil.drawCoverCropped(
-            UiThemes.ADM.scrollThumbRegion(),
-            scrollX + 1,
-            thumbY,
-            SCROLLBAR_WIDTH - 2,
-            thumbHeight);
+        GuiBlitUtil
+            .drawCoverCropped(UiThemes.ADM.scrollThumbRegion(), scrollX + 1, thumbY, SCROLLBAR_WIDTH - 2, thumbHeight);
     }
 
     private boolean isChatScrollbarVisible() {

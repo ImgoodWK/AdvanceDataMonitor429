@@ -1,15 +1,15 @@
 package com.imgood.textech.webae.icon;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import java.util.zip.CRC32;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -73,16 +73,7 @@ public class IconStore {
     /** Maximum sum of decoded PNG bytes accepted in one icon-pack transaction. */
     public static final int MAX_ICON_PACK_PNG_BYTES = 16 * 1024 * 1024;
     private static final int MIN_PNG_HEADER_BYTES = 45;
-    private static final byte[] PNG_SIGNATURE = {
-        (byte) 0x89,
-        0x50,
-        0x4e,
-        0x47,
-        0x0d,
-        0x0a,
-        0x1a,
-        0x0a
-    };
+    private static final byte[] PNG_SIGNATURE = { (byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 
     /** Base directory for all icon packs. */
     private final File baseDir;
@@ -527,7 +518,8 @@ public class IconStore {
             }
             return promoteIconWrites(packName, writes);
         } catch (IOException | RuntimeException e) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to prepare icon bundle for pack {}: {}", packName, e.getMessage());
+            AdvanceDataMonitor.LOG
+                .warn("[WebAE] Failed to prepare icon bundle for pack {}: {}", packName, e.getMessage());
             return false;
         }
     }
@@ -561,7 +553,8 @@ public class IconStore {
             promotedAll = true;
             return true;
         } catch (IOException | RuntimeException e) {
-            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to promote icon bundle for pack {}: {}", packName, e.getMessage());
+            AdvanceDataMonitor.LOG
+                .warn("[WebAE] Failed to promote icon bundle for pack {}: {}", packName, e.getMessage());
             return false;
         } finally {
             if (!promotedAll) rollbackIconWrites(writes);
@@ -581,10 +574,8 @@ public class IconStore {
                     moveAtomically(write.backup, write.target);
                     write.backup = null;
                 } catch (IOException e) {
-                    AdvanceDataMonitor.LOG.warn(
-                        "[WebAE] Failed to restore previous icon {}: {}",
-                        write.target.getName(),
-                        e.getMessage());
+                    AdvanceDataMonitor.LOG
+                        .warn("[WebAE] Failed to restore previous icon {}: {}", write.target.getName(), e.getMessage());
                 }
             }
         }
@@ -605,13 +596,16 @@ public class IconStore {
     /**
      * Validate an in-memory icon before it can cross the WebAE resource boundary.
      *
-     * <p>The signature/IHDR check runs before ImageIO so a malformed payload cannot make the
+     * <p>
+     * The signature/IHDR check runs before ImageIO so a malformed payload cannot make the
      * decoder allocate based on an unbounded header. ImageIO then performs a real PNG decode,
      * which rejects truncated/corrupt data and confirms that the payload is actually PNG rather
-     * than merely a file with a {@code .png} suffix.</p>
+     * than merely a file with a {@code .png} suffix.
+     * </p>
      */
     public static boolean isValidPng(byte[] png) {
-        if (png == null || png.length < MIN_PNG_HEADER_BYTES || png.length > MAX_PNG_BYTES
+        if (png == null || png.length < MIN_PNG_HEADER_BYTES
+            || png.length > MAX_PNG_BYTES
             || !hasValidPngStructure(png)) {
             return false;
         }
@@ -625,13 +619,16 @@ public class IconStore {
             if (!readers.hasNext()) return false;
             reader = readers.next();
             reader.setInput(input, true, true);
-            if (reader.getWidth(0) <= 0 || reader.getHeight(0) <= 0 || reader.getWidth(0) > MAX_PNG_DIMENSION
+            if (reader.getWidth(0) <= 0 || reader.getHeight(0) <= 0
+                || reader.getWidth(0) > MAX_PNG_DIMENSION
                 || reader.getHeight(0) > MAX_PNG_DIMENSION) {
                 return false;
             }
             BufferedImage decoded = reader.read(0);
-            if (decoded == null || decoded.getWidth() <= 0 || decoded.getHeight() <= 0
-                || decoded.getWidth() > MAX_PNG_DIMENSION || decoded.getHeight() > MAX_PNG_DIMENSION) {
+            if (decoded == null || decoded.getWidth() <= 0
+                || decoded.getHeight() <= 0
+                || decoded.getWidth() > MAX_PNG_DIMENSION
+                || decoded.getHeight() > MAX_PNG_DIMENSION) {
                 return false;
             }
             String format = reader.getFormatName();
@@ -710,8 +707,12 @@ public class IconStore {
                 int compression = png[dataOffset + 10] & 0xff;
                 int filter = png[dataOffset + 11] & 0xff;
                 int interlace = png[dataOffset + 12] & 0xff;
-                if (width <= 0L || height <= 0L || width > MAX_PNG_DIMENSION || height > MAX_PNG_DIMENSION
-                    || !isValidPngColorFormat(bitDepth, colorType) || compression != 0 || filter != 0
+                if (width <= 0L || height <= 0L
+                    || width > MAX_PNG_DIMENSION
+                    || height > MAX_PNG_DIMENSION
+                    || !isValidPngColorFormat(bitDepth, colorType)
+                    || compression != 0
+                    || filter != 0
                     || (interlace != 0 && interlace != 1)) {
                     return false;
                 }
@@ -751,8 +752,7 @@ public class IconStore {
     }
 
     private static long uint32(byte[] bytes, int offset) {
-        return ((long) (bytes[offset] & 0xff) << 24)
-            | ((long) (bytes[offset + 1] & 0xff) << 16)
+        return ((long) (bytes[offset] & 0xff) << 24) | ((long) (bytes[offset + 1] & 0xff) << 16)
             | ((long) (bytes[offset + 2] & 0xff) << 8)
             | (long) (bytes[offset + 3] & 0xff);
     }

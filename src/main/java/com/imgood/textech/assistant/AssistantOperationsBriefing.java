@@ -10,10 +10,12 @@ import java.util.regex.Pattern;
 /**
  * Formats the read-only operations briefing returned by {@link AssistantServerServices}.
  *
- * <p>The briefing deliberately receives already-collected summaries instead of probing game
+ * <p>
+ * The briefing deliberately receives already-collected summaries instead of probing game
  * state itself. That keeps collection on the server-service boundary, makes the presentation
  * deterministic, and gives every section an independent failure boundary. The output is also
- * bounded before it is placed into an assistant response packet.</p>
+ * bounded before it is placed into an assistant response packet.
+ * </p>
  */
 public final class AssistantOperationsBriefing {
 
@@ -25,8 +27,7 @@ public final class AssistantOperationsBriefing {
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private static final Pattern NAMED_SECRET = Pattern.compile(
-        "(?i)(\\b(?:api[_ -]?key|access[_ -]?token|refresh[_ -]?token|client[_ -]?secret|token|secret|password)\\b\\s*\\\"?\\s*[:=]\\s*)(?:\\\"[^\\\"]*\\\"|'[^']*'|[^\\s,;]+)"
-    );
+        "(?i)(\\b(?:api[_ -]?key|access[_ -]?token|refresh[_ -]?token|client[_ -]?secret|token|secret|password)\\b\\s*\\\"?\\s*[:=]\\s*)(?:\\\"[^\\\"]*\\\"|'[^']*'|[^\\s,;]+)");
     private static final Pattern OPENAI_STYLE_KEY = Pattern.compile("\\bsk-[A-Za-z0-9_-]{8,}\\b");
 
     private AssistantOperationsBriefing() {}
@@ -113,9 +114,9 @@ public final class AssistantOperationsBriefing {
                 .append("] ")
                 .append(section.title.isEmpty() ? section.key : section.title)
                 .append("\n")
-                .append(section.summary.isEmpty()
-                    ? (chinese ? "未返回可用数据。" : "No usable data was returned.")
-                    : section.summary);
+                .append(
+                    section.summary.isEmpty() ? (chinese ? "未返回可用数据。" : "No usable data was returned.")
+                        : section.summary);
         }
 
         appendRecommendations(builder, sections, chinese);
@@ -195,7 +196,10 @@ public final class AssistantOperationsBriefing {
     }
 
     private static boolean hasPendingJobs(String normalized) {
-        if (containsAny(normalized, "no server-side ae2 crafting calculation is pending", "\u6ca1\u6709\u5f85\u5904\u7406")) {
+        if (containsAny(
+            normalized,
+            "no server-side ae2 crafting calculation is pending",
+            "\u6ca1\u6709\u5f85\u5904\u7406")) {
             return false;
         }
         return normalized.contains("pending ae2 crafting calculations:")
@@ -223,22 +227,26 @@ public final class AssistantOperationsBriefing {
         if (unavailable) {
             appendRecommendation(
                 builder,
-                chinese ? "检查不可用分段所需的 ADM Link、无线服务或高级计划器，然后重新查询。" : "Check the ADM Link, wireless service, or Advanced Planner required by unavailable sections, then query again.");
+                chinese ? "检查不可用分段所需的 ADM Link、无线服务或高级计划器，然后重新查询。"
+                    : "Check the ADM Link, wireless service, or Advanced Planner required by unavailable sections, then query again.");
         }
         if (nearlyFull) {
             appendRecommendation(
                 builder,
-                chinese ? "AE2 字节接近满载；扩容或清理不再需要的存储内容。" : "AE2 byte capacity is nearly full; add storage or clear unneeded contents.");
+                chinese ? "AE2 字节接近满载；扩容或清理不再需要的存储内容。"
+                    : "AE2 byte capacity is nearly full; add storage or clear unneeded contents.");
         }
         if (pendingJobs) {
             appendRecommendation(
                 builder,
-                chinese ? "合成计算正在排队；提交大型批量订单前先检查现有任务。" : "Crafting calculations are pending; inspect existing jobs before adding a large batch.");
+                chinese ? "合成计算正在排队；提交大型批量订单前先检查现有任务。"
+                    : "Crafting calculations are pending; inspect existing jobs before adding a large batch.");
         }
         if (plannerTodos) {
             appendRecommendation(
                 builder,
-                chinese ? "高级计划器中仍有待办；按优先级复查后再继续自动化操作。" : "The Advanced Planner has open todos; review their priority before continuing automation work.");
+                chinese ? "高级计划器中仍有待办；按优先级复查后再继续自动化操作。"
+                    : "The Advanced Planner has open todos; review their priority before continuing automation work.");
         }
         if (!unavailable && !nearlyFull && !pendingJobs && !plannerTodos) {
             appendRecommendation(
@@ -274,9 +282,7 @@ public final class AssistantOperationsBriefing {
             .replaceAll("$1<redacted>");
         result = OPENAI_STYLE_KEY.matcher(result)
             .replaceAll("<redacted>");
-        return truncateUtf8(
-            truncate(result, limit),
-            Math.min(MAX_SECTION_UTF8_BYTES, Math.max(0, limit)));
+        return truncateUtf8(truncate(result, limit), Math.min(MAX_SECTION_UTF8_BYTES, Math.max(0, limit)));
     }
 
     private static String truncate(String value, int limit) {

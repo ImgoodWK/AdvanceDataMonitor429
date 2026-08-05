@@ -16,10 +16,12 @@ import io.netty.buffer.ByteBuf;
 /**
  * Length-prefixed readers for packets crossing the client/server trust boundary.
  *
- * <p>The packet classes in this project use a four-byte length prefix for their
- * own byte arrays and strings.  Forge's legacy helpers do not validate that
+ * <p>
+ * The packet classes in this project use a four-byte length prefix for their
+ * own byte arrays and strings. Forge's legacy helpers do not validate that
  * prefix against the remaining buffer before allocating, so packet decoders
- * must use these methods before any untrusted allocation.</p>
+ * must use these methods before any untrusted allocation.
+ * </p>
  */
 public final class NetworkPacketCodec {
 

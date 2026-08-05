@@ -89,8 +89,10 @@ public class PacketWorldMapSnapshotTileData implements IMessage {
             chunkIndex = buf.readInt();
             totalChunks = buf.readInt();
             png = NetworkPacketCodec.readBytes(buf, MAX_CHUNK_BYTES);
-            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0
-                || chunkIndex >= totalChunks || png.length == 0) {
+            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+                || chunkIndex < 0
+                || chunkIndex >= totalChunks
+                || png.length == 0) {
                 throw new IllegalArgumentException("Invalid snapshot tile data chunk");
             }
             if (buf.isReadable()) {
@@ -146,11 +148,14 @@ public class PacketWorldMapSnapshotTileData implements IMessage {
         @Override
         @SideOnly(Side.CLIENT)
         public IMessage onMessage(PacketWorldMapSnapshotTileData message, MessageContext ctx) {
-            if (message == null || message.malformed || !WorldMapPacketAuthorization.isValidOwnerUuid(message.ownerUuid)
+            if (message == null || message.malformed
+                || !WorldMapPacketAuthorization.isValidOwnerUuid(message.ownerUuid)
                 || !WorldMapPacketAuthorization.isValidNetworkId(message.networkId)
                 || !WorldMapPacketAuthorization.isValidSnapshotVersion(message.snapshotVersion)
                 || !WorldMapPacketAuthorization.isValidChunk(message.dim, message.chunkX, message.chunkZ)
-                || message.png == null || message.png.length == 0 || message.png.length > MAX_CHUNK_BYTES) {
+                || message.png == null
+                || message.png.length == 0
+                || message.png.length > MAX_CHUNK_BYTES) {
                 return null;
             }
             String key = transferKey(message);
@@ -171,8 +176,18 @@ public class PacketWorldMapSnapshotTileData implements IMessage {
         }
 
         private static String transferKey(PacketWorldMapSnapshotTileData message) {
-            return message.ownerUuid + "|" + message.networkId + "|" + message.snapshotVersion + "|"
-                + message.layer + "|" + message.dim + "|" + message.chunkX + "|" + message.chunkZ;
+            return message.ownerUuid + "|"
+                + message.networkId
+                + "|"
+                + message.snapshotVersion
+                + "|"
+                + message.layer
+                + "|"
+                + message.dim
+                + "|"
+                + message.chunkX
+                + "|"
+                + message.chunkZ;
         }
     }
 
@@ -182,8 +197,13 @@ public class PacketWorldMapSnapshotTileData implements IMessage {
 
         static synchronized byte[] accept(String key, int index, int total, byte[] chunk) {
             prune();
-            if (key == null || key.isEmpty() || total < 1 || total > MAX_TOTAL_CHUNKS || index < 0
-                || index >= total || chunk == null || chunk.length > MAX_CHUNK_BYTES) {
+            if (key == null || key.isEmpty()
+                || total < 1
+                || total > MAX_TOTAL_CHUNKS
+                || index < 0
+                || index >= total
+                || chunk == null
+                || chunk.length > MAX_CHUNK_BYTES) {
                 remove(key);
                 return null;
             }

@@ -158,16 +158,17 @@ public class PacketWebIconUpload implements IMessage {
                     throw new IllegalArgumentException("Icon bundle contains too many entries");
                 }
                 String itemId = reader.nextName();
-                if (!IconStore.isValidItemId(itemId) || !hasValidSurrogates(itemId)
-                    || decoded.containsKey(itemId)) {
+                if (!IconStore.isValidItemId(itemId) || !hasValidSurrogates(itemId) || decoded.containsKey(itemId)) {
                     throw new IllegalArgumentException("Icon bundle contains an invalid or duplicate item id");
                 }
                 if (reader.peek() != JsonToken.STRING) {
                     throw new IllegalArgumentException("Icon bundle values must be base64 strings");
                 }
                 String base64 = reader.nextString();
-                if (base64 == null || base64.isEmpty() || base64.length() > MAX_BASE64_ICON_BYTES
-                    || (base64.length() & 3) != 0 || !BASE64_PATTERN.matcher(base64)
+                if (base64 == null || base64.isEmpty()
+                    || base64.length() > MAX_BASE64_ICON_BYTES
+                    || (base64.length() & 3) != 0
+                    || !BASE64_PATTERN.matcher(base64)
                         .matches()) {
                     throw new IllegalArgumentException("Icon bundle contains invalid base64 data");
                 }
@@ -178,8 +179,7 @@ public class PacketWebIconUpload implements IMessage {
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException("Icon bundle contains invalid base64 data", e);
                 }
-                if (!IconStore.isValidPng(png)
-                    || totalPngBytes > IconStore.MAX_ICON_PACK_PNG_BYTES - png.length) {
+                if (!IconStore.isValidPng(png) || totalPngBytes > IconStore.MAX_ICON_PACK_PNG_BYTES - png.length) {
                     throw new IllegalArgumentException("Icon bundle contains an invalid or oversized PNG resource");
                 }
                 totalPngBytes += png.length;
@@ -251,10 +251,12 @@ public class PacketWebIconUpload implements IMessage {
                 return false;
             }
             return message.totalChunks >= 1 && message.totalChunks <= MAX_TOTAL_CHUNKS
-                && message.chunkIndex >= 0 && message.chunkIndex < message.totalChunks
+                && message.chunkIndex >= 0
+                && message.chunkIndex < message.totalChunks
                 && message.isStart == (message.chunkIndex == 0)
                 && message.isEnd == (message.chunkIndex == message.totalChunks - 1)
-                && message.chunkData != null && message.chunkData.length > 0
+                && message.chunkData != null
+                && message.chunkData.length > 0
                 && message.chunkData.length <= MAX_CHUNK_BYTES;
         }
 
@@ -263,12 +265,8 @@ public class PacketWebIconUpload implements IMessage {
                 .toString();
             String modeId = IconStore.normalizeModeId(message.renderMode);
             try {
-                ChunkSink sink = ChunkSink.get(
-                    actorUuid,
-                    message.packName,
-                    modeId,
-                    message.totalChunks,
-                    message.isStart);
+                ChunkSink sink = ChunkSink
+                    .get(actorUuid, message.packName, modeId, message.totalChunks, message.isStart);
                 if (sink == null) {
                     return new PacketWebIconUploadAck(
                         false,
@@ -359,9 +357,10 @@ public class PacketWebIconUpload implements IMessage {
         }
 
         private static boolean matchesPlayerUuid(String supplied, EntityPlayerMP player) {
-            return supplied == null || supplied.isEmpty() || supplied.equalsIgnoreCase(
-                player.getUniqueID()
-                    .toString());
+            return supplied == null || supplied.isEmpty()
+                || supplied.equalsIgnoreCase(
+                    player.getUniqueID()
+                        .toString());
         }
 
         private static BundleResult processBundle(String packName, String modeId, byte[] jsonBytes) {

@@ -96,8 +96,8 @@ public final class WorldMapAnnotationHandler {
         return json(NanoHTTPD.Response.Status.CREATED, new AnnotationEnvelope(result.result));
     }
 
-    static NanoHTTPD.Response handleUpdate(String id, Map<String, String> params, String body,
-        String effectiveOwner, WebAuthSession auth, WorldMapAnnotationService service) {
+    static NanoHTTPD.Response handleUpdate(String id, Map<String, String> params, String body, String effectiveOwner,
+        WebAuthSession auth, WorldMapAnnotationService service) {
         ParsedBody parsed = parseBody(body);
         if (!parsed.success) {
             return invalid(parsed.code, parsed.message);
@@ -145,7 +145,8 @@ public final class WorldMapAnnotationHandler {
     }
 
     private static ParsedBody parseBody(String body) {
-        if (body == null || body.trim().isEmpty()) {
+        if (body == null || body.trim()
+            .isEmpty()) {
             return ParsedBody.failure("invalid_request", "Annotation JSON body is required");
         }
         final JsonElement root;
@@ -162,7 +163,9 @@ public final class WorldMapAnnotationHandler {
 
         JsonObject object = root.getAsJsonObject();
         for (String field : REQUIRED_FIELDS) {
-            if (!object.has(field) || object.get(field) == null || object.get(field).isJsonNull()) {
+            if (!object.has(field) || object.get(field) == null
+                || object.get(field)
+                    .isJsonNull()) {
                 return ParsedBody.failure("invalid_request", "Missing required annotation field: " + field);
             }
         }
@@ -176,14 +179,22 @@ public final class WorldMapAnnotationHandler {
         Integer toVersion = integerField(object, "toVersion");
         String label = stringField(object, "label");
         String color = stringField(object, "color");
-        if (networkId == null || dimension == null || x == null || y == null || z == null || fromVersion == null
-            || toVersion == null || label == null || color == null
+        if (networkId == null || dimension == null
+            || x == null
+            || y == null
+            || z == null
+            || fromVersion == null
+            || toVersion == null
+            || label == null
+            || color == null
             || !WorldMapPacketAuthorization.isValidNetworkId(networkId.intValue())) {
             return ParsedBody.failure("invalid_request", "Annotation fields have invalid JSON types or values");
         }
 
         String note = "";
-        if (object.has("note") && object.get("note") != null && !object.get("note").isJsonNull()) {
+        if (object.has("note") && object.get("note") != null
+            && !object.get("note")
+                .isJsonNull()) {
             note = stringField(object, "note");
             if (note == null) {
                 return ParsedBody.failure("invalid_request", "Annotation note must be a string");
@@ -251,13 +262,13 @@ public final class WorldMapAnnotationHandler {
 
     private static Integer parseRequiredNetwork(Map<String, String> params) {
         Integer networkId = parseInteger(params == null ? null : params.get("network"));
-        return networkId != null && WorldMapPacketAuthorization.isValidNetworkId(networkId.intValue())
-            ? networkId
+        return networkId != null && WorldMapPacketAuthorization.isValidNetworkId(networkId.intValue()) ? networkId
             : null;
     }
 
     private static Integer parseInteger(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return null;
         }
         try {
@@ -287,10 +298,16 @@ public final class WorldMapAnnotationHandler {
         if ("record_limit".equals(code)) {
             return NanoHTTPD.Response.Status.CONFLICT;
         }
-        if ("invalid_owner".equals(code) || "invalid_network".equals(code) || "invalid_version".equals(code)
-            || "invalid_id".equals(code) || "invalid_request".equals(code) || "invalid_actor".equals(code)
-            || "server_field".equals(code) || "cross_owner".equals(code) || "cross_network".equals(code)
-            || "immutable_field".equals(code) || "invalid_scope".equals(code)) {
+        if ("invalid_owner".equals(code) || "invalid_network".equals(code)
+            || "invalid_version".equals(code)
+            || "invalid_id".equals(code)
+            || "invalid_request".equals(code)
+            || "invalid_actor".equals(code)
+            || "server_field".equals(code)
+            || "cross_owner".equals(code)
+            || "cross_network".equals(code)
+            || "immutable_field".equals(code)
+            || "invalid_scope".equals(code)) {
             return NanoHTTPD.Response.Status.BAD_REQUEST;
         }
         return NanoHTTPD.Response.Status.INTERNAL_ERROR;

@@ -28,21 +28,28 @@ public class CpuHistoryServiceTest {
     public void recordsLifecycleWithoutPersistingFreeRequestText() {
         CpuHistoryService service = service();
         long queued = System.currentTimeMillis();
-        service.recordQueued(
+        service.recordQueued("cpu-owner", 3, "0:1:2:3", "job-1", "CPU Alpha", "untrusted free text", queued);
+        service.recordRunning(
             "cpu-owner",
             3,
             "0:1:2:3",
             "job-1",
             "CPU Alpha",
-            "untrusted free text",
-            queued);
-        service.recordRunning("cpu-owner", 3, "0:1:2:3", "job-1", "CPU Alpha", Integer.valueOf(40),
-            Integer.valueOf(2), queued + 50L);
-        service.recordTerminal("cpu-owner", 3, "0:1:2:3", "job-1", CpuJobHistoryDto.STATUS_COMPLETED, "CPU Alpha",
-            Integer.valueOf(85), queued + 250L);
+            Integer.valueOf(40),
+            Integer.valueOf(2),
+            queued + 50L);
+        service.recordTerminal(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "job-1",
+            CpuJobHistoryDto.STATUS_COMPLETED,
+            "CPU Alpha",
+            Integer.valueOf(85),
+            queued + 250L);
 
-        CpuHistoryResponseDto response = service.getHistory("cpu-owner", 3, "0:1:2:3", queued - 100L, queued + 1_000L,
-            10);
+        CpuHistoryResponseDto response = service
+            .getHistory("cpu-owner", 3, "0:1:2:3", queued - 100L, queued + 1_000L, 10);
         assertEquals(1, response.jobs.size());
         CpuJobHistoryDto job = response.jobs.get(0);
         assertEquals(CpuJobHistoryDto.STATUS_COMPLETED, job.status);
@@ -62,33 +69,89 @@ public class CpuHistoryServiceTest {
         long queued = System.currentTimeMillis();
 
         service.recordQueued("cpu-owner", 3, "0:1:2:3", "completed-job", "CPU One", null, queued);
-        service.recordRunning("cpu-owner", 3, "0:1:2:3", "completed-job", "CPU One", Integer.valueOf(20),
-            Integer.valueOf(1), queued + 100L);
-        service.recordTerminal("cpu-owner", 3, "0:1:2:3", "completed-job", CpuJobHistoryDto.STATUS_COMPLETED,
-            "CPU One", Integer.valueOf(20), queued + 300L);
+        service.recordRunning(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "completed-job",
+            "CPU One",
+            Integer.valueOf(20),
+            Integer.valueOf(1),
+            queued + 100L);
+        service.recordTerminal(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "completed-job",
+            CpuJobHistoryDto.STATUS_COMPLETED,
+            "CPU One",
+            Integer.valueOf(20),
+            queued + 300L);
 
         // Replaying the same terminal callback must not change the trusted
         // terminal timestamp or overwrite fields with late observations.
-        service.recordTerminal("cpu-owner", 3, "0:1:2:3", "completed-job", CpuJobHistoryDto.STATUS_COMPLETED,
-            "CPU Late", Integer.valueOf(1), queued + 900L);
+        service.recordTerminal(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "completed-job",
+            CpuJobHistoryDto.STATUS_COMPLETED,
+            "CPU Late",
+            Integer.valueOf(1),
+            queued + 900L);
         // A contradictory callback is ignored for the same reason.
-        service.recordTerminal("cpu-owner", 3, "0:1:2:3", "completed-job", CpuJobHistoryDto.STATUS_FAILED,
-            "CPU Wrong", Integer.valueOf(0), queued + 1_000L);
+        service.recordTerminal(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "completed-job",
+            CpuJobHistoryDto.STATUS_FAILED,
+            "CPU Wrong",
+            Integer.valueOf(0),
+            queued + 1_000L);
 
         service.recordQueued("cpu-owner", 3, "0:1:2:3", "failed-job", "CPU Two", null, queued + 10L);
-        service.recordRunning("cpu-owner", 3, "0:1:2:3", "failed-job", "CPU Two", Integer.valueOf(50), null,
+        service.recordRunning(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "failed-job",
+            "CPU Two",
+            Integer.valueOf(50),
+            null,
             queued + 110L);
-        service.recordTerminal("cpu-owner", 3, "0:1:2:3", "failed-job", CpuJobHistoryDto.STATUS_FAILED,
-            "CPU Two", Integer.valueOf(50), queued + 410L);
+        service.recordTerminal(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "failed-job",
+            CpuJobHistoryDto.STATUS_FAILED,
+            "CPU Two",
+            Integer.valueOf(50),
+            queued + 410L);
 
         service.recordQueued("cpu-owner", 3, "0:1:2:3", "cancelled-job", "CPU Three", null, queued + 20L);
-        service.recordRunning("cpu-owner", 3, "0:1:2:3", "cancelled-job", "CPU Three", Integer.valueOf(10), null,
+        service.recordRunning(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "cancelled-job",
+            "CPU Three",
+            Integer.valueOf(10),
+            null,
             queued + 120L);
-        service.recordTerminal("cpu-owner", 3, "0:1:2:3", "cancelled-job", CpuJobHistoryDto.STATUS_CANCELLED,
-            "CPU Three", Integer.valueOf(10), queued + 520L);
+        service.recordTerminal(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "cancelled-job",
+            CpuJobHistoryDto.STATUS_CANCELLED,
+            "CPU Three",
+            Integer.valueOf(10),
+            queued + 520L);
 
-        CpuHistoryResponseDto response = service.getHistory("cpu-owner", 3, "0:1:2:3", queued - 1L,
-            queued + 2_000L, 10);
+        CpuHistoryResponseDto response = service
+            .getHistory("cpu-owner", 3, "0:1:2:3", queued - 1L, queued + 2_000L, 10);
         assertEquals(3, response.jobs.size());
 
         CpuJobHistoryDto completed = find(response, "completed-job");
@@ -152,8 +215,7 @@ public class CpuHistoryServiceTest {
         assertEquals(snapshotCountBefore, state.snapshots.size());
         assertFalse(state.dirty);
 
-        CpuCapacityPlanDto capacity = service.getCapacity("cpu-owner", 3, "0:1:2:3", "24h", 0L,
-            now + 2_000L);
+        CpuCapacityPlanDto capacity = service.getCapacity("cpu-owner", 3, "0:1:2:3", "24h", 0L, now + 2_000L);
         assertEquals(Long.valueOf(0L), Long.valueOf(capacity.from));
         assertEquals(jobCountBefore, state.jobs.size());
         assertEquals(snapshotCountBefore, state.snapshots.size());
@@ -185,16 +247,16 @@ public class CpuHistoryServiceTest {
         assertTrue(store.save(persisted));
 
         CpuHistoryService service = new CpuHistoryService(store);
-        CpuHistoryResponseDto beforeActivation = service.getHistory("cpu-owner", 3, "0:1:2:3", now - 1_000L,
-            now + 1_000L, 10);
+        CpuHistoryResponseDto beforeActivation = service
+            .getHistory("cpu-owner", 3, "0:1:2:3", now - 1_000L, now + 1_000L, 10);
         assertTrue(beforeActivation.jobs.isEmpty());
         service.flushAll();
 
         // A normal mutation/sampler call is the activation boundary and may
-        // load the persisted state.  The read above must not have done so.
+        // load the persisted state. The read above must not have done so.
         service.recordCpuSnapshots("cpu-owner", 3, "0:1:2:3", Collections.<CpuEntry>emptyList(), now + 2L);
-        CpuHistoryResponseDto afterActivation = service.getHistory("cpu-owner", 3, "0:1:2:3", now - 1_000L,
-            now + 1_000L, 10);
+        CpuHistoryResponseDto afterActivation = service
+            .getHistory("cpu-owner", 3, "0:1:2:3", now - 1_000L, now + 1_000L, 10);
         assertEquals(1, afterActivation.jobs.size());
         assertEquals("disk-job", afterActivation.jobs.get(0).jobId);
     }
@@ -204,13 +266,20 @@ public class CpuHistoryServiceTest {
         CpuHistoryService original = service();
         long now = System.currentTimeMillis();
         original.recordQueued("cpu-owner", 3, "0:1:2:3", "job-1", "CPU One", null, now);
-        original.recordRunning("cpu-owner", 3, "0:1:2:3", "job-1", "CPU One", Integer.valueOf(25),
-            Integer.valueOf(1), now + 100L);
+        original.recordRunning(
+            "cpu-owner",
+            3,
+            "0:1:2:3",
+            "job-1",
+            "CPU One",
+            Integer.valueOf(25),
+            Integer.valueOf(1),
+            now + 100L);
         original.recordQueued("cpu-owner", 3, "0:1:2:3", "queued-only", "CPU Two", null, now + 150L);
         original.recordCpuSnapshots("cpu-owner", 3, "0:1:2:3", Collections.<CpuEntry>emptyList(), now + 200L);
 
-        CpuHistoryResponseDto beforeRestart = original.getHistory("cpu-owner", 3, "0:1:2:3", now - 1L, now + 1_000L,
-            10);
+        CpuHistoryResponseDto beforeRestart = original
+            .getHistory("cpu-owner", 3, "0:1:2:3", now - 1L, now + 1_000L, 10);
         assertEquals(CpuJobHistoryDto.STATUS_RUNNING, find(beforeRestart, "job-1").status);
         original.flushAll();
 
@@ -218,8 +287,7 @@ public class CpuHistoryServiceTest {
         // A normal server-tick collection is what lazily reloads persisted
         // history. No HTTP query needs to touch disk.
         restored.recordCpuSnapshots("cpu-owner", 3, "0:1:2:3", Collections.<CpuEntry>emptyList(), now + 300L);
-        CpuHistoryResponseDto afterRestart = restored.getHistory("cpu-owner", 3, "0:1:2:3", now - 1L,
-            now + 1_000L, 10);
+        CpuHistoryResponseDto afterRestart = restored.getHistory("cpu-owner", 3, "0:1:2:3", now - 1L, now + 1_000L, 10);
         assertEquals(CpuJobHistoryDto.STATUS_UNKNOWN, find(afterRestart, "job-1").status);
         assertEquals(CpuJobHistoryDto.STATUS_UNKNOWN, find(afterRestart, "queued-only").status);
     }
@@ -230,14 +298,8 @@ public class CpuHistoryServiceTest {
         long now = System.currentTimeMillis();
         service.recordQueued("cpu-owner", 3, "0:1:2:3", "visible", "CPU", null, now);
         service.recordQueued("cpu-owner", 3, "0:4:5:6", "other-network", "CPU", null, now);
-        service.recordQueued(
-            "cpu-owner",
-            3,
-            "0:1:2:3",
-            "expired",
-            "CPU",
-            null,
-            now - CpuHistoryService.RETENTION_MS - 1L);
+        service
+            .recordQueued("cpu-owner", 3, "0:1:2:3", "expired", "CPU", null, now - CpuHistoryService.RETENTION_MS - 1L);
 
         CpuHistoryResponseDto visible = service.getHistory("cpu-owner", 3, "0:1:2:3", now - 10L, now + 10L, 10);
         assertEquals(1, visible.jobs.size());

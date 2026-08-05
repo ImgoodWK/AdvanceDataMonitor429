@@ -15,9 +15,11 @@ import com.imgood.textech.webae.dto.StorageDto.CpuEntry;
 /**
  * In-memory CPU-history cache and lifecycle bridge.
  *
- * <p>Collection-side callers load and mutate the backing state. Read APIs use
+ * <p>
+ * Collection-side callers load and mutate the backing state. Read APIs use
  * {@link #getHistory} and {@link #getCapacity}, which deliberately never load
- * files, resolve an AE grid, or otherwise leave the in-memory cache.</p>
+ * files, resolve an AE grid, or otherwise leave the in-memory cache.
+ * </p>
  */
 public final class CpuHistoryService {
 
@@ -60,7 +62,8 @@ public final class CpuHistoryService {
 
     public synchronized void recordQueued(String ownerUuid, int networkId, String networkKey, String jobId,
         String cpuName, String recipeKey, long now) {
-        if (jobId == null || jobId.trim().isEmpty()) {
+        if (jobId == null || jobId.trim()
+            .isEmpty()) {
             return;
         }
         CpuHistoryState state = stateForMutation(ownerUuid, networkId, networkKey, now);
@@ -81,7 +84,8 @@ public final class CpuHistoryService {
             if (job.queuedAt <= 0L) {
                 job.queuedAt = now;
             }
-            if (!CpuJobHistoryDto.STATUS_RUNNING.equals(job.status) && !CpuJobHistoryDto.STATUS_STUCK.equals(job.status)) {
+            if (!CpuJobHistoryDto.STATUS_RUNNING.equals(job.status)
+                && !CpuJobHistoryDto.STATUS_STUCK.equals(job.status)) {
                 job.status = CpuJobHistoryDto.STATUS_QUEUED;
             }
             applyCpuAndRecipe(job, cpuName, recipeKey);
@@ -104,7 +108,8 @@ public final class CpuHistoryService {
 
     public synchronized void recordRunning(String ownerUuid, int networkId, String networkKey, String jobId,
         String cpuName, Integer progress, Integer coProcessors, long now) {
-        if (jobId == null || jobId.trim().isEmpty()) {
+        if (jobId == null || jobId.trim()
+            .isEmpty()) {
             return;
         }
         CpuHistoryState state = stateForMutation(ownerUuid, networkId, networkKey, now);
@@ -154,7 +159,8 @@ public final class CpuHistoryService {
 
     public synchronized void recordTerminal(String ownerUuid, int networkId, String networkKey, String jobId,
         String status, String cpuName, Integer progress, long finishedAt) {
-        if (jobId == null || jobId.trim().isEmpty() || !isTerminalStatus(status)) {
+        if (jobId == null || jobId.trim()
+            .isEmpty() || !isTerminalStatus(status)) {
             return;
         }
         long now = finishedAt > 0L ? finishedAt : System.currentTimeMillis();
@@ -169,7 +175,7 @@ public final class CpuHistoryService {
         }
         if (job.isTerminal()) {
             // A terminal observation is the first trusted result for this
-            // job.  Ignore both duplicate and contradictory callbacks so a
+            // job. Ignore both duplicate and contradictory callbacks so a
             // late AE/order callback cannot mutate the historical record.
             return;
         }
@@ -214,7 +220,8 @@ public final class CpuHistoryService {
             if (job == null || job.isTerminal() || !safeCpuName.equals(job.cpuName)) {
                 continue;
             }
-            if (!CpuJobHistoryDto.STATUS_QUEUED.equals(job.status) && !CpuJobHistoryDto.STATUS_RUNNING.equals(job.status)
+            if (!CpuJobHistoryDto.STATUS_QUEUED.equals(job.status)
+                && !CpuJobHistoryDto.STATUS_RUNNING.equals(job.status)
                 && !CpuJobHistoryDto.STATUS_STUCK.equals(job.status)) {
                 continue;
             }
@@ -283,7 +290,7 @@ public final class CpuHistoryService {
             return response;
         }
 
-        // HTTP reads are intentionally non-mutating.  Retention is applied
+        // HTTP reads are intentionally non-mutating. Retention is applied
         // to copied DTOs below so an expired entry is omitted from this
         // response without trimming the active cache or marking it dirty.
         long cutoff = retentionCutoff(System.currentTimeMillis());
@@ -336,8 +343,8 @@ public final class CpuHistoryService {
     }
 
     /** Reads only the active in-memory state; see {@link #getHistory}. */
-    public synchronized CpuCapacityPlanDto getCapacity(String ownerUuid, int networkId, String networkKey, String window,
-        long from, long to) {
+    public synchronized CpuCapacityPlanDto getCapacity(String ownerUuid, int networkId, String networkKey,
+        String window, long from, long to) {
         CpuHistoryState state = stateForRead(ownerUuid, networkId, networkKey);
         if (state == null) {
             return CpuCapacityPlanner.plan(
@@ -350,7 +357,7 @@ public final class CpuHistoryService {
                 Collections.<CpuSnapshotHistoryDto>emptyList());
         }
         // As with getHistory, do not trim or otherwise mutate the active
-        // state on an HTTP/read path.  Feed the planner only copied records
+        // state on an HTTP/read path. Feed the planner only copied records
         // which are still inside the retention window.
         long cutoff = retentionCutoff(System.currentTimeMillis());
         long effectiveFrom = Math.max(from, cutoff);
@@ -553,7 +560,8 @@ public final class CpuHistoryService {
             if (job == null || job.isTerminal() || !snapshot.cpuName.equals(job.cpuName)) {
                 continue;
             }
-            if (!CpuJobHistoryDto.STATUS_QUEUED.equals(job.status) && !CpuJobHistoryDto.STATUS_RUNNING.equals(job.status)
+            if (!CpuJobHistoryDto.STATUS_QUEUED.equals(job.status)
+                && !CpuJobHistoryDto.STATUS_RUNNING.equals(job.status)
                 && !CpuJobHistoryDto.STATUS_STUCK.equals(job.status)) {
                 continue;
             }

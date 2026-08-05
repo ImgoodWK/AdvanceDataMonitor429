@@ -35,7 +35,9 @@ public class PacketIconDirectCaptureResponse implements IMessage {
     public void toBytes(ByteBuf buf) {
         writeUtf8(buf, requestId, MAX_REQUEST_ID_BYTES);
         buf.writeBoolean(success);
-        if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0 || chunkIndex >= totalChunks
+        if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+            || chunkIndex < 0
+            || chunkIndex >= totalChunks
             || (!success && (chunkIndex != 0 || totalChunks != 1))) {
             throw new IllegalArgumentException("Invalid icon capture response chunk");
         }
@@ -61,8 +63,10 @@ public class PacketIconDirectCaptureResponse implements IMessage {
             chunkIndex = buf.readInt();
             totalChunks = buf.readInt();
             png = NetworkPacketCodec.readBytes(buf, MAX_CHUNK_BYTES);
-            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0
-                || chunkIndex >= totalChunks || (!success && (chunkIndex != 0 || totalChunks != 1))) {
+            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+                || chunkIndex < 0
+                || chunkIndex >= totalChunks
+                || (!success && (chunkIndex != 0 || totalChunks != 1))) {
                 throw new IllegalArgumentException("Invalid icon capture response chunk");
             }
             if (success && png.length == 0) {
@@ -132,7 +136,9 @@ public class PacketIconDirectCaptureResponse implements IMessage {
         public IMessage onMessage(final PacketIconDirectCaptureResponse message, MessageContext ctx) {
             final EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null ? null
                 : ctx.getServerHandler().playerEntity;
-            if (message == null || !message.valid || player == null || message.requestId == null
+            if (message == null || !message.valid
+                || player == null
+                || message.requestId == null
                 || message.requestId.isEmpty()) {
                 return null;
             }

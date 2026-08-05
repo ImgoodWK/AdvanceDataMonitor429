@@ -2,7 +2,7 @@ package com.imgood.textech.webae.diagnostics;
 
 import java.util.List;
 
-/** Pure status rules for network-health DTOs.  No Minecraft classes are used. */
+/** Pure status rules for network-health DTOs. No Minecraft classes are used. */
 public final class NetworkHealthStatusEvaluator {
 
     public static final String HEALTHY = "healthy";
@@ -54,7 +54,7 @@ public final class NetworkHealthStatusEvaluator {
         }
 
         // A known false required field is not healthy even if a caller forgot to
-        // attach the corresponding issue.  The server sampler normally emits the
+        // attach the corresponding issue. The server sampler normally emits the
         // more useful issue code as well.
         if (hasKnownFailure(dto)) {
             return warning ? DEGRADED : FAILED;
@@ -96,25 +96,24 @@ public final class NetworkHealthStatusEvaluator {
         if (dto.monitors.registered == null || dto.monitors.bound == null || dto.monitors.valid == null) {
             return true;
         }
-        if (dto.grid.present == null || dto.grid.storageAvailable == null || dto.grid.craftingAvailable == null
+        if (dto.grid.present == null || dto.grid.storageAvailable == null
+            || dto.grid.craftingAvailable == null
             || dto.grid.connectorAvailable == null) {
             return true;
         }
         if (dto.channels.available == null) {
             return true;
         }
-        if (Boolean.TRUE.equals(dto.channels.available)
-            && (dto.channels.used == null || dto.channels.max == null)) {
+        if (Boolean.TRUE.equals(dto.channels.available) && (dto.channels.used == null || dto.channels.max == null)) {
             return true;
         }
         // A false availability means the probe could not establish real used/max
-        // values.  It is deliberately unknown, never a simulated healthy value.
+        // values. It is deliberately unknown, never a simulated healthy value.
         return Boolean.FALSE.equals(dto.channels.available);
     }
 
     private static boolean hasKnownFailure(NetworkHealthDiagnosticDto dto) {
-        return Boolean.FALSE.equals(dto.links.registered)
-            || Boolean.FALSE.equals(dto.links.loaded)
+        return Boolean.FALSE.equals(dto.links.registered) || Boolean.FALSE.equals(dto.links.loaded)
             || Boolean.FALSE.equals(dto.links.reachable)
             || Boolean.FALSE.equals(dto.monitors.registered)
             || Boolean.FALSE.equals(dto.monitors.bound)
@@ -124,6 +123,7 @@ public final class NetworkHealthStatusEvaluator {
             || Boolean.FALSE.equals(dto.grid.craftingAvailable)
             || Boolean.FALSE.equals(dto.grid.connectorAvailable)
             || (Boolean.TRUE.equals(dto.channels.available) && dto.channels.used != null
-                && dto.channels.max != null && dto.channels.used.intValue() > dto.channels.max.intValue());
+                && dto.channels.max != null
+                && dto.channels.used.intValue() > dto.channels.max.intValue());
     }
 }

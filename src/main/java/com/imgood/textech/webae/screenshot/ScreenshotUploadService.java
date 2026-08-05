@@ -133,8 +133,7 @@ public final class ScreenshotUploadService {
                 return fail(uploadId, "Screenshot upload session was not found.");
             }
 
-            if ("qq".equals(session.destination)
-                && !player.canCommandSenderUseCommand(2, "admweb")) {
+            if ("qq".equals(session.destination) && !player.canCommandSenderUseCommand(2, "admweb")) {
                 sessions.remove(key);
                 return fail(uploadId, "OP permission is required for QQ screenshot delivery.");
             }

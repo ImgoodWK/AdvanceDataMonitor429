@@ -1,8 +1,8 @@
 package com.imgood.textech.network.packet;
 
 import com.imgood.textech.utils.BlockPos;
-
 import com.imgood.textech.utils.NetworkPacketCodec;
+
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

@@ -13,6 +13,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
+import com.imgood.textech.webae.cpu.CpuHistoryService;
 import com.imgood.textech.webae.dto.GtMachineDto;
 import com.imgood.textech.webae.dto.GtMachineListDto;
 import com.imgood.textech.webae.dto.NetworkMetricEntityHistoryDto;
@@ -23,7 +24,6 @@ import com.imgood.textech.webae.dto.StorageDto;
 import com.imgood.textech.webae.dto.StorageDto.CpuEntry;
 import com.imgood.textech.webae.dto.StorageDto.FluidEntry;
 import com.imgood.textech.webae.dto.StorageDto.ItemEntry;
-import com.imgood.textech.webae.cpu.CpuHistoryService;
 
 /**
  * Network-wide scalar metric sampler for the WebAE dashboard trend charts,

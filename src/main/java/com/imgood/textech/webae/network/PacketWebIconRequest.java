@@ -3,11 +3,11 @@ package com.imgood.textech.webae.network;
 import net.minecraft.client.Minecraft;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
 import com.imgood.textech.webae.icon.IconLazyRenderQueue;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconRenderer;
-import com.imgood.textech.utils.NetworkPacketCodec;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;

@@ -8,8 +8,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Collections;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +44,8 @@ public class NetworkHealthEndpointTest {
     public void endpointValidatesTheRequiredNetworkParameter() throws Exception {
         WebAuthSession owner = ownerSession("endpoint-owner");
 
-        NanoHTTPD.Response missing = NetworkHealthHandler.handle(
-            Collections.<String, String>emptyMap(), owner, owner.ownerUuid);
+        NanoHTTPD.Response missing = NetworkHealthHandler
+            .handle(Collections.<String, String>emptyMap(), owner, owner.ownerUuid);
         assertEquals(NanoHTTPD.Response.Status.BAD_REQUEST, missing.getStatus());
         assertTrue(body(missing).contains("Missing 'network' parameter"));
 
@@ -65,15 +65,42 @@ public class NetworkHealthEndpointTest {
         NanoHTTPD.Response response = NetworkHealthHandler.handle(params, owner, owner.ownerUuid);
         assertEquals(NanoHTTPD.Response.Status.OK, response.getStatus());
 
-        JsonObject json = new JsonParser().parse(body(response)).getAsJsonObject();
-        assertEquals("failed", json.get("status").getAsString());
-        assertEquals("endpoint-owner-with-no-registration", json.get("ownerUuid").getAsString());
-        assertEquals(0, json.get("networkId").getAsInt());
-        assertFalse(json.get("links").getAsJsonObject().get("registered").getAsBoolean());
-        assertTrue(json.get("links").getAsJsonObject().get("loaded").isJsonNull());
-        assertTrue(json.get("grid").getAsJsonObject().get("present").isJsonNull());
-        assertEquals("no_registered_network",
-            json.getAsJsonArray("issues").get(0).getAsJsonObject().get("code").getAsString());
+        JsonObject json = new JsonParser().parse(body(response))
+            .getAsJsonObject();
+        assertEquals(
+            "failed",
+            json.get("status")
+                .getAsString());
+        assertEquals(
+            "endpoint-owner-with-no-registration",
+            json.get("ownerUuid")
+                .getAsString());
+        assertEquals(
+            0,
+            json.get("networkId")
+                .getAsInt());
+        assertFalse(
+            json.get("links")
+                .getAsJsonObject()
+                .get("registered")
+                .getAsBoolean());
+        assertTrue(
+            json.get("links")
+                .getAsJsonObject()
+                .get("loaded")
+                .isJsonNull());
+        assertTrue(
+            json.get("grid")
+                .getAsJsonObject()
+                .get("present")
+                .isJsonNull());
+        assertEquals(
+            "no_registered_network",
+            json.getAsJsonArray("issues")
+                .get(0)
+                .getAsJsonObject()
+                .get("code")
+                .getAsString());
     }
 
     @Test
@@ -81,7 +108,8 @@ public class NetworkHealthEndpointTest {
         NanoHTTPD.Response response = ServerDiagnosticsHandler.handle("diagnostics-owner");
         assertEquals(NanoHTTPD.Response.Status.OK, response.getStatus());
 
-        JsonObject json = new JsonParser().parse(body(response)).getAsJsonObject();
+        JsonObject json = new JsonParser().parse(body(response))
+            .getAsJsonObject();
         String[] legacyFields = { "success", "tps", "mspt", "onlinePlayers", "uptimeSeconds", "queueDepth",
             "tasksProcessedThisTick", "activeNetworks", "snapshotCacheSize", "phases", "collects", "topRoutes",
             "slowHttp", "history", "config" };
@@ -89,7 +117,9 @@ public class NetworkHealthEndpointTest {
             assertTrue("Missing legacy diagnostics field: " + field, json.has(field));
         }
         assertTrue(json.has("networkHealth"));
-        assertTrue(json.getAsJsonArray("networkHealth").size() == 0);
+        assertTrue(
+            json.getAsJsonArray("networkHealth")
+                .size() == 0);
     }
 
     @Test
@@ -103,14 +133,28 @@ public class NetworkHealthEndpointTest {
         provider.putForTests(complete(ACL_OWNER, 1, "1:40:50:60"));
         List<String> allowlist = Collections.singletonList("0:10:20:30");
         WebAuthSession guest = new WebAuthSession(
-            "guest-token", WebAuthSession.TYPE_GUEST, ACL_OWNER, "guest-actor", "Guest", allowlist);
+            "guest-token",
+            WebAuthSession.TYPE_GUEST,
+            ACL_OWNER,
+            "guest-actor",
+            "Guest",
+            allowlist);
 
         NanoHTTPD.Response response = ServerDiagnosticsHandler.handle(guest, ACL_OWNER);
         assertEquals(NanoHTTPD.Response.Status.OK, response.getStatus());
-        JsonObject json = new JsonParser().parse(body(response)).getAsJsonObject();
-        assertEquals(1, json.getAsJsonArray("networkHealth").size());
-        assertEquals("0:10:20:30", json.getAsJsonArray("networkHealth").get(0)
-            .getAsJsonObject().get("networkKey").getAsString());
+        JsonObject json = new JsonParser().parse(body(response))
+            .getAsJsonObject();
+        assertEquals(
+            1,
+            json.getAsJsonArray("networkHealth")
+                .size());
+        assertEquals(
+            "0:10:20:30",
+            json.getAsJsonArray("networkHealth")
+                .get(0)
+                .getAsJsonObject()
+                .get("networkKey")
+                .getAsString());
     }
 
     private static NetworkGroup group(int dim, int x, int y, int z) {

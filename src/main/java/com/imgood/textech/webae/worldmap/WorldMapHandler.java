@@ -208,12 +208,7 @@ public final class WorldMapHandler {
         }
         boolean ownerIsRequester = ownerUuid.equalsIgnoreCase(actorUuid);
         if (HandlerTick.isServerThread()) {
-            return requestSnapshotOnServerThread(
-                ownerUuid,
-                networkId,
-                actorUuid,
-                actorName,
-                ownerIsRequester);
+            return requestSnapshotOnServerThread(ownerUuid, networkId, actorUuid, actorName, ownerIsRequester);
         }
         if (HandlerTick.getServerTaskQueueDepth() >= MAX_SERVER_TASK_QUEUE) {
             return json(
@@ -447,7 +442,8 @@ public final class WorldMapHandler {
             views = params.get("view");
         }
         String layer = params.get("layer");
-        if (layer != null && !layer.trim().isEmpty() && !WorldMapPacketAuthorization.isValidLayer(layer)) {
+        if (layer != null && !layer.trim()
+            .isEmpty() && !WorldMapPacketAuthorization.isValidLayer(layer)) {
             return json(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Invalid world map layer\"}");

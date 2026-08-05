@@ -6,16 +6,16 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
+import com.imgood.textech.webae.auth.WebAuthSession;
+import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticDto;
+import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticProvider;
 import com.imgood.textech.webae.perf.WebAePerfProfiler;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.ConfigSummary;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.DiagnosticsSnapshot;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.PhaseView;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.RouteView;
 import com.imgood.textech.webae.perf.WebAePerfProfiler.SlowHttpEntry;
-import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticDto;
-import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticProvider;
-import com.imgood.textech.webae.access.WebAeNetworkAccess;
-import com.imgood.textech.webae.auth.WebAuthSession;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -46,9 +46,10 @@ public final class ServerDiagnosticsHandler {
     public static NanoHTTPD.Response handle(WebAuthSession session, String ownerUuid) {
         DiagnosticsSnapshot snap = WebAePerfProfiler.instance()
             .snapshot();
-        return NanoHTTPD
-            .newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json",
-                GSON.toJson(toJson(snap, session, ownerUuid)));
+        return NanoHTTPD.newFixedLengthResponse(
+            NanoHTTPD.Response.Status.OK,
+            "application/json",
+            GSON.toJson(toJson(snap, session, ownerUuid)));
     }
 
     private static DiagnosticsJson toJson(DiagnosticsSnapshot snap, WebAuthSession session, String ownerUuid) {

@@ -22,7 +22,9 @@ public final class RecipeUploadSession {
         boolean isStart, boolean isEnd) {
         long now = System.currentTimeMillis();
         pruneExpired(now);
-        if (playerUuid == null || playerUuid.isEmpty() || totalBatches < 1 || batchIndex < 0
+        if (playerUuid == null || playerUuid.isEmpty()
+            || totalBatches < 1
+            || batchIndex < 0
             || batchIndex >= totalBatches) {
             return BatchDecision.rejected();
         }

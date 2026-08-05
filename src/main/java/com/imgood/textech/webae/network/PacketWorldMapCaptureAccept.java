@@ -78,7 +78,8 @@ public class PacketWorldMapCaptureAccept implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketWorldMapCaptureAccept message, MessageContext ctx) {
-            final net.minecraft.entity.player.EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null ? null
+            final net.minecraft.entity.player.EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null
+                ? null
                 : ctx.getServerHandler().playerEntity;
             if (message == null || !message.valid || ctx == null || player == null) return null;
             return PacketHandlers.runOnServer(ctx, new Runnable() {

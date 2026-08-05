@@ -5,8 +5,8 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.webae.icon.IconMissingQueue;
-import com.imgood.textech.webae.icon.IconStore;
 import com.imgood.textech.webae.icon.IconRenderMode;
+import com.imgood.textech.webae.icon.IconStore;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;

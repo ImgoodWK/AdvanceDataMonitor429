@@ -25,7 +25,8 @@ public final class UiViewportTransform {
         int safeMargin = Math.max(0, margin);
         int availableWidth = Math.max(1, viewportWidth - safeMargin * 2);
         int availableHeight = Math.max(1, viewportHeight - safeMargin * 2);
-        float scale = Math.min(1.0F, Math.min(availableWidth / (float) logicalWidth, availableHeight / (float) logicalHeight));
+        float scale = Math
+            .min(1.0F, Math.min(availableWidth / (float) logicalWidth, availableHeight / (float) logicalHeight));
         float drawnWidth = logicalWidth * scale;
         float drawnHeight = logicalHeight * scale;
         return new UiViewportTransform(
@@ -39,10 +40,12 @@ public final class UiViewportTransform {
     /**
      * Fit a centered logical panel while retaining screen-space coordinates as the logical coordinate system.
      *
-     * <p>Legacy ADM screens position controls around {@code width / 2} and {@code height / 2}. Scaling an
+     * <p>
+     * Legacy ADM screens position controls around {@code width / 2} and {@code height / 2}. Scaling an
      * independent fixed canvas would move those controls away from their panel. This transform instead scales the
      * complete logical viewport about its centre, so existing coordinates, hit tests, keyboard focus, and tooltip
-     * anchors continue to agree.</p>
+     * anchors continue to agree.
+     * </p>
      */
     public static UiViewportTransform fitCenteredBounds(int viewportWidth, int viewportHeight, int contentWidth,
         int contentHeight, int margin) {
@@ -52,9 +55,8 @@ public final class UiViewportTransform {
         int safeMargin = Math.max(0, margin);
         int availableWidth = Math.max(1, viewportWidth - safeMargin * 2);
         int availableHeight = Math.max(1, viewportHeight - safeMargin * 2);
-        float scale = Math.min(
-            1.0F,
-            Math.min(availableWidth / (float) contentWidth, availableHeight / (float) contentHeight));
+        float scale = Math
+            .min(1.0F, Math.min(availableWidth / (float) contentWidth, availableHeight / (float) contentHeight));
         return new UiViewportTransform(
             viewportWidth,
             viewportHeight,

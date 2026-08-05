@@ -95,7 +95,8 @@ public class HandlerLinkScannerAction implements IMessageHandler<PacketLinkScann
 
         @Override
         public IMessage onMessage(PacketLinkScannerAction message, MessageContext ctx) {
-            if (message == null || message.malformed || message.action != PacketLinkScannerAction.ACTION_SYNC
+            if (message == null || message.malformed
+                || message.action != PacketLinkScannerAction.ACTION_SYNC
                 || message.nbt == null) {
                 return null;
             }

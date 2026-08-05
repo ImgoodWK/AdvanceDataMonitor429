@@ -84,8 +84,8 @@ public final class WorldMapSnapshotDownloadHandler {
         if (pendingPageOffset >= 0) {
             int offset = pendingPageOffset;
             pendingPageOffset = -1;
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                new PacketWorldMapSnapshotSyncRequest(ownerUuid, networkId, syncLocalVersion, offset));
+            AdvanceDataMonitor.ADMCHANEL
+                .sendToServer(new PacketWorldMapSnapshotSyncRequest(ownerUuid, networkId, syncLocalVersion, offset));
         }
         int budget = Math.max(1, Config.worldMapClientDownloadBudgetPerTick);
         for (int i = 0; i < budget && !pullQueue.isEmpty(); i++) {
@@ -106,8 +106,10 @@ public final class WorldMapSnapshotDownloadHandler {
     }
 
     public synchronized void onSyncResponse(PacketWorldMapSnapshotSyncResponse message) {
-        if (message == null || message.serverVersion <= 0 || ownerUuid == null
-            || !ownerUuid.equals(message.ownerUuid) || networkId != message.networkId) {
+        if (message == null || message.serverVersion <= 0
+            || ownerUuid == null
+            || !ownerUuid.equals(message.ownerUuid)
+            || networkId != message.networkId) {
             return;
         }
         if (message.batchOffset == 0) {
@@ -120,7 +122,8 @@ public final class WorldMapSnapshotDownloadHandler {
             return;
         }
         if (message.batchOffset != expectedPageOffset || message.nextOffset < message.batchOffset
-            || message.tileKeys == null || message.nextOffset - message.batchOffset != message.tileKeys.size()) {
+            || message.tileKeys == null
+            || message.nextOffset - message.batchOffset != message.tileKeys.size()) {
             pendingPageOffset = 0;
             return;
         }
@@ -153,8 +156,11 @@ public final class WorldMapSnapshotDownloadHandler {
     }
 
     public synchronized void onTileData(PacketWorldMapSnapshotTileData message) {
-        if (message == null || message.png == null || message.png.length == 0 || ownerUuid == null
-            || !ownerUuid.equals(message.ownerUuid) || networkId != message.networkId
+        if (message == null || message.png == null
+            || message.png.length == 0
+            || ownerUuid == null
+            || !ownerUuid.equals(message.ownerUuid)
+            || networkId != message.networkId
             || targetVersion != message.snapshotVersion) {
             return;
         }

@@ -41,7 +41,8 @@ public final class MonitorPreviewCollector {
         if (!ownerName.equals(monitor.getOwnerName())) {
             return null;
         }
-        NBTTagCompound binding = monitor.getDataBoundList().get(Integer.valueOf(slotIndex));
+        NBTTagCompound binding = monitor.getDataBoundList()
+            .get(Integer.valueOf(slotIndex));
         if (binding == null) {
             return null;
         }
@@ -112,16 +113,22 @@ public final class MonitorPreviewCollector {
         List<Double> values = new ArrayList<Double>();
         NBTTagList dataValues = binding.getTagList("dataValues", 10);
         for (int i = 0; i < dataValues.tagCount(); i++) {
-            values.add(Double.valueOf(dataValues.getCompoundTagAt(i).getDouble("data")));
+            values.add(
+                Double.valueOf(
+                    dataValues.getCompoundTagAt(i)
+                        .getDouble("data")));
         }
         return values;
     }
 
     private static void fillScalar(MonitorPreviewDto dto, NBTTagCompound binding, List<Double> history) {
         MonitorPreviewDto.Scalar scalar = new MonitorPreviewDto.Scalar();
-        scalar.value = history.isEmpty() ? 0.0D : history.get(history.size() - 1).doubleValue();
+        scalar.value = history.isEmpty() ? 0.0D
+            : history.get(history.size() - 1)
+                .doubleValue();
         double targetValue = MonitorWidgetSpec.getTargetValue(binding);
-        boolean percentMetric = dto.metricKey.toLowerCase(java.util.Locale.ROOT).contains("percent")
+        boolean percentMetric = dto.metricKey.toLowerCase(java.util.Locale.ROOT)
+            .contains("percent")
             && (!MonitorWidgetSpec.SOURCE_WIRELESS_STEAM.equals(dto.sourceKind) || targetValue > 0.0D);
         if (percentMetric) {
             scalar.max = 100.0D;
@@ -156,7 +163,8 @@ public final class MonitorPreviewCollector {
         for (int i = start; i < history.size(); i++) {
             MonitorPreviewDto.Category category = new MonitorPreviewDto.Category();
             category.label = "#" + (i + 1);
-            category.value = history.get(i).doubleValue();
+            category.value = history.get(i)
+                .doubleValue();
             dto.categories.add(category);
         }
     }

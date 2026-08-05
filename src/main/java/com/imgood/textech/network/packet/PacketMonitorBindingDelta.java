@@ -18,7 +18,8 @@ import io.netty.buffer.ByteBuf;
 /**
  * Runtime monitor binding delta sync.
  *
- * <p>The packet carries one binding revision, a small field patch, and optional appended history points so the client
+ * <p>
+ * The packet carries one binding revision, a small field patch, and optional appended history points so the client
  * does not need a whole monitor NBT blob on every sample tick.
  * </p>
  */
@@ -89,7 +90,9 @@ public class PacketMonitorBindingDelta implements IMessage {
             return copy;
         }
         for (int i = 0; i < source.tagCount(); i++) {
-            copy.appendTag(source.getCompoundTagAt(i).copy());
+            copy.appendTag(
+                source.getCompoundTagAt(i)
+                    .copy());
         }
         return copy;
     }

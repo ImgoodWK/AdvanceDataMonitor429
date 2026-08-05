@@ -36,13 +36,8 @@ public class GaugeRenderer implements IADMRender {
                 MonitorRenderSupport.color(nbt, "displayNameColor", 0xFFFFFF));
             drawArc(radius, cy, 1.0D, 0x30424E, 0.9F);
             drawArc(radius, cy, ratio, MonitorRenderSupport.color(nbt, "lineColor", 0x00FFFF), 1.0F);
-            MonitorRenderSupport.drawTextCentered(
-                MonitorRenderSupport.format(value),
-                0.0D,
-                cy - 0.04D,
-                0.03D,
-                0.022D,
-                0xFFFFFF);
+            MonitorRenderSupport
+                .drawTextCentered(MonitorRenderSupport.format(value), 0.0D, cy - 0.04D, 0.03D, 0.022D, 0xFFFFFF);
             MonitorRenderSupport.drawTextCentered(
                 String.format(java.util.Locale.ROOT, "%.0f%%", ratio * 100.0D),
                 0.0D,

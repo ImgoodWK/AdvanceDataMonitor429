@@ -76,7 +76,10 @@ public final class UiTextField {
         UnderlineFieldRegion underline = theme.underlineField();
         UnderlineFieldRegion.State state = UnderlineFieldRegion
             .stateFor(field.isVisualEnabled(), field.isInvalid(), focused);
-        if (underline != null && GuiBlitUtil.hasResource(underline.style(state).left().texture())) {
+        if (underline != null && GuiBlitUtil.hasResource(
+            underline.style(state)
+                .left()
+                .texture())) {
             GuiBlitUtil.drawUnderlineField(underline, state, drawX, drawY, drawW, drawH);
             return;
         }
@@ -84,7 +87,9 @@ public final class UiTextField {
         NineSliceRegion region = field.isInvalid() ? theme.textFieldInvalid()
             : !field.isVisualEnabled() ? theme.textFieldDisabled()
                 : focused ? theme.textFieldFocused() : theme.textFieldNormal();
-        if (bar != null && GuiBlitUtil.hasResource(bar.center().texture())) {
+        if (bar != null && GuiBlitUtil.hasResource(
+            bar.center()
+                .texture())) {
             GuiBlitUtil.drawTiledBar(bar, drawX, drawY, drawW, drawH);
         } else if (region != null && GuiBlitUtil.hasResource(region.texture())) {
             GuiBlitUtil.drawHorizontalSlice(region, drawX, drawY, drawW, drawH);

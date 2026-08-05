@@ -15,8 +15,8 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.textech.AdvanceDataMonitor;
-import com.imgood.textech.gui.guiscreen.GuiMainAdvanceDataMonitor;
 import com.imgood.textech.gui.framework.UiFeedbackArea;
+import com.imgood.textech.gui.guiscreen.GuiMainAdvanceDataMonitor;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 
@@ -85,7 +85,11 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
     protected void saveAndSync(NBTTagCompound nbt) {
         tileEntity.setDisplayData(index, nbt);
         tileEntity.writeToNBT(nbt);
-        PacketSynTileEntity packet = new PacketSynTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, nbt);
+        PacketSynTileEntity packet = new PacketSynTileEntity(
+            tileEntity.xCoord,
+            tileEntity.yCoord,
+            tileEntity.zCoord,
+            nbt);
         if (packet.fitsPacketBudget()) {
             AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
         }

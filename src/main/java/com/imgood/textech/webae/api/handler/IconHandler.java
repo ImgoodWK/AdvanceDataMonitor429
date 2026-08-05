@@ -22,9 +22,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
 import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
-import com.imgood.textech.webae.access.WebAeNetworkAccess;
 import com.imgood.textech.webae.events.EventStreamHub;
 import com.imgood.textech.webae.icon.IconDirectCaptureBridge;
 import com.imgood.textech.webae.icon.IconMissingQueue;
@@ -514,10 +514,8 @@ public class IconHandler {
                     moveAtomically(icon.backupFile, icon.file);
                     icon.backupFile = null;
                 } catch (IOException e) {
-                    AdvanceDataMonitor.LOG.warn(
-                        "[WebAE] Failed to restore previous icon {}: {}",
-                        icon.file.getName(),
-                        e.getMessage());
+                    AdvanceDataMonitor.LOG
+                        .warn("[WebAE] Failed to restore previous icon {}: {}", icon.file.getName(), e.getMessage());
                 }
             }
         }

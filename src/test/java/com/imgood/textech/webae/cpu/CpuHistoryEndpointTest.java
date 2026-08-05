@@ -18,7 +18,6 @@ import org.junit.Test;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.imgood.textech.webae.access.WebAeNetworkKeys;
 import com.imgood.textech.webae.api.handler.CpuCapacityHandler;
 import com.imgood.textech.webae.api.handler.CpuHistoryHandler;
 import com.imgood.textech.webae.auth.WebAuthSession;
@@ -35,13 +34,15 @@ public class CpuHistoryEndpointTest {
 
     @Before
     public void setup() {
-        CpuHistoryService.instance().clearForTests();
+        CpuHistoryService.instance()
+            .clearForTests();
         NetworkRegistry.seedFromGroups(OWNER, Collections.singletonList(group()));
     }
 
     @After
     public void cleanup() {
-        CpuHistoryService.instance().clearForTests();
+        CpuHistoryService.instance()
+            .clearForTests();
         NetworkRegistry.seedFromGroups(OWNER, Collections.<NetworkGroup>emptyList());
     }
 
@@ -59,7 +60,8 @@ public class CpuHistoryEndpointTest {
             job.queuedAt = now + i;
             state.jobs.add(job);
         }
-        CpuHistoryService.instance().putForTests(state);
+        CpuHistoryService.instance()
+            .putForTests(state);
 
         Map<String, String> missing = new HashMap<String, String>();
         NanoHTTPD.Response missingResponse = CpuHistoryHandler.handle(missing, ownerSession(), OWNER);
@@ -72,11 +74,22 @@ public class CpuHistoryEndpointTest {
         params.put("limit", "1");
         NanoHTTPD.Response response = CpuHistoryHandler.handle(params, ownerSession(), OWNER);
         assertEquals(NanoHTTPD.Response.Status.OK, response.getStatus());
-        JsonObject json = new JsonParser().parse(body(response)).getAsJsonObject();
-        assertTrue(json.get("success").getAsBoolean());
-        assertEquals(1, json.getAsJsonArray("jobs").size());
-        assertTrue(json.get("truncated").getAsBoolean());
-        assertEquals(KEY, json.get("networkKey").getAsString());
+        JsonObject json = new JsonParser().parse(body(response))
+            .getAsJsonObject();
+        assertTrue(
+            json.get("success")
+                .getAsBoolean());
+        assertEquals(
+            1,
+            json.getAsJsonArray("jobs")
+                .size());
+        assertTrue(
+            json.get("truncated")
+                .getAsBoolean());
+        assertEquals(
+            KEY,
+            json.get("networkKey")
+                .getAsString());
     }
 
     @Test
@@ -85,11 +98,20 @@ public class CpuHistoryEndpointTest {
         params.put("network", "0");
         NanoHTTPD.Response response = CpuCapacityHandler.handle(params, ownerSession(), OWNER);
         assertEquals(NanoHTTPD.Response.Status.OK, response.getStatus());
-        JsonObject json = new JsonParser().parse(body(response)).getAsJsonObject();
-        assertTrue(json.get("success").getAsBoolean());
-        assertTrue(json.get("requiredCpuCountEstimate").isJsonNull());
-        assertTrue(json.get("busyRatio").isJsonNull());
-        assertFalse(json.getAsJsonArray("bottlenecks").size() == 0);
+        JsonObject json = new JsonParser().parse(body(response))
+            .getAsJsonObject();
+        assertTrue(
+            json.get("success")
+                .getAsBoolean());
+        assertTrue(
+            json.get("requiredCpuCountEstimate")
+                .isJsonNull());
+        assertTrue(
+            json.get("busyRatio")
+                .isJsonNull());
+        assertFalse(
+            json.getAsJsonArray("bottlenecks")
+                .size() == 0);
     }
 
     @Test

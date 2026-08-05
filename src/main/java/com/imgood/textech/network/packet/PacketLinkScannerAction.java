@@ -64,10 +64,7 @@ public class PacketLinkScannerAction implements IMessage {
             buf.writeByte(action);
             buf.writeInt(slot);
             if (action == ACTION_SYNC) {
-                NetworkPacketCodec.writeTag(
-                    buf,
-                    nbt == null ? new NBTTagCompound() : nbt,
-                    MAX_NBT_COMPRESSED_BYTES);
+                NetworkPacketCodec.writeTag(buf, nbt == null ? new NBTTagCompound() : nbt, MAX_NBT_COMPRESSED_BYTES);
             } else if (action == ACTION_TELEPORT) {
                 buf.writeInt(dimension);
                 buf.writeInt(x);

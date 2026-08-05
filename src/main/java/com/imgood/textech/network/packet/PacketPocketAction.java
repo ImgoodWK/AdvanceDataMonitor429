@@ -261,9 +261,9 @@ public class PacketPocketAction implements IMessage {
         if (action < REQUEST_SYNC || action > OPEN_STORAGE_GUI) {
             throw new IllegalArgumentException("Invalid pocket action");
         }
-        if (action == SET_WINDOW_POS
-            && (Float.isNaN(floatValue1) || Float.isInfinite(floatValue1)
-                || Float.isNaN(floatValue2) || Float.isInfinite(floatValue2))) {
+        if (action == SET_WINDOW_POS && (Float.isNaN(floatValue1) || Float.isInfinite(floatValue1)
+            || Float.isNaN(floatValue2)
+            || Float.isInfinite(floatValue2))) {
             throw new IllegalArgumentException("Pocket window position must be finite");
         }
     }
@@ -519,10 +519,8 @@ public class PacketPocketAction implements IMessage {
         // Always reply with a sync so the client stays in step.
         boolean syncCursor = message.action == WITHDRAW_TO_CURSOR || message.action == DEPOSIT_FROM_CURSOR
             || message.action == DEPOSIT_SINGLE_FROM_CURSOR;
-        java.util.List<PacketPocketSync> syncPackets = PacketPocketSync.fullStatePackets(
-            state,
-            syncCursor,
-            syncCursor ? player.inventory.getItemStack() : null);
+        java.util.List<PacketPocketSync> syncPackets = PacketPocketSync
+            .fullStatePackets(state, syncCursor, syncCursor ? player.inventory.getItemStack() : null);
         if (syncPackets.isEmpty()) {
             return;
         }

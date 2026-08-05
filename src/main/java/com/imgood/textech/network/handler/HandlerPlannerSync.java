@@ -47,9 +47,7 @@ public class HandlerPlannerSync implements IMessageHandler<PacketPlannerSync, IM
             return null;
         }
         NBTTagCompound existingNbt = stack.getTagCompound();
-        NBTTagCompound updatedNbt = existingNbt == null
-            ? new NBTTagCompound()
-            : (NBTTagCompound) existingNbt.copy();
+        NBTTagCompound updatedNbt = existingNbt == null ? new NBTTagCompound() : (NBTTagCompound) existingNbt.copy();
         mergePlannerNbt(updatedNbt, message.nbt);
         PacketPlannerSync response = new PacketPlannerSync(message.slot, updatedNbt);
         if (!response.fitsPacketBudget()) {

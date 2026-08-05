@@ -8,9 +8,11 @@ import java.util.Map;
 /**
  * Read-only, owner-scoped health result for one WebAE network.
  *
- * <p>The fields are deliberately simple public DTO fields.  They are consumed
+ * <p>
+ * The fields are deliberately simple public DTO fields. They are consumed
  * by Gson on the HTTP path and by the diagnostics/assistant integrations, while
- * the sampling code that fills them is restricted to the server thread.</p>
+ * the sampling code that fills them is restricted to the server thread.
+ * </p>
  */
 public final class NetworkHealthDiagnosticDto {
 
@@ -41,7 +43,7 @@ public final class NetworkHealthDiagnosticDto {
 
     /**
      * Build the explicit no-sample response used before the first server-side
-     * sample (and after a cache has expired).  It is intentionally not healthy.
+     * sample (and after a cache has expired). It is intentionally not healthy.
      */
     public static NetworkHealthDiagnosticDto unknown(String ownerUuid, int networkId, String networkKey) {
         NetworkHealthDiagnosticDto dto = new NetworkHealthDiagnosticDto(ownerUuid, networkId, networkKey);
@@ -49,11 +51,12 @@ public final class NetworkHealthDiagnosticDto {
         dto.checkedAt = 0L;
         dto.sampleAgeMs = null;
         dto.stale = true;
-        dto.issues.add(Issue.unknown(
-            "sample_stale",
-            "webae.networkHealth.issue.sampleStale",
-            "webae.networkHealth.suggestion.waitForSample",
-            "no_sample"));
+        dto.issues.add(
+            Issue.unknown(
+                "sample_stale",
+                "webae.networkHealth.issue.sampleStale",
+                "webae.networkHealth.suggestion.waitForSample",
+                "no_sample"));
         return dto;
     }
 

@@ -107,9 +107,7 @@ public final class WorldMapSnapshotStore {
         }
         String layerId = WorldMapTileLayer.isAe(layer) ? WorldMapTileLayer.AE : WorldMapTileLayer.TERRAIN;
         File result = new File(
-            new File(
-                new File(new File(versionDirectory, layerId), String.valueOf(dim)),
-                String.valueOf(chunkX)),
+            new File(new File(new File(versionDirectory, layerId), String.valueOf(dim)), String.valueOf(chunkX)),
             chunkZ + ".png");
         return isWithinSnapshotsRoot(result) ? result : null;
     }
@@ -124,19 +122,14 @@ public final class WorldMapSnapshotStore {
             if (bytes == null) {
                 return null;
             }
-            WorldMapSnapshotCurrentPointer pointer = GSON.fromJson(
-                new String(bytes, UTF8),
-                WorldMapSnapshotCurrentPointer.class);
+            WorldMapSnapshotCurrentPointer pointer = GSON
+                .fromJson(new String(bytes, UTF8), WorldMapSnapshotCurrentPointer.class);
             if (!isValidCurrentPointer(pointer)) {
                 return null;
             }
             WorldMapSnapshotManifest manifest = loadManifest(ownerUuid, networkId, pointer.version);
-            return manifest != null && isValidManifest(
-                manifest,
-                ownerUuid,
-                networkId,
-                pointer.version,
-                false) ? pointer : null;
+            return manifest != null && isValidManifest(manifest, ownerUuid, networkId, pointer.version, false) ? pointer
+                : null;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to read snapshot current pointer {}", file, e);
             return null;
@@ -160,7 +153,8 @@ public final class WorldMapSnapshotStore {
             if (bytes.length > MAX_CURRENT_BYTES) {
                 return false;
             }
-            if (dir == null || (!dir.exists() && !dir.mkdirs()) || !dir.isDirectory()
+            if (dir == null || (!dir.exists() && !dir.mkdirs())
+                || !dir.isDirectory()
                 || !isWithinSnapshotsRoot(target)) {
                 return false;
             }
@@ -187,9 +181,7 @@ public final class WorldMapSnapshotStore {
             if (bytes == null) {
                 return null;
             }
-            WorldMapSnapshotManifest manifest = GSON.fromJson(
-                new String(bytes, UTF8),
-                WorldMapSnapshotManifest.class);
+            WorldMapSnapshotManifest manifest = GSON.fromJson(new String(bytes, UTF8), WorldMapSnapshotManifest.class);
             return isValidManifest(manifest, ownerUuid, networkId, version, true) ? manifest : null;
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.warn("[WebAE] Failed to read snapshot manifest {}", file, e);
@@ -206,7 +198,7 @@ public final class WorldMapSnapshotStore {
     }
 
     /**
-     * Loads a logical sidecar.  A missing, malformed, or invalid sidecar is
+     * Loads a logical sidecar. A missing, malformed, or invalid sidecar is
      * deliberately represented as an unavailable index rather than falling
      * back to the live/current topology.
      */
@@ -227,7 +219,7 @@ public final class WorldMapSnapshotStore {
             return WorldMapLogicalIndex.copyOf(index);
         } catch (Exception e) {
             // A sidecar is optional and may be malformed independently of the
-            // terrain snapshot.  Keep this pure fallback free of mod bootstrap
+            // terrain snapshot. Keep this pure fallback free of mod bootstrap
             // logging: touching AdvanceDataMonitor.LOG here initializes Forge
             // when the store is exercised from a standalone backend/test JVM.
             return unavailableLogicalIndex(version);
@@ -235,11 +227,11 @@ public final class WorldMapSnapshotStore {
     }
 
     /** Writes an optional logical sidecar; callers may ignore a false result. */
-    public static boolean saveLogicalIndex(String ownerUuid, int networkId, int version,
-        WorldMapLogicalIndex index) {
+    public static boolean saveLogicalIndex(String ownerUuid, int networkId, int version, WorldMapLogicalIndex index) {
         String canonicalOwner = WorldMapPacketAuthorization.canonicalOwnerUuid(ownerUuid);
         if (canonicalOwner == null || !WorldMapPacketAuthorization.isValidNetworkId(networkId)
-            || !WorldMapPacketAuthorization.isValidSnapshotVersion(version) || index == null
+            || !WorldMapPacketAuthorization.isValidSnapshotVersion(version)
+            || index == null
             || !isValidLogicalIndex(index, version)) {
             return false;
         }
@@ -251,7 +243,8 @@ public final class WorldMapSnapshotStore {
         WorldMapLogicalIndex payload = WorldMapLogicalIndex.copyOf(index);
         payload.version = version;
         try {
-            byte[] bytes = GSON.toJson(payload).getBytes(UTF8);
+            byte[] bytes = GSON.toJson(payload)
+                .getBytes(UTF8);
             if (bytes.length <= 0 || bytes.length > MAX_LOGICAL_INDEX_BYTES) {
                 return false;
             }
@@ -278,8 +271,8 @@ public final class WorldMapSnapshotStore {
             if (bytes == null) {
                 return null;
             }
-            WorldMapSnapshotCurrentPointer pointer = GSON.fromJson(new String(bytes, UTF8),
-                WorldMapSnapshotCurrentPointer.class);
+            WorldMapSnapshotCurrentPointer pointer = GSON
+                .fromJson(new String(bytes, UTF8), WorldMapSnapshotCurrentPointer.class);
             return isValidCurrentPointer(pointer) ? pointer : null;
         } catch (Exception e) {
             return null;
@@ -297,24 +290,18 @@ public final class WorldMapSnapshotStore {
             if (bytes == null) {
                 return null;
             }
-            WorldMapSnapshotManifest manifest = GSON.fromJson(
-                new String(bytes, UTF8),
-                WorldMapSnapshotManifest.class);
+            WorldMapSnapshotManifest manifest = GSON.fromJson(new String(bytes, UTF8), WorldMapSnapshotManifest.class);
             return isValidManifest(manifest, ownerUuid, networkId, version, false) ? manifest : null;
         } catch (Exception e) {
-            // Retained manifests are untrusted disk input.  Diff callers need
+            // Retained manifests are untrusted disk input. Diff callers need
             // an explicit unknown result, not Forge bootstrap as a side effect.
             return null;
         }
     }
 
     public static boolean saveManifest(WorldMapSnapshotManifest manifest) {
-        if (manifest == null || !isValidManifest(
-            manifest,
-            manifest.ownerUuid,
-            manifest.networkId,
-            manifest.version,
-            true)) {
+        if (manifest == null
+            || !isValidManifest(manifest, manifest.ownerUuid, manifest.networkId, manifest.version, true)) {
             return false;
         }
         manifest.ownerUuid = WorldMapPacketAuthorization.canonicalOwnerUuid(manifest.ownerUuid);
@@ -359,7 +346,8 @@ public final class WorldMapSnapshotStore {
             return false;
         }
         File parent = out.getParentFile();
-        if (parent == null || (!parent.exists() && !parent.mkdirs()) || !parent.isDirectory()
+        if (parent == null || (!parent.exists() && !parent.mkdirs())
+            || !parent.isDirectory()
             || !isWithinSnapshotsRoot(out)) {
             return false;
         }
@@ -430,12 +418,8 @@ public final class WorldMapSnapshotStore {
     }
 
     public static boolean finalizeSnapshot(WorldMapSnapshotManifest manifest) {
-        if (manifest == null || !isValidManifest(
-            manifest,
-            manifest.ownerUuid,
-            manifest.networkId,
-            manifest.version,
-            false)) {
+        if (manifest == null
+            || !isValidManifest(manifest, manifest.ownerUuid, manifest.networkId, manifest.version, false)) {
             return false;
         }
         if (!saveManifest(manifest)) {
@@ -516,8 +500,7 @@ public final class WorldMapSnapshotStore {
     }
 
     private static void deleteRecursive(File file) {
-        if (file == null || !file.exists() || Files.isSymbolicLink(file.toPath())
-            || !isWithinSnapshotsRoot(file)) {
+        if (file == null || !file.exists() || Files.isSymbolicLink(file.toPath()) || !isWithinSnapshotsRoot(file)) {
             return;
         }
         if (file.isDirectory()) {
@@ -592,14 +575,8 @@ public final class WorldMapSnapshotStore {
                 continue;
             }
             if (dimInfo.minChunkX <= dimInfo.maxChunkX && dimInfo.minChunkZ <= dimInfo.maxChunkZ
-                && WorldMapPacketAuthorization.isValidChunk(
-                    dimInfo.dim,
-                    dimInfo.minChunkX,
-                    dimInfo.minChunkZ)
-                && WorldMapPacketAuthorization.isValidChunk(
-                    dimInfo.dim,
-                    dimInfo.maxChunkX,
-                    dimInfo.maxChunkZ)) {
+                && WorldMapPacketAuthorization.isValidChunk(dimInfo.dim, dimInfo.minChunkX, dimInfo.minChunkZ)
+                && WorldMapPacketAuthorization.isValidChunk(dimInfo.dim, dimInfo.maxChunkX, dimInfo.maxChunkZ)) {
                 long width = (long) dimInfo.maxChunkX - dimInfo.minChunkX + 1L;
                 long height = (long) dimInfo.maxChunkZ - dimInfo.minChunkZ + 1L;
                 long count = width * height;
@@ -627,9 +604,7 @@ public final class WorldMapSnapshotStore {
         try {
             int chunkX = Integer.parseInt(parts[0].trim());
             int chunkZ = Integer.parseInt(parts[1].trim());
-            return WorldMapPacketAuthorization.isValidChunk(0, chunkX, chunkZ)
-                ? new int[] { chunkX, chunkZ }
-                : null;
+            return WorldMapPacketAuthorization.isValidChunk(0, chunkX, chunkZ) ? new int[] { chunkX, chunkZ } : null;
         } catch (NumberFormatException e) {
             return null;
         }
@@ -655,7 +630,8 @@ public final class WorldMapSnapshotStore {
         if (manifest == null || !WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)
             || !WorldMapPacketAuthorization.isValidNetworkId(networkId)
             || !WorldMapPacketAuthorization.isValidSnapshotVersion(version)
-            || manifest.version != version || manifest.networkId != networkId
+            || manifest.version != version
+            || manifest.networkId != networkId
             || !WorldMapPacketAuthorization.isValidTilePx(manifest.tilePx)) {
             return false;
         }
@@ -683,8 +659,11 @@ public final class WorldMapSnapshotStore {
             return false;
         }
         for (Map.Entry<String, Integer> stat : manifest.sourceStats.entrySet()) {
-            if (stat.getKey() == null || stat.getKey().length() > MAX_MANIFEST_KEY_BYTES || stat.getValue() == null
-                || stat.getValue() < 0 || stat.getValue() > MAX_TOTAL_CHUNKS) {
+            if (stat.getKey() == null || stat.getKey()
+                .length() > MAX_MANIFEST_KEY_BYTES
+                || stat.getValue() == null
+                || stat.getValue() < 0
+                || stat.getValue() > MAX_TOTAL_CHUNKS) {
                 return false;
             }
         }
@@ -694,7 +673,8 @@ public final class WorldMapSnapshotStore {
         int totalChunks = 0;
         for (WorldMapSnapshotManifest.DimensionEntry dimension : manifest.dimensions) {
             if (dimension == null || Math.abs((long) dimension.dim) > WorldMapPacketAuthorization.MAX_DIMENSION
-                || dimension.chunks == null || dimension.chunks.size() > MAX_TOTAL_CHUNKS - totalChunks) {
+                || dimension.chunks == null
+                || dimension.chunks.size() > MAX_TOTAL_CHUNKS - totalChunks) {
                 return false;
             }
             for (String pair : dimension.chunks) {
@@ -709,8 +689,10 @@ public final class WorldMapSnapshotStore {
             return false;
         }
         for (Map.Entry<String, WorldMapSnapshotManifest.TileEntry> tile : manifest.tiles.entrySet()) {
-            if (tile.getKey() == null || tile.getKey().length() > MAX_MANIFEST_KEY_BYTES
-                || !isValidTileKey(tile.getKey()) || !isValidTileEntry(tile.getValue())) {
+            if (tile.getKey() == null || tile.getKey()
+                .length() > MAX_MANIFEST_KEY_BYTES
+                || !isValidTileKey(tile.getKey())
+                || !isValidTileEntry(tile.getValue())) {
                 return false;
             }
         }
@@ -741,8 +723,10 @@ public final class WorldMapSnapshotStore {
     }
 
     private static boolean isValidTileEntry(WorldMapSnapshotManifest.TileEntry entry) {
-        if (entry == null || entry.size < 0 || entry.size > WorldMapRenderSupport.MAX_VALID_TILE_BYTES
-            || entry.sha256 == null || entry.sha256.length() > 64) {
+        if (entry == null || entry.size < 0
+            || entry.size > WorldMapRenderSupport.MAX_VALID_TILE_BYTES
+            || entry.sha256 == null
+            || entry.sha256.length() > 64) {
             return false;
         }
         if (entry.source != null && !entry.source.isEmpty()
@@ -771,7 +755,8 @@ public final class WorldMapSnapshotStore {
     /** Validates the sidecar independently from live topology and terrain manifest data. */
     private static boolean isValidLogicalIndex(WorldMapLogicalIndex index, int version) {
         if (index == null || !WorldMapPacketAuthorization.isValidSnapshotVersion(version)
-            || index.version != version || index.timestamp < 0L) {
+            || index.version != version
+            || index.timestamp < 0L) {
             return false;
         }
         if (!index.logicalAvailable) {
@@ -779,7 +764,8 @@ public final class WorldMapSnapshotStore {
                 && (index.aePlacements == null || index.aePlacements.isEmpty());
         }
         if (index.markers == null || index.markers.size() > WorldMapLogicalIndex.MAX_MARKERS
-            || index.aePlacements == null || index.aePlacements.size() > WorldMapLogicalIndex.MAX_AE_PLACEMENTS) {
+            || index.aePlacements == null
+            || index.aePlacements.size() > WorldMapLogicalIndex.MAX_AE_PLACEMENTS) {
             return false;
         }
         for (WorldMapMarkerDto marker : index.markers) {
@@ -840,18 +826,19 @@ public final class WorldMapSnapshotStore {
             return false;
         }
         try {
-            return WorldMapPacketAuthorization.isValidChunk(
-                Integer.parseInt(parts[0]),
-                Integer.parseInt(parts[1]),
-                Integer.parseInt(parts[2]));
+            return WorldMapPacketAuthorization
+                .isValidChunk(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
         } catch (NumberFormatException e) {
             return false;
         }
     }
 
     private static byte[] readFileLimited(File file, int maxBytes) throws IOException {
-        if (file == null || maxBytes <= 0 || !isWithinSnapshotsRoot(file) || Files.isSymbolicLink(file.toPath())
-            || file.length() <= 0 || file.length() > maxBytes) {
+        if (file == null || maxBytes <= 0
+            || !isWithinSnapshotsRoot(file)
+            || Files.isSymbolicLink(file.toPath())
+            || file.length() <= 0
+            || file.length() > maxBytes) {
             return null;
         }
         int expected = (int) file.length();
@@ -881,7 +868,8 @@ public final class WorldMapSnapshotStore {
             throw new IOException("Snapshot target path is outside the snapshot root");
         }
         File parent = target.getParentFile();
-        if (parent == null || (!parent.exists() && !parent.mkdirs()) || !parent.isDirectory()
+        if (parent == null || (!parent.exists() && !parent.mkdirs())
+            || !parent.isDirectory()
             || !isWithinSnapshotsRoot(parent)) {
             throw new IOException("Snapshot target directory unavailable");
         }

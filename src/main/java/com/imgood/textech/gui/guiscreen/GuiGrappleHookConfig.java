@@ -144,15 +144,7 @@ public class GuiGrappleHookConfig extends AdmItemConfigScreen {
             I18n.format("adm.tooltip.grapple.speed.purpose"),
             I18n.format("adm.tooltip.grapple.speed.format"),
             I18n.format("adm.tooltip.grapple.speed.error"));
-        drawButtonTooltip(
-            BUTTON_SHOW_NAME,
-            mouseX,
-            mouseY,
-            I18n.format("adm.tooltip.grapple.show_node_name"));
-        drawButtonTooltip(
-            BUTTON_SHOW_DISTANCE,
-            mouseX,
-            mouseY,
-            I18n.format("adm.tooltip.grapple.show_node_distance"));
+        drawButtonTooltip(BUTTON_SHOW_NAME, mouseX, mouseY, I18n.format("adm.tooltip.grapple.show_node_name"));
+        drawButtonTooltip(BUTTON_SHOW_DISTANCE, mouseX, mouseY, I18n.format("adm.tooltip.grapple.show_node_distance"));
     }
 }

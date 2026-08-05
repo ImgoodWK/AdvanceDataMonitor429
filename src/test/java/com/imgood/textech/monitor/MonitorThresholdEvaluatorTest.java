@@ -54,8 +54,7 @@ public class MonitorThresholdEvaluatorTest {
         assertOff(MonitorThresholdEvaluator.evaluate(false, "gte", 1, 0, 0, 10, true, 5, true));
         assertOff(MonitorThresholdEvaluator.evaluate(true, "gte", 1, 0, 0, 10, true, 5, false));
         assertOff(MonitorThresholdEvaluator.evaluate(true, "gte", 1, 0, 0, 10, true, Double.NaN, true));
-        assertOff(
-            MonitorThresholdEvaluator.evaluate(true, "gte", 1, 0, 0, 10, true, Double.POSITIVE_INFINITY, true));
+        assertOff(MonitorThresholdEvaluator.evaluate(true, "gte", 1, 0, 0, 10, true, Double.POSITIVE_INFINITY, true));
     }
 
     private static MonitorThresholdEvaluator.Result evaluate(String operator, boolean active, double sample,

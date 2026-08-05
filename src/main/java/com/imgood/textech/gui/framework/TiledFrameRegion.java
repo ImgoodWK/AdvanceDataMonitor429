@@ -13,9 +13,8 @@ public final class TiledFrameRegion {
     private final AtlasRegion rightEdge;
     private final AtlasRegion fill;
 
-    public TiledFrameRegion(AtlasRegion topLeft, AtlasRegion topRight, AtlasRegion bottomLeft,
-        AtlasRegion bottomRight, AtlasRegion topEdge, AtlasRegion bottomEdge, AtlasRegion leftEdge,
-        AtlasRegion rightEdge, AtlasRegion fill) {
+    public TiledFrameRegion(AtlasRegion topLeft, AtlasRegion topRight, AtlasRegion bottomLeft, AtlasRegion bottomRight,
+        AtlasRegion topEdge, AtlasRegion bottomEdge, AtlasRegion leftEdge, AtlasRegion rightEdge, AtlasRegion fill) {
         this.topLeft = require(topLeft, "topLeft");
         this.topRight = require(topRight, "topRight");
         this.bottomLeft = require(bottomLeft, "bottomLeft");

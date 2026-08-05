@@ -10,17 +10,15 @@ public class NetworkHealthStatusEvaluatorTest {
     @Test
     public void completeEvidenceWithoutIssuesIsHealthy() {
         NetworkHealthDiagnosticDto dto = complete();
-        assertEquals(NetworkHealthStatusEvaluator.HEALTHY,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        assertEquals(NetworkHealthStatusEvaluator.HEALTHY, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     @Test
     public void warningIsDegraded() {
         NetworkHealthDiagnosticDto dto = complete();
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning(
-            "monitor_unbound", "message", "suggestion", "evidence"));
-        assertEquals(NetworkHealthStatusEvaluator.DEGRADED,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        dto.issues
+            .add(NetworkHealthDiagnosticDto.Issue.warning("monitor_unbound", "message", "suggestion", "evidence"));
+        assertEquals(NetworkHealthStatusEvaluator.DEGRADED, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     @Test
@@ -29,15 +27,12 @@ public class NetworkHealthStatusEvaluatorTest {
         dto.grid.storageAvailable = Boolean.FALSE;
         dto.grid.craftingAvailable = Boolean.FALSE;
         dto.grid.connectorAvailable = Boolean.FALSE;
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning(
-            "storage_unavailable", "message", "suggestion", null));
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning(
-            "crafting_unavailable", "message", "suggestion", null));
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning(
-            "network_connector_unavailable", "message", "suggestion", null));
+        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning("storage_unavailable", "message", "suggestion", null));
+        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning("crafting_unavailable", "message", "suggestion", null));
+        dto.issues.add(
+            NetworkHealthDiagnosticDto.Issue.warning("network_connector_unavailable", "message", "suggestion", null));
 
-        assertEquals(NetworkHealthStatusEvaluator.DEGRADED,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        assertEquals(NetworkHealthStatusEvaluator.DEGRADED, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     @Test
@@ -45,61 +40,48 @@ public class NetworkHealthStatusEvaluatorTest {
         NetworkHealthDiagnosticDto noLink = complete();
         noLink.links.loaded = Boolean.FALSE;
         noLink.links.reachable = Boolean.FALSE;
-        noLink.issues.add(NetworkHealthDiagnosticDto.Issue.error(
-            "no_link", "message", "suggestion", null));
-        assertEquals(NetworkHealthStatusEvaluator.FAILED,
-            NetworkHealthStatusEvaluator.evaluate(noLink));
+        noLink.issues.add(NetworkHealthDiagnosticDto.Issue.error("no_link", "message", "suggestion", null));
+        assertEquals(NetworkHealthStatusEvaluator.FAILED, NetworkHealthStatusEvaluator.evaluate(noLink));
 
         NetworkHealthDiagnosticDto noGrid = complete();
         noGrid.grid.present = Boolean.FALSE;
-        noGrid.issues.add(NetworkHealthDiagnosticDto.Issue.error(
-            "grid_missing", "message", "suggestion", null));
-        assertEquals(NetworkHealthStatusEvaluator.FAILED,
-            NetworkHealthStatusEvaluator.evaluate(noGrid));
+        noGrid.issues.add(NetworkHealthDiagnosticDto.Issue.error("grid_missing", "message", "suggestion", null));
+        assertEquals(NetworkHealthStatusEvaluator.FAILED, NetworkHealthStatusEvaluator.evaluate(noGrid));
     }
 
     @Test
     public void errorTakesPrecedenceOverWarning() {
         NetworkHealthDiagnosticDto dto = complete();
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning(
-            "monitor_stale", "message", "suggestion", null));
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.error(
-            "grid_missing", "message", "suggestion", null));
-        assertEquals(NetworkHealthStatusEvaluator.FAILED,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        dto.issues.add(NetworkHealthDiagnosticDto.Issue.warning("monitor_stale", "message", "suggestion", null));
+        dto.issues.add(NetworkHealthDiagnosticDto.Issue.error("grid_missing", "message", "suggestion", null));
+        assertEquals(NetworkHealthStatusEvaluator.FAILED, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     @Test
     public void staleOrUnknownEvidenceNeverLooksHealthy() {
         NetworkHealthDiagnosticDto dto = complete();
         dto.stale = true;
-        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN, NetworkHealthStatusEvaluator.evaluate(dto));
 
         dto.stale = false;
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.unknown(
-            "sample_stale", "message", "suggestion", null));
-        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        dto.issues.add(NetworkHealthDiagnosticDto.Issue.unknown("sample_stale", "message", "suggestion", null));
+        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     @Test
     public void staleSnapshotMasksAnOldErrorAsUnknown() {
         NetworkHealthDiagnosticDto dto = complete();
         dto.stale = true;
-        dto.issues.add(NetworkHealthDiagnosticDto.Issue.error(
-            "grid_missing", "message", "suggestion", null));
+        dto.issues.add(NetworkHealthDiagnosticDto.Issue.error("grid_missing", "message", "suggestion", null));
 
-        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     @Test
     public void knownFalseEvidenceFailsWithoutAttachedIssue() {
         NetworkHealthDiagnosticDto dto = complete();
         dto.grid.storageAvailable = Boolean.FALSE;
-        assertEquals(NetworkHealthStatusEvaluator.FAILED,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        assertEquals(NetworkHealthStatusEvaluator.FAILED, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     @Test
@@ -108,8 +90,7 @@ public class NetworkHealthStatusEvaluatorTest {
         dto.channels.available = Boolean.FALSE;
         dto.channels.used = null;
         dto.channels.max = null;
-        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN,
-            NetworkHealthStatusEvaluator.evaluate(dto));
+        assertEquals(NetworkHealthStatusEvaluator.UNKNOWN, NetworkHealthStatusEvaluator.evaluate(dto));
     }
 
     private static NetworkHealthDiagnosticDto complete() {

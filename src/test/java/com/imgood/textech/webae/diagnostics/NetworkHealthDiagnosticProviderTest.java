@@ -31,8 +31,7 @@ public class NetworkHealthDiagnosticProviderTest {
         cached.status = NetworkHealthStatusEvaluator.UNKNOWN;
         provider.putForTests(cached);
 
-        NetworkHealthDiagnosticDto result = provider.getCached(
-            "owner-a", 2, "0:10:20:30", System.currentTimeMillis());
+        NetworkHealthDiagnosticDto result = provider.getCached("owner-a", 2, "0:10:20:30", System.currentTimeMillis());
 
         assertNotSame(cached, result);
         assertEquals("owner-a", result.ownerUuid);
@@ -48,8 +47,8 @@ public class NetworkHealthDiagnosticProviderTest {
         NetworkHealthDiagnosticDto cached = complete("owner-a", 0, "0:10:20:30");
         provider.putForTests(cached);
 
-        NetworkHealthDiagnosticDto reordered = provider.getCached(
-            "owner-a", 7, "0:10:20:30", System.currentTimeMillis());
+        NetworkHealthDiagnosticDto reordered = provider
+            .getCached("owner-a", 7, "0:10:20:30", System.currentTimeMillis());
 
         assertEquals(7, reordered.networkId);
         assertEquals("0:10:20:30", reordered.networkKey);
@@ -59,17 +58,16 @@ public class NetworkHealthDiagnosticProviderTest {
     @Test
     public void staleCacheIsUnknownAndRetainsSampleStaleEvidence() {
         NetworkHealthDiagnosticDto cached = complete("owner-a", 2, "0:10:20:30");
-        cached.checkedAt = System.currentTimeMillis()
-            - NetworkHealthDiagnosticProvider.STALE_AFTER_MS - 1L;
+        cached.checkedAt = System.currentTimeMillis() - NetworkHealthDiagnosticProvider.STALE_AFTER_MS - 1L;
         provider.putForTests(cached);
 
-        NetworkHealthDiagnosticDto result = provider.getCached(
-            "owner-a", 2, "0:10:20:30", System.currentTimeMillis());
+        NetworkHealthDiagnosticDto result = provider.getCached("owner-a", 2, "0:10:20:30", System.currentTimeMillis());
 
         assertEquals(NetworkHealthStatusEvaluator.UNKNOWN, result.status);
         assertTrue(result.stale);
-        assertTrue(result.sampleAgeMs != null
-            && result.sampleAgeMs.longValue() > NetworkHealthDiagnosticProvider.STALE_AFTER_MS);
+        assertTrue(
+            result.sampleAgeMs != null
+                && result.sampleAgeMs.longValue() > NetworkHealthDiagnosticProvider.STALE_AFTER_MS);
         assertTrue(hasIssue(result, "sample_stale"));
     }
 
@@ -78,12 +76,9 @@ public class NetworkHealthDiagnosticProviderTest {
         provider.putForTests(complete("owner-a", 0, "0:1:2:3"));
         provider.putForTests(complete("owner-b", 0, "0:1:2:3"));
 
-        NetworkHealthDiagnosticDto ownerA = provider.getCached(
-            "owner-a", 0, "0:1:2:3", System.currentTimeMillis());
-        NetworkHealthDiagnosticDto ownerB = provider.getCached(
-            "owner-b", 0, "0:1:2:3", System.currentTimeMillis());
-        NetworkHealthDiagnosticDto crossOwner = provider.getCached(
-            "owner-c", 0, "0:1:2:3", System.currentTimeMillis());
+        NetworkHealthDiagnosticDto ownerA = provider.getCached("owner-a", 0, "0:1:2:3", System.currentTimeMillis());
+        NetworkHealthDiagnosticDto ownerB = provider.getCached("owner-b", 0, "0:1:2:3", System.currentTimeMillis());
+        NetworkHealthDiagnosticDto crossOwner = provider.getCached("owner-c", 0, "0:1:2:3", System.currentTimeMillis());
 
         assertEquals("owner-a", ownerA.ownerUuid);
         assertEquals("owner-b", ownerB.ownerUuid);
@@ -93,8 +88,7 @@ public class NetworkHealthDiagnosticProviderTest {
 
     @Test
     public void missingCacheReturnsUnknownWithoutInventingEvidence() {
-        NetworkHealthDiagnosticDto result = provider.getCached(
-            "owner-a", 99, "0:99:98:97", System.currentTimeMillis());
+        NetworkHealthDiagnosticDto result = provider.getCached("owner-a", 99, "0:99:98:97", System.currentTimeMillis());
 
         assertEquals(NetworkHealthStatusEvaluator.UNKNOWN, result.status);
         assertTrue(result.stale);

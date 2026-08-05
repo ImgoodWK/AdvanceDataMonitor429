@@ -42,15 +42,14 @@ public final class QqBotIntentClassifier {
         "问", "对话", "botstatus", "机器人状态" };
     /**
      * Do not let a URL's protocol/host/path accidentally claim a shared-bot
-     * message for WebAE.  For example, {@code https://textech.top/tps} contains
+     * message for WebAE. For example, {@code https://textech.top/tps} contains
      * both the default {@code tps} and {@code textech} keywords, but it should
-     * still reach AstrBot's link-summary plugin.  Keep this deliberately small:
+     * still reach AstrBot's link-summary plugin. Keep this deliberately small:
      * URL extraction is only used for routing, not for validating or fetching
      * the link (the downstream plugin owns that boundary).
      */
-    private static final Pattern URL_PATTERN = Pattern.compile(
-        "https?://[^\\s<>\\\"'`，。！？；：、）】》」』]+",
-        Pattern.CASE_INSENSITIVE);
+    private static final Pattern URL_PATTERN = Pattern
+        .compile("https?://[^\\s<>\\\"'`，。！？；：、）】》」』]+", Pattern.CASE_INSENSITIVE);
 
     private QqBotIntentClassifier() {}
 
@@ -153,7 +152,8 @@ public final class QqBotIntentClassifier {
     }
 
     private static String findKeyword(String raw, List<String> configured, List<String> defaults) {
-        String lower = URL_PATTERN.matcher(raw).replaceAll(" ")
+        String lower = URL_PATTERN.matcher(raw)
+            .replaceAll(" ")
             .toLowerCase(Locale.ROOT);
         for (String keyword : effectiveTokens(configured, defaults)) {
             if (keyword.isEmpty()) continue;

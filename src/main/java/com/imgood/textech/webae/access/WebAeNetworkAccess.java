@@ -52,7 +52,7 @@ public final class WebAeNetworkAccess {
     }
 
     /**
-     * Reject mutations made with a guest token.  Guest tokens are deliberately
+     * Reject mutations made with a guest token. Guest tokens are deliberately
      * scoped to reads; individual handlers may still allow non-mutating POST
      * requests such as assistant queries.
      *

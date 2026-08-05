@@ -32,9 +32,11 @@ import appeng.api.networking.storage.IStorageGrid;
 /**
  * Server-thread sampler and HTTP-safe cache for network health diagnostics.
  *
- * <p>No method used by an HTTP handler resolves a World, TileEntity, or AE grid.
+ * <p>
+ * No method used by an HTTP handler resolves a World, TileEntity, or AE grid.
  * The only methods that do so are {@link #tick(long)} and the package-local
- * sampling helpers, which are called from the server tick.</p>
+ * sampling helpers, which are called from the server tick.
+ * </p>
  */
 public final class NetworkHealthDiagnosticProvider {
 
@@ -44,8 +46,7 @@ public final class NetworkHealthDiagnosticProvider {
     private static final NetworkHealthDiagnosticProvider INSTANCE = new NetworkHealthDiagnosticProvider();
 
     /** ownerUuid + stable {@code dim:x:y:z}; runtime networkId is rewritten on every read. */
-    private final ConcurrentHashMap<String, NetworkHealthDiagnosticDto> cache =
-        new ConcurrentHashMap<String, NetworkHealthDiagnosticDto>();
+    private final ConcurrentHashMap<String, NetworkHealthDiagnosticDto> cache = new ConcurrentHashMap<String, NetworkHealthDiagnosticDto>();
     private volatile long lastSampleAt;
 
     private NetworkHealthDiagnosticProvider() {}
@@ -55,7 +56,7 @@ public final class NetworkHealthDiagnosticProvider {
     }
 
     /**
-     * Refresh all registered networks at most once per five seconds.  Must run on
+     * Refresh all registered networks at most once per five seconds. Must run on
      * the Minecraft server thread.
      */
     public void tick(long nowMs) {
@@ -121,7 +122,7 @@ public final class NetworkHealthDiagnosticProvider {
     }
 
     /**
-     * Read the most recent snapshot.  This method is safe for HTTP threads and
+     * Read the most recent snapshot. This method is safe for HTTP threads and
      * performs no World/TileEntity/AE calls.
      */
     public NetworkHealthDiagnosticDto get(String ownerUuid, int networkId) {
@@ -164,7 +165,9 @@ public final class NetworkHealthDiagnosticProvider {
 
     /** Package/test hook for deterministic evaluator and stale-cache tests. */
     public void putForTests(NetworkHealthDiagnosticDto dto) {
-        if (dto == null || dto.ownerUuid == null || dto.ownerUuid.isEmpty() || dto.networkKey == null
+        if (dto == null || dto.ownerUuid == null
+            || dto.ownerUuid.isEmpty()
+            || dto.networkKey == null
             || dto.networkKey.isEmpty()) {
             return;
         }
@@ -248,11 +251,13 @@ public final class NetworkHealthDiagnosticProvider {
         dto.sampleAgeMs = Long.valueOf(0L);
         dto.stale = false;
         dto.links.registered = Boolean.FALSE;
-        addIssue(dto, NetworkHealthDiagnosticDto.Issue.error(
-            "no_registered_network",
-            "webae.networkHealth.issue.noRegisteredNetwork",
-            "webae.networkHealth.suggestion.registerNetwork",
-            Integer.valueOf(networkId)));
+        addIssue(
+            dto,
+            NetworkHealthDiagnosticDto.Issue.error(
+                "no_registered_network",
+                "webae.networkHealth.issue.noRegisteredNetwork",
+                "webae.networkHealth.suggestion.registerNetwork",
+                Integer.valueOf(networkId)));
         NetworkHealthStatusEvaluator.evaluateInto(dto);
         return dto;
     }
@@ -274,11 +279,13 @@ public final class NetworkHealthDiagnosticProvider {
             out.stale = age > STALE_AFTER_MS;
         }
         if (out.stale) {
-            addIssue(out, NetworkHealthDiagnosticDto.Issue.unknown(
-                "sample_stale",
-                "webae.networkHealth.issue.sampleStale",
-                "webae.networkHealth.suggestion.waitForSample",
-                Long.valueOf(out.sampleAgeMs == null ? -1L : out.sampleAgeMs.longValue())));
+            addIssue(
+                out,
+                NetworkHealthDiagnosticDto.Issue.unknown(
+                    "sample_stale",
+                    "webae.networkHealth.issue.sampleStale",
+                    "webae.networkHealth.suggestion.waitForSample",
+                    Long.valueOf(out.sampleAgeMs == null ? -1L : out.sampleAgeMs.longValue())));
         }
         NetworkHealthStatusEvaluator.evaluateInto(out);
         return out;
@@ -293,11 +300,13 @@ public final class NetworkHealthDiagnosticProvider {
 
         if (entry == null) {
             dto.links.registered = Boolean.FALSE;
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.error(
-                "no_registered_network",
-                "webae.networkHealth.issue.noRegisteredNetwork",
-                "webae.networkHealth.suggestion.registerNetwork",
-                networkId));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.error(
+                    "no_registered_network",
+                    "webae.networkHealth.issue.noRegisteredNetwork",
+                    "webae.networkHealth.suggestion.registerNetwork",
+                    networkId));
             NetworkHealthStatusEvaluator.evaluateInto(dto);
             return dto;
         }
@@ -310,11 +319,13 @@ public final class NetworkHealthDiagnosticProvider {
         if (world == null) {
             // The server cannot distinguish a missing chunk from a missing block
             // off-thread; leave evidence null so status is explicitly unknown.
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                "monitor_stale",
-                "webae.networkHealth.issue.monitorStale",
-                "webae.networkHealth.suggestion.loadMonitorChunk",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.warning(
+                    "monitor_stale",
+                    "webae.networkHealth.issue.monitorStale",
+                    "webae.networkHealth.suggestion.loadMonitorChunk",
+                    networkKey));
             NetworkHealthStatusEvaluator.evaluateInto(dto);
             return dto;
         }
@@ -335,11 +346,13 @@ public final class NetworkHealthDiagnosticProvider {
             // A loaded position containing another block is a confirmed invalid anchor. If the
             // chunk is unavailable, the monitor's validity is unknown rather than false.
             dto.monitors.valid = monitorPositionLoaded ? Boolean.FALSE : null;
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                "monitor_stale",
-                "webae.networkHealth.issue.monitorStale",
-                "webae.networkHealth.suggestion.loadMonitorChunk",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.warning(
+                    "monitor_stale",
+                    "webae.networkHealth.issue.monitorStale",
+                    "webae.networkHealth.suggestion.loadMonitorChunk",
+                    networkKey));
             NetworkHealthStatusEvaluator.evaluateInto(dto);
             return dto;
         }
@@ -352,26 +365,32 @@ public final class NetworkHealthDiagnosticProvider {
         dto.links.loaded = bindings.linkLoaded;
         TileEntityAdvanceNetworkLink link = bindings.link;
         if (!bindings.bound) {
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                "monitor_unbound",
-                "webae.networkHealth.issue.monitorUnbound",
-                "webae.networkHealth.suggestion.bindNetworkLink",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.warning(
+                    "monitor_unbound",
+                    "webae.networkHealth.issue.monitorUnbound",
+                    "webae.networkHealth.suggestion.bindNetworkLink",
+                    networkKey));
         }
         if (link == null) {
             dto.links.reachable = bindings.targetUnavailable || bindings.linkLoaded == null ? null : Boolean.FALSE;
             if (bindings.targetUnavailable) {
-                addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                    "monitor_stale",
-                    "webae.networkHealth.issue.monitorStale",
-                    "webae.networkHealth.suggestion.loadMonitorChunk",
-                    networkKey));
+                addIssue(
+                    dto,
+                    NetworkHealthDiagnosticDto.Issue.warning(
+                        "monitor_stale",
+                        "webae.networkHealth.issue.monitorStale",
+                        "webae.networkHealth.suggestion.loadMonitorChunk",
+                        networkKey));
             } else {
-                addIssue(dto, NetworkHealthDiagnosticDto.Issue.error(
-                    "no_link",
-                    "webae.networkHealth.issue.noLink",
-                    "webae.networkHealth.suggestion.bindNetworkLink",
-                    networkKey));
+                addIssue(
+                    dto,
+                    NetworkHealthDiagnosticDto.Issue.error(
+                        "no_link",
+                        "webae.networkHealth.issue.noLink",
+                        "webae.networkHealth.suggestion.bindNetworkLink",
+                        networkKey));
             }
             NetworkHealthStatusEvaluator.evaluateInto(dto);
             return dto;
@@ -390,16 +409,20 @@ public final class NetworkHealthDiagnosticProvider {
         if (node == null) {
             dto.links.reachable = Boolean.FALSE;
             dto.grid.present = Boolean.FALSE;
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                "network_connector_unavailable",
-                "webae.networkHealth.issue.networkConnectorUnavailable",
-                "webae.networkHealth.suggestion.checkAeCable",
-                networkKey));
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.error(
-                "grid_missing",
-                "webae.networkHealth.issue.gridMissing",
-                "webae.networkHealth.suggestion.checkAeCable",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.warning(
+                    "network_connector_unavailable",
+                    "webae.networkHealth.issue.networkConnectorUnavailable",
+                    "webae.networkHealth.suggestion.checkAeCable",
+                    networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.error(
+                    "grid_missing",
+                    "webae.networkHealth.issue.gridMissing",
+                    "webae.networkHealth.suggestion.checkAeCable",
+                    networkKey));
             NetworkHealthStatusEvaluator.evaluateInto(dto);
             return dto;
         }
@@ -418,11 +441,13 @@ public final class NetworkHealthDiagnosticProvider {
         dto.links.reachable = Boolean.valueOf(grid != null);
         dto.grid.present = Boolean.valueOf(grid != null);
         if (grid == null) {
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.error(
-                "grid_missing",
-                "webae.networkHealth.issue.gridMissing",
-                "webae.networkHealth.suggestion.checkAeCable",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.error(
+                    "grid_missing",
+                    "webae.networkHealth.issue.gridMissing",
+                    "webae.networkHealth.suggestion.checkAeCable",
+                    networkKey));
             NetworkHealthStatusEvaluator.evaluateInto(dto);
             return dto;
         }
@@ -438,29 +463,37 @@ public final class NetworkHealthDiagnosticProvider {
             dto.grid.craftingAvailable = null;
         }
         if (Boolean.FALSE.equals(dto.grid.connectorAvailable)) {
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                "network_connector_unavailable",
-                "webae.networkHealth.issue.networkConnectorUnavailable",
-                "webae.networkHealth.suggestion.checkAeCable",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.warning(
+                    "network_connector_unavailable",
+                    "webae.networkHealth.issue.networkConnectorUnavailable",
+                    "webae.networkHealth.suggestion.checkAeCable",
+                    networkKey));
         }
         if (Boolean.FALSE.equals(dto.grid.storageAvailable)) {
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                "storage_unavailable",
-                "webae.networkHealth.issue.storageUnavailable",
-                "webae.networkHealth.suggestion.checkStorageGrid",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.warning(
+                    "storage_unavailable",
+                    "webae.networkHealth.issue.storageUnavailable",
+                    "webae.networkHealth.suggestion.checkStorageGrid",
+                    networkKey));
         }
         if (Boolean.FALSE.equals(dto.grid.craftingAvailable)) {
-            addIssue(dto, NetworkHealthDiagnosticDto.Issue.warning(
-                "crafting_unavailable",
-                "webae.networkHealth.issue.craftingUnavailable",
-                "webae.networkHealth.suggestion.checkCraftingGrid",
-                networkKey));
+            addIssue(
+                dto,
+                NetworkHealthDiagnosticDto.Issue.warning(
+                    "crafting_unavailable",
+                    "webae.networkHealth.issue.craftingUnavailable",
+                    "webae.networkHealth.suggestion.checkCraftingGrid",
+                    networkKey));
         }
 
         ChannelProbeResult channelProbe = TopologySnapshot.probeRealChannels(grid);
-        applyChannelProbe(dto, channelProbe != null && channelProbe.available,
+        applyChannelProbe(
+            dto,
+            channelProbe != null && channelProbe.available,
             channelProbe == null ? -1 : channelProbe.used,
             channelProbe == null ? -1 : channelProbe.max,
             networkKey);
@@ -482,11 +515,13 @@ public final class NetworkHealthDiagnosticProvider {
                 Map<String, Object> evidence = new LinkedHashMap<String, Object>();
                 evidence.put("used", Integer.valueOf(used));
                 evidence.put("max", Integer.valueOf(max));
-                addIssue(dto, NetworkHealthDiagnosticDto.Issue.error(
-                    "channel_over_limit",
-                    "webae.networkHealth.issue.channelOverLimit",
-                    "webae.networkHealth.suggestion.reduceChannels",
-                    evidence));
+                addIssue(
+                    dto,
+                    NetworkHealthDiagnosticDto.Issue.error(
+                        "channel_over_limit",
+                        "webae.networkHealth.issue.channelOverLimit",
+                        "webae.networkHealth.suggestion.reduceChannels",
+                        evidence));
             }
         } else {
             dto.channels.available = Boolean.FALSE;

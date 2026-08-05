@@ -70,8 +70,7 @@ public final class PocketClientCache {
         }
 
         if (splitFullActive && message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
-            if (message.pageCount != splitFullPageCount
-                || message.slotsPerPage != splitFullSlotsPerPage
+            if (message.pageCount != splitFullPageCount || message.slotsPerPage != splitFullSlotsPerPage
                 || message.pageIndex != splitFullNextPage
                 || message.pages.size() != 1
                 || message.pages.get(0) == null
@@ -109,7 +108,8 @@ public final class PocketClientCache {
         if (message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
             if (message.pages.size() != 1 || message.pages.get(0) == null
                 || message.pages.get(0).pageIndex != message.pageIndex
-                || message.pageIndex < 0 || message.pageIndex >= pageCount
+                || message.pageIndex < 0
+                || message.pageIndex >= pageCount
                 || message.pages.get(0).slots == null
                 || message.pages.get(0).slots.length != slotsPerPage) {
                 return false;
@@ -121,8 +121,10 @@ public final class PocketClientCache {
         }
 
         for (PacketPocketSync.PagePayload payload : message.pages) {
-            if (payload == null || payload.pageIndex < 0 || payload.pageIndex >= pageCount
-                || payload.slots == null || payload.slots.length != slotsPerPage) {
+            if (payload == null || payload.pageIndex < 0
+                || payload.pageIndex >= pageCount
+                || payload.slots == null
+                || payload.slots.length != slotsPerPage) {
                 continue;
             }
             applyPagePayload(payload);
@@ -134,7 +136,8 @@ public final class PocketClientCache {
 
     private static boolean isValidDimensions(int newPageCount, int newSlotsPerPage) {
         return newPageCount >= 1 && newPageCount <= PocketState.PAGES_CAP
-            && newSlotsPerPage >= 1 && newSlotsPerPage <= PocketState.SLOTS_PER_PAGE_CAP;
+            && newSlotsPerPage >= 1
+            && newSlotsPerPage <= PocketState.SLOTS_PER_PAGE_CAP;
     }
 
     private static void applyMetadata(PacketPocketSync message) {

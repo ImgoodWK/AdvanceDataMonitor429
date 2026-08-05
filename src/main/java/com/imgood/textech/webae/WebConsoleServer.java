@@ -8,11 +8,11 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
@@ -124,7 +124,10 @@ public class WebConsoleServer extends NanoHTTPD {
     }
 
     private ThreadPoolExecutor createHttpExecutor() {
-        final int availableProcessors = Math.max(1, Runtime.getRuntime().availableProcessors());
+        final int availableProcessors = Math.max(
+            1,
+            Runtime.getRuntime()
+                .availableProcessors());
         final int poolSize = Math.min(HTTP_MAX_THREADS, Math.max(4, availableProcessors * 2));
         final AtomicInteger counter = new AtomicInteger(0);
         ThreadFactory threadFactory = new ThreadFactory() {
@@ -160,7 +163,8 @@ public class WebConsoleServer extends NanoHTTPD {
                 AdvanceDataMonitor.LOG.warn("[WebAE] HTTP worker pool did not terminate within 2 seconds");
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                .interrupt();
             AdvanceDataMonitor.LOG.warn("[WebAE] Interrupted while stopping HTTP worker pool");
         }
     }
@@ -180,7 +184,9 @@ public class WebConsoleServer extends NanoHTTPD {
                 started = true;
             } catch (IOException | RuntimeException e) {
                 started = false;
-                startFailure = e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage());
+                startFailure = e.getClass()
+                    .getSimpleName() + ": "
+                    + String.valueOf(e.getMessage());
                 try {
                     stop();
                 } catch (Throwable stopFailure) {
@@ -188,11 +194,8 @@ public class WebConsoleServer extends NanoHTTPD {
                 } finally {
                     shutdownHttpExecutor();
                 }
-                AdvanceDataMonitor.LOG.error(
-                    "[WebAE] Failed to start HTTP server on {}:{}",
-                    bindAddress,
-                    Config.webConsolePort,
-                    e);
+                AdvanceDataMonitor.LOG
+                    .error("[WebAE] Failed to start HTTP server on {}:{}", bindAddress, Config.webConsolePort, e);
                 return false;
             }
 

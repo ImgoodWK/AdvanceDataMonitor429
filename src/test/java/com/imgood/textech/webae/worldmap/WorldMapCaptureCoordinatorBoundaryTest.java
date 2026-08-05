@@ -54,7 +54,8 @@ public class WorldMapCaptureCoordinatorBoundaryTest {
         Assert.assertTrue(
             WorldMapCaptureCoordinator
                 .isActiveJobExpired(job, start + WorldMapCaptureCoordinator.ACTIVE_JOB_ABSOLUTE_TTL_MS));
-        Assert.assertTrue(WorldMapCaptureCoordinator.isActiveJobExpired(new WorldMapCaptureCoordinator.ActiveJob(), 1L));
+        Assert
+            .assertTrue(WorldMapCaptureCoordinator.isActiveJobExpired(new WorldMapCaptureCoordinator.ActiveJob(), 1L));
     }
 
     private static void assertInvalid(String json) {

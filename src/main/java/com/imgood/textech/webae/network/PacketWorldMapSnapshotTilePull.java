@@ -90,17 +90,15 @@ public class PacketWorldMapSnapshotTilePull implements IMessage {
 
                 @Override
                 public void run() {
-                    if (message == null || !message.valid || player == null
+                    if (message == null || !message.valid
+                        || player == null
                         || !WorldMapPacketAuthorization.isValidOwnerUuid(message.ownerUuid)
                         || !WorldMapPacketAuthorization.isValidNetworkId(message.networkId)
                         || !WorldMapPacketAuthorization.isValidSnapshotVersion(message.snapshotVersion)
                         || !WorldMapPacketAuthorization.isValidLayer(message.layer)
                         || !WorldMapPacketAuthorization.isValidChunk(message.dim, message.chunkX, message.chunkZ)
-                        || !WorldMapPacketAuthorization.canReadSnapshot(
-                            player,
-                            message.ownerUuid,
-                            message.networkId,
-                            message.snapshotVersion)) {
+                        || !WorldMapPacketAuthorization
+                            .canReadSnapshot(player, message.ownerUuid, message.networkId, message.snapshotVersion)) {
                         return;
                     }
                     java.io.File file = WorldMapSnapshotStore.getExistingTile(

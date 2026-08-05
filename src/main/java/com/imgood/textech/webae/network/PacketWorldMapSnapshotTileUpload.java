@@ -63,7 +63,9 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
         buf.writeInt(dim);
         buf.writeInt(chunkX);
         buf.writeInt(chunkZ);
-        if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0 || chunkIndex >= totalChunks
+        if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+            || chunkIndex < 0
+            || chunkIndex >= totalChunks
             || (finalizeSnapshot && (chunkIndex != 0 || totalChunks != 1))) {
             throw new IllegalArgumentException("Invalid snapshot tile upload chunk");
         }
@@ -109,8 +111,10 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
             tilePx = buf.readInt();
             sourceStatsJson = NetworkPacketCodec.readUtf8(buf, MAX_SOURCE_STATS_BYTES);
             png = NetworkPacketCodec.readBytes(buf, MAX_CHUNK_BYTES);
-            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0
-                || chunkIndex >= totalChunks || (finalizeSnapshot && (chunkIndex != 0 || totalChunks != 1))) {
+            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+                || chunkIndex < 0
+                || chunkIndex >= totalChunks
+                || (finalizeSnapshot && (chunkIndex != 0 || totalChunks != 1))) {
                 throw new IllegalArgumentException("Invalid snapshot tile upload chunk");
             }
             if (!finalizeSnapshot && sourceStatsJson != null && !sourceStatsJson.isEmpty()) {
@@ -190,19 +194,18 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
         }
 
         private static void handleOnMainThread(PacketWorldMapSnapshotTileUpload message, EntityPlayerMP player) {
-            if (message == null || !message.valid || player == null
+            if (message == null || !message.valid
+                || player == null
                 || !WorldMapPacketAuthorization.isValidOwnerUuid(message.ownerUuid)
                 || !WorldMapPacketAuthorization.isValidNetworkId(message.networkId)
                 || !WorldMapPacketAuthorization.isValidSnapshotVersion(message.snapshotVersion)
                 || !WorldMapPacketAuthorization.isValidLayer(message.layer)
                 || !WorldMapPacketAuthorization.isValidChunk(message.dim, message.chunkX, message.chunkZ)
                 || !WorldMapPacketAuthorization.isValidSource(message.source)
-                || message.sourceStatsJson == null || message.sourceStatsJson.length() > MAX_SOURCE_STATS_BYTES
-                || !WorldMapPacketAuthorization.canWriteSnapshot(
-                    player,
-                    message.ownerUuid,
-                    message.networkId,
-                    message.snapshotVersion)) {
+                || message.sourceStatsJson == null
+                || message.sourceStatsJson.length() > MAX_SOURCE_STATS_BYTES
+                || !WorldMapPacketAuthorization
+                    .canWriteSnapshot(player, message.ownerUuid, message.networkId, message.snapshotVersion)) {
                 return;
             }
             if (message.finalizeSnapshot) {
@@ -277,8 +280,20 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
 
         private static String uploadKey(EntityPlayerMP player, PacketWorldMapSnapshotTileUpload message) {
             return player.getUniqueID()
-                .toString() + "|" + message.ownerUuid + "|" + message.networkId + "|" + message.snapshotVersion
-                + "|" + message.layer + "|" + message.dim + "|" + message.chunkX + "|" + message.chunkZ;
+                .toString() + "|"
+                + message.ownerUuid
+                + "|"
+                + message.networkId
+                + "|"
+                + message.snapshotVersion
+                + "|"
+                + message.layer
+                + "|"
+                + message.dim
+                + "|"
+                + message.chunkX
+                + "|"
+                + message.chunkZ;
         }
     }
 
@@ -288,8 +303,13 @@ public class PacketWorldMapSnapshotTileUpload implements IMessage {
 
         static synchronized byte[] accept(String key, int index, int total, byte[] chunk) {
             prune();
-            if (key == null || key.isEmpty() || total < 1 || total > MAX_TOTAL_CHUNKS || index < 0
-                || index >= total || chunk == null || chunk.length > MAX_CHUNK_BYTES) {
+            if (key == null || key.isEmpty()
+                || total < 1
+                || total > MAX_TOTAL_CHUNKS
+                || index < 0
+                || index >= total
+                || chunk == null
+                || chunk.length > MAX_CHUNK_BYTES) {
                 remove(key);
                 return null;
             }

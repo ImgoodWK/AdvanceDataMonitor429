@@ -137,9 +137,7 @@ public class CpuHistoryStoreTest {
 
     private File tempRoot() {
         if (tempRoot == null) {
-            tempRoot = new File(
-                System.getProperty("java.io.tmpdir"),
-                "textech-cpu-history-store-" + System.nanoTime());
+            tempRoot = new File(System.getProperty("java.io.tmpdir"), "textech-cpu-history-store-" + System.nanoTime());
             assertTrue(tempRoot.mkdirs());
         }
         return tempRoot;

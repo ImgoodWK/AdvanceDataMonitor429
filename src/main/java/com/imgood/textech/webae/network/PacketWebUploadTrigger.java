@@ -9,10 +9,10 @@ import net.minecraft.client.Minecraft;
 import com.google.gson.Gson;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.client.KeyBindings;
+import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.webae.icon.IconExportScope;
 import com.imgood.textech.webae.icon.IconRenderMode;
 import com.imgood.textech.webae.icon.IconStore;
-import com.imgood.textech.utils.NetworkPacketCodec;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -99,11 +99,17 @@ public class PacketWebUploadTrigger implements IMessage {
         byte[] renderModeBytes = utf8(renderMode);
         byte[] exportScopeBytes = utf8(exportScope);
         byte[] itemIdsBytes = utf8(itemIdsJson);
-        int bodyBytes = 5 * 4 + 8 + uploadTypeBytes.length + packNameBytes.length + renderModeBytes.length
-            + exportScopeBytes.length + itemIdsBytes.length;
+        int bodyBytes = 5 * 4 + 8
+            + uploadTypeBytes.length
+            + packNameBytes.length
+            + renderModeBytes.length
+            + exportScopeBytes.length
+            + itemIdsBytes.length;
         if (uploadTypeBytes.length > MAX_UPLOAD_TYPE_BYTES || packNameBytes.length > MAX_PACK_NAME_BYTES
-            || renderModeBytes.length > MAX_RENDER_MODE_BYTES || exportScopeBytes.length > MAX_EXPORT_SCOPE_BYTES
-            || itemIdsBytes.length > MAX_ITEM_IDS_JSON_BYTES || bodyBytes > MAX_PACKET_BODY_BYTES) {
+            || renderModeBytes.length > MAX_RENDER_MODE_BYTES
+            || exportScopeBytes.length > MAX_EXPORT_SCOPE_BYTES
+            || itemIdsBytes.length > MAX_ITEM_IDS_JSON_BYTES
+            || bodyBytes > MAX_PACKET_BODY_BYTES) {
             throw new IllegalArgumentException("WebAE upload trigger exceeds packet limit");
         }
         writeUtf8(buf, uploadTypeBytes);
@@ -145,7 +151,10 @@ public class PacketWebUploadTrigger implements IMessage {
                 throw new IllegalArgumentException("Invalid WebAE upload trigger batch framing");
             }
             if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()
-                || batchCount < 1 || batchCount > MAX_BATCH_COUNT || batchIndex < 0 || batchIndex >= batchCount) {
+                || batchCount < 1
+                || batchCount > MAX_BATCH_COUNT
+                || batchIndex < 0
+                || batchIndex >= batchCount) {
                 throw new IllegalArgumentException("Invalid WebAE upload trigger payload");
             }
         } catch (RuntimeException e) {
@@ -234,14 +243,19 @@ public class PacketWebUploadTrigger implements IMessage {
         } else {
             packet = new PacketWebUploadTrigger(uploadType, packName, renderMode, scope, itemIds);
         }
-        if (!fitsPacket(packet.uploadType, packet.packName, packet.renderMode, packet.exportScope, packet.itemIdsJson)) {
+        if (!fitsPacket(
+            packet.uploadType,
+            packet.packName,
+            packet.renderMode,
+            packet.exportScope,
+            packet.itemIdsJson)) {
             throw new IllegalArgumentException("WebAE item id batch exceeds packet limit");
         }
         result.add(packet);
     }
 
-    private static boolean fitsItemIdBatch(String uploadType, String packName, String renderMode,
-        IconExportScope scope, String itemIdsJson) {
+    private static boolean fitsItemIdBatch(String uploadType, String packName, String renderMode, IconExportScope scope,
+        String itemIdsJson) {
         if (TYPE_RECIPES.equalsIgnoreCase(uploadType)) {
             return fitsPacket(uploadType, itemIdsJson, renderMode, "", "");
         }
@@ -256,15 +270,19 @@ public class PacketWebUploadTrigger implements IMessage {
         byte[] exportScopeBytes = utf8(exportScope);
         byte[] itemIdsBytes = utf8(itemIdsJson);
         return uploadTypeBytes.length <= MAX_UPLOAD_TYPE_BYTES && packNameBytes.length <= MAX_PACK_NAME_BYTES
-            && renderModeBytes.length <= MAX_RENDER_MODE_BYTES && exportScopeBytes.length <= MAX_EXPORT_SCOPE_BYTES
+            && renderModeBytes.length <= MAX_RENDER_MODE_BYTES
+            && exportScopeBytes.length <= MAX_EXPORT_SCOPE_BYTES
             && itemIdsBytes.length <= MAX_ITEM_IDS_JSON_BYTES
-            && 5 * 4 + 8 + uploadTypeBytes.length + packNameBytes.length + renderModeBytes.length
-                + exportScopeBytes.length + itemIdsBytes.length <= MAX_PACKET_BODY_BYTES;
+            && 5 * 4 + 8
+                + uploadTypeBytes.length
+                + packNameBytes.length
+                + renderModeBytes.length
+                + exportScopeBytes.length
+                + itemIdsBytes.length <= MAX_PACKET_BODY_BYTES;
     }
 
     private static boolean validItemIdForPacket(String itemId) {
-        if (!IconStore.isValidItemId(itemId)
-            || utf8(itemId).length > PacketWebIconExportScope.MAX_ITEM_ID_BYTES) {
+        if (!IconStore.isValidItemId(itemId) || utf8(itemId).length > PacketWebIconExportScope.MAX_ITEM_ID_BYTES) {
             return false;
         }
         for (int i = 0; i < itemId.length(); i++) {
@@ -357,7 +375,8 @@ public class PacketWebUploadTrigger implements IMessage {
 
         @SideOnly(Side.CLIENT)
         private static List<String> collectItemIdBatch(PacketWebUploadTrigger message) {
-            if (message.batchCount < 2 || message.batchCount > MAX_BATCH_COUNT || message.batchIndex < 0
+            if (message.batchCount < 2 || message.batchCount > MAX_BATCH_COUNT
+                || message.batchIndex < 0
                 || message.batchIndex >= message.batchCount) {
                 resetBatch();
                 return null;
@@ -365,8 +384,8 @@ public class PacketWebUploadTrigger implements IMessage {
             boolean recipeSnapshot = TYPE_RECIPES.equalsIgnoreCase(message.uploadType)
                 && "snapshot".equalsIgnoreCase(message.renderMode);
             boolean iconScope = (TYPE_ICONS.equalsIgnoreCase(message.uploadType)
-                || TYPE_ICONS_LOCAL.equalsIgnoreCase(message.uploadType))
-                && message.exportScope != null && !message.exportScope.isEmpty();
+                || TYPE_ICONS_LOCAL.equalsIgnoreCase(message.uploadType)) && message.exportScope != null
+                && !message.exportScope.isEmpty();
             if (!recipeSnapshot && !iconScope) {
                 resetBatch();
                 return null;
@@ -377,7 +396,9 @@ public class PacketWebUploadTrigger implements IMessage {
                 resetBatch();
                 return null;
             }
-            String key = message.uploadType + "\u0000" + safe(message.renderMode) + "\u0000"
+            String key = message.uploadType + "\u0000"
+                + safe(message.renderMode)
+                + "\u0000"
                 + safe(message.exportScope);
             if (!recipeSnapshot) key += "\u0000" + safe(message.packName);
             if (message.batchIndex == 0) {
@@ -388,7 +409,8 @@ public class PacketWebUploadTrigger implements IMessage {
                 pendingBatchNext = 0;
             }
             if (pendingBatchItemIds == null || pendingBatchCount != message.batchCount
-                || !key.equals(pendingBatchKey) || message.batchIndex != pendingBatchNext
+                || !key.equals(pendingBatchKey)
+                || message.batchIndex != pendingBatchNext
                 || pendingBatchItemIds.size() + part.size() > PacketWebIconExportScope.MAX_ITEM_IDS) {
                 resetBatch();
                 return null;

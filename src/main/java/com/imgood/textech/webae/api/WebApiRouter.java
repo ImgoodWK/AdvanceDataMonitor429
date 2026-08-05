@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.InputStream;
 import java.util.Map;
 
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
 import com.imgood.textech.webae.api.handler.AdminConsoleHandler;
 import com.imgood.textech.webae.api.handler.AdminPlayerHandler;
 import com.imgood.textech.webae.api.handler.AeCableTextureHandler;
@@ -14,9 +15,9 @@ import com.imgood.textech.webae.api.handler.AuthAdminElevateHandler;
 import com.imgood.textech.webae.api.handler.AuthGuestInviteHandler;
 import com.imgood.textech.webae.api.handler.CellSummaryHandler;
 import com.imgood.textech.webae.api.handler.ChatHandler;
-import com.imgood.textech.webae.api.handler.CraftTreeHandler;
 import com.imgood.textech.webae.api.handler.CpuCapacityHandler;
 import com.imgood.textech.webae.api.handler.CpuHistoryHandler;
+import com.imgood.textech.webae.api.handler.CraftTreeHandler;
 import com.imgood.textech.webae.api.handler.DisplayHandler;
 import com.imgood.textech.webae.api.handler.EventStreamHandler;
 import com.imgood.textech.webae.api.handler.FavoritesHandler;
@@ -25,11 +26,11 @@ import com.imgood.textech.webae.api.handler.IconHandler;
 import com.imgood.textech.webae.api.handler.MonitorHandler;
 import com.imgood.textech.webae.api.handler.MonitorPreviewHandler;
 import com.imgood.textech.webae.api.handler.NetworkBalanceHandler;
+import com.imgood.textech.webae.api.handler.NetworkHealthHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricEntityHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricFluidHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricHandler;
 import com.imgood.textech.webae.api.handler.NetworkMetricItemHandler;
-import com.imgood.textech.webae.api.handler.NetworkHealthHandler;
 import com.imgood.textech.webae.api.handler.OcSummaryHandler;
 import com.imgood.textech.webae.api.handler.OrderHandler;
 import com.imgood.textech.webae.api.handler.OrderTemplatesHandler;
@@ -57,7 +58,6 @@ import com.imgood.textech.webae.api.handler.WebAiAdminHandler;
 import com.imgood.textech.webae.api.handler.WebConfigHandler;
 import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
-import com.imgood.textech.webae.access.WebAeNetworkAccess;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.perf.WebAePerfProfiler;
 import com.imgood.textech.webae.player.WebAePlayerStateStore;
@@ -160,8 +160,7 @@ public class WebApiRouter {
             && method == NanoHTTPD.Method.GET) {
             String overrideOwner = params.get("owner");
             if (overrideOwner != null && !overrideOwner.isEmpty()) {
-                if (uri.startsWith("/api/worldmap/")
-                    && !WorldMapPacketAuthorization.isValidOwnerUuid(overrideOwner)) {
+                if (uri.startsWith("/api/worldmap/") && !WorldMapPacketAuthorization.isValidOwnerUuid(overrideOwner)) {
                     return NanoHTTPD.newFixedLengthResponse(
                         NanoHTTPD.Response.Status.BAD_REQUEST,
                         "application/json",
@@ -202,8 +201,9 @@ public class WebApiRouter {
             }
         }
 
-        if (requiresWorldMapQueryNetwork(uri, method)
-            && (params.get("network") == null || params.get("network").trim().isEmpty())) {
+        if (requiresWorldMapQueryNetwork(uri, method) && (params.get("network") == null || params.get("network")
+            .trim()
+            .isEmpty())) {
             return NanoHTTPD.newFixedLengthResponse(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "application/json",
@@ -737,8 +737,7 @@ public class WebApiRouter {
                 if (!body.valid) {
                     return limitedBodyError(body);
                 }
-                return WorldMapAnnotationHandler
-                    .handleUpdate(annotationId, params, body.value, effectiveOwner, auth);
+                return WorldMapAnnotationHandler.handleUpdate(annotationId, params, body.value, effectiveOwner, auth);
             }
 
             if (method == NanoHTTPD.Method.DELETE) {
@@ -822,7 +821,9 @@ public class WebApiRouter {
 
             }
 
-            if (params.get("network") == null || params.get("network").trim().isEmpty()) {
+            if (params.get("network") == null || params.get("network")
+                .trim()
+                .isEmpty()) {
                 return NanoHTTPD.newFixedLengthResponse(
                     NanoHTTPD.Response.Status.BAD_REQUEST,
                     "application/json",
@@ -1424,8 +1425,10 @@ public class WebApiRouter {
 
     private static boolean isGuestRefreshRoute(String uri) {
         return "/api/refresh".equals(uri) || "/api/refresh/batch".equals(uri)
-            || "/api/power/refresh".equals(uri) || "/api/power/refresh/batch".equals(uri)
-            || "/api/gt/machines/refresh".equals(uri) || "/api/gt/machines/refresh/batch".equals(uri);
+            || "/api/power/refresh".equals(uri)
+            || "/api/power/refresh/batch".equals(uri)
+            || "/api/gt/machines/refresh".equals(uri)
+            || "/api/gt/machines/refresh/batch".equals(uri);
     }
 
     private static boolean isWorldMapNetworkRoute(String uri) {
@@ -1442,8 +1445,7 @@ public class WebApiRouter {
         if ("/api/worldmap/annotations".equals(uri) && method == NanoHTTPD.Method.POST) {
             return false;
         }
-        return !(uri != null && uri.startsWith("/api/worldmap/annotations/")
-            && method == NanoHTTPD.Method.PUT);
+        return !(uri != null && uri.startsWith("/api/worldmap/annotations/") && method == NanoHTTPD.Method.PUT);
     }
 
     private NanoHTTPD.Response handleLogin(WebAuthSession auth) {
@@ -1546,9 +1548,8 @@ public class WebApiRouter {
         }
         final int declaredLength;
         try {
-            declaredLength = rawLength == null || rawLength.trim().isEmpty()
-                ? 0
-                : Integer.parseInt(rawLength.trim());
+            declaredLength = rawLength == null || rawLength.trim()
+                .isEmpty() ? 0 : Integer.parseInt(rawLength.trim());
         } catch (NumberFormatException e) {
             return LimitedBody.invalid("Invalid Content-Length header");
         }
@@ -1584,15 +1585,16 @@ public class WebApiRouter {
     }
 
     private static NanoHTTPD.Response limitedBodyError(LimitedBody body) {
-        NanoHTTPD.Response.Status status = body.tooLarge
-            ? NanoHTTPD.Response.Status.PAYLOAD_TOO_LARGE
+        NanoHTTPD.Response.Status status = body.tooLarge ? NanoHTTPD.Response.Status.PAYLOAD_TOO_LARGE
             : NanoHTTPD.Response.Status.BAD_REQUEST;
         String code = body.tooLarge ? "payload_too_large" : "invalid_body";
         return NanoHTTPD.newFixedLengthResponse(
             status,
             "application/json",
             "{\"success\":false,\"status\":\"error\",\"code\":\"" + code
-                + "\",\"message\":\"" + escapeJson(body.message) + "\"}");
+                + "\",\"message\":\""
+                + escapeJson(body.message)
+                + "\"}");
     }
 
     private static byte[] readBodyBytes(NanoHTTPD.IHTTPSession session) {

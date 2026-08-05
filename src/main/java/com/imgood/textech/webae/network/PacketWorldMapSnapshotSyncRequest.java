@@ -3,14 +3,14 @@ package com.imgood.textech.webae.network;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+
 import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.webae.worldmap.WorldMapPacketAuthorization;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotCurrentPointer;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotManifest;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStore;
-
-import net.minecraft.entity.player.EntityPlayerMP;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -112,14 +112,16 @@ public class PacketWorldMapSnapshotSyncRequest implements IMessage {
 
                 @Override
                 public void run() {
-                    if (message == null || !message.valid || player == null
+                    if (message == null || !message.valid
+                        || player == null
                         || !WorldMapPacketAuthorization.isValidOwnerUuid(message.ownerUuid)
                         || !WorldMapPacketAuthorization.isValidNetworkId(message.networkId)
                         || message.localVersion < 0
                         || message.localVersion > WorldMapPacketAuthorization.MAX_SNAPSHOT_VERSION
                         || message.tileOffset < 0
                         || message.tileOffset > MAX_TILE_OFFSET
-                        || !WorldMapPacketAuthorization.canReadSnapshotScope(player, message.ownerUuid, message.networkId)) {
+                        || !WorldMapPacketAuthorization
+                            .canReadSnapshotScope(player, message.ownerUuid, message.networkId)) {
                         return;
                     }
                     WorldMapSnapshotCurrentPointer ptr = WorldMapSnapshotStore
@@ -156,11 +158,8 @@ public class PacketWorldMapSnapshotSyncRequest implements IMessage {
                     } else if (message.tileOffset != 0) {
                         return;
                     }
-                    if (serverVersion > 0 && !WorldMapPacketAuthorization.canReadSnapshot(
-                        player,
-                        message.ownerUuid,
-                        message.networkId,
-                        serverVersion)) {
+                    if (serverVersion > 0 && !WorldMapPacketAuthorization
+                        .canReadSnapshot(player, message.ownerUuid, message.networkId, serverVersion)) {
                         return;
                     }
                     com.imgood.textech.AdvanceDataMonitor.ADMCHANEL.sendTo(resp, player);

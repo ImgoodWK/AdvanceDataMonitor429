@@ -833,12 +833,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
 
             int trackTop = listStartY + btnTopH + 1;
             int trackBottom = listStartY + scrollbarHeight - btnTopH - 1;
-            GuiBlitUtil.drawCoverCropped(
-                UiThemes.ADM.scrollTrackRegion(),
-                scrollbarX,
-                trackTop,
-                6,
-                trackBottom - trackTop);
+            GuiBlitUtil
+                .drawCoverCropped(UiThemes.ADM.scrollTrackRegion(), scrollbarX, trackTop, 6, trackBottom - trackTop);
 
             int trackHeight = trackBottom - trackTop;
             int thumbHeight = Math.max(10, trackHeight * visibleAreaHeight / totalContentHeight);
@@ -864,12 +860,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
     }
 
     private void drawCheckBox(int x, int y, boolean checked) {
-        GuiBlitUtil.drawCenteredRegion(
-            checked ? UiThemes.ADM.checkOnRegion() : UiThemes.ADM.checkOffRegion(),
-            x,
-            y,
-            12,
-            12);
+        GuiBlitUtil
+            .drawCenteredRegion(checked ? UiThemes.ADM.checkOnRegion() : UiThemes.ADM.checkOffRegion(), x, y, 12, 12);
     }
 
     private void drawTooltip(int mouseX, int mouseY) {

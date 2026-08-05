@@ -11,7 +11,8 @@ import net.minecraft.nbt.NBTTagList;
 /**
  * Shared monitor/WebAE widget contract normalizer.
  *
- * <p>Legacy monitor bindings still persist {@code dataType} and {@code name}. New code prefers
+ * <p>
+ * Legacy monitor bindings still persist {@code dataType} and {@code name}. New code prefers
  * {@code kind}/{@code renderType} and {@code metricKey}/{@code title}, but keeps the legacy fields in sync so old
  * worlds and GUIs continue to load.
  * </p>
@@ -71,8 +72,7 @@ public final class MonitorWidgetSpec {
         String legacyRenderType = safeString(nbt, "renderType");
         String legacyKind = safeString(nbt, "kind");
         String kind = normalizeKind(
-            !legacyKind.isEmpty() ? legacyKind
-                : !legacyRenderType.isEmpty() ? legacyRenderType : legacyDataType);
+            !legacyKind.isEmpty() ? legacyKind : !legacyRenderType.isEmpty() ? legacyRenderType : legacyDataType);
         if (kind.isEmpty()) {
             kind = KIND_LINE_CHART;
         }
@@ -188,14 +188,14 @@ public final class MonitorWidgetSpec {
 
     public static String previewTypeForKind(String kind) {
         String normalized = normalizeKind(kind);
-        if (KIND_STAT_CARD.equals(normalized) || KIND_PROGRESS_BAR.equals(normalized) || KIND_GAUGE.equals(normalized)) {
+        if (KIND_STAT_CARD.equals(normalized) || KIND_PROGRESS_BAR.equals(normalized)
+            || KIND_GAUGE.equals(normalized)) {
             return PREVIEW_SCALAR;
         }
         if (KIND_BAR_CHART.equals(normalized) || KIND_PIE_CHART.equals(normalized)) {
             return PREVIEW_CATEGORIES;
         }
-        if (KIND_DATA_TABLE.equals(normalized) || KIND_STORAGE.equals(normalized)
-            || KIND_CRAFTING.equals(normalized)) {
+        if (KIND_DATA_TABLE.equals(normalized) || KIND_STORAGE.equals(normalized) || KIND_CRAFTING.equals(normalized)) {
             return PREVIEW_ROWS;
         }
         return PREVIEW_SERIES;
@@ -262,29 +262,35 @@ public final class MonitorWidgetSpec {
             return "";
         }
         String lower = value.toLowerCase(Locale.ROOT);
-        if ("line".equals(lower) || KIND_LINE_CHART.toLowerCase(Locale.ROOT).equals(lower)
-            || "diffrence".equals(lower)
-            || "difference".equals(lower)) {
+        if ("line".equals(lower) || KIND_LINE_CHART.toLowerCase(Locale.ROOT)
+            .equals(lower) || "diffrence".equals(lower) || "difference".equals(lower)) {
             return KIND_LINE_CHART;
         }
-        if ("bar".equals(lower) || "bar3d".equals(lower) || "waterfall".equals(lower)
-            || KIND_BAR_CHART.toLowerCase(Locale.ROOT).equals(lower)) {
+        if ("bar".equals(lower) || "bar3d".equals(lower)
+            || "waterfall".equals(lower)
+            || KIND_BAR_CHART.toLowerCase(Locale.ROOT)
+                .equals(lower)) {
             return KIND_BAR_CHART;
         }
-        if ("pie".equals(lower) || KIND_PIE_CHART.toLowerCase(Locale.ROOT).equals(lower)) {
+        if ("pie".equals(lower) || KIND_PIE_CHART.toLowerCase(Locale.ROOT)
+            .equals(lower)) {
             return KIND_PIE_CHART;
         }
-        if ("table".equals(lower) || KIND_DATA_TABLE.toLowerCase(Locale.ROOT).equals(lower)) {
+        if ("table".equals(lower) || KIND_DATA_TABLE.toLowerCase(Locale.ROOT)
+            .equals(lower)) {
             return KIND_DATA_TABLE;
         }
         if ("stat".equals(lower) || "scalar".equals(lower)
-            || KIND_STAT_CARD.toLowerCase(Locale.ROOT).equals(lower)) {
+            || KIND_STAT_CARD.toLowerCase(Locale.ROOT)
+                .equals(lower)) {
             return KIND_STAT_CARD;
         }
-        if ("progress".equals(lower) || KIND_PROGRESS_BAR.toLowerCase(Locale.ROOT).equals(lower)) {
+        if ("progress".equals(lower) || KIND_PROGRESS_BAR.toLowerCase(Locale.ROOT)
+            .equals(lower)) {
             return KIND_PROGRESS_BAR;
         }
-        if (KIND_GAUGE.toLowerCase(Locale.ROOT).equals(lower)) {
+        if (KIND_GAUGE.toLowerCase(Locale.ROOT)
+            .equals(lower)) {
             return KIND_GAUGE;
         }
         if (KIND_CRAFTING.equals(lower)) {
@@ -372,9 +378,14 @@ public final class MonitorWidgetSpec {
 
     private static boolean isLegacyChartAlias(String value) {
         String lower = safeString(value).toLowerCase(Locale.ROOT);
-        return "line".equals(lower) || "bar".equals(lower) || "bar3d".equals(lower)
-            || "waterfall".equals(lower) || "pie".equals(lower) || "table".equals(lower)
-            || "stat".equals(lower) || "scalar".equals(lower) || "progress".equals(lower)
+        return "line".equals(lower) || "bar".equals(lower)
+            || "bar3d".equals(lower)
+            || "waterfall".equals(lower)
+            || "pie".equals(lower)
+            || "table".equals(lower)
+            || "stat".equals(lower)
+            || "scalar".equals(lower)
+            || "progress".equals(lower)
             || isDifferenceAlias(lower);
     }
 

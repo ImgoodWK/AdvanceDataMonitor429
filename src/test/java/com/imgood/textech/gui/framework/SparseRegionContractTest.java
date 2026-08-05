@@ -14,7 +14,8 @@ public class SparseRegionContractTest {
 
     @Test
     public void admSparseChromeUsesOneUniformScaleAndFourPlacements() {
-        SparseFrameRegion frame = AdmUiTheme.instance().sparseMainFrame();
+        SparseFrameRegion frame = AdmUiTheme.instance()
+            .sparseMainFrame();
         assertEquals(1.0F, frame.uniformScaleFor(420, 260), 0.0F);
         int[][] positions = GuiBlitUtil.sparseChromePositions(frame, 10, 20, 420, 260, 1.0F);
         assertEquals(4, positions.length);
@@ -22,7 +23,12 @@ public class SparseRegionContractTest {
         assertArrayEquals(new int[] { 408, 20 }, positions[1]);
         assertArrayEquals(new int[] { 10, 258 }, positions[2]);
         assertArrayEquals(new int[] { 408, 258 }, positions[3]);
-        assertEquals(4, Arrays.stream(positions).map(Arrays::toString).distinct().count());
+        assertEquals(
+            4,
+            Arrays.stream(positions)
+                .map(Arrays::toString)
+                .distinct()
+                .count());
         assertEquals(0.5F, frame.uniformScaleFor(22, 22), 0.0001F);
     }
 
@@ -67,8 +73,10 @@ public class SparseRegionContractTest {
 
     @Test
     public void underlineCropAndVisualStateSelectionAreDeterministic() {
-        UnderlineFieldRegion field = AdmUiTheme.instance().underlineField();
-        AtlasRegion longest = field.style(UnderlineFieldRegion.State.NORMAL).bottom();
+        UnderlineFieldRegion field = AdmUiTheme.instance()
+            .underlineField();
+        AtlasRegion longest = field.style(UnderlineFieldRegion.State.NORMAL)
+            .bottom();
         AtlasRegion fullWidth = field.centeredBottomCrop(UnderlineFieldRegion.State.NORMAL, 480);
         assertEquals(longest.u(), fullWidth.u());
         assertEquals(longest.v(), fullWidth.v());
@@ -87,7 +95,9 @@ public class SparseRegionContractTest {
     public void feedbackBandWrapLimitCannotOverlapFollowingControls() {
         assertEquals(3, UiFeedbackArea.maxLines(30, UiFeedbackArea.DEFAULT_LINE_HEIGHT));
         assertEquals(Arrays.asList("a", "b", "c"), UiFeedbackArea.firstLines(Arrays.asList("a", "b", "c", "d"), 3));
-        assertTrue(UiFeedbackArea.firstLines(Arrays.asList("a"), 0).isEmpty());
+        assertTrue(
+            UiFeedbackArea.firstLines(Arrays.asList("a"), 0)
+                .isEmpty());
 
         UiFeedbackArea feedback = UiFeedbackArea.afterControls(10, 20, 180, 120, 96, 4, 8, 30);
         assertEquals(102, feedback.y());
@@ -109,8 +119,7 @@ public class SparseRegionContractTest {
     private static int[] fittedBounds(int x, int y, int width, int height) {
         int fittedWidth = FixedAspectButtonFamily.normalizedWidthFor(width, height);
         int fittedHeight = FixedAspectButtonFamily.normalizedHeightFor(width, height);
-        return new int[] { x + (width - fittedWidth) / 2, y + (height - fittedHeight) / 2, fittedWidth,
-            fittedHeight };
+        return new int[] { x + (width - fittedWidth) / 2, y + (height - fittedHeight) / 2, fittedWidth, fittedHeight };
     }
 
     @Test

@@ -64,7 +64,7 @@ public final class WorldMapHdSupport {
 
     /**
      * Resolves the same owner/network-scoped provider without requiring client-HD
-     * rendering to be enabled.  Disk-backed direct tiles still need this check
+     * rendering to be enabled. Disk-backed direct tiles still need this check
      * before a cache hit can be returned; otherwise a stale cache entry could
      * bypass the current owner/network authorization.
      */
@@ -105,7 +105,7 @@ public final class WorldMapHdSupport {
             || !WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)) {
             return false;
         }
-        return WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid)
-            || WorldMapCaptureCoordinator.instance().isActiveJobPlayerForNetwork(ownerUuid, networkId, player);
+        return WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid) || WorldMapCaptureCoordinator.instance()
+            .isActiveJobPlayerForNetwork(ownerUuid, networkId, player);
     }
 }

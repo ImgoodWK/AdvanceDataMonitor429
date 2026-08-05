@@ -3,6 +3,7 @@ package com.imgood.textech.network.packet;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.imgood.textech.utils.NetworkPacketCodec;
+
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -29,10 +30,7 @@ public class PacketPlannerSync implements IMessage {
         int start = buf.writerIndex();
         try {
             buf.writeInt(slot);
-            NetworkPacketCodec.writeTag(
-                buf,
-                nbt == null ? new NBTTagCompound() : nbt,
-                MAX_NBT_COMPRESSED_BYTES);
+            NetworkPacketCodec.writeTag(buf, nbt == null ? new NBTTagCompound() : nbt, MAX_NBT_COMPRESSED_BYTES);
             if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
                 throw new IllegalArgumentException("Planner sync exceeds packet body limit");
             }

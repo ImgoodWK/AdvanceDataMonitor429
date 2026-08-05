@@ -1,7 +1,7 @@
 package com.imgood.textech.webae.network;
 
-import com.imgood.textech.webae.icon.IconLocalStore;
 import com.imgood.textech.utils.NetworkPacketCodec;
+import com.imgood.textech.webae.icon.IconLocalStore;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -48,9 +48,14 @@ public class PacketWebIconPullZip implements IMessage {
         buf.writeInt(chunkIndex);
         buf.writeInt(totalChunks);
         writeUtf8(buf, packName);
-        if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0 || chunkIndex >= totalChunks
-            || isStart != (chunkIndex == 0) || isEnd != (chunkIndex == totalChunks - 1)
-            || data == null || data.length == 0 || data.length > MAX_CHUNK_BYTES) {
+        if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+            || chunkIndex < 0
+            || chunkIndex >= totalChunks
+            || isStart != (chunkIndex == 0)
+            || isEnd != (chunkIndex == totalChunks - 1)
+            || data == null
+            || data.length == 0
+            || data.length > MAX_CHUNK_BYTES) {
             throw new IllegalArgumentException("Icon pull chunk exceeds packet limit");
         }
         buf.writeInt(data.length);
@@ -67,9 +72,12 @@ public class PacketWebIconPullZip implements IMessage {
             totalChunks = buf.readInt();
             packName = NetworkPacketCodec.readUtf8(buf, MAX_PACK_NAME_BYTES);
             data = NetworkPacketCodec.readBytes(buf, MAX_CHUNK_BYTES);
-            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0
-                || chunkIndex >= totalChunks || isStart != (chunkIndex == 0)
-                || isEnd != (chunkIndex == totalChunks - 1) || data.length == 0) {
+            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+                || chunkIndex < 0
+                || chunkIndex >= totalChunks
+                || isStart != (chunkIndex == 0)
+                || isEnd != (chunkIndex == totalChunks - 1)
+                || data.length == 0) {
                 throw new IllegalArgumentException("Invalid icon pull chunk");
             }
             if (buf.isReadable()) {

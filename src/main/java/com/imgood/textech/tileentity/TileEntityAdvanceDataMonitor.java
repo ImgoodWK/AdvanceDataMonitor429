@@ -49,8 +49,8 @@ import appeng.api.storage.StorageChannel;
 import appeng.tile.storage.TileChest;
 import appeng.tile.storage.TileDrive;
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
 import cpw.mods.fml.common.Optional;
+import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
 
 /**
  * Display names / 显示名称:
@@ -189,7 +189,9 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             try {
                 processSampleGroupShared(group);
             } catch (Exception e) {
-                int errorIndex = group.bindingIndices.isEmpty() ? -1 : group.bindingIndices.get(0).intValue();
+                int errorIndex = group.bindingIndices.isEmpty() ? -1
+                    : group.bindingIndices.get(0)
+                        .intValue();
                 handleProcessingError(errorIndex, e);
             }
         }
@@ -341,7 +343,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         return netRate < 0.0D ? -netRate : 0.0D;
     }
 
-    private void processTileEntityDataShared(int index, NBTTagCompound nbt, TileEntity target, NBTTagCompound targetNbt) {
+    private void processTileEntityDataShared(int index, NBTTagCompound nbt, TileEntity target,
+        NBTTagCompound targetNbt) {
         String kind = MonitorWidgetSpec.getKind(nbt);
         String dataType = nbt.hasKey("dataType") ? nbt.getString("dataType") : "";
         String sourceKind = MonitorWidgetSpec.getSourceKind(nbt);
@@ -852,7 +855,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             NBTTagCompound fieldPatch = new NBTTagCompound();
             for (String key : keys) {
                 if (nbt.hasKey(key)) {
-                    fieldPatch.setTag(key, nbt.getTag(key).copy());
+                    fieldPatch.setTag(
+                        key,
+                        nbt.getTag(key)
+                            .copy());
                 }
             }
             sendBindingDelta(index, revision, false, fieldPatch, null);
@@ -892,13 +898,18 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         if (fieldPatch != null) {
             for (Object keyObj : fieldPatch.func_150296_c()) {
                 String key = String.valueOf(keyObj);
-                nbt.setTag(key, fieldPatch.getTag(key).copy());
+                nbt.setTag(
+                    key,
+                    fieldPatch.getTag(key)
+                        .copy());
             }
         }
         if (appendedData != null) {
             NBTTagList dataValues = replaceHistory ? new NBTTagList() : nbt.getTagList("dataValues", 10);
             for (int i = 0; i < appendedData.tagCount(); i++) {
-                dataValues.appendTag(appendedData.getCompoundTagAt(i).copy());
+                dataValues.appendTag(
+                    appendedData.getCompoundTagAt(i)
+                        .copy());
             }
             trimDataValues(nbt, dataValues);
             nbt.setTag("dataValues", dataValues);
@@ -1615,7 +1626,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         List<Double> values = new ArrayList<>();
         NBTTagList list = getDataValues(index);
         for (int i = 0; i < list.tagCount(); i++) {
-            values.add(Double.valueOf(list.getCompoundTagAt(i).getDouble("data")));
+            values.add(
+                Double.valueOf(
+                    list.getCompoundTagAt(i)
+                        .getDouble("data")));
         }
         return values;
     }

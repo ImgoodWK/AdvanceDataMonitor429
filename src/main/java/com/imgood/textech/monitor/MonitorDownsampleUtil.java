@@ -51,7 +51,12 @@ public final class MonitorDownsampleUtil {
         }
         List<Double> result = new ArrayList<Double>(values.size() - 1);
         for (int i = 1; i < values.size(); i++) {
-            result.add(Double.valueOf(values.get(i).doubleValue() - values.get(i - 1).doubleValue()));
+            result.add(
+                Double.valueOf(
+                    values.get(i)
+                        .doubleValue()
+                        - values.get(i - 1)
+                            .doubleValue()));
         }
         return result;
     }

@@ -408,10 +408,14 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     private ADM_GuiTextField createField(int x, int y, int width, String text, String hintKey) {
-        final ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y, width, this.compactLayout ? 18 : 20)
-            .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
-            .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
-            .setHintText(hintKey.isEmpty() ? "" : I18n.format(hintKey));
+        final ADM_GuiTextField field = new ADM_GuiTextField(
+            this.fontRendererObj,
+            x,
+            y,
+            width,
+            this.compactLayout ? 18 : 20).setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
+                .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
+                .setHintText(hintKey.isEmpty() ? "" : I18n.format(hintKey));
         field.setMaxStringLength(2048);
         field.setText(text == null ? "" : text);
         field.setOnTextChanged(new Runnable() {
@@ -624,7 +628,9 @@ public class GuiAISettings extends ADM_GuiScreen {
 
     private Integer parseIntegerField(ADM_GuiTextField field) {
         try {
-            return Integer.valueOf(field.getText().trim());
+            return Integer.valueOf(
+                field.getText()
+                    .trim());
         } catch (NumberFormatException error) {
             rejectField(field, error);
             return null;
@@ -633,7 +639,9 @@ public class GuiAISettings extends ADM_GuiScreen {
 
     private Double parseDoubleField(ADM_GuiTextField field) {
         try {
-            return Double.valueOf(field.getText().trim());
+            return Double.valueOf(
+                field.getText()
+                    .trim());
         } catch (NumberFormatException error) {
             rejectField(field, error);
             return null;

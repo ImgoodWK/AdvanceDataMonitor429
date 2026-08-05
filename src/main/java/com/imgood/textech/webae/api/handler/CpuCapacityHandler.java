@@ -24,7 +24,8 @@ public final class CpuCapacityHandler {
     public static NanoHTTPD.Response handle(Map<String, String> params, WebAuthSession session, String ownerUuid) {
         Integer networkId = CpuHistoryHandler.parseNetwork(params);
         if (networkId == null) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'network' parameter\"}");
         }
         NanoHTTPD.Response denied = WebAeNetworkAccess.assertCanAccess(session, ownerUuid, networkId.intValue());
@@ -41,7 +42,8 @@ public final class CpuCapacityHandler {
 
         Window window = parseWindow(params == null ? null : params.get("window"));
         if (window == null) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Invalid 'window' parameter\"}");
         }
 
@@ -55,7 +57,10 @@ public final class CpuCapacityHandler {
     }
 
     static Window parseWindow(String raw) {
-        String value = raw == null || raw.trim().isEmpty() ? "24h" : raw.trim().toLowerCase(java.util.Locale.ROOT);
+        String value = raw == null || raw.trim()
+            .isEmpty() ? "24h"
+                : raw.trim()
+                    .toLowerCase(java.util.Locale.ROOT);
         if ("1h".equals(value)) {
             return new Window(value, 60L * 60L * 1000L);
         }

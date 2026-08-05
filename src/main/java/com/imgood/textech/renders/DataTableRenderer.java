@@ -17,7 +17,8 @@ public class DataTableRenderer implements IADMRender {
         List<MonitorRenderSupport.Category> rows = MonitorRenderSupport.categories(nbt, maxRows);
         double width = MonitorRenderSupport.width(nbt);
         double height = MonitorRenderSupport.height(nbt);
-        boolean explicitHidden = nbt.hasKey("columns") && nbt.getTagList("columns", 8).tagCount() == 0;
+        boolean explicitHidden = nbt.hasKey("columns") && nbt.getTagList("columns", 8)
+            .tagCount() == 0;
         boolean showLabel = !explicitHidden && columnVisible(nbt, "label", true);
         boolean showValue = !explicitHidden && columnVisible(nbt, "value", true);
 

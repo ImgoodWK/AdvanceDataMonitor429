@@ -29,7 +29,9 @@ public class MonitorThresholdRuntimeTest {
         Assert.assertEquals(15, second.getStrongPower());
         Assert.assertEquals(15, second.getWeakPower());
         Assert.assertTrue(second.isChanged());
-        Assert.assertFalse(runtime.evaluate(bindings).isChanged());
+        Assert.assertFalse(
+            runtime.evaluate(bindings)
+                .isChanged());
     }
 
     @Test
@@ -38,10 +40,16 @@ public class MonitorThresholdRuntimeTest {
         Map<Integer, NBTTagCompound> bindings = new HashMap<Integer, NBTTagCompound>();
         bindings.put(Integer.valueOf(0), binding("gte", 1.0D, 0.0D, 0.0D, 20));
         runtime.recordSample(0, 2.0D);
-        Assert.assertEquals(15, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            15,
+            runtime.evaluate(bindings)
+                .getStrongPower());
 
         for (int i = 0; i < 200; i++) runtime.advanceTick();
-        Assert.assertEquals(15, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            15,
+            runtime.evaluate(bindings)
+                .getStrongPower());
         runtime.advanceTick();
         MonitorThresholdRuntime.Output stale = runtime.evaluate(bindings);
         Assert.assertEquals(0, stale.getStrongPower());
@@ -57,14 +65,26 @@ public class MonitorThresholdRuntimeTest {
         runtime.recordSample(0, 2.0D);
         runtime.evaluate(bindings);
         for (int i = 0; i < 300; i++) runtime.advanceTick();
-        Assert.assertEquals(15, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            15,
+            runtime.evaluate(bindings)
+                .getStrongPower());
         runtime.advanceTick();
-        Assert.assertEquals(0, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            0,
+            runtime.evaluate(bindings)
+                .getStrongPower());
 
         runtime.recordSample(0, 2.0D);
-        Assert.assertEquals(15, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            15,
+            runtime.evaluate(bindings)
+                .getStrongPower());
         runtime.recordSample(0, Double.NaN);
-        Assert.assertEquals(0, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            0,
+            runtime.evaluate(bindings)
+                .getStrongPower());
     }
 
     @Test
@@ -76,7 +96,10 @@ public class MonitorThresholdRuntimeTest {
         runtime.evaluate(bindings);
         Assert.assertEquals(15, runtime.getStrongPower());
         runtime.reset();
-        Assert.assertEquals(0, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            0,
+            runtime.evaluate(bindings)
+                .getStrongPower());
         Assert.assertEquals(0, runtime.getWeakPower());
     }
 
@@ -90,12 +113,18 @@ public class MonitorThresholdRuntimeTest {
         bindings.put(Integer.valueOf(0), binding);
 
         runtime.recordSample(0, 10.0D);
-        Assert.assertEquals(15, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            15,
+            runtime.evaluate(bindings)
+                .getStrongPower());
 
         binding.getCompoundTag(MonitorWidgetSpec.THRESHOLD_KEY)
             .setDouble("value", 11.0D);
         runtime.resetBindingState(0);
-        Assert.assertEquals(0, runtime.evaluate(bindings).getStrongPower());
+        Assert.assertEquals(
+            0,
+            runtime.evaluate(bindings)
+                .getStrongPower());
 
         binding.setBoolean("enable", false);
         MonitorThresholdRuntime.Output disabled = runtime.evaluate(bindings);

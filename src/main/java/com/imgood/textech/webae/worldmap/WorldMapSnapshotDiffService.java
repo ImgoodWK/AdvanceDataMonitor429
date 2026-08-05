@@ -15,7 +15,7 @@ import java.util.TreeSet;
 
 /**
  * Pure service for comparing the two versions retained by a world-map current
- * pointer.  It performs no live topology reads and never guesses around an
+ * pointer. It performs no live topology reads and never guesses around an
  * invalid manifest.
  */
 public final class WorldMapSnapshotDiffService {
@@ -32,7 +32,8 @@ public final class WorldMapSnapshotDiffService {
             out.status = "invalid";
             return out;
         }
-        WorldMapSnapshotCurrentPointer pointer = WorldMapSnapshotStore.loadCurrentPointerUnchecked(ownerUuid, networkId);
+        WorldMapSnapshotCurrentPointer pointer = WorldMapSnapshotStore
+            .loadCurrentPointerUnchecked(ownerUuid, networkId);
         File pointerFile = WorldMapSnapshotStore.currentPointerFile(ownerUuid, networkId);
         if (pointer == null) {
             out.success = false;
@@ -50,8 +51,8 @@ public final class WorldMapSnapshotDiffService {
         return out;
     }
 
-    private static void addVersionInfo(WorldMapSnapshotVersionsDto out, String ownerUuid, int networkId,
-        int version, long pointerTimestamp, String pointerSource, int pointerTilePx) {
+    private static void addVersionInfo(WorldMapSnapshotVersionsDto out, String ownerUuid, int networkId, int version,
+        long pointerTimestamp, String pointerSource, int pointerTilePx) {
         WorldMapSnapshotVersionsDto.VersionInfo info = new WorldMapSnapshotVersionsDto.VersionInfo();
         info.version = version;
         WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadFinalizedManifest(ownerUuid, networkId, version);
@@ -73,17 +74,20 @@ public final class WorldMapSnapshotDiffService {
     }
 
     /** Defaults to previous -> current when either argument is omitted. */
-    public static WorldMapSnapshotDiffDto diff(String ownerUuid, int networkId, Integer fromVersion,
-        Integer toVersion, WorldMapSnapshotDiffOptions options) {
+    public static WorldMapSnapshotDiffDto diff(String ownerUuid, int networkId, Integer fromVersion, Integer toVersion,
+        WorldMapSnapshotDiffOptions options) {
         WorldMapSnapshotDiffDto out = new WorldMapSnapshotDiffDto();
         if (!WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)
             || !WorldMapPacketAuthorization.isValidNetworkId(networkId)) {
             return failure(out, "invalid", "invalid");
         }
-        WorldMapSnapshotCurrentPointer pointer = WorldMapSnapshotStore.loadCurrentPointerUnchecked(ownerUuid, networkId);
+        WorldMapSnapshotCurrentPointer pointer = WorldMapSnapshotStore
+            .loadCurrentPointerUnchecked(ownerUuid, networkId);
         File pointerFile = WorldMapSnapshotStore.currentPointerFile(ownerUuid, networkId);
         if (pointer == null) {
-            return failure(out, pointerFile != null && pointerFile.isFile() ? "unknown" : "error",
+            return failure(
+                out,
+                pointerFile != null && pointerFile.isFile() ? "unknown" : "error",
                 pointerFile != null && pointerFile.isFile() ? "unknown" : "no_versions");
         }
 
@@ -138,9 +142,11 @@ public final class WorldMapSnapshotDiffService {
         }
         out.truncated = details.isTruncated();
         out.summary.markerTotal = out.summary.markersAdded + out.summary.markersRemoved
-            + out.summary.markersChanged + out.summary.markersMoved;
+            + out.summary.markersChanged
+            + out.summary.markersMoved;
         out.summary.tileTotal = out.summary.tilesAdded + out.summary.tilesRemoved
-            + out.summary.tilesChanged + out.summary.tilesUnchanged;
+            + out.summary.tilesChanged
+            + out.summary.tilesUnchanged;
         out.summary.total = out.summary.markerTotal + out.summary.tileTotal;
         out.success = true;
         out.status = "ok";
@@ -170,14 +176,14 @@ public final class WorldMapSnapshotDiffService {
 
     private static WorldMapSnapshotDiffOptions normalizeOptions(WorldMapSnapshotDiffOptions options) {
         WorldMapSnapshotDiffOptions normalized = options != null ? options.copy() : new WorldMapSnapshotDiffOptions();
-        if (normalized.minX != null && normalized.maxX != null && normalized.minX.intValue() > normalized.maxX
-            .intValue()) {
+        if (normalized.minX != null && normalized.maxX != null
+            && normalized.minX.intValue() > normalized.maxX.intValue()) {
             Integer temp = normalized.minX;
             normalized.minX = normalized.maxX;
             normalized.maxX = temp;
         }
-        if (normalized.minZ != null && normalized.maxZ != null && normalized.minZ.intValue() > normalized.maxZ
-            .intValue()) {
+        if (normalized.minZ != null && normalized.maxZ != null
+            && normalized.minZ.intValue() > normalized.maxZ.intValue()) {
             Integer temp = normalized.minZ;
             normalized.minZ = normalized.maxZ;
             normalized.maxZ = temp;
@@ -238,8 +244,7 @@ public final class WorldMapSnapshotDiffService {
         }
     }
 
-    private static boolean sameTile(WorldMapSnapshotManifest.TileEntry from,
-        WorldMapSnapshotManifest.TileEntry to) {
+    private static boolean sameTile(WorldMapSnapshotManifest.TileEntry from, WorldMapSnapshotManifest.TileEntry to) {
         return from != null && to != null && value(from.sha256).equals(value(to.sha256));
     }
 
@@ -465,19 +470,28 @@ public final class WorldMapSnapshotDiffService {
     }
 
     private static boolean sameLogicalRecord(LogicalRecord before, LogicalRecord after) {
-        if (before == null || after == null || !before.source.equals(after.source)
-            || before.dim != after.dim || before.x != after.x || before.y != after.y || before.z != after.z) {
+        if (before == null || after == null
+            || !before.source.equals(after.source)
+            || before.dim != after.dim
+            || before.x != after.x
+            || before.y != after.y
+            || before.z != after.z) {
             return false;
         }
         if (before.marker != null || after.marker != null) {
             WorldMapMarkerDto a = before.marker;
             WorldMapMarkerDto b = after.marker;
-            return a != null && b != null && eq(a.nodeId, b.nodeId) && eq(a.type, b.type)
-                && eq(a.subtype, b.subtype) && eq(a.displayName, b.displayName)
-                && eq(a.iconItemId, b.iconItemId) && a.channelCost == b.channelCost;
+            return a != null && b != null
+                && eq(a.nodeId, b.nodeId)
+                && eq(a.type, b.type)
+                && eq(a.subtype, b.subtype)
+                && eq(a.displayName, b.displayName)
+                && eq(a.iconItemId, b.iconItemId)
+                && a.channelCost == b.channelCost;
         }
         return eq(before.kind, after.kind) && eq(before.className, after.className)
-            && eq(before.iconItemId, after.iconItemId) && eq(before.displayName, after.displayName);
+            && eq(before.iconItemId, after.iconItemId)
+            && eq(before.displayName, after.displayName);
     }
 
     private static boolean eq(String a, String b) {
@@ -546,13 +560,27 @@ public final class WorldMapSnapshotDiffService {
             if (c != 0) {
                 return c;
             }
-            c = comparePosition(a.marker.fromDim, a.marker.fromX, a.marker.fromY, a.marker.fromZ,
-                b.marker.fromDim, b.marker.fromX, b.marker.fromY, b.marker.fromZ);
+            c = comparePosition(
+                a.marker.fromDim,
+                a.marker.fromX,
+                a.marker.fromY,
+                a.marker.fromZ,
+                b.marker.fromDim,
+                b.marker.fromX,
+                b.marker.fromY,
+                b.marker.fromZ);
             if (c != 0) {
                 return c;
             }
-            c = comparePosition(a.marker.toDim, a.marker.toX, a.marker.toY, a.marker.toZ,
-                b.marker.toDim, b.marker.toX, b.marker.toY, b.marker.toZ);
+            c = comparePosition(
+                a.marker.toDim,
+                a.marker.toX,
+                a.marker.toY,
+                a.marker.toZ,
+                b.marker.toDim,
+                b.marker.toX,
+                b.marker.toY,
+                b.marker.toZ);
             if (c != 0) {
                 return c;
             }

@@ -35,23 +35,18 @@ public class WebApiRouterWorldMapTest {
                 "/api/worldmap/annotations/01234567-89ab-cdef-0123-456789abcdef?network=7"));
         assertEquals(
             "/api/worldmap/annotations",
-            invokeStatic(
-                "normalizeRoute",
-                new Class<?>[] { String.class },
-                "/api/worldmap/annotations?network=7"));
+            invokeStatic("normalizeRoute", new Class<?>[] { String.class }, "/api/worldmap/annotations?network=7"));
     }
 
     @Test
     public void requiresQueryNetworkExceptForBodyBackedAnnotationMutations() throws Exception {
         assertFalse(requiresNetwork("/api/worldmap/annotations", NanoHTTPD.Method.POST));
-        assertFalse(requiresNetwork(
-            "/api/worldmap/annotations/01234567-89ab-cdef-0123-456789abcdef",
-            NanoHTTPD.Method.PUT));
+        assertFalse(
+            requiresNetwork("/api/worldmap/annotations/01234567-89ab-cdef-0123-456789abcdef", NanoHTTPD.Method.PUT));
 
         assertTrue(requiresNetwork("/api/worldmap/annotations", NanoHTTPD.Method.GET));
-        assertTrue(requiresNetwork(
-            "/api/worldmap/annotations/01234567-89ab-cdef-0123-456789abcdef",
-            NanoHTTPD.Method.DELETE));
+        assertTrue(
+            requiresNetwork("/api/worldmap/annotations/01234567-89ab-cdef-0123-456789abcdef", NanoHTTPD.Method.DELETE));
         assertTrue(requiresNetwork("/api/worldmap/versions", NanoHTTPD.Method.GET));
         assertTrue(requiresNetwork("/api/worldmap/diff", NanoHTTPD.Method.GET));
         assertFalse(requiresNetwork("/api/worldmap/dynmap-tiles/0/0/0.png", NanoHTTPD.Method.GET));
@@ -64,12 +59,13 @@ public class WebApiRouterWorldMapTest {
             payload[i] = 'a';
         }
 
-        Object body = readAnnotationBody(session(
-            "/api/worldmap/annotations",
-            NanoHTTPD.Method.POST,
-            Collections.<String, String>emptyMap(),
-            payload,
-            Integer.toString(payload.length)));
+        Object body = readAnnotationBody(
+            session(
+                "/api/worldmap/annotations",
+                NanoHTTPD.Method.POST,
+                Collections.<String, String>emptyMap(),
+                payload,
+                Integer.toString(payload.length)));
 
         assertTrue((Boolean) field(body, "valid"));
         assertFalse((Boolean) field(body, "tooLarge"));
@@ -78,12 +74,13 @@ public class WebApiRouterWorldMapTest {
 
     @Test
     public void rejectsAnnotationBodyAboveLimitWith413Code() throws Exception {
-        Object body = readAnnotationBody(session(
-            "/api/worldmap/annotations",
-            NanoHTTPD.Method.POST,
-            Collections.<String, String>emptyMap(),
-            new byte[0],
-            Integer.toString(16 * 1024 + 1)));
+        Object body = readAnnotationBody(
+            session(
+                "/api/worldmap/annotations",
+                NanoHTTPD.Method.POST,
+                Collections.<String, String>emptyMap(),
+                new byte[0],
+                Integer.toString(16 * 1024 + 1)));
 
         assertFalse((Boolean) field(body, "valid"));
         assertTrue((Boolean) field(body, "tooLarge"));
@@ -95,22 +92,24 @@ public class WebApiRouterWorldMapTest {
 
     @Test
     public void rejectsTruncatedAndMalformedAnnotationBodies() throws Exception {
-        Object truncated = readAnnotationBody(session(
-            "/api/worldmap/annotations",
-            NanoHTTPD.Method.POST,
-            Collections.<String, String>emptyMap(),
-            "abc".getBytes(StandardCharsets.UTF_8),
-            "4"));
+        Object truncated = readAnnotationBody(
+            session(
+                "/api/worldmap/annotations",
+                NanoHTTPD.Method.POST,
+                Collections.<String, String>emptyMap(),
+                "abc".getBytes(StandardCharsets.UTF_8),
+                "4"));
         assertFalse((Boolean) field(truncated, "valid"));
         assertFalse((Boolean) field(truncated, "tooLarge"));
         assertEquals(NanoHTTPD.Response.Status.BAD_REQUEST, limitedBodyError(truncated).getStatus());
 
-        Object malformed = readAnnotationBody(session(
-            "/api/worldmap/annotations",
-            NanoHTTPD.Method.POST,
-            Collections.<String, String>emptyMap(),
-            new byte[0],
-            "not-a-number"));
+        Object malformed = readAnnotationBody(
+            session(
+                "/api/worldmap/annotations",
+                NanoHTTPD.Method.POST,
+                Collections.<String, String>emptyMap(),
+                new byte[0],
+                "not-a-number"));
         assertFalse((Boolean) field(malformed, "valid"));
         assertEquals(NanoHTTPD.Response.Status.BAD_REQUEST, limitedBodyError(malformed).getStatus());
     }
@@ -136,12 +135,7 @@ public class WebApiRouterWorldMapTest {
         params.put("network", "7");
         NanoHTTPD.Response unsupported = invokeRouteInner(
             router,
-            session(
-                "/api/worldmap/versions",
-                NanoHTTPD.Method.POST,
-                params,
-                new byte[0],
-                null),
+            session("/api/worldmap/versions", NanoHTTPD.Method.POST, params, new byte[0], null),
             auth);
         assertEquals(NanoHTTPD.Response.Status.METHOD_NOT_ALLOWED, unsupported.getStatus());
     }
@@ -155,27 +149,17 @@ public class WebApiRouterWorldMapTest {
     }
 
     private static Object readAnnotationBody(NanoHTTPD.IHTTPSession session) throws Exception {
-        return invokeStatic(
-            "readWorldMapAnnotationBody",
-            new Class<?>[] { NanoHTTPD.IHTTPSession.class },
-            session);
+        return invokeStatic("readWorldMapAnnotationBody", new Class<?>[] { NanoHTTPD.IHTTPSession.class }, session);
     }
 
     private static NanoHTTPD.Response limitedBodyError(Object body) throws Exception {
-        return (NanoHTTPD.Response) invokeStatic(
-            "limitedBodyError",
-            new Class<?>[] { body.getClass() },
-            body);
+        return (NanoHTTPD.Response) invokeStatic("limitedBodyError", new Class<?>[] { body.getClass() }, body);
     }
 
-    private static NanoHTTPD.Response invokeRouteInner(
-        WebApiRouter router,
-        NanoHTTPD.IHTTPSession session,
+    private static NanoHTTPD.Response invokeRouteInner(WebApiRouter router, NanoHTTPD.IHTTPSession session,
         WebAuthSession auth) throws Exception {
-        Method method = WebApiRouter.class.getDeclaredMethod(
-            "routeInner",
-            NanoHTTPD.IHTTPSession.class,
-            WebAuthSession.class);
+        Method method = WebApiRouter.class
+            .getDeclaredMethod("routeInner", NanoHTTPD.IHTTPSession.class, WebAuthSession.class);
         method.setAccessible(true);
         return (NanoHTTPD.Response) method.invoke(router, session, auth);
     }
@@ -193,12 +177,8 @@ public class WebApiRouterWorldMapTest {
         return field.get(target);
     }
 
-    private static NanoHTTPD.IHTTPSession session(
-        final String uri,
-        final NanoHTTPD.Method httpMethod,
-        final Map<String, String> params,
-        final byte[] body,
-        String declaredLength) {
+    private static NanoHTTPD.IHTTPSession session(final String uri, final NanoHTTPD.Method httpMethod,
+        final Map<String, String> params, final byte[] body, String declaredLength) {
         final Map<String, String> headers = new HashMap<String, String>();
         if (declaredLength != null) {
             headers.put("content-length", declaredLength);

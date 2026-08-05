@@ -8,10 +8,12 @@ import com.imgood.textech.webae.topology.TopologySnapshot;
 /**
  * Bounded logical sidecar for one world-map snapshot version.
  *
- * <p>The terrain capture packets intentionally carry no topology data.  The
+ * <p>
+ * The terrain capture packets intentionally carry no topology data. The
  * capture coordinator takes a defensive copy of this object while it is
  * preparing the capture job and writes it next to the terrain manifest after
- * the client has uploaded its tiles.</p>
+ * the client has uploaded its tiles.
+ * </p>
  */
 public final class WorldMapLogicalIndex {
 

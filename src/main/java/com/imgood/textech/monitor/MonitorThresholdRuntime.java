@@ -8,8 +8,10 @@ import net.minecraft.nbt.NBTTagCompound;
 /**
  * Ephemeral threshold state for one data monitor.
  *
- * <p>Samples, hysteresis state, and aggregate outputs intentionally never enter tile NBT. A reload therefore starts
- * with zero output until the first valid server-side sample.</p>
+ * <p>
+ * Samples, hysteresis state, and aggregate outputs intentionally never enter tile NBT. A reload therefore starts
+ * with zero output until the first valid server-side sample.
+ * </p>
  */
 public final class MonitorThresholdRuntime {
 

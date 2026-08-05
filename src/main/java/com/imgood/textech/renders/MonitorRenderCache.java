@@ -78,7 +78,8 @@ public final class MonitorRenderCache {
 
         public void draw(int index) {
             if (index < 0 || index >= meshes.size()) return;
-            meshes.get(index).draw();
+            meshes.get(index)
+                .draw();
         }
 
         private void delete() {

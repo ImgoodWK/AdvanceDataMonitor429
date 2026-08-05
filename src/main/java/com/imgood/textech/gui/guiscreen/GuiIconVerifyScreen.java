@@ -16,11 +16,11 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.gui.framework.GuiBlitUtil;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
-import com.imgood.textech.gui.custom.ADM_GuiScreen;
-import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.webae.icon.IconExportResolver;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
 import com.imgood.textech.webae.icon.IconRenderGuard;
@@ -64,14 +64,14 @@ public class GuiIconVerifyScreen extends ADM_GuiScreen {
         if (task != null && task.stack != null) {
             try {
                 IconExportResolver.ResolveResult result = resolver.resolve(mc, task.stack, task.itemId, null);
-                BufferedImage liveImage = result.png != null ? ImageIO.read(new ByteArrayInputStream(result.png)) : null;
+                BufferedImage liveImage = result.png != null ? ImageIO.read(new ByteArrayInputStream(result.png))
+                    : null;
                 if (liveImage != null) {
                     liveDynamic = new DynamicTexture(liveImage);
                     liveTexLoc = mc.getTextureManager()
                         .getDynamicTextureLocation("icon_verify_live_" + itemId.hashCode(), liveDynamic);
                 }
-            } catch (Exception ignored) {
-            } finally {
+            } catch (Exception ignored) {} finally {
                 IconRenderGuard.afterRender(mc);
             }
         }
@@ -128,22 +128,42 @@ public class GuiIconVerifyScreen extends ADM_GuiScreen {
             GL11.glEnable(GL12.GL_RESCALE_NORMAL);
             RenderHelper.enableGUIStandardItemLighting();
             RenderItem.getInstance()
-                .renderItemAndEffectIntoGUI(fontRendererObj, mc.getTextureManager(), task.stack, runtimeCenter - 8, iconY + 24);
+                .renderItemAndEffectIntoGUI(
+                    fontRendererObj,
+                    mc.getTextureManager(),
+                    task.stack,
+                    runtimeCenter - 8,
+                    iconY + 24);
             RenderHelper.disableStandardItemLighting();
             GL11.glDisable(GL12.GL_RESCALE_NORMAL);
         } else {
-            drawColumnStatus(runtimeCenter, iconY + 28, columnWidth, I18n.format("adm.icon_verify.unresolved"), 0xFF5555);
+            drawColumnStatus(
+                runtimeCenter,
+                iconY + 28,
+                columnWidth,
+                I18n.format("adm.icon_verify.unresolved"),
+                0xFF5555);
         }
 
         if (liveTexLoc != null) {
             GuiBlitUtil.drawFullTexture(liveTexLoc, freshCenter - 32, iconY, 64, 64);
         } else {
-            drawColumnStatus(freshCenter, iconY + 28, columnWidth, I18n.format("adm.icon_verify.no_live_icon"), 0xAAAAAA);
+            drawColumnStatus(
+                freshCenter,
+                iconY + 28,
+                columnWidth,
+                I18n.format("adm.icon_verify.no_live_icon"),
+                0xAAAAAA);
         }
         if (cachedTexLoc != null) {
             GuiBlitUtil.drawFullTexture(cachedTexLoc, cachedCenter - 32, iconY, 64, 64);
         } else {
-            drawColumnStatus(cachedCenter, iconY + 28, columnWidth, I18n.format("adm.icon_verify.no_cached_icon"), 0xAAAAAA);
+            drawColumnStatus(
+                cachedCenter,
+                iconY + 28,
+                columnWidth,
+                I18n.format("adm.icon_verify.no_cached_icon"),
+                0xAAAAAA);
         }
 
         drawCenteredString(
@@ -168,7 +188,12 @@ public class GuiIconVerifyScreen extends ADM_GuiScreen {
     }
 
     private void drawColumnStatus(int centerX, int y, int columnWidth, String text, int color) {
-        drawCenteredString(fontRendererObj, fontRendererObj.trimStringToWidth(text, columnWidth - 8), centerX, y, color);
+        drawCenteredString(
+            fontRendererObj,
+            fontRendererObj.trimStringToWidth(text, columnWidth - 8),
+            centerX,
+            y,
+            color);
     }
 
     private void releaseTextures() {

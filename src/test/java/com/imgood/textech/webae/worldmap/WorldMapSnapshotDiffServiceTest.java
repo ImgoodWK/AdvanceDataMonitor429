@@ -38,8 +38,8 @@ public class WorldMapSnapshotDiffServiceTest {
         tile(two, "terrain:0:3:0", repeat('e'), 13);
         finalizeVersion(two, null);
 
-        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertTrue(diff.success);
         Assert.assertEquals(1, diff.fromVersion);
         Assert.assertEquals(2, diff.toVersion);
@@ -62,29 +62,32 @@ public class WorldMapSnapshotDiffServiceTest {
     @Test
     public void exposesExplicitSelectionCodes() {
         finalizeVersion(manifest(1, 100L), null);
-        Assert.assertEquals("no_previous", WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions()).code);
-        WorldMapSnapshotDiffDto same = WorldMapSnapshotDiffService.diff(OWNER, NETWORK, 1, 1,
-            new WorldMapSnapshotDiffOptions());
+        Assert.assertEquals(
+            "no_previous",
+            WorldMapSnapshotDiffService.diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions()).code);
+        WorldMapSnapshotDiffDto same = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, 1, 1, new WorldMapSnapshotDiffOptions());
         Assert.assertFalse(same.success);
         Assert.assertEquals("error", same.status);
         Assert.assertEquals("same", same.code);
-        Assert.assertEquals("not_retained", WorldMapSnapshotDiffService.diff(OWNER, NETWORK, 2, 2,
-            new WorldMapSnapshotDiffOptions()).code);
-        Assert.assertEquals("invalid", WorldMapSnapshotDiffService.diff(OWNER, NETWORK, 0, 1,
-            new WorldMapSnapshotDiffOptions()).code);
-        Assert.assertEquals("invalid", WorldMapSnapshotDiffService.diff(
-            OWNER,
-            NETWORK,
-            null,
-            Integer.valueOf(0),
-            new WorldMapSnapshotDiffOptions()).code);
-        Assert.assertEquals("not_retained", WorldMapSnapshotDiffService.diff(OWNER, NETWORK, 2, 1,
-            new WorldMapSnapshotDiffOptions()).code);
+        Assert.assertEquals(
+            "not_retained",
+            WorldMapSnapshotDiffService.diff(OWNER, NETWORK, 2, 2, new WorldMapSnapshotDiffOptions()).code);
+        Assert.assertEquals(
+            "invalid",
+            WorldMapSnapshotDiffService.diff(OWNER, NETWORK, 0, 1, new WorldMapSnapshotDiffOptions()).code);
+        Assert.assertEquals(
+            "invalid",
+            WorldMapSnapshotDiffService
+                .diff(OWNER, NETWORK, null, Integer.valueOf(0), new WorldMapSnapshotDiffOptions()).code);
+        Assert.assertEquals(
+            "not_retained",
+            WorldMapSnapshotDiffService.diff(OWNER, NETWORK, 2, 1, new WorldMapSnapshotDiffOptions()).code);
 
         clearFixture();
-        Assert.assertEquals("no_versions", WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions()).code);
+        Assert.assertEquals(
+            "no_versions",
+            WorldMapSnapshotDiffService.diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions()).code);
     }
 
     @Test
@@ -100,8 +103,8 @@ public class WorldMapSnapshotDiffServiceTest {
         twoIndex.aePlacements.add(placement(64, 64, 0, "cable", "Cable", "ae:cable", "c"));
         finalizeVersion(manifest(2, 200L), twoIndex);
 
-        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertTrue(diff.logicalAvailable);
         Assert.assertEquals(1, diff.summary.markersMoved);
         Assert.assertEquals(2, diff.summary.markersRemoved);
@@ -126,8 +129,8 @@ public class WorldMapSnapshotDiffServiceTest {
         twoIndex.aePlacements.add(placement(0, 64, 0, "part", "Part", "ae:part", "part"));
         finalizeVersion(manifest(2, 200L), twoIndex);
 
-        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertTrue(diff.logicalAvailable);
         Assert.assertEquals(0, diff.summary.markersChanged);
         Assert.assertEquals(0, diff.summary.markersMoved);
@@ -150,8 +153,8 @@ public class WorldMapSnapshotDiffServiceTest {
         twoIndex.markers.add(after);
         finalizeVersion(manifest(2, 200L), twoIndex);
 
-        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertEquals(1, diff.summary.markersChanged);
         Assert.assertEquals(1, diff.markerChanges.size());
         Assert.assertEquals("changed", diff.markerChanges.get(0).status);
@@ -168,8 +171,8 @@ public class WorldMapSnapshotDiffServiceTest {
         twoIndex.markers.add(marker(0, 16, 64, 0));
         finalizeVersion(manifest(2, 200L), twoIndex);
 
-        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertEquals(0, diff.summary.markersMoved);
         Assert.assertEquals(1, diff.summary.markersRemoved);
         Assert.assertEquals(1, diff.summary.markersAdded);
@@ -179,22 +182,24 @@ public class WorldMapSnapshotDiffServiceTest {
     public void missingSidecarNeverFallsBackAndMissingManifestIsUnknown() throws Exception {
         finalizeVersion(manifest(1, 100L), logical(1, 100L));
         finalizeVersion(manifest(2, 200L), null);
-        WorldMapSnapshotDiffDto withoutLogical = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto withoutLogical = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertTrue(withoutLogical.success);
         Assert.assertFalse(withoutLogical.logicalAvailable);
         Assert.assertTrue(withoutLogical.markerChanges.isEmpty());
 
-        Assert.assertTrue(WorldMapSnapshotStore.manifestFile(OWNER, NETWORK, 1).delete());
-        WorldMapSnapshotDiffDto unknown = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        Assert.assertTrue(
+            WorldMapSnapshotStore.manifestFile(OWNER, NETWORK, 1)
+                .delete());
+        WorldMapSnapshotDiffDto unknown = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertFalse(unknown.success);
         Assert.assertEquals("unknown", unknown.status);
         Assert.assertEquals("unknown_manifest", unknown.code);
 
         writeUtf8(WorldMapSnapshotStore.manifestFile(OWNER, NETWORK, 1), "{not-json");
-        WorldMapSnapshotDiffDto malformed = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto malformed = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertFalse(malformed.success);
         Assert.assertEquals("unknown", malformed.status);
         Assert.assertEquals("unknown_manifest", malformed.code);
@@ -208,8 +213,8 @@ public class WorldMapSnapshotDiffServiceTest {
 
         one.source = "pending";
         Assert.assertTrue(WorldMapSnapshotStore.saveManifest(one));
-        WorldMapSnapshotDiffDto unknown = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto unknown = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertFalse(unknown.success);
         Assert.assertEquals("unknown", unknown.status);
         Assert.assertEquals("unknown_manifest", unknown.code);
@@ -251,8 +256,8 @@ public class WorldMapSnapshotDiffServiceTest {
         }
         finalizeVersion(one, null);
         finalizeVersion(two, null);
-        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService.diff(OWNER, NETWORK,
-            new WorldMapSnapshotDiffOptions());
+        WorldMapSnapshotDiffDto diff = WorldMapSnapshotDiffService
+            .diff(OWNER, NETWORK, new WorldMapSnapshotDiffOptions());
         Assert.assertEquals(WorldMapSnapshotDiffService.MAX_DETAIL + 1, diff.summary.tilesAdded);
         Assert.assertEquals(WorldMapSnapshotDiffService.MAX_DETAIL, diff.tileChanges.size());
         Assert.assertTrue(diff.truncated);
@@ -331,8 +336,8 @@ public class WorldMapSnapshotDiffServiceTest {
         return index;
     }
 
-    private static WorldMapAePlacementRecord placement(int x, int y, int z, String kind, String className,
-        String icon, String displayName) {
+    private static WorldMapAePlacementRecord placement(int x, int y, int z, String kind, String className, String icon,
+        String displayName) {
         WorldMapAePlacementRecord record = new WorldMapAePlacementRecord();
         record.x = x;
         record.y = y;

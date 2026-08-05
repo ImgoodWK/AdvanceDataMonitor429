@@ -15,9 +15,11 @@ import fi.iki.elonen.NanoHTTPD;
 /**
  * Read-only network health endpoint.
  *
- * <p>The handler deliberately performs only registry/key lookups and cache
+ * <p>
+ * The handler deliberately performs only registry/key lookups and cache
  * reads. World, tile entity, and AE grid access belongs to the server-tick
- * sampler in {@link NetworkHealthDiagnosticProvider}.</p>
+ * sampler in {@link NetworkHealthDiagnosticProvider}.
+ * </p>
  */
 public final class NetworkHealthHandler {
 
@@ -29,16 +31,19 @@ public final class NetworkHealthHandler {
     /**
      * Handle {@code GET /api/network/health?network=<id>}.
      *
-     * <p>Network ACL is checked twice on purpose: the first check preserves the
+     * <p>
+     * Network ACL is checked twice on purpose: the first check preserves the
      * common runtime-id gate, while the second uses the stable coordinate key
      * used by ACL persistence. This keeps this endpoint safe if it is invoked
-     * directly in a test or by a future router path.</p>
+     * directly in a test or by a future router path.
+     * </p>
      */
-    public static NanoHTTPD.Response handle(Map<String, String> params, WebAuthSession session,
-        String ownerUuid) {
+    public static NanoHTTPD.Response handle(Map<String, String> params, WebAuthSession session, String ownerUuid) {
         String raw = params == null ? null : params.get("network");
-        if (raw == null || raw.trim().isEmpty()) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing 'network' parameter\"}");
         }
 
@@ -46,11 +51,13 @@ public final class NetworkHealthHandler {
         try {
             networkId = Integer.parseInt(raw.trim());
         } catch (NumberFormatException e) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Invalid 'network' parameter\"}");
         }
         if (networkId < 0) {
-            return json(NanoHTTPD.Response.Status.BAD_REQUEST,
+            return json(
+                NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Invalid 'network' parameter\"}");
         }
 

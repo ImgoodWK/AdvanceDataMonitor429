@@ -609,8 +609,8 @@ public class CommandWebConsole extends TeXTechCommandBase {
     }
 
     /** Send a trigger as one or more complete, FML-safe item-id batches. */
-    private boolean sendUploadTriggers(ICommandSender sender, EntityPlayerMP player, String uploadType,
-        String packName, String renderMode, IconExportScope scope, List<String> itemIds) {
+    private boolean sendUploadTriggers(ICommandSender sender, EntityPlayerMP player, String uploadType, String packName,
+        String renderMode, IconExportScope scope, List<String> itemIds) {
         try {
             List<com.imgood.textech.webae.network.PacketWebUploadTrigger> triggers = com.imgood.textech.webae.network.PacketWebUploadTrigger
                 .createItemIdBatches(uploadType, packName, renderMode, scope, itemIds);

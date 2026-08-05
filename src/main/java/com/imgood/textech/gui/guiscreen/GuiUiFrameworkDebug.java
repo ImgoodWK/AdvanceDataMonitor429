@@ -12,9 +12,9 @@ import com.imgood.textech.gui.framework.AdmUiTheme;
 import com.imgood.textech.gui.framework.AtlasRegion;
 import com.imgood.textech.gui.framework.FixedAspectButtonFamily;
 import com.imgood.textech.gui.framework.GuiBlitUtil;
-import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiButton;
 import com.imgood.textech.gui.framework.UiIcon;
+import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiSlot;
 import com.imgood.textech.gui.framework.UiText;
 import com.imgood.textech.gui.framework.UiTextField;
@@ -90,7 +90,9 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
 
             @Override
             public void run() {
-                demoField.setInvalid(!demoField.delegate().isInvalid());
+                demoField.setInvalid(
+                    !demoField.delegate()
+                        .isInvalid());
             }
         });
 
@@ -328,16 +330,37 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
     private void drawAtlasReference() {
         AdmUiTheme theme = AdmUiTheme.instance();
         int y = UiFrameworkDebugLayout.ROW_ATLAS_START;
-        y = drawRegionLine(theme.sparseMainFrame().topLeft(), "main.corner", y);
-        y = drawRegionLine(theme.sparseMainFrame().background(), "main.glass", y);
-        y = drawRegionLine(theme.sparseSectionFrame().topLeft(), "section.corner", y);
-        y = drawRegionLine(theme.sparseSectionFrame().background(), "section.glass", y);
+        y = drawRegionLine(
+            theme.sparseMainFrame()
+                .topLeft(),
+            "main.corner",
+            y);
+        y = drawRegionLine(
+            theme.sparseMainFrame()
+                .background(),
+            "main.glass",
+            y);
+        y = drawRegionLine(
+            theme.sparseSectionFrame()
+                .topLeft(),
+            "section.corner",
+            y);
+        y = drawRegionLine(
+            theme.sparseSectionFrame()
+                .background(),
+            "section.glass",
+            y);
         y = drawRegionLine(theme.titleOrnament(), "title", y);
         y = drawRegionLine(theme.footerOrnament(), "footer", y);
         y = drawButtonLine(theme.fixedAspectButtons(), FixedAspectButtonFamily.State.NORMAL, 20, y);
         y = drawButtonLine(theme.fixedAspectButtons(), FixedAspectButtonFamily.State.HOVER, 100, y);
         y = drawButtonLine(theme.fixedAspectButtons(), FixedAspectButtonFamily.State.PRESSED, 240, y);
-        y = drawRegionLine(theme.underlineField().style(com.imgood.textech.gui.framework.UnderlineFieldRegion.State.INVALID).bottom(), "field.invalid", y);
+        y = drawRegionLine(
+            theme.underlineField()
+                .style(com.imgood.textech.gui.framework.UnderlineFieldRegion.State.INVALID)
+                .bottom(),
+            "field.invalid",
+            y);
         UiText.drawLabel(
             UiThemes.ADM,
             fontRendererObj,
@@ -359,7 +382,8 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
             UiText.drawOnButton(
                 UiThemes.ADM,
                 fontRendererObj,
-                state.name().substring(0, 1),
+                state.name()
+                    .substring(0, 1),
                 x,
                 y,
                 width,
@@ -370,14 +394,7 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
     }
 
     private int drawRegionLine(AtlasRegion region, String name, int y) {
-        String line = name + " @"
-            + region.u()
-            + ","
-            + region.v()
-            + " "
-            + region.width()
-            + "x"
-            + region.height();
+        String line = name + " @" + region.u() + "," + region.v() + " " + region.width() + "x" + region.height();
         int maxWidth = UiFrameworkDebugLayout.GUI_W - UiFrameworkDebugLayout.COL_ATLAS - 8;
         UiText.drawLabel(
             UiThemes.ADM,
@@ -389,6 +406,9 @@ public class GuiUiFrameworkDebug extends ADM_UiContainer {
     }
 
     private int drawButtonLine(FixedAspectButtonFamily family, FixedAspectButtonFamily.State state, int width, int y) {
-        return drawRegionLine(family.region(state, width, FixedAspectButtonFamily.BASE_HEIGHT), state.name() + "." + width, y);
+        return drawRegionLine(
+            family.region(state, width, FixedAspectButtonFamily.BASE_HEIGHT),
+            state.name() + "." + width,
+            y);
     }
 }

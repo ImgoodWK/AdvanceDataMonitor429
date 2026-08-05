@@ -14,8 +14,8 @@ import com.imgood.textech.webae.worldmap.WorldMapChunkSetBuilder;
 import com.imgood.textech.webae.worldmap.WorldMapClientCaptureMode;
 import com.imgood.textech.webae.worldmap.WorldMapHdSupport;
 import com.imgood.textech.webae.worldmap.WorldMapMetaDto;
-import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapPacketAuthorization;
+import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapRenderSupport;
 import com.imgood.textech.webae.worldmap.WorldMapTileCache;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
@@ -131,8 +131,10 @@ public class PacketWebMapTileUpload implements IMessage {
             chunkIndex = buf.readInt();
             totalChunks = buf.readInt();
             png = NetworkPacketCodec.readBytes(buf, MAX_CHUNK_BYTES);
-            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS || chunkIndex < 0
-                || chunkIndex >= totalChunks || png.length == 0) {
+            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+                || chunkIndex < 0
+                || chunkIndex >= totalChunks
+                || png.length == 0) {
                 throw new IllegalArgumentException("Invalid world map tile upload chunk");
             }
             if (buf.isReadable()) {
@@ -242,11 +244,7 @@ public class PacketWebMapTileUpload implements IMessage {
                 return;
             }
             String key = uploadKey(player, message);
-            byte[] fullPng = TileUploadSessions.accept(
-                key,
-                message.chunkIndex,
-                message.totalChunks,
-                message.png);
+            byte[] fullPng = TileUploadSessions.accept(key, message.chunkIndex, message.totalChunks, message.png);
             if (fullPng == null) {
                 return;
             }
@@ -277,8 +275,21 @@ public class PacketWebMapTileUpload implements IMessage {
 
         private static String uploadKey(EntityPlayerMP player, PacketWebMapTileUpload message) {
             return player.getUniqueID()
-                .toString() + "|" + message.ownerUuid + "|" + message.networkId + "|" + message.view + "|"
-                + message.quality + "|" + message.layer + "|" + message.dim + "|" + message.chunkX + "|"
+                .toString() + "|"
+                + message.ownerUuid
+                + "|"
+                + message.networkId
+                + "|"
+                + message.view
+                + "|"
+                + message.quality
+                + "|"
+                + message.layer
+                + "|"
+                + message.dim
+                + "|"
+                + message.chunkX
+                + "|"
                 + message.chunkZ;
         }
 
@@ -300,7 +311,8 @@ public class PacketWebMapTileUpload implements IMessage {
 
     static boolean isValidQuality(String quality) {
         return WorldMapQualityTier.LOW.id.equals(quality) || WorldMapQualityTier.MEDIUM.id.equals(quality)
-            || WorldMapQualityTier.HIGH.id.equals(quality) || WorldMapQualityTier.ULTRA.id.equals(quality);
+            || WorldMapQualityTier.HIGH.id.equals(quality)
+            || WorldMapQualityTier.ULTRA.id.equals(quality);
     }
 
     boolean isValid() {
@@ -313,8 +325,13 @@ public class PacketWebMapTileUpload implements IMessage {
 
         static synchronized byte[] accept(String key, int index, int total, byte[] chunk) {
             prune();
-            if (key == null || key.isEmpty() || total < 1 || total > MAX_TOTAL_CHUNKS || index < 0
-                || index >= total || chunk == null || chunk.length > MAX_CHUNK_BYTES) {
+            if (key == null || key.isEmpty()
+                || total < 1
+                || total > MAX_TOTAL_CHUNKS
+                || index < 0
+                || index >= total
+                || chunk == null
+                || chunk.length > MAX_CHUNK_BYTES) {
                 remove(key);
                 return null;
             }

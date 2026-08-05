@@ -17,12 +17,16 @@ public final class UiPanel {
 
     public static void draw(UiTheme theme, int x, int y, int width, int height) {
         SparseFrameRegion sparse = theme != null ? theme.sparseMainFrame() : null;
-        if (sparse != null && GuiBlitUtil.hasResource(sparse.topLeft().texture())) {
+        if (sparse != null && GuiBlitUtil.hasResource(
+            sparse.topLeft()
+                .texture())) {
             GuiBlitUtil.drawSparseFrame(sparse, x, y, width, height);
             return;
         }
         TiledFrameRegion frame = theme != null ? theme.mainFrame() : null;
-        if (frame != null && GuiBlitUtil.hasResource(frame.topLeft().texture())) {
+        if (frame != null && GuiBlitUtil.hasResource(
+            frame.topLeft()
+                .texture())) {
             GuiBlitUtil.drawTiledFrame(frame, x, y, width, height);
             return;
         }
@@ -42,12 +46,16 @@ public final class UiPanel {
 
     public static void drawSection(UiTheme theme, int x, int y, int width, int height) {
         SparseFrameRegion sparse = theme != null ? theme.sparseSectionFrame() : null;
-        if (sparse != null && GuiBlitUtil.hasResource(sparse.topLeft().texture())) {
+        if (sparse != null && GuiBlitUtil.hasResource(
+            sparse.topLeft()
+                .texture())) {
             GuiBlitUtil.drawSparseFrame(sparse, x, y, width, height);
             return;
         }
         TiledFrameRegion frame = theme != null ? theme.sectionFrame() : null;
-        if (frame != null && GuiBlitUtil.hasResource(frame.topLeft().texture())) {
+        if (frame != null && GuiBlitUtil.hasResource(
+            frame.topLeft()
+                .texture())) {
             GuiBlitUtil.drawTiledFrame(frame, x, y, width, height);
             return;
         }

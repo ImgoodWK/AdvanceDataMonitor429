@@ -58,7 +58,8 @@ public final class GrappleClientRouteCache {
 
     private static void applyRouteBatch(PacketGrapplePathSync packet) {
         if (packet.batchCount < 1 || packet.batchCount > PacketGrapplePathSync.MAX_TOTAL_ROUTES
-            || packet.batchIndex < 0 || packet.batchIndex >= packet.batchCount
+            || packet.batchIndex < 0
+            || packet.batchIndex >= packet.batchCount
             || (packet.buffer != null && !packet.buffer.isEmpty())
             || (packet.messageKey != null && !packet.messageKey.isEmpty())) {
             abortRouteBatch();
@@ -72,7 +73,8 @@ public final class GrappleClientRouteCache {
         }
         if (!routeBatchActive || packet.batchCount != routeBatchCount
             || packet.batchIndex != nextRouteBatchIndex
-            || packet.routes == null || packet.routes.isEmpty()
+            || packet.routes == null
+            || packet.routes.isEmpty()
             || packet.routes.size() > PacketGrapplePathSync.MAX_TOTAL_ROUTES
             || routeBatchStaging.size() + packet.routes.size() > PacketGrapplePathSync.MAX_TOTAL_ROUTES
             || !isValidRouteList(packet.routes)
@@ -83,8 +85,7 @@ public final class GrappleClientRouteCache {
         routeBatchStaging.addAll(copyRoutes(packet.routes));
         nextRouteBatchIndex = packet.batchIndex + 1;
         if (packet.batchIndex == routeBatchCount - 1) {
-            if (nextRouteBatchIndex != routeBatchCount
-                || routeBatchStaging.isEmpty()
+            if (nextRouteBatchIndex != routeBatchCount || routeBatchStaging.isEmpty()
                 || !isValidRouteList(routeBatchStaging)
                 || containsRouteIdConflict(routeBatchStaging)) {
                 abortRouteBatch();

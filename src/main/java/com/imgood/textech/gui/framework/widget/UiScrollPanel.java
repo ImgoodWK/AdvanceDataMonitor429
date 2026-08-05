@@ -87,12 +87,12 @@ public final class UiScrollPanel extends UiWidget {
             } else if (track != null && thumb != null
                 && GuiBlitUtil.hasResource(track.texture())
                 && GuiBlitUtil.hasResource(thumb.texture())) {
-                GuiBlitUtil.drawNineSlice(track, trackX, ay, 6, viewH, 2);
-                GuiBlitUtil.drawNineSlice(thumb, trackX, ay + barY, 6, barH, 2);
-            } else {
-                Gui.drawRect(trackX + 2, ay, trackX + 4, ay + viewH, 0x66005566);
-                Gui.drawRect(trackX, ay + barY, trackX + 5, ay + barY + barH, 0xAA00FFFF);
-            }
+                    GuiBlitUtil.drawNineSlice(track, trackX, ay, 6, viewH, 2);
+                    GuiBlitUtil.drawNineSlice(thumb, trackX, ay + barY, 6, barH, 2);
+                } else {
+                    Gui.drawRect(trackX + 2, ay, trackX + 4, ay + viewH, 0x66005566);
+                    Gui.drawRect(trackX, ay + barY, trackX + 5, ay + barY + barH, 0xAA00FFFF);
+                }
         }
     }
 

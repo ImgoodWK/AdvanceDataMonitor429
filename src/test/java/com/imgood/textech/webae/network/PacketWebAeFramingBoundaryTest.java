@@ -30,15 +30,15 @@ public class PacketWebAeFramingBoundaryTest {
     @Parameters(name = "{0}")
     public static Collection<Object[]> packets() {
         return Arrays.asList(
-            new Object[][] {
-                { "icon-direct-request", iconDirectRequest("nei") },
+            new Object[][] { { "icon-direct-request", iconDirectRequest("nei") },
                 { "screenshot-ack", new PacketScreenshotUploadAck("upload", true, "ok", "attachment") },
                 { "alert-notify", new PacketWebAlertNotify("warning", "title", "message", 10, 3, "top_right", true) },
-                { "console-token", new PacketWebConsoleTokenNotify(
-                    PacketWebConsoleTokenNotify.KIND_ISSUE,
-                    "token",
-                    8080,
-                    "127.0.0.1") },
+                { "console-token",
+                    new PacketWebConsoleTokenNotify(
+                        PacketWebConsoleTokenNotify.KIND_ISSUE,
+                        "token",
+                        8080,
+                        "127.0.0.1") },
                 { "icon-request", new PacketWebIconRequest("default", "nei", "minecraft:stone@0") },
                 { "icon-resolve-nack", new PacketWebIconResolveNack("default", "nei", "minecraft:stone@0") },
                 { "icon-upload-ack", new PacketWebIconUploadAck(true, 1, 1, "ok") },
@@ -177,7 +177,9 @@ public class PacketWebAeFramingBoundaryTest {
             decoded.fromBytes(wire);
             Assert.assertFalse("malformed packet must be marked invalid", isValid(decoded));
         } catch (RuntimeException e) {
-            Assert.fail("decoder leaked " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            Assert.fail(
+                "decoder leaked " + e.getClass()
+                    .getSimpleName() + ": " + e.getMessage());
         } finally {
             wire.release();
         }

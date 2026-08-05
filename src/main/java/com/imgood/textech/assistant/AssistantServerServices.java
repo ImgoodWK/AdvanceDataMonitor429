@@ -33,9 +33,9 @@ import com.imgood.textech.network.packet.PacketAssistantMenuStateResponse;
 import com.imgood.textech.network.packet.PacketAssistantResponse;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
-import com.imgood.textech.webae.dto.OrderStatus;
 import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticDto;
 import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticProvider;
+import com.imgood.textech.webae.dto.OrderStatus;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
@@ -919,42 +919,28 @@ public final class AssistantServerServices {
                 },
                 locale));
         sections.add(networkHealthBriefingSection(player, locale));
-        sections.add(
-            briefingSection(
-                "bytes",
-                text(locale, "AE2 字节容量", "AE2 byte capacity"),
-                new BriefingSummarySupplier() {
+        sections
+            .add(briefingSection("bytes", text(locale, "AE2 字节容量", "AE2 byte capacity"), new BriefingSummarySupplier() {
 
-                    @Override
-                    public String get() {
-                        return bytesSummary(player, locale);
-                    }
-                },
-                locale));
-        sections.add(
-            briefingSection(
-                "power",
-                text(locale, "无线电力", "Wireless power"),
-                new BriefingSummarySupplier() {
+                @Override
+                public String get() {
+                    return bytesSummary(player, locale);
+                }
+            }, locale));
+        sections.add(briefingSection("power", text(locale, "无线电力", "Wireless power"), new BriefingSummarySupplier() {
 
-                    @Override
-                    public String get() {
-                        return WirelessPowerQuery.query(player, zh(locale));
-                    }
-                },
-                locale));
-        sections.add(
-            briefingSection(
-                "steam",
-                text(locale, "无线蒸汽", "Wireless steam"),
-                new BriefingSummarySupplier() {
+            @Override
+            public String get() {
+                return WirelessPowerQuery.query(player, zh(locale));
+            }
+        }, locale));
+        sections.add(briefingSection("steam", text(locale, "无线蒸汽", "Wireless steam"), new BriefingSummarySupplier() {
 
-                    @Override
-                    public String get() {
-                        return WirelessSteamQuery.query(player, zh(locale));
-                    }
-                },
-                locale));
+            @Override
+            public String get() {
+                return WirelessSteamQuery.query(player, zh(locale));
+            }
+        }, locale));
         sections.add(
             briefingSection(
                 "jobs",
@@ -968,18 +954,14 @@ public final class AssistantServerServices {
                     }
                 },
                 locale));
-        sections.add(
-            briefingSection(
-                "planner",
-                text(locale, "高级计划器", "Advanced Planner"),
-                new BriefingSummarySupplier() {
+        sections
+            .add(briefingSection("planner", text(locale, "高级计划器", "Advanced Planner"), new BriefingSummarySupplier() {
 
-                    @Override
-                    public String get() {
-                        return PlannerServerService.briefingSummary(player, locale);
-                    }
-                },
-                locale));
+                @Override
+                public String get() {
+                    return PlannerServerService.briefingSummary(player, locale);
+                }
+            }, locale));
         return AssistantOperationsBriefing.format(locale, sections);
     }
 
@@ -1000,7 +982,9 @@ public final class AssistantServerServices {
         final List<NetworkHealthDiagnosticDto> snapshots;
         try {
             snapshots = NetworkHealthDiagnosticProvider.instance()
-                .snapshotForOwner(player.getUniqueID().toString());
+                .snapshotForOwner(
+                    player.getUniqueID()
+                        .toString());
         } catch (Exception error) {
             AdvanceDataMonitor.LOG.warn("[ADM Assistant] Network health briefing collection failed", error);
             return AssistantOperationsBriefing.unavailable(
@@ -1012,13 +996,16 @@ public final class AssistantServerServices {
             return AssistantOperationsBriefing.unavailable(
                 "networkHealth",
                 title,
-                text(locale, "尚无网络健康快照；请等待服务端采样。", "No network health snapshot is available yet; wait for the server sampler."));
+                text(
+                    locale,
+                    "尚无网络健康快照；请等待服务端采样。",
+                    "No network health snapshot is available yet; wait for the server sampler."));
         }
 
         AssistantOperationsBriefing.Status sectionStatus = AssistantOperationsBriefing.Status.HEALTHY;
         for (NetworkHealthDiagnosticDto snapshot : snapshots) {
-            AssistantOperationsBriefing.Status snapshotStatus = AssistantOperationsBriefing.fromNetworkHealthStatus(
-                snapshot == null ? null : snapshot.status);
+            AssistantOperationsBriefing.Status snapshotStatus = AssistantOperationsBriefing
+                .fromNetworkHealthStatus(snapshot == null ? null : snapshot.status);
             if (snapshotStatus == AssistantOperationsBriefing.Status.UNAVAILABLE) {
                 sectionStatus = AssistantOperationsBriefing.Status.UNAVAILABLE;
                 break;
@@ -1027,11 +1014,8 @@ public final class AssistantServerServices {
                 sectionStatus = AssistantOperationsBriefing.Status.ATTENTION;
             }
         }
-        return AssistantOperationsBriefing.section(
-            "networkHealth",
-            title,
-            formatNetworkHealthBriefing(snapshots, locale),
-            sectionStatus);
+        return AssistantOperationsBriefing
+            .section("networkHealth", title, formatNetworkHealthBriefing(snapshots, locale), sectionStatus);
     }
 
     private static String formatNetworkHealthBriefing(List<NetworkHealthDiagnosticDto> snapshots, String locale) {
@@ -1050,7 +1034,9 @@ public final class AssistantServerServices {
                 .append(" ")
                 .append(networkHealthStatusLabel(snapshot.status, locale));
             if (snapshot.networkKey != null && !snapshot.networkKey.isEmpty()) {
-                builder.append(" [").append(snapshot.networkKey).append("]");
+                builder.append(" [")
+                    .append(snapshot.networkKey)
+                    .append("]");
             }
             if (snapshot.issues == null || snapshot.issues.isEmpty()) {
                 builder.append(" — ")
@@ -1070,7 +1056,9 @@ public final class AssistantServerServices {
                 }
                 builder.append(networkHealthIssueLabel(issue.code, locale));
                 if (issue.evidence != null) {
-                    builder.append(" (").append(safe(String.valueOf(issue.evidence))).append(")");
+                    builder.append(" (")
+                        .append(safe(String.valueOf(issue.evidence)))
+                        .append(")");
                 }
             }
             if (snapshot.issues.size() > issueLimit) {
@@ -1111,10 +1099,8 @@ public final class AssistantServerServices {
             return AssistantOperationsBriefing.section(key, title, supplier == null ? "" : supplier.get());
         } catch (Exception error) {
             AdvanceDataMonitor.LOG.warn("[ADM Assistant] Operations briefing section '{}' failed", key, error);
-            return AssistantOperationsBriefing.unavailable(
-                key,
-                title,
-                text(locale, "该分段暂时无法安全收集。", "This section could not be collected safely."));
+            return AssistantOperationsBriefing
+                .unavailable(key, title, text(locale, "该分段暂时无法安全收集。", "This section could not be collected safely."));
         }
     }
 
@@ -1852,9 +1838,10 @@ public final class AssistantServerServices {
                 .append(monitor.yCoord)
                 .append(",")
                 .append(monitor.zCoord)
-                .append(recorded ? text(locale, "（来自玩家记录）", " (from player record)")
-                    : (recordNearby ? text(locale, "（本次附近搜索记录）", " (recorded from nearby search)")
-                        : text(locale, "（本次只读附近搜索）", " (from nearby read-only search)")));
+                .append(
+                    recorded ? text(locale, "（来自玩家记录）", " (from player record)")
+                        : (recordNearby ? text(locale, "（本次附近搜索记录）", " (recorded from nearby search)")
+                            : text(locale, "（本次只读附近搜索）", " (from nearby read-only search)")));
         }
         ConnectorSource<TileEntityAdvanceNetworkLink> links = findAllLinkTiles(
             player,

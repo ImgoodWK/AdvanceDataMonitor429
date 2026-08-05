@@ -44,9 +44,8 @@ public final class AssistantCandidateDelivery {
         for (int from = 0; from < totalCount; from += batchSize) {
             int to = Math.min(from + batchSize, totalCount);
             if (!splitToWireSafeSlices(rawText, effectiveKind, all, from, to, totalCount, slices)) {
-                AdvanceDataMonitor.LOG.warn(
-                    "[ADM Assistant] Candidate {} cannot fit the bounded response packet.",
-                    from);
+                AdvanceDataMonitor.LOG
+                    .warn("[ADM Assistant] Candidate {} cannot fit the bounded response packet.", from);
                 sendPacketLimitMessage(player);
                 return;
             }
@@ -90,8 +89,8 @@ public final class AssistantCandidateDelivery {
         return I18N_TRUNCATED_PREFIX + shownCount + "|" + Config.assistantMaxQueryCandidates;
     }
 
-    private static boolean splitToWireSafeSlices(String rawText, AssistantSessionKind kind,
-        List<CraftingCandidate> all, int from, int to, int totalCount, List<CandidateSlice> output) {
+    private static boolean splitToWireSafeSlices(String rawText, AssistantSessionKind kind, List<CraftingCandidate> all,
+        int from, int to, int totalCount, List<CandidateSlice> output) {
         List<CraftingCandidate> candidates = new ArrayList<CraftingCandidate>(all.subList(from, to));
         PacketAssistantResponse probe = PacketAssistantResponse
             .candidates(rawText, candidates, kind, 0, 1, totalCount, false, from + 1, to);
@@ -108,8 +107,7 @@ public final class AssistantCandidateDelivery {
     }
 
     private static void sendPacketLimitMessage(EntityPlayerMP player) {
-        AdvanceDataMonitor.ADMCHANEL
-            .sendTo(PacketAssistantResponse.message(I18N_PACKET_LIMIT_MESSAGE), player);
+        AdvanceDataMonitor.ADMCHANEL.sendTo(PacketAssistantResponse.message(I18N_PACKET_LIMIT_MESSAGE), player);
     }
 
     private static final class CandidateSlice {

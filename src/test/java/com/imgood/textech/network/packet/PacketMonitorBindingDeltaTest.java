@@ -31,23 +31,30 @@ public class PacketMonitorBindingDeltaTest {
         Assert.assertEquals(35, intField(decoded, "index"));
         Assert.assertEquals(77, intField(decoded, "revision"));
         Assert.assertEquals("EU", compoundField(decoded, "fieldPatch").getString("title"));
-        Assert.assertEquals(42.5D, listField(decoded, "appendedData").getCompoundTagAt(0).getDouble("data"), 0.0D);
+        Assert.assertEquals(
+            42.5D,
+            listField(decoded, "appendedData").getCompoundTagAt(0)
+                .getDouble("data"),
+            0.0D);
     }
 
     private static int intField(Object target, String name) throws Exception {
-        Field field = target.getClass().getDeclaredField(name);
+        Field field = target.getClass()
+            .getDeclaredField(name);
         field.setAccessible(true);
         return field.getInt(target);
     }
 
     private static NBTTagCompound compoundField(Object target, String name) throws Exception {
-        Field field = target.getClass().getDeclaredField(name);
+        Field field = target.getClass()
+            .getDeclaredField(name);
         field.setAccessible(true);
         return (NBTTagCompound) field.get(target);
     }
 
     private static NBTTagList listField(Object target, String name) throws Exception {
-        Field field = target.getClass().getDeclaredField(name);
+        Field field = target.getClass()
+            .getDeclaredField(name);
         field.setAccessible(true);
         return (NBTTagList) field.get(target);
     }

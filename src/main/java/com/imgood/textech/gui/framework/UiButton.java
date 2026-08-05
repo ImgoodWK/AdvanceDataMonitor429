@@ -80,15 +80,20 @@ public final class UiButton {
         FixedAspectButtonFamily family = theme != null ? theme.fixedAspectButtons() : null;
         TiledBarRegion bar = pickBar(theme, hovered, pressed);
         NineSliceRegion region = pickRegion(theme, hovered, pressed);
-        if (family != null && GuiBlitUtil.hasResource(family.region(pickState(hovered, pressed), width, height).texture())) {
+        if (family != null && GuiBlitUtil.hasResource(
+            family.region(pickState(hovered, pressed), width, height)
+                .texture())) {
             GuiBlitUtil.drawFixedAspectButton(family, pickState(hovered, pressed), x, y, width, height);
-        } else if (bar != null && GuiBlitUtil.hasResource(bar.center().texture())) {
-            GuiBlitUtil.drawTiledBar(bar, x, y, width, height);
-        } else if (region != null && GuiBlitUtil.hasResource(region.texture())) {
-            GuiBlitUtil.drawHorizontalSlice(region, x, y, width, height);
-        } else {
-            UiPanel.drawSolidFallback(x, y, width, height);
-        }
+        } else if (bar != null && GuiBlitUtil.hasResource(
+            bar.center()
+                .texture())) {
+                    GuiBlitUtil.drawTiledBar(bar, x, y, width, height);
+                } else
+            if (region != null && GuiBlitUtil.hasResource(region.texture())) {
+                GuiBlitUtil.drawHorizontalSlice(region, x, y, width, height);
+            } else {
+                UiPanel.drawSolidFallback(x, y, width, height);
+            }
 
         if (iconIndex >= 0) {
             if (label != null && !label.isEmpty()) {

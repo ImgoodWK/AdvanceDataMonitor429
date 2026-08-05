@@ -15,8 +15,7 @@ public class RecipeUploadSessionTest {
             Assert.assertTrue(first.newSession);
             Assert.assertTrue(RecipeUploadSession.isActive(player));
 
-            RecipeUploadSession.pruneExpired(
-                System.currentTimeMillis() + RecipeUploadSession.SESSION_TTL_MS + 1L);
+            RecipeUploadSession.pruneExpired(System.currentTimeMillis() + RecipeUploadSession.SESSION_TTL_MS + 1L);
             Assert.assertFalse(RecipeUploadSession.isActive(player));
 
             RecipeUploadSession.BatchDecision restarted = RecipeUploadSession.acceptBatch(player, 0, 1, true, true);

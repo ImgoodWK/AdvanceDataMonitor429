@@ -20,14 +20,8 @@ public class CpuCapacityPlannerTest {
             terminal("two", 150L, 250L, 100L, 20L),
             terminal("three", 200L, 300L, 100L, 30L));
 
-        CpuCapacityPlanDto plan = CpuCapacityPlanner.plan(
-            0,
-            "0:1:2:3",
-            "1h",
-            0L,
-            500L,
-            jobs,
-            Collections.<CpuSnapshotHistoryDto>emptyList());
+        CpuCapacityPlanDto plan = CpuCapacityPlanner
+            .plan(0, "0:1:2:3", "1h", 0L, 500L, jobs, Collections.<CpuSnapshotHistoryDto>emptyList());
 
         // At t=200 the first job ends before the third starts, so the peak is
         // two rather than an artificial three.
