@@ -34,6 +34,8 @@ import com.imgood.textech.network.packet.PacketAssistantResponse;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.tileentity.TileEntityAdvanceNetworkLink;
 import com.imgood.textech.webae.dto.OrderStatus;
+import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticDto;
+import com.imgood.textech.webae.diagnostics.NetworkHealthDiagnosticProvider;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
@@ -874,6 +876,8 @@ public final class AssistantServerServices {
             case QUERY_JOBS:
                 return AssistantCraftJobManager.instance()
                     .summary(player, locale);
+            case QUERY_BRIEFING:
+                return operationsBriefing(player, locale);
             case PLAN_CREATE:
             case PLAN_ADD:
                 return PlannerServerService.addEntry(player, rawText, target, locale);
@@ -893,6 +897,230 @@ public final class AssistantServerServices {
             default:
                 return zh(locale) ? msg("unknownQuery", "Unknown query.") : "Unknown query.";
         }
+    }
+
+    /**
+     * Builds a compact, read-only view across the existing assistant query surfaces. Every
+     * source is collected independently so an absent connector or optional mod integration
+     * remains visible as an unavailable section instead of failing the entire briefing.
+     */
+    private static String operationsBriefing(final EntityPlayerMP player, final String locale) {
+        List<AssistantOperationsBriefing.Section> sections = new ArrayList<AssistantOperationsBriefing.Section>();
+        sections.add(
+            briefingSection(
+                "network",
+                text(locale, "ADM 网络与连接器", "ADM network and connectors"),
+                new BriefingSummarySupplier() {
+
+                    @Override
+                    public String get() {
+                        return networkSummary(player, locale, false);
+                    }
+                },
+                locale));
+        sections.add(networkHealthBriefingSection(player, locale));
+        sections.add(
+            briefingSection(
+                "bytes",
+                text(locale, "AE2 字节容量", "AE2 byte capacity"),
+                new BriefingSummarySupplier() {
+
+                    @Override
+                    public String get() {
+                        return bytesSummary(player, locale);
+                    }
+                },
+                locale));
+        sections.add(
+            briefingSection(
+                "power",
+                text(locale, "无线电力", "Wireless power"),
+                new BriefingSummarySupplier() {
+
+                    @Override
+                    public String get() {
+                        return WirelessPowerQuery.query(player, zh(locale));
+                    }
+                },
+                locale));
+        sections.add(
+            briefingSection(
+                "steam",
+                text(locale, "无线蒸汽", "Wireless steam"),
+                new BriefingSummarySupplier() {
+
+                    @Override
+                    public String get() {
+                        return WirelessSteamQuery.query(player, zh(locale));
+                    }
+                },
+                locale));
+        sections.add(
+            briefingSection(
+                "jobs",
+                text(locale, "AE2 合成计算", "AE2 crafting calculations"),
+                new BriefingSummarySupplier() {
+
+                    @Override
+                    public String get() {
+                        return AssistantCraftJobManager.instance()
+                            .summary(player, locale);
+                    }
+                },
+                locale));
+        sections.add(
+            briefingSection(
+                "planner",
+                text(locale, "高级计划器", "Advanced Planner"),
+                new BriefingSummarySupplier() {
+
+                    @Override
+                    public String get() {
+                        return PlannerServerService.briefingSummary(player, locale);
+                    }
+                },
+                locale));
+        return AssistantOperationsBriefing.format(locale, sections);
+    }
+
+    /**
+     * Formats the same server-side health snapshots exposed by WebAE. This is
+     * intentionally a cache read: QUERY_BRIEFING must not trigger a second
+     * World/TileEntity/AE scan or invent a separate health verdict.
+     */
+    private static AssistantOperationsBriefing.Section networkHealthBriefingSection(EntityPlayerMP player,
+        String locale) {
+        String title = text(locale, "网络健康诊断", "Network health diagnostics");
+        if (player == null || player.getUniqueID() == null) {
+            return AssistantOperationsBriefing.unavailable(
+                "networkHealth",
+                title,
+                text(locale, "网络健康诊断暂不可用。", "Network health diagnostics are unavailable."));
+        }
+        final List<NetworkHealthDiagnosticDto> snapshots;
+        try {
+            snapshots = NetworkHealthDiagnosticProvider.instance()
+                .snapshotForOwner(player.getUniqueID().toString());
+        } catch (Exception error) {
+            AdvanceDataMonitor.LOG.warn("[ADM Assistant] Network health briefing collection failed", error);
+            return AssistantOperationsBriefing.unavailable(
+                "networkHealth",
+                title,
+                text(locale, "该分段暂时无法安全收集。", "This section could not be collected safely."));
+        }
+        if (snapshots == null || snapshots.isEmpty()) {
+            return AssistantOperationsBriefing.unavailable(
+                "networkHealth",
+                title,
+                text(locale, "尚无网络健康快照；请等待服务端采样。", "No network health snapshot is available yet; wait for the server sampler."));
+        }
+
+        AssistantOperationsBriefing.Status sectionStatus = AssistantOperationsBriefing.Status.HEALTHY;
+        for (NetworkHealthDiagnosticDto snapshot : snapshots) {
+            AssistantOperationsBriefing.Status snapshotStatus = AssistantOperationsBriefing.fromNetworkHealthStatus(
+                snapshot == null ? null : snapshot.status);
+            if (snapshotStatus == AssistantOperationsBriefing.Status.UNAVAILABLE) {
+                sectionStatus = AssistantOperationsBriefing.Status.UNAVAILABLE;
+                break;
+            }
+            if (snapshotStatus == AssistantOperationsBriefing.Status.ATTENTION) {
+                sectionStatus = AssistantOperationsBriefing.Status.ATTENTION;
+            }
+        }
+        return AssistantOperationsBriefing.section(
+            "networkHealth",
+            title,
+            formatNetworkHealthBriefing(snapshots, locale),
+            sectionStatus);
+    }
+
+    private static String formatNetworkHealthBriefing(List<NetworkHealthDiagnosticDto> snapshots, String locale) {
+        StringBuilder builder = new StringBuilder();
+        int limit = Math.min(6, snapshots.size());
+        for (int i = 0; i < limit; i++) {
+            NetworkHealthDiagnosticDto snapshot = snapshots.get(i);
+            if (snapshot == null) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append("\n");
+            }
+            builder.append("#")
+                .append(snapshot.networkId)
+                .append(" ")
+                .append(networkHealthStatusLabel(snapshot.status, locale));
+            if (snapshot.networkKey != null && !snapshot.networkKey.isEmpty()) {
+                builder.append(" [").append(snapshot.networkKey).append("]");
+            }
+            if (snapshot.issues == null || snapshot.issues.isEmpty()) {
+                builder.append(" — ")
+                    .append(text(locale, "无已知问题。", "No known issues."));
+                continue;
+            }
+            builder.append(" — ")
+                .append(text(locale, "问题：", "Issues: "));
+            int issueLimit = Math.min(4, snapshot.issues.size());
+            for (int issueIndex = 0; issueIndex < issueLimit; issueIndex++) {
+                NetworkHealthDiagnosticDto.Issue issue = snapshot.issues.get(issueIndex);
+                if (issue == null) {
+                    continue;
+                }
+                if (issueIndex > 0) {
+                    builder.append(", ");
+                }
+                builder.append(networkHealthIssueLabel(issue.code, locale));
+                if (issue.evidence != null) {
+                    builder.append(" (").append(safe(String.valueOf(issue.evidence))).append(")");
+                }
+            }
+            if (snapshot.issues.size() > issueLimit) {
+                builder.append(text(locale, " 等", " more"));
+            }
+        }
+        if (snapshots.size() > limit) {
+            builder.append("\n")
+                .append(text(locale, "其余网络已省略。", "Additional networks omitted."));
+        }
+        return builder.toString();
+    }
+
+    private static String networkHealthStatusLabel(String status, String locale) {
+        if ("healthy".equalsIgnoreCase(status)) return text(locale, "健康", "healthy");
+        if ("degraded".equalsIgnoreCase(status)) return text(locale, "降级", "degraded");
+        if ("failed".equalsIgnoreCase(status)) return text(locale, "失败", "failed");
+        return text(locale, "未知", "unknown");
+    }
+
+    private static String networkHealthIssueLabel(String code, String locale) {
+        if ("no_registered_network".equals(code)) return text(locale, "未注册网络", "no registered network");
+        if ("no_link".equals(code)) return text(locale, "缺少 Link", "missing Link");
+        if ("grid_missing".equals(code)) return text(locale, "Grid 不可用", "Grid missing");
+        if ("monitor_unbound".equals(code)) return text(locale, "监视器未绑定", "monitor unbound");
+        if ("monitor_stale".equals(code)) return text(locale, "监视器过期", "monitor stale");
+        if ("storage_unavailable".equals(code)) return text(locale, "存储不可用", "storage unavailable");
+        if ("crafting_unavailable".equals(code)) return text(locale, "合成不可用", "crafting unavailable");
+        if ("network_connector_unavailable".equals(code)) return text(locale, "连接器不可用", "connector unavailable");
+        if ("channel_over_limit".equals(code)) return text(locale, "频道超限", "channels over limit");
+        if ("sample_stale".equals(code)) return text(locale, "样本过期", "sample stale");
+        return code == null || code.isEmpty() ? text(locale, "未知问题", "unknown issue") : code;
+    }
+
+    private static AssistantOperationsBriefing.Section briefingSection(String key, String title,
+        BriefingSummarySupplier supplier, String locale) {
+        try {
+            return AssistantOperationsBriefing.section(key, title, supplier == null ? "" : supplier.get());
+        } catch (Exception error) {
+            AdvanceDataMonitor.LOG.warn("[ADM Assistant] Operations briefing section '{}' failed", key, error);
+            return AssistantOperationsBriefing.unavailable(
+                key,
+                title,
+                text(locale, "该分段暂时无法安全收集。", "This section could not be collected safely."));
+        }
+    }
+
+    private interface BriefingSummarySupplier {
+
+        String get();
     }
 
     /**
@@ -1594,13 +1822,23 @@ public final class AssistantServerServices {
     }
 
     private static String networkSummary(EntityPlayerMP player, String locale) {
+        return networkSummary(player, locale, true);
+    }
+
+    /**
+     * Returns network state without changing the player's remembered monitor when
+     * {@code recordNearby} is false. The operations briefing uses that path so
+     * querying it cannot establish a new monitor association as a side effect.
+     */
+    private static String networkSummary(EntityPlayerMP player, String locale, boolean recordNearby) {
         if (player == null || player.worldObj == null) {
             return queryFailed(locale, text(locale, "玩家或世界不可用。", "player or world unavailable."));
         }
         TileEntityAdvanceDataMonitor monitor = AssistantMonitorRegistry.getMonitor(player);
         boolean recorded = monitor != null;
         if (monitor == null) {
-            monitor = AssistantMonitorRegistry.findNearbyAndRecord(player, linkSearchRadius());
+            monitor = recordNearby ? AssistantMonitorRegistry.findNearbyAndRecord(player, linkSearchRadius())
+                : AssistantMonitorRegistry.findNearest(player, linkSearchRadius());
         }
         StringBuilder builder = new StringBuilder(text(locale, "ADM 网络/连接器状态：", "ADM network/connector status:"));
         if (monitor == null) {
@@ -1614,9 +1852,9 @@ public final class AssistantServerServices {
                 .append(monitor.yCoord)
                 .append(",")
                 .append(monitor.zCoord)
-                .append(
-                    recorded ? text(locale, "（来自玩家记录）", " (from player record)")
-                        : text(locale, "（本次附近搜索记录）", " (recorded from nearby search)"));
+                .append(recorded ? text(locale, "（来自玩家记录）", " (from player record)")
+                    : (recordNearby ? text(locale, "（本次附近搜索记录）", " (recorded from nearby search)")
+                        : text(locale, "（本次只读附近搜索）", " (from nearby read-only search)")));
         }
         ConnectorSource<TileEntityAdvanceNetworkLink> links = findAllLinkTiles(
             player,

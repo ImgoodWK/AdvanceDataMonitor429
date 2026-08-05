@@ -18,7 +18,10 @@ public final class GrappleRouteSync {
         }
         List<GrappleRouteEntry> routes = GrapplePathStore.instance()
             .getRoutesForPlayer(player);
-        AdvanceDataMonitor.ADMCHANEL.sendTo(PacketGrapplePathSync.routes(routes), player);
+        List<PacketGrapplePathSync> routePackets = PacketGrapplePathSync.routePackets(routes);
+        for (PacketGrapplePathSync packet : routePackets) {
+            AdvanceDataMonitor.ADMCHANEL.sendTo(packet, player);
+        }
         syncBuffer(player);
     }
 
@@ -26,8 +29,10 @@ public final class GrappleRouteSync {
         if (player == null) {
             return;
         }
-        AdvanceDataMonitor.ADMCHANEL
-            .sendTo(PacketGrapplePathSync.buffer(GrapplePlanningSession.getBuffer(player)), player);
+        PacketGrapplePathSync packet = PacketGrapplePathSync.buffer(GrapplePlanningSession.getBuffer(player));
+        if (packet.fitsPacketBudget()) {
+            AdvanceDataMonitor.ADMCHANEL.sendTo(packet, player);
+        }
     }
 
     public static void notify(EntityPlayerMP player, String messageKey) {
@@ -35,6 +40,8 @@ public final class GrappleRouteSync {
             return;
         }
         PacketGrapplePathSync packet = PacketGrapplePathSync.withMessage(messageKey);
-        AdvanceDataMonitor.ADMCHANEL.sendTo(packet, player);
+        if (packet.fitsPacketBudget()) {
+            AdvanceDataMonitor.ADMCHANEL.sendTo(packet, player);
+        }
     }
 }

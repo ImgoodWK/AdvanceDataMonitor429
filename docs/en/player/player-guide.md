@@ -49,7 +49,7 @@ For developer details see [Technical Documentation](../developer/technical-docum
 
 | Capability | Description |
 |------------|-------------|
-| Advance Data Monitor | Line charts, bar charts, 3D bars, waterfall, difference plots, and text overlays bound to live data |
+| Advance Data Monitor | Shared stat/progress/gauge/line/bar/pie/table widgets plus dedicated crafting, storage, and WebAE surfaces bound to live data |
 | AE2 Linkers | **Advanced Network Linker** — unified block (network stats + storage cells + crafting CPUs) |
 | Grapple travel | Smooth gliding along anchor networks with both hands free |
 | AI Assistant | Natural-language AE2 queries, crafting orders, withdrawals, plans, and **Advanced Dislocator** teleport |
@@ -148,8 +148,9 @@ The main display block. Right-click to open the configuration GUI: add data bind
 - Records its own coordinates as the default bind target on placement.
 - Ships with a demo binding (`testRandomData`) enabled by default.
 - Supports multiple display entries per face, each with its own coordinates, field name, chart type, sample interval, and transform.
-- Up to **36** data binding entries per monitor face (`MAX_DATA_BINDINGS`); per-entry chart point cap (`dataLimit`) still defaults to 100.
-- Chart types: line, bar, 3D bar, waterfall, difference, crafting text, storage item grid.
+- Up to **36** data binding entries per monitor face (`MAX_DATA_BINDINGS`). Per-entry `dataLimit` remains compatible with 2..9999 and defaults to 100; values above 512 only show a soft warning, while native rendering and WebAE preview downsample to at most 240 visible points.
+- Shared kinds: `statCard`, `progressBar`, `gauge`, `lineChart`, `barChart`, `pieChart`, and `dataTable`. `crafting`, `storage`, and `web_surface` remain dedicated; `radarChart` stays WebAE-only.
+- Old `bar3d` / `waterfall` bindings migrate as `barChart` aliases, and `diffrence` migrates to `lineChart` with the difference transform without clearing existing bindings.
 - Supports a `webae_dashboard` / `web_surface` panel imported from a read-only WebAE visual snapshot, with independent scale, XYZ rotation/offset, opacity, lighting, and texture quality.
 - **AI** button on the main GUI opens the assistant chat window.
 
@@ -159,12 +160,12 @@ The main display block. Right-click to open the configuration GUI: add data bind
 
 ### 3.2 Data Imprint Tool
 
-**Registry:** `textech:data_imprint`  
+**Registry:** `textech:data_imprint`<br>
 **Lang name:** Data Imprint Tool (`item.dataImprint.name`)
 
 **Tooltips (from lang):**
 
-> *Imprints a block's data state as a snapshot for Data Monitor binding.*  
+> *Imprints a block's data state as a snapshot for Data Monitor binding.*<br>
 > *Imprinting observes and records; Data Loom cells weave matter from network data.*
 
 **Usage:**
@@ -191,7 +192,7 @@ The main display block. Right-click to open the configuration GUI: add data bind
 
 ### 3.3 Advanced Network Linker
 
-**Registry:** `textech:advNetworkLinkBlock`  
+**Registry:** `textech:advNetworkLinkBlock`<br>
 **Lang name:** Advanced Network Linker (`tile.NetworkLinkBlock.name`)
 
 Unified AE2 connector merging the former Network Linker, Advanced Storage Linker, and Crafting Linker into one block. Provides network-wide storage stats, filtered storage display via **Advanced Storage Link Cell** slots, crafting CPU monitoring, and the AI assistant's nearby linker entry point.
@@ -219,7 +220,7 @@ Unified AE2 connector merging the former Network Linker, Advanced Storage Linker
 
 ### 3.4 Advanced Storage Link Cell
 
-**Registry:** `textech:advance_storage_link_cell`  
+**Registry:** `textech:advance_storage_link_cell`<br>
 **Lang name:** Advanced Storage Link Cell (`item.advanceStorageLinkCell.name`)
 
 A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkbenchItem`.
@@ -240,7 +241,7 @@ A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkben
 
 ### 3.5 Grapple Anchor
 
-**Registry:** `textech:grappleAnchor`  
+**Registry:** `textech:grappleAnchor`<br>
 **Lang name:** Grapple Anchor (`tile.grappleAnchor.name`)
 
 **Design intent:** Bases and production lines are often built to be seen, yet daily travel defaults to flight, sprinting, or teleport — all of which either tie up your hands or skip the scenery. Grapple anchors plus the **Grapple Hook** balance **speed** and **seeing the journey**.
@@ -268,7 +269,7 @@ A **filter/config cartridge**, not a storage drive. Implements AE2 `ICellWorkben
 
 ### 3.6 Grapple Hook
 
-**Registry:** `textech:grapple_hook`  
+**Registry:** `textech:grapple_hook`<br>
 **Lang name:** Grapple Hook (`item.grappleHook.name`)
 
 Core interaction tool for grapple anchors. Stack size 1.
@@ -286,6 +287,8 @@ Core interaction tool for grapple anchors. Stack size 1.
 - `Press Shift to detach grapple`
 
 Grapple travel complements — not replaces — AE2 teleport or flight mods for paths worth experiencing slowly.
+
+**Hook settings:** Sneak + right-click, then enter travel speed as a decimal from 0.1 to 5.0 (for example `1.5`). Empty, non-numeric, or out-of-range values are not saved. The node-name and distance toggles only change HUD hints; they do not delete nodes or alter grapple range. Hover the field or toggles for purpose, range, format, examples, and error behavior.
 
 ---
 
@@ -307,34 +310,34 @@ AE2 storage cells that **weave** items, fluids, or essentia from network data (u
 
 **Data Dust Loom Cell**
 
-> *Weaves AE network data into matter. Early tech can only reconstruct the simplest form — dust.*  
+> *Weaves AE network data into matter. Early tech can only reconstruct the simplest form — dust.*<br>
 > *Mark dust items in Cell Workbench partition slots to generate slowly; TeXTech items cannot be marked.*
 
 **Data Form Loom Cell**
 
-> *Fully mastered data weaving — reconstructs any complex item from network data.*  
+> *Fully mastered data weaving — reconstructs any complex item from network data.*<br>
 > *Mark any item in Cell Workbench partition slots to generate slowly; TeXTech items cannot be marked.*
 
 **Data Flow Cell**
 
-> *Weaves AE network data into fluids for the storage network.*  
+> *Weaves AE network data into fluids for the storage network.*<br>
 > *Mark any fluid using fluid-cell style markers (containers, fluid packets, NEI drag); TeXTech items cannot be used as markers.*
 
 **Data Tide Loom Cell**
 
-> *Fully mastered fluid weaving — tides of data become up to 63 fluid types at once.*  
+> *Fully mastered fluid weaving — tides of data become up to 63 fluid types at once.*<br>
 > *Same as Data Flow Cell: mark any fluid in Cell Workbench partition slots; TeXTech items cannot be used as markers.*
 
 **Data Source Loom Cell**
 
-> *Weaves AE network data into Thaumcraft essentia for the storage network.*  
+> *Weaves AE network data into Thaumcraft essentia for the storage network.*<br>
 > *Mark essentia fluids (phials, jars, etc.) in Cell Workbench; output batches every %d seconds.*
 
 #### Shared loom tooltips (lang)
 
-> *Drains AE network energy (default 999999 AE/t, configurable via [dataLoomCell] energyDrainPerTick).*  
-> *Only Weave Amplifier cards accepted — no AE acceleration cards.*  
-> *Output settles every %d seconds ([dataLoomCell] syncIntervalSeconds); see cached rate lines above.*  
+> *Drains AE network energy (default 999999 AE/t, configurable via [dataLoomCell] energyDrainPerTick).*<br>
+> *Only Weave Amplifier cards accepted — no AE acceleration cards.*<br>
+> *Output settles every %d seconds ([dataLoomCell] syncIntervalSeconds); see cached rate lines above.*<br>
 > *Items, fluids, or essentia stored inside this cell are excluded from Advanced Network Linker storage statistics.*
 
 #### Weave Amplifier Card / Super Weave Amplifier Card
@@ -354,7 +357,7 @@ Config sections: `[dataDustLoomCell]`, `[dataFormLoomCell]`, `[dataFlowCell]`, `
 
 ### 3.8 Super Orange
 
-**Registry:** `textech:orange`  
+**Registry:** `textech:orange`<br>
 **Lang name:** Super Orange (`item.orange.name`)
 
 Legendary item (`adm.super_orange.tooltip.legendary` — *Dungeon/Mob Drop (Legendary Item)*)
@@ -364,7 +367,7 @@ Legendary item (`adm.super_orange.tooltip.legendary` — *Dungeon/Mob Drop (Lege
 | Feature | Control | Description |
 |---------|---------|-------------|
 | Instant mining | Hold item | *Instantly mine any block when held* (including GT ores) |
-| Settings GUI | Sneak + right-click (`adm.super_orange.tooltip.open_config`) | Nameplate text; matter-ball mining / pickup-merge / drop-merge toggles; custom drop multiplier (max from `[superOrange] dropMultiplierMax`, default ×2) |
+| Settings GUI | Sneak + right-click (`adm.super_orange.tooltip.open_config`) | Nameplate text (up to 64 characters); matter-ball mining / pickup-merge / drop-merge toggles; integer drop multiplier from 1 to `[superOrange] dropMultiplierMax` (default ×2). Hover fields for purpose, format, examples, and errors; invalid multipliers are not saved |
 | Drone & projectile immunity | Right-click | Body orbits player, intercepts projectiles; clones attack nearby hostiles |
 | Head nameplate & halo | Settings GUI or anvil rename | Custom nameplate text; hidden in first-person, visible in third person / to others |
 
@@ -374,7 +377,7 @@ Config section: `[superOrange]`. **Not** auto-gifted on first join (unlike the *
 
 ### 3.9 Empyrean Holy Judgment
 
-**Registry:** `textech:starry_cosmos_sword`  
+**Registry:** `textech:starry_cosmos_sword`<br>
 **Lang name:** Empyrean Holy Judgment (`item.starryCosmosSword.name`)
 
 **Tooltip (`adm.tooltip.starry_cosmos_sword`):**
@@ -387,7 +390,7 @@ Creative tab: Combat. Max stack 1.
 
 ### 3.10 TeXTech Manual
 
-**Registry:** `textech:manual`  
+**Registry:** `textech:manual`<br>
 **Lang name:** TeXTech Manual (`item.manual.name`)
 
 Right-click opens the in-game manual GUI (chapter sidebar + page content) covering blocks, items, AI assistant, planner, teleport, and config reference. Content is driven by JSON under `assets/textech/manual/`.
@@ -404,6 +407,13 @@ Page types: `text`, `item_showcase`, `config_ref`.
 | Chapter sidebar | Click to switch chapters. When searching, only matching chapters are listed; matched terms are highlighted in titles and body text |
 | Sidebar scroll | Scrollbar appears when chapters overflow. Mouse wheel, drag thumb, or click `^` / `v` buttons to jump to top/bottom |
 | Content area | Prev/Next page buttons; mouse wheel on long `config_ref` pages; search highlights in visible text |
+
+**Shared GUI behavior (except Dimensional Pocket)**
+
+- Translucent cyan/electric-blue panels no longer draw a full-screen black veil, so the game world remains visible outside the interface.
+- On small viewports, panels, text, controls, tooltips, and mouse hit boxes scale uniformly together. Artwork is never stretched along only one axis.
+- Hover fields, toggles, truncated text, or collapsible NBT nodes for purpose, accepted range, format, examples, and error behavior. Invalid input is not saved, the first failing field turns red, and the feedback band never covers the buttons.
+- The Dimensional Pocket storage GUI, configuration GUI, and overlay keep their original appearance and controls.
 
 ---
 
@@ -450,7 +460,7 @@ Developer details: [Technical Documentation §5.12](../developer/technical-docum
 
 ### 3.12 Matter Ball Decompressor
 
-**Registry:** `textech:matterBallDecompressor`  
+**Registry:** `textech:matterBallDecompressor`<br>
 **Lang name:** Matter Ball Decompressor (`tile.matterBallDecompressor.name`)
 
 AE2 block that decompresses Avaritia matter clusters into individual items. Requires an AE channel and smart-cable connection.
@@ -486,11 +496,23 @@ Developer detail: [Technical Documentation §5.13](../developer/technical-docume
 
 **Coordinates:** comma-separated integers, e.g. `123,64,-123` — English comma only. Each monitor face holds at most **36** binding entries (Data Imprint sneak-bind and GUI **Add binding** share this cap). `dataLimit` is the per-chart point history (default 100), not the binding count.
 
-**Chart fields:** `name` (NBT path or AE metric), `displayName`, `dataType`, `dataLimit`, `interval` (ticks), `xRange`, `yRange`, `yMin`/`yMax`, `isValue` (percentage mode for AE bytes).
+**Widget fields:** `metricKey` (legacy `name`), `title` (legacy `displayName`), `kind` / `renderType` (legacy `dataType`), `dataLimit`, `interval` (ticks), `xRange`, `yRange`, and `yMin`/`yMax`. `sourceKind` selects `tile_metric`, `ae_metric`, `wireless_eu`, `wireless_steam`, `storage_summary`, or `gt_summary`; wireless sources query the monitor owner/team and need no invented target coordinates. `targetValue` supplies an optional maximum for otherwise unbounded absolute metrics.
 
-**Chart types:** `line`, `bar`, `bar3d`, `waterfall`, `diffrence`, `crafting`, `storage`.
+### 4.1 Threshold Redstone and Comparator Output
+
+Each binding has an independent threshold configuration; migrated bindings default to disabled. The right side of the binding editor lets you enable it, choose `>=` or `<=`, and enter the threshold, hysteresis, and analog output minimum/maximum. `targetValue` remains a progress/gauge display goal and is never reinterpreted as a redstone threshold.
+
+- Strong power is 15 while any enabled, valid binding is active (OR aggregation), otherwise 0. All six sides report the same value.
+- Weak/comparator power uses the maximum contribution across bindings. With `outputMax > outputMin`, each fresh sample maps linearly and clamps to 0–15; an invalid range falls back to active 15 / inactive 0.
+- Hysteresis uses strict release boundaries: an active `>=` binding releases below `threshold - hysteresis`; an active `<=` binding releases above `threshold + hysteresis`.
+- Redstone queries only read the last server sample. Samples expire after `max(2 × interval, 10 seconds)`; missing, NaN, infinite, or stale samples contribute 0.
+- A reloaded monitor remains at 0 until its first valid sample. Neighbor updates occur only when the aggregate output changes.
+
+**First-class kinds:** `statCard`, `progressBar`, `gauge`, `lineChart`, `barChart`, `pieChart`, and `dataTable`. Dedicated kinds: `crafting`, `storage`, `web_surface`. Legacy `line` / `bar` remain readable; `bar3d` / `waterfall` normalize to the bar family and `diffrence` to a difference line. SNL steam has no real capacity in 0.2.5, so progress/gauge falls back to a scalar unless `targetValue>0`.
 
 **WebAE dashboard panel:** On the WebAE main dashboard, click **Export for in-game display** to publish layout/settings, copy a live binding JSON, and push a JPEG of the **current browser viewport** (`browser-jpeg`). Keep the WebAE tab open for near-live refresh. In game, open the monitor, choose **WebAE Panel**, import clipboard JSON, set a reachable WebAE origin if needed, then adjust title, scale, XYZ offsets/rotations, opacity, full-bright/world-light mode, and 256/512/1024px quality. Preferred frames match the browser; fallback is host Chrome/Edge embed capture (`spa-jpeg`) or optional MCEF (`mcef`). Live mode does not silently fall back to AWT snapshot fake UI; the panel status line shows frame source and error codes. Static snapshot import is only for offline/publish failure. Limits are 8 web panels per monitor.
+
+WebAE also offers **Export shared monitor widgets**. It creates `textech-monitor-widget-bundle` v1 with only the seven shared kinds, in Dashboard order, capped at 36 widgets. The same Dashboard widget import dialog can re-import it. This semantic bundle is separate from the whole-page `textech-webae-display-binding` / snapshot formats. For tables, missing `columns` means source defaults and `[]` explicitly hides every column.
 
 **Transforms:** `xOffset`/`yOffset`/`zOffset`, `rotationX`/`Y`/`Z`, `scale`. If invisible, increase `scale` (try `0.5`–`1.0`) and adjust `zOffset`.
 
@@ -551,7 +573,7 @@ Open via **AI** on the monitor GUI or **O** key (default). Supports free chat an
 
 The AI window supports both general chat and an assistant tool flow. Click **AI** on the Advance Data Monitor main screen to open it.
 
-The assistant can: query AE2 storage; query craftable patterns and recipe details; submit AE2 craft orders and batch orders; confirm candidates by number; cancel assistant actions or server craft jobs; create/list/complete simple plans; withdraw items from AE2 storage to your inventory; and general chat.
+The assistant can: query AE2 storage; query craftable patterns and recipe details; submit AE2 craft orders and batch orders; confirm candidates by number; cancel assistant actions or server craft jobs; create/list/complete simple plans; withdraw items from AE2 storage to your inventory; request a read-only operations briefing; and use general chat.
 
 ### 8.2 When AI Is Available
 
@@ -660,6 +682,22 @@ Complete plan 1
 ```
 
 Lightweight assistant feature, not a full task system.
+
+### 8.12 Operations Briefing (read-only)
+
+The Operations Briefing provides a quick view of overall base health. It follows the standard query flow and combines six sections: ADM/AE2 network, AE2 byte usage, wireless power, wireless steam, server-side AE2 crafting calculations, and Advanced Planner.
+
+Examples:
+
+```text
+Operations briefing
+Show base health
+Network health and overall status
+```
+
+Each section is collected and marked independently; if a connector, wireless service, or data source is unavailable, only that section is unavailable and the remaining sections can still be returned. The nearby network lookup does not create a monitor association, and the planner section reports todo/completed/total counts without echoing plan text. Per-section and full-report UTF-8 packet limits apply, and sensitive values are redacted.
+
+This is strictly read-only: it never orders, withdraws items, teleports the player, or creates, edits, or deletes plans. It also does not take automatic action when it finds todos, near-full byte capacity, or pending crafting jobs. If a section is unavailable, check the required Advanced Network Linker, wireless service, or Advanced Planner and query again.
 
 **Teleport:** scans Draconic Evolution **Advanced Dislocator** destinations in inventory.
 
@@ -1140,19 +1178,19 @@ Advanced HUD position/scale/width settings are available in the HUD Config scree
 
 ### 19.9 FAQ
 
-**Q: Merge button greyed out?**  
+**Q: Merge button greyed out?**<br>
 A: Need at least **2** Advance Planners in inventory.
 
-**Q: Where did merged planners go?**  
+**Q: Where did merged planners go?**<br>
 A: Consumed except the one you had open. Merge is destructive to extra items.
 
-**Q: Entry limit?**  
+**Q: Entry limit?**<br>
 A: GUI scrolls up to **50** visible rows; storage limited by NBT size in practice.
 
-**Q: Esc while editing?**  
+**Q: Esc while editing?**<br>
 A: Discards unsaved edit text for that session.
 
-**Q: Close GUI mid-edit?**  
+**Q: Close GUI mid-edit?**<br>
 A: Pending edit auto-commits on close.
 
 ---

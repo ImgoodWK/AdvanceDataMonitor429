@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBuf;
 public class PacketPlannerMerge implements IMessage {
 
     public PlannerMergeMode mode;
+    public boolean malformed;
 
     public PacketPlannerMerge() {}
 
@@ -22,7 +23,24 @@ public class PacketPlannerMerge implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        int ordinal = buf.readByte();
-        mode = PlannerMergeMode.values()[ordinal];
+        malformed = false;
+        mode = null;
+        try {
+            if (buf.readableBytes() != 1) {
+                throw new IllegalArgumentException("Invalid planner merge length");
+            }
+            int ordinal = buf.readUnsignedByte();
+            PlannerMergeMode[] modes = PlannerMergeMode.values();
+            if (ordinal >= modes.length) {
+                throw new IllegalArgumentException("Invalid planner merge mode");
+            }
+            mode = modes[ordinal];
+            if (buf.isReadable()) {
+                throw new IllegalArgumentException("Planner merge has trailing data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            mode = null;
+        }
     }
 }

@@ -58,16 +58,17 @@ public class GuiGrappleAnchorConfig extends AdmItemConfigScreen {
             anchor != null ? TileEntityGrappleAnchor.colorToHex(anchor.getIconCursorColor())
                 : TileEntityGrappleAnchor.colorToHex(TileEntityGrappleAnchor.DEFAULT_ICON_CURSOR_COLOR));
 
-        buttonList.add(createSaveButton(cx - 60, cy + 52));
-        buttonList.add(createCancelButton(cx + 10, cy + 52));
+        buttonList.add(createSaveButton(cx - 60, cy + 62));
+        buttonList.add(createCancelButton(cx + 10, cy + 62));
     }
 
     @Override
     protected void onSave() {
+        beginValidation(nameField, colorField);
         String colorText = colorField.getText()
             .trim();
         if (!isValidHexColor(colorText)) {
-            errorTips = I18n.format("adm.error.displaycolor");
+            rejectField(colorField, I18n.format("adm.error.displaycolor"));
             return;
         }
         String name = nameField.getText()
@@ -92,15 +93,15 @@ public class GuiGrappleAnchorConfig extends AdmItemConfigScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
         nameField.mouseClicked(mouseX, mouseY, mouseButton);
         colorField.mouseClicked(mouseX, mouseY, mouseButton);
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         int cx = centerX();
         int cy = centerY();
         drawCenteredString(fontRendererObj, I18n.format("adm.title.grappleAnchorConfig"), cx, cy - 68, 0x00FFFF);
@@ -111,6 +112,6 @@ public class GuiGrappleAnchorConfig extends AdmItemConfigScreen {
         if (isValidHexColor(colorField.getText())) {
             drawCenteredString(fontRendererObj, "§l■", cx - 58, cy + 6, Integer.parseInt(colorField.getText(), 16));
         }
-        drawErrorTips(cy + 36);
+        drawErrorTips(cy + 26);
     }
 }

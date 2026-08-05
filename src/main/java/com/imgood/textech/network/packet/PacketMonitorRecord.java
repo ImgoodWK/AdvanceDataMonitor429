@@ -21,6 +21,7 @@ public class PacketMonitorRecord implements IMessage {
     private int x;
     private int y;
     private int z;
+    public boolean malformed;
 
     public PacketMonitorRecord() {}
 
@@ -39,21 +40,41 @@ public class PacketMonitorRecord implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        x = buf.readInt();
-        y = buf.readInt();
-        z = buf.readInt();
+        malformed = false;
+        x = 0;
+        y = 0;
+        z = 0;
+        try {
+            if (buf.readableBytes() != 12) {
+                throw new IllegalArgumentException("Invalid monitor record length");
+            }
+            x = buf.readInt();
+            y = buf.readInt();
+            z = buf.readInt();
+            if (buf.isReadable()) {
+                throw new IllegalArgumentException("Monitor record has trailing data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            x = 0;
+            y = 0;
+            z = 0;
+        }
     }
 
     public static class Handler implements IMessageHandler<PacketMonitorRecord, IMessage> {
 
         @Override
         public IMessage onMessage(final PacketMonitorRecord message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
                     EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-                    if (player.worldObj == null) {
+                    if (player == null || player.worldObj == null) {
                         return;
                     }
                     if (!NetworkValidationUtil.isWithinReach(player, message.x, message.y, message.z)) {

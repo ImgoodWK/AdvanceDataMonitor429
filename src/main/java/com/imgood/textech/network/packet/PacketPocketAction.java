@@ -66,6 +66,7 @@ public class PacketPocketAction implements IMessage {
     private float floatValue1;
     private float floatValue2;
     private boolean boolValue;
+    public boolean malformed;
 
     public PacketPocketAction() {}
 
@@ -211,26 +212,69 @@ public class PacketPocketAction implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeByte(action);
-        buf.writeInt(intValue);
-        buf.writeFloat(floatValue1);
-        buf.writeFloat(floatValue2);
-        buf.writeBoolean(boolValue);
+        int start = buf.writerIndex();
+        try {
+            validateShape();
+            buf.writeByte(action);
+            buf.writeInt(intValue);
+            buf.writeFloat(floatValue1);
+            buf.writeFloat(floatValue2);
+            buf.writeBoolean(boolValue);
+        } catch (RuntimeException error) {
+            buf.writerIndex(start);
+            throw error;
+        }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        action = buf.readByte();
-        intValue = buf.readInt();
-        floatValue1 = buf.readFloat();
-        floatValue2 = buf.readFloat();
-        boolValue = buf.readBoolean();
+        malformed = false;
+        action = REQUEST_SYNC;
+        intValue = 0;
+        floatValue1 = 0.0F;
+        floatValue2 = 0.0F;
+        boolValue = false;
+        try {
+            if (buf.readableBytes() != 14) {
+                throw new IllegalArgumentException("Invalid pocket action length");
+            }
+            action = buf.readByte();
+            intValue = buf.readInt();
+            floatValue1 = buf.readFloat();
+            floatValue2 = buf.readFloat();
+            boolValue = buf.readBoolean();
+            validateShape();
+            if (buf.isReadable()) {
+                throw new IllegalArgumentException("Pocket action has trailing data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            action = REQUEST_SYNC;
+            intValue = 0;
+            floatValue1 = 0.0F;
+            floatValue2 = 0.0F;
+            boolValue = false;
+        }
+    }
+
+    private void validateShape() {
+        if (action < REQUEST_SYNC || action > OPEN_STORAGE_GUI) {
+            throw new IllegalArgumentException("Invalid pocket action");
+        }
+        if (action == SET_WINDOW_POS
+            && (Float.isNaN(floatValue1) || Float.isInfinite(floatValue1)
+                || Float.isNaN(floatValue2) || Float.isInfinite(floatValue2))) {
+            throw new IllegalArgumentException("Pocket window position must be finite");
+        }
     }
 
     public static class ServerHandler implements IMessageHandler<PacketPocketAction, IMessage> {
 
         @Override
         public IMessage onMessage(final PacketPocketAction message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
@@ -243,6 +287,9 @@ public class PacketPocketAction implements IMessage {
     }
 
     private static void handleServer(EntityPlayerMP player, PacketPocketAction message) {
+        if (player == null) {
+            return;
+        }
         PocketState state = PocketStore.instance()
             .getOrCreate(player);
         boolean changed = false;
@@ -470,19 +517,24 @@ public class PacketPocketAction implements IMessage {
         }
         if (skipDefaultSync) return;
         // Always reply with a sync so the client stays in step.
-        PacketPocketSync sync = PacketPocketSync.fullState(state);
+        boolean syncCursor = message.action == WITHDRAW_TO_CURSOR || message.action == DEPOSIT_FROM_CURSOR
+            || message.action == DEPOSIT_SINGLE_FROM_CURSOR;
+        java.util.List<PacketPocketSync> syncPackets = PacketPocketSync.fullStatePackets(
+            state,
+            syncCursor,
+            syncCursor ? player.inventory.getItemStack() : null);
+        if (syncPackets.isEmpty()) {
+            return;
+        }
         // detectAndSendChanges() above only syncs container SLOT contents —it does NOT
         // sync the player's carried item (player.inventory.itemStack), which lives outside
         // Container.inventorySlots. So a withdraw that calls setItemStack() on the server
         // never reaches the client cursor, and the held item is invisible. Attach the
         // authoritative server cursor to the sync for the actions that mutate it, and the
         // client handler will call mc.thePlayer.inventory.setItemStack() to apply it.
-        if (message.action == WITHDRAW_TO_CURSOR || message.action == DEPOSIT_FROM_CURSOR
-            || message.action == DEPOSIT_SINGLE_FROM_CURSOR) {
-            sync.hasCursor = true;
-            sync.cursorStack = player.inventory.getItemStack();
+        for (PacketPocketSync sync : syncPackets) {
+            AdvanceDataMonitor.ADMCHANEL.sendTo(sync, player);
         }
-        AdvanceDataMonitor.ADMCHANEL.sendTo(sync, player);
     }
 
     @SideOnly(Side.CLIENT)
@@ -490,6 +542,9 @@ public class PacketPocketAction implements IMessage {
 
         @Override
         public IMessage onMessage(PacketPocketAction message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             return null;
         }
     }

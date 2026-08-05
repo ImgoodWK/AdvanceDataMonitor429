@@ -7,17 +7,21 @@ import net.minecraft.world.World;
 
 import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.tileentity.TileEntityGrappleAnchor;
+import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.utils.NetworkValidationUtil;
 
-import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class PacketGrappleAnchorConfig implements IMessage {
+
+    public static final int MAX_PACKET_BODY_BYTES = 30000;
+    private static final int MAX_DISPLAY_NAME_BYTES = 256;
 
     private int x;
 
@@ -28,6 +32,7 @@ public class PacketGrappleAnchorConfig implements IMessage {
     private String displayName = "";
 
     private int iconCursorColor = TileEntityGrappleAnchor.DEFAULT_ICON_CURSOR_COLOR;
+    public boolean malformed;
 
     public PacketGrappleAnchorConfig() {}
 
@@ -48,32 +53,66 @@ public class PacketGrappleAnchorConfig implements IMessage {
     @Override
 
     public void toBytes(ByteBuf buf) {
+        int start = buf.writerIndex();
+        try {
+            buf.writeInt(x);
+            buf.writeInt(y);
+            buf.writeInt(z);
+            NetworkPacketCodec.writeVarUtf8(buf, displayName == null ? "" : displayName, MAX_DISPLAY_NAME_BYTES);
+            buf.writeInt(iconCursorColor);
+            if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Grapple anchor config exceeds packet body limit");
+            }
+        } catch (RuntimeException error) {
+            buf.writerIndex(start);
+            throw error;
+        }
 
-        buf.writeInt(x);
+    }
 
-        buf.writeInt(y);
-
-        buf.writeInt(z);
-
-        ByteBufUtils.writeUTF8String(buf, displayName == null ? "" : displayName);
-
-        buf.writeInt(iconCursorColor);
-
+    public boolean fitsPacketBudget() {
+        ByteBuf scratch = Unpooled.buffer(64);
+        try {
+            toBytes(scratch);
+            return scratch.readableBytes() <= MAX_PACKET_BODY_BYTES;
+        } catch (RuntimeException error) {
+            return false;
+        } finally {
+            scratch.release();
+        }
     }
 
     @Override
 
     public void fromBytes(ByteBuf buf) {
 
-        x = buf.readInt();
-
-        y = buf.readInt();
-
-        z = buf.readInt();
-
-        displayName = ByteBufUtils.readUTF8String(buf);
-
-        iconCursorColor = buf.readInt();
+        malformed = false;
+        x = 0;
+        y = 0;
+        z = 0;
+        displayName = "";
+        iconCursorColor = TileEntityGrappleAnchor.DEFAULT_ICON_CURSOR_COLOR;
+        try {
+            int start = buf.readerIndex();
+            if (buf.readableBytes() > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Grapple anchor config exceeds packet body limit");
+            }
+            x = buf.readInt();
+            y = buf.readInt();
+            z = buf.readInt();
+            displayName = NetworkPacketCodec.readVarUtf8(buf, MAX_DISPLAY_NAME_BYTES);
+            iconCursorColor = buf.readInt();
+            if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
+                throw new IllegalArgumentException("Grapple anchor config has trailing data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            x = 0;
+            y = 0;
+            z = 0;
+            displayName = "";
+            iconCursorColor = TileEntityGrappleAnchor.DEFAULT_ICON_CURSOR_COLOR;
+        }
 
     }
 
@@ -137,6 +176,10 @@ public class PacketGrappleAnchorConfig implements IMessage {
 
         public IMessage onMessage(final PacketGrappleAnchorConfig message, MessageContext ctx) {
 
+            if (message == null || message.malformed) {
+                return null;
+            }
+
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
@@ -144,6 +187,12 @@ public class PacketGrappleAnchorConfig implements IMessage {
                 public void run() {
 
                     EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+
+                    if (player == null || player.worldObj == null) {
+
+                        return;
+
+                    }
 
                     World world = player.worldObj;
 
@@ -180,6 +229,10 @@ public class PacketGrappleAnchorConfig implements IMessage {
         @Override
 
         public IMessage onMessage(PacketGrappleAnchorConfig message, MessageContext ctx) {
+
+            if (message == null || message.malformed) {
+                return null;
+            }
 
             World world = Minecraft.getMinecraft().theWorld;
 

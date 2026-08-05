@@ -142,9 +142,8 @@ public class GuiPlannerMergeConfirm extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
         int centerX = this.width / 2;
         int centerY = this.height / 2;

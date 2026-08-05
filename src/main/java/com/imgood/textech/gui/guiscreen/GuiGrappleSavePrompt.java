@@ -111,14 +111,14 @@ public class GuiGrappleSavePrompt extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
         nameField.mouseClicked(mouseX, mouseY, mouseButton);
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         int centerX = this.width / 2;
         int centerY = this.height / 2;
         this.drawCenteredString(

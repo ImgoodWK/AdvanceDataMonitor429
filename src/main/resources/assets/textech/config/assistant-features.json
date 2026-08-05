@@ -255,6 +255,29 @@
       }
     },
     {
+      "key": "QUERY_BRIEFING",
+      "requiredConnector": "none",
+      "displayName": {
+        "zh_CN": "基地运维简报",
+        "en_US": "Operations Briefing"
+      },
+      "description": {
+        "zh_CN": "只读汇总基地网络、字节占用、无线能源/蒸汽、AE2 合成计算和高级计划器状态；每个分段可独立不可用，不会下单、取出、传送或修改计划",
+        "en_US": "Read-only summary of base network, byte usage, wireless power/steam, AE2 crafting calculations, and Advanced Planner status; sections may be unavailable independently, and it never orders, withdraws, teleports, or edits plans"
+      },
+      "keywords": [
+        "基地简报", "运维简报", "基地状态", "基地健康", "运维状态",
+        "网络健康", "总体状态", "综合状态", "系统概览", "运行简报",
+        "operations briefing", "operation briefing", "ops briefing", "base briefing",
+        "base status", "base health", "network health", "system overview",
+        "overall status", "health summary", "operations summary", "status report"
+      ],
+      "aiInstruction": {
+        "zh_CN": "QUERY_BRIEFING: 请求基地运维简报，target 留空；只读汇总六个可独立失败的分段（网络、字节、无线电力、无线蒸汽、服务端 AE2 合成计算、高级计划器），不可执行下单、取出、传送或计划修改；遵守分段/总长度限制并脱敏敏感值",
+        "en_US": "QUERY_BRIEFING: request a read-only operations briefing with an empty target and six independently failing sections (network, bytes, wireless power, wireless steam, server-side AE2 crafting calculations, Advanced Planner); never order, withdraw, teleport, or edit plans; obey section/total length limits and redact sensitive values"
+      }
+    },
+    {
       "key": "QUERY_JOBS",
       "requiredConnector": "crafting",
       "displayName": {

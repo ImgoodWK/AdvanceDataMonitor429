@@ -45,10 +45,12 @@ public class GuiSuperOrangeConfig extends AdmItemConfigScreen {
         nameField = createTextField(cx - 90, cy - 58, 180, 20);
         nameField.setMaxStringLength(64);
         nameField.setText(currentName != null ? currentName : "");
+        nameField.setHintText(I18n.format("adm.hint.super_orange.name"));
 
         multiplierField = createTextField(cx - 30, cy - 18, 60, 20);
         multiplierField.setMaxStringLength(4);
         multiplierField.setText(String.valueOf(ItemSuperOrange.getDropMultiplier(orangeStack)));
+        multiplierField.setHintText(I18n.format("adm.hint.super_orange.multiplier"));
 
         buttonList.add(createToggleButton(BUTTON_MATTER, cx - 180, cy + 18, 118, matterBallLabel()));
         buttonList.add(createToggleButton(BUTTON_PICKUP, cx - 56, cy + 18, 118, pickupMatterBallLabel()));
@@ -88,13 +90,14 @@ public class GuiSuperOrangeConfig extends AdmItemConfigScreen {
 
     @Override
     protected void onSave() {
+        beginValidation(nameField, multiplierField);
         try {
             int multiplier = Integer.parseInt(
                 multiplierField.getText()
                     .trim());
             int max = Math.max(1, Config.superOrangeDropMultiplierMax);
             if (multiplier < 1 || multiplier > max) {
-                errorTips = I18n.format("adm.error.super_orange.multiplier_range", max);
+                rejectField(multiplierField, I18n.format("adm.error.super_orange.multiplier_range", max));
                 return;
             }
             AdvanceDataMonitor.ADMCHANEL.sendToServer(
@@ -106,7 +109,7 @@ public class GuiSuperOrangeConfig extends AdmItemConfigScreen {
                     multiplier));
             closeScreen();
         } catch (NumberFormatException e) {
-            errorTips = I18n.format("adm.error.invalid_number");
+            rejectField(multiplierField, I18n.format("adm.error.invalid_number"));
         }
     }
 
@@ -124,15 +127,15 @@ public class GuiSuperOrangeConfig extends AdmItemConfigScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
         nameField.mouseClicked(mouseX, mouseY, mouseButton);
         multiplierField.mouseClicked(mouseX, mouseY, mouseButton);
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         int cx = centerX();
         int cy = centerY();
         drawCenteredString(fontRendererObj, I18n.format("adm.title.superOrangeConfig"), cx, cy - 82, 0x00FFFF);
@@ -145,21 +148,23 @@ public class GuiSuperOrangeConfig extends AdmItemConfigScreen {
             0xAAAAAA);
         nameField.drawTextBox();
         multiplierField.drawTextBox();
-        drawErrorTips(cy + 98);
+        drawErrorTips(cy + 40);
         drawButtonTooltip(BUTTON_MATTER, mouseX, mouseY, I18n.format("adm.tooltip.super_orange.matter_ball_toggle"));
         drawButtonTooltip(BUTTON_PICKUP, mouseX, mouseY, I18n.format("adm.tooltip.super_orange.pickup_matter_toggle"));
         drawButtonTooltip(BUTTON_DROP, mouseX, mouseY, I18n.format("adm.tooltip.super_orange.drop_matter_toggle"));
-    }
-
-    private void drawButtonTooltip(int buttonId, int mouseX, int mouseY, String text) {
-        for (Object obj : buttonList) {
-            GuiButton button = (GuiButton) obj;
-            if (button.id == buttonId && button.mousePressed(mc, mouseX, mouseY)) {
-                java.util.ArrayList<String> lines = new java.util.ArrayList<>();
-                lines.add(text);
-                drawHoveringText(lines, mouseX, mouseY, fontRendererObj);
-                break;
-            }
-        }
+        drawFieldTooltip(
+            nameField,
+            mouseX,
+            mouseY,
+            I18n.format("adm.tooltip.super_orange.name.purpose"),
+            I18n.format("adm.tooltip.super_orange.name.format"),
+            I18n.format("adm.tooltip.super_orange.name.example"));
+        drawFieldTooltip(
+            multiplierField,
+            mouseX,
+            mouseY,
+            I18n.format("adm.tooltip.super_orange.multiplier.purpose"),
+            I18n.format("adm.tooltip.super_orange.multiplier.format", Config.superOrangeDropMultiplierMax),
+            I18n.format("adm.tooltip.super_orange.multiplier.error", Config.superOrangeDropMultiplierMax));
     }
 }

@@ -45,7 +45,7 @@ alwaysApply: false
 - **compat/gt/** — `GtCompat.java`：GT 机器状态读取兼容层
 - **compat/programmablehatches/** — `ProgrammableHatchesCompat.java`：无编译期依赖的 Programmable Hatches V3 编程电路包装/解包
 
-### assistant/ — AI 助手核心逻辑 (46 文件：根 38 + ai 8)
+### assistant/ — AI 助手核心逻辑 (47 文件：根 39 + ai 8)
 - **最大的包**，负责 AI 意图解析、AE2 物品查询、合成下单、传送、计划管理
 - **assistant/ai/** — AI 聊天 HTTP 客户端与内置联网搜索（8 文件）：`DeepSeekChatClient.java` / `ChatRequestOptions.java` / `ChatStreamListener.java` / `ChatResponse.java` / `AiProviderProfiles.java` / `WebSearchService.java` / `WebSearchData.java` / `WebSearchResult.java`
 - **意图系统**: `AssistantIntentType.java` / `AssistantIntent.java` / `AssistantIntentTask.java` / `AssistantIntentPlan.java` / `AssistantOrderLine.java`
@@ -59,7 +59,7 @@ alwaysApply: false
 - **计划管理**: `PlannerServerService.java` / `PlanStore.java`
 - **传送服务**: `TeleportService.java` / `TeleportDestination.java`
 - **AE2 查询**: `WirelessPowerQuery.java` / `WirelessSteamQuery.java`
-- **格式化/工具**: `AssistantFormatter.java` / `AssistantTimeParser.java` / `AssistantTextNormalizer.java`
+- **格式化/工具**: `AssistantFormatter.java` / `AssistantOperationsBriefing.java` / `AssistantTimeParser.java` / `AssistantTextNormalizer.java`
 - **物品处理**: `ItemStackUtils.java` / `PlayerInventoryUtil.java` / `PatternDetailFormatter.java`
 - **注册/调试**: `AssistantMonitorRegistry.java` / `AssistantDebugLog.java`
 - **数据文件**: `TeXTechDataDir.java` + `TeXTechDataMigration.java`（`<实例>/TeXTech/<feature>/` 统一路径；启动时从旧路径移动）+ `AssistantDataFiles.java`（按文件名路由到 WebAE/Assistant/Grapple 子目录）
@@ -123,25 +123,31 @@ alwaysApply: false
 
 - `IOwnableTile.java` / `OwnableTileUtil.java` — 方块放置者游戏名（`OwnerName` NBT）
 - `MatterBallDecompressorUpgrades.java` — 解压器 AE 升级槽（`Upgrades.SPEED` / `SUPERSPEED`）
-- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定（`MAX_DATA_BINDINGS = 36`）、NBT 持久化、AE2 网络集成；`webae_dashboard` 被动绑定正文仅服务端持久化、常规同步剥离并按哈希拉取；首次打开可补录所属者
+- `TileEntityAdvanceDataMonitor.java` — **核心 TE**，数据绑定（`MAX_DATA_BINDINGS = 36`）、NBT 持久化、AE2 网络集成；按目标坐标分组采样并 fan-out，多 binding 复用一次读取；维护不持久化的阈值样本/迟滞状态和 strong OR / weak max 聚合缓存，过期时主动归零；被动 `web_surface` 跳过 tick 采样；常规运行只发 revision delta，完整同步留给装载/GUI 保存/结构变化；首次打开可补录所属者
 - `TileEntityAdvanceNetworkLink.java` — 统一 AE2 链接器（全网存储统计 + 36 槽 `ItemAdvanceStorageLinkCell` + 合成 CPU 监控）
 - `TileEntityGrappleAnchor.java` — 挂索节点（贴面放置、悬挂锚点计算）
 - `TileEntityMatterBallDecompressor.java` — 物质球解压器（AE 网络、9 输入 + 81 缓存、4 加速卡槽）
 
-### gui/ — GUI 组件和界面 (67 文件)
+### monitor/ — 监视器共享契约、阈值运行态与数据预算 (4 文件)
+- `MonitorWidgetSpec.java` — Java NBT 侧 `MonitorWidgetSpec` 规范化：七类共享 kind、六类 `sourceKind`、`dataType`/legacy alias 迁移、disabled `threshold` 旧存档补齐、`columns` 缺失与空列表语义、preview 判别类型
+- `MonitorDownsampleUtil.java` — 客户端渲染与 WebAE preview 共用点数预算 `min(history, visibleWidth, 240)`，并提供 difference 序列变换
+- `MonitorThresholdEvaluator.java` — 纯逻辑 `gte` / `lte` 迟滞判定、0–15 线性映射与二值退化
+- `MonitorThresholdRuntime.java` — 每台监视器的不持久化最近样本、active 状态、新鲜度和 strong/weak 聚合缓存
+
+### gui/ — GUI 组件和界面 (93 文件)
 - **gui/根** — `GuiResponsiveLayout.java`（固定首选尺寸面板在 scaled viewport 内的纯 Java 居中适配）、`MatterBallDecompressorGuiLayout.java`（解压器 GUI 布局）、`UiFrameworkDebugLayout.java`（UI 框架调试 GUI 布局）
-- **gui/framework/** — UI 框架（命令式 + Flex 树）：根包 `GuiBlitUtil` / `NineSliceRegion` / `UiTheme` / `AdmUiTheme` / `PocketUiTheme` / `UiThemes` / `UiPanel` / `UiText` / `UiIcon` / `UiButton` / `UiToggleButton` / `UiSlot` / `UiTextField` / `UiLayoutContext` / `UiTooltip`；ADM 主题覆盖 Meowa `mainPanel`/`sectionPanel`、四态按钮、输入框、槽位、滚动轨道/滑块、divider、toggle/check 和 16×16 图标网格；`layout/` Flex 引擎；`style/` `UiStyle`；`widget/` `UiWidget`/`UiFlex`/`UiLabel`/`UiScrollPanel`/`UiButtonWidget`；`host/` `AdmUiScreen`；图集 `textures/gui/adm_ui_atlas.png`；`AdmUiAtlasContractTest` 锁定 atlas 哈希/UV/状态，`GuiThemeCoverageTest` 动态约束全部非口袋 GUI 的主题覆盖；详见 `docs/zh/developer/ui-framework.md`
+- **gui/framework/** — UI 框架（命令式 + Flex 树）：根包 `GuiBlitUtil` / `AtlasRegion` / `SparseFrameRegion` / `FixedAspectButtonFamily` / `UnderlineFieldRegion` / `UiFeedbackArea` / `NineSliceRegion` / `TiledFrameRegion` / `TiledBarRegion` / `UiViewportTransform` / `UiTheme` / `AdmUiTheme` / `PocketUiTheme` / `UiThemes` / `UiPanel` / `UiText` / `UiIcon` / `UiButton` / `UiToggleButton` / `UiSlot` / `UiTextField` / `UiLayoutContext` / `UiTooltip`；ADM 主路径以四角-only 稀疏框和双层 cover 背景组成面板，旧四边 UV 区域透明，使用向请求矩形内拟合的七比例完整按钮、四态线式输入框、精确槽位/滚动/开关/复选控件和 normal/hover 16×16 图标网格；旧九宫格与平铺类仅供兼容主题。`layout/` Flex 引擎；`style/` `UiStyle`；`widget/` `UiWidget`/`UiFlex`/`UiLabel`/`UiScrollPanel`/`UiButtonWidget`；`host/` `AdmUiScreen`；图集 `textures/gui/adm_ui_atlas.png`；`AdmUiAtlasContractTest` / `SparseRegionContractTest` / `UiViewportTransformTest` 锁定图集、稀疏绘制与缩放合同，`GuiThemeCoverageTest` 动态约束全部非口袋 GUI；详见 `docs/zh/developer/ui-framework.md`
 - **gui/custom/** — 自定义 GUI 基础组件（7 个）
-  - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（背景纹理、定位、尺寸；旧主背景/子面板/输入框常量自动桥接 ADM 主题）
-  - `ADM_GuiButton.java` — 自定义按钮（旧按钮纹理自动桥接 ADM normal/hover/pressed/disabled 四态；链式设置、RGB 效果）
-  - `ADM_GuiTextField.java` — 自定义文本框（旧输入框纹理自动桥接 ADM normal/focused；hint 提示）
+  - `ADM_GuiScreen.java` — 自定义 GuiScreen 基类（final 统一绘制/输入坐标变换、透明外部、逻辑视口 tooltip；旧主背景/子面板/输入框常量自动桥接 ADM 主题）
+  - `ADM_GuiButton.java` — 自定义按钮（旧按钮纹理自动桥接 ADM 七比例完整 normal/hover/pressed/disabled 按钮壳；链式设置、RGB 效果）
+  - `ADM_GuiTextField.java` — 自定义文本框（旧输入框纹理自动桥接 ADM normal/focused/invalid/disabled 线式输入框；hint 提示和文本变化清除 invalid）
   - `ADM_UiContainer.java` — 容器 GUI 基类（`UiTheme` + `drawMainPanel` + 可选 `setUiRoot` Flex 树）
   - `AdmGuiTextures.java` — 共享 ADM GUI 纹理 `ResourceLocation` 常量
   - `AbstractMonitorSubGui.java` — 数据监视器 per-binding 子界面基类
   - `AdmItemConfigScreen.java` — 小型配置对话框基类（物品/节点 NBT 设置）
 - **gui/guiscreen/** — 具体 GUI 界面（30 个），详见 `gui-guidelines.mdc`
   - `GuiManual.java` — 模组手册 GUI（左侧搜索框 + 可滚动章节导航 + 右侧内容区 + 翻页；搜索高亮与拼音匹配）
-  - `GuiNbtViewer.java` — NBT 树查看器（映录器用）
+  - `GuiNbtViewer.java` — NBT 树查看器（映录器用；折叠节点与截断值提供操作/完整内容 tooltip）
   - `GuiAdvanceLinkScanner.java` — 链接扫描器（主题 sectionPanel + 主题滚动条；列表/筛选/备注/传送）
   - `GuiSubLinkDisplayTypeSelect.java` — 统一网络链接器绑定显示类型选择（网络图表 / 存储显示 / 合成监控）
   - `GuiSubWebDashboard.java` — 监视器 WebAE 仪表盘快照配置（剪贴板导入/复制、变换、透明度、光照、256/512/1024px 质量）
@@ -149,18 +155,18 @@ alwaysApply: false
   - `GuiPocketStorage.java` — 次元口袋存储 GUI（原生 Container，口袋格 + 玩家背包 + 翻页/升级配置按钮；右键口袋主入口）
   - `GuiSuperOrangeConfig.java` — 超能砂糖桔设置（铭牌、物质球开关、拾取合并、丢弃合并、倍率）
   - `GuiMatterBallDecompressor.java` — 物质球解压器（`ADM_UiContainer` + `UiPanel`/`UiText`/`UiIcon`/`UiButton`；缓存格经 renderer 使用 `UiSlot.drawTheme`）
-  - `GuiUiFrameworkDebug.java` — UI 框架组件展示（Meowa 主题槽位及完整 atlas UV 对照；调试方块右键打开）
+  - `GuiUiFrameworkDebug.java` — UI 框架组件展示（稀疏框、完整按钮、四态输入线、主题槽位及完整 atlas UV 对照；调试方块右键打开）
   - `GuiGrappleSavePrompt.java` — 挂索路径保存命名弹窗
   - `GuiPlannerHudConfig.java` — 计划器 HUD 配置（显示项目/位置/透明度）
   - `GuiPlannerMergeConfirm.java` — 计划器合并确认弹窗
-  - `GuiScreenMessage.java` — 通用消息提示弹窗
+  - `GuiScreenMessage.java` — 通用消息提示弹窗（正文自动换行、面板随内容增高；按钮 ID/返回行为保持不变）
   - `GuiScreenshotGallery.java` — 主题主面板 + sectionPanel 内的客户端本地截图历史预览（较新/较旧、发送 WebAE；动态纹理关闭时释放）
 - **gui/manual/** — 手册数据结构（6 个）：`ManualChapter.java` / `ManualPage.java` / `ManualDataLoader.java` / `ManualSearchUtil.java` / `ManualSearchIndex.java` / `ManualTextHighlighter.java`
 - **gui/container/** — `ContainerAdvanceStorageLink.java`、`ContainerDimensionalPocket.java`（次元口袋配置容器，4 槽位：空间/翻页/堆叠/无尽堆叠）、`ContainerPocketStorage.java`（次元口袋存储容器，原生槽位 + 翻页）、`ContainerMatterBallDecompressor.java`（物质球解压器容器，9 输入 + 9×9 缓存 + 4 加速卡槽）、`ContainerUiFrameworkDebug.java`（UI 框架展示，无槽位）
 - **gui/handler/** — `GuiHandler.java`（IGuiHandler；GUI ID 0–10，含 `UI_FRAMEWORK_DEBUG_GUI_ID=10`）
 
 ### handler/ — 事件处理器与物品服务端逻辑 (40 文件)
-- `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列、计划提醒、SuperOrange 无人机管理；世界地图分 tick；`qqBot` 独立 perf 阶段每秒复制只读服务器快照并调度定时播报）
+- `HandlerTick.java` — 服务端/玩家 Tick 事件（任务队列每 tick 最多执行 64 个且不预取丢弃下一项、计划提醒、SuperOrange 无人机管理；世界地图分 tick；`qqBot` 独立 perf 阶段每秒复制只读服务器快照并调度定时播报）
 - `ConnectorTickService.java` — AE 连接器 debounced 刷新调度（网络/合成/存储链接器）+ `[debug] connectorProfile` 统计
 - `NetworkLinkGridStatsCache.java` — 同 AE grid 多网络链接器共享存储统计缓存
 - `StorageLinkWatchRegistry.java` — 存储链接器被监视器绑定时的引用计数注册表（无监视器时跳过周期扫描）
@@ -188,10 +194,12 @@ alwaysApply: false
 - `EntityGrappleSlide.java` — 挂索滑移实体
 - `EntityStarrySwordLineSlash.java` / `EntityStarrySwordLineStab.java` / `EntityStarrySwordThrown.java` / `EntityStarrySwordRain.java` / `EntityStarrySwordRainField.java` / `EntityStarrySwordSlam.java` — 星空剑技能实体
 
-### renders/ — 全部客户端渲染 (35 文件)
+### renders/ — 全部客户端渲染 (43 文件)
 - **约定**：实体 Render、TESR、物品 Render、HUD、手册页面渲染均在此包；`entity/` 不放 Render 类
 - `AdvanceBlockCubeRenderUtil.java` — 占位方块立方体/挂索节点薄板几何（模型未完成前）
-- `LineChartRenderer.java` / `CraftingInfoRenderer.java` / `StorageInfoRenderer.java` / `WebSurfaceRenderer.java` — 监视器图表与网页纹理表面；`renderType` 优先、缺失回退 `dataType`；`WebSurfaceRenderer` 支持 `ResourceLocation` 与 MCEF 原始 GL texId（可 V 翻转）
+- `StatCardRenderer.java` / `ProgressBarRenderer.java` / `GaugeRenderer.java` / `LineChartRenderer.java` / `BarChartRenderer.java` / `PieChartRenderer.java` / `DataTableRenderer.java` — 七类共享监视器组件；折线族共用 timeseries 支撑，progress/gauge 无真实 max 时只接受显式 `targetValue > 0`
+- `MonitorRenderCache.java` / `MonitorRenderSupport.java` — 按 monitorPos + bindingIndex + revision 缓存 VBO/FloatBuffer/网格轴与共享读取、下采样逻辑；仅数据或配置变化时失效重建
+- `CraftingInfoRenderer.java` / `StorageInfoRenderer.java` / `WebSurfaceRenderer.java` — 专用监视器与网页纹理表面；`renderType` 优先、缺失回退 `dataType`；`WebSurfaceRenderer` 支持 `ResourceLocation` 与 MCEF 原始 GL texId（可 V 翻转）
 - `PlannerHudRenderer.java` / `GrappleHudRenderer.java` / `GrappleTravelLineRenderer.java` / `WebAlertHudRenderer.java` — HUD
 - `ManualPageRenderer.java` — 手册页面渲染（text/item_showcase/config_ref）
 - `OrangeNameplateRenderer.java` / `SuperOrangeHaloRenderer.java` / `SuperOrangeHeadRenderUtil.java` — 超能砂糖桔
@@ -201,12 +209,12 @@ alwaysApply: false
 - `RenderAdvanceDataMonitorBlockItem.java` / `RenderAdvanceNetworkLinkBlockItem.java` / `RenderDataImprintItem.java` / `RenderItem.java` — 物品渲染
 - `RenderMatterBallDecompressor.java` — 物质球解压器 TESR
 - `MatterBallDecompressorGuiRenderer.java` — 解压器 GUI 背景/分隔线/缓存格渲染（ADM 主题面板 + divider + `UiSlot.drawTheme`；AE2 模式按钮/升级列保持原生）
-- `RenderController.java` — 监视器内容渲染器注册（line / crafting / storage / web_surface）
+- `RenderController.java` — 监视器内容渲染器注册（七类共享 kind + crafting / storage / web_surface；legacy alias 由契约规范化）
 - `HudRenderUtil.java` / `IADMRender.java` / `RenderAdvanceNetworkLink.java` / `AdvanceBlockCubeRenderUtil.java`
 
-### network/ — 网络通信 (29 文件)
-- **network/packet/** — 网络包实体（25 个）
-  - `PacketSynTileEntity.java` — **最常用**，同步 TileEntity 数据到客户端
+### network/ — 网络通信 (30 文件)
+- **network/packet/** — 网络包实体（24 个）
+  - `PacketSynTileEntity.java` — TE 初次装载、GUI 保存与 chunk/load 恢复的完整同步；不再承担监视器每次采样广播
   - `PacketAssistantAction.java` / `PacketAssistantResponse.java` — AI 助手操作/响应
   - `PacketAssistantMenuStateQuery.java` / `PacketAssistantMenuStateResponse.java` — AI 助手菜单状态查询/响应
   - `PacketItemCountSync.java` / `PacketRequestItemCountSync.java` — 物品数量同步
@@ -215,6 +223,7 @@ alwaysApply: false
   - `PacketGrapplePathAction.java` / `PacketGrapplePathSync.java` — 挂索路径保存/下发
   - `PacketGrappleHookConfig.java` / `PacketGrappleAnchorConfig.java` — 挂索器/节点配置
   - `PacketMonitorRecord.java` — 快捷键打开附近监视器 AI 时登记监视器坐标
+  - `PacketMonitorBindingDelta.java` — packet ID 54 S→C：binding index + revision + 小字段 patch + 追加历史点；客户端按 revision 应用并失效对应渲染缓存
   - `PacketLinkScannerAction.java` — 链接扫描器扫描/同步/传送
   - `PacketPocketAction.java` — 次元口袋 C→S 动作（开关/翻页/拖动位置/升级增减/堆叠升级/存取物品/打开配置GUI）
   - `PacketPocketSync.java` — 次元口袋 S→C 同步（全量/单页 `ItemStack[][]`）
@@ -244,7 +253,7 @@ alwaysApply: false
 - `LoaderBlock.java` / `LoaderItem.java` / `LoaderTileEntity.java` / `LoaderEntity.java` / `LoaderHandler.java` / `LoaderGui.java` / `LoaderRender.java` / `LoaderNetwork.java` / `LoaderRecipe.java` / `LoaderCommand.java`（服务端/客户端聊天命令：`/textech` 域分发 + 旧 `/adm*` 别名；Proxy 委托）
 - `ModMigrationHandler.java` — 存档迁移兼容处理（旧 modid `advancedatamonitor` → `textech`）
 
-### client/ — 客户端事件与挂索/次元口袋/截图/网页表面逻辑 (37 文件)
+### client/ — 客户端事件与挂索/次元口袋/截图/网页表面逻辑 (44 文件)
 - `VoiceAssistantKeyHandler.java` — V 键语音助手热键处理
 - `KeyBindings.java` — O/P/H/F10 快捷键（AI聊天/计划器/HUD/窗口截图）；F10 用 ClientTick 边沿，任意 GuiScreen 内仍可截图；其余含 `uploadNeiRecipes()`、图标 upload/local/pull
 - `client/screenshot/ClientScreenshotService.java` — 只读 Minecraft Framebuffer；本地 `TeXTech/Screenshots/` JPEG 历史、后台编码/双上限清理、24 KiB/tick 受控上传队列
@@ -272,6 +281,7 @@ alwaysApply: false
 - `worldmap/WorldMapTileRenderWorker.java` — **Legacy** 消费 S→C `PacketWebMapTileJob`（client_only 模式下队列 no-op）
 - `worldmap/WorldMapChunkCaptureHandler.java` — **Legacy** 探索预热（client_only 下禁用）
 - `worldmap/WorldMapCaptureClientState.java` — 客户端最新 consent requestId 缓存（`/admweb wm y` 省略 id）
+- `worldmap/WorldMapCaptureJobAssembler.java` — `PacketWorldMapCaptureJob` 客户端分页重组（最多 8 个 pending、2 分钟 TTL；metadata/offset/总数完整后原子发布）
 - `worldmap/WorldMapSnapshotCaptureWorker.java` — **客户端快照** JM/GL 双源 terrain+ae 采集、本地 map-cache、C→S 上传
 - `worldmap/WorldMapSnapshotLocalCache.java` — MC 客户端 `TeXTech/WebAE/map-cache/` 读写
 - `worldmap/WorldMapSnapshotDownloadHandler.java` — 登录后 packet 同步服务端快照到本地
@@ -288,13 +298,14 @@ alwaysApply: false
 - `CommandWebConsole.java` — `/admweb` 与 `/textech web` WebAE 令牌/配方/图标/世界地图/HTTP/QQ；`qq send` 仅 OP、只入有界机器人队列
 - `CommandScreenshot.java` — 客户端 `/admscreenshot` / `/textech screenshot`：capture/list/preview/send web/send qq/status；QQ 发图由服务端再次校验 OP
 
-### utils/ — 工具类 (15 文件)
+### utils/ — 工具类 (18 文件)
 - `NBTDataHelper.java` / `NBTJsonParser.java` / `NBTJsonParserHelper.java` — NBT 与 JSON 互转
 - `CraftingTemplateParser.java` — 合成模板解析
 - `ContentsHelper.java` — 内容验证工具（坐标、数字、颜色格式等）
 - `DataBound.java` — 监视器数据绑定 DTO
 - `TileEntityTypeHelper.java` — TileEntity 类型识别
 - `NetworkValidationUtil.java` — 网络包距离/权限校验
+- `NetworkPacketCodec.java` — 网络包不可信字段编解码边界：byte/string/VarString 长度、严格 UTF-8、Forge 1.7.10 signed-short NBT framing 与有限 `NBTSizeTracker`
 - `ModLogFiles.java` — 模组日志文件路径（`logs/textech/`）
 - `BlockPos.java` — 自定义 BlockPos（1.7.10 无原版 BlockPos）
 - `MatterBallClusterUtil.java` — Avaritia 物质团簇插入/提取
@@ -315,8 +326,8 @@ alwaysApply: false
 ### manual/ — （已迁入 gui/manual/）
 - 页面渲染见 `renders/ManualPageRenderer.java`；GUI 入口 `gui/guiscreen/GuiManual.java`
 
-### webae/ — WebAE 嵌入式 HTTP 控制台 (394 文件，含 access/ACL、服务端后台命令、QQ 群机器人、截图附件、样板网页缓存)
-- `webae/WebConsoleServer.java` — NanoHTTPD 服务生命周期 + 静态资源托管（优先实例 `TeXTech/WebAE/ui/`，源码开发回退 classpath `assets/textech/webae/`；发布主 JAR 排除 UI，独立 WebAE ZIP 提供；另托管外部 `TeXTech/WebAE/icons/`，所有外部路径含穿越防护）
+### webae/ — WebAE 嵌入式 HTTP 控制台 (422 文件，含 access/ACL、服务端后台命令、QQ 群机器人、截图附件、样板网页缓存)
+- `webae/WebConsoleServer.java` — NanoHTTPD 服务生命周期 + 有界 4–32 worker/128 queue + active socket 回收；bind 成功后才置 started，stop/restart 回收 executor、Webhook、QQ bot 与 shutdown hook；静态资源优先实例 `TeXTech/WebAE/ui/`，源码开发回退 classpath `assets/textech/webae/`（发布主 JAR 排除 UI，独立 WebAE ZIP 提供），外部路径含穿越防护
 - `webae/auth/WebAuthSession.java` — 认证会话 DTO（`ownerUuid` 网络归属 + `actorUuid`/`actorName` 聊天身份 + `type` owner/guest + 可选 `allowedNetworkKeys`）
 - `webae/auth/WebAuthToken.java` — Token 生成/校验/持久化（主人 Token 每 owner 一条；访客 Token 按 owner+guest；可选 `allowedNetworkKeys`；禁用玩家校验；`revokeAllForPlayer`；含可选 TTL：`webTokenLifetimeHours`）
 - `webae/auth/WebAuthMiddleware.java` — HTTP 请求认证中间件（返回 `WebAuthSession`；401 响应带 `code`：过期/无效/`webae_disabled`）
@@ -331,11 +342,12 @@ alwaysApply: false
 - `webae/auth/WebLoginCodeStore.java` — 6 位登录码生成/兑换（5 分钟 TTL、单次使用；`/admweb login` + `POST /api/auth/exchange`）
 - `webae/oc/OcSummaryRateLimiter.java` — OC summary API 每 owner 1 req/s 限流
 - `webae/craft/WebAeCraftService.java` — 按 ownerUuid+networkId 从 `NetworkGroup.craftingLink` 查候选/下单（`submitCraftTracked` 支持 jobId + `CraftSubmitHooks` 绑定 `ICraftingLink`）
+- `webae/cpu/` — `CpuHistoryService`/`CpuHistoryStore` 保存 owner/network 隔离的有界 CPU 作业生命周期与 `StorageDto.cpus` 快照；`CpuCapacityPlanner` 从有效区间计算并发、分位耗时、繁忙率、存储压力和只读 CPU 估算；持久化路径为 `TeXTech/WebAE/cpu-history/`，稳定网络键处理 runtime networkId 重排
 - `webae/craft/CraftSubmitResult.java` — WebAE 下单结构化结果（calculating / failed）
 - `webae/order/WebAeOrderProgressService.java` — 订单进度：`ICraftingLink.isDone/isCanceled` + CPU `startItemCount/remainingItemCount`，按 networkId + 短 TTL 缓存
 - `webae/order/OrderSubmitService.java` — Phase 3.3 告警自动下单
 - `webae/order/WebOrderTemplate.java` / `WebOrderTemplateItem.java` / `WebOrderTemplatesStore.java` / `WebOrderTemplatesValidator.java` — 批量下单模板
-- `webae/api/WebApiRouter.java` — REST 路由（认证/OC/存储/电力/配方/样板/GT/下单/配置/图标/聊天/玩家/集成/搜索/材料树/SSE/P2P/拓扑/世界地图 meta·markers·progress·tiles·invalidate/Spark/AI/服务端后台命令/QQ 群机器人）
+- `webae/api/WebApiRouter.java` — REST 路由（认证/OC/存储/电力/配方/样板/GT/下单/配置/图标/聊天/玩家/集成/搜索/材料树/SSE/P2P/拓扑/网络健康与 CPU 历史/世界地图 meta·markers·progress·tiles·invalidate·versions·diff·annotations/Spark/AI/服务端后台命令/QQ 群机器人）；annotation POST/PUT 独立使用 16 KiB 有界 body reader，body `networkId` 与可选 query `network` 必须一致
 - `webae/api/handler/AdminConsoleHandler.java` — 管理员服务端后台 API：轻量玩家快照、命令执行、共享 preset、审计摘要/详情；动态路由规范化后进入性能诊断
 - `webae/console/AdminCommandService.java` / `AdminConsoleStore.java` — 单并发主线程命令桥接、高风险确认/冷却/队列门禁、有界输出与 `admin-console.json` 后台合并持久化
 - `webae/api/handler/WebAiAdminHandler.java` — 管理员 AI Provider/API Key 配置、删除与连通性测试；响应不返回明文或密文
@@ -363,6 +375,9 @@ alwaysApply: false
 - `webae/api/handler/NetworkBalanceHandler.java` — 多网存储平衡 REST handler（`GET /api/network/balance`；Phase 8 只读建议）
 - `webae/api/handler/TopologyHandler.java` — 网络拓扑 REST（`GET /api/network/topology` 读上次手动快照；`POST /api/network/topology/snapshot` 主线程采集 + 冷却；`topologyEnabled` 关闭时 503）
 - `webae/api/handler/OrderHandler.java` — AE 合成订单 REST（`POST /api/order`/`batch`；下单绑定 `ICraftingLink`；`GET /api/order/list` 经 `WebAeOrderProgressService` 按 networkId 读步骤进度；history 按 owner 隔离；`GET /api/order/status` 未知 jobId→404；`POST /api/order/cancel` 取消 Future + `link.cancel()`）
+- `webae/api/handler/CpuHistoryHandler.java` / `CpuCapacityHandler.java` — CPU history/capacity 只读 REST（owner/network ACL + stable key ACL；HTTP 仅读内存并标记 sampler active，不扫描 World/TileEntity/AE2 Grid）
+- `webae/diagnostics/NetworkHealthDiagnosticDto.java` / `NetworkHealthDiagnosticProvider.java` / `NetworkHealthStatusEvaluator.java` — owner/network 隔离的网络健康证据 DTO、约 5 秒服务端快照 Provider 与固定 issue/status 判定；缺失或过期证据保持 `unknown`，HTTP/助手只读同一快照
+- `webae/api/handler/NetworkHealthHandler.java` — `GET /api/network/health?network=` 只读诊断端点（复用 owner/network ACL，不在 HTTP 线程扫描 World/TileEntity/AE2 Grid）
 - `webae/api/handler/OrderTemplatesHandler.java` — 批量下单模板 REST handler（`GET/PUT /api/order/templates`；`TeXTech/WebAE/web-order-templates.json` 按 ownerUuid 隔离）
 - `webae/api/handler/GtMachineHandler.java` — GT 机器监控 REST handler（只读缓存 + 管理员刷新 + 批量）
 - `webae/api/handler/WebConfigHandler.java` — `/api/config` 公开配置（refresh/theme/icon/debugFlags/topology/worldMapEnabled·max/defaultQualityTier/alerts/dynmapBaseUrl）
@@ -436,19 +451,19 @@ alwaysApply: false
 - `webae/recipe/RecipeLocalExporter.java` — 客户端 NEI 配方导出至 `TeXTech/WebAE/web-recipes.json`（纯 JSON）
 - `webae/network/RecipeUploadBatcher.java` — 配方上传分批（FML 32767B 上限）
 - `webae/network/RecipeUploadThrottler.java` — 客户端 tick 节流上传（`webRecipeUploadBatchesPerTick`）
-- `webae/network/PacketWebRecipeUpload.java` — C→S 分批配方上传（packet ID 26；UploadSession + ingest 结束 rebuildIndexes）
+- `webae/network/PacketWebRecipeUpload.java` — C→S 分批配方上传（packet ID 26；30 KiB body / 29,488-byte JSON；真实玩家 + OP + 主线程；严格顺序 UploadSession）
 - `webae/network/PacketWebRecipeUploadAck.java` — S→C 配方上传确认（packet ID 27）
 - `webae/search/RecipeSearchRateLimiter.java` — 配方模糊搜索 per-owner 限流（`webRecipeSearchMinIntervalMs`）
 - `webae/icon/NesqlIconImporter.java` — NESQL 预渲染图标导入（`/admweb icons import-nesql`）
 - `webae/icon/IconNesqlStyleRenderer.java` — **活跃** NESQL 同款单图标 FBO（`GuiContainerManager.drawItem`，64×64 PNG 输出）
 - `webae/icon/IconLocalStore.java` — 本机 `icons-local/` 写盘 + pull zip 解压
 - `webae/icon/IconLazyConsentChat.java` — 懒加载补渲聊天同意（材质包知情）
-- `webae/network/PacketWebUploadTrigger.java` — S→C 触发 recipes/icons/icons_local/icons_pull/icon_verify（packet ID 30）
+- `webae/network/PacketWebUploadTrigger.java` — S→C 触发 recipes/icons/icons_local/icons_pull/icon_verify（packet ID 30）；item-ID JSON 仅接受数组，数量、UTF-8 长度、空值、控制字符和 surrogate 均有界校验，非法输入不启动扫描
 - `webae/network/PacketWebIconPullZip.java` — S→C pull zip 分片（packet ID 49）
 - `webae/network/PacketWebConsoleTokenNotify.java` — S→C WebAE token 下发与剪贴板复制（packet ID 31）
 - `webae/network/PacketWebAlertNotify.java` — S→C owner 告警 HUD（packet ID 50；有界文本、时长/位置/提示音）
 - `webae/network/PacketScreenshotUpload.java` / `PacketScreenshotUploadAck.java` — C→S 24 KiB 截图分片（51）与仅终态 S→C ACK（52）
-- `webae/network/PacketWebIconExportScope.java` — S→C 图标导出范围 all/snapshot/list + itemId JSON（packet ID 32）
+- `webae/network/PacketWebIconExportScope.java` — S→C 图标导出范围 all/snapshot/list + itemId JSON（packet ID 32）；list 必须是受限数组，非法根类型/数量/ID 不更新 pending scope
 - `webae/network/PacketWebIconRequest.java` — S→C 按需懒加载单图标渲染请求（packet ID 33；客户端入队 IconLazyRenderQueue，bulk 导出运行中忽略）
 - `webae/network/PacketWebMapTileJob.java` — **Phase 4 + AE** S→C 世界地图 HD 瓦片渲染任务（packet ID 34；含 `layer=terrain|ae` + `quality` tier）
 - `webae/network/PacketWebMapTileUpload.java` — **Legacy** C→S HD 瓦片上传（packet 35；legacy 模式）
@@ -468,7 +483,7 @@ alwaysApply: false
 - `webae/icon/IconGridExporter.java` — **归档** NEI 网格批量 FBO（16×8）；活跃路径不再调用
 - `webae/icon/IconExportResolver.java` — 活跃链：流体特殊 → NESQL drawItem → placeholder；`resolveLegacy` 保留旧多级回退
 - `gui/guiscreen/GuiIconExportScreen.java` — 隔离 GUI 驱动 bulk 导出（每帧 `iconRenderPerTick` 个 NESQL 单渲；暂停世界渲染）
-- `gui/guiscreen/GuiIconVerifyScreen.java` — 单物品 live NESQL vs cached 对比 GUI
+- `gui/guiscreen/GuiIconVerifyScreen.java` — 单物品三列核验 GUI（游戏内渲染 / 本次导出 PNG / 缓存 PNG；PNG 等比显示，动态纹理在打开/关闭边界创建与释放）
 - `webae/icon/IconRenderMode.java` — 图标 mode 枚举（**仅 `NEI` 活跃并对外暴露**；其余常量 `@Deprecated` 仅归档代码用，命令/API/补全不列出）
 - `webae/icon/IconRenderStrategy.java` + `IconRenderStrategies` + `IconRenderStrategy*` — 旧策略实现（归档，非活跃）
 - `webae/icon/IconBlockRenderer.java` — ItemBlock + RenderBlocks FBO 迷你场景（归档回退）
@@ -477,12 +492,12 @@ alwaysApply: false
 - `webae/icon/IconItemId.java` — 图标缓存 canonical key 与 lookupCandidates（mod:id ↔ mod:id:0 双向；与 RecipeItemEntries.buildItemId / 前端 iconLookupIds 对齐）
 - `webae/icon/IconTileResolver.java` — 解析 `mod:tile.BlockClass[:meta]` 伪 id（拓扑 BlockCableBus 等）→ Block ItemStack，供 `IconItemEnumerator` / `IconBlockRenderer` 方块正面导出
 - `webae/icon/IconItemEnumerator.java` — 客户端图标上传任务枚举（优先 NEI ItemList.items 含 GT meta，回退 itemRegistry meta=0）
-- `webae/icon/IconStore.java` — 服务端物品图标材质包存储单例（`TeXTech/WebAE/icons/<pack>/nei/<itemId>.png` + `manifest.json`；legacy 根 PNG 迁移；recordModeUpload/migrateLegacyPackIfNeeded）
+- `webae/icon/IconStore.java` — 服务端物品图标材质包存储单例（`TeXTech/WebAE/icons/<pack>/<mode>/<sanitizedItemId>.png` + `manifest.json`；legacy 根 PNG 迁移；单 PNG 512 KiB/2048px、整批 16 MiB；canonical/symlink/目标碰撞检查；整批 staging/promote/rollback 后单次刷新索引）
 - `webae/icon/IconAtlasSampler.java` — 客户端图标图集 CPU 采样（归档回退；**流体 registry 键 `fluid:` 由 IconFluidRenderer GL 染色**）
 - `webae/icon/IconFluidRenderer.java` — 流体/流体单元专用检测与 GL 染色（registry 流体 still 图标 + AE2FC `ae2fc:fluid_drop` 液滴外形 + `fluid.getColor(FluidStack)` 染色 + AE2 `POST_HOOKS` 叠加；流体存储单元等强制游戏内渲染路径）
 - `webae/icon/IconGlFallback.java` — GL FBO 回退（流体特殊路径仍活跃；其余归档）
 - `webae/icon/IconRenderer.java` — 客户端图标导出调度（GuiIconExportScreen + IconExportResolver/NESQL；固定 nei；snapshot/list 范围；bulk 开始时清空 IconLazyRenderQueue；ClientTick 异步上传；按需单图标 renderAndUploadSingle）
-- `webae/network/PacketWebIconUpload.java` — C→S 分批图标上传（packet ID 28，含 renderMode 子目录；ChunkSink key=player|pack|mode；isEnd 解码 base64 PNG 写盘并 `recordDefaultPack`）
+- `webae/network/PacketWebIconUpload.java` — C→S 分批图标上传（packet ID 28，30000 bytes 包体；24 KiB 严格顺序非空块；8 MiB/342 块；每真实玩家 2 会话、全局 16 会话/32 MiB 预留、120 秒 TTL；严格 JSON object/Base64/唯一 item ID；完整 bundle 事务提交后才 `recordDefaultPack` 与 ACK）
 - `webae/network/PacketWebIconUploadAck.java` — S→C 图标上传确认（packet ID 29，回传进度+消息；懒加载单图标 `1 icons stored` 不写聊天栏，仅 bulk/多图标完成提示）
 - `webae/network/PacketIconDirectCaptureRequest.java` — S→C 图标直渲请求（packet ID 47）
 - `webae/network/PacketIconDirectCaptureResponse.java` — C→S 图标直渲 PNG 回传（packet ID 48）
@@ -532,9 +547,15 @@ alwaysApply: false
 - `webae/worldmap/WorldMapMarkerBuilder.java` — 从 logical `TopologySnapshot.nodes[].devices[]` 扁平化 markers；`cpu`/`controller` 多方块各仅 1 anchor marker（CPU：监视器 > 协处理器 > 存储 > 首 unit；控制器：最低 Y 再 x/z）
 - `webae/worldmap/WorldMapChunkSetBuilder.java` — AE 设备占用 chunk + Chebyshev padding 精确 allowed 集（L 形网络不填充空白 chunk）
 - `webae/worldmap/WorldMapBoundsBuilder.java` — per-dim marker bbox + allowed chunk 集/meta 组装（paddingChunks/maxChunks clamp）
-- `webae/worldmap/WorldMapHandler.java` — 世界地图 REST（meta/markers/tiles + **snapshot manifest/status/request**；client_only 下 tile 只读快照）
-- `webae/worldmap/WorldMapSnapshotStore.java` — 按 network 版本化快照磁盘存储 `map-snapshots/`
-- `webae/worldmap/WorldMapCaptureCoordinator.java` — consent 状态机 + pending 去重 + 附近玩家筛选 + 采集 job 生命周期
+- `webae/worldmap/WorldMapHandler.java` — 世界地图 REST（meta/markers/tiles + **snapshot manifest/status/request**；client_only 下 tile 只读快照；snapshot request 的 live 玩家查询/建 job/Forge 发包经 `HandlerTick` 主线程，队列深度 128 背压、HTTP 15 秒有界等待且取消未开始的超时任务）
+- `webae/worldmap/WorldMapSnapshotStore.java` — 按 network 版本化快照磁盘存储 `map-snapshots/`；对 manifest/current/tile 的大小、结构、坐标、layer、source、sha256 和 owner UUID 做有界校验，拒绝 snapshot root 及下方任一 symlink path segment，`loadCurrent()` 深度验证后才返回
+- `webae/worldmap/WorldMapLogicalIndex.java` — snapshot 版本目录的有界 `logical-index.json` 侧车（version/timestamp/logicalAvailable/markers/aePlacements）；发布时 best-effort 写入，旧版本缺失时保持 unavailable，不以当前拓扑冒充历史
+- `webae/worldmap/WorldMapSnapshotDiffOptions.java` / `WorldMapSnapshotDiffDto.java` / `WorldMapSnapshotVersionsDto.java` / `WorldMapSnapshotDiffService.java` — 仅比较 retained current/previous；tile 以 manifest key+SHA-256 判定，marker 支持 added/removed/changed/唯一 moved，支持维度/坐标/图层过滤；详情最多 1000 条但 summary 保留截断前总数，不可信 manifest 返回 `unknown`
+- `webae/worldmap/WorldMapAnnotationDto.java` / `WorldMapAnnotationRequest.java` / `WorldMapAnnotationResult.java` / `WorldMapAnnotationStore.java` / `WorldMapAnnotationService.java` — owner/network 隔离的服务端注释 CRUD，持久化 `map-annotations/{owner}/{network}.json`；每网 500 条/2 MiB、Unicode code-point 与颜色/版本范围校验、共享锁、临时文件原子替换及 symlink/路径逃逸防护
+- `webae/worldmap/WorldMapVersionHandler.java` / `WorldMapAnnotationHandler.java` — versions/diff 与 annotation REST adapter；每个入口独立复用网络 ACL，mutation 追加 guest 只读门禁并使用认证 actor，显式映射 unknown/conflict/not-found/validation 状态
+- `webae/worldmap/WorldMapPacketAuthorization.java` — 世界地图 packet 的服务端授权与范围校验：canonical owner UUID、network/version/dimension/chunk/tile 上限、`terrain|ae` 闭集合，以及 owner/OP 或当前 active capture actor 判定
+- `webae/worldmap/WorldMapCaptureCoordinator.java` — consent 状态机 + pending 去重 + 附近玩家筛选；最多 32 active jobs、90 分钟 idle / 2 小时 absolute TTL，断线/stop/restart 清理未发布版本，严格解析三源 `sourceStatsJson`
+- `webae/worldmap/WorldMapJourneyMapFsReader.java` — SP/JourneyMap exact-world 文件读取；root→tile 每段拒绝 symlink，lexical/canonical containment，1 MiB/IHDR/CRC/尺寸预检后完整 ImageIO 解码复核
 - `webae/worldmap/WorldMapConsentChat.java` — 服务端可点击聊天（接受/拒绝 → `/admweb wm y|n`）
 - `webae/worldmap/WorldMapSnapshotMode.java` — `client_only` / `legacy` 模式判定
 - `webae/worldmap/WorldMapAePlacementRecord.java` / `WorldMapAePlacementCollector.java` / `WorldMapAePlacementSupport.java` — logical 快照采集 AE 放置点（设备 + 线缆 + part）→ `TopologySnapshot.aePlacements`
@@ -551,7 +572,7 @@ alwaysApply: false
 - `webae/worldmap/WorldMapFlatRenderer.java` — **Phase B/2** 单 chunk 俯视（flat）PNG 渲染（软方块穿透；主线程；chunk null → 斜纹占位）
 - `webae/worldmap/WorldMapIsoRenderer.java` — **Phase 3 + Phase 1** mineshot 风格斜视角列投影软件渲染（`WorldMapChunkContext` 跨 chunk 墙高；四向 orbit + BlockColorResolver 面采样）
 - `webae/worldmap/WorldMapSideRenderer.java` — **Legacy** 正交侧视（north/south/east/west；已由 oblique 取代，保留供参考）
-- `webae/worldmap/WorldMapRenderSupport.java` — **Phase 3 + UV engine** 渲染器共享工具（world/chunk 访问、软方块判定、flat/oblique 分发；`webWorldMapRenderEngine` uv/legacy）
+- `webae/worldmap/WorldMapRenderSupport.java` — **Phase 3 + UV engine** 渲染器共享工具（world/chunk 访问、软方块判定、flat/oblique 分发；`webWorldMapRenderEngine` uv/legacy）；统一执行 bounded PNG signature/IHDR、尺寸（≤2048）和文件大小（≤1 MiB）校验
 - `webae/worldmap/engine/WorldMapChunkContext.java` — **Phase 1** 3×3 chunk 快照（`webWorldMapChunkPadding`）世界坐标 block/light/biome 查询
 - `webae/worldmap/engine/WorldMapTextureRegistry.java` — **Phase 1** mod JAR 方块面纹理 BufferedImage LRU（`webWorldMapTextureCacheMax`）
 - `webae/worldmap/engine/WorldMapFaceRasterizer.java` — **Phase 1/2** ppb×ppb UV 栅格 + 单点 `sampleFaceRgb`（ray 命中）+ biome tint + 面光照
@@ -573,7 +594,7 @@ alwaysApply: false
 - `webae/worldmap/WorldMapRenderExecutor.java` — **Phase C** 渲染线程池执行器（`webWorldMapRenderThreads` 配置线程数）
 - `webae/worldmap/dynmap/WorldMapDynmapDetector.java` — **Phase B** Dynmap/GWM 存在性检测（`dynmapTileRoot` 目录扫描）
 - `webae/worldmap/dynmap/WorldMapDynmapCoordMapper.java` — **Phase B** Minecraft 坐标 ↔ Dynmap 瓦片坐标映射（128 block/tile z0）
-- `webae/worldmap/dynmap/WorldMapDynmapTileProvider.java` — **Phase B** Dynmap 外部瓦片 HTTP 代理读取（`GET /api/worldmap/dynmap-tiles/{world}/{z}/{x}/{y}.png`）
+- `webae/worldmap/dynmap/WorldMapDynmapTileProvider.java` — **Phase B** Dynmap 外部瓦片 HTTP 代理读取（`GET /api/worldmap/dynmap-tiles/{world}/{z}/{x}/{y}.png`）；限制 world/zoom/坐标/perspective，并以 canonical path containment 防止脱离受控 Dynmap tile root
 - `webae/worldmap/WorldMapClientCaptureMode.java` — 客户端 GL 截图策略解析（off / ultra_only / when_online）
 - `webae/worldmap/WorldMapTerrainFallback.java` — 渐进占位：低清缓存 tier 或 Dynmap chunk 裁剪
 - `webae/worldmap/dynmap/WorldMapDynmapWorldNames.java` — 维度 → Dynmap world 目录名
@@ -591,7 +612,7 @@ alwaysApply: false
 - `webae/planner/PlannerFlowExporter.java` — **Phase 4.3** Factory Flow / gtnh-flow 互操作导出
 - `webae/api/handler/FavoritesHandler.java` — **Phase 4.2** `GET/PUT /api/favorites`
 - `webae/events/EventStreamHub.java` — **Phase9** SSE 订阅 hub（告警广播 + 15s 心跳；`HandlerTick` tick）
-- `webae/monitor/MonitorPreviewDto.java` / `MonitorPreviewCollector.java` — **Phase11** 监视器单槽折线预览
+- `webae/monitor/MonitorPreviewDto.java` / `MonitorPreviewCollector.java` — 监视器单槽 type-aware 预览：`scalar`、`series[]`、`categories[]`、`rows[]`，可视序列最多 240 点
 - `webae/display/` — `DisplayStore` / `DisplayRecord` / `DisplayCaptureService` / `DisplayCapturePage`；`api/handler/DisplayHandler.java`（`/api/display` 发布、layout、`frame.jpg`、`frame-status`、touch；`render.html` 仅调试；viewToken 只读）
 - **Phase 3 集成** — `webae/scanner/LinkScannerCollector.java` + `LinkScannerBlockDto`（I1 已加载区块 Link 镜像）；`webae/monitor/MonitorBindingCollector.java` + DTOs（I2 监视器绑定只读）；`webae/api/handler/ScannerHandler.java`/`MonitorHandler.java`/`MonitorPreviewHandler.java`/`PlannerHandler.java`（I3 读/写 `plans.json` + `POST /api/planner/export-flow`）；`webae/assistant/WebAssistantService.java` + `WebAssistantRateLimiter.java` + `AssistantHandler.java`（I4 规则查询 2s 限流）；`webae/cells/NetworkCellSummaryCollector.java` + `CellSummaryHandler.java`（I5 无限元件/字节摘要）；`webae/pocket/PocketOverviewCollector.java` + `PocketHandler.java`（I6 OP 只读概览，无物品内容）；`CraftTreeHandler.java`/`EventStreamHandler.java`/`P2pHandler.java`（Phase6/9/10 REST）
 - **Phase 3 告警** — `config/ConfigWebAlertsLoader.java` 加载/保存 `TeXTech/WebAE/web-alerts.json`；`webae/alerts/WebAlertsConfig.java`/`WebAlertsConfigValidator.java`/`WebAlertEngine.java`/`WebAlertStore.java`/`WebAlertHistoryStore.java`/`WebAlertHistoryEntry.java`/`WebAlertDto.java`/`WebhookDispatcher.java`/`AlertDeliveryTransport.java`/`QqIdDiscovery.java`/`QqIdProbeParser.java`/`QqGatewayClient.java`/`QqIdProbeService.java`/`AutomationCooldownTracker.java`（浏览器、owner 聊天/HUD、旧 Webhook、QQ 官方机器人含目标 ID 探测、微信公众号、SMTP 邮件、企业微信机器人/自建应用；外部 I/O 固定 512 队列 + 2 daemon worker + 重试/熔断）+ `webae/network/PacketWebAlertNotify.java` / `renders/WebAlertHudRenderer.java` + `webae/order/OrderSubmitService.java`（Phase 3.3 服务端线程提交合成）+ `AlertsHandler.java`（A1–A5 + `server_tps_below` + `automation_craft` 历史 + `PUT /api/alerts/rules` OP 编辑与投递状态 + QQ ID probe）；`HandlerTick` 对告警引擎独立 perf 分段，`WebAlertEngine` 每告警 tick 最多轮转 2 owner 并复用 storage 索引；前端 `AlertsRulesEditor.tsx` / `QqIdProbeModal.tsx` 编辑多渠道目标与 TPS 安全参数
@@ -599,6 +620,6 @@ alwaysApply: false
 - **Phase 4a 聚合搜索** — `webae/search/WebSearchService.java`（合并 snapshot storage/GT、RecipeCacheStore、PatternBrowseService）；`webae/search/WebSearchRateLimiter.java`（500ms/owner）；`webae/dto/SearchResultDto.java`；`SearchHandler.java`；前端 `hooks/useGlobalSearch.ts` + `CommandPalette.tsx` 扩展（API 优先 + snapshot fallback）
 - **Phase 4b 可见性轮询** — 前端 `hooks/usePageVisibility.ts` + `hooks/useVisibilityAwarePolling.ts`；`AppContext` `pauseRefreshWhenHidden`/`refreshPaused`；Settings 开关 `webae_pause_refresh_when_hidden`；覆盖全局 refresh/连接心跳/告警/指标/Chat/AeOrdering/usePlayers
 - **UI 全量备份/默认布局** — `webae-frontend/src/utils/uiSettingsBundle.ts`（`WebUiSettingsBundle` v1 collect/apply）；`components/settings/SettingsBackupPanel.tsx`；公开 `GET /api/ui-defaults` + `/admweb defaults`；jar/实例 `ui-defaults.json`
-- **WebAE 仪表盘组件设置** — `components/dashboard/EditWidgetModal.tsx`（编辑入口）、`WidgetPinEditor.tsx`（列选择与钉选搜索）、`utils/dashboardColumns.ts`（各数据源列定义与 `undefined`/空数组语义）、`utils/dashboardPins.ts`（钉选当前值解析）；渲染入口为 `pages/Dashboard.tsx`、共享 `WidgetContent.tsx` 与 `NetworkBalanceTable.tsx`。改列契约时必须同步所有入口和 `dashboardColumns.test.ts`，切换数据源需清除旧列 key；物品搜索需覆盖 displayName/registryName/itemId 并保留 meta=0
-- **WebAE → 游戏显示器** — 默认发布布局到 `/api/display` 并复制 `textech-webae-display-binding`；可回退 `dashboardGameDisplayExport.ts` 的 DOM 快照（伪 UI）。直播成功帧来自主机截真实 `/embed/dashboard`（`spa-jpeg`）或客户端 MCEF（`mcef`）；直播不静默回退 AWT snapshot。`frame-status` 可查截帧诊断。与 widgets 配置 JSON 分离，MC Tick 不跑浏览器
+- **WebAE 仪表盘组件设置** — `components/dashboard/EditWidgetModal.tsx`（编辑入口）、`WidgetPinEditor.tsx`（列选择与钉选搜索）、`utils/dashboardColumns.ts`（各数据源列定义与 `undefined`/空数组语义）、`utils/dashboardPins.ts`（钉选当前值解析）；七类共享渲染入口收敛到 `WidgetContent.tsx` + `ScalarWidgetRenderer.tsx`，`PowerWidgetContent.tsx` 复用 `resolveProgressPercent`。改列契约时必须同步所有入口和测试，切换数据源需清除旧列 key；物品搜索需覆盖 displayName/registryName/itemId 并保留 meta=0
+- **WebAE → 游戏显示器** — 整页默认发布到 `/api/display` 并复制 `textech-webae-display-binding`，失败可回退 snapshot；`utils/monitorWidgetBundle.ts` 另提供 `textech-monitor-widget-bundle` v1（七类共享 kind、Dashboard 顺序、最多 36、同一 JSON 入口可重导入）。`radarChart` 与复合 widget 只走整页 surface。两条路径都不得包含密钥，也不得新增 API 轮询或 MC Tick 工作
 - `webae/debug/WebAeDebugLog.java` — WebAE 分功能 debug 日志（阶段 3.3，仿 `DataLoomDebugLog`；`Feature` 枚举 ICONS/CHAT/DASHBOARD/SYNTHESIS/PATTERNS，每功能写独立 `logs/textech/webae-<feature>.log`，gate by `Config.webDebugXxx` 开关；`info`/`warn`/`isEnabled`；关键错误仍走 `AdvanceDataMonitor.LOG` 无条件）

@@ -8,6 +8,9 @@ import net.minecraft.item.ItemStack;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmItemConfigScreen;
+import com.imgood.textech.gui.framework.UiFeedbackArea;
+import com.imgood.textech.gui.framework.UiPanel;
+import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.items.ItemGrappleHook;
 import com.imgood.textech.network.packet.PacketGrappleHookConfig;
 
@@ -45,6 +48,7 @@ public class GuiGrappleHookConfig extends AdmItemConfigScreen {
         speedField = createTextField(cx - 10, cy - 38, 80, 20);
         speedField.setMaxStringLength(6);
         speedField.setText(String.format("%.1f", ItemGrappleHook.getTravelSpeed(hookStack)));
+        speedField.setHintText(I18n.format("adm.hint.grapple.travel_speed"));
         speedField.setFocused(true);
 
         buttonList.add(
@@ -82,12 +86,13 @@ public class GuiGrappleHookConfig extends AdmItemConfigScreen {
 
     @Override
     protected void onSave() {
+        beginValidation(speedField);
         try {
             double speed = Double.parseDouble(
                 speedField.getText()
                     .trim());
             if (speed < 0.1D || speed > 5.0D) {
-                errorTips = I18n.format("adm.grapple.speed_hint");
+                rejectField(speedField, I18n.format("adm.grapple.speed_hint"));
                 return;
             }
             ItemGrappleHook.setTravelSpeed(hookStack, speed);
@@ -97,7 +102,7 @@ public class GuiGrappleHookConfig extends AdmItemConfigScreen {
                 .sendToServer(new PacketGrappleHookConfig(speed, showNodeName, showNodeDistance));
             closeScreen();
         } catch (NumberFormatException e) {
-            errorTips = I18n.format("adm.error.invalid_number");
+            rejectField(speedField, I18n.format("adm.error.invalid_number"));
         }
     }
 
@@ -111,20 +116,43 @@ public class GuiGrappleHookConfig extends AdmItemConfigScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
         speedField.mouseClicked(mouseX, mouseY, mouseButton);
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
         int cx = centerX();
         int cy = centerY();
+        UiPanel.drawTitleOrnament(UiThemes.ADM, panelX() + 16, cy - 84, panelWidth - 32);
+        UiPanel.drawFooterOrnament(UiThemes.ADM, panelX() + 16, cy + 100, panelWidth - 32);
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         drawCenteredString(fontRendererObj, I18n.format("adm.title.grappleHookConfig"), cx, cy - 78, 0x00FFFF);
         drawString(fontRendererObj, I18n.format("adm.label.grapple.travel_speed_setting"), cx - 150, cy - 34, 0xAAAAAA);
         speedField.drawTextBox();
-        drawErrorTips(cy + 48);
-        drawCenteredString(fontRendererObj, I18n.format("adm.grapple.speed_hint"), cx, cy + 96, 0x666666);
+        if (errorTips.isEmpty() && speedField.isFocused()) {
+            new UiFeedbackArea(panelX() + 24, cy + 42, panelWidth - 48, 30)
+                .draw(fontRendererObj, I18n.format("adm.grapple.speed_hint"), 0x777777);
+        } else {
+            drawErrorTips(cy + 42);
+        }
+        drawFieldTooltip(
+            speedField,
+            mouseX,
+            mouseY,
+            I18n.format("adm.tooltip.grapple.speed.purpose"),
+            I18n.format("adm.tooltip.grapple.speed.format"),
+            I18n.format("adm.tooltip.grapple.speed.error"));
+        drawButtonTooltip(
+            BUTTON_SHOW_NAME,
+            mouseX,
+            mouseY,
+            I18n.format("adm.tooltip.grapple.show_node_name"));
+        drawButtonTooltip(
+            BUTTON_SHOW_DISTANCE,
+            mouseX,
+            mouseY,
+            I18n.format("adm.tooltip.grapple.show_node_distance"));
     }
 }

@@ -23,6 +23,7 @@ import org.lwjgl.opengl.GL11;
 import com.imgood.textech.client.screenshot.ClientScreenshotService;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
 
@@ -45,12 +46,16 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
     public GuiScreenshotGallery(List<File> history, int index) {
         this.history = history;
         this.index = Math.max(0, Math.min(history.size() - 1, index));
+        setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
+        setStretch(false);
     }
 
     @Override
     public void initGui() {
         super.initGui();
         Keyboard.enableRepeatEvents(true);
+        setPosition(8, 4);
+        setSize(Math.max(1, width - 16), Math.max(1, height - 8));
         buttonList.clear();
         int y = height - 28;
         buttonList
@@ -97,9 +102,7 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
-        UiPanel.draw(UiThemes.ADM, 8, 4, Math.max(1, width - 16), Math.max(1, height - 8));
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
         File file = history.get(index);
         drawCenteredString(
             fontRendererObj,
@@ -141,7 +144,7 @@ public final class GuiScreenshotGallery extends ADM_GuiScreen {
             width / 2,
             height - 43,
             0xAAAAAA);
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 

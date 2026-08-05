@@ -9,11 +9,13 @@ import com.imgood.textech.handler.GrappleRouteSync;
 import com.imgood.textech.items.GrappleHookMode;
 import com.imgood.textech.items.ItemGrappleHook;
 import com.imgood.textech.network.handler.PacketHandlers;
+import com.imgood.textech.utils.NetworkPacketCodec;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class PacketGrapplePathAction implements IMessage {
 
@@ -24,11 +26,15 @@ public class PacketGrapplePathAction implements IMessage {
     public static final byte RESET_BUFFER = 4;
     public static final byte SET_MODE = 5;
     public static final byte DISCARD_BUFFER = 6;
+    private static final int MAX_ROUTE_ID_BYTES = 128;
+    private static final int MAX_NAME_BYTES = 256;
+    public static final int MAX_PACKET_BODY_BYTES = 30000;
 
     private byte action;
     private String routeId = "";
     private String name = "";
     private byte modeId;
+    public boolean malformed;
 
     public PacketGrapplePathAction() {}
 
@@ -81,40 +87,92 @@ public class PacketGrapplePathAction implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeByte(action);
-        writeString(buf, routeId);
-        writeString(buf, name);
-        buf.writeByte(modeId);
+        int start = buf.writerIndex();
+        try {
+            validateShape();
+            buf.writeByte(action);
+            writeString(buf, routeId, MAX_ROUTE_ID_BYTES);
+            writeString(buf, name, MAX_NAME_BYTES);
+            buf.writeByte(modeId);
+            if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Grapple path action exceeds packet body limit");
+            }
+        } catch (RuntimeException error) {
+            buf.writerIndex(start);
+            throw error;
+        }
+    }
+
+    public boolean fitsPacketBudget() {
+        ByteBuf scratch = Unpooled.buffer(128);
+        try {
+            toBytes(scratch);
+            return scratch.readableBytes() <= MAX_PACKET_BODY_BYTES;
+        } catch (RuntimeException error) {
+            return false;
+        } finally {
+            scratch.release();
+        }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        action = buf.readByte();
-        routeId = readString(buf);
-        name = readString(buf);
-        modeId = buf.readByte();
+        malformed = false;
+        action = REQUEST_SYNC;
+        routeId = "";
+        name = "";
+        modeId = 0;
+        try {
+            int start = buf.readerIndex();
+            if (buf.readableBytes() > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Grapple path action exceeds packet body limit");
+            }
+            action = buf.readByte();
+            routeId = readString(buf, MAX_ROUTE_ID_BYTES);
+            name = readString(buf, MAX_NAME_BYTES);
+            modeId = buf.readByte();
+            validateShape();
+            if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
+                throw new IllegalArgumentException("Grapple path action has trailing or oversized data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            action = REQUEST_SYNC;
+            routeId = "";
+            name = "";
+            modeId = 0;
+        }
     }
 
-    private static void writeString(ByteBuf buf, String value) {
-        byte[] bytes = value == null ? new byte[0] : value.getBytes(java.nio.charset.Charset.forName("UTF-8"));
+    private void validateShape() {
+        if (action < REQUEST_SYNC || action > DISCARD_BUFFER) {
+            throw new IllegalArgumentException("Invalid grapple path action");
+        }
+        if (modeId < GrappleHookMode.QUEUE.getId() || modeId > GrappleHookMode.PATH.getId()) {
+            throw new IllegalArgumentException("Invalid grapple path mode");
+        }
+    }
+
+    private static void writeString(ByteBuf buf, String value, int maxBytes) {
+        byte[] bytes = value == null ? new byte[0] : value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length > maxBytes || bytes.length > Short.MAX_VALUE) {
+            throw new IllegalArgumentException("Grapple route text exceeds packet framing");
+        }
         buf.writeShort(bytes.length);
         buf.writeBytes(bytes);
     }
 
-    private static String readString(ByteBuf buf) {
-        int len = buf.readShort();
-        if (len <= 0) {
-            return "";
-        }
-        byte[] bytes = new byte[len];
-        buf.readBytes(bytes);
-        return new String(bytes, java.nio.charset.Charset.forName("UTF-8"));
+    private static String readString(ByteBuf buf, int maxBytes) {
+        return NetworkPacketCodec.readUnsignedShortUtf8(buf, maxBytes);
     }
 
     public static class ServerHandler implements IMessageHandler<PacketGrapplePathAction, IMessage> {
 
         @Override
         public IMessage onMessage(final PacketGrapplePathAction message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
@@ -127,6 +185,9 @@ public class PacketGrapplePathAction implements IMessage {
     }
 
     private static void handleServer(EntityPlayerMP player, PacketGrapplePathAction message) {
+        if (player == null) {
+            return;
+        }
         if (message.action == REQUEST_SYNC) {
             GrappleRouteSync.syncAll(player);
         } else if (message.action == SAVE_ROUTE) {

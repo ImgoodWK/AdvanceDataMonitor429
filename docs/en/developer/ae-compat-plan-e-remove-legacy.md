@@ -41,7 +41,7 @@ TeXTech.postInit
 
 ## Step 1 — Upgrade Build Dependencies
 
-**File**: [`dependencies.gradle`](../../dependencies.gradle)
+**File**: [`dependencies.gradle`](../../../dependencies.gradle)
 
 | Change | From | To |
 |--------|------|-----|
@@ -87,7 +87,7 @@ Fix compile errors from ae2fc 1.5.x / AE2 rv3-beta-977 API changes (focus: wheth
 - Statically bind four adapter fields to Native implementations (classes renamed in Step 4)
 - `init()` may simplify to `initialized = true` + optional `LOG.info("[ADM] AE compat: native fluid (2.9.0+)")`
 
-[`TeXTech.postInit`](../../../src/main/java/com/imgood/textech/TeXTech.java) may keep or remove `AeCompat.init()`.
+[`AdvanceDataMonitor.postInit`](../../../src/main/java/com/imgood/textech/AdvanceDataMonitor.java) may keep or remove `AeCompat.init()`.
 
 ---
 

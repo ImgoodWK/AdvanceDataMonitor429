@@ -19,9 +19,9 @@ import com.imgood.textech.assistant.CraftingCandidate;
 import com.imgood.textech.assistant.TeleportDestination;
 import com.imgood.textech.assistant.TeleportService;
 import com.imgood.textech.network.handler.PacketHandlers;
+import com.imgood.textech.utils.NetworkPacketCodec;
 
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
@@ -43,6 +43,11 @@ public class PacketAssistantAction implements IMessage {
     private static final int REQUEST_TELEPORT_CANDIDATES = 12;
     private static final int SUBMIT_TELEPORT = 13;
     private static final int MAX_TEXT_LENGTH = 256;
+    private static final int MAX_TEXT_BYTES = 1024;
+    private static final int MAX_LOCALE_BYTES = 32;
+    public static final int MAX_PACKET_BODY_BYTES = 30000;
+    private static final int MAX_NBT_COMPRESSED_BYTES = 24 * 1024;
+    private static final long MAX_NBT_BYTES = 512L * 1024L;
     private static final int MAX_BATCH_LINES = 8;
 
     private int action;
@@ -53,6 +58,7 @@ public class PacketAssistantAction implements IMessage {
     private String locale = "zh_CN";
     private NBTTagCompound candidateNbt = new NBTTagCompound();
     private NBTTagCompound payload = new NBTTagCompound();
+    public boolean malformed;
 
     public PacketAssistantAction() {}
 
@@ -192,32 +198,76 @@ public class PacketAssistantAction implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        this.action = buf.readByte();
-        this.intentTypeOrdinal = buf.readByte();
-        this.amount = buf.readLong();
-        this.rawText = trim(ByteBufUtils.readUTF8String(buf), MAX_TEXT_LENGTH);
-        this.target = trim(ByteBufUtils.readUTF8String(buf), MAX_TEXT_LENGTH);
-        this.locale = trim(ByteBufUtils.readUTF8String(buf), 32);
-        this.candidateNbt = ByteBufUtils.readTag(buf);
-        this.payload = ByteBufUtils.readTag(buf);
-        if (this.candidateNbt == null) {
+        malformed = false;
+        try {
+            int start = buf.readerIndex();
+            if (buf.readableBytes() > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Assistant action exceeds FML packet limit");
+            }
+            this.action = buf.readByte();
+            this.intentTypeOrdinal = buf.readByte();
+            this.amount = buf.readLong();
+            this.rawText = trim(NetworkPacketCodec.readVarUtf8(buf, MAX_TEXT_BYTES), MAX_TEXT_LENGTH);
+            this.target = trim(NetworkPacketCodec.readVarUtf8(buf, MAX_TEXT_BYTES), MAX_TEXT_LENGTH);
+            this.locale = trim(NetworkPacketCodec.readVarUtf8(buf, MAX_LOCALE_BYTES), MAX_LOCALE_BYTES);
+            this.candidateNbt = NetworkPacketCodec.readTag(buf, MAX_NBT_COMPRESSED_BYTES, MAX_NBT_BYTES);
+            this.payload = NetworkPacketCodec.readTag(buf, MAX_NBT_COMPRESSED_BYTES, MAX_NBT_BYTES);
+            if (this.candidateNbt == null) {
+                this.candidateNbt = new NBTTagCompound();
+            }
+            if (this.payload == null) {
+                this.payload = new NBTTagCompound();
+            }
+            validateShape();
+            if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
+                throw new IllegalArgumentException("Assistant action has trailing or oversized data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            this.rawText = "";
+            this.target = "";
+            this.locale = "zh_CN";
             this.candidateNbt = new NBTTagCompound();
-        }
-        if (this.payload == null) {
             this.payload = new NBTTagCompound();
         }
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeByte(this.action);
-        buf.writeByte(this.intentTypeOrdinal);
-        buf.writeLong(this.amount);
-        ByteBufUtils.writeUTF8String(buf, this.rawText == null ? "" : this.rawText);
-        ByteBufUtils.writeUTF8String(buf, this.target == null ? "" : this.target);
-        ByteBufUtils.writeUTF8String(buf, this.locale == null ? "" : this.locale);
-        ByteBufUtils.writeTag(buf, this.candidateNbt == null ? new NBTTagCompound() : this.candidateNbt);
-        ByteBufUtils.writeTag(buf, this.payload == null ? new NBTTagCompound() : this.payload);
+        int start = buf.writerIndex();
+        try {
+            validateShape();
+            buf.writeByte(this.action);
+            buf.writeByte(this.intentTypeOrdinal);
+            buf.writeLong(this.amount);
+            NetworkPacketCodec.writeVarUtf8(buf, this.rawText == null ? "" : this.rawText, MAX_TEXT_BYTES);
+            NetworkPacketCodec.writeVarUtf8(buf, this.target == null ? "" : this.target, MAX_TEXT_BYTES);
+            NetworkPacketCodec.writeVarUtf8(buf, this.locale == null ? "" : this.locale, MAX_LOCALE_BYTES);
+            NetworkPacketCodec.writeTag(
+                buf,
+                this.candidateNbt == null ? new NBTTagCompound() : this.candidateNbt,
+                MAX_NBT_COMPRESSED_BYTES);
+            NetworkPacketCodec.writeTag(
+                buf,
+                this.payload == null ? new NBTTagCompound() : this.payload,
+                MAX_NBT_COMPRESSED_BYTES);
+            if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Assistant action exceeds FML packet limit");
+            }
+        } catch (RuntimeException error) {
+            buf.writerIndex(start);
+            throw error;
+        }
+    }
+
+    private void validateShape() {
+        if (action < REQUEST_CRAFT_CANDIDATES || action > SUBMIT_TELEPORT) {
+            throw new IllegalArgumentException("Invalid assistant action");
+        }
+        if (action == QUERY
+            && (intentTypeOrdinal < 0 || intentTypeOrdinal >= AssistantIntentType.values().length)) {
+            throw new IllegalArgumentException("Invalid assistant intent type");
+        }
     }
 
     private static String currentLocale() {
@@ -340,7 +390,13 @@ public class PacketAssistantAction implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketAssistantAction message, final MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             final EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+            if (player == null) {
+                return null;
+            }
             AdvanceDataMonitor.LOG.info(
                 "[ADM Assistant] PacketAssistantAction received: action={}, player={}, typeOrdinal={}, raw='{}', target='{}', amount={}, locale={}",
                 message.action,
@@ -354,10 +410,9 @@ public class PacketAssistantAction implements IMessage {
 
                 @Override
                 public void run() {
-                    EntityPlayerMP serverPlayer = ctx.getServerHandler().playerEntity;
-                    IMessage response = handleOnServerThread(message, serverPlayer);
+                    IMessage response = handleOnServerThread(message, player);
                     if (response != null) {
-                        AdvanceDataMonitor.ADMCHANEL.sendTo(response, serverPlayer);
+                        AdvanceDataMonitor.ADMCHANEL.sendTo(response, player);
                     }
                 }
             });

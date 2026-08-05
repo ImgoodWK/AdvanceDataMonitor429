@@ -32,11 +32,112 @@ public final class PocketClientCache {
     private static int slotsPerPage = 1;
     private static final Map<Integer, ItemStack[]> pages = new HashMap<Integer, ItemStack[]>();
     private static boolean received = false;
+    private static boolean splitFullActive = false;
+    private static int splitFullPageCount = 0;
+    private static int splitFullSlotsPerPage = 0;
+    private static int splitFullNextPage = 0;
 
     private PocketClientCache() {}
 
-    public static void apply(PacketPocketSync message) {
-        if (message == null) return;
+    /**
+     * Apply a packet and report whether it was a normal single-page navigation.
+     * Split full-snapshot fragments intentionally return false because they
+     * populate a page without changing the user's current page.
+     */
+    public static boolean apply(PacketPocketSync message) {
+        if (message == null) return false;
+
+        if (message.kind == PacketPocketSync.KIND_METADATA
+            && message.pageIndex == PacketPocketSync.FULL_SNAPSHOT_PAGE_INDEX) {
+            if (!isValidDimensions(message.pageCount, message.slotsPerPage)) {
+                resetSplitFull();
+                return false;
+            }
+            applyMetadata(message);
+            pages.clear();
+            splitFullActive = true;
+            splitFullPageCount = message.pageCount;
+            splitFullSlotsPerPage = message.slotsPerPage;
+            splitFullNextPage = 0;
+            ensurePageShape();
+            received = true;
+            return false;
+        }
+
+        if (!isValidDimensions(message.pageCount, message.slotsPerPage)) {
+            resetSplitFull();
+            return false;
+        }
+
+        if (splitFullActive && message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
+            if (message.pageCount != splitFullPageCount
+                || message.slotsPerPage != splitFullSlotsPerPage
+                || message.pageIndex != splitFullNextPage
+                || message.pages.size() != 1
+                || message.pages.get(0) == null
+                || message.pages.get(0).pageIndex != splitFullNextPage
+                || message.pages.get(0).slots == null
+                || message.pages.get(0).slots.length != splitFullSlotsPerPage) {
+                resetSplitFull();
+                return false;
+            }
+            applyMetadata(message);
+            ensurePageShape();
+            applyPagePayload(message.pages.get(0));
+            splitFullNextPage++;
+            if (splitFullNextPage >= splitFullPageCount) {
+                resetSplitFull();
+            }
+            received = true;
+            return false;
+        }
+
+        // A complete snapshot, ordinary metadata packet, or an unexpected
+        // packet type terminates an in-flight split so a later single page is
+        // never permanently classified as a fragment.
+        if (message.kind != PacketPocketSync.KIND_SINGLE_PAGE) {
+            resetSplitFull();
+        }
+
+        applyMetadata(message);
+        boolean replacePages = message.kind == PacketPocketSync.KIND_FULL;
+        if (replacePages) {
+            pages.clear();
+        }
+        ensurePageShape();
+
+        if (message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
+            if (message.pages.size() != 1 || message.pages.get(0) == null
+                || message.pages.get(0).pageIndex != message.pageIndex
+                || message.pageIndex < 0 || message.pageIndex >= pageCount
+                || message.pages.get(0).slots == null
+                || message.pages.get(0).slots.length != slotsPerPage) {
+                return false;
+            }
+            applyPagePayload(message.pages.get(0));
+            setCurrentPage(message.pageIndex);
+            received = true;
+            return true;
+        }
+
+        for (PacketPocketSync.PagePayload payload : message.pages) {
+            if (payload == null || payload.pageIndex < 0 || payload.pageIndex >= pageCount
+                || payload.slots == null || payload.slots.length != slotsPerPage) {
+                continue;
+            }
+            applyPagePayload(payload);
+        }
+        received = true;
+        if (currentPage >= pageCount) currentPage = Math.max(0, pageCount - 1);
+        return false;
+    }
+
+    private static boolean isValidDimensions(int newPageCount, int newSlotsPerPage) {
+        return newPageCount >= 1 && newPageCount <= PocketState.PAGES_CAP
+            && newSlotsPerPage >= 1 && newSlotsPerPage <= PocketState.SLOTS_PER_PAGE_CAP;
+    }
+
+    private static void applyMetadata(PacketPocketSync message) {
         spaceUpgrades = message.spaceUpgrades;
         pageUpgrades = message.pageUpgrades;
         stackUpgrades = message.stackUpgrades;
@@ -48,14 +149,9 @@ public final class PocketClientCache {
         pageCount = message.pageCount;
         slotsPerPage = message.slotsPerPage;
         received = true;
+    }
 
-        if (message.kind == PacketPocketSync.KIND_FULL) {
-            pages.clear();
-        }
-        if (message.kind == PacketPocketSync.KIND_METADATA) {
-            if (currentPage >= pageCount) currentPage = Math.max(0, pageCount - 1);
-            return;
-        }
+    private static void ensurePageShape() {
         for (int p = 0; p < pageCount; p++) {
             ItemStack[] existing = pages.get(p);
             if (existing == null || existing.length != slotsPerPage) {
@@ -67,22 +163,22 @@ public final class PocketClientCache {
         while (it.hasNext()) {
             if (it.next() >= pageCount) it.remove();
         }
-
-        for (PacketPocketSync.PagePayload payload : message.pages) {
-            if (payload.pageIndex < 0 || payload.pageIndex >= pageCount) continue;
-            ItemStack[] arr = new ItemStack[slotsPerPage];
-            if (payload.slots != null) {
-                int copy = Math.min(payload.slots.length, slotsPerPage);
-                for (int s = 0; s < copy; s++) {
-                    arr[s] = payload.slots[s];
-                }
-            }
-            pages.put(payload.pageIndex, arr);
-        }
-        if (message.kind == PacketPocketSync.KIND_SINGLE_PAGE) {
-            setCurrentPage(message.pageIndex);
-        }
         if (currentPage >= pageCount) currentPage = Math.max(0, pageCount - 1);
+    }
+
+    private static void applyPagePayload(PacketPocketSync.PagePayload payload) {
+        ItemStack[] arr = new ItemStack[slotsPerPage];
+        for (int s = 0; s < slotsPerPage; s++) {
+            arr[s] = payload.slots[s];
+        }
+        pages.put(payload.pageIndex, arr);
+    }
+
+    private static void resetSplitFull() {
+        splitFullActive = false;
+        splitFullPageCount = 0;
+        splitFullSlotsPerPage = 0;
+        splitFullNextPage = 0;
     }
 
     public static boolean isReceived() {

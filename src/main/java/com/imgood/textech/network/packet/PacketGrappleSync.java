@@ -17,6 +17,8 @@ import io.netty.buffer.ByteBuf;
 
 public class PacketGrappleSync implements IMessage {
 
+    private static final int MAX_POSITION_COUNT = 256;
+
     public boolean attached;
     public boolean traveling;
     public int anchorX;
@@ -28,6 +30,7 @@ public class PacketGrappleSync implements IMessage {
     public float travelProgress;
     public List<BlockPos> nodes = new ArrayList<BlockPos>();
     public List<BlockPos> travelQueue = new ArrayList<BlockPos>();
+    public boolean malformed;
 
     public PacketGrappleSync() {}
 
@@ -55,20 +58,30 @@ public class PacketGrappleSync implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        attached = buf.readBoolean();
-        traveling = buf.readBoolean();
-        anchorX = buf.readInt();
-        anchorY = buf.readInt();
-        anchorZ = buf.readInt();
-        travelTargetX = buf.readInt();
-        travelTargetY = buf.readInt();
-        travelTargetZ = buf.readInt();
-        travelProgress = buf.readFloat();
-        nodes = readPositions(buf);
-        travelQueue = readPositions(buf);
+        malformed = false;
+        try {
+            attached = buf.readBoolean();
+            traveling = buf.readBoolean();
+            anchorX = buf.readInt();
+            anchorY = buf.readInt();
+            anchorZ = buf.readInt();
+            travelTargetX = buf.readInt();
+            travelTargetY = buf.readInt();
+            travelTargetZ = buf.readInt();
+            travelProgress = buf.readFloat();
+            nodes = readPositions(buf);
+            travelQueue = readPositions(buf);
+        } catch (RuntimeException error) {
+            malformed = true;
+            nodes = new ArrayList<BlockPos>();
+            travelQueue = new ArrayList<BlockPos>();
+        }
     }
 
     private static void writePositions(ByteBuf buf, List<BlockPos> positions) {
+        if (positions == null || positions.size() > MAX_POSITION_COUNT) {
+            throw new IllegalArgumentException("Grapple sync positions exceed packet limit");
+        }
         buf.writeShort(positions.size());
         for (BlockPos pos : positions) {
             buf.writeInt(pos.getX());
@@ -79,7 +92,10 @@ public class PacketGrappleSync implements IMessage {
 
     private static List<BlockPos> readPositions(ByteBuf buf) {
         List<BlockPos> result = new ArrayList<BlockPos>();
-        int count = buf.readShort();
+        int count = buf.readUnsignedShort();
+        if (count > MAX_POSITION_COUNT || count > buf.readableBytes() / 12) {
+            throw new IllegalArgumentException("Invalid grapple sync position count");
+        }
         for (int i = 0; i < count; i++) {
             result.add(new BlockPos(buf.readInt(), buf.readInt(), buf.readInt()));
         }
@@ -90,6 +106,9 @@ public class PacketGrappleSync implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketGrappleSync message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             scheduleClient(new Runnable() {
 
                 @Override

@@ -74,12 +74,19 @@ public class HandlerTick {
         long t0 = perf.begin();
         Runnable task;
         int processed = 0;
-        while ((task = SERVER_TASKS.poll()) != null && processed++ < 64) {
+        while (processed < 64 && (task = SERVER_TASKS.poll()) != null) {
             perf.onTaskDequeued();
             task.run();
+            processed++;
         }
         perf.setLastTasksProcessed(processed);
         perf.endPhase(WebAePerfProfiler.PHASE_SERVER_TASKS, t0);
+
+        // Resolve terminal crafting links independently of HTTP polling so
+        // CPU history receives completed/cancelled jobs even when no browser
+        // is connected. The observer is internally rate-limited and only
+        // reads ICraftingLink terminal flags.
+        com.imgood.textech.webae.api.handler.OrderHandler.onServerTick(now);
 
         // --- Misc subsystems: staggered across ticks ---
         long tMisc = perf.begin();

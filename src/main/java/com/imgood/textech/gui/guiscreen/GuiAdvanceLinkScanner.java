@@ -231,8 +231,8 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
 
         if (aliasField != null) {
             aliasField.mouseClicked(mouseX, mouseY, mouseButton);
@@ -297,9 +297,8 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
         this.fontRendererObj.drawString(
             I18n.format("adm.scanner.title"),
@@ -389,8 +388,13 @@ public class GuiAdvanceLinkScanner extends ADM_GuiScreen {
         int maxScroll = totalHeight - visibleAreaHeight;
         int thumbH = Math.max(12, visibleAreaHeight * visibleAreaHeight / totalHeight);
         int thumbY = listStartY + (maxScroll == 0 ? 0 : scrollOffset * (visibleAreaHeight - thumbH) / maxScroll);
-        GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollTrack(), scrollbarX, listStartY, 6, visibleAreaHeight, 2);
-        GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollThumb(), scrollbarX, thumbY, 6, thumbH, 2);
+        GuiBlitUtil.drawCoverCropped(
+            UiThemes.ADM.scrollTrackRegion(),
+            scrollbarX,
+            listStartY,
+            6,
+            visibleAreaHeight);
+        GuiBlitUtil.drawCoverCropped(UiThemes.ADM.scrollThumbRegion(), scrollbarX, thumbY, 6, thumbH);
     }
 
     @Override

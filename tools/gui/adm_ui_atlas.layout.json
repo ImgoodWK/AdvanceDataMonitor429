@@ -1,0 +1,620 @@
+{
+  "atlas_size": 512,
+  "chrome_sha256": "a3889faf589b9d1832e4ba8707169b171638eed7a2e1b6dcc2a178195d006ee0",
+  "legacy_controls_sha256": "ce3b712acec6d3a377dc924656c61a484d0d508f3fdb8931edfd5ac81435242d",
+  "button_sheet_sha256": "d45381a2c6b1411657d7b4756264a227d43dea45e98430cad6f649f22b7f0b3c",
+  "field_icon_sheet_sha256": "8cedfcf5038deaed6cb09dc9b8464539fe43693cd808e604fa945dcd4e61550f",
+  "main_background_alpha": 56,
+  "section_background_alpha": 72,
+  "button_families": [
+    20,
+    50,
+    60,
+    80,
+    100,
+    200,
+    240
+  ],
+  "button_states": [
+    "normal",
+    "hover",
+    "pressed",
+    "disabled"
+  ],
+  "field_states": [
+    "normal",
+    "focused",
+    "invalid",
+    "disabled"
+  ],
+  "semantic_icons": [
+    "save",
+    "cancel",
+    "back",
+    "previous",
+    "next",
+    "add",
+    "delete",
+    "edit",
+    "search",
+    "refresh",
+    "settings",
+    "import",
+    "export",
+    "send",
+    "bind",
+    "copy",
+    "menu"
+  ],
+  "mainCornerTL": {
+    "u": 0,
+    "v": 0,
+    "width": 22,
+    "height": 22
+  },
+  "mainCornerTR": {
+    "u": 24,
+    "v": 0,
+    "width": 22,
+    "height": 22
+  },
+  "mainCornerBL": {
+    "u": 0,
+    "v": 24,
+    "width": 22,
+    "height": 22
+  },
+  "mainCornerBR": {
+    "u": 24,
+    "v": 24,
+    "width": 22,
+    "height": 22
+  },
+  "mainBackground": {
+    "u": 264,
+    "v": 0,
+    "width": 64,
+    "height": 64
+  },
+  "sectionCornerTL": {
+    "u": 0,
+    "v": 66,
+    "width": 14,
+    "height": 14
+  },
+  "sectionCornerTR": {
+    "u": 16,
+    "v": 66,
+    "width": 14,
+    "height": 14
+  },
+  "sectionCornerBL": {
+    "u": 0,
+    "v": 82,
+    "width": 14,
+    "height": 14
+  },
+  "sectionCornerBR": {
+    "u": 16,
+    "v": 82,
+    "width": 14,
+    "height": 14
+  },
+  "sectionBackground": {
+    "u": 156,
+    "v": 66,
+    "width": 64,
+    "height": 64
+  },
+  "titleOrnament": {
+    "u": 222,
+    "v": 66,
+    "width": 160,
+    "height": 12
+  },
+  "footerOrnament": {
+    "u": 222,
+    "v": 80,
+    "width": 160,
+    "height": 8
+  },
+  "button.normal.20": {
+    "u": 306,
+    "v": 162,
+    "width": 20,
+    "height": 20
+  },
+  "button.normal.50": {
+    "u": 252,
+    "v": 162,
+    "width": 50,
+    "height": 20
+  },
+  "button.normal.60": {
+    "u": 188,
+    "v": 162,
+    "width": 60,
+    "height": 20
+  },
+  "button.normal.80": {
+    "u": 104,
+    "v": 162,
+    "width": 80,
+    "height": 20
+  },
+  "button.normal.100": {
+    "u": 0,
+    "v": 162,
+    "width": 100,
+    "height": 20
+  },
+  "button.normal.200": {
+    "u": 244,
+    "v": 140,
+    "width": 200,
+    "height": 20
+  },
+  "button.normal.240": {
+    "u": 0,
+    "v": 140,
+    "width": 240,
+    "height": 20
+  },
+  "button.hover.20": {
+    "u": 306,
+    "v": 206,
+    "width": 20,
+    "height": 20
+  },
+  "button.hover.50": {
+    "u": 252,
+    "v": 206,
+    "width": 50,
+    "height": 20
+  },
+  "button.hover.60": {
+    "u": 188,
+    "v": 206,
+    "width": 60,
+    "height": 20
+  },
+  "button.hover.80": {
+    "u": 104,
+    "v": 206,
+    "width": 80,
+    "height": 20
+  },
+  "button.hover.100": {
+    "u": 0,
+    "v": 206,
+    "width": 100,
+    "height": 20
+  },
+  "button.hover.200": {
+    "u": 244,
+    "v": 184,
+    "width": 200,
+    "height": 20
+  },
+  "button.hover.240": {
+    "u": 0,
+    "v": 184,
+    "width": 240,
+    "height": 20
+  },
+  "button.pressed.20": {
+    "u": 306,
+    "v": 250,
+    "width": 20,
+    "height": 20
+  },
+  "button.pressed.50": {
+    "u": 252,
+    "v": 250,
+    "width": 50,
+    "height": 20
+  },
+  "button.pressed.60": {
+    "u": 188,
+    "v": 250,
+    "width": 60,
+    "height": 20
+  },
+  "button.pressed.80": {
+    "u": 104,
+    "v": 250,
+    "width": 80,
+    "height": 20
+  },
+  "button.pressed.100": {
+    "u": 0,
+    "v": 250,
+    "width": 100,
+    "height": 20
+  },
+  "button.pressed.200": {
+    "u": 244,
+    "v": 228,
+    "width": 200,
+    "height": 20
+  },
+  "button.pressed.240": {
+    "u": 0,
+    "v": 228,
+    "width": 240,
+    "height": 20
+  },
+  "button.disabled.20": {
+    "u": 306,
+    "v": 294,
+    "width": 20,
+    "height": 20
+  },
+  "button.disabled.50": {
+    "u": 252,
+    "v": 294,
+    "width": 50,
+    "height": 20
+  },
+  "button.disabled.60": {
+    "u": 188,
+    "v": 294,
+    "width": 60,
+    "height": 20
+  },
+  "button.disabled.80": {
+    "u": 104,
+    "v": 294,
+    "width": 80,
+    "height": 20
+  },
+  "button.disabled.100": {
+    "u": 0,
+    "v": 294,
+    "width": 100,
+    "height": 20
+  },
+  "button.disabled.200": {
+    "u": 244,
+    "v": 272,
+    "width": 200,
+    "height": 20
+  },
+  "button.disabled.240": {
+    "u": 0,
+    "v": 272,
+    "width": 240,
+    "height": 20
+  },
+  "field.normal.bottom": {
+    "u": 0,
+    "v": 320,
+    "width": 480,
+    "height": 3
+  },
+  "field.normal.left": {
+    "u": 482,
+    "v": 320,
+    "width": 3,
+    "height": 20
+  },
+  "field.normal.right": {
+    "u": 487,
+    "v": 320,
+    "width": 3,
+    "height": 20
+  },
+  "field.focused.bottom": {
+    "u": 0,
+    "v": 325,
+    "width": 480,
+    "height": 3
+  },
+  "field.focused.left": {
+    "u": 482,
+    "v": 342,
+    "width": 3,
+    "height": 20
+  },
+  "field.focused.right": {
+    "u": 487,
+    "v": 342,
+    "width": 3,
+    "height": 20
+  },
+  "field.invalid.bottom": {
+    "u": 0,
+    "v": 330,
+    "width": 480,
+    "height": 3
+  },
+  "field.invalid.left": {
+    "u": 482,
+    "v": 364,
+    "width": 3,
+    "height": 20
+  },
+  "field.invalid.right": {
+    "u": 487,
+    "v": 364,
+    "width": 3,
+    "height": 20
+  },
+  "field.disabled.bottom": {
+    "u": 0,
+    "v": 335,
+    "width": 480,
+    "height": 3
+  },
+  "field.disabled.left": {
+    "u": 482,
+    "v": 386,
+    "width": 3,
+    "height": 20
+  },
+  "field.disabled.right": {
+    "u": 487,
+    "v": 386,
+    "width": 3,
+    "height": 20
+  },
+  "icon.0.save": {
+    "u": 0,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.cancel": {
+    "u": 16,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.back": {
+    "u": 32,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.previous": {
+    "u": 48,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.next": {
+    "u": 64,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.add": {
+    "u": 80,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.delete": {
+    "u": 96,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.edit": {
+    "u": 112,
+    "v": 350,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.search": {
+    "u": 0,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.refresh": {
+    "u": 16,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.settings": {
+    "u": 32,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.import": {
+    "u": 48,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.export": {
+    "u": 64,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.send": {
+    "u": 80,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.bind": {
+    "u": 96,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.copy": {
+    "u": 112,
+    "v": 366,
+    "width": 16,
+    "height": 16
+  },
+  "icon.0.menu": {
+    "u": 0,
+    "v": 382,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.save": {
+    "u": 0,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.cancel": {
+    "u": 16,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.back": {
+    "u": 32,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.previous": {
+    "u": 48,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.next": {
+    "u": 64,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.add": {
+    "u": 80,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.delete": {
+    "u": 96,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.edit": {
+    "u": 112,
+    "v": 398,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.search": {
+    "u": 0,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.refresh": {
+    "u": 16,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.settings": {
+    "u": 32,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.import": {
+    "u": 48,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.export": {
+    "u": 64,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.send": {
+    "u": 80,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.bind": {
+    "u": 96,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.copy": {
+    "u": 112,
+    "v": 414,
+    "width": 16,
+    "height": 16
+  },
+  "icon.1.menu": {
+    "u": 0,
+    "v": 430,
+    "width": 16,
+    "height": 16
+  },
+  "slotNormal": {
+    "u": 300,
+    "v": 452,
+    "width": 18,
+    "height": 18
+  },
+  "scrollTrack": {
+    "u": 320,
+    "v": 452,
+    "width": 8,
+    "height": 42
+  },
+  "scrollThumb": {
+    "u": 330,
+    "v": 452,
+    "width": 8,
+    "height": 20
+  },
+  "toggleOff": {
+    "u": 342,
+    "v": 452,
+    "width": 14,
+    "height": 14
+  },
+  "toggleOn": {
+    "u": 358,
+    "v": 452,
+    "width": 14,
+    "height": 14
+  },
+  "toggleDisabled": {
+    "u": 374,
+    "v": 452,
+    "width": 14,
+    "height": 14
+  },
+  "checkOff": {
+    "u": 342,
+    "v": 468,
+    "width": 14,
+    "height": 14
+  },
+  "checkOn": {
+    "u": 358,
+    "v": 468,
+    "width": 14,
+    "height": 14
+  },
+  "checkDisabled": {
+    "u": 374,
+    "v": 468,
+    "width": 14,
+    "height": 14
+  },
+  "atlas_sha256": "203244455b02bff5a996bcd3df4f89788545af87e148848b1c3f7667569c4a91"
+}

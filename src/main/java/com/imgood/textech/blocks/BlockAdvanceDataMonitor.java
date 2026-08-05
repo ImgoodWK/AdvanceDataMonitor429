@@ -8,6 +8,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.MathHelper;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
 import com.imgood.textech.AdvanceDataMonitor;
@@ -51,6 +52,37 @@ public class BlockAdvanceDataMonitor extends BlockContainer {
     @Override
     public boolean renderAsNormalBlock() {
         return false;
+    }
+
+    @Override
+    public boolean canProvidePower() {
+        return true;
+    }
+
+    @Override
+    public int isProvidingWeakPower(IBlockAccess world, int x, int y, int z, int side) {
+        TileEntity tileEntity = world.getTileEntity(x, y, z);
+        return tileEntity instanceof TileEntityAdvanceDataMonitor
+            ? ((TileEntityAdvanceDataMonitor) tileEntity).getWeakPowerOutput()
+            : 0;
+    }
+
+    @Override
+    public int isProvidingStrongPower(IBlockAccess world, int x, int y, int z, int side) {
+        TileEntity tileEntity = world.getTileEntity(x, y, z);
+        return tileEntity instanceof TileEntityAdvanceDataMonitor
+            ? ((TileEntityAdvanceDataMonitor) tileEntity).getStrongPowerOutput()
+            : 0;
+    }
+
+    @Override
+    public boolean hasComparatorInputOverride() {
+        return true;
+    }
+
+    @Override
+    public int getComparatorInputOverride(World world, int x, int y, int z, int side) {
+        return isProvidingWeakPower(world, x, y, z, side);
     }
 
     @Override

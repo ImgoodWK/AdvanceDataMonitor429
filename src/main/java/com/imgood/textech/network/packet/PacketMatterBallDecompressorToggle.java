@@ -22,6 +22,7 @@ public class PacketMatterBallDecompressorToggle implements IMessage {
     private int z;
     private byte kind;
     private boolean value;
+    public boolean malformed;
 
     public PacketMatterBallDecompressorToggle() {}
 
@@ -44,22 +45,52 @@ public class PacketMatterBallDecompressorToggle implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        x = buf.readInt();
-        y = buf.readInt();
-        z = buf.readInt();
-        kind = buf.readByte();
-        value = buf.readBoolean();
+        malformed = false;
+        x = 0;
+        y = 0;
+        z = 0;
+        kind = KIND_OUTPUT_MODE;
+        value = false;
+        try {
+            if (buf.readableBytes() != 14) {
+                throw new IllegalArgumentException("Invalid matter ball toggle length");
+            }
+            x = buf.readInt();
+            y = buf.readInt();
+            z = buf.readInt();
+            kind = buf.readByte();
+            value = buf.readBoolean();
+            if (kind != KIND_OUTPUT_MODE && kind != KIND_BLOCK_MODE) {
+                throw new IllegalArgumentException("Invalid matter ball toggle kind");
+            }
+            if (buf.isReadable()) {
+                throw new IllegalArgumentException("Matter ball toggle has trailing data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            x = 0;
+            y = 0;
+            z = 0;
+            kind = KIND_OUTPUT_MODE;
+            value = false;
+        }
     }
 
     public static class Handler implements IMessageHandler<PacketMatterBallDecompressorToggle, IMessage> {
 
         @Override
         public IMessage onMessage(final PacketMatterBallDecompressorToggle message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
                     EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+                    if (player == null || player.worldObj == null) {
+                        return;
+                    }
                     World world = player.worldObj;
                     TileEntity te = world.getTileEntity(message.x, message.y, message.z);
                     if (!(te instanceof TileEntityMatterBallDecompressor)) {

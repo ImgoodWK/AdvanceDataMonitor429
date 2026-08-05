@@ -197,7 +197,7 @@ public class UiWidget implements UiLayoutNode {
             case FULL_TEXTURE:
                 if (bg.texture != null && GuiBlitUtil.hasResource(bg.texture)) {
                     GL11.glColor4f(1f, 1f, 1f, 1f);
-                    // stretch full texture via nine-slice with zero border fallback: use panel draw helper
+                    // Standalone art is aspect-fitted; resizable chrome must use tiled/nine-slice regions.
                     GuiBlitUtil.drawFullTexture(bg.texture, ax, ay, w, h);
                 }
                 break;

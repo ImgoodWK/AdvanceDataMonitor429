@@ -28,8 +28,18 @@
     },
     {
       "type": "text",
+      "titleKey": "adm.manual.data_monitor.gui_help_title",
+      "textKey": "adm.manual.data_monitor.gui_help_text"
+    },
+    {
+      "type": "text",
       "titleKey": "adm.manual.data_monitor.chart_config_title",
       "textKey": "adm.manual.data_monitor.chart_config_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.data_monitor.threshold_title",
+      "textKey": "adm.manual.data_monitor.threshold_text"
     },
     {
       "type": "text",

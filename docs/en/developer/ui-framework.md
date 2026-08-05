@@ -1,6 +1,6 @@
 # TeXTech UI Framework (Flex Widget Tree)
 
-The TeXTech GUI framework lives in `com.imgood.textech.gui.framework`. It combines a **Flex widget tree**, `UiStyle`, and a runtime **9-slice theme atlas** derived from a Meowa-generated pixel sci-fi component sheet. All configuration and container screens except the Dimensional Pocket family use this ADM visual system.
+The TeXTech GUI framework lives in `com.imgood.textech.gui.framework`. It combines a **Flex widget tree**, `UiStyle`, and a runtime **sparse theme atlas** derived from approved Meowa pixel sci-fi artwork. The ADM primary path uses only four independent corners, two translucent cover backgrounds, complete fixed-aspect buttons, and underline fields. The four former edge ornaments are removed; the Dimensional Pocket family remains outside this contract.
 
 New complex screens should use `AdmUiScreen`; existing `ADM_GuiScreen`, `AdmItemConfigScreen`, and `AbstractMonitorSubGui` screens remain supported through automatic theme bridging. The authoritative coding rules are in [gui-guidelines.mdc](../../../.cursor/rules/gui-guidelines.mdc).
 
@@ -16,8 +16,8 @@ New complex screens should use `AdmUiScreen`; existing `ADM_GuiScreen`, `AdmItem
 
 ```
 gui/framework/
-  GuiBlitUtil          — blit, 9-slice, horizontal 3-slice
-  NineSliceRegion      — atlas region (UV, border)
+  GuiBlitUtil, AtlasRegion, SparseFrameRegion, FixedAspectButtonFamily, UnderlineFieldRegion, UiFeedbackArea
+  NineSliceRegion      — legacy-theme compatibility descriptor
   UiTheme / AdmUiTheme / PocketUiTheme / UiThemes
   UiPanel, UiText, UiIcon, UiButton, UiLayoutContext
   UiSlot, UiTextField, UiToggleButton, UiTooltip (placeholder)
@@ -35,48 +35,42 @@ Low-level blitting is delegated to `GuiBlitUtil`. The Dimensional Pocket GUIs, o
 
 `UiFlex.row()` / `column()` use `UiFlexLayoutEngine` with `UiMainAlign`, `UiCrossAlign`, `UiAlignSelf`, grow/shrink, preferred sizes, gaps, padding, and margins. `setAbsolute(x, y)` is an escape hatch, not the default layout strategy.
 
-`UiStyle` owns padding, margin, gap, visibility, text color overrides, and a `UiBackground` (`NONE`, `SOLID`, `NINE_SLICE`, or `FULL_TEXTURE`). A typical tree is built in `buildUi()`, laid out during `initGui`, rendered from the host, and receives input through root hit testing.
+`UiStyle` owns padding, margin, gap, visibility, text color overrides, and a `UiBackground` (`NONE`, `SOLID`, `NINE_SLICE`, or `FULL_TEXTURE`). `NINE_SLICE` remains for legacy-theme compatibility only; the ADM primary frame is drawn by the host through `UiPanel.draw`. A typical tree is built in `buildUi()`, laid out during `initGui`, rendered from the host, and receives input through root hit testing.
 
 ## Coordinate model and hosts
 
 | Layer | Coordinates | Typical content |
 |-------|-------------|-----------------|
-| Background | Screen-absolute (`guiLeft + local`) | 9-slice panels and inventory slots |
+| Background | Screen-absolute (`guiLeft + local`) | Sparse main/inner frames and inventory slots |
 | Foreground/widget tree | Relative to the parent; root origin at `(guiLeft, guiTop)` | Labels, buttons, and fields |
 
 - `AdmUiScreen` hosts new non-container configuration screens and owns theme, bounds, layout, rendering, and input dispatch.
 - `ADM_UiContainer` hosts standard `InventoryPlayer` + `Container` screens and may attach the same widget tree.
 - `AdmItemConfigScreen` and `AbstractMonitorSubGui` remain the shared bases for small item dialogs and monitor binding sub-pages.
-- Existing absolute-coordinate screens may remain on `ADM_GuiScreen`, but new screens must not extend that pattern.
-- `GuiResponsiveLayout.fitCentered` constrains a legacy preferred panel size to the scaled viewport. Background, controls, scroll/content bounds, and wrapping width must all use the returned runtime bounds. `ADM_GuiButton` trims labels in very narrow controls so localized text cannot escape the button.
+- Existing absolute-coordinate screens may remain on `ADM_GuiScreen`, but new screens must not extend that pattern. Its final `drawScreen` applies one `UiViewportTransform` to chrome, content, tooltips, controls, and mouse hit-testing; subclasses implement `drawAdmScreen`.
+- Every ADM sparse-frame corner is drawn once with one uniform scale; former edge UV regions stay transparent and the glass background is cover-cropped. Complete button shells fit inside their requested rectangles and underline fields are not tiled or stretched at runtime. Button request rectangles must not overlap, and visual, label, hover, and hit bounds are identical. Arbitrary images are aspect-fitted and centered. `drawDefaultBackground()` is intentionally empty so the world remains visible outside the transparent panel.
 
 ## Atlas: `adm_ui_atlas.png`
 
-Path: `assets/textech/textures/gui/adm_ui_atlas.png` (256×256)
+Path: `assets/textech/textures/gui/adm_ui_atlas.png` (512×512 RGBA)
 
-| Region | UV origin | Size | border | Use |
-|--------|-----------|------|--------|-----|
-| mainPanel | (0, 0) | 96×108 | 10 | Main panel 9-slice |
-| sectionPanel | (100, 0) | 88×56 | 8 | Inset/list/preview panel |
-| buttonNormal | (100, 60) | 48×20 | 8 | Normal button |
-| buttonHover | (100, 82) | 48×20 | 8 | Hover |
-| buttonPressed | (100, 104) | 48×20 | 8 | Mouse-down |
-| buttonDisabled | (100, 126) | 48×20 | 8 | Disabled |
-| textFieldNormal | (152, 60) | 48×20 | 6 | Text field |
-| textFieldFocused | (204, 60) | 48×20 | 6 | Focused text field |
-| slot | (152, 84) | 18×18 | 3 | Inventory slot |
-| scrollTrack | (174, 84) | 10×42 | 3 | Scroll track |
-| scrollThumb | (188, 84) | 10×20 | 3 | Scroll thumb |
-| divider | (204, 84) | 48×4 | 1 | Divider |
-| toggleOff / On / Disabled | (152 / 184 / 216, 108) | 28×14 | 4 | Three-state toggle |
-| checkOff / On / Disabled | (152 / 170 / 188, 126) | 14×14 | 3 | Three-state checkbox |
-| icons | (0, 160) | 16×16 grid | — | Theme icons |
+| Region | UV origin / size | Use |
+|--------|------------------|-----|
+| Main sparse frame | corners `(0,0)/(24,0)/(0,24)/(24,24)`, 22×22 | Each corner is drawn once; former edge regions `(48..261,0..63)` stay transparent; dark cover background `(264,0)`, 64×64, alpha `56/255` |
+| Inner sparse frame | corners `(0,66)/(16,66)/(0,82)/(16,82)`, 14×14 | Each corner is drawn once; former edge regions `(32..153,66..99)` stay transparent; bright cover background `(156,66)`, 64×64, alpha `72/255` |
+| Title / footer ornament | `(222,66)` 160×12 / `(222,80)` 160×8 | Centered once per placement; uniformly shrunk only when needed |
+| Complete buttons | four rows at `v=140/184/228/272`; `20/50/60/80/100/200/240 × 20` | Normal, hover, pressed, disabled; no runtime horizontal assembly or tiling |
+| Underline fields | bottoms `u=0,w=480,h=3,v=320/325/330/335`; sides `u=482/487,w=3,h=20,v=320/342/364/386` | Normal, focused, invalid, disabled; bottom is center-cropped from the longest source |
+| Icons | normal `v=350`, hover `v=398`, 8-column 16×16 grid | Save, cancel, back, paging, CRUD, search, refresh, settings, import/export, send, bind, copy, menu |
+| Exact retained controls | slot `(300,452)`; scroll `(320,452)/(330,452)`; toggles/checks `(342..374,452/468)` | Slot, scroll, and Boolean controls retain their own semantics |
+
+`AtlasRegion` identifies exact source pixels. `SparseFrameRegion` places four corners with one uniform scale, while `GuiBlitUtil` only cover-crops the background. `FixedAspectButtonFamily` selects complete shells and contain-fits them inside requested bounds; `UnderlineFieldRegion` only crops the longest bottom stroke. `NineSliceRegion`, `TiledFrameRegion`, and `TiledBarRegion` remain compatibility APIs for legacy themes; the ADM primary path must not tile frames, buttons, or fields. `GuiBlitUtil.drawFullTexture` remains the generic aspect-preserving image path.
 
 Asset provenance:
 
-- Meowa source sheet: `.workspace/meowa/in-game-gui-unified-r1/A_cohesive_pixel-art_game_UI_component_sheet_for_TeXTech_Advance_Data_Monitor_in_Minecraft_GTNH_black_transluc_222abf39/ui_output.png` (1024×1024, SHA-256 `f4a3c419484d2ad955bd53774d9d5856fd2948d2a73d6917778735ef775405cb`).
-- Runtime atlas: `src/main/resources/assets/textech/textures/gui/adm_ui_atlas.png` (SHA-256 `0038210d8ba910b9e93a67b3ed628ecac9d7057962148d8aa510e90886e4f029`).
-- Authoritative UV data: `.workspace/adm_ui_atlas_meowa.layout.json`; builder: `.workspace/build_adm_ui_atlas.py`.
+- Visual source is fixed to approved chrome SHA-256 `a3889faf589b9d1832e4ba8707169b171638eed7a2e1b6dcc2a178195d006ee0` and legacy control source SHA-256 `ce3b712acec6d3a377dc924656c61a484d0d508f3fdb8931edfd5ac81435242d`; only the transparent runtime atlas is shipped.
+- Runtime atlas: `src/main/resources/assets/textech/textures/gui/adm_ui_atlas.png` (SHA-256 `203244455b02bff5a996bcd3df4f89788545af87e148848b1c3f7667569c4a91`).
+- Reproducible builder and layout ledger: `tools/gui/build_adm_sparse_atlas.py` and `tools/gui/adm_ui_atlas.layout.json`; generated sheets and `final_outputs.json` stay in `.workspace/adm-gui-batch1-assets/`.
 
 ## Themes
 
@@ -111,7 +105,7 @@ UiIcon.drawAnchored(theme, index, parentX, parentY, parentW, parentH, Anchor.CEN
 
 ### Button — `UiButton`
 
-Horizontal 3-slice with normal / hover / pressed / disabled states and an optional icon/label; `hitTest` / `click` support non-`GuiButton` flows.
+Complete fixed-aspect shell with normal / hover / pressed / disabled states and an optional icon/label. Requested sizes normalize to `20/50/60/80/100/200/240 : 20` using contain-fit, never expanding outside the caller's rectangle. `hitTest`, hover, label, and drawing use the exact fitted bounds, and callers must provide non-overlapping request rectangles.
 
 ```java
 UiButton btn = new UiButton(x, y, w, h).setLabel("...").setOnClick(...);
@@ -137,7 +131,7 @@ public class MyGui extends ADM_UiContainer {
 
 | Component | Implemented | In-game debug | Verification / notes |
 |-----------|-------------|---------------|----------------------|
-| `GuiBlitUtil` / `NineSliceRegion` | Yes | Yes (indirect) | Shared themed blitting |
+| `GuiBlitUtil` / `SparseFrameRegion` | Yes | Yes (indirect) | Shared sparse chrome and cover cropping |
 | `UiPanel` | Yes | **Yes** | Main, section, preview, tooltip, and divider chrome |
 | `UiText` | Yes | **Yes** | Container labels and debug samples |
 | `UiIcon` | Yes | **Yes** | Theme icon grid and status icons |
@@ -145,6 +139,7 @@ public class MyGui extends ADM_UiContainer {
 | `UiToggleButton` | Yes | **Yes** | Debug GUI |
 | `UiSlot` | Yes | **Yes** | Decompressor, Storage Link, and debug GUI |
 | `UiTextField` | Yes | **Yes** | Debug GUI and legacy bridge |
+| `FixedAspectButtonFamily` / `UnderlineFieldRegion` / `UiFeedbackArea` | Yes | **Yes** | Button families, four field states, and fixed validation band |
 | `UiScrollPanel` | Yes | **Yes** | Flex debug; Planner and Link Scanner use the same themed track/thumb |
 | `UiTooltip` | stub | **No** | Call `drawHoveringText` from a `GuiScreen` subclass |
 | `PocketUiTheme` | stub | **No** | — |
@@ -153,11 +148,11 @@ public class MyGui extends ADM_UiContainer {
 
 ## Reference implementation
 
-- **Layout**: [`MatterBallDecompressorGuiLayout.java`](../../src/main/java/com/imgood/textech/gui/MatterBallDecompressorGuiLayout.java)
-- **Background**: [`MatterBallDecompressorGuiRenderer.java`](../../src/main/java/com/imgood/textech/renders/MatterBallDecompressorGuiRenderer.java)
-- **Foreground / buttons**: [`GuiMatterBallDecompressor.java`](../../src/main/java/com/imgood/textech/gui/guiscreen/GuiMatterBallDecompressor.java)
-- **GUI coverage guard**: `src/test/java/com/imgood/textech/gui/GuiThemeCoverageTest.java` dynamically scans `gui/guiscreen/`. Every non-pocket GUI must use an ADM host or explicit ADM panels, and may not introduce a vanilla button or standalone legacy GUI PNG. `GuiDimensionalPocketConfig` and `GuiPocketStorage` are the fixed exclusions.
-- **Atlas contract**: `src/test/java/com/imgood/textech/gui/framework/AdmUiAtlasContractTest.java` locks the approved Meowa atlas SHA-256, 256x256 RGBA contract, every theme UV and bound, all 14 icon cells, and distinct button, text-field, scroll, toggle, and check states.
+- **Layout**: [`MatterBallDecompressorGuiLayout.java`](../../../src/main/java/com/imgood/textech/gui/MatterBallDecompressorGuiLayout.java)
+- **Background**: [`MatterBallDecompressorGuiRenderer.java`](../../../src/main/java/com/imgood/textech/renders/MatterBallDecompressorGuiRenderer.java)
+- **Foreground / buttons**: [`GuiMatterBallDecompressor.java`](../../../src/main/java/com/imgood/textech/gui/guiscreen/GuiMatterBallDecompressor.java)
+- **GUI coverage guard**: `src/test/java/com/imgood/textech/gui/GuiThemeCoverageTest.java` dynamically scans `gui/guiscreen/`. Every non-pocket GUI must inherit an ADM host and may not use raw `GuiScreen`, the vanilla dim background, vanilla buttons, standalone legacy GUI PNGs, or direct nine-slice, three-slice, or tiled ADM chrome calls. `GuiDimensionalPocketConfig` and `GuiPocketStorage` are the fixed exclusions.
+- **Atlas and scaling contracts**: `AdmUiAtlasContractTest` locks the approved 512×512 RGBA atlas SHA-256, dual background alpha, eight transparent former-edge regions, two sets of four independent corners, seven button ratios, four field states, and 17 semantic icons. `SparseRegionContractTest` locks four-corner placement, cover crops, contain-fit button bounds that cannot create overlap, underline cropping, and independent feedback bands; `UiViewportTransformTest` locks uniform rendering/input transforms across low-resolution and ultrawide viewports.
 
 ## Relation to legacy components
 
@@ -173,7 +168,7 @@ Programmatic fills are reserved for transient semantics such as selection, hover
 
 ## Migration coverage and exclusions
 
-The shared hosts or explicit themed components cover the monitor main/sub screens, AI Chat, Planner, Link Scanner, manual, NBT Viewer, Screenshot Gallery, Storage Link, Matter Ball Decompressor, and the framework debug screen. Standard Minecraft/AE2 tooltips keep their native behavior; the custom monitor tooltip and model preview receive themed section frames.
+All 28 non-pocket game GUIs use the four-corner-only sparse primitives, complete fixed-aspect buttons, and underline fields. Acceptance is no longer split into page-family batches: real-client Chinese screenshots and the button-rectangle audit are delivered once after full coverage. Standard Minecraft/AE2 tooltips keep their native behavior; the custom monitor tooltip and model preview receive themed inner frames.
 
 The following remain excluded: `GuiDimensionalPocketConfig`, `GuiPocketStorage`, both pocket containers, the pocket overlay/renderer/mixins, and wiring `UiThemes.POCKET` into those paths. This is a permanent boundary for this migration, not unfinished ADM work.
 
@@ -183,9 +178,9 @@ Set `[debug] uiFrameworkBlock=true` and **restart the game**. The **UI Framework
 
 | Area | Content |
 |------|---------|
-| Full background | `UiPanel` 9-slice (`mainPanel` region) |
+| Full background | `UiPanel` sparse main frame plus centered title ornament |
 | Left column | Live widget samples + class names + short descriptions |
-| Right column | **UV / size / border** reference including section, pressed, slot, scroll, and divider regions |
+| Right column | **UV / size** reference for sparse frames, complete buttons, four field states, icons, and exact controls |
 | Right-bottom | Compact Flex + scroll sample |
 
 Widgets shown: `UiText`, `UiIcon` (0–3), `UiButton`, `UiButton(disabled)`, `UiToggleButton`, `UiSlot` (vanilla + Meowa theme), `UiTextField`, and the Flex scroll sample.

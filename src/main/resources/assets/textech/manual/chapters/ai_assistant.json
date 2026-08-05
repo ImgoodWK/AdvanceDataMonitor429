@@ -40,6 +40,11 @@
       "type": "text",
       "titleKey": "adm.manual.ai_assistant.planner_title",
       "textKey": "adm.manual.ai_assistant.planner_text"
+    },
+    {
+      "type": "text",
+      "titleKey": "adm.manual.ai_assistant.briefing_title",
+      "textKey": "adm.manual.ai_assistant.briefing_text"
     }
   ]
 }

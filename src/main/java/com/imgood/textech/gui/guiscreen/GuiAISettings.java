@@ -15,6 +15,7 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.UiFeedbackArea;
 
 /**
  * Display names / 显示名称:
@@ -66,6 +67,7 @@ public class GuiAISettings extends ADM_GuiScreen {
     private String voiceMode;
     private String searchMode;
     private String statusMessage = "";
+    private boolean statusError;
     private int offsetX;
     private int offsetY;
     private int panelWidth = PREFERRED_PANEL_WIDTH;
@@ -406,12 +408,21 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     private ADM_GuiTextField createField(int x, int y, int width, String text, String hintKey) {
-        ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y, width, this.compactLayout ? 18 : 20)
+        final ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y, width, this.compactLayout ? 18 : 20)
             .setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020)
             .setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020)
             .setHintText(hintKey.isEmpty() ? "" : I18n.format(hintKey));
         field.setMaxStringLength(2048);
         field.setText(text == null ? "" : text);
+        field.setOnTextChanged(new Runnable() {
+
+            @Override
+            public void run() {
+                field.setInvalid(false);
+                statusMessage = "";
+                statusError = false;
+            }
+        });
         return field;
     }
 
@@ -560,6 +571,15 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     private void saveSettings() {
+        beginValidation();
+        Integer timeout = parseIntegerField(this.timeoutField);
+        if (timeout == null) return;
+        Integer maxTokens = parseIntegerField(this.maxTokensField);
+        if (maxTokens == null) return;
+        Double temperature = parseDoubleField(this.temperatureField);
+        if (temperature == null) return;
+        Integer searchMaxResults = parseIntegerField(this.searchMaxResultsField);
+        if (searchMaxResults == null) return;
         try {
             Config.saveAiSettings(
                 this.apiKeyField.getText(),
@@ -570,20 +590,12 @@ public class GuiAISettings extends ADM_GuiScreen {
                 this.networkEnabled,
                 this.debugLogging,
                 this.streamingEnabled,
-                Integer.parseInt(
-                    this.timeoutField.getText()
-                        .trim()),
-                Integer.parseInt(
-                    this.maxTokensField.getText()
-                        .trim()),
-                Double.parseDouble(
-                    this.temperatureField.getText()
-                        .trim()),
+                timeout.intValue(),
+                maxTokens.intValue(),
+                temperature.doubleValue(),
                 this.searchApiKeyField.getText(),
                 this.searchBaseUrlField.getText(),
-                Integer.parseInt(
-                    this.searchMaxResultsField.getText()
-                        .trim()),
+                searchMaxResults.intValue(),
                 this.searchFallback);
             Config.saveVoiceSettings(
                 this.voiceEnabled,
@@ -594,9 +606,53 @@ public class GuiAISettings extends ADM_GuiScreen {
                 Config.voiceSttModel,
                 Config.voiceSttTimeoutSeconds);
             this.statusMessage = I18n.format("adm.ai.settings.saved");
+            this.statusError = false;
         } catch (Exception e) {
             this.statusMessage = I18n.format("adm.ai.settings.invalid", e.getMessage());
+            this.statusError = true;
         }
+    }
+
+    private void beginValidation() {
+        this.statusMessage = "";
+        this.statusError = false;
+        ADM_GuiTextField[] fields = allFields();
+        for (ADM_GuiTextField field : fields) {
+            if (field != null) field.setInvalid(false);
+        }
+    }
+
+    private Integer parseIntegerField(ADM_GuiTextField field) {
+        try {
+            return Integer.valueOf(field.getText().trim());
+        } catch (NumberFormatException error) {
+            rejectField(field, error);
+            return null;
+        }
+    }
+
+    private Double parseDoubleField(ADM_GuiTextField field) {
+        try {
+            return Double.valueOf(field.getText().trim());
+        } catch (NumberFormatException error) {
+            rejectField(field, error);
+            return null;
+        }
+    }
+
+    private void rejectField(ADM_GuiTextField field, Exception error) {
+        this.statusMessage = I18n.format("adm.ai.settings.invalid", error.getMessage());
+        this.statusError = true;
+        if (this.focusedField != null && this.focusedField != field) this.focusedField.setFocused(false);
+        field.setInvalid(true);
+        field.setFocused(true);
+        this.focusedField = field;
+    }
+
+    private ADM_GuiTextField[] allFields() {
+        return new ADM_GuiTextField[] { this.apiKeyField, this.baseUrlField, this.modelField, this.timeoutField,
+            this.maxTokensField, this.temperatureField, this.searchApiKeyField, this.searchBaseUrlField,
+            this.searchMaxResultsField };
     }
 
     @Override
@@ -611,8 +667,8 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
         focusField(this.apiKeyField, mouseX, mouseY, mouseButton);
         focusField(this.baseUrlField, mouseX, mouseY, mouseButton);
         focusField(this.modelField, mouseX, mouseY, mouseButton);
@@ -649,8 +705,8 @@ public class GuiAISettings extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         drawCenteredString(
             this.fontRendererObj,
             I18n.format("adm.ai.settings.title"),
@@ -691,12 +747,10 @@ public class GuiAISettings extends ADM_GuiScreen {
             labelX,
             y + 360,
             0xAAAAAA);
-        drawString(
-            this.fontRendererObj,
-            this.fontRendererObj.trimStringToWidth(this.statusMessage, this.panelWidth - 104),
-            labelX,
-            y + 380,
-            this.statusMessage.startsWith("Error") ? 0xFF5555 : 0x55FF55);
+        if (!this.statusMessage.isEmpty()) {
+            new UiFeedbackArea(labelX, y + 378, this.panelWidth - 104, 20)
+                .draw(this.fontRendererObj, this.statusMessage, this.statusError ? 0xFF5555 : 0x55FF55);
+        }
     }
 
     private void drawCompactLabels() {
@@ -717,14 +771,11 @@ public class GuiAISettings extends ADM_GuiScreen {
         int infoWidth = Math.max(20, this.panelWidth - 184);
         String capability = this.fontRendererObj
             .trimStringToWidth(WebSearchService.capabilityMessage(this.searchMode, this.webSearchEnabled), infoWidth);
-        String status = this.fontRendererObj.trimStringToWidth(this.statusMessage, infoWidth);
         drawString(this.fontRendererObj, capability, innerX, this.offsetY + 174, 0xAAAAAA);
-        drawString(
-            this.fontRendererObj,
-            status,
-            innerX,
-            this.offsetY + 185,
-            this.statusMessage.startsWith("Error") ? 0xFF5555 : 0x55FF55);
+        if (!this.statusMessage.isEmpty()) {
+            new UiFeedbackArea(innerX, this.offsetY + 185, this.panelWidth - 24, 20)
+                .draw(this.fontRendererObj, this.statusMessage, this.statusError ? 0xFF5555 : 0x55FF55);
+        }
     }
 
     private void drawFields() {

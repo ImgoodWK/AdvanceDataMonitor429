@@ -117,6 +117,7 @@ public final class AssistantLexicon {
         result.planStripWords = list(result.planStripWords, fallback.planStripWords);
         result.powerQueryWords = list(result.powerQueryWords, fallback.powerQueryWords);
         result.steamQueryWords = list(result.steamQueryWords, fallback.steamQueryWords);
+        result.briefingQueryWords = list(result.briefingQueryWords, fallback.briefingQueryWords);
         result.recipeQueryWords = list(result.recipeQueryWords, fallback.recipeQueryWords);
         result.storageQueryWords = list(result.storageQueryWords, fallback.storageQueryWords);
         result.confirmWords = list(result.confirmWords, fallback.confirmWords);
@@ -214,6 +215,7 @@ public final class AssistantLexicon {
         d.planStripWords = new ArrayList<String>();
         d.powerQueryWords = new ArrayList<String>();
         d.steamQueryWords = new ArrayList<String>();
+        d.briefingQueryWords = new ArrayList<String>();
         d.recipeQueryWords = new ArrayList<String>();
         d.storageQueryWords = new ArrayList<String>();
         d.confirmWords = new ArrayList<String>();
@@ -275,6 +277,7 @@ public final class AssistantLexicon {
         public List<String> planStripWords;
         public List<String> powerQueryWords;
         public List<String> steamQueryWords;
+        public List<String> briefingQueryWords;
         public List<String> recipeQueryWords;
         public List<String> storageQueryWords;
         public List<String> confirmWords;

@@ -8,7 +8,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Programmatic button with horizontal 3-slice background, optional theme icon and label.
+ * Programmatic button with a complete fixed-aspect shell, optional theme icon and label.
  * Used where {@code GuiButton} list integration is awkward (custom hit-test containers).
  */
 @SideOnly(Side.CLIENT)
@@ -24,10 +24,10 @@ public final class UiButton {
     private Runnable onClick;
 
     public UiButton(int x, int y, int width, int height) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
+        this.width = FixedAspectButtonFamily.normalizedWidthFor(width, height);
+        this.height = FixedAspectButtonFamily.normalizedHeightFor(width, height);
+        this.x = x + (width - this.width) / 2;
+        this.y = y + (height - this.height) / 2;
     }
 
     public UiButton setLabel(String label) {
@@ -77,8 +77,14 @@ public final class UiButton {
     public void draw(UiTheme theme, FontRenderer font, int mouseX, int mouseY) {
         boolean hovered = enabled && hitTest(mouseX, mouseY);
         boolean pressed = hovered && Mouse.isButtonDown(0);
+        FixedAspectButtonFamily family = theme != null ? theme.fixedAspectButtons() : null;
+        TiledBarRegion bar = pickBar(theme, hovered, pressed);
         NineSliceRegion region = pickRegion(theme, hovered, pressed);
-        if (region != null && GuiBlitUtil.hasResource(region.texture())) {
+        if (family != null && GuiBlitUtil.hasResource(family.region(pickState(hovered, pressed), width, height).texture())) {
+            GuiBlitUtil.drawFixedAspectButton(family, pickState(hovered, pressed), x, y, width, height);
+        } else if (bar != null && GuiBlitUtil.hasResource(bar.center().texture())) {
+            GuiBlitUtil.drawTiledBar(bar, x, y, width, height);
+        } else if (region != null && GuiBlitUtil.hasResource(region.texture())) {
             GuiBlitUtil.drawHorizontalSlice(region, x, y, width, height);
         } else {
             UiPanel.drawSolidFallback(x, y, width, height);
@@ -86,9 +92,9 @@ public final class UiButton {
 
         if (iconIndex >= 0) {
             if (label != null && !label.isEmpty()) {
-                UiIcon.drawAnchored(theme, iconIndex, x, y, width / 2, height, UiIcon.Anchor.CENTER, 0, 0);
+                UiIcon.drawAnchored(theme, iconIndex, x, y, width / 2, height, UiIcon.Anchor.CENTER, 0, 0, hovered);
             } else {
-                UiIcon.drawAnchored(theme, iconIndex, x, y, width, height, UiIcon.Anchor.CENTER, 0, 0);
+                UiIcon.drawAnchored(theme, iconIndex, x, y, width, height, UiIcon.Anchor.CENTER, 0, 0, hovered);
             }
         }
 
@@ -129,5 +135,31 @@ public final class UiButton {
             return theme.buttonHover();
         }
         return theme.buttonNormal();
+    }
+
+    private FixedAspectButtonFamily.State pickState(boolean hovered, boolean pressed) {
+        if (!enabled) {
+            return FixedAspectButtonFamily.State.DISABLED;
+        }
+        if (pressed) {
+            return FixedAspectButtonFamily.State.PRESSED;
+        }
+        return hovered ? FixedAspectButtonFamily.State.HOVER : FixedAspectButtonFamily.State.NORMAL;
+    }
+
+    private TiledBarRegion pickBar(UiTheme theme, boolean hovered, boolean pressed) {
+        if (theme == null) {
+            return null;
+        }
+        if (!enabled) {
+            return theme.buttonDisabledBar();
+        }
+        if (pressed) {
+            return theme.buttonPressedBar();
+        }
+        if (hovered) {
+            return theme.buttonHoverBar();
+        }
+        return theme.buttonNormalBar();
     }
 }

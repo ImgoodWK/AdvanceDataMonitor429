@@ -20,6 +20,10 @@ adm.error.axisfontcolor=轴字体颜色格式无效,请使用十六进制色值,
 adm.error.gridlinewidth=网格线宽度必须是大于0的数字
 adm.error.axislinewidth=轴线宽度必须是大于0的数字
 adm.error.ticklengthfactor=刻度长度因子必须是大于0的数字
+adm.error.metricKey=指标键不能为空。
+adm.error.sourceKind=数据源类型必须是 tile_metric、ae_metric、wireless_eu、wireless_steam、storage_summary 或 gt_summary。
+adm.error.targetValue=目标值必须是大于等于 0 的数字。
+adm.error.threshold.number=阈值配置必须是有限数字。
 
 adm.label.xyz=§lX,Y,Z
 adm.label.xoffset=§lX偏移
@@ -32,6 +36,14 @@ adm.label.xrange=§lX范围
 adm.label.yrange=§lY范围
 adm.label.datalimit=§l数据限制
 adm.label.interval=§l间隔
+adm.label.metricKey=§l指标键
+adm.label.sourceKind=§l数据源类型
+adm.label.targetValue=§l目标值
+adm.label.threshold.title=§l阈值输出
+adm.label.threshold.value=§l阈值
+adm.label.threshold.hysteresis=§l迟滞
+adm.label.threshold.output_min=§l输出下限
+adm.label.threshold.output_max=§l输出上限
 
 adm.label.nbtname=§lNBT名称
 adm.label.displayname=§l标题
@@ -57,6 +69,43 @@ adm.label.web_dashboard_origin=§lWebAE地址
 
 # 按钮
 adm.button.save=§l保存
+adm.button.close=关闭
+adm.button.ok=确定
+adm.button.confirm=确认
+adm.button.proceed=继续
+adm.message.info=信息
+adm.message.warning=警告
+adm.message.custom=请确认
+adm.title.nbt_viewer=NBT 数据浏览器
+adm.nbt.tooltip.expand=单击展开此节点。
+adm.nbt.tooltip.collapse=单击收起此节点。
+adm.nbt.tooltip.truncated=此行因面板宽度而被截断。
+adm.nbt.tooltip.full_value=完整内容：%s
+adm.icon_export.title=正在导出 %s 图标
+adm.icon_export.progress=进度：%s / %s
+adm.icon_export.cancel_hint=按 Esc 可安全取消本次导出。
+adm.icon_verify.title=图标核验：%s
+adm.icon_verify.runtime_label=游戏内物品渲染
+adm.icon_verify.fresh_label=本次导出 PNG
+adm.icon_verify.cached_label=缓存 PNG（%s / %s）
+adm.icon_verify.unresolved=无法解析物品
+adm.icon_verify.no_live_icon=本次导出无图标
+adm.icon_verify.no_cached_icon=缓存中无图标
+adm.icon_verify.close_hint=按 Esc 关闭；将三列外观对照以排查导出差异。
+adm.hint.grapple.travel_speed=0.1–5.0，例如 1.5
+adm.tooltip.grapple.speed.purpose=用途：设置沿抓钩绳索移动时的行进速度。
+adm.tooltip.grapple.speed.format=范围与格式：输入 0.1–5.0 的十进制数，例如 1.5。
+adm.tooltip.grapple.speed.error=错误：空值、非数字或超出范围时不会保存，并会在面板中显示原因。
+adm.tooltip.grapple.show_node_name=用途：切换抓钩节点名称提示。关闭只影响显示，不会删除节点。
+adm.tooltip.grapple.show_node_distance=用途：切换抓钩节点距离提示。关闭只影响显示，不会改变抓取距离。
+adm.hint.super_orange.name=名称牌文字，最多 64 字符
+adm.hint.super_orange.multiplier=整数倍率
+adm.tooltip.super_orange.name.purpose=用途：设置超级橙子显示的名称牌文字；留空会显示为空名称。
+adm.tooltip.super_orange.name.format=格式：任意文本，最多 64 个字符；超出长度的输入不会被文本框接受。
+adm.tooltip.super_orange.name.example=示例：产线维护中
+adm.tooltip.super_orange.multiplier.purpose=用途：设置超级橙子触发掉落时的物品倍率。
+adm.tooltip.super_orange.multiplier.format=范围与格式：输入 1–%s 的整数，例如 2。
+adm.tooltip.super_orange.multiplier.error=错误：空值、非整数或超出 1–%s 时不会保存，并会在面板中显示原因。
 adm.button.cancel=§l取消
 adm.button.enable=§l启用
 adm.button.disable=§l禁用
@@ -79,6 +128,9 @@ adm.button.web_dashboard_import=从剪贴板导入JSON
 adm.button.web_dashboard_copy=复制当前JSON
 adm.button.web_dashboard_bright=全亮
 adm.button.web_dashboard_lit=环境光
+adm.button.sourceKind=切换数据源
+adm.button.threshold_on=§l阈值：开
+adm.button.threshold_off=§l阈值：关
 
 # 图表类型
 adm.datatype.line=§l折线图
@@ -87,6 +139,13 @@ adm.datatype.bar3d=§l3D柱状图
 adm.datatype.waterfall=§l数据瀑布流
 adm.datatype.difference=§l势差图
 adm.datatype.webae_dashboard=§lWebAE仪表盘
+adm.datatype.statCard=§l数值卡片
+adm.datatype.progressBar=§l进度条
+adm.datatype.gauge=§l仪表盘
+adm.datatype.lineChart=§l折线图
+adm.datatype.barChart=§l柱状图
+adm.datatype.pieChart=§l饼图
+adm.datatype.dataTable=§l数据表
 adm.rendertype.web_surface=§l网页表面
 
 # 标题
@@ -146,6 +205,15 @@ adm.hint.xrange=设置X轴显示长度,比例、刻度以及数字标识都自�
 adm.hint.yrange=设置Y轴显示范围,比例、刻度以及数字标识都自动计算分配位置,最大值会根据数值内容自动计算 (大于0的正整数或小数)
 adm.hint.datalimit=最大显示的数据数量,也就是x轴的最大值 (2-9999范围的整数)
 adm.hint.interval=数据更新间隔,单位tick (≥1 ticks,需要输入整数,和数据限制组合能 记录非常长时间的变化趋势)
+adm.hint.metricKey=从所选数据源读取的指标标识，例如 euStored 或 steamStored。
+adm.hint.sourceKind=数据源适配器：tile_metric、ae_metric、wireless_eu、wireless_steam、storage_summary 或 gt_summary。
+adm.hint.targetValue=绝对量进度条/仪表盘的可选目标上限；没有目标时填写 0。
+adm.hint.threshold.value=独立的红石触发阈值；targetValue 仍只用于显示目标。
+adm.hint.threshold.hysteresis=阈值附近的防抖区间；负数会归一化为 0。
+adm.hint.threshold.output_min=映射为比较器强度 0 的样本值。
+adm.hint.threshold.output_max=映射为比较器强度 15 的样本值。
+adm.warning.threshold.binary_fallback=范围无效：比较器退化为 0/15 二值输出。
+adm.warning.dataLimitLarge=服务端会保留大历史；预览和渲染最多下采样到 240 点。
 adm.hint.name=输入数据标识符 (NBT,使用本模组的绑定器或nbtedit功能查看)
 adm.hint.displayname=设置表标题名称 (支持符号格式)
 adm.hint.displayscale=设置表标题显示比例 (大于0的正整数或小数)
@@ -433,7 +501,9 @@ adm.ai.assistant.storage_candidates_title=AE2 存储概览；输入序号可取�
 adm.ai.assistant.candidates_first_batch_title=%s（共 %d 条，第 %d/%d 批）
 adm.ai.assistant.candidates_batch_title=第 %d/%d 批（%d–%d / 共 %d）：
 adm.ai.assistant.candidates_truncated=候选项过多，已显示前 %d 条（已达配置上限 %d）。请缩小查询范围。
+adm.ai.assistant.candidates_packet_limit=某个候选项的数据超过安全网络包上限，无法发送候选结果。请缩小查询范围，或移除异常庞大的物品数据。
 adm.ai.assistant.query_bytes_title=AE2 字节占用详情：
+adm.ai.assistant.query_briefing_title=基地运维简报（只读）：
 
 # AI assistant teleport
 adm.ai.assistant.searching_teleport_candidates=正在扫描背包中的传送宝石...
@@ -687,18 +757,22 @@ adm.manual.data_monitor.binding_title=数据映录器绑定流程
 adm.manual.data_monitor.binding_text=完整数据映录器绑定流程：\n\n1. 用数据映录器潜行+右键非 GT 的 TileEntity。工具映录：XYZ 坐标、方块注册名、meta 值、完整 NBT。\n\n2. 潜行+右键 GT 机器将坐标加入 GT 列表（与方块映录互斥）；空工具潜行+右键空气可按半径扫描附近 GT。\n\n3. 潜行+右键高级数据监视器：有 GT 列表则批量绑 GT；仅有方块映录则添加图表绑定槽（自动去重,最多 36 条）。\n\n4. 打开高级数据监视器 GUI。每个绑定作为可配置条目显示,带有预设默认值（青色、0.3 缩放、20 tick 间隔、100 数据上限）。\n\n5. 对于直接 NBT 追踪：在 GUI 中编辑 dataName 字段设置 NBT 路径（如"Items"表示物品数量）。\n\n6. 对于 AE2 链接器方块：监视器自动检测链接类型并使用相应数据处理方法。\n\n映录器只记录数据；从 AE 网络编织物质需使用数据织尘/织形/涌流元件。
 
 adm.manual.data_monitor.data_types_title=图表与数据类型
-adm.manual.data_monitor.data_types_text=数值数据支持的图表类型：\n\n折线图 - 以连续线条绘制随时间变化的值。最适合监控趋势变化（如电量、物品数量）。\n柱状图 - 每个数据点显示离散柱形。适合快照对比。\n3D 柱状图 - 同柱状图但带深度渲染。\n瀑布图 - 显示累积增减。适用于资源流动追踪。\n势差图 - 显示连续读数间的差值变化。\n\nAE2 文字显示类型：\n存储模式 - 以网格形式渲染物品图标及名称和数量（可配置列数、间距、图标大小）。\n合成模式 - 将模板表达式渲染为格式化文字,带实时变量替换。\n网络模式 - 将数值（字节、种类数）渲染为文字或柱状。\n\n所有图表类型支持：颜色自定义、坐标轴配置、网格线、标题显示、缩放、透明度控制。
+adm.manual.data_monitor.data_types_text=共享首类组件：\n\nstatCard 数值卡、progressBar 进度条、gauge 仪表、lineChart 折线图、barChart 柱状图、pieChart 饼图、dataTable 数据表。\n\n专用类型：crafting 合成监控、storage 存储物品网格、web_surface 网页表面。radarChart 仅在 WebAE 中直接渲染，进入游戏时使用整页直播/快照表面。\n\n旧存档会自动迁移：bar3d 和 waterfall 归一为 barChart；diffrence 归一为 lineChart，并使用 seriesTransform=difference。旧绑定不会被清空。
 
 adm.manual.data_monitor.main_gui_title=主配置界面
 adm.manual.data_monitor.main_gui_text=右键高级数据监视器打开 470x270 配置 GUI。在此管理所有数据绑定：\n\n左侧面板 - 外壳/屏幕显示开关、朝向选择器、添加绑定按钮、各绑定显示/隐藏按钮。\n\n右侧面板 - 每绑定配置：\n  数据标签页：dataType 选择器（折线/柱状/3D柱状/瀑布/势差 用于图表,或合成/存储 用于 AE2 文字）。\n  图表标签页：线条颜色、线宽、网格设置、坐标轴颜色、标题文字/颜色/缩放、X/Y 范围、更新间隔、数据上限。\n  位置标签页：X/Y/Z 偏移和旋转角度,用于在监视器面上的世界内布局。\n  AE2 标签页（适用时）：合成模板表达式、存储显示开关、范围模式。\n\n底部 - 保存/取消按钮。所有设置持久化在方块 NBT 中。
+adm.manual.data_monitor.gui_help_title=统一 GUI 与字段提示
+adm.manual.data_monitor.gui_help_text=除次元口袋外，铽丝科技配置界面使用统一的青色/电蓝半透明面板；面板外不会覆盖全屏黑幕，仍可看到游戏世界。低分辨率下整个界面会连同控件和鼠标命中区域一起等比缩小，不会横向或纵向拉伸素材。\n\n将鼠标停在输入框、开关、被截断文字或可折叠 NBT 节点上，可查看用途、允许范围、格式、示例及错误说明。输入无效值时不会保存，首个失败字段会标红；错误带与按钮各占独立空间，不会互相覆盖。\n\n次元口袋的存储 GUI、配置 GUI 与悬浮窗保持原有外观和操作方式。
 
 adm.manual.data_monitor.chart_config_title=高级配置参数
-adm.manual.data_monitor.chart_config_text=每个图表绑定支持以下详细设置（每个绑定存储在 NBT 中）：\n\n视觉：lineColor（十六进制 RGB,默认 00FFFF）、lineWidth（默认 3.0）、gridLineWidth、axisLineWidth、axisLineColor、axisFontColor、displayNameColor、gridLineAlpha、nameAlpha、axisFontAlpha、dataLineAlpha。\n\n文字：displayName（标题文字）、displayNameScale、axisFontScale、tickLengthFactor。\n\n数据：name（NBT 路径）、dataLimit（最大点数,2-9999）、yMin、yMax、interval（tick >= 20）、xRange、yRange。\n\n位置：xOffset、yOffset、zOffset、rotationX、rotationY、rotationZ - 均支持小数和负数。\n\nAE2 合成：craftingTemplate（模板表达式）、monitorNetworkWide（true=全部处理器,false=单个）、textAlign（0=左/1=居中/2=右对齐）、textScale、textAlpha。\n\nAE2 存储：storageColumns、storageSpacing、storageIconScale、storageLinespacing、storageColor、showItemCount/Delta/Name 开关、排序模式、物品/流体/源质过滤器、storageCellIndex。\n\n所有数值支持小数精度,可进行像素级调整。
+adm.manual.data_monitor.chart_config_text=共享绑定契约以 kind/renderType、sourceKind、metricKey、title 为准，仍兼容旧 dataType、name、displayName。可选字段包含 style、targetValue、pins、columns、sortMode、maxRows、colors、seriesTransform。\n\n数据源：tile_metric、ae_metric、wireless_eu、wireless_steam、storage_summary、gt_summary。无线 EU/蒸汽按监视器 owner/team 查询，不需要伪造目标坐标。\n\n进度语义：有真实容量时使用真实 max；真正的百分比指标使用 0..100；其他绝对量只在 targetValue>0 时显示进度/仪表。SNL 0.2.5 蒸汽没有真实容量，无 target 时只显示存量或趋势。\n\ndataLimit 范围仍为 2-9999；超过 512 只显示软警告，预览和渲染预算为 min(历史点数,可视宽度,240)。数据表 columns 缺失=默认列，[]=明确隐藏全部列。\n\n颜色、标题、坐标轴、位置偏移、旋转与缩放仍按每条绑定保存在 NBT 中。
+adm.manual.data_monitor.threshold_title=阈值红石输出
+adm.manual.data_monitor.threshold_text=每条绑定都有独立 threshold compound，旧绑定默认关闭。targetValue 仍只是进度条/仪表的显示目标，绝不会作为红石阈值。\n\n选择 >= 或 <=，再设置阈值、迟滞和模拟输出范围。激活时强红石为 15。outputMax > outputMin 时，最近的新鲜样本线性映射为 0-15 弱红石/比较器强度；范围无效时退化为 active ? 15 : 0。\n\n多条启用绑定的强红石按 OR 聚合，弱红石取最大值，六个侧面结果相同。样本缺失、非有限或过期时输出 0；新鲜度为 max(2 x interval, 10 秒)。方块重载后，在首次有效服务端样本前保持 0。
 adm.manual.data_monitor.web_dashboard_title=WebAE 仪表盘网页表面
-adm.manual.data_monitor.web_dashboard_text=高级数据监视器新增 WebAE 仪表盘数据类型与 web_surface 渲染类型。\n\n使用步骤：\n1. 在 WebAE 主仪表盘点击“导出到游戏显示器”，发布布局并复制直播绑定 JSON（失败时可回退静态快照）。\n2. 右键高级数据监视器，点击“WebAE面板”。\n3. 导入剪贴板 JSON，必要时填写 WebAE 地址，再调整标题、缩放、偏移/旋转、透明度与纹理清晰度。\n4. 保存后，直播模式按距离拉取 WebAE 截帧；静态快照仍可按哈希请求正文。\n\n性能边界：截帧在 WebAE 主机完成，不占用 MC Tick。普通监视器同步不重复发送大正文。每台监视器最多 8 个网页面板。
+adm.manual.data_monitor.web_dashboard_text=整页 WebAE 表面与语义组件包是两条独立路线。\n\n整页显示：在 WebAE 主仪表盘点击“导出到游戏显示器”，发布布局并复制 textech-webae-display-binding；发布失败时仍可使用 snapshot。在游戏的“WebAE面板”导入 JSON，再调整地址、标题、缩放、偏移/旋转、透明度和清晰度。直播帧在 WebAE 主机/浏览器生成，不占用 MC Tick；静态正文仍按哈希请求。每台监视器最多 8 个网页面板。\n\n共享组件：“导出共享监视器组件”生成 textech-monitor-widget-bundle v1，只包含七类共享 kind，按 Dashboard 顺序最多 36 个；可在 Dashboard 组件 JSON 导入入口重新导入。它不会覆盖或替代 live/snapshot 绑定格式。
 
 adm.manual.ai_assistant.overview_title=AI 助手概述
-adm.manual.ai_assistant.overview_text=AI 助手利用兼容 OpenAI 的大语言模型 API 实现自然语言控制 AE2 系统。按 O（默认键）打开 600x450 对话窗口。\n\n核心功能：\n- 合成：下单单个或批量 AE2 合成任务。每次最多 8 个任务。多步骤确认,含候选物品选择。\n- 取物：从 AE2 存储取出物品/流体到背包。支持批量取出。背包满时支持部分取出。\n- 查询：仓库概览（物品+流体含图标）、无线能源/蒸汽水平、AE2 配方/样板、详细物品数量、字节占用及无限元件检测。\n- 世界信息：当前天气、时间（tick + 天数）、玩家位置/坐标/朝向、群系名称/温度/降雨、背包空间。\n- 传送：扫描背包中龙之进化高级错位宝石（TeleporterMKII）,显示已保存传送点,执行跨维度传送,支持模糊名称匹配。\n- 计划器：通过文字命令添加/列出/完成/删除/修改计划条目。\n- 取消：随时中止待处理操作并取消排队中的 AE2 合成任务。
+adm.manual.ai_assistant.overview_text=AI 助手利用兼容 OpenAI 的大语言模型 API 实现自然语言控制 AE2 系统。按 O（默认键）打开 600x450 对话窗口。\n\n核心功能：\n- 合成：下单单个或批量 AE2 合成任务。每次最多 8 个任务。多步骤确认,含候选物品选择。\n- 取物：从 AE2 存储取出物品/流体到背包。支持批量取出。背包满时支持部分取出。\n- 查询：仓库概览（物品+流体含图标）、无线能源/蒸汽水平、AE2 配方/样板、详细物品数量、字节占用及无限元件检测。\n- 基地运维简报：只读汇总网络、字节、无线电力/蒸汽、服务端 AE2 合成计算和高级计划器；各分段可独立不可用，不会下单、取出、传送或修改计划。\n- 世界信息：当前天气、时间（tick + 天数）、玩家位置/坐标/朝向、群系名称/温度/降雨、背包空间。\n- 传送：扫描背包中龙之进化高级错位宝石（TeleporterMKII）,显示已保存传送点,执行跨维度传送,支持模糊名称匹配。\n- 计划器：通过文字命令添加/列出/完成/删除/修改计划条目。\n- 取消：随时中止待处理操作并取消排队中的 AE2 合成任务。
 
 adm.manual.ai_assistant.setup_title=API 配置
 adm.manual.ai_assistant.setup_text=AI 助手使用兼容 OpenAI 的 API。默认供应商为 DeepSeek（有免费额度）。\n\n设置窗口（对话中的齿轮图标）或 /textech ai 命令：\n\nAPI Key：供应商密钥。也可设置 DEEPSEEK_API_KEY 环境变量。支持 DeepSeek、OpenAI、OpenRouter、Anthropic Claude、Google Gemini、阿里通义千问、智谱 GLM、月之暗面 Kimi、字节豆包、硅基流动、Mistral、Groq、MiniMax、火山引擎等多种供应商。\n\nBase URL：供应商接口地址（默认 https://api.deepseek.com）。通过 /textech ai provider <名称> 预配置 13+ 供应商地址。\n\nModel：模型名称（默认 deepseek-chat）。支持 Tab 补全常见模型。\n\n高级设置：超时（5-300秒）、最大 Token（1-8192）、温度（0.0-2.0）、流式模式、网络搜索开关、调试日志。\n\n隐私：首次使用需确认隐私提示（数据发送至供应商）。每位玩家一次。\n\n服务端共享选项在 config/textech/textech.cfg；API Key 等客户端选项在 config/textech/ai-client-local.cfg。WebAE 另由 [webConsole] aiKeyMode 控制：server 模式由管理员维护共享 Key，并在 TeXTech/WebAE 中以 AES-GCM 加密；browser 模式让每个浏览器把自己的 Key 存在当前站点 localStorage 并直连 Provider，Key 不发送到 WebAE 服务端。Web 合成、取出、传送均需候选列表二次确认；访客只能查询。
@@ -707,7 +781,7 @@ adm.manual.ai_assistant.usage_title=对话界面与工作流
 adm.manual.ai_assistant.usage_text=对话窗口布局（600x450）：消息历史（顶部,可滚动）、输入框（底部）、操作按钮（发送、清空、关闭、设置、菜单、搜索切换、取消）。\n\n基本工作流：\n1. 输入请求,如"下单 64 铁锭"。按回车或点击发送。\n2. 如果意图明确,助手搜索 AE2 网络匹配物品并显示带编号的候选项。\n3. 输入编号确认（如"1"）。订单提交。\n4. 批量订单："下单 64 铁锭和 32 金锭"。逐行确认后输入"确认"全部提交。\n5. 查询："显示我的存储"返回物品/流体列表含图标。"有多少电量？"显示 EU/t 和容量。\n6. 菜单按钮列出全部 22+ 功能及编号。输入编号直接调用对应功能。\n\n多任务：AI 每次最多返回 8 个任务。合成任务优先执行,其次取物任务。\n\n随时输入"取消"中止操作,清除会话并取消排队中的 AE2 合成任务。\n\nMarkdown 渲染：对话回复支持标题（# ## ###）、粗体（**）、代码块（```）、列表和内联代码。
 
 adm.manual.ai_assistant.intents_title=意图类型参考
-adm.manual.ai_assistant.intents_text=助手识别 24 种意图类型。各意图功能说明：\n\nAE2 指令：\nORDER_ITEM - 提交单个合成订单。从 AE2 样板列表返回编号候选项。\nORDER_BATCH - 一次提交多个合成订单。逐行确认后批量提交。\nWITHDRAW_ITEM - 从 AE2 存储取出物品到背包。显示当前库存作为候选项。\nWITHDRAW_BATCH - 批量取出多个物品。背包空间不足时支持部分取出。\nQUERY_RECIPE - 按名称搜索 AE2 样板。返回配方详情（输入、输出）。\nQUERY_STORAGE - 完整存储概览：物品（按数量）、流体,含图标和 K/M/T 格式化。\nQUERY_JOBS - 列出 AE2 挂起的合成任务。\nQUERY_ITEM_COUNT - 存储网络中物品/流体详细数量。\nQUERY_BYTES - 字节占用明细,含无限元件检测（AE2Things）。\nCANCEL - 中止会话并取消排队中的 AE2 合成任务。\n\n能源查询：\nQUERY_POWER - 无线能源网络电量和容量。\nQUERY_STEAM - 无线蒸汽网络蒸汽量和状态。\n\n世界查询：\nQUERY_WEATHER - 维度、雨/雷暴状态、天空可见度。\nQUERY_TIME - 世界时间（tick）、天数、昼夜状态、距离天亮/天黑时间。\nQUERY_POSITION - 玩家 XYZ 坐标、区块坐标、朝向（东/南/西/北）。\nQUERY_BIOME - 群系名称、温度、降雨量、湿度。\nQUERY_INVENTORY - 空闲/已用/总计物品栏槽位。\n\n传送（需 DE 高级错位宝石）：\nTELEPORT - 扫描错位宝石,显示传送点,按名称/编号传送。\nTELEPORT_LIST - 列出宝石上所有已保存传送点。\n\n计划器：\nPLAN_ADD/CREATE/LIST/COMPLETE/DELETE/MODIFY - 通过 AI 进行完整的计划器增删改查操作。\n\n系统：\nCLARIFY - 意图不明确时提示用户澄清。\nCHAT - 普通对话,不触发工具操作。
+adm.manual.ai_assistant.intents_text=助手识别 25 种意图类型。各意图功能说明：\n\nAE2 指令：\nORDER_ITEM - 提交单个合成订单。从 AE2 样板列表返回编号候选项。\nORDER_BATCH - 一次提交多个合成订单。逐行确认后批量提交。\nWITHDRAW_ITEM - 从 AE2 存储取出物品到背包。显示当前库存作为候选项。\nWITHDRAW_BATCH - 批量取出多个物品。背包空间不足时支持部分取出。\nQUERY_RECIPE - 按名称搜索 AE2 样板。返回配方详情（输入、输出）。\nQUERY_STORAGE - 完整存储概览：物品（按数量）、流体,含图标和 K/M/T 格式化。\nQUERY_NETWORK - 查询 ADM 网络/连接器状态。\nQUERY_JOBS - 列出 AE2 挂起的合成任务。\nQUERY_ITEM_COUNT - 存储网络中物品/流体详细数量。\nQUERY_BYTES - 字节占用明细,含无限元件检测（AE2Things）。\nQUERY_BRIEFING - 只读基地运维简报，汇总六个可独立不可用的分段；不会下单、取出、传送或修改计划。\nCANCEL - 中止会话并取消排队中的 AE2 合成任务。\n\n能源查询：\nQUERY_POWER - 无线能源网络电量和容量。\nQUERY_STEAM - 无线蒸汽网络蒸汽量和状态。\n\n世界查询：\nQUERY_WEATHER - 维度、雨/雷暴状态、天空可见度。\nQUERY_TIME - 世界时间（tick）、天数、昼夜状态、距离天亮/天黑时间。\nQUERY_POSITION - 玩家 XYZ 坐标、区块坐标、朝向（东/南/西/北）。\nQUERY_BIOME - 群系名称、温度、降雨量、湿度。\nQUERY_INVENTORY - 空闲/已用/总计物品栏槽位。\n\n传送（需 DE 高级错位宝石）：\nTELEPORT - 扫描错位宝石,显示传送点,按名称/编号传送。\nTELEPORT_LIST - 列出宝石上所有已保存传送点。\n\n计划器：\nPLAN_ADD/CREATE/LIST/COMPLETE/DELETE/MODIFY - 通过 AI 进行完整的计划器增删改查操作。\n\n系统：\nCLARIFY - 意图不明确时提示用户澄清。\nCHAT - 普通对话,不触发工具操作。
 
 adm.manual.ai_assistant.commands_title=游戏内命令
 adm.manual.ai_assistant.commands_text=/textech help（别名 /adm help）— TeXTech 命令总索引。\n\n/textech assistant - AI 助手词库：\n  /textech assistant help - 显示帮助\n  /textech assistant lexicon - 显示词库配置文件路径\n  /textech assistant reload - 重新加载词库（需 OP；兼容 reload-lexicon / reloadLexicon）\n\n/textech ai - AI 配置管理（仅客户端）：\n  /textech ai key <api_key> - 设置 API 密钥\n  /textech ai clear-key - 清除已保存密钥（兼容 clearKey）\n  /textech ai model <name> - 设置模型（Tab 补全常见模型）\n  /textech ai base <url> - 设置 API 地址（Tab 补全已知供应商）\n  /textech ai provider <name> - 预设 deepseek/openai/openrouter/anthropic/gemini/qwen/glm/kimi/doubao/siliconflow/mistral/groq/minimax/volcengine\n  /textech ai network on|off|toggle - 允许/禁止网络请求\n  /textech ai search on|off|toggle|auto|tavily_keyless|duckduckgo|tavily|brave|serper|searxng - 联网搜索控制\n  /textech ai search-key <key> - 搜索 API Key（兼容 searchKey）\n  /textech ai search-base <url> - SearXNG 地址（兼容 searchBase）\n  /textech ai debug on|off|toggle - 调试日志\n  /textech ai stream on|off|toggle - 流式回复\n  /textech ai status - 显示当前配置\n\n/textech web help - Web 控制台完整命令（Token、配方/图标、世界地图等）。\n\n旧根命令别名仍可用：/admai、/admassistant、/admweb。除 reload 与 web 部分 OP 子命令外，ai/assistant 无需 OP。
@@ -749,7 +823,7 @@ adm.manual.config_reference.data_flow_cell_category_title=数据涌流元件 (da
 adm.manual.config_reference.data_source_loom_category_title=数据织源元件 (dataSourceLoomCell.*)
 adm.manual.config_reference.web_console_category_title=Web 控制台分类 (webConsole.*)
 adm.manual.config_reference.card_battle_category_title=独立卡牌服务桥接 (cardBattle.*)
-adm.manual.config_reference.default_label=默认值： 
+adm.manual.config_reference.default_label=默认值：
 
 tile.grappleAnchor.name=挂索节点
 adm.label.matter_decompressor.mode_network=输出：进网络
@@ -943,6 +1017,8 @@ adm.manual.grapple_system.overview_text=挂索系统让你在精心建造的基�
 
 adm.manual.grapple_system.anchor_title=挂索节点
 adm.manual.grapple_system.hook_title=挂索器
+adm.manual.grapple_system.settings_title=挂索器设置与输入提示
+adm.manual.grapple_system.settings_text=手持挂索器潜行+右键打开设置。\n\n滑行速度：输入 0.1–5.0 的十进制数，例如 1.5。空值、非数字或超出范围都不会保存，面板会显示错误原因。\n\n节点名称/距离：两个开关只控制 HUD 提示是否显示，不会删除节点、改变节点数据或修改挂索距离。\n\n将鼠标停在输入框或开关上可再次查看这些说明；保存仍沿用原有网络同步与物品 NBT 行为。
 adm.manual.grapple_system.story_title=设计理念与快速参考
 adm.manual.grapple_system.story_text=我们经常花费巨大精力建造漂亮的基地与生产线，但日常出行仍然默认飞行、跑步或传送——飞行和跑步占用双手，传送则完全错过了风景。\n\n挂索节点与挂索器力求在"快速到达"与"欣赏旅程"间找到平衡：在工厂走廊、风景桥、生产观览路线等关键路径上放置节点，用挂索器挂接并在节点间流畅滑行，同时双手始终空闲——移动本身成为体验的一部分。\n\n快速参考：\n- 挂索节点：墙壁/天花板/地面贴面放置，可重命名，自定义导航图标颜色\n- 挂索器：12 格内 HUD 提示，6 格内磁吸选择；挂接后可穿过墙壁看到可到达节点\n- 右键挂接，再右键滑行，Shift 取消挂索\n- 配置分类 [grapple]（提示范围、交互距离、滑行速度等）
 
@@ -962,6 +1038,8 @@ adm.manual.ai_assistant.teleport_text=AI 助手集成龙之进化高级错位宝
 
 adm.manual.ai_assistant.planner_title=计划器集成
 adm.manual.ai_assistant.planner_text=AI 助手可直接通过文字指令管理你的高级计划器条目——无需打开计划器 GUI 进行基本操作。\n\nAI 支持的计划器命令：\n- "添加计划：建造聚变反应堆"——创建新的计划条目\n- "列出我的计划"——显示所有当前条目及状态\n- "完成计划 1"——将第 1 条标记为已完成\n- "删除计划 2"——移除第 2 条\n- "修改计划 3 为：建造 HV 阵列"——更新条目文字\n\n此功能在任何地方都能使用——AI 与服务端通信修改背包中的计划器物品。计划器的 NBT 数据自动更新。\n\n完整计划器 GUI 使用、合并、HUD 自定义和高级功能请参阅高级计划器章节。
+adm.manual.ai_assistant.briefing_title=基地运维简报
+adm.manual.ai_assistant.briefing_text=基地运维简报是一个只读的综合查询。它沿用标准 QUERY 路径，一次汇总七个可独立失败的分段：ADM/AE2 网络、缓存的网络健康诊断、AE2 字节占用、无线电力、无线蒸汽、服务端 AE2 合成计算和高级计划器。\n\n每个分段会单独标记为正常、注意或不可用；一个连接器、服务或数据源不可用时，其余分段仍会返回。网络段的附近搜索不会建立新的监视器关联；网络健康分段只格式化服务端 tick 的最近快照（不会扫描世界，也不会自行推导第二套结论）。网络健康状态为 healthy、degraded、failed 或 unknown；unknown 不会被当作健康。高级计划器只返回待办、已完成和总数，不回显计划正文。报告有单段和总 UTF-8 包长上限，敏感值（例如 API Key、Token、Secret、Password 或 sk- 开头密钥）会脱敏。\n\n这项意图绝不会下单、取出物品、传送玩家或创建/修改/删除计划。它不会替代逐项查询，也不会因为发现待办、接近满载或排队任务而自动执行动作。\n\n示例：\n- "基地简报"\n- "查看运维状态"\n- "网络健康和总体状态"\n\n如果某段不可用，请检查相应的高级网络链接器、无线服务或高级计划器后重新查询。
 
 adm.manual.planner.overview_title=高级计划器概述
 adm.manual.planner.overview_text=高级计划器是你的个人任务管理工具，具有完整 NBT 持久化。存储多条待办事项，标记完成，合并多个计划器，可选在屏幕上显示 HUD 浮层。\n\n核心功能：\n- 每物品支持多条条目，自动编号\n- 每条包含文字 + 完成标记 + 创建时间戳\n- 可滚动 GUI（最多 50 行可见）\n- 合并多个计划器（按时间或按序号）\n- 屏幕 HUD 浮层，位置、缩放、宽度均可自定义\n\n右键计划器物品打开其 GUI。潜行+右键切换 HUD。按 P 从快捷栏打开。\n\n计划器还与 AI 助手集成——可通过自然语言命令管理条目。
@@ -997,7 +1075,7 @@ adm.label.ui_framework.sample_primary=UiText 主色 (textPrimary)
 adm.label.ui_framework.sample_accent=UiText 强调色 (textAccent)
 adm.label.ui_framework.slot_vanilla=vanilla
 adm.label.ui_framework.slot_theme=Meowa 主题
-adm.label.ui_framework.icon_grid=icons UV(0,160) 16x16 网格
+adm.label.ui_framework.button_states=按钮四态（常规/悬停/按下/禁用）
 adm.label.ui_framework.edit_hint=修改材质: 编辑 adm_ui_atlas.png 对应 UV 区域, 同步 AdmUiTheme 常量
 adm.label.ui_framework.toggle_off=关
 adm.label.ui_framework.toggle_on=开
@@ -1097,7 +1175,7 @@ adm.manual.web_console.auth_text=Web 控制台使用 Token 认证，无需 Minec
 adm.manual.web_console.storage_title=存储监控
 adm.manual.web_console.storage_text=存储页面提供 AE2 网络存储的实时概览。\n\n顶部总览（Phase 3）：可配置 widget 行，复用仪表盘属性继承（图表类型 statCard/progressBar/gauge、数据源、9 宫格对齐、颜色覆盖）。默认显示物品种类、流体种类、字节占用率、活跃 CPU 数；点击「编辑总览」可拖拽/添加/删除组件，配置持久化 localStorage.webae_storage_overview_config。所有总览卡片固定 112px 等高。\n\n子表：物品 / 流体 / 源质（CPU 已移至独立「合成处理器」菜单）。每个子表支持列头排序与搜索过滤。\n\n刷新机制（阶段 1.2）：服务端每 refreshIntervalMs 毫秒采集一次快照，并分摊到多个 tick。浏览器只读缓存（GET /api/storage）；手动强制刷新为管理员专用（POST /api/refresh 或 /textech web refresh）。\n\n多网络（阶段 1.4）：顶栏选择多个网络；「分开」/「合并」模式汇总物品/流体/源质/字节。
 adm.manual.web_console.cpu_title=合成处理器
-adm.manual.web_console.cpu_text=独立「合成处理器」菜单（侧边栏 Hdd 图标）集中展示 AE2 合成处理器状态。\n\n顶部总览（Phase 3）：4 个可配置 statCard/progressBar——活跃/总数、总存储使用率、总并行处理器数、并行合成数；配置持久化 localStorage.webae_cpu_overview_config。\n\nCPU 列表：名称、状态、并行处理器、进度、已存储、产物、合成存储、已用时；点击行打开详情 Drawer（坐标、所属网络、存储图表、当前任务与预计剩余）。历史合成记录暂无后端支持时显示「暂无历史」。\n\n多网络：「合并」模式合并所有 CPU；「分开」且选中多个网络时用 Tabs 切换。\n\n后端 CpuEntry 含合成链接坐标、监视器坐标、remainingItems/startItems 等字段，由 AeSnapshotCollector 采集。
+adm.manual.web_console.cpu_text=独立「合成处理器」菜单（侧边栏 Hdd 图标）集中展示 AE2 合成处理器状态。\n\n顶部总览（Phase 3）：4 个可配置 statCard/progressBar——活跃/总数、总存储使用率、总并行处理器数、并行合成数；配置持久化 localStorage.webae_cpu_overview_config。\n\nCPU 列表：名称、状态、并行处理器、进度、已存储、产物、合成存储、已用时；点击行打开详情 Drawer（坐标、所属网络、存储图表、当前任务与预计剩余）。详情同时显示有界历史、网络繁忙率趋势和容量摘要。\n\n主 Dashboard 下方也有当前首选网络的 CPU 历史与容量区域，包含近期任务、状态筛选、繁忙率趋势、unknown/truncated 警告和容量窗口；活动页面最多每 30 秒刷新。\n\n多网络：「合并」模式合并所有 CPU；「分开」且选中多个网络时用 Tabs 切换。\n\n后端 CpuEntry 含合成链接坐标、监视器坐标、remainingItems/startItems 等字段，由 AeSnapshotCollector 采集。
 adm.manual.web_console.power_title=电力监控
 adm.manual.web_console.power_text=电力页面以可配置 GridStack 布局（Phase 4）显示无线能源网络的 EU 与蒸汽数据。\n\n默认组件：\n- EU 仪表：当前电量与容量占用率。\n- EU 入/出速率 statCard：能量流速（EU/t），由滑动窗口采样计算。\n- 蒸汽进度条：蒸汽存量与容量。\n- 电力趋势折线图：EU + 蒸汽双序列 SVG 趋势（约最近 60 个采样点）。\n- 蒸汽入/出 statCard：蒸汽流速。\n\n点击「编辑布局」可拖拽、添加/删除组件并切换图表类型与数据源；布局持久化在浏览器（`webae_power_config`）。「电力布局设置」可调整全局间距、颜色与对齐。\n\n多网络「分开」模式用 Tabs 切换各网络快照；自动刷新时趋势图保持显示、不再闪烁。\n\n数据采用与存储相同的 SnapshotScheduler + 缓存模式；PowerSampler 滑动窗口计算速率，读数平滑稳定。
 adm.manual.web_console.gt_machines_title=GT 机器监控
@@ -1145,15 +1223,15 @@ adm.webae.topology.cable.smart=智能线缆
 adm.webae.topology.cable.covered=包层线缆
 adm.webae.topology.cable.dense=致密线缆
 adm.manual.web_console.icon_cache_title=物品图标与材质包
-adm.manual.web_console.icon_cache_text=阶段三加入了物品/流体图标缓存系统，让网页控制台用真实游戏图标替代纯文本。\n\n工作流程：\n1. OP 在游戏内执行 /textech web icons upload [packName] 命令触发渲染（Phase 2 起移除了游戏内快捷键，仅由命令触发）。\n2. 客户端 IconRenderer（@SideOnly CLIENT）遍历 Item.itemRegistry，用 RenderItem + Framebuffer 离屏渲染为 32×32 PNG，每帧渲染若干项避免卡顿。\n3. 渲染完成的图标打包成 IconBundle（itemId → base64 PNG），通过 PacketWebIconUpload（网络 ID 28）分片上传到服务端。\n4. 服务端解码并写入 TeXTech/WebAE/icons/<packName>/<itemId>.png，刷新 IconStore 索引。\n5. 上传确认通过 PacketWebIconUploadAck（网络 ID 29）回传进度。\n\n网页端使用：\n- 物品表、配方输入/输出展示真实图标；图标加载失败时回退为物品名缩写。\n- 设置页可选择材质包（localStorage webae_icon_pack 持久化），切换后用 ?v=<timestamp> 强制刷新所有图标。\n- 管理员（OP>=2）可在设置页上传材质包 zip（POST /api/icon/pack?pack=<name>），服务端解包并做 Zip Slip 路径穿越防护。\n- 也可直接访问 /icons/<pack>/<itemId>.png 静态路径（WebConsoleServer 托管 TeXTech/WebAE/icons/ 外部目录）。\n\n配置项（[webConsole] 节）：iconCacheEnabled、iconUploadEnabled、iconPackEnabled、nesqlRepositoryPath（import-nesql，空则 TeXTech/WebAE/）、iconMissingDispatchPerTick。/api/config 返回布尔开关。\n\n命令：/textech web icons upload [packName]、/textech web icons import-nesql [pack] [subpath]（默认从 TeXTech/WebAE/ 导入）、/textech web icons status。\n\n懒加载：404 图标入队 IconMissingQueue；就绪后服务端推送 SSE icon-ready，前端经 webae-icon-ready 事件刷新图标。
+adm.manual.web_console.icon_cache_text=阶段三加入了物品/流体图标缓存系统，让网页控制台用真实游戏图标替代纯文本。\n\n工作流程：\n1. OP 在游戏内执行 /textech web icons upload [packName] 命令触发渲染（Phase 2 起移除了游戏内快捷键，仅由命令触发）。\n2. 客户端 IconRenderer（@SideOnly CLIENT）每帧离屏渲染若干图标，避免长时间占用渲染线程。\n3. 图标打包为 IconBundle（itemId → base64 PNG），通过 PacketWebIconUpload（网络 ID 28）以 24 KiB 非空块严格顺序上传；单 bundle 最大 8 MiB/342 块，每位真实玩家最多 2 个会话，全局最多 16 个会话和 32 MiB 预留内存，120 秒无活动后过期。\n4. 服务端严格解析 JSON object；最多 4096 个唯一 item ID，拒绝重复键、尾随 token 和非法 UTF-8/Base64。单 PNG 最大 512 KiB、宽高最大 2048，全部完整解码且总 PNG 最大 16 MiB。\n5. 完整 bundle 验证通过后，IconStore 才将全部文件 staging 并 promote 到 TeXTech/WebAE/icons/<packName>/<mode>/<sanitizedItemId>.png；失败会回滚旧文件，完整提交后才刷新索引、记录默认 pack 并 ACK 已提交 ID。\n\n网页端使用：\n- 物品表、配方输入/输出展示真实图标；图标加载失败时回退为物品名缩写。\n- 设置页可选择材质包（localStorage webae_icon_pack 持久化），切换后用 ?v=<timestamp> 强制刷新所有图标。\n- 具备管理员授权的用户可在设置页上传材质包 ZIP（POST /api/icon/pack?pack=<name>）；入站 body 最大 32 MiB，最多 4096 entries，并执行同样的 PNG、路径、staging 与回滚校验。该限制不同于服务端导出 ZIP 的 8 MiB 上限。\n- 静态文件路径为 /icons/<pack>/<mode>/<sanitizedItemId>.png（WebConsoleServer 托管 TeXTech/WebAE/icons/ 外部目录并检查 canonical containment）。\n\n配置项（[webConsole] 节）：iconCacheEnabled、iconUploadEnabled、iconPackEnabled、nesqlRepositoryPath（import-nesql，空则 TeXTech/WebAE/）、iconMissingDispatchPerTick。/api/config 返回布尔开关。\n\n命令：/textech web icons upload [packName]、/textech web icons import-nesql [pack] [subpath]（默认从 TeXTech/WebAE/ 导入）、/textech web icons status。\n\n懒加载：404 图标仅在 iconLazyCaptureEnabled=true 时入队 IconMissingQueue；完整写入后服务端推送 SSE icon-ready，前端经 webae-icon-ready 事件刷新图标。
 adm.manual.web_console.recipe_cache_title=配方缓存优化
 adm.manual.web_console.recipe_cache_text=阶段三对配方缓存做了增量优化（搜索与倒排索引已在阶段一完成，此处不再重做）。NEI 性能 Phase 0–4 新增 handlerRecipeKeys/suggestPrefixIndex、recipeCacheMode=full（GTNH 默认；lru 在超过 maxRecipeCacheMB 时淘汰）、RecipeUploadThrottler（recipeUploadBatchesPerTick）与 RecipeSearchRateLimiter（recipeSearchMinIntervalMs）。\n\n磁盘持久化：\n- RecipeCacheStore.ingest() 完成后自动通过 HandlerTick.enqueueServerTask 异步保存到磁盘（去抖：同一时间只排队一个保存任务，避免每个分批都写盘）。\n- 保存格式改为 gzip 压缩：TeXTech/WebAE/web-recipes.json.gz，体积更小。加载时优先读 gzip，若存在旧的未压缩 web-recipes.json 会先读取再在下次保存时迁移为 gzip。\n- 客户端本地副本：.minecraft/TeXTech/WebAE//web-recipes.json.gz（RecipeLocalExporter，与上传命令同步写入）。\n- 记录 lastDiskSave（最后保存时间戳）与 diskCacheSize（gzip 文件字节数）供状态查询。\n\n状态查询：\n- /api/recipes/status 新增 diskCacheSize、lastDiskSave 字段。\n- 前端配方页显示磁盘缓存大小与最后保存时间，并提供「重新导出」提示。\n- /textech web recipes status 命令输出同样包含磁盘缓存信息。\n\n命令：\n- /textech web recipes upload [snapshot|deep] — 上传 NEI 配方（snapshot 仅存储相关物品；deep 全量物品扫描）；同时写入客户端 TeXTech/WebAE//web-recipes.json.gz。\n- /textech web recipes export — upload 的别名。\n- /textech web recipes status — 查看缓存状态（含磁盘缓存）。\n- /textech web recipes clear — 清空内存与磁盘缓存（OP 专用）。
 adm.manual.web_console.safety_title=安全与注意事项
-adm.manual.web_console.safety_text=Web 控制台是功能强大的工具——请小心保管访问凭证。\n\n安全机制：\n- Token 认证（每位玩家一个随机 UUID，持久化到 TeXTech/WebAE/web-tokens.json；重新签发会替换旧 Token）。\n- 所有 /api/ 端点强制 Bearer 认证（无关闭配置）。\n- 管理员专用端点（POST /api/refresh、/api/refresh/batch、/api/power/refresh、/api/gt/machines/refresh）额外要求 OP 等级 >= 2。\n- 默认仅本机绑定（127.0.0.1）。\n- 无 TLS — NanoHTTPD 不支持 HTTPS。\n\n安全建议：\n- 在面向公网的服务器上切勿设置 bindAddress=0.0.0.0，除非有防火墙或反向代理保护。\n- 使用 SSH 隧道（ssh -L 8090:localhost:8090 user@server）进行远程访问，而非直接开放端口。\n- 局域网联机时，仅向可信玩家分享 Token。\n- Token 泄露后立即撤销（/textech web revoke）。\n- Token 拥有对 AE2 存储和合成的完整读写权限——如同服务器密码一样保管。\n\n配置验证：\n- enabled 默认为 false（需主动启用）。\n- bindAddress 默认为 127.0.0.1（非 0.0.0.0）。\n- tokenLifetimeHours 默认为 0（永不过期）；设为 >0 启用按 TTL 过期。\n- refreshIntervalMs / gtRefreshIntervalMs 被限制在 1000-60000 毫秒。\n- maxNetworksDisplayed 被限制在 1-20。
+adm.manual.web_console.safety_text=Web 控制台是功能强大的工具——请小心保管访问凭证。\n\n安全机制：\n- 主人 Token 绑定资源主人 UUID，可在授权范围内读写 AE 网络；访客 Token 是只读的，只能访问主人 allowlist 内的网络。\n- 所有 /api/ 端点强制 Bearer 认证（无关闭配置）；guest 的刷新、上传、下单、写样板等 mutation 会被拒绝。\n- 资源 ownerUuid、真实 actorUuid 与 network scope 分开校验；客户端上报的 UUID、owner 或 network 不会直接成为授权依据。\n- 管理员专用端点（POST /api/refresh、/api/refresh/batch、/api/power/refresh、/api/gt/machines/refresh）额外要求 OP 等级 >= 2。\n- 默认仅本机绑定（127.0.0.1）。\n- 无 TLS — NanoHTTPD 不支持 HTTPS。\n- 配方/图标上传包使用 30000 bytes 包体预算并拒绝尾随数据；配方会话 120 秒无活动后过期。图标 packet bundle 限制为 24 KiB 顺序块、单 bundle 8 MiB、每玩家 2 会话、全局 16 会话/32 MiB 预留。\n- 图标 HTTP ZIP 上传限制为入站 body 32 MiB、4096 entries、单 PNG 512 KiB、总 PNG 16 MiB、尺寸 2048，并在完整校验后 staging/promote，失败时回滚旧文件；服务端导出 ZIP 另有 8 MiB 上限。\n- 世界地图上传要求 owner/OP 或当前 network 的 active capture actor；manifest/current/tile 有界，layer 仅 terrain/ae、quality 仅 low/medium/high/ultra。采集 job 分页完整重组，服务端最多 32 个 active jobs，90 分钟无活动或 2 小时后过期；玩家断线、WebAE stop/restart 或发送失败会清理未发布版本。JourneyMap 只读当前精确世界目录并拒绝路径链 symlink；集成服 direct capture 仅限 integrated single-player，主人免同意直采仍受请求冷却。\n\n安全建议：\n- 在面向公网的服务器上切勿设置 bindAddress=0.0.0.0，除非有防火墙或反向代理保护。\n- 使用 SSH 隧道（ssh -L 8090:localhost:8090 user@server）进行远程访问，而非直接开放端口。\n- 局域网联机时，仅向可信玩家分享 Token。\n- Token 泄露后立即撤销（/textech web revoke）。\n\n配置验证：\n- enabled 默认为 false（需主动启用）。\n- bindAddress 默认为 127.0.0.1（非 0.0.0.0）。\n- tokenLifetimeHours 默认为 0（永不过期）；设为 >0 启用按 TTL 过期。\n- refreshIntervalMs / gtRefreshIntervalMs 被限制在 1000-60000 毫秒。\n- maxNetworksDisplayed 被限制在 1-20。
 
 # ===== Web 控制台手册：新页面（阶段 E 与升级）=====
 adm.manual.web_console.command_upload_title=命令触发上传
-adm.manual.web_console.command_upload_text=OP 玩家通过聊天命令触发配方与图标上传（Phase 2 起移除了游戏内快捷键，上传仅由命令触发）。\n\n命令索引：/textech help（别名 /adm help）。Web 控制台：/textech web help；分组：/textech web recipes、/textech web icons、/textech web worldmap、/textech web server。\n\n命令：\n- /textech web recipes upload [snapshot|deep] — 上传 NEI 配方（snapshot 仅存储相关物品；deep 全量物品扫描）；同时写入客户端 TeXTech/WebAE/web-recipes.json.gz。\n- /textech web icons upload [pack] [mode] — 客户端渲染物品图标并上传。\n- /textech web icons import-nesql [pack] [subpath] — 从 nesqlRepositoryPath（空则 TeXTech/WebAE/）导入预渲染 PNG（增量）。\n- /textech web worldmap upload|accept|status — 世界地图客户端快照。\n\n上传子命令均要求 OP 权限（canUseOpCommands）；基础 /textech web 权限等级保持 0。\n\n客户端采集在主线程执行（Minecraft.addScheduledTask），因为 NEI API 非线程安全；RecipeUploadThrottler 按 recipeUploadBatchesPerTick 每 tick 发送批次。\n\n调试日志：在 [debug] debugWebae=true 时输出 handler 数量、numRecipes 总和与过滤前后配方数。
+adm.manual.web_console.command_upload_text=OP 玩家通过聊天命令触发配方与图标上传（Phase 2 起移除了游戏内快捷键，上传仅由命令触发）。\n\n命令索引：/textech help（别名 /adm help）。Web 控制台：/textech web help；分组：/textech web recipes、/textech web icons、/textech web worldmap、/textech web server。\n\n命令：\n- /textech web recipes upload [snapshot|deep] — 上传 NEI 配方（snapshot 仅存储相关物品；deep 全量物品扫描）；同时写入客户端 TeXTech/WebAE/web-recipes.json。\n- /textech web icons upload [pack] [mode] — 客户端渲染物品图标并上传。\n- /textech web icons import-nesql [pack] [subpath] — 从 nesqlRepositoryPath（空则 TeXTech/WebAE/）导入预渲染 PNG（增量）。\n- /textech web worldmap upload|accept|status — 世界地图客户端快照。\n\n配方/图标上传子命令要求 OP 权限（canUseOpCommands）；基础 /textech web 权限等级保持 0。服务端从 packet 上下文取得真实玩家，不信任 payload 中的 UUID。\n\n客户端采集在主线程执行（Minecraft.addScheduledTask），因为 NEI API 非线程安全；RecipeUploadThrottler 按 recipeUploadBatchesPerTick 每 tick 发送批次。上传 packet 使用 30000 bytes 包体预算并拒绝尾随数据；配方 JSON 根是 array、单批 JSON 最大 29488 bytes，会话 120 秒无活动后过期。图标 JSON 根是 object，以 24 KiB 非空块严格顺序传输，单 bundle 最大 8 MiB/342 块，每玩家最多 2 个会话，全局最多 16 个会话/32 MiB 预留。\n\n调试日志：在 [debug] debugWebae=true 时输出 handler 数量、numRecipes 总和与过滤前后配方数。
 adm.manual.web_console.refresh_status_title=顶栏刷新状态
 adm.manual.web_console.refresh_status_text=自动刷新倒计时不再单独切换显示一个文本元素（之前会导致顶栏宽度抖动）。\n\n- 绿色连接点旁新增固定宽度的状态栏（min-width 90px），始终占位渲染。\n- 状态文案由小型状态机驱动：「空闲」/「Ns 后刷新」/「刷新中...」。\n- 刷新按钮内的 spinner 改为绝对定位覆盖层，按钮宽度在加载过程中不再变化。\n\n这消除了每次刷新周期引起的 flex 重排抖动。
 adm.manual.web_console.dashboard_settings_title=仪表盘设置面板
@@ -1215,6 +1293,10 @@ adm.webconsole.sidebar.mode_hidden=隐藏侧栏（点击展开）
 adm.webae.phase3.integration_title=Phase 3 集成页面
 adm.webae.phase3.alerts_title=自动化告警
 adm.webae.phase3.alerts_text=在 TeXTech/WebAE/web-alerts.json 配置规则（首次访问自动创建）。服务端 tick 检测库存阈值、CPU 卡住、GT 异常、下单完成与频道超载；浏览器轮询 GET /api/alerts 并 Toast/系统通知。
+adm.manual.web_console.worldmap_versions_title=世界地图版本比较与服务端注释
+adm.manual.web_console.worldmap_versions_text=世界地图只保留 current 与 previous 两版。版本区默认比较 previous → current，也可分别选择起止版本；地形始终显示 current，差异覆盖层用绿色表示新增、红色表示移除、蓝色表示移动、橙色表示变更，并可分别开关 marker 与 tile。计数来自完整服务端 summary；详情超过 1000 条会显示 truncated，缺失旧逻辑索引会显示 unknown/partial，不会假装“无变化”。\n\n右键地图空白处或设备 marker 可创建服务端注释；空白处 Y 默认 64。注释支持标题、备注、#RRGGBB 颜色、维度/XYZ 与版本闭区间，边界 0 表示不限；点击图钉可查看、编辑或确认删除。正式注释按 owner/network 原子保存到 TeXTech/WebAE/map-annotations/，不使用浏览器 localStorage。guest token 与浏览模式可读取版本、差异和注释，但不能新增、编辑或删除；功能不会自动触发地图采集。
+adm.manual.web_console.cpu_history_title=CPU 历史与容量规划
+adm.manual.web_console.cpu_history_text=CPU 详情抽屉和主 Dashboard 区域提供只读的合成作业历史、网络级 CPU 快照繁忙率趋势和容量摘要。\n\n接口：\n- GET /api/network/cpu/history?network=<id>&from=<epochMs>&to=<epochMs>&limit=<n>：返回 owner/network/稳定键隔离的 queued、running、completed、failed、cancelled、stuck、unknown 作业及 CPU 快照；时间范围最多 14 天，单次最多 500 条作业和 1000 个快照，truncated=true 表示请求或响应达到上限。\n- GET /api/network/cpu/capacity?network=<id>&window=24h：window 可用 1h、6h、24h、7d、14d；返回当前 CPU、并发峰值、P50/P95 耗时、P95 排队、busy ratio、存储压力、卡住任务、并行处理器上限和只读所需 CPU 估算。\n\nHTTP 只读内存并激活后续正常 server tick，不在请求线程加载磁盘或扫描 World、TileEntity、AE2 Grid。已绑定 ICraftingLink 的完成/取消由轻量 server-tick observer 记录，不依赖浏览器轮询；重启时未完成任务恢复为 unknown。瓶颈只使用 cpu/queue/storage/stuck/insufficient_data，建议只使用 collect_more_history/review_cpu_count/review_queueing/review_cpu_storage/investigate_stuck_jobs。unknown 始终以警告显示，不当作空闲、已完成或健康；该功能不会自动创建、拆分、改造 CPU，也不会修改或重下单。
 adm.webae.pocket.overview_op=次元口袋概览需 OP（仅只读统计，不暴露物品内容）。
 adm.webae.search.title=全局搜索（Ctrl+K）
 adm.webae.search.text=按 Ctrl+K 打开命令面板，可搜索 AE 存储物品/流体/要素、NEI 配方、GT 机器与 AE 样板，并跳转到对应页面。优先调用 GET /api/search；离线时回退本地快照过滤。
@@ -1243,6 +1325,8 @@ adm.manual.web_console.ai_key_mode_text=[webConsole] aiKeyMode=server（默认�
 adm.manual.web_console.spark_title=Spark 性能分析
 adm.manual.web_console.spark_text=安装 Spark Forge 1.7.10 后，WebAE 管理控制台会显示「Spark 性能分析」标签（[webConsole] sparkEnabled 默认开启；未安装 Spark 时自动隐藏）。\n\n管理员可选择服务主线程（默认低开销）、慢 Tick 聚焦（仅记录超过阈值的 tick）或全部线程（信息最广、开销较高且最低 10ms 间隔），并设置采样时长/间隔。WebAE 到时显式停止采样；Viewer 上传等待不会延长采样。\n\n采样停止后，详情页直接显示方法自身耗时热点、影响分类、线程占比和智能性能建议。默认建议是有类/方法证据的本地确定性分析；管理员也可显式点击 AI 深度分析，单条或双条对比只发送有界聚合摘要，不发送 API Key、Viewer URL 或原始输出。两条记录统一按 B−A，正数表示影响变大，负数表示改善。\n\n开始/结束两次 Spark TPS 上下文、完整输出和 Viewer URL 仍会保存；Viewer 仅作为折叠区中的可选深层火焰图入口。旧记录没有本地分析时需新建采样；无链接时管理员仍可「重新查找 Viewer」。空闲时不增加 tick 采集、世界扫描或活动日志轮询。启动、停止、链接恢复、AI 分析与删除历史需要 WebAE 管理员权限。
 adm.manual.web_console.server_console_title=服务端后台命令
+adm.manual.web_console.network_health_title=网络健康诊断
+adm.manual.web_console.network_health_text=「性能诊断」页会为 WebAE 账号有权查看的每个网络显示只读网络健康区块。它展示 runtime network id 与稳定监视器键（dim:x:y:z）、最近一次服务端检查和样本新鲜度，以及 Link、监视器、AE Grid 与频道证据。每个问题都会附带简短说明和建议的下一步检查。\n\n状态采用保守语义：healthy 表示必要证据完整；degraded 表示发现 warning；failed 表示已确认必要组件不可用；unknown 表示样本过期或证据无法验证。unknown 永远不会显示为健康。服务端最多每 5 秒采样一次，浏览器只读取缓存，因此打开此页不会扫描世界。该功能只报告问题，不会自动修复绑定、重建 Grid 或修改频道；只读 AI 基地运维简报也使用同一份 owner 隔离快照。
 adm.manual.web_console.server_console_text=WebAE 管理员可在“管理控制台 → 服务端后台”按需执行服务端命令；开头的 / 可省略。命令以服务端控制台权限在主线程执行，停服、封禁、OP 与白名单等高风险命令必须二次确认。\n\n页面一次只执行一条命令，并有短冷却与队列深度门禁。玩家列表只在进入页面或手动刷新时读取已有元数据；在线、离线、全部筛选和搜索均在浏览器本地完成，可插入玩家名称或 UUID。\n\n常用命令由所有 WebAE 管理员共享，最多 64 条；审计最多 40 条，完整输出按需读取且每条只保留最后 24 行。持久化在后台线程合并写入 TeXTech/WebAE/admin-console.json，不增加空闲 Tick 工作或常驻玩家轮询。
 adm.manual.web_console.qq_bot_title=QQ 群机器人
 adm.manual.web_console.qq_bot_text=WebAE 管理员可在「管理控制台 → QQ 群机器人」配置 QQ 开放平台官方机器人。功能默认关闭；保存 AppID 与 ClientSecret 并启用后，服务端主动连接 QQ Gateway，不需要公网回调或第三方 OneBot。\n\n群成员可使用 /status、/players、/list、/tps、/memory、/uptime、/ping 查询只读服务器信息；/ai <问题> 复用 WebAE 服务端共享 AI Profile，可选短期多轮会话与共享联网搜索，/reset 清空个人上下文。QQ 侧不能执行任意服务器命令。\n\n管理员可限制群/用户 openid、设置命令和 AI 冷却、定时状态播报、手动公告、队列上限与审计条数。ClientSecret 使用 AES-GCM 加密落盘，网页只显示掩码；外部网络与 AI 全在有界后台队列执行，Tick 线程只每秒复制一次 TPS/人数/内存快照。目标 ID 可复用告警设置中的「QQ 获取目标 ID」工具捕获。
@@ -1425,6 +1509,7 @@ adm.command.admweb.recipes.status.disk_size=  磁盘缓存大小：{0}
 adm.command.admweb.recipes.status.disk_save=  最后磁盘保存：{0}
 adm.command.admweb.recipes.status.disk_none=  磁盘缓存：尚未保存
 adm.command.admweb.recipes.unknown=未知 recipes 子命令。可用：upload、export、status、clear
+adm.command.admweb.upload_packet_limit=WebAE 上传未启动：物品列表超过安全网络包上限。
 
 adm.command.admweb.icons.title==== /textech web icons ===
 adm.command.admweb.icons.help.1=/textech web icons upload [pack]  —  全量上传  [OP]
@@ -1590,3 +1675,5 @@ adm.command.admweb.qq.failed=QQ 操作失败：{0}
 adm.command.admweb.qq.unknown=未知 QQ 子命令。可用：status、send、restart
 adm.manual.web_console.screenshot_title=窗口截图与分享
 adm.manual.web_console.screenshot_text=在控制设置中绑定“截取当前游戏窗口”（默认 F10）；它只读取 Minecraft 帧缓冲，因此可包含任意已打开 GUI，但不会读取桌面或其他窗口。截图保存在客户端 TeXTech/Screenshots。使用 /admscreenshot list、preview、send web 或 send qq <群 openid> 管理与按需发送。上传默认每 tick 仅发送一个 24 KiB 分片；QQ 发图和 /admweb qq send 需要 OP。清晰度、JPEG 质量、单图体积、冷却、并发与两端保留量均可在 [webConsole] 配置。
+adm.manual.web_console.release_title=发布与升级
+adm.manual.web_console.release_text=WebAE 前端发布使用 staging → 验证 → promote 流程：scripts/build-webae.mjs 先写入 .workspace/webae-build，再确认 index.html 与 hashed JS 存在且可读取，最后才替换实例目录 TeXTech/WebAE/ui/。\n\n验证或 CI 可设置 WEBAE_BUILD_VALIDATE_ONLY=1；它只检查构建结果，不替换正式 bundle。npm run build:no-typecheck 适用于已经单独执行 TypeScript 检查的流程；npm run clean 只清理 .workspace/webae-build。\n\n如果构建或 bundle 验证失败，旧的正式 WebAE bundle 会保留。发布 ZIP 必须与主 JAR 版本匹配，并解压到实例根目录的 TeXTech/WebAE/ui/；不要直接清理或手动删除 src/main/resources/assets/textech/webae/ 中的正式资源。

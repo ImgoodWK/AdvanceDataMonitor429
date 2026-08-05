@@ -23,6 +23,10 @@ DEFAULT_API_KEY_ENV = "MEOWART_API_KEY"
 DEFAULT_API_KEY_FALLBACK_ENV = "MEOWART_API_KEY_FALLBACK"
 DEFAULT_API_KEYS_ENV = "MEOWART_API_KEYS"
 DEFAULT_DEV_KEY_ENV = "DEV_API_KEY"
+# Opt-in unified-platform proxy: when MEOWART_API_BASE is set, all Meowa API
+# calls are routed through this base (e.g. https://textech.top:8443/proxy/meowa-adm)
+# and the MEOWART_API_KEY is treated as the platform project key (uap_live_*).
+PROXY_API_BASE_ENV = "MEOWART_API_BASE"
 _DEV_AUTH_PREFIX = "x-dev-key:"
 DEFAULT_WORK_DIR = "./meowa-output"
 DEFAULT_TIMEOUT = 240
@@ -823,9 +827,38 @@ def _base_headers(api_key: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _configured_api_base() -> str:
+    """Resolve the effective API base. When MEOWART_API_BASE is set (e.g. a
+    unified-platform proxy like https://textech.top:8443/proxy/meowa-adm), route
+    all Meowa calls through it; otherwise fall back to the direct Meowa host."""
+    value = ""
+    try:
+        value = _read_dotenv_value(PROXY_API_BASE_ENV) or ""
+    except Exception:
+        value = ""
+    value = (value or os.environ.get(PROXY_API_BASE_ENV, "") or "").strip()
+    return value or DEFAULT_API_BASE
+
+
+def _configured_proxy_host() -> str:
+    base = _configured_api_base()
+    if base == DEFAULT_API_BASE:
+        return ""
+    try:
+        return (urlparse(base).hostname or "").lower()
+    except Exception:
+        return ""
+
+
 def _should_send_auth_headers(url: str) -> bool:
     parsed = urlparse(url)
-    return parsed.scheme.lower() == "https" and (parsed.hostname or "").lower() == AUTH_HEADER_HOST
+    if parsed.scheme.lower() != "https":
+        return False
+    host = (parsed.hostname or "").lower()
+    if host == AUTH_HEADER_HOST:
+        return True
+    proxy_host = _configured_proxy_host()
+    return bool(proxy_host) and host == proxy_host
 
 
 def _normalize_api_base(api_base: str) -> str:
@@ -833,8 +866,16 @@ def _normalize_api_base(api_base: str) -> str:
     parsed = urlparse(raw)
     if not parsed.scheme or not parsed.netloc:
         raise ValueError("invalid Meowa service URL")
-    if parsed.scheme != "https" or parsed.netloc.lower() != "api.meowa.ai":
-        raise ValueError("the distributed Skill only connects to https://api.meowa.ai")
+    proxy_host = _configured_proxy_host()
+    allowed_hosts = {AUTH_HEADER_HOST}
+    if proxy_host:
+        allowed_hosts.add(proxy_host)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not host or host not in allowed_hosts:
+        raise ValueError(
+            "the distributed Skill only connects to https://api.meowa.ai"
+            + (" or the configured MEOWART_API_BASE proxy" if proxy_host else "")
+        )
 
     path = parsed.path.rstrip("/")
     lowered_path = path.lower()
@@ -3429,7 +3470,7 @@ def parse_args() -> argparse.Namespace:
         help="Output root; the runner creates one task subdirectory",
     )
     parser.set_defaults(
-        api_base=DEFAULT_API_BASE,
+        api_base=_configured_api_base(),
         api_key="",
         insecure=False,
         work_dir=DEFAULT_WORK_DIR,

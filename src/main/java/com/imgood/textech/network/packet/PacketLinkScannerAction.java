@@ -2,11 +2,18 @@ package com.imgood.textech.network.packet;
 
 import net.minecraft.nbt.NBTTagCompound;
 
-import cpw.mods.fml.common.network.ByteBufUtils;
+import com.imgood.textech.utils.NetworkPacketCodec;
+
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class PacketLinkScannerAction implements IMessage {
+
+    public static final int MAX_PACKET_BODY_BYTES = 30000;
+    /** Leave room for action, slot and Forge's signed-short NBT length. */
+    private static final int MAX_NBT_COMPRESSED_BYTES = MAX_PACKET_BODY_BYTES - 1 - 4 - 2;
+    private static final long MAX_NBT_BYTES = 512L * 1024L;
 
     public static final int ACTION_SCAN = 0;
     public static final int ACTION_SYNC = 1;
@@ -19,6 +26,7 @@ public class PacketLinkScannerAction implements IMessage {
     public int x;
     public int y;
     public int z;
+    public boolean malformed;
 
     public PacketLinkScannerAction() {}
 
@@ -50,32 +58,91 @@ public class PacketLinkScannerAction implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeByte(action);
-        buf.writeInt(slot);
-        if (action == ACTION_SYNC) {
-            ByteBufUtils.writeTag(buf, nbt == null ? new NBTTagCompound() : nbt);
-        } else if (action == ACTION_TELEPORT) {
-            buf.writeInt(dimension);
-            buf.writeInt(x);
-            buf.writeInt(y);
-            buf.writeInt(z);
+        int start = buf.writerIndex();
+        try {
+            validateAction();
+            buf.writeByte(action);
+            buf.writeInt(slot);
+            if (action == ACTION_SYNC) {
+                NetworkPacketCodec.writeTag(
+                    buf,
+                    nbt == null ? new NBTTagCompound() : nbt,
+                    MAX_NBT_COMPRESSED_BYTES);
+            } else if (action == ACTION_TELEPORT) {
+                buf.writeInt(dimension);
+                buf.writeInt(x);
+                buf.writeInt(y);
+                buf.writeInt(z);
+            }
+            if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Link scanner action exceeds packet body limit");
+            }
+        } catch (RuntimeException error) {
+            buf.writerIndex(start);
+            throw error;
+        }
+    }
+
+    public boolean fitsPacketBudget() {
+        ByteBuf scratch = Unpooled.buffer(128);
+        try {
+            toBytes(scratch);
+            return scratch.readableBytes() <= MAX_PACKET_BODY_BYTES;
+        } catch (RuntimeException error) {
+            return false;
+        } finally {
+            scratch.release();
         }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        action = buf.readByte();
-        slot = buf.readInt();
-        if (action == ACTION_SYNC) {
-            nbt = ByteBufUtils.readTag(buf);
-            if (nbt == null) {
-                nbt = new NBTTagCompound();
+        malformed = false;
+        action = ACTION_SCAN;
+        slot = 0;
+        nbt = null;
+        dimension = 0;
+        x = 0;
+        y = 0;
+        z = 0;
+        try {
+            int start = buf.readerIndex();
+            if (buf.readableBytes() > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Link scanner action exceeds packet body limit");
             }
-        } else if (action == ACTION_TELEPORT) {
-            dimension = buf.readInt();
-            x = buf.readInt();
-            y = buf.readInt();
-            z = buf.readInt();
+            action = buf.readUnsignedByte();
+            slot = buf.readInt();
+            if (action == ACTION_SYNC) {
+                nbt = NetworkPacketCodec.readTag(buf, MAX_NBT_COMPRESSED_BYTES, MAX_NBT_BYTES);
+                if (nbt == null) {
+                    nbt = new NBTTagCompound();
+                }
+            } else if (action == ACTION_TELEPORT) {
+                dimension = buf.readInt();
+                x = buf.readInt();
+                y = buf.readInt();
+                z = buf.readInt();
+            } else if (action != ACTION_SCAN) {
+                throw new IllegalArgumentException("Invalid link scanner action");
+            }
+            if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
+                throw new IllegalArgumentException("Link scanner action has trailing or oversized data");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            action = ACTION_SCAN;
+            slot = 0;
+            nbt = null;
+            dimension = 0;
+            x = 0;
+            y = 0;
+            z = 0;
+        }
+    }
+
+    private void validateAction() {
+        if (action != ACTION_SCAN && action != ACTION_SYNC && action != ACTION_TELEPORT) {
+            throw new IllegalArgumentException("Invalid link scanner action");
         }
     }
 }

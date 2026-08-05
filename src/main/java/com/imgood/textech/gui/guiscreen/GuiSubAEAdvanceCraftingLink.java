@@ -64,7 +64,7 @@ public class GuiSubAEAdvanceCraftingLink extends AbstractMonitorSubGui {
     public GuiSubAEAdvanceCraftingLink(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
         int index) {
         super(player, world, tileEntity, index);
-        this.setSize(600, 450);
+        this.setSize(600, 480);
     }
 
     @Override
@@ -315,6 +315,7 @@ public class GuiSubAEAdvanceCraftingLink extends AbstractMonitorSubGui {
     }
 
     private void save(NBTTagCompound nbt, NBTTagList existingDataValues) {
+        beginValidation();
         nbt.setString("displayName", textFieldDisplayName.getText());
         nbt.setTag("dataValues", existingDataValues.copy());
         this.dataType = DataBound.DataType.crafting.name();
@@ -324,7 +325,7 @@ public class GuiSubAEAdvanceCraftingLink extends AbstractMonitorSubGui {
             .replace("，", ",")
             .replace(" ", "");
         if (!ContentsHelper.isValidPosFormat(xyz)) {
-            errorTips = I18n.format("adm.error.xyz");
+            rejectField(textFieldTileEntityXYZ, I18n.format("adm.error.xyz"));
             return;
         }
         nbt.setString("XYZ", xyz);
@@ -343,54 +344,44 @@ public class GuiSubAEAdvanceCraftingLink extends AbstractMonitorSubGui {
 
     private boolean validateNumbers(NBTTagCompound nbt) {
         if (!isValidDouble(textFieldxOffset.getText())) {
-            errorTips = I18n.format("adm.error.xoffset");
-            return false;
+            return rejectField(textFieldxOffset, I18n.format("adm.error.xoffset"));
         }
         nbt.setDouble("xOffset", Double.parseDouble(textFieldxOffset.getText()));
         if (!isValidDouble(textFieldyOffset.getText())) {
-            errorTips = I18n.format("adm.error.yoffset");
-            return false;
+            return rejectField(textFieldyOffset, I18n.format("adm.error.yoffset"));
         }
         nbt.setDouble("yOffset", Double.parseDouble(textFieldyOffset.getText()));
         if (!isValidDouble(textFieldzOffset.getText())) {
-            errorTips = I18n.format("adm.error.zoffset");
-            return false;
+            return rejectField(textFieldzOffset, I18n.format("adm.error.zoffset"));
         }
         nbt.setDouble("zOffset", Double.parseDouble(textFieldzOffset.getText()));
         if (!isValidDouble(textFieldRotationX.getText())) {
-            errorTips = I18n.format("adm.error.rotationx");
-            return false;
+            return rejectField(textFieldRotationX, I18n.format("adm.error.rotationx"));
         }
         nbt.setDouble("rotationX", Double.parseDouble(textFieldRotationX.getText()));
         if (!isValidDouble(textFieldRotationY.getText())) {
-            errorTips = I18n.format("adm.error.rotationy");
-            return false;
+            return rejectField(textFieldRotationY, I18n.format("adm.error.rotationy"));
         }
         nbt.setDouble("rotationY", Double.parseDouble(textFieldRotationY.getText()));
         if (!isValidDouble(textFieldRotationZ.getText())) {
-            errorTips = I18n.format("adm.error.rotationz");
-            return false;
+            return rejectField(textFieldRotationZ, I18n.format("adm.error.rotationz"));
         }
         nbt.setDouble("rotationZ", Double.parseDouble(textFieldRotationZ.getText()));
         if (!isValidInteger(textFieldInterval.getText())) {
-            errorTips = I18n.format("adm.error.interval");
-            return false;
+            return rejectField(textFieldInterval, I18n.format("adm.error.interval"));
         }
         int interval = Integer.parseInt(textFieldInterval.getText());
         nbt.setInteger("interval", interval <= 2 ? 1 : interval);
         if (!isValidDouble(textFieldDisplayNameScale.getText())) {
-            errorTips = I18n.format("adm.error.displayscale");
-            return false;
+            return rejectField(textFieldDisplayNameScale, I18n.format("adm.error.displayscale"));
         }
         nbt.setDouble("displayNameScale", Double.parseDouble(textFieldDisplayNameScale.getText()));
         if (!isValidDouble(textFieldScaled.getText())) {
-            errorTips = I18n.format("adm.error.scale");
-            return false;
+            return rejectField(textFieldScaled, I18n.format("adm.error.scale"));
         }
         nbt.setDouble("scale", Double.parseDouble(textFieldScaled.getText()));
         if (!isValidDouble(textScale.getText())) {
-            errorTips = I18n.format("adm.error.textscale");
-            return false;
+            return rejectField(textScale, I18n.format("adm.error.textscale"));
         }
         nbt.setDouble("textScale", Double.parseDouble(textScale.getText()));
         return true;
@@ -417,9 +408,8 @@ public class GuiSubAEAdvanceCraftingLink extends AbstractMonitorSubGui {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
             I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"), I18n.format("adm.label.xrotation"),
@@ -443,7 +433,7 @@ public class GuiSubAEAdvanceCraftingLink extends AbstractMonitorSubGui {
             offsetX + 322,
             offsetY - 35,
             textColor);
-        fontRendererObj.drawString(errorTips, offsetX + 230, offsetY + 380, 0xff0000);
+        drawMonitorFeedbackBand();
         drawTextFieldsWithHover(mouseX, mouseY);
 
         drawFocusedFieldHint(offsetX + 10, offsetY + 280);

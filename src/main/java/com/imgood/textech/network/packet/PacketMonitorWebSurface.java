@@ -13,17 +13,18 @@ import net.minecraft.world.World;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.network.handler.PacketHandlers;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
+import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.utils.NetworkValidationUtil;
 import com.imgood.textech.utils.WebDashboardSnapshotCodec;
 import com.imgood.textech.utils.WebDisplayBindingCodec;
 
-import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 /**
  * Bidirectional, bounded transfer for passive monitor web-surface snapshots.
@@ -46,6 +47,14 @@ public class PacketMonitorWebSurface implements IMessage {
     private NBTTagCompound config;
     private boolean success;
     private boolean valid = true;
+
+    public static final int MAX_PACKET_BODY_BYTES = 30000;
+    private static final int MAX_HASH_BYTES = 64;
+    private static final int MAX_PAYLOAD_BYTES = WebDashboardSnapshotCodec.MAX_COMPRESSED_BYTES;
+    private static final int MAX_CONFIG_NBT_COMPRESSED_BYTES = MAX_PACKET_BODY_BYTES
+        - (1 + 3 * Integer.BYTES + 1 + 1 + MAX_HASH_BYTES + 1 + Integer.BYTES + 1 + 2);
+    private static final long MAX_CONFIG_NBT_BYTES = 2L * 1024L * 1024L;
+    private static final int MAX_BINDING_JSON_CHARS = 16 * 1024;
 
     public PacketMonitorWebSurface() {}
 
@@ -81,42 +90,102 @@ public class PacketMonitorWebSurface implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        kind = buf.readByte();
-        x = buf.readInt();
-        y = buf.readInt();
-        z = buf.readInt();
-        index = buf.readUnsignedByte();
-        hash = ByteBufUtils.readUTF8String(buf);
-        success = buf.readBoolean();
-        int length = buf.readInt();
-        if (length < 0 || length > WebDashboardSnapshotCodec.MAX_COMPRESSED_BYTES || length > buf.readableBytes()) {
+        valid = true;
+        payload = new byte[0];
+        config = null;
+        hash = "";
+        try {
+            int start = buf.readerIndex();
+            if (buf.readableBytes() > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Monitor web-surface exceeds packet body limit");
+            }
+            kind = buf.readByte();
+            x = buf.readInt();
+            y = buf.readInt();
+            z = buf.readInt();
+            index = buf.readUnsignedByte();
+            hash = NetworkPacketCodec.readVarUtf8(buf, MAX_HASH_BYTES);
+            success = buf.readBoolean();
+            payload = NetworkPacketCodec.readBytes(buf, MAX_PAYLOAD_BYTES);
+            config = buf.readBoolean() ? NetworkPacketCodec.readTag(
+                buf,
+                MAX_CONFIG_NBT_COMPRESSED_BYTES,
+                MAX_CONFIG_NBT_BYTES) : null;
+            if ((kind != KIND_REQUEST && kind != KIND_CONTENT && kind != KIND_UPLOAD && kind != KIND_ACK)
+                || hash.length() > 64 || index >= TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS
+                || (config != null && config.hasKey("webBindingJson")
+                    && config.getString("webBindingJson").length() > MAX_BINDING_JSON_CHARS)) {
+                valid = false;
+            }
+            if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
+                throw new IllegalArgumentException("Monitor web-surface has trailing or oversized data");
+            }
+        } catch (RuntimeException error) {
             valid = false;
-            if (length > 0) buf.skipBytes(Math.min(length, buf.readableBytes()));
+            kind = KIND_ACK;
+            x = 0;
+            y = 0;
+            z = 0;
+            index = 0;
+            hash = "";
+            success = false;
             payload = new byte[0];
             config = null;
-            return;
-        } else {
-            payload = new byte[length];
-            buf.readBytes(payload);
         }
-        config = buf.readBoolean() ? ByteBufUtils.readTag(buf) : null;
-        if (hash.length() > 64 || index >= TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS) valid = false;
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeByte(kind);
-        buf.writeInt(x);
-        buf.writeInt(y);
-        buf.writeInt(z);
-        buf.writeByte(index);
-        ByteBufUtils.writeUTF8String(buf, hash == null ? "" : hash);
-        buf.writeBoolean(success);
-        int length = payload == null ? 0 : Math.min(payload.length, WebDashboardSnapshotCodec.MAX_COMPRESSED_BYTES);
-        buf.writeInt(length);
-        if (length > 0) buf.writeBytes(payload, 0, length);
-        buf.writeBoolean(config != null);
-        if (config != null) ByteBufUtils.writeTag(buf, config);
+        int start = buf.writerIndex();
+        try {
+            if (kind != KIND_REQUEST && kind != KIND_CONTENT && kind != KIND_UPLOAD && kind != KIND_ACK) {
+                throw new IllegalArgumentException("Invalid monitor web-surface kind");
+            }
+            if (index < 0 || index >= TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS) {
+                throw new IllegalArgumentException("Invalid monitor web-surface binding index");
+            }
+            buf.writeByte(kind);
+            buf.writeInt(x);
+            buf.writeInt(y);
+            buf.writeInt(z);
+            buf.writeByte(index);
+            byte[] hashBytes = (hash == null ? "" : hash).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            if (hashBytes.length > MAX_HASH_BYTES) {
+                throw new IllegalArgumentException("Monitor web-surface hash exceeds packet limit");
+            }
+            NetworkPacketCodec.writeVarUtf8(buf, hash == null ? "" : hash, MAX_HASH_BYTES);
+            buf.writeBoolean(success);
+            int length = payload == null ? 0 : payload.length;
+            if (length > MAX_PAYLOAD_BYTES) {
+                throw new IllegalArgumentException("Monitor web-surface payload exceeds packet limit");
+            }
+            buf.writeInt(length);
+            if (length > 0) buf.writeBytes(payload, 0, length);
+            buf.writeBoolean(config != null);
+            if (config != null) NetworkPacketCodec.writeTag(buf, config, MAX_CONFIG_NBT_COMPRESSED_BYTES);
+            if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Monitor web-surface exceeds packet body limit");
+            }
+        } catch (RuntimeException error) {
+            buf.writerIndex(start);
+            throw error;
+        }
+    }
+
+    public boolean fitsPacketBudget() {
+        ByteBuf scratch = Unpooled.buffer(128);
+        try {
+            toBytes(scratch);
+            return scratch.readableBytes() <= MAX_PACKET_BODY_BYTES;
+        } catch (RuntimeException error) {
+            return false;
+        } finally {
+            scratch.release();
+        }
+    }
+
+    boolean isValidPacket() {
+        return valid;
     }
 
     private boolean hasValidHash() {
@@ -162,10 +231,11 @@ public class PacketMonitorWebSurface implements IMessage {
                     if (message.kind == KIND_REQUEST) {
                         byte[] content = monitor.getWebDashboardPayload(message.index, message.hash);
                         if (content != null) {
-                            AdvanceDataMonitor.ADMCHANEL.sendTo(
-                                PacketMonitorWebSurface
-                                    .content(message.x, message.y, message.z, message.index, message.hash, content),
-                                player);
+                            PacketMonitorWebSurface response = PacketMonitorWebSurface
+                                .content(message.x, message.y, message.z, message.index, message.hash, content);
+                            if (response.fitsPacketBudget()) {
+                                AdvanceDataMonitor.ADMCHANEL.sendTo(response, player);
+                            }
                         }
                         return;
                     }
@@ -202,15 +272,18 @@ public class PacketMonitorWebSurface implements IMessage {
                         monitor.markDirty();
                         world.markBlockForUpdate(message.x, message.y, message.z);
                     }
-                    AdvanceDataMonitor.ADMCHANEL.sendTo(
-                        PacketMonitorWebSurface
-                            .ack(message.x, message.y, message.z, message.index, message.hash, accepted),
-                        player);
+                    PacketMonitorWebSurface ack = PacketMonitorWebSurface
+                        .ack(message.x, message.y, message.z, message.index, message.hash, accepted);
+                    if (ack.fitsPacketBudget()) {
+                        AdvanceDataMonitor.ADMCHANEL.sendTo(ack, player);
+                    }
                     if (!accepted) {
                         NBTTagCompound authoritative = new NBTTagCompound();
                         monitor.writeSyncNBT(authoritative);
-                        AdvanceDataMonitor.ADMCHANEL
-                            .sendTo(new PacketSynTileEntity(message.x, message.y, message.z, authoritative), player);
+                        PacketSynTileEntity sync = new PacketSynTileEntity(message.x, message.y, message.z, authoritative);
+                        if (sync.fitsPacketBudget()) {
+                            AdvanceDataMonitor.ADMCHANEL.sendTo(sync, player);
+                        }
                     }
                 }
             });

@@ -36,6 +36,7 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.FixedAspectButtonFamily;
 import com.imgood.textech.gui.framework.GuiBlitUtil;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
@@ -278,8 +279,8 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
         this.inputField.mouseClicked(mouseX, mouseY, mouseButton);
         if (mouseButton == 0 && isChatScrollbarVisible()) {
             int panelX = this.offsetX + CHAT_PANEL_INSET_LEFT;
@@ -309,8 +310,8 @@ public class GuiAIChat extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         drawCenteredString(
             this.fontRendererObj,
             I18n.format("adm.ai.title"),
@@ -348,13 +349,12 @@ public class GuiAIChat extends ADM_GuiScreen {
                 if (line.candidateCells != null) {
                     drawCandidateCells(panelX + 8, y, line.candidateCells);
                 } else if (line.codeBlock) {
-                    GuiBlitUtil.drawNineSlice(
-                        UiThemes.ADM.sectionPanel(),
+                    UiPanel.drawSection(
+                        UiThemes.ADM,
                         panelX + 4,
                         y - 1,
                         panelW - SCROLLBAR_WIDTH - 12,
-                        11,
-                        2);
+                        11);
                     drawString(this.fontRendererObj, line.text, panelX + 10, y, line.color);
                 } else {
                     drawString(this.fontRendererObj, line.text, panelX + 8 + line.indent, y, line.color);
@@ -1116,15 +1116,17 @@ public class GuiAIChat extends ADM_GuiScreen {
         int scrollX = panelX + panelW - SCROLLBAR_WIDTH - 3;
         int topButtonY = panelY + 3;
         int bottomButtonY = panelY + panelH - SCROLL_BUTTON_HEIGHT - 3;
-        GuiBlitUtil.drawHorizontalSlice(
-            UiThemes.ADM.buttonNormal(),
+        GuiBlitUtil.drawFixedAspectButton(
+            UiThemes.ADM.fixedAspectButtons(),
+            FixedAspectButtonFamily.State.NORMAL,
             scrollX,
             topButtonY,
             SCROLLBAR_WIDTH,
             SCROLL_BUTTON_HEIGHT);
         drawCenteredString(this.fontRendererObj, "^", scrollX + SCROLLBAR_WIDTH / 2, topButtonY + 2, 0xFFFFFF);
-        GuiBlitUtil.drawHorizontalSlice(
-            UiThemes.ADM.buttonNormal(),
+        GuiBlitUtil.drawFixedAspectButton(
+            UiThemes.ADM.fixedAspectButtons(),
+            FixedAspectButtonFamily.State.NORMAL,
             scrollX,
             bottomButtonY,
             SCROLLBAR_WIDTH,
@@ -1134,8 +1136,12 @@ public class GuiAIChat extends ADM_GuiScreen {
         int trackTop = topButtonY + SCROLL_BUTTON_HEIGHT + 2;
         int trackBottom = bottomButtonY - 2;
         int trackHeight = Math.max(1, trackBottom - trackTop);
-        GuiBlitUtil
-            .drawNineSlice(UiThemes.ADM.scrollTrack(), scrollX + 2, trackTop, SCROLLBAR_WIDTH - 4, trackHeight, 2);
+        GuiBlitUtil.drawCoverCropped(
+            UiThemes.ADM.scrollTrackRegion(),
+            scrollX + 2,
+            trackTop,
+            SCROLLBAR_WIDTH - 4,
+            trackHeight);
 
         int maxScroll = maxScrollOffset();
         int totalHeight;
@@ -1145,7 +1151,12 @@ public class GuiAIChat extends ADM_GuiScreen {
         int thumbHeight = Math.max(12, trackHeight * chatContentHeight() / Math.max(chatContentHeight(), totalHeight));
         int thumbTravel = Math.max(0, trackHeight - thumbHeight);
         int thumbY = trackTop + (maxScroll <= 0 ? 0 : this.scrollOffset * thumbTravel / maxScroll);
-        GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollThumb(), scrollX + 1, thumbY, SCROLLBAR_WIDTH - 2, thumbHeight, 2);
+        GuiBlitUtil.drawCoverCropped(
+            UiThemes.ADM.scrollThumbRegion(),
+            scrollX + 1,
+            thumbY,
+            SCROLLBAR_WIDTH - 2,
+            thumbHeight);
     }
 
     private boolean isChatScrollbarVisible() {
@@ -1195,7 +1206,7 @@ public class GuiAIChat extends ADM_GuiScreen {
         for (int i = 0; i < cells.size(); i++) {
             CandidateCell cell = cells.get(i);
             int cellX = x + i * cellWidth;
-            GuiBlitUtil.drawNineSlice(UiThemes.ADM.sectionPanel(), cellX - 2, y - 2, cellWidth - 2, 20, 3);
+            UiPanel.drawSection(UiThemes.ADM, cellX - 2, y - 2, cellWidth - 2, 20);
             if (cell.stack != null) {
                 RenderHelper.enableGUIStandardItemLighting();
                 this.itemRender.renderItemAndEffectIntoGUI(

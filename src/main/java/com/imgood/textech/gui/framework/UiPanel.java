@@ -5,9 +5,7 @@ import net.minecraft.client.gui.Gui;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/**
- * 9-slice panel drawing with solid-color fallback when the theme atlas is missing.
- */
+/** Sparse ADM panel drawing with legacy-theme and solid-color fallbacks. */
 @SideOnly(Side.CLIENT)
 public final class UiPanel {
 
@@ -18,6 +16,16 @@ public final class UiPanel {
     private UiPanel() {}
 
     public static void draw(UiTheme theme, int x, int y, int width, int height) {
+        SparseFrameRegion sparse = theme != null ? theme.sparseMainFrame() : null;
+        if (sparse != null && GuiBlitUtil.hasResource(sparse.topLeft().texture())) {
+            GuiBlitUtil.drawSparseFrame(sparse, x, y, width, height);
+            return;
+        }
+        TiledFrameRegion frame = theme != null ? theme.mainFrame() : null;
+        if (frame != null && GuiBlitUtil.hasResource(frame.topLeft().texture())) {
+            GuiBlitUtil.drawTiledFrame(frame, x, y, width, height);
+            return;
+        }
         draw(theme, x, y, width, height, theme != null ? theme.mainPanel() : null);
     }
 
@@ -33,6 +41,16 @@ public final class UiPanel {
     }
 
     public static void drawSection(UiTheme theme, int x, int y, int width, int height) {
+        SparseFrameRegion sparse = theme != null ? theme.sparseSectionFrame() : null;
+        if (sparse != null && GuiBlitUtil.hasResource(sparse.topLeft().texture())) {
+            GuiBlitUtil.drawSparseFrame(sparse, x, y, width, height);
+            return;
+        }
+        TiledFrameRegion frame = theme != null ? theme.sectionFrame() : null;
+        if (frame != null && GuiBlitUtil.hasResource(frame.topLeft().texture())) {
+            GuiBlitUtil.drawTiledFrame(frame, x, y, width, height);
+            return;
+        }
         draw(theme, x, y, width, height, theme != null ? theme.sectionPanel() : null);
     }
 
@@ -49,11 +67,30 @@ public final class UiPanel {
         if (width <= 0) {
             return;
         }
+        AtlasRegion exact = theme != null ? theme.dividerRegion() : null;
+        if (exact != null && GuiBlitUtil.hasResource(exact.texture())) {
+            GuiBlitUtil.drawCenteredRegion(exact, x, y, width, exact.height());
+            return;
+        }
         NineSliceRegion divider = theme != null ? theme.divider() : null;
         if (divider != null && GuiBlitUtil.hasResource(divider.texture())) {
             GuiBlitUtil.drawHorizontalSlice(divider, x, y, width, divider.regionH());
             return;
         }
         Gui.drawRect(x, y, x + width, y + 1, FALLBACK_SECTION_LINE);
+    }
+
+    public static void drawTitleOrnament(UiTheme theme, int x, int y, int width) {
+        AtlasRegion ornament = theme != null ? theme.titleOrnament() : null;
+        if (ornament != null && GuiBlitUtil.hasResource(ornament.texture())) {
+            GuiBlitUtil.drawCenteredRegion(ornament, x, y, width, ornament.height());
+        }
+    }
+
+    public static void drawFooterOrnament(UiTheme theme, int x, int y, int width) {
+        AtlasRegion ornament = theme != null ? theme.footerOrnament() : null;
+        if (ornament != null && GuiBlitUtil.hasResource(ornament.texture())) {
+            GuiBlitUtil.drawCenteredRegion(ornament, x, y, width, ornament.height());
+        }
     }
 }

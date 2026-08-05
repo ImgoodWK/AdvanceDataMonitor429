@@ -5,6 +5,8 @@ import net.minecraft.client.resources.I18n;
 
 import org.lwjgl.input.Keyboard;
 
+import com.imgood.textech.gui.framework.UiFeedbackArea;
+
 /**
  * Thin base for small ADM configuration dialogs (item NBT, tile settings, HUD config).
  * Provides centered panel layout, shared textures, and save/cancel button factories.
@@ -49,6 +51,13 @@ public abstract class AdmItemConfigScreen extends ADM_GuiScreen {
         ADM_GuiTextField field = new ADM_GuiTextField(fontRendererObj, x, y, w, h);
         field.setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020);
         field.setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
+        field.setOnTextChanged(new Runnable() {
+
+            @Override
+            public void run() {
+                errorTips = "";
+            }
+        });
         return field;
     }
 
@@ -78,7 +87,45 @@ public abstract class AdmItemConfigScreen extends ADM_GuiScreen {
 
     protected void drawErrorTips(int y) {
         if (!errorTips.isEmpty()) {
-            drawCenteredString(fontRendererObj, errorTips, centerX(), y, 0xFF5555);
+            new UiFeedbackArea(panelX() + 16, y, panelWidth - 32, 30).draw(fontRendererObj, errorTips, 0xFF5555);
+        }
+    }
+
+    protected void beginValidation(ADM_GuiTextField... fields) {
+        errorTips = "";
+        if (fields == null) return;
+        for (ADM_GuiTextField field : fields) {
+            if (field != null) field.setInvalid(false);
+        }
+    }
+
+    protected void rejectField(ADM_GuiTextField field, String message) {
+        errorTips = message != null ? message : "";
+        if (field != null) {
+            field.setInvalid(true);
+            field.setFocused(true);
+        }
+    }
+
+    protected void drawFieldTooltip(ADM_GuiTextField field, int mouseX, int mouseY, String... paragraphs) {
+        if (field == null || mouseX < field.xPosition || mouseX >= field.xPosition + field.width + 2
+            || mouseY < field.yPosition
+            || mouseY >= field.yPosition + field.height + 2) {
+            return;
+        }
+        drawAdmTooltip(mouseX, mouseY, Math.min(300, panelWidth - 32), paragraphs);
+    }
+
+    protected void drawButtonTooltip(int buttonId, int mouseX, int mouseY, String... paragraphs) {
+        for (Object obj : buttonList) {
+            GuiButton button = (GuiButton) obj;
+            if (button.id == buttonId && button.visible && mouseX >= button.xPosition
+                && mouseX < button.xPosition + button.width
+                && mouseY >= button.yPosition
+                && mouseY < button.yPosition + button.height) {
+                drawAdmTooltip(mouseX, mouseY, Math.min(300, panelWidth - 32), paragraphs);
+                return;
+            }
         }
     }
 

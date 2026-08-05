@@ -19,6 +19,8 @@ import io.netty.buffer.ByteBuf;
  */
 public class PacketAssistantMenuStateQuery implements IMessage {
 
+    public boolean malformed;
+
     public PacketAssistantMenuStateQuery() {}
 
     @Override
@@ -28,18 +30,24 @@ public class PacketAssistantMenuStateQuery implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        // No payload.
+        malformed = buf == null || buf.readableBytes() != 0;
     }
 
     public static class Handler implements IMessageHandler<PacketAssistantMenuStateQuery, IMessage> {
 
         @Override
         public IMessage onMessage(final PacketAssistantMenuStateQuery message, final MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
                     EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+                    if (player == null) {
+                        return;
+                    }
                     AssistantServerServices.respondMenuState(player);
                 }
             });

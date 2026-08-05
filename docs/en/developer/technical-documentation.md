@@ -1,6 +1,6 @@
 # TeXTech Developer Technical Documentation
 
-> Audience: developers · Last synced: 2026-07  
+> Audience: developers · Last synced: 2026-07<br>
 > Player guide: [Player Guide](../player/player-guide.md) · AI details: [AI Assistant Development Guide](../ai-assistant/development-guide.md) · Build: [Gradle Workflow](Gradle-workflow.md)
 
 ---
@@ -167,18 +167,24 @@ Key classes:
 - `GuiMainAdvanceDataMonitor` and multiple `GuiSub*` config pages
 - `RenderAdvanceDataMonitor`
 - `RenderController` / `IADMRender`
+- `monitor/MonitorWidgetSpec` / `MonitorDownsampleUtil` / `MonitorThresholdEvaluator` / `MonitorThresholdRuntime`
+- `renders/MonitorRenderCache` / `MonitorRenderSupport`
+- `network/packet/PacketMonitorBindingDelta`
 
-`TileEntityAdvanceDataMonitor` holds `dataBoundList`; each index is an `NBTTagCompound` display entry. Constant `MAX_DATA_BINDINGS = 36` caps binding entries per monitor face (shared by Data Imprint sneak-bind and `GuiSubBind` add-binding; full list shows `adm.error.data_bindings_full`). Entries store target coordinates, field name, sample interval, color, scale, rotation, data type, etc.; `dataLimit` is the per-chart point history (default 100), unrelated to the binding entry cap. Server `updateEntity()` samples per entry `interval`:
+`TileEntityAdvanceDataMonitor` holds `dataBoundList`; each index is an `NBTTagCompound` display entry. Constant `MAX_DATA_BINDINGS = 36` caps binding entries per monitor face (shared by Data Imprint sneak-bind and `GuiSubBind` add-binding; full list shows `adm.error.data_bindings_full`). `MonitorWidgetSpec` normalizes old saves into the shared contract: `kind`, `sourceKind`, `metricKey`, `title`, and optional `style`, `targetValue`, `pins`, `columns`, `sortMode`, `maxRows`, `colors`, and `seriesTransform`. New code treats `kind` / `renderType` as authoritative while continuing to read and backfill `dataType`, `name`, and `displayName`. Missing `columns` means source defaults; an empty list explicitly hides every column.
 
-1. Resolve bound coordinates.
-2. Find target TileEntity.
-3. If target is unified Advanced Network Linker with `dataType=crafting`, write `lines` or `networkLines`.
-4. If target is unified Advanced Network Linker with `dataType=storage`, write `storageItems`.
-5. If target is unified Advanced Network Linker with `dataType=line` (default network chart), read AE2 network stats by field; optionally convert to percentage.
-6. For ordinary TileEntities, read the specified numeric field from target NBT.
-7. Update local data and sync to client rendering via `syncData()` / `PacketSynTileEntity` / vanilla description packet.
+Shared first-class kinds are `statCard`, `progressBar`, `gauge`, `lineChart`, `barChart`, `pieChart`, and `dataTable`; `crafting`, `storage`, and `web_surface` remain native special-purpose kinds. `radarChart` stays WebAE-only and reaches the game through a live/snapshot surface. Legacy `bar3d` / `waterfall` values are `barChart` aliases, while `diffrence` / `difference` migrate to `lineChart + seriesTransform=difference`.
 
-`dataType=webae_dashboard` is passive: `updateEntity()` skips it before coordinate parsing, target-TE reads, or interval counters, so it adds no server-tick collection. Its independent `renderType=web_surface` currently uses `webSurfaceMode=dashboard_snapshot`; future web content sources can reuse monitor transforms without changing the data type contract.
+Server sampling groups due bindings before collection:
+
+1. `tile_metric`, `ae_metric`, `storage_summary`, and `gt_summary` group by target coordinates, serialize a target TileEntity once, then fan the sample out to every binding in that group.
+2. `wireless_eu` and `wireless_steam` query by monitor owner/team instead of inventing target coordinates. SNL 0.2.5 exposes stored steam but no real capacity.
+3. `crafting` / `storage` continue to produce `lines` / `networkLines` or `storageItems`; numeric sources append `dataValues`.
+4. Each data or small-field change increments `revision`. Packet 54 `PacketMonitorBindingDelta` sends only binding index, revision, appended samples, and a small field patch. `PacketSynTileEntity` remains for initial/chunk load, GUI saves, and structural configuration changes; normal sampling no longer broadcasts the complete monitor NBT every tick.
+
+`dataLimit` remains compatible with 2..9999 and the server keeps the full configured history; the GUI only shows a soft warning above 512. Native rendering and WebAE preview use `MonitorDownsampleUtil` with a point budget of `min(history points, visible width, 240)`. The time-series `MonitorRenderCache` is keyed by `monitorPos + bindingIndex + revision`; unchanged data/config reuses its VBO instead of executing `glGenBuffers/glBufferData/glDeleteBuffers` every frame.
+
+Every binding has a `threshold` compound with fixed `enabled`, `operator`, `value`, `hysteresis`, `outputMin`, and `outputMax` fields. `MonitorWidgetSpec` adds a disabled configuration to legacy saves and never derives a threshold from `targetValue`, `dataLimit`, or style. `MonitorThresholdRuntime` keeps the latest valid server sample, sample tick, and hysteresis active state only in memory; none are written to tile NBT. Freshness is `max(2 × intervalTicks, 200 ticks)`, with expiry evaluated on the normal server tick so output actively returns to zero. Multiple bindings aggregate strong power with OR and weak power with maximum. All block sides and the comparator override read the TE aggregate cache without sampling. The TE marks dirty and notifies neighbors/comparators only when the aggregate weak or strong value changes.
 
 `dataType=webae_dashboard` is a passive data type: `updateEntity()` skips it entirely (no coordinate parse, no target TE read, no server-tick work). Its `renderType=web_surface` is decoupled from the data type. `webSurfaceMode` may be `dashboard_live` (published layout live frames), `dashboard_snapshot` (legacy drawing-list snapshot), or `live_url` (arbitrary http(s) URL; requires client MCEF).
 
@@ -186,7 +192,7 @@ Primary path: WebAE **Export for in-game display** publishes under `TeXTech/WebA
 
 Client `WebSurfaceSourceRouter`: optional MCEF → CDP stub → HttpFrame (recognizes `browser-jpeg`/`spa-jpeg`/`server-html`); live mode does not silently fall back to Snapshot. GUI shows frame source + error codes; `GET /api/display/{id}/frame-status` exposes capture diagnostics.
 
-Client rendering prefers `renderType`, falling back to `dataType`, dispatching to `LineChartRenderer`, `CraftingInfoRenderer`, `StorageInfoRenderer`, or `WebSurfaceRenderer`. To add a display type, typically:
+Client rendering prefers `renderType`, falling back to `dataType`. `LoaderRender` registers all seven shared renderers, with the line family sharing the cache base; `crafting`, `storage`, and `web_surface` keep dedicated renderers. Progress/gauge maxima resolve in this order: real source maximum → a true 0..100 percent metric → `targetValue>0`. Steam or another absolute metric with neither a real capacity nor a target degrades to a scalar/trend and never shows an invented percentage. To add a display type, typically:
 
 1. Define display entry NBT fields and GUI edit entry.
 2. Write stable data structures in sampling logic.
@@ -1181,7 +1187,7 @@ When GUIs modify TileEntities, respect side: client edits UI and sends packets; 
 
 All packets share `TeXTech.ADMCHANEL`, registered in `LoaderNetwork.registerNetWorks()` (postInit).
 
-**Full ID table and add-packet checklist**: see [`.cursor/rules/network-packets.mdc`](../../.cursor/rules/network-packets.mdc) (kept in sync with source; next available ID = 54).
+**Full ID table and add-packet checklist**: see [`.cursor/rules/network-packets.mdc`](../../../.cursor/rules/network-packets.mdc) (kept in sync with source; next available ID = 55).
 
 Summary:
 
@@ -1197,6 +1203,7 @@ Summary:
 | 26–50 | WebAE recipes/icons/token/world-map/alert HUD |
 | 51–52 | Game-window screenshot 24 KiB upload chunks / terminal acknowledgement |
 | 53 | Monitor web-surface hash request, one-binding upload, and acknowledgement (same ID both directions) |
+| 54 | Monitor binding revision/appended samples/small field patch S→C delta sync |
 
 `PacketAssistantAction` currently supports 11 actions (1–7 crafting/query, 8–11 withdraw), carrying parameters in payload NBT.
 
@@ -1205,6 +1212,10 @@ Maintenance notes:
 - 1.7.10 `SimpleNetworkWrapper` discriminators must match on both sides; do not reuse IDs for new packets.
 - Consider NBT payload size and trust boundaries; client NBT must not become authoritative without validation.
 - World/TileEntity changes in server handlers must run on server thread; packet handlers use `PacketHandlers.runOnServer()` (which delegates to `HandlerTick.enqueueServerTask`).
+
+**Unified trust boundary**: Forge 1.7.10 custom payloads have a 32767-byte hard ceiling; project packets use a 30000-byte body budget and normally split binary bodies into non-empty 24 KiB chunks. Every byte, string, and VarString field crossing a C→S/S→C boundary must be checked against both its field limit and the remaining bytes, and trailing data is rejected. Text uses strict UTF-8 decoding; malformed or unmappable bytes are rejected instead of being replaced. Forge 1.7.10 NBT uses signed-short compressed-length framing (`-1` means null); decompression must use a bounded `NBTSizeTracker` and a compressed-payload limit. Assistant gzip NBT is additionally limited to a 24 KiB compressed body and 2 MiB expanded body. JSON must validate its root type, list count, string length, control characters, and enum/index ranges; malformed data is safely dropped and raw payloads are not echoed in error messages.
+
+A C→S handler must take its actor from `ctx.getServerHandler().playerEntity`. Client-reported player UUIDs, owner UUIDs, actor UUIDs, and network IDs are inputs to validate, never direct authorization. All world/TileEntity/AE mutations go through `PacketHandlers.runOnServer()`, and ACKs are sent on the server thread. Handlers must safely handle truncation, invalid UTF-8, oversized NBT/JSON, and invalid enum values without uncaught exceptions. `utils/NetworkPacketCodec` centralizes framing/size checks, while `WebAeBinaryTransfer.SequentialAssembler` provides bounded, TTL-governed, strictly ordered reassembly. World-map snapshot keys are offset-paged under the 30 KiB budget, and the client commits a version only after following the complete page chain. `webae/worldmap/WorldMapPacketAuthorization` owns owner/network/dimension/chunk/layer boundaries; Dynmap providers/roots additionally enforce real-file containment and must not bypass routing or authorization to read arbitrary files.
 
 ## 8. AI Assistant Architecture
 

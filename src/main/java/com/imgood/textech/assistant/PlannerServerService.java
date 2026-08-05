@@ -112,6 +112,32 @@ public final class PlannerServerService {
     }
 
     /**
+     * Returns only aggregate planner state for the operations briefing. Planner entries are
+     * free-form player text, so the briefing deliberately avoids echoing their contents.
+     */
+    static String briefingSummary(EntityPlayerMP player, String locale) {
+        boolean zh = isChinese(locale);
+        ItemStack planner = findPlanner(player);
+        if (planner == null) {
+            return zh ? "你没有高级计划器。请先在背包中放入一个高级计划器。"
+                : "You don't have an Advanced Planner. Please put one in your inventory first.";
+        }
+        List<PlannerEntry> entries = ItemAdvancePlanner.getAllEntries(planner);
+        if (entries.isEmpty()) {
+            return zh ? "计划器中暂无条目。" : "No entries in the planner.";
+        }
+        int total = entries.size();
+        int completed = ItemAdvancePlanner.getCompletedCount(planner);
+        int open = Math.max(0, total - completed);
+        if (open > 0) {
+            return zh ? "计划器状态：[待办] " + open + "，已完成 " + completed + "/" + total
+                : "Planner status: [Todo] " + open + ", completed " + completed + "/" + total + ".";
+        }
+        return zh ? "计划器状态：没有待办，已完成 " + completed + "/" + total
+            : "Planner status: no open todos, completed " + completed + "/" + total + ".";
+    }
+
+    /**
      * Complete a plan entry by its slot index.
      */
     public static String completeEntry(EntityPlayerMP player, int slotIndex, String locale) {

@@ -4,7 +4,6 @@ import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.resources.I18n;
@@ -16,7 +15,8 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import com.imgood.textech.gui.custom.ADM_GuiButton;
-import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.gui.manual.ManualChapter;
@@ -32,7 +32,7 @@ import com.imgood.textech.renders.ManualPageRenderer;
  *
  * Main manual GUI with left sidebar chapter navigation and right content area.
  */
-public class GuiManual extends GuiScreen {
+public class GuiManual extends ADM_GuiScreen {
 
     private static final int GUI_WIDTH = 320;
     private static final int GUI_HEIGHT = 246;
@@ -70,12 +70,16 @@ public class GuiManual extends GuiScreen {
 
     public GuiManual() {
         chapters = ManualDataLoader.loadChapters();
+        setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
+        setSize(GUI_WIDTH, GUI_HEIGHT);
+        setStretch(false);
     }
 
     @Override
     public void initGui() {
         guiLeft = (width - GUI_WIDTH) / 2;
         guiTop = (height - GUI_HEIGHT) / 2;
+        setPosition(guiLeft, guiTop);
 
         int buttonWidth = 56;
         int buttonHeight = 14;
@@ -132,20 +136,16 @@ public class GuiManual extends GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
         drawBackground();
         drawSidebar(mouseX, mouseY);
         drawContent(mouseX, mouseY);
         drawPageCounter();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
     }
 
     private void drawBackground() {
-        drawDefaultBackground();
-        UiPanel.draw(UiThemes.ADM, guiLeft, guiTop, GUI_WIDTH, GUI_HEIGHT);
         UiPanel.drawSection(UiThemes.ADM, guiLeft + 2, guiTop + 2, SIDEBAR_WIDTH - 4, GUI_HEIGHT - 4);
-        GuiBlitUtil
-            .drawNineSlice(UiThemes.ADM.divider(), guiLeft + SIDEBAR_WIDTH - 2, guiTop + 8, 4, GUI_HEIGHT - 16, 1);
     }
 
     private void drawSidebar(int mouseX, int mouseY) {
@@ -159,11 +159,9 @@ public class GuiManual extends GuiScreen {
                 && mouseY < y + SIDEBAR_ITEM_HEIGHT;
 
             if (i == selectedChapter) {
-                GuiBlitUtil
-                    .drawHorizontalSlice(UiThemes.ADM.buttonPressed(), x, y, SIDEBAR_WIDTH - 4, SIDEBAR_ITEM_HEIGHT);
+                UiPanel.drawSection(UiThemes.ADM, x, y, SIDEBAR_WIDTH - 4, SIDEBAR_ITEM_HEIGHT);
             } else if (hovered) {
-                GuiBlitUtil
-                    .drawHorizontalSlice(UiThemes.ADM.buttonHover(), x, y, SIDEBAR_WIDTH - 4, SIDEBAR_ITEM_HEIGHT);
+                UiPanel.drawSection(UiThemes.ADM, x, y, SIDEBAR_WIDTH - 4, SIDEBAR_ITEM_HEIGHT);
             }
 
             // Draw chapter icon (small, 12x12)
@@ -208,12 +206,16 @@ public class GuiManual extends GuiScreen {
         Minecraft mc = Minecraft.getMinecraft();
         int scaleFactor = new net.minecraft.client.gui.ScaledResolution(mc, mc.displayWidth, mc.displayHeight)
             .getScaleFactor();
-        int scissorY = mc.displayHeight - (guiTop + CONTENT_BOTTOM) * scaleFactor;
+        com.imgood.textech.gui.framework.UiViewportTransform transform = viewportTransform();
+        int scissorLeft = transform.toScreenX(guiLeft + CONTENT_X + 4) * scaleFactor;
+        int scissorRight = transform.toScreenX(guiLeft + CONTENT_X + 4 + CONTENT_WIDTH - 8) * scaleFactor;
+        int scissorTop = transform.toScreenY(guiTop + CONTENT_TOP) * scaleFactor;
+        int scissorBottom = transform.toScreenY(guiTop + CONTENT_BOTTOM) * scaleFactor;
         GL11.glScissor(
-            (guiLeft + CONTENT_X + 4) * scaleFactor,
-            scissorY,
-            (CONTENT_WIDTH - 8) * scaleFactor,
-            (CONTENT_HEIGHT_VAL) * scaleFactor);
+            scissorLeft,
+            mc.displayHeight - scissorBottom,
+            Math.max(1, scissorRight - scissorLeft),
+            Math.max(1, scissorBottom - scissorTop));
 
         // Translate by scroll offset
         GL11.glTranslatef(0, -configScrollOffset, 0);
@@ -248,8 +250,8 @@ public class GuiManual extends GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int button) {
-        super.mouseClicked(mouseX, mouseY, button);
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int button) {
+        super.handleAdmMouseClicked(mouseX, mouseY, button);
 
         // Check sidebar clicks
         if (button == 0) {
