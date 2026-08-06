@@ -53,10 +53,10 @@ TeXTech brings AE2 monitoring, WebAE, data weaving, automation, AI assistance, a
 
 | Route / 路线 | What you get / 你会得到 | Link / 入口 |
 | --- | --- | --- |
-| **New player / 新玩家** | A safe three-step setup path / 三步安装与安全提示 | [Getting Started / 快速开始](Getting-Started) |
-| **Builder / 搭建者** | Feature map and WebAE gallery / 功能地图与 WebAE 画廊 | [Features / 功能](Features) |
-| **Contributor / 贡献者** | Source, docs, and contribution routes / 源码、文档与贡献入口 | [Development / 开发](Development) |
-| **Evidence-minded / 重视证据** | Security, notices, and provenance / 安全、署名与来源证明 | [Security and Provenance / 安全与来源证明](Security-and-Provenance) |
+| **New player / 新玩家** | A safe three-step setup path / 三步安装与安全提示 | [Getting Started / 快速开始](Getting-Started.md) |
+| **Builder / 搭建者** | Feature map and WebAE gallery / 功能地图与 WebAE 画廊 | [Features / 功能](Features.md) |
+| **Contributor / 贡献者** | Source, docs, and contribution routes / 源码、文档与贡献入口 | [Development / 开发](Development.md) |
+| **Evidence-minded / 重视证据** | Security, notices, and provenance / 安全、署名与来源证明 | [Security and Provenance / 安全与来源证明](Security-and-Provenance.md) |
 
 <details>
   <summary>Documentation centers / 文档中心</summary>

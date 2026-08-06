@@ -30,9 +30,9 @@ README（仓库根目录）可以直接使用：
 Wiki 页面如果在仓库文档中预览，可以按仓库根路径引用；发布到独立 Wiki 仓库时使用 `raw.githubusercontent.com` 绝对地址：
 
 ```markdown
-![WebAE dashboard overview](../assets/promo/wiki/feature-monitor-640x360.png)
+![WebAE dashboard overview](feature-monitor-640x360.png)
 
-![Data stream divider](../assets/promo/wiki/data-divider-1200x96.png)
+![Data stream divider](data-divider-1200x96.png)
 ```
 
 ```text
