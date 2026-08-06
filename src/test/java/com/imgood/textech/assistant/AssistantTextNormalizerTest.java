@@ -1,7 +1,5 @@
 package com.imgood.textech.assistant;
 
-import java.util.regex.Pattern;
-
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -18,8 +16,9 @@ public class AssistantTextNormalizerTest {
     }
 
     @Test(timeout = 1000)
-    public void bundledEdgePatternHandlesLongWhitespaceWithoutQuadraticBacktracking() {
-        Pattern pattern = Pattern.compile("^[\\s,.;:!?]+|(?<![\\s,.;:!?])[\\s,.;:!?]+$");
+    public void parsedEdgeClassHandlesLongWhitespaceInLinearTime() {
+        AssistantLexicon.EdgePunctuationSpec spec = AssistantLexicon.EdgePunctuationSpec
+            .fromRegex("^[\\s,.;:!?，。]+|(?<![\\s,.;:!?，。])[\\s,.;:!?，。]+$");
         StringBuilder input = new StringBuilder(20000);
         input.append('x');
         for (int i = 0; i < 20000; i++) {
@@ -27,13 +26,14 @@ public class AssistantTextNormalizerTest {
         }
         input.append('x');
 
-        Assert.assertEquals(
-            input.toString(),
-            pattern.matcher(input)
-                .replaceAll(""));
-        Assert.assertEquals(
-            "value",
-            pattern.matcher(" \t,value!... ")
-                .replaceAll(""));
+        Assert.assertEquals(input.toString(), AssistantTextNormalizer.stripPunctuation(input.toString(), spec));
+        Assert.assertEquals("value", AssistantTextNormalizer.stripPunctuation(" \t,。value!...， ", spec));
+    }
+
+    @Test
+    public void unsupportedComplexRegexFallsBackToBuiltInSafeSet() {
+        AssistantLexicon.EdgePunctuationSpec spec = AssistantLexicon.EdgePunctuationSpec.fromRegex(".*");
+
+        Assert.assertEquals("value", AssistantTextNormalizer.stripPunctuation(" !value? ", spec));
     }
 }

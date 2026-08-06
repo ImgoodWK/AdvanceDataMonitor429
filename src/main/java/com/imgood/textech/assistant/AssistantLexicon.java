@@ -6,8 +6,10 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
@@ -279,6 +281,105 @@ public final class AssistantLexicon {
 
     public static Pattern edgePunctuationPattern() {
         return Pattern.compile(get().edgePunctuationRegex);
+    }
+
+    static EdgePunctuationSpec edgePunctuationSpec() {
+        return EdgePunctuationSpec.fromRegex(get().edgePunctuationRegex);
+    }
+
+    static final class EdgePunctuationSpec {
+
+        private final Set<Integer> punctuation;
+        private final boolean whitespace;
+
+        private EdgePunctuationSpec(Set<Integer> punctuation, boolean whitespace) {
+            this.punctuation = punctuation;
+            this.whitespace = whitespace;
+        }
+
+        static EdgePunctuationSpec fromRegex(String regex) {
+            String body = edgeCharacterClass(regex);
+            if (body == null || body.isEmpty()) {
+                return defaultSpec();
+            }
+            Set<Integer> punctuation = new HashSet<Integer>();
+            boolean whitespace = false;
+            for (int index = 0; index < body.length();) {
+                int codePoint = body.codePointAt(index);
+                index += Character.charCount(codePoint);
+                if (codePoint != '\\') {
+                    punctuation.add(codePoint);
+                    continue;
+                }
+                if (index >= body.length()) {
+                    return defaultSpec();
+                }
+                char escape = body.charAt(index++);
+                if (escape == 's') {
+                    whitespace = true;
+                } else if (escape == 't') {
+                    punctuation.add((int) '\t');
+                } else if (escape == 'n') {
+                    punctuation.add((int) '\n');
+                } else if (escape == 'r') {
+                    punctuation.add((int) '\r');
+                } else if (escape == 'f') {
+                    punctuation.add((int) '\f');
+                } else if (escape == 'u') {
+                    if (index + 4 > body.length()) {
+                        return defaultSpec();
+                    }
+                    try {
+                        punctuation.add(Integer.parseInt(body.substring(index, index + 4), 16));
+                    } catch (NumberFormatException e) {
+                        return defaultSpec();
+                    }
+                    index += 4;
+                } else {
+                    punctuation.add((int) escape);
+                }
+            }
+            return new EdgePunctuationSpec(punctuation, whitespace);
+        }
+
+        boolean matches(int codePoint) {
+            return punctuation.contains(codePoint) || (whitespace && Character.isWhitespace(codePoint));
+        }
+
+        private static EdgePunctuationSpec defaultSpec() {
+            Set<Integer> punctuation = new HashSet<Integer>();
+            for (char value : ",.;:!?".toCharArray()) {
+                punctuation.add((int) value);
+            }
+            return new EdgePunctuationSpec(punctuation, true);
+        }
+
+        private static String edgeCharacterClass(String regex) {
+            if (regex == null || !regex.startsWith("^[")) {
+                return null;
+            }
+            int separator = regex.indexOf("+|");
+            if (separator < 0) {
+                return null;
+            }
+            String left = regex.substring(1, separator);
+            if (!left.startsWith("[") || !left.endsWith("]")) {
+                return null;
+            }
+            String right = regex.substring(separator + 2);
+            if (right.startsWith("(?<!")) {
+                int close = right.indexOf(')');
+                if (close < 0 || !right.substring(4, close)
+                    .equals(left)) {
+                    return null;
+                }
+                right = right.substring(close + 1);
+            }
+            if (!right.equals(left + "+$")) {
+                return null;
+            }
+            return left.substring(1, left.length() - 1);
+        }
     }
 
     public static final class LexiconData {
