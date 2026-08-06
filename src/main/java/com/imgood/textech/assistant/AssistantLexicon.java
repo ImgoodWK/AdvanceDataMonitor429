@@ -178,6 +178,7 @@ public final class AssistantLexicon {
     }
 
     private static void validatePatterns(LexiconData result, LexiconData fallback) {
+        result.edgePunctuationRegex = hardenLegacyEdgePunctuationRegex(result.edgePunctuationRegex);
         try {
             Pattern.compile(result.edgePunctuationRegex);
         } catch (Exception e) {
@@ -186,6 +187,31 @@ public final class AssistantLexicon {
                 e);
             result.edgePunctuationRegex = fallback.edgePunctuationRegex;
         }
+    }
+
+    /**
+     * Make the documented symmetric edge-character-class form linear-time.
+     * Existing instances may still have the pre-RC expression copied to their
+     * data directory, so migrate that form in memory while preserving its
+     * configured character class.
+     */
+    static String hardenLegacyEdgePunctuationRegex(String regex) {
+        if (regex == null || !regex.startsWith("^[")) {
+            return regex;
+        }
+        int separator = regex.indexOf("+|");
+        if (separator < 0 || !regex.endsWith("]+$")) {
+            return regex;
+        }
+        String left = regex.substring(1, separator);
+        String right = regex.substring(separator + 2, regex.length() - 2);
+        if (!left.startsWith("[") || !left.endsWith("]") || !left.equals(right)) {
+            return regex;
+        }
+        if (right.startsWith("(?<!")) {
+            return regex;
+        }
+        return "^" + left + "+|(?<!" + right + ")" + right + "+$";
     }
 
     public static String message(String key, String fallback) {
@@ -197,7 +223,7 @@ public final class AssistantLexicon {
         LexiconData d = new LexiconData();
         d.commonWords = new ArrayList<String>();
         d.modalParticles = new ArrayList<String>();
-        d.edgePunctuationRegex = "^[\\s,.;:!?]+|[\\s,.;:!?]+$";
+        d.edgePunctuationRegex = "^[\\s,.;:!?]+|(?<![\\s,.;:!?])[\\s,.;:!?]+$";
         d.chineseNumbers = new ArrayList<String>();
         d.alternateTwoWords = new ArrayList<String>();
         d.optionPrefixes = new ArrayList<String>();

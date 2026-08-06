@@ -4,6 +4,8 @@ import java.util.List;
 
 public final class AssistantTextNormalizer {
 
+    private static final int MAX_EDGE_PUNCTUATION_REGEX_INPUT = 1024;
+
     private AssistantTextNormalizer() {}
 
     public static String lower(String text) {
@@ -23,6 +25,12 @@ public final class AssistantTextNormalizer {
     public static String stripPunctuation(String text) {
         if (text == null) {
             return "";
+        }
+        // The edge-punctuation expression is administrator-configurable. Keep
+        // arbitrary legacy/custom expressions bounded so a malformed local
+        // lexicon cannot turn player text into an unbounded regex workload.
+        if (text.length() > MAX_EDGE_PUNCTUATION_REGEX_INPUT) {
+            return text.trim();
         }
         return AssistantLexicon.edgePunctuationPattern()
             .matcher(text)

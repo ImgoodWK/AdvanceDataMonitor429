@@ -185,7 +185,7 @@ Main flow highlights:
 - `src/main/java/com/imgood/textech/assistant/OrderMemoryStore.java`: user order candidate preference memory for candidate ranking weighting.
 - `src/main/java/com/imgood/textech/assistant/PlanStore.java`: simple plan/task storage; supports create/list/complete.
 - `src/main/java/com/imgood/textech/assistant/AssistantDebugLog.java`: assistant debug log helper; writes diagnostics when configured.
-- `src/main/java/com/imgood/textech/assistant/AssistantLexicon.java`: loads and provides lexicon data; now mainly used for fallback, time/amount/word cleanup, and pending batch append auxiliary parsing.
+- `src/main/java/com/imgood/textech/assistant/AssistantLexicon.java`: loads and provides lexicon data; now mainly used for fallback, time/amount/word cleanup, and pending batch append auxiliary parsing. Edge-punctuation cleanup migrates the legacy symmetric pattern to a linear-time form; inputs longer than 1024 characters use a `trim()` fallback so administrator-supplied regex cannot create an unbounded workload.
 - `src/main/resources/assets/textech/config/assistant-lexicon.json`: rule parser vocabulary including order/query/confirm/cancel/plan/storage scope keywords.
 
 ### AI Client, Configuration, and Settings UI
