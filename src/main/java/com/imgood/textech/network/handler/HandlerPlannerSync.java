@@ -4,6 +4,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
+import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.items.ItemAdvancePlanner;
 import com.imgood.textech.network.packet.PacketPlannerSync;
 import com.imgood.textech.utils.NetworkValidationUtil;
@@ -17,8 +18,27 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class HandlerPlannerSync implements IMessageHandler<PacketPlannerSync, IMessage> {
 
     @Override
-    public IMessage onMessage(PacketPlannerSync message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+    public IMessage onMessage(final PacketPlannerSync message, final MessageContext ctx) {
+        if (message == null || message.malformed || message.nbt == null) {
+            return null;
+        }
+        return PacketHandlers.runOnServer(ctx, new Runnable() {
+
+            @Override
+            public void run() {
+                EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+                IMessage response = handleOnServerThread(message, player);
+                if (response != null && player != null) {
+                    AdvanceDataMonitor.ADMCHANEL.sendTo(response, player);
+                }
+            }
+        });
+    }
+
+    private IMessage handleOnServerThread(PacketPlannerSync message, EntityPlayerMP player) {
+        if (player == null) {
+            return null;
+        }
         if (!NetworkValidationUtil.isValidInventorySlot(player, message.slot)) {
             return null;
         }
@@ -27,14 +47,16 @@ public class HandlerPlannerSync implements IMessageHandler<PacketPlannerSync, IM
             return null;
         }
         NBTTagCompound existingNbt = stack.getTagCompound();
-        if (existingNbt == null) {
-            existingNbt = new NBTTagCompound();
+        NBTTagCompound updatedNbt = existingNbt == null ? new NBTTagCompound() : (NBTTagCompound) existingNbt.copy();
+        mergePlannerNbt(updatedNbt, message.nbt);
+        PacketPlannerSync response = new PacketPlannerSync(message.slot, updatedNbt);
+        if (!response.fitsPacketBudget()) {
+            return null;
         }
-        mergePlannerNbt(existingNbt, message.nbt);
-        stack.setTagCompound(existingNbt);
+        stack.setTagCompound(updatedNbt);
         player.inventory.setInventorySlotContents(message.slot, stack);
         player.inventory.markDirty();
-        return new PacketPlannerSync(message.slot, (NBTTagCompound) existingNbt.copy());
+        return response;
     }
 
     @SideOnly(Side.CLIENT)
@@ -42,6 +64,9 @@ public class HandlerPlannerSync implements IMessageHandler<PacketPlannerSync, IM
 
         @Override
         public IMessage onMessage(PacketPlannerSync message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
             if (mc.thePlayer == null) return null;
 

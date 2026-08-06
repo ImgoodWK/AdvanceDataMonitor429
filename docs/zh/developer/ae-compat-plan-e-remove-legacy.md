@@ -41,7 +41,7 @@ TeXTech.postInit
 
 ## Step 1 — 升级构建依赖
 
-**文件**：[`dependencies.gradle`](../../dependencies.gradle)
+**文件**：[`dependencies.gradle`](../../../dependencies.gradle)
 
 | 变更 | 从 | 到 |
 |------|----|----|
@@ -87,7 +87,7 @@ gradlew compileJava
 - 四个 adapter 字段**静态绑定**为 Native 实现（Step 4 重命名后的类）
 - `init()` 可简化为 `initialized = true` + 可选一行 `LOG.info("[ADM] AE compat: native fluid (2.9.0+)")`
 
-[`TeXTech.postInit`](../../../src/main/java/com/imgood/textech/TeXTech.java) 可保留或移除 `AeCompat.init()`。
+[`AdvanceDataMonitor.postInit`](../../../src/main/java/com/imgood/textech/AdvanceDataMonitor.java) 可保留或移除 `AeCompat.init()`。
 
 ---
 

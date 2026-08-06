@@ -604,6 +604,7 @@ public class AssistantController {
             case QUERY_INVENTORY:
             case QUERY_NETWORK:
             case QUERY_JOBS:
+            case QUERY_BRIEFING:
             case QUERY_ITEM_COUNT:
             case QUERY_BYTES:
                 requestServerQuery(intent);
@@ -656,6 +657,10 @@ public class AssistantController {
             case QUERY_NETWORK:
             case QUERY_BYTES:
                 return "network";
+            case QUERY_BRIEFING:
+                // This summary is intentionally partial: missing integrations are reported as
+                // unavailable sections instead of hiding the whole read-only query.
+                return "none";
             default:
                 return "none";
         }
@@ -1027,6 +1032,9 @@ public class AssistantController {
     }
 
     private static String resolveAssistantServerMessage(String message) {
+        if (AssistantCandidateDelivery.I18N_PACKET_LIMIT_MESSAGE.equals(message)) {
+            return I18n.format("adm.ai.assistant.candidates_packet_limit");
+        }
         if (message == null || !message.startsWith(AssistantCandidateDelivery.I18N_TRUNCATED_PREFIX)) {
             return message;
         }

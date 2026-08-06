@@ -4,6 +4,7 @@ import net.minecraft.client.gui.FontRenderer;
 
 import org.lwjgl.input.Mouse;
 
+import com.imgood.textech.gui.framework.FixedAspectButtonFamily;
 import com.imgood.textech.gui.framework.GuiBlitUtil;
 import com.imgood.textech.gui.framework.NineSliceRegion;
 import com.imgood.textech.gui.framework.UiTheme;
@@ -12,7 +13,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Tree-mounted button using theme 3-slice chrome.
+ * Tree-mounted button using complete fixed-aspect theme chrome.
  */
 @SideOnly(Side.CLIENT)
 public final class UiButtonWidget extends UiWidget {
@@ -67,9 +68,17 @@ public final class UiButtonWidget extends UiWidget {
     protected void drawSelf(UiRenderContext context) {
         int w = getLayoutBox().width;
         int h = getLayoutBox().height;
+        int shellW = FixedAspectButtonFamily.normalizedWidthFor(w, h);
+        int shellH = FixedAspectButtonFamily.normalizedHeightFor(w, h);
+        int shellX = Math.max(0, (w - shellW) / 2);
+        int shellY = Math.max(0, (h - shellH) / 2);
         UiTheme theme = context.theme();
         boolean hovered = enabled && containsMouse(context);
         boolean pressed = hovered && Mouse.isButtonDown(0);
+        FixedAspectButtonFamily family = theme.fixedAspectButtons();
+        FixedAspectButtonFamily.State state = !enabled ? FixedAspectButtonFamily.State.DISABLED
+            : pressed ? FixedAspectButtonFamily.State.PRESSED
+                : hovered ? FixedAspectButtonFamily.State.HOVER : FixedAspectButtonFamily.State.NORMAL;
         NineSliceRegion region;
         if (!enabled) {
             region = theme.buttonDisabled();
@@ -80,7 +89,11 @@ public final class UiButtonWidget extends UiWidget {
         } else {
             region = theme.buttonNormal();
         }
-        if (region != null && GuiBlitUtil.hasResource(region.texture())) {
+        if (family != null && GuiBlitUtil.hasResource(
+            family.region(state, w, h)
+                .texture())) {
+            GuiBlitUtil.drawFixedAspectButton(family, state, shellX, shellY, shellW, shellH);
+        } else if (region != null && GuiBlitUtil.hasResource(region.texture())) {
             GuiBlitUtil.drawHorizontalSlice(region, 0, 0, w, h);
         }
         if (!label.isEmpty() && context.font() != null) {
@@ -96,8 +109,27 @@ public final class UiButtonWidget extends UiWidget {
                 color = theme.textAccent();
             }
             int tw = font.getStringWidth(label);
-            font.drawStringWithShadow(label, Math.max(0, (w - tw) / 2), Math.max(0, (h - 8) / 2), color);
+            font.drawStringWithShadow(
+                label,
+                shellX + Math.max(0, (shellW - tw) / 2),
+                shellY + Math.max(0, (shellH - 8) / 2),
+                color);
         }
+    }
+
+    @Override
+    public UiWidget hitTest(int mouseX, int mouseY) {
+        if (!isVisible()) {
+            return null;
+        }
+        int w = getLayoutBox().width;
+        int h = getLayoutBox().height;
+        int shellW = FixedAspectButtonFamily.normalizedWidthFor(w, h);
+        int shellH = FixedAspectButtonFamily.normalizedHeightFor(w, h);
+        int shellX = absX() + Math.max(0, (w - shellW) / 2);
+        int shellY = absY() + Math.max(0, (h - shellH) / 2);
+        return mouseX >= shellX && mouseY >= shellY && mouseX < shellX + shellW && mouseY < shellY + shellH ? this
+            : null;
     }
 
     @Override
@@ -112,10 +144,14 @@ public final class UiButtonWidget extends UiWidget {
     }
 
     private boolean containsMouse(UiRenderContext context) {
-        int ax = context.originX();
-        int ay = context.originY();
+        int w = getLayoutBox().width;
+        int h = getLayoutBox().height;
+        int shellW = FixedAspectButtonFamily.normalizedWidthFor(w, h);
+        int shellH = FixedAspectButtonFamily.normalizedHeightFor(w, h);
+        int ax = context.originX() + Math.max(0, (w - shellW) / 2);
+        int ay = context.originY() + Math.max(0, (h - shellH) / 2);
         int mx = context.mouseX();
         int my = context.mouseY();
-        return mx >= ax && my >= ay && mx < ax + getLayoutBox().width && my < ay + getLayoutBox().height;
+        return mx >= ax && my >= ay && mx < ax + shellW && my < ay + shellH;
     }
 }

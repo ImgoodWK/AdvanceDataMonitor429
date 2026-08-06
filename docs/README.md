@@ -1,11 +1,11 @@
 # TeXTech Documentation
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 2.0 · Last synced: 2026-07
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 1 · Last synced: 2026-08
 
-Documentation is split by language under `docs/zh/` (简体中文) and `docs/en/` (English).  
-The project root [`README.md`](../README.md) keeps only a short intro and build commands.
+Documentation is split by language under `docs/zh/` (简体中文) and `docs/en/` (English).
+Project home: [中文 README](../README.md) · [English README](../README.en.md) · [navigation Wiki](https://github.com/ImgoodWK/TeXTech-GTNH/wiki)
 
-Release 2.0 targets GTNH `2.9.0-beta-2+`. The required core mod, optional
+Release `v3.0.0-rc.1` targets GTNH `2.9.0-beta-2+`. The required core mod, optional
 offline-voice companion, and optional WebAE UI are separate Release assets.
 Install the WebAE ZIP by extracting it at the server instance root so that
 `TeXTech/WebAE/ui/index.html` exists; the main mod JAR intentionally does not
@@ -22,7 +22,7 @@ contain the browser UI.
 | L2 Player / admin | Tutorials | `docs/*/player/`, `docs/*/webae/user-guide.md`, `assets/textech/manual/` |
 | L3 Vision / design | **Not implementation spec** | `docs/*/design/` |
 
-Agent: prefer one language tree; do not default-read L3/archive (see documentation-map).  
+Agent: prefer one language tree; do not default-read L3/archive (see documentation-map).
 Maintenance map: [zh](zh/developer/documentation-map.md) · [en](en/developer/documentation-map.md)
 
 ---
@@ -57,6 +57,10 @@ Maintenance map: [zh](zh/developer/documentation-map.md) · [en](en/developer/do
 | Grapple subsystem | [zh/subsystems/挂索节点系统设计.md](zh/subsystems/挂索节点系统设计.md) | [en/subsystems/grapple-system-design.md](en/subsystems/grapple-system-design.md) |
 | Design vision (draft) | [zh/design/未来开发愿景.md](zh/design/未来开发愿景.md) | [en/design/future-development-vision.md](en/design/future-development-vision.md) |
 | Brand & visual design | [zh/design/品牌视觉设计指南.md](zh/design/品牌视觉设计指南.md) | [en/design/brand-visual-design-guide.md](en/design/brand-visual-design-guide.md) |
+| Project timeline / provenance | [zh/project/timeline.md](zh/project/timeline.md) | [en/project/timeline.md](en/project/timeline.md) |
+| Evidence preservation / monitor limits | [zh/project/provenance.md](zh/project/provenance.md) | [en/project/provenance.md](en/project/provenance.md) |
+| Release history | [CHANGELOG.md](../CHANGELOG.md) | [CHANGELOG.md](../CHANGELOG.md) |
+| Navigation Wiki sources | [docs/wiki/](wiki/) | [docs/wiki/](wiki/) |
 | Web console redirect | [zh/developer/web-console.md](zh/developer/web-console.md) | [en/developer/web-console.md](en/developer/web-console.md) |
 | Archive | [zh/archive/GoldenThrone_GT_Multiblock_移植指南.md](zh/archive/GoldenThrone_GT_Multiblock_移植指南.md) | — |
 
@@ -79,7 +83,14 @@ python tools/doc-check/doc-consistency-check.py
 `.cursor/rules/` remain the detailed shared routing and constraint references;
 they complement these docs for both agents and CI.
 
-GitHub Actions runs `tools/doc-check/doc-consistency-check.py` on every pull
-request and on pushes to `main` or `master`. For merge protection, require the
-`Doc check and WebAE frontend / doc-check` status check in the repository branch
-rules.
+Repository governance and provenance are documented in
+[`CONTRIBUTING.md`](../CONTRIBUTING.md), [`SECURITY.md`](../SECURITY.md),
+[`SUPPORT.md`](../SUPPORT.md), [`NOTICE.md`](../NOTICE.md), and
+[`CITATION.cff`](../CITATION.cff).
+
+GitHub Actions runs the documentation checker, repository validator, provenance
+tests, and high-confidence secret scan on every pull request and on pushes to
+`master`. Once the first workflow run establishes stable check names, branch
+rules should require `TeXTech CI / Java`, `WebAE`, `AstrBot`, `Documentation`,
+and the CodeQL checks. Repository settings, rather than files alone, enforce
+those required checks.

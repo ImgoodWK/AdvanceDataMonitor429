@@ -6,8 +6,10 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
@@ -117,6 +119,7 @@ public final class AssistantLexicon {
         result.planStripWords = list(result.planStripWords, fallback.planStripWords);
         result.powerQueryWords = list(result.powerQueryWords, fallback.powerQueryWords);
         result.steamQueryWords = list(result.steamQueryWords, fallback.steamQueryWords);
+        result.briefingQueryWords = list(result.briefingQueryWords, fallback.briefingQueryWords);
         result.recipeQueryWords = list(result.recipeQueryWords, fallback.recipeQueryWords);
         result.storageQueryWords = list(result.storageQueryWords, fallback.storageQueryWords);
         result.confirmWords = list(result.confirmWords, fallback.confirmWords);
@@ -177,6 +180,7 @@ public final class AssistantLexicon {
     }
 
     private static void validatePatterns(LexiconData result, LexiconData fallback) {
+        result.edgePunctuationRegex = hardenLegacyEdgePunctuationRegex(result.edgePunctuationRegex);
         try {
             Pattern.compile(result.edgePunctuationRegex);
         } catch (Exception e) {
@@ -185,6 +189,31 @@ public final class AssistantLexicon {
                 e);
             result.edgePunctuationRegex = fallback.edgePunctuationRegex;
         }
+    }
+
+    /**
+     * Make the documented symmetric edge-character-class form linear-time.
+     * Existing instances may still have the pre-RC expression copied to their
+     * data directory, so migrate that form in memory while preserving its
+     * configured character class.
+     */
+    static String hardenLegacyEdgePunctuationRegex(String regex) {
+        if (regex == null || !regex.startsWith("^[")) {
+            return regex;
+        }
+        int separator = regex.indexOf("+|");
+        if (separator < 0 || !regex.endsWith("]+$")) {
+            return regex;
+        }
+        String left = regex.substring(1, separator);
+        String right = regex.substring(separator + 2, regex.length() - 2);
+        if (!left.startsWith("[") || !left.endsWith("]") || !left.equals(right)) {
+            return regex;
+        }
+        if (right.startsWith("(?<!")) {
+            return regex;
+        }
+        return "^" + left + "+|(?<!" + right + ")" + right + "+$";
     }
 
     public static String message(String key, String fallback) {
@@ -196,7 +225,7 @@ public final class AssistantLexicon {
         LexiconData d = new LexiconData();
         d.commonWords = new ArrayList<String>();
         d.modalParticles = new ArrayList<String>();
-        d.edgePunctuationRegex = "^[\\s,.;:!?]+|[\\s,.;:!?]+$";
+        d.edgePunctuationRegex = "^[\\s,.;:!?]+|(?<![\\s,.;:!?])[\\s,.;:!?]+$";
         d.chineseNumbers = new ArrayList<String>();
         d.alternateTwoWords = new ArrayList<String>();
         d.optionPrefixes = new ArrayList<String>();
@@ -214,6 +243,7 @@ public final class AssistantLexicon {
         d.planStripWords = new ArrayList<String>();
         d.powerQueryWords = new ArrayList<String>();
         d.steamQueryWords = new ArrayList<String>();
+        d.briefingQueryWords = new ArrayList<String>();
         d.recipeQueryWords = new ArrayList<String>();
         d.storageQueryWords = new ArrayList<String>();
         d.confirmWords = new ArrayList<String>();
@@ -253,6 +283,105 @@ public final class AssistantLexicon {
         return Pattern.compile(get().edgePunctuationRegex);
     }
 
+    static EdgePunctuationSpec edgePunctuationSpec() {
+        return EdgePunctuationSpec.fromRegex(get().edgePunctuationRegex);
+    }
+
+    static final class EdgePunctuationSpec {
+
+        private final Set<Integer> punctuation;
+        private final boolean whitespace;
+
+        private EdgePunctuationSpec(Set<Integer> punctuation, boolean whitespace) {
+            this.punctuation = punctuation;
+            this.whitespace = whitespace;
+        }
+
+        static EdgePunctuationSpec fromRegex(String regex) {
+            String body = edgeCharacterClass(regex);
+            if (body == null || body.isEmpty()) {
+                return defaultSpec();
+            }
+            Set<Integer> punctuation = new HashSet<Integer>();
+            boolean whitespace = false;
+            for (int index = 0; index < body.length();) {
+                int codePoint = body.codePointAt(index);
+                index += Character.charCount(codePoint);
+                if (codePoint != '\\') {
+                    punctuation.add(codePoint);
+                    continue;
+                }
+                if (index >= body.length()) {
+                    return defaultSpec();
+                }
+                char escape = body.charAt(index++);
+                if (escape == 's') {
+                    whitespace = true;
+                } else if (escape == 't') {
+                    punctuation.add((int) '\t');
+                } else if (escape == 'n') {
+                    punctuation.add((int) '\n');
+                } else if (escape == 'r') {
+                    punctuation.add((int) '\r');
+                } else if (escape == 'f') {
+                    punctuation.add((int) '\f');
+                } else if (escape == 'u') {
+                    if (index + 4 > body.length()) {
+                        return defaultSpec();
+                    }
+                    try {
+                        punctuation.add(Integer.parseInt(body.substring(index, index + 4), 16));
+                    } catch (NumberFormatException e) {
+                        return defaultSpec();
+                    }
+                    index += 4;
+                } else {
+                    punctuation.add((int) escape);
+                }
+            }
+            return new EdgePunctuationSpec(punctuation, whitespace);
+        }
+
+        boolean matches(int codePoint) {
+            return punctuation.contains(codePoint) || (whitespace && Character.isWhitespace(codePoint));
+        }
+
+        private static EdgePunctuationSpec defaultSpec() {
+            Set<Integer> punctuation = new HashSet<Integer>();
+            for (char value : ",.;:!?".toCharArray()) {
+                punctuation.add((int) value);
+            }
+            return new EdgePunctuationSpec(punctuation, true);
+        }
+
+        private static String edgeCharacterClass(String regex) {
+            if (regex == null || !regex.startsWith("^[")) {
+                return null;
+            }
+            int separator = regex.indexOf("+|");
+            if (separator < 0) {
+                return null;
+            }
+            String left = regex.substring(1, separator);
+            if (!left.startsWith("[") || !left.endsWith("]")) {
+                return null;
+            }
+            String right = regex.substring(separator + 2);
+            if (right.startsWith("(?<!")) {
+                int close = right.indexOf(')');
+                if (close < 0 || !right.substring(4, close)
+                    .equals(left)) {
+                    return null;
+                }
+                right = right.substring(close + 1);
+            }
+            if (!right.equals(left + "+$")) {
+                return null;
+            }
+            return left.substring(1, left.length() - 1);
+        }
+    }
+
     public static final class LexiconData {
 
         public List<String> commonWords;
@@ -275,6 +404,7 @@ public final class AssistantLexicon {
         public List<String> planStripWords;
         public List<String> powerQueryWords;
         public List<String> steamQueryWords;
+        public List<String> briefingQueryWords;
         public List<String> recipeQueryWords;
         public List<String> storageQueryWords;
         public List<String> confirmWords;

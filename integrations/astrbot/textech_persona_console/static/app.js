@@ -2,7 +2,6 @@ const state = {
   user: null,
   view: "dashboard",
   selectedUser: null,
-  knowledgePath: null,
   personasCache: [],
   usersCache: [],
   memoriesCache: [],
@@ -53,6 +52,25 @@ function debounce(fn, ms) {
     clearTimeout(t);
     t = setTimeout(() => fn(...args), ms);
   };
+}
+
+async function copyText(text) {
+  const value = String(text || "");
+  if (!value) throw new Error("没有可复制的提示词");
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const area = document.createElement("textarea");
+  area.value = value;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  const ok = document.execCommand("copy");
+  area.remove();
+  if (!ok) throw new Error("浏览器未允许复制，请手动选择提示词");
 }
 
 function fmtTime(value) {
@@ -115,10 +133,25 @@ function showMain() {
 }
 
 async function boot() {
+  const portalRequested = new URLSearchParams(window.location.search).get("portal_sso") === "1";
+  if (portalRequested) {
+    try {
+      state.user = await api("/api/auth/portal", { method: "POST" });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("portal_sso");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      showMain();
+      return;
+    } catch (portalError) {
+      showLogin();
+      $("#login-error").textContent = portalError.message || "入口单点登录失败";
+      return;
+    }
+  }
   try {
     state.user = await api("/api/auth/me");
     showMain();
-  } catch {
+  } catch (sessionError) {
     showLogin();
   }
 }
@@ -150,6 +183,15 @@ document.querySelectorAll("#nav button").forEach((btn) => {
   btn.addEventListener("click", () => navigate(btn.dataset.view));
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const modal = document.querySelector("#image-modal:not(.hidden)");
+  if (modal) {
+    modal.classList.add("hidden");
+    document.body.classList.remove("modal-open");
+  }
+});
+
 function setActiveNav(view) {
   document.querySelectorAll("#nav button").forEach((b) => {
     b.classList.toggle("active", b.dataset.view === view);
@@ -162,9 +204,9 @@ const titles = {
   behavior: "Bot 行为",
   users: "Bot 用户",
   memories: "记忆库",
+  images: "图片库",
   messages: "消息中心",
   config: "高级配置",
-  knowledge: "资料站",
   ops: "运维",
   audit: "审计与备份",
   account: "我的账号",
@@ -172,6 +214,7 @@ const titles = {
 };
 
 async function navigate(view) {
+  document.body.classList.remove("modal-open");
   if (state.messagePollTimer) {
     clearTimeout(state.messagePollTimer);
     state.messagePollTimer = null;
@@ -188,9 +231,9 @@ async function navigate(view) {
     else if (view === "behavior") await renderBehavior(root);
     else if (view === "users") await renderUsers(root);
     else if (view === "memories") await renderMemories(root);
+    else if (view === "images") await renderImages(root);
     else if (view === "messages") await renderMessages(root);
     else if (view === "config") await renderConfig(root);
-    else if (view === "knowledge") await renderKnowledge(root);
     else if (view === "ops") await renderOps(root);
     else if (view === "audit") await renderAuditBackups(root);
     else if (view === "account") await renderAccount(root);
@@ -208,7 +251,7 @@ async function renderDashboard(root) {
       <div class="card"><div class="muted">共享人设</div><div class="n">${stats.personas ?? 0}</div></div>
       <div class="card"><div class="muted">Companion 用户</div><div class="n">${stats.companion_users}</div></div>
       <div class="card"><div class="muted">记忆条目</div><div class="n">${stats.memories ?? 0}</div></div>
-      <div class="card"><div class="muted">资料文档</div><div class="n">${stats.knowledge_docs}</div></div>
+      <div class="card"><div class="muted">Bot 图片</div><div class="n">${stats.generated_images ?? 0}</div><div class="small muted">我的收藏 ${stats.favorite_images ?? 0}</div></div>
     </div>
   `));
   root.appendChild(el(`
@@ -216,8 +259,289 @@ async function renderDashboard(root) {
       <h3>这是人设库 / 记忆库后台</h3>
       <p class="muted">Persona Lib 是身份、别名、人设和任意属性的唯一共享来源；旧 SoulMap 只作为兼容数据展示。</p>
       <p class="muted">「Bot 行为」统一管理 tt 路由、人格、自动回复、联网搜索、识图和生图提示词合规改写。</p>
+      <p class="muted">「图片库」展示 Bot 生图/改图成品与最终实际提示词；历史未留存的提示词会明确标记，不会猜测补写。</p>
     </div>
   `));
+}
+
+/* ===================== 图片库 ===================== */
+function imageOperationLabel(value) {
+  return ({ generate: "生成", edit: "改图", unknown: "历史未知" })[value] || value || "未知";
+}
+
+function imageTriggerLabel(value) {
+  return ({
+    llm_tool: "对话工具",
+    natural_language: "自然语言",
+    command: "指令",
+    proactive: "主动生图",
+    daily_outfit: "每日穿搭",
+    historical: "历史回填",
+  })[value] || value || "未知来源";
+}
+
+async function renderImages(root) {
+  const canFavorite = can("images.favorite");
+  const canManage = can("images.manage");
+  const facets = await api("/api/images/facets");
+  const backendOptions = (facets.backends || []).map((it) =>
+    `<option value="${esc(it.value)}">${esc(it.value)}（${it.count}）</option>`
+  ).join("");
+  const producerOptions = (facets.producers || []).map((it) =>
+    `<option value="${esc(it.value)}">${esc(it.label || "未知用户")}（${it.count}）</option>`
+  ).join("");
+  root.innerHTML = `
+    <div class="panel image-filter-panel">
+      <div class="image-gallery-head">
+        <div>
+          <h3>Bot 图片成品</h3>
+          <p class="muted small">共 ${facets.total || 0} 张 · 我的收藏 ${facets.favorites || 0} 张。页面只加载可见缩略图；看过的图片会长期缓存在当前浏览器。</p>
+        </div>
+        ${canManage ? `<button id="images-rescan" class="ghost">重扫历史图片</button>` : ""}
+      </div>
+      <div class="image-filters">
+        <label class="field image-search-field"><span>搜索</span><input id="image-q" placeholder="提示词、文件名、生成者、后端" /></label>
+        <label class="field"><span>操作</span><select id="image-operation"><option value="">全部</option><option value="generate">生成</option><option value="edit">改图</option><option value="unknown">历史未知</option></select></label>
+        <label class="field"><span>后端</span><select id="image-backend"><option value="">全部</option>${backendOptions}</select></label>
+        <label class="field"><span>生成者</span><select id="image-producer"><option value="">全部</option>${producerOptions}</select></label>
+        <label class="field"><span>提示词</span><select id="image-has-prompt"><option value="">全部</option><option value="true">已留存</option><option value="false">历史未留存</option></select></label>
+        <label class="field"><span>收藏</span><select id="image-favorite"><option value="">全部</option><option value="true">只看收藏</option><option value="false">未收藏</option></select></label>
+        <label class="field"><span>开始日期</span><input id="image-date-from" type="date" /></label>
+        <label class="field"><span>结束日期</span><input id="image-date-to" type="date" /></label>
+        <label class="field"><span>排序</span><select id="image-sort"><option value="newest">最新优先</option><option value="oldest">最早优先</option><option value="largest">文件最大</option><option value="favorites">收藏优先</option></select></label>
+      </div>
+      <div class="toolbar image-filter-actions">
+        <button id="image-reset" class="ghost">清空筛选</button>
+        <span id="image-result-summary" class="muted small"></span>
+      </div>
+    </div>
+    <div id="image-grid" class="image-grid"><p class="muted">加载中…</p></div>
+    <div id="image-pager" class="image-pager"></div>
+    <div id="image-modal" class="image-modal hidden" role="dialog" aria-modal="true">
+      <div class="image-modal-backdrop" data-close="1"></div>
+      <div class="image-modal-card">
+        <button class="image-modal-close ghost" data-close="1" aria-label="关闭">×</button>
+        <div id="image-modal-body"></div>
+      </div>
+    </div>
+  `;
+
+  const grid = root.querySelector("#image-grid");
+  const pager = root.querySelector("#image-pager");
+  const summary = root.querySelector("#image-result-summary");
+  const fields = {
+    q: root.querySelector("#image-q"),
+    operation: root.querySelector("#image-operation"),
+    backend: root.querySelector("#image-backend"),
+    producer: root.querySelector("#image-producer"),
+    has_prompt: root.querySelector("#image-has-prompt"),
+    favorite: root.querySelector("#image-favorite"),
+    date_from: root.querySelector("#image-date-from"),
+    date_to: root.querySelector("#image-date-to"),
+    sort: root.querySelector("#image-sort"),
+  };
+  let currentPage = 1;
+  let itemMap = new Map();
+  let thumbnailObserver = null;
+
+  function imageUrl(item, variant) {
+    const version = variant === "thumbnail" ? item.thumbnail_version : item.cache_version;
+    const query = version ? `?v=${encodeURIComponent(version)}` : "";
+    return `/api/images/${item.id}/${variant}${query}`;
+  }
+
+  function observeThumbnails() {
+    thumbnailObserver?.disconnect();
+    const images = [...grid.querySelectorAll("img[data-src]")];
+    const reveal = (img) => {
+      if (!img.dataset.src) return;
+      img.addEventListener("load", () => img.classList.add("loaded"), { once: true });
+      img.src = img.dataset.src;
+      delete img.dataset.src;
+    };
+    if (!("IntersectionObserver" in window)) {
+      images.forEach(reveal);
+      return;
+    }
+    thumbnailObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        thumbnailObserver.unobserve(entry.target);
+        reveal(entry.target);
+      });
+    }, { rootMargin: "240px 0px", threshold: 0.01 });
+    images.forEach((img) => thumbnailObserver.observe(img));
+  }
+
+  function queryString() {
+    const params = new URLSearchParams({ page: String(currentPage), limit: "24" });
+    Object.entries(fields).forEach(([key, input]) => {
+      const value = input.value.trim();
+      if (value) params.set(key, value);
+    });
+    return params.toString();
+  }
+
+  function promptBlock(item, full = false) {
+    if (!item.has_prompt) {
+      return `<p class="image-prompt image-prompt-missing">历史图片：当时未保存提示词</p>`;
+    }
+    const cls = full ? "image-prompt full" : "image-prompt";
+    return `<p class="${cls}">${esc(item.prompt)}</p>`;
+  }
+
+  function renderCard(item) {
+    const favoriteTitle = item.favorite ? "取消收藏" : "收藏";
+    return `
+      <article class="image-card" data-image-id="${item.id}">
+        <button class="image-open" data-action="open" aria-label="查看图片详情">
+          <img data-src="${esc(imageUrl(item, "thumbnail"))}" alt="${esc(item.filename)}" loading="lazy" decoding="async" fetchpriority="low" />
+          <span class="image-kind-badge">${esc(imageOperationLabel(item.operation))}</span>
+        </button>
+        <div class="image-card-body">
+          <div class="image-card-meta">
+            <span>${esc(item.producer_name || "未知来源")}</span>
+            <span>${esc(fmtMessageTime(item.created_at))}</span>
+          </div>
+          ${promptBlock(item)}
+          <div class="image-tags">
+            ${item.backend ? `<span class="badge">${esc(item.backend)}</span>` : ""}
+            <span class="badge">${esc(imageTriggerLabel(item.trigger))}</span>
+            ${item.has_reference ? `<span class="badge">含参考图</span>` : ""}
+            ${item.legacy ? `<span class="badge off">历史回填</span>` : ""}
+          </div>
+          <div class="image-card-actions">
+            <button class="ghost" data-action="copy" ${item.has_prompt ? "" : "disabled"}>复制提示词</button>
+            ${canFavorite ? `<button class="ghost image-favorite ${item.favorite ? "active" : ""}" data-action="favorite" title="${favoriteTitle}">${item.favorite ? "★ 已收藏" : "☆ 收藏"}</button>` : ""}
+            <button class="ghost" data-action="open">详情</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function load(page = currentPage) {
+    currentPage = page;
+    thumbnailObserver?.disconnect();
+    grid.innerHTML = `<p class="muted">加载中…</p>`;
+    const data = await api(`/api/images?${queryString()}`);
+    itemMap = new Map((data.items || []).map((item) => [String(item.id), item]));
+    summary.textContent = `筛选结果 ${data.total} 张 · 第 ${data.page}/${data.pages} 页`;
+    grid.innerHTML = data.items.length
+      ? data.items.map(renderCard).join("")
+      : `<div class="panel image-empty"><h3>没有符合条件的图片</h3><p class="muted">可以清空筛选，或由管理员重扫历史图片。</p></div>`;
+    pager.innerHTML = data.pages > 1 ? `
+      <button class="ghost" data-page="${Math.max(1, data.page - 1)}" ${data.page <= 1 ? "disabled" : ""}>上一页</button>
+      <span class="muted">第 ${data.page} / ${data.pages} 页</span>
+      <button class="ghost" data-page="${Math.min(data.pages, data.page + 1)}" ${data.page >= data.pages ? "disabled" : ""}>下一页</button>
+    ` : "";
+    observeThumbnails();
+  }
+
+  function openModal(item) {
+    const modal = root.querySelector("#image-modal");
+    const originalUrl = imageUrl(item, "file");
+    root.querySelector("#image-modal-body").innerHTML = `
+      <img class="image-modal-preview" src="${esc(originalUrl)}" alt="${esc(item.filename)}" decoding="async" />
+      <div class="image-modal-info">
+        <div class="image-gallery-head">
+          <div><h3>${esc(item.filename)}</h3><p class="muted small">${esc(fmtMessageTime(item.created_at))}</p></div>
+          <a class="button-link" href="${esc(originalUrl)}" target="_blank" rel="noopener">查看原图</a>
+        </div>
+        <div class="meta-grid image-detail-meta">
+          <div><span class="muted small">操作</span><div>${esc(imageOperationLabel(item.operation))}</div></div>
+          <div><span class="muted small">生成者</span><div>${esc(item.producer_name || "未知来源")}</div></div>
+          <div><span class="muted small">后端</span><div>${esc(item.backend || "未知")}</div></div>
+          <div><span class="muted small">来源</span><div>${esc(imageTriggerLabel(item.trigger))}</div></div>
+          <div><span class="muted small">规格</span><div>${esc(item.image_size || "未记录")}</div></div>
+          <div><span class="muted small">文件大小</span><div>${esc(fmtBytes(item.file_size))}</div></div>
+        </div>
+        <h3>最终实际提示词</h3>
+        ${promptBlock(item, true)}
+        <div class="toolbar">
+          <button id="image-modal-copy" ${item.has_prompt ? "" : "disabled"}>复制完整提示词</button>
+          ${canFavorite ? `<button id="image-modal-favorite" class="ghost">${item.favorite ? "★ 取消收藏" : "☆ 收藏"}</button>` : ""}
+        </div>
+      </div>
+    `;
+    modal.classList.remove("hidden");
+    document.body.classList.add("modal-open");
+    const copyBtn = root.querySelector("#image-modal-copy");
+    copyBtn?.addEventListener("click", async () => {
+      try {
+        await copyText(item.prompt);
+        copyBtn.textContent = "已复制";
+        setTimeout(() => { copyBtn.textContent = "复制完整提示词"; }, 1200);
+      } catch (err) { alert(err.message); }
+    });
+    root.querySelector("#image-modal-favorite")?.addEventListener("click", async () => {
+      await api(`/api/images/${item.id}/favorite`, {
+        method: "PUT",
+        body: JSON.stringify({ favorite: !item.favorite }),
+      });
+      modal.classList.add("hidden");
+      document.body.classList.remove("modal-open");
+      await load();
+    });
+  }
+
+  grid.addEventListener("click", async (event) => {
+    const actionNode = event.target.closest("[data-action]");
+    const card = event.target.closest("[data-image-id]");
+    if (!actionNode || !card) return;
+    const item = itemMap.get(card.dataset.imageId);
+    if (!item) return;
+    const action = actionNode.dataset.action;
+    if (action === "open") openModal(item);
+    if (action === "copy") {
+      try {
+        await copyText(item.prompt);
+        const old = actionNode.textContent;
+        actionNode.textContent = "已复制";
+        setTimeout(() => { actionNode.textContent = old; }, 1200);
+      } catch (err) { alert(err.message); }
+    }
+    if (action === "favorite") {
+      await api(`/api/images/${item.id}/favorite`, {
+        method: "PUT",
+        body: JSON.stringify({ favorite: !item.favorite }),
+      });
+      await load();
+    }
+  });
+
+  pager.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-page]");
+    if (button && !button.disabled) load(Number(button.dataset.page));
+  });
+  root.querySelectorAll("#image-modal [data-close]").forEach((node) => {
+    node.addEventListener("click", () => {
+      root.querySelector("#image-modal").classList.add("hidden");
+      document.body.classList.remove("modal-open");
+    });
+  });
+  const reloadFromStart = debounce(() => load(1), 250);
+  Object.values(fields).forEach((input) => {
+    input.addEventListener(input.tagName === "INPUT" ? "input" : "change", reloadFromStart);
+  });
+  root.querySelector("#image-reset").addEventListener("click", () => {
+    Object.values(fields).forEach((input) => { input.value = input === fields.sort ? "newest" : ""; });
+    load(1);
+  });
+  root.querySelector("#images-rescan")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = "扫描中…";
+    try {
+      await api("/api/images/rescan", { method: "POST" });
+      await renderImages(root);
+    } catch (err) {
+      alert(err.message);
+      button.disabled = false;
+      button.textContent = "重扫历史图片";
+    }
+  });
+  await load(1);
 }
 
 /* ===================== 人设库 ===================== */
@@ -827,7 +1151,7 @@ async function renderBehavior(root) {
     } catch (e) { alert(e.message); }
   };
 }
-/* ===================== 配置 / 资料 / 运维 ===================== */
+/* ===================== 配置 / 运维 ===================== */
 async function renderConfig(root) {
   const canEdit = can("config.edit");
   root.innerHTML = "";
@@ -877,57 +1201,6 @@ async function renderConfig(root) {
   }
 }
 
-async function renderKnowledge(root) {
-  const canEdit = can("knowledge.edit");
-  root.innerHTML = "";
-  const split = el(`<div class="split"><div class="panel"><h3>文档</h3><div class="doc-list" id="docs"></div></div>
-    <div class="panel"><div class="toolbar"><strong id="doc-path"></strong></div>
-    <textarea class="doc-editor" id="doc-body" ${canEdit ? "" : "readonly"}></textarea>
-    <div class="toolbar" id="doc-actions"></div></div></div>`);
-  root.appendChild(split);
-  const list = split.querySelector("#docs");
-  const pathEl = split.querySelector("#doc-path");
-  const body = split.querySelector("#doc-body");
-  const actions = split.querySelector("#doc-actions");
-
-  const data = await api("/api/knowledge");
-  async function openDoc(path) {
-    state.knowledgePath = path;
-    pathEl.textContent = path;
-    const doc = await api(`/api/knowledge/${path}`);
-    body.value = doc.content;
-    list.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b.dataset.path === path));
-  }
-  for (const d of data.docs) {
-    const b = el(`<button type="button" data-path="${esc(d.path)}">${esc(d.path)}</button>`);
-    b.onclick = () => openDoc(d.path);
-    list.appendChild(b);
-  }
-  if (canEdit) {
-    const save = el(`<button type="button">保存</button>`);
-    save.onclick = async () => {
-      if (!state.knowledgePath) return;
-      await api(`/api/knowledge/${state.knowledgePath}`, {
-        method: "PUT",
-        body: JSON.stringify({ content: body.value }),
-      });
-      alert("已保存到服务器资料站");
-    };
-    const create = el(`<button type="button" class="ghost">新建文档</button>`);
-    create.onclick = async () => {
-      const name = prompt("文件名（如 notes/foo.md）");
-      if (!name) return;
-      await api(`/api/knowledge/${name}`, {
-        method: "PUT",
-        body: JSON.stringify({ content: `# ${name}\n\n` }),
-      });
-      await renderKnowledge(root);
-    };
-    actions.append(save, create);
-  }
-  if (data.docs.length) await openDoc(state.knowledgePath && data.docs.some((d) => d.path === state.knowledgePath) ? state.knowledgePath : data.docs[0].path);
-}
-
 async function renderOps(root) {
   root.innerHTML = "";
   const health = await api("/api/ops/health");
@@ -954,19 +1227,6 @@ async function renderOps(root) {
       } catch (e) { alert(e.message); }
     };
     ops.querySelector(".toolbar").appendChild(restart);
-  }
-  if (can("knowledge.edit")) {
-    const clog = el(`<button type="button" class="ghost">追加变更日志</button>`);
-    clog.onclick = async () => {
-      const summary = prompt("变更摘要");
-      if (!summary) return;
-      await api("/api/knowledge/changelog", {
-        method: "POST",
-        body: JSON.stringify({ summary, author: state.user.username }),
-      });
-      alert("已写入 40-change-log.md");
-    };
-    ops.querySelector(".toolbar").appendChild(clog);
   }
   if (ops.querySelector(".toolbar").children.length) root.appendChild(ops);
 }

@@ -16,6 +16,10 @@ public class PowerDto {
     public double euOutRate;
     public long steamStored;
     public long steamMax;
+    /** True when a wireless steam provider is installed and readable for this owner/team. */
+    public boolean steamSupported;
+    /** True only when steamMax is a real provider capacity, not a placeholder. */
+    public boolean steamCapacityKnown;
     public double steamInRate;
     public double steamOutRate;
     public List<Double> euHistory;

@@ -69,7 +69,7 @@ public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
     public GuiSubAEAdvanceStorageLink(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
         int index) {
         super(player, world, tileEntity, index);
-        this.setSize(600, 450);
+        this.setSize(600, 480);
     }
 
     @Override
@@ -404,24 +404,25 @@ public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
     }
 
     private void save(NBTTagCompound nbt) {
+        beginValidation();
         NBTTagList existingStorageItems = nbt.getTagList("storageItems", 10);
         String xyz = textFieldTileEntityXYZ.getText()
             .replace("，", ",")
             .replace(" ", "");
         if (!ContentsHelper.isValidPosFormat(xyz)) {
-            errorTips = I18n.format("adm.error.xyz");
+            rejectField(textFieldTileEntityXYZ, I18n.format("adm.error.xyz"));
             return;
         }
         if (!validateNumbers()) return;
         if (!isValidInteger(textFieldColumns.getText())) {
-            errorTips = I18n.format("adm.error.storagecolumns");
+            rejectField(textFieldColumns, I18n.format("adm.error.storagecolumns"));
             return;
         }
         String storageCellIndexText = textFieldStorageIndex.getText()
             .trim();
         if (!storageCellIndexText.isEmpty()
             && (!isValidInteger(storageCellIndexText) || Integer.parseInt(storageCellIndexText) < 0)) {
-            errorTips = I18n.format("adm.error.storagecellindex");
+            rejectField(textFieldStorageIndex, I18n.format("adm.error.storagecellindex"));
             return;
         }
 
@@ -474,13 +475,11 @@ public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
             "adm.error.storagelinespacing" };
         for (int i = 0; i < doubleFields.length; i++) {
             if (!isValidDouble(doubleFields[i].getText())) {
-                errorTips = I18n.format(errors[i]);
-                return false;
+                return rejectField(doubleFields[i], I18n.format(errors[i]));
             }
         }
         if (!isValidInteger(textFieldInterval.getText())) {
-            errorTips = I18n.format("adm.error.interval");
-            return false;
+            return rejectField(textFieldInterval, I18n.format("adm.error.interval"));
         }
         return true;
     }
@@ -506,9 +505,8 @@ public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
             I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"), I18n.format("adm.label.xrotation"),
             I18n.format("adm.label.yrotation"), I18n.format("adm.label.zrotation"), I18n.format("adm.label.interval") };
@@ -533,7 +531,7 @@ public class GuiSubAEAdvanceStorageLink extends AbstractMonitorSubGui {
             offsetX + 322,
             offsetY - 35,
             textColor);
-        fontRendererObj.drawString(errorTips, offsetX + 230, offsetY + 380, 0xff0000);
+        drawMonitorFeedbackBand();
         drawTextFieldsWithHover(mouseX, mouseY);
 
         drawFocusedFieldHint(offsetX + 10, offsetY + 280);

@@ -5,7 +5,7 @@ import net.minecraft.util.ResourceLocation;
 /**
  * Describes a 9-slice region within a texture atlas.
  * {@code regionW/regionH} are the pixel size of the source slice template on the atlas;
- * {@code borderPx} is the non-stretching edge width on each side of that template.
+ * {@code borderPx} is the fixed edge width on each side of that template. ADM converts the region to tiled pieces.
  */
 public final class NineSliceRegion {
 
@@ -56,12 +56,12 @@ public final class NineSliceRegion {
         return borderPx;
     }
 
-    /** Source width of the stretchable center strip. */
+    /** Source width of the center strip. */
     public int srcMidW() {
         return Math.max(1, regionW - borderPx * 2);
     }
 
-    /** Source height of the stretchable center strip. */
+    /** Source height of the center strip. */
     public int srcMidH() {
         return Math.max(1, regionH - borderPx * 2);
     }

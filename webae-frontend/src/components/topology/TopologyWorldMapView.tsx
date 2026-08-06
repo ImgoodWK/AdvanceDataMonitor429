@@ -8,21 +8,37 @@ import {
   useState,
 } from 'react';
 
-import { Segmented, Progress } from 'antd';
+import { Button, Popover, Progress, Segmented, message } from 'antd';
+import { HistoryOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { useI18n } from '@/i18n';
 import { WorldMapChunkStatusOverlay } from '@/components/topology/WorldMapChunkStatusOverlay';
 import { WorldMapClusterPopup } from '@/components/topology/WorldMapClusterPopup';
 import { WorldMapLegendRail } from '@/components/topology/WorldMapLegendRail';
 import { WorldMapMarkerLayer } from '@/components/topology/WorldMapMarkerLayer';
+import { WorldMapAnnotationLayer } from '@/components/topology/WorldMapAnnotationLayer';
+import {
+  WorldMapAnnotationModal,
+  type WorldMapAnnotationPosition,
+} from '@/components/topology/WorldMapAnnotationModal';
 import { WorldMapAeOverlayLayer } from '@/components/topology/WorldMapAeOverlayLayer';
+import { WorldMapDiffOverlay } from '@/components/topology/WorldMapDiffOverlay';
 import { WorldMapTerrainLayer } from '@/components/topology/WorldMapTerrainLayer';
+import { WorldMapVersionControls } from '@/components/topology/WorldMapVersionControls';
 import type { TopologyGraphHandle } from '@/components/topology/topologyGraphHandle';
 import { useMapViewport } from '@/hooks/useMapViewport';
 import { useNonPassiveWheelZoom } from '@/hooks/useNonPassiveWheelZoom';
 import { useWorldMapProgress } from '@/hooks/useWorldMapProgress';
 import { useWorldMapTileLoader } from '@/hooks/useWorldMapTileLoader';
-import type { TopologyNodeDto, WorldMapMarkerDto, WorldMapMetaDto, WorldMapViewDto } from '@/types/dto';
+import { useWorldMapVersionDiff } from '@/hooks/useWorldMapVersionDiff';
+import type {
+  TopologyNodeDto,
+  WorldMapAnnotationDto,
+  WorldMapAnnotationInput,
+  WorldMapMarkerDto,
+  WorldMapMetaDto,
+  WorldMapViewDto,
+} from '@/types/dto';
 import type { TopologyDisplaySettings, WorldMapObliqueDirection } from '@/types/topologyDisplay';
 import { filterNodesWithDetailPage } from '@/utils/topologyDevices';
 import { collectIconIdsFromMarkers } from '@/utils/iconPrefetch';
@@ -36,6 +52,7 @@ import {
 import {
   boundsFromDimension,
   originFromBounds,
+  screenToWorld,
   type WorldBounds,
   type WorldMapOrigin,
 } from '@/utils/worldMapProjection';
@@ -56,6 +73,17 @@ interface ClusterPopupState {
   nodes: TopologyNodeDto[];
 }
 
+interface AnnotationEditorState {
+  annotation: WorldMapAnnotationDto | null;
+  position: WorldMapAnnotationPosition;
+}
+
+interface AnnotationContextMenuState {
+  left: number;
+  top: number;
+  position: WorldMapAnnotationPosition;
+}
+
 export interface TopologyWorldMapViewProps {
   meta: WorldMapMetaDto;
   markers: WorldMapMarkerDto[];
@@ -71,6 +99,8 @@ export interface TopologyWorldMapViewProps {
   layoutEpoch?: string;
   /** Increment to start tile progress polling (refresh / snapshot). */
   progressEpoch?: number;
+  /** Browsing mode keeps history, diff, and annotations visible but disables annotation mutations. */
+  readOnly?: boolean;
 }
 
 export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorldMapViewProps>(
@@ -89,15 +119,21 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       height = 520,
       layoutEpoch = '',
       progressEpoch = 0,
+      readOnly = false,
     },
     ref
   ) {
     const { t } = useI18n();
+    const [messageApi, messageContextHolder] = message.useMessage();
     const [activeDim, setActiveDim] = useState<number>(() => meta.dimensions[0]?.dim ?? 0);
     const defaultView = meta.views?.[0]?.id ?? 'flat';
     const [activeView, setActiveView] = useState<string>(defaultView);
     const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
     const [popup, setPopup] = useState<ClusterPopupState | null>(null);
+    const [annotationEditor, setAnnotationEditor] = useState<AnnotationEditorState | null>(null);
+    const [annotationContextMenu, setAnnotationContextMenu] =
+      useState<AnnotationContextMenuState | null>(null);
+    const [annotationSaving, setAnnotationSaving] = useState(false);
     const previousScaleRef = useRef<number | null>(null);
     const lastFitEpochRef = useRef('');
 
@@ -129,6 +165,15 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       onPointerUp,
       fitBounds,
     } = useMapViewport();
+
+    const versionHistory = useWorldMapVersionDiff({
+      networkId,
+      filter: { dimension: activeDim },
+    });
+
+    useEffect(() => {
+      versionHistory.setFilter({ dimension: activeDim });
+    }, [activeDim, versionHistory.setFilter]);
 
     const wheelHandler = useCallback(
       (e: WheelEvent) => {
@@ -209,6 +254,149 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
       }),
       [bounds, pxPerBlock]
     );
+
+    const annotationPositionAtScreen = useCallback(
+      (screenX: number, screenY: number): WorldMapAnnotationPosition => {
+        const point = screenToWorld(screenX, screenY, viewport, origin);
+        return {
+          dimension: activeDim,
+          x: Math.round(point.x),
+          z: Math.round(point.z),
+        };
+      },
+      [activeDim, origin, viewport],
+    );
+
+    const openAnnotationAtCenter = useCallback(() => {
+      if (readOnly) return;
+      const position = annotationPositionAtScreen(containerSize.w / 2, containerSize.h / 2);
+      setAnnotationContextMenu(null);
+      setAnnotationEditor({ annotation: null, position });
+    }, [annotationPositionAtScreen, containerSize.h, containerSize.w, readOnly]);
+
+    const handleViewportContextMenu = useCallback(
+      (event: React.MouseEvent<HTMLDivElement>) => {
+        if (readOnly) return;
+        const target = event.target as HTMLElement;
+        if (
+          target.closest('.worldmap-cluster-popup') ||
+          target.closest('.worldmap-context-menu') ||
+          target.closest('.worldmap-diff-hit') ||
+          target.closest('.worldmap-annotation-hit')
+        ) return;
+        event.preventDefault();
+        const rect = event.currentTarget.getBoundingClientRect();
+        const localX = event.clientX - rect.left;
+        const localY = event.clientY - rect.top;
+        setPopup(null);
+        setAnnotationContextMenu({
+          left: Math.max(8, Math.min(localX, Math.max(8, rect.width - 220))),
+          top: Math.max(8, Math.min(localY, Math.max(8, rect.height - 72))),
+          position: annotationPositionAtScreen(localX, localY),
+        });
+      },
+      [annotationPositionAtScreen, readOnly],
+    );
+
+    const handleMarkerContextMenu = useCallback(
+      (marker: WorldMapMarkerDto, clientX: number, clientY: number) => {
+        if (readOnly) return;
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const localX = clientX - rect.left;
+        const localY = clientY - rect.top;
+        setPopup(null);
+        setAnnotationContextMenu({
+          left: Math.max(8, Math.min(localX, Math.max(8, rect.width - 220))),
+          top: Math.max(8, Math.min(localY, Math.max(8, rect.height - 72))),
+          position: {
+            dimension: marker.dim,
+            x: marker.x,
+            y: marker.y,
+            z: marker.z,
+          },
+        });
+      },
+      [containerRef, readOnly],
+    );
+
+    const handleEditAnnotation = useCallback(
+      (annotation: WorldMapAnnotationDto) => {
+        if (readOnly) return;
+        setAnnotationContextMenu(null);
+        setAnnotationEditor({
+          annotation,
+          position: {
+            dimension: annotation.dimension,
+            x: annotation.x,
+            y: annotation.y,
+            z: annotation.z,
+          },
+        });
+      },
+      [readOnly],
+    );
+
+    const handleSaveAnnotation = useCallback(
+      async (input: WorldMapAnnotationInput) => {
+        if (readOnly || !annotationEditor) return;
+        setAnnotationSaving(true);
+        try {
+          if (annotationEditor.annotation) {
+            await versionHistory.updateAnnotation(annotationEditor.annotation.id, input);
+          } else {
+            await versionHistory.createAnnotation(input);
+          }
+          setAnnotationEditor(null);
+          messageApi.success(t('saved'));
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') return;
+          const detail = error instanceof Error && error.message
+            ? error.message
+            : t('worldMapAnnotationSaveFailed');
+          messageApi.error(detail);
+        } finally {
+          setAnnotationSaving(false);
+        }
+      },
+      [annotationEditor, messageApi, readOnly, t, versionHistory.createAnnotation, versionHistory.updateAnnotation],
+    );
+
+    const handleDeleteAnnotation = useCallback(
+      async (annotation: WorldMapAnnotationDto) => {
+        if (readOnly) return;
+        try {
+          await versionHistory.deleteAnnotation(annotation.id);
+          messageApi.success(t('worldMapAnnotationDelete'));
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') return;
+          const detail = error instanceof Error && error.message
+            ? error.message
+            : t('worldMapAnnotationDeleteFailed');
+          messageApi.error(detail);
+        }
+      },
+      [messageApi, readOnly, t, versionHistory.deleteAnnotation],
+    );
+
+    useEffect(() => {
+      setPopup(null);
+      previousScaleRef.current = null;
+      setAnnotationContextMenu(null);
+    }, [activeDim]);
+
+    useEffect(() => {
+      setPopup(null);
+      previousScaleRef.current = null;
+      setAnnotationContextMenu(null);
+      setAnnotationEditor(null);
+    }, [networkId]);
+
+    useEffect(() => {
+      if (!readOnly) return;
+      setAnnotationContextMenu(null);
+      setAnnotationEditor(null);
+    }, [readOnly]);
 
     const terrainEnabled = meta.worldMapEnabled !== false && displaySettings.showWorldMapTerrain;
     const aeVisible = meta.worldMapEnabled !== false && displaySettings.showWorldMapAeOverlay;
@@ -394,6 +582,7 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
 
     return (
       <div className="topology-worldmap-root">
+        {messageContextHolder}
         <div className="topology-worldmap-toolbar">
           {dimOptions.length > 1 && (
             <div className="topology-worldmap-dim-tabs">
@@ -415,6 +604,26 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
               />
             </div>
           )}
+          <Popover
+            placement="bottomRight"
+            trigger="click"
+            overlayClassName="worldmap-version-popover"
+            content={
+              <WorldMapVersionControls
+                history={versionHistory}
+                readOnly={readOnly}
+                onAddAnnotation={openAnnotationAtCenter}
+              />
+            }
+          >
+            <Button
+              size="small"
+              icon={<HistoryOutlined />}
+              aria-label={t('worldMapVersionHistory')}
+            >
+              {t('worldMapVersionHistory')}
+            </Button>
+          </Popover>
           <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>
             {t('worldMapTerrainSource_self') || '内置渲染'}
           </span>
@@ -439,9 +648,13 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
           ref={containerRef}
           className="topology-worldmap-viewport"
           style={{ height, touchAction: 'none', overscrollBehavior: 'contain' }}
-          onPointerDown={onPointerDown}
+          onPointerDown={(event) => {
+            if (event.button === 0) setAnnotationContextMenu(null);
+            onPointerDown(event);
+          }}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onContextMenu={handleViewportContextMenu}
         >
           <div
             className="topology-worldmap-grid"
@@ -474,6 +687,14 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
             showTerrain={terrainEnabled}
             showAe={aeVisible}
           />
+          <WorldMapDiffOverlay
+            diff={versionHistory.diffState.filteredData}
+            visible={versionHistory.diffEnabled}
+            viewport={viewport}
+            origin={origin}
+            containerWidth={containerSize.w}
+            containerHeight={containerSize.h}
+          />
           {showProgressUi && (
             <div className="worldmap-chunk-status-legend" title={t('worldMapChunkBadgeHint')}>
               {t('worldMapChunkBadgeHint')}
@@ -496,8 +717,47 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
               selectedNodeId={selectedNodeId}
               displaySettings={displaySettings}
               onMarkerClick={handleMarkerClick}
+              onMarkerContextMenu={handleMarkerContextMenu}
               onClusterClick={handleClusterClick}
             />
+          )}
+          <WorldMapAnnotationLayer
+            annotations={versionHistory.annotationState.visible}
+            dimension={activeDim}
+            viewport={viewport}
+            origin={origin}
+            readOnly={readOnly}
+            onEdit={handleEditAnnotation}
+            onDelete={handleDeleteAnnotation}
+          />
+          {annotationContextMenu && !readOnly && (
+            <div
+              className="worldmap-context-menu"
+              style={{ left: annotationContextMenu.left, top: annotationContextMenu.top }}
+              role="menu"
+              onPointerDown={(event) => event.stopPropagation()}
+              onContextMenu={(event) => event.preventDefault()}
+            >
+              <Button
+                type="text"
+                size="small"
+                block
+                role="menuitem"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setAnnotationEditor({
+                    annotation: null,
+                    position: annotationContextMenu.position,
+                  });
+                  setAnnotationContextMenu(null);
+                }}
+              >
+                {t('worldMapContextAddAnnotation')}
+              </Button>
+              <span className="worldmap-context-menu-coordinates">
+                {`${annotationContextMenu.position.x}, ${annotationContextMenu.position.y ?? '?'}, ${annotationContextMenu.position.z}`}
+              </span>
+            </div>
           )}
           {popup && (
             <WorldMapClusterPopup
@@ -512,6 +772,15 @@ export const TopologyWorldMapView = forwardRef<TopologyGraphHandle, TopologyWorl
             />
           )}
         </div>
+        <WorldMapAnnotationModal
+          open={annotationEditor != null}
+          networkId={networkId}
+          annotation={annotationEditor?.annotation ?? null}
+          initialPosition={annotationEditor?.position ?? null}
+          saving={annotationSaving}
+          onCancel={() => setAnnotationEditor(null)}
+          onSave={handleSaveAnnotation}
+        />
       </div>
     );
   }

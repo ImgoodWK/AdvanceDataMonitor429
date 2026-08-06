@@ -28,6 +28,7 @@ import com.imgood.textech.assistant.CraftSubmitHooks;
 import com.imgood.textech.assistant.CraftingCandidate;
 import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
+import com.imgood.textech.webae.cpu.CpuHistoryService;
 import com.imgood.textech.webae.craft.CraftSubmitResult;
 import com.imgood.textech.webae.craft.WebAeCraftService;
 import com.imgood.textech.webae.dto.OrderBatchRequest;
@@ -97,6 +98,14 @@ public class OrderHandler {
         }
         entry.seenCrafting = true;
         WebAeOrderProgressService.invalidate(entry.playerUuid, entry.networkId);
+        CpuHistoryService.instance()
+            .recordRunning(
+                entry.playerUuid,
+                entry.networkId,
+                entry.jobId,
+                entry.cpuName,
+                null,
+                entry.cpuInfo != null ? Integer.valueOf(entry.cpuInfo.coProcessors) : null);
     }
 
     /** Called when calculation/submit fails after the order was tracked as calculating. */
@@ -119,6 +128,24 @@ public class OrderHandler {
         status.finalProgress = entry.lastProgress;
         moveToHistory(entry, status);
         activeOrders.remove(jobId);
+    }
+
+    /** Mark every pre-tracked child of a failed batch instead of silently dropping its history. */
+    private static void markBatchFailed(String batchJobId, String reason) {
+        if (batchJobId == null || batchJobId.isEmpty()) {
+            return;
+        }
+        String prefix = batchJobId + "-";
+        List<String> jobIds = new ArrayList<String>();
+        for (Map.Entry<String, OrderTrackEntry> e : activeOrders.entrySet()) {
+            if (e.getKey() != null && e.getKey()
+                .startsWith(prefix)) {
+                jobIds.add(e.getKey());
+            }
+        }
+        for (int i = 0; i < jobIds.size(); i++) {
+            markFailed(jobIds.get(i), reason);
+        }
     }
 
     public static NanoHTTPD.Response handle(String uri, Map<String, String> params, String body, String playerUuid) {
@@ -193,8 +220,11 @@ public class OrderHandler {
             @Override
             public void run() {
                 try {
+                    CpuHistoryService.instance()
+                        .recordQueued(playerUuid, networkId, jobId, cpuName, patternId);
                     EntityPlayerMP player = WebAeOwnerContext.getOwnerPlayerOrFake(playerUuid);
                     if (player == null) {
+                        OrderHandler.markFailed(jobId, "Owner network context unavailable");
                         asyncResults.put(jobId, GSON.toJson(fail("Owner network context unavailable")));
                         return;
                     }
@@ -202,6 +232,7 @@ public class OrderHandler {
                     if (patternId != null) {
                         candidate = resolvePatternCandidate(patternId, req.amount);
                         if (candidate == null) {
+                            OrderHandler.markFailed(jobId, "Cannot decode pattern: " + patternId);
                             asyncResults.put(jobId, GSON.toJson(fail("Cannot decode pattern: " + patternId)));
                             return;
                         }
@@ -209,6 +240,7 @@ public class OrderHandler {
                         List<CraftingCandidate> candidates = WebAeCraftService
                             .craftingCandidates(playerUuid, networkId, rawText, req.itemName, req.amount);
                         if (candidates == null || candidates.isEmpty()) {
+                            OrderHandler.markFailed(jobId, "No craftable item found");
                             asyncResults.put(jobId, GSON.toJson(fail("No craftable item found for: " + req.itemName)));
                             return;
                         }
@@ -247,8 +279,9 @@ public class OrderHandler {
                         hooks);
 
                     if (craftResult == null || craftResult.failed || !craftResult.accepted) {
-                        activeOrders.remove(jobId);
-                        OrderResult or = fail(craftResult != null ? craftResult.message : "submit failed");
+                        String failure = craftResult != null ? craftResult.message : "submit failed";
+                        OrderHandler.markFailed(jobId, failure);
+                        OrderResult or = fail(failure);
                         or.craftJobId = "";
                         asyncResults.put(jobId, GSON.toJson(or));
                         return;
@@ -262,6 +295,7 @@ public class OrderHandler {
                     asyncResults.put(jobId, GSON.toJson(or));
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG.error("[WebAE] Order submit failed", t);
+                    OrderHandler.markFailed(jobId, "Internal error");
                     asyncResults.put(jobId, GSON.toJson(fail("Internal error: " + t.getMessage())));
                 }
             }
@@ -317,8 +351,20 @@ public class OrderHandler {
             @Override
             public void run() {
                 try {
+                    for (int i = 0; i < req.items.size(); i++) {
+                        OrderBatchRequest.OrderItem item = req.items.get(i);
+                        String subJobId = batchJobId + "-" + i;
+                        CpuHistoryService.instance()
+                            .recordQueued(
+                                playerUuid,
+                                req.networkId,
+                                subJobId,
+                                cpuName,
+                                item != null ? item.patternId : null);
+                    }
                     EntityPlayerMP player = WebAeOwnerContext.getOwnerPlayerOrFake(playerUuid);
                     if (player == null) {
+                        OrderHandler.markBatchFailed(batchJobId, "Owner network context unavailable");
                         asyncResults.put(batchJobId, GSON.toJson(fail("Owner network context unavailable")));
                         return;
                     }
@@ -331,6 +377,7 @@ public class OrderHandler {
                         if (item.patternId != null && !item.patternId.isEmpty()) {
                             CraftingCandidate patternCandidate = resolvePatternCandidate(item.patternId, amt);
                             if (patternCandidate == null) {
+                                OrderHandler.markBatchFailed(batchJobId, "Cannot decode pattern");
                                 asyncResults
                                     .put(batchJobId, GSON.toJson(fail("Cannot decode pattern: " + item.patternId)));
                                 return;
@@ -341,6 +388,7 @@ public class OrderHandler {
                         } else {
                             if (item.itemName == null || item.itemName.trim()
                                 .isEmpty()) {
+                                OrderHandler.markBatchFailed(batchJobId, "Missing itemName and patternId");
                                 asyncResults.put(
                                     batchJobId,
                                     GSON.toJson(fail("Item #" + (i + 1) + " missing itemName and patternId")));
@@ -367,6 +415,7 @@ public class OrderHandler {
                         or.craftJobId = subJobId;
                         or.estimatedTime = -1;
                         if (candidate == null) {
+                            OrderHandler.markFailed(subJobId, "No candidate");
                             or.success = false;
                             or.message = "No candidate";
                             results.add(or);
@@ -400,7 +449,8 @@ public class OrderHandler {
                             subJobId,
                             hooks);
                         if (craftResult == null || craftResult.failed || !craftResult.accepted) {
-                            activeOrders.remove(subJobId);
+                            OrderHandler
+                                .markFailed(subJobId, craftResult != null ? craftResult.message : "submit failed");
                             or.success = false;
                             or.message = craftResult != null ? craftResult.message : "submit failed";
                             or.craftJobId = "";
@@ -414,6 +464,7 @@ public class OrderHandler {
                     asyncResults.put(batchJobId, GSON.toJson(results));
                 } catch (Throwable t) {
                     AdvanceDataMonitor.LOG.error("[WebAE] Batch order failed", t);
+                    OrderHandler.markBatchFailed(batchJobId, "Internal error");
                     asyncResults.put(batchJobId, GSON.toJson(fail("Internal error: " + t.getMessage())));
                 }
             }
@@ -633,6 +684,16 @@ public class OrderHandler {
             status.status = progress.status;
             status.progressPercent = progress.progressPercent > 0 ? progress.progressPercent : entry.lastProgress;
             status.completedAt = -1;
+            if ("crafting".equals(status.status)) {
+                CpuHistoryService.instance()
+                    .recordRunning(
+                        entry.playerUuid,
+                        entry.networkId,
+                        entry.jobId,
+                        entry.cpuName,
+                        Integer.valueOf(status.progressPercent),
+                        entry.cpuInfo != null ? Integer.valueOf(entry.cpuInfo.coProcessors) : null);
+            }
             return status;
         }
 
@@ -643,6 +704,9 @@ public class OrderHandler {
     }
 
     private static synchronized void moveToHistory(OrderTrackEntry entry, OrderStatus status) {
+        if (status != null && isTerminal(status.status) && historyContainsJob(status.craftJobId)) {
+            return;
+        }
         if ("completed".equals(status.status)) {
             status.progressPercent = 100;
             status.finalProgress = 100;
@@ -652,6 +716,17 @@ public class OrderHandler {
         }
         if (entry != null) {
             status.networkId = entry.networkId;
+            if (isTerminal(status.status)) {
+                CpuHistoryService.instance()
+                    .recordTerminal(
+                        entry.playerUuid,
+                        entry.networkId,
+                        entry.jobId,
+                        status.status,
+                        entry.cpuName,
+                        Integer.valueOf(status.progressPercent),
+                        status.completedAt);
+            }
             if (status.craftJobId != null && entry.playerUuid != null) {
                 historyOwner.put(status.craftJobId, entry.playerUuid);
             }
@@ -666,6 +741,74 @@ public class OrderHandler {
     }
 
     private static final Map<String, String> historyOwner = new ConcurrentHashMap<String, String>();
+
+    /**
+     * Lightweight server-tick observer for links that have reached a terminal
+     * state. HTTP status/list requests still resolve full progress, but this
+     * path only asks the already-bound ICraftingLink for done/cancelled so CPU
+     * history does not depend on a browser continuing to poll.
+     */
+    private static volatile long lastLinkObserverAt;
+
+    public static void onServerTick(long now) {
+        if (now - lastLinkObserverAt < 1000L) {
+            return;
+        }
+        lastLinkObserverAt = now;
+        for (Map.Entry<String, OrderTrackEntry> mapEntry : activeOrders.entrySet()) {
+            OrderTrackEntry entry = mapEntry.getValue();
+            if (entry == null || entry.link == null
+                || entry.jobId == null
+                || entry.failedAt > 0L
+                || entry.cancelledAt > 0L) {
+                continue;
+            }
+            boolean cancelled = false;
+            boolean done = false;
+            try {
+                cancelled = entry.link.isCanceled();
+                if (!cancelled) {
+                    done = entry.link.isDone();
+                }
+            } catch (Throwable ignored) {
+                // A link may disappear while a grid is unloading; leave the
+                // order active for the regular resolver to settle it later.
+                continue;
+            }
+            if (!cancelled && !done) {
+                continue;
+            }
+
+            OrderStatus status = buildOrderStatus(entry, false);
+            status.status = cancelled ? "cancelled" : "completed";
+            status.progressPercent = cancelled ? entry.lastProgress : 100;
+            status.finalProgress = status.progressPercent;
+            status.completedAt = now;
+            if (cancelled) {
+                status.cancelReason = "ae_cancel";
+                entry.cancelledAt = now;
+                entry.cancelReason = "ae_cancel";
+            }
+            // Remove first so a concurrent HTTP request cannot continue to
+            // expose the same active entry. moveToHistory also de-duplicates
+            // terminal records by job id for the opposite race direction.
+            if (activeOrders.remove(entry.jobId, entry)) {
+                moveToHistory(entry, status);
+            }
+        }
+    }
+
+    private static boolean historyContainsJob(String jobId) {
+        if (jobId == null || jobId.isEmpty()) {
+            return false;
+        }
+        for (OrderStatus existing : historyOrders) {
+            if (existing != null && jobId.equals(existing.craftJobId)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private static synchronized List<OrderStatus> getHistorySnapshotForOwner(String playerUuid) {
         List<OrderStatus> out = new ArrayList<OrderStatus>();

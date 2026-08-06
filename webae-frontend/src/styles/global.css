@@ -2425,6 +2425,248 @@ div.webae-list-row:focus-visible {
   object-fit: contain;
   image-rendering: pixelated;
 }
+
+/* Snapshot history, version diff, and server-backed annotations. */
+.worldmap-version-popover .ant-popover-inner {
+  padding: 0;
+  overflow: hidden;
+}
+.worldmap-version-controls {
+  width: min(430px, calc(100vw - 32px));
+  max-height: min(68vh, 520px);
+  overflow: auto;
+  padding: 12px;
+  overscroll-behavior: contain;
+}
+.worldmap-version-controls-head,
+.worldmap-version-controls-title,
+.worldmap-version-controls-actions,
+.worldmap-diff-switch,
+.worldmap-version-loading,
+.worldmap-diff-options,
+.worldmap-annotation-summary {
+  display: flex;
+  align-items: center;
+}
+.worldmap-version-controls-head {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.worldmap-version-controls-title,
+.worldmap-version-controls-actions,
+.worldmap-diff-switch,
+.worldmap-version-loading,
+.worldmap-diff-options {
+  gap: 8px;
+}
+.worldmap-annotation-summary {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+.worldmap-annotation-summary .ant-tag {
+  margin-inline-end: 0;
+}
+.worldmap-version-selectors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.worldmap-version-selectors label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.worldmap-version-selectors .ant-select {
+  width: 100%;
+}
+.worldmap-version-swap {
+  margin-bottom: 7px;
+  color: var(--text-secondary);
+}
+.worldmap-version-loading {
+  min-height: 40px;
+  justify-content: center;
+}
+.worldmap-diff-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.worldmap-diff-options {
+  flex-wrap: wrap;
+}
+.worldmap-diff-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.worldmap-diff-legend .ant-tag {
+  margin-inline-end: 0;
+}
+.worldmap-version-controls .ant-alert {
+  padding: 7px 9px;
+}
+.worldmap-version-controls .ant-alert-description {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.worldmap-diff-overlay,
+.worldmap-annotation-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.worldmap-diff-overlay {
+  z-index: 22;
+}
+.worldmap-diff-move-paths {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.worldmap-diff-move-paths line {
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, #000 45%, transparent));
+}
+.worldmap-diff-hit {
+  position: absolute;
+  pointer-events: auto;
+  cursor: help;
+  padding: 0;
+  margin: 0;
+}
+.worldmap-diff-tile {
+  border: 2px solid;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent);
+}
+.worldmap-diff-tile.worldmap-diff-unchanged {
+  opacity: 0.3;
+  border-style: dashed;
+  pointer-events: none;
+}
+.worldmap-diff-marker {
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border: 2px solid;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+  box-shadow: 0 2px 7px color-mix(in srgb, #000 35%, transparent);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+.worldmap-diff-marker:hover,
+.worldmap-diff-marker:focus-visible {
+  transform: translate(-50%, -50%) scale(1.14);
+  outline: 2px solid color-mix(in srgb, currentColor 55%, transparent);
+  outline-offset: 2px;
+}
+.worldmap-diff-detail,
+.worldmap-annotation-detail {
+  display: grid;
+  gap: 8px;
+  min-width: 210px;
+  max-width: min(340px, calc(100vw - 48px));
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.worldmap-annotation-layer {
+  z-index: 24;
+}
+.worldmap-annotation-hit {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid;
+  border-radius: 999px 999px 999px 3px;
+  box-shadow: 0 2px 8px color-mix(in srgb, #000 34%, transparent);
+  cursor: pointer;
+  font-size: 14px;
+}
+.worldmap-annotation-hit:hover,
+.worldmap-annotation-hit:focus-visible {
+  transform: translate(-50%, -100%) scale(1.12);
+  outline: 2px solid color-mix(in srgb, currentColor 50%, transparent);
+  outline-offset: 2px;
+}
+.worldmap-annotation-note {
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+.worldmap-annotation-actions {
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.worldmap-context-menu {
+  position: absolute;
+  z-index: 42;
+  width: 212px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-secondary) 97%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 32%, transparent);
+  pointer-events: auto;
+}
+.worldmap-context-menu .ant-btn {
+  justify-content: flex-start;
+}
+.worldmap-context-menu-coordinates {
+  display: block;
+  padding: 2px 10px 4px 34px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.worldmap-annotation-coordinate-grid,
+.worldmap-annotation-version-grid {
+  display: grid;
+  gap: 10px;
+}
+.worldmap-annotation-coordinate-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.worldmap-annotation-version-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .worldmap-version-selectors {
+    grid-template-columns: 1fr;
+  }
+  .worldmap-version-swap {
+    justify-self: center;
+    margin-bottom: 0;
+    transform: rotate(90deg);
+  }
+  .worldmap-annotation-coordinate-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .worldmap-cluster {
   font-size: 11px;
   font-weight: 600;

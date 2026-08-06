@@ -32,10 +32,27 @@ public final class WorldMapTileLayer {
 
     /** Cache directory segment under {@code map-tiles/}. */
     public static String cacheViewPath(String viewId, String layer) {
-        String view = viewId != null ? viewId.trim() : WorldMapView.FLAT.id;
+        String view = normalizeCacheView(viewId);
         if (isAe(layer)) {
             return view + "/" + AE_ID;
         }
         return view;
+    }
+
+    private static String normalizeCacheView(String viewId) {
+        if (viewId == null) {
+            return WorldMapView.FLAT.id;
+        }
+        String view = viewId.trim()
+            .toLowerCase();
+        if (WorldMapView.FLAT.id.equals(view) || WorldMapView.OBLIQUE_SE.id.equals(view)
+            || WorldMapView.OBLIQUE_SW.id.equals(view)
+            || WorldMapView.OBLIQUE_NE.id.equals(view)
+            || WorldMapView.OBLIQUE_NW.id.equals(view)
+            || "oblique".equals(view)
+            || "iso_se".equals(view)) {
+            return view;
+        }
+        return WorldMapView.FLAT.id;
     }
 }

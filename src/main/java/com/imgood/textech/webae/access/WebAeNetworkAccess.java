@@ -51,6 +51,23 @@ public final class WebAeNetworkAccess {
         return assertCanAccessKey(session, ownerUuid, networkKey) == null;
     }
 
+    /**
+     * Reject mutations made with a guest token. Guest tokens are deliberately
+     * scoped to reads; individual handlers may still allow non-mutating POST
+     * requests such as assistant queries.
+     *
+     * @return denial response, or {@code null} when the session may mutate
+     */
+    public static NanoHTTPD.Response assertCanWrite(WebAuthSession session) {
+        if (session == null) {
+            return denial(401, "authentication_required", "Authentication is required for this operation.");
+        }
+        if (session.isGuest()) {
+            return denial(403, "guest_readonly", "Guest token is read-only.");
+        }
+        return null;
+    }
+
     public static List<NetworkInfo> filterVisible(WebAuthSession session, String ownerUuid,
         List<NetworkInfo> networks) {
         List<NetworkInfo> out = new ArrayList<NetworkInfo>();

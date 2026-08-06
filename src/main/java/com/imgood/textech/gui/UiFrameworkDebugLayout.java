@@ -40,14 +40,15 @@ public final class UiFrameworkDebugLayout {
     public static final int FIELD_W = 176;
     public static final int FIELD_H = 14;
 
-    /** Flex widget-tree demo strip (absolute within container). */
+    /** Flex widget-tree demo strip in the right column, below the atlas/control reference. */
+    public static final int FLEX_X = COL_ATLAS;
     public static final int ROW_FLEX = 164;
-    public static final int FLEX_W = GUI_W - COL_ATLAS - 8;
+    public static final int FLEX_W = GUI_W - FLEX_X - 8;
     public static final int FLEX_H = 54;
 
     public static final int ROW_ATLAS_START = 41;
     public static final int ATLAS_LINE_H = 9;
-    public static final int ATLAS_REGION_COUNT = 12;
+    public static final int ATLAS_REGION_COUNT = 10;
 
     private UiFrameworkDebugLayout() {}
 }

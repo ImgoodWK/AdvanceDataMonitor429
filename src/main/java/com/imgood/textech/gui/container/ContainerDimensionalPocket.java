@@ -539,11 +539,14 @@ public class ContainerDimensionalPocket extends Container {
             boolean layoutChanged = prevSpace != newSpace || prevPage != newPage
                 || prevSlots != state.getSlotsPerPage()
                 || prevPageCount != state.getPageCount();
-            com.imgood.textech.network.packet.PacketPocketSync sync = layoutChanged
-                ? com.imgood.textech.network.packet.PacketPocketSync.fullState(state)
-                : com.imgood.textech.network.packet.PacketPocketSync.metadataState(state);
-            com.imgood.textech.AdvanceDataMonitor.ADMCHANEL
-                .sendTo(sync, (net.minecraft.entity.player.EntityPlayerMP) player);
+            java.util.List<com.imgood.textech.network.packet.PacketPocketSync> syncPackets = layoutChanged
+                ? com.imgood.textech.network.packet.PacketPocketSync.fullStatePackets(state)
+                : java.util.Collections
+                    .singletonList(com.imgood.textech.network.packet.PacketPocketSync.metadataState(state));
+            for (com.imgood.textech.network.packet.PacketPocketSync sync : syncPackets) {
+                com.imgood.textech.AdvanceDataMonitor.ADMCHANEL
+                    .sendTo(sync, (net.minecraft.entity.player.EntityPlayerMP) player);
+            }
         }
 
         private void restoreUpgradeStacksFromState(PocketState state) {

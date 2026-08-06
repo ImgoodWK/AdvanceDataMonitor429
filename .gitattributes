@@ -1,0 +1,74 @@
+* text=auto
+
+# Source and documentation use LF on every platform.
+*.java       text eol=lf
+*.kt         text eol=lf
+*.kts        text eol=lf
+*.groovy     text eol=lf
+*.gradle     text eol=lf
+*.md         text eol=lf
+*.txt        text eol=lf
+*.json       text eol=lf
+*.json5      text eol=lf
+*.jsonc      text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.cff        text eol=lf
+*.toml       text eol=lf
+*.xml        text eol=lf
+*.properties text eol=lf
+*.lang       text eol=lf
+*.info       text eol=lf
+*.mcmeta     text eol=lf
+*.mdc        text eol=lf
+*.example    text eol=lf
+*.js         text eol=lf
+*.mjs        text eol=lf
+*.cjs        text eol=lf
+*.ts         text eol=lf
+*.tsx        text eol=lf
+*.jsx        text eol=lf
+*.css        text eol=lf
+*.scss       text eol=lf
+*.html       text eol=lf
+*.py         text eol=lf
+*.sh         text eol=lf
+*.obj        text eol=lf
+*.mtl        text eol=lf
+gradlew      text eol=lf
+Dockerfile   text eol=lf
+.gitignore   text eol=lf
+.gitattributes text eol=lf
+.editorconfig  text eol=lf
+CODEOWNERS     text eol=lf
+LICENSE      text eol=lf
+
+# Windows launchers keep native CRLF.
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+*.ps1        text eol=crlf
+
+# Binary assets must never undergo line-ending conversion.
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.webp       binary
+*.ico        binary
+*.jar        binary
+*.zip        binary
+*.7z         binary
+*.gz         binary
+*.wav        binary
+*.ogg        binary
+*.mp3        binary
+*.flac       binary
+*.ttf        binary
+*.otf        binary
+*.woff       binary
+*.woff2      binary
+
+# Vite bundles may embed third-party shader/template strings whose trailing
+# spaces are content. Keep them byte-for-byte reproducible without treating
+# generated-only whitespace as a source-code error.
+src/main/resources/assets/textech/webae/** whitespace=-blank-at-eol,-blank-at-eof

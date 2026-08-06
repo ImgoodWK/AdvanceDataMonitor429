@@ -4,15 +4,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.EnumChatFormatting;
 
 import org.lwjgl.opengl.GL11;
 
 import com.imgood.textech.Config;
-import com.imgood.textech.gui.framework.UiPanel;
-import com.imgood.textech.gui.framework.UiThemes;
+import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.webae.icon.IconExportResolver;
 import com.imgood.textech.webae.icon.IconItemEnumerator;
 import com.imgood.textech.webae.icon.IconRenderGuard;
@@ -32,7 +32,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * </p>
  */
 @SideOnly(Side.CLIENT)
-public class GuiIconExportScreen extends GuiScreen {
+public class GuiIconExportScreen extends ADM_GuiScreen {
 
     private final IconRenderer session;
     private int cursor;
@@ -41,18 +41,22 @@ public class GuiIconExportScreen extends GuiScreen {
 
     public GuiIconExportScreen(IconRenderer session) {
         this.session = session;
+        setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
+        setSize(340, 108);
+        setStretch(false);
+        setViewportTransformEnabled(false);
     }
 
     @Override
     public void initGui() {
         super.initGui();
+        setPosition((width - panelWidth()) / 2, (height - panelHeight()) / 2);
         mc.renderEngine.bindTexture(TextureMap.locationItemsTexture);
         mc.renderEngine.bindTexture(TextureMap.locationBlocksTexture);
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
         if (cancelled) {
             session.onExportCancelled();
             mc.displayGuiScreen(null);
@@ -91,10 +95,10 @@ public class GuiIconExportScreen extends GuiScreen {
 
         String modeLabel = session.getCurrentMode() != null ? session.getCurrentMode()
             .getId() : IconRenderMode.NEI.getId();
-        UiPanel.draw(UiThemes.ADM, width / 2 - 160, height / 2 - 44, 320, 88);
-        String title = EnumChatFormatting.AQUA + "WebAE Icon Export (" + modeLabel + ")";
-        String progress = EnumChatFormatting.WHITE + "Rendered " + Math.min(renderedItems, total) + " / " + total;
-        String hint = EnumChatFormatting.GRAY + "Press ESC to cancel";
+        String title = EnumChatFormatting.AQUA + I18n.format("adm.icon_export.title", modeLabel);
+        String progress = EnumChatFormatting.WHITE
+            + I18n.format("adm.icon_export.progress", Math.min(renderedItems, total), total);
+        String hint = EnumChatFormatting.GRAY + I18n.format("adm.icon_export.cancel_hint");
         drawCenteredString(fontRendererObj, title, width / 2, height / 2 - 24, 0xFFFFFF);
         drawCenteredString(fontRendererObj, progress, width / 2, height / 2 - 8, 0xFFFFFF);
         drawCenteredString(fontRendererObj, hint, width / 2, height / 2 + 8, 0xAAAAAA);

@@ -2,10 +2,15 @@ package com.imgood.textech.webae.network;
 
 import java.nio.charset.StandardCharsets;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.Config;
+import com.imgood.textech.network.handler.PacketHandlers;
+import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.webae.dto.RecipeDto;
 import com.imgood.textech.webae.recipe.RecipeCacheStore;
 import com.imgood.textech.webae.recipe.RecipeUploadSession;
@@ -29,6 +34,11 @@ import io.netty.buffer.ByteBuf;
 public class PacketWebRecipeUpload implements IMessage {
 
     private static final Gson GSON = new GsonBuilder().create();
+    private static final int MAX_PACKET_BODY_BYTES = 30000;
+    private static final int MAX_PLAYER_UUID_BYTES = 64;
+    private static final int MAX_TOTAL_BATCHES = 4096;
+    private static final int MAX_RECIPES_PER_BATCH = 2048;
+    private boolean valid = true;
 
     public boolean isStart;
     public boolean isEnd;
@@ -53,33 +63,43 @@ public class PacketWebRecipeUpload implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
+        int startIndex = buf.writerIndex();
         buf.writeBoolean(isStart);
         buf.writeBoolean(isEnd);
         buf.writeInt(batchIndex);
         buf.writeInt(totalBatches);
         buf.writeInt(batchCount);
         writeUtf8(buf, playerUuid);
-        if (recipeDataJson != null) {
-            buf.writeInt(recipeDataJson.length);
-            buf.writeBytes(recipeDataJson);
-        } else {
-            buf.writeInt(0);
+        if (recipeDataJson == null || recipeDataJson.length == 0
+            || recipeDataJson.length > RecipeUploadBatcher.MAX_RECIPE_JSON_BYTES) {
+            throw new IllegalArgumentException("Recipe JSON payload is empty or exceeds packet limit");
+        }
+        buf.writeInt(recipeDataJson.length);
+        buf.writeBytes(recipeDataJson);
+        if (buf.writerIndex() - startIndex > MAX_PACKET_BODY_BYTES) {
+            throw new IllegalArgumentException("Recipe upload packet exceeds packet body limit");
         }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        isStart = buf.readBoolean();
-        isEnd = buf.readBoolean();
-        batchIndex = buf.readInt();
-        totalBatches = buf.readInt();
-        batchCount = buf.readInt();
-        playerUuid = readUtf8(buf);
-        int dataLen = buf.readInt();
-        if (dataLen > 0) {
-            recipeDataJson = new byte[dataLen];
-            buf.readBytes(recipeDataJson);
-        } else {
+        valid = true;
+        try {
+            if (buf.readableBytes() > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Recipe upload packet exceeds packet body limit");
+            }
+            isStart = buf.readBoolean();
+            isEnd = buf.readBoolean();
+            batchIndex = buf.readInt();
+            totalBatches = buf.readInt();
+            batchCount = buf.readInt();
+            playerUuid = NetworkPacketCodec.readUtf8(buf, MAX_PLAYER_UUID_BYTES);
+            recipeDataJson = NetworkPacketCodec.readBytes(buf, RecipeUploadBatcher.MAX_RECIPE_JSON_BYTES);
+            if (recipeDataJson.length == 0 || buf.readableBytes() != 0) {
+                throw new IllegalArgumentException("Invalid recipe upload packet framing");
+            }
+        } catch (RuntimeException e) {
+            valid = false;
             recipeDataJson = new byte[0];
         }
     }
@@ -90,16 +110,11 @@ public class PacketWebRecipeUpload implements IMessage {
             return;
         }
         byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length > MAX_PLAYER_UUID_BYTES) {
+            throw new IllegalArgumentException("Player UUID exceeds packet limit");
+        }
         buf.writeInt(bytes.length);
         buf.writeBytes(bytes);
-    }
-
-    private static String readUtf8(ByteBuf buf) {
-        int len = buf.readInt();
-        if (len <= 0) return "";
-        byte[] bytes = new byte[len];
-        buf.readBytes(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     /**
@@ -108,77 +123,113 @@ public class PacketWebRecipeUpload implements IMessage {
     public static class Handler implements IMessageHandler<PacketWebRecipeUpload, IMessage> {
 
         @Override
-        public IMessage onMessage(PacketWebRecipeUpload message, MessageContext ctx) {
-            try {
-                if (message.recipeDataJson != null
-                    && message.recipeDataJson.length > RecipeUploadBatcher.MAX_RECIPE_JSON_BYTES) {
-                    AdvanceDataMonitor.LOG.warn(
-                        "[WebAE] Rejected recipe upload batch {}: JSON payload {} bytes exceeds limit",
-                        message.batchIndex,
-                        message.recipeDataJson.length);
-                    return new PacketWebRecipeUploadAck(
-                        false,
-                        message.batchIndex,
-                        message.totalBatches,
-                        "Batch payload too large (" + message.recipeDataJson.length + " bytes).");
-                }
+        public IMessage onMessage(final PacketWebRecipeUpload message, MessageContext ctx) {
+            final EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null ? null
+                : ctx.getServerHandler().playerEntity;
+            if (!isValid(message, player)) {
+                return null;
+            }
+            return PacketHandlers.runOnServer(ctx, new Runnable() {
 
-                if (message.isStart) {
-                    if (RecipeUploadSession.onStart(message.playerUuid, message.totalBatches)) {
-                        RecipeCacheStore.instance()
-                            .beginUploadSession();
-                        RecipeCacheStore.instance()
-                            .clearMemoryOnly();
+                @Override
+                public void run() {
+                    IMessage ack = processOnServerThread(message, player);
+                    if (ack != null && player != null) {
+                        AdvanceDataMonitor.ADMCHANEL.sendTo(ack, player);
                     }
                 }
+            });
+        }
 
-                RecipeUploadSession.onBatch(message.playerUuid);
+        private static boolean isValid(PacketWebRecipeUpload message, EntityPlayerMP player) {
+            if (message == null || !message.valid || player == null) {
+                return false;
+            }
+            if (!Config.webRecipeUploadEnabled || !player.canCommandSenderUseCommand(2, "admweb")) {
+                return false;
+            }
+            if (!matchesPlayerUuid(message.playerUuid, player)) {
+                AdvanceDataMonitor.LOG.warn("[WebAE] Rejected recipe upload with mismatched player UUID");
+                return false;
+            }
+            if (message.totalBatches < 1 || message.totalBatches > MAX_TOTAL_BATCHES
+                || message.batchIndex < 0
+                || message.batchIndex >= message.totalBatches
+                || message.batchCount < 0
+                || message.batchCount > MAX_RECIPES_PER_BATCH
+                || message.isStart != (message.batchIndex == 0)
+                || message.isEnd != (message.batchIndex == message.totalBatches - 1)) {
+                return false;
+            }
+            return message.recipeDataJson != null && message.recipeDataJson.length > 0
+                && message.recipeDataJson.length <= RecipeUploadBatcher.MAX_RECIPE_JSON_BYTES;
+        }
 
-                RecipeDto[] recipes = GSON.fromJson(
-                    new String(message.recipeDataJson, StandardCharsets.UTF_8),
+        private static IMessage processOnServerThread(PacketWebRecipeUpload message, EntityPlayerMP player) {
+            String actorUuid = player.getUniqueID()
+                .toString();
+            RecipeDto[] recipes;
+            try {
+                recipes = GSON.fromJson(
+                    NetworkPacketCodec.decodeUtf8(message.recipeDataJson),
                     new TypeToken<RecipeDto[]>() {}.getType());
+                if (recipes == null || recipes.length > MAX_RECIPES_PER_BATCH || recipes.length != message.batchCount) {
+                    return ack(false, message, "Invalid recipe batch.");
+                }
 
+                RecipeUploadSession.BatchDecision decision = RecipeUploadSession
+                    .acceptBatch(actorUuid, message.batchIndex, message.totalBatches, message.isStart, message.isEnd);
+                if (!decision.accepted) {
+                    return ack(false, message, "Recipe upload batch is out of order or the session is not active.");
+                }
+                if (decision.newSession) {
+                    RecipeCacheStore.instance()
+                        .beginUploadSession();
+                    RecipeCacheStore.instance()
+                        .clearMemoryOnly();
+                }
                 if (recipes != null && recipes.length > 0) {
                     RecipeCacheStore.instance()
                         .ingest(recipes);
                 }
 
-                if (message.isEnd) {
-                    if (RecipeUploadSession.onEnd(message.playerUuid)) {
-                        RecipeCacheStore.instance()
-                            .endUploadSession();
-                    } else {
-                        RecipeCacheStore.instance()
-                            .rebuildHandlerCounts();
-                    }
+                if (decision.completed) {
+                    RecipeCacheStore.instance()
+                        .endUploadSession();
                     int totalCount = RecipeCacheStore.instance()
                         .getRecipeCount();
                     AdvanceDataMonitor.LOG.info(
                         "[WebAE] Recipe upload complete: {} batches, {} total recipes stored from player {}",
                         message.totalBatches,
                         totalCount,
-                        message.playerUuid);
-
+                        actorUuid);
                     return new PacketWebRecipeUploadAck(
                         true,
                         message.batchIndex + 1,
                         message.totalBatches,
                         "Upload complete. Total recipes in cache: " + totalCount);
                 }
-
                 return new PacketWebRecipeUploadAck(
                     true,
                     message.batchIndex + 1,
                     message.totalBatches,
                     "Batch " + (message.batchIndex + 1) + "/" + message.totalBatches + " received.");
             } catch (Exception e) {
+                RecipeUploadSession.abort(actorUuid);
                 AdvanceDataMonitor.LOG.error("[WebAE] Failed to process recipe upload batch", e);
-                return new PacketWebRecipeUploadAck(
-                    false,
-                    message.batchIndex,
-                    message.totalBatches,
-                    "Error processing batch: " + e.getMessage());
+                return ack(false, message, "Error processing batch.");
             }
+        }
+
+        private static IMessage ack(boolean success, PacketWebRecipeUpload message, String text) {
+            return new PacketWebRecipeUploadAck(success, message.batchIndex, message.totalBatches, text);
+        }
+
+        private static boolean matchesPlayerUuid(String supplied, EntityPlayerMP player) {
+            return supplied == null || supplied.isEmpty()
+                || supplied.equalsIgnoreCase(
+                    player.getUniqueID()
+                        .toString());
         }
     }
 }

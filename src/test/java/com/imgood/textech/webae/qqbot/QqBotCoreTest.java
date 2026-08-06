@@ -121,6 +121,18 @@ public class QqBotCoreTest {
         QqBotIntentClassifier.Decision other = QqBotIntentClassifier.classify(cfg, "讲个笑话");
         assertEquals(QqBotIntentClassifier.Owner.ASTRBOT, other.owner);
         assertEquals("default_astrbot", other.reason);
+
+        // A pasted URL is handled by AstrBot's link-summary plugin. Its
+        // protocol, host, or path must not accidentally match WebAE keywords
+        // such as "tps" or "textech" during shared-bot ownership routing.
+        QqBotIntentClassifier.Decision link = QqBotIntentClassifier.classify(cfg, "https://textech.top/tps");
+        assertEquals(QqBotIntentClassifier.Owner.ASTRBOT, link.owner);
+        assertEquals("default_astrbot", link.reason);
+
+        QqBotIntentClassifier.Decision proseAndLink = QqBotIntentClassifier
+            .classify(cfg, "请看 https://example.com/textech，然后查下仪表盘告警");
+        assertEquals(QqBotIntentClassifier.Owner.WEBAE, proseAndLink.owner);
+        assertTrue(proseAndLink.reason.startsWith("webae_keyword:"));
     }
 
     @Test

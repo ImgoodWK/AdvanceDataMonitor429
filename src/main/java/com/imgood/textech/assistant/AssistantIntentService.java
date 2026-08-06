@@ -133,6 +133,9 @@ public class AssistantIntentService {
                 extractAmount(normalized, lexicon),
                 -1);
         }
+        if (containsAny(normalized, lexicon.briefingQueryWords)) {
+            return new AssistantIntent(AssistantIntentType.QUERY_BRIEFING, raw, "", 0, -1);
+        }
         if (containsAnyText(
             normalized,
             "网络状态",

@@ -10,14 +10,14 @@ alwaysApply: true
 顶层只允许：
 
 1. **标准 Forge 分层**：`blocks/`、`items/`、`entity/`、`tileentity/`、`gui/`、`renders/`、`handler/`、`network/`、`loader/`、`client/`、`config/`、`utils/`
-2. **系统级功能包**：`assistant/`（含 `assistant/ai/`）、`voice/`、`compat/`、`webae/`
+2. **系统级功能包**：`assistant/`（含 `assistant/ai/`）、`voice/`、`compat/`、`monitor/`、`webae/`
 
-禁止为单物品在根包新建与 `items/` 平级的功能包。Item+AE2 → `items/cell/`；服务端状态机 → `handler/`；手册 JSON → `gui/manual/`。  
+禁止为单物品在根包新建与 `items/` 平级的功能包。Item+AE2 → `items/cell/`；服务端状态机 → `handler/`；手册 JSON → `gui/manual/`。
 客户端：`client/` 放输入/缓存；`renders/` 放全部 Render/TESR/HUD；GUI 经 `gui/handler/GuiHandler` 打开。临时产物只进 `.workspace/`（见 `workspace-artifacts.mdc`）。
 
 ## 包概览
 
-逐文件清单 / lang 键：按需 Read `project-structure-details.mdc`（**不自动注入**）。改某包时先 Read 该包章节。  
+逐文件清单 / lang 键：按需 Read `project-structure-details.mdc`（**不自动注入**）。改某包时先 Read 该包章节。
 「改什么看哪些文件」权威表：`docs/zh/developer/documentation-map.md`（或 en）。
 
 | 包 | 约数 | 职责 |
@@ -25,22 +25,23 @@ alwaysApply: true
 | 根包 | 7 | `@Mod`、`Config`、数据目录迁移、Proxy |
 | `config/` | 16 | 分节 cfg / WebAE JSON 加载 / 卡牌外部桥配置 |
 | `compat/` | 26 | AE2 / GT / BQ / Programmable Hatches 软兼容 |
-| `assistant/` | 46 | AI 助手（细节见 `ai-assistant.mdc` + docs） |
+| `assistant/` | 47 | AI 助手（细节见 `ai-assistant.mdc` + docs） |
 | `items/` | 55 | 物品（含 `cell/`） |
 | `blocks/` | 5 | 方块 |
 | `tileentity/` | 7 | TE |
-| `gui/` | 67+ | GUI（含低分辨率面板适配、Flex UI 框架 `framework/layout|style|widget|host`；见 `gui-guidelines.mdc` + `docs/zh/developer/ui-framework.md`） |
+| `monitor/` | 4 | 高级数据监视器 / WebAE 共享组件契约、阈值红石运行态与可视点预算下采样 |
+| `gui/` | 93 | GUI（含四角-only 稀疏框、双层 cover 背景、向请求矩形内拟合的完整比例按钮、线式输入框、统一低分辨率绘制/输入变换和 Flex UI 框架 `framework/layout|style|widget|host`；见 `gui-guidelines.mdc` + `docs/zh/developer/ui-framework.md`） |
 | `handler/` | 39 | 服务端逻辑 / WebAE 生命周期等 |
 | `entity/` | 8 | Entity only |
-| `renders/` | 35 | 全部客户端渲染（含 WebAE 告警 HUD、监视器网页表面） |
-| `network/` | 29 | 网络包（ID 表见 `network-packets.mdc`） |
+| `renders/` | 43 | 全部客户端渲染（含共享监视器组件、revision 缓存、WebAE 告警 HUD 与网页表面） |
+| `network/` | 30 | 网络包（含监视器增量同步；ID 表见 `network-packets.mdc`） |
 | `voice/` | 9 | 语音（发布主 jar 不含 Vosk 模型；可选 `textechvoice` companion） |
 | `voiceextras/` | 1 | 可选语音资源包标记 `@Mod`（打进 `*-voice.jar`；主 jar 排除） |
 | `loader/` | 11 | 统一注册（含 `LoaderCommand`） |
-| `client/` | 37 | 客户端事件/缓存/世界地图采集/窗口截图本地历史/网页表面（含 MCEF 软依赖 OSR）等 |
+| `client/` | 44 | 客户端事件/缓存/世界地图采集/窗口截图本地历史/网页表面（含 MCEF 软依赖 OSR）等 |
 | `command/` | 8 | `/textech <域>` 分发；含 card / screenshot 域与旧 `/adm*` 兼容别名 |
-| `utils/` | 15 | 工具（含 WebAE 仪表盘快照校验/压缩） |
-| `webae/` | 394 | Web 控制台（含服务端后台命令、服务端 AI、QQ 群机器人/AstrBot 可选意图互斥、聊天截图附件、告警多渠道/QQ 目标 ID 探测、Spark AI、样板网页缓存；前端 build 到 `assets/textech/webae/` 后进入独立 WebAE ZIP，主 JAR 排除） |
+| `utils/` | 18 | 工具（含有界网络 packet codec 与 WebAE 仪表盘快照校验/压缩） |
+| `webae/` | 422 | Web 控制台（含服务端后台命令、服务端 AI、QQ 群机器人/AstrBot 可选意图互斥、聊天截图附件、告警多渠道/QQ 目标 ID 探测、Spark AI、网络健康诊断、CPU 历史与容量规划、世界地图 current/previous 版本比较与服务端注释、样板网页缓存；前端 build 到 `assets/textech/webae/` 后进入独立 WebAE ZIP，主 JAR 排除） |
 | `mixin/` | 7 | 客户端 Mixin |
 
 资源：`assets/textech/`（lang 双语、`manual/`、textures、voice 等）。

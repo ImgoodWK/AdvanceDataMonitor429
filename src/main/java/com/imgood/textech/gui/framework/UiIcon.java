@@ -25,6 +25,10 @@ public final class UiIcon {
     }
 
     public static void drawThemeIcon(UiTheme theme, int index, int x, int y, int destSize) {
+        drawThemeIcon(theme, index, x, y, destSize, false);
+    }
+
+    public static void drawThemeIcon(UiTheme theme, int index, int x, int y, int destSize, boolean hovered) {
         if (theme == null || theme.iconAtlas() == null || destSize <= 0) {
             return;
         }
@@ -33,7 +37,7 @@ public final class UiIcon {
         int col = index % cols;
         int row = index / cols;
         int u = theme.iconGridU() + col * size;
-        int v = theme.iconGridV() + row * size;
+        int v = (hovered ? theme.iconHoverGridV() : theme.iconGridV()) + row * size;
         GuiBlitUtil.blit(theme.iconAtlas(), theme.iconAtlasSize(), x, y, destSize, destSize, u, v, size, size);
     }
 
@@ -47,6 +51,11 @@ public final class UiIcon {
     /** Draw icon anchored relative to a parent rectangle (e.g. button or slot). */
     public static void drawAnchored(UiTheme theme, int index, int parentX, int parentY, int parentW, int parentH,
         Anchor anchor, int offsetX, int offsetY) {
+        drawAnchored(theme, index, parentX, parentY, parentW, parentH, anchor, offsetX, offsetY, false);
+    }
+
+    public static void drawAnchored(UiTheme theme, int index, int parentX, int parentY, int parentW, int parentH,
+        Anchor anchor, int offsetX, int offsetY, boolean hovered) {
         int size = theme != null ? theme.iconSize() : 16;
         int drawX;
         int drawY;
@@ -57,6 +66,6 @@ public final class UiIcon {
             drawX = parentX + offsetX;
             drawY = parentY + offsetY;
         }
-        drawThemeIcon(theme, index, drawX, drawY);
+        drawThemeIcon(theme, index, drawX, drawY, size, hovered);
     }
 }

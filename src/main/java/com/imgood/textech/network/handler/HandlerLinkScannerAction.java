@@ -6,6 +6,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChatComponentTranslation;
 
+import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.handler.LinkScannerService;
 import com.imgood.textech.items.ItemAdvanceLinkScanner;
 import com.imgood.textech.network.packet.PacketLinkScannerAction;
@@ -20,8 +21,31 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class HandlerLinkScannerAction implements IMessageHandler<PacketLinkScannerAction, IMessage> {
 
     @Override
-    public IMessage onMessage(PacketLinkScannerAction message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+    public IMessage onMessage(final PacketLinkScannerAction message, final MessageContext ctx) {
+        if (message == null || message.malformed) {
+            return null;
+        }
+        return PacketHandlers.runOnServer(ctx, new Runnable() {
+
+            @Override
+            public void run() {
+                EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+                IMessage response = handleOnServerThread(message, player);
+                if (response instanceof PacketLinkScannerAction
+                    && !((PacketLinkScannerAction) response).fitsPacketBudget()) {
+                    return;
+                }
+                if (response != null && player != null) {
+                    AdvanceDataMonitor.ADMCHANEL.sendTo(response, player);
+                }
+            }
+        });
+    }
+
+    private IMessage handleOnServerThread(PacketLinkScannerAction message, EntityPlayerMP player) {
+        if (player == null) {
+            return null;
+        }
         if (!NetworkValidationUtil.isValidInventorySlot(player, message.slot)) {
             return null;
         }
@@ -71,7 +95,9 @@ public class HandlerLinkScannerAction implements IMessageHandler<PacketLinkScann
 
         @Override
         public IMessage onMessage(PacketLinkScannerAction message, MessageContext ctx) {
-            if (message.action != PacketLinkScannerAction.ACTION_SYNC || message.nbt == null) {
+            if (message == null || message.malformed
+                || message.action != PacketLinkScannerAction.ACTION_SYNC
+                || message.nbt == null) {
                 return null;
             }
             Minecraft mc = Minecraft.getMinecraft();

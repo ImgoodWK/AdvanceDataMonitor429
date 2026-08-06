@@ -3,8 +3,10 @@ package com.imgood.textech.client;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.imgood.textech.items.GrappleRouteEntry;
 import com.imgood.textech.network.packet.PacketGrapplePathSync;
@@ -19,8 +21,12 @@ public final class GrappleClientRouteCache {
     /** 预览自动取消时长（游戏 tick，30 秒 = 600 tick）。 */
     public static final long PREVIEW_TIMEOUT_TICKS = 600L;
 
-    private static final List<GrappleRouteEntry> routes = new ArrayList<GrappleRouteEntry>();
+    private static List<GrappleRouteEntry> routes = new ArrayList<GrappleRouteEntry>();
+    private static final List<GrappleRouteEntry> routeBatchStaging = new ArrayList<GrappleRouteEntry>();
     private static final List<BlockPos> recordingBuffer = new ArrayList<BlockPos>();
+    private static boolean routeBatchActive;
+    private static int routeBatchCount;
+    private static int nextRouteBatchIndex;
 
     /** 多路线预览：routeId → 预览状态（节点 + 过期 tick）。 */
     private static final Map<String, PreviewState> activePreviews = new HashMap<String, PreviewState>();
@@ -32,15 +38,102 @@ public final class GrappleClientRouteCache {
             return;
         }
         if (packet.kind == PacketGrapplePathSync.KIND_ROUTES) {
-            routes.clear();
-            routes.addAll(packet.routes);
+            abortRouteBatch();
+            if (!isValidRouteList(packet.routes)) {
+                return;
+            }
+            routes = copyRoutes(packet.routes);
             // 路线列表刷新后，清理已不存在路线的预览
             pruneStalePreviews();
         }
+        if (packet.kind == PacketGrapplePathSync.KIND_ROUTES_BATCH) {
+            applyRouteBatch(packet);
+        }
         if (packet.kind == PacketGrapplePathSync.KIND_BUFFER) {
+            abortRouteBatch();
             recordingBuffer.clear();
             recordingBuffer.addAll(packet.buffer);
         }
+    }
+
+    private static void applyRouteBatch(PacketGrapplePathSync packet) {
+        if (packet.batchCount < 1 || packet.batchCount > PacketGrapplePathSync.MAX_TOTAL_ROUTES
+            || packet.batchIndex < 0
+            || packet.batchIndex >= packet.batchCount
+            || (packet.buffer != null && !packet.buffer.isEmpty())
+            || (packet.messageKey != null && !packet.messageKey.isEmpty())) {
+            abortRouteBatch();
+            return;
+        }
+        if (packet.batchIndex == 0) {
+            routeBatchStaging.clear();
+            routeBatchActive = true;
+            routeBatchCount = packet.batchCount;
+            nextRouteBatchIndex = 0;
+        }
+        if (!routeBatchActive || packet.batchCount != routeBatchCount
+            || packet.batchIndex != nextRouteBatchIndex
+            || packet.routes == null
+            || packet.routes.isEmpty()
+            || packet.routes.size() > PacketGrapplePathSync.MAX_TOTAL_ROUTES
+            || routeBatchStaging.size() + packet.routes.size() > PacketGrapplePathSync.MAX_TOTAL_ROUTES
+            || !isValidRouteList(packet.routes)
+            || containsRouteIdConflict(packet.routes)) {
+            abortRouteBatch();
+            return;
+        }
+        routeBatchStaging.addAll(copyRoutes(packet.routes));
+        nextRouteBatchIndex = packet.batchIndex + 1;
+        if (packet.batchIndex == routeBatchCount - 1) {
+            if (nextRouteBatchIndex != routeBatchCount || routeBatchStaging.isEmpty()
+                || !isValidRouteList(routeBatchStaging)
+                || containsRouteIdConflict(routeBatchStaging)) {
+                abortRouteBatch();
+                return;
+            }
+            routes = new ArrayList<GrappleRouteEntry>(routeBatchStaging);
+            abortRouteBatch();
+            pruneStalePreviews();
+        }
+    }
+
+    private static void abortRouteBatch() {
+        routeBatchStaging.clear();
+        routeBatchActive = false;
+        routeBatchCount = 0;
+        nextRouteBatchIndex = 0;
+    }
+
+    private static boolean isValidRouteList(List<GrappleRouteEntry> routeList) {
+        if (routeList == null || routeList.size() > PacketGrapplePathSync.MAX_TOTAL_ROUTES) {
+            return false;
+        }
+        for (GrappleRouteEntry route : routeList) {
+            if (route == null || route.nodes == null || route.nodes.size() > 512) {
+                return false;
+            }
+            for (BlockPos node : route.nodes) {
+                if (node == null) return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean containsRouteIdConflict(List<GrappleRouteEntry> routeList) {
+        Set<String> routeIds = new HashSet<String>();
+        for (GrappleRouteEntry route : routeList) {
+            String routeId = route.routeId == null ? "" : route.routeId;
+            if (!routeIds.add(routeId)) return true;
+        }
+        return false;
+    }
+
+    private static List<GrappleRouteEntry> copyRoutes(List<GrappleRouteEntry> source) {
+        List<GrappleRouteEntry> copy = new ArrayList<GrappleRouteEntry>(source.size());
+        for (GrappleRouteEntry route : source) {
+            copy.add(route.copy());
+        }
+        return copy;
     }
 
     public static List<GrappleRouteEntry> getRoutes() {

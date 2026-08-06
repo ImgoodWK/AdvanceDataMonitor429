@@ -56,6 +56,10 @@ alwaysApply: false
 
 `showDirectoryPicker` 需要 `https://` 或 `http://localhost` / `127.0.0.1`。局域网 `http://192.168.x.x` **无法选目录** → UI 说明 + ZIP 导入 IndexedDB。
 
+服务端入口同样必须有界：`PacketWebIconUpload` 使用 30000 bytes 包体、24 KiB 严格顺序非空块、8 MiB/342 块、每玩家 2 会话、全局 16 会话/32 MiB 预留与 120 秒 TTL。IconBundle 必须是无重复键和尾随 token 的 JSON object；最多 4096 个 item ID，单 PNG 512 KiB/2048px、总 PNG 16 MiB。全部 PNG 完整解码并经 `IconStore.writeIconPngBatch` staging/promote/rollback 成功后，才能刷新索引、发布事件或 ACK 缺图队列。
+
+HTTP ZIP 入站 body 上限是 32 MiB；`PacketWebIconPullZip` 服务端导出 ZIP 上限是 8 MiB。两者方向不同，不得在实现或文档中混用。
+
 ## 渲染与缓存稳定性（缺块 / 刷新偶发）
 
 | 现象 | 处理 |

@@ -1,6 +1,6 @@
 # TeXTech AI Assistant Development Guide
 
-> Audience: Developers / Cursor Agent · Last synced: 2026-07  
+> Audience: Developers / Cursor Agent · Last synced: 2026-07<br>
 > Player-facing docs: [Player Guide §8](../player/player-guide.md#8-ai-chat--assistant)
 
 ---
@@ -167,7 +167,8 @@ Main flow highlights:
   - Client handler calls `AssistantController.handleServerMessage()`, `handleCandidates()`, or `handleBatchCandidates()`.
 
 - `src/main/java/com/imgood/textech/assistant/AssistantCandidateDelivery.java`
-  - Server splits candidates by `assistantQueryCandidateBatchSize` and sends multiple consecutive `CANDIDATES` packets via `sendTo`; when exceeding `assistantMaxQueryCandidates`, includes a truncation notice.
+  - `assistantQueryCandidateBatchSize` is an item-count ceiling. The server also preflights the real encoding and recursively splits batches to a 28 KiB target before sending consecutive `CANDIDATES` packets. Nothing is sent until every packet has been constructed successfully; if one candidate alone exceeds the safe wire budget, a localized error is returned instead of silently dropping the entry or sending a partial list. A truncation notice is still included above `assistantMaxQueryCandidates`.
+  - `PacketAssistantAction`/`PacketAssistantResponse` use a 30000-byte packet-body budget. Each compressed NBT field is limited to 24 KiB; response gzip expansion is limited to 2 MiB; trailing NBT/packet bytes are rejected. Dynamic batches carry explicit `rangeStart`/`rangeEnd` values so the UI range remains accurate.
 
 - `src/main/java/com/imgood/textech/assistant/AssistantServerServices.java`
   - Server execution layer. Handles AE2 crafting candidates, recipe summary, storage summary, submit craft, batch submit, cancel jobs, plan query.
@@ -178,12 +179,13 @@ Main flow highlights:
 ### Formatting, Helpers, Storage, and Lexicon
 
 - `src/main/java/com/imgood/textech/assistant/AssistantFormatter.java`: formats candidates, batch order lines, etc. for the chat window.
+- `src/main/java/com/imgood/textech/assistant/AssistantOperationsBriefing.java`: formats the read-only base operations briefing, including status labels, section/total bounds, and secret redaction.
 - `src/main/java/com/imgood/textech/assistant/PatternDetailFormatter.java`: AE2 pattern/recipe detail formatting.
 - `src/main/java/com/imgood/textech/assistant/CraftingCandidate.java`: AE2 craftable candidate DTO; stores index, displayName, registryName, meta, amount, item NBT.
 - `src/main/java/com/imgood/textech/assistant/OrderMemoryStore.java`: user order candidate preference memory for candidate ranking weighting.
 - `src/main/java/com/imgood/textech/assistant/PlanStore.java`: simple plan/task storage; supports create/list/complete.
 - `src/main/java/com/imgood/textech/assistant/AssistantDebugLog.java`: assistant debug log helper; writes diagnostics when configured.
-- `src/main/java/com/imgood/textech/assistant/AssistantLexicon.java`: loads and provides lexicon data; now mainly used for fallback, time/amount/word cleanup, and pending batch append auxiliary parsing.
+- `src/main/java/com/imgood/textech/assistant/AssistantLexicon.java`: loads and provides lexicon data; now mainly used for fallback, time/amount/word cleanup, and pending batch append auxiliary parsing. Edge-punctuation cleanup accepts the documented symmetric character-class form, parses it into a code-point set, and scans both ends linearly; unsupported complex expressions use the built-in safe set instead of running administrator-supplied regex on player text.
 - `src/main/resources/assets/textech/config/assistant-lexicon.json`: rule parser vocabulary including order/query/confirm/cancel/plan/storage scope keywords.
 
 ### AI Client, Configuration, and Settings UI
@@ -224,7 +226,7 @@ Main flow highlights:
 {
   "tasks": [
     {
-      "type": "QUERY_RECIPE|QUERY_STORAGE|QUERY_POWER|QUERY_ITEM_COUNT|QUERY_BYTES|ORDER_ITEM|WITHDRAW_ITEM|CONFIRM_OPTION|PLAN_CREATE|PLAN_LIST|PLAN_COMPLETE|CANCEL|CHAT",
+      "type": "QUERY_RECIPE|QUERY_STORAGE|QUERY_BYTES|QUERY_POWER|QUERY_STEAM|QUERY_WEATHER|QUERY_TIME|QUERY_POSITION|QUERY_BIOME|QUERY_INVENTORY|QUERY_NETWORK|QUERY_JOBS|QUERY_BRIEFING|QUERY_ITEM_COUNT|TELEPORT|TELEPORT_LIST|ORDER_ITEM|WITHDRAW_ITEM|CONFIRM_OPTION|PLAN_ADD|PLAN_LIST|PLAN_COMPLETE|PLAN_DELETE|PLAN_MODIFY|CANCEL|CLARIFY|CHAT",
       "target": "...",
       "amount": 1,
       "optionNumber": -1,
@@ -238,7 +240,7 @@ Main flow highlights:
 Current parser rules:
 
 - Top level must have a `tasks` array.
-- Allowed types: `QUERY_RECIPE`, `QUERY_STORAGE`, `QUERY_ITEM_COUNT`, `QUERY_BYTES`, `QUERY_POWER`, `ORDER_ITEM`, `WITHDRAW_ITEM`, `CONFIRM_OPTION`, `PLAN_CREATE`, `PLAN_LIST`, `PLAN_COMPLETE`, `CANCEL`, `CHAT`.
+- Parser-allowed types: `QUERY_RECIPE`, `QUERY_STORAGE`, `QUERY_POWER`, `QUERY_STEAM`, `QUERY_WEATHER`, `QUERY_TIME`, `QUERY_POSITION`, `QUERY_BIOME`, `QUERY_INVENTORY`, `QUERY_NETWORK`, `QUERY_JOBS`, `QUERY_BRIEFING`, `QUERY_ITEM_COUNT`, `QUERY_BYTES`, `TELEPORT`, `TELEPORT_LIST`, `ORDER_ITEM`, `WITHDRAW_ITEM`, `CONFIRM_OPTION`, `PLAN_CREATE`, `PLAN_ADD`, `PLAN_LIST`, `PLAN_COMPLETE`, `PLAN_DELETE`, `PLAN_MODIFY`, `CANCEL`, `CLARIFY`, `CHAT`. The model schema uses `PLAN_ADD`; the parser still accepts `PLAN_CREATE` for legacy output compatibility.
 - `MAX_TASKS=8`; tasks beyond the first 8 are truncated.
 - `MIN_CONFIDENCE=0.5`, and confidence must not exceed 1.0.
 - Extracts the first complete JSON object from model output; even if wrapped in a markdown code fence, it attempts to extract `{...}`.
@@ -265,6 +267,8 @@ Current parser rules:
 - Multiple `ORDER_ITEM` tasks become `AssistantIntent.orderBatch()`, then request batch candidates.
 - Explicit `storageScope` on `QUERY_STORAGE` is written to the packet payload via `PacketAssistantAction.query(..., storageScope)`; the server enters `AssistantServerServices.queryStorageCandidates()` and returns a thumbnail candidate list (`STORAGE_CANDIDATES` session).
 - `QUERY_BYTES` is sent via `requestServerQuery()`; the server calls `bytesSummary()` and returns formatted text including byte usage/capacity/percentage and infinite storage cell detection.
+- `QUERY_BRIEFING` also uses `requestServerQuery()` and the standard `PacketAssistantAction.query(...)`; the server enters the `QUERY_BRIEFING` branch of `AssistantServerServices.query()`. It is strictly read-only: it cannot order, withdraw, teleport, or modify plans, and it adds no packet action or packet ID.
+- `QUERY_BRIEFING` is appended to the end of `AssistantIntentType`, preserving every existing intent ordinal; its target must remain empty.
   - Single `WITHDRAW_ITEM` task: calls `requestWithdrawCandidates()`; the server searches the AE2 storage network via `AssistantServerServices.withdrawCandidates()` (depends on `TileEntityAdvanceNetworkLink` within default 32 blocks, configurable via `assistant.linkSearchRadius`, range 4–128). After candidates return, `confirmOption()` proceeds to `submitWithdraw()`.
 - Multiple `WITHDRAW_ITEM` tasks: aggregated into `WITHDRAW_BATCH`, calls `requestBatchWithdrawCandidates()`; server `AssistantServerServices.batchWithdrawCandidates()` searches candidates line by line. After confirmation, `submitBatchWithdraw()` executes withdrawal line by line into player inventory.
 - When inventory space is insufficient for the full quantity during withdrawal, the server returns `WithdrawSubmitOutcome(PARTIAL_CONFIRM, ...)`; the client enters `WITHDRAW_PARTIAL_CONFIRM` session. User confirmation submits partial withdrawal.
@@ -330,6 +334,11 @@ Key server behaviors:
 
 - `QUERY_STORAGE` payload may include `storageScope`; when present, handler calls `AssistantServerServices.queryStorageCandidates(player, rawText, target, storageScope, locale)`, returning `PacketAssistantResponse.candidates()` with `STORAGE_CANDIDATES` session kind. Results render as a thumbnail list on the client; users can enter a number to withdraw items.
 - `QUERY_BYTES` goes through the standard query flow; handler routes to `AssistantServerServices.query()` → `bytesSummary()`, returning a text message.
+- `QUERY_BRIEFING` is assembled by `AssistantServerServices.operationsBriefing()` from seven independent sections: `network` → `networkSummary`, `networkHealth` → the owner-scoped `NetworkHealthDiagnosticProvider` cache, `bytes` → `bytesSummary`, `power` → `WirelessPowerQuery`, `steam` → `WirelessSteamQuery`, `jobs` → `AssistantCraftJobManager.instance().summary`, and `planner` → `PlannerServerService.briefingSummary`. Regular sources catch exceptions in their own `briefingSection`; `networkHealth` uses the explicit-status section builder behind its own exception boundary and falls back to unavailable. A failure in one source therefore cannot take down the full report.
+- The network section calls `networkSummary(player, locale, false)`: it may read an existing record or use `AssistantMonitorRegistry.findNearest()` for a read-only nearby search, but it never establishes a new monitor association. The planner section returns todo/completed/total counts only and never echoes player free-form text.
+- The `networkHealth` section only formats the latest `NetworkHealthDiagnosticProvider.snapshotForOwner(playerUuid)` values already sampled on the server tick. It does not rescan World/TileEntity/AE Grid state or invent a second verdict; provider statuses (`healthy`, `degraded`, `failed`, `unknown`) are mapped to briefing presentation status and issue evidence is bounded before packet delivery.
+- `AssistantOperationsBriefing` formats `healthy` / `attention` / `unavailable` statuses. Each section is bounded by both `MAX_SECTION_CHARS=560` and 480 UTF-8 bytes; the full report is capped at 4000 UTF-8 bytes and truncated on Unicode code-point boundaries, below `PacketAssistantResponse`'s 4096-byte message field. API keys, tokens, secrets, passwords, and `sk-...`-style values—including quoted/JSON forms—are redacted.
+- WebAE reuses the same parser and generic `AssistantServerServices.query()` branch, so the read-only briefing works there without a new WebAE page, HTTP API, or confirmation-token path.
 - `QUERY_RECIPE` with empty target returns recipe candidates, i.e. `AssistantSessionKind.RECIPE_CANDIDATES`, letting the user confirm a candidate to view details.
 - `AssistantServerServices` searches within default 32 blocks (configurable via `assistant.linkSearchRadius`, range 4–128):
   - crafting / storage / network stats: unified `TileEntityAdvanceNetworkLink`
@@ -367,15 +376,12 @@ Configuration entry points:
 
 ## A10. Testing and Verification Status
 
-- Historical test entry `src/test/java/test/AssistantIntentParserSuite.java` is **no longer in the repo**; use temporary stubs under `.workspace/assistant-parser-suite/` (not committed) or restore regression tests when dependencies are available.
-- Suggested coverage (if tests are restored):
+- Historical test entry `src/test/java/test/AssistantIntentParserSuite.java` is **no longer in the repo**; focused briefing JUnit coverage lives at `src/test/java/com/imgood/textech/assistant/AssistantOperationsBriefingTest.java`.
+- Suggested/current coverage:
   - Legacy rule parser: storage, recipe, power, order, confirm, cancel, batch order, plan, chat fallback.
   - AI JSON parser: single/multiple tasks, multiple `ORDER_ITEM` for batch order, confirm, chat, empty recipe target, empty order target invalid, low confidence invalid, invalid storageScope, max 8 tasks.
-- Current attempt to run `./gradlew.bat test`: Gradle wrapper starts but does not complete full tests; `compileClasspath` dependency resolution fails, missing:
-  - `com.github.GTNewHorizons:Avaritiaddons:1.7.1-GTNH`
-  - `com.github.GTNewHorizons:Eternal-Singularity:1.2.1`
-  - `com.github.GTNewHorizons:Universal-Singularities:8.7.0`
-- After fixing dependency sources or local cache, agents should re-run `./gradlew.bat test` and confirm parser regression results from output.
+  - `QUERY_BRIEFING` JSON allow-list/schema parsing; local `briefingQueryWords` triggering; all six sections succeeding and one section failing without losing the others; status classification, section/total bounds, and secret redaction; standard query routing with no new packet ID.
+- In the current workspace, run `./gradlew.bat test --tests com.imgood.textech.assistant.AssistantOperationsBriefingTest --tests com.imgood.textech.network.packet.PacketAssistantResponseTest --no-daemon` to verify briefing and response-packet boundaries; do not describe this as a full-suite pass unless the full suite was run.
 
 ## A11. Known Limitations and Suggested Follow-ups
 
@@ -431,6 +437,7 @@ Suggested next steps:
 | Query AE2 storage overview (thumbnails) | `QUERY_STORAGE` | `AssistantIntentType`, `PacketAssistantAction` handler, `AssistantServerServices.queryStorageCandidatesResult()`, `AssistantCandidateDelivery`, `AssistantSessionKind.STORAGE_CANDIDATES`, `AssistantController.handleCandidates()` |
 | Query item/fluid stock counts | `QUERY_ITEM_COUNT` | `AssistantIntentType`, `PacketAssistantAction` handler, `AssistantServerServices.queryItemCountResult()`, `AssistantCandidateDelivery`, `AssistantSessionKind.ITEM_COUNT_CANDIDATES` |
 | Query byte usage/capacity/infinite cells | `QUERY_BYTES` | `AssistantIntentType`, `AssistantIntentService`, `AssistantAiIntentService`, `AssistantAiIntentJsonParser`, `PacketAssistantAction` handler, `AssistantServerServices.bytesSummary()` / `scanNetworkCellsForInfinite()` / `classifyCell()` / `isInfiniteCell()` |
+| Query read-only base operations briefing | `QUERY_BRIEFING` | `AssistantIntentType`, `AssistantIntentService`, `AssistantAiIntentService`, `AssistantAiIntentJsonParser`, `AssistantController`, `AssistantServerServices.operationsBriefing()`, `AssistantOperationsBriefing` |
 | Query wireless power | `QUERY_POWER` | `WirelessPowerQuery` |
 | Query wireless steam | `QUERY_STEAM` | `WirelessSteamQuery` |
 | Query weather/time/location/biome | `QUERY_WEATHER` etc. | `AssistantServerServices` (weatherSummary etc.) |
@@ -559,6 +566,7 @@ Key naming convention (see gtnh-mod-context.mdc):
 | Session | `src/main/java/.../assistant/AssistantSession.java` |
 | SessionKind | `src/main/java/.../assistant/AssistantSessionKind.java` |
 | Formatter | `src/main/java/.../assistant/AssistantFormatter.java` |
+| OperationsBriefing | `src/main/java/.../assistant/AssistantOperationsBriefing.java` |
 | Candidate | `src/main/java/.../assistant/CraftingCandidate.java` |
 | FeatureConfig | `src/main/java/.../assistant/AssistantFeatureConfig.java` |
 | features.json | `src/main/resources/.../config/assistant-features.json` |

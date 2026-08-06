@@ -1,4 +1,4 @@
-import { Progress, Spin, Skeleton } from 'antd';
+import { Spin, Skeleton } from 'antd';
 import type { CSSProperties, ReactNode } from 'react';
 import type { DashboardSettings, DashboardWidgetConfig } from '@/utils/presets';
 import {
@@ -16,6 +16,10 @@ import {
   isPowerHistoryDataSource,
 } from '@/utils/dataSourceChartMap';
 import { useAppContext } from '@/context/AppContext';
+import {
+  ScalarWidgetRenderer,
+  resolveProgressPercent,
+} from '@/components/dashboard/ScalarWidgetRenderer';
 
 export interface PowerWidgetContentProps {
   widget: DashboardWidgetConfig;
@@ -57,8 +61,12 @@ export function PowerWidgetContent({
   const { pageStyle } = useAppContext();
   const chartRecipe = resolveChartStyleRecipe(widget, settings, pageStyle);
   const value = getPowerDataSourceValue(widget.dataSource, snapshot);
+  const isSteamSource = widget.dataSource.startsWith('steam');
+  const steamCapacityKnown = snapshot?.steamCapacityKnown === true && (snapshot?.steamMax || 0) > 0;
+  const targetValue = Math.max(0, widget.targetValue ?? widget.gaugeThreshold ?? 0);
   const isPercent =
-    widget.dataSource.includes('Percent') || widget.dataSource === 'euPercent';
+    (widget.dataSource.includes('Percent') || widget.dataSource === 'euPercent')
+    && (!isSteamSource || steamCapacityKnown);
   const colors = resolveAllColors(widget, settings);
   const chartSize = resolveProp(widget, settings, 'chartSize');
   const chartColor = colors.chartColor || 'var(--accent)';
@@ -68,11 +76,6 @@ export function PowerWidgetContent({
     fontSize: Math.max(10, resolveProp(widget, settings, 'fontSize') - 2),
   };
   if (colors.titleColor) labelStyle.color = colors.titleColor;
-
-  const valueStyle: CSSProperties = {
-    fontSize: resolveProp(widget, settings, 'fontSize') + 6,
-  };
-  if (colors.chartColor) valueStyle.color = colors.chartColor;
 
   const wrap = (children: ReactNode) => (
     <div
@@ -101,24 +104,30 @@ export function PowerWidgetContent({
       return fmtNum(value) + ' EU/t';
     }
     if (widget.dataSource === 'steamStored' && snapshot) {
-      return `${fmtNum(snapshot.steamStored)} / ${fmtNum(snapshot.steamMax)}`;
+      if (steamCapacityKnown) return `${fmtNum(snapshot.steamStored)} / ${fmtNum(snapshot.steamMax)}`;
+      if (targetValue > 0) return `${fmtNum(snapshot.steamStored)} / ${fmtNum(targetValue)}`;
+      return fmtNum(snapshot.steamStored);
     }
     if (widget.dataSource === 'steamPercent' && snapshot) {
-      return `${fmtNum(snapshot.steamStored)} / ${fmtNum(snapshot.steamMax)}`;
+      if (steamCapacityKnown) return `${value.toFixed(1)}%`;
+      if (targetValue > 0) return `${fmtNum(snapshot.steamStored)} / ${fmtNum(targetValue)}`;
+      return fmtNum(snapshot.steamStored);
     }
     return fmtNum(value);
   };
 
-  const gaugePercent = (): number => {
-    if (isPercent) return Math.min(100, value);
-    if (widget.dataSource === 'euStored' && snapshot && snapshot.euMax > 0) {
-      return Math.min(100, (snapshot.euStored / snapshot.euMax) * 100);
-    }
-    if (widget.dataSource === 'steamStored' && snapshot && snapshot.steamMax > 0) {
-      return Math.min(100, (snapshot.steamStored / snapshot.steamMax) * 100);
-    }
-    return 0;
-  };
+  const progressPercent = resolveProgressPercent({
+    value,
+    percentMetric: isPercent,
+    realMaximum: isSteamSource
+      ? (steamCapacityKnown ? snapshot?.steamMax : undefined)
+      : widget.dataSource === 'euStored' && snapshot && snapshot.euMax > 0
+        ? snapshot.euMax
+        : undefined,
+    targetValue,
+    absoluteValue: isSteamSource && snapshot ? snapshot.steamStored : value,
+    capacityKnown: isSteamSource ? steamCapacityKnown : undefined,
+  });
 
   const chartStretch = resolveChartStretchMode(widget, settings, widget.type);
 
@@ -133,7 +142,7 @@ export function PowerWidgetContent({
       const showDelta = widget.showDelta ?? false;
       const sigDigits = widget.significantDigits ?? 5;
       let mainText = formatValue();
-      let deltaEl: ReactNode = null;
+      let delta: { text: string; color: string } | undefined;
       if (showDelta && getHistory && networkId != null) {
         const hist = getHistory(networkId, widget.dataSource);
         const prev = hist.length >= 2 ? hist[hist.length - 2]?.value : undefined;
@@ -148,71 +157,44 @@ export function PowerWidgetContent({
               : formatted.deltaPositive === false
                 ? 'var(--error, #ff4d4f)'
                 : 'var(--text-dim)';
-          deltaEl = (
-            <div
-              className="stat-card-delta"
-              style={{
-                fontSize: Math.max(9, resolveProp(widget, settings, 'fontSize') - 3),
-                color,
-              }}
-            >
-              {formatted.delta}
-            </div>
-          );
+          delta = { text: formatted.delta, color };
         }
       }
-      return wrap(
-        <>
-          {labelText(label)}
-          <div className="stat-card-value overview-stat-value" style={valueStyle}>
-            {mainText}
-          </div>
-          {deltaEl}
-        </>
+      return (
+        <ScalarWidgetRenderer
+          widget={widget}
+          settings={settings}
+          label={label}
+          valueText={mainText}
+          delta={delta}
+          containerClassName="power-widget-inner"
+        />
       );
     }
 
     case 'progressBar': {
-      const pct = Math.min(100, isPercent ? value : gaugePercent());
-      const fillColor = colors.progressFillColor || (widget.dataSource.startsWith('steam') ? steamColor : chartColor);
-      const trackColor = colors.progressTrackColor || undefined;
-      return wrap(
-        <>
-          {labelText(label)}
-          <div
-            className="widget-chart-area widget-chart-area--sized overview-progress-area"
-            style={{ flex: '0 0 auto', maxHeight: `${chartSize}%`, width: '100%' }}
-          >
-            <Progress
-              percent={Math.round(pct)}
-              type={widget.style === 'circular' ? 'circle' : 'line'}
-              strokeColor={trackColor ? { color: fillColor, trailColor: trackColor } : fillColor}
-              size="small"
-              format={() => formatValue()}
-              style={{ width: '100%', margin: 0 }}
-            />
-          </div>
-        </>
+      return (
+        <ScalarWidgetRenderer
+          widget={widget}
+          settings={settings}
+          label={label}
+          valueText={formatValue()}
+          progressPercent={progressPercent}
+          containerClassName="power-widget-inner"
+        />
       );
     }
 
     case 'gauge': {
-      const pct = gaugePercent();
-      const strokeColor = colors.gaugeStrokeColor || (widget.dataSource.startsWith('steam') ? steamColor : chartColor);
-      const trackColor = colors.gaugeTrackColor || undefined;
-      return wrap(
-        <>
-          {labelText(label)}
-          <div className="widget-chart-area widget-chart-area--sized overview-progress-area" style={{ maxHeight: `${chartSize}%` }}>
-            <Progress
-              type="circle"
-              percent={Math.round(pct)}
-              strokeColor={trackColor ? { color: strokeColor, trailColor: trackColor } : strokeColor}
-              size="small"
-              format={() => (isPercent || pct > 0 ? pct.toFixed(0) + '%' : formatValue())}
-            />
-          </div>
-        </>
+      return (
+        <ScalarWidgetRenderer
+          widget={widget}
+          settings={settings}
+          label={label}
+          valueText={formatValue()}
+          progressPercent={progressPercent}
+          containerClassName="power-widget-inner"
+        />
       );
     }
 

@@ -24,9 +24,27 @@ public final class AssistantTextNormalizer {
         if (text == null) {
             return "";
         }
-        return AssistantLexicon.edgePunctuationPattern()
-            .matcher(text)
-            .replaceAll("")
+        return stripPunctuation(text, AssistantLexicon.edgePunctuationSpec());
+    }
+
+    static String stripPunctuation(String text, AssistantLexicon.EdgePunctuationSpec spec) {
+        int start = 0;
+        while (start < text.length()) {
+            int codePoint = text.codePointAt(start);
+            if (!spec.matches(codePoint)) {
+                break;
+            }
+            start += Character.charCount(codePoint);
+        }
+        int end = text.length();
+        while (end > start) {
+            int codePoint = text.codePointBefore(end);
+            if (!spec.matches(codePoint)) {
+                break;
+            }
+            end -= Character.charCount(codePoint);
+        }
+        return text.substring(start, end)
             .trim();
     }
 

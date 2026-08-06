@@ -203,7 +203,10 @@ public class ItemAdvanceLinkScanner extends Item {
         if (nbt == null) {
             nbt = new NBTTagCompound();
         }
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(PacketLinkScannerAction.sync(slot, (NBTTagCompound) nbt.copy()));
+        PacketLinkScannerAction packet = PacketLinkScannerAction.sync(slot, (NBTTagCompound) nbt.copy());
+        if (packet.fitsPacketBudget()) {
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
+        }
     }
 
     @SideOnly(Side.CLIENT)

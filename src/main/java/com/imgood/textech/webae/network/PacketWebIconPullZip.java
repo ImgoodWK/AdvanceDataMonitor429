@@ -1,7 +1,6 @@
 package com.imgood.textech.webae.network;
 
-import java.nio.charset.StandardCharsets;
-
+import com.imgood.textech.utils.NetworkPacketCodec;
 import com.imgood.textech.webae.icon.IconLocalStore;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -23,6 +22,12 @@ public class PacketWebIconPullZip implements IMessage {
     public int totalChunks;
     public String packName;
     public byte[] data;
+    private boolean valid = true;
+
+    private static final int MAX_PACK_NAME_BYTES = 128;
+    public static final int MAX_CHUNK_BYTES = WebAeBinaryTransfer.MAX_PACKET_CHUNK_BYTES;
+    public static final int MAX_ZIP_BYTES = 8 * 1024 * 1024;
+    public static final int MAX_TOTAL_CHUNKS = (MAX_ZIP_BYTES + MAX_CHUNK_BYTES - 1) / MAX_CHUNK_BYTES;
 
     public PacketWebIconPullZip() {}
 
@@ -43,22 +48,45 @@ public class PacketWebIconPullZip implements IMessage {
         buf.writeInt(chunkIndex);
         buf.writeInt(totalChunks);
         writeUtf8(buf, packName);
+        if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+            || chunkIndex < 0
+            || chunkIndex >= totalChunks
+            || isStart != (chunkIndex == 0)
+            || isEnd != (chunkIndex == totalChunks - 1)
+            || data == null
+            || data.length == 0
+            || data.length > MAX_CHUNK_BYTES) {
+            throw new IllegalArgumentException("Icon pull chunk exceeds packet limit");
+        }
         buf.writeInt(data.length);
         buf.writeBytes(data);
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        isStart = buf.readBoolean();
-        isEnd = buf.readBoolean();
-        chunkIndex = buf.readInt();
-        totalChunks = buf.readInt();
-        packName = readUtf8(buf);
-        int len = buf.readInt();
-        if (len < 0) len = 0;
-        if (len > 65536) len = 65536;
-        data = new byte[len];
-        if (len > 0) buf.readBytes(data);
+        valid = true;
+        try {
+            isStart = buf.readBoolean();
+            isEnd = buf.readBoolean();
+            chunkIndex = buf.readInt();
+            totalChunks = buf.readInt();
+            packName = NetworkPacketCodec.readUtf8(buf, MAX_PACK_NAME_BYTES);
+            data = NetworkPacketCodec.readBytes(buf, MAX_CHUNK_BYTES);
+            if (totalChunks < 1 || totalChunks > MAX_TOTAL_CHUNKS
+                || chunkIndex < 0
+                || chunkIndex >= totalChunks
+                || isStart != (chunkIndex == 0)
+                || isEnd != (chunkIndex == totalChunks - 1)
+                || data.length == 0) {
+                throw new IllegalArgumentException("Invalid icon pull chunk");
+            }
+            if (buf.isReadable()) {
+                throw new IllegalArgumentException("Icon pull chunk has trailing bytes");
+            }
+        } catch (RuntimeException e) {
+            valid = false;
+            data = new byte[0];
+        }
     }
 
     private static void writeUtf8(ByteBuf buf, String s) {
@@ -66,17 +94,12 @@ public class PacketWebIconPullZip implements IMessage {
             buf.writeInt(0);
             return;
         }
-        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = s.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length > MAX_PACK_NAME_BYTES) {
+            throw new IllegalArgumentException("Icon pull pack name exceeds packet limit");
+        }
         buf.writeInt(bytes.length);
         buf.writeBytes(bytes);
-    }
-
-    private static String readUtf8(ByteBuf buf) {
-        int len = buf.readInt();
-        if (len <= 0) return "";
-        byte[] bytes = new byte[len];
-        buf.readBytes(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     @SideOnly(Side.CLIENT)
@@ -84,6 +107,7 @@ public class PacketWebIconPullZip implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketWebIconPullZip message, MessageContext ctx) {
+            if (message == null || !message.valid) return null;
             scheduleOnClientThread(new Runnable() {
 
                 @Override

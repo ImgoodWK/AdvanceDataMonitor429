@@ -21,3 +21,10 @@ PowerShell：`Set-Location webae-frontend; npm run build`
 检查 `src/main/resources/assets/textech/webae/index.html` 的 `js/index-*.js` 哈希已更新；发布任务还需确认 WebAE ZIP 内有 `TeXTech/WebAE/ui/index.html` 且主 JAR 无 `assets/textech/webae/`。总结写明已 build；提醒替换实例 UI 目录、重启游戏后浏览器 Ctrl+F5。
 
 用户说「先别 build」或本轮未改 `webae-frontend/` 时可跳过。失败则先 `npm install` 再 build。勿手改产物目录。
+
+## 可回滚的发布构建流程
+
+- 标准入口是 `scripts/build-webae.mjs`：先创建并清理 staging workspace `.workspace/webae-build/`，再将 Vite 输出到 staging，验证 bundle 必须包含 `index.html` 和 JavaScript，最后才 promote 到 `src/main/resources/assets/textech/webae/`。
+- `WEBAE_BUILD_VALIDATE_ONLY=1` 只执行 staging/build/validation，不替换正式 WebAE bundle；任何验证或 promote 失败都必须保留原正式 bundle。
+- `npm run build:no-typecheck` 用于已由独立 TypeScript 检查覆盖的快速构建；`npm run clean` 只能清理 `.workspace/webae-build/`，不得删除正式 bundle。
+- 发布 ZIP 必须从已验证的外部 `TeXTech/WebAE/ui/` 产物组装，不得发布未验证的 staging 或半成品目录。

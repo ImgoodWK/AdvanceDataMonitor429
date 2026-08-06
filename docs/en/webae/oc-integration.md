@@ -7,8 +7,8 @@ TeXTech WebAE runs inside the Minecraft server process. OpenComputers Internet C
 1. Web console enabled (`config/textech/textech.cfg` → `[webConsole] enabled=true`).
 2. At least one **Advance Data Monitor** bound to the player’s AE networks.
 3. An owner token from either:
-   - `/admweb issue` in-game (full UUID token), or
-   - `/admweb login` (6-digit code exchanged in the browser — see [User Guide](user-guide.md)).
+   - `/textech web issue` in-game (full UUID token), or
+   - `/textech web login` (6-digit code exchanged in the browser — see [User Guide](user-guide.md)).
 4. Firewall allows the configured WebAE port.
 
 ## Read-only summary API
@@ -89,7 +89,7 @@ end
 
 ## Login code flow (no OP token issue)
 
-Players run `/admweb login` in-game for a 6-digit code and a `?code=` URL. The browser exchanges it via:
+Players run `/textech web login` in-game for a 6-digit code and a `?code=` URL. The browser exchanges it via:
 
 ```
 POST /api/auth/exchange
@@ -98,7 +98,7 @@ Content-Type: application/json
 {"code":"123456"}
 ```
 
-Success returns an owner `token` equivalent to `/admweb issue`. Codes expire in **5 minutes** and are **single-use**.
+Success returns an owner `token` equivalent to `/textech web issue`. Codes expire in **5 minutes** and are **single-use**.
 
 ## Security
 
@@ -109,4 +109,4 @@ Success returns an owner `token` equivalent to `/admweb issue`. Codes expire in 
 ## See also
 
 - [Developer Guide](developer-guide.md) — full REST list
-- [User Guide](user-guide.md) — `/admweb login` and guest tokens
+- [User Guide](user-guide.md) — `/textech web login` and guest tokens

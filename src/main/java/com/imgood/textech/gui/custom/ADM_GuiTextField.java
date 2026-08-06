@@ -3,13 +3,12 @@ package com.imgood.textech.gui.custom;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ResourceLocation;
 
-import org.lwjgl.opengl.GL11;
-
 import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.TiledBarRegion;
 import com.imgood.textech.gui.framework.UiThemes;
+import com.imgood.textech.gui.framework.UnderlineFieldRegion;
 
 public class ADM_GuiTextField extends GuiTextField {
 
@@ -28,7 +27,9 @@ public class ADM_GuiTextField extends GuiTextField {
     private String text = "";
     private int cursorCounter;
     private boolean isFocused;
-    private boolean isEnabled = true;
+    private boolean visualEnabled = true;
+    private boolean invalid;
+    private Runnable onTextChanged;
     private int lineScrollOffset;
     private int cursorPosition;
     private int selectionEnd;
@@ -81,12 +82,30 @@ public class ADM_GuiTextField extends GuiTextField {
             : this.backgroundTexture;
         if (textureToDraw != null) {
             if (isLegacyTextFieldTexture(textureToDraw)) {
-                GuiBlitUtil.drawHorizontalSlice(
-                    this.isFocused() ? UiThemes.ADM.textFieldFocused() : UiThemes.ADM.textFieldNormal(),
-                    this.xPosition - 1,
-                    this.yPosition - 1,
-                    this.width + 2,
-                    this.height + 2);
+                UnderlineFieldRegion underline = UiThemes.ADM.underlineField();
+                UnderlineFieldRegion.State state = UnderlineFieldRegion
+                    .stateFor(visualEnabled, invalid, this.isFocused());
+                TiledBarRegion bar = this.isFocused() ? UiThemes.ADM.textFieldFocusedBar()
+                    : UiThemes.ADM.textFieldNormalBar();
+                if (underline != null) {
+                    GuiBlitUtil.drawUnderlineField(
+                        underline,
+                        state,
+                        this.xPosition - 1,
+                        this.yPosition - 1,
+                        this.width + 2,
+                        this.height + 2);
+                } else if (bar != null) {
+                    GuiBlitUtil
+                        .drawTiledBar(bar, this.xPosition - 1, this.yPosition - 1, this.width + 2, this.height + 2);
+                } else {
+                    GuiBlitUtil.drawHorizontalSlice(
+                        this.isFocused() ? UiThemes.ADM.textFieldFocused() : UiThemes.ADM.textFieldNormal(),
+                        this.xPosition - 1,
+                        this.yPosition - 1,
+                        this.width + 2,
+                        this.height + 2);
+                }
             } else {
                 drawTexturedRect(
                     this.xPosition - 1,
@@ -108,25 +127,7 @@ public class ADM_GuiTextField extends GuiTextField {
     }
 
     private void drawTexturedRect(int x, int y, int width, int height, ResourceLocation texture) {
-        if (texture == null) {
-            return;
-        }
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        Minecraft minecraft = Minecraft.getMinecraft();
-        minecraft.getTextureManager()
-            .bindTexture(texture);
-
-        Tessellator tessellator = Tessellator.instance;
-        tessellator.startDrawingQuads();
-
-        float zLevel = 10000000000F;
-
-        tessellator.addVertexWithUV(x, y + height, zLevel, 0, 1);
-        tessellator.addVertexWithUV(x + width, y + height, zLevel, 1, 1);
-        tessellator.addVertexWithUV(x + width, y, zLevel, 1, 0);
-        tessellator.addVertexWithUV(x, y, zLevel, 0, 0);
-
-        tessellator.draw();
+        GuiBlitUtil.drawFullTexture(texture, x, y, width, height);
     }
 
     public ADM_GuiTextField setBackgroundTexture(ResourceLocation texture) {
@@ -147,6 +148,57 @@ public class ADM_GuiTextField extends GuiTextField {
     public ADM_GuiTextField setHintColor(int color) {
         this.hintColor = color;
         return this;
+    }
+
+    @Override
+    public void setText(String value) {
+        String before = super.getText();
+        super.setText(value != null ? value : "");
+        notifyTextChanged(before);
+    }
+
+    @Override
+    public boolean textboxKeyTyped(char typedChar, int keyCode) {
+        String before = super.getText();
+        boolean handled = super.textboxKeyTyped(typedChar, keyCode);
+        notifyTextChanged(before);
+        return handled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.visualEnabled = enabled;
+        super.setEnabled(enabled);
+        if (!enabled) {
+            setFocused(false);
+        }
+    }
+
+    public ADM_GuiTextField setInvalid(boolean invalid) {
+        this.invalid = invalid;
+        return this;
+    }
+
+    public boolean isInvalid() {
+        return invalid;
+    }
+
+    public boolean isVisualEnabled() {
+        return visualEnabled;
+    }
+
+    public ADM_GuiTextField setOnTextChanged(Runnable listener) {
+        this.onTextChanged = listener;
+        return this;
+    }
+
+    private void notifyTextChanged(String before) {
+        if (!super.getText().equals(before)) {
+            invalid = false;
+            if (onTextChanged != null) {
+                onTextChanged.run();
+            }
+        }
     }
 
     public ResourceLocation getTextFieldTexture() {

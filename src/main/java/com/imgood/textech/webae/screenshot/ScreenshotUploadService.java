@@ -18,6 +18,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.handler.HandlerTick;
 import com.imgood.textech.webae.chat.ChatMessage;
 import com.imgood.textech.webae.chat.ChatMessageStore;
 import com.imgood.textech.webae.network.PacketScreenshotUpload;
@@ -68,6 +69,9 @@ public final class ScreenshotUploadService {
     public synchronized IMessage accept(EntityPlayerMP player, PacketScreenshotUpload message) {
         String uploadId = message == null ? "" : safe(message.uploadId);
         try {
+            if (player == null) {
+                return fail(uploadId, "Screenshot player session is unavailable.");
+            }
             long now = System.currentTimeMillis();
             cleanup(now);
             String playerUuid = player.getUniqueID()
@@ -79,15 +83,15 @@ public final class ScreenshotUploadService {
             if (message == null || message.malformed || !validUploadId(uploadId)) {
                 return fail(uploadId, "Malformed screenshot packet.");
             }
-            int maxBytes = Math.max(64, Config.webScreenshotMaxUploadKB) * 1024;
-            int expectedChunks = Math.max(
-                1,
-                (message.totalBytes + PacketScreenshotUpload.MAX_CHUNK_BYTES - 1)
-                    / PacketScreenshotUpload.MAX_CHUNK_BYTES);
+            long configuredMaxBytes = Math.max(64L, (long) Config.webScreenshotMaxUploadKB) * 1024L;
+            long maxBytes = Math.min((long) Integer.MAX_VALUE, configuredMaxBytes);
+            long expectedChunksLong = (message.totalBytes + (long) PacketScreenshotUpload.MAX_CHUNK_BYTES - 1L)
+                / PacketScreenshotUpload.MAX_CHUNK_BYTES;
             if (message.totalBytes <= 0 || message.totalBytes > maxBytes
                 || message.totalChunks <= 0
                 || message.totalChunks > ABSOLUTE_MAX_CHUNKS
-                || message.totalChunks != expectedChunks
+                || expectedChunksLong > Integer.MAX_VALUE
+                || message.totalChunks != (int) expectedChunksLong
                 || message.chunkIndex < 0
                 || message.chunkIndex >= message.totalChunks
                 || message.chunk == null
@@ -128,6 +132,14 @@ public final class ScreenshotUploadService {
             } else if (session == null) {
                 return fail(uploadId, "Screenshot upload session was not found.");
             }
+
+            if ("qq".equals(session.destination) && !player.canCommandSenderUseCommand(2, "admweb")) {
+                sessions.remove(key);
+                return fail(uploadId, "OP permission is required for QQ screenshot delivery.");
+            }
+            // The key binds the session to the UUID; refresh the live connection object after reconnects.
+            session.player = player;
+            session.playerName = player.getCommandSenderName();
 
             if (session.nextChunk != message.chunkIndex || session.totalChunks != message.totalChunks
                 || session.totalBytes != message.totalBytes) {
@@ -289,9 +301,20 @@ public final class ScreenshotUploadService {
         return new PacketScreenshotUploadAck(uploadId, false, reason, "");
     }
 
-    private static void sendAck(EntityPlayerMP player, PacketScreenshotUploadAck ack) {
+    private static void sendAck(final EntityPlayerMP player, final PacketScreenshotUploadAck ack) {
+        if (player == null || ack == null) return;
+        HandlerTick.enqueueServerTask(new Runnable() {
+
+            @Override
+            public void run() {
+                sendAckNow(player, ack);
+            }
+        });
+    }
+
+    private static void sendAckNow(EntityPlayerMP player, PacketScreenshotUploadAck ack) {
         try {
-            if (player != null) AdvanceDataMonitor.ADMCHANEL.sendTo(ack, player);
+            AdvanceDataMonitor.ADMCHANEL.sendTo(ack, player);
         } catch (Throwable error) {
             AdvanceDataMonitor.LOG.debug("[Screenshot] Could not send upload acknowledgement", error);
         }
@@ -325,9 +348,9 @@ public final class ScreenshotUploadService {
 
     private static final class UploadSession {
 
-        final EntityPlayerMP player;
+        EntityPlayerMP player;
         final String playerUuid;
-        final String playerName;
+        String playerName;
         final String uploadId;
         final String destination;
         final String targetType;

@@ -1290,11 +1290,15 @@ export function NetworkTopologyPage() {
 
                 <Empty description={t('worldMapNoSnapshot')} style={{ padding: 64 }}>
 
-                  <Button type="primary" icon={<CameraOutlined />} onClick={() => void captureSnapshot(false)} loading={capturing}>
+                  {!browsingMode && (
 
-                    {t('topologyCaptureSnapshot')}
+                    <Button type="primary" icon={<CameraOutlined />} onClick={() => void captureSnapshot(false)} loading={capturing}>
 
-                  </Button>
+                      {t('topologyCaptureSnapshot')}
+
+                    </Button>
+
+                  )}
 
                 </Empty>
 
@@ -1323,6 +1327,8 @@ export function NetworkTopologyPage() {
                   obliqueDirection={displaySettings.worldMapObliqueDirection}
 
                   displaySettings={displaySettings}
+
+                  readOnly={browsingMode}
 
                   onDisplaySettingsChange={setDisplaySettings}
 

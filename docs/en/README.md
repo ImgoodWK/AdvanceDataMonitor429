@@ -1,10 +1,10 @@
 # TeXTech Documentation (English)
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 2.0 · Last synced: 2026-07
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 1 · Last synced: 2026-08
 
-中文文档: [docs/zh/README.md](../zh/README.md) · Index: [docs/README.md](../README.md)
+中文文档: [docs/zh/README.md](../zh/README.md) · Index: [docs/README.md](../README.md) · [Project home](../../README.en.md)
 
-TeXTech 2.0 targets GTNH `2.9.0-beta-2+`. Releases provide the required core mod JAR, optional offline-voice JAR, and optional WebAE ZIP separately. To use WebAE, extract its ZIP at the server instance root and verify `TeXTech/WebAE/ui/index.html`; users who do not need WebAE only download the core JAR.
+TeXTech `v3.0.0-rc.1` targets GTNH `2.9.0-beta-2+`. Releases provide the required core mod JAR, optional offline-voice JAR, and optional WebAE ZIP separately. To use WebAE, extract its ZIP at the server instance root and verify `TeXTech/WebAE/ui/index.html`; users who do not need WebAE only download the core JAR.
 
 ---
 
@@ -61,7 +61,7 @@ Maintenance map: [documentation-map.md](developer/documentation-map.md)
 | [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | New-feature checklist (base classes, packets, lang sync) |
 | [developer/gradle-workflow.md](developer/gradle-workflow.md) | Build / migration / FAQ |
 | [developer/temporary-textures.md](developer/temporary-textures.md) | Missing/placeholder block & item texture audit; **temporary** procedural art |
-| [developer/gtnh-version-compatibility.md](developer/gtnh-version-compatibility.md) | v2.0.0 requires GTNH 2.9.0-beta-2+; 2.8.x is no longer supported |
+| [developer/gtnh-version-compatibility.md](developer/gtnh-version-compatibility.md) | v2 stable and v3 RC require GTNH 2.9.0-beta-2+; 2.8.x is unsupported |
 | [developer/ae-compat-290.md](developer/ae-compat-290.md) | GTNH 2.9.0-beta-2 NativeFluid integration and legacy-source boundary |
 
 ### AI assistant
@@ -93,3 +93,18 @@ In-game display names follow `lang/en_US.lang`, e.g.:
 - **Network Linker**, **Crafting Linker**, **Advanced Storage Linker**, **Advanced Storage Link Cell**, **Matter Ball Decompressor**
 - **Grapple Anchor** / **Grapple Hook**, **Advance Planner**, **Super Orange**, **Empyrean Holy Judgment**
 - **TeXTech Manual** (item `manual`)
+
+---
+
+## Project history and governance
+
+| Doc | Description |
+|-----|-------------|
+| [project/timeline.md](project/timeline.md) | Git-verifiable milestones and the author's project-origin story |
+| [project/provenance.md](project/provenance.md) | Public-monitor limits, human review, and evidence-preservation workflow |
+| [../../NOTICE.md](../../NOTICE.md) | Project identity, provenance, attribution, and public-monitoring boundaries |
+| [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | Contribution workflow and verification expectations |
+| [../../SECURITY.md](../../SECURITY.md) | Private vulnerability reporting and secret-handling policy |
+| [../../SUPPORT.md](../../SUPPORT.md) | Support routing by audience |
+| [../../CHANGELOG.md](../../CHANGELOG.md) | v1.0.0, v2.0.0, and v3.0.0-rc.1 release summary |
+| [../wiki/README.md](../wiki/README.md) | Repository source for navigation-only GitHub Wiki pages |

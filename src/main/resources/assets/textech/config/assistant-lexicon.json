@@ -93,6 +93,10 @@
         "zh_CN": "蒸汽查询关键词",
         "en_US": "Steam query keywords"
       },
+      "briefingQueryWords": {
+        "zh_CN": "基地运维简报查询关键词",
+        "en_US": "Operations briefing query keywords"
+      },
       "recipeQueryWords": {
         "zh_CN": "配方查询关键词",
         "en_US": "Recipe query keywords"
@@ -238,7 +242,7 @@
     "啊",
     "呀"
   ],
-  "edgePunctuationRegex": "^[\\s,.;:!?，。；：！？、]+|[\\s,.;:!?，。；：！？、]+$",
+  "edgePunctuationRegex": "^[\\s,.;:!?，。；：！？、]+|(?<![\\s,.;:!?，。；：！？、])[\\s,.;:!?，。；：！？、]+$",
   "chineseNumbers": [
     "一",
     "二",
@@ -333,6 +337,30 @@
     "蒸汽网络",
     "蒸汽网",
     "steam"
+  ],
+  "briefingQueryWords": [
+    "基地简报",
+    "运维简报",
+    "基地状态",
+    "基地健康",
+    "运维状态",
+    "网络健康",
+    "总体状态",
+    "综合状态",
+    "系统概览",
+    "运行简报",
+    "operations briefing",
+    "operation briefing",
+    "ops briefing",
+    "base briefing",
+    "base status",
+    "base health",
+    "network health",
+    "system overview",
+    "overall status",
+    "health summary",
+    "operations summary",
+    "status report"
   ],
   "recipeQueryWords": [
     "配方",

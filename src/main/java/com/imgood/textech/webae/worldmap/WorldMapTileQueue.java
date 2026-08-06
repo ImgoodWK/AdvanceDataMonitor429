@@ -74,13 +74,13 @@ public final class WorldMapTileQueue {
                 .markDone(networkId, parsed.id, tier, dim, chunkX, chunkZ, layer);
             return;
         }
-        if (shouldSkipServerTerrainWithHd(tier, layer, ownerUuid, actorUuid, dim)) {
+        if (shouldSkipServerTerrainWithHd(tier, layer, ownerUuid, actorUuid, dim, networkId)) {
             dispatchHdJobIfNeeded(parsed.id, layer, tier, dim, chunkX, chunkZ, ownerUuid, networkId, actorUuid);
             WorldMapTileProgressTracker.instance()
                 .markQueued(networkId, parsed.id, tier, dim, chunkX, chunkZ, layer);
         }
         String key = tileKey(parsed.id, layer, tier, dim, chunkX, chunkZ);
-        boolean hdDispatched = shouldSkipServerTerrainWithHd(tier, layer, ownerUuid, actorUuid, dim);
+        boolean hdDispatched = shouldSkipServerTerrainWithHd(tier, layer, ownerUuid, actorUuid, dim, networkId);
         synchronized (this) {
             if (queuedKeys.contains(key)) {
                 return;
@@ -153,7 +153,7 @@ public final class WorldMapTileQueue {
             || ownerUuid.isEmpty()) {
             return;
         }
-        EntityPlayerMP provider = WorldMapHdSupport.resolveHdProvider(ownerUuid, actorUuid, dim);
+        EntityPlayerMP provider = WorldMapHdSupport.resolveHdProvider(ownerUuid, actorUuid, dim, networkId);
         if (provider == null) {
             return;
         }
@@ -284,7 +284,13 @@ public final class WorldMapTileQueue {
                     .markDone(next.networkId, next.view, next.quality, next.dim, next.chunkX, next.chunkZ, next.layer);
                 continue;
             }
-            if (shouldSkipServerTerrainWithHd(next.quality, next.layer, next.ownerUuid, next.actorUuid, next.dim)) {
+            if (shouldSkipServerTerrainWithHd(
+                next.quality,
+                next.layer,
+                next.ownerUuid,
+                next.actorUuid,
+                next.dim,
+                next.networkId)) {
                 if (next.hdDispatchTime < 0) {
                     dispatchHdJobIfNeeded(
                         next.view,
@@ -407,14 +413,14 @@ public final class WorldMapTileQueue {
      * high/ultra terrain tiles where an online client is available.
      */
     private static boolean shouldSkipServerTerrainWithHd(WorldMapQualityTier tier, String layer, String ownerUuid,
-        String actorUuid, int dim) {
+        String actorUuid, int dim, int networkId) {
         if (WorldMapTileLayer.isAe(layer)) {
             return false;
         }
         if (!WorldMapClientCaptureMode.shouldUseClientForTier(tier)) {
             return false;
         }
-        return WorldMapHdSupport.isClientCaptureAvailable(ownerUuid, actorUuid, dim);
+        return WorldMapHdSupport.resolveHdProvider(ownerUuid, actorUuid, dim, networkId) != null;
     }
 
     private TileKey pollNext() {

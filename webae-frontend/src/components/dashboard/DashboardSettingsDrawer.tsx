@@ -4,6 +4,11 @@ import { SaveOutlined, DeleteOutlined, CopyOutlined, ImportOutlined } from '@ant
 import { useI18n } from '@/i18n';
 import type { DashboardSettings, DashboardWidgetConfig } from '@/utils/presets';
 import { exportWidgetsJson, parseWidgetsImport } from '@/utils/widgetGridActions';
+import {
+  exportMonitorWidgetBundleJson,
+  looksLikeMonitorWidgetBundle,
+  parseMonitorWidgetBundle,
+} from '@/utils/monitorWidgetBundle';
 import { SettingRow } from '@/components/common/SettingRow';
 import { AlignmentGrid } from './AlignmentGrid';
 import { ColorField } from './ColorField';
@@ -104,7 +109,9 @@ export function DashboardSettingsDrawer({
 
   const handleImportWidgets = () => {
     try {
-      const imported = parseWidgetsImport(importText);
+      const imported = looksLikeMonitorWidgetBundle(importText)
+        ? parseMonitorWidgetBundle(importText)
+        : parseWidgetsImport(importText);
       onWidgetsChange?.(imported);
       setImportOpen(false);
       setImportText('');
@@ -117,6 +124,17 @@ export function DashboardSettingsDrawer({
     }
   };
 
+  const handleExportMonitorWidgets = async () => {
+    if (!widgets) return;
+    try {
+      await navigator.clipboard.writeText(exportMonitorWidgetBundleJson(widgets));
+      void message.success(t('dashCfgExportMonitorWidgetsDone'));
+    } catch (e) {
+      const detail = e instanceof Error && e.message ? `: ${e.message}` : '';
+      void message.error(`${t('dashCfgExportMonitorWidgetsFailed')}${detail}`);
+    }
+  };
+
   const widgetImportExportPanel =
     widgets && onWidgetsChange ? (
       <>
@@ -124,6 +142,9 @@ export function DashboardSettingsDrawer({
         <Space wrap>
           <Button icon={<CopyOutlined />} onClick={handleExportWidgets}>
             {t('dashCfgExportWidgets')}
+          </Button>
+          <Button icon={<CopyOutlined />} onClick={handleExportMonitorWidgets}>
+            {t('dashCfgExportMonitorWidgets')}
           </Button>
           <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>
             {t('dashCfgImportWidgets')}

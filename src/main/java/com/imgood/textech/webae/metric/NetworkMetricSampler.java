@@ -13,6 +13,7 @@ import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.cache.SnapshotCache;
 import com.imgood.textech.webae.cache.SnapshotScheduler;
+import com.imgood.textech.webae.cpu.CpuHistoryService;
 import com.imgood.textech.webae.dto.GtMachineDto;
 import com.imgood.textech.webae.dto.GtMachineListDto;
 import com.imgood.textech.webae.dto.NetworkMetricEntityHistoryDto;
@@ -161,6 +162,12 @@ public class NetworkMetricSampler {
                 gtMachineCount,
                 gtActiveCount));
 
+        // CPU history consumes the same DTO cache and server-tick cadence as
+        // the existing metrics. It does not initiate a second AE2 scan.
+        if (storage != null) {
+            CpuHistoryService.instance()
+                .recordCpuSnapshots(playerUuid, networkId, storage.cpus, now);
+        }
         record.sampleTrackedPins(storage, machines, now);
     }
 

@@ -33,5 +33,7 @@ public enum AssistantIntentType {
     HISTORY_PREV,
     HISTORY_NEXT,
     HUD_OPEN,
-    HUD_CLOSE
+    HUD_CLOSE,
+    // Appended to preserve ordinal compatibility for existing assistant query packets.
+    QUERY_BRIEFING
 }

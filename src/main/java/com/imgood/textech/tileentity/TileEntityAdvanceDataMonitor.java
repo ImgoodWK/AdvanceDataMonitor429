@@ -12,6 +12,7 @@ import java.util.Set;
 
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -24,13 +25,19 @@ import net.minecraft.util.AxisAlignedBB;
 
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.assistant.WirelessPowerQuery;
+import com.imgood.textech.assistant.WirelessSteamQuery;
 import com.imgood.textech.handler.StorageLinkWatchSync;
+import com.imgood.textech.monitor.MonitorThresholdRuntime;
+import com.imgood.textech.monitor.MonitorWidgetSpec;
+import com.imgood.textech.network.packet.PacketMonitorBindingDelta;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.utils.CraftingTemplateParser;
 import com.imgood.textech.utils.DataBound;
 import com.imgood.textech.utils.TileEntityTypeHelper;
 import com.imgood.textech.utils.WebDashboardSnapshotCodec;
 import com.imgood.textech.utils.WebDisplayBindingCodec;
+import com.imgood.textech.webae.context.WebAeOwnerContext;
 
 import appeng.api.AEApi;
 import appeng.api.networking.IGrid;
@@ -43,6 +50,7 @@ import appeng.tile.storage.TileChest;
 import appeng.tile.storage.TileDrive;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Optional;
+import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
 
 /**
  * Display names / 显示名称:
@@ -82,10 +90,23 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     private Random random = new Random();
 
     private final Map<Integer, Integer> tickCounters = new HashMap<>();
+    private final MonitorThresholdRuntime thresholdRuntime = new MonitorThresholdRuntime();
     private float rollRotation;
 
     // 批量同步标志：updateEntity() 中多次数据变更后统一 sync 一次
-    private boolean tickSyncPending = false;
+    private static final class SampleGroup {
+
+        private final String key;
+        private final String[] xyz;
+        private final String sourceKind;
+        private final List<Integer> bindingIndices = new ArrayList<Integer>();
+
+        private SampleGroup(String key, String sourceKind, String[] xyz) {
+            this.key = key;
+            this.sourceKind = sourceKind;
+            this.xyz = xyz;
+        }
+    }
 
     public TileEntityAdvanceDataMonitor() {
         FMLCommonHandler.instance()
@@ -130,52 +151,269 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             refreshRamdomData();
         }
         if (worldObj == null || worldObj.isRemote) return;
+        thresholdRuntime.advanceTick();
+        runGroupedSamplingTick();
+        refreshThresholdOutputs();
+    }
 
-        Set<String> processedCoords = new HashSet<>();
-        tickSyncPending = false;
-
+    private void runGroupedSamplingTick() {
+        Map<String, SampleGroup> sampleGroups = new HashMap<String, SampleGroup>();
         for (Map.Entry<Integer, NBTTagCompound> entry : dataBoundList.entrySet()) {
             int index = entry.getKey();
-            boolean enable = getEnable(index);
-            if (enable) {
-                NBTTagCompound nbt = entry.getValue();
+            if (!getEnable(index)) {
+                tickCounters.remove(index);
+                continue;
+            }
+            NBTTagCompound nbt = entry.getValue();
+            if (nbt == null) {
+                handleNullDataBound(index);
+                continue;
+            }
+            MonitorWidgetSpec.normalizeBinding(nbt, xCoord, yCoord, zCoord);
+            if (isPassiveDataType(nbt)) {
+                tickCounters.remove(index);
+                continue;
+            }
 
-                // 处理空数据绑定的情况
-                if (nbt == null) {
-                    handleNullDataBound(index);
-                    continue;
-                }
+            int interval = Math.max(getSafeInt(nbt, "interval", 20), 1);
+            int currentTick = tickCounters.getOrDefault(index, index % interval);
+            currentTick++;
+            if (currentTick >= interval) {
+                queueSampleGroup(sampleGroups, index, nbt);
+                currentTick = 0;
+            }
+            tickCounters.put(index, currentTick);
+        }
 
-                // WebAE dashboard snapshots are passive content. They never poll a target TE or add server-tick work.
-                if (isPassiveDataType(nbt)) {
-                    tickCounters.remove(index);
-                    continue;
-                }
+        for (SampleGroup group : sampleGroups.values()) {
+            try {
+                processSampleGroupShared(group);
+            } catch (Exception e) {
+                int errorIndex = group.bindingIndices.isEmpty() ? -1
+                    : group.bindingIndices.get(0)
+                        .intValue();
+                handleProcessingError(errorIndex, e);
+            }
+        }
+    }
 
-                // 获取interval并确保最小值
-                int interval = Math.max(getSafeInt(nbt, "interval", 20), 1);
-                int currentTick = tickCounters.getOrDefault(index, index % interval);
-                currentTick++;
-                if (currentTick >= interval) {
-                    // 处理数据项
-                    String[] xyz = parseXYZ(nbt);
-                    if (xyz != null && processedCoords.add(xyz[0] + "," + xyz[1] + "," + xyz[2])) {
-                        try {
-                            processTileEntityData(index, nbt, xyz);
-                        } catch (Exception e) {
-                            handleProcessingError(index, e);
-                        }
+    private void queueSampleGroup(Map<String, SampleGroup> sampleGroups, int index, NBTTagCompound nbt) {
+        String sourceKind = MonitorWidgetSpec.getSourceKind(nbt);
+        String[] xyz = parseXYZ(nbt);
+        String key;
+        if (isWirelessSourceKind(sourceKind)) {
+            key = sourceKind + "::" + getOwnerName();
+        } else {
+            if (xyz == null) {
+                return;
+            }
+            key = xyz[0] + "," + xyz[1] + "," + xyz[2];
+        }
+        SampleGroup group = sampleGroups.get(key);
+        if (group == null) {
+            group = new SampleGroup(key, sourceKind, xyz);
+            sampleGroups.put(key, group);
+        }
+        group.bindingIndices.add(Integer.valueOf(index));
+    }
+
+    private void processSampleGroupShared(SampleGroup group) {
+        if (group == null || group.bindingIndices.isEmpty()) {
+            return;
+        }
+        if (isWirelessSourceKind(group.sourceKind)) {
+            processWirelessSampleGroup(group);
+            return;
+        }
+        if (group.xyz == null || worldObj == null) {
+            return;
+        }
+        int targetX = parseIntSafe(group.xyz[0]);
+        int targetY = parseIntSafe(group.xyz[1]);
+        int targetZ = parseIntSafe(group.xyz[2]);
+        if (!worldObj.blockExists(targetX, targetY, targetZ)) {
+            return;
+        }
+        TileEntity target = worldObj.getTileEntity(targetX, targetY, targetZ);
+        if (target == null) {
+            return;
+        }
+        NBTTagCompound targetNbt = new NBTTagCompound();
+        target.writeToNBT(targetNbt);
+        for (Integer bindingIndex : group.bindingIndices) {
+            NBTTagCompound binding = dataBoundList.get(bindingIndex);
+            if (binding != null) {
+                processTileEntityDataShared(bindingIndex.intValue(), binding, target, targetNbt);
+            }
+        }
+    }
+
+    private boolean isWirelessSourceKind(String sourceKind) {
+        return MonitorWidgetSpec.SOURCE_WIRELESS_EU.equals(sourceKind)
+            || MonitorWidgetSpec.SOURCE_WIRELESS_STEAM.equals(sourceKind);
+    }
+
+    private void processWirelessSampleGroup(SampleGroup group) {
+        EntityPlayerMP ownerPlayer = WebAeOwnerContext.getOwnerPlayerOrFakeByName(getOwnerName());
+        if (ownerPlayer == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long euStored = -1L;
+        long euMax = -1L;
+        long steamStored = -1L;
+        if (MonitorWidgetSpec.SOURCE_WIRELESS_EU.equals(group.sourceKind)) {
+            java.math.BigInteger stored = WirelessPowerQuery.queryEuStored(ownerPlayer);
+            java.math.BigInteger max = WirelessPowerQuery.queryEuMaxCapacity(ownerPlayer);
+            euStored = stored != null ? stored.longValue() : -1L;
+            euMax = max != null ? max.longValue() : -1L;
+        } else if (MonitorWidgetSpec.SOURCE_WIRELESS_STEAM.equals(group.sourceKind)) {
+            java.math.BigInteger steam = WirelessSteamQuery.querySteamStored(ownerPlayer);
+            steamStored = steam != null ? steam.longValue() : -1L;
+        }
+        for (Integer bindingIndex : group.bindingIndices) {
+            NBTTagCompound binding = dataBoundList.get(bindingIndex);
+            if (binding == null) {
+                continue;
+            }
+            Double value = resolveWirelessMetricValue(binding, group.sourceKind, euStored, euMax, steamStored, now);
+            if (value != null) {
+                addData(bindingIndex.intValue(), value.doubleValue(), binding);
+            }
+        }
+    }
+
+    private Double resolveWirelessMetricValue(NBTTagCompound nbt, String sourceKind, long euStored, long euMax,
+        long steamStored, long now) {
+        String metricKey = MonitorWidgetSpec.getMetricKey(nbt);
+        double targetValue = MonitorWidgetSpec.getTargetValue(nbt);
+        if (MonitorWidgetSpec.SOURCE_WIRELESS_EU.equals(sourceKind)) {
+            if (euStored < 0) {
+                return null;
+            }
+            if ("euMax".equals(metricKey)) {
+                return Double.valueOf(euMax >= 0 ? euMax : 0L);
+            }
+            if ("euPercent".equals(metricKey)) {
+                return Double.valueOf(euMax > 0 ? (euStored * 100.0D) / euMax : 0.0D);
+            }
+            if ("euInRate".equals(metricKey) || "euOutRate".equals(metricKey)) {
+                return Double.valueOf(resolveWirelessRate(nbt, metricKey, euStored, now));
+            }
+            trackWirelessRateBase(nbt, euStored, now);
+            return Double.valueOf(euStored);
+        }
+        if (MonitorWidgetSpec.SOURCE_WIRELESS_STEAM.equals(sourceKind)) {
+            if (steamStored < 0) {
+                return null;
+            }
+            if ("steamPercent".equals(metricKey)) {
+                return Double.valueOf(targetValue > 0 ? (steamStored * 100.0D) / targetValue : steamStored);
+            }
+            if ("steamInRate".equals(metricKey) || "steamOutRate".equals(metricKey)) {
+                return Double.valueOf(resolveWirelessRate(nbt, metricKey, steamStored, now));
+            }
+            trackWirelessRateBase(nbt, steamStored, now);
+            return Double.valueOf(steamStored);
+        }
+        return null;
+    }
+
+    private void trackWirelessRateBase(NBTTagCompound nbt, long currentValue, long now) {
+        nbt.setDouble("wirelessLastSampleValue", currentValue);
+        nbt.setLong("wirelessLastSampleAt", now);
+    }
+
+    private double resolveWirelessRate(NBTTagCompound nbt, String metricKey, long currentValue, long now) {
+        long previousAt = nbt.hasKey("wirelessLastSampleAt") ? nbt.getLong("wirelessLastSampleAt") : 0L;
+        double previousValue = nbt.hasKey("wirelessLastSampleValue") ? nbt.getDouble("wirelessLastSampleValue")
+            : currentValue;
+        trackWirelessRateBase(nbt, currentValue, now);
+        if (previousAt <= 0L || now <= previousAt) {
+            return 0.0D;
+        }
+        double deltaSeconds = (now - previousAt) / 1000.0D;
+        if (deltaSeconds <= 0.0D) {
+            return 0.0D;
+        }
+        double netRate = (currentValue - previousValue) / deltaSeconds / 20.0D;
+        if ("euInRate".equals(metricKey) || "steamInRate".equals(metricKey)) {
+            return netRate > 0.0D ? netRate : 0.0D;
+        }
+        return netRate < 0.0D ? -netRate : 0.0D;
+    }
+
+    private void processTileEntityDataShared(int index, NBTTagCompound nbt, TileEntity target,
+        NBTTagCompound targetNbt) {
+        String kind = MonitorWidgetSpec.getKind(nbt);
+        String dataType = nbt.hasKey("dataType") ? nbt.getString("dataType") : "";
+        String sourceKind = MonitorWidgetSpec.getSourceKind(nbt);
+        String metricKey = MonitorWidgetSpec.getMetricKey(nbt);
+
+        if (getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.ADV_NETWORKLINK) {
+            TileEntityAdvanceNetworkLink networkLink = (TileEntityAdvanceNetworkLink) target;
+            if (MonitorWidgetSpec.KIND_CRAFTING.equals(kind) || "crafting".equals(dataType)) {
+                networkLink.updateCraftingStats();
+                boolean monitorNetworkWide = nbt.getBoolean("monitorNetworkWide");
+                String template = nbt.getString("craftingTemplate");
+                NBTTagList lineList = new NBTTagList();
+                if (monitorNetworkWide) {
+                    String info = networkLink.getCraftingStatsInfo();
+                    String[] lines = info.split("\\n");
+                    for (String line : lines) {
+                        lineList.appendTag(new NBTTagString(line));
                     }
-                    currentTick = 0;
+                    nbt.setTag("networkLines", lineList);
+                    nbt.removeTag("lines");
+                } else {
+                    String[] lines;
+                    if (template != null && !template.isEmpty()) {
+                        lines = parseTemplateWithLink(template, networkLink);
+                    } else {
+                        String info = networkLink.getCraftingStatsInfo();
+                        lines = info.split("\\n");
+                    }
+                    for (String line : lines) {
+                        lineList.appendTag(new NBTTagString(line));
+                    }
+                    nbt.setTag("lines", lineList);
+                    nbt.removeTag("networkLines");
                 }
-
-                tickCounters.put(index, currentTick);
+                if (!nbt.hasKey("dataType")) {
+                    nbt.setString("dataType", "crafting");
+                }
+                notifyBindingFieldUpdate(index, nbt, "lines", "networkLines", "dataType", "kind", "title");
+                return;
+            }
+            if (MonitorWidgetSpec.KIND_STORAGE.equals(kind) || "storage".equals(dataType)
+                || MonitorWidgetSpec.SOURCE_STORAGE_SUMMARY.equals(sourceKind)) {
+                nbt.removeTag("storageStatisticsInterval");
+                nbt.setTag("storageItems", networkLink.createStorageItemsSnapshot());
+                nbt.setString("dataType", "storage");
+                notifyBindingFieldUpdate(index, nbt, "storageItems", "dataType", "kind", "title");
+                return;
             }
         }
 
-        if (tickSyncPending) {
-            syncData();
+        double value = 0.0D;
+        if (getTileEntityType(target) == TileEntityTypeHelper.TileEntityType.ADV_NETWORKLINK
+            && (MonitorWidgetSpec.SOURCE_AE_METRIC.equals(sourceKind)
+                || MonitorWidgetSpec.SOURCE_TILE_METRIC.equals(sourceKind))) {
+            value = processAE2NetworkData(target, metricKey);
+            if (nbt.getBoolean("isValue")) {
+                String[] percentageKeys = { "TotalBytes", "UsedBytes", "TotalItemTypes", "UsedItemTypes",
+                    "TotalFluidBytes", "UsedFluidBytes", "TotalFluidTypes", "UsedFluidTypes" };
+                for (String key : percentageKeys) {
+                    if (key.equals(metricKey)) {
+                        value = calculatePercentage(target, metricKey, value);
+                        break;
+                    }
+                }
+            }
+        } else if (targetNbt.hasKey(metricKey)) {
+            value = targetNbt.getDouble(metricKey);
         }
+        addData(index, value, nbt);
     }
 
     public void processTileEntityData(int index, NBTTagCompound nbt, String[] xyz) {
@@ -228,8 +466,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                     nbt.setString("dataType", "crafting");
                 }
 
-                markDirty();
-                tickSyncPending = true;
+                notifyBindingFieldUpdate(index, nbt, "lines", "networkLines", "dataType", "kind", "title");
                 return;
             }
 
@@ -237,8 +474,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                 nbt.removeTag("storageStatisticsInterval");
                 nbt.setTag("storageItems", networkLink.createStorageItemsSnapshot());
                 nbt.setString("dataType", "storage");
-                markDirty();
-                tickSyncPending = true;
+                notifyBindingFieldUpdate(index, nbt, "storageItems", "dataType", "kind", "title");
                 return;
             }
         }
@@ -323,6 +559,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         }
         super.readFromNBT(compound);
         dataBoundList.clear();
+        tickCounters.clear();
+        thresholdRuntime.reset();
 
         visableScreen = compound.getBoolean("visableScreen");
         visableBody = compound.getBoolean("visableBody");
@@ -372,6 +610,9 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
 
         // 合并新数据
         NBTTagCompound mergedData = mergeWithDefault(displayData);
+        boolean thresholdConfigurationChanged = !sameThresholdConfiguration(oldData, mergedData);
+        int previousRevision = oldData == null ? 0 : MonitorWidgetSpec.getRevision(oldData);
+        mergedData.setInteger("revision", previousRevision + 1);
         int newInterval = getSafeInt(mergedData, "interval", 20);
 
         // --- 新增：如果是 Crafting 类型，补全缺失的渲染默认值（仅当字段不存在时）---
@@ -395,6 +636,9 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         // 更新数据绑定列表
         StorageLinkWatchSync.onBindingChanged(worldObj, oldData, mergedData);
         dataBoundList.put(index, mergedData);
+        if (thresholdConfigurationChanged) {
+            thresholdRuntime.resetBindingState(index);
+        }
         markDirty();
         syncData();
 
@@ -412,6 +656,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                 tickCounters.put(index, 0);
             }
         }
+        refreshThresholdOutputs();
     }
 
     public void processDataImmediately(int index, NBTTagCompound nbt) {
@@ -450,8 +695,11 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         if (dataBoundList.containsKey(index)) {
             StorageLinkWatchSync.releaseIfStorageLink(worldObj, dataBoundList.get(index));
             dataBoundList.remove(index);
+            tickCounters.remove(index);
+            thresholdRuntime.removeBinding(index);
             markDirty();
             syncData();
+            refreshThresholdOutputs();
         }
     }
 
@@ -461,7 +709,9 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             NBTTagCompound tag = new NBTTagCompound();
             writeSyncNBT(tag);
             PacketSynTileEntity packet = new PacketSynTileEntity(xCoord, yCoord, zCoord, tag);
-            AdvanceDataMonitor.ADMCHANEL.sendToDimension(packet, worldObj.provider.dimensionId);
+            if (packet.fitsPacketBudget()) {
+                AdvanceDataMonitor.ADMCHANEL.sendToDimension(packet, worldObj.provider.dimensionId);
+            }
         }
     }
 
@@ -525,23 +775,149 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     }
 
     private void addData(int index, double value, NBTTagCompound nbt) {
+        thresholdRuntime.recordSample(index, value);
         NBTTagList dataValues = nbt.getTagList("dataValues", 10);
 
         NBTTagCompound dataPoint = new NBTTagCompound();
         dataPoint.setDouble("data", value);
         dataValues.appendTag(dataPoint);
 
-        int dataLimit = getSafeInt(nbt, "dataLimit", 10);
-        while (dataValues.tagCount() > dataLimit) {
-            dataValues.removeTag(0);
-        }
-
+        trimDataValues(nbt, dataValues);
         nbt.setTag("dataValues", dataValues);
+        int revision = bumpBindingRevision(nbt);
         markDirty();
-        tickSyncPending = true;
+        if (worldObj != null && !worldObj.isRemote) {
+            NBTTagList deltaList = new NBTTagList();
+            deltaList.appendTag(dataPoint.copy());
+            sendBindingDelta(index, revision, false, null, deltaList);
+        }
     }
 
     // ========================= 安全访问方法 =========================//
+    private void trimDataValues(NBTTagCompound nbt, NBTTagList dataValues) {
+        int dataLimit = Math.max(2, getSafeInt(nbt, "dataLimit", 10));
+        while (dataValues.tagCount() > dataLimit) {
+            dataValues.removeTag(0);
+        }
+    }
+
+    private int bumpBindingRevision(NBTTagCompound nbt) {
+        int revision = MonitorWidgetSpec.getRevision(nbt) + 1;
+        nbt.setInteger("revision", revision);
+        return revision;
+    }
+
+    private boolean sameThresholdConfiguration(NBTTagCompound left, NBTTagCompound right) {
+        NBTTagCompound normalizedLeft = left == null ? createDefaultNBT() : (NBTTagCompound) left.copy();
+        NBTTagCompound normalizedRight = right == null ? createDefaultNBT() : (NBTTagCompound) right.copy();
+        MonitorWidgetSpec.normalizeBinding(normalizedLeft, xCoord, yCoord, zCoord);
+        MonitorWidgetSpec.normalizeBinding(normalizedRight, xCoord, yCoord, zCoord);
+        NBTTagCompound leftThreshold = normalizedLeft.getCompoundTag(MonitorWidgetSpec.THRESHOLD_KEY);
+        NBTTagCompound rightThreshold = normalizedRight.getCompoundTag(MonitorWidgetSpec.THRESHOLD_KEY);
+        return leftThreshold.getBoolean("enabled") == rightThreshold.getBoolean("enabled")
+            && leftThreshold.getString("operator")
+                .equals(rightThreshold.getString("operator"))
+            && Double.doubleToLongBits(leftThreshold.getDouble("value"))
+                == Double.doubleToLongBits(rightThreshold.getDouble("value"))
+            && Double.doubleToLongBits(leftThreshold.getDouble("hysteresis"))
+                == Double.doubleToLongBits(rightThreshold.getDouble("hysteresis"))
+            && Double.doubleToLongBits(leftThreshold.getDouble("outputMin"))
+                == Double.doubleToLongBits(rightThreshold.getDouble("outputMin"))
+            && Double.doubleToLongBits(leftThreshold.getDouble("outputMax"))
+                == Double.doubleToLongBits(rightThreshold.getDouble("outputMax"));
+    }
+
+    private void refreshThresholdOutputs() {
+        MonitorThresholdRuntime.Output output = thresholdRuntime.evaluate(dataBoundList);
+        if (!output.isChanged() || worldObj == null || worldObj.isRemote) {
+            return;
+        }
+        markDirty();
+        net.minecraft.block.Block block = getBlockType();
+        if (block != null) {
+            worldObj.notifyBlocksOfNeighborChange(xCoord, yCoord, zCoord, block);
+            worldObj.func_147453_f(xCoord, yCoord, zCoord, block);
+        }
+    }
+
+    public int getWeakPowerOutput() {
+        return thresholdRuntime.getWeakPower();
+    }
+
+    public int getStrongPowerOutput() {
+        return thresholdRuntime.getStrongPower();
+    }
+
+    private void notifyBindingFieldUpdate(int index, NBTTagCompound nbt, String... keys) {
+        int revision = bumpBindingRevision(nbt);
+        markDirty();
+        if (worldObj != null && !worldObj.isRemote) {
+            NBTTagCompound fieldPatch = new NBTTagCompound();
+            for (String key : keys) {
+                if (nbt.hasKey(key)) {
+                    fieldPatch.setTag(
+                        key,
+                        nbt.getTag(key)
+                            .copy());
+                }
+            }
+            sendBindingDelta(index, revision, false, fieldPatch, null);
+        }
+    }
+
+    private void sendBindingDelta(int index, int revision, boolean replaceHistory, NBTTagCompound fieldPatch,
+        NBTTagList appendedData) {
+        if (worldObj == null || worldObj.isRemote) {
+            return;
+        }
+        PacketMonitorBindingDelta packet = new PacketMonitorBindingDelta(
+            xCoord,
+            yCoord,
+            zCoord,
+            index,
+            revision,
+            replaceHistory,
+            fieldPatch,
+            appendedData);
+        AdvanceDataMonitor.ADMCHANEL.sendToAllAround(
+            packet,
+            new TargetPoint(worldObj.provider.dimensionId, xCoord + 0.5D, yCoord + 0.5D, zCoord + 0.5D, 160.0D));
+    }
+
+    public void applyBindingDelta(int index, int revision, NBTTagCompound fieldPatch, NBTTagList appendedData,
+        boolean replaceHistory) {
+        NBTTagCompound nbt = dataBoundList.get(index);
+        if (nbt == null) {
+            nbt = createDefaultNBT();
+            dataBoundList.put(index, nbt);
+        }
+        MonitorWidgetSpec.normalizeBinding(nbt, xCoord, yCoord, zCoord);
+        if (revision < MonitorWidgetSpec.getRevision(nbt)) {
+            return;
+        }
+        if (fieldPatch != null) {
+            for (Object keyObj : fieldPatch.func_150296_c()) {
+                String key = String.valueOf(keyObj);
+                nbt.setTag(
+                    key,
+                    fieldPatch.getTag(key)
+                        .copy());
+            }
+        }
+        if (appendedData != null) {
+            NBTTagList dataValues = replaceHistory ? new NBTTagList() : nbt.getTagList("dataValues", 10);
+            for (int i = 0; i < appendedData.tagCount(); i++) {
+                dataValues.appendTag(
+                    appendedData.getCompoundTagAt(i)
+                        .copy());
+            }
+            trimDataValues(nbt, dataValues);
+            nbt.setTag("dataValues", dataValues);
+        }
+        nbt.setInteger("revision", revision);
+        MonitorWidgetSpec.normalizeBinding(nbt, xCoord, yCoord, zCoord);
+    }
+
     private String getSafeString(NBTTagCompound nbt, String key, String defaultValue) {
         return (nbt != null && nbt.hasKey(key)) ? nbt.getString(key) : defaultValue;
     }
@@ -575,6 +951,8 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     private void handleNullDataBound(int index) {
         AdvanceDataMonitor.LOG.warn("Null data bound at index {}, removing", index);
         dataBoundList.remove(index);
+        tickCounters.remove(index);
+        thresholdRuntime.removeBinding(index);
         markDirty();
         syncData();
     }
@@ -589,6 +967,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
             int index = Integer.parseInt(keyStr.substring(11));
             NBTTagCompound boundData = displayDataNBT.getCompoundTag(keyStr);
             if (boundData != null) {
+                MonitorWidgetSpec.normalizeBinding(boundData, xCoord, yCoord, zCoord);
                 dataBoundList.put(index, boundData);
             }
         } catch (NumberFormatException e) {
@@ -611,6 +990,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
                 input.getTag(keyStr)
                     .copy());
         }
+        MonitorWidgetSpec.normalizeBinding(merged, xCoord, yCoord, zCoord);
         return merged;
     }
 
@@ -679,6 +1059,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         defaultData.setInteger("itemNameOrder", 2);
         defaultData.setInteger("storageSortMode", 0);
         defaultData.setTag("storageItems", new NBTTagList());
+        MonitorWidgetSpec.normalizeBinding(defaultData, xCoord, yCoord, zCoord);
         return defaultData;
     }
 
@@ -1237,7 +1618,7 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
     // ========================= 数据值访问方法 =========================//
     public NBTTagList getDataValues(int index) {
         NBTTagCompound nbt = getDataBound(index);
-        NBTTagList list = nbt.getTagList("dataValues", 6);
+        NBTTagList list = nbt.getTagList("dataValues", 10);
         return list != null ? list : new NBTTagList();
     }
 
@@ -1245,7 +1626,10 @@ public class TileEntityAdvanceDataMonitor extends TileEntity implements IOwnable
         List<Double> values = new ArrayList<>();
         NBTTagList list = getDataValues(index);
         for (int i = 0; i < list.tagCount(); i++) {
-            values.add(list.func_150309_d(i));
+            values.add(
+                Double.valueOf(
+                    list.getCompoundTagAt(i)
+                        .getDouble("data")));
         }
         return values;
     }

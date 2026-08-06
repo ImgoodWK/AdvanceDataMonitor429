@@ -5,9 +5,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -15,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
+import com.imgood.textech.webae.access.WebAeNetworkAccess;
 import com.imgood.textech.webae.auth.WebAuthAdminCheck;
 import com.imgood.textech.webae.auth.WebAuthSession;
 import com.imgood.textech.webae.events.EventStreamHub;
@@ -45,6 +53,8 @@ public class IconHandler {
 
     private static final Gson GSON = new GsonBuilder().serializeNulls()
         .create();
+    private static final int MAX_UPLOAD_BODY_BYTES = 32 * 1024 * 1024;
+    private static final int MAX_TOTAL_ICON_BYTES = 16 * 1024 * 1024;
 
     public static NanoHTTPD.Response handle(String uri, NanoHTTPD.IHTTPSession session, WebAuthSession auth,
         String adminHeader) {
@@ -234,7 +244,7 @@ public class IconHandler {
         if (!Config.webIconDirectRenderEnabled) return null;
         byte[] png = IconDirectCaptureBridge.instance()
             .requestRender(pack, mode, itemId, Config.webIconDirectRenderTimeoutMs);
-        if (png == null || png.length == 0) return null;
+        if (!IconStore.isValidPng(png)) return null;
         scheduleAsyncWrite(pack, mode, itemId, png);
         return png;
     }
@@ -282,6 +292,10 @@ public class IconHandler {
                 NanoHTTPD.Response.Status.FORBIDDEN,
                 "{\"success\":false,\"message\":\"Icon pack upload/switch is disabled\"}");
         }
+        NanoHTTPD.Response guestDenied = WebAeNetworkAccess.assertCanWrite(auth);
+        if (guestDenied != null) {
+            return guestDenied;
+        }
         if (!WebAuthAdminCheck.isAdmin(auth, adminHeader)) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.FORBIDDEN,
@@ -293,62 +307,93 @@ public class IconHandler {
                 NanoHTTPD.Response.Status.BAD_REQUEST,
                 "{\"success\":false,\"message\":\"Missing or invalid 'pack' name\"}");
         }
-        byte[] body = readBodyBytes(session);
+        byte[] body = readBodyBytes(session, MAX_UPLOAD_BODY_BYTES);
         if (body == null || body.length == 0) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.BAD_REQUEST,
-                "{\"success\":false,\"message\":\"Empty zip body\"}");
+                "{\"success\":false,\"message\":\"Empty or oversized zip body\"}");
         }
         File packDir = new File(
             IconStore.instance()
                 .getBaseDir(),
             packName);
-        if (!packDir.exists()) packDir.mkdirs();
 
         int extracted = 0;
+        long totalIconBytes = 0L;
+        List<StagedIcon> staged = new ArrayList<StagedIcon>();
+        Set<String> stagedTargets = new HashSet<String>();
         ZipInputStream zis = null;
         try {
             zis = new ZipInputStream(new java.io.ByteArrayInputStream(body));
             ZipEntry entry;
+            int entryCount = 0;
+            String canonicalPack = packDir.getCanonicalPath();
             while ((entry = zis.getNextEntry()) != null) {
+                entryCount++;
+                if (entryCount > IconStore.MAX_ICON_PACK_ENTRIES) {
+                    throw new IOException("Too many zip entries");
+                }
                 if (entry.isDirectory()) {
                     zis.closeEntry();
                     continue;
                 }
                 String name = entry.getName();
-                if (!name.toLowerCase()
+                if (name == null || !name.toLowerCase()
                     .endsWith(".png")) {
                     zis.closeEntry();
                     continue;
                 }
-                File outFile = new File(packDir, new File(name).getName());
-                String canonicalPack = packDir.getCanonicalPath();
+                String normalizedName = name.replace('\\', '/');
+                int slash = normalizedName.lastIndexOf('/');
+                String baseName = slash >= 0 ? normalizedName.substring(slash + 1) : normalizedName;
+                String itemId = baseName.substring(0, baseName.length() - 4);
+                if (!IconStore.isValidItemId(itemId)) {
+                    throw new IOException("Invalid icon entry name");
+                }
+                String safeName = IconStore.sanitizeItemId(itemId) + ".png";
+                File outFile = new File(packDir, safeName);
                 String canonicalOut = outFile.getCanonicalPath();
                 if (!canonicalOut.startsWith(canonicalPack + File.separator)) {
-                    AdvanceDataMonitor.LOG.warn("[WebAE] Icon pack upload rejected path traversal: {}", name);
-                    zis.closeEntry();
-                    continue;
+                    throw new IOException("Icon pack path traversal");
+                }
+                if (!stagedTargets.add(canonicalOut)) {
+                    throw new IOException("Duplicate icon entry");
                 }
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 byte[] buf = new byte[4096];
                 int n;
-                while ((n = zis.read(buf)) > 0) {
+                while ((n = zis.read(buf)) >= 0) {
+                    if (n == 0) {
+                        continue;
+                    }
+                    if (baos.size() > IconStore.MAX_PNG_BYTES - n) {
+                        throw new IOException("Icon entry exceeds size limit");
+                    }
                     baos.write(buf, 0, n);
                 }
-                FileOutputStream fos = new FileOutputStream(outFile);
-                try {
-                    fos.write(baos.toByteArray());
-                } finally {
-                    fos.close();
+                byte[] icon = baos.toByteArray();
+                if (!IconStore.isValidPng(icon)) {
+                    throw new IOException("Icon entry is not a valid bounded PNG");
                 }
+                totalIconBytes += icon.length;
+                if (totalIconBytes > MAX_TOTAL_ICON_BYTES) {
+                    throw new IOException("Icon pack exceeds total size limit");
+                }
+                staged.add(new StagedIcon(outFile, icon));
                 extracted++;
                 zis.closeEntry();
+            }
+            if (staged.isEmpty()) {
+                throw new IOException("Icon pack contains no valid PNG entries");
+            }
+            if (!promoteStagedIcons(staged)) {
+                throw new IOException("Failed to promote icon pack");
             }
         } catch (Exception e) {
             AdvanceDataMonitor.LOG.error("[WebAE] Failed to extract icon pack zip", e);
             return jsonResponse(
                 NanoHTTPD.Response.Status.INTERNAL_ERROR,
-                "{\"success\":false,\"message\":\"Zip extraction failed: " + e.getMessage() + "\"}");
+                "{\"success\":false,\"message\":\"Zip extraction failed\"}");
         } finally {
             if (zis != null) {
                 try {
@@ -384,26 +429,140 @@ public class IconHandler {
         return "\"" + Integer.toHexString(h) + "\"";
     }
 
-    private static byte[] readBodyBytes(NanoHTTPD.IHTTPSession session) {
+    private static byte[] readBodyBytes(NanoHTTPD.IHTTPSession session, int maxBytes) {
         try {
-            int contentLength = 0;
+            if (session == null || maxBytes <= 0) {
+                return null;
+            }
             String cl = session.getHeaders()
                 .get("content-length");
-            if (cl != null) {
-                contentLength = Integer.parseInt(cl.trim());
+            if (cl == null) {
+                return null;
             }
-            if (contentLength <= 0) return new byte[0];
+            long declaredLength = Long.parseLong(cl.trim());
+            if (declaredLength <= 0 || declaredLength > maxBytes) {
+                return null;
+            }
+            int contentLength = (int) declaredLength;
             byte[] buffer = new byte[contentLength];
             InputStream is = session.getInputStream();
             int read = 0;
             while (read < contentLength) {
                 int r = is.read(buffer, read, contentLength - read);
-                if (r < 0) break;
+                if (r < 0) return null;
+                if (r == 0) continue;
                 read += r;
             }
             return buffer;
         } catch (Exception e) {
-            return new byte[0];
+            return null;
+        }
+    }
+
+    /** Promote a fully validated pack as one best-effort transaction with rollback on failure. */
+    private static boolean promoteStagedIcons(List<StagedIcon> icons) {
+        if (icons == null || icons.isEmpty()) return false;
+        boolean promotedAll = false;
+        try {
+            for (StagedIcon icon : icons) {
+                if (icon == null || icon.file == null || icon.bytes == null || !IconStore.isValidPng(icon.bytes)) {
+                    return false;
+                }
+                File parent = icon.file.getParentFile();
+                if (parent == null || (!parent.exists() && !parent.mkdirs())) return false;
+                icon.stagedFile = File.createTempFile("webae-icon-stage-", ".tmp", parent);
+                writeFile(icon.stagedFile, icon.bytes);
+            }
+            for (StagedIcon icon : icons) {
+                File parent = icon.file.getParentFile();
+                if (icon.file.isFile()) {
+                    icon.backupFile = File.createTempFile("webae-icon-backup-", ".bak", parent);
+                    moveAtomically(icon.file, icon.backupFile);
+                }
+                moveAtomically(icon.stagedFile, icon.file);
+                icon.stagedFile = null;
+                icon.promoted = true;
+            }
+            promotedAll = true;
+            return true;
+        } catch (Exception e) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to promote staged icon pack: {}", e.getMessage());
+            return false;
+        } finally {
+            if (!promotedAll) {
+                rollbackStagedIcons(icons);
+            }
+            for (StagedIcon icon : icons) {
+                if (icon == null) continue;
+                deleteQuietly(icon.stagedFile);
+                if (promotedAll) {
+                    deleteQuietly(icon.backupFile);
+                }
+            }
+        }
+    }
+
+    private static void rollbackStagedIcons(List<StagedIcon> icons) {
+        for (int i = icons.size() - 1; i >= 0; i--) {
+            StagedIcon icon = icons.get(i);
+            if (icon == null || icon.file == null) continue;
+            if (icon.promoted) {
+                deleteQuietly(icon.file);
+            }
+            if (icon.backupFile != null && icon.backupFile.isFile()) {
+                try {
+                    moveAtomically(icon.backupFile, icon.file);
+                    icon.backupFile = null;
+                } catch (IOException e) {
+                    AdvanceDataMonitor.LOG
+                        .warn("[WebAE] Failed to restore previous icon {}: {}", icon.file.getName(), e.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void writeFile(File target, byte[] bytes) throws IOException {
+        FileOutputStream output = null;
+        try {
+            output = new FileOutputStream(target);
+            output.write(bytes);
+            output.flush();
+        } finally {
+            if (output != null) output.close();
+        }
+    }
+
+    private static void moveAtomically(File source, File target) throws IOException {
+        try {
+            Files.move(
+                source.toPath(),
+                target.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (UnsupportedOperationException e) {
+            Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void deleteQuietly(File file) {
+        if (file != null && file.exists() && !file.delete()) {
+            AdvanceDataMonitor.LOG.debug("[WebAE] Failed to remove temporary icon file {}", file.getAbsolutePath());
+        }
+    }
+
+    private static final class StagedIcon {
+
+        final File file;
+        final byte[] bytes;
+        File stagedFile;
+        File backupFile;
+        boolean promoted;
+
+        StagedIcon(File file, byte[] bytes) {
+            this.file = file;
+            this.bytes = bytes;
         }
     }
 

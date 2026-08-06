@@ -16,24 +16,39 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 public class HandlerNetwork implements IMessageHandler<PacketItemNBT, IMessage> {
 
     @Override
-    public IMessage onMessage(PacketItemNBT message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-        if (!NetworkValidationUtil.isValidInventorySlot(player, message.slot)) {
+    public IMessage onMessage(final PacketItemNBT message, final MessageContext ctx) {
+        if (message == null || message.malformed) {
             return null;
+        }
+        return PacketHandlers.runOnServer(ctx, new Runnable() {
+
+            @Override
+            public void run() {
+                handleOnServerThread(message, ctx.getServerHandler().playerEntity);
+            }
+        });
+    }
+
+    private void handleOnServerThread(PacketItemNBT message, EntityPlayerMP player) {
+        if (player == null) {
+            return;
+        }
+        if (!NetworkValidationUtil.isValidInventorySlot(player, message.slot)) {
+            return;
         }
         ItemStack stack = player.inventory.getStackInSlot(message.slot);
         if (stack == null || !(stack.getItem() instanceof ItemDataImprint)) {
-            return null;
+            return;
         }
         if (message.position == null || message.textData == null) {
-            return null;
+            return;
         }
         if (message.textData.length() > 4096) {
-            return null;
+            return;
         }
         if (!NetworkValidationUtil
             .isWithinReach(player, message.position.getX(), message.position.getY(), message.position.getZ())) {
-            return null;
+            return;
         }
 
         NBTTagCompound nbt = stack.getTagCompound();
@@ -51,7 +66,6 @@ public class HandlerNetwork implements IMessageHandler<PacketItemNBT, IMessage> 
         stack.setTagCompound(nbt);
         syncItemStack(player, stack, message.slot);
         player.addChatMessage(new ChatComponentText("数据保存成功。"));
-        return null;
     }
 
     private void syncItemStack(EntityPlayerMP player, ItemStack stack, int slot) {

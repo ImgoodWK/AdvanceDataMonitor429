@@ -1,0 +1,1 @@
+"""Link-summary AstrBot plugin."""

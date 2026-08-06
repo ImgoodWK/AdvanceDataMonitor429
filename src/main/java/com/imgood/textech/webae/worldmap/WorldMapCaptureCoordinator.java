@@ -1,9 +1,14 @@
 package com.imgood.textech.webae.worldmap;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,6 +17,8 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
@@ -27,6 +34,10 @@ import cpw.mods.fml.common.FMLCommonHandler;
 public final class WorldMapCaptureCoordinator {
 
     private static final WorldMapCaptureCoordinator INSTANCE = new WorldMapCaptureCoordinator();
+    static final int MAX_ACTIVE_JOBS = 32;
+    static final long ACTIVE_JOB_IDLE_TTL_MS = 90L * 60L * 1000L;
+    static final long ACTIVE_JOB_ABSOLUTE_TTL_MS = 2L * 60L * 60L * 1000L;
+    private static final int MAX_SOURCE_STATS_KEYS = 32;
 
     private final ConcurrentHashMap<String, PendingRequest> pending = new ConcurrentHashMap<String, PendingRequest>();
     private final ConcurrentHashMap<String, ActiveJob> activeJobs = new ConcurrentHashMap<String, ActiveJob>();
@@ -43,12 +54,15 @@ public final class WorldMapCaptureCoordinator {
         Iterator<Map.Entry<String, PendingRequest>> it = pending.entrySet()
             .iterator();
         while (it.hasNext()) {
-            PendingRequest req = it.next()
-                .getValue();
-            if (req != null && now >= req.expiresAtMs) {
-                it.remove();
+            Map.Entry<String, PendingRequest> entry = it.next();
+            PendingRequest req = entry.getValue();
+            if (req == null) {
+                pending.remove(entry.getKey());
+            } else if (now >= req.expiresAtMs) {
+                pending.remove(entry.getKey(), req);
             }
         }
+        pruneActiveJobs(now);
     }
 
     public String requestSnapshot(String ownerUuid, int networkId, String requesterUuid, String requesterName,
@@ -74,6 +88,9 @@ public final class WorldMapCaptureCoordinator {
             return null;
         }
         List<WorldMapMarkerDto> markers = WorldMapMarkerBuilder.fromLogicalSnapshot(logical);
+        // Capture setup and this bounded copy are derived from the same logical
+        // topology object; the copy survives a consent delay safely.
+        WorldMapLogicalIndex logicalIndex = WorldMapLogicalIndex.fromSnapshot(logical, 0);
         WorldMapMetaDto meta = WorldMapBoundsBuilder.buildMeta(ownerUuid, networkId, logical, markers);
         if (meta == null || meta.dimensions == null || meta.dimensions.isEmpty()) {
             return null;
@@ -85,7 +102,18 @@ public final class WorldMapCaptureCoordinator {
         }
 
         if (fromCommand && ownerIsRequester && Config.worldMapOwnerSkipConsent) {
-            return startJobDirect(ownerUuid, networkId, requesterUuid, requesterName, chunks, meta);
+            String jobId = startJobDirect(
+                ownerUuid,
+                networkId,
+                requesterUuid,
+                requesterName,
+                chunks,
+                meta,
+                logicalIndex);
+            if (jobId != null) {
+                lastRequestMs.put(cooldownKey, now);
+            }
+            return jobId;
         }
 
         List<EntityPlayerMP> nearby = findNearbyPlayers(meta);
@@ -107,6 +135,7 @@ public final class WorldMapCaptureCoordinator {
         req.expiresAtMs = expires;
         req.chunks = new ArrayList<String>(chunks);
         req.meta = meta;
+        req.logicalIndex = WorldMapLogicalIndex.copyOf(logicalIndex);
         pending.put(requestId, req);
         lastRequestMs.put(cooldownKey, now);
 
@@ -157,18 +186,72 @@ public final class WorldMapCaptureCoordinator {
                 .toString(),
             player.getDisplayName(),
             req.chunks,
-            req.meta);
+            req.meta,
+            req.logicalIndex);
         return jobId != null;
     }
 
-    public void onTileUploaded(String ownerUuid, int networkId, int version, String layer, int dim, int chunkX,
+    public boolean isActiveJobPlayer(String ownerUuid, int networkId, int version, EntityPlayerMP player) {
+        if (player == null || ownerUuid == null || ownerUuid.isEmpty()) {
+            return false;
+        }
+        ActiveJob job = activeJobs.get(jobKey(ownerUuid, networkId, version));
+        return job != null && !isActiveJobExpired(job, System.currentTimeMillis())
+            && job.playerUuid != null
+            && job.playerUuid.equals(
+                player.getUniqueID()
+                    .toString());
+    }
+
+    public boolean hasActiveJob(String ownerUuid, int networkId, int version) {
+        if (ownerUuid == null) {
+            return false;
+        }
+        ActiveJob job = activeJobs.get(jobKey(ownerUuid, networkId, version));
+        return job != null && !isActiveJobExpired(job, System.currentTimeMillis());
+    }
+
+    public boolean isActiveJobPlayerForNetwork(String ownerUuid, int networkId, EntityPlayerMP player) {
+        if (player == null || ownerUuid == null) {
+            return false;
+        }
+        String actorUuid = player.getUniqueID()
+            .toString();
+        long now = System.currentTimeMillis();
+        for (ActiveJob job : activeJobs.values()) {
+            if (job != null && ownerUuid.equals(job.ownerUuid)
+                && job.networkId == networkId
+                && actorUuid.equals(job.playerUuid)
+                && !isActiveJobExpired(job, now)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isExpectedTile(String ownerUuid, int networkId, int version, String layer, int dim, int chunkX,
         int chunkZ) {
+        ActiveJob job = activeJobs.get(jobKey(ownerUuid, networkId, version));
+        return !isActiveJobExpired(job, System.currentTimeMillis()) && isExpectedTile(job, layer, dim, chunkX, chunkZ);
+    }
+
+    public boolean onTileUploaded(EntityPlayerMP player, String ownerUuid, int networkId, int version, String layer,
+        int dim, int chunkX, int chunkZ) {
         String jobKey = jobKey(ownerUuid, networkId, version);
         ActiveJob job = activeJobs.get(jobKey);
-        if (job == null) {
-            return;
+        boolean authorizedActor = player != null && (WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid)
+            || isActiveJobPlayer(ownerUuid, networkId, version, player));
+        if (job == null || isActiveJobExpired(job, System.currentTimeMillis())
+            || !authorizedActor
+            || !isExpectedTile(job, layer, dim, chunkX, chunkZ)) {
+            return false;
         }
-        job.completed++;
+        String tileKey = WorldMapSnapshotManifest.tileKey(layer, dim, chunkX, chunkZ);
+        boolean firstUpload = job.manifest == null || job.manifest.tiles == null
+            || !job.manifest.tiles.containsKey(tileKey);
+        if (firstUpload) {
+            job.completed++;
+        }
         if (job.manifest != null) {
             WorldMapSnapshotStore.registerTileInManifest(
                 job.manifest,
@@ -178,26 +261,83 @@ public final class WorldMapCaptureCoordinator {
                 chunkZ,
                 readTileBytes(ownerUuid, networkId, version, layer, dim, chunkX, chunkZ));
         }
+        job.lastTouchedMs = System.currentTimeMillis();
+        return true;
     }
 
-    public void onSnapshotComplete(String ownerUuid, int networkId, int version, String source, String sourceStatsJson,
-        int tilePx) {
+    public boolean onSnapshotComplete(EntityPlayerMP player, String ownerUuid, int networkId, int version,
+        String source, String sourceStatsJson, int tilePx) {
         String jobKey = jobKey(ownerUuid, networkId, version);
-        ActiveJob job = activeJobs.remove(jobKey);
-        if (job != null && job.manifest != null) {
-            applyFinalizeManifest(job.manifest, source, sourceStatsJson, tilePx);
-            WorldMapSnapshotStore.finalizeSnapshot(job.manifest);
-        } else {
-            WorldMapSnapshotManifest manifest = WorldMapSnapshotStore.loadManifest(ownerUuid, networkId, version);
-            if (manifest != null) {
-                applyFinalizeManifest(manifest, source, sourceStatsJson, tilePx);
-                WorldMapSnapshotStore.finalizeSnapshot(manifest);
+        ActiveJob job = activeJobs.get(jobKey);
+        boolean authorizedActor = player != null && (WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid)
+            || isActiveJobPlayer(ownerUuid, networkId, version, player));
+        if (job == null || !authorizedActor
+            || job.manifest == null
+            || isActiveJobExpired(job, System.currentTimeMillis())
+            || !WorldMapPacketAuthorization.isValidSource(source)
+            || !WorldMapPacketAuthorization.isValidTilePx(tilePx)) {
+            return false;
+        }
+        Map<String, Integer> sourceStats = parseSourceStats(sourceStatsJson);
+        if (sourceStats == null) {
+            return false;
+        }
+        applyFinalizeManifest(job.manifest, source, sourceStats, tilePx);
+        // The logical index is optional metadata. Its failure must not make
+        // the independently captured terrain snapshot fail to finalize.
+        try {
+            WorldMapLogicalIndex sidecar = WorldMapLogicalIndex.copyOf(job.logicalIndex);
+            sidecar.version = version;
+            if (!WorldMapSnapshotStore.saveLogicalIndex(ownerUuid, networkId, version, sidecar)) {
+                AdvanceDataMonitor.LOG.warn(
+                    "[WebAE] Logical world map sidecar unavailable for owner={} network={} version={}",
+                    ownerUuid,
+                    networkId,
+                    version);
+            }
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] Logical world map sidecar write failed owner={} network={} version={}",
+                ownerUuid,
+                networkId,
+                version,
+                t);
+        }
+        if (!WorldMapSnapshotStore.finalizeSnapshot(job.manifest)) {
+            return false;
+        }
+        activeJobs.remove(jobKey, job);
+        return true;
+    }
+
+    private static boolean isExpectedTile(ActiveJob job, String layer, int dim, int chunkX, int chunkZ) {
+        if (job == null || job.manifest == null
+            || layer == null
+            || layer.trim()
+                .isEmpty()) {
+            return false;
+        }
+        if (job.manifest.layers != null && !job.manifest.layers.isEmpty()
+            && !job.manifest.layers.contains(WorldMapTileLayer.normalize(layer))) {
+            return false;
+        }
+        if (job.manifest.dimensions == null) {
+            return false;
+        }
+        for (WorldMapSnapshotManifest.DimensionEntry entry : job.manifest.dimensions) {
+            if (entry == null || entry.dim != dim || entry.chunks == null) {
+                continue;
+            }
+            String pair = chunkX + "," + chunkZ;
+            if (entry.chunks.contains(pair)) {
+                return true;
             }
         }
+        return false;
     }
 
-    private static void applyFinalizeManifest(WorldMapSnapshotManifest manifest, String source, String sourceStatsJson,
-        int tilePx) {
+    private static void applyFinalizeManifest(WorldMapSnapshotManifest manifest, String source,
+        Map<String, Integer> sourceStats, int tilePx) {
         if (manifest == null) {
             return;
         }
@@ -207,61 +347,81 @@ public final class WorldMapCaptureCoordinator {
         if (tilePx > 0) {
             manifest.tilePx = tilePx;
         }
-        manifest.sourceStats = parseSourceStats(sourceStatsJson);
+        manifest.sourceStats = sourceStats;
         manifest.timestamp = System.currentTimeMillis();
     }
 
-    private static java.util.Map<String, Integer> parseSourceStats(String json) {
-        java.util.Map<String, Integer> out = new java.util.HashMap<String, Integer>();
+    static Map<String, Integer> parseSourceStats(String json) {
         if (json == null || json.trim()
-            .isEmpty() || "{}".equals(json.trim())) {
-            return out;
+            .isEmpty()) {
+            return null;
         }
-        String trimmed = json.trim();
-        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
-            return out;
-        }
-        String body = trimmed.substring(1, trimmed.length() - 1)
-            .trim();
-        if (body.isEmpty()) {
-            return out;
-        }
-        String[] pairs = body.split(",");
-        for (String pair : pairs) {
-            if (pair == null || pair.trim()
-                .isEmpty()) {
-                continue;
+        JsonReader reader = new JsonReader(new StringReader(json));
+        reader.setLenient(false);
+        Map<String, Integer> out = new LinkedHashMap<String, Integer>();
+        Set<String> seen = new HashSet<String>();
+        long total = 0L;
+        try {
+            if (reader.peek() != JsonToken.BEGIN_OBJECT) {
+                return null;
             }
-            int colon = pair.indexOf(':');
-            if (colon <= 0) {
-                continue;
+            reader.beginObject();
+            while (reader.hasNext()) {
+                if (seen.size() >= MAX_SOURCE_STATS_KEYS) {
+                    return null;
+                }
+                String key = reader.nextName();
+                if (!("dynmap".equals(key) || "journeymap".equals(key) || "client_gl".equals(key)) || !seen.add(key)
+                    || reader.peek() != JsonToken.NUMBER) {
+                    return null;
+                }
+                String rawValue = reader.nextString();
+                if (rawValue == null || rawValue.isEmpty()) {
+                    return null;
+                }
+                for (int i = 0; i < rawValue.length(); i++) {
+                    char c = rawValue.charAt(i);
+                    if (c < '0' || c > '9') {
+                        return null;
+                    }
+                }
+                int value;
+                try {
+                    value = Integer.parseInt(rawValue);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+                if (value < 0 || value > PacketWorldMapCaptureJob.MAX_TOTAL_CHUNKS
+                    || total > PacketWorldMapCaptureJob.MAX_TOTAL_CHUNKS - value) {
+                    return null;
+                }
+                total += value;
+                out.put(key, Integer.valueOf(value));
             }
-            String key = pair.substring(0, colon)
-                .trim();
-            if (key.startsWith("\"") && key.endsWith("\"") && key.length() >= 2) {
-                key = key.substring(1, key.length() - 1);
-            }
+            reader.endObject();
+            return reader.peek() == JsonToken.END_DOCUMENT ? out : null;
+        } catch (IOException | RuntimeException e) {
+            return null;
+        } finally {
             try {
-                int value = Integer.parseInt(
-                    pair.substring(colon + 1)
-                        .trim());
-                out.put(key, value);
-            } catch (NumberFormatException ignored) {}
+                reader.close();
+            } catch (IOException ignored) {}
         }
-        return out;
     }
 
     public ActiveJob getActiveJob(String ownerUuid, int networkId) {
-        int version = WorldMapSnapshotStore.currentVersion(ownerUuid, networkId);
-        if (version <= 0) {
-            for (ActiveJob job : activeJobs.values()) {
-                if (job != null && ownerUuid.equals(job.ownerUuid) && job.networkId == networkId) {
-                    return job;
-                }
-            }
+        if (ownerUuid == null) {
             return null;
         }
-        return activeJobs.get(jobKey(ownerUuid, networkId, version));
+        long now = System.currentTimeMillis();
+        for (ActiveJob job : activeJobs.values()) {
+            if (job != null && ownerUuid.equals(job.ownerUuid)
+                && job.networkId == networkId
+                && !isActiveJobExpired(job, now)) {
+                return job;
+            }
+        }
+        return null;
     }
 
     public PendingRequest getPendingForNetwork(String ownerUuid, int networkId) {
@@ -368,7 +528,11 @@ public final class WorldMapCaptureCoordinator {
     }
 
     private String startJobDirect(String ownerUuid, int networkId, String playerUuid, String playerName,
-        List<String> chunks, WorldMapMetaDto meta) {
+        List<String> chunks, WorldMapMetaDto meta, WorldMapLogicalIndex logicalIndex) {
+        EntityPlayerMP target = findPlayerByUuid(playerUuid);
+        if (target == null || getActiveJob(ownerUuid, networkId) != null || hasActiveJobForPlayer(playerUuid)) {
+            return null;
+        }
         int version = WorldMapSnapshotStore.allocateNextVersion(ownerUuid, networkId);
         WorldMapSnapshotManifest manifest = new WorldMapSnapshotManifest();
         manifest.version = version;
@@ -397,31 +561,65 @@ public final class WorldMapCaptureCoordinator {
                 manifest.dimensions.add(entry);
             }
         }
-        WorldMapSnapshotStore.saveManifest(manifest);
+
+        List<PacketWorldMapCaptureJob> pages;
+        try {
+            pages = PacketWorldMapCaptureJob.createPages(
+                ownerUuid,
+                networkId,
+                version,
+                chunks,
+                manifest.tilePx,
+                Config.worldMapSnapshotSourcePriority);
+        } catch (IllegalArgumentException e) {
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] Refusing invalid world map capture job owner={} network={}: {}",
+                ownerUuid,
+                networkId,
+                e.getMessage());
+            return null;
+        }
+        if (!WorldMapSnapshotStore.saveManifest(manifest)) {
+            WorldMapSnapshotStore.discardUnpublishedSnapshot(ownerUuid, networkId, version);
+            return null;
+        }
 
         ActiveJob job = new ActiveJob();
         job.ownerUuid = ownerUuid;
         job.networkId = networkId;
         job.version = version;
-        job.playerUuid = playerUuid;
-        job.playerName = playerName;
+        job.playerUuid = target.getUniqueID()
+            .toString();
+        job.playerName = playerName != null ? playerName : target.getDisplayName();
         job.totalChunks = chunks != null ? chunks.size() : 0;
         job.manifest = manifest;
-        activeJobs.put(jobKey(ownerUuid, networkId, version), job);
+        job.logicalIndex = WorldMapLogicalIndex.copyOf(logicalIndex)
+            .withVersion(version);
+        job.createdAtMs = System.currentTimeMillis();
+        job.lastTouchedMs = job.createdAtMs;
+        String key = jobKey(ownerUuid, networkId, version);
+        if (activeJobs.size() >= MAX_ACTIVE_JOBS || activeJobs.putIfAbsent(key, job) != null) {
+            WorldMapSnapshotStore.discardUnpublishedSnapshot(ownerUuid, networkId, version);
+            return null;
+        }
 
-        EntityPlayerMP target = findPlayerByUuid(playerUuid);
-        if (target != null) {
-            PacketWorldMapCaptureJob captureJob = new PacketWorldMapCaptureJob(
-                ownerUuid,
-                networkId,
-                version,
-                chunks,
-                manifest.tilePx);
-            captureJob.sourcePriority = Config.worldMapSnapshotSourcePriority;
-            AdvanceDataMonitor.ADMCHANEL.sendTo(captureJob, target);
+        try {
+            for (PacketWorldMapCaptureJob page : pages) {
+                AdvanceDataMonitor.ADMCHANEL.sendTo(page, target);
+            }
             target.addChatMessage(
                 new ChatComponentText(
                     EnumChatFormatting.GREEN + "[WebAE] World map snapshot capture started (v" + version + ")."));
+        } catch (RuntimeException e) {
+            activeJobs.remove(key, job);
+            WorldMapSnapshotStore.discardUnpublishedSnapshot(ownerUuid, networkId, version);
+            AdvanceDataMonitor.LOG.warn(
+                "[WebAE] Failed to send world map capture job owner={} network={} version={}",
+                ownerUuid,
+                networkId,
+                version,
+                e);
+            return null;
         }
         return String.valueOf(version);
     }
@@ -488,10 +686,13 @@ public final class WorldMapCaptureCoordinator {
         if (uuid == null || uuid.isEmpty()) {
             return null;
         }
+        net.minecraft.server.MinecraftServer server = FMLCommonHandler.instance()
+            .getMinecraftServerInstance();
+        if (server == null || server.getConfigurationManager() == null) {
+            return null;
+        }
         @SuppressWarnings("unchecked")
-        List<EntityPlayerMP> players = FMLCommonHandler.instance()
-            .getMinecraftServerInstance()
-            .getConfigurationManager().playerEntityList;
+        List<EntityPlayerMP> players = server.getConfigurationManager().playerEntityList;
         for (EntityPlayerMP player : players) {
             if (player != null && uuid.equals(
                 player.getUniqueID()
@@ -500,6 +701,65 @@ public final class WorldMapCaptureCoordinator {
             }
         }
         return null;
+    }
+
+    private boolean hasActiveJobForPlayer(String playerUuid) {
+        if (playerUuid == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        for (ActiveJob job : activeJobs.values()) {
+            if (job != null && playerUuid.equals(job.playerUuid) && !isActiveJobExpired(job, now)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void pruneActiveJobs(long nowMs) {
+        for (Map.Entry<String, ActiveJob> entry : activeJobs.entrySet()) {
+            ActiveJob job = entry.getValue();
+            if (job == null || isActiveJobExpired(job, nowMs) || findPlayerByUuid(job.playerUuid) == null) {
+                if (job == null) {
+                    activeJobs.remove(entry.getKey());
+                } else if (activeJobs.remove(entry.getKey(), job)) {
+                    WorldMapSnapshotStore.discardUnpublishedSnapshot(job.ownerUuid, job.networkId, job.version);
+                }
+            }
+        }
+    }
+
+    static boolean isActiveJobExpired(ActiveJob job, long nowMs) {
+        if (job == null || job.createdAtMs <= 0L || job.lastTouchedMs <= 0L) {
+            return true;
+        }
+        long idleAge = nowMs - job.lastTouchedMs;
+        long absoluteAge = nowMs - job.createdAtMs;
+        return idleAge >= ACTIVE_JOB_IDLE_TTL_MS || absoluteAge >= ACTIVE_JOB_ABSOLUTE_TTL_MS;
+    }
+
+    public void clearForPlayer(String playerUuid) {
+        if (playerUuid == null || playerUuid.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, ActiveJob> entry : activeJobs.entrySet()) {
+            ActiveJob job = entry.getValue();
+            if (job != null && playerUuid.equals(job.playerUuid) && activeJobs.remove(entry.getKey(), job)) {
+                WorldMapSnapshotStore.discardUnpublishedSnapshot(job.ownerUuid, job.networkId, job.version);
+            }
+        }
+    }
+
+    public void clear() {
+        for (Map.Entry<String, ActiveJob> entry : activeJobs.entrySet()) {
+            ActiveJob job = entry.getValue();
+            if (job != null && activeJobs.remove(entry.getKey(), job)) {
+                WorldMapSnapshotStore.discardUnpublishedSnapshot(job.ownerUuid, job.networkId, job.version);
+            }
+        }
+        activeJobs.clear();
+        pending.clear();
+        lastRequestMs.clear();
     }
 
     private static int[] parseChunkPair(String pair) {
@@ -550,6 +810,8 @@ public final class WorldMapCaptureCoordinator {
         public long expiresAtMs;
         public List<String> chunks;
         public WorldMapMetaDto meta;
+        /** Bounded defensive copy of the logical snapshot used for this request. */
+        public WorldMapLogicalIndex logicalIndex;
     }
 
     public static final class ActiveJob {
@@ -561,6 +823,10 @@ public final class WorldMapCaptureCoordinator {
         public String playerName;
         public int totalChunks;
         public int completed;
+        public long createdAtMs;
+        public volatile long lastTouchedMs;
         public WorldMapSnapshotManifest manifest;
+        /** Bounded defensive copy of the logical snapshot used for this job. */
+        public WorldMapLogicalIndex logicalIndex;
     }
 }

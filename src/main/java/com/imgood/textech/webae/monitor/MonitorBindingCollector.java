@@ -9,6 +9,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.WorldServer;
 
+import com.imgood.textech.monitor.MonitorWidgetSpec;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.webae.context.WebAeOwnerContext;
 import com.imgood.textech.webae.gt.GtMachineBinding;
@@ -66,14 +67,21 @@ public final class MonitorBindingCollector {
             if (nbt == null) {
                 continue;
             }
+            MonitorWidgetSpec.normalizeBinding(nbt, monitor.xCoord, monitor.yCoord, monitor.zCoord);
             MonitorDataBindingDto slot = new MonitorDataBindingDto();
             slot.slotIndex = entry.getKey();
             slot.dataType = safeString(nbt.getString("dataType"), "line");
-            slot.displayName = safeString(nbt.getString("displayName"), safeString(nbt.getString("name"), ""));
+            slot.kind = MonitorWidgetSpec.getKind(nbt);
+            slot.sourceKind = MonitorWidgetSpec.getSourceKind(nbt);
+            slot.metricKey = MonitorWidgetSpec.getMetricKey(nbt);
+            slot.title = MonitorWidgetSpec.getTitle(nbt);
+            slot.displayName = slot.title;
             slot.xyz = safeString(nbt.getString("XYZ"), "0,0,0");
             parseXyz(slot);
             slot.enabled = nbt.getBoolean("enable");
             slot.networkWide = nbt.getBoolean("monitorNetworkWide");
+            slot.targetValue = MonitorWidgetSpec.getTargetValue(nbt);
+            slot.revision = MonitorWidgetSpec.getRevision(nbt);
             list.add(slot);
         }
         return list;

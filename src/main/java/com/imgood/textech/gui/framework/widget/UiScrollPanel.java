@@ -2,6 +2,7 @@ package com.imgood.textech.gui.framework.widget;
 
 import net.minecraft.client.gui.Gui;
 
+import com.imgood.textech.gui.framework.AtlasRegion;
 import com.imgood.textech.gui.framework.GuiBlitUtil;
 import com.imgood.textech.gui.framework.NineSliceRegion;
 import com.imgood.textech.gui.framework.layout.UiCrossAlign;
@@ -70,19 +71,28 @@ public final class UiScrollPanel extends UiWidget {
             int maxTravel = viewH - barH;
             int barY = maxTravel == 0 ? 0 : scrollY * maxTravel / Math.max(1, contentHeight - viewH);
             int trackX = ax + getLayoutBox().width - 6;
+            AtlasRegion exactTrack = context.theme() != null ? context.theme()
+                .scrollTrackRegion() : null;
+            AtlasRegion exactThumb = context.theme() != null ? context.theme()
+                .scrollThumbRegion() : null;
             NineSliceRegion track = context.theme() != null ? context.theme()
                 .scrollTrack() : null;
             NineSliceRegion thumb = context.theme() != null ? context.theme()
                 .scrollThumb() : null;
-            if (track != null && thumb != null
+            if (exactTrack != null && exactThumb != null
+                && GuiBlitUtil.hasResource(exactTrack.texture())
+                && GuiBlitUtil.hasResource(exactThumb.texture())) {
+                GuiBlitUtil.drawCoverCropped(exactTrack, trackX, ay, 6, viewH);
+                GuiBlitUtil.drawCoverCropped(exactThumb, trackX, ay + barY, 6, barH);
+            } else if (track != null && thumb != null
                 && GuiBlitUtil.hasResource(track.texture())
                 && GuiBlitUtil.hasResource(thumb.texture())) {
-                GuiBlitUtil.drawNineSlice(track, trackX, ay, 6, viewH, 2);
-                GuiBlitUtil.drawNineSlice(thumb, trackX, ay + barY, 6, barH, 2);
-            } else {
-                Gui.drawRect(trackX + 2, ay, trackX + 4, ay + viewH, 0x66005566);
-                Gui.drawRect(trackX, ay + barY, trackX + 5, ay + barY + barH, 0xAA00FFFF);
-            }
+                    GuiBlitUtil.drawNineSlice(track, trackX, ay, 6, viewH, 2);
+                    GuiBlitUtil.drawNineSlice(thumb, trackX, ay + barY, 6, barH, 2);
+                } else {
+                    Gui.drawRect(trackX + 2, ay, trackX + 4, ay + viewH, 0x66005566);
+                    Gui.drawRect(trackX, ay + barY, trackX + 5, ay + barY + barH, 0xAA00FFFF);
+                }
         }
     }
 

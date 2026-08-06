@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GridStack } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
-import { Button, Modal, Select, InputNumber, Space, Empty, Progress, Tag, Tooltip, Skeleton } from 'antd';
+import { Button, Modal, Select, InputNumber, Space, Empty, Tag, Tooltip, Skeleton } from 'antd';
 import {
   EditOutlined,
   PlusOutlined,
@@ -69,6 +69,7 @@ import { ChartTrendSvg } from '@/components/dashboard/ChartTrendSvg';
 import { NetworkBalanceTable } from '@/components/dashboard/NetworkBalanceTable';
 import { RadarChartWidget, resolveRadarAxes } from '@/components/dashboard/RadarChartWidget';
 import { WidgetShell } from '@/components/dashboard/WidgetShell';
+import { CpuHistoryPanel } from '@/components/dashboard/CpuHistoryPanel';
 import { GroupWidget } from '@/components/dashboard/GroupWidget';
 import {
   ActivityStreamWidget,
@@ -118,6 +119,10 @@ import {
   renderCategoricalPieChart,
   renderNetworkCompareChart,
 } from '@/components/dashboard/WidgetContent';
+import {
+  ScalarWidgetRenderer,
+  resolveProgressPercent,
+} from '@/components/dashboard/ScalarWidgetRenderer';
 const WIDGET_TYPES: DashboardWidgetConfig['type'][] = [
   'statCard', 'progressBar', 'lineChart', 'barChart', 'pieChart',
   'dataTable', 'gauge', 'radarChart',
@@ -422,14 +427,6 @@ export function Dashboard() {
     return style;
   };
 
-  const valueStyle = (widget: DashboardWidgetConfig): React.CSSProperties => {
-    const colors = resolveAllColors(widget, settings);
-    const fs = resolveProp(widget, settings, 'fontSize');
-    const style: React.CSSProperties = { fontSize: fs + 6 };
-    if (colors.chartColor) style.color = colors.chartColor;
-    return style;
-  };
-
   const renderWidget = (widget: DashboardWidgetConfig) => {
     if (widget.type === 'group') {
       // Group content is rendered by GroupWidget (nested grid); shell still calls renderWidget for safety.
@@ -437,8 +434,16 @@ export function Dashboard() {
     }
 
     const value = dataSourceValue(widget.dataSource);
-    const isPercent = widget.dataSource.includes('Percent') || widget.dataSource === 'cpuBusyRatio';
+    const percentMetric = widget.dataSource.includes('Percent') || widget.dataSource === 'cpuBusyRatio';
     const isBytes = widget.dataSource === 'bytesUsed' || widget.dataSource === 'bytesMax';
+    const isSteamSource = widget.dataSource.startsWith('steam');
+    const configuredTarget = Math.max(0, widget.targetValue ?? widget.gaugeThreshold ?? 0);
+    const steamCapacityKnown = power?.steamCapacityKnown === true && (power.steamMax || 0) > 0;
+    const isPercent = percentMetric && (!isSteamSource || steamCapacityKnown);
+    const steamAbsoluteValue = power?.steamStored || 0;
+    const scalarValue = isSteamSource && widget.dataSource === 'steamPercent' && !steamCapacityKnown
+      ? steamAbsoluteValue
+      : value;
     const colors = resolveAllColors(widget, settings);
     const chartSize = resolveProp(widget, settings, 'chartSize');
     const chartColor = colors.chartColor || 'var(--accent)';
@@ -581,20 +586,20 @@ export function Dashboard() {
         const sigDigits = widget.significantDigits ?? 5;
         if (pinned.length > 0) {
           const p = pinned[0];
-          return wrap(
-            <>
-              {labelText(p.label || label)}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                {p.iconItem && <Icon item={p.iconItem} size={28} />}
-                <div className="stat-card-value" style={valueStyle(widget)}>
-                  {fmtNum(p.value)}
-                </div>
-              </div>
-            </>
+          return (
+            <ScalarWidgetRenderer
+              widget={widget}
+              settings={settings}
+              label={p.label || label}
+              valueText={fmtNum(p.value)}
+              icon={p.iconItem ? <Icon item={p.iconItem} size={28} /> : undefined}
+              containerClassName="dashboard-widget-inner"
+              overThreshold={overThreshold}
+            />
           );
         }
-        let mainText = isBytes ? formatBytes(value) : isPercent ? value.toFixed(1) + '%' : fmtNum(value);
-        let deltaEl: ReactNode = null;
+        let mainText = isBytes ? formatBytes(value) : isPercent ? value.toFixed(1) + '%' : fmtNum(scalarValue);
+        let delta: { text: string; color: string } | undefined;
         if (showDelta) {
           const hist = networkMetrics.getHistory(currentNet, widget.dataSource);
           const prev = hist.length >= 2 ? hist[hist.length - 2]?.value : undefined;
@@ -609,37 +614,43 @@ export function Dashboard() {
                 : formatted.deltaPositive === false
                   ? 'var(--error, #ff4d4f)'
                   : 'var(--text-dim)';
-            deltaEl = (
-              <div
-                className="stat-card-delta"
-                style={{
-                  fontSize: Math.max(9, resolveProp(widget, settings, 'fontSize') - 3),
-                  color,
-                }}
-              >
-                {formatted.delta}
-              </div>
-            );
+            delta = { text: formatted.delta, color };
           }
         }
-        return wrap(
-          <>
-            {labelText(label)}
-            <div className="stat-card-value" style={valueStyle(widget)}>
-              {mainText}
-            </div>
-            {deltaEl}
-          </>
+        return (
+          <ScalarWidgetRenderer
+            widget={widget}
+            settings={settings}
+            label={label}
+            valueText={mainText}
+            delta={delta}
+            containerClassName="dashboard-widget-inner"
+            overThreshold={overThreshold}
+          />
         );
       }
-
       case 'progressBar': {
         const pinned = resolvePins(widget.pins, pinCtx);
         const pin0 = pinned[0];
-        const fillColor = colors.progressFillColor || colors.chartColor || 'var(--accent)';
-        const trackColor = colors.progressTrackColor || undefined;
-        let pct = Math.min(100, isPercent ? value : 0);
-        let fmt = isPercent ? value.toFixed(1) + '%' : fmtNum(value);
+        let pct = resolveProgressPercent({
+          value,
+          percentMetric,
+          realMaximum: isSteamSource && steamCapacityKnown
+            ? power?.steamMax
+            : widget.dataSource === 'bytesUsed' && storage && storage.bytesMax > 0
+              ? storage.bytesMax
+              : undefined,
+          targetValue: configuredTarget,
+          absoluteValue: isSteamSource ? steamAbsoluteValue : value,
+          capacityKnown: isSteamSource ? steamCapacityKnown : undefined,
+        });
+        let fmt = isPercent
+          ? value.toFixed(1) + '%'
+          : isSteamSource && widget.dataSource === 'steamPercent'
+            ? configuredTarget > 0
+              ? `${fmtNum(steamAbsoluteValue)} / ${fmtNum(configuredTarget)}`
+              : fmtNum(steamAbsoluteValue)
+            : fmtNum(value);
         if (pin0) {
           if (pin0.max && pin0.max > 0) {
             pct = Math.min(100, (pin0.value / pin0.max) * 100);
@@ -650,29 +661,40 @@ export function Dashboard() {
           }
           fmt = fmtNum(pin0.value);
         }
-        return wrap(
-          <>
-            {labelText(pin0?.label || label)}
-            <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
-              <Progress
-                percent={pct}
-                type={widget.style === 'circular' ? 'circle' : 'line'}
-                strokeColor={trackColor ? { color: fillColor, trailColor: trackColor } : fillColor}
-                format={() => fmt}
-                style={{ width: '100%' }}
-              />
-            </div>
-          </>
+        return (
+          <ScalarWidgetRenderer
+            widget={widget}
+            settings={settings}
+            label={pin0?.label || label}
+            valueText={fmt}
+            progressPercent={pct}
+            containerClassName="dashboard-widget-inner"
+            overThreshold={overThreshold}
+          />
         );
       }
-
       case 'gauge': {
         const pinned = resolvePins(widget.pins, pinCtx);
         const pin0 = pinned[0];
-        const strokeColor = colors.gaugeStrokeColor || colors.chartColor || 'var(--accent)';
-        const trackColor = colors.gaugeTrackColor || undefined;
-        let pct = Math.min(100, isPercent ? value : (power?.euMax ? (value / power.euMax) * 100 : 0));
-        let fmt = isPercent ? value.toFixed(0) + '%' : fmtNum(value);
+        let pct = resolveProgressPercent({
+          value,
+          percentMetric,
+          realMaximum: isSteamSource && steamCapacityKnown
+            ? power?.steamMax
+            : widget.dataSource === 'euStored' && power && power.euMax > 0
+              ? power.euMax
+              : undefined,
+          targetValue: configuredTarget,
+          absoluteValue: isSteamSource ? steamAbsoluteValue : value,
+          capacityKnown: isSteamSource ? steamCapacityKnown : undefined,
+        });
+        let fmt = isPercent
+          ? value.toFixed(0) + '%'
+          : isSteamSource && widget.dataSource === 'steamPercent'
+            ? configuredTarget > 0
+              ? `${fmtNum(steamAbsoluteValue)} / ${fmtNum(configuredTarget)}`
+              : fmtNum(steamAbsoluteValue)
+            : fmtNum(value);
         if (pin0) {
           const thr = widget.gaugeThreshold && widget.gaugeThreshold > 0
             ? widget.gaugeThreshold
@@ -682,18 +704,16 @@ export function Dashboard() {
           pct = Math.min(100, (pin0.value / thr) * 100);
           fmt = fmtNum(pin0.value);
         }
-        return wrap(
-          <>
-            {labelText(pin0?.label || label)}
-            <div className="widget-chart-area widget-chart-area--sized" style={{ height: `${chartSize}%` }}>
-              <Progress
-                type="circle"
-                percent={pct}
-                strokeColor={trackColor ? { color: strokeColor, trailColor: trackColor } : strokeColor}
-                format={() => fmt}
-              />
-            </div>
-          </>
+        return (
+          <ScalarWidgetRenderer
+            widget={widget}
+            settings={settings}
+            label={pin0?.label || label}
+            valueText={fmt}
+            progressPercent={pct}
+            containerClassName="dashboard-widget-inner"
+            overThreshold={overThreshold}
+          />
         );
       }
 
@@ -1662,6 +1682,8 @@ export function Dashboard() {
           ))}
         </div>
       </div>
+
+      {!embedMode && <CpuHistoryPanel networkId={currentNet} />}
 
       {!embedMode && (
         <DashboardSettingsDrawer

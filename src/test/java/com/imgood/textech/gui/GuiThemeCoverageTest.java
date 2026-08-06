@@ -27,8 +27,13 @@ public class GuiThemeCoverageTest {
         Arrays.asList("GuiDimensionalPocketConfig.java", "GuiPocketStorage.java"));
     private static final Pattern THEMED_BASE = Pattern
         .compile("extends\\s+(ADM_GuiScreen|AdmItemConfigScreen|AbstractMonitorSubGui|ADM_UiContainer|AdmUiScreen)\\b");
+    private static final Pattern RAW_GUI_SCREEN = Pattern.compile("extends\\s+GuiScreen\\b");
+    private static final Pattern DEFAULT_BACKGROUND_CALL = Pattern
+        .compile("\\.drawDefaultBackground\\s*\\(|\\bdrawDefaultBackground\\s*\\(");
     private static final Pattern VANILLA_BUTTON = Pattern.compile("new\\s+GuiButton\\s*\\(");
     private static final Pattern STANDALONE_GUI_TEXTURE = Pattern.compile("textures/gui/[^\\\"]+\\.png");
+    private static final Pattern LEGACY_ADM_CHROME_CALL = Pattern
+        .compile("GuiBlitUtil\\s*\\.\\s*(drawNineSlice|drawHorizontalSlice|drawTiled(?:Frame|Bar)?)\\s*\\(");
 
     @Test
     public void everyNonPocketGuiUsesTheAdmTheme() throws IOException {
@@ -58,11 +63,15 @@ public class GuiThemeCoverageTest {
 
             boolean inheritsTheme = THEMED_BASE.matcher(source)
                 .find();
-            boolean drawsThemeExplicitly = source.contains("extends GuiScreen") && source.contains("UiThemes.ADM")
-                && source.contains("UiPanel.");
-            assertTrue(
-                fileName + " must inherit an ADM host or explicitly draw UiThemes.ADM panels",
-                inheritsTheme || drawsThemeExplicitly);
+            assertTrue(fileName + " must inherit an ADM host", inheritsTheme);
+            assertFalse(
+                fileName + " must not inherit raw GuiScreen",
+                RAW_GUI_SCREEN.matcher(source)
+                    .find());
+            assertFalse(
+                fileName + " must not invoke the vanilla dim/black background",
+                DEFAULT_BACKGROUND_CALL.matcher(source)
+                    .find());
             assertFalse(
                 fileName + " must not instantiate a vanilla GuiButton",
                 VANILLA_BUTTON.matcher(source)
@@ -70,6 +79,10 @@ public class GuiThemeCoverageTest {
             assertFalse(
                 fileName + " must not bind a standalone legacy GUI PNG",
                 STANDALONE_GUI_TEXTURE.matcher(source)
+                    .find());
+            assertFalse(
+                fileName + " must use sparse panels, complete controls, or cover-cropped exact regions",
+                LEGACY_ADM_CHROME_CALL.matcher(source)
                     .find());
             themedScreens++;
         }

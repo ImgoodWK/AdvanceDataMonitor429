@@ -52,6 +52,17 @@ public final class WorldMapDynmapCoordMapper {
         }
     }
 
+    /** Returns whether a WebAE view has an explicit Dynmap perspective mapping. */
+    public static boolean isSupportedWebaeView(String webaeViewId) {
+        if (webaeViewId == null || webaeViewId.trim()
+            .isEmpty()) {
+            return true;
+        }
+        String id = webaeViewId.trim()
+            .toLowerCase();
+        return "flat".equals(id) || "oblique".equals(id) || "oblique_se".equals(id) || "iso_se".equals(id);
+    }
+
     // ---- Block coordinate mapping ----
 
     /**

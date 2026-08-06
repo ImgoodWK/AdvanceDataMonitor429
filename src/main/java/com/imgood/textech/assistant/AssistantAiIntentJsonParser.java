@@ -139,6 +139,7 @@ public class AssistantAiIntentJsonParser {
                 case QUERY_INVENTORY:
                 case QUERY_NETWORK:
                 case QUERY_JOBS:
+                case QUERY_BRIEFING:
                 case ORDER_ITEM:
                 case WITHDRAW_ITEM:
                 case CONFIRM_OPTION:

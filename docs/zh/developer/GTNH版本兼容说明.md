@@ -1,14 +1,14 @@
 # GTNH 版本兼容说明
 
-> **适用版本**：TeXTech **v2.0.0**  
-> **最后更新**：2026-07-30  
+> **适用版本**：TeXTech **v2.0.0** 与 **v3.0.0-rc.1**
+> **最后更新**：2026-08-05
 > English: [gtnh-version-compatibility.md](../../en/developer/gtnh-version-compatibility.md)
 
-本文面向整合包作者、服管与玩家。源码与构建依赖是支持范围的权威来源；TeXTech 2.0 的开发和发布基线为 GTNH `2.9.0-beta-2`，不再提供旧整合包兼容。
+本文面向整合包作者、服管与玩家。源码与构建依赖是支持范围的权威来源；TeXTech 2 稳定线与 3.0 RC 线以 GTNH `2.9.0-beta-2+` 为目标，不再提供旧整合包兼容。
 
 ## 1. 支持范围
 
-| GTNH 整合包 | TeXTech 2.0 状态 | 说明 |
+| GTNH 整合包 | TeXTech 2 稳定版 / 3.0 RC 状态 | 说明 |
 |-------------|------------------|------|
 | **2.9.0-beta-2 及以上兼容版本** | ✅ 支持 | 使用 AE2 原生流体 API（NativeFluid）路径。 |
 | **2.9.0-beta-1 及更早版本** | ❌ 不支持 | 依赖版本和运行路径均不再按旧整合包测试；2.8.x 用户请继续使用适配旧环境的 TeXTech 1.0.x，或先升级整合包。 |
@@ -17,7 +17,7 @@
 
 ## 2. AE 运行路径
 
-`GtnhEnvironmentProbe` 在 TeXTech 2.0 始终选择 `NATIVE_FLUID`。正常启动日志类似：
+`GtnhEnvironmentProbe` 在当前支持的发布线中始终选择 `NATIVE_FLUID`。正常启动日志类似：
 
 ```text
 [ADM] AE compat profile=NATIVE_FLUID (source=GTNH_VERSION_FILE, detail=2.9.0-beta-2)
@@ -27,7 +27,7 @@
 
 配置文件中 `[compat] aeProfileOverride` 暂时保留以兼容已有配置：
 
-| 值 | TeXTech 2.0 行为 |
+| 值 | 当前行为 |
 |----|------------------|
 | `auto` / 空值 | 选择 NativeFluid。 |
 | `native` | 显式选择 NativeFluid。 |
@@ -37,7 +37,7 @@
 
 ## 3. 对玩家与整合包作者的影响
 
-- 新安装应使用 GTNH `2.9.0-beta-2+` 与 TeXTech `v2.0.0` 的匹配附件。
+- 稳定环境应使用 GTNH `2.9.0-beta-2+` 与 `v2.0.0` 的匹配附件；参与 RC 测试时必须使用完整且版本一致的 `v3.0.0-rc.1` 资产。
 - 从 1.0.x 升级前，先升级 GTNH 整合包；不要尝试用 `aeProfileOverride=legacy` 恢复 2.8.x 支持。
 - 主 JAR、可选语音 JAR、可选 WebAE ZIP 必须来自同一 TeXTech Release。
 - WebAE ZIP 只含浏览器 UI，解压到实例根目录后应存在 `TeXTech/WebAE/ui/index.html`；它不会改变 GTNH/AE2 兼容范围。

@@ -2,15 +2,17 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
-// Build output goes directly into the mod's static resources directory so the
-// embedded NanoHTTPD server serves the compiled bundle. `base: './'` keeps all
-// asset URLs relative because NanoHTTPD serves from the root path.
+// The build helper stages Vite output in .workspace and promotes it only after
+// a successful build. `base: './'` keeps all asset URLs relative because
+// NanoHTTPD serves from the root path. Keeping emptyOutDir false here also
+// makes an accidental direct Vite invocation non-destructive; the helper
+// overrides it to true for its fresh staging directory.
 export default defineConfig({
   plugins: [react()],
   base: './',
   build: {
     outDir: resolve(__dirname, '../src/main/resources/assets/textech/webae'),
-    emptyOutDir: true,
+    emptyOutDir: false,
     assetsDir: 'assets',
     cssCodeSplit: true,
     sourcemap: false,

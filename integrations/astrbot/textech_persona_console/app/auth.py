@@ -29,6 +29,7 @@ def set_session_cookie(response: Response, token: str) -> None:
         value=token,
         httponly=True,
         samesite="lax",
+        secure=settings.cookie_secure,
         max_age=settings.session_max_age,
         path="/",
     )
@@ -110,7 +111,7 @@ def require_all_perms(*perms: str):
 
 # Backward-compatible role shortcuts (map to permissions)
 RequireAdmin = require_perm("console.manage")
-RequireEditor = require_perm("bot_users.edit", "personas.edit", "memories.edit", "knowledge.edit", "config.edit")
+RequireEditor = require_perm("bot_users.edit", "personas.edit", "memories.edit", "config.edit")
 RequireViewer = require_perm(
-    "bot_users.view", "personas.view", "memories.view", "knowledge.view", "config.view", "ops.view"
+    "bot_users.view", "personas.view", "memories.view", "config.view", "ops.view"
 )

@@ -7,8 +7,10 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.imgood.textech.gui.framework.FixedAspectButtonFamily;
 import com.imgood.textech.gui.framework.GuiBlitUtil;
 import com.imgood.textech.gui.framework.NineSliceRegion;
+import com.imgood.textech.gui.framework.TiledBarRegion;
 import com.imgood.textech.gui.framework.UiThemes;
 
 public class ADM_GuiButton extends GuiButton {
@@ -32,6 +34,12 @@ public class ADM_GuiButton extends GuiButton {
 
     public ADM_GuiButton(int id, int x, int y, int width, int height, String text) {
         super(id, x, y, width, height, text);
+        int fittedWidth = FixedAspectButtonFamily.normalizedWidthFor(width, height);
+        int fittedHeight = FixedAspectButtonFamily.normalizedHeightFor(width, height);
+        this.xPosition = x + (width - fittedWidth) / 2;
+        this.yPosition = y + (height - fittedHeight) / 2;
+        this.width = fittedWidth;
+        this.height = fittedHeight;
         this.textColor = 0xFFFFFF;
         this.textColorHover = 0xFFFFFF;
         disabledTextColor = 0xA0A0A0;
@@ -124,30 +132,32 @@ public class ADM_GuiButton extends GuiButton {
             // 根据按钮尺寸缩放纹理坐标
             boolean pressed = this.enabled && isHovered && Mouse.isButtonDown(0);
             if (usesAdmTheme()) {
+                FixedAspectButtonFamily family = UiThemes.ADM.fixedAspectButtons();
+                FixedAspectButtonFamily.State state = !this.enabled ? FixedAspectButtonFamily.State.DISABLED
+                    : pressed ? FixedAspectButtonFamily.State.PRESSED
+                        : isHovered && this.useHoverEffect ? FixedAspectButtonFamily.State.HOVER
+                            : FixedAspectButtonFamily.State.NORMAL;
+                TiledBarRegion bar = !this.enabled ? UiThemes.ADM.buttonDisabledBar()
+                    : pressed ? UiThemes.ADM.buttonPressedBar()
+                        : isHovered && this.useHoverEffect ? UiThemes.ADM.buttonHoverBar()
+                            : UiThemes.ADM.buttonNormalBar();
                 NineSliceRegion region = !this.enabled ? UiThemes.ADM.buttonDisabled()
                     : pressed ? UiThemes.ADM.buttonPressed()
                         : isHovered && this.useHoverEffect ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal();
-                GuiBlitUtil.drawHorizontalSlice(region, this.xPosition, this.yPosition, this.width, this.height);
+                if (family != null) {
+                    GuiBlitUtil
+                        .drawFixedAspectButton(family, state, this.xPosition, this.yPosition, this.width, this.height);
+                } else if (bar != null) {
+                    GuiBlitUtil.drawTiledBar(bar, this.xPosition, this.yPosition, this.width, this.height);
+                } else {
+                    GuiBlitUtil.drawHorizontalSlice(region, this.xPosition, this.yPosition, this.width, this.height);
+                }
             } else {
                 ResourceLocation currentTexture = isHovered && this.useHoverEffect && this.hoverTexture != null
                     ? this.hoverTexture
                     : this.texture;
-                mc.getTextureManager()
-                    .bindTexture(currentTexture);
-                float u = 0.0F, v = 0.0F, u1 = 1.0F, v1 = 1.0F;
-
-                // Draw the custom texture stretched across the requested button bounds.
                 this.zLevel = 0.0F;
-                GL11.glBegin(GL11.GL_QUADS);
-                GL11.glTexCoord2f(u, v);
-                GL11.glVertex3f(this.xPosition, this.yPosition, this.zLevel);
-                GL11.glTexCoord2f(u, v1);
-                GL11.glVertex3f(this.xPosition, this.yPosition + this.height, this.zLevel);
-                GL11.glTexCoord2f(u1, v1);
-                GL11.glVertex3f(this.xPosition + this.width, this.yPosition + this.height, this.zLevel);
-                GL11.glTexCoord2f(u1, v);
-                GL11.glVertex3f(this.xPosition + this.width, this.yPosition, this.zLevel);
-                GL11.glEnd();
+                GuiBlitUtil.drawFullTexture(currentTexture, this.xPosition, this.yPosition, this.width, this.height);
             }
 
             GL11.glEnable(GL11.GL_DEPTH_TEST);

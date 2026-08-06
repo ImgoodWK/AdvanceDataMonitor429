@@ -177,7 +177,10 @@ public class ContainerPocketStorage extends Container {
         this.currentPage = page;
         pocketInv.setCurrentPage(page);
         pocketInv.flush();
-        AdvanceDataMonitor.ADMCHANEL.sendTo(PacketPocketSync.singlePage(state, page), (EntityPlayerMP) player);
+        PacketPocketSync sync = PacketPocketSync.singlePage(state, page);
+        if (sync.fitsPacketBudget()) {
+            AdvanceDataMonitor.ADMCHANEL.sendTo(sync, (EntityPlayerMP) player);
+        }
     }
 
     /**

@@ -8,7 +8,7 @@ services:
     container_name: textech-console
     restart: unless-stopped
     ports:
-      - "6186:6186"
+      - "127.0.0.1:6186:6186"
     volumes:
       - /opt/astrbot/data:/astrbot-data
       - /opt/textech-console/data:/data
@@ -17,12 +17,18 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - ASTRBOT_DATA=/astrbot-data
-      - KNOWLEDGE_DIR=/data/knowledge
       - CONSOLE_DB=/data/console.db
+      - IMAGE_THUMBNAIL_DIR=/data/image-thumbnails
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET must be set in .env}
       - CONSOLE_BOOTSTRAP_PASSWORD=${CONSOLE_BOOTSTRAP_PASSWORD:?CONSOLE_BOOTSTRAP_PASSWORD must be set in .env}
       - ASTRBOT_COMPOSE_DIR=/opt/astrbot
       - ASTRBOT_CONTAINER=astrbot
+      - PORTAL_AUTH_URL=${PORTAL_AUTH_URL:-http://meowa-test-controller:8080/auth/check}
+      - PORTAL_AUTH_TIMEOUT_SECONDS=${PORTAL_AUTH_TIMEOUT_SECONDS:-5}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+    networks:
+      - default
+      - api-atlas
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:6186/api/ops/health', timeout=3)"]
       interval: 30s
@@ -30,3 +36,8 @@ services:
       retries: 3
       start_period: 15s
     mem_limit: 512m
+
+networks:
+  api-atlas:
+    external: true
+    name: api-atlas_default

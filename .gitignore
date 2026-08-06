@@ -73,3 +73,26 @@ cardbattle-server/.env
 repo.zip
 *.bak
 *.orig
+
+# Secrets / local env (never commit; .env.example 仍可提交)
+.env
+.env.local
+.agents/skills/game-assets/.env
+
+# Runtime data and local scratch files created by a development instance.
+# The mod stores player/server state below <instance>/TeXTech; this directory
+# is not source code and must never be published from a checkout.
+/TeXTech/
+/-w
+/list.txt
+
+# Local visual exploration. Only approved assets under docs/assets/brand/ and
+# src/main/resources/assets/textech/textures/promo/ are publication sources.
+/docs/assets/promo/
+
+# Private signing credentials and local service credentials.
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore

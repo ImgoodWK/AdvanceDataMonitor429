@@ -17,8 +17,8 @@ alwaysApply: false
 | ID | 包类 | Handler | 方向 | 用途 |
 |----|------|---------|------|------|
 | 0 | `PacketItemNBT` | `HandlerNetwork` | SERVER | 物品 NBT 同步（映录器） |
-| 1 | `PacketSynTileEntity` | `ClientHandler`（仅客户端注册） | CLIENT | TE 数据下发客户端 |
-| 2 | `PacketSynTileEntity` | `HandlerSynTileEntity` | SERVER | 请求 TE 同步 |
+| 1 | `PacketSynTileEntity` | `ClientHandler`（仅客户端注册） | CLIENT | TE 初次全量状态、GUI 保存后重载、chunk/load 恢复 |
+| 2 | `PacketSynTileEntity` | `HandlerSynTileEntity` | SERVER | 请求上述 TE 全量同步 |
 | 3 | — | — | — | 未使用 |
 | 4 | `PacketRequestItemCountSync` | `Handler` | SERVER | 请求物品数量同步 |
 | 5 | `PacketItemCountSync` | `Handler` | CLIENT | 物品数量下发 |
@@ -42,23 +42,23 @@ alwaysApply: false
 | 23 | `PacketMatterBallDecompressorToggle` | `Handler` | SERVER | 物质球解压器输出模式/阻塞模式切换 |
 | 24 | `PacketAssistantMenuStateQuery` | `PacketAssistantMenuStateQuery.Handler` | SERVER | AI 助手菜单状态查询 |
 | 25 | `PacketAssistantMenuStateResponse` | `PacketAssistantMenuStateResponse.Handler` | CLIENT | AI 助手菜单状态下发 |
-| 26 | `PacketWebRecipeUpload` | `PacketWebRecipeUpload.Handler` | C→S | WebAE 配方上传（分批；`RecipeUploadSession` 仅首个 isStart 清缓存；客户端经 `RecipeUploadThrottler` 节流） |
+| 26 | `PacketWebRecipeUpload` | `PacketWebRecipeUpload.Handler` | C→S | WebAE 配方上传（30 KiB 包体预算；JSON ≤ 29,488 bytes；严格顺序；客户端经 `RecipeUploadThrottler` 节流） |
 | 27 | `PacketWebRecipeUploadAck` | `PacketWebRecipeUploadAck.Handler` | S→C | WebAE 配方上传确认 |
-| 28 | `PacketWebIconUpload` | `PacketWebIconUpload.Handler` | C→S | WebAE 图标上传（分批，itemId→base64PNG） |
+| 28 | `PacketWebIconUpload` | `PacketWebIconUpload.Handler` | C→S | WebAE 图标上传（24 KiB 非空分片、严格顺序、有界会话，itemId→base64PNG） |
 | 29 | `PacketWebIconUploadAck` | `PacketWebIconUploadAck.Handler` | S→C | WebAE 图标上传确认 |
 | 30 | `PacketWebUploadTrigger` | `PacketWebUploadTrigger.Handler` | S→C | WebAE 命令触发客户端开始 recipes/icons 上传（含 icon_verify） |
 | 31 | `PacketWebConsoleTokenNotify` | `PacketWebConsoleTokenNotify.Handler` | S→C | WebAE `/admweb issue`/`guest`/`copy` 客户端可点击 token/URL 与剪贴板复制 |
 | 32 | `PacketWebIconExportScope` | `PacketWebIconExportScope.Handler` | S→C | 图标导出范围（all/snapshot/list）与 itemId 列表 |
 | 33 | `PacketWebIconRequest` | `PacketWebIconRequest.Handler` | S→C | 按需懒加载：请求客户端渲染单个缺失图标 |
-| 34 | `PacketWebMapTileJob` | `PacketWebMapTileJob.Handler` | S→C | 世界地图 HD 瓦片渲染任务（view/dim/cx/cz/networkId + `layer` terrain\|ae + `quality` tier） |
-| 35 | `PacketWebMapTileUpload` | `PacketWebMapTileUpload.Handler` | C→S | 世界地图 HD 瓦片 PNG 上传覆盖服务端缓存（含 `layer` + `quality`） |
+| 34 | `PacketWebMapTileJob` | `PacketWebMapTileJob.Handler` | S→C | 世界地图 HD 瓦片渲染任务（view/dim/cx/cz/networkId + `layer` terrain\|ae + 精确小写 `quality` tier） |
+| 35 | `PacketWebMapTileUpload` | `PacketWebMapTileUpload.Handler` | C→S | 世界地图 HD 瓦片 PNG 上传覆盖服务端缓存（`quality` 仅 `low\|medium\|high\|ultra`，未知值拒绝） |
 | 36 | `PacketWebIconResolveNack` | `PacketWebIconResolveNack.Handler` | C→S | WebAE 图标懒加载解析失败回执（itemId + reason） |
 | 37 | `PacketWorldMapCaptureOffer` | `PacketWorldMapCaptureOffer.Handler` | S→C | 世界地图快照上传同意请求（consent flow） |
 | 38 | `PacketWorldMapCaptureAccept` | `PacketWorldMapCaptureAccept.Handler` | C→S | 接受快照上传请求 |
-| 39 | `PacketWorldMapCaptureJob` | `PacketWorldMapCaptureJob.Handler` | S→C | 开始客户端快照采集任务（terrain + ae） |
+| 39 | `PacketWorldMapCaptureJob` | `PacketWorldMapCaptureJob.Handler` | S→C | 30000-byte 内分页下发客户端快照采集任务（terrain + ae；最多 100000 chunks，完整重组后启动） |
 | 40 | `PacketWorldMapSnapshotTileUpload` | `PacketWorldMapSnapshotTileUpload.Handler` | C→S | 上传快照瓦片 PNG / finalize |
-| 41 | `PacketWorldMapSnapshotSyncRequest` | `PacketWorldMapSnapshotSyncRequest.Handler` | C→S | 查询服务端快照版本（MC 客户端本地缓存同步） |
-| 42 | `PacketWorldMapSnapshotSyncResponse` | `PacketWorldMapSnapshotSyncResponse.Handler` | S→C | 快照版本与 tile key 列表 |
+| 41 | `PacketWorldMapSnapshotSyncRequest` | `PacketWorldMapSnapshotSyncRequest.Handler` | C→S | 按 `tileOffset` 查询服务端快照版本/下一页 key（MC 客户端本地缓存同步） |
+| 42 | `PacketWorldMapSnapshotSyncResponse` | `PacketWorldMapSnapshotSyncResponse.Handler` | S→C | 30 KiB 内分页返回版本与 tile keys（`batchOffset`/`nextOffset`/`complete`） |
 | 43 | `PacketWorldMapSnapshotTilePull` | `PacketWorldMapSnapshotTilePull.Handler` | C→S | 拉取单个快照瓦片 |
 | 44 | `PacketWorldMapSnapshotTileData` | `PacketWorldMapSnapshotTileData.Handler` | S→C | 快照瓦片 PNG 数据 |
 | 45 | `PacketWorldMapDirectCaptureRequest` | `PacketWorldMapDirectCaptureRequest.Handler` | S→C | SP 直读：请求客户端 GL 捕获瓦片 |
@@ -70,13 +70,14 @@ alwaysApply: false
 | 51 | `PacketScreenshotUpload` | `PacketScreenshotUpload.Handler` | C→S | 游戏窗口 JPEG 按 24 KiB 顺序分片上传；首片含 WebAE/QQ 目标与有界元数据，服务端限流/限并发 |
 | 52 | `PacketScreenshotUploadAck` | `PacketScreenshotUploadAck.Handler` | S→C | 截图后台校验、WebAE 落盘或 QQ 入队后的终态确认（不逐片 ACK） |
 | 53 | `PacketMonitorWebSurface` | `ServerHandler` + `ClientHandler` | C→S + S→C | 高级数据监视器网页表面：快照正文按哈希请求（24 KiB 内）、单绑定上传（含 `dashboard_live` 绑定元数据）与 ACK；直播帧走 WebAE HTTP，不经本包 |
+| 54 | `PacketMonitorBindingDelta` | `ClientHandler`（仅客户端注册） | S→C | 高级数据监视器常规采样增量：binding index、revision、少量字段 patch 与追加历史点；避免按 tick 广播完整 TE NBT |
 
-**下一个可用 ID = 54**
+**下一个可用 ID = 55**
 
 ## 新增 Packet 接入步骤
 
 1. 在 `network/packet/` 新建类，实现 `IMessage`（无参构造 + `toBytes`/`fromBytes` 严格对称）
-2. 内部或独立 `IMessageHandler`；NBT 用 `cpw.mods.fml.common.network.ByteBufUtils.writeTag`/`readTag`
+2. 内部或独立 `IMessageHandler`；跨信任边界的 NBT 用 `NetworkPacketCodec.writeTag`/`readTag`，显式限制 signed-short 压缩体和 `NBTSizeTracker` 展开量
 3. 在 `LoaderNetwork.registerNetWorks()` 用下一个可用 ID 注册
 4. 客户端 Handler 用 `isClient()` 包裹注册
 5. 双向包可同 ID 分别注册 SERVER/CLIENT
@@ -88,9 +89,26 @@ alwaysApply: false
 
 ## 大 payload 注意
 
-- 整栏 `ItemStack` 同步：用 `NBTTagList` + `ItemStack.writeToNBT`/`loadItemStackFromNBT`，包一层 `ByteBufUtils.writeTag`
-- 超过 ~32KB 时分页/分块传输（参考 `PacketPocketSync` 的 `KIND_FULL` / `KIND_SINGLE_PAGE`）
+- 整栏 `ItemStack` 同步：用 `NBTTagList` + `ItemStack.writeToNBT`/`loadItemStackFromNBT`，再用有压缩/展开上限的 `NetworkPacketCodec.writeTag`/`readTag` framing。
+- Forge 1.7.10 custom payload 硬上限是 32767 bytes；本项目跨边界 packet 以 30000 bytes 为包体预算，二进制传输通常使用 24 KiB 非空分片。超过预算时必须分页/分块，不得依赖接近 32767 的临界包。
+- `PacketPocketSync` 完整旧 wire 能放入 30000 bytes 时保持 `KIND_FULL`；超预算时先发 `KIND_METADATA/pageIndex=-1` marker，再连续发送逐页 fragment，fragment 只填页缓存且不得改变客户端当前页。`PacketGrapplePathSync` 同样优先保留完整 legacy `KIND_ROUTES`（含 129 条小路线），仅超预算时按完整 batch 原子替换 live routes；单路线和 `PacketGrappleAction` 出发路径均最多 512 节点。
+- 分片会话必须同时限制单块、总字节、总块数、活动会话数和 TTL；已知有序 channel 优先使用 `WebAeBinaryTransfer.SequentialAssembler` 严格顺序重组。
+- `PacketWebRecipeUpload` 的 JSON 根必须是 array；每位真实玩家的会话在 120 秒无活动后惰性过期，只有已接受的下一批才刷新时间和推进序号。
+- `PacketWebIconUpload` 的 JSON 根必须是 object；24 KiB 严格顺序非空块、单 bundle 8 MiB/342 块、每玩家 2 会话、全局 16 会话/32 MiB 预留、120 秒 TTL。最多 4096 个唯一 item ID，单 PNG 512 KiB/2048px、总 PNG 16 MiB；全部 PNG 完整解码并经 `IconStore.writeIconPngBatch` 事务提交后才 ACK。
+- `PacketWorldMapCaptureJob` 在登记服务端 active job 前先构造全部 30000-byte 内分页；客户端 assembler 最多暂存 8 个 job、2 分钟 TTL，可乱序收页，但 metadata、连续 offset、页完整性与最终 chunk 总数全部一致后才原子发布。服务端最多 32 个 active jobs，90 分钟 idle / 2 小时 absolute TTL；断线、stop/restart 或发送失败清理未发布版本。
+- 世界地图 finalize 的 `sourceStatsJson` 根必须是 object，仅允许 `dynmap|journeymap|client_gl`，值为无符号十进制整数且单项/总和 ≤100000；重复键、未知键、负数、浮点/指数、溢出与尾随 token 均拒绝。地图 PNG 上传限制 1 MiB/2048px并校验 signature/IHDR/CRC；避免在服务端主线程完整 inflate。
 
 ## 目的
 
 避免 packet ID 冲突、遗漏 S→C 回包、客户端 Handler 在服务端启动时类加载失败。
+
+## Payload 与服务端信任边界
+
+- 所有 byte array、`String`、VarString/VarInt-length 字段都必须先执行字段级长度上限和剩余可读字节检查，再分配内存；不得信任客户端提供的长度。
+- 网络文本统一使用有界、严格的 UTF-8 解码；malformed 或 unmappable 字节必须拒绝，不得用宽松替换字符继续处理。
+- NBT 必须使用有限的 `NBTSizeTracker`，并校验 Forge 1.7.10 signed-short 压缩长度（`-1` 仅表示 null）；不得直接把不受限的 NBT 交给 `readTag`。
+- `PacketAssistantAction`/`PacketAssistantResponse` 的压缩 NBT 字段最多 24 KiB；response gzip 展开量最多 2 MiB，并拒绝 NBT 后尾随数据。候选项先按配置条数上限切分，再按实际 wire size 预检继续细分。
+- JSON 必须校验根类型、列表数量、字符串 UTF-8 长度、控制字符和字段语义；非法 JSON 或非法列表要安全丢弃，不回显原始 payload。
+- C→S handler 的真实 actor 必须来自 `ctx.getServerHandler().playerEntity`；客户端上报的 player UUID、owner UUID、network ID/key 只能作为不可信目标字段，不能直接作为授权依据。
+- 服务端世界状态 mutation 必须通过 `PacketHandlers.runOnServer(ctx, Runnable)` 排队到服务端主线程；ACK/状态回包也必须从服务端主线程发送。
+- malformed、越界、越权或顺序错误的 packet 必须安全丢弃（必要时记录有界诊断），不得抛出到主线程、触发任意文件访问或回显敏感输入。

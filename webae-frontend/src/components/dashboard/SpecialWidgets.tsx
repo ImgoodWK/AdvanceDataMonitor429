@@ -270,7 +270,10 @@ export function PowerFlowWidget({ widget, power, titleColor, formatNumber }: Pow
           <div className="widget-power-flow__footer">
             <span>{t('widgetPowerNet')}</span>
             <strong>{net >= 0 ? '+' : ''}{formatNumber(net)} EU/t</strong>
-            <span>{t('steam')}: {formatNumber(power.steamStored)} / {formatNumber(power.steamMax)}</span>
+            <span>
+              {t('steam')}: {formatNumber(power.steamStored)}
+              {power.steamCapacityKnown ? ` / ${formatNumber(power.steamMax)}` : ''}
+            </span>
           </div>
         </>
       )}

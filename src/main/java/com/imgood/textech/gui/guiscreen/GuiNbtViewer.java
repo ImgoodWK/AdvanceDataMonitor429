@@ -5,27 +5,32 @@ import java.util.List;
 import java.util.Map;
 
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.resources.I18n;
 
 import org.lwjgl.input.Mouse;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
+import com.imgood.textech.gui.custom.ADM_GuiScreen;
+import com.imgood.textech.gui.custom.AdmGuiTextures;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
 
-public class GuiNbtViewer extends GuiScreen {
+public class GuiNbtViewer extends ADM_GuiScreen {
 
+    private static final int PANEL_WIDTH = 440;
+    private static final int PANEL_HEIGHT = 320;
     private JsonObject nbtData;
     private List<TreeEntry> entries = new ArrayList<>();
     private int scrollY;
 
     public GuiNbtViewer(JsonObject data) {
         this.nbtData = data;
-        AdvanceDataMonitor.LOG.info("TestGUI" + data);
+        setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
+        setSize(PANEL_WIDTH, PANEL_HEIGHT);
+        setStretch(false);
         buildTree(null, nbtData, 0);
     }
 
@@ -67,11 +72,11 @@ public class GuiNbtViewer extends GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int x, int y, int btn) {
-        int yPos = 24 - scrollY;
+    protected void handleAdmMouseClicked(int x, int y, int btn) {
+        int yPos = panelY() + 42 - scrollY;
         for (TreeEntry entry : entries) {
             if (entry.isVisible()) {
-                if (y >= yPos && y < yPos + 10) {
+                if (x >= panelX() + 14 && x < panelX() + panelWidth() - 14 && y >= yPos && y < yPos + 10) {
                     if (entry.hasChildren()) {
                         entry.expanded = !entry.expanded;
                     }
@@ -80,14 +85,22 @@ public class GuiNbtViewer extends GuiScreen {
                 yPos += 10;
             }
         }
-        super.mouseClicked(x, y, btn);
+        super.handleAdmMouseClicked(x, y, btn);
     }
 
     @Override
     public void initGui() {
         super.initGui();
+        setPosition((width - PANEL_WIDTH) / 2, (height - PANEL_HEIGHT) / 2);
         this.buttonList.clear();
-        this.buttonList.add(new ADM_GuiButton(0, width - 72, height - 34, 56, 20, "Close"));
+        this.buttonList.add(
+            new ADM_GuiButton(
+                0,
+                panelX() + panelWidth() - 72,
+                panelY() + panelHeight() - 28,
+                56,
+                20,
+                I18n.format("adm.button.close")));
     }
 
     @Override
@@ -98,10 +111,21 @@ public class GuiNbtViewer extends GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
-        UiPanel.draw(UiThemes.ADM, 12, 12, width - 24, height - 24);
-        int yPos = 24 - scrollY;
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        int contentX = panelX() + 14;
+        int contentY = panelY() + 32;
+        int contentWidth = panelWidth() - 28;
+        int contentHeight = panelHeight() - 72;
+        UiPanel.drawSection(UiThemes.ADM, contentX - 3, contentY - 3, contentWidth + 6, contentHeight + 6);
+        drawCenteredString(
+            fontRendererObj,
+            I18n.format("adm.title.nbt_viewer"),
+            panelX() + panelWidth() / 2,
+            panelY() + 10,
+            0xD7F7FF);
+        int yPos = contentY + 10 - scrollY;
+        TreeEntry hoveredEntry = null;
+        boolean hoveredTextWasTrimmed = false;
 
         for (TreeEntry entry : entries) {
             if (entry.isVisible()) {
@@ -110,14 +134,32 @@ public class GuiNbtViewer extends GuiScreen {
                     displayText += (entry.expanded ? "[-] " : "[+] ");
                 }
                 displayText += entry.getDisplayText();
-                if (yPos >= 20 && yPos < height - 38) {
-                    drawString(fontRendererObj, displayText, 24, yPos, 0xD7F7FF);
+                if (yPos >= contentY && yPos < contentY + contentHeight) {
+                    String renderedText = fontRendererObj.trimStringToWidth(displayText, contentWidth - 8);
+                    drawString(fontRendererObj, renderedText, contentX, yPos, 0xD7F7FF);
+                    if (mouseX >= contentX && mouseX < contentX + contentWidth - 4
+                        && mouseY >= yPos
+                        && mouseY < yPos + 10) {
+                        hoveredEntry = entry;
+                        hoveredTextWasTrimmed = !renderedText.equals(displayText);
+                    }
                 }
                 yPos += 10;
             }
         }
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
+        if (hoveredEntry != null && (hoveredEntry.hasChildren() || hoveredTextWasTrimmed)) {
+            String action = hoveredEntry.hasChildren()
+                ? I18n.format(hoveredEntry.expanded ? "adm.nbt.tooltip.collapse" : "adm.nbt.tooltip.expand")
+                : I18n.format("adm.nbt.tooltip.truncated");
+            drawAdmTooltip(
+                mouseX,
+                mouseY,
+                Math.min(340, panelWidth() - 40),
+                action,
+                I18n.format("adm.nbt.tooltip.full_value", hoveredEntry.getDisplayText()));
+        }
     }
 
     @Override
@@ -133,7 +175,7 @@ public class GuiNbtViewer extends GuiScreen {
                 visibleEntries++;
             }
         }
-        int maxScroll = Math.max(0, visibleEntries * 10 - Math.max(10, height - 64));
+        int maxScroll = Math.max(0, visibleEntries * 10 - Math.max(10, PANEL_HEIGHT - 72));
         scrollY = Math.max(0, Math.min(maxScroll, scrollY - Integer.signum(wheel) * 30));
     }
 

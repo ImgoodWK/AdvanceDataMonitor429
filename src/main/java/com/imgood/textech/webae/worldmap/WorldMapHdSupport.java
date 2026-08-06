@@ -20,14 +20,16 @@ public final class WorldMapHdSupport {
 
     /** True when an in-game client can upload HD tiles for this WebAE session (any dimension). */
     public static boolean isHdAvailable(String ownerUuid, String actorUuid) {
-        if (!isHdEnabled()) {
+        if (!isHdEnabled() || !WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)) {
             return false;
         }
-        if (WebAeOwnerContext.findOnlinePlayer(ownerUuid) != null) {
+        EntityPlayerMP owner = WebAeOwnerContext.findOnlinePlayer(ownerUuid);
+        if (owner != null && WorldMapPacketAuthorization.canOperateOwner(owner, ownerUuid)) {
             return true;
         }
-        if (actorUuid != null && !actorUuid.isEmpty() && !actorUuid.equals(ownerUuid)) {
-            return WebAeOwnerContext.findOnlinePlayer(actorUuid) != null;
+        if (WorldMapPacketAuthorization.isValidOwnerUuid(actorUuid) && !actorUuid.equalsIgnoreCase(ownerUuid)) {
+            EntityPlayerMP actor = WebAeOwnerContext.findOnlinePlayer(actorUuid);
+            return actor != null && WorldMapPacketAuthorization.canOperateOwner(actor, ownerUuid);
         }
         return false;
     }
@@ -46,13 +48,48 @@ public final class WorldMapHdSupport {
     }
 
     public static EntityPlayerMP resolveHdProvider(String ownerUuid, String actorUuid, int dim) {
+        return resolveHdProvider(ownerUuid, actorUuid, dim, Integer.MIN_VALUE);
+    }
+
+    /**
+     * Resolves only an owner/OP or the actor accepted for this exact network.
+     * The network id is part of the authorization context for non-owner actors.
+     */
+    public static EntityPlayerMP resolveHdProvider(String ownerUuid, String actorUuid, int dim, int networkId) {
+        if (!isHdEnabled() || !WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)) {
+            return null;
+        }
+        return resolveAuthorizedProviderInternal(ownerUuid, actorUuid, dim, networkId);
+    }
+
+    /**
+     * Resolves the same owner/network-scoped provider without requiring client-HD
+     * rendering to be enabled. Disk-backed direct tiles still need this check
+     * before a cache hit can be returned; otherwise a stale cache entry could
+     * bypass the current owner/network authorization.
+     */
+    public static EntityPlayerMP resolveAuthorizedProvider(String ownerUuid, String actorUuid, int dim, int networkId) {
+        if (!WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)
+            || !WorldMapPacketAuthorization.isValidNetworkId(networkId)) {
+            return null;
+        }
+        return resolveAuthorizedProviderInternal(ownerUuid, actorUuid, dim, networkId);
+    }
+
+    private static EntityPlayerMP resolveAuthorizedProviderInternal(String ownerUuid, String actorUuid, int dim,
+        int networkId) {
         EntityPlayerMP owner = WebAeOwnerContext.findOnlinePlayer(ownerUuid);
-        if (owner != null && (dim == Integer.MIN_VALUE || owner.dimension == dim)) {
+        if (owner != null && (dim == Integer.MIN_VALUE || owner.dimension == dim)
+            && WorldMapPacketAuthorization.canOperateOwner(owner, ownerUuid)) {
             return owner;
         }
-        if (actorUuid != null && !actorUuid.isEmpty() && !actorUuid.equals(ownerUuid)) {
+        if (WorldMapPacketAuthorization.isValidOwnerUuid(actorUuid) && !actorUuid.equalsIgnoreCase(ownerUuid)) {
             EntityPlayerMP actor = WebAeOwnerContext.findOnlinePlayer(actorUuid);
-            if (actor != null && (dim == Integer.MIN_VALUE || actor.dimension == dim)) {
+            boolean activeActor = WorldMapPacketAuthorization.isValidNetworkId(networkId)
+                && WorldMapCaptureCoordinator.instance()
+                    .isActiveJobPlayerForNetwork(ownerUuid, networkId, actor);
+            if (actor != null && (dim == Integer.MIN_VALUE || actor.dimension == dim)
+                && (WorldMapPacketAuthorization.canOperateOwner(actor, ownerUuid) || activeActor)) {
                 return actor;
             }
         }
@@ -60,11 +97,15 @@ public final class WorldMapHdSupport {
     }
 
     public static boolean canUploadForOwner(EntityPlayerMP player, String ownerUuid) {
-        if (player == null || ownerUuid == null || ownerUuid.isEmpty()) {
+        return WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid);
+    }
+
+    public static boolean canUploadForOwner(EntityPlayerMP player, String ownerUuid, int networkId) {
+        if (!WorldMapPacketAuthorization.isValidNetworkId(networkId) || player == null
+            || !WorldMapPacketAuthorization.isValidOwnerUuid(ownerUuid)) {
             return false;
         }
-        String uuid = player.getUniqueID()
-            .toString();
-        return ownerUuid.equals(uuid);
+        return WorldMapPacketAuthorization.canOperateOwner(player, ownerUuid) || WorldMapCaptureCoordinator.instance()
+            .isActiveJobPlayerForNetwork(ownerUuid, networkId, player);
     }
 }

@@ -1,0 +1,16 @@
+title: "[Idea] "
+labels: [idea]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Player or developer need
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: Early concepts are welcome here; use an Issue Form once behavior is concrete and actionable.
+    validations:
+      required: true

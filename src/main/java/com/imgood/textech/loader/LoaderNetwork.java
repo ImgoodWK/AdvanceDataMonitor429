@@ -20,6 +20,7 @@ import com.imgood.textech.network.packet.PacketItemCountSync;
 import com.imgood.textech.network.packet.PacketItemNBT;
 import com.imgood.textech.network.packet.PacketLinkScannerAction;
 import com.imgood.textech.network.packet.PacketMatterBallDecompressorToggle;
+import com.imgood.textech.network.packet.PacketMonitorBindingDelta;
 import com.imgood.textech.network.packet.PacketMonitorRecord;
 import com.imgood.textech.network.packet.PacketMonitorWebSurface;
 import com.imgood.textech.network.packet.PacketPlannerMerge;
@@ -351,6 +352,11 @@ public class LoaderNetwork {
                 PacketMonitorWebSurface.ClientHandler.class,
                 PacketMonitorWebSurface.class,
                 53,
+                Side.CLIENT);
+            AdvanceDataMonitor.ADMCHANEL.registerMessage(
+                PacketMonitorBindingDelta.ClientHandler.class,
+                PacketMonitorBindingDelta.class,
+                54,
                 Side.CLIENT);
         }
     }

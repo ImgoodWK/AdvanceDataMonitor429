@@ -34,6 +34,10 @@ public abstract class ADM_UiContainer extends GuiContainer {
         return theme;
     }
 
+    /** Keep the world visible outside the compact tiled container panel. */
+    @Override
+    public void drawDefaultBackground() {}
+
     protected int panelLeft() {
         return (width - xSize) / 2;
     }

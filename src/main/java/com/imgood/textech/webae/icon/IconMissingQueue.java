@@ -236,6 +236,15 @@ public final class IconMissingQueue {
         return resolveConsentedProvider(server, System.currentTimeMillis());
     }
 
+    public boolean isConsentedProvider(EntityPlayerMP player) {
+        if (player == null) {
+            return false;
+        }
+        EntityPlayerMP provider = resolveProviderPlayer();
+        return provider != null && provider.getUniqueID()
+            .equals(player.getUniqueID());
+    }
+
     private EntityPlayerMP resolveConsentedProvider(MinecraftServer server, long now) {
         if (consentedProviderUuid == null || now >= consentedUntilMs) {
             if (consentedProviderUuid != null) {

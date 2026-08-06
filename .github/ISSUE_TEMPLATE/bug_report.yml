@@ -1,0 +1,72 @@
+name: Bug report
+description: Report a reproducible problem in TeXTech.
+title: "[Bug] "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a reproducible defect. Remove API keys, WebAE tokens, QQ/AstrBot secrets, player UUIDs, IP addresses, world data, and private logs before submitting. Security issues belong in private vulnerability reporting.
+  - type: input
+    id: version
+    attributes:
+      label: TeXTech version
+      placeholder: v3.0.0-rc.1 or full commit SHA
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Minecraft / Forge / GTNH / Java environment
+      placeholder: Minecraft 1.7.10; Forge 10.13.4.1614; GTNH 2.9.0-beta-2; Java 17
+    validations:
+      required: true
+  - type: dropdown
+    id: side
+    attributes:
+      label: Where does it happen?
+      options:
+        - Client
+        - Dedicated server
+        - Both client and server
+        - WebAE browser frontend
+        - AstrBot / AI / voice integration
+        - Build or documentation tooling
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: List the smallest exact sequence, relevant configuration, and whether it reproduces in a clean instance.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized evidence
+      description: Paste only the smallest sanitized log excerpt or attach privacy-reviewed screenshots.
+    validations:
+      required: true
+  - type: textarea
+    id: regression
+    attributes:
+      label: Last known working version
+      placeholder: v3.0.0-rc.1, a commit SHA, or "unknown"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing Issues and Discussions.
+          required: true
+        - label: I removed credentials, UUIDs, private addresses, and world/player data.
+          required: true
+        - label: This is not a private security report.
+          required: true

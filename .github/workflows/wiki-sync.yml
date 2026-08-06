@@ -1,0 +1,47 @@
+name: Wiki Sync
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "docs/wiki/**"
+      - ".github/workflows/wiki-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync canonical navigation pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Sync Wiki repository when enabled
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          wiki_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if ! git ls-remote "$wiki_url" >/dev/null 2>&1; then
+            echo "GitHub Wiki is disabled or has not been initialized; keeping docs/wiki/ as the canonical in-repository navigation."
+            exit 0
+          fi
+          git clone "$wiki_url" wiki
+          rsync -a --delete --exclude .git/ docs/wiki/ wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Wiki already matches docs/wiki/."
+            exit 0
+          fi
+          git commit -m "docs: sync navigation from ${GITHUB_SHA}"
+          git push origin HEAD:master

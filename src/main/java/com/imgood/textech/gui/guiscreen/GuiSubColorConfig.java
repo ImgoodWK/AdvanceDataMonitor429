@@ -39,7 +39,7 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
         this.startOffsetY = -100;
         this.buttonRowYOffset1 = 180;
         this.buttonRow1Width = 45;
-        this.setSize(400, 250);
+        this.setSize(400, 280);
     }
 
     @Override
@@ -183,6 +183,7 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
         NBTTagList existingDataValues = existingNbt.getTagList("dataValues", 10);
         switch (button.id) {
             case 0 -> {
+                beginValidation();
                 nbt.setTag("dataValues", existingDataValues.copy());
                 if (this.dataType == null) {
                     nbt.setString("dataType", "line");
@@ -190,22 +191,22 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
                     nbt.setString("dataType", this.dataType);
                 }
                 if (!isValidHexColor(textFieldDisplayNameColor.getText())) {
-                    errorTips = I18n.format("adm.error.displaycolor");
+                    rejectField(textFieldDisplayNameColor, I18n.format("adm.error.displaycolor"));
                     return;
                 }
                 nbt.setString("displayNameColor", textFieldDisplayNameColor.getText());
                 if (!isValidHexColor(textFieldAxisLineColor.getText())) {
-                    errorTips = I18n.format("adm.error.axislinecolor");
+                    rejectField(textFieldAxisLineColor, I18n.format("adm.error.axislinecolor"));
                     return;
                 }
                 nbt.setString("axisLineColor", textFieldAxisLineColor.getText());
                 if (!isValidHexColor(textFieldAxisFontColor.getText())) {
-                    errorTips = I18n.format("adm.error.axisfontcolor");
+                    rejectField(textFieldAxisFontColor, I18n.format("adm.error.axisfontcolor"));
                     return;
                 }
                 nbt.setString("axisFontColor", textFieldAxisFontColor.getText());
                 if (!isValidHexColor(textFieldLineColor.getText())) {
-                    errorTips = I18n.format("adm.error.linecolor");
+                    rejectField(textFieldLineColor, I18n.format("adm.error.linecolor"));
                     return;
                 }
                 nbt.setString("lineColor", textFieldLineColor.getText());
@@ -294,9 +295,8 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         String[] label1 = { I18n.format("adm.label.displaynamecolor"), I18n.format("adm.label.axislinecolor"),
             I18n.format("adm.label.axisfontcolor"), I18n.format("adm.label.linecolor") };
         autoText(label1, 0, 25, offsetX + 20, offsetY + 10, textColor);
@@ -307,7 +307,7 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
             offsetY - 37,
             textColor);
 
-        fontRendererObj.drawString(errorTips, offsetX + 150, offsetY + 380, 0xff0000);
+        drawMonitorFeedbackBand();
         drawTextFieldsWithHover(mouseX, mouseY);
 
         if (isValidHexColor(textFieldDisplayNameColor.getText())) {
@@ -343,6 +343,6 @@ public class GuiSubColorConfig extends AbstractMonitorSubGui {
                 Integer.parseInt(textFieldLineColor.getText(), 16));
         }
 
-        drawFocusedFieldHint(offsetX + 10, offsetY + 280);
+        drawFocusedFieldHint(offsetX + 10, offsetY + 120);
     }
 }

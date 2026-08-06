@@ -18,6 +18,7 @@ public final class WebAeServerHandler {
 
     public static synchronized void setServer(WebConsoleServer srv) {
         server = srv;
+        running = srv != null && srv.isStarted();
     }
 
     public static synchronized WebConsoleServer getServer() {
@@ -25,7 +26,7 @@ public final class WebAeServerHandler {
     }
 
     public static synchronized boolean isRunning() {
-        return running && server != null;
+        return running && server != null && server.isStarted();
     }
 
     public static synchronized void startIfEnabled() {
@@ -36,39 +37,67 @@ public final class WebAeServerHandler {
         if (server == null) {
             server = new WebConsoleServer();
         }
-        if (running) {
+        if (isRunning()) {
             AdvanceDataMonitor.LOG.info(
                 "[WebAE] HTTP server already running on {}:{}",
                 Config.webConsoleBindAddress,
                 Config.webConsolePort);
             return;
         }
-        registerShutdownHook();
-        server.startServer();
+
+        WebConsoleServer serverToStart = server;
+        if (!serverToStart.startServer()) {
+            String failure = serverToStart.getStartFailure();
+            running = false;
+            server = null;
+            unregisterShutdownHook();
+            try {
+                serverToStart.stopServer();
+            } catch (Throwable t) {
+                AdvanceDataMonitor.LOG.warn("[WebAE] Error cleaning failed HTTP server start", t);
+            }
+            stopIntegrations();
+            AdvanceDataMonitor.LOG.error("[WebAE] Web console did not start: {}", failure);
+            return;
+        }
+
         running = true;
+        if (!registerShutdownHook()) {
+            stopServer();
+            return;
+        }
         com.imgood.textech.webae.qqbot.QqBotService.instance()
             .start();
         AdvanceDataMonitor.LOG.info(
-            "[WebAE] Web console ready — open http://{}:{} in your browser (in-game: /admweb issue)",
+            "[WebAE] Web console ready - open http://{}:{} in your browser (in-game: /admweb issue)",
             Config.webConsoleBindAddress,
             Config.webConsolePort);
     }
 
     public static synchronized void stopServer() {
         running = false;
-        if (server != null) {
+        try {
+            // Persist bounded CPU history before either a full server stop or
+            // an in-process WebAE restart. Do not change active job state:
+            // an HTTP restart does not stop the AE game server.
+            com.imgood.textech.webae.cpu.CpuHistoryService.instance()
+                .flushAll();
+        } catch (Throwable t) {
+            AdvanceDataMonitor.LOG.warn("[WebAE] Failed to flush CPU history on server stop", t);
+        }
+        com.imgood.textech.webae.worldmap.WorldMapCaptureCoordinator.instance()
+            .clear();
+        WebConsoleServer serverToStop = server;
+        server = null;
+        unregisterShutdownHook();
+        stopIntegrations();
+        if (serverToStop != null) {
             try {
-                server.stopServer();
+                serverToStop.stopServer();
             } catch (Throwable t) {
                 AdvanceDataMonitor.LOG.warn("[WebAE] Error stopping HTTP server", t);
             }
-            server = null;
         }
-        unregisterShutdownHook();
-        com.imgood.textech.webae.alerts.WebhookDispatcher.instance()
-            .shutdown();
-        com.imgood.textech.webae.qqbot.QqBotService.instance()
-            .shutdown();
     }
 
     /** Stop and start the in-process HTTP server (OP command). */
@@ -78,20 +107,23 @@ public final class WebAeServerHandler {
             return false;
         }
         AdvanceDataMonitor.LOG.info("[WebAE] Restarting HTTP server...");
-        running = false;
-        com.imgood.textech.webae.qqbot.QqBotService.instance()
-            .shutdown();
-        if (server != null) {
-            try {
-                server.stopServer();
-            } catch (Throwable t) {
-                AdvanceDataMonitor.LOG.warn("[WebAE] Error during restart stop", t);
-            }
+        stopServer();
+
+        WebConsoleServer serverToStart = new WebConsoleServer();
+        server = serverToStart;
+        if (!serverToStart.startServer()) {
+            String failure = serverToStart.getStartFailure();
+            server = null;
+            serverToStart.stopServer();
+            AdvanceDataMonitor.LOG.error("[WebAE] HTTP server restart failed: {}", failure);
+            return false;
         }
-        server = new WebConsoleServer();
-        registerShutdownHook();
-        server.startServer();
+
         running = true;
+        if (!registerShutdownHook()) {
+            stopServer();
+            return false;
+        }
         com.imgood.textech.webae.qqbot.QqBotService.instance()
             .start();
         AdvanceDataMonitor.LOG
@@ -99,22 +131,33 @@ public final class WebAeServerHandler {
         return true;
     }
 
-    private static void registerShutdownHook() {
-        if (shutdownHook != null) return;
+    private static void stopIntegrations() {
+        com.imgood.textech.webae.alerts.WebhookDispatcher.instance()
+            .shutdown();
+        com.imgood.textech.webae.qqbot.QqBotService.instance()
+            .shutdown();
+    }
+
+    private static boolean registerShutdownHook() {
+        if (shutdownHook != null) return true;
         shutdownHook = new Thread(new Runnable() {
 
             @Override
             public void run() {
-                AdvanceDataMonitor.LOG.info("[WebAE] JVM shutdown hook — stopping HTTP server.");
+                AdvanceDataMonitor.LOG.info("[WebAE] JVM shutdown hook - stopping HTTP server.");
                 stopServer();
             }
         }, "WebAE-ShutdownHook");
         try {
             Runtime.getRuntime()
                 .addShutdownHook(shutdownHook);
-        } catch (IllegalStateException e) {
-            // Shutdown already in progress — stop directly.
-            stopServer();
+            return true;
+        } catch (IllegalStateException | SecurityException e) {
+            // Shutdown already in progress; the caller must clean up without
+            // claiming that the server started successfully.
+            shutdownHook = null;
+            AdvanceDataMonitor.LOG.warn("[WebAE] JVM shutdown is already in progress; HTTP server was not started");
+            return false;
         }
     }
 
@@ -123,8 +166,8 @@ public final class WebAeServerHandler {
         try {
             Runtime.getRuntime()
                 .removeShutdownHook(shutdownHook);
-        } catch (IllegalStateException ignored) {
-            // JVM is shutting down.
+        } catch (IllegalStateException | SecurityException ignored) {
+            // JVM is shutting down or hook management is unavailable.
         }
         shutdownHook = null;
     }

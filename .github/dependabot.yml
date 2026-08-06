@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      gradle-dependencies:
+        patterns: ["*"]
+    labels: [dependencies, java]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/webae-frontend"
+    schedule:
+      interval: monthly
+    groups:
+      webae-dependencies:
+        patterns: ["*"]
+    labels: [dependencies, webae]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
+    labels: [dependencies, github-actions]
+    open-pull-requests-limit: 5

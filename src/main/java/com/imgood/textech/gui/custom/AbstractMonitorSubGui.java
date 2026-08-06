@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -14,6 +15,7 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 
 import com.imgood.textech.AdvanceDataMonitor;
+import com.imgood.textech.gui.framework.UiFeedbackArea;
 import com.imgood.textech.gui.guiscreen.GuiMainAdvanceDataMonitor;
 import com.imgood.textech.network.packet.PacketSynTileEntity;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
@@ -83,15 +85,20 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
     protected void saveAndSync(NBTTagCompound nbt) {
         tileEntity.setDisplayData(index, nbt);
         tileEntity.writeToNBT(nbt);
-        AdvanceDataMonitor.ADMCHANEL
-            .sendToServer(new PacketSynTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, nbt));
+        PacketSynTileEntity packet = new PacketSynTileEntity(
+            tileEntity.xCoord,
+            tileEntity.yCoord,
+            tileEntity.zCoord,
+            nbt);
+        if (packet.fitsPacketBudget()) {
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
+        }
     }
 
     protected void openMainGui() {
         this.mc.displayGuiScreen(
             new GuiMainAdvanceDataMonitor(player, world, tileEntity).setPosition(0, 0)
                 .setSize(200, 200)
-                .setStretch(true)
                 .setBackgroundTexture(AdmGuiTextures.BACKGROUND_MONITOR_MAIN));
     }
 
@@ -107,13 +114,21 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
         ResourceLocation normal = textFieldNormalTexture();
         ResourceLocation focused = textFieldFocusedTexture();
         for (int i = 0; i < textFields.size(); i++) {
-            ADM_GuiTextField field = new ADM_GuiTextField(
+            final ADM_GuiTextField field = new ADM_GuiTextField(
                 this.fontRendererObj,
                 startX + curX,
                 startY + curY,
                 width,
                 height).setBackgroundTexture(normal)
                     .setFocusedBackgroundTexture(focused);
+            field.setOnTextChanged(new Runnable() {
+
+                @Override
+                public void run() {
+                    field.setInvalid(false);
+                    errorTips = "";
+                }
+            });
             textFields.set(i, field);
             assignTextField(row, i, field);
             curX += intervalX;
@@ -168,8 +183,6 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
     }
 
     protected void drawTextFieldsWithHover(int mouseX, int mouseY) {
-        drawTextFieldBackground(textFieldsLeft);
-        drawTextFieldBackground(textFieldsRight);
         hoveredTextField = null;
         for (ADM_GuiTextField field : textFieldsLeft) {
             field.drawTextBox();
@@ -209,6 +222,41 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
             .setTextHoverColor(hoverColor);
     }
 
+    protected void beginValidation() {
+        errorTips = "";
+        for (ADM_GuiTextField field : textFieldsLeft) field.setInvalid(false);
+        for (ADM_GuiTextField field : textFieldsRight) field.setInvalid(false);
+    }
+
+    protected boolean rejectField(ADM_GuiTextField field, String message) {
+        errorTips = message != null ? message : "";
+        if (field != null) {
+            field.setInvalid(true);
+            field.setFocused(true);
+            focusedField = field;
+        }
+        return false;
+    }
+
+    /** Draws a bottom feedback band after the lowest visible button, never on top of a control. */
+    protected void drawMonitorFeedbackBand() {
+        if (errorTips == null || errorTips.isEmpty()) {
+            return;
+        }
+        int buttonBottom = panelY();
+        for (Object object : buttonList) {
+            GuiButton button = (GuiButton) object;
+            if (button.visible && button.yPosition >= panelY() && button.yPosition < panelY() + panelHeight()) {
+                buttonBottom = Math.max(buttonBottom, button.yPosition + button.height);
+            }
+        }
+        UiFeedbackArea feedback = UiFeedbackArea
+            .afterControls(panelX() + 16, panelY(), panelWidth() - 32, panelHeight(), buttonBottom, 4, 8, 30);
+        if (feedback != null) {
+            feedback.draw(fontRendererObj, errorTips, 0xFF5555);
+        }
+    }
+
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
         super.keyTyped(typedChar, keyCode);
@@ -221,8 +269,8 @@ public abstract class AbstractMonitorSubGui extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
         for (ADM_GuiTextField field : textFieldsLeft) {
             field.mouseClicked(mouseX, mouseY, mouseButton);
             if (field.isFocused()) {

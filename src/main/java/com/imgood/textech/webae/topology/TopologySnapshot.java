@@ -153,9 +153,22 @@ public final class TopologySnapshot {
     }
 
     private static ChannelProbeResult probeRealChannels(String ownerUuid, int networkId) {
+        IGrid grid = com.imgood.textech.webae.context.WebAeOwnerContext.getGrid(ownerUuid, networkId);
+        return probeRealChannels(grid);
+    }
+
+    /**
+     * Probe only real AE channel counters for an already-resolved Grid.
+     *
+     * <p>
+     * This is shared by topology and network-health sampling so both surfaces use the same
+     * conservative reflection fallback. The result is unavailable unless both used and maximum
+     * values can be verified; simulated topology capacity is never returned here.
+     * </p>
+     */
+    public static ChannelProbeResult probeRealChannels(IGrid grid) {
         ChannelProbeResult result = new ChannelProbeResult();
         result.available = false;
-        IGrid grid = com.imgood.textech.webae.context.WebAeOwnerContext.getGrid(ownerUuid, networkId);
         if (grid == null) {
             return result;
         }

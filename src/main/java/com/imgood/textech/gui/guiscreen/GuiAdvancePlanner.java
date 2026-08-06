@@ -19,8 +19,8 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.FixedAspectButtonFamily;
 import com.imgood.textech.gui.framework.GuiBlitUtil;
-import com.imgood.textech.gui.framework.NineSliceRegion;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.items.ItemAdvancePlanner;
@@ -292,9 +292,9 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
         boolean wasEditing = (selectedSlotIndex >= 0);
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
 
         if (titleField != null) {
             boolean wasFocused = titleField.isFocused();
@@ -582,9 +582,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
         // Title label
         this.fontRendererObj.drawString(
@@ -736,8 +735,9 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
                 && mouseY <= arrowY + arrowHeight;
             int arrowTextColor = hoveringArrow ? 0x00FFFF : 0x00AAAA;
 
-            GuiBlitUtil.drawHorizontalSlice(
-                hoveringArrow ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
+            GuiBlitUtil.drawFixedAspectButton(
+                UiThemes.ADM.fixedAspectButtons(),
+                hoveringArrow ? FixedAspectButtonFamily.State.HOVER : FixedAspectButtonFamily.State.NORMAL,
                 arrowX,
                 arrowY,
                 arrowWidth,
@@ -819,8 +819,9 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
             boolean hoveringTopBtn = mouseX >= scrollbarX && mouseX <= scrollbarX + 6
                 && mouseY >= listStartY
                 && mouseY <= listStartY + btnTopH;
-            GuiBlitUtil.drawHorizontalSlice(
-                hoveringTopBtn ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
+            GuiBlitUtil.drawFixedAspectButton(
+                UiThemes.ADM.fixedAspectButtons(),
+                hoveringTopBtn ? FixedAspectButtonFamily.State.HOVER : FixedAspectButtonFamily.State.NORMAL,
                 scrollbarX,
                 listStartY,
                 6,
@@ -832,19 +833,21 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
 
             int trackTop = listStartY + btnTopH + 1;
             int trackBottom = listStartY + scrollbarHeight - btnTopH - 1;
-            GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollTrack(), scrollbarX, trackTop, 6, trackBottom - trackTop, 2);
+            GuiBlitUtil
+                .drawCoverCropped(UiThemes.ADM.scrollTrackRegion(), scrollbarX, trackTop, 6, trackBottom - trackTop);
 
             int trackHeight = trackBottom - trackTop;
             int thumbHeight = Math.max(10, trackHeight * visibleAreaHeight / totalContentHeight);
             int thumbY = trackTop + (maxScroll == 0 ? 0 : (scrollOffset * (trackHeight - thumbHeight)) / maxScroll);
-            GuiBlitUtil.drawNineSlice(UiThemes.ADM.scrollThumb(), scrollbarX, thumbY, 6, thumbHeight, 2);
+            GuiBlitUtil.drawCoverCropped(UiThemes.ADM.scrollThumbRegion(), scrollbarX, thumbY, 6, thumbHeight);
 
             int btnBottomY = listStartY + scrollbarHeight - btnTopH;
             boolean hoveringBottomBtn = mouseX >= scrollbarX && mouseX <= scrollbarX + 6
                 && mouseY >= btnBottomY
                 && mouseY <= btnBottomY + btnTopH;
-            GuiBlitUtil.drawHorizontalSlice(
-                hoveringBottomBtn ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
+            GuiBlitUtil.drawFixedAspectButton(
+                UiThemes.ADM.fixedAspectButtons(),
+                hoveringBottomBtn ? FixedAspectButtonFamily.State.HOVER : FixedAspectButtonFamily.State.NORMAL,
                 scrollbarX,
                 btnBottomY,
                 6,
@@ -857,8 +860,8 @@ public class GuiAdvancePlanner extends ADM_GuiScreen {
     }
 
     private void drawCheckBox(int x, int y, boolean checked) {
-        NineSliceRegion region = checked ? UiThemes.ADM.checkOn() : UiThemes.ADM.checkOff();
-        GuiBlitUtil.drawNineSlice(region, x, y, 12, 12, 3);
+        GuiBlitUtil
+            .drawCenteredRegion(checked ? UiThemes.ADM.checkOnRegion() : UiThemes.ADM.checkOffRegion(), x, y, 12, 12);
     }
 
     private void drawTooltip(int mouseX, int mouseY) {

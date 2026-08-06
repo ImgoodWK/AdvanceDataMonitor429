@@ -1,10 +1,10 @@
 # TeXTech 文档中心（中文）
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 2.0 · 最后同步：2026-07
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 1 · 最后同步：2026-08
 
-English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.md](../README.md)
+English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.md](../README.md) · [项目首页](../../README.md)
 
-TeXTech 2.0 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离线语音 JAR 与可选 WebAE ZIP 分开发布；使用 WebAE 时把 ZIP 解压到服务端实例根目录，并确认 `TeXTech/WebAE/ui/index.html` 存在。不使用 WebAE 时只下载主 JAR 即可。
+TeXTech `v3.0.0-rc.1` 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离线语音 JAR 与可选 WebAE ZIP 分开发布；使用 WebAE 时把 ZIP 解压到服务端实例根目录，并确认 `TeXTech/WebAE/ui/index.html` 存在。不使用 WebAE 时只下载主 JAR 即可。
 
 ---
 
@@ -62,7 +62,7 @@ TeXTech 2.0 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离�
 | [developer/new-feature-checklist.md](developer/new-feature-checklist.md) | 新功能开发决策清单（基类选型、网络包、lang 同步） |
 | [developer/Gradle工作流.md](developer/Gradle工作流.md) | ExampleMod 模板、构建迁移、FAQ |
 | [developer/临时材质清单.md](developer/临时材质清单.md) | 缺失/占位方块与物品材质审计；**临时**程序化贴图说明 |
-| [developer/GTNH版本兼容说明.md](developer/GTNH版本兼容说明.md) | v2.0.0 以 GTNH 2.9.0-beta-2 为最低目标；2.8.x 已不再支持 |
+| [developer/GTNH版本兼容说明.md](developer/GTNH版本兼容说明.md) | v2 稳定版与 v3 RC 以 GTNH 2.9.0-beta-2 为最低目标；不支持 2.8.x |
 | [developer/ae-compat-290.md](developer/ae-compat-290.md) | GTNH 2.9.0-beta-2 NativeFluid 集成与遗留源码边界 |
 
 ### AI 助手专项
@@ -82,6 +82,7 @@ TeXTech 2.0 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离�
 | 文档 | 说明 |
 |------|------|
 | [design/品牌视觉设计指南.md](design/品牌视觉设计指南.md) | 模组名称、世界观、配色、宣传图规格与 AI 生图提示词 |
+| [design/logo-概念设计-v1.md](design/logo-概念设计-v1.md) | B6 正式 Logo 方向的概念筛选与定稿记录 |
 | [design/未来开发愿景.md](design/未来开发愿景.md) | 长期功能愿景与架构草案（非当前实现规格） |
 
 ### 归档
@@ -100,3 +101,18 @@ TeXTech 2.0 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离�
 - **网络链接器**、**合成链接器**、**高级存储链接器**、**高级存储链接元件**、**物质球解压器**
 - **挂索节点** / **挂索器**、**高级计划器**、**超能砂糖桔**、**至高天圣裁**
 - **铽丝科技手册**（物品 `manual`）
+
+---
+
+## 项目历史与协作治理
+
+| 文档 | 说明 |
+|------|------|
+| [project/timeline.md](project/timeline.md) | Git 可验证节点与作者项目经历 |
+| [project/provenance.md](project/provenance.md) | 公开来源监测边界、人工复核与证据保存流程 |
+| [../../NOTICE.md](../../NOTICE.md) | 项目身份、溯源、署名与公开监测边界 |
+| [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | 贡献流程与验证要求 |
+| [../../SECURITY.md](../../SECURITY.md) | 私密漏洞报告与密钥处理规则 |
+| [../../SUPPORT.md](../../SUPPORT.md) | 按受众分类的支持入口 |
+| [../../CHANGELOG.md](../../CHANGELOG.md) | v1.0.0、v2.0.0 与 v3.0.0-rc.1 发布摘要 |
+| [../wiki/README.md](../wiki/README.md) | GitHub Wiki 导航页的仓库内事实源 |

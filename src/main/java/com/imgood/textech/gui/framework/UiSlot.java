@@ -56,6 +56,13 @@ public final class UiSlot {
     }
 
     public static void drawTheme(UiTheme theme, int x, int y, int size) {
+        AtlasRegion exact = theme != null ? theme.slotRegion() : null;
+        if (exact != null && GuiBlitUtil.hasResource(exact.texture())
+            && size == exact.width()
+            && size == exact.height()) {
+            GuiBlitUtil.drawRegion(exact, x, y);
+            return;
+        }
         NineSliceRegion region = theme != null ? theme.slot() : null;
         if (region != null && GuiBlitUtil.hasResource(region.texture())) {
             GuiBlitUtil.blit(

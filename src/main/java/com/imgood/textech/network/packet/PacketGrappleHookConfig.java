@@ -21,6 +21,7 @@ public class PacketGrappleHookConfig implements IMessage {
     private boolean showNodeDistance = true;
 
     private int modeId = GrappleHookMode.QUEUE.getId();
+    public boolean malformed;
 
     public PacketGrappleHookConfig() {}
 
@@ -37,31 +38,72 @@ public class PacketGrappleHookConfig implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeDouble(travelSpeed);
-        buf.writeBoolean(showNodeName);
-        buf.writeBoolean(showNodeDistance);
-        buf.writeInt(modeId);
+        int start = buf.writerIndex();
+        try {
+            if (!isFinite(travelSpeed) || GrappleHookMode.fromId(modeId)
+                .getId() != modeId) {
+                throw new IllegalArgumentException("Invalid grapple hook configuration");
+            }
+            buf.writeDouble(travelSpeed);
+            buf.writeBoolean(showNodeName);
+            buf.writeBoolean(showNodeDistance);
+            buf.writeInt(modeId);
+        } catch (RuntimeException error) {
+            buf.writerIndex(start);
+            throw error;
+        }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        travelSpeed = buf.readDouble();
-        showNodeName = buf.readBoolean();
-        showNodeDistance = buf.readBoolean();
-        if (buf.readableBytes() >= 4) {
-            modeId = buf.readInt();
+        malformed = false;
+        travelSpeed = 0.0D;
+        showNodeName = false;
+        showNodeDistance = false;
+        modeId = GrappleHookMode.QUEUE.getId();
+        try {
+            int length = buf.readableBytes();
+            if (length != 10 && length != 14) {
+                throw new IllegalArgumentException("Invalid grapple hook configuration length");
+            }
+            travelSpeed = buf.readDouble();
+            showNodeName = buf.readBoolean();
+            showNodeDistance = buf.readBoolean();
+            if (length == 14) {
+                modeId = buf.readInt();
+            }
+            if (!isFinite(travelSpeed) || GrappleHookMode.fromId(modeId)
+                .getId() != modeId || buf.isReadable()) {
+                throw new IllegalArgumentException("Invalid grapple hook configuration");
+            }
+        } catch (RuntimeException error) {
+            malformed = true;
+            travelSpeed = 0.0D;
+            showNodeName = false;
+            showNodeDistance = false;
+            modeId = GrappleHookMode.QUEUE.getId();
         }
+    }
+
+    private static boolean isFinite(double value) {
+        return !Double.isNaN(value) && !Double.isInfinite(value);
     }
 
     public static class Handler implements IMessageHandler<PacketGrappleHookConfig, IMessage> {
 
         @Override
         public IMessage onMessage(final PacketGrappleHookConfig message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
                     EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+                    if (player == null) {
+                        return;
+                    }
                     ItemStack held = player.getHeldItem();
                     if (held == null || !(held.getItem() instanceof ItemGrappleHook)) {
                         return;

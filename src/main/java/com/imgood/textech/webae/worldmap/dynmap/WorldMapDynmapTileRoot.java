@@ -1,6 +1,7 @@
 package com.imgood.textech.webae.worldmap.dynmap;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import com.imgood.textech.AdvanceDataMonitor;
@@ -71,17 +72,44 @@ public final class WorldMapDynmapTileRoot {
      */
     public static Path resolveWorldTiles(String worldName) {
         Path root = getTileRoot();
-        if (root == null || worldName == null
-            || worldName.trim()
-                .isEmpty()) {
+        if (root == null || !isValidWorldName(worldName)) {
             return null;
         }
-        Path worldDir = root.resolve(worldName.trim());
-        if (!worldDir.toFile()
+        Path normalizedRoot = root.toAbsolutePath()
+            .normalize();
+        Path worldDir = normalizedRoot.resolve(worldName.trim())
+            .normalize();
+        if (!worldDir.startsWith(normalizedRoot) || !worldDir.toFile()
             .isDirectory()) {
             return null;
         }
-        return worldDir;
+        try {
+            Path realRoot = normalizedRoot.toRealPath();
+            Path realWorld = worldDir.toRealPath();
+            return realWorld.startsWith(realRoot) ? realWorld : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** World names are one directory segment, never a path expression. */
+    public static boolean isValidWorldName(String worldName) {
+        if (worldName == null) {
+            return false;
+        }
+        String value = worldName.trim();
+        if (value.isEmpty() || ".".equals(value)
+            || "..".equals(value)
+            || value.getBytes(StandardCharsets.UTF_8).length > 128) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '/' || c == '\\' || c == ':' || Character.isISOControl(c)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

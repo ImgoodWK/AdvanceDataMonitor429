@@ -12,6 +12,7 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
+import com.imgood.textech.gui.framework.UiFeedbackArea;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.TileEntityTypeHelper;
 
@@ -44,7 +45,7 @@ public class GuiSubBind extends ADM_GuiScreen {
         this.world = world;
         this.tileEntity = tileEntity;
         this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_SUB);
-        this.setSize(300, 150);
+        this.setSize(300, 190);
         this.setStretch(false);
 
     }
@@ -54,8 +55,8 @@ public class GuiSubBind extends ADM_GuiScreen {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
 
-        this.offsetX = this.width / 2 - 125;
-        this.offsetY = this.height / 2 - 100;
+        this.offsetX = this.width / 2 - 150;
+        this.offsetY = this.height / 2 - 95;
         this.setPosition(this.offsetX, this.offsetY);
 
         textFieldX = new ADM_GuiTextField(this.fontRendererObj, this.offsetX + 45, this.offsetY + 60, 60, 20)
@@ -72,9 +73,19 @@ public class GuiSubBind extends ADM_GuiScreen {
         textFieldY.setMaxStringLength(10);
         textFieldZ.setMaxStringLength(10);
         textFieldX.setFocused(true);
+        Runnable clearValidation = new Runnable() {
+
+            @Override
+            public void run() {
+                errorTips = "";
+            }
+        };
+        textFieldX.setOnTextChanged(clearValidation);
+        textFieldY.setOnTextChanged(clearValidation);
+        textFieldZ.setOnTextChanged(clearValidation);
 
         this.buttonList.add(
-            new ADM_GuiButton(0, this.offsetX + 80, this.offsetY + 100, 60, 20, I18n.format("adm.button.save"))
+            new ADM_GuiButton(0, this.offsetX + 80, this.offsetY + 140, 60, 20, I18n.format("adm.button.save"))
                 .setTexture(AdmGuiTextures.BUTTON)
                 .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseRGBEffect(false)
@@ -83,7 +94,7 @@ public class GuiSubBind extends ADM_GuiScreen {
                 .setUseHoverEffect(true));
 
         this.buttonList.add(
-            new ADM_GuiButton(1, this.offsetX + 160, this.offsetY + 100, 60, 20, I18n.format("adm.button.cancel"))
+            new ADM_GuiButton(1, this.offsetX + 160, this.offsetY + 140, 60, 20, I18n.format("adm.button.cancel"))
                 .setTexture(AdmGuiTextures.BUTTON)
                 .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseRGBEffect(false)
@@ -93,16 +104,14 @@ public class GuiSubBind extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
-        // 修正后的标题居中：面板中心 = offsetX + 面板宽度/2 (150)
         this.drawCenteredString(
             this.fontRendererObj,
             I18n.format("adm.title.bind_target"),
-            this.offsetX + 160,
-            this.offsetY - 10,
+            this.offsetX + 150,
+            this.offsetY + 15,
             0x00FFFF);
 
         this.fontRendererObj.drawString("X:", this.offsetX + 32, this.offsetY + 60, 0x00FFFF);
@@ -110,13 +119,9 @@ public class GuiSubBind extends ADM_GuiScreen {
         this.fontRendererObj.drawString("Z:", this.offsetX + 192, this.offsetY + 60, 0x00FFFF);
 
         if (!errorTips.isEmpty()) {
-            this.fontRendererObj.drawString(errorTips, this.offsetX + 10, this.offsetY + 105, 0xFF0000);
+            new UiFeedbackArea(this.offsetX + 15, this.offsetY + 92, 270, 30)
+                .draw(this.fontRendererObj, errorTips, 0xFF5555);
         }
-
-        // 绘制文本框背景（严格按照参考实现：使用文本框对象的纹理，固定 100x20 尺寸）
-        drawTextFieldBackground(textFieldX);
-        drawTextFieldBackground(textFieldY);
-        drawTextFieldBackground(textFieldZ);
 
         // 绘制文本内容
         textFieldX.drawTextBox();
@@ -124,59 +129,56 @@ public class GuiSubBind extends ADM_GuiScreen {
         textFieldZ.drawTextBox();
     }
 
-    /**
-     * 绘制单个文本框的背景。
-     * 完全模仿 GuiSubAEAdvanceCraftingLink 中的背景绘制逻辑：
-     * - 通过 textField.getTextFieldTexture() / getFocusedTextFieldTexture() 获取纹理
-     * - 固定绘制尺寸为 100x20（与参考一致）
-     */
-    private void drawTextFieldBackground(ADM_GuiTextField textField) {
-        int x = textField.xPosition;
-        int y = textField.yPosition + 2; // 微调Y坐标，与参考实现对齐
-        if (textField.isFocused()) {
-            this.drawImage(textField.getFocusedTextFieldTexture(), x, y, 60, 20);
-        } else {
-            this.drawImage(textField.getTextFieldTexture(), x, y, 60, 20);
-        }
-    }
-
     @Override
     protected void actionPerformed(GuiButton button) {
         switch (button.id) {
             case 0 -> { // 保存并打开配置界面
+                beginValidation();
                 int x, y, z;
                 try {
                     x = Integer.parseInt(
                         textFieldX.getText()
                             .trim());
+                } catch (NumberFormatException e) {
+                    rejectField(textFieldX, I18n.format("adm.error.invalid_coord"));
+                    return;
+                }
+                try {
                     y = Integer.parseInt(
                         textFieldY.getText()
                             .trim());
+                } catch (NumberFormatException e) {
+                    rejectField(textFieldY, I18n.format("adm.error.invalid_coord"));
+                    return;
+                }
+                try {
                     z = Integer.parseInt(
                         textFieldZ.getText()
                             .trim());
                 } catch (NumberFormatException e) {
-                    errorTips = I18n.format("adm.error.invalid_coord");
+                    rejectField(textFieldZ, I18n.format("adm.error.invalid_coord"));
                     return;
                 }
 
                 if (!world.blockExists(x, y, z)) {
-                    errorTips = I18n.format("adm.error.no_block");
+                    rejectField(textFieldX, I18n.format("adm.error.no_block"));
                     return;
                 }
 
                 TileEntity te = world.getTileEntity(x, y, z);
                 if (te == null) {
-                    errorTips = I18n.format("adm.error.not_tileentity");
+                    rejectField(textFieldX, I18n.format("adm.error.not_tileentity"));
                     return;
                 }
 
                 // 创建新数据条目并保存坐标
                 int newIndex = tileEntity.findLowestFreeBindingIndex();
                 if (newIndex < 0) {
-                    errorTips = I18n.format(
-                        "adm.error.data_bindings_full",
-                        Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS));
+                    rejectField(
+                        null,
+                        I18n.format(
+                            "adm.error.data_bindings_full",
+                            Integer.valueOf(TileEntityAdvanceDataMonitor.MAX_DATA_BINDINGS)));
                     return;
                 }
                 net.minecraft.nbt.NBTTagCompound defaultNbt = tileEntity.getDataBound(newIndex);
@@ -196,8 +198,22 @@ public class GuiSubBind extends ADM_GuiScreen {
                 mc.displayGuiScreen(
                     new GuiMainAdvanceDataMonitor(player, world, tileEntity).setPosition(0, 0)
                         .setSize(200, 200)
-                        .setStretch(true)
                         .setBackgroundTexture(AdmGuiTextures.BACKGROUND_MONITOR_MAIN));
+        }
+    }
+
+    private void beginValidation() {
+        errorTips = "";
+        textFieldX.setInvalid(false);
+        textFieldY.setInvalid(false);
+        textFieldZ.setInvalid(false);
+    }
+
+    private void rejectField(ADM_GuiTextField field, String message) {
+        errorTips = message != null ? message : "";
+        if (field != null) {
+            field.setInvalid(true);
+            field.setFocused(true);
         }
     }
 
@@ -210,8 +226,8 @@ public class GuiSubBind extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
         textFieldX.mouseClicked(mouseX, mouseY, mouseButton);
         textFieldY.mouseClicked(mouseX, mouseY, mouseButton);
         textFieldZ.mouseClicked(mouseX, mouseY, mouseButton);

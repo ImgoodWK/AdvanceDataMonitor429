@@ -15,6 +15,7 @@ import com.imgood.textech.client.worldmap.dynmap.WorldMapDynmapClientFetcher;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureJob;
 import com.imgood.textech.webae.network.PacketWorldMapCaptureOffer;
 import com.imgood.textech.webae.network.PacketWorldMapSnapshotTileUpload;
+import com.imgood.textech.webae.worldmap.WorldMapPacketAuthorization;
 import com.imgood.textech.webae.worldmap.WorldMapQualityTier;
 import com.imgood.textech.webae.worldmap.WorldMapTerrainCaptureResult;
 import com.imgood.textech.webae.worldmap.WorldMapTerrainSourceId;
@@ -23,6 +24,7 @@ import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -37,6 +39,9 @@ public final class WorldMapSnapshotCaptureWorker {
 
     private final Deque<CaptureChunk> queue = new ArrayDeque<CaptureChunk>();
     private final Map<String, Integer> sourceStats = new HashMap<String, Integer>();
+    private final WorldMapCaptureJobAssembler jobAssembler = new WorldMapCaptureJobAssembler();
+
+    private WorldMapCaptureJobAssembler.AssembledJob readyJob;
 
     private String ownerUuid;
     private int networkId;
@@ -60,8 +65,37 @@ public final class WorldMapSnapshotCaptureWorker {
         WorldMapCaptureClientState.setLatestRequestId(offer.requestId);
     }
 
-    public void startJob(PacketWorldMapCaptureJob job) {
-        if (job == null || job.chunks == null || job.chunks.isEmpty()) {
+    public void acceptJobPage(PacketWorldMapCaptureJob page) {
+        WorldMapCaptureJobAssembler.AssembledJob assembled = jobAssembler.acceptPage(page);
+        if (assembled == null) {
+            return;
+        }
+        synchronized (this) {
+            if (readyJob == null) {
+                readyJob = assembled;
+            }
+        }
+    }
+
+    private void startJob(WorldMapCaptureJobAssembler.AssembledJob job) {
+        if (job == null || job.chunks == null
+            || job.chunks.isEmpty()
+            || job.chunks.size() > PacketWorldMapCaptureJob.MAX_TOTAL_CHUNKS
+            || !WorldMapPacketAuthorization.isValidOwnerUuid(job.ownerUuid)
+            || !WorldMapPacketAuthorization.isValidNetworkId(job.networkId)
+            || !WorldMapPacketAuthorization.isValidSnapshotVersion(job.snapshotVersion)
+            || !WorldMapPacketAuthorization.isValidTilePx(job.tilePx)) {
+            return;
+        }
+        Deque<CaptureChunk> validated = new ArrayDeque<CaptureChunk>(job.chunks.size());
+        for (String entry : job.chunks) {
+            int[] parsed = PacketWorldMapCaptureJob.parseChunkEntry(entry);
+            if (parsed == null) {
+                return;
+            }
+            validated.offerLast(new CaptureChunk(parsed[0], parsed[1], parsed[2]));
+        }
+        if (validated.size() != job.chunks.size()) {
             return;
         }
         queue.clear();
@@ -74,17 +108,26 @@ public final class WorldMapSnapshotCaptureWorker {
         totalChunks = job.chunks.size();
         completedChunks = 0;
         active = true;
-        for (String entry : job.chunks) {
-            int[] parsed = parseChunkEntry(entry);
-            if (parsed != null) {
-                queue.offerLast(new CaptureChunk(parsed[0], parsed[1], parsed[2]));
-            }
-        }
+        queue.addAll(validated);
     }
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !active || queue.isEmpty()) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        jobAssembler.pruneExpired();
+        WorldMapCaptureJobAssembler.AssembledJob next = null;
+        synchronized (this) {
+            if (!active && readyJob != null) {
+                next = readyJob;
+                readyJob = null;
+            }
+        }
+        if (next != null) {
+            startJob(next);
+        }
+        if (!active || queue.isEmpty()) {
             return;
         }
         WorldMapDynmapClientFetcher.instance()
@@ -109,6 +152,26 @@ public final class WorldMapSnapshotCaptureWorker {
             finalizeUpload();
             active = false;
         }
+    }
+
+    @SubscribeEvent
+    public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        clear();
+    }
+
+    private void clear() {
+        jobAssembler.clear();
+        synchronized (this) {
+            readyJob = null;
+        }
+        queue.clear();
+        sourceStats.clear();
+        ownerUuid = null;
+        networkId = 0;
+        snapshotVersion = 0;
+        totalChunks = 0;
+        completedChunks = 0;
+        active = false;
     }
 
     private void captureAndUpload(Minecraft mc, CaptureChunk chunk) {
@@ -187,17 +250,8 @@ public final class WorldMapSnapshotCaptureWorker {
     }
 
     private void sendTile(String layer, int dim, int chunkX, int chunkZ, byte[] png) {
-        PacketWorldMapSnapshotTileUpload packet = new PacketWorldMapSnapshotTileUpload();
-        packet.ownerUuid = ownerUuid;
-        packet.networkId = networkId;
-        packet.snapshotVersion = snapshotVersion;
-        packet.layer = layer;
-        packet.dim = dim;
-        packet.chunkX = chunkX;
-        packet.chunkZ = chunkZ;
-        packet.png = png;
-        packet.finalizeSnapshot = false;
-        AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
+        PacketWorldMapSnapshotTileUpload
+            .sendToServer(ownerUuid, networkId, snapshotVersion, layer, dim, chunkX, chunkZ, tilePx, png);
     }
 
     private void finalizeUpload() {
@@ -263,29 +317,6 @@ public final class WorldMapSnapshotCaptureWorker {
 
     public int getTotalChunks() {
         return totalChunks;
-    }
-
-    private static int[] parseChunkEntry(String entry) {
-        if (entry == null || entry.isEmpty()) {
-            return null;
-        }
-        int colon = entry.indexOf(':');
-        if (colon <= 0) {
-            return null;
-        }
-        String pair = entry.substring(colon + 1);
-        String[] parts = pair.split(",");
-        if (parts.length != 2) {
-            return null;
-        }
-        try {
-            return new int[] { Integer.parseInt(
-                entry.substring(0, colon)
-                    .trim()),
-                Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()) };
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     private static final class CaptureChunk {

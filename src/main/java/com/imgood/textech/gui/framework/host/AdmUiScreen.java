@@ -79,10 +79,13 @@ public abstract class AdmUiScreen extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
         renderUi(mouseX, mouseY);
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
+
+    /** The host renders framed panels only; it must not add Minecraft's opaque full-screen dimmer. */
+    @Override
+    public void drawDefaultBackground() {}
 
     @Override
     public void updateScreen() {

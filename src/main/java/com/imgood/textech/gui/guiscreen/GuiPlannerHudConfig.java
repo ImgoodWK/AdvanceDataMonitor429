@@ -13,7 +13,7 @@ import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiScreen;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AdmGuiTextures;
-import com.imgood.textech.gui.framework.GuiBlitUtil;
+import com.imgood.textech.gui.framework.UiFeedbackArea;
 import com.imgood.textech.gui.framework.UiPanel;
 import com.imgood.textech.gui.framework.UiThemes;
 import com.imgood.textech.items.ItemAdvancePlanner;
@@ -122,7 +122,7 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
 
         // Buttons at the bottom
         this.buttonList.add(
-            new ADM_GuiButton(buttonSaveId, centerX - 60, centerY + 80, 50, 20, I18n.format("adm.button.save"))
+            new ADM_GuiButton(buttonSaveId, centerX - 185, centerY + 80, 50, 20, I18n.format("adm.button.save"))
                 .setTexture(AdmGuiTextures.BUTTON)
                 .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseHoverEffect(true)
@@ -130,7 +130,7 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
                 .setTextHoverColor(0x55FF55));
 
         this.buttonList.add(
-            new ADM_GuiButton(buttonCancelId, centerX + 10, centerY + 80, 50, 20, I18n.format("adm.button.cancel"))
+            new ADM_GuiButton(buttonCancelId, centerX - 115, centerY + 80, 50, 20, I18n.format("adm.button.cancel"))
                 .setTexture(AdmGuiTextures.BUTTON)
                 .setHoverTexture(AdmGuiTextures.BUTTON_HOVER)
                 .setUseHoverEffect(true)
@@ -141,10 +141,18 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     }
 
     private ADM_GuiTextField createField(int x, int y, int w, int maxLen) {
-        ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y, w, 20);
+        final ADM_GuiTextField field = new ADM_GuiTextField(this.fontRendererObj, x, y, w, 20);
         field.setMaxStringLength(maxLen);
         field.setBackgroundTexture(AdmGuiTextures.TEXTFIELD_8020);
         field.setFocusedBackgroundTexture(AdmGuiTextures.TEXTFIELD_HOVER_8020);
+        field.setOnTextChanged(new Runnable() {
+
+            @Override
+            public void run() {
+                field.setInvalid(false);
+                errorTips = "";
+            }
+        });
         return field;
     }
 
@@ -163,18 +171,19 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     }
 
     private void saveConfig() {
+        beginValidation();
         // Validate max display
         try {
             int maxVal = Integer.parseInt(
                 maxDisplayField.getText()
                     .trim());
             if (maxVal < Config.plannerHudMinMaxDisplay || maxVal > Config.plannerHudMaxMaxDisplay) {
-                errorTips = I18n.format("adm.planner.hud_max_display_hint");
+                rejectField(maxDisplayField, I18n.format("adm.planner.hud_max_display_hint"));
                 return;
             }
             ItemAdvancePlanner.setHudMaxDisplay(plannerStack, maxVal);
         } catch (NumberFormatException e) {
-            errorTips = I18n.format("adm.error.invalid_number");
+            rejectField(maxDisplayField, I18n.format("adm.error.invalid_number"));
             return;
         }
 
@@ -184,12 +193,12 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
                 posXField.getText()
                     .trim());
             if (xVal < Config.plannerHudMinPosX || xVal > Config.plannerHudMaxPosX) {
-                errorTips = I18n.format("adm.planner.hud_pos_hint");
+                rejectField(posXField, I18n.format("adm.planner.hud_pos_hint"));
                 return;
             }
             ItemAdvancePlanner.setHudPosX(plannerStack, xVal);
         } catch (NumberFormatException e) {
-            errorTips = I18n.format("adm.error.invalid_number");
+            rejectField(posXField, I18n.format("adm.error.invalid_number"));
             return;
         }
 
@@ -199,12 +208,12 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
                 posYField.getText()
                     .trim());
             if (yVal < Config.plannerHudMinPosY || yVal > Config.plannerHudMaxPosY) {
-                errorTips = I18n.format("adm.planner.hud_pos_hint");
+                rejectField(posYField, I18n.format("adm.planner.hud_pos_hint"));
                 return;
             }
             ItemAdvancePlanner.setHudPosY(plannerStack, yVal);
         } catch (NumberFormatException e) {
-            errorTips = I18n.format("adm.error.invalid_number");
+            rejectField(posYField, I18n.format("adm.error.invalid_number"));
             return;
         }
 
@@ -214,12 +223,12 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
                 scaleField.getText()
                     .trim());
             if (sVal < Config.plannerHudMinScale || sVal > Config.plannerHudMaxScale) {
-                errorTips = I18n.format("adm.planner.hud_scale_hint");
+                rejectField(scaleField, I18n.format("adm.planner.hud_scale_hint"));
                 return;
             }
             ItemAdvancePlanner.setHudScale(plannerStack, sVal);
         } catch (NumberFormatException e) {
-            errorTips = I18n.format("adm.error.invalid_number");
+            rejectField(scaleField, I18n.format("adm.error.invalid_number"));
             return;
         }
 
@@ -229,18 +238,44 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
                 widthField.getText()
                     .trim());
             if (widthVal < Config.plannerHudMinWidth || widthVal > Config.plannerHudMaxWidth) {
-                errorTips = I18n.format("adm.planner.hud_width_hint");
+                rejectField(widthField, I18n.format("adm.planner.hud_width_hint"));
                 return;
             }
             ItemAdvancePlanner.setHudWidth(plannerStack, widthVal);
         } catch (NumberFormatException e) {
-            errorTips = I18n.format("adm.error.invalid_number");
+            rejectField(widthField, I18n.format("adm.error.invalid_number"));
             return;
         }
 
         ItemAdvancePlanner.syncPlannerToServer(player, plannerStack);
         errorTips = "";
         this.mc.displayGuiScreen(new GuiAdvancePlanner(plannerStack, player));
+    }
+
+    private void beginValidation() {
+        errorTips = "";
+        ADM_GuiTextField[] fields = { maxDisplayField, posXField, posYField, scaleField, widthField };
+        for (ADM_GuiTextField field : fields) {
+            if (field != null) field.setInvalid(false);
+        }
+    }
+
+    private void rejectField(ADM_GuiTextField field, String message) {
+        errorTips = message != null ? message : "";
+        if (field == null) return;
+        if (focusedField() != null && focusedField() != field) {
+            focusedField().setFocused(false);
+        }
+        field.setInvalid(true);
+        field.setFocused(true);
+    }
+
+    private ADM_GuiTextField focusedField() {
+        ADM_GuiTextField[] fields = { maxDisplayField, posXField, posYField, scaleField, widthField };
+        for (ADM_GuiTextField field : fields) {
+            if (field != null && field.isFocused()) return field;
+        }
+        return null;
     }
 
     @Override
@@ -287,8 +322,8 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     public void handleMouseInput() {
         super.handleMouseInput();
 
-        int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
-        int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
+        int mouseX = eventLogicalMouseX(Mouse.getEventX() * this.width / this.mc.displayWidth);
+        int mouseY = eventLogicalMouseY(this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1);
 
         int scrollDelta = Mouse.getEventDWheel();
 
@@ -328,8 +363,8 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+    protected void handleAdmMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        super.handleAdmMouseClicked(mouseX, mouseY, mouseButton);
 
         // Pass clicks to all fields
         if (maxDisplayField != null) maxDisplayField.mouseClicked(mouseX, mouseY, mouseButton);
@@ -347,8 +382,8 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseMovedOrUp(int mouseX, int mouseY, int which) {
-        super.mouseMovedOrUp(mouseX, mouseY, which);
+    protected void handleAdmMouseMovedOrUp(int mouseX, int mouseY, int which) {
+        super.handleAdmMouseMovedOrUp(mouseX, mouseY, which);
 
         if (which == 0 && draggingHudBox) {
             draggingHudBox = false;
@@ -358,8 +393,8 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     }
 
     @Override
-    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+    protected void handleAdmMouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        super.handleAdmMouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
 
         if (draggingHudBox && isMouseInPreview(mouseX, mouseY)) {
             int newPixelX = mouseX - dragOffsetX - previewX;
@@ -399,9 +434,8 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
         this.drawCenteredString(
             this.fontRendererObj,
@@ -443,7 +477,9 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
         drawPreviewArea(mouseX, mouseY);
 
         if (!errorTips.isEmpty()) {
-            this.drawCenteredString(this.fontRendererObj, errorTips, centerX, centerY + 95, 0xFF5555);
+            UiFeedbackArea feedback = UiFeedbackArea
+                .afterControls(centerX - 204, centerY - 140, 184, 280, centerY + 105, 3, 8, 30);
+            if (feedback != null) feedback.draw(this.fontRendererObj, errorTips, 0xFF5555);
         }
 
     }
@@ -475,13 +511,7 @@ public class GuiPlannerHudConfig extends ADM_GuiScreen {
         int boxFillColor = draggingHudBox ? 0x6000AAAA : (hovering ? 0x400088CC : 0x30004466);
 
         drawRect(boxScreenX, boxScreenY, boxScreenX + hudBoxWidth, boxScreenY + hudBoxHeight, boxFillColor);
-        GuiBlitUtil.drawNineSlice(
-            draggingHudBox || hovering ? UiThemes.ADM.buttonHover() : UiThemes.ADM.buttonNormal(),
-            boxScreenX,
-            boxScreenY,
-            hudBoxWidth,
-            hudBoxHeight,
-            3);
+        UiPanel.drawSection(UiThemes.ADM, boxScreenX, boxScreenY, hudBoxWidth, hudBoxHeight);
 
         // "HUD" label in the box
         String hudBoxLabel = I18n.format("adm.planner.hud_label");

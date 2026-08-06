@@ -4,6 +4,9 @@ import static com.imgood.textech.utils.ContentsHelper.isValidDouble;
 import static com.imgood.textech.utils.ContentsHelper.isValidHexColor;
 import static com.imgood.textech.utils.ContentsHelper.isValidInteger;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -14,9 +17,10 @@ import net.minecraft.world.World;
 import com.imgood.textech.gui.custom.ADM_GuiButton;
 import com.imgood.textech.gui.custom.ADM_GuiTextField;
 import com.imgood.textech.gui.custom.AbstractMonitorSubGui;
+import com.imgood.textech.monitor.MonitorThresholdEvaluator;
+import com.imgood.textech.monitor.MonitorWidgetSpec;
 import com.imgood.textech.tileentity.TileEntityAdvanceDataMonitor;
 import com.imgood.textech.utils.ContentsHelper;
-import com.imgood.textech.utils.DataBound;
 
 /**
  * Display names / 显示名称:
@@ -50,22 +54,38 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
     private ADM_GuiTextField textFieldLineWidth;
     private ADM_GuiTextField textFieldScaled;
     private ADM_GuiTextField textFieldAxisFontScaled;
+    private ADM_GuiTextField textFieldMetricKey;
+    private ADM_GuiTextField textFieldSourceKind;
+    private ADM_GuiTextField textFieldTargetValue;
+    private ADM_GuiTextField textFieldThresholdValue;
+    private ADM_GuiTextField textFieldThresholdHysteresis;
+    private ADM_GuiTextField textFieldThresholdOutputMin;
+    private ADM_GuiTextField textFieldThresholdOutputMax;
+    private final List<ADM_GuiTextField> thresholdFields = new ArrayList<ADM_GuiTextField>();
 
     private int buttonRowYOffset2 = 340;
     private int buttonRowConfigYoffset1 = 20;
     private int buttonRowConfigYinterval1 = 30;
     private int buttonRowConfigXoffset1 = 360;
-    private int buttonRow2Width = 60;
+    private int buttonRow2Width = 65;
+
+    private static final String[] SOURCE_KINDS = { MonitorWidgetSpec.SOURCE_TILE_METRIC,
+        MonitorWidgetSpec.SOURCE_AE_METRIC, MonitorWidgetSpec.SOURCE_WIRELESS_EU,
+        MonitorWidgetSpec.SOURCE_WIRELESS_STEAM, MonitorWidgetSpec.SOURCE_STORAGE_SUMMARY,
+        MonitorWidgetSpec.SOURCE_GT_SUMMARY };
 
     private String dataType;
+    private String kind;
     private boolean isEnabledAxis;
     private boolean isEnabledData;
     private boolean isEnabledAxisFont;
+    private boolean thresholdEnabled;
+    private String thresholdOperator = MonitorThresholdEvaluator.OPERATOR_GTE;
 
     public GuiSubAdvanceDataMonitor(EntityPlayer player, World world, TileEntityAdvanceDataMonitor tileEntity,
         int index) {
         super(player, world, tileEntity, index);
-        this.setSize(600, 450);
+        this.setSize(600, 480);
     }
 
     @Override
@@ -74,6 +94,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
             assignLeftField(fieldIndex, field);
         } else if ("Right".equals(row)) {
             assignRightField(fieldIndex, field);
+        } else if ("Threshold".equals(row)) {
+            assignThresholdField(fieldIndex, field);
         }
     }
 
@@ -120,12 +142,23 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         textFieldsRight.add(textFieldLineWidth);
         textFieldsRight.add(textFieldScaled);
         textFieldsRight.add(textFieldAxisFontScaled);
+        textFieldsRight.add(textFieldMetricKey);
+        textFieldsRight.add(textFieldSourceKind);
+        textFieldsRight.add(textFieldTargetValue);
         autoTextField("Right", textFieldsRight, 0, 25, offsetX + 275, offsetY + 10, 80, 20);
+
+        thresholdFields.clear();
+        thresholdFields.add(textFieldThresholdValue);
+        thresholdFields.add(textFieldThresholdHysteresis);
+        thresholdFields.add(textFieldThresholdOutputMin);
+        thresholdFields.add(textFieldThresholdOutputMax);
+        autoTextField("Threshold", thresholdFields, 0, 25, offsetX + 500, offsetY + 110, 80, 20);
+        textFieldsRight.addAll(thresholdFields);
 
         fillFieldsFromContents();
         initFieldHints();
         initButtons();
-        setTileEntityDatatype(tileEntity.getDataType(index));
+        selectKind(MonitorWidgetSpec.getKind(tileEntity.getDataBound(index)));
         updateEnableButtonLabels();
     }
 
@@ -154,6 +187,13 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         contents.add(textFieldLineWidth.getText());
         contents.add(textFieldScaled.getText());
         contents.add(textFieldAxisFontScaled.getText());
+        contents.add(textFieldMetricKey.getText());
+        contents.add(textFieldSourceKind.getText());
+        contents.add(textFieldTargetValue.getText());
+        contents.add(textFieldThresholdValue.getText());
+        contents.add(textFieldThresholdHysteresis.getText());
+        contents.add(textFieldThresholdOutputMin.getText());
+        contents.add(textFieldThresholdOutputMax.getText());
     }
 
     private void loadInitialContents() {
@@ -181,6 +221,19 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         contents.add(String.valueOf(tileEntity.getLineWidth(index)));
         contents.add(String.valueOf(tileEntity.getScale(index)));
         contents.add(String.valueOf(tileEntity.getAxisFontScale(index)));
+        contents.add(MonitorWidgetSpec.getMetricKey(tileEntity.getDataBound(index)));
+        contents.add(MonitorWidgetSpec.getSourceKind(tileEntity.getDataBound(index)));
+        contents.add(String.valueOf(MonitorWidgetSpec.getTargetValue(tileEntity.getDataBound(index))));
+        NBTTagCompound threshold = tileEntity.getDataBound(index)
+            .getCompoundTag(MonitorWidgetSpec.THRESHOLD_KEY);
+        thresholdEnabled = threshold.getBoolean("enabled");
+        thresholdOperator = MonitorThresholdEvaluator.OPERATOR_LTE.equals(threshold.getString("operator"))
+            ? MonitorThresholdEvaluator.OPERATOR_LTE
+            : MonitorThresholdEvaluator.OPERATOR_GTE;
+        contents.add(String.valueOf(threshold.getDouble("value")));
+        contents.add(String.valueOf(threshold.getDouble("hysteresis")));
+        contents.add(String.valueOf(threshold.getDouble("outputMin")));
+        contents.add(String.valueOf(threshold.getDouble("outputMax")));
     }
 
     private void fillFieldsFromContents() {
@@ -188,7 +241,9 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
             textFieldRotationX, textFieldRotationY, textFieldRotationZ, textFieldXRange, textFieldYRange,
             textFieldDataLimit, textFieldInterval, textFieldYMin, textFieldYMax, textFieldName, textFieldDisplayName,
             textFieldDisplayNameScale, textFieldDisplayNameColor, textFieldAxisLineColor, textFieldAxisFontColor,
-            textFieldLineColor, textFieldLineWidth, textFieldScaled, textFieldAxisFontScaled };
+            textFieldLineColor, textFieldLineWidth, textFieldScaled, textFieldAxisFontScaled, textFieldMetricKey,
+            textFieldSourceKind, textFieldTargetValue, textFieldThresholdValue, textFieldThresholdHysteresis,
+            textFieldThresholdOutputMin, textFieldThresholdOutputMax };
         for (int i = 0; i < fields.length; i++) {
             fields[i].setMaxStringLength(100);
             fields[i].setText(contents.size() > i ? contents.get(i) : "");
@@ -220,6 +275,13 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         fieldHints.put(textFieldLineWidth, "adm.hint.linewidth");
         fieldHints.put(textFieldScaled, "adm.hint.scale");
         fieldHints.put(textFieldAxisFontScaled, "adm.hint.axisfontscale");
+        fieldHints.put(textFieldMetricKey, "adm.hint.metricKey");
+        fieldHints.put(textFieldSourceKind, "adm.hint.sourceKind");
+        fieldHints.put(textFieldTargetValue, "adm.hint.targetValue");
+        fieldHints.put(textFieldThresholdValue, "adm.hint.threshold.value");
+        fieldHints.put(textFieldThresholdHysteresis, "adm.hint.threshold.hysteresis");
+        fieldHints.put(textFieldThresholdOutputMin, "adm.hint.threshold.output_min");
+        fieldHints.put(textFieldThresholdOutputMax, "adm.hint.threshold.output_max");
     }
 
     private void initButtons() {
@@ -228,27 +290,33 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
             .add(button(1, offsetX + 70, offsetY + buttonRowYOffset1, buttonRow1Width, 20, "adm.button.cancel"));
         this.buttonList.add(
             button(
-                7,
+                23,
                 offsetX + 140,
                 offsetY + buttonRowYOffset1,
                 buttonRow1Width,
                 20,
                 isEnabled ? "adm.button.disable" : "adm.button.enable"));
 
-        this.buttonList.add(button(2, offsetX, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.line"));
         this.buttonList
-            .add(button(3, offsetX + 70, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar"));
+            .add(button(2, offsetX, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.statCard"));
         this.buttonList
-            .add(button(4, offsetX + 140, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.bar3d"));
+            .add(button(3, offsetX + 70, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.progressBar"));
         this.buttonList
-            .add(button(5, offsetX + 210, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.waterfall"));
+            .add(button(4, offsetX + 140, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.gauge"));
         this.buttonList
-            .add(button(6, offsetX + 280, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.difference"));
+            .add(button(5, offsetX + 210, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.lineChart"));
+        this.buttonList
+            .add(button(6, offsetX + 280, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.barChart"));
+        this.buttonList
+            .add(button(7, offsetX + 350, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.pieChart"));
+        this.buttonList
+            .add(button(8, offsetX + 420, offsetY + buttonRowYOffset2, buttonRow2Width, 20, "adm.datatype.dataTable"));
+        this.buttonList.add(button(30, offsetX + 490, offsetY + buttonRowYOffset2, 100, 20, "adm.button.sourceKind"));
 
         int configY = buttonRowConfigYoffset1;
         this.buttonList.add(
             button(
-                8,
+                20,
                 offsetX + buttonRowConfigXoffset1,
                 offsetY + configY,
                 buttonRow2Width,
@@ -257,7 +325,7 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         configY += buttonRowConfigYinterval1;
         this.buttonList.add(
             button(
-                9,
+                21,
                 offsetX + buttonRowConfigXoffset1,
                 offsetY + configY,
                 buttonRow2Width,
@@ -266,27 +334,50 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         configY += buttonRowConfigYinterval1;
         this.buttonList.add(
             button(
-                10,
+                22,
                 offsetX + buttonRowConfigXoffset1,
                 offsetY + configY,
                 buttonRow2Width,
                 20,
                 "adm.button.enableAxisFont"));
+        this.buttonList.add(
+            button(
+                40,
+                offsetX + 435,
+                offsetY + buttonRowConfigYoffset1,
+                155,
+                20,
+                thresholdEnabled ? "adm.button.threshold_on" : "adm.button.threshold_off"));
+        this.buttonList.add(
+            monitorButton(
+                41,
+                offsetX + 435,
+                offsetY + buttonRowConfigYoffset1 + buttonRowConfigYinterval1,
+                155,
+                20,
+                MonitorThresholdEvaluator.OPERATOR_LTE.equals(thresholdOperator) ? "<=" : ">=",
+                textColor,
+                textHoverColor));
     }
 
     private void updateEnableButtonLabels() {
-        getButtonByid(7).displayString = I18n.format(!isEnabled ? "adm.button.disable" : "adm.button.enable");
-        getButtonByid(8).displayString = I18n
+        getButtonByid(23).displayString = I18n.format(!isEnabled ? "adm.button.disable" : "adm.button.enable");
+        getButtonByid(20).displayString = I18n
             .format(!isEnabledAxis ? "adm.button.disableAxis" : "adm.button.enableAxis");
-        getButtonByid(9).displayString = I18n
+        getButtonByid(21).displayString = I18n
             .format(!isEnabledData ? "adm.button.disableData" : "adm.button.enableData");
-        getButtonByid(10).displayString = I18n
+        getButtonByid(22).displayString = I18n
             .format(!isEnabledAxisFont ? "adm.button.disableAxisFont" : "adm.button.enableAxisFont");
 
-        ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF : 0xFF0000);
-        ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF : 0xFF0000);
-        ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF : 0xFF0000);
-        ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF : 0xFF0000);
+        ((ADM_GuiButton) getButtonByid(23)).setTextColor(isEnabled ? 0x00FFFF : 0xFF0000);
+        ((ADM_GuiButton) getButtonByid(20)).setTextColor(isEnabledAxis ? 0x00FFFF : 0xFF0000);
+        ((ADM_GuiButton) getButtonByid(21)).setTextColor(isEnabledData ? 0x00FFFF : 0xFF0000);
+        ((ADM_GuiButton) getButtonByid(22)).setTextColor(isEnabledAxisFont ? 0x00FFFF : 0xFF0000);
+        getButtonByid(40).displayString = I18n
+            .format(thresholdEnabled ? "adm.button.threshold_on" : "adm.button.threshold_off");
+        getButtonByid(41).displayString = MonitorThresholdEvaluator.OPERATOR_LTE.equals(thresholdOperator) ? "<="
+            : ">=";
+        ((ADM_GuiButton) getButtonByid(40)).setTextColor(thresholdEnabled ? 0x00FFFF : 0xFF0000);
     }
 
     private ADM_GuiButton button(int id, int x, int y, int width, int height, String key) {
@@ -323,23 +414,66 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
             case 7 -> textFieldLineWidth = field;
             case 8 -> textFieldScaled = field;
             case 9 -> textFieldAxisFontScaled = field;
+            case 10 -> textFieldMetricKey = field;
+            case 11 -> textFieldSourceKind = field;
+            case 12 -> textFieldTargetValue = field;
         }
     }
 
-    private void setTileEntityDatatype(DataBound.DataType datatype) {
-        ((ADM_GuiButton) getButtonByid(2)).setUseRGBEffect(false);
-        ((ADM_GuiButton) getButtonByid(3)).setUseRGBEffect(false);
-        ((ADM_GuiButton) getButtonByid(4)).setUseRGBEffect(false);
-        ((ADM_GuiButton) getButtonByid(5)).setUseRGBEffect(false);
-        ((ADM_GuiButton) getButtonByid(6)).setUseRGBEffect(false);
-        switch (datatype) {
-            case line -> ((ADM_GuiButton) getButtonByid(2)).setUseRGBEffect(true);
-            case bar -> ((ADM_GuiButton) getButtonByid(3)).setUseRGBEffect(true);
-            case bar3d -> ((ADM_GuiButton) getButtonByid(4)).setUseRGBEffect(true);
-            case waterfall -> ((ADM_GuiButton) getButtonByid(5)).setUseRGBEffect(true);
-            case diffrence -> ((ADM_GuiButton) getButtonByid(6)).setUseRGBEffect(true);
+    private void assignThresholdField(int fieldIndex, ADM_GuiTextField field) {
+        switch (fieldIndex) {
+            case 0 -> textFieldThresholdValue = field;
+            case 1 -> textFieldThresholdHysteresis = field;
+            case 2 -> textFieldThresholdOutputMin = field;
+            case 3 -> textFieldThresholdOutputMax = field;
         }
-        tileEntity.setDataType(index, datatype);
+    }
+
+    private void selectKind(String selectedKind) {
+        kind = MonitorWidgetSpec.normalizeKind(selectedKind);
+        if (kind.isEmpty()) kind = MonitorWidgetSpec.KIND_LINE_CHART;
+        for (int id = 2; id <= 8; id++) {
+            ((ADM_GuiButton) getButtonByid(id)).setUseRGBEffect(false);
+        }
+        int selectedId = switch (kind) {
+            case MonitorWidgetSpec.KIND_STAT_CARD -> 2;
+            case MonitorWidgetSpec.KIND_PROGRESS_BAR -> 3;
+            case MonitorWidgetSpec.KIND_GAUGE -> 4;
+            case MonitorWidgetSpec.KIND_BAR_CHART -> 6;
+            case MonitorWidgetSpec.KIND_PIE_CHART -> 7;
+            case MonitorWidgetSpec.KIND_DATA_TABLE -> 8;
+            default -> 5;
+        };
+        ((ADM_GuiButton) getButtonByid(selectedId)).setUseRGBEffect(true);
+        dataType = MonitorWidgetSpec.legacyDataTypeFromKind(kind);
+    }
+
+    private void applyKind(NBTTagCompound nbt, String selectedKind) {
+        selectKind(selectedKind);
+        nbt.setString("kind", kind);
+        nbt.setString("renderType", MonitorWidgetSpec.KIND_LINE_CHART.equals(kind) ? "line" : kind);
+        nbt.setString("dataType", dataType);
+        if (!MonitorWidgetSpec.KIND_LINE_CHART.equals(kind)) nbt.setString("seriesTransform", "");
+    }
+
+    private void cycleSourceKind() {
+        String current = textFieldSourceKind.getText()
+            .trim();
+        int next = 0;
+        for (int i = 0; i < SOURCE_KINDS.length; i++) {
+            if (SOURCE_KINDS[i].equals(current)) {
+                next = (i + 1) % SOURCE_KINDS.length;
+                break;
+            }
+        }
+        textFieldSourceKind.setText(SOURCE_KINDS[next]);
+    }
+
+    private static boolean isSupportedSourceKind(String value) {
+        for (String sourceKind : SOURCE_KINDS) {
+            if (sourceKind.equals(value)) return true;
+        }
+        return false;
     }
 
     private GuiButton getButtonByid(int id) {
@@ -359,61 +493,43 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         switch (button.id) {
             case 0 -> save(nbt, existingDataValues);
             case 1 -> openMainGui();
-            case 2 -> {
-                setTileEntityDatatype(DataBound.DataType.line);
-                nbt.setString("dataType", DataBound.DataType.line.name());
-                dataType = DataBound.DataType.line.name();
-            }
-            case 3 -> {
-                setTileEntityDatatype(DataBound.DataType.bar);
-                nbt.setString("dataType", DataBound.DataType.bar.name());
-                dataType = DataBound.DataType.bar.name();
-            }
-            case 4 -> {
-                setTileEntityDatatype(DataBound.DataType.bar3d);
-                nbt.setString("dataType", DataBound.DataType.bar3d.name());
-                dataType = DataBound.DataType.bar3d.name();
-            }
-            case 5 -> {
-                setTileEntityDatatype(DataBound.DataType.waterfall);
-                nbt.setString("dataType", DataBound.DataType.waterfall.name());
-                dataType = DataBound.DataType.waterfall.name();
-            }
-            case 6 -> {
-                setTileEntityDatatype(DataBound.DataType.diffrence);
-                nbt.setString("dataType", DataBound.DataType.diffrence.name());
-                dataType = DataBound.DataType.diffrence.name();
-            }
-            case 7 -> {
+            case 2 -> selectKind(MonitorWidgetSpec.KIND_STAT_CARD);
+            case 3 -> selectKind(MonitorWidgetSpec.KIND_PROGRESS_BAR);
+            case 4 -> selectKind(MonitorWidgetSpec.KIND_GAUGE);
+            case 5 -> selectKind(MonitorWidgetSpec.KIND_LINE_CHART);
+            case 6 -> selectKind(MonitorWidgetSpec.KIND_BAR_CHART);
+            case 7 -> selectKind(MonitorWidgetSpec.KIND_PIE_CHART);
+            case 8 -> selectKind(MonitorWidgetSpec.KIND_DATA_TABLE);
+            case 23 -> {
                 isEnabled = !isEnabled;
-                ((ADM_GuiButton) getButtonByid(7)).setTextColor(isEnabled ? 0x00FFFF : 0xFF0000);
+                ((ADM_GuiButton) getButtonByid(23)).setTextColor(isEnabled ? 0x00FFFF : 0xFF0000);
                 nbt.setBoolean("enable", !existingNbt.getBoolean("enable"));
                 tileEntity.setEnable(index, !existingNbt.getBoolean("enable"));
                 button.displayString = I18n
                     .format(!existingNbt.getBoolean("enable") ? "adm.button.disable" : "adm.button.enable");
                 saveAndSync(nbt);
             }
-            case 8 -> {
+            case 20 -> {
                 isEnabledAxis = !isEnabledAxis;
-                ((ADM_GuiButton) getButtonByid(8)).setTextColor(isEnabledAxis ? 0x00FFFF : 0xFF0000);
+                ((ADM_GuiButton) getButtonByid(20)).setTextColor(isEnabledAxis ? 0x00FFFF : 0xFF0000);
                 nbt.setBoolean("enableAxis", !existingNbt.getBoolean("enableAxis"));
                 tileEntity.setEnableAxis(index, !existingNbt.getBoolean("enableAxis"));
                 button.displayString = I18n
                     .format(!existingNbt.getBoolean("enableAxis") ? "adm.button.disableAxis" : "adm.button.enableAxis");
                 saveAndSync(nbt);
             }
-            case 9 -> {
+            case 21 -> {
                 isEnabledData = !isEnabledData;
-                ((ADM_GuiButton) getButtonByid(9)).setTextColor(isEnabledData ? 0x00FFFF : 0xFF0000);
+                ((ADM_GuiButton) getButtonByid(21)).setTextColor(isEnabledData ? 0x00FFFF : 0xFF0000);
                 nbt.setBoolean("enableData", !existingNbt.getBoolean("enableData"));
                 tileEntity.setEnableData(index, !existingNbt.getBoolean("enableData"));
                 button.displayString = I18n
                     .format(!existingNbt.getBoolean("enableData") ? "adm.button.disableData" : "adm.button.enableData");
                 saveAndSync(nbt);
             }
-            case 10 -> {
+            case 22 -> {
                 isEnabledAxisFont = !isEnabledAxisFont;
-                ((ADM_GuiButton) getButtonByid(10)).setTextColor(isEnabledAxisFont ? 0x00FFFF : 0xFF0000);
+                ((ADM_GuiButton) getButtonByid(22)).setTextColor(isEnabledAxisFont ? 0x00FFFF : 0xFF0000);
                 nbt.setBoolean("enableAxisFont", !existingNbt.getBoolean("enableAxisFont"));
                 tileEntity.setEnableAxisFont(index, !existingNbt.getBoolean("enableAxisFont"));
                 button.displayString = I18n.format(
@@ -421,86 +537,149 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
                         : "adm.button.enableAxisFont");
                 saveAndSync(nbt);
             }
+            case 30 -> cycleSourceKind();
+            case 40 -> {
+                thresholdEnabled = !thresholdEnabled;
+                updateEnableButtonLabels();
+            }
+            case 41 -> {
+                thresholdOperator = MonitorThresholdEvaluator.OPERATOR_LTE.equals(thresholdOperator)
+                    ? MonitorThresholdEvaluator.OPERATOR_GTE
+                    : MonitorThresholdEvaluator.OPERATOR_LTE;
+                updateEnableButtonLabels();
+            }
             default -> {}
         }
     }
 
     private void save(NBTTagCompound nbt, NBTTagList existingDataValues) {
+        beginValidation();
         nbt.setTag("dataValues", existingDataValues.copy());
-        if (dataType == null) {
-            nbt.setString("dataType", "line");
+        applyKind(nbt, kind == null ? MonitorWidgetSpec.KIND_LINE_CHART : kind);
+
+        String metricKey = textFieldMetricKey.getText()
+            .trim();
+        if (metricKey.isEmpty()) {
+            rejectField(textFieldMetricKey, I18n.format("adm.error.metricKey"));
+            return;
         }
+        nbt.setString("metricKey", metricKey);
+        nbt.setString("name", metricKey);
+
+        String sourceKind = textFieldSourceKind.getText()
+            .trim();
+        if (!isSupportedSourceKind(sourceKind)) {
+            rejectField(textFieldSourceKind, I18n.format("adm.error.sourceKind"));
+            return;
+        }
+        nbt.setString("sourceKind", sourceKind);
+
+        if (!isValidDouble(textFieldTargetValue.getText())) {
+            rejectField(textFieldTargetValue, I18n.format("adm.error.targetValue"));
+            return;
+        }
+        double targetValue = Double.parseDouble(textFieldTargetValue.getText());
+        if (targetValue < 0.0D) {
+            rejectField(textFieldTargetValue, I18n.format("adm.error.targetValue"));
+            return;
+        }
+        nbt.setDouble("targetValue", targetValue);
+
+        if (!isFiniteDouble(textFieldThresholdValue.getText())) {
+            rejectField(textFieldThresholdValue, I18n.format("adm.error.threshold.number"));
+            return;
+        }
+        if (!isFiniteDouble(textFieldThresholdHysteresis.getText())) {
+            rejectField(textFieldThresholdHysteresis, I18n.format("adm.error.threshold.number"));
+            return;
+        }
+        if (!isFiniteDouble(textFieldThresholdOutputMin.getText())) {
+            rejectField(textFieldThresholdOutputMin, I18n.format("adm.error.threshold.number"));
+            return;
+        }
+        if (!isFiniteDouble(textFieldThresholdOutputMax.getText())) {
+            rejectField(textFieldThresholdOutputMax, I18n.format("adm.error.threshold.number"));
+            return;
+        }
+        NBTTagCompound threshold = new NBTTagCompound();
+        threshold.setBoolean("enabled", thresholdEnabled);
+        threshold.setString("operator", thresholdOperator);
+        threshold.setDouble("value", Double.parseDouble(textFieldThresholdValue.getText()));
+        threshold.setDouble("hysteresis", Math.max(0.0D, Double.parseDouble(textFieldThresholdHysteresis.getText())));
+        threshold.setDouble("outputMin", Double.parseDouble(textFieldThresholdOutputMin.getText()));
+        threshold.setDouble("outputMax", Double.parseDouble(textFieldThresholdOutputMax.getText()));
+        nbt.setTag(MonitorWidgetSpec.THRESHOLD_KEY, threshold);
 
         String xyz = textFieldTileEntityXYZ.getText()
             .replace("，", ",")
             .replace(" ", "");
         if (!ContentsHelper.isValidPosFormat(xyz)) {
-            errorTips = I18n.format("adm.error.xyz");
+            rejectField(textFieldTileEntityXYZ, I18n.format("adm.error.xyz"));
             return;
         }
         nbt.setString("XYZ", xyz);
 
         if (!isValidDouble(textFieldxOffset.getText())) {
-            errorTips = I18n.format("adm.error.xoffset");
+            rejectField(textFieldxOffset, I18n.format("adm.error.xoffset"));
             return;
         }
         nbt.setDouble("xOffset", Double.parseDouble(textFieldxOffset.getText()));
 
         if (!isValidDouble(textFieldyOffset.getText())) {
-            errorTips = I18n.format("adm.error.yoffset");
+            rejectField(textFieldyOffset, I18n.format("adm.error.yoffset"));
             return;
         }
         nbt.setDouble("yOffset", Double.parseDouble(textFieldyOffset.getText()));
 
         if (!isValidDouble(textFieldzOffset.getText())) {
-            errorTips = I18n.format("adm.error.zoffset");
+            rejectField(textFieldzOffset, I18n.format("adm.error.zoffset"));
             return;
         }
         nbt.setDouble("zOffset", Double.parseDouble(textFieldzOffset.getText()));
 
         if (!isValidDouble(textFieldRotationX.getText())) {
-            errorTips = I18n.format("adm.error.rotationx");
+            rejectField(textFieldRotationX, I18n.format("adm.error.rotationx"));
             return;
         }
         nbt.setDouble("rotationX", Double.parseDouble(textFieldRotationX.getText()));
 
         if (!isValidDouble(textFieldRotationY.getText())) {
-            errorTips = I18n.format("adm.error.rotationy");
+            rejectField(textFieldRotationY, I18n.format("adm.error.rotationy"));
             return;
         }
         nbt.setDouble("rotationY", Double.parseDouble(textFieldRotationY.getText()));
 
         if (!isValidDouble(textFieldRotationZ.getText())) {
-            errorTips = I18n.format("adm.error.rotationz");
+            rejectField(textFieldRotationZ, I18n.format("adm.error.rotationz"));
             return;
         }
         nbt.setDouble("rotationZ", Double.parseDouble(textFieldRotationZ.getText()));
 
         if (!isValidDouble(textFieldXRange.getText())) {
-            errorTips = I18n.format("adm.error.xrange");
+            rejectField(textFieldXRange, I18n.format("adm.error.xrange"));
             return;
         }
         nbt.setDouble("xRange", Double.parseDouble(textFieldXRange.getText()));
 
         if (!isValidDouble(textFieldYRange.getText())) {
-            errorTips = I18n.format("adm.error.yrange");
+            rejectField(textFieldYRange, I18n.format("adm.error.yrange"));
             return;
         }
         nbt.setDouble("yRange", Double.parseDouble(textFieldYRange.getText()));
 
         if (!isValidInteger(textFieldDataLimit.getText())) {
-            errorTips = I18n.format("adm.error.datalimit");
+            rejectField(textFieldDataLimit, I18n.format("adm.error.datalimit"));
             return;
         }
         int dataLimit = Integer.parseInt(textFieldDataLimit.getText());
         if (dataLimit > 9999 || dataLimit < 2) {
-            errorTips = I18n.format("adm.error.datalimit");
+            rejectField(textFieldDataLimit, I18n.format("adm.error.datalimit"));
             return;
         }
         nbt.setInteger("dataLimit", Integer.parseInt(textFieldDataLimit.getText()));
 
         if (!isValidInteger(textFieldInterval.getText())) {
-            errorTips = I18n.format("adm.error.interval");
+            rejectField(textFieldInterval, I18n.format("adm.error.interval"));
             return;
         }
         int interval = Integer.parseInt(textFieldInterval.getText());
@@ -508,13 +687,13 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         nbt.setInteger("interval", interval);
 
         if (!isValidDouble(textFieldYMin.getText())) {
-            errorTips = I18n.format("adm.error.ymin");
+            rejectField(textFieldYMin, I18n.format("adm.error.ymin"));
             return;
         }
         nbt.setDouble("yMin", Double.parseDouble(textFieldYMin.getText()));
 
         if (!isValidDouble(textFieldYMax.getText())) {
-            errorTips = I18n.format("adm.error.ymax");
+            rejectField(textFieldYMax, I18n.format("adm.error.ymax"));
             return;
         }
         nbt.setDouble("yMax", Double.parseDouble(textFieldYMax.getText()));
@@ -523,49 +702,49 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         nbt.setString("displayName", textFieldDisplayName.getText());
 
         if (!isValidDouble(textFieldDisplayNameScale.getText())) {
-            errorTips = I18n.format("adm.error.displayscale");
+            rejectField(textFieldDisplayNameScale, I18n.format("adm.error.displayscale"));
             return;
         }
         nbt.setDouble("displayNameScale", Double.parseDouble(textFieldDisplayNameScale.getText()));
 
         if (!isValidHexColor(textFieldDisplayNameColor.getText())) {
-            errorTips = I18n.format("adm.error.displaycolor");
+            rejectField(textFieldDisplayNameColor, I18n.format("adm.error.displaycolor"));
             return;
         }
         nbt.setString("displayNameColor", textFieldDisplayNameColor.getText());
 
         if (!isValidHexColor(textFieldAxisLineColor.getText())) {
-            errorTips = I18n.format("adm.error.axislinecolor");
+            rejectField(textFieldAxisLineColor, I18n.format("adm.error.axislinecolor"));
             return;
         }
         nbt.setString("axisLineColor", textFieldAxisLineColor.getText());
 
         if (!isValidHexColor(textFieldAxisFontColor.getText())) {
-            errorTips = I18n.format("adm.error.axisfontcolor");
+            rejectField(textFieldAxisFontColor, I18n.format("adm.error.axisfontcolor"));
             return;
         }
         nbt.setString("axisFontColor", textFieldAxisFontColor.getText());
 
         if (!isValidHexColor(textFieldLineColor.getText())) {
-            errorTips = I18n.format("adm.error.linecolor");
+            rejectField(textFieldLineColor, I18n.format("adm.error.linecolor"));
             return;
         }
         nbt.setString("lineColor", textFieldLineColor.getText());
 
         if (!isValidDouble(textFieldLineWidth.getText())) {
-            errorTips = I18n.format("adm.error.linewidth");
+            rejectField(textFieldLineWidth, I18n.format("adm.error.linewidth"));
             return;
         }
         nbt.setDouble("lineWidth", Double.parseDouble(textFieldLineWidth.getText()));
 
         if (!isValidDouble(textFieldScaled.getText())) {
-            errorTips = I18n.format("adm.error.scale");
+            rejectField(textFieldScaled, I18n.format("adm.error.scale"));
             return;
         }
         nbt.setDouble("scale", Double.parseDouble(textFieldScaled.getText()));
 
         if (!isValidDouble(textFieldAxisFontScaled.getText())) {
-            errorTips = I18n.format("adm.error.axisfontscale");
+            rejectField(textFieldAxisFontScaled, I18n.format("adm.error.axisfontscale"));
             return;
         }
         nbt.setDouble("axisFontScale", Double.parseDouble(textFieldAxisFontScaled.getText()));
@@ -576,6 +755,14 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
         openMainGui();
     }
 
+    private static boolean isFiniteDouble(String text) {
+        if (!isValidDouble(text)) {
+            return false;
+        }
+        double value = Double.parseDouble(text);
+        return !Double.isNaN(value) && !Double.isInfinite(value);
+    }
+
     @Override
     public void onGuiClosed() {
         super.onGuiClosed();
@@ -583,9 +770,8 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         String[] label1 = { I18n.format("adm.label.xyz"), I18n.format("adm.label.xoffset"),
             I18n.format("adm.label.yoffset"), I18n.format("adm.label.zoffset"), I18n.format("adm.label.xrotation"),
             I18n.format("adm.label.yrotation"), I18n.format("adm.label.zrotation"), I18n.format("adm.label.xrange"),
@@ -597,8 +783,20 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
             I18n.format("adm.label.displaynamescale"), I18n.format("adm.label.displaynamecolor"),
             I18n.format("adm.label.axislinecolor"), I18n.format("adm.label.axisfontcolor"),
             I18n.format("adm.label.linecolor"), I18n.format("adm.label.linewidth"), I18n.format("adm.label.scaled"),
-            I18n.format("adm.label.axisfontscaled") };
+            I18n.format("adm.label.axisfontscaled"), I18n.format("adm.label.metricKey"),
+            I18n.format("adm.label.sourceKind"), I18n.format("adm.label.targetValue") };
         autoText(label2, 0, 25, offsetX + 170, offsetY + 10, textColor);
+
+        String[] thresholdLabels = { I18n.format("adm.label.threshold.value"),
+            I18n.format("adm.label.threshold.hysteresis"), I18n.format("adm.label.threshold.output_min"),
+            I18n.format("adm.label.threshold.output_max") };
+        autoText(thresholdLabels, 0, 25, offsetX + 360, offsetY + 110, textColor);
+        drawCenteredString(
+            fontRendererObj,
+            I18n.format("adm.label.threshold.title"),
+            offsetX + 475,
+            offsetY + 95,
+            textColor);
 
         drawCenteredString(
             fontRendererObj,
@@ -607,7 +805,26 @@ public class GuiSubAdvanceDataMonitor extends AbstractMonitorSubGui {
             offsetY - 35,
             textColor);
 
-        fontRendererObj.drawString(errorTips, offsetX + 150, offsetY + 380, 0xff0000);
+        drawMonitorFeedbackBand();
+        if (isValidInteger(textFieldDataLimit.getText()) && Integer.parseInt(textFieldDataLimit.getText()) > 512) {
+            drawCenteredString(
+                fontRendererObj,
+                I18n.format("adm.warning.dataLimitLarge"),
+                offsetX + 295,
+                offsetY + 322,
+                0xFFCC33);
+        }
+        if (isFiniteDouble(textFieldThresholdOutputMin.getText())
+            && isFiniteDouble(textFieldThresholdOutputMax.getText())
+            && Double.parseDouble(textFieldThresholdOutputMax.getText())
+                <= Double.parseDouble(textFieldThresholdOutputMin.getText())) {
+            drawCenteredString(
+                fontRendererObj,
+                I18n.format("adm.warning.threshold.binary_fallback"),
+                offsetX + 475,
+                offsetY + 220,
+                0xFFCC33);
+        }
 
         if (isValidHexColor(textFieldDisplayNameColor.getText())) {
             drawCenteredString(

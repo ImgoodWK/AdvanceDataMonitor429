@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a focused, compatible TeXTech improvement.
+title: "[Feature] "
+labels: [enhancement, triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Describe the player, operator, pack-author, or developer need without prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Smallest useful behavior
+      description: Explain expected behavior, UI/API surface, and how success would be verified.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Primary area
+      options:
+        - Data monitor and AE2
+        - Data weaving and storage
+        - Planner, automation, or utilities
+        - WebAE
+        - AI, voice, QQ, or AstrBot
+        - Documentation, build, or release engineering
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility, migration, and security impact
+      description: Mention GTNH versions, save/config changes, networking, tokens, and optional dependencies.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing Issues, Discussions, and the roadmap.
+          required: true
+        - label: I am describing a concrete need, not an accusation or private security report.
+          required: true

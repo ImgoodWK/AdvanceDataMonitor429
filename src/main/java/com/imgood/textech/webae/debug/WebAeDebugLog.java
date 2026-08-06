@@ -17,7 +17,7 @@ import com.imgood.textech.utils.ModLogFiles;
  *
  * <p>
  * Usage:
- * 
+ *
  * <pre>
  * {@code
  *   if (WebAeDebugLog.isEnabled(WebAeFeature.ICONS)) {

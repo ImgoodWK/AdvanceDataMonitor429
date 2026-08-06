@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation and support map
+    url: https://github.com/ImgoodWK/TeXTech-GTNH/blob/master/SUPPORT.md
+    about: Installation, configuration, development, and support routes.
+  - name: Questions, ideas, and showcases
+    url: https://github.com/ImgoodWK/TeXTech-GTNH/discussions
+    about: Use Discussions when the request is not a reproducible defect.
+  - name: Private security report
+    url: https://github.com/ImgoodWK/TeXTech-GTNH/security/advisories/new
+    about: Never disclose credentials or exploit details in a public Issue.

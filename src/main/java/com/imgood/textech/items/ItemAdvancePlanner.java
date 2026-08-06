@@ -247,8 +247,12 @@ public class ItemAdvancePlanner extends Item {
         int slot = findSlotInInventory(player, stack);
         if (slot >= 0) {
             NBTTagCompound nbt = stack.getTagCompound();
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                new PacketPlannerSync(slot, nbt != null ? (NBTTagCompound) nbt.copy() : new NBTTagCompound()));
+            PacketPlannerSync packet = new PacketPlannerSync(
+                slot,
+                nbt != null ? (NBTTagCompound) nbt.copy() : new NBTTagCompound());
+            if (packet.fitsPacketBudget()) {
+                AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
+            }
         }
     }
 

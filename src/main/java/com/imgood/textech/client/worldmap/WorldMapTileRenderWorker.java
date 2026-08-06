@@ -7,7 +7,6 @@ import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 
-import com.imgood.textech.AdvanceDataMonitor;
 import com.imgood.textech.Config;
 import com.imgood.textech.webae.network.PacketWebMapTileJob;
 import com.imgood.textech.webae.network.PacketWebMapTileUpload;
@@ -122,20 +121,19 @@ public final class WorldMapTileRenderWorker {
                 continue;
             }
             byte[] png = renderer.renderTerrain(mc, view, tier, job.job.dim, job.job.chunkX, job.job.chunkZ);
-            if (WorldMapRenderSupport.isValidTilePng(png)) {
-                String ownerUuid = mc.thePlayer.getUniqueID()
-                    .toString();
-                AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                    new PacketWebMapTileUpload(
-                        view.id,
-                        job.job.layer,
-                        tier.id,
-                        job.job.dim,
-                        job.job.chunkX,
-                        job.job.chunkZ,
-                        job.job.networkId,
-                        ownerUuid,
-                        png));
+            String ownerUuid = mc.thePlayer.getUniqueID()
+                .toString();
+            if (WorldMapRenderSupport.isValidTilePng(png) && PacketWebMapTileUpload.sendToServer(
+                view.id,
+                job.job.layer,
+                tier.id,
+                job.job.dim,
+                job.job.chunkX,
+                job.job.chunkZ,
+                job.job.networkId,
+                ownerUuid,
+                png)) {
+                continue;
             } else if (job.retries < MAX_RETRIES) {
                 job.retries++;
                 requeue(job);

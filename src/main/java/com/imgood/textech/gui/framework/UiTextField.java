@@ -8,7 +8,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * 9-slice text field wrapper around {@link ADM_GuiTextField}.
+ * Four-state underline text field wrapper around {@link ADM_GuiTextField}.
  * <p>
  * Implemented for the UI framework; not wired into production GUIs in the initial debug pass.
  */
@@ -54,17 +54,44 @@ public final class UiTextField {
         return this;
     }
 
+    public UiTextField setInvalid(boolean invalid) {
+        field.setInvalid(invalid);
+        return this;
+    }
+
+    public UiTextField setEnabled(boolean enabled) {
+        field.setEnabled(enabled);
+        return this;
+    }
+
     public ADM_GuiTextField delegate() {
         return field;
     }
 
-    /** Draw 9-slice chrome; call before {@link #drawTextBox()}. */
+    /** Draw stateful underline chrome; call before {@link #drawTextBox()}. */
     public void drawBackground(boolean focused) {
         if (theme == null) {
             return;
         }
-        NineSliceRegion region = focused ? theme.textFieldFocused() : theme.textFieldNormal();
-        if (region != null && GuiBlitUtil.hasResource(region.texture())) {
+        UnderlineFieldRegion underline = theme.underlineField();
+        UnderlineFieldRegion.State state = UnderlineFieldRegion
+            .stateFor(field.isVisualEnabled(), field.isInvalid(), focused);
+        if (underline != null && GuiBlitUtil.hasResource(
+            underline.style(state)
+                .left()
+                .texture())) {
+            GuiBlitUtil.drawUnderlineField(underline, state, drawX, drawY, drawW, drawH);
+            return;
+        }
+        TiledBarRegion bar = focused ? theme.textFieldFocusedBar() : theme.textFieldNormalBar();
+        NineSliceRegion region = field.isInvalid() ? theme.textFieldInvalid()
+            : !field.isVisualEnabled() ? theme.textFieldDisabled()
+                : focused ? theme.textFieldFocused() : theme.textFieldNormal();
+        if (bar != null && GuiBlitUtil.hasResource(
+            bar.center()
+                .texture())) {
+            GuiBlitUtil.drawTiledBar(bar, drawX, drawY, drawW, drawH);
+        } else if (region != null && GuiBlitUtil.hasResource(region.texture())) {
             GuiBlitUtil.drawHorizontalSlice(region, drawX, drawY, drawW, drawH);
         }
     }

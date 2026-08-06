@@ -5,6 +5,15 @@ def voskExclude = 'assets/textech/voice/vosk/**'
 def voiceExtrasClassExclude = 'com/imgood/textech/voiceextras/**'
 def webAeAssetsExclude = 'assets/textech/webae/**'
 
+// Ship the same legal and provenance notices in every user-facing artifact.
+def legalFiles = [rootProject.file('LICENSE'), rootProject.file('NOTICE.md')]
+
+tasks.named('processResources').configure {
+    from(legalFiles) {
+        into 'META-INF/textech'
+    }
+}
+
 tasks.named('jar', Jar).configure {
     exclude voskExclude
     exclude voiceExtrasClassExclude
@@ -30,6 +39,9 @@ tasks.register('voiceJar', Jar) {
     from('src/voiceExtras/resources') {
         include 'mcmod.info'
     }
+    from(legalFiles) {
+        into 'META-INF/textech'
+    }
     filesMatching('mcmod.info') {
         expand([
             modVersion      : project.version,
@@ -49,6 +61,9 @@ tasks.register('webaeZip', Zip) {
         into 'TeXTech/WebAE/ui'
     }
     from('packaging/webae/README-WebAE.txt')
+    from(legalFiles) {
+        into 'TeXTech/WebAE/legal'
+    }
     doFirst {
         def entry = file('src/main/resources/assets/textech/webae/index.html')
         if (!entry.isFile()) {
@@ -65,6 +80,12 @@ tasks.named('build').configure {
 artifacts {
     archives tasks.named('voiceJar')
     archives tasks.named('webaeZip')
+}
+
+tasks.matching { it.name == 'sourcesJar' }.configureEach {
+    from(legalFiles) {
+        into 'META-INF/textech'
+    }
 }
 
 // Optional MCEF ShutdownPatcher so runClient does not hang on exit when MCEF is present.

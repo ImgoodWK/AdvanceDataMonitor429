@@ -16,7 +16,7 @@ public class HandlerSynTileEntity implements IMessageHandler<PacketSynTileEntity
 
     @Override
     public IMessage onMessage(final PacketSynTileEntity message, final MessageContext ctx) {
-        if (message == null || message.getData() == null) return null;
+        if (message == null || message.malformed || message.getData() == null) return null;
         return PacketHandlers.runOnServer(ctx, new Runnable() {
 
             @Override

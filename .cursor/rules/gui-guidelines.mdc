@@ -26,9 +26,10 @@ alwaysApply: false
 
 保留旧布局的屏幕（AI 聊天、计划器等）仍可用 `ADM_GuiScreen`（`gui.custom`）：
 
-- 提供 `setBackgroundTexture()` / `setPosition()` / `setSize()` / `setStretch()` 链式调用。
+- 提供 `setBackgroundTexture()` / `setPosition()` / `setSize()` / `setStretch()` 链式调用；`setStretch` 仅保留源码兼容，ADM 运行时素材不得非等比拉伸。
 - 背景纹理使用 `AdmGuiTextures.BACKGROUND_SUB` 等共享常量；基类会把旧主背景、子面板、按钮与输入框常量桥接为 `UiThemes.ADM` 的 Meowa 图集区域，勿重复定义 `ResourceLocation` 或直接拉伸历史 PNG。
-- 仍需固定首选尺寸的旧屏必须用 `GuiResponsiveLayout.fitCentered(...)` 将实际面板约束进 scaled viewport，并让控件、滚动区域、文本换行都引用运行时宽高；不得只移动背景而保留超屏坐标。
+- `drawScreen` 为 final；子类只覆写 `drawAdmScreen(mouseX, mouseY, partialTicks)`。基类用同一个 `UiViewportTransform` 等比缩放背景、正文、控件、tooltip 与鼠标命中，且不绘制原版全屏暗幕。
+- 仍自行计算动态 bounds 的旧屏可用 `GuiResponsiveLayout.fitCentered(...)`，并让控件、滚动区域、文本换行都引用运行时宽高；不得只移动背景而保留超屏坐标。
 - 触达时再迁 Flex 树；**禁止**新屏继续堆绝对坐标样板。
 
 ### 1d. Flex UI 框架（配置 + 容器统一）
@@ -52,7 +53,7 @@ alwaysApply: false
 | 样式 | `UiStyle`（padding/margin/gap/background） |
 | 配置屏宿主 | `AdmUiScreen` + `buildUi()` |
 | 容器宿主 | `ADM_UiContainer` + 可选 `setUiRoot` |
-| 9-slice 主面板 | `UiPanel.draw` 或 `UiStyle.backgroundNineSlice` |
+| 稀疏主面板 | `UiPanel.draw` / `SparseFrameRegion`（仅四角和 cover 背景；四角各绘制一次，旧四边区域透明） |
 | 内嵌列表/预览/tooltip | `UiPanel.drawSection` |
 | 分隔线 | `UiPanel.drawDivider(UiThemes.ADM, ...)` |
 | 标题/标签 | `UiLabel` / `UiText` |
@@ -60,15 +61,17 @@ alwaysApply: false
 | 物品槽位 | `UiSlot.drawTheme(UiThemes.ADM, ...)` |
 | 滚动 | `UiScrollPanel`；手工列表使用主题 `scrollTrack` / `scrollThumb` |
 | 主题 / 图集 | `UiThemes.ADM`；`textures/gui/adm_ui_atlas.png` |
+| 普通整图 | `GuiBlitUtil.drawFullTexture` 等比适配；禁止非等比拉伸 |
+| 低分辨率 | `UiViewportTransform`；绘制与输入必须共享变换 |
 
 **排除**：次元口袋 GUI / Overlay / Mixin。不硬依赖 Qz-UILib / 不整库迁 ModularUI2。
 
 程序色块仅用于选中、hover、交替行、HUD 拖动等瞬时状态；面板外壳必须用 `mainPanel` / `sectionPanel`。AE2 `GuiImgButton` 模式按钮和升级卡列保留原生图标/状态语义。
 
-新增或修改 `gui/guiscreen/` 时必须通过 `GuiThemeCoverageTest`：除 `GuiDimensionalPocketConfig`、`GuiPocketStorage` 两个固定排除项外，界面必须继承 ADM 宿主或显式绘制 `UiThemes.ADM` 面板，禁止实例化原版 `GuiButton`，禁止直接绑定独立旧 GUI PNG。涉及大面板时还必须通过 `GuiLowResolutionLayoutTest` 的 427×240 合同。修改 `adm_ui_atlas.png` 或 `AdmUiTheme` UV 时必须同步批准哈希并通过 `AdmUiAtlasContractTest`。
+新增或修改 `gui/guiscreen/` 时必须通过 `GuiThemeCoverageTest`：除 `GuiDimensionalPocketConfig`、`GuiPocketStorage` 两个固定排除项外，界面必须继承 ADM 宿主，禁止原生 `GuiScreen`、`drawDefaultBackground()` 暗幕、原版 `GuiButton` 与独立旧 GUI PNG。涉及大面板时还必须通过 `GuiLowResolutionLayoutTest` 和 `UiViewportTransformTest`。修改 `adm_ui_atlas.png` 或 `AdmUiTheme` UV 时必须同步批准哈希并通过 `AdmUiAtlasContractTest`；修改四角稀疏框、cover 绘制、比例按钮、输入底线或反馈区时必须通过 `SparseRegionContractTest`。
 
-### 3. 简单消息弹窗 → 继承原版 `GuiScreen`
-仅用于提示/确认对话框。参考 `GuiScreenMessage.java`。
+### 3. 简单消息弹窗 → 继承 `ADM_GuiScreen`
+仅用于提示/确认对话框。参考 `GuiScreenMessage.java`：正文按面板宽度换行，面板随行数增高，按钮 ID/返回行为保持原语义；禁止退回原生暗幕。
 
 ## 构造函数模式
 
@@ -97,11 +100,11 @@ public GuiAdvancePlanner(ItemStack plannerStack, EntityPlayer player)  // 接收
 public GuiAdvanceStorageLink(InventoryPlayer playerInventory, TileEntityAdvanceStorageLink tile)
 ```
 
-## drawScreen 编写模板
+## drawAdmScreen 编写模板
 
 ```java
 @Override
-public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
     // 1. 列表、预览、tooltip 等内嵌区域先绘制主题 sectionPanel
     UiPanel.drawSection(UiThemes.ADM, panelX, panelY, panelW, panelH);
 
@@ -115,8 +118,8 @@ public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         currentAlpha + "%",
         field.xPosition + field.width + 4, field.yPosition + 5, UiThemes.ADM.textAccent());
 
-    // 4. 调用 super.drawScreen() 绘制按钮和文本框
-    super.drawScreen(mouseX, mouseY, partialTicks);
+    // 4. 调用 super.drawAdmScreen() 绘制按钮
+    super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
     // 5. 绘制输入框提示文字（当输入框聚焦时）
     for (Entry<ADM_GuiTextField, String> entry : fieldHints.entrySet()) {
@@ -130,6 +133,8 @@ public void drawScreen(int mouseX, int mouseY, float partialTicks) {
     }
 }
 ```
+
+不要在 ADM 子类中直接覆写 `drawScreen`、`mouseClicked`、`mouseMovedOrUp` 或 `mouseClickMove`；需要鼠标逻辑时覆写对应的 `handleAdmMouse*`，接收到的坐标已经过逆变换。
 
 ## initGui 编写模板
 
@@ -177,9 +182,10 @@ public void initGui() {
 
 ## 文本框组件 (ADM_GuiTextField)
 
-- 构造函数会关闭原版背景，并默认使用 `AdmGuiTextures` 的输入框常量；绘制时自动桥接到 ADM normal/focused 主题区域。
+- 构造函数会关闭原版背景，并默认使用 `AdmGuiTextures` 的输入框常量；绘制时自动桥接到 ADM normal/focused/invalid/disabled 线式主题区域。
 - 仅确有独立功能纹理时才调用 `setBackgroundTexture()` / `setFocusedBackgroundTexture()` 覆盖默认主题。
 - 通过 `setHintText()` 设置失焦时的占位提示。
+- 保存校验失败时调用 `setInvalid(true)` 并保留第一个失败字段焦点；字段内容改变或下次 `beginValidation(...)` 时必须清除旧状态。小/中型表单在正文和底部按钮之间用 `UiFeedbackArea` 预留最多三行，错误文字不得压在字段、按钮或内区上。
 - 文本框坐标有偏移：`yPosition = y - 8`, `xPosition = x - 21`（在构造函数中自动处理）。
 
 ## 按钮组件 (ADM_GuiButton)
@@ -192,6 +198,7 @@ new ADM_GuiButton(id, x, y, w, h, text)
 ```
 
 默认 `AdmGuiTextures.BUTTON*` 会自动使用 ADM normal / hover / pressed / disabled 区域。仅功能控件拥有独立美术语义时才设置自定义纹理。
+按钮完整壳只能在调用者给出的矩形内等比拟合，不得向外扩张；绘制、文字、hover 和命中区域必须一致。页面提供的按钮请求矩形也不得相交，新增/修改页面必须在真实运行时审计全部可见按钮。
 
 特殊效果：
 - `setUseRGBEffect(true)` — 按钮文字自动循环彩虹色（用于选中/激活状态的按钮）
@@ -225,6 +232,8 @@ private void saveAndSync() {
 - 所有用户可见文本使用 `I18n.format("adm.xxx")`，禁止硬编码。
 - 格式化码使用 `§` 符号：`§l` (粗体)、`§n` (下划线)、`§m` (删除线)。
 - 标题使用 `§l` 加粗：`adm.title.xxx=§lAdvance Data Monitor`。
+- 输入框使用 placeholder 提示格式；悬浮说明至少覆盖用途、允许范围、格式、一个有效示例和失败行为。开关要说明是否只影响显示，避免玩家误以为会删除数据。
+- 长文本、被截断值和可折叠树节点必须提供完整内容或展开/收起 tooltip；tooltip 使用逻辑视口宽度换行，不能在缩放后跑出屏幕。
 
 ## 输入校验
 
@@ -232,6 +241,7 @@ private void saveAndSync() {
   - `isValidDouble(s)` / `isValidInteger(s)` / `isValidPosFormat(s)` / `isValidHexColor(s)`
 - 校验失败时显示 `adm.error.xxx` 对应的错误提示。
 - 保存按钮 `actionPerformed` 中依次校验所有字段，通过后才执行 `saveAndSync()`。
+- 校验失败不得静默回退或提交旧值；面板错误文本与悬浮说明必须同时交代范围/格式和失败原因，错误文本必须绘制在独立反馈区。
 
 ## 必须的覆写
 

@@ -61,6 +61,8 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.player = player;
         this.world = world;
         this.tileEntityAdvanceDataMonitor = tileEntity;
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_MONITOR_MAIN);
+        this.setStretch(false);
         this.facing = tileEntity.facing;
         this.displayDataSize = tileEntity.getDisplayDataSize();
         this.loadDataFromTileEntity();
@@ -68,6 +70,8 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
     public GuiMainAdvanceDataMonitor(TileEntityAdvanceDataMonitor tileEntityAdvanceDataMonitor) {
         this.tileEntityAdvanceDataMonitor = tileEntityAdvanceDataMonitor;
+        this.setBackgroundTexture(AdmGuiTextures.BACKGROUND_MONITOR_MAIN);
+        this.setStretch(false);
     }
 
     @Override
@@ -215,9 +219,9 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
         this.buttonList.add(
             new ADM_GuiButton(
                 107,
-                this.offsetX + 158,
+                this.offsetX + 162,
                 this.offsetY + buttonRowYOffset1,
-                45,
+                buttonRow1Width,
                 20,
                 this.tileEntityAdvanceDataMonitor.isVisableScreen() ? I18n.format("adm.button.hide")
                     : I18n.format("adm.button.show")).setTexture(AdmGuiTextures.BUTTON)
@@ -293,12 +297,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
 
                 nbt.setInteger("facing", newFacing);
                 this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
-                AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                    new PacketSynTileEntity(
-                        tileEntityAdvanceDataMonitor.xCoord,
-                        tileEntityAdvanceDataMonitor.yCoord,
-                        tileEntityAdvanceDataMonitor.zCoord,
-                        nbt));
+                sendTileSync(nbt);
 
                 // 更新按钮文本
                 button.displayString = this.currentFacing;
@@ -342,12 +341,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.tileEntityAdvanceDataMonitor.setVisableBody(visableBody);
                 this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
                 // 同步到服务器
-                AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                    new PacketSynTileEntity(
-                        tileEntityAdvanceDataMonitor.xCoord,
-                        tileEntityAdvanceDataMonitor.yCoord,
-                        tileEntityAdvanceDataMonitor.zCoord,
-                        nbt));
+                sendTileSync(nbt);
                 refreshButtons();
             }
             case 107 -> {
@@ -355,12 +349,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.tileEntityAdvanceDataMonitor.setVisableScreen(visableScreen);
                 nbt.setBoolean("visableScreen", visableScreen);
                 this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
-                AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                    new PacketSynTileEntity(
-                        tileEntityAdvanceDataMonitor.xCoord,
-                        tileEntityAdvanceDataMonitor.yCoord,
-                        tileEntityAdvanceDataMonitor.zCoord,
-                        nbt));
+                sendTileSync(nbt);
                 refreshButtons();
             }
             case 108 -> {
@@ -399,12 +388,7 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
                 this.tileEntityAdvanceDataMonitor.setRenderBothSides(bothSides);
                 nbt.setBoolean("renderBothSides", bothSides);
                 this.tileEntityAdvanceDataMonitor.writeToNBT(nbt);
-                AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                    new PacketSynTileEntity(
-                        tileEntityAdvanceDataMonitor.xCoord,
-                        tileEntityAdvanceDataMonitor.yCoord,
-                        tileEntityAdvanceDataMonitor.zCoord,
-                        nbt));
+                sendTileSync(nbt);
                 refreshButtons();
             }
             case 110 -> {
@@ -565,9 +549,11 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        UiPanel.drawTitleOrnament(UiThemes.ADM, this.offsetX + 112, this.offsetY - 45, 160);
+        UiPanel.drawSection(UiThemes.ADM, this.offsetX - 6, this.offsetY - 22, 372, 96);
+        UiPanel.drawFooterOrnament(UiThemes.ADM, panelX() + 16, panelY() + panelHeight() - 10, panelWidth() - 32);
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
 
         // 标题和标签（修改部分）
         this.drawCenteredString(
@@ -792,6 +778,17 @@ public class GuiMainAdvanceDataMonitor extends ADM_GuiScreen {
     @Override
     public boolean doesGuiPauseGame() {
         return false;
+    }
+
+    private void sendTileSync(NBTTagCompound nbt) {
+        PacketSynTileEntity packet = new PacketSynTileEntity(
+            tileEntityAdvanceDataMonitor.xCoord,
+            tileEntityAdvanceDataMonitor.yCoord,
+            tileEntityAdvanceDataMonitor.zCoord,
+            nbt);
+        if (packet.fitsPacketBudget()) {
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
+        }
     }
 
     private void renderDataPreview(int x, int y, int width, int height) {

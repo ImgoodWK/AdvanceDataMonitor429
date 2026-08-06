@@ -1,8 +1,10 @@
 package com.imgood.textech.webae.network;
 
-import java.nio.charset.StandardCharsets;
+import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.imgood.textech.network.handler.PacketHandlers;
+import com.imgood.textech.utils.NetworkPacketCodec;
+import com.imgood.textech.webae.worldmap.WorldMapPacketAuthorization;
 import com.imgood.textech.webae.worldmap.WorldMapSnapshotStore;
 import com.imgood.textech.webae.worldmap.WorldMapTileLayer;
 
@@ -23,15 +25,19 @@ public class PacketWorldMapSnapshotTilePull implements IMessage {
     public int dim;
     public int chunkX;
     public int chunkZ;
+    private boolean valid = true;
+
+    private static final int MAX_OWNER_UUID_BYTES = 64;
+    private static final int MAX_LAYER_BYTES = 16;
 
     public PacketWorldMapSnapshotTilePull() {}
 
     @Override
     public void toBytes(ByteBuf buf) {
-        writeUtf8(buf, ownerUuid);
+        writeUtf8(buf, ownerUuid, MAX_OWNER_UUID_BYTES);
         buf.writeInt(networkId);
         buf.writeInt(snapshotVersion);
-        writeUtf8(buf, layer);
+        writeUtf8(buf, layer, MAX_LAYER_BYTES);
         buf.writeInt(dim);
         buf.writeInt(chunkX);
         buf.writeInt(chunkZ);
@@ -39,44 +45,60 @@ public class PacketWorldMapSnapshotTilePull implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        ownerUuid = readUtf8(buf);
-        networkId = buf.readInt();
-        snapshotVersion = buf.readInt();
-        layer = WorldMapTileLayer.normalize(readUtf8(buf));
-        dim = buf.readInt();
-        chunkX = buf.readInt();
-        chunkZ = buf.readInt();
+        valid = true;
+        try {
+            ownerUuid = NetworkPacketCodec.readUtf8(buf, MAX_OWNER_UUID_BYTES);
+            networkId = buf.readInt();
+            snapshotVersion = buf.readInt();
+            String rawLayer = NetworkPacketCodec.readUtf8(buf, MAX_LAYER_BYTES);
+            layer = WorldMapTileLayer.normalize(rawLayer);
+            if (!WorldMapTileLayer.TERRAIN.equals(rawLayer) && !WorldMapTileLayer.AE.equals(rawLayer)) {
+                valid = false;
+            }
+            dim = buf.readInt();
+            chunkX = buf.readInt();
+            chunkZ = buf.readInt();
+            if (buf.isReadable()) {
+                throw new IllegalArgumentException("Snapshot tile pull has trailing bytes");
+            }
+        } catch (RuntimeException e) {
+            valid = false;
+            ownerUuid = "";
+        }
     }
 
-    private static void writeUtf8(ByteBuf buf, String s) {
+    private static void writeUtf8(ByteBuf buf, String s, int maxBytes) {
         if (s == null) {
             buf.writeInt(0);
             return;
         }
-        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = s.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length > maxBytes) {
+            throw new IllegalArgumentException("Snapshot pull string exceeds packet limit");
+        }
         buf.writeInt(bytes.length);
         buf.writeBytes(bytes);
-    }
-
-    private static String readUtf8(ByteBuf buf) {
-        int len = buf.readInt();
-        if (len <= 0) {
-            return "";
-        }
-        byte[] bytes = new byte[len];
-        buf.readBytes(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     public static class Handler implements IMessageHandler<PacketWorldMapSnapshotTilePull, IMessage> {
 
         @Override
         public IMessage onMessage(final PacketWorldMapSnapshotTilePull message, MessageContext ctx) {
+            final EntityPlayerMP player = ctx == null || ctx.getServerHandler() == null ? null
+                : ctx.getServerHandler().playerEntity;
             return PacketHandlers.runOnServer(ctx, new Runnable() {
 
                 @Override
                 public void run() {
-                    if (message == null || message.ownerUuid == null) {
+                    if (message == null || !message.valid
+                        || player == null
+                        || !WorldMapPacketAuthorization.isValidOwnerUuid(message.ownerUuid)
+                        || !WorldMapPacketAuthorization.isValidNetworkId(message.networkId)
+                        || !WorldMapPacketAuthorization.isValidSnapshotVersion(message.snapshotVersion)
+                        || !WorldMapPacketAuthorization.isValidLayer(message.layer)
+                        || !WorldMapPacketAuthorization.isValidChunk(message.dim, message.chunkX, message.chunkZ)
+                        || !WorldMapPacketAuthorization
+                            .canReadSnapshot(player, message.ownerUuid, message.networkId, message.snapshotVersion)) {
                         return;
                     }
                     java.io.File file = WorldMapSnapshotStore.getExistingTile(
@@ -87,27 +109,38 @@ public class PacketWorldMapSnapshotTilePull implements IMessage {
                         message.dim,
                         message.chunkX,
                         message.chunkZ);
-                    PacketWorldMapSnapshotTileData data = new PacketWorldMapSnapshotTileData();
-                    data.ownerUuid = message.ownerUuid;
-                    data.networkId = message.networkId;
-                    data.snapshotVersion = message.snapshotVersion;
-                    data.layer = message.layer;
-                    data.dim = message.dim;
-                    data.chunkX = message.chunkX;
-                    data.chunkZ = message.chunkZ;
+                    byte[] png = null;
                     if (file != null) {
                         try {
-                            java.io.FileInputStream fis = new java.io.FileInputStream(file);
-                            data.png = new byte[(int) file.length()];
-                            fis.read(data.png);
-                            fis.close();
+                            long length = file.length();
+                            if (length <= 0 || length > PacketWorldMapSnapshotTileData.MAX_PNG_BYTES) {
+                                png = null;
+                            } else {
+                                java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                                png = new byte[(int) length];
+                                int offset = 0;
+                                while (offset < png.length) {
+                                    int read = fis.read(png, offset, png.length - offset);
+                                    if (read < 0) break;
+                                    offset += read;
+                                }
+                                fis.close();
+                                if (offset != png.length) png = null;
+                            }
                         } catch (Exception ignored) {
-                            data.png = new byte[0];
+                            png = null;
                         }
-                    } else {
-                        data.png = new byte[0];
                     }
-                    com.imgood.textech.AdvanceDataMonitor.ADMCHANEL.sendTo(data, ctx.getServerHandler().playerEntity);
+                    PacketWorldMapSnapshotTileData.sendToPlayer(
+                        message.ownerUuid,
+                        message.networkId,
+                        message.snapshotVersion,
+                        message.layer,
+                        message.dim,
+                        message.chunkX,
+                        message.chunkZ,
+                        png,
+                        player);
                 }
             });
         }

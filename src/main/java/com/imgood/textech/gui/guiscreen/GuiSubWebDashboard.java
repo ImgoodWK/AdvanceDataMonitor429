@@ -62,7 +62,7 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         this.newBinding = newBinding;
         this.startOffsetX = -255;
         this.startOffsetY = -155;
-        this.setSize(550, 340);
+        this.setSize(550, 430);
     }
 
     @Override
@@ -400,16 +400,18 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
     }
 
     private void saveDashboard() {
+        beginValidation();
         boolean live = TileEntityAdvanceDataMonitor.MODE_DASHBOARD_LIVE.equals(surfaceMode)
             || TileEntityAdvanceDataMonitor.MODE_LIVE_URL.equals(surfaceMode);
         if (newBinding && !live && importedPayload == null) {
-            errorTips = I18n.format("adm.error.web_dashboard_required");
+            rejectField(null, I18n.format("adm.error.web_dashboard_required"));
             return;
         }
         if (newBinding && live && liveBinding == null) {
-            errorTips = I18n.format("adm.error.web_dashboard_required");
+            rejectField(null, I18n.format("adm.error.web_dashboard_required"));
             return;
         }
+        if (!validateDashboardNumbers()) return;
         try {
             NBTTagCompound config = new NBTTagCompound();
             config.setString("dataType", TileEntityAdvanceDataMonitor.DATA_TYPE_WEBAE_DASHBOARD);
@@ -490,20 +492,38 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
 
             NBTTagCompound local = (NBTTagCompound) config.copy();
             local.setString("XYZ", tileEntity.xCoord + "," + tileEntity.yCoord + "," + tileEntity.zCoord);
+            PacketMonitorWebSurface packet = PacketMonitorWebSurface.upload(
+                tileEntity.xCoord,
+                tileEntity.yCoord,
+                tileEntity.zCoord,
+                index,
+                snapshotHash,
+                live ? null : importedPayload,
+                config);
+            if (!packet.fitsPacketBudget()) {
+                return;
+            }
             tileEntity.setDisplayData(index, local);
-            AdvanceDataMonitor.ADMCHANEL.sendToServer(
-                PacketMonitorWebSurface.upload(
-                    tileEntity.xCoord,
-                    tileEntity.yCoord,
-                    tileEntity.zCoord,
-                    index,
-                    snapshotHash,
-                    live ? null : importedPayload,
-                    config));
+            AdvanceDataMonitor.ADMCHANEL.sendToServer(packet);
             openMainGui();
         } catch (NumberFormatException e) {
             errorTips = I18n.format("adm.error.web_dashboard_number");
         }
+    }
+
+    private boolean validateDashboardNumbers() {
+        ADM_GuiTextField[] fields = { scaleField, opacityField, xOffsetField, yOffsetField, zOffsetField,
+            rotationXField, rotationYField, rotationZField };
+        for (ADM_GuiTextField field : fields) {
+            try {
+                Float.parseFloat(
+                    field.getText()
+                        .trim());
+            } catch (NumberFormatException e) {
+                return rejectField(field, I18n.format("adm.error.web_dashboard_number"));
+            }
+        }
+        return true;
     }
 
     private void decodeInfo(byte[] payload) {
@@ -577,9 +597,8 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    protected void drawAdmScreen(int mouseX, int mouseY, float partialTicks) {
+        super.drawAdmScreen(mouseX, mouseY, partialTicks);
         drawCenteredString(fontRendererObj, I18n.format("adm.title.web_dashboard"), width / 2, offsetY + 8, 0x00FFFF);
         String[] leftLabels = { I18n.format("adm.label.displayname"), I18n.format("adm.label.scaled"),
             I18n.format("adm.label.web_dashboard_opacity"), I18n.format("adm.label.xoffset"),
@@ -593,8 +612,7 @@ public class GuiSubWebDashboard extends AbstractMonitorSubGui {
         fontRendererObj.drawStringWithShadow(mcefStatusLine(), offsetX + 25, offsetY + 252, 0x88AABB);
         fontRendererObj
             .drawStringWithShadow(I18n.format("adm.hint.web_dashboard_static"), offsetX + 25, offsetY + 266, 0x777777);
-        if (!errorTips.isEmpty())
-            fontRendererObj.drawStringWithShadow(errorTips, offsetX + 25, offsetY + 290, 0xFF5555);
+        drawMonitorFeedbackBand();
         drawFocusedFieldHint(offsetX + 25, offsetY + 310);
     }
 

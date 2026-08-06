@@ -8,10 +8,8 @@ RUN pip install --no-cache-dir --index-url "$PIP_INDEX_URL" -r requirements.txt
 
 COPY app ./app
 COPY static ./static
-COPY knowledge /seed/knowledge
 
 ENV ASTRBOT_DATA=/astrbot-data
-ENV KNOWLEDGE_DIR=/data/knowledge
 ENV CONSOLE_DB=/data/console.db
 
 EXPOSE 6186

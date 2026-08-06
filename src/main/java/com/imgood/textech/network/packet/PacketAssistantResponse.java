@@ -13,6 +13,7 @@ import java.util.zip.GZIPOutputStream;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.NBTSizeTracker;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
@@ -24,12 +25,13 @@ import com.imgood.textech.assistant.AssistantSessionKind;
 import com.imgood.textech.assistant.CandidateBatchMeta;
 import com.imgood.textech.assistant.CraftingCandidate;
 import com.imgood.textech.assistant.TeleportDestination;
+import com.imgood.textech.utils.NetworkPacketCodec;
 
-import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class PacketAssistantResponse implements IMessage {
 
@@ -39,11 +41,18 @@ public class PacketAssistantResponse implements IMessage {
     private static final int WITHDRAW_PARTIAL = 4;
     private static final int TELEPORT_CANDIDATES = 5;
     private static final int COMPRESSION_THRESHOLD = 2048;
+    private static final int MAX_MESSAGE_BYTES = 4096;
+    private static final int MAX_RAW_TEXT_BYTES = 1024;
+    public static final int MAX_PACKET_BODY_BYTES = 30000;
+    public static final int MAX_COMPRESSED_PAYLOAD_BYTES = 24 * 1024;
+    private static final int MAX_NBT_COMPRESSED_BYTES = MAX_COMPRESSED_PAYLOAD_BYTES;
+    private static final int MAX_NBT_BYTES = 2 * 1024 * 1024;
 
     private int type;
     private String message = "";
     private String rawText = "";
     private NBTTagCompound payload = new NBTTagCompound();
+    public boolean malformed;
 
     public PacketAssistantResponse() {}
 
@@ -65,6 +74,12 @@ public class PacketAssistantResponse implements IMessage {
 
     public static PacketAssistantResponse candidates(String rawText, List<CraftingCandidate> candidates,
         AssistantSessionKind kind, int batchIndex, int batchCount, int totalCount, boolean append) {
+        return candidates(rawText, candidates, kind, batchIndex, batchCount, totalCount, append, 0, 0);
+    }
+
+    public static PacketAssistantResponse candidates(String rawText, List<CraftingCandidate> candidates,
+        AssistantSessionKind kind, int batchIndex, int batchCount, int totalCount, boolean append, int rangeStart,
+        int rangeEnd) {
         PacketAssistantResponse packet = new PacketAssistantResponse();
         packet.type = CANDIDATES;
         packet.rawText = rawText == null ? "" : rawText;
@@ -73,6 +88,10 @@ public class PacketAssistantResponse implements IMessage {
         packet.payload.setInteger("batchCount", Math.max(1, batchCount));
         packet.payload.setInteger("totalCount", Math.max(0, totalCount));
         packet.payload.setBoolean("append", append);
+        if (rangeStart > 0 && rangeEnd >= rangeStart) {
+            packet.payload.setInteger("rangeStart", rangeStart);
+            packet.payload.setInteger("rangeEnd", rangeEnd);
+        }
         packet.payload.setTag("candidates", writeCandidates(candidates));
         return packet;
     }
@@ -143,65 +162,115 @@ public class PacketAssistantResponse implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        this.type = buf.readByte();
-        this.message = ByteBufUtils.readUTF8String(buf);
-        this.rawText = ByteBufUtils.readUTF8String(buf);
-        byte compressedFlag = buf.readByte();
-        if (compressedFlag == 1) {
-            // Decompress gzipped NBT payload
-            int compressedLength = buf.readInt();
-            byte[] compressedBytes = new byte[compressedLength];
-            buf.readBytes(compressedBytes);
-            try {
-                ByteArrayInputStream bis = new ByteArrayInputStream(compressedBytes);
-                GZIPInputStream gzis = new GZIPInputStream(bis);
-                DataInputStream dis = new DataInputStream(gzis);
-                this.payload = CompressedStreamTools.read(dis);
+        malformed = false;
+        try {
+            int start = buf.readerIndex();
+            this.type = buf.readByte();
+            this.message = NetworkPacketCodec.readVarUtf8(buf, MAX_MESSAGE_BYTES);
+            this.rawText = NetworkPacketCodec.readVarUtf8(buf, MAX_RAW_TEXT_BYTES);
+            byte compressedFlag = buf.readByte();
+            if (compressedFlag == 1) {
+                int compressedLength = buf.readInt();
+                if (compressedLength < 0 || compressedLength > MAX_COMPRESSED_PAYLOAD_BYTES
+                    || compressedLength > buf.readableBytes()) {
+                    throw new IllegalArgumentException("Invalid compressed assistant response length");
+                }
+                byte[] compressedBytes = new byte[compressedLength];
+                if (compressedLength > 0) {
+                    buf.readBytes(compressedBytes);
+                }
+                byte[] uncompressedBytes = gunzipBounded(compressedBytes, MAX_NBT_BYTES);
+                DataInputStream dis = new DataInputStream(new ByteArrayInputStream(uncompressedBytes));
+                this.payload = CompressedStreamTools.func_152456_a(dis, new NBTSizeTracker(MAX_NBT_BYTES));
+                if (dis.available() != 0) {
+                    throw new IllegalArgumentException("Compressed assistant response has trailing NBT bytes");
+                }
                 dis.close();
-            } catch (IOException e) {
-                AdvanceDataMonitor.LOG.error("[ADM Assistant] Failed to decompress response payload", e);
-                this.payload = new NBTTagCompound();
+                if (this.payload == null) {
+                    this.payload = new NBTTagCompound();
+                }
+            } else if (compressedFlag == 0) {
+                this.payload = NetworkPacketCodec.readTag(buf, MAX_NBT_COMPRESSED_BYTES, MAX_NBT_BYTES);
+                if (this.payload == null) {
+                    this.payload = new NBTTagCompound();
+                }
+            } else {
+                throw new IllegalArgumentException("Unknown assistant response compression flag");
             }
-        } else {
-            this.payload = ByteBufUtils.readTag(buf);
-            if (this.payload == null) {
-                this.payload = new NBTTagCompound();
+            if (buf.readerIndex() - start > MAX_PACKET_BODY_BYTES || buf.isReadable()) {
+                throw new IllegalArgumentException("Assistant response has trailing bytes");
             }
+        } catch (IOException e) {
+            malformed = true;
+            AdvanceDataMonitor.LOG.warn("[ADM Assistant] Rejected malformed response payload", e);
+            this.message = "";
+            this.rawText = "";
+            this.payload = new NBTTagCompound();
+        } catch (RuntimeException e) {
+            malformed = true;
+            this.message = "";
+            this.rawText = "";
+            this.payload = new NBTTagCompound();
         }
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
+        int start = buf.writerIndex();
         buf.writeByte(this.type);
-        ByteBufUtils.writeUTF8String(buf, this.message == null ? "" : this.message);
-        ByteBufUtils.writeUTF8String(buf, this.rawText == null ? "" : this.rawText);
+        NetworkPacketCodec.writeVarUtf8(buf, this.message == null ? "" : this.message, MAX_MESSAGE_BYTES);
+        NetworkPacketCodec.writeVarUtf8(buf, this.rawText == null ? "" : this.rawText, MAX_RAW_TEXT_BYTES);
         NBTTagCompound tag = this.payload == null ? new NBTTagCompound() : this.payload;
         // Check if payload is large enough to warrant compression
         try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            BoundedByteArrayOutputStream bos = new BoundedByteArrayOutputStream(MAX_NBT_BYTES);
             DataOutputStream dos = new DataOutputStream(bos);
             CompressedStreamTools.write(tag, dos);
             dos.close();
             byte[] uncompressedBytes = bos.toByteArray();
+            if (uncompressedBytes.length > MAX_NBT_BYTES) {
+                throw new IllegalArgumentException("Assistant response NBT exceeds packet limit");
+            }
             if (uncompressedBytes.length > COMPRESSION_THRESHOLD) {
                 // Gzip compress the raw NBT bytes
-                ByteArrayOutputStream compressedBos = new ByteArrayOutputStream();
+                BoundedByteArrayOutputStream compressedBos = new BoundedByteArrayOutputStream(
+                    MAX_COMPRESSED_PAYLOAD_BYTES);
                 GZIPOutputStream gzos = new GZIPOutputStream(compressedBos);
                 gzos.write(uncompressedBytes);
                 gzos.finish();
                 gzos.close();
                 byte[] compressedBytes = compressedBos.toByteArray();
+                if (compressedBytes.length > MAX_COMPRESSED_PAYLOAD_BYTES) {
+                    throw new IllegalArgumentException("Compressed assistant response exceeds packet limit");
+                }
                 buf.writeByte(1); // compression flag
                 buf.writeInt(compressedBytes.length);
                 buf.writeBytes(compressedBytes);
             } else {
                 buf.writeByte(0); // no compression
-                ByteBufUtils.writeTag(buf, tag);
+                NetworkPacketCodec.writeTag(buf, tag, MAX_NBT_COMPRESSED_BYTES);
+            }
+            if (buf.writerIndex() - start > MAX_PACKET_BODY_BYTES) {
+                throw new IllegalArgumentException("Assistant response exceeds FML packet limit");
             }
         } catch (IOException e) {
-            AdvanceDataMonitor.LOG.error("[ADM Assistant] Failed to compress response payload", e);
-            buf.writeByte(0);
-            ByteBufUtils.writeTag(buf, tag);
+            throw new IllegalArgumentException("Could not encode assistant response payload", e);
+        }
+    }
+
+    /** Preflight helper used to split candidate responses before FML sees them. */
+    public boolean fitsPacketBudget(int maxBodyBytes) {
+        if (maxBodyBytes <= 0 || maxBodyBytes > MAX_PACKET_BODY_BYTES) {
+            return false;
+        }
+        ByteBuf scratch = Unpooled.buffer(Math.min(maxBodyBytes, 8192));
+        try {
+            toBytes(scratch);
+            return scratch.readableBytes() <= maxBodyBytes;
+        } catch (RuntimeException error) {
+            return false;
+        } finally {
+            scratch.release();
         }
     }
 
@@ -230,6 +299,9 @@ public class PacketAssistantResponse implements IMessage {
 
         @Override
         public IMessage onMessage(final PacketAssistantResponse message, MessageContext ctx) {
+            if (message == null || message.malformed) {
+                return null;
+            }
             AdvanceDataMonitor.LOG.info(
                 "[ADM Assistant] PacketAssistantResponse received: type={}, raw='{}', messageLength={}",
                 message.type,
@@ -349,7 +421,9 @@ public class PacketAssistantResponse implements IMessage {
             int batchCount = payload.hasKey("batchCount") ? payload.getInteger("batchCount") : 1;
             int totalCount = payload.hasKey("totalCount") ? payload.getInteger("totalCount") : 0;
             boolean append = payload.hasKey("append") && payload.getBoolean("append");
-            return new CandidateBatchMeta(batchIndex, batchCount, totalCount, append);
+            int rangeStart = payload.hasKey("rangeStart") ? payload.getInteger("rangeStart") : 0;
+            int rangeEnd = payload.hasKey("rangeEnd") ? payload.getInteger("rangeEnd") : 0;
+            return new CandidateBatchMeta(batchIndex, batchCount, totalCount, append, rangeStart, rangeEnd);
         }
 
         private CraftingCandidate readCandidate(NBTTagCompound tag) {
@@ -393,5 +467,48 @@ public class PacketAssistantResponse implements IMessage {
         }
         return text.replace((char) 10, ' ')
             .replace((char) 13, ' ');
+    }
+
+    private static byte[] gunzipBounded(byte[] compressed, int maxBytes) throws IOException {
+        GZIPInputStream input = new GZIPInputStream(new ByteArrayInputStream(compressed));
+        BoundedByteArrayOutputStream output = new BoundedByteArrayOutputStream(maxBytes);
+        byte[] buffer = new byte[8192];
+        try {
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                if (read > 0) output.write(buffer, 0, read);
+            }
+            return output.toByteArray();
+        } finally {
+            input.close();
+        }
+    }
+
+    private static final class BoundedByteArrayOutputStream extends ByteArrayOutputStream {
+
+        private final int limit;
+
+        private BoundedByteArrayOutputStream(int limit) {
+            super(Math.min(limit, 8192));
+            this.limit = limit;
+        }
+
+        @Override
+        public synchronized void write(int value) {
+            ensureWithinLimit(1);
+            super.write(value);
+        }
+
+        @Override
+        public synchronized void write(byte[] bytes, int offset, int length) {
+            ensureWithinLimit(length);
+            super.write(bytes, offset, length);
+        }
+
+        private void ensureWithinLimit(int additionalBytes) {
+            if (additionalBytes < 0 || count > limit - additionalBytes) {
+                throw new IllegalArgumentException("Assistant response payload exceeds bounded buffer");
+            }
+        }
     }
 }
