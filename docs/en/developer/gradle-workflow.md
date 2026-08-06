@@ -53,7 +53,7 @@ On Unix-like shells use `./gradlew`.
 | `textech-<tag>-webae.zip` | Optional server UI; extract at the instance root |
 | `textech-<tag>-sources.jar` | Developer source reference; never install in player `mods/` |
 
-For `v3.0.0-rc.1`, `<tag>` is literally `v3.0.0-rc.1`.
+For `v3.0.0-rc.3`, `<tag>` is literally `v3.0.0-rc.3`.
 
 ### 1.2 Key Files
 

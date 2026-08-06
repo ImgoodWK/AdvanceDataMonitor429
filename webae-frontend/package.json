@@ -1,6 +1,6 @@
 {
   "name": "textech-webae-frontend",
-  "version": "3.0.0-rc.1",
+  "version": "3.0.0-rc.3",
   "private": true,
   "type": "module",
   "description": "TeXTech WebAE Console - React + Ant Design frontend",

@@ -16,6 +16,8 @@
 | 2026-07-13 | [`1bef289`](https://github.com/ImgoodWK/TeXTech-GTNH/commit/1bef28943345271cf6366aacd0b9e1a405d492fb) | 工具和文档建设；代码库进入 TeXTech / `textech` 命名，同时保留迁移标识。 |
 | 2026-07-30 | [`98b150a`](https://github.com/ImgoodWK/TeXTech-GTNH/commit/98b150ab24b7cc1fa89db54bad97e2c5c79764bc) · [`v2.0.0`](https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v2.0.0) | TeXTech 2.0 发布准备；发布线加入分离的 WebAE 和可选语音组件。 |
 | 2026-08-05 | `v3.0.0-rc.1` | TeXTech-GTNH 公开候选发布线：统一品牌、3.0 功能、可复现发布与来源证明。 |
+| 2026-08-06 | [`v3.0.0-rc.2`](https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.2) | 规范仓库文本行尾并从干净 Tag 完成可复现构建；RC 1 保留为不可变审计记录。 |
+| 2026-08-06 | `v3.0.0-rc.3` | 安全加固候选：限制外部搜索响应、约束语音模型归档路径并更新可选 AstrBot 依赖。 |
 
 公开 Git 历史在 2025-06-11 与 2026-06-14 之间存在较长间隔。
 该间隔只能说明提交记录的时间边界，不能单凭 Git 推断开发暂停的原因，

@@ -9,10 +9,10 @@ abstract: >-
   A Minecraft 1.7.10 / GTNH mod combining AE2 monitoring, WebAE,
   data weaving, planning and automation, optional AI and voice assistance,
   and immersive utility systems. Previously named AdvanceDataMonitor.
-version: "3.0.0-rc.1"
-date-released: 2026-08-05
+version: "3.0.0-rc.3"
+date-released: 2026-08-06
 repository-code: "https://github.com/ImgoodWK/TeXTech-GTNH"
-repository-artifact: "https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.1"
+repository-artifact: "https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.3"
 url: "https://github.com/ImgoodWK/TeXTech-GTNH"
 license: MIT
 keywords:
@@ -29,8 +29,8 @@ authors:
     website: "https://github.com/ImgoodWK"
 identifiers:
   - type: url
-    value: "https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.1"
-    description: "TeXTech 3.0.0 RC 1"
+    value: "https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.3"
+    description: "TeXTech 3.0.0 RC 3"
   - type: url
     value: "https://github.com/ImgoodWK/TeXTech-GTNH/commit/e04bde79a9dd97e9bb31a2215fd8642cb97585e5"
     description: "Oldest reachable public commit, 2025-04-29"

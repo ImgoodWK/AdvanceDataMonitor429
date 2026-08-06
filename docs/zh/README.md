@@ -1,10 +1,10 @@
 # TeXTech 文档中心（中文）
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 1 · 最后同步：2026-08
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 3 · 最后同步：2026-08
 
 English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.md](../README.md) · [项目首页](../../README.md)
 
-TeXTech `v3.0.0-rc.1` 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离线语音 JAR 与可选 WebAE ZIP 分开发布；使用 WebAE 时把 ZIP 解压到服务端实例根目录，并确认 `TeXTech/WebAE/ui/index.html` 存在。不使用 WebAE 时只下载主 JAR 即可。
+TeXTech `v3.0.0-rc.3` 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离线语音 JAR 与可选 WebAE ZIP 分开发布；使用 WebAE 时把 ZIP 解压到服务端实例根目录，并确认 `TeXTech/WebAE/ui/index.html` 存在。不使用 WebAE 时只下载主 JAR 即可。
 
 ---
 
@@ -114,5 +114,5 @@ TeXTech `v3.0.0-rc.1` 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、�
 | [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | 贡献流程与验证要求 |
 | [../../SECURITY.md](../../SECURITY.md) | 私密漏洞报告与密钥处理规则 |
 | [../../SUPPORT.md](../../SUPPORT.md) | 按受众分类的支持入口 |
-| [../../CHANGELOG.md](../../CHANGELOG.md) | v1.0.0、v2.0.0 与 v3.0.0-rc.1 发布摘要 |
+| [../../CHANGELOG.md](../../CHANGELOG.md) | v1.0.0、v2.0.0 与 v3.0.0 RC 发布摘要 |
 | [../wiki/README.md](../wiki/README.md) | GitHub Wiki 导航页的仓库内事实源 |

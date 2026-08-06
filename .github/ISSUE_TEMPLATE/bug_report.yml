@@ -11,7 +11,7 @@ body:
     id: version
     attributes:
       label: TeXTech version
-      placeholder: v3.0.0-rc.1 or full commit SHA
+      placeholder: v3.0.0-rc.3 or full commit SHA
     validations:
       required: true
   - type: input
@@ -58,7 +58,7 @@ body:
     id: regression
     attributes:
       label: Last known working version
-      placeholder: v3.0.0-rc.1, a commit SHA, or "unknown"
+      placeholder: v3.0.0-rc.3, a commit SHA, or "unknown"
   - type: checkboxes
     id: checks
     attributes:

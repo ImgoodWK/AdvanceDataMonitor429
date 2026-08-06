@@ -25,7 +25,7 @@
 
 TeXTech is a Minecraft 1.7.10 community mod for **GregTech: New Horizons**. It unifies AE2 network observation, in-world data visualization, the WebAE browser console, data weaving, advanced planning, AI/voice assistance, and base-experience systems into an endgame toolchain.
 
-The current public candidate is **`v3.0.0-rc.1`**. It validates the 3.0 feature set, split installation artifacts, and upgrade path; stable users can remain on **`v2.0.0`**, which continues to carry the Latest stable marker during the RC period.
+The current public candidate is **`v3.0.0-rc.3`**. Alongside validating the 3.0 feature set, split installation artifacts, and upgrade path, it hardens web-search input boundaries and voice-model archive extraction and updates the optional AstrBot dependency set; stable users can remain on **`v2.0.0`**, which continues to carry the Latest stable marker during the RC period.
 
 ## Version and compatibility at a glance
 
@@ -34,7 +34,7 @@ The current public candidate is **`v3.0.0-rc.1`**. It validates the 3.0 feature 
 | Minecraft / Forge | `1.7.10` / `10.13.4.1614` |
 | GTNH | `2.9.0-beta-2+`; 2.8.x is unsupported |
 | Mod ID | `textech`; `advancedatamonitor` remains only as a migration identifier |
-| Current release | `v3.0.0-rc.1` Pre-release |
+| Current release | `v3.0.0-rc.3` Pre-release |
 | Build / bytecode | Built with JDK 17, targeting JVM 8-compatible bytecode |
 | License | MIT, `Copyright (c) 2025-2026 ImgoodWK` |
 
@@ -88,10 +88,10 @@ Download matching-version assets from [GitHub Releases](https://github.com/Imgoo
 
 | Release asset | Side | Required | Location and purpose |
 |---|---|---:|---|
-| `textech-v3.0.0-rc.1.jar` | Client + server | Yes | Put in `mods/`; the core mod excludes WebAE pages and the large offline speech model |
-| `textech-v3.0.0-rc.1-voice.jar` | Clients needing offline voice | Optional | Put in client `mods/`; version must match the core JAR |
-| `textech-v3.0.0-rc.1-webae.zip` | Server | Optional | Extract at the instance root; verify `TeXTech/WebAE/ui/index.html` |
-| `textech-v3.0.0-rc.1-sources.jar` | Developers | Optional | Source reference; do not put it in a player's `mods/` directory |
+| `textech-v3.0.0-rc.3.jar` | Client + server | Yes | Put in `mods/`; the core mod excludes WebAE pages and the large offline speech model |
+| `textech-v3.0.0-rc.3-voice.jar` | Clients needing offline voice | Optional | Put in client `mods/`; version must match the core JAR |
+| `textech-v3.0.0-rc.3-webae.zip` | Server | Optional | Extract at the instance root; verify `TeXTech/WebAE/ui/index.html` |
+| `textech-v3.0.0-rc.3-sources.jar` | Developers | Optional | Source reference; do not put it in a player's `mods/` directory |
 
 Back up worlds and configuration before upgrading. The RC specifically validates upgrades from `v2.0.0`; production servers should first test startup, storage, and WebAE login against a copy.
 
@@ -160,7 +160,7 @@ Exact dates and public chronology can be verified through commit SHAs, signed ta
 
 ### Under RC validation / known limitations
 
-- `v3.0.0-rc.1` is a pre-release and does not replace `v2.0.0` as Latest stable.
+- `v3.0.0-rc.3` is a pre-release and does not replace `v2.0.0` as Latest stable.
 - Promotion still requires full client, dedicated-server, optional-voice, WebAE, and v2 world/config upgrade smoke tests in GTNH.
 - GTNH 2.8.x is unsupported; WebAE pages come from a separate ZIP; clients that do not need speech models should omit the voice JAR.
 - Card Battle item rewards remain disabled. This README uses real WebAE demo captures only; in-game captures remain an RC follow-up.
