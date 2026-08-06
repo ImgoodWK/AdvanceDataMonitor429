@@ -1,11 +1,11 @@
 # TeXTech Documentation
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 1 · Last synced: 2026-08
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 3 · Last synced: 2026-08
 
 Documentation is split by language under `docs/zh/` (简体中文) and `docs/en/` (English).
 Project home: [中文 README](../README.md) · [English README](../README.en.md) · [navigation Wiki](https://github.com/ImgoodWK/TeXTech-GTNH/wiki)
 
-Release `v3.0.0-rc.1` targets GTNH `2.9.0-beta-2+`. The required core mod, optional
+Release `v3.0.0-rc.3` targets GTNH `2.9.0-beta-2+`. The required core mod, optional
 offline-voice companion, and optional WebAE UI are separate Release assets.
 Install the WebAE ZIP by extracting it at the server instance root so that
 `TeXTech/WebAE/ui/index.html` exists; the main mod JAR intentionally does not

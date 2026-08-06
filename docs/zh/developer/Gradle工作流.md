@@ -51,9 +51,9 @@ TeXTech 基于 [GTNH ExampleMod 1.7.10](https://github.com/GTNewHorizons/Example
 | `textech-<tag>-webae.zip` | 可选；解压到服务端实例根目录，使 `TeXTech/WebAE/ui/index.html` 存在 |
 | `textech-<tag>-sources.jar` | 开发者源码参考，不放入玩家 `mods/` |
 
-Tag `v3.0.0-rc.1` 对应的四个文件名分别为
-`textech-v3.0.0-rc.1.jar`、`textech-v3.0.0-rc.1-voice.jar`、
-`textech-v3.0.0-rc.1-webae.zip` 与 `textech-v3.0.0-rc.1-sources.jar`。
+Tag `v3.0.0-rc.3` 对应的四个文件名分别为
+`textech-v3.0.0-rc.3.jar`、`textech-v3.0.0-rc.3-voice.jar`、
+`textech-v3.0.0-rc.3-webae.zip` 与 `textech-v3.0.0-rc.3-sources.jar`。
 开发环境的 `runClient` 仍从源码树加载 Vosk，无需先安装 voice JAR。
 
 可选 MCEF：官网仍提供 **1.7.10 / 0.6**（https://montoyo.net/wd3/?modid=mcef ）。将 `mcef-1.7.10-0.6.jar` 放入 `libs/`（开发）或游戏 `mods/`（玩法）后，`dependencies.gradle` 以 `devOnlyNonPublishable` 引入，`addon.late.gradle` 添加 ShutdownPatcher。GitHub Releases 仅有 1.12.2 API，不能替代 1.7.10 整包。运行时还要能访问 https://montoyo.net/jcef 下载原生库；官方警告 1.10.2 之前可能不兼容新版启动器。无 MCEF 时监视器主路径为浏览器推帧（`browser-jpeg`），主机 Chrome/Edge 截 embed（`spa-jpeg`）作兜底。

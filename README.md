@@ -25,7 +25,7 @@
 
 TeXTech 是面向 **GregTech: New Horizons** 的 Minecraft 1.7.10 社区模组：它把 AE2 网络监控、世界内数据可视化、WebAE 浏览器控制台、数据编织、高级计划、AI/语音助手与基地体验系统组合成一套连贯的终局工具链。
 
-当前公开候选版本是 **`v3.0.0-rc.1`**。它用于验证 3.0 功能、安装拆分和升级路径；稳定用户可继续使用仍标记为 Latest stable 的 **`v2.0.0`**。
+当前公开候选版本是 **`v3.0.0-rc.3`**。它在验证 3.0 功能、安装拆分和升级路径的同时，加入 Web 搜索输入边界、语音模型归档路径约束与可选 AstrBot 依赖安全更新；稳定用户可继续使用仍标记为 Latest stable 的 **`v2.0.0`**。
 
 ## 版本与兼容速览
 
@@ -34,7 +34,7 @@ TeXTech 是面向 **GregTech: New Horizons** 的 Minecraft 1.7.10 社区模组�
 | Minecraft / Forge | `1.7.10` / `10.13.4.1614` |
 | GTNH | `2.9.0-beta-2+`；不支持 2.8.x |
 | Mod ID | `textech`；`advancedatamonitor` 仅保留迁移兼容语义 |
-| 当前发布 | `v3.0.0-rc.1` Pre-release |
+| 当前发布 | `v3.0.0-rc.3` Pre-release |
 | 构建 / 字节码 | JDK 17 构建，面向 JVM 8 兼容字节码 |
 | 许可 | MIT，`Copyright (c) 2025-2026 ImgoodWK` |
 
@@ -88,10 +88,10 @@ TeXTech 是面向 **GregTech: New Horizons** 的 Minecraft 1.7.10 社区模组�
 
 | 发布资产 | 适用端 | 是否必需 | 安装位置与用途 |
 |---|---|---:|---|
-| `textech-v3.0.0-rc.1.jar` | 客户端 + 服务端 | 必需 | 放入 `mods/`；主模组，不内置 WebAE 页面与大型离线语音模型 |
-| `textech-v3.0.0-rc.1-voice.jar` | 需要离线语音的客户端 | 可选 | 放入客户端 `mods/`；必须与主 JAR 版本一致 |
-| `textech-v3.0.0-rc.1-webae.zip` | 服务端 | 可选 | 解压到实例根目录，确认 `TeXTech/WebAE/ui/index.html` 存在 |
-| `textech-v3.0.0-rc.1-sources.jar` | 开发者 | 可选 | 源码参考，不要放入玩家 `mods/` |
+| `textech-v3.0.0-rc.3.jar` | 客户端 + 服务端 | 必需 | 放入 `mods/`；主模组，不内置 WebAE 页面与大型离线语音模型 |
+| `textech-v3.0.0-rc.3-voice.jar` | 需要离线语音的客户端 | 可选 | 放入客户端 `mods/`；必须与主 JAR 版本一致 |
+| `textech-v3.0.0-rc.3-webae.zip` | 服务端 | 可选 | 解压到实例根目录，确认 `TeXTech/WebAE/ui/index.html` 存在 |
+| `textech-v3.0.0-rc.3-sources.jar` | 开发者 | 可选 | 源码参考，不要放入玩家 `mods/` |
 
 升级前备份世界与配置。RC 重点验证从 `v2.0.0` 的世界/配置升级路径；生产服应先在副本中完成启动、存储与 WebAE 登录烟测。
 
@@ -160,7 +160,7 @@ TeXTech 的时间线采用“双轨可验证叙事”：
 
 ### RC 验证中 / 已知限制
 
-- `v3.0.0-rc.1` 是预发布版，不替代 Latest stable 的 `v2.0.0`。
+- `v3.0.0-rc.3` 是预发布版，不替代 Latest stable 的 `v2.0.0`。
 - 正式晋升前仍需完成客户端、专用服务器、可选 voice、WebAE、v2 世界/配置升级的完整 GTNH 烟测。
 - GTNH 2.8.x 不受支持；WebAE 页面必须从独立 ZIP 安装；voice JAR 不应部署到不需要语音模型的客户端。
 - Card Battle 奖励物品交付保持禁用；本次 README 只使用真实 WebAE 演示截图，游戏内实机截图留待 RC 观察期补充。

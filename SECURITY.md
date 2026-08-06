@@ -4,7 +4,7 @@
 
 | Version | Status |
 | --- | --- |
-| `v3.0.0-rc.1` | Supported pre-release; compatibility testing in progress |
+| `v3.0.0-rc.3` | Supported pre-release; security and compatibility testing in progress |
 | `v2.0.0` | Supported stable line during the RC observation period |
 | Older releases | Best effort only |
 
@@ -52,7 +52,7 @@ when GitHub marks it as verified. Verify an asset with:
 
 ```bash
 sha256sum --check SHA256SUMS
-gh attestation verify textech-v3.0.0-rc.1.jar --repo ImgoodWK/TeXTech-GTNH
+gh attestation verify textech-v3.0.0-rc.3.jar --repo ImgoodWK/TeXTech-GTNH
 ```
 
 The public provenance monitor described in

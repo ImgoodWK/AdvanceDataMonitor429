@@ -1,6 +1,6 @@
 # GTNH Version Compatibility
 
-> **Applies to**: TeXTech **v2.0.0** and **v3.0.0-rc.1**
+> **Applies to**: TeXTech **v2.0.0** and **v3.0.0-rc.3**
 > **Last updated**: 2026-08-05
 > 中文: [GTNH版本兼容说明.md](../../zh/developer/GTNH版本兼容说明.md)
 
@@ -37,7 +37,7 @@ Classes still present under `compat/ae/legacy/` may be used by native adapters f
 
 ## 3. Player and pack-author impact
 
-- Stable installations should pair GTNH `2.9.0-beta-2+` with matching `v2.0.0` assets; RC testers must use the complete matching `v3.0.0-rc.1` asset set.
+- Stable installations should pair GTNH `2.9.0-beta-2+` with matching `v2.0.0` assets; RC testers must use the complete matching `v3.0.0-rc.3` asset set.
 - Upgrade the GTNH pack before moving from TeXTech 1.0.x; `aeProfileOverride=legacy` cannot restore 2.8.x support.
 - The core JAR, optional voice JAR, and optional WebAE ZIP must come from the same TeXTech Release.
 - The WebAE ZIP only contains browser UI files. Extract it at the instance root so `TeXTech/WebAE/ui/index.html` exists; it does not change GTNH/AE2 compatibility.

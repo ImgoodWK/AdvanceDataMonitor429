@@ -1,6 +1,6 @@
 # GTNH 版本兼容说明
 
-> **适用版本**：TeXTech **v2.0.0** 与 **v3.0.0-rc.1**
+> **适用版本**：TeXTech **v2.0.0** 与 **v3.0.0-rc.3**
 > **最后更新**：2026-08-05
 > English: [gtnh-version-compatibility.md](../../en/developer/gtnh-version-compatibility.md)
 
@@ -37,7 +37,7 @@
 
 ## 3. 对玩家与整合包作者的影响
 
-- 稳定环境应使用 GTNH `2.9.0-beta-2+` 与 `v2.0.0` 的匹配附件；参与 RC 测试时必须使用完整且版本一致的 `v3.0.0-rc.1` 资产。
+- 稳定环境应使用 GTNH `2.9.0-beta-2+` 与 `v2.0.0` 的匹配附件；参与 RC 测试时必须使用完整且版本一致的 `v3.0.0-rc.3` 资产。
 - 从 1.0.x 升级前，先升级 GTNH 整合包；不要尝试用 `aeProfileOverride=legacy` 恢复 2.8.x 支持。
 - 主 JAR、可选语音 JAR、可选 WebAE ZIP 必须来自同一 TeXTech Release。
 - WebAE ZIP 只含浏览器 UI，解压到实例根目录后应存在 `TeXTech/WebAE/ui/index.html`；它不会改变 GTNH/AE2 兼容范围。

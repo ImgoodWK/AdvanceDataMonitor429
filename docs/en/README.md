@@ -1,10 +1,10 @@
 # TeXTech Documentation (English)
 
-> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 1 · Last synced: 2026-08
+> Mod ID: `textech` · Minecraft 1.7.10 / GTNH · TeXTech 3.0 RC 3 · Last synced: 2026-08
 
 中文文档: [docs/zh/README.md](../zh/README.md) · Index: [docs/README.md](../README.md) · [Project home](../../README.en.md)
 
-TeXTech `v3.0.0-rc.1` targets GTNH `2.9.0-beta-2+`. Releases provide the required core mod JAR, optional offline-voice JAR, and optional WebAE ZIP separately. To use WebAE, extract its ZIP at the server instance root and verify `TeXTech/WebAE/ui/index.html`; users who do not need WebAE only download the core JAR.
+TeXTech `v3.0.0-rc.3` targets GTNH `2.9.0-beta-2+`. Releases provide the required core mod JAR, optional offline-voice JAR, and optional WebAE ZIP separately. To use WebAE, extract its ZIP at the server instance root and verify `TeXTech/WebAE/ui/index.html`; users who do not need WebAE only download the core JAR.
 
 ---
 
@@ -106,5 +106,5 @@ In-game display names follow `lang/en_US.lang`, e.g.:
 | [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | Contribution workflow and verification expectations |
 | [../../SECURITY.md](../../SECURITY.md) | Private vulnerability reporting and secret-handling policy |
 | [../../SUPPORT.md](../../SUPPORT.md) | Support routing by audience |
-| [../../CHANGELOG.md](../../CHANGELOG.md) | v1.0.0, v2.0.0, and v3.0.0-rc.1 release summary |
+| [../../CHANGELOG.md](../../CHANGELOG.md) | v1.0.0, v2.0.0, and the v3.0.0 RC release summaries |
 | [../wiki/README.md](../wiki/README.md) | Repository source for navigation-only GitHub Wiki pages |

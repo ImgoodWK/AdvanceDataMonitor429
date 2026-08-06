@@ -17,6 +17,8 @@ the author's account and is intentionally labelled as such.
 | 2026-07-13 | [`1bef289`](https://github.com/ImgoodWK/TeXTech-GTNH/commit/1bef28943345271cf6366aacd0b9e1a405d492fb) | Tooling and documentation work; the codebase moved into the TeXTech / `textech` naming while retaining migration identifiers. |
 | 2026-07-30 | [`98b150a`](https://github.com/ImgoodWK/TeXTech-GTNH/commit/98b150ab24b7cc1fa89db54bad97e2c5c79764bc) · [`v2.0.0`](https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v2.0.0) | TeXTech 2.0 release preparation; the `v2.0.0` release line added the separated WebAE and optional voice artifacts. |
 | 2026-08-05 | `v3.0.0-rc.1` | TeXTech-GTNH release-candidate line: unified brand, 3.0 feature set, reproducible releases, and public provenance. |
+| 2026-08-06 | [`v3.0.0-rc.2`](https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.2) | Normalized tracked line endings and completed a reproducible build from a clean tag; RC 1 remains immutable audit history. |
+| 2026-08-06 | `v3.0.0-rc.3` | Security-hardening candidate: bounded external search responses, confined voice-model archive extraction, and updated the optional AstrBot dependency set. |
 
 The public Git history has a long gap between 2025-06-11 and 2026-06-14.
 That gap records only commit availability; it does not by itself prove why
