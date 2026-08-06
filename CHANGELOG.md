@@ -2,6 +2,24 @@
 
 All notable public TeXTech release lines are summarized here. Detailed behavior remains documented under `docs/`, and Git tags/releases remain the authority for exact source snapshots and downloadable assets.
 
+## [3.0.0-rc.3] - 2026-08-06
+
+### Security
+
+- Bounded external web-search responses and replaced backtracking HTML extraction with linear parsing to prevent crafted search responses from consuming excessive client CPU or memory.
+- Confined embedded and companion voice-model extraction to the configured cache directory, rejecting absolute paths and traversal entries from JARs, manifests, classpath resources, and directory sources.
+- Updated the optional AstrBot persona console to `python-multipart` 0.0.31, which includes the current upstream security fixes.
+
+### Changed
+
+- Normalized GitHub Release titles for every numbered release candidate while retaining immutable RC 1 and RC 2 tags and assets.
+- Synchronized the WebAE package metadata with the RC 3 release line.
+
+## [3.0.0-rc.2] - 2026-08-06
+
+- Normalized tracked text line endings so clean Linux checkouts produce reproducible, non-`dirty` release filenames.
+- Retained the RC 1 source behavior while issuing a new immutable candidate instead of moving or overwriting the original tag.
+
 ## [3.0.0-rc.1] - 2026-08-05
 
 ### Added
@@ -35,6 +53,8 @@ All notable public TeXTech release lines are summarized here. Detailed behavior 
 - First tagged public release line.
 - Delivered the original Advance Data Monitor foundation and the initial broader TeXTech gameplay/tooling set.
 
+[3.0.0-rc.3]: https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.3
+[3.0.0-rc.2]: https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.2
 [3.0.0-rc.1]: https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v3.0.0-rc.1
 [2.0.0]: https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v2.0.0
 [1.0.0]: https://github.com/ImgoodWK/TeXTech-GTNH/releases/tag/v1.0.0
