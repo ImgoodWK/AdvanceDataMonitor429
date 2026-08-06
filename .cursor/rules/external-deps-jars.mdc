@@ -51,8 +51,8 @@ alwaysApply: false
 
 ## 查阅外部模组类
 
-1. 先查 `libs/` 或 Gradle 缓存  
-2. 反编译输出写入 `.workspace/`  
-3. 缺失 jar 时再询问用户  
+1. 先查 `libs/` 或 Gradle 缓存
+2. 反编译输出写入 `.workspace/`
+3. 缺失 jar 时再询问用户
 
 权限策略见 `agent-execution-permissions.mdc`。
