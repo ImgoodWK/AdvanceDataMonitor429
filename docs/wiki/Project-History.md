@@ -8,8 +8,6 @@
 
 <p align="center"><strong>Follow the signal through versions</strong><br>沿着版本，追踪信号的来路</p>
 
-<p align="center"><img src="https://raw.githubusercontent.com/ImgoodWK/TeXTech-GTNH/master/docs/assets/promo/wiki/data-stream.gif" alt="Looping cyan data-stream decoration" width="78%"></p>
-
 ## Timeline landmarks / 时间线坐标
 
 <table>

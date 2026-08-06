@@ -12,7 +12,7 @@ Wiki pages use repository-hosted, cache-friendly raw URLs so the cover and decor
 
 - Brand / 品牌: `docs/assets/brand/textech-hero-1920x480.png`, `textech-logo-512.png`, and `textech-social-preview-1280x640.png`.
 - WebAE gallery / WebAE 画廊: `docs/assets/webae/dashboard.png`, `diagnostics.png`, `patterns.png`, `storage.png`, and `topology.png`.
-- Wiki/README media pack / Wiki 与 README 素材包: `docs/assets/promo/wiki/wiki-hero-1600x420.png`, the four `feature-*.png` cards, `data-divider-1200x96.png`, and the lightweight `data-stream.gif`. See the [asset notes](https://github.com/ImgoodWK/TeXTech-GTNH/blob/master/docs/assets/promo/wiki/README.md) for dimensions, sources, and regeneration boundaries.
+- Wiki/README media pack / Wiki 与 README 素材包: `docs/assets/promo/wiki/wiki-hero-1600x420.png`, the four `feature-*.png` cards, and `data-divider-1200x96.png`. See the [asset notes](https://github.com/ImgoodWK/TeXTech-GTNH/blob/master/docs/assets/promo/wiki/README.md) for dimensions, sources, and regeneration boundaries.
 
 Images are orientation and decoration only. Alt text must remain meaningful, and a visual must never imply a live server state, player identity, secret, or a feature that the canonical docs do not describe.
 

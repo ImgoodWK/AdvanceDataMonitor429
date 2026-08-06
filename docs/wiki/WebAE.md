@@ -8,8 +8,6 @@
 
 <p align="center"><strong>See the network from the browser you already use</strong><br>用你熟悉的浏览器，看见整个网络</p>
 
-<p align="center"><img src="https://raw.githubusercontent.com/ImgoodWK/TeXTech-GTNH/master/docs/assets/promo/wiki/data-stream.gif" alt="Looping cyan data-stream decoration" width="78%"></p>
-
 ## What to explore / 可以探索什么
 
 <table>

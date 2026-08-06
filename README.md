@@ -111,8 +111,6 @@ TeXTech 是面向 **GregTech: New Horizons** 的 Minecraft 1.7.10 社区模组�
   </tr>
 </table>
 
-<p align="center"><img src="docs/assets/promo/wiki/data-stream.gif" alt="循环播放的青色数据流装饰" width="82%"></p>
-
 ## WebAE 功能画廊
 
 以下 5 张图片来自仓库中的真实 React 前端与本地演示 API 数据，**不包含 Token、API Key、QQ secret、玩家 UUID、公网地址或玩家隐私**。点击图片可查看原尺寸。本次发布不生成或伪装游戏内实机截图；RC 观察期会补充经过脱敏的真实游戏内截图。

@@ -6,15 +6,14 @@
 
 | 文件 | 尺寸 / 格式 | 推荐位置 | 说明 |
 | --- | --- | --- | --- |
-| `wiki-hero-1600x420.png` | 1600 × 420 · RGBA PNG | README 顶部、Wiki 首页 banner | 左侧留有大块深色留白；右侧是脱敏 WebAE 演示界面缩略图、ADM GUI 线框和仓库内方块纹理。 |
+| `wiki-hero-1600x420.png` | 800 × 420 · RGBA PNG | README 顶部、Wiki 首页 banner | 保留原文件名以维持已有链接；画面仅保留原图右半的脱敏 WebAE 演示界面、ADM GUI 线框和仓库内方块纹理。 |
 | `feature-monitor-640x360.png` | 640 × 360 · RGBA PNG | WebAE / 数据监控功能卡片 | 使用 `dashboard.png` 与 `adv_data_monitor.png`。 |
 | `feature-weave-640x360.png` | 640 × 360 · RGBA PNG | Data Weave / AE2 数据编织章节 | 使用 `data_weave.png`、网络链接和存储链接方块纹理。 |
 | `feature-assistant-640x360.png` | 640 × 360 · RGBA PNG | 助手、诊断或自动化章节 | 使用 `diagnostics.png` 与真实 `adv_crafting_link.png` 纹理。 |
 | `feature-journey-640x360.png` | 640 × 360 · RGBA PNG | 入门流程、拓扑或进阶路线 | 使用 `topology.png` 与 `grapple_anchor.png` 纹理；底部进度轨道可对应章节顺序。 |
 | `data-divider-1200x96.png` | 1200 × 96 · RGBA PNG | Wiki 章节之间、README 功能分组之间 | 细长的可重复视觉分隔条；中心徽记是 `data_weave.png` 的像素纹理。 |
-| `data-stream.gif` | 640 × 96 · 10 帧 · 90 ms/帧 · loop=0 | Wiki 页尾、提示块或轻量动态背景 | 深色不透明循环；适合在 GitHub 的 `<img>` 或 HTML `<picture>` 中使用。 |
 
-文件名均为稳定的 ASCII 小写命名。每个文件远低于 1 MB，动画低于 2 MB，便于 GitHub Wiki 和仓库首页快速加载。
+文件名均为稳定的 ASCII 小写命名。每个文件远低于 1 MB，便于 GitHub Wiki 和仓库首页快速加载。
 
 ## 引用示例
 
@@ -46,13 +45,12 @@ GitHub Wiki 独立仓库也可以将 `docs/assets/promo/wiki/` 中的最终文�
 - ADM 方块 / 物品纹理：`src/main/resources/assets/textech/textures/blocks/adv_*.png`、`grapple_anchor.png`、`src/main/resources/assets/textech/textures/items/data_weave.png`。
 - ADM GUI 线框：`src/main/resources/assets/textech/textures/gui/background_AdvanceDataMonitor_Main.png`。
 - WebAE 界面截图：`docs/assets/webae/dashboard.png`、`diagnostics.png`、`topology.png`。这些是仓库内已有的脱敏 React/演示 API 界面素材，并非生成的游戏截图。
-- 组合、调色、缩放和 GIF 动画均由 Pillow 本地脚本完成：`.workspace/wiki_assets.py`（脚本和缩略图属于临时工作物，不提交）。没有下载外部素材、第三方凭据或 Meowa 中间稿。
+- 初始组合、调色和缩放由 Pillow 本地脚本完成；当前 hero 又以 `x=800..1600` 做无插值右半裁切（脚本和缩略图属于临时工作物，不提交）。没有下载外部素材、第三方凭据或 Meowa 中间稿。
 
-重新生成或检查时，在仓库根目录运行：
+检查时，在仓库根目录运行：
 
 ```powershell
-python .workspace/wiki_assets.py
 python tools/agent-image-thumb.py docs/assets/promo/wiki/wiki-hero-1600x420.png
 ```
 
-验收重点是实际尺寸、颜色模式、透明通道、文件大小，以及 `data-stream.gif` 的 10 帧、90 ms 帧时长和 `loop=0`。不要把 `.workspace/agent-image-thumbs/`、contact sheet、`final_outputs.json` 或其他中间稿复制到发布目录。
+验收重点是实际尺寸、颜色模式、透明通道和文件大小。不要把 `.workspace/agent-image-thumbs/`、contact sheet、`final_outputs.json` 或其他中间稿复制到发布目录。

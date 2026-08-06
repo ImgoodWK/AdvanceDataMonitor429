@@ -41,8 +41,6 @@ TeXTech `v3.0.0-rc.3` targets GTNH `2.9.0-beta-2+`. Releases provide the require
   </tr>
 </table>
 
-<p align="center"><img src="../assets/promo/wiki/data-stream.gif" alt="Looping cyan data-stream decoration" width="82%"></p>
-
 <table>
   <tr>
     <td width="50%" valign="top">

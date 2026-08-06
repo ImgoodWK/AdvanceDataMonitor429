@@ -111,8 +111,6 @@ These cards recompose repository-owned block/item textures with sanitized WebAE 
   </tr>
 </table>
 
-<p align="center"><img src="docs/assets/promo/wiki/data-stream.gif" alt="Looping cyan data-stream decoration" width="82%"></p>
-
 ## WebAE gallery
 
 These five images come from the real React frontend using local demonstration API data. They contain **no token, API key, QQ secret, player UUID, public address, or player-private data**. Click an image to view its original size. This release does not fabricate in-game screenshots; sanitized in-game captures remain an RC follow-up.

@@ -8,8 +8,6 @@
 
 <p align="center"><strong>Measure the network · weave the signal · make the machine legible</strong><br>监测网络 · 编织信号 · 让机器变得可读</p>
 
-<p align="center"><img src="https://raw.githubusercontent.com/ImgoodWK/TeXTech-GTNH/master/docs/assets/promo/wiki/data-stream.gif" alt="Looping cyan data-stream decoration" width="78%"></p>
-
 <p align="center">
   <a href="https://github.com/ImgoodWK/TeXTech-GTNH/blob/master/README.md">中文项目首页</a> ·
   <a href="https://github.com/ImgoodWK/TeXTech-GTNH/blob/master/README.en.md">English project home</a> ·

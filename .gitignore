@@ -94,7 +94,6 @@ repo.zip
 # explorations ignored while allowing this narrow, documented subdirectory.
 !/docs/assets/promo/wiki/
 !/docs/assets/promo/wiki/*.png
-!/docs/assets/promo/wiki/*.gif
 !/docs/assets/promo/wiki/README.md
 
 # Private signing credentials and local service credentials.
