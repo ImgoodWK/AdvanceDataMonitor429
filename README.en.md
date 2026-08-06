@@ -27,6 +27,24 @@ TeXTech is a Minecraft 1.7.10 community mod for **GregTech: New Horizons**. It u
 
 The current public candidate is **`v3.0.0-rc.3`**. Alongside validating the 3.0 feature set, split installation artifacts, and upgrade path, it hardens web-search input boundaries and voice-model archive extraction and updates the optional AstrBot dependency set; stable users can remain on **`v2.0.0`**, which continues to carry the Latest stable marker during the RC period.
 
+<p align="center">
+  <a href="docs/en/README.md"><img src="docs/assets/brand/textech-logo-512.png" alt="TeXTech logo" width="112"></a>
+</p>
+
+<p align="center">
+  <strong>An observable, weaveable, conversational, mobile-ready endgame toolchain</strong><br>
+  Start with the visual tour, then jump to the guide that matches your role.
+</p>
+
+<table>
+  <tr>
+    <td width="25%" valign="top"><strong>👁 See the data</strong><br><sub>Monitors, AE2, and WebAE charts</sub></td>
+    <td width="25%" valign="top"><strong>🧵 Weave matter</strong><br><sub>Data dust, forms, fluids, and essentia</sub></td>
+    <td width="25%" valign="top"><strong>💬 Automate by dialogue</strong><br><sub>AI assistant, Planner, and optional voice</sub></td>
+    <td width="25%" valign="top"><strong>✦ Legend and experience</strong><br><sub>Grapples, Dimensional Pockets, and lore</sub></td>
+  </tr>
+</table>
+
 ## Version and compatibility at a glance
 
 | Item | Current contract |
@@ -66,19 +84,75 @@ See the [English compatibility guide](docs/en/developer/gtnh-version-compatibili
 - Dimensional Pockets provide player-bound persistent personal storage.
 - Super Orange and Empyrean Holy Judgment preserve a distinctive legendary streak alongside TeXTech's engineering systems.
 
+## Visual signal cards
+
+These cards recompose repository-owned block/item textures with sanitized WebAE demo surfaces into a lightweight visual language. They orient the reader; they do not replace in-game captures or the canonical feature documentation.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-monitor-640x360.png" alt="Advance Data Monitor and WebAE dashboard visual card" width="100%"><br>
+      <strong>See the data · 看见数据</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-weave-640x360.png" alt="Data weaving, network links, and AE2 texture visual card" width="100%"><br>
+      <strong>Weave matter · 编织物质</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-assistant-640x360.png" alt="AI assistant, diagnostics, and crafting-link visual card" width="100%"><br>
+      <strong>Automate by dialogue · 对话自动化</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-journey-640x360.png" alt="Grapple nodes, topology, and progression visual card" width="100%"><br>
+      <strong>Legend and experience · 传奇与体验</strong>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><img src="docs/assets/promo/wiki/data-stream.gif" alt="Looping cyan data-stream decoration" width="82%"></p>
+
 ## WebAE gallery
 
-These five images come from the real React frontend using local demonstration API data. They contain **no token, API key, QQ secret, player UUID, public address, or player-private data**. This release does not fabricate in-game screenshots; sanitized in-game captures remain an RC follow-up.
+These five images come from the real React frontend using local demonstration API data. They contain **no token, API key, QQ secret, player UUID, public address, or player-private data**. Click an image to view its original size. This release does not fabricate in-game screenshots; sanitized in-game captures remain an RC follow-up.
 
-| Custom dashboard | AE storage browser |
-|---|---|
-| ![WebAE custom dashboard](docs/assets/webae/dashboard.png) | ![WebAE storage browser](docs/assets/webae/storage.png) |
-
-| Pattern workbench | Network topology |
-|---|---|
-| ![WebAE pattern workbench](docs/assets/webae/patterns.png) | ![WebAE network topology](docs/assets/webae/topology.png) |
-
-![WebAE server diagnostics](docs/assets/webae/diagnostics.png)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Custom dashboard · See the data</strong><br>
+      <a href="docs/assets/webae/dashboard.png"><img src="docs/assets/webae/dashboard.png" alt="WebAE custom dashboard demo" width="100%"></a><br>
+      <sub>Put storage, CPU, and alerts on one readable control surface.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <strong>AE storage browser · Track matter</strong><br>
+      <a href="docs/assets/webae/storage.png"><img src="docs/assets/webae/storage.png" alt="WebAE AE storage browser demo" width="100%"></a><br>
+      <sub>Inspect items and fluids from a browser or mobile view.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Pattern workbench · Orchestrate crafting</strong><br>
+      <a href="docs/assets/webae/patterns.png"><img src="docs/assets/webae/patterns.png" alt="WebAE pattern workbench demo" width="100%"></a><br>
+      <sub>Review patterns, materials, and crafting readiness.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <strong>Network topology · Understand the links</strong><br>
+      <a href="docs/assets/webae/topology.png"><img src="docs/assets/webae/topology.png" alt="WebAE network topology demo" width="100%"></a><br>
+      <sub>Use topology to locate nodes, links, and network boundaries.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Server diagnostics · Guard the boundary</strong><br>
+      <a href="docs/assets/webae/diagnostics.png"><img src="docs/assets/webae/diagnostics.png" alt="WebAE server diagnostics demo" width="100%"></a>
+    </td>
+    <td width="50%" valign="middle">
+      <strong>Keep exploring</strong><br>
+      The gallery uses local demo data; the <a href="docs/en/webae/user-guide.md">WebAE User Guide</a> remains authoritative for behavior and security boundaries.
+    </td>
+  </tr>
+</table>
 
 WebAE also includes recipe search, crafting orders, GT machines, power/steam, fluids and essentia, quest-book integration, link scanning, planner, alerts, Spark profiling, chat/player information, AI assistant, QQ Bot gateway, screenshot sharing, and PWA/mobile layouts. The [WebAE User Guide](docs/en/webae/user-guide.md) is the behavior authority.
 

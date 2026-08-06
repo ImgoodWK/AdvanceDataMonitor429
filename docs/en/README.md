@@ -6,6 +6,81 @@
 
 TeXTech `v3.0.0-rc.3` targets GTNH `2.9.0-beta-2+`. Releases provide the required core mod JAR, optional offline-voice JAR, and optional WebAE ZIP separately. To use WebAE, extract its ZIP at the server instance root and verify `TeXTech/WebAE/ui/index.html`; users who do not need WebAE only download the core JAR.
 
+## Visual tour
+
+<p align="center">
+  <img src="../assets/brand/textech-logo-512.png" alt="TeXTech logo" width="112">
+</p>
+
+<p align="center">
+  <img src="../assets/promo/wiki/wiki-hero-1600x420.png" alt="TeXTech industrial data-weave cover" width="100%">
+</p>
+
+<p align="center"><strong>See the signal first, then choose a documentation route</strong><br>先看信号，再选择与你角色匹配的手册。</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-monitor-640x360.png" alt="Advance Data Monitor and WebAE dashboard card" width="100%"><br>
+      <strong>See the data · 看见数据</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-weave-640x360.png" alt="Data weaving and AE2 link card" width="100%"><br>
+      <strong>Weave matter · 编织物质</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-assistant-640x360.png" alt="AI assistant and diagnostics card" width="100%"><br>
+      <strong>Automate by dialogue · 对话自动化</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-journey-640x360.png" alt="Grapple nodes and topology route card" width="100%"><br>
+      <strong>Legend and experience · 传奇与体验</strong>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><img src="../assets/promo/wiki/data-stream.gif" alt="Looping cyan data-stream decoration" width="82%"></p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/dashboard.png"><img src="../assets/webae/dashboard.png" alt="WebAE custom dashboard demo" width="100%"></a><br>
+      <strong>Dashboard · See the data</strong><br>
+      <sub>Build a readable global view from storage, CPU history, and alerts.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/storage.png"><img src="../assets/webae/storage.png" alt="WebAE AE storage browser demo" width="100%"></a><br>
+      <strong>Storage browser · Track matter</strong><br>
+      <sub>Inspect items and fluids in an AE2 network from a browser or mobile view.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/patterns.png"><img src="../assets/webae/patterns.png" alt="WebAE pattern workbench demo" width="100%"></a><br>
+      <strong>Pattern workbench · Orchestrate crafting</strong><br>
+      <sub>Review patterns, materials, and crafting readiness before reading the player guide.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/topology.png"><img src="../assets/webae/topology.png" alt="WebAE network topology demo" width="100%"></a><br>
+      <strong>Network topology · Understand the links</strong><br>
+      <sub>Trace nodes, links, and boundaries, then continue with the WebAE-specific docs.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/diagnostics.png"><img src="../assets/webae/diagnostics.png" alt="WebAE server diagnostics demo" width="100%"></a><br>
+      <strong>Server diagnostics · Guard the boundary</strong>
+    </td>
+    <td width="50%" valign="middle">
+      These images come from the repository's WebAE React frontend and local demo API data, not in-game captures. The <a href="webae/user-guide.md">WebAE User Guide</a> remains authoritative for behavior and security boundaries.
+    </td>
+  </tr>
+</table>
+
+Start with the visual tour, then choose a documentation path by audience. For repository context, the installation matrix, and build commands, return to the [project home](../../README.en.md).
+
 ---
 
 ## Documentation layers

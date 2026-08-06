@@ -86,9 +86,16 @@ repo.zip
 /-w
 /list.txt
 
-# Local visual exploration. Only approved assets under docs/assets/brand/ and
-# src/main/resources/assets/textech/textures/promo/ are publication sources.
-/docs/assets/promo/
+# Local visual exploration. Only approved assets under docs/assets/brand/,
+# docs/assets/promo/wiki/, and src/main/resources/assets/textech/textures/promo/
+# are publication sources.
+/docs/assets/promo/*
+# The Wiki/README visual pack is reviewed publication media; keep other promo
+# explorations ignored while allowing this narrow, documented subdirectory.
+!/docs/assets/promo/wiki/
+!/docs/assets/promo/wiki/*.png
+!/docs/assets/promo/wiki/*.gif
+!/docs/assets/promo/wiki/README.md
 
 # Private signing credentials and local service credentials.
 *.pem

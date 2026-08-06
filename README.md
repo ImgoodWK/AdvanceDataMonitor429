@@ -27,6 +27,24 @@ TeXTech 是面向 **GregTech: New Horizons** 的 Minecraft 1.7.10 社区模组�
 
 当前公开候选版本是 **`v3.0.0-rc.3`**。它在验证 3.0 功能、安装拆分和升级路径的同时，加入 Web 搜索输入边界、语音模型归档路径约束与可选 AstrBot 依赖安全更新；稳定用户可继续使用仍标记为 Latest stable 的 **`v2.0.0`**。
 
+<p align="center">
+  <a href="docs/zh/README.md"><img src="docs/assets/brand/textech-logo-512.png" alt="TeXTech 铽丝科技标志" width="112"></a>
+</p>
+
+<p align="center">
+  <strong>一套可观测、可编织、可对话、可移动的终局工具链</strong><br>
+  从机房墙面到 WebAE 移动端，先看画面，再进入对应手册。
+</p>
+
+<table>
+  <tr>
+    <td width="25%" valign="top"><strong>👁 看见数据</strong><br><sub>监视器、AE2 与 WebAE 图表</sub></td>
+    <td width="25%" valign="top"><strong>🧵 编织物质</strong><br><sub>数据织尘、织形与流体/源质</sub></td>
+    <td width="25%" valign="top"><strong>💬 对话自动化</strong><br><sub>AI 助手、计划器与可选语音</sub></td>
+    <td width="25%" valign="top"><strong>✦ 传奇与体验</strong><br><sub>挂索、次元口袋与特色内容</sub></td>
+  </tr>
+</table>
+
 ## 版本与兼容速览
 
 | 项目 | 当前约定 |
@@ -66,19 +84,75 @@ TeXTech 是面向 **GregTech: New Horizons** 的 Minecraft 1.7.10 社区模组�
 - 次元口袋提供与玩家绑定的持久化私人存储。
 - 超能砂糖桔、至高天圣裁等内容保留了 TeXTech 在严肃工程系统之外的传奇感与作者个性。
 
+## 视觉信号卡片
+
+这组卡片把仓库中的真实方块/物品纹理与脱敏 WebAE 演示界面重新编排成一套轻量宣传素材；它们用于帮助读者建立视觉方向，不替代游戏内实机截图或正式功能说明。
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-monitor-640x360.png" alt="高级数据监视器与 WebAE 仪表盘视觉卡片" width="100%"><br>
+      <strong>看见数据 · See the data</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-weave-640x360.png" alt="数据编织、网络链接与 AE2 纹理视觉卡片" width="100%"><br>
+      <strong>编织物质 · Weave matter</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-assistant-640x360.png" alt="AI 助手、诊断与合成链接视觉卡片" width="100%"><br>
+      <strong>对话自动化 · Automate by dialogue</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/promo/wiki/feature-journey-640x360.png" alt="挂索节点、拓扑与进阶路线视觉卡片" width="100%"><br>
+      <strong>传奇与体验 · Legend and experience</strong>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><img src="docs/assets/promo/wiki/data-stream.gif" alt="循环播放的青色数据流装饰" width="82%"></p>
+
 ## WebAE 功能画廊
 
-以下 5 张图片来自仓库中的真实 React 前端与本地演示 API 数据，**不包含 Token、API Key、QQ secret、玩家 UUID、公网地址或玩家隐私**。本次发布不生成或伪装游戏内实机截图；RC 观察期会补充经过脱敏的真实游戏内截图。
+以下 5 张图片来自仓库中的真实 React 前端与本地演示 API 数据，**不包含 Token、API Key、QQ secret、玩家 UUID、公网地址或玩家隐私**。点击图片可查看原尺寸。本次发布不生成或伪装游戏内实机截图；RC 观察期会补充经过脱敏的真实游戏内截图。
 
-| 自定义仪表盘 | AE 存储浏览 |
-|---|---|
-| ![WebAE 自定义仪表盘](docs/assets/webae/dashboard.png) | ![WebAE 存储浏览](docs/assets/webae/storage.png) |
-
-| 样板工作台 | 网络拓扑 |
-|---|---|
-| ![WebAE 样板工作台](docs/assets/webae/patterns.png) | ![WebAE 网络拓扑](docs/assets/webae/topology.png) |
-
-![WebAE 服务诊断](docs/assets/webae/diagnostics.png)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>自定义仪表盘 · 看见数据</strong><br>
+      <a href="docs/assets/webae/dashboard.png"><img src="docs/assets/webae/dashboard.png" alt="WebAE 自定义仪表盘演示" width="100%"></a><br>
+      <sub>把存储、CPU 与告警放到同一块可读的控制面板。</sub>
+    </td>
+    <td width="50%" valign="top">
+      <strong>AE 存储浏览 · 追踪物质</strong><br>
+      <a href="docs/assets/webae/storage.png"><img src="docs/assets/webae/storage.png" alt="WebAE AE 存储浏览演示" width="100%"></a><br>
+      <sub>从浏览器或移动端检查网络中的物品与流体。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>样板工作台 · 编排合成</strong><br>
+      <a href="docs/assets/webae/patterns.png"><img src="docs/assets/webae/patterns.png" alt="WebAE 样板工作台演示" width="100%"></a><br>
+      <sub>查看样板、材料与合成准备状态。</sub>
+    </td>
+    <td width="50%" valign="top">
+      <strong>网络拓扑 · 理解连接</strong><br>
+      <a href="docs/assets/webae/topology.png"><img src="docs/assets/webae/topology.png" alt="WebAE 网络拓扑演示" width="100%"></a><br>
+      <sub>用拓扑视图定位节点、链路与网络边界。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>服务诊断 · 守住边界</strong><br>
+      <a href="docs/assets/webae/diagnostics.png"><img src="docs/assets/webae/diagnostics.png" alt="WebAE 服务诊断演示" width="100%"></a>
+    </td>
+    <td width="50%" valign="middle">
+      <strong>继续探索</strong><br>
+      画廊展示的是本地演示数据；功能行为与安全边界请以 <a href="docs/zh/webae/用户手册.md">WebAE 用户手册</a> 为准。
+    </td>
+  </tr>
+</table>
 
 除此之外，WebAE 还包括配方搜索、合成下单、GT 机器、电力/蒸汽、流体与源质、任务书、链接扫描、计划器、告警、Spark 性能分析、聊天/玩家信息、AI 助手、QQ Bot 网关、截图分享和 PWA/移动布局。当前行为以 [WebAE 用户手册](docs/zh/webae/用户手册.md)为准。
 

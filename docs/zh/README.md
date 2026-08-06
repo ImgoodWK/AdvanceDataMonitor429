@@ -6,6 +6,81 @@ English docs: [docs/en/README.md](../en/README.md) · 总索引：[docs/README.m
 
 TeXTech `v3.0.0-rc.3` 面向 GTNH `2.9.0-beta-2+`。Release 的主模组 JAR、可选离线语音 JAR 与可选 WebAE ZIP 分开发布；使用 WebAE 时把 ZIP 解压到服务端实例根目录，并确认 `TeXTech/WebAE/ui/index.html` 存在。不使用 WebAE 时只下载主 JAR 即可。
 
+## 视觉导览
+
+<p align="center">
+  <img src="../assets/brand/textech-logo-512.png" alt="TeXTech 铽丝科技标志" width="112">
+</p>
+
+<p align="center">
+  <img src="../assets/promo/wiki/wiki-hero-1600x420.png" alt="TeXTech 工业数据编织视觉封面" width="100%">
+</p>
+
+<p align="center"><strong>先看信号，再选择文档路线</strong><br>See the signal first, then choose the guide that matches your role.</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-monitor-640x360.png" alt="高级数据监视器与 WebAE 仪表盘卡片" width="100%"><br>
+      <strong>看见数据 · See the data</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-weave-640x360.png" alt="数据编织与 AE2 链接卡片" width="100%"><br>
+      <strong>编织物质 · Weave matter</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-assistant-640x360.png" alt="AI 助手与诊断卡片" width="100%"><br>
+      <strong>对话自动化 · Automate by dialogue</strong>
+    </td>
+    <td width="50%" valign="top">
+      <img src="../assets/promo/wiki/feature-journey-640x360.png" alt="挂索节点与拓扑路线卡片" width="100%"><br>
+      <strong>传奇与体验 · Legend and experience</strong>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><img src="../assets/promo/wiki/data-stream.gif" alt="循环青色数据流装饰" width="82%"></p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/dashboard.png"><img src="../assets/webae/dashboard.png" alt="WebAE 自定义仪表盘演示" width="100%"></a><br>
+      <strong>仪表盘 · 看见数据</strong><br>
+      <sub>从存储、CPU 到告警，先在一块清晰的面板上建立全局视图。</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/storage.png"><img src="../assets/webae/storage.png" alt="WebAE AE 存储浏览演示" width="100%"></a><br>
+      <strong>存储浏览 · 追踪物质</strong><br>
+      <sub>用浏览器或移动端检查 AE2 网络中的物品与流体。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/patterns.png"><img src="../assets/webae/patterns.png" alt="WebAE 样板工作台演示" width="100%"></a><br>
+      <strong>样板工作台 · 编排合成</strong><br>
+      <sub>查看样板、材料与合成准备状态，再进入玩家手册学习配置。</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/topology.png"><img src="../assets/webae/topology.png" alt="WebAE 网络拓扑演示" width="100%"></a><br>
+      <strong>网络拓扑 · 理解连接</strong><br>
+      <sub>通过节点、链路与边界关系定位问题，随后查阅 WebAE 专项文档。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="../assets/webae/diagnostics.png"><img src="../assets/webae/diagnostics.png" alt="WebAE 服务诊断演示" width="100%"></a><br>
+      <strong>服务诊断 · 守住边界</strong>
+    </td>
+    <td width="50%" valign="middle">
+      图片来自仓库中的 WebAE React 前端与本地演示 API 数据，不是游戏内实机截图；功能和安全约束以 <a href="webae/用户手册.md">WebAE 用户手册</a> 为准。
+    </td>
+  </tr>
+</table>
+
+先看画面，再按受众选择文档；若需要完整的仓库背景、安装矩阵与构建命令，可回到[项目首页](../../README.md)。
+
 ---
 
 ## 文档层级
