@@ -1,7 +1,7 @@
 # TeXTech Developer Technical Documentation
 
 > Audience: developers · Last synced: 2026-07<br>
-> Player guide: [Player Guide](../player/player-guide.md) · AI details: [AI Assistant Development Guide](../ai-assistant/development-guide.md) · Build: [Gradle Workflow](Gradle-workflow.md)
+> Player guide: [Player Guide](../player/player-guide.md) · AI details: [AI Assistant Development Guide](../ai-assistant/development-guide.md) · Build: [Gradle Workflow](gradle-workflow.md)
 
 ---
 
