@@ -15,7 +15,9 @@
 # Downstream search/image plugins must use this metadata when they require tt
 # after message_str has already been stripped.
 #
-# Ordinary HTTP(S) links, QQ Share/JSON/XML cards, and explicit Forward/Node
-# messages are reserved for AstrBot link summarisation even when card text
-# contains a WebAE keyword. Exact `webae ...` and configured slash commands
-# such as `/tps ...` remain WebAE-owned; non-link routing is unchanged.
+# Since 1.2.1, ordinary HTTP(S) links, QQ Share/JSON/XML cards, explicit mobile
+# `app`/`appmessage`/`ark`/`miniapp` rich cards, and Forward/Node messages are
+# reserved for AstrBot link summarisation even when card text contains a WebAE
+# keyword. Only bounded semantic navigation fields are inspected. Exact
+# `webae ...` and configured slash commands such as `/tps ...` remain
+# WebAE-owned; non-link routing is unchanged.

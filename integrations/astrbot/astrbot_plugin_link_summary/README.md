@@ -1,6 +1,6 @@
 # Link Summary
 
-`link_summary` 自动总结 QQ 消息中的公开网页链接和明确的合并转发内容。1.0.12 正确区分 QQ Official `message_type=103` 引用回复与真正的 Forward/Node/Nodes，支持 ID-only Reply 的有界 `get_msg` 回取、Reply 内真实合并转发、B 站 QQ 小程序语义链接、可见文本中的裸 `BV...` / `av...`，并为无状态公开 GET 增加一次仅限瞬态故障的短重试。1.0.11 的知乎专用退避、1.0.10 的普通网页/知乎 provider 去重回退、1.0.9 的 LLM 提炼与防照抄质量检查、1.0.8 的纯图片合并转发视觉链和 1.0.7 的“必回”契约保持不变。普通聊天、普通引用图片、普通单图/附件、未知结构、显式 WebAE 路由和进入插件前已经停止的事件仍保持原行为；群里不会发送“暂不支持该链接类型”等错误提示。
+`link_summary` 自动总结 QQ 消息中的公开网页链接和明确的合并转发内容。1.0.13 补齐手机端 QQ 暴露为 `app` / `appmessage` 等明确富卡片组件的 B 站小程序分享，并把文字摘要与已校验封面放进同一条 AstrBot 消息链。1.0.12 的引用/转发语义修正、B 站语义链接与裸 `BV...` / `av...` 识别、无状态公开 GET 瞬态短重试，以及更早版本的知乎退避、provider 回退、LLM 质量门禁、转发视觉链和“必回”契约保持不变。普通聊天、普通引用图片、普通单图/附件、未知结构、显式 WebAE 路由和进入插件前已经停止的事件仍保持原行为；群里不会发送“暂不支持该链接类型”等错误提示。
 
 ## 通用网页
 
@@ -20,17 +20,17 @@
 
 ## B 站视频
 
-支持 `www.bilibili.com/video/...`、`m.bilibili.com/video/...`、`b23.tv` 短链，以及 Plain/Reply/Forward 可见文本中的独立 `BV...`、`av...`。QQ 小程序/JSON/XML 分享只读取 `meta.detail_1.qqdocurl`、`meta.news.jumpUrl` 等语义导航字段；`preview`、`icon`、`cover`、头像和未知媒体字段不会成为目标链接。短链关闭自动跳转并逐跳校验，只允许留在精确的 B 站短链/视频域。成功时输出：
+支持 `www.bilibili.com/video/...`、`m.bilibili.com/video/...`、`b23.tv` 短链，以及 Plain/Reply/Forward 可见文本中的独立 `BV...`、`av...`。手机端 QQ 的 `app` / `appmessage` 和适配器明确标记的 `ark` / `miniapp` 富卡片与既有 JSON/XML 小程序分享共用受限解析，只读取 `meta.detail_1.qqdocurl`、`meta.news.jumpUrl` 等语义导航字段；`preview`、`icon`、`cover`、头像、附件和未知媒体字段不会成为目标链接。短链关闭自动跳转并逐跳校验，只允许留在精确的 B 站短链/视频域。成功时输出：
 
 - 标题、UP 主、简介、播放量、评论数、点赞数、发布时间和时长；
-- 经 MIME、大小和文件签名校验后下载并发送的 JPEG/PNG/WebP 封面字节；
+- 经 MIME、大小和文件签名校验后下载的 JPEG/PNG/WebP 封面字节；文字摘要与封面以一条 `Plain + Image.fromBytes()` AstrBot 消息链发送；
 - 有界公开热评的匿名归纳“网友怎么说”。
 
-热评只把正文和点赞数送入模型，不读取或保存评论昵称、UID、头像。评论接口失败只降级热评部分，不影响已取得的视频元数据。封面下载失败只省略图片，不影响文字摘要。
+热评只把正文和点赞数送入模型，不读取或保存评论昵称、UID、头像。评论接口失败只降级热评部分，不影响已取得的视频元数据。封面下载或消息链构造失败时只发送文字摘要；远程 B 站 CDN URL 不会交给 OneBot/NapCat 二次下载。
 
 ## QQ 消息与合并转发
 
-链接提取支持 Plain/Text、Share、QQ JSON/XML 分享卡片、Reply、Node/Nodes、OneBot `get_msg` / `get_forward_msg` 和 QQ Official 明确暴露的引用或嵌套消息结构。QQ Official 的 `message_type=103` 明确是引用回复，不是合并转发：优先读取 `Reply.chain` / `message_str` / `text` 和平台已经暴露的引用正文；只有 Reply 仍只有目标 ID 时，才在最多四次回取的总上限内调用 `get_msg`，失败只记录匿名异常类型。如果回取结果本身含有真实 Forward，再使用 `get_forward_msg` 展开。只有显式 Forward/Node/Nodes 才会进入合并转发文字/图片视觉链。只处理第一条用户可见导航链接；图片 CDN、附件、文件、语音、视频、头像、封面和预览字段不会被误当作网页链接。
+链接提取支持 Plain/Text、Share、QQ JSON/XML 与明确的 `app` / `appmessage` / `ark` / `miniapp` 分享卡片、Reply、Node/Nodes、OneBot `get_msg` / `get_forward_msg` 和 QQ Official 明确暴露的引用或嵌套消息结构。QQ Official 的 `message_type=103` 明确是引用回复，不是合并转发：优先读取 `Reply.chain` / `message_str` / `text` 和平台已经暴露的引用正文；只有 Reply 仍只有目标 ID 时，才在最多四次回取的总上限内调用 `get_msg`，失败只记录匿名异常类型。如果回取结果本身含有真实 Forward，再使用 `get_forward_msg` 展开。只有显式 Forward/Node/Nodes 才会进入合并转发文字/图片视觉链。只处理第一条用户可见导航链接；图片 CDN、附件、文件、语音、视频、头像、封面和预览字段不会被误当作网页链接。
 
 明确的合并转发即使没有链接也会总结：
 
@@ -64,6 +64,7 @@
 
 ## 版本
 
+- 1.0.13：识别手机端 QQ 将 B 站分享暴露为 `app` / `appmessage` 的小程序富卡片，并兼容适配器明确标记的 `ark` / `miniapp` 载体；所有载体仍只读取语义导航字段，排除预览、封面、图标、附件和未知裸 token。B 站文字摘要与已验证封面改为同一条 `Plain + Image.fromBytes()` 消息链；封面下载或链构造失败仍只发文字。
 - 1.0.12：修正把 QQ Official `message_type=103` 引用误判为合并转发的问题；支持结构化 Reply 与 QQ Official ID-only 引用的有界 `get_msg` 回取、引用中真实 Forward 的继续展开、QQ/B 站小程序语义链接、Plain/Reply/Forward 可见文本中的裸 BV/av；公开 GET 仅在传输错误、408/425/429/5xx 时使用全新无状态客户端短重试一次，永久状态、MIME/体积/安全校验失败不重试。真正 Forward/Node/Nodes 的文字与显式图片视觉链保持不变。
 - 1.0.11：知乎精确公开 JSON GET 在 FetchError 后最多重试两次，重试前依次等待 0.35 秒、1.0 秒；不在首次请求前或第三次失败后等待。1.0.10 的普通网页/知乎群会话 provider 选择、调用或空响应失败时的去重默认 provider 回退保持不变，额外切换不用于 B 站或合并转发，且不扫描任意 provider。
 - 1.0.9：网页和知乎摘要只接受 LLM 提炼结果；provider 失败/空响应不再回退正文摘录，近似照抄会严格重试一次并在再次失败时返回中性兜底。

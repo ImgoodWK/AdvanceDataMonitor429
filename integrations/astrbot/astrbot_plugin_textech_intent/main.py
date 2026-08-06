@@ -39,7 +39,19 @@ WEBAE_COMMAND_VERBS = {
 # Search WebAE keywords only in prose outside URLs.  In particular, the
 # protocol spelling ``https`` contains the keyword ``tps``.
 _URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
-_CARD_COMPONENT_TYPES = {"json", "xml"}
+_RICH_CARD_COMPONENT_TYPES = {
+    "app",
+    "appmessage",
+    "app_message",
+    "ark",
+    "miniapp",
+    "mini-program",
+    "miniprogram",
+    "richcard",
+    "rich_card",
+}
+_CARD_COMPONENT_TYPES = {"json", "xml"} | _RICH_CARD_COMPONENT_TYPES
+_CARD_COMPONENT_DATA_FIELDS = ("data", "content", "json", "xml", "payload", "ark")
 _FORWARD_COMPONENT_TYPES = {"forward", "node", "nodes"}
 _MAX_ROUTE_COMPONENTS = 32
 _MAX_ROUTE_CARD_DEPTH = 6
@@ -118,9 +130,13 @@ def _text_outside_urls(value: str) -> str:
 
 def _component_type(value: object) -> str:
     if isinstance(value, Mapping):
-        raw = value.get("type") or value.get("kind") or ""
+        raw = value.get("type") or value.get("kind") or value.get("element_type") or ""
     else:
-        raw = getattr(value, "type", None) or getattr(value, "kind", None)
+        raw = (
+            getattr(value, "type", None)
+            or getattr(value, "kind", None)
+            or getattr(value, "element_type", None)
+        )
         if raw is None:
             raw = type(value).__name__
     enum_value = getattr(raw, "value", None)
@@ -232,6 +248,23 @@ def _card_has_navigation(value: object) -> bool:
     return walk(value)
 
 
+def _card_component_has_navigation(value: object) -> bool:
+    """Inspect only explicit rich-card payload surfaces."""
+
+    data = _component_value(value, "data")
+    candidates: list[object] = []
+    if isinstance(value, Mapping):
+        candidates.append(value)
+    for source in (value, data):
+        if source is None:
+            continue
+        for key in _CARD_COMPONENT_DATA_FIELDS:
+            candidate = _component_value(source, key)
+            if candidate is not None:
+                candidates.append(candidate)
+    return any(_card_has_navigation(candidate) for candidate in candidates)
+
+
 def _top_level_components(value: object) -> Iterable[object]:
     if isinstance(value, Mapping):
         yield value
@@ -271,10 +304,7 @@ def _component_is_link_or_forward(value: object) -> bool:
             for candidate in candidates
         )
     if component_type in _CARD_COMPONENT_TYPES:
-        data = _component_value(value, "data")
-        if data is None:
-            data = _component_value(value, "content")
-        return _card_has_navigation(data)
+        return _card_component_has_navigation(value)
     message_type = str(_component_value(value, "message_type", "")).strip().lower()
     raw_type = str(_component_value(value, "type", "")).strip().lower()
     if message_type in {"103", "forward", "node", "nodes"} or raw_type in (
@@ -468,7 +498,7 @@ def classify(
     "textech_intent",
     "TeXTech",
     "TeXTech/WebAE shared-bot intent handoff",
-    "1.2.0",
+    "1.2.1",
 )
 class TextechIntentPlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):

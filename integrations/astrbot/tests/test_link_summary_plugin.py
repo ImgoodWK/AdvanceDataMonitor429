@@ -263,7 +263,7 @@ class LinkSummaryHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("[link_summary] claimed kind=page", self.module._test_logger.infos)
         self.assertIn("[link_summary] completed kind=page", self.module._test_logger.infos)
 
-    async def test_cover_is_downloaded_and_sent_as_bytes_after_summary(self):
+    async def test_cover_and_summary_are_sent_in_one_message_chain(self):
         async def summarize(_event, _url):
             return self.module._ResponsePayload(
                 "摘要文字",
@@ -277,11 +277,11 @@ class LinkSummaryHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.plugin._download_bilibili_cover = download
         event = Event("https://www.bilibili.com/video/BV187GV6HE65")
         results = await _collect(self.plugin.on_message(event))
-        self.assertEqual(len(results), 2)
-        self.assertEqual(results[0], ("text", "摘要文字"))
-        self.assertEqual(results[1][0], "chain")
-        self.assertEqual(len(results[1][1]), 1)
-        self.assertEqual(results[1][1][0].data, b"fake-jpeg")
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][0], "chain")
+        self.assertEqual(len(results[0][1]), 2)
+        self.assertEqual(results[0][1][0].text, "摘要文字")
+        self.assertEqual(results[0][1][1].data, b"fake-jpeg")
         self.assertEqual(event.image_result_calls, [])
 
     async def test_cover_download_failure_keeps_text_without_remote_url_fallback(self):
@@ -296,6 +296,26 @@ class LinkSummaryHandlerTests(unittest.IsolatedAsyncioTestCase):
 
         self.plugin._summarize_url = summarize
         self.plugin._download_bilibili_cover = download
+        event = Event("https://www.bilibili.com/video/BV187GV6HE65")
+        self.assertEqual(
+            await _collect(self.plugin.on_message(event)),
+            [("text", "摘要文字")],
+        )
+        self.assertEqual(event.image_result_calls, [])
+
+    async def test_cover_chain_construction_failure_keeps_text(self):
+        async def summarize(_event, _url):
+            return self.module._ResponsePayload(
+                "摘要文字",
+                "https://i0.hdslb.com/bfs/archive/a.jpg",
+            )
+
+        async def download(_url):
+            return b"fake-jpeg"
+
+        self.plugin._summarize_url = summarize
+        self.plugin._download_bilibili_cover = download
+        self.plugin._summary_with_cover_result = lambda _event, _text, _cover: None
         event = Event("https://www.bilibili.com/video/BV187GV6HE65")
         self.assertEqual(
             await _collect(self.plugin.on_message(event)),
@@ -542,6 +562,67 @@ class LinkSummaryHandlerTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(await self.plugin._extract_event_urls(opaque), [])
 
+    async def test_ark_miniapp_component_is_treated_as_navigation_card(self):
+        """QQ mobile shares may surface an Ark card instead of Json."""
+
+        target = "https://b23.tv/example"
+        payload = {
+            "meta": {"detail_1": {"qqdocurl": target}},
+            "preview": "https://qq.ugcimg.cn/preview.jpg",
+        }
+        for component in (
+            {"type": "ark", "data": {"payload": json.dumps(payload)}},
+            {"type": "miniapp", "ark": {"kv": [{"key": "#METALINK#", "value": target}]}},
+        ):
+            event = Event("[miniapp]", messages=[component])
+            with self.subTest(component=component["type"]):
+                self.assertEqual(await self.plugin._request_hint(event), "bilibili")
+                self.assertEqual(await self.plugin._extract_event_urls(event), [target])
+
+    async def test_mobile_bilibili_app_components_use_semantic_navigation(self):
+        """QQ mobile shares commonly arrive as OneBot app/appmessage cards."""
+
+        target = "https://b23.tv/example"
+        payload = {
+            "app": "com.tencent.miniapp_01",
+            "meta": {"detail_1": {"qqdocurl": target}},
+            "preview": "https://qq.ugcimg.cn/preview.jpg",
+        }
+
+        class AppCard:
+            type = "App"
+
+            def __init__(self, data):
+                self.data = data
+
+        serialized = json.dumps(payload)
+        for component in (
+            {"type": "app", "data": {"data": serialized}},
+            {"type": "appmessage", "data": {"data": serialized}},
+            AppCard({"data": serialized}),
+        ):
+            event = Event("[QQ小程序]", messages=[component])
+            with self.subTest(component=type(component).__name__):
+                self.assertEqual(await self.plugin._request_hint(event), "bilibili")
+                self.assertEqual(await self.plugin._extract_event_urls(event), [target])
+
+    async def test_mobile_app_cards_ignore_preview_and_unknown_media_fields(self):
+        payload = {
+            "preview": "https://qq.ugcimg.cn/preview.jpg",
+            "cover": "https://i0.hdslb.com/bfs/archive/cover.jpg",
+            "icon": "https://qq.ugcimg.cn/icon.jpg",
+            "attachment": {"url": "https://cdn.example/file.jpg"},
+            "opaque": "BV1xx411c7mD",
+        }
+        for component_type in ("app", "appmessage"):
+            event = Event(
+                "[QQ小程序]",
+                messages=[{"type": component_type, "data": {"data": json.dumps(payload)}}],
+            )
+            with self.subTest(component_type=component_type):
+                self.assertEqual(await self.plugin._request_hint(event), "")
+                self.assertEqual(await self.plugin._extract_event_urls(event), [])
+
     async def test_plain_bilibili_url_short_link_and_bare_ids_are_normalized(self):
         cases = (
             (
@@ -779,6 +860,30 @@ class LinkSummaryHandlerTests(unittest.IsolatedAsyncioTestCase):
             await self.plugin._extract_event_urls(event, max_urls=2),
             [json_target, xml_target],
         )
+
+    async def test_qqofficial_unknown_components_remain_opaque(self):
+        """Unknown adapter components must not manufacture navigation requests."""
+
+        target = "https://unknown.example/should-not-be-fetched"
+        payload = json.dumps({"meta": {"news": {"jumpUrl": target}}})
+        cases = (
+            {"type": "unknown", "json": payload},
+            {"element_type": "unknown", "content": payload},
+            {"type": "unknown", "payload": {"meta": {"news": {"jumpUrl": target}}}},
+            {"type": "unknown", "meta": {"news": {"jumpUrl": target}}},
+        )
+        for component in cases:
+            raw_message = types.SimpleNamespace(
+                raw_data={"message_type": 0, "msg_elements": [component]},
+                msg_elements=[component],
+            )
+            event = Event(
+                "[unknown component]",
+                messages=[{"type": "plain", "data": {"text": "[unknown component]"}}],
+                raw_message=raw_message,
+            )
+            with self.subTest(component=component):
+                self.assertEqual(await self.plugin._extract_event_urls(event), [])
 
     async def test_qqofficial_nested_forward_body_beats_outer_card_navigation(self):
         """A QQ jump page must not hide a real page in a merged forward."""

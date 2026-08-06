@@ -74,6 +74,23 @@ except ImportError:  # AstrBot may load plugins as loose modules.
 
 _SKIP_ROUTE_OWNERS = {"webae"}
 _JSON_COMPONENT_TYPES = {"json", "xml"}
+# Mobile QQ can expose a Bilibili mini-program share as a regular Json
+# component, a OneBot ``app``/``appmessage`` segment, or an adapter-specific
+# rich-card component.  Keep this carrier list explicit: unlike arbitrary
+# unknown components, these bounded payloads are user-visible navigation cards.
+_RICH_CARD_COMPONENT_TYPES = {
+    "app",
+    "appmessage",
+    "app_message",
+    "ark",
+    "miniapp",
+    "mini-program",
+    "miniprogram",
+    "richcard",
+    "rich_card",
+}
+_CARD_COMPONENT_TYPES = _JSON_COMPONENT_TYPES | _RICH_CARD_COMPONENT_TYPES
+_CARD_COMPONENT_DATA_FIELDS = ("data", "content", "json", "xml", "payload", "ark")
 _PLAIN_COMPONENT_TYPES = {"plain", "text"}
 _MEDIA_COMPONENT_TYPES = {
     "audio",
@@ -176,6 +193,10 @@ _QQ_RAW_CONTAINER_ORDER = (
     "content",
     "text",
 )
+# Untyped QQ Official wrappers may expose a card directly at their own root.
+# Limit that fallback to semantic navigation roots instead of recursively
+# flattening transport containers such as ``msg_elements``.
+_QQ_RAW_CARD_ROOT_KEYS = _CARD_NAVIGATION_KEYS | {"meta"}
 _CARD_XML_TAG_RE = re.compile(
     r"<(?P<tag>[A-Za-z_][A-Za-z0-9_.:-]*)\b(?P<attrs>[^<>]{0,8192})>",
     re.IGNORECASE,
@@ -229,6 +250,32 @@ def _component_value(value: Any, key: str, default: Any = None) -> Any:
     if isinstance(value, Mapping):
         return value.get(key, default)
     return getattr(value, key, default)
+
+
+def _card_component_field_values(value: Any, data: Any) -> Iterable[Any]:
+    """Yield only known rich-card payload fields from a component.
+
+    OneBot uses ``app``/``appmessage`` for mobile QQ mini-program cards, while
+    other adapters may retain the serialized card below ``payload`` or ``ark``.
+    The card parser still enforces semantic navigation fields and media-field
+    exclusions; this helper only avoids flattening arbitrary component objects.
+    """
+
+    seen_values: set[int] = set()
+
+    def add(candidate: Any) -> Iterable[Any]:
+        if not _has_structured_components(candidate) or id(candidate) in seen_values:
+            return ()
+        seen_values.add(id(candidate))
+        return (candidate,)
+
+    if isinstance(value, Mapping):
+        yield from add(value)
+    for source in (value, data):
+        if source is None:
+            continue
+        for key in _CARD_COMPONENT_DATA_FIELDS:
+            yield from add(_component_value(source, key))
 
 
 def _message_component_chain(event: AstrMessageEvent) -> Any:
@@ -514,7 +561,7 @@ class _ForwardMaterial:
     "link_summary",
     "TeXTech",
     "自动总结网页链接与合并转发；B 站附带视频信息和热评概览",
-    "1.0.12",
+    "1.0.13",
 )
 class LinkSummaryPlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):
@@ -642,14 +689,15 @@ class LinkSummaryPlugin(Star):
                 url = first_url(_component_value(value, "url"))
                 if not url and isinstance(data, Mapping):
                     url = first_url(data.get("url"))
-            elif component_type in _JSON_COMPONENT_TYPES:
-                url = first_url(data, card=True) if isinstance(data, (str, bytes)) else ""
-                if not url and data is not None:
+            elif component_type in _CARD_COMPONENT_TYPES:
+                for candidate in _card_component_field_values(value, data):
                     try:
-                        card_urls = _card_urls_from_value(data, remaining=1)
+                        card_urls = _card_urls_from_value(candidate, remaining=1)
                     except Exception:
                         card_urls = []
-                    url = card_urls[0] if card_urls else ""
+                    if card_urls:
+                        url = card_urls[0]
+                        break
             if url:
                 return self._summary_kind(url)
 
@@ -1036,9 +1084,10 @@ class LinkSummaryPlugin(Star):
             return ""
 
         def structured_field_values(value: Any, data: Any) -> Iterable[Any]:
-            # JSON/XML components are serialized by some adapters under
-            # ``content``/``json``/``xml`` instead of the canonical ``data``.
-            return component_field_values(value, data, ("data", "content", "json", "xml"))
+            # QQ mobile mini-program cards are serialized by adapters under
+            # several explicit card fields.  Do not inspect arbitrary component
+            # attributes or raw-message metadata here.
+            return _card_component_field_values(value, data)
 
         def mark_forward() -> None:
             if material is not None:
@@ -1145,6 +1194,7 @@ class LinkSummaryPlugin(Star):
                         if payload is not None:
                             await visit(payload, depth=depth + 1, inside_forward=True)
                     return
+
                 if component_type == "node":
                     mark_forward()
                     content = first_not_none(
@@ -1182,7 +1232,7 @@ class LinkSummaryPlugin(Star):
                     ):
                         add_text(candidate)
                     return
-                if component_type in _JSON_COMPONENT_TYPES:
+                if component_type in _CARD_COMPONENT_TYPES:
                     for candidate in structured_field_values(value, data):
                         add_card(candidate)
                         if traversal_exhausted():
@@ -1307,7 +1357,7 @@ class LinkSummaryPlugin(Star):
                 ):
                     add_text(candidate)
                 return
-            if component_type in _JSON_COMPONENT_TYPES:
+            if component_type in _CARD_COMPONENT_TYPES:
                 for candidate in structured_field_values(value, data):
                     add_card(candidate)
                     if traversal_exhausted():
@@ -1424,7 +1474,7 @@ class LinkSummaryPlugin(Star):
                 if any(reply_field_values(element, data)):
                     return True
                 if _component_type(element) in (
-                    _JSON_COMPONENT_TYPES
+                    _CARD_COMPONENT_TYPES
                     | _MEDIA_COMPONENT_TYPES
                     | {"forward", "node", "nodes", "share"}
                 ):
@@ -1541,7 +1591,7 @@ class LinkSummaryPlugin(Star):
                     ):
                         add_text(candidate)
                     return
-                if component_type in _JSON_COMPONENT_TYPES:
+                if component_type in _CARD_COMPONENT_TYPES:
                     for candidate in structured_field_values(value, data):
                         add_card(candidate)
                         if traversal_exhausted():
@@ -1584,6 +1634,14 @@ class LinkSummaryPlugin(Star):
                             await visit(payload, depth=depth + 1, inside_forward=True)
                     return
 
+                # A discriminator supplied by the adapter is a security
+                # boundary.  Explicit unknown component types must not fall
+                # through to the generic raw-container parser, otherwise an
+                # opaque component could manufacture a navigation request via
+                # a nested ``content``/``json`` field.
+                if component_type and not raw_forward_wrapper:
+                    return
+
                 # QQ Official merged forwards can retain an outer card's
                 # platform navigation link alongside the actual forwarded
                 # message body.  The body is the user-visible content to
@@ -1620,11 +1678,17 @@ class LinkSummaryPlugin(Star):
                             )
                         if traversal_exhausted():
                             return
-                # Semantic navigation fields may be nested anywhere in a card.
-                # _card_urls_from_value excludes attachments and all known media
-                # fields before considering a URL.  It is deliberately the
-                # fallback after explicit QQ body fields above.
-                add_card(value)
+                # An untyped QQ wrapper may retain semantic navigation fields
+                # at its own root.  Do not pass the full transport object to
+                # the card parser: nested ``msg_elements`` can contain explicit
+                # unknown components that must remain opaque.
+                card_surface = {
+                    key: child
+                    for key, child in value.items()
+                    if _normalized_card_key(key) in _QQ_RAW_CARD_ROOT_KEYS
+                }
+                if card_surface:
+                    add_card(card_surface)
                 quote_id = qq_raw_quote_id(value)
                 if quote_id and not qq_raw_quote_has_embedded_content(value):
                     await fetch_reply_payload(
@@ -2263,13 +2327,13 @@ class LinkSummaryPlugin(Star):
         return b""
 
     @staticmethod
-    def _cover_image_result(event: AstrMessageEvent, cover: bytes):
-        """Build an image-only result from already validated cover bytes.
+    def _summary_with_cover_result(event: AstrMessageEvent, text: str, cover: bytes):
+        """Build one message chain containing the summary and validated cover.
 
-        The import is intentionally lazy so the pure unit-test harness (and
-        older AstrBot versions without ``message_components``) can still load
-        the plugin.  Returning ``None`` lets the caller use the regular result
-        helpers as a compatibility fallback.
+        QQ clients can discard a second independently emitted image result after
+        a text reply.  Keeping the two components in one AstrBot message chain
+        makes the cover part of the same Bilibili summary while never giving the
+        downstream adapter a remote CDN URL to fetch.
         """
 
         if not cover:
@@ -2280,7 +2344,7 @@ class LinkSummaryPlugin(Star):
         try:
             import astrbot.api.message_components as Comp
 
-            return chain_result([Comp.Image.fromBytes(cover)])
+            return chain_result([Comp.Plain(text), Comp.Image.fromBytes(cover)])
         except Exception as exc:
             logger.info(f"[link_summary] cover_chain_skip reason={type(exc).__name__}")
             return None
@@ -2370,11 +2434,11 @@ class LinkSummaryPlugin(Star):
         event.stop_event()
         if payload.cover_url:
             payload.cover_bytes = await self._download_bilibili_cover(payload.cover_url)
-        # Text is yielded first so an adapter-side image send failure cannot
-        # swallow the useful metadata/summary.  Never hand the remote CDN URL
-        # back to OneBot/NapCat for a second, uncontrolled download.
-        yield event.plain_result(payload.text)
         if payload.cover_bytes:
-            image_result = self._cover_image_result(event, payload.cover_bytes)
-            if image_result is not None:
-                yield image_result
+            result = self._summary_with_cover_result(event, payload.text, payload.cover_bytes)
+            if result is not None:
+                yield result
+                return
+        # A cover is optional enrichment.  Do not hand the remote CDN URL back
+        # to OneBot/NapCat when a local image-chain result cannot be composed.
+        yield event.plain_result(payload.text)

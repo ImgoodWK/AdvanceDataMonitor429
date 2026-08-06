@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import json
 import sys
 import types
 import unittest
@@ -132,6 +133,46 @@ class TextechIntentRoutingTests(unittest.TestCase):
         self.assertFalse(event.stopped)
         self.assertEqual(event.textech_route["owner"], "astrbot")
         self.assertEqual(event.textech_route["reason"], "link_summary_request")
+
+    def test_mobile_rich_cards_are_reserved_for_link_summary(self) -> None:
+        url = "https://www.bilibili.com/video/BV187GV6HE65"
+        payload = {
+            "app": "com.tencent.miniapp_01",
+            "meta": {"detail_1": {"qqdocurl": url}},
+            "preview": "https://qq.example/preview.jpg",
+        }
+        serialized = json.dumps(payload)
+        cases = (
+            {"type": "app", "data": {"data": serialized}},
+            {"type": "appmessage", "data": {"payload": serialized}},
+            {"type": "ark", "data": {"ark": serialized}},
+            {"type": "miniapp", "ark": serialized},
+        )
+        for component in cases:
+            event = Event("TPS online", messages=[component])
+            asyncio.run(self.plugin.on_message(event))
+            with self.subTest(component=component["type"]):
+                self.assertFalse(event.stopped)
+                self.assertTrue(event.call_llm)
+                self.assertEqual(event.textech_route["owner"], "astrbot")
+                self.assertEqual(event.textech_route["reason"], "link_summary_request")
+
+    def test_mobile_rich_card_media_does_not_override_webae_route(self) -> None:
+        payload = json.dumps(
+            {
+                "preview": "https://qq.example/preview.jpg",
+                "cover": "https://qq.example/cover.jpg",
+                "attachment": {"url": "https://qq.example/image.jpg"},
+            }
+        )
+        event = Event(
+            "tps status",
+            messages=[{"type": "app", "data": {"data": payload}}],
+        )
+        asyncio.run(self.plugin.on_message(event))
+        self.assertTrue(event.stopped)
+        self.assertFalse(event.call_llm)
+        self.assertEqual(event.textech_route["owner"], "webae")
 
     def test_serialized_navigation_card_is_reserved_for_summary(self) -> None:
         url = "https://www.bilibili.com/video/BV187GV6HE65"
