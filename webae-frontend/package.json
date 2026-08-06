@@ -13,29 +13,29 @@
     "clean": "node -e \"require('fs').rmSync('../.workspace/webae-build',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@ant-design/icons": "^5.5.2",
-    "@tanstack/react-virtual": "^3.14.5",
-    "@types/leaflet": "1.9.14",
+    "@ant-design/icons": "^6.3.2",
+    "@tanstack/react-virtual": "^3.14.9",
+    "@types/leaflet": "1.9.22",
     "@types/supercluster": "^7.1.3",
-    "antd": "^5.22.2",
+    "antd": "^6.5.3",
     "cytoscape": "^3.34.0",
     "cytoscape-cose-bilkent": "^4.1.0",
     "fflate": "^0.8.2",
-    "gridstack": "^11.1.0",
+    "gridstack": "^13.0.2",
     "leaflet": "1.9.4",
     "modern-screenshot": "^4.7.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-leaflet": "4.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-leaflet": "5.0.0",
     "supercluster": "^8.0.1"
   },
   "devDependencies": {
-    "@types/cytoscape": "^3.21.9",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.3",
-    "typescript": "^5.6.3",
-    "vite": "^6.4.3",
-    "vitest": "^3.2.6"
+    "@types/cytoscape": "^3.31.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10"
   }
 }
