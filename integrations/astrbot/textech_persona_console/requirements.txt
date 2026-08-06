@@ -2,7 +2,7 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 bcrypt==4.2.1
 itsdangerous==2.2.0
-python-multipart==0.0.20
+python-multipart==0.0.31
 pydantic==2.10.4
 pydantic-settings==2.7.0
 aiofiles==24.1.0

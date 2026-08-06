@@ -11,6 +11,7 @@ import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -196,13 +197,14 @@ public class EmbeddedVoiceModelManager {
 
     private void copyEntriesFromClasspath(String resourcePrefix, List<String> entries, File target) throws IOException {
         ensureTargetDirectory(target);
+        List<File> outputs = validateArchiveOutputs(resourcePrefix, entries, target);
         ClassLoader loader = EmbeddedVoiceModelManager.class.getClassLoader();
+        int outputIndex = 0;
         for (String entry : entries) {
             if (entry.endsWith("/")) {
                 continue;
             }
-            String relative = entry.substring(resourcePrefix.length());
-            File output = new File(target, relative.replace('/', File.separatorChar));
+            File output = outputs.get(outputIndex++);
             ensureParent(output);
             try (InputStream in = loader.getResourceAsStream(entry);
                 FileOutputStream out = new FileOutputStream(output)) {
@@ -217,17 +219,24 @@ public class EmbeddedVoiceModelManager {
     private void copyEntriesFromJarFile(File jarFile, String resourcePrefix, List<String> entries, File target)
         throws IOException {
         ensureTargetDirectory(target);
+        List<File> outputs = validateArchiveOutputs(resourcePrefix, entries, target);
         try (JarFile jar = new JarFile(jarFile)) {
+            int outputIndex = 0;
             for (String entry : entries) {
+                if (entry == null) {
+                    throw new IOException("Refusing null archive entry");
+                }
                 if (entry.endsWith("/")) {
                     continue;
                 }
+                // Keep the validated output aligned with the manifest entry even when the
+                // archive does not contain that entry. Otherwise a missing entry could cause
+                // the next valid file to be written to the wrong destination.
+                File output = outputs.get(outputIndex++);
                 JarEntry jarEntry = jar.getJarEntry(entry);
                 if (jarEntry == null || jarEntry.isDirectory()) {
                     continue;
                 }
-                String relative = entry.substring(resourcePrefix.length());
-                File output = new File(target, relative.replace('/', File.separatorChar));
                 ensureParent(output);
                 try (InputStream in = jar.getInputStream(jarEntry);
                     FileOutputStream out = new FileOutputStream(output)) {
@@ -240,21 +249,95 @@ public class EmbeddedVoiceModelManager {
     private void copyEntriesFromDirectory(File root, String resourcePrefix, List<String> entries, File target)
         throws IOException {
         ensureTargetDirectory(target);
+        List<File> outputs = validateArchiveOutputs(resourcePrefix, entries, target);
+        List<File> inputs = new ArrayList<>();
+        for (String entry : entries) {
+            if (!entry.endsWith("/")) {
+                inputs.add(resolveContainedPath(root, entry, "directory source"));
+            }
+        }
+        int inputIndex = 0;
+        int outputIndex = 0;
         for (String entry : entries) {
             if (entry.endsWith("/")) {
                 continue;
             }
-            File input = new File(root, entry.replace('/', File.separatorChar));
+            File input = inputs.get(inputIndex++);
+            File output = outputs.get(outputIndex++);
             if (!input.isFile()) {
                 continue;
             }
-            String relative = entry.substring(resourcePrefix.length());
-            File output = new File(target, relative.replace('/', File.separatorChar));
             ensureParent(output);
             try (InputStream in = new FileInputStream(input); FileOutputStream out = new FileOutputStream(output)) {
                 copyStream(in, out);
             }
         }
+    }
+
+    /**
+     * Resolves every archive entry before writing any output. This keeps a later
+     * malicious entry from escaping the cache after earlier entries were written.
+     */
+    private List<File> validateArchiveOutputs(String resourcePrefix, List<String> entries, File target)
+        throws IOException {
+        List<File> outputs = new ArrayList<>();
+        for (String entry : entries) {
+            if (entry == null) {
+                throw new IOException("Refusing null archive entry");
+            }
+            if (entry.endsWith("/")) {
+                continue;
+            }
+            if (!entry.startsWith(resourcePrefix)) {
+                throw new IOException("Refusing archive entry outside resource root: " + entry);
+            }
+            String relative = entry.substring(resourcePrefix.length());
+            outputs.add(resolveContainedPath(target, relative, "target directory"));
+        }
+        return outputs;
+    }
+
+    /**
+     * Resolves an archive-derived path and requires canonical containment below
+     * the supplied base. Archive paths always use '/', so a backslash is rejected
+     * explicitly even when running on a Unix host; on Windows it would otherwise
+     * become a second path separator and enable traversal.
+     */
+    private File resolveContainedPath(File base, String path, String sourceDescription) throws IOException {
+        if (path == null || path.isEmpty()) {
+            throw new IOException("Refusing empty archive path from " + sourceDescription);
+        }
+        if (path.indexOf('\\') >= 0) {
+            throw new IOException(
+                "Refusing archive path with backslash separator from " + sourceDescription + ": " + path);
+        }
+        if (path.startsWith("/")
+            || (path.length() >= 2 && Character.isLetter(path.charAt(0)) && path.charAt(1) == ':')) {
+            throw new IOException("Refusing absolute archive path from " + sourceDescription + ": " + path);
+        }
+        String[] segments = path.split("/", -1);
+        for (String segment : segments) {
+            if ("..".equals(segment)) {
+                throw new IOException("Refusing archive path traversal from " + sourceDescription + ": " + path);
+            }
+        }
+        Path canonicalBase = base.getCanonicalFile()
+            .toPath();
+        Path normalizedPath = canonicalBase.resolve(path.replace('/', File.separatorChar))
+            .normalize();
+        if (normalizedPath.equals(canonicalBase) || !normalizedPath.startsWith(canonicalBase)) {
+            throw new IOException("Refusing archive path outside " + sourceDescription + ": " + path);
+        }
+        // Resolve existing symlinks in the destination path as a second containment check.
+        // This closes the gap between lexical normalization and the filesystem that will
+        // receive the extracted bytes.
+        Path canonicalPath = normalizedPath.toFile()
+            .getCanonicalFile()
+            .toPath();
+        if (!canonicalPath.startsWith(canonicalBase)) {
+            throw new IOException("Refusing archive path outside " + sourceDescription + ": " + path);
+        }
+        return canonicalPath.toFile();
     }
 
     private void ensureTargetDirectory(File target) throws IOException {

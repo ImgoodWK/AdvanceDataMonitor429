@@ -1,9 +1,8 @@
 package com.imgood.textech.assistant.ai;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -12,8 +11,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -42,11 +39,8 @@ public final class WebSearchService {
     private static final String[] ALL_PROVIDERS = { PROVIDER_AUTO, PROVIDER_TAVILY_KEYLESS, PROVIDER_DUCKDUCKGO,
         PROVIDER_TAVILY, PROVIDER_BRAVE, PROVIDER_SERPER, PROVIDER_SEARXNG };
 
-    private static final Pattern DDG_LINK_PATTERN = Pattern
-        .compile("class=\"result__a\"[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>", Pattern.CASE_INSENSITIVE);
-    private static final Pattern DDG_SNIPPET_PATTERN = Pattern
-        .compile("class=\"result__snippet\"[^>]*>(.*?)</(?:a|td)>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-    private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
+    /** Maximum response body retained from a search provider. */
+    private static final int MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
     private WebSearchService() {}
 
@@ -317,18 +311,68 @@ public final class WebSearchService {
     private static List<WebSearchResult> searchDuckDuckGo(String query, int maxResults) throws IOException {
         String body = "q=" + urlEncode(query) + "&b=&kl=&df=";
         String html = postForm("https://html.duckduckgo.com/html/", body);
+        return parseDuckDuckGoResults(html, maxResults);
+    }
+
+    /**
+     * Parses DuckDuckGo markup using a monotonic literal scanner. This avoids regex backtracking on
+     * malformed HTML while preserving the existing result and snippet pairing behavior.
+     */
+    static List<WebSearchResult> parseDuckDuckGoResults(String html, int maxResults) {
         List<WebSearchResult> results = new ArrayList<>();
-        Matcher linkMatcher = DDG_LINK_PATTERN.matcher(html);
-        Matcher snippetMatcher = DDG_SNIPPET_PATTERN.matcher(html);
         List<String> titles = new ArrayList<>();
         List<String> urls = new ArrayList<>();
-        while (linkMatcher.find() && urls.size() < maxResults) {
-            urls.add(decodeDuckDuckGoUrl(linkMatcher.group(1)));
-            titles.add(stripHtml(linkMatcher.group(2)));
+        int resultLimit = clampMaxResults(maxResults);
+        if (html == null || html.isEmpty()) {
+            return results;
+        }
+        int cursor = 0;
+        while (urls.size() < resultLimit) {
+            int marker = indexOfIgnoreCase(html, "class=\"result__a\"", cursor);
+            if (marker < 0) {
+                break;
+            }
+            int openEnd = html.indexOf('>', marker);
+            if (openEnd < 0) {
+                break;
+            }
+            int hrefStart = indexOfIgnoreCase(html, "href=\"", marker);
+            if (hrefStart >= 0 && hrefStart < openEnd) {
+                hrefStart += 6;
+                int hrefEnd = html.indexOf('"', hrefStart);
+                if (hrefEnd >= 0 && hrefEnd < openEnd) {
+                    int contentStart = openEnd + 1;
+                    int contentEnd = indexOfIgnoreCase(html, "</a>", contentStart);
+                    if (contentEnd >= 0) {
+                        urls.add(decodeDuckDuckGoUrl(html.substring(hrefStart, hrefEnd)));
+                        titles.add(stripHtml(html.substring(contentStart, contentEnd)));
+                        cursor = contentEnd + 4;
+                        continue;
+                    }
+                }
+            }
+            // Always advance past malformed markup so the same marker cannot be revisited.
+            cursor = Math.max(marker + 1, openEnd + 1);
         }
         List<String> snippets = new ArrayList<>();
-        while (snippetMatcher.find() && snippets.size() < maxResults) {
-            snippets.add(stripHtml(snippetMatcher.group(1)));
+        cursor = 0;
+        while (snippets.size() < resultLimit) {
+            int marker = indexOfIgnoreCase(html, "class=\"result__snippet\"", cursor);
+            if (marker < 0) {
+                break;
+            }
+            int openEnd = html.indexOf('>', marker);
+            if (openEnd < 0) {
+                break;
+            }
+            int contentStart = openEnd + 1;
+            int closeEnd = findSnippetEnd(html, contentStart);
+            if (closeEnd >= 0) {
+                snippets.add(stripHtml(html.substring(contentStart, closeEnd)));
+                cursor = closeEnd + 4;
+            } else {
+                cursor = Math.max(marker + 1, openEnd + 1);
+            }
         }
         for (int i = 0; i < urls.size(); i++) {
             String snippet = i < snippets.size() ? snippets.get(i) : "";
@@ -336,6 +380,35 @@ public final class WebSearchService {
             results.add(new WebSearchResult(title, urls.get(i), snippet));
         }
         return results;
+    }
+
+    private static int findSnippetEnd(String html, int from) {
+        for (int i = Math.max(0, from); i < html.length(); i++) {
+            if (html.charAt(i) == '<') {
+                if (matchesIgnoreCase(html, i, "</a>")) {
+                    return i;
+                }
+                if (matchesIgnoreCase(html, i, "</td>")) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static int indexOfIgnoreCase(String value, String needle, int from) {
+        int limit = value.length() - needle.length();
+        for (int i = Math.max(0, from); i <= limit; i++) {
+            if (matchesIgnoreCase(value, i, needle)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean matchesIgnoreCase(String value, int offset, String needle) {
+        return offset >= 0 && offset + needle.length() <= value.length()
+            && value.regionMatches(true, offset, needle, 0, needle.length());
     }
 
     private static List<WebSearchResult> searchBrave(String query, int maxResults, SearchRuntime runtime)
@@ -526,23 +599,40 @@ public final class WebSearchService {
             : connection.getErrorStream();
         String response = readStream(stream);
         if (responseCode < 200 || responseCode >= 300) {
-            throw new IOException("HTTP " + responseCode + ": " + response);
+            throw new IOException("HTTP " + responseCode);
         }
         return response;
     }
 
-    private static String readStream(InputStream stream) throws IOException {
+    static String readStream(InputStream stream) throws IOException {
         if (stream == null) {
             return "";
         }
-        StringBuilder builder = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                builder.append(line);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        int total = 0;
+        int count;
+        try (InputStream input = stream) {
+            while ((count = input.read(buffer)) != -1) {
+                if (count > MAX_RESPONSE_BYTES - total) {
+                    throw new IOException("HTTP response exceeds maximum size.");
+                }
+                output.write(buffer, 0, count);
+                total += count;
             }
         }
-        return builder.toString();
+        // The previous implementation used BufferedReader.readLine(), which deliberately
+        // removed line terminators from provider responses. Preserve that public behavior
+        // after decoding the bounded byte buffer so JSON/HTML parsing remains unchanged.
+        String decoded = new String(output.toByteArray(), StandardCharsets.UTF_8);
+        StringBuilder withoutLineTerminators = new StringBuilder(decoded.length());
+        for (int i = 0; i < decoded.length(); i++) {
+            char current = decoded.charAt(i);
+            if (current != '\r' && current != '\n') {
+                withoutLineTerminators.append(current);
+            }
+        }
+        return withoutLineTerminators.toString();
     }
 
     private static String getJsonString(JsonObject object, String key) {
@@ -624,13 +714,58 @@ public final class WebSearchService {
         if (value == null) {
             return "";
         }
-        return HTML_TAG_PATTERN.matcher(value)
-            .replaceAll("")
-            .replace("&amp;", "&")
-            .replace("&quot;", "\"")
-            .replace("&#39;", "'")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
+        StringBuilder text = new StringBuilder(value.length());
+        int tagStart = -1;
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (tagStart >= 0) {
+                if (current == '>') {
+                    tagStart = -1;
+                }
+                continue;
+            }
+            if (current == '<') {
+                tagStart = i;
+                continue;
+            }
+            text.append(current);
+        }
+        if (tagStart >= 0) {
+            // Keep an unmatched '<' sequence, matching the old <[^>]+> behavior.
+            text.append(value, tagStart, value.length());
+        }
+        StringBuilder decoded = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '&') {
+                if (text.indexOf("&amp;", i) == i) {
+                    decoded.append('&');
+                    i += 4;
+                    continue;
+                }
+                if (text.indexOf("&quot;", i) == i) {
+                    decoded.append('"');
+                    i += 5;
+                    continue;
+                }
+                if (text.indexOf("&#39;", i) == i) {
+                    decoded.append('\'');
+                    i += 4;
+                    continue;
+                }
+                if (text.indexOf("&lt;", i) == i) {
+                    decoded.append('<');
+                    i += 3;
+                    continue;
+                }
+                if (text.indexOf("&gt;", i) == i) {
+                    decoded.append('>');
+                    i += 3;
+                    continue;
+                }
+            }
+            decoded.append(text.charAt(i));
+        }
+        return decoded.toString()
             .trim();
     }
 
